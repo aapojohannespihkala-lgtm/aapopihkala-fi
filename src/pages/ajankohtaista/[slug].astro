@@ -1,0 +1,59 @@
+---
+const posts = import.meta.glob('../../data/ajankohtaista/*.md', { eager: true });
+
+export function getStaticPaths() {
+  const posts = import.meta.glob('../../data/ajankohtaista/*.md', { eager: true });
+
+  return Object.entries(posts).map(([path, post]: any) => {
+    const slug = path.split('/').pop().replace('.md', '');
+
+    return {
+      params: { slug },
+      props: { post },
+    };
+  });
+}
+
+const { post } = Astro.props;
+const { Content, frontmatter } = post;
+
+const {
+  title,
+  date,
+  topics,
+  location,
+  source,
+  sourceUrl
+} = frontmatter;
+---
+
+<html lang="fi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title} - Aapo Pihkala</title>
+    <link rel="canonical" href={Astro.url.href} />
+  </head>
+
+  <body>
+    <main>
+      <article>
+        <p>
+          {date} · {topics?.join(' · ')} · {location}
+        </p>
+
+        <Content />
+
+        <p>
+          <strong>Lähde:</strong>
+          <a href={sourceUrl}>{source}</a>
+        </p>
+
+        <p>
+          <strong>Aapo Pihkala</strong><br />
+          Maisema-arkkitehti, Espoo
+        </p>
+      </article>
+    </main>
+  </body>
+</html>
