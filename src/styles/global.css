@@ -94,7 +94,6 @@ a:hover {
   line-height: 1;
 
   letter-spacing: -0.02em;
-
   text-decoration: none;
 
   transform: translateY(-4px);
@@ -103,16 +102,13 @@ a:hover {
 .topbar-nav {
   display: flex;
   align-items: center;
-
   gap: 58px;
 
   color: var(--muted);
 
   font-size: 0.91rem;
   font-weight: 400;
-
   line-height: 1;
-
   letter-spacing: 0.01em;
 
   transform: translateY(-4px);
@@ -134,19 +130,14 @@ a:hover {
   margin: 0 auto;
 
   display: grid;
-
-  grid-template-columns:
-    58%
-    22%;
-
+  grid-template-columns: 55% 29%;
   justify-content: space-between;
   align-items: center;
 }
 
 .hero-content {
   min-width: 0;
-
-  transform: translateY(52px);
+  transform: translateY(36px);
 }
 
 .hero h1 {
@@ -159,7 +150,6 @@ a:hover {
 
   font-size: 3.9rem;
   font-weight: 400;
-
   line-height: 0.96;
   letter-spacing: -0.045em;
 }
@@ -177,43 +167,36 @@ a:hover {
 
   color: var(--text);
 
-  font-size: 1.11rem;
+  font-size: 1.09rem;
   font-weight: 400;
-
   line-height: 1.45;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.014em;
 }
 
 .hero-secondary {
   max-width: 570px;
 
-  margin-top: 9px !important;
+  margin-top: 10px !important;
 
   color: var(--muted);
 
-  font-size: 1.11rem;
+  font-size: 1.09rem;
   font-weight: 400;
-
   line-height: 1.45;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.014em;
 }
-
-
-/* LOCATION */
 
 .hero-location {
   margin: 54px 0 0;
 
   display: flex;
   align-items: center;
-
   gap: 11px;
 
   color: var(--muted);
 
   font-size: 0.9rem;
   font-weight: 400;
-
   line-height: 1;
   letter-spacing: -0.008em;
 }
@@ -230,11 +213,7 @@ a:hover {
 
   border: 1.5px solid var(--muted);
 
-  border-radius:
-    50%
-    50%
-    50%
-    0;
+  border-radius: 50% 50% 50% 0;
 
   transform: rotate(-45deg);
 }
@@ -251,16 +230,15 @@ a:hover {
   left: 4px;
 
   border-radius: 50%;
-
   background: var(--muted);
 }
 
 
-/* TOPOGRAFIA */
+/* HERO ART */
 
 .hero-art {
-  width: 270px;
-  height: 360px;
+  width: 360px;
+  height: 280px;
 
   justify-self: start;
 
@@ -268,373 +246,231 @@ a:hover {
   align-items: center;
   justify-content: center;
 
-  transform: translate(-70px, 67px);
+  transform: translate(-18px, 34px);
 }
 
 .landscape-symbol {
   display: block;
 
-  width: 265px;
-  height: 350px;
+  width: 360px;
+  height: 280px;
 
   overflow: visible;
 }
 
+.topography-frame {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.03);
+}
 
-/* Tavalliset korkeuskäyrät */
 
-.topographic-map {
+/* TOPOGRAPHY */
+
+.terrain-field,
+.terrain-open,
+.terrain-shadows {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.terrain-open {
+  animation: openFieldShift 9s ease-in-out infinite alternate;
+}
+
+.terrain-shadows {
+  animation: shadowShift 8.5s ease-in-out infinite alternate;
+}
+
+.contour-primary {
+  animation: contourShiftPrimary 7.5s ease-in-out infinite alternate;
+}
+
+.contour-secondary {
+  animation: contourShiftSecondary 6.8s ease-in-out infinite alternate;
+}
+
+.contour-tertiary {
+  animation: contourShiftTertiary 6.2s ease-in-out infinite alternate;
+}
+
+.open-contour,
+.terrain-field path {
   fill: none;
 
-  stroke: #777975;
-  stroke-width: 0.9;
+  stroke: #666864;
+  stroke-width: 1.16;
+
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.open-contour {
+  stroke: #b8bab6;
+  stroke-width: 1.02;
+  opacity: 0.56;
+}
+
+.index-contour {
+  stroke: #313330 !important;
+  stroke-width: 1.9 !important;
+  opacity: 0.96;
+}
+
+.summit-contour {
+  stroke: #454743 !important;
+  stroke-width: 1.38 !important;
+  opacity: 0.94;
+}
+
+.shadow-ridge {
+  fill: none;
+
+  stroke: #101111;
 
   stroke-linecap: round;
   stroke-linejoin: round;
 
-  opacity: 0.68;
+  filter: url(#softBlur);
+}
 
-  transform-box: fill-box;
-  transform-origin: center;
+.shadow-a {
+  stroke-width: 34;
+  opacity: 0.22;
+}
 
-  animation:
-    map-drift
-    18s
-    ease-in-out
-    infinite
-    alternate;
+.shadow-b {
+  stroke-width: 28;
+  opacity: 0.18;
+}
+
+.shadow-c {
+  stroke-width: 22;
+  opacity: 0.15;
 }
 
 
-/* Indeksikäyrät selvästi paksumpina */
+/* TOPOGRAPHY ANIMATION */
 
-.index-contour {
-  stroke: #494b48;
-  stroke-width: 1.9;
-
-  opacity: 0.78;
-}
-
-
-/* Huippujen sisimmät käyrät */
-
-.summit-contour {
-  stroke: #555753;
-  stroke-width: 1.35;
-
-  opacity: 0.88;
-}
-
-
-/* Taustalla jatkuvat avoimet käyrät */
-
-.terrain-open {
-  opacity: 0.38;
-
-  transform-box: fill-box;
-  transform-origin: center;
-
-  animation:
-    terrain-open-shift
-    17s
-    ease-in-out
-    infinite
-    alternate;
-}
-
-
-/* Suurin maastomuoto */
-
-.main-relief {
-  transform-box: fill-box;
-  transform-origin: center;
-
-  animation:
-    main-relief-shift
-    13s
-    ease-in-out
-    infinite
-    alternate;
-}
-
-
-/* Oikean yläkulman maastomuoto */
-
-.secondary-relief {
-  transform-box: fill-box;
-  transform-origin: center;
-
-  animation:
-    secondary-relief-shift
-    16s
-    ease-in-out
-    infinite
-    alternate;
-}
-
-
-/* Alaosan maastomuoto */
-
-.lower-relief {
-  transform-box: fill-box;
-  transform-origin: center;
-
-  animation:
-    lower-relief-shift
-    14s
-    ease-in-out
-    infinite
-    alternate;
-}
-
-
-/* Hulevesireitti */
-
-.drainage-line {
-  fill: none;
-
-  stroke: var(--accent);
-  stroke-width: 1.25;
-
-  stroke-linecap: round;
-
-  stroke-dasharray: 6 12;
-  stroke-dashoffset: 0;
-
-  opacity: 0;
-
-  animation:
-    drainage-visibility
-    18s
-    ease-in-out
-    infinite,
-    drainage-flow
-    6s
-    linear
-    infinite;
-}
-
-
-/* Koko maasto liikkuu hieman */
-
-@keyframes map-drift {
-
+@keyframes openFieldShift {
   0% {
     transform:
-      translate(-3px, 2px)
-      rotate(-0.35deg)
-      scale(0.992);
+      translate(-5px, -2px)
+      scale(0.985, 1.02);
   }
 
   50% {
     transform:
-      translate(4px, -4px)
-      rotate(0.35deg)
-      scale(1.012);
+      translate(7px, 4px)
+      scale(1.03, 0.98);
   }
 
   100% {
     transform:
-      translate(-2px, 3px)
-      rotate(-0.2deg)
-      scale(1.002);
+      translate(-3px, 6px)
+      scale(0.99, 1.01);
   }
-
 }
 
-
-/* Avoimet käyrät liikkuvat sivusuunnassa */
-
-@keyframes terrain-open-shift {
-
+@keyframes shadowShift {
   0% {
+    transform:
+      translate(-7px, 5px)
+      scale(1.02, 0.97)
+      rotate(-0.4deg);
+    opacity: 0.45;
+  }
+
+  50% {
+    transform:
+      translate(10px, -6px)
+      scale(0.98, 1.05)
+      rotate(0.55deg);
+    opacity: 0.7;
+  }
+
+  100% {
     transform:
       translate(-4px, -2px)
-      scaleX(0.97)
-      scaleY(1.02);
+      scale(1.03, 0.99)
+      rotate(-0.22deg);
+    opacity: 0.5;
   }
-
-  50% {
-    transform:
-      translate(6px, 5px)
-      scaleX(1.045)
-      scaleY(0.98);
-  }
-
-  100% {
-    transform:
-      translate(-2px, -5px)
-      scaleX(0.985)
-      scaleY(1.03);
-  }
-
 }
 
-
-/* Pääreliefi muuttuu selvästi */
-
-@keyframes main-relief-shift {
-
+@keyframes contourShiftPrimary {
   0% {
     transform:
-      translate(-3px, -2px)
-      scale(0.975, 1.035)
-      rotate(-0.25deg);
-  }
-
-  25% {
-    transform:
-      translate(5px, 3px)
-      scale(1.045, 0.965)
-      rotate(0.3deg);
-  }
-
-  55% {
-    transform:
-      translate(-5px, 7px)
-      scale(0.99, 1.045)
-      rotate(-0.18deg);
-  }
-
-  80% {
-    transform:
-      translate(6px, -4px)
-      scale(1.035, 0.975)
-      rotate(0.25deg);
-  }
-
-  100% {
-    transform:
-      translate(-1px, 1px)
-      scale(1.005, 0.995);
-  }
-
-}
-
-
-/* Oikea huippu vaeltaa itsenäisesti */
-
-@keyframes secondary-relief-shift {
-
-  0% {
-    transform:
-      translate(5px, -6px)
-      scale(0.96, 1.06)
-      rotate(0.5deg);
+      translate(-5px, -4px)
+      scale(0.985, 1.03)
+      rotate(-0.35deg);
   }
 
   35% {
     transform:
-      translate(-8px, 5px)
-      scale(1.075, 0.94)
-      rotate(-0.45deg);
+      translate(8px, 5px)
+      scale(1.045, 0.965)
+      rotate(0.45deg);
   }
 
   70% {
     transform:
-      translate(5px, 9px)
-      scale(0.95, 1.055)
-      rotate(0.35deg);
+      translate(-7px, 7px)
+      scale(0.99, 1.04)
+      rotate(-0.28deg);
   }
 
   100% {
     transform:
-      translate(-3px, -3px)
-      scale(1.035, 0.98)
-      rotate(-0.2deg);
+      translate(3px, -3px)
+      scale(1.01, 0.99)
+      rotate(0.12deg);
   }
-
 }
 
-
-/* Alaosan muoto muuttuu eri rytmissä */
-
-@keyframes lower-relief-shift {
-
+@keyframes contourShiftSecondary {
   0% {
     transform:
-      translate(-5px, 4px)
-      scale(1.06, 0.94)
-      rotate(-0.35deg);
+      translate(5px, -8px)
+      scale(0.96, 1.06)
+      rotate(0.45deg);
   }
 
-  30% {
+  45% {
     transform:
-      translate(5px, -6px)
-      scale(0.955, 1.07)
-      rotate(0.4deg);
-  }
-
-  65% {
-    transform:
-      translate(-7px, -1px)
-      scale(1.04, 0.965)
-      rotate(-0.25deg);
+      translate(-8px, 6px)
+      scale(1.08, 0.94)
+      rotate(-0.55deg);
   }
 
   100% {
     transform:
-      translate(4px, 5px)
-      scale(0.98, 1.035)
-      rotate(0.2deg);
+      translate(2px, 4px)
+      scale(1.02, 0.98)
+      rotate(0.16deg);
   }
-
 }
 
-
-/* Vihreä valumalinja tulee selvästi näkyviin hetkeksi */
-
-@keyframes drainage-visibility {
-
+@keyframes contourShiftTertiary {
   0% {
-    opacity: 0;
+    transform:
+      translate(-6px, 4px)
+      scale(1.06, 0.95)
+      rotate(-0.45deg);
   }
 
-  12% {
-    opacity: 0;
-  }
-
-  22% {
-    opacity: 0.18;
-  }
-
-  32% {
-    opacity: 0.6;
-  }
-
-  48% {
-    opacity: 0.72;
-  }
-
-  62% {
-    opacity: 0.38;
-  }
-
-  74% {
-    opacity: 0.08;
-  }
-
-  84% {
-    opacity: 0;
+  50% {
+    transform:
+      translate(7px, -6px)
+      scale(0.96, 1.08)
+      rotate(0.48deg);
   }
 
   100% {
-    opacity: 0;
+    transform:
+      translate(-2px, -1px)
+      scale(1.01, 1.01)
+      rotate(-0.12deg);
   }
-
-}
-
-
-@keyframes drainage-flow {
-
-  from {
-    stroke-dashoffset: 0;
-  }
-
-  to {
-    stroke-dashoffset: -72;
-  }
-
 }
 
 
@@ -658,7 +494,6 @@ a:hover {
 
 .feed {
   margin-left: 8%;
-
   padding-bottom: 150px;
 }
 
@@ -668,7 +503,6 @@ a:hover {
 
 .feed-post + .feed-post {
   padding-top: 90px;
-
   border-top: 1px solid var(--border);
 }
 
@@ -682,10 +516,8 @@ a:hover {
 
   font-size: 0.7rem;
   font-weight: 500;
-
   line-height: 1.6;
   letter-spacing: 0.07em;
-
   text-transform: uppercase;
 }
 
@@ -705,14 +537,8 @@ a:hover {
     Times,
     serif;
 
-  font-size: clamp(
-    2.9rem,
-    4.8vw,
-    4.2rem
-  );
-
+  font-size: clamp(2.9rem, 4.8vw, 4.2rem);
   font-weight: 400;
-
   line-height: 0.98;
   letter-spacing: -0.035em;
 }
@@ -743,17 +569,14 @@ a:hover {
 
   font-size: 1.75rem;
   font-weight: 400;
-
   line-height: 1.2;
 }
 
 .post-body .aapo-view-title {
   margin-top: 2.8em;
-
   padding-left: 20px;
 
   border-left: 3px solid var(--accent);
-
   color: var(--accent);
 }
 
@@ -767,7 +590,6 @@ a:hover {
   border-top: 1px solid var(--border);
 
   color: var(--muted);
-
   font-size: 0.82rem;
 }
 
@@ -807,7 +629,6 @@ a:hover {
   margin: 8px 0 0;
 
   color: var(--muted);
-
   font-size: 0.9rem;
 }
 
@@ -831,7 +652,6 @@ a:hover {
   margin-top: 58px;
 
   color: var(--muted);
-
   font-size: 0.85rem;
 }
 
@@ -839,22 +659,18 @@ a:hover {
 /* TABLET */
 
 @media (max-width: 1000px) {
-
   :root {
     --nav-width: calc(100% - 64px);
     --hero-width: calc(100% - 100px);
   }
 
   .hero {
-    grid-template-columns:
-      minmax(0, 1fr)
-      180px;
-
+    grid-template-columns: minmax(0, 1fr) 220px;
     gap: 50px;
   }
 
   .hero-content {
-    transform: translateY(36px);
+    transform: translateY(24px);
   }
 
   .hero h1 {
@@ -862,27 +678,27 @@ a:hover {
   }
 
   .hero-art {
-    width: 180px;
-    transform: translate(-22px, 53px);
+    width: 220px;
+    height: 190px;
+
+    transform: translate(-4px, 26px);
   }
 
   .landscape-symbol {
-    width: 180px;
-    height: 290px;
+    width: 220px;
+    height: 190px;
   }
 
   .feed,
   .single-post {
     margin-left: 0;
   }
-
 }
 
 
 /* MOBILE */
 
 @media (max-width: 700px) {
-
   :root {
     --nav-width: calc(100% - 32px);
     --hero-width: calc(100% - 32px);
@@ -909,7 +725,6 @@ a:hover {
     min-height: calc(100vh - 64px);
 
     grid-template-columns: 1fr;
-
     align-content: center;
 
     padding: 48px 0;
@@ -920,11 +735,7 @@ a:hover {
   }
 
   .hero h1 {
-    font-size: clamp(
-      3.4rem,
-      15vw,
-      4.2rem
-    );
+    font-size: clamp(3.4rem, 15vw, 4.2rem);
   }
 
   .hero-description {
@@ -969,29 +780,21 @@ a:hover {
   .feed-post + .feed-post {
     padding-top: 64px;
   }
-
 }
 
 
 /* REDUCED MOTION */
 
 @media (prefers-reduced-motion: reduce) {
-
   html {
     scroll-behavior: auto;
   }
 
-  .topographic-map,
   .terrain-open,
-  .main-relief,
-  .secondary-relief,
-  .lower-relief,
-  .drainage-line {
+  .terrain-shadows,
+  .contour-primary,
+  .contour-secondary,
+  .contour-tertiary {
     animation: none;
   }
-
-  .drainage-line {
-    opacity: 0.16;
-  }
-
 }
