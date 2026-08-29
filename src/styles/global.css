@@ -36,7 +36,6 @@ body {
 
   font-size: 18px;
   line-height: 1.6;
-
   font-weight: 400;
 
   -webkit-font-smoothing: antialiased;
@@ -90,7 +89,7 @@ a:hover {
     Times,
     serif;
 
-  font-size: 1.58rem;
+  font-size: 1.52rem;
   font-weight: 400;
   line-height: 1;
 
@@ -105,16 +104,16 @@ a:hover {
   display: flex;
   align-items: center;
 
-  gap: 54px;
+  gap: 58px;
 
   color: var(--muted);
 
-  font-size: 0.98rem;
+  font-size: 0.91rem;
   font-weight: 400;
 
   line-height: 1;
 
-  letter-spacing: -0.015em;
+  letter-spacing: -0.012em;
 
   transform: translateY(-4px);
 }
@@ -148,11 +147,10 @@ a:hover {
   min-width: 0;
 
   /*
-    Aiemmin 34px.
-    Tämä laskee kokonaisuuden lähemmäs
-    Gustavon pystysijaintia.
+    Nostetaan hieman edellisestä versiosta,
+    jotta myös sijainti näkyy ensimmäisessä näkymässä.
   */
-  transform: translateY(71px);
+  transform: translateY(52px);
 }
 
 
@@ -166,13 +164,7 @@ a:hover {
     Times,
     serif;
 
-  /*
-    Aiemmin noin 4.7rem.
-    3.9rem vastaa kuvien perusteella
-    paljon paremmin Gustavon otsikkokorkeutta.
-  */
   font-size: 3.9rem;
-
   font-weight: 400;
 
   line-height: 0.96;
@@ -184,7 +176,7 @@ a:hover {
 /* HERO DESCRIPTION */
 
 .hero-description {
-  margin-top: 46px;
+  margin-top: 48px;
 }
 
 .hero-description p {
@@ -196,40 +188,34 @@ a:hover {
 
   color: var(--text);
 
-  font-size: 1.24rem;
+  font-size: 1.11rem;
   font-weight: 400;
 
   line-height: 1.45;
 
-  letter-spacing: -0.018em;
+  letter-spacing: -0.012em;
 }
 
 .hero-secondary {
   max-width: 570px;
 
-  margin-top: 3px !important;
+  margin-top: 9px !important;
 
   color: var(--muted);
 
-  font-size: 1.24rem;
+  font-size: 1.11rem;
   font-weight: 400;
 
   line-height: 1.45;
 
-  letter-spacing: -0.018em;
+  letter-spacing: -0.012em;
 }
 
 
 /* LOCATION */
 
 .hero-location {
-  /*
-    Gustavolla sijainti on selvästi
-    alempana. Meidän toinen kuvausrivimme
-    on lyhyempi, joten valkoinen tila
-    luodaan tällä tarkoituksella.
-  */
-  margin: 80px 0 0;
+  margin: 54px 0 0;
 
   display: flex;
   align-items: center;
@@ -238,12 +224,12 @@ a:hover {
 
   color: var(--muted);
 
-  font-size: 0.96rem;
+  font-size: 0.9rem;
   font-weight: 400;
 
   line-height: 1;
 
-  letter-spacing: -0.012em;
+  letter-spacing: -0.008em;
 }
 
 .hero-location span {
@@ -296,11 +282,6 @@ a:hover {
   align-items: center;
   justify-content: center;
 
-  /*
-    Kuvavertailussa nykyinen grafiikka
-    oli noin 100px liian oikealla
-    ja 90px liian ylhäällä.
-  */
   transform: translate(-100px, 100px);
 }
 
@@ -424,7 +405,6 @@ a:hover {
 
 .feed {
   margin-left: 8%;
-
   padding-bottom: 150px;
 }
 
@@ -434,7 +414,6 @@ a:hover {
 
 .feed-post + .feed-post {
   padding-top: 90px;
-
   border-top: 1px solid var(--border);
 }
 
@@ -446,7 +425,7 @@ a:hover {
 
   color: var(--muted);
 
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 500;
 
   line-height: 1.6;
@@ -593,7 +572,6 @@ a:hover {
 
 .single-post {
   margin-left: 8%;
-
   padding-bottom: 140px;
 }
 
@@ -624,7 +602,7 @@ a:hover {
   }
 
   .hero-content {
-    transform: translateY(45px);
+    transform: translateY(36px);
   }
 
   .hero h1 {
@@ -667,8 +645,7 @@ a:hover {
 
   .topbar-nav {
     gap: 20px;
-
-    font-size: 0.84rem;
+    font-size: 0.82rem;
   }
 
   .hero {
@@ -678,7 +655,7 @@ a:hover {
 
     align-content: center;
 
-    padding: 54px 0;
+    padding: 48px 0;
   }
 
   .hero-content {
@@ -694,16 +671,21 @@ a:hover {
   }
 
   .hero-description {
-    margin-top: 36px;
+    margin-top: 34px;
   }
 
   .hero-primary,
   .hero-secondary {
-    font-size: 1.12rem;
+    font-size: 1.05rem;
+  }
+
+  .hero-secondary {
+    margin-top: 7px !important;
   }
 
   .hero-location {
-    margin-top: 48px;
+    margin-top: 42px;
+    font-size: 0.88rem;
   }
 
   .hero-art {
