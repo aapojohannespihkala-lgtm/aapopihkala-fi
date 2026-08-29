@@ -69,9 +69,7 @@ const personSchema = {
   </head>
 
   <body>
-
     <header class="topbar">
-
       <a
         class="topbar-name"
         href="/"
@@ -80,7 +78,6 @@ const personSchema = {
       </a>
 
       <nav class="topbar-nav">
-
         <a href="#ajankohtaista">
           ajankohtaista
         </a>
@@ -92,19 +89,14 @@ const personSchema = {
         >
           linkedin
         </a>
-
       </nav>
-
     </header>
 
     <section class="hero">
-
       <div class="hero-content">
-
         <h1>Aapo Pihkala</h1>
 
         <div class="hero-description">
-
           <p class="hero-primary">
             Maisema-arkkitehti, Espoo.
           </p>
@@ -112,14 +104,12 @@ const personSchema = {
           <p class="hero-secondary">
             Kaupunki, maisema ja luonto.
           </p>
-
         </div>
 
         <p class="hero-location">
           <span aria-hidden="true"></span>
           Espoo, Suomi
         </p>
-
       </div>
 
       <div
@@ -128,145 +118,205 @@ const personSchema = {
       >
         <svg
           class="landscape-symbol"
-          viewBox="0 0 240 360"
+          viewBox="0 0 280 380"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
-            <clipPath id="dropClip">
-              <path
-                d="
-                  M120 20
-                  C96 58 61 101 49 144
-                  C34 197 49 260 82 298
-                  C103 322 137 322 158 298
-                  C191 260 206 197 191 144
-                  C179 101 144 58 120 20Z
-                "
-              />
+            <clipPath id="landscapeMask">
+              <path d="
+                M126 22
+                C158 24 188 42 205 74
+                C219 102 220 136 215 164
+                C209 194 196 219 194 246
+                C192 277 204 311 188 336
+                C173 360 143 367 116 356
+                C90 346 74 320 72 292
+                C70 264 80 240 75 214
+                C69 185 49 156 53 120
+                C56 86 74 57 101 39
+                C109 33 117 28 126 22
+              " />
             </clipPath>
           </defs>
 
-          <g class="topography">
+          <g class="landscape-core">
             <path
-              d="M120 55
-                 C91 59 69 83 65 116
-                 C61 150 75 184 96 202
-                 C108 212 132 212 144 202
-                 C165 184 179 150 175 116
-                 C171 83 149 59 120 55Z"
+              class="shell-outline"
+              d="
+                M126 22
+                C158 24 188 42 205 74
+                C219 102 220 136 215 164
+                C209 194 196 219 194 246
+                C192 277 204 311 188 336
+                C173 360 143 367 116 356
+                C90 346 74 320 72 292
+                C70 264 80 240 75 214
+                C69 185 49 156 53 120
+                C56 86 74 57 101 39
+                C109 33 117 28 126 22
+              "
             />
 
-            <path
-              d="M120 83
-                 C99 86 84 104 82 128
-                 C79 153 89 176 103 188
-                 C112 195 128 195 137 188
-                 C151 176 161 153 158 128
-                 C156 104 141 86 120 83Z"
-            />
+            <g clip-path="url(#landscapeMask)">
+              <g class="terrain-lines">
+                <path d="M92 70 C117 54 155 52 183 66 C200 75 209 90 212 108" />
+                <path d="M79 102 C106 84 149 80 182 95 C206 106 218 124 220 146" />
+                <path d="M66 139 C99 117 150 113 187 130 C214 143 227 162 228 186" />
+                <path d="M61 182 C99 159 151 157 188 175 C214 188 224 210 223 235" />
+                <path d="M67 228 C103 206 151 206 182 221 C205 232 214 251 211 272" />
+                <path d="M78 274 C108 257 145 256 171 268 C188 276 196 290 194 307" />
+              </g>
 
-            <path
-              d="M120 110
-                 C106 113 98 125 97 141
-                 C96 158 103 172 112 180
-                 C117 184 123 184 128 180
-                 C137 172 144 158 143 141
-                 C142 125 134 113 120 110Z"
-            />
+              <g class="city-grid">
+                <line x1="96" y1="88" x2="96" y2="312" />
+                <line x1="116" y1="76" x2="116" y2="328" />
+                <line x1="136" y1="68" x2="136" y2="334" />
+                <line x1="156" y1="78" x2="156" y2="325" />
+                <line x1="176" y1="96" x2="176" y2="305" />
 
-            <path
-              d="M82 242
-                 C95 224 108 217 120 217
-                 C132 217 145 224 158 242
-                 C167 254 169 269 164 282"
-            />
+                <line x1="88" y1="106" x2="184" y2="106" />
+                <line x1="82" y1="136" x2="190" y2="136" />
+                <line x1="78" y1="168" x2="194" y2="168" />
+                <line x1="78" y1="202" x2="192" y2="202" />
+                <line x1="82" y1="238" x2="186" y2="238" />
+                <line x1="91" y1="276" x2="176" y2="276" />
 
-            <path
-              d="M91 263
-                 C101 249 111 243 120 243
-                 C129 243 139 249 149 263
-                 C154 270 156 279 153 287"
-            />
+                <circle cx="96" cy="106" r="1.8" />
+                <circle cx="116" cy="106" r="1.8" />
+                <circle cx="136" cy="106" r="1.8" />
+                <circle cx="156" cy="106" r="1.8" />
+                <circle cx="176" cy="106" r="1.8" />
+
+                <circle cx="96" cy="136" r="1.8" />
+                <circle cx="116" cy="136" r="1.8" />
+                <circle cx="136" cy="136" r="1.8" />
+                <circle cx="156" cy="136" r="1.8" />
+                <circle cx="176" cy="136" r="1.8" />
+
+                <circle cx="96" cy="168" r="1.8" />
+                <circle cx="116" cy="168" r="1.8" />
+                <circle cx="136" cy="168" r="1.8" />
+                <circle cx="156" cy="168" r="1.8" />
+                <circle cx="176" cy="168" r="1.8" />
+
+                <circle cx="96" cy="202" r="1.8" />
+                <circle cx="116" cy="202" r="1.8" />
+                <circle cx="136" cy="202" r="1.8" />
+                <circle cx="156" cy="202" r="1.8" />
+                <circle cx="176" cy="202" r="1.8" />
+
+                <circle cx="96" cy="238" r="1.8" />
+                <circle cx="116" cy="238" r="1.8" />
+                <circle cx="136" cy="238" r="1.8" />
+                <circle cx="156" cy="238" r="1.8" />
+                <circle cx="176" cy="238" r="1.8" />
+
+                <circle cx="96" cy="276" r="1.8" />
+                <circle cx="116" cy="276" r="1.8" />
+                <circle cx="136" cy="276" r="1.8" />
+                <circle cx="156" cy="276" r="1.8" />
+                <circle cx="176" cy="276" r="1.8" />
+              </g>
+
+              <g class="eco-network">
+                <path d="M94 84 C113 69 144 64 165 74 C183 82 196 100 198 122" />
+                <path d="M85 126 C101 114 121 109 143 111 C162 113 180 122 194 139" />
+                <path d="M79 170 C97 156 121 150 145 151 C169 152 188 164 200 182" />
+                <path d="M84 219 C102 204 125 198 147 199 C169 201 183 213 193 232" />
+                <path d="M96 266 C113 253 135 247 154 250 C170 252 182 262 188 278" />
+                <path d="M120 85 C110 112 109 136 117 159 C125 181 140 201 154 217 C166 231 171 250 168 271" />
+                <path d="M150 95 C145 117 148 136 157 152 C166 167 177 181 181 201" />
+
+                <circle cx="93" cy="83" r="2.4" />
+                <circle cx="117" cy="71" r="2.1" />
+                <circle cx="143" cy="68" r="2.8" />
+                <circle cx="168" cy="76" r="2.2" />
+                <circle cx="187" cy="95" r="2.1" />
+                <circle cx="197" cy="122" r="2.5" />
+
+                <circle cx="84" cy="126" r="2.2" />
+                <circle cx="106" cy="114" r="1.9" />
+                <circle cx="130" cy="110" r="2.6" />
+                <circle cx="153" cy="112" r="2.1" />
+                <circle cx="174" cy="121" r="2.0" />
+                <circle cx="194" cy="139" r="2.3" />
+
+                <circle cx="78" cy="170" r="2.0" />
+                <circle cx="99" cy="158" r="2.1" />
+                <circle cx="124" cy="151" r="2.5" />
+                <circle cx="148" cy="151" r="2.1" />
+                <circle cx="172" cy="158" r="2.3" />
+                <circle cx="199" cy="182" r="2.2" />
+
+                <circle cx="84" cy="219" r="2.1" />
+                <circle cx="106" cy="205" r="2.0" />
+                <circle cx="129" cy="199" r="2.6" />
+                <circle cx="150" cy="200" r="2.2" />
+                <circle cx="171" cy="208" r="2.1" />
+                <circle cx="192" cy="232" r="2.5" />
+
+                <circle cx="95" cy="266" r="2.3" />
+                <circle cx="115" cy="255" r="2.0" />
+                <circle cx="137" cy="249" r="2.7" />
+                <circle cx="158" cy="251" r="2.2" />
+                <circle cx="178" cy="261" r="2.0" />
+                <circle cx="188" cy="278" r="2.2" />
+
+                <circle cx="117" cy="160" r="2.1" />
+                <circle cx="139" cy="199" r="2.2" />
+                <circle cx="154" cy="217" r="2.2" />
+                <circle cx="168" cy="271" r="2.0" />
+              </g>
+
+              <g class="flow-layer">
+                <path
+                  class="water-thread"
+                  d="M128 63 C116 95 147 123 129 157 C115 182 148 214 132 246 C119 270 130 301 126 333"
+                />
+
+                <circle cx="122" cy="76" r="1.9" />
+                <circle cx="132" cy="104" r="1.6" />
+                <circle cx="126" cy="132" r="2" />
+                <circle cx="138" cy="162" r="1.7" />
+                <circle cx="129" cy="191" r="1.8" />
+                <circle cx="141" cy="222" r="1.6" />
+                <circle cx="131" cy="250" r="1.9" />
+                <circle cx="136" cy="279" r="1.5" />
+                <circle cx="127" cy="308" r="1.8" />
+              </g>
+
+              <g class="free-particles">
+                <circle cx="71" cy="116" r="1.6" />
+                <circle cx="213" cy="156" r="1.4" />
+                <circle cx="79" cy="247" r="1.5" />
+                <circle cx="196" cy="289" r="1.5" />
+                <circle cx="102" cy="331" r="1.4" />
+                <circle cx="172" cy="58" r="1.5" />
+                <circle cx="58" cy="183" r="1.3" />
+                <circle cx="218" cy="224" r="1.3" />
+              </g>
+            </g>
           </g>
-
-          <g
-            class="water-particles"
-            clip-path="url(#dropClip)"
-          >
-            <circle cx="95" cy="55" r="2" />
-            <circle cx="121" cy="48" r="1.8" />
-            <circle cx="144" cy="64" r="1.5" />
-
-            <circle cx="82" cy="91" r="1.5" />
-            <circle cx="108" cy="81" r="2" />
-            <circle cx="137" cy="92" r="1.7" />
-            <circle cx="160" cy="108" r="1.5" />
-
-            <circle cx="71" cy="128" r="1.8" />
-            <circle cx="96" cy="119" r="1.5" />
-            <circle cx="122" cy="132" r="2" />
-            <circle cx="151" cy="127" r="1.5" />
-            <circle cx="173" cy="145" r="1.8" />
-
-            <circle cx="66" cy="166" r="1.5" />
-            <circle cx="91" cy="157" r="1.8" />
-            <circle cx="116" cy="170" r="1.5" />
-            <circle cx="145" cy="163" r="2" />
-            <circle cx="178" cy="181" r="1.5" />
-
-            <circle cx="72" cy="205" r="2" />
-            <circle cx="101" cy="196" r="1.5" />
-            <circle cx="126" cy="210" r="1.8" />
-            <circle cx="155" cy="203" r="1.5" />
-
-            <circle cx="83" cy="239" r="1.5" />
-            <circle cx="108" cy="233" r="2" />
-            <circle cx="140" cy="241" r="1.6" />
-            <circle cx="162" cy="254" r="1.8" />
-
-            <circle cx="94" cy="276" r="1.8" />
-            <circle cx="120" cy="268" r="1.5" />
-            <circle cx="147" cy="280" r="2" />
-
-            <circle cx="111" cy="306" r="1.5" />
-            <circle cx="132" cy="307" r="1.8" />
-          </g>
-
-          <path
-            class="water-line"
-            d="
-              M120 48
-              C105 84 132 108 114 143
-              C99 172 132 196 116 226
-              C103 250 126 277 120 311
-            "
-          />
         </svg>
       </div>
-
     </section>
 
     <main
       class="page-shell"
       id="ajankohtaista"
     >
-
       <section
         class="feed"
         aria-label="Ajankohtaista"
       >
-
         {
           posts.map((post) => {
             const Content = post.Content;
 
             return (
               <article class="feed-post">
-
                 <header>
-
                   <p class="post-meta">
-
                     {formatDate(post.date)}
 
                     {' · '}
@@ -274,7 +324,6 @@ const personSchema = {
                     {post.topics.map(
                       (topic: string, index: number) => (
                         <>
-
                           {index > 0 && ' · '}
 
                           {
@@ -286,7 +335,6 @@ const personSchema = {
                               )
                               : topic
                           }
-
                         </>
                       )
                     )}
@@ -294,19 +342,13 @@ const personSchema = {
                     {' · '}
 
                     {post.location}
-
                   </p>
 
                   <h2 class="post-title">
-
-                    <a
-                      href={`/ajankohtaista/${post.slug}`}
-                    >
+                    <a href={`/ajankohtaista/${post.slug}`}>
                       {post.title}
                     </a>
-
                   </h2>
-
                 </header>
 
                 <div class="post-body">
@@ -314,23 +356,17 @@ const personSchema = {
                 </div>
 
                 <p class="source">
-
                   <strong>Lähde:</strong>{' '}
 
                   <a href={post.sourceUrl}>
                     {post.source} ↗
                   </a>
-
                 </p>
-
               </article>
             );
           })
         }
-
       </section>
-
     </main>
-
   </body>
 </html>
