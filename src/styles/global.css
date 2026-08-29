@@ -146,10 +146,6 @@ a:hover {
 .hero-content {
   min-width: 0;
 
-  /*
-    Nostetaan hieman edellisestä versiosta,
-    jotta myös sijainti näkyy ensimmäisessä näkymässä.
-  */
   transform: translateY(52px);
 }
 
@@ -270,11 +266,11 @@ a:hover {
 }
 
 
-/* HERO ART */
+/* LANDSCAPE ANIMATION */
 
 .hero-art {
-  width: 180px;
-  height: 330px;
+  width: 200px;
+  height: 350px;
 
   justify-self: start;
 
@@ -282,106 +278,192 @@ a:hover {
   align-items: center;
   justify-content: center;
 
-  transform: translate(-100px, 100px);
+  transform: translate(-90px, 82px);
 }
 
-.hero-art-shape {
-  position: relative;
+.landscape-symbol {
+  display: block;
 
-  width: 142px;
-  height: 320px;
+  width: 190px;
+  height: 330px;
+
+  overflow: visible;
 }
 
-.hero-art-shape::before {
-  content: "";
 
-  position: absolute;
-  inset: 0;
+/* Topografiset viivat */
 
-  background-image:
-    radial-gradient(
-      circle,
-      rgba(20, 20, 20, 0.83) 0 1px,
-      transparent 1.35px
-    ),
-    radial-gradient(
-      circle,
-      rgba(20, 20, 20, 0.38) 0 0.8px,
-      transparent 1.15px
-    );
+.topography {
+  fill: none;
 
-  background-size:
-    5px 5px,
-    7px 7px;
+  stroke: var(--muted);
+  stroke-width: 1.15;
 
-  background-position:
-    0 0,
-    2px 3px;
+  opacity: 0.45;
 
-  clip-path: polygon(
-    38% 1%,
-    56% 2%,
-    68% 8%,
-    76% 18%,
-    78% 31%,
-    73% 42%,
-    64% 49%,
-    70% 56%,
-    78% 64%,
-    81% 76%,
-    77% 89%,
-    67% 97%,
-    49% 100%,
-    35% 96%,
-    29% 87%,
-    31% 75%,
-    37% 65%,
-    41% 57%,
-    36% 50%,
-    27% 43%,
-    22% 32%,
-    23% 19%,
-    29% 8%
-  );
+  transform-box: fill-box;
+  transform-origin: center;
 
-  opacity: 0.82;
+  animation:
+    topography-breathe
+    9s
+    ease-in-out
+    infinite;
 }
 
-.hero-art-shape::after {
-  content: "";
+.topography path:nth-child(2) {
+  opacity: 0.76;
 
-  position: absolute;
+  animation:
+    contour-shift
+    11s
+    ease-in-out
+    infinite;
+}
 
-  left: 20%;
-  top: 13%;
+.topography path:nth-child(3) {
+  opacity: 0.58;
 
-  width: 72%;
-  height: 76%;
+  animation:
+    contour-shift
+    8s
+    ease-in-out
+    infinite reverse;
+}
 
-  background-image:
-    radial-gradient(
-      circle,
-      rgba(15, 15, 15, 0.55) 0 0.8px,
-      transparent 1.2px
-    );
+.topography path:nth-child(4),
+.topography path:nth-child(5) {
+  opacity: 0.4;
+}
 
-  background-size: 6px 6px;
-  background-position: 3px 1px;
 
-  clip-path: polygon(
-    24% 0,
-    68% 5%,
-    92% 27%,
-    72% 48%,
-    95% 68%,
-    68% 100%,
-    23% 91%,
-    5% 67%,
-    24% 48%,
-    0 23%
-  );
+/* Virtaava hulevesilinja */
 
-  opacity: 0.48;
+.water-line {
+  fill: none;
+
+  stroke: var(--accent);
+  stroke-width: 1.45;
+  stroke-linecap: round;
+
+  opacity: 0.6;
+
+  stroke-dasharray: 8 11;
+  stroke-dashoffset: 0;
+
+  animation:
+    water-flow
+    6s
+    linear
+    infinite;
+}
+
+
+/* Vesipisteet */
+
+.water-particles {
+  fill: var(--accent);
+}
+
+.water-particles circle {
+  opacity: 0;
+
+  transform-box: fill-box;
+  transform-origin: center;
+
+  animation:
+    particle-flow
+    7s
+    ease-in-out
+    infinite;
+}
+
+.water-particles circle:nth-child(3n + 1) {
+  animation-delay: -1.2s;
+}
+
+.water-particles circle:nth-child(3n + 2) {
+  animation-delay: -3.4s;
+}
+
+.water-particles circle:nth-child(3n) {
+  animation-delay: -5.1s;
+}
+
+.water-particles circle:nth-child(5n) {
+  animation-duration: 8.5s;
+}
+
+.water-particles circle:nth-child(7n) {
+  animation-duration: 6.2s;
+}
+
+
+/* Animaatiot */
+
+@keyframes topography-breathe {
+  0% {
+    transform: scale(0.985);
+    opacity: 0.36;
+  }
+
+  50% {
+    transform: scale(1.018);
+    opacity: 0.52;
+  }
+
+  100% {
+    transform: scale(0.985);
+    opacity: 0.36;
+  }
+}
+
+@keyframes contour-shift {
+  0% {
+    transform: translateY(-2px) scale(0.99);
+  }
+
+  50% {
+    transform: translateY(3px) scale(1.015);
+  }
+
+  100% {
+    transform: translateY(-2px) scale(0.99);
+  }
+}
+
+@keyframes water-flow {
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: -76;
+  }
+}
+
+@keyframes particle-flow {
+  0% {
+    opacity: 0;
+    transform: translateY(-9px) scale(0.8);
+  }
+
+  20% {
+    opacity: 0.5;
+  }
+
+  55% {
+    opacity: 0.8;
+  }
+
+  85% {
+    opacity: 0.38;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(22px) scale(1);
+  }
 }
 
 
@@ -414,6 +496,7 @@ a:hover {
 
 .feed-post + .feed-post {
   padding-top: 90px;
+
   border-top: 1px solid var(--border);
 }
 
@@ -572,6 +655,7 @@ a:hover {
 
 .single-post {
   margin-left: 8%;
+
   padding-bottom: 140px;
 }
 
@@ -596,7 +680,7 @@ a:hover {
   .hero {
     grid-template-columns:
       minmax(0, 1fr)
-      160px;
+      170px;
 
     gap: 60px;
   }
@@ -610,9 +694,14 @@ a:hover {
   }
 
   .hero-art {
-    width: 150px;
+    width: 160px;
 
-    transform: translate(-40px, 70px);
+    transform: translate(-35px, 58px);
+  }
+
+  .landscape-symbol {
+    width: 155px;
+    height: 290px;
   }
 
   .feed,
@@ -645,6 +734,7 @@ a:hover {
 
   .topbar-nav {
     gap: 20px;
+
     font-size: 0.82rem;
   }
 
@@ -685,6 +775,7 @@ a:hover {
 
   .hero-location {
     margin-top: 42px;
+
     font-size: 0.88rem;
   }
 
@@ -711,5 +802,26 @@ a:hover {
 
   .feed-post + .feed-post {
     padding-top: 64px;
+  }
+}
+
+
+/* ACCESSIBILITY */
+
+@media (prefers-reduced-motion: reduce) {
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  .topography,
+  .topography path,
+  .water-line,
+  .water-particles circle {
+    animation: none;
+  }
+
+  .water-particles circle {
+    opacity: 0.45;
   }
 }
