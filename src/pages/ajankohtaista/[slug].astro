@@ -1,4 +1,6 @@
 ---
+import '../../styles/global.css';
+
 export function getStaticPaths() {
   const modules = import.meta.glob('../../data/ajankohtaista/*.md', {
     eager: true,
@@ -82,33 +84,36 @@ const articleSchema = {
   </head>
 
   <body>
-    <main>
-      <article>
+    <header class="site-header">
+      <p class="site-name">
+        <a href="/">Aapo Pihkala</a>
+      </p>
+      <p class="site-role">Maisema-arkkitehti, Espoo</p>
+      <p class="site-tagline">Kaupunki, maisema ja luonto.</p>
+    </header>
+
+    <main class="page-shell">
+      <article class="single-post">
         <header>
-          <p>
+          <p class="post-meta">
             {formatDate(date)} · {topics.join(' · ')} · {location}
           </p>
 
-          <h1>{title}</h1>
+          <h1 class="post-title">{title}</h1>
         </header>
 
-        <Content />
+        <div class="post-body">
+          <Content />
+        </div>
 
-        <footer>
-          <p>
-            <strong>Lähde:</strong>{' '}
-            <a href={sourceUrl}>{source}</a>
-          </p>
+        <p class="source">
+          <strong>Lähde:</strong>{' '}
+          <a href={sourceUrl}>{source} ↗</a>
+        </p>
 
-          <p>
-            <strong>Aapo Pihkala</strong><br />
-            Maisema-arkkitehti, Espoo
-          </p>
-
-          <p>
-            <a href="/">Takaisin etusivulle</a>
-          </p>
-        </footer>
+        <p class="back-link">
+          <a href="/">← Takaisin etusivulle</a>
+        </p>
       </article>
     </main>
   </body>
