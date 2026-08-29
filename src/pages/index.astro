@@ -1,34 +1,125 @@
 ---
+const modules = import.meta.glob('../data/ajankohtaista/*.md', { eager: true });
+
+const posts = Object.entries(modules)
+  .map(([path, post]: any) => ({
+    slug: path.split('/').pop().replace('.md', ''),
+    ...post.frontmatter,
+    Content: post.Content,
+  }))
+  .sort((a, b) => b.date.localeCompare(a.date));
+
+const formatDate = (date: string) => {
+  const [year, month, day] = date.split('-');
+  return `${Number(day)}.${Number(month)}.${year}`;
+};
+
+const topicLinks: Record<string, string> = {
+  Kaupunkiluonto: '/kaupunkiluonto',
+  Biodiversiteetti: '/biodiversiteetti',
+  Hulevedet: '/hulevedet',
+  'Maisema-arkkitehtuuri': '/maisema-arkkitehti-espoo',
+};
+
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Aapo Pihkala',
+  jobTitle: 'Maisema-arkkitehti',
+  url: 'https://aapopihkala.fi/',
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Espoo',
+    addressCountry: 'FI',
+  },
+  knowsAbout: [
+    'Maisema-arkkitehtuuri',
+    'Kaupunkiluonto',
+    'Hulevedet',
+    'Biodiversiteetti',
+  ],
+};
 ---
 
 <html lang="fi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
+
     <title>Aapo Pihkala - Maisema-arkkitehti Espoo</title>
+
     <meta
       name="description"
-      content="Aapo Pihkala on espoolainen maisema-arkkitehti. Teemoina maisema-arkkitehtuuri, kaupunkiluonto, hulevedet ja biodiversiteetti."
+      content="Aapo Pihkala on espoolainen maisema-arkkitehti. Ajankohtaisia näkökulmia maisema-arkkitehtuuriin, kaupunkiluontoon, hulevesiin ja biodiversiteettiin."
     />
+
+    <meta name="author" content="Aapo Pihkala" />
     <link rel="canonical" href="https://aapopihkala.fi/" />
+
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify(personSchema)}
+    />
   </head>
 
   <body>
     <main>
-      <h1>Aapo Pihkala</h1>
+      <header>
+        <h1>Aapo Pihkala</h1>
+        <p>Maisema-arkkitehti, Espoo</p>
+        <p>Kaupunki, maisema ja luonto.</p>
+      </header>
 
-      <p>Maisema-arkkitehti - Espoo</p>
+      {
+        posts.map((post) => {
+          const Content = post.Content;
 
-      <p>Kaupunki, maisema ja luonto.</p>
+          return (
+            <article>
+              <header>
+                <p>
+                  {formatDate(post.date)}
+                  {' · '}
+                  {post.topics.map((topic: string, index: number) => (
+                    <>
+                      {index > 0 && ' · '}
+                      {
+                        topicLinks[topic]
+                          ? <a href={topicLinks[topic]}>{topic}</a>
+                          : topic
+                      }
+                    </>
+                  ))}
+                  {' · '}
+                  {post.location}
+                </p>
 
-      <nav>
-        <ul>
-          <li><a href="/maisema-arkkitehti-espoo">Maisema-arkkitehti Espoo</a></li>
-          <li><a href="/kaupunkiluonto">Kaupunkiluonto</a></li>
-          <li><a href="/hulevedet">Hulevedet</a></li>
-          <li><a href="/biodiversiteetti">Biodiversiteetti</a></li>
-        </ul>
-      </nav>
+                <h2>
+                  <a href={`/ajankohtaista/${post.slug}`}>
+                    {post.title}
+                  </a>
+                </h2>
+              </header>
+
+              <Content />
+
+              <footer>
+                <p>
+                  <strong>Lähde:</strong>{' '}
+                  <a href={post.sourceUrl}>
+                    {post.source}
+                  </a>
+                </p>
+
+                <p>
+                  <strong>Aapo Pihkala</strong><br />
+                  Maisema-arkkitehti, Espoo
+                </p>
+              </footer>
+            </article>
+          );
+        })
+      }
     </main>
   </body>
 </html>
