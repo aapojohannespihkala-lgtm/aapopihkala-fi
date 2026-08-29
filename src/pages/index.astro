@@ -56,7 +56,11 @@ const personSchema = {
     />
 
     <meta name="author" content="Aapo Pihkala" />
-    <link rel="canonical" href="https://aapopihkala.fi/" />
+
+    <link
+      rel="canonical"
+      href="https://aapopihkala.fi/"
+    />
 
     <script
       type="application/ld+json"
@@ -67,10 +71,19 @@ const personSchema = {
   <body>
 
     <header class="topbar">
-      <a class="topbar-name" href="/">aapo</a>
+
+      <a
+        class="topbar-name"
+        href="/"
+      >
+        aapo
+      </a>
 
       <nav class="topbar-nav">
-        <a href="#ajankohtaista">ajankohtaista</a>
+
+        <a href="#ajankohtaista">
+          ajankohtaista
+        </a>
 
         <a
           href="https://www.linkedin.com/"
@@ -79,39 +92,54 @@ const personSchema = {
         >
           linkedin
         </a>
+
       </nav>
+
     </header>
 
     <section class="hero">
+
       <div class="hero-content">
 
         <h1>Aapo Pihkala</h1>
 
         <div class="hero-description">
+
           <p class="hero-primary">
-            Maisema-arkkitehti, kaupunkiluonto, hulevedet.
+            Maisema-arkkitehti, Espoo.
           </p>
 
           <p class="hero-secondary">
             Kaupunki, maisema ja luonto.
           </p>
+
         </div>
 
         <p class="hero-location">
-          <span aria-hidden="true">⌖</span>
+          <span aria-hidden="true"></span>
           Espoo, Suomi
         </p>
 
       </div>
 
-      <div class="hero-art" aria-hidden="true">
+      <div
+        class="hero-art"
+        aria-hidden="true"
+      >
         <div class="hero-art-shape"></div>
       </div>
+
     </section>
 
-    <main class="page-shell" id="ajankohtaista">
+    <main
+      class="page-shell"
+      id="ajankohtaista"
+    >
 
-      <section class="feed" aria-label="Ajankohtaista">
+      <section
+        class="feed"
+        aria-label="Ajankohtaista"
+      >
 
         {
           posts.map((post) => {
@@ -121,31 +149,49 @@ const personSchema = {
               <article class="feed-post">
 
                 <header>
+
                   <p class="post-meta">
+
                     {formatDate(post.date)}
-                    {' · '}
-
-                    {post.topics.map((topic: string, index: number) => (
-                      <>
-                        {index > 0 && ' · '}
-
-                        {
-                          topicLinks[topic]
-                            ? <a href={topicLinks[topic]}>{topic}</a>
-                            : topic
-                        }
-                      </>
-                    ))}
 
                     {' · '}
+
+                    {post.topics.map(
+                      (topic: string, index: number) => (
+                        <>
+
+                          {index > 0 && ' · '}
+
+                          {
+                            topicLinks[topic]
+                              ? (
+                                <a href={topicLinks[topic]}>
+                                  {topic}
+                                </a>
+                              )
+                              : topic
+                          }
+
+                        </>
+                      )
+                    )}
+
+                    {' · '}
+
                     {post.location}
+
                   </p>
 
                   <h2 class="post-title">
-                    <a href={`/ajankohtaista/${post.slug}`}>
+
+                    <a
+                      href={`/ajankohtaista/${post.slug}`}
+                    >
                       {post.title}
                     </a>
+
                   </h2>
+
                 </header>
 
                 <div class="post-body">
@@ -153,10 +199,13 @@ const personSchema = {
                 </div>
 
                 <p class="source">
+
                   <strong>Lähde:</strong>{' '}
+
                   <a href={post.sourceUrl}>
                     {post.source} ↗
                   </a>
+
                 </p>
 
               </article>
@@ -165,6 +214,7 @@ const personSchema = {
         }
 
       </section>
+
     </main>
 
   </body>
