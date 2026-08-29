@@ -1,4 +1,6 @@
 ---
+import '../styles/global.css';
+
 const modules = import.meta.glob('../data/ajankohtaista/*.md', { eager: true });
 
 const posts = Object.entries(modules)
@@ -63,63 +65,60 @@ const personSchema = {
   </head>
 
   <body>
-    <main>
-      <header>
-        <h1>Aapo Pihkala</h1>
-        <p>Maisema-arkkitehti, Espoo</p>
-        <p>Kaupunki, maisema ja luonto.</p>
-      </header>
+    <header class="site-header">
+      <h1 class="site-name">Aapo Pihkala</h1>
+      <p class="site-role">Maisema-arkkitehti, Espoo</p>
+      <p class="site-tagline">Kaupunki, maisema ja luonto.</p>
+    </header>
 
-      {
-        posts.map((post) => {
-          const Content = post.Content;
+    <main class="page-shell">
+      <section class="feed" aria-label="Ajankohtaista">
+        {
+          posts.map((post) => {
+            const Content = post.Content;
 
-          return (
-            <article>
-              <header>
-                <p>
-                  {formatDate(post.date)}
-                  {' · '}
-                  {post.topics.map((topic: string, index: number) => (
-                    <>
-                      {index > 0 && ' · '}
-                      {
-                        topicLinks[topic]
-                          ? <a href={topicLinks[topic]}>{topic}</a>
-                          : topic
-                      }
-                    </>
-                  ))}
-                  {' · '}
-                  {post.location}
-                </p>
+            return (
+              <article class="feed-post">
+                <header>
+                  <p class="post-meta">
+                    {formatDate(post.date)}
+                    {' · '}
+                    {post.topics.map((topic: string, index: number) => (
+                      <>
+                        {index > 0 && ' · '}
+                        {
+                          topicLinks[topic]
+                            ? <a href={topicLinks[topic]}>{topic}</a>
+                            : topic
+                        }
+                      </>
+                    ))}
+                    {' · '}
+                    {post.location}
+                  </p>
 
-                <h2>
-                  <a href={`/ajankohtaista/${post.slug}`}>
-                    {post.title}
-                  </a>
-                </h2>
-              </header>
+                  <h2 class="post-title">
+                    <a href={`/ajankohtaista/${post.slug}`}>
+                      {post.title}
+                    </a>
+                  </h2>
+                </header>
 
-              <Content />
+                <div class="post-body">
+                  <Content />
+                </div>
 
-              <footer>
-                <p>
+                <p class="source">
                   <strong>Lähde:</strong>{' '}
                   <a href={post.sourceUrl}>
-                    {post.source}
+                    {post.source} ↗
                   </a>
                 </p>
-
-                <p>
-                  <strong>Aapo Pihkala</strong><br />
-                  Maisema-arkkitehti, Espoo
-                </p>
-              </footer>
-            </article>
-          );
-        })
-      }
+              </article>
+            );
+          })
+        }
+      </section>
     </main>
   </body>
 </html>
