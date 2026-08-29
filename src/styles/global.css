@@ -50,7 +50,6 @@ a:hover {
   color: var(--accent);
 }
 
-
 /* TOPBAR */
 
 .topbar {
@@ -113,7 +112,7 @@ a:hover {
 
   line-height: 1;
 
-  letter-spacing: -0.012em;
+  letter-spacing: 0.01em;
 
   transform: translateY(-4px);
 }
@@ -121,7 +120,6 @@ a:hover {
 .topbar-nav a {
   text-decoration: none;
 }
-
 
 /* HERO */
 
@@ -145,12 +143,8 @@ a:hover {
 
 .hero-content {
   min-width: 0;
-
   transform: translateY(52px);
 }
-
-
-/* HERO NAME */
 
 .hero h1 {
   margin: 0;
@@ -164,12 +158,8 @@ a:hover {
   font-weight: 400;
 
   line-height: 0.96;
-
   letter-spacing: -0.045em;
 }
-
-
-/* HERO DESCRIPTION */
 
 .hero-description {
   margin-top: 48px;
@@ -188,7 +178,6 @@ a:hover {
   font-weight: 400;
 
   line-height: 1.45;
-
   letter-spacing: -0.012em;
 }
 
@@ -203,12 +192,8 @@ a:hover {
   font-weight: 400;
 
   line-height: 1.45;
-
   letter-spacing: -0.012em;
 }
-
-
-/* LOCATION */
 
 .hero-location {
   margin: 54px 0 0;
@@ -224,7 +209,6 @@ a:hover {
   font-weight: 400;
 
   line-height: 1;
-
   letter-spacing: -0.008em;
 }
 
@@ -265,11 +249,10 @@ a:hover {
   background: var(--muted);
 }
 
-
-/* LANDSCAPE ANIMATION */
+/* LANDSCAPE ORGANISM */
 
 .hero-art {
-  width: 200px;
+  width: 230px;
   height: 350px;
 
   justify-self: start;
@@ -278,194 +261,330 @@ a:hover {
   align-items: center;
   justify-content: center;
 
-  transform: translate(-90px, 82px);
+  transform: translate(-58px, 78px);
 }
 
 .landscape-symbol {
   display: block;
 
-  width: 190px;
-  height: 330px;
+  width: 220px;
+  height: 340px;
 
   overflow: visible;
 }
 
-
-/* Topografiset viivat */
-
-.topography {
-  fill: none;
-
-  stroke: var(--muted);
-  stroke-width: 1.15;
-
-  opacity: 0.45;
-
-  transform-box: fill-box;
+.landscape-core {
   transform-origin: center;
-
-  animation:
-    topography-breathe
-    9s
-    ease-in-out
-    infinite;
+  animation: organismFloat 18s ease-in-out infinite;
 }
 
-.topography path:nth-child(2) {
-  opacity: 0.76;
-
-  animation:
-    contour-shift
-    11s
-    ease-in-out
-    infinite;
-}
-
-.topography path:nth-child(3) {
-  opacity: 0.58;
-
-  animation:
-    contour-shift
-    8s
-    ease-in-out
-    infinite reverse;
-}
-
-.topography path:nth-child(4),
-.topography path:nth-child(5) {
-  opacity: 0.4;
-}
-
-
-/* Virtaava hulevesilinja */
-
-.water-line {
+.shell-outline {
   fill: none;
+  stroke: rgba(120, 120, 118, 0.14);
+  stroke-width: 1.2;
+}
 
-  stroke: var(--accent);
-  stroke-width: 1.45;
+.terrain-lines {
+  fill: none;
+  stroke: rgba(120, 120, 118, 0.28);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  animation: terrainBreathe 12s ease-in-out infinite;
+}
+
+.terrain-lines path:nth-child(2) {
+  opacity: 0.82;
+  animation: terrainDrift 15s ease-in-out infinite;
+}
+
+.terrain-lines path:nth-child(4) {
+  opacity: 0.78;
+  animation: terrainDrift 11s ease-in-out infinite reverse;
+}
+
+.city-grid {
+  fill: rgba(120, 120, 118, 0.52);
+  stroke: rgba(120, 120, 118, 0.22);
+  stroke-width: 1;
+
+  animation: cityPhase 18s ease-in-out infinite;
+}
+
+.city-grid circle:nth-of-type(4n) {
+  opacity: 0.5;
+}
+
+.eco-network {
+  fill: rgba(83, 105, 91, 0.52);
+  stroke: rgba(83, 105, 91, 0.34);
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  opacity: 0;
+
+  animation: ecoPhase 18s ease-in-out infinite;
+}
+
+.eco-network circle:nth-child(odd) {
+  opacity: 0.92;
+}
+
+.flow-layer {
+  opacity: 0.72;
+  animation: flowPresence 18s ease-in-out infinite;
+}
+
+.water-thread {
+  fill: none;
+  stroke: rgba(83, 105, 91, 0.62);
+  stroke-width: 1.6;
   stroke-linecap: round;
 
-  opacity: 0.6;
-
-  stroke-dasharray: 8 11;
+  stroke-dasharray: 8 12;
   stroke-dashoffset: 0;
 
   animation:
-    water-flow
-    6s
-    linear
-    infinite;
+    waterFlow 7s linear infinite,
+    waterPulse 10s ease-in-out infinite;
 }
 
-
-/* Vesipisteet */
-
-.water-particles {
-  fill: var(--accent);
-}
-
-.water-particles circle {
+.flow-layer circle {
+  fill: rgba(83, 105, 91, 0.8);
   opacity: 0;
 
   transform-box: fill-box;
   transform-origin: center;
 
-  animation:
-    particle-flow
-    7s
-    ease-in-out
-    infinite;
+  animation: dropFlow 7.5s ease-in-out infinite;
 }
 
-.water-particles circle:nth-child(3n + 1) {
-  animation-delay: -1.2s;
+.flow-layer circle:nth-child(2) { animation-delay: -0.8s; }
+.flow-layer circle:nth-child(3) { animation-delay: -1.6s; }
+.flow-layer circle:nth-child(4) { animation-delay: -2.4s; }
+.flow-layer circle:nth-child(5) { animation-delay: -3.2s; }
+.flow-layer circle:nth-child(6) { animation-delay: -4s; }
+.flow-layer circle:nth-child(7) { animation-delay: -4.8s; }
+.flow-layer circle:nth-child(8) { animation-delay: -5.6s; }
+.flow-layer circle:nth-child(9) { animation-delay: -6.4s; }
+
+.free-particles {
+  fill: rgba(83, 105, 91, 0.5);
 }
 
-.water-particles circle:nth-child(3n + 2) {
-  animation-delay: -3.4s;
+.free-particles circle {
+  opacity: 0.25;
+  animation: ambientFlicker 9s ease-in-out infinite;
 }
 
-.water-particles circle:nth-child(3n) {
-  animation-delay: -5.1s;
-}
+.free-particles circle:nth-child(2) { animation-delay: -1.3s; }
+.free-particles circle:nth-child(3) { animation-delay: -2.6s; }
+.free-particles circle:nth-child(4) { animation-delay: -3.7s; }
+.free-particles circle:nth-child(5) { animation-delay: -4.9s; }
+.free-particles circle:nth-child(6) { animation-delay: -5.8s; }
+.free-particles circle:nth-child(7) { animation-delay: -6.6s; }
+.free-particles circle:nth-child(8) { animation-delay: -7.5s; }
 
-.water-particles circle:nth-child(5n) {
-  animation-duration: 8.5s;
-}
-
-.water-particles circle:nth-child(7n) {
-  animation-duration: 6.2s;
-}
-
-
-/* Animaatiot */
-
-@keyframes topography-breathe {
+@keyframes organismFloat {
   0% {
-    transform: scale(0.985);
-    opacity: 0.36;
+    transform: translateY(0) translateX(0) scale(0.995);
   }
 
   50% {
-    transform: scale(1.018);
-    opacity: 0.52;
+    transform: translateY(-5px) translateX(2px) scale(1.01);
   }
 
   100% {
-    transform: scale(0.985);
-    opacity: 0.36;
+    transform: translateY(0) translateX(0) scale(0.995);
   }
 }
 
-@keyframes contour-shift {
+@keyframes terrainBreathe {
   0% {
-    transform: translateY(-2px) scale(0.99);
+    opacity: 0.35;
+    transform: scale(0.995);
   }
 
   50% {
-    transform: translateY(3px) scale(1.015);
+    opacity: 0.55;
+    transform: scale(1.012);
   }
 
   100% {
-    transform: translateY(-2px) scale(0.99);
+    opacity: 0.35;
+    transform: scale(0.995);
   }
 }
 
-@keyframes water-flow {
+@keyframes terrainDrift {
+  0% {
+    transform: translateY(-2px);
+  }
+
+  50% {
+    transform: translateY(3px);
+  }
+
+  100% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes cityPhase {
+  0% {
+    opacity: 0.55;
+    transform: translateY(0) scale(1);
+  }
+
+  18% {
+    opacity: 0.58;
+    transform: translateY(0) scale(1);
+  }
+
+  35% {
+    opacity: 0.2;
+    transform: translateY(2px) scale(0.992);
+  }
+
+  50% {
+    opacity: 0.06;
+    transform: translateY(4px) scale(0.985);
+  }
+
+  70% {
+    opacity: 0.08;
+  }
+
+  85% {
+    opacity: 0.36;
+    transform: translateY(1px) scale(0.996);
+  }
+
+  100% {
+    opacity: 0.55;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ecoPhase {
+  0% {
+    opacity: 0.08;
+    transform: scale(0.985);
+  }
+
+  20% {
+    opacity: 0.22;
+  }
+
+  40% {
+    opacity: 0.62;
+    transform: scale(1);
+  }
+
+  58% {
+    opacity: 0.7;
+    transform: scale(1.012);
+  }
+
+  78% {
+    opacity: 0.3;
+  }
+
+  100% {
+    opacity: 0.08;
+    transform: scale(0.985);
+  }
+}
+
+@keyframes flowPresence {
+  0% {
+    opacity: 0.28;
+  }
+
+  20% {
+    opacity: 0.42;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+
+  80% {
+    opacity: 0.45;
+  }
+
+  100% {
+    opacity: 0.28;
+  }
+}
+
+@keyframes waterFlow {
   from {
     stroke-dashoffset: 0;
   }
 
   to {
-    stroke-dashoffset: -76;
+    stroke-dashoffset: -82;
   }
 }
 
-@keyframes particle-flow {
+@keyframes waterPulse {
+  0% {
+    opacity: 0.34;
+  }
+
+  50% {
+    opacity: 0.72;
+  }
+
+  100% {
+    opacity: 0.34;
+  }
+}
+
+@keyframes dropFlow {
   0% {
     opacity: 0;
-    transform: translateY(-9px) scale(0.8);
+    transform: translateY(-8px) scale(0.85);
   }
 
-  20% {
-    opacity: 0.5;
-  }
-
-  55% {
-    opacity: 0.8;
-  }
-
-  85% {
+  18% {
     opacity: 0.38;
+  }
+
+  48% {
+    opacity: 0.88;
+    transform: translateY(4px) scale(1);
+  }
+
+  82% {
+    opacity: 0.28;
   }
 
   100% {
     opacity: 0;
-    transform: translateY(22px) scale(1);
+    transform: translateY(22px) scale(1.05);
   }
 }
 
+@keyframes ambientFlicker {
+  0% {
+    opacity: 0.1;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 0.48;
+    transform: translateY(-2px);
+  }
+
+  100% {
+    opacity: 0.1;
+    transform: translateY(0);
+  }
+}
 
 /* FEED */
 
@@ -496,10 +615,8 @@ a:hover {
 
 .feed-post + .feed-post {
   padding-top: 90px;
-
   border-top: 1px solid var(--border);
 }
-
 
 /* POST META */
 
@@ -512,7 +629,6 @@ a:hover {
   font-weight: 500;
 
   line-height: 1.6;
-
   letter-spacing: 0.07em;
 
   text-transform: uppercase;
@@ -522,7 +638,6 @@ a:hover {
   color: var(--accent);
   text-decoration: none;
 }
-
 
 /* POST TITLE */
 
@@ -543,7 +658,6 @@ a:hover {
   font-weight: 400;
 
   line-height: 0.98;
-
   letter-spacing: -0.035em;
 }
 
@@ -551,12 +665,10 @@ a:hover {
   text-decoration: none;
 }
 
-
 /* POST BODY */
 
 .post-body {
   font-size: 1.04rem;
-
   letter-spacing: -0.01em;
 }
 
@@ -588,7 +700,6 @@ a:hover {
   color: var(--accent);
 }
 
-
 /* SOURCE */
 
 .source {
@@ -605,7 +716,6 @@ a:hover {
 .source strong {
   color: var(--text);
 }
-
 
 /* SINGLE POST */
 
@@ -655,7 +765,6 @@ a:hover {
 
 .single-post {
   margin-left: 8%;
-
   padding-bottom: 140px;
 }
 
@@ -667,11 +776,9 @@ a:hover {
   font-size: 0.85rem;
 }
 
-
 /* TABLET */
 
 @media (max-width: 1000px) {
-
   :root {
     --nav-width: calc(100% - 64px);
     --hero-width: calc(100% - 100px);
@@ -694,14 +801,13 @@ a:hover {
   }
 
   .hero-art {
-    width: 160px;
-
-    transform: translate(-35px, 58px);
+    width: 170px;
+    transform: translate(-20px, 56px);
   }
 
   .landscape-symbol {
-    width: 155px;
-    height: 290px;
+    width: 165px;
+    height: 285px;
   }
 
   .feed,
@@ -710,11 +816,9 @@ a:hover {
   }
 }
 
-
 /* MOBILE */
 
 @media (max-width: 700px) {
-
   :root {
     --nav-width: calc(100% - 32px);
     --hero-width: calc(100% - 32px);
@@ -734,7 +838,6 @@ a:hover {
 
   .topbar-nav {
     gap: 20px;
-
     font-size: 0.82rem;
   }
 
@@ -775,7 +878,6 @@ a:hover {
 
   .hero-location {
     margin-top: 42px;
-
     font-size: 0.88rem;
   }
 
@@ -805,23 +907,34 @@ a:hover {
   }
 }
 
-
 /* ACCESSIBILITY */
 
 @media (prefers-reduced-motion: reduce) {
-
   html {
     scroll-behavior: auto;
   }
 
-  .topography,
-  .topography path,
-  .water-line,
-  .water-particles circle {
+  .landscape-core,
+  .terrain-lines,
+  .terrain-lines path,
+  .city-grid,
+  .eco-network,
+  .flow-layer,
+  .water-thread,
+  .flow-layer circle,
+  .free-particles circle {
     animation: none;
   }
 
-  .water-particles circle {
+  .city-grid {
+    opacity: 0.22;
+  }
+
+  .eco-network {
+    opacity: 0.45;
+  }
+
+  .flow-layer circle {
     opacity: 0.45;
   }
 }
