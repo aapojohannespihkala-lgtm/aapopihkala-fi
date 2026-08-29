@@ -28,14 +28,19 @@ body {
   color: var(--text);
 
   font-family:
-    Arial,
-    Helvetica,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
     sans-serif;
 
   font-size: 18px;
   line-height: 1.6;
 
+  font-weight: 400;
+
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 a {
@@ -45,6 +50,7 @@ a {
 a:hover {
   color: var(--accent);
 }
+
 
 /* TOPBAR */
 
@@ -84,28 +90,39 @@ a:hover {
     Times,
     serif;
 
-  font-size: 1.7rem;
+  font-size: 1.58rem;
   font-weight: 400;
   line-height: 1;
 
+  letter-spacing: -0.02em;
+
   text-decoration: none;
+
+  transform: translateY(-4px);
 }
 
 .topbar-nav {
   display: flex;
   align-items: center;
 
-  gap: 52px;
+  gap: 54px;
 
   color: var(--muted);
 
-  font-size: 1rem;
+  font-size: 0.98rem;
+  font-weight: 400;
+
   line-height: 1;
+
+  letter-spacing: -0.015em;
+
+  transform: translateY(-4px);
 }
 
 .topbar-nav a {
   text-decoration: none;
 }
+
 
 /* HERO */
 
@@ -130,8 +147,16 @@ a:hover {
 .hero-content {
   min-width: 0;
 
-  transform: translateY(34px);
+  /*
+    Aiemmin 34px.
+    Tämä laskee kokonaisuuden lähemmäs
+    Gustavon pystysijaintia.
+  */
+  transform: translateY(71px);
 }
+
+
+/* HERO NAME */
 
 .hero h1 {
   margin: 0;
@@ -141,11 +166,12 @@ a:hover {
     Times,
     serif;
 
-  font-size: clamp(
-    4.4rem,
-    4.8vw,
-    4.7rem
-  );
+  /*
+    Aiemmin noin 4.7rem.
+    3.9rem vastaa kuvien perusteella
+    paljon paremmin Gustavon otsikkokorkeutta.
+  */
+  font-size: 3.9rem;
 
   font-weight: 400;
 
@@ -153,6 +179,9 @@ a:hover {
 
   letter-spacing: -0.045em;
 }
+
+
+/* HERO DESCRIPTION */
 
 .hero-description {
   margin-top: 46px;
@@ -167,8 +196,12 @@ a:hover {
 
   color: var(--text);
 
-  font-size: 1.22rem;
+  font-size: 1.24rem;
+  font-weight: 400;
+
   line-height: 1.45;
+
+  letter-spacing: -0.018em;
 }
 
 .hero-secondary {
@@ -178,36 +211,58 @@ a:hover {
 
   color: var(--muted);
 
-  font-size: 1.22rem;
+  font-size: 1.24rem;
+  font-weight: 400;
+
   line-height: 1.45;
+
+  letter-spacing: -0.018em;
 }
 
+
+/* LOCATION */
+
 .hero-location {
-  margin: 34px 0 0;
+  /*
+    Gustavolla sijainti on selvästi
+    alempana. Meidän toinen kuvausrivimme
+    on lyhyempi, joten valkoinen tila
+    luodaan tällä tarkoituksella.
+  */
+  margin: 80px 0 0;
 
   display: flex;
   align-items: center;
 
-  gap: 12px;
+  gap: 11px;
 
   color: var(--muted);
 
   font-size: 0.96rem;
+  font-weight: 400;
+
   line-height: 1;
+
+  letter-spacing: -0.012em;
 }
 
 .hero-location span {
   position: relative;
 
-  width: 17px;
-  height: 21px;
+  width: 13px;
+  height: 16px;
 
-  flex: 0 0 17px;
+  flex: 0 0 13px;
 
   font-size: 0;
 
-  border: 2px solid var(--muted);
-  border-radius: 50% 50% 50% 0;
+  border: 1.5px solid var(--muted);
+
+  border-radius:
+    50%
+    50%
+    50%
+    0;
 
   transform: rotate(-45deg);
 }
@@ -217,16 +272,17 @@ a:hover {
 
   position: absolute;
 
-  width: 4px;
-  height: 4px;
+  width: 3px;
+  height: 3px;
 
-  top: 5px;
-  left: 5px;
+  top: 4px;
+  left: 4px;
 
   border-radius: 50%;
 
   background: var(--muted);
 }
+
 
 /* HERO ART */
 
@@ -240,7 +296,12 @@ a:hover {
   align-items: center;
   justify-content: center;
 
-  transform: translateY(10px);
+  /*
+    Kuvavertailussa nykyinen grafiikka
+    oli noin 100px liian oikealla
+    ja 90px liian ylhäällä.
+  */
+  transform: translate(-100px, 100px);
 }
 
 .hero-art-shape {
@@ -342,6 +403,7 @@ a:hover {
   opacity: 0.48;
 }
 
+
 /* FEED */
 
 .page-shell {
@@ -376,17 +438,20 @@ a:hover {
   border-top: 1px solid var(--border);
 }
 
+
+/* POST META */
+
 .post-meta {
   margin: 0 0 24px;
 
   color: var(--muted);
 
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 500;
 
   line-height: 1.6;
 
-  letter-spacing: 0.075em;
+  letter-spacing: 0.07em;
 
   text-transform: uppercase;
 }
@@ -395,6 +460,9 @@ a:hover {
   color: var(--accent);
   text-decoration: none;
 }
+
+
+/* POST TITLE */
 
 .post-title {
   margin: 0 0 42px;
@@ -421,8 +489,13 @@ a:hover {
   text-decoration: none;
 }
 
+
+/* POST BODY */
+
 .post-body {
   font-size: 1.04rem;
+
+  letter-spacing: -0.01em;
 }
 
 .post-body p {
@@ -453,6 +526,9 @@ a:hover {
   color: var(--accent);
 }
 
+
+/* SOURCE */
+
 .source {
   margin-top: 52px;
   padding-top: 20px;
@@ -467,6 +543,7 @@ a:hover {
 .source strong {
   color: var(--text);
 }
+
 
 /* SINGLE POST */
 
@@ -528,6 +605,7 @@ a:hover {
   font-size: 0.85rem;
 }
 
+
 /* TABLET */
 
 @media (max-width: 1000px) {
@@ -545,12 +623,18 @@ a:hover {
     gap: 60px;
   }
 
+  .hero-content {
+    transform: translateY(45px);
+  }
+
   .hero h1 {
-    font-size: 4.3rem;
+    font-size: 3.8rem;
   }
 
   .hero-art {
     width: 150px;
+
+    transform: translate(-40px, 70px);
   }
 
   .feed,
@@ -558,6 +642,7 @@ a:hover {
     margin-left: 0;
   }
 }
+
 
 /* MOBILE */
 
@@ -577,7 +662,7 @@ a:hover {
   }
 
   .topbar-name {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
   }
 
   .topbar-nav {
@@ -602,9 +687,9 @@ a:hover {
 
   .hero h1 {
     font-size: clamp(
-      3.7rem,
-      16vw,
-      4.6rem
+      3.4rem,
+      15vw,
+      4.2rem
     );
   }
 
@@ -618,7 +703,7 @@ a:hover {
   }
 
   .hero-location {
-    margin-top: 32px;
+    margin-top: 48px;
   }
 
   .hero-art {
