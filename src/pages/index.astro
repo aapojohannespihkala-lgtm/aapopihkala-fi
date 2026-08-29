@@ -126,7 +126,122 @@ const personSchema = {
         class="hero-art"
         aria-hidden="true"
       >
-        <div class="hero-art-shape"></div>
+        <svg
+          class="landscape-symbol"
+          viewBox="0 0 240 360"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <clipPath id="dropClip">
+              <path
+                d="
+                  M120 20
+                  C96 58 61 101 49 144
+                  C34 197 49 260 82 298
+                  C103 322 137 322 158 298
+                  C191 260 206 197 191 144
+                  C179 101 144 58 120 20Z
+                "
+              />
+            </clipPath>
+          </defs>
+
+          <g class="topography">
+            <path
+              d="M120 55
+                 C91 59 69 83 65 116
+                 C61 150 75 184 96 202
+                 C108 212 132 212 144 202
+                 C165 184 179 150 175 116
+                 C171 83 149 59 120 55Z"
+            />
+
+            <path
+              d="M120 83
+                 C99 86 84 104 82 128
+                 C79 153 89 176 103 188
+                 C112 195 128 195 137 188
+                 C151 176 161 153 158 128
+                 C156 104 141 86 120 83Z"
+            />
+
+            <path
+              d="M120 110
+                 C106 113 98 125 97 141
+                 C96 158 103 172 112 180
+                 C117 184 123 184 128 180
+                 C137 172 144 158 143 141
+                 C142 125 134 113 120 110Z"
+            />
+
+            <path
+              d="M82 242
+                 C95 224 108 217 120 217
+                 C132 217 145 224 158 242
+                 C167 254 169 269 164 282"
+            />
+
+            <path
+              d="M91 263
+                 C101 249 111 243 120 243
+                 C129 243 139 249 149 263
+                 C154 270 156 279 153 287"
+            />
+          </g>
+
+          <g
+            class="water-particles"
+            clip-path="url(#dropClip)"
+          >
+            <circle cx="95" cy="55" r="2" />
+            <circle cx="121" cy="48" r="1.8" />
+            <circle cx="144" cy="64" r="1.5" />
+
+            <circle cx="82" cy="91" r="1.5" />
+            <circle cx="108" cy="81" r="2" />
+            <circle cx="137" cy="92" r="1.7" />
+            <circle cx="160" cy="108" r="1.5" />
+
+            <circle cx="71" cy="128" r="1.8" />
+            <circle cx="96" cy="119" r="1.5" />
+            <circle cx="122" cy="132" r="2" />
+            <circle cx="151" cy="127" r="1.5" />
+            <circle cx="173" cy="145" r="1.8" />
+
+            <circle cx="66" cy="166" r="1.5" />
+            <circle cx="91" cy="157" r="1.8" />
+            <circle cx="116" cy="170" r="1.5" />
+            <circle cx="145" cy="163" r="2" />
+            <circle cx="178" cy="181" r="1.5" />
+
+            <circle cx="72" cy="205" r="2" />
+            <circle cx="101" cy="196" r="1.5" />
+            <circle cx="126" cy="210" r="1.8" />
+            <circle cx="155" cy="203" r="1.5" />
+
+            <circle cx="83" cy="239" r="1.5" />
+            <circle cx="108" cy="233" r="2" />
+            <circle cx="140" cy="241" r="1.6" />
+            <circle cx="162" cy="254" r="1.8" />
+
+            <circle cx="94" cy="276" r="1.8" />
+            <circle cx="120" cy="268" r="1.5" />
+            <circle cx="147" cy="280" r="2" />
+
+            <circle cx="111" cy="306" r="1.5" />
+            <circle cx="132" cy="307" r="1.8" />
+          </g>
+
+          <path
+            class="water-line"
+            d="
+              M120 48
+              C105 84 132 108 114 143
+              C99 172 132 196 116 226
+              C103 250 126 277 120 311
+            "
+          />
+        </svg>
       </div>
 
     </section>
