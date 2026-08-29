@@ -65,13 +65,38 @@ const personSchema = {
   </head>
 
   <body>
-    <header class="site-header">
-      <h1 class="site-name">Aapo Pihkala</h1>
-      <p class="site-role">Maisema-arkkitehti, Espoo</p>
-      <p class="site-tagline">Kaupunki, maisema ja luonto.</p>
+    <header class="topbar">
+      <a class="topbar-name" href="/">Aapo</a>
+
+      <nav class="topbar-nav">
+        <a href="https://www.linkedin.com/" target="_blank" rel="noopener">
+          LinkedIn
+        </a>
+        <a href="#ajankohtaista">Ajankohtaista</a>
+      </nav>
     </header>
 
-    <main class="page-shell">
+    <section class="hero">
+      <div class="hero-content">
+        <h1>Aapo Pihkala</h1>
+
+        <p class="hero-role">
+          Maisema-arkkitehti, Espoo
+        </p>
+
+        <p class="hero-tagline">
+          Kaupunki, maisema ja luonto.
+        </p>
+      </div>
+
+      <div class="hero-mark" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </section>
+
+    <main class="page-shell" id="ajankohtaista">
       <section class="feed" aria-label="Ajankohtaista">
         {
           posts.map((post) => {
