@@ -1,10 +1,12 @@
 :root {
-  --bg: #faf9f6;
+  --bg: #fbfaf7;
   --text: #171816;
-  --muted: #777873;
-  --accent: #51675a;
-  --border: #dfdfda;
-  --shell: 1120px;
+  --muted: #7b7c78;
+  --accent: #52685b;
+  --border: #e1e0dc;
+
+  --shell: 1360px;
+  --hero-inner: 1160px;
   --content: 760px;
 }
 
@@ -36,6 +38,7 @@ body {
 a {
   color: inherit;
   text-decoration-color: var(--border);
+  text-decoration-thickness: 1px;
   text-underline-offset: 0.18em;
 }
 
@@ -43,12 +46,13 @@ a:hover {
   color: var(--accent);
 }
 
-/* Top navigation */
+/* TOPBAR */
 
 .topbar {
-  width: min(calc(100% - 48px), var(--shell));
-  height: 86px;
+  width: min(calc(100% - 64px), var(--shell));
+  height: 104px;
   margin: 0 auto;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -56,16 +60,19 @@ a:hover {
 
 .topbar-name {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.45rem;
+  font-size: 1.6rem;
+  font-weight: 400;
+  line-height: 1;
   text-decoration: none;
 }
 
 .topbar-nav {
   display: flex;
   align-items: center;
-  gap: 44px;
+  gap: 54px;
+
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .topbar-nav a {
@@ -75,60 +82,67 @@ a:hover {
 body::before {
   content: "";
   position: absolute;
-  top: 86px;
+  top: 104px;
   left: 0;
   right: 0;
   height: 1px;
   background: var(--border);
 }
 
-/* Hero */
+/* HERO */
 
 .hero {
-  width: min(calc(100% - 48px), var(--shell));
-  min-height: 610px;
+  width: min(calc(100% - 64px), var(--hero-inner));
+  min-height: calc(100vh - 104px);
   margin: 0 auto;
-  padding: 0 80px;
+
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 200px;
-  gap: 100px;
+  grid-template-columns: minmax(0, 760px) 260px;
+  justify-content: space-between;
   align-items: center;
+  gap: 100px;
+
+  padding: 36px 0 28px;
 }
 
 .hero-content {
-  max-width: 670px;
+  align-self: center;
 }
 
 .hero h1 {
   margin: 0;
+
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(5.5rem, 8vw, 7.1rem);
+  font-size: clamp(5.6rem, 7vw, 7.2rem);
   font-weight: 400;
   line-height: 0.94;
   letter-spacing: -0.055em;
 }
 
 .hero-role {
-  margin: 58px 0 0;
-  font-size: 1.45rem;
-  line-height: 1.4;
+  margin: 56px 0 0;
+
+  font-size: clamp(1.25rem, 1.7vw, 1.55rem);
+  line-height: 1.45;
 }
 
 .hero-tagline {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
+
   color: var(--muted);
-  font-size: 1.45rem;
-  line-height: 1.4;
+  font-size: clamp(1.25rem, 1.7vw, 1.55rem);
+  line-height: 1.45;
 }
 
-/* Temporary visual marker */
+/* Väliaikainen graafinen elementti */
 
 .hero-mark {
   position: relative;
-  width: 130px;
-  height: 240px;
+  width: 190px;
+  height: 280px;
   justify-self: center;
-  opacity: 0.62;
+
+  opacity: 0.58;
 }
 
 .hero-mark span {
@@ -140,21 +154,21 @@ body::before {
 }
 
 .hero-mark span:nth-child(1) {
-  top: 10px;
-  height: 220px;
+  top: 14px;
+  height: 250px;
 }
 
 .hero-mark span:nth-child(2) {
-  top: 46px;
-  left: 40%;
-  height: 158px;
-  opacity: 0.35;
+  top: 58px;
+  left: 42%;
+  height: 176px;
+  opacity: 0.38;
 }
 
 .hero-mark span:nth-child(3) {
-  top: 62px;
-  left: 60%;
-  height: 126px;
+  top: 78px;
+  left: 58%;
+  height: 138px;
   opacity: 0.22;
 }
 
@@ -163,31 +177,34 @@ body::before {
   content: "";
   position: absolute;
   left: 50%;
+
   border: 1px solid var(--text);
   border-radius: 50%;
+
   transform: translateX(-50%);
 }
 
 .hero-mark::before {
-  top: 46px;
-  width: 100px;
-  height: 160px;
-  opacity: 0.18;
+  top: 52px;
+  width: 118px;
+  height: 182px;
+  opacity: 0.16;
 }
 
 .hero-mark::after {
-  top: 70px;
-  width: 62px;
-  height: 110px;
-  opacity: 0.14;
+  top: 82px;
+  width: 72px;
+  height: 122px;
+  opacity: 0.13;
 }
 
-/* Feed */
+/* FEED */
 
 .page-shell {
-  width: min(calc(100% - 48px), var(--shell));
+  width: min(calc(100% - 64px), var(--shell));
   margin: 0 auto;
-  padding: 82px 80px 0;
+
+  padding-top: 86px;
   border-top: 1px solid var(--border);
 }
 
@@ -201,21 +218,22 @@ body::before {
 }
 
 .feed-post {
-  padding-bottom: 96px;
+  padding-bottom: 100px;
 }
 
 .feed-post + .feed-post {
-  padding-top: 84px;
+  padding-top: 86px;
   border-top: 1px solid var(--border);
 }
 
 .post-meta {
   margin: 0 0 22px;
+
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.075em;
   line-height: 1.6;
+  letter-spacing: 0.075em;
   text-transform: uppercase;
 }
 
@@ -226,6 +244,7 @@ body::before {
 
 .post-title {
   margin: 0 0 42px;
+
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(2.8rem, 5vw, 4.1rem);
   font-weight: 400;
@@ -247,15 +266,18 @@ body::before {
 
 .post-body h2 {
   margin: 2.5em 0 0.7em;
+
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1.7rem;
   font-weight: 400;
   line-height: 1.2;
+  letter-spacing: -0.015em;
 }
 
 .post-body .aapo-view-title {
   margin-top: 2.8em;
   padding-left: 20px;
+
   border-left: 3px solid var(--accent);
   color: var(--accent);
 }
@@ -263,7 +285,9 @@ body::before {
 .source {
   margin-top: 52px;
   padding-top: 20px;
+
   border-top: 1px solid var(--border);
+
   color: var(--muted);
   font-size: 0.82rem;
 }
@@ -272,16 +296,17 @@ body::before {
   color: var(--text);
 }
 
-/* Individual article */
+/* YKSITTÄINEN POSTAUS */
 
 .site-header {
-  width: min(calc(100% - 48px), var(--shell));
+  width: min(calc(100% - 64px), var(--shell));
   margin: 0 auto;
-  padding: 54px 80px 64px;
+  padding: 54px 0 64px;
 }
 
 .site-name {
   margin: 0;
+
   font-family: Georgia, "Times New Roman", serif;
   font-size: 2rem;
   font-weight: 400;
@@ -299,6 +324,7 @@ body::before {
 
 .site-tagline {
   margin: 18px 0 0;
+
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1.15rem;
 }
@@ -313,7 +339,21 @@ body::before {
   font-size: 0.85rem;
 }
 
-/* Mobile */
+/* PIENEMPI DESKTOP */
+
+@media (max-width: 1100px) {
+  .hero {
+    width: min(calc(100% - 64px), 900px);
+    grid-template-columns: minmax(0, 1fr) 180px;
+    gap: 60px;
+  }
+
+  .hero h1 {
+    font-size: clamp(4.8rem, 9vw, 6.2rem);
+  }
+}
+
+/* MOBIILI */
 
 @media (max-width: 760px) {
   body {
@@ -335,29 +375,36 @@ body::before {
     top: 72px;
   }
 
+  .topbar-name {
+    font-size: 1.35rem;
+  }
+
   .topbar-nav {
     gap: 20px;
     font-size: 0.84rem;
   }
 
   .hero {
-    min-height: auto;
-    padding: 80px 0 90px;
+    min-height: calc(100vh - 72px);
+
+    padding: 66px 0 54px;
+
     grid-template-columns: 1fr;
-    gap: 46px;
+    align-content: center;
+    gap: 42px;
   }
 
   .hero h1 {
-    font-size: clamp(4rem, 18vw, 5.2rem);
+    font-size: clamp(3.8rem, 18vw, 5rem);
   }
 
   .hero-role {
     margin-top: 38px;
-    font-size: 1.2rem;
+    font-size: 1.18rem;
   }
 
   .hero-tagline {
-    font-size: 1.2rem;
+    font-size: 1.18rem;
   }
 
   .hero-mark {
@@ -365,15 +412,23 @@ body::before {
   }
 
   .page-shell {
-    padding: 58px 0 0;
-  }
-
-  .site-header {
-    padding-left: 0;
-    padding-right: 0;
+    padding-top: 58px;
   }
 
   .post-title {
     margin-bottom: 32px;
+  }
+
+  .feed-post {
+    padding-bottom: 70px;
+  }
+
+  .feed-post + .feed-post {
+    padding-top: 62px;
+  }
+
+  .site-header {
+    padding-top: 38px;
+    padding-bottom: 48px;
   }
 }
