@@ -145,7 +145,6 @@ a:hover {
 
 .hero-content {
   min-width: 0;
-
   transform: translateY(52px);
 }
 
@@ -256,11 +255,11 @@ a:hover {
 }
 
 
-/* ELÄVÄ TOPOGRAFIA */
+/* TOPOGRAFIA */
 
 .hero-art {
-  width: 250px;
-  height: 350px;
+  width: 270px;
+  height: 360px;
 
   justify-self: start;
 
@@ -268,165 +267,176 @@ a:hover {
   align-items: center;
   justify-content: center;
 
-  transform: translate(-60px, 70px);
+  transform: translate(-70px, 67px);
 }
 
 .landscape-symbol {
   display: block;
 
-  width: 245px;
-  height: 335px;
+  width: 265px;
+  height: 350px;
 
   overflow: visible;
 }
 
-.topographic-field {
+.topographic-map {
   fill: none;
 
-  stroke: #555753;
-  stroke-width: 1.05;
+  stroke: #676965;
+  stroke-width: 1.08;
 
   stroke-linecap: round;
   stroke-linejoin: round;
 
-  opacity: 0.66;
+  opacity: 0.58;
 
   transform-box: fill-box;
   transform-origin: center;
 
   animation:
-    field-drift
-    38s
+    map-drift
+    52s
     ease-in-out
     infinite
     alternate;
 }
 
 
-/* Suuret avoimet käyrät */
+/* Osa käyristä hieman tummempina */
 
-.topo-open {
+.index-contour {
+  stroke: #4f514e;
+  stroke-width: 1.35;
+  opacity: 0.82;
+}
+
+.summit-contour {
+  stroke: #555753;
+  stroke-width: 1.2;
+  opacity: 0.9;
+}
+
+
+/* Avoin taustamaasto */
+
+.terrain-open {
   opacity: 0.42;
 
   transform-box: fill-box;
   transform-origin: center;
 
   animation:
-    open-terrain
-    44s
+    terrain-open-shift
+    58s
     ease-in-out
     infinite
     alternate;
 }
 
 
-/* Pääkukkula */
+/* Pääreliefi */
 
-.topo-hill-a {
+.main-relief {
   transform-box: fill-box;
   transform-origin: center;
 
   animation:
-    hill-a
-    33s
+    main-relief-shift
+    47s
     ease-in-out
     infinite
     alternate;
 }
 
 
-/* Pienempi sivukukkula */
+/* Oikean reunan reliefi elää eri tahdissa */
 
-.topo-hill-b {
-  opacity: 0.82;
-
+.secondary-relief {
   transform-box: fill-box;
   transform-origin: center;
 
   animation:
-    hill-b
-    41s
+    secondary-relief-shift
+    61s
     ease-in-out
     infinite
     alternate;
 }
 
 
-/* Alaosan maasto */
+/* Alaosan reliefi */
 
-.topo-hill-c {
-  opacity: 0.9;
-
+.lower-relief {
   transform-box: fill-box;
   transform-origin: center;
 
   animation:
-    hill-c
-    37s
+    lower-relief-shift
+    55s
     ease-in-out
     infinite
     alternate;
 }
 
 
-/* Huleveden hienovarainen valumalinja */
+/* Hulevesireitti */
 
 .drainage-line {
   fill: none;
 
   stroke: var(--accent);
-  stroke-width: 1.2;
+  stroke-width: 1.15;
 
   stroke-linecap: round;
 
-  stroke-dasharray: 7 12;
+  stroke-dasharray: 6 13;
   stroke-dashoffset: 0;
 
   opacity: 0;
 
   animation:
     drainage-visibility
-    28s
+    36s
     ease-in-out
     infinite,
     drainage-flow
-    10s
+    12s
     linear
     infinite;
 }
 
 
-/* Koko kartan lähes huomaamaton liike */
+/* Hyvin hidas koko kartan eläminen */
 
-@keyframes field-drift {
+@keyframes map-drift {
 
   0% {
     transform:
       translate(-1px, 1px)
-      rotate(-0.2deg)
-      scale(0.995);
+      rotate(-0.15deg)
+      scale(0.997);
   }
 
   50% {
     transform:
       translate(2px, -2px)
-      rotate(0.25deg)
-      scale(1.006);
+      rotate(0.18deg)
+      scale(1.004);
   }
 
   100% {
     transform:
       translate(-2px, 2px)
-      rotate(-0.1deg)
+      rotate(-0.08deg)
       scale(1);
   }
 
 }
 
 
-/* Avoin maasto vaihtaa painotusta */
+/* Avoimet linjat taipuvat hitaasti */
 
-@keyframes open-terrain {
+@keyframes terrain-open-shift {
 
   0% {
     transform:
@@ -434,7 +444,7 @@ a:hover {
       scaleX(1);
   }
 
-  50% {
+  45% {
     transform:
       translateY(4px)
       scaleX(1.025);
@@ -442,16 +452,16 @@ a:hover {
 
   100% {
     transform:
-      translateY(-3px)
+      translateY(-2px)
       scaleX(0.985);
   }
 
 }
 
 
-/* Iso kukkula madaltuu ja leviää */
+/* Päävuori levenee ja madaltuu hienovaraisesti */
 
-@keyframes hill-a {
+@keyframes main-relief-shift {
 
   0% {
     transform:
@@ -459,90 +469,90 @@ a:hover {
       scale(1, 1);
   }
 
+  30% {
+    transform:
+      translate(3px, 1px)
+      scale(1.018, 0.988);
+  }
+
+  64% {
+    transform:
+      translate(-3px, 4px)
+      scale(0.991, 1.018);
+  }
+
+  100% {
+    transform:
+      translate(2px, -2px)
+      scale(1.008, 0.998);
+  }
+
+}
+
+
+/* Sivuhuippu liikkuu eri tavalla */
+
+@keyframes secondary-relief-shift {
+
+  0% {
+    transform:
+      translate(0, 0)
+      scale(1);
+  }
+
+  40% {
+    transform:
+      translate(-5px, 4px)
+      scale(1.03, 0.97);
+  }
+
+  72% {
+    transform:
+      translate(3px, -3px)
+      scale(0.975, 1.028);
+  }
+
+  100% {
+    transform:
+      translate(-1px, 2px)
+      scale(1.008);
+  }
+
+}
+
+
+/* Alamaasto loivenee ja jyrkkenee */
+
+@keyframes lower-relief-shift {
+
+  0% {
+    transform:
+      translate(0, 0)
+      scale(1);
+  }
+
   35% {
     transform:
-      translate(3px, 2px)
-      scale(1.025, 0.975);
+      translate(-4px, -3px)
+      scale(0.985, 1.025);
   }
 
   70% {
     transform:
-      translate(-2px, 5px)
-      scale(0.985, 1.025);
+      translate(4px, 2px)
+      scale(1.025, 0.982);
   }
 
   100% {
     transform:
-      translate(5px, -2px)
-      scale(1.015, 0.99);
+      translate(1px, -2px)
+      scale(1.006);
   }
 
 }
 
 
-/* Sivukukkula liikkuu itsenäisesti */
-
-@keyframes hill-b {
-
-  0% {
-    transform:
-      translate(0, 0)
-      scale(1);
-  }
-
-  35% {
-    transform:
-      translate(-5px, 5px)
-      scale(1.03, 0.97);
-  }
-
-  65% {
-    transform:
-      translate(3px, -2px)
-      scale(0.97, 1.035);
-  }
-
-  100% {
-    transform:
-      translate(-2px, 4px)
-      scale(1.01);
-  }
-
-}
-
-
-/* Alakukkula muodostuu ja loivenee */
-
-@keyframes hill-c {
-
-  0% {
-    transform:
-      translate(0, 0)
-      scale(1);
-  }
-
-  30% {
-    transform:
-      translate(-3px, -3px)
-      scale(0.985, 1.035);
-  }
-
-  68% {
-    transform:
-      translate(5px, 2px)
-      scale(1.035, 0.97);
-  }
-
-  100% {
-    transform:
-      translate(1px, -4px)
-      scale(1.01, 1.015);
-  }
-
-}
-
-
-/* Valumalinja näkyy vain osan kierrosta */
+/* Valumalinja tulee vain hetkittäin esiin */
 
 @keyframes drainage-visibility {
 
@@ -550,27 +560,27 @@ a:hover {
     opacity: 0;
   }
 
-  12% {
+  18% {
     opacity: 0;
   }
 
-  25% {
+  31% {
     opacity: 0.08;
   }
 
-  38% {
-    opacity: 0.48;
+  42% {
+    opacity: 0.34;
   }
 
   55% {
-    opacity: 0.42;
+    opacity: 0.46;
   }
 
-  70% {
-    opacity: 0.08;
+  68% {
+    opacity: 0.16;
   }
 
-  82% {
+  78% {
     opacity: 0;
   }
 
@@ -614,7 +624,6 @@ a:hover {
 
 .feed {
   margin-left: 8%;
-
   padding-bottom: 150px;
 }
 
@@ -624,7 +633,6 @@ a:hover {
 
 .feed-post + .feed-post {
   padding-top: 90px;
-
   border-top: 1px solid var(--border);
 }
 
@@ -780,7 +788,6 @@ a:hover {
 
 .single-post {
   margin-left: 8%;
-
   padding-bottom: 140px;
 }
 
@@ -805,9 +812,9 @@ a:hover {
   .hero {
     grid-template-columns:
       minmax(0, 1fr)
-      170px;
+      180px;
 
-    gap: 60px;
+    gap: 50px;
   }
 
   .hero-content {
@@ -819,14 +826,13 @@ a:hover {
   }
 
   .hero-art {
-    width: 175px;
-
-    transform: translate(-25px, 54px);
+    width: 180px;
+    transform: translate(-22px, 53px);
   }
 
   .landscape-symbol {
-    width: 170px;
-    height: 285px;
+    width: 180px;
+    height: 290px;
   }
 
   .feed,
@@ -860,7 +866,6 @@ a:hover {
 
   .topbar-nav {
     gap: 20px;
-
     font-size: 0.82rem;
   }
 
@@ -901,7 +906,6 @@ a:hover {
 
   .hero-location {
     margin-top: 42px;
-
     font-size: 0.88rem;
   }
 
@@ -941,17 +945,17 @@ a:hover {
     scroll-behavior: auto;
   }
 
-  .topographic-field,
-  .topo-open,
-  .topo-hill-a,
-  .topo-hill-b,
-  .topo-hill-c,
+  .topographic-map,
+  .terrain-open,
+  .main-relief,
+  .secondary-relief,
+  .lower-relief,
   .drainage-line {
     animation: none;
   }
 
   .drainage-line {
-    opacity: 0.18;
+    opacity: 0.14;
   }
 
 }
