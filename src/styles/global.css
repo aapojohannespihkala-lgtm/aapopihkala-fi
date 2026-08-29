@@ -50,6 +50,7 @@ a:hover {
   color: var(--accent);
 }
 
+
 /* TOPBAR */
 
 .topbar {
@@ -121,6 +122,7 @@ a:hover {
   text-decoration: none;
 }
 
+
 /* HERO */
 
 .hero {
@@ -143,6 +145,7 @@ a:hover {
 
 .hero-content {
   min-width: 0;
+
   transform: translateY(52px);
 }
 
@@ -194,6 +197,9 @@ a:hover {
   line-height: 1.45;
   letter-spacing: -0.012em;
 }
+
+
+/* LOCATION */
 
 .hero-location {
   margin: 54px 0 0;
@@ -249,10 +255,11 @@ a:hover {
   background: var(--muted);
 }
 
-/* LANDSCAPE ORGANISM */
+
+/* ELÄVÄ TOPOGRAFIA */
 
 .hero-art {
-  width: 230px;
+  width: 250px;
   height: 350px;
 
   justify-self: start;
@@ -261,330 +268,331 @@ a:hover {
   align-items: center;
   justify-content: center;
 
-  transform: translate(-58px, 78px);
+  transform: translate(-60px, 70px);
 }
 
 .landscape-symbol {
   display: block;
 
-  width: 220px;
-  height: 340px;
+  width: 245px;
+  height: 335px;
 
   overflow: visible;
 }
 
-.landscape-core {
-  transform-origin: center;
-  animation: organismFloat 18s ease-in-out infinite;
-}
-
-.shell-outline {
+.topographic-field {
   fill: none;
-  stroke: rgba(120, 120, 118, 0.14);
-  stroke-width: 1.2;
-}
 
-.terrain-lines {
-  fill: none;
-  stroke: rgba(120, 120, 118, 0.28);
-  stroke-width: 1.2;
+  stroke: #555753;
+  stroke-width: 1.05;
+
   stroke-linecap: round;
   stroke-linejoin: round;
 
-  animation: terrainBreathe 12s ease-in-out infinite;
-}
-
-.terrain-lines path:nth-child(2) {
-  opacity: 0.82;
-  animation: terrainDrift 15s ease-in-out infinite;
-}
-
-.terrain-lines path:nth-child(4) {
-  opacity: 0.78;
-  animation: terrainDrift 11s ease-in-out infinite reverse;
-}
-
-.city-grid {
-  fill: rgba(120, 120, 118, 0.52);
-  stroke: rgba(120, 120, 118, 0.22);
-  stroke-width: 1;
-
-  animation: cityPhase 18s ease-in-out infinite;
-}
-
-.city-grid circle:nth-of-type(4n) {
-  opacity: 0.5;
-}
-
-.eco-network {
-  fill: rgba(83, 105, 91, 0.52);
-  stroke: rgba(83, 105, 91, 0.34);
-  stroke-width: 1.35;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-
-  opacity: 0;
-
-  animation: ecoPhase 18s ease-in-out infinite;
-}
-
-.eco-network circle:nth-child(odd) {
-  opacity: 0.92;
-}
-
-.flow-layer {
-  opacity: 0.72;
-  animation: flowPresence 18s ease-in-out infinite;
-}
-
-.water-thread {
-  fill: none;
-  stroke: rgba(83, 105, 91, 0.62);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-
-  stroke-dasharray: 8 12;
-  stroke-dashoffset: 0;
-
-  animation:
-    waterFlow 7s linear infinite,
-    waterPulse 10s ease-in-out infinite;
-}
-
-.flow-layer circle {
-  fill: rgba(83, 105, 91, 0.8);
-  opacity: 0;
+  opacity: 0.66;
 
   transform-box: fill-box;
   transform-origin: center;
 
-  animation: dropFlow 7.5s ease-in-out infinite;
+  animation:
+    field-drift
+    38s
+    ease-in-out
+    infinite
+    alternate;
 }
 
-.flow-layer circle:nth-child(2) { animation-delay: -0.8s; }
-.flow-layer circle:nth-child(3) { animation-delay: -1.6s; }
-.flow-layer circle:nth-child(4) { animation-delay: -2.4s; }
-.flow-layer circle:nth-child(5) { animation-delay: -3.2s; }
-.flow-layer circle:nth-child(6) { animation-delay: -4s; }
-.flow-layer circle:nth-child(7) { animation-delay: -4.8s; }
-.flow-layer circle:nth-child(8) { animation-delay: -5.6s; }
-.flow-layer circle:nth-child(9) { animation-delay: -6.4s; }
 
-.free-particles {
-  fill: rgba(83, 105, 91, 0.5);
+/* Suuret avoimet käyrät */
+
+.topo-open {
+  opacity: 0.42;
+
+  transform-box: fill-box;
+  transform-origin: center;
+
+  animation:
+    open-terrain
+    44s
+    ease-in-out
+    infinite
+    alternate;
 }
 
-.free-particles circle {
-  opacity: 0.25;
-  animation: ambientFlicker 9s ease-in-out infinite;
+
+/* Pääkukkula */
+
+.topo-hill-a {
+  transform-box: fill-box;
+  transform-origin: center;
+
+  animation:
+    hill-a
+    33s
+    ease-in-out
+    infinite
+    alternate;
 }
 
-.free-particles circle:nth-child(2) { animation-delay: -1.3s; }
-.free-particles circle:nth-child(3) { animation-delay: -2.6s; }
-.free-particles circle:nth-child(4) { animation-delay: -3.7s; }
-.free-particles circle:nth-child(5) { animation-delay: -4.9s; }
-.free-particles circle:nth-child(6) { animation-delay: -5.8s; }
-.free-particles circle:nth-child(7) { animation-delay: -6.6s; }
-.free-particles circle:nth-child(8) { animation-delay: -7.5s; }
 
-@keyframes organismFloat {
+/* Pienempi sivukukkula */
+
+.topo-hill-b {
+  opacity: 0.82;
+
+  transform-box: fill-box;
+  transform-origin: center;
+
+  animation:
+    hill-b
+    41s
+    ease-in-out
+    infinite
+    alternate;
+}
+
+
+/* Alaosan maasto */
+
+.topo-hill-c {
+  opacity: 0.9;
+
+  transform-box: fill-box;
+  transform-origin: center;
+
+  animation:
+    hill-c
+    37s
+    ease-in-out
+    infinite
+    alternate;
+}
+
+
+/* Huleveden hienovarainen valumalinja */
+
+.drainage-line {
+  fill: none;
+
+  stroke: var(--accent);
+  stroke-width: 1.2;
+
+  stroke-linecap: round;
+
+  stroke-dasharray: 7 12;
+  stroke-dashoffset: 0;
+
+  opacity: 0;
+
+  animation:
+    drainage-visibility
+    28s
+    ease-in-out
+    infinite,
+    drainage-flow
+    10s
+    linear
+    infinite;
+}
+
+
+/* Koko kartan lähes huomaamaton liike */
+
+@keyframes field-drift {
+
   0% {
-    transform: translateY(0) translateX(0) scale(0.995);
+    transform:
+      translate(-1px, 1px)
+      rotate(-0.2deg)
+      scale(0.995);
   }
 
   50% {
-    transform: translateY(-5px) translateX(2px) scale(1.01);
+    transform:
+      translate(2px, -2px)
+      rotate(0.25deg)
+      scale(1.006);
   }
 
   100% {
-    transform: translateY(0) translateX(0) scale(0.995);
+    transform:
+      translate(-2px, 2px)
+      rotate(-0.1deg)
+      scale(1);
   }
+
 }
 
-@keyframes terrainBreathe {
+
+/* Avoin maasto vaihtaa painotusta */
+
+@keyframes open-terrain {
+
   0% {
-    opacity: 0.35;
-    transform: scale(0.995);
+    transform:
+      translateY(0)
+      scaleX(1);
   }
 
   50% {
-    opacity: 0.55;
-    transform: scale(1.012);
+    transform:
+      translateY(4px)
+      scaleX(1.025);
   }
 
   100% {
-    opacity: 0.35;
-    transform: scale(0.995);
+    transform:
+      translateY(-3px)
+      scaleX(0.985);
   }
+
 }
 
-@keyframes terrainDrift {
+
+/* Iso kukkula madaltuu ja leviää */
+
+@keyframes hill-a {
+
   0% {
-    transform: translateY(-2px);
-  }
-
-  50% {
-    transform: translateY(3px);
-  }
-
-  100% {
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes cityPhase {
-  0% {
-    opacity: 0.55;
-    transform: translateY(0) scale(1);
-  }
-
-  18% {
-    opacity: 0.58;
-    transform: translateY(0) scale(1);
+    transform:
+      translate(0, 0)
+      scale(1, 1);
   }
 
   35% {
-    opacity: 0.2;
-    transform: translateY(2px) scale(0.992);
+    transform:
+      translate(3px, 2px)
+      scale(1.025, 0.975);
   }
 
-  50% {
-    opacity: 0.06;
-    transform: translateY(4px) scale(0.985);
+  70% {
+    transform:
+      translate(-2px, 5px)
+      scale(0.985, 1.025);
+  }
+
+  100% {
+    transform:
+      translate(5px, -2px)
+      scale(1.015, 0.99);
+  }
+
+}
+
+
+/* Sivukukkula liikkuu itsenäisesti */
+
+@keyframes hill-b {
+
+  0% {
+    transform:
+      translate(0, 0)
+      scale(1);
+  }
+
+  35% {
+    transform:
+      translate(-5px, 5px)
+      scale(1.03, 0.97);
+  }
+
+  65% {
+    transform:
+      translate(3px, -2px)
+      scale(0.97, 1.035);
+  }
+
+  100% {
+    transform:
+      translate(-2px, 4px)
+      scale(1.01);
+  }
+
+}
+
+
+/* Alakukkula muodostuu ja loivenee */
+
+@keyframes hill-c {
+
+  0% {
+    transform:
+      translate(0, 0)
+      scale(1);
+  }
+
+  30% {
+    transform:
+      translate(-3px, -3px)
+      scale(0.985, 1.035);
+  }
+
+  68% {
+    transform:
+      translate(5px, 2px)
+      scale(1.035, 0.97);
+  }
+
+  100% {
+    transform:
+      translate(1px, -4px)
+      scale(1.01, 1.015);
+  }
+
+}
+
+
+/* Valumalinja näkyy vain osan kierrosta */
+
+@keyframes drainage-visibility {
+
+  0% {
+    opacity: 0;
+  }
+
+  12% {
+    opacity: 0;
+  }
+
+  25% {
+    opacity: 0.08;
+  }
+
+  38% {
+    opacity: 0.48;
+  }
+
+  55% {
+    opacity: 0.42;
   }
 
   70% {
     opacity: 0.08;
   }
 
-  85% {
-    opacity: 0.36;
-    transform: translateY(1px) scale(0.996);
+  82% {
+    opacity: 0;
   }
 
   100% {
-    opacity: 0.55;
-    transform: translateY(0) scale(1);
+    opacity: 0;
   }
+
 }
 
-@keyframes ecoPhase {
-  0% {
-    opacity: 0.08;
-    transform: scale(0.985);
-  }
 
-  20% {
-    opacity: 0.22;
-  }
+@keyframes drainage-flow {
 
-  40% {
-    opacity: 0.62;
-    transform: scale(1);
-  }
-
-  58% {
-    opacity: 0.7;
-    transform: scale(1.012);
-  }
-
-  78% {
-    opacity: 0.3;
-  }
-
-  100% {
-    opacity: 0.08;
-    transform: scale(0.985);
-  }
-}
-
-@keyframes flowPresence {
-  0% {
-    opacity: 0.28;
-  }
-
-  20% {
-    opacity: 0.42;
-  }
-
-  50% {
-    opacity: 0.8;
-  }
-
-  80% {
-    opacity: 0.45;
-  }
-
-  100% {
-    opacity: 0.28;
-  }
-}
-
-@keyframes waterFlow {
   from {
     stroke-dashoffset: 0;
   }
 
   to {
-    stroke-dashoffset: -82;
+    stroke-dashoffset: -76;
   }
+
 }
 
-@keyframes waterPulse {
-  0% {
-    opacity: 0.34;
-  }
-
-  50% {
-    opacity: 0.72;
-  }
-
-  100% {
-    opacity: 0.34;
-  }
-}
-
-@keyframes dropFlow {
-  0% {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.85);
-  }
-
-  18% {
-    opacity: 0.38;
-  }
-
-  48% {
-    opacity: 0.88;
-    transform: translateY(4px) scale(1);
-  }
-
-  82% {
-    opacity: 0.28;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(22px) scale(1.05);
-  }
-}
-
-@keyframes ambientFlicker {
-  0% {
-    opacity: 0.1;
-    transform: translateY(0);
-  }
-
-  50% {
-    opacity: 0.48;
-    transform: translateY(-2px);
-  }
-
-  100% {
-    opacity: 0.1;
-    transform: translateY(0);
-  }
-}
 
 /* FEED */
 
@@ -606,6 +614,7 @@ a:hover {
 
 .feed {
   margin-left: 8%;
+
   padding-bottom: 150px;
 }
 
@@ -615,8 +624,10 @@ a:hover {
 
 .feed-post + .feed-post {
   padding-top: 90px;
+
   border-top: 1px solid var(--border);
 }
+
 
 /* POST META */
 
@@ -638,6 +649,7 @@ a:hover {
   color: var(--accent);
   text-decoration: none;
 }
+
 
 /* POST TITLE */
 
@@ -664,6 +676,7 @@ a:hover {
 .post-title a {
   text-decoration: none;
 }
+
 
 /* POST BODY */
 
@@ -700,6 +713,7 @@ a:hover {
   color: var(--accent);
 }
 
+
 /* SOURCE */
 
 .source {
@@ -716,6 +730,7 @@ a:hover {
 .source strong {
   color: var(--text);
 }
+
 
 /* SINGLE POST */
 
@@ -765,6 +780,7 @@ a:hover {
 
 .single-post {
   margin-left: 8%;
+
   padding-bottom: 140px;
 }
 
@@ -776,9 +792,11 @@ a:hover {
   font-size: 0.85rem;
 }
 
+
 /* TABLET */
 
 @media (max-width: 1000px) {
+
   :root {
     --nav-width: calc(100% - 64px);
     --hero-width: calc(100% - 100px);
@@ -801,12 +819,13 @@ a:hover {
   }
 
   .hero-art {
-    width: 170px;
-    transform: translate(-20px, 56px);
+    width: 175px;
+
+    transform: translate(-25px, 54px);
   }
 
   .landscape-symbol {
-    width: 165px;
+    width: 170px;
     height: 285px;
   }
 
@@ -814,11 +833,14 @@ a:hover {
   .single-post {
     margin-left: 0;
   }
+
 }
+
 
 /* MOBILE */
 
 @media (max-width: 700px) {
+
   :root {
     --nav-width: calc(100% - 32px);
     --hero-width: calc(100% - 32px);
@@ -838,6 +860,7 @@ a:hover {
 
   .topbar-nav {
     gap: 20px;
+
     font-size: 0.82rem;
   }
 
@@ -878,6 +901,7 @@ a:hover {
 
   .hero-location {
     margin-top: 42px;
+
     font-size: 0.88rem;
   }
 
@@ -905,36 +929,29 @@ a:hover {
   .feed-post + .feed-post {
     padding-top: 64px;
   }
+
 }
 
-/* ACCESSIBILITY */
+
+/* REDUCED MOTION */
 
 @media (prefers-reduced-motion: reduce) {
+
   html {
     scroll-behavior: auto;
   }
 
-  .landscape-core,
-  .terrain-lines,
-  .terrain-lines path,
-  .city-grid,
-  .eco-network,
-  .flow-layer,
-  .water-thread,
-  .flow-layer circle,
-  .free-particles circle {
+  .topographic-field,
+  .topo-open,
+  .topo-hill-a,
+  .topo-hill-b,
+  .topo-hill-c,
+  .drainage-line {
     animation: none;
   }
 
-  .city-grid {
-    opacity: 0.22;
+  .drainage-line {
+    opacity: 0.18;
   }
 
-  .eco-network {
-    opacity: 0.45;
-  }
-
-  .flow-layer circle {
-    opacity: 0.45;
-  }
 }
