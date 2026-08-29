@@ -1,34 +1,15 @@
 ---
 import '../styles/global.css';
 
-const modules = import.meta.glob('../data/ajankohtaista/*.md', { eager: true });
-
-const posts = Object.entries(modules)
-  .map(([path, post]: any) => ({
-    slug: path.split('/').pop().replace('.md', ''),
-    ...post.frontmatter,
-    Content: post.Content,
-  }))
-  .sort((a, b) => b.date.localeCompare(a.date));
-
-const formatDate = (date: string) => {
-  const [year, month, day] = date.split('-');
-  return `${Number(day)}.${Number(month)}.${year}`;
-};
-
-const topicLinks: Record<string, string> = {
-  Kaupunkiluonto: '/kaupunkiluonto',
-  Biodiversiteetti: '/biodiversiteetti',
-  Hulevedet: '/hulevedet',
-  'Maisema-arkkitehtuuri': '/maisema-arkkitehti-espoo',
-};
-
 const personSchema = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   name: 'Aapo Pihkala',
   jobTitle: 'Maisema-arkkitehti',
   url: 'https://aapopihkala.fi/',
+  sameAs: [
+    'https://fi.linkedin.com/in/aapo-pihkala',
+  ],
   address: {
     '@type': 'PostalAddress',
     addressLocality: 'Espoo',
@@ -46,16 +27,22 @@ const personSchema = {
 <html lang="fi">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
 
     <title>Aapo Pihkala - Maisema-arkkitehti Espoo</title>
 
     <meta
       name="description"
-      content="Aapo Pihkala on espoolainen maisema-arkkitehti. Ajankohtaisia näkökulmia maisema-arkkitehtuuriin, kaupunkiluontoon, hulevesiin ja biodiversiteettiin."
+      content="Aapo Pihkala on espoolainen maisema-arkkitehti. Kaupunki, maisema ja luonto."
     />
 
-    <meta name="author" content="Aapo Pihkala" />
+    <meta
+      name="author"
+      content="Aapo Pihkala"
+    />
 
     <link
       rel="canonical"
@@ -72,185 +59,89 @@ const personSchema = {
 
     <header class="topbar">
 
-      <nav class="topbar-inner">
+      <nav
+        class="topbar-inner"
+        aria-label="Päänavigaatio"
+      >
 
         <a
           class="topbar-name"
           href="/"
+          aria-label="Etusivu"
         >
           aapo
         </a>
 
-        <div class="topbar-nav">
-
-          <a href="#ajankohtaista">
-            ajankohtaista
-          </a>
-
-          <a
-            href="https://www.linkedin.com/"
-            target="_blank"
-            rel="noopener"
+        <a
+          class="linkedin-link"
+          href="https://fi.linkedin.com/in/aapo-pihkala"
+          target="_blank"
+          rel="noopener"
+          aria-label="Aapo Pihkala LinkedInissä"
+          title="LinkedIn"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
           >
-            linkedin
-          </a>
-
-        </div>
+            <path
+              d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12ZM7.12 20.45H3.56V9h3.56v11.45Z"
+            />
+          </svg>
+        </a>
 
       </nav>
 
     </header>
 
 
-    <main>
+    <main class="main-container">
 
-      <div class="main-container">
+      <section class="hero">
 
-        <section class="hero">
+        <div class="hero-row">
 
-          <div class="hero-row">
+          <div class="hero-content">
 
-            <div class="hero-content">
+            <h1>
+              Aapo Pihkala
+            </h1>
 
-              <h1>
-                Aapo Pihkala
-              </h1>
+            <div class="hero-description">
 
-              <div class="hero-description">
+              <p class="hero-primary">
+                Maisema-arkkitehti, Espoo.
+              </p>
 
-                <p class="hero-primary">
-                  Maisema-arkkitehti, Espoo.
-                </p>
-
-                <p class="hero-secondary">
-                  Kaupunki, maisema ja luonto.
-                </p>
-
-              </div>
-
-              <p class="hero-location">
-                <span aria-hidden="true"></span>
-                Espoo, Suomi
+              <p class="hero-secondary">
+                Kaupunki, maisema ja luonto.
               </p>
 
             </div>
 
-
-            <div
-              class="hero-art"
-              aria-hidden="true"
-            >
-
-              <canvas
-                id="topography-canvas"
-                class="topography-canvas"
-              ></canvas>
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <section
-          class="current-section"
-          id="ajankohtaista"
-        >
-
-          <div class="section-heading">
-
-            <h2>
-              Ajankohtaista
-            </h2>
+            <p class="hero-location">
+              <span aria-hidden="true"></span>
+              Espoo, Suomi
+            </p>
 
           </div>
 
 
-          <div class="feed">
+          <div
+            class="hero-art"
+            aria-hidden="true"
+          >
 
-            {
-              posts.map((post) => {
-                const Content = post.Content;
-
-                return (
-                  <article class="feed-post">
-
-                    <header>
-
-                      <p class="post-meta">
-
-                        {formatDate(post.date)}
-
-                        {' · '}
-
-                        {post.topics.map(
-                          (topic: string, index: number) => (
-                            <>
-
-                              {index > 0 && ' · '}
-
-                              {
-                                topicLinks[topic]
-                                  ? (
-                                    <a href={topicLinks[topic]}>
-                                      {topic}
-                                    </a>
-                                  )
-                                  : topic
-                              }
-
-                            </>
-                          )
-                        )}
-
-                        {' · '}
-
-                        {post.location}
-
-                      </p>
-
-
-                      <h3 class="post-title">
-
-                        <a href={`/ajankohtaista/${post.slug}`}>
-                          {post.title}
-                        </a>
-
-                      </h3>
-
-                    </header>
-
-
-                    <div class="post-body">
-                      <Content />
-                    </div>
-
-
-                    <p class="source">
-
-                      <strong>
-                        Lähde:
-                      </strong>
-
-                      {' '}
-
-                      <a href={post.sourceUrl}>
-                        {post.source} ↗
-                      </a>
-
-                    </p>
-
-                  </article>
-                );
-              })
-            }
+            <canvas
+              id="topography-canvas"
+              class="topography-canvas"
+            ></canvas>
 
           </div>
 
-        </section>
+        </div>
 
-      </div>
+      </section>
 
     </main>
 
@@ -284,8 +175,8 @@ const personSchema = {
         const rows = 88;
         const contourCount = 54;
 
-        let width = 256;
-        let height = 320;
+        let width = 210;
+        let height = 270;
         let dpr = 1;
 
         let lastDraw = -Infinity;
@@ -578,11 +469,6 @@ const personSchema = {
           );
 
 
-          /*
-            Pidetään sovittu
-            nopeampi animaatio.
-          */
-
           const phase =
             prefersReducedMotion
               ? 0.7
@@ -714,8 +600,8 @@ const personSchema = {
 
             context.strokeStyle =
               isIndexContour
-                ? 'rgba(60, 70, 61, 0.59)'
-                : 'rgba(79, 91, 80, 0.33)';
+                ? 'rgba(54, 64, 55, 0.64)'
+                : 'rgba(76, 88, 78, 0.37)';
 
 
             context.lineWidth =
