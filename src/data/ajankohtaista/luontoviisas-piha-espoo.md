@@ -19,7 +19,7 @@ Kilpailussa pihoja tarkasteltiin useasta näkökulmasta. Arvioinnissa hyödynnet
 
 Tämä on kiinnostavaa, koska biodiversiteetti jää rakennetussa ympäristössä helposti yleiseksi tavoitteeksi. Kun luonnon monimuotoisuutta pystytään tarkastelemaan konkreettisten menetelmien avulla, se voidaan ottaa aiempaa järjestelmällisemmin osaksi pihasuunnittelua ja maisema-arkkitehtuuria.
 
-## Aapon näkökulma
+<h2 class="aapo-view-title">Aapon näkökulma</h2>
 
 Tuomaristotyössä kiinnostavaa oli erityisesti se, että hyvä luontopiha ei tarkoita suunnittelematonta pihaa.
 
