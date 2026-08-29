@@ -1,11 +1,11 @@
 :root {
-  --bg: #f5f3ed;
-  --text: #20221f;
-  --muted: #73776f;
-  --accent: #496452;
-  --border: #dcd9d0;
-  --content: 740px;
-  --shell: 1050px;
+  --bg: #f7f6f2;
+  --text: #1f211f;
+  --muted: #747870;
+  --accent: #4f6657;
+  --border: #deddd7;
+  --shell: 1380px;
+  --content: 820px;
 }
 
 * {
@@ -14,6 +14,7 @@
 
 html {
   background: var(--bg);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -21,8 +22,12 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   font-size: 18px;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
@@ -31,8 +36,8 @@ body {
 a {
   color: inherit;
   text-decoration-color: var(--border);
-  text-underline-offset: 0.18em;
   text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
 }
 
 a:hover {
@@ -40,42 +45,150 @@ a:hover {
   text-decoration-color: var(--accent);
 }
 
-.site-header,
-.page-shell {
-  width: min(calc(100% - 48px), var(--shell));
+/* Yläpalkki */
+
+.topbar {
+  width: min(calc(100% - 64px), var(--shell));
+  min-height: 92px;
   margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.site-header {
-  padding-top: 64px;
-  padding-bottom: 72px;
-}
-
-.site-name {
-  margin: 0;
+.topbar-name {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -0.025em;
-}
-
-.site-name a {
+  font-size: 1.35rem;
   text-decoration: none;
 }
 
-.site-role {
-  margin: 12px 0 0;
-  font-size: 0.95rem;
+.topbar-nav {
+  display: flex;
+  gap: 42px;
   color: var(--muted);
+  font-size: 0.95rem;
 }
 
-.site-tagline {
-  margin: 26px 0 0;
-  max-width: 520px;
+.topbar-nav a {
+  text-decoration: none;
+}
+
+body::before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 92px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Hero */
+
+.hero {
+  width: min(calc(100% - 64px), 1180px);
+  min-height: 540px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 100px;
+  align-items: center;
+}
+
+.hero-content {
+  max-width: 760px;
+}
+
+.hero h1 {
+  margin: 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.3rem;
+  font-size: clamp(4.4rem, 8vw, 7rem);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+}
+
+.hero-role {
+  margin: 54px 0 0;
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
   line-height: 1.45;
+}
+
+.hero-tagline {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  line-height: 1.45;
+}
+
+/* Abstrakti maisemamerkki */
+
+.hero-mark {
+  position: relative;
+  width: 180px;
+  height: 260px;
+  justify-self: center;
+}
+
+.hero-mark span {
+  position: absolute;
+  left: 50%;
+  width: 2px;
+  background: var(--text);
+  opacity: 0.6;
+  transform: translateX(-50%);
+}
+
+.hero-mark span:nth-child(1) {
+  top: 18px;
+  height: 220px;
+}
+
+.hero-mark span:nth-child(2) {
+  top: 46px;
+  left: 42%;
+  height: 176px;
+  opacity: 0.28;
+}
+
+.hero-mark span:nth-child(3) {
+  top: 68px;
+  left: 58%;
+  height: 136px;
+  opacity: 0.18;
+}
+
+.hero-mark::before,
+.hero-mark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  border: 1px solid var(--text);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  opacity: 0.16;
+}
+
+.hero-mark::before {
+  top: 42px;
+  width: 112px;
+  height: 172px;
+}
+
+.hero-mark::after {
+  top: 70px;
+  width: 68px;
+  height: 118px;
+}
+
+/* Feed */
+
+.page-shell {
+  width: min(calc(100% - 64px), var(--shell));
+  margin: 0 auto;
+  padding-top: 76px;
+  border-top: 1px solid var(--border);
 }
 
 .feed,
@@ -84,24 +197,24 @@ a:hover {
 }
 
 .feed {
-  padding-bottom: 120px;
+  padding-bottom: 140px;
 }
 
 .feed-post {
-  padding: 0 0 84px;
+  padding-bottom: 96px;
 }
 
 .feed-post + .feed-post {
+  padding-top: 84px;
   border-top: 1px solid var(--border);
-  padding-top: 72px;
 }
 
 .post-meta {
-  margin: 0 0 18px;
+  margin: 0 0 22px;
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.6;
   letter-spacing: 0.075em;
   text-transform: uppercase;
 }
@@ -112,12 +225,12 @@ a:hover {
 }
 
 .post-title {
-  margin: 0 0 34px;
+  margin: 0 0 42px;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.4rem, 6vw, 3.45rem);
+  font-size: clamp(2.8rem, 6vw, 4.3rem);
   font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -0.035em;
+  line-height: 1;
+  letter-spacing: -0.045em;
 }
 
 .post-title a {
@@ -133,24 +246,24 @@ a:hover {
 }
 
 .post-body h2 {
-  margin: 2.3em 0 0.65em;
+  margin: 2.5em 0 0.7em;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.65rem;
+  font-size: 1.7rem;
   font-weight: 400;
   line-height: 1.2;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 
 .post-body .aapo-view-title {
-  margin-top: 2.6em;
-  padding-left: 18px;
+  margin-top: 2.8em;
+  padding-left: 20px;
   border-left: 3px solid var(--accent);
   color: var(--accent);
 }
 
 .source {
-  margin-top: 46px;
-  padding-top: 18px;
+  margin-top: 52px;
+  padding-top: 20px;
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: 0.82rem;
@@ -160,44 +273,130 @@ a:hover {
   color: var(--text);
 }
 
+/* Yksittäinen artikkeli */
+
+.site-header {
+  width: min(calc(100% - 64px), var(--shell));
+  margin: 0 auto;
+  padding: 54px 0 64px;
+}
+
+.site-name {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2rem;
+  font-weight: 400;
+}
+
+.site-name a {
+  text-decoration: none;
+}
+
+.site-role {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.site-tagline {
+  margin: 18px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.15rem;
+}
+
 .single-post {
-  padding-bottom: 120px;
+  padding-bottom: 140px;
 }
 
 .back-link {
-  margin-top: 54px;
-  font-size: 0.85rem;
+  margin-top: 58px;
   color: var(--muted);
+  font-size: 0.85rem;
 }
 
-@media (max-width: 640px) {
+/* Mobiili */
+
+@media (max-width: 760px) {
   body {
     font-size: 17px;
   }
 
-  .site-header,
-  .page-shell {
-    width: min(calc(100% - 32px), var(--shell));
-  }
-
+  .topbar,
+  .hero,
+  .page-shell,
   .site-header {
-    padding-top: 38px;
-    padding-bottom: 52px;
+    width: calc(100% - 32px);
   }
 
-  .site-tagline {
-    margin-top: 20px;
+  .topbar {
+    min-height: 72px;
+  }
+
+  body::before {
+    top: 72px;
+  }
+
+  .topbar-nav {
+    gap: 20px;
+    font-size: 0.85rem;
+  }
+
+  .hero {
+    min-height: auto;
+    padding: 82px 0 88px;
+    grid-template-columns: 1fr;
+    gap: 50px;
+  }
+
+  .hero h1 {
+    font-size: clamp(3.7rem, 18vw, 5rem);
+  }
+
+  .hero-role {
+    margin-top: 38px;
+  }
+
+  .hero-mark {
+    width: 120px;
+    height: 160px;
+    justify-self: start;
+  }
+
+  .hero-mark span:nth-child(1) {
+    height: 140px;
+  }
+
+  .hero-mark span:nth-child(2) {
+    height: 110px;
+  }
+
+  .hero-mark span:nth-child(3) {
+    height: 82px;
+  }
+
+  .hero-mark::before {
+    width: 76px;
+    height: 108px;
+  }
+
+  .hero-mark::after {
+    width: 44px;
+    height: 70px;
+  }
+
+  .page-shell {
+    padding-top: 54px;
   }
 
   .post-title {
-    margin-bottom: 28px;
+    margin-bottom: 32px;
   }
 
   .feed-post {
-    padding-bottom: 60px;
+    padding-bottom: 68px;
   }
 
   .feed-post + .feed-post {
-    padding-top: 52px;
+    padding-top: 60px;
   }
 }
