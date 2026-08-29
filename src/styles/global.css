@@ -145,6 +145,7 @@ a:hover {
 
 .hero-content {
   min-width: 0;
+
   transform: translateY(52px);
 }
 
@@ -279,62 +280,70 @@ a:hover {
   overflow: visible;
 }
 
+
+/* Tavalliset korkeuskäyrät */
+
 .topographic-map {
   fill: none;
 
-  stroke: #676965;
-  stroke-width: 1.08;
+  stroke: #777975;
+  stroke-width: 0.9;
 
   stroke-linecap: round;
   stroke-linejoin: round;
 
-  opacity: 0.58;
+  opacity: 0.68;
 
   transform-box: fill-box;
   transform-origin: center;
 
   animation:
     map-drift
-    52s
+    18s
     ease-in-out
     infinite
     alternate;
 }
 
 
-/* Osa käyristä hieman tummempina */
+/* Indeksikäyrät selvästi paksumpina */
 
 .index-contour {
-  stroke: #4f514e;
-  stroke-width: 1.35;
-  opacity: 0.82;
+  stroke: #494b48;
+  stroke-width: 1.9;
+
+  opacity: 0.78;
 }
+
+
+/* Huippujen sisimmät käyrät */
 
 .summit-contour {
   stroke: #555753;
-  stroke-width: 1.2;
-  opacity: 0.9;
+  stroke-width: 1.35;
+
+  opacity: 0.88;
 }
 
 
-/* Avoin taustamaasto */
+/* Taustalla jatkuvat avoimet käyrät */
 
 .terrain-open {
-  opacity: 0.42;
+  opacity: 0.38;
 
   transform-box: fill-box;
   transform-origin: center;
 
   animation:
     terrain-open-shift
-    58s
+    17s
     ease-in-out
     infinite
     alternate;
 }
 
 
-/* Pääreliefi */
+/* Suurin maastomuoto */
 
 .main-relief {
   transform-box: fill-box;
@@ -342,14 +351,14 @@ a:hover {
 
   animation:
     main-relief-shift
-    47s
+    13s
     ease-in-out
     infinite
     alternate;
 }
 
 
-/* Oikean reunan reliefi elää eri tahdissa */
+/* Oikean yläkulman maastomuoto */
 
 .secondary-relief {
   transform-box: fill-box;
@@ -357,14 +366,14 @@ a:hover {
 
   animation:
     secondary-relief-shift
-    61s
+    16s
     ease-in-out
     infinite
     alternate;
 }
 
 
-/* Alaosan reliefi */
+/* Alaosan maastomuoto */
 
 .lower-relief {
   transform-box: fill-box;
@@ -372,7 +381,7 @@ a:hover {
 
   animation:
     lower-relief-shift
-    55s
+    14s
     ease-in-out
     infinite
     alternate;
@@ -385,174 +394,195 @@ a:hover {
   fill: none;
 
   stroke: var(--accent);
-  stroke-width: 1.15;
+  stroke-width: 1.25;
 
   stroke-linecap: round;
 
-  stroke-dasharray: 6 13;
+  stroke-dasharray: 6 12;
   stroke-dashoffset: 0;
 
   opacity: 0;
 
   animation:
     drainage-visibility
-    36s
+    18s
     ease-in-out
     infinite,
     drainage-flow
-    12s
+    6s
     linear
     infinite;
 }
 
 
-/* Hyvin hidas koko kartan eläminen */
+/* Koko maasto liikkuu hieman */
 
 @keyframes map-drift {
 
   0% {
     transform:
-      translate(-1px, 1px)
-      rotate(-0.15deg)
-      scale(0.997);
+      translate(-3px, 2px)
+      rotate(-0.35deg)
+      scale(0.992);
   }
 
   50% {
     transform:
-      translate(2px, -2px)
-      rotate(0.18deg)
-      scale(1.004);
+      translate(4px, -4px)
+      rotate(0.35deg)
+      scale(1.012);
   }
 
   100% {
     transform:
-      translate(-2px, 2px)
-      rotate(-0.08deg)
-      scale(1);
+      translate(-2px, 3px)
+      rotate(-0.2deg)
+      scale(1.002);
   }
 
 }
 
 
-/* Avoimet linjat taipuvat hitaasti */
+/* Avoimet käyrät liikkuvat sivusuunnassa */
 
 @keyframes terrain-open-shift {
 
   0% {
     transform:
-      translateY(0)
-      scaleX(1);
+      translate(-4px, -2px)
+      scaleX(0.97)
+      scaleY(1.02);
   }
 
-  45% {
+  50% {
     transform:
-      translateY(4px)
-      scaleX(1.025);
+      translate(6px, 5px)
+      scaleX(1.045)
+      scaleY(0.98);
   }
 
   100% {
     transform:
-      translateY(-2px)
-      scaleX(0.985);
+      translate(-2px, -5px)
+      scaleX(0.985)
+      scaleY(1.03);
   }
 
 }
 
 
-/* Päävuori levenee ja madaltuu hienovaraisesti */
+/* Pääreliefi muuttuu selvästi */
 
 @keyframes main-relief-shift {
 
   0% {
     transform:
-      translate(0, 0)
-      scale(1, 1);
+      translate(-3px, -2px)
+      scale(0.975, 1.035)
+      rotate(-0.25deg);
   }
 
-  30% {
+  25% {
     transform:
-      translate(3px, 1px)
-      scale(1.018, 0.988);
+      translate(5px, 3px)
+      scale(1.045, 0.965)
+      rotate(0.3deg);
   }
 
-  64% {
+  55% {
     transform:
-      translate(-3px, 4px)
-      scale(0.991, 1.018);
+      translate(-5px, 7px)
+      scale(0.99, 1.045)
+      rotate(-0.18deg);
+  }
+
+  80% {
+    transform:
+      translate(6px, -4px)
+      scale(1.035, 0.975)
+      rotate(0.25deg);
   }
 
   100% {
     transform:
-      translate(2px, -2px)
-      scale(1.008, 0.998);
+      translate(-1px, 1px)
+      scale(1.005, 0.995);
   }
 
 }
 
 
-/* Sivuhuippu liikkuu eri tavalla */
+/* Oikea huippu vaeltaa itsenäisesti */
 
 @keyframes secondary-relief-shift {
 
   0% {
     transform:
-      translate(0, 0)
-      scale(1);
+      translate(5px, -6px)
+      scale(0.96, 1.06)
+      rotate(0.5deg);
   }
 
-  40% {
+  35% {
     transform:
-      translate(-5px, 4px)
-      scale(1.03, 0.97);
+      translate(-8px, 5px)
+      scale(1.075, 0.94)
+      rotate(-0.45deg);
   }
 
-  72% {
+  70% {
     transform:
-      translate(3px, -3px)
-      scale(0.975, 1.028);
+      translate(5px, 9px)
+      scale(0.95, 1.055)
+      rotate(0.35deg);
   }
 
   100% {
     transform:
-      translate(-1px, 2px)
-      scale(1.008);
+      translate(-3px, -3px)
+      scale(1.035, 0.98)
+      rotate(-0.2deg);
   }
 
 }
 
 
-/* Alamaasto loivenee ja jyrkkenee */
+/* Alaosan muoto muuttuu eri rytmissä */
 
 @keyframes lower-relief-shift {
 
   0% {
     transform:
-      translate(0, 0)
-      scale(1);
+      translate(-5px, 4px)
+      scale(1.06, 0.94)
+      rotate(-0.35deg);
   }
 
-  35% {
+  30% {
     transform:
-      translate(-4px, -3px)
-      scale(0.985, 1.025);
+      translate(5px, -6px)
+      scale(0.955, 1.07)
+      rotate(0.4deg);
   }
 
-  70% {
+  65% {
     transform:
-      translate(4px, 2px)
-      scale(1.025, 0.982);
+      translate(-7px, -1px)
+      scale(1.04, 0.965)
+      rotate(-0.25deg);
   }
 
   100% {
     transform:
-      translate(1px, -2px)
-      scale(1.006);
+      translate(4px, 5px)
+      scale(0.98, 1.035)
+      rotate(0.2deg);
   }
 
 }
 
 
-/* Valumalinja tulee vain hetkittäin esiin */
+/* Vihreä valumalinja tulee selvästi näkyviin hetkeksi */
 
 @keyframes drainage-visibility {
 
@@ -560,27 +590,31 @@ a:hover {
     opacity: 0;
   }
 
-  18% {
+  12% {
     opacity: 0;
   }
 
-  31% {
+  22% {
+    opacity: 0.18;
+  }
+
+  32% {
+    opacity: 0.6;
+  }
+
+  48% {
+    opacity: 0.72;
+  }
+
+  62% {
+    opacity: 0.38;
+  }
+
+  74% {
     opacity: 0.08;
   }
 
-  42% {
-    opacity: 0.34;
-  }
-
-  55% {
-    opacity: 0.46;
-  }
-
-  68% {
-    opacity: 0.16;
-  }
-
-  78% {
+  84% {
     opacity: 0;
   }
 
@@ -598,7 +632,7 @@ a:hover {
   }
 
   to {
-    stroke-dashoffset: -76;
+    stroke-dashoffset: -72;
   }
 
 }
@@ -624,6 +658,7 @@ a:hover {
 
 .feed {
   margin-left: 8%;
+
   padding-bottom: 150px;
 }
 
@@ -633,6 +668,7 @@ a:hover {
 
 .feed-post + .feed-post {
   padding-top: 90px;
+
   border-top: 1px solid var(--border);
 }
 
@@ -955,7 +991,7 @@ a:hover {
   }
 
   .drainage-line {
-    opacity: 0.14;
+    opacity: 0.16;
   }
 
 }
