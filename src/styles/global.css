@@ -17,10 +17,13 @@
 html {
   background: var(--bg);
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
+  overflow-x: clip;
+
   background: var(--bg);
   color: var(--text);
 
@@ -43,10 +46,7 @@ a:hover {
   color: var(--accent);
 }
 
-
-/* --------------------------------------------------
-   TOPBAR
--------------------------------------------------- */
+/* TOPBAR */
 
 .topbar {
   position: relative;
@@ -70,7 +70,7 @@ a:hover {
   left: 50%;
   bottom: 0;
 
-  width: 100vw;
+  width: 100dvw;
   height: 1px;
 
   transform: translateX(-50%);
@@ -107,10 +107,7 @@ a:hover {
   text-decoration: none;
 }
 
-
-/* --------------------------------------------------
-   HERO
--------------------------------------------------- */
+/* HERO */
 
 .hero {
   width: var(--hero-width);
@@ -136,9 +133,6 @@ a:hover {
   transform: translateY(34px);
 }
 
-
-/* NAME */
-
 .hero h1 {
   margin: 0;
 
@@ -159,9 +153,6 @@ a:hover {
 
   letter-spacing: -0.045em;
 }
-
-
-/* DESCRIPTION */
 
 .hero-description {
   margin-top: 46px;
@@ -190,9 +181,6 @@ a:hover {
   font-size: 1.22rem;
   line-height: 1.45;
 }
-
-
-/* LOCATION */
 
 .hero-location {
   margin: 34px 0 0;
@@ -240,10 +228,7 @@ a:hover {
   background: var(--muted);
 }
 
-
-/* --------------------------------------------------
-   HERO ART
--------------------------------------------------- */
+/* HERO ART */
 
 .hero-art {
   width: 180px;
@@ -264,9 +249,6 @@ a:hover {
   width: 142px;
   height: 320px;
 }
-
-
-/* dense main point cloud */
 
 .hero-art-shape::before {
   content: "";
@@ -323,9 +305,6 @@ a:hover {
   opacity: 0.82;
 }
 
-
-/* irregular secondary density */
-
 .hero-art-shape::after {
   content: "";
 
@@ -363,10 +342,7 @@ a:hover {
   opacity: 0.48;
 }
 
-
-/* --------------------------------------------------
-   FEED
--------------------------------------------------- */
+/* FEED */
 
 .page-shell {
   width: var(--nav-width);
@@ -400,9 +376,6 @@ a:hover {
   border-top: 1px solid var(--border);
 }
 
-
-/* META */
-
 .post-meta {
   margin: 0 0 24px;
 
@@ -422,9 +395,6 @@ a:hover {
   color: var(--accent);
   text-decoration: none;
 }
-
-
-/* POST TITLE */
 
 .post-title {
   margin: 0 0 42px;
@@ -450,9 +420,6 @@ a:hover {
 .post-title a {
   text-decoration: none;
 }
-
-
-/* POST BODY */
 
 .post-body {
   font-size: 1.04rem;
@@ -486,9 +453,6 @@ a:hover {
   color: var(--accent);
 }
 
-
-/* SOURCE */
-
 .source {
   margin-top: 52px;
   padding-top: 20px;
@@ -504,10 +468,7 @@ a:hover {
   color: var(--text);
 }
 
-
-/* --------------------------------------------------
-   SINGLE POST
--------------------------------------------------- */
+/* SINGLE POST */
 
 .site-header {
   width: var(--nav-width);
@@ -567,10 +528,7 @@ a:hover {
   font-size: 0.85rem;
 }
 
-
-/* --------------------------------------------------
-   TABLET
--------------------------------------------------- */
+/* TABLET */
 
 @media (max-width: 1000px) {
 
@@ -601,10 +559,7 @@ a:hover {
   }
 }
 
-
-/* --------------------------------------------------
-   MOBILE
--------------------------------------------------- */
+/* MOBILE */
 
 @media (max-width: 700px) {
 
