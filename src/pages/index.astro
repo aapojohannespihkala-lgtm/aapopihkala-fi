@@ -72,36 +72,46 @@ const personSchema = {
 
     <header class="topbar">
 
-      <a
-        class="topbar-name"
-        href="/"
-      >
-        aapo
-      </a>
-
-      <nav class="topbar-nav">
-
-        <a href="#ajankohtaista">
-          ajankohtaista
-        </a>
+      <div class="topbar-inner">
 
         <a
-          href="https://www.linkedin.com/"
-          target="_blank"
-          rel="noopener"
+          class="topbar-name"
+          href="/"
         >
-          linkedin
+          aapo
         </a>
 
-      </nav>
+        <nav
+          class="topbar-nav"
+          aria-label="Päänavigaatio"
+        >
+
+          <a href="#ajankohtaista">
+            ajankohtaista
+          </a>
+
+          <a
+            href="https://www.linkedin.com/"
+            target="_blank"
+            rel="noopener"
+          >
+            linkedin
+          </a>
+
+        </nav>
+
+      </div>
 
     </header>
+
 
     <section class="hero">
 
       <div class="hero-content">
 
-        <h1>Aapo Pihkala</h1>
+        <h1>
+          Aapo Pihkala
+        </h1>
 
         <div class="hero-description">
 
@@ -122,22 +132,35 @@ const personSchema = {
 
       </div>
 
+
       <div
         class="hero-art"
         aria-hidden="true"
       >
+
         <canvas
           id="topography-canvas"
           class="topography-canvas"
         ></canvas>
+
       </div>
 
     </section>
+
 
     <main
       class="page-shell"
       id="ajankohtaista"
     >
+
+      <div class="section-heading">
+
+        <h2>
+          Ajankohtaista
+        </h2>
+
+      </div>
+
 
       <section
         class="feed"
@@ -151,13 +174,9 @@ const personSchema = {
             return (
               <article class="feed-post">
 
-                <header>
+                <div class="feed-post-main">
 
-                  <p class="post-meta">
-
-                    {formatDate(post.date)}
-
-                    {' · '}
+                  <p class="post-taxonomy">
 
                     {post.topics.map(
                       (topic: string, index: number) => (
@@ -185,29 +204,44 @@ const personSchema = {
 
                   </p>
 
-                  <h2 class="post-title">
+
+                  <h3 class="post-title">
 
                     <a href={`/ajankohtaista/${post.slug}`}>
                       {post.title}
                     </a>
 
-                  </h2>
+                  </h3>
 
-                </header>
 
-                <div class="post-body">
-                  <Content />
+                  <div class="post-body">
+                    <Content />
+                  </div>
+
+
+                  <p class="source">
+
+                    <strong>
+                      Lähde:
+                    </strong>
+
+                    {' '}
+
+                    <a href={post.sourceUrl}>
+                      {post.source} ↗
+                    </a>
+
+                  </p>
+
                 </div>
 
-                <p class="source">
 
-                  <strong>Lähde:</strong>{' '}
-
-                  <a href={post.sourceUrl}>
-                    {post.source} ↗
-                  </a>
-
-                </p>
+                <time
+                  class="post-date"
+                  datetime={post.date}
+                >
+                  {formatDate(post.date)}
+                </time>
 
               </article>
             );
@@ -217,6 +251,7 @@ const personSchema = {
       </section>
 
     </main>
+
 
     <script is:inline>
       (() => {
@@ -248,6 +283,7 @@ const personSchema = {
         let lastDraw = -Infinity;
         let animationFrame = 0;
 
+
         const gaussian = (
           x,
           y,
@@ -258,6 +294,7 @@ const personSchema = {
           amplitude,
           rotation = 0
         ) => {
+
           const dx = x - cx;
           const dy = y - cy;
 
@@ -282,11 +319,13 @@ const personSchema = {
           );
         };
 
+
         const terrainHeight = (
           x,
           y,
           phase
         ) => {
+
           const warpX =
             x +
             0.05 *
@@ -313,6 +352,7 @@ const personSchema = {
                 phase * 0.28
               );
 
+
           const ridge1 = gaussian(
             warpX,
             warpY,
@@ -325,6 +365,7 @@ const personSchema = {
             1.0,
             -0.42
           );
+
 
           const ridge2 = gaussian(
             warpX,
@@ -341,6 +382,7 @@ const personSchema = {
             0.5
           );
 
+
           const ridge3 = gaussian(
             warpX,
             warpY,
@@ -351,6 +393,7 @@ const personSchema = {
             0.58,
             -0.18
           );
+
 
           const ridge4 = gaussian(
             warpX,
@@ -363,6 +406,7 @@ const personSchema = {
             0.75
           );
 
+
           const valley1 = gaussian(
             warpX,
             warpY,
@@ -373,6 +417,7 @@ const personSchema = {
             -0.7,
             0.35
           );
+
 
           const valley2 = gaussian(
             warpX,
@@ -385,9 +430,11 @@ const personSchema = {
             -0.6
           );
 
+
           const broadSlope =
             0.14 * warpX -
             0.07 * warpY;
+
 
           const geologicalWave =
             0.085 *
@@ -400,6 +447,7 @@ const personSchema = {
                 )
             );
 
+
           const secondaryWave =
             0.04 *
             Math.cos(
@@ -407,6 +455,7 @@ const personSchema = {
               0.9 * warpX -
               phase * 0.22
             );
+
 
           return (
             ridge1 +
@@ -421,6 +470,7 @@ const personSchema = {
           );
         };
 
+
         const edgeIntersection = (
           ax,
           ay,
@@ -430,6 +480,7 @@ const personSchema = {
           bv,
           level
         ) => {
+
           const difference =
             bv - av;
 
@@ -451,7 +502,9 @@ const personSchema = {
           };
         };
 
+
         const resizeCanvas = () => {
+
           const rect =
             canvas.getBoundingClientRect();
 
@@ -494,9 +547,11 @@ const personSchema = {
           );
         };
 
+
         const draw = (
           time = 0
         ) => {
+
           context.clearRect(
             0,
             0,
@@ -504,15 +559,20 @@ const personSchema = {
             height
           );
 
+
           /*
-            Edellinen nopeus oli 0.000075.
-            Tämä on noin kaksinkertainen.
+            Edellisen version nopeus:
+            0.00015
+
+            Nyt 3x nopeampi:
+            0.00045
           */
 
           const phase =
             prefersReducedMotion
               ? 0.7
-              : time * 0.00015;
+              : time * 0.00045;
+
 
           const values =
             new Array(
@@ -520,22 +580,26 @@ const personSchema = {
                 (rows + 1)
             );
 
+
           let minValue =
             Infinity;
 
           let maxValue =
             -Infinity;
 
+
           for (
             let gy = 0;
             gy <= rows;
             gy++
           ) {
+
             for (
               let gx = 0;
               gx <= cols;
               gx++
             ) {
+
               const nx =
                 (gx / cols) *
                   2.4 -
@@ -546,6 +610,7 @@ const personSchema = {
                   2.08 -
                 1.04;
 
+
               const value =
                 terrainHeight(
                   nx,
@@ -553,11 +618,13 @@ const personSchema = {
                   phase
                 );
 
+
               values[
                 gy *
                   (cols + 1) +
                   gx
               ] = value;
+
 
               minValue =
                 Math.min(
@@ -573,16 +640,19 @@ const personSchema = {
             }
           }
 
+
           const range =
             maxValue -
               minValue ||
             1;
+
 
           for (
             let i = 0;
             i < values.length;
             i++
           ) {
+
             values[i] =
               (
                 values[i] -
@@ -591,11 +661,13 @@ const personSchema = {
               range;
           }
 
+
           const cellWidth =
             width / cols;
 
           const cellHeight =
             height / rows;
+
 
           for (
             let contourIndex = 0;
@@ -603,6 +675,7 @@ const personSchema = {
             contourCount;
             contourIndex++
           ) {
+
             const level =
               0.03 +
               (
@@ -614,28 +687,27 @@ const personSchema = {
               ) *
                 0.94;
 
+
             const isIndexContour =
               contourIndex %
                 5 ===
               0;
 
+
             context.beginPath();
 
-            /*
-              Harmaanvihreä on edelleen
-              hyvin hillitty, mutta nyt
-              hieman edellistä näkyvämpi.
-            */
 
             context.strokeStyle =
               isIndexContour
                 ? 'rgba(60, 70, 61, 0.59)'
                 : 'rgba(79, 91, 80, 0.33)';
 
+
             context.lineWidth =
               isIndexContour
                 ? 1.08
                 : 0.5;
+
 
             context.lineCap =
               'round';
@@ -643,16 +715,19 @@ const personSchema = {
             context.lineJoin =
               'round';
 
+
             for (
               let gy = 0;
               gy < rows;
               gy++
             ) {
+
               for (
                 let gx = 0;
                 gx < cols;
                 gx++
               ) {
+
                 const x0 =
                   gx *
                   cellWidth;
@@ -669,12 +744,14 @@ const personSchema = {
                   (gy + 1) *
                   cellHeight;
 
+
                 const topLeft =
                   values[
                     gy *
                       (cols + 1) +
                       gx
                   ];
+
 
                 const topRight =
                   values[
@@ -684,6 +761,7 @@ const personSchema = {
                       1
                   ];
 
+
                 const bottomRight =
                   values[
                     (gy + 1) *
@@ -692,6 +770,7 @@ const personSchema = {
                       1
                   ];
 
+
                 const bottomLeft =
                   values[
                     (gy + 1) *
@@ -699,8 +778,10 @@ const personSchema = {
                       gx
                   ];
 
+
                 const points = [];
 
+
                 if (
                   (
                     topLeft <
@@ -711,6 +792,7 @@ const personSchema = {
                     level
                   )
                 ) {
+
                   points.push(
                     edgeIntersection(
                       x0,
@@ -724,6 +806,7 @@ const personSchema = {
                   );
                 }
 
+
                 if (
                   (
                     topRight <
@@ -734,6 +817,7 @@ const personSchema = {
                     level
                   )
                 ) {
+
                   points.push(
                     edgeIntersection(
                       x1,
@@ -747,6 +831,7 @@ const personSchema = {
                   );
                 }
 
+
                 if (
                   (
                     bottomRight <
@@ -757,6 +842,7 @@ const personSchema = {
                     level
                   )
                 ) {
+
                   points.push(
                     edgeIntersection(
                       x1,
@@ -770,6 +856,7 @@ const personSchema = {
                   );
                 }
 
+
                 if (
                   (
                     bottomLeft <
@@ -780,6 +867,7 @@ const personSchema = {
                     level
                   )
                 ) {
+
                   points.push(
                     edgeIntersection(
                       x0,
@@ -792,11 +880,13 @@ const personSchema = {
                     )
                   );
                 }
+
 
                 if (
                   points.length ===
                   2
                 ) {
+
                   context.moveTo(
                     points[0].x,
                     points[0].y
@@ -808,10 +898,12 @@ const personSchema = {
                   );
                 }
 
+
                 if (
                   points.length ===
                   4
                 ) {
+
                   const centre =
                     (
                       topLeft +
@@ -821,10 +913,12 @@ const personSchema = {
                     ) /
                     4;
 
+
                   if (
                     centre >
                     level
                   ) {
+
                     context.moveTo(
                       points[0].x,
                       points[0].y
@@ -844,7 +938,9 @@ const personSchema = {
                       points[3].x,
                       points[3].y
                     );
+
                   } else {
+
                     context.moveTo(
                       points[0].x,
                       points[0].y
@@ -873,25 +969,29 @@ const personSchema = {
           }
         };
 
+
         const animate = (
           time
         ) => {
+
           /*
-            Hieman tiheämpi päivitys tekee
-            nopeammasta animaatiosta
-            edelleen sulavan.
+            Nopeampi liike tarvitsee
+            hieman tiheämmän piirron,
+            jotta käyrät eivät nyi.
           */
 
           if (
             time -
               lastDraw >
-            80
+            55
           ) {
+
             draw(time);
 
             lastDraw =
               time;
           }
+
 
           animationFrame =
             requestAnimationFrame(
@@ -899,12 +999,15 @@ const personSchema = {
             );
         };
 
+
         resizeCanvas();
         draw(0);
+
 
         const resizeObserver =
           new ResizeObserver(
             () => {
+
               resizeCanvas();
 
               draw(
@@ -913,32 +1016,39 @@ const personSchema = {
             }
           );
 
+
         resizeObserver.observe(
           canvas
         );
 
+
         if (
           !prefersReducedMotion
         ) {
+
           animationFrame =
             requestAnimationFrame(
               animate
             );
         }
 
+
         window.addEventListener(
           'pagehide',
           () => {
+
             cancelAnimationFrame(
               animationFrame
             );
 
             resizeObserver.disconnect();
+
           },
           {
             once: true,
           }
         );
+
       })();
     </script>
 
