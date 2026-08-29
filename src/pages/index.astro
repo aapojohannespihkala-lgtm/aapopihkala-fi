@@ -241,8 +241,8 @@ const personSchema = {
         const rows = 88;
         const contourCount = 54;
 
-        let width = 480;
-        let height = 350;
+        let width = 500;
+        let height = 370;
         let dpr = 1;
 
         let lastDraw = -Infinity;
@@ -504,10 +504,15 @@ const personSchema = {
             height
           );
 
+          /*
+            Edellinen nopeus oli 0.000075.
+            Tämä on noin kaksinkertainen.
+          */
+
           const phase =
             prefersReducedMotion
               ? 0.7
-              : time * 0.000075;
+              : time * 0.00015;
 
           const values =
             new Array(
@@ -616,15 +621,21 @@ const personSchema = {
 
             context.beginPath();
 
+            /*
+              Harmaanvihreä on edelleen
+              hyvin hillitty, mutta nyt
+              hieman edellistä näkyvämpi.
+            */
+
             context.strokeStyle =
               isIndexContour
-                ? 'rgba(63, 72, 64, 0.52)'
-                : 'rgba(83, 94, 84, 0.28)';
+                ? 'rgba(60, 70, 61, 0.59)'
+                : 'rgba(79, 91, 80, 0.33)';
 
             context.lineWidth =
               isIndexContour
-                ? 1.05
-                : 0.48;
+                ? 1.08
+                : 0.5;
 
             context.lineCap =
               'round';
@@ -865,10 +876,16 @@ const personSchema = {
         const animate = (
           time
         ) => {
+          /*
+            Hieman tiheämpi päivitys tekee
+            nopeammasta animaatiosta
+            edelleen sulavan.
+          */
+
           if (
             time -
               lastDraw >
-            115
+            80
           ) {
             draw(time);
 
