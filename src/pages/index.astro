@@ -46,7 +46,7 @@ const personSchema = {
 <html lang="fi">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>Aapo Pihkala - Maisema-arkkitehti Espoo</title>
 
@@ -72,7 +72,7 @@ const personSchema = {
 
     <header class="topbar">
 
-      <div class="topbar-inner">
+      <nav class="topbar-inner">
 
         <a
           class="topbar-name"
@@ -81,10 +81,7 @@ const personSchema = {
           aapo
         </a>
 
-        <nav
-          class="topbar-nav"
-          aria-label="Päänavigaatio"
-        >
+        <div class="topbar-nav">
 
           <a href="#ajankohtaista">
             ajankohtaista
@@ -98,170 +95,181 @@ const personSchema = {
             linkedin
           </a>
 
-        </nav>
+        </div>
 
-      </div>
+      </nav>
 
     </header>
 
 
-    <section class="hero">
+    <main>
 
-      <div class="hero-content">
+      <div class="main-container">
 
-        <h1>
-          Aapo Pihkala
-        </h1>
+        <section class="hero">
 
-        <div class="hero-description">
+          <div class="hero-row">
 
-          <p class="hero-primary">
-            Maisema-arkkitehti, Espoo.
-          </p>
+            <div class="hero-content">
 
-          <p class="hero-secondary">
-            Kaupunki, maisema ja luonto.
-          </p>
+              <h1>
+                Aapo Pihkala
+              </h1>
 
-        </div>
+              <div class="hero-description">
 
-        <p class="hero-location">
-          <span aria-hidden="true"></span>
-          Espoo, Suomi
-        </p>
+                <p class="hero-primary">
+                  Maisema-arkkitehti, Espoo.
+                </p>
+
+                <p class="hero-secondary">
+                  Kaupunki, maisema ja luonto.
+                </p>
+
+              </div>
+
+              <p class="hero-location">
+                <span aria-hidden="true"></span>
+                Espoo, Suomi
+              </p>
+
+            </div>
+
+
+            <div
+              class="hero-art"
+              aria-hidden="true"
+            >
+
+              <canvas
+                id="topography-canvas"
+                class="topography-canvas"
+              ></canvas>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <section
+          class="current-section"
+          id="ajankohtaista"
+        >
+
+          <div class="section-heading">
+
+            <h2>
+              Ajankohtaista
+            </h2>
+
+          </div>
+
+
+          <div class="feed">
+
+            {
+              posts.map((post) => {
+                const Content = post.Content;
+
+                return (
+                  <article class="feed-post">
+
+                    <header>
+
+                      <p class="post-meta">
+
+                        {formatDate(post.date)}
+
+                        {' · '}
+
+                        {post.topics.map(
+                          (topic: string, index: number) => (
+                            <>
+
+                              {index > 0 && ' · '}
+
+                              {
+                                topicLinks[topic]
+                                  ? (
+                                    <a href={topicLinks[topic]}>
+                                      {topic}
+                                    </a>
+                                  )
+                                  : topic
+                              }
+
+                            </>
+                          )
+                        )}
+
+                        {' · '}
+
+                        {post.location}
+
+                      </p>
+
+
+                      <h3 class="post-title">
+
+                        <a href={`/ajankohtaista/${post.slug}`}>
+                          {post.title}
+                        </a>
+
+                      </h3>
+
+                    </header>
+
+
+                    <div class="post-body">
+                      <Content />
+                    </div>
+
+
+                    <p class="source">
+
+                      <strong>
+                        Lähde:
+                      </strong>
+
+                      {' '}
+
+                      <a href={post.sourceUrl}>
+                        {post.source} ↗
+                      </a>
+
+                    </p>
+
+                  </article>
+                );
+              })
+            }
+
+          </div>
+
+        </section>
 
       </div>
-
-
-      <div
-        class="hero-art"
-        aria-hidden="true"
-      >
-
-        <canvas
-          id="topography-canvas"
-          class="topography-canvas"
-        ></canvas>
-
-      </div>
-
-    </section>
-
-
-    <main
-      class="page-shell"
-      id="ajankohtaista"
-    >
-
-      <div class="section-heading">
-
-        <h2>
-          Ajankohtaista
-        </h2>
-
-      </div>
-
-
-      <section
-        class="feed"
-        aria-label="Ajankohtaista"
-      >
-
-        {
-          posts.map((post) => {
-            const Content = post.Content;
-
-            return (
-              <article class="feed-post">
-
-                <div class="feed-post-main">
-
-                  <p class="post-taxonomy">
-
-                    {post.topics.map(
-                      (topic: string, index: number) => (
-                        <>
-
-                          {index > 0 && ' · '}
-
-                          {
-                            topicLinks[topic]
-                              ? (
-                                <a href={topicLinks[topic]}>
-                                  {topic}
-                                </a>
-                              )
-                              : topic
-                          }
-
-                        </>
-                      )
-                    )}
-
-                    {' · '}
-
-                    {post.location}
-
-                  </p>
-
-
-                  <h3 class="post-title">
-
-                    <a href={`/ajankohtaista/${post.slug}`}>
-                      {post.title}
-                    </a>
-
-                  </h3>
-
-
-                  <div class="post-body">
-                    <Content />
-                  </div>
-
-
-                  <p class="source">
-
-                    <strong>
-                      Lähde:
-                    </strong>
-
-                    {' '}
-
-                    <a href={post.sourceUrl}>
-                      {post.source} ↗
-                    </a>
-
-                  </p>
-
-                </div>
-
-
-                <time
-                  class="post-date"
-                  datetime={post.date}
-                >
-                  {formatDate(post.date)}
-                </time>
-
-              </article>
-            );
-          })
-        }
-
-      </section>
 
     </main>
 
 
     <script is:inline>
       (() => {
-        const canvas = document.getElementById('topography-canvas');
+        const canvas =
+          document.getElementById(
+            'topography-canvas'
+          );
 
-        if (!(canvas instanceof HTMLCanvasElement)) {
+        if (
+          !(canvas instanceof HTMLCanvasElement)
+        ) {
           return;
         }
 
-        const context = canvas.getContext('2d');
+        const context =
+          canvas.getContext('2d');
 
         if (!context) {
           return;
@@ -276,8 +284,8 @@ const personSchema = {
         const rows = 88;
         const contourCount = 54;
 
-        let width = 500;
-        let height = 370;
+        let width = 256;
+        let height = 320;
         let dpr = 1;
 
         let lastDraw = -Infinity;
@@ -298,8 +306,11 @@ const personSchema = {
           const dx = x - cx;
           const dy = y - cy;
 
-          const cos = Math.cos(rotation);
-          const sin = Math.sin(rotation);
+          const cos =
+            Math.cos(rotation);
+
+          const sin =
+            Math.sin(rotation);
 
           const rx =
             dx * cos +
@@ -339,6 +350,7 @@ const personSchema = {
                 phase * 0.22
               );
 
+
           const warpY =
             y +
             0.04 *
@@ -353,82 +365,88 @@ const personSchema = {
               );
 
 
-          const ridge1 = gaussian(
-            warpX,
-            warpY,
-            -0.42 +
-              0.018 *
-                Math.sin(phase),
-            0.08,
-            0.48,
-            0.72,
-            1.0,
-            -0.42
-          );
+          const ridge1 =
+            gaussian(
+              warpX,
+              warpY,
+              -0.42 +
+                0.018 *
+                  Math.sin(phase),
+              0.08,
+              0.48,
+              0.72,
+              1.0,
+              -0.42
+            );
 
 
-          const ridge2 = gaussian(
-            warpX,
-            warpY,
-            0.32,
-            -0.37 +
-              0.016 *
-                Math.cos(
-                  phase * 0.8
-                ),
-            0.34,
-            0.48,
-            0.82,
-            0.5
-          );
+          const ridge2 =
+            gaussian(
+              warpX,
+              warpY,
+              0.32,
+              -0.37 +
+                0.016 *
+                  Math.cos(
+                    phase * 0.8
+                  ),
+              0.34,
+              0.48,
+              0.82,
+              0.5
+            );
 
 
-          const ridge3 = gaussian(
-            warpX,
-            warpY,
-            0.56,
-            0.44,
-            0.27,
-            0.42,
-            0.58,
-            -0.18
-          );
+          const ridge3 =
+            gaussian(
+              warpX,
+              warpY,
+              0.56,
+              0.44,
+              0.27,
+              0.42,
+              0.58,
+              -0.18
+            );
 
 
-          const ridge4 = gaussian(
-            warpX,
-            warpY,
-            -0.1,
-            0.55,
-            0.32,
-            0.24,
-            0.38,
-            0.75
-          );
+          const ridge4 =
+            gaussian(
+              warpX,
+              warpY,
+              -0.1,
+              0.55,
+              0.32,
+              0.24,
+              0.38,
+              0.75
+            );
 
 
-          const valley1 = gaussian(
-            warpX,
-            warpY,
-            0.02,
-            0.04,
-            0.24,
-            0.42,
-            -0.7,
-            0.35
-          );
+          const valley1 =
+            gaussian(
+              warpX,
+              warpY,
+              0.02,
+              0.04,
+              0.24,
+              0.42,
+              -0.7,
+              0.35
+            );
 
 
-          const valley2 = gaussian(
-            warpX,
-            warpY,
-            -0.56,
-            -0.5,
-            0.24,
-            0.27,
-            -0.24,
-            -0.6
-          );
+          const valley2 =
+            gaussian(
+              warpX,
+              warpY,
+              -0.56,
+              -0.5,
+              0.24,
+              0.27,
+              -0.24,
+              -0.6
+            );
 
 
           const broadSlope =
@@ -561,11 +579,8 @@ const personSchema = {
 
 
           /*
-            Edellisen version nopeus:
-            0.00015
-
-            Nyt 3x nopeampi:
-            0.00045
+            Pidetään sovittu
+            nopeampi animaatio.
           */
 
           const phase =
@@ -577,7 +592,7 @@ const personSchema = {
           const values =
             new Array(
               (cols + 1) *
-                (rows + 1)
+              (rows + 1)
             );
 
 
@@ -910,8 +925,7 @@ const personSchema = {
                       topRight +
                       bottomRight +
                       bottomLeft
-                    ) /
-                    4;
+                    ) / 4;
 
 
                   if (
@@ -928,6 +942,7 @@ const personSchema = {
                       points[1].x,
                       points[1].y
                     );
+
 
                     context.moveTo(
                       points[2].x,
@@ -951,6 +966,7 @@ const personSchema = {
                       points[3].y
                     );
 
+
                     context.moveTo(
                       points[1].x,
                       points[1].y
@@ -965,6 +981,7 @@ const personSchema = {
               }
             }
 
+
             context.stroke();
           }
         };
@@ -973,12 +990,6 @@ const personSchema = {
         const animate = (
           time
         ) => {
-
-          /*
-            Nopeampi liike tarvitsee
-            hieman tiheämmän piirron,
-            jotta käyrät eivät nyi.
-          */
 
           if (
             time -
@@ -1001,6 +1012,7 @@ const personSchema = {
 
 
         resizeCanvas();
+
         draw(0);
 
 
