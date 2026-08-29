@@ -1,6 +1,7 @@
 ---
 title: "Luontoviisas piha Espoossa"
-date: 2026-08-29
+description: "Espoon Luontoviisaat pihat -kilpailu nostaa esiin biodiversiteetin, kaupunkiluonnon ja maisema-arkkitehtuurin yhteyksiä."
+date: "2026-08-29"
 topics:
   - Kaupunkiluonto
   - Biodiversiteetti
@@ -9,8 +10,6 @@ location: "Espoo"
 source: "Espoon kaupunki"
 sourceUrl: "https://www.espoo.fi/fi/uutiset/2026/08/riku-lumiaron-luontopiha-nappasi-voiton-espoon-kaupungin-pihakisassa"
 ---
-
-# Luontoviisas piha Espoossa
 
 Espoon Luontoviisaat pihat -kilpailussa etsittiin pihoja, joissa luonnon monimuotoisuus, viihtyisyys ja suunnitelmallisuus yhdistyvät. Kilpailun voitti Riku Lumiaron Luontopiha. Olin mukana kilpailun tuomaristossa.
 
