@@ -65,52 +65,70 @@ const personSchema = {
   </head>
 
   <body>
+
     <header class="topbar">
-      <a class="topbar-name" href="/">Aapo</a>
+      <a class="topbar-name" href="/">aapo</a>
 
       <nav class="topbar-nav">
-        <a href="https://www.linkedin.com/" target="_blank" rel="noopener">
-          LinkedIn
+        <a href="#ajankohtaista">ajankohtaista</a>
+
+        <a
+          href="https://www.linkedin.com/"
+          target="_blank"
+          rel="noopener"
+        >
+          linkedin
         </a>
-        <a href="#ajankohtaista">Ajankohtaista</a>
       </nav>
     </header>
 
     <section class="hero">
       <div class="hero-content">
+
         <h1>Aapo Pihkala</h1>
 
-        <p class="hero-role">
-          Maisema-arkkitehti, Espoo
+        <div class="hero-description">
+          <p class="hero-primary">
+            Maisema-arkkitehti, kaupunkiluonto, hulevedet.
+          </p>
+
+          <p class="hero-secondary">
+            Kaupunki, maisema ja luonto.
+          </p>
+        </div>
+
+        <p class="hero-location">
+          <span aria-hidden="true">⌖</span>
+          Espoo, Suomi
         </p>
 
-        <p class="hero-tagline">
-          Kaupunki, maisema ja luonto.
-        </p>
       </div>
 
-      <div class="hero-mark" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
+      <div class="hero-art" aria-hidden="true">
+        <div class="hero-art-shape"></div>
       </div>
     </section>
 
     <main class="page-shell" id="ajankohtaista">
+
       <section class="feed" aria-label="Ajankohtaista">
+
         {
           posts.map((post) => {
             const Content = post.Content;
 
             return (
               <article class="feed-post">
+
                 <header>
                   <p class="post-meta">
                     {formatDate(post.date)}
                     {' · '}
+
                     {post.topics.map((topic: string, index: number) => (
                       <>
                         {index > 0 && ' · '}
+
                         {
                           topicLinks[topic]
                             ? <a href={topicLinks[topic]}>{topic}</a>
@@ -118,6 +136,7 @@ const personSchema = {
                         }
                       </>
                     ))}
+
                     {' · '}
                     {post.location}
                   </p>
@@ -139,11 +158,14 @@ const personSchema = {
                     {post.source} ↗
                   </a>
                 </p>
+
               </article>
             );
           })
         }
+
       </section>
     </main>
+
   </body>
 </html>
