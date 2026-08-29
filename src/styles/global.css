@@ -1,29 +1,20 @@
 :root {
   --bg: #fcfcfc;
   --text: #171717;
-
-  --muted: #7c7f7a;
+  --muted: #737373;
+  --muted-light: #a3a3a3;
   --border: #e5e5e5;
   --accent: #53695b;
 
   /*
-    Gustavo-tyyppinen kaksitasoinen grid:
+    Gustavon todellinen järjestelmä:
 
-    outer:
-    logo + navigaatio
-
-    content:
-    hero + kaikki pääsisältö
+    header max-w-4xl = 896 px
+    main max-w-3xl = 768 px
   */
 
-  --outer-width: 76%;
-  --outer-max: 1560px;
-
-  --content-width: 66%;
-  --content-max: 1220px;
-
-  --article-main: 76%;
-  --article-side: 24%;
+  --header-max: 896px;
+  --main-max: 768px;
 }
 
 
@@ -37,9 +28,9 @@ html {
 
   scroll-behavior: smooth;
 
-  overflow-x: clip;
+  scroll-padding-top: 80px;
 
-  scroll-padding-top: 90px;
+  overflow-x: clip;
 }
 
 
@@ -61,14 +52,11 @@ body {
     system-ui,
     sans-serif;
 
-  font-size:
-    18px;
+  font-size: 18px;
 
-  line-height:
-    1.6;
+  line-height: 1.6;
 
-  font-weight:
-    400;
+  font-weight: 400;
 
   -webkit-font-smoothing:
     antialiased;
@@ -85,70 +73,57 @@ a {
 
 a:hover {
   color:
-    var(--accent);
+    var(--text);
 }
 
 
 /* =========================================================
-   STICKY HEADER
+   HEADER
    ========================================================= */
 
 
 .topbar {
-  position:
-    sticky;
+  position: sticky;
 
-  top:
-    0;
+  top: 0;
 
-  z-index:
-    100;
+  z-index: 50;
 
-  width:
-    100%;
-
-  height:
-    64px;
+  width: 100%;
 
   background:
     rgba(
       252,
       252,
       252,
-      0.88
+      0.90
     );
 
   border-bottom:
     1px solid
-    rgba(
-      225,
-      225,
-      225,
-      0.88
-    );
+    var(--border);
 
   -webkit-backdrop-filter:
-    blur(14px)
-    saturate(115%);
+    blur(8px);
 
   backdrop-filter:
-    blur(14px)
-    saturate(115%);
+    blur(8px);
 }
 
 
 .topbar-inner {
-  width:
-    var(--outer-width);
+  width: 100%;
 
   max-width:
-    var(--outer-max);
+    var(--header-max);
 
-  height:
-    100%;
+  height: 64px;
 
   margin:
     0 auto;
+
+  padding:
+    0 32px;
 
   display:
     flex;
@@ -167,23 +142,30 @@ a:hover {
     Times,
     serif;
 
-  font-size:
-    1.52rem;
+  font-size: 1.25rem;
 
-  font-weight:
-    400;
+  font-weight: 400;
 
-  line-height:
-    1;
+  line-height: 1;
 
   letter-spacing:
-    -0.02em;
+    -0.025em;
+
+  color:
+    var(--text);
 
   text-decoration:
     none;
 
+  transition:
+    transform
+    300ms ease;
+}
+
+
+.topbar-name:hover {
   transform:
-    translateY(-3px);
+    translateY(-1px);
 }
 
 
@@ -194,14 +176,16 @@ a:hover {
   align-items:
     center;
 
-  gap:
-    58px;
+  gap: 32px;
+}
 
+
+.topbar-nav a {
   color:
     var(--muted);
 
   font-size:
-    0.91rem;
+    0.875rem;
 
   font-weight:
     400;
@@ -209,69 +193,38 @@ a:hover {
   line-height:
     1;
 
-  letter-spacing:
-    0.01em;
-
-  transform:
-    translateY(-3px);
-}
-
-
-.topbar-nav a {
-  position:
-    relative;
-
   text-decoration:
     none;
 
   transition:
     color
-    180ms
-    ease;
+    300ms ease;
 }
 
 
-.topbar-nav a::after {
-  content: "";
-
-  position:
-    absolute;
-
-  left:
-    0;
-
-  right:
-    0;
-
-  bottom:
-    -8px;
-
-  height:
-    1px;
-
-  background:
-    var(--accent);
-
-  opacity:
-    0.62;
-
-  transform:
-    scaleX(0);
-
-  transform-origin:
-    center;
-
-  transition:
-    transform
-    180ms
-    ease;
+.topbar-nav a:hover,
+.topbar-nav a:focus-visible {
+  color:
+    var(--text);
 }
 
 
-.topbar-nav a:hover::after,
-.topbar-nav a:focus-visible::after {
-  transform:
-    scaleX(1);
+/* =========================================================
+   MAIN CONTAINER
+   ========================================================= */
+
+
+.main-container {
+  width: 100%;
+
+  max-width:
+    var(--main-max);
+
+  margin:
+    0 auto;
+
+  padding:
+    0 32px;
 }
 
 
@@ -281,65 +234,43 @@ a:hover {
 
 
 .hero {
-  width:
-    var(--content-width);
-
-  max-width:
-    var(--content-max);
-
-  min-height:
-    calc(
-      100vh -
-      64px
-    );
-
-  margin:
-    0 auto;
-
-  display:
-    grid;
-
-  grid-template-columns:
-    minmax(
-      0,
-      48%
-    )
-    minmax(
-      0,
-      46%
-    );
-
-  column-gap:
-    6%;
-
-  align-items:
-    center;
+  padding:
+    96px
+    0
+    112px;
 }
 
 
 /*
-  Nyt hero on samassa sisägridissä
-  kuin alemmat osiot.
-
-  Ei erillistä vaakasuuntaista
-  50 px paikkausta enää.
+  Gustavo käyttää tässä
+  yksinkertaista flex-layoutia.
 */
 
 
-.hero-content {
-  min-width:
-    0;
+.hero-row {
+  display: flex;
 
-  transform:
-    translateY(
-      48px
-    );
+  align-items: center;
+
+  justify-content:
+    space-between;
+
+  gap: 32px;
+}
+
+
+.hero-content {
+  flex: 1;
+
+  min-width: 0;
 }
 
 
 .hero h1 {
   margin:
-    0;
+    0
+    0
+    32px;
 
   font-family:
     "Times New Roman",
@@ -347,64 +278,42 @@ a:hover {
     serif;
 
   font-size:
-    4.15rem;
+    4.5rem;
 
-  font-weight:
-    400;
+  font-weight: 400;
 
-  line-height:
-    0.96;
+  line-height: 0.98;
 
   letter-spacing:
     -0.045em;
+
+  color:
+    var(--text);
 }
 
 
-/* HERO TEXT */
+/* =========================================================
+   HERO TEXT
+   ========================================================= */
 
 
 .hero-description {
-  margin-top:
-    43px;
+  max-width:
+    448px;
+
+  margin-bottom:
+    32px;
 }
 
 
 .hero-description p {
-  margin:
-    0;
+  margin: 0;
 }
 
 
 .hero-primary {
-  max-width:
-    650px;
-
   color:
-    #252724;
-
-  font-size:
-    1.12rem;
-
-  font-weight:
-    450;
-
-  line-height:
-    1.45;
-
-  letter-spacing:
-    -0.012em;
-}
-
-
-.hero-secondary {
-  max-width:
-    570px;
-
-  margin-top:
-    10px !important;
-
-  color:
-    #747873;
+    var(--text);
 
   font-size:
     1.08rem;
@@ -413,45 +322,57 @@ a:hover {
     400;
 
   line-height:
-    1.47;
+    1.55;
 
   letter-spacing:
-    -0.008em;
+    -0.01em;
 }
 
 
-/* LOCATION */
-
-
-.hero-location {
-  margin:
-    52px
-    0
-    0;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    11px;
+.hero-secondary {
+  margin-top:
+    4px !important;
 
   color:
-    #7e837d;
+    var(--muted);
 
   font-size:
-    0.88rem;
+    1.08rem;
 
   font-weight:
     400;
 
   line-height:
-    1;
+    1.55;
 
   letter-spacing:
-    -0.002em;
+    -0.01em;
+}
+
+
+/* =========================================================
+   LOCATION
+   ========================================================= */
+
+
+.hero-location {
+  margin: 0;
+
+  display: flex;
+
+  align-items:
+    center;
+
+  gap: 9px;
+
+  color:
+    var(--muted);
+
+  font-size:
+    0.875rem;
+
+  line-height:
+    1.4;
 }
 
 
@@ -459,23 +380,19 @@ a:hover {
   position:
     relative;
 
-  width:
-    13px;
+  width: 13px;
 
-  height:
-    16px;
+  height: 16px;
 
   flex:
     0 0
     13px;
 
-  font-size:
-    0;
+  font-size: 0;
 
   border:
-    1.4px
-    solid
-    #717970;
+    1.35px solid
+    #818781;
 
   border-radius:
     50%
@@ -494,23 +411,19 @@ a:hover {
   position:
     absolute;
 
-  width:
-    3px;
+  width: 3px;
 
-  height:
-    3px;
+  height: 3px;
 
-  top:
-    4px;
+  top: 4px;
 
-  left:
-    4px;
+  left: 4px;
 
   border-radius:
     50%;
 
   background:
-    #717970;
+    #818781;
 }
 
 
@@ -521,13 +434,14 @@ a:hover {
 
 .hero-art {
   width:
-    520px;
+    256px;
 
   height:
-    380px;
+    320px;
 
-  justify-self:
-    start;
+  flex:
+    0 0
+    256px;
 
   display:
     flex;
@@ -537,15 +451,6 @@ a:hover {
 
   justify-content:
     center;
-
-  transform:
-    translate(
-      26px,
-      46px
-    );
-
-  overflow:
-    visible;
 
   pointer-events:
     none;
@@ -557,10 +462,10 @@ a:hover {
     block;
 
   width:
-    520px;
+    256px;
 
   height:
-    380px;
+    320px;
 
   background:
     transparent;
@@ -568,60 +473,44 @@ a:hover {
   opacity:
     0.98;
 
-  /*
-    Topografia ei muodosta
-    suorakulmaista kuvapaneelia.
-
-    Reunat katoavat hitaasti
-    sivun taustaan.
-  */
-
   -webkit-mask-image:
     radial-gradient(
       ellipse
+      94%
       91%
-      88%
       at
-      46%
+      48%
       50%,
 
       #000
       0%,
 
       #000
-      55%,
+      58%,
 
       rgba(
         0,
         0,
         0,
-        0.96
+        0.95
       )
-      64%,
+      67%,
 
       rgba(
         0,
         0,
         0,
-        0.78
+        0.72
       )
-      75%,
+      79%,
 
       rgba(
         0,
         0,
         0,
-        0.46
+        0.35
       )
-      84%,
-
-      rgba(
-        0,
-        0,
-        0,
-        0.15
-      )
-      93%,
+      89%,
 
       transparent
       100%
@@ -630,49 +519,41 @@ a:hover {
   mask-image:
     radial-gradient(
       ellipse
+      94%
       91%
-      88%
       at
-      46%
+      48%
       50%,
 
       #000
       0%,
 
       #000
-      55%,
+      58%,
 
       rgba(
         0,
         0,
         0,
-        0.96
+        0.95
       )
-      64%,
+      67%,
 
       rgba(
         0,
         0,
         0,
-        0.78
+        0.72
       )
-      75%,
+      79%,
 
       rgba(
         0,
         0,
         0,
-        0.46
+        0.35
       )
-      84%,
-
-      rgba(
-        0,
-        0,
-        0,
-        0.15
-      )
-      93%,
+      89%,
 
       transparent
       100%
@@ -681,62 +562,34 @@ a:hover {
 
 
 /* =========================================================
-   CONTENT GRID
+   AJANKOHTAISTA
    ========================================================= */
 
 
-.page-shell {
-  width:
-    var(--content-width);
-
-  max-width:
-    var(--content-max);
-
-  margin:
-    0 auto;
-
+.current-section {
   padding:
-    92px
     0
-    150px;
-
-  border-top:
-    1px
-    solid
-    var(--border);
+    0
+    112px;
 }
 
 
-/*
-  Sama sarakejako toistuu:
-
-  vasen = sisältö
-  oikea = meta / päivämäärät
-*/
-
-
 .section-heading {
-  display:
-    grid;
-
-  grid-template-columns:
-    var(--article-main)
-    var(--article-side);
+  display: flex;
 
   align-items:
-    end;
+    baseline;
+
+  justify-content:
+    space-between;
 
   margin-bottom:
-    54px;
+    32px;
 }
 
 
 .section-heading h2 {
-  grid-column:
-    1;
-
-  margin:
-    0;
+  margin: 0;
 
   font-family:
     "Times New Roman",
@@ -744,16 +597,19 @@ a:hover {
     serif;
 
   font-size:
-    2rem;
+    1.875rem;
 
   font-weight:
     400;
 
   line-height:
-    1;
+    1.15;
 
   letter-spacing:
     -0.025em;
+
+  color:
+    var(--text);
 }
 
 
@@ -763,102 +619,45 @@ a:hover {
 
 
 .feed {
-  width:
-    100%;
+  width: 100%;
 }
 
 
 .feed-post {
-  display:
-    grid;
-
-  grid-template-columns:
-    var(--article-main)
-    var(--article-side);
-
-  align-items:
-    start;
-
   padding:
     0
     0
-    92px;
+    80px;
 }
 
 
 .feed-post +
 .feed-post {
   padding-top:
-    76px;
+    64px;
 
   border-top:
-    1px
-    solid
+    1px solid
     var(--border);
 }
 
 
-.feed-post-main {
-  grid-column:
-    1;
-
-  min-width:
-    0;
-
-  padding-right:
-    72px;
-}
+/* =========================================================
+   POST META
+   ========================================================= */
 
 
-.post-date {
-  grid-column:
-    2;
-
-  justify-self:
-    end;
-
-  padding-top:
-    2px;
-
-  color:
-    #989b97;
-
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    monospace;
-
-  font-size:
-    0.74rem;
-
-  font-weight:
-    400;
-
-  line-height:
-    1.4;
-
-  letter-spacing:
-    0.02em;
-}
-
-
-/* TAXONOMY */
-
-
-.post-taxonomy {
+.post-meta {
   margin:
     0
     0
     20px;
 
   color:
-    #858985;
+    var(--muted);
 
   font-size:
-    0.7rem;
+    0.68rem;
 
   font-weight:
     500;
@@ -874,7 +673,7 @@ a:hover {
 }
 
 
-.post-taxonomy a {
+.post-meta a {
   color:
     var(--accent);
 
@@ -883,14 +682,22 @@ a:hover {
 }
 
 
-/* POST TITLE */
+.post-meta a:hover {
+  color:
+    var(--text);
+}
+
+
+/* =========================================================
+   POST TITLE
+   ========================================================= */
 
 
 .post-title {
   margin:
     0
     0
-    38px;
+    36px;
 
   font-family:
     "Times New Roman",
@@ -900,7 +707,7 @@ a:hover {
   font-size:
     clamp(
       2.7rem,
-      4vw,
+      5vw,
       3.8rem
     );
 
@@ -912,6 +719,9 @@ a:hover {
 
   letter-spacing:
     -0.035em;
+
+  color:
+    var(--text);
 }
 
 
@@ -921,15 +731,17 @@ a:hover {
 }
 
 
-/* BODY */
+/* =========================================================
+   POST BODY
+   ========================================================= */
 
 
 .post-body {
   max-width:
-    700px;
+    680px;
 
   color:
-    #292b28;
+    #292929;
 
   font-size:
     1rem;
@@ -938,7 +750,7 @@ a:hover {
     1.68;
 
   letter-spacing:
-    -0.008em;
+    -0.006em;
 }
 
 
@@ -952,9 +764,9 @@ a:hover {
 
 .post-body h2 {
   margin:
-    2.6em
+    2.5em
     0
-    0.75em;
+    0.72em;
 
   font-family:
     "Times New Roman",
@@ -975,17 +787,15 @@ a:hover {
 }
 
 
-.post-body
-.aapo-view-title {
+.post-body .aapo-view-title {
   margin-top:
     2.8em;
 
   padding-left:
-    20px;
+    18px;
 
   border-left:
-    3px
-    solid
+    2px solid
     var(--accent);
 
   color:
@@ -993,12 +803,14 @@ a:hover {
 }
 
 
-/* SOURCE */
+/* =========================================================
+   SOURCE
+   ========================================================= */
 
 
 .source {
   max-width:
-    700px;
+    680px;
 
   margin-top:
     48px;
@@ -1007,8 +819,7 @@ a:hover {
     18px;
 
   border-top:
-    1px
-    solid
+    1px solid
     var(--border);
 
   color:
@@ -1026,30 +837,27 @@ a:hover {
 
 
 /* =========================================================
-   SINGLE POSTS
+   SINGLE POST COMPATIBILITY
    ========================================================= */
 
 
 .site-header {
-  width:
-    var(--outer-width);
+  width: 100%;
 
   max-width:
-    var(--outer-max);
+    var(--header-max);
 
   margin:
     0 auto;
 
   padding:
-    54px
-    0
+    54px 32px
     64px;
 }
 
 
 .site-name {
-  margin:
-    0;
+  margin: 0;
 
   font-family:
     "Times New Roman",
@@ -1101,16 +909,17 @@ a:hover {
 
 
 .single-post {
-  width:
-    var(--content-width);
+  width: 100%;
 
   max-width:
-    760px;
+    var(--main-max);
 
   margin:
     0 auto;
 
-  padding-bottom:
+  padding:
+    0
+    32px
     140px;
 }
 
@@ -1133,82 +942,59 @@ a:hover {
 
 
 @media (
-  max-width: 1100px
+  max-width: 800px
 ) {
 
-  :root {
-    --outer-width:
-      calc(
-        100% - 64px
-      );
+  .topbar-inner {
+    padding:
+      0 24px;
+  }
 
-    --content-width:
-      calc(
-        100% - 96px
-      );
 
-    --article-main:
-      72%;
-
-    --article-side:
-      28%;
+  .main-container {
+    padding:
+      0 24px;
   }
 
 
   .hero {
-    grid-template-columns:
-      minmax(
-        0,
-        1fr
-      )
-      300px;
-
-    column-gap:
-      32px;
+    padding:
+      80px
+      0
+      96px;
   }
 
 
-  .hero-content {
-    transform:
-      translateY(
-        30px
-      );
+  .hero-row {
+    gap:
+      24px;
   }
 
 
   .hero h1 {
     font-size:
-      3.8rem;
+      3.75rem;
   }
 
 
   .hero-art {
     width:
-      320px;
+      192px;
 
     height:
-      280px;
+      256px;
 
-    transform:
-      translate(
-        8px,
-        32px
-      );
+    flex-basis:
+      192px;
   }
 
 
   .topography-canvas {
     width:
-      320px;
+      192px;
 
     height:
-      280px;
-  }
-
-
-  .feed-post-main {
-    padding-right:
-      42px;
+      256px;
   }
 
 }
@@ -1220,109 +1006,64 @@ a:hover {
 
 
 @media (
-  max-width: 700px
+  max-width: 640px
 ) {
 
-  :root {
-    --outer-width:
-      calc(
-        100% - 32px
-      );
-
-    --content-width:
-      calc(
-        100% - 32px
-      );
-  }
-
-
-  body {
-    font-size:
-      17px;
-  }
-
-
-  .topbar {
-    height:
-      64px;
-  }
-
-
-  .topbar-name {
-    font-size:
-      1.35rem;
+  .topbar-inner {
+    padding:
+      0 16px;
   }
 
 
   .topbar-nav {
     gap:
       20px;
+  }
 
-    font-size:
-      0.82rem;
+
+  .main-container {
+    padding:
+      0 16px;
   }
 
 
   .hero {
-    min-height:
-      calc(
-        100vh -
-        64px
-      );
-
-    grid-template-columns:
-      1fr;
-
-    align-content:
-      center;
-
     padding:
-      48px
-      0;
+      64px
+      0
+      80px;
   }
 
 
-  .hero-content {
-    transform:
-      none;
+  .hero-row {
+    display:
+      block;
   }
 
 
   .hero h1 {
+    margin-bottom:
+      28px;
+
     font-size:
       clamp(
-        3.4rem,
+        3.3rem,
         15vw,
-        4.2rem
+        4rem
       );
   }
 
 
   .hero-description {
-    margin-top:
-      34px;
+    margin-bottom:
+      30px;
   }
 
 
   .hero-primary,
   .hero-secondary {
     font-size:
-      1.04rem;
-  }
-
-
-  .hero-secondary {
-    margin-top:
-      8px !important;
-  }
-
-
-  .hero-location {
-    margin-top:
-      42px;
-
-    font-size:
-      0.86rem;
+      1.03rem;
   }
 
 
@@ -1332,69 +1073,34 @@ a:hover {
   }
 
 
-  .page-shell {
-    padding:
-      62px
-      0
-      100px;
+  .current-section {
+    padding-bottom:
+      80px;
   }
 
 
   .section-heading {
-    display:
-      block;
-
     margin-bottom:
-      42px;
+      28px;
   }
 
 
   .section-heading h2 {
     font-size:
-      1.8rem;
+      1.7rem;
   }
 
 
   .feed-post {
-    display:
-      flex;
-
-    flex-direction:
-      column;
-
     padding-bottom:
-      70px;
+      64px;
   }
 
 
   .feed-post +
   .feed-post {
     padding-top:
-      58px;
-  }
-
-
-  .feed-post-main {
-    width:
-      100%;
-
-    padding-right:
-      0;
-  }
-
-
-  .post-date {
-    order:
-      -1;
-
-    align-self:
-      flex-start;
-
-    margin-bottom:
-      12px;
-
-    padding-top:
-      0;
+      54px;
   }
 
 
@@ -1406,14 +1112,17 @@ a:hover {
       clamp(
         2.4rem,
         11vw,
-        3.2rem
+        3.15rem
       );
   }
 
 
-  .post-body {
-    font-size:
-      1rem;
+  .single-post {
+    padding-left:
+      16px;
+
+    padding-right:
+      16px;
   }
 
 }
