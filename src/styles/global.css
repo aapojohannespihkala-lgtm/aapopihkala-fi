@@ -94,6 +94,7 @@ a:hover {
   line-height: 1;
 
   letter-spacing: -0.02em;
+
   text-decoration: none;
 
   transform: translateY(-4px);
@@ -102,12 +103,14 @@ a:hover {
 .topbar-nav {
   display: flex;
   align-items: center;
+
   gap: 58px;
 
   color: var(--muted);
 
   font-size: 0.91rem;
   font-weight: 400;
+
   line-height: 1;
   letter-spacing: 0.01em;
 
@@ -130,13 +133,18 @@ a:hover {
   margin: 0 auto;
 
   display: grid;
-  grid-template-columns: 55% 29%;
+
+  grid-template-columns:
+    54%
+    34%;
+
   justify-content: space-between;
   align-items: center;
 }
 
 .hero-content {
   min-width: 0;
+
   transform: translateY(36px);
 }
 
@@ -150,6 +158,7 @@ a:hover {
 
   font-size: 3.9rem;
   font-weight: 400;
+
   line-height: 0.96;
   letter-spacing: -0.045em;
 }
@@ -169,6 +178,7 @@ a:hover {
 
   font-size: 1.09rem;
   font-weight: 400;
+
   line-height: 1.45;
   letter-spacing: -0.014em;
 }
@@ -182,21 +192,27 @@ a:hover {
 
   font-size: 1.09rem;
   font-weight: 400;
+
   line-height: 1.45;
   letter-spacing: -0.014em;
 }
+
+
+/* LOCATION */
 
 .hero-location {
   margin: 54px 0 0;
 
   display: flex;
   align-items: center;
+
   gap: 11px;
 
   color: var(--muted);
 
   font-size: 0.9rem;
   font-weight: 400;
+
   line-height: 1;
   letter-spacing: -0.008em;
 }
@@ -213,7 +229,11 @@ a:hover {
 
   border: 1.5px solid var(--muted);
 
-  border-radius: 50% 50% 50% 0;
+  border-radius:
+    50%
+    50%
+    50%
+    0;
 
   transform: rotate(-45deg);
 }
@@ -230,15 +250,16 @@ a:hover {
   left: 4px;
 
   border-radius: 50%;
+
   background: var(--muted);
 }
 
 
-/* HERO ART */
+/* GENERATIIVINEN TOPOGRAFIA */
 
 .hero-art {
-  width: 360px;
-  height: 280px;
+  width: 380px;
+  height: 310px;
 
   justify-self: start;
 
@@ -246,231 +267,18 @@ a:hover {
   align-items: center;
   justify-content: center;
 
-  transform: translate(-18px, 34px);
+  transform: translate(-30px, 34px);
+
+  overflow: hidden;
 }
 
-.landscape-symbol {
+.topography-canvas {
   display: block;
 
-  width: 360px;
-  height: 280px;
+  width: 380px;
+  height: 310px;
 
-  overflow: visible;
-}
-
-.topography-frame {
-  fill: none;
-  stroke: rgba(0, 0, 0, 0.03);
-}
-
-
-/* TOPOGRAPHY */
-
-.terrain-field,
-.terrain-open,
-.terrain-shadows {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.terrain-open {
-  animation: openFieldShift 9s ease-in-out infinite alternate;
-}
-
-.terrain-shadows {
-  animation: shadowShift 8.5s ease-in-out infinite alternate;
-}
-
-.contour-primary {
-  animation: contourShiftPrimary 7.5s ease-in-out infinite alternate;
-}
-
-.contour-secondary {
-  animation: contourShiftSecondary 6.8s ease-in-out infinite alternate;
-}
-
-.contour-tertiary {
-  animation: contourShiftTertiary 6.2s ease-in-out infinite alternate;
-}
-
-.open-contour,
-.terrain-field path {
-  fill: none;
-
-  stroke: #666864;
-  stroke-width: 1.16;
-
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.open-contour {
-  stroke: #b8bab6;
-  stroke-width: 1.02;
-  opacity: 0.56;
-}
-
-.index-contour {
-  stroke: #313330 !important;
-  stroke-width: 1.9 !important;
-  opacity: 0.96;
-}
-
-.summit-contour {
-  stroke: #454743 !important;
-  stroke-width: 1.38 !important;
-  opacity: 0.94;
-}
-
-.shadow-ridge {
-  fill: none;
-
-  stroke: #101111;
-
-  stroke-linecap: round;
-  stroke-linejoin: round;
-
-  filter: url(#softBlur);
-}
-
-.shadow-a {
-  stroke-width: 34;
-  opacity: 0.22;
-}
-
-.shadow-b {
-  stroke-width: 28;
-  opacity: 0.18;
-}
-
-.shadow-c {
-  stroke-width: 22;
-  opacity: 0.15;
-}
-
-
-/* TOPOGRAPHY ANIMATION */
-
-@keyframes openFieldShift {
-  0% {
-    transform:
-      translate(-5px, -2px)
-      scale(0.985, 1.02);
-  }
-
-  50% {
-    transform:
-      translate(7px, 4px)
-      scale(1.03, 0.98);
-  }
-
-  100% {
-    transform:
-      translate(-3px, 6px)
-      scale(0.99, 1.01);
-  }
-}
-
-@keyframes shadowShift {
-  0% {
-    transform:
-      translate(-7px, 5px)
-      scale(1.02, 0.97)
-      rotate(-0.4deg);
-    opacity: 0.45;
-  }
-
-  50% {
-    transform:
-      translate(10px, -6px)
-      scale(0.98, 1.05)
-      rotate(0.55deg);
-    opacity: 0.7;
-  }
-
-  100% {
-    transform:
-      translate(-4px, -2px)
-      scale(1.03, 0.99)
-      rotate(-0.22deg);
-    opacity: 0.5;
-  }
-}
-
-@keyframes contourShiftPrimary {
-  0% {
-    transform:
-      translate(-5px, -4px)
-      scale(0.985, 1.03)
-      rotate(-0.35deg);
-  }
-
-  35% {
-    transform:
-      translate(8px, 5px)
-      scale(1.045, 0.965)
-      rotate(0.45deg);
-  }
-
-  70% {
-    transform:
-      translate(-7px, 7px)
-      scale(0.99, 1.04)
-      rotate(-0.28deg);
-  }
-
-  100% {
-    transform:
-      translate(3px, -3px)
-      scale(1.01, 0.99)
-      rotate(0.12deg);
-  }
-}
-
-@keyframes contourShiftSecondary {
-  0% {
-    transform:
-      translate(5px, -8px)
-      scale(0.96, 1.06)
-      rotate(0.45deg);
-  }
-
-  45% {
-    transform:
-      translate(-8px, 6px)
-      scale(1.08, 0.94)
-      rotate(-0.55deg);
-  }
-
-  100% {
-    transform:
-      translate(2px, 4px)
-      scale(1.02, 0.98)
-      rotate(0.16deg);
-  }
-}
-
-@keyframes contourShiftTertiary {
-  0% {
-    transform:
-      translate(-6px, 4px)
-      scale(1.06, 0.95)
-      rotate(-0.45deg);
-  }
-
-  50% {
-    transform:
-      translate(7px, -6px)
-      scale(0.96, 1.08)
-      rotate(0.48deg);
-  }
-
-  100% {
-    transform:
-      translate(-2px, -1px)
-      scale(1.01, 1.01)
-      rotate(-0.12deg);
-  }
+  background: transparent;
 }
 
 
@@ -503,6 +311,7 @@ a:hover {
 
 .feed-post + .feed-post {
   padding-top: 90px;
+
   border-top: 1px solid var(--border);
 }
 
@@ -516,8 +325,10 @@ a:hover {
 
   font-size: 0.7rem;
   font-weight: 500;
+
   line-height: 1.6;
   letter-spacing: 0.07em;
+
   text-transform: uppercase;
 }
 
@@ -537,8 +348,14 @@ a:hover {
     Times,
     serif;
 
-  font-size: clamp(2.9rem, 4.8vw, 4.2rem);
+  font-size: clamp(
+    2.9rem,
+    4.8vw,
+    4.2rem
+  );
+
   font-weight: 400;
+
   line-height: 0.98;
   letter-spacing: -0.035em;
 }
@@ -552,6 +369,7 @@ a:hover {
 
 .post-body {
   font-size: 1.04rem;
+
   letter-spacing: -0.01em;
 }
 
@@ -569,14 +387,17 @@ a:hover {
 
   font-size: 1.75rem;
   font-weight: 400;
+
   line-height: 1.2;
 }
 
 .post-body .aapo-view-title {
   margin-top: 2.8em;
+
   padding-left: 20px;
 
   border-left: 3px solid var(--accent);
+
   color: var(--accent);
 }
 
@@ -590,6 +411,7 @@ a:hover {
   border-top: 1px solid var(--border);
 
   color: var(--muted);
+
   font-size: 0.82rem;
 }
 
@@ -629,6 +451,7 @@ a:hover {
   margin: 8px 0 0;
 
   color: var(--muted);
+
   font-size: 0.9rem;
 }
 
@@ -645,6 +468,7 @@ a:hover {
 
 .single-post {
   margin-left: 8%;
+
   padding-bottom: 140px;
 }
 
@@ -652,6 +476,7 @@ a:hover {
   margin-top: 58px;
 
   color: var(--muted);
+
   font-size: 0.85rem;
 }
 
@@ -659,14 +484,18 @@ a:hover {
 /* TABLET */
 
 @media (max-width: 1000px) {
+
   :root {
     --nav-width: calc(100% - 64px);
     --hero-width: calc(100% - 100px);
   }
 
   .hero {
-    grid-template-columns: minmax(0, 1fr) 220px;
-    gap: 50px;
+    grid-template-columns:
+      minmax(0, 1fr)
+      240px;
+
+    gap: 44px;
   }
 
   .hero-content {
@@ -678,27 +507,29 @@ a:hover {
   }
 
   .hero-art {
-    width: 220px;
-    height: 190px;
+    width: 240px;
+    height: 220px;
 
-    transform: translate(-4px, 26px);
+    transform: translate(0, 28px);
   }
 
-  .landscape-symbol {
-    width: 220px;
-    height: 190px;
+  .topography-canvas {
+    width: 240px;
+    height: 220px;
   }
 
   .feed,
   .single-post {
     margin-left: 0;
   }
+
 }
 
 
 /* MOBILE */
 
 @media (max-width: 700px) {
+
   :root {
     --nav-width: calc(100% - 32px);
     --hero-width: calc(100% - 32px);
@@ -718,6 +549,7 @@ a:hover {
 
   .topbar-nav {
     gap: 20px;
+
     font-size: 0.82rem;
   }
 
@@ -725,6 +557,7 @@ a:hover {
     min-height: calc(100vh - 64px);
 
     grid-template-columns: 1fr;
+
     align-content: center;
 
     padding: 48px 0;
@@ -735,7 +568,11 @@ a:hover {
   }
 
   .hero h1 {
-    font-size: clamp(3.4rem, 15vw, 4.2rem);
+    font-size: clamp(
+      3.4rem,
+      15vw,
+      4.2rem
+    );
   }
 
   .hero-description {
@@ -753,6 +590,7 @@ a:hover {
 
   .hero-location {
     margin-top: 42px;
+
     font-size: 0.88rem;
   }
 
@@ -780,21 +618,5 @@ a:hover {
   .feed-post + .feed-post {
     padding-top: 64px;
   }
-}
 
-
-/* REDUCED MOTION */
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
-  .terrain-open,
-  .terrain-shadows,
-  .contour-primary,
-  .contour-secondary,
-  .contour-tertiary {
-    animation: none;
-  }
 }
