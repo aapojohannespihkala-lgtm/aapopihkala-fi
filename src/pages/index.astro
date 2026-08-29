@@ -56,7 +56,11 @@ const personSchema = {
     />
 
     <meta name="author" content="Aapo Pihkala" />
-    <link rel="canonical" href="https://aapopihkala.fi/" />
+
+    <link
+      rel="canonical"
+      href="https://aapopihkala.fi/"
+    />
 
     <script
       type="application/ld+json"
@@ -67,11 +71,16 @@ const personSchema = {
   <body>
 
     <header class="topbar">
-      <a class="topbar-name" href="/">
+
+      <a
+        class="topbar-name"
+        href="/"
+      >
         aapo
       </a>
 
       <nav class="topbar-nav">
+
         <a href="#ajankohtaista">
           ajankohtaista
         </a>
@@ -83,7 +92,9 @@ const personSchema = {
         >
           linkedin
         </a>
+
       </nav>
+
     </header>
 
     <section class="hero">
@@ -93,6 +104,7 @@ const personSchema = {
         <h1>Aapo Pihkala</h1>
 
         <div class="hero-description">
+
           <p class="hero-primary">
             Maisema-arkkitehti, Espoo.
           </p>
@@ -100,6 +112,7 @@ const personSchema = {
           <p class="hero-secondary">
             Kaupunki, maisema ja luonto.
           </p>
+
         </div>
 
         <p class="hero-location">
@@ -109,7 +122,10 @@ const personSchema = {
 
       </div>
 
-      <div class="hero-art" aria-hidden="true">
+      <div
+        class="hero-art"
+        aria-hidden="true"
+      >
         <canvas
           id="topography-canvas"
           class="topography-canvas"
@@ -146,6 +162,7 @@ const personSchema = {
                     {post.topics.map(
                       (topic: string, index: number) => (
                         <>
+
                           {index > 0 && ' · '}
 
                           {
@@ -157,19 +174,23 @@ const personSchema = {
                               )
                               : topic
                           }
+
                         </>
                       )
                     )}
 
                     {' · '}
+
                     {post.location}
 
                   </p>
 
                   <h2 class="post-title">
+
                     <a href={`/ajankohtaista/${post.slug}`}>
                       {post.title}
                     </a>
+
                   </h2>
 
                 </header>
@@ -179,11 +200,13 @@ const personSchema = {
                 </div>
 
                 <p class="source">
+
                   <strong>Lähde:</strong>{' '}
 
                   <a href={post.sourceUrl}>
                     {post.source} ↗
                   </a>
+
                 </p>
 
               </article>
@@ -194,7 +217,6 @@ const personSchema = {
       </section>
 
     </main>
-
 
     <script is:inline>
       (() => {
@@ -211,15 +233,18 @@ const personSchema = {
         }
 
         const prefersReducedMotion =
-          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          window.matchMedia(
+            '(prefers-reduced-motion: reduce)'
+          ).matches;
 
-        const cols = 92;
-        const rows = 76;
-        const contourCount = 46;
+        const cols = 108;
+        const rows = 88;
+        const contourCount = 54;
 
-        let width = 360;
-        let height = 300;
+        let width = 480;
+        let height = 350;
         let dpr = 1;
+
         let lastDraw = -Infinity;
         let animationFrame = 0;
 
@@ -239,32 +264,61 @@ const personSchema = {
           const cos = Math.cos(rotation);
           const sin = Math.sin(rotation);
 
-          const rx = dx * cos + dy * sin;
-          const ry = -dx * sin + dy * cos;
+          const rx =
+            dx * cos +
+            dy * sin;
+
+          const ry =
+            -dx * sin +
+            dy * cos;
 
           return amplitude * Math.exp(
             -(
-              (rx * rx) / (2 * sx * sx) +
-              (ry * ry) / (2 * sy * sy)
+              (rx * rx) /
+                (2 * sx * sx) +
+              (ry * ry) /
+                (2 * sy * sy)
             )
           );
         };
 
-        const terrainHeight = (x, y, phase) => {
+        const terrainHeight = (
+          x,
+          y,
+          phase
+        ) => {
           const warpX =
             x +
-            0.055 * Math.sin(2.5 * y + phase * 0.75) +
-            0.025 * Math.sin(5.2 * y - phase * 0.35);
+            0.05 *
+              Math.sin(
+                2.45 * y +
+                phase * 0.55
+              ) +
+            0.023 *
+              Math.sin(
+                5.1 * y -
+                phase * 0.22
+              );
 
           const warpY =
             y +
-            0.045 * Math.sin(2.25 * x - phase * 0.55) +
-            0.018 * Math.cos(4.3 * x + phase * 0.4);
+            0.04 *
+              Math.sin(
+                2.1 * x -
+                phase * 0.4
+              ) +
+            0.017 *
+              Math.cos(
+                4.15 * x +
+                phase * 0.28
+              );
 
           const ridge1 = gaussian(
             warpX,
             warpY,
-            -0.42 + 0.028 * Math.sin(phase),
+            -0.42 +
+              0.018 *
+                Math.sin(phase),
             0.08,
             0.48,
             0.72,
@@ -276,7 +330,11 @@ const personSchema = {
             warpX,
             warpY,
             0.32,
-            -0.37 + 0.022 * Math.cos(phase * 0.8),
+            -0.37 +
+              0.016 *
+                Math.cos(
+                  phase * 0.8
+                ),
             0.34,
             0.48,
             0.82,
@@ -336,7 +394,10 @@ const personSchema = {
             Math.sin(
               2.1 * warpX -
               1.7 * warpY +
-              0.3 * Math.sin(phase * 0.55)
+              0.22 *
+                Math.sin(
+                  phase * 0.45
+                )
             );
 
           const secondaryWave =
@@ -344,7 +405,7 @@ const personSchema = {
             Math.cos(
               3.4 * warpY +
               0.9 * warpX -
-              phase * 0.35
+              phase * 0.22
             );
 
           return (
@@ -369,29 +430,59 @@ const personSchema = {
           bv,
           level
         ) => {
-          const difference = bv - av;
+          const difference =
+            bv - av;
 
           const t =
-            Math.abs(difference) < 0.000001
+            Math.abs(difference) <
+            0.000001
               ? 0.5
-              : (level - av) / difference;
+              : (level - av) /
+                difference;
 
           return {
-            x: ax + (bx - ax) * t,
-            y: ay + (by - ay) * t,
+            x:
+              ax +
+              (bx - ax) * t,
+
+            y:
+              ay +
+              (by - ay) * t,
           };
         };
 
         const resizeCanvas = () => {
-          const rect = canvas.getBoundingClientRect();
+          const rect =
+            canvas.getBoundingClientRect();
 
-          width = Math.max(1, rect.width);
-          height = Math.max(1, rect.height);
+          width =
+            Math.max(
+              1,
+              rect.width
+            );
 
-          dpr = Math.min(window.devicePixelRatio || 1, 2);
+          height =
+            Math.max(
+              1,
+              rect.height
+            );
 
-          canvas.width = Math.round(width * dpr);
-          canvas.height = Math.round(height * dpr);
+          dpr =
+            Math.min(
+              window.devicePixelRatio ||
+                1,
+              2
+            );
+
+          canvas.width =
+            Math.round(
+              width * dpr
+            );
+
+          canvas.height =
+            Math.round(
+              height * dpr
+            );
 
           context.setTransform(
             dpr,
@@ -403,54 +494,96 @@ const personSchema = {
           );
         };
 
-        const draw = (time = 0) => {
-          context.clearRect(0, 0, width, height);
+        const draw = (
+          time = 0
+        ) => {
+          context.clearRect(
+            0,
+            0,
+            width,
+            height
+          );
 
           const phase =
             prefersReducedMotion
-              ? 0.8
-              : time * 0.00012;
+              ? 0.7
+              : time * 0.000075;
 
-          const values = new Array(
-            (cols + 1) * (rows + 1)
-          );
+          const values =
+            new Array(
+              (cols + 1) *
+                (rows + 1)
+            );
 
-          let minValue = Infinity;
-          let maxValue = -Infinity;
+          let minValue =
+            Infinity;
 
-          for (let gy = 0; gy <= rows; gy++) {
-            for (let gx = 0; gx <= cols; gx++) {
+          let maxValue =
+            -Infinity;
+
+          for (
+            let gy = 0;
+            gy <= rows;
+            gy++
+          ) {
+            for (
+              let gx = 0;
+              gx <= cols;
+              gx++
+            ) {
               const nx =
-                (gx / cols) * 2.35 - 1.16;
+                (gx / cols) *
+                  2.4 -
+                1.2;
 
               const ny =
-                (gy / rows) * 2.05 - 1.03;
+                (gy / rows) *
+                  2.08 -
+                1.04;
 
               const value =
-                terrainHeight(nx, ny, phase);
+                terrainHeight(
+                  nx,
+                  ny,
+                  phase
+                );
 
               values[
-                gy * (cols + 1) + gx
+                gy *
+                  (cols + 1) +
+                  gx
               ] = value;
 
-              minValue = Math.min(
-                minValue,
-                value
-              );
+              minValue =
+                Math.min(
+                  minValue,
+                  value
+                );
 
-              maxValue = Math.max(
-                maxValue,
-                value
-              );
+              maxValue =
+                Math.max(
+                  maxValue,
+                  value
+                );
             }
           }
 
           const range =
-            maxValue - minValue || 1;
+            maxValue -
+              minValue ||
+            1;
 
-          for (let i = 0; i < values.length; i++) {
+          for (
+            let i = 0;
+            i < values.length;
+            i++
+          ) {
             values[i] =
-              (values[i] - minValue) / range;
+              (
+                values[i] -
+                minValue
+              ) /
+              range;
           }
 
           const cellWidth =
@@ -461,80 +594,111 @@ const personSchema = {
 
           for (
             let contourIndex = 0;
-            contourIndex < contourCount;
+            contourIndex <
+            contourCount;
             contourIndex++
           ) {
             const level =
-              0.035 +
-              (contourIndex /
-                (contourCount - 1)) *
-                0.93;
+              0.03 +
+              (
+                contourIndex /
+                (
+                  contourCount -
+                  1
+                )
+              ) *
+                0.94;
 
             const isIndexContour =
-              contourIndex % 5 === 0;
+              contourIndex %
+                5 ===
+              0;
 
             context.beginPath();
 
             context.strokeStyle =
               isIndexContour
-                ? 'rgba(30, 31, 29, 0.86)'
-                : 'rgba(47, 49, 46, 0.58)';
+                ? 'rgba(63, 72, 64, 0.52)'
+                : 'rgba(83, 94, 84, 0.28)';
 
             context.lineWidth =
               isIndexContour
-                ? 1.25
-                : 0.55;
+                ? 1.05
+                : 0.48;
 
-            context.lineCap = 'round';
-            context.lineJoin = 'round';
+            context.lineCap =
+              'round';
 
-            for (let gy = 0; gy < rows; gy++) {
-              for (let gx = 0; gx < cols; gx++) {
+            context.lineJoin =
+              'round';
 
+            for (
+              let gy = 0;
+              gy < rows;
+              gy++
+            ) {
+              for (
+                let gx = 0;
+                gx < cols;
+                gx++
+              ) {
                 const x0 =
-                  gx * cellWidth;
+                  gx *
+                  cellWidth;
 
                 const x1 =
-                  (gx + 1) * cellWidth;
+                  (gx + 1) *
+                  cellWidth;
 
                 const y0 =
-                  gy * cellHeight;
+                  gy *
+                  cellHeight;
 
                 const y1 =
-                  (gy + 1) * cellHeight;
+                  (gy + 1) *
+                  cellHeight;
 
                 const topLeft =
                   values[
-                    gy * (cols + 1) + gx
+                    gy *
+                      (cols + 1) +
+                      gx
                   ];
 
                 const topRight =
                   values[
-                    gy * (cols + 1) +
-                    gx +
-                    1
+                    gy *
+                      (cols + 1) +
+                      gx +
+                      1
                   ];
 
                 const bottomRight =
                   values[
                     (gy + 1) *
                       (cols + 1) +
-                    gx +
-                    1
+                      gx +
+                      1
                   ];
 
                 const bottomLeft =
                   values[
                     (gy + 1) *
                       (cols + 1) +
-                    gx
+                      gx
                   ];
 
                 const points = [];
 
                 if (
-                  (topLeft < level) !==
-                  (topRight < level)
+                  (
+                    topLeft <
+                    level
+                  ) !==
+                  (
+                    topRight <
+                    level
+                  )
                 ) {
                   points.push(
                     edgeIntersection(
@@ -550,8 +714,14 @@ const personSchema = {
                 }
 
                 if (
-                  (topRight < level) !==
-                  (bottomRight < level)
+                  (
+                    topRight <
+                    level
+                  ) !==
+                  (
+                    bottomRight <
+                    level
+                  )
                 ) {
                   points.push(
                     edgeIntersection(
@@ -567,8 +737,14 @@ const personSchema = {
                 }
 
                 if (
-                  (bottomRight < level) !==
-                  (bottomLeft < level)
+                  (
+                    bottomRight <
+                    level
+                  ) !==
+                  (
+                    bottomLeft <
+                    level
+                  )
                 ) {
                   points.push(
                     edgeIntersection(
@@ -584,8 +760,14 @@ const personSchema = {
                 }
 
                 if (
-                  (bottomLeft < level) !==
-                  (topLeft < level)
+                  (
+                    bottomLeft <
+                    level
+                  ) !==
+                  (
+                    topLeft <
+                    level
+                  )
                 ) {
                   points.push(
                     edgeIntersection(
@@ -600,7 +782,10 @@ const personSchema = {
                   );
                 }
 
-                if (points.length === 2) {
+                if (
+                  points.length ===
+                  2
+                ) {
                   context.moveTo(
                     points[0].x,
                     points[0].y
@@ -612,16 +797,23 @@ const personSchema = {
                   );
                 }
 
-                if (points.length === 4) {
+                if (
+                  points.length ===
+                  4
+                ) {
                   const centre =
                     (
                       topLeft +
                       topRight +
                       bottomRight +
                       bottomLeft
-                    ) / 4;
+                    ) /
+                    4;
 
-                  if (centre > level) {
+                  if (
+                    centre >
+                    level
+                  ) {
                     context.moveTo(
                       points[0].x,
                       points[0].y
@@ -670,33 +862,51 @@ const personSchema = {
           }
         };
 
-        const animate = (time) => {
+        const animate = (
+          time
+        ) => {
           if (
-            time - lastDraw >
-            95
+            time -
+              lastDraw >
+            115
           ) {
             draw(time);
-            lastDraw = time;
+
+            lastDraw =
+              time;
           }
 
           animationFrame =
-            requestAnimationFrame(animate);
+            requestAnimationFrame(
+              animate
+            );
         };
 
         resizeCanvas();
         draw(0);
 
         const resizeObserver =
-          new ResizeObserver(() => {
-            resizeCanvas();
-            draw(performance.now());
-          });
+          new ResizeObserver(
+            () => {
+              resizeCanvas();
 
-        resizeObserver.observe(canvas);
+              draw(
+                performance.now()
+              );
+            }
+          );
 
-        if (!prefersReducedMotion) {
+        resizeObserver.observe(
+          canvas
+        );
+
+        if (
+          !prefersReducedMotion
+        ) {
           animationFrame =
-            requestAnimationFrame(animate);
+            requestAnimationFrame(
+              animate
+            );
         }
 
         window.addEventListener(
@@ -708,7 +918,9 @@ const personSchema = {
 
             resizeObserver.disconnect();
           },
-          { once: true }
+          {
+            once: true,
+          }
         );
       })();
     </script>
