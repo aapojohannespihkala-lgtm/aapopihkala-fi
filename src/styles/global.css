@@ -1,13 +1,13 @@
 :root {
-  --bg: #fbfaf7;
-  --text: #171816;
-  --muted: #7b7c78;
-  --accent: #52685b;
-  --border: #e1e0dc;
+  --bg: #ffffff;
+  --text: #171717;
+  --muted: #7b7b78;
+  --border: #e5e5e3;
+  --accent: #53695b;
 
-  --shell: 1360px;
-  --hero-inner: 1160px;
-  --content: 760px;
+  --nav-width: 1370px;
+  --hero-width: 1180px;
+  --feed-width: 760px;
 }
 
 * {
@@ -24,22 +24,16 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
+    Arial,
+    Helvetica,
     sans-serif;
   font-size: 18px;
-  line-height: 1.65;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: inherit;
-  text-decoration-color: var(--border);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.18em;
 }
 
 a:hover {
@@ -49,7 +43,7 @@ a:hover {
 /* TOPBAR */
 
 .topbar {
-  width: min(calc(100% - 64px), var(--shell));
+  width: min(calc(100% - 64px), var(--nav-width));
   height: 104px;
   margin: 0 auto;
 
@@ -59,17 +53,21 @@ a:hover {
 }
 
 .topbar-name {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.6rem;
-  font-weight: 400;
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size: 1.7rem;
   line-height: 1;
+  font-weight: 400;
   text-decoration: none;
 }
 
 .topbar-nav {
   display: flex;
   align-items: center;
-  gap: 54px;
+  gap: 52px;
 
   color: var(--muted);
   font-size: 1rem;
@@ -79,12 +77,13 @@ a:hover {
   text-decoration: none;
 }
 
-body::before {
+.topbar::after {
   content: "";
   position: absolute;
   top: 104px;
   left: 0;
   right: 0;
+
   height: 1px;
   background: var(--border);
 }
@@ -92,147 +91,188 @@ body::before {
 /* HERO */
 
 .hero {
-  width: min(calc(100% - 64px), var(--hero-inner));
+  width: min(calc(100% - 64px), var(--hero-width));
   min-height: calc(100vh - 104px);
   margin: 0 auto;
 
   display: grid;
-  grid-template-columns: minmax(0, 760px) 260px;
+  grid-template-columns: 650px 260px;
   justify-content: space-between;
   align-items: center;
-  gap: 100px;
 
-  padding: 36px 0 28px;
+  padding: 42px 0 30px;
 }
 
 .hero-content {
-  align-self: center;
+  transform: translateY(18px);
 }
 
 .hero h1 {
   margin: 0;
 
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(5.6rem, 7vw, 7.2rem);
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size: clamp(5.3rem, 6.5vw, 6.8rem);
   font-weight: 400;
-  line-height: 0.94;
-  letter-spacing: -0.055em;
+  line-height: 0.93;
+  letter-spacing: -0.045em;
 }
 
-.hero-role {
-  margin: 56px 0 0;
+.hero-description {
+  margin-top: 54px;
+}
 
-  font-size: clamp(1.25rem, 1.7vw, 1.55rem);
+.hero-description p {
+  margin: 0;
+}
+
+.hero-primary {
+  font-size: 1.43rem;
   line-height: 1.45;
 }
 
-.hero-tagline {
-  margin: 4px 0 0;
+.hero-secondary {
+  margin-top: 2px !important;
 
   color: var(--muted);
-  font-size: clamp(1.25rem, 1.7vw, 1.55rem);
+  font-size: 1.43rem;
   line-height: 1.45;
 }
 
-/* Väliaikainen graafinen elementti */
+.hero-location {
+  margin: 50px 0 0;
 
-.hero-mark {
-  position: relative;
-  width: 190px;
-  height: 280px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.hero-location span {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+
+  align-items: center;
+  justify-content: center;
+
+  font-size: 1.1rem;
+}
+
+/* HERO ART */
+
+.hero-art {
+  width: 230px;
+  height: 340px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   justify-self: center;
-
-  opacity: 0.58;
 }
 
-.hero-mark span {
-  position: absolute;
-  left: 50%;
-  width: 1px;
-  background: var(--text);
-  transform: translateX(-50%);
+.hero-art-shape {
+  position: relative;
+
+  width: 145px;
+  height: 290px;
+
+  opacity: 0.72;
 }
 
-.hero-mark span:nth-child(1) {
-  top: 14px;
-  height: 250px;
-}
-
-.hero-mark span:nth-child(2) {
-  top: 58px;
-  left: 42%;
-  height: 176px;
-  opacity: 0.38;
-}
-
-.hero-mark span:nth-child(3) {
-  top: 78px;
-  left: 58%;
-  height: 138px;
-  opacity: 0.22;
-}
-
-.hero-mark::before,
-.hero-mark::after {
+.hero-art-shape::before {
   content: "";
+
   position: absolute;
-  left: 50%;
+  inset: 0;
 
-  border: 1px solid var(--text);
-  border-radius: 50%;
+  background-image:
+    radial-gradient(circle, rgba(20, 20, 20, 0.75) 0 1px, transparent 1.4px);
 
-  transform: translateX(-50%);
+  background-size: 6px 6px;
+
+  clip-path: polygon(
+    38% 1%,
+    64% 4%,
+    77% 14%,
+    81% 29%,
+    72% 43%,
+    64% 50%,
+    75% 59%,
+    83% 75%,
+    78% 91%,
+    61% 99%,
+    38% 96%,
+    28% 83%,
+    31% 68%,
+    38% 57%,
+    29% 46%,
+    20% 31%,
+    23% 15%
+  );
 }
 
-.hero-mark::before {
-  top: 52px;
-  width: 118px;
-  height: 182px;
-  opacity: 0.16;
-}
+.hero-art-shape::after {
+  content: "";
 
-.hero-mark::after {
-  top: 82px;
-  width: 72px;
-  height: 122px;
-  opacity: 0.13;
+  position: absolute;
+
+  left: 30%;
+  bottom: 4%;
+
+  width: 50%;
+  height: 8px;
+
+  border-bottom: 2px solid rgba(20, 20, 20, 0.48);
+
+  transform: rotate(-2deg);
 }
 
 /* FEED */
 
 .page-shell {
-  width: min(calc(100% - 64px), var(--shell));
+  width: min(calc(100% - 64px), var(--nav-width));
   margin: 0 auto;
 
-  padding-top: 86px;
+  padding-top: 90px;
+
   border-top: 1px solid var(--border);
 }
 
 .feed,
 .single-post {
-  width: min(100%, var(--content));
+  width: min(100%, var(--feed-width));
 }
 
 .feed {
-  padding-bottom: 140px;
+  margin-left: 100px;
+  padding-bottom: 150px;
 }
 
 .feed-post {
-  padding-bottom: 100px;
+  padding-bottom: 105px;
 }
 
 .feed-post + .feed-post {
-  padding-top: 86px;
+  padding-top: 90px;
   border-top: 1px solid var(--border);
 }
 
 .post-meta {
-  margin: 0 0 22px;
+  margin: 0 0 24px;
 
   color: var(--muted);
+
   font-size: 0.72rem;
   font-weight: 600;
   line-height: 1.6;
+
   letter-spacing: 0.075em;
   text-transform: uppercase;
 }
@@ -245,11 +285,16 @@ body::before {
 .post-title {
   margin: 0 0 42px;
 
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.8rem, 5vw, 4.1rem);
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size: clamp(2.9rem, 4.8vw, 4.2rem);
   font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.04em;
+  line-height: 0.98;
+
+  letter-spacing: -0.035em;
 }
 
 .post-title a {
@@ -267,18 +312,23 @@ body::before {
 .post-body h2 {
   margin: 2.5em 0 0.7em;
 
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.7rem;
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size: 1.75rem;
   font-weight: 400;
   line-height: 1.2;
-  letter-spacing: -0.015em;
 }
 
 .post-body .aapo-view-title {
   margin-top: 2.8em;
+
   padding-left: 20px;
 
   border-left: 3px solid var(--accent);
+
   color: var(--accent);
 }
 
@@ -296,18 +346,23 @@ body::before {
   color: var(--text);
 }
 
-/* YKSITTÄINEN POSTAUS */
+/* SINGLE POST */
 
 .site-header {
-  width: min(calc(100% - 64px), var(--shell));
+  width: min(calc(100% - 64px), var(--nav-width));
   margin: 0 auto;
+
   padding: 54px 0 64px;
 }
 
 .site-name {
   margin: 0;
 
-  font-family: Georgia, "Times New Roman", serif;
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
   font-size: 2rem;
   font-weight: 400;
 }
@@ -318,6 +373,7 @@ body::before {
 
 .site-role {
   margin: 8px 0 0;
+
   color: var(--muted);
   font-size: 0.9rem;
 }
@@ -325,35 +381,51 @@ body::before {
 .site-tagline {
   margin: 18px 0 0;
 
-  font-family: Georgia, "Times New Roman", serif;
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
   font-size: 1.15rem;
 }
 
 .single-post {
+  margin-left: 100px;
   padding-bottom: 140px;
 }
 
 .back-link {
   margin-top: 58px;
+
   color: var(--muted);
   font-size: 0.85rem;
 }
 
-/* PIENEMPI DESKTOP */
+/* MEDIUM DESKTOP */
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .hero {
-    width: min(calc(100% - 64px), 900px);
-    grid-template-columns: minmax(0, 1fr) 180px;
+    width: min(calc(100% - 64px), 950px);
+
+    grid-template-columns: minmax(0, 620px) 190px;
     gap: 60px;
   }
 
   .hero h1 {
-    font-size: clamp(4.8rem, 9vw, 6.2rem);
+    font-size: clamp(4.8rem, 8vw, 6rem);
+  }
+
+  .hero-art {
+    width: 180px;
+  }
+
+  .feed,
+  .single-post {
+    margin-left: 50px;
   }
 }
 
-/* MOBIILI */
+/* MOBILE */
 
 @media (max-width: 760px) {
   body {
@@ -371,12 +443,12 @@ body::before {
     height: 72px;
   }
 
-  body::before {
+  .topbar::after {
     top: 72px;
   }
 
   .topbar-name {
-    font-size: 1.35rem;
+    font-size: 1.4rem;
   }
 
   .topbar-nav {
@@ -387,27 +459,34 @@ body::before {
   .hero {
     min-height: calc(100vh - 72px);
 
-    padding: 66px 0 54px;
-
     grid-template-columns: 1fr;
     align-content: center;
-    gap: 42px;
+
+    padding: 60px 0 52px;
+  }
+
+  .hero-content {
+    transform: none;
   }
 
   .hero h1 {
-    font-size: clamp(3.8rem, 18vw, 5rem);
+    font-size: clamp(4rem, 18vw, 5rem);
   }
 
-  .hero-role {
+  .hero-description {
     margin-top: 38px;
-    font-size: 1.18rem;
   }
 
-  .hero-tagline {
-    font-size: 1.18rem;
+  .hero-primary,
+  .hero-secondary {
+    font-size: 1.16rem;
   }
 
-  .hero-mark {
+  .hero-location {
+    margin-top: 38px;
+  }
+
+  .hero-art {
     display: none;
   }
 
@@ -415,20 +494,20 @@ body::before {
     padding-top: 58px;
   }
 
+  .feed,
+  .single-post {
+    margin-left: 0;
+  }
+
   .post-title {
     margin-bottom: 32px;
   }
 
   .feed-post {
-    padding-bottom: 70px;
+    padding-bottom: 72px;
   }
 
   .feed-post + .feed-post {
-    padding-top: 62px;
-  }
-
-  .site-header {
-    padding-top: 38px;
-    padding-bottom: 48px;
+    padding-top: 64px;
   }
 }
