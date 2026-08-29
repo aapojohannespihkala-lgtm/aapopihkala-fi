@@ -200,11 +200,20 @@ a:hover {
     center;
 }
 
+
+/*
+  Tekstiryhmää siirretään
+  noin 50 px oikealle.
+*/
+
 .hero-content {
   min-width: 0;
 
   transform:
-    translateY(10px);
+    translate(
+      50px,
+      10px
+    );
 }
 
 .hero h1 {
@@ -328,7 +337,8 @@ a:hover {
   flex:
     0 0 13px;
 
-  font-size: 0;
+  font-size:
+    0;
 
   border:
     1.4px solid
@@ -391,9 +401,14 @@ a:hover {
   justify-content:
     center;
 
+  /*
+    Noin 20 px edellistä
+    oikeammalle.
+  */
+
   transform:
     translate(
-      58px,
+      78px,
       6px
     );
 
@@ -418,29 +433,41 @@ a:hover {
     transparent;
 
   opacity:
-    0.96;
+    0.98;
+
+  /*
+    Keskusta säilyy selkeänä,
+    mutta kaikki reunat häviävät
+    vähitellen valkoiseen.
+
+    Keskipiste on hieman vasemmalla,
+    jolloin oikea reuna feidaa
+    voimakkaammin.
+  */
 
   -webkit-mask-image:
     radial-gradient(
-      ellipse 92% 88%
-      at 50% 50%,
+      ellipse 88% 86%
+      at 44% 50%,
       #000 0%,
-      #000 57%,
-      rgba(0, 0, 0, 0.94) 67%,
-      rgba(0, 0, 0, 0.7) 78%,
-      rgba(0, 0, 0, 0.22) 91%,
+      #000 54%,
+      rgba(0, 0, 0, 0.96) 62%,
+      rgba(0, 0, 0, 0.78) 73%,
+      rgba(0, 0, 0, 0.48) 82%,
+      rgba(0, 0, 0, 0.18) 91%,
       transparent 100%
     );
 
   mask-image:
     radial-gradient(
-      ellipse 92% 88%
-      at 50% 50%,
+      ellipse 88% 86%
+      at 44% 50%,
       #000 0%,
-      #000 57%,
-      rgba(0, 0, 0, 0.94) 67%,
-      rgba(0, 0, 0, 0.7) 78%,
-      rgba(0, 0, 0, 0.22) 91%,
+      #000 54%,
+      rgba(0, 0, 0, 0.96) 62%,
+      rgba(0, 0, 0, 0.78) 73%,
+      rgba(0, 0, 0, 0.48) 82%,
+      rgba(0, 0, 0, 0.18) 91%,
       transparent 100%
     );
 }
@@ -661,7 +688,8 @@ a:hover {
 }
 
 .site-name {
-  margin: 0;
+  margin:
+    0;
 
   font-family:
     "Times New Roman",
@@ -756,7 +784,10 @@ a:hover {
 
   .hero-content {
     transform:
-      translateY(4px);
+      translate(
+        15px,
+        4px
+      );
   }
 
   .hero h1 {
@@ -773,7 +804,7 @@ a:hover {
 
     transform:
       translate(
-        18px,
+        24px,
         8px
       );
   }
