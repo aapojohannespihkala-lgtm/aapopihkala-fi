@@ -168,16 +168,9 @@ a {
 }
 
 
-/*
-  Header on 896 px ja hero 768 px.
-
-  Niiden ero on desktopilla 128 px,
-  eli 64 px per reuna.
-
-  LinkedIn siirretään tämän verran
-  sisäänpäin, jolloin sen oikea reuna
-  osuu topografian oikeaan reunaan.
-*/
+/* =========================================================
+   LINKEDIN
+   ========================================================= */
 
 
 .linkedin-link {
@@ -188,21 +181,7 @@ a {
     19px;
 
   margin-right:
-    calc(
-      (
-        min(
-          100vw,
-          var(--header-max)
-        )
-        -
-        min(
-          100vw,
-          var(--main-max)
-        )
-      )
-      /
-      2
-    );
+    64px;
 
   display:
     flex;
@@ -605,6 +584,387 @@ a {
 
 
 /* =========================================================
+   FEED
+   ========================================================= */
+
+
+.feed {
+  width:
+    100%;
+
+  padding:
+    0
+    0
+    120px;
+}
+
+
+.feed-post {
+  padding:
+    72px
+    0
+    88px;
+
+  border-top:
+    1px solid
+    var(--border);
+}
+
+
+.feed-post + .feed-post {
+  padding-top:
+    80px;
+}
+
+
+/* =========================================================
+   POST META
+   ========================================================= */
+
+
+.post-meta {
+  margin:
+    0
+    0
+    22px;
+
+  color:
+    var(--muted);
+
+  font-size:
+    0.68rem;
+
+  font-weight:
+    500;
+
+  line-height:
+    1.6;
+
+  letter-spacing:
+    0.065em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.post-meta a {
+  color:
+    var(--accent);
+
+  text-decoration:
+    none;
+
+  transition:
+    color 180ms ease;
+}
+
+
+.post-meta a:hover {
+  color:
+    var(--text);
+}
+
+
+/* =========================================================
+   POST TITLE
+   ========================================================= */
+
+
+.post-title {
+  margin:
+    0
+    0
+    38px;
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size:
+    clamp(
+      2.7rem,
+      5vw,
+      3.8rem
+    );
+
+  font-weight:
+    400;
+
+  line-height:
+    1;
+
+  letter-spacing:
+    -0.035em;
+
+  color:
+    var(--text);
+}
+
+
+.post-title a {
+  color:
+    inherit;
+
+  text-decoration:
+    none;
+}
+
+
+/* =========================================================
+   POST BODY
+   ========================================================= */
+
+
+.post-body {
+  max-width:
+    680px;
+
+  color:
+    #292929;
+
+  font-size:
+    1rem;
+
+  line-height:
+    1.68;
+
+  letter-spacing:
+    -0.006em;
+}
+
+
+.post-body p {
+  margin:
+    0
+    0
+    1.5em;
+}
+
+
+.post-body h2 {
+  margin:
+    2.5em
+    0
+    0.72em;
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size:
+    1.72rem;
+
+  font-weight:
+    400;
+
+  line-height:
+    1.2;
+
+  letter-spacing:
+    -0.015em;
+}
+
+
+.post-body h3 {
+  margin:
+    2.2em
+    0
+    0.7em;
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size:
+    1.35rem;
+
+  font-weight:
+    400;
+
+  line-height:
+    1.25;
+}
+
+
+.post-body a {
+  color:
+    var(--accent);
+
+  text-decoration-thickness:
+    1px;
+
+  text-underline-offset:
+    3px;
+}
+
+
+.post-body .aapo-view-title {
+  margin-top:
+    2.8em;
+
+  padding-left:
+    18px;
+
+  border-left:
+    2px solid
+    var(--accent);
+
+  color:
+    var(--accent);
+}
+
+
+/* =========================================================
+   SOURCE
+   ========================================================= */
+
+
+.source {
+  max-width:
+    680px;
+
+  margin-top:
+    48px;
+
+  padding-top:
+    18px;
+
+  border-top:
+    1px solid
+    var(--border);
+
+  color:
+    var(--muted);
+
+  font-size:
+    0.8rem;
+}
+
+
+.source strong {
+  color:
+    var(--text);
+}
+
+
+.source a {
+  color:
+    var(--accent);
+
+  text-decoration:
+    none;
+}
+
+
+/* =========================================================
+   SINGLE POST COMPATIBILITY
+   ========================================================= */
+
+
+.site-header {
+  width:
+    100%;
+
+  max-width:
+    var(--header-max);
+
+  margin:
+    0 auto;
+
+  padding:
+    54px
+    32px
+    64px;
+}
+
+
+.site-name {
+  margin:
+    0;
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size:
+    2rem;
+
+  font-weight:
+    400;
+}
+
+
+.site-name a {
+  text-decoration:
+    none;
+}
+
+
+.site-role {
+  margin:
+    8px
+    0
+    0;
+
+  color:
+    var(--muted);
+
+  font-size:
+    0.9rem;
+}
+
+
+.site-tagline {
+  margin:
+    18px
+    0
+    0;
+
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size:
+    1.15rem;
+}
+
+
+.single-post {
+  width:
+    100%;
+
+  max-width:
+    var(--main-max);
+
+  margin:
+    0 auto;
+
+  padding:
+    0
+    32px
+    140px;
+}
+
+
+.back-link {
+  margin-top:
+    58px;
+
+  color:
+    var(--muted);
+
+  font-size:
+    0.85rem;
+}
+
+
+/* =========================================================
    TABLET
    ========================================================= */
 
@@ -669,6 +1029,12 @@ a {
 
     height:
       230px;
+  }
+
+
+  .feed-post {
+    padding-top:
+      64px;
   }
 
 }
@@ -752,6 +1118,54 @@ a {
       none;
   }
 
+
+  .feed {
+    padding-bottom:
+      80px;
+  }
+
+
+  .feed-post {
+    padding:
+      56px
+      0
+      68px;
+  }
+
+
+  .feed-post + .feed-post {
+    padding-top:
+      62px;
+  }
+
+
+  .post-title {
+    margin-bottom:
+      30px;
+
+    font-size:
+      clamp(
+        2.4rem,
+        11vw,
+        3.15rem
+      );
+  }
+
+
+  .post-body {
+    font-size:
+      1rem;
+  }
+
+
+  .single-post {
+    padding-left:
+      16px;
+
+    padding-right:
+      16px;
+  }
+
 }
 
 
@@ -766,7 +1180,8 @@ a {
 ) {
 
   .topbar-name,
-  .linkedin-link {
+  .linkedin-link,
+  .post-meta a {
     transition:
       none;
   }
