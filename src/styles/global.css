@@ -120,7 +120,7 @@ a {
     Times,
     serif;
 
-  font-size: 1.18rem;
+  font-size: 1.22rem;
   font-weight: 400;
   line-height: 1;
   letter-spacing: -0.027em;
@@ -148,12 +148,12 @@ a {
 
 
 .topbar-actions {
-  margin-right: 48px;
+  margin-right: 64px;
 
   display: flex;
   align-items: center;
 
-  gap: 18px;
+  gap: 16px;
 
   color: var(--header-control);
 }
@@ -176,11 +176,17 @@ a {
 
   color: var(--header-control);
 
-  font-size: 0.70rem;
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: 0.075em;
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
 
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.01em;
+
+  text-transform: lowercase;
   text-decoration: none;
 
   transition:
@@ -793,17 +799,17 @@ a:focus-visible {
 
 
   .topbar-name {
-    font-size: 1.1rem;
+    font-size: 1.14rem;
   }
 
 
   .topbar-actions {
-    gap: 16px;
+    gap: 15px;
   }
 
 
   .language-switch {
-    font-size: 0.70rem;
+    font-size: 0.80rem;
   }
 
 
