@@ -279,11 +279,6 @@ a {
 }
 
 
-/* =========================================================
-   HERO TEXT
-   ========================================================= */
-
-
 .hero-description {
   max-width: 470px;
   margin-bottom: 27px;
@@ -652,9 +647,9 @@ a {
 .post-news {
   max-width: 680px;
 
-  color: var(--stone);
+  color: var(--ink-soft);
 
-  font-size: 0.97rem;
+  font-size: 0.99rem;
   font-weight: 400;
   line-height: 1.72;
   letter-spacing: -0.004em;
@@ -666,6 +661,57 @@ a {
 }
 
 
+.post-news-link {
+  width: fit-content;
+
+  margin-top: 18px;
+
+  display: inline-flex;
+  align-items: baseline;
+
+  gap: 6px;
+
+  color: var(--stone);
+
+  font-size: 0.74rem;
+  font-weight: 450;
+  line-height: 1.4;
+  letter-spacing: 0.005em;
+
+  text-decoration: none;
+
+  transition:
+    color 180ms ease;
+}
+
+
+.post-news-link-arrow {
+  color: var(--stone-light);
+
+  transition:
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+
+.post-news-link:hover,
+.post-news-link:focus-visible {
+  color: var(--moss-deep);
+}
+
+
+.post-news-link:hover .post-news-link-arrow,
+.post-news-link:focus-visible .post-news-link-arrow {
+  color: var(--moss);
+
+  transform:
+    translate(
+      1px,
+      -1px
+    );
+}
+
+
 /* =========================================================
    PERSPECTIVE
    ========================================================= */
@@ -673,26 +719,22 @@ a {
 
 .post-perspective-label {
   margin:
-    42px
+    48px
     0
     18px;
 
-  color: var(--moss);
+  color: #8d938b;
 
   font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    monospace;
+    "Times New Roman",
+    Times,
+    serif;
 
-  font-size: 0.59rem;
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: 0.09em;
-
-  text-transform: uppercase;
+  font-size: 1rem;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.2;
+  letter-spacing: 0;
 }
 
 
@@ -704,7 +746,7 @@ a {
 .post-body {
   max-width: 680px;
 
-  color: #31342f;
+  color: #50544e;
 
   font-size: 0.99rem;
   font-weight: 400;
@@ -1066,16 +1108,24 @@ a:focus-visible {
 
 
   .post-news {
-    font-size: 0.96rem;
+    font-size: 0.97rem;
     line-height: 1.7;
+  }
+
+
+  .post-news-link {
+    margin-top: 16px;
+    font-size: 0.72rem;
   }
 
 
   .post-perspective-label {
     margin:
-      36px
+      42px
       0
       17px;
+
+    font-size: 0.96rem;
   }
 
 
@@ -1107,6 +1157,8 @@ a:focus-visible {
   .linkedin-link,
   .hero-linkedin,
   .hero-linkedin-arrow,
+  .post-news-link,
+  .post-news-link-arrow,
   .source-link,
   .source-arrow {
     transition: none;
