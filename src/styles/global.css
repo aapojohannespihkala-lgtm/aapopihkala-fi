@@ -2,7 +2,7 @@
   --page: #ffffff;
 
   --bar: #f6f4ee;
-  --bar-transparent: rgba(246, 244, 238, 0.72);
+  --bar-transparent: rgba(246, 244, 238, 0.58);
 
   --ink: #1d1f1b;
   --ink-soft: #353832;
@@ -88,15 +88,15 @@ a {
 
   border-bottom:
     1px solid
-    rgba(222, 220, 213, 0.42);
+    rgba(222, 220, 213, 0.38);
 
   -webkit-backdrop-filter:
-    blur(18px)
-    saturate(115%);
+    blur(7px)
+    saturate(105%);
 
   backdrop-filter:
-    blur(18px)
-    saturate(115%);
+    blur(7px)
+    saturate(105%);
 }
 
 
