@@ -450,6 +450,24 @@ a {
 }
 
 
+/*
+   Desktopilla oikealle jätetään tila headerin
+   en/fi + LinkedIn -ryhmää varten.
+   Vasen sisältölinja säilyy ennallaan.
+*/
+
+
+@media (
+  min-width: 801px
+) {
+
+  .feed {
+    padding-right: 72px;
+  }
+
+}
+
+
 .feed-post {
   position: relative;
 
