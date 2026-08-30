@@ -13,6 +13,8 @@ intro: "Espoon luontoviisaat pihat -kilpailuun osallistui tänä kesänä yli 50
 
 source: "Espoon kaupunki"
 sourceUrl: "https://www.espoo.fi/fi/uutiset/2026/08/riku-lumiaron-luontopiha-nappasi-voiton-espoon-kaupungin-pihakisassa"
+sourceLinkText: "Espoon kaupunki · Luontoviisaat pihat -kilpailun tulokset"
+sourceTitle: "Riku Lumiaron Luontopiha nappasi voiton Espoon kaupungin pihakisassa"
 ---
 
 Luontoviisaus ei mielestäni tarkoita sitä, että pihan suunnittelusta tai maisema-arkkitehtonisesta muodonannosta luovutaan. Parhaimmillaan useat tavoitteet toteutuvat yhtä aikaa: piha tarjoaa elinympäristöjä eri lajeille, luonnon prosesseille annetaan tilaa ja ympäristö on samalla ihmiselle toimiva, viihtyisä ja kaunis.
