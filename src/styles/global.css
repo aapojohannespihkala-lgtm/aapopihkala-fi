@@ -794,6 +794,18 @@ a:focus-visible {
   max-width: 640px
 ) {
 
+  .topbar {
+    background: var(--bar);
+
+    border-bottom:
+      1px solid
+      rgba(222, 220, 213, 0.62);
+
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+
   .topbar-inner {
     padding:
       0 16px;
