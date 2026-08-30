@@ -794,47 +794,6 @@ a:focus-visible {
   max-width: 640px
 ) {
 
-  .topbar {
-    background:
-      rgba(
-        246,
-        244,
-        238,
-        0.90
-      );
-
-    border-bottom-color:
-      rgba(
-        222,
-        220,
-        213,
-        0.34
-      );
-  }
-
-
-  .topbar::after {
-    content: "";
-
-    position: absolute;
-
-    left: 0;
-    right: 0;
-    bottom: -14px;
-
-    height: 14px;
-
-    pointer-events: none;
-
-    background:
-      linear-gradient(
-        to bottom,
-        rgba(246, 244, 238, 0.68),
-        rgba(246, 244, 238, 0)
-      );
-  }
-
-
   .topbar-inner {
     padding:
       0 16px;
