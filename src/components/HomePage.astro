@@ -16,7 +16,9 @@ type LanguagePost = {
 };
 
 type PostFrontmatter = {
-  date: string;
+  status?: 'draft' | 'published';
+  publishedAt?: string | null;
+  date?: string;
   sourceUrl: string;
   fi: LanguagePost;
   en: LanguagePost;
@@ -95,15 +97,46 @@ const postModules = import.meta.glob(
   }
 ) as Record<string, MarkdownPost>;
 
-const posts = Object.values(postModules)
+const getPostTimestamp = (
+  post: MarkdownPost
+) => {
+  const publishedAt =
+    post.frontmatter.publishedAt;
+
+  if (publishedAt) {
+    return new Date(
+      publishedAt
+    ).getTime();
+  }
+
+  const legacyDate =
+    post.frontmatter.date;
+
+  if (legacyDate) {
+    return new Date(
+      `${legacyDate}T00:00:00Z`
+    ).getTime();
+  }
+
+  return 0;
+};
+
+const posts = Object.values(
+  postModules
+)
+  .filter(
+    (post) =>
+      post.frontmatter.status !==
+        'draft' &&
+      Boolean(
+        post.frontmatter.publishedAt ||
+          post.frontmatter.date
+      )
+  )
   .sort(
     (a, b) =>
-      new Date(
-        `${b.frontmatter.date}T12:00:00`
-      ).getTime() -
-      new Date(
-        `${a.frontmatter.date}T12:00:00`
-      ).getTime()
+      getPostTimestamp(b) -
+      getPostTimestamp(a)
   );
 
 const dateFormatter =
@@ -125,14 +158,33 @@ const dateFormatter =
         }
       );
 
-const formatDate = (
-  date: string
-) =>
-  dateFormatter.format(
+const getDisplayDate = (
+  post: MarkdownPost
+) => {
+  const rawDate =
+    post.frontmatter.publishedAt ||
+    post.frontmatter.date;
+
+  if (!rawDate) {
+    return '';
+  }
+
+  const datePart =
+    rawDate.slice(0, 10);
+
+  return dateFormatter.format(
     new Date(
-      `${date}T12:00:00`
+      `${datePart}T12:00:00`
     )
   );
+};
+
+const getDatetimeValue = (
+  post: MarkdownPost
+) =>
+  post.frontmatter.publishedAt ||
+  post.frontmatter.date ||
+  '';
 
 /* =========================================================
    PAGE META
@@ -376,7 +428,8 @@ const personSchema = {
 
               const postNumber =
                 String(
-                  index + 1
+                  posts.length -
+                    index
                 ).padStart(
                   2,
                   '0'
@@ -396,12 +449,14 @@ const personSchema = {
                     <time
                       class="post-date"
                       datetime={
-                        post.frontmatter.date
+                        getDatetimeValue(
+                          post
+                        )
                       }
                     >
                       {
-                        formatDate(
-                          post.frontmatter.date
+                        getDisplayDate(
+                          post
                         )
                       }
                     </time>
