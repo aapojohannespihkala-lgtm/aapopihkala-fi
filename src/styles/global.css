@@ -41,6 +41,7 @@ body {
   margin: 0;
   min-height: 100vh;
   overflow-x: clip;
+
   background: var(--page);
   color: var(--ink);
 
@@ -198,8 +199,6 @@ a {
 
 
 .linkedin-link {
-  position: relative;
-
   width: 23px;
   height: 23px;
 
@@ -207,7 +206,7 @@ a {
   align-items: center;
   justify-content: center;
 
-  color: var(--header-control);
+  color: #8b8f88;
 
   text-decoration: none;
 
@@ -218,41 +217,29 @@ a {
 
 
 .linkedin-icon {
-  display: none;
+  display: block;
+
+  width: 25px;
+  height: 25px;
+
+  overflow: visible;
+}
+
+
+.linkedin-frame {
+  fill: currentColor;
+  stroke: none;
+}
+
+
+.linkedin-mark {
+  fill: #ffffff;
+  stroke: none;
 }
 
 
 .linkedin-link::before {
-  content: "in";
-
-  width: 22px;
-  height: 22px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border:
-    1.8px solid
-    currentColor;
-
-  border-radius: 4.5px;
-
-  color: currentColor;
-
-  font-family:
-    Arial,
-    Helvetica,
-    sans-serif;
-
-  font-size: 0.82rem;
-  font-weight: 700;
-  line-height: 1;
-
-  letter-spacing: -0.055em;
-
-  padding-right: 1px;
-  padding-bottom: 1px;
+  content: none;
 }
 
 
@@ -840,11 +827,9 @@ a:focus-visible {
   }
 
 
-  .linkedin-link::before {
-    width: 21px;
-    height: 21px;
-
-    font-size: 0.78rem;
+  .linkedin-icon {
+    width: 24px;
+    height: 24px;
   }
 
 
