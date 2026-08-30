@@ -1,7 +1,9 @@
 ---
 import '../styles/global.css';
 
-const modules = import.meta.glob('../data/ajankohtaista/*.md', { eager: true });
+const modules = import.meta.glob('../data/ajankohtaista/*.md', {
+  eager: true,
+});
 
 const posts = Object.entries(modules)
   .map(([path, post]: any) => ({
@@ -69,6 +71,11 @@ const personSchema = {
       content="Aapo Pihkala"
     />
 
+    <meta
+      name="theme-color"
+      content="#f8f7f2"
+    />
+
     <link
       rel="canonical"
       href="https://aapopihkala.fi/"
@@ -97,6 +104,7 @@ const personSchema = {
           aapo
         </a>
 
+
         <a
           class="linkedin-link"
           href="https://fi.linkedin.com/in/aapo-pihkala"
@@ -105,14 +113,39 @@ const personSchema = {
           aria-label="Aapo Pihkala LinkedInissä"
           title="LinkedIn"
         >
+
           <svg
+            class="linkedin-icon"
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
+            <rect
+              x="2.75"
+              y="2.75"
+              width="18.5"
+              height="18.5"
+              rx="2.2"
+            />
+
+            <circle
+              cx="7.55"
+              cy="8"
+              r="1.2"
+            />
+
             <path
-              d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12ZM7.12 20.45H3.56V9h3.56v11.45Z"
+              d="M6.35 10.25v7.15"
+            />
+
+            <path
+              d="M10.6 17.4v-7.15"
+            />
+
+            <path
+              d="M10.6 13.35c0-1.75 1.05-3.15 2.85-3.15 2 0 3.05 1.35 3.05 3.65v3.55"
             />
           </svg>
+
         </a>
 
       </nav>
@@ -132,6 +165,7 @@ const personSchema = {
               Aapo Pihkala
             </h1>
 
+
             <div class="hero-description">
 
               <p class="hero-primary">
@@ -144,9 +178,29 @@ const personSchema = {
 
             </div>
 
+
             <p class="hero-location">
-              <span aria-hidden="true"></span>
-              Espoo, Suomi
+
+              <svg
+                class="location-icon"
+                viewBox="0 0 24 28"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 26C8.8 22.3 4.5 18.1 4.5 11.5A7.5 7.5 0 0 1 12 4a7.5 7.5 0 0 1 7.5 7.5C19.5 18.1 15.2 22.3 12 26Z"
+                />
+
+                <circle
+                  cx="12"
+                  cy="11.5"
+                  r="2.4"
+                />
+              </svg>
+
+              <span>
+                Espoo, Suomi
+              </span>
+
             </p>
 
           </div>
@@ -162,6 +216,14 @@ const personSchema = {
               class="topography-canvas"
             ></canvas>
 
+            <div class="topography-label topography-label-a">
+              +12.5
+            </div>
+
+            <div class="topography-label topography-label-b">
+              +18.0
+            </div>
+
           </div>
 
         </div>
@@ -175,24 +237,53 @@ const personSchema = {
       >
 
         {
-          posts.map((post) => {
+          posts.map((post, index) => {
             const Content = post.Content;
+            const number = String(index + 1).padStart(2, '0');
 
             return (
               <article class="feed-post">
 
                 <header class="post-header">
 
+                  <div class="post-index-row">
+
+                    <span class="post-index">
+                      {number}
+                    </span>
+
+                    <span
+                      class="post-index-line"
+                      aria-hidden="true"
+                    ></span>
+
+                  </div>
+
+
                   <p class="post-meta">
 
-                    {formatDate(post.date)}
+                    <span class="post-date">
+                      {formatDate(post.date)}
+                    </span>
 
-                    {' · '}
+                    <span
+                      class="post-meta-separator"
+                      aria-hidden="true"
+                    >
+                      /
+                    </span>
 
                     {post.topics.map(
-                      (topic: string, index: number) => (
+                      (topic: string, topicIndex: number) => (
                         <>
-                          {index > 0 && ' · '}
+                          {topicIndex > 0 && (
+                            <span
+                              class="post-meta-separator"
+                              aria-hidden="true"
+                            >
+                              /
+                            </span>
+                          )}
 
                           {
                             topicLinks[topic]
@@ -201,15 +292,26 @@ const personSchema = {
                                   {topic}
                                 </a>
                               )
-                              : topic
+                              : (
+                                <span>
+                                  {topic}
+                                </span>
+                              )
                           }
                         </>
                       )
                     )}
 
-                    {' · '}
+                    <span
+                      class="post-meta-separator"
+                      aria-hidden="true"
+                    >
+                      /
+                    </span>
 
-                    {post.location}
+                    <span>
+                      {post.location}
+                    </span>
 
                   </p>
 
@@ -232,18 +334,19 @@ const personSchema = {
 
                 <p class="source">
 
-                  <strong>
-                    Lähde:
-                  </strong>
-
-                  {' '}
+                  <span class="source-label">
+                    Lähde
+                  </span>
 
                   <a
                     href={post.sourceUrl}
                     target="_blank"
                     rel="noopener"
                   >
-                    {post.source} ↗
+                    {post.source}
+                    <span aria-hidden="true">
+                      ↗
+                    </span>
                   </a>
 
                 </p>
@@ -306,8 +409,11 @@ const personSchema = {
           rotation = 0
         ) => {
 
-          const dx = x - cx;
-          const dy = y - cy;
+          const dx =
+            x - cx;
+
+          const dy =
+            y - cy;
 
           const cos =
             Math.cos(rotation);
@@ -378,7 +484,7 @@ const personSchema = {
               0.08,
               0.48,
               0.72,
-              1.0,
+              1,
               -0.42
             );
 
@@ -506,9 +612,11 @@ const personSchema = {
             bv - av;
 
           const t =
-            Math.abs(difference) < 0.000001
+            Math.abs(difference) <
+            0.000001
               ? 0.5
-              : (level - av) / difference;
+              : (level - av) /
+                difference;
 
           return {
             x:
@@ -633,7 +741,8 @@ const personSchema = {
                 gy *
                   (cols + 1) +
                   gx
-              ] = value;
+              ] =
+                value;
 
 
               minValue =
@@ -641,6 +750,7 @@ const personSchema = {
                   minValue,
                   value
                 );
+
 
               maxValue =
                 Math.max(
@@ -697,23 +807,45 @@ const personSchema = {
               0.94;
 
 
+            const isMajorContour =
+              contourIndex %
+              10 ===
+              0;
+
+
             const isIndexContour =
-              contourIndex % 5 === 0;
+              contourIndex %
+              5 ===
+              0;
 
 
             context.beginPath();
 
 
-            context.strokeStyle =
-              isIndexContour
-                ? 'rgba(54, 64, 55, 0.64)'
-                : 'rgba(76, 88, 78, 0.37)';
+            if (isMajorContour) {
 
+              context.strokeStyle =
+                'rgba(73, 88, 76, 0.72)';
 
-            context.lineWidth =
-              isIndexContour
-                ? 1.08
-                : 0.5;
+              context.lineWidth =
+                1.15;
+
+            } else if (isIndexContour) {
+
+              context.strokeStyle =
+                'rgba(91, 106, 93, 0.55)';
+
+              context.lineWidth =
+                0.78;
+
+            } else {
+
+              context.strokeStyle =
+                'rgba(137, 149, 138, 0.36)';
+
+              context.lineWidth =
+                0.46;
+            }
 
 
             context.lineCap =
@@ -890,7 +1022,8 @@ const personSchema = {
 
 
                 if (
-                  points.length === 2
+                  points.length ===
+                  2
                 ) {
 
                   context.moveTo(
@@ -906,7 +1039,8 @@ const personSchema = {
 
 
                 if (
-                  points.length === 4
+                  points.length ===
+                  4
                 ) {
 
                   const centre =
