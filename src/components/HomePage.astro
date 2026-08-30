@@ -1,144 +1,161 @@
 ---
 import '../styles/global.css';
 
-type Language = 'fi' | 'en';
-
 interface Props {
-  lang?: Language;
+  lang: 'fi' | 'en';
 }
 
-const { lang = 'fi' } = Astro.props;
-const isEnglish = lang === 'en';
+const { lang } = Astro.props;
 
 const content = {
   fi: {
     pageTitle: 'Aapo Pihkala - Maisema-arkkitehti Espoo',
-    description:
-      'Aapo Pihkala on espoolainen maisema-arkkitehti. Kaupunki, maisema ja luonto.',
+    pageDescription:
+      'Aapo Pihkala on Espoossa toimiva maisema-arkkitehti. Maisema-arkkitehtuuria kaupunkien, ihmisten ja luonnon rajapinnassa.',
+
     navLabel: 'Päänavigaatio',
-    homeLabel: 'Etusivu',
-    linkedinLabel: 'Aapo Pihkala LinkedInissä',
-    languageLabel: 'Vaihda kieleksi englanti',
+    homeLabel: 'Aapo Pihkalan etusivu',
+
     languageButton: 'EN',
+    languageLabel: 'English',
+    languageHref: '/en/',
+    languageHreflang: 'en',
+
     heroPrimary: 'Maisema-arkkitehti, Espoo.',
-    heroSecondary: 'Kaupunki, maisema ja luonto.',
-    location: 'Espoo, Suomi',
-    feedLabel: 'Kirjoitukset',
-    sourceLabel: 'Lähde',
+    heroSecondary:
+      'Maisema-arkkitehtuuria kaupunkien, ihmisten ja luonnon rajapinnassa.',
+
+    linkedinLabel: 'LinkedIn',
+
     posts: [
       {
-        number: '01',
-        date: '29.8.2026',
-        topics: [
-          'KAUPUNKILUONTO',
-          'BIODIVERSITEETTI',
-          'MAISEMA-ARKKITEHTUURI',
-        ],
-        location: 'ESPOO',
+        index: '01',
+        date: '30.8.2026',
+        tags: ['KAUPUNKILUONTO', 'ASEMAKAAVOITUS'],
         title: 'Lorem ipsum dolor sit amet',
+        paragraphs: [
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+          'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+        ],
+        sourceLabel: 'Lähde',
+        source: 'Lorem ipsum',
       },
       {
-        number: '02',
-        date: '14.8.2026',
-        topics: [
-          'MAISEMA',
-          'KAUPUNKILUONTO',
-        ],
-        location: 'ESPOO',
+        index: '02',
+        date: '24.8.2026',
+        tags: ['HULEVEDET', 'KAUPUNKISUUNNITTELU'],
         title: 'Consectetur adipiscing elit',
+        paragraphs: [
+          'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+          'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        ],
+        sourceLabel: 'Lähde',
+        source: 'Lorem ipsum',
       },
-    ],
-    jobTitle: 'Maisema-arkkitehti',
-    knowsAbout: [
-      'Maisema-arkkitehtuuri',
-      'Kaupunkiluonto',
-      'Hulevedet',
-      'Biodiversiteetti',
+      {
+        index: '03',
+        date: '18.8.2026',
+        tags: ['BIODIVERSITEETTI', 'MAISEMA-ARKKITEHTUURI'],
+        title: 'Sed do eiusmod tempor incididunt',
+        paragraphs: [
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante venenatis dapibus posuere velit aliquet.',
+          'Maecenas faucibus mollis interdum. Donec ullamcorper nulla non metus auctor fringilla.',
+        ],
+        sourceLabel: 'Lähde',
+        source: 'Lorem ipsum',
+      },
     ],
   },
 
   en: {
     pageTitle: 'Aapo Pihkala - Landscape Architect, Espoo',
-    description:
-      'Aapo Pihkala is a landscape architect based in Espoo, Finland. City, landscape and nature.',
+    pageDescription:
+      'Aapo Pihkala is a landscape architect based in Espoo, Finland. Landscape architecture at the intersection of cities, people and nature.',
+
     navLabel: 'Main navigation',
-    homeLabel: 'Home',
-    linkedinLabel: 'Aapo Pihkala on LinkedIn',
-    languageLabel: 'Switch language to Finnish',
+    homeLabel: 'Aapo Pihkala homepage',
+
     languageButton: 'FI',
+    languageLabel: 'Suomeksi',
+    languageHref: '/',
+    languageHreflang: 'fi',
+
     heroPrimary: 'Landscape architect, Espoo.',
-    heroSecondary: 'City, landscape and nature.',
-    location: 'Espoo, Finland',
-    feedLabel: 'Articles',
-    sourceLabel: 'Source',
+    heroSecondary:
+      'Landscape architecture at the intersection of cities, people and nature.',
+
+    linkedinLabel: 'LinkedIn',
+
     posts: [
       {
-        number: '01',
-        date: '29 Aug 2026',
-        topics: [
-          'URBAN NATURE',
-          'BIODIVERSITY',
-          'LANDSCAPE ARCHITECTURE',
-        ],
-        location: 'ESPOO',
+        index: '01',
+        date: '30 Aug 2026',
+        tags: ['URBAN NATURE', 'PLANNING'],
         title: 'Lorem ipsum dolor sit amet',
+        paragraphs: [
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+          'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+        ],
+        sourceLabel: 'Source',
+        source: 'Lorem ipsum',
       },
       {
-        number: '02',
-        date: '14 Aug 2026',
-        topics: [
-          'LANDSCAPE',
-          'URBAN NATURE',
-        ],
-        location: 'ESPOO',
+        index: '02',
+        date: '24 Aug 2026',
+        tags: ['STORMWATER', 'URBAN PLANNING'],
         title: 'Consectetur adipiscing elit',
+        paragraphs: [
+          'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+          'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        ],
+        sourceLabel: 'Source',
+        source: 'Lorem ipsum',
       },
-    ],
-    jobTitle: 'Landscape architect',
-    knowsAbout: [
-      'Landscape architecture',
-      'Urban nature',
-      'Stormwater',
-      'Biodiversity',
+      {
+        index: '03',
+        date: '18 Aug 2026',
+        tags: ['BIODIVERSITY', 'LANDSCAPE ARCHITECTURE'],
+        title: 'Sed do eiusmod tempor incididunt',
+        paragraphs: [
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante venenatis dapibus posuere velit aliquet.',
+          'Maecenas faucibus mollis interdum. Donec ullamcorper nulla non metus auctor fringilla.',
+        ],
+        sourceLabel: 'Source',
+        source: 'Lorem ipsum',
+      },
     ],
   },
 } as const;
 
 const t = content[lang];
 
-const canonicalUrl = isEnglish
-  ? 'https://aapopihkala.fi/en/'
-  : 'https://aapopihkala.fi/';
-
-const homeHref = isEnglish
-  ? '/en/'
-  : '/';
-
-const languageHref = isEnglish
-  ? '/'
-  : '/en/';
-
-const languageHreflang = isEnglish
-  ? 'fi'
-  : 'en';
+const homeHref = lang === 'fi' ? '/' : '/en/';
+const canonicalPath = lang === 'fi' ? '/' : '/en/';
+const canonicalUrl = `https://aapopihkala.fi${canonicalPath}`;
 
 const personSchema = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   name: 'Aapo Pihkala',
-  jobTitle: t.jobTitle,
   url: canonicalUrl,
+  jobTitle:
+    lang === 'fi'
+      ? 'Maisema-arkkitehti'
+      : 'Landscape Architect',
   sameAs: [
     'https://fi.linkedin.com/in/aapo-pihkala',
   ],
-  address: {
-    '@type': 'PostalAddress',
-    addressLocality: 'Espoo',
-    addressCountry: 'FI',
-  },
-  knowsAbout: t.knowsAbout,
+  knowsAbout: [
+    'Landscape architecture',
+    'Urban planning',
+    'Urban nature',
+    'Stormwater management',
+    'Biodiversity',
+  ],
 };
 ---
+
+<!doctype html>
 
 <html lang={lang}>
   <head>
@@ -149,23 +166,11 @@ const personSchema = {
       content="width=device-width, initial-scale=1"
     />
 
-    <title>
-      {t.pageTitle}
-    </title>
+    <title>{t.pageTitle}</title>
 
     <meta
       name="description"
-      content={t.description}
-    />
-
-    <meta
-      name="author"
-      content="Aapo Pihkala"
-    />
-
-    <meta
-      name="theme-color"
-      content="#f3f0e8"
+      content={t.pageDescription}
     />
 
     <link
@@ -198,14 +203,11 @@ const personSchema = {
   </head>
 
   <body>
-
     <header class="topbar">
-
       <nav
         class="topbar-inner"
         aria-label={t.navLabel}
       >
-
         <a
           class="topbar-name"
           href={homeHref}
@@ -215,61 +217,26 @@ const personSchema = {
         </a>
 
         <div class="topbar-actions">
-
           <a
             class="language-switch"
-            href={languageHref}
-            hreflang={languageHreflang}
-            lang={languageHreflang}
+            href={t.languageHref}
+            hreflang={t.languageHreflang}
+            lang={t.languageHreflang}
             aria-label={t.languageLabel}
           >
             {t.languageButton}
           </a>
-
-          <a
-            class="linkedin-link"
-            href="https://fi.linkedin.com/in/aapo-pihkala"
-            target="_blank"
-            rel="noopener"
-            aria-label={t.linkedinLabel}
-            title="LinkedIn"
-          >
-
-            <svg
-              class="linkedin-icon"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"
-              />
-            </svg>
-
-          </a>
-
         </div>
-
       </nav>
-
     </header>
 
-
     <main class="main-container">
-
       <section class="hero">
-
         <div class="hero-row">
-
           <div class="hero-content">
-
-            <h1>
-              Aapo Pihkala
-            </h1>
+            <h1>Aapo Pihkala</h1>
 
             <div class="hero-description">
-
               <p class="hero-primary">
                 {t.heroPrimary}
               </p>
@@ -277,475 +244,645 @@ const personSchema = {
               <p class="hero-secondary">
                 {t.heroSecondary}
               </p>
-
             </div>
 
-            <p class="hero-location">
-
-              <svg
-                class="location-icon"
-                viewBox="0 0 24 28"
+            <a
+              class="hero-linkedin"
+              href="https://fi.linkedin.com/in/aapo-pihkala"
+              target="_blank"
+              rel="noopener"
+            >
+              <span>{t.linkedinLabel}</span>
+              <span
+                class="hero-linkedin-arrow"
                 aria-hidden="true"
               >
-                <path
-                  d="M12 26C8.8 22.3 4.5 18.1 4.5 11.5A7.5 7.5 0 0 1 12 4a7.5 7.5 0 0 1 7.5 7.5C19.5 18.1 15.2 22.3 12 26Z"
-                />
-
-                <circle
-                  cx="12"
-                  cy="11.5"
-                  r="2.4"
-                />
-              </svg>
-
-              <span>
-                {t.location}
+                ↗
               </span>
-
-            </p>
-
+            </a>
           </div>
-
 
           <div
             class="hero-art"
             aria-hidden="true"
           >
-
             <canvas
-              id="topography-canvas"
               class="topography-canvas"
+              data-topography
             ></canvas>
-
           </div>
-
         </div>
-
       </section>
 
-
-      <section
-        class="feed"
-        aria-label={t.feedLabel}
-      >
-
+      <section class="feed">
         {
           t.posts.map((post) => (
             <article class="feed-post">
+              <div class="post-index-row">
+                <span class="post-index">
+                  {post.index}
+                </span>
 
-              <header class="post-header">
-
-                <div class="post-index-row">
-
-                  <span class="post-index">
-                    {post.number}
-                  </span>
-
-                  <span
-                    class="post-index-line"
-                    aria-hidden="true"
-                  ></span>
-
-                </div>
-
-                <p class="post-meta">
-
-                  <span class="post-date">
-                    {post.date}
-                  </span>
-
-                  {
-                    post.topics.map((topic) => (
-                      <>
-                        <span
-                          class="post-meta-separator"
-                          aria-hidden="true"
-                        >
-                          /
-                        </span>
-
-                        <span>
-                          {topic}
-                        </span>
-                      </>
-                    ))
-                  }
-
-                  <span
-                    class="post-meta-separator"
-                    aria-hidden="true"
-                  >
-                    /
-                  </span>
-
-                  <span>
-                    {post.location}
-                  </span>
-
-                </p>
-
-                <h2 class="post-title">
-                  {post.title}
-                </h2>
-
-              </header>
-
-
-              <div class="post-body">
-
-                <p>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                  Integer posuere erat a ante venenatis dapibus posuere velit
-                  aliquet. Maecenas faucibus mollis interdum. Donec sed odio
-                  dui. Praesent commodo cursus magna, vel scelerisque nisl
-                  consectetur et.
-                </p>
-
-                <p>
-                  Vestibulum id ligula porta felis euismod semper. Aenean
-                  lacinia bibendum nulla sed consectetur. Nullam quis risus
-                  eget urna mollis ornare vel eu leo. Cras mattis consectetur
-                  purus sit amet fermentum.
-                </p>
-
-                <h3>
-                  Lorem ipsum dolor sit amet
-                </h3>
-
-                <p>
-                  Curabitur blandit tempus porttitor. Etiam porta sem malesuada
-                  magna mollis euismod. Morbi leo risus, porta ac consectetur
-                  ac, vestibulum at eros. Donec ullamcorper nulla non metus
-                  auctor fringilla.
-                </p>
-
+                <span class="post-index-line"></span>
               </div>
 
+              <p class="post-meta">
+                <span class="post-date">
+                  {post.date}
+                </span>
 
-              <p class="source">
+                {post.tags.map((tag) => (
+                  <>
+                    <span
+                      class="post-meta-separator"
+                      aria-hidden="true"
+                    >
+                      /
+                    </span>
 
+                    <span>{tag}</span>
+                  </>
+                ))}
+              </p>
+
+              <h2 class="post-title">
+                {post.title}
+              </h2>
+
+              <div class="post-body">
+                {
+                  post.paragraphs.map((paragraph) => (
+                    <p>{paragraph}</p>
+                  ))
+                }
+              </div>
+
+              <div class="source">
                 <span class="source-label">
-                  {t.sourceLabel}
+                  {post.sourceLabel}
                 </span>
 
                 <span class="source-placeholder">
-                  Lorem ipsum
+                  {post.source}
                 </span>
-
-              </p>
-
+              </div>
             </article>
           ))
         }
-
       </section>
-
     </main>
 
+    <script>
+      const canvases =
+        document.querySelectorAll('[data-topography]');
 
-    <script is:inline>
-      (() => {
-        const canvas =
-          document.getElementById(
-            'topography-canvas'
-          );
+      const reducedMotion =
+        window.matchMedia(
+          '(prefers-reduced-motion: reduce)'
+        );
+
+      const cols = 108;
+      const rows = 88;
+      const contourCount = 54;
+
+      const terrain = (
+        x,
+        y,
+        phase
+      ) => {
+        const nx = x / (cols - 1);
+        const ny = y / (rows - 1);
+
+        const ridgeA =
+          Math.sin(
+            nx * 7.2 +
+            Math.sin(
+              ny * 4.6 + phase * 0.7
+            ) * 0.8 +
+            phase
+          ) * 0.26;
+
+        const ridgeB =
+          Math.cos(
+            ny * 8.1 -
+            Math.sin(
+              nx * 5.1 - phase * 0.45
+            ) * 0.72 -
+            phase * 0.68
+          ) * 0.22;
+
+        const ridgeC =
+          Math.sin(
+            (nx + ny) * 9.6 +
+            Math.sin(
+              nx * 3.8 +
+              ny * 2.4
+            ) * 1.15 +
+            phase * 0.34
+          ) * 0.13;
+
+        const dx1 = nx - 0.34;
+        const dy1 = ny - 0.42;
+
+        const dx2 = nx - 0.72;
+        const dy2 = ny - 0.63;
+
+        const dx3 = nx - 0.57;
+        const dy3 = ny - 0.22;
+
+        const hill1 =
+          Math.exp(
+            -(
+              dx1 * dx1 * 9.5 +
+              dy1 * dy1 * 12
+            )
+          ) * 0.95;
+
+        const hill2 =
+          Math.exp(
+            -(
+              dx2 * dx2 * 15 +
+              dy2 * dy2 * 10
+            )
+          ) * 0.68;
+
+        const basin =
+          Math.exp(
+            -(
+              dx3 * dx3 * 19 +
+              dy3 * dy3 * 17
+            )
+          ) * -0.44;
+
+        const warp =
+          Math.sin(
+            nx * 13.4 +
+            ny * 5.2 +
+            phase * 0.24
+          ) * 0.055;
+
+        return (
+          ridgeA +
+          ridgeB +
+          ridgeC +
+          hill1 +
+          hill2 +
+          basin +
+          warp
+        );
+      };
+
+      const interpolate = (
+        a,
+        b,
+        level
+      ) => {
+        const delta = b - a;
 
         if (
-          !(canvas instanceof HTMLCanvasElement)
+          Math.abs(delta) < 0.00001
         ) {
-          return;
+          return 0.5;
         }
 
-        const context =
-          canvas.getContext('2d');
+        return (
+          (level - a) /
+          delta
+        );
+      };
 
-        if (!context) {
-          return;
-        }
+      const drawContour = (
+        ctx,
+        values,
+        level,
+        width,
+        height
+      ) => {
+        const cellWidth =
+          width / (cols - 1);
 
-        const prefersReducedMotion =
-          window.matchMedia(
-            '(prefers-reduced-motion: reduce)'
-          ).matches;
+        const cellHeight =
+          height / (rows - 1);
 
-        const cols = 108;
-        const rows = 88;
-        const contourCount = 54;
+        ctx.beginPath();
 
-        let width = 210;
-        let height = 270;
-        let dpr = 1;
-
-        let lastDraw = -Infinity;
-        let animationFrame = 0;
-
-
-        const gaussian = (
+        const point = (
+          edge,
           x,
           y,
-          cx,
-          cy,
-          sx,
-          sy,
-          amplitude,
-          rotation = 0
+          tl,
+          tr,
+          br,
+          bl
         ) => {
-
-          const dx =
-            x - cx;
-
-          const dy =
-            y - cy;
-
-          const cos =
-            Math.cos(rotation);
-
-          const sin =
-            Math.sin(rotation);
-
-          const rx =
-            dx * cos +
-            dy * sin;
-
-          const ry =
-            -dx * sin +
-            dy * cos;
-
-          return amplitude * Math.exp(
-            -(
-              (rx * rx) /
-                (2 * sx * sx) +
-              (ry * ry) /
-                (2 * sy * sy)
-            )
-          );
-        };
-
-
-        const terrainHeight = (
-          x,
-          y,
-          phase
-        ) => {
-
-          const warpX =
-            x +
-            0.05 *
-              Math.sin(
-                2.45 * y +
-                phase * 0.55
-              ) +
-            0.023 *
-              Math.sin(
-                5.1 * y -
-                phase * 0.22
+          if (edge === 0) {
+            const t =
+              interpolate(
+                tl,
+                tr,
+                level
               );
 
+            return [
+              (x + t) * cellWidth,
+              y * cellHeight,
+            ];
+          }
 
-          const warpY =
-            y +
-            0.04 *
-              Math.sin(
-                2.1 * x -
-                phase * 0.4
-              ) +
-            0.017 *
-              Math.cos(
-                4.15 * x +
-                phase * 0.28
+          if (edge === 1) {
+            const t =
+              interpolate(
+                tr,
+                br,
+                level
               );
 
+            return [
+              (x + 1) * cellWidth,
+              (y + t) * cellHeight,
+            ];
+          }
 
-          const ridge1 =
-            gaussian(
-              warpX,
-              warpY,
-              -0.42 +
-                0.018 *
-                  Math.sin(phase),
-              0.08,
-              0.48,
-              0.72,
-              1,
-              -0.42
-            );
+          if (edge === 2) {
+            const t =
+              interpolate(
+                bl,
+                br,
+                level
+              );
 
-
-          const ridge2 =
-            gaussian(
-              warpX,
-              warpY,
-              0.32,
-              -0.37 +
-                0.016 *
-                  Math.cos(
-                    phase * 0.8
-                  ),
-              0.34,
-              0.48,
-              0.82,
-              0.5
-            );
-
-
-          const ridge3 =
-            gaussian(
-              warpX,
-              warpY,
-              0.56,
-              0.44,
-              0.27,
-              0.42,
-              0.58,
-              -0.18
-            );
-
-
-          const ridge4 =
-            gaussian(
-              warpX,
-              warpY,
-              -0.1,
-              0.55,
-              0.32,
-              0.24,
-              0.38,
-              0.75
-            );
-
-
-          const valley1 =
-            gaussian(
-              warpX,
-              warpY,
-              0.02,
-              0.04,
-              0.24,
-              0.42,
-              -0.7,
-              0.35
-            );
-
-
-          const valley2 =
-            gaussian(
-              warpX,
-              warpY,
-              -0.56,
-              -0.5,
-              0.24,
-              0.27,
-              -0.24,
-              -0.6
-            );
-
-
-          const broadSlope =
-            0.14 * warpX -
-            0.07 * warpY;
-
-
-          const geologicalWave =
-            0.085 *
-            Math.sin(
-              2.1 * warpX -
-              1.7 * warpY +
-              0.22 *
-                Math.sin(
-                  phase * 0.45
-                )
-            );
-
-
-          const secondaryWave =
-            0.04 *
-            Math.cos(
-              3.4 * warpY +
-              0.9 * warpX -
-              phase * 0.22
-            );
-
-
-          return (
-            ridge1 +
-            ridge2 +
-            ridge3 +
-            ridge4 +
-            valley1 +
-            valley2 +
-            broadSlope +
-            geologicalWave +
-            secondaryWave
-          );
-        };
-
-
-        const edgeIntersection = (
-          ax,
-          ay,
-          av,
-          bx,
-          by,
-          bv,
-          level
-        ) => {
-
-          const difference =
-            bv - av;
+            return [
+              (x + t) * cellWidth,
+              (y + 1) * cellHeight,
+            ];
+          }
 
           const t =
-            Math.abs(difference) <
-            0.000001
-              ? 0.5
-              : (level - av) /
-                difference;
+            interpolate(
+              tl,
+              bl,
+              level
+            );
 
-          return {
-            x:
-              ax +
-              (bx - ax) * t,
-
-            y:
-              ay +
-              (by - ay) * t,
-          };
+          return [
+            x * cellWidth,
+            (y + t) * cellHeight,
+          ];
         };
 
+        const connect = (
+          edgeA,
+          edgeB,
+          x,
+          y,
+          tl,
+          tr,
+          br,
+          bl
+        ) => {
+          const a =
+            point(
+              edgeA,
+              x,
+              y,
+              tl,
+              tr,
+              br,
+              bl
+            );
 
-        const resizeCanvas = () => {
+          const b =
+            point(
+              edgeB,
+              x,
+              y,
+              tl,
+              tr,
+              br,
+              bl
+            );
 
+          ctx.moveTo(
+            a[0],
+            a[1]
+          );
+
+          ctx.lineTo(
+            b[0],
+            b[1]
+          );
+        };
+
+        for (
+          let y = 0;
+          y < rows - 1;
+          y += 1
+        ) {
+          for (
+            let x = 0;
+            x < cols - 1;
+            x += 1
+          ) {
+            const tl =
+              values[
+                y * cols + x
+              ];
+
+            const tr =
+              values[
+                y * cols + x + 1
+              ];
+
+            const br =
+              values[
+                (y + 1) * cols +
+                x + 1
+              ];
+
+            const bl =
+              values[
+                (y + 1) * cols +
+                x
+              ];
+
+            const code =
+              (tl >= level ? 8 : 0) |
+              (tr >= level ? 4 : 0) |
+              (br >= level ? 2 : 0) |
+              (bl >= level ? 1 : 0);
+
+            switch (code) {
+              case 1:
+              case 14:
+                connect(
+                  3,
+                  2,
+                  x,
+                  y,
+                  tl,
+                  tr,
+                  br,
+                  bl
+                );
+                break;
+
+              case 2:
+              case 13:
+                connect(
+                  2,
+                  1,
+                  x,
+                  y,
+                  tl,
+                  tr,
+                  br,
+                  bl
+                );
+                break;
+
+              case 3:
+              case 12:
+                connect(
+                  3,
+                  1,
+                  x,
+                  y,
+                  tl,
+                  tr,
+                  br,
+                  bl
+                );
+                break;
+
+              case 4:
+              case 11:
+                connect(
+                  0,
+                  1,
+                  x,
+                  y,
+                  tl,
+                  tr,
+                  br,
+                  bl
+                );
+                break;
+
+              case 5: {
+                const center =
+                  (
+                    tl +
+                    tr +
+                    br +
+                    bl
+                  ) / 4;
+
+                if (
+                  center >= level
+                ) {
+                  connect(
+                    0,
+                    3,
+                    x,
+                    y,
+                    tl,
+                    tr,
+                    br,
+                    bl
+                  );
+
+                  connect(
+                    1,
+                    2,
+                    x,
+                    y,
+                    tl,
+                    tr,
+                    br,
+                    bl
+                  );
+                } else {
+                  connect(
+                    0,
+                    1,
+                    x,
+                    y,
+                    tl,
+                    tr,
+                    br,
+                    bl
+                  );
+
+                  connect(
+                    3,
+                    2,
+                    x,
+                    y,
+                    tl,
+                    tr,
+                    br,
+                    bl
+                  );
+                }
+
+                break;
+              }
+
+              case 6:
+              case 9:
+                connect(
+                  0,
+                  2,
+                  x,
+                  y,
+                  tl,
+                  tr,
+                  br,
+                  bl
+                );
+                break;
+
+              case 7:
+              case 8:
+                connect(
+                  0,
+                  3,
+                  x,
+                  y,
+                  tl,
+                  tr,
+                  br,
+                  bl
+                );
+                break;
+
+              case 10: {
+                const center =
+                  (
+                    tl +
+                    tr +
+                    br +
+                    bl
+                  ) / 4;
+
+                if (
+                  center >= level
+                ) {
+                  connect(
+                    0,
+                    1,
+                    x,
+                    y,
+                    tl,
+                    tr,
+                    br,
+                    bl
+                  );
+
+                  connect(
+                    3,
+                    2,
+                    x,
+                    y,
+                    tl,
+                    tr,
+                    br,
+                    bl
+                  );
+                } else {
+                  connect(
+                    0,
+                    3,
+                    x,
+                    y,
+                    tl,
+                    tr,
+                    br,
+                    bl
+                  );
+
+                  connect(
+                    1,
+                    2,
+                    x,
+                    y,
+                    tl,
+                    tr,
+                    br,
+                    bl
+                  );
+                }
+
+                break;
+              }
+            }
+          }
+        }
+
+        ctx.stroke();
+      };
+
+      const setupCanvas = (
+        canvas
+      ) => {
+        const ctx =
+          canvas.getContext('2d');
+
+        if (!ctx) {
+          return;
+        }
+
+        let frameId = 0;
+        let lastFrame = 0;
+
+        const draw = (
+          time = 0
+        ) => {
           const rect =
             canvas.getBoundingClientRect();
 
-          width =
+          const cssWidth =
             Math.max(
               1,
               rect.width
             );
 
-          height =
+          const cssHeight =
             Math.max(
               1,
               rect.height
             );
 
-          dpr =
+          const dpr =
             Math.min(
               window.devicePixelRatio || 1,
               2
             );
 
-          canvas.width =
+          const pixelWidth =
             Math.round(
-              width * dpr
+              cssWidth * dpr
             );
 
-          canvas.height =
+          const pixelHeight =
             Math.round(
-              height * dpr
+              cssHeight * dpr
             );
 
-          context.setTransform(
+          if (
+            canvas.width !==
+              pixelWidth ||
+            canvas.height !==
+              pixelHeight
+          ) {
+            canvas.width =
+              pixelWidth;
+
+            canvas.height =
+              pixelHeight;
+          }
+
+          ctx.setTransform(
             dpr,
             0,
             0,
@@ -753,522 +890,175 @@ const personSchema = {
             0,
             0
           );
-        };
 
-
-        const draw = (
-          time = 0
-        ) => {
-
-          context.clearRect(
+          ctx.clearRect(
             0,
             0,
-            width,
-            height
+            cssWidth,
+            cssHeight
           );
 
-
           const phase =
-            prefersReducedMotion
+            reducedMotion.matches
               ? 0.7
               : time * 0.00045;
 
-
           const values =
-            new Array(
-              (cols + 1) *
-              (rows + 1)
+            new Float32Array(
+              cols * rows
             );
 
-
-          let minValue =
+          let min =
             Infinity;
 
-          let maxValue =
+          let max =
             -Infinity;
 
-
           for (
-            let gy = 0;
-            gy <= rows;
-            gy++
+            let y = 0;
+            y < rows;
+            y += 1
           ) {
-
             for (
-              let gx = 0;
-              gx <= cols;
-              gx++
+              let x = 0;
+              x < cols;
+              x += 1
             ) {
-
-              const nx =
-                (gx / cols) *
-                  2.4 -
-                1.2;
-
-              const ny =
-                (gy / rows) *
-                  2.08 -
-                1.04;
-
-
               const value =
-                terrainHeight(
-                  nx,
-                  ny,
+                terrain(
+                  x,
+                  y,
                   phase
                 );
 
-
               values[
-                gy *
-                  (cols + 1) +
-                  gx
-              ] =
-                value;
-
-
-              minValue =
-                Math.min(
-                  minValue,
-                  value
-                );
-
-
-              maxValue =
-                Math.max(
-                  maxValue,
-                  value
-                );
-            }
-          }
-
-
-          const range =
-            maxValue -
-            minValue ||
-            1;
-
-
-          for (
-            let i = 0;
-            i < values.length;
-            i++
-          ) {
-
-            values[i] =
-              (
-                values[i] -
-                minValue
-              ) /
-              range;
-          }
-
-
-          const cellWidth =
-            width / cols;
-
-          const cellHeight =
-            height / rows;
-
-
-          for (
-            let contourIndex = 0;
-            contourIndex < contourCount;
-            contourIndex++
-          ) {
-
-            const level =
-              0.03 +
-              (
-                contourIndex /
-                (
-                  contourCount -
-                  1
-                )
-              ) *
-              0.94;
-
-
-            const isMajorContour =
-              contourIndex %
-              10 ===
-              0;
-
-
-            const isIndexContour =
-              contourIndex %
-              5 ===
-              0;
-
-
-            context.beginPath();
-
-
-            if (isMajorContour) {
-
-              context.strokeStyle =
-                'rgba(73, 88, 76, 0.72)';
-
-              context.lineWidth =
-                1.15;
-
-            } else if (isIndexContour) {
-
-              context.strokeStyle =
-                'rgba(91, 106, 93, 0.55)';
-
-              context.lineWidth =
-                0.78;
-
-            } else {
-
-              context.strokeStyle =
-                'rgba(137, 149, 138, 0.36)';
-
-              context.lineWidth =
-                0.46;
-            }
-
-
-            context.lineCap =
-              'round';
-
-            context.lineJoin =
-              'round';
-
-
-            for (
-              let gy = 0;
-              gy < rows;
-              gy++
-            ) {
-
-              for (
-                let gx = 0;
-                gx < cols;
-                gx++
-              ) {
-
-                const x0 =
-                  gx *
-                  cellWidth;
-
-                const x1 =
-                  (gx + 1) *
-                  cellWidth;
-
-                const y0 =
-                  gy *
-                  cellHeight;
-
-                const y1 =
-                  (gy + 1) *
-                  cellHeight;
-
-
-                const topLeft =
-                  values[
-                    gy *
-                    (cols + 1) +
-                    gx
-                  ];
-
-
-                const topRight =
-                  values[
-                    gy *
-                    (cols + 1) +
-                    gx +
-                    1
-                  ];
-
-
-                const bottomRight =
-                  values[
-                    (gy + 1) *
-                    (cols + 1) +
-                    gx +
-                    1
-                  ];
-
-
-                const bottomLeft =
-                  values[
-                    (gy + 1) *
-                    (cols + 1) +
-                    gx
-                  ];
-
-
-                const points = [];
-
-
-                if (
-                  (
-                    topLeft <
-                    level
-                  ) !==
-                  (
-                    topRight <
-                    level
-                  )
-                ) {
-
-                  points.push(
-                    edgeIntersection(
-                      x0,
-                      y0,
-                      topLeft,
-                      x1,
-                      y0,
-                      topRight,
-                      level
-                    )
-                  );
-                }
-
-
-                if (
-                  (
-                    topRight <
-                    level
-                  ) !==
-                  (
-                    bottomRight <
-                    level
-                  )
-                ) {
-
-                  points.push(
-                    edgeIntersection(
-                      x1,
-                      y0,
-                      topRight,
-                      x1,
-                      y1,
-                      bottomRight,
-                      level
-                    )
-                  );
-                }
-
-
-                if (
-                  (
-                    bottomRight <
-                    level
-                  ) !==
-                  (
-                    bottomLeft <
-                    level
-                  )
-                ) {
-
-                  points.push(
-                    edgeIntersection(
-                      x1,
-                      y1,
-                      bottomRight,
-                      x0,
-                      y1,
-                      bottomLeft,
-                      level
-                    )
-                  );
-                }
-
-
-                if (
-                  (
-                    bottomLeft <
-                    level
-                  ) !==
-                  (
-                    topLeft <
-                    level
-                  )
-                ) {
-
-                  points.push(
-                    edgeIntersection(
-                      x0,
-                      y1,
-                      bottomLeft,
-                      x0,
-                      y0,
-                      topLeft,
-                      level
-                    )
-                  );
-                }
-
-
-                if (
-                  points.length ===
-                  2
-                ) {
-
-                  context.moveTo(
-                    points[0].x,
-                    points[0].y
-                  );
-
-                  context.lineTo(
-                    points[1].x,
-                    points[1].y
-                  );
-                }
-
-
-                if (
-                  points.length ===
-                  4
-                ) {
-
-                  const centre =
-                    (
-                      topLeft +
-                      topRight +
-                      bottomRight +
-                      bottomLeft
-                    ) / 4;
-
-
-                  if (
-                    centre >
-                    level
-                  ) {
-
-                    context.moveTo(
-                      points[0].x,
-                      points[0].y
-                    );
-
-                    context.lineTo(
-                      points[1].x,
-                      points[1].y
-                    );
-
-
-                    context.moveTo(
-                      points[2].x,
-                      points[2].y
-                    );
-
-                    context.lineTo(
-                      points[3].x,
-                      points[3].y
-                    );
-
-                  } else {
-
-                    context.moveTo(
-                      points[0].x,
-                      points[0].y
-                    );
-
-                    context.lineTo(
-                      points[3].x,
-                      points[3].y
-                    );
-
-
-                    context.moveTo(
-                      points[1].x,
-                      points[1].y
-                    );
-
-                    context.lineTo(
-                      points[2].x,
-                      points[2].y
-                    );
-                  }
-                }
+                y * cols + x
+              ] = value;
+
+              if (value < min) {
+                min = value;
+              }
+
+              if (value > max) {
+                max = value;
               }
             }
+          }
 
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
 
-            context.stroke();
+          for (
+            let i = 1;
+            i <= contourCount;
+            i += 1
+          ) {
+            const ratio =
+              i /
+              (
+                contourCount + 1
+              );
+
+            const level =
+              min +
+              (max - min) *
+                ratio;
+
+            const isTenth =
+              i % 10 === 0;
+
+            const isFifth =
+              !isTenth &&
+              i % 5 === 0;
+
+            ctx.strokeStyle =
+              isTenth
+                ? 'rgba(73, 88, 77, 0.56)'
+                : isFifth
+                  ? 'rgba(89, 105, 93, 0.40)'
+                  : 'rgba(89, 105, 93, 0.23)';
+
+            ctx.lineWidth =
+              isTenth
+                ? 1.15
+                : isFifth
+                  ? 0.82
+                  : 0.52;
+
+            drawContour(
+              ctx,
+              values,
+              level,
+              cssWidth,
+              cssHeight
+            );
           }
         };
-
 
         const animate = (
           time
         ) => {
-
           if (
-            time -
-            lastDraw >
-            55
+            reducedMotion.matches
           ) {
-
-            draw(time);
-
-            lastDraw =
-              time;
+            draw(0);
+            return;
           }
 
+          if (
+            time - lastFrame >= 55
+          ) {
+            lastFrame = time;
+            draw(time);
+          }
 
-          animationFrame =
+          frameId =
             requestAnimationFrame(
               animate
             );
         };
 
+        const restart = () => {
+          cancelAnimationFrame(
+            frameId
+          );
 
-        resizeCanvas();
-
-        draw(0);
-
+          if (
+            reducedMotion.matches
+          ) {
+            draw(0);
+          } else {
+            frameId =
+              requestAnimationFrame(
+                animate
+              );
+          }
+        };
 
         const resizeObserver =
           new ResizeObserver(
             () => {
-
-              resizeCanvas();
-
               draw(
                 performance.now()
               );
             }
           );
 
-
         resizeObserver.observe(
           canvas
         );
 
-
-        if (
-          !prefersReducedMotion
-        ) {
-
-          animationFrame =
-            requestAnimationFrame(
-              animate
-            );
-        }
-
-
-        window.addEventListener(
-          'pagehide',
-          () => {
-
-            cancelAnimationFrame(
-              animationFrame
-            );
-
-            resizeObserver.disconnect();
-
-          },
-          {
-            once: true,
-          }
+        reducedMotion.addEventListener(
+          'change',
+          restart
         );
 
-      })();
-    </script>
+        restart();
+      };
 
+      canvases.forEach(
+        setupCanvas
+      );
+    </script>
   </body>
 </html>
