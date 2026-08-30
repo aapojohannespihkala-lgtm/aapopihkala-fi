@@ -169,14 +169,14 @@ a {
   align-items: center;
   justify-content: center;
 
-  padding: 2px 0;
+  padding: 0;
 
   color: var(--header-control);
 
-  font-size: 0.66rem;
-  font-weight: 550;
+  font-size: 0.76rem;
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.075em;
 
   text-decoration: none;
 
@@ -800,7 +800,7 @@ a:focus-visible {
 
 
   .language-switch {
-    font-size: 0.64rem;
+    font-size: 0.72rem;
   }
 
 
