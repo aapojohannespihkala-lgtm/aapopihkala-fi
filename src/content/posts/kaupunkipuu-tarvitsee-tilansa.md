@@ -1,6 +1,6 @@
 ---
-status: "draft"
-publishedAt: null
+status: "published"
+publishedAt: "2026-08-30T09:00:00+03:00"
 
 sourceUrl: "https://www.syke.fi/sites/default/files/documents/Kaupunkivihrean_tasot_loppuraportti_0_1.pdf"
 
