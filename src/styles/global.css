@@ -516,8 +516,7 @@ a {
 
 
 .feed-post:first-child {
-  border-top-color:
-    var(--line-soft);
+  border-top-color: var(--line-soft);
 }
 
 
@@ -646,6 +645,58 @@ a {
 
 
 /* =========================================================
+   NEWS CONTEXT
+   ========================================================= */
+
+
+.post-news {
+  max-width: 680px;
+
+  color: var(--stone);
+
+  font-size: 0.97rem;
+  font-weight: 400;
+  line-height: 1.72;
+  letter-spacing: -0.004em;
+}
+
+
+.post-news p {
+  margin: 0;
+}
+
+
+/* =========================================================
+   PERSPECTIVE
+   ========================================================= */
+
+
+.post-perspective-label {
+  margin:
+    42px
+    0
+    18px;
+
+  color: var(--moss);
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+
+  font-size: 0.59rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.09em;
+
+  text-transform: uppercase;
+}
+
+
+/* =========================================================
    POST BODY
    ========================================================= */
 
@@ -667,6 +718,11 @@ a {
     0
     0
     1.55em;
+}
+
+
+.post-body p:last-child {
+  margin-bottom: 0;
 }
 
 
@@ -748,6 +804,48 @@ a {
 
 .source-placeholder {
   color: var(--stone);
+}
+
+
+.source-link {
+  display: inline-flex;
+  align-items: baseline;
+
+  gap: 6px;
+
+  color: var(--stone);
+
+  text-decoration: none;
+
+  transition:
+    color 180ms ease;
+}
+
+
+.source-arrow {
+  color: var(--stone-light);
+
+  transition:
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+
+.source-link:hover,
+.source-link:focus-visible {
+  color: var(--moss-deep);
+}
+
+
+.source-link:hover .source-arrow,
+.source-link:focus-visible .source-arrow {
+  color: var(--moss);
+
+  transform:
+    translate(
+      1px,
+      -1px
+    );
 }
 
 
@@ -967,6 +1065,20 @@ a:focus-visible {
   }
 
 
+  .post-news {
+    font-size: 0.96rem;
+    line-height: 1.7;
+  }
+
+
+  .post-perspective-label {
+    margin:
+      36px
+      0
+      17px;
+  }
+
+
   .post-body {
     font-size: 0.98rem;
     line-height: 1.7;
@@ -994,7 +1106,9 @@ a:focus-visible {
   .language-switch,
   .linkedin-link,
   .hero-linkedin,
-  .hero-linkedin-arrow {
+  .hero-linkedin-arrow,
+  .source-link,
+  .source-arrow {
     transition: none;
   }
 }
