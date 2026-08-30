@@ -121,6 +121,9 @@ a {
 
 .topbar-name,
 .language-switch {
+  position: relative;
+  top: 1px;
+
   font-family:
     "Times New Roman",
     Times,
