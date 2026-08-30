@@ -13,6 +13,8 @@ type PostFrontmatter = {
   intro: string;
   source?: string;
   sourceUrl?: string;
+  sourceLinkText?: string;
+  sourceTitle?: string;
 };
 
 type MarkdownPost = {
@@ -434,6 +436,36 @@ const personSchema = {
                         post.frontmatter.intro
                       }
                     </p>
+
+                    {
+                      post.frontmatter.sourceUrl &&
+                      post.frontmatter.sourceLinkText && (
+                        <a
+                          class="post-news-link"
+                          href={
+                            post.frontmatter.sourceUrl
+                          }
+                          target="_blank"
+                          rel="noopener"
+                          title={
+                            post.frontmatter.sourceTitle
+                          }
+                        >
+                          <span>
+                            {
+                              post.frontmatter.sourceLinkText
+                            }
+                          </span>
+
+                          <span
+                            class="post-news-link-arrow"
+                            aria-hidden="true"
+                          >
+                            ↗
+                          </span>
+                        </a>
+                      )
+                    }
                   </div>
 
                   <p class="post-perspective-label">
@@ -464,6 +496,9 @@ const personSchema = {
                               }
                               target="_blank"
                               rel="noopener"
+                              title={
+                                post.frontmatter.sourceTitle
+                              }
                             >
                               <span>
                                 {
