@@ -16,9 +16,8 @@ type LanguagePost = {
 };
 
 type PostFrontmatter = {
-  status?: 'draft' | 'published';
-  publishedAt?: string | null;
-  date?: string;
+  status: 'draft' | 'published';
+  publishedAt: string | null;
   sourceUrl: string;
   fi: LanguagePost;
   en: LanguagePost;
@@ -97,80 +96,42 @@ const postModules = import.meta.glob(
   }
 ) as Record<string, MarkdownPost>;
 
-const getPostTimestamp = (
-  post: MarkdownPost
-) => {
-  const publishedAt =
-    post.frontmatter.publishedAt;
-
-  if (publishedAt) {
-    return new Date(
-      publishedAt
-    ).getTime();
-  }
-
-  const legacyDate =
-    post.frontmatter.date;
-
-  if (legacyDate) {
-    return new Date(
-      `${legacyDate}T00:00:00Z`
-    ).getTime();
-  }
-
-  return 0;
-};
-
-const posts = Object.values(
-  postModules
-)
+const posts = Object.values(postModules)
   .filter(
     (post) =>
-      post.frontmatter.status !==
-        'draft' &&
-      Boolean(
-        post.frontmatter.publishedAt ||
-          post.frontmatter.date
-      )
+      post.frontmatter.status === 'published' &&
+      Boolean(post.frontmatter.publishedAt)
   )
-  .sort(
-    (a, b) =>
-      getPostTimestamp(b) -
-      getPostTimestamp(a)
-  );
+  .sort((a, b) => {
+    const aTime = new Date(
+      a.frontmatter.publishedAt as string
+    ).getTime();
+
+    const bTime = new Date(
+      b.frontmatter.publishedAt as string
+    ).getTime();
+
+    return bTime - aTime;
+  });
 
 const dateFormatter =
   lang === 'fi'
-    ? new Intl.DateTimeFormat(
-        'fi-FI',
-        {
-          day: 'numeric',
-          month: 'numeric',
-          year: 'numeric',
-        }
-      )
-    : new Intl.DateTimeFormat(
-        'en-GB',
-        {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        }
-      );
+    ? new Intl.DateTimeFormat('fi-FI', {
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+      })
+    : new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
 
 const getDisplayDate = (
-  post: MarkdownPost
+  publishedAt: string
 ) => {
-  const rawDate =
-    post.frontmatter.publishedAt ||
-    post.frontmatter.date;
-
-  if (!rawDate) {
-    return '';
-  }
-
   const datePart =
-    rawDate.slice(0, 10);
+    publishedAt.slice(0, 10);
 
   return dateFormatter.format(
     new Date(
@@ -178,13 +139,6 @@ const getDisplayDate = (
     )
   );
 };
-
-const getDatetimeValue = (
-  post: MarkdownPost
-) =>
-  post.frontmatter.publishedAt ||
-  post.frontmatter.date ||
-  '';
 
 /* =========================================================
    PAGE META
@@ -426,6 +380,9 @@ const personSchema = {
               const localizedPost =
                 post.frontmatter[lang];
 
+              const publishedAt =
+                post.frontmatter.publishedAt as string;
+
               const postNumber =
                 String(
                   posts.length -
@@ -448,15 +405,11 @@ const personSchema = {
                   <p class="post-meta">
                     <time
                       class="post-date"
-                      datetime={
-                        getDatetimeValue(
-                          post
-                        )
-                      }
+                      datetime={publishedAt}
                     >
                       {
                         getDisplayDate(
-                          post
+                          publishedAt
                         )
                       }
                     </time>
