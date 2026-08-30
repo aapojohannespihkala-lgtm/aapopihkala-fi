@@ -1,29 +1,29 @@
 ---
 import '../styles/global.css';
 
-const modules = import.meta.glob('../data/ajankohtaista/*.md', {
-  eager: true,
-});
-
-const posts = Object.entries(modules)
-  .map(([path, post]: any) => ({
-    slug: path.split('/').pop()?.replace('.md', ''),
-    ...post.frontmatter,
-    Content: post.Content,
-  }))
-  .sort((a, b) => b.date.localeCompare(a.date));
-
-const formatDate = (date: string) => {
-  const [year, month, day] = date.split('-');
-  return `${Number(day)}.${Number(month)}.${year}`;
-};
-
-const topicLinks: Record<string, string> = {
-  Kaupunkiluonto: '/kaupunkiluonto',
-  Biodiversiteetti: '/biodiversiteetti',
-  Hulevedet: '/hulevedet',
-  'Maisema-arkkitehtuuri': '/maisema-arkkitehti-espoo',
-};
+const posts = [
+  {
+    number: '01',
+    date: '29.8.2026',
+    topics: [
+      'KAUPUNKILUONTO',
+      'BIODIVERSITEETTI',
+      'MAISEMA-ARKKITEHTUURI',
+    ],
+    location: 'ESPOO',
+    title: 'Lorem ipsum dolor sit amet',
+  },
+  {
+    number: '02',
+    date: '14.8.2026',
+    topics: [
+      'MAISEMA',
+      'KAUPUNKILUONTO',
+    ],
+    location: 'ESPOO',
+    title: 'Consectetur adipiscing elit',
+  },
+];
 
 const personSchema = {
   '@context': 'https://schema.org',
@@ -73,7 +73,7 @@ const personSchema = {
 
     <meta
       name="theme-color"
-      content="#f8f7f2"
+      content="#f3f0e8"
     />
 
     <link
@@ -103,7 +103,6 @@ const personSchema = {
         >
           aapo
         </a>
-
 
         <a
           class="linkedin-link"
@@ -165,7 +164,6 @@ const personSchema = {
               Aapo Pihkala
             </h1>
 
-
             <div class="hero-description">
 
               <p class="hero-primary">
@@ -177,7 +175,6 @@ const personSchema = {
               </p>
 
             </div>
-
 
             <p class="hero-location">
 
@@ -237,123 +234,112 @@ const personSchema = {
       >
 
         {
-          posts.map((post, index) => {
-            const Content = post.Content;
-            const number = String(index + 1).padStart(2, '0');
+          posts.map((post) => (
+            <article class="feed-post">
 
-            return (
-              <article class="feed-post">
+              <header class="post-header">
 
-                <header class="post-header">
+                <div class="post-index-row">
 
-                  <div class="post-index-row">
-
-                    <span class="post-index">
-                      {number}
-                    </span>
-
-                    <span
-                      class="post-index-line"
-                      aria-hidden="true"
-                    ></span>
-
-                  </div>
-
-
-                  <p class="post-meta">
-
-                    <span class="post-date">
-                      {formatDate(post.date)}
-                    </span>
-
-                    <span
-                      class="post-meta-separator"
-                      aria-hidden="true"
-                    >
-                      /
-                    </span>
-
-                    {post.topics.map(
-                      (topic: string, topicIndex: number) => (
-                        <>
-                          {topicIndex > 0 && (
-                            <span
-                              class="post-meta-separator"
-                              aria-hidden="true"
-                            >
-                              /
-                            </span>
-                          )}
-
-                          {
-                            topicLinks[topic]
-                              ? (
-                                <a href={topicLinks[topic]}>
-                                  {topic}
-                                </a>
-                              )
-                              : (
-                                <span>
-                                  {topic}
-                                </span>
-                              )
-                          }
-                        </>
-                      )
-                    )}
-
-                    <span
-                      class="post-meta-separator"
-                      aria-hidden="true"
-                    >
-                      /
-                    </span>
-
-                    <span>
-                      {post.location}
-                    </span>
-
-                  </p>
-
-
-                  <h2 class="post-title">
-
-                    <a href={`/ajankohtaista/${post.slug}`}>
-                      {post.title}
-                    </a>
-
-                  </h2>
-
-                </header>
-
-
-                <div class="post-body">
-                  <Content />
-                </div>
-
-
-                <p class="source">
-
-                  <span class="source-label">
-                    Lähde
+                  <span class="post-index">
+                    {post.number}
                   </span>
 
-                  <a
-                    href={post.sourceUrl}
-                    target="_blank"
-                    rel="noopener"
+                  <span
+                    class="post-index-line"
+                    aria-hidden="true"
+                  ></span>
+
+                </div>
+
+                <p class="post-meta">
+
+                  <span class="post-date">
+                    {post.date}
+                  </span>
+
+                  {
+                    post.topics.map((topic) => (
+                      <>
+                        <span
+                          class="post-meta-separator"
+                          aria-hidden="true"
+                        >
+                          /
+                        </span>
+
+                        <span>
+                          {topic}
+                        </span>
+                      </>
+                    ))
+                  }
+
+                  <span
+                    class="post-meta-separator"
+                    aria-hidden="true"
                   >
-                    {post.source}
-                    <span aria-hidden="true">
-                      ↗
-                    </span>
-                  </a>
+                    /
+                  </span>
+
+                  <span>
+                    {post.location}
+                  </span>
 
                 </p>
 
-              </article>
-            );
-          })
+                <h2 class="post-title">
+                  {post.title}
+                </h2>
+
+              </header>
+
+
+              <div class="post-body">
+
+                <p>
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                  Integer posuere erat a ante venenatis dapibus posuere velit
+                  aliquet. Maecenas faucibus mollis interdum. Donec sed odio
+                  dui. Praesent commodo cursus magna, vel scelerisque nisl
+                  consectetur et.
+                </p>
+
+                <p>
+                  Vestibulum id ligula porta felis euismod semper. Aenean
+                  lacinia bibendum nulla sed consectetur. Nullam quis risus
+                  eget urna mollis ornare vel eu leo. Cras mattis consectetur
+                  purus sit amet fermentum.
+                </p>
+
+                <h3>
+                  Lorem ipsum dolor sit amet
+                </h3>
+
+                <p>
+                  Curabitur blandit tempus porttitor. Etiam porta sem malesuada
+                  magna mollis euismod. Morbi leo risus, porta ac consectetur
+                  ac, vestibulum at eros. Donec ullamcorper nulla non metus
+                  auctor fringilla.
+                </p>
+
+              </div>
+
+
+              <p class="source">
+
+                <span class="source-label">
+                  Lähde
+                </span>
+
+                <span class="source-placeholder">
+                  Lorem ipsum
+                </span>
+
+              </p>
+
+            </article>
+          ))
         }
 
       </section>
