@@ -1,8 +1,8 @@
 :root {
   --page: #ffffff;
 
-  --bar: #f3f0e8;
-  --bar-transparent: rgba(243, 240, 232, 0.93);
+  --bar: #f6f4ee;
+  --bar-transparent: rgba(246, 244, 238, 0.94);
 
   --ink: #1d1f1b;
   --ink-soft: #353832;
@@ -88,7 +88,7 @@ a {
 
   border-bottom:
     1px solid
-    rgba(216, 212, 202, 0.92);
+    rgba(222, 220, 213, 0.62);
 
   -webkit-backdrop-filter:
     blur(10px)
