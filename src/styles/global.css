@@ -10,6 +10,9 @@
   --stone: #747970;
   --stone-light: #a1a69e;
 
+  --header-name: #858a82;
+  --header-control: #747970;
+
   --moss: #59695d;
   --moss-deep: #49584d;
   --lichen: #99a398;
@@ -141,7 +144,7 @@ a {
 
   letter-spacing: -0.027em;
 
-  color: var(--ink);
+  color: var(--header-name);
 
   text-decoration: none;
 
@@ -160,16 +163,76 @@ a {
 
 
 /* =========================================================
-   LINKEDIN
+   HEADER ACTIONS
    ========================================================= */
 
 
-.linkedin-link {
-  width: 21px;
-
-  height: 21px;
-
+.topbar-actions {
   margin-right: 64px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+
+  color: var(--header-control);
+}
+
+
+.language-switch {
+  min-width: 31px;
+
+  height: 24px;
+
+  padding: 0 7px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border:
+    1px solid
+    rgba(116, 121, 112, 0.45);
+
+  border-radius: 4px;
+
+  color: var(--header-control);
+
+  font-size: 0.66rem;
+
+  font-weight: 550;
+
+  line-height: 1;
+
+  letter-spacing: 0.08em;
+
+  text-decoration: none;
+
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+
+.language-switch:hover,
+.language-switch:focus-visible {
+  color: var(--moss-deep);
+
+  border-color:
+    rgba(73, 88, 77, 0.58);
+
+  transform: translateY(-1px);
+}
+
+
+.linkedin-link {
+  width: 22px;
+
+  height: 22px;
 
   display: flex;
 
@@ -177,7 +240,7 @@ a {
 
   justify-content: center;
 
-  color: var(--stone);
+  color: var(--header-control);
 
   text-decoration: none;
 
@@ -195,16 +258,26 @@ a {
   height: 100%;
 
   overflow: visible;
+}
 
+
+.linkedin-frame {
   fill: none;
 
   stroke: currentColor;
 
-  stroke-width: 1.45;
+  stroke-width: 1.8;
 
   stroke-linecap: round;
 
   stroke-linejoin: round;
+}
+
+
+.linkedin-mark {
+  fill: currentColor;
+
+  stroke: none;
 }
 
 
@@ -442,55 +515,6 @@ a {
       rgba(0, 0, 0, 0.38) 90%,
       transparent 100%
     );
-}
-
-
-.topography-label {
-  position: absolute;
-
-  z-index: 2;
-
-  color: rgba(73, 88, 77, 0.54);
-
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    monospace;
-
-  font-size: 0.47rem;
-
-  font-weight: 400;
-
-  line-height: 1;
-
-  letter-spacing: 0.045em;
-
-  opacity: 0.72;
-
-  transform: rotate(-11deg);
-
-  user-select: none;
-}
-
-
-.topography-label-a {
-  top: 64px;
-
-  right: 27px;
-}
-
-
-.topography-label-b {
-  bottom: 55px;
-
-  left: 29px;
-
-  opacity: 0.54;
-
-  transform: rotate(8deg);
 }
 
 
@@ -814,14 +838,14 @@ a:focus-visible {
   }
 
 
-  .main-container {
-    padding:
-      0 24px;
+  .topbar-actions {
+    margin-right: 0;
   }
 
 
-  .linkedin-link {
-    margin-right: 0;
+  .main-container {
+    padding:
+      0 24px;
   }
 
 
@@ -858,20 +882,6 @@ a:focus-visible {
     height: 230px;
   }
 
-
-  .topography-label-a {
-    top: 51px;
-
-    right: 21px;
-  }
-
-
-  .topography-label-b {
-    bottom: 47px;
-
-    left: 23px;
-  }
-
 }
 
 
@@ -895,18 +905,33 @@ a:focus-visible {
   }
 
 
-  .main-container {
+  .topbar-actions {
+    gap: 12px;
+  }
+
+
+  .language-switch {
+    min-width: 30px;
+
+    height: 23px;
+
     padding:
-      0 16px;
+      0 6px;
+
+    font-size: 0.64rem;
   }
 
 
   .linkedin-link {
-    width: 20px;
+    width: 21px;
 
-    height: 20px;
+    height: 21px;
+  }
 
-    margin-right: 0;
+
+  .main-container {
+    padding:
+      0 16px;
   }
 
 
@@ -1023,6 +1048,7 @@ a:focus-visible {
 
 
   .topbar-name,
+  .language-switch,
   .linkedin-link {
     transition: none;
   }
