@@ -120,7 +120,7 @@ a {
     Times,
     serif;
 
-  font-size: 1.28rem;
+  font-size: 1.18rem;
   font-weight: 400;
   line-height: 1;
   letter-spacing: -0.027em;
@@ -148,12 +148,12 @@ a {
 
 
 .topbar-actions {
-  margin-right: 64px;
+  margin-right: 48px;
 
   display: flex;
   align-items: center;
 
-  gap: 16px;
+  gap: 18px;
 
   color: var(--header-control);
 }
@@ -793,12 +793,12 @@ a:focus-visible {
 
 
   .topbar-name {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
 
 
   .topbar-actions {
-    gap: 15px;
+    gap: 16px;
   }
 
 
