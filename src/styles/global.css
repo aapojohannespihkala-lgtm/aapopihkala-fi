@@ -165,6 +165,9 @@ a {
 
 
 .language-switch {
+  position: relative;
+  top: 1px;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -173,7 +176,7 @@ a {
 
   color: var(--header-control);
 
-  font-size: 0.76rem;
+  font-size: 0.70rem;
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0.075em;
@@ -800,7 +803,7 @@ a:focus-visible {
 
 
   .language-switch {
-    font-size: 0.72rem;
+    font-size: 0.70rem;
   }
 
 
