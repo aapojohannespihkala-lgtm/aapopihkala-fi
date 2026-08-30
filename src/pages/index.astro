@@ -1,6 +1,28 @@
 ---
 import '../styles/global.css';
 
+const modules = import.meta.glob('../data/ajankohtaista/*.md', { eager: true });
+
+const posts = Object.entries(modules)
+  .map(([path, post]: any) => ({
+    slug: path.split('/').pop()?.replace('.md', ''),
+    ...post.frontmatter,
+    Content: post.Content,
+  }))
+  .sort((a, b) => b.date.localeCompare(a.date));
+
+const formatDate = (date: string) => {
+  const [year, month, day] = date.split('-');
+  return `${Number(day)}.${Number(month)}.${year}`;
+};
+
+const topicLinks: Record<string, string> = {
+  Kaupunkiluonto: '/kaupunkiluonto',
+  Biodiversiteetti: '/biodiversiteetti',
+  Hulevedet: '/hulevedet',
+  'Maisema-arkkitehtuuri': '/maisema-arkkitehti-espoo',
+};
+
 const personSchema = {
   '@context': 'https://schema.org',
   '@type': 'Person',
@@ -27,12 +49,15 @@ const personSchema = {
 <html lang="fi">
   <head>
     <meta charset="UTF-8" />
+
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1"
     />
 
-    <title>Aapo Pihkala - Maisema-arkkitehti Espoo</title>
+    <title>
+      Aapo Pihkala - Maisema-arkkitehti Espoo
+    </title>
 
     <meta
       name="description"
@@ -140,6 +165,93 @@ const personSchema = {
           </div>
 
         </div>
+
+      </section>
+
+
+      <section
+        class="feed"
+        aria-label="Kirjoitukset"
+      >
+
+        {
+          posts.map((post) => {
+            const Content = post.Content;
+
+            return (
+              <article class="feed-post">
+
+                <header class="post-header">
+
+                  <p class="post-meta">
+
+                    {formatDate(post.date)}
+
+                    {' · '}
+
+                    {post.topics.map(
+                      (topic: string, index: number) => (
+                        <>
+                          {index > 0 && ' · '}
+
+                          {
+                            topicLinks[topic]
+                              ? (
+                                <a href={topicLinks[topic]}>
+                                  {topic}
+                                </a>
+                              )
+                              : topic
+                          }
+                        </>
+                      )
+                    )}
+
+                    {' · '}
+
+                    {post.location}
+
+                  </p>
+
+
+                  <h2 class="post-title">
+
+                    <a href={`/ajankohtaista/${post.slug}`}>
+                      {post.title}
+                    </a>
+
+                  </h2>
+
+                </header>
+
+
+                <div class="post-body">
+                  <Content />
+                </div>
+
+
+                <p class="source">
+
+                  <strong>
+                    Lähde:
+                  </strong>
+
+                  {' '}
+
+                  <a
+                    href={post.sourceUrl}
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    {post.source} ↗
+                  </a>
+
+                </p>
+
+              </article>
+            );
+          })
+        }
 
       </section>
 
@@ -394,11 +506,9 @@ const personSchema = {
             bv - av;
 
           const t =
-            Math.abs(difference) <
-            0.000001
+            Math.abs(difference) < 0.000001
               ? 0.5
-              : (level - av) /
-                difference;
+              : (level - av) / difference;
 
           return {
             x:
@@ -431,8 +541,7 @@ const personSchema = {
 
           dpr =
             Math.min(
-              window.devicePixelRatio ||
-                1,
+              window.devicePixelRatio || 1,
               2
             );
 
@@ -544,7 +653,7 @@ const personSchema = {
 
           const range =
             maxValue -
-              minValue ||
+            minValue ||
             1;
 
 
@@ -572,8 +681,7 @@ const personSchema = {
 
           for (
             let contourIndex = 0;
-            contourIndex <
-            contourCount;
+            contourIndex < contourCount;
             contourIndex++
           ) {
 
@@ -586,13 +694,11 @@ const personSchema = {
                   1
                 )
               ) *
-                0.94;
+              0.94;
 
 
             const isIndexContour =
-              contourIndex %
-                5 ===
-              0;
+              contourIndex % 5 === 0;
 
 
             context.beginPath();
@@ -649,34 +755,34 @@ const personSchema = {
                 const topLeft =
                   values[
                     gy *
-                      (cols + 1) +
-                      gx
+                    (cols + 1) +
+                    gx
                   ];
 
 
                 const topRight =
                   values[
                     gy *
-                      (cols + 1) +
-                      gx +
-                      1
+                    (cols + 1) +
+                    gx +
+                    1
                   ];
 
 
                 const bottomRight =
                   values[
                     (gy + 1) *
-                      (cols + 1) +
-                      gx +
-                      1
+                    (cols + 1) +
+                    gx +
+                    1
                   ];
 
 
                 const bottomLeft =
                   values[
                     (gy + 1) *
-                      (cols + 1) +
-                      gx
+                    (cols + 1) +
+                    gx
                   ];
 
 
@@ -784,8 +890,7 @@ const personSchema = {
 
 
                 if (
-                  points.length ===
-                  2
+                  points.length === 2
                 ) {
 
                   context.moveTo(
@@ -801,8 +906,7 @@ const personSchema = {
 
 
                 if (
-                  points.length ===
-                  4
+                  points.length === 4
                 ) {
 
                   const centre =
@@ -879,7 +983,7 @@ const personSchema = {
 
           if (
             time -
-              lastDraw >
+            lastDraw >
             55
           ) {
 
