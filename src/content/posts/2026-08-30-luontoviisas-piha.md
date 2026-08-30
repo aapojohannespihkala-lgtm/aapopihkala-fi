@@ -1,5 +1,6 @@
 ---
-date: "2026-08-30"
+status: "published"
+publishedAt: "2026-08-30T12:00:00+03:00"
 
 sourceUrl: "https://www.espoo.fi/fi/uutiset/2026/08/riku-lumiaron-luontopiha-nappasi-voiton-espoon-kaupungin-pihakisassa"
 
@@ -16,7 +17,7 @@ fi:
 
   sourceName: "Espoon kaupunki"
   sourceLinkText: "Espoon kaupunki · Luontoviisaat pihat -kilpailun tulokset"
-  sourceTitle: "Riku Lumiaron Luontopiha nappasi voiton Espoon kaupungin pihakisassa"
+  sourceTitle: "Riku Lumiaron Luontipiha nappasi voiton Espoon kaupungin pihakisassa"
 
   perspective:
     - "Luontoviisaus ei mielestäni tarkoita sitä, että pihan suunnittelusta tai maisema-arkkitehtonisesta muodonannosta luovutaan. Parhaimmillaan useat tavoitteet toteutuvat yhtä aikaa: piha tarjoaa elinympäristöjä eri lajeille, luonnon prosesseille annetaan tilaa ja ympäristö on samalla ihmiselle toimiva, viihtyisä ja kaunis."
