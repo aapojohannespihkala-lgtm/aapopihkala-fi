@@ -5,6 +5,21 @@ interface Props {
   lang: 'fi' | 'en';
 }
 
+type PostFrontmatter = {
+  title: string;
+  date: string;
+  lang: 'fi' | 'en';
+  tags: string[];
+  intro: string;
+  source?: string;
+  sourceUrl?: string;
+};
+
+type MarkdownPost = {
+  frontmatter: PostFrontmatter;
+  Content: any;
+};
+
 const { lang } = Astro.props;
 
 const content = {
@@ -30,44 +45,8 @@ const content = {
 
     location: 'Espoo, Suomi',
 
-    posts: [
-      {
-        index: '01',
-        date: '30.8.2026',
-        tags: ['KAUPUNKILUONTO', 'ASEMAKAAVOITUS'],
-        title: 'Lorem ipsum dolor sit amet',
-        paragraphs: [
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-          'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
-        ],
-        sourceLabel: 'Lähde',
-        source: 'Lorem ipsum',
-      },
-      {
-        index: '02',
-        date: '24.8.2026',
-        tags: ['HULEVEDET', 'KAUPUNKISUUNNITTELU'],
-        title: 'Consectetur adipiscing elit',
-        paragraphs: [
-          'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-          'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
-        ],
-        sourceLabel: 'Lähde',
-        source: 'Lorem ipsum',
-      },
-      {
-        index: '03',
-        date: '18.8.2026',
-        tags: ['BIODIVERSITEETTI', 'MAISEMA-ARKKITEHTUURI'],
-        title: 'Sed do eiusmod tempor incididunt',
-        paragraphs: [
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante venenatis dapibus posuere velit aliquet.',
-          'Maecenas faucibus mollis interdum. Donec ullamcorper nulla non metus auctor fringilla.',
-        ],
-        sourceLabel: 'Lähde',
-        source: 'Lorem ipsum',
-      },
-    ],
+    perspectiveLabel: 'Näkökulma',
+    sourceLabel: 'Lähde',
   },
 
   en: {
@@ -92,65 +71,116 @@ const content = {
 
     location: 'Espoo, Finland',
 
-    posts: [
-      {
-        index: '01',
-        date: '30 Aug 2026',
-        tags: ['URBAN NATURE', 'PLANNING'],
-        title: 'Lorem ipsum dolor sit amet',
-        paragraphs: [
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-          'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
-        ],
-        sourceLabel: 'Source',
-        source: 'Lorem ipsum',
-      },
-      {
-        index: '02',
-        date: '24 Aug 2026',
-        tags: ['STORMWATER', 'URBAN PLANNING'],
-        title: 'Consectetur adipiscing elit',
-        paragraphs: [
-          'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-          'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
-        ],
-        sourceLabel: 'Source',
-        source: 'Lorem ipsum',
-      },
-      {
-        index: '03',
-        date: '18 Aug 2026',
-        tags: ['BIODIVERSITY', 'LANDSCAPE ARCHITECTURE'],
-        title: 'Sed do eiusmod tempor incididunt',
-        paragraphs: [
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante venenatis dapibus posuere velit aliquet.',
-          'Maecenas faucibus mollis interdum. Donec ullamcorper nulla non metus auctor fringilla.',
-        ],
-        sourceLabel: 'Source',
-        source: 'Lorem ipsum',
-      },
-    ],
+    perspectiveLabel: 'Perspective',
+    sourceLabel: 'Source',
   },
 } as const;
 
 const t = content[lang];
 
-const homeHref = lang === 'fi' ? '/' : '/en/';
-const canonicalPath = lang === 'fi' ? '/' : '/en/';
-const canonicalUrl = `https://aapopihkala.fi${canonicalPath}`;
+/* =========================================================
+   POSTS
+   ========================================================= */
+
+const postModules = import.meta.glob(
+  '../content/posts/*.md',
+  {
+    eager: true,
+  }
+) as Record<string, MarkdownPost>;
+
+const posts = Object.values(postModules)
+  .filter(
+    (post) =>
+      post.frontmatter.lang === lang
+  )
+  .sort(
+    (a, b) =>
+      new Date(
+        `${b.frontmatter.date}T12:00:00`
+      ).getTime() -
+      new Date(
+        `${a.frontmatter.date}T12:00:00`
+      ).getTime()
+  );
+
+const dateFormatter =
+  lang === 'fi'
+    ? new Intl.DateTimeFormat(
+        'fi-FI',
+        {
+          day: 'numeric',
+          month: 'numeric',
+          year: 'numeric',
+        }
+      )
+    : new Intl.DateTimeFormat(
+        'en-GB',
+        {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }
+      );
+
+const formatDate = (
+  date: string
+) =>
+  dateFormatter.format(
+    new Date(
+      `${date}T12:00:00`
+    )
+  );
+
+/* =========================================================
+   PAGE META
+   ========================================================= */
+
+const homeHref =
+  lang === 'fi'
+    ? '/'
+    : '/en/';
+
+const canonicalPath =
+  lang === 'fi'
+    ? '/'
+    : '/en/';
+
+const canonicalUrl =
+  `https://aapopihkala.fi${canonicalPath}`;
 
 const personSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Person',
-  name: 'Aapo Pihkala',
-  url: canonicalUrl,
+  '@context':
+    'https://schema.org',
+
+  '@type':
+    'Person',
+
+  name:
+    'Aapo Pihkala',
+
+  url:
+    canonicalUrl,
+
   jobTitle:
     lang === 'fi'
       ? 'Maisema-arkkitehti'
       : 'Landscape Architect',
+
+  homeLocation: {
+    '@type':
+      'Place',
+
+    name:
+      lang === 'fi'
+        ? 'Espoo, Suomi'
+        : 'Espoo, Finland',
+  },
+
   sameAs: [
     'https://fi.linkedin.com/in/aapo-pihkala',
   ],
+
   knowsAbout: [
     'Landscape architecture',
     'Urban planning',
@@ -172,7 +202,9 @@ const personSchema = {
       content="width=device-width, initial-scale=1"
     />
 
-    <title>{t.pageTitle}</title>
+    <title>
+      {t.pageTitle}
+    </title>
 
     <meta
       name="description"
@@ -204,7 +236,9 @@ const personSchema = {
 
     <script
       type="application/ld+json"
-      set:html={JSON.stringify(personSchema)}
+      set:html={JSON.stringify(
+        personSchema
+      )}
     />
   </head>
 
@@ -261,7 +295,9 @@ const personSchema = {
       <section class="hero">
         <div class="hero-row">
           <div class="hero-content">
-            <h1>Aapo Pihkala</h1>
+            <h1>
+              Aapo Pihkala
+            </h1>
 
             <div class="hero-description">
               <p class="hero-primary">
@@ -282,6 +318,7 @@ const personSchema = {
                 <path
                   d="M8 17.5C8 17.5 13.5 11.4 13.5 6.8C13.5 3.6 11.05 1.5 8 1.5C4.95 1.5 2.5 3.6 2.5 6.8C2.5 11.4 8 17.5 8 17.5Z"
                 />
+
                 <circle
                   cx="8"
                   cy="6.8"
@@ -289,7 +326,9 @@ const personSchema = {
                 />
               </svg>
 
-              <span>{t.location}</span>
+              <span>
+                {t.location}
+              </span>
             </p>
 
             <a
@@ -298,7 +337,9 @@ const personSchema = {
               target="_blank"
               rel="noopener"
             >
-              <span>{t.linkedinText}</span>
+              <span>
+                {t.linkedinText}
+              </span>
 
               <span
                 class="hero-linkedin-arrow"
@@ -323,65 +364,144 @@ const personSchema = {
 
       <section class="feed">
         {
-          t.posts.map((post) => (
-            <article class="feed-post">
-              <div class="post-index-row">
-                <span class="post-index">
-                  {post.index}
-                </span>
+          posts.map(
+            (
+              post,
+              index
+            ) => {
+              const PostContent =
+                post.Content;
 
-                <span class="post-index-line"></span>
-              </div>
+              const postNumber =
+                String(
+                  index + 1
+                ).padStart(
+                  2,
+                  '0'
+                );
 
-              <p class="post-meta">
-                <span class="post-date">
-                  {post.date}
-                </span>
-
-                {post.tags.map((tag) => (
-                  <>
-                    <span
-                      class="post-meta-separator"
-                      aria-hidden="true"
-                    >
-                      /
+              return (
+                <article class="feed-post">
+                  <div class="post-index-row">
+                    <span class="post-index">
+                      {postNumber}
                     </span>
 
-                    <span>{tag}</span>
-                  </>
-                ))}
-              </p>
+                    <span class="post-index-line"></span>
+                  </div>
 
-              <h2 class="post-title">
-                {post.title}
-              </h2>
+                  <p class="post-meta">
+                    <time
+                      class="post-date"
+                      datetime={post.frontmatter.date}
+                    >
+                      {
+                        formatDate(
+                          post.frontmatter.date
+                        )
+                      }
+                    </time>
 
-              <div class="post-body">
-                {
-                  post.paragraphs.map((paragraph) => (
-                    <p>{paragraph}</p>
-                  ))
-                }
-              </div>
+                    {
+                      post.frontmatter.tags.map(
+                        (tag) => (
+                          <>
+                            <span
+                              class="post-meta-separator"
+                              aria-hidden="true"
+                            >
+                              /
+                            </span>
 
-              <div class="source">
-                <span class="source-label">
-                  {post.sourceLabel}
-                </span>
+                            <span>
+                              {tag}
+                            </span>
+                          </>
+                        )
+                      )
+                    }
+                  </p>
 
-                <span class="source-placeholder">
-                  {post.source}
-                </span>
-              </div>
-            </article>
-          ))
+                  <h2 class="post-title">
+                    {
+                      post.frontmatter.title
+                    }
+                  </h2>
+
+                  <div class="post-news">
+                    <p>
+                      {
+                        post.frontmatter.intro
+                      }
+                    </p>
+                  </div>
+
+                  <p class="post-perspective-label">
+                    {
+                      t.perspectiveLabel
+                    }
+                  </p>
+
+                  <div class="post-body">
+                    <PostContent />
+                  </div>
+
+                  {
+                    post.frontmatter.source && (
+                      <div class="source">
+                        <span class="source-label">
+                          {
+                            t.sourceLabel
+                          }
+                        </span>
+
+                        {
+                          post.frontmatter.sourceUrl ? (
+                            <a
+                              class="source-link"
+                              href={
+                                post.frontmatter.sourceUrl
+                              }
+                              target="_blank"
+                              rel="noopener"
+                            >
+                              <span>
+                                {
+                                  post.frontmatter.source
+                                }
+                              </span>
+
+                              <span
+                                class="source-arrow"
+                                aria-hidden="true"
+                              >
+                                ↗
+                              </span>
+                            </a>
+                          ) : (
+                            <span class="source-placeholder">
+                              {
+                                post.frontmatter.source
+                              }
+                            </span>
+                          )
+                        }
+                      </div>
+                    )
+                  }
+                </article>
+              );
+            }
+          )
         }
       </section>
     </main>
 
     <script>
       const canvases =
-        document.querySelectorAll('[data-topography]');
+        document.querySelectorAll(
+          '[data-topography]'
+        );
 
       const reducedMotion =
         window.matchMedia(
@@ -397,15 +517,20 @@ const personSchema = {
         y,
         phase
       ) => {
-        const nx = x / (cols - 1);
-        const ny = y / (rows - 1);
+        const nx =
+          x / (cols - 1);
+
+        const ny =
+          y / (rows - 1);
 
         const ridgeA =
           Math.sin(
             nx * 7.2 +
             Math.sin(
-              ny * 4.6 + phase * 0.7
-            ) * 0.8 +
+              ny * 4.6 +
+              phase * 0.7
+            ) *
+              0.8 +
             phase
           ) * 0.26;
 
@@ -413,51 +538,76 @@ const personSchema = {
           Math.cos(
             ny * 8.1 -
             Math.sin(
-              nx * 5.1 - phase * 0.45
-            ) * 0.72 -
+              nx * 5.1 -
+              phase * 0.45
+            ) *
+              0.72 -
             phase * 0.68
           ) * 0.22;
 
         const ridgeC =
           Math.sin(
-            (nx + ny) * 9.6 +
+            (nx + ny) *
+              9.6 +
             Math.sin(
               nx * 3.8 +
               ny * 2.4
-            ) * 1.15 +
+            ) *
+              1.15 +
             phase * 0.34
           ) * 0.13;
 
-        const dx1 = nx - 0.34;
-        const dy1 = ny - 0.42;
+        const dx1 =
+          nx - 0.34;
 
-        const dx2 = nx - 0.72;
-        const dy2 = ny - 0.63;
+        const dy1 =
+          ny - 0.42;
 
-        const dx3 = nx - 0.57;
-        const dy3 = ny - 0.22;
+        const dx2 =
+          nx - 0.72;
+
+        const dy2 =
+          ny - 0.63;
+
+        const dx3 =
+          nx - 0.57;
+
+        const dy3 =
+          ny - 0.22;
 
         const hill1 =
           Math.exp(
             -(
-              dx1 * dx1 * 9.5 +
-              dy1 * dy1 * 12
+              dx1 *
+                dx1 *
+                9.5 +
+              dy1 *
+                dy1 *
+                12
             )
           ) * 0.95;
 
         const hill2 =
           Math.exp(
             -(
-              dx2 * dx2 * 15 +
-              dy2 * dy2 * 10
+              dx2 *
+                dx2 *
+                15 +
+              dy2 *
+                dy2 *
+                10
             )
           ) * 0.68;
 
         const basin =
           Math.exp(
             -(
-              dx3 * dx3 * 19 +
-              dy3 * dy3 * 17
+              dx3 *
+                dx3 *
+                19 +
+              dy3 *
+                dy3 *
+                17
             )
           ) * -0.44;
 
@@ -484,10 +634,13 @@ const personSchema = {
         b,
         level
       ) => {
-        const delta = b - a;
+        const delta =
+          b - a;
 
         if (
-          Math.abs(delta) < 0.00001
+          Math.abs(
+            delta
+          ) < 0.00001
         ) {
           return 0.5;
         }
@@ -506,10 +659,12 @@ const personSchema = {
         height
       ) => {
         const cellWidth =
-          width / (cols - 1);
+          width /
+          (cols - 1);
 
         const cellHeight =
-          height / (rows - 1);
+          height /
+          (rows - 1);
 
         ctx.beginPath();
 
@@ -522,7 +677,9 @@ const personSchema = {
           br,
           bl
         ) => {
-          if (edge === 0) {
+          if (
+            edge === 0
+          ) {
             const t =
               interpolate(
                 tl,
@@ -531,12 +688,16 @@ const personSchema = {
               );
 
             return [
-              (x + t) * cellWidth,
-              y * cellHeight,
+              (x + t) *
+                cellWidth,
+              y *
+                cellHeight,
             ];
           }
 
-          if (edge === 1) {
+          if (
+            edge === 1
+          ) {
             const t =
               interpolate(
                 tr,
@@ -545,12 +706,16 @@ const personSchema = {
               );
 
             return [
-              (x + 1) * cellWidth,
-              (y + t) * cellHeight,
+              (x + 1) *
+                cellWidth,
+              (y + t) *
+                cellHeight,
             ];
           }
 
-          if (edge === 2) {
+          if (
+            edge === 2
+          ) {
             const t =
               interpolate(
                 bl,
@@ -559,8 +724,10 @@ const personSchema = {
               );
 
             return [
-              (x + t) * cellWidth,
-              (y + 1) * cellHeight,
+              (x + t) *
+                cellWidth,
+              (y + 1) *
+                cellHeight,
             ];
           }
 
@@ -572,8 +739,10 @@ const personSchema = {
             );
 
           return [
-            x * cellWidth,
-            (y + t) * cellHeight,
+            x *
+              cellWidth,
+            (y + t) *
+              cellHeight,
           ];
         };
 
@@ -632,33 +801,51 @@ const personSchema = {
           ) {
             const tl =
               values[
-                y * cols + x
+                y *
+                  cols +
+                x
               ];
 
             const tr =
               values[
-                y * cols + x + 1
+                y *
+                  cols +
+                x +
+                1
               ];
 
             const br =
               values[
-                (y + 1) * cols +
-                x + 1
+                (y + 1) *
+                  cols +
+                x +
+                1
               ];
 
             const bl =
               values[
-                (y + 1) * cols +
+                (y + 1) *
+                  cols +
                 x
               ];
 
             const code =
-              (tl >= level ? 8 : 0) |
-              (tr >= level ? 4 : 0) |
-              (br >= level ? 2 : 0) |
-              (bl >= level ? 1 : 0);
+              (tl >= level
+                ? 8
+                : 0) |
+              (tr >= level
+                ? 4
+                : 0) |
+              (br >= level
+                ? 2
+                : 0) |
+              (bl >= level
+                ? 1
+                : 0);
 
-            switch (code) {
+            switch (
+              code
+            ) {
               case 1:
               case 14:
                 connect(
@@ -725,7 +912,8 @@ const personSchema = {
                   ) / 4;
 
                 if (
-                  center >= level
+                  center >=
+                  level
                 ) {
                   connect(
                     0,
@@ -813,7 +1001,8 @@ const personSchema = {
                   ) / 4;
 
                 if (
-                  center >= level
+                  center >=
+                  level
                 ) {
                   connect(
                     0,
@@ -873,7 +1062,9 @@ const personSchema = {
         canvas
       ) => {
         const ctx =
-          canvas.getContext('2d');
+          canvas.getContext(
+            '2d'
+          );
 
         if (!ctx) {
           return;
@@ -902,18 +1093,21 @@ const personSchema = {
 
           const dpr =
             Math.min(
-              window.devicePixelRatio || 1,
+              window.devicePixelRatio ||
+                1,
               2
             );
 
           const pixelWidth =
             Math.round(
-              cssWidth * dpr
+              cssWidth *
+                dpr
             );
 
           const pixelHeight =
             Math.round(
-              cssHeight * dpr
+              cssHeight *
+                dpr
             );
 
           if (
@@ -948,11 +1142,13 @@ const personSchema = {
           const phase =
             reducedMotion.matches
               ? 0.7
-              : time * 0.000225;
+              : time *
+                0.000225;
 
           const values =
             new Float32Array(
-              cols * rows
+              cols *
+                rows
             );
 
           let min =
@@ -979,31 +1175,44 @@ const personSchema = {
                 );
 
               values[
-                y * cols + x
+                y *
+                  cols +
+                x
               ] = value;
 
-              if (value < min) {
-                min = value;
+              if (
+                value < min
+              ) {
+                min =
+                  value;
               }
 
-              if (value > max) {
-                max = value;
+              if (
+                value > max
+              ) {
+                max =
+                  value;
               }
             }
           }
 
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
+          ctx.lineCap =
+            'round';
+
+          ctx.lineJoin =
+            'round';
 
           for (
             let i = 1;
-            i <= contourCount;
+            i <=
+            contourCount;
             i += 1
           ) {
             const ratio =
               i /
               (
-                contourCount + 1
+                contourCount +
+                1
               );
 
             const level =
@@ -1053,10 +1262,16 @@ const personSchema = {
           }
 
           if (
-            time - lastFrame >= 55
+            time -
+              lastFrame >=
+            55
           ) {
-            lastFrame = time;
-            draw(time);
+            lastFrame =
+              time;
+
+            draw(
+              time
+            );
           }
 
           frameId =
@@ -1065,22 +1280,23 @@ const personSchema = {
             );
         };
 
-        const restart = () => {
-          cancelAnimationFrame(
-            frameId
-          );
+        const restart =
+          () => {
+            cancelAnimationFrame(
+              frameId
+            );
 
-          if (
-            reducedMotion.matches
-          ) {
-            draw(0);
-          } else {
-            frameId =
-              requestAnimationFrame(
-                animate
-              );
-          }
-        };
+            if (
+              reducedMotion.matches
+            ) {
+              draw(0);
+            } else {
+              frameId =
+                requestAnimationFrame(
+                  animate
+                );
+            }
+          };
 
         const resizeObserver =
           new ResizeObserver(
