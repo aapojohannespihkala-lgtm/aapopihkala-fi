@@ -5,21 +5,25 @@ interface Props {
   lang: 'fi' | 'en';
 }
 
-type PostFrontmatter = {
+type LanguagePost = {
   title: string;
-  date: string;
-  lang: 'fi' | 'en';
   tags: string[];
   intro: string;
-  source?: string;
-  sourceUrl?: string;
-  sourceLinkText?: string;
-  sourceTitle?: string;
+  sourceName: string;
+  sourceLinkText: string;
+  sourceTitle: string;
+  perspective: string[];
+};
+
+type PostFrontmatter = {
+  date: string;
+  sourceUrl: string;
+  fi: LanguagePost;
+  en: LanguagePost;
 };
 
 type MarkdownPost = {
   frontmatter: PostFrontmatter;
-  Content: any;
 };
 
 const { lang } = Astro.props;
@@ -92,10 +96,6 @@ const postModules = import.meta.glob(
 ) as Record<string, MarkdownPost>;
 
 const posts = Object.values(postModules)
-  .filter(
-    (post) =>
-      post.frontmatter.lang === lang
-  )
   .sort(
     (a, b) =>
       new Date(
@@ -371,8 +371,8 @@ const personSchema = {
               post,
               index
             ) => {
-              const PostContent =
-                post.Content;
+              const localizedPost =
+                post.frontmatter[lang];
 
               const postNumber =
                 String(
@@ -395,7 +395,9 @@ const personSchema = {
                   <p class="post-meta">
                     <time
                       class="post-date"
-                      datetime={post.frontmatter.date}
+                      datetime={
+                        post.frontmatter.date
+                      }
                     >
                       {
                         formatDate(
@@ -405,7 +407,7 @@ const personSchema = {
                     </time>
 
                     {
-                      post.frontmatter.tags.map(
+                      localizedPost.tags.map(
                         (tag) => (
                           <>
                             <span
@@ -426,46 +428,41 @@ const personSchema = {
 
                   <h2 class="post-title">
                     {
-                      post.frontmatter.title
+                      localizedPost.title
                     }
                   </h2>
 
                   <div class="post-news">
                     <p>
                       {
-                        post.frontmatter.intro
+                        localizedPost.intro
                       }
                     </p>
 
-                    {
-                      post.frontmatter.sourceUrl &&
-                      post.frontmatter.sourceLinkText && (
-                        <a
-                          class="post-news-link"
-                          href={
-                            post.frontmatter.sourceUrl
-                          }
-                          target="_blank"
-                          rel="noopener"
-                          title={
-                            post.frontmatter.sourceTitle
-                          }
-                        >
-                          <span>
-                            {
-                              post.frontmatter.sourceLinkText
-                            }
-                          </span>
+                    <a
+                      class="post-news-link"
+                      href={
+                        post.frontmatter.sourceUrl
+                      }
+                      target="_blank"
+                      rel="noopener"
+                      title={
+                        localizedPost.sourceTitle
+                      }
+                    >
+                      <span>
+                        {
+                          localizedPost.sourceLinkText
+                        }
+                      </span>
 
-                          <span
-                            class="post-news-link-arrow"
-                            aria-hidden="true"
-                          >
-                            ↗
-                          </span>
-                        </a>
-                      )
-                    }
+                      <span
+                        class="post-news-link-arrow"
+                        aria-hidden="true"
+                      >
+                        ↗
+                      </span>
+                    </a>
                   </div>
 
                   <p class="post-perspective-label">
@@ -475,55 +472,49 @@ const personSchema = {
                   </p>
 
                   <div class="post-body">
-                    <PostContent />
+                    {
+                      localizedPost.perspective.map(
+                        (paragraph) => (
+                          <p>
+                            {paragraph}
+                          </p>
+                        )
+                      )
+                    }
                   </div>
 
-                  {
-                    post.frontmatter.source && (
-                      <div class="source">
-                        <span class="source-label">
-                          {
-                            t.sourceLabel
-                          }
-                        </span>
+                  <div class="source">
+                    <span class="source-label">
+                      {
+                        t.sourceLabel
+                      }
+                    </span>
 
+                    <a
+                      class="source-link"
+                      href={
+                        post.frontmatter.sourceUrl
+                      }
+                      target="_blank"
+                      rel="noopener"
+                      title={
+                        localizedPost.sourceTitle
+                      }
+                    >
+                      <span>
                         {
-                          post.frontmatter.sourceUrl ? (
-                            <a
-                              class="source-link"
-                              href={
-                                post.frontmatter.sourceUrl
-                              }
-                              target="_blank"
-                              rel="noopener"
-                              title={
-                                post.frontmatter.sourceTitle
-                              }
-                            >
-                              <span>
-                                {
-                                  post.frontmatter.source
-                                }
-                              </span>
-
-                              <span
-                                class="source-arrow"
-                                aria-hidden="true"
-                              >
-                                ↗
-                              </span>
-                            </a>
-                          ) : (
-                            <span class="source-placeholder">
-                              {
-                                post.frontmatter.source
-                              }
-                            </span>
-                          )
+                          localizedPost.sourceName
                         }
-                      </div>
-                    )
-                  }
+                      </span>
+
+                      <span
+                        class="source-arrow"
+                        aria-hidden="true"
+                      >
+                        ↗
+                      </span>
+                    </a>
+                  </div>
                 </article>
               );
             }
