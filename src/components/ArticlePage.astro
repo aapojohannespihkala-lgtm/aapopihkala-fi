@@ -5,6 +5,7 @@ import type {
   CollectionEntry,
 } from 'astro:content';
 
+import Analytics from './Analytics.astro';
 import FeedPost from './FeedPost.astro';
 import SiteHeader from './SiteHeader.astro';
 
@@ -13,7 +14,9 @@ import {
   type SiteLanguage,
 } from '../config/site';
 
-import { getPostSlug } from '../utils/posts';
+import {
+  getPostSlug,
+} from '../utils/posts';
 
 interface Props {
   post: CollectionEntry<'posts'>;
@@ -327,11 +330,17 @@ const blogPostingSchema = {
           lang={lang}
           postNumber={postNumber}
           displayDate={displayDate}
-          perspectiveLabel={perspectiveLabel}
-          sourceLabel={sourceLabel}
+          perspectiveLabel={
+            perspectiveLabel
+          }
+          sourceLabel={
+            sourceLabel
+          }
           headingLevel="h1"
         />
       </section>
     </main>
+
+    <Analytics lang={lang} />
   </body>
 </html>
