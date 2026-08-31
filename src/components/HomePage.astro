@@ -12,6 +12,7 @@ type LanguagePost = {
   sourceName: string;
   sourceLinkText: string;
   sourceTitle: string;
+  graphicAlt?: string;
   perspective: string[];
 };
 
@@ -19,6 +20,7 @@ type PostFrontmatter = {
   status: 'draft' | 'published';
   publishedAt: string | null;
   sourceUrl: string;
+  graphic?: string;
   fi: LanguagePost;
   en: LanguagePost;
 };
@@ -522,6 +524,25 @@ const personSchema = {
                       )
                     }
                   </div>
+
+                  {
+                    post.frontmatter.graphic && (
+                      <figure class="post-graphic">
+                        <img
+                          class="post-graphic-image"
+                          src={
+                            post.frontmatter.graphic
+                          }
+                          alt={
+                            localizedPost.graphicAlt ??
+                            ''
+                          }
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </figure>
+                    )
+                  }
 
                   <div class="source">
                     <span class="source-label">
