@@ -1,0 +1,266 @@
+---
+import '../../styles/global.css';
+import MorphingTopography from '../../components/MorphingTopography.astro';
+---
+
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Animation Lab | Aapo Pihkala</title>
+
+    <meta
+      name="description"
+      content="Aapo Pihkalan animaatioiden ja interaktiivisten kokeilujen testialusta."
+    />
+
+    <meta name="robots" content="noindex,nofollow" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+
+  <body>
+    <header class="topbar">
+      <nav class="topbar-inner labbar" aria-label="Lab-navigaatio">
+        <a class="topbar-name" href="/" aria-label="Takaisin etusivulle">
+          aapo
+        </a>
+
+        <span class="labbar-label">animation lab</span>
+      </nav>
+    </header>
+
+    <main class="lab-shell">
+      <header class="lab-intro">
+        <p class="lab-kicker">Testialusta</p>
+
+        <h1>Animation Lab</h1>
+
+        <p class="lab-lead">
+          Pyöriteltävien, muuntuvien ja muiden interaktiivisten animaatioiden kokeilualue.
+          Sivulle voidaan lisätä uusia tutkimuksia rinnakkain ilman, että etusivun toteutusta tarvitsee muuttaa.
+        </p>
+      </header>
+
+      <section class="experiments" aria-label="Animaatiokokeilut">
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">01</p>
+              <h2>Morphing topography</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage">
+            <div class="experiment-viewport">
+              <MorphingTopography />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Muuntuva pistepilvimaasto, jonka korkeuskäyrät päivittyvät pinnan mukana.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · contours · morph
+            </p>
+          </footer>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
+
+<style>
+  .labbar {
+    max-width: 1160px;
+  }
+
+  .labbar-label {
+    color: var(--stone);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.66rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .lab-shell {
+    width: 100%;
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 74px 32px 120px;
+  }
+
+  .lab-intro {
+    max-width: 720px;
+    margin-bottom: 86px;
+  }
+
+  .lab-kicker,
+  .experiment-index {
+    margin: 0 0 14px;
+    color: var(--moss);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.62rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .lab-intro h1 {
+    margin: 0 0 24px;
+    color: var(--ink);
+    font-family:
+      "Times New Roman",
+      Times,
+      serif;
+    font-size: clamp(3.4rem, 8vw, 6.6rem);
+    font-weight: 400;
+    line-height: 0.92;
+    letter-spacing: -0.045em;
+  }
+
+  .lab-lead {
+    max-width: 660px;
+    margin: 0;
+    color: var(--stone);
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  .experiments {
+    display: grid;
+    gap: 84px;
+  }
+
+  .experiment {
+    padding-top: 28px;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .experiment-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 32px;
+    margin-bottom: 28px;
+  }
+
+  .experiment-header h2 {
+    margin: 0;
+    color: var(--ink);
+    font-family:
+      "Times New Roman",
+      Times,
+      serif;
+    font-size: clamp(2.1rem, 4vw, 3.3rem);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .experiment-hint {
+    margin: 0 0 4px;
+    color: var(--stone-light);
+    font-size: 0.72rem;
+    line-height: 1.4;
+    text-align: right;
+  }
+
+  .experiment-stage {
+    position: relative;
+    min-height: 420px;
+    padding: 34px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .experiment-viewport {
+    width: calc(100% - 110px);
+    height: clamp(380px, 50vw, 560px);
+    margin: 15px auto;
+  }
+
+  .experiment-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 32px;
+    padding-top: 18px;
+    color: var(--stone);
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+
+  .experiment-footer p {
+    margin: 0;
+  }
+
+  .experiment-footer p:last-child {
+    color: var(--stone-light);
+    text-align: right;
+  }
+
+  @media (max-width: 700px) {
+    .lab-shell {
+      padding: 56px 16px 80px;
+    }
+
+    .lab-intro {
+      margin-bottom: 64px;
+    }
+
+    .lab-lead {
+      font-size: 0.96rem;
+    }
+
+    .experiment-header,
+    .experiment-footer {
+      display: block;
+    }
+
+    .experiment-hint {
+      margin-top: 14px;
+      text-align: left;
+    }
+
+    .experiment-stage {
+      min-height: 360px;
+      padding: 20px 0;
+    }
+
+    .experiment-viewport {
+      width: calc(100% - 110px);
+      height: 360px;
+    }
+
+    .experiment-footer p + p {
+      margin-top: 8px;
+      text-align: left;
+    }
+  }
+</style>
