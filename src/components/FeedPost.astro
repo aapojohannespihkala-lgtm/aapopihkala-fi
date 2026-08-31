@@ -336,10 +336,11 @@ const displayedSourceLabel =
 
   .post-interactive-graphic {
     position: relative;
-    width: min(calc(100% - 62px), 360px);
+    width: 100%;
     height: clamp(108px, 12vw, 118px);
-    margin-left: 62px;
+    margin-left: 0;
     overflow: hidden;
+    transform: translateX(-25%);
   }
 
   .post-interactive-graphic--waterdrop {
@@ -385,6 +386,12 @@ const displayedSourceLabel =
 
   .post-graphic--interactive + .source {
     margin-top: 8px;
+  }
+
+  @media (max-width: 640px) {
+    .post-interactive-graphic {
+      transform: translateX(-18%);
+    }
   }
 </style>
 
