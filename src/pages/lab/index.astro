@@ -441,9 +441,32 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
   }
 
   .experiment-viewport {
+    --lab-hit-width: min(62%, 560px);
+    position: relative;
     width: calc(100% - 110px);
     height: clamp(380px, 50vw, 560px);
     margin: 15px auto;
+  }
+
+  .experiment-viewport::before,
+  .experiment-viewport::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 20;
+    width: calc((100% - var(--lab-hit-width)) / 2);
+    background: transparent;
+    cursor: default;
+    pointer-events: auto;
+  }
+
+  .experiment-viewport::before {
+    left: 0;
+  }
+
+  .experiment-viewport::after {
+    right: 0;
   }
 
   .experiment-stage--butterfly,
@@ -453,6 +476,7 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
 
   .experiment-viewport--butterfly,
   .experiment-viewport--bee {
+    --lab-hit-width: min(60%, 520px);
     width: min(100%, 900px);
     height: clamp(440px, 52vw, 620px);
     margin: 0 auto;
@@ -463,6 +487,7 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
   }
 
   .experiment-viewport--tree {
+    --lab-hit-width: min(54%, 520px);
     width: min(100%, 980px);
     height: clamp(500px, 58vw, 660px);
     margin: 0 auto;
@@ -473,6 +498,7 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
   }
 
   .experiment-viewport--root-network {
+    --lab-hit-width: min(58%, 520px);
     width: min(100%, 960px);
     height: clamp(480px, 56vw, 640px);
     margin: 0 auto;
@@ -483,6 +509,7 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
   }
 
   .experiment-viewport--waterdrop {
+    --lab-hit-width: min(42%, 360px);
     width: min(100%, 900px);
     height: clamp(440px, 52vw, 600px);
     margin: 0 auto;
@@ -540,6 +567,7 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
     }
 
     .experiment-viewport {
+      --lab-hit-width: 68%;
       width: calc(100% - 110px);
       height: 360px;
     }
@@ -551,6 +579,7 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
 
     .experiment-viewport--butterfly,
     .experiment-viewport--bee {
+      --lab-hit-width: 64%;
       width: 100%;
       height: 390px;
     }
@@ -560,6 +589,7 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
     }
 
     .experiment-viewport--tree {
+      --lab-hit-width: 60%;
       width: 100%;
       height: 470px;
     }
@@ -569,6 +599,7 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
     }
 
     .experiment-viewport--root-network {
+      --lab-hit-width: 62%;
       width: 100%;
       height: 450px;
     }
@@ -578,6 +609,7 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
     }
 
     .experiment-viewport--waterdrop {
+      --lab-hit-width: 48%;
       width: 100%;
       height: 390px;
     }
