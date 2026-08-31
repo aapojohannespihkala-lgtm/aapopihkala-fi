@@ -187,6 +187,14 @@ const {
         specimen.add(new THREE.Points(shellGeometry, shellMaterial))
 
         const updateShape = (timeSeconds) => {
+          const primaryPulse = wantsAnimation ? Math.sin(timeSeconds * 0.34) : 0
+          const secondaryPulse = wantsAnimation ? Math.sin(timeSeconds * 0.21 + 1.35) : 0
+          const tertiaryPulse = wantsAnimation ? Math.cos(timeSeconds * 0.27 - 0.7) : 0
+
+          const stretchY = 1 + 0.105 * primaryPulse + 0.025 * secondaryPulse
+          const stretchX = 1 - 0.065 * primaryPulse + 0.02 * tertiaryPulse
+          const stretchZ = 1 - 0.052 * primaryPulse - 0.018 * secondaryPulse
+
           for (let i = 0; i < pointCount; i += 1) {
             const offset = i * 3
             const baseX = basePositions[offset]
@@ -238,10 +246,22 @@ const {
               : 0
 
             const radialScale = (radius + surfaceOffset) / radius
+            const equatorBulge = wantsAnimation
+              ? 1 + 0.055 * secondaryPulse * equatorMask
+              : 1
+            const upperBias = wantsAnimation
+              ? 1 + 0.045 * tertiaryPulse * Math.max(0, ny)
+              : 1
+            const lowerBias = wantsAnimation
+              ? 1 - 0.035 * tertiaryPulse * Math.max(0, -ny)
+              : 1
 
-            shellPositions[offset] = baseX * radialScale
-            shellPositions[offset + 1] = baseY * radialScale
-            shellPositions[offset + 2] = baseZ * radialScale
+            shellPositions[offset] =
+              baseX * radialScale * stretchX * equatorBulge
+            shellPositions[offset + 1] =
+              baseY * radialScale * stretchY * upperBias * lowerBias
+            shellPositions[offset + 2] =
+              baseZ * radialScale * stretchZ * equatorBulge
           }
 
           shellAttribute.needsUpdate = true
