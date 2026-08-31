@@ -868,6 +868,39 @@ a {
 }
 
 
+
+
+/* =========================================================
+   POST GRAPHIC
+   ========================================================= */
+
+
+.post-graphic {
+  width: 100%;
+  max-width: 640px;
+
+  margin:
+    46px
+    0
+    0;
+}
+
+
+.post-graphic-image {
+  display: block;
+
+  width: 100%;
+  height: auto;
+
+  background: transparent;
+}
+
+
+.post-graphic + .source {
+  margin-top: 32px;
+}
+
+
 /* =========================================================
    SOURCE
    ========================================================= */
@@ -1199,6 +1232,16 @@ a:focus-visible {
 
   .post-body p {
     margin-bottom: 1.48em;
+  }
+
+
+  .post-graphic {
+    margin-top: 38px;
+  }
+
+
+  .post-graphic + .source {
+    margin-top: 28px;
   }
 
 
