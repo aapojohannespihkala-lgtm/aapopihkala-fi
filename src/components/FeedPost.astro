@@ -202,7 +202,7 @@ const displayedSourceLabel =
             aria-label={localizedPost.graphicAlt ?? ''}
           >
             <div class="post-interactive-graphic">
-              <PointButterfly />
+              <PointButterfly class="post-butterfly" />
             </div>
           </figure>
         )
@@ -276,12 +276,13 @@ const displayedSourceLabel =
 
   .post-interactive-graphic {
     width: 100%;
-    height: 300px;
+    aspect-ratio: 1200 / 220;
+    min-height: 96px;
+    max-height: 124px;
+    overflow: hidden;
   }
 
-  @media (max-width: 640px) {
-    .post-interactive-graphic {
-      height: 280px;
-    }
+  .post-interactive-graphic :global(.post-butterfly) {
+    min-height: 0;
   }
 </style>
