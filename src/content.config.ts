@@ -117,6 +117,7 @@ const commonFields = {
     z.enum([
       'butterfly',
       'stormwater',
+      'tree',
     ]).optional(),
 
   metaImage:
