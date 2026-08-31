@@ -426,7 +426,7 @@ a {
   position: relative;
 
   width: 210px;
-  height: 270px;
+  height: 284px;
 
   flex: 0 0 210px;
 
@@ -434,6 +434,7 @@ a {
   align-items: center;
   justify-content: center;
 
+  overflow: visible;
   pointer-events: none;
 }
 
@@ -441,34 +442,44 @@ a {
 .topography-canvas {
   display: block;
 
-  width: 210px;
-  height: 270px;
+  width: 244px;
+  height: 292px;
+
+  max-width: none;
 
   background: transparent;
 
-  opacity: 0.98;
+  opacity: 0.9;
+
+  transform:
+    translate(
+      17px,
+      -1px
+    );
 
   -webkit-mask-image:
     radial-gradient(
-      ellipse 94% 91%
-      at 48% 50%,
+      ellipse 82% 88%
+      at 42% 49%,
       #000 0%,
-      #000 60%,
-      rgba(0, 0, 0, 0.96) 69%,
-      rgba(0, 0, 0, 0.76) 80%,
-      rgba(0, 0, 0, 0.38) 90%,
+      #000 43%,
+      rgba(0, 0, 0, 0.93) 54%,
+      rgba(0, 0, 0, 0.72) 67%,
+      rgba(0, 0, 0, 0.42) 79%,
+      rgba(0, 0, 0, 0.17) 89%,
       transparent 100%
     );
 
   mask-image:
     radial-gradient(
-      ellipse 94% 91%
-      at 48% 50%,
+      ellipse 82% 88%
+      at 42% 49%,
       #000 0%,
-      #000 60%,
-      rgba(0, 0, 0, 0.96) 69%,
-      rgba(0, 0, 0, 0.76) 80%,
-      rgba(0, 0, 0, 0.38) 90%,
+      #000 43%,
+      rgba(0, 0, 0, 0.93) 54%,
+      rgba(0, 0, 0, 0.72) 67%,
+      rgba(0, 0, 0, 0.42) 79%,
+      rgba(0, 0, 0, 0.17) 89%,
       transparent 100%
     );
 }
@@ -953,15 +964,21 @@ a:focus-visible {
 
   .hero-art {
     width: 180px;
-    height: 230px;
+    height: 238px;
 
     flex-basis: 180px;
   }
 
 
   .topography-canvas {
-    width: 180px;
-    height: 230px;
+    width: 208px;
+    height: 248px;
+
+    transform:
+      translate(
+        13px,
+        -1px
+      );
   }
 }
 
