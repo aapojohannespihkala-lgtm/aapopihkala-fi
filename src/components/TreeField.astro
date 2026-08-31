@@ -1,0 +1,457 @@
+---
+interface Props {
+  class?: string
+  autoRotate?: boolean
+  enableZoom?: boolean
+  scale?: number
+  cameraDistance?: number
+}
+
+const {
+  class: className,
+  autoRotate = true,
+  enableZoom = true,
+  scale = 1,
+  cameraDistance = 9.8,
+} = Astro.props
+---
+
+<div
+  class:list={['tree-field', className]}
+  data-tree-field
+  data-auto-rotate={autoRotate ? 'true' : 'false'}
+  data-enable-zoom={enableZoom ? 'true' : 'false'}
+  data-scale={scale}
+  data-camera-distance={cameraDistance}
+  aria-hidden="true"
+>
+  <canvas class="tree-field__canvas" data-tree-field-canvas></canvas>
+</div>
+
+<style>
+  .tree-field {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 320px;
+    overflow: hidden;
+    background: transparent;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .tree-field:active {
+    cursor: grabbing;
+  }
+
+  .tree-field__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    touch-action: none;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const roots = document.querySelectorAll('[data-tree-field]')
+
+    roots.forEach(async (root) => {
+      if (root.dataset.treeFieldInitialized === 'true') return
+      root.dataset.treeFieldInitialized = 'true'
+
+      const canvas = root.querySelector('[data-tree-field-canvas]')
+      if (!canvas) return
+
+      try {
+        const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
+        const { OrbitControls } = await import(
+          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
+        )
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const wantsAutoRotate = root.dataset.autoRotate !== 'false'
+        const wantsZoom = root.dataset.enableZoom !== 'false'
+
+        const requestedScale = Number(root.dataset.scale ?? '1')
+        const requestedCameraDistance = Number(root.dataset.cameraDistance ?? '9.8')
+        const displayScale = Number.isFinite(requestedScale) ? requestedScale : 1
+        const cameraDistance = Number.isFinite(requestedCameraDistance)
+          ? requestedCameraDistance
+          : 9.8
+
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: true,
+          alpha: true,
+        })
+
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6))
+        renderer.setClearColor(0xffffff, 0)
+
+        const scene = new THREE.Scene()
+        const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100)
+        camera.position.set(5.7, 3.45, cameraDistance)
+
+        const specimen = new THREE.Group()
+        specimen.scale.setScalar(displayScale)
+        specimen.rotation.y = -0.22
+        specimen.rotation.x = -0.025
+        scene.add(specimen)
+
+        const canopyGroup = new THREE.Group()
+        const trunkGroup = new THREE.Group()
+        const rootFieldGroup = new THREE.Group()
+        const datumGroup = new THREE.Group()
+        specimen.add(canopyGroup, trunkGroup, rootFieldGroup, datumGroup)
+
+        const controls = new OrbitControls(camera, renderer.domElement)
+        controls.enablePan = false
+        controls.enableZoom = wantsZoom
+        controls.enableDamping = true
+        controls.dampingFactor = 0.055
+        controls.rotateSpeed = 0.5
+        controls.minPolarAngle = Math.PI * 0.22
+        controls.maxPolarAngle = Math.PI * 0.72
+        controls.target.set(0, 1.15, 0)
+        controls.autoRotate = wantsAutoRotate && !reducedMotion
+        controls.autoRotateSpeed = 0.17
+
+        if (wantsZoom) {
+          controls.minDistance = 7.8
+          controls.maxDistance = 12.8
+          controls.zoomSpeed = 0.5
+        } else {
+          const lockedDistance = camera.position.length()
+          controls.minDistance = lockedDistance
+          controls.maxDistance = lockedDistance
+        }
+
+        const outerCanopyMaterial = new THREE.PointsMaterial({
+          color: 0x3c403b,
+          size: 0.024,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.44,
+        })
+
+        const innerCanopyMaterial = new THREE.PointsMaterial({
+          color: 0x5a6159,
+          size: 0.019,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.2,
+        })
+
+        const trunkMaterial = new THREE.PointsMaterial({
+          color: 0x30332f,
+          size: 0.029,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.82,
+        })
+
+        const rootFieldMaterial = new THREE.PointsMaterial({
+          color: 0x555d56,
+          size: 0.019,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.33,
+        })
+
+        const canopyContourMaterial = new THREE.LineBasicMaterial({
+          color: 0x677268,
+          transparent: true,
+          opacity: 0.28,
+        })
+
+        const rootContourMaterial = new THREE.LineBasicMaterial({
+          color: 0x737d74,
+          transparent: true,
+          opacity: 0.2,
+        })
+
+        const datumMaterial = new THREE.LineBasicMaterial({
+          color: 0x8f958e,
+          transparent: true,
+          opacity: 0.13,
+        })
+
+        const crownCenterX = (v) =>
+          -0.04 + 0.09 * Math.sin(v * Math.PI * 2.2 + 0.4)
+
+        const crownCenterZ = (v) =>
+          0.04 * Math.sin(v * Math.PI * 3.1 - 0.6)
+
+        const crownY = (v) => 1.28 + v * 2.0
+
+        const crownRadius = (v, angle) => {
+          const bell = Math.pow(Math.max(0, Math.sin(Math.PI * v)), 0.58)
+          const base = 0.42 + 1.72 * bell
+          const lobes =
+            1 +
+            0.085 * Math.sin(angle * 3 + v * 2.6) +
+            0.055 * Math.cos(angle * 5 - v * 3.1) +
+            0.035 * Math.sin(angle * 2 - v * 5.4)
+          return base * lobes
+        }
+
+        const crownPoint = (v, angle, shellScale = 1) => {
+          const radius = crownRadius(v, angle) * shellScale
+          const depthScale = 0.94 + 0.04 * Math.sin(v * Math.PI)
+          return new THREE.Vector3(
+            crownCenterX(v) + Math.cos(angle) * radius,
+            crownY(v),
+            crownCenterZ(v) + Math.sin(angle) * radius * depthScale
+          )
+        }
+
+        const makeCanopyShell = ({ rows, columns, scale, material, phase = 0 }) => {
+          const positions = []
+
+          for (let row = 0; row <= rows; row += 1) {
+            const v = row / rows
+            const rowOffset = (row % 2) * 0.5
+
+            for (let col = 0; col < columns; col += 1) {
+              const u = (col + rowOffset) / columns
+              const angle = u * Math.PI * 2 + phase
+              const p = crownPoint(v, angle, scale)
+              positions.push(p.x, p.y, p.z)
+            }
+          }
+
+          const geometry = new THREE.BufferGeometry()
+          geometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute(positions, 3)
+          )
+          const points = new THREE.Points(geometry, material)
+          canopyGroup.add(points)
+          return { points, geometry }
+        }
+
+        const canopyShells = [
+          makeCanopyShell({
+            rows: 24,
+            columns: 76,
+            scale: 1,
+            material: outerCanopyMaterial,
+          }),
+          makeCanopyShell({
+            rows: 18,
+            columns: 58,
+            scale: 0.77,
+            material: innerCanopyMaterial,
+            phase: 0.035,
+          }),
+          makeCanopyShell({
+            rows: 13,
+            columns: 44,
+            scale: 0.54,
+            material: innerCanopyMaterial,
+            phase: -0.045,
+          }),
+        ]
+
+        const canopyContours = []
+        ;[0.23, 0.39, 0.55, 0.7, 0.84].forEach((v, index) => {
+          const points = []
+          const steps = 100
+          const inset = 0.96 - index * 0.025
+
+          for (let i = 0; i <= steps; i += 1) {
+            const angle = (i / steps) * Math.PI * 2
+            const p = crownPoint(v, angle, inset)
+            points.push(p)
+          }
+
+          const geometry = new THREE.BufferGeometry().setFromPoints(points)
+          const line = new THREE.LineLoop(geometry, canopyContourMaterial)
+          canopyGroup.add(line)
+          canopyContours.push({ line, geometry })
+        })
+
+        const trunkPositions = []
+        const trunkRows = 68
+        const trunkColumns = 13
+
+        for (let row = 0; row <= trunkRows; row += 1) {
+          const t = row / trunkRows
+          const y = -0.08 + t * 2.14
+          const centerX = 0.018 * Math.sin(t * Math.PI * 2.3)
+          const centerZ = 0.014 * Math.sin(t * Math.PI * 3.2 + 0.7)
+          const radius = THREE.MathUtils.lerp(0.15, 0.052, t)
+          const rowOffset = (row % 2) * 0.5
+
+          for (let col = 0; col < trunkColumns; col += 1) {
+            const angle = ((col + rowOffset) / trunkColumns) * Math.PI * 2
+            trunkPositions.push(
+              centerX + Math.cos(angle) * radius,
+              y,
+              centerZ + Math.sin(angle) * radius * 0.92
+            )
+          }
+        }
+
+        const trunkGeometry = new THREE.BufferGeometry()
+        trunkGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(trunkPositions, 3)
+        )
+        const trunkPoints = new THREE.Points(trunkGeometry, trunkMaterial)
+        trunkGroup.add(trunkPoints)
+
+        const rootBoundary = (angle) =>
+          2.62 *
+          (1 +
+            0.09 * Math.sin(angle * 3 + 0.5) +
+            0.055 * Math.cos(angle * 5 - 0.8) +
+            0.035 * Math.sin(angle * 7 + 0.2))
+
+        const rootSurfaceY = (x, z) => {
+          const rippleA = 0.045 * Math.sin(x * 1.25 + z * 0.35)
+          const rippleB = 0.028 * Math.cos(z * 1.7 - x * 0.28)
+          const centerDip = -0.075 * Math.exp(-(x * x + z * z) * 0.8)
+          return -0.19 + rippleA + rippleB + centerDip
+        }
+
+        const rootFieldPositions = []
+        const spacing = 0.145
+        const xMax = 3.05
+        const zMax = 2.8
+        let rowIndex = 0
+
+        for (let z = -zMax; z <= zMax; z += spacing) {
+          const offset = (rowIndex % 2) * spacing * 0.5
+
+          for (let x = -xMax; x <= xMax; x += spacing) {
+            const px = x + offset
+            const angle = Math.atan2(z / 0.88, px / 1.06)
+            const boundary = rootBoundary(angle)
+            const normalized = Math.sqrt(
+              Math.pow(px / (boundary * 1.06), 2) +
+                Math.pow(z / (boundary * 0.88), 2)
+            )
+
+            if (normalized <= 1) {
+              rootFieldPositions.push(px, rootSurfaceY(px, z), z)
+            }
+          }
+
+          rowIndex += 1
+        }
+
+        const rootFieldGeometry = new THREE.BufferGeometry()
+        rootFieldGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(rootFieldPositions, 3)
+        )
+        const rootFieldPoints = new THREE.Points(rootFieldGeometry, rootFieldMaterial)
+        rootFieldGroup.add(rootFieldPoints)
+
+        const rootContours = []
+        ;[0.34, 0.5, 0.66, 0.82, 0.97].forEach((scaleValue, index) => {
+          const points = []
+          const steps = 110
+
+          for (let i = 0; i <= steps; i += 1) {
+            const angle = (i / steps) * Math.PI * 2
+            const boundary = rootBoundary(angle) * scaleValue
+            const x = Math.cos(angle) * boundary * 1.06
+            const z = Math.sin(angle) * boundary * 0.88
+            points.push(
+              new THREE.Vector3(
+                x,
+                rootSurfaceY(x, z) - 0.006 * index,
+                z
+              )
+            )
+          }
+
+          const geometry = new THREE.BufferGeometry().setFromPoints(points)
+          const line = new THREE.LineLoop(geometry, rootContourMaterial)
+          rootFieldGroup.add(line)
+          rootContours.push({ line, geometry })
+        })
+
+        const datumGeometry = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-3.45, -0.04, 0),
+          new THREE.Vector3(3.45, -0.04, 0),
+        ])
+        const datumLine = new THREE.Line(datumGeometry, datumMaterial)
+        datumGroup.add(datumLine)
+
+        const resize = () => {
+          const rect = root.getBoundingClientRect()
+          const width = Math.max(1, Math.round(rect.width))
+          const height = Math.max(1, Math.round(rect.height))
+          renderer.setSize(width, height, false)
+          camera.aspect = width / height
+          camera.updateProjectionMatrix()
+        }
+
+        const resizeObserver = new ResizeObserver(resize)
+        resizeObserver.observe(root)
+        resize()
+
+        let isVisible = true
+        let isDocumentVisible = !document.hidden
+        let animationFrame = 0
+
+        const intersectionObserver = new IntersectionObserver(
+          (entries) => {
+            isVisible = entries.some((entry) => entry.isIntersecting)
+          },
+          { rootMargin: '160px' }
+        )
+        intersectionObserver.observe(root)
+
+        const handleVisibility = () => {
+          isDocumentVisible = !document.hidden
+        }
+        document.addEventListener('visibilitychange', handleVisibility)
+
+        const animate = () => {
+          animationFrame = requestAnimationFrame(animate)
+          if (!isVisible || !isDocumentVisible) return
+
+          controls.update()
+          renderer.render(scene, camera)
+        }
+
+        animationFrame = requestAnimationFrame(animate)
+
+        const cleanup = () => {
+          cancelAnimationFrame(animationFrame)
+          document.removeEventListener('visibilitychange', handleVisibility)
+          resizeObserver.disconnect()
+          intersectionObserver.disconnect()
+          controls.dispose()
+
+          canopyShells.forEach(({ geometry }) => geometry.dispose())
+          canopyContours.forEach(({ geometry }) => geometry.dispose())
+          rootContours.forEach(({ geometry }) => geometry.dispose())
+          trunkGeometry.dispose()
+          rootFieldGeometry.dispose()
+          datumGeometry.dispose()
+
+          outerCanopyMaterial.dispose()
+          innerCanopyMaterial.dispose()
+          trunkMaterial.dispose()
+          rootFieldMaterial.dispose()
+          canopyContourMaterial.dispose()
+          rootContourMaterial.dispose()
+          datumMaterial.dispose()
+          renderer.dispose()
+        }
+
+        window.addEventListener('pagehide', cleanup, { once: true })
+      } catch (error) {
+        console.error('TreeField failed to initialize:', error)
+      }
+    })
+  })()
+</script>
