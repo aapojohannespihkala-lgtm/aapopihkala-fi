@@ -6,6 +6,9 @@ export const site = {
   linkedinUrl:
     'https://fi.linkedin.com/in/aapo-pihkala',
 
+  analyticsMeasurementId:
+    'G-4K1BDDX69E',
+
   languages: {
     fi: {
       code: 'fi',
