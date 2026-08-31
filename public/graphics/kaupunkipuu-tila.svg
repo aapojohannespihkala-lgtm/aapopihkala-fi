@@ -1,6 +1,6 @@
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 1200 360"
+  viewBox="0 0 1200 400"
   fill="none"
   role="img"
   aria-labelledby="title desc"
@@ -9,16 +9,16 @@
   <title id="title">Kaupunkipuu tarvitsee tilansa</title>
 
   <desc id="desc">
-    Herkkä maisema-arkkitehtoninen kaavio, jossa pitkä kaupunkirakenteen linja
-    väistää olemassa olevaa puuta. Puun ympärillä näkyy hyvin vaaleita,
-    epäsäännöllisiä maasto- ja tilakäyriä.
+    Herkkä maisema-arkkitehtoninen viivapiirros, jossa pitkä kaupunkirakenteen
+    linja väistää olemassa olevaa puuta. Puun ympärillä kulkee vaaleita,
+    epäsäännöllisiä maasto- ja tilaviivoja.
   </desc>
 
   <style>
     .ground {
       fill: none;
-      stroke: #566057;
-      stroke-width: 1.45;
+      stroke: #59635a;
+      stroke-width: 1.35;
       stroke-linecap: round;
       stroke-linejoin: round;
       vector-effect: non-scaling-stroke;
@@ -27,221 +27,524 @@
     .tree {
       fill: none;
       stroke: #59635a;
-      stroke-width: 1.3;
+      stroke-width: 1.2;
       stroke-linecap: round;
       stroke-linejoin: round;
       vector-effect: non-scaling-stroke;
     }
 
-    .contour {
+    .contour-a {
       fill: none;
-      stroke: #c8cec8;
-      stroke-width: 0.72;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      vector-effect: non-scaling-stroke;
-      opacity: 0.68;
-    }
-
-    .contour-soft {
-      fill: none;
-      stroke: #d7dbd7;
-      stroke-width: 0.64;
+      stroke: #cdd2cd;
+      stroke-width: 0.7;
       stroke-linecap: round;
       stroke-linejoin: round;
       vector-effect: non-scaling-stroke;
       opacity: 0.58;
     }
 
-    .subsurface {
+    .contour-b {
+      fill: none;
+      stroke: #d5d9d5;
+      stroke-width: 0.62;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+      opacity: 0.52;
+    }
+
+    .contour-c {
+      fill: none;
+      stroke: #dde0dd;
+      stroke-width: 0.58;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+      opacity: 0.46;
+    }
+
+    .below-a {
       fill: none;
       stroke: #cbd0cb;
-      stroke-width: 0.68;
+      stroke-width: 0.66;
       stroke-linecap: round;
       stroke-linejoin: round;
       vector-effect: non-scaling-stroke;
-      opacity: 0.58;
+      opacity: 0.5;
+    }
+
+    .below-b {
+      fill: none;
+      stroke: #d5d9d5;
+      stroke-width: 0.58;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+      opacity: 0.42;
     }
 
     .datum {
       fill: none;
-      stroke: #8f9990;
-      stroke-width: 0.75;
+      stroke: #899389;
+      stroke-width: 0.76;
       stroke-linecap: round;
       stroke-dasharray: 0.8 10;
       vector-effect: non-scaling-stroke;
-      opacity: 0.58;
+      opacity: 0.52;
     }
   </style>
 
+  <!-- =====================================================
+       YLÄPUOLISET TILAKÄYRÄT
+       ===================================================== -->
+
+  <!--
+    Ulompi viiva on tarkoituksella epäsymmetrinen.
+    Vasemmalla nousu alkaa aikaisemmin, oikealla muoto jatkuu pidemmälle.
+  -->
   <path
-    class="contour-soft"
+    class="contour-c"
     d="
-      M 309 224
-      C 337 213 360 199 379 182
-      C 397 165 415 155 440 148
-      C 469 140 486 126 504 107
-      C 525 84 558 75 594 73
-      C 634 71 664 77 691 89
-      C 719 102 741 112 768 114
-      C 800 116 820 122 842 138
-      C 861 152 875 164 899 169
-      C 923 174 937 185 947 202
-      C 954 214 963 220 981 223
+      M 286 247
+
+      C 320 236
+        347 221
+        369 201
+
+      C 388 184
+        409 177
+        435 169
+
+      C 461 161
+        478 150
+        496 130
+
+      C 516 108
+        549 98
+        584 95
+
+      C 618 92
+        650 96
+        680 108
+
+      C 709 120
+        727 132
+        753 135
+
+      C 782 139
+        804 139
+        824 151
+
+      C 844 163
+        856 178
+        878 183
+
+      C 901 189
+        917 196
+        928 212
+
+      C 939 228
+        950 239
+        973 246
     "
   />
 
+  <!-- toinen käyrä -->
   <path
-    class="contour-soft"
+    class="contour-b"
     d="
-      M 373 224
-      C 391 208 411 200 439 195
-      C 468 190 486 179 502 164
-      C 520 146 541 136 568 133
-      C 597 130 626 133 649 142
-      C 671 150 691 157 716 158
-      C 741 159 760 165 778 177
-      C 796 190 810 199 830 201
-      C 852 204 870 211 882 223
+      M 352 248
+
+      C 375 233
+        394 224
+        419 219
+
+      C 445 214
+        463 203
+        480 187
+
+      C 497 171
+        519 161
+        544 157
+
+      C 570 153
+        596 156
+        620 165
+
+      C 643 174
+        661 183
+        685 185
+
+      C 710 187
+        730 190
+        748 202
+
+      C 765 214
+        779 223
+        798 226
+
+      C 819 230
+        837 237
+        851 247
     "
   />
 
+  <!-- kolmas, lähempänä puuta -->
   <path
-    class="contour"
+    class="contour-a"
     d="
-      M 432 224
-      C 445 210 459 202 480 199
-      C 501 196 516 187 529 176
-      C 545 163 563 157 584 156
-      C 606 155 625 160 641 170
-      C 656 179 672 185 692 186
-      C 711 187 726 192 740 203
-      C 750 211 760 218 773 224
+      M 408 249
+
+      C 425 235
+        442 227
+        462 224
+
+      C 484 221
+        500 213
+        513 201
+
+      C 528 188
+        545 181
+        565 180
+
+      C 585 179
+        603 184
+        618 193
+
+      C 633 202
+        648 208
+        667 209
+
+      C 686 210
+        700 214
+        714 224
+
+      C 726 233
+        738 241
+        750 248
     "
   />
+
+  <!-- hyvin hentoinen neljäs viiva rikkoo rytmiä -->
+  <path
+    class="contour-c"
+    d="
+      M 452 247
+
+      C 466 237
+        479 231
+        495 229
+
+      C 511 227
+        522 220
+        533 211
+
+      C 546 201
+        559 196
+        575 196
+
+      C 590 196
+        604 200
+        616 207
+
+      C 628 214
+        640 219
+        655 220
+
+      C 669 221
+        681 226
+        692 234
+
+      C 699 239
+        705 243
+        713 247
+    "
+  />
+
+  <!-- =====================================================
+       PITKÄ RAKENNELINJA
+       ===================================================== -->
 
   <path
     class="ground"
     d="
-      M 35 226
-      L 323 226
-      C 350 226 365 228 382 237
-      C 406 250 430 256 466 258
-      C 508 260 553 260 598 260
-      C 647 260 694 260 738 259
-      C 776 258 799 253 820 242
-      C 840 232 855 226 882 226
-      L 1165 226
+      M 38 248
+
+      C 132 248
+        218 248
+        307 248
+
+      C 337 248
+        358 249
+        377 257
+
+      C 402 268
+        426 273
+        460 275
+
+      C 497 277
+        533 276
+        571 277
+
+      C 609 278
+        650 278
+        689 277
+
+      C 727 277
+        757 276
+        783 271
+
+      C 808 266
+        824 257
+        844 252
+
+      C 859 248
+        875 248
+        899 248
+
+      C 993 248
+        1081 248
+        1164 248
+    "
+  />
+
+  <!-- =====================================================
+       VERTAILUTASO
+       ===================================================== -->
+
+  <path
+    class="datum"
+    d="
+      M 38 274
+      C 131 274 220 274 349 274
     "
   />
 
   <path
     class="datum"
-    d="M 35 251 L 347 251"
+    d="
+      M 854 274
+      C 965 274 1063 274 1164 274
+    "
   />
 
-  <path
-    class="datum"
-    d="M 857 251 L 1165 251"
-  />
+  <!-- =====================================================
+       PUU
+       ===================================================== -->
 
+  <!--
+    Latvus on epäsymmetrinen eikä perustu toistuviin ympyröihin.
+  -->
   <path
     class="tree"
     d="
-      M 593 184
-      C 598 178 605 177 611 181
-      C 616 176 625 177 629 182
-      C 636 181 642 185 643 192
-      C 649 195 651 202 648 208
-      C 652 214 649 221 643 224
-      C 640 230 631 232 625 228
-      C 620 232 611 232 606 228
-      C 599 231 591 227 590 221
-      C 582 219 579 212 582 206
-      C 579 200 582 193 588 190
-      C 588 187 590 185 593 184
+      M 580 212
+
+      C 583 204
+        590 201
+        596 202
+
+      C 599 195
+        606 190
+        614 193
+
+      C 620 188
+        629 189
+        633 195
+
+      C 641 193
+        648 198
+        648 205
+
+      C 655 208
+        658 215
+        654 221
+
+      C 658 227
+        655 235
+        648 238
+
+      C 646 245
+        637 248
+        630 244
+
+      C 625 249
+        616 250
+        610 245
+
+      C 603 248
+        595 245
+        593 239
+
+      C 585 240
+        579 235
+        580 228
+
+      C 573 224
+        573 217
+        580 212
       Z
     "
   />
 
+  <!-- hieman elävä runko -->
   <path
     class="tree"
     d="
-      M 615 260
-      C 615 249 615 238 615 226
-      C 615 221 615 217 615 213
+      M 616 277
+
+      C 616.3 268
+        615.8 258
+        616.2 249
+
+      C 616.5 242
+        615.9 236
+        616.2 231
+    "
+  />
+
+  <!-- pienet haarat -->
+  <path
+    class="tree"
+    d="
+      M 616 252
+      C 611 247 607 244 602 241
     "
   />
 
   <path
     class="tree"
     d="
-      M 615 230
-      C 611 226 608 223 604 221
+      M 616 250
+      C 620 246 624 243 629 240
+    "
+  />
+
+  <!-- =====================================================
+       MAANALAISET VIIVAT
+       ===================================================== -->
+
+  <path
+    class="below-b"
+    d="
+      M 351 284
+
+      C 390 291
+        423 291
+        455 289
+
+      C 490 286
+        520 285
+        549 288
+
+      C 577 291
+        603 293
+        631 290
+
+      C 662 287
+        690 285
+        721 287
+
+      C 754 290
+        785 288
+        826 282
     "
   />
 
   <path
-    class="tree"
+    class="below-a"
     d="
-      M 615 228
-      C 619 224 622 222 626 220
+      M 375 294
+
+      C 407 300
+        441 302
+        474 299
+
+      C 507 296
+        532 297
+        559 301
+
+      C 586 305
+        611 305
+        638 301
+
+      C 666 297
+        692 297
+        720 299
+
+      C 748 301
+        775 298
+        802 293
     "
   />
 
   <path
-    class="subsurface"
+    class="below-b"
     d="
-      M 353 267
-      C 402 277 446 277 489 273
-      C 529 270 559 269 596 273
-      C 635 277 672 277 707 272
-      C 748 266 787 267 829 265
+      M 424 306
+
+      C 449 312
+        475 313
+        502 310
+
+      C 527 307
+        549 309
+        570 313
+
+      C 592 317
+        614 318
+        635 315
+
+      C 659 311
+        680 308
+        704 311
+
+      C 724 313
+        744 311
+        763 307
     "
   />
 
   <path
-    class="subsurface"
+    class="below-b"
     d="
-      M 376 276
-      C 416 282 451 287 491 283
-      C 530 279 558 279 592 284
-      C 627 289 658 289 694 282
-      C 730 275 763 278 802 272
+      M 459 317
+
+      C 481 322
+        504 322
+        525 319
+
+      C 547 316
+        563 319
+        581 322
+
+      C 601 326
+        620 327
+        641 323
+
+      C 661 319
+        680 318
+        700 320
     "
   />
 
+  <!-- yksi lyhyempi, vapaampi poikkiviiva -->
   <path
-    class="subsurface"
+    class="below-b"
     d="
-      M 431 291
-      C 456 297 485 298 515 295
-      C 545 292 568 293 596 298
-      C 624 303 653 304 678 299
-      C 705 294 727 291 752 291
-    "
-  />
+      M 489 286
 
-  <path
-    class="subsurface"
-    d="
-      M 464 303
-      C 492 308 518 307 543 304
-      C 565 301 583 303 605 307
-      C 628 311 651 312 676 308
-      C 695 305 713 303 731 305
-    "
-  />
+      C 513 290
+        536 293
+        558 291
 
-  <path
-    class="contour-soft"
-    d="
-      M 338 263
-      C 385 269 421 270 461 267
-      C 502 264 535 264 566 268
-      C 600 272 635 271 670 267
-      C 710 262 749 264 793 261
-      C 818 259 837 258 854 256
+      C 581 289
+        603 286
+        626 288
+
+      C 650 290
+        670 294
+        692 292
     "
   />
 </svg>
