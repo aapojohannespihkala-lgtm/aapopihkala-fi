@@ -5,6 +5,7 @@ import PointButterfly from '../../components/PointButterfly.astro';
 import PointTree from '../../components/PointTree.astro';
 import PointBee from '../../components/PointBee.astro';
 import StormwaterCatchment from '../../components/StormwaterCatchment.astro';
+import RootNetwork from '../../components/RootNetwork.astro';
 ---
 
 <!doctype html>
@@ -193,6 +194,35 @@ import StormwaterCatchment from '../../components/StormwaterCatchment.astro';
             </p>
           </footer>
         </article>
+
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">06</p>
+              <h2>Root network</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage experiment-stage--root-network">
+            <div class="experiment-viewport experiment-viewport--root-network">
+              <RootNetwork />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Maanalaista juuriverkostoa tutkiva kolmiulotteinen malli, jossa pääjuuret, hienojuuret, kasvualusta ja kosteuden liike muodostavat yhden järjestelmän.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · roots · soil · moisture pulse
+            </p>
+          </footer>
+        </article>
       </section>
     </main>
   </body>
@@ -348,6 +378,16 @@ import StormwaterCatchment from '../../components/StormwaterCatchment.astro';
     margin: 0 auto;
   }
 
+  .experiment-stage--root-network {
+    min-height: 540px;
+  }
+
+  .experiment-viewport--root-network {
+    width: min(100%, 960px);
+    height: clamp(480px, 56vw, 640px);
+    margin: 0 auto;
+  }
+
   .experiment-footer {
     display: flex;
     justify-content: space-between;
@@ -422,6 +462,15 @@ import StormwaterCatchment from '../../components/StormwaterCatchment.astro';
     .experiment-viewport--tree {
       width: 100%;
       height: 470px;
+    }
+
+    .experiment-stage--root-network {
+      min-height: 450px;
+    }
+
+    .experiment-viewport--root-network {
+      width: 100%;
+      height: 450px;
     }
 
     .experiment-footer p + p {
