@@ -20,7 +20,7 @@ Asenna riippuvuudet:
 
 ```bash
 npm install
-````
+```
 
 Käynnistä kehityspalvelin:
 
