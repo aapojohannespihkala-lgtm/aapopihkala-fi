@@ -7,7 +7,8 @@ import { z } from 'astro/zod';
    ========================================================= */
 
 const languagePost = z.object({
-  title: z.string(),
+  title:
+    z.string(),
 
   tags:
     z.array(
@@ -16,6 +17,12 @@ const languagePost = z.object({
 
   intro:
     z.string(),
+
+  metaDescription:
+    z.string()
+      .min(1)
+      .max(180)
+      .optional(),
 
   graphicAlt:
     z.string()
@@ -105,12 +112,17 @@ const commonFields = {
     z.string()
       .min(1)
       .optional(),
+
+  metaImage:
+    z.string()
+      .min(1)
+      .optional(),
 };
 
 /* =========================================================
    POST SCHEMA
 
-   During migration both formats are accepted:
+   During migration both source formats are accepted:
    - old sourceUrl + localized source fields
    - new sources array
    ========================================================= */
