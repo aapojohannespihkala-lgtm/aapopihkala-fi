@@ -4,6 +4,7 @@ import type {
 } from 'astro:content';
 
 import PointButterfly from './PointButterfly.astro';
+import StormwaterCatchment from './StormwaterCatchment.astro';
 
 interface Props {
   post: CollectionEntry<'posts'>;
@@ -211,20 +212,35 @@ const displayedSourceLabel =
             </div>
           </figure>
         )
-      : post.data.graphic && (
-          <figure class="post-graphic">
-            <img
-              class="post-graphic-image"
-              src={post.data.graphic}
-              alt={
-                localizedPost.graphicAlt ??
-                ''
-              }
-              loading="lazy"
-              decoding="async"
-            />
-          </figure>
-        )
+      : interactiveGraphic === 'stormwater'
+        ? (
+            <figure
+              class="post-graphic post-graphic--interactive"
+              role="img"
+              aria-label={localizedPost.graphicAlt ?? ''}
+            >
+              <div class="post-interactive-graphic post-interactive-graphic--stormwater">
+                <StormwaterCatchment
+                  class="post-stormwater"
+                  enableZoom={false}
+                />
+              </div>
+            </figure>
+          )
+        : post.data.graphic && (
+            <figure class="post-graphic">
+              <img
+                class="post-graphic-image"
+                src={post.data.graphic}
+                alt={
+                  localizedPost.graphicAlt ??
+                  ''
+                }
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+          )
   }
 
   <div class="source">
@@ -255,7 +271,6 @@ const displayedSourceLabel =
               </span>
             </a>
           )
-        )
       }
     </div>
   </div>
@@ -286,11 +301,17 @@ const displayedSourceLabel =
     overflow: hidden;
   }
 
-  .post-interactive-graphic :global(.post-butterfly) {
+  .post-interactive-graphic--stormwater {
+    height: clamp(150px, 18vw, 190px);
+  }
+
+  .post-interactive-graphic :global(.post-butterfly),
+  .post-interactive-graphic :global(.post-stormwater) {
     min-height: 0;
   }
 
-  .post-interactive-graphic :global(.post-butterfly__canvas) {
+  .post-interactive-graphic :global(.post-butterfly__canvas),
+  .post-interactive-graphic :global(.post-stormwater__canvas) {
     touch-action: pan-y;
   }
 
