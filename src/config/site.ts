@@ -9,6 +9,9 @@ export const site = {
   analyticsMeasurementId:
     'G-4K1BDDX69E',
 
+  metaImage:
+    '/graphics/metakuva.png',
+
   languages: {
     fi: {
       code: 'fi',
