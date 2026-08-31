@@ -204,30 +204,35 @@ const {
             const nz = baseZ / radius
             const azimuth = Math.atan2(nz, nx)
             const latitude = Math.asin(THREE.MathUtils.clamp(ny, -1, 1))
-            const equatorMask = Math.pow(Math.max(0, 1 - Math.abs(ny)), 0.72)
-            const broadMask = 0.22 + 0.78 * equatorMask
+            const equatorMask = Math.pow(Math.max(0, 1 - Math.abs(ny)), 0.58)
+            const broadMask = 0.42 + 0.58 * equatorMask
 
             const surfaceOffset = wantsAnimation
               ? broadMask * (
-                  0.022 * Math.sin(
-                    azimuth * 2.1 +
-                    latitude * 1.45 +
-                    timeSeconds * 0.72
+                  0.052 * Math.sin(
+                    azimuth * 2.0 +
+                    latitude * 1.35 +
+                    timeSeconds * 1.02
                   ) +
-                  0.013 * Math.cos(
-                    azimuth * 3.3 -
-                    latitude * 2.0 -
-                    timeSeconds * 0.56
+                  0.031 * Math.cos(
+                    azimuth * 3.2 -
+                    latitude * 2.15 -
+                    timeSeconds * 0.84
                   ) +
-                  0.009 * Math.sin(
-                    azimuth * 5.4 +
-                    latitude * 1.9 +
-                    timeSeconds * 1.12
+                  0.019 * Math.sin(
+                    azimuth * 5.1 +
+                    latitude * 2.0 +
+                    timeSeconds * 1.54
                   ) +
-                  0.006 * Math.cos(
-                    azimuth * 7.2 -
-                    latitude * 2.8 +
-                    timeSeconds * 1.46
+                  0.014 * Math.cos(
+                    azimuth * 7.0 -
+                    latitude * 2.7 +
+                    timeSeconds * 1.92
+                  ) +
+                  0.018 * Math.sin(
+                    latitude * 7.4 +
+                    azimuth * 1.15 -
+                    timeSeconds * 1.38
                   )
                 )
               : 0
