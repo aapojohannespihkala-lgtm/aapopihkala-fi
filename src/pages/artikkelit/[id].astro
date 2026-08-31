@@ -7,6 +7,7 @@ import {
 } from 'astro:content';
 
 import FeedPost from '../../components/FeedPost.astro';
+import { getPostSlug } from '../../utils/posts';
 
 interface Props {
   post: CollectionEntry<'posts'>;
@@ -37,7 +38,7 @@ export async function getStaticPaths() {
   return posts.map(
     (post, index) => ({
       params: {
-        id: post.id,
+        id: getPostSlug(post.id),
       },
 
       props: {
@@ -75,6 +76,9 @@ const publishedAt =
 const localizedPost =
   post.data.fi;
 
+const slug =
+  getPostSlug(post.id);
+
 const dateFormatter =
   new Intl.DateTimeFormat(
     'fi-FI',
@@ -99,10 +103,10 @@ const displayDate =
   );
 
 const canonicalUrl =
-  `https://aapopihkala.fi/artikkelit/${post.id}/`;
+  `https://aapopihkala.fi/artikkelit/${slug}/`;
 
 const englishUrl =
-  `https://aapopihkala.fi/en/articles/${post.id}/`;
+  `https://aapopihkala.fi/en/articles/${slug}/`;
 ---
 
 <!doctype html>
@@ -172,7 +176,7 @@ const englishUrl =
         <div class="topbar-actions">
           <a
             class="language-switch"
-            href={`/en/articles/${post.id}/`}
+            href={`/en/articles/${slug}/`}
             hreflang="en"
             lang="en"
             aria-label="English"
