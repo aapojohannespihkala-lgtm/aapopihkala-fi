@@ -202,7 +202,12 @@ const displayedSourceLabel =
             aria-label={localizedPost.graphicAlt ?? ''}
           >
             <div class="post-interactive-graphic">
-              <PointButterfly class="post-butterfly" />
+              <PointButterfly
+                class="post-butterfly"
+                enableZoom={false}
+                scale={1.35}
+                cameraDistance={7.6}
+              />
             </div>
           </figure>
         )
@@ -271,20 +276,25 @@ const displayedSourceLabel =
   }
 
   .post-graphic--interactive {
-    overflow: hidden;
+    margin-top: 26px;
+    overflow: visible;
   }
 
   .post-interactive-graphic {
     width: 100%;
-    aspect-ratio: 1200 / 220;
-    min-height: 96px;
-    max-height: 124px;
+    height: clamp(108px, 12vw, 118px);
     overflow: hidden;
-    pointer-events: none;
   }
 
   .post-interactive-graphic :global(.post-butterfly) {
     min-height: 0;
-    cursor: default;
+  }
+
+  .post-interactive-graphic :global(.post-butterfly__canvas) {
+    touch-action: pan-y;
+  }
+
+  .post-graphic--interactive + .source {
+    margin-top: 18px;
   }
 </style>
