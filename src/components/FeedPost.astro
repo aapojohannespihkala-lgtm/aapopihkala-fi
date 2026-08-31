@@ -4,6 +4,7 @@ import type {
 } from 'astro:content';
 
 import PointButterfly from './PointButterfly.astro';
+import TreeField from './TreeField.astro';
 import WaterDropMorph from './WaterDropMorph.astro';
 
 interface Props {
@@ -212,6 +213,23 @@ const displayedSourceLabel =
             </div>
           </figure>
         )
+      : interactiveGraphic === 'tree'
+        ? (
+            <figure
+              class="post-graphic post-graphic--interactive"
+              role="img"
+              aria-label={localizedPost.graphicAlt ?? ''}
+            >
+              <div class="post-interactive-graphic">
+                <TreeField
+                  class="post-tree"
+                  enableZoom={false}
+                  scale={0.92}
+                  cameraDistance={10.8}
+                />
+              </div>
+            </figure>
+          )
       : interactiveGraphic === 'stormwater'
         ? (
             <figure
@@ -309,11 +327,13 @@ const displayedSourceLabel =
   }
 
   .post-interactive-graphic :global(.post-butterfly),
+  .post-interactive-graphic :global(.post-tree),
   .post-interactive-graphic :global(.post-waterdrop) {
     min-height: 0;
   }
 
   .post-interactive-graphic :global(.point-butterfly__canvas),
+  .post-interactive-graphic :global(.tree-field__canvas),
   .post-interactive-graphic :global(.water-drop-morph__canvas) {
     touch-action: pan-y;
   }
