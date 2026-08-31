@@ -128,18 +128,13 @@ const metaDescription =
   localizedPost.metaDescription ??
   localizedPost.intro;
 
-const metaImagePath =
-  post.data.metaImage ??
-  post.data.graphic;
-
 const metaImageUrl =
-  metaImagePath
-    ? `${site.url}${metaImagePath}`
-    : undefined;
+  `${site.url}${site.metaImage}`;
 
 const metaImageAlt =
-  localizedPost.graphicAlt ??
-  localizedPost.title;
+  isFinnish
+    ? 'Aapo Pihkala - topografinen viivagrafiikka'
+    : 'Aapo Pihkala - topographic line graphic';
 
 /* =========================================================
    CONTENT LABELS
@@ -210,12 +205,8 @@ const blogPostingSchema = {
   keywords:
     localizedPost.tags,
 
-  ...(metaImageUrl
-    ? {
-        image:
-          metaImageUrl,
-      }
-    : {}),
+  image:
+    metaImageUrl,
 };
 ---
 
@@ -323,46 +314,31 @@ const blogPostingSchema = {
       )
     }
 
-    {
-      metaImageUrl && (
-        <>
-          <meta
-            property="og:image"
-            content={metaImageUrl}
-          />
+    <meta
+      property="og:image"
+      content={metaImageUrl}
+    />
 
-          <meta
-            property="og:image:secure_url"
-            content={metaImageUrl}
-          />
+    <meta
+      property="og:image:secure_url"
+      content={metaImageUrl}
+    />
 
-          <meta
-            property="og:image:alt"
-            content={metaImageAlt}
-          />
+    <meta
+      property="og:image:type"
+      content="image/png"
+    />
 
-          <meta
-            property="og:image:width"
-            content="1200"
-          />
-
-          <meta
-            property="og:image:height"
-            content="630"
-          />
-        </>
-      )
-    }
+    <meta
+      property="og:image:alt"
+      content={metaImageAlt}
+    />
 
     <!-- Twitter / X -->
 
     <meta
       name="twitter:card"
-      content={
-        metaImageUrl
-          ? 'summary_large_image'
-          : 'summary'
-      }
+      content="summary_large_image"
     />
 
     <meta
@@ -375,21 +351,15 @@ const blogPostingSchema = {
       content={metaDescription}
     />
 
-    {
-      metaImageUrl && (
-        <>
-          <meta
-            name="twitter:image"
-            content={metaImageUrl}
-          />
+    <meta
+      name="twitter:image"
+      content={metaImageUrl}
+    />
 
-          <meta
-            name="twitter:image:alt"
-            content={metaImageAlt}
-          />
-        </>
-      )
-    }
+    <meta
+      name="twitter:image:alt"
+      content={metaImageAlt}
+    />
 
     <!-- Structured data -->
 
