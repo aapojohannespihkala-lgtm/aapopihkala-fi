@@ -396,6 +396,11 @@ const personSchema = {
                   '0'
                 );
 
+              const titleHref =
+                lang === 'fi'
+                  ? `/artikkelit/${post.id}/`
+                  : undefined;
+
               return (
                 <FeedPost
                   post={post}
@@ -412,6 +417,7 @@ const personSchema = {
                   sourceLabel={
                     t.sourceLabel
                   }
+                  titleHref={titleHref}
                 />
               );
             }
