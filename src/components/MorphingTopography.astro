@@ -4,6 +4,7 @@ interface Props {
   autoRotate?: boolean;
   morph?: boolean;
   showContours?: boolean;
+  enableZoom?: boolean;
 }
 
 const {
@@ -11,6 +12,7 @@ const {
   autoRotate = true,
   morph = true,
   showContours = true,
+  enableZoom = true,
 } = Astro.props;
 ---
 
@@ -20,6 +22,7 @@ const {
   data-auto-rotate={autoRotate ? 'true' : 'false'}
   data-morph={morph ? 'true' : 'false'}
   data-show-contours={showContours ? 'true' : 'false'}
+  data-enable-zoom={enableZoom ? 'true' : 'false'}
   aria-hidden="true"
 >
   <canvas class="morphing-topography__canvas" data-morphing-topography-canvas></canvas>
@@ -74,6 +77,7 @@ const {
         const wantsAutoRotate = root.dataset.autoRotate !== 'false';
         const wantsMorph = root.dataset.morph !== 'false';
         const wantsContours = root.dataset.showContours !== 'false';
+        const wantsZoom = root.dataset.enableZoom !== 'false';
 
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
@@ -90,18 +94,29 @@ const {
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enablePan = false;
-        controls.enableZoom = true;
-        controls.minDistance = 6.4;
-        controls.maxDistance = 9.0;
-        controls.zoomSpeed = 0.55;
+        controls.enableZoom = wantsZoom;
         controls.enableDamping = true;
         controls.dampingFactor = 0.055;
         controls.rotateSpeed = 0.58;
-        controls.minPolarAngle = Math.PI * 0.22;
-        controls.maxPolarAngle = Math.PI * 0.70;
         controls.target.set(0, 0.12, 0);
         controls.autoRotate = wantsAutoRotate && !reducedMotion;
         controls.autoRotateSpeed = 0.52;
+
+        if (wantsZoom) {
+          controls.minDistance = 6.4;
+          controls.maxDistance = 9.0;
+          controls.zoomSpeed = 0.55;
+        } else {
+          const viewDirection = camera.position
+            .clone()
+            .sub(controls.target)
+            .normalize();
+          camera.position
+            .copy(controls.target)
+            .add(viewDirection.multiplyScalar(6.4));
+          controls.minDistance = 6.4;
+          controls.maxDistance = 6.4;
+        }
 
         const terrainWidth = 3.7;
         const terrainDepth = 2.9;
