@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 
+import Analytics from './Analytics.astro';
 import FeedPost from './FeedPost.astro';
 import SiteHeader from './SiteHeader.astro';
 import Topography from './Topography.astro';
@@ -387,5 +388,7 @@ const personSchema = {
         }
       </section>
     </main>
+
+    <Analytics lang={lang} />
   </body>
 </html>
