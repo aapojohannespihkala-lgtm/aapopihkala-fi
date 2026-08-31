@@ -87,11 +87,11 @@ const {
         renderer.setClearColor(0xffffff, 0);
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-        camera.position.set(5.3, 3.25, 7.6);
+        const camera = new THREE.PerspectiveCamera(37, 1, 0.1, 100);
+        camera.position.set(5.7, 3.35, 9.0);
 
         const specimen = new THREE.Group();
-        specimen.rotation.y = -0.16;
+        specimen.rotation.y = -0.18;
         scene.add(specimen);
 
         const controls = new OrbitControls(camera, renderer.domElement);
@@ -99,63 +99,65 @@ const {
         controls.enableZoom = wantsZoom;
         controls.enableDamping = true;
         controls.dampingFactor = 0.055;
-        controls.rotateSpeed = 0.52;
-        controls.minPolarAngle = Math.PI * 0.22;
-        controls.maxPolarAngle = Math.PI * 0.72;
+        controls.rotateSpeed = 0.5;
+        controls.minPolarAngle = Math.PI * 0.24;
+        controls.maxPolarAngle = Math.PI * 0.70;
         controls.target.set(0, 0.72, 0);
         controls.autoRotate = wantsAutoRotate && !reducedMotion;
-        controls.autoRotateSpeed = 0.25;
+        controls.autoRotateSpeed = 0.22;
 
         if (wantsZoom) {
-          controls.minDistance = 7.1;
-          controls.maxDistance = 11.6;
+          controls.minDistance = 7.7;
+          controls.maxDistance = 12.0;
           controls.zoomSpeed = 0.5;
         }
 
-        const pointMaterial = new THREE.PointsMaterial({
+        const canopyPointMaterial = new THREE.PointsMaterial({
           color: 0x353832,
-          size: 0.026,
+          size: 0.024,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.68,
+          opacity: 0.57,
         });
 
         const trunkPointMaterial = new THREE.PointsMaterial({
           color: 0x30332f,
-          size: 0.032,
+          size: 0.03,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.84,
+          opacity: 0.78,
         });
 
-        const canopyLineMaterial = new THREE.LineBasicMaterial({
-          color: 0x59695d,
+        const rootPointMaterial = new THREE.PointsMaterial({
+          color: 0x596158,
+          size: 0.021,
+          sizeAttenuation: true,
           transparent: true,
-          opacity: 0.58,
+          opacity: 0.42,
         });
 
-        const majorLineMaterial = new THREE.LineBasicMaterial({
+        const branchLineMaterial = new THREE.LineBasicMaterial({
           color: 0x59695d,
           transparent: true,
-          opacity: 0.76,
+          opacity: 0.34,
         });
 
         const rootLineMaterial = new THREE.LineBasicMaterial({
-          color: 0x747970,
+          color: 0x697168,
           transparent: true,
-          opacity: 0.45,
+          opacity: 0.28,
+        });
+
+        const groundLineMaterial = new THREE.LineBasicMaterial({
+          color: 0x9ba098,
+          transparent: true,
+          opacity: 0.2,
         });
 
         const contextLineMaterial = new THREE.LineBasicMaterial({
-          color: 0x747970,
+          color: 0x7c8279,
           transparent: true,
-          opacity: 0.72,
-        });
-
-        const faintLineMaterial = new THREE.LineBasicMaterial({
-          color: 0xa1a69e,
-          transparent: true,
-          opacity: 0.34,
+          opacity: 0.26,
         });
 
         const canopy = new THREE.Group();
@@ -165,63 +167,63 @@ const {
 
         specimen.add(canopy, trunk, rootField, context);
 
-        const makeLine = (points, material, closed = false) => {
+        const hash = (value, salt = 0) => {
+          const x = Math.sin(value * 127.1 + salt * 311.7) * 43758.5453123;
+          return x - Math.floor(x);
+        };
+
+        const makeLine = (points, material) => {
           const geometry = new THREE.BufferGeometry().setFromPoints(points);
-          return closed
-            ? new THREE.LineLoop(geometry, material)
-            : new THREE.Line(geometry, material);
+          return new THREE.Line(geometry, material);
         };
 
-        const canopyWidth = (t) => {
-          const bell = Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.68);
-          const upperShoulder = 0.2 * Math.exp(-((t - 0.68) ** 2) / 0.028);
-          const lowerShoulder = 0.13 * Math.exp(-((t - 0.28) ** 2) / 0.035);
-          return 0.42 + 1.68 * bell + upperShoulder + lowerShoulder;
+        const crownWidth = (t) => {
+          const bell = Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.62);
+          const upper = 0.17 * Math.exp(-((t - 0.68) ** 2) / 0.035);
+          const lower = 0.1 * Math.exp(-((t - 0.27) ** 2) / 0.04);
+          return 0.34 + 1.92 * bell + upper + lower;
         };
 
-        const canopyDepth = (t) => {
-          const bell = Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.82);
-          return 0.34 + 1.12 * bell;
+        const crownDepth = (t) => {
+          const bell = Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.74);
+          return 0.28 + 1.28 * bell;
         };
 
-        const canopyCenterX = (t) =>
-          -0.12 +
-          0.14 * Math.sin(t * 5.1) +
-          0.055 * Math.sin(t * 10.7 + 0.6);
+        const crownCenterX = (t) =>
+          -0.1 +
+          0.12 * Math.sin(t * 4.6 + 0.2) +
+          0.045 * Math.sin(t * 11.2);
 
-        const canopyCenterZ = (t) =>
-          0.04 * Math.sin(t * 6.3 - 0.2);
+        const crownCenterZ = (t) =>
+          0.055 * Math.sin(t * 5.8 - 0.4);
 
-        const canopyY = (t) => 0.92 + t * 2.18;
-
-        const edgeWobble = (angle, t) =>
-          1 +
-          0.055 * Math.sin(angle * 3.0 + t * 5.2) +
-          0.035 * Math.cos(angle * 5.0 - t * 7.4);
+        const crownY = (t) => 0.9 + t * 2.35;
 
         const canopyPositions = [];
-        const canopyLevels = 28;
-        const canopyAngles = 72;
-        const shellFractions = [0.2, 0.42, 0.66, 0.84, 1];
+        const canopyPointCount = 10200;
 
-        for (let yi = 0; yi <= canopyLevels; yi += 1) {
-          const t = yi / canopyLevels;
-          const y = canopyY(t);
+        for (let i = 0; i < canopyPointCount; i += 1) {
+          const tRaw = hash(i + 1, 1);
+          const t = 0.02 + tRaw * 0.96;
+          const angle = hash(i + 1, 2) * Math.PI * 2;
+          const radial = Math.sqrt(hash(i + 1, 3));
+          const irregularity =
+            1 +
+            0.055 * Math.sin(angle * 3.0 + t * 5.4) +
+            0.035 * Math.cos(angle * 5.0 - t * 7.2) +
+            (hash(i + 1, 4) - 0.5) * 0.055;
 
-          for (const shell of shellFractions) {
-            for (let ai = 0; ai < canopyAngles; ai += 1) {
-              const angle = (ai / canopyAngles) * Math.PI * 2;
-              const wobble = edgeWobble(angle, t);
-              const x =
-                canopyCenterX(t) +
-                Math.cos(angle) * canopyWidth(t) * shell * wobble;
-              const z =
-                canopyCenterZ(t) +
-                Math.sin(angle) * canopyDepth(t) * shell * wobble;
+          const x =
+            crownCenterX(t) +
+            Math.cos(angle) * crownWidth(t) * radial * irregularity;
+          const z =
+            crownCenterZ(t) +
+            Math.sin(angle) * crownDepth(t) * radial * irregularity;
+          const y =
+            crownY(t) +
+            (hash(i + 1, 5) - 0.5) * 0.065;
 
-              canopyPositions.push(x, y, z);
-            }
-          }
+          canopyPositions.push(x, y, z);
         }
 
         const canopyGeometry = new THREE.BufferGeometry();
@@ -230,52 +232,24 @@ const {
           new THREE.Float32BufferAttribute(canopyPositions, 3)
         );
 
-        canopy.add(new THREE.Points(canopyGeometry, pointMaterial));
-
-        [0.13, 0.28, 0.44, 0.6, 0.76, 0.9].forEach((t, index) => {
-          const points = [];
-
-          for (let ai = 0; ai <= 96; ai += 1) {
-            const angle = (ai / 96) * Math.PI * 2;
-            const wobble = edgeWobble(angle, t);
-
-            points.push(
-              new THREE.Vector3(
-                canopyCenterX(t) + Math.cos(angle) * canopyWidth(t) * wobble,
-                canopyY(t),
-                canopyCenterZ(t) + Math.sin(angle) * canopyDepth(t) * wobble
-              )
-            );
-          }
-
-          canopy.add(
-            makeLine(
-              points,
-              index === 2 || index === 4
-                ? majorLineMaterial
-                : canopyLineMaterial,
-              true
-            )
-          );
-        });
+        canopy.add(new THREE.Points(canopyGeometry, canopyPointMaterial));
 
         const trunkPositions = [];
         const trunkRows = 72;
-        const trunkSides = 12;
+        const trunkSides = 11;
 
         for (let yi = 0; yi <= trunkRows; yi += 1) {
           const t = yi / trunkRows;
-          const y = -0.62 + t * 2.72;
-          const centerX = 0.025 * Math.sin(t * 3.4);
-          const centerZ = 0.035 * Math.sin(t * 4.1 + 0.5);
+          const y = -0.06 + t * 2.35;
+          const centerX = 0.025 * Math.sin(t * 3.2);
+          const centerZ = 0.028 * Math.sin(t * 4.3 + 0.6);
           const radius =
-            0.135 -
-            0.055 * t +
-            0.035 * Math.exp(-((t - 0.58) ** 2) / 0.08);
+            0.14 -
+            0.06 * t +
+            0.025 * Math.exp(-((t - 0.58) ** 2) / 0.075);
 
           for (let ai = 0; ai < trunkSides; ai += 1) {
             const angle = (ai / trunkSides) * Math.PI * 2;
-
             trunkPositions.push(
               centerX + Math.cos(angle) * radius,
               y,
@@ -292,158 +266,122 @@ const {
 
         trunk.add(new THREE.Points(trunkGeometry, trunkPointMaterial));
 
-        trunk.add(
-          makeLine(
-            [
-              new THREE.Vector3(0, -0.66, 0),
-              new THREE.Vector3(0.02, 2.12, 0),
-            ],
-            majorLineMaterial
-          )
-        );
-
         const branchCurves = [
           [
-            new THREE.Vector3(0, 1.14, 0),
-            new THREE.Vector3(-0.38, 1.46, 0.04),
-            new THREE.Vector3(-1.08, 1.83, 0.1),
+            new THREE.Vector3(0.01, 1.2, 0),
+            new THREE.Vector3(-0.35, 1.5, 0.04),
+            new THREE.Vector3(-0.92, 1.8, 0.08),
           ],
           [
-            new THREE.Vector3(0.02, 1.34, 0.02),
-            new THREE.Vector3(0.42, 1.64, 0.02),
-            new THREE.Vector3(1.18, 1.98, 0.08),
+            new THREE.Vector3(0.02, 1.42, 0.01),
+            new THREE.Vector3(0.36, 1.7, 0.02),
+            new THREE.Vector3(1.02, 2.02, 0.07),
           ],
           [
-            new THREE.Vector3(0, 1.52, 0),
-            new THREE.Vector3(-0.06, 1.82, -0.08),
-            new THREE.Vector3(-0.28, 2.2, -0.24),
+            new THREE.Vector3(0.01, 1.6, 0),
+            new THREE.Vector3(-0.04, 1.9, -0.08),
+            new THREE.Vector3(-0.26, 2.24, -0.2),
+          ],
+          [
+            new THREE.Vector3(0.02, 1.58, 0),
+            new THREE.Vector3(0.08, 1.88, 0.08),
+            new THREE.Vector3(0.34, 2.2, 0.22),
           ],
         ];
 
         branchCurves.forEach((controlPoints) => {
           const curve = new THREE.CatmullRomCurve3(controlPoints);
-          trunk.add(makeLine(curve.getPoints(30), canopyLineMaterial));
+          trunk.add(makeLine(curve.getPoints(30), branchLineMaterial));
         });
 
-        const rootLines = [];
+        const rootGeometry = new THREE.BufferGeometry();
+        const rootPositions = [];
 
         if (wantsRoots) {
-          const rootRings = [
-            { radius: 1.35, y: -0.12, major: true },
-            { radius: 1.85, y: -0.2, major: false },
-            { radius: 2.35, y: -0.28, major: true },
-            { radius: 2.85, y: -0.36, major: false },
-            { radius: 3.35, y: -0.44, major: true },
-          ];
+          const rootPointCount = 8200;
 
-          rootRings.forEach((ring, index) => {
-            const points = [];
+          for (let i = 0; i < rootPointCount; i += 1) {
+            const angle = hash(i + 1, 21) * Math.PI * 2;
+            const radial = Math.sqrt(hash(i + 1, 22));
+            const irregularity =
+              1 +
+              0.085 * Math.sin(angle * 2.1) +
+              0.045 * Math.cos(angle * 5.2) +
+              (hash(i + 1, 23) - 0.5) * 0.06;
 
-            for (let ai = 0; ai <= 104; ai += 1) {
-              const angle = (ai / 104) * Math.PI * 2;
-              const wobble =
-                1 +
-                0.08 * Math.sin(angle * 2.2 + index * 0.8) +
-                0.04 * Math.cos(angle * 5.1 - index * 0.7);
+            const reachX = 3.35 * radial * irregularity;
+            const reachZ = 2.35 * radial * irregularity;
+            const depthPotential = 0.26 + 0.78 * (1 - radial);
+            const depth =
+              0.06 +
+              Math.pow(hash(i + 1, 24), 1.85) * depthPotential;
 
-              points.push(
-                new THREE.Vector3(
-                  Math.cos(angle) * ring.radius * wobble * 1.1,
-                  ring.y,
-                  Math.sin(angle) * ring.radius * wobble * 0.72
-                )
-              );
-            }
+            const x = Math.cos(angle) * reachX;
+            const z = Math.sin(angle) * reachZ;
+            const y =
+              -0.07 -
+              depth +
+              0.055 * Math.sin(angle * 3.0 + radial * 5.0);
 
-            const line = makeLine(
-              points,
-              ring.major ? majorLineMaterial : rootLineMaterial,
-              true
-            );
+            rootPositions.push(x, y, z);
+          }
 
-            rootField.add(line);
-            rootLines.push(line);
-          });
+          rootGeometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute(rootPositions, 3)
+          );
 
-          [-1.18, -0.62, -0.08, 0.54, 1.1, 2.3].forEach((angle) => {
+          rootField.add(new THREE.Points(rootGeometry, rootPointMaterial));
+
+          const rootDirections = [-2.55, -1.6, -0.72, 0.15, 0.92, 1.86, 2.65];
+
+          rootDirections.forEach((angle, index) => {
             const points = [new THREE.Vector3(0, -0.08, 0)];
 
-            for (let i = 1; i <= 22; i += 1) {
-              const f = i / 22;
-              const reach = 3.2 * Math.pow(f, 1.08);
+            for (let step = 1; step <= 26; step += 1) {
+              const f = step / 26;
+              const reach = 3.05 * Math.pow(f, 1.04);
+              const sideWander =
+                0.11 * Math.sin(f * 5.2 + index * 0.9);
+              const x =
+                Math.cos(angle) * reach +
+                Math.cos(angle + Math.PI / 2) * sideWander;
+              const z =
+                Math.sin(angle) * reach * 0.72 +
+                Math.sin(angle + Math.PI / 2) * sideWander * 0.7;
+              const y =
+                -0.09 -
+                0.48 * Math.pow(f, 1.2) +
+                0.05 * Math.sin(f * 4.0 + index);
 
-              points.push(
-                new THREE.Vector3(
-                  Math.cos(angle) * reach + 0.12 * Math.sin(f * 5.2 + angle),
-                  -0.08 - 0.38 * Math.pow(f, 1.16),
-                  Math.sin(angle) * reach * 0.66 + 0.08 * Math.cos(f * 4.4)
-                )
-              );
+              points.push(new THREE.Vector3(x, y, z));
             }
 
-            const line = makeLine(points, rootLineMaterial);
-            rootField.add(line);
-            rootLines.push(line);
+            rootField.add(makeLine(points, rootLineMaterial));
           });
         }
 
-        const groundLine = makeLine(
-          [
-            new THREE.Vector3(-4.5, -0.02, 0),
-            new THREE.Vector3(4.5, -0.02, 0),
-          ],
-          faintLineMaterial
-        );
-
-        context.add(groundLine);
-
-        const makeContextGeometry = (offsetZ = 0) => {
-          const positions = [];
-
-          for (let i = 0; i <= 72; i += 1) {
-            positions.push(0, 0, 0);
-          }
-
-          const geometry = new THREE.BufferGeometry();
-          geometry.setAttribute(
-            'position',
-            new THREE.Float32BufferAttribute(positions, 3)
-          );
-          geometry.userData.offsetZ = offsetZ;
-          return geometry;
-        };
-
-        const contextGeometryA = makeContextGeometry(0);
-        const contextGeometryB = makeContextGeometry(0.28);
-        const contextLineA = new THREE.Line(contextGeometryA, contextLineMaterial);
-        const contextLineB = new THREE.Line(contextGeometryB, faintLineMaterial);
-
-        context.add(contextLineA, contextLineB);
         context.visible = wantsContext;
 
-        const updateContextLine = (geometry, clearance) => {
-          const attr = geometry.getAttribute('position');
-          const offsetZ = geometry.userData.offsetZ || 0;
-          const count = attr.count;
+        const groundLine = makeLine(
+          [
+            new THREE.Vector3(-3.8, -0.02, 0.02),
+            new THREE.Vector3(3.8, -0.02, 0.02),
+          ],
+          groundLineMaterial
+        );
+        context.add(groundLine);
 
-          for (let i = 0; i < count; i += 1) {
-            const f = i / (count - 1);
-            const x = THREE.MathUtils.lerp(-4.4, 4.4, f);
-            const treeInfluence = Math.exp(-(x * x) / 1.65);
-            const z =
-              1.05 +
-              offsetZ +
-              clearance * treeInfluence +
-              0.025 * Math.sin(x * 1.6);
-
-            attr.setXYZ(i, x, -0.58, z);
-          }
-
-          attr.needsUpdate = true;
-        };
-
-        updateContextLine(contextGeometryA, 0.72);
-        updateContextLine(contextGeometryB, 0.5);
+        const setbackCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(-3.8, -0.05, 1.75),
+          new THREE.Vector3(-1.9, -0.05, 1.72),
+          new THREE.Vector3(-1.15, -0.05, 2.08),
+          new THREE.Vector3(0, -0.05, 2.48),
+          new THREE.Vector3(1.15, -0.05, 2.08),
+          new THREE.Vector3(1.9, -0.05, 1.72),
+          new THREE.Vector3(3.8, -0.05, 1.75),
+        ]);
+        context.add(makeLine(setbackCurve.getPoints(64), contextLineMaterial));
 
         const resize = () => {
           const rect = root.getBoundingClientRect();
@@ -485,21 +423,18 @@ const {
           controls.update();
 
           if (!reducedMotion) {
-            const phase = time * 0.00075;
-            const growth = 0.5 + 0.5 * Math.sin(phase);
+            const phase = time * 0.00062;
+            const crownPulse = 0.5 + 0.5 * Math.sin(phase);
+            const rootPulse = 0.5 + 0.5 * Math.sin(phase - 0.75);
 
-            canopy.scale.x = 0.94 + growth * 0.11;
-            canopy.scale.z = 0.95 + growth * 0.08;
-            canopy.position.y = 0.018 * Math.sin(phase * 0.8);
+            canopy.scale.x = 0.985 + crownPulse * 0.035;
+            canopy.scale.z = 0.988 + crownPulse * 0.028;
+            canopy.position.y = 0.012 * Math.sin(phase * 0.85);
 
-            rootField.scale.x = 0.92 + growth * 0.18;
-            rootField.scale.z = 0.92 + growth * 0.15;
+            rootField.scale.x = 0.975 + rootPulse * 0.055;
+            rootField.scale.z = 0.975 + rootPulse * 0.05;
 
-            specimen.rotation.z = -0.018 + 0.018 * Math.sin(phase * 0.55);
-
-            const clearance = THREE.MathUtils.lerp(0.35, 0.9, growth);
-            updateContextLine(contextGeometryA, clearance);
-            updateContextLine(contextGeometryB, clearance * 0.68);
+            specimen.rotation.z = -0.012 + 0.012 * Math.sin(phase * 0.48);
           }
 
           renderer.render(scene, camera);
@@ -518,13 +453,13 @@ const {
             if (child.geometry) child.geometry.dispose();
           });
 
-          pointMaterial.dispose();
+          canopyPointMaterial.dispose();
           trunkPointMaterial.dispose();
-          canopyLineMaterial.dispose();
-          majorLineMaterial.dispose();
+          rootPointMaterial.dispose();
+          branchLineMaterial.dispose();
           rootLineMaterial.dispose();
+          groundLineMaterial.dispose();
           contextLineMaterial.dispose();
-          faintLineMaterial.dispose();
           renderer.dispose();
         };
 
