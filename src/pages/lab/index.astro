@@ -9,6 +9,7 @@ import PointBee from '../../components/PointBee.astro';
 import StormwaterCatchment from '../../components/StormwaterCatchment.astro';
 import RootNetwork from '../../components/RootNetwork.astro';
 import WaterDropMorph from '../../components/WaterDropMorph.astro';
+import RiverFlow from '../../components/RiverFlow.astro';
 ---
 
 <!doctype html>
@@ -313,6 +314,35 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
             </p>
           </footer>
         </article>
+
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">08</p>
+              <h2>River flow</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage experiment-stage--river-flow">
+            <div class="experiment-viewport experiment-viewport--river-flow">
+              <RiverFlow />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Muuntuva pistepilvimaasto, jonka painanteessa virtaa mutkitteleva joki. Vesi liikkuu keskellä uomaa nopeammin ja reunoilla hitaammin.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · terrain · channel · particle flow
+            </p>
+          </footer>
+        </article>
       </section>
     </main>
   </body>
@@ -515,6 +545,17 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
     margin: 0 auto;
   }
 
+  .experiment-stage--river-flow {
+    min-height: 540px;
+  }
+
+  .experiment-viewport--river-flow {
+    --lab-hit-width: min(64%, 600px);
+    width: min(100%, 980px);
+    height: clamp(480px, 56vw, 640px);
+    margin: 0 auto;
+  }
+
   .experiment-footer {
     display: flex;
     justify-content: space-between;
@@ -612,6 +653,16 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
       --lab-hit-width: 48%;
       width: 100%;
       height: 390px;
+    }
+
+    .experiment-stage--river-flow {
+      min-height: 430px;
+    }
+
+    .experiment-viewport--river-flow {
+      --lab-hit-width: 68%;
+      width: 100%;
+      height: 430px;
     }
 
     .experiment-footer p + p {
