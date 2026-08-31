@@ -4,7 +4,7 @@ import '../styles/global.css';
 import Analytics from './Analytics.astro';
 import FeedPost from './FeedPost.astro';
 import SiteHeader from './SiteHeader.astro';
-import Topography from './Topography.astro';
+import MorphingTopography from './MorphingTopography.astro';
 
 import {
   site,
@@ -327,7 +327,9 @@ const personSchema = {
             </a>
           </div>
 
-          <Topography />
+          <div class="hero-art hero-art--interactive">
+            <MorphingTopography />
+          </div>
         </div>
       </section>
 
