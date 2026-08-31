@@ -39,7 +39,7 @@ fi:
 
   metaDescription: "Kööpenhaminan vuoden 2011 rankkasade osoittaa, miksi hulevesien hallinta on taloudellista riskienhallintaa."
 
-  graphicAlt: "Animoitu vesipisara, joka laskeutuu, morphaantuu lammikoksi ja nousee takaisin pisaraksi."
+  graphicAlt: "Animoitu leijuva vesipisara, jonka muoto elää hitaasti pintajännityksen vaikutuksesta."
 
   intro: "Kööpenhaminassa heinäkuun 2011 rankkasade aiheutti yli kuuden miljardin Tanskan kruunun vahingot, noin 800 miljoonaa euroa. Mittakaavan hahmottamiseksi summa on lähes sama kuin Suomen valtion vuoden 2026 määräraha varhaiskasvatukseen, esi- ja perusopetukseen sekä vapaaseen sivistystyöhön. Rankkasateen jälkeen Kööpenhamina ryhtyi kehittämään tulvariskien hallintaa koko kaupungin ja sen valuma-alueiden tasolla."
 
@@ -60,7 +60,7 @@ en:
 
   metaDescription: "Copenhagen's 2011 cloudburst shows why stormwater management is economic risk management."
 
-  graphicAlt: "Animated water drop that descends, morphs into a pond and rises back into a drop."
+  graphicAlt: "Animated floating water drop whose shape slowly shifts under surface tension."
 
   intro: "In Copenhagen, the cloudburst of July 2011 caused more than DKK 6 billion in damage, roughly EUR 800 million. To put the scale in perspective, the amount is almost the same as the Finnish government's 2026 appropriation for early childhood education, pre-primary and basic education, and liberal adult education. After the cloudburst, Copenhagen began developing flood-risk management at the scale of the whole city and its catchment areas."
 
