@@ -39,6 +39,60 @@ if (!publishedAt) {
 
 const Heading =
   headingLevel;
+
+/* =========================================================
+   SOURCES
+
+   Supports both:
+   - old single-source format
+   - new sources array
+   ========================================================= */
+
+const sources =
+  'sources' in post.data
+    ? post.data.sources.map(
+        (source) => ({
+          url:
+            source.url,
+
+          name:
+            source[lang].name,
+
+          linkText:
+            source[lang].linkText,
+
+          title:
+            source[lang].title,
+        })
+      )
+    : [
+        {
+          url:
+            post.data.sourceUrl,
+
+          name:
+            post.data[lang]
+              .sourceName,
+
+          linkText:
+            post.data[lang]
+              .sourceLinkText,
+
+          title:
+            post.data[lang]
+              .sourceTitle,
+        },
+      ];
+
+const primarySource =
+  sources[0];
+
+const displayedSourceLabel =
+  sources.length > 1
+    ? lang === 'fi'
+      ? 'Lähteet'
+      : 'Sources'
+    : sourceLabel;
 ---
 
 <article class="feed-post">
@@ -80,16 +134,16 @@ const Heading =
 
   <Heading class="post-title">
     {
-      titleHref ? (
-        <a
-          class="post-title-link"
-          href={titleHref}
-        >
-          {localizedPost.title}
-        </a>
-      ) : (
-        localizedPost.title
-      )
+      titleHref
+        ? (
+            <a
+              class="post-title-link"
+              href={titleHref}
+            >
+              {localizedPost.title}
+            </a>
+          )
+        : localizedPost.title
     }
   </Heading>
 
@@ -100,13 +154,13 @@ const Heading =
 
     <a
       class="post-news-link"
-      href={post.data.sourceUrl}
+      href={primarySource.url}
       target="_blank"
       rel="noopener"
-      title={localizedPost.sourceTitle}
+      title={primarySource.title}
     >
       <span>
-        {localizedPost.sourceLinkText}
+        {primarySource.linkText}
       </span>
 
       <span
@@ -153,27 +207,35 @@ const Heading =
 
   <div class="source">
     <span class="source-label">
-      {sourceLabel}
+      {displayedSourceLabel}
     </span>
 
-    <a
-      class="source-link"
-      href={post.data.sourceUrl}
-      target="_blank"
-      rel="noopener"
-      title={localizedPost.sourceTitle}
-    >
-      <span>
-        {localizedPost.sourceName}
-      </span>
+    <div class="source-links">
+      {
+        sources.map(
+          (source) => (
+            <a
+              class="source-link"
+              href={source.url}
+              target="_blank"
+              rel="noopener"
+              title={source.title}
+            >
+              <span>
+                {source.name}
+              </span>
 
-      <span
-        class="source-arrow"
-        aria-hidden="true"
-      >
-        ↗
-      </span>
-    </a>
+              <span
+                class="source-arrow"
+                aria-hidden="true"
+              >
+                ↗
+              </span>
+            </a>
+          )
+        )
+      }
+    </div>
   </div>
 </article>
 
@@ -181,5 +243,13 @@ const Heading =
   .post-title-link {
     color: inherit;
     text-decoration: none;
+  }
+
+  .source-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap:
+      8px
+      18px;
   }
 </style>
