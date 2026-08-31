@@ -3,6 +3,8 @@ import type {
   CollectionEntry,
 } from 'astro:content';
 
+import PointButterfly from './PointButterfly.astro';
+
 interface Props {
   post: CollectionEntry<'posts'>;
   lang: 'fi' | 'en';
@@ -39,6 +41,9 @@ if (!publishedAt) {
 
 const Heading =
   headingLevel;
+
+const interactiveGraphic =
+  post.data.interactiveGraphic;
 
 /* =========================================================
    SOURCES
@@ -189,20 +194,32 @@ const displayedSourceLabel =
   </div>
 
   {
-    post.data.graphic && (
-      <figure class="post-graphic">
-        <img
-          class="post-graphic-image"
-          src={post.data.graphic}
-          alt={
-            localizedPost.graphicAlt ??
-            ''
-          }
-          loading="lazy"
-          decoding="async"
-        />
-      </figure>
-    )
+    interactiveGraphic === 'butterfly'
+      ? (
+          <figure
+            class="post-graphic post-graphic--interactive"
+            role="img"
+            aria-label={localizedPost.graphicAlt ?? ''}
+          >
+            <div class="post-interactive-graphic">
+              <PointButterfly />
+            </div>
+          </figure>
+        )
+      : post.data.graphic && (
+          <figure class="post-graphic">
+            <img
+              class="post-graphic-image"
+              src={post.data.graphic}
+              alt={
+                localizedPost.graphicAlt ??
+                ''
+              }
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+        )
   }
 
   <div class="source">
@@ -251,5 +268,20 @@ const displayedSourceLabel =
     gap:
       8px
       18px;
+  }
+
+  .post-graphic--interactive {
+    overflow: hidden;
+  }
+
+  .post-interactive-graphic {
+    width: 100%;
+    height: 300px;
+  }
+
+  @media (max-width: 640px) {
+    .post-interactive-graphic {
+      height: 280px;
+    }
   }
 </style>
