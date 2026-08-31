@@ -645,11 +645,11 @@ a {
 
 
 .post-news {
-  max-width: 680px;
+  max-width: 650px;
 
-  color: var(--ink-soft);
+  color: #30332f;
 
-  font-size: 0.99rem;
+  font-size: 1.01rem;
   font-weight: 400;
   line-height: 1.72;
   letter-spacing: -0.004em;
@@ -721,7 +721,7 @@ a {
   margin:
     48px
     0
-    18px;
+    20px;
 
   color: #8d938b;
 
@@ -744,14 +744,19 @@ a {
 
 
 .post-body {
-  max-width: 680px;
+  max-width: 620px;
 
-  color: #50544e;
+  color: #252723;
 
-  font-size: 0.99rem;
+  font-family:
+    "Times New Roman",
+    Times,
+    serif;
+
+  font-size: 1.16rem;
   font-weight: 400;
-  line-height: 1.72;
-  letter-spacing: -0.004em;
+  line-height: 1.58;
+  letter-spacing: -0.012em;
 }
 
 
@@ -759,7 +764,7 @@ a {
   margin:
     0
     0
-    1.55em;
+    1.42em;
 }
 
 
@@ -770,9 +775,9 @@ a {
 
 .post-body h2 {
   margin:
-    2.65em
+    2.4em
     0
-    0.75em;
+    0.72em;
 
   font-family:
     "Times New Roman",
@@ -790,9 +795,9 @@ a {
 
 .post-body h3 {
   margin:
-    2.25em
+    2.1em
     0
-    0.72em;
+    0.7em;
 
   font-family:
     "Times New Roman",
@@ -813,9 +818,9 @@ a {
 
 
 .source {
-  max-width: 680px;
+  max-width: 620px;
 
-  margin-top: 52px;
+  margin-top: 54px;
   padding-top: 16px;
 
   display: flex;
@@ -1108,7 +1113,7 @@ a:focus-visible {
 
 
   .post-news {
-    font-size: 0.97rem;
+    font-size: 0.98rem;
     line-height: 1.7;
   }
 
@@ -1123,20 +1128,26 @@ a:focus-visible {
     margin:
       42px
       0
-      17px;
+      18px;
 
     font-size: 0.96rem;
   }
 
 
   .post-body {
-    font-size: 0.98rem;
-    line-height: 1.7;
+    font-size: 1.08rem;
+    line-height: 1.6;
+    letter-spacing: -0.008em;
+  }
+
+
+  .post-body p {
+    margin-bottom: 1.38em;
   }
 
 
   .source {
-    margin-top: 44px;
+    margin-top: 46px;
   }
 }
 
