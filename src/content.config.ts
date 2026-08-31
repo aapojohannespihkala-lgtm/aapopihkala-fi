@@ -2,82 +2,244 @@ import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
+/* =========================================================
+   LOCALIZED ARTICLE CONTENT
+   ========================================================= */
+
 const languagePost = z.object({
   title: z.string(),
-  tags: z.array(z.string()).min(1),
-  intro: z.string(),
-  sourceName: z.string(),
-  sourceLinkText: z.string(),
-  sourceTitle: z.string(),
-  graphicAlt: z.string().min(1).optional(),
-  perspective: z.array(z.string()).min(1),
+
+  tags:
+    z.array(
+      z.string()
+    ).min(1),
+
+  intro:
+    z.string(),
+
+  graphicAlt:
+    z.string()
+      .min(1)
+      .optional(),
+
+  perspective:
+    z.array(
+      z.string()
+    ).min(1),
 });
 
-const commonFields = {
-  sourceUrl: z.string().url(),
-  graphic: z.string().min(1).optional(),
-  fi: languagePost,
-  en: languagePost,
+/* =========================================================
+   LEGACY SINGLE SOURCE FORMAT
+   ========================================================= */
+
+const legacyLanguagePost =
+  languagePost.extend({
+    sourceName:
+      z.string(),
+
+    sourceLinkText:
+      z.string(),
+
+    sourceTitle:
+      z.string(),
+  });
+
+const legacySourceFields = {
+  sourceUrl:
+    z.string().url(),
+
+  fi:
+    legacyLanguagePost,
+
+  en:
+    legacyLanguagePost,
 };
 
-const postSchema = z
-  .discriminatedUnion('status', [
+/* =========================================================
+   NEW MULTIPLE SOURCES FORMAT
+   ========================================================= */
+
+const localizedSource =
+  z.object({
+    name:
+      z.string(),
+
+    linkText:
+      z.string(),
+
+    title:
+      z.string(),
+  });
+
+const source =
+  z.object({
+    url:
+      z.string().url(),
+
+    fi:
+      localizedSource,
+
+    en:
+      localizedSource,
+  });
+
+const multipleSourceFields = {
+  sources:
+    z.array(
+      source
+    ).min(1),
+
+  fi:
+    languagePost,
+
+  en:
+    languagePost,
+};
+
+/* =========================================================
+   COMMON FIELDS
+   ========================================================= */
+
+const commonFields = {
+  graphic:
+    z.string()
+      .min(1)
+      .optional(),
+};
+
+/* =========================================================
+   POST SCHEMA
+
+   During migration both formats are accepted:
+   - old sourceUrl + localized source fields
+   - new sources array
+   ========================================================= */
+
+const postSchema =
+  z.union([
     z.object({
-      status: z.literal('published'),
-      publishedAt: z
-        .string()
-        .datetime({
-          offset: true,
-        }),
+      status:
+        z.literal(
+          'published'
+        ),
+
+      publishedAt:
+        z.string()
+          .datetime({
+            offset: true,
+          }),
+
       ...commonFields,
+      ...legacySourceFields,
     }),
 
     z.object({
-      status: z.literal('draft'),
-      publishedAt: z.null(),
+      status:
+        z.literal(
+          'draft'
+        ),
+
+      publishedAt:
+        z.null(),
+
       ...commonFields,
+      ...legacySourceFields,
+    }),
+
+    z.object({
+      status:
+        z.literal(
+          'published'
+        ),
+
+      publishedAt:
+        z.string()
+          .datetime({
+            offset: true,
+          }),
+
+      ...commonFields,
+      ...multipleSourceFields,
+    }),
+
+    z.object({
+      status:
+        z.literal(
+          'draft'
+        ),
+
+      publishedAt:
+        z.null(),
+
+      ...commonFields,
+      ...multipleSourceFields,
     }),
   ])
-  .superRefine(
-    (post, context) => {
-      if (!post.graphic) {
-        return;
+    .superRefine(
+      (
+        post,
+        context
+      ) => {
+        if (!post.graphic) {
+          return;
+        }
+
+        if (
+          !post.fi.graphicAlt
+        ) {
+          context.addIssue({
+            code:
+              z.ZodIssueCode
+                .custom,
+
+            path: [
+              'fi',
+              'graphicAlt',
+            ],
+
+            message:
+              'graphicAlt is required when graphic is set',
+          });
+        }
+
+        if (
+          !post.en.graphicAlt
+        ) {
+          context.addIssue({
+            code:
+              z.ZodIssueCode
+                .custom,
+
+            path: [
+              'en',
+              'graphicAlt',
+            ],
+
+            message:
+              'graphicAlt is required when graphic is set',
+          });
+        }
       }
+    );
 
-      if (!post.fi.graphicAlt) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [
-            'fi',
-            'graphicAlt',
-          ],
-          message:
-            'graphicAlt is required when graphic is set',
-        });
-      }
+/* =========================================================
+   COLLECTION
+   ========================================================= */
 
-      if (!post.en.graphicAlt) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [
-            'en',
-            'graphicAlt',
-          ],
-          message:
-            'graphicAlt is required when graphic is set',
-        });
-      }
-    }
-  );
+const posts =
+  defineCollection({
+    loader:
+      glob({
+        pattern:
+          '*.md',
 
-const posts = defineCollection({
-  loader: glob({
-    pattern: '*.md',
-    base: './src/content/posts',
-  }),
+        base:
+          './src/content/posts',
+      }),
 
-  schema: postSchema,
-});
+    schema:
+      postSchema,
+  });
 
 export const collections = {
   posts,
