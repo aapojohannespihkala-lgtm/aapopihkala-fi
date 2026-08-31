@@ -1,6 +1,7 @@
 ---
 status: "published"
 publishedAt: "2026-08-31T12:00:00+03:00"
+interactiveGraphic: "stormwater"
 
 sources:
   - url: "https://climate-adapt.eea.europa.eu/en/metadata/case-studies/the-economics-of-managing-heavy-rains-and-stormwater-in-copenhagen-2013-the-cloudburst-management-plan"
@@ -38,6 +39,8 @@ fi:
 
   metaDescription: "Kööpenhaminan vuoden 2011 rankkasade osoittaa, miksi hulevesien hallinta on taloudellista riskienhallintaa."
 
+  graphicAlt: "Animoitu pistepilvimäinen valuma-alue, jossa sadevesi virtaa maaston painanteisiin, viivästyy ja jatkaa hallittua ylivuotoreittiä."
+
   intro: "Kööpenhaminassa heinäkuun 2011 rankkasade aiheutti yli kuuden miljardin Tanskan kruunun vahingot, noin 800 miljoonaa euroa. Mittakaavan hahmottamiseksi summa on lähes sama kuin Suomen valtion vuoden 2026 määräraha varhaiskasvatukseen, esi- ja perusopetukseen sekä vapaaseen sivistystyöhön. Rankkasateen jälkeen Kööpenhamina ryhtyi kehittämään tulvariskien hallintaa koko kaupungin ja sen valuma-alueiden tasolla."
 
   perspective:
@@ -56,6 +59,8 @@ en:
     - urban planning
 
   metaDescription: "Copenhagen's 2011 cloudburst shows why stormwater management is economic risk management."
+
+  graphicAlt: "Animated point-cloud catchment where rainfall follows the terrain into a retention basin and continues along a controlled overflow route."
 
   intro: "In Copenhagen, the cloudburst of July 2011 caused more than DKK 6 billion in damage, roughly EUR 800 million. To put the scale in perspective, the amount is almost the same as the Finnish government's 2026 appropriation for early childhood education, pre-primary and basic education, and liberal adult education. After the cloudburst, Copenhagen began developing flood-risk management at the scale of the whole city and its catchment areas."
 
