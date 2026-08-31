@@ -140,6 +140,49 @@ const {
           () => new Float32Array(columns + 1)
         );
 
+        const baseHalfWidth = 2.68;
+        const baseHalfDepth = 1.58;
+        const baseColumns = 94;
+        const baseRows = 66;
+        const basePositions = [];
+
+        const baseBoundary = (angle) =>
+          0.91 +
+          0.055 * Math.sin(angle * 2.15 + 0.4) +
+          0.035 * Math.sin(angle * 4.6 - 0.9) +
+          0.022 * Math.cos(angle * 7.7 + 0.65) +
+          0.012 * Math.sin(angle * 12.2 - 0.25);
+
+        for (let row = 0; row <= baseRows; row += 1) {
+          const z = THREE.MathUtils.lerp(-baseHalfDepth, baseHalfDepth, row / baseRows);
+
+          for (let column = 0; column <= baseColumns; column += 1) {
+            const x = THREE.MathUtils.lerp(-baseHalfWidth, baseHalfWidth, column / baseColumns);
+            const sx = x / baseHalfWidth;
+            const sz = z / baseHalfDepth;
+            const angle = Math.atan2(sz, sx);
+            const radius = Math.sqrt(sx * sx + sz * sz);
+
+            if (radius > baseBoundary(angle)) continue;
+
+            basePositions.push(x, -0.31, z);
+          }
+        }
+
+        const baseGeometry = new THREE.BufferGeometry();
+        baseGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(basePositions, 3)
+        );
+        const baseMaterial = new THREE.PointsMaterial({
+          color: 0x657168,
+          size: 0.017,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.24,
+        });
+        waterGroup.add(new THREE.Points(baseGeometry, baseMaterial));
+
         const centerline = (x, phase) =>
           0.06 +
           0.3 * Math.sin(x * 1.08 + 0.42) +
@@ -151,6 +194,14 @@ const {
           0.105 * Math.sin(x * 1.42 - 0.52) +
           0.052 * Math.cos(x * 2.65 + 0.38) +
           0.022 * Math.sin(phase * 0.27 + x * 0.86);
+
+        const bankRaggedness = (u, side, phase) =>
+          1 +
+          0.085 * Math.sin(u * Math.PI * 5.4 + side * 1.2 + 0.45) +
+          0.052 * Math.sin(u * Math.PI * 11.2 - side * 0.8 + 1.1) +
+          0.028 * Math.cos(u * Math.PI * 22.8 + side * 1.9 - 0.4) +
+          0.017 * Math.sin(u * Math.PI * 35.6 - side * 2.1 + 0.7) +
+          0.014 * Math.sin(phase * 0.32 + u * Math.PI * 6.8 + side);
 
         const waterHeight = (u, lateral, phase) => {
           const flow = u * Math.PI * 2;
@@ -176,7 +227,19 @@ const {
         };
 
         const surfacePoint = (u, lateral, phase) => {
-          const xCenter = THREE.MathUtils.lerp(-riverLength * 0.5, riverLength * 0.5, u);
+          const rawXCenter = THREE.MathUtils.lerp(-riverLength * 0.5, riverLength * 0.5, u);
+          const side = lateral >= 0 ? 1 : -1;
+          const edgeInfluence = Math.pow(Math.abs(lateral), 1.45);
+          const raggedness = bankRaggedness(u, side, phase);
+
+          const endProximity = Math.max(0, 1 - Math.min(u, 1 - u) * 10);
+          const endFray =
+            0.075 *
+            endProximity *
+            edgeInfluence *
+            Math.sin(lateral * 8.4 + side * 0.7 + phase * 0.08);
+          const xCenter = rawXCenter + endFray;
+
           const sample = 0.012;
           const zCenter = centerline(xCenter, phase);
           const zBefore = centerline(xCenter - sample, phase);
@@ -187,11 +250,8 @@ const {
           const normalZ = 1 / normalLength;
           const width = Math.max(0.3, riverWidth(xCenter, phase));
 
-          const edgeShape =
-            1 +
-            0.035 * Math.sin(u * Math.PI * 6.2 + phase * 0.31) *
-              Math.pow(Math.abs(lateral), 1.7);
-          const lateralDistance = lateral * width * edgeShape;
+          const localEdgeScale = 1 + (raggedness - 1) * edgeInfluence;
+          const lateralDistance = lateral * width * localEdgeScale;
 
           return {
             x: xCenter + normalX * lateralDistance,
@@ -419,6 +479,8 @@ const {
           intersectionObserver.disconnect();
           controls.dispose();
           clearContours();
+          baseGeometry.dispose();
+          baseMaterial.dispose();
           surfaceGeometry.dispose();
           surfaceMaterial.dispose();
           renderer.dispose();
