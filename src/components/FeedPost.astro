@@ -10,6 +10,7 @@ interface Props {
   displayDate: string;
   perspectiveLabel: string;
   sourceLabel: string;
+  headingLevel?: 'h1' | 'h2';
 }
 
 const {
@@ -19,13 +20,23 @@ const {
   displayDate,
   perspectiveLabel,
   sourceLabel,
+  headingLevel = 'h2',
 } = Astro.props;
 
 const localizedPost =
   post.data[lang];
 
 const publishedAt =
-  post.data.publishedAt as string;
+  post.data.publishedAt;
+
+if (!publishedAt) {
+  throw new Error(
+    `FeedPost requires a published post: ${post.id}`
+  );
+}
+
+const Heading =
+  headingLevel;
 ---
 
 <article class="feed-post">
@@ -65,9 +76,9 @@ const publishedAt =
     }
   </p>
 
-  <h2 class="post-title">
+  <Heading class="post-title">
     {localizedPost.title}
-  </h2>
+  </Heading>
 
   <div class="post-news">
     <p>
