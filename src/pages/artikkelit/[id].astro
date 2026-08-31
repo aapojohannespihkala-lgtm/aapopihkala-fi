@@ -100,6 +100,9 @@ const displayDate =
 
 const canonicalUrl =
   `https://aapopihkala.fi/artikkelit/${post.id}/`;
+
+const englishUrl =
+  `https://aapopihkala.fi/en/articles/${post.id}/`;
 ---
 
 <!doctype html>
@@ -132,6 +135,24 @@ const canonicalUrl =
       rel="canonical"
       href={canonicalUrl}
     />
+
+    <link
+      rel="alternate"
+      hreflang="fi"
+      href={canonicalUrl}
+    />
+
+    <link
+      rel="alternate"
+      hreflang="en"
+      href={englishUrl}
+    />
+
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href={canonicalUrl}
+    />
   </head>
 
   <body>
@@ -151,7 +172,7 @@ const canonicalUrl =
         <div class="topbar-actions">
           <a
             class="language-switch"
-            href="/en/"
+            href={`/en/articles/${post.id}/`}
             hreflang="en"
             lang="en"
             aria-label="English"
