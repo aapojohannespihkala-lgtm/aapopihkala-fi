@@ -2,6 +2,8 @@
 status: "published"
 publishedAt: "2026-08-31T12:00:00+03:00"
 
+metaImage: "/graphics/hulevesien-hallinta-meta.png"
+
 sources:
   - url: "https://climate-adapt.eea.europa.eu/en/metadata/case-studies/the-economics-of-managing-heavy-rains-and-stormwater-in-copenhagen-2013-the-cloudburst-management-plan"
 
