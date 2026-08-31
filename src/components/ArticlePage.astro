@@ -7,12 +7,18 @@ import type {
 
 import FeedPost from './FeedPost.astro';
 import SiteHeader from './SiteHeader.astro';
+
+import {
+  site,
+  type SiteLanguage,
+} from '../config/site';
+
 import { getPostSlug } from '../utils/posts';
 
 interface Props {
   post: CollectionEntry<'posts'>;
   postNumber: string;
-  lang: 'fi' | 'en';
+  lang: SiteLanguage;
 }
 
 const {
@@ -44,24 +50,29 @@ const slug =
 const isFinnish =
   lang === 'fi';
 
-const dateFormatter =
+const currentLanguage =
+  site.languages[lang];
+
+const alternateLanguage =
   isFinnish
-    ? new Intl.DateTimeFormat(
-        'fi-FI',
-        {
+    ? site.languages.en
+    : site.languages.fi;
+
+const dateFormatter =
+  new Intl.DateTimeFormat(
+    currentLanguage.locale,
+    isFinnish
+      ? {
           day: 'numeric',
           month: 'numeric',
           year: 'numeric',
         }
-      )
-    : new Intl.DateTimeFormat(
-        'en-GB',
-        {
+      : {
           day: 'numeric',
           month: 'short',
           year: 'numeric',
         }
-      );
+  );
 
 const datePart =
   publishedAt.slice(
@@ -76,30 +87,31 @@ const displayDate =
     )
   );
 
+const finnishPath =
+  `/artikkelit/${slug}/`;
+
+const englishPath =
+  `/en/articles/${slug}/`;
+
 const finnishUrl =
-  `https://aapopihkala.fi/artikkelit/${slug}/`;
+  `${site.url}${finnishPath}`;
 
 const englishUrl =
-  `https://aapopihkala.fi/en/articles/${slug}/`;
+  `${site.url}${englishPath}`;
 
 const canonicalUrl =
   isFinnish
     ? finnishUrl
     : englishUrl;
 
-const alternateUrl =
-  isFinnish
-    ? englishUrl
-    : finnishUrl;
-
 const languageHref =
   isFinnish
-    ? `/en/articles/${slug}/`
-    : `/artikkelit/${slug}/`;
+    ? englishPath
+    : finnishPath;
 
 const imageUrl =
   post.data.graphic
-    ? `https://aapopihkala.fi${post.data.graphic}`
+    ? `${site.url}${post.data.graphic}`
     : undefined;
 
 const perspectiveLabel =
@@ -112,25 +124,8 @@ const sourceLabel =
     ? 'Lähde'
     : 'Source';
 
-const languageLocale =
-  isFinnish
-    ? 'fi-FI'
-    : 'en-GB';
-
-const openGraphLocale =
-  isFinnish
-    ? 'fi_FI'
-    : 'en_GB';
-
-const alternateOpenGraphLocale =
-  isFinnish
-    ? 'en_GB'
-    : 'fi_FI';
-
 const authorUrl =
-  isFinnish
-    ? 'https://aapopihkala.fi/'
-    : 'https://aapopihkala.fi/en/';
+  `${site.url}${currentLanguage.homePath}`;
 
 const blogPostingSchema = {
   '@context':
@@ -160,17 +155,21 @@ const blogPostingSchema = {
     publishedAt,
 
   inLanguage:
-    languageLocale,
+    currentLanguage.locale,
 
   author: {
     '@type':
       'Person',
 
     name:
-      'Aapo Pihkala',
+      site.name,
 
     url:
       authorUrl,
+
+    sameAs: [
+      site.linkedinUrl,
+    ],
   },
 
   keywords:
@@ -199,7 +198,7 @@ const blogPostingSchema = {
     />
 
     <title>
-      {localizedPost.title} - Aapo Pihkala
+      {localizedPost.title} - {site.name}
     </title>
 
     <meta
@@ -220,13 +219,13 @@ const blogPostingSchema = {
 
     <link
       rel="alternate"
-      hreflang="fi"
+      hreflang={site.languages.fi.code}
       href={finnishUrl}
     />
 
     <link
       rel="alternate"
-      hreflang="en"
+      hreflang={site.languages.en.code}
       href={englishUrl}
     />
 
@@ -243,17 +242,17 @@ const blogPostingSchema = {
 
     <meta
       property="og:site_name"
-      content="Aapo Pihkala"
+      content={site.name}
     />
 
     <meta
       property="og:locale"
-      content={openGraphLocale}
+      content={currentLanguage.openGraphLocale}
     />
 
     <meta
       property="og:locale:alternate"
-      content={alternateOpenGraphLocale}
+      content={alternateLanguage.openGraphLocale}
     />
 
     <meta
