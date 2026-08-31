@@ -116,6 +116,7 @@ const commonFields = {
   interactiveGraphic:
     z.enum([
       'butterfly',
+      'stormwater',
     ]).optional(),
 
   metaImage:
