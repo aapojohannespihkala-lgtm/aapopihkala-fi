@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 220" fill="none" role="img" aria-labelledby="title desc" preserveAspectRatio="xMidYMid meet">
+  <title id="title">Luontoviisas piha on osa kaupunkiluontoa - pölyttäjät</title>
+  <desc id="desc">Ilmava maisema-arkkitehtoninen viivapiirros, jossa suuret pölyttäjät ja pölyttäjäystävälliset kasvit kelluvat valkoisessa tilassa ilman maanpintaa.</desc>
+
+  <defs>
+    <filter id="inkTexture" x="-4%" y="-12%" width="108%" height="124%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.022 0.075" numOctaves="2" seed="19" result="noise"/>
+      <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.03 0.03 0.03 0 0.88" result="inkAlpha"/>
+      <feComposite in="SourceGraphic" in2="inkAlpha" operator="in"/>
+    </filter>
+
+    <filter id="softInkTexture" x="-4%" y="-12%" width="108%" height="124%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018 0.06" numOctaves="2" seed="37" result="noise"/>
+      <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.018 0.018 0.018 0 0.92" result="inkAlpha"/>
+      <feComposite in="SourceGraphic" in2="inkAlpha" operator="in"/>
+    </filter>
+
+    <style>
+      .contextA{fill:none;stroke:#b9c0ba;stroke-width:.60;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.18}
+      .contextB{fill:none;stroke:#c9cec9;stroke-width:.52;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.13}
+      .flight{fill:none;stroke:#929b93;stroke-width:.60;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:.7 10 .45 13 .85 9 .5 12;vector-effect:non-scaling-stroke;opacity:.25}
+      .plantFaint{fill:none;stroke:#aeb6af;stroke-width:.64;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.46}
+      .plantLight{fill:none;stroke:#929b93;stroke-width:.76;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.64}
+      .plantMain{fill:none;stroke:#747d75;stroke-width:.94;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.80}
+      .plantAccent{fill:none;stroke:#626c63;stroke-width:1.06;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.86}
+      .insectLight{fill:none;stroke:#747d75;stroke-width:.90;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.76}
+      .insectMain{fill:none;stroke:#626c63;stroke-width:1.10;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.90}
+      .insectAccent{fill:none;stroke:#59635a;stroke-width:1.18;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.89}
+      .softFill{fill:#aeb6af;opacity:.10}
+    </style>
+
+    <g id="tinyBloom">
+      <path class="plantFaint" d="M0-3 C-2.2-4.6-4.1-3.2-3.7-.9 C-5.1.8-4 3-1.8 2.8 C-.6 5 1.8 4.8 2.5 2.6 C4.8 2.7 5.8.5 4.3-1.1 C4.5-3.4 2.3-4.5.4-3.1 Z"/>
+      <circle class="plantLight" cx="0" cy="0" r="0.8"/>
+    </g>
+
+    <g id="spikeBloom">
+      <path class="plantFaint" d="M0 0 C-4-4-8-3-9 1 C-5 3-2 3 1 1 C4-2 7-2 9 1 C7 4 4 5 0 3"/>
+    </g>
+  </defs>
+
+  <!-- hennot, katkonaiset tilaviivat -->
+  <g filter="url(#softInkTexture)">
+    <path class="contextB" d="M52 61 C133 52 196 57 264 64 C337 71 404 63 468 56"/>
+    <path class="contextB" d="M693 57 C765 66 828 66 888 58 C967 48 1041 51 1148 61"/>
+    <path class="contextA" d="M277 177 C344 183 401 180 458 172"/>
+    <path class="contextA" d="M760 171 C827 164 888 167 949 175"/>
+  </g>
+
+  <!-- lentoreitit -->
+  <g filter="url(#softInkTexture)">
+    <path class="flight" d="M58 116 C105 87 147 88 176 107 C199 122 196 139 177 145 C155 152 137 138 145 121 C155 101 189 98 221 113"/>
+    <path class="flight" d="M322 107 C356 80 395 75 424 90 C451 104 456 124 435 135 C412 147 385 136 388 116 C392 94 424 84 460 97"/>
+    <path class="flight" d="M641 86 C678 56 721 54 749 73 C773 89 774 109 754 121 C733 134 705 124 705 104 C705 82 738 71 777 83"/>
+    <path class="flight" d="M918 122 C957 92 1000 91 1028 109 C1053 126 1050 146 1028 154 C1004 162 982 147 989 128 C997 106 1033 101 1081 117"/>
+  </g>
+
+  <!-- vasen perhonen, avoimet siivet -->
+  <g filter="url(#inkTexture)" transform="translate(126 73) rotate(-10)">
+    <path class="insectMain" d="M2 1 C-19-22-45-29-63-18 C-60 2-48 22-31 31 C-18 38-7 28-1 13"/>
+    <path class="insectMain" d="M7 3 C25-17 50-22 68-11 C64 9 51 26 34 33 C20 38 10 28 7 14"/>
+    <path class="insectLight" d="M-7 8 C-24 4-40-5-52-16 M13 9 C29 3 45-3 58-10"/>
+    <path class="insectLight" d="M-46-6 C-38 5-33 16-31 26 M56-3 C47 7-42 18 39 29"/>
+    <path class="insectAccent" d="M4 1 C1 12 2 23 6 34"/>
+    <path class="insectLight" d="M3 3 C-2-4-7-8-12-10 M6 3 C11-4 17-8 22-10"/>
+  </g>
+
+  <!-- vasen kukkaryhmä -->
+  <g filter="url(#inkTexture)">
+    <path class="plantMain" d="M276 181 C275 160 276 142 278 123 C280 109 282 96 282 84"/>
+    <path class="plantLight" d="M278 126 C269 116 260 108 250 101 M279 116 C288 106 297 99 308 94"/>
+    <path class="plantLight" d="M282 96 C273 91 265 86 257 79 M282 95 C290 87 298 82 307 77"/>
+    <path class="plantFaint" d="M273 153 C264 149 257 143 252 136 M277 165 C287 159 294 152 298 144"/>
+    <path class="plantLight" d="M250 101 C241 96 233 94 225 95 M250 101 C245 91 240 85 234 80"/>
+    <path class="plantLight" d="M308 94 C317 89 325 88 334 90 M308 94 C314 85 320 79 327 75"/>
+    <path class="plantLight" d="M257 79 C250 75 244 73 238 74 M307 77 C314 73 321 73 328 76"/>
+    <use href="#tinyBloom" transform="translate(225 95) scale(.92) rotate(-7)"/>
+    <use href="#tinyBloom" transform="translate(234 80) scale(.84) rotate(12)"/>
+    <use href="#tinyBloom" transform="translate(238 74) scale(.78) rotate(-9)"/>
+    <use href="#tinyBloom" transform="translate(334 90) scale(.90) rotate(8)"/>
+    <use href="#tinyBloom" transform="translate(327 75) scale(.83) rotate(-11)"/>
+    <use href="#tinyBloom" transform="translate(328 76) scale(.74) rotate(17)"/>
+    <use href="#tinyBloom" transform="translate(244 96) scale(.72) rotate(18)"/>
+    <use href="#tinyBloom" transform="translate(318 91) scale(.72) rotate(-12)"/>
+  </g>
+
+  <!-- mehiläinen -->
+  <g filter="url(#inkTexture)" transform="translate(384 103) rotate(-15)">
+    <path class="softFill" d="M-18 1 C-12-9 0-12 11-7 C22-2 27 8 23 18 C19 28 7 32-5 27 C-16 23-22 13-19 5 Z"/>
+    <path class="insectMain" d="M-18 2 C-12-8 0-11 11-7 C21-3 26 7 23 17 C19 26 8 31-3 28 C-13 25-20 18-21 9"/>
+    <path class="insectLight" d="M-14 3 C-31-10-45-9-52 1 C-44 11-33 16-19 16 M17 2 C32-8 45-6 51 4 C44 12 34 16 22 16"/>
+    <path class="insectAccent" d="M-16 7 C-5 10 8 9 22 5"/>
+    <path class="insectLight" d="M-16 14 C-4 17 8 16 22 12 M-12 21 C-2 24 7 23 16 20"/>
+    <path class="insectLight" d="M18-2 C24-6 29-7 33-6 M14-5 C17-11 21-14 26-16"/>
+  </g>
+
+  <!-- suuri sarjakukinto -->
+  <g filter="url(#inkTexture)">
+    <path class="plantAccent" d="M552 184 C550 161 551 140 555 121 C559 102 564 85 568 69"/>
+    <path class="plantMain" d="M568 69 C548 63 529 57 510 48 M568 69 C555 57 544 46 533 34 M568 69 C569 54 570 40 572 25 M568 69 C580 55 592 44 605 35 M568 69 C588 62 607 57 627 51"/>
+    <path class="plantLight" d="M510 48 C500 45 492 44 484 45 M510 48 C504 40 499 35 493 30"/>
+    <path class="plantLight" d="M533 34 C526 29 520 27 514 27 M533 34 C532 27 532 22 534 17"/>
+    <path class="plantLight" d="M572 25 C566 20 560 18 554 19 M572 25 C578 19 584 17 590 18"/>
+    <path class="plantLight" d="M605 35 C611 29 617 26 624 26 M605 35 C606 28 608 22 612 18"/>
+    <path class="plantLight" d="M627 51 C636 46 645 45 654 47 M627 51 C634 43 640 38 647 35"/>
+
+    <use href="#tinyBloom" transform="translate(484 45) scale(.92) rotate(-7)"/>
+    <use href="#tinyBloom" transform="translate(493 30) scale(.84) rotate(13)"/>
+    <use href="#tinyBloom" transform="translate(514 27) scale(.82) rotate(-13)"/>
+    <use href="#tinyBloom" transform="translate(534 17) scale(.88) rotate(6)"/>
+    <use href="#tinyBloom" transform="translate(554 19) scale(.78) rotate(-15)"/>
+    <use href="#tinyBloom" transform="translate(572 14) scale(.96) rotate(4)"/>
+    <use href="#tinyBloom" transform="translate(590 18) scale(.78) rotate(15)"/>
+    <use href="#tinyBloom" transform="translate(612 18) scale(.86) rotate(-5)"/>
+    <use href="#tinyBloom" transform="translate(624 26) scale(.82) rotate(12)"/>
+    <use href="#tinyBloom" transform="translate(647 35) scale(.86) rotate(-9)"/>
+    <use href="#tinyBloom" transform="translate(654 47) scale(.92) rotate(7)"/>
+    <use href="#tinyBloom" transform="translate(502 44) scale(.66) rotate(11)"/>
+    <use href="#tinyBloom" transform="translate(523 30) scale(.68) rotate(-9)"/>
+    <use href="#tinyBloom" transform="translate(544 22) scale(.66) rotate(8)"/>
+    <use href="#tinyBloom" transform="translate(600 23) scale(.68) rotate(-7)"/>
+    <use href="#tinyBloom" transform="translate(636 43) scale(.68) rotate(10)"/>
+
+    <path class="plantLight" d="M553 137 C543 131 536 124 532 116 M557 149 C567 143 575 136 580 127"/>
+  </g>
+
+  <!-- kaunopunahattu -->
+  <g filter="url(#inkTexture)" transform="translate(0 1)">
+    <path class="plantMain" d="M674 181 C673 160 674 141 677 121"/>
+    <path class="plantAccent" d="M666 102 C671 96 680 95 687 100 C691 103 691 109 687 113 C682 117 673 117 667 112 C663 109 663 105 666 102"/>
+    <path class="plantLight" d="M666 108 C654 105 644 107 635 114 C646 117 656 115 668 111"/>
+    <path class="plantMain" d="M668 112 C656 115 648 122 643 132 C655 130 664 123 671 114"/>
+    <path class="plantLight" d="M671 114 C663 124 661 135 662 145 C671 137 675 126 675 115"/>
+    <path class="plantMain" d="M676 115 C677 126 682 136 690 143 C692 132 688 122 681 113"/>
+    <path class="plantLight" d="M681 112 C690 121 700 126 710 126 C705 116 696 110 685 107"/>
+    <path class="plantMain" d="M684 106 C696 110 707 108 716 101 C706 97 696 98 686 102"/>
+    <path class="plantFaint" d="M675 150 C665 146 657 141 652 134 M676 160 C686 154 693 147 697 139"/>
+  </g>
+
+  <!-- kimalainen -->
+  <g filter="url(#inkTexture)" transform="translate(735 63) rotate(8)">
+    <path class="softFill" d="M-20 3 C-17-10-5-17 8-14 C22-11 30 1 27 15 C24 28 11 36-3 33 C-17 30-25 18-22 7 Z"/>
+    <path class="insectMain" d="M-20 3 C-16-9-5-16 8-13 C21-10 29 2 26 15 C23 27 11 34-2 33 C-15 31-23 22-23 11"/>
+    <path class="insectLight" d="M-16 3 C-32-10-46-9-53 2 C-45 12-34 17-20 17 M21 2 C36-8 50-6 56 5 C48 13 38 17 26 17"/>
+    <path class="insectAccent" d="M-18 7 C-6 10 8 10 25 5"/>
+    <path class="insectLight" d="M-18 15 C-5 19 9 18 26 12 M-14 23 C-2 26 9 25 20 22"/>
+    <path class="insectLight" d="M23-2 C29-6 34-7 39-6 M19-6 C22-12 27-15 32-17"/>
+  </g>
+
+  <!-- oikean reunan matala kukkaryhmä -->
+  <g filter="url(#softInkTexture)">
+    <path class="plantMain" d="M833 181 C832 159 833 141 836 124 C838 112 840 102 840 92"/>
+    <path class="plantLight" d="M836 126 C827 118 819 112 810 107 M838 116 C847 107 855 101 865 97"/>
+    <path class="plantLight" d="M840 101 C833 95 826 91 819 87 M840 99 C847 91 855 86 864 83"/>
+    <path class="plantLight" d="M810 107 C802 103 795 102 788 104 M810 107 C805 99 800 94 794 91"/>
+    <path class="plantLight" d="M865 97 C873 92 881 91 889 93 M865 97 C871 89 876 84 883 80"/>
+    <use href="#tinyBloom" transform="translate(788 104) scale(.78) rotate(-8)"/>
+    <use href="#tinyBloom" transform="translate(794 91) scale(.72) rotate(11)"/>
+    <use href="#tinyBloom" transform="translate(819 87) scale(.76) rotate(-13)"/>
+    <use href="#tinyBloom" transform="translate(889 93) scale(.80) rotate(8)"/>
+    <use href="#tinyBloom" transform="translate(883 80) scale(.74) rotate(-10)"/>
+    <use href="#tinyBloom" transform="translate(864 83) scale(.68) rotate(15)"/>
+  </g>
+
+  <!-- kolme salvian kukkavanaa -->
+  <g filter="url(#inkTexture)">
+    <path class="plantMain" d="M915 181 C914 159 915 138 918 116 C920 101 922 87 924 75"/>
+    <path class="plantLight" d="M944 181 C943 162 944 145 946 129 C948 116 950 105 952 96"/>
+    <path class="plantLight" d="M970 180 C969 165 970 151 972 138 C974 127 976 117 978 109"/>
+    <path class="plantFaint" d="M916 151 C907 146 901 140 897 133 M915 164 C924 158 931 151 935 143"/>
+    <path class="plantFaint" d="M946 153 C954 148 960 142 964 135 M971 157 C963 153 958 148 955 142"/>
+    <use href="#spikeBloom" transform="translate(923 78) scale(.72) rotate(-9)"/>
+    <use href="#spikeBloom" transform="translate(922 88) scale(.78) rotate(8)"/>
+    <use href="#spikeBloom" transform="translate(920 99) scale(.82) rotate(-7)"/>
+    <use href="#spikeBloom" transform="translate(919 110) scale(.76) rotate(10)"/>
+    <use href="#spikeBloom" transform="translate(952 98) scale(.68) rotate(8)"/>
+    <use href="#spikeBloom" transform="translate(950 108) scale(.72) rotate(-10)"/>
+    <use href="#spikeBloom" transform="translate(949 119) scale(.68) rotate(7)"/>
+    <use href="#spikeBloom" transform="translate(978 111) scale(.60) rotate(-7)"/>
+    <use href="#spikeBloom" transform="translate(976 121) scale(.64) rotate(9)"/>
+    <use href="#spikeBloom" transform="translate(974 131) scale(.60) rotate(-8)"/>
+  </g>
+
+  <!-- oikea perhonen -->
+  <g filter="url(#inkTexture)" transform="translate(1058 112) rotate(16)">
+    <path class="insectMain" d="M0 2 C-6-22-23-39-40-40 C-46-20-42 1-29 14 C-19 24-8 18-2 8"/>
+    <path class="insectMain" d="M4 3 C11-16 26-29 42-29 C45-12 39 5 28 15 C19 22 10 17 5 10"/>
+    <path class="insectLight" d="M-4 5 C-14-5-23-17-31-31 M9 6 C17-2 25-12 32-23"/>
+    <path class="insectLight" d="M-32-29 C-28-16-23-5-17 5 M32-22 C28-11 23-2 18 7"/>
+    <path class="insectAccent" d="M2 1 C0 11 2 21 6 30"/>
+    <path class="insectLight" d="M1 3 C-3-3-7-6-11-8 M4 3 C8-3 12-6 16-8"/>
+  </g>
+</svg>
