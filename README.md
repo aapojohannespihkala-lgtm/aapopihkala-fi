@@ -1,4 +1,3 @@
-````markdown
 # aapopihkala.fi
 
 Aapo Pihkalan henkilökohtainen kaksikielinen Astro-sivusto.
@@ -21,7 +20,7 @@ Asenna riippuvuudet:
 
 ```bash
 npm install
-````
+```
 
 Käynnistä kehityspalvelin:
 
@@ -263,10 +262,9 @@ src/utils/posts.ts
 ```
 
 Samaa artikkelihakua käyttävät:
-
-* etusivu
-* suomenkieliset artikkelisivut
-* englanninkieliset artikkelisivut
+- etusivu
+- suomenkieliset artikkelisivut
+- englanninkieliset artikkelisivut
 
 ## Content Collection
 
@@ -351,11 +349,10 @@ public/robots.txt
 ```
 
 Yksittäisillä artikkelisivuilla on:
-
-* canonical URL
-* FI/EN `hreflang`
-* Open Graph -metatiedot
-* `BlogPosting` JSON-LD
+- canonical URL
+- FI/EN `hreflang`
+- Open Graph -metatiedot
+- `BlogPosting` JSON-LD
 
 Nämä sijaitsevat yhteisesti:
 
@@ -387,6 +384,3 @@ Julkaisun jälkeen tarkista:
 ```
 
 sekä uuden artikkelin FI- ja EN-osoitteet.
-
-```
-```
