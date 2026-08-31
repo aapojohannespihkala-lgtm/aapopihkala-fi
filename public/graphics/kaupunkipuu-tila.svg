@@ -1,0 +1,247 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 1200 360"
+  fill="none"
+  role="img"
+  aria-labelledby="title desc"
+  preserveAspectRatio="xMidYMid meet"
+>
+  <title id="title">Kaupunkipuu tarvitsee tilansa</title>
+
+  <desc id="desc">
+    Herkkä maisema-arkkitehtoninen kaavio, jossa pitkä kaupunkirakenteen linja
+    väistää olemassa olevaa puuta. Puun ympärillä näkyy hyvin vaaleita,
+    epäsäännöllisiä maasto- ja tilakäyriä.
+  </desc>
+
+  <style>
+    .ground {
+      fill: none;
+      stroke: #566057;
+      stroke-width: 1.45;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .tree {
+      fill: none;
+      stroke: #59635a;
+      stroke-width: 1.3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .contour {
+      fill: none;
+      stroke: #c8cec8;
+      stroke-width: 0.72;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+      opacity: 0.68;
+    }
+
+    .contour-soft {
+      fill: none;
+      stroke: #d7dbd7;
+      stroke-width: 0.64;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+      opacity: 0.58;
+    }
+
+    .subsurface {
+      fill: none;
+      stroke: #cbd0cb;
+      stroke-width: 0.68;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+      opacity: 0.58;
+    }
+
+    .datum {
+      fill: none;
+      stroke: #8f9990;
+      stroke-width: 0.75;
+      stroke-linecap: round;
+      stroke-dasharray: 0.8 10;
+      vector-effect: non-scaling-stroke;
+      opacity: 0.58;
+    }
+  </style>
+
+  <path
+    class="contour-soft"
+    d="
+      M 309 224
+      C 337 213 360 199 379 182
+      C 397 165 415 155 440 148
+      C 469 140 486 126 504 107
+      C 525 84 558 75 594 73
+      C 634 71 664 77 691 89
+      C 719 102 741 112 768 114
+      C 800 116 820 122 842 138
+      C 861 152 875 164 899 169
+      C 923 174 937 185 947 202
+      C 954 214 963 220 981 223
+    "
+  />
+
+  <path
+    class="contour-soft"
+    d="
+      M 373 224
+      C 391 208 411 200 439 195
+      C 468 190 486 179 502 164
+      C 520 146 541 136 568 133
+      C 597 130 626 133 649 142
+      C 671 150 691 157 716 158
+      C 741 159 760 165 778 177
+      C 796 190 810 199 830 201
+      C 852 204 870 211 882 223
+    "
+  />
+
+  <path
+    class="contour"
+    d="
+      M 432 224
+      C 445 210 459 202 480 199
+      C 501 196 516 187 529 176
+      C 545 163 563 157 584 156
+      C 606 155 625 160 641 170
+      C 656 179 672 185 692 186
+      C 711 187 726 192 740 203
+      C 750 211 760 218 773 224
+    "
+  />
+
+  <path
+    class="ground"
+    d="
+      M 35 226
+      L 323 226
+      C 350 226 365 228 382 237
+      C 406 250 430 256 466 258
+      C 508 260 553 260 598 260
+      C 647 260 694 260 738 259
+      C 776 258 799 253 820 242
+      C 840 232 855 226 882 226
+      L 1165 226
+    "
+  />
+
+  <path
+    class="datum"
+    d="M 35 251 L 347 251"
+  />
+
+  <path
+    class="datum"
+    d="M 857 251 L 1165 251"
+  />
+
+  <path
+    class="tree"
+    d="
+      M 593 184
+      C 598 178 605 177 611 181
+      C 616 176 625 177 629 182
+      C 636 181 642 185 643 192
+      C 649 195 651 202 648 208
+      C 652 214 649 221 643 224
+      C 640 230 631 232 625 228
+      C 620 232 611 232 606 228
+      C 599 231 591 227 590 221
+      C 582 219 579 212 582 206
+      C 579 200 582 193 588 190
+      C 588 187 590 185 593 184
+      Z
+    "
+  />
+
+  <path
+    class="tree"
+    d="
+      M 615 260
+      C 615 249 615 238 615 226
+      C 615 221 615 217 615 213
+    "
+  />
+
+  <path
+    class="tree"
+    d="
+      M 615 230
+      C 611 226 608 223 604 221
+    "
+  />
+
+  <path
+    class="tree"
+    d="
+      M 615 228
+      C 619 224 622 222 626 220
+    "
+  />
+
+  <path
+    class="subsurface"
+    d="
+      M 353 267
+      C 402 277 446 277 489 273
+      C 529 270 559 269 596 273
+      C 635 277 672 277 707 272
+      C 748 266 787 267 829 265
+    "
+  />
+
+  <path
+    class="subsurface"
+    d="
+      M 376 276
+      C 416 282 451 287 491 283
+      C 530 279 558 279 592 284
+      C 627 289 658 289 694 282
+      C 730 275 763 278 802 272
+    "
+  />
+
+  <path
+    class="subsurface"
+    d="
+      M 431 291
+      C 456 297 485 298 515 295
+      C 545 292 568 293 596 298
+      C 624 303 653 304 678 299
+      C 705 294 727 291 752 291
+    "
+  />
+
+  <path
+    class="subsurface"
+    d="
+      M 464 303
+      C 492 308 518 307 543 304
+      C 565 301 583 303 605 307
+      C 628 311 651 312 676 308
+      C 695 305 713 303 731 305
+    "
+  />
+
+  <path
+    class="contour-soft"
+    d="
+      M 338 263
+      C 385 269 421 270 461 267
+      C 502 264 535 264 566 268
+      C 600 272 635 271 670 267
+      C 710 262 749 264 793 261
+      C 818 259 837 258 854 256
+    "
+  />
+</svg>
