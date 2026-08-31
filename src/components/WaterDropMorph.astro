@@ -1,0 +1,425 @@
+---
+interface Props {
+  class?: string
+  autoRotate?: boolean
+  enableZoom?: boolean
+  animate?: boolean
+  scale?: number
+  cameraDistance?: number
+}
+
+const {
+  class: className,
+  autoRotate = true,
+  enableZoom = true,
+  animate = true,
+  scale = 1,
+  cameraDistance = 6.8,
+} = Astro.props
+---
+
+<div
+  class:list={['water-drop-morph', className]}
+  data-water-drop-morph
+  data-auto-rotate={autoRotate ? 'true' : 'false'}
+  data-enable-zoom={enableZoom ? 'true' : 'false'}
+  data-animate={animate ? 'true' : 'false'}
+  data-scale={scale}
+  data-camera-distance={cameraDistance}
+  aria-hidden="true"
+>
+  <canvas class="water-drop-morph__canvas" data-water-drop-morph-canvas></canvas>
+</div>
+
+<style>
+  .water-drop-morph {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 260px;
+    overflow: hidden;
+    background: transparent;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .water-drop-morph:active {
+    cursor: grabbing;
+  }
+
+  .water-drop-morph__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    touch-action: none;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const roots = document.querySelectorAll('[data-water-drop-morph]')
+
+    roots.forEach(async (root) => {
+      if (root.dataset.waterDropMorphInitialized === 'true') return
+      root.dataset.waterDropMorphInitialized = 'true'
+
+      const canvas = root.querySelector('[data-water-drop-morph-canvas]')
+      if (!canvas) return
+
+      try {
+        const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
+        const { OrbitControls } = await import(
+          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
+        )
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const wantsAutoRotate = root.dataset.autoRotate !== 'false'
+        const wantsZoom = root.dataset.enableZoom !== 'false'
+        const wantsAnimation = root.dataset.animate !== 'false' && !reducedMotion
+        const requestedScale = Number(root.dataset.scale ?? '1')
+        const requestedCameraDistance = Number(root.dataset.cameraDistance ?? '6.8')
+        const displayScale = Number.isFinite(requestedScale) ? requestedScale : 1
+        const cameraDistance = Number.isFinite(requestedCameraDistance)
+          ? requestedCameraDistance
+          : 6.8
+
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: true,
+          alpha: true,
+        })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6))
+        renderer.setClearColor(0xffffff, 0)
+
+        const scene = new THREE.Scene()
+        const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100)
+        camera.position.set(3.9, 2.5, cameraDistance)
+
+        const specimen = new THREE.Group()
+        specimen.scale.setScalar(displayScale)
+        specimen.rotation.y = -0.16
+        scene.add(specimen)
+
+        const controls = new OrbitControls(camera, renderer.domElement)
+        controls.enablePan = false
+        controls.enableZoom = wantsZoom
+        controls.enableDamping = true
+        controls.dampingFactor = 0.055
+        controls.rotateSpeed = 0.5
+        controls.minPolarAngle = Math.PI * 0.24
+        controls.maxPolarAngle = Math.PI * 0.72
+        controls.target.set(0, 0.42, 0)
+        controls.autoRotate = wantsAutoRotate && !reducedMotion
+        controls.autoRotateSpeed = 0.16
+
+        if (wantsZoom) {
+          controls.minDistance = 5.8
+          controls.maxDistance = 9.6
+          controls.zoomSpeed = 0.5
+        } else {
+          const lockedDistance = camera.position.length()
+          controls.minDistance = lockedDistance
+          controls.maxDistance = lockedDistance
+        }
+
+        const waterMaterial = new THREE.PointsMaterial({
+          color: 0x687b76,
+          size: 0.031,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.72,
+        })
+
+        const coreMaterial = new THREE.PointsMaterial({
+          color: 0x43514d,
+          size: 0.022,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.34,
+        })
+
+        const groundMaterial = new THREE.LineBasicMaterial({
+          color: 0x8a9088,
+          transparent: true,
+          opacity: 0.22,
+        })
+
+        const ringMaterials = [0.28, 0.2, 0.14].map(
+          (opacity) => new THREE.LineBasicMaterial({
+            color: 0x71857f,
+            transparent: true,
+            opacity,
+          })
+        )
+
+        const hash = (value, salt = 0) => {
+          const x = Math.sin(value * 127.1 + salt * 311.7) * 43758.5453123
+          return x - Math.floor(x)
+        }
+
+        const smooth = (value) => {
+          const t = THREE.MathUtils.clamp(value, 0, 1)
+          return t * t * (3 - 2 * t)
+        }
+
+        const pointCount = 3200
+        const dropPositions = new Float32Array(pointCount * 3)
+        const puddlePositions = new Float32Array(pointCount * 3)
+        const currentPositions = new Float32Array(pointCount * 3)
+        const corePositions = []
+
+        for (let i = 0; i < pointCount; i += 1) {
+          const u = hash(i + 1, 1)
+          const v = hash(i + 1, 2)
+          const w = hash(i + 1, 3)
+
+          const cosTheta = 1 - 2 * u
+          const sinTheta = Math.sqrt(Math.max(0, 1 - cosTheta * cosTheta))
+          const phi = Math.PI * 2 * v
+          const radius = Math.cbrt(w)
+
+          const sphereX = Math.cos(phi) * sinTheta * radius
+          const sphereY = cosTheta * radius
+          const sphereZ = Math.sin(phi) * sinTheta * radius
+
+          const normalizedY = (sphereY + 1) * 0.5
+          const taper = 0.42 + 0.58 * Math.sin(Math.PI * normalizedY) ** 0.72
+          const lowerRound = 0.86 + 0.14 * (1 - normalizedY)
+
+          const dropX = sphereX * 0.58 * taper * lowerRound
+          const dropY = sphereY * 0.9 - 0.05 + 0.18 * (1 - normalizedY) ** 1.7
+          const dropZ = sphereZ * 0.58 * taper * lowerRound
+
+          dropPositions[i * 3] = dropX
+          dropPositions[i * 3 + 1] = dropY
+          dropPositions[i * 3 + 2] = dropZ
+
+          const angle = Math.PI * 2 * hash(i + 1, 7)
+          const radial = Math.sqrt(hash(i + 1, 8))
+          const edgeSoftness = 0.9 + 0.1 * Math.sin(angle * 3 + 0.6)
+          const puddleX = Math.cos(angle) * radial * 1.42 * edgeSoftness
+          const puddleZ = Math.sin(angle) * radial * 0.92 * edgeSoftness
+          const dome = Math.max(0, 1 - radial * radial)
+          const puddleY = 0.018 + dome * 0.12 + (hash(i + 1, 9) - 0.5) * 0.018
+
+          puddlePositions[i * 3] = puddleX
+          puddlePositions[i * 3 + 1] = puddleY
+          puddlePositions[i * 3 + 2] = puddleZ
+
+          currentPositions[i * 3] = dropX
+          currentPositions[i * 3 + 1] = dropY
+          currentPositions[i * 3 + 2] = dropZ
+
+          if (i % 5 === 0) {
+            corePositions.push(dropX * 0.72, dropY * 0.72, dropZ * 0.72)
+          }
+        }
+
+        const waterGeometry = new THREE.BufferGeometry()
+        waterGeometry.setAttribute('position', new THREE.BufferAttribute(currentPositions, 3))
+        const water = new THREE.Points(waterGeometry, waterMaterial)
+        specimen.add(water)
+
+        const coreGeometry = new THREE.BufferGeometry()
+        coreGeometry.setAttribute('position', new THREE.Float32BufferAttribute(corePositions, 3))
+        const core = new THREE.Points(coreGeometry, coreMaterial)
+        specimen.add(core)
+
+        const groundGeometry = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-2.15, 0, 0),
+          new THREE.Vector3(2.15, 0, 0),
+        ])
+        const groundLine = new THREE.Line(groundGeometry, groundMaterial)
+        specimen.add(groundLine)
+
+        const rings = ringMaterials.map((material, index) => {
+          const points = []
+          const segments = 92
+          const baseRadius = 0.72 + index * 0.24
+
+          for (let i = 0; i <= segments; i += 1) {
+            const angle = (i / segments) * Math.PI * 2
+            points.push(
+              new THREE.Vector3(
+                Math.cos(angle) * baseRadius,
+                0.026,
+                Math.sin(angle) * baseRadius * 0.65
+              )
+            )
+          }
+
+          const geometry = new THREE.BufferGeometry().setFromPoints(points)
+          const line = new THREE.Line(geometry, material)
+          line.visible = false
+          specimen.add(line)
+          return { line, geometry, material, index }
+        })
+
+        const updateMorph = (morph, lift, rippleStrength, timeSeconds) => {
+          const inverse = 1 - morph
+
+          for (let i = 0; i < pointCount; i += 1) {
+            const ix = i * 3
+            const ripple =
+              morph *
+              rippleStrength *
+              0.025 *
+              Math.sin(
+                Math.sqrt(
+                  puddlePositions[ix] * puddlePositions[ix] +
+                  puddlePositions[ix + 2] * puddlePositions[ix + 2]
+                ) * 10 -
+                timeSeconds * 5
+              )
+
+            currentPositions[ix] =
+              dropPositions[ix] * inverse + puddlePositions[ix] * morph
+            currentPositions[ix + 1] =
+              dropPositions[ix + 1] * inverse +
+              puddlePositions[ix + 1] * morph +
+              ripple
+            currentPositions[ix + 2] =
+              dropPositions[ix + 2] * inverse + puddlePositions[ix + 2] * morph
+          }
+
+          waterGeometry.attributes.position.needsUpdate = true
+
+          const coreAttribute = coreGeometry.attributes.position
+          const coreArray = coreAttribute.array
+          const coreCount = coreAttribute.count
+          for (let i = 0; i < coreCount; i += 1) {
+            const sourceIndex = i * 5
+            const sourceOffset = sourceIndex * 3
+            const targetOffset = i * 3
+            coreArray[targetOffset] =
+              dropPositions[sourceOffset] * 0.72 * inverse +
+              puddlePositions[sourceOffset] * 0.8 * morph
+            coreArray[targetOffset + 1] =
+              dropPositions[sourceOffset + 1] * 0.72 * inverse +
+              puddlePositions[sourceOffset + 1] * 0.72 * morph
+            coreArray[targetOffset + 2] =
+              dropPositions[sourceOffset + 2] * 0.72 * inverse +
+              puddlePositions[sourceOffset + 2] * 0.8 * morph
+          }
+          coreAttribute.needsUpdate = true
+
+          water.position.y = lift
+          core.position.y = lift
+
+          rings.forEach(({ line, material, index }) => {
+            const visible = rippleStrength > 0.04
+            line.visible = visible
+            if (!visible) return
+
+            const travel = (rippleStrength + index * 0.18) % 1
+            const scale = 0.72 + travel * 0.72
+            line.scale.set(scale, 1, scale)
+            material.opacity = (1 - travel) * (0.22 - index * 0.045)
+          })
+        }
+
+        const resize = () => {
+          const rect = root.getBoundingClientRect()
+          const width = Math.max(1, Math.round(rect.width))
+          const height = Math.max(1, Math.round(rect.height))
+          renderer.setSize(width, height, false)
+          camera.aspect = width / height
+          camera.updateProjectionMatrix()
+        }
+
+        const resizeObserver = new ResizeObserver(resize)
+        resizeObserver.observe(root)
+        resize()
+
+        let isVisible = true
+        let isDocumentVisible = !document.hidden
+        let animationFrame = 0
+
+        const intersectionObserver = new IntersectionObserver(
+          (entries) => {
+            isVisible = entries.some((entry) => entry.isIntersecting)
+          },
+          { rootMargin: '160px' }
+        )
+        intersectionObserver.observe(root)
+
+        const handleVisibility = () => {
+          isDocumentVisible = !document.hidden
+        }
+        document.addEventListener('visibilitychange', handleVisibility)
+
+        const animateFrame = (time) => {
+          animationFrame = requestAnimationFrame(animateFrame)
+          if (!isVisible || !isDocumentVisible) return
+
+          controls.update()
+
+          if (wantsAnimation) {
+            const seconds = time * 0.001
+            const cycle = (seconds % 8.6) / 8.6
+
+            let morph = 0
+            let lift = 1.36
+            let rippleStrength = 0
+
+            if (cycle < 0.2) {
+              const t = smooth(cycle / 0.2)
+              lift = THREE.MathUtils.lerp(1.36, 0.72, t)
+            } else if (cycle < 0.38) {
+              const t = smooth((cycle - 0.2) / 0.18)
+              morph = t
+              lift = THREE.MathUtils.lerp(0.72, 0, t)
+            } else if (cycle < 0.56) {
+              morph = 1
+              lift = 0
+              rippleStrength = (cycle - 0.38) / 0.18
+            } else if (cycle < 0.74) {
+              const t = smooth((cycle - 0.56) / 0.18)
+              morph = 1 - t
+              lift = THREE.MathUtils.lerp(0, 0.7, t)
+              rippleStrength = 1 - t
+            } else {
+              const t = smooth((cycle - 0.74) / 0.26)
+              morph = 0
+              lift = THREE.MathUtils.lerp(0.7, 1.36, t)
+            }
+
+            updateMorph(morph, lift, rippleStrength, seconds)
+          } else {
+            updateMorph(0, 1.05, 0, 0)
+          }
+
+          renderer.render(scene, camera)
+        }
+
+        updateMorph(0, 1.05, 0, 0)
+        animationFrame = requestAnimationFrame(animateFrame)
+
+        const cleanup = () => {
+          cancelAnimationFrame(animationFrame)
+          document.removeEventListener('visibilitychange', handleVisibility)
+          resizeObserver.disconnect()
+          intersectionObserver.disconnect()
+          controls.dispose()
+          waterGeometry.dispose()
+          coreGeometry.dispose()
+          groundGeometry.dispose()
+          rings.forEach(({ geometry, material }) => {
+            geometry.dispose()
+            material.dispose()
+          })
+          waterMaterial.dispose()
+          coreMaterial.dispose()
+          groundMaterial.dispose()
+          renderer.dispose()
+        }
+
+        window.addEventListener('pagehide', cleanup, { once: true })
+      } catch (error) {
+        console.error('WaterDropMorph failed to initialize:', error)
+      }
+    })
+  })()
+</script>
