@@ -4,6 +4,7 @@ import MorphingTopography from '../../components/MorphingTopography.astro';
 import PointButterfly from '../../components/PointButterfly.astro';
 import PointTree from '../../components/PointTree.astro';
 import PointTreeStudy from '../../components/PointTreeStudy.astro';
+import TreeField from '../../components/TreeField.astro';
 import PointBee from '../../components/PointBee.astro';
 import StormwaterCatchment from '../../components/StormwaterCatchment.astro';
 import RootNetwork from '../../components/RootNetwork.astro';
@@ -163,6 +164,35 @@ import RootNetwork from '../../components/RootNetwork.astro';
 
             <p>
               Auto-rotate · zoom · woody hierarchy · canopy contours · root field
+            </p>
+          </footer>
+        </article>
+
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">03C</p>
+              <h2>Tree as field</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage experiment-stage--tree">
+            <div class="experiment-viewport experiment-viewport--tree">
+              <TreeField />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Puhdas pöytä -tutkielma, jossa latvus ja juuriston tila ovat järjestettyjä pistekenttiä. Runko yhdistää kaksi topografista tilavuutta ja käyrät seuraavat suoraan niiden geometriaa.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · ordered points · contours · canopy field · root field
             </p>
           </footer>
         </article>
