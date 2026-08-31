@@ -53,7 +53,7 @@ en:
     - climate change
     - urban planning
 
-  intro: "A major cloudburst in Copenhagen in 2011 caused more than DKK 6 billion in damage, equivalent to roughly EUR 800 million. The event prompted the city to develop a city-wide approach to managing cloudbursts and stormwater. Copenhagen's Cloudburst Management Plan combines improvements to the sewer network with around 300 surface-level projects designed to retain and safely convey excess water."
+  intro: "In Copenhagen, the cloudburst of July 2011 caused more than DKK 6 billion in damage, roughly EUR 800 million. To put the scale in perspective, the amount is almost the same as the Finnish government's 2026 appropriation for early childhood education, pre-primary and basic education, and liberal adult education. After the cloudburst, Copenhagen began developing flood-risk management at the scale of the whole city and its catchment areas."
 
   perspective:
     - "Stormwater management is easily treated as a technical detail, even though it is also a very tangible form of economic risk management. When the capacity of a system is exceeded, water will find a route. The question is whether a safe place has been designed for it, or whether it ends up in basements, streets and buildings."
