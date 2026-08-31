@@ -92,13 +92,13 @@ const {
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-        camera.position.set(4.35, 3.35, 5.55);
+        camera.position.set(4.45, 3.15, 5.7);
 
-        const landscape = new THREE.Group();
-        landscape.scale.setScalar(displayScale);
-        landscape.rotation.z = -0.055;
-        landscape.rotation.y = -0.04;
-        scene.add(landscape);
+        const waterGroup = new THREE.Group();
+        waterGroup.scale.setScalar(displayScale);
+        waterGroup.rotation.z = -0.045;
+        waterGroup.rotation.y = -0.035;
+        scene.add(waterGroup);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enablePan = false;
@@ -106,109 +106,117 @@ const {
         controls.enableDamping = true;
         controls.dampingFactor = 0.055;
         controls.rotateSpeed = 0.56;
-        controls.target.set(0, 0.03, 0);
+        controls.target.set(0, 0.01, 0);
         controls.autoRotate = wantsAutoRotate && !reducedMotion;
-        controls.autoRotateSpeed = 0.34;
+        controls.autoRotateSpeed = 0.28;
 
         if (wantsZoom) {
-          controls.minDistance = 6.1;
-          controls.maxDistance = 9.4;
+          controls.minDistance = 6.0;
+          controls.maxDistance = 9.5;
           controls.zoomSpeed = 0.52;
         } else {
           const direction = camera.position.clone().sub(controls.target).normalize();
-          camera.position.copy(controls.target).add(direction.multiplyScalar(7.25));
-          controls.minDistance = 7.25;
-          controls.maxDistance = 7.25;
+          camera.position.copy(controls.target).add(direction.multiplyScalar(7.3));
+          controls.minDistance = 7.3;
+          controls.maxDistance = 7.3;
         }
 
-        const terrainWidth = 4.15;
-        const terrainDepth = 3.05;
-        const columns = 94;
-        const rows = 70;
-        const cellWidth = terrainWidth / columns;
-        const cellDepth = terrainDepth / rows;
+        const riverLength = 4.35;
+        const columns = 104;
+        const rows = 34;
+        const pointCount = (columns + 1) * (rows + 1);
+        const positions = new Float32Array(pointCount * 3);
 
-        const heights = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(0));
-        const insideMask = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(false));
+        const heights = Array.from(
+          { length: rows + 1 },
+          () => new Float32Array(columns + 1)
+        );
+        const worldX = Array.from(
+          { length: rows + 1 },
+          () => new Float32Array(columns + 1)
+        );
+        const worldZ = Array.from(
+          { length: rows + 1 },
+          () => new Float32Array(columns + 1)
+        );
 
-        const boundaryRadius = (angle, phase) =>
-          0.9 +
-          0.055 * Math.sin(angle * 2.2 + 0.45 + phase * 0.035) +
-          0.032 * Math.cos(angle * 4.1 - 0.75 - phase * 0.025) +
-          0.018 * Math.sin(angle * 6.8 + 0.9 + phase * 0.04);
+        const centerline = (x, phase) =>
+          0.06 +
+          0.3 * Math.sin(x * 1.08 + 0.42) +
+          0.115 * Math.sin(x * 2.4 - 0.78) +
+          0.034 * Math.sin(x * 1.5 + phase * 0.22);
 
-        const radialData = (x, z, phase) => {
-          const sx = x / (terrainWidth * 0.5);
-          const sz = z / (terrainDepth * 0.5);
-          const angle = Math.atan2(sz, sx);
+        const riverWidth = (x, phase) =>
+          0.48 +
+          0.105 * Math.sin(x * 1.42 - 0.52) +
+          0.052 * Math.cos(x * 2.65 + 0.38) +
+          0.022 * Math.sin(phase * 0.27 + x * 0.86);
+
+        const waterHeight = (u, lateral, phase) => {
+          const flow = u * Math.PI * 2;
+          const centerBias = 0.58 + 0.42 * Math.pow(Math.max(0, 1 - Math.abs(lateral)), 0.55);
+
+          const broadWave =
+            0.092 * Math.sin(flow * 1.55 - phase * 1.38 + lateral * 0.52);
+          const midWave =
+            0.052 * Math.sin(flow * 3.05 - phase * 2.2 - lateral * 1.35);
+          const fineWave =
+            0.026 * Math.cos(flow * 5.15 - phase * 3.05 + lateral * 2.4);
+          const crossCurrent =
+            0.032 * Math.sin(
+              flow * 1.15 + lateral * Math.PI * 1.7 - phase * 1.05
+            );
+          const slowBody =
+            0.038 * Math.cos(flow * 0.72 - phase * 0.58 + lateral * 0.75);
+
+          return (
+            (broadWave + midWave + fineWave + crossCurrent) * centerBias +
+            slowBody
+          );
+        };
+
+        const surfacePoint = (u, lateral, phase) => {
+          const xCenter = THREE.MathUtils.lerp(-riverLength * 0.5, riverLength * 0.5, u);
+          const sample = 0.012;
+          const zCenter = centerline(xCenter, phase);
+          const zBefore = centerline(xCenter - sample, phase);
+          const zAfter = centerline(xCenter + sample, phase);
+          const dzdx = (zAfter - zBefore) / (sample * 2);
+          const normalLength = Math.sqrt(1 + dzdx * dzdx) || 1;
+          const normalX = -dzdx / normalLength;
+          const normalZ = 1 / normalLength;
+          const width = Math.max(0.3, riverWidth(xCenter, phase));
+
+          const edgeShape =
+            1 +
+            0.035 * Math.sin(u * Math.PI * 6.2 + phase * 0.31) *
+              Math.pow(Math.abs(lateral), 1.7);
+          const lateralDistance = lateral * width * edgeShape;
+
           return {
-            radius: Math.sqrt(sx * sx + sz * sz),
-            edge: boundaryRadius(angle, phase),
+            x: xCenter + normalX * lateralDistance,
+            y: waterHeight(u, lateral, phase),
+            z: zCenter + normalZ * lateralDistance,
           };
         };
 
-        const isInside = (x, z, phase) => {
-          const { radius, edge } = radialData(x, z, phase);
-          return radius < edge;
-        };
+        const surfaceGeometry = new THREE.BufferGeometry();
+        const surfaceAttribute = new THREE.BufferAttribute(positions, 3);
+        surfaceAttribute.setUsage(THREE.DynamicDrawUsage);
+        surfaceGeometry.setAttribute('position', surfaceAttribute);
 
-        const edgeFade = (x, z, phase) => {
-          const { radius, edge } = radialData(x, z, phase);
-          if (radius >= edge) return 0;
-          return 1 - THREE.MathUtils.smoothstep(radius, edge - 0.13, edge);
-        };
-
-        const riverCenter = (x, phase) =>
-          0.1 +
-          0.19 * Math.sin(x * 1.4 + 0.45 + phase * 0.055) +
-          0.085 * Math.sin(x * 2.75 - 0.7 - phase * 0.035);
-
-        const riverWidth = (x, phase) =>
-          0.145 +
-          0.042 * Math.sin(x * 1.65 - 0.4 + phase * 0.06) +
-          0.018 * Math.cos(x * 3.1 + 0.55 - phase * 0.04);
-
-        const terrainHeight = (x, z, phase) => {
-          const hillA =
-            (0.38 + 0.055 * Math.sin(phase * 0.17)) *
-            Math.exp(-((x + 0.85) ** 2 * 1.45 + (z - 0.55) ** 2 * 2.4));
-
-          const hillB =
-            (0.3 + 0.04 * Math.cos(phase * 0.13 + 0.6)) *
-            Math.exp(-((x - 0.88) ** 2 * 1.7 + (z + 0.52) ** 2 * 2.8));
-
-          const shoulder =
-            0.12 *
-            Math.exp(-((x - 0.05) ** 2 * 0.85 + (z - 0.78) ** 2 * 3.1));
-
-          const broadForm =
-            0.045 * Math.sin(x * 1.1 + z * 0.72 + phase * 0.08) +
-            0.032 * Math.cos(z * 1.55 - x * 0.34 - phase * 0.065);
-
-          const center = riverCenter(x, phase);
-          const width = Math.max(0.08, riverWidth(x, phase));
-          const channelDistance = (z - center) / width;
-          const channel = -0.115 * Math.exp(-(channelDistance * channelDistance) * 1.65);
-          const valley = -0.055 * Math.exp(-(channelDistance * channelDistance) * 0.34);
-
-          const fade = edgeFade(x, z, phase);
-          return (hillA + hillB + shoulder + broadForm + channel + valley) * (0.5 + 0.5 * fade);
-        };
-
-        const terrainGeometry = new THREE.BufferGeometry();
-        const terrainMaterial = new THREE.PointsMaterial({
-          color: 0x353832,
-          size: 0.023,
+        const surfaceMaterial = new THREE.PointsMaterial({
+          color: 0x4f5d54,
+          size: 0.024,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.58,
+          opacity: 0.7,
         });
-        const terrainPoints = new THREE.Points(terrainGeometry, terrainMaterial);
-        landscape.add(terrainPoints);
+        waterGroup.add(new THREE.Points(surfaceGeometry, surfaceMaterial));
 
         const contourGroup = new THREE.Group();
         contourGroup.visible = wantsContours;
-        landscape.add(contourGroup);
+        waterGroup.add(contourGroup);
 
         const clearContours = () => {
           for (const child of [...contourGroup.children]) {
@@ -227,55 +235,94 @@ const {
           };
         };
 
-        let contourLevels = null;
-
         const createContourLevels = (minHeight, maxHeight) => {
-          const count = 8;
-          const low = minHeight + (maxHeight - minHeight) * 0.13;
-          const high = maxHeight - (maxHeight - minHeight) * 0.1;
+          const count = 10;
+          const low = minHeight + (maxHeight - minHeight) * 0.09;
+          const high = maxHeight - (maxHeight - minHeight) * 0.09;
           return Array.from({ length: count }, (_, index) =>
             THREE.MathUtils.lerp(low, high, index / (count - 1))
           );
         };
 
-        const rebuildContours = () => {
+        const rebuildSurface = (phase) => {
+          let pointIndex = 0;
+          let minHeight = Infinity;
+          let maxHeight = -Infinity;
+
+          for (let row = 0; row <= rows; row += 1) {
+            const lateral = THREE.MathUtils.lerp(-1, 1, row / rows);
+
+            for (let column = 0; column <= columns; column += 1) {
+              const u = column / columns;
+              const point = surfacePoint(u, lateral, phase);
+              const offset = pointIndex * 3;
+
+              positions[offset] = point.x;
+              positions[offset + 1] = point.y;
+              positions[offset + 2] = point.z;
+
+              worldX[row][column] = point.x;
+              worldZ[row][column] = point.z;
+              heights[row][column] = point.y;
+
+              minHeight = Math.min(minHeight, point.y);
+              maxHeight = Math.max(maxHeight, point.y);
+              pointIndex += 1;
+            }
+          }
+
+          surfaceAttribute.needsUpdate = true;
+          return { minHeight, maxHeight };
+        };
+
+        const rebuildContours = (minHeight, maxHeight) => {
           clearContours();
-          if (!wantsContours || !contourLevels) return;
+          if (!wantsContours) return;
+
+          const contourLevels = createContourLevels(minHeight, maxHeight);
 
           contourLevels.forEach((level, contourIndex) => {
-            const positions = [];
+            const linePositions = [];
+
             const addSegment = (a, b) => {
-              positions.push(a.x, level + 0.009, a.z, b.x, level + 0.009, b.z);
+              linePositions.push(
+                a.x,
+                level + 0.006,
+                a.z,
+                b.x,
+                level + 0.006,
+                b.z
+              );
             };
 
             for (let row = 0; row < rows; row += 1) {
-              const z0 = -terrainDepth / 2 + cellDepth * row;
-              const z1 = z0 + cellDepth;
-
               for (let column = 0; column < columns; column += 1) {
-                if (
-                  !insideMask[row][column] ||
-                  !insideMask[row][column + 1] ||
-                  !insideMask[row + 1][column + 1] ||
-                  !insideMask[row + 1][column]
-                ) continue;
-
-                const x0 = -terrainWidth / 2 + cellWidth * column;
-                const x1 = x0 + cellWidth;
                 const h0 = heights[row][column];
                 const h1 = heights[row][column + 1];
                 const h2 = heights[row + 1][column + 1];
                 const h3 = heights[row + 1][column];
-                const p0 = { x: x0, z: z0 };
-                const p1 = { x: x1, z: z0 };
-                const p2 = { x: x1, z: z1 };
-                const p3 = { x: x0, z: z1 };
+
+                const p0 = { x: worldX[row][column], z: worldZ[row][column] };
+                const p1 = { x: worldX[row][column + 1], z: worldZ[row][column + 1] };
+                const p2 = {
+                  x: worldX[row + 1][column + 1],
+                  z: worldZ[row + 1][column + 1],
+                };
+                const p3 = { x: worldX[row + 1][column], z: worldZ[row + 1][column] };
                 const hits = [];
 
-                if ((h0 < level) !== (h1 < level)) hits.push(interpolate(level, p0, p1, h0, h1));
-                if ((h1 < level) !== (h2 < level)) hits.push(interpolate(level, p1, p2, h1, h2));
-                if ((h2 < level) !== (h3 < level)) hits.push(interpolate(level, p2, p3, h2, h3));
-                if ((h3 < level) !== (h0 < level)) hits.push(interpolate(level, p3, p0, h3, h0));
+                if ((h0 < level) !== (h1 < level)) {
+                  hits.push(interpolate(level, p0, p1, h0, h1));
+                }
+                if ((h1 < level) !== (h2 < level)) {
+                  hits.push(interpolate(level, p1, p2, h1, h2));
+                }
+                if ((h2 < level) !== (h3 < level)) {
+                  hits.push(interpolate(level, p2, p3, h2, h3));
+                }
+                if ((h3 < level) !== (h0 < level)) {
+                  hits.push(interpolate(level, p3, p0, h3, h0));
+                }
 
                 if (hits.length === 2) {
                   addSegment(hits[0], hits[1]);
@@ -292,134 +339,20 @@ const {
               }
             }
 
-            if (!positions.length) return;
+            if (!linePositions.length) return;
 
             const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute(
+              'position',
+              new THREE.Float32BufferAttribute(linePositions, 3)
+            );
             const material = new THREE.LineBasicMaterial({
               color: 0x657168,
               transparent: true,
-              opacity: contourIndex % 3 === 0 ? 0.42 : 0.22,
+              opacity: contourIndex % 3 === 0 ? 0.58 : 0.32,
             });
             contourGroup.add(new THREE.LineSegments(geometry, material));
           });
-        };
-
-        const rebuildTerrain = (phase, establishLevels = false) => {
-          const positions = [];
-          let minHeight = Infinity;
-          let maxHeight = -Infinity;
-
-          for (let row = 0; row <= rows; row += 1) {
-            const z = -terrainDepth / 2 + cellDepth * row;
-            for (let column = 0; column <= columns; column += 1) {
-              const x = -terrainWidth / 2 + cellWidth * column;
-              const inside = isInside(x, z, phase);
-              insideMask[row][column] = inside;
-
-              const height = terrainHeight(x, z, phase);
-              heights[row][column] = height;
-              if (!inside) continue;
-
-              positions.push(x, height, z);
-              minHeight = Math.min(minHeight, height);
-              maxHeight = Math.max(maxHeight, height);
-            }
-          }
-
-          terrainGeometry.setAttribute(
-            'position',
-            new THREE.Float32BufferAttribute(positions, 3)
-          );
-
-          if (establishLevels || !contourLevels) {
-            contourLevels = createContourLevels(minHeight, maxHeight);
-          }
-
-          rebuildContours();
-        };
-
-        const waterCount = 238;
-        const waterPositions = new Float32Array(waterCount * 3);
-        const waterProgress = new Float32Array(waterCount);
-        const waterLateral = new Float32Array(waterCount);
-        const waterSpeed = new Float32Array(waterCount);
-        const waterPhase = new Float32Array(waterCount);
-
-        const fract = (value) => value - Math.floor(value);
-        const hash = (value) => fract(Math.sin(value * 12.9898 + 78.233) * 43758.5453);
-
-        for (let i = 0; i < waterCount; i += 1) {
-          const lateral = hash(i + 8.2) * 2 - 1;
-          waterProgress[i] = fract(i / waterCount + hash(i + 2.7) * 0.045);
-          waterLateral[i] = lateral;
-          waterSpeed[i] =
-            0.032 +
-            0.025 * (1 - Math.abs(lateral)) +
-            0.005 * hash(i + 19.4);
-          waterPhase[i] = hash(i + 31.8) * Math.PI * 2;
-        }
-
-        const waterGeometry = new THREE.BufferGeometry();
-        const waterAttribute = new THREE.BufferAttribute(waterPositions, 3);
-        waterAttribute.setUsage(THREE.DynamicDrawUsage);
-        waterGeometry.setAttribute('position', waterAttribute);
-
-        const waterMaterial = new THREE.PointsMaterial({
-          color: 0x718278,
-          size: 0.035,
-          sizeAttenuation: true,
-          transparent: true,
-          opacity: 0.9,
-        });
-        landscape.add(new THREE.Points(waterGeometry, waterMaterial));
-
-        const flowStartX = -1.78;
-        const flowEndX = 1.78;
-
-        const updateWater = (timeSeconds, deltaSeconds, phase) => {
-          for (let i = 0; i < waterCount; i += 1) {
-            if (wantsAnimation) {
-              waterProgress[i] = fract(
-                waterProgress[i] + waterSpeed[i] * Math.min(deltaSeconds, 0.05)
-              );
-            }
-
-            const progress = waterProgress[i];
-            const xCenter = THREE.MathUtils.lerp(flowStartX, flowEndX, progress);
-            const zCenter = riverCenter(xCenter, phase);
-            const sampleDistance = 0.012;
-            const zBefore = riverCenter(xCenter - sampleDistance, phase);
-            const zAfter = riverCenter(xCenter + sampleDistance, phase);
-            const dzdx = (zAfter - zBefore) / (sampleDistance * 2);
-            const normalLength = Math.sqrt(1 + dzdx * dzdx) || 1;
-            const normalX = -dzdx / normalLength;
-            const normalZ = 1 / normalLength;
-
-            const baseLateral = waterLateral[i];
-            const lateralDrift = wantsAnimation
-              ? 0.075 *
-                Math.sin(timeSeconds * 0.75 + waterPhase[i] + progress * Math.PI * 3) *
-                (1 - Math.abs(baseLateral))
-              : 0;
-            const lateral = THREE.MathUtils.clamp(baseLateral + lateralDrift, -1, 1);
-            const width = Math.max(0.08, riverWidth(xCenter, phase));
-            const lateralDistance = lateral * width * 0.82;
-
-            const x = xCenter + normalX * lateralDistance;
-            const z = zCenter + normalZ * lateralDistance;
-            const waterSurface = terrainHeight(xCenter, zCenter, phase) + 0.055;
-            const microWave = wantsAnimation
-              ? 0.006 * Math.sin(timeSeconds * 2.0 + waterPhase[i] + progress * 11)
-              : 0;
-
-            const offset = i * 3;
-            waterPositions[offset] = x;
-            waterPositions[offset + 1] = waterSurface + microWave;
-            waterPositions[offset + 2] = z;
-          }
-
-          waterAttribute.needsUpdate = true;
         };
 
         const resize = () => {
@@ -438,12 +371,10 @@ const {
         let isVisible = true;
         let isDocumentVisible = !document.hidden;
         let animationFrame = 0;
-        let lastFrameTime = 0;
-        let lastTerrainUpdate = -Infinity;
-        let terrainPhase = 0;
-
-        rebuildTerrain(0, true);
-        updateWater(0, 0, 0);
+        let lastSurfaceUpdate = -Infinity;
+        let lastContourUpdate = -Infinity;
+        let currentRange = rebuildSurface(0);
+        rebuildContours(currentRange.minHeight, currentRange.maxHeight);
 
         const intersectionObserver = new IntersectionObserver(
           (entries) => {
@@ -455,33 +386,27 @@ const {
 
         const handleVisibility = () => {
           isDocumentVisible = !document.hidden;
-          if (isDocumentVisible) lastFrameTime = 0;
         };
         document.addEventListener('visibilitychange', handleVisibility);
 
         const animateFrame = (time) => {
           animationFrame = requestAnimationFrame(animateFrame);
-          if (!isVisible || !isDocumentVisible) {
-            lastFrameTime = time;
-            return;
-          }
-
-          const timeSeconds = time * 0.001;
-          const deltaSeconds = lastFrameTime ? (time - lastFrameTime) * 0.001 : 0;
-          lastFrameTime = time;
+          if (!isVisible || !isDocumentVisible) return;
 
           controls.update();
 
-          if (wantsAnimation) {
-            terrainPhase = timeSeconds * 0.48;
+          const phase = wantsAnimation ? time * 0.001 : 0;
+
+          if (wantsAnimation && time - lastSurfaceUpdate >= 48) {
+            currentRange = rebuildSurface(phase);
+            lastSurfaceUpdate = time;
           }
 
-          if (wantsAnimation && time - lastTerrainUpdate >= 115) {
-            rebuildTerrain(terrainPhase);
-            lastTerrainUpdate = time;
+          if (wantsAnimation && wantsContours && time - lastContourUpdate >= 105) {
+            rebuildContours(currentRange.minHeight, currentRange.maxHeight);
+            lastContourUpdate = time;
           }
 
-          updateWater(timeSeconds, deltaSeconds, terrainPhase);
           renderer.render(scene, camera);
         };
 
@@ -494,10 +419,8 @@ const {
           intersectionObserver.disconnect();
           controls.dispose();
           clearContours();
-          terrainGeometry.dispose();
-          terrainMaterial.dispose();
-          waterGeometry.dispose();
-          waterMaterial.dispose();
+          surfaceGeometry.dispose();
+          surfaceMaterial.dispose();
           renderer.dispose();
         };
 
