@@ -4,6 +4,7 @@ import MorphingTopography from '../../components/MorphingTopography.astro';
 import PointButterfly from '../../components/PointButterfly.astro';
 import PointTree from '../../components/PointTree.astro';
 import PointBee from '../../components/PointBee.astro';
+import StormwaterCatchment from '../../components/StormwaterCatchment.astro';
 ---
 
 <!doctype html>
@@ -160,6 +161,35 @@ import PointBee from '../../components/PointBee.astro';
 
             <p>
               Auto-rotate · zoom · wing buzz · point cloud
+            </p>
+          </footer>
+        </article>
+
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">05</p>
+              <h2>Stormwater catchment</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage">
+            <div class="experiment-viewport">
+              <StormwaterCatchment />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Hulevesien valuma-aluetta kuvaava pistepilvimalli, jossa sade, virtausreitit, painanne ja ylivuoto muodostavat yhden liikkuvan järjestelmän.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · rain · flow · basin
             </p>
           </footer>
         </article>
