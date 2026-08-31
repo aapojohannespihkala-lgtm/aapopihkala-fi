@@ -4,7 +4,7 @@ import type {
 } from 'astro:content';
 
 import PointButterfly from './PointButterfly.astro';
-import StormwaterCatchment from './StormwaterCatchment.astro';
+import WaterDropMorph from './WaterDropMorph.astro';
 
 interface Props {
   post: CollectionEntry<'posts'>;
@@ -219,10 +219,12 @@ const displayedSourceLabel =
               role="img"
               aria-label={localizedPost.graphicAlt ?? ''}
             >
-              <div class="post-interactive-graphic post-interactive-graphic--stormwater">
-                <StormwaterCatchment
-                  class="post-stormwater"
+              <div class="post-interactive-graphic post-interactive-graphic--waterdrop">
+                <WaterDropMorph
+                  class="post-waterdrop"
                   enableZoom={false}
+                  scale={1.08}
+                  cameraDistance={6.8}
                 />
               </div>
             </figure>
@@ -302,17 +304,17 @@ const displayedSourceLabel =
     overflow: hidden;
   }
 
-  .post-interactive-graphic--stormwater {
+  .post-interactive-graphic--waterdrop {
     height: clamp(150px, 18vw, 190px);
   }
 
   .post-interactive-graphic :global(.post-butterfly),
-  .post-interactive-graphic :global(.post-stormwater) {
+  .post-interactive-graphic :global(.post-waterdrop) {
     min-height: 0;
   }
 
   .post-interactive-graphic :global(.point-butterfly__canvas),
-  .post-interactive-graphic :global(.stormwater-catchment__canvas) {
+  .post-interactive-graphic :global(.water-drop-morph__canvas) {
     touch-action: pan-y;
   }
 
