@@ -1,0 +1,1212 @@
+---
+interface Props {
+  class?: string;
+  autoRotate?: boolean;
+  morph?: boolean;
+  showContours?: boolean;
+}
+
+const {
+  class: className,
+  autoRotate = true,
+  morph = true,
+  showContours = true,
+} = Astro.props;
+---
+
+<div
+  class:list={[
+    'morphing-topography',
+    className,
+  ]}
+  data-morphing-topography
+  data-auto-rotate={
+    autoRotate
+      ? 'true'
+      : 'false'
+  }
+  data-morph={
+    morph
+      ? 'true'
+      : 'false'
+  }
+  data-show-contours={
+    showContours
+      ? 'true'
+      : 'false'
+  }
+  aria-hidden="true"
+>
+  <canvas
+    class="morphing-topography__canvas"
+    data-morphing-topography-canvas
+  ></canvas>
+</div>
+
+<style>
+  .morphing-topography {
+    position: relative;
+
+    width: 100%;
+    height: 100%;
+    min-height: 220px;
+
+    overflow: hidden;
+
+    background: transparent;
+
+    cursor: grab;
+
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .morphing-topography:active {
+    cursor: grabbing;
+  }
+
+  .morphing-topography__canvas {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    background: transparent;
+
+    touch-action: none;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const roots =
+      document.querySelectorAll(
+        '[data-morphing-topography]'
+      );
+
+    roots.forEach(
+      async (root) => {
+        if (
+          root.dataset
+            .topographyInitialized ===
+          'true'
+        ) {
+          return;
+        }
+
+        root.dataset.topographyInitialized =
+          'true';
+
+        const canvas =
+          root.querySelector(
+            '[data-morphing-topography-canvas]'
+          );
+
+        if (!canvas) {
+          return;
+        }
+
+        try {
+          const THREE =
+            await import(
+              'https://cdn.jsdelivr.net/npm/three@0.180.0/+esm'
+            );
+
+          const {
+            OrbitControls,
+          } =
+            await import(
+              'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
+            );
+
+          const prefersReducedMotion =
+            window.matchMedia(
+              '(prefers-reduced-motion: reduce)'
+            ).matches;
+
+          const wantsAutoRotate =
+            root.dataset
+              .autoRotate !==
+            'false';
+
+          const wantsMorph =
+            root.dataset.morph !==
+            'false';
+
+          const wantsContours =
+            root.dataset
+              .showContours !==
+            'false';
+
+          const renderer =
+            new THREE.WebGLRenderer({
+              canvas,
+              antialias: true,
+              alpha: true,
+            });
+
+          renderer.setPixelRatio(
+            Math.min(
+              window.devicePixelRatio ||
+                1,
+              1.6
+            )
+          );
+
+          renderer.setClearColor(
+            0xffffff,
+            0
+          );
+
+          const scene =
+            new THREE.Scene();
+
+          const camera =
+            new THREE.PerspectiveCamera(
+              34,
+              1,
+              0.1,
+              100
+            );
+
+          camera.position.set(
+            3.75,
+            3.0,
+            4.8
+          );
+
+          const terrainGroup =
+            new THREE.Group();
+
+          terrainGroup.rotation.z =
+            -0.08;
+
+          scene.add(
+            terrainGroup
+          );
+
+          const controls =
+            new OrbitControls(
+              camera,
+              renderer.domElement
+            );
+
+          controls.enablePan = false;
+          controls.enableZoom = false;
+          controls.enableDamping = true;
+          controls.dampingFactor =
+            0.055;
+          controls.rotateSpeed =
+            0.58;
+          controls.target.set(
+            0,
+            0.12,
+            0
+          );
+          controls.autoRotate =
+            wantsAutoRotate &&
+            !prefersReducedMotion;
+          controls.autoRotateSpeed =
+            0.52;
+
+          const terrainWidth =
+            3.7;
+
+          const terrainDepth =
+            2.9;
+
+          const columns = 112;
+          const rows = 88;
+
+          const cellWidth =
+            terrainWidth /
+            columns;
+
+          const cellDepth =
+            terrainDepth /
+            rows;
+
+          const heights =
+            Array.from(
+              {
+                length:
+                  rows + 1,
+              },
+              () =>
+                Array(
+                  columns + 1
+                ).fill(0)
+            );
+
+          const insideMask =
+            Array.from(
+              {
+                length:
+                  rows + 1,
+              },
+              () =>
+                Array(
+                  columns + 1
+                ).fill(false)
+            );
+
+          const boundaryRadius = (
+            angle,
+            phase
+          ) =>
+            0.88 +
+            0.065 *
+              Math.sin(
+                angle * 2.05 +
+                  0.25 +
+                  phase * 0.12
+              ) +
+            0.038 *
+              Math.sin(
+                angle * 3.75 -
+                  0.8 -
+                  phase * 0.09
+              ) +
+            0.022 *
+              Math.cos(
+                angle * 6.1 +
+                  1.0 +
+                  phase * 0.14
+              ) +
+            0.013 *
+              Math.sin(
+                angle * 8.7 -
+                  0.35 +
+                  phase * 0.18
+              );
+
+          const radialData = (
+            x,
+            z,
+            phase
+          ) => {
+            const scaledX =
+              x /
+              (terrainWidth *
+                0.5);
+
+            const scaledZ =
+              z /
+              (terrainDepth *
+                0.5);
+
+            const angle =
+              Math.atan2(
+                scaledZ,
+                scaledX
+              );
+
+            const radius =
+              Math.sqrt(
+                scaledX *
+                  scaledX +
+                  scaledZ *
+                    scaledZ
+              );
+
+            return {
+              radius,
+              edge:
+                boundaryRadius(
+                  angle,
+                  phase
+                ),
+            };
+          };
+
+          const isInside = (
+            x,
+            z,
+            phase
+          ) => {
+            const {
+              radius,
+              edge,
+            } = radialData(
+              x,
+              z,
+              phase
+            );
+
+            return radius < edge;
+          };
+
+          const edgeFade = (
+            x,
+            z,
+            phase
+          ) => {
+            const {
+              radius,
+              edge,
+            } = radialData(
+              x,
+              z,
+              phase
+            );
+
+            if (
+              radius >= edge
+            ) {
+              return 0;
+            }
+
+            return (
+              1 -
+              THREE.MathUtils.smoothstep(
+                radius,
+                edge - 0.13,
+                edge
+              )
+            );
+          };
+
+          const terrainHeight = (
+            x,
+            z,
+            phase
+          ) => {
+            const ridgeAmplitude =
+              0.66 +
+              0.12 *
+                Math.sin(
+                  phase * 0.55
+                );
+
+            const ridgeX =
+              -0.48 +
+              0.16 *
+                Math.sin(
+                  phase * 0.34
+                );
+
+            const ridgeZ =
+              0.03 +
+              0.09 *
+                Math.cos(
+                  phase * 0.28
+                );
+
+            const ridge =
+              ridgeAmplitude *
+              Math.exp(
+                -(
+                  (x - ridgeX) **
+                    2 *
+                    1.25 +
+                  (z - ridgeZ) **
+                    2 *
+                    2.5
+                )
+              );
+
+            const shoulder =
+              (0.24 +
+                0.06 *
+                  Math.cos(
+                    phase * 0.4
+                  )) *
+              Math.exp(
+                -(
+                  (x - 0.77) **
+                    2 *
+                    2.7 +
+                  (z - 0.42) **
+                    2 *
+                    3.8
+                )
+              );
+
+            const basinX =
+              0.34 +
+              0.12 *
+                Math.sin(
+                  phase * 0.31 +
+                    1.2
+                );
+
+            const basinZ =
+              -0.34 +
+              0.08 *
+                Math.cos(
+                  phase * 0.36 +
+                    0.7
+                );
+
+            const basinAmplitude =
+              -0.17 -
+              0.06 *
+                (0.5 +
+                  0.5 *
+                    Math.sin(
+                      phase * 0.52 +
+                        0.5
+                    ));
+
+            const basin =
+              basinAmplitude *
+              Math.exp(
+                -(
+                  (x - basinX) **
+                    2 *
+                    6.0 +
+                  (z - basinZ) **
+                    2 *
+                    7.0
+                )
+              );
+
+            const channelCenter =
+              -0.2 +
+              0.12 *
+                Math.sin(
+                  x * 1.6 +
+                    phase * 0.32
+                ) +
+              0.025 *
+                Math.sin(
+                  x * 3.1 -
+                    phase * 0.18
+                );
+
+            const channel =
+              -0.05 *
+              Math.exp(
+                -(
+                  (z -
+                    channelCenter) **
+                    2
+                ) *
+                  82
+              );
+
+            const localLift =
+              0.1 *
+              Math.sin(
+                phase * 0.7 +
+                  1.5
+              ) *
+              Math.exp(
+                -(
+                  (x + 0.05) **
+                    2 *
+                    3.3 +
+                  (z + 0.08) **
+                    2 *
+                    4.0
+                )
+              );
+
+            const broadForm =
+              0.03 *
+                Math.sin(
+                  x * 1.15 +
+                    z * 0.6 +
+                    phase * 0.15
+                ) +
+              0.022 *
+                Math.cos(
+                  z * 1.8 -
+                    x * 0.32 -
+                    phase * 0.13
+                );
+
+            const fade =
+              edgeFade(
+                x,
+                z,
+                phase
+              );
+
+            return (
+              (ridge +
+                shoulder +
+                basin +
+                channel +
+                localLift +
+                broadForm) *
+              (0.48 +
+                0.52 * fade)
+            );
+          };
+
+          const pointGeometry =
+            new THREE.BufferGeometry();
+
+          const pointMaterial =
+            new THREE.PointsMaterial({
+              color: 0x353832,
+              size: 0.024,
+              sizeAttenuation: true,
+              transparent: true,
+              opacity: 0.7,
+            });
+
+          const pointCloud =
+            new THREE.Points(
+              pointGeometry,
+              pointMaterial
+            );
+
+          terrainGroup.add(
+            pointCloud
+          );
+
+          const contourGroup =
+            new THREE.Group();
+
+          contourGroup.visible =
+            wantsContours;
+
+          terrainGroup.add(
+            contourGroup
+          );
+
+          const interpolate = (
+            level,
+            pointA,
+            pointB,
+            heightA,
+            heightB
+          ) => {
+            const delta =
+              heightB - heightA;
+
+            const amount =
+              Math.abs(delta) <
+              0.00000001
+                ? 0.5
+                : (level -
+                    heightA) /
+                  delta;
+
+            return {
+              x:
+                THREE.MathUtils.lerp(
+                  pointA.x,
+                  pointB.x,
+                  amount
+                ),
+              z:
+                THREE.MathUtils.lerp(
+                  pointA.z,
+                  pointB.z,
+                  amount
+                ),
+            };
+          };
+
+          let contourLevels =
+            null;
+
+          const createContourLevels = (
+            minHeight,
+            maxHeight
+          ) => {
+            const count = 11;
+
+            const low =
+              minHeight +
+              (maxHeight -
+                minHeight) *
+                0.08;
+
+            const high =
+              maxHeight -
+              (maxHeight -
+                minHeight) *
+                0.08;
+
+            return Array.from(
+              {
+                length: count,
+              },
+              (_, index) =>
+                THREE.MathUtils.lerp(
+                  low,
+                  high,
+                  index /
+                    (count - 1)
+                )
+            );
+          };
+
+          const clearContours =
+            () => {
+              for (
+                const child of [
+                  ...contourGroup.children,
+                ]
+              ) {
+                child.geometry.dispose();
+                child.material.dispose();
+
+                contourGroup.remove(
+                  child
+                );
+              }
+            };
+
+          const rebuildContours =
+            () => {
+              clearContours();
+
+              if (
+                !contourLevels
+              ) {
+                return;
+              }
+
+              contourLevels.forEach(
+                (
+                  level,
+                  contourIndex
+                ) => {
+                  const positions =
+                    [];
+
+                  for (
+                    let row = 0;
+                    row < rows;
+                    row += 1
+                  ) {
+                    const z0 =
+                      -terrainDepth /
+                        2 +
+                      cellDepth *
+                        row;
+
+                    const z1 =
+                      z0 +
+                      cellDepth;
+
+                    for (
+                      let column = 0;
+                      column <
+                      columns;
+                      column += 1
+                    ) {
+                      if (
+                        !insideMask[
+                          row
+                        ][column] ||
+                        !insideMask[
+                          row
+                        ][
+                          column + 1
+                        ] ||
+                        !insideMask[
+                          row + 1
+                        ][
+                          column + 1
+                        ] ||
+                        !insideMask[
+                          row + 1
+                        ][column]
+                      ) {
+                        continue;
+                      }
+
+                      const x0 =
+                        -terrainWidth /
+                          2 +
+                        cellWidth *
+                          column;
+
+                      const x1 =
+                        x0 +
+                        cellWidth;
+
+                      const h0 =
+                        heights[
+                          row
+                        ][column];
+
+                      const h1 =
+                        heights[
+                          row
+                        ][
+                          column + 1
+                        ];
+
+                      const h2 =
+                        heights[
+                          row + 1
+                        ][
+                          column + 1
+                        ];
+
+                      const h3 =
+                        heights[
+                          row + 1
+                        ][column];
+
+                      const p0 = {
+                        x: x0,
+                        z: z0,
+                      };
+
+                      const p1 = {
+                        x: x1,
+                        z: z0,
+                      };
+
+                      const p2 = {
+                        x: x1,
+                        z: z1,
+                      };
+
+                      const p3 = {
+                        x: x0,
+                        z: z1,
+                      };
+
+                      const hits = [];
+
+                      if (
+                        (h0 < level) !==
+                        (h1 < level)
+                      ) {
+                        hits.push(
+                          interpolate(
+                            level,
+                            p0,
+                            p1,
+                            h0,
+                            h1
+                          )
+                        );
+                      }
+
+                      if (
+                        (h1 < level) !==
+                        (h2 < level)
+                      ) {
+                        hits.push(
+                          interpolate(
+                            level,
+                            p1,
+                            p2,
+                            h1,
+                            h2
+                          )
+                        );
+                      }
+
+                      if (
+                        (h2 < level) !==
+                        (h3 < level)
+                      ) {
+                        hits.push(
+                          interpolate(
+                            level,
+                            p2,
+                            p3,
+                            h2,
+                            h3
+                          )
+                        );
+                      }
+
+                      if (
+                        (h3 < level) !==
+                        (h0 < level)
+                      ) {
+                        hits.push(
+                          interpolate(
+                            level,
+                            p3,
+                            p0,
+                            h3,
+                            h0
+                          )
+                        );
+                      }
+
+                      const addSegment = (
+                        a,
+                        b
+                      ) => {
+                        positions.push(
+                          a.x,
+                          level +
+                            0.011,
+                          a.z,
+                          b.x,
+                          level +
+                            0.011,
+                          b.z
+                        );
+                      };
+
+                      if (
+                        hits.length ===
+                        2
+                      ) {
+                        addSegment(
+                          hits[0],
+                          hits[1]
+                        );
+                      } else if (
+                        hits.length ===
+                        4
+                      ) {
+                        const center =
+                          (h0 +
+                            h1 +
+                            h2 +
+                            h3) /
+                          4;
+
+                        if (
+                          center >=
+                          level
+                        ) {
+                          addSegment(
+                            hits[0],
+                            hits[3]
+                          );
+
+                          addSegment(
+                            hits[1],
+                            hits[2]
+                          );
+                        } else {
+                          addSegment(
+                            hits[0],
+                            hits[1]
+                          );
+
+                          addSegment(
+                            hits[2],
+                            hits[3]
+                          );
+                        }
+                      }
+                    }
+                  }
+
+                  if (
+                    positions.length ===
+                    0
+                  ) {
+                    return;
+                  }
+
+                  const geometry =
+                    new THREE.BufferGeometry();
+
+                  geometry.setAttribute(
+                    'position',
+                    new THREE.Float32BufferAttribute(
+                      positions,
+                      3
+                    )
+                  );
+
+                  const isMajor =
+                    contourIndex %
+                      3 ===
+                    0;
+
+                  const material =
+                    new THREE.LineBasicMaterial({
+                      color: 0x59695d,
+                      transparent: true,
+                      opacity:
+                        isMajor
+                          ? 0.92
+                          : 0.5,
+                    });
+
+                  contourGroup.add(
+                    new THREE.LineSegments(
+                      geometry,
+                      material
+                    )
+                  );
+                }
+              );
+            };
+
+          const rebuildTerrain = (
+            phase,
+            establishLevels =
+              false
+          ) => {
+            const positions = [];
+
+            let minHeight =
+              Infinity;
+
+            let maxHeight =
+              -Infinity;
+
+            for (
+              let row = 0;
+              row <= rows;
+              row += 1
+            ) {
+              const z =
+                -terrainDepth /
+                  2 +
+                cellDepth * row;
+
+              for (
+                let column = 0;
+                column <=
+                columns;
+                column += 1
+              ) {
+                const x =
+                  -terrainWidth /
+                    2 +
+                  cellWidth *
+                    column;
+
+                const inside =
+                  isInside(
+                    x,
+                    z,
+                    phase
+                  );
+
+                insideMask[row][
+                  column
+                ] = inside;
+
+                const height =
+                  terrainHeight(
+                    x,
+                    z,
+                    phase
+                  );
+
+                heights[row][
+                  column
+                ] = height;
+
+                if (!inside) {
+                  continue;
+                }
+
+                positions.push(
+                  x,
+                  height,
+                  z
+                );
+
+                minHeight =
+                  Math.min(
+                    minHeight,
+                    height
+                  );
+
+                maxHeight =
+                  Math.max(
+                    maxHeight,
+                    height
+                  );
+              }
+            }
+
+            pointGeometry.setAttribute(
+              'position',
+              new THREE.Float32BufferAttribute(
+                positions,
+                3
+              )
+            );
+
+            if (
+              establishLevels ||
+              !contourLevels
+            ) {
+              contourLevels =
+                createContourLevels(
+                  minHeight,
+                  maxHeight
+                );
+            }
+
+            rebuildContours();
+          };
+
+          const resize = () => {
+            const rect =
+              root.getBoundingClientRect();
+
+            const width =
+              Math.max(
+                1,
+                Math.round(
+                  rect.width
+                )
+              );
+
+            const height =
+              Math.max(
+                1,
+                Math.round(
+                  rect.height
+                )
+              );
+
+            renderer.setSize(
+              width,
+              height,
+              false
+            );
+
+            camera.aspect =
+              width / height;
+
+            camera.updateProjectionMatrix();
+          };
+
+          const resizeObserver =
+            new ResizeObserver(
+              resize
+            );
+
+          resizeObserver.observe(
+            root
+          );
+
+          resize();
+
+          rebuildTerrain(
+            0,
+            true
+          );
+
+          let isVisible = true;
+          let isDocumentVisible =
+            !document.hidden;
+          let animationFrame = 0;
+          let lastTerrainUpdate =
+            -Infinity;
+          let frozenPhase = 0;
+
+          const morphs =
+            wantsMorph &&
+            !prefersReducedMotion;
+
+          const intersectionObserver =
+            new IntersectionObserver(
+              (entries) => {
+                isVisible =
+                  entries.some(
+                    (entry) =>
+                      entry.isIntersecting
+                  );
+              },
+              {
+                rootMargin:
+                  '160px',
+              }
+            );
+
+          intersectionObserver.observe(
+            root
+          );
+
+          const handleVisibility =
+            () => {
+              isDocumentVisible =
+                !document.hidden;
+            };
+
+          document.addEventListener(
+            'visibilitychange',
+            handleVisibility
+          );
+
+          const animate = (
+            time
+          ) => {
+            animationFrame =
+              requestAnimationFrame(
+                animate
+              );
+
+            if (
+              !isVisible ||
+              !isDocumentVisible
+            ) {
+              return;
+            }
+
+            controls.update();
+
+            if (morphs) {
+              frozenPhase =
+                time * 0.001;
+            }
+
+            if (
+              morphs &&
+              time -
+                lastTerrainUpdate >=
+                90
+            ) {
+              rebuildTerrain(
+                frozenPhase
+              );
+
+              lastTerrainUpdate =
+                time;
+            }
+
+            renderer.render(
+              scene,
+              camera
+            );
+          };
+
+          animationFrame =
+            requestAnimationFrame(
+              animate
+            );
+
+          const cleanup = () => {
+            cancelAnimationFrame(
+              animationFrame
+            );
+
+            document.removeEventListener(
+              'visibilitychange',
+              handleVisibility
+            );
+
+            resizeObserver.disconnect();
+            intersectionObserver.disconnect();
+            controls.dispose();
+            clearContours();
+            pointGeometry.dispose();
+            pointMaterial.dispose();
+            renderer.dispose();
+          };
+
+          window.addEventListener(
+            'pagehide',
+            cleanup,
+            {
+              once: true,
+            }
+          );
+        } catch (error) {
+          console.error(
+            'MorphingTopography failed to initialize:',
+            error
+          );
+        }
+      }
+    );
+  })();
+</script>
