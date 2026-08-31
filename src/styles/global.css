@@ -744,19 +744,21 @@ a {
 
 
 .post-body {
-  max-width: 620px;
+  max-width: 640px;
 
-  color: #252723;
+  color: #3f433e;
 
   font-family:
-    "Times New Roman",
-    Times,
-    serif;
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
 
-  font-size: 1.16rem;
+  font-size: 1.03rem;
   font-weight: 400;
-  line-height: 1.58;
-  letter-spacing: -0.012em;
+  line-height: 1.72;
+  letter-spacing: -0.004em;
 }
 
 
@@ -764,7 +766,7 @@ a {
   margin:
     0
     0
-    1.42em;
+    1.52em;
 }
 
 
@@ -775,9 +777,9 @@ a {
 
 .post-body h2 {
   margin:
-    2.4em
+    2.55em
     0
-    0.72em;
+    0.75em;
 
   font-family:
     "Times New Roman",
@@ -795,9 +797,9 @@ a {
 
 .post-body h3 {
   margin:
-    2.1em
+    2.2em
     0
-    0.7em;
+    0.72em;
 
   font-family:
     "Times New Roman",
@@ -818,9 +820,9 @@ a {
 
 
 .source {
-  max-width: 620px;
+  max-width: 640px;
 
-  margin-top: 54px;
+  margin-top: 52px;
   padding-top: 16px;
 
   display: flex;
@@ -1135,19 +1137,19 @@ a:focus-visible {
 
 
   .post-body {
-    font-size: 1.08rem;
-    line-height: 1.6;
-    letter-spacing: -0.008em;
+    font-size: 1rem;
+    line-height: 1.7;
+    letter-spacing: -0.003em;
   }
 
 
   .post-body p {
-    margin-bottom: 1.38em;
+    margin-bottom: 1.48em;
   }
 
 
   .source {
-    margin-top: 46px;
+    margin-top: 44px;
   }
 }
 
