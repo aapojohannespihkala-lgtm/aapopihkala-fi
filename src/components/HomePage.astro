@@ -1,14 +1,14 @@
 ---
 import '../styles/global.css';
 
-import {
-  getCollection,
-} from 'astro:content';
-
 import FeedPost from './FeedPost.astro';
 import SiteHeader from './SiteHeader.astro';
 import Topography from './Topography.astro';
-import { getPostSlug } from '../utils/posts';
+
+import {
+  getPostSlug,
+  getPublishedPosts,
+} from '../utils/posts';
 
 interface Props {
   lang: 'fi' | 'en';
@@ -71,33 +71,8 @@ const t =
    POSTS
    ========================================================= */
 
-const posts = (
-  await getCollection(
-    'posts'
-  )
-)
-  .filter(
-    (post) =>
-      post.data.status === 'published' &&
-      Boolean(
-        post.data.publishedAt
-      )
-  )
-  .sort(
-    (a, b) => {
-      const aTime =
-        new Date(
-          a.data.publishedAt as string
-        ).getTime();
-
-      const bTime =
-        new Date(
-          b.data.publishedAt as string
-        ).getTime();
-
-      return bTime - aTime;
-    }
-  );
+const posts =
+  await getPublishedPosts();
 
 const dateFormatter =
   lang === 'fi'
@@ -355,8 +330,7 @@ const personSchema = {
               index
             ) => {
               const publishedAt =
-                post.data
-                  .publishedAt as string;
+                post.data.publishedAt;
 
               const postNumber =
                 String(
