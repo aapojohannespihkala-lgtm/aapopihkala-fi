@@ -255,24 +255,30 @@ const {
             const nz = baseZ / radius
             const azimuth = Math.atan2(nz, nx)
             const latitude = Math.asin(THREE.MathUtils.clamp(ny, -1, 1))
-            const equatorMask = Math.pow(Math.max(0, 1 - Math.abs(ny)), 0.82)
+            const equatorMask = Math.pow(Math.max(0, 1 - Math.abs(ny)), 0.5)
+            const broadMask = 0.3 + 0.7 * equatorMask
 
             const surfaceOffset = wantsAnimation
-              ? equatorMask * (
-                  0.0105 * Math.sin(
+              ? broadMask * (
+                  0.018 * Math.sin(
                     azimuth * 2.0 +
-                    latitude * 1.45 +
-                    timeSeconds * 0.46
+                    latitude * 1.4 +
+                    timeSeconds * 0.62
                   ) +
-                  0.006 * Math.cos(
+                  0.010 * Math.cos(
                     azimuth * 3.1 -
-                    latitude * 2.0 -
-                    timeSeconds * 0.34
+                    latitude * 2.1 -
+                    timeSeconds * 0.47
                   ) +
-                  0.003 * Math.sin(
+                  0.006 * Math.sin(
                     azimuth * 5.0 +
-                    latitude * 1.7 +
-                    timeSeconds * 0.76
+                    latitude * 1.8 +
+                    timeSeconds * 0.95
+                  ) +
+                  0.008 * Math.sin(
+                    latitude * 5.2 +
+                    azimuth * 0.8 -
+                    timeSeconds * 0.82
                   )
                 )
               : 0
