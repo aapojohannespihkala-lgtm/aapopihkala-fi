@@ -5,6 +5,7 @@ publishedAt: "2026-08-30T09:00:00+03:00"
 sourceUrl: "https://www.syke.fi/sites/default/files/documents/Kaupunkivihrean_tasot_loppuraportti_0_1.pdf"
 
 graphic: "/graphics/kaupunkipuu-tila.svg"
+interactiveGraphic: "tree"
 
 fi:
   title: "Kaupunkipuu tarvitsee tilansa ennen rakentamista"
@@ -21,7 +22,7 @@ fi:
   sourceLinkText: "Suomen ympäristökeskus · Selvitys kaupunkivihreän ja latvuspeiton tyydyttävistä tasoista"
   sourceTitle: "Selvitys kaupunkivihreän ja latvuspeiton tyydyttävistä tasoista"
 
-  graphicAlt: "Pelkistetty maisema-arkkitehtoninen kaavio, jossa kaupunkirakenteen linja väistää olemassa olevaa puuta."
+  graphicAlt: "Kolmiulotteinen piste- ja viivakaavio, jossa puun latvus, runko ja juuriston vaatima tila muodostavat yhden tilallisen kentän."
 
   perspective:
     - "Minusta hyvä suunnittelu alkaa siitä, että olemassa oleva puusto tunnistetaan ennen kuin rakennusten paikat lyödään lukkoon. Jos paikalla kasvaa hyväkuntoinen iso puu, pitäisi jo ensimmäisissä luonnoksissa kysyä, voidaanko se säilyttää ja mitä se tarkoittaa rakentamisen sijoittelulle."
@@ -47,7 +48,7 @@ en:
   sourceLinkText: "Finnish Environment Institute · Report on urban green space and tree canopy cover"
   sourceTitle: "Report on urban green space and tree canopy cover"
 
-  graphicAlt: "A minimalist landscape architectural diagram in which the urban structure makes room for an existing tree."
+  graphicAlt: "A three-dimensional point-and-line diagram in which the tree canopy, trunk and root-space requirement form a single spatial field."
 
   perspective:
     - "I think good planning starts by identifying existing trees before the locations of buildings are fixed. If a site already has a healthy mature tree, one of the first questions should be whether it can be retained and what that means for the placement of new development."
