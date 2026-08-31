@@ -101,11 +101,14 @@ const {
         specimen.rotation.x = -0.025
         scene.add(specimen)
 
+        const upperTreeGroup = new THREE.Group()
         const canopyGroup = new THREE.Group()
         const trunkGroup = new THREE.Group()
         const rootFieldGroup = new THREE.Group()
         const datumGroup = new THREE.Group()
-        specimen.add(canopyGroup, trunkGroup, rootFieldGroup, datumGroup)
+
+        upperTreeGroup.add(canopyGroup, trunkGroup)
+        specimen.add(upperTreeGroup, rootFieldGroup, datumGroup)
 
         const controls = new OrbitControls(camera, renderer.domElement)
         controls.enablePan = false
@@ -114,8 +117,7 @@ const {
         controls.dampingFactor = 0.055
         controls.rotateSpeed = 0.5
         controls.target.set(0, 1.15, 0)
-        controls.autoRotate = wantsAutoRotate && !reducedMotion
-        controls.autoRotateSpeed = 0.17
+        controls.autoRotate = false
 
         if (wantsZoom) {
           controls.minDistance = 7.8
@@ -370,6 +372,7 @@ const {
         let isVisible = true
         let isDocumentVisible = !document.hidden
         let animationFrame = 0
+        let previousTime = performance.now()
 
         const intersectionObserver = new IntersectionObserver(
           (entries) => {
@@ -381,14 +384,24 @@ const {
 
         const handleVisibility = () => {
           isDocumentVisible = !document.hidden
+          previousTime = performance.now()
         }
         document.addEventListener('visibilitychange', handleVisibility)
 
-        const animate = () => {
+        const animate = (time) => {
           animationFrame = requestAnimationFrame(animate)
+
+          const deltaSeconds = Math.min(0.05, Math.max(0, (time - previousTime) / 1000))
+          previousTime = time
+
           if (!isVisible || !isDocumentVisible) return
 
           controls.update()
+
+          if (wantsAutoRotate && !reducedMotion) {
+            upperTreeGroup.rotation.y += deltaSeconds * 0.045
+          }
+
           renderer.render(scene, camera)
         }
 
