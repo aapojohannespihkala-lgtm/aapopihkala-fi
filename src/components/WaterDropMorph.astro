@@ -159,10 +159,12 @@ const {
           const sinPhi = Math.sin(phi)
           const cosPhi = Math.cos(phi)
 
-          const pearBias = 1 - 0.08 * cosPhi
-          const radiusX = 0.74 * sinPhi * pearBias
-          const radiusZ = 0.70 * sinPhi * pearBias
-          const y = cosPhi * 0.92 - 0.035 * (1 - cosPhi * cosPhi)
+          // A softened superellipse-like profile keeps both caps round instead of pointed.
+          const roundedProfile = Math.pow(Math.max(0, sinPhi), 0.72)
+          const pearBias = 1 - 0.025 * cosPhi
+          const radiusX = 0.76 * roundedProfile * pearBias
+          const radiusZ = 0.72 * roundedProfile * pearBias
+          const y = cosPhi * 0.84 - 0.012 * (1 - cosPhi * cosPhi)
 
           for (let lon = 0; lon < lonSteps; lon += 1) {
             const theta = (lon / lonSteps) * Math.PI * 2
@@ -177,8 +179,8 @@ const {
           }
         }
 
-        writePoint(topPoleIndex, 0, 0.92, 0)
-        writePoint(bottomPoleIndex, 0, -0.92, 0)
+        writePoint(topPoleIndex, 0, 0.84, 0)
+        writePoint(bottomPoleIndex, 0, -0.84, 0)
 
         const shellGeometry = new THREE.BufferGeometry()
         const shellAttribute = new THREE.BufferAttribute(shellPositions, 3)
@@ -191,9 +193,9 @@ const {
           const secondaryPulse = wantsAnimation ? Math.sin(timeSeconds * 0.21 + 1.35) : 0
           const tertiaryPulse = wantsAnimation ? Math.cos(timeSeconds * 0.27 - 0.7) : 0
 
-          const stretchY = 1 + 0.105 * primaryPulse + 0.025 * secondaryPulse
-          const stretchX = 1 - 0.065 * primaryPulse + 0.02 * tertiaryPulse
-          const stretchZ = 1 - 0.052 * primaryPulse - 0.018 * secondaryPulse
+          const stretchY = 1 + 0.09 * primaryPulse + 0.018 * secondaryPulse
+          const stretchX = 1 - 0.052 * primaryPulse + 0.016 * tertiaryPulse
+          const stretchZ = 1 - 0.042 * primaryPulse - 0.014 * secondaryPulse
 
           for (let i = 0; i < pointCount; i += 1) {
             const offset = i * 3
@@ -212,8 +214,8 @@ const {
             const nz = baseZ / radius
             const azimuth = Math.atan2(nz, nx)
             const latitude = Math.asin(THREE.MathUtils.clamp(ny, -1, 1))
-            const equatorMask = Math.pow(Math.max(0, 1 - Math.abs(ny)), 0.58)
-            const broadMask = 0.42 + 0.58 * equatorMask
+            const bodyMask = Math.pow(Math.max(0, 1 - Math.abs(ny)), 0.48)
+            const broadMask = 0.24 + 0.76 * bodyMask
 
             const surfaceOffset = wantsAnimation
               ? broadMask * (
@@ -246,22 +248,23 @@ const {
               : 0
 
             const radialScale = (radius + surfaceOffset) / radius
-            const equatorBulge = wantsAnimation
-              ? 1 + 0.055 * secondaryPulse * equatorMask
+            const capDamping = 0.42 + 0.58 * bodyMask
+            const localStretchY = 1 + (stretchY - 1) * capDamping
+            const localStretchX = 1 + (stretchX - 1) * (0.58 + 0.42 * bodyMask)
+            const localStretchZ = 1 + (stretchZ - 1) * (0.58 + 0.42 * bodyMask)
+            const bodyBulge = wantsAnimation
+              ? 1 + 0.065 * secondaryPulse * bodyMask
               : 1
-            const upperBias = wantsAnimation
-              ? 1 + 0.045 * tertiaryPulse * Math.max(0, ny)
-              : 1
-            const lowerBias = wantsAnimation
-              ? 1 - 0.035 * tertiaryPulse * Math.max(0, -ny)
+            const softAsymmetry = wantsAnimation
+              ? 1 + 0.016 * tertiaryPulse * ny * bodyMask
               : 1
 
             shellPositions[offset] =
-              baseX * radialScale * stretchX * equatorBulge
+              baseX * radialScale * localStretchX * bodyBulge
             shellPositions[offset + 1] =
-              baseY * radialScale * stretchY * upperBias * lowerBias
+              baseY * radialScale * localStretchY * softAsymmetry
             shellPositions[offset + 2] =
-              baseZ * radialScale * stretchZ * equatorBulge
+              baseZ * radialScale * localStretchZ * bodyBulge
           }
 
           shellAttribute.needsUpdate = true
