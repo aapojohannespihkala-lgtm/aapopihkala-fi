@@ -1,33 +1,10 @@
 ---
 import '../styles/global.css';
+import { getCollection } from 'astro:content';
 
 interface Props {
   lang: 'fi' | 'en';
 }
-
-type LanguagePost = {
-  title: string;
-  tags: string[];
-  intro: string;
-  sourceName: string;
-  sourceLinkText: string;
-  sourceTitle: string;
-  graphicAlt?: string;
-  perspective: string[];
-};
-
-type PostFrontmatter = {
-  status: 'draft' | 'published';
-  publishedAt: string | null;
-  sourceUrl: string;
-  graphic?: string;
-  fi: LanguagePost;
-  en: LanguagePost;
-};
-
-type MarkdownPost = {
-  frontmatter: PostFrontmatter;
-};
 
 const { lang } = Astro.props;
 
@@ -91,26 +68,21 @@ const t = content[lang];
    POSTS
    ========================================================= */
 
-const postModules = import.meta.glob(
-  '../content/posts/*.md',
-  {
-    eager: true,
-  }
-) as Record<string, MarkdownPost>;
-
-const posts = Object.values(postModules)
+const posts = (
+  await getCollection('posts')
+)
   .filter(
     (post) =>
-      post.frontmatter.status === 'published' &&
-      Boolean(post.frontmatter.publishedAt)
+      post.data.status === 'published' &&
+      Boolean(post.data.publishedAt)
   )
   .sort((a, b) => {
     const aTime = new Date(
-      a.frontmatter.publishedAt as string
+      a.data.publishedAt as string
     ).getTime();
 
     const bTime = new Date(
-      b.frontmatter.publishedAt as string
+      b.data.publishedAt as string
     ).getTime();
 
     return bTime - aTime;
@@ -412,10 +384,10 @@ const personSchema = {
               index
             ) => {
               const localizedPost =
-                post.frontmatter[lang];
+                post.data[lang];
 
               const publishedAt =
-                post.frontmatter.publishedAt as string;
+                post.data.publishedAt as string;
 
               const postNumber =
                 String(
@@ -484,7 +456,7 @@ const personSchema = {
                     <a
                       class="post-news-link"
                       href={
-                        post.frontmatter.sourceUrl
+                        post.data.sourceUrl
                       }
                       target="_blank"
                       rel="noopener"
@@ -526,12 +498,12 @@ const personSchema = {
                   </div>
 
                   {
-                    post.frontmatter.graphic && (
+                    post.data.graphic && (
                       <figure class="post-graphic">
                         <img
                           class="post-graphic-image"
                           src={
-                            post.frontmatter.graphic
+                            post.data.graphic
                           }
                           alt={
                             localizedPost.graphicAlt ??
@@ -554,7 +526,7 @@ const personSchema = {
                     <a
                       class="source-link"
                       href={
-                        post.frontmatter.sourceUrl
+                        post.data.sourceUrl
                       }
                       target="_blank"
                       rel="noopener"
