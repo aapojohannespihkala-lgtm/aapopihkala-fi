@@ -129,54 +129,46 @@ const {
           controls.maxDistance = lockedDistance
         }
 
-        const outerCanopyMaterial = new THREE.PointsMaterial({
-          color: 0x3c403b,
-          size: 0.024,
+        const canopyMaterial = new THREE.PointsMaterial({
+          color: 0x353a35,
+          size: 0.027,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.44,
-        })
-
-        const innerCanopyMaterial = new THREE.PointsMaterial({
-          color: 0x5a6159,
-          size: 0.019,
-          sizeAttenuation: true,
-          transparent: true,
-          opacity: 0.2,
+          opacity: 0.62,
         })
 
         const trunkMaterial = new THREE.PointsMaterial({
-          color: 0x30332f,
-          size: 0.029,
+          color: 0x2f322f,
+          size: 0.031,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.82,
+          opacity: 0.9,
         })
 
         const rootFieldMaterial = new THREE.PointsMaterial({
-          color: 0x555d56,
-          size: 0.019,
+          color: 0x4d574f,
+          size: 0.023,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.33,
+          opacity: 0.5,
         })
 
         const canopyContourMaterial = new THREE.LineBasicMaterial({
-          color: 0x677268,
+          color: 0x526056,
           transparent: true,
-          opacity: 0.28,
+          opacity: 0.5,
         })
 
         const rootContourMaterial = new THREE.LineBasicMaterial({
-          color: 0x737d74,
+          color: 0x5e695f,
           transparent: true,
-          opacity: 0.2,
+          opacity: 0.36,
         })
 
         const datumMaterial = new THREE.LineBasicMaterial({
-          color: 0x8f958e,
+          color: 0x949a93,
           transparent: true,
-          opacity: 0.13,
+          opacity: 0.065,
         })
 
         const crownCenterX = (v) =>
@@ -198,8 +190,8 @@ const {
           return base * lobes
         }
 
-        const crownPoint = (v, angle, shellScale = 1) => {
-          const radius = crownRadius(v, angle) * shellScale
+        const crownPoint = (v, angle) => {
+          const radius = crownRadius(v, angle)
           const depthScale = 0.94 + 0.04 * Math.sin(v * Math.PI)
           return new THREE.Vector3(
             crownCenterX(v) + Math.cos(angle) * radius,
@@ -208,75 +200,55 @@ const {
           )
         }
 
-        const makeCanopyShell = ({ rows, columns, scale, material, phase = 0 }) => {
-          const positions = []
+        const canopyPositions = []
+        const canopyRows = 27
+        const canopyColumns = 84
 
-          for (let row = 0; row <= rows; row += 1) {
-            const v = row / rows
-            const rowOffset = (row % 2) * 0.5
+        for (let row = 0; row <= canopyRows; row += 1) {
+          const v = row / canopyRows
+          const rowOffset = (row % 2) * 0.5
 
-            for (let col = 0; col < columns; col += 1) {
-              const u = (col + rowOffset) / columns
-              const angle = u * Math.PI * 2 + phase
-              const p = crownPoint(v, angle, scale)
-              positions.push(p.x, p.y, p.z)
-            }
+          for (let col = 0; col < canopyColumns; col += 1) {
+            const angle = ((col + rowOffset) / canopyColumns) * Math.PI * 2
+            const p = crownPoint(v, angle)
+            canopyPositions.push(p.x, p.y, p.z)
           }
-
-          const geometry = new THREE.BufferGeometry()
-          geometry.setAttribute(
-            'position',
-            new THREE.Float32BufferAttribute(positions, 3)
-          )
-          const points = new THREE.Points(geometry, material)
-          canopyGroup.add(points)
-          return { points, geometry }
         }
 
-        const canopyShells = [
-          makeCanopyShell({
-            rows: 24,
-            columns: 76,
-            scale: 1,
-            material: outerCanopyMaterial,
-          }),
-          makeCanopyShell({
-            rows: 18,
-            columns: 58,
-            scale: 0.77,
-            material: innerCanopyMaterial,
-            phase: 0.035,
-          }),
-          makeCanopyShell({
-            rows: 13,
-            columns: 44,
-            scale: 0.54,
-            material: innerCanopyMaterial,
-            phase: -0.045,
-          }),
-        ]
+        const canopyGeometry = new THREE.BufferGeometry()
+        canopyGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(canopyPositions, 3)
+        )
+        const canopyPoints = new THREE.Points(canopyGeometry, canopyMaterial)
+        canopyGroup.add(canopyPoints)
 
         const canopyContours = []
-        ;[0.23, 0.39, 0.55, 0.7, 0.84].forEach((v, index) => {
+        ;[0.08, 0.64, 1.22, 1.86].forEach((baseAngle, index) => {
           const points = []
-          const steps = 100
-          const inset = 0.96 - index * 0.025
+          const steps = 116
 
           for (let i = 0; i <= steps; i += 1) {
-            const angle = (i / steps) * Math.PI * 2
-            const p = crownPoint(v, angle, inset)
+            const t = i / steps
+            const v = Math.pow(Math.sin(Math.PI * t), 0.78)
+            const angle =
+              baseAngle +
+              Math.PI * t +
+              0.13 * Math.sin(t * Math.PI * 2 + index * 0.9) +
+              0.04 * Math.sin(t * Math.PI * 5 + index)
+            const p = crownPoint(v, angle)
             points.push(p)
           }
 
           const geometry = new THREE.BufferGeometry().setFromPoints(points)
-          const line = new THREE.LineLoop(geometry, canopyContourMaterial)
+          const line = new THREE.Line(geometry, canopyContourMaterial)
           canopyGroup.add(line)
           canopyContours.push({ line, geometry })
         })
 
         const trunkPositions = []
-        const trunkRows = 68
-        const trunkColumns = 13
+        const trunkRows = 70
+        const trunkColumns = 16
 
         for (let row = 0; row <= trunkRows; row += 1) {
           const t = row / trunkRows
@@ -307,9 +279,9 @@ const {
         const rootBoundary = (angle) =>
           2.62 *
           (1 +
-            0.09 * Math.sin(angle * 3 + 0.5) +
-            0.055 * Math.cos(angle * 5 - 0.8) +
-            0.035 * Math.sin(angle * 7 + 0.2))
+            0.1 * Math.sin(angle * 3 + 0.5) +
+            0.06 * Math.cos(angle * 5 - 0.8) +
+            0.04 * Math.sin(angle * 7 + 0.2))
 
         const rootSurfaceY = (x, z) => {
           const rippleA = 0.045 * Math.sin(x * 1.25 + z * 0.35)
@@ -319,7 +291,7 @@ const {
         }
 
         const rootFieldPositions = []
-        const spacing = 0.145
+        const spacing = 0.132
         const xMax = 3.05
         const zMax = 2.8
         let rowIndex = 0
@@ -353,9 +325,9 @@ const {
         rootFieldGroup.add(rootFieldPoints)
 
         const rootContours = []
-        ;[0.34, 0.5, 0.66, 0.82, 0.97].forEach((scaleValue, index) => {
+        ;[0.4, 0.61, 0.8, 0.98].forEach((scaleValue, index) => {
           const points = []
-          const steps = 110
+          const steps = 112
 
           for (let i = 0; i <= steps; i += 1) {
             const angle = (i / steps) * Math.PI * 2
@@ -365,7 +337,7 @@ const {
             points.push(
               new THREE.Vector3(
                 x,
-                rootSurfaceY(x, z) - 0.006 * index,
+                rootSurfaceY(x, z) - 0.005 * index,
                 z
               )
             )
@@ -431,15 +403,14 @@ const {
           intersectionObserver.disconnect()
           controls.dispose()
 
-          canopyShells.forEach(({ geometry }) => geometry.dispose())
+          canopyGeometry.dispose()
           canopyContours.forEach(({ geometry }) => geometry.dispose())
           rootContours.forEach(({ geometry }) => geometry.dispose())
           trunkGeometry.dispose()
           rootFieldGeometry.dispose()
           datumGeometry.dispose()
 
-          outerCanopyMaterial.dispose()
-          innerCanopyMaterial.dispose()
+          canopyMaterial.dispose()
           trunkMaterial.dispose()
           rootFieldMaterial.dispose()
           canopyContourMaterial.dispose()
