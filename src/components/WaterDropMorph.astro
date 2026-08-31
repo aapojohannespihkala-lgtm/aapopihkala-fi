@@ -132,55 +132,37 @@ const {
           opacity: 0.8,
         })
 
-        const latSteps = 40
-        const lonSteps = 44
-        const ringPointCount = (latSteps - 1) * lonSteps
-        const topPoleIndex = ringPointCount
-        const bottomPoleIndex = ringPointCount + 1
-        const pointCount = ringPointCount + 2
-
+        const pointCount = 1120
         const shellPositions = new Float32Array(pointCount * 3)
         const basePositions = new Float32Array(pointCount * 3)
+        const surfaceDirections = new Float32Array(pointCount * 3)
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5))
 
-        const indexOf = (lat, lon) => (lat - 1) * lonSteps + lon
+        for (let i = 0; i < pointCount; i += 1) {
+          const offset = i * 3
+          const sy = 1 - 2 * ((i + 0.5) / pointCount)
+          const horizontalRadius = Math.sqrt(Math.max(0, 1 - sy * sy))
+          const theta = i * goldenAngle
+          const sx = Math.cos(theta) * horizontalRadius
+          const sz = Math.sin(theta) * horizontalRadius
 
-        const writePoint = (index, x, y, z) => {
-          const offset = index * 3
+          const pearBias = 1 - 0.025 * sy
+          const x = sx * 0.76 * pearBias
+          const y = sy * 0.84 - 0.012 * (1 - sy * sy)
+          const z = sz * 0.72 * pearBias
+
           basePositions[offset] = x
           basePositions[offset + 1] = y
           basePositions[offset + 2] = z
+
           shellPositions[offset] = x
           shellPositions[offset + 1] = y
           shellPositions[offset + 2] = z
+
+          surfaceDirections[offset] = sx
+          surfaceDirections[offset + 1] = sy
+          surfaceDirections[offset + 2] = sz
         }
-
-        for (let lat = 1; lat < latSteps; lat += 1) {
-          const phi = (lat / latSteps) * Math.PI
-          const sinPhi = Math.sin(phi)
-          const cosPhi = Math.cos(phi)
-
-          // A softened superellipse-like profile keeps both caps round instead of pointed.
-          const roundedProfile = Math.pow(Math.max(0, sinPhi), 0.72)
-          const pearBias = 1 - 0.025 * cosPhi
-          const radiusX = 0.76 * roundedProfile * pearBias
-          const radiusZ = 0.72 * roundedProfile * pearBias
-          const y = cosPhi * 0.84 - 0.012 * (1 - cosPhi * cosPhi)
-
-          for (let lon = 0; lon < lonSteps; lon += 1) {
-            const theta = (lon / lonSteps) * Math.PI * 2
-            const index = indexOf(lat, lon)
-
-            writePoint(
-              index,
-              Math.cos(theta) * radiusX,
-              y,
-              Math.sin(theta) * radiusZ
-            )
-          }
-        }
-
-        writePoint(topPoleIndex, 0, 0.84, 0)
-        writePoint(bottomPoleIndex, 0, -0.84, 0)
 
         const shellGeometry = new THREE.BufferGeometry()
         const shellAttribute = new THREE.BufferAttribute(shellPositions, 3)
@@ -202,6 +184,9 @@ const {
             const baseX = basePositions[offset]
             const baseY = basePositions[offset + 1]
             const baseZ = basePositions[offset + 2]
+            const sx = surfaceDirections[offset]
+            const sy = surfaceDirections[offset + 1]
+            const sz = surfaceDirections[offset + 2]
 
             const radius = Math.sqrt(
               baseX * baseX +
@@ -212,10 +197,10 @@ const {
             const nx = baseX / radius
             const ny = baseY / radius
             const nz = baseZ / radius
-            const azimuth = Math.atan2(nz, nx)
-            const latitude = Math.asin(THREE.MathUtils.clamp(ny, -1, 1))
-            const bodyMask = Math.pow(Math.max(0, 1 - Math.abs(ny)), 0.48)
-            const broadMask = 0.24 + 0.76 * bodyMask
+            const azimuth = Math.atan2(sz, sx)
+            const latitude = Math.asin(THREE.MathUtils.clamp(sy, -1, 1))
+            const bodyMask = Math.pow(Math.max(0, 1 - Math.abs(sy)), 0.52)
+            const broadMask = 0.18 + 0.82 * bodyMask
 
             const surfaceOffset = wantsAnimation
               ? broadMask * (
@@ -248,15 +233,15 @@ const {
               : 0
 
             const radialScale = (radius + surfaceOffset) / radius
-            const capDamping = 0.42 + 0.58 * bodyMask
+            const capDamping = 0.5 + 0.5 * bodyMask
             const localStretchY = 1 + (stretchY - 1) * capDamping
-            const localStretchX = 1 + (stretchX - 1) * (0.58 + 0.42 * bodyMask)
-            const localStretchZ = 1 + (stretchZ - 1) * (0.58 + 0.42 * bodyMask)
+            const localStretchX = 1 + (stretchX - 1) * (0.64 + 0.36 * bodyMask)
+            const localStretchZ = 1 + (stretchZ - 1) * (0.64 + 0.36 * bodyMask)
             const bodyBulge = wantsAnimation
               ? 1 + 0.065 * secondaryPulse * bodyMask
               : 1
             const softAsymmetry = wantsAnimation
-              ? 1 + 0.016 * tertiaryPulse * ny * bodyMask
+              ? 1 + 0.016 * tertiaryPulse * sy * bodyMask
               : 1
 
             shellPositions[offset] =
