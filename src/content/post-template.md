@@ -2,7 +2,21 @@
 status: "draft"
 publishedAt: null
 
-sourceUrl: "https://example.com/"
+# Artikkelilla pitää olla vähintään yksi lähde.
+# Lisää uusia lähteitä kopioimalla alla oleva lähdelohko.
+
+sources:
+  - url: "https://example.com/"
+
+    fi:
+      name: "Lähteen nimi"
+      linkText: "Lähteen nimi · Lähteen otsikko"
+      title: "Lähteen varsinainen otsikko"
+
+    en:
+      name: "Source name"
+      linkText: "Source name · Source title"
+      title: "Full source title"
 
 # Lisää tämä vain, jos artikkelilla on oma kuva.
 # graphic: "/graphics/artikkelin-kuva.svg"
@@ -15,10 +29,6 @@ fi:
     - kaupunkisuunnittelu
 
   intro: "Kirjoita tähän lyhyt johdanto uutiseen, tutkimukseen, raporttiin tai muuhun lähteeseen."
-
-  sourceName: "Lähteen nimi"
-  sourceLinkText: "Lähteen nimi · Lähteen otsikko"
-  sourceTitle: "Lähteen varsinainen otsikko"
 
   # Lisää tämä, jos käytät graphic-kenttää.
   # graphicAlt: "Kuvaile kuva lyhyesti ja informatiivisesti."
@@ -37,10 +47,6 @@ en:
     - urban planning
 
   intro: "Write a short introduction to the news item, study, report or other source here."
-
-  sourceName: "Source name"
-  sourceLinkText: "Source name · Source title"
-  sourceTitle: "Full source title"
 
   # Add this if you use the graphic field.
   # graphicAlt: "Describe the image briefly and informatively."
