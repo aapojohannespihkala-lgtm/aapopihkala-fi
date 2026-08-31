@@ -5,6 +5,8 @@ interface Props {
   enableZoom?: boolean;
   showRoots?: boolean;
   showContext?: boolean;
+  scale?: number;
+  cameraDistance?: number;
 }
 
 const {
@@ -12,7 +14,9 @@ const {
   autoRotate = true,
   enableZoom = true,
   showRoots = true,
-  showContext = true,
+  showContext = false,
+  scale = 1,
+  cameraDistance = 9.4,
 } = Astro.props;
 ---
 
@@ -23,6 +27,8 @@ const {
   data-enable-zoom={enableZoom ? 'true' : 'false'}
   data-show-roots={showRoots ? 'true' : 'false'}
   data-show-context={showContext ? 'true' : 'false'}
+  data-scale={scale}
+  data-camera-distance={cameraDistance}
   aria-hidden="true"
 >
   <canvas class="point-tree__canvas" data-point-tree-canvas></canvas>
@@ -75,7 +81,13 @@ const {
         const wantsAutoRotate = root.dataset.autoRotate !== 'false';
         const wantsZoom = root.dataset.enableZoom !== 'false';
         const wantsRoots = root.dataset.showRoots !== 'false';
-        const wantsContext = root.dataset.showContext !== 'false';
+        const wantsContext = root.dataset.showContext === 'true';
+        const requestedScale = Number(root.dataset.scale ?? '1');
+        const requestedCameraDistance = Number(root.dataset.cameraDistance ?? '9.4');
+        const displayScale = Number.isFinite(requestedScale) ? requestedScale : 1;
+        const cameraDistance = Number.isFinite(requestedCameraDistance)
+          ? requestedCameraDistance
+          : 9.4;
 
         const renderer = new THREE.WebGLRenderer({
           canvas,
@@ -88,26 +100,19 @@ const {
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(37, 1, 0.1, 100);
-        camera.position.set(5.7, 3.1, 9.3);
+        camera.position.set(5.8, 3.55, cameraDistance);
 
         const specimen = new THREE.Group();
-        specimen.rotation.y = -0.18;
+        specimen.scale.setScalar(displayScale);
+        specimen.rotation.y = -0.14;
         specimen.rotation.x = -0.015;
         scene.add(specimen);
 
         const structureGroup = new THREE.Group();
         const canopyGroup = new THREE.Group();
-        const rootHaloGroup = new THREE.Group();
-        const accentGroup = new THREE.Group();
+        const fineRootGroup = new THREE.Group();
         const contextGroup = new THREE.Group();
-
-        specimen.add(
-          structureGroup,
-          canopyGroup,
-          rootHaloGroup,
-          accentGroup,
-          contextGroup
-        );
+        specimen.add(structureGroup, canopyGroup, fineRootGroup, contextGroup);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enablePan = false;
@@ -115,25 +120,25 @@ const {
         controls.enableDamping = true;
         controls.dampingFactor = 0.055;
         controls.rotateSpeed = 0.5;
-        controls.minPolarAngle = Math.PI * 0.24;
-        controls.maxPolarAngle = Math.PI * 0.70;
-        controls.target.set(0, 0.9, 0);
+        controls.minPolarAngle = Math.PI * 0.23;
+        controls.maxPolarAngle = Math.PI * 0.71;
+        controls.target.set(0, 1.06, 0);
         controls.autoRotate = wantsAutoRotate && !reducedMotion;
-        controls.autoRotateSpeed = 0.2;
+        controls.autoRotateSpeed = 0.19;
 
         if (wantsZoom) {
-          controls.minDistance = 7.6;
-          controls.maxDistance = 12.1;
+          controls.minDistance = 7.8;
+          controls.maxDistance = 12.6;
           controls.zoomSpeed = 0.5;
         } else {
-          const lockedDistance = camera.position.length();
+          const lockedDistance = camera.position.distanceTo(controls.target);
           controls.minDistance = lockedDistance;
           controls.maxDistance = lockedDistance;
         }
 
         const structureMaterial = new THREE.PointsMaterial({
           color: 0x30332f,
-          size: 0.03,
+          size: 0.029,
           sizeAttenuation: true,
           transparent: true,
           opacity: 0.82,
@@ -144,27 +149,21 @@ const {
           size: 0.023,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.55,
+          opacity: 0.42,
         });
 
-        const rootHaloMaterial = new THREE.PointsMaterial({
+        const fineRootMaterial = new THREE.PointsMaterial({
           color: 0x596158,
-          size: 0.02,
+          size: 0.019,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.32,
-        });
-
-        const accentMaterial = new THREE.LineBasicMaterial({
-          color: 0x667066,
-          transparent: true,
-          opacity: 0.16,
+          opacity: 0.25,
         });
 
         const contextMaterial = new THREE.LineBasicMaterial({
           color: 0x92978f,
           transparent: true,
-          opacity: 0.16,
+          opacity: 0.12,
         });
 
         const hash = (value, salt = 0) => {
@@ -172,14 +171,14 @@ const {
           return x - Math.floor(x);
         };
 
-        const makeLine = (points, material, closed = false) => {
+        const makeLine = (points, material) => {
           const geometry = new THREE.BufferGeometry().setFromPoints(points);
-          return closed
-            ? new THREE.LineLoop(geometry, material)
-            : new THREE.Line(geometry, material);
+          return new THREE.Line(geometry, material);
         };
 
         const structurePositions = [];
+        const canopyAnchors = [];
+        const rootAnchors = [];
 
         const addTubeCloud = ({
           curve,
@@ -188,7 +187,8 @@ const {
           startRadius,
           endRadius,
           seed,
-          flatten = 1,
+          flatten = 0.86,
+          axialJitter = 0.42,
         }) => {
           const tangent = new THREE.Vector3();
           const normal = new THREE.Vector3();
@@ -200,30 +200,27 @@ const {
             const t = si / segments;
             const center = curve.getPoint(t);
             tangent.copy(curve.getTangent(t)).normalize();
-
-            const up = Math.abs(tangent.dot(upY)) > 0.9 ? upX : upY;
+            const up = Math.abs(tangent.dot(upY)) > 0.91 ? upX : upY;
             normal.crossVectors(up, tangent).normalize();
             binormal.crossVectors(tangent, normal).normalize();
-
-            const baseRadius = THREE.MathUtils.lerp(startRadius, endRadius, t);
+            const radius = THREE.MathUtils.lerp(startRadius, endRadius, t);
 
             for (let pi = 0; pi < density; pi += 1) {
-              const n = seed * 10000 + si * 137 + pi * 19;
+              const n = seed * 100000 + si * 173 + pi * 23;
               const angle = hash(n, 1) * Math.PI * 2;
-              const radius =
+              const rr =
                 Math.sqrt(hash(n, 2)) *
-                baseRadius *
-                (0.82 + 0.32 * hash(n, 3));
-              const axial =
-                (hash(n, 4) - 0.5) * baseRadius * 0.5;
+                radius *
+                (0.84 + 0.28 * hash(n, 3));
+              const axial = (hash(n, 4) - 0.5) * radius * axialJitter;
 
               const offset = new THREE.Vector3()
                 .copy(normal)
-                .multiplyScalar(Math.cos(angle) * radius)
+                .multiplyScalar(Math.cos(angle) * rr)
                 .add(
                   new THREE.Vector3()
                     .copy(binormal)
-                    .multiplyScalar(Math.sin(angle) * radius * flatten)
+                    .multiplyScalar(Math.sin(angle) * rr * flatten)
                 )
                 .add(
                   new THREE.Vector3()
@@ -240,68 +237,151 @@ const {
           }
         };
 
-        const trunkCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(0, -0.03, 0),
-          new THREE.Vector3(0.02, 0.72, 0.015),
-          new THREE.Vector3(0.035, 1.42, 0.02),
-          new THREE.Vector3(0.02, 2.1, 0.01),
+        const makeCurve = (points) =>
+          new THREE.CatmullRomCurve3(
+            points.map(([x, y, z]) => new THREE.Vector3(x, y, z))
+          );
+
+        const trunkCurve = makeCurve([
+          [0.0, -0.08, 0.0],
+          [0.02, 0.42, 0.01],
+          [0.05, 1.05, 0.03],
+          [0.04, 1.7, 0.02],
+          [0.0, 2.28, 0.0],
         ]);
 
         addTubeCloud({
           curve: trunkCurve,
-          segments: 82,
-          density: 14,
-          startRadius: 0.16,
-          endRadius: 0.075,
+          segments: 88,
+          density: 15,
+          startRadius: 0.19,
+          endRadius: 0.072,
           seed: 1,
-          flatten: 0.86,
+          flatten: 0.9,
+          axialJitter: 0.34,
         });
 
-        const branchDefs = [
-          [[0.01, 1.08, 0], [-0.3, 1.38, 0.02], [-0.82, 1.72, 0.06], [-1.45, 2.08, 0.1]],
-          [[0.02, 1.28, 0.01], [0.36, 1.55, 0.02], [0.9, 1.86, 0.05], [1.48, 2.14, 0.08]],
-          [[0.02, 1.5, 0], [-0.06, 1.78, -0.07], [-0.3, 2.14, -0.2]],
-          [[0.02, 1.55, 0], [0.11, 1.84, 0.08], [0.38, 2.18, 0.23]],
-          [[0.01, 0.9, 0], [-0.26, 1.15, -0.03], [-0.68, 1.43, -0.08]],
-          [[0.02, 0.98, 0.01], [0.28, 1.2, 0.02], [0.68, 1.48, 0.05]],
+        const flareCurves = [
+          [[0, -0.02, 0], [-0.2, -0.1, 0.04], [-0.48, -0.18, 0.1]],
+          [[0, -0.02, 0], [0.22, -0.1, 0.01], [0.52, -0.18, 0.03]],
+          [[0, -0.02, 0], [-0.05, -0.11, -0.18], [-0.12, -0.19, -0.42]],
+          [[0, -0.02, 0], [0.06, -0.11, 0.16], [0.18, -0.19, 0.39]],
         ];
 
-        branchDefs.forEach((definition, index) => {
+        flareCurves.forEach((points, index) => {
           addTubeCloud({
-            curve: new THREE.CatmullRomCurve3(
-              definition.map(([x, y, z]) => new THREE.Vector3(x, y, z))
-            ),
-            segments: definition.length === 4 ? 40 : 28,
-            density: definition.length === 4 ? 9 : 7,
-            startRadius: definition.length === 4 ? 0.078 : 0.055,
-            endRadius: definition.length === 4 ? 0.02 : 0.016,
-            seed: 10 + index,
-            flatten: 0.86,
+            curve: makeCurve(points),
+            segments: 18,
+            density: 12,
+            startRadius: 0.13,
+            endRadius: 0.055,
+            seed: 5 + index,
+            flatten: 0.88,
+            axialJitter: 0.28,
           });
         });
 
+        const mainBranches = [
+          { points: [[0.02, 1.0, 0.01], [-0.28, 1.28, 0.02], [-0.78, 1.62, 0.06], [-1.28, 1.94, 0.11], [-1.72, 2.15, 0.16]], start: 0.085, end: 0.021 },
+          { points: [[0.03, 1.17, 0.01], [0.31, 1.42, 0.02], [0.82, 1.73, 0.04], [1.34, 2.0, 0.08], [1.79, 2.18, 0.12]], start: 0.08, end: 0.021 },
+          { points: [[0.03, 1.38, 0.01], [-0.02, 1.64, -0.06], [-0.18, 1.94, -0.16], [-0.42, 2.22, -0.3]], start: 0.06, end: 0.018 },
+          { points: [[0.02, 1.48, 0.02], [0.1, 1.72, 0.09], [0.34, 2.0, 0.22], [0.72, 2.25, 0.39]], start: 0.058, end: 0.018 },
+          { points: [[0.02, 0.86, 0.0], [-0.22, 1.08, -0.03], [-0.55, 1.31, -0.08], [-0.88, 1.5, -0.14]], start: 0.052, end: 0.016 },
+          { points: [[0.02, 0.94, 0.01], [0.22, 1.14, 0.02], [0.54, 1.38, 0.05], [0.9, 1.56, 0.1]], start: 0.052, end: 0.016 },
+        ];
+
+        mainBranches.forEach((branch, index) => {
+          const curve = makeCurve(branch.points);
+          addTubeCloud({
+            curve,
+            segments: branch.points.length === 5 ? 42 : 30,
+            density: branch.points.length === 5 ? 9 : 7,
+            startRadius: branch.start,
+            endRadius: branch.end,
+            seed: 20 + index,
+          });
+          canopyAnchors.push(curve.getPoint(0.58));
+          canopyAnchors.push(curve.getPoint(0.8));
+          canopyAnchors.push(curve.getPoint(1));
+        });
+
+        const secondaryBranches = [
+          [[-0.68, 1.56, 0.05], [-0.92, 1.78, -0.03], [-1.1, 2.03, -0.12]],
+          [[-1.12, 1.85, 0.1], [-1.34, 2.02, 0.24], [-1.48, 2.18, 0.39]],
+          [[0.72, 1.67, 0.04], [0.95, 1.86, -0.05], [1.1, 2.08, -0.14]],
+          [[1.18, 1.92, 0.07], [1.4, 2.07, 0.2], [1.56, 2.2, 0.34]],
+          [[-0.14, 1.91, -0.15], [-0.42, 2.03, -0.28], [-0.7, 2.1, -0.4]],
+          [[0.31, 1.96, 0.21], [0.54, 2.1, 0.34], [0.86, 2.16, 0.46]],
+          [[-0.48, 1.26, -0.06], [-0.76, 1.38, 0.0], [-1.02, 1.47, 0.08]],
+          [[0.48, 1.32, 0.04], [0.74, 1.45, -0.02], [1.0, 1.54, -0.08]],
+        ];
+
+        secondaryBranches.forEach((points, index) => {
+          const curve = makeCurve(points);
+          addTubeCloud({
+            curve,
+            segments: 22,
+            density: 5,
+            startRadius: 0.032,
+            endRadius: 0.011,
+            seed: 50 + index,
+            flatten: 0.84,
+            axialJitter: 0.28,
+          });
+          canopyAnchors.push(curve.getPoint(0.78));
+          canopyAnchors.push(curve.getPoint(1));
+        });
+
         if (wantsRoots) {
-          const rootDefs = [
-            [[0, -0.03, 0], [-0.32, -0.12, 0.06], [-0.9, -0.23, 0.14], [-1.72, -0.34, 0.2], [-2.65, -0.43, 0.22]],
-            [[0, -0.03, 0], [0.34, -0.11, 0.02], [1.02, -0.22, 0.03], [1.9, -0.34, 0.0], [2.78, -0.43, -0.02]],
-            [[0, -0.03, 0], [-0.1, -0.11, -0.26], [-0.36, -0.23, -0.78], [-0.73, -0.34, -1.48], [-1.02, -0.44, -2.22]],
-            [[0, -0.03, 0], [0.14, -0.1, 0.22], [0.55, -0.22, 0.74], [1.08, -0.34, 1.4], [1.75, -0.44, 2.02]],
-            [[0, -0.03, 0], [0.12, -0.11, -0.14], [0.32, -0.22, -0.56], [0.55, -0.35, -1.18], [0.82, -0.44, -1.9]],
-            [[0, -0.03, 0], [-0.16, -0.1, 0.18], [-0.55, -0.2, 0.62], [-1.08, -0.32, 1.05], [-1.7, -0.42, 1.42]],
+          const mainRoots = [
+            [[0, -0.05, 0], [-0.32, -0.12, 0.06], [-0.92, -0.23, 0.13], [-1.72, -0.34, 0.2], [-2.55, -0.43, 0.24], [-3.05, -0.47, 0.27]],
+            [[0, -0.05, 0], [0.35, -0.11, 0.02], [1.02, -0.22, 0.03], [1.82, -0.33, 0.01], [2.62, -0.42, -0.02], [3.12, -0.46, -0.04]],
+            [[0, -0.05, 0], [-0.09, -0.12, -0.25], [-0.34, -0.23, -0.74], [-0.68, -0.34, -1.36], [-0.98, -0.43, -2.02]],
+            [[0, -0.05, 0], [0.13, -0.11, 0.22], [0.5, -0.22, 0.7], [0.96, -0.33, 1.28], [1.5, -0.42, 1.84]],
+            [[0, -0.05, 0], [0.11, -0.11, -0.14], [0.28, -0.22, -0.5], [0.5, -0.34, -1.0], [0.74, -0.43, -1.55]],
+            [[0, -0.05, 0], [-0.14, -0.11, 0.17], [-0.5, -0.21, 0.58], [-0.98, -0.32, 1.0], [-1.55, -0.41, 1.38]],
           ];
 
-          rootDefs.forEach((definition, index) => {
+          mainRoots.forEach((points, index) => {
+            const curve = makeCurve(points);
             addTubeCloud({
-              curve: new THREE.CatmullRomCurve3(
-                definition.map(([x, y, z]) => new THREE.Vector3(x, y, z))
-              ),
-              segments: 38,
+              curve,
+              segments: points.length === 6 ? 42 : 34,
               density: 9,
-              startRadius: 0.08,
-              endRadius: 0.022,
-              seed: 30 + index,
-              flatten: 0.74,
+              startRadius: 0.082,
+              endRadius: 0.02,
+              seed: 80 + index,
+              flatten: 0.72,
+              axialJitter: 0.26,
             });
+            rootAnchors.push(curve.getPoint(0.55));
+            rootAnchors.push(curve.getPoint(0.8));
+            rootAnchors.push(curve.getPoint(1));
+          });
+
+          const secondaryRoots = [
+            [[-0.88, -0.23, 0.13], [-1.15, -0.31, -0.12], [-1.42, -0.38, -0.38]],
+            [[-1.68, -0.34, 0.2], [-1.95, -0.4, 0.52], [-2.25, -0.45, 0.78]],
+            [[0.98, -0.22, 0.03], [1.28, -0.29, -0.24], [1.58, -0.36, -0.48]],
+            [[1.76, -0.33, 0.01], [2.0, -0.39, 0.34], [2.3, -0.44, 0.58]],
+            [[-0.32, -0.22, -0.7], [-0.62, -0.3, -0.82], [-0.9, -0.37, -0.92]],
+            [[0.5, -0.22, 0.7], [0.76, -0.3, 0.9], [1.0, -0.37, 1.08]],
+          ];
+
+          secondaryRoots.forEach((points, index) => {
+            const curve = makeCurve(points);
+            addTubeCloud({
+              curve,
+              segments: 22,
+              density: 5,
+              startRadius: 0.033,
+              endRadius: 0.01,
+              seed: 110 + index,
+              flatten: 0.68,
+              axialJitter: 0.22,
+            });
+            rootAnchors.push(curve.getPoint(0.75));
+            rootAnchors.push(curve.getPoint(1));
           });
         }
 
@@ -312,47 +392,56 @@ const {
         );
         structureGroup.add(new THREE.Points(structureGeometry, structureMaterial));
 
-        const crownWidth = (t) => {
-          const bell = Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.61);
-          const upper = 0.16 * Math.exp(-((t - 0.68) ** 2) / 0.032);
-          const lower = 0.1 * Math.exp(-((t - 0.27) ** 2) / 0.04);
-          return 0.33 + 2.02 * bell + upper + lower;
-        };
-
-        const crownDepth = (t) => {
-          const bell = Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.74);
-          return 0.27 + 1.36 * bell;
-        };
-
-        const crownCenterX = (t) =>
-          -0.1 +
-          0.12 * Math.sin(t * 4.5 + 0.2) +
-          0.04 * Math.sin(t * 10.9);
-
-        const crownCenterZ = (t) =>
-          0.05 * Math.sin(t * 5.6 - 0.35);
-
-        const crownY = (t) => 0.98 + t * 2.32;
-
         const canopyPositions = [];
-        const canopyPointCount = 11600;
+        const canopyClusters = [
+          { c: [-1.45, 2.08, 0.1], r: [0.72, 0.44, 0.52], n: 720 },
+          { c: [-1.05, 2.35, -0.03], r: [0.86, 0.54, 0.62], n: 900 },
+          { c: [-0.42, 2.62, 0.02], r: [0.88, 0.55, 0.66], n: 940 },
+          { c: [0.18, 2.72, 0.0], r: [0.94, 0.56, 0.7], n: 1020 },
+          { c: [0.85, 2.48, 0.04], r: [0.92, 0.56, 0.68], n: 940 },
+          { c: [1.42, 2.17, 0.1], r: [0.78, 0.46, 0.58], n: 760 },
+          { c: [-0.42, 2.05, 0.36], r: [0.7, 0.42, 0.5], n: 620 },
+          { c: [0.38, 2.14, 0.4], r: [0.72, 0.42, 0.52], n: 640 },
+          { c: [-0.15, 1.86, -0.2], r: [0.76, 0.4, 0.54], n: 600 },
+        ];
 
-        for (let i = 0; i < canopyPointCount; i += 1) {
-          const t = 0.025 + hash(i + 1, 41) * 0.95;
-          const angle = hash(i + 1, 42) * Math.PI * 2;
-          const radial = Math.sqrt(hash(i + 1, 43));
-          const irregularity =
-            1 +
-            0.05 * Math.sin(angle * 3 + t * 5.2) +
-            0.032 * Math.cos(angle * 5 - t * 7.1) +
-            (hash(i + 1, 44) - 0.5) * 0.06;
+        canopyClusters.forEach((cluster, clusterIndex) => {
+          for (let i = 0; i < cluster.n; i += 1) {
+            const seed = clusterIndex * 10000 + i + 1;
+            const u = hash(seed, 140);
+            const v = hash(seed, 141);
+            const w = hash(seed, 142);
+            const theta = u * Math.PI * 2;
+            const phi = Math.acos(2 * v - 1);
+            const radial = Math.pow(w, 0.56);
+            const nx = Math.sin(phi) * Math.cos(theta);
+            const ny = Math.cos(phi);
+            const nz = Math.sin(phi) * Math.sin(theta);
+            const irregularity =
+              0.88 +
+              0.16 * hash(seed, 143) +
+              0.05 * Math.sin(theta * 3 + clusterIndex * 0.7);
 
-          canopyPositions.push(
-            crownCenterX(t) + Math.cos(angle) * crownWidth(t) * radial * irregularity,
-            crownY(t) + (hash(i + 1, 45) - 0.5) * 0.075,
-            crownCenterZ(t) + Math.sin(angle) * crownDepth(t) * radial * irregularity
-          );
-        }
+            canopyPositions.push(
+              cluster.c[0] + nx * cluster.r[0] * radial * irregularity,
+              cluster.c[1] + ny * cluster.r[1] * radial * irregularity,
+              cluster.c[2] + nz * cluster.r[2] * radial * irregularity
+            );
+          }
+        });
+
+        canopyAnchors.forEach((anchor, index) => {
+          for (let i = 0; i < 110; i += 1) {
+            const seed = index * 1000 + i + 1;
+            const theta = hash(seed, 150) * Math.PI * 2;
+            const radial = Math.pow(hash(seed, 151), 0.72) * 0.23;
+            canopyPositions.push(
+              anchor.x + Math.cos(theta) * radial,
+              anchor.y + (hash(seed, 152) - 0.5) * 0.2,
+              anchor.z + Math.sin(theta) * radial * 0.82
+            );
+          }
+        });
 
         const canopyGeometry = new THREE.BufferGeometry();
         canopyGeometry.setAttribute(
@@ -361,112 +450,73 @@ const {
         );
         canopyGroup.add(new THREE.Points(canopyGeometry, canopyMaterial));
 
-        const rootHaloPositions = [];
+        const fineRootPositions = [];
 
         if (wantsRoots) {
-          const rootHaloCount = 8200;
+          rootAnchors.forEach((anchor, index) => {
+            const count = index % 3 === 0 ? 260 : 170;
+            for (let i = 0; i < count; i += 1) {
+              const seed = index * 10000 + i + 1;
+              const theta = hash(seed, 170) * Math.PI * 2;
+              const radial = Math.pow(hash(seed, 171), 0.65);
+              const rx = 0.34 + 0.48 * hash(index + 1, 172);
+              const rz = 0.22 + 0.34 * hash(index + 1, 173);
+              fineRootPositions.push(
+                anchor.x + Math.cos(theta) * rx * radial,
+                anchor.y + (hash(seed, 174) - 0.5) * 0.12,
+                anchor.z + Math.sin(theta) * rz * radial
+              );
+            }
+          });
 
-          for (let i = 0; i < rootHaloCount; i += 1) {
-            const angle = hash(i + 1, 51) * Math.PI * 2;
-            const radial = Math.pow(hash(i + 1, 52), 0.68);
-            const irregularity =
-              1 +
-              0.085 * Math.sin(angle * 2.1) +
-              0.04 * Math.cos(angle * 5.1) +
-              (hash(i + 1, 53) - 0.5) * 0.1;
+          const rootClouds = [
+            { c: [-1.65, -0.36, 0.18], r: [1.18, 0.13, 0.55], n: 900 },
+            { c: [1.72, -0.35, 0.02], r: [1.2, 0.13, 0.56], n: 900 },
+            { c: [-0.52, -0.35, -1.12], r: [0.88, 0.13, 0.54], n: 620 },
+            { c: [0.88, -0.34, 1.04], r: [0.84, 0.13, 0.52], n: 600 },
+            { c: [-0.68, -0.34, 0.86], r: [0.78, 0.12, 0.46], n: 500 },
+          ];
 
-            const reach = 3.5 * radial * irregularity;
-            const x = Math.cos(angle) * reach * 1.03;
-            const z = Math.sin(angle) * reach * 0.72;
-            const y =
-              -0.1 -
-              0.34 * radial +
-              (hash(i + 1, 54) - 0.5) * 0.06;
-
-            rootHaloPositions.push(x, y, z);
-          }
+          rootClouds.forEach((cluster, clusterIndex) => {
+            for (let i = 0; i < cluster.n; i += 1) {
+              const seed = clusterIndex * 10000 + i + 1;
+              const angle = hash(seed, 180) * Math.PI * 2;
+              const radial = Math.pow(hash(seed, 181), 0.62);
+              const wobble = 0.88 + 0.22 * hash(seed, 182);
+              fineRootPositions.push(
+                cluster.c[0] + Math.cos(angle) * cluster.r[0] * radial * wobble,
+                cluster.c[1] + (hash(seed, 183) - 0.5) * cluster.r[1],
+                cluster.c[2] + Math.sin(angle) * cluster.r[2] * radial * wobble
+              );
+            }
+          });
         }
 
-        const rootHaloGeometry = new THREE.BufferGeometry();
-        rootHaloGeometry.setAttribute(
+        const fineRootGeometry = new THREE.BufferGeometry();
+        fineRootGeometry.setAttribute(
           'position',
-          new THREE.Float32BufferAttribute(rootHaloPositions, 3)
+          new THREE.Float32BufferAttribute(fineRootPositions, 3)
         );
-        rootHaloGroup.add(new THREE.Points(rootHaloGeometry, rootHaloMaterial));
-
-        [0.35, 0.69].forEach((t) => {
-          const points = [];
-
-          for (let ai = 0; ai <= 88; ai += 1) {
-            const angle = (ai / 88) * Math.PI * 2;
-            const wobble =
-              1 +
-              0.035 * Math.sin(angle * 3 + t * 4) +
-              0.02 * Math.cos(angle * 5 - t * 6);
-
-            points.push(
-              new THREE.Vector3(
-                crownCenterX(t) + Math.cos(angle) * crownWidth(t) * wobble,
-                crownY(t),
-                crownCenterZ(t) + Math.sin(angle) * crownDepth(t) * wobble
-              )
-            );
-          }
-
-          accentGroup.add(makeLine(points, accentMaterial, true));
-        });
-
-        if (wantsRoots) {
-          const points = [];
-          const radius = 3.05;
-
-          for (let ai = 0; ai <= 92; ai += 1) {
-            const angle = (ai / 92) * Math.PI * 2;
-            const wobble =
-              1 +
-              0.05 * Math.sin(angle * 2.2) +
-              0.025 * Math.cos(angle * 5.2);
-
-            points.push(
-              new THREE.Vector3(
-                Math.cos(angle) * radius * wobble * 1.03,
-                -0.26,
-                Math.sin(angle) * radius * wobble * 0.7
-              )
-            );
-          }
-
-          accentGroup.add(makeLine(points, accentMaterial, true));
-        }
+        fineRootGroup.add(new THREE.Points(fineRootGeometry, fineRootMaterial));
 
         contextGroup.visible = wantsContext;
-
-        contextGroup.add(
-          makeLine(
-            [
-              new THREE.Vector3(-4.2, -0.025, 0),
-              new THREE.Vector3(4.2, -0.025, 0),
-            ],
-            contextMaterial
-          )
-        );
-
-        const setbackCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(-3.8, -0.07, 1.9),
-          new THREE.Vector3(-1.9, -0.07, 1.86),
-          new THREE.Vector3(-0.95, -0.07, 2.28),
-          new THREE.Vector3(0, -0.07, 2.58),
-          new THREE.Vector3(0.95, -0.07, 2.28),
-          new THREE.Vector3(1.9, -0.07, 1.86),
-          new THREE.Vector3(3.8, -0.07, 1.9),
-        ]);
-        contextGroup.add(makeLine(setbackCurve.getPoints(58), contextMaterial));
+        if (wantsContext) {
+          const contextCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-3.7, -0.04, 1.7),
+            new THREE.Vector3(-1.8, -0.04, 1.65),
+            new THREE.Vector3(-0.9, -0.04, 2.02),
+            new THREE.Vector3(0, -0.04, 2.3),
+            new THREE.Vector3(0.9, -0.04, 2.02),
+            new THREE.Vector3(1.8, -0.04, 1.65),
+            new THREE.Vector3(3.7, -0.04, 1.7),
+          ]);
+          contextGroup.add(makeLine(contextCurve.getPoints(64), contextMaterial));
+        }
 
         const resize = () => {
           const rect = root.getBoundingClientRect();
           const width = Math.max(1, Math.round(rect.width));
           const height = Math.max(1, Math.round(rect.height));
-
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
@@ -500,17 +550,12 @@ const {
           controls.update();
 
           if (!reducedMotion) {
-            const phase = time * 0.00058;
-            const breath = 0.5 + 0.5 * Math.sin(phase);
-
-            canopyGroup.scale.x = 0.985 + breath * 0.035;
-            canopyGroup.scale.z = 0.988 + breath * 0.027;
-            canopyGroup.position.y = 0.012 * Math.sin(phase * 0.82);
-
-            rootHaloGroup.scale.x = 0.978 + breath * 0.045;
-            rootHaloGroup.scale.z = 0.98 + breath * 0.04;
-
-            specimen.rotation.z = -0.01 + 0.01 * Math.sin(phase * 0.5);
+            const phase = time * 0.00038;
+            const sway = Math.sin(phase);
+            structureGroup.rotation.z = 0.0045 * sway;
+            canopyGroup.rotation.z = 0.008 * sway;
+            canopyGroup.position.x = 0.016 * Math.sin(phase * 0.83);
+            canopyGroup.position.y = 0.01 * Math.sin(phase * 0.67);
           }
 
           renderer.render(scene, camera);
@@ -531,8 +576,7 @@ const {
 
           structureMaterial.dispose();
           canopyMaterial.dispose();
-          rootHaloMaterial.dispose();
-          accentMaterial.dispose();
+          fineRootMaterial.dispose();
           contextMaterial.dispose();
           renderer.dispose();
         };
