@@ -11,6 +11,7 @@ interface Props {
   perspectiveLabel: string;
   sourceLabel: string;
   headingLevel?: 'h1' | 'h2';
+  titleHref?: string;
 }
 
 const {
@@ -21,6 +22,7 @@ const {
   perspectiveLabel,
   sourceLabel,
   headingLevel = 'h2',
+  titleHref,
 } = Astro.props;
 
 const localizedPost =
@@ -77,7 +79,18 @@ const Heading =
   </p>
 
   <Heading class="post-title">
-    {localizedPost.title}
+    {
+      titleHref ? (
+        <a
+          class="post-title-link"
+          href={titleHref}
+        >
+          {localizedPost.title}
+        </a>
+      ) : (
+        localizedPost.title
+      )
+    }
   </Heading>
 
   <div class="post-news">
@@ -163,3 +176,10 @@ const Heading =
     </a>
   </div>
 </article>
+
+<style>
+  .post-title-link {
+    color: inherit;
+    text-decoration: none;
+  }
+</style>
