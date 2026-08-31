@@ -1,37 +1,20 @@
 ---
-import {
-  getCollection,
-  type CollectionEntry,
-} from 'astro:content';
-
 import ArticlePage from '../../../components/ArticlePage.astro';
-import { getPostSlug } from '../../../utils/posts';
+
+import {
+  getPostSlug,
+  getPublishedPosts,
+  type PublishedPost,
+} from '../../../utils/posts';
 
 interface Props {
-  post: CollectionEntry<'posts'>;
+  post: PublishedPost;
   postNumber: string;
 }
 
 export async function getStaticPaths() {
-  const posts = (
-    await getCollection('posts')
-  )
-    .filter(
-      (post) =>
-        post.data.status === 'published' &&
-        Boolean(post.data.publishedAt)
-    )
-    .sort((a, b) => {
-      const aTime = new Date(
-        a.data.publishedAt as string
-      ).getTime();
-
-      const bTime = new Date(
-        b.data.publishedAt as string
-      ).getTime();
-
-      return bTime - aTime;
-    });
+  const posts =
+    await getPublishedPosts();
 
   return posts.map(
     (post, index) => ({
