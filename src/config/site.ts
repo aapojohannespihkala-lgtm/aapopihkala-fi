@@ -10,7 +10,7 @@ export const site = {
     'G-4K1BDDX69E',
 
   metaImage:
-    '/graphics/metakuva.png',
+    '/graphics/metakuva1.png',
 
   languages: {
     fi: {
