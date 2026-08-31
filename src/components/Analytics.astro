@@ -1,0 +1,508 @@
+---
+import {
+  site,
+  type SiteLanguage,
+} from '../config/site';
+
+interface Props {
+  lang: SiteLanguage;
+}
+
+const { lang } = Astro.props;
+
+const content = {
+  fi: {
+    label:
+      'Analytiikan suostumus',
+
+    text:
+      'Käytän Google Analyticsia sivuston käytön ymmärtämiseen. Analytiikka käynnistyy vain, jos hyväksyt sen.',
+
+    accept:
+      'Hyväksy analytiikka',
+
+    reject:
+      'Vain välttämättömät',
+
+    settings:
+      'Analytiikka-asetukset',
+  },
+
+  en: {
+    label:
+      'Analytics consent',
+
+    text:
+      'I use Google Analytics to understand how the site is used. Analytics is only enabled if you allow it.',
+
+    accept:
+      'Allow analytics',
+
+    reject:
+      'Necessary only',
+
+    settings:
+      'Analytics settings',
+  },
+} as const;
+
+const t =
+  content[lang];
+
+const measurementId =
+  site.analyticsMeasurementId;
+---
+
+<div
+  class="analytics-consent"
+  data-analytics-consent
+  role="region"
+  aria-label={t.label}
+  aria-live="polite"
+  hidden
+>
+  <p class="analytics-consent-text">
+    {t.text}
+  </p>
+
+  <div class="analytics-consent-actions">
+    <button
+      class="analytics-consent-button analytics-consent-accept"
+      type="button"
+      data-analytics-accept
+    >
+      {t.accept}
+    </button>
+
+    <button
+      class="analytics-consent-button analytics-consent-reject"
+      type="button"
+      data-analytics-reject
+    >
+      {t.reject}
+    </button>
+  </div>
+</div>
+
+<button
+  class="analytics-settings"
+  type="button"
+  data-analytics-settings
+  hidden
+>
+  {t.settings}
+</button>
+
+<script
+  define:vars={{
+    measurementId,
+  }}
+>
+  const STORAGE_KEY =
+    'aapopihkala-analytics-consent-v1';
+
+  const banner =
+    document.querySelector(
+      '[data-analytics-consent]'
+    );
+
+  const acceptButton =
+    document.querySelector(
+      '[data-analytics-accept]'
+    );
+
+  const rejectButton =
+    document.querySelector(
+      '[data-analytics-reject]'
+    );
+
+  const settingsButton =
+    document.querySelector(
+      '[data-analytics-settings]'
+    );
+
+  const getConsent =
+    () => {
+      try {
+        return localStorage.getItem(
+          STORAGE_KEY
+        );
+      } catch {
+        return null;
+      }
+    };
+
+  const saveConsent =
+    (value) => {
+      try {
+        localStorage.setItem(
+          STORAGE_KEY,
+          value
+        );
+      } catch {
+        // If storage is unavailable,
+        // the choice is not persisted.
+      }
+    };
+
+  const loadAnalytics =
+    () => {
+      if (
+        document.querySelector(
+          `script[data-google-analytics="${measurementId}"]`
+        )
+      ) {
+        return;
+      }
+
+      window.dataLayer =
+        window.dataLayer || [];
+
+      window.gtag =
+        function () {
+          window.dataLayer.push(
+            arguments
+          );
+        };
+
+      window.gtag(
+        'js',
+        new Date()
+      );
+
+      window.gtag(
+        'config',
+        measurementId
+      );
+
+      const script =
+        document.createElement(
+          'script'
+        );
+
+      script.async = true;
+
+      script.src =
+        `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(
+          measurementId
+        )}`;
+
+      script.dataset.googleAnalytics =
+        measurementId;
+
+      document.head.appendChild(
+        script
+      );
+    };
+
+  const clearAnalyticsCookies =
+    () => {
+      const cookieNames =
+        document.cookie
+          .split(';')
+          .map(
+            (cookie) =>
+              cookie
+                .split('=')[0]
+                .trim()
+          )
+          .filter(
+            (name) =>
+              name === '_ga' ||
+              name.startsWith(
+                '_ga_'
+              ) ||
+              name === '_gid' ||
+              name.startsWith(
+                '_gat'
+              )
+          );
+
+      cookieNames.forEach(
+        (name) => {
+          document.cookie =
+            `${name}=; Max-Age=0; path=/`;
+
+          if (
+            location.hostname.includes(
+              '.'
+            )
+          ) {
+            document.cookie =
+              `${name}=; Max-Age=0; path=/; domain=.${location.hostname}`;
+          }
+        }
+      );
+    };
+
+  const showBanner =
+    () => {
+      if (banner) {
+        banner.hidden = false;
+      }
+
+      if (settingsButton) {
+        settingsButton.hidden = true;
+      }
+    };
+
+  const hideBanner =
+    () => {
+      if (banner) {
+        banner.hidden = true;
+      }
+
+      if (settingsButton) {
+        settingsButton.hidden = false;
+      }
+    };
+
+  const grantConsent =
+    () => {
+      saveConsent(
+        'granted'
+      );
+
+      loadAnalytics();
+      hideBanner();
+    };
+
+  const denyConsent =
+    () => {
+      saveConsent(
+        'denied'
+      );
+
+      if (
+        typeof window.gtag ===
+        'function'
+      ) {
+        window.gtag(
+          'consent',
+          'update',
+          {
+            analytics_storage:
+              'denied',
+          }
+        );
+      }
+
+      clearAnalyticsCookies();
+      hideBanner();
+    };
+
+  acceptButton?.addEventListener(
+    'click',
+    grantConsent
+  );
+
+  rejectButton?.addEventListener(
+    'click',
+    denyConsent
+  );
+
+  settingsButton?.addEventListener(
+    'click',
+    showBanner
+  );
+
+  const savedConsent =
+    getConsent();
+
+  if (
+    savedConsent ===
+    'granted'
+  ) {
+    loadAnalytics();
+    hideBanner();
+  } else if (
+    savedConsent ===
+    'denied'
+  ) {
+    hideBanner();
+  } else {
+    showBanner();
+  }
+</script>
+
+<style>
+  .analytics-consent {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 100;
+
+    width: min(
+      430px,
+      calc(100vw - 40px)
+    );
+
+    padding:
+      18px
+      20px;
+
+    background:
+      rgba(
+        246,
+        244,
+        238,
+        0.98
+      );
+
+    border:
+      1px solid
+      var(--line);
+
+    box-shadow:
+      0 10px 32px
+      rgba(
+        29,
+        31,
+        27,
+        0.08
+      );
+  }
+
+  .analytics-consent-text {
+    margin:
+      0
+      0
+      14px;
+
+    color:
+      var(--ink-soft);
+
+    font-size:
+      0.78rem;
+
+    line-height:
+      1.55;
+  }
+
+  .analytics-consent-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap:
+      8px
+      16px;
+  }
+
+  .analytics-consent-button,
+  .analytics-settings {
+    appearance: none;
+
+    margin: 0;
+    padding: 0;
+
+    background: none;
+    border: 0;
+
+    font: inherit;
+
+    cursor: pointer;
+  }
+
+  .analytics-consent-button {
+    font-size:
+      0.72rem;
+
+    line-height:
+      1.4;
+
+    transition:
+      color
+      180ms
+      ease;
+  }
+
+  .analytics-consent-accept {
+    color:
+      var(--moss-deep);
+
+    font-weight:
+      600;
+  }
+
+  .analytics-consent-reject {
+    color:
+      var(--stone);
+  }
+
+  .analytics-consent-button:hover,
+  .analytics-consent-button:focus-visible {
+    color:
+      var(--ink);
+  }
+
+  .analytics-settings {
+    position: fixed;
+    right: 16px;
+    bottom: 12px;
+    z-index: 99;
+
+    color:
+      var(--stone-light);
+
+    font-size:
+      0.62rem;
+
+    line-height:
+      1.3;
+
+    transition:
+      color
+      180ms
+      ease;
+  }
+
+  .analytics-settings:hover,
+  .analytics-settings:focus-visible {
+    color:
+      var(--moss-deep);
+  }
+
+  .analytics-consent-button:focus-visible,
+  .analytics-settings:focus-visible {
+    outline:
+      1px solid
+      var(--moss);
+
+    outline-offset:
+      4px;
+  }
+
+  @media (
+    max-width: 640px
+  ) {
+    .analytics-consent {
+      right: 12px;
+      bottom: 12px;
+
+      width:
+        calc(
+          100vw - 24px
+        );
+
+      padding:
+        16px;
+    }
+
+    .analytics-consent-actions {
+      gap:
+        9px
+        14px;
+    }
+  }
+
+  @media (
+    prefers-reduced-motion:
+    reduce
+  ) {
+    .analytics-consent-button,
+    .analytics-settings {
+      transition: none;
+    }
+  }
+</style>
