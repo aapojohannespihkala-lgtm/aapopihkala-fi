@@ -8,6 +8,7 @@ import TreeField from '../../components/TreeField.astro';
 import PointBee from '../../components/PointBee.astro';
 import StormwaterCatchment from '../../components/StormwaterCatchment.astro';
 import RootNetwork from '../../components/RootNetwork.astro';
+import WaterDropMorph from '../../components/WaterDropMorph.astro';
 ---
 
 <!doctype html>
@@ -283,6 +284,35 @@ import RootNetwork from '../../components/RootNetwork.astro';
             </p>
           </footer>
         </article>
+
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">07</p>
+              <h2>Water drop</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage experiment-stage--waterdrop">
+            <div class="experiment-viewport experiment-viewport--waterdrop">
+              <WaterDropMorph />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Pintajännityksen koossa pitämä leijuva vesipisara, jonka pistepinta väreilee hitaasti ja hienovaraisesti.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · surface tension · surface waves
+            </p>
+          </footer>
+        </article>
       </section>
     </main>
   </body>
@@ -448,6 +478,16 @@ import RootNetwork from '../../components/RootNetwork.astro';
     margin: 0 auto;
   }
 
+  .experiment-stage--waterdrop {
+    min-height: 500px;
+  }
+
+  .experiment-viewport--waterdrop {
+    width: min(100%, 900px);
+    height: clamp(440px, 52vw, 600px);
+    margin: 0 auto;
+  }
+
   .experiment-footer {
     display: flex;
     justify-content: space-between;
@@ -531,6 +571,15 @@ import RootNetwork from '../../components/RootNetwork.astro';
     .experiment-viewport--root-network {
       width: 100%;
       height: 450px;
+    }
+
+    .experiment-stage--waterdrop {
+      min-height: 390px;
+    }
+
+    .experiment-viewport--waterdrop {
+      width: 100%;
+      height: 390px;
     }
 
     .experiment-footer p + p {
