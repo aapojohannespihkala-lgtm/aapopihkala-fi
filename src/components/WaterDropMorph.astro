@@ -95,20 +95,14 @@ const {
 
         const scene = new THREE.Scene()
         const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100)
-        camera.position.set(3.85, 2.7, cameraDistance)
+        camera.position.set(3.3, 2.2, cameraDistance)
 
         const specimen = new THREE.Group()
         specimen.scale.setScalar(displayScale)
-        specimen.rotation.y = -0.13
-        specimen.rotation.x = -0.035
-        specimen.rotation.z = 0.018
+        specimen.rotation.x = -0.04
+        specimen.rotation.y = -0.14
+        specimen.rotation.z = 0.025
         scene.add(specimen)
-
-        const formGroup = new THREE.Group()
-        const dropGuideGroup = new THREE.Group()
-        const contourGroup = new THREE.Group()
-        specimen.add(formGroup)
-        formGroup.add(dropGuideGroup, contourGroup)
 
         const controls = new OrbitControls(camera, renderer.domElement)
         controls.enablePan = false
@@ -117,14 +111,14 @@ const {
         controls.dampingFactor = 0.055
         controls.rotateSpeed = 0.5
         controls.minPolarAngle = Math.PI * 0.24
-        controls.maxPolarAngle = Math.PI * 0.72
-        controls.target.set(0, 0.35, 0)
+        controls.maxPolarAngle = Math.PI * 0.74
+        controls.target.set(0, 0.12, 0)
         controls.autoRotate = wantsAutoRotate && !reducedMotion
-        controls.autoRotateSpeed = 0.14
+        controls.autoRotateSpeed = 0.16
 
         if (wantsZoom) {
-          controls.minDistance = 5.8
-          controls.maxDistance = 9.8
+          controls.minDistance = 5.6
+          controls.maxDistance = 9.6
           controls.zoomSpeed = 0.5
         } else {
           const lockedDistance = camera.position.length()
@@ -132,253 +126,188 @@ const {
           controls.maxDistance = lockedDistance
         }
 
-        const pointMaterial = new THREE.PointsMaterial({
+        const shellMaterial = new THREE.PointsMaterial({
           color: 0x353832,
-          size: 0.027,
+          size: 0.029,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.74,
+          opacity: 0.78,
         })
 
-        const guideColor = 0x59695d
-        const contourColor = 0x59695d
+        const innerMaterial = new THREE.PointsMaterial({
+          color: 0x687067,
+          size: 0.021,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.22,
+        })
+
+        const lineMaterials = [
+          new THREE.LineBasicMaterial({ color: 0x59695d, transparent: true, opacity: 0.56 }),
+          new THREE.LineBasicMaterial({ color: 0x69756b, transparent: true, opacity: 0.34 }),
+        ]
+
+        const latSteps = 48
+        const lonSteps = 64
+        const pointCount = (latSteps - 1) * lonSteps
+        const shellPositions = new Float32Array(pointCount * 3)
+        const innerPositions = new Float32Array(Math.ceil(pointCount / 4) * 3)
+        const spherical = new Float32Array(pointCount * 3)
+        const droplet = new Float32Array(pointCount * 3)
+
+        const indexOf = (lat, lon) => (lat - 1) * lonSteps + lon
+
+        for (let lat = 1; lat < latSteps; lat += 1) {
+          const phi = (lat / latSteps) * Math.PI
+          const sinPhi = Math.sin(phi)
+          const cosPhi = Math.cos(phi)
+          const normalizedY = (cosPhi + 1) * 0.5
+
+          const t = 1 - normalizedY
+          const dropProfile =
+            Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.54) *
+            (0.96 - 0.2 * t + 0.06 * Math.sin(Math.PI * t))
+
+          for (let lon = 0; lon < lonSteps; lon += 1) {
+            const theta = (lon / lonSteps) * Math.PI * 2
+            const index = indexOf(lat, lon)
+            const offset = index * 3
+
+            const sx = Math.cos(theta) * sinPhi * 0.76
+            const sy = cosPhi * 0.94
+            const sz = Math.sin(theta) * sinPhi * 0.72
+
+            spherical[offset] = sx
+            spherical[offset + 1] = sy
+            spherical[offset + 2] = sz
+
+            droplet[offset] = Math.cos(theta) * dropProfile * 0.7
+            droplet[offset + 1] = THREE.MathUtils.lerp(-0.9, 1.12, lat / latSteps)
+            droplet[offset + 2] = Math.sin(theta) * dropProfile * 0.65
+          }
+        }
+
+        const shellGeometry = new THREE.BufferGeometry()
+        const shellAttribute = new THREE.BufferAttribute(shellPositions, 3)
+        shellAttribute.setUsage(THREE.DynamicDrawUsage)
+        shellGeometry.setAttribute('position', shellAttribute)
+        const shell = new THREE.Points(shellGeometry, shellMaterial)
+        specimen.add(shell)
+
+        const innerGeometry = new THREE.BufferGeometry()
+        const innerAttribute = new THREE.BufferAttribute(innerPositions, 3)
+        innerAttribute.setUsage(THREE.DynamicDrawUsage)
+        innerGeometry.setAttribute('position', innerAttribute)
+        const inner = new THREE.Points(innerGeometry, innerMaterial)
+        specimen.add(inner)
+
+        const guideGeometries = []
+        const guides = []
+
+        const makeGuide = (indices, materialIndex = 0, closed = false) => {
+          const array = new Float32Array((indices.length + (closed ? 1 : 0)) * 3)
+          const geometry = new THREE.BufferGeometry()
+          const attribute = new THREE.BufferAttribute(array, 3)
+          attribute.setUsage(THREE.DynamicDrawUsage)
+          geometry.setAttribute('position', attribute)
+          const line = closed
+            ? new THREE.LineLoop(geometry, lineMaterials[materialIndex])
+            : new THREE.Line(geometry, lineMaterials[materialIndex])
+          specimen.add(line)
+          guideGeometries.push(geometry)
+          guides.push({ indices, array, attribute })
+        }
+
+        ;[7, 13, 19, 25, 31, 37, 43].forEach((lat, i) => {
+          const indices = []
+          for (let lon = 0; lon < lonSteps; lon += 1) {
+            indices.push(indexOf(lat, lon))
+          }
+          makeGuide(indices, i % 3 === 0 ? 0 : 1, true)
+        })
+
+        ;[0, 8, 16, 24, 32, 40, 48, 56].forEach((lon, i) => {
+          const indices = []
+          for (let lat = 1; lat < latSteps; lat += 1) {
+            indices.push(indexOf(lat, lon))
+          }
+          makeGuide(indices, i % 2 === 0 ? 0 : 1, false)
+        })
 
         const smooth = (value) => {
           const t = THREE.MathUtils.clamp(value, 0, 1)
           return t * t * (3 - 2 * t)
         }
 
-        const irregularity = (angle, radiusFraction = 1) =>
-          1 +
-          0.035 * Math.sin(angle * 2.15 + radiusFraction * 2.6) +
-          0.022 * Math.sin(angle * 4.2 - 0.7 + radiusFraction * 1.8) +
-          0.012 * Math.cos(angle * 6.8 + 0.9)
+        const updateShape = (timeSeconds) => {
+          const roundedPhase = wantsAnimation
+            ? 0.5 + 0.5 * Math.sin(timeSeconds * 0.48)
+            : 0.58
+          const roundness = smooth(0.22 + roundedPhase * 0.7)
 
-        const ringCount = 56
-        const segmentCount = 64
-        const pointCount = (ringCount + 1) * segmentCount
-
-        const dropPositions = new Float32Array(pointCount * 3)
-        const puddlePositions = new Float32Array(pointCount * 3)
-        const currentPositions = new Float32Array(pointCount * 3)
-        const pointRadius = new Float32Array(pointCount)
-        const pointAngle = new Float32Array(pointCount)
-
-        const pointIndex = (ring, segment) => ring * segmentCount + segment
-
-        for (let ring = 0; ring <= ringCount; ring += 1) {
-          const t = ring / ringCount
-          const dropY = THREE.MathUtils.lerp(-0.86, 1.16, t)
-          const profile =
-            0.62 *
-            Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.58) *
-            (1.03 - 0.34 * t + 0.08 * Math.sin(Math.PI * t))
-
-          const radial = Math.sqrt((ring + 0.36) / (ringCount + 0.72))
-
-          for (let segment = 0; segment < segmentCount; segment += 1) {
-            const angle = (segment / segmentCount) * Math.PI * 2
-            const index = pointIndex(ring, segment)
-            const offset = index * 3
-
-            const dropX = Math.cos(angle) * profile
-            const dropZ = Math.sin(angle) * profile * 0.9
-
-            dropPositions[offset] = dropX
-            dropPositions[offset + 1] = dropY
-            dropPositions[offset + 2] = dropZ
-
-            const edge = irregularity(angle, radial)
-            const puddleX = Math.cos(angle) * radial * 1.58 * edge
-            const puddleZ = Math.sin(angle) * radial * 1.02 * edge
-            const broadForm =
-              0.032 * Math.sin(angle * 2.1 + radial * 5.1) * (1 - radial) +
-              0.018 * Math.cos(angle * 3.6 - radial * 3.8) * (1 - radial)
-            const puddleY = 0.026 + 0.068 * (1 - radial * radial) + broadForm
-
-            puddlePositions[offset] = puddleX
-            puddlePositions[offset + 1] = puddleY
-            puddlePositions[offset + 2] = puddleZ
-
-            currentPositions[offset] = dropX
-            currentPositions[offset + 1] = dropY
-            currentPositions[offset + 2] = dropZ
-            pointRadius[index] = radial
-            pointAngle[index] = angle
-          }
-        }
-
-        const pointGeometry = new THREE.BufferGeometry()
-        const positionAttribute = new THREE.BufferAttribute(currentPositions, 3)
-        positionAttribute.setUsage(THREE.DynamicDrawUsage)
-        pointGeometry.setAttribute('position', positionAttribute)
-        const pointCloud = new THREE.Points(pointGeometry, pointMaterial)
-        formGroup.add(pointCloud)
-
-        const dropGuides = []
-        const addDropGuide = (points, baseOpacity) => {
-          const geometry = new THREE.BufferGeometry().setFromPoints(points)
-          const material = new THREE.LineBasicMaterial({
-            color: guideColor,
-            transparent: true,
-            opacity: baseOpacity,
-          })
-          const line = new THREE.Line(geometry, material)
-          dropGuideGroup.add(line)
-          dropGuides.push({ geometry, material, baseOpacity })
-        }
-
-        const ringGuides = [8, 16, 24, 32, 40, 48]
-        ringGuides.forEach((ring, guideIndex) => {
-          const points = []
-          for (let segment = 0; segment <= segmentCount; segment += 1) {
-            const wrapped = segment % segmentCount
-            const index = pointIndex(ring, wrapped) * 3
-            points.push(
-              new THREE.Vector3(
-                dropPositions[index],
-                dropPositions[index + 1],
-                dropPositions[index + 2]
-              )
-            )
-          }
-          addDropGuide(points, guideIndex % 2 === 0 ? 0.48 : 0.3)
-        })
-
-        const meridianSegments = [0, 8, 16, 24, 32, 40, 48, 56]
-        meridianSegments.forEach((segment, guideIndex) => {
-          const points = []
-          for (let ring = 1; ring < ringCount; ring += 1) {
-            const index = pointIndex(ring, segment % segmentCount) * 3
-            points.push(
-              new THREE.Vector3(
-                dropPositions[index],
-                dropPositions[index + 1],
-                dropPositions[index + 2]
-              )
-            )
-          }
-          addDropGuide(points, guideIndex % 2 === 0 ? 0.36 : 0.24)
-        })
-
-        const contourSpecs = [
-          { radius: 0.16, opacity: 0.9 },
-          { radius: 0.27, opacity: 0.48 },
-          { radius: 0.39, opacity: 0.58 },
-          { radius: 0.52, opacity: 0.46 },
-          { radius: 0.65, opacity: 0.72 },
-          { radius: 0.78, opacity: 0.44 },
-          { radius: 0.9, opacity: 0.55 },
-          { radius: 1.0, opacity: 0.88 },
-        ]
-
-        const contourSegments = 112
-        const contours = contourSpecs.map((spec) => {
-          const array = new Float32Array((contourSegments + 1) * 3)
-          const geometry = new THREE.BufferGeometry()
-          const attribute = new THREE.BufferAttribute(array, 3)
-          attribute.setUsage(THREE.DynamicDrawUsage)
-          geometry.setAttribute('position', attribute)
-          const material = new THREE.LineBasicMaterial({
-            color: contourColor,
-            transparent: true,
-            opacity: 0,
-          })
-          const line = new THREE.Line(geometry, material)
-          contourGroup.add(line)
-          return {
-            ...spec,
-            array,
-            geometry,
-            attribute,
-            material,
-          }
-        })
-
-        const rippleHeight = (radius, angle, timeSeconds, strength) => {
-          const breathing =
-            0.015 *
-            Math.sin(angle * 2.0 + radius * 7.2 + timeSeconds * 0.42) *
-            (1 - radius)
-
-          const waveCenter = (timeSeconds * 0.16) % 1.22
-          const travelingRing =
-            strength *
-            0.09 *
-            Math.exp(-((radius - waveCenter) ** 2) / 0.0085)
-
-          const innerRipple =
-            strength *
-            0.035 *
-            Math.sin(radius * 18 - timeSeconds * 3.8) *
-            Math.exp(-radius * 2.7)
-
-          return breathing + travelingRing + innerRipple
-        }
-
-        const updateContours = (morph, timeSeconds, rippleStrength) => {
-          const visibility = smooth((morph - 0.16) / 0.84)
-
-          contours.forEach((contour, contourIndex) => {
-            const radius = contour.radius
-
-            for (let i = 0; i <= contourSegments; i += 1) {
-              const angle = (i / contourSegments) * Math.PI * 2
-              const edge = irregularity(angle, radius)
-              const x = Math.cos(angle) * radius * 1.58 * edge
-              const z = Math.sin(angle) * radius * 1.02 * edge
-              const broadForm =
-                0.032 * Math.sin(angle * 2.1 + radius * 5.1) * (1 - radius) +
-                0.018 * Math.cos(angle * 3.6 - radius * 3.8) * (1 - radius)
-              const baseY = 0.026 + 0.068 * (1 - radius * radius) + broadForm
-              const y =
-                baseY +
-                rippleHeight(radius, angle, timeSeconds, rippleStrength) +
-                0.006
-
-              const offset = i * 3
-              contour.array[offset] = x
-              contour.array[offset + 1] = y
-              contour.array[offset + 2] = z
-            }
-
-            contour.attribute.needsUpdate = true
-            const contourPulse =
-              0.92 + 0.08 * Math.sin(timeSeconds * 0.55 + contourIndex * 0.8)
-            contour.material.opacity = contour.opacity * visibility * contourPulse
-          })
-        }
-
-        const updateForm = (morph, lift, rippleStrength, timeSeconds) => {
-          const inverse = 1 - morph
+          const stretchY = wantsAnimation ? 1 + 0.075 * Math.sin(timeSeconds * 0.82) : 1.02
+          const stretchX = wantsAnimation ? 1 - 0.035 * Math.sin(timeSeconds * 0.82) : 0.99
+          const stretchZ = wantsAnimation ? 1 - 0.025 * Math.sin(timeSeconds * 0.82 + 0.8) : 0.99
 
           for (let i = 0; i < pointCount; i += 1) {
             const offset = i * 3
-            const radius = pointRadius[i]
-            const angle = pointAngle[i]
-            const dynamicPuddleY =
-              puddlePositions[offset + 1] +
-              rippleHeight(radius, angle, timeSeconds, rippleStrength)
+            const baseX = THREE.MathUtils.lerp(droplet[offset], spherical[offset], roundness)
+            const baseY = THREE.MathUtils.lerp(droplet[offset + 1], spherical[offset + 1], roundness)
+            const baseZ = THREE.MathUtils.lerp(droplet[offset + 2], spherical[offset + 2], roundness)
 
-            currentPositions[offset] =
-              dropPositions[offset] * inverse + puddlePositions[offset] * morph
-            currentPositions[offset + 1] =
-              dropPositions[offset + 1] * inverse + dynamicPuddleY * morph
-            currentPositions[offset + 2] =
-              dropPositions[offset + 2] * inverse + puddlePositions[offset + 2] * morph
+            const radius = Math.sqrt(baseX * baseX + baseY * baseY + baseZ * baseZ) || 1
+            const nx = baseX / radius
+            const ny = baseY / radius
+            const nz = baseZ / radius
+            const azimuth = Math.atan2(nz, nx)
+
+            const surfaceWave = wantsAnimation
+              ? 1 +
+                0.045 * Math.sin(azimuth * 2.0 + timeSeconds * 0.55) * (1 - ny * ny) +
+                0.025 * Math.cos(azimuth * 3.0 - timeSeconds * 0.42 + ny * 2.2) +
+                0.018 * Math.sin(timeSeconds * 0.7 + ny * 5.0)
+              : 1
+
+            const x = baseX * surfaceWave * stretchX
+            const y = baseY * surfaceWave * stretchY
+            const z = baseZ * surfaceWave * stretchZ
+
+            shellPositions[offset] = x
+            shellPositions[offset + 1] = y
+            shellPositions[offset + 2] = z
+
+            if (i % 4 === 0) {
+              const innerIndex = Math.floor(i / 4) * 3
+              if (innerIndex + 2 < innerPositions.length) {
+                const innerPulse = wantsAnimation
+                  ? 0.78 + 0.025 * Math.sin(timeSeconds * 0.6 + i * 0.017)
+                  : 0.79
+                innerPositions[innerIndex] = x * innerPulse
+                innerPositions[innerIndex + 1] = y * innerPulse
+                innerPositions[innerIndex + 2] = z * innerPulse
+              }
+            }
           }
 
-          positionAttribute.needsUpdate = true
-          formGroup.position.y = lift
-          pointMaterial.size = THREE.MathUtils.lerp(0.028, 0.022, morph)
-          pointMaterial.opacity = THREE.MathUtils.lerp(0.82, 0.66, morph)
+          shellAttribute.needsUpdate = true
+          innerAttribute.needsUpdate = true
 
-          const dropVisibility = 1 - smooth((morph - 0.08) / 0.72)
-          dropGuides.forEach(({ material, baseOpacity }) => {
-            material.opacity = baseOpacity * dropVisibility
+          guides.forEach(({ indices, array, attribute }) => {
+            indices.forEach((pointIndex, guideIndex) => {
+              const source = pointIndex * 3
+              const target = guideIndex * 3
+              array[target] = shellPositions[source]
+              array[target + 1] = shellPositions[source + 1]
+              array[target + 2] = shellPositions[source + 2]
+            })
+            attribute.needsUpdate = true
           })
 
-          updateContours(morph, timeSeconds, rippleStrength)
+          if (wantsAnimation) {
+            specimen.position.y = 0.055 * Math.sin(timeSeconds * 0.4)
+            specimen.rotation.z = 0.025 + 0.035 * Math.sin(timeSeconds * 0.31)
+            specimen.rotation.x = -0.04 + 0.025 * Math.sin(timeSeconds * 0.27 + 0.8)
+          }
         }
 
         const resize = () => {
@@ -416,51 +345,11 @@ const {
           if (!isVisible || !isDocumentVisible) return
 
           controls.update()
-
-          if (wantsAnimation) {
-            const seconds = time * 0.001
-            const cycle = (seconds % 9.6) / 9.6
-
-            let morph = 0
-            let lift = 1.18
-            let rippleStrength = 0
-
-            if (cycle < 0.22) {
-              const t = smooth(cycle / 0.22)
-              lift = THREE.MathUtils.lerp(1.18, 0.62, t)
-            } else if (cycle < 0.44) {
-              const t = smooth((cycle - 0.22) / 0.22)
-              morph = t
-              lift = THREE.MathUtils.lerp(0.62, 0, t)
-              rippleStrength = t * 0.42
-            } else if (cycle < 0.62) {
-              morph = 1
-              lift = 0
-              rippleStrength = 0.72
-            } else if (cycle < 0.82) {
-              const t = smooth((cycle - 0.62) / 0.2)
-              morph = 1 - t
-              lift = THREE.MathUtils.lerp(0, 0.68, t)
-              rippleStrength = 0.72 * (1 - t)
-            } else {
-              const t = smooth((cycle - 0.82) / 0.18)
-              morph = 0
-              lift = THREE.MathUtils.lerp(0.68, 1.18, t)
-            }
-
-            if (morph < 0.04) {
-              lift += 0.014 * Math.sin(seconds * 1.05)
-            }
-
-            updateForm(morph, lift, rippleStrength, seconds)
-          } else {
-            updateForm(0, 1.02, 0, 0)
-          }
-
+          updateShape(time * 0.001)
           renderer.render(scene, camera)
         }
 
-        updateForm(0, 1.02, 0, 0)
+        updateShape(0)
         animationFrame = requestAnimationFrame(animateFrame)
 
         const cleanup = () => {
@@ -469,19 +358,12 @@ const {
           resizeObserver.disconnect()
           intersectionObserver.disconnect()
           controls.dispose()
-          pointGeometry.dispose()
-          pointMaterial.dispose()
-
-          dropGuides.forEach(({ geometry, material }) => {
-            geometry.dispose()
-            material.dispose()
-          })
-
-          contours.forEach(({ geometry, material }) => {
-            geometry.dispose()
-            material.dispose()
-          })
-
+          shellGeometry.dispose()
+          innerGeometry.dispose()
+          guideGeometries.forEach((geometry) => geometry.dispose())
+          shellMaterial.dispose()
+          innerMaterial.dispose()
+          lineMaterials.forEach((material) => material.dispose())
           renderer.dispose()
         }
 
