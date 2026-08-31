@@ -126,27 +126,14 @@ const {
 
         const shellMaterial = new THREE.PointsMaterial({
           color: 0x353832,
-          size: 0.027,
+          size: 0.03,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.76,
+          opacity: 0.8,
         })
 
-        const lineMaterials = [
-          new THREE.LineBasicMaterial({
-            color: 0x59695d,
-            transparent: true,
-            opacity: 0.32,
-          }),
-          new THREE.LineBasicMaterial({
-            color: 0x69756b,
-            transparent: true,
-            opacity: 0.17,
-          }),
-        ]
-
-        const latSteps = 64
-        const lonSteps = 72
+        const latSteps = 40
+        const lonSteps = 44
         const ringPointCount = (latSteps - 1) * lonSteps
         const topPoleIndex = ringPointCount
         const bottomPoleIndex = ringPointCount + 1
@@ -199,42 +186,6 @@ const {
         shellGeometry.setAttribute('position', shellAttribute)
         specimen.add(new THREE.Points(shellGeometry, shellMaterial))
 
-        const guideGeometries = []
-        const guides = []
-
-        const makeGuide = (indices, materialIndex = 0, closed = false) => {
-          const array = new Float32Array(indices.length * 3)
-          const geometry = new THREE.BufferGeometry()
-          const attribute = new THREE.BufferAttribute(array, 3)
-          attribute.setUsage(THREE.DynamicDrawUsage)
-          geometry.setAttribute('position', attribute)
-
-          const line = closed
-            ? new THREE.LineLoop(geometry, lineMaterials[materialIndex])
-            : new THREE.Line(geometry, lineMaterials[materialIndex])
-
-          specimen.add(line)
-          guideGeometries.push(geometry)
-          guides.push({ indices, array, attribute })
-        }
-
-        ;[14, 24, 34, 44, 54].forEach((lat, i) => {
-          const indices = []
-          for (let lon = 0; lon < lonSteps; lon += 1) {
-            indices.push(indexOf(lat, lon))
-          }
-          makeGuide(indices, i % 2 === 0 ? 0 : 1, true)
-        })
-
-        ;[0, 12, 24, 36, 48, 60].forEach((lon, i) => {
-          const indices = [topPoleIndex]
-          for (let lat = 1; lat < latSteps; lat += 1) {
-            indices.push(indexOf(lat, lon))
-          }
-          indices.push(bottomPoleIndex)
-          makeGuide(indices, i % 2 === 0 ? 0 : 1, false)
-        })
-
         const updateShape = (timeSeconds) => {
           for (let i = 0; i < pointCount; i += 1) {
             const offset = i * 3
@@ -253,30 +204,30 @@ const {
             const nz = baseZ / radius
             const azimuth = Math.atan2(nz, nx)
             const latitude = Math.asin(THREE.MathUtils.clamp(ny, -1, 1))
-            const equatorMask = Math.pow(Math.max(0, 1 - Math.abs(ny)), 0.5)
-            const broadMask = 0.3 + 0.7 * equatorMask
+            const equatorMask = Math.pow(Math.max(0, 1 - Math.abs(ny)), 0.72)
+            const broadMask = 0.22 + 0.78 * equatorMask
 
             const surfaceOffset = wantsAnimation
               ? broadMask * (
-                  0.018 * Math.sin(
-                    azimuth * 2.0 +
-                    latitude * 1.4 +
-                    timeSeconds * 0.62
+                  0.022 * Math.sin(
+                    azimuth * 2.1 +
+                    latitude * 1.45 +
+                    timeSeconds * 0.72
                   ) +
-                  0.010 * Math.cos(
-                    azimuth * 3.1 -
-                    latitude * 2.1 -
-                    timeSeconds * 0.47
+                  0.013 * Math.cos(
+                    azimuth * 3.3 -
+                    latitude * 2.0 -
+                    timeSeconds * 0.56
                   ) +
-                  0.006 * Math.sin(
-                    azimuth * 5.0 +
-                    latitude * 1.8 +
-                    timeSeconds * 0.95
+                  0.009 * Math.sin(
+                    azimuth * 5.4 +
+                    latitude * 1.9 +
+                    timeSeconds * 1.12
                   ) +
-                  0.008 * Math.sin(
-                    latitude * 5.2 +
-                    azimuth * 0.8 -
-                    timeSeconds * 0.82
+                  0.006 * Math.cos(
+                    azimuth * 7.2 -
+                    latitude * 2.8 +
+                    timeSeconds * 1.46
                   )
                 )
               : 0
@@ -289,17 +240,6 @@ const {
           }
 
           shellAttribute.needsUpdate = true
-
-          guides.forEach(({ indices, array, attribute }) => {
-            indices.forEach((pointIndex, guideIndex) => {
-              const source = pointIndex * 3
-              const target = guideIndex * 3
-              array[target] = shellPositions[source]
-              array[target + 1] = shellPositions[source + 1]
-              array[target + 2] = shellPositions[source + 2]
-            })
-            attribute.needsUpdate = true
-          })
 
           if (wantsAnimation) {
             specimen.position.y = 0.018 * Math.sin(timeSeconds * 0.3)
@@ -357,9 +297,7 @@ const {
           intersectionObserver.disconnect()
           controls.dispose()
           shellGeometry.dispose()
-          guideGeometries.forEach((geometry) => geometry.dispose())
           shellMaterial.dispose()
-          lineMaterials.forEach((material) => material.dispose())
           renderer.dispose()
         }
 
