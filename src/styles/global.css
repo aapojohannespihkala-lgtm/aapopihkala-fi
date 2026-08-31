@@ -34,6 +34,11 @@ html {
   background: var(--page);
   overflow-x: clip;
   scroll-behavior: smooth;
+
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(89, 105, 93, 0.42)
+    transparent;
 }
 
 
@@ -58,6 +63,55 @@ body {
 
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+::-webkit-scrollbar-thumb {
+  min-height: 48px;
+
+  background:
+    rgba(89, 105, 93, 0.38);
+
+  border:
+    2px solid
+    transparent;
+
+  border-radius: 999px;
+
+  background-clip: padding-box;
+}
+
+
+::-webkit-scrollbar-thumb:hover {
+  background:
+    rgba(73, 88, 77, 0.56);
+
+  border:
+    2px solid
+    transparent;
+
+  background-clip: padding-box;
+}
+
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 
