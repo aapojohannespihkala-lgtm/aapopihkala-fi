@@ -1,6 +1,6 @@
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 1200 400"
+  viewBox="0 0 1200 220"
   fill="none"
   role="img"
   aria-labelledby="title desc"
@@ -9,542 +9,778 @@
   <title id="title">Kaupunkipuu tarvitsee tilansa</title>
 
   <desc id="desc">
-    Herkkä maisema-arkkitehtoninen viivapiirros, jossa pitkä kaupunkirakenteen
-    linja väistää olemassa olevaa puuta. Puun ympärillä kulkee vaaleita,
-    epäsäännöllisiä maasto- ja tilaviivoja.
+    Herkkä maisema-arkkitehtoninen luonnos, jossa kaupunkirakenteen linja
+    väistää olemassa olevaa puuta. Viivoissa on hienovaraisesti käsin
+    piirretyn kynäjäljen tuntua.
   </desc>
 
-  <style>
-    .ground {
-      fill: none;
-      stroke: #59635a;
-      stroke-width: 1.35;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      vector-effect: non-scaling-stroke;
-    }
+  <defs>
+    <!--
+      KYNÄJÄLKI
 
-    .tree {
-      fill: none;
-      stroke: #59635a;
-      stroke-width: 1.2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      vector-effect: non-scaling-stroke;
-    }
+      Tämä ei muuta viivojen geometriaa.
+      Se muuttaa ainoastaan viivan peittävyyttä erittäin vähän,
+      jolloin jälki ei ole täysin tasainen digitaalinen stroke.
+    -->
+    <filter
+      id="inkTexture"
+      x="-4%"
+      y="-12%"
+      width="108%"
+      height="124%"
+      color-interpolation-filters="sRGB"
+    >
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.022 0.075"
+        numOctaves="2"
+        seed="19"
+        result="noise"
+      />
 
-    .contour-a {
-      fill: none;
-      stroke: #cdd2cd;
-      stroke-width: 0.7;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      vector-effect: non-scaling-stroke;
-      opacity: 0.58;
-    }
+      <feColorMatrix
+        in="noise"
+        type="matrix"
+        values="
+          0 0 0 0 1
+          0 0 0 0 1
+          0 0 0 0 1
+          0.03 0.03 0.03 0 0.88
+        "
+        result="inkAlpha"
+      />
 
-    .contour-b {
-      fill: none;
-      stroke: #d5d9d5;
-      stroke-width: 0.62;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      vector-effect: non-scaling-stroke;
-      opacity: 0.52;
-    }
+      <feComposite
+        in="SourceGraphic"
+        in2="inkAlpha"
+        operator="in"
+      />
+    </filter>
 
-    .contour-c {
-      fill: none;
-      stroke: #dde0dd;
-      stroke-width: 0.58;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      vector-effect: non-scaling-stroke;
-      opacity: 0.46;
-    }
+    <!--
+      Hennommille viivoille vielä pienempi pigmenttivaihtelu.
+    -->
+    <filter
+      id="softInkTexture"
+      x="-4%"
+      y="-12%"
+      width="108%"
+      height="124%"
+      color-interpolation-filters="sRGB"
+    >
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.018 0.06"
+        numOctaves="2"
+        seed="37"
+        result="noise"
+      />
 
-    .below-a {
-      fill: none;
-      stroke: #cbd0cb;
-      stroke-width: 0.66;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      vector-effect: non-scaling-stroke;
-      opacity: 0.5;
-    }
+      <feColorMatrix
+        in="noise"
+        type="matrix"
+        values="
+          0 0 0 0 1
+          0 0 0 0 1
+          0 0 0 0 1
+          0.018 0.018 0.018 0 0.92
+        "
+        result="inkAlpha"
+      />
 
-    .below-b {
-      fill: none;
-      stroke: #d5d9d5;
-      stroke-width: 0.58;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      vector-effect: non-scaling-stroke;
-      opacity: 0.42;
-    }
+      <feComposite
+        in="SourceGraphic"
+        in2="inkAlpha"
+        operator="in"
+      />
+    </filter>
 
-    .datum {
-      fill: none;
-      stroke: #899389;
-      stroke-width: 0.76;
-      stroke-linecap: round;
-      stroke-dasharray: 0.8 10;
-      vector-effect: non-scaling-stroke;
-      opacity: 0.52;
-    }
-  </style>
+    <style>
+      .contour-a {
+        fill: none;
+        stroke: #aeb6af;
+        stroke-width: 0.72;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+        opacity: 0.25;
+      }
+
+      .contour-b {
+        fill: none;
+        stroke: #bac1bb;
+        stroke-width: 0.61;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+        opacity: 0.2;
+      }
+
+      .contour-c {
+        fill: none;
+        stroke: #c9cec9;
+        stroke-width: 0.54;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+        opacity: 0.16;
+      }
+
+      .tree-light {
+        fill: none;
+        stroke: #747d75;
+        stroke-width: 0.82;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+        opacity: 0.78;
+      }
+
+      .tree-main {
+        fill: none;
+        stroke: #626c63;
+        stroke-width: 1.08;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+        opacity: 0.9;
+      }
+
+      .tree-accent {
+        fill: none;
+        stroke: #59635a;
+        stroke-width: 1.18;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+        opacity: 0.88;
+      }
+
+      .below-a {
+        fill: none;
+        stroke: #b9c0ba;
+        stroke-width: 0.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+        opacity: 0.2;
+      }
+
+      .below-b {
+        fill: none;
+        stroke: #c7ccc8;
+        stroke-width: 0.52;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+        opacity: 0.15;
+      }
+
+      .datum {
+        fill: none;
+        stroke: #929b93;
+        stroke-width: 0.66;
+        stroke-linecap: round;
+        stroke-dasharray:
+          0.7 11
+          0.45 13
+          0.9 9
+          0.5 12;
+        vector-effect: non-scaling-stroke;
+        opacity: 0.3;
+      }
+    </style>
+  </defs>
+
 
   <!-- =====================================================
-       YLÄPUOLISET TILAKÄYRÄT
+       YLÄPUOLISET TILAVIIVAT
        ===================================================== -->
 
   <!--
-    Ulompi viiva on tarkoituksella epäsymmetrinen.
-    Vasemmalla nousu alkaa aikaisemmin, oikealla muoto jatkuu pidemmälle.
+    Uloin viiva.
+    Korkein kohta on puun oikealla puolella.
+    Viiva katkeaa oikealla hetkeksi.
   -->
-  <path
-    class="contour-c"
-    d="
-      M 286 247
 
-      C 320 236
-        347 221
-        369 201
+  <g filter="url(#softInkTexture)">
+    <path
+      class="contour-c"
+      d="
+        M 342 123
 
-      C 388 184
-        409 177
-        435 169
+        C 369 107
+          392 98
+          418 91
 
-      C 461 161
-        478 150
-        496 130
+        C 444 84
+          461 74
+          478 58
 
-      C 516 108
-        549 98
-        584 95
+        C 497 40
+          525 31
+          554 30
 
-      C 618 92
-        650 96
-        680 108
+        C 582 29
+          605 34
+          626 44
 
-      C 709 120
-        727 132
-        753 135
+        C 647 54
+          663 62
+          684 63
 
-      C 782 139
-        804 139
-        824 151
+        C 707 64
+          726 69
+          743 80
 
-      C 844 163
-        856 178
-        878 183
+        C 759 91
+          772 101
+          791 105
+      "
+    />
 
-      C 901 189
-        917 196
-        928 212
+    <path
+      class="contour-c"
+      d="
+        M 801 108
 
-      C 939 228
-        950 239
-        973 246
-    "
-  />
+        C 821 112
+          837 118
+          852 126
+      "
+    />
 
-  <!-- toinen käyrä -->
-  <path
-    class="contour-b"
-    d="
-      M 352 248
 
-      C 375 233
-        394 224
-        419 219
+    <!--
+      Keskimmäinen.
+      Nousu alkaa myöhemmin ja huippu on vasemmempana.
+    -->
 
-      C 445 214
-        463 203
-        480 187
+    <path
+      class="contour-b"
+      d="
+        M 391 123
 
-      C 497 171
-        519 161
-        544 157
+        C 410 109
+          427 102
+          449 97
 
-      C 570 153
-        596 156
-        620 165
+        C 471 92
+          486 84
+          501 71
 
-      C 643 174
-        661 183
-        685 185
+        C 516 58
+          536 52
+          558 51
 
-      C 710 187
-        730 190
-        748 202
+        C 579 50
+          598 54
+          614 62
 
-      C 765 214
-        779 223
-        798 226
+        C 630 70
+          643 75
+          660 77
+      "
+    />
 
-      C 819 230
-        837 237
-        851 247
-    "
-  />
+    <path
+      class="contour-b"
+      d="
+        M 670 78
 
-  <!-- kolmas, lähempänä puuta -->
-  <path
-    class="contour-a"
-    d="
-      M 408 249
+        C 689 79
+          705 84
+          719 93
 
-      C 425 235
-        442 227
-        462 224
+        C 732 102
+          744 110
+          760 113
 
-      C 484 221
-        500 213
-        513 201
+        C 776 116
+          788 121
+          798 126
+      "
+    />
 
-      C 528 188
-        545 181
-        565 180
 
-      C 585 179
-        603 184
-        618 193
+    <!--
+      Sisempi.
+      Selvästi lyhyempi ja vino suhteessa muihin.
+    -->
 
-      C 633 202
-        648 208
-        667 209
+    <path
+      class="contour-a"
+      d="
+        M 440 125
 
-      C 686 210
-        700 214
-        714 224
+        C 457 113
+          471 108
+          489 105
 
-      C 726 233
-        738 241
-        750 248
-    "
-  />
+        C 506 102
+          519 96
+          530 87
 
-  <!-- hyvin hentoinen neljäs viiva rikkoo rytmiä -->
-  <path
-    class="contour-c"
-    d="
-      M 452 247
+        C 542 78
+          556 74
+          572 75
 
-      C 466 237
-        479 231
-        495 229
+        C 588 76
+          601 80
+          613 88
 
-      C 511 227
-        522 220
-        533 211
+        C 625 96
+          636 100
+          650 101
 
-      C 546 201
-        559 196
-        575 196
+        C 665 102
+          677 106
+          688 113
 
-      C 590 196
-        604 200
-        616 207
+        C 697 119
+          705 123
+          713 126
+      "
+    />
+  </g>
 
-      C 628 214
-        640 219
-        655 220
-
-      C 669 221
-        681 226
-        692 234
-
-      C 699 239
-        705 243
-        713 247
-    "
-  />
 
   <!-- =====================================================
-       PITKÄ RAKENNELINJA
+       KAUPUNKIRAKENTEEN PÄÄLINJA
        ===================================================== -->
 
+  <!--
+    Päälinja on täytetty muoto eikä stroke.
+
+    Ylä- ja alareuna kulkevat hieman eri tavoin.
+    Näin paksuus todella vaihtelee.
+  -->
+
   <path
-    class="ground"
+    filter="url(#inkTexture)"
     d="
-      M 38 248
+      M 48 122.15
 
-      C 132 248
-        218 248
-        307 248
+      C 141 122.05
+        233 122.40
+        323 122.18
 
-      C 337 248
-        358 249
-        377 257
+      C 348 122.10
+        369 122.55
+        388 127.85
 
-      C 402 268
-        426 273
-        460 275
+      C 408 133.55
+        425 139.65
+        449 142.90
 
-      C 497 277
-        533 276
-        571 277
+      C 474 146.20
+        508 147.05
+        546 146.72
 
-      C 609 278
-        650 278
-        689 277
+      C 584 146.48
+        624 147.15
+        662 146.85
 
-      C 727 277
-        757 276
-        783 271
+      C 701 146.53
+        731 145.02
+        755 139.68
 
-      C 808 266
-        824 257
-        844 252
+      C 777 134.75
+        794 127.15
+        815 123.46
 
-      C 859 248
-        875 248
-        899 248
+      C 836 119.95
+        858 121.80
+        885 121.72
 
-      C 993 248
-        1081 248
-        1164 248
+      C 979 121.50
+        1068 121.92
+        1152 121.82
+
+
+      L 1152 123.14
+
+
+      C 1068 123.30
+        979 122.88
+        885 123.08
+
+      C 858 123.18
+        837 121.58
+        816 125.10
+
+      C 795 128.55
+        778 136.30
+        756 141.18
+
+      C 732 146.58
+        701 148.02
+        662 148.28
+
+      C 624 148.58
+        584 147.98
+        546 148.22
+
+      C 508 148.48
+        474 147.82
+        449 144.60
+
+      C 425 141.52
+        408 135.30
+        387 129.52
+
+      C 369 124.35
+        348 123.70
+        323 123.88
+
+      C 233 124.08
+        141 123.82
+        48 123.98
+
+      Z
     "
+    fill="#667067"
+    opacity="0.88"
   />
+
+
+  <!--
+    Yksi osittainen erittäin hento toinen kynänveto.
+    Se ei kierrä koko diagrammia.
+  -->
+
+  <path
+    filter="url(#softInkTexture)"
+    d="
+      M 329 125
+
+      C 352 125
+        370 127
+        389 132
+
+      C 407 137
+        427 142
+        452 144.8
+
+      C 478 147.2
+        503 147.7
+        526 147.6
+    "
+    fill="none"
+    stroke="#7f8980"
+    stroke-width="0.48"
+    stroke-linecap="round"
+    vector-effect="non-scaling-stroke"
+    opacity="0.14"
+  />
+
 
   <!-- =====================================================
        VERTAILUTASO
        ===================================================== -->
 
-  <path
-    class="datum"
-    d="
-      M 38 274
-      C 131 274 220 274 349 274
-    "
-  />
+  <g filter="url(#softInkTexture)">
+    <path
+      class="datum"
+      d="
+        M 49 143
+        C 143 143.4
+          234 142.9
+          349 143.2
+      "
+    />
 
-  <path
-    class="datum"
-    d="
-      M 854 274
-      C 965 274 1063 274 1164 274
-    "
-  />
+    <path
+      class="datum"
+      d="
+        M 820 143.2
+        C 930 142.9
+          1041 143.5
+          1151 143
+      "
+    />
+  </g>
+
 
   <!-- =====================================================
        PUU
        ===================================================== -->
 
   <!--
-    Latvus on epäsymmetrinen eikä perustu toistuviin ympyröihin.
+    Puu sijaitsee hieman painauman vasemmalla puolella.
+
+    Latvusta ei suljeta yhdeksi ikoniksi.
+    Se syntyy neljästä avoimesta piirrosvedosta.
   -->
-  <path
-    class="tree"
-    d="
-      M 580 212
 
-      C 583 204
-        590 201
-        596 202
+  <g filter="url(#inkTexture)">
 
-      C 599 195
-        606 190
-        614 193
+    <!-- vasen ulkoreuna -->
 
-      C 620 188
-        629 189
-        633 195
+    <path
+      class="tree-main"
+      d="
+        M 590 84
 
-      C 641 193
-        648 198
-        648 205
+        C 583 80
+          575 83
+          572 89
 
-      C 655 208
-        658 215
-        654 221
+        C 564 89
+          559 95
+          560 102
 
-      C 658 227
-        655 235
-        648 238
+        C 554 106
+          554 113
+          558 117
 
-      C 646 245
-        637 248
-        630 244
+        C 555 123
+          560 129
+          567 130
+      "
+    />
 
-      C 625 249
-        616 250
-        610 245
 
-      C 603 248
-        595 245
-        593 239
+    <!-- yläreuna -->
 
-      C 585 240
-        579 235
-        580 228
+    <path
+      class="tree-light"
+      d="
+        M 572 89
 
-      C 573 224
-        573 217
-        580 212
-      Z
-    "
-  />
+        C 574 82
+          581 78
+          588 80
 
-  <!-- hieman elävä runko -->
-  <path
-    class="tree"
-    d="
-      M 616 277
+        C 593 74
+          602 75
+          606 80
 
-      C 616.3 268
-        615.8 258
-        616.2 249
+        C 613 77
+          620 81
+          622 88
+      "
+    />
 
-      C 616.5 242
-        615.9 236
-        616.2 231
-    "
-  />
 
-  <!-- pienet haarat -->
-  <path
-    class="tree"
-    d="
-      M 616 252
-      C 611 247 607 244 602 241
-    "
-  />
+    <!-- oikea ulkoreuna -->
 
-  <path
-    class="tree"
-    d="
-      M 616 250
-      C 620 246 624 243 629 240
-    "
-  />
+    <path
+      class="tree-accent"
+      d="
+        M 622 88
+
+        C 629 89
+          634 95
+          632 102
+
+        C 638 105
+          639 112
+          635 117
+
+        C 637 123
+          632 130
+          625 130
+
+        C 621 136
+          613 137
+          607 133
+      "
+    />
+
+
+    <!-- alaosa, jossa jää pieniä aukkoja -->
+
+    <path
+      class="tree-light"
+      d="
+        M 607 133
+
+        C 602 137
+          595 138
+          590 134
+
+        C 584 137
+          576 135
+          572 131
+      "
+    />
+
+
+    <!-- runko, tarkoituksella lievästi vino -->
+
+    <path
+      class="tree-main"
+      d="
+        M 596 147
+
+        C 596.4 140
+          595.9 132
+          596.3 125
+
+        C 596.7 118
+          596.1 113
+          596.4 108
+      "
+    />
+
+
+    <!-- oksat -->
+
+    <path
+      class="tree-light"
+      d="
+        M 596.2 126
+
+        C 592 122
+          588 119
+          583 117
+      "
+    />
+
+    <path
+      class="tree-main"
+      d="
+        M 596.2 123
+
+        C 600 119
+          604 115
+          608 112
+      "
+    />
+
+  </g>
+
 
   <!-- =====================================================
-       MAANALAISET VIIVAT
+       MAANALAINEN VIIVASTO
        ===================================================== -->
 
-  <path
-    class="below-b"
-    d="
-      M 351 284
+  <g filter="url(#softInkTexture)">
 
-      C 390 291
-        423 291
-        455 289
+    <!-- ensimmäinen, pitkä mutta hieman vino -->
 
-      C 490 286
-        520 285
-        549 288
+    <path
+      class="below-b"
+      d="
+        M 379 153
 
-      C 577 291
-        603 293
-        631 290
+        C 408 156
+          436 158
+          463 156
 
-      C 662 287
-        690 285
-        721 287
+        C 489 154
+          511 154
+          534 157
 
-      C 754 290
-        785 288
-        826 282
-    "
-  />
+        C 558 160
+          581 160
+          604 157
 
-  <path
-    class="below-a"
-    d="
-      M 375 294
+        C 629 154
+          651 154
+          675 156
 
-      C 407 300
-        441 302
-        474 299
+        C 701 158
+          724 157
+          751 153
+      "
+    />
 
-      C 507 296
-        532 297
-        559 301
 
-      C 586 305
-        611 305
-        638 301
+    <!-- toinen hieman vahvempi -->
 
-      C 666 297
-        692 297
-        720 299
+    <path
+      class="below-a"
+      d="
+        M 408 160
 
-      C 748 301
-        775 298
-        802 293
-    "
-  />
+        C 435 163
+          461 165
+          486 162
 
-  <path
-    class="below-b"
-    d="
-      M 424 306
+        C 512 159
+          534 160
+          556 164
 
-      C 449 312
-        475 313
-        502 310
+        C 578 168
+          599 168
+          620 164
 
-      C 527 307
-        549 309
-        570 313
+        C 643 160
+          664 160
+          686 163
 
-      C 592 317
-        614 318
-        635 315
+        C 708 166
+          727 164
+          746 160
+      "
+    />
 
-      C 659 311
-        680 308
-        704 311
 
-      C 724 313
-        744 311
-        763 307
-    "
-  />
+    <!--
+      Kolmas viiva katkeaa.
+    -->
 
-  <path
-    class="below-b"
-    d="
-      M 459 317
+    <path
+      class="below-b"
+      d="
+        M 448 168
 
-      C 481 322
-        504 322
-        525 319
+        C 469 171
+          489 172
+          508 170
 
-      C 547 316
-        563 319
-        581 322
+        C 528 168
+          544 169
+          558 172
+      "
+    />
 
-      C 601 326
-        620 327
-        641 323
+    <path
+      class="below-b"
+      d="
+        M 571 173
 
-      C 661 319
-        680 318
-        700 320
-    "
-  />
+        C 587 176
+          603 176
+          619 173
 
-  <!-- yksi lyhyempi, vapaampi poikkiviiva -->
-  <path
-    class="below-b"
-    d="
-      M 489 286
+        C 638 170
+          655 169
+          674 171
 
-      C 513 290
-        536 293
-        558 291
+        C 691 174
+          707 172
+          724 168
+      "
+    />
 
-      C 581 289
-        603 286
-        626 288
 
-      C 650 290
-        670 294
-        692 292
-    "
-  />
+    <!-- alin, lyhyt ja vain osittain näkyvä -->
+
+    <path
+      class="below-b"
+      d="
+        M 493 176
+
+        C 509 179
+          524 179
+          539 177
+
+        C 554 175
+          566 178
+          580 180
+
+        C 595 182
+          610 181
+          624 179
+
+        C 637 177
+          649 178
+          661 179
+      "
+    />
+
+  </g>
 </svg>
