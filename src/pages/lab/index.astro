@@ -2,6 +2,7 @@
 import '../../styles/global.css';
 import MorphingTopography from '../../components/MorphingTopography.astro';
 import PointButterfly from '../../components/PointButterfly.astro';
+import PointTree from '../../components/PointTree.astro';
 ---
 
 <!doctype html>
@@ -100,6 +101,35 @@ import PointButterfly from '../../components/PointButterfly.astro';
 
             <p>
               Auto-rotate · zoom · wing veins · slow flap
+            </p>
+          </footer>
+        </article>
+
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">03</p>
+              <h2>Tree footprint</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage experiment-stage--tree">
+            <div class="experiment-viewport experiment-viewport--tree">
+              <PointTree />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Kaupunkipuun mittakaavaa tutkiva piste- ja viivamalli. Latvuksen leveys, juurten ulottuvuus ja puuta väistävä kaupunkirakenteen linja näkyvät samassa kolmiulotteisessa kaaviossa.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · canopy · root zone · setback
             </p>
           </footer>
         </article>
@@ -246,6 +276,16 @@ import PointButterfly from '../../components/PointButterfly.astro';
     margin: 0 auto;
   }
 
+  .experiment-stage--tree {
+    min-height: 560px;
+  }
+
+  .experiment-viewport--tree {
+    width: min(100%, 980px);
+    height: clamp(500px, 58vw, 660px);
+    margin: 0 auto;
+  }
+
   .experiment-footer {
     display: flex;
     justify-content: space-between;
@@ -309,6 +349,15 @@ import PointButterfly from '../../components/PointButterfly.astro';
     .experiment-viewport--butterfly {
       width: 100%;
       height: 390px;
+    }
+
+    .experiment-stage--tree {
+      min-height: 470px;
+    }
+
+    .experiment-viewport--tree {
+      width: 100%;
+      height: 470px;
     }
 
     .experiment-footer p + p {
