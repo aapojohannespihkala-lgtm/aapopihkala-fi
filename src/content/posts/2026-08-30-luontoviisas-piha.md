@@ -4,7 +4,7 @@ publishedAt: "2026-08-30T12:00:00+03:00"
 
 sourceUrl: "https://www.espoo.fi/fi/uutiset/2026/08/riku-lumiaron-luontopiha-nappasi-voiton-espoon-kaupungin-pihakisassa"
 
-graphic: "/graphics/luontoviisas-piha.svg"
+interactiveGraphic: "butterfly"
 
 fi:
   title: "Luontoviisas piha on osa kaupunkiluontoa"
@@ -21,7 +21,7 @@ fi:
   sourceLinkText: "Espoon kaupunki · Luontoviisaat pihat -kilpailun tulokset"
   sourceTitle: "Riku Lumiaron Luontipiha nappasi voiton Espoon kaupungin pihakisassa"
 
-  graphicAlt: "Maisema-arkkitehtoninen viivapiirros pölyttäjistä ja erilaisista kukkivista kasveista osana luontoviisasta pihaa."
+  graphicAlt: "Pistepilvenä esitetty hitaasti liikkuva perhonen luontoviisaan pihan ja kaupunkiluonnon symbolina."
 
   perspective:
     - "Luontoviisaus ei mielestäni tarkoita sitä, että pihan suunnittelusta tai maisema-arkkitehtonisesta muodonannosta luovutaan. Parhaimmillaan useat tavoitteet toteutuvat yhtä aikaa: piha tarjoaa elinympäristöjä eri lajeille, luonnon prosesseille annetaan tilaa ja ympäristö on samalla ihmiselle toimiva, viihtyisä ja kaunis."
@@ -47,7 +47,7 @@ en:
   sourceLinkText: "City of Espoo · Results of the nature-wise yards competition"
   sourceTitle: "Results and awarded entries in Espoo's nature-wise yards competition"
 
-  graphicAlt: "A landscape architectural line drawing of pollinators and different flowering plants as part of a nature-wise yard."
+  graphicAlt: "A slowly moving point-cloud butterfly representing biodiversity in a nature-wise urban yard."
 
   perspective:
     - "To me, nature-wise design does not mean giving up the design of a yard or its landscape architectural form. At its best, several objectives are achieved at the same time: the yard provides habitats for different species, gives space to natural processes, and remains functional, pleasant and beautiful for people."
