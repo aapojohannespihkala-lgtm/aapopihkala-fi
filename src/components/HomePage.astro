@@ -1,7 +1,12 @@
 ---
 import '../styles/global.css';
-import { getCollection } from 'astro:content';
+
+import {
+  getCollection,
+} from 'astro:content';
+
 import FeedPost from './FeedPost.astro';
+import SiteHeader from './SiteHeader.astro';
 import { getPostSlug } from '../utils/posts';
 
 interface Props {
@@ -12,102 +17,114 @@ const { lang } = Astro.props;
 
 const content = {
   fi: {
-    pageTitle: 'Aapo Pihkala - Maisema-arkkitehti Espoo',
+    pageTitle:
+      'Aapo Pihkala - Maisema-arkkitehti Espoo',
+
     pageDescription:
       'Aapo Pihkala on Espoossa toimiva maisema-arkkitehti. Maisema-arkkitehtuuria kaupunkien, ihmisten ja luonnon rajapinnassa.',
 
-    navLabel: 'Päänavigaatio',
-    homeLabel: 'Aapo Pihkalan etusivu',
+    heroPrimary:
+      'Maisema-arkkitehti.',
 
-    languageButton: 'EN',
-    languageLabel: 'English',
-    languageHref: '/en/',
-    languageHreflang: 'en',
-
-    linkedinLabel: 'Aapo Pihkala LinkedInissä',
-    linkedinText: 'LinkedIn',
-
-    heroPrimary: 'Maisema-arkkitehti.',
     heroSecondary:
       'Maisema-arkkitehtuuria kaupunkien, ihmisten ja luonnon rajapinnassa.',
 
-    location: 'Espoo, Suomi',
+    location:
+      'Espoo, Suomi',
 
-    perspectiveLabel: 'Näkökulma',
-    sourceLabel: 'Lähde',
+    perspectiveLabel:
+      'Näkökulma',
+
+    sourceLabel:
+      'Lähde',
   },
 
   en: {
-    pageTitle: 'Aapo Pihkala - Landscape Architect, Espoo',
+    pageTitle:
+      'Aapo Pihkala - Landscape Architect, Espoo',
+
     pageDescription:
       'Aapo Pihkala is a landscape architect based in Espoo, Finland. Landscape architecture at the intersection of cities, people and nature.',
 
-    navLabel: 'Main navigation',
-    homeLabel: 'Aapo Pihkala homepage',
+    heroPrimary:
+      'Landscape architect.',
 
-    languageButton: 'FI',
-    languageLabel: 'Suomeksi',
-    languageHref: '/',
-    languageHreflang: 'fi',
-
-    linkedinLabel: 'Aapo Pihkala on LinkedIn',
-    linkedinText: 'LinkedIn',
-
-    heroPrimary: 'Landscape architect.',
     heroSecondary:
       'Landscape architecture at the intersection of cities, people and nature.',
 
-    location: 'Espoo, Finland',
+    location:
+      'Espoo, Finland',
 
-    perspectiveLabel: 'Perspective',
-    sourceLabel: 'Source',
+    perspectiveLabel:
+      'Perspective',
+
+    sourceLabel:
+      'Source',
   },
 } as const;
 
-const t = content[lang];
+const t =
+  content[lang];
 
 /* =========================================================
    POSTS
    ========================================================= */
 
 const posts = (
-  await getCollection('posts')
+  await getCollection(
+    'posts'
+  )
 )
   .filter(
     (post) =>
       post.data.status === 'published' &&
-      Boolean(post.data.publishedAt)
+      Boolean(
+        post.data.publishedAt
+      )
   )
-  .sort((a, b) => {
-    const aTime = new Date(
-      a.data.publishedAt as string
-    ).getTime();
+  .sort(
+    (a, b) => {
+      const aTime =
+        new Date(
+          a.data.publishedAt as string
+        ).getTime();
 
-    const bTime = new Date(
-      b.data.publishedAt as string
-    ).getTime();
+      const bTime =
+        new Date(
+          b.data.publishedAt as string
+        ).getTime();
 
-    return bTime - aTime;
-  });
+      return bTime - aTime;
+    }
+  );
 
 const dateFormatter =
   lang === 'fi'
-    ? new Intl.DateTimeFormat('fi-FI', {
-        day: 'numeric',
-        month: 'numeric',
-        year: 'numeric',
-      })
-    : new Intl.DateTimeFormat('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
+    ? new Intl.DateTimeFormat(
+        'fi-FI',
+        {
+          day: 'numeric',
+          month: 'numeric',
+          year: 'numeric',
+        }
+      )
+    : new Intl.DateTimeFormat(
+        'en-GB',
+        {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }
+      );
 
 const getDisplayDate = (
   publishedAt: string
 ) => {
   const datePart =
-    publishedAt.slice(0, 10);
+    publishedAt.slice(
+      0,
+      10
+    );
 
   return dateFormatter.format(
     new Date(
@@ -120,11 +137,6 @@ const getDisplayDate = (
    PAGE META
    ========================================================= */
 
-const homeHref =
-  lang === 'fi'
-    ? '/'
-    : '/en/';
-
 const canonicalPath =
   lang === 'fi'
     ? '/'
@@ -132,6 +144,11 @@ const canonicalPath =
 
 const canonicalUrl =
   `https://aapopihkala.fi${canonicalPath}`;
+
+const languageHref =
+  lang === 'fi'
+    ? '/en/'
+    : '/';
 
 const personSchema = {
   '@context':
@@ -179,7 +196,9 @@ const personSchema = {
 
 <html lang={lang}>
   <head>
-    <meta charset="UTF-8" />
+    <meta
+      charset="UTF-8"
+    />
 
     <meta
       name="viewport"
@@ -233,53 +252,10 @@ const personSchema = {
   </head>
 
   <body>
-    <header class="topbar">
-      <nav
-        class="topbar-inner"
-        aria-label={t.navLabel}
-      >
-        <a
-          class="topbar-name"
-          href={homeHref}
-          aria-label={t.homeLabel}
-        >
-          aapo
-        </a>
-
-        <div class="topbar-actions">
-          <a
-            class="language-switch"
-            href={t.languageHref}
-            hreflang={t.languageHreflang}
-            lang={t.languageHreflang}
-            aria-label={t.languageLabel}
-          >
-            {t.languageButton}
-          </a>
-
-          <a
-            class="linkedin-link"
-            href="https://fi.linkedin.com/in/aapo-pihkala"
-            target="_blank"
-            rel="noopener"
-            aria-label={t.linkedinLabel}
-            title="LinkedIn"
-          >
-            <svg
-              class="linkedin-icon"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"
-              />
-            </svg>
-          </a>
-        </div>
-      </nav>
-    </header>
+    <SiteHeader
+      lang={lang}
+      languageHref={languageHref}
+    />
 
     <main class="main-container">
       <section class="hero">
@@ -354,7 +330,7 @@ const personSchema = {
               rel="noopener"
             >
               <span>
-                {t.linkedinText}
+                LinkedIn
               </span>
 
               <span
@@ -386,7 +362,8 @@ const personSchema = {
               index
             ) => {
               const publishedAt =
-                post.data.publishedAt as string;
+                post.data
+                  .publishedAt as string;
 
               const postNumber =
                 String(
@@ -398,7 +375,9 @@ const personSchema = {
                 );
 
               const slug =
-                getPostSlug(post.id);
+                getPostSlug(
+                  post.id
+                );
 
               const titleHref =
                 lang === 'fi'
@@ -409,7 +388,9 @@ const personSchema = {
                 <FeedPost
                   post={post}
                   lang={lang}
-                  postNumber={postNumber}
+                  postNumber={
+                    postNumber
+                  }
                   displayDate={
                     getDisplayDate(
                       publishedAt
@@ -421,7 +402,9 @@ const personSchema = {
                   sourceLabel={
                     t.sourceLabel
                   }
-                  titleHref={titleHref}
+                  titleHref={
+                    titleHref
+                  }
                 />
               );
             }
