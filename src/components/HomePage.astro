@@ -6,12 +6,17 @@ import SiteHeader from './SiteHeader.astro';
 import Topography from './Topography.astro';
 
 import {
+  site,
+  type SiteLanguage,
+} from '../config/site';
+
+import {
   getPostSlug,
   getPublishedPosts,
 } from '../utils/posts';
 
 interface Props {
-  lang: 'fi' | 'en';
+  lang: SiteLanguage;
 }
 
 const { lang } = Astro.props;
@@ -67,6 +72,14 @@ const content = {
 const t =
   content[lang];
 
+const currentLanguage =
+  site.languages[lang];
+
+const alternateLanguage =
+  lang === 'fi'
+    ? site.languages.en
+    : site.languages.fi;
+
 /* =========================================================
    POSTS
    ========================================================= */
@@ -75,23 +88,20 @@ const posts =
   await getPublishedPosts();
 
 const dateFormatter =
-  lang === 'fi'
-    ? new Intl.DateTimeFormat(
-        'fi-FI',
-        {
+  new Intl.DateTimeFormat(
+    currentLanguage.locale,
+    lang === 'fi'
+      ? {
           day: 'numeric',
           month: 'numeric',
           year: 'numeric',
         }
-      )
-    : new Intl.DateTimeFormat(
-        'en-GB',
-        {
+      : {
           day: 'numeric',
           month: 'short',
           year: 'numeric',
         }
-      );
+  );
 
 const getDisplayDate = (
   publishedAt: string
@@ -113,18 +123,14 @@ const getDisplayDate = (
    PAGE META
    ========================================================= */
 
-const canonicalPath =
-  lang === 'fi'
-    ? '/'
-    : '/en/';
-
 const canonicalUrl =
-  `https://aapopihkala.fi${canonicalPath}`;
+  `${site.url}${currentLanguage.homePath}`;
 
-const languageHref =
-  lang === 'fi'
-    ? '/en/'
-    : '/';
+const finnishUrl =
+  `${site.url}${site.languages.fi.homePath}`;
+
+const englishUrl =
+  `${site.url}${site.languages.en.homePath}`;
 
 const personSchema = {
   '@context':
@@ -134,7 +140,7 @@ const personSchema = {
     'Person',
 
   name:
-    'Aapo Pihkala',
+    site.name,
 
   url:
     canonicalUrl,
@@ -155,7 +161,7 @@ const personSchema = {
   },
 
   sameAs: [
-    'https://fi.linkedin.com/in/aapo-pihkala',
+    site.linkedinUrl,
   ],
 
   knowsAbout: [
@@ -204,19 +210,19 @@ const personSchema = {
     <link
       rel="alternate"
       hreflang="fi"
-      href="https://aapopihkala.fi/"
+      href={finnishUrl}
     />
 
     <link
       rel="alternate"
       hreflang="en"
-      href="https://aapopihkala.fi/en/"
+      href={englishUrl}
     />
 
     <link
       rel="alternate"
       hreflang="x-default"
-      href="https://aapopihkala.fi/"
+      href={finnishUrl}
     />
 
     <script
@@ -230,7 +236,9 @@ const personSchema = {
   <body>
     <SiteHeader
       lang={lang}
-      languageHref={languageHref}
+      languageHref={
+        alternateLanguage.homePath
+      }
     />
 
     <main class="main-container">
@@ -238,7 +246,7 @@ const personSchema = {
         <div class="hero-row">
           <div class="hero-content">
             <h1>
-              Aapo Pihkala
+              {site.name}
             </h1>
 
             <div class="hero-description">
@@ -301,7 +309,7 @@ const personSchema = {
 
             <a
               class="hero-linkedin"
-              href="https://fi.linkedin.com/in/aapo-pihkala"
+              href={site.linkedinUrl}
               target="_blank"
               rel="noopener"
             >
