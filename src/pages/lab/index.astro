@@ -1,6 +1,7 @@
 ---
 import '../../styles/global.css';
 import MorphingTopography from '../../components/MorphingTopography.astro';
+import PointButterfly from '../../components/PointButterfly.astro';
 ---
 
 <!doctype html>
@@ -70,6 +71,35 @@ import MorphingTopography from '../../components/MorphingTopography.astro';
 
             <p>
               Auto-rotate · zoom · contours · morph
+            </p>
+          </footer>
+        </article>
+
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">02</p>
+              <h2>Point butterfly</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage experiment-stage--butterfly">
+            <div class="experiment-viewport experiment-viewport--butterfly">
+              <PointButterfly />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Pistepilvenä rakennettu perhonen, jossa siipisuonet muodostavat topografian korkeuskäyriä muistuttavan viivaston.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · wing veins · slow flap
             </p>
           </footer>
         </article>
@@ -206,6 +236,16 @@ import MorphingTopography from '../../components/MorphingTopography.astro';
     margin: 15px auto;
   }
 
+  .experiment-stage--butterfly {
+    min-height: 500px;
+  }
+
+  .experiment-viewport--butterfly {
+    width: min(100%, 900px);
+    height: clamp(440px, 52vw, 620px);
+    margin: 0 auto;
+  }
+
   .experiment-footer {
     display: flex;
     justify-content: space-between;
@@ -218,6 +258,10 @@ import MorphingTopography from '../../components/MorphingTopography.astro';
 
   .experiment-footer p {
     margin: 0;
+  }
+
+  .experiment-footer p:first-child {
+    max-width: 680px;
   }
 
   .experiment-footer p:last-child {
@@ -256,6 +300,15 @@ import MorphingTopography from '../../components/MorphingTopography.astro';
     .experiment-viewport {
       width: calc(100% - 110px);
       height: 360px;
+    }
+
+    .experiment-stage--butterfly {
+      min-height: 390px;
+    }
+
+    .experiment-viewport--butterfly {
+      width: 100%;
+      height: 390px;
     }
 
     .experiment-footer p + p {
