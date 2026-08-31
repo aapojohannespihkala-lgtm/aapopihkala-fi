@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import { getCollection } from 'astro:content';
 import FeedPost from './FeedPost.astro';
+import { getPostSlug } from '../utils/posts';
 
 interface Props {
   lang: 'fi' | 'en';
@@ -396,10 +397,13 @@ const personSchema = {
                   '0'
                 );
 
+              const slug =
+                getPostSlug(post.id);
+
               const titleHref =
                 lang === 'fi'
-                  ? `/artikkelit/${post.id}/`
-                  : `/en/articles/${post.id}/`;
+                  ? `/artikkelit/${slug}/`
+                  : `/en/articles/${slug}/`;
 
               return (
                 <FeedPost
