@@ -18,7 +18,7 @@ sources:
       linkText: "Source name · Source title"
       title: "Full source title"
 
-# Lisää tämä vain, jos artikkelilla on oma kuva.
+# Lisää tämä vain, jos artikkelilla on oma artikkelikuva.
 # graphic: "/graphics/artikkelin-kuva.svg"
 
 fi:
@@ -28,7 +28,9 @@ fi:
     - maisema-arkkitehtuuri
     - kaupunkisuunnittelu
 
-  intro: "Kirjoita tähän lyhyt johdanto uutiseen, tutkimukseen, raporttiin tai muuhun lähteeseen."
+  metaDescription: "Kirjoita tähän lyhyt, noin yhden lauseen mittainen kuvaus hakukoneita ja some-esikatseluja varten."
+
+  intro: "Kirjoita tähän artikkelin varsinainen johdanto. Tämä voi olla metaDescription-kenttää pidempi."
 
   # Lisää tämä, jos käytät graphic-kenttää.
   # graphicAlt: "Kuvaile kuva lyhyesti ja informatiivisesti."
@@ -46,7 +48,9 @@ en:
     - landscape architecture
     - urban planning
 
-  intro: "Write a short introduction to the news item, study, report or other source here."
+  metaDescription: "Write a short one-sentence description for search engines and social previews."
+
+  intro: "Write the full article introduction here. This can be longer than metaDescription."
 
   # Add this if you use the graphic field.
   # graphicAlt: "Describe the image briefly and informatively."
