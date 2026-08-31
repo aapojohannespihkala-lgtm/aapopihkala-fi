@@ -113,6 +113,11 @@ const commonFields = {
       .min(1)
       .optional(),
 
+  interactiveGraphic:
+    z.enum([
+      'butterfly',
+    ]).optional(),
+
   metaImage:
     z.string()
       .min(1)
@@ -192,7 +197,10 @@ const postSchema =
         post,
         context
       ) => {
-        if (!post.graphic) {
+        if (
+          !post.graphic &&
+          !post.interactiveGraphic
+        ) {
           return;
         }
 
@@ -210,7 +218,7 @@ const postSchema =
             ],
 
             message:
-              'graphicAlt is required when graphic is set',
+              'graphicAlt is required when a graphic is set',
           });
         }
 
@@ -228,7 +236,7 @@ const postSchema =
             ],
 
             message:
-              'graphicAlt is required when graphic is set',
+              'graphicAlt is required when a graphic is set',
           });
         }
       }
