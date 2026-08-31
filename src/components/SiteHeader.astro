@@ -1,6 +1,11 @@
 ---
+import {
+  site,
+  type SiteLanguage,
+} from '../config/site';
+
 interface Props {
-  lang: 'fi' | 'en';
+  lang: SiteLanguage;
   languageHref: string;
 }
 
@@ -11,27 +16,50 @@ const {
 
 const content = {
   fi: {
-    navLabel: 'Päänavigaatio',
-    homeHref: '/',
-    homeLabel: 'Aapo Pihkalan etusivu',
-    languageText: 'EN',
-    languageLabel: 'English',
-    languageCode: 'en',
-    linkedinLabel: 'Aapo Pihkala LinkedInissä',
+    navLabel:
+      'Päänavigaatio',
+
+    homeLabel:
+      'Aapo Pihkalan etusivu',
+
+    languageText:
+      'EN',
+
+    languageLabel:
+      'English',
+
+    linkedinLabel:
+      'Aapo Pihkala LinkedInissä',
   },
 
   en: {
-    navLabel: 'Main navigation',
-    homeHref: '/en/',
-    homeLabel: 'Aapo Pihkala homepage',
-    languageText: 'FI',
-    languageLabel: 'Suomeksi',
-    languageCode: 'fi',
-    linkedinLabel: 'Aapo Pihkala on LinkedIn',
+    navLabel:
+      'Main navigation',
+
+    homeLabel:
+      'Aapo Pihkala homepage',
+
+    languageText:
+      'FI',
+
+    languageLabel:
+      'Suomeksi',
+
+    linkedinLabel:
+      'Aapo Pihkala on LinkedIn',
   },
 } as const;
 
-const t = content[lang];
+const t =
+  content[lang];
+
+const currentLanguage =
+  site.languages[lang];
+
+const alternateLanguage =
+  lang === 'fi'
+    ? site.languages.en
+    : site.languages.fi;
 ---
 
 <header class="topbar">
@@ -41,7 +69,7 @@ const t = content[lang];
   >
     <a
       class="topbar-name"
-      href={t.homeHref}
+      href={currentLanguage.homePath}
       aria-label={t.homeLabel}
     >
       aapo
@@ -51,8 +79,8 @@ const t = content[lang];
       <a
         class="language-switch"
         href={languageHref}
-        hreflang={t.languageCode}
-        lang={t.languageCode}
+        hreflang={alternateLanguage.code}
+        lang={alternateLanguage.code}
         aria-label={t.languageLabel}
       >
         {t.languageText}
@@ -60,7 +88,7 @@ const t = content[lang];
 
       <a
         class="linkedin-link"
-        href="https://fi.linkedin.com/in/aapo-pihkala"
+        href={site.linkedinUrl}
         target="_blank"
         rel="noopener"
         aria-label={t.linkedinLabel}
