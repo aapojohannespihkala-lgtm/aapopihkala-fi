@@ -3,6 +3,7 @@ import '../../styles/global.css';
 import MorphingTopography from '../../components/MorphingTopography.astro';
 import PointButterfly from '../../components/PointButterfly.astro';
 import PointTree from '../../components/PointTree.astro';
+import PointBee from '../../components/PointBee.astro';
 ---
 
 <!doctype html>
@@ -130,6 +131,35 @@ import PointTree from '../../components/PointTree.astro';
 
             <p>
               Auto-rotate · zoom · canopy · root zone · setback
+            </p>
+          </footer>
+        </article>
+
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">04</p>
+              <h2>Point bee</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage experiment-stage--bee">
+            <div class="experiment-viewport experiment-viewport--bee">
+              <PointBee />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Pistepilvenä rakennettu mehiläinen, jossa vartalo, raidat ja läpikuultavat siivet muodostavat kevyen kolmiulotteisen hyönteistutkielman.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · wing buzz · point cloud
             </p>
           </footer>
         </article>
@@ -266,11 +296,13 @@ import PointTree from '../../components/PointTree.astro';
     margin: 15px auto;
   }
 
-  .experiment-stage--butterfly {
+  .experiment-stage--butterfly,
+  .experiment-stage--bee {
     min-height: 500px;
   }
 
-  .experiment-viewport--butterfly {
+  .experiment-viewport--butterfly,
+  .experiment-viewport--bee {
     width: min(100%, 900px);
     height: clamp(440px, 52vw, 620px);
     margin: 0 auto;
@@ -342,11 +374,13 @@ import PointTree from '../../components/PointTree.astro';
       height: 360px;
     }
 
-    .experiment-stage--butterfly {
+    .experiment-stage--butterfly,
+    .experiment-stage--bee {
       min-height: 390px;
     }
 
-    .experiment-viewport--butterfly {
+    .experiment-viewport--butterfly,
+    .experiment-viewport--bee {
       width: 100%;
       height: 390px;
     }
