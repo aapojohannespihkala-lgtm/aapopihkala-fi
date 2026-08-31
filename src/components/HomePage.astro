@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import { getCollection } from 'astro:content';
+import FeedPost from './FeedPost.astro';
 
 interface Props {
   lang: 'fi' | 'en';
@@ -383,9 +384,6 @@ const personSchema = {
               post,
               index
             ) => {
-              const localizedPost =
-                post.data[lang];
-
               const publishedAt =
                 post.data.publishedAt as string;
 
@@ -399,156 +397,22 @@ const personSchema = {
                 );
 
               return (
-                <article class="feed-post">
-                  <div class="post-index-row">
-                    <span class="post-index">
-                      {postNumber}
-                    </span>
-
-                    <span class="post-index-line"></span>
-                  </div>
-
-                  <p class="post-meta">
-                    <time
-                      class="post-date"
-                      datetime={publishedAt}
-                    >
-                      {
-                        getDisplayDate(
-                          publishedAt
-                        )
-                      }
-                    </time>
-
-                    {
-                      localizedPost.tags.map(
-                        (tag) => (
-                          <>
-                            <span
-                              class="post-meta-separator"
-                              aria-hidden="true"
-                            >
-                              /
-                            </span>
-
-                            <span>
-                              {tag}
-                            </span>
-                          </>
-                        )
-                      )
-                    }
-                  </p>
-
-                  <h2 class="post-title">
-                    {
-                      localizedPost.title
-                    }
-                  </h2>
-
-                  <div class="post-news">
-                    <p>
-                      {
-                        localizedPost.intro
-                      }
-                    </p>
-
-                    <a
-                      class="post-news-link"
-                      href={
-                        post.data.sourceUrl
-                      }
-                      target="_blank"
-                      rel="noopener"
-                      title={
-                        localizedPost.sourceTitle
-                      }
-                    >
-                      <span>
-                        {
-                          localizedPost.sourceLinkText
-                        }
-                      </span>
-
-                      <span
-                        class="post-news-link-arrow"
-                        aria-hidden="true"
-                      >
-                        ↗
-                      </span>
-                    </a>
-                  </div>
-
-                  <p class="post-perspective-label">
-                    {
-                      t.perspectiveLabel
-                    }
-                  </p>
-
-                  <div class="post-body">
-                    {
-                      localizedPost.perspective.map(
-                        (paragraph) => (
-                          <p>
-                            {paragraph}
-                          </p>
-                        )
-                      )
-                    }
-                  </div>
-
-                  {
-                    post.data.graphic && (
-                      <figure class="post-graphic">
-                        <img
-                          class="post-graphic-image"
-                          src={
-                            post.data.graphic
-                          }
-                          alt={
-                            localizedPost.graphicAlt ??
-                            ''
-                          }
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </figure>
+                <FeedPost
+                  post={post}
+                  lang={lang}
+                  postNumber={postNumber}
+                  displayDate={
+                    getDisplayDate(
+                      publishedAt
                     )
                   }
-
-                  <div class="source">
-                    <span class="source-label">
-                      {
-                        t.sourceLabel
-                      }
-                    </span>
-
-                    <a
-                      class="source-link"
-                      href={
-                        post.data.sourceUrl
-                      }
-                      target="_blank"
-                      rel="noopener"
-                      title={
-                        localizedPost.sourceTitle
-                      }
-                    >
-                      <span>
-                        {
-                          localizedPost.sourceName
-                        }
-                      </span>
-
-                      <span
-                        class="source-arrow"
-                        aria-hidden="true"
-                      >
-                        ↗
-                      </span>
-                    </a>
-                  </div>
-                </article>
+                  perspectiveLabel={
+                    t.perspectiveLabel
+                  }
+                  sourceLabel={
+                    t.sourceLabel
+                  }
+                />
               );
             }
           )
