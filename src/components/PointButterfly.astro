@@ -4,6 +4,9 @@ interface Props {
   autoRotate?: boolean;
   flap?: boolean;
   showVeins?: boolean;
+  enableZoom?: boolean;
+  scale?: number;
+  cameraDistance?: number;
 }
 
 const {
@@ -11,6 +14,9 @@ const {
   autoRotate = true,
   flap = true,
   showVeins = true,
+  enableZoom = true,
+  scale = 1,
+  cameraDistance = 7.2,
 } = Astro.props;
 ---
 
@@ -20,6 +26,9 @@ const {
   data-auto-rotate={autoRotate ? 'true' : 'false'}
   data-flap={flap ? 'true' : 'false'}
   data-show-veins={showVeins ? 'true' : 'false'}
+  data-enable-zoom={enableZoom ? 'true' : 'false'}
+  data-scale={scale}
+  data-camera-distance={cameraDistance}
   aria-hidden="true"
 >
   <canvas class="point-butterfly__canvas" data-point-butterfly-canvas></canvas>
@@ -72,6 +81,13 @@ const {
         const wantsAutoRotate = root.dataset.autoRotate !== 'false';
         const wantsFlap = root.dataset.flap !== 'false';
         const wantsVeins = root.dataset.showVeins !== 'false';
+        const wantsZoom = root.dataset.enableZoom !== 'false';
+        const requestedScale = Number(root.dataset.scale ?? '1');
+        const requestedCameraDistance = Number(root.dataset.cameraDistance ?? '7.2');
+        const displayScale = Number.isFinite(requestedScale) ? requestedScale : 1;
+        const cameraDistance = Number.isFinite(requestedCameraDistance)
+          ? requestedCameraDistance
+          : 7.2;
 
         const renderer = new THREE.WebGLRenderer({
           canvas,
@@ -84,16 +100,17 @@ const {
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-        camera.position.set(0, 0.18, 7.2);
+        camera.position.set(0, 0.18, cameraDistance);
 
         const specimen = new THREE.Group();
         specimen.rotation.x = -0.05;
         specimen.rotation.z = -0.035;
+        specimen.scale.setScalar(displayScale);
         scene.add(specimen);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enablePan = false;
-        controls.enableZoom = true;
+        controls.enableZoom = wantsZoom;
         controls.minDistance = 5.6;
         controls.maxDistance = 10.4;
         controls.zoomSpeed = 0.55;
@@ -102,7 +119,7 @@ const {
         controls.rotateSpeed = 0.55;
         controls.minPolarAngle = Math.PI * 0.26;
         controls.maxPolarAngle = Math.PI * 0.74;
-        controls.target.set(0, 0.12, 0);
+        controls.target.set(0, 0.26, 0);
         controls.autoRotate = wantsAutoRotate && !reducedMotion;
         controls.autoRotateSpeed = 0.34;
 
