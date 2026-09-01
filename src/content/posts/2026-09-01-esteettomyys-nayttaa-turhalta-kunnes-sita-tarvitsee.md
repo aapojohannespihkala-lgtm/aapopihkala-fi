@@ -30,7 +30,7 @@ sources:
       title: "Standard for veterans' spaces"
 
 fi:
-  title: "Esteettömyys näyttää turhalta, kunnes sitä tarvitsee"
+  title: "Esteettömyys näyttää turhalta, kunnes tarvitset sitä"
 
   tags:
     - esteettömyys
