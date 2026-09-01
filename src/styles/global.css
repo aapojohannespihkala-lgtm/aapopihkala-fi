@@ -561,7 +561,7 @@ a {
   padding:
     68px
     0
-    44px;
+    16px;
 
   border-top: none;
 }
@@ -575,7 +575,7 @@ a {
 
 
 .feed-post + .feed-post {
-  padding-top: 48px;
+  padding-top: 32px;
 }
 
 
@@ -1172,12 +1172,12 @@ a:focus-visible {
     padding:
       56px
       0
-      40px;
+      12px;
   }
 
 
   .feed-post + .feed-post {
-    padding-top: 44px;
+    padding-top: 26px;
   }
 
 
