@@ -232,6 +232,42 @@ const personSchema = {
         personSchema
       )}
     />
+
+    <style>
+      .hero {
+        min-height: calc(100svh - 64px);
+        padding: 0;
+        display: flex;
+        align-items: center;
+      }
+
+      .hero-row {
+        width: 100%;
+        transform: translateY(clamp(14px, 3vh, 28px));
+      }
+
+      @media (max-width: 800px) {
+        .hero {
+          min-height: calc(100svh - 64px);
+          padding: 0;
+        }
+
+        .hero-row {
+          transform: translateY(clamp(12px, 2.4vh, 22px));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .hero {
+          min-height: calc(100svh - 64px);
+          padding: 0;
+        }
+
+        .hero-row {
+          transform: translateY(12px);
+        }
+      }
+    </style>
   </head>
 
   <body>
