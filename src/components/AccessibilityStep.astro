@@ -69,6 +69,8 @@ const {
       return t * t * (3 - 2 * t)
     }
 
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
+
     roots.forEach(async (root) => {
       if (root.dataset.accessibilityStepInitialized === 'true') return
       root.dataset.accessibilityStepInitialized = 'true'
@@ -137,6 +139,9 @@ const {
         const stepHeight = 0.72
         const rampStart = -1.15
         const rampEnd = 1.15
+        const ringRadius = 0.17
+        const stopX = -ringRadius - 0.035
+        const cycleDuration = 11.5
 
         const stepHeightAt = (x) => (x < 0 ? 0 : stepHeight)
 
@@ -154,18 +159,17 @@ const {
         const morphAtTime = (seconds) => {
           if (!wantsAnimation) return 1
 
-          const cycle = 10.8
-          const time = seconds % cycle
+          const time = seconds % cycleDuration
 
-          if (time < 2.3) return 0
-          if (time < 4.5) return smoothstep((time - 2.3) / 2.2)
-          if (time < 7.0) return 1
-          if (time < 9.2) return 1 - smoothstep((time - 7.0) / 2.2)
+          if (time < 3.2) return 0
+          if (time < 5.6) return smoothstep((time - 3.2) / 2.4)
+          if (time < 7.3) return 1
+          if (time < 9.7) return 1 - smoothstep((time - 7.3) / 2.4)
           return 0
         }
 
-        const pointColumns = 72
-        const pointRows = 28
+        const pointColumns = 76
+        const pointRows = 30
         const pointCount = (pointColumns + 1) * (pointRows + 1)
         const pointPositions = new Float32Array(pointCount * 3)
         const pointBaseX = new Float32Array(pointCount)
@@ -197,102 +201,98 @@ const {
         })
         specimen.add(new THREE.Points(pointGeometry, pointMaterial))
 
-        const profileCount = 13
-        const profileSamples = 82
-        const profileLines = []
-        const profileMaterial = new THREE.LineBasicMaterial({
-          color: 0x7e8781,
-          transparent: true,
-          opacity: 0.58,
-        })
-
-        for (let index = 0; index < profileCount; index += 1) {
-          const positions = new Float32Array(profileSamples * 3)
-          const geometry = new THREE.BufferGeometry()
-          const attribute = new THREE.BufferAttribute(positions, 3)
-          attribute.setUsage(THREE.DynamicDrawUsage)
-          geometry.setAttribute('position', attribute)
-
-          const line = new THREE.Line(geometry, profileMaterial)
-          specimen.add(line)
-
-          profileLines.push({
-            attribute,
-            z: THREE.MathUtils.lerp(
-              -halfDepth,
-              halfDepth,
-              index / (profileCount - 1)
-            ),
-          })
-        }
-
-        const crossLineCount = 9
-        const crossSamples = 34
-        const crossLines = []
-        const crossMaterial = new THREE.LineBasicMaterial({
-          color: 0xa2aaa5,
-          transparent: true,
-          opacity: 0.42,
-        })
-
-        for (let index = 0; index < crossLineCount; index += 1) {
-          const positions = new Float32Array(crossSamples * 3)
-          const geometry = new THREE.BufferGeometry()
-          const attribute = new THREE.BufferAttribute(positions, 3)
-          attribute.setUsage(THREE.DynamicDrawUsage)
-          geometry.setAttribute('position', attribute)
-
-          const line = new THREE.Line(geometry, crossMaterial)
-          specimen.add(line)
-
-          crossLines.push({
-            attribute,
-            x: THREE.MathUtils.lerp(
-              -halfWidth,
-              halfWidth,
-              (index + 1) / (crossLineCount + 1)
-            ),
-          })
-        }
-
-        const edgeMaterial = new THREE.LineBasicMaterial({
-          color: 0x434b46,
-          transparent: true,
-          opacity: 0.78,
-        })
-
-        const edgeLines = [-halfDepth, halfDepth].map((z) => {
-          const positions = new Float32Array(profileSamples * 3)
-          const geometry = new THREE.BufferGeometry()
-          const attribute = new THREE.BufferAttribute(positions, 3)
-          attribute.setUsage(THREE.DynamicDrawUsage)
-          geometry.setAttribute('position', attribute)
-
-          specimen.add(new THREE.Line(geometry, edgeMaterial))
-          return { attribute, z }
-        })
-
-        const riserPositions = new Float32Array(12)
+        const riserColumns = 26
+        const riserRows = 18
+        const riserCount = (riserColumns + 1) * (riserRows + 1)
+        const riserPositions = new Float32Array(riserCount * 3)
         const riserGeometry = new THREE.BufferGeometry()
         const riserAttribute = new THREE.BufferAttribute(riserPositions, 3)
         riserAttribute.setUsage(THREE.DynamicDrawUsage)
         riserGeometry.setAttribute('position', riserAttribute)
-        specimen.add(new THREE.LineSegments(riserGeometry, edgeMaterial))
 
-        const updateProfileAttribute = (attribute, z, morph) => {
-          const positions = attribute.array
+        const riserMaterial = new THREE.PointsMaterial({
+          color: 0x505b54,
+          size: 0.022,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.5,
+        })
+        specimen.add(new THREE.Points(riserGeometry, riserMaterial))
 
-          for (let sample = 0; sample < profileSamples; sample += 1) {
-            const ratio = sample / (profileSamples - 1)
-            const x = THREE.MathUtils.lerp(-halfWidth, halfWidth, ratio)
-            const offset = sample * 3
+        const ringGroup = new THREE.Group()
+        specimen.add(ringGroup)
 
-            positions[offset] = x
-            positions[offset + 1] = heightAt(x, morph)
-            positions[offset + 2] = z
+        const ringPointCount = 52
+        const ringPositions = new Float32Array(ringPointCount * 3)
+
+        for (let index = 0; index < ringPointCount; index += 1) {
+          const angle = (index / ringPointCount) * Math.PI * 2
+          const offset = index * 3
+
+          ringPositions[offset] = Math.cos(angle) * ringRadius
+          ringPositions[offset + 1] = Math.sin(angle) * ringRadius
+          ringPositions[offset + 2] = 0
+        }
+
+        const ringGeometry = new THREE.BufferGeometry()
+        ringGeometry.setAttribute(
+          'position',
+          new THREE.BufferAttribute(ringPositions, 3)
+        )
+
+        const ringMaterial = new THREE.PointsMaterial({
+          color: 0x39443e,
+          size: 0.04,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.96,
+        })
+
+        ringGroup.add(new THREE.Points(ringGeometry, ringMaterial))
+
+        const ringStateAtTime = (seconds, morph) => {
+          if (!wantsAnimation) {
+            const x = 1.45
+            return {
+              x,
+              y: heightAt(x, 1) + ringRadius + 0.018,
+              rotation: -x / ringRadius,
+            }
           }
 
-          attribute.needsUpdate = true
+          const time = seconds % cycleDuration
+          let x = -2.7
+          let rock = 0
+
+          if (time < 1.8) {
+            const t = smoothstep(time / 1.8)
+            x = THREE.MathUtils.lerp(-1.9, stopX, t)
+          } else if (time < 4.15) {
+            const stuckTime = time - 1.8
+            const fade = time < 3.55 ? 1 : 1 - smoothstep((time - 3.55) / 0.6)
+            const pulse = Math.sin(stuckTime * 11.5) * 0.018 * fade
+            x = stopX - Math.abs(pulse)
+            rock = Math.sin(stuckTime * 11.5) * 0.16 * fade
+          } else if (time < 6.55) {
+            const t = smoothstep((time - 4.15) / 2.4)
+            x = THREE.MathUtils.lerp(stopX, 1.48, t)
+          } else if (time < 7.65) {
+            const t = smoothstep((time - 6.55) / 1.1)
+            x = THREE.MathUtils.lerp(1.48, 2.72, t)
+          } else if (time < 9.65) {
+            x = 2.72
+          } else {
+            const t = smoothstep((time - 9.65) / (cycleDuration - 9.65))
+            x = THREE.MathUtils.lerp(-2.72, -1.9, t)
+          }
+
+          const y = heightAt(clamp(x, -halfWidth, halfWidth), morph) + ringRadius + 0.018
+
+          return {
+            x,
+            y,
+            rotation: -x / ringRadius + rock,
+          }
         }
 
         const updateGeometry = (morph) => {
@@ -307,47 +307,24 @@ const {
           }
           pointAttribute.needsUpdate = true
 
-          profileLines.forEach(({ attribute, z }) => {
-            updateProfileAttribute(attribute, z, morph)
-          })
-
-          edgeLines.forEach(({ attribute, z }) => {
-            updateProfileAttribute(attribute, z, morph)
-          })
-
-          crossLines.forEach(({ attribute, x }) => {
-            const positions = attribute.array
-            const y = heightAt(x, morph) + 0.008
-
-            for (let sample = 0; sample < crossSamples; sample += 1) {
-              const ratio = sample / (crossSamples - 1)
-              const offset = sample * 3
-
-              positions[offset] = x
-              positions[offset + 1] = y
-              positions[offset + 2] = THREE.MathUtils.lerp(-halfDepth, halfDepth, ratio)
-            }
-
-            attribute.needsUpdate = true
-          })
-
           const epsilon = halfWidth / pointColumns
           const low = heightAt(-epsilon, morph)
           const high = heightAt(epsilon, morph)
+          let index = 0
 
-          riserPositions[0] = 0
-          riserPositions[1] = low
-          riserPositions[2] = -halfDepth
-          riserPositions[3] = 0
-          riserPositions[4] = high
-          riserPositions[5] = -halfDepth
+          for (let row = 0; row <= riserRows; row += 1) {
+            const z = THREE.MathUtils.lerp(-halfDepth, halfDepth, row / riserRows)
 
-          riserPositions[6] = 0
-          riserPositions[7] = low
-          riserPositions[8] = halfDepth
-          riserPositions[9] = 0
-          riserPositions[10] = high
-          riserPositions[11] = halfDepth
+            for (let column = 0; column <= riserColumns; column += 1) {
+              const ratio = column / riserColumns
+              const offset = index * 3
+
+              riserPositions[offset] = 0
+              riserPositions[offset + 1] = THREE.MathUtils.lerp(low, high, ratio)
+              riserPositions[offset + 2] = z
+              index += 1
+            }
+          }
           riserAttribute.needsUpdate = true
         }
 
@@ -386,8 +363,20 @@ const {
           animationFrame = requestAnimationFrame(animateFrame)
           if (!isVisible || !isDocumentVisible) return
 
-          const morph = reducedMotion ? 1 : morphAtTime(time * 0.001)
+          const seconds = time * 0.001
+          const morph = reducedMotion ? 1 : morphAtTime(seconds)
+          const ringState = reducedMotion
+            ? {
+                x: 1.45,
+                y: heightAt(1.45, 1) + ringRadius + 0.018,
+                rotation: -1.45 / ringRadius,
+              }
+            : ringStateAtTime(seconds, morph)
+
           updateGeometry(morph)
+          ringGroup.position.set(ringState.x, ringState.y, 0.02)
+          ringGroup.rotation.z = ringState.rotation
+
           controls.update()
           renderer.render(scene, camera)
         }
@@ -403,9 +392,10 @@ const {
           controls.dispose()
           pointGeometry.dispose()
           pointMaterial.dispose()
-          profileMaterial.dispose()
-          crossMaterial.dispose()
-          edgeMaterial.dispose()
+          riserGeometry.dispose()
+          riserMaterial.dispose()
+          ringGeometry.dispose()
+          ringMaterial.dispose()
           renderer.dispose()
         }
 
