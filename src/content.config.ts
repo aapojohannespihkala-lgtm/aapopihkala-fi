@@ -125,6 +125,7 @@ const commonFields = {
   interactiveGraphic:
     z.enum([
       'butterfly',
+      'bee',
       'stormwater',
       'tree',
     ]).optional(),
