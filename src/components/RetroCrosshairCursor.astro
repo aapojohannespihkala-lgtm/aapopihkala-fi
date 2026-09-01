@@ -33,7 +33,8 @@
     opacity: 0;
     transform: translate3d(-100px, -100px, 0);
 
-    will-change: transform, opacity;
+    transition: none !important;
+    animation: none !important;
   }
 
   .retro-crosshair-cursor svg {
@@ -86,28 +87,21 @@
     let flickerTimer = 0
     let isFlickering = false
 
-    const setVisible = () => {
-      if (!isFlickering) {
-        cursor.style.opacity = '1'
-      }
-    }
-
     const triggerFlicker = (now, speed) => {
       if (reducedMotion || isFlickering) return
-      if (now - lastFlickerAt < 240) return
+      if (now - lastFlickerAt < 320) return
 
-      const speedFactor = Math.min(speed / 1.8, 1)
-      const chance = 0.0015 + speedFactor * 0.0085
+      const speedFactor = Math.min(speed / 2.2, 1)
+      const chance = 0.0008 + speedFactor * 0.0052
 
       if (Math.random() >= chance) return
 
       isFlickering = true
       lastFlickerAt = now
 
-      const disappears = Math.random() < 0.62
-      cursor.style.opacity = disappears
+      cursor.style.opacity = Math.random() < 0.58
         ? '0'
-        : String(0.18 + Math.random() * 0.22)
+        : String(0.16 + Math.random() * 0.22)
 
       const duration = 30 + Math.random() * 50
 
@@ -122,7 +116,10 @@
       const now = performance.now()
 
       cursor.style.transform = `translate3d(${event.clientX - 9}px, ${event.clientY - 10.5}px, 0)`
-      setVisible()
+
+      if (!isFlickering) {
+        cursor.style.opacity = '1'
+      }
 
       if (
         lastX === null ||
@@ -145,13 +142,15 @@
       lastY = event.clientY
       lastTime = now
 
-      triggerFlicker(now, speed)
+      if (distance > 0) {
+        triggerFlicker(now, speed)
+      }
     }
 
     const hideCursor = () => {
-      if (!isFlickering) {
-        cursor.style.opacity = '0'
-      }
+      window.clearTimeout(flickerTimer)
+      isFlickering = false
+      cursor.style.opacity = '0'
     }
 
     window.addEventListener('pointermove', handlePointerMove, { passive: true })
