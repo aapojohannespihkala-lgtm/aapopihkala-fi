@@ -22,3 +22,11 @@ Interactive 3D animations must allow unrestricted orbit rotation by default.
 - Do not set `OrbitControls.minPolarAngle`, `maxPolarAngle`, `minAzimuthAngle` or `maxAzimuthAngle` unless the user explicitly asks for a restricted view.
 - Keep rotation free in article graphics, the homepage and Animation Lab.
 - Zoom and pan behavior may still be configured separately for each component.
+
+## Animation Lab parity
+
+Every new interactive animation or animation study must also be added to `src/pages/lab/index.astro` in the same change.
+
+- Give each new experiment the next available lab number and a short descriptive title.
+- Keep the lab version fully interactive unless the component itself has a deliberate restriction.
+- Do not leave an article-only animation out of Animation Lab.
