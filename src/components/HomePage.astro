@@ -81,10 +81,6 @@ const alternateLanguage =
     ? site.languages.en
     : site.languages.fi;
 
-/* =========================================================
-   POSTS
-   ========================================================= */
-
 const posts =
   await getPublishedPosts();
 
@@ -119,10 +115,6 @@ const getDisplayDate = (
     )
   );
 };
-
-/* =========================================================
-   PAGE META
-   ========================================================= */
 
 const canonicalUrl =
   `${site.url}${currentLanguage.homePath}`;
@@ -179,58 +171,18 @@ const personSchema = {
 
 <html lang={lang}>
   <head>
-    <meta
-      charset="UTF-8"
-    />
-
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1"
-    />
-
-    <title>
-      {t.pageTitle}
-    </title>
-
-    <meta
-      name="description"
-      content={t.pageDescription}
-    />
-
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href="/favicon.svg"
-    />
-
-    <link
-      rel="canonical"
-      href={canonicalUrl}
-    />
-
-    <link
-      rel="alternate"
-      hreflang="fi"
-      href={finnishUrl}
-    />
-
-    <link
-      rel="alternate"
-      hreflang="en"
-      href={englishUrl}
-    />
-
-    <link
-      rel="alternate"
-      hreflang="x-default"
-      href={finnishUrl}
-    />
-
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{t.pageTitle}</title>
+    <meta name="description" content={t.pageDescription} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="fi" href={finnishUrl} />
+    <link rel="alternate" hreflang="en" href={englishUrl} />
+    <link rel="alternate" hreflang="x-default" href={finnishUrl} />
     <script
       type="application/ld+json"
-      set:html={JSON.stringify(
-        personSchema
-      )}
+      set:html={JSON.stringify(personSchema)}
     />
 
     <style>
@@ -247,24 +199,24 @@ const personSchema = {
       }
 
       .location-icon {
-        animation: location-cursor-pulse 1.8s ease-in-out infinite;
+        animation: location-cursor-pulse 4.8s ease-in-out infinite;
       }
 
       @keyframes location-cursor-pulse {
         0%,
         100% {
-          opacity: 0.32;
+          opacity: 0.08;
         }
 
         50% {
-          opacity: 0.82;
+          opacity: 0.68;
         }
       }
 
       @media (prefers-reduced-motion: reduce) {
         .location-icon {
           animation: none;
-          opacity: 0.72;
+          opacity: 0.58;
         }
       }
 
@@ -295,27 +247,18 @@ const personSchema = {
   <body>
     <SiteHeader
       lang={lang}
-      languageHref={
-        alternateLanguage.homePath
-      }
+      languageHref={alternateLanguage.homePath}
     />
 
     <main class="main-container">
       <section class="hero">
         <div class="hero-row">
           <div class="hero-content">
-            <h1>
-              {site.name}
-            </h1>
+            <h1>{site.name}</h1>
 
             <div class="hero-description">
-              <p class="hero-primary">
-                {t.heroPrimary}
-              </p>
-
-              <p class="hero-secondary">
-                {t.heroSecondary}
-              </p>
+              <p class="hero-primary">{t.heroPrimary}</p>
+              <p class="hero-secondary">{t.heroSecondary}</p>
             </div>
 
             <p class="hero-location">
@@ -324,34 +267,10 @@ const personSchema = {
                 viewBox="0 0 16 19"
                 aria-hidden="true"
               >
-                <line
-                  x1="8"
-                  y1="1.8"
-                  x2="8"
-                  y2="5.2"
-                />
-
-                <line
-                  x1="8"
-                  y1="13.8"
-                  x2="8"
-                  y2="17.2"
-                />
-
-                <line
-                  x1="1.7"
-                  y1="9.5"
-                  x2="5"
-                  y2="9.5"
-                />
-
-                <line
-                  x1="11"
-                  y1="9.5"
-                  x2="14.3"
-                  y2="9.5"
-                />
-
+                <line x1="8" y1="1.8" x2="8" y2="5.2" />
+                <line x1="8" y1="13.8" x2="8" y2="17.2" />
+                <line x1="1.7" y1="9.5" x2="5" y2="9.5" />
+                <line x1="11" y1="9.5" x2="14.3" y2="9.5" />
                 <circle
                   cx="8"
                   cy="9.5"
@@ -361,9 +280,7 @@ const personSchema = {
                 />
               </svg>
 
-              <span>
-                {t.location}
-              </span>
+              <span>{t.location}</span>
             </p>
 
             <a
@@ -372,16 +289,8 @@ const personSchema = {
               target="_blank"
               rel="noopener"
             >
-              <span>
-                LinkedIn
-              </span>
-
-              <span
-                class="hero-linkedin-arrow"
-                aria-hidden="true"
-              >
-                ↗
-              </span>
+              <span>LinkedIn</span>
+              <span class="hero-linkedin-arrow" aria-hidden="true">↗</span>
             </a>
           </div>
 
@@ -393,58 +302,27 @@ const personSchema = {
 
       <section class="feed">
         {
-          posts.map(
-            (
-              post,
-              index
-            ) => {
-              const publishedAt =
-                post.data.publishedAt;
+          posts.map((post, index) => {
+            const publishedAt = post.data.publishedAt;
+            const postNumber = String(posts.length - index).padStart(2, '0');
+            const slug = getPostSlug(post.id);
+            const titleHref =
+              lang === 'fi'
+                ? `/artikkelit/${slug}/`
+                : `/en/articles/${slug}/`;
 
-              const postNumber =
-                String(
-                  posts.length -
-                    index
-                ).padStart(
-                  2,
-                  '0'
-                );
-
-              const slug =
-                getPostSlug(
-                  post.id
-                );
-
-              const titleHref =
-                lang === 'fi'
-                  ? `/artikkelit/${slug}/`
-                  : `/en/articles/${slug}/`;
-
-              return (
-                <FeedPost
-                  post={post}
-                  lang={lang}
-                  postNumber={
-                    postNumber
-                  }
-                  displayDate={
-                    getDisplayDate(
-                      publishedAt
-                    )
-                  }
-                  perspectiveLabel={
-                    t.perspectiveLabel
-                  }
-                  sourceLabel={
-                    t.sourceLabel
-                  }
-                  titleHref={
-                    titleHref
-                  }
-                />
-              );
-            }
-          )
+            return (
+              <FeedPost
+                post={post}
+                lang={lang}
+                postNumber={postNumber}
+                displayDate={getDisplayDate(publishedAt)}
+                perspectiveLabel={t.perspectiveLabel}
+                sourceLabel={t.sourceLabel}
+                titleHref={titleHref}
+              />
+            );
+          })
         }
       </section>
     </main>
