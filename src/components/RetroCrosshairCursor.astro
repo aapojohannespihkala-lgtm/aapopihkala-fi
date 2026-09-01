@@ -1,0 +1,170 @@
+<div
+  class="retro-crosshair-cursor"
+  data-retro-crosshair-cursor
+  aria-hidden="true"
+>
+  <svg
+    viewBox="0 0 16 19"
+    focusable="false"
+  >
+    <line x1="8" y1="1.8" x2="8" y2="5.2" />
+    <line x1="8" y1="13.8" x2="8" y2="17.2" />
+    <line x1="1.7" y1="9.5" x2="5" y2="9.5" />
+    <line x1="11" y1="9.5" x2="14.3" y2="9.5" />
+    <circle
+      cx="8"
+      cy="9.5"
+      r="0.82"
+    />
+  </svg>
+</div>
+
+<style>
+  .retro-crosshair-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 2147483646;
+
+    width: 18px;
+    height: 21px;
+
+    pointer-events: none;
+    opacity: 0;
+    transform: translate3d(-100px, -100px, 0);
+
+    will-change: transform, opacity;
+  }
+
+  .retro-crosshair-cursor svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+
+    overflow: visible;
+
+    fill: none;
+    stroke: var(--moss);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .retro-crosshair-cursor circle {
+    fill: var(--moss);
+    stroke: none;
+  }
+
+  @media (pointer: fine) and (hover: hover) {
+    :global(html.retro-crosshair-cursor-enabled),
+    :global(html.retro-crosshair-cursor-enabled body),
+    :global(html.retro-crosshair-cursor-enabled body *) {
+      cursor: none !important;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const cursor = document.querySelector('[data-retro-crosshair-cursor]')
+    if (!cursor) return
+    if (cursor.dataset.retroCrosshairInitialized === 'true') return
+
+    cursor.dataset.retroCrosshairInitialized = 'true'
+
+    const finePointer = window.matchMedia('(pointer: fine) and (hover: hover)')
+    if (!finePointer.matches) return
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    document.documentElement.classList.add('retro-crosshair-cursor-enabled')
+
+    let lastX = null
+    let lastY = null
+    let lastTime = null
+    let lastFlickerAt = -Infinity
+    let flickerTimer = 0
+    let isFlickering = false
+
+    const setVisible = () => {
+      if (!isFlickering) {
+        cursor.style.opacity = '1'
+      }
+    }
+
+    const triggerFlicker = (now, speed) => {
+      if (reducedMotion || isFlickering) return
+      if (now - lastFlickerAt < 240) return
+
+      const speedFactor = Math.min(speed / 1.8, 1)
+      const chance = 0.0015 + speedFactor * 0.0085
+
+      if (Math.random() >= chance) return
+
+      isFlickering = true
+      lastFlickerAt = now
+
+      const disappears = Math.random() < 0.62
+      cursor.style.opacity = disappears
+        ? '0'
+        : String(0.18 + Math.random() * 0.22)
+
+      const duration = 30 + Math.random() * 50
+
+      window.clearTimeout(flickerTimer)
+      flickerTimer = window.setTimeout(() => {
+        isFlickering = false
+        cursor.style.opacity = '1'
+      }, duration)
+    }
+
+    const handlePointerMove = (event) => {
+      const now = performance.now()
+
+      cursor.style.transform = `translate3d(${event.clientX - 9}px, ${event.clientY - 10.5}px, 0)`
+      setVisible()
+
+      if (
+        lastX === null ||
+        lastY === null ||
+        lastTime === null
+      ) {
+        lastX = event.clientX
+        lastY = event.clientY
+        lastTime = now
+        return
+      }
+
+      const dx = event.clientX - lastX
+      const dy = event.clientY - lastY
+      const distance = Math.hypot(dx, dy)
+      const elapsed = Math.max(8, now - lastTime)
+      const speed = distance / elapsed
+
+      lastX = event.clientX
+      lastY = event.clientY
+      lastTime = now
+
+      triggerFlicker(now, speed)
+    }
+
+    const hideCursor = () => {
+      if (!isFlickering) {
+        cursor.style.opacity = '0'
+      }
+    }
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
+    window.addEventListener('blur', hideCursor)
+    document.documentElement.addEventListener('mouseleave', hideCursor)
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        window.clearTimeout(flickerTimer)
+        document.documentElement.classList.remove('retro-crosshair-cursor-enabled')
+      },
+      { once: true }
+    )
+  })()
+</script>
