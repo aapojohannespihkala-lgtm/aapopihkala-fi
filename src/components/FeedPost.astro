@@ -7,6 +7,7 @@ import PointButterfly from './PointButterfly.astro';
 import PointBee from './PointBee.astro';
 import TreeField from './TreeField.astro';
 import RiverFlow from './RiverFlow.astro';
+import WaterDropMorph from './WaterDropMorph.astro';
 
 interface Props {
   post: CollectionEntry<'posts'>;
@@ -288,6 +289,31 @@ const displayedSourceLabel =
               </div>
             </figure>
           )
+      : interactiveGraphic === 'waterdrop'
+        ? (
+            <figure
+              class="post-graphic post-graphic--interactive"
+              role="img"
+              aria-label={localizedPost.graphicAlt ?? ''}
+            >
+              <div
+                class="post-interactive-graphic post-interactive-graphic--waterdrop"
+                data-post-interactive-graphic
+              >
+                <WaterDropMorph
+                  class="post-waterdrop"
+                  enableZoom={false}
+                  scale={1.18}
+                  cameraDistance={6.8}
+                />
+                <span
+                  class="post-interaction-hit post-interaction-hit--waterdrop"
+                  data-post-interaction-hit
+                  aria-hidden="true"
+                ></span>
+              </div>
+            </figure>
+          )
       : interactiveGraphic === 'stormwater'
         ? (
             <figure
@@ -421,6 +447,7 @@ const displayedSourceLabel =
   .post-interactive-graphic :global(.post-butterfly),
   .post-interactive-graphic :global(.post-bee),
   .post-interactive-graphic :global(.post-tree),
+  .post-interactive-graphic :global(.post-waterdrop),
   .post-interactive-graphic :global(.post-river-flow) {
     min-height: 0;
     cursor: default;
@@ -429,6 +456,7 @@ const displayedSourceLabel =
   .post-interactive-graphic :global(.point-butterfly__canvas),
   .post-interactive-graphic :global(.point-bee__canvas),
   .post-interactive-graphic :global(.tree-field__canvas),
+  .post-interactive-graphic :global(.water-drop-morph__canvas),
   .post-interactive-graphic :global(.river-flow__canvas) {
     touch-action: pan-y !important;
     cursor: default;
