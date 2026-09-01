@@ -115,8 +115,6 @@ const {
         controls.enableDamping = true
         controls.dampingFactor = 0.055
         controls.rotateSpeed = 0.5
-        controls.minPolarAngle = Math.PI * 0.22
-        controls.maxPolarAngle = Math.PI * 0.74
         controls.target.set(0, 1.25, 0)
         controls.autoRotate = wantsAutoRotate && !reducedMotion
         controls.autoRotateSpeed = 0.18
@@ -276,7 +274,7 @@ const {
           { y: 1.1, angle: 3.02, length: 1.8, rise: 0.8 },
           { y: 1.2, angle: 0.05, length: 1.92, rise: 0.72 },
           { y: 1.33, angle: 4.08, length: 1.65, rise: 0.95 },
-          { y: 1.4, angle: 1.15, length: 1.72, rise: 0.9 },
+          { y: 1.4, angle: 0.15 + 1.0, length: 1.72, rise: 0.9 },
           { y: 1.58, angle: 5.25, length: 1.46, rise: 0.92 },
           { y: 1.7, angle: 2.1, length: 1.38, rise: 1.0 },
           { y: 1.9, angle: 0.82, length: 1.14, rise: 0.95 },
