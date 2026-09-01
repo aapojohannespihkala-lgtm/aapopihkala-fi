@@ -4,6 +4,8 @@ import {
   type SiteLanguage,
 } from '../config/site';
 
+import RetroCrosshairCursor from './RetroCrosshairCursor.astro';
+
 interface Props {
   lang: SiteLanguage;
   languageHref: string;
@@ -109,3 +111,5 @@ const alternateLanguage =
     </div>
   </nav>
 </header>
+
+<RetroCrosshairCursor />
