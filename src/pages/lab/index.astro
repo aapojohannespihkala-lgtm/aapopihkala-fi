@@ -10,6 +10,7 @@ import StormwaterCatchment from '../../components/StormwaterCatchment.astro';
 import RootNetwork from '../../components/RootNetwork.astro';
 import WaterDropMorph from '../../components/WaterDropMorph.astro';
 import RiverFlow from '../../components/RiverFlow.astro';
+import AccessibilityStep from '../../components/AccessibilityStep.astro';
 ---
 
 <!doctype html>
@@ -340,6 +341,35 @@ import RiverFlow from '../../components/RiverFlow.astro';
 
             <p>
               Auto-rotate · zoom · water surface · moving contours · flow
+            </p>
+          </footer>
+        </article>
+
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">09</p>
+              <h2>Accessibility step</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage">
+            <div class="experiment-viewport">
+              <AccessibilityStep />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Pieni porras muuntuu hitaasti luiskaksi ja takaisin. Sama tasoero vaihtuu esteestä kuljettavaksi reitiksi yhdellä geometrisella eleellä.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · step · ramp · morph
             </p>
           </footer>
         </article>
