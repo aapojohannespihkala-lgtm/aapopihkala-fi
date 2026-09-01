@@ -5,7 +5,7 @@ import type {
 
 import PointButterfly from './PointButterfly.astro';
 import TreeField from './TreeField.astro';
-import WaterDropMorph from './WaterDropMorph.astro';
+import StormwaterCatchment from './StormwaterCatchment.astro';
 
 interface Props {
   post: CollectionEntry<'posts'>;
@@ -251,11 +251,9 @@ const displayedSourceLabel =
                 class="post-interactive-graphic post-interactive-graphic--waterdrop"
                 data-post-interactive-graphic
               >
-                <WaterDropMorph
-                  class="post-waterdrop"
+                <StormwaterCatchment
+                  class="post-stormwater"
                   enableZoom={false}
-                  scale={1.49}
-                  cameraDistance={6.1}
                 />
                 <span
                   class="post-interaction-hit post-interaction-hit--waterdrop"
@@ -372,14 +370,14 @@ const displayedSourceLabel =
 
   .post-interactive-graphic :global(.post-butterfly),
   .post-interactive-graphic :global(.post-tree),
-  .post-interactive-graphic :global(.post-waterdrop) {
+  .post-interactive-graphic :global(.post-stormwater) {
     min-height: 0;
     cursor: default;
   }
 
   .post-interactive-graphic :global(.point-butterfly__canvas),
   .post-interactive-graphic :global(.tree-field__canvas),
-  .post-interactive-graphic :global(.water-drop-morph__canvas) {
+  .post-interactive-graphic :global(.stormwater-catchment__canvas) {
     touch-action: pan-y;
     cursor: default;
   }
