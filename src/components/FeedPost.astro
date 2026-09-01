@@ -309,9 +309,23 @@ const displayedSourceLabel =
 </article>
 
 <style>
+  .feed-post {
+    padding-bottom: 0;
+  }
+
+  .feed-post + .feed-post {
+    padding-top: 36px;
+  }
+
   .post-title-link {
     color: inherit;
     text-decoration: none;
+  }
+
+  .source {
+    margin-top: 20px;
+    padding-top: 0;
+    border-top: 0;
   }
 
   .source-links {
@@ -320,6 +334,10 @@ const displayedSourceLabel =
     gap:
       8px
       18px;
+  }
+
+  .source + .post-graphic {
+    margin-top: 18px;
   }
 
   .post-graphic--interactive {
@@ -384,6 +402,22 @@ const displayedSourceLabel =
   }
 
   @media (max-width: 640px) {
+    .feed-post {
+      padding-bottom: 0;
+    }
+
+    .feed-post + .feed-post {
+      padding-top: 30px;
+    }
+
+    .source {
+      margin-top: 18px;
+    }
+
+    .source + .post-graphic {
+      margin-top: 16px;
+    }
+
     .post-interactive-graphic {
       transform: translateX(-26%);
     }
