@@ -64,12 +64,12 @@ const {
   (() => {
     const roots = document.querySelectorAll('[data-accessibility-step]')
 
+    const clamp01 = (value) => Math.max(0, Math.min(1, value))
+
     const smoothstep = (value) => {
-      const t = Math.max(0, Math.min(1, value))
+      const t = clamp01(value)
       return t * t * (3 - 2 * t)
     }
-
-    const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
 
     roots.forEach(async (root) => {
       if (root.dataset.accessibilityStepInitialized === 'true') return
@@ -139,9 +139,6 @@ const {
         const stepHeight = 0.72
         const rampStart = -1.15
         const rampEnd = 1.15
-        const ringRadius = 0.17
-        const stopX = -ringRadius - 0.035
-        const cycleDuration = 11.5
 
         const stepHeightAt = (x) => (x < 0 ? 0 : stepHeight)
 
@@ -156,20 +153,66 @@ const {
         const heightAt = (x, morph) =>
           THREE.MathUtils.lerp(stepHeightAt(x), rampHeightAt(x), morph)
 
-        const morphAtTime = (seconds) => {
-          if (!wantsAnimation) return 1
+        const cycleDuration = 12
+        const leftX = -1.82
+        const rightX = 1.82
+        const blockedX = -0.28
 
-          const time = seconds % cycleDuration
+        const stateAtTime = (seconds) => {
+          if (!wantsAnimation) {
+            return {
+              morph: 1,
+              x: 0.95,
+              direction: 1,
+              blocked: false,
+            }
+          }
 
-          if (time < 3.2) return 0
-          if (time < 5.6) return smoothstep((time - 3.2) / 2.4)
-          if (time < 7.3) return 1
-          if (time < 9.7) return 1 - smoothstep((time - 7.3) / 2.4)
-          return 0
+          const phase = (seconds % cycleDuration) / cycleDuration
+
+          let morph = 0
+          if (phase >= 0.18 && phase < 0.34) {
+            morph = smoothstep((phase - 0.18) / 0.16)
+          } else if (phase >= 0.34 && phase < 0.74) {
+            morph = 1
+          } else if (phase >= 0.74 && phase < 0.9) {
+            morph = 1 - smoothstep((phase - 0.74) / 0.16)
+          }
+
+          const movingRight = phase < 0.5
+          const direction = movingRight ? 1 : -1
+          const travelPhase = movingRight
+            ? phase * 2
+            : (phase - 0.5) * 2
+
+          const desiredX = movingRight
+            ? THREE.MathUtils.lerp(leftX, rightX, travelPhase)
+            : THREE.MathUtils.lerp(rightX, leftX, travelPhase)
+
+          let x = desiredX
+          let blocked = false
+
+          if (movingRight && desiredX > blockedX) {
+            if (morph < 0.42) {
+              blocked = true
+              const pressure = Math.min(1, Math.max(0, (desiredX - blockedX) / 0.45))
+              x = blockedX - 0.016 + Math.sin(seconds * 17) * 0.012 * pressure
+            } else if (morph < 0.76) {
+              const release = smoothstep((morph - 0.42) / 0.34)
+              x = THREE.MathUtils.lerp(blockedX, desiredX, release)
+            }
+          }
+
+          return {
+            morph,
+            x,
+            direction,
+            blocked,
+          }
         }
 
-        const pointColumns = 76
-        const pointRows = 30
+        const pointColumns = 78
+        const pointRows = 31
         const pointCount = (pointColumns + 1) * (pointRows + 1)
         const pointPositions = new Float32Array(pointCount * 3)
         const pointBaseX = new Float32Array(pointCount)
@@ -201,99 +244,51 @@ const {
         })
         specimen.add(new THREE.Points(pointGeometry, pointMaterial))
 
-        const riserColumns = 26
-        const riserRows = 18
-        const riserCount = (riserColumns + 1) * (riserRows + 1)
-        const riserPositions = new Float32Array(riserCount * 3)
-        const riserGeometry = new THREE.BufferGeometry()
-        const riserAttribute = new THREE.BufferAttribute(riserPositions, 3)
-        riserAttribute.setUsage(THREE.DynamicDrawUsage)
-        riserGeometry.setAttribute('position', riserAttribute)
+        const travelerRadius = 0.18
+        const travelerPositions = []
+        const shellCount = 210
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5))
 
-        const riserMaterial = new THREE.PointsMaterial({
-          color: 0x505b54,
-          size: 0.022,
-          sizeAttenuation: true,
-          transparent: true,
-          opacity: 0.5,
-        })
-        specimen.add(new THREE.Points(riserGeometry, riserMaterial))
+        for (let index = 0; index < shellCount; index += 1) {
+          const y = 1 - (index / (shellCount - 1)) * 2
+          const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y))
+          const theta = goldenAngle * index
 
-        const ringGroup = new THREE.Group()
-        specimen.add(ringGroup)
-
-        const ringPointCount = 52
-        const ringPositions = new Float32Array(ringPointCount * 3)
-
-        for (let index = 0; index < ringPointCount; index += 1) {
-          const angle = (index / ringPointCount) * Math.PI * 2
-          const offset = index * 3
-
-          ringPositions[offset] = Math.cos(angle) * ringRadius
-          ringPositions[offset + 1] = Math.sin(angle) * ringRadius
-          ringPositions[offset + 2] = 0
+          travelerPositions.push(
+            Math.cos(theta) * radiusAtY * travelerRadius,
+            y * travelerRadius,
+            Math.sin(theta) * radiusAtY * travelerRadius
+          )
         }
 
-        const ringGeometry = new THREE.BufferGeometry()
-        ringGeometry.setAttribute(
+        for (let index = 0; index < 48; index += 1) {
+          const angle = goldenAngle * index
+          const radial = travelerRadius * (0.22 + 0.5 * ((index % 7) / 6))
+          const y = travelerRadius * (((index * 3) % 11) / 10 - 0.5)
+
+          travelerPositions.push(
+            Math.cos(angle) * radial,
+            y,
+            Math.sin(angle) * radial
+          )
+        }
+
+        const travelerGeometry = new THREE.BufferGeometry()
+        travelerGeometry.setAttribute(
           'position',
-          new THREE.BufferAttribute(ringPositions, 3)
+          new THREE.Float32BufferAttribute(travelerPositions, 3)
         )
 
-        const ringMaterial = new THREE.PointsMaterial({
-          color: 0x39443e,
-          size: 0.04,
+        const travelerMaterial = new THREE.PointsMaterial({
+          color: 0x3f4943,
+          size: 0.032,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.96,
+          opacity: 0.88,
         })
 
-        ringGroup.add(new THREE.Points(ringGeometry, ringMaterial))
-
-        const ringStateAtTime = (seconds, morph) => {
-          if (!wantsAnimation) {
-            const x = 1.45
-            return {
-              x,
-              y: heightAt(x, 1) + ringRadius + 0.018,
-              rotation: -x / ringRadius,
-            }
-          }
-
-          const time = seconds % cycleDuration
-          let x = -2.7
-          let rock = 0
-
-          if (time < 1.8) {
-            const t = smoothstep(time / 1.8)
-            x = THREE.MathUtils.lerp(-1.9, stopX, t)
-          } else if (time < 4.15) {
-            const stuckTime = time - 1.8
-            const fade = time < 3.55 ? 1 : 1 - smoothstep((time - 3.55) / 0.6)
-            const pulse = Math.sin(stuckTime * 11.5) * 0.018 * fade
-            x = stopX - Math.abs(pulse)
-            rock = Math.sin(stuckTime * 11.5) * 0.16 * fade
-          } else if (time < 6.55) {
-            const t = smoothstep((time - 4.15) / 2.4)
-            x = THREE.MathUtils.lerp(stopX, 1.48, t)
-          } else if (time < 7.65) {
-            const t = smoothstep((time - 6.55) / 1.1)
-            x = THREE.MathUtils.lerp(1.48, 2.72, t)
-          } else if (time < 9.65) {
-            x = 2.72
-          } else {
-            const t = smoothstep((time - 9.65) / (cycleDuration - 9.65))
-            x = THREE.MathUtils.lerp(-2.72, -1.9, t)
-          }
-
-          const y = heightAt(clamp(x, -halfWidth, halfWidth), morph) + ringRadius + 0.018
-
-          return {
-            x,
-            y,
-            rotation: -x / ringRadius + rock,
-          }
-        }
+        const traveler = new THREE.Points(travelerGeometry, travelerMaterial)
+        specimen.add(traveler)
 
         const updateGeometry = (morph) => {
           for (let index = 0; index < pointCount; index += 1) {
@@ -305,27 +300,8 @@ const {
             pointPositions[offset + 1] = heightAt(x, morph)
             pointPositions[offset + 2] = z
           }
+
           pointAttribute.needsUpdate = true
-
-          const epsilon = halfWidth / pointColumns
-          const low = heightAt(-epsilon, morph)
-          const high = heightAt(epsilon, morph)
-          let index = 0
-
-          for (let row = 0; row <= riserRows; row += 1) {
-            const z = THREE.MathUtils.lerp(-halfDepth, halfDepth, row / riserRows)
-
-            for (let column = 0; column <= riserColumns; column += 1) {
-              const ratio = column / riserColumns
-              const offset = index * 3
-
-              riserPositions[offset] = 0
-              riserPositions[offset + 1] = THREE.MathUtils.lerp(low, high, ratio)
-              riserPositions[offset + 2] = z
-              index += 1
-            }
-          }
-          riserAttribute.needsUpdate = true
         }
 
         const resize = () => {
@@ -345,6 +321,8 @@ const {
         let isVisible = true
         let isDocumentVisible = !document.hidden
         let animationFrame = 0
+        let previousX = leftX
+        let travelerRotation = 0
 
         const intersectionObserver = new IntersectionObserver(
           (entries) => {
@@ -364,24 +342,42 @@ const {
           if (!isVisible || !isDocumentVisible) return
 
           const seconds = time * 0.001
-          const morph = reducedMotion ? 1 : morphAtTime(seconds)
-          const ringState = reducedMotion
-            ? {
-                x: 1.45,
-                y: heightAt(1.45, 1) + ringRadius + 0.018,
-                rotation: -1.45 / ringRadius,
-              }
-            : ringStateAtTime(seconds, morph)
+          const state = reducedMotion
+            ? { morph: 1, x: 0.95, direction: 1, blocked: false }
+            : stateAtTime(seconds)
 
-          updateGeometry(morph)
-          ringGroup.position.set(ringState.x, ringState.y, 0.02)
-          ringGroup.rotation.z = ringState.rotation
+          updateGeometry(state.morph)
+
+          const surfaceY = heightAt(state.x, state.morph)
+          traveler.position.set(
+            state.x,
+            surfaceY + travelerRadius + 0.025,
+            0
+          )
+
+          const deltaX = state.x - previousX
+          if (!state.blocked) {
+            travelerRotation -= deltaX / travelerRadius
+          }
+          traveler.rotation.z = travelerRotation
+          traveler.rotation.x = 0.08 * Math.sin(seconds * 0.9)
+          previousX = state.x
 
           controls.update()
           renderer.render(scene, camera)
         }
 
-        updateGeometry(reducedMotion ? 1 : 0)
+        const initialState = reducedMotion
+          ? { morph: 1, x: 0.95 }
+          : stateAtTime(0)
+
+        updateGeometry(initialState.morph)
+        traveler.position.set(
+          initialState.x,
+          heightAt(initialState.x, initialState.morph) + travelerRadius + 0.025,
+          0
+        )
+        previousX = initialState.x
         animationFrame = requestAnimationFrame(animateFrame)
 
         const cleanup = () => {
@@ -392,10 +388,8 @@ const {
           controls.dispose()
           pointGeometry.dispose()
           pointMaterial.dispose()
-          riserGeometry.dispose()
-          riserMaterial.dispose()
-          ringGeometry.dispose()
-          ringMaterial.dispose()
+          travelerGeometry.dispose()
+          travelerMaterial.dispose()
           renderer.dispose()
         }
 
