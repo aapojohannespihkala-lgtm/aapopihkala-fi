@@ -232,7 +232,7 @@ const displayedSourceLabel =
               <PointButterfly
                 class="post-butterfly"
                 enableZoom={false}
-                scale={1.08}
+                scale={1.18}
                 cameraDistance={8.2}
               />
               <span
@@ -254,7 +254,7 @@ const displayedSourceLabel =
                 <TreeField
                   class="post-tree"
                   enableZoom={false}
-                  scale={1.15}
+                  scale={1.27}
                   cameraDistance={10.8}
                 />
                 <span
@@ -279,7 +279,7 @@ const displayedSourceLabel =
                 <RiverFlow
                   class="post-river-flow"
                   enableZoom={false}
-                  scale={1.08}
+                  scale={1.18}
                 />
                 <span
                   class="post-interaction-hit post-interaction-hit--waterdrop"
@@ -314,7 +314,7 @@ const displayedSourceLabel =
   }
 
   .feed-post + .feed-post {
-    padding-top: 36px;
+    padding-top: 42px;
   }
 
   .post-title-link {
@@ -323,7 +323,7 @@ const displayedSourceLabel =
   }
 
   .source {
-    margin-top: 20px;
+    margin-top: 15px;
     padding-top: 0;
     border-top: 0;
   }
@@ -337,10 +337,11 @@ const displayedSourceLabel =
   }
 
   .source + .post-graphic {
-    margin-top: 18px;
+    margin-top: 10px;
   }
 
   .post-graphic--interactive {
+    margin-bottom: -8px;
     overflow: visible;
   }
 
@@ -397,8 +398,8 @@ const displayedSourceLabel =
   .post-divider {
     width: 100%;
     max-width: 640px;
-    margin-top: 20px;
-    border-top: 1px solid var(--line-soft);
+    margin-top: 12px;
+    border-top: 1px solid var(--line);
   }
 
   @media (max-width: 640px) {
@@ -407,15 +408,19 @@ const displayedSourceLabel =
     }
 
     .feed-post + .feed-post {
-      padding-top: 30px;
+      padding-top: 34px;
     }
 
     .source {
-      margin-top: 18px;
+      margin-top: 14px;
     }
 
     .source + .post-graphic {
-      margin-top: 16px;
+      margin-top: 9px;
+    }
+
+    .post-graphic--interactive {
+      margin-bottom: -7px;
     }
 
     .post-interactive-graphic {
@@ -423,7 +428,7 @@ const displayedSourceLabel =
     }
 
     .post-divider {
-      margin-top: 18px;
+      margin-top: 10px;
     }
   }
 </style>
