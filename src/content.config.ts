@@ -127,6 +127,7 @@ const commonFields = {
       'butterfly',
       'bee',
       'stormwater',
+      'waterdrop',
       'tree',
     ]).optional(),
 
