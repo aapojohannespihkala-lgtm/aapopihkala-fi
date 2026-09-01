@@ -187,6 +187,39 @@ const displayedSourceLabel =
     }
   </div>
 
+  <div class="source">
+    <span class="source-label">
+      {displayedSourceLabel}
+    </span>
+
+    <div class="source-links">
+      {
+        sources.map(
+          (source) => (
+            <a
+              class="source-link"
+              href={source.url}
+              target="_blank"
+              rel="noopener"
+              title={source.title}
+            >
+              <span>
+                {source.name}
+              </span>
+
+              <span
+                class="source-arrow"
+                aria-hidden="true"
+              >
+                ↗
+              </span>
+            </a>
+          )
+        )
+      }
+    </div>
+  </div>
+
   {
     interactiveGraphic === 'butterfly'
       ? (
@@ -272,38 +305,7 @@ const displayedSourceLabel =
           )
   }
 
-  <div class="source">
-    <span class="source-label">
-      {displayedSourceLabel}
-    </span>
-
-    <div class="source-links">
-      {
-        sources.map(
-          (source) => (
-            <a
-              class="source-link"
-              href={source.url}
-              target="_blank"
-              rel="noopener"
-              title={source.title}
-            >
-              <span>
-                {source.name}
-              </span>
-
-              <span
-                class="source-arrow"
-                aria-hidden="true"
-              >
-                ↗
-              </span>
-            </a>
-          )
-        )
-      }
-    </div>
-  </div>
+  <div class="post-divider" aria-hidden="true"></div>
 </article>
 
 <style>
@@ -321,7 +323,6 @@ const displayedSourceLabel =
   }
 
   .post-graphic--interactive {
-    margin-top: 8px;
     overflow: visible;
   }
 
@@ -375,13 +376,20 @@ const displayedSourceLabel =
     cursor: default;
   }
 
-  .post-graphic--interactive + .source {
-    margin-top: 6px;
+  .post-divider {
+    width: 100%;
+    max-width: 640px;
+    margin-top: 20px;
+    border-top: 1px solid var(--line-soft);
   }
 
   @media (max-width: 640px) {
     .post-interactive-graphic {
       transform: translateX(-26%);
+    }
+
+    .post-divider {
+      margin-top: 18px;
     }
   }
 </style>
