@@ -2,7 +2,7 @@
 status: "published"
 publishedAt: "2026-08-30T12:00:00+03:00"
 
-sourceUrl: "https://www.espoo.fi/fi/uutiset/2026/08/riku-lumiaron-luontopiha-nappasi-voiton-espoon-kaupungin-pihakisassa"
+sourceUrl: "https://www.espoo.fi/fi/uutiset/2026/08/riku-lumiaron-luontipiha-nappasi-voiton-espoon-kaupungin-pihakisassa"
 
 interactiveGraphic: "butterfly"
 
@@ -33,7 +33,7 @@ fi:
     - "Luontoviisaus ei myöskään tarkoita, että piha jätetään suunnittelematta. Pihan pitää näyttää hyvältä. Mutta vielä tärkeämpää on, että siellä on elämälle tilaa."
 
 en:
-  title: "A nature-wise yard is part of urban nature"
+  title: "Nature-wise design broadens the role of landscape architects"
 
   tags:
     - urban nature
@@ -41,7 +41,7 @@ en:
     - landscape architecture
     - Espoo
 
-  intro: "More than 50 different yards took part in Espoo's nature-wise yards competition this summer. The entries included detached-house yards, private and shared housing-company yards, and yards at holiday homes. The awarded entries and honourable mentions showed that nature-wise solutions can work in very different settings and at very different scales."
+  intro: "Espoo's nature-wise yards competition received 54 entries this summer. They included detached-house yards, housing-company yards and yards at holiday homes. The awarded yards featured, among other things, diverse planting, old trees, dead wood, water and shelter for animals. In the winning yard, one of the most species-rich places was a small pond built by people. It is a good example of how nature-wise design does not mean giving up design."
 
   sourceName: "City of Espoo"
   sourceLinkText: "City of Espoo · Results of the nature-wise yards competition"
@@ -50,11 +50,11 @@ en:
   graphicAlt: "A slowly moving point-cloud butterfly representing biodiversity in a nature-wise urban yard."
 
   perspective:
-    - "To me, nature-wise design does not mean giving up the design of a yard or its landscape architectural form. At its best, several objectives are achieved at the same time: the yard provides habitats for different species, gives space to natural processes, and remains functional, pleasant and beautiful for people."
+    - "Biodiversity is sometimes discussed as if it mattered mainly for nature itself. But the link to people is very concrete. Pollinators affect crop yields and crop quality. If pollinators decline, it is not only about fewer butterflies or bumblebees. It is about food production, self-sufficiency and ultimately security of supply. If pollinators disappear, the bill eventually arrives at the grocery store."
 
-    - "Even a small yard matters. A large share of land in Espoo is privately owned, which means that private yards and housing-company yards are also part of the city's ecological networks. A courtyard in an apartment building can provide everyday contact with nature for many people while also contributing to the surrounding green structure."
+    - "The same thing can be seen on a smaller scale in the city. A property boundary means nothing to a pollinator. What matters is whether it can find food and shelter, and whether the next suitable place is close enough. A flowering yard can continue the chain to a neighbouring yard, street planting and then a park."
 
-    - "Nature-wise design does not usually require major investments. Often it is also about what is left undone: not everything needs to be cut, cleared or built into a finished state. When more space is given to natural processes, the need for maintenance can also decrease."
+    - "That is why even a small yard can matter."
 
-    - "Even a small yard is part of urban nature."
+    - "Nature-wise design does not mean leaving a yard undesigned. A yard should look good. But even more importantly, there should be room for life."
 ---
