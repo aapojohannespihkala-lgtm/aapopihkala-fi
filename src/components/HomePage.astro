@@ -200,17 +200,21 @@ const personSchema = {
 
       .location-icon {
         opacity: 1;
-        animation: location-cursor-pulse 4.8s ease-in-out 2.5s infinite;
+        animation: location-cursor-pulse 7.3s ease-in-out infinite;
       }
 
       @keyframes location-cursor-pulse {
         0%,
-        100% {
+        34.25% {
+          opacity: 1;
+        }
+
+        67.12% {
           opacity: 0.08;
         }
 
-        50% {
-          opacity: 0.68;
+        100% {
+          opacity: 1;
         }
       }
 
