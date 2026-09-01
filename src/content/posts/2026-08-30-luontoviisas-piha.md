@@ -4,7 +4,7 @@ publishedAt: "2026-08-30T12:00:00+03:00"
 
 sourceUrl: "https://www.espoo.fi/fi/uutiset/2026/08/riku-lumiaron-luontipiha-nappasi-voiton-espoon-kaupungin-pihakisassa"
 
-interactiveGraphic: "butterfly"
+interactiveGraphic: "bee"
 
 fi:
   title: "Luontoviisaus laajentaa maisema-arkkitehtien tehtävää"
@@ -21,7 +21,7 @@ fi:
   sourceLinkText: "Espoon kaupunki · Luontoviisaat pihat -kilpailun tulokset"
   sourceTitle: "Riku Lumiaron Luontipiha nappasi voiton Espoon kaupungin pihakisassa"
 
-  graphicAlt: "Pistepilvenä esitetty hitaasti liikkuva perhonen luontoviisaan pihan ja kaupunkiluonnon symbolina."
+  graphicAlt: "Pistepilvenä esitetty hitaasti liikkuva kimalainen pölyttäjien ja luontoviisaan pihan symbolina."
 
   perspective:
     - "Luonnon monimuotoisuudesta puhutaan joskus asiana, joka on tärkeä lähinnä luonnon itsensä vuoksi. Yhteys ihmiseen on kuitenkin hyvin konkreettinen. Pölyttäjät vaikuttavat viljelykasvien satoon ja sen laatuun. Jos pölyttäjät vähenevät, kyse ei ole vain perhosten tai kimalaisten määrästä. Kyse on ruoantuotannosta, omavaraisuudesta ja viime kädessä myös huoltovarmuudesta. Jos pölyttäjät katoavat, lasku tulee lopulta ruokakaupassa."
@@ -47,7 +47,7 @@ en:
   sourceLinkText: "City of Espoo · Results of the nature-wise yards competition"
   sourceTitle: "Results and awarded entries in Espoo's nature-wise yards competition"
 
-  graphicAlt: "A slowly moving point-cloud butterfly representing biodiversity in a nature-wise urban yard."
+  graphicAlt: "A slowly moving point-cloud bumblebee representing pollinators and a nature-wise urban yard."
 
   perspective:
     - "Biodiversity is sometimes discussed as if it mattered mainly for nature itself. But the link to people is very concrete. Pollinators affect crop yields and crop quality. If pollinators decline, it is not only about fewer butterflies or bumblebees. It is about food production, self-sufficiency and ultimately security of supply. If pollinators disappear, the bill eventually arrives at the grocery store."
