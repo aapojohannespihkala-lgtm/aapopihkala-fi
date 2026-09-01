@@ -7,7 +7,7 @@ sourceUrl: "https://www.espoo.fi/fi/uutiset/2026/08/riku-lumiaron-luontopiha-nap
 interactiveGraphic: "butterfly"
 
 fi:
-  title: "Luontoviisas piha on osa kaupunkiluontoa"
+  title: "Luontoviisaus laajentaa maisema-arkkitehtien tehtävää"
 
   tags:
     - kaupunkiluonto
@@ -15,7 +15,7 @@ fi:
     - maisema-arkkitehtuuri
     - Espoo
 
-  intro: "Espoon luontoviisaat pihat -kilpailuun osallistui tänä kesänä yli 50 erilaista pihaa. Mukana oli pientalopihojen lisäksi taloyhtiöiden yksityispihoja ja yhteispihoja sekä vapaa-ajan asuntojen pihoja. Kilpailun palkitut ja kunniamainitut kohteet osoittivat, että luontoviisautta voidaan toteuttaa hyvin erilaisissa ympäristöissä ja mittakaavoissa."
+  intro: "Espoon luontoviisaat pihat -kilpailuun osallistui tänä kesänä 54 pihaa. Mukana oli pientalopihojen lisäksi taloyhtiöiden pihoja ja vapaa-ajan asuntojen pihoja. Palkituissa kohteissa oli muun muassa monipuolista kasvillisuutta, vanhoja puita, lahopuuta, vettä ja eläimille sopivia suojapaikkoja. Voittajaksi valitussa pihassa yksi lajistoltaan rikkaimmista kohdista oli ihmisen rakentama pieni lampi. Se on hyvä esimerkki siitä, ettei luontoviisaus tarkoita suunnittelusta luopumista."
 
   sourceName: "Espoon kaupunki"
   sourceLinkText: "Espoon kaupunki · Luontoviisaat pihat -kilpailun tulokset"
@@ -24,13 +24,13 @@ fi:
   graphicAlt: "Pistepilvenä esitetty hitaasti liikkuva perhonen luontoviisaan pihan ja kaupunkiluonnon symbolina."
 
   perspective:
-    - "Luontoviisaus ei mielestäni tarkoita sitä, että pihan suunnittelusta tai maisema-arkkitehtonisesta muodonannosta luovutaan. Parhaimmillaan useat tavoitteet toteutuvat yhtä aikaa: piha tarjoaa elinympäristöjä eri lajeille, luonnon prosesseille annetaan tilaa ja ympäristö on samalla ihmiselle toimiva, viihtyisä ja kaunis."
+    - "Luonnon monimuotoisuudesta puhutaan joskus asiana, joka on tärkeä lähinnä luonnon itsensä vuoksi. Yhteys ihmiseen on kuitenkin hyvin konkreettinen. Pölyttäjät vaikuttavat viljelykasvien satoon ja sen laatuun. Jos pölyttäjät vähenevät, kyse ei ole vain perhosten tai kimalaisten määrästä. Kyse on ruoantuotannosta, omavaraisuudesta ja viime kädessä myös huoltovarmuudesta. Jos pölyttäjät katoavat, lasku tulee lopulta ruokakaupassa."
 
-    - "Pienelläkin pihalla on merkitystä. Espoossa suuri osa maasta on yksityisessä omistuksessa, joten yksityiset pihat ja taloyhtiöiden pihat ovat osa kaupungin luonnon verkostoja. Myös kerrostalopiha voi tarjota luontokosketusta suurelle joukolle ihmisiä ja toimia osana ympäröivää viherrakennetta."
+    - "Sama asia näkyy pienemmässä mittakaavassa kaupungissa. Pölyttäjälle tontinraja ei merkitse mitään. Olennaista on, löytyykö ruokaa ja suojaa sekä seuraava sopiva paikka riittävän läheltä. Kukkiva piha voi jatkaa ketjua naapuripihalle, kadun istutuksiin ja edelleen puistoon."
 
-    - "Luontoviisaus ei myöskään yleensä vaadi suuria investointeja. Usein kyse on siitä, mitä jätetään tekemättä: kaikkea ei tarvitse leikata, siivota tai rakentaa valmiiksi. Kun luonnon omille prosesseille annetaan enemmän tilaa, myös hoidon tarve voi vähentyä."
+    - "Siksi pienelläkin pihalla voi olla merkitystä."
 
-    - "Pienikin piha on osa kaupunkiluontoa."
+    - "Luontoviisaus ei myöskään tarkoita, että piha jätetään suunnittelematta. Pihan pitää näyttää hyvältä. Mutta vielä tärkeämpää on, että siellä on elämälle tilaa."
 
 en:
   title: "A nature-wise yard is part of urban nature"
