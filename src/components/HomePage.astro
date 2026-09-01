@@ -200,50 +200,8 @@ const personSchema = {
 
       .location-icon {
         opacity: 1;
-        animation: location-cursor-phosphor 6.7s linear infinite;
-      }
-
-      @keyframes location-cursor-phosphor {
-        0%,
-        37.313% {
-          opacity: 1;
-        }
-
-        47% {
-          opacity: 0.5;
-        }
-
-        57% {
-          opacity: 0.18;
-        }
-
-        62.687%,
-        74.627% {
-          opacity: 0.08;
-        }
-
-        93% {
-          opacity: 0.94;
-        }
-
-        96.5% {
-          opacity: 1;
-        }
-
-        98.5% {
-          opacity: 0.94;
-        }
-
-        100% {
-          opacity: 1;
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .location-icon {
-          animation: none;
-          opacity: 0.58;
-        }
+        transition: none !important;
+        animation: none !important;
       }
 
       @media (max-width: 800px) {
@@ -354,5 +312,91 @@ const personSchema = {
     </main>
 
     <Analytics lang={lang} />
+
+    <script is:inline>
+      (() => {
+        const icon = document.querySelector('.location-icon')
+        if (!icon) return
+        if (icon.dataset.redrawFlickerInitialized === 'true') return
+
+        icon.dataset.redrawFlickerInitialized = 'true'
+
+        const finePointer = window.matchMedia('(pointer: fine) and (hover: hover)')
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        if (!finePointer.matches || reducedMotion) return
+
+        let lastX = null
+        let lastY = null
+        let lastTime = null
+        let lastFlickerAt = -Infinity
+        let flickerTimer = 0
+        let isFlickering = false
+
+        const triggerFlicker = (now, speed) => {
+          if (isFlickering) return
+          if (now - lastFlickerAt < 360) return
+
+          const speedFactor = Math.min(speed / 2.2, 1)
+          const chance = 0.0008 + speedFactor * 0.0052
+
+          if (Math.random() >= chance) return
+
+          isFlickering = true
+          lastFlickerAt = now
+
+          icon.style.opacity = Math.random() < 0.58
+            ? '0'
+            : String(0.16 + Math.random() * 0.22)
+
+          const duration = 30 + Math.random() * 50
+
+          window.clearTimeout(flickerTimer)
+          flickerTimer = window.setTimeout(() => {
+            isFlickering = false
+            icon.style.opacity = '1'
+          }, duration)
+        }
+
+        const handlePointerMove = (event) => {
+          const now = performance.now()
+
+          if (
+            lastX === null ||
+            lastY === null ||
+            lastTime === null
+          ) {
+            lastX = event.clientX
+            lastY = event.clientY
+            lastTime = now
+            return
+          }
+
+          const dx = event.clientX - lastX
+          const dy = event.clientY - lastY
+          const distance = Math.hypot(dx, dy)
+          const elapsed = Math.max(8, now - lastTime)
+          const speed = distance / elapsed
+
+          lastX = event.clientX
+          lastY = event.clientY
+          lastTime = now
+
+          if (distance > 0) {
+            triggerFlicker(now, speed)
+          }
+        }
+
+        window.addEventListener('pointermove', handlePointerMove, { passive: true })
+
+        window.addEventListener(
+          'pagehide',
+          () => {
+            window.clearTimeout(flickerTimer)
+            icon.style.opacity = '1'
+          },
+          { once: true }
+        )
+      })()
+    </script>
   </body>
 </html>
