@@ -4,6 +4,15 @@ import { z } from 'astro/zod';
 
 /* =========================================================
    LOCALIZED ARTICLE CONTENT
+
+   Finnish and English are two language versions of the same
+   article, not independent editorial content. Any substantive
+   edit to title, intro, perspective, source wording or alt text
+   must be reflected in both fi and en in the same change.
+
+   Translation can be natural rather than word for word, but
+   facts, examples, emphasis, argument and conclusion must stay
+   aligned. See AGENTS.md for the repository-wide rule.
    ========================================================= */
 
 const languagePost = z.object({
