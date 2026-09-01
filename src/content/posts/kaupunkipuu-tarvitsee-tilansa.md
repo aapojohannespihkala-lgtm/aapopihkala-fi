@@ -25,13 +25,25 @@ fi:
   graphicAlt: "Kolmiulotteinen piste- ja viivakaavio, jossa puun latvus, runko ja juuriston vaatima tila muodostavat yhden tilallisen kentän."
 
   perspective:
-    - "Minusta hyvä suunnittelu alkaa siitä, että olemassa oleva puusto tunnistetaan ennen kuin rakennusten paikat lyödään lukkoon. Jos paikalla kasvaa hyväkuntoinen iso puu, pitäisi jo ensimmäisissä luonnoksissa kysyä, voidaanko se säilyttää ja mitä se tarkoittaa rakentamisen sijoittelulle."
+    - "Hyvä suunnittelu alkaa ennen kuin rakennusten paikat on lyöty lukkoon."
 
-    - "Uuden puun symbolin voi piirtää suunnitelmaan sekunneissa. Suuren puun kasvattaminen kestää vuosikymmeniä. Vasta kookas latvus antaa kunnolla varjoa, haihduttaa vettä ja vaikuttaa ympäristön pienilmastoon. Samalla puu tarvitsee tilaa sekä maan päällä että maan alla. Tiiviissä kaupungissa sitä tilaa ei ilmesty myöhemmin taikaiskulla lisää."
+    - "Jos paikalla kasvaa hyväkuntoinen iso puu, ensimmäinen kysymys ei pitäisi olla, mihin uusi puu istutetaan. Ensin pitäisi kysyä, voiko vanhan säilyttää."
 
-    - "Puiden hyödyt ovat myös paikallisia. Suomessa on paljon metsää, mutta muualla kasvavat puut eivät varjosta kuumaa katua tai pihaa toisessa kaupunginosassa. Kaupunkipuiden merkitys syntyy juuri siitä, missä ne kasvavat."
+    - "Uuden puun symbolin piirtää suunnitelmaan sekunneissa. Suuren puun kasvattaminen kestää vuosikymmeniä."
 
-    - "Siksi maisemallisten lähtökohtien pitäisi olla mukana silloin, kun suunnittelussa on vielä aidosti vaihtoehtoja. Ei niin, että rakennukset ja kadut ratkaistaan ensin ja lopuksi kysytään, mihin puut vielä mahtuisivat."
+    - "Siinä ajassa ehtii tapahtua paljon."
+
+    - "Iso latvus antaa varjoa, haihduttaa vettä ja vaikuttaa paikalliseen pienilmastoon. Puu tarvitsee kuitenkin tilaa sekä maan päällä että maan alla. Tiiviissä kaupungissa sitä tilaa ei ilmesty myöhemmin lisää vain siksi, että suunnitelmaan on merkitty puu."
+
+    - "Myös puiden hyödyt ovat paikallisia."
+
+    - "Suomessa on paljon metsää, mutta sadan kilometrin päässä kasvava puu ei varjosta kuumaa katua tai kerrostalon pihaa. Kaupunkipuun merkitys syntyy juuri siitä, missä se kasvaa."
+
+    - "Siksi puut pitäisi ottaa mukaan silloin, kun suunnittelussa on vielä vaihtoehtoja."
+
+    - "Ei vasta lopussa, kun rakennukset, kadut ja pysäköinti on jo ratkaistu ja jäljelle jää yksi kysymys:"
+
+    - "mihin puu vielä mahtuu?"
 
 en:
   title: "Urban trees need space before construction begins"
@@ -51,11 +63,23 @@ en:
   graphicAlt: "A three-dimensional point-and-line diagram in which the tree canopy, trunk and root-space requirement form a single spatial field."
 
   perspective:
-    - "I think good planning starts by identifying existing trees before the locations of buildings are fixed. If a site already has a healthy mature tree, one of the first questions should be whether it can be retained and what that means for the placement of new development."
+    - "Good planning begins before the locations of buildings have been fixed."
 
-    - "It takes seconds to draw a new tree symbol on a plan. Growing a large tree takes decades. Only a substantial canopy provides significant shade, evapotranspiration and an effect on the local microclimate. A tree also needs real space both above and below ground. In a dense city, that space does not magically appear later."
+    - "If a site has a healthy large tree, the first question should not be where to plant a new one. First we should ask whether the old tree can be retained."
 
-    - "The benefits of trees are also local. Finland has plenty of forest, but trees elsewhere do not shade a hot street or courtyard in another neighbourhood. The value of urban trees depends precisely on where they grow."
+    - "A new tree symbol takes seconds to draw on a plan. Growing a large tree takes decades."
 
-    - "Landscape conditions should therefore be considered while there are still genuine choices to be made. Not after the buildings and streets have already been decided, with the trees left to fit into whatever space remains."
+    - "A lot can happen in that time."
+
+    - "A large canopy provides shade, evaporates water and affects the local microclimate. But a tree needs space both above and below ground. In a dense city, that space will not appear later simply because a tree has been marked on the plan."
+
+    - "The benefits of trees are local too."
+
+    - "Finland has plenty of forest, but a tree growing a hundred kilometres away does not shade a hot street or an apartment courtyard. The value of an urban tree comes precisely from where it grows."
+
+    - "That is why trees should be brought into the process while there are still choices to make."
+
+    - "Not only at the end, when the buildings, streets and parking have already been decided and one question remains:"
+
+    - "where can a tree still fit?"
 ---
