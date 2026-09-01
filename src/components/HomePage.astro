@@ -246,6 +246,28 @@ const personSchema = {
         transform: translateY(clamp(14px, 3vh, 28px));
       }
 
+      .location-icon {
+        animation: location-cursor-pulse 1.8s ease-in-out infinite;
+      }
+
+      @keyframes location-cursor-pulse {
+        0%,
+        100% {
+          opacity: 0.32;
+        }
+
+        50% {
+          opacity: 0.82;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .location-icon {
+          animation: none;
+          opacity: 0.72;
+        }
+      }
+
       @media (max-width: 800px) {
         .hero {
           min-height: calc(100svh - 64px);
