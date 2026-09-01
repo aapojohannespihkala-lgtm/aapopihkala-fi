@@ -47,7 +47,7 @@ fi:
   perspective:
     - "Esteettömyys näyttää helposti ylimääräiseltä silloin, kun omat jalat toimivat. Luiska vie tilaa, loiva reitti on pidempi ja tasoerojen ratkaiseminen asettaa suunnittelulle ehtoja. On helppo kysyä, tarvitaanko tätä kaikkea."
     - "Ukrainassa kysymys näyttää toisenlaiselta. Sota tekee nopeasti näkyväksi sen, minkä rauhallinen arki helposti peittää: ihmisen toimintakyky ei ole pysyvä ominaisuus. Jalka voi lähteä, näkö heikentyä tai tasapaino kadota. Silti pitäisi päästä kotiin, kauppaan, töihin, pysäkille ja puistoon."
-    - "Kaupunki ei muutu esteettömäksi sillä, että rakennuksen oven vieressä on luiska. Sinne pitää myös päästä. Katu, piha, puisto, aukio, pysäkki ja niiden väliset reitit muodostavat saman ketjun. Yksi porras voi katkaista sen."
+    - "Esteetön sisäänkäynti ei auta, jos sinne ei pääse. Katu, piha ja pysäkki ovat osa samaa reittiä. Yksi porras voi katkaista sen."
     - "Korkea reunakivi näyttää pieneltä, kun sen yli kävelee. Pyörätuolin edessä se ei ole pieni. Jyrkkä mäki voi olla terveelle ihmiselle huomaamaton, mutta rollaattorin kanssa se voi ratkaista, pääseekö perille. Esteetön reitti, joka päättyy talvella lumivalliin, ei ole esteetön reitti."
     - "Meidän ei tarvitse mennä sotaan ymmärtääksemme tätä. Ihmiset vanhenevat. Jalka murtuu. Lapsia työnnetään vaunuissa. Sairaudet ja onnettomuudet muuttavat elämää. Useimmat meistä tarvitsevat jossain vaiheessa ympäristöltä enemmän kuin tänään."
     - "Siksi esteettömyys ei ole erityisryhmälle rakennettu lisäosa. Se on varautumista."
@@ -71,7 +71,7 @@ en:
   perspective:
     - "Accessibility can easily look like an extra requirement when your own legs work. A ramp takes up space, a gentle route is longer, and resolving changes in level places constraints on design. It is easy to ask whether all of this is really necessary."
     - "In Ukraine, the question looks different. War quickly makes visible what peaceful everyday life can easily hide: a person's functional ability is not permanent. A leg can be lost, vision can weaken, or balance can disappear. People still need to get home, to the shop, to work, to the bus stop and to the park."
-    - "A city does not become accessible just because there is a ramp beside a building entrance. People also need to be able to reach it. The street, yard, park, square, stop and the routes between them form the same chain. A single step can break it."
+    - "An accessible entrance is no help if you cannot reach it. The street, yard and stop are part of the same route. A single step can break it."
     - "A high kerb looks small when you can step over it. In front of a wheelchair, it is not small. A steep hill may be barely noticeable to a healthy person, but with a walker it can determine whether you get there. An accessible route that ends in a snowbank in winter is not an accessible route."
     - "We do not need to go to war to understand this. People grow old. Legs get broken. Children are pushed in strollers. Illness and accidents change lives. Most of us will at some point need more from our surroundings than we do today."
     - "That is why accessibility is not an add-on built for a special group. It is preparedness."
