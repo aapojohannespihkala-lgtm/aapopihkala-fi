@@ -129,6 +129,7 @@ const commonFields = {
       'stormwater',
       'waterdrop',
       'tree',
+      'accessibility-step',
     ]).optional(),
 
   metaImage:
