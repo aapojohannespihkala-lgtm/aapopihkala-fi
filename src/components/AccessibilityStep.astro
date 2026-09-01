@@ -1,0 +1,418 @@
+---
+interface Props {
+  class?: string
+  autoRotate?: boolean
+  animate?: boolean
+  enableZoom?: boolean
+  scale?: number
+  cameraDistance?: number
+}
+
+const {
+  class: className,
+  autoRotate = true,
+  animate = true,
+  enableZoom = true,
+  scale = 1,
+  cameraDistance = 7.4,
+} = Astro.props
+---
+
+<div
+  class:list={['accessibility-step', className]}
+  data-accessibility-step
+  data-auto-rotate={autoRotate ? 'true' : 'false'}
+  data-animate={animate ? 'true' : 'false'}
+  data-enable-zoom={enableZoom ? 'true' : 'false'}
+  data-scale={scale}
+  data-camera-distance={cameraDistance}
+  aria-hidden="true"
+>
+  <canvas
+    class="accessibility-step__canvas"
+    data-accessibility-step-canvas
+  ></canvas>
+</div>
+
+<style>
+  .accessibility-step {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 280px;
+    overflow: hidden;
+    background: transparent;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .accessibility-step:active {
+    cursor: grabbing;
+  }
+
+  .accessibility-step__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    touch-action: none;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const roots = document.querySelectorAll('[data-accessibility-step]')
+
+    const smoothstep = (value) => {
+      const t = Math.max(0, Math.min(1, value))
+      return t * t * (3 - 2 * t)
+    }
+
+    roots.forEach(async (root) => {
+      if (root.dataset.accessibilityStepInitialized === 'true') return
+      root.dataset.accessibilityStepInitialized = 'true'
+
+      const canvas = root.querySelector('[data-accessibility-step-canvas]')
+      if (!canvas) return
+
+      try {
+        const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
+        const { OrbitControls } = await import(
+          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
+        )
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const wantsAutoRotate = root.dataset.autoRotate !== 'false'
+        const wantsAnimation = root.dataset.animate !== 'false' && !reducedMotion
+        const wantsZoom = root.dataset.enableZoom !== 'false'
+        const requestedScale = Number(root.dataset.scale ?? '1')
+        const requestedCameraDistance = Number(root.dataset.cameraDistance ?? '7.4')
+        const displayScale = Number.isFinite(requestedScale) ? requestedScale : 1
+        const cameraDistance = Number.isFinite(requestedCameraDistance)
+          ? requestedCameraDistance
+          : 7.4
+
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: true,
+          alpha: true,
+        })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6))
+        renderer.setClearColor(0xffffff, 0)
+
+        const scene = new THREE.Scene()
+        const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100)
+        camera.position.set(4.35, 2.65, cameraDistance)
+
+        const specimen = new THREE.Group()
+        specimen.scale.setScalar(displayScale)
+        specimen.rotation.y = -0.12
+        specimen.rotation.z = -0.025
+        scene.add(specimen)
+
+        const controls = new OrbitControls(camera, renderer.domElement)
+        controls.enablePan = false
+        controls.enableZoom = wantsZoom
+        controls.enableDamping = true
+        controls.dampingFactor = 0.055
+        controls.rotateSpeed = 0.55
+        controls.target.set(0, 0.32, 0)
+        controls.autoRotate = wantsAutoRotate && !reducedMotion
+        controls.autoRotateSpeed = 0.22
+
+        if (wantsZoom) {
+          controls.minDistance = 5.9
+          controls.maxDistance = 9.7
+          controls.zoomSpeed = 0.5
+        } else {
+          const direction = camera.position.clone().sub(controls.target).normalize()
+          camera.position.copy(controls.target).add(direction.multiplyScalar(cameraDistance))
+          controls.minDistance = cameraDistance
+          controls.maxDistance = cameraDistance
+        }
+
+        const halfWidth = 2.35
+        const halfDepth = 1.22
+        const stepHeight = 0.72
+        const rampStart = -1.15
+        const rampEnd = 1.15
+
+        const stepHeightAt = (x) => (x < 0 ? 0 : stepHeight)
+
+        const rampHeightAt = (x) => {
+          if (x <= rampStart) return 0
+          if (x >= rampEnd) return stepHeight
+
+          const t = (x - rampStart) / (rampEnd - rampStart)
+          return stepHeight * smoothstep(t)
+        }
+
+        const heightAt = (x, morph) =>
+          THREE.MathUtils.lerp(stepHeightAt(x), rampHeightAt(x), morph)
+
+        const morphAtTime = (seconds) => {
+          if (!wantsAnimation) return 1
+
+          const cycle = 10.8
+          const time = seconds % cycle
+
+          if (time < 2.3) return 0
+          if (time < 4.5) return smoothstep((time - 2.3) / 2.2)
+          if (time < 7.0) return 1
+          if (time < 9.2) return 1 - smoothstep((time - 7.0) / 2.2)
+          return 0
+        }
+
+        const pointColumns = 72
+        const pointRows = 28
+        const pointCount = (pointColumns + 1) * (pointRows + 1)
+        const pointPositions = new Float32Array(pointCount * 3)
+        const pointBaseX = new Float32Array(pointCount)
+        const pointBaseZ = new Float32Array(pointCount)
+
+        let pointIndex = 0
+        for (let row = 0; row <= pointRows; row += 1) {
+          const z = THREE.MathUtils.lerp(-halfDepth, halfDepth, row / pointRows)
+
+          for (let column = 0; column <= pointColumns; column += 1) {
+            const x = THREE.MathUtils.lerp(-halfWidth, halfWidth, column / pointColumns)
+            pointBaseX[pointIndex] = x
+            pointBaseZ[pointIndex] = z
+            pointIndex += 1
+          }
+        }
+
+        const pointGeometry = new THREE.BufferGeometry()
+        const pointAttribute = new THREE.BufferAttribute(pointPositions, 3)
+        pointAttribute.setUsage(THREE.DynamicDrawUsage)
+        pointGeometry.setAttribute('position', pointAttribute)
+
+        const pointMaterial = new THREE.PointsMaterial({
+          color: 0x59635d,
+          size: 0.024,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.58,
+        })
+        specimen.add(new THREE.Points(pointGeometry, pointMaterial))
+
+        const profileCount = 13
+        const profileSamples = 82
+        const profileLines = []
+        const profileMaterial = new THREE.LineBasicMaterial({
+          color: 0x7e8781,
+          transparent: true,
+          opacity: 0.58,
+        })
+
+        for (let index = 0; index < profileCount; index += 1) {
+          const positions = new Float32Array(profileSamples * 3)
+          const geometry = new THREE.BufferGeometry()
+          const attribute = new THREE.BufferAttribute(positions, 3)
+          attribute.setUsage(THREE.DynamicDrawUsage)
+          geometry.setAttribute('position', attribute)
+
+          const line = new THREE.Line(geometry, profileMaterial)
+          specimen.add(line)
+
+          profileLines.push({
+            attribute,
+            z: THREE.MathUtils.lerp(
+              -halfDepth,
+              halfDepth,
+              index / (profileCount - 1)
+            ),
+          })
+        }
+
+        const crossLineCount = 9
+        const crossSamples = 34
+        const crossLines = []
+        const crossMaterial = new THREE.LineBasicMaterial({
+          color: 0xa2aaa5,
+          transparent: true,
+          opacity: 0.42,
+        })
+
+        for (let index = 0; index < crossLineCount; index += 1) {
+          const positions = new Float32Array(crossSamples * 3)
+          const geometry = new THREE.BufferGeometry()
+          const attribute = new THREE.BufferAttribute(positions, 3)
+          attribute.setUsage(THREE.DynamicDrawUsage)
+          geometry.setAttribute('position', attribute)
+
+          const line = new THREE.Line(geometry, crossMaterial)
+          specimen.add(line)
+
+          crossLines.push({
+            attribute,
+            x: THREE.MathUtils.lerp(
+              -halfWidth,
+              halfWidth,
+              (index + 1) / (crossLineCount + 1)
+            ),
+          })
+        }
+
+        const edgeMaterial = new THREE.LineBasicMaterial({
+          color: 0x434b46,
+          transparent: true,
+          opacity: 0.78,
+        })
+
+        const edgeLines = [-halfDepth, halfDepth].map((z) => {
+          const positions = new Float32Array(profileSamples * 3)
+          const geometry = new THREE.BufferGeometry()
+          const attribute = new THREE.BufferAttribute(positions, 3)
+          attribute.setUsage(THREE.DynamicDrawUsage)
+          geometry.setAttribute('position', attribute)
+
+          specimen.add(new THREE.Line(geometry, edgeMaterial))
+          return { attribute, z }
+        })
+
+        const riserPositions = new Float32Array(12)
+        const riserGeometry = new THREE.BufferGeometry()
+        const riserAttribute = new THREE.BufferAttribute(riserPositions, 3)
+        riserAttribute.setUsage(THREE.DynamicDrawUsage)
+        riserGeometry.setAttribute('position', riserAttribute)
+        specimen.add(new THREE.LineSegments(riserGeometry, edgeMaterial))
+
+        const updateProfileAttribute = (attribute, z, morph) => {
+          const positions = attribute.array
+
+          for (let sample = 0; sample < profileSamples; sample += 1) {
+            const ratio = sample / (profileSamples - 1)
+            const x = THREE.MathUtils.lerp(-halfWidth, halfWidth, ratio)
+            const offset = sample * 3
+
+            positions[offset] = x
+            positions[offset + 1] = heightAt(x, morph)
+            positions[offset + 2] = z
+          }
+
+          attribute.needsUpdate = true
+        }
+
+        const updateGeometry = (morph) => {
+          for (let index = 0; index < pointCount; index += 1) {
+            const offset = index * 3
+            const x = pointBaseX[index]
+            const z = pointBaseZ[index]
+
+            pointPositions[offset] = x
+            pointPositions[offset + 1] = heightAt(x, morph)
+            pointPositions[offset + 2] = z
+          }
+          pointAttribute.needsUpdate = true
+
+          profileLines.forEach(({ attribute, z }) => {
+            updateProfileAttribute(attribute, z, morph)
+          })
+
+          edgeLines.forEach(({ attribute, z }) => {
+            updateProfileAttribute(attribute, z, morph)
+          })
+
+          crossLines.forEach(({ attribute, x }) => {
+            const positions = attribute.array
+            const y = heightAt(x, morph) + 0.008
+
+            for (let sample = 0; sample < crossSamples; sample += 1) {
+              const ratio = sample / (crossSamples - 1)
+              const offset = sample * 3
+
+              positions[offset] = x
+              positions[offset + 1] = y
+              positions[offset + 2] = THREE.MathUtils.lerp(-halfDepth, halfDepth, ratio)
+            }
+
+            attribute.needsUpdate = true
+          })
+
+          const epsilon = halfWidth / pointColumns
+          const low = heightAt(-epsilon, morph)
+          const high = heightAt(epsilon, morph)
+
+          riserPositions[0] = 0
+          riserPositions[1] = low
+          riserPositions[2] = -halfDepth
+          riserPositions[3] = 0
+          riserPositions[4] = high
+          riserPositions[5] = -halfDepth
+
+          riserPositions[6] = 0
+          riserPositions[7] = low
+          riserPositions[8] = halfDepth
+          riserPositions[9] = 0
+          riserPositions[10] = high
+          riserPositions[11] = halfDepth
+          riserAttribute.needsUpdate = true
+        }
+
+        const resize = () => {
+          const rect = root.getBoundingClientRect()
+          const width = Math.max(1, Math.round(rect.width))
+          const height = Math.max(1, Math.round(rect.height))
+
+          renderer.setSize(width, height, false)
+          camera.aspect = width / height
+          camera.updateProjectionMatrix()
+        }
+
+        const resizeObserver = new ResizeObserver(resize)
+        resizeObserver.observe(root)
+        resize()
+
+        let isVisible = true
+        let isDocumentVisible = !document.hidden
+        let animationFrame = 0
+
+        const intersectionObserver = new IntersectionObserver(
+          (entries) => {
+            isVisible = entries.some((entry) => entry.isIntersecting)
+          },
+          { rootMargin: '160px' }
+        )
+        intersectionObserver.observe(root)
+
+        const handleVisibility = () => {
+          isDocumentVisible = !document.hidden
+        }
+        document.addEventListener('visibilitychange', handleVisibility)
+
+        const animateFrame = (time) => {
+          animationFrame = requestAnimationFrame(animateFrame)
+          if (!isVisible || !isDocumentVisible) return
+
+          const morph = reducedMotion ? 1 : morphAtTime(time * 0.001)
+          updateGeometry(morph)
+          controls.update()
+          renderer.render(scene, camera)
+        }
+
+        updateGeometry(reducedMotion ? 1 : 0)
+        animationFrame = requestAnimationFrame(animateFrame)
+
+        const cleanup = () => {
+          cancelAnimationFrame(animationFrame)
+          document.removeEventListener('visibilitychange', handleVisibility)
+          resizeObserver.disconnect()
+          intersectionObserver.disconnect()
+          controls.dispose()
+          pointGeometry.dispose()
+          pointMaterial.dispose()
+          profileMaterial.dispose()
+          crossMaterial.dispose()
+          edgeMaterial.dispose()
+          renderer.dispose()
+        }
+
+        window.addEventListener('pagehide', cleanup, { once: true })
+      } catch (error) {
+        console.error('AccessibilityStep failed to initialize:', error)
+      }
+    })
+  })()
+</script>
