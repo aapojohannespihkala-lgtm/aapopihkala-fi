@@ -200,6 +200,7 @@ const personSchema = {
 
       .location-icon {
         opacity: 1;
+        visibility: visible;
         transition: none !important;
         animation: none !important;
       }
@@ -334,26 +335,23 @@ const personSchema = {
 
         const triggerFlicker = (now, speed) => {
           if (isFlickering) return
-          if (now - lastFlickerAt < 360) return
+          if (now - lastFlickerAt < 420) return
 
-          const speedFactor = Math.min(speed / 2.2, 1)
-          const chance = 0.0008 + speedFactor * 0.0052
+          const speedFactor = Math.min(speed / 2.4, 1)
+          const chance = 0.0006 + speedFactor * 0.0044
 
           if (Math.random() >= chance) return
 
           isFlickering = true
           lastFlickerAt = now
-
-          icon.style.opacity = Math.random() < 0.58
-            ? '0'
-            : String(0.16 + Math.random() * 0.22)
+          icon.style.visibility = 'hidden'
 
           const duration = 30 + Math.random() * 50
 
           window.clearTimeout(flickerTimer)
           flickerTimer = window.setTimeout(() => {
             isFlickering = false
-            icon.style.opacity = '1'
+            icon.style.visibility = 'visible'
           }, duration)
         }
 
@@ -392,7 +390,7 @@ const personSchema = {
           'pagehide',
           () => {
             window.clearTimeout(flickerTimer)
-            icon.style.opacity = '1'
+            icon.style.visibility = 'visible'
           },
           { once: true }
         )
