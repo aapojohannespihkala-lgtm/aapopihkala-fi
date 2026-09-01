@@ -8,6 +8,7 @@ import PointBee from './PointBee.astro';
 import TreeField from './TreeField.astro';
 import RiverFlow from './RiverFlow.astro';
 import WaterDropMorph from './WaterDropMorph.astro';
+import AccessibilityStep from './AccessibilityStep.astro';
 
 interface Props {
   post: CollectionEntry<'posts'>;
@@ -314,6 +315,32 @@ const displayedSourceLabel =
               </div>
             </figure>
           )
+      : interactiveGraphic === 'accessibility-step'
+        ? (
+            <figure
+              class="post-graphic post-graphic--interactive"
+              role="img"
+              aria-label={localizedPost.graphicAlt ?? ''}
+            >
+              <div
+                class="post-interactive-graphic post-interactive-graphic--accessibility"
+                data-post-interactive-graphic
+              >
+                <AccessibilityStep
+                  class="post-accessibility-step"
+                  autoRotate={false}
+                  enableZoom={false}
+                  scale={1.16}
+                  cameraDistance={7.4}
+                />
+                <span
+                  class="post-interaction-hit post-interaction-hit--accessibility"
+                  data-post-interaction-hit
+                  aria-hidden="true"
+                ></span>
+              </div>
+            </figure>
+          )
       : interactiveGraphic === 'stormwater'
         ? (
             <figure
@@ -416,7 +443,8 @@ const displayedSourceLabel =
     transform: translateX(-37%);
   }
 
-  .post-interactive-graphic--waterdrop {
+  .post-interactive-graphic--waterdrop,
+  .post-interactive-graphic--accessibility {
     height: clamp(124px, 14vw, 145px);
   }
 
@@ -444,10 +472,15 @@ const displayedSourceLabel =
     width: clamp(100px, 15vw, 140px);
   }
 
+  .post-interaction-hit--accessibility {
+    width: clamp(170px, 25vw, 230px);
+  }
+
   .post-interactive-graphic :global(.post-butterfly),
   .post-interactive-graphic :global(.post-bee),
   .post-interactive-graphic :global(.post-tree),
   .post-interactive-graphic :global(.post-waterdrop),
+  .post-interactive-graphic :global(.post-accessibility-step),
   .post-interactive-graphic :global(.post-river-flow) {
     min-height: 0;
     cursor: default;
@@ -457,6 +490,7 @@ const displayedSourceLabel =
   .post-interactive-graphic :global(.point-bee__canvas),
   .post-interactive-graphic :global(.tree-field__canvas),
   .post-interactive-graphic :global(.water-drop-morph__canvas),
+  .post-interactive-graphic :global(.accessibility-step__canvas),
   .post-interactive-graphic :global(.river-flow__canvas) {
     touch-action: pan-y !important;
     cursor: default;
