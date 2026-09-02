@@ -364,9 +364,8 @@
       if (event) updateTopographyReadout(event)
       topographyReadout.classList.add('is-visible')
 
-      const cursor = topographyDragging ? 'grabbing' : 'grab'
-      topographyRoot.style.cursor = cursor
-      topographyCanvas.style.cursor = cursor
+      topographyRoot.style.cursor = 'none'
+      topographyCanvas.style.cursor = 'none'
     }
 
     const handleTopographyPointerMove = (event) => {
