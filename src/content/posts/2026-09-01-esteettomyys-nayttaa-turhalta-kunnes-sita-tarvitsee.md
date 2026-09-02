@@ -42,7 +42,7 @@ fi:
 
   intro: "Ukraina hyväksyi vuonna 2025 uuden kansallisen esteettömyysstandardin rakennetulle ympäristölle. Samana vuonna hyväksyttiin myös veteraanien palvelutiloja koskevia vaatimuksia, joissa esteettömyys on keskeisessä asemassa. Syy on hyvin konkreettinen. Sota palauttaa siviilielämään suuren määrän ihmisiä, joiden liikkuminen, näkeminen tai muu toimintakyky ei ole sama kuin ennen."
 
-  graphicAlt: "Kolmiulotteinen pistepinta, jossa pieni pistepilvikappale liikkuu edestakaisin, pysähtyy portaaseen ja pääsee luiskan muodostuessa ylös."
+  graphicAlt: "Pyöriteltävä kolmiulotteinen kaksiosainen rengas, jossa on kaksi vastakkaista katkoa."
 
   perspective:
     - "Esteettömyys näyttää helposti ylimääräiseltä silloin, kun omat jalat toimivat. Luiska vie tilaa, loiva reitti on pidempi ja tasoerojen ratkaiseminen asettaa suunnittelulle ehtoja. On helppo kysyä, tarvitaanko tätä kaikkea."
@@ -66,7 +66,7 @@ en:
 
   intro: "In 2025, Ukraine adopted a new national accessibility standard for the built environment. In the same year, requirements were also approved for veterans' service spaces, with accessibility at their core. The reason is very concrete. War returns a large number of people to civilian life whose mobility, vision, or other functional ability is not the same as before."
 
-  graphicAlt: "A three-dimensional point surface where a small point-cloud object moves back and forth, stops at a step and gets up when the step becomes a ramp."
+  graphicAlt: "A rotatable three-dimensional segmented ring with two opposing breaks."
 
   perspective:
     - "Accessibility can easily look like an extra requirement when your own legs work. A ramp takes up space, a gentle route is longer, and resolving changes in level places constraints on design. It is easy to ask whether all of this is really necessary."
