@@ -199,6 +199,16 @@
       document.body.classList.remove('site-oversized-cursor-mode')
     }
 
+    const resetBaseCycle = () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Escape',
+          code: 'Escape',
+          bubbles: true,
+        })
+      )
+    }
+
     const handlePointerMove = (event) => {
       pointerX = event.clientX
       pointerY = event.clientY
@@ -222,7 +232,12 @@
       const currentBaseMode = aReadout.dataset.mode ?? ''
 
       if (visible) {
-        if (currentBaseMode !== '') hide()
+        if (currentBaseMode !== '') {
+          hide()
+          resetBaseCycle()
+          previousBaseMode = aReadout.dataset.mode ?? ''
+          return
+        }
       } else if (previousBaseMode === 'area' && currentBaseMode === '') {
         show()
       }
