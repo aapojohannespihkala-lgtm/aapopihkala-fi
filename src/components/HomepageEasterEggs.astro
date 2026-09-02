@@ -45,6 +45,45 @@
   <span>60.21 N 24.66 E</span>
 </div>
 
+<div
+  class="homepage-survey-points"
+  data-homepage-survey-points
+  aria-hidden="true"
+>
+  <span class="homepage-survey-points__mode">POINTS / CLICK TO STAKE</span>
+</div>
+
+<div
+  class="homepage-elevation-scan"
+  data-homepage-elevation-scan
+  aria-hidden="true"
+>
+  <span class="homepage-elevation-scan__line" data-elevation-line></span>
+  <span class="homepage-elevation-scan__tick" data-elevation-tick></span>
+  <span class="homepage-elevation-scan__label" data-elevation-label>ELEV +15.0</span>
+</div>
+
+<div
+  class="homepage-scale-bar"
+  data-homepage-scale-bar
+  aria-hidden="true"
+>
+  <span class="homepage-scale-bar__label" data-scale-label>SCALE 1:100</span>
+  <span class="homepage-scale-bar__bar" data-scale-bar>
+    <i></i>
+    <i></i>
+    <i></i>
+    <i></i>
+  </span>
+  <span class="homepage-scale-bar__numbers">
+    <b>0</b>
+    <b>1</b>
+    <b>2</b>
+    <b>3</b>
+    <b>4 m</b>
+  </span>
+</div>
+
 <style>
   .homepage-contour-lens {
     position: fixed;
@@ -216,10 +255,252 @@
     color: var(--stone-light);
   }
 
+  .homepage-survey-points {
+    position: fixed;
+    inset: 0;
+    z-index: 62;
+    pointer-events: none;
+  }
+
+  .homepage-survey-points__mode {
+    position: absolute;
+    left: 22px;
+    bottom: 22px;
+    padding: 4px 6px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--line-soft);
+    color: var(--moss-deep);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.52rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.07em;
+    opacity: 0;
+    transform: translateY(3px);
+    transition:
+      opacity 120ms ease,
+      transform 120ms ease;
+  }
+
+  .homepage-survey-points.is-active .homepage-survey-points__mode {
+    opacity: 0.78;
+    transform: translateY(0);
+  }
+
+  :global(.homepage-survey-point) {
+    position: fixed;
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+    color: var(--moss-deep);
+    transform: translate(-9px, -9px);
+  }
+
+  :global(.homepage-survey-point::before),
+  :global(.homepage-survey-point::after) {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    background: currentColor;
+    opacity: 0.72;
+    transform: translate(-50%, -50%);
+  }
+
+  :global(.homepage-survey-point::before) {
+    width: 18px;
+    height: 1px;
+  }
+
+  :global(.homepage-survey-point::after) {
+    width: 1px;
+    height: 18px;
+  }
+
+  :global(.homepage-survey-point__dot) {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--page);
+    border: 1px solid currentColor;
+    transform: translate(-50%, -50%);
+  }
+
+  :global(.homepage-survey-point__label) {
+    position: absolute;
+    left: 13px;
+    top: -1px;
+    color: var(--moss);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.48rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  :global(body.homepage-survey-mode .main-container),
+  :global(body.homepage-survey-mode .main-container *) {
+    cursor: crosshair !important;
+  }
+
+  .homepage-elevation-scan {
+    position: fixed;
+    inset: 0;
+    z-index: 43;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+
+  .homepage-elevation-scan.is-visible {
+    opacity: 1;
+  }
+
+  .homepage-elevation-scan__line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: rgba(89, 105, 93, 0.24);
+  }
+
+  .homepage-elevation-scan__tick {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1px;
+    height: 18px;
+    background: rgba(89, 105, 93, 0.58);
+    transform: translate(-50%, -9px);
+  }
+
+  .homepage-elevation-scan__label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    padding: 3px 5px;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--moss-deep);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    transform: translate(10px, -50%);
+  }
+
+  .homepage-scale-bar {
+    --homepage-scale-width: 176px;
+    position: fixed;
+    left: 24px;
+    bottom: 48px;
+    z-index: 44;
+    width: var(--homepage-scale-width);
+    pointer-events: none;
+    opacity: 0;
+    color: var(--moss-deep);
+    transform: translateY(3px);
+    transition:
+      opacity 120ms ease,
+      transform 120ms ease,
+      width 160ms ease;
+  }
+
+  .homepage-scale-bar.is-visible {
+    opacity: 0.78;
+    transform: translateY(0);
+  }
+
+  .homepage-scale-bar__label {
+    display: block;
+    margin-bottom: 5px;
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.07em;
+  }
+
+  .homepage-scale-bar__bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    width: 100%;
+    height: 7px;
+    border: 1px solid var(--moss);
+  }
+
+  .homepage-scale-bar__bar i {
+    display: block;
+    border-right: 1px solid var(--moss);
+  }
+
+  .homepage-scale-bar__bar i:nth-child(odd) {
+    background: rgba(89, 105, 93, 0.62);
+  }
+
+  .homepage-scale-bar__bar i:last-child {
+    border-right: 0;
+  }
+
+  .homepage-scale-bar__numbers {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.44rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.03em;
+    color: var(--stone);
+  }
+
+  .homepage-scale-bar__numbers b {
+    font-weight: 500;
+  }
+
   @media (max-width: 640px), (hover: none), (pointer: coarse) {
     .homepage-contour-lens,
     .homepage-north-marker,
-    .homepage-sheet-stamp {
+    .homepage-sheet-stamp,
+    .homepage-survey-points,
+    .homepage-elevation-scan,
+    .homepage-scale-bar {
       display: none;
     }
   }
@@ -227,7 +508,10 @@
   @media (prefers-reduced-motion: reduce) {
     .homepage-contour-lens,
     .homepage-north-marker,
-    .homepage-sheet-stamp {
+    .homepage-sheet-stamp,
+    .homepage-survey-points__mode,
+    .homepage-elevation-scan,
+    .homepage-scale-bar {
       transition: none;
     }
   }
@@ -238,9 +522,25 @@
     const contourLens = document.querySelector('[data-homepage-contour-lens]')
     const northMarker = document.querySelector('[data-homepage-north-marker]')
     const sheetStamp = document.querySelector('[data-homepage-sheet-stamp]')
+    const surveyPoints = document.querySelector('[data-homepage-survey-points]')
+    const elevationScan = document.querySelector('[data-homepage-elevation-scan]')
+    const elevationLine = document.querySelector('[data-elevation-line]')
+    const elevationTick = document.querySelector('[data-elevation-tick]')
+    const elevationLabel = document.querySelector('[data-elevation-label]')
+    const scaleBar = document.querySelector('[data-homepage-scale-bar]')
+    const scaleLabel = document.querySelector('[data-scale-label]')
     const homeLink = document.querySelector('.topbar-name')
 
-    if (!contourLens || !northMarker || !sheetStamp || !homeLink) return
+    if (
+      !contourLens ||
+      !northMarker ||
+      !sheetStamp ||
+      !surveyPoints ||
+      !elevationScan ||
+      !scaleBar ||
+      !homeLink
+    ) return
+
     if (contourLens.dataset.homepageEasterEggsInitialized === 'true') return
 
     contourLens.dataset.homepageEasterEggsInitialized = 'true'
@@ -250,6 +550,10 @@
 
     let contourVisible = false
     let northVisible = false
+    let surveyMode = false
+    let elevationVisible = false
+    let scaleState = 0
+    let surveyCount = 0
     let hoverTimer = 0
     let stampTimer = 0
     let pointerX = window.innerWidth * 0.5
@@ -259,6 +563,13 @@
       if (!(target instanceof Element)) return false
       return Boolean(
         target.closest('input, textarea, select, [contenteditable="true"]')
+      )
+    }
+
+    const isInteractiveTarget = (target) => {
+      if (!(target instanceof Element)) return false
+      return Boolean(
+        target.closest('a, button, input, textarea, select, canvas, [contenteditable="true"]')
       )
     }
 
@@ -277,10 +588,26 @@
       })
     }
 
+    const updateElevation = () => {
+      if (!elevationLine || !elevationTick || !elevationLabel) return
+
+      const y = Math.max(0, Math.min(window.innerHeight, pointerY))
+      const x = Math.max(14, Math.min(window.innerWidth - 120, pointerX))
+      const level = ((window.innerHeight - y) / Math.max(1, window.innerHeight)) * 30
+
+      elevationLine.style.top = `${y}px`
+      elevationTick.style.left = `${pointerX}px`
+      elevationTick.style.top = `${y}px`
+      elevationLabel.style.left = `${x}px`
+      elevationLabel.style.top = `${y}px`
+      elevationLabel.textContent = `ELEV +${level.toFixed(1)}`
+    }
+
     const handlePointerMove = (event) => {
       pointerX = event.clientX
       pointerY = event.clientY
       if (contourVisible) positionContour()
+      if (elevationVisible) updateElevation()
     }
 
     const setContourVisible = (visible) => {
@@ -292,6 +619,74 @@
     const setNorthVisible = (visible) => {
       northVisible = visible
       northMarker.classList.toggle('is-visible', visible)
+    }
+
+    const clearSurveyPoints = () => {
+      surveyPoints.querySelectorAll('.homepage-survey-point').forEach((point) => point.remove())
+      surveyCount = 0
+    }
+
+    const setSurveyMode = (active) => {
+      surveyMode = active
+      surveyPoints.classList.toggle('is-active', active)
+      document.body.classList.toggle('homepage-survey-mode', active)
+
+      if (!active) clearSurveyPoints()
+    }
+
+    const addSurveyPoint = (x, y) => {
+      surveyCount += 1
+
+      const point = document.createElement('span')
+      point.className = 'homepage-survey-point'
+      point.style.left = `${x}px`
+      point.style.top = `${y}px`
+
+      const dot = document.createElement('i')
+      dot.className = 'homepage-survey-point__dot'
+
+      const label = document.createElement('b')
+      label.className = 'homepage-survey-point__label'
+      label.textContent = `P-${String(surveyCount).padStart(2, '0')}`
+
+      point.append(dot, label)
+      surveyPoints.append(point)
+
+      const points = surveyPoints.querySelectorAll('.homepage-survey-point')
+      if (points.length > 12) points[0]?.remove()
+    }
+
+    const setElevationVisible = (visible) => {
+      elevationVisible = visible
+      elevationScan.classList.toggle('is-visible', visible)
+      if (visible) updateElevation()
+    }
+
+    const cycleScale = () => {
+      scaleState = (scaleState + 1) % 4
+
+      if (scaleState === 0) {
+        scaleBar.classList.remove('is-visible')
+        return
+      }
+
+      const states = {
+        1: { label: 'SCALE 1:100', width: '176px' },
+        2: { label: 'SCALE 1:200', width: '132px' },
+        3: { label: 'SCALE 1:500', width: '96px' },
+      }
+
+      const state = states[scaleState]
+      if (!state) return
+
+      if (scaleLabel) scaleLabel.textContent = state.label
+      scaleBar.style.setProperty('--homepage-scale-width', state.width)
+      scaleBar.classList.add('is-visible')
+    }
+
+    const hideScale = () => {
+      scaleState = 0
+      scaleBar.classList.remove('is-visible')
     }
 
     const positionStamp = () => {
@@ -340,11 +735,41 @@
         return
       }
 
+      if (key === 'p') {
+        event.preventDefault()
+        setSurveyMode(!surveyMode)
+        return
+      }
+
+      if (key === 'e') {
+        event.preventDefault()
+        setElevationVisible(!elevationVisible)
+        return
+      }
+
+      if (key === 's') {
+        event.preventDefault()
+        cycleScale()
+        return
+      }
+
       if (key === 'escape') {
         setContourVisible(false)
         setNorthVisible(false)
+        setSurveyMode(false)
+        setElevationVisible(false)
+        hideScale()
         hideStamp()
       }
+    }
+
+    const handleSurveyPointerDown = (event) => {
+      if (!surveyMode) return
+      if (event.button !== 0) return
+      if (isInteractiveTarget(event.target)) return
+
+      event.preventDefault()
+      addSurveyPoint(event.clientX, event.clientY)
     }
 
     homeLink.addEventListener('pointerenter', scheduleStamp)
@@ -352,6 +777,7 @@
     homeLink.addEventListener('focus', scheduleStamp)
     homeLink.addEventListener('blur', cancelScheduledStamp)
     window.addEventListener('pointermove', handlePointerMove, { passive: true })
+    window.addEventListener('pointerdown', handleSurveyPointerDown, true)
     window.addEventListener('keydown', handleKeydown)
     window.addEventListener('resize', hideStamp, { passive: true })
 
@@ -360,11 +786,13 @@
       () => {
         window.clearTimeout(hoverTimer)
         window.clearTimeout(stampTimer)
+        document.body.classList.remove('homepage-survey-mode')
         homeLink.removeEventListener('pointerenter', scheduleStamp)
         homeLink.removeEventListener('pointerleave', cancelScheduledStamp)
         homeLink.removeEventListener('focus', scheduleStamp)
         homeLink.removeEventListener('blur', cancelScheduledStamp)
         window.removeEventListener('pointermove', handlePointerMove)
+        window.removeEventListener('pointerdown', handleSurveyPointerDown, true)
         window.removeEventListener('keydown', handleKeydown)
         window.removeEventListener('resize', hideStamp)
       },
