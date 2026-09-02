@@ -20,6 +20,7 @@ const content = {
     homeLabel: 'Aapo Pihkalan etusivu',
     languageText: 'EN',
     languageLabel: 'English',
+    languageMeta: 'FI → EN / LANG 02',
     linkedinLabel: 'Aapo Pihkala LinkedInissä',
   },
   en: {
@@ -27,6 +28,7 @@ const content = {
     homeLabel: 'Aapo Pihkala homepage',
     languageText: 'FI',
     languageLabel: 'Suomeksi',
+    languageMeta: 'EN → FI / LANG 01',
     linkedinLabel: 'Aapo Pihkala on LinkedIn',
   },
 } as const;
@@ -51,6 +53,9 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
         aria-label={t.languageLabel}
       >
         {t.languageText}
+        <span class="language-switch__meta" aria-hidden="true">
+          {t.languageMeta}
+        </span>
       </a>
 
       <a
@@ -95,6 +100,31 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
 </div>
 
 <style>
+  .language-switch__meta {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 9px);
+    z-index: 52;
+    pointer-events: none;
+    color: var(--moss);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.56rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translate(-50%, -2px);
+    transition: opacity 120ms ease, transform 120ms ease;
+  }
+
+  .language-switch:hover .language-switch__meta,
+  .language-switch:focus-visible .language-switch__meta {
+    opacity: 0.72;
+    transform: translate(-50%, 0);
+  }
+
   .site-grid-easter-egg {
     position: fixed;
     inset: 64px 0 0;
@@ -215,6 +245,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .language-switch__meta,
     .site-grid-easter-egg,
     .site-scroll-readout,
     :global(.post-date[data-date-easter-egg]) {
