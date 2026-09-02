@@ -118,6 +118,43 @@ const alternateLanguage =
   <span class="site-grid-label">GRID / 32</span>
 </div>
 
+<div
+  class="site-scroll-readout"
+  data-scroll-readout
+  aria-hidden="true"
+>
+  <span data-scroll-y>Y 0000</span>
+  <span class="site-scroll-readout__separator">/</span>
+  <span data-scroll-percent>0%</span>
+</div>
+
+<div
+  class="site-measure-easter-egg"
+  data-measure-overlay
+  aria-hidden="true"
+>
+  <svg
+    class="site-measure-svg"
+    viewBox="0 0 100 100"
+    preserveAspectRatio="none"
+    aria-hidden="true"
+  >
+    <line
+      data-measure-line
+      x1="0"
+      y1="0"
+      x2="0"
+      y2="0"
+    />
+    <circle data-measure-start cx="0" cy="0" r="3.2" />
+    <circle data-measure-end cx="0" cy="0" r="3.2" />
+  </svg>
+
+  <span class="site-measure-label" data-measure-label>
+    MEASURE / SET POINT
+  </span>
+</div>
+
 <style>
   .site-grid-easter-egg {
     position: fixed;
@@ -154,8 +191,120 @@ const alternateLanguage =
     letter-spacing: 0.08em;
   }
 
+  .site-scroll-readout {
+    position: fixed;
+    right: 22px;
+    bottom: 42px;
+    z-index: 46;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+    opacity: 0;
+    color: var(--moss);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.56rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.07em;
+    transform: translateY(3px);
+    transition:
+      opacity 140ms ease,
+      transform 140ms ease;
+  }
+
+  .site-scroll-readout.is-visible {
+    opacity: 0.72;
+    transform: translateY(0);
+  }
+
+  .site-scroll-readout__separator {
+    color: var(--stone-light);
+  }
+
+  .site-measure-easter-egg {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: none;
+    pointer-events: none;
+  }
+
+  .site-measure-easter-egg.is-visible {
+    display: block;
+  }
+
+  .site-measure-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .site-measure-svg line {
+    stroke: var(--moss);
+    stroke-width: 1;
+    stroke-dasharray: 5 4;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.72;
+  }
+
+  .site-measure-svg circle {
+    fill: var(--page);
+    stroke: var(--moss);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.82;
+  }
+
+  .site-measure-label {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 4px 6px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--moss-deep);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.56rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    transform: translate(12px, 12px);
+  }
+
+  :global(body.site-measure-mode),
+  :global(body.site-measure-mode *) {
+    cursor: crosshair !important;
+  }
+
+  :global(.post-date[data-date-easter-egg]) {
+    cursor: pointer;
+    transition: color 120ms ease;
+  }
+
+  :global(.post-date[data-date-easter-egg]:hover),
+  :global(.post-date[data-date-easter-egg]:focus-visible) {
+    color: var(--moss-deep);
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .site-grid-easter-egg {
+    .site-grid-easter-egg,
+    .site-scroll-readout,
+    :global(.post-date[data-date-easter-egg]) {
       transition: none;
     }
   }
@@ -164,6 +313,15 @@ const alternateLanguage =
 <script is:inline>
   (() => {
     const grid = document.querySelector('[data-site-grid]')
+    const scrollReadout = document.querySelector('[data-scroll-readout]')
+    const scrollYLabel = document.querySelector('[data-scroll-y]')
+    const scrollPercentLabel = document.querySelector('[data-scroll-percent]')
+    const measureOverlay = document.querySelector('[data-measure-overlay]')
+    const measureLine = document.querySelector('[data-measure-line]')
+    const measureStartMarker = document.querySelector('[data-measure-start]')
+    const measureEndMarker = document.querySelector('[data-measure-end]')
+    const measureLabel = document.querySelector('[data-measure-label]')
+
     if (!grid) return
     if (grid.dataset.siteShortcutsInitialized === 'true') return
 
@@ -177,6 +335,72 @@ const alternateLanguage =
           'input, textarea, select, [contenteditable="true"]'
         )
       )
+    }
+
+    let measureMode = false
+    let measureStart = null
+    let lastMeasurePointer = {
+      x: window.innerWidth * 0.5,
+      y: window.innerHeight * 0.5,
+    }
+
+    const setMeasurePoint = (element, x, y) => {
+      if (!element) return
+      element.setAttribute('cx', String(x))
+      element.setAttribute('cy', String(y))
+    }
+
+    const setMeasureLine = (x1, y1, x2, y2) => {
+      if (!measureLine) return
+      measureLine.setAttribute('x1', String(x1))
+      measureLine.setAttribute('y1', String(y1))
+      measureLine.setAttribute('x2', String(x2))
+      measureLine.setAttribute('y2', String(y2))
+    }
+
+    const positionMeasureLabel = (x, y) => {
+      if (!measureLabel) return
+      measureLabel.style.left = `${x}px`
+      measureLabel.style.top = `${y}px`
+    }
+
+    const updateMeasure = (x, y) => {
+      lastMeasurePointer = { x, y }
+      positionMeasureLabel(x, y)
+
+      if (!measureStart) {
+        setMeasureLine(x, y, x, y)
+        setMeasurePoint(measureStartMarker, x, y)
+        setMeasurePoint(measureEndMarker, x, y)
+        if (measureLabel) measureLabel.textContent = 'MEASURE / SET POINT'
+        return
+      }
+
+      const dx = x - measureStart.x
+      const dy = y - measureStart.y
+      const distance = Math.hypot(dx, dy)
+
+      setMeasureLine(measureStart.x, measureStart.y, x, y)
+      setMeasurePoint(measureStartMarker, measureStart.x, measureStart.y)
+      setMeasurePoint(measureEndMarker, x, y)
+
+      if (measureLabel) {
+        const roundedDistance = Math.round(distance)
+        const roundedX = Math.round(dx)
+        const roundedY = Math.round(dy)
+        measureLabel.textContent = `${roundedDistance} px / DX ${roundedX} / DY ${roundedY}`
+      }
+    }
+
+    const setMeasureMode = (active) => {
+      measureMode = active
+      measureStart = null
+      document.body.classList.toggle('site-measure-mode', active)
+      measureOverlay?.classList.toggle('is-visible', active)
+
+      if (active) {
+        updateMeasure(lastMeasurePointer.x, lastMeasurePointer.y)
+      }
     }
 
     const handleKeydown = (event) => {
@@ -198,17 +422,123 @@ const alternateLanguage =
         return
       }
 
+      if (key === 'm') {
+        event.preventDefault()
+        setMeasureMode(!measureMode)
+        return
+      }
+
       if (key === 'escape') {
         grid.classList.remove('is-visible')
+        setMeasureMode(false)
       }
     }
 
+    const handleMeasurePointerMove = (event) => {
+      lastMeasurePointer = {
+        x: event.clientX,
+        y: event.clientY,
+      }
+
+      if (!measureMode) return
+      updateMeasure(event.clientX, event.clientY)
+    }
+
+    const handleMeasurePointerDown = (event) => {
+      if (!measureMode) return
+      if (event.button !== 0) return
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      measureStart = {
+        x: event.clientX,
+        y: event.clientY,
+      }
+
+      updateMeasure(event.clientX, event.clientY)
+    }
+
+    let scrollHideTimer = 0
+    let scrollFrame = 0
+
+    const updateScrollReadout = () => {
+      scrollFrame = 0
+      if (!scrollReadout || !scrollYLabel || !scrollPercentLabel) return
+
+      const y = Math.max(0, Math.round(window.scrollY))
+      const maximum = Math.max(
+        1,
+        document.documentElement.scrollHeight - window.innerHeight
+      )
+      const percent = Math.max(
+        0,
+        Math.min(100, Math.round((window.scrollY / maximum) * 100))
+      )
+
+      scrollYLabel.textContent = `Y ${String(y).padStart(4, '0')}`
+      scrollPercentLabel.textContent = `${percent}%`
+      scrollReadout.classList.add('is-visible')
+
+      window.clearTimeout(scrollHideTimer)
+      scrollHideTimer = window.setTimeout(() => {
+        scrollReadout.classList.remove('is-visible')
+      }, 900)
+    }
+
+    const handleScroll = () => {
+      if (scrollFrame) return
+      scrollFrame = window.requestAnimationFrame(updateScrollReadout)
+    }
+
+    const dateElements = document.querySelectorAll('time.post-date')
+
+    dateElements.forEach((dateElement) => {
+      if (!(dateElement instanceof HTMLElement)) return
+      if (dateElement.dataset.dateEasterEgg === 'true') return
+
+      const datetime = dateElement.getAttribute('datetime')
+      if (!datetime) return
+
+      dateElement.dataset.dateEasterEgg = 'true'
+      dateElement.dataset.originalDate = dateElement.textContent ?? ''
+      dateElement.dataset.isoDate = datetime.slice(0, 10)
+      dateElement.dataset.isoVisible = 'false'
+      dateElement.tabIndex = 0
+      dateElement.setAttribute('role', 'button')
+      dateElement.setAttribute('title', 'Toggle date format')
+
+      const toggleDate = () => {
+        const showIso = dateElement.dataset.isoVisible !== 'true'
+        dateElement.dataset.isoVisible = showIso ? 'true' : 'false'
+        dateElement.textContent = showIso
+          ? dateElement.dataset.isoDate ?? ''
+          : dateElement.dataset.originalDate ?? ''
+      }
+
+      dateElement.addEventListener('click', toggleDate)
+      dateElement.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        toggleDate()
+      })
+    })
+
     window.addEventListener('keydown', handleKeydown)
+    window.addEventListener('pointermove', handleMeasurePointerMove, { passive: true })
+    window.addEventListener('pointerdown', handleMeasurePointerDown, true)
+    window.addEventListener('scroll', handleScroll, { passive: true })
 
     window.addEventListener(
       'pagehide',
       () => {
+        window.clearTimeout(scrollHideTimer)
+        if (scrollFrame) window.cancelAnimationFrame(scrollFrame)
         window.removeEventListener('keydown', handleKeydown)
+        window.removeEventListener('pointermove', handleMeasurePointerMove)
+        window.removeEventListener('pointerdown', handleMeasurePointerDown, true)
+        window.removeEventListener('scroll', handleScroll)
+        document.body.classList.remove('site-measure-mode')
       },
       { once: true }
     )
