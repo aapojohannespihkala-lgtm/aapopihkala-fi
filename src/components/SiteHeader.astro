@@ -102,9 +102,18 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
 
 <div class="site-area-overlay" data-area-overlay aria-hidden="true">
   <svg class="site-area-svg" data-area-svg preserveAspectRatio="none" aria-hidden="true">
-    <path data-area-path />
-    <circle data-area-start r="4" />
-    <circle class="site-area-centroid" data-area-centroid r="3" />
+    <g class="site-area-topography" data-area-topography>
+      <g class="site-area-points" data-area-points></g>
+      <path class="site-area-contours" data-area-contours />
+    </g>
+    <path class="site-area-outline" data-area-path />
+    <circle class="site-area-start" data-area-start r="4" />
+    <g class="site-area-centroid-symbol" data-area-centroid-symbol>
+      <circle class="site-area-centroid-ring" cx="0" cy="0" r="8" />
+      <line x1="-12" y1="0" x2="12" y2="0" />
+      <line x1="0" y1="-12" x2="0" y2="12" />
+      <circle class="site-area-centroid-dot" cx="0" cy="0" r="1.6" />
+    </g>
   </svg>
   <span class="site-area-label" data-area-label>AREA / DRAW</span>
   <span class="site-area-hint" data-area-hint>AREA / HOLD + DRAW</span>
@@ -306,25 +315,48 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     overflow: visible;
   }
 
-  .site-area-svg path {
-    fill: rgba(89, 105, 93, 0.075);
+  .site-area-outline {
+    fill: rgba(89, 105, 93, 0.018);
     stroke: var(--moss-deep);
     stroke-width: 1;
     stroke-linecap: round;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
-    transition:
-      fill 100ms ease,
-      stroke-width 100ms ease;
+    transition: stroke-width 100ms ease, fill 100ms ease;
   }
 
-  .site-area-overlay.is-hovering-area .site-area-svg path,
-  .site-area-overlay.is-rotating-area .site-area-svg path {
-    fill: rgba(89, 105, 93, 0.105);
+  .site-area-overlay.is-hovering-area .site-area-outline,
+  .site-area-overlay.is-rotating-area .site-area-outline {
+    fill: rgba(89, 105, 93, 0.032);
     stroke-width: 1.2;
   }
 
-  .site-area-svg circle {
+  .site-area-point {
+    fill: var(--moss);
+    stroke: none;
+    opacity: 0.58;
+  }
+
+  .site-area-point.is-edge {
+    fill: var(--moss-deep);
+    opacity: 0.84;
+  }
+
+  .site-area-point.is-high {
+    opacity: 0.72;
+  }
+
+  .site-area-contours {
+    fill: none;
+    stroke: var(--moss-deep);
+    stroke-width: 0.72;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.34;
+  }
+
+  .site-area-start {
     fill: var(--page);
     stroke: var(--moss-deep);
     stroke-width: 1;
@@ -332,10 +364,32 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     opacity: 0;
   }
 
-  .site-area-svg .site-area-centroid {
-    fill: var(--moss-deep);
+  .site-area-centroid-symbol {
+    opacity: 0;
+    color: var(--moss-deep);
+  }
+
+  .site-area-centroid-symbol.is-visible {
+    opacity: 0.86;
+  }
+
+  .site-area-centroid-symbol line,
+  .site-area-centroid-ring {
+    fill: rgba(255, 255, 255, 0.9);
+    stroke: currentColor;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .site-area-centroid-symbol line {
+    fill: none;
+  }
+
+  .site-area-centroid-dot {
+    fill: currentColor;
     stroke: var(--page);
-    stroke-width: 1.5;
+    stroke-width: 0.8;
+    vector-effect: non-scaling-stroke;
   }
 
   .site-area-label,
@@ -393,7 +447,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     .site-a-readout,
     .site-a-axis,
     .site-area-label,
-    .site-area-svg path,
+    .site-area-outline,
     :global(.post-date[data-date-easter-egg]) {
       transition: none;
     }
@@ -402,6 +456,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
 
 <script is:inline>
   (() => {
+    const svgNamespace = 'http://www.w3.org/2000/svg'
     const grid = document.querySelector('[data-site-grid]')
     const scrollReadout = document.querySelector('[data-scroll-readout]')
     const scrollYLabel = document.querySelector('[data-scroll-y]')
@@ -415,7 +470,9 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     const areaSvg = document.querySelector('[data-area-svg]')
     const areaPath = document.querySelector('[data-area-path]')
     const areaStart = document.querySelector('[data-area-start]')
-    const areaCentroidMarker = document.querySelector('[data-area-centroid]')
+    const areaPointsGroup = document.querySelector('[data-area-points]')
+    const areaContoursPath = document.querySelector('[data-area-contours]')
+    const areaCentroidSymbol = document.querySelector('[data-area-centroid-symbol]')
     const areaLabel = document.querySelector('[data-area-label]')
     const areaHint = document.querySelector('[data-area-hint]')
 
@@ -427,7 +484,9 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       !areaSvg ||
       !areaPath ||
       !areaStart ||
-      !areaCentroidMarker ||
+      !areaPointsGroup ||
+      !areaContoursPath ||
+      !areaCentroidSymbol ||
       !areaLabel ||
       !areaHint
     ) return
@@ -454,6 +513,8 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     let areaFinished = false
     let areaPoints = []
     let areaSourcePoints = []
+    let areaSurfacePoints = []
+    let areaContourSegments = []
     let measuredArea = 0
     let areaCentroid = null
 
@@ -566,6 +627,18 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       }
     }
 
+    const polygonBounds = (points) => {
+      const xs = points.map((point) => point.x)
+      const ys = points.map((point) => point.y)
+
+      return {
+        minX: Math.min(...xs),
+        maxX: Math.max(...xs),
+        minY: Math.min(...ys),
+        maxY: Math.max(...ys),
+      }
+    }
+
     const pointInPolygon = (point, points) => {
       if (points.length < 3) return false
 
@@ -610,6 +683,18 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       }
 
       return Math.hypot(point.x - projection.x, point.y - projection.y)
+    }
+
+    const distanceToPolygonEdge = (point, points) => {
+      let minimum = Infinity
+
+      for (let i = 0; i < points.length; i += 1) {
+        const current = points[i]
+        const next = points[(i + 1) % points.length]
+        minimum = Math.min(minimum, distanceToSegment(point, current, next))
+      }
+
+      return minimum
     }
 
     const simplifyPoints = (points, epsilon = 5.5) => {
@@ -660,15 +745,224 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       areaHint.textContent = text
     }
 
-    const updateCentroidMarker = () => {
+    const reliefHeight = (x, y) => {
+      if (!areaCentroid) return 0
+
+      const dx = x - areaCentroid.x
+      const dy = y - areaCentroid.y
+
+      return (
+        Math.sin(dx * 0.020 + dy * 0.004) * 5.4 +
+        Math.sin(dy * 0.026 - dx * 0.003) * 3.1 +
+        Math.sin((dx + dy) * 0.012) * 2.1
+      )
+    }
+
+    const deterministicJitter = (x, y, seed) => {
+      const value = Math.sin(x * 12.9898 + y * 78.233 + seed * 37.719) * 43758.5453
+      return value - Math.floor(value) - 0.5
+    }
+
+    const projectAreaPoint = (point) => {
+      if (!areaCentroid) return { x: point.x, y: point.y, scale: 1 }
+
+      const localX = point.x - areaCentroid.x
+      const localY = point.y - areaCentroid.y
+      const localZ = point.z ?? 0
+
+      const cosPitch = Math.cos(areaPitch)
+      const sinPitch = Math.sin(areaPitch)
+      const cosYaw = Math.cos(areaYaw)
+      const sinYaw = Math.sin(areaYaw)
+
+      const pitchedY = localY * cosPitch - localZ * sinPitch
+      const pitchedZ = localY * sinPitch + localZ * cosPitch
+      const rotatedX = localX * cosYaw + pitchedZ * sinYaw
+      const rotatedZ = -localX * sinYaw + pitchedZ * cosYaw
+      const perspectiveDistance = 700
+      const denominator = Math.max(170, perspectiveDistance + rotatedZ)
+      const perspective = perspectiveDistance / denominator
+
+      return {
+        x: areaCentroid.x + rotatedX * perspective,
+        y: areaCentroid.y + pitchedY * perspective,
+        scale: perspective,
+      }
+    }
+
+    const clearAreaTopography = () => {
+      areaSurfacePoints = []
+      areaContourSegments = []
+      areaPointsGroup.replaceChildren()
+      areaContoursPath.setAttribute('d', '')
+    }
+
+    const addContourSegment = (start, end, level) => {
+      const midpoint = {
+        x: (start.x + end.x) * 0.5,
+        y: (start.y + end.y) * 0.5,
+      }
+
+      if (!pointInPolygon(midpoint, areaSourcePoints)) return
+
+      areaContourSegments.push({
+        start: { x: start.x, y: start.y, z: level },
+        end: { x: end.x, y: end.y, z: level },
+      })
+    }
+
+    const buildContourSegments = (bounds, step) => {
+      const samples = []
+      let minimum = Infinity
+      let maximum = -Infinity
+
+      for (let y = bounds.minY; y <= bounds.maxY + step; y += step) {
+        for (let x = bounds.minX; x <= bounds.maxX + step; x += step) {
+          const z = reliefHeight(x, y)
+          samples.push(z)
+          minimum = Math.min(minimum, z)
+          maximum = Math.max(maximum, z)
+        }
+      }
+
+      if (!samples.length || !Number.isFinite(minimum) || !Number.isFinite(maximum)) return
+
+      const levels = Array.from(
+        { length: 5 },
+        (_, index) => minimum + ((index + 1) / 6) * (maximum - minimum)
+      )
+
+      const interpolate = (a, b, level) => {
+        const denominator = b.z - a.z
+        const t = Math.abs(denominator) < 0.00001 ? 0.5 : (level - a.z) / denominator
+        return {
+          x: a.x + (b.x - a.x) * t,
+          y: a.y + (b.y - a.y) * t,
+        }
+      }
+
+      const crossesLevel = (a, b, level) =>
+        (a.z < level && b.z >= level) || (b.z < level && a.z >= level)
+
+      for (const level of levels) {
+        for (let y = bounds.minY; y < bounds.maxY; y += step) {
+          for (let x = bounds.minX; x < bounds.maxX; x += step) {
+            const p00 = { x, y, z: reliefHeight(x, y) }
+            const p10 = { x: x + step, y, z: reliefHeight(x + step, y) }
+            const p11 = { x: x + step, y: y + step, z: reliefHeight(x + step, y + step) }
+            const p01 = { x, y: y + step, z: reliefHeight(x, y + step) }
+            const edges = [
+              [p00, p10],
+              [p10, p11],
+              [p11, p01],
+              [p01, p00],
+            ]
+            const intersections = []
+
+            for (const [start, end] of edges) {
+              if (crossesLevel(start, end, level)) {
+                intersections.push(interpolate(start, end, level))
+              }
+            }
+
+            if (intersections.length === 2) {
+              addContourSegment(intersections[0], intersections[1], level)
+            } else if (intersections.length === 4) {
+              addContourSegment(intersections[0], intersections[1], level)
+              addContourSegment(intersections[2], intersections[3], level)
+            }
+          }
+        }
+      }
+    }
+
+    const buildAreaTopography = () => {
+      clearAreaTopography()
+
+      if (!areaFinished || !areaCentroid || areaSourcePoints.length < 3) return
+
+      const bounds = polygonBounds(areaSourcePoints)
+      const boundsWidth = Math.max(1, bounds.maxX - bounds.minX)
+      const boundsHeight = Math.max(1, bounds.maxY - bounds.minY)
+      const targetPointCount = 900
+      const pointStep = Math.max(12, Math.sqrt((boundsWidth * boundsHeight) / targetPointCount))
+
+      let pointIndex = 0
+
+      for (let y = bounds.minY; y <= bounds.maxY; y += pointStep) {
+        for (let x = bounds.minX; x <= bounds.maxX; x += pointStep) {
+          const jittered = {
+            x: x + deterministicJitter(x, y, 1) * pointStep * 0.42,
+            y: y + deterministicJitter(x, y, 2) * pointStep * 0.42,
+          }
+
+          if (!pointInPolygon(jittered, areaSourcePoints)) continue
+
+          const z = reliefHeight(jittered.x, jittered.y)
+          const edgeDistance = distanceToPolygonEdge(jittered, areaSourcePoints)
+          const edge = edgeDistance <= Math.max(16, pointStep * 1.65)
+          const high = z > 3.2
+          const radius = edge ? 1.55 : 1.18
+          const element = document.createElementNS(svgNamespace, 'circle')
+          element.classList.add('site-area-point')
+          if (edge) element.classList.add('is-edge')
+          if (high) element.classList.add('is-high')
+          element.dataset.areaPointIndex = String(pointIndex)
+          areaPointsGroup.append(element)
+
+          areaSurfacePoints.push({
+            x: jittered.x,
+            y: jittered.y,
+            z,
+            radius,
+            element,
+          })
+          pointIndex += 1
+        }
+      }
+
+      buildContourSegments(bounds, Math.max(18, pointStep * 1.45))
+    }
+
+    const updateCentroidSymbol = () => {
       if (!areaFinished || !areaCentroid) {
-        areaCentroidMarker.style.opacity = '0'
+        areaCentroidSymbol.classList.remove('is-visible')
         return
       }
 
-      areaCentroidMarker.setAttribute('cx', String(areaCentroid.x))
-      areaCentroidMarker.setAttribute('cy', String(areaCentroid.y))
-      areaCentroidMarker.style.opacity = '0.72'
+      areaCentroidSymbol.setAttribute(
+        'transform',
+        `translate(${areaCentroid.x} ${areaCentroid.y})`
+      )
+      areaCentroidSymbol.classList.add('is-visible')
+    }
+
+    const renderAreaTopography = () => {
+      if (!areaFinished) {
+        areaContoursPath.setAttribute('d', '')
+        return
+      }
+
+      for (const point of areaSurfacePoints) {
+        const projected = projectAreaPoint(point)
+        point.element.setAttribute('cx', String(projected.x))
+        point.element.setAttribute('cy', String(projected.y))
+        point.element.setAttribute(
+          'r',
+          String(Math.max(0.78, Math.min(2.2, point.radius * projected.scale)))
+        )
+      }
+
+      const contourPath = areaContourSegments
+        .map((segment) => {
+          const start = projectAreaPoint(segment.start)
+          const end = projectAreaPoint(segment.end)
+          return `M ${start.x} ${start.y} L ${end.x} ${end.y}`
+        })
+        .join(' ')
+
+      areaContoursPath.setAttribute('d', contourPath)
+      updateCentroidSymbol()
     }
 
     const clearAreaVisuals = () => {
@@ -686,10 +980,11 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       areaStart.setAttribute('cx', '0')
       areaStart.setAttribute('cy', '0')
       areaStart.style.opacity = '0'
-      areaCentroidMarker.style.opacity = '0'
+      areaCentroidSymbol.classList.remove('is-visible')
       areaLabel.classList.remove('is-visible')
       areaLabel.textContent = 'AREA / DRAW'
       areaOverlay.classList.remove('is-hovering-area', 'is-rotating-area')
+      clearAreaTopography()
       setAreaHint('AREA / HOLD + DRAW')
       updateAreaCursorLabel()
     }
@@ -698,7 +993,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       if (!areaPoints.length) {
         areaPath.setAttribute('d', '')
         areaStart.style.opacity = '0'
-        updateCentroidMarker()
+        updateCentroidSymbol()
         return
       }
 
@@ -712,37 +1007,15 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       areaStart.setAttribute('cx', String(start.x))
       areaStart.setAttribute('cy', String(start.y))
       areaStart.style.opacity = closed ? '0' : '0.82'
-      updateCentroidMarker()
+      updateCentroidSymbol()
     }
 
     const projectArea3D = () => {
       if (!areaFinished || !areaCentroid || !areaSourcePoints.length) return
 
-      const cosYaw = Math.cos(areaYaw)
-      const sinYaw = Math.sin(areaYaw)
-      const cosPitch = Math.cos(areaPitch)
-      const sinPitch = Math.sin(areaPitch)
-      const perspectiveDistance = 700
-
-      areaPoints = areaSourcePoints.map((point) => {
-        const localX = point.x - areaCentroid.x
-        const localY = point.y - areaCentroid.y
-
-        const pitchedY = localY * cosPitch
-        const pitchedZ = localY * sinPitch
-
-        const rotatedX = localX * cosYaw + pitchedZ * sinYaw
-        const rotatedZ = -localX * sinYaw + pitchedZ * cosYaw
-        const denominator = Math.max(170, perspectiveDistance + rotatedZ)
-        const perspective = perspectiveDistance / denominator
-
-        return {
-          x: areaCentroid.x + rotatedX * perspective,
-          y: areaCentroid.y + pitchedY * perspective,
-        }
-      })
-
+      areaPoints = areaSourcePoints.map((point) => projectAreaPoint({ ...point, z: 0 }))
       renderArea(true)
+      renderAreaTopography()
     }
 
     const updateFinishedAreaLabel = () => {
@@ -830,9 +1103,10 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       areaYaw = 0
       areaPitch = 0
       areaPoints = areaSourcePoints.map((point) => ({ ...point }))
-      renderArea(true)
+      buildAreaTopography()
+      projectArea3D()
       updateFinishedAreaLabel()
-      setAreaHint('AREA / DRAG SHAPE TO ROTATE 3D')
+      setAreaHint('AREA / DRAG TO ROTATE TOPOGRAPHY')
       updateAreaCursorLabel()
     }
 
@@ -845,7 +1119,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       rotationStartYaw = areaYaw
       rotationStartPitch = areaPitch
       areaOverlay.classList.add('is-rotating-area')
-      setAreaHint('AREA / ROTATE 3D')
+      setAreaHint('AREA / ROTATE TOPOGRAPHY')
       updateAreaCursorLabel()
       return true
     }
@@ -872,7 +1146,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       rotatingArea = false
       rotationStartPointer = null
       areaOverlay.classList.remove('is-rotating-area')
-      setAreaHint('AREA / DRAG SHAPE TO ROTATE 3D')
+      setAreaHint('AREA / DRAG TO ROTATE TOPOGRAPHY')
       updateAreaCursorLabel()
     }
 
@@ -885,7 +1159,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
 
       const inside = pointInPolygon({ x, y }, areaPoints)
       areaOverlay.classList.toggle('is-hovering-area', inside)
-      setAreaHint(inside ? 'AREA / DRAG SHAPE TO ROTATE 3D' : 'AREA / HOLD + DRAW NEW')
+      setAreaHint(inside ? 'AREA / DRAG TO ROTATE TOPOGRAPHY' : 'AREA / HOLD + DRAW NEW')
       updateAreaCursorLabel()
     }
 
