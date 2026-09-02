@@ -1,6 +1,6 @@
 <style is:global>
   html body .homepage-sheet-stamp,
-  html body .language-switch__meta,
+  html body .homepage-language-meta-box,
   html body .hero-location-coordinate {
     color: var(--moss-deep) !important;
     font-family:
@@ -16,9 +16,13 @@
     letter-spacing: 0.05em !important;
   }
 
+  html body .language-switch__meta {
+    display: none !important;
+  }
+
   @media (hover: hover) and (pointer: fine) {
     html body .homepage-sheet-stamp,
-    html body .language-switch__meta {
+    html body .homepage-language-meta-box {
       position: fixed !important;
       z-index: 61 !important;
       display: flex !important;
@@ -40,7 +44,7 @@
       transform: translateY(-2px) !important;
     }
 
-    html body .language-switch__meta {
+    html body .homepage-language-meta-box {
       transform: translate(-100%, -2px) !important;
     }
 
@@ -52,7 +56,7 @@
         transform 100ms ease !important;
     }
 
-    html body.meta-language-hover .language-switch__meta {
+    html body.meta-language-hover .homepage-language-meta-box {
       opacity: 0.82 !important;
       transform: translate(-100%, 0) !important;
       transition:
@@ -81,7 +85,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     html body.meta-home-hover .homepage-sheet-stamp,
-    html body.meta-language-hover .language-switch__meta,
+    html body.meta-language-hover .homepage-language-meta-box,
     html body .hero-location-trigger:hover .hero-location-coordinate,
     html body .hero-location-trigger:focus-visible .hero-location-coordinate {
       transition-duration: 0ms !important;
@@ -95,14 +99,21 @@
     const languageLink = document.querySelector('.language-switch')
     const topbar = document.querySelector('.topbar')
     const sheetStamp = document.querySelector('[data-homepage-sheet-stamp]')
-    const languageMeta = document.querySelector('.language-switch__meta')
+    const sourceLanguageMeta = document.querySelector('.language-switch__meta')
 
-    if (!homeLink || !languageLink || !sheetStamp || !languageMeta) return
+    if (!homeLink || !languageLink || !sheetStamp || !sourceLanguageMeta) return
     if (sheetStamp.dataset.hoverMetaInitialized === 'true') return
     sheetStamp.dataset.hoverMetaInitialized = 'true'
 
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)')
     if (!finePointer.matches) return
+
+    const languageMetaBox = document.createElement('span')
+    languageMetaBox.className = 'homepage-language-meta-box'
+    languageMetaBox.dataset.languageHoverBox = 'true'
+    languageMetaBox.setAttribute('aria-hidden', 'true')
+    languageMetaBox.textContent = sourceLanguageMeta.textContent?.trim() ?? ''
+    document.body.append(languageMetaBox)
 
     let homeHoverTimer = 0
     let languageHoverTimer = 0
@@ -125,8 +136,8 @@
 
     const positionLanguageMeta = () => {
       const rect = languageLink.getBoundingClientRect()
-      languageMeta.style.left = `${Math.round(rect.right)}px`
-      languageMeta.style.top = `${Math.round(getMetaTop())}px`
+      languageMetaBox.style.left = `${Math.round(rect.right)}px`
+      languageMetaBox.style.top = `${Math.round(getMetaTop())}px`
     }
 
     const showHomeMeta = () => {
@@ -182,6 +193,7 @@
       () => {
         hideHomeMeta()
         hideLanguageMeta()
+        languageMetaBox.remove()
         homeLink.removeEventListener('pointerenter', showHomeMeta)
         homeLink.removeEventListener('pointerleave', hideHomeMeta)
         homeLink.removeEventListener('focus', showHomeMeta)
