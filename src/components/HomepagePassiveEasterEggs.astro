@@ -14,7 +14,7 @@
 >
   <span class="homepage-topography-readout__cross"></span>
   <span class="homepage-topography-readout__label" data-topography-readout-label>
-    X +0.00 / Y +0.00
+    X +0.00 / Y +0.00 / Z +0.00
   </span>
 </div>
 
@@ -247,13 +247,21 @@
     let topographyPointerInside = false
     let topographyDragging = false
 
-    const updateRuler = (clientX) => {
-      const rect = title.getBoundingClientRect()
-      const x = Math.max(rect.left, Math.min(rect.right, clientX))
-      const distance = Math.max(0, x - rect.left)
+    const getTitleInkRect = () => {
+      const range = document.createRange()
+      range.selectNodeContents(title)
+      const rect = range.getBoundingClientRect()
+      range.detach?.()
+      return rect
+    }
 
-      ruler.style.left = `${Math.round(rect.left)}px`
-      ruler.style.top = `${Math.round(rect.bottom + 6)}px`
+    const updateRuler = (clientX) => {
+      const inkRect = getTitleInkRect()
+      const x = Math.max(inkRect.left, Math.min(inkRect.right, clientX))
+      const distance = Math.max(0, x - inkRect.left)
+
+      ruler.style.left = `${Math.round(inkRect.left)}px`
+      ruler.style.top = `${Math.round(inkRect.bottom + 6)}px`
       ruler.style.width = `${Math.max(1, Math.round(distance))}px`
 
       if (rulerLabel) {
@@ -289,10 +297,48 @@
       return nx * nx + ny * ny <= 1
     }
 
+    const estimateTopographyHeight = (normalizedX, normalizedY) => {
+      const phase = performance.now() * 0.001
+      const x = normalizedX * 1.85
+      const z = normalizedY * 1.45
+
+      const ridgeAmplitude = 0.66 + 0.12 * Math.sin(phase * 0.55)
+      const ridgeX = -0.48 + 0.16 * Math.sin(phase * 0.34)
+      const ridgeZ = 0.03 + 0.09 * Math.cos(phase * 0.28)
+      const ridge = ridgeAmplitude * Math.exp(
+        -((x - ridgeX) ** 2 * 1.25 + (z - ridgeZ) ** 2 * 2.5)
+      )
+
+      const shoulder =
+        (0.24 + 0.06 * Math.cos(phase * 0.4)) *
+        Math.exp(-((x - 0.77) ** 2 * 2.7 + (z - 0.42) ** 2 * 3.8))
+
+      const basinX = 0.34 + 0.12 * Math.sin(phase * 0.31 + 1.2)
+      const basinZ = -0.34 + 0.08 * Math.cos(phase * 0.36 + 0.7)
+      const basinAmplitude =
+        -0.17 - 0.06 * (0.5 + 0.5 * Math.sin(phase * 0.52 + 0.5))
+      const basin = basinAmplitude * Math.exp(
+        -((x - basinX) ** 2 * 6 + (z - basinZ) ** 2 * 7)
+      )
+
+      const channelCenter =
+        -0.2 +
+        0.12 * Math.sin(x * 1.6 + phase * 0.32) +
+        0.025 * Math.sin(x * 3.1 - phase * 0.18)
+      const channel = -0.05 * Math.exp(-((z - channelCenter) ** 2) * 82)
+
+      const broadForm =
+        0.03 * Math.sin(x * 1.15 + z * 0.6 + phase * 0.15) +
+        0.022 * Math.cos(z * 1.8 - x * 0.32 - phase * 0.13)
+
+      return ridge + shoulder + basin + channel + broadForm
+    }
+
     const updateTopographyReadout = (event) => {
       const rect = topographyRoot.getBoundingClientRect()
       const normalizedX = ((event.clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1
       const normalizedY = 1 - ((event.clientY - rect.top) / Math.max(1, rect.height)) * 2
+      const height = estimateTopographyHeight(normalizedX, normalizedY)
 
       topographyReadout.style.left = `${event.clientX}px`
       topographyReadout.style.top = `${event.clientY}px`
@@ -300,7 +346,8 @@
       if (topographyReadoutLabel) {
         const x = `${normalizedX >= 0 ? '+' : ''}${normalizedX.toFixed(2)}`
         const y = `${normalizedY >= 0 ? '+' : ''}${normalizedY.toFixed(2)}`
-        topographyReadoutLabel.textContent = `X ${x} / Y ${y}`
+        const z = `${height >= 0 ? '+' : ''}${height.toFixed(2)}`
+        topographyReadoutLabel.textContent = `X ${x} / Y ${y} / Z ${z}`
       }
     }
 
