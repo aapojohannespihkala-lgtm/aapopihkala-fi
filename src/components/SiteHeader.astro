@@ -92,7 +92,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
 
 <div class="site-a-readout" data-a-readout data-mode="" aria-hidden="true">
   <span class="site-a-readout__cross"></span>
-  <span class="site-a-readout__label" data-a-readout-label>ELEV +15.0</span>
+  <span class="site-a-readout__label" data-a-readout-label>X 0000 / Y 0000 / ELEV +15.0</span>
 </div>
 
 <div class="site-a-axis" data-a-axis aria-hidden="true">
@@ -106,6 +106,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     <circle data-area-start r="4" />
   </svg>
   <span class="site-area-label" data-area-label>AREA / DRAW</span>
+  <span class="site-area-hint" data-area-hint>AREA / HOLD + DRAW</span>
 </div>
 
 <style>
@@ -196,7 +197,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     position: fixed;
     left: 0;
     top: 0;
-    z-index: 72;
+    z-index: 75;
     width: 18px;
     height: 18px;
     pointer-events: none;
@@ -312,6 +313,15 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     stroke-linecap: round;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
+    transition:
+      fill 100ms ease,
+      stroke-width 100ms ease;
+  }
+
+  .site-area-overlay.is-hovering-area .site-area-svg path,
+  .site-area-overlay.is-rotating-area .site-area-svg path {
+    fill: rgba(89, 105, 93, 0.105);
+    stroke-width: 1.2;
   }
 
   .site-area-svg circle {
@@ -322,10 +332,9 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     opacity: 0;
   }
 
-  .site-area-label {
+  .site-area-label,
+  .site-area-hint {
     position: absolute;
-    left: 0;
-    top: 0;
     padding: 3px 5px;
     pointer-events: none;
     background: rgba(255, 255, 255, 0.9);
@@ -337,12 +346,23 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     line-height: 1;
     letter-spacing: 0.05em;
     white-space: nowrap;
+  }
+
+  .site-area-label {
+    left: 0;
+    top: 0;
     opacity: 0;
     transition: opacity 90ms ease;
   }
 
   .site-area-label.is-visible {
     opacity: 0.82;
+  }
+
+  .site-area-hint {
+    left: 22px;
+    bottom: 22px;
+    opacity: 0.7;
   }
 
   :global(body.site-a-mode),
@@ -367,6 +387,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     .site-a-readout,
     .site-a-axis,
     .site-area-label,
+    .site-area-svg path,
     :global(.post-date[data-date-easter-egg]) {
       transition: none;
     }
@@ -389,6 +410,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     const areaPath = document.querySelector('[data-area-path]')
     const areaStart = document.querySelector('[data-area-start]')
     const areaLabel = document.querySelector('[data-area-label]')
+    const areaHint = document.querySelector('[data-area-hint]')
 
     if (
       !grid ||
@@ -398,7 +420,8 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       !areaSvg ||
       !areaPath ||
       !areaStart ||
-      !areaLabel
+      !areaLabel ||
+      !areaHint
     ) return
 
     if (grid.dataset.siteShortcutsInitialized === 'true') return
@@ -420,11 +443,21 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     }
 
     let drawingArea = false
+    let areaFinished = false
     let areaPoints = []
+    let measuredArea = 0
+    let areaCentroid = null
+
+    let rotatingArea = false
+    let rotationStartAngle = 0
+    let rotationBasePoints = []
 
     const setAreaViewBox = () => {
       areaSvg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
     }
+
+    const padCoordinate = (value) =>
+      String(Math.max(0, Math.round(value))).padStart(4, '0')
 
     const updateReadoutPosition = () => {
       aReadout.style.left = `${pointer.x}px`
@@ -436,7 +469,8 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       if (aReadoutLabel && (activeMode === 'elev' || activeMode === 'grid')) {
         const y = Math.max(0, Math.min(window.innerHeight, pointer.y))
         const level = ((window.innerHeight - y) / Math.max(1, window.innerHeight)) * 30
-        aReadoutLabel.textContent = `ELEV +${level.toFixed(1)}`
+        aReadoutLabel.textContent =
+          `X ${padCoordinate(pointer.x)} / Y ${padCoordinate(pointer.y)} / ELEV +${level.toFixed(1)}`
       }
     }
 
@@ -491,6 +525,27 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
         x: cx / (3 * signedArea),
         y: cy / (3 * signedArea),
       }
+    }
+
+    const pointInPolygon = (point, points) => {
+      if (points.length < 3) return false
+
+      let inside = false
+
+      for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
+        const current = points[i]
+        const previous = points[j]
+        const crosses =
+          current.y > point.y !== previous.y > point.y &&
+          point.x <
+            ((previous.x - current.x) * (point.y - current.y)) /
+              (previous.y - current.y || 0.00001) +
+              current.x
+
+        if (crosses) inside = !inside
+      }
+
+      return inside
     }
 
     const distanceToSegment = (point, start, end) => {
@@ -552,7 +607,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     }
 
     const setAreaLabel = (text, x, y) => {
-      const estimatedWidth = 130
+      const estimatedWidth = 155
       const left = Math.max(10, Math.min(window.innerWidth - estimatedWidth - 10, x))
       const top = Math.max(70, Math.min(window.innerHeight - 30, y))
 
@@ -562,29 +617,36 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       areaLabel.classList.add('is-visible')
     }
 
+    const setAreaHint = (text) => {
+      areaHint.textContent = text
+    }
+
     const clearAreaVisuals = () => {
       drawingArea = false
+      areaFinished = false
+      rotatingArea = false
       areaPoints = []
+      measuredArea = 0
+      areaCentroid = null
+      rotationBasePoints = []
       areaPath.setAttribute('d', '')
       areaStart.setAttribute('cx', '0')
       areaStart.setAttribute('cy', '0')
       areaStart.style.opacity = '0'
       areaLabel.classList.remove('is-visible')
       areaLabel.textContent = 'AREA / DRAW'
+      areaOverlay.classList.remove('is-hovering-area', 'is-rotating-area')
+      setAreaHint('AREA / HOLD + DRAW')
     }
 
-    const renderArea = (previewPoint = null, closed = false) => {
+    const renderArea = (closed = areaFinished) => {
       if (!areaPoints.length) {
         areaPath.setAttribute('d', '')
         areaStart.style.opacity = '0'
         return
       }
 
-      const points = previewPoint
-        ? [...areaPoints, previewPoint]
-        : areaPoints
-
-      const d = points
+      const d = areaPoints
         .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
         .join(' ')
 
@@ -596,12 +658,22 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       areaStart.style.opacity = closed ? '0' : '0.82'
     }
 
+    const updateFinishedAreaLabel = () => {
+      if (!areaFinished || !areaCentroid) return
+      setAreaLabel(
+        `AREA / ${Math.round(measuredArea)} px²`,
+        areaCentroid.x + 14,
+        areaCentroid.y - 16
+      )
+    }
+
     const startAreaDrawing = (x, y) => {
       clearAreaVisuals()
       drawingArea = true
       areaPoints = [{ x, y }]
-      renderArea({ x, y }, false)
+      renderArea(false)
       setAreaLabel('AREA / DRAW', x + 16, y + 16)
+      setAreaHint('AREA / RELEASE TO CLOSE')
     }
 
     const addAreaPoint = (x, y) => {
@@ -614,12 +686,15 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
         areaPoints.push({ x, y })
       }
 
-      renderArea({ x, y }, false)
+      renderArea(false)
+
+      const nearStart = isNearStart(x, y)
       setAreaLabel(
-        isNearStart(x, y) ? 'AREA / CLOSE' : 'AREA / DRAW',
+        nearStart ? 'AREA / CLOSE' : 'AREA / DRAW',
         x + 16,
         y + 16
       )
+      setAreaHint(nearStart ? 'AREA / RELEASE TO JOIN' : 'AREA / RELEASE TO CLOSE')
     }
 
     const finishAreaDrawing = (x, y, snapToStart = false) => {
@@ -655,26 +730,72 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       const simplified = simplifyPoints(rawPoints, 5.5)
       areaPoints = simplified.length >= 3 ? simplified : rawPoints
 
-      if (areaPoints.length < 3) {
+      measuredArea = polygonArea(areaPoints)
+
+      if (areaPoints.length < 3 || measuredArea < 25) {
         clearAreaVisuals()
         return
       }
 
-      const area = polygonArea(areaPoints)
+      areaFinished = true
+      areaCentroid = polygonCentroid(areaPoints)
+      renderArea(true)
+      updateFinishedAreaLabel()
+      setAreaHint('AREA / HOVER SHAPE TO ROTATE')
+    }
 
-      if (area < 25) {
-        clearAreaVisuals()
+    const beginAreaRotation = (x, y) => {
+      if (!areaFinished || !areaCentroid) return false
+      if (!pointInPolygon({ x, y }, areaPoints)) return false
+
+      rotatingArea = true
+      rotationStartAngle = Math.atan2(y - areaCentroid.y, x - areaCentroid.x)
+      rotationBasePoints = areaPoints.map((point) => ({ ...point }))
+      areaOverlay.classList.add('is-rotating-area')
+      setAreaHint('AREA / ROTATING')
+      return true
+    }
+
+    const rotateAreaToPointer = (x, y) => {
+      if (!rotatingArea || !areaCentroid || !rotationBasePoints.length) return
+
+      const currentAngle = Math.atan2(y - areaCentroid.y, x - areaCentroid.x)
+      const delta = currentAngle - rotationStartAngle
+      const cos = Math.cos(delta)
+      const sin = Math.sin(delta)
+
+      areaPoints = rotationBasePoints.map((point) => {
+        const dx = point.x - areaCentroid.x
+        const dy = point.y - areaCentroid.y
+
+        return {
+          x: areaCentroid.x + dx * cos - dy * sin,
+          y: areaCentroid.y + dx * sin + dy * cos,
+        }
+      })
+
+      renderArea(true)
+      updateFinishedAreaLabel()
+      setAreaHint(`AREA / ROT ${((delta * 180) / Math.PI).toFixed(1)}°`)
+    }
+
+    const endAreaRotation = () => {
+      if (!rotatingArea) return
+      rotatingArea = false
+      rotationBasePoints = []
+      areaOverlay.classList.remove('is-rotating-area')
+      setAreaHint('AREA / DRAG SHAPE TO ROTATE')
+    }
+
+    const updateAreaHover = (x, y) => {
+      if (!areaFinished || drawingArea || rotatingArea) {
+        areaOverlay.classList.remove('is-hovering-area')
         return
       }
 
-      renderArea(null, true)
-
-      const centroid = polygonCentroid(areaPoints)
-      setAreaLabel(
-        `AREA / ${Math.round(area)} px²`,
-        centroid.x + 14,
-        centroid.y - 16
-      )
+      const inside = pointInPolygon({ x, y }, areaPoints)
+      areaOverlay.classList.toggle('is-hovering-area', inside)
+      setAreaHint(inside ? 'AREA / DRAG SHAPE TO ROTATE' : 'AREA / HOLD + DRAW NEW')
     }
 
     const setMode = (mode) => {
@@ -687,12 +808,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       grid.classList.toggle('is-visible', mode === 'grid')
       areaOverlay.classList.toggle('is-visible', mode === 'area')
 
-      if (mode !== 'area') {
-        clearAreaVisuals()
-      } else {
-        clearAreaVisuals()
-      }
-
+      clearAreaVisuals()
       updateReadoutPosition()
     }
 
@@ -746,16 +862,19 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
 
       updateReadoutPosition()
 
-      if (activeMode !== 'area' || !drawingArea) return
+      if (activeMode !== 'area') return
 
-      if (isNearStart(event.clientX, event.clientY)) {
-        renderArea(areaPoints[0], false)
-        setAreaLabel('AREA / CLOSE', event.clientX + 16, event.clientY + 16)
-        finishAreaDrawing(areaPoints[0].x, areaPoints[0].y, true)
+      if (rotatingArea) {
+        rotateAreaToPointer(event.clientX, event.clientY)
         return
       }
 
-      addAreaPoint(event.clientX, event.clientY)
+      if (drawingArea) {
+        addAreaPoint(event.clientX, event.clientY)
+        return
+      }
+
+      updateAreaHover(event.clientX, event.clientY)
     }
 
     const handlePointerDown = (event) => {
@@ -772,22 +891,43 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
 
       event.preventDefault()
       event.stopPropagation()
+
+      if (beginAreaRotation(event.clientX, event.clientY)) return
       startAreaDrawing(event.clientX, event.clientY)
     }
 
     const handlePointerUp = (event) => {
-      if (event.button !== 0) return
-      if (activeMode !== 'area' || !drawingArea) return
+      if (event.button !== 0 || activeMode !== 'area') return
+
+      if (rotatingArea) {
+        event.preventDefault()
+        event.stopPropagation()
+        endAreaRotation()
+        updateAreaHover(event.clientX, event.clientY)
+        return
+      }
+
+      if (!drawingArea) return
 
       event.preventDefault()
       event.stopPropagation()
-      finishAreaDrawing(event.clientX, event.clientY, isNearStart(event.clientX, event.clientY))
+      finishAreaDrawing(
+        event.clientX,
+        event.clientY,
+        isNearStart(event.clientX, event.clientY)
+      )
+      updateAreaHover(event.clientX, event.clientY)
     }
 
     const handlePointerCancel = () => {
-      if (activeMode === 'area' && drawingArea) {
-        clearAreaVisuals()
+      if (activeMode !== 'area') return
+
+      if (rotatingArea) {
+        endAreaRotation()
+        return
       }
+
+      if (drawingArea) clearAreaVisuals()
     }
 
     let scrollHideTimer = 0
@@ -853,9 +993,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       setAreaViewBox()
       updateReadoutPosition()
 
-      if (activeMode === 'area') {
-        clearAreaVisuals()
-      }
+      if (activeMode === 'area') clearAreaVisuals()
     }
 
     setAreaViewBox()
