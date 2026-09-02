@@ -41,10 +41,14 @@
     }
 
     html body .homepage-sheet-stamp {
+      left: var(--homepage-meta-left, 0px) !important;
+      top: var(--homepage-meta-top, 72px) !important;
       transform: translateY(-2px) !important;
     }
 
     html body .homepage-language-meta-box {
+      left: var(--homepage-language-meta-left, 0px) !important;
+      top: var(--homepage-language-meta-top, 72px) !important;
       transform: translate(-100%, -2px) !important;
     }
 
@@ -130,20 +134,27 @@
 
     const positionHomeMeta = () => {
       const rect = homeLink.getBoundingClientRect()
-      sheetStamp.style.left = `${Math.round(rect.left)}px`
-      sheetStamp.style.top = `${Math.round(getMetaTop())}px`
+      sheetStamp.style.setProperty('--homepage-meta-left', `${Math.round(rect.left)}px`)
+      sheetStamp.style.setProperty('--homepage-meta-top', `${Math.round(getMetaTop())}px`)
     }
 
     const positionLanguageMeta = () => {
       const rect = languageLink.getBoundingClientRect()
-      languageMetaBox.style.left = `${Math.round(rect.right)}px`
-      languageMetaBox.style.top = `${Math.round(getMetaTop())}px`
+      languageMetaBox.style.setProperty(
+        '--homepage-language-meta-left',
+        `${Math.round(rect.right)}px`
+      )
+      languageMetaBox.style.setProperty(
+        '--homepage-language-meta-top',
+        `${Math.round(getMetaTop())}px`
+      )
     }
 
     const showHomeMeta = () => {
       window.clearTimeout(homeHoverTimer)
       positionHomeMeta()
       homeHoverTimer = window.setTimeout(() => {
+        positionHomeMeta()
         document.body.classList.add('meta-home-hover')
       }, 250)
     }
@@ -157,6 +168,7 @@
       window.clearTimeout(languageHoverTimer)
       positionLanguageMeta()
       languageHoverTimer = window.setTimeout(() => {
+        positionLanguageMeta()
         document.body.classList.add('meta-language-hover')
       }, 250)
     }
@@ -167,14 +179,12 @@
     }
 
     const handleResize = () => {
-      if (document.body.classList.contains('meta-home-hover')) {
-        positionHomeMeta()
-      }
-
-      if (document.body.classList.contains('meta-language-hover')) {
-        positionLanguageMeta()
-      }
+      positionHomeMeta()
+      positionLanguageMeta()
     }
+
+    positionHomeMeta()
+    positionLanguageMeta()
 
     homeLink.addEventListener('pointerenter', showHomeMeta)
     homeLink.addEventListener('pointerleave', hideHomeMeta)
