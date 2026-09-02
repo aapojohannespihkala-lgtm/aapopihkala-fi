@@ -21,6 +21,17 @@
     display: none !important;
   }
 
+  html body .hero-linkedin-terminal {
+    transition:
+      max-width 620ms cubic-bezier(0.22, 1, 0.36, 1) !important,
+      opacity 140ms linear !important,
+      transform 620ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+
+  html body .hero-linkedin-terminal.is-active {
+    max-width: 260px !important;
+  }
+
   @media (hover: hover) and (pointer: fine) {
     html body .homepage-sheet-stamp,
     html body .homepage-language-meta-box,
@@ -97,7 +108,8 @@
     html body.meta-language-hover .homepage-language-meta-box,
     html body.meta-linkedin-hover .homepage-linkedin-meta-box,
     html body .hero-location-trigger:hover .hero-location-coordinate,
-    html body .hero-location-trigger:focus-visible .hero-location-coordinate {
+    html body .hero-location-trigger:focus-visible .hero-location-coordinate,
+    html body .hero-linkedin-terminal {
       transition-duration: 0ms !important;
     }
   }
@@ -283,6 +295,257 @@
         linkedinLink.removeEventListener('focus', showLinkedinMeta)
         linkedinLink.removeEventListener('blur', hideLinkedinMeta)
         window.removeEventListener('resize', handleResize)
+      },
+      { once: true }
+    )
+  })()
+
+  ;(() => {
+    const link = document.querySelector('[data-linkedin-terminal-link]')
+    const terminal = document.querySelector('[data-linkedin-terminal]')
+    const text = document.querySelector('[data-linkedin-terminal-text]')
+    const cursor = document.querySelector('[data-linkedin-terminal-cursor]')
+
+    if (!link || !terminal || !text || !cursor) return
+    if (link.dataset.linkedinTerminalRandomized === 'true') return
+    link.dataset.linkedinTerminalRandomized = 'true'
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const storageKey = 'aapo-linkedin-terminal-recent-v1'
+    const messages = [
+      "HELLO?",
+      "YES, YOU.",
+      "CAN YOU HEAR THIS?",
+      "OPEN CHANNEL?",
+      "STILL THERE?",
+      "YOU FOUND THE HUMAN.",
+      "HUMAN NODE ONLINE.",
+      "SAY SOMETHING.",
+      "DON'T JUST HOVER.",
+      "I SEE THE CURSOR.",
+      "CHANNEL AVAILABLE.",
+      "YOU MAY SPEAK NOW.",
+      "CONNECTION POSSIBLE.",
+      "NO BOT HERE.",
+      "THIS LINE IS FOR YOU.",
+      "GO AHEAD.",
+      "TRY HELLO.",
+      "SIGNAL RECEIVED.",
+      "CONTACT WINDOW OPEN.",
+      "ARE YOU STILL READING?",
+      "YES, THIS CHANGES.",
+      "YOU CAME BACK.",
+      "WE NOTICED.",
+      "CURSOR DETECTED.",
+      "PEER FOUND.",
+      "HUMAN ON THE OTHER END.",
+      "READY WHEN YOU ARE.",
+      "SEND A SIGNAL.",
+      "OPEN A CONVERSATION.",
+      "THERE IS SOMEONE HERE.",
+      "THIS IS NOT AN ERROR.",
+      "NOTHING TO DEBUG.",
+      "YOU CAN CLICK THIS.",
+      "WE CAN TALK.",
+      "MAKE CONTACT.",
+      "LINK ESTABLISHED.",
+      "AWAITING INPUT.",
+      "YOUR MOVE.",
+      "INPUT WELCOME.",
+      "NO PASSWORD REQUIRED.",
+      "ACCESS: HUMAN.",
+      "COMMUNICATION ENABLED.",
+      "ENDPOINT RESPONDING.",
+      "PING?",
+      "PONG.",
+      "YOU LOOK CURIOUS.",
+      "CURIOSITY ACCEPTED.",
+      "STAY A SECOND.",
+      "ONE MORE SECOND.",
+      "THERE YOU ARE.",
+      "HELLO FROM THE PAGE.",
+      "THE PAGE SAYS HI.",
+      "THIS BIT IS ALIVE.",
+      "NOT EVERYTHING IS STATIC.",
+      "YOU TRIGGERED THIS.",
+      "THANKS FOR HOVERING.",
+      "YOU FOUND A SIDE CHANNEL.",
+      "SIDE CHANNEL OPEN.",
+      "PRIVATE LINE? NOT REALLY.",
+      "PUBLIC HUMAN INTERFACE.",
+      "CONVERSATION MODE READY.",
+      "SAY THE FIRST THING.",
+      "START WITH HELLO.",
+      "WORDS WORK HERE.",
+      "TRANSMIT THOUGHT.",
+      "REQUEST A RESPONSE.",
+      "CONTACT PROTOCOL READY.",
+      "NO FORM. JUST TALK.",
+      "SKIP THE FORMALITIES.",
+      "THE HUMAN IS REACHABLE.",
+      "REMOTE HUMAN AVAILABLE.",
+      "NETWORK PATH FOUND.",
+      "ROUTE TO HUMAN FOUND.",
+      "CONNECTION LOOKS GOOD.",
+      "LATENCY: HUMAN.",
+      "SIGNAL QUALITY: GOOD.",
+      "NODE STATUS: AWAKE.",
+      "NODE STATUS: LISTENING.",
+      "LISTENER AVAILABLE.",
+      "YOU HAVE THE FLOOR.",
+      "MICROPHONE OPTIONAL.",
+      "TEXT IS FINE.",
+      "THIS COULD BE A MESSAGE.",
+      "MAKE IT A MESSAGE.",
+      "CLICK TO CONTINUE.",
+      "CONTINUE OFF-SITE.",
+      "EXIT TO LINKEDIN?",
+      "OPEN HUMAN PROFILE?",
+      "PROCEED TO CONTACT?",
+      "READY TO CONNECT?",
+      "CONNECTION REQUEST?",
+      "WOULD YOU LIKE TO TALK?",
+      "THE DOOR IS OPEN.",
+      "NO SECRET HANDSHAKE.",
+      "HANDSHAKE ACCEPTED.",
+      "SESSION AVAILABLE.",
+      "NEW SESSION?",
+      "INITIATE CONTACT.",
+      "ESTABLISH HUMAN LINK.",
+      "SAY HELLO →"
+    ]
+
+    let recent = []
+    let active = false
+    const timers = []
+
+    try {
+      const stored = JSON.parse(window.sessionStorage.getItem(storageKey) ?? '[]')
+      if (Array.isArray(stored)) {
+        recent = stored
+          .filter((value) => Number.isInteger(value) && value >= 0 && value < messages.length)
+          .slice(-20)
+      }
+    } catch {}
+
+    const clearTimers = () => {
+      while (timers.length) {
+        window.clearTimeout(timers.pop())
+      }
+    }
+
+    const after = (delay, callback) => {
+      const timer = window.setTimeout(callback, delay)
+      timers.push(timer)
+    }
+
+    const remember = (index) => {
+      recent.push(index)
+      if (recent.length > 20) recent.splice(0, recent.length - 20)
+
+      try {
+        window.sessionStorage.setItem(storageKey, JSON.stringify(recent))
+      } catch {}
+    }
+
+    const pickMessage = () => {
+      const blocked = new Set(recent)
+      const available = messages
+        .map((_, index) => index)
+        .filter((index) => !blocked.has(index))
+      const index = available[Math.floor(Math.random() * available.length)]
+      remember(index)
+      return messages[index]
+    }
+
+    const setText = (value) => {
+      text.textContent = value
+    }
+
+    const typeMessage = (message, index = 0) => {
+      if (!active) return
+
+      setText(message.slice(0, index))
+
+      if (index >= message.length) {
+        if (Math.random() < 0.3) {
+          after(170, () => {
+            if (!active) return
+            text.classList.add('is-glitching')
+            after(42, () => active && text.classList.remove('is-glitching'))
+          })
+        }
+        return
+      }
+
+      const character = message[index]
+      const punctuation = /[?.!:→]/.test(character)
+      const delay = punctuation
+        ? 110 + Math.random() * 90
+        : 54 + Math.random() * 36
+
+      after(delay, () => typeMessage(message, index + 1))
+    }
+
+    const stop = () => {
+      active = false
+      clearTimers()
+      terminal.classList.remove('is-active')
+      text.classList.remove('is-glitching')
+      cursor.classList.remove('is-visible')
+      setText('')
+    }
+
+    const start = () => {
+      if (active) return
+      active = true
+      clearTimers()
+      const message = pickMessage()
+
+      if (reducedMotion) {
+        terminal.classList.add('is-active')
+        cursor.classList.add('is-visible')
+        setText(message)
+        return
+      }
+
+      after(280, () => {
+        if (!active) return
+        terminal.classList.add('is-active')
+        cursor.classList.add('is-visible')
+      })
+
+      after(410, () => {
+        if (!active) return
+        typeMessage(message, 1)
+      })
+    }
+
+    const interceptStart = (event) => {
+      event.stopImmediatePropagation()
+      start()
+    }
+
+    const interceptStop = (event) => {
+      event.stopImmediatePropagation()
+      stop()
+    }
+
+    stop()
+
+    link.addEventListener('pointerenter', interceptStart, true)
+    link.addEventListener('pointerleave', interceptStop, true)
+    link.addEventListener('focus', interceptStart, true)
+    link.addEventListener('blur', interceptStop, true)
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        stop()
+        link.removeEventListener('pointerenter', interceptStart, true)
+        link.removeEventListener('pointerleave', interceptStop, true)
+        link.removeEventListener('focus', interceptStart, true)
+        link.removeEventListener('blur', interceptStop, true)
       },
       { once: true }
     )
