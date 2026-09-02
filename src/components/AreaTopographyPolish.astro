@@ -11,15 +11,15 @@
   html body .site-area-outline {
     fill: none !important;
     stroke: var(--moss-deep) !important;
-    stroke-width: 0.7px !important;
-    opacity: 0.36 !important;
+    stroke-width: 0.72px !important;
+    opacity: 0.38 !important;
   }
 
   html body .site-area-overlay.is-hovering-area .site-area-outline,
   html body .site-area-overlay.is-rotating-area .site-area-outline {
     fill: none !important;
-    stroke-width: 0.82px !important;
-    opacity: 0.54 !important;
+    stroke-width: 0.86px !important;
+    opacity: 0.56 !important;
   }
 
   html body .site-area-centroid-symbol {
@@ -27,16 +27,16 @@
   }
 
   html body .site-area-centroid-symbol.is-visible {
-    opacity: 0.48 !important;
+    opacity: 0.42 !important;
   }
 
   html body .site-area-centroid-symbol line,
   html body .site-area-centroid-ring {
-    stroke-width: 0.72px !important;
+    stroke-width: 0.68px !important;
   }
 
   html body .site-area-centroid-ring {
-    fill: rgba(255, 255, 255, 0.58) !important;
+    fill: rgba(255, 255, 255, 0.54) !important;
   }
 
   .site-area-island {
@@ -76,7 +76,7 @@
 
 <script is:inline>
   (() => {
-    const initialize = async () => {
+    const initialize = () => {
       const island = document.querySelector('[data-area-island]')
       const canvas = document.querySelector('[data-area-island-canvas]')
       const overlay = document.querySelector('[data-area-overlay]')
@@ -87,62 +87,60 @@
       if (island.dataset.areaIslandInitialized === 'true') return
       island.dataset.areaIslandInitialized = 'true'
 
-      let THREE
-
-      try {
-        THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
-      } catch (error) {
-        console.error('Area island topography failed to initialize:', error)
-        return
-      }
+      const context = canvas.getContext('2d')
+      if (!context) return
 
       const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
-      renderer.setClearColor(0xffffff, 0)
 
-      const scene = new THREE.Scene()
-      const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100)
-      camera.position.set(4.25, 3.4, 5.45)
-      camera.lookAt(0, 0.1, 0)
-
-      const terrainGroup = new THREE.Group()
-      terrainGroup.rotation.z = -0.08
-      scene.add(terrainGroup)
-
-      const pointGeometry = new THREE.BufferGeometry()
-      const pointMaterial = new THREE.PointsMaterial({
-        color: 0x353832,
-        size: 0.024,
-        sizeAttenuation: true,
-        transparent: true,
-        opacity: 0.7,
-      })
-      const pointCloud = new THREE.Points(pointGeometry, pointMaterial)
-      terrainGroup.add(pointCloud)
-
-      const contourGroup = new THREE.Group()
-      terrainGroup.add(contourGroup)
-
-      let sourcePolygon = []
-      let currentBounds = null
-      let currentAspect = 1
-      let phase = 0
-      let needsGeometry = false
-      let lastGeometryUpdate = -Infinity
-      let animationFrame = 0
-      let syncFrame = 0
+      let polygon = []
+      let width = 1
+      let height = 1
+      let columns = 0
+      let rows = 0
+      let insideMask = []
+      let shoreField = []
+      let heights = []
       let visible = false
+      let islandSeed = 0
+      let syncFrame = 0
+      let animationFrame = 0
+      let lastDrawAt = -Infinity
+      let wasFinished = false
+      let documentVisible = !document.hidden
 
-      const pointInPolygon = (point, polygon) => {
+      const clamp = (value, minimum, maximum) =>
+        Math.max(minimum, Math.min(maximum, value))
+
+      const parsePathPoints = () => {
+        const d = outline.getAttribute('d') ?? ''
+        const values = d.match(/[-+]?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi)
+        if (!values || values.length < 6) return []
+
+        const numbers = values.map(Number).filter(Number.isFinite)
+        const points = []
+
+        for (let index = 0; index + 1 < numbers.length; index += 2) {
+          points.push({
+            x: numbers[index],
+            y: numbers[index + 1],
+          })
+        }
+
+        return points
+      }
+
+      const pointInPolygon = (point, points) => {
         let inside = false
 
-        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
-          const a = polygon[i]
-          const b = polygon[j]
+        for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
+          const current = points[i]
+          const previous = points[j]
           const crosses =
-            a.y > point.y !== b.y > point.y &&
-            point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y || 0.00001) + a.x
+            current.y > point.y !== previous.y > point.y &&
+            point.x <
+              ((previous.x - current.x) * (point.y - current.y)) /
+                (previous.y - current.y || 0.00001) +
+                current.x
 
           if (crosses) inside = !inside
         }
@@ -154,181 +152,226 @@
         const dx = end.x - start.x
         const dy = end.y - start.y
 
-        if (dx === 0 && dy === 0) return Math.hypot(point.x - start.x, point.y - start.y)
+        if (dx === 0 && dy === 0) {
+          return Math.hypot(point.x - start.x, point.y - start.y)
+        }
 
-        const t = Math.max(
+        const amount = clamp(
+          ((point.x - start.x) * dx + (point.y - start.y) * dy) /
+            (dx * dx + dy * dy),
           0,
-          Math.min(
-            1,
-            ((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy)
-          )
+          1
         )
 
-        const x = start.x + t * dx
-        const y = start.y + t * dy
-        return Math.hypot(point.x - x, point.y - y)
+        const projection = {
+          x: start.x + dx * amount,
+          y: start.y + dy * amount,
+        }
+
+        return Math.hypot(point.x - projection.x, point.y - projection.y)
       }
 
-      const distanceToEdge = (point, polygon) => {
-        let distance = Infinity
+      const distanceToPolygonEdge = (point, points) => {
+        let minimum = Infinity
 
-        for (let index = 0; index < polygon.length; index += 1) {
-          distance = Math.min(
-            distance,
-            distanceToSegment(point, polygon[index], polygon[(index + 1) % polygon.length])
+        for (let index = 0; index < points.length; index += 1) {
+          minimum = Math.min(
+            minimum,
+            distanceToSegment(point, points[index], points[(index + 1) % points.length])
           )
         }
 
-        return distance
+        return minimum
       }
 
-      const parsePathPoints = () => {
-        const d = outline.getAttribute('d') ?? ''
-        const values = d.match(/[-+]?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi)
-        if (!values || values.length < 6) return []
+      const polygonArea = (points) => {
+        let sum = 0
 
-        const numbers = values.map(Number).filter(Number.isFinite)
-        const points = []
-
-        for (let index = 0; index + 1 < numbers.length; index += 2) {
-          points.push({ x: numbers[index], y: numbers[index + 1] })
+        for (let index = 0; index < points.length; index += 1) {
+          const current = points[index]
+          const next = points[(index + 1) % points.length]
+          sum += current.x * next.y - next.x * current.y
         }
 
-        return points
+        return Math.abs(sum) * 0.5
       }
 
-      const clearContours = () => {
-        for (const child of [...contourGroup.children]) {
-          child.geometry.dispose()
-          child.material.dispose()
-          contourGroup.remove(child)
+      const createPolygonPath = () => {
+        const path = new Path2D()
+        if (!polygon.length) return path
+
+        path.moveTo(polygon[0].x, polygon[0].y)
+
+        for (let index = 1; index < polygon.length; index += 1) {
+          path.lineTo(polygon[index].x, polygon[index].y)
         }
+
+        path.closePath()
+        return path
       }
 
-      const normalizedPolygon = (points, bounds) =>
-        points.map((point) => ({
-          x: ((point.x - bounds.minX) / bounds.width) * 2 - 1,
-          y: ((point.y - bounds.minY) / bounds.height) * 2 - 1,
-        }))
+      const broadRelief = (x, y, phase) => {
+        const angle = 0.55 + Math.sin(islandSeed * 0.73) * 0.28
+        const cos = Math.cos(angle)
+        const sin = Math.sin(angle)
+        const rx = x * cos - y * sin
+        const ry = x * sin + y * cos
 
-      const broadRelief = (x, y, localPhase) => {
         const ridge =
-          0.18 * Math.exp(-((x + 0.24) ** 2 * 2.2 + (y - 0.08) ** 2 * 4.6)) +
-          0.11 * Math.exp(-((x - 0.38) ** 2 * 5.0 + (y + 0.24) ** 2 * 3.2))
+          0.16 * Math.exp(-((rx + 0.16) ** 2 * 3.2 + (ry - 0.02) ** 2 * 1.5))
+
+        const shoulder =
+          0.11 * Math.exp(-((x - 0.34) ** 2 * 5.8 + (y + 0.23) ** 2 * 4.1))
+
+        const secondKnoll =
+          0.075 * Math.exp(-((x + 0.42) ** 2 * 6.8 + (y - 0.28) ** 2 * 5.2))
 
         const saddle =
-          -0.075 * Math.exp(-((x - 0.02) ** 2 * 7.5 + (y - 0.12) ** 2 * 5.8))
+          -0.075 * Math.exp(-((x - 0.03) ** 2 * 8.2 + (y - 0.12) ** 2 * 7.2))
 
         const waves =
-          0.09 * Math.sin(x * 2.35 + y * 0.85 + localPhase * 0.22) +
-          0.06 * Math.cos(y * 2.75 - x * 0.7 - localPhase * 0.17) +
-          0.035 * Math.sin((x + y) * 3.4 + localPhase * 0.14)
+          0.062 * Math.sin(x * 2.45 + y * 0.92 + islandSeed + phase * 0.18) +
+          0.044 * Math.cos(y * 2.9 - x * 0.72 + islandSeed * 0.63 - phase * 0.13) +
+          0.026 * Math.sin((x + y) * 3.65 + islandSeed * 0.31 + phase * 0.11)
 
-        return ridge + saddle + waves
+        return ridge + shoulder + secondKnoll + saddle + waves
       }
 
-      const rebuildTerrain = () => {
-        needsGeometry = false
-        if (!sourcePolygon.length || !currentBounds) return
+      const buildBaseField = () => {
+        columns = clamp(Math.round(width / 8.2), 36, 82)
+        rows = clamp(Math.round(height / 8.2), 32, 78)
 
-        const polygon = normalizedPolygon(sourcePolygon, currentBounds)
-        const terrainWidth = 3.7
-        const terrainDepth = 2.9
-        const columns = 86
-        const rows = Math.max(54, Math.min(82, Math.round(columns / Math.max(0.72, currentAspect))))
-        const cellWidth = terrainWidth / columns
-        const cellDepth = terrainDepth / rows
-        const insideMask = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(false))
-        const distanceField = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(0))
-        const heights = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(0))
+        insideMask = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(false))
+        shoreField = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(0))
+        heights = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(0))
 
-        let maxDistance = 0
+        let maximumDistance = 0
 
         for (let row = 0; row <= rows; row += 1) {
-          const py = (row / rows) * 2 - 1
+          const y = (row / rows) * height
 
           for (let column = 0; column <= columns; column += 1) {
-            const px = (column / columns) * 2 - 1
-            const point = { x: px, y: py }
+            const x = (column / columns) * width
+            const point = { x, y }
             const inside = pointInPolygon(point, polygon)
-            insideMask[row][column] = inside
 
+            insideMask[row][column] = inside
             if (!inside) continue
 
-            const distance = distanceToEdge(point, polygon)
-            distanceField[row][column] = distance
-            maxDistance = Math.max(maxDistance, distance)
+            const distance = distanceToPolygonEdge(point, polygon)
+            shoreField[row][column] = distance
+            maximumDistance = Math.max(maximumDistance, distance)
           }
         }
 
-        maxDistance = Math.max(0.0001, maxDistance)
-        const positions = []
-        let minHeight = Infinity
-        let maxHeight = -Infinity
+        maximumDistance = Math.max(0.0001, maximumDistance)
 
         for (let row = 0; row <= rows; row += 1) {
-          const z = -terrainDepth / 2 + cellDepth * row
-          const py = (row / rows) * 2 - 1
+          for (let column = 0; column <= columns; column += 1) {
+            if (!insideMask[row][column]) continue
+            shoreField[row][column] = clamp(shoreField[row][column] / maximumDistance, 0, 1)
+          }
+        }
+      }
+
+      const updateHeights = (phase) => {
+        let maximumHeight = 0
+
+        for (let row = 0; row <= rows; row += 1) {
+          const ny = (row / rows) * 2 - 1
 
           for (let column = 0; column <= columns; column += 1) {
-            const x = -terrainWidth / 2 + cellWidth * column
-            const px = (column / columns) * 2 - 1
+            if (!insideMask[row][column]) {
+              heights[row][column] = 0
+              continue
+            }
 
+            const nx = (column / columns) * 2 - 1
+            const shore = shoreField[row][column]
+            const baseRise = Math.pow(shore, 0.86)
+            const irregularity = broadRelief(nx, ny, phase)
+            const heightValue = Math.max(0, baseRise * (0.78 + irregularity))
+
+            heights[row][column] = heightValue
+            maximumHeight = Math.max(maximumHeight, heightValue)
+          }
+        }
+
+        maximumHeight = Math.max(0.0001, maximumHeight)
+
+        for (let row = 0; row <= rows; row += 1) {
+          for (let column = 0; column <= columns; column += 1) {
+            if (!insideMask[row][column]) continue
+            heights[row][column] = clamp(heights[row][column] / maximumHeight, 0, 1)
+          }
+        }
+      }
+
+      const drawPointCloud = (lift) => {
+        const stepX = width / columns
+        const stepY = height / rows
+        const radius = clamp(Math.min(stepX, stepY) * 0.085, 0.5, 0.88)
+
+        context.save()
+        context.fillStyle = 'rgba(53, 56, 50, 0.48)'
+        context.beginPath()
+
+        for (let row = 0; row <= rows; row += 1) {
+          const baseY = (row / rows) * height
+
+          for (let column = 0; column <= columns; column += 1) {
             if (!insideMask[row][column]) continue
 
-            const shoreDistance = distanceField[row][column] / maxDistance
-            const islandRise = Math.pow(Math.max(0, Math.min(1, shoreDistance)), 0.78)
-            const irregularity = broadRelief(px, py, phase)
-            const height = Math.max(0, islandRise * (0.56 + irregularity))
+            const baseX = (column / columns) * width
+            const terrainHeight = heights[row][column]
+            const jitter = Math.sin((column + 1) * 19.71 + (row + 1) * 7.37 + islandSeed) * 0.35
+            const x = baseX + jitter
+            const y = baseY - terrainHeight * lift
+            const dotRadius = radius * (0.92 + terrainHeight * 0.24)
 
-            heights[row][column] = height
-            positions.push(x, height, z)
-            minHeight = Math.min(minHeight, height)
-            maxHeight = Math.max(maxHeight, height)
+            context.moveTo(x + dotRadius, y)
+            context.arc(x, y, dotRadius, 0, Math.PI * 2)
           }
         }
 
-        pointGeometry.setAttribute(
-          'position',
-          new THREE.Float32BufferAttribute(positions, 3)
-        )
-        pointGeometry.computeBoundingSphere()
+        context.fill()
+        context.restore()
+      }
 
-        clearContours()
+      const interpolateContour = (level, a, b, heightA, heightB) => {
+        const delta = heightB - heightA
+        const amount = Math.abs(delta) < 0.000001 ? 0.5 : (level - heightA) / delta
 
-        if (!Number.isFinite(minHeight) || !Number.isFinite(maxHeight) || maxHeight <= minHeight) return
-
-        const contourLevels = Array.from(
-          { length: 10 },
-          (_, index) => minHeight + ((index + 1) / 11) * (maxHeight - minHeight)
-        )
-
-        const interpolate = (level, a, b, heightA, heightB) => {
-          const delta = heightB - heightA
-          const amount = Math.abs(delta) < 0.000001 ? 0.5 : (level - heightA) / delta
-          return {
-            x: THREE.MathUtils.lerp(a.x, b.x, amount),
-            z: THREE.MathUtils.lerp(a.z, b.z, amount),
-          }
+        return {
+          x: a.x + (b.x - a.x) * amount,
+          y: a.y + (b.y - a.y) * amount,
         }
+      }
 
-        contourLevels.forEach((level, contourIndex) => {
-          const contourPositions = []
+      const drawContours = (lift) => {
+        const stepX = width / columns
+        const stepY = height / rows
+        const levels = [0.09, 0.17, 0.25, 0.33, 0.41, 0.49, 0.57, 0.65, 0.73, 0.81, 0.89]
+
+        levels.forEach((level, levelIndex) => {
+          context.save()
+          context.beginPath()
+          context.lineCap = 'round'
+          context.lineJoin = 'round'
+          context.lineWidth = levelIndex % 3 === 0 ? 0.9 : 0.62
+          context.strokeStyle =
+            levelIndex % 3 === 0
+              ? 'rgba(73, 88, 77, 0.72)'
+              : 'rgba(89, 105, 93, 0.46)'
 
           const addSegment = (a, b) => {
-            contourPositions.push(
-              a.x,
-              level + 0.008,
-              a.z,
-              b.x,
-              level + 0.008,
-              b.z
-            )
+            context.moveTo(a.x, a.y - level * lift)
+            context.lineTo(b.x, b.y - level * lift)
           }
 
           for (let row = 0; row < rows; row += 1) {
-            const z0 = -terrainDepth / 2 + cellDepth * row
-            const z1 = z0 + cellDepth
+            const y0 = row * stepY
+            const y1 = y0 + stepY
 
             for (let column = 0; column < columns; column += 1) {
               if (
@@ -336,29 +379,42 @@
                 !insideMask[row][column + 1] ||
                 !insideMask[row + 1][column + 1] ||
                 !insideMask[row + 1][column]
-              ) continue
+              ) {
+                continue
+              }
 
-              const x0 = -terrainWidth / 2 + cellWidth * column
-              const x1 = x0 + cellWidth
+              const x0 = column * stepX
+              const x1 = x0 + stepX
               const h0 = heights[row][column]
               const h1 = heights[row][column + 1]
               const h2 = heights[row + 1][column + 1]
               const h3 = heights[row + 1][column]
-              const p0 = { x: x0, z: z0 }
-              const p1 = { x: x1, z: z0 }
-              const p2 = { x: x1, z: z1 }
-              const p3 = { x: x0, z: z1 }
+              const p0 = { x: x0, y: y0 }
+              const p1 = { x: x1, y: y0 }
+              const p2 = { x: x1, y: y1 }
+              const p3 = { x: x0, y: y1 }
               const hits = []
 
-              if ((h0 < level) !== (h1 < level)) hits.push(interpolate(level, p0, p1, h0, h1))
-              if ((h1 < level) !== (h2 < level)) hits.push(interpolate(level, p1, p2, h1, h2))
-              if ((h2 < level) !== (h3 < level)) hits.push(interpolate(level, p2, p3, h2, h3))
-              if ((h3 < level) !== (h0 < level)) hits.push(interpolate(level, p3, p0, h3, h0))
+              if ((h0 < level) !== (h1 < level)) {
+                hits.push(interpolateContour(level, p0, p1, h0, h1))
+              }
+
+              if ((h1 < level) !== (h2 < level)) {
+                hits.push(interpolateContour(level, p1, p2, h1, h2))
+              }
+
+              if ((h2 < level) !== (h3 < level)) {
+                hits.push(interpolateContour(level, p2, p3, h2, h3))
+              }
+
+              if ((h3 < level) !== (h0 < level)) {
+                hits.push(interpolateContour(level, p3, p0, h3, h0))
+              }
 
               if (hits.length === 2) {
                 addSegment(hits[0], hits[1])
               } else if (hits.length === 4) {
-                const center = (h0 + h1 + h2 + h3) / 4
+                const center = (h0 + h1 + h2 + h3) * 0.25
 
                 if (center >= level) {
                   addSegment(hits[0], hits[3])
@@ -371,35 +427,46 @@
             }
           }
 
-          if (!contourPositions.length) return
-
-          const geometry = new THREE.BufferGeometry()
-          geometry.setAttribute(
-            'position',
-            new THREE.Float32BufferAttribute(contourPositions, 3)
-          )
-
-          const material = new THREE.LineBasicMaterial({
-            color: 0x59695d,
-            transparent: true,
-            opacity: contourIndex % 3 === 0 ? 0.88 : 0.46,
-          })
-
-          contourGroup.add(new THREE.LineSegments(geometry, material))
+          context.stroke()
+          context.restore()
         })
+      }
+
+      const draw = (phase = 0) => {
+        if (!visible || !polygon.length || !columns || !rows) return
+
+        updateHeights(phase)
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.6)
+        const pixelWidth = Math.max(1, Math.round(width * dpr))
+        const pixelHeight = Math.max(1, Math.round(height * dpr))
+
+        if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+          canvas.width = pixelWidth
+          canvas.height = pixelHeight
+        }
+
+        context.setTransform(dpr, 0, 0, dpr, 0, 0)
+        context.clearRect(0, 0, width, height)
+
+        const polygonPath = createPolygonPath()
+        context.save()
+        context.clip(polygonPath)
+
+        const lift = clamp(Math.min(width, height) * 0.095, 10, 34)
+        drawPointCloud(lift)
+        drawContours(lift)
+
+        context.restore()
       }
 
       const hide = () => {
         visible = false
+        wasFinished = false
         island.classList.remove('is-visible')
         island.style.removeProperty('clip-path')
         island.style.removeProperty('-webkit-clip-path')
-      }
-
-      const resizeRenderer = (width, height) => {
-        renderer.setSize(Math.max(1, Math.round(width)), Math.max(1, Math.round(height)), false)
-        camera.aspect = Math.max(1, width) / Math.max(1, height)
-        camera.updateProjectionMatrix()
+        context.clearRect(0, 0, canvas.width, canvas.height)
       }
 
       const sync = () => {
@@ -420,14 +487,26 @@
         const maxX = Math.max(...xs)
         const minY = Math.min(...ys)
         const maxY = Math.max(...ys)
-        const width = Math.max(1, maxX - minX)
-        const height = Math.max(1, maxY - minY)
-        const bounds = { minX, maxX, minY, maxY, width, height }
 
-        const polygon = points
+        width = Math.max(1, maxX - minX)
+        height = Math.max(1, maxY - minY)
+
+        polygon = points.map((point) => ({
+          x: point.x - minX,
+          y: point.y - minY,
+        }))
+
+        if (!wasFinished) {
+          const area = polygonArea(polygon)
+          islandSeed = ((area % 9973) / 9973) * Math.PI * 2 + polygon.length * 0.137
+        }
+
+        wasFinished = true
+
+        const polygonCss = polygon
           .map((point) => {
-            const x = ((point.x - minX) / width) * 100
-            const y = ((point.y - minY) / height) * 100
+            const x = (point.x / width) * 100
+            const y = (point.y / height) * 100
             return `${x.toFixed(3)}% ${y.toFixed(3)}%`
           })
           .join(', ')
@@ -436,16 +515,13 @@
         island.style.top = `${minY}px`
         island.style.width = `${width}px`
         island.style.height = `${height}px`
-        island.style.clipPath = `polygon(${polygon})`
-        island.style.webkitClipPath = `polygon(${polygon})`
+        island.style.clipPath = `polygon(${polygonCss})`
+        island.style.webkitClipPath = `polygon(${polygonCss})`
         island.classList.add('is-visible')
-
-        sourcePolygon = points
-        currentBounds = bounds
-        currentAspect = width / height
         visible = true
-        resizeRenderer(width, height)
-        needsGeometry = true
+
+        buildBaseField()
+        draw(performance.now() * 0.001)
       }
 
       const scheduleSync = () => {
@@ -454,25 +530,39 @@
       }
 
       const observer = new MutationObserver(scheduleSync)
-      observer.observe(outline, { attributes: true, attributeFilter: ['d'] })
-      observer.observe(centroidSymbol, { attributes: true, attributeFilter: ['class'] })
-      observer.observe(overlay, { attributes: true, attributeFilter: ['class'] })
+
+      observer.observe(outline, {
+        attributes: true,
+        attributeFilter: ['d'],
+      })
+
+      observer.observe(centroidSymbol, {
+        attributes: true,
+        attributeFilter: ['class'],
+      })
+
+      observer.observe(overlay, {
+        attributes: true,
+        attributeFilter: ['class'],
+      })
 
       const animate = (time) => {
         animationFrame = window.requestAnimationFrame(animate)
-        if (!visible) return
 
-        if (!reducedMotion) phase = time * 0.001
+        if (reducedMotion || !visible || !documentVisible) return
+        if (time - lastDrawAt < 125) return
 
-        if (needsGeometry || (!reducedMotion && time - lastGeometryUpdate >= 150)) {
-          rebuildTerrain()
-          lastGeometryUpdate = time
-        }
-
-        renderer.render(scene, camera)
+        lastDrawAt = time
+        draw(time * 0.001)
       }
 
+      const handleVisibility = () => {
+        documentVisible = !document.hidden
+      }
+
+      document.addEventListener('visibilitychange', handleVisibility)
       window.addEventListener('resize', scheduleSync, { passive: true })
+
       scheduleSync()
       animationFrame = window.requestAnimationFrame(animate)
 
@@ -480,13 +570,10 @@
         'pagehide',
         () => {
           observer.disconnect()
+          document.removeEventListener('visibilitychange', handleVisibility)
+          window.removeEventListener('resize', scheduleSync)
           if (syncFrame) window.cancelAnimationFrame(syncFrame)
           if (animationFrame) window.cancelAnimationFrame(animationFrame)
-          window.removeEventListener('resize', scheduleSync)
-          clearContours()
-          pointGeometry.dispose()
-          pointMaterial.dispose()
-          renderer.dispose()
           hide()
         },
         { once: true }
