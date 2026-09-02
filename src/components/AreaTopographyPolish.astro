@@ -1,15 +1,5 @@
----
-import MorphingTopography from './MorphingTopography.astro';
----
-
-<div class="site-area-live-topography" data-area-live-topography aria-hidden="true">
-  <MorphingTopography
-    class="site-area-live-topography__graphic"
-    autoRotate={false}
-    morph={true}
-    showContours={true}
-    enableZoom={false}
-  />
+<div class="site-area-island" data-area-island aria-hidden="true">
+  <canvas class="site-area-island__canvas" data-area-island-canvas></canvas>
 </div>
 
 <style is:global>
@@ -21,15 +11,15 @@ import MorphingTopography from './MorphingTopography.astro';
   html body .site-area-outline {
     fill: none !important;
     stroke: var(--moss-deep) !important;
-    stroke-width: 0.72px !important;
-    opacity: 0.42 !important;
+    stroke-width: 0.7px !important;
+    opacity: 0.36 !important;
   }
 
   html body .site-area-overlay.is-hovering-area .site-area-outline,
   html body .site-area-overlay.is-rotating-area .site-area-outline {
     fill: none !important;
-    stroke-width: 0.86px !important;
-    opacity: 0.62 !important;
+    stroke-width: 0.82px !important;
+    opacity: 0.54 !important;
   }
 
   html body .site-area-centroid-symbol {
@@ -37,23 +27,19 @@ import MorphingTopography from './MorphingTopography.astro';
   }
 
   html body .site-area-centroid-symbol.is-visible {
-    opacity: 0.58 !important;
+    opacity: 0.48 !important;
   }
 
   html body .site-area-centroid-symbol line,
   html body .site-area-centroid-ring {
-    stroke-width: 0.76px !important;
+    stroke-width: 0.72px !important;
   }
 
   html body .site-area-centroid-ring {
-    fill: rgba(255, 255, 255, 0.66) !important;
+    fill: rgba(255, 255, 255, 0.58) !important;
   }
 
-  html body .site-area-centroid-dot {
-    r: 1.05px !important;
-  }
-
-  .site-area-live-topography {
+  .site-area-island {
     position: fixed;
     left: 0;
     top: 0;
@@ -68,33 +54,21 @@ import MorphingTopography from './MorphingTopography.astro';
     transform: translateZ(0);
   }
 
-  .site-area-live-topography.is-visible {
+  .site-area-island.is-visible {
     display: block;
     opacity: 1;
   }
 
-  html body .site-area-live-topography__graphic {
-    position: absolute !important;
-    left: -18% !important;
-    top: -18% !important;
-    width: 136% !important;
-    height: 136% !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
-    cursor: default !important;
-  }
-
-  html body .site-area-live-topography__graphic canvas {
-    width: 100% !important;
-    height: 100% !important;
-    pointer-events: none !important;
-    touch-action: none !important;
+  .site-area-island__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    pointer-events: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .site-area-live-topography {
+    .site-area-island {
       transition: none !important;
     }
   }
@@ -102,45 +76,334 @@ import MorphingTopography from './MorphingTopography.astro';
 
 <script is:inline>
   (() => {
-    const initialize = () => {
-      const liveTopography = document.querySelector('[data-area-live-topography]')
+    const initialize = async () => {
+      const island = document.querySelector('[data-area-island]')
+      const canvas = document.querySelector('[data-area-island-canvas]')
       const overlay = document.querySelector('[data-area-overlay]')
       const outline = document.querySelector('[data-area-path]')
       const centroidSymbol = document.querySelector('[data-area-centroid-symbol]')
 
-      if (!liveTopography || !overlay || !outline || !centroidSymbol) return
-      if (liveTopography.dataset.areaLiveTopographyInitialized === 'true') return
-      liveTopography.dataset.areaLiveTopographyInitialized = 'true'
+      if (!island || !canvas || !overlay || !outline || !centroidSymbol) return
+      if (island.dataset.areaIslandInitialized === 'true') return
+      island.dataset.areaIslandInitialized = 'true'
 
-      let updateFrame = 0
+      let THREE
 
-      const hide = () => {
-        liveTopography.classList.remove('is-visible')
-        liveTopography.style.removeProperty('clip-path')
-        liveTopography.style.removeProperty('-webkit-clip-path')
+      try {
+        THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
+      } catch (error) {
+        console.error('Area island topography failed to initialize:', error)
+        return
+      }
+
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
+      renderer.setClearColor(0xffffff, 0)
+
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100)
+      camera.position.set(4.25, 3.4, 5.45)
+      camera.lookAt(0, 0.1, 0)
+
+      const terrainGroup = new THREE.Group()
+      terrainGroup.rotation.z = -0.08
+      scene.add(terrainGroup)
+
+      const pointGeometry = new THREE.BufferGeometry()
+      const pointMaterial = new THREE.PointsMaterial({
+        color: 0x353832,
+        size: 0.024,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: 0.7,
+      })
+      const pointCloud = new THREE.Points(pointGeometry, pointMaterial)
+      terrainGroup.add(pointCloud)
+
+      const contourGroup = new THREE.Group()
+      terrainGroup.add(contourGroup)
+
+      let sourcePolygon = []
+      let currentBounds = null
+      let currentAspect = 1
+      let phase = 0
+      let needsGeometry = false
+      let lastGeometryUpdate = -Infinity
+      let animationFrame = 0
+      let syncFrame = 0
+      let visible = false
+
+      const pointInPolygon = (point, polygon) => {
+        let inside = false
+
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
+          const a = polygon[i]
+          const b = polygon[j]
+          const crosses =
+            a.y > point.y !== b.y > point.y &&
+            point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y || 0.00001) + a.x
+
+          if (crosses) inside = !inside
+        }
+
+        return inside
+      }
+
+      const distanceToSegment = (point, start, end) => {
+        const dx = end.x - start.x
+        const dy = end.y - start.y
+
+        if (dx === 0 && dy === 0) return Math.hypot(point.x - start.x, point.y - start.y)
+
+        const t = Math.max(
+          0,
+          Math.min(
+            1,
+            ((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy)
+          )
+        )
+
+        const x = start.x + t * dx
+        const y = start.y + t * dy
+        return Math.hypot(point.x - x, point.y - y)
+      }
+
+      const distanceToEdge = (point, polygon) => {
+        let distance = Infinity
+
+        for (let index = 0; index < polygon.length; index += 1) {
+          distance = Math.min(
+            distance,
+            distanceToSegment(point, polygon[index], polygon[(index + 1) % polygon.length])
+          )
+        }
+
+        return distance
       }
 
       const parsePathPoints = () => {
         const d = outline.getAttribute('d') ?? ''
         const values = d.match(/[-+]?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi)
-
         if (!values || values.length < 6) return []
 
         const numbers = values.map(Number).filter(Number.isFinite)
         const points = []
 
         for (let index = 0; index + 1 < numbers.length; index += 2) {
-          points.push({
-            x: numbers[index],
-            y: numbers[index + 1],
-          })
+          points.push({ x: numbers[index], y: numbers[index + 1] })
         }
 
         return points
       }
 
+      const clearContours = () => {
+        for (const child of [...contourGroup.children]) {
+          child.geometry.dispose()
+          child.material.dispose()
+          contourGroup.remove(child)
+        }
+      }
+
+      const normalizedPolygon = (points, bounds) =>
+        points.map((point) => ({
+          x: ((point.x - bounds.minX) / bounds.width) * 2 - 1,
+          y: ((point.y - bounds.minY) / bounds.height) * 2 - 1,
+        }))
+
+      const broadRelief = (x, y, localPhase) => {
+        const ridge =
+          0.18 * Math.exp(-((x + 0.24) ** 2 * 2.2 + (y - 0.08) ** 2 * 4.6)) +
+          0.11 * Math.exp(-((x - 0.38) ** 2 * 5.0 + (y + 0.24) ** 2 * 3.2))
+
+        const saddle =
+          -0.075 * Math.exp(-((x - 0.02) ** 2 * 7.5 + (y - 0.12) ** 2 * 5.8))
+
+        const waves =
+          0.09 * Math.sin(x * 2.35 + y * 0.85 + localPhase * 0.22) +
+          0.06 * Math.cos(y * 2.75 - x * 0.7 - localPhase * 0.17) +
+          0.035 * Math.sin((x + y) * 3.4 + localPhase * 0.14)
+
+        return ridge + saddle + waves
+      }
+
+      const rebuildTerrain = () => {
+        needsGeometry = false
+        if (!sourcePolygon.length || !currentBounds) return
+
+        const polygon = normalizedPolygon(sourcePolygon, currentBounds)
+        const terrainWidth = 3.7
+        const terrainDepth = 2.9
+        const columns = 86
+        const rows = Math.max(54, Math.min(82, Math.round(columns / Math.max(0.72, currentAspect))))
+        const cellWidth = terrainWidth / columns
+        const cellDepth = terrainDepth / rows
+        const insideMask = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(false))
+        const distanceField = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(0))
+        const heights = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(0))
+
+        let maxDistance = 0
+
+        for (let row = 0; row <= rows; row += 1) {
+          const py = (row / rows) * 2 - 1
+
+          for (let column = 0; column <= columns; column += 1) {
+            const px = (column / columns) * 2 - 1
+            const point = { x: px, y: py }
+            const inside = pointInPolygon(point, polygon)
+            insideMask[row][column] = inside
+
+            if (!inside) continue
+
+            const distance = distanceToEdge(point, polygon)
+            distanceField[row][column] = distance
+            maxDistance = Math.max(maxDistance, distance)
+          }
+        }
+
+        maxDistance = Math.max(0.0001, maxDistance)
+        const positions = []
+        let minHeight = Infinity
+        let maxHeight = -Infinity
+
+        for (let row = 0; row <= rows; row += 1) {
+          const z = -terrainDepth / 2 + cellDepth * row
+          const py = (row / rows) * 2 - 1
+
+          for (let column = 0; column <= columns; column += 1) {
+            const x = -terrainWidth / 2 + cellWidth * column
+            const px = (column / columns) * 2 - 1
+
+            if (!insideMask[row][column]) continue
+
+            const shoreDistance = distanceField[row][column] / maxDistance
+            const islandRise = Math.pow(Math.max(0, Math.min(1, shoreDistance)), 0.78)
+            const irregularity = broadRelief(px, py, phase)
+            const height = Math.max(0, islandRise * (0.56 + irregularity))
+
+            heights[row][column] = height
+            positions.push(x, height, z)
+            minHeight = Math.min(minHeight, height)
+            maxHeight = Math.max(maxHeight, height)
+          }
+        }
+
+        pointGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(positions, 3)
+        )
+        pointGeometry.computeBoundingSphere()
+
+        clearContours()
+
+        if (!Number.isFinite(minHeight) || !Number.isFinite(maxHeight) || maxHeight <= minHeight) return
+
+        const contourLevels = Array.from(
+          { length: 10 },
+          (_, index) => minHeight + ((index + 1) / 11) * (maxHeight - minHeight)
+        )
+
+        const interpolate = (level, a, b, heightA, heightB) => {
+          const delta = heightB - heightA
+          const amount = Math.abs(delta) < 0.000001 ? 0.5 : (level - heightA) / delta
+          return {
+            x: THREE.MathUtils.lerp(a.x, b.x, amount),
+            z: THREE.MathUtils.lerp(a.z, b.z, amount),
+          }
+        }
+
+        contourLevels.forEach((level, contourIndex) => {
+          const contourPositions = []
+
+          const addSegment = (a, b) => {
+            contourPositions.push(
+              a.x,
+              level + 0.008,
+              a.z,
+              b.x,
+              level + 0.008,
+              b.z
+            )
+          }
+
+          for (let row = 0; row < rows; row += 1) {
+            const z0 = -terrainDepth / 2 + cellDepth * row
+            const z1 = z0 + cellDepth
+
+            for (let column = 0; column < columns; column += 1) {
+              if (
+                !insideMask[row][column] ||
+                !insideMask[row][column + 1] ||
+                !insideMask[row + 1][column + 1] ||
+                !insideMask[row + 1][column]
+              ) continue
+
+              const x0 = -terrainWidth / 2 + cellWidth * column
+              const x1 = x0 + cellWidth
+              const h0 = heights[row][column]
+              const h1 = heights[row][column + 1]
+              const h2 = heights[row + 1][column + 1]
+              const h3 = heights[row + 1][column]
+              const p0 = { x: x0, z: z0 }
+              const p1 = { x: x1, z: z0 }
+              const p2 = { x: x1, z: z1 }
+              const p3 = { x: x0, z: z1 }
+              const hits = []
+
+              if ((h0 < level) !== (h1 < level)) hits.push(interpolate(level, p0, p1, h0, h1))
+              if ((h1 < level) !== (h2 < level)) hits.push(interpolate(level, p1, p2, h1, h2))
+              if ((h2 < level) !== (h3 < level)) hits.push(interpolate(level, p2, p3, h2, h3))
+              if ((h3 < level) !== (h0 < level)) hits.push(interpolate(level, p3, p0, h3, h0))
+
+              if (hits.length === 2) {
+                addSegment(hits[0], hits[1])
+              } else if (hits.length === 4) {
+                const center = (h0 + h1 + h2 + h3) / 4
+
+                if (center >= level) {
+                  addSegment(hits[0], hits[3])
+                  addSegment(hits[1], hits[2])
+                } else {
+                  addSegment(hits[0], hits[1])
+                  addSegment(hits[2], hits[3])
+                }
+              }
+            }
+          }
+
+          if (!contourPositions.length) return
+
+          const geometry = new THREE.BufferGeometry()
+          geometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute(contourPositions, 3)
+          )
+
+          const material = new THREE.LineBasicMaterial({
+            color: 0x59695d,
+            transparent: true,
+            opacity: contourIndex % 3 === 0 ? 0.88 : 0.46,
+          })
+
+          contourGroup.add(new THREE.LineSegments(geometry, material))
+        })
+      }
+
+      const hide = () => {
+        visible = false
+        island.classList.remove('is-visible')
+        island.style.removeProperty('clip-path')
+        island.style.removeProperty('-webkit-clip-path')
+      }
+
+      const resizeRenderer = (width, height) => {
+        renderer.setSize(Math.max(1, Math.round(width)), Math.max(1, Math.round(height)), false)
+        camera.aspect = Math.max(1, width) / Math.max(1, height)
+        camera.updateProjectionMatrix()
+      }
+
       const sync = () => {
-        updateFrame = 0
+        syncFrame = 0
 
         const finished = centroidSymbol.classList.contains('is-visible')
         const areaModeVisible = overlay.classList.contains('is-visible')
@@ -159,6 +422,7 @@ import MorphingTopography from './MorphingTopography.astro';
         const maxY = Math.max(...ys)
         const width = Math.max(1, maxX - minX)
         const height = Math.max(1, maxY - minY)
+        const bounds = { minX, maxX, minY, maxY, width, height }
 
         const polygon = points
           .map((point) => {
@@ -168,46 +432,61 @@ import MorphingTopography from './MorphingTopography.astro';
           })
           .join(', ')
 
-        liveTopography.style.left = `${minX}px`
-        liveTopography.style.top = `${minY}px`
-        liveTopography.style.width = `${width}px`
-        liveTopography.style.height = `${height}px`
-        liveTopography.style.clipPath = `polygon(${polygon})`
-        liveTopography.style.webkitClipPath = `polygon(${polygon})`
-        liveTopography.classList.add('is-visible')
+        island.style.left = `${minX}px`
+        island.style.top = `${minY}px`
+        island.style.width = `${width}px`
+        island.style.height = `${height}px`
+        island.style.clipPath = `polygon(${polygon})`
+        island.style.webkitClipPath = `polygon(${polygon})`
+        island.classList.add('is-visible')
+
+        sourcePolygon = points
+        currentBounds = bounds
+        currentAspect = width / height
+        visible = true
+        resizeRenderer(width, height)
+        needsGeometry = true
       }
 
       const scheduleSync = () => {
-        if (updateFrame) return
-        updateFrame = window.requestAnimationFrame(sync)
+        if (syncFrame) return
+        syncFrame = window.requestAnimationFrame(sync)
       }
 
       const observer = new MutationObserver(scheduleSync)
+      observer.observe(outline, { attributes: true, attributeFilter: ['d'] })
+      observer.observe(centroidSymbol, { attributes: true, attributeFilter: ['class'] })
+      observer.observe(overlay, { attributes: true, attributeFilter: ['class'] })
 
-      observer.observe(outline, {
-        attributes: true,
-        attributeFilter: ['d'],
-      })
+      const animate = (time) => {
+        animationFrame = window.requestAnimationFrame(animate)
+        if (!visible) return
 
-      observer.observe(centroidSymbol, {
-        attributes: true,
-        attributeFilter: ['class'],
-      })
+        if (!reducedMotion) phase = time * 0.001
 
-      observer.observe(overlay, {
-        attributes: true,
-        attributeFilter: ['class'],
-      })
+        if (needsGeometry || (!reducedMotion && time - lastGeometryUpdate >= 150)) {
+          rebuildTerrain()
+          lastGeometryUpdate = time
+        }
+
+        renderer.render(scene, camera)
+      }
 
       window.addEventListener('resize', scheduleSync, { passive: true })
       scheduleSync()
+      animationFrame = window.requestAnimationFrame(animate)
 
       window.addEventListener(
         'pagehide',
         () => {
           observer.disconnect()
-          if (updateFrame) window.cancelAnimationFrame(updateFrame)
+          if (syncFrame) window.cancelAnimationFrame(syncFrame)
+          if (animationFrame) window.cancelAnimationFrame(animationFrame)
           window.removeEventListener('resize', scheduleSync)
+          clearContours()
+          pointGeometry.dispose()
+          pointMaterial.dispose()
+          renderer.dispose()
           hide()
         },
         { once: true }
