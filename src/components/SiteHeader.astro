@@ -16,62 +16,29 @@ const {
 
 const content = {
   fi: {
-    navLabel:
-      'Päänavigaatio',
-
-    homeLabel:
-      'Aapo Pihkalan etusivu',
-
-    languageText:
-      'EN',
-
-    languageLabel:
-      'English',
-
-    linkedinLabel:
-      'Aapo Pihkala LinkedInissä',
+    navLabel: 'Päänavigaatio',
+    homeLabel: 'Aapo Pihkalan etusivu',
+    languageText: 'EN',
+    languageLabel: 'English',
+    linkedinLabel: 'Aapo Pihkala LinkedInissä',
   },
-
   en: {
-    navLabel:
-      'Main navigation',
-
-    homeLabel:
-      'Aapo Pihkala homepage',
-
-    languageText:
-      'FI',
-
-    languageLabel:
-      'Suomeksi',
-
-    linkedinLabel:
-      'Aapo Pihkala on LinkedIn',
+    navLabel: 'Main navigation',
+    homeLabel: 'Aapo Pihkala homepage',
+    languageText: 'FI',
+    languageLabel: 'Suomeksi',
+    linkedinLabel: 'Aapo Pihkala on LinkedIn',
   },
 } as const;
 
-const t =
-  content[lang];
-
-const currentLanguage =
-  site.languages[lang];
-
-const alternateLanguage =
-  lang === 'fi'
-    ? site.languages.en
-    : site.languages.fi;
+const t = content[lang];
+const currentLanguage = site.languages[lang];
+const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
 ---
 
 <header class="topbar">
-  <nav
-    class="topbar-inner"
-    aria-label={t.navLabel}
-  >
-    <a
-      class="topbar-name"
-      href={currentLanguage.homePath}
-      aria-label={t.homeLabel}
-    >
+  <nav class="topbar-inner" aria-label={t.navLabel}>
+    <a class="topbar-name" href={currentLanguage.homePath} aria-label={t.homeLabel}>
       aapo
     </a>
 
@@ -101,58 +68,30 @@ const alternateLanguage =
           fill="currentColor"
           aria-hidden="true"
         >
-          <path
-            d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"
-          />
+          <path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z" />
         </svg>
       </a>
     </div>
   </nav>
 </header>
 
-<div
-  class="site-grid-easter-egg"
-  data-site-grid
-  aria-hidden="true"
->
+<div class="site-grid-easter-egg" data-site-grid aria-hidden="true">
   <span class="site-grid-label">GRID / 32</span>
 </div>
 
-<div
-  class="site-scroll-readout"
-  data-scroll-readout
-  aria-hidden="true"
->
+<div class="site-scroll-readout" data-scroll-readout aria-hidden="true">
   <span data-scroll-y>Y 0000</span>
   <span class="site-scroll-readout__separator">/</span>
   <span data-scroll-percent>0%</span>
 </div>
 
-<div
-  class="site-measure-easter-egg"
-  data-measure-overlay
-  aria-hidden="true"
->
-  <svg
-    class="site-measure-svg"
-    viewBox="0 0 100 100"
-    preserveAspectRatio="none"
-    aria-hidden="true"
-  >
-    <line
-      data-measure-line
-      x1="0"
-      y1="0"
-      x2="0"
-      y2="0"
-    />
+<div class="site-measure-easter-egg" data-measure-overlay aria-hidden="true">
+  <svg class="site-measure-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+    <line data-measure-line x1="0" y1="0" x2="0" y2="0" />
     <circle data-measure-start cx="0" cy="0" r="3.2" />
     <circle data-measure-end cx="0" cy="0" r="3.2" />
   </svg>
-
-  <span class="site-measure-label" data-measure-label>
-    MEASURE / SET POINT
-  </span>
+  <span class="site-measure-label" data-measure-label>MEASURE / SET POINT</span>
 </div>
 
 <style>
@@ -169,22 +108,14 @@ const alternateLanguage =
     transition: opacity 120ms ease;
   }
 
-  .site-grid-easter-egg.is-visible {
-    opacity: 1;
-  }
+  .site-grid-easter-egg.is-visible { opacity: 1; }
 
   .site-grid-label {
     position: absolute;
     right: 22px;
     bottom: 18px;
     color: var(--moss);
-    font-family:
-      ui-monospace,
-      SFMono-Regular,
-      Menlo,
-      Monaco,
-      Consolas,
-      monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.58rem;
     font-weight: 500;
     line-height: 1;
@@ -202,21 +133,13 @@ const alternateLanguage =
     pointer-events: none;
     opacity: 0;
     color: var(--moss);
-    font-family:
-      ui-monospace,
-      SFMono-Regular,
-      Menlo,
-      Monaco,
-      Consolas,
-      monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.56rem;
     font-weight: 500;
     line-height: 1;
     letter-spacing: 0.07em;
     transform: translateY(3px);
-    transition:
-      opacity 140ms ease,
-      transform 140ms ease;
+    transition: opacity 140ms ease, transform 140ms ease;
   }
 
   .site-scroll-readout.is-visible {
@@ -224,9 +147,7 @@ const alternateLanguage =
     transform: translateY(0);
   }
 
-  .site-scroll-readout__separator {
-    color: var(--stone-light);
-  }
+  .site-scroll-readout__separator { color: var(--stone-light); }
 
   .site-measure-easter-egg {
     position: fixed;
@@ -236,9 +157,7 @@ const alternateLanguage =
     pointer-events: none;
   }
 
-  .site-measure-easter-egg.is-visible {
-    display: block;
-  }
+  .site-measure-easter-egg.is-visible { display: block; }
 
   .site-measure-svg {
     position: absolute;
@@ -271,13 +190,7 @@ const alternateLanguage =
     padding: 4px 6px;
     background: rgba(255, 255, 255, 0.9);
     color: var(--moss-deep);
-    font-family:
-      ui-monospace,
-      SFMono-Regular,
-      Menlo,
-      Monaco,
-      Consolas,
-      monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.56rem;
     font-weight: 500;
     line-height: 1;
@@ -324,21 +237,16 @@ const alternateLanguage =
 
     if (!grid) return
     if (grid.dataset.siteShortcutsInitialized === 'true') return
-
     grid.dataset.siteShortcutsInitialized = 'true'
 
     const isTypingTarget = (target) => {
       if (!(target instanceof Element)) return false
-
-      return Boolean(
-        target.closest(
-          'input, textarea, select, [contenteditable="true"]'
-        )
-      )
+      return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
     }
 
     let measureMode = false
     let measureStart = null
+    let easterCycleIndex = -1
     let lastMeasurePointer = {
       x: window.innerWidth * 0.5,
       y: window.innerHeight * 0.5,
@@ -385,10 +293,7 @@ const alternateLanguage =
       setMeasurePoint(measureEndMarker, x, y)
 
       if (measureLabel) {
-        const roundedDistance = Math.round(distance)
-        const roundedX = Math.round(dx)
-        const roundedY = Math.round(dy)
-        measureLabel.textContent = `${roundedDistance} px / DX ${roundedX} / DY ${roundedY}`
+        measureLabel.textContent = `${Math.round(distance)} px / DX ${Math.round(dx)} / DY ${Math.round(dy)}`
       }
     }
 
@@ -397,11 +302,32 @@ const alternateLanguage =
       measureStart = null
       document.body.classList.toggle('site-measure-mode', active)
       measureOverlay?.classList.toggle('is-visible', active)
-
-      if (active) {
-        updateMeasure(lastMeasurePointer.x, lastMeasurePointer.y)
-      }
+      if (active) updateMeasure(lastMeasurePointer.x, lastMeasurePointer.y)
     }
+
+    const dispatchCycleKey = (key) => {
+      const syntheticEvent = new KeyboardEvent('keydown', {
+        key,
+        bubbles: true,
+        cancelable: true,
+      })
+      Object.defineProperty(syntheticEvent, 'siteEasterEggCycle', {
+        value: true,
+      })
+      window.dispatchEvent(syntheticEvent)
+    }
+
+    const getEasterSequence = () => {
+      const hasHomepageEggs = Boolean(
+        document.querySelector('[data-homepage-contour-lens]')
+      )
+
+      return hasHomepageEggs
+        ? ['g', 'm', 'c', 'n', 'p', 'e', 's', null]
+        : ['g', 'm', null]
+    }
+
+    const blockedLegacyKeys = new Set(['g', 'm', 'c', 'n', 'p', 'e', 's'])
 
     const handleKeydown = (event) => {
       if (event.defaultPrevented) return
@@ -409,16 +335,37 @@ const alternateLanguage =
       if (isTypingTarget(event.target)) return
 
       const key = event.key.toLowerCase()
+      const isCycleSynthetic = event.siteEasterEggCycle === true
+
+      if (!isCycleSynthetic && key === 'a') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+
+        const sequence = getEasterSequence()
+        dispatchCycleKey('Escape')
+        easterCycleIndex = (easterCycleIndex + 1) % sequence.length
+
+        const nextKey = sequence[easterCycleIndex]
+        if (nextKey) dispatchCycleKey(nextKey)
+        return
+      }
+
+      if (!isCycleSynthetic && blockedLegacyKeys.has(key)) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        return
+      }
+
+      if (!isCycleSynthetic && key === 'l') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        window.location.assign('/lab/')
+        return
+      }
 
       if (key === 'g') {
         event.preventDefault()
         grid.classList.toggle('is-visible')
-        return
-      }
-
-      if (key === 'l') {
-        event.preventDefault()
-        window.location.assign('/lab/')
         return
       }
 
@@ -431,31 +378,21 @@ const alternateLanguage =
       if (key === 'escape') {
         grid.classList.remove('is-visible')
         setMeasureMode(false)
+        if (!isCycleSynthetic) easterCycleIndex = -1
       }
     }
 
     const handleMeasurePointerMove = (event) => {
-      lastMeasurePointer = {
-        x: event.clientX,
-        y: event.clientY,
-      }
-
+      lastMeasurePointer = { x: event.clientX, y: event.clientY }
       if (!measureMode) return
       updateMeasure(event.clientX, event.clientY)
     }
 
     const handleMeasurePointerDown = (event) => {
-      if (!measureMode) return
-      if (event.button !== 0) return
-
+      if (!measureMode || event.button !== 0) return
       event.preventDefault()
       event.stopPropagation()
-
-      measureStart = {
-        x: event.clientX,
-        y: event.clientY,
-      }
-
+      measureStart = { x: event.clientX, y: event.clientY }
       updateMeasure(event.clientX, event.clientY)
     }
 
@@ -467,14 +404,8 @@ const alternateLanguage =
       if (!scrollReadout || !scrollYLabel || !scrollPercentLabel) return
 
       const y = Math.max(0, Math.round(window.scrollY))
-      const maximum = Math.max(
-        1,
-        document.documentElement.scrollHeight - window.innerHeight
-      )
-      const percent = Math.max(
-        0,
-        Math.min(100, Math.round((window.scrollY / maximum) * 100))
-      )
+      const maximum = Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
+      const percent = Math.max(0, Math.min(100, Math.round((window.scrollY / maximum) * 100)))
 
       scrollYLabel.textContent = `Y ${String(y).padStart(4, '0')}`
       scrollPercentLabel.textContent = `${percent}%`
@@ -492,9 +423,7 @@ const alternateLanguage =
     }
 
     const initializeDateEasterEggs = () => {
-      const dateElements = document.querySelectorAll('time.post-date')
-
-      dateElements.forEach((dateElement) => {
+      document.querySelectorAll('time.post-date').forEach((dateElement) => {
         if (!(dateElement instanceof HTMLElement)) return
         if (dateElement.dataset.dateEasterEgg === 'true') return
 
@@ -527,16 +456,12 @@ const alternateLanguage =
     }
 
     if (document.readyState === 'loading') {
-      document.addEventListener(
-        'DOMContentLoaded',
-        initializeDateEasterEggs,
-        { once: true }
-      )
+      document.addEventListener('DOMContentLoaded', initializeDateEasterEggs, { once: true })
     } else {
       initializeDateEasterEggs()
     }
 
-    window.addEventListener('keydown', handleKeydown)
+    window.addEventListener('keydown', handleKeydown, true)
     window.addEventListener('pointermove', handleMeasurePointerMove, { passive: true })
     window.addEventListener('pointerdown', handleMeasurePointerDown, true)
     window.addEventListener('scroll', handleScroll, { passive: true })
@@ -546,7 +471,7 @@ const alternateLanguage =
       () => {
         window.clearTimeout(scrollHideTimer)
         if (scrollFrame) window.cancelAnimationFrame(scrollFrame)
-        window.removeEventListener('keydown', handleKeydown)
+        window.removeEventListener('keydown', handleKeydown, true)
         window.removeEventListener('pointermove', handleMeasurePointerMove)
         window.removeEventListener('pointerdown', handleMeasurePointerDown, true)
         window.removeEventListener('scroll', handleScroll)
