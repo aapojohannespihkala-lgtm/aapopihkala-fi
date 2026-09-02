@@ -257,9 +257,12 @@ const personSchema = {
         transform: translateX(0);
       }
 
-      .hero-linkedin-hovertext {
-        display: inline-block;
+      .hero-linkedin-terminal {
+        display: inline-flex;
         max-width: 0;
+        min-width: 0;
+        align-items: baseline;
+        gap: 3px;
         overflow: hidden;
         white-space: nowrap;
         color: var(--moss);
@@ -275,19 +278,61 @@ const personSchema = {
         line-height: 1;
         letter-spacing: 0.05em;
         text-transform: uppercase;
-        opacity: 0.72;
-        transition: max-width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+        opacity: 0;
+        transform: translateX(-5px);
+        transition:
+          max-width 320ms cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 90ms linear,
+          transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
       }
 
-      .hero-linkedin:hover .hero-linkedin-hovertext,
-      .hero-linkedin:focus-visible .hero-linkedin-hovertext {
-        max-width: 180px;
+      .hero-linkedin-terminal.is-active {
+        max-width: 190px;
+        opacity: 0.76;
+        transform: translateX(0);
+      }
+
+      .hero-linkedin-terminal__prompt {
+        color: var(--stone-light);
+      }
+
+      .hero-linkedin-terminal__text {
+        display: inline-block;
+        min-width: 0;
+      }
+
+      .hero-linkedin-terminal__text.is-glitching {
+        transform: translateX(1px);
+        opacity: 0.58;
+      }
+
+      .hero-linkedin-terminal__cursor {
+        display: inline-block;
+        width: 0.62em;
+        color: var(--moss-deep);
+        opacity: 0;
+      }
+
+      .hero-linkedin-terminal__cursor.is-visible {
+        animation: linkedin-terminal-cursor 1.13s steps(1, end) infinite;
+      }
+
+      @keyframes linkedin-terminal-cursor {
+        0%, 34% { opacity: 0.86; }
+        35%, 49% { opacity: 0; }
+        50%, 83% { opacity: 0.86; }
+        84%, 100% { opacity: 0; }
       }
 
       @media (prefers-reduced-motion: reduce) {
         .hero-location-coordinate,
-        .hero-linkedin-hovertext {
+        .hero-linkedin-terminal {
           transition: none;
+        }
+
+        .hero-linkedin-terminal__cursor.is-visible {
+          animation: none;
+          opacity: 0.72;
         }
       }
 
@@ -366,11 +411,24 @@ const personSchema = {
               href={site.linkedinUrl}
               target="_blank"
               rel="noopener"
+              data-linkedin-terminal-link
             >
               <span>LinkedIn</span>
               <span class="hero-linkedin-arrow" aria-hidden="true">↗</span>
-              <span class="hero-linkedin-hovertext" aria-hidden="true">
-                CONNECT THE DOTS →
+              <span
+                class="hero-linkedin-terminal"
+                data-linkedin-terminal
+                aria-hidden="true"
+              >
+                <span class="hero-linkedin-terminal__prompt">&gt;</span>
+                <span
+                  class="hero-linkedin-terminal__text"
+                  data-linkedin-terminal-text
+                ></span>
+                <span
+                  class="hero-linkedin-terminal__cursor"
+                  data-linkedin-terminal-cursor
+                >_</span>
               </span>
             </a>
           </div>
@@ -554,6 +612,105 @@ const personSchema = {
           'pagehide',
           () => {
             window.clearTimeout(hideTimer)
+          },
+          { once: true }
+        )
+      })()
+
+      ;(() => {
+        const link = document.querySelector('[data-linkedin-terminal-link]')
+        const terminal = document.querySelector('[data-linkedin-terminal]')
+        const text = document.querySelector('[data-linkedin-terminal-text]')
+        const cursor = document.querySelector('[data-linkedin-terminal-cursor]')
+
+        if (!link || !terminal || !text || !cursor) return
+        if (link.dataset.linkedinTerminalInitialized === 'true') return
+        link.dataset.linkedinTerminalInitialized = 'true'
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const timers = []
+        let active = false
+
+        const clearTimers = () => {
+          while (timers.length) {
+            window.clearTimeout(timers.pop())
+          }
+        }
+
+        const after = (delay, callback) => {
+          const timer = window.setTimeout(callback, delay)
+          timers.push(timer)
+        }
+
+        const setText = (value) => {
+          text.textContent = value
+        }
+
+        const stop = () => {
+          active = false
+          clearTimers()
+          terminal.classList.remove('is-active')
+          text.classList.remove('is-glitching')
+          cursor.classList.remove('is-visible')
+          setText('')
+        }
+
+        const start = () => {
+          if (active) return
+          active = true
+          clearTimers()
+
+          if (reducedMotion) {
+            terminal.classList.add('is-active')
+            setText('SAY HELLO →')
+            cursor.classList.add('is-visible')
+            return
+          }
+
+          after(250, () => {
+            if (!active) return
+            terminal.classList.add('is-active')
+            cursor.classList.add('is-visible')
+          })
+
+          after(330, () => active && setText('HE'))
+          after(385, () => active && setText('HELL'))
+          after(445, () => active && setText('HELLO?'))
+
+          after(885, () => {
+            if (!active) return
+            setText('Y3S, YOU.')
+            text.classList.add('is-glitching')
+          })
+
+          after(930, () => {
+            if (!active) return
+            text.classList.remove('is-glitching')
+            setText('YES, YOU.')
+          })
+
+          after(1480, () => active && setText('OPEN CHANNEL?'))
+          after(2110, () => active && setText('SAY HELLO →'))
+        }
+
+        const handlePointerEnter = () => start()
+        const handlePointerLeave = () => stop()
+        const handleFocus = () => start()
+        const handleBlur = () => stop()
+
+        link.addEventListener('pointerenter', handlePointerEnter)
+        link.addEventListener('pointerleave', handlePointerLeave)
+        link.addEventListener('focus', handleFocus)
+        link.addEventListener('blur', handleBlur)
+
+        window.addEventListener(
+          'pagehide',
+          () => {
+            stop()
+            link.removeEventListener('pointerenter', handlePointerEnter)
+            link.removeEventListener('pointerleave', handlePointerLeave)
+            link.removeEventListener('focus', handleFocus)
+            link.removeEventListener('blur', handleBlur)
           },
           { once: true }
         )
