@@ -1,0 +1,382 @@
+<div
+  class="homepage-title-ruler"
+  data-homepage-title-ruler
+  aria-hidden="true"
+>
+  <span class="homepage-title-ruler__line"></span>
+  <span class="homepage-title-ruler__label" data-title-ruler-label>TITLE / 000 px</span>
+</div>
+
+<div
+  class="homepage-topography-readout"
+  data-homepage-topography-readout
+  aria-hidden="true"
+>
+  <span class="homepage-topography-readout__cross"></span>
+  <span class="homepage-topography-readout__label" data-topography-readout-label>
+    X +0.00 / Y +0.00
+  </span>
+</div>
+
+<div
+  class="homepage-selection-note"
+  data-homepage-selection-note
+  aria-hidden="true"
+>
+  FIELD NOTE / <span data-selection-count>0</span> CHARS
+</div>
+
+<style>
+  .homepage-title-ruler {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 42;
+    height: 20px;
+    pointer-events: none;
+    opacity: 0;
+    color: var(--moss);
+    transform: translateY(-2px);
+    transition:
+      opacity 120ms ease,
+      transform 120ms ease;
+  }
+
+  .homepage-title-ruler.is-visible {
+    opacity: 0.7;
+    transform: translateY(0);
+  }
+
+  .homepage-title-ruler__line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 7px;
+    height: 8px;
+    border-top: 1px solid currentColor;
+    background-image: repeating-linear-gradient(
+      90deg,
+      currentColor 0,
+      currentColor 1px,
+      transparent 1px,
+      transparent 16px
+    );
+    background-size: 16px 5px;
+    background-repeat: repeat-x;
+    background-position: left top;
+    opacity: 0.56;
+  }
+
+  .homepage-title-ruler__line::before,
+  .homepage-title-ruler__line::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    width: 1px;
+    height: 10px;
+    background: currentColor;
+  }
+
+  .homepage-title-ruler__line::before {
+    left: 0;
+  }
+
+  .homepage-title-ruler__line::after {
+    right: 0;
+  }
+
+  .homepage-title-ruler__label {
+    position: absolute;
+    right: 0;
+    top: 14px;
+    color: var(--moss-deep);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.48rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  .homepage-topography-readout {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 63;
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+    opacity: 0;
+    color: var(--moss-deep);
+    transform: translate(-9px, -9px);
+    transition: opacity 90ms ease;
+  }
+
+  .homepage-topography-readout.is-visible {
+    opacity: 0.84;
+  }
+
+  .homepage-topography-readout__cross::before,
+  .homepage-topography-readout__cross::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    background: currentColor;
+    transform: translate(-50%, -50%);
+  }
+
+  .homepage-topography-readout__cross::before {
+    width: 18px;
+    height: 1px;
+  }
+
+  .homepage-topography-readout__cross::after {
+    width: 1px;
+    height: 18px;
+  }
+
+  .homepage-topography-readout__label {
+    position: absolute;
+    left: 15px;
+    top: 12px;
+    padding: 3px 5px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--line-soft);
+    color: var(--moss-deep);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.47rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .homepage-selection-note {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 64;
+    padding: 4px 6px;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid var(--line-soft);
+    color: var(--moss-deep);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(3px);
+    transition:
+      opacity 120ms ease,
+      transform 120ms ease;
+  }
+
+  .homepage-selection-note.is-visible {
+    opacity: 0.82;
+    transform: translateY(0);
+  }
+
+  @media (max-width: 640px), (hover: none), (pointer: coarse) {
+    .homepage-title-ruler,
+    .homepage-topography-readout {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .homepage-title-ruler,
+    .homepage-topography-readout,
+    .homepage-selection-note {
+      transition: none;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const title = document.querySelector('.hero h1')
+    const heroArt = document.querySelector('.hero-art--interactive')
+    const ruler = document.querySelector('[data-homepage-title-ruler]')
+    const rulerLabel = document.querySelector('[data-title-ruler-label]')
+    const topographyReadout = document.querySelector('[data-homepage-topography-readout]')
+    const topographyReadoutLabel = document.querySelector('[data-topography-readout-label]')
+    const selectionNote = document.querySelector('[data-homepage-selection-note]')
+    const selectionCount = document.querySelector('[data-selection-count]')
+
+    if (
+      !title ||
+      !heroArt ||
+      !ruler ||
+      !topographyReadout ||
+      !selectionNote
+    ) return
+
+    if (ruler.dataset.passiveEasterEggsInitialized === 'true') return
+    ruler.dataset.passiveEasterEggsInitialized = 'true'
+
+    let selectionTimer = 0
+
+    const positionRuler = () => {
+      const rect = title.getBoundingClientRect()
+      ruler.style.left = `${Math.round(rect.left)}px`
+      ruler.style.top = `${Math.round(rect.bottom + 6)}px`
+      ruler.style.width = `${Math.round(rect.width)}px`
+
+      if (rulerLabel) {
+        rulerLabel.textContent = `TITLE / ${Math.round(rect.width)} px`
+      }
+    }
+
+    const showRuler = () => {
+      positionRuler()
+      ruler.classList.add('is-visible')
+    }
+
+    const hideRuler = () => {
+      ruler.classList.remove('is-visible')
+    }
+
+    const updateTopographyReadout = (event) => {
+      const rect = heroArt.getBoundingClientRect()
+      const normalizedX = ((event.clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1
+      const normalizedY = 1 - ((event.clientY - rect.top) / Math.max(1, rect.height)) * 2
+
+      topographyReadout.style.left = `${event.clientX}px`
+      topographyReadout.style.top = `${event.clientY}px`
+
+      if (topographyReadoutLabel) {
+        const x = `${normalizedX >= 0 ? '+' : ''}${normalizedX.toFixed(2)}`
+        const y = `${normalizedY >= 0 ? '+' : ''}${normalizedY.toFixed(2)}`
+        topographyReadoutLabel.textContent = `X ${x} / Y ${y}`
+      }
+    }
+
+    const showTopographyReadout = (event) => {
+      updateTopographyReadout(event)
+      topographyReadout.classList.add('is-visible')
+    }
+
+    const hideTopographyReadout = () => {
+      topographyReadout.classList.remove('is-visible')
+    }
+
+    const hideSelectionNote = () => {
+      window.clearTimeout(selectionTimer)
+      selectionNote.classList.remove('is-visible')
+    }
+
+    const showSelectionNote = () => {
+      const selection = window.getSelection()
+      if (!selection || selection.isCollapsed) {
+        hideSelectionNote()
+        return
+      }
+
+      const text = selection.toString().trim()
+      if (text.length < 4) {
+        hideSelectionNote()
+        return
+      }
+
+      const anchorNode = selection.anchorNode
+      const focusNode = selection.focusNode
+      const anchorElement = anchorNode instanceof Element
+        ? anchorNode
+        : anchorNode?.parentElement
+      const focusElement = focusNode instanceof Element
+        ? focusNode
+        : focusNode?.parentElement
+
+      const insideArticle = Boolean(
+        anchorElement?.closest('.feed-post') &&
+        focusElement?.closest('.feed-post')
+      )
+
+      if (!insideArticle || selection.rangeCount === 0) {
+        hideSelectionNote()
+        return
+      }
+
+      const range = selection.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      if (!rect.width && !rect.height) {
+        hideSelectionNote()
+        return
+      }
+
+      if (selectionCount) selectionCount.textContent = String(text.length)
+
+      const noteWidth = 154
+      const left = Math.max(
+        10,
+        Math.min(window.innerWidth - noteWidth - 10, rect.right + 9)
+      )
+      const top = Math.max(72, rect.top - 2)
+
+      selectionNote.style.left = `${Math.round(left)}px`
+      selectionNote.style.top = `${Math.round(top)}px`
+      selectionNote.classList.add('is-visible')
+
+      window.clearTimeout(selectionTimer)
+      selectionTimer = window.setTimeout(hideSelectionNote, 2600)
+    }
+
+    const handleSelectionChange = () => {
+      window.clearTimeout(selectionTimer)
+      selectionTimer = window.setTimeout(showSelectionNote, 80)
+    }
+
+    title.addEventListener('pointerenter', showRuler)
+    title.addEventListener('pointerleave', hideRuler)
+    title.addEventListener('focusin', showRuler)
+    title.addEventListener('focusout', hideRuler)
+
+    heroArt.addEventListener('pointerenter', showTopographyReadout)
+    heroArt.addEventListener('pointermove', updateTopographyReadout, { passive: true })
+    heroArt.addEventListener('pointerleave', hideTopographyReadout)
+
+    document.addEventListener('selectionchange', handleSelectionChange)
+    window.addEventListener('resize', positionRuler, { passive: true })
+    window.addEventListener('scroll', hideSelectionNote, { passive: true })
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        window.clearTimeout(selectionTimer)
+        title.removeEventListener('pointerenter', showRuler)
+        title.removeEventListener('pointerleave', hideRuler)
+        title.removeEventListener('focusin', showRuler)
+        title.removeEventListener('focusout', hideRuler)
+        heroArt.removeEventListener('pointerenter', showTopographyReadout)
+        heroArt.removeEventListener('pointermove', updateTopographyReadout)
+        heroArt.removeEventListener('pointerleave', hideTopographyReadout)
+        document.removeEventListener('selectionchange', handleSelectionChange)
+        window.removeEventListener('resize', positionRuler)
+        window.removeEventListener('scroll', hideSelectionNote)
+      },
+      { once: true }
+    )
+  })()
+</script>
