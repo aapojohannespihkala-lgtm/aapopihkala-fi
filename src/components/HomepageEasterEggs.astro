@@ -1,0 +1,374 @@
+<div
+  class="homepage-contour-lens"
+  data-homepage-contour-lens
+  aria-hidden="true"
+>
+  <svg
+    class="homepage-contour-lens__svg"
+    viewBox="0 0 180 180"
+    aria-hidden="true"
+  >
+    <path d="M90 16 C126 15 156 39 162 72 C168 107 148 143 115 158 C82 173 40 160 22 129 C4 98 13 57 42 34 C55 23 71 17 90 16 Z" />
+    <path d="M91 33 C121 32 145 51 149 77 C153 104 137 131 111 142 C86 153 54 145 39 121 C24 97 29 68 49 49 C60 39 74 34 91 33 Z" />
+    <path d="M92 49 C114 48 133 61 137 81 C140 102 127 121 108 130 C89 138 66 132 55 115 C44 98 47 77 62 63 C70 55 80 50 92 49 Z" />
+    <path d="M92 64 C109 64 122 74 124 88 C126 103 117 116 103 122 C89 128 73 123 66 111 C58 99 61 84 71 75 C77 69 84 65 92 64 Z" />
+    <path d="M92 77 C103 77 112 84 113 93 C114 103 108 111 99 115 C90 119 80 116 75 108 C70 100 72 90 79 84 C82 80 87 78 92 77 Z" />
+  </svg>
+
+  <span class="homepage-contour-lens__label">CONTOUR / TRACE</span>
+</div>
+
+<div
+  class="homepage-north-marker"
+  data-homepage-north-marker
+  aria-hidden="true"
+>
+  <span class="homepage-north-marker__n">N</span>
+  <svg viewBox="0 0 40 58" aria-hidden="true">
+    <line x1="20" y1="8" x2="20" y2="50" />
+    <line x1="8" y1="29" x2="32" y2="29" />
+    <path d="M20 8 L15 19 L20 16 L25 19 Z" />
+    <circle cx="20" cy="29" r="2.2" />
+  </svg>
+  <span class="homepage-north-marker__bearing">000°</span>
+</div>
+
+<div
+  class="homepage-sheet-stamp"
+  data-homepage-sheet-stamp
+  aria-hidden="true"
+>
+  <span>SHEET A-01</span>
+  <span class="homepage-sheet-stamp__separator">/</span>
+  <span>ESPOO</span>
+  <span class="homepage-sheet-stamp__separator">/</span>
+  <span>60.21 N 24.66 E</span>
+</div>
+
+<style>
+  .homepage-contour-lens {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 44;
+    width: 180px;
+    height: 180px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+    transition:
+      opacity 120ms ease,
+      transform 120ms ease;
+  }
+
+  .homepage-contour-lens.is-visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .homepage-contour-lens__svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .homepage-contour-lens__svg path {
+    fill: none;
+    stroke: var(--moss);
+    stroke-width: 0.75;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.34;
+  }
+
+  .homepage-contour-lens__svg path:nth-child(2),
+  .homepage-contour-lens__svg path:nth-child(4) {
+    stroke: var(--lichen);
+    opacity: 0.48;
+  }
+
+  .homepage-contour-lens__label {
+    position: absolute;
+    left: 50%;
+    bottom: -4px;
+    color: var(--moss);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.52rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    opacity: 0.68;
+  }
+
+  .homepage-north-marker {
+    position: fixed;
+    right: 26px;
+    top: 88px;
+    z-index: 44;
+    width: 42px;
+    display: grid;
+    justify-items: center;
+    pointer-events: none;
+    color: var(--moss);
+    opacity: 0;
+    transform: translateY(-3px);
+    transition:
+      opacity 140ms ease,
+      transform 140ms ease;
+  }
+
+  .homepage-north-marker.is-visible {
+    opacity: 0.72;
+    transform: translateY(0);
+  }
+
+  .homepage-north-marker svg {
+    width: 34px;
+    height: 49px;
+    overflow: visible;
+  }
+
+  .homepage-north-marker line,
+  .homepage-north-marker path,
+  .homepage-north-marker circle {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .homepage-north-marker path {
+    fill: var(--page);
+  }
+
+  .homepage-north-marker__n,
+  .homepage-north-marker__bearing {
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .homepage-north-marker__n {
+    margin-bottom: 2px;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+  }
+
+  .homepage-north-marker__bearing {
+    margin-top: 1px;
+    font-size: 0.48rem;
+    letter-spacing: 0.05em;
+    color: var(--stone);
+  }
+
+  .homepage-sheet-stamp {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 61;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 7px;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--line-soft);
+    color: var(--moss-deep);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(-2px);
+    transition:
+      opacity 120ms ease,
+      transform 120ms ease;
+  }
+
+  .homepage-sheet-stamp.is-visible {
+    opacity: 0.84;
+    transform: translateY(0);
+  }
+
+  .homepage-sheet-stamp__separator {
+    color: var(--stone-light);
+  }
+
+  @media (max-width: 640px), (hover: none), (pointer: coarse) {
+    .homepage-contour-lens,
+    .homepage-north-marker,
+    .homepage-sheet-stamp {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .homepage-contour-lens,
+    .homepage-north-marker,
+    .homepage-sheet-stamp {
+      transition: none;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const contourLens = document.querySelector('[data-homepage-contour-lens]')
+    const northMarker = document.querySelector('[data-homepage-north-marker]')
+    const sheetStamp = document.querySelector('[data-homepage-sheet-stamp]')
+    const homeLink = document.querySelector('.topbar-name')
+
+    if (!contourLens || !northMarker || !sheetStamp || !homeLink) return
+    if (contourLens.dataset.homepageEasterEggsInitialized === 'true') return
+
+    contourLens.dataset.homepageEasterEggsInitialized = 'true'
+
+    const finePointer = window.matchMedia('(pointer: fine) and (hover: hover)')
+    if (!finePointer.matches) return
+
+    let contourVisible = false
+    let northVisible = false
+    let hoverTimer = 0
+    let stampTimer = 0
+    let pointerX = window.innerWidth * 0.5
+    let pointerY = window.innerHeight * 0.5
+
+    const isTypingTarget = (target) => {
+      if (!(target instanceof Element)) return false
+      return Boolean(
+        target.closest('input, textarea, select, [contenteditable="true"]')
+      )
+    }
+
+    const positionContour = () => {
+      contourLens.style.left = `${pointerX}px`
+      contourLens.style.top = `${pointerY}px`
+
+      const paths = contourLens.querySelectorAll('path')
+      const offsetX = (pointerX / Math.max(1, window.innerWidth) - 0.5) * 8
+      const offsetY = (pointerY / Math.max(1, window.innerHeight) - 0.5) * 8
+
+      paths.forEach((path, index) => {
+        const strength = (index + 1) / paths.length
+        path.style.transform = `translate(${offsetX * strength}px, ${offsetY * strength}px)`
+        path.style.transformOrigin = '90px 90px'
+      })
+    }
+
+    const handlePointerMove = (event) => {
+      pointerX = event.clientX
+      pointerY = event.clientY
+      if (contourVisible) positionContour()
+    }
+
+    const setContourVisible = (visible) => {
+      contourVisible = visible
+      contourLens.classList.toggle('is-visible', visible)
+      if (visible) positionContour()
+    }
+
+    const setNorthVisible = (visible) => {
+      northVisible = visible
+      northMarker.classList.toggle('is-visible', visible)
+    }
+
+    const positionStamp = () => {
+      const rect = homeLink.getBoundingClientRect()
+      sheetStamp.style.left = `${Math.round(rect.left)}px`
+      sheetStamp.style.top = `${Math.round(rect.bottom + 8)}px`
+    }
+
+    const hideStamp = () => {
+      window.clearTimeout(stampTimer)
+      sheetStamp.classList.remove('is-visible')
+    }
+
+    const revealStamp = () => {
+      positionStamp()
+      sheetStamp.classList.add('is-visible')
+      window.clearTimeout(stampTimer)
+      stampTimer = window.setTimeout(hideStamp, 3600)
+    }
+
+    const scheduleStamp = () => {
+      window.clearTimeout(hoverTimer)
+      hoverTimer = window.setTimeout(revealStamp, 1400)
+    }
+
+    const cancelScheduledStamp = () => {
+      window.clearTimeout(hoverTimer)
+    }
+
+    const handleKeydown = (event) => {
+      if (event.defaultPrevented) return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      if (isTypingTarget(event.target)) return
+
+      const key = event.key.toLowerCase()
+
+      if (key === 'c') {
+        event.preventDefault()
+        setContourVisible(!contourVisible)
+        return
+      }
+
+      if (key === 'n') {
+        event.preventDefault()
+        setNorthVisible(!northVisible)
+        return
+      }
+
+      if (key === 'escape') {
+        setContourVisible(false)
+        setNorthVisible(false)
+        hideStamp()
+      }
+    }
+
+    homeLink.addEventListener('pointerenter', scheduleStamp)
+    homeLink.addEventListener('pointerleave', cancelScheduledStamp)
+    homeLink.addEventListener('focus', scheduleStamp)
+    homeLink.addEventListener('blur', cancelScheduledStamp)
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
+    window.addEventListener('keydown', handleKeydown)
+    window.addEventListener('resize', hideStamp, { passive: true })
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        window.clearTimeout(hoverTimer)
+        window.clearTimeout(stampTimer)
+        homeLink.removeEventListener('pointerenter', scheduleStamp)
+        homeLink.removeEventListener('pointerleave', cancelScheduledStamp)
+        homeLink.removeEventListener('focus', scheduleStamp)
+        homeLink.removeEventListener('blur', cancelScheduledStamp)
+        window.removeEventListener('pointermove', handlePointerMove)
+        window.removeEventListener('keydown', handleKeydown)
+        window.removeEventListener('resize', hideStamp)
+      },
+      { once: true }
+    )
+  })()
+</script>
