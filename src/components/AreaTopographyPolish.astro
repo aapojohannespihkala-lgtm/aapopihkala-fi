@@ -10,16 +10,17 @@
 
   html body .site-area-outline {
     fill: none !important;
-    stroke: var(--moss-deep) !important;
+    stroke: rgba(104, 132, 148, 0.88) !important;
     stroke-width: 0.72px !important;
-    opacity: 0.38 !important;
+    opacity: 0.5 !important;
   }
 
   html body .site-area-overlay.is-hovering-area .site-area-outline,
   html body .site-area-overlay.is-rotating-area .site-area-outline {
     fill: none !important;
+    stroke: rgba(92, 122, 140, 0.94) !important;
     stroke-width: 0.86px !important;
-    opacity: 0.56 !important;
+    opacity: 0.68 !important;
   }
 
   html body .site-area-centroid-symbol {
@@ -110,6 +111,44 @@
 
       const clamp = (value, minimum, maximum) =>
         Math.max(minimum, Math.min(maximum, value))
+
+      const lerp = (start, end, amount) => start + (end - start) * amount
+
+      const paletteStops = [
+        { at: 0, rgb: [126, 151, 169] },
+        { at: 0.34, rgb: [118, 150, 146] },
+        { at: 0.68, rgb: [153, 157, 117] },
+        { at: 1, rgb: [183, 134, 91] },
+      ]
+
+      const terrainColor = (value, alpha = 1, darken = 0) => {
+        const t = clamp(value, 0, 1)
+        let start = paletteStops[0]
+        let end = paletteStops[paletteStops.length - 1]
+
+        for (let index = 0; index < paletteStops.length - 1; index += 1) {
+          const current = paletteStops[index]
+          const next = paletteStops[index + 1]
+
+          if (t >= current.at && t <= next.at) {
+            start = current
+            end = next
+            break
+          }
+        }
+
+        const span = Math.max(0.0001, end.at - start.at)
+        const local = clamp((t - start.at) / span, 0, 1)
+        const factor = 1 - darken
+        const red = Math.round(lerp(start.rgb[0], end.rgb[0], local) * factor)
+        const green = Math.round(lerp(start.rgb[1], end.rgb[1], local) * factor)
+        const blue = Math.round(lerp(start.rgb[2], end.rgb[2], local) * factor)
+
+        return `rgba(${red}, ${green}, ${blue}, ${alpha})`
+      }
+
+      const terrainTone = (terrainHeight, shore) =>
+        clamp(terrainHeight * 0.72 + shore * 0.28, 0, 1)
 
       const parsePathPoints = () => {
         const d = outline.getAttribute('d') ?? ''
@@ -311,10 +350,8 @@
         const stepX = width / columns
         const stepY = height / rows
         const radius = clamp(Math.min(stepX, stepY) * 0.085, 0.5, 0.88)
-
-        context.save()
-        context.fillStyle = 'rgba(53, 56, 50, 0.48)'
-        context.beginPath()
+        const bandCount = 10
+        const bands = Array.from({ length: bandCount }, () => [])
 
         for (let row = 0; row <= rows; row += 1) {
           const baseY = (row / rows) * height
@@ -324,17 +361,36 @@
 
             const baseX = (column / columns) * width
             const terrainHeight = heights[row][column]
+            const shore = shoreField[row][column]
+            const tone = terrainTone(terrainHeight, shore)
+            const band = clamp(Math.round(tone * (bandCount - 1)), 0, bandCount - 1)
             const jitter = Math.sin((column + 1) * 19.71 + (row + 1) * 7.37 + islandSeed) * 0.35
             const x = baseX + jitter
             const y = baseY - terrainHeight * lift
-            const dotRadius = radius * (0.92 + terrainHeight * 0.24)
+            const dotRadius = radius * (0.9 + terrainHeight * 0.28)
 
-            context.moveTo(x + dotRadius, y)
-            context.arc(x, y, dotRadius, 0, Math.PI * 2)
+            bands[band].push({ x, y, radius: dotRadius })
           }
         }
 
-        context.fill()
+        context.save()
+
+        bands.forEach((points, bandIndex) => {
+          if (!points.length) return
+
+          const tone = bandIndex / Math.max(1, bandCount - 1)
+          const alpha = 0.38 + tone * 0.2
+          context.fillStyle = terrainColor(tone, alpha)
+          context.beginPath()
+
+          points.forEach((point) => {
+            context.moveTo(point.x + point.radius, point.y)
+            context.arc(point.x, point.y, point.radius, 0, Math.PI * 2)
+          })
+
+          context.fill()
+        })
+
         context.restore()
       }
 
@@ -359,10 +415,11 @@
           context.lineCap = 'round'
           context.lineJoin = 'round'
           context.lineWidth = levelIndex % 3 === 0 ? 0.9 : 0.62
-          context.strokeStyle =
-            levelIndex % 3 === 0
-              ? 'rgba(73, 88, 77, 0.72)'
-              : 'rgba(89, 105, 93, 0.46)'
+          context.strokeStyle = terrainColor(
+            level,
+            levelIndex % 3 === 0 ? 0.76 : 0.5,
+            levelIndex % 3 === 0 ? 0.18 : 0.1
+          )
 
           const addSegment = (a, b) => {
             context.moveTo(a.x, a.y - level * lift)
