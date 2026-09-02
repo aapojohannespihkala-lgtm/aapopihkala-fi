@@ -11,6 +11,7 @@ import RootNetwork from '../../components/RootNetwork.astro';
 import WaterDropMorph from '../../components/WaterDropMorph.astro';
 import RiverFlow from '../../components/RiverFlow.astro';
 import AccessibilityStep from '../../components/AccessibilityStep.astro';
+import SegmentedRing from '../../components/SegmentedRing.astro';
 ---
 
 <!doctype html>
@@ -373,6 +374,35 @@ import AccessibilityStep from '../../components/AccessibilityStep.astro';
             </p>
           </footer>
         </article>
+
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">10</p>
+              <h2>Segmented ring</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage experiment-stage--segmented-ring">
+            <div class="experiment-viewport experiment-viewport--segmented-ring">
+              <SegmentedRing />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Kuvan kaksiosainen rengas on rakennettu paksuksi kolmiulotteiseksi muodoksi. Kaksi vastakkaista katkosta pysyvät mukana, kun rengas kiertyy hitaasti tilassa.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · segmented ring · continuous rotation
+            </p>
+          </footer>
+        </article>
       </section>
     </main>
   </body>
@@ -586,6 +616,17 @@ import AccessibilityStep from '../../components/AccessibilityStep.astro';
     margin: 0 auto;
   }
 
+  .experiment-stage--segmented-ring {
+    min-height: 520px;
+  }
+
+  .experiment-viewport--segmented-ring {
+    --lab-hit-width: min(54%, 480px);
+    width: min(100%, 900px);
+    height: clamp(460px, 54vw, 620px);
+    margin: 0 auto;
+  }
+
   .experiment-footer {
     display: flex;
     justify-content: space-between;
@@ -693,6 +734,16 @@ import AccessibilityStep from '../../components/AccessibilityStep.astro';
       --lab-hit-width: 68%;
       width: 100%;
       height: 430px;
+    }
+
+    .experiment-stage--segmented-ring {
+      min-height: 400px;
+    }
+
+    .experiment-viewport--segmented-ring {
+      --lab-hit-width: 62%;
+      width: 100%;
+      height: 400px;
     }
 
     .experiment-footer p + p {
