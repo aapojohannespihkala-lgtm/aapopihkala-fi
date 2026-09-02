@@ -4,7 +4,7 @@
   aria-hidden="true"
 >
   <span class="homepage-title-ruler__line"></span>
-  <span class="homepage-title-ruler__label" data-title-ruler-label>TITLE / 000 px</span>
+  <span class="homepage-title-ruler__label" data-title-ruler-label>X / 000 px</span>
 </div>
 
 <div
@@ -32,6 +32,7 @@
     left: 0;
     top: 0;
     z-index: 42;
+    width: 1px;
     height: 20px;
     pointer-events: none;
     opacity: 0;
@@ -102,6 +103,7 @@
     line-height: 1;
     letter-spacing: 0.06em;
     white-space: nowrap;
+    transform: translateX(50%);
   }
 
   .homepage-topography-readout {
@@ -218,6 +220,8 @@
   (() => {
     const title = document.querySelector('.hero h1')
     const heroArt = document.querySelector('.hero-art--interactive')
+    const topographyRoot = heroArt?.querySelector('[data-morphing-topography]')
+    const topographyCanvas = topographyRoot?.querySelector('canvas')
     const ruler = document.querySelector('[data-homepage-title-ruler]')
     const rulerLabel = document.querySelector('[data-title-ruler-label]')
     const topographyReadout = document.querySelector('[data-homepage-topography-readout]')
@@ -228,6 +232,8 @@
     if (
       !title ||
       !heroArt ||
+      !topographyRoot ||
+      !topographyCanvas ||
       !ruler ||
       !topographyReadout ||
       !selectionNote
@@ -237,29 +243,54 @@
     ruler.dataset.passiveEasterEggsInitialized = 'true'
 
     let selectionTimer = 0
+    let titlePointerX = null
+    let topographyPointerInside = false
+    let topographyDragging = false
 
-    const positionRuler = () => {
+    const updateRuler = (clientX) => {
       const rect = title.getBoundingClientRect()
+      const x = Math.max(rect.left, Math.min(rect.right, clientX))
+      const distance = Math.max(0, x - rect.left)
+
       ruler.style.left = `${Math.round(rect.left)}px`
       ruler.style.top = `${Math.round(rect.bottom + 6)}px`
-      ruler.style.width = `${Math.round(rect.width)}px`
+      ruler.style.width = `${Math.max(1, Math.round(distance))}px`
 
       if (rulerLabel) {
-        rulerLabel.textContent = `TITLE / ${Math.round(rect.width)} px`
+        rulerLabel.textContent = `X / ${Math.round(distance)} px`
       }
     }
 
-    const showRuler = () => {
-      positionRuler()
+    const showRuler = (event) => {
+      titlePointerX = event.clientX
+      updateRuler(titlePointerX)
       ruler.classList.add('is-visible')
     }
 
+    const moveRuler = (event) => {
+      titlePointerX = event.clientX
+      updateRuler(titlePointerX)
+    }
+
     const hideRuler = () => {
+      titlePointerX = null
       ruler.classList.remove('is-visible')
     }
 
+    const isNearVisibleTopography = (event) => {
+      const rect = topographyRoot.getBoundingClientRect()
+      const centerX = rect.left + rect.width * 0.5
+      const centerY = rect.top + rect.height * 0.5
+      const radiusX = rect.width * 0.34
+      const radiusY = rect.height * 0.31
+      const nx = (event.clientX - centerX) / Math.max(1, radiusX)
+      const ny = (event.clientY - centerY) / Math.max(1, radiusY)
+
+      return nx * nx + ny * ny <= 1
+    }
+
     const updateTopographyReadout = (event) => {
-      const rect = heroArt.getBoundingClientRect()
+      const rect = topographyRoot.getBoundingClientRect()
       const normalizedX = ((event.clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1
       const normalizedY = 1 - ((event.clientY - rect.top) / Math.max(1, rect.height)) * 2
 
@@ -273,13 +304,43 @@
       }
     }
 
-    const showTopographyReadout = (event) => {
-      updateTopographyReadout(event)
+    const setTopographyPointerState = (inside, event) => {
+      topographyPointerInside = inside
+
+      if (!inside) {
+        topographyReadout.classList.remove('is-visible')
+        topographyRoot.style.cursor = 'default'
+        topographyCanvas.style.cursor = 'default'
+        return
+      }
+
+      if (event) updateTopographyReadout(event)
       topographyReadout.classList.add('is-visible')
+
+      const cursor = topographyDragging ? 'grabbing' : 'grab'
+      topographyRoot.style.cursor = cursor
+      topographyCanvas.style.cursor = cursor
+    }
+
+    const handleTopographyPointerMove = (event) => {
+      const inside = isNearVisibleTopography(event)
+      setTopographyPointerState(inside, event)
+    }
+
+    const handleTopographyPointerDown = (event) => {
+      if (!isNearVisibleTopography(event)) return
+      topographyDragging = true
+      setTopographyPointerState(true, event)
+    }
+
+    const handleTopographyPointerUp = (event) => {
+      topographyDragging = false
+      setTopographyPointerState(isNearVisibleTopography(event), event)
     }
 
     const hideTopographyReadout = () => {
-      topographyReadout.classList.remove('is-visible')
+      topographyDragging = false
+      setTopographyPointerState(false)
     }
 
     const hideSelectionNote = () => {
@@ -348,17 +409,31 @@
       selectionTimer = window.setTimeout(showSelectionNote, 80)
     }
 
-    title.addEventListener('pointerenter', showRuler)
-    title.addEventListener('pointerleave', hideRuler)
-    title.addEventListener('focusin', showRuler)
-    title.addEventListener('focusout', hideRuler)
+    topographyRoot.style.cursor = 'default'
+    topographyCanvas.style.cursor = 'default'
 
-    heroArt.addEventListener('pointerenter', showTopographyReadout)
-    heroArt.addEventListener('pointermove', updateTopographyReadout, { passive: true })
-    heroArt.addEventListener('pointerleave', hideTopographyReadout)
+    title.addEventListener('pointerenter', showRuler)
+    title.addEventListener('pointermove', moveRuler, { passive: true })
+    title.addEventListener('pointerleave', hideRuler)
+
+    topographyRoot.addEventListener('pointermove', handleTopographyPointerMove, { passive: true })
+    topographyRoot.addEventListener('pointerdown', handleTopographyPointerDown)
+    topographyRoot.addEventListener('pointerup', handleTopographyPointerUp)
+    topographyRoot.addEventListener('pointercancel', hideTopographyReadout)
+    topographyRoot.addEventListener('pointerleave', hideTopographyReadout)
 
     document.addEventListener('selectionchange', handleSelectionChange)
-    window.addEventListener('resize', positionRuler, { passive: true })
+    window.addEventListener(
+      'resize',
+      () => {
+        if (titlePointerX !== null) updateRuler(titlePointerX)
+        if (!topographyPointerInside) {
+          topographyRoot.style.cursor = 'default'
+          topographyCanvas.style.cursor = 'default'
+        }
+      },
+      { passive: true }
+    )
     window.addEventListener('scroll', hideSelectionNote, { passive: true })
 
     window.addEventListener(
@@ -366,14 +441,14 @@
       () => {
         window.clearTimeout(selectionTimer)
         title.removeEventListener('pointerenter', showRuler)
+        title.removeEventListener('pointermove', moveRuler)
         title.removeEventListener('pointerleave', hideRuler)
-        title.removeEventListener('focusin', showRuler)
-        title.removeEventListener('focusout', hideRuler)
-        heroArt.removeEventListener('pointerenter', showTopographyReadout)
-        heroArt.removeEventListener('pointermove', updateTopographyReadout)
-        heroArt.removeEventListener('pointerleave', hideTopographyReadout)
+        topographyRoot.removeEventListener('pointermove', handleTopographyPointerMove)
+        topographyRoot.removeEventListener('pointerdown', handleTopographyPointerDown)
+        topographyRoot.removeEventListener('pointerup', handleTopographyPointerUp)
+        topographyRoot.removeEventListener('pointercancel', hideTopographyReadout)
+        topographyRoot.removeEventListener('pointerleave', hideTopographyReadout)
         document.removeEventListener('selectionchange', handleSelectionChange)
-        window.removeEventListener('resize', positionRuler)
         window.removeEventListener('scroll', hideSelectionNote)
       },
       { once: true }
