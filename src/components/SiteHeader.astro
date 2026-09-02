@@ -90,13 +90,22 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
   <span data-scroll-percent>0%</span>
 </div>
 
-<div class="site-measure-easter-egg" data-measure-overlay aria-hidden="true">
-  <svg class="site-measure-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-    <line data-measure-line x1="0" y1="0" x2="0" y2="0" />
-    <circle data-measure-start cx="0" cy="0" r="3.2" />
-    <circle data-measure-end cx="0" cy="0" r="3.2" />
+<div class="site-a-readout" data-a-readout data-mode="" aria-hidden="true">
+  <span class="site-a-readout__cross"></span>
+  <span class="site-a-readout__label" data-a-readout-label>ELEV +15.0</span>
+</div>
+
+<div class="site-a-axis" data-a-axis aria-hidden="true">
+  <span class="site-a-axis__vertical" data-a-axis-vertical></span>
+  <span class="site-a-axis__horizontal" data-a-axis-horizontal></span>
+</div>
+
+<div class="site-area-overlay" data-area-overlay aria-hidden="true">
+  <svg class="site-area-svg" data-area-svg preserveAspectRatio="none" aria-hidden="true">
+    <path data-area-path />
+    <circle data-area-start r="4" />
   </svg>
-  <span class="site-measure-label" data-measure-label>MEASURE / SET POINT</span>
+  <span class="site-area-label" data-area-label>AREA / DRAW</span>
 </div>
 
 <style>
@@ -138,7 +147,9 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     transition: opacity 120ms ease;
   }
 
-  .site-grid-easter-egg.is-visible { opacity: 1; }
+  .site-grid-easter-egg.is-visible {
+    opacity: 1;
+  }
 
   .site-grid-label {
     position: absolute;
@@ -177,19 +188,116 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     transform: translateY(0);
   }
 
-  .site-scroll-readout__separator { color: var(--stone-light); }
+  .site-scroll-readout__separator {
+    color: var(--stone-light);
+  }
 
-  .site-measure-easter-egg {
+  .site-a-readout {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 72;
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+    opacity: 0;
+    color: var(--moss-deep);
+    transform: translate(-9px, -9px);
+    transition: opacity 90ms ease;
+  }
+
+  .site-a-readout.is-visible {
+    opacity: 0.84;
+  }
+
+  .site-a-readout__cross::before,
+  .site-a-readout__cross::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    background: currentColor;
+    transform: translate(-50%, -50%);
+  }
+
+  .site-a-readout__cross::before {
+    width: 18px;
+    height: 1px;
+  }
+
+  .site-a-readout__cross::after {
+    width: 1px;
+    height: 18px;
+  }
+
+  .site-a-readout__label {
+    position: absolute;
+    left: 15px;
+    top: 12px;
+    padding: 3px 5px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--line-soft);
+    color: var(--moss-deep);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.47rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .site-a-readout[data-mode='cross'] .site-a-readout__label,
+  .site-a-readout[data-mode='area'] .site-a-readout__label,
+  .site-a-readout[data-mode=''] .site-a-readout__label {
+    display: none;
+  }
+
+  .site-a-axis {
     position: fixed;
     inset: 0;
-    z-index: 70;
+    z-index: 71;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 90ms ease;
+  }
+
+  .site-a-axis.is-visible {
+    opacity: 0.36;
+  }
+
+  .site-a-axis__vertical,
+  .site-a-axis__horizontal {
+    position: absolute;
+    background: var(--moss-deep);
+  }
+
+  .site-a-axis__vertical {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+  }
+
+  .site-a-axis__horizontal {
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 1px;
+  }
+
+  .site-area-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 73;
     display: none;
     pointer-events: none;
   }
 
-  .site-measure-easter-egg.is-visible { display: block; }
+  .site-area-overlay.is-visible {
+    display: block;
+  }
 
-  .site-measure-svg {
+  .site-area-svg {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -197,41 +305,49 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     overflow: visible;
   }
 
-  .site-measure-svg line {
-    stroke: var(--moss);
+  .site-area-svg path {
+    fill: rgba(89, 105, 93, 0.075);
+    stroke: var(--moss-deep);
     stroke-width: 1;
-    stroke-dasharray: 5 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
-    opacity: 0.72;
   }
 
-  .site-measure-svg circle {
+  .site-area-svg circle {
     fill: var(--page);
-    stroke: var(--moss);
+    stroke: var(--moss-deep);
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
-    opacity: 0.82;
+    opacity: 0;
   }
 
-  .site-measure-label {
+  .site-area-label {
     position: absolute;
     left: 0;
     top: 0;
-    padding: 4px 6px;
+    padding: 3px 5px;
+    pointer-events: none;
     background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--line-soft);
     color: var(--moss-deep);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.56rem;
+    font-size: 0.47rem;
     font-weight: 500;
     line-height: 1;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     white-space: nowrap;
-    transform: translate(12px, 12px);
+    opacity: 0;
+    transition: opacity 90ms ease;
   }
 
-  :global(body.site-measure-mode),
-  :global(body.site-measure-mode *) {
-    cursor: crosshair !important;
+  .site-area-label.is-visible {
+    opacity: 0.82;
+  }
+
+  :global(body.site-a-mode),
+  :global(body.site-a-mode *) {
+    cursor: none !important;
   }
 
   :global(.post-date[data-date-easter-egg]) {
@@ -248,6 +364,9 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     .language-switch__meta,
     .site-grid-easter-egg,
     .site-scroll-readout,
+    .site-a-readout,
+    .site-a-axis,
+    .site-area-label,
     :global(.post-date[data-date-easter-egg]) {
       transition: none;
     }
@@ -260,13 +379,28 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     const scrollReadout = document.querySelector('[data-scroll-readout]')
     const scrollYLabel = document.querySelector('[data-scroll-y]')
     const scrollPercentLabel = document.querySelector('[data-scroll-percent]')
-    const measureOverlay = document.querySelector('[data-measure-overlay]')
-    const measureLine = document.querySelector('[data-measure-line]')
-    const measureStartMarker = document.querySelector('[data-measure-start]')
-    const measureEndMarker = document.querySelector('[data-measure-end]')
-    const measureLabel = document.querySelector('[data-measure-label]')
+    const aReadout = document.querySelector('[data-a-readout]')
+    const aReadoutLabel = document.querySelector('[data-a-readout-label]')
+    const aAxis = document.querySelector('[data-a-axis]')
+    const aAxisVertical = document.querySelector('[data-a-axis-vertical]')
+    const aAxisHorizontal = document.querySelector('[data-a-axis-horizontal]')
+    const areaOverlay = document.querySelector('[data-area-overlay]')
+    const areaSvg = document.querySelector('[data-area-svg]')
+    const areaPath = document.querySelector('[data-area-path]')
+    const areaStart = document.querySelector('[data-area-start]')
+    const areaLabel = document.querySelector('[data-area-label]')
 
-    if (!grid) return
+    if (
+      !grid ||
+      !aReadout ||
+      !aAxis ||
+      !areaOverlay ||
+      !areaSvg ||
+      !areaPath ||
+      !areaStart ||
+      !areaLabel
+    ) return
+
     if (grid.dataset.siteShortcutsInitialized === 'true') return
     grid.dataset.siteShortcutsInitialized = 'true'
 
@@ -275,90 +409,302 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
     }
 
-    let measureMode = false
-    let measureStart = null
-    let easterCycleIndex = -1
-    let lastMeasurePointer = {
+    const blockedLegacyKeys = new Set(['g', 'm', 'c', 'n', 'p', 'e', 's'])
+    const aModes = ['cross', 'elev', 'grid', 'area', null]
+
+    let activeMode = null
+    let aModeIndex = -1
+    let pointer = {
       x: window.innerWidth * 0.5,
       y: window.innerHeight * 0.5,
     }
 
-    const setMeasurePoint = (element, x, y) => {
-      if (!element) return
-      element.setAttribute('cx', String(x))
-      element.setAttribute('cy', String(y))
+    let drawingArea = false
+    let areaPoints = []
+
+    const setAreaViewBox = () => {
+      areaSvg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
     }
 
-    const setMeasureLine = (x1, y1, x2, y2) => {
-      if (!measureLine) return
-      measureLine.setAttribute('x1', String(x1))
-      measureLine.setAttribute('y1', String(y1))
-      measureLine.setAttribute('x2', String(x2))
-      measureLine.setAttribute('y2', String(y2))
+    const updateReadoutPosition = () => {
+      aReadout.style.left = `${pointer.x}px`
+      aReadout.style.top = `${pointer.y}px`
+
+      if (aAxisVertical) aAxisVertical.style.left = `${pointer.x}px`
+      if (aAxisHorizontal) aAxisHorizontal.style.top = `${pointer.y}px`
+
+      if (aReadoutLabel && (activeMode === 'elev' || activeMode === 'grid')) {
+        const y = Math.max(0, Math.min(window.innerHeight, pointer.y))
+        const level = ((window.innerHeight - y) / Math.max(1, window.innerHeight)) * 30
+        aReadoutLabel.textContent = `ELEV +${level.toFixed(1)}`
+      }
     }
 
-    const positionMeasureLabel = (x, y) => {
-      if (!measureLabel) return
-      measureLabel.style.left = `${x}px`
-      measureLabel.style.top = `${y}px`
+    const polygonArea = (points) => {
+      if (points.length < 3) return 0
+
+      let sum = 0
+
+      for (let i = 0; i < points.length; i += 1) {
+        const current = points[i]
+        const next = points[(i + 1) % points.length]
+        sum += current.x * next.y - next.x * current.y
+      }
+
+      return Math.abs(sum) * 0.5
     }
 
-    const updateMeasure = (x, y) => {
-      lastMeasurePointer = { x, y }
-      positionMeasureLabel(x, y)
+    const polygonCentroid = (points) => {
+      if (points.length < 3) {
+        return points[0] ?? { x: pointer.x, y: pointer.y }
+      }
 
-      if (!measureStart) {
-        setMeasureLine(x, y, x, y)
-        setMeasurePoint(measureStartMarker, x, y)
-        setMeasurePoint(measureEndMarker, x, y)
-        if (measureLabel) measureLabel.textContent = 'MEASURE / SET POINT'
+      let signedArea = 0
+      let cx = 0
+      let cy = 0
+
+      for (let i = 0; i < points.length; i += 1) {
+        const current = points[i]
+        const next = points[(i + 1) % points.length]
+        const factor = current.x * next.y - next.x * current.y
+        signedArea += factor
+        cx += (current.x + next.x) * factor
+        cy += (current.y + next.y) * factor
+      }
+
+      if (Math.abs(signedArea) < 0.001) {
+        const average = points.reduce(
+          (result, point) => ({
+            x: result.x + point.x,
+            y: result.y + point.y,
+          }),
+          { x: 0, y: 0 }
+        )
+
+        return {
+          x: average.x / points.length,
+          y: average.y / points.length,
+        }
+      }
+
+      return {
+        x: cx / (3 * signedArea),
+        y: cy / (3 * signedArea),
+      }
+    }
+
+    const distanceToSegment = (point, start, end) => {
+      const dx = end.x - start.x
+      const dy = end.y - start.y
+
+      if (dx === 0 && dy === 0) {
+        return Math.hypot(point.x - start.x, point.y - start.y)
+      }
+
+      const t = Math.max(
+        0,
+        Math.min(
+          1,
+          ((point.x - start.x) * dx + (point.y - start.y) * dy) /
+            (dx * dx + dy * dy)
+        )
+      )
+
+      const projection = {
+        x: start.x + t * dx,
+        y: start.y + t * dy,
+      }
+
+      return Math.hypot(point.x - projection.x, point.y - projection.y)
+    }
+
+    const simplifyPoints = (points, epsilon = 5.5) => {
+      if (points.length <= 2) return points.slice()
+
+      const start = points[0]
+      const end = points[points.length - 1]
+      let farthestDistance = 0
+      let farthestIndex = -1
+
+      for (let i = 1; i < points.length - 1; i += 1) {
+        const distance = distanceToSegment(points[i], start, end)
+
+        if (distance > farthestDistance) {
+          farthestDistance = distance
+          farthestIndex = i
+        }
+      }
+
+      if (farthestDistance <= epsilon || farthestIndex < 0) {
+        return [start, end]
+      }
+
+      const firstHalf = simplifyPoints(points.slice(0, farthestIndex + 1), epsilon)
+      const secondHalf = simplifyPoints(points.slice(farthestIndex), epsilon)
+
+      return firstHalf.slice(0, -1).concat(secondHalf)
+    }
+
+    const isNearStart = (x, y) => {
+      if (areaPoints.length < 8) return false
+      const start = areaPoints[0]
+      return Math.hypot(x - start.x, y - start.y) <= 15
+    }
+
+    const setAreaLabel = (text, x, y) => {
+      const estimatedWidth = 130
+      const left = Math.max(10, Math.min(window.innerWidth - estimatedWidth - 10, x))
+      const top = Math.max(70, Math.min(window.innerHeight - 30, y))
+
+      areaLabel.textContent = text
+      areaLabel.style.left = `${Math.round(left)}px`
+      areaLabel.style.top = `${Math.round(top)}px`
+      areaLabel.classList.add('is-visible')
+    }
+
+    const clearAreaVisuals = () => {
+      drawingArea = false
+      areaPoints = []
+      areaPath.setAttribute('d', '')
+      areaStart.setAttribute('cx', '0')
+      areaStart.setAttribute('cy', '0')
+      areaStart.style.opacity = '0'
+      areaLabel.classList.remove('is-visible')
+      areaLabel.textContent = 'AREA / DRAW'
+    }
+
+    const renderArea = (previewPoint = null, closed = false) => {
+      if (!areaPoints.length) {
+        areaPath.setAttribute('d', '')
+        areaStart.style.opacity = '0'
         return
       }
 
-      const dx = x - measureStart.x
-      const dy = y - measureStart.y
-      const distance = Math.hypot(dx, dy)
+      const points = previewPoint
+        ? [...areaPoints, previewPoint]
+        : areaPoints
 
-      setMeasureLine(measureStart.x, measureStart.y, x, y)
-      setMeasurePoint(measureStartMarker, measureStart.x, measureStart.y)
-      setMeasurePoint(measureEndMarker, x, y)
+      const d = points
+        .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+        .join(' ')
 
-      if (measureLabel) {
-        measureLabel.textContent = `${Math.round(distance)} px / DX ${Math.round(dx)} / DY ${Math.round(dy)}`
+      areaPath.setAttribute('d', closed ? `${d} Z` : d)
+
+      const start = areaPoints[0]
+      areaStart.setAttribute('cx', String(start.x))
+      areaStart.setAttribute('cy', String(start.y))
+      areaStart.style.opacity = closed ? '0' : '0.82'
+    }
+
+    const startAreaDrawing = (x, y) => {
+      clearAreaVisuals()
+      drawingArea = true
+      areaPoints = [{ x, y }]
+      renderArea({ x, y }, false)
+      setAreaLabel('AREA / DRAW', x + 16, y + 16)
+    }
+
+    const addAreaPoint = (x, y) => {
+      if (!drawingArea) return
+
+      const last = areaPoints[areaPoints.length - 1]
+      if (!last) return
+
+      if (Math.hypot(x - last.x, y - last.y) >= 5) {
+        areaPoints.push({ x, y })
       }
-    }
 
-    const setMeasureMode = (active) => {
-      measureMode = active
-      measureStart = null
-      document.body.classList.toggle('site-measure-mode', active)
-      measureOverlay?.classList.toggle('is-visible', active)
-      if (active) updateMeasure(lastMeasurePointer.x, lastMeasurePointer.y)
-    }
-
-    const dispatchCycleKey = (key) => {
-      const syntheticEvent = new KeyboardEvent('keydown', {
-        key,
-        bubbles: true,
-        cancelable: true,
-      })
-      Object.defineProperty(syntheticEvent, 'siteEasterEggCycle', {
-        value: true,
-      })
-      window.dispatchEvent(syntheticEvent)
-    }
-
-    const getEasterSequence = () => {
-      const hasHomepageEggs = Boolean(
-        document.querySelector('[data-homepage-contour-lens]')
+      renderArea({ x, y }, false)
+      setAreaLabel(
+        isNearStart(x, y) ? 'AREA / CLOSE' : 'AREA / DRAW',
+        x + 16,
+        y + 16
       )
-
-      return hasHomepageEggs
-        ? ['g', 'm', 'c', 'n', 'p', 'e', 's', null]
-        : ['g', 'm', null]
     }
 
-    const blockedLegacyKeys = new Set(['g', 'm', 'c', 'n', 'p', 'e', 's'])
+    const finishAreaDrawing = (x, y, snapToStart = false) => {
+      if (!drawingArea) return
+
+      const start = areaPoints[0]
+      const endPoint = snapToStart && start
+        ? { ...start }
+        : { x, y }
+      const last = areaPoints[areaPoints.length - 1]
+
+      if (!last || Math.hypot(endPoint.x - last.x, endPoint.y - last.y) >= 3) {
+        areaPoints.push(endPoint)
+      }
+
+      drawingArea = false
+
+      if (areaPoints.length < 4) {
+        clearAreaVisuals()
+        return
+      }
+
+      let rawPoints = areaPoints.slice()
+      const rawLast = rawPoints[rawPoints.length - 1]
+
+      if (
+        rawPoints.length > 1 &&
+        Math.hypot(rawLast.x - rawPoints[0].x, rawLast.y - rawPoints[0].y) <= 1
+      ) {
+        rawPoints = rawPoints.slice(0, -1)
+      }
+
+      const simplified = simplifyPoints(rawPoints, 5.5)
+      areaPoints = simplified.length >= 3 ? simplified : rawPoints
+
+      if (areaPoints.length < 3) {
+        clearAreaVisuals()
+        return
+      }
+
+      const area = polygonArea(areaPoints)
+
+      if (area < 25) {
+        clearAreaVisuals()
+        return
+      }
+
+      renderArea(null, true)
+
+      const centroid = polygonCentroid(areaPoints)
+      setAreaLabel(
+        `AREA / ${Math.round(area)} px²`,
+        centroid.x + 14,
+        centroid.y - 16
+      )
+    }
+
+    const setMode = (mode) => {
+      activeMode = mode
+
+      document.body.classList.toggle('site-a-mode', Boolean(mode))
+      aReadout.dataset.mode = mode ?? ''
+      aReadout.classList.toggle('is-visible', Boolean(mode))
+      aAxis.classList.toggle('is-visible', mode === 'elev' || mode === 'grid')
+      grid.classList.toggle('is-visible', mode === 'grid')
+      areaOverlay.classList.toggle('is-visible', mode === 'area')
+
+      if (mode !== 'area') {
+        clearAreaVisuals()
+      } else {
+        clearAreaVisuals()
+      }
+
+      updateReadoutPosition()
+    }
+
+    const cycleAMode = () => {
+      aModeIndex = (aModeIndex + 1) % aModes.length
+      setMode(aModes[aModeIndex])
+    }
+
+    const resetAMode = () => {
+      aModeIndex = -1
+      setMode(null)
+    }
 
     const handleKeydown = (event) => {
       if (event.defaultPrevented) return
@@ -366,65 +712,82 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       if (isTypingTarget(event.target)) return
 
       const key = event.key.toLowerCase()
-      const isCycleSynthetic = event.siteEasterEggCycle === true
 
-      if (!isCycleSynthetic && key === 'a') {
+      if (key === 'a') {
         event.preventDefault()
         event.stopImmediatePropagation()
-
-        const sequence = getEasterSequence()
-        dispatchCycleKey('Escape')
-        easterCycleIndex = (easterCycleIndex + 1) % sequence.length
-
-        const nextKey = sequence[easterCycleIndex]
-        if (nextKey) dispatchCycleKey(nextKey)
+        cycleAMode()
         return
       }
 
-      if (!isCycleSynthetic && blockedLegacyKeys.has(key)) {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        return
-      }
-
-      if (!isCycleSynthetic && key === 'l') {
+      if (key === 'l') {
         event.preventDefault()
         event.stopImmediatePropagation()
         window.location.assign('/lab/')
         return
       }
 
-      if (key === 'g') {
+      if (blockedLegacyKeys.has(key)) {
         event.preventDefault()
-        grid.classList.toggle('is-visible')
-        return
-      }
-
-      if (key === 'm') {
-        event.preventDefault()
-        setMeasureMode(!measureMode)
+        event.stopImmediatePropagation()
         return
       }
 
       if (key === 'escape') {
-        grid.classList.remove('is-visible')
-        setMeasureMode(false)
-        if (!isCycleSynthetic) easterCycleIndex = -1
+        resetAMode()
       }
     }
 
-    const handleMeasurePointerMove = (event) => {
-      lastMeasurePointer = { x: event.clientX, y: event.clientY }
-      if (!measureMode) return
-      updateMeasure(event.clientX, event.clientY)
+    const handlePointerMove = (event) => {
+      pointer = {
+        x: event.clientX,
+        y: event.clientY,
+      }
+
+      updateReadoutPosition()
+
+      if (activeMode !== 'area' || !drawingArea) return
+
+      if (isNearStart(event.clientX, event.clientY)) {
+        renderArea(areaPoints[0], false)
+        setAreaLabel('AREA / CLOSE', event.clientX + 16, event.clientY + 16)
+        finishAreaDrawing(areaPoints[0].x, areaPoints[0].y, true)
+        return
+      }
+
+      addAreaPoint(event.clientX, event.clientY)
     }
 
-    const handleMeasurePointerDown = (event) => {
-      if (!measureMode || event.button !== 0) return
+    const handlePointerDown = (event) => {
+      if (event.button !== 0) return
+
+      pointer = {
+        x: event.clientX,
+        y: event.clientY,
+      }
+
+      updateReadoutPosition()
+
+      if (activeMode !== 'area') return
+
       event.preventDefault()
       event.stopPropagation()
-      measureStart = { x: event.clientX, y: event.clientY }
-      updateMeasure(event.clientX, event.clientY)
+      startAreaDrawing(event.clientX, event.clientY)
+    }
+
+    const handlePointerUp = (event) => {
+      if (event.button !== 0) return
+      if (activeMode !== 'area' || !drawingArea) return
+
+      event.preventDefault()
+      event.stopPropagation()
+      finishAreaDrawing(event.clientX, event.clientY, isNearStart(event.clientX, event.clientY))
+    }
+
+    const handlePointerCancel = () => {
+      if (activeMode === 'area' && drawingArea) {
+        clearAreaVisuals()
+      }
     }
 
     let scrollHideTimer = 0
@@ -486,6 +849,18 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       })
     }
 
+    const handleResize = () => {
+      setAreaViewBox()
+      updateReadoutPosition()
+
+      if (activeMode === 'area') {
+        clearAreaVisuals()
+      }
+    }
+
+    setAreaViewBox()
+    setMode(null)
+
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initializeDateEasterEggs, { once: true })
     } else {
@@ -493,9 +868,12 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     }
 
     window.addEventListener('keydown', handleKeydown, true)
-    window.addEventListener('pointermove', handleMeasurePointerMove, { passive: true })
-    window.addEventListener('pointerdown', handleMeasurePointerDown, true)
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
+    window.addEventListener('pointerdown', handlePointerDown, true)
+    window.addEventListener('pointerup', handlePointerUp, true)
+    window.addEventListener('pointercancel', handlePointerCancel, true)
     window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleResize, { passive: true })
 
     window.addEventListener(
       'pagehide',
@@ -503,10 +881,13 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
         window.clearTimeout(scrollHideTimer)
         if (scrollFrame) window.cancelAnimationFrame(scrollFrame)
         window.removeEventListener('keydown', handleKeydown, true)
-        window.removeEventListener('pointermove', handleMeasurePointerMove)
-        window.removeEventListener('pointerdown', handleMeasurePointerDown, true)
+        window.removeEventListener('pointermove', handlePointerMove)
+        window.removeEventListener('pointerdown', handlePointerDown, true)
+        window.removeEventListener('pointerup', handlePointerUp, true)
+        window.removeEventListener('pointercancel', handlePointerCancel, true)
         window.removeEventListener('scroll', handleScroll)
-        document.body.classList.remove('site-measure-mode')
+        window.removeEventListener('resize', handleResize)
+        document.body.classList.remove('site-a-mode')
       },
       { once: true }
     )
