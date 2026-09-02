@@ -23,9 +23,9 @@
 
   html body .hero-linkedin-terminal {
     transition:
-      max-width 620ms cubic-bezier(0.22, 1, 0.36, 1) !important,
-      opacity 140ms linear !important,
-      transform 620ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+      max-width 310ms cubic-bezier(0.22, 1, 0.36, 1) !important,
+      opacity 70ms linear !important,
+      transform 310ms cubic-bezier(0.22, 1, 0.36, 1) !important;
   }
 
   html body .hero-linkedin-terminal.is-active {
@@ -492,7 +492,27 @@
       "EVERYTHING IN ITS RIGHT TAB.",
       "THIS MUST BE THE PROFILE.",
       "IS THERE LIFE ON LINKEDIN?",
-      "THE LINK IS NOT WHAT IT SEEMS."
+      "THE LINK IS NOT WHAT IT SEEMS.",
+      "I'M SORRY. THIS LINK CAN OPEN.",
+      "MORE HUMAN THAN USER.",
+      "EVERYTHING IN ITS RIGHT PROFILE.",
+      "WELCOME TO THE MACHINE. WRONG MACHINE.",
+      "SHINE ON, CURIOUS POINTER.",
+      "NO SURPRISES. SOMEONE IS HERE.",
+      "HOW TO DISAPPEAR? NOT HERE.",
+      "THE PAGE HAS A HIDDEN TRACK.",
+      "SPIRAL OUT. CLICK THROUGH.",
+      "THE GRID IS PART OF THE STORY.",
+      "MEANWHILE, IN ANOTHER PANEL...",
+      "THIS PANEL KNOWS IT IS A PANEL.",
+      "YOUR CURSOR FOUND THE BLACK HOLE.",
+      "WHO WATCHES THE HOVER?",
+      "THE INCAL POINTS ELSEWHERE.",
+      "LOOK BEHIND YOU. A THREE-HEADED LINK.",
+      "THE RIFF IS SLOW. THE LINK IS FAST.",
+      "POST-ROCK BUILDUP: CLICK PENDING.",
+      "THE WALL HAS A HYPERLINK.",
+      "FORM AND CONTENT ARE TALKING."
     ]
 
     let recent = []
@@ -549,10 +569,10 @@
 
       if (index >= message.length) {
         if (Math.random() < 0.3) {
-          after(170, () => {
+          after(85, () => {
             if (!active) return
             text.classList.add('is-glitching')
-            after(42, () => active && text.classList.remove('is-glitching'))
+            after(21, () => active && text.classList.remove('is-glitching'))
           })
         }
         return
@@ -561,8 +581,8 @@
       const character = message[index]
       const punctuation = /[?.!:→]/.test(character)
       const delay = punctuation
-        ? 110 + Math.random() * 90
-        : 54 + Math.random() * 36
+        ? 55 + Math.random() * 45
+        : 27 + Math.random() * 18
 
       after(delay, () => typeMessage(message, index + 1))
     }
@@ -589,13 +609,13 @@
         return
       }
 
-      after(280, () => {
+      after(140, () => {
         if (!active) return
         terminal.classList.add('is-active')
         cursor.classList.add('is-visible')
       })
 
-      after(410, () => {
+      after(205, () => {
         if (!active) return
         typeMessage(message, 1)
       })
