@@ -49,20 +49,13 @@
     html body .homepage-language-meta-box {
       left: var(--homepage-language-meta-left, 0px) !important;
       top: var(--homepage-language-meta-top, 72px) !important;
-      transform: translate(-100%, -2px) !important;
+      transform: translateY(-2px) !important;
     }
 
-    html body.meta-home-hover .homepage-sheet-stamp {
-      opacity: 0.82 !important;
-      transform: translateY(0) !important;
-      transition:
-        opacity 100ms ease,
-        transform 100ms ease !important;
-    }
-
+    html body.meta-home-hover .homepage-sheet-stamp,
     html body.meta-language-hover .homepage-language-meta-box {
       opacity: 0.82 !important;
-      transform: translate(-100%, 0) !important;
+      transform: translateY(0) !important;
       transition:
         opacity 100ms ease,
         transform 100ms ease !important;
@@ -142,7 +135,7 @@
       const rect = languageLink.getBoundingClientRect()
       languageMetaBox.style.setProperty(
         '--homepage-language-meta-left',
-        `${Math.round(rect.right)}px`
+        `${Math.round(rect.left)}px`
       )
       languageMetaBox.style.setProperty(
         '--homepage-language-meta-top',
