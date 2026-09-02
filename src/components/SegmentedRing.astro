@@ -1,0 +1,307 @@
+---
+interface Props {
+  class?: string
+  autoRotate?: boolean
+  animate?: boolean
+  enableZoom?: boolean
+  scale?: number
+  cameraDistance?: number
+}
+
+const {
+  class: className,
+  autoRotate = true,
+  animate = true,
+  enableZoom = true,
+  scale = 1,
+  cameraDistance = 6.8,
+} = Astro.props
+---
+
+<div
+  class:list={['segmented-ring', className]}
+  data-segmented-ring
+  data-auto-rotate={autoRotate ? 'true' : 'false'}
+  data-animate={animate ? 'true' : 'false'}
+  data-enable-zoom={enableZoom ? 'true' : 'false'}
+  data-scale={scale}
+  data-camera-distance={cameraDistance}
+  aria-hidden="true"
+>
+  <canvas
+    class="segmented-ring__canvas"
+    data-segmented-ring-canvas
+  ></canvas>
+</div>
+
+<style>
+  .segmented-ring {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 280px;
+    overflow: hidden;
+    background: transparent;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .segmented-ring:active {
+    cursor: grabbing;
+  }
+
+  .segmented-ring__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    touch-action: none;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const roots = document.querySelectorAll('[data-segmented-ring]')
+
+    roots.forEach(async (root) => {
+      if (root.dataset.segmentedRingInitialized === 'true') return
+      root.dataset.segmentedRingInitialized = 'true'
+
+      const canvas = root.querySelector('[data-segmented-ring-canvas]')
+      if (!canvas) return
+
+      try {
+        const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
+        const { OrbitControls } = await import(
+          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
+        )
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const wantsAutoRotate = root.dataset.autoRotate !== 'false'
+        const wantsAnimation = root.dataset.animate !== 'false' && !reducedMotion
+        const wantsZoom = root.dataset.enableZoom !== 'false'
+        const requestedScale = Number(root.dataset.scale ?? '1')
+        const requestedCameraDistance = Number(root.dataset.cameraDistance ?? '6.8')
+        const displayScale = Number.isFinite(requestedScale) ? requestedScale : 1
+        const cameraDistance = Number.isFinite(requestedCameraDistance)
+          ? requestedCameraDistance
+          : 6.8
+
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: true,
+          alpha: true,
+        })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6))
+        renderer.setClearColor(0xffffff, 0)
+
+        const scene = new THREE.Scene()
+        const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
+        camera.position.set(0.2, 0.35, cameraDistance)
+
+        const ringGroup = new THREE.Group()
+        ringGroup.scale.setScalar(displayScale)
+        ringGroup.rotation.x = -0.08
+        ringGroup.rotation.y = 0.12
+        scene.add(ringGroup)
+
+        const controls = new OrbitControls(camera, renderer.domElement)
+        controls.enablePan = false
+        controls.enableZoom = wantsZoom
+        controls.enableDamping = true
+        controls.dampingFactor = 0.055
+        controls.rotateSpeed = 0.55
+        controls.target.set(0, 0, 0)
+        controls.autoRotate = wantsAutoRotate && !reducedMotion
+        controls.autoRotateSpeed = 0.2
+
+        if (wantsZoom) {
+          controls.minDistance = 4.9
+          controls.maxDistance = 8.9
+          controls.zoomSpeed = 0.5
+        } else {
+          const direction = camera.position.clone().sub(controls.target).normalize()
+          camera.position.copy(controls.target).add(direction.multiplyScalar(cameraDistance))
+          controls.minDistance = cameraDistance
+          controls.maxDistance = cameraDistance
+        }
+
+        const innerRadius = 1.15
+        const outerRadius = 1.82
+        const depth = 0.16
+        const radialSegments = 96
+
+        const deg = (value) => value * Math.PI / 180
+
+        const buildArcGeometry = (startAngle, endAngle) => {
+          const vertices = []
+          const halfDepth = depth * 0.5
+          const length = endAngle - startAngle
+
+          const addTriangle = (a, b, c) => {
+            vertices.push(...a, ...b, ...c)
+          }
+
+          for (let index = 0; index < radialSegments; index += 1) {
+            const t0 = index / radialSegments
+            const t1 = (index + 1) / radialSegments
+            const a0 = startAngle + length * t0
+            const a1 = startAngle + length * t1
+
+            const outer0Front = [Math.cos(a0) * outerRadius, Math.sin(a0) * outerRadius, halfDepth]
+            const outer1Front = [Math.cos(a1) * outerRadius, Math.sin(a1) * outerRadius, halfDepth]
+            const inner0Front = [Math.cos(a0) * innerRadius, Math.sin(a0) * innerRadius, halfDepth]
+            const inner1Front = [Math.cos(a1) * innerRadius, Math.sin(a1) * innerRadius, halfDepth]
+
+            const outer0Back = [Math.cos(a0) * outerRadius, Math.sin(a0) * outerRadius, -halfDepth]
+            const outer1Back = [Math.cos(a1) * outerRadius, Math.sin(a1) * outerRadius, -halfDepth]
+            const inner0Back = [Math.cos(a0) * innerRadius, Math.sin(a0) * innerRadius, -halfDepth]
+            const inner1Back = [Math.cos(a1) * innerRadius, Math.sin(a1) * innerRadius, -halfDepth]
+
+            addTriangle(outer0Front, inner0Front, outer1Front)
+            addTriangle(outer1Front, inner0Front, inner1Front)
+
+            addTriangle(outer0Back, outer1Back, inner0Back)
+            addTriangle(outer1Back, inner1Back, inner0Back)
+
+            addTriangle(outer0Front, outer1Back, outer0Back)
+            addTriangle(outer0Front, outer1Front, outer1Back)
+
+            addTriangle(inner0Front, inner0Back, inner1Back)
+            addTriangle(inner0Front, inner1Back, inner1Front)
+          }
+
+          const addEndCap = (angle, reverse = false) => {
+            const outerFront = [Math.cos(angle) * outerRadius, Math.sin(angle) * outerRadius, halfDepth]
+            const innerFront = [Math.cos(angle) * innerRadius, Math.sin(angle) * innerRadius, halfDepth]
+            const outerBack = [Math.cos(angle) * outerRadius, Math.sin(angle) * outerRadius, -halfDepth]
+            const innerBack = [Math.cos(angle) * innerRadius, Math.sin(angle) * innerRadius, -halfDepth]
+
+            if (reverse) {
+              addTriangle(outerFront, outerBack, innerFront)
+              addTriangle(outerBack, innerBack, innerFront)
+            } else {
+              addTriangle(outerFront, innerFront, outerBack)
+              addTriangle(outerBack, innerFront, innerBack)
+            }
+          }
+
+          addEndCap(startAngle, true)
+          addEndCap(endAngle, false)
+
+          const geometry = new THREE.BufferGeometry()
+          geometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute(vertices, 3)
+          )
+          geometry.computeVertexNormals()
+          return geometry
+        }
+
+        const material = new THREE.MeshStandardMaterial({
+          color: 0xf1f0eb,
+          roughness: 0.88,
+          metalness: 0,
+          transparent: true,
+          opacity: 0.98,
+          side: THREE.DoubleSide,
+        })
+
+        const arcA = new THREE.Mesh(
+          buildArcGeometry(deg(142), deg(308)),
+          material
+        )
+
+        const arcB = new THREE.Mesh(
+          buildArcGeometry(deg(322), deg(488)),
+          material
+        )
+
+        ringGroup.add(arcA, arcB)
+
+        const ambient = new THREE.AmbientLight(0xffffff, 1.7)
+        scene.add(ambient)
+
+        const key = new THREE.DirectionalLight(0xffffff, 1.05)
+        key.position.set(3.2, 4.5, 5.5)
+        scene.add(key)
+
+        const fill = new THREE.DirectionalLight(0xbfc8c0, 0.38)
+        fill.position.set(-4, -1.5, 3)
+        scene.add(fill)
+
+        const resize = () => {
+          const rect = root.getBoundingClientRect()
+          const width = Math.max(1, Math.round(rect.width))
+          const height = Math.max(1, Math.round(rect.height))
+
+          renderer.setSize(width, height, false)
+          camera.aspect = width / height
+          camera.updateProjectionMatrix()
+        }
+
+        const resizeObserver = new ResizeObserver(resize)
+        resizeObserver.observe(root)
+        resize()
+
+        let isVisible = true
+        let isDocumentVisible = !document.hidden
+        let animationFrame = 0
+        let previousTime = performance.now()
+
+        const intersectionObserver = new IntersectionObserver(
+          (entries) => {
+            isVisible = entries.some((entry) => entry.isIntersecting)
+          },
+          { rootMargin: '160px' }
+        )
+        intersectionObserver.observe(root)
+
+        const handleVisibility = () => {
+          isDocumentVisible = !document.hidden
+        }
+        document.addEventListener('visibilitychange', handleVisibility)
+
+        const animateFrame = (time) => {
+          animationFrame = requestAnimationFrame(animateFrame)
+          if (!isVisible || !isDocumentVisible) {
+            previousTime = time
+            return
+          }
+
+          const delta = Math.min(0.05, Math.max(0, (time - previousTime) / 1000))
+          previousTime = time
+          const seconds = time * 0.001
+
+          if (wantsAnimation) {
+            ringGroup.rotation.z += delta * 0.18
+            ringGroup.rotation.x = -0.08 + Math.sin(seconds * 0.34) * 0.11
+            ringGroup.rotation.y = 0.12 + Math.sin(seconds * 0.27 + 0.8) * 0.1
+          }
+
+          controls.update()
+          renderer.render(scene, camera)
+        }
+
+        animationFrame = requestAnimationFrame(animateFrame)
+
+        const cleanup = () => {
+          cancelAnimationFrame(animationFrame)
+          document.removeEventListener('visibilitychange', handleVisibility)
+          resizeObserver.disconnect()
+          intersectionObserver.disconnect()
+          controls.dispose()
+          arcA.geometry.dispose()
+          arcB.geometry.dispose()
+          material.dispose()
+          renderer.dispose()
+        }
+
+        window.addEventListener('pagehide', cleanup, { once: true })
+      } catch (error) {
+        console.error('SegmentedRing failed to initialize:', error)
+      }
+    })
+  })()
+</script>
