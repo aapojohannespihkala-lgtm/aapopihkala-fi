@@ -1,0 +1,174 @@
+<style is:global>
+  html body .site-area-outline {
+    fill: none !important;
+    stroke: var(--moss-deep) !important;
+    stroke-width: 0.78px !important;
+    opacity: 0.48 !important;
+  }
+
+  html body .site-area-overlay.is-hovering-area .site-area-outline,
+  html body .site-area-overlay.is-rotating-area .site-area-outline {
+    fill: none !important;
+    stroke-width: 0.9px !important;
+    opacity: 0.68 !important;
+  }
+
+  html body .site-area-point {
+    fill: var(--moss-deep) !important;
+    stroke: none !important;
+    opacity: 0.3 !important;
+    transform-box: fill-box !important;
+    transform-origin: center !important;
+    transform: scale(0.52) !important;
+  }
+
+  html body .site-area-point.is-edge,
+  html body .site-area-point.is-high {
+    fill: var(--moss-deep) !important;
+    opacity: 0.3 !important;
+  }
+
+  html body .site-area-point-clone {
+    color: var(--moss-deep) !important;
+    opacity: 0.23 !important;
+    pointer-events: none !important;
+  }
+
+  html body .site-area-contours {
+    fill: none !important;
+    stroke: var(--moss-deep) !important;
+    stroke-width: 0.72px !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    vector-effect: non-scaling-stroke !important;
+    opacity: 0.46 !important;
+  }
+
+  html body .site-area-centroid-symbol {
+    opacity: 0 !important;
+    transform-box: fill-box !important;
+    transform-origin: center !important;
+  }
+
+  html body .site-area-centroid-symbol.is-visible {
+    opacity: 0.62 !important;
+  }
+
+  html body .site-area-centroid-symbol line,
+  html body .site-area-centroid-ring {
+    stroke-width: 0.8px !important;
+  }
+
+  html body .site-area-centroid-ring {
+    fill: rgba(255, 255, 255, 0.72) !important;
+  }
+
+  html body .site-area-centroid-dot {
+    r: 1.15px !important;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const svgNamespace = 'http://www.w3.org/2000/svg'
+
+    const initialize = () => {
+      const svg = document.querySelector('[data-area-svg]')
+      const outline = document.querySelector('[data-area-path]')
+      const topography = document.querySelector('[data-area-topography]')
+      const pointsGroup = document.querySelector('[data-area-points]')
+
+      if (!svg || !outline || !topography || !pointsGroup) return
+      if (svg.dataset.areaTopographyPolishInitialized === 'true') return
+      svg.dataset.areaTopographyPolishInitialized = 'true'
+
+      const outlineId = 'site-area-topography-live-outline'
+      const clipId = 'site-area-topography-live-clip'
+      outline.id = outlineId
+
+      const defs = document.createElementNS(svgNamespace, 'defs')
+      const clipPath = document.createElementNS(svgNamespace, 'clipPath')
+      const clipUse = document.createElementNS(svgNamespace, 'use')
+      clipPath.id = clipId
+      clipUse.setAttribute('href', `#${outlineId}`)
+      clipPath.append(clipUse)
+      defs.append(clipPath)
+      svg.insertBefore(defs, svg.firstChild)
+
+      topography.setAttribute('clip-path', `url(#${clipId})`)
+
+      const cloneGroup = document.createElementNS(svgNamespace, 'g')
+      cloneGroup.classList.add('site-area-point-clones')
+      cloneGroup.setAttribute('clip-path', `url(#${clipId})`)
+      topography.after(cloneGroup)
+
+      let syncFrame = 0
+
+      const syncClones = () => {
+        syncFrame = 0
+        cloneGroup.replaceChildren()
+
+        const points = [...pointsGroup.querySelectorAll('.site-area-point')]
+
+        points.forEach((point, index) => {
+          const pointId = `site-area-topography-point-${index}`
+          point.id = pointId
+
+          const phase = index % 4
+          const offsets = phase === 0
+            ? [[3.4, 1.2], [-2.3, 3.2]]
+            : phase === 1
+              ? [[-3.1, -1.5], [2.1, 3.6]]
+              : phase === 2
+                ? [[2.8, -2.7], [-3.4, 1.4]]
+                : [[-1.4, -3.3], [3.5, 2.2]]
+
+          offsets.forEach(([x, y]) => {
+            const use = document.createElementNS(svgNamespace, 'use')
+            use.classList.add('site-area-point-clone')
+            use.setAttribute('href', `#${pointId}`)
+            use.setAttribute('x', String(x))
+            use.setAttribute('y', String(y))
+            cloneGroup.append(use)
+          })
+        })
+      }
+
+      const scheduleSync = () => {
+        if (syncFrame) return
+        syncFrame = window.requestAnimationFrame(syncClones)
+      }
+
+      const pointsObserver = new MutationObserver((mutations) => {
+        if (mutations.some((mutation) => mutation.type === 'childList')) {
+          scheduleSync()
+        }
+      })
+
+      pointsObserver.observe(pointsGroup, {
+        childList: true,
+      })
+
+      scheduleSync()
+
+      window.addEventListener(
+        'pagehide',
+        () => {
+          pointsObserver.disconnect()
+          if (syncFrame) window.cancelAnimationFrame(syncFrame)
+          cloneGroup.remove()
+          defs.remove()
+          outline.removeAttribute('id')
+          topography.removeAttribute('clip-path')
+        },
+        { once: true }
+      )
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initialize, { once: true })
+    } else {
+      initialize()
+    }
+  })()
+</script>
