@@ -104,6 +104,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
   <svg class="site-area-svg" data-area-svg preserveAspectRatio="none" aria-hidden="true">
     <path data-area-path />
     <circle data-area-start r="4" />
+    <circle class="site-area-centroid" data-area-centroid r="3" />
   </svg>
   <span class="site-area-label" data-area-label>AREA / DRAW</span>
   <span class="site-area-hint" data-area-hint>AREA / HOLD + DRAW</span>
@@ -248,7 +249,6 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
   }
 
   .site-a-readout[data-mode='cross'] .site-a-readout__label,
-  .site-a-readout[data-mode='area'] .site-a-readout__label,
   .site-a-readout[data-mode=''] .site-a-readout__label {
     display: none;
   }
@@ -332,6 +332,12 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     opacity: 0;
   }
 
+  .site-area-svg .site-area-centroid {
+    fill: var(--moss-deep);
+    stroke: var(--page);
+    stroke-width: 1.5;
+  }
+
   .site-area-label,
   .site-area-hint {
     position: absolute;
@@ -409,6 +415,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     const areaSvg = document.querySelector('[data-area-svg]')
     const areaPath = document.querySelector('[data-area-path]')
     const areaStart = document.querySelector('[data-area-start]')
+    const areaCentroidMarker = document.querySelector('[data-area-centroid]')
     const areaLabel = document.querySelector('[data-area-label]')
     const areaHint = document.querySelector('[data-area-hint]')
 
@@ -420,6 +427,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       !areaSvg ||
       !areaPath ||
       !areaStart ||
+      !areaCentroidMarker ||
       !areaLabel ||
       !areaHint
     ) return
@@ -445,12 +453,16 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     let drawingArea = false
     let areaFinished = false
     let areaPoints = []
+    let areaSourcePoints = []
     let measuredArea = 0
     let areaCentroid = null
 
     let rotatingArea = false
-    let rotationStartAngle = 0
-    let rotationBasePoints = []
+    let areaYaw = 0
+    let areaPitch = 0
+    let rotationStartPointer = null
+    let rotationStartYaw = 0
+    let rotationStartPitch = 0
 
     const setAreaViewBox = () => {
       areaSvg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
@@ -458,6 +470,31 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
 
     const padCoordinate = (value) =>
       String(Math.max(0, Math.round(value))).padStart(4, '0')
+
+    const updateAreaCursorLabel = () => {
+      if (!aReadoutLabel || activeMode !== 'area') return
+
+      if (rotatingArea) {
+        aReadoutLabel.textContent = 'AREA / ROTATE 3D'
+        return
+      }
+
+      if (drawingArea) {
+        aReadoutLabel.textContent = isNearStart(pointer.x, pointer.y)
+          ? 'AREA / JOIN'
+          : 'AREA / DRAW'
+        return
+      }
+
+      if (areaFinished && pointInPolygon(pointer, areaPoints)) {
+        aReadoutLabel.textContent = 'AREA / DRAG TO ROTATE'
+        return
+      }
+
+      aReadoutLabel.textContent = areaFinished
+        ? 'AREA / DRAW NEW'
+        : 'AREA / DRAW'
+    }
 
     const updateReadoutPosition = () => {
       aReadout.style.left = `${pointer.x}px`
@@ -472,6 +509,8 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
         aReadoutLabel.textContent =
           `X ${padCoordinate(pointer.x)} / Y ${padCoordinate(pointer.y)} / ELEV +${level.toFixed(1)}`
       }
+
+      updateAreaCursorLabel()
     }
 
     const polygonArea = (points) => {
@@ -601,13 +640,13 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
     }
 
     const isNearStart = (x, y) => {
-      if (areaPoints.length < 8) return false
+      if (areaPoints.length < 8 || areaFinished) return false
       const start = areaPoints[0]
       return Math.hypot(x - start.x, y - start.y) <= 15
     }
 
     const setAreaLabel = (text, x, y) => {
-      const estimatedWidth = 155
+      const estimatedWidth = 170
       const left = Math.max(10, Math.min(window.innerWidth - estimatedWidth - 10, x))
       const top = Math.max(70, Math.min(window.innerHeight - 30, y))
 
@@ -621,28 +660,45 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       areaHint.textContent = text
     }
 
+    const updateCentroidMarker = () => {
+      if (!areaFinished || !areaCentroid) {
+        areaCentroidMarker.style.opacity = '0'
+        return
+      }
+
+      areaCentroidMarker.setAttribute('cx', String(areaCentroid.x))
+      areaCentroidMarker.setAttribute('cy', String(areaCentroid.y))
+      areaCentroidMarker.style.opacity = '0.72'
+    }
+
     const clearAreaVisuals = () => {
       drawingArea = false
       areaFinished = false
       rotatingArea = false
       areaPoints = []
+      areaSourcePoints = []
       measuredArea = 0
       areaCentroid = null
-      rotationBasePoints = []
+      areaYaw = 0
+      areaPitch = 0
+      rotationStartPointer = null
       areaPath.setAttribute('d', '')
       areaStart.setAttribute('cx', '0')
       areaStart.setAttribute('cy', '0')
       areaStart.style.opacity = '0'
+      areaCentroidMarker.style.opacity = '0'
       areaLabel.classList.remove('is-visible')
       areaLabel.textContent = 'AREA / DRAW'
       areaOverlay.classList.remove('is-hovering-area', 'is-rotating-area')
       setAreaHint('AREA / HOLD + DRAW')
+      updateAreaCursorLabel()
     }
 
     const renderArea = (closed = areaFinished) => {
       if (!areaPoints.length) {
         areaPath.setAttribute('d', '')
         areaStart.style.opacity = '0'
+        updateCentroidMarker()
         return
       }
 
@@ -656,6 +712,37 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       areaStart.setAttribute('cx', String(start.x))
       areaStart.setAttribute('cy', String(start.y))
       areaStart.style.opacity = closed ? '0' : '0.82'
+      updateCentroidMarker()
+    }
+
+    const projectArea3D = () => {
+      if (!areaFinished || !areaCentroid || !areaSourcePoints.length) return
+
+      const cosYaw = Math.cos(areaYaw)
+      const sinYaw = Math.sin(areaYaw)
+      const cosPitch = Math.cos(areaPitch)
+      const sinPitch = Math.sin(areaPitch)
+      const perspectiveDistance = 700
+
+      areaPoints = areaSourcePoints.map((point) => {
+        const localX = point.x - areaCentroid.x
+        const localY = point.y - areaCentroid.y
+
+        const pitchedY = localY * cosPitch
+        const pitchedZ = localY * sinPitch
+
+        const rotatedX = localX * cosYaw + pitchedZ * sinYaw
+        const rotatedZ = -localX * sinYaw + pitchedZ * cosYaw
+        const denominator = Math.max(170, perspectiveDistance + rotatedZ)
+        const perspective = perspectiveDistance / denominator
+
+        return {
+          x: areaCentroid.x + rotatedX * perspective,
+          y: areaCentroid.y + pitchedY * perspective,
+        }
+      })
+
+      renderArea(true)
     }
 
     const updateFinishedAreaLabel = () => {
@@ -674,6 +761,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       renderArea(false)
       setAreaLabel('AREA / DRAW', x + 16, y + 16)
       setAreaHint('AREA / RELEASE TO CLOSE')
+      updateAreaCursorLabel()
     }
 
     const addAreaPoint = (x, y) => {
@@ -695,6 +783,7 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
         y + 16
       )
       setAreaHint(nearStart ? 'AREA / RELEASE TO JOIN' : 'AREA / RELEASE TO CLOSE')
+      updateAreaCursorLabel()
     }
 
     const finishAreaDrawing = (x, y, snapToStart = false) => {
@@ -728,20 +817,23 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       }
 
       const simplified = simplifyPoints(rawPoints, 5.5)
-      areaPoints = simplified.length >= 3 ? simplified : rawPoints
+      areaSourcePoints = simplified.length >= 3 ? simplified : rawPoints
+      measuredArea = polygonArea(areaSourcePoints)
 
-      measuredArea = polygonArea(areaPoints)
-
-      if (areaPoints.length < 3 || measuredArea < 25) {
+      if (areaSourcePoints.length < 3 || measuredArea < 25) {
         clearAreaVisuals()
         return
       }
 
       areaFinished = true
-      areaCentroid = polygonCentroid(areaPoints)
+      areaCentroid = polygonCentroid(areaSourcePoints)
+      areaYaw = 0
+      areaPitch = 0
+      areaPoints = areaSourcePoints.map((point) => ({ ...point }))
       renderArea(true)
       updateFinishedAreaLabel()
-      setAreaHint('AREA / HOVER SHAPE TO ROTATE')
+      setAreaHint('AREA / DRAG SHAPE TO ROTATE 3D')
+      updateAreaCursorLabel()
     }
 
     const beginAreaRotation = (x, y) => {
@@ -749,53 +841,52 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
       if (!pointInPolygon({ x, y }, areaPoints)) return false
 
       rotatingArea = true
-      rotationStartAngle = Math.atan2(y - areaCentroid.y, x - areaCentroid.x)
-      rotationBasePoints = areaPoints.map((point) => ({ ...point }))
+      rotationStartPointer = { x, y }
+      rotationStartYaw = areaYaw
+      rotationStartPitch = areaPitch
       areaOverlay.classList.add('is-rotating-area')
-      setAreaHint('AREA / ROTATING')
+      setAreaHint('AREA / ROTATE 3D')
+      updateAreaCursorLabel()
       return true
     }
 
     const rotateAreaToPointer = (x, y) => {
-      if (!rotatingArea || !areaCentroid || !rotationBasePoints.length) return
+      if (!rotatingArea || !rotationStartPointer) return
 
-      const currentAngle = Math.atan2(y - areaCentroid.y, x - areaCentroid.x)
-      const delta = currentAngle - rotationStartAngle
-      const cos = Math.cos(delta)
-      const sin = Math.sin(delta)
+      const dx = x - rotationStartPointer.x
+      const dy = y - rotationStartPointer.y
 
-      areaPoints = rotationBasePoints.map((point) => {
-        const dx = point.x - areaCentroid.x
-        const dy = point.y - areaCentroid.y
+      areaYaw = rotationStartYaw + dx * 0.012
+      areaPitch = rotationStartPitch - dy * 0.012
 
-        return {
-          x: areaCentroid.x + dx * cos - dy * sin,
-          y: areaCentroid.y + dx * sin + dy * cos,
-        }
-      })
-
-      renderArea(true)
+      projectArea3D()
       updateFinishedAreaLabel()
-      setAreaHint(`AREA / ROT ${((delta * 180) / Math.PI).toFixed(1)}°`)
+      setAreaHint(
+        `AREA / X ${((areaPitch * 180) / Math.PI).toFixed(1)}° / Y ${((areaYaw * 180) / Math.PI).toFixed(1)}°`
+      )
+      updateAreaCursorLabel()
     }
 
     const endAreaRotation = () => {
       if (!rotatingArea) return
       rotatingArea = false
-      rotationBasePoints = []
+      rotationStartPointer = null
       areaOverlay.classList.remove('is-rotating-area')
-      setAreaHint('AREA / DRAG SHAPE TO ROTATE')
+      setAreaHint('AREA / DRAG SHAPE TO ROTATE 3D')
+      updateAreaCursorLabel()
     }
 
     const updateAreaHover = (x, y) => {
       if (!areaFinished || drawingArea || rotatingArea) {
         areaOverlay.classList.remove('is-hovering-area')
+        updateAreaCursorLabel()
         return
       }
 
       const inside = pointInPolygon({ x, y }, areaPoints)
       areaOverlay.classList.toggle('is-hovering-area', inside)
-      setAreaHint(inside ? 'AREA / DRAG SHAPE TO ROTATE' : 'AREA / HOLD + DRAW NEW')
+      setAreaHint(inside ? 'AREA / DRAG SHAPE TO ROTATE 3D' : 'AREA / HOLD + DRAW NEW')
+      updateAreaCursorLabel()
     }
 
     const setMode = (mode) => {
