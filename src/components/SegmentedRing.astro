@@ -97,13 +97,13 @@ const {
         renderer.setClearColor(0xffffff, 0)
 
         const scene = new THREE.Scene()
-        const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
-        camera.position.set(0.2, 0.35, cameraDistance)
+        const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100)
+        camera.position.set(0.2, 0.3, cameraDistance)
 
         const ringGroup = new THREE.Group()
         ringGroup.scale.setScalar(displayScale)
-        ringGroup.rotation.x = -0.08
-        ringGroup.rotation.y = 0.12
+        ringGroup.rotation.x = -0.07
+        ringGroup.rotation.y = 0.1
         scene.add(ringGroup)
 
         const controls = new OrbitControls(camera, renderer.domElement)
@@ -129,107 +129,115 @@ const {
 
         const innerRadius = 1.15
         const outerRadius = 1.82
-        const depth = 0.16
-        const radialSegments = 96
+        const halfDepth = 0.075
+        const radialRows = 20
+        const angleSteps = 126
+        const depthLayers = [-halfDepth, 0, halfDepth]
 
         const deg = (value) => value * Math.PI / 180
 
-        const buildArcGeometry = (startAngle, endAngle) => {
-          const vertices = []
-          const halfDepth = depth * 0.5
-          const length = endAngle - startAngle
+        const fieldPositions = []
+        const edgePositions = []
 
-          const addTriangle = (a, b, c) => {
-            vertices.push(...a, ...b, ...c)
-          }
+        const addArcPoints = (startAngle, endAngle) => {
+          const arcLength = endAngle - startAngle
 
-          for (let index = 0; index < radialSegments; index += 1) {
-            const t0 = index / radialSegments
-            const t1 = (index + 1) / radialSegments
-            const a0 = startAngle + length * t0
-            const a1 = startAngle + length * t1
+          for (let angleIndex = 0; angleIndex <= angleSteps; angleIndex += 1) {
+            const angleRatio = angleIndex / angleSteps
+            const angle = startAngle + arcLength * angleRatio
 
-            const outer0Front = [Math.cos(a0) * outerRadius, Math.sin(a0) * outerRadius, halfDepth]
-            const outer1Front = [Math.cos(a1) * outerRadius, Math.sin(a1) * outerRadius, halfDepth]
-            const inner0Front = [Math.cos(a0) * innerRadius, Math.sin(a0) * innerRadius, halfDepth]
-            const inner1Front = [Math.cos(a1) * innerRadius, Math.sin(a1) * innerRadius, halfDepth]
+            for (let radialIndex = 0; radialIndex <= radialRows; radialIndex += 1) {
+              const radialRatio = radialIndex / radialRows
+              const radius = THREE.MathUtils.lerp(innerRadius, outerRadius, radialRatio)
 
-            const outer0Back = [Math.cos(a0) * outerRadius, Math.sin(a0) * outerRadius, -halfDepth]
-            const outer1Back = [Math.cos(a1) * outerRadius, Math.sin(a1) * outerRadius, -halfDepth]
-            const inner0Back = [Math.cos(a0) * innerRadius, Math.sin(a0) * innerRadius, -halfDepth]
-            const inner1Back = [Math.cos(a1) * innerRadius, Math.sin(a1) * innerRadius, -halfDepth]
-
-            addTriangle(outer0Front, inner0Front, outer1Front)
-            addTriangle(outer1Front, inner0Front, inner1Front)
-
-            addTriangle(outer0Back, outer1Back, inner0Back)
-            addTriangle(outer1Back, inner1Back, inner0Back)
-
-            addTriangle(outer0Front, outer1Back, outer0Back)
-            addTriangle(outer0Front, outer1Front, outer1Back)
-
-            addTriangle(inner0Front, inner0Back, inner1Back)
-            addTriangle(inner0Front, inner1Back, inner1Front)
-          }
-
-          const addEndCap = (angle, reverse = false) => {
-            const outerFront = [Math.cos(angle) * outerRadius, Math.sin(angle) * outerRadius, halfDepth]
-            const innerFront = [Math.cos(angle) * innerRadius, Math.sin(angle) * innerRadius, halfDepth]
-            const outerBack = [Math.cos(angle) * outerRadius, Math.sin(angle) * outerRadius, -halfDepth]
-            const innerBack = [Math.cos(angle) * innerRadius, Math.sin(angle) * innerRadius, -halfDepth]
-
-            if (reverse) {
-              addTriangle(outerFront, outerBack, innerFront)
-              addTriangle(outerBack, innerBack, innerFront)
-            } else {
-              addTriangle(outerFront, innerFront, outerBack)
-              addTriangle(outerBack, innerFront, innerBack)
+              depthLayers.forEach((z) => {
+                fieldPositions.push(
+                  Math.cos(angle) * radius,
+                  Math.sin(angle) * radius,
+                  z
+                )
+              })
             }
           }
 
-          addEndCap(startAngle, true)
-          addEndCap(endAngle, false)
+          const edgeDepthSteps = 5
 
-          const geometry = new THREE.BufferGeometry()
-          geometry.setAttribute(
-            'position',
-            new THREE.Float32BufferAttribute(vertices, 3)
-          )
-          geometry.computeVertexNormals()
-          return geometry
+          for (let angleIndex = 0; angleIndex <= angleSteps; angleIndex += 1) {
+            const angleRatio = angleIndex / angleSteps
+            const angle = startAngle + arcLength * angleRatio
+
+            for (let depthIndex = 0; depthIndex <= edgeDepthSteps; depthIndex += 1) {
+              const z = THREE.MathUtils.lerp(-halfDepth, halfDepth, depthIndex / edgeDepthSteps)
+
+              edgePositions.push(
+                Math.cos(angle) * innerRadius,
+                Math.sin(angle) * innerRadius,
+                z,
+                Math.cos(angle) * outerRadius,
+                Math.sin(angle) * outerRadius,
+                z
+              )
+            }
+          }
+
+          const capRows = 18
+
+          ;[startAngle, endAngle].forEach((angle) => {
+            for (let radialIndex = 0; radialIndex <= capRows; radialIndex += 1) {
+              const radius = THREE.MathUtils.lerp(
+                innerRadius,
+                outerRadius,
+                radialIndex / capRows
+              )
+
+              for (let depthIndex = 0; depthIndex <= edgeDepthSteps; depthIndex += 1) {
+                const z = THREE.MathUtils.lerp(-halfDepth, halfDepth, depthIndex / edgeDepthSteps)
+
+                edgePositions.push(
+                  Math.cos(angle) * radius,
+                  Math.sin(angle) * radius,
+                  z
+                )
+              }
+            }
+          })
         }
 
-        const material = new THREE.MeshStandardMaterial({
-          color: 0xf1f0eb,
-          roughness: 0.88,
-          metalness: 0,
+        addArcPoints(deg(142), deg(308))
+        addArcPoints(deg(322), deg(488))
+
+        const fieldGeometry = new THREE.BufferGeometry()
+        fieldGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(fieldPositions, 3)
+        )
+
+        const fieldMaterial = new THREE.PointsMaterial({
+          color: 0x56635b,
+          size: 0.022,
+          sizeAttenuation: true,
           transparent: true,
-          opacity: 0.98,
-          side: THREE.DoubleSide,
+          opacity: 0.54,
         })
 
-        const arcA = new THREE.Mesh(
-          buildArcGeometry(deg(142), deg(308)),
-          material
+        const edgeGeometry = new THREE.BufferGeometry()
+        edgeGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(edgePositions, 3)
         )
 
-        const arcB = new THREE.Mesh(
-          buildArcGeometry(deg(322), deg(488)),
-          material
+        const edgeMaterial = new THREE.PointsMaterial({
+          color: 0x353832,
+          size: 0.025,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.76,
+        })
+
+        ringGroup.add(
+          new THREE.Points(fieldGeometry, fieldMaterial),
+          new THREE.Points(edgeGeometry, edgeMaterial)
         )
-
-        ringGroup.add(arcA, arcB)
-
-        const ambient = new THREE.AmbientLight(0xffffff, 1.7)
-        scene.add(ambient)
-
-        const key = new THREE.DirectionalLight(0xffffff, 1.05)
-        key.position.set(3.2, 4.5, 5.5)
-        scene.add(key)
-
-        const fill = new THREE.DirectionalLight(0xbfc8c0, 0.38)
-        fill.position.set(-4, -1.5, 3)
-        scene.add(fill)
 
         const resize = () => {
           const rect = root.getBoundingClientRect()
@@ -275,9 +283,9 @@ const {
           const seconds = time * 0.001
 
           if (wantsAnimation) {
-            ringGroup.rotation.z += delta * 0.18
-            ringGroup.rotation.x = -0.08 + Math.sin(seconds * 0.34) * 0.11
-            ringGroup.rotation.y = 0.12 + Math.sin(seconds * 0.27 + 0.8) * 0.1
+            ringGroup.rotation.z += delta * 0.16
+            ringGroup.rotation.x = -0.07 + Math.sin(seconds * 0.34) * 0.09
+            ringGroup.rotation.y = 0.1 + Math.sin(seconds * 0.27 + 0.8) * 0.08
           }
 
           controls.update()
@@ -292,9 +300,10 @@ const {
           resizeObserver.disconnect()
           intersectionObserver.disconnect()
           controls.dispose()
-          arcA.geometry.dispose()
-          arcB.geometry.dispose()
-          material.dispose()
+          fieldGeometry.dispose()
+          edgeGeometry.dispose()
+          fieldMaterial.dispose()
+          edgeMaterial.dispose()
           renderer.dispose()
         }
 
