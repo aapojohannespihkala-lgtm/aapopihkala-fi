@@ -1,0 +1,131 @@
+<style is:global>
+  html body .homepage-sheet-stamp,
+  html body .language-switch__meta,
+  html body .hero-location-coordinate {
+    color: var(--moss-deep) !important;
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace !important;
+    font-size: 0.47rem !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    html body .homepage-sheet-stamp {
+      opacity: 0 !important;
+      transform: translateY(-2px) !important;
+      transition: none !important;
+    }
+
+    html body.meta-home-hover .homepage-sheet-stamp {
+      opacity: 0.82 !important;
+      transform: translateY(0) !important;
+      transition:
+        opacity 100ms ease 250ms,
+        transform 100ms ease 250ms !important;
+    }
+
+    html body .language-switch__meta {
+      opacity: 0 !important;
+      transform: translate(-50%, -2px) !important;
+      transition: none !important;
+    }
+
+    html body .language-switch:hover .language-switch__meta,
+    html body .language-switch:focus-visible .language-switch__meta {
+      opacity: 0.82 !important;
+      transform: translate(-50%, 0) !important;
+      transition:
+        opacity 100ms ease 250ms,
+        transform 100ms ease 250ms !important;
+    }
+
+    html body .hero-location-coordinate {
+      max-width: 0 !important;
+      opacity: 0 !important;
+      transform: translateX(-4px) !important;
+      transition: none !important;
+    }
+
+    html body .hero-location-trigger:hover .hero-location-coordinate,
+    html body .hero-location-trigger:focus-visible .hero-location-coordinate {
+      max-width: 190px !important;
+      opacity: 0.82 !important;
+      transform: translateX(0) !important;
+      transition:
+        max-width 120ms ease 250ms,
+        opacity 100ms ease 250ms,
+        transform 120ms ease 250ms !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html body.meta-home-hover .homepage-sheet-stamp,
+    html body .language-switch:hover .language-switch__meta,
+    html body .language-switch:focus-visible .language-switch__meta,
+    html body .hero-location-trigger:hover .hero-location-coordinate,
+    html body .hero-location-trigger:focus-visible .hero-location-coordinate {
+      transition-duration: 0ms !important;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const homeLink = document.querySelector('.topbar-name')
+    const sheetStamp = document.querySelector('[data-homepage-sheet-stamp]')
+
+    if (!homeLink || !sheetStamp) return
+    if (sheetStamp.dataset.hoverMetaInitialized === 'true') return
+    sheetStamp.dataset.hoverMetaInitialized = 'true'
+
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)')
+    if (!finePointer.matches) return
+
+    const positionStamp = () => {
+      const rect = homeLink.getBoundingClientRect()
+      sheetStamp.style.left = `${Math.round(rect.left)}px`
+      sheetStamp.style.top = `${Math.round(rect.bottom + 8)}px`
+    }
+
+    const showStamp = () => {
+      positionStamp()
+      document.body.classList.add('meta-home-hover')
+    }
+
+    const hideStamp = () => {
+      document.body.classList.remove('meta-home-hover')
+    }
+
+    const handleResize = () => {
+      if (document.body.classList.contains('meta-home-hover')) {
+        positionStamp()
+      }
+    }
+
+    homeLink.addEventListener('pointerenter', showStamp)
+    homeLink.addEventListener('pointerleave', hideStamp)
+    homeLink.addEventListener('focus', showStamp)
+    homeLink.addEventListener('blur', hideStamp)
+    window.addEventListener('resize', handleResize, { passive: true })
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        hideStamp()
+        homeLink.removeEventListener('pointerenter', showStamp)
+        homeLink.removeEventListener('pointerleave', hideStamp)
+        homeLink.removeEventListener('focus', showStamp)
+        homeLink.removeEventListener('blur', hideStamp)
+        window.removeEventListener('resize', handleResize)
+      },
+      { once: true }
+    )
+  })()
+</script>
