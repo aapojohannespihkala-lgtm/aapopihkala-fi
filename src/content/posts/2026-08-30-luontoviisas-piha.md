@@ -15,7 +15,7 @@ fi:
     - maisema-arkkitehtuuri
     - Espoo
 
-  intro: "Espoon luontoviisaat pihat -kilpailuun osallistui tänä kesänä 54 pihaa. Mukana oli pientalopihojen lisäksi taloyhtiöiden pihoja ja vapaa-ajan asuntojen pihoja. Palkituissa kohteissa oli muun muassa monipuolista kasvillisuutta, vanhoja puita, lahopuuta, vettä ja eläimille sopivia suojapaikkoja. Voittajaksi valitussa pihassa yksi lajistoltaan rikkaimmista kohdista oli ihmisen rakentama pieni lampi. Se on hyvä esimerkki siitä, ettei luontoviisaus tarkoita suunnittelusta luopumista."
+  intro: "Espoon luontoviisaat pihat -kilpailuun osallistui tänä kesänä 54 pihaa. Mukana oli pientalopihoja, taloyhtiöiden pihoja ja vapaa-ajan asuntojen pihoja. Palkituissa kohteissa oli monipuolista kasvillisuutta, vanhoja puita, lahopuuta, vettä ja eläimille sopivia suojapaikkoja. Voittajapihan lajistoltaan rikkaimpiin paikkoihin kuului ihmisen rakentama pieni lampi."
 
   sourceName: "Espoon kaupunki"
   sourceLinkText: "Espoon kaupunki · Luontoviisaat pihat -kilpailun tulokset"
@@ -24,13 +24,39 @@ fi:
   graphicAlt: "Pistepilvenä esitetty hitaasti liikkuva kimalainen pölyttäjien ja luontoviisaan pihan symbolina."
 
   perspective:
-    - "Luonnon monimuotoisuudesta puhutaan joskus asiana, joka on tärkeä lähinnä luonnon itsensä vuoksi. Yhteys ihmiseen on kuitenkin hyvin konkreettinen. Pölyttäjät vaikuttavat viljelykasvien satoon ja sen laatuun. Jos pölyttäjät vähenevät, kyse ei ole vain perhosten tai kimalaisten määrästä. Kyse on ruoantuotannosta, omavaraisuudesta ja viime kädessä myös huoltovarmuudesta. Jos pölyttäjät katoavat, lasku tulee lopulta ruokakaupassa."
+    - "Luonnon monimuotoisuudesta puhutaan joskus kuin se olisi luonnon oma harrastus."
 
-    - "Sama asia näkyy pienemmässä mittakaavassa kaupungissa. Pölyttäjälle tontinraja ei merkitse mitään. Olennaista on, löytyykö ruokaa ja suojaa sekä seuraava sopiva paikka riittävän läheltä. Kukkiva piha voi jatkaa ketjua naapuripihalle, kadun istutuksiin ja edelleen puistoon."
+    - "Ei ole."
+
+    - "Pölyttäjät vaikuttavat viljelykasvien satoon ja sen laatuun. Jos pölyttäjät vähenevät, kyse ei ole vain siitä, näkyykö kesällä vähemmän perhosia ja kimalaisia."
+
+    - "Kyse on ruoasta."
+
+    - "Ja lopulta rahasta."
+
+    - "Jos pölyttäjät katoavat, lasku tulee ruokakaupassa."
+
+    - "Kaupungissa sama asia näkyy pienemmässä mittakaavassa."
+
+    - "Pölyttäjä ei tunne tontinrajaa. Se ei tiedä, missä taloyhtiö vaihtuu toiseksi tai missä kaupungin maa alkaa."
+
+    - "Sitä kiinnostaa kaksi asiaa."
+
+    - "Löytyykö ruokaa?"
+
+    - "Ja löytyykö seuraava paikka riittävän läheltä?"
+
+    - "Kukkiva piha voi jatkaa ketjua naapuripihaan, kadun istutuksiin ja edelleen puistoon."
 
     - "Siksi pienelläkin pihalla voi olla merkitystä."
 
-    - "Luontoviisaus ei myöskään tarkoita, että piha jätetään suunnittelematta. Pihan pitää näyttää hyvältä. Mutta vielä tärkeämpää on, että siellä on elämälle tilaa."
+    - "Mutta luontoviisaus ei tarkoita suunnittelusta luopumista."
+
+    - "Päinvastoin."
+
+    - "Pihan pitää näyttää hyvältä ja toimia ihmisille."
+
+    - "Mutta jos siellä ei ole tilaa millekään muulle elämälle, jotain jäi suunnittelematta."
 
 en:
   title: "Nature-wise design broadens the role of landscape architects"
@@ -41,7 +67,7 @@ en:
     - landscape architecture
     - Espoo
 
-  intro: "Espoo's nature-wise yards competition received 54 entries this summer. They included detached-house yards, housing-company yards and yards at holiday homes. The awarded yards featured, among other things, diverse planting, old trees, dead wood, water and shelter for animals. In the winning yard, one of the most species-rich places was a small pond built by people. It is a good example of how nature-wise design does not mean giving up design."
+  intro: "Espoo's nature-wise yards competition received 54 entries this summer. They included detached-house yards, housing-company yards and holiday-home yards. The awarded sites featured diverse planting, old trees, dead wood, water and shelter for animals. Among the most species-rich places in the winning yard was a small pond built by people."
 
   sourceName: "City of Espoo"
   sourceLinkText: "City of Espoo · Results of the nature-wise yards competition"
@@ -50,11 +76,37 @@ en:
   graphicAlt: "A slowly moving point-cloud bumblebee representing pollinators and a nature-wise urban yard."
 
   perspective:
-    - "Biodiversity is sometimes discussed as if it mattered mainly for nature itself. But the link to people is very concrete. Pollinators affect crop yields and crop quality. If pollinators decline, it is not only about fewer butterflies or bumblebees. It is about food production, self-sufficiency and ultimately security of supply. If pollinators disappear, the bill eventually arrives at the grocery store."
+    - "Biodiversity is sometimes discussed as if it were nature's own hobby."
 
-    - "The same thing can be seen on a smaller scale in the city. A property boundary means nothing to a pollinator. What matters is whether it can find food and shelter, and whether the next suitable place is close enough. A flowering yard can continue the chain to a neighbouring yard, street planting and then a park."
+    - "It isn't."
+
+    - "Pollinators affect crop yields and crop quality. If pollinators decline, it is not only about whether there are fewer butterflies and bumblebees in summer."
+
+    - "It is about food."
+
+    - "And ultimately money."
+
+    - "If pollinators disappear, the bill arrives at the grocery store."
+
+    - "In the city, the same thing can be seen on a smaller scale."
+
+    - "A property boundary means nothing to a pollinator. It does not know where one housing company ends and another begins, or where city-owned land starts."
+
+    - "Two things matter to it."
+
+    - "Can it find food?"
+
+    - "And is the next suitable place close enough?"
+
+    - "A flowering yard can continue the chain to the neighbouring yard, street plantings and then a park."
 
     - "That is why even a small yard can matter."
 
-    - "Nature-wise design does not mean leaving a yard undesigned. A yard should look good. But even more importantly, there should be room for life."
+    - "But nature-wise design does not mean giving up design."
+
+    - "Quite the opposite."
+
+    - "A yard should look good and work for people."
+
+    - "But if there is no room for any other life, something was left out of the design."
 ---
