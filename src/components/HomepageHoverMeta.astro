@@ -17,33 +17,47 @@
   }
 
   @media (hover: hover) and (pointer: fine) {
-    html body .homepage-sheet-stamp {
+    html body .homepage-sheet-stamp,
+    html body .language-switch__meta {
+      position: fixed !important;
+      z-index: 61 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      box-sizing: border-box !important;
+      padding: 5px 7px !important;
+      pointer-events: none !important;
+      background: rgba(255, 255, 255, 0.92) !important;
+      border: 1px solid var(--line-soft) !important;
+      color: var(--moss-deep) !important;
+      text-transform: uppercase !important;
+      white-space: nowrap !important;
       opacity: 0 !important;
-      transform: translateY(-2px) !important;
       transition: none !important;
+    }
+
+    html body .homepage-sheet-stamp {
+      transform: translateY(-2px) !important;
+    }
+
+    html body .language-switch__meta {
+      transform: translate(-100%, -2px) !important;
     }
 
     html body.meta-home-hover .homepage-sheet-stamp {
       opacity: 0.82 !important;
       transform: translateY(0) !important;
       transition:
-        opacity 100ms ease 250ms,
-        transform 100ms ease 250ms !important;
+        opacity 100ms ease,
+        transform 100ms ease !important;
     }
 
-    html body .language-switch__meta {
-      opacity: 0 !important;
-      transform: translate(-50%, -2px) !important;
-      transition: none !important;
-    }
-
-    html body .language-switch:hover .language-switch__meta,
-    html body .language-switch:focus-visible .language-switch__meta {
+    html body.meta-language-hover .language-switch__meta {
       opacity: 0.82 !important;
-      transform: translate(-50%, 0) !important;
+      transform: translate(-100%, 0) !important;
       transition:
-        opacity 100ms ease 250ms,
-        transform 100ms ease 250ms !important;
+        opacity 100ms ease,
+        transform 100ms ease !important;
     }
 
     html body .hero-location-coordinate {
@@ -67,8 +81,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     html body.meta-home-hover .homepage-sheet-stamp,
-    html body .language-switch:hover .language-switch__meta,
-    html body .language-switch:focus-visible .language-switch__meta,
+    html body.meta-language-hover .language-switch__meta,
     html body .hero-location-trigger:hover .hero-location-coordinate,
     html body .hero-location-trigger:focus-visible .hero-location-coordinate {
       transition-duration: 0ms !important;
@@ -79,50 +92,104 @@
 <script is:inline>
   (() => {
     const homeLink = document.querySelector('.topbar-name')
+    const languageLink = document.querySelector('.language-switch')
+    const topbar = document.querySelector('.topbar')
     const sheetStamp = document.querySelector('[data-homepage-sheet-stamp]')
+    const languageMeta = document.querySelector('.language-switch__meta')
 
-    if (!homeLink || !sheetStamp) return
+    if (!homeLink || !languageLink || !sheetStamp || !languageMeta) return
     if (sheetStamp.dataset.hoverMetaInitialized === 'true') return
     sheetStamp.dataset.hoverMetaInitialized = 'true'
 
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)')
     if (!finePointer.matches) return
 
-    const positionStamp = () => {
+    let homeHoverTimer = 0
+    let languageHoverTimer = 0
+
+    const getMetaTop = () => {
+      const bannerBottom = topbar?.getBoundingClientRect().bottom
+      if (typeof bannerBottom === 'number') return bannerBottom + 8
+
+      return Math.max(
+        homeLink.getBoundingClientRect().bottom,
+        languageLink.getBoundingClientRect().bottom
+      ) + 8
+    }
+
+    const positionHomeMeta = () => {
       const rect = homeLink.getBoundingClientRect()
       sheetStamp.style.left = `${Math.round(rect.left)}px`
-      sheetStamp.style.top = `${Math.round(rect.bottom + 8)}px`
+      sheetStamp.style.top = `${Math.round(getMetaTop())}px`
     }
 
-    const showStamp = () => {
-      positionStamp()
-      document.body.classList.add('meta-home-hover')
+    const positionLanguageMeta = () => {
+      const rect = languageLink.getBoundingClientRect()
+      languageMeta.style.left = `${Math.round(rect.right)}px`
+      languageMeta.style.top = `${Math.round(getMetaTop())}px`
     }
 
-    const hideStamp = () => {
+    const showHomeMeta = () => {
+      window.clearTimeout(homeHoverTimer)
+      positionHomeMeta()
+      homeHoverTimer = window.setTimeout(() => {
+        document.body.classList.add('meta-home-hover')
+      }, 250)
+    }
+
+    const hideHomeMeta = () => {
+      window.clearTimeout(homeHoverTimer)
       document.body.classList.remove('meta-home-hover')
+    }
+
+    const showLanguageMeta = () => {
+      window.clearTimeout(languageHoverTimer)
+      positionLanguageMeta()
+      languageHoverTimer = window.setTimeout(() => {
+        document.body.classList.add('meta-language-hover')
+      }, 250)
+    }
+
+    const hideLanguageMeta = () => {
+      window.clearTimeout(languageHoverTimer)
+      document.body.classList.remove('meta-language-hover')
     }
 
     const handleResize = () => {
       if (document.body.classList.contains('meta-home-hover')) {
-        positionStamp()
+        positionHomeMeta()
+      }
+
+      if (document.body.classList.contains('meta-language-hover')) {
+        positionLanguageMeta()
       }
     }
 
-    homeLink.addEventListener('pointerenter', showStamp)
-    homeLink.addEventListener('pointerleave', hideStamp)
-    homeLink.addEventListener('focus', showStamp)
-    homeLink.addEventListener('blur', hideStamp)
+    homeLink.addEventListener('pointerenter', showHomeMeta)
+    homeLink.addEventListener('pointerleave', hideHomeMeta)
+    homeLink.addEventListener('focus', showHomeMeta)
+    homeLink.addEventListener('blur', hideHomeMeta)
+
+    languageLink.addEventListener('pointerenter', showLanguageMeta)
+    languageLink.addEventListener('pointerleave', hideLanguageMeta)
+    languageLink.addEventListener('focus', showLanguageMeta)
+    languageLink.addEventListener('blur', hideLanguageMeta)
+
     window.addEventListener('resize', handleResize, { passive: true })
 
     window.addEventListener(
       'pagehide',
       () => {
-        hideStamp()
-        homeLink.removeEventListener('pointerenter', showStamp)
-        homeLink.removeEventListener('pointerleave', hideStamp)
-        homeLink.removeEventListener('focus', showStamp)
-        homeLink.removeEventListener('blur', hideStamp)
+        hideHomeMeta()
+        hideLanguageMeta()
+        homeLink.removeEventListener('pointerenter', showHomeMeta)
+        homeLink.removeEventListener('pointerleave', hideHomeMeta)
+        homeLink.removeEventListener('focus', showHomeMeta)
+        homeLink.removeEventListener('blur', hideHomeMeta)
+        languageLink.removeEventListener('pointerenter', showLanguageMeta)
+        languageLink.removeEventListener('pointerleave', hideLanguageMeta)
+        languageLink.removeEventListener('focus', showLanguageMeta)
+        languageLink.removeEventListener('blur', hideLanguageMeta)
         window.removeEventListener('resize', handleResize)
       },
       { once: true }
