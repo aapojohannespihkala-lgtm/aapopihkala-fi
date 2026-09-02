@@ -127,75 +127,55 @@ const {
           controls.maxDistance = cameraDistance
         }
 
-        const innerRadius = 1.15
-        const outerRadius = 1.82
-        const halfDepth = 0.075
-        const radialRows = 20
-        const angleSteps = 126
-        const depthLayers = [-halfDepth, 0, halfDepth]
+        const majorRadius = 1.485
+        const tubeRadius = 0.335
+        const angleSteps = 150
+        const tubeSteps = 22
+        const capRadiusSteps = 8
+        const capAngleSteps = 22
 
         const deg = (value) => value * Math.PI / 180
 
         const fieldPositions = []
-        const edgePositions = []
+        const capPositions = []
 
-        const addArcPoints = (startAngle, endAngle) => {
+        const addTubeArc = (startAngle, endAngle) => {
           const arcLength = endAngle - startAngle
 
           for (let angleIndex = 0; angleIndex <= angleSteps; angleIndex += 1) {
-            const angleRatio = angleIndex / angleSteps
-            const angle = startAngle + arcLength * angleRatio
+            const angle = startAngle + arcLength * (angleIndex / angleSteps)
+            const cosAngle = Math.cos(angle)
+            const sinAngle = Math.sin(angle)
 
-            for (let radialIndex = 0; radialIndex <= radialRows; radialIndex += 1) {
-              const radialRatio = radialIndex / radialRows
-              const radius = THREE.MathUtils.lerp(innerRadius, outerRadius, radialRatio)
+            for (let tubeIndex = 0; tubeIndex < tubeSteps; tubeIndex += 1) {
+              const tubeAngle = Math.PI * 2 * (tubeIndex / tubeSteps)
+              const radialDistance = majorRadius + tubeRadius * Math.cos(tubeAngle)
 
-              depthLayers.forEach((z) => {
-                fieldPositions.push(
-                  Math.cos(angle) * radius,
-                  Math.sin(angle) * radius,
-                  z
-                )
-              })
-            }
-          }
-
-          const edgeDepthSteps = 5
-
-          for (let angleIndex = 0; angleIndex <= angleSteps; angleIndex += 1) {
-            const angleRatio = angleIndex / angleSteps
-            const angle = startAngle + arcLength * angleRatio
-
-            for (let depthIndex = 0; depthIndex <= edgeDepthSteps; depthIndex += 1) {
-              const z = THREE.MathUtils.lerp(-halfDepth, halfDepth, depthIndex / edgeDepthSteps)
-
-              edgePositions.push(
-                Math.cos(angle) * innerRadius,
-                Math.sin(angle) * innerRadius,
-                z,
-                Math.cos(angle) * outerRadius,
-                Math.sin(angle) * outerRadius,
-                z
+              fieldPositions.push(
+                cosAngle * radialDistance,
+                sinAngle * radialDistance,
+                tubeRadius * Math.sin(tubeAngle)
               )
             }
           }
-
-          const capRows = 18
 
           ;[startAngle, endAngle].forEach((angle) => {
-            for (let radialIndex = 0; radialIndex <= capRows; radialIndex += 1) {
-              const radius = THREE.MathUtils.lerp(
-                innerRadius,
-                outerRadius,
-                radialIndex / capRows
-              )
+            const cosAngle = Math.cos(angle)
+            const sinAngle = Math.sin(angle)
 
-              for (let depthIndex = 0; depthIndex <= edgeDepthSteps; depthIndex += 1) {
-                const z = THREE.MathUtils.lerp(-halfDepth, halfDepth, depthIndex / edgeDepthSteps)
+            for (let radiusIndex = 0; radiusIndex <= capRadiusSteps; radiusIndex += 1) {
+              const radius = tubeRadius * (radiusIndex / capRadiusSteps)
+              const samples = radiusIndex === 0 ? 1 : capAngleSteps
 
-                edgePositions.push(
-                  Math.cos(angle) * radius,
-                  Math.sin(angle) * radius,
+              for (let capIndex = 0; capIndex < samples; capIndex += 1) {
+                const capAngle = samples === 1 ? 0 : Math.PI * 2 * (capIndex / samples)
+                const radialOffset = radius * Math.cos(capAngle)
+                const z = radius * Math.sin(capAngle)
+                const ringRadius = majorRadius + radialOffset
+
+                capPositions.push(
+                  cosAngle * ringRadius,
+                  sinAngle * ringRadius,
                   z
                 )
               }
@@ -203,8 +183,8 @@ const {
           })
         }
 
-        addArcPoints(deg(142), deg(308))
-        addArcPoints(deg(322), deg(488))
+        addTubeArc(deg(142), deg(308))
+        addTubeArc(deg(322), deg(488))
 
         const fieldGeometry = new THREE.BufferGeometry()
         fieldGeometry.setAttribute(
@@ -214,29 +194,29 @@ const {
 
         const fieldMaterial = new THREE.PointsMaterial({
           color: 0x56635b,
-          size: 0.022,
+          size: 0.024,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.54,
+          opacity: 0.62,
         })
 
-        const edgeGeometry = new THREE.BufferGeometry()
-        edgeGeometry.setAttribute(
+        const capGeometry = new THREE.BufferGeometry()
+        capGeometry.setAttribute(
           'position',
-          new THREE.Float32BufferAttribute(edgePositions, 3)
+          new THREE.Float32BufferAttribute(capPositions, 3)
         )
 
-        const edgeMaterial = new THREE.PointsMaterial({
+        const capMaterial = new THREE.PointsMaterial({
           color: 0x353832,
           size: 0.025,
           sizeAttenuation: true,
           transparent: true,
-          opacity: 0.76,
+          opacity: 0.72,
         })
 
         ringGroup.add(
           new THREE.Points(fieldGeometry, fieldMaterial),
-          new THREE.Points(edgeGeometry, edgeMaterial)
+          new THREE.Points(capGeometry, capMaterial)
         )
 
         const resize = () => {
@@ -301,9 +281,9 @@ const {
           intersectionObserver.disconnect()
           controls.dispose()
           fieldGeometry.dispose()
-          edgeGeometry.dispose()
+          capGeometry.dispose()
           fieldMaterial.dispose()
-          edgeMaterial.dispose()
+          capMaterial.dispose()
           renderer.dispose()
         }
 
