@@ -8,7 +8,7 @@ import PointBee from './PointBee.astro';
 import TreeField from './TreeField.astro';
 import RiverFlow from './RiverFlow.astro';
 import WaterDropMorph from './WaterDropMorph.astro';
-import AccessibilityStep from './AccessibilityStep.astro';
+import AccessibilityStep from './SegmentedRing.astro';
 
 interface Props {
   post: CollectionEntry<'posts'>;
@@ -490,7 +490,7 @@ const displayedSourceLabel =
   .post-interactive-graphic :global(.point-bee__canvas),
   .post-interactive-graphic :global(.tree-field__canvas),
   .post-interactive-graphic :global(.water-drop-morph__canvas),
-  .post-interactive-graphic :global(.accessibility-step__canvas),
+  .post-interactive-graphic :global(.segmented-ring__canvas),
   .post-interactive-graphic :global(.river-flow__canvas) {
     touch-action: pan-y !important;
     cursor: default;
