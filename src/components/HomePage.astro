@@ -205,6 +205,47 @@ const personSchema = {
         animation: none !important;
       }
 
+      .hero-location-trigger {
+        appearance: none;
+        border: 0;
+        padding: 0;
+        background: transparent;
+        font-family: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .hero-location-trigger:focus-visible {
+        outline: 1px solid var(--lichen);
+        outline-offset: 5px;
+      }
+
+      .hero-location-coordinate {
+        display: inline-block;
+        max-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        opacity: 0;
+        color: var(--moss);
+        transform: translateX(-4px);
+        transition:
+          max-width 220ms ease,
+          opacity 160ms ease,
+          transform 220ms ease;
+      }
+
+      .hero-location-trigger.is-revealed .hero-location-coordinate {
+        max-width: 190px;
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .hero-location-coordinate {
+          transition: none;
+        }
+      }
+
       @media (max-width: 800px) {
         .hero {
           min-height: calc(100svh - 64px);
@@ -246,7 +287,17 @@ const personSchema = {
               <p class="hero-secondary">{t.heroSecondary}</p>
             </div>
 
-            <p class="hero-location">
+            <button
+              class="hero-location hero-location-trigger"
+              type="button"
+              data-location-reveal
+              aria-expanded="false"
+              aria-label={
+                lang === 'fi'
+                  ? 'Näytä Espoon koordinaatit'
+                  : 'Show Espoo coordinates'
+              }
+            >
               <svg
                 class="location-icon"
                 viewBox="0 0 16 19"
@@ -266,7 +317,13 @@ const personSchema = {
               </svg>
 
               <span>{t.location}</span>
-            </p>
+              <span
+                class="hero-location-coordinate"
+                aria-hidden="true"
+              >
+                · 60.21° N / 24.66° E
+              </span>
+            </button>
 
             <a
               class="hero-linkedin"
@@ -419,6 +476,45 @@ const personSchema = {
           () => {
             clearFlickerTimers()
             finishFlicker()
+          },
+          { once: true }
+        )
+      })()
+
+      ;(() => {
+        const trigger = document.querySelector('[data-location-reveal]')
+        if (!trigger) return
+        if (trigger.dataset.locationRevealInitialized === 'true') return
+
+        trigger.dataset.locationRevealInitialized = 'true'
+        let hideTimer = 0
+
+        const hide = () => {
+          trigger.classList.remove('is-revealed')
+          trigger.setAttribute('aria-expanded', 'false')
+        }
+
+        const reveal = () => {
+          window.clearTimeout(hideTimer)
+          trigger.classList.add('is-revealed')
+          trigger.setAttribute('aria-expanded', 'true')
+          hideTimer = window.setTimeout(hide, 4200)
+        }
+
+        trigger.addEventListener('click', () => {
+          if (trigger.classList.contains('is-revealed')) {
+            window.clearTimeout(hideTimer)
+            hide()
+            return
+          }
+
+          reveal()
+        })
+
+        window.addEventListener(
+          'pagehide',
+          () => {
+            window.clearTimeout(hideTimer)
           },
           { once: true }
         )
