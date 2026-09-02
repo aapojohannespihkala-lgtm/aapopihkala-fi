@@ -1,0 +1,203 @@
+<div class="site-oversized-cursor" data-oversized-cursor aria-hidden="true">
+  <span class="site-oversized-cursor__label">JUST A QUICK REMINDER</span>
+
+  <svg
+    class="site-oversized-cursor__pointer"
+    data-oversized-pointer
+    viewBox="0 0 170 224"
+    aria-hidden="true"
+  >
+    <path
+      d="M16 10 L16 181 L58 139 L91 214 L126 198 L94 128 L154 128 Z"
+    />
+  </svg>
+
+  <span class="site-oversized-cursor__guide site-oversized-cursor__guide--a"></span>
+  <span class="site-oversized-cursor__guide site-oversized-cursor__guide--b"></span>
+</div>
+
+<style is:global>
+  .site-oversized-cursor {
+    --oversized-cursor-x: 50vw;
+    --oversized-cursor-y: 50vh;
+    position: fixed;
+    inset: 0;
+    z-index: 78;
+    display: none;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .site-oversized-cursor.is-visible {
+    display: block;
+  }
+
+  html body.site-oversized-cursor-mode,
+  html body.site-oversized-cursor-mode * {
+    cursor: none !important;
+  }
+
+  .site-oversized-cursor__pointer {
+    position: absolute;
+    left: var(--oversized-cursor-x);
+    top: var(--oversized-cursor-y);
+    z-index: 1;
+    width: clamp(238px, 29vw, 352px);
+    height: auto;
+    overflow: visible;
+    transform: translate(-18px, -15px) rotate(-4deg);
+    transform-origin: 16px 10px;
+  }
+
+  .site-oversized-cursor__pointer path {
+    fill: rgba(255, 255, 255, 0.98);
+    stroke: #11120f;
+    stroke-width: 10;
+    stroke-linecap: square;
+    stroke-linejoin: miter;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .site-oversized-cursor__guide {
+    position: absolute;
+    left: var(--oversized-cursor-x);
+    top: var(--oversized-cursor-y);
+    z-index: 2;
+    width: 230vmax;
+    height: 2px;
+    background: rgba(202, 42, 39, 0.9);
+    box-shadow: 0 0 0 0.5px rgba(202, 42, 39, 0.18);
+    transform-origin: 50% 50%;
+  }
+
+  .site-oversized-cursor__guide--a {
+    transform: translate(-50%, -50%) rotate(68deg) translateY(-29px);
+  }
+
+  .site-oversized-cursor__guide--b {
+    transform: translate(-50%, -50%) rotate(68deg) translateY(31px);
+  }
+
+  .site-oversized-cursor__label {
+    position: fixed;
+    left: 22px;
+    top: 82px;
+    z-index: 3;
+    padding: 4px 6px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--line-soft);
+    color: var(--moss-deep);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.47rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    opacity: 0.82;
+  }
+
+  @media (max-width: 640px) {
+    .site-oversized-cursor__pointer {
+      width: clamp(205px, 58vw, 270px);
+      transform: translate(-15px, -13px) rotate(-4deg);
+    }
+
+    .site-oversized-cursor__label {
+      left: 16px;
+      top: 76px;
+    }
+
+    .site-oversized-cursor__guide--a {
+      transform: translate(-50%, -50%) rotate(68deg) translateY(-23px);
+    }
+
+    .site-oversized-cursor__guide--b {
+      transform: translate(-50%, -50%) rotate(68deg) translateY(25px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-oversized-cursor__pointer,
+    .site-oversized-cursor__guide {
+      transition: none;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const overlay = document.querySelector('[data-oversized-cursor]')
+    const aReadout = document.querySelector('[data-a-readout]')
+
+    if (!overlay || !aReadout) return
+    if (overlay.dataset.oversizedCursorInitialized === 'true') return
+    overlay.dataset.oversizedCursorInitialized = 'true'
+
+    let visible = false
+    let previousBaseMode = aReadout.dataset.mode ?? ''
+    let pointerX = window.innerWidth * 0.5
+    let pointerY = window.innerHeight * 0.5
+
+    const positionOverlay = () => {
+      overlay.style.setProperty('--oversized-cursor-x', `${pointerX}px`)
+      overlay.style.setProperty('--oversized-cursor-y', `${pointerY}px`)
+    }
+
+    const show = () => {
+      visible = true
+      positionOverlay()
+      overlay.classList.add('is-visible')
+      document.body.classList.add('site-oversized-cursor-mode')
+    }
+
+    const hide = () => {
+      visible = false
+      overlay.classList.remove('is-visible')
+      document.body.classList.remove('site-oversized-cursor-mode')
+    }
+
+    const handlePointerMove = (event) => {
+      pointerX = event.clientX
+      pointerY = event.clientY
+      if (visible) positionOverlay()
+    }
+
+    const handleKeyup = (event) => {
+      if (event.key === 'Escape') {
+        hide()
+        previousBaseMode = aReadout.dataset.mode ?? ''
+        return
+      }
+
+      if (event.key.toLowerCase() !== 'a') return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+
+      const currentBaseMode = aReadout.dataset.mode ?? ''
+
+      if (visible) {
+        if (currentBaseMode !== '') hide()
+      } else if (previousBaseMode === 'area' && currentBaseMode === '') {
+        show()
+      }
+
+      previousBaseMode = currentBaseMode
+    }
+
+    const handlePageHide = () => {
+      hide()
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('keyup', handleKeyup)
+    }
+
+    positionOverlay()
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
+    window.addEventListener('keyup', handleKeyup)
+    window.addEventListener('pagehide', handlePageHide, { once: true })
+  })()
+</script>
