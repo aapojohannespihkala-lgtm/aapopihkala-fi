@@ -8,7 +8,7 @@
   <span class="homepage-title-dimension__line"></span>
   <span class="homepage-title-dimension__tick homepage-title-dimension__tick--left"></span>
   <span class="homepage-title-dimension__tick homepage-title-dimension__tick--right"></span>
-  <span class="homepage-title-dimension__label" data-homepage-title-dimension-label>14.0000</span>
+  <span class="homepage-title-dimension__label" data-homepage-title-dimension-label>0.0000</span>
 </div>
 
 <style is:global>
@@ -140,6 +140,8 @@
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)')
     if (!finePointer.matches) return
 
+    let pointerX = 0
+
     const getTitleInkRect = () => {
       const range = document.createRange()
       range.selectNodeContents(title)
@@ -148,20 +150,28 @@
       return rect
     }
 
-    const position = () => {
+    const position = (clientX = pointerX) => {
       const rect = getTitleInkRect()
-      const width = Math.max(1, rect.width)
-      const cadUnits = width / 40
+      const fullWidth = Math.max(1, rect.width)
+      const clampedX = Math.min(rect.right, Math.max(rect.left, clientX))
+      const measuredWidth = Math.max(1, clampedX - rect.left)
+      const cadUnits = (clampedX - rect.left) / 40
 
-      dimension.style.left = `${Math.round(rect.left)}px`
+      pointerX = clampedX
+      dimension.style.left = `${rect.left}px`
       dimension.style.top = `${Math.round(rect.bottom + 8)}px`
-      dimension.style.width = `${Math.round(width)}px`
+      dimension.style.width = `${Math.min(fullWidth, measuredWidth)}px`
       label.textContent = cadUnits.toFixed(4)
     }
 
-    const show = () => {
-      position()
+    const show = (event) => {
+      position(event.clientX)
       dimension.classList.add('is-visible')
+    }
+
+    const move = (event) => {
+      if (!dimension.classList.contains('is-visible')) return
+      position(event.clientX)
     }
 
     const hide = () => {
@@ -173,6 +183,7 @@
     }
 
     title.addEventListener('pointerenter', show)
+    title.addEventListener('pointermove', move)
     title.addEventListener('pointerleave', hide)
     window.addEventListener('resize', handleResize, { passive: true })
 
@@ -181,6 +192,7 @@
       () => {
         hide()
         title.removeEventListener('pointerenter', show)
+        title.removeEventListener('pointermove', move)
         title.removeEventListener('pointerleave', hide)
         window.removeEventListener('resize', handleResize)
       },
