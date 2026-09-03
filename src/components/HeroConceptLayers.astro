@@ -79,13 +79,14 @@
   }
 
   html body .hero-wordfield:hover .hero-wordfield__tick,
-  html body .hero-wordfield:focus-visible .hero-wordfield__tick {
+  html body .hero-wordfield:focus-visible .hero-wordfield__tick,
+  html body .hero-wordfield:hover .hero-wordfield__marker,
+  html body .hero-wordfield:focus-visible .hero-wordfield__marker {
     opacity: 1;
   }
 
-  html body .hero-wordfield--key:hover .hero-wordfield__marker,
-  html body .hero-wordfield--key:focus-visible .hero-wordfield__marker {
-    opacity: 1;
+  html body .hero-wordfield:hover .hero-wordfield__marker,
+  html body .hero-wordfield:focus-visible .hero-wordfield__marker {
     transform: scale(1);
   }
 
@@ -126,7 +127,7 @@
 
     const svgNamespace = 'http://www.w3.org/2000/svg'
 
-    const makeTrace = (isKey) => {
+    const makeTrace = () => {
       const svg = document.createElementNS(svgNamespace, 'svg')
       svg.classList.add('hero-wordfield__trace')
       svg.setAttribute('viewBox', '0 0 100 10')
@@ -155,18 +156,14 @@
       rightTick.setAttribute('x2', '99')
       rightTick.setAttribute('y2', '7.5')
 
-      svg.append(measure, leftTick, rightTick)
+      const marker = document.createElementNS(svgNamespace, 'rect')
+      marker.classList.add('hero-wordfield__marker')
+      marker.setAttribute('x', '48.5')
+      marker.setAttribute('y', '3')
+      marker.setAttribute('width', '3')
+      marker.setAttribute('height', '3')
 
-      if (isKey) {
-        const marker = document.createElementNS(svgNamespace, 'rect')
-        marker.classList.add('hero-wordfield__marker')
-        marker.setAttribute('x', '48.5')
-        marker.setAttribute('y', '3')
-        marker.setAttribute('width', '3')
-        marker.setAttribute('height', '3')
-        svg.append(marker)
-      }
-
+      svg.append(measure, leftTick, rightTick, marker)
       return svg
     }
 
@@ -182,18 +179,21 @@
       const normalized = part
         .toLocaleLowerCase(language)
         .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
-      const isKey = keyWords.has(normalized)
+
+      if (!keyWords.has(normalized)) {
+        fragment.append(document.createTextNode(part))
+        return
+      }
 
       const wrapper = document.createElement('span')
       wrapper.className = 'hero-wordfield'
-      if (isKey) wrapper.classList.add('hero-wordfield--key')
       wrapper.tabIndex = 0
 
       const word = document.createElement('span')
       word.className = 'hero-wordfield__word'
       word.textContent = part
 
-      wrapper.append(word, makeTrace(isKey))
+      wrapper.append(word, makeTrace())
       fragment.append(wrapper)
     })
 
