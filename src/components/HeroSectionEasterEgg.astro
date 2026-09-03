@@ -14,6 +14,21 @@
     position: relative;
     z-index: 2;
     display: inline-block;
+    color: inherit;
+    transition: color 110ms linear;
+  }
+
+  html body .hero-cad-easter__text::after {
+    content: attr(data-selected-label);
+    position: absolute;
+    inset: 0 auto auto 0;
+    z-index: 1;
+    display: block;
+    color: var(--moss-deep);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
   }
 
   html body .hero-cad-easter__selection {
@@ -24,23 +39,11 @@
     bottom: -0.24rem;
     z-index: 1;
     overflow: visible;
-    border: 1px solid rgba(89, 105, 93, 0.46);
-    background:
-      linear-gradient(
-        rgba(89, 105, 93, 0.025),
-        rgba(89, 105, 93, 0.025)
-      ),
-      repeating-linear-gradient(
-        135deg,
-        transparent 0,
-        transparent 7px,
-        rgba(89, 105, 93, 0.075) 7px,
-        rgba(89, 105, 93, 0.075) 8px
-      );
-    background-position: 0 0, 0 0;
+    border: 1px solid rgba(89, 105, 93, 0.2);
+    background: transparent;
     opacity: 0;
     pointer-events: none;
-    transform: scale(0.985);
+    transform: scale(0.992);
     transform-origin: 50% 50%;
     transition:
       opacity 90ms linear,
@@ -52,28 +55,37 @@
     box-sizing: border-box;
     width: 6px;
     height: 6px;
-    border: 1px solid rgba(73, 88, 77, 0.78);
+    border: 1px solid rgba(73, 88, 77, 0.54);
     background: var(--page);
+    opacity: 0;
+    transform: scale(0.72);
+    transition:
+      opacity 90ms linear,
+      transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   html body .hero-cad-easter__grip--tl {
     left: -3px;
     top: -3px;
+    transition-delay: 0ms;
   }
 
   html body .hero-cad-easter__grip--tr {
     right: -3px;
     top: -3px;
-  }
-
-  html body .hero-cad-easter__grip--bl {
-    left: -3px;
-    bottom: -3px;
+    transition-delay: 36ms;
   }
 
   html body .hero-cad-easter__grip--br {
     right: -3px;
     bottom: -3px;
+    transition-delay: 72ms;
+  }
+
+  html body .hero-cad-easter__grip--bl {
+    left: -3px;
+    bottom: -3px;
+    transition-delay: 108ms;
   }
 
   html body .hero-cad-easter__meta {
@@ -115,20 +127,37 @@
 
   html body .hero-cad-easter.is-active .hero-cad-easter__selection {
     transform: scale(1);
-    animation: hero-cad-selection-hatch 2.2s linear infinite;
+  }
+
+  html body .hero-cad-easter.is-active .hero-cad-easter__grip {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  html body .hero-cad-easter.is-active .hero-cad-easter__text {
+    color: var(--stone);
+  }
+
+  html body .hero-cad-easter.is-active .hero-cad-easter__text::after {
+    opacity: 1;
+    animation: hero-cad-text-selection 480ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
   html body .hero-cad-easter.is-active .hero-cad-easter__meta {
     transform: translate(0, -50%);
   }
 
-  @keyframes hero-cad-selection-hatch {
-    from {
-      background-position: 0 0, 0 0;
+  @keyframes hero-cad-text-selection {
+    0% {
+      clip-path: inset(0 100% 0 0);
     }
 
-    to {
-      background-position: 0 0, 22px 0;
+    72% {
+      clip-path: inset(0 0 0 0);
+    }
+
+    100% {
+      clip-path: inset(0 0 0 0);
     }
   }
 
@@ -148,9 +177,15 @@
 
   @media (prefers-reduced-motion: reduce) {
     html body .hero-cad-easter__selection,
+    html body .hero-cad-easter__grip,
+    html body .hero-cad-easter__text,
     html body .hero-cad-easter__meta {
       transition: none !important;
+    }
+
+    html body .hero-cad-easter.is-active .hero-cad-easter__text::after {
       animation: none !important;
+      clip-path: inset(0 0 0 0);
     }
   }
 </style>
@@ -173,6 +208,7 @@
     const text = document.createElement('span')
     text.className = 'hero-cad-easter__text'
     text.textContent = label
+    text.dataset.selectedLabel = label
 
     const selection = document.createElement('span')
     selection.className = 'hero-cad-easter__selection'
