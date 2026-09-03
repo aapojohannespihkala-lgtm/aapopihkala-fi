@@ -8,7 +8,7 @@
   <span class="homepage-title-dimension__line"></span>
   <span class="homepage-title-dimension__tick homepage-title-dimension__tick--left"></span>
   <span class="homepage-title-dimension__tick homepage-title-dimension__tick--right"></span>
-  <span class="homepage-title-dimension__label" data-homepage-title-dimension-label>0.0000</span>
+  <span class="homepage-title-dimension__label" data-homepage-title-dimension-label>0 px</span>
 </div>
 
 <style is:global>
@@ -154,14 +154,14 @@
       const rect = getTitleInkRect()
       const fullWidth = Math.max(1, rect.width)
       const clampedX = Math.min(rect.right, Math.max(rect.left, clientX))
-      const measuredWidth = Math.max(1, clampedX - rect.left)
-      const cadUnits = (clampedX - rect.left) / 40
+      const measuredPixels = Math.max(0, clampedX - rect.left)
+      const drawnWidth = Math.max(1, measuredPixels)
 
       pointerX = clampedX
       dimension.style.left = `${rect.left}px`
       dimension.style.top = `${Math.round(rect.bottom + 1)}px`
-      dimension.style.width = `${Math.min(fullWidth, measuredWidth)}px`
-      label.textContent = cadUnits.toFixed(4)
+      dimension.style.width = `${Math.min(fullWidth, drawnWidth)}px`
+      label.textContent = `${Math.round(measuredPixels)} px`
     }
 
     const show = (event) => {
