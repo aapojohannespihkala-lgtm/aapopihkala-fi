@@ -22,7 +22,7 @@
     top: 0;
     z-index: 42;
     width: 1px;
-    height: 30px;
+    height: 26px;
     pointer-events: none;
     opacity: 0;
     color: var(--moss);
@@ -41,7 +41,7 @@
     position: absolute;
     left: 0;
     right: 0;
-    top: 16px;
+    top: 14px;
     height: 1px;
     background-image: repeating-linear-gradient(
       90deg,
@@ -54,9 +54,9 @@
 
   .homepage-title-dimension__extension {
     position: absolute;
-    top: 0;
+    top: -7px;
     width: 1px;
-    height: 17px;
+    height: 22px;
     background-image: repeating-linear-gradient(
       180deg,
       rgba(89, 105, 93, 0.3) 0,
@@ -76,7 +76,7 @@
 
   .homepage-title-dimension__tick {
     position: absolute;
-    top: 16px;
+    top: 14px;
     width: 9px;
     height: 1px;
     background: rgba(73, 88, 77, 0.46);
@@ -95,7 +95,7 @@
   .homepage-title-dimension__label {
     position: absolute;
     left: 50%;
-    top: 10px;
+    top: 2px;
     padding: 0 6px;
     background: var(--page);
     color: var(--moss-deep);
@@ -159,7 +159,7 @@
 
       pointerX = clampedX
       dimension.style.left = `${rect.left}px`
-      dimension.style.top = `${Math.round(rect.bottom + 8)}px`
+      dimension.style.top = `${Math.round(rect.bottom + 1)}px`
       dimension.style.width = `${Math.min(fullWidth, measuredWidth)}px`
       label.textContent = cadUnits.toFixed(4)
     }
