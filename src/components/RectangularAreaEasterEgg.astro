@@ -57,14 +57,80 @@
     color: var(--ink) !important;
   }
 
+  html.site-rect-cad-theme .feed-post,
+  html.site-rect-cad-theme .feed-post h1,
+  html.site-rect-cad-theme .feed-post h2,
+  html.site-rect-cad-theme .feed-post h3,
+  html.site-rect-cad-theme .feed-post p,
+  html.site-rect-cad-theme .feed-post a,
+  html.site-rect-cad-theme .feed-post span,
+  html.site-rect-cad-theme .feed-post time,
+  html.site-rect-cad-theme .feed-post strong,
+  html.site-rect-cad-theme .feed-post em,
+  html.site-rect-cad-theme .post-title,
+  html.site-rect-cad-theme .post-title-link,
+  html.site-rect-cad-theme .post-news,
+  html.site-rect-cad-theme .post-news-link,
+  html.site-rect-cad-theme .post-body,
+  html.site-rect-cad-theme .post-body p,
+  html.site-rect-cad-theme .post-meta,
+  html.site-rect-cad-theme .post-date,
+  html.site-rect-cad-theme .post-perspective-label,
+  html.site-rect-cad-theme .source,
+  html.site-rect-cad-theme .source-label,
+  html.site-rect-cad-theme .source-link,
+  html.site-rect-cad-theme .source-arrow {
+    color: #e8eef1 !important;
+    text-shadow: 0 0 0.01px rgba(255, 255, 255, 0.9);
+  }
+
+  html.site-rect-cad-theme .post-meta,
+  html.site-rect-cad-theme .post-perspective-label,
+  html.site-rect-cad-theme .source-label {
+    color: #bdc9cf !important;
+  }
+
+  html.site-rect-cad-theme .post-meta-separator,
+  html.site-rect-cad-theme .post-news-link-arrow,
+  html.site-rect-cad-theme .source-arrow {
+    color: #9fadb5 !important;
+  }
+
+  html.site-rect-cad-theme .post-divider,
+  html.site-rect-cad-theme .feed-post:first-child {
+    border-color: rgba(176, 193, 202, 0.42) !important;
+  }
+
   html.site-rect-cad-theme .location-icon {
     stroke: var(--ink) !important;
   }
 
   html.site-rect-cad-theme .morphing-topography__canvas,
-  html.site-rect-cad-theme .topography-canvas {
-    filter: invert(1) grayscale(1) brightness(1.55);
-    opacity: 0.9;
+  html.site-rect-cad-theme .topography-canvas,
+  html.site-rect-cad-theme .post-interactive-graphic canvas,
+  html.site-rect-cad-theme .post-graphic canvas,
+  html.site-rect-cad-theme .post-graphic-image {
+    filter: invert(1) grayscale(1) brightness(1.72) contrast(1.12) !important;
+    opacity: 0.94 !important;
+  }
+
+  html.site-rect-cad-theme .post-interactive-graphic svg,
+  html.site-rect-cad-theme .post-graphic svg {
+    color: #edf3f5 !important;
+    filter: brightness(1.65) grayscale(1) !important;
+  }
+
+  html.site-rect-cad-theme .post-interactive-graphic svg path,
+  html.site-rect-cad-theme .post-interactive-graphic svg line,
+  html.site-rect-cad-theme .post-interactive-graphic svg polyline,
+  html.site-rect-cad-theme .post-interactive-graphic svg polygon,
+  html.site-rect-cad-theme .post-interactive-graphic svg circle,
+  html.site-rect-cad-theme .post-graphic svg path,
+  html.site-rect-cad-theme .post-graphic svg line,
+  html.site-rect-cad-theme .post-graphic svg polyline,
+  html.site-rect-cad-theme .post-graphic svg polygon,
+  html.site-rect-cad-theme .post-graphic svg circle {
+    stroke: currentColor !important;
   }
 
   html.site-rect-cad-theme .site-area-mode-grid {
@@ -101,7 +167,9 @@
   html.site-rect-cad-theme .main-container,
   html.site-rect-cad-theme .hero,
   html.site-rect-cad-theme .topbar,
-  html.site-rect-cad-theme .morphing-topography__canvas {
+  html.site-rect-cad-theme .morphing-topography__canvas,
+  html.site-rect-cad-theme .post-interactive-graphic canvas,
+  html.site-rect-cad-theme .post-graphic-image {
     transition:
       background-color 180ms ease,
       background 180ms ease,
@@ -184,6 +252,8 @@
     html.site-rect-cad-theme .hero,
     html.site-rect-cad-theme .topbar,
     html.site-rect-cad-theme .morphing-topography__canvas,
+    html.site-rect-cad-theme .post-interactive-graphic canvas,
+    html.site-rect-cad-theme .post-graphic-image,
     .site-rect-area {
       transition: none !important;
     }
