@@ -1,0 +1,291 @@
+<div class="site-rect-area" data-rect-area aria-hidden="true">
+  <svg class="site-rect-area__svg" data-rect-area-svg preserveAspectRatio="none" aria-hidden="true">
+    <rect class="site-rect-area__contrast" data-rect-area-contrast />
+    <rect class="site-rect-area__fill" data-rect-area-fill />
+    <rect class="site-rect-area__stroke" data-rect-area-stroke />
+  </svg>
+  <span class="site-rect-area__hint" data-rect-area-hint>RECT / HOLD + DRAW</span>
+</div>
+
+<style is:global>
+  .site-rect-area {
+    position: fixed;
+    inset: 0;
+    z-index: 74;
+    display: none;
+    pointer-events: none;
+  }
+
+  .site-rect-area.is-visible {
+    display: block;
+  }
+
+  .site-rect-area__svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .site-rect-area__contrast,
+  .site-rect-area__fill,
+  .site-rect-area__stroke {
+    vector-effect: non-scaling-stroke;
+  }
+
+  .site-rect-area__contrast {
+    fill: rgba(255, 255, 255, 0.14);
+    stroke: none;
+    mix-blend-mode: screen;
+  }
+
+  .site-rect-area__fill {
+    fill: rgba(18, 112, 47, 0.24);
+    stroke: none;
+  }
+
+  .site-rect-area__stroke {
+    fill: none;
+    stroke: rgba(248, 252, 249, 0.98);
+    stroke-width: 0.9;
+    stroke-dasharray: 2 2.8;
+    stroke-linecap: butt;
+    stroke-linejoin: miter;
+    filter:
+      drop-shadow(0 0 0.45px rgba(255, 255, 255, 0.96))
+      drop-shadow(0 0 0.7px rgba(35, 73, 47, 0.58));
+  }
+
+  .site-rect-area__hint {
+    position: absolute;
+    left: 22px;
+    bottom: 22px;
+    padding: 3px 5px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--line-soft);
+    color: var(--moss-deep);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.47rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    opacity: 0.62;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-rect-area {
+      transition: none !important;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const initialize = () => {
+      const root = document.querySelector('[data-rect-area]')
+      const svg = document.querySelector('[data-rect-area-svg]')
+      const contrast = document.querySelector('[data-rect-area-contrast]')
+      const fill = document.querySelector('[data-rect-area-fill]')
+      const stroke = document.querySelector('[data-rect-area-stroke]')
+      const hint = document.querySelector('[data-rect-area-hint]')
+      const readout = document.querySelector('[data-a-readout]')
+      const readoutLabel = document.querySelector('[data-a-readout-label]')
+
+      if (!root || !svg || !contrast || !fill || !stroke || !hint || !readout || !readoutLabel) return
+      if (root.dataset.rectAreaInitialized === 'true') return
+      root.dataset.rectAreaInitialized = 'true'
+
+      let rectActive = false
+      let drawing = false
+      let finished = false
+      let startPoint = null
+      let endPoint = null
+      let previousMode = readout.dataset.mode ?? ''
+
+      const setViewBox = () => {
+        svg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
+      }
+
+      const setGeometry = (start, end) => {
+        if (!start || !end) return { x: 0, y: 0, width: 0, height: 0 }
+
+        const x = Math.min(start.x, end.x)
+        const y = Math.min(start.y, end.y)
+        const width = Math.abs(end.x - start.x)
+        const height = Math.abs(end.y - start.y)
+
+        for (const element of [contrast, fill, stroke]) {
+          element.setAttribute('x', String(x))
+          element.setAttribute('y', String(y))
+          element.setAttribute('width', String(width))
+          element.setAttribute('height', String(height))
+        }
+
+        return { x, y, width, height }
+      }
+
+      const clearGeometry = () => {
+        for (const element of [contrast, fill, stroke]) {
+          element.setAttribute('x', '0')
+          element.setAttribute('y', '0')
+          element.setAttribute('width', '0')
+          element.setAttribute('height', '0')
+        }
+      }
+
+      const setReadout = (text) => {
+        readoutLabel.textContent = text
+      }
+
+      const activate = () => {
+        rectActive = true
+        drawing = false
+        finished = false
+        startPoint = null
+        endPoint = null
+        previousMode = 'rect'
+
+        document.body.classList.add('site-a-mode')
+        readout.dataset.mode = 'rect'
+        readout.classList.add('is-visible')
+        root.classList.add('is-visible')
+        hint.textContent = 'RECT / HOLD + DRAW'
+        setReadout('RECT / DRAW')
+        setViewBox()
+        clearGeometry()
+      }
+
+      const deactivate = () => {
+        rectActive = false
+        drawing = false
+        finished = false
+        startPoint = null
+        endPoint = null
+        root.classList.remove('is-visible')
+        clearGeometry()
+      }
+
+      const handleModeChange = () => {
+        const nextMode = readout.dataset.mode ?? ''
+
+        if (rectActive) {
+          if (nextMode !== 'rect') {
+            deactivate()
+            previousMode = nextMode
+          }
+          return
+        }
+
+        if (previousMode === 'area' && nextMode === '') {
+          activate()
+          return
+        }
+
+        previousMode = nextMode
+      }
+
+      const handlePointerDown = (event) => {
+        if (!rectActive || event.button !== 0) return
+
+        event.preventDefault()
+        event.stopPropagation()
+
+        drawing = true
+        finished = false
+        startPoint = { x: event.clientX, y: event.clientY }
+        endPoint = { ...startPoint }
+        setGeometry(startPoint, endPoint)
+        setReadout('RECT / DRAW')
+        hint.textContent = 'RECT / RELEASE TO CLOSE'
+      }
+
+      const handlePointerMove = (event) => {
+        if (!rectActive) return
+
+        readout.style.left = `${event.clientX}px`
+        readout.style.top = `${event.clientY}px`
+
+        if (!drawing || !startPoint) {
+          setReadout(finished ? 'RECT / DRAW NEW' : 'RECT / DRAW')
+          return
+        }
+
+        endPoint = { x: event.clientX, y: event.clientY }
+        const rect = setGeometry(startPoint, endPoint)
+        setReadout(`RECT / ${Math.round(rect.width)} × ${Math.round(rect.height)} px`)
+      }
+
+      const handlePointerUp = (event) => {
+        if (!rectActive || !drawing || event.button !== 0 || !startPoint) return
+
+        event.preventDefault()
+        event.stopPropagation()
+
+        endPoint = { x: event.clientX, y: event.clientY }
+        const rect = setGeometry(startPoint, endPoint)
+        drawing = false
+
+        if (rect.width < 4 || rect.height < 4) {
+          finished = false
+          startPoint = null
+          endPoint = null
+          clearGeometry()
+          setReadout('RECT / DRAW')
+          hint.textContent = 'RECT / HOLD + DRAW'
+          return
+        }
+
+        finished = true
+        const area = Math.round(rect.width * rect.height)
+        setReadout(`RECT / ${Math.round(rect.width)} × ${Math.round(rect.height)} px`)
+        hint.textContent = `RECT / ${area} px² / HOLD + DRAW NEW`
+      }
+
+      const handlePointerCancel = () => {
+        if (!rectActive || !drawing) return
+        drawing = false
+        finished = false
+        startPoint = null
+        endPoint = null
+        clearGeometry()
+        setReadout('RECT / DRAW')
+        hint.textContent = 'RECT / HOLD + DRAW'
+      }
+
+      const observer = new MutationObserver(handleModeChange)
+      observer.observe(readout, {
+        attributes: true,
+        attributeFilter: ['data-mode'],
+      })
+
+      window.addEventListener('pointerdown', handlePointerDown)
+      window.addEventListener('pointermove', handlePointerMove, { passive: false })
+      window.addEventListener('pointerup', handlePointerUp)
+      window.addEventListener('pointercancel', handlePointerCancel)
+      window.addEventListener('resize', setViewBox, { passive: true })
+      setViewBox()
+
+      window.addEventListener(
+        'pagehide',
+        () => {
+          observer.disconnect()
+          window.removeEventListener('pointerdown', handlePointerDown)
+          window.removeEventListener('pointermove', handlePointerMove)
+          window.removeEventListener('pointerup', handlePointerUp)
+          window.removeEventListener('pointercancel', handlePointerCancel)
+          window.removeEventListener('resize', setViewBox)
+          deactivate()
+        },
+        { once: true }
+      )
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initialize, { once: true })
+    } else {
+      initialize()
+    }
+  })()
+</script>
