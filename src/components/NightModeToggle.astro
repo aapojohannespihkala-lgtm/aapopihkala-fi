@@ -14,10 +14,12 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
   data-night-mode-toggle
   aria-label={label}
   aria-pressed="false"
-  title={label}
 >
   <span class="night-mode-toggle__icon" aria-hidden="true">
     <span class="night-mode-toggle__dot"></span>
+  </span>
+  <span class="night-mode-toggle__meta" data-night-mode-meta aria-hidden="true">
+    <span data-night-mode-meta-text>SITE / DAYLIGHT SURVEY</span>
   </span>
 </button>
 
@@ -176,7 +178,8 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
   html.site-night-mode .homepage-survey-points__mode,
   html.site-night-mode .homepage-elevation-scan__label,
   html.site-night-mode .homepage-topography-readout__label,
-  html.site-night-mode .homepage-selection-note {
+  html.site-night-mode .homepage-selection-note,
+  html.site-night-mode .night-mode-toggle__meta {
     background: rgba(25, 34, 43, 0.96) !important;
     border-color: rgba(167, 184, 193, 0.34) !important;
     color: #eaf0f2 !important;
@@ -251,6 +254,35 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
     transform: translate(-50%, -50%) scale(1);
   }
 
+  .night-mode-toggle__meta {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 12px);
+    z-index: 62;
+    display: block;
+    padding: 5px 7px;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--line-soft);
+    color: var(--moss-deep);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.47rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translate(-50%, -2px);
+    transition: opacity 100ms ease, transform 100ms ease;
+  }
+
+  .night-mode-toggle:hover .night-mode-toggle__meta,
+  .night-mode-toggle:focus-visible .night-mode-toggle__meta {
+    opacity: 0.82;
+    transform: translate(-50%, 0);
+  }
+
   html.site-night-mode,
   html.site-night-mode body,
   html.site-night-mode main,
@@ -277,7 +309,8 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
     html.site-night-mode .hero,
     html.site-night-mode .topbar,
     .night-mode-toggle,
-    .night-mode-toggle__dot {
+    .night-mode-toggle__dot,
+    .night-mode-toggle__meta {
       transition: none !important;
     }
   }
@@ -289,6 +322,8 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
     const root = document.documentElement
     const toggle = document.querySelector('[data-night-mode-toggle]')
     if (!(toggle instanceof HTMLButtonElement)) return
+
+    const metaText = toggle.querySelector('[data-night-mode-meta-text]')
 
     const readStoredMode = () => {
       try {
@@ -309,6 +344,12 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
     const applyMode = (night) => {
       root.classList.toggle('site-night-mode', night)
       toggle.setAttribute('aria-pressed', night ? 'true' : 'false')
+
+      if (metaText) {
+        metaText.textContent = night
+          ? 'SITE / AFTER-HOURS DRAFTING'
+          : 'SITE / DAYLIGHT SURVEY'
+      }
     }
 
     applyMode(readStoredMode())
