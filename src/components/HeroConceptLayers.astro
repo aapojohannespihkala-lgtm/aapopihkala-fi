@@ -12,82 +12,20 @@
     transition: color 120ms ease;
   }
 
-  html body .hero-wordfield__trace {
-    position: absolute;
-    left: 0;
-    top: calc(100% + 0.24em);
-    z-index: 1;
-    display: block;
-    width: 100%;
-    height: 0.36rem;
-    overflow: visible;
-    pointer-events: none;
-    opacity: 0;
-    transform: translateY(2px);
-    transition:
-      opacity 90ms linear,
-      transform 150ms ease;
-  }
-
-  html body .hero-wordfield__trace line {
-    fill: none;
-    vector-effect: non-scaling-stroke;
-  }
-
-  html body .hero-wordfield__measure,
-  html body .hero-wordfield__tick {
-    stroke: rgba(89, 105, 93, 0.28);
-    stroke-width: 0.62px;
-  }
-
-  html body .hero-wordfield__measure {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    transition: stroke-dashoffset 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  html body .hero-wordfield__tick {
-    opacity: 0;
-    transition: opacity 90ms linear 90ms;
-  }
-
   html body .hero-wordfield:hover,
   html body .hero-wordfield:focus-visible {
     color: var(--ink-soft);
     outline: none;
   }
 
-  html body .hero-wordfield:hover .hero-wordfield__trace,
-  html body .hero-wordfield:focus-visible .hero-wordfield__trace {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  html body .hero-wordfield:hover .hero-wordfield__measure,
-  html body .hero-wordfield:focus-visible .hero-wordfield__measure {
-    stroke-dashoffset: 0;
-  }
-
-  html body .hero-wordfield:hover .hero-wordfield__tick,
-  html body .hero-wordfield:focus-visible .hero-wordfield__tick {
-    opacity: 1;
-  }
-
   @media (hover: none), (pointer: coarse) {
     html body .hero-wordfield {
       cursor: inherit;
     }
-
-    html body .hero-wordfield__trace {
-      display: none;
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    html body .hero-wordfield,
-    html body .hero-wordfield__trace,
-    html body .hero-wordfield__measure,
-    html body .hero-wordfield__tick {
+    html body .hero-wordfield {
       transition: none !important;
     }
   }
@@ -106,41 +44,6 @@
     const keyWords = language === 'fi'
       ? new Set(['kaupunkien', 'ihmisten', 'luonnon'])
       : new Set(['cities', 'people', 'nature'])
-
-    const svgNamespace = 'http://www.w3.org/2000/svg'
-
-    const makeTrace = () => {
-      const svg = document.createElementNS(svgNamespace, 'svg')
-      svg.classList.add('hero-wordfield__trace')
-      svg.setAttribute('viewBox', '0 0 100 10')
-      svg.setAttribute('preserveAspectRatio', 'none')
-      svg.setAttribute('aria-hidden', 'true')
-
-      const measure = document.createElementNS(svgNamespace, 'line')
-      measure.classList.add('hero-wordfield__measure')
-      measure.setAttribute('x1', '1')
-      measure.setAttribute('y1', '4.8')
-      measure.setAttribute('x2', '99')
-      measure.setAttribute('y2', '4.8')
-      measure.setAttribute('pathLength', '1')
-
-      const leftTick = document.createElementNS(svgNamespace, 'line')
-      leftTick.classList.add('hero-wordfield__tick')
-      leftTick.setAttribute('x1', '1')
-      leftTick.setAttribute('y1', '1.7')
-      leftTick.setAttribute('x2', '1')
-      leftTick.setAttribute('y2', '7.9')
-
-      const rightTick = document.createElementNS(svgNamespace, 'line')
-      rightTick.classList.add('hero-wordfield__tick')
-      rightTick.setAttribute('x1', '99')
-      rightTick.setAttribute('y1', '1.7')
-      rightTick.setAttribute('x2', '99')
-      rightTick.setAttribute('y2', '7.9')
-
-      svg.append(measure, leftTick, rightTick)
-      return svg
-    }
 
     const parts = source.split(/(\s+)/)
     const fragment = document.createDocumentFragment()
@@ -163,12 +66,7 @@
       const wrapper = document.createElement('span')
       wrapper.className = 'hero-wordfield'
       wrapper.tabIndex = 0
-
-      const word = document.createElement('span')
-      word.className = 'hero-wordfield__word'
-      word.textContent = part
-
-      wrapper.append(word, makeTrace())
+      wrapper.textContent = part
       fragment.append(wrapper)
     })
 
