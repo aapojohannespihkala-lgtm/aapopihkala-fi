@@ -4,7 +4,6 @@
   preserveAspectRatio="none"
   aria-hidden="true"
 >
-  <path class="site-area-free-select__contrast" data-area-free-select-contrast />
   <path class="site-area-free-select__fill" data-area-free-select-fill />
   <path class="site-area-free-select__stroke" data-area-free-select-path />
 </svg>
@@ -41,30 +40,41 @@
     display: block;
   }
 
-  .site-area-free-select__contrast {
-    fill: rgb(255, 255, 255);
-    stroke: none;
-    mix-blend-mode: difference;
-    vector-effect: non-scaling-stroke;
-  }
-
   .site-area-free-select__fill {
-    fill: rgba(18, 112, 47, 0.34);
+    fill: rgba(18, 112, 47, 0.27);
     stroke: none;
     vector-effect: non-scaling-stroke;
   }
 
   .site-area-free-select__stroke {
     fill: none;
-    stroke: rgba(248, 252, 249, 0.98);
+    stroke: rgba(246, 251, 247, 0.98);
     stroke-width: 0.9;
     stroke-dasharray: 2 2.8;
     stroke-linecap: butt;
     stroke-linejoin: miter;
     vector-effect: non-scaling-stroke;
     filter:
-      drop-shadow(0 0 0.45px rgba(255, 255, 255, 0.96))
+      drop-shadow(0 0 0.45px rgba(255, 255, 255, 0.98))
       drop-shadow(0 0 0.7px rgba(35, 73, 47, 0.58));
+  }
+
+  html body .site-area-selected-object {
+    filter:
+      brightness(0)
+      invert(1)
+      drop-shadow(0 0 0.65px rgba(34, 69, 46, 0.82))
+      drop-shadow(0 0 1.2px rgba(255, 255, 255, 0.98)) !important;
+  }
+
+  html body .site-area-selected-object.hero-secondary,
+  html body .site-area-selected-object.hero-primary,
+  html body h1.site-area-selected-object,
+  html body .site-area-selected-object.hero-location-trigger,
+  html body .site-area-selected-object.hero-linkedin {
+    text-shadow:
+      0 0 0.7px rgba(34, 69, 46, 0.9),
+      0 0 1.4px rgba(255, 255, 255, 0.98) !important;
   }
 
   html body .site-area-hint {
@@ -72,7 +82,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .site-area-free-select {
+    .site-area-free-select,
+    html body .site-area-selected-object {
       transition: none !important;
     }
   }
@@ -82,7 +93,6 @@
   (() => {
     const initialize = () => {
       const selectionSvg = document.querySelector('[data-area-free-select]')
-      const selectionContrast = document.querySelector('[data-area-free-select-contrast]')
       const selectionFill = document.querySelector('[data-area-free-select-fill]')
       const selectionPath = document.querySelector('[data-area-free-select-path]')
       const overlay = document.querySelector('[data-area-overlay]')
@@ -91,7 +101,6 @@
 
       if (
         !selectionSvg ||
-        !selectionContrast ||
         !selectionFill ||
         !selectionPath ||
         !overlay ||
@@ -101,6 +110,13 @@
 
       if (selectionSvg.dataset.areaFreeSelectInitialized === 'true') return
       selectionSvg.dataset.areaFreeSelectInitialized = 'true'
+
+      const selectedClass = 'site-area-selected-object'
+      const selectionCandidates = Array.from(
+        document.querySelectorAll(
+          '.hero h1, .hero-primary, .hero-secondary, .hero-location-trigger, .hero-linkedin, .hero-art--interactive [data-morphing-topography], .topbar-name, .language-switch, .linkedin-link'
+        )
+      )
 
       let persistentPoints = []
       let syncFrame = 0
@@ -131,11 +147,95 @@
           .join(' ')} Z`
       }
 
+      const pointInPolygon = (point, points) => {
+        let inside = false
+
+        for (let index = 0, previous = points.length - 1; index < points.length; previous = index, index += 1) {
+          const currentPoint = points[index]
+          const previousPoint = points[previous]
+          const crosses =
+            currentPoint.y > point.y !== previousPoint.y > point.y &&
+            point.x <
+              ((previousPoint.x - currentPoint.x) * (point.y - currentPoint.y)) /
+                (previousPoint.y - currentPoint.y || 0.00001) +
+                currentPoint.x
+
+          if (crosses) inside = !inside
+        }
+
+        return inside
+      }
+
+      const orientation = (a, b, c) =>
+        (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+
+      const segmentsIntersect = (a, b, c, d) => {
+        const abC = orientation(a, b, c)
+        const abD = orientation(a, b, d)
+        const cdA = orientation(c, d, a)
+        const cdB = orientation(c, d, b)
+        return abC * abD <= 0 && cdA * cdB <= 0
+      }
+
+      const polygonIntersectsRect = (points, rect) => {
+        if (points.length < 3 || rect.width <= 0 || rect.height <= 0) return false
+
+        const corners = [
+          { x: rect.left, y: rect.top },
+          { x: rect.right, y: rect.top },
+          { x: rect.right, y: rect.bottom },
+          { x: rect.left, y: rect.bottom },
+        ]
+
+        if (corners.some((corner) => pointInPolygon(corner, points))) return true
+
+        if (
+          points.some(
+            (point) =>
+              point.x >= rect.left &&
+              point.x <= rect.right &&
+              point.y >= rect.top &&
+              point.y <= rect.bottom
+          )
+        ) return true
+
+        const rectEdges = [
+          [corners[0], corners[1]],
+          [corners[1], corners[2]],
+          [corners[2], corners[3]],
+          [corners[3], corners[0]],
+        ]
+
+        for (let index = 0; index < points.length; index += 1) {
+          const start = points[index]
+          const end = points[(index + 1) % points.length]
+
+          for (const [rectStart, rectEnd] of rectEdges) {
+            if (segmentsIntersect(start, end, rectStart, rectEnd)) return true
+          }
+        }
+
+        return false
+      }
+
+      const clearSelectedObjects = () => {
+        selectionCandidates.forEach((element) => {
+          element.classList.remove(selectedClass)
+        })
+      }
+
+      const updateSelectedObjects = (points) => {
+        selectionCandidates.forEach((element) => {
+          const rect = element.getBoundingClientRect()
+          element.classList.toggle(selectedClass, polygonIntersectsRect(points, rect))
+        })
+      }
+
       const hide = () => {
         selectionSvg.classList.remove('is-visible')
-        selectionContrast.setAttribute('d', '')
         selectionFill.setAttribute('d', '')
         selectionPath.setAttribute('d', '')
+        clearSelectedObjects()
       }
 
       const render = (points) => {
@@ -147,10 +247,10 @@
         const path = pathFromPoints(points)
 
         selectionSvg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
-        selectionContrast.setAttribute('d', path)
         selectionFill.setAttribute('d', path)
         selectionPath.setAttribute('d', path)
         selectionSvg.classList.add('is-visible')
+        updateSelectedObjects(points)
       }
 
       const sync = () => {
