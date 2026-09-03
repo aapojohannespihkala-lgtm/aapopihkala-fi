@@ -29,10 +29,7 @@
       transform 150ms ease;
   }
 
-  html body .hero-wordfield__trace line,
-  html body .hero-wordfield__trace rect,
-  html body .hero-wordfield__trace polygon,
-  html body .hero-wordfield__trace circle {
+  html body .hero-wordfield__trace line {
     fill: none;
     vector-effect: non-scaling-stroke;
   }
@@ -54,18 +51,6 @@
     transition: opacity 90ms linear 90ms;
   }
 
-  html body .hero-wordfield__marker {
-    stroke: rgba(73, 88, 77, 0.5);
-    stroke-width: 0.72px;
-    opacity: 0;
-    transform-box: fill-box;
-    transform-origin: center;
-    transform: scale(0.72);
-    transition:
-      opacity 90ms linear 105ms,
-      transform 150ms cubic-bezier(0.22, 1, 0.36, 1) 85ms;
-  }
-
   html body .hero-wordfield:hover,
   html body .hero-wordfield:focus-visible {
     color: var(--ink-soft);
@@ -84,15 +69,8 @@
   }
 
   html body .hero-wordfield:hover .hero-wordfield__tick,
-  html body .hero-wordfield:focus-visible .hero-wordfield__tick,
-  html body .hero-wordfield:hover .hero-wordfield__marker,
-  html body .hero-wordfield:focus-visible .hero-wordfield__marker {
+  html body .hero-wordfield:focus-visible .hero-wordfield__tick {
     opacity: 1;
-  }
-
-  html body .hero-wordfield:hover .hero-wordfield__marker,
-  html body .hero-wordfield:focus-visible .hero-wordfield__marker {
-    transform: scale(1);
   }
 
   @media (hover: none), (pointer: coarse) {
@@ -109,8 +87,7 @@
     html body .hero-wordfield,
     html body .hero-wordfield__trace,
     html body .hero-wordfield__measure,
-    html body .hero-wordfield__tick,
-    html body .hero-wordfield__marker {
+    html body .hero-wordfield__tick {
       transition: none !important;
     }
   }
@@ -127,46 +104,12 @@
 
     const language = document.documentElement.lang === 'fi' ? 'fi' : 'en'
     const keyWords = language === 'fi'
-      ? new Map([
-          ['kaupunkien', 'square'],
-          ['ihmisten', 'triangle'],
-          ['luonnon', 'circle'],
-        ])
-      : new Map([
-          ['cities', 'square'],
-          ['people', 'triangle'],
-          ['nature', 'circle'],
-        ])
+      ? new Set(['kaupunkien', 'ihmisten', 'luonnon'])
+      : new Set(['cities', 'people', 'nature'])
 
     const svgNamespace = 'http://www.w3.org/2000/svg'
 
-    const makeMarker = (type) => {
-      if (type === 'triangle') {
-        const marker = document.createElementNS(svgNamespace, 'polygon')
-        marker.classList.add('hero-wordfield__marker')
-        marker.setAttribute('points', '50,2.2 53.1,7.3 46.9,7.3')
-        return marker
-      }
-
-      if (type === 'circle') {
-        const marker = document.createElementNS(svgNamespace, 'circle')
-        marker.classList.add('hero-wordfield__marker')
-        marker.setAttribute('cx', '50')
-        marker.setAttribute('cy', '4.8')
-        marker.setAttribute('r', '2.55')
-        return marker
-      }
-
-      const marker = document.createElementNS(svgNamespace, 'rect')
-      marker.classList.add('hero-wordfield__marker')
-      marker.setAttribute('x', '47.55')
-      marker.setAttribute('y', '2.35')
-      marker.setAttribute('width', '4.9')
-      marker.setAttribute('height', '4.9')
-      return marker
-    }
-
-    const makeTrace = (markerType) => {
+    const makeTrace = () => {
       const svg = document.createElementNS(svgNamespace, 'svg')
       svg.classList.add('hero-wordfield__trace')
       svg.setAttribute('viewBox', '0 0 100 10')
@@ -195,7 +138,7 @@
       rightTick.setAttribute('x2', '99')
       rightTick.setAttribute('y2', '7.9')
 
-      svg.append(measure, leftTick, rightTick, makeMarker(markerType))
+      svg.append(measure, leftTick, rightTick)
       return svg
     }
 
@@ -211,22 +154,21 @@
       const normalized = part
         .toLocaleLowerCase(language)
         .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
-      const markerType = keyWords.get(normalized)
 
-      if (!markerType) {
+      if (!keyWords.has(normalized)) {
         fragment.append(document.createTextNode(part))
         return
       }
 
       const wrapper = document.createElement('span')
-      wrapper.className = `hero-wordfield hero-wordfield--${markerType}`
+      wrapper.className = 'hero-wordfield'
       wrapper.tabIndex = 0
 
       const word = document.createElement('span')
       word.className = 'hero-wordfield__word'
       word.textContent = part
 
-      wrapper.append(word, makeTrace(markerType))
+      wrapper.append(word, makeTrace())
       fragment.append(wrapper)
     })
 
