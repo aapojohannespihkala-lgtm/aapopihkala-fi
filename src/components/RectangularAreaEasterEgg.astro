@@ -1,3 +1,7 @@
+<div class="site-area-mode-grid" data-area-mode-grid aria-hidden="true">
+  <span class="site-area-mode-grid__label">GRID / 32</span>
+</div>
+
 <div class="site-rect-area" data-rect-area aria-hidden="true">
   <svg class="site-rect-area__svg" data-rect-area-svg preserveAspectRatio="none" aria-hidden="true">
     <rect class="site-rect-area__contrast" data-rect-area-contrast />
@@ -8,175 +12,33 @@
 </div>
 
 <style is:global>
-  html.site-rect-cad-theme {
-    --page: #202a34;
-    --bar: #1b242d;
-    --bar-transparent: rgba(27, 36, 45, 0.94);
-    --ink: #f1f4f5;
-    --ink-soft: #e1e7ea;
-    --stone: #c4cdd2;
-    --stone-light: #9eabb2;
-    --header-name: #d7dfe3;
-    --header-control: #d2dbe0;
-    --moss: #c4d0d5;
-    --moss-deep: #edf2f4;
-    --lichen: #a9b5bb;
-    --line: #64727c;
-    --line-soft: #46535d;
-    background: var(--page) !important;
-    color-scheme: dark;
-  }
-
-  html.site-rect-cad-theme body,
-  html.site-rect-cad-theme .main-container,
-  html.site-rect-cad-theme .hero {
-    background: var(--page) !important;
-  }
-
-  html.site-rect-cad-theme body {
-    color: var(--ink);
-  }
-
-  html.site-rect-cad-theme .topbar {
-    background: var(--bar-transparent) !important;
-    border-bottom-color: rgba(154, 171, 181, 0.18) !important;
-    -webkit-backdrop-filter: blur(5px) saturate(90%);
-    backdrop-filter: blur(5px) saturate(90%);
-  }
-
-  html.site-rect-cad-theme .topbar-name,
-  html.site-rect-cad-theme .language-switch,
-  html.site-rect-cad-theme .linkedin-link,
-  html.site-rect-cad-theme .hero h1,
-  html.site-rect-cad-theme .hero-primary,
-  html.site-rect-cad-theme .hero-secondary,
-  html.site-rect-cad-theme .hero-location,
-  html.site-rect-cad-theme .hero-location-trigger,
-  html.site-rect-cad-theme .hero-linkedin,
-  html.site-rect-cad-theme .hero-linkedin-arrow {
-    color: var(--ink) !important;
-  }
-
-  html.site-rect-cad-theme .feed-post,
-  html.site-rect-cad-theme .feed-post h1,
-  html.site-rect-cad-theme .feed-post h2,
-  html.site-rect-cad-theme .feed-post h3,
-  html.site-rect-cad-theme .feed-post p,
-  html.site-rect-cad-theme .feed-post a,
-  html.site-rect-cad-theme .feed-post span,
-  html.site-rect-cad-theme .feed-post time,
-  html.site-rect-cad-theme .feed-post strong,
-  html.site-rect-cad-theme .feed-post em,
-  html.site-rect-cad-theme .post-title,
-  html.site-rect-cad-theme .post-title-link,
-  html.site-rect-cad-theme .post-news,
-  html.site-rect-cad-theme .post-news-link,
-  html.site-rect-cad-theme .post-body,
-  html.site-rect-cad-theme .post-body p,
-  html.site-rect-cad-theme .post-meta,
-  html.site-rect-cad-theme .post-date,
-  html.site-rect-cad-theme .post-perspective-label,
-  html.site-rect-cad-theme .source,
-  html.site-rect-cad-theme .source-label,
-  html.site-rect-cad-theme .source-link,
-  html.site-rect-cad-theme .source-arrow {
-    color: #e8eef1 !important;
-    text-shadow: 0 0 0.01px rgba(255, 255, 255, 0.9);
-  }
-
-  html.site-rect-cad-theme .post-meta,
-  html.site-rect-cad-theme .post-perspective-label,
-  html.site-rect-cad-theme .source-label {
-    color: #bdc9cf !important;
-  }
-
-  html.site-rect-cad-theme .post-meta-separator,
-  html.site-rect-cad-theme .post-news-link-arrow,
-  html.site-rect-cad-theme .source-arrow {
-    color: #9fadb5 !important;
-  }
-
-  html.site-rect-cad-theme .post-divider,
-  html.site-rect-cad-theme .feed-post:first-child {
-    border-color: rgba(176, 193, 202, 0.42) !important;
-  }
-
-  html.site-rect-cad-theme .location-icon {
-    stroke: var(--ink) !important;
-  }
-
-  html.site-rect-cad-theme .morphing-topography__canvas,
-  html.site-rect-cad-theme .topography-canvas,
-  html.site-rect-cad-theme .post-interactive-graphic canvas,
-  html.site-rect-cad-theme .post-graphic canvas,
-  html.site-rect-cad-theme .post-graphic-image {
-    filter: invert(1) grayscale(1) brightness(1.72) contrast(1.12) !important;
-    opacity: 0.94 !important;
-  }
-
-  html.site-rect-cad-theme .post-interactive-graphic svg,
-  html.site-rect-cad-theme .post-graphic svg {
-    color: #edf3f5 !important;
-    filter: brightness(1.65) grayscale(1) !important;
-  }
-
-  html.site-rect-cad-theme .post-interactive-graphic svg path,
-  html.site-rect-cad-theme .post-interactive-graphic svg line,
-  html.site-rect-cad-theme .post-interactive-graphic svg polyline,
-  html.site-rect-cad-theme .post-interactive-graphic svg polygon,
-  html.site-rect-cad-theme .post-interactive-graphic svg circle,
-  html.site-rect-cad-theme .post-graphic svg path,
-  html.site-rect-cad-theme .post-graphic svg line,
-  html.site-rect-cad-theme .post-graphic svg polyline,
-  html.site-rect-cad-theme .post-graphic svg polygon,
-  html.site-rect-cad-theme .post-graphic svg circle {
-    stroke: currentColor !important;
-  }
-
-  html.site-rect-cad-theme .site-area-mode-grid {
-    opacity: 1 !important;
-    visibility: visible !important;
+  .site-area-mode-grid {
+    position: fixed;
+    inset: 64px 0 0;
+    z-index: 45;
+    pointer-events: none;
+    opacity: 0;
     background-image:
-      linear-gradient(rgba(157, 180, 191, 0.15) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(157, 180, 191, 0.15) 1px, transparent 1px) !important;
-    background-size: 32px 32px !important;
+      linear-gradient(rgba(89, 105, 93, 0.075) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(89, 105, 93, 0.075) 1px, transparent 1px);
+    background-size: 32px 32px;
+    transition: opacity 120ms ease;
   }
 
-  html.site-rect-cad-theme .site-area-mode-grid__label {
-    color: rgba(218, 229, 234, 0.72) !important;
+  .site-area-mode-grid.is-visible {
+    opacity: 1;
   }
 
-  html.site-rect-cad-theme .site-a-readout {
-    color: #eef3f5 !important;
-  }
-
-  html.site-rect-cad-theme .site-a-readout__label,
-  html.site-rect-cad-theme .site-rect-area__hint {
-    background: rgba(25, 34, 43, 0.94) !important;
-    border-color: rgba(167, 184, 193, 0.26) !important;
-    color: #eaf0f2 !important;
-  }
-
-  html.site-rect-cad-theme .site-scroll-readout,
-  html.site-rect-cad-theme [data-analytics-settings] {
-    color: rgba(218, 229, 234, 0.7) !important;
-  }
-
-  html.site-rect-cad-theme,
-  html.site-rect-cad-theme body,
-  html.site-rect-cad-theme .main-container,
-  html.site-rect-cad-theme .hero,
-  html.site-rect-cad-theme .topbar,
-  html.site-rect-cad-theme .morphing-topography__canvas,
-  html.site-rect-cad-theme .post-interactive-graphic canvas,
-  html.site-rect-cad-theme .post-graphic-image {
-    transition:
-      background-color 180ms ease,
-      background 180ms ease,
-      color 180ms ease,
-      border-color 180ms ease,
-      filter 180ms ease,
-      opacity 180ms ease;
+  .site-area-mode-grid__label {
+    position: absolute;
+    right: 22px;
+    bottom: 18px;
+    color: var(--moss);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.58rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.08em;
   }
 
   .site-rect-area {
@@ -206,26 +68,26 @@
   }
 
   .site-rect-area__contrast {
-    fill: rgba(255, 255, 255, 0.08);
+    fill: rgba(255, 255, 255, 0.14);
     stroke: none;
     mix-blend-mode: screen;
   }
 
   .site-rect-area__fill {
-    fill: rgba(38, 126, 76, 0.34);
+    fill: rgba(18, 112, 47, 0.24);
     stroke: none;
   }
 
   .site-rect-area__stroke {
     fill: none;
-    stroke: rgba(245, 250, 252, 0.98);
+    stroke: rgba(248, 252, 249, 0.98);
     stroke-width: 0.9;
     stroke-dasharray: 2 2.8;
     stroke-linecap: butt;
     stroke-linejoin: miter;
     filter:
       drop-shadow(0 0 0.45px rgba(255, 255, 255, 0.96))
-      drop-shadow(0 0 0.7px rgba(16, 29, 36, 0.72));
+      drop-shadow(0 0 0.7px rgba(35, 73, 47, 0.58));
   }
 
   .site-rect-area__hint {
@@ -242,18 +104,11 @@
     line-height: 1;
     letter-spacing: 0.05em;
     white-space: nowrap;
-    opacity: 0.72;
+    opacity: 0.62;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    html.site-rect-cad-theme,
-    html.site-rect-cad-theme body,
-    html.site-rect-cad-theme .main-container,
-    html.site-rect-cad-theme .hero,
-    html.site-rect-cad-theme .topbar,
-    html.site-rect-cad-theme .morphing-topography__canvas,
-    html.site-rect-cad-theme .post-interactive-graphic canvas,
-    html.site-rect-cad-theme .post-graphic-image,
+    .site-area-mode-grid,
     .site-rect-area {
       transition: none !important;
     }
@@ -283,11 +138,6 @@
       let startPoint = null
       let endPoint = null
       let previousMode = readout.dataset.mode ?? ''
-
-      const setCadTheme = (visible) => {
-        document.documentElement.classList.toggle('site-rect-cad-theme', visible)
-        document.body.classList.toggle('site-rect-cad-theme', visible)
-      }
 
       const setViewBox = () => {
         svg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
@@ -340,7 +190,6 @@
         readout.dataset.mode = 'rect'
         readout.classList.add('is-visible')
         root.classList.add('is-visible')
-        setCadTheme(true)
         syncGrid('rect')
         hint.textContent = 'RECT / HOLD + DRAW'
         setReadout('RECT / DRAW')
@@ -355,7 +204,6 @@
         startPoint = null
         endPoint = null
         root.classList.remove('is-visible')
-        setCadTheme(false)
         clearGeometry()
       }
 
@@ -461,7 +309,6 @@
       window.addEventListener('resize', setViewBox, { passive: true })
       setViewBox()
       syncGrid()
-      setCadTheme(false)
 
       window.addEventListener(
         'pagehide',
