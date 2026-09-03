@@ -255,11 +255,14 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
   }
 
   .night-mode-toggle__meta {
-    position: absolute;
-    left: 50%;
-    top: calc(100% + 12px);
-    z-index: 62;
-    display: block;
+    position: fixed;
+    left: var(--night-mode-meta-left, 0px);
+    top: var(--night-mode-meta-top, 72px);
+    z-index: 61;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-sizing: border-box;
     padding: 5px 7px;
     pointer-events: none;
     background: rgba(255, 255, 255, 0.92);
@@ -273,14 +276,16 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
     text-transform: uppercase;
     white-space: nowrap;
     opacity: 0;
-    transform: translate(-50%, -2px);
-    transition: opacity 100ms ease, transform 100ms ease;
+    transform: translateY(-2px);
+    transition: none;
   }
 
-  .night-mode-toggle:hover .night-mode-toggle__meta,
-  .night-mode-toggle:focus-visible .night-mode-toggle__meta {
+  .night-mode-toggle__meta.is-visible {
     opacity: 0.82;
-    transform: translate(-50%, 0);
+    transform: translateY(0);
+    transition:
+      opacity 100ms ease,
+      transform 100ms ease;
   }
 
   html.site-night-mode,
@@ -323,7 +328,9 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
     const toggle = document.querySelector('[data-night-mode-toggle]')
     if (!(toggle instanceof HTMLButtonElement)) return
 
+    const meta = toggle.querySelector('[data-night-mode-meta]')
     const metaText = toggle.querySelector('[data-night-mode-meta-text]')
+    const topbar = document.querySelector('.topbar')
 
     const readStoredMode = () => {
       try {
@@ -356,11 +363,15 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
 
     const mountToggle = () => {
       const actions = document.querySelector('.topbar-actions')
-      if (!(actions instanceof HTMLElement) || toggle.parentElement === actions) return
+      if (actions instanceof HTMLElement && toggle.parentElement !== actions) {
+        const languageSwitch = actions.querySelector('.language-switch')
+        if (languageSwitch) actions.insertBefore(toggle, languageSwitch)
+        else actions.prepend(toggle)
+      }
 
-      const languageSwitch = actions.querySelector('.language-switch')
-      if (languageSwitch) actions.insertBefore(toggle, languageSwitch)
-      else actions.prepend(toggle)
+      if (meta instanceof HTMLElement && meta.parentElement !== document.body) {
+        document.body.append(meta)
+      }
     }
 
     if (document.readyState === 'loading') {
@@ -374,5 +385,63 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
       applyMode(next)
       storeMode(next)
     })
+
+    if (!(meta instanceof HTMLElement)) return
+
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)')
+    if (!finePointer.matches) return
+
+    let hoverTimer = 0
+
+    const getMetaTop = () => {
+      const bannerBottom = topbar?.getBoundingClientRect().bottom
+      if (typeof bannerBottom === 'number') return bannerBottom + 8
+      return toggle.getBoundingClientRect().bottom + 8
+    }
+
+    const positionMeta = () => {
+      const rect = toggle.getBoundingClientRect()
+      meta.style.setProperty('--night-mode-meta-left', `${Math.round(rect.left)}px`)
+      meta.style.setProperty('--night-mode-meta-top', `${Math.round(getMetaTop())}px`)
+    }
+
+    const showMeta = () => {
+      window.clearTimeout(hoverTimer)
+      positionMeta()
+      hoverTimer = window.setTimeout(() => {
+        positionMeta()
+        meta.classList.add('is-visible')
+      }, 250)
+    }
+
+    const hideMeta = () => {
+      window.clearTimeout(hoverTimer)
+      meta.classList.remove('is-visible')
+    }
+
+    const handleResize = () => {
+      positionMeta()
+    }
+
+    positionMeta()
+    toggle.addEventListener('pointerenter', showMeta)
+    toggle.addEventListener('pointerleave', hideMeta)
+    toggle.addEventListener('focus', showMeta)
+    toggle.addEventListener('blur', hideMeta)
+    window.addEventListener('resize', handleResize, { passive: true })
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        hideMeta()
+        toggle.removeEventListener('pointerenter', showMeta)
+        toggle.removeEventListener('pointerleave', hideMeta)
+        toggle.removeEventListener('focus', showMeta)
+        toggle.removeEventListener('blur', hideMeta)
+        window.removeEventListener('resize', handleResize)
+        meta.remove()
+      },
+      { once: true }
+    )
   })()
 </script>
