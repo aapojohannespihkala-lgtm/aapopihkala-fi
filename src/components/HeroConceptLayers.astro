@@ -7,118 +7,86 @@
   html body .hero-wordfield {
     position: relative;
     display: inline-block;
-    isolation: isolate;
     color: inherit;
     cursor: default;
-    transition:
-      color 120ms ease,
-      transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: color 120ms ease;
   }
 
   html body .hero-wordfield__trace {
     position: absolute;
-    left: -0.04em;
-    right: -0.04em;
-    top: calc(100% - 0.03em);
-    z-index: 3;
-    height: 0.48rem;
+    left: -0.02em;
+    right: -0.02em;
+    top: calc(100% - 0.01em);
+    z-index: 1;
+    height: 0.34rem;
     overflow: visible;
-    opacity: 0;
     pointer-events: none;
-    transform: translateY(2px) scaleX(0.88);
-    transform-origin: 0 50%;
+    opacity: 0;
+    transform: translateY(1px);
     transition:
       opacity 90ms linear,
-      transform 230ms cubic-bezier(0.22, 1, 0.36, 1);
+      transform 150ms ease;
   }
 
-  html body .hero-wordfield__trace path,
   html body .hero-wordfield__trace line,
-  html body .hero-wordfield__trace circle {
-    fill: none;
-    stroke: var(--moss);
-    stroke-width: 0.72px;
+  html body .hero-wordfield__trace rect {
     vector-effect: non-scaling-stroke;
   }
 
-  html body .hero-wordfield__trace .hero-wordfield__main {
+  html body .hero-wordfield__measure {
+    stroke: rgba(89, 105, 93, 0.28);
+    stroke-width: 0.62px;
     stroke-dasharray: 1;
     stroke-dashoffset: 1;
-    opacity: 0.58;
-    transition: stroke-dashoffset 420ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: stroke-dashoffset 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  html body .hero-wordfield__trace .hero-wordfield__detail {
-    opacity: 0.28;
+  html body .hero-wordfield__tick {
+    stroke: rgba(89, 105, 93, 0.28);
+    stroke-width: 0.62px;
+    opacity: 0;
+    transition: opacity 90ms linear 90ms;
   }
 
-  html body .hero-wordfield:hover {
-    color: var(--moss-deep);
-    transform: translateY(-0.35px);
-  }
-
-  html body .hero-wordfield:hover .hero-wordfield__trace {
-    opacity: 0.82;
-    transform: translateY(0) scaleX(1);
-  }
-
-  html body .hero-wordfield:hover .hero-wordfield__main {
-    stroke-dashoffset: 0;
-  }
-
-  html body .hero-wordfield--cities .hero-wordfield__trace path,
-  html body .hero-wordfield--people .hero-wordfield__trace path,
-  html body .hero-wordfield--people .hero-wordfield__trace circle,
-  html body .hero-wordfield--nature .hero-wordfield__trace path {
-    stroke: var(--moss-deep);
-  }
-
-  html body .hero-wordfield--cities:hover .hero-wordfield__trace {
-    opacity: 0.92;
-  }
-
-  html body .hero-wordfield--people .hero-wordfield__person {
+  html body .hero-wordfield__marker {
     fill: var(--page);
+    stroke: rgba(89, 105, 93, 0.38);
+    stroke-width: 0.62px;
     opacity: 0;
     transform-box: fill-box;
     transform-origin: center;
+    transform: scale(0.7);
+    transition:
+      opacity 90ms linear 110ms,
+      transform 150ms cubic-bezier(0.22, 1, 0.36, 1) 90ms;
   }
 
-  html body .hero-wordfield--people:hover .hero-wordfield__person {
-    opacity: 0.82;
-    animation: hero-word-people-flow 940ms ease-in-out infinite alternate;
+  html body .hero-wordfield:hover,
+  html body .hero-wordfield:focus-visible {
+    color: var(--ink-soft);
+    outline: none;
   }
 
-  html body .hero-wordfield--people:hover .hero-wordfield__person:nth-of-type(2) {
-    animation-delay: 90ms;
+  html body .hero-wordfield:hover .hero-wordfield__trace,
+  html body .hero-wordfield:focus-visible .hero-wordfield__trace {
+    opacity: 1;
+    transform: translateY(0);
   }
 
-  html body .hero-wordfield--people:hover .hero-wordfield__person:nth-of-type(3) {
-    animation-delay: 180ms;
+  html body .hero-wordfield:hover .hero-wordfield__measure,
+  html body .hero-wordfield:focus-visible .hero-wordfield__measure {
+    stroke-dashoffset: 0;
   }
 
-  html body .hero-wordfield--nature:hover .hero-wordfield__trace {
-    animation: hero-word-nature-breathe 1.45s ease-in-out infinite alternate;
+  html body .hero-wordfield:hover .hero-wordfield__tick,
+  html body .hero-wordfield:focus-visible .hero-wordfield__tick {
+    opacity: 1;
   }
 
-  @keyframes hero-word-people-flow {
-    from {
-      transform: translateX(-2px);
-    }
-
-    to {
-      transform: translateX(5px);
-    }
-  }
-
-  @keyframes hero-word-nature-breathe {
-    from {
-      transform: translateY(0) scaleX(0.98) scaleY(0.94);
-    }
-
-    to {
-      transform: translateY(-0.5px) scaleX(1.015) scaleY(1.08);
-    }
+  html body .hero-wordfield--key:hover .hero-wordfield__marker,
+  html body .hero-wordfield--key:focus-visible .hero-wordfield__marker {
+    opacity: 1;
+    transform: scale(1);
   }
 
   @media (hover: none), (pointer: coarse) {
@@ -134,14 +102,10 @@
   @media (prefers-reduced-motion: reduce) {
     html body .hero-wordfield,
     html body .hero-wordfield__trace,
-    html body .hero-wordfield__trace .hero-wordfield__main,
-    html body .hero-wordfield__person {
+    html body .hero-wordfield__measure,
+    html body .hero-wordfield__tick,
+    html body .hero-wordfield__marker {
       transition: none !important;
-      animation: none !important;
-    }
-
-    html body .hero-wordfield:hover {
-      transform: none;
     }
   }
 </style>
@@ -156,76 +120,58 @@
     if (!source.trim()) return
 
     const language = document.documentElement.lang === 'fi' ? 'fi' : 'en'
-    const specialWords = language === 'fi'
-      ? new Map([
-          ['kaupunkien', 'cities'],
-          ['ihmisten', 'people'],
-          ['luonnon', 'nature'],
-        ])
-      : new Map([
-          ['cities', 'cities'],
-          ['people', 'people'],
-          ['nature', 'nature'],
-        ])
+    const keyWords = language === 'fi'
+      ? new Set(['kaupunkien', 'ihmisten', 'luonnon'])
+      : new Set(['cities', 'people', 'nature'])
 
     const svgNamespace = 'http://www.w3.org/2000/svg'
 
-    const genericPaths = [
-      'M1 7 C17 7 20 5 34 6 S58 9 74 6 S91 5 99 6',
-      'M1 7 H99 M14 4 V9 M48 5 V9 M82 4 V9',
-      'M1 8 C14 4 29 10 43 6 S72 4 99 7',
-      'M1 7 H22 L31 4 H54 L61 8 H78 L86 5 H99',
-      'M1 6 C23 9 34 4 51 6 S76 9 99 5',
-    ]
-
-    const makeTrace = (word, index, special) => {
+    const makeTrace = (isKey) => {
       const svg = document.createElementNS(svgNamespace, 'svg')
       svg.classList.add('hero-wordfield__trace')
-      svg.setAttribute('viewBox', '0 0 100 12')
+      svg.setAttribute('viewBox', '0 0 100 10')
       svg.setAttribute('preserveAspectRatio', 'none')
       svg.setAttribute('aria-hidden', 'true')
 
-      const main = document.createElementNS(svgNamespace, 'path')
-      main.classList.add('hero-wordfield__main')
-      main.setAttribute('pathLength', '1')
+      const measure = document.createElementNS(svgNamespace, 'line')
+      measure.classList.add('hero-wordfield__measure')
+      measure.setAttribute('x1', '1')
+      measure.setAttribute('y1', '4.5')
+      measure.setAttribute('x2', '99')
+      measure.setAttribute('y2', '4.5')
+      measure.setAttribute('pathLength', '1')
 
-      if (special === 'cities') {
-        main.setAttribute(
-          'd',
-          'M1 9 H13 V6 H27 V8 H39 V4 H55 V7 H67 V3 H82 V8 H99'
-        )
-      } else if (special === 'people') {
-        main.setAttribute('d', 'M1 8 C22 7 38 9 55 7 S80 6 99 8')
+      const leftTick = document.createElementNS(svgNamespace, 'line')
+      leftTick.classList.add('hero-wordfield__tick')
+      leftTick.setAttribute('x1', '1')
+      leftTick.setAttribute('y1', '1.5')
+      leftTick.setAttribute('x2', '1')
+      leftTick.setAttribute('y2', '7.5')
 
-        ;[28, 49, 70].forEach((cx) => {
-          const person = document.createElementNS(svgNamespace, 'circle')
-          person.classList.add('hero-wordfield__person')
-          person.setAttribute('cx', String(cx))
-          person.setAttribute('cy', '7')
-          person.setAttribute('r', '1.45')
-          svg.append(person)
-        })
-      } else if (special === 'nature') {
-        main.setAttribute(
-          'd',
-          'M1 8 C14 10 23 3 36 6 S55 10 68 5 S87 3 99 7'
-        )
+      const rightTick = document.createElementNS(svgNamespace, 'line')
+      rightTick.classList.add('hero-wordfield__tick')
+      rightTick.setAttribute('x1', '99')
+      rightTick.setAttribute('y1', '1.5')
+      rightTick.setAttribute('x2', '99')
+      rightTick.setAttribute('y2', '7.5')
 
-        const detail = document.createElementNS(svgNamespace, 'path')
-        detail.classList.add('hero-wordfield__detail')
-        detail.setAttribute('d', 'M36 6 C34 3 34 2 36 1 M68 5 C70 3 71 2 72 1')
-        svg.append(detail)
-      } else {
-        main.setAttribute('d', genericPaths[index % genericPaths.length])
+      svg.append(measure, leftTick, rightTick)
+
+      if (isKey) {
+        const marker = document.createElementNS(svgNamespace, 'rect')
+        marker.classList.add('hero-wordfield__marker')
+        marker.setAttribute('x', '48.5')
+        marker.setAttribute('y', '3')
+        marker.setAttribute('width', '3')
+        marker.setAttribute('height', '3')
+        svg.append(marker)
       }
 
-      svg.prepend(main)
       return svg
     }
 
     const parts = source.split(/(\s+)/)
     const fragment = document.createDocumentFragment()
-    let wordIndex = 0
 
     parts.forEach((part) => {
       if (!part || /^\s+$/.test(part)) {
@@ -236,19 +182,19 @@
       const normalized = part
         .toLocaleLowerCase(language)
         .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
-      const special = specialWords.get(normalized) ?? ''
+      const isKey = keyWords.has(normalized)
 
       const wrapper = document.createElement('span')
-      wrapper.className = `hero-wordfield hero-wordfield--v${wordIndex % genericPaths.length}`
-      if (special) wrapper.classList.add(`hero-wordfield--${special}`)
+      wrapper.className = 'hero-wordfield'
+      if (isKey) wrapper.classList.add('hero-wordfield--key')
+      wrapper.tabIndex = 0
 
       const word = document.createElement('span')
       word.className = 'hero-wordfield__word'
       word.textContent = part
 
-      wrapper.append(word, makeTrace(part, wordIndex, special))
+      wrapper.append(word, makeTrace(isKey))
       fragment.append(wrapper)
-      wordIndex += 1
     })
 
     secondary.dataset.heroConceptsInitialized = 'true'
