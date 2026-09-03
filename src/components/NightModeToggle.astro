@@ -1,0 +1,306 @@
+---
+interface Props {
+  lang?: 'fi' | 'en';
+}
+
+const { lang = 'fi' } = Astro.props;
+
+const label = lang === 'fi' ? 'Yötila' : 'Night mode';
+---
+
+<button
+  class="night-mode-toggle"
+  type="button"
+  data-night-mode-toggle
+  aria-label={label}
+  aria-pressed="false"
+  title={label}
+>
+  <span class="night-mode-toggle__icon" aria-hidden="true"></span>
+</button>
+
+<style is:global>
+  html.site-night-mode {
+    --page: #202a34;
+    --bar: #1b242d;
+    --bar-transparent: rgba(27, 36, 45, 0.94);
+    --ink: #f1f4f5;
+    --ink-soft: #e1e7ea;
+    --stone: #c4cdd2;
+    --stone-light: #9eabb2;
+    --header-name: #d7dfe3;
+    --header-control: #d2dbe0;
+    --moss: #c4d0d5;
+    --moss-deep: #edf2f4;
+    --lichen: #a9b5bb;
+    --line: #64727c;
+    --line-soft: #46535d;
+    background: var(--page) !important;
+    color-scheme: dark;
+  }
+
+  html.site-night-mode body,
+  html.site-night-mode main,
+  html.site-night-mode .main-container,
+  html.site-night-mode .hero {
+    background: var(--page) !important;
+  }
+
+  html.site-night-mode body {
+    color: var(--ink);
+  }
+
+  html.site-night-mode .topbar {
+    background: var(--bar-transparent) !important;
+    border-bottom-color: rgba(154, 171, 181, 0.18) !important;
+    -webkit-backdrop-filter: blur(5px) saturate(90%);
+    backdrop-filter: blur(5px) saturate(90%);
+  }
+
+  html.site-night-mode .topbar-name,
+  html.site-night-mode .language-switch,
+  html.site-night-mode .linkedin-link,
+  html.site-night-mode .hero h1,
+  html.site-night-mode .hero-primary,
+  html.site-night-mode .hero-secondary,
+  html.site-night-mode .hero-location,
+  html.site-night-mode .hero-location-trigger,
+  html.site-night-mode .hero-linkedin,
+  html.site-night-mode .hero-linkedin-arrow {
+    color: var(--ink) !important;
+  }
+
+  html.site-night-mode .feed-post,
+  html.site-night-mode .feed-post h1,
+  html.site-night-mode .feed-post h2,
+  html.site-night-mode .feed-post h3,
+  html.site-night-mode .feed-post p,
+  html.site-night-mode .feed-post a,
+  html.site-night-mode .feed-post span,
+  html.site-night-mode .feed-post time,
+  html.site-night-mode .feed-post strong,
+  html.site-night-mode .feed-post em,
+  html.site-night-mode .post-title,
+  html.site-night-mode .post-title-link,
+  html.site-night-mode .post-news,
+  html.site-night-mode .post-news-link,
+  html.site-night-mode .post-body,
+  html.site-night-mode .post-body p,
+  html.site-night-mode .post-meta,
+  html.site-night-mode .post-date,
+  html.site-night-mode .post-perspective-label,
+  html.site-night-mode .source,
+  html.site-night-mode .source-label,
+  html.site-night-mode .source-link,
+  html.site-night-mode .source-arrow {
+    color: #e8eef1 !important;
+    text-shadow: 0 0 0.01px rgba(255, 255, 255, 0.9);
+  }
+
+  html.site-night-mode .post-meta,
+  html.site-night-mode .post-perspective-label,
+  html.site-night-mode .source-label {
+    color: #bdc9cf !important;
+  }
+
+  html.site-night-mode .post-meta-separator,
+  html.site-night-mode .post-news-link-arrow,
+  html.site-night-mode .source-arrow {
+    color: #9fadb5 !important;
+  }
+
+  html.site-night-mode .post-divider,
+  html.site-night-mode .feed-post:first-child {
+    border-color: rgba(176, 193, 202, 0.42) !important;
+  }
+
+  html.site-night-mode .location-icon {
+    stroke: var(--ink) !important;
+  }
+
+  html.site-night-mode .morphing-topography__canvas,
+  html.site-night-mode .topography-canvas,
+  html.site-night-mode .post-interactive-graphic canvas,
+  html.site-night-mode .post-graphic canvas,
+  html.site-night-mode .post-graphic-image {
+    filter: invert(1) grayscale(1) brightness(1.72) contrast(1.12) !important;
+    opacity: 0.94 !important;
+  }
+
+  html.site-night-mode .post-interactive-graphic svg,
+  html.site-night-mode .post-graphic svg {
+    color: #edf3f5 !important;
+    filter: brightness(1.65) grayscale(1) !important;
+  }
+
+  html.site-night-mode .post-interactive-graphic svg path,
+  html.site-night-mode .post-interactive-graphic svg line,
+  html.site-night-mode .post-interactive-graphic svg polyline,
+  html.site-night-mode .post-interactive-graphic svg polygon,
+  html.site-night-mode .post-interactive-graphic svg circle,
+  html.site-night-mode .post-graphic svg path,
+  html.site-night-mode .post-graphic svg line,
+  html.site-night-mode .post-graphic svg polyline,
+  html.site-night-mode .post-graphic svg polygon,
+  html.site-night-mode .post-graphic svg circle {
+    stroke: currentColor !important;
+  }
+
+  html.site-night-mode .site-grid-easter-egg,
+  html.site-night-mode .site-area-mode-grid {
+    background-image:
+      linear-gradient(rgba(157, 180, 191, 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(157, 180, 191, 0.15) 1px, transparent 1px) !important;
+  }
+
+  html.site-night-mode .site-grid-label,
+  html.site-night-mode .site-area-mode-grid__label,
+  html.site-night-mode .site-scroll-readout,
+  html.site-night-mode [data-analytics-settings] {
+    color: rgba(218, 229, 234, 0.72) !important;
+  }
+
+  html.site-night-mode .site-a-readout {
+    color: #eef3f5 !important;
+  }
+
+  html.site-night-mode .site-a-readout__label,
+  html.site-night-mode .site-area-label,
+  html.site-night-mode .site-area-hint,
+  html.site-night-mode .site-rect-area__hint {
+    background: rgba(25, 34, 43, 0.94) !important;
+    border-color: rgba(167, 184, 193, 0.26) !important;
+    color: #eaf0f2 !important;
+  }
+
+  .night-mode-toggle {
+    position: relative;
+    width: 23px;
+    height: 23px;
+    flex: 0 0 23px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--header-control);
+    cursor: pointer;
+    transition: color 180ms ease, transform 180ms ease;
+  }
+
+  .night-mode-toggle:hover,
+  .night-mode-toggle:focus-visible,
+  .night-mode-toggle[aria-pressed='true'] {
+    color: var(--moss-deep);
+    transform: translateY(-1px);
+  }
+
+  .night-mode-toggle:focus-visible {
+    outline: 1px solid var(--lichen);
+    outline-offset: 4px;
+  }
+
+  .night-mode-toggle__icon {
+    position: relative;
+    display: block;
+    width: 15px;
+    height: 15px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+
+  .night-mode-toggle__icon::after {
+    content: '';
+    position: absolute;
+    inset: -1px -1px -1px 48%;
+    background: currentColor;
+    transition: inset 180ms ease, opacity 180ms ease;
+  }
+
+  .night-mode-toggle[aria-pressed='true'] .night-mode-toggle__icon::after {
+    inset: 3px;
+    border-radius: 50%;
+  }
+
+  html.site-night-mode,
+  html.site-night-mode body,
+  html.site-night-mode main,
+  html.site-night-mode .main-container,
+  html.site-night-mode .hero,
+  html.site-night-mode .topbar,
+  html.site-night-mode .morphing-topography__canvas,
+  html.site-night-mode .post-interactive-graphic canvas,
+  html.site-night-mode .post-graphic-image {
+    transition:
+      background-color 180ms ease,
+      background 180ms ease,
+      color 180ms ease,
+      border-color 180ms ease,
+      filter 180ms ease,
+      opacity 180ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.site-night-mode,
+    html.site-night-mode body,
+    html.site-night-mode main,
+    html.site-night-mode .main-container,
+    html.site-night-mode .hero,
+    html.site-night-mode .topbar,
+    .night-mode-toggle,
+    .night-mode-toggle__icon::after {
+      transition: none !important;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const storageKey = 'aapopihkala-night-mode'
+    const root = document.documentElement
+    const toggle = document.querySelector('[data-night-mode-toggle]')
+    if (!(toggle instanceof HTMLButtonElement)) return
+
+    const readStoredMode = () => {
+      try {
+        return window.localStorage.getItem(storageKey) === 'night'
+      } catch {
+        return false
+      }
+    }
+
+    const storeMode = (night) => {
+      try {
+        window.localStorage.setItem(storageKey, night ? 'night' : 'day')
+      } catch {
+        // Storage can be unavailable in private browsing contexts.
+      }
+    }
+
+    const applyMode = (night) => {
+      root.classList.toggle('site-night-mode', night)
+      toggle.setAttribute('aria-pressed', night ? 'true' : 'false')
+    }
+
+    applyMode(readStoredMode())
+
+    const mountToggle = () => {
+      const actions = document.querySelector('.topbar-actions')
+      if (actions && toggle.parentElement !== actions) actions.append(toggle)
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', mountToggle, { once: true })
+    } else {
+      mountToggle()
+    }
+
+    toggle.addEventListener('click', () => {
+      const next = !root.classList.contains('site-night-mode')
+      applyMode(next)
+      storeMode(next)
+    })
+  })()
+</script>
