@@ -1,0 +1,190 @@
+<div
+  class="homepage-title-dimension"
+  data-homepage-title-dimension
+  aria-hidden="true"
+>
+  <span class="homepage-title-dimension__extension homepage-title-dimension__extension--left"></span>
+  <span class="homepage-title-dimension__extension homepage-title-dimension__extension--right"></span>
+  <span class="homepage-title-dimension__line"></span>
+  <span class="homepage-title-dimension__tick homepage-title-dimension__tick--left"></span>
+  <span class="homepage-title-dimension__tick homepage-title-dimension__tick--right"></span>
+  <span class="homepage-title-dimension__label" data-homepage-title-dimension-label>14.0000</span>
+</div>
+
+<style is:global>
+  html body .homepage-title-ruler {
+    display: none !important;
+  }
+
+  .homepage-title-dimension {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 42;
+    width: 1px;
+    height: 30px;
+    pointer-events: none;
+    opacity: 0;
+    color: var(--moss);
+    transform: translateY(-1px);
+    transition:
+      opacity 100ms ease,
+      transform 120ms ease;
+  }
+
+  .homepage-title-dimension.is-visible {
+    opacity: 0.72;
+    transform: translateY(0);
+  }
+
+  .homepage-title-dimension__line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 16px;
+    height: 1px;
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgba(89, 105, 93, 0.34) 0,
+      rgba(89, 105, 93, 0.34) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  }
+
+  .homepage-title-dimension__extension {
+    position: absolute;
+    top: 0;
+    width: 1px;
+    height: 17px;
+    background-image: repeating-linear-gradient(
+      180deg,
+      rgba(89, 105, 93, 0.3) 0,
+      rgba(89, 105, 93, 0.3) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  }
+
+  .homepage-title-dimension__extension--left {
+    left: 0;
+  }
+
+  .homepage-title-dimension__extension--right {
+    right: 0;
+  }
+
+  .homepage-title-dimension__tick {
+    position: absolute;
+    top: 16px;
+    width: 9px;
+    height: 1px;
+    background: rgba(73, 88, 77, 0.46);
+    transform: translateY(-0.5px) rotate(-45deg);
+    transform-origin: 50% 50%;
+  }
+
+  .homepage-title-dimension__tick--left {
+    left: -4px;
+  }
+
+  .homepage-title-dimension__tick--right {
+    right: -4px;
+  }
+
+  .homepage-title-dimension__label {
+    position: absolute;
+    left: 50%;
+    top: 10px;
+    padding: 0 6px;
+    background: var(--page);
+    color: var(--moss-deep);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.47rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.035em;
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+
+  @media (max-width: 640px), (hover: none), (pointer: coarse) {
+    .homepage-title-dimension {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .homepage-title-dimension {
+      transition: none;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const title = document.querySelector('.hero h1')
+    const dimension = document.querySelector('[data-homepage-title-dimension]')
+    const label = document.querySelector('[data-homepage-title-dimension-label]')
+
+    if (!title || !dimension || !label) return
+    if (dimension.dataset.titleDimensionInitialized === 'true') return
+    dimension.dataset.titleDimensionInitialized = 'true'
+
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)')
+    if (!finePointer.matches) return
+
+    const getTitleInkRect = () => {
+      const range = document.createRange()
+      range.selectNodeContents(title)
+      const rect = range.getBoundingClientRect()
+      range.detach?.()
+      return rect
+    }
+
+    const position = () => {
+      const rect = getTitleInkRect()
+      const width = Math.max(1, rect.width)
+      const cadUnits = width / 40
+
+      dimension.style.left = `${Math.round(rect.left)}px`
+      dimension.style.top = `${Math.round(rect.bottom + 8)}px`
+      dimension.style.width = `${Math.round(width)}px`
+      label.textContent = cadUnits.toFixed(4)
+    }
+
+    const show = () => {
+      position()
+      dimension.classList.add('is-visible')
+    }
+
+    const hide = () => {
+      dimension.classList.remove('is-visible')
+    }
+
+    const handleResize = () => {
+      if (dimension.classList.contains('is-visible')) position()
+    }
+
+    title.addEventListener('pointerenter', show)
+    title.addEventListener('pointerleave', hide)
+    window.addEventListener('resize', handleResize, { passive: true })
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        hide()
+        title.removeEventListener('pointerenter', show)
+        title.removeEventListener('pointerleave', hide)
+        window.removeEventListener('resize', handleResize)
+      },
+      { once: true }
+    )
+  })()
+</script>
