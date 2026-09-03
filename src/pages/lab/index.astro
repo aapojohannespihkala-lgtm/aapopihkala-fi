@@ -12,6 +12,7 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
 import RiverFlow from '../../components/RiverFlow.astro';
 import AccessibilityStep from '../../components/AccessibilityStep.astro';
 import SegmentedRing from '../../components/SegmentedRing.astro';
+import PointPortrait from '../../components/PointPortrait.astro';
 ---
 
 <!doctype html>
@@ -400,6 +401,35 @@ import SegmentedRing from '../../components/SegmentedRing.astro';
 
             <p>
               Auto-rotate · zoom · segmented ring · continuous rotation
+            </p>
+          </footer>
+        </article>
+
+        <article class="experiment">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">11</p>
+              <h2>Survey portrait</h2>
+            </div>
+
+            <p class="experiment-hint">
+              Vedä pyörittääksesi · rullaa zoomataksesi
+            </p>
+          </header>
+
+          <div class="experiment-stage">
+            <div class="experiment-viewport">
+              <PointPortrait />
+            </div>
+          </div>
+
+          <footer class="experiment-footer">
+            <p>
+              Muotokuvatutkielma, jossa pää rakentuu pistepilvestä, poikkileikkauksista ja tarkasta viivageometriasta. Silmälasit, hiusten virtaus ja kasvojen pienet maamerkit käsitellään kuin mitattua maastoa.
+            </p>
+
+            <p>
+              Auto-rotate · zoom · portrait field · contours · glasses · hair flow
             </p>
           </footer>
         </article>
