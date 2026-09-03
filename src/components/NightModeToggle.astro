@@ -16,7 +16,9 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
   aria-pressed="false"
   title={label}
 >
-  <span class="night-mode-toggle__icon" aria-hidden="true"></span>
+  <span class="night-mode-toggle__icon" aria-hidden="true">
+    <span class="night-mode-toggle__dot"></span>
+  </span>
 </button>
 
 <style is:global>
@@ -175,9 +177,9 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
 
   .night-mode-toggle {
     position: relative;
-    width: 23px;
-    height: 23px;
-    flex: 0 0 23px;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -186,7 +188,8 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
     background: transparent;
     color: var(--header-control);
     cursor: pointer;
-    transition: color 180ms ease, transform 180ms ease;
+    opacity: 0.86;
+    transition: color 180ms ease, transform 180ms ease, opacity 180ms ease;
   }
 
   .night-mode-toggle:hover,
@@ -194,34 +197,40 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
   .night-mode-toggle[aria-pressed='true'] {
     color: var(--moss-deep);
     transform: translateY(-1px);
+    opacity: 1;
   }
 
   .night-mode-toggle:focus-visible {
     outline: 1px solid var(--lichen);
-    outline-offset: 4px;
+    outline-offset: 3px;
   }
 
   .night-mode-toggle__icon {
     position: relative;
     display: block;
-    width: 15px;
-    height: 15px;
+    width: 10px;
+    height: 10px;
     border: 1px solid currentColor;
     border-radius: 50%;
-    overflow: hidden;
+    box-sizing: border-box;
   }
 
-  .night-mode-toggle__icon::after {
-    content: '';
+  .night-mode-toggle__dot {
     position: absolute;
-    inset: -1px -1px -1px 48%;
-    background: currentColor;
-    transition: inset 180ms ease, opacity 180ms ease;
+    left: 50%;
+    top: 50%;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #ffffff;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.35);
+    transition: opacity 160ms ease, transform 160ms ease;
   }
 
-  .night-mode-toggle[aria-pressed='true'] .night-mode-toggle__icon::after {
-    inset: 3px;
-    border-radius: 50%;
+  .night-mode-toggle[aria-pressed='true'] .night-mode-toggle__dot {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
 
   html.site-night-mode,
@@ -250,7 +259,7 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
     html.site-night-mode .hero,
     html.site-night-mode .topbar,
     .night-mode-toggle,
-    .night-mode-toggle__icon::after {
+    .night-mode-toggle__dot {
       transition: none !important;
     }
   }
@@ -288,7 +297,11 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
 
     const mountToggle = () => {
       const actions = document.querySelector('.topbar-actions')
-      if (actions && toggle.parentElement !== actions) actions.append(toggle)
+      if (!(actions instanceof HTMLElement) || toggle.parentElement === actions) return
+
+      const languageSwitch = actions.querySelector('.language-switch')
+      if (languageSwitch) actions.insertBefore(toggle, languageSwitch)
+      else actions.prepend(toggle)
     }
 
     if (document.readyState === 'loading') {
