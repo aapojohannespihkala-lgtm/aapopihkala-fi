@@ -1,17 +1,12 @@
-<div
+<svg
   class="site-area-free-select"
   data-area-free-select
-  aria-hidden="true"
-></div>
-
-<svg
-  class="site-area-free-select-outline"
-  data-area-free-select-outline
   preserveAspectRatio="none"
   aria-hidden="true"
 >
-  <path class="site-area-free-select-fill" data-area-free-select-fill />
-  <path class="site-area-free-select-stroke" data-area-free-select-path />
+  <path class="site-area-free-select__contrast" data-area-free-select-contrast />
+  <path class="site-area-free-select__fill" data-area-free-select-fill />
+  <path class="site-area-free-select__stroke" data-area-free-select-path />
 </svg>
 
 <style is:global>
@@ -34,34 +29,6 @@
   .site-area-free-select {
     position: fixed;
     inset: 0;
-    z-index: 72;
-    display: none;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.001);
-    -webkit-backdrop-filter:
-      invert(1)
-      grayscale(0.82)
-      brightness(1.08)
-      contrast(1.12)
-      saturate(0.24);
-    backdrop-filter:
-      invert(1)
-      grayscale(0.82)
-      brightness(1.08)
-      contrast(1.12)
-      saturate(0.24);
-  }
-
-  .site-area-free-select.is-visible {
-    display: block;
-  }
-
-  .site-area-free-select-outline {
-    position: fixed;
-    inset: 0;
     z-index: 74;
     display: none;
     width: 100%;
@@ -70,17 +37,24 @@
     pointer-events: none;
   }
 
-  .site-area-free-select-outline.is-visible {
+  .site-area-free-select.is-visible {
     display: block;
   }
 
-  .site-area-free-select-fill {
-    fill: rgba(19, 111, 47, 0.58);
+  .site-area-free-select__contrast {
+    fill: rgb(255, 255, 255);
+    stroke: none;
+    mix-blend-mode: difference;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .site-area-free-select__fill {
+    fill: rgba(18, 112, 47, 0.34);
     stroke: none;
     vector-effect: non-scaling-stroke;
   }
 
-  .site-area-free-select-stroke {
+  .site-area-free-select__stroke {
     fill: none;
     stroke: rgba(248, 252, 249, 0.98);
     stroke-width: 0.9;
@@ -90,7 +64,7 @@
     vector-effect: non-scaling-stroke;
     filter:
       drop-shadow(0 0 0.45px rgba(255, 255, 255, 0.96))
-      drop-shadow(0 0 0.7px rgba(35, 73, 47, 0.66));
+      drop-shadow(0 0 0.7px rgba(35, 73, 47, 0.58));
   }
 
   html body .site-area-hint {
@@ -98,8 +72,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .site-area-free-select,
-    .site-area-free-select-outline {
+    .site-area-free-select {
       transition: none !important;
     }
   }
@@ -108,8 +81,8 @@
 <script is:inline>
   (() => {
     const initialize = () => {
-      const selection = document.querySelector('[data-area-free-select]')
-      const selectionSvg = document.querySelector('[data-area-free-select-outline]')
+      const selectionSvg = document.querySelector('[data-area-free-select]')
+      const selectionContrast = document.querySelector('[data-area-free-select-contrast]')
       const selectionFill = document.querySelector('[data-area-free-select-fill]')
       const selectionPath = document.querySelector('[data-area-free-select-path]')
       const overlay = document.querySelector('[data-area-overlay]')
@@ -117,8 +90,8 @@
       const centroidSymbol = document.querySelector('[data-area-centroid-symbol]')
 
       if (
-        !selection ||
         !selectionSvg ||
+        !selectionContrast ||
         !selectionFill ||
         !selectionPath ||
         !overlay ||
@@ -126,12 +99,11 @@
         !centroidSymbol
       ) return
 
-      if (selection.dataset.areaFreeSelectInitialized === 'true') return
-      selection.dataset.areaFreeSelectInitialized = 'true'
+      if (selectionSvg.dataset.areaFreeSelectInitialized === 'true') return
+      selectionSvg.dataset.areaFreeSelectInitialized = 'true'
 
       let persistentPoints = []
       let syncFrame = 0
-      let resettingNativeArea = false
 
       const parsePathPoints = () => {
         const d = nativePath.getAttribute('d') ?? ''
@@ -159,16 +131,9 @@
           .join(' ')} Z`
       }
 
-      const clipPolygonFromPoints = (points) =>
-        `polygon(${points
-          .map((point) => `${point.x.toFixed(2)}px ${point.y.toFixed(2)}px`)
-          .join(', ')})`
-
       const hide = () => {
-        selection.classList.remove('is-visible')
         selectionSvg.classList.remove('is-visible')
-        selection.style.removeProperty('clip-path')
-        selection.style.removeProperty('-webkit-clip-path')
+        selectionContrast.setAttribute('d', '')
         selectionFill.setAttribute('d', '')
         selectionPath.setAttribute('d', '')
       }
@@ -180,25 +145,12 @@
         }
 
         const path = pathFromPoints(points)
-        const clipPolygon = clipPolygonFromPoints(points)
-
-        selection.style.clipPath = clipPolygon
-        selection.style.webkitClipPath = clipPolygon
-        selection.classList.add('is-visible')
 
         selectionSvg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
+        selectionContrast.setAttribute('d', path)
         selectionFill.setAttribute('d', path)
         selectionPath.setAttribute('d', path)
         selectionSvg.classList.add('is-visible')
-      }
-
-      const clearNativeFinishedArea = () => {
-        if (resettingNativeArea) return
-        resettingNativeArea = true
-
-        window.dispatchEvent(new Event('resize'))
-
-        resettingNativeArea = false
       }
 
       const sync = () => {
@@ -217,7 +169,6 @@
         if (finished && points.length >= 3) {
           persistentPoints = points.map((point) => ({ ...point }))
           render(persistentPoints)
-          window.requestAnimationFrame(clearNativeFinishedArea)
           return
         }
 
@@ -258,9 +209,7 @@
       })
 
       const handleResize = () => {
-        if (resettingNativeArea) return
-        persistentPoints = []
-        hide()
+        selectionSvg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
         scheduleSync()
       }
 
