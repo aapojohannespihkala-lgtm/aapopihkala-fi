@@ -169,9 +169,26 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
   html.site-night-mode .site-a-readout__label,
   html.site-night-mode .site-area-label,
   html.site-night-mode .site-area-hint,
-  html.site-night-mode .site-rect-area__hint {
-    background: rgba(25, 34, 43, 0.94) !important;
-    border-color: rgba(167, 184, 193, 0.26) !important;
+  html.site-night-mode .site-rect-area__hint,
+  html.site-night-mode .homepage-sheet-stamp,
+  html.site-night-mode .homepage-language-meta-box,
+  html.site-night-mode .homepage-linkedin-meta-box,
+  html.site-night-mode .homepage-survey-points__mode,
+  html.site-night-mode .homepage-elevation-scan__label,
+  html.site-night-mode .homepage-topography-readout__label,
+  html.site-night-mode .homepage-selection-note {
+    background: rgba(25, 34, 43, 0.96) !important;
+    border-color: rgba(167, 184, 193, 0.34) !important;
+    color: #eaf0f2 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  }
+
+  html.site-night-mode .homepage-sheet-stamp__separator {
+    color: #9fadb5 !important;
+  }
+
+  html.site-night-mode .homepage-title-dimension__label {
+    background: var(--page) !important;
     color: #eaf0f2 !important;
   }
 
