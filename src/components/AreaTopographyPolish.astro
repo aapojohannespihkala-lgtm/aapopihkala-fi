@@ -1,34 +1,36 @@
-<div class="site-area-island" data-area-island aria-hidden="true">
-  <canvas class="site-area-island__canvas" data-area-island-canvas></canvas>
-</div>
+<div
+  class="site-area-free-select"
+  data-area-free-select
+  aria-hidden="true"
+></div>
+
+<svg
+  class="site-area-free-select-outline"
+  data-area-free-select-outline
+  preserveAspectRatio="none"
+  aria-hidden="true"
+>
+  <path data-area-free-select-path />
+</svg>
 
 <style is:global>
-  html body .site-area-topography {
+  html body .site-area-topography,
+  html body .site-area-centroid-symbol,
+  html body .site-area-centroid-symbol.is-visible,
+  html body .site-area-start {
     opacity: 0 !important;
     visibility: hidden !important;
   }
 
-  html body .site-area-outline {
-    fill: none !important;
-    stroke: rgba(89, 119, 152, 0.42) !important;
-    stroke-width: 0.62px !important;
-    opacity: 0.18 !important;
-  }
-
+  html body .site-area-outline,
   html body .site-area-overlay.is-hovering-area .site-area-outline,
   html body .site-area-overlay.is-rotating-area .site-area-outline {
     fill: none !important;
-    stroke: rgba(86, 116, 153, 0.54) !important;
-    stroke-width: 0.68px !important;
-    opacity: 0.28 !important;
-  }
-
-  html body .site-area-centroid-symbol,
-  html body .site-area-centroid-symbol.is-visible {
+    stroke: transparent !important;
     opacity: 0 !important;
   }
 
-  .site-area-island {
+  .site-area-free-select {
     position: fixed;
     left: 0;
     top: 0;
@@ -38,27 +40,66 @@
     height: 1px;
     pointer-events: none;
     overflow: hidden;
-    opacity: 0;
-    background: transparent;
-    transform: translateZ(0);
+    background: rgba(18, 112, 47, 0.26);
+    -webkit-backdrop-filter:
+      grayscale(0.18)
+      sepia(0.28)
+      saturate(1.5)
+      hue-rotate(56deg)
+      contrast(1.045);
+    backdrop-filter:
+      grayscale(0.18)
+      sepia(0.28)
+      saturate(1.5)
+      hue-rotate(56deg)
+      contrast(1.045);
   }
 
-  .site-area-island.is-visible {
-    display: block;
-    opacity: 1;
+  .site-area-free-select::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: rgba(12, 91, 38, 0.08);
   }
 
-  .site-area-island__canvas {
+  .site-area-free-select.is-visible {
     display: block;
+  }
+
+  .site-area-free-select-outline {
+    position: fixed;
+    inset: 0;
+    z-index: 74;
+    display: none;
     width: 100%;
     height: 100%;
-    background: transparent;
+    overflow: visible;
     pointer-events: none;
-    filter: saturate(1.14) contrast(1.025);
+  }
+
+  .site-area-free-select-outline.is-visible {
+    display: block;
+  }
+
+  .site-area-free-select-outline path {
+    fill: none;
+    stroke: rgba(242, 248, 243, 0.96);
+    stroke-width: 0.9;
+    stroke-dasharray: 2.2 3.1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    filter: drop-shadow(0 0 0.55px rgba(45, 78, 55, 0.78));
+  }
+
+  html body .site-area-hint {
+    opacity: 0.62;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .site-area-island {
+    .site-area-free-select,
+    .site-area-free-select-outline {
       transition: none !important;
     }
   }
@@ -67,83 +108,33 @@
 <script is:inline>
   (() => {
     const initialize = () => {
-      const island = document.querySelector('[data-area-island]')
-      const canvas = document.querySelector('[data-area-island-canvas]')
+      const selection = document.querySelector('[data-area-free-select]')
+      const selectionSvg = document.querySelector('[data-area-free-select-outline]')
+      const selectionPath = document.querySelector('[data-area-free-select-path]')
       const overlay = document.querySelector('[data-area-overlay]')
-      const outline = document.querySelector('[data-area-path]')
+      const nativePath = document.querySelector('[data-area-path]')
       const centroidSymbol = document.querySelector('[data-area-centroid-symbol]')
 
-      if (!island || !canvas || !overlay || !outline || !centroidSymbol) return
-      if (island.dataset.areaIslandInitialized === 'true') return
-      island.dataset.areaIslandInitialized = 'true'
+      if (
+        !selection ||
+        !selectionSvg ||
+        !selectionPath ||
+        !overlay ||
+        !nativePath ||
+        !centroidSymbol
+      ) return
 
-      const context = canvas.getContext('2d')
-      if (!context) return
+      if (selection.dataset.areaFreeSelectInitialized === 'true') return
+      selection.dataset.areaFreeSelectInitialized = 'true'
 
-      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-      let polygon = []
-      let width = 1
-      let height = 1
-      let columns = 0
-      let rows = 0
-      let insideMask = []
-      let shoreField = []
-      let heights = []
-      let visible = false
-      let islandSeed = 0
+      let persistentPoints = []
       let syncFrame = 0
-      let animationFrame = 0
-      let lastDrawAt = -Infinity
-      let wasFinished = false
-      let documentVisible = !document.hidden
-
-      const clamp = (value, minimum, maximum) =>
-        Math.max(minimum, Math.min(maximum, value))
-
-      const lerp = (start, end, amount) => start + (end - start) * amount
-
-      const paletteStops = [
-        { at: 0, rgb: [75, 95, 190] },
-        { at: 0.14, rgb: [65, 150, 210] },
-        { at: 0.29, rgb: [65, 196, 190] },
-        { at: 0.43, rgb: [112, 209, 139] },
-        { at: 0.57, rgb: [190, 213, 86] },
-        { at: 0.7, rgb: [239, 198, 76] },
-        { at: 0.82, rgb: [242, 132, 91] },
-        { at: 0.92, rgb: [220, 91, 137] },
-        { at: 1, rgb: [172, 77, 169] },
-      ]
-
-      const terrainColor = (value, alpha = 1) => {
-        const t = clamp(value, 0, 1)
-        let start = paletteStops[0]
-        let end = paletteStops[paletteStops.length - 1]
-
-        for (let index = 0; index < paletteStops.length - 1; index += 1) {
-          const current = paletteStops[index]
-          const next = paletteStops[index + 1]
-
-          if (t >= current.at && t <= next.at) {
-            start = current
-            end = next
-            break
-          }
-        }
-
-        const span = Math.max(0.0001, end.at - start.at)
-        const local = clamp((t - start.at) / span, 0, 1)
-        const red = Math.round(lerp(start.rgb[0], end.rgb[0], local))
-        const green = Math.round(lerp(start.rgb[1], end.rgb[1], local))
-        const blue = Math.round(lerp(start.rgb[2], end.rgb[2], local))
-
-        return `rgba(${red}, ${green}, ${blue}, ${alpha})`
-      }
+      let resettingNativeArea = false
 
       const parsePathPoints = () => {
-        const d = outline.getAttribute('d') ?? ''
+        const d = nativePath.getAttribute('d') ?? ''
         const values = d.match(/[-+]?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi)
-        if (!values || values.length < 6) return []
+        if (!values || values.length < 2) return []
 
         const numbers = values.map(Number).filter(Number.isFinite)
         const points = []
@@ -158,315 +149,24 @@
         return points
       }
 
-      const pointInPolygon = (point, points) => {
-        let inside = false
+      const pathFromPoints = (points) => {
+        if (!points.length) return ''
 
-        for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
-          const current = points[i]
-          const previous = points[j]
-          const crosses =
-            current.y > point.y !== previous.y > point.y &&
-            point.x <
-              ((previous.x - current.x) * (point.y - current.y)) /
-                (previous.y - current.y || 0.00001) +
-                current.x
-
-          if (crosses) inside = !inside
-        }
-
-        return inside
-      }
-
-      const distanceToSegment = (point, start, end) => {
-        const dx = end.x - start.x
-        const dy = end.y - start.y
-
-        if (dx === 0 && dy === 0) {
-          return Math.hypot(point.x - start.x, point.y - start.y)
-        }
-
-        const amount = clamp(
-          ((point.x - start.x) * dx + (point.y - start.y) * dy) /
-            (dx * dx + dy * dy),
-          0,
-          1
-        )
-
-        const projection = {
-          x: start.x + dx * amount,
-          y: start.y + dy * amount,
-        }
-
-        return Math.hypot(point.x - projection.x, point.y - projection.y)
-      }
-
-      const distanceToPolygonEdge = (point, points) => {
-        let minimum = Infinity
-
-        for (let index = 0; index < points.length; index += 1) {
-          minimum = Math.min(
-            minimum,
-            distanceToSegment(point, points[index], points[(index + 1) % points.length])
-          )
-        }
-
-        return minimum
-      }
-
-      const polygonArea = (points) => {
-        let sum = 0
-
-        for (let index = 0; index < points.length; index += 1) {
-          const current = points[index]
-          const next = points[(index + 1) % points.length]
-          sum += current.x * next.y - next.x * current.y
-        }
-
-        return Math.abs(sum) * 0.5
-      }
-
-      const createPolygonPath = () => {
-        const path = new Path2D()
-        if (!polygon.length) return path
-
-        path.moveTo(polygon[0].x, polygon[0].y)
-
-        for (let index = 1; index < polygon.length; index += 1) {
-          path.lineTo(polygon[index].x, polygon[index].y)
-        }
-
-        path.closePath()
-        return path
-      }
-
-      const broadRelief = (x, y, phase) => {
-        const angle = 0.55 + Math.sin(islandSeed * 0.73) * 0.28
-        const cos = Math.cos(angle)
-        const sin = Math.sin(angle)
-        const rx = x * cos - y * sin
-        const ry = x * sin + y * cos
-
-        const ridge =
-          0.16 * Math.exp(-((rx + 0.16) ** 2 * 3.2 + (ry - 0.02) ** 2 * 1.5))
-
-        const shoulder =
-          0.11 * Math.exp(-((x - 0.34) ** 2 * 5.8 + (y + 0.23) ** 2 * 4.1))
-
-        const secondKnoll =
-          0.075 * Math.exp(-((x + 0.42) ** 2 * 6.8 + (y - 0.28) ** 2 * 5.2))
-
-        const saddle =
-          -0.075 * Math.exp(-((x - 0.03) ** 2 * 8.2 + (y - 0.12) ** 2 * 7.2))
-
-        const waves =
-          0.072 * Math.sin(x * 2.55 + y * 0.82 + islandSeed + phase * 0.32) +
-          0.058 * Math.cos(y * 3.05 - x * 0.68 + islandSeed * 0.63 - phase * 0.24) +
-          0.038 * Math.sin((x + y) * 4.25 + islandSeed * 0.31 + phase * 0.19)
-
-        return ridge + shoulder + secondKnoll + saddle + waves
-      }
-
-      const buildBaseField = () => {
-        columns = clamp(Math.round(width / 5.2), 50, 126)
-        rows = clamp(Math.round(height / 5.2), 44, 116)
-
-        insideMask = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(false))
-        shoreField = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(0))
-        heights = Array.from({ length: rows + 1 }, () => Array(columns + 1).fill(0))
-
-        let maximumDistance = 0
-
-        for (let row = 0; row <= rows; row += 1) {
-          const y = (row / rows) * height
-
-          for (let column = 0; column <= columns; column += 1) {
-            const x = (column / columns) * width
-            const point = { x, y }
-            const inside = pointInPolygon(point, polygon)
-
-            insideMask[row][column] = inside
-            if (!inside) continue
-
-            const distance = distanceToPolygonEdge(point, polygon)
-            shoreField[row][column] = distance
-            maximumDistance = Math.max(maximumDistance, distance)
-          }
-        }
-
-        maximumDistance = Math.max(0.0001, maximumDistance)
-
-        for (let row = 0; row <= rows; row += 1) {
-          for (let column = 0; column <= columns; column += 1) {
-            if (!insideMask[row][column]) continue
-            shoreField[row][column] = clamp(shoreField[row][column] / maximumDistance, 0, 1)
-          }
-        }
-      }
-
-      const updateHeights = (phase) => {
-        let maximumHeight = 0
-
-        for (let row = 0; row <= rows; row += 1) {
-          const ny = (row / rows) * 2 - 1
-
-          for (let column = 0; column <= columns; column += 1) {
-            if (!insideMask[row][column]) {
-              heights[row][column] = 0
-              continue
-            }
-
-            const nx = (column / columns) * 2 - 1
-            const shore = shoreField[row][column]
-            const baseRise = Math.pow(shore, 0.78)
-            const irregularity = broadRelief(nx, ny, phase)
-            const heightValue = Math.max(0, baseRise * (0.82 + irregularity))
-
-            heights[row][column] = heightValue
-            maximumHeight = Math.max(maximumHeight, heightValue)
-          }
-        }
-
-        maximumHeight = Math.max(0.0001, maximumHeight)
-
-        for (let row = 0; row <= rows; row += 1) {
-          for (let column = 0; column <= columns; column += 1) {
-            if (!insideMask[row][column]) continue
-            heights[row][column] = clamp(heights[row][column] / maximumHeight, 0, 1)
-          }
-        }
-      }
-
-      const drawColorField = (phase) => {
-        const stepX = width / columns
-        const stepY = height / rows
-        const bandCount = 64
-        const bands = Array.from({ length: bandCount }, () => [])
-
-        for (let row = 0; row <= rows; row += 1) {
-          const y = (row / rows) * height
-          const ny = (row / rows) * 2 - 1
-
-          for (let column = 0; column <= columns; column += 1) {
-            if (!insideMask[row][column]) continue
-
-            const x = (column / columns) * width
-            const nx = (column / columns) * 2 - 1
-            const shore = shoreField[row][column]
-            const terrainHeight = heights[row][column]
-            const psychedelicWarp =
-              Math.sin(nx * 3.2 + phase * 0.36 + islandSeed) * 0.048 +
-              Math.cos(ny * 3.8 - phase * 0.29 + islandSeed * 0.47) * 0.04 +
-              Math.sin((nx - ny) * 5.1 + phase * 0.17) * 0.025
-            const tone = clamp(
-              shore * 0.7 + terrainHeight * 0.22 + psychedelicWarp,
-              0,
-              1
-            )
-            const band = clamp(Math.round(tone * (bandCount - 1)), 0, bandCount - 1)
-
-            bands[band].push({
-              x: x - stepX * 0.68,
-              y: y - stepY * 0.68,
-              width: stepX * 1.36,
-              height: stepY * 1.36,
-            })
-          }
-        }
-
-        context.save()
-
-        bands.forEach((cells, bandIndex) => {
-          if (!cells.length) return
-
-          const tone = bandIndex / Math.max(1, bandCount - 1)
-          context.fillStyle = terrainColor(tone, 0.9)
-
-          cells.forEach((cell) => {
-            context.fillRect(cell.x, cell.y, cell.width, cell.height)
-          })
-        })
-
-        context.globalCompositeOperation = 'screen'
-
-        const warmX = width * (0.5 + Math.sin(islandSeed + phase * 0.22) * 0.06)
-        const warmY = height * (0.46 + Math.cos(islandSeed * 0.7 - phase * 0.17) * 0.05)
-        const warmGlow = context.createRadialGradient(
-          warmX,
-          warmY,
-          0,
-          warmX,
-          warmY,
-          Math.max(width, height) * 0.56
-        )
-        warmGlow.addColorStop(0, 'rgba(255, 229, 112, 0.34)')
-        warmGlow.addColorStop(0.34, 'rgba(255, 143, 91, 0.2)')
-        warmGlow.addColorStop(0.68, 'rgba(230, 77, 151, 0.1)')
-        warmGlow.addColorStop(1, 'rgba(255, 255, 255, 0)')
-        context.fillStyle = warmGlow
-        context.fillRect(0, 0, width, height)
-
-        context.globalCompositeOperation = 'soft-light'
-
-        const coolX = width * (0.17 + Math.sin(phase * 0.13 + islandSeed) * 0.04)
-        const coolY = height * (0.72 + Math.cos(phase * 0.19) * 0.05)
-        const coolGlow = context.createRadialGradient(
-          coolX,
-          coolY,
-          0,
-          coolX,
-          coolY,
-          Math.max(width, height) * 0.5
-        )
-        coolGlow.addColorStop(0, 'rgba(83, 95, 220, 0.38)')
-        coolGlow.addColorStop(0.48, 'rgba(48, 201, 205, 0.18)')
-        coolGlow.addColorStop(1, 'rgba(255, 255, 255, 0)')
-        context.fillStyle = coolGlow
-        context.fillRect(0, 0, width, height)
-
-        context.restore()
-      }
-
-      const draw = (phase = 0) => {
-        if (!visible || !polygon.length || !columns || !rows) return
-
-        updateHeights(phase)
-
-        const dpr = Math.min(window.devicePixelRatio || 1, 1.6)
-        const pixelWidth = Math.max(1, Math.round(width * dpr))
-        const pixelHeight = Math.max(1, Math.round(height * dpr))
-
-        if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
-          canvas.width = pixelWidth
-          canvas.height = pixelHeight
-        }
-
-        context.setTransform(dpr, 0, 0, dpr, 0, 0)
-        context.clearRect(0, 0, width, height)
-
-        const polygonPath = createPolygonPath()
-        context.save()
-        context.clip(polygonPath)
-        drawColorField(phase)
-        context.restore()
+        return `${points
+          .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+          .join(' ')} Z`
       }
 
       const hide = () => {
-        visible = false
-        wasFinished = false
-        island.classList.remove('is-visible')
-        island.style.removeProperty('clip-path')
-        island.style.removeProperty('-webkit-clip-path')
-        context.clearRect(0, 0, canvas.width, canvas.height)
+        selection.classList.remove('is-visible')
+        selectionSvg.classList.remove('is-visible')
+        selection.style.removeProperty('clip-path')
+        selection.style.removeProperty('-webkit-clip-path')
+        selectionPath.setAttribute('d', '')
       }
 
-      const sync = () => {
-        syncFrame = 0
-
-        const finished = centroidSymbol.classList.contains('is-visible')
-        const areaModeVisible = overlay.classList.contains('is-visible')
-        const points = parsePathPoints()
-
-        if (!finished || !areaModeVisible || points.length < 3) {
+      const render = (points) => {
+        if (!overlay.classList.contains('is-visible') || points.length < 3) {
           hide()
           return
         }
@@ -477,23 +177,14 @@
         const maxX = Math.max(...xs)
         const minY = Math.min(...ys)
         const maxY = Math.max(...ys)
-
-        width = Math.max(1, maxX - minX)
-        height = Math.max(1, maxY - minY)
-
-        polygon = points.map((point) => ({
+        const width = Math.max(1, maxX - minX)
+        const height = Math.max(1, maxY - minY)
+        const localPoints = points.map((point) => ({
           x: point.x - minX,
           y: point.y - minY,
         }))
 
-        if (!wasFinished) {
-          const area = polygonArea(polygon)
-          islandSeed = ((area % 9973) / 9973) * Math.PI * 2 + polygon.length * 0.137
-        }
-
-        wasFinished = true
-
-        const polygonCss = polygon
+        const polygonCss = localPoints
           .map((point) => {
             const x = (point.x / width) * 100
             const y = (point.y / height) * 100
@@ -501,17 +192,60 @@
           })
           .join(', ')
 
-        island.style.left = `${minX}px`
-        island.style.top = `${minY}px`
-        island.style.width = `${width}px`
-        island.style.height = `${height}px`
-        island.style.clipPath = `polygon(${polygonCss})`
-        island.style.webkitClipPath = `polygon(${polygonCss})`
-        island.classList.add('is-visible')
-        visible = true
+        selection.style.left = `${minX}px`
+        selection.style.top = `${minY}px`
+        selection.style.width = `${width}px`
+        selection.style.height = `${height}px`
+        selection.style.clipPath = `polygon(${polygonCss})`
+        selection.style.webkitClipPath = `polygon(${polygonCss})`
+        selection.classList.add('is-visible')
 
-        buildBaseField()
-        draw(performance.now() * 0.001)
+        selectionSvg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
+        selectionPath.setAttribute('d', pathFromPoints(points))
+        selectionSvg.classList.add('is-visible')
+      }
+
+      const clearNativeFinishedArea = () => {
+        if (resettingNativeArea) return
+        resettingNativeArea = true
+
+        window.dispatchEvent(new Event('resize'))
+
+        resettingNativeArea = false
+      }
+
+      const sync = () => {
+        syncFrame = 0
+
+        if (!overlay.classList.contains('is-visible')) {
+          persistentPoints = []
+          hide()
+          return
+        }
+
+        const d = nativePath.getAttribute('d') ?? ''
+        const points = parsePathPoints()
+        const finished = centroidSymbol.classList.contains('is-visible')
+
+        if (finished && points.length >= 3) {
+          persistentPoints = points.map((point) => ({ ...point }))
+          render(persistentPoints)
+          window.requestAnimationFrame(clearNativeFinishedArea)
+          return
+        }
+
+        if (d.trim()) {
+          persistentPoints = []
+          render(points)
+          return
+        }
+
+        if (persistentPoints.length >= 3) {
+          render(persistentPoints)
+          return
+        }
+
+        hide()
       }
 
       const scheduleSync = () => {
@@ -521,7 +255,7 @@
 
       const observer = new MutationObserver(scheduleSync)
 
-      observer.observe(outline, {
+      observer.observe(nativePath, {
         attributes: true,
         attributeFilter: ['d'],
       })
@@ -536,34 +270,23 @@
         attributeFilter: ['class'],
       })
 
-      const animate = (time) => {
-        animationFrame = window.requestAnimationFrame(animate)
-
-        if (reducedMotion || !visible || !documentVisible) return
-        if (time - lastDrawAt < 120) return
-
-        lastDrawAt = time
-        draw(time * 0.001)
+      const handleResize = () => {
+        if (resettingNativeArea) return
+        persistentPoints = []
+        hide()
+        scheduleSync()
       }
 
-      const handleVisibility = () => {
-        documentVisible = !document.hidden
-      }
-
-      document.addEventListener('visibilitychange', handleVisibility)
-      window.addEventListener('resize', scheduleSync, { passive: true })
-
+      window.addEventListener('resize', handleResize, { passive: true })
       scheduleSync()
-      animationFrame = window.requestAnimationFrame(animate)
 
       window.addEventListener(
         'pagehide',
         () => {
           observer.disconnect()
-          document.removeEventListener('visibilitychange', handleVisibility)
-          window.removeEventListener('resize', scheduleSync)
+          window.removeEventListener('resize', handleResize)
           if (syncFrame) window.cancelAnimationFrame(syncFrame)
-          if (animationFrame) window.cancelAnimationFrame(animationFrame)
+          persistentPoints = []
           hide()
         },
         { once: true }
