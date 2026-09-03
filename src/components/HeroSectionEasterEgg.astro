@@ -1,81 +1,104 @@
 <style is:global>
-  html body .hero-primary.hero-layer-ready {
+  html body .hero-primary.hero-cad-ready {
     position: relative;
     overflow: visible;
   }
 
-  html body .hero-layer-easter {
+  html body .hero-cad-easter {
     position: relative;
     display: inline-block;
     isolation: isolate;
   }
 
-  html body .hero-layer-easter__text {
+  html body .hero-cad-easter__text {
     position: relative;
     z-index: 2;
     display: inline-block;
   }
 
-  html body .hero-layer-easter__stack {
+  html body .hero-cad-easter__selection {
     position: absolute;
-    left: 0;
-    bottom: -0.25rem;
+    left: -0.34rem;
+    right: -0.34rem;
+    top: -0.23rem;
+    bottom: -0.24rem;
     z-index: 1;
-    width: 100%;
-    height: 0.42rem;
-    pointer-events: none;
+    border: 1px solid rgba(89, 105, 93, 0.46);
     opacity: 0;
-    transition: opacity 100ms linear;
+    pointer-events: none;
+    transform: scale(0.985);
+    transform-origin: 50% 50%;
+    transition:
+      opacity 90ms linear,
+      transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  html body .hero-layer-easter__line {
+  html body .hero-cad-easter__grip {
     position: absolute;
+    width: 5px;
+    height: 5px;
+    border: 1px solid rgba(73, 88, 77, 0.78);
+    background: var(--page);
+  }
+
+  html body .hero-cad-easter__grip--tl {
+    left: -3px;
+    top: -3px;
+  }
+
+  html body .hero-cad-easter__grip--tr {
+    right: -3px;
+    top: -3px;
+  }
+
+  html body .hero-cad-easter__grip--bl {
+    left: -3px;
+    bottom: -3px;
+  }
+
+  html body .hero-cad-easter__grip--br {
+    right: -3px;
+    bottom: -3px;
+  }
+
+  html body .hero-cad-easter__axis {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: opacity 90ms linear;
+  }
+
+  html body .hero-cad-easter__axis::before,
+  html body .hero-cad-easter__axis::after {
+    content: '';
+    position: absolute;
+    background: rgba(89, 105, 93, 0.32);
+  }
+
+  html body .hero-cad-easter__axis::before {
     left: 0;
-    width: 100%;
+    top: 5.5px;
+    width: 12px;
     height: 1px;
-    transform: scaleX(0);
-    transform-origin: 0 50%;
-    transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  html body .hero-layer-easter__line:nth-child(1) {
+  html body .hero-cad-easter__axis::after {
+    left: 5.5px;
     top: 0;
-    background: rgba(73, 88, 77, 0.44);
-    transition-delay: 0ms;
+    width: 1px;
+    height: 12px;
   }
 
-  html body .hero-layer-easter__line:nth-child(2) {
-    top: 2px;
-    left: 2px;
-    width: calc(100% - 1px);
-    background: rgba(89, 105, 93, 0.34);
-    transition-delay: 34ms;
-  }
-
-  html body .hero-layer-easter__line:nth-child(3) {
-    top: 4px;
-    left: 4px;
-    width: calc(100% - 3px);
-    background: rgba(116, 121, 112, 0.28);
-    transition-delay: 68ms;
-  }
-
-  html body .hero-layer-easter__line:nth-child(4) {
-    top: 6px;
-    left: 6px;
-    width: calc(100% - 5px);
-    background: rgba(153, 163, 152, 0.24);
-    transition-delay: 102ms;
-  }
-
-  html body .hero-layer-easter__meta {
+  html body .hero-cad-easter__meta {
     position: absolute;
-    left: calc(100% + 0.7rem);
+    left: calc(100% + 0.72rem);
     top: 50%;
     z-index: 3;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.38rem;
     color: var(--moss);
     font-family:
       ui-monospace,
@@ -84,67 +107,57 @@
       Monaco,
       Consolas,
       monospace;
-    font-size: 0.43rem;
+    font-size: 0.42rem;
     font-weight: 500;
     line-height: 1;
     letter-spacing: 0.065em;
     white-space: nowrap;
     opacity: 0;
-    transform: translate(3px, -48%);
+    transform: translate(3px, -50%);
     transition:
-      opacity 100ms linear,
-      transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+      opacity 90ms linear,
+      transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
     pointer-events: none;
   }
 
-  html body .hero-layer-easter__meta::before {
-    content: '';
-    display: block;
-    width: 0.38rem;
-    height: 0.38rem;
-    border: 1px solid rgba(89, 105, 93, 0.56);
-    box-shadow:
-      2px 2px 0 -1px var(--page),
-      2px 2px 0 0 rgba(89, 105, 93, 0.32),
-      4px 4px 0 -1px var(--page),
-      4px 4px 0 0 rgba(89, 105, 93, 0.2);
+  html body .hero-cad-easter__meta::before {
+    content: '□';
+    margin-right: 0.34rem;
+    color: var(--stone-light);
   }
 
-  html body .hero-layer-easter.is-active .hero-layer-easter__stack,
-  html body .hero-layer-easter.is-active .hero-layer-easter__meta {
+  html body .hero-cad-easter.is-active .hero-cad-easter__selection,
+  html body .hero-cad-easter.is-active .hero-cad-easter__axis,
+  html body .hero-cad-easter.is-active .hero-cad-easter__meta {
     opacity: 1;
   }
 
-  html body .hero-layer-easter.is-active .hero-layer-easter__meta {
-    transform: translate(0, -48%);
+  html body .hero-cad-easter.is-active .hero-cad-easter__selection {
+    transform: scale(1);
   }
 
-  html body .hero-layer-easter.is-active .hero-layer-easter__line {
-    transform: scaleX(1);
-  }
-
-  html body .hero-layer-easter.is-all .hero-layer-easter__meta {
-    color: var(--moss-deep);
+  html body .hero-cad-easter.is-active .hero-cad-easter__meta {
+    transform: translate(0, -50%);
   }
 
   @media (max-width: 640px) {
-    html body .hero-layer-easter__meta {
+    html body .hero-cad-easter__meta {
       left: 0;
       top: auto;
-      bottom: -1.15rem;
+      bottom: -1.12rem;
       transform: translate(0, 2px);
-      font-size: 0.4rem;
+      font-size: 0.39rem;
     }
 
-    html body .hero-layer-easter.is-active .hero-layer-easter__meta {
+    html body .hero-cad-easter.is-active .hero-cad-easter__meta {
       transform: translate(0, 0);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    html body .hero-layer-easter__stack,
-    html body .hero-layer-easter__line,
-    html body .hero-layer-easter__meta {
+    html body .hero-cad-easter__selection,
+    html body .hero-cad-easter__axis,
+    html body .hero-cad-easter__meta {
       transition: none !important;
     }
   }
@@ -154,101 +167,49 @@
   (() => {
     const role = document.querySelector('.hero-primary')
     if (!role) return
-    if (role.dataset.heroLayerInitialized === 'true') return
+    if (role.dataset.heroCadInitialized === 'true') return
 
     const label = role.textContent?.trim() ?? ''
     if (!label) return
 
-    role.dataset.heroLayerInitialized = 'true'
-    role.classList.add('hero-layer-ready')
+    role.dataset.heroCadInitialized = 'true'
+    role.classList.add('hero-cad-ready')
 
     const trigger = document.createElement('span')
-    trigger.className = 'hero-layer-easter'
+    trigger.className = 'hero-cad-easter'
 
     const text = document.createElement('span')
-    text.className = 'hero-layer-easter__text'
+    text.className = 'hero-cad-easter__text'
     text.textContent = label
 
-    const stack = document.createElement('span')
-    stack.className = 'hero-layer-easter__stack'
-    stack.setAttribute('aria-hidden', 'true')
+    const selection = document.createElement('span')
+    selection.className = 'hero-cad-easter__selection'
+    selection.setAttribute('aria-hidden', 'true')
 
-    for (let index = 0; index < 4; index += 1) {
-      const line = document.createElement('span')
-      line.className = 'hero-layer-easter__line'
-      stack.append(line)
-    }
+    ;['tl', 'tr', 'bl', 'br'].forEach((corner) => {
+      const grip = document.createElement('span')
+      grip.className = `hero-cad-easter__grip hero-cad-easter__grip--${corner}`
+      selection.append(grip)
+    })
+
+    const axis = document.createElement('span')
+    axis.className = 'hero-cad-easter__axis'
+    axis.setAttribute('aria-hidden', 'true')
 
     const meta = document.createElement('span')
-    meta.className = 'hero-layer-easter__meta'
+    meta.className = 'hero-cad-easter__meta'
     meta.setAttribute('aria-hidden', 'true')
+    meta.textContent = 'OBJECT 01 / SELECTED'
 
-    trigger.append(text, stack, meta)
+    trigger.append(text, selection, axis, meta)
     role.replaceChildren(trigger)
 
-    const layers = [
-      'TOPOGRAPHY',
-      'WATER',
-      'VEGETATION',
-      'MOVEMENT',
-      'SOIL',
-      'TIME',
-      'HUMAN',
-      'NON-HUMAN',
-    ]
-
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const timers = []
-    let active = false
-    let previousLayer = -1
-
-    const clearTimers = () => {
-      while (timers.length) {
-        window.clearTimeout(timers.pop())
-      }
-    }
-
-    const after = (delay, callback) => {
-      const timer = window.setTimeout(callback, delay)
-      timers.push(timer)
-    }
-
-    const pickLayer = () => {
-      if (layers.length <= 1) return 0
-
-      let index = Math.floor(Math.random() * layers.length)
-      while (index === previousLayer) {
-        index = Math.floor(Math.random() * layers.length)
-      }
-
-      previousLayer = index
-      return index
+    const start = () => {
+      trigger.classList.add('is-active')
     }
 
     const stop = () => {
-      active = false
-      clearTimers()
-      trigger.classList.remove('is-active', 'is-all')
-      meta.textContent = ''
-    }
-
-    const start = () => {
-      if (active) return
-      active = true
-      clearTimers()
-
-      const layerIndex = pickLayer()
-      const layerNumber = String(layerIndex + 1).padStart(2, '0')
-      meta.textContent = `LAYER ${layerNumber} / ${layers[layerIndex]}`
-      trigger.classList.add('is-active')
-
-      if (reducedMotion) return
-
-      after(760, () => {
-        if (!active) return
-        meta.textContent = 'ALL LAYERS ON'
-        trigger.classList.add('is-all')
-      })
+      trigger.classList.remove('is-active')
     }
 
     trigger.addEventListener('pointerenter', start)
