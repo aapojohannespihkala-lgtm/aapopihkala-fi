@@ -23,7 +23,21 @@
     top: -0.23rem;
     bottom: -0.24rem;
     z-index: 1;
+    overflow: visible;
     border: 1px solid rgba(89, 105, 93, 0.46);
+    background:
+      linear-gradient(
+        rgba(89, 105, 93, 0.025),
+        rgba(89, 105, 93, 0.025)
+      ),
+      repeating-linear-gradient(
+        135deg,
+        transparent 0,
+        transparent 7px,
+        rgba(89, 105, 93, 0.075) 7px,
+        rgba(89, 105, 93, 0.075) 8px
+      );
+    background-position: 0 0, 0 0;
     opacity: 0;
     pointer-events: none;
     transform: scale(0.985);
@@ -35,8 +49,9 @@
 
   html body .hero-cad-easter__grip {
     position: absolute;
-    width: 5px;
-    height: 5px;
+    box-sizing: border-box;
+    width: 6px;
+    height: 6px;
     border: 1px solid rgba(73, 88, 77, 0.78);
     background: var(--page);
   }
@@ -59,39 +74,6 @@
   html body .hero-cad-easter__grip--br {
     right: -3px;
     bottom: -3px;
-  }
-
-  html body .hero-cad-easter__axis {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 12px;
-    height: 12px;
-    opacity: 0;
-    pointer-events: none;
-    transform: translate(-50%, -50%);
-    transition: opacity 90ms linear;
-  }
-
-  html body .hero-cad-easter__axis::before,
-  html body .hero-cad-easter__axis::after {
-    content: '';
-    position: absolute;
-    background: rgba(89, 105, 93, 0.32);
-  }
-
-  html body .hero-cad-easter__axis::before {
-    left: 0;
-    top: 5.5px;
-    width: 12px;
-    height: 1px;
-  }
-
-  html body .hero-cad-easter__axis::after {
-    left: 5.5px;
-    top: 0;
-    width: 1px;
-    height: 12px;
   }
 
   html body .hero-cad-easter__meta {
@@ -127,17 +109,27 @@
   }
 
   html body .hero-cad-easter.is-active .hero-cad-easter__selection,
-  html body .hero-cad-easter.is-active .hero-cad-easter__axis,
   html body .hero-cad-easter.is-active .hero-cad-easter__meta {
     opacity: 1;
   }
 
   html body .hero-cad-easter.is-active .hero-cad-easter__selection {
     transform: scale(1);
+    animation: hero-cad-selection-hatch 2.2s linear infinite;
   }
 
   html body .hero-cad-easter.is-active .hero-cad-easter__meta {
     transform: translate(0, -50%);
+  }
+
+  @keyframes hero-cad-selection-hatch {
+    from {
+      background-position: 0 0, 0 0;
+    }
+
+    to {
+      background-position: 0 0, 22px 0;
+    }
   }
 
   @media (max-width: 640px) {
@@ -156,9 +148,9 @@
 
   @media (prefers-reduced-motion: reduce) {
     html body .hero-cad-easter__selection,
-    html body .hero-cad-easter__axis,
     html body .hero-cad-easter__meta {
       transition: none !important;
+      animation: none !important;
     }
   }
 </style>
@@ -192,16 +184,12 @@
       selection.append(grip)
     })
 
-    const axis = document.createElement('span')
-    axis.className = 'hero-cad-easter__axis'
-    axis.setAttribute('aria-hidden', 'true')
-
     const meta = document.createElement('span')
     meta.className = 'hero-cad-easter__meta'
     meta.setAttribute('aria-hidden', 'true')
     meta.textContent = 'OBJECT 01 / SELECTED'
 
-    trigger.append(text, selection, axis, meta)
+    trigger.append(text, selection, meta)
     role.replaceChildren(trigger)
 
     const start = () => {
