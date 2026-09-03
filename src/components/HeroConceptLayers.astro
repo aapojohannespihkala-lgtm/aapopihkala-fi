@@ -1,0 +1,197 @@
+<style is:global>
+  html body .hero-secondary.hero-concepts-ready {
+    position: relative;
+    overflow: visible;
+  }
+
+  html body .hero-concept {
+    position: relative;
+    display: inline-block;
+    isolation: isolate;
+    color: inherit;
+    cursor: default;
+    transition: color 140ms ease;
+  }
+
+  html body .hero-concept__label {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% - 0.02rem);
+    z-index: 4;
+    color: var(--moss);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.34rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translate(-50%, 2px);
+    pointer-events: none;
+    transition:
+      opacity 100ms linear,
+      transform 170ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  html body .hero-concept::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  html body .hero-concept--cities::after {
+    left: -0.08em;
+    right: -0.08em;
+    top: 0.16em;
+    bottom: 0.17em;
+    background-image:
+      linear-gradient(rgba(89, 105, 93, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(89, 105, 93, 0.12) 1px, transparent 1px);
+    background-size: 5px 5px;
+    transform: scale(0.92);
+    transition:
+      opacity 110ms linear,
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  html body .hero-concept--people::after {
+    left: 0.12em;
+    bottom: 0.06em;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: var(--moss);
+    box-shadow:
+      6px 0 0 rgba(89, 105, 93, 0.72),
+      12px 0 0 rgba(89, 105, 93, 0.5);
+    transform: translateX(0);
+  }
+
+  html body .hero-concept--nature {
+    text-decoration-color: transparent;
+    text-decoration-line: underline;
+    text-decoration-style: wavy;
+    text-decoration-thickness: 0.6px;
+    text-underline-offset: 0.18em;
+    transition:
+      color 140ms ease,
+      text-decoration-color 170ms ease;
+  }
+
+  html body .hero-concept:hover,
+  html body .hero-concept:focus-visible {
+    color: var(--moss-deep);
+    outline: none;
+  }
+
+  html body .hero-concept:hover .hero-concept__label,
+  html body .hero-concept:focus-visible .hero-concept__label {
+    opacity: 0.72;
+    transform: translate(-50%, 0);
+  }
+
+  html body .hero-concept--cities:hover::after,
+  html body .hero-concept--cities:focus-visible::after {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  html body .hero-concept--people:hover::after,
+  html body .hero-concept--people:focus-visible::after {
+    opacity: 0.82;
+    animation: hero-people-flow 820ms cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
+  }
+
+  html body .hero-concept--nature:hover,
+  html body .hero-concept--nature:focus-visible {
+    text-decoration-color: rgba(89, 105, 93, 0.62);
+  }
+
+  @keyframes hero-people-flow {
+    from {
+      transform: translateX(0);
+    }
+
+    to {
+      transform: translateX(calc(100% + 0.8em));
+    }
+  }
+
+  @media (max-width: 640px) {
+    html body .hero-concept__label {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html body .hero-concept,
+    html body .hero-concept__label,
+    html body .hero-concept::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const secondary = document.querySelector('.hero-secondary')
+    if (!secondary) return
+    if (secondary.dataset.heroConceptsInitialized === 'true') return
+
+    const source = secondary.textContent ?? ''
+    if (!source.trim()) return
+
+    const language = document.documentElement.lang === 'fi' ? 'fi' : 'en'
+    const concepts = language === 'fi'
+      ? [
+          { word: 'kaupunkien', type: 'cities', label: 'BUILT LAYER' },
+          { word: 'ihmisten', type: 'people', label: 'ACTIVE LAYER' },
+          { word: 'luonnon', type: 'nature', label: 'LIVING LAYER' },
+        ]
+      : [
+          { word: 'cities', type: 'cities', label: 'BUILT LAYER' },
+          { word: 'people', type: 'people', label: 'ACTIVE LAYER' },
+          { word: 'nature', type: 'nature', label: 'LIVING LAYER' },
+        ]
+
+    const lookup = new Map(concepts.map((concept) => [concept.word.toLowerCase(), concept]))
+    const pattern = new RegExp(`(${concepts.map((concept) => concept.word).join('|')})`, 'gi')
+    const parts = source.split(pattern)
+    const fragment = document.createDocumentFragment()
+
+    parts.forEach((part) => {
+      const concept = lookup.get(part.toLowerCase())
+
+      if (!concept) {
+        fragment.append(document.createTextNode(part))
+        return
+      }
+
+      const wrapper = document.createElement('span')
+      wrapper.className = `hero-concept hero-concept--${concept.type}`
+      wrapper.tabIndex = 0
+      wrapper.textContent = part
+
+      const label = document.createElement('span')
+      label.className = 'hero-concept__label'
+      label.setAttribute('aria-hidden', 'true')
+      label.textContent = concept.label
+
+      wrapper.append(label)
+      fragment.append(wrapper)
+    })
+
+    secondary.dataset.heroConceptsInitialized = 'true'
+    secondary.classList.add('hero-concepts-ready')
+    secondary.replaceChildren(fragment)
+  })()
+</script>
