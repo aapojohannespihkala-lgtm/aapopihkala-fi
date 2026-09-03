@@ -1,3 +1,7 @@
+<div class="site-area-mode-grid" data-area-mode-grid aria-hidden="true">
+  <span class="site-area-mode-grid__label">GRID / 32</span>
+</div>
+
 <div class="site-rect-area" data-rect-area aria-hidden="true">
   <svg class="site-rect-area__svg" data-rect-area-svg preserveAspectRatio="none" aria-hidden="true">
     <rect class="site-rect-area__contrast" data-rect-area-contrast />
@@ -8,6 +12,35 @@
 </div>
 
 <style is:global>
+  .site-area-mode-grid {
+    position: fixed;
+    inset: 64px 0 0;
+    z-index: 45;
+    pointer-events: none;
+    opacity: 0;
+    background-image:
+      linear-gradient(rgba(89, 105, 93, 0.075) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(89, 105, 93, 0.075) 1px, transparent 1px);
+    background-size: 32px 32px;
+    transition: opacity 120ms ease;
+  }
+
+  .site-area-mode-grid.is-visible {
+    opacity: 1;
+  }
+
+  .site-area-mode-grid__label {
+    position: absolute;
+    right: 22px;
+    bottom: 18px;
+    color: var(--moss);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.58rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.08em;
+  }
+
   .site-rect-area {
     position: fixed;
     inset: 0;
@@ -75,6 +108,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .site-area-mode-grid,
     .site-rect-area {
       transition: none !important;
     }
@@ -84,6 +118,7 @@
 <script is:inline>
   (() => {
     const initialize = () => {
+      const gridBackdrop = document.querySelector('[data-area-mode-grid]')
       const root = document.querySelector('[data-rect-area]')
       const svg = document.querySelector('[data-rect-area-svg]')
       const contrast = document.querySelector('[data-rect-area-contrast]')
@@ -93,7 +128,7 @@
       const readout = document.querySelector('[data-a-readout]')
       const readoutLabel = document.querySelector('[data-a-readout-label]')
 
-      if (!root || !svg || !contrast || !fill || !stroke || !hint || !readout || !readoutLabel) return
+      if (!gridBackdrop || !root || !svg || !contrast || !fill || !stroke || !hint || !readout || !readoutLabel) return
       if (root.dataset.rectAreaInitialized === 'true') return
       root.dataset.rectAreaInitialized = 'true'
 
@@ -106,6 +141,10 @@
 
       const setViewBox = () => {
         svg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
+      }
+
+      const syncGrid = (mode = readout.dataset.mode ?? '') => {
+        gridBackdrop.classList.toggle('is-visible', mode === 'area' || mode === 'rect')
       }
 
       const setGeometry = (start, end) => {
@@ -151,6 +190,7 @@
         readout.dataset.mode = 'rect'
         readout.classList.add('is-visible')
         root.classList.add('is-visible')
+        syncGrid('rect')
         hint.textContent = 'RECT / HOLD + DRAW'
         setReadout('RECT / DRAW')
         setViewBox()
@@ -175,6 +215,7 @@
             deactivate()
             previousMode = nextMode
           }
+          syncGrid(nextMode)
           return
         }
 
@@ -184,6 +225,7 @@
         }
 
         previousMode = nextMode
+        syncGrid(nextMode)
       }
 
       const handlePointerDown = (event) => {
@@ -266,6 +308,7 @@
       window.addEventListener('pointercancel', handlePointerCancel)
       window.addEventListener('resize', setViewBox, { passive: true })
       setViewBox()
+      syncGrid()
 
       window.addEventListener(
         'pagehide',
@@ -276,6 +319,7 @@
           window.removeEventListener('pointerup', handlePointerUp)
           window.removeEventListener('pointercancel', handlePointerCancel)
           window.removeEventListener('resize', setViewBox)
+          gridBackdrop.classList.remove('is-visible')
           deactivate()
         },
         { once: true }
