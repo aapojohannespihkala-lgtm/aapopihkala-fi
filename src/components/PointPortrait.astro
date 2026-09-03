@@ -1,0 +1,545 @@
+---
+interface Props {
+  class?: string;
+  autoRotate?: boolean;
+  enableZoom?: boolean;
+  scale?: number;
+  cameraDistance?: number;
+}
+
+const {
+  class: className,
+  autoRotate = true,
+  enableZoom = true,
+  scale = 1,
+  cameraDistance = 7.2,
+} = Astro.props;
+---
+
+<div
+  class:list={['point-portrait', className]}
+  data-point-portrait
+  data-auto-rotate={autoRotate ? 'true' : 'false'}
+  data-enable-zoom={enableZoom ? 'true' : 'false'}
+  data-scale={scale}
+  data-camera-distance={cameraDistance}
+  aria-hidden="true"
+>
+  <canvas class="point-portrait__canvas" data-point-portrait-canvas></canvas>
+</div>
+
+<style>
+  .point-portrait {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    overflow: hidden;
+    background: transparent;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .point-portrait:active {
+    cursor: grabbing;
+  }
+
+  .point-portrait__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    touch-action: none;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const roots = document.querySelectorAll('[data-point-portrait]')
+
+    roots.forEach(async (root) => {
+      if (root.dataset.pointPortraitInitialized === 'true') return
+      root.dataset.pointPortraitInitialized = 'true'
+
+      const canvas = root.querySelector('[data-point-portrait-canvas]')
+      if (!canvas) return
+
+      try {
+        const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
+        const { OrbitControls } = await import(
+          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
+        )
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const wantsAutoRotate = root.dataset.autoRotate !== 'false'
+        const wantsZoom = root.dataset.enableZoom !== 'false'
+        const requestedScale = Number(root.dataset.scale ?? '1')
+        const requestedCameraDistance = Number(root.dataset.cameraDistance ?? '7.2')
+        const displayScale = Number.isFinite(requestedScale) ? requestedScale : 1
+        const cameraDistance = Number.isFinite(requestedCameraDistance)
+          ? requestedCameraDistance
+          : 7.2
+
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: true,
+          alpha: true,
+        })
+
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6))
+        renderer.setClearColor(0xffffff, 0)
+
+        const scene = new THREE.Scene()
+        const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100)
+        camera.position.set(0, 0.05, cameraDistance)
+
+        const portrait = new THREE.Group()
+        portrait.position.y = 0.03
+        portrait.rotation.x = -0.035
+        portrait.rotation.z = -0.025
+        portrait.scale.setScalar(displayScale)
+        scene.add(portrait)
+
+        const controls = new OrbitControls(camera, renderer.domElement)
+        controls.enablePan = false
+        controls.enableZoom = wantsZoom
+        controls.minDistance = 4.8
+        controls.maxDistance = 10.5
+        controls.zoomSpeed = 0.55
+        controls.enableDamping = true
+        controls.dampingFactor = 0.055
+        controls.rotateSpeed = 0.55
+        controls.target.set(0, 0.02, 0)
+        controls.autoRotate = wantsAutoRotate && !reducedMotion
+        controls.autoRotateSpeed = 0.26
+
+        const faceMaterial = new THREE.PointsMaterial({
+          color: 0x3f4640,
+          size: 0.026,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.7,
+        })
+
+        const secondaryPointMaterial = new THREE.PointsMaterial({
+          color: 0x6f786f,
+          size: 0.022,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.5,
+        })
+
+        const contourMaterial = new THREE.LineBasicMaterial({
+          color: 0x7b887d,
+          transparent: true,
+          opacity: 0.3,
+        })
+
+        const featureMaterial = new THREE.LineBasicMaterial({
+          color: 0x343934,
+          transparent: true,
+          opacity: 0.82,
+        })
+
+        const softFeatureMaterial = new THREE.LineBasicMaterial({
+          color: 0x667066,
+          transparent: true,
+          opacity: 0.58,
+        })
+
+        const hairMaterial = new THREE.LineBasicMaterial({
+          color: 0x59645b,
+          transparent: true,
+          opacity: 0.48,
+        })
+
+        const eyeMaterial = new THREE.PointsMaterial({
+          color: 0x242824,
+          size: 0.047,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.9,
+        })
+
+        const geometries = []
+        const materials = [
+          faceMaterial,
+          secondaryPointMaterial,
+          contourMaterial,
+          featureMaterial,
+          softFeatureMaterial,
+          hairMaterial,
+          eyeMaterial,
+        ]
+
+        let seed = 82451
+        const random = () => {
+          seed = (seed * 1664525 + 1013904223) >>> 0
+          return seed / 4294967296
+        }
+
+        const clamp01 = (value) => Math.max(0, Math.min(1, value))
+        const smoothstep = (edge0, edge1, value) => {
+          const t = clamp01((value - edge0) / Math.max(0.0001, edge1 - edge0))
+          return t * t * (3 - 2 * t)
+        }
+
+        const headHalfWidthAtY = (y) => {
+          const normalizedY = clamp01((y + 1.24) / 2.5)
+          const dome = Math.pow(Math.max(0, Math.sin(normalizedY * Math.PI)), 0.49)
+          const jaw = 0.76 + 0.24 * smoothstep(-0.82, -0.2, y)
+          const temple = 1 - 0.08 * smoothstep(0.48, 0.9, y)
+          return (0.16 + 0.86 * dome) * jaw * temple
+        }
+
+        const headDepthAtY = (y) => {
+          const normalizedY = clamp01((y + 1.24) / 2.5)
+          const dome = Math.pow(Math.max(0, Math.sin(normalizedY * Math.PI)), 0.58)
+          return 0.18 + 0.7 * dome
+        }
+
+        const facePositions = []
+        const backPositions = []
+        const rows = 76
+        const sides = 82
+
+        for (let yi = 0; yi <= rows; yi += 1) {
+          const t = yi / rows
+          const y = THREE.MathUtils.lerp(-1.22, 1.26, t)
+          const halfWidth = headHalfWidthAtY(y)
+          const depth = headDepthAtY(y)
+
+          for (let ai = 0; ai < sides; ai += 1) {
+            const angle = (ai / sides) * Math.PI * 2
+            const cos = Math.cos(angle)
+            const sin = Math.sin(angle)
+            let x = cos * halfWidth
+            let z = sin * depth
+            const front = Math.max(0, sin)
+
+            const cheekLift =
+              0.045 *
+              Math.exp(-((Math.abs(x) - 0.43) ** 2 * 18 + (y + 0.06) ** 2 * 8)) *
+              front
+            z += cheekLift
+
+            const nose =
+              0.2 *
+              Math.exp(-(x * x * 13 + (y + 0.02) ** 2 * 12)) *
+              Math.pow(front, 1.8)
+            z += nose
+
+            const browPlane =
+              0.038 *
+              Math.exp(-((Math.abs(x) - 0.37) ** 2 * 24 + (y - 0.3) ** 2 * 30)) *
+              front
+            z += browPlane
+
+            const chin =
+              0.055 *
+              Math.exp(-(x * x * 7 + (y + 0.82) ** 2 * 18)) *
+              front
+            z += chin
+
+            const jitter = (random() - 0.5) * 0.008
+            x += jitter
+            z += (random() - 0.5) * 0.008
+
+            const target = front > 0.06 ? facePositions : backPositions
+            target.push(x, y + (random() - 0.5) * 0.006, z)
+          }
+        }
+
+        const faceGeometry = new THREE.BufferGeometry()
+        faceGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(facePositions, 3)
+        )
+        geometries.push(faceGeometry)
+        portrait.add(new THREE.Points(faceGeometry, faceMaterial))
+
+        const backGeometry = new THREE.BufferGeometry()
+        backGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(backPositions, 3)
+        )
+        geometries.push(backGeometry)
+        portrait.add(new THREE.Points(backGeometry, secondaryPointMaterial))
+
+        const makeLine = (points, material = featureMaterial, closed = false) => {
+          const geometry = new THREE.BufferGeometry().setFromPoints(points)
+          geometries.push(geometry)
+          return closed
+            ? new THREE.LineLoop(geometry, material)
+            : new THREE.Line(geometry, material)
+        }
+
+        const contourLevels = [-0.92, -0.68, -0.43, -0.16, 0.11, 0.38, 0.66, 0.92, 1.12]
+        contourLevels.forEach((y, index) => {
+          const points = []
+          const width = headHalfWidthAtY(y)
+          const depth = headDepthAtY(y)
+          const samples = 112
+
+          for (let i = 0; i < samples; i += 1) {
+            const angle = (i / samples) * Math.PI * 2
+            const cos = Math.cos(angle)
+            const sin = Math.sin(angle)
+            const front = Math.max(0, sin)
+            let z = sin * depth
+
+            if (front > 0) {
+              z +=
+                0.14 *
+                Math.exp(-((cos * width) ** 2 * 13 + (y + 0.02) ** 2 * 12)) *
+                Math.pow(front, 1.8)
+            }
+
+            points.push(
+              new THREE.Vector3(
+                cos * width,
+                y,
+                z + (index % 2 === 0 ? 0.006 : -0.006)
+              )
+            )
+          }
+
+          portrait.add(makeLine(points, contourMaterial, true))
+        })
+
+        const superellipseLoop = (cx, cy, width, height, z, rotation = 0) => {
+          const points = []
+          const samples = 84
+          const power = 0.62
+
+          for (let i = 0; i < samples; i += 1) {
+            const angle = (i / samples) * Math.PI * 2
+            const c = Math.cos(angle)
+            const s = Math.sin(angle)
+            const localX =
+              Math.sign(c) * Math.pow(Math.abs(c), power) * width * 0.5
+            const localY =
+              Math.sign(s) * Math.pow(Math.abs(s), power) * height * 0.5
+            const rx = localX * Math.cos(rotation) - localY * Math.sin(rotation)
+            const ry = localX * Math.sin(rotation) + localY * Math.cos(rotation)
+            points.push(new THREE.Vector3(cx + rx, cy + ry, z))
+          }
+
+          return points
+        }
+
+        const glasses = new THREE.Group()
+        const glassesY = 0.18
+        const glassesZ = 0.835
+        const leftFrame = superellipseLoop(-0.4, glassesY, 0.68, 0.5, glassesZ, -0.035)
+        const rightFrame = superellipseLoop(0.4, glassesY, 0.68, 0.5, glassesZ, 0.035)
+        glasses.add(makeLine(leftFrame, featureMaterial, true))
+        glasses.add(makeLine(rightFrame, featureMaterial, true))
+        glasses.add(
+          makeLine([
+            new THREE.Vector3(-0.065, 0.2, 0.846),
+            new THREE.Vector3(0, 0.225, 0.858),
+            new THREE.Vector3(0.065, 0.2, 0.846),
+          ])
+        )
+
+        ;[-1, 1].forEach((side) => {
+          const temple = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(side * 0.73, 0.23, 0.78),
+            new THREE.Vector3(side * 0.88, 0.24, 0.6),
+            new THREE.Vector3(side * 0.99, 0.19, 0.31),
+            new THREE.Vector3(side * 1.0, 0.08, 0.04),
+          ])
+          glasses.add(makeLine(temple.getPoints(26)))
+        })
+        portrait.add(glasses)
+
+        const eyePositions = [
+          -0.39, 0.19, 0.87,
+          0.39, 0.19, 0.87,
+        ]
+        const eyeGeometry = new THREE.BufferGeometry()
+        eyeGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(eyePositions, 3)
+        )
+        geometries.push(eyeGeometry)
+        portrait.add(new THREE.Points(eyeGeometry, eyeMaterial))
+
+        ;[-1, 1].forEach((side) => {
+          const brow = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(side * 0.61, 0.47, 0.75),
+            new THREE.Vector3(side * 0.43, 0.52, 0.82),
+            new THREE.Vector3(side * 0.22, 0.49, 0.86),
+          ])
+          portrait.add(makeLine(brow.getPoints(24), softFeatureMaterial))
+        })
+
+        const noseCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(-0.02, 0.34, 0.89),
+          new THREE.Vector3(-0.015, 0.09, 1.02),
+          new THREE.Vector3(0.03, -0.11, 1.035),
+          new THREE.Vector3(0.13, -0.19, 0.91),
+        ])
+        portrait.add(makeLine(noseCurve.getPoints(30), softFeatureMaterial))
+
+        const mouthCurve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(-0.29, -0.45, 0.72),
+          new THREE.Vector3(-0.12, -0.49, 0.79),
+          new THREE.Vector3(0, -0.475, 0.81),
+          new THREE.Vector3(0.14, -0.485, 0.78),
+          new THREE.Vector3(0.29, -0.44, 0.71),
+        ])
+        portrait.add(makeLine(mouthCurve.getPoints(34), softFeatureMaterial))
+
+        const moustachePositions = []
+        for (let i = 0; i < 260; i += 1) {
+          const side = random() < 0.5 ? -1 : 1
+          const u = random()
+          const x = side * (0.025 + u * 0.27)
+          const y = -0.27 - 0.075 * Math.pow(u, 0.85) + (random() - 0.5) * 0.035
+          const z = 0.83 - 0.045 * u + (random() - 0.5) * 0.018
+          moustachePositions.push(x, y, z)
+        }
+        const moustacheGeometry = new THREE.BufferGeometry()
+        moustacheGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(moustachePositions, 3)
+        )
+        geometries.push(moustacheGeometry)
+        portrait.add(new THREE.Points(moustacheGeometry, secondaryPointMaterial))
+
+        ;[-1, 1].forEach((side) => {
+          const earPoints = []
+          const samples = 58
+          for (let i = 0; i < samples; i += 1) {
+            const a = (i / samples) * Math.PI * 2
+            earPoints.push(
+              new THREE.Vector3(
+                side * 0.985,
+                -0.015 + Math.sin(a) * 0.31,
+                0.02 + Math.cos(a) * 0.16
+              )
+            )
+          }
+          portrait.add(makeLine(earPoints, softFeatureMaterial, true))
+        })
+
+        const hairGroup = new THREE.Group()
+        const hairLines = 27
+        for (let i = 0; i < hairLines; i += 1) {
+          const offset = (i / (hairLines - 1) - 0.5) * 0.58
+          const curve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-0.78 + offset * 0.18, 0.66 + offset * 0.1, 0.48),
+            new THREE.Vector3(-0.57 + offset * 0.3, 1.03 + offset * 0.16, 0.72),
+            new THREE.Vector3(-0.18 + offset * 0.42, 1.31 + offset * 0.14, 0.61),
+            new THREE.Vector3(0.31 + offset * 0.48, 1.36 + offset * 0.08, 0.3),
+            new THREE.Vector3(0.73 + offset * 0.28, 1.1 - offset * 0.03, -0.02),
+          ])
+          hairGroup.add(makeLine(curve.getPoints(42), hairMaterial))
+        }
+
+        const sideFadeLines = 11
+        for (let i = 0; i < sideFadeLines; i += 1) {
+          const t = i / Math.max(1, sideFadeLines - 1)
+          const curve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-0.92, 0.48 + t * 0.5, 0.24 - t * 0.05),
+            new THREE.Vector3(-0.94, 0.69 + t * 0.42, 0.05 - t * 0.08),
+            new THREE.Vector3(-0.82, 0.91 + t * 0.28, -0.16 - t * 0.04),
+          ])
+          hairGroup.add(makeLine(curve.getPoints(22), hairMaterial))
+        }
+        portrait.add(hairGroup)
+
+        const neckLeft = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(-0.45, -1.02, -0.03),
+          new THREE.Vector3(-0.48, -1.28, -0.08),
+          new THREE.Vector3(-0.68, -1.48, -0.1),
+          new THREE.Vector3(-1.25, -1.58, -0.12),
+        ])
+        const neckRight = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(0.45, -1.02, -0.03),
+          new THREE.Vector3(0.48, -1.28, -0.08),
+          new THREE.Vector3(0.68, -1.48, -0.1),
+          new THREE.Vector3(1.25, -1.58, -0.12),
+        ])
+        portrait.add(makeLine(neckLeft.getPoints(32), contourMaterial))
+        portrait.add(makeLine(neckRight.getPoints(32), contourMaterial))
+
+        const datum = makeLine(
+          [
+            new THREE.Vector3(-1.42, -1.62, -0.15),
+            new THREE.Vector3(1.42, -1.62, -0.15),
+          ],
+          contourMaterial
+        )
+        portrait.add(datum)
+
+        const resize = () => {
+          const rect = root.getBoundingClientRect()
+          const width = Math.max(1, Math.round(rect.width))
+          const height = Math.max(1, Math.round(rect.height))
+
+          renderer.setSize(width, height, false)
+          camera.aspect = width / height
+          camera.updateProjectionMatrix()
+        }
+
+        const resizeObserver = new ResizeObserver(resize)
+        resizeObserver.observe(root)
+        resize()
+
+        let isVisible = true
+        let isDocumentVisible = !document.hidden
+        let animationFrame = 0
+
+        const intersectionObserver = new IntersectionObserver(
+          (entries) => {
+            isVisible = entries.some((entry) => entry.isIntersecting)
+          },
+          { rootMargin: '160px' }
+        )
+        intersectionObserver.observe(root)
+
+        const handleVisibility = () => {
+          isDocumentVisible = !document.hidden
+        }
+        document.addEventListener('visibilitychange', handleVisibility)
+
+        const animate = (time) => {
+          animationFrame = requestAnimationFrame(animate)
+          if (!isVisible || !isDocumentVisible) return
+
+          controls.update()
+
+          if (!reducedMotion) {
+            portrait.position.y = 0.03 + Math.sin(time * 0.00075) * 0.012
+            hairGroup.rotation.z = Math.sin(time * 0.00052) * 0.004
+            glasses.position.z = Math.sin(time * 0.0009) * 0.003
+          }
+
+          renderer.render(scene, camera)
+        }
+        animationFrame = requestAnimationFrame(animate)
+
+        window.addEventListener(
+          'pagehide',
+          () => {
+            cancelAnimationFrame(animationFrame)
+            resizeObserver.disconnect()
+            intersectionObserver.disconnect()
+            document.removeEventListener('visibilitychange', handleVisibility)
+            controls.dispose()
+            geometries.forEach((geometry) => geometry.dispose())
+            materials.forEach((material) => material.dispose())
+            renderer.dispose()
+          },
+          { once: true }
+        )
+      } catch (error) {
+        console.error('Point portrait failed to initialize', error)
+      }
+    })
+  })()
+</script>
