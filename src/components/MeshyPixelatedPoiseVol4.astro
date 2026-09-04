@@ -3,6 +3,7 @@ interface Props {
   enableZoom?: boolean;
   enablePan?: boolean;
   enableIdleMotion?: boolean;
+  enableSurfaceProbe?: boolean;
   cameraX?: number;
   cameraDistance?: number;
   cameraHeight?: number;
@@ -16,6 +17,7 @@ const {
   enableZoom = true,
   enablePan = true,
   enableIdleMotion = false,
+  enableSurfaceProbe = false,
   cameraX = 1.65,
   cameraDistance = 2.05,
   cameraHeight = 0.85,
@@ -27,11 +29,15 @@ const {
 ---
 
 <div
-  class="meshy-point-surface"
+  class:list={[
+    'meshy-point-surface',
+    enableSurfaceProbe && 'meshy-point-surface--probe',
+  ]}
   data-meshy-point-surface
   data-enable-zoom={enableZoom ? 'true' : 'false'}
   data-enable-pan={enablePan ? 'true' : 'false'}
   data-enable-idle-motion={enableIdleMotion ? 'true' : 'false'}
+  data-enable-surface-probe={enableSurfaceProbe ? 'true' : 'false'}
   data-camera-x={String(cameraX)}
   data-camera-distance={String(cameraDistance)}
   data-camera-height={String(cameraHeight)}
@@ -42,7 +48,27 @@ const {
   aria-label="Pyöriteltävä Meshy-pistepinta vol 4"
 >
   <canvas class="meshy-point-surface__canvas" data-meshy-point-surface-canvas></canvas>
-  <p class="meshy-point-surface__status" data-meshy-point-surface-status>Ladataan pistepintaa...</p>
+
+  {
+    enableSurfaceProbe && (
+      <span class="meshy-point-surface__probe" data-meshy-surface-probe aria-hidden="true">
+        <span class="meshy-point-surface__probe-cross"></span>
+        <span class="meshy-point-surface__probe-label">
+          <span data-meshy-surface-probe-primary>SURFACE / 00000</span>
+          <span
+            class="meshy-point-surface__probe-secondary"
+            data-meshy-surface-probe-secondary
+          >
+            XYZ +0.00 / +0.00 / +0.00
+          </span>
+        </span>
+      </span>
+    )
+  }
+
+  <p class="meshy-point-surface__status" data-meshy-point-surface-status>
+    Ladataan pistepintaa...
+  </p>
 </div>
 
 <style>
@@ -62,6 +88,16 @@ const {
     cursor: grabbing;
   }
 
+  @media (hover: hover) and (pointer: fine) {
+    .meshy-point-surface--probe {
+      cursor: crosshair;
+    }
+
+    .meshy-point-surface--probe:active {
+      cursor: grabbing;
+    }
+  }
+
   .meshy-point-surface__canvas {
     display: block;
     width: 100%;
@@ -76,7 +112,13 @@ const {
     top: 50%;
     margin: 0;
     color: var(--stone-light);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
     font-size: 0.62rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -86,6 +128,92 @@ const {
 
   .meshy-point-surface__status[hidden] {
     display: none;
+  }
+
+  .meshy-point-surface__probe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 4;
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+    color: var(--moss-deep);
+    opacity: 0;
+    transform: translate(-9px, -9px);
+    transition: opacity 100ms ease;
+  }
+
+  .meshy-point-surface__probe.is-visible {
+    opacity: 0.84;
+  }
+
+  .meshy-point-surface__probe-cross::before,
+  .meshy-point-surface__probe-cross::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    background: currentColor;
+    opacity: 0.76;
+    transform: translate(-50%, -50%);
+  }
+
+  .meshy-point-surface__probe-cross::before {
+    width: 18px;
+    height: 1px;
+  }
+
+  .meshy-point-surface__probe-cross::after {
+    width: 1px;
+    height: 18px;
+  }
+
+  .meshy-point-surface__probe-label {
+    position: absolute;
+    left: 14px;
+    top: 12px;
+    display: grid;
+    gap: 3px;
+    min-width: max-content;
+    box-sizing: border-box;
+    padding: 4px 5px;
+    background: var(--page);
+    border: 1px solid var(--line-soft);
+    color: var(--moss-deep);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.47rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .meshy-point-surface__probe.is-left .meshy-point-surface__probe-label {
+    left: auto;
+    right: 14px;
+  }
+
+  .meshy-point-surface__probe.is-up .meshy-point-surface__probe-label {
+    top: auto;
+    bottom: 12px;
+  }
+
+  .meshy-point-surface__probe-secondary {
+    color: var(--stone);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .meshy-point-surface__probe {
+      transition: none;
+    }
   }
 </style>
 
@@ -135,11 +263,15 @@ const {
 
       const canvas = root.querySelector('[data-meshy-point-surface-canvas]');
       const status = root.querySelector('[data-meshy-point-surface-status]');
+      const probe = root.querySelector('[data-meshy-surface-probe]');
+      const probePrimary = root.querySelector('[data-meshy-surface-probe-primary]');
+      const probeSecondary = root.querySelector('[data-meshy-surface-probe-secondary]');
       if (!(canvas instanceof HTMLCanvasElement)) return;
 
       const enableZoom = root.dataset.enableZoom !== 'false';
       const enablePan = root.dataset.enablePan !== 'false';
       const wantsIdleMotion = root.dataset.enableIdleMotion === 'true';
+      const wantsSurfaceProbe = root.dataset.enableSurfaceProbe === 'true';
       const cameraX = Number(root.dataset.cameraX ?? '1.65');
       const cameraDistance = Number(root.dataset.cameraDistance ?? '2.05');
       const cameraHeight = Number(root.dataset.cameraHeight ?? '0.85');
@@ -161,7 +293,14 @@ const {
         );
 
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
         const enableIdleMotion = wantsIdleMotion && !reducedMotion;
+        const enableSurfaceProbe =
+          wantsSurfaceProbe &&
+          finePointer &&
+          probe instanceof HTMLElement &&
+          probePrimary instanceof HTMLElement &&
+          probeSecondary instanceof HTMLElement;
 
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -250,7 +389,9 @@ const {
             progress = 0;
           }
 
-          const eased = 0.5 - Math.cos(Math.PI * THREE.MathUtils.clamp(progress, 0, 1)) * 0.5;
+          const eased =
+            0.5 -
+            Math.cos(Math.PI * THREE.MathUtils.clamp(progress, 0, 1)) * 0.5;
           const theta = THREE.MathUtils.lerp(idleFromTheta, idleToTheta, eased);
           const phi = THREE.MathUtils.lerp(idleFromPhi, idleToPhi, eased);
           const radius = camera.position.distanceTo(controls.target);
@@ -261,16 +402,162 @@ const {
           camera.lookAt(controls.target);
         };
 
+        const raycaster = new THREE.Raycaster();
+        const probePointer = new THREE.Vector2();
+        const probePoint = new THREE.Vector3();
+        const probeProjected = new THREE.Vector3();
+        let probePoints = null;
+        let probeRadius = 1;
+        let probePointerInside = false;
+        let probePointerX = 0;
+        let probePointerY = 0;
+        let probeDragging = false;
+        let probeReferenceTheta = 0;
+        let probeReferencePhi = Math.PI * 0.5;
+        let lastProbeUpdate = -Infinity;
+
+        const formatSigned = (value, digits = 2) => {
+          const safe = Math.abs(value) < 0.5 * 10 ** -digits ? 0 : value;
+          return `${safe >= 0 ? '+' : '-'}${Math.abs(safe).toFixed(digits)}`;
+        };
+
+        const positionProbe = (x, y) => {
+          if (!enableSurfaceProbe) return;
+          probe.style.left = `${Math.round(x)}px`;
+          probe.style.top = `${Math.round(y)}px`;
+          probe.classList.toggle('is-left', x > root.clientWidth - 150);
+          probe.classList.toggle('is-up', y > root.clientHeight - 58);
+        };
+
+        const hideProbe = () => {
+          if (!enableSurfaceProbe) return;
+          probe.classList.remove('is-visible');
+        };
+
+        const showProbe = () => {
+          if (!enableSurfaceProbe) return;
+          probe.classList.add('is-visible');
+        };
+
+        const updateOrbitProbe = () => {
+          if (!enableSurfaceProbe || !probeDragging) return;
+
+          const rect = root.getBoundingClientRect();
+          positionProbe(
+            THREE.MathUtils.clamp(probePointerX - rect.left, 0, rect.width),
+            THREE.MathUtils.clamp(probePointerY - rect.top, 0, rect.height)
+          );
+
+          const spherical = readCameraSpherical();
+          const horizontal = THREE.MathUtils.radToDeg(spherical.theta - probeReferenceTheta);
+          const vertical = THREE.MathUtils.radToDeg(probeReferencePhi - spherical.phi);
+          probePrimary.textContent = 'ORBIT / MANUAL';
+          probeSecondary.textContent =
+            `H ${formatSigned(horizontal, 1)}° / V ${formatSigned(vertical, 1)}°`;
+          showProbe();
+        };
+
+        const updateSurfaceProbe = () => {
+          if (
+            !enableSurfaceProbe ||
+            probeDragging ||
+            !probePointerInside ||
+            !(probePoints instanceof THREE.Points)
+          ) return;
+
+          const rect = canvas.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) {
+            hideProbe();
+            return;
+          }
+
+          probePointer.set(
+            ((probePointerX - rect.left) / rect.width) * 2 - 1,
+            -((probePointerY - rect.top) / rect.height) * 2 + 1
+          );
+
+          raycaster.setFromCamera(probePointer, camera);
+          const intersections = raycaster.intersectObject(probePoints, false);
+          const hit = intersections[0];
+
+          if (!hit || typeof hit.index !== 'number') {
+            hideProbe();
+            return;
+          }
+
+          probePoint.copy(hit.point);
+          probeProjected.copy(probePoint).project(camera);
+
+          const x = (probeProjected.x * 0.5 + 0.5) * root.clientWidth;
+          const y = (-probeProjected.y * 0.5 + 0.5) * root.clientHeight;
+          positionProbe(x, y);
+
+          const vertexNumber = String(hit.index + 1).padStart(5, '0');
+          probePrimary.textContent = `SURFACE / ${vertexNumber}`;
+          probeSecondary.textContent =
+            `XYZ ${formatSigned(probePoint.x / probeRadius)} / ` +
+            `${formatSigned(probePoint.y / probeRadius)} / ` +
+            `${formatSigned(probePoint.z / probeRadius)}`;
+          showProbe();
+        };
+
+        const handleProbePointerMove = (event) => {
+          if (!enableSurfaceProbe) return;
+          probePointerInside = true;
+          probePointerX = event.clientX;
+          probePointerY = event.clientY;
+
+          if (probeDragging) {
+            updateOrbitProbe();
+          } else {
+            updateSurfaceProbe();
+          }
+        };
+
+        const handleProbePointerEnter = (event) => {
+          if (!enableSurfaceProbe) return;
+          probePointerInside = true;
+          probePointerX = event.clientX;
+          probePointerY = event.clientY;
+          updateSurfaceProbe();
+        };
+
+        const handleProbePointerLeave = () => {
+          if (!enableSurfaceProbe) return;
+          probePointerInside = false;
+          if (!probeDragging) hideProbe();
+        };
+
+        if (enableSurfaceProbe) {
+          canvas.addEventListener('pointermove', handleProbePointerMove, { passive: true });
+          canvas.addEventListener('pointerenter', handleProbePointerEnter, { passive: true });
+          canvas.addEventListener('pointerleave', handleProbePointerLeave, { passive: true });
+        }
+
         controls.addEventListener('start', () => {
-          if (!enableIdleMotion) return;
-          idleInteracting = true;
+          if (enableIdleMotion) idleInteracting = true;
+
+          if (enableSurfaceProbe) {
+            probeDragging = true;
+            const spherical = readCameraSpherical();
+            probeReferenceTheta = spherical.theta;
+            probeReferencePhi = spherical.phi;
+            updateOrbitProbe();
+          }
         });
 
         controls.addEventListener('end', () => {
-          if (!enableIdleMotion) return;
-          idleInteracting = false;
-          idleNeedsRecenter = true;
-          idleResumeAt = performance.now() + idleResumeDelay;
+          if (enableIdleMotion) {
+            idleInteracting = false;
+            idleNeedsRecenter = true;
+            idleResumeAt = performance.now() + idleResumeDelay;
+          }
+
+          if (enableSurfaceProbe) {
+            probeDragging = false;
+            if (probePointerInside) updateSurfaceProbe();
+            else hideProbe();
+          }
         });
 
         const loader = new GLTFLoader();
@@ -301,7 +588,9 @@ const {
             });
 
             if (!meshEntries.length || totalArea <= 0) {
-              if (status instanceof HTMLElement) status.textContent = 'Pistepintaa ei voitu muodostaa';
+              if (status instanceof HTMLElement) {
+                status.textContent = 'Pistepintaa ei voitu muodostaa';
+              }
               return;
             }
 
@@ -312,19 +601,29 @@ const {
             const tempColor = new THREE.Color();
 
             meshEntries.forEach(({ mesh, area }) => {
-              const baseTarget = Math.max(1400, Math.round(totalPointBudget * (area / totalArea)));
+              const baseTarget = Math.max(
+                1400,
+                Math.round(totalPointBudget * (area / totalArea))
+              );
               const sampler = new MeshSurfaceSampler(mesh).build();
               const sampledPosition = new THREE.Vector3();
               const sampledNormal = new THREE.Vector3();
               const worldPosition = new THREE.Vector3();
               const worldNormal = new THREE.Vector3();
               const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
-              const sourceMaterial = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-              const pointColor = sourceMaterial?.color instanceof THREE.Color
-                ? sourceMaterial.color.clone()
-                : new THREE.Color(0x6c786f);
+              const sourceMaterial = Array.isArray(mesh.material)
+                ? mesh.material[0]
+                : mesh.material;
+              const pointColor =
+                sourceMaterial?.color instanceof THREE.Color
+                  ? sourceMaterial.color.clone()
+                  : new THREE.Color(0x6c786f);
 
-              if (pointColor.r > 0.94 && pointColor.g > 0.94 && pointColor.b > 0.94) {
+              if (
+                pointColor.r > 0.94 &&
+                pointColor.g > 0.94 &&
+                pointColor.b > 0.94
+              ) {
                 pointColor.set(0x6c786f);
               }
 
@@ -337,26 +636,56 @@ const {
               while (acceptedForMesh < baseTarget && attempts < maxAttempts) {
                 attempts += 1;
                 sampler.sample(sampledPosition, sampledNormal);
-                worldPosition.copy(sampledPosition).applyMatrix4(mesh.matrixWorld).sub(center);
-                worldNormal.copy(sampledNormal).applyMatrix3(normalMatrix).normalize();
+                worldPosition
+                  .copy(sampledPosition)
+                  .applyMatrix4(mesh.matrixWorld)
+                  .sub(center);
+                worldNormal
+                  .copy(sampledNormal)
+                  .applyMatrix3(normalMatrix)
+                  .normalize();
 
-                const inNeckCutBand = worldPosition.y < lowerBandTop && worldPosition.y > lowerBandBottom;
+                const inNeckCutBand =
+                  worldPosition.y < lowerBandTop &&
+                  worldPosition.y > lowerBandBottom;
                 const nearlyHorizontalSurface = Math.abs(worldNormal.y) > 0.72;
-                if (inNeckCutBand && nearlyHorizontalSurface && Math.random() > 0.12) continue;
+                if (
+                  inNeckCutBand &&
+                  nearlyHorizontalSurface &&
+                  Math.random() > 0.12
+                ) continue;
 
-                const nx = size.x > 0 ? worldPosition.x / (size.x * 0.5) : 0;
-                const ny = size.y > 0 ? worldPosition.y / (size.y * 0.5) : 0;
-                const nz = size.z > 0 ? worldPosition.z / (size.z * 0.5) : 0;
+                const nx =
+                  size.x > 0 ? worldPosition.x / (size.x * 0.5) : 0;
+                const ny =
+                  size.y > 0 ? worldPosition.y / (size.y * 0.5) : 0;
+                const nz =
+                  size.z > 0 ? worldPosition.z / (size.z * 0.5) : 0;
 
                 const eyeBand = ny > -0.02 && ny < 0.34;
                 const centralFaceBand = Math.abs(nx) < 0.62;
                 const frontBias = nz > -0.18;
-                const glassesZone = eyeBand && centralFaceBand && frontBias;
+                const glassesZone =
+                  eyeBand &&
+                  centralFaceBand &&
+                  frontBias;
 
                 const repetitions = glassesZone ? 2 : 1;
-                for (let repeat = 0; repeat < repetitions && acceptedForMesh < baseTarget; repeat += 1) {
-                  acceptedPositions.push(worldPosition.x, worldPosition.y, worldPosition.z);
-                  acceptedBaseColors.push(pointColor.r, pointColor.g, pointColor.b);
+                for (
+                  let repeat = 0;
+                  repeat < repetitions && acceptedForMesh < baseTarget;
+                  repeat += 1
+                ) {
+                  acceptedPositions.push(
+                    worldPosition.x,
+                    worldPosition.y,
+                    worldPosition.z
+                  );
+                  acceptedBaseColors.push(
+                    pointColor.r,
+                    pointColor.g,
+                    pointColor.b
+                  );
                   acceptedForMesh += 1;
                 }
               }
@@ -364,13 +693,21 @@ const {
 
             const pointCount = Math.floor(acceptedPositions.length / 3);
             if (!pointCount) {
-              if (status instanceof HTMLElement) status.textContent = 'Pistepintaa ei voitu muodostaa';
+              if (status instanceof HTMLElement) {
+                status.textContent = 'Pistepintaa ei voitu muodostaa';
+              }
               return;
             }
 
             const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(acceptedPositions, 3));
-            geometry.setAttribute('color', new THREE.Float32BufferAttribute(acceptedBaseColors, 3));
+            geometry.setAttribute(
+              'position',
+              new THREE.Float32BufferAttribute(acceptedPositions, 3)
+            );
+            geometry.setAttribute(
+              'color',
+              new THREE.Float32BufferAttribute(acceptedBaseColors, 3)
+            );
 
             const material = new THREE.PointsMaterial({
               size: Math.max(radius * 0.0085, 0.0035),
@@ -389,7 +726,11 @@ const {
             const baseColors = Float32Array.from(colorAttribute.array);
             const cameraSpacePoint = new THREE.Vector3();
             const depthSamples = new Float32Array(pointCount);
-            const lastCameraPosition = new THREE.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+            const lastCameraPosition = new THREE.Vector3(
+              Number.POSITIVE_INFINITY,
+              Number.POSITIVE_INFINITY,
+              Number.POSITIVE_INFINITY
+            );
             const lastCameraQuaternion = new THREE.Quaternion();
 
             const updateDepthShading = () => {
@@ -397,7 +738,9 @@ const {
               let maxDepth = Number.NEGATIVE_INFINITY;
 
               for (let i = 0; i < pointCount; i += 1) {
-                cameraSpacePoint.fromBufferAttribute(positionAttribute, i).applyMatrix4(camera.matrixWorldInverse);
+                cameraSpacePoint
+                  .fromBufferAttribute(positionAttribute, i)
+                  .applyMatrix4(camera.matrixWorldInverse);
                 const depth = -cameraSpacePoint.z;
                 depthSamples[i] = depth;
                 if (depth < minDepth) minDepth = depth;
@@ -409,13 +752,20 @@ const {
               for (let i = 0; i < pointCount; i += 1) {
                 const depth01 = (depthSamples[i] - minDepth) / depthRange;
                 const fade = Math.min(0.78, Math.max(0, depth01 * 0.88));
-                tempColor.setRGB(
-                  baseColors[i * 3],
-                  baseColors[i * 3 + 1],
-                  baseColors[i * 3 + 2]
-                ).lerp(backgroundColor, fade);
+                tempColor
+                  .setRGB(
+                    baseColors[i * 3],
+                    baseColors[i * 3 + 1],
+                    baseColors[i * 3 + 2]
+                  )
+                  .lerp(backgroundColor, fade);
 
-                colorAttribute.setXYZ(i, tempColor.r, tempColor.g, tempColor.b);
+                colorAttribute.setXYZ(
+                  i,
+                  tempColor.r,
+                  tempColor.g,
+                  tempColor.b
+                );
               }
 
               colorAttribute.needsUpdate = true;
@@ -423,7 +773,11 @@ const {
 
             camera.near = Math.max(radius / 1000, 0.001);
             camera.far = Math.max(radius * 100, 100);
-            camera.position.set(radius * cameraX, radius * cameraHeight, radius * cameraDistance);
+            camera.position.set(
+              radius * cameraX,
+              radius * cameraHeight,
+              radius * cameraDistance
+            );
             camera.updateProjectionMatrix();
 
             controls.target.set(0, size.y * targetY, 0);
@@ -435,6 +789,7 @@ const {
               controls.minDistance = lockedDistance;
               controls.maxDistance = lockedDistance;
             }
+
             controls.update();
             updateDepthShading();
             lastCameraPosition.copy(camera.position);
@@ -446,9 +801,22 @@ const {
               idleNeedsRecenter = true;
             }
 
+            if (enableSurfaceProbe) {
+              probePoints = points;
+              probeRadius = radius;
+              raycaster.params.Points.threshold = Math.max(radius * 0.045, 0.008);
+              const spherical = readCameraSpherical();
+              probeReferenceTheta = spherical.theta;
+              probeReferencePhi = spherical.phi;
+            }
+
             root.__meshyPointSurfaceTick = () => {
-              const moved = lastCameraPosition.distanceToSquared(camera.position) > 0.000001;
-              const turned = 1 - Math.abs(lastCameraQuaternion.dot(camera.quaternion)) > 0.000001;
+              const moved =
+                lastCameraPosition.distanceToSquared(camera.position) > 0.000001;
+              const turned =
+                1 - Math.abs(lastCameraQuaternion.dot(camera.quaternion)) >
+                0.000001;
+
               if (moved || turned) {
                 updateDepthShading();
                 lastCameraPosition.copy(camera.position);
@@ -460,7 +828,9 @@ const {
           },
           undefined,
           () => {
-            if (status instanceof HTMLElement) status.textContent = '3D-mallia ei voitu ladata';
+            if (status instanceof HTMLElement) {
+              status.textContent = '3D-mallia ei voitu ladata';
+            }
           }
         );
 
@@ -479,13 +849,32 @@ const {
         const animate = (now = performance.now()) => {
           applyIdleMotion(now);
           controls.update();
-          if (typeof root.__meshyPointSurfaceTick === 'function') root.__meshyPointSurfaceTick();
+
+          if (
+            enableSurfaceProbe &&
+            probePointerInside &&
+            !probeDragging &&
+            now - lastProbeUpdate >= 80
+          ) {
+            updateSurfaceProbe();
+            lastProbeUpdate = now;
+          } else if (enableSurfaceProbe && probeDragging) {
+            updateOrbitProbe();
+          }
+
+          if (typeof root.__meshyPointSurfaceTick === 'function') {
+            root.__meshyPointSurfaceTick();
+          }
+
           renderer.render(scene, camera);
           requestAnimationFrame(animate);
         };
+
         animate();
       } catch {
-        if (status instanceof HTMLElement) status.textContent = 'Pistepintakatselinta ei voitu ladata';
+        if (status instanceof HTMLElement) {
+          status.textContent = 'Pistepintakatselinta ei voitu ladata';
+        }
       }
     });
   })();
