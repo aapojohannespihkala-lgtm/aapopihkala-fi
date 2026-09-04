@@ -1,0 +1,345 @@
+---
+interface Props {
+  class?: string;
+  autoRotate?: boolean;
+  enableZoom?: boolean;
+  scale?: number;
+  cameraDistance?: number;
+}
+
+const {
+  class: className,
+  autoRotate = true,
+  enableZoom = true,
+  scale = 1,
+  cameraDistance = 6.2,
+} = Astro.props;
+---
+
+<div
+  class:list={['multi-view-portrait', className]}
+  data-multi-view-portrait
+  data-auto-rotate={autoRotate ? 'true' : 'false'}
+  data-enable-zoom={enableZoom ? 'true' : 'false'}
+  data-scale={scale}
+  data-camera-distance={cameraDistance}
+  role="img"
+  aria-label="Valokuvien pikseleistä rakennettu pyöriteltävä moninäkymäinen pistepilvimuotokuva"
+>
+  <canvas class="multi-view-portrait__canvas" data-multi-view-portrait-canvas></canvas>
+  <span class="multi-view-portrait__status" data-multi-view-portrait-status>loading image volume</span>
+</div>
+
+<style>
+  .multi-view-portrait {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 320px;
+    overflow: hidden;
+    background: transparent;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .multi-view-portrait:active { cursor: grabbing; }
+
+  .multi-view-portrait__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    touch-action: none;
+  }
+
+  .multi-view-portrait__status {
+    position: absolute;
+    left: 12px;
+    bottom: 10px;
+    color: var(--stone-light, #999);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+  }
+
+  .multi-view-portrait[data-ready='true'] .multi-view-portrait__status { opacity: 0; }
+</style>
+
+<script is:inline>
+  (() => {
+    const roots = document.querySelectorAll('[data-multi-view-portrait]')
+
+    roots.forEach(async (root) => {
+      if (root.dataset.multiViewPortraitInitialized === 'true') return
+      root.dataset.multiViewPortraitInitialized = 'true'
+
+      const canvas = root.querySelector('[data-multi-view-portrait-canvas]')
+      const status = root.querySelector('[data-multi-view-portrait-status]')
+      if (!canvas) return
+
+      try {
+        const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
+        const { OrbitControls } = await import(
+          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
+        )
+
+        const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
+        const deg = (value) => THREE.MathUtils.degToRad(value)
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const wantsAutoRotate = root.dataset.autoRotate !== 'false'
+        const wantsZoom = root.dataset.enableZoom !== 'false'
+        const displayScale = Number(root.dataset.scale ?? '1') || 1
+        const cameraDistance = Number(root.dataset.cameraDistance ?? '6.2') || 6.2
+
+        const sourceViews = [
+          {
+            src: '/lab/portrait-front.jpg',
+            yaw: deg(-8),
+            mask: [[0.08,0.34],[0.14,0.18],[0.29,0.07],[0.57,0.03],[0.80,0.14],[0.92,0.31],[0.88,0.59],[0.75,0.81],[0.57,0.95],[0.34,0.91],[0.18,0.73],[0.09,0.52]],
+            crop: [0.03, 0.0, 0.94, 0.93],
+            dome: 0.28,
+          },
+          {
+            src: '/lab/portrait-side.jpg',
+            yaw: deg(-62),
+            mask: [[0.07,0.39],[0.13,0.19],[0.29,0.05],[0.61,0.02],[0.84,0.13],[0.92,0.32],[0.88,0.59],[0.75,0.79],[0.58,0.91],[0.34,0.87],[0.16,0.69],[0.08,0.53]],
+            crop: [0.02, 0.0, 0.94, 0.92],
+            dome: 0.18,
+          },
+        ]
+
+        const loadPixels = (view) => new Promise((resolve, reject) => {
+          const image = new Image()
+          image.decoding = 'async'
+          image.onload = () => {
+            const sample = document.createElement('canvas')
+            sample.width = 118
+            sample.height = 148
+            const context = sample.getContext('2d', { willReadFrequently: true })
+            if (!context) {
+              reject(new Error('2D canvas unavailable'))
+              return
+            }
+            const [cx, cy, cw, ch] = view.crop
+            context.drawImage(
+              image,
+              image.naturalWidth * cx,
+              image.naturalHeight * cy,
+              image.naturalWidth * cw,
+              image.naturalHeight * ch,
+              0,
+              0,
+              sample.width,
+              sample.height
+            )
+            resolve({ view, width: sample.width, height: sample.height, data: context.getImageData(0, 0, sample.width, sample.height).data })
+          }
+          image.onerror = () => reject(new Error(`Failed to load ${view.src}`))
+          image.src = view.src
+        })
+
+        const pointInPolygon = (x, y, polygon) => {
+          let inside = false
+          for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            const xi = polygon[i][0]
+            const yi = polygon[i][1]
+            const xj = polygon[j][0]
+            const yj = polygon[j][1]
+            const intersects = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-6) + xi
+            if (intersects) inside = !inside
+          }
+          return inside
+        }
+
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.45))
+        renderer.setClearColor(0xffffff, 0)
+        renderer.outputColorSpace = THREE.SRGBColorSpace
+
+        const scene = new THREE.Scene()
+        const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100)
+        camera.position.set(0, 0.02, cameraDistance)
+
+        const portrait = new THREE.Group()
+        portrait.position.y = -0.02
+        portrait.scale.setScalar(displayScale)
+        scene.add(portrait)
+
+        const controls = new OrbitControls(camera, renderer.domElement)
+        controls.enablePan = false
+        controls.enableZoom = wantsZoom
+        controls.minDistance = 4.7
+        controls.maxDistance = 8.8
+        controls.zoomSpeed = 0.5
+        controls.enableDamping = true
+        controls.dampingFactor = 0.06
+        controls.rotateSpeed = 0.48
+        controls.target.set(0, 0.02, 0)
+        controls.minAzimuthAngle = deg(-70)
+        controls.maxAzimuthAngle = deg(12)
+        controls.minPolarAngle = deg(78)
+        controls.maxPolarAngle = deg(102)
+        controls.autoRotate = false
+
+        const textureCanvas = document.createElement('canvas')
+        textureCanvas.width = textureCanvas.height = 24
+        const textureContext = textureCanvas.getContext('2d')
+        if (textureContext) {
+          textureContext.fillStyle = '#fff'
+          textureContext.beginPath()
+          textureContext.arc(12, 12, 9.5, 0, Math.PI * 2)
+          textureContext.fill()
+        }
+        const pointTexture = new THREE.CanvasTexture(textureCanvas)
+
+        const loaded = await Promise.all(sourceViews.map(loadPixels))
+        const clouds = []
+        const geometries = []
+        const materials = []
+
+        loaded.forEach(({ view, width, height, data }) => {
+          const positions = []
+          const colors = []
+          const rot = new THREE.Matrix4().makeRotationY(view.yaw)
+          const aspect = width / height
+
+          for (let py = 0; py < height; py += 1) {
+            for (let px = 0; px < width; px += 1) {
+              if ((px + py) % 2 === 1) continue
+              const u = px / (width - 1)
+              const v = py / (height - 1)
+              if (!pointInPolygon(u, v, view.mask)) continue
+
+              const i = (py * width + px) * 4
+              const r = data[i] / 255
+              const g = data[i + 1] / 255
+              const b = data[i + 2] / 255
+              const luminance = r * 0.2126 + g * 0.7152 + b * 0.0722
+
+              const nx = (u - 0.5) * 2
+              const ny = (0.5 - v) * 2
+              const radial = clamp(1 - (nx * nx * 0.72 + ny * ny * 0.58), 0, 1)
+              const nose = Math.exp(-((nx * nx) / 0.055 + ((ny + 0.08) * (ny + 0.08)) / 0.12))
+              const brow = Math.exp(-((nx * nx) / 0.28 + ((ny - 0.18) * (ny - 0.18)) / 0.08))
+              const depth = view.dome * radial + 0.11 * nose + 0.025 * brow + (luminance - 0.5) * 0.018
+
+              const point = new THREE.Vector3(nx * 1.05 * aspect, ny * 1.52, depth)
+              point.applyMatrix4(rot)
+
+              positions.push(point.x, point.y, point.z)
+              colors.push(r, g, b)
+            }
+          }
+
+          const geometry = new THREE.BufferGeometry()
+          geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+          geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+
+          const material = new THREE.PointsMaterial({
+            size: 0.034,
+            sizeAttenuation: true,
+            vertexColors: true,
+            map: pointTexture,
+            alphaTest: 0.18,
+            transparent: true,
+            opacity: 0.95,
+            depthWrite: false,
+          })
+
+          const points = new THREE.Points(geometry, material)
+          points.userData.sourceYaw = view.yaw
+          portrait.add(points)
+          clouds.push(points)
+          geometries.push(geometry)
+          materials.push(material)
+        })
+
+        const updateViewBlend = () => {
+          const yaw = Math.atan2(camera.position.x, camera.position.z)
+          let weightSum = 0
+          const weights = clouds.map((cloud) => {
+            const delta = Math.abs(THREE.MathUtils.euclideanModulo(yaw - cloud.userData.sourceYaw + Math.PI, Math.PI * 2) - Math.PI)
+            const weight = Math.exp(-Math.pow(delta / deg(30), 2))
+            weightSum += weight
+            return weight
+          })
+          clouds.forEach((cloud, index) => {
+            const normalized = weightSum > 0 ? weights[index] / weightSum : 1 / clouds.length
+            cloud.material.opacity = clamp(0.12 + normalized * 1.08, 0.12, 1)
+            cloud.renderOrder = Math.round(normalized * 100)
+          })
+        }
+
+        const resize = () => {
+          const rect = root.getBoundingClientRect()
+          const width = Math.max(1, Math.round(rect.width))
+          const height = Math.max(1, Math.round(rect.height))
+          renderer.setSize(width, height, false)
+          camera.aspect = width / height
+          camera.updateProjectionMatrix()
+        }
+
+        const resizeObserver = new ResizeObserver(resize)
+        resizeObserver.observe(root)
+        resize()
+
+        let animationFrame = 0
+        let isVisible = true
+        let isDocumentVisible = !document.hidden
+        let idleStart = performance.now()
+        let autoDirection = -1
+
+        const markInteraction = () => { idleStart = performance.now() }
+        renderer.domElement.addEventListener('pointerdown', markInteraction, { passive: true })
+        renderer.domElement.addEventListener('wheel', markInteraction, { passive: true })
+
+        const intersectionObserver = new IntersectionObserver((entries) => {
+          isVisible = entries.some((entry) => entry.isIntersecting)
+        }, { rootMargin: '160px' })
+        intersectionObserver.observe(root)
+
+        const handleVisibility = () => { isDocumentVisible = !document.hidden }
+        document.addEventListener('visibilitychange', handleVisibility)
+
+        const animate = (now) => {
+          animationFrame = requestAnimationFrame(animate)
+          if (!isVisible || !isDocumentVisible) return
+
+          if (wantsAutoRotate && !reducedMotion && now - idleStart > 2200) {
+            const yaw = Math.atan2(camera.position.x, camera.position.z)
+            if (yaw < deg(-64)) autoDirection = 1
+            if (yaw > deg(5)) autoDirection = -1
+            portrait.rotation.y += autoDirection * 0.00042 * 16.67
+          }
+
+          controls.update()
+          updateViewBlend()
+          renderer.render(scene, camera)
+        }
+
+        root.dataset.ready = 'true'
+        if (status) status.textContent = 'image volume ready'
+        animationFrame = requestAnimationFrame(animate)
+
+        window.addEventListener('pagehide', () => {
+          cancelAnimationFrame(animationFrame)
+          resizeObserver.disconnect()
+          intersectionObserver.disconnect()
+          document.removeEventListener('visibilitychange', handleVisibility)
+          controls.dispose()
+          geometries.forEach((geometry) => geometry.dispose())
+          materials.forEach((material) => material.dispose())
+          pointTexture.dispose()
+          renderer.dispose()
+        }, { once: true })
+      } catch (error) {
+        console.error('Multi-view portrait failed to initialize', error)
+        if (status) status.textContent = 'image volume unavailable'
+      }
+    })
+  })()
+</script>
