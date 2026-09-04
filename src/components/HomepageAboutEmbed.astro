@@ -17,6 +17,7 @@ const { lang } = Astro.props;
   .homepage-about-embed {
     position: relative;
     min-height: calc(100svh - 64px);
+    padding-block: clamp(88px, 12svh, 132px);
   }
 
   .homepage-about-embed > .about-portrait {
@@ -31,6 +32,7 @@ const { lang } = Astro.props;
   @media (max-width: 640px) {
     .homepage-about-embed {
       min-height: calc(100svh - 64px);
+      padding-block: clamp(64px, 10svh, 96px);
     }
   }
 </style>
