@@ -52,12 +52,17 @@ const englishUrl = `${site.url}/en/about/`;
 
     <style>
       .about-page-shell {
+        position: relative;
         min-height: calc(100svh - 64px);
-        padding-top: clamp(28px, 4vw, 52px);
-        padding-bottom: clamp(56px, 8vw, 110px);
+        padding-top: 0;
+        padding-bottom: 0;
       }
 
       .about-page-back {
+        position: absolute;
+        top: clamp(22px, 3vw, 34px);
+        left: 32px;
+        z-index: 2;
         display: inline-flex;
         align-items: center;
         min-height: 28px;
@@ -87,14 +92,10 @@ const englishUrl = `${site.url}/en/about/`;
         outline-offset: 5px;
       }
 
-      :global(.about-page-shell .about-portrait) {
-        margin-top: clamp(22px, 3vw, 38px);
-        margin-bottom: 0;
-      }
-
-      @media (max-width: 560px) {
-        .about-page-shell {
-          padding-top: 22px;
+      @media (max-width: 640px) {
+        .about-page-back {
+          top: 20px;
+          left: 24px;
         }
       }
     </style>
