@@ -1,8 +1,5 @@
 ---
-import '../styles/global.css';
-
-import Analytics from './Analytics.astro';
-import SiteHeader from './SiteHeader.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
 import NightModeToggle from './NightModeToggle.astro';
 import AboutPortraitSection from './AboutPortraitSection.astro';
 import AboutPortraitPolish from './AboutPortraitPolish.astro';
@@ -39,91 +36,73 @@ const finnishUrl = `${site.url}/about/`;
 const englishUrl = `${site.url}/en/about/`;
 ---
 
-<!doctype html>
-<html lang={lang} class="site-night-mode">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script is:inline>
-      (() => {
-        try {
-          const stored = window.localStorage.getItem('aapopihkala-night-mode')
-          document.documentElement.classList.toggle('site-night-mode', stored !== 'day')
-        } catch {
-          document.documentElement.classList.add('site-night-mode')
-        }
-      })()
-    </script>
-    <title>{t.title}</title>
-    <meta name="description" content={t.description} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="canonical" href={canonicalUrl} />
-    <link rel="alternate" hreflang="fi" href={finnishUrl} />
-    <link rel="alternate" hreflang="en" href={englishUrl} />
-    <link rel="alternate" hreflang="x-default" href={finnishUrl} />
+<BaseLayout
+  lang={lang}
+  title={t.title}
+  description={t.description}
+  canonicalUrl={canonicalUrl}
+  finnishUrl={finnishUrl}
+  englishUrl={englishUrl}
+  languageHref={t.languageHref}
+  initialNightMode
+>
+  <style slot="head">
+    .about-page-shell {
+      position: relative;
+      min-height: calc(100svh - 64px);
+      padding-top: 0;
+      padding-bottom: 0;
+    }
 
-    <style>
-      .about-page-shell {
-        position: relative;
-        min-height: calc(100svh - 64px);
-        padding-top: 0;
-        padding-bottom: 0;
-      }
+    .about-page-back {
+      position: absolute;
+      top: clamp(22px, 3vw, 34px);
+      left: 32px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      color: var(--stone);
+      font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        monospace;
+      font-size: 0.5rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-decoration: none;
+      transition: color 140ms ease, transform 140ms ease;
+    }
 
+    .about-page-back:hover,
+    .about-page-back:focus-visible {
+      color: var(--moss-deep);
+      transform: translateX(-2px);
+    }
+
+    .about-page-back:focus-visible {
+      outline: 1px solid var(--lichen);
+      outline-offset: 5px;
+    }
+
+    @media (max-width: 640px) {
       .about-page-back {
-        position: absolute;
-        top: clamp(22px, 3vw, 34px);
-        left: 32px;
-        z-index: 2;
-        display: inline-flex;
-        align-items: center;
-        min-height: 28px;
-        color: var(--stone);
-        font-family:
-          ui-monospace,
-          SFMono-Regular,
-          Menlo,
-          Monaco,
-          Consolas,
-          monospace;
-        font-size: 0.5rem;
-        font-weight: 600;
-        letter-spacing: 0.1em;
-        text-decoration: none;
-        transition: color 140ms ease, transform 140ms ease;
+        top: 20px;
+        left: 24px;
       }
+    }
+  </style>
 
-      .about-page-back:hover,
-      .about-page-back:focus-visible {
-        color: var(--moss-deep);
-        transform: translateX(-2px);
-      }
+  <AboutPortraitPolish />
+  <AboutAxisMotion />
 
-      .about-page-back:focus-visible {
-        outline: 1px solid var(--lichen);
-        outline-offset: 5px;
-      }
+  <main class="main-container about-page-shell">
+    <a class="about-page-back" href={t.homeHref}>{t.back}</a>
+    <AboutPortraitSection lang={lang} />
+  </main>
 
-      @media (max-width: 640px) {
-        .about-page-back {
-          top: 20px;
-          left: 24px;
-        }
-      }
-    </style>
-  </head>
-
-  <body>
-    <SiteHeader lang={lang} languageHref={t.languageHref} />
-    <AboutPortraitPolish />
-    <AboutAxisMotion />
-
-    <main class="main-container about-page-shell">
-      <a class="about-page-back" href={t.homeHref}>{t.back}</a>
-      <AboutPortraitSection lang={lang} />
-    </main>
-
-    <NightModeToggle lang={lang} />
-    <Analytics lang={lang} />
-  </body>
-</html>
+  <NightModeToggle lang={lang} />
+</BaseLayout>
