@@ -54,7 +54,7 @@ const t = content[lang];
     </div>
 
     <div class="about-portrait__visual">
-      <div class="about-portrait__frame">
+      <div class="about-portrait__frame" data-about-portrait-frame>
         <span class="about-portrait__corner about-portrait__corner--tl" aria-hidden="true"></span>
         <span class="about-portrait__corner about-portrait__corner--tr" aria-hidden="true"></span>
         <span class="about-portrait__corner about-portrait__corner--bl" aria-hidden="true"></span>
@@ -227,11 +227,16 @@ const t = content[lang];
   }
 
   .about-portrait__corner {
+    --corner-x: 0px;
+    --corner-y: 0px;
+    --corner-rotation: 0deg;
     position: absolute;
     width: 18px;
     height: 18px;
     z-index: 2;
     pointer-events: none;
+    transform: translate(var(--corner-x), var(--corner-y)) rotate(var(--corner-rotation));
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .about-portrait__corner::before,
@@ -252,10 +257,72 @@ const t = content[lang];
     height: 18px;
   }
 
-  .about-portrait__corner--tl { top: 10px; left: 10px; }
-  .about-portrait__corner--tr { top: 10px; right: 10px; transform: rotate(90deg); }
-  .about-portrait__corner--br { right: 10px; bottom: 10px; transform: rotate(180deg); }
-  .about-portrait__corner--bl { left: 10px; bottom: 10px; transform: rotate(270deg); }
+  .about-portrait__corner--tl {
+    top: 10px;
+    left: 10px;
+  }
+
+  .about-portrait__corner--tr {
+    top: 10px;
+    right: 10px;
+    --corner-rotation: 90deg;
+  }
+
+  .about-portrait__corner--br {
+    right: 10px;
+    bottom: 10px;
+    --corner-rotation: 180deg;
+  }
+
+  .about-portrait__corner--bl {
+    left: 10px;
+    bottom: 10px;
+    --corner-rotation: 270deg;
+  }
+
+  .about-portrait__frame.is-model-hovered .about-portrait__corner--tl {
+    --corner-x: -3px;
+    --corner-y: -3px;
+  }
+
+  .about-portrait__frame.is-model-hovered .about-portrait__corner--tr {
+    --corner-x: 3px;
+    --corner-y: -3px;
+  }
+
+  .about-portrait__frame.is-model-hovered .about-portrait__corner--br {
+    --corner-x: 3px;
+    --corner-y: 3px;
+  }
+
+  .about-portrait__frame.is-model-hovered .about-portrait__corner--bl {
+    --corner-x: -3px;
+    --corner-y: 3px;
+  }
+
+  .about-portrait__frame.is-model-active .about-portrait__corner {
+    transition-duration: 120ms;
+  }
+
+  .about-portrait__frame.is-model-active .about-portrait__corner--tl {
+    --corner-x: 2px;
+    --corner-y: 2px;
+  }
+
+  .about-portrait__frame.is-model-active .about-portrait__corner--tr {
+    --corner-x: -2px;
+    --corner-y: 2px;
+  }
+
+  .about-portrait__frame.is-model-active .about-portrait__corner--br {
+    --corner-x: -2px;
+    --corner-y: -2px;
+  }
+
+  .about-portrait__frame.is-model-active .about-portrait__corner--bl {
+    --corner-x: 2px;
+    --corner-y: -2px;
+  }
 
   .about-portrait__axis {
     position: absolute;
@@ -346,6 +413,12 @@ const t = content[lang];
       inset: 14px;
     }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .about-portrait__corner {
+      transition: none;
+    }
+  }
 </style>
 
 <style is:global>
@@ -361,3 +434,35 @@ const t = content[lang];
     }
   }
 </style>
+
+<script is:inline>
+  (() => {
+    const frames = document.querySelectorAll('[data-about-portrait-frame]');
+
+    frames.forEach((frame) => {
+      if (!(frame instanceof HTMLElement)) return;
+      if (frame.dataset.cornerInteractionInitialized === 'true') return;
+      frame.dataset.cornerInteractionInitialized = 'true';
+
+      const model = frame.querySelector('[data-meshy-point-surface]');
+      if (!(model instanceof HTMLElement)) return;
+
+      const setHovered = (hovered) => {
+        frame.classList.toggle('is-model-hovered', hovered);
+      };
+
+      const setActive = (active) => {
+        frame.classList.toggle('is-model-active', active);
+      };
+
+      model.addEventListener('pointerenter', () => setHovered(true));
+      model.addEventListener('pointerleave', () => {
+        setHovered(false);
+        setActive(false);
+      });
+      model.addEventListener('pointerdown', () => setActive(true));
+      model.addEventListener('pointerup', () => setActive(false));
+      model.addEventListener('pointercancel', () => setActive(false));
+    });
+  })();
+</script>
