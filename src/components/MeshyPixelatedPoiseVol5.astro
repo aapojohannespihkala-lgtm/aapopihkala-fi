@@ -16,9 +16,7 @@
     -webkit-user-select: none;
   }
 
-  .meshy-point-surface-v5:active {
-    cursor: grabbing;
-  }
+  .meshy-point-surface-v5:active { cursor: grabbing; }
 
   .meshy-point-surface-v5__canvas {
     display: block;
@@ -42,9 +40,7 @@
     pointer-events: none;
   }
 
-  .meshy-point-surface-v5__status[hidden] {
-    display: none;
-  }
+  .meshy-point-surface-v5__status[hidden] { display: none; }
 </style>
 
 <script is:inline>
@@ -113,8 +109,8 @@
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.autoClear = false;
 
-        const faintScene = new THREE.Scene();
         const depthScene = new THREE.Scene();
+        const hiddenScene = new THREE.Scene();
         const visibleScene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(36, 1, 0.01, 1000);
         const controls = new OrbitControls(camera, canvas);
@@ -123,6 +119,17 @@
         controls.enablePan = true;
         controls.enableZoom = true;
         controls.target.set(0, 0, 0);
+
+        const depthTarget = new THREE.WebGLRenderTarget(1, 1, {
+          minFilter: THREE.NearestFilter,
+          magFilter: THREE.NearestFilter,
+          depthBuffer: true,
+          stencilBuffer: false,
+        });
+        depthTarget.texture.generateMipmaps = false;
+        depthTarget.depthTexture = new THREE.DepthTexture(1, 1);
+        depthTarget.depthTexture.format = THREE.DepthFormat;
+        depthTarget.depthTexture.type = THREE.UnsignedIntType;
 
         const loader = new GLTFLoader();
         loader.load(
@@ -158,7 +165,7 @@
 
             const acceptedPositions = [];
             const basePointBudget = 46000;
-            const glassesPointBudget = 11000;
+            const glassesPointBudget = 18000;
 
             const isSuppressedNeckCut = (worldPosition, worldNormal) => {
               const lowerBandTop = -size.y * 0.31;
@@ -172,8 +179,7 @@
               const nx = size.x > 0 ? worldPosition.x / (size.x * 0.5) : 0;
               const ny = size.y > 0 ? worldPosition.y / (size.y * 0.5) : 0;
               const nz = size.z > 0 ? worldPosition.z / (size.z * 0.5) : 0;
-
-              return ny > -0.12 && ny < 0.34 && Math.abs(nx) < 0.72 && nz > 0.55;
+              return ny > -0.10 && ny < 0.34 && Math.abs(nx) < 0.72 && nz > 0.58;
             };
 
             const sampleIntoCloud = (mesh, target, filter) => {
@@ -183,7 +189,7 @@
               const worldPosition = new THREE.Vector3();
               const worldNormal = new THREE.Vector3();
               const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
-              const maxAttempts = Math.max(target * 80, 3000);
+              const maxAttempts = Math.max(target * 90, 4000);
               let accepted = 0;
               let attempts = 0;
 
@@ -207,7 +213,7 @@
             });
 
             meshEntries.forEach(({ mesh, area }) => {
-              const glassesTarget = Math.max(250, Math.round(glassesPointBudget * (area / totalArea)));
+              const glassesTarget = Math.max(350, Math.round(glassesPointBudget * (area / totalArea)));
               sampleIntoCloud(mesh, glassesTarget, isGlassesZone);
             });
 
@@ -220,27 +226,94 @@
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(acceptedPositions, 3));
 
-            const faintMaterial = new THREE.PointsMaterial({
-              color: 0xaeb6b0,
-              size: Math.max(radius * 0.0075, 0.003),
-              sizeAttenuation: true,
+            const sharedUniforms = {
+              uDepthTexture: { value: depthTarget.depthTexture },
+              uResolution: { value: new THREE.Vector2(1, 1) },
+              uViewportHeight: { value: 1 },
+              uNear: { value: 0.01 },
+              uFar: { value: 1000 },
+              uPointWorldSize: { value: Math.max(radius * 0.0085, 0.0035) },
+              uDepthTolerance: { value: Math.max(radius * 0.022, 0.004) },
+            };
+
+            const vertexShader = `
+              uniform float uViewportHeight;
+              uniform float uPointWorldSize;
+
+              void main() {
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                gl_Position = projectionMatrix * mvPosition;
+
+                float viewDepth = max(-mvPosition.z, 0.001);
+                float pixelsPerUnit = projectionMatrix[1][1] * uViewportHeight * 0.5 / viewDepth;
+                gl_PointSize = clamp(uPointWorldSize * pixelsPerUnit, 1.0, 4.5);
+              }
+            `;
+
+            const depthHelpers = `
+              uniform sampler2D uDepthTexture;
+              uniform vec2 uResolution;
+              uniform float uNear;
+              uniform float uFar;
+              uniform float uDepthTolerance;
+
+              float perspectiveDepthToViewZ(float invClipZ, float nearPlane, float farPlane) {
+                return (nearPlane * farPlane) / ((farPlane - nearPlane) * invClipZ - farPlane);
+              }
+
+              float hiddenFactor() {
+                vec2 uv = gl_FragCoord.xy / uResolution;
+                float sceneDepth = texture2D(uDepthTexture, uv).x;
+                float pointViewZ = perspectiveDepthToViewZ(gl_FragCoord.z, uNear, uFar);
+                float sceneViewZ = perspectiveDepthToViewZ(sceneDepth, uNear, uFar);
+                float behindDistance = sceneViewZ - pointViewZ;
+                return smoothstep(uDepthTolerance, uDepthTolerance * 3.5, behindDistance);
+              }
+
+              float roundPointAlpha() {
+                float distanceFromCenter = length(gl_PointCoord - vec2(0.5));
+                if (distanceFromCenter > 0.5) discard;
+                return 1.0 - smoothstep(0.34, 0.50, distanceFromCenter);
+              }
+            `;
+
+            const hiddenMaterial = new THREE.ShaderMaterial({
+              uniforms: sharedUniforms,
+              vertexShader,
+              fragmentShader: `
+                ${depthHelpers}
+                void main() {
+                  float hidden = hiddenFactor();
+                  if (hidden < 0.02) discard;
+                  float edge = roundPointAlpha();
+                  vec3 color = vec3(0.76, 0.79, 0.77);
+                  gl_FragColor = vec4(color, 0.14 * hidden * edge);
+                }
+              `,
               transparent: true,
-              opacity: 0.28,
               depthTest: false,
               depthWrite: false,
             });
 
-            const visibleMaterial = new THREE.PointsMaterial({
-              color: 0x536158,
-              size: Math.max(radius * 0.0085, 0.0035),
-              sizeAttenuation: true,
+            const visibleMaterial = new THREE.ShaderMaterial({
+              uniforms: sharedUniforms,
+              vertexShader,
+              fragmentShader: `
+                ${depthHelpers}
+                void main() {
+                  float hidden = hiddenFactor();
+                  if (hidden > 0.985) discard;
+                  float edge = roundPointAlpha();
+                  vec3 color = vec3(0.33, 0.39, 0.35);
+                  gl_FragColor = vec4(color, 0.98 * (1.0 - hidden) * edge);
+                }
+              `,
               transparent: true,
-              opacity: 0.98,
-              depthTest: true,
+              depthTest: false,
               depthWrite: false,
             });
 
-            faintScene.add(new THREE.Points(geometry, faintMaterial));
+            hiddenScene.add(new THREE.Points(geometry, hiddenMaterial));
             visibleScene.add(new THREE.Points(geometry, visibleMaterial));
 
             const depthMaterial = new THREE.MeshBasicMaterial({
@@ -248,9 +321,6 @@
               depthWrite: true,
               depthTest: true,
               side: THREE.DoubleSide,
-              polygonOffset: true,
-              polygonOffsetFactor: 1,
-              polygonOffsetUnits: 1,
             });
 
             meshEntries.forEach(({ mesh }) => {
@@ -268,10 +338,20 @@
             camera.position.set(radius * 1.65, radius * 0.85, radius * 2.05);
             camera.updateProjectionMatrix();
 
+            sharedUniforms.uNear.value = camera.near;
+            sharedUniforms.uFar.value = camera.far;
+
             controls.target.set(0, 0, 0);
             controls.minDistance = Math.max(radius * 0.18, 0.01);
             controls.maxDistance = radius * 12;
             controls.update();
+
+            root.__meshyPointSurfaceV5Resize = (width, height) => {
+              const drawingBufferSize = renderer.getDrawingBufferSize(new THREE.Vector2());
+              depthTarget.setSize(drawingBufferSize.x, drawingBufferSize.y);
+              sharedUniforms.uResolution.value.set(drawingBufferSize.x, drawingBufferSize.y);
+              sharedUniforms.uViewportHeight.value = drawingBufferSize.y;
+            };
 
             if (status instanceof HTMLElement) status.hidden = true;
           },
@@ -287,6 +367,9 @@
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
+          if (typeof root.__meshyPointSurfaceV5Resize === 'function') {
+            root.__meshyPointSurfaceV5Resize(width, height);
+          }
         };
 
         const observer = new ResizeObserver(resize);
@@ -296,17 +379,20 @@
         const animate = () => {
           controls.update();
 
+          renderer.setRenderTarget(depthTarget);
           renderer.clear(true, true, true);
-          renderer.render(faintScene, camera);
-
-          renderer.clearDepth();
           renderer.render(depthScene, camera);
+
+          renderer.setRenderTarget(null);
+          renderer.clear(true, true, true);
+          renderer.render(hiddenScene, camera);
           renderer.render(visibleScene, camera);
 
           requestAnimationFrame(animate);
         };
         animate();
-      } catch {
+      } catch (error) {
+        console.error('Pixelated Poise vol 5 viewer failed', error);
         if (status instanceof HTMLElement) status.textContent = 'Pistepintakatselinta ei voitu ladata';
       }
     });
