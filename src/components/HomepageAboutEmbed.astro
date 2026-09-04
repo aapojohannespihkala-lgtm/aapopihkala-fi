@@ -1,0 +1,49 @@
+---
+import AboutPortraitSection from './AboutPortraitSection.astro';
+import type { SiteLanguage } from '../config/site';
+
+interface Props {
+  lang: SiteLanguage;
+}
+
+const { lang } = Astro.props;
+---
+
+<div class="homepage-about-embed" data-homepage-about-embed>
+  <AboutPortraitSection lang={lang} />
+</div>
+
+<style is:global>
+  .homepage-about-embed {
+    position: relative;
+    min-height: calc(100svh - 64px);
+  }
+
+  .homepage-about-embed > .about-portrait {
+    width: 100%;
+    margin: 0;
+  }
+
+  .hero-about-link {
+    display: none !important;
+  }
+
+  @media (max-width: 640px) {
+    .homepage-about-embed {
+      min-height: calc(100svh - 64px);
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const section = document.querySelector('[data-homepage-about-embed]')
+    const feed = document.querySelector('.main-container > .feed')
+
+    if (!section || !feed) return
+    if (section.dataset.homepageAboutEmbedMounted === 'true') return
+
+    section.dataset.homepageAboutEmbedMounted = 'true'
+    feed.before(section)
+  })()
+</script>
