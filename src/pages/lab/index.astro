@@ -10,11 +10,7 @@ import WaterDropMorph from '../../components/WaterDropMorph.astro';
 import RiverFlow from '../../components/RiverFlow.astro';
 import AccessibilityStep from '../../components/AccessibilityStep.astro';
 import SegmentedRing from '../../components/SegmentedRing.astro';
-import PointPortrait from '../../components/PointPortrait.astro';
-import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
-import MultiViewPortrait from '../../components/MultiViewPortrait.astro';
 import PhotogrammetryModel from '../../components/PhotogrammetryModel.astro';
-import PhotogrammetrySurfacePointCloud from '../../components/PhotogrammetrySurfacePointCloud.astro';
 import MeshyPixelatedPoise from '../../components/MeshyPixelatedPoise.astro';
 import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.astro';
 ---
@@ -81,27 +77,6 @@ import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.as
         </article>
       </section>
 
-      <section class="portrait-priority" aria-labelledby="photogrammetry-surface-points-title">
-        <article class="experiment experiment--priority">
-          <header class="experiment-header">
-            <div>
-              <p class="experiment-index">P05</p>
-              <h2 id="photogrammetry-surface-points-title">Photogrammetry surface points</h2>
-            </div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
-          <div class="experiment-stage experiment-stage--portrait-multiview">
-            <div class="experiment-viewport experiment-viewport--portrait-multiview">
-              <PhotogrammetrySurfacePointCloud />
-            </div>
-          </div>
-          <footer class="experiment-footer">
-            <p>Alkuperäisen fotogrammetriamallin pinnalta tasaisesti näytteistetty pistepilvi. Pisteitä ei muodosteta mallin sisätilaan, vaan ainoastaan rekonstruoidulle pinnalle.</p>
-            <p>Surface samples · point cloud · free orbit · zoom</p>
-          </footer>
-        </article>
-      </section>
-
       <section class="portrait-priority" aria-labelledby="photogrammetry-title">
         <article class="experiment experiment--priority">
           <header class="experiment-header">
@@ -123,82 +98,10 @@ import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.as
         </article>
       </section>
 
-      <section class="portrait-priority" aria-labelledby="portrait-title">
-        <header class="portrait-priority__header">
-          <p class="lab-kicker">Portrait / input</p>
-          <h1 id="portrait-title">Portrait studies</h1>
-          <p class="portrait-priority__lead">
-            Kuva-aineistoon perustuvat muotokuvakokeilut ovat Labin alussa. P03 käyttää kuvia suoraan 3D-pisteinä ilman geneeristä pääkuorta. P01 ja P02 jäävät vertailuun.
-          </p>
-        </header>
-
-        <div class="portrait-reference-grid" aria-label="Muotokuvan referenssikuvat">
-          <figure class="portrait-reference">
-            <img src="/lab/portrait-front.jpg" alt="Muotokuvan referenssi etuviistosta" width="320" height="400" loading="eager" decoding="async" />
-            <figcaption>INPUT / FRONT 3-4</figcaption>
-          </figure>
-          <figure class="portrait-reference">
-            <img src="/lab/portrait-side.jpg" alt="Muotokuvan referenssi sivuprofiilista" width="320" height="400" loading="eager" decoding="async" />
-            <figcaption>INPUT / PROFILE</figcaption>
-          </figure>
-        </div>
-
-        <div class="portrait-experiments">
-          <article class="experiment experiment--priority experiment--multiview">
-            <header class="experiment-header">
-              <div>
-                <p class="experiment-index">P03</p>
-                <h2>Multi-view portrait volume</h2>
-              </div>
-              <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-            </header>
-            <div class="experiment-stage experiment-stage--portrait-multiview">
-              <div class="experiment-viewport experiment-viewport--portrait-multiview">
-                <MultiViewPortrait />
-              </div>
-            </div>
-            <footer class="experiment-footer">
-              <p>
-                Uusi kuva-aineistolähtöinen kokeilu. Pisteet syntyvät suoraan valokuvien pikseleistä kahdella dokumentoidulla katselukulmalla, ja näkymät sulautuvat rajatun pyörityksen aikana. Tässä ei käytetä geneeristä kallokuorta.
-              </p>
-              <p>Direct image points · multi-view blend · constrained orbit</p>
-            </footer>
-          </article>
-
-          <article class="experiment experiment--priority">
-            <header class="experiment-header">
-              <div><p class="experiment-index">P01</p><h2>Survey portrait</h2></div>
-              <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-            </header>
-            <div class="experiment-stage experiment-stage--portrait">
-              <div class="experiment-viewport experiment-viewport--portrait"><PointPortrait /></div>
-            </div>
-            <footer class="experiment-footer">
-              <p>Toimiva 3D-pistepilvimuotokuva. Tämä versio pidetään vakaana vertailupohjana, kun realistisempaa rekonstruktiota kehitetään erikseen.</p>
-              <p>Stable 3D · drag · zoom · point cloud</p>
-            </footer>
-          </article>
-
-          <article class="experiment experiment--priority experiment--photo">
-            <header class="experiment-header">
-              <div><p class="experiment-index">P02</p><h2>Photo point portrait</h2></div>
-              <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-            </header>
-            <div class="experiment-stage experiment-stage--portrait-photo">
-              <div class="experiment-viewport experiment-viewport--portrait-photo"><PhotoPointPortrait /></div>
-            </div>
-            <footer class="experiment-footer">
-              <p>Erillinen aiempi rekonstruktioprototyyppi, jossa valokuvien värit projisoidaan parametriseen 3D-pintaan. Se säilytetään vertailua varten.</p>
-              <p>Photo colours · limited yaw · prototype</p>
-            </footer>
-          </article>
-        </div>
-      </section>
-
       <header class="lab-intro">
         <p class="lab-kicker">Other studies</p>
         <h1>Animation Lab</h1>
-        <p class="lab-lead">Pyöriteltävien, muuntuvien ja muiden interaktiivisten animaatioiden kokeilualue. Muut tutkimukset jatkuvat portrait-kokeilujen jälkeen.</p>
+        <p class="lab-lead">Pyöriteltävien, muuntuvien ja muiden interaktiivisten animaatioiden kokeilualue.</p>
       </header>
 
       <section class="experiments" aria-label="Muut animaatiokokeilut">
@@ -271,8 +174,7 @@ import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.as
 
   .labbar-label,
   .lab-kicker,
-  .experiment-index,
-  .portrait-reference figcaption {
+  .experiment-index {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     text-transform: uppercase;
   }
@@ -293,7 +195,6 @@ import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.as
   }
 
   .portrait-priority { margin-bottom: 108px; }
-  .portrait-priority__header { max-width: 760px; margin-bottom: 30px; }
 
   .lab-kicker,
   .experiment-index {
@@ -305,7 +206,6 @@ import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.as
     letter-spacing: 0.09em;
   }
 
-  .portrait-priority h1,
   .lab-intro h1,
   .experiment-header h2 {
     color: var(--ink);
@@ -314,21 +214,9 @@ import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.as
     letter-spacing: -0.035em;
   }
 
-  .portrait-priority h1 { margin: 0 0 16px; font-size: clamp(3rem, 7vw, 5.8rem); line-height: 0.94; }
-  .portrait-priority__lead, .lab-lead { margin: 0; color: var(--stone); font-size: 0.96rem; line-height: 1.65; }
+  .lab-lead { margin: 0; color: var(--stone); font-size: 0.96rem; line-height: 1.65; }
 
-  .portrait-reference-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-    margin-bottom: 72px;
-  }
-
-  .portrait-reference { margin: 0; border-top: 1px solid var(--line-soft); padding-top: 10px; }
-  .portrait-reference img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: center; }
-  .portrait-reference figcaption { margin-top: 8px; color: var(--stone-light); font-size: 0.56rem; letter-spacing: 0.08em; }
-
-  .portrait-experiments, .experiments { display: grid; gap: 84px; }
+  .experiments { display: grid; gap: 84px; }
   .experiment { padding-top: 28px; border-top: 1px solid var(--line-soft); }
   .experiment--priority { border-top-color: var(--ink); }
   .experiment-header {
@@ -355,15 +243,8 @@ import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.as
 
   .experiment-viewport { position: relative; width: min(100%, 920px); height: clamp(380px, 50vw, 560px); margin: 0 auto; }
 
-  .experiment-stage--portrait,
-  .experiment-stage--portrait-photo,
   .experiment-stage--portrait-multiview { min-height: 540px; }
-
-  .experiment-viewport--portrait,
-  .experiment-viewport--portrait-photo,
   .experiment-viewport--portrait-multiview { width: min(100%, 880px); height: clamp(500px, 58vw, 650px); }
-
-  .experiment-stage--portrait-photo { background: linear-gradient(to bottom, rgba(0,0,0,0.012), rgba(0,0,0,0)); }
   .experiment-stage--portrait-multiview { background: linear-gradient(to bottom, rgba(0,0,0,0.018), rgba(0,0,0,0)); }
 
   .experiment-stage--butterfly, .experiment-stage--bee { min-height: 500px; }
@@ -398,19 +279,11 @@ import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.as
   @media (max-width: 700px) {
     .lab-shell { padding: 26px 16px 80px; }
     .portrait-priority { margin-bottom: 78px; }
-    .portrait-priority__header { margin-bottom: 22px; }
-    .portrait-priority h1 { font-size: clamp(2.7rem, 14vw, 4.4rem); }
-    .portrait-priority__lead { font-size: 0.9rem; line-height: 1.55; }
-    .portrait-reference-grid { gap: 8px; margin-bottom: 52px; }
-    .portrait-reference { padding-top: 7px; }
-    .portrait-reference figcaption { font-size: 0.5rem; }
-    .portrait-experiments, .experiments { gap: 66px; }
+    .experiments { gap: 66px; }
     .experiment-header, .experiment-footer { display: block; }
     .experiment-hint { margin-top: 14px; text-align: left; }
 
     .experiment-stage,
-    .experiment-stage--portrait,
-    .experiment-stage--portrait-photo,
     .experiment-stage--portrait-multiview,
     .experiment-stage--butterfly,
     .experiment-stage--bee,
@@ -420,8 +293,6 @@ import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.as
     .experiment-stage--segmented-ring { min-height: 390px; padding: 18px 0; }
 
     .experiment-viewport,
-    .experiment-viewport--portrait,
-    .experiment-viewport--portrait-photo,
     .experiment-viewport--portrait-multiview,
     .experiment-viewport--butterfly,
     .experiment-viewport--bee,
