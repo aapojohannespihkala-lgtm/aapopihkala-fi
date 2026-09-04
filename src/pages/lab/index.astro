@@ -16,6 +16,7 @@ import PointPortrait from '../../components/PointPortrait.astro';
 import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
 import MultiViewPortrait from '../../components/MultiViewPortrait.astro';
 import PhotogrammetryModel from '../../components/PhotogrammetryModel.astro';
+import PhotogrammetrySurfacePointCloud from '../../components/PhotogrammetrySurfacePointCloud.astro';
 ---
 
 <!doctype html>
@@ -38,6 +39,27 @@ import PhotogrammetryModel from '../../components/PhotogrammetryModel.astro';
     </header>
 
     <main class="lab-shell">
+      <section class="portrait-priority" aria-labelledby="photogrammetry-surface-points-title">
+        <article class="experiment experiment--priority">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">P05</p>
+              <h2 id="photogrammetry-surface-points-title">Photogrammetry surface points</h2>
+            </div>
+            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
+          </header>
+          <div class="experiment-stage experiment-stage--portrait-multiview">
+            <div class="experiment-viewport experiment-viewport--portrait-multiview">
+              <PhotogrammetrySurfacePointCloud />
+            </div>
+          </div>
+          <footer class="experiment-footer">
+            <p>Alkuperäisen fotogrammetriamallin pinnalta tasaisesti näytteistetty pistepilvi. Pisteitä ei muodosteta mallin sisätilaan, vaan ainoastaan rekonstruoidulle pinnalle.</p>
+            <p>Surface samples · point cloud · free orbit · zoom</p>
+          </footer>
+        </article>
+      </section>
+
       <section class="portrait-priority" aria-labelledby="photogrammetry-title">
         <article class="experiment experiment--priority">
           <header class="experiment-header">
