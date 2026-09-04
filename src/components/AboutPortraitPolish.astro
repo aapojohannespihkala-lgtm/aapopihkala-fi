@@ -1,14 +1,18 @@
 <style is:global>
   @media (hover: hover) and (pointer: fine) {
-    .about-portrait .meshy-point-surface--probe,
-    .about-portrait .meshy-point-surface--probe .meshy-point-surface__canvas,
-    .about-portrait .meshy-point-surface--probe:active,
-    .about-portrait .meshy-point-surface--probe:active .meshy-point-surface__canvas {
+    html body .about-portrait .meshy-point-surface--probe,
+    html body .about-portrait .meshy-point-surface--probe .meshy-point-surface__canvas,
+    html body .about-portrait .meshy-point-surface--probe:active,
+    html body .about-portrait .meshy-point-surface--probe:active .meshy-point-surface__canvas {
       cursor: none !important;
     }
   }
 
-  .about-portrait .meshy-point-surface__probe-cross {
+  html body .about-portrait .about-portrait__frame {
+    overflow: visible;
+  }
+
+  html body .about-portrait .meshy-point-surface__probe-cross {
     position: static !important;
     display: block !important;
     width: auto !important;
@@ -20,8 +24,8 @@
     z-index: auto !important;
   }
 
-  .about-portrait .meshy-point-surface__probe-cross::before,
-  .about-portrait .meshy-point-surface__probe-cross::after {
+  html body .about-portrait .meshy-point-surface__probe-cross::before,
+  html body .about-portrait .meshy-point-surface__probe-cross::after {
     content: '' !important;
     position: absolute !important;
     left: 50% !important;
@@ -32,19 +36,20 @@
     z-index: auto !important;
   }
 
-  .about-portrait .meshy-point-surface__probe-cross::before {
+  html body .about-portrait .meshy-point-surface__probe-cross::before {
     width: 18px !important;
     height: 1px !important;
   }
 
-  .about-portrait .meshy-point-surface__probe-cross::after {
+  html body .about-portrait .meshy-point-surface__probe-cross::after {
     width: 1px !important;
     height: 18px !important;
   }
 
-  .about-portrait .meshy-point-surface__probe-label,
-  .about-portrait .meshy-point-surface__probe.is-left .meshy-point-surface__probe-label,
-  .about-portrait .meshy-point-surface__probe.is-up .meshy-point-surface__probe-label {
+  html body .about-portrait .meshy-point-surface__probe-label,
+  html body .about-portrait .meshy-point-surface__probe.is-left .meshy-point-surface__probe-label,
+  html body .about-portrait .meshy-point-surface__probe.is-up .meshy-point-surface__probe-label,
+  html body .about-portrait .meshy-point-surface__probe.is-left.is-up .meshy-point-surface__probe-label {
     left: 15px !important;
     top: 12px !important;
     right: auto !important;
@@ -62,41 +67,233 @@
     letter-spacing: 0.05em !important;
   }
 
-  html.site-night-mode .about-portrait .meshy-point-surface__probe-label {
+  html.site-night-mode body .about-portrait .meshy-point-surface__probe-label {
     background: rgba(25, 34, 43, 0.96) !important;
     border-color: rgba(167, 184, 193, 0.34) !important;
     color: #eaf0f2 !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16) !important;
   }
 
-  .about-portrait .about-portrait__voice {
+  html body .about-portrait .about-portrait__voice {
     top: 9px !important;
     right: 36px !important;
     max-width: calc(100% - 72px) !important;
     justify-items: end !important;
     text-align: right !important;
+    overflow: hidden;
   }
 
-  .about-portrait .about-portrait__voice-status {
+  html body .about-portrait .about-portrait__voice-status {
     font-size: 0.38rem !important;
     letter-spacing: 0.09em !important;
   }
 
-  .about-portrait .about-portrait__voice-line {
+  html body .about-portrait .about-portrait__voice-status.is-blinking {
+    animation: about-subject-blink 170ms steps(1, end) 3;
+  }
+
+  html body .about-portrait .about-portrait__voice-line {
+    display: block;
     max-width: 260px !important;
     font-size: 0.46rem !important;
     line-height: 1.25 !important;
+    transform-origin: 100% 0;
   }
 
-  .about-portrait__frame.is-model-active .about-portrait__voice.is-visible {
+  html body .about-portrait .about-portrait__voice-line.is-rolling {
+    animation: about-voice-roll 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  html body .about-portrait__frame.is-model-active .about-portrait__voice.is-visible {
     transform: translate(-2px, 2px) !important;
   }
 
+  @keyframes about-subject-blink {
+    0%, 42% { opacity: 0.94; }
+    43%, 100% { opacity: 0.12; }
+  }
+
+  @keyframes about-voice-roll {
+    0% {
+      opacity: 0;
+      transform: translateY(-0.9em);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   @media (max-width: 640px) {
-    .about-portrait .about-portrait__voice {
+    html body .about-portrait .about-portrait__voice {
       top: 9px !important;
       right: 34px !important;
       max-width: calc(100% - 68px) !important;
     }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    html body .about-portrait .about-portrait__voice-status.is-blinking,
+    html body .about-portrait .about-portrait__voice-line.is-rolling {
+      animation: none !important;
+    }
+  }
 </style>
+
+<script is:inline>
+  (() => {
+    const initializeVoicePolish = () => {
+      const frames = document.querySelectorAll('[data-about-portrait-frame]');
+
+      const comments = [
+        'why are you pulling my hair',
+        'careful with the face',
+        "okay, i get it. i'm 3d.",
+        'you can let go now',
+        "i'm not a stress ball",
+        'orbit responsibly',
+        'please respect the topology',
+        'my neck was not designed for this',
+        'are you testing the model or me',
+        'i have approximately 42,000 reasons to be nervous',
+        'did the cursor come with a permit',
+        'this feels less like interaction and more like fieldwork',
+        'this is becoming personal',
+        'you have thoroughly established the third dimension',
+        'still here. still being rotated.',
+        'please return my face to its original coordinate system',
+        "i'm filing this under excessive orbit",
+        'that is enough user testing for one neck',
+      ];
+
+      frames.forEach((frame) => {
+        if (!(frame instanceof HTMLElement)) return;
+        if (frame.dataset.voicePolishInitialized === 'true') return;
+        frame.dataset.voicePolishInitialized = 'true';
+
+        const model = frame.querySelector('[data-meshy-point-surface]');
+        const originalVoice = frame.querySelector('[data-about-portrait-voice]');
+        if (!(model instanceof HTMLElement) || !(originalVoice instanceof HTMLElement)) return;
+
+        const voice = originalVoice.cloneNode(true);
+        if (!(voice instanceof HTMLElement)) return;
+        originalVoice.replaceWith(voice);
+
+        const voiceStatus = voice.querySelector('[data-about-portrait-voice-status]');
+        const voiceLine = voice.querySelector('[data-about-portrait-voice-line]');
+        if (!(voiceStatus instanceof HTMLElement) || !(voiceLine instanceof HTMLElement)) return;
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let pointerDown = false;
+        let dragDistance = 0;
+        let lastPointerX = 0;
+        let lastPointerY = 0;
+        let cycleStarted = false;
+        let firstTimer = 0;
+        let repeatTimer = 0;
+        let commentIndex = 0;
+        let lastComment = '';
+
+        const clearTimers = () => {
+          window.clearTimeout(firstTimer);
+          window.clearInterval(repeatTimer);
+          firstTimer = 0;
+          repeatTimer = 0;
+        };
+
+        const hideVoice = () => {
+          clearTimers();
+          cycleStarted = false;
+          voice.classList.remove('is-visible');
+          voiceStatus.classList.remove('is-blinking');
+          voiceLine.classList.remove('is-rolling');
+          voice.setAttribute('aria-hidden', 'true');
+        };
+
+        const chooseComment = () => {
+          const candidates = comments.filter((comment) => comment !== lastComment);
+          const source = candidates.length ? candidates : comments;
+          const next = source[Math.floor(Math.random() * source.length)];
+          lastComment = next;
+          return next;
+        };
+
+        const restartAnimation = (element, className) => {
+          if (reducedMotion) return;
+          element.classList.remove(className);
+          void element.offsetWidth;
+          element.classList.add(className);
+        };
+
+        const showNextComment = () => {
+          if (!pointerDown || !cycleStarted) return;
+
+          voiceStatus.textContent = commentIndex === 0
+            ? 'SUBJECT / PROTESTING'
+            : 'SUBJECT / CONCERNED';
+          voiceLine.textContent = `> ${chooseComment()}`;
+          voice.classList.add('is-visible');
+          voice.setAttribute('aria-hidden', 'false');
+
+          restartAnimation(voiceStatus, 'is-blinking');
+          restartAnimation(voiceLine, 'is-rolling');
+          commentIndex += 1;
+        };
+
+        const startVoiceCycle = () => {
+          if (cycleStarted) return;
+          cycleStarted = true;
+          commentIndex = 0;
+
+          firstTimer = window.setTimeout(() => {
+            if (!pointerDown) return;
+            showNextComment();
+            repeatTimer = window.setInterval(showNextComment, 5000);
+          }, 3000);
+        };
+
+        const finishDrag = () => {
+          if (!pointerDown && !cycleStarted) return;
+          pointerDown = false;
+          hideVoice();
+        };
+
+        model.addEventListener('pointerdown', (event) => {
+          pointerDown = true;
+          dragDistance = 0;
+          lastPointerX = event.clientX;
+          lastPointerY = event.clientY;
+          hideVoice();
+          pointerDown = true;
+        });
+
+        model.addEventListener(
+          'pointermove',
+          (event) => {
+            if (!pointerDown) return;
+
+            const dx = event.clientX - lastPointerX;
+            const dy = event.clientY - lastPointerY;
+            dragDistance += Math.hypot(dx, dy);
+            lastPointerX = event.clientX;
+            lastPointerY = event.clientY;
+
+            if (dragDistance >= 8) startVoiceCycle();
+          },
+          { passive: true }
+        );
+
+        model.addEventListener('pointerup', finishDrag);
+        model.addEventListener('pointercancel', finishDrag);
+        window.addEventListener('pointerup', finishDrag, true);
+        window.addEventListener('pointercancel', finishDrag, true);
+      });
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeVoicePolish, { once: true });
+    } else {
+      initializeVoicePolish();
+    }
+  })();
+</script>
