@@ -91,6 +91,18 @@
       if (root.dataset.meshyPointSurfaceV9Initialized === 'true') return;
       root.dataset.meshyPointSurfaceV9Initialized = 'true';
 
+      const experiment = root.closest('.experiment');
+      const footer = experiment?.querySelector('.experiment-footer');
+      if (footer) {
+        const footerLines = footer.querySelectorAll('p');
+        if (footerLines[0]) {
+          footerLines[0].textContent = 'Vol 8:n erottelua jatkava versio. Punainen massa muodostetaan alkuperäisen GLB:n todellisista kolmioista. Linssien sisäalue on poistettu, kasvoihin leviävät kolmiot estetty ja sangat rajattu päättymään ennen korvaa.';
+        }
+        if (footerLines[1]) {
+          footerLines[1].textContent = 'Vol 8 base · actual mesh glasses · strict triangle mask · ear cutoff · static · free orbit · zoom';
+        }
+      }
+
       const canvas = root.querySelector('[data-meshy-point-surface-v9-canvas]');
       const status = root.querySelector('[data-meshy-point-surface-v9-status]');
       if (!(canvas instanceof HTMLCanvasElement)) return;
@@ -139,10 +151,8 @@
             model.traverse((child) => {
               if (!(child instanceof THREE.Mesh)) return;
               if (!(child.geometry instanceof THREE.BufferGeometry)) return;
-
               const area = estimateGeometryArea(child.geometry, THREE);
               if (area <= 0) return;
-
               child.updateWorldMatrix(true, false);
               meshEntries.push({ mesh: child, area });
               totalArea += area;
@@ -158,6 +168,57 @@
             const totalPointBudget = 42000;
             const backgroundColor = new THREE.Color(0xe9e9e4);
             const tempColor = new THREE.Color();
+
+            const isNeckCut = (worldPosition, worldNormal) => {
+              const lowerBandTop = -size.y * 0.31;
+              const lowerBandBottom = -size.y * 0.44;
+              const inNeckCutBand = worldPosition.y < lowerBandTop && worldPosition.y > lowerBandBottom;
+              const nearlyHorizontalSurface = Math.abs(worldNormal.y) > 0.72;
+              return inNeckCutBand && nearlyHorizontalSurface;
+            };
+
+            const getNorm = (worldPosition) => ({
+              nx: size.x > 0 ? worldPosition.x / (size.x * 0.5) : 0,
+              ny: size.y > 0 ? worldPosition.y / (size.y * 0.5) : 0,
+              nz: size.z > 0 ? worldPosition.z / (size.z * 0.5) : 0,
+            });
+
+            // Vol 9 jatkaa suoraan vol 8:n ideaa, mutta rajaus perustuu
+            // todellisen GLB-geometrian havaittuun sijaintiin. Linssien sisäpuolta ei valita.
+            const isFrameOrTempleVertex = (worldPosition) => {
+              const { nx, ny, nz } = getNorm(worldPosition);
+
+              const isFrame = (cx) => {
+                const outerX = Math.abs((nx - cx) / 0.31);
+                const outerY = Math.abs((ny - 0.125) / 0.135);
+                const innerX = Math.abs((nx - cx) / 0.245);
+                const innerY = Math.abs((ny - 0.115) / 0.092);
+
+                const outer = Math.pow(outerX, 4) + Math.pow(outerY, 4) < 1.20;
+                const inner = Math.pow(innerX, 4) + Math.pow(innerY, 4) < 1.00;
+
+                return outer && !inner && nz > 0.72 && nz < 0.90;
+              };
+
+              const onLensFrame = isFrame(-0.38) || isFrame(0.38);
+
+              // Nenäsilta rajataan erittäin kapeasti kehyksen todelliselle korkeudelle.
+              const onBridge = (
+                Math.abs(nx) < 0.14 &&
+                ny > 0.165 && ny < 0.225 &&
+                nz > 0.78 && nz < 0.90
+              );
+
+              // Sankojen todellinen nauhamainen geometria näkyy tässä y-z-vyöhykkeessä.
+              // nz > -0.02 katkaisee valinnan ennen korvan etureunaa.
+              const onTemple = (
+                Math.abs(nx) > 0.62 && Math.abs(nx) < 0.93 &&
+                ny > 0.18 && ny < 0.25 &&
+                nz > -0.02 && nz < 0.87
+              );
+
+              return onLensFrame || onBridge || onTemple;
+            };
 
             meshEntries.forEach(({ mesh, area }) => {
               const baseTarget = Math.max(1400, Math.round(totalPointBudget * (area / totalArea)));
@@ -176,8 +237,6 @@
                 pointColor.set(0x6c786f);
               }
 
-              const lowerBandTop = -size.y * 0.31;
-              const lowerBandBottom = -size.y * 0.44;
               const maxAttempts = baseTarget * 20;
               let acceptedForMesh = 0;
               let attempts = 0;
@@ -188,14 +247,9 @@
                 worldPosition.copy(sampledPosition).applyMatrix4(mesh.matrixWorld).sub(center);
                 worldNormal.copy(sampledNormal).applyMatrix3(normalMatrix).normalize();
 
-                const inNeckCutBand = worldPosition.y < lowerBandTop && worldPosition.y > lowerBandBottom;
-                const nearlyHorizontalSurface = Math.abs(worldNormal.y) > 0.72;
-                if (inNeckCutBand && nearlyHorizontalSurface && Math.random() > 0.12) continue;
+                if (isNeckCut(worldPosition, worldNormal) && Math.random() > 0.12) continue;
 
-                const nx = size.x > 0 ? worldPosition.x / (size.x * 0.5) : 0;
-                const ny = size.y > 0 ? worldPosition.y / (size.y * 0.5) : 0;
-                const nz = size.z > 0 ? worldPosition.z / (size.z * 0.5) : 0;
-
+                const { nx, ny, nz } = getNorm(worldPosition);
                 const eyeBand = ny > -0.02 && ny < 0.34;
                 const centralFaceBand = Math.abs(nx) < 0.62;
                 const frontBias = nz > -0.18;
@@ -228,97 +282,74 @@
               depthWrite: false,
               vertexColors: true,
             });
+            scene.add(new THREE.Points(geometry, material));
 
-            const points = new THREE.Points(geometry, material);
-            scene.add(points);
+            const glassesTriangles = [];
+            const wa = new THREE.Vector3();
+            const wb = new THREE.Vector3();
+            const wc = new THREE.Vector3();
+            const worldNormal = new THREE.Vector3();
+            const ab = new THREE.Vector3();
+            const ac = new THREE.Vector3();
 
-            // Vol 9: silmälasit rakennetaan kokonaan erillisenä proxy-geometriana.
-            // Näin kasvojen alkuperäistä meshiä ei enää käytetä lasien erotteluun.
-            const glassesGroup = new THREE.Group();
-            const glassesMaterial = new THREE.MeshBasicMaterial({
-              color: 0xd23a32,
-              side: THREE.DoubleSide,
-              depthTest: true,
-              depthWrite: true,
+            meshEntries.forEach(({ mesh }) => {
+              const sourceGeometry = mesh.geometry;
+              const pos = sourceGeometry.getAttribute('position');
+              const index = sourceGeometry.getIndex();
+              if (!pos) return;
+
+              const pushTri = (ia, ib, ic) => {
+                wa.fromBufferAttribute(pos, ia).applyMatrix4(mesh.matrixWorld).sub(center);
+                wb.fromBufferAttribute(pos, ib).applyMatrix4(mesh.matrixWorld).sub(center);
+                wc.fromBufferAttribute(pos, ic).applyMatrix4(mesh.matrixWorld).sub(center);
+
+                // Kaikkien kolmion kärkipisteiden täytyy kuulua lasimaskiin.
+                // Tämä estää vol 8:ssa näkyneet suuret piikit ja kasvoihin leviävät kolmiot.
+                if (!(
+                  isFrameOrTempleVertex(wa) &&
+                  isFrameOrTempleVertex(wb) &&
+                  isFrameOrTempleVertex(wc)
+                )) return;
+
+                glassesTriangles.push(
+                  wa.x, wa.y, wa.z,
+                  wb.x, wb.y, wb.z,
+                  wc.x, wc.y, wc.z
+                );
+              };
+
+              if (index) {
+                for (let i = 0; i + 2 < index.count; i += 3) {
+                  pushTri(index.getX(i), index.getX(i + 1), index.getX(i + 2));
+                }
+              } else {
+                for (let i = 0; i + 2 < pos.count; i += 3) {
+                  pushTri(i, i + 1, i + 2);
+                }
+              }
             });
 
-            const nvec = (nx, ny, nz) => new THREE.Vector3(
-              nx * size.x * 0.5,
-              ny * size.y * 0.5,
-              nz * size.z * 0.5
-            );
+            if (glassesTriangles.length) {
+              const glassesGeometry = new THREE.BufferGeometry();
+              glassesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(glassesTriangles, 3));
+              glassesGeometry.computeVertexNormals();
 
-            const frameTubeRadius = Math.min(size.x, size.y, size.z) * 0.0175;
-            const templeTubeRadius = frameTubeRadius * 0.80;
+              const glassesMaterial = new THREE.MeshBasicMaterial({
+                color: 0xc83b3b,
+                side: THREE.DoubleSide,
+              });
 
-            const createFrameLoop = (cx) => {
-              const cy = 0.145;
-              const rx = 0.285;
-              const ry = 0.118;
-              const z = 0.905;
+              const glassesMesh = new THREE.Mesh(glassesGeometry, glassesMaterial);
+              scene.add(glassesMesh);
+            }
 
-              const framePoints = [
-                nvec(cx - rx * 0.78, cy + ry * 0.82, z),
-                nvec(cx - rx * 0.30, cy + ry * 1.00, z),
-                nvec(cx + rx * 0.34, cy + ry * 0.98, z),
-                nvec(cx + rx * 0.80, cy + ry * 0.76, z),
-                nvec(cx + rx * 0.98, cy + ry * 0.24, z),
-                nvec(cx + rx * 0.93, cy - ry * 0.48, z),
-                nvec(cx + rx * 0.58, cy - ry * 0.88, z),
-                nvec(cx + rx * 0.02, cy - ry * 1.00, z),
-                nvec(cx - rx * 0.57, cy - ry * 0.88, z),
-                nvec(cx - rx * 0.92, cy - ry * 0.48, z),
-                nvec(cx - rx * 0.98, cy + ry * 0.20, z),
-              ];
-
-              const frameCurve = new THREE.CatmullRomCurve3(framePoints, true, 'centripetal');
-              const frameGeometry = new THREE.TubeGeometry(frameCurve, 112, frameTubeRadius, 10, true);
-              const frameMesh = new THREE.Mesh(frameGeometry, glassesMaterial);
-              glassesGroup.add(frameMesh);
-            };
-
-            createFrameLoop(-0.335);
-            createFrameLoop(0.335);
-
-            const bridgeCurve = new THREE.CatmullRomCurve3([
-              nvec(-0.060, 0.188, 0.910),
-              nvec(-0.028, 0.213, 0.925),
-              nvec(0.000, 0.220, 0.930),
-              nvec(0.028, 0.213, 0.925),
-              nvec(0.060, 0.188, 0.910),
-            ], false, 'centripetal');
-            glassesGroup.add(new THREE.Mesh(
-              new THREE.TubeGeometry(bridgeCurve, 32, frameTubeRadius * 0.78, 10, false),
-              glassesMaterial
-            ));
-
-            const createTemple = (side) => {
-              const s = side < 0 ? -1 : 1;
-              const templeCurve = new THREE.CatmullRomCurve3([
-                nvec(s * 0.612, 0.178, 0.895),
-                nvec(s * 0.655, 0.184, 0.760),
-                nvec(s * 0.690, 0.182, 0.470),
-                nvec(s * 0.718, 0.174, 0.185),
-                nvec(s * 0.724, 0.158, -0.070),
-              ], false, 'centripetal');
-
-              const templeMesh = new THREE.Mesh(
-                new THREE.TubeGeometry(templeCurve, 72, templeTubeRadius, 9, false),
-                glassesMaterial
-              );
-              glassesGroup.add(templeMesh);
-
-              const hinge = new THREE.Mesh(
-                new THREE.BoxGeometry(frameTubeRadius * 2.0, frameTubeRadius * 1.65, frameTubeRadius * 2.4),
-                glassesMaterial
-              );
-              hinge.position.copy(nvec(s * 0.612, 0.178, 0.895));
-              glassesGroup.add(hinge);
-            };
-
-            createTemple(-1);
-            createTemple(1);
-            scene.add(glassesGroup);
+            scene.add(new THREE.AmbientLight(0xffffff, 1.15));
+            const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
+            keyLight.position.set(radius * 2.0, radius * 1.4, radius * 2.2);
+            scene.add(keyLight);
+            const fillLight = new THREE.DirectionalLight(0xffffff, 0.32);
+            fillLight.position.set(-radius * 1.8, radius * 0.8, -radius * 0.8);
+            scene.add(fillLight);
 
             const positionAttribute = geometry.getAttribute('position');
             const colorAttribute = geometry.getAttribute('color');
@@ -350,10 +381,8 @@
                   baseColors[i * 3 + 1],
                   baseColors[i * 3 + 2]
                 ).lerp(backgroundColor, fade);
-
                 colorAttribute.setXYZ(i, tempColor.r, tempColor.g, tempColor.b);
               }
-
               colorAttribute.needsUpdate = true;
             };
 
