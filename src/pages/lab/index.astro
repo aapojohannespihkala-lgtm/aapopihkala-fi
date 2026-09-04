@@ -15,6 +15,7 @@ import SegmentedRing from '../../components/SegmentedRing.astro';
 import PointPortrait from '../../components/PointPortrait.astro';
 import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
 import MultiViewPortrait from '../../components/MultiViewPortrait.astro';
+import PhotogrammetryModel from '../../components/PhotogrammetryModel.astro';
 ---
 
 <!doctype html>
@@ -37,6 +38,27 @@ import MultiViewPortrait from '../../components/MultiViewPortrait.astro';
     </header>
 
     <main class="lab-shell">
+      <section class="portrait-priority" aria-labelledby="photogrammetry-title">
+        <article class="experiment experiment--priority">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">P04</p>
+              <h2 id="photogrammetry-title">Photogrammetry model</h2>
+            </div>
+            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
+          </header>
+          <div class="experiment-stage experiment-stage--portrait-multiview">
+            <div class="experiment-viewport experiment-viewport--portrait-multiview">
+              <PhotogrammetryModel />
+            </div>
+          </div>
+          <footer class="experiment-footer">
+            <p>Valokuvista rekonstruoitu GLB-malli. Mallia voi pyörittää vapaasti, zoomata ja siirtää suoraan selaimessa.</p>
+            <p>GLB · free orbit · zoom · photogrammetry</p>
+          </footer>
+        </article>
+      </section>
+
       <section class="portrait-priority" aria-labelledby="portrait-title">
         <header class="portrait-priority__header">
           <p class="lab-kicker">Portrait / input</p>
@@ -257,7 +279,6 @@ import MultiViewPortrait from '../../components/MultiViewPortrait.astro';
   .portrait-experiments, .experiments { display: grid; gap: 84px; }
   .experiment { padding-top: 28px; border-top: 1px solid var(--line-soft); }
   .experiment--priority { border-top-color: var(--ink); }
-
   .experiment-header {
     display: flex;
     align-items: flex-end;
