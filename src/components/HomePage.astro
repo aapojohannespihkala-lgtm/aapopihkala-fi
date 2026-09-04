@@ -1,9 +1,6 @@
 ---
-import '../styles/global.css';
-
-import Analytics from './Analytics.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
 import FeedPost from './FeedPost.astro';
-import SiteHeader from './SiteHeader.astro';
 import MorphingTopography from './MorphingTopography.astro';
 
 import {
@@ -92,28 +89,17 @@ const personSchema = {
 };
 ---
 
-<!doctype html>
-<html lang={lang} class="site-night-mode">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script is:inline>
-      (() => {
-        try {
-          const stored = window.localStorage.getItem('aapopihkala-night-mode')
-          document.documentElement.classList.toggle('site-night-mode', stored !== 'day')
-        } catch {
-          document.documentElement.classList.add('site-night-mode')
-        }
-      })()
-    </script>
-    <title>{t.pageTitle}</title>
-    <meta name="description" content={t.pageDescription} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="canonical" href={canonicalUrl} />
-    <link rel="alternate" hreflang="fi" href={finnishUrl} />
-    <link rel="alternate" hreflang="en" href={englishUrl} />
-    <link rel="alternate" hreflang="x-default" href={finnishUrl} />
+<BaseLayout
+  lang={lang}
+  title={t.pageTitle}
+  description={t.pageDescription}
+  canonicalUrl={canonicalUrl}
+  finnishUrl={finnishUrl}
+  englishUrl={englishUrl}
+  languageHref={alternateLanguage.homePath}
+  initialNightMode
+>
+  <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
 
     <style>
@@ -347,93 +333,89 @@ const personSchema = {
         }
       }
     </style>
-  </head>
+  </Fragment>
 
-  <body>
-    <SiteHeader lang={lang} languageHref={alternateLanguage.homePath} />
+  <main class="main-container">
+    <section class="hero">
+      <div class="hero-row">
+        <div class="hero-content">
+          <h1>{site.name}</h1>
 
-    <main class="main-container">
-      <section class="hero">
-        <div class="hero-row">
-          <div class="hero-content">
-            <h1>{site.name}</h1>
-
-            <div class="hero-description">
-              <p class="hero-primary">{t.heroPrimary}</p>
-              <p class="hero-secondary">{t.heroSecondary}</p>
-            </div>
-
-            <button
-              class="hero-location hero-location-trigger"
-              type="button"
-              data-location-reveal
-              aria-expanded="false"
-              aria-label={lang === 'fi' ? 'Näytä Espoon koordinaatit' : 'Show Espoo coordinates'}
-            >
-              <svg class="location-icon" viewBox="0 0 18 18" aria-hidden="true">
-                <line x1="0" y1="9" x2="18" y2="9" />
-                <line x1="9" y1="0" x2="9" y2="18" />
-                <rect class="location-icon__target-box" x="6" y="6" width="6" height="6" fill="none" />
-              </svg>
-
-              <span class="hero-location-label">{t.location}</span>
-              <span class="hero-location-coordinate" aria-hidden="true">· 60.21° N / 24.66° E</span>
-            </button>
-
-            <a
-              class="hero-linkedin"
-              href={site.linkedinUrl}
-              target="_blank"
-              rel="noopener"
-              data-linkedin-terminal-link
-            >
-              <span>LinkedIn</span>
-              <span class="hero-linkedin-arrow" aria-hidden="true">↗</span>
-              <span class="hero-linkedin-terminal" data-linkedin-terminal aria-hidden="true">
-                <span class="hero-linkedin-terminal__prompt">&gt;</span>
-                <span class="hero-linkedin-terminal__text" data-linkedin-terminal-text></span>
-                <span class="hero-linkedin-terminal__cursor" data-linkedin-terminal-cursor>_</span>
-              </span>
-            </a>
+          <div class="hero-description">
+            <p class="hero-primary">{t.heroPrimary}</p>
+            <p class="hero-secondary">{t.heroSecondary}</p>
           </div>
 
-          <div class="hero-art hero-art--interactive">
-            <MorphingTopography enableZoom={false} />
-          </div>
+          <button
+            class="hero-location hero-location-trigger"
+            type="button"
+            data-location-reveal
+            aria-expanded="false"
+            aria-label={lang === 'fi' ? 'Näytä Espoon koordinaatit' : 'Show Espoo coordinates'}
+          >
+            <svg class="location-icon" viewBox="0 0 18 18" aria-hidden="true">
+              <line x1="0" y1="9" x2="18" y2="9" />
+              <line x1="9" y1="0" x2="9" y2="18" />
+              <rect class="location-icon__target-box" x="6" y="6" width="6" height="6" fill="none" />
+            </svg>
+
+            <span class="hero-location-label">{t.location}</span>
+            <span class="hero-location-coordinate" aria-hidden="true">· 60.21° N / 24.66° E</span>
+          </button>
+
+          <a
+            class="hero-linkedin"
+            href={site.linkedinUrl}
+            target="_blank"
+            rel="noopener"
+            data-linkedin-terminal-link
+          >
+            <span>LinkedIn</span>
+            <span class="hero-linkedin-arrow" aria-hidden="true">↗</span>
+            <span class="hero-linkedin-terminal" data-linkedin-terminal aria-hidden="true">
+              <span class="hero-linkedin-terminal__prompt">&gt;</span>
+              <span class="hero-linkedin-terminal__text" data-linkedin-terminal-text></span>
+              <span class="hero-linkedin-terminal__cursor" data-linkedin-terminal-cursor>_</span>
+            </span>
+          </a>
         </div>
 
-        <a class="hero-about-link" href={aboutHref} aria-label={t.aboutLabel}>
-          <span>{t.aboutIndex}</span>
-          <span class="hero-about-link__open">{t.aboutOpen}</span>
-        </a>
-      </section>
+        <div class="hero-art hero-art--interactive">
+          <MorphingTopography enableZoom={false} />
+        </div>
+      </div>
 
-      <section class="feed">
-        {
-          posts.map((post, index) => {
-            const publishedAt = post.data.publishedAt;
-            const postNumber = String(posts.length - index).padStart(2, '0');
-            const slug = getPostSlug(post.id);
-            const titleHref = lang === 'fi' ? `/artikkelit/${slug}/` : `/en/articles/${slug}/`;
+      <a class="hero-about-link" href={aboutHref} aria-label={t.aboutLabel}>
+        <span>{t.aboutIndex}</span>
+        <span class="hero-about-link__open">{t.aboutOpen}</span>
+      </a>
+    </section>
 
-            return (
-              <FeedPost
-                post={post}
-                lang={lang}
-                postNumber={postNumber}
-                displayDate={getDisplayDate(publishedAt)}
-                perspectiveLabel={t.perspectiveLabel}
-                sourceLabel={t.sourceLabel}
-                titleHref={titleHref}
-              />
-            );
-          })
-        }
-      </section>
-    </main>
+    <section class="feed">
+      {
+        posts.map((post, index) => {
+          const publishedAt = post.data.publishedAt;
+          const postNumber = String(posts.length - index).padStart(2, '0');
+          const slug = getPostSlug(post.id);
+          const titleHref = lang === 'fi' ? `/artikkelit/${slug}/` : `/en/articles/${slug}/`;
 
-    <Analytics lang={lang} />
+          return (
+            <FeedPost
+              post={post}
+              lang={lang}
+              postNumber={postNumber}
+              displayDate={getDisplayDate(publishedAt)}
+              perspectiveLabel={t.perspectiveLabel}
+              sourceLabel={t.sourceLabel}
+              titleHref={titleHref}
+            />
+          );
+        })
+      }
+    </section>
+  </main>
 
+  <Fragment slot="afterAnalytics">
     <script is:inline>
       (() => {
         const trigger = document.querySelector('[data-location-reveal]')
@@ -568,5 +550,5 @@ const personSchema = {
         )
       })()
     </script>
-  </body>
-</html>
+  </Fragment>
+</BaseLayout>
