@@ -133,6 +133,7 @@ const labels = lang === 'fi'
     let destinations = []
     let currentTarget = null
     let currentMode = 'next'
+    let articleContentOffset = 42
 
     const reducedMotion = () =>
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -170,6 +171,12 @@ const labels = lang === 'fi'
         return Math.max(0, dividerDocumentTop - getHeaderHeight() + 2)
       }
 
+      if (destination.kind === 'first-article' && destination.anchor instanceof HTMLElement) {
+        const metaDocumentTop = destination.anchor.getBoundingClientRect().top + window.scrollY
+        const targetMetaTop = getHeaderHeight() - 2 + articleContentOffset
+        return Math.max(0, metaDocumentTop - targetMetaTop)
+      }
+
       if (destination.heading instanceof HTMLElement) {
         return getHeadingScrollTop(destination.heading)
       }
@@ -202,16 +209,28 @@ const labels = lang === 'fi'
         return
       }
 
+      if (posts.length > 1) {
+        const referenceDivider = posts[0]?.querySelector('.post-divider')
+        const referenceMeta = posts[1]?.querySelector('.post-meta')
+
+        if (referenceDivider instanceof HTMLElement && referenceMeta instanceof HTMLElement) {
+          const dividerTop = referenceDivider.getBoundingClientRect().top + window.scrollY
+          const metaTop = referenceMeta.getBoundingClientRect().top + window.scrollY
+          articleContentOffset = Math.max(0, metaTop - dividerTop)
+        }
+      }
+
       const articleDestinations = posts
         .map((post, index) => {
           const heading = post.querySelector('.post-title')
+          const meta = post.querySelector('.post-meta')
           if (!(heading instanceof HTMLElement)) return null
 
           if (index === 0) {
             return {
-              kind: 'heading',
+              kind: meta instanceof HTMLElement ? 'first-article' : 'heading',
               heading,
-              anchor: heading,
+              anchor: meta instanceof HTMLElement ? meta : heading,
             }
           }
 
