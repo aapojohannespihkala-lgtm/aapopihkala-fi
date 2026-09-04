@@ -1,0 +1,114 @@
+---
+import '../styles/global.css';
+
+import Analytics from './Analytics.astro';
+import SiteHeader from './SiteHeader.astro';
+import NightModeToggle from './NightModeToggle.astro';
+import AboutPortraitSection from './AboutPortraitSection.astro';
+import { site, type SiteLanguage } from '../config/site';
+
+interface Props {
+  lang: SiteLanguage;
+}
+
+const { lang } = Astro.props;
+
+const content = {
+  fi: {
+    title: 'Tietoa minusta - Aapo Pihkala',
+    description: 'Tietoa maisema-arkkitehti Aapo Pihkalasta, työskentelystä ja suunnittelun näkökulmista.',
+    back: '← ETUSIVU',
+    homeHref: '/',
+    languageHref: '/en/about/',
+  },
+  en: {
+    title: 'About - Aapo Pihkala',
+    description: 'About landscape architect Aapo Pihkala, his work and approach to landscape architecture.',
+    back: '← HOME',
+    homeHref: '/en/',
+    languageHref: '/about/',
+  },
+} as const;
+
+const t = content[lang];
+const canonicalPath = lang === 'fi' ? '/about/' : '/en/about/';
+const canonicalUrl = `${site.url}${canonicalPath}`;
+const finnishUrl = `${site.url}/about/`;
+const englishUrl = `${site.url}/en/about/`;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{t.title}</title>
+    <meta name="description" content={t.description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="fi" href={finnishUrl} />
+    <link rel="alternate" hreflang="en" href={englishUrl} />
+    <link rel="alternate" hreflang="x-default" href={finnishUrl} />
+
+    <style>
+      .about-page-shell {
+        min-height: calc(100svh - 64px);
+        padding-top: clamp(28px, 4vw, 52px);
+        padding-bottom: clamp(56px, 8vw, 110px);
+      }
+
+      .about-page-back {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        color: var(--stone);
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Monaco,
+          Consolas,
+          monospace;
+        font-size: 0.5rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-decoration: none;
+        transition: color 140ms ease, transform 140ms ease;
+      }
+
+      .about-page-back:hover,
+      .about-page-back:focus-visible {
+        color: var(--moss-deep);
+        transform: translateX(-2px);
+      }
+
+      .about-page-back:focus-visible {
+        outline: 1px solid var(--lichen);
+        outline-offset: 5px;
+      }
+
+      :global(.about-page-shell .about-portrait) {
+        margin-top: clamp(22px, 3vw, 38px);
+        margin-bottom: 0;
+      }
+
+      @media (max-width: 560px) {
+        .about-page-shell {
+          padding-top: 22px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <SiteHeader lang={lang} languageHref={t.languageHref} />
+
+    <main class="main-container about-page-shell">
+      <a class="about-page-back" href={t.homeHref}>{t.back}</a>
+      <AboutPortraitSection lang={lang} />
+    </main>
+
+    <NightModeToggle lang={lang} />
+    <Analytics lang={lang} />
+  </body>
+</html>
