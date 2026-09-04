@@ -14,6 +14,7 @@ import AccessibilityStep from '../../components/AccessibilityStep.astro';
 import SegmentedRing from '../../components/SegmentedRing.astro';
 import PointPortrait from '../../components/PointPortrait.astro';
 import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
+import MultiViewPortrait from '../../components/MultiViewPortrait.astro';
 ---
 
 <!doctype html>
@@ -22,10 +23,7 @@ import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Animation Lab | Aapo Pihkala</title>
-    <meta
-      name="description"
-      content="Aapo Pihkalan animaatioiden ja interaktiivisten kokeilujen testialusta."
-    />
+    <meta name="description" content="Aapo Pihkalan animaatioiden ja interaktiivisten kokeilujen testialusta." />
     <meta name="robots" content="noindex,nofollow" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
@@ -44,80 +42,68 @@ import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
           <p class="lab-kicker">Portrait / input</p>
           <h1 id="portrait-title">Portrait studies</h1>
           <p class="portrait-priority__lead">
-            Muotokuvakokeilut ovat nyt Labin alussa. Referenssikuvat näkyvät heti ja niiden alla ovat toimiva 3D-versio sekä erillinen valokuva-aineistoon perustuva prototyyppi.
+            Kuva-aineistoon perustuvat muotokuvakokeilut ovat Labin alussa. P03 käyttää kuvia suoraan 3D-pisteinä ilman geneeristä pääkuorta. P01 ja P02 jäävät vertailuun.
           </p>
         </header>
 
         <div class="portrait-reference-grid" aria-label="Muotokuvan referenssikuvat">
           <figure class="portrait-reference">
-            <img
-              src="/lab/portrait-front.jpg"
-              alt="Muotokuvan referenssi etuviistosta"
-              width="320"
-              height="400"
-              loading="eager"
-              decoding="async"
-            />
+            <img src="/lab/portrait-front.jpg" alt="Muotokuvan referenssi etuviistosta" width="320" height="400" loading="eager" decoding="async" />
             <figcaption>INPUT / FRONT 3-4</figcaption>
           </figure>
-
           <figure class="portrait-reference">
-            <img
-              src="/lab/portrait-side.jpg"
-              alt="Muotokuvan referenssi sivuprofiilista"
-              width="320"
-              height="400"
-              loading="eager"
-              decoding="async"
-            />
+            <img src="/lab/portrait-side.jpg" alt="Muotokuvan referenssi sivuprofiilista" width="320" height="400" loading="eager" decoding="async" />
             <figcaption>INPUT / PROFILE</figcaption>
           </figure>
         </div>
 
         <div class="portrait-experiments">
-          <article class="experiment experiment--priority">
+          <article class="experiment experiment--priority experiment--multiview">
             <header class="experiment-header">
               <div>
-                <p class="experiment-index">P01</p>
-                <h2>Survey portrait</h2>
+                <p class="experiment-index">P03</p>
+                <h2>Multi-view portrait volume</h2>
               </div>
               <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
             </header>
-
-            <div class="experiment-stage experiment-stage--portrait">
-              <div class="experiment-viewport experiment-viewport--portrait">
-                <PointPortrait />
+            <div class="experiment-stage experiment-stage--portrait-multiview">
+              <div class="experiment-viewport experiment-viewport--portrait-multiview">
+                <MultiViewPortrait />
               </div>
             </div>
-
             <footer class="experiment-footer">
               <p>
-                Toimiva 3D-pistepilvimuotokuva. Tämä versio pidetään vakaana vertailupohjana, kun realistisempaa rekonstruktiota kehitetään erikseen.
+                Uusi kuva-aineistolähtöinen kokeilu. Pisteet syntyvät suoraan valokuvien pikseleistä kahdella dokumentoidulla katselukulmalla, ja näkymät sulautuvat rajatun pyörityksen aikana. Tässä ei käytetä geneeristä kallokuorta.
               </p>
+              <p>Direct image points · multi-view blend · constrained orbit</p>
+            </footer>
+          </article>
+
+          <article class="experiment experiment--priority">
+            <header class="experiment-header">
+              <div><p class="experiment-index">P01</p><h2>Survey portrait</h2></div>
+              <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
+            </header>
+            <div class="experiment-stage experiment-stage--portrait">
+              <div class="experiment-viewport experiment-viewport--portrait"><PointPortrait /></div>
+            </div>
+            <footer class="experiment-footer">
+              <p>Toimiva 3D-pistepilvimuotokuva. Tämä versio pidetään vakaana vertailupohjana, kun realistisempaa rekonstruktiota kehitetään erikseen.</p>
               <p>Stable 3D · drag · zoom · point cloud</p>
             </footer>
           </article>
 
           <article class="experiment experiment--priority experiment--photo">
             <header class="experiment-header">
-              <div>
-                <p class="experiment-index">P02</p>
-                <h2>Photo point portrait</h2>
-              </div>
+              <div><p class="experiment-index">P02</p><h2>Photo point portrait</h2></div>
               <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
             </header>
-
             <div class="experiment-stage experiment-stage--portrait-photo">
-              <div class="experiment-viewport experiment-viewport--portrait-photo">
-                <PhotoPointPortrait />
-              </div>
+              <div class="experiment-viewport experiment-viewport--portrait-photo"><PhotoPointPortrait /></div>
             </div>
-
             <footer class="experiment-footer">
-              <p>
-                Erillinen rekonstruktioprototyyppi, jossa 3D-pisteiden värit poimitaan suoraan yllä näkyvistä etu- ja sivureferensseistä. Toimiva Survey portrait ei riipu tästä kokeesta.
-              </p>
-              <p>Photo colours · limited yaw · mobile-safe prototype</p>
+              <p>Erillinen aiempi rekonstruktioprototyyppi, jossa valokuvien värit projisoidaan parametriseen 3D-pintaan. Se säilytetään vertailua varten.</p>
+              <p>Photo colours · limited yaw · prototype</p>
             </footer>
           </article>
         </div>
@@ -126,173 +112,80 @@ import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
       <header class="lab-intro">
         <p class="lab-kicker">Other studies</p>
         <h1>Animation Lab</h1>
-        <p class="lab-lead">
-          Pyöriteltävien, muuntuvien ja muiden interaktiivisten animaatioiden kokeilualue.
-          Muut tutkimukset jatkuvat portrait-kokeilujen jälkeen.
-        </p>
+        <p class="lab-lead">Pyöriteltävien, muuntuvien ja muiden interaktiivisten animaatioiden kokeilualue. Muut tutkimukset jatkuvat portrait-kokeilujen jälkeen.</p>
       </header>
 
       <section class="experiments" aria-label="Muut animaatiokokeilut">
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">01</p><h2>Morphing topography</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
+          <header class="experiment-header"><div><p class="experiment-index">01</p><h2>Morphing topography</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
           <div class="experiment-stage"><div class="experiment-viewport"><MorphingTopography /></div></div>
-          <footer class="experiment-footer">
-            <p>Muuntuva pistepilvimaasto, jonka korkeuskäyrät päivittyvät pinnan mukana.</p>
-            <p>Auto-rotate · zoom · contours · morph</p>
-          </footer>
+          <footer class="experiment-footer"><p>Muuntuva pistepilvimaasto, jonka korkeuskäyrät päivittyvät pinnan mukana.</p><p>Auto-rotate · zoom · contours · morph</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">02</p><h2>Point butterfly</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
-          <div class="experiment-stage experiment-stage--butterfly">
-            <div class="experiment-viewport experiment-viewport--butterfly"><PointButterfly /></div>
-          </div>
-          <footer class="experiment-footer">
-            <p>Pistepilvenä rakennettu perhonen, jossa siipisuonet muodostavat topografian korkeuskäyriä muistuttavan viivaston.</p>
-            <p>Auto-rotate · zoom · wing veins · slow flap</p>
-          </footer>
+          <header class="experiment-header"><div><p class="experiment-index">02</p><h2>Point butterfly</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <div class="experiment-stage experiment-stage--butterfly"><div class="experiment-viewport experiment-viewport--butterfly"><PointButterfly /></div></div>
+          <footer class="experiment-footer"><p>Pistepilvenä rakennettu perhonen, jossa siipisuonet muodostavat topografian korkeuskäyriä muistuttavan viivaston.</p><p>Auto-rotate · zoom · wing veins · slow flap</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">03</p><h2>Tree footprint</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
-          <div class="experiment-stage experiment-stage--tree">
-            <div class="experiment-viewport experiment-viewport--tree"><PointTree /></div>
-          </div>
-          <footer class="experiment-footer">
-            <p>Kaupunkipuun mittakaavaa tutkiva piste- ja viivamalli. Latvuksen leveys, juurten ulottuvuus ja puuta väistävä kaupunkirakenteen linja näkyvät samassa kolmiulotteisessa kaaviossa.</p>
-            <p>Auto-rotate · zoom · canopy · root zone · setback</p>
-          </footer>
+          <header class="experiment-header"><div><p class="experiment-index">03</p><h2>Tree footprint</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <div class="experiment-stage experiment-stage--tree"><div class="experiment-viewport experiment-viewport--tree"><PointTree /></div></div>
+          <footer class="experiment-footer"><p>Kaupunkipuun mittakaavaa tutkiva piste- ja viivamalli. Latvuksen leveys, juurten ulottuvuus ja puuta väistävä kaupunkirakenteen linja näkyvät samassa kolmiulotteisessa kaaviossa.</p><p>Auto-rotate · zoom · canopy · root zone · setback</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">03B</p><h2>Tree field study</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
-          <div class="experiment-stage experiment-stage--tree">
-            <div class="experiment-viewport experiment-viewport--tree"><PointTreeStudy /></div>
-          </div>
-          <footer class="experiment-footer">
-            <p>Uusi puututkielma, jossa puuaines, latvuksen epätasainen pistekenttä, kevyet tiheyskäyrät, hienojuuret ja maanpinnan datum muodostavat yhden graafisen järjestelmän.</p>
-            <p>Auto-rotate · zoom · woody hierarchy · canopy contours · root field</p>
-          </footer>
+          <header class="experiment-header"><div><p class="experiment-index">03B</p><h2>Tree field study</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <div class="experiment-stage experiment-stage--tree"><div class="experiment-viewport experiment-viewport--tree"><PointTreeStudy /></div></div>
+          <footer class="experiment-footer"><p>Uusi puututkielma, jossa puuaines, latvuksen epätasainen pistekenttä, kevyet tiheyskäyrät, hienojuuret ja maanpinnan datum muodostavat yhden graafisen järjestelmän.</p><p>Auto-rotate · zoom · woody hierarchy · canopy contours · root field</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">03C</p><h2>Tree as field</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
-          <div class="experiment-stage experiment-stage--tree">
-            <div class="experiment-viewport experiment-viewport--tree"><TreeField /></div>
-          </div>
-          <footer class="experiment-footer">
-            <p>Puhdas pöytä -tutkielma, jossa latvus ja juuriston tila ovat järjestettyjä pistekenttiä. Runko yhdistää kaksi topografista tilavuutta ja käyrät seuraavat suoraan niiden geometriaa.</p>
-            <p>Auto-rotate · zoom · ordered points · contours · canopy field · root field</p>
-          </footer>
+          <header class="experiment-header"><div><p class="experiment-index">03C</p><h2>Tree as field</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <div class="experiment-stage experiment-stage--tree"><div class="experiment-viewport experiment-viewport--tree"><TreeField /></div></div>
+          <footer class="experiment-footer"><p>Puhdas pöytä -tutkielma, jossa latvus ja juuriston tila ovat järjestettyjä pistekenttiä. Runko yhdistää kaksi topografista tilavuutta ja käyrät seuraavat suoraan niiden geometriaa.</p><p>Auto-rotate · zoom · ordered points · contours · canopy field · root field</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">04</p><h2>Point bee</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
-          <div class="experiment-stage experiment-stage--bee">
-            <div class="experiment-viewport experiment-viewport--bee"><PointBee /></div>
-          </div>
-          <footer class="experiment-footer">
-            <p>Pistepilvenä rakennettu mehiläinen, jossa vartalo, raidat ja läpikuultavat siivet muodostavat kevyen kolmiulotteisen hyönteistutkielman.</p>
-            <p>Auto-rotate · zoom · wing buzz · point cloud</p>
-          </footer>
+          <header class="experiment-header"><div><p class="experiment-index">04</p><h2>Point bee</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <div class="experiment-stage experiment-stage--bee"><div class="experiment-viewport experiment-viewport--bee"><PointBee /></div></div>
+          <footer class="experiment-footer"><p>Pistepilvenä rakennettu mehiläinen, jossa vartalo, raidat ja läpikuultavat siivet muodostavat kevyen kolmiulotteisen hyönteistutkielman.</p><p>Auto-rotate · zoom · wing buzz · point cloud</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">05</p><h2>Stormwater catchment</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
+          <header class="experiment-header"><div><p class="experiment-index">05</p><h2>Stormwater catchment</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
           <div class="experiment-stage"><div class="experiment-viewport"><StormwaterCatchment /></div></div>
-          <footer class="experiment-footer">
-            <p>Hulevesien valuma-aluetta kuvaava pistepilvimalli, jossa sade, virtausreitit, painanne ja ylivuoto muodostavat yhden liikkuvan järjestelmän.</p>
-            <p>Auto-rotate · zoom · rain · flow · basin</p>
-          </footer>
+          <footer class="experiment-footer"><p>Hulevesien valuma-aluetta kuvaava pistepilvimalli, jossa sade, virtausreitit, painanne ja ylivuoto muodostavat yhden liikkuvan järjestelmän.</p><p>Auto-rotate · zoom · rain · flow · basin</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">06</p><h2>Root network</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
-          <div class="experiment-stage experiment-stage--root-network">
-            <div class="experiment-viewport experiment-viewport--root-network"><RootNetwork /></div>
-          </div>
-          <footer class="experiment-footer">
-            <p>Maanalaista juuriverkostoa tutkiva kolmiulotteinen malli, jossa pääjuuret, hienojuuret, kasvualusta ja kosteuden liike muodostavat yhden järjestelmän.</p>
-            <p>Auto-rotate · zoom · roots · soil · moisture pulse</p>
-          </footer>
+          <header class="experiment-header"><div><p class="experiment-index">06</p><h2>Root network</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <div class="experiment-stage experiment-stage--root-network"><div class="experiment-viewport experiment-viewport--root-network"><RootNetwork /></div></div>
+          <footer class="experiment-footer"><p>Maanalaista juuriverkostoa tutkiva kolmiulotteinen malli, jossa pääjuuret, hienojuuret, kasvualusta ja kosteuden liike muodostavat yhden järjestelmän.</p><p>Auto-rotate · zoom · roots · soil · moisture pulse</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">07</p><h2>Water drop</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
-          <div class="experiment-stage experiment-stage--waterdrop">
-            <div class="experiment-viewport experiment-viewport--waterdrop"><WaterDropMorph /></div>
-          </div>
-          <footer class="experiment-footer">
-            <p>Pintajännityksen koossa pitämä leijuva vesipisara, jonka pistepinta väreilee hitaasti ja hienovaraisesti.</p>
-            <p>Auto-rotate · zoom · surface tension · surface waves</p>
-          </footer>
+          <header class="experiment-header"><div><p class="experiment-index">07</p><h2>Water drop</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <div class="experiment-stage experiment-stage--waterdrop"><div class="experiment-viewport experiment-viewport--waterdrop"><WaterDropMorph /></div></div>
+          <footer class="experiment-footer"><p>Pintajännityksen koossa pitämä leijuva vesipisara, jonka pistepinta väreilee hitaasti ja hienovaraisesti.</p><p>Auto-rotate · zoom · surface tension · surface waves</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">08</p><h2>River flow</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
-          <div class="experiment-stage experiment-stage--river-flow">
-            <div class="experiment-viewport experiment-viewport--river-flow"><RiverFlow /></div>
-          </div>
-          <footer class="experiment-footer">
-            <p>Mutkitteleva pistepinta toimii itse vetenä. Pinnassa kulkevat aallot ja niiden mukana jatkuvasti muovautuvat korkeuskäyrät tekevät virtauksen näkyväksi.</p>
-            <p>Auto-rotate · zoom · water surface · moving contours · flow</p>
-          </footer>
+          <header class="experiment-header"><div><p class="experiment-index">08</p><h2>River flow</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <div class="experiment-stage experiment-stage--river-flow"><div class="experiment-viewport experiment-viewport--river-flow"><RiverFlow /></div></div>
+          <footer class="experiment-footer"><p>Mutkitteleva pistepinta toimii itse vetenä. Pinnassa kulkevat aallot ja niiden mukana jatkuvasti muovautuvat korkeuskäyrät tekevät virtauksen näkyväksi.</p><p>Auto-rotate · zoom · water surface · moving contours · flow</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">09</p><h2>Accessibility step</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
+          <header class="experiment-header"><div><p class="experiment-index">09</p><h2>Accessibility step</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
           <div class="experiment-stage"><div class="experiment-viewport"><AccessibilityStep /></div></div>
-          <footer class="experiment-footer">
-            <p>Pieni porras muuntuu hitaasti luiskaksi ja takaisin. Sama tasoero vaihtuu esteestä kuljettavaksi reitiksi yhdellä geometrisella eleellä.</p>
-            <p>Auto-rotate · zoom · step · ramp · morph</p>
-          </footer>
+          <footer class="experiment-footer"><p>Pieni porras muuntuu hitaasti luiskaksi ja takaisin. Sama tasoero vaihtuu esteestä kuljettavaksi reitiksi yhdellä geometrisella eleellä.</p><p>Auto-rotate · zoom · step · ramp · morph</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header">
-            <div><p class="experiment-index">10</p><h2>Segmented ring</h2></div>
-            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
-          </header>
-          <div class="experiment-stage experiment-stage--segmented-ring">
-            <div class="experiment-viewport experiment-viewport--segmented-ring"><SegmentedRing /></div>
-          </div>
-          <footer class="experiment-footer">
-            <p>Kuvan kaksiosainen rengas on rakennettu paksuksi kolmiulotteiseksi muodoksi. Kaksi vastakkaista katkosta pysyvät mukana, kun rengas kiertyy hitaasti tilassa.</p>
-            <p>Auto-rotate · zoom · segmented ring · continuous rotation</p>
-          </footer>
+          <header class="experiment-header"><div><p class="experiment-index">10</p><h2>Segmented ring</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <div class="experiment-stage experiment-stage--segmented-ring"><div class="experiment-viewport experiment-viewport--segmented-ring"><SegmentedRing /></div></div>
+          <footer class="experiment-footer"><p>Kuvan kaksiosainen rengas on rakennettu paksuksi kolmiulotteiseksi muodoksi. Kaksi vastakkaista katkosta pysyvät mukana, kun rengas kiertyy hitaasti tilassa.</p><p>Auto-rotate · zoom · segmented ring · continuous rotation</p></footer>
         </article>
       </section>
     </main>
@@ -300,9 +193,7 @@ import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
 </html>
 
 <style>
-  .labbar {
-    max-width: 1160px;
-  }
+  .labbar { max-width: 1160px; }
 
   .labbar-label,
   .lab-kicker,
@@ -327,14 +218,8 @@ import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
     padding: 42px 32px 120px;
   }
 
-  .portrait-priority {
-    margin-bottom: 108px;
-  }
-
-  .portrait-priority__header {
-    max-width: 760px;
-    margin-bottom: 30px;
-  }
+  .portrait-priority { margin-bottom: 108px; }
+  .portrait-priority__header { max-width: 760px; margin-bottom: 30px; }
 
   .lab-kicker,
   .experiment-index {
@@ -355,19 +240,8 @@ import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
     letter-spacing: -0.035em;
   }
 
-  .portrait-priority h1 {
-    margin: 0 0 16px;
-    font-size: clamp(3rem, 7vw, 5.8rem);
-    line-height: 0.94;
-  }
-
-  .portrait-priority__lead,
-  .lab-lead {
-    margin: 0;
-    color: var(--stone);
-    font-size: 0.96rem;
-    line-height: 1.65;
-  }
+  .portrait-priority h1 { margin: 0 0 16px; font-size: clamp(3rem, 7vw, 5.8rem); line-height: 0.94; }
+  .portrait-priority__lead, .lab-lead { margin: 0; color: var(--stone); font-size: 0.96rem; line-height: 1.65; }
 
   .portrait-reference-grid {
     display: grid;
@@ -376,41 +250,13 @@ import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
     margin-bottom: 72px;
   }
 
-  .portrait-reference {
-    margin: 0;
-    border-top: 1px solid var(--line-soft);
-    padding-top: 10px;
-  }
+  .portrait-reference { margin: 0; border-top: 1px solid var(--line-soft); padding-top: 10px; }
+  .portrait-reference img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: center; }
+  .portrait-reference figcaption { margin-top: 8px; color: var(--stone-light); font-size: 0.56rem; letter-spacing: 0.08em; }
 
-  .portrait-reference img {
-    display: block;
-    width: 100%;
-    aspect-ratio: 4 / 5;
-    object-fit: cover;
-    object-position: center;
-  }
-
-  .portrait-reference figcaption {
-    margin-top: 8px;
-    color: var(--stone-light);
-    font-size: 0.56rem;
-    letter-spacing: 0.08em;
-  }
-
-  .portrait-experiments,
-  .experiments {
-    display: grid;
-    gap: 84px;
-  }
-
-  .experiment {
-    padding-top: 28px;
-    border-top: 1px solid var(--line-soft);
-  }
-
-  .experiment--priority {
-    border-top-color: var(--ink);
-  }
+  .portrait-experiments, .experiments { display: grid; gap: 84px; }
+  .experiment { padding-top: 28px; border-top: 1px solid var(--line-soft); }
+  .experiment--priority { border-top-color: var(--ink); }
 
   .experiment-header {
     display: flex;
@@ -420,19 +266,8 @@ import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
     margin-bottom: 28px;
   }
 
-  .experiment-header h2 {
-    margin: 0;
-    font-size: clamp(2.1rem, 4vw, 3.3rem);
-    line-height: 1;
-  }
-
-  .experiment-hint {
-    margin: 0 0 4px;
-    color: var(--stone-light);
-    font-size: 0.72rem;
-    line-height: 1.4;
-    text-align: right;
-  }
+  .experiment-header h2 { margin: 0; font-size: clamp(2.1rem, 4vw, 3.3rem); line-height: 1; }
+  .experiment-hint { margin: 0 0 4px; color: var(--stone-light); font-size: 0.72rem; line-height: 1.4; text-align: right; }
 
   .experiment-stage {
     position: relative;
@@ -445,59 +280,32 @@ import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
     border-bottom: 1px solid var(--line-soft);
   }
 
-  .experiment-viewport {
-    position: relative;
-    width: min(100%, 920px);
-    height: clamp(380px, 50vw, 560px);
-    margin: 0 auto;
-  }
+  .experiment-viewport { position: relative; width: min(100%, 920px); height: clamp(380px, 50vw, 560px); margin: 0 auto; }
 
   .experiment-stage--portrait,
-  .experiment-stage--portrait-photo {
-    min-height: 540px;
-  }
+  .experiment-stage--portrait-photo,
+  .experiment-stage--portrait-multiview { min-height: 540px; }
 
   .experiment-viewport--portrait,
-  .experiment-viewport--portrait-photo {
-    width: min(100%, 880px);
-    height: clamp(500px, 58vw, 650px);
-  }
+  .experiment-viewport--portrait-photo,
+  .experiment-viewport--portrait-multiview { width: min(100%, 880px); height: clamp(500px, 58vw, 650px); }
 
-  .experiment-stage--portrait-photo {
-    background: linear-gradient(to bottom, rgba(0,0,0,0.012), rgba(0,0,0,0));
-  }
+  .experiment-stage--portrait-photo { background: linear-gradient(to bottom, rgba(0,0,0,0.012), rgba(0,0,0,0)); }
+  .experiment-stage--portrait-multiview { background: linear-gradient(to bottom, rgba(0,0,0,0.018), rgba(0,0,0,0)); }
 
-  .experiment-stage--butterfly,
-  .experiment-stage--bee {
-    min-height: 500px;
-  }
-
-  .experiment-viewport--butterfly,
-  .experiment-viewport--bee {
-    height: clamp(440px, 52vw, 620px);
-  }
+  .experiment-stage--butterfly, .experiment-stage--bee { min-height: 500px; }
+  .experiment-viewport--butterfly, .experiment-viewport--bee { height: clamp(440px, 52vw, 620px); }
 
   .experiment-stage--tree,
   .experiment-stage--root-network,
-  .experiment-stage--river-flow {
-    min-height: 540px;
-  }
+  .experiment-stage--river-flow { min-height: 540px; }
 
   .experiment-viewport--tree,
   .experiment-viewport--root-network,
-  .experiment-viewport--river-flow {
-    height: clamp(480px, 56vw, 660px);
-  }
+  .experiment-viewport--river-flow { height: clamp(480px, 56vw, 660px); }
 
-  .experiment-stage--waterdrop,
-  .experiment-stage--segmented-ring {
-    min-height: 500px;
-  }
-
-  .experiment-viewport--waterdrop,
-  .experiment-viewport--segmented-ring {
-    height: clamp(440px, 54vw, 620px);
-  }
+  .experiment-stage--waterdrop, .experiment-stage--segmented-ring { min-height: 500px; }
+  .experiment-viewport--waterdrop, .experiment-viewport--segmented-ring { height: clamp(440px, 54vw, 620px); }
 
   .experiment-footer {
     display: flex;
@@ -509,117 +317,51 @@ import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
     line-height: 1.5;
   }
 
-  .experiment-footer p {
-    margin: 0;
-  }
+  .experiment-footer p { margin: 0; }
+  .experiment-footer p:first-child { max-width: 680px; }
+  .experiment-footer p:last-child { color: var(--stone-light); text-align: right; }
 
-  .experiment-footer p:first-child {
-    max-width: 680px;
-  }
-
-  .experiment-footer p:last-child {
-    color: var(--stone-light);
-    text-align: right;
-  }
-
-  .lab-intro {
-    max-width: 720px;
-    margin: 0 0 72px;
-    padding-top: 36px;
-    border-top: 1px solid var(--line-soft);
-  }
-
-  .lab-intro h1 {
-    margin: 0 0 22px;
-    font-size: clamp(3.2rem, 7vw, 6rem);
-    line-height: 0.92;
-  }
+  .lab-intro { max-width: 720px; margin: 0 0 72px; padding-top: 36px; border-top: 1px solid var(--line-soft); }
+  .lab-intro h1 { margin: 0 0 22px; font-size: clamp(3.2rem, 7vw, 6rem); line-height: 0.92; }
 
   @media (max-width: 700px) {
-    .lab-shell {
-      padding: 26px 16px 80px;
-    }
-
-    .portrait-priority {
-      margin-bottom: 78px;
-    }
-
-    .portrait-priority__header {
-      margin-bottom: 22px;
-    }
-
-    .portrait-priority h1 {
-      font-size: clamp(2.7rem, 14vw, 4.4rem);
-    }
-
-    .portrait-priority__lead {
-      font-size: 0.9rem;
-      line-height: 1.55;
-    }
-
-    .portrait-reference-grid {
-      gap: 8px;
-      margin-bottom: 52px;
-    }
-
-    .portrait-reference {
-      padding-top: 7px;
-    }
-
-    .portrait-reference figcaption {
-      font-size: 0.5rem;
-    }
-
-    .portrait-experiments,
-    .experiments {
-      gap: 66px;
-    }
-
-    .experiment-header,
-    .experiment-footer {
-      display: block;
-    }
-
-    .experiment-hint {
-      margin-top: 14px;
-      text-align: left;
-    }
+    .lab-shell { padding: 26px 16px 80px; }
+    .portrait-priority { margin-bottom: 78px; }
+    .portrait-priority__header { margin-bottom: 22px; }
+    .portrait-priority h1 { font-size: clamp(2.7rem, 14vw, 4.4rem); }
+    .portrait-priority__lead { font-size: 0.9rem; line-height: 1.55; }
+    .portrait-reference-grid { gap: 8px; margin-bottom: 52px; }
+    .portrait-reference { padding-top: 7px; }
+    .portrait-reference figcaption { font-size: 0.5rem; }
+    .portrait-experiments, .experiments { gap: 66px; }
+    .experiment-header, .experiment-footer { display: block; }
+    .experiment-hint { margin-top: 14px; text-align: left; }
 
     .experiment-stage,
     .experiment-stage--portrait,
     .experiment-stage--portrait-photo,
+    .experiment-stage--portrait-multiview,
     .experiment-stage--butterfly,
     .experiment-stage--bee,
     .experiment-stage--tree,
     .experiment-stage--root-network,
     .experiment-stage--waterdrop,
     .experiment-stage--river-flow,
-    .experiment-stage--segmented-ring {
-      min-height: 390px;
-      padding: 18px 0;
-    }
+    .experiment-stage--segmented-ring { min-height: 390px; padding: 18px 0; }
 
     .experiment-viewport,
     .experiment-viewport--portrait,
     .experiment-viewport--portrait-photo,
+    .experiment-viewport--portrait-multiview,
     .experiment-viewport--butterfly,
     .experiment-viewport--bee,
     .experiment-viewport--tree,
     .experiment-viewport--root-network,
     .experiment-viewport--waterdrop,
     .experiment-viewport--river-flow,
-    .experiment-viewport--segmented-ring {
-      width: 100%;
-      height: 390px;
-    }
+    .experiment-viewport--segmented-ring { width: 100%; height: 390px; }
 
-    .experiment-footer p + p {
-      margin-top: 8px;
-      text-align: left;
-    }
-
-    .lab-intro {
-      margin-bottom: 54px;
-    }
+    .experiment-footer p + p { margin-top: 8px; text-align: left; }
+    .lab-intro { margin-bottom: 54px; }
   }
 </style>
