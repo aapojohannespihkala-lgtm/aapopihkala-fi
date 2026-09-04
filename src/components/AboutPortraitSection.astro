@@ -379,6 +379,20 @@ const t = content[lang];
   }
 </style>
 
+<style is:global>
+  html.site-night-mode .about-portrait .meshy-point-surface__canvas {
+    filter: invert(1) grayscale(1) brightness(1.72) contrast(1.12);
+    opacity: 0.94;
+    transition: filter 180ms ease, opacity 180ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.site-night-mode .about-portrait .meshy-point-surface__canvas {
+      transition: none;
+    }
+  }
+</style>
+
 <script is:inline>
   (() => {
     const section = document.querySelector('[data-homepage-about]')
