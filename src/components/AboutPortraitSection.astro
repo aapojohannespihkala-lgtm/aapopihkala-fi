@@ -1,5 +1,5 @@
 ---
-import PointPortrait from './PointPortrait.astro';
+import MeshyPixelatedPoiseVol4 from './MeshyPixelatedPoiseVol4.astro';
 import type { SiteLanguage } from '../config/site';
 
 interface Props {
@@ -83,7 +83,7 @@ const t = content[lang];
         <span class="about-portrait__axis about-portrait__axis--y" aria-hidden="true"></span>
 
         <div class="about-portrait__viewport">
-          <PointPortrait autoRotate={true} enableZoom={true} scale={0.92} cameraDistance={7.6} />
+          <MeshyPixelatedPoiseVol4 />
         </div>
 
         <div class="about-portrait__frame-meta" aria-hidden="true">
@@ -235,7 +235,7 @@ const t = content[lang];
     inset: 22px;
   }
 
-  .about-portrait__viewport :global(.point-portrait) {
+  .about-portrait__viewport :global(.meshy-point-surface) {
     min-height: 100%;
   }
 
