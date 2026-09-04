@@ -379,6 +379,12 @@ const blogPostingSchema = {
         blogPostingSchema
       )}
     />
+
+    <style is:global>
+      .article-page-shell > .feed > .feed-post:first-child {
+        border-top: 0 !important;
+      }
+    </style>
   </head>
 
   <body>
@@ -387,7 +393,7 @@ const blogPostingSchema = {
       languageHref={languageHref}
     />
 
-    <main class="main-container">
+    <main class="main-container article-page-shell">
       <section class="feed">
         <FeedPost
           post={post}
