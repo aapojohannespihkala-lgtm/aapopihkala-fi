@@ -334,9 +334,12 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
 
     const readStoredMode = () => {
       try {
-        return window.localStorage.getItem(storageKey) === 'night'
+        const stored = window.localStorage.getItem(storageKey)
+        if (stored === 'night') return true
+        if (stored === 'day') return false
+        return null
       } catch {
-        return false
+        return null
       }
     }
 
@@ -346,6 +349,28 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
       } catch {
         // Storage can be unavailable in private browsing contexts.
       }
+    }
+
+    const getScheduledNightMode = (date = new Date()) => {
+      const hour = date.getHours()
+      return hour >= 18 || hour < 6
+    }
+
+    const getMsUntilNextScheduleBoundary = () => {
+      const now = new Date()
+      const next = new Date(now)
+      const hour = now.getHours()
+
+      if (hour < 6) {
+        next.setHours(6, 0, 0, 0)
+      } else if (hour < 18) {
+        next.setHours(18, 0, 0, 0)
+      } else {
+        next.setDate(next.getDate() + 1)
+        next.setHours(6, 0, 0, 0)
+      }
+
+      return Math.max(1000, next.getTime() - now.getTime() + 250)
     }
 
     const applyMode = (night) => {
@@ -359,7 +384,36 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
       }
     }
 
-    applyMode(readStoredMode())
+    let scheduleTimer = 0
+
+    const syncWithSchedule = () => {
+      window.clearTimeout(scheduleTimer)
+
+      if (readStoredMode() !== null) return
+
+      applyMode(getScheduledNightMode())
+      scheduleTimer = window.setTimeout(
+        syncWithSchedule,
+        getMsUntilNextScheduleBoundary()
+      )
+    }
+
+    const initialStoredMode = readStoredMode()
+    if (initialStoredMode === null) syncWithSchedule()
+    else applyMode(initialStoredMode)
+
+    const handleStorage = (event) => {
+      if (event.key !== storageKey) return
+
+      const storedMode = readStoredMode()
+      if (storedMode === null) syncWithSchedule()
+      else {
+        window.clearTimeout(scheduleTimer)
+        applyMode(storedMode)
+      }
+    }
+
+    window.addEventListener('storage', handleStorage)
 
     const mountToggle = () => {
       const actions = document.querySelector('.topbar-actions')
@@ -382,9 +436,19 @@ const label = lang === 'fi' ? 'Yötila' : 'Night mode';
 
     toggle.addEventListener('click', () => {
       const next = !root.classList.contains('site-night-mode')
+      window.clearTimeout(scheduleTimer)
       applyMode(next)
       storeMode(next)
     })
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        window.clearTimeout(scheduleTimer)
+        window.removeEventListener('storage', handleStorage)
+      },
+      { once: true }
+    )
 
     if (!(meta instanceof HTMLElement)) return
 
