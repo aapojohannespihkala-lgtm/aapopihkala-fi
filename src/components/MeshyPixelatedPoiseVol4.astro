@@ -1,4 +1,37 @@
-<div class="meshy-point-surface" data-meshy-point-surface aria-label="Pyöriteltävä Meshy-pistepinta vol 4">
+---
+interface Props {
+  enableZoom?: boolean;
+  enablePan?: boolean;
+  cameraX?: number;
+  cameraDistance?: number;
+  cameraHeight?: number;
+  cameraFov?: number;
+  targetY?: number;
+}
+
+const {
+  enableZoom = true,
+  enablePan = true,
+  cameraX = 1.65,
+  cameraDistance = 2.05,
+  cameraHeight = 0.85,
+  cameraFov = 36,
+  targetY = 0,
+} = Astro.props;
+---
+
+<div
+  class="meshy-point-surface"
+  data-meshy-point-surface
+  data-enable-zoom={enableZoom ? 'true' : 'false'}
+  data-enable-pan={enablePan ? 'true' : 'false'}
+  data-camera-x={String(cameraX)}
+  data-camera-distance={String(cameraDistance)}
+  data-camera-height={String(cameraHeight)}
+  data-camera-fov={String(cameraFov)}
+  data-target-y={String(targetY)}
+  aria-label="Pyöriteltävä Meshy-pistepinta vol 4"
+>
   <canvas class="meshy-point-surface__canvas" data-meshy-point-surface-canvas></canvas>
   <p class="meshy-point-surface__status" data-meshy-point-surface-status>Ladataan pistepintaa...</p>
 </div>
@@ -95,6 +128,14 @@
       const status = root.querySelector('[data-meshy-point-surface-status]');
       if (!(canvas instanceof HTMLCanvasElement)) return;
 
+      const enableZoom = root.dataset.enableZoom !== 'false';
+      const enablePan = root.dataset.enablePan !== 'false';
+      const cameraX = Number(root.dataset.cameraX ?? '1.65');
+      const cameraDistance = Number(root.dataset.cameraDistance ?? '2.05');
+      const cameraHeight = Number(root.dataset.cameraHeight ?? '0.85');
+      const cameraFov = Number(root.dataset.cameraFov ?? '36');
+      const targetY = Number(root.dataset.targetY ?? '0');
+
       try {
         const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm');
         const { OrbitControls } = await import(
@@ -113,12 +154,12 @@
         renderer.outputColorSpace = THREE.SRGBColorSpace;
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(36, 1, 0.01, 1000);
+        const camera = new THREE.PerspectiveCamera(cameraFov, 1, 0.01, 1000);
         const controls = new OrbitControls(camera, canvas);
         controls.enableDamping = true;
         controls.dampingFactor = 0.06;
-        controls.enablePan = true;
-        controls.enableZoom = true;
+        controls.enablePan = enablePan;
+        controls.enableZoom = enableZoom;
         controls.target.set(0, 0, 0);
 
         const loader = new GLTFLoader();
@@ -271,12 +312,18 @@
 
             camera.near = Math.max(radius / 1000, 0.001);
             camera.far = Math.max(radius * 100, 100);
-            camera.position.set(radius * 1.65, radius * 0.85, radius * 2.05);
+            camera.position.set(radius * cameraX, radius * cameraHeight, radius * cameraDistance);
             camera.updateProjectionMatrix();
 
-            controls.target.set(0, 0, 0);
-            controls.minDistance = Math.max(radius * 0.18, 0.01);
-            controls.maxDistance = radius * 12;
+            controls.target.set(0, size.y * targetY, 0);
+            if (enableZoom) {
+              controls.minDistance = Math.max(radius * 0.18, 0.01);
+              controls.maxDistance = radius * 12;
+            } else {
+              const lockedDistance = camera.position.distanceTo(controls.target);
+              controls.minDistance = lockedDistance;
+              controls.maxDistance = lockedDistance;
+            }
             controls.update();
             updateDepthShading();
             lastCameraPosition.copy(camera.position);
