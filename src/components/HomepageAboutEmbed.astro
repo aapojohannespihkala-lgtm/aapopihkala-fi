@@ -1,6 +1,7 @@
 ---
 import AboutPortraitSection from './AboutPortraitSection.astro';
 import AboutPortraitPolish from './AboutPortraitPolish.astro';
+import AboutAxisMotion from './AboutAxisMotion.astro';
 import type { SiteLanguage } from '../config/site';
 
 interface Props {
@@ -12,6 +13,7 @@ const { lang } = Astro.props;
 
 <div class="homepage-about-embed" data-homepage-about-embed>
   <AboutPortraitPolish />
+  <AboutAxisMotion />
   <AboutPortraitSection lang={lang} />
 </div>
 
