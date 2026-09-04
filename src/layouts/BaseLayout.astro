@@ -1,0 +1,67 @@
+---
+import '../styles/global.css';
+
+import Analytics from '../components/Analytics.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+
+import type { SiteLanguage } from '../config/site';
+
+interface Props {
+  lang: SiteLanguage;
+  title: string;
+  description: string;
+  canonicalUrl: string;
+  finnishUrl: string;
+  englishUrl: string;
+  languageHref: string;
+  initialNightMode?: boolean;
+}
+
+const {
+  lang,
+  title,
+  description,
+  canonicalUrl,
+  finnishUrl,
+  englishUrl,
+  languageHref,
+  initialNightMode = false,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang={lang} class:list={{ 'site-night-mode': initialNightMode }}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {
+      initialNightMode && (
+        <script is:inline>
+          (() => {
+            try {
+              const stored = window.localStorage.getItem('aapopihkala-night-mode')
+              document.documentElement.classList.toggle('site-night-mode', stored !== 'day')
+            } catch {
+              document.documentElement.classList.add('site-night-mode')
+            }
+          })()
+        </script>
+      )
+    }
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="fi" href={finnishUrl} />
+    <link rel="alternate" hreflang="en" href={englishUrl} />
+    <link rel="alternate" hreflang="x-default" href={finnishUrl} />
+    <slot name="head" />
+  </head>
+
+  <body>
+    <SiteHeader lang={lang} languageHref={languageHref} />
+    <slot />
+    <Analytics lang={lang} />
+    <slot name="afterAnalytics" />
+  </body>
+</html>
