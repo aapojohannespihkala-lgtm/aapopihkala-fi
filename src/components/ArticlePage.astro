@@ -1,13 +1,10 @@
 ---
-import '../styles/global.css';
-
 import type {
   CollectionEntry,
 } from 'astro:content';
 
-import Analytics from './Analytics.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
 import FeedPost from './FeedPost.astro';
-import SiteHeader from './SiteHeader.astro';
 
 import {
   site,
@@ -210,57 +207,16 @@ const blogPostingSchema = {
 };
 ---
 
-<!doctype html>
-
-<html lang={lang}>
-  <head>
-    <meta
-      charset="UTF-8"
-    />
-
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1"
-    />
-
-    <title>
-      {localizedPost.title} - {site.name}
-    </title>
-
-    <meta
-      name="description"
-      content={metaDescription}
-    />
-
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href="/favicon.svg"
-    />
-
-    <link
-      rel="canonical"
-      href={canonicalUrl}
-    />
-
-    <link
-      rel="alternate"
-      hreflang={site.languages.fi.code}
-      href={finnishUrl}
-    />
-
-    <link
-      rel="alternate"
-      hreflang={site.languages.en.code}
-      href={englishUrl}
-    />
-
-    <link
-      rel="alternate"
-      hreflang="x-default"
-      href={finnishUrl}
-    />
-
+<BaseLayout
+  lang={lang}
+  title={`${localizedPost.title} - ${site.name}`}
+  description={metaDescription}
+  canonicalUrl={canonicalUrl}
+  finnishUrl={finnishUrl}
+  englishUrl={englishUrl}
+  languageHref={languageHref}
+>
+  <Fragment slot="head">
     <!-- Open Graph -->
 
     <meta
@@ -385,32 +341,23 @@ const blogPostingSchema = {
         border-top: 0 !important;
       }
     </style>
-  </head>
+  </Fragment>
 
-  <body>
-    <SiteHeader
-      lang={lang}
-      languageHref={languageHref}
-    />
-
-    <main class="main-container article-page-shell">
-      <section class="feed">
-        <FeedPost
-          post={post}
-          lang={lang}
-          postNumber={postNumber}
-          displayDate={displayDate}
-          perspectiveLabel={
-            perspectiveLabel
-          }
-          sourceLabel={
-            sourceLabel
-          }
-          headingLevel="h1"
-        />
-      </section>
-    </main>
-
-    <Analytics lang={lang} />
-  </body>
-</html>
+  <main class="main-container article-page-shell">
+    <section class="feed">
+      <FeedPost
+        post={post}
+        lang={lang}
+        postNumber={postNumber}
+        displayDate={displayDate}
+        perspectiveLabel={
+          perspectiveLabel
+        }
+        sourceLabel={
+          sourceLabel
+        }
+        headingLevel="h1"
+      />
+    </section>
+  </main>
+</BaseLayout>
