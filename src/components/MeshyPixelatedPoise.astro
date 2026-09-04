@@ -69,6 +69,8 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.setClearColor(0x000000, 0);
         renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.15;
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(36, 1, 0.01, 1000);
@@ -79,19 +81,38 @@
         controls.enableZoom = true;
         controls.target.set(0, 0, 0);
 
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x77756f, 2.0));
-        const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x77756f, 2.6));
+        const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
         keyLight.position.set(4, 6, 5);
         scene.add(keyLight);
-        const fillLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
         fillLight.position.set(-4, 2, -3);
         scene.add(fillLight);
+        const rimLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        rimLight.position.set(0, 3, -5);
+        scene.add(rimLight);
+
+        const visibleMaterial = new THREE.MeshStandardMaterial({
+          color: 0x66766b,
+          roughness: 0.76,
+          metalness: 0.02,
+          side: THREE.DoubleSide,
+        });
 
         const loader = new GLTFLoader();
         loader.load(
           '/lab/meshy-pixelated-poise.glb',
           (gltf) => {
             const model = gltf.scene;
+
+            model.traverse((child) => {
+              if (!(child instanceof THREE.Mesh)) return;
+              if (child.geometry instanceof THREE.BufferGeometry && !child.geometry.getAttribute('normal')) {
+                child.geometry.computeVertexNormals();
+              }
+              child.material = visibleMaterial;
+            });
+
             scene.add(model);
 
             const box = new THREE.Box3().setFromObject(model);
@@ -113,7 +134,8 @@
             if (status instanceof HTMLElement) status.hidden = true;
           },
           undefined,
-          () => {
+          (error) => {
+            console.error('Pixelated Poise GLB load failed', error);
             if (status instanceof HTMLElement) status.textContent = '3D-mallia ei voitu ladata';
           }
         );
@@ -136,7 +158,8 @@
           requestAnimationFrame(animate);
         };
         animate();
-      } catch {
+      } catch (error) {
+        console.error('Pixelated Poise viewer failed', error);
         if (status instanceof HTMLElement) status.textContent = '3D-katselinta ei voitu ladata';
       }
     });
