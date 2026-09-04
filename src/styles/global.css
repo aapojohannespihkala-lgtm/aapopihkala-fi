@@ -1277,3 +1277,54 @@ a:focus-visible {
     transition: none;
   }
 }
+
+
+/* =========================================================
+   ABOUT SURFACE PROBE OVERRIDES
+   ========================================================= */
+
+@media (hover: hover) and (pointer: fine) {
+  .about-portrait .meshy-point-surface--probe,
+  .about-portrait .meshy-point-surface--probe .meshy-point-surface__canvas,
+  .about-portrait .meshy-point-surface--probe:active,
+  .about-portrait .meshy-point-surface--probe:active .meshy-point-surface__canvas {
+    cursor: crosshair !important;
+  }
+}
+
+.about-portrait .meshy-point-surface__probe-cross {
+  display: none !important;
+}
+
+.about-portrait .meshy-point-surface__probe-label {
+  left: 14px !important;
+  top: 12px !important;
+  right: auto !important;
+  bottom: auto !important;
+  display: grid !important;
+  gap: 3px !important;
+  min-width: max-content;
+  box-sizing: border-box;
+  padding: 4px 5px !important;
+  border: 1px solid var(--line-soft) !important;
+  background: var(--page) !important;
+  color: var(--moss-deep) !important;
+  font-size: 0.47rem !important;
+  font-weight: 500;
+  line-height: 1 !important;
+  letter-spacing: 0.05em !important;
+}
+
+.about-portrait .meshy-point-surface__probe-secondary {
+  color: var(--stone) !important;
+}
+
+.about-portrait .meshy-point-surface__probe.is-left .meshy-point-surface__probe-label {
+  left: 14px !important;
+  right: auto !important;
+}
+
+.about-portrait .meshy-point-surface__probe.is-up .meshy-point-surface__probe-label {
+  top: auto !important;
+  bottom: 12px !important;
+}
