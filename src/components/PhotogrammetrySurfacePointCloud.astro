@@ -198,6 +198,99 @@
 
             scene.add(cloudGroup);
 
+            // Symmetric stylized eyewear. The frame is built as thin 3D tubes so
+            // the outline remains readable from oblique angles and while orbiting.
+            const glasses = new THREE.Group();
+            const frameMaterial = new THREE.MeshBasicMaterial({
+              color: 0x2f3732,
+              transparent: true,
+              opacity: 0.97,
+              depthTest: true,
+              depthWrite: true,
+            });
+
+            const frameRadius = Math.max(radius * 0.0042, 0.0015);
+            const makeTube = (points, closed = false, tubeRadius = frameRadius) => {
+              const curve = new THREE.CatmullRomCurve3(points, closed, 'centripetal', 0.5);
+              const geometry = new THREE.TubeGeometry(
+                curve,
+                Math.max(28, points.length * 6),
+                tubeRadius,
+                7,
+                closed
+              );
+              return new THREE.Mesh(geometry, frameMaterial);
+            };
+
+            const glassesY = size.y * 0.115;
+            const frontZ = box.max.z - center.z + radius * 0.018;
+            const lensCenterX = size.x * 0.145;
+            const lensRx = size.x * 0.105;
+            const lensRy = size.y * 0.073;
+
+            const buildLens = (side) => {
+              const points = [];
+              const cx = side * lensCenterX;
+              const segments = 48;
+
+              for (let i = 0; i < segments; i += 1) {
+                const t = (i / segments) * Math.PI * 2;
+                const c = Math.cos(t);
+                const s = Math.sin(t);
+
+                // Rounded-rectangular lens shape with a slightly calmer brow line.
+                const shapedX = Math.sign(c) * Math.pow(Math.abs(c), 0.82);
+                const shapedY = Math.sign(s) * Math.pow(Math.abs(s), 0.9);
+                const browScale = shapedY > 0 ? 0.93 : 1.0;
+                const x = cx + lensRx * shapedX;
+                const y = glassesY + lensRy * shapedY * browScale;
+
+                // Gentle depth curvature follows a plausible face plane.
+                const outerness = Math.min(1, Math.abs(x) / Math.max(size.x * 0.34, 0.001));
+                const z = frontZ - radius * 0.016 * outerness;
+                points.push(new THREE.Vector3(x, y, z));
+              }
+
+              return makeTube(points, true);
+            };
+
+            const leftLens = buildLens(-1);
+            const rightLens = buildLens(1);
+
+            const innerLeftX = -lensCenterX + lensRx * 0.96;
+            const innerRightX = lensCenterX - lensRx * 0.96;
+            const bridge = makeTube([
+              new THREE.Vector3(innerLeftX, glassesY + lensRy * 0.08, frontZ),
+              new THREE.Vector3(innerLeftX * 0.48, glassesY + lensRy * 0.30, frontZ + radius * 0.004),
+              new THREE.Vector3(0, glassesY + lensRy * 0.34, frontZ + radius * 0.006),
+              new THREE.Vector3(innerRightX * 0.48, glassesY + lensRy * 0.30, frontZ + radius * 0.004),
+              new THREE.Vector3(innerRightX, glassesY + lensRy * 0.08, frontZ),
+            ]);
+
+            const buildTemple = (side) => {
+              const outerX = side * (lensCenterX + lensRx * 0.98);
+              return makeTube([
+                new THREE.Vector3(outerX, glassesY + lensRy * 0.18, frontZ - radius * 0.012),
+                new THREE.Vector3(side * size.x * 0.30, glassesY + lensRy * 0.16, frontZ - size.z * 0.035),
+                new THREE.Vector3(side * size.x * 0.37, glassesY + lensRy * 0.02, frontZ - size.z * 0.12),
+                new THREE.Vector3(side * size.x * 0.39, glassesY - lensRy * 0.12, frontZ - size.z * 0.19),
+              ], false, frameRadius * 0.9);
+            };
+
+            const leftTemple = buildTemple(-1);
+            const rightTemple = buildTemple(1);
+
+            // Small symmetric hinge accents make the frame read as eyewear rather
+            // than two floating loops while keeping the styling lightweight.
+            const hingeGeometry = new THREE.SphereGeometry(frameRadius * 1.5, 10, 7);
+            const leftHinge = new THREE.Mesh(hingeGeometry, frameMaterial);
+            const rightHinge = new THREE.Mesh(hingeGeometry, frameMaterial);
+            leftHinge.position.set(-(lensCenterX + lensRx), glassesY + lensRy * 0.15, frontZ - radius * 0.012);
+            rightHinge.position.set(lensCenterX + lensRx, glassesY + lensRy * 0.15, frontZ - radius * 0.012);
+
+            glasses.add(leftLens, rightLens, bridge, leftTemple, rightTemple, leftHinge, rightHinge);
+            scene.add(glasses);
+
             camera.near = Math.max(radius / 1000, 0.001);
             camera.far = Math.max(radius * 100, 100);
             camera.position.set(radius * 1.7, radius * 0.85, radius * 2.0);
