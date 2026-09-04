@@ -17,6 +17,7 @@ import PhotoPointPortrait from '../../components/PhotoPointPortrait.astro';
 import MultiViewPortrait from '../../components/MultiViewPortrait.astro';
 import PhotogrammetryModel from '../../components/PhotogrammetryModel.astro';
 import PhotogrammetrySurfacePointCloud from '../../components/PhotogrammetrySurfacePointCloud.astro';
+import MeshyPixelatedPoise from '../../components/MeshyPixelatedPoise.astro';
 ---
 
 <!doctype html>
@@ -39,6 +40,27 @@ import PhotogrammetrySurfacePointCloud from '../../components/PhotogrammetrySurf
     </header>
 
     <main class="lab-shell">
+      <section class="portrait-priority" aria-labelledby="meshy-pixelated-poise-title">
+        <article class="experiment experiment--priority">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">P06</p>
+              <h2 id="meshy-pixelated-poise-title">Pixelated Poise</h2>
+            </div>
+            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
+          </header>
+          <div class="experiment-stage experiment-stage--portrait-multiview">
+            <div class="experiment-viewport experiment-viewport--portrait-multiview">
+              <MeshyPixelatedPoise />
+            </div>
+          </div>
+          <footer class="experiment-footer">
+            <p>Meshy AI:lla tuotettu GLB-malli uutena vertailuversiona. Mallia voi pyörittää vapaasti, zoomata ja siirtää.</p>
+            <p>Meshy · GLB · free orbit · zoom</p>
+          </footer>
+        </article>
+      </section>
+
       <section class="portrait-priority" aria-labelledby="photogrammetry-surface-points-title">
         <article class="experiment experiment--priority">
           <header class="experiment-header">
