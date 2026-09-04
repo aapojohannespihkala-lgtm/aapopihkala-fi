@@ -167,7 +167,7 @@ const labels = lang === 'fi'
 
       if (destination.kind === 'divider' && destination.anchor instanceof HTMLElement) {
         const dividerDocumentTop = destination.anchor.getBoundingClientRect().top + window.scrollY
-        return Math.max(0, dividerDocumentTop - getHeaderHeight())
+        return Math.max(0, dividerDocumentTop - getHeaderHeight() + 2)
       }
 
       if (destination.heading instanceof HTMLElement) {
