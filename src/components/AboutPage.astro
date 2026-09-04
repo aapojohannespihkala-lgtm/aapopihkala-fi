@@ -40,10 +40,20 @@ const englishUrl = `${site.url}/en/about/`;
 ---
 
 <!doctype html>
-<html lang={lang}>
+<html lang={lang} class="site-night-mode">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline>
+      (() => {
+        try {
+          const stored = window.localStorage.getItem('aapopihkala-night-mode')
+          document.documentElement.classList.toggle('site-night-mode', stored !== 'day')
+        } catch {
+          document.documentElement.classList.add('site-night-mode')
+        }
+      })()
+    </script>
     <title>{t.title}</title>
     <meta name="description" content={t.description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
