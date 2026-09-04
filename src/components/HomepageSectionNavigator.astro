@@ -20,48 +20,55 @@ const labels = lang === 'fi'
     };
 ---
 
-<div
-  class="homepage-section-navigator-source"
-  data-homepage-section-navigator
+<button
+  class="homepage-section-nav-button homepage-section-nav-button--fixed"
+  type="button"
+  data-homepage-section-nav
   data-label-about={labels.about}
   data-label-articles={labels.articles}
   data-label-top={labels.top}
-  aria-hidden="true"
-></div>
+  aria-label={labels.about}
+>
+  <svg viewBox="0 0 28 28" aria-hidden="true">
+    <line class="homepage-section-nav-button__datum" x1="9" y1="4.5" x2="19" y2="4.5"></line>
+    <line class="homepage-section-nav-button__shaft" x1="14" y1="4" x2="14" y2="21"></line>
+    <polyline class="homepage-section-nav-button__head" points="8.5,15.5 14,21 19.5,15.5"></polyline>
+  </svg>
+</button>
 
 <style is:global>
-  .homepage-section-navigator-source {
-    display: none;
-  }
-
   .homepage-section-nav-button {
-    position: absolute;
-    left: 50%;
-    z-index: 18;
-    width: 32px;
-    height: 32px;
     display: grid;
     place-items: center;
+    width: 38px;
+    height: 38px;
     padding: 0;
     border: 0;
     background: transparent;
-    color: var(--stone-light);
-    opacity: 0.62;
+    color: var(--stone);
+    opacity: 0.78;
     cursor: pointer;
-    transform: translateX(-50%);
     transition:
       color 150ms ease,
       opacity 150ms ease,
       transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  .homepage-section-nav-button--fixed {
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    z-index: 120;
+    transform: translateX(-50%);
+  }
+
   .homepage-section-nav-button:hover,
   .homepage-section-nav-button:focus-visible {
     color: var(--moss-deep);
-    opacity: 0.94;
+    opacity: 1;
   }
 
-  .homepage-section-nav-button:hover {
+  .homepage-section-nav-button--fixed:hover {
     transform: translate(-50%, 2px);
   }
 
@@ -71,8 +78,8 @@ const labels = lang === 'fi'
   }
 
   .homepage-section-nav-button svg {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     overflow: visible;
   }
 
@@ -86,16 +93,21 @@ const labels = lang === 'fi'
     vector-effect: non-scaling-stroke;
   }
 
-  .homepage-section-nav-button .homepage-section-nav-button__datum {
-    opacity: 0.48;
+  .homepage-section-nav-button__datum {
+    opacity: 0.5;
   }
 
-  .hero > .homepage-section-nav-button {
-    bottom: clamp(13px, 1.8vh, 20px);
+  .homepage-section-nav-button.is-up svg {
+    transform: rotate(180deg);
   }
 
-  .homepage-about-embed > .homepage-section-nav-button {
-    bottom: clamp(20px, 2.6vh, 30px);
+  .homepage-section-nav-button.is-up:hover {
+    transform: translate(-50%, -2px);
+  }
+
+  .homepage-section-nav-button.is-hidden {
+    opacity: 0;
+    pointer-events: none;
   }
 
   .homepage-about-embed,
@@ -103,34 +115,8 @@ const labels = lang === 'fi'
     scroll-margin-top: 76px;
   }
 
-  .homepage-back-to-top {
-    position: relative;
-    width: 100%;
-    min-height: 88px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding-bottom: 24px;
-  }
-
-  .homepage-back-to-top .homepage-section-nav-button {
-    position: relative;
-    left: auto;
-    bottom: auto;
-    transform: none;
-  }
-
-  .homepage-back-to-top .homepage-section-nav-button:hover {
-    transform: translateY(-2px);
-  }
-
-  .homepage-back-to-top .homepage-section-nav-button svg {
-    transform: rotate(180deg);
-  }
-
   @media (max-width: 800px) {
-    .homepage-section-nav-button,
-    .homepage-back-to-top {
+    .homepage-section-nav-button {
       display: none !important;
     }
   }
@@ -144,62 +130,97 @@ const labels = lang === 'fi'
 
 <script is:inline>
   (() => {
-    const source = document.querySelector('[data-homepage-section-navigator]')
-    if (!(source instanceof HTMLElement)) return
-    if (source.dataset.initialized === 'true') return
-    source.dataset.initialized = 'true'
+    const button = document.querySelector('[data-homepage-section-nav]')
+    if (!(button instanceof HTMLButtonElement)) return
+    if (button.dataset.initialized === 'true') return
+    button.dataset.initialized = 'true'
 
-    const makeButton = (label, action) => {
-      const button = document.createElement('button')
-      button.type = 'button'
-      button.className = 'homepage-section-nav-button'
-      button.setAttribute('aria-label', label)
-      button.innerHTML = `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <line class="homepage-section-nav-button__datum" x1="8" y1="5" x2="16" y2="5"></line>
-          <line x1="12" y1="4" x2="12" y2="18"></line>
-          <polyline points="7.5,13.5 12,18 16.5,13.5"></polyline>
-        </svg>
-      `
-      button.addEventListener('click', action)
-      return button
-    }
+    let hero = null
+    let about = null
+    let feed = null
+    let currentTarget = 'about'
 
-    const getScrollBehavior = () =>
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+    const reducedMotion = () =>
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    const initialize = () => {
-      const hero = document.querySelector('.main-container > .hero')
-      const about = document.querySelector('[data-homepage-about-embed]')
-      const feed = document.querySelector('.main-container > .feed')
+    const behavior = () => reducedMotion() ? 'auto' : 'smooth'
+
+    const resolveSections = () => {
+      hero = document.querySelector('.main-container > .hero')
+      about = document.querySelector('[data-homepage-about-embed]')
+      feed = document.querySelector('.main-container > .feed')
 
       if (!(hero instanceof HTMLElement) || !(about instanceof HTMLElement) || !(feed instanceof HTMLElement)) {
-        window.requestAnimationFrame(initialize)
+        window.requestAnimationFrame(resolveSections)
         return
       }
 
-      if (hero.dataset.sectionNavMounted === 'true') return
-      hero.dataset.sectionNavMounted = 'true'
-
-      const aboutButton = makeButton(source.dataset.labelAbout || 'About', () => {
-        about.scrollIntoView({ behavior: getScrollBehavior(), block: 'start' })
-      })
-      hero.append(aboutButton)
-
-      const articlesButton = makeButton(source.dataset.labelArticles || 'Articles', () => {
-        feed.scrollIntoView({ behavior: getScrollBehavior(), block: 'start' })
-      })
-      about.append(articlesButton)
-
-      const topWrap = document.createElement('div')
-      topWrap.className = 'homepage-back-to-top'
-      const topButton = makeButton(source.dataset.labelTop || 'Back to top', () => {
-        window.scrollTo({ top: 0, behavior: getScrollBehavior() })
-      })
-      topWrap.append(topButton)
-      feed.after(topWrap)
+      updateState()
     }
 
-    initialize()
+    const updateState = () => {
+      if (!(hero instanceof HTMLElement) || !(about instanceof HTMLElement) || !(feed instanceof HTMLElement)) return
+
+      const y = window.scrollY
+      const viewportBottom = y + window.innerHeight
+      const documentBottom = document.documentElement.scrollHeight
+      const aboutTop = about.getBoundingClientRect().top + y
+      const feedTop = feed.getBoundingClientRect().top + y
+      const nearBottom = documentBottom - viewportBottom < Math.max(120, window.innerHeight * 0.18)
+
+      button.classList.remove('is-up', 'is-hidden')
+
+      if (nearBottom && y > feedTop) {
+        currentTarget = 'top'
+        button.classList.add('is-up')
+        button.setAttribute('aria-label', button.dataset.labelTop || 'Back to top')
+        return
+      }
+
+      if (y >= feedTop - window.innerHeight * 0.2) {
+        currentTarget = 'none'
+        button.classList.add('is-hidden')
+        return
+      }
+
+      if (y >= aboutTop - window.innerHeight * 0.35) {
+        currentTarget = 'articles'
+        button.setAttribute('aria-label', button.dataset.labelArticles || 'Articles')
+        return
+      }
+
+      currentTarget = 'about'
+      button.setAttribute('aria-label', button.dataset.labelAbout || 'About')
+    }
+
+    button.addEventListener('click', () => {
+      if (currentTarget === 'about' && about instanceof HTMLElement) {
+        about.scrollIntoView({ behavior: behavior(), block: 'start' })
+        return
+      }
+
+      if (currentTarget === 'articles' && feed instanceof HTMLElement) {
+        feed.scrollIntoView({ behavior: behavior(), block: 'start' })
+        return
+      }
+
+      if (currentTarget === 'top') {
+        window.scrollTo({ top: 0, behavior: behavior() })
+      }
+    })
+
+    let ticking = false
+    const scheduleUpdate = () => {
+      if (ticking) return
+      ticking = true
+      window.requestAnimationFrame(() => {
+        ticking = false
+        updateState()
+      })
+    }
+
+    window.addEventListener('scroll', scheduleUpdate, { passive: true })
+    window.addEventListener('resize', scheduleUpdate, { passive: true })
+    resolveSections()
   })()
 </script>
