@@ -360,6 +360,32 @@ const t = content[lang];
     pointer-events: none;
   }
 
+  .about-portrait__frame-meta span {
+    display: inline-block;
+    transform: translate(0, 0);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .about-portrait__frame.is-model-hovered .about-portrait__frame-meta span:first-child {
+    transform: translate(-3px, 3px);
+  }
+
+  .about-portrait__frame.is-model-hovered .about-portrait__frame-meta span:last-child {
+    transform: translate(3px, 3px);
+  }
+
+  .about-portrait__frame.is-model-active .about-portrait__frame-meta span {
+    transition-duration: 120ms;
+  }
+
+  .about-portrait__frame.is-model-active .about-portrait__frame-meta span:first-child {
+    transform: translate(2px, -2px);
+  }
+
+  .about-portrait__frame.is-model-active .about-portrait__frame-meta span:last-child {
+    transform: translate(-2px, -2px);
+  }
+
   .about-portrait__hint {
     margin: 7px 0 0;
     color: var(--stone-light);
@@ -415,13 +441,85 @@ const t = content[lang];
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .about-portrait__corner {
+    .about-portrait__corner,
+    .about-portrait__frame-meta span {
       transition: none;
     }
   }
 </style>
 
 <style is:global>
+  @media (hover: hover) and (pointer: fine) {
+    .about-portrait .meshy-point-surface--probe,
+    .about-portrait .meshy-point-surface--probe .meshy-point-surface__canvas,
+    .about-portrait .meshy-point-surface--probe:active,
+    .about-portrait .meshy-point-surface--probe:active .meshy-point-surface__canvas {
+      cursor: crosshair !important;
+    }
+  }
+
+  .about-portrait .meshy-point-surface__probe {
+    opacity: 0;
+    color: var(--moss-deep);
+  }
+
+  .about-portrait .meshy-point-surface__probe.is-visible {
+    opacity: 1;
+  }
+
+  .about-portrait .meshy-point-surface__probe-cross {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 3px;
+    height: 3px;
+    box-sizing: border-box;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: var(--page);
+    transform: translate(-50%, -50%);
+    z-index: 0;
+  }
+
+  .about-portrait .meshy-point-surface__probe-cross::before,
+  .about-portrait .meshy-point-surface__probe-cross::after {
+    opacity: 0.72;
+    z-index: -1;
+  }
+
+  .about-portrait .meshy-point-surface__probe-label {
+    left: 13px !important;
+    top: -1px !important;
+    right: auto !important;
+    bottom: auto !important;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: max-content;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--moss);
+    font-size: 0.48rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.06em;
+  }
+
+  .about-portrait .meshy-point-surface__probe-secondary {
+    color: var(--moss);
+  }
+
+  .about-portrait .meshy-point-surface__probe.is-left .meshy-point-surface__probe-label {
+    left: auto !important;
+    right: 13px !important;
+  }
+
+  .about-portrait .meshy-point-surface__probe.is-up .meshy-point-surface__probe-label {
+    top: auto !important;
+    bottom: -1px !important;
+  }
+
   html.site-night-mode .about-portrait .meshy-point-surface__canvas {
     filter: invert(1) grayscale(1) brightness(1.72) contrast(1.12);
     opacity: 0.94;
