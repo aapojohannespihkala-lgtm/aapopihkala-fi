@@ -12,7 +12,7 @@ const {
   autoRotate = true,
   enableZoom = true,
   scale = 1,
-  cameraDistance = 6.4,
+  cameraDistance = 5.9,
 } = Astro.props;
 ---
 
@@ -58,11 +58,11 @@ const {
     position: absolute;
     left: 12px;
     bottom: 10px;
+    color: var(--stone-light, #999);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.56rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--stone-light, #999);
     transition: opacity 160ms ease;
     pointer-events: none;
   }
@@ -93,15 +93,24 @@ const {
         const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
         const lerp = (a, b, t) => a + (b - a) * t
         const deg = (value) => THREE.MathUtils.degToRad(value)
+        const smoothstep = (value) => {
+          const t = clamp(value, 0, 1)
+          return t * t * (3 - 2 * t)
+        }
+        const srgbToLinear = (value) =>
+          value <= 0.04045
+            ? value / 12.92
+            : Math.pow((value + 0.055) / 1.055, 2.4)
+
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         const wantsAutoRotate = root.dataset.autoRotate !== 'false'
         const wantsZoom = root.dataset.enableZoom !== 'false'
         const requestedScale = Number(root.dataset.scale ?? '1')
-        const requestedCameraDistance = Number(root.dataset.cameraDistance ?? '6.4')
+        const requestedCameraDistance = Number(root.dataset.cameraDistance ?? '5.9')
         const displayScale = Number.isFinite(requestedScale) ? requestedScale : 1
         const cameraDistance = Number.isFinite(requestedCameraDistance)
           ? requestedCameraDistance
-          : 6.4
+          : 5.9
 
         const makeSampler = (src) =>
           new Promise((resolve, reject) => {
@@ -109,8 +118,8 @@ const {
             image.decoding = 'async'
             image.onload = () => {
               const sampleCanvas = document.createElement('canvas')
-              sampleCanvas.width = 160
-              sampleCanvas.height = 200
+              sampleCanvas.width = 192
+              sampleCanvas.height = 240
               const context = sampleCanvas.getContext('2d', { willReadFrequently: true })
               if (!context) {
                 reject(new Error('2D canvas unavailable'))
@@ -140,23 +149,24 @@ const {
           alpha: true,
           powerPreference: 'high-performance',
         })
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.45))
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
         renderer.setClearColor(0xffffff, 0)
         renderer.outputColorSpace = THREE.SRGBColorSpace
 
         const scene = new THREE.Scene()
-        const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100)
+        const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 100)
         camera.position.set(0, 0.02, cameraDistance)
 
         const portrait = new THREE.Group()
         portrait.position.y = -0.02
         portrait.scale.setScalar(displayScale)
+        portrait.rotation.x = -0.015
         scene.add(portrait)
 
         const controls = new OrbitControls(camera, renderer.domElement)
         controls.enablePan = false
         controls.enableZoom = wantsZoom
-        controls.minDistance = 4.8
+        controls.minDistance = 4.65
         controls.maxDistance = 9.2
         controls.zoomSpeed = 0.5
         controls.enableDamping = true
@@ -168,28 +178,35 @@ const {
         controls.minPolarAngle = deg(73)
         controls.maxPolarAngle = deg(107)
         controls.autoRotate = wantsAutoRotate && !reducedMotion
-        controls.autoRotateSpeed = 0.18
+        controls.autoRotateSpeed = 0.16
 
         const widthKeys = [
-          [-1.34, 0.34],
-          [-1.08, 0.56],
-          [-0.78, 0.7],
-          [-0.42, 0.79],
-          [-0.05, 0.84],
-          [0.38, 0.86],
-          [0.82, 0.88],
-          [1.16, 0.82],
-          [1.42, 0.58],
+          [-1.52, 0.08],
+          [-1.36, 0.38],
+          [-1.12, 0.57],
+          [-0.86, 0.68],
+          [-0.58, 0.75],
+          [-0.25, 0.81],
+          [0.12, 0.84],
+          [0.48, 0.87],
+          [0.82, 0.9],
+          [1.1, 0.88],
+          [1.32, 0.8],
+          [1.48, 0.54],
+          [1.57, 0.12],
         ]
         const depthKeys = [
-          [-1.34, 0.32],
-          [-1.06, 0.48],
-          [-0.62, 0.59],
-          [-0.08, 0.67],
-          [0.48, 0.72],
-          [0.96, 0.71],
-          [1.28, 0.6],
-          [1.42, 0.42],
+          [-1.52, 0.08],
+          [-1.34, 0.34],
+          [-1.08, 0.5],
+          [-0.72, 0.59],
+          [-0.3, 0.65],
+          [0.16, 0.69],
+          [0.58, 0.72],
+          [0.98, 0.71],
+          [1.28, 0.64],
+          [1.48, 0.42],
+          [1.57, 0.1],
         ]
 
         const sampleCurve = (keys, y) => {
@@ -199,7 +216,7 @@ const {
             const b = keys[i + 1]
             if (y <= b[0]) {
               let t = clamp((y - a[0]) / (b[0] - a[0]), 0, 1)
-              t = t * t * (3 - 2 * t)
+              t = smoothstep(t)
               return lerp(a[1], b[1], t)
             }
           }
@@ -218,30 +235,77 @@ const {
           const cos = Math.cos(angle)
           const sin = Math.sin(angle)
           const front = Math.max(0, sin)
-          const frontMask = front ** 2.1
+          const frontMask = front ** 2.05
+          const sideMask = Math.abs(cos) ** 2.1
 
-          let x = cos * widthAt(y)
+          let width = widthAt(y)
+          if (y < -0.42) {
+            const jawTaper = smoothstep((-0.42 - y) / 1.05)
+            width *= 1 - jawTaper * 0.08
+          }
+
+          let x = cos * width
           let z = sin * depthAt(y)
 
-          z += 0.064 * (
-            gaussian(x, y, -0.41, -0.02, 0.22, 0.27) +
-            gaussian(x, y, 0.41, -0.02, 0.22, 0.27)
-          ) * frontMask
-          z -= 0.075 * (
-            gaussian(x, y, -0.34, 0.26, 0.19, 0.14) +
-            gaussian(x, y, 0.34, 0.26, 0.19, 0.14)
-          ) * frontMask
-          z += 0.18 * gaussian(x, y, 0, 0.2, 0.11, 0.38) * frontMask
-          z += 0.24 * gaussian(x, y, 0, -0.08, 0.14, 0.14) * frontMask
-          z += 0.06 * gaussian(x, y, 0, -0.82, 0.34, 0.21) * frontMask
+          const cheek =
+            gaussian(x, y, -0.39, -0.02, 0.23, 0.28) +
+            gaussian(x, y, 0.39, -0.02, 0.23, 0.28)
+          z += 0.07 * cheek * frontMask
 
-          if (y > 0.85) {
-            const hairLift = clamp((y - 0.85) / 0.57, 0, 1)
-            x *= 1 + 0.025 * (1 - hairLift)
-            z += 0.035 * (1 - hairLift)
+          const eyeSocket =
+            gaussian(x, y, -0.34, 0.28, 0.19, 0.15) +
+            gaussian(x, y, 0.34, 0.28, 0.19, 0.15)
+          z -= 0.09 * eyeSocket * frontMask
+
+          const brow =
+            gaussian(x, y, -0.34, 0.47, 0.23, 0.1) +
+            gaussian(x, y, 0.34, 0.47, 0.23, 0.1)
+          z += 0.042 * brow * frontMask
+
+          const bridge = gaussian(x, y, 0, 0.23, 0.11, 0.42)
+          const noseTip = gaussian(x, y, 0, -0.08, 0.145, 0.15)
+          const noseBase = gaussian(x, y, 0, -0.22, 0.21, 0.1)
+          z += (0.205 * bridge + 0.27 * noseTip + 0.055 * noseBase) * frontMask
+
+          const philtrum = gaussian(x, y, 0, -0.35, 0.105, 0.11)
+          z -= 0.018 * philtrum * frontMask
+
+          const upperLip = gaussian(x, y, 0, -0.46, 0.25, 0.075)
+          const lowerLip = gaussian(x, y, 0, -0.55, 0.26, 0.085)
+          z += (0.038 * upperLip + 0.052 * lowerLip) * frontMask
+
+          const chin = gaussian(x, y, 0, -0.88, 0.34, 0.22)
+          z += 0.075 * chin * frontMask
+
+          const forehead = gaussian(x, y, 0, 0.78, 0.55, 0.42)
+          z += 0.025 * forehead * frontMask
+
+          z -= 0.02 * sideMask * clamp((y + 0.1) / 1.5, 0, 1)
+
+          if (y > 0.9) {
+            const hair = smoothstep((y - 0.9) / 0.62)
+            x *= 1 + 0.035 * (1 - hair)
+            z += 0.055 * (1 - hair)
           }
 
           return new THREE.Vector3(x, y, z)
+        }
+
+        const fallbackColor = (y, frontness) => {
+          if (y > 0.82) return [0.31, 0.22, 0.16]
+          if (y < -1.18) return [0.73, 0.69, 0.65]
+          return [0.7 + 0.03 * frontness, 0.5 + 0.02 * frontness, 0.42]
+        }
+
+        const looksLikeBackground = (rgb, y) => {
+          const [r, g, b] = rgb
+          const max = Math.max(r, g, b)
+          const min = Math.min(r, g, b)
+          const saturation = max - min
+          if (g > r * 1.13 && g > b * 1.08) return true
+          if (b > r * 1.2 && b > g * 1.08 && max > 0.55) return true
+          if (saturation < 0.035 && max > 0.9 && y > -1.1) return true
+          return false
         }
 
         const geometry = new THREE.BufferGeometry()
@@ -253,40 +317,57 @@ const {
           return seed / 4294967296
         }
 
-        const rows = 118
-        const sides = 164
+        const rows = 142
+        const sides = 176
 
         for (let yi = 0; yi <= rows; yi += 1) {
-          const y = lerp(-1.34, 1.42, yi / rows)
+          const y = lerp(-1.52, 1.57, yi / rows)
           for (let ai = 0; ai < sides; ai += 1) {
-            if (random() < 0.025) continue
+            if (random() < 0.035) continue
+
             const angle = (ai / sides) * Math.PI * 2
-            const point = surfacePoint(y, angle)
             const sin = Math.sin(angle)
             const cos = Math.cos(angle)
+            const point = surfacePoint(y, angle)
 
-            const jitter = 0.0022
+            const jitter = sin > -0.15 ? 0.0022 : 0.003
             point.x += (random() - 0.5) * jitter
             point.y += (random() - 0.5) * jitter
             point.z += (random() - 0.5) * jitter
 
-            const frontU = 0.49 + (point.x / Math.max(0.2, widthAt(y))) * 0.39
-            const imageV = 0.04 + ((1.42 - y) / 2.76) * 0.9
-            const sideUBase = 0.52 - (point.z / Math.max(0.2, depthAt(y))) * 0.39
-            const sideU = cos >= 0 ? sideUBase : 1 - sideUBase
+            const normalizedX = point.x / Math.max(0.12, widthAt(y))
+            const normalizedZ = point.z / Math.max(0.12, depthAt(y))
 
-            const frontRgb = sampleFront(frontU, imageV)
-            const sideRgb = sampleSide(sideU, imageV)
-            const frontWeight = clamp((sin + 0.18) / 1.05, 0, 1) ** 1.6
-            const sideWeight = 1 - frontWeight
-            const backFade = sin < -0.3 ? 0.72 : 1
+            const frontU = 0.49 + normalizedX * 0.43
+            const imageV = 0.015 + ((1.57 - y) / 3.09) * 0.965
+            const sideURight = 0.48 - normalizedZ * 0.38
+            const sideU = cos >= 0 ? sideURight : 1 - sideURight
 
-            const r = (frontRgb[0] * frontWeight + sideRgb[0] * sideWeight) * backFade
-            const g = (frontRgb[1] * frontWeight + sideRgb[1] * sideWeight) * backFade
-            const b = (frontRgb[2] * frontWeight + sideRgb[2] * sideWeight) * backFade
+            let frontRgb = sampleFront(frontU, imageV)
+            let sideRgb = sampleSide(sideU, imageV)
+            const frontWeight = smoothstep((sin + 0.12) / 0.88)
+            const fallback = fallbackColor(y, frontWeight)
+
+            if (looksLikeBackground(frontRgb, y)) frontRgb = fallback
+            if (looksLikeBackground(sideRgb, y)) sideRgb = fallback
+
+            let r = frontRgb[0] * frontWeight + sideRgb[0] * (1 - frontWeight)
+            let g = frontRgb[1] * frontWeight + sideRgb[1] * (1 - frontWeight)
+            let b = frontRgb[2] * frontWeight + sideRgb[2] * (1 - frontWeight)
+
+            if (sin < -0.22) {
+              const fade = lerp(1, 0.76, smoothstep((-sin - 0.22) / 0.78))
+              r *= fade
+              g *= fade
+              b *= fade
+            }
 
             positions.push(point.x, point.y, point.z)
-            colors.push(clamp(r, 0, 1), clamp(g, 0, 1), clamp(b, 0, 1))
+            colors.push(
+              srgbToLinear(clamp(r, 0, 1)),
+              srgbToLinear(clamp(g, 0, 1)),
+              srgbToLinear(clamp(b, 0, 1))
+            )
           }
         }
 
@@ -297,21 +378,23 @@ const {
         pointTextureCanvas.width = pointTextureCanvas.height = 32
         const pointTextureContext = pointTextureCanvas.getContext('2d')
         if (pointTextureContext) {
-          pointTextureContext.fillStyle = '#ffffff'
+          pointTextureContext.clearRect(0, 0, 32, 32)
+          pointTextureContext.fillStyle = '#fff'
           pointTextureContext.beginPath()
-          pointTextureContext.arc(16, 16, 13, 0, Math.PI * 2)
+          pointTextureContext.arc(16, 16, 13.5, 0, Math.PI * 2)
           pointTextureContext.fill()
         }
         const pointTexture = new THREE.CanvasTexture(pointTextureCanvas)
 
         const material = new THREE.PointsMaterial({
-          size: 0.021,
+          size: 0.031,
           sizeAttenuation: true,
           vertexColors: true,
           map: pointTexture,
-          alphaTest: 0.25,
+          alphaTest: 0.18,
           transparent: true,
-          opacity: 0.96,
+          opacity: 1,
+          depthWrite: true,
         })
 
         const cloud = new THREE.Points(geometry, material)
