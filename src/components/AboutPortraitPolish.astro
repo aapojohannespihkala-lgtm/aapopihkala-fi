@@ -12,66 +12,87 @@
     overflow: visible;
   }
 
-  html body .about-portrait .meshy-point-surface__probe-cross {
-    position: static !important;
-    display: block !important;
-    width: auto !important;
-    height: auto !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    transform: none !important;
-    z-index: auto !important;
+  html body .about-portrait .meshy-point-surface__probe {
+    display: none !important;
   }
 
-  html body .about-portrait .meshy-point-surface__probe-cross::before,
-  html body .about-portrait .meshy-point-surface__probe-cross::after {
-    content: '' !important;
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    background: currentColor !important;
-    opacity: 1 !important;
-    transform: translate(-50%, -50%) !important;
-    z-index: auto !important;
+  html body .about-portrait .about-cursor-probe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 8;
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+    color: var(--moss-deep);
+    opacity: 0;
+    transform: translate(-9px, -9px);
+    transition: opacity 90ms ease;
   }
 
-  html body .about-portrait .meshy-point-surface__probe-cross::before {
-    width: 18px !important;
-    height: 1px !important;
+  html body .about-portrait .about-cursor-probe.is-visible {
+    opacity: 0.84;
   }
 
-  html body .about-portrait .meshy-point-surface__probe-cross::after {
-    width: 1px !important;
-    height: 18px !important;
+  html body .about-portrait .about-cursor-probe__cross::before,
+  html body .about-portrait .about-cursor-probe__cross::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    background: currentColor;
+    transform: translate(-50%, -50%);
   }
 
-  html body .about-portrait .meshy-point-surface__probe-label,
-  html body .about-portrait .meshy-point-surface__probe.is-left .meshy-point-surface__probe-label,
-  html body .about-portrait .meshy-point-surface__probe.is-up .meshy-point-surface__probe-label,
-  html body .about-portrait .meshy-point-surface__probe.is-left.is-up .meshy-point-surface__probe-label {
-    left: 15px !important;
-    top: 12px !important;
-    right: auto !important;
-    bottom: auto !important;
-    display: grid !important;
-    gap: 3px !important;
-    min-width: max-content !important;
-    padding: 3px 5px !important;
-    border: 1px solid var(--line-soft) !important;
-    background: rgba(255, 255, 255, 0.9) !important;
-    color: var(--moss-deep) !important;
-    font-size: 0.47rem !important;
-    font-weight: 500 !important;
-    line-height: 1 !important;
-    letter-spacing: 0.05em !important;
+  html body .about-portrait .about-cursor-probe__cross::before {
+    width: 18px;
+    height: 1px;
   }
 
-  html.site-night-mode body .about-portrait .meshy-point-surface__probe-label {
-    background: rgba(25, 34, 43, 0.96) !important;
-    border-color: rgba(167, 184, 193, 0.34) !important;
-    color: #eaf0f2 !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16) !important;
+  html body .about-portrait .about-cursor-probe__cross::after {
+    width: 1px;
+    height: 18px;
+  }
+
+  html body .about-portrait .about-cursor-probe__label {
+    position: absolute;
+    left: 15px;
+    top: 12px;
+    display: grid;
+    gap: 3px;
+    min-width: max-content;
+    padding: 3px 5px;
+    border: 1px solid var(--line-soft);
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--moss-deep);
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.47rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+
+  html body .about-portrait .about-cursor-probe__secondary {
+    color: var(--stone);
+  }
+
+  html.site-night-mode body .about-portrait .about-cursor-probe__label {
+    background: rgba(25, 34, 43, 0.96);
+    border-color: rgba(167, 184, 193, 0.34);
+    color: #eaf0f2;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  }
+
+  html.site-night-mode body .about-portrait .about-cursor-probe__secondary {
+    color: #bdc9cf;
   }
 
   html body .about-portrait .about-portrait__voice {
@@ -133,6 +154,10 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    html body .about-portrait .about-cursor-probe {
+      transition: none;
+    }
+
     html body .about-portrait .about-portrait__voice-status.is-blinking,
     html body .about-portrait .about-portrait__voice-line.is-rolling {
       animation: none !important;
@@ -142,6 +167,94 @@
 
 <script is:inline>
   (() => {
+    const initializeAboutProbe = () => {
+      const models = document.querySelectorAll('.about-portrait [data-meshy-point-surface]');
+      const finePointer = window.matchMedia('(pointer: fine) and (hover: hover)');
+      if (!finePointer.matches) return;
+
+      models.forEach((model) => {
+        if (!(model instanceof HTMLElement)) return;
+        if (model.dataset.aboutCursorProbeInitialized === 'true') return;
+        model.dataset.aboutCursorProbeInitialized = 'true';
+
+        const sourceProbe = model.querySelector('[data-meshy-surface-probe]');
+        const sourcePrimary = model.querySelector('[data-meshy-surface-probe-primary]');
+        const sourceSecondary = model.querySelector('[data-meshy-surface-probe-secondary]');
+
+        const probe = document.createElement('span');
+        probe.className = 'about-cursor-probe';
+        probe.setAttribute('aria-hidden', 'true');
+        probe.innerHTML = `
+          <span class="about-cursor-probe__cross"></span>
+          <span class="about-cursor-probe__label">
+            <span data-about-cursor-primary>SURFACE / -----</span>
+            <span class="about-cursor-probe__secondary" data-about-cursor-secondary>XYZ -- / -- / --</span>
+          </span>
+        `;
+        model.append(probe);
+
+        const primary = probe.querySelector('[data-about-cursor-primary]');
+        const secondary = probe.querySelector('[data-about-cursor-secondary]');
+        if (!(primary instanceof HTMLElement) || !(secondary instanceof HTMLElement)) return;
+
+        const syncSourceText = () => {
+          if (
+            sourceProbe instanceof HTMLElement &&
+            sourceProbe.classList.contains('is-visible') &&
+            sourcePrimary instanceof HTMLElement &&
+            sourceSecondary instanceof HTMLElement
+          ) {
+            primary.textContent = sourcePrimary.textContent?.trim() || 'SURFACE / -----';
+            secondary.textContent = sourceSecondary.textContent?.trim() || 'XYZ -- / -- / --';
+            return;
+          }
+
+          primary.textContent = 'SURFACE / -----';
+          secondary.textContent = 'XYZ -- / -- / --';
+        };
+
+        const positionProbe = (event) => {
+          const rect = model.getBoundingClientRect();
+          const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+          const y = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+          probe.style.left = `${Math.round(x)}px`;
+          probe.style.top = `${Math.round(y)}px`;
+        };
+
+        const updateProbe = (event) => {
+          positionProbe(event);
+          window.requestAnimationFrame(syncSourceText);
+        };
+
+        model.addEventListener('pointerenter', (event) => {
+          updateProbe(event);
+          probe.classList.add('is-visible');
+        });
+
+        model.addEventListener(
+          'pointermove',
+          (event) => {
+            updateProbe(event);
+            probe.classList.add('is-visible');
+          },
+          { passive: true }
+        );
+
+        model.addEventListener('pointerleave', () => {
+          probe.classList.remove('is-visible');
+        });
+
+        model.addEventListener('pointerdown', (event) => {
+          updateProbe(event);
+          probe.classList.add('is-visible');
+        });
+
+        model.addEventListener('pointerup', (event) => {
+          updateProbe(event);
+        });
+      });
+    };
+
     const initializeVoicePolish = () => {
       const frames = document.querySelectorAll('[data-about-portrait-frame]');
 
@@ -290,10 +403,15 @@
       });
     };
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeVoicePolish, { once: true });
-    } else {
+    const initialize = () => {
+      initializeAboutProbe();
       initializeVoicePolish();
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initialize, { once: true });
+    } else {
+      initialize();
     }
   })();
 </script>
