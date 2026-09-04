@@ -1,0 +1,110 @@
+---
+import type { SiteLanguage } from '../config/site';
+
+interface Props {
+  lang: SiteLanguage;
+}
+
+const { lang } = Astro.props;
+const href = lang === 'fi' ? '/about/' : '/en/about/';
+const label = lang === 'fi' ? 'Tietoa minusta' : 'About me';
+---
+
+<section class="homepage-about-link" data-homepage-about-link>
+  <a class="homepage-about-link__row" href={href} aria-label={label}>
+    <span class="homepage-about-link__index">ABOUT / 01</span>
+    <span class="homepage-about-link__action">PROFILE SCAN / OPEN ↗</span>
+  </a>
+</section>
+
+<style>
+  .homepage-about-link {
+    position: relative;
+    margin: clamp(34px, 6vw, 78px) 0 clamp(54px, 8vw, 108px);
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .homepage-about-link__row {
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .homepage-about-link__index,
+  .homepage-about-link__action {
+    font-family:
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    font-size: 0.54rem;
+    line-height: 1;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    transition:
+      color 140ms ease,
+      transform 140ms ease;
+  }
+
+  .homepage-about-link__index {
+    color: var(--moss-deep);
+    font-weight: 600;
+  }
+
+  .homepage-about-link__action {
+    color: var(--stone);
+    text-align: right;
+  }
+
+  .homepage-about-link__row:hover .homepage-about-link__index,
+  .homepage-about-link__row:focus-visible .homepage-about-link__index {
+    color: var(--ink);
+  }
+
+  .homepage-about-link__row:hover .homepage-about-link__action,
+  .homepage-about-link__row:focus-visible .homepage-about-link__action {
+    color: var(--moss-deep);
+    transform: translateX(2px);
+  }
+
+  .homepage-about-link__row:focus-visible {
+    outline: 1px solid var(--lichen);
+    outline-offset: 5px;
+  }
+
+  @media (max-width: 560px) {
+    .homepage-about-link {
+      margin-top: 28px;
+      margin-bottom: 66px;
+    }
+
+    .homepage-about-link__row {
+      min-height: 54px;
+    }
+
+    .homepage-about-link__index,
+    .homepage-about-link__action {
+      font-size: 0.5rem;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const linkSection = document.querySelector('[data-homepage-about-link]')
+    const feed = document.querySelector('.main-container > .feed')
+
+    if (!linkSection || !feed) return
+    if (linkSection.dataset.homepageAboutLinkMounted === 'true') return
+
+    linkSection.dataset.homepageAboutLinkMounted = 'true'
+    feed.before(linkSection)
+  })()
+</script>
