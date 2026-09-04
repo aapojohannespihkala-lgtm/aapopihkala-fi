@@ -1,0 +1,205 @@
+---
+import type { SiteLanguage } from '../config/site';
+
+interface Props {
+  lang: SiteLanguage;
+}
+
+const { lang } = Astro.props;
+
+const labels = lang === 'fi'
+  ? {
+      about: 'Siirry About-osioon',
+      articles: 'Siirry artikkeleihin',
+      top: 'Takaisin sivun alkuun',
+    }
+  : {
+      about: 'Scroll to About',
+      articles: 'Scroll to articles',
+      top: 'Back to top',
+    };
+---
+
+<div
+  class="homepage-section-navigator-source"
+  data-homepage-section-navigator
+  data-label-about={labels.about}
+  data-label-articles={labels.articles}
+  data-label-top={labels.top}
+  aria-hidden="true"
+></div>
+
+<style is:global>
+  .homepage-section-navigator-source {
+    display: none;
+  }
+
+  .homepage-section-nav-button {
+    position: absolute;
+    left: 50%;
+    z-index: 18;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--stone-light);
+    opacity: 0.62;
+    cursor: pointer;
+    transform: translateX(-50%);
+    transition:
+      color 150ms ease,
+      opacity 150ms ease,
+      transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .homepage-section-nav-button:hover,
+  .homepage-section-nav-button:focus-visible {
+    color: var(--moss-deep);
+    opacity: 0.94;
+  }
+
+  .homepage-section-nav-button:hover {
+    transform: translate(-50%, 2px);
+  }
+
+  .homepage-section-nav-button:focus-visible {
+    outline: 1px solid var(--lichen);
+    outline-offset: 3px;
+  }
+
+  .homepage-section-nav-button svg {
+    width: 24px;
+    height: 24px;
+    overflow: visible;
+  }
+
+  .homepage-section-nav-button line,
+  .homepage-section-nav-button polyline {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    stroke-linecap: butt;
+    stroke-linejoin: miter;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .homepage-section-nav-button .homepage-section-nav-button__datum {
+    opacity: 0.48;
+  }
+
+  .hero > .homepage-section-nav-button {
+    bottom: clamp(13px, 1.8vh, 20px);
+  }
+
+  .homepage-about-embed > .homepage-section-nav-button {
+    bottom: clamp(20px, 2.6vh, 30px);
+  }
+
+  .homepage-about-embed,
+  .main-container > .feed {
+    scroll-margin-top: 76px;
+  }
+
+  .homepage-back-to-top {
+    position: relative;
+    width: 100%;
+    min-height: 88px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 24px;
+  }
+
+  .homepage-back-to-top .homepage-section-nav-button {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+  }
+
+  .homepage-back-to-top .homepage-section-nav-button:hover {
+    transform: translateY(-2px);
+  }
+
+  .homepage-back-to-top .homepage-section-nav-button svg {
+    transform: rotate(180deg);
+  }
+
+  @media (max-width: 800px) {
+    .homepage-section-nav-button,
+    .homepage-back-to-top {
+      display: none !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .homepage-section-nav-button {
+      transition: none;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const source = document.querySelector('[data-homepage-section-navigator]')
+    if (!(source instanceof HTMLElement)) return
+    if (source.dataset.initialized === 'true') return
+    source.dataset.initialized = 'true'
+
+    const makeButton = (label, action) => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'homepage-section-nav-button'
+      button.setAttribute('aria-label', label)
+      button.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <line class="homepage-section-nav-button__datum" x1="8" y1="5" x2="16" y2="5"></line>
+          <line x1="12" y1="4" x2="12" y2="18"></line>
+          <polyline points="7.5,13.5 12,18 16.5,13.5"></polyline>
+        </svg>
+      `
+      button.addEventListener('click', action)
+      return button
+    }
+
+    const getScrollBehavior = () =>
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+
+    const initialize = () => {
+      const hero = document.querySelector('.main-container > .hero')
+      const about = document.querySelector('[data-homepage-about-embed]')
+      const feed = document.querySelector('.main-container > .feed')
+
+      if (!(hero instanceof HTMLElement) || !(about instanceof HTMLElement) || !(feed instanceof HTMLElement)) {
+        window.requestAnimationFrame(initialize)
+        return
+      }
+
+      if (hero.dataset.sectionNavMounted === 'true') return
+      hero.dataset.sectionNavMounted = 'true'
+
+      const aboutButton = makeButton(source.dataset.labelAbout || 'About', () => {
+        about.scrollIntoView({ behavior: getScrollBehavior(), block: 'start' })
+      })
+      hero.append(aboutButton)
+
+      const articlesButton = makeButton(source.dataset.labelArticles || 'Articles', () => {
+        feed.scrollIntoView({ behavior: getScrollBehavior(), block: 'start' })
+      })
+      about.append(articlesButton)
+
+      const topWrap = document.createElement('div')
+      topWrap.className = 'homepage-back-to-top'
+      const topButton = makeButton(source.dataset.labelTop || 'Back to top', () => {
+        window.scrollTo({ top: 0, behavior: getScrollBehavior() })
+      })
+      topWrap.append(topButton)
+      feed.after(topWrap)
+    }
+
+    initialize()
+  })()
+</script>
