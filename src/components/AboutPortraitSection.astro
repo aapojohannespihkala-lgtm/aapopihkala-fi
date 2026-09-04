@@ -21,7 +21,7 @@ const content = {
     fieldValue: 'Esittely / TBD',
     modelLabel: 'MODEL',
     modelValue: 'Pistepilvi / 3D',
-    hint: 'Vedä pyörittääksesi · rullaa zoomataksesi',
+    hint: 'Vedä pyörittääksesi',
   },
   en: {
     index: 'ABOUT / DRAFT 01',
@@ -35,7 +35,7 @@ const content = {
     fieldValue: 'About / TBD',
     modelLabel: 'MODEL',
     modelValue: 'Point cloud / 3D',
-    hint: 'Drag to rotate · scroll to zoom',
+    hint: 'Drag to rotate',
   },
 } as const;
 
@@ -83,7 +83,15 @@ const t = content[lang];
         <span class="about-portrait__axis about-portrait__axis--y" aria-hidden="true"></span>
 
         <div class="about-portrait__viewport">
-          <MeshyPixelatedPoiseVol4 />
+          <MeshyPixelatedPoiseVol4
+            enableZoom={false}
+            enablePan={false}
+            cameraX={0}
+            cameraFov={24}
+            cameraDistance={3.4}
+            cameraHeight={0.28}
+            targetY={0.14}
+          />
         </div>
 
         <div class="about-portrait__frame-meta" aria-hidden="true">
@@ -232,7 +240,7 @@ const t = content[lang];
 
   .about-portrait__viewport {
     position: absolute;
-    inset: 22px;
+    inset: 30px;
   }
 
   .about-portrait__viewport :global(.meshy-point-surface) {
@@ -360,7 +368,7 @@ const t = content[lang];
     }
 
     .about-portrait__viewport {
-      inset: 10px;
+      inset: 14px;
     }
 
     .about-portrait__frame-meta {
