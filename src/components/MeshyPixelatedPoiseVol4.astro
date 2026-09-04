@@ -2,21 +2,27 @@
 interface Props {
   enableZoom?: boolean;
   enablePan?: boolean;
+  enableIdleMotion?: boolean;
   cameraX?: number;
   cameraDistance?: number;
   cameraHeight?: number;
   cameraFov?: number;
   targetY?: number;
+  idleYawRange?: number;
+  idlePitchRange?: number;
 }
 
 const {
   enableZoom = true,
   enablePan = true,
+  enableIdleMotion = false,
   cameraX = 1.65,
   cameraDistance = 2.05,
   cameraHeight = 0.85,
   cameraFov = 36,
   targetY = 0,
+  idleYawRange = 10,
+  idlePitchRange = 4,
 } = Astro.props;
 ---
 
@@ -25,11 +31,14 @@ const {
   data-meshy-point-surface
   data-enable-zoom={enableZoom ? 'true' : 'false'}
   data-enable-pan={enablePan ? 'true' : 'false'}
+  data-enable-idle-motion={enableIdleMotion ? 'true' : 'false'}
   data-camera-x={String(cameraX)}
   data-camera-distance={String(cameraDistance)}
   data-camera-height={String(cameraHeight)}
   data-camera-fov={String(cameraFov)}
   data-target-y={String(targetY)}
+  data-idle-yaw-range={String(idleYawRange)}
+  data-idle-pitch-range={String(idlePitchRange)}
   aria-label="Pyöriteltävä Meshy-pistepinta vol 4"
 >
   <canvas class="meshy-point-surface__canvas" data-meshy-point-surface-canvas></canvas>
@@ -130,11 +139,14 @@ const {
 
       const enableZoom = root.dataset.enableZoom !== 'false';
       const enablePan = root.dataset.enablePan !== 'false';
+      const wantsIdleMotion = root.dataset.enableIdleMotion === 'true';
       const cameraX = Number(root.dataset.cameraX ?? '1.65');
       const cameraDistance = Number(root.dataset.cameraDistance ?? '2.05');
       const cameraHeight = Number(root.dataset.cameraHeight ?? '0.85');
       const cameraFov = Number(root.dataset.cameraFov ?? '36');
       const targetY = Number(root.dataset.targetY ?? '0');
+      const idleYawRange = Number(root.dataset.idleYawRange ?? '10');
+      const idlePitchRange = Number(root.dataset.idlePitchRange ?? '4');
 
       try {
         const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm');
@@ -147,6 +159,9 @@ const {
         const { MeshSurfaceSampler } = await import(
           'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/math/MeshSurfaceSampler.js/+esm'
         );
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const enableIdleMotion = wantsIdleMotion && !reducedMotion;
 
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -161,6 +176,102 @@ const {
         controls.enablePan = enablePan;
         controls.enableZoom = enableZoom;
         controls.target.set(0, 0, 0);
+
+        const idleSpherical = new THREE.Spherical();
+        const idleVector = new THREE.Vector3();
+        const idleResumeDelay = 4300;
+        const idleMinDuration = 4800;
+        const idleMaxDuration = 7800;
+        const yawRangeRadians = THREE.MathUtils.degToRad(Math.max(0, idleYawRange));
+        const pitchRangeRadians = THREE.MathUtils.degToRad(Math.max(0, idlePitchRange));
+        let idleReady = false;
+        let idleInteracting = false;
+        let idleNeedsRecenter = true;
+        let idleResumeAt = 0;
+        let idleCenterTheta = 0;
+        let idleCenterPhi = Math.PI * 0.5;
+        let idleFromTheta = 0;
+        let idleFromPhi = Math.PI * 0.5;
+        let idleToTheta = 0;
+        let idleToPhi = Math.PI * 0.5;
+        let idleSegmentStart = 0;
+        let idleSegmentDuration = 6000;
+
+        const randomBetween = (min, max) => min + Math.random() * (max - min);
+
+        const readCameraSpherical = () => {
+          idleVector.copy(camera.position).sub(controls.target);
+          idleSpherical.setFromVector3(idleVector);
+          return idleSpherical;
+        };
+
+        const recenterIdleMotion = () => {
+          const spherical = readCameraSpherical();
+          idleCenterTheta = spherical.theta;
+          idleCenterPhi = spherical.phi;
+          idleFromTheta = spherical.theta;
+          idleFromPhi = spherical.phi;
+          idleToTheta = spherical.theta;
+          idleToPhi = spherical.phi;
+          idleNeedsRecenter = false;
+        };
+
+        const planIdleSegment = (now) => {
+          const spherical = readCameraSpherical();
+          idleFromTheta = spherical.theta;
+          idleFromPhi = spherical.phi;
+
+          const yawScale = randomBetween(0.36, 1);
+          const pitchScale = randomBetween(0.28, 1);
+          const yawOffset = randomBetween(-yawRangeRadians, yawRangeRadians) * yawScale;
+          const pitchOffset = randomBetween(-pitchRangeRadians, pitchRangeRadians) * pitchScale;
+
+          idleToTheta = idleCenterTheta + yawOffset;
+          idleToPhi = THREE.MathUtils.clamp(
+            idleCenterPhi + pitchOffset,
+            THREE.MathUtils.degToRad(22),
+            THREE.MathUtils.degToRad(158)
+          );
+          idleSegmentStart = now;
+          idleSegmentDuration = randomBetween(idleMinDuration, idleMaxDuration);
+        };
+
+        const applyIdleMotion = (now) => {
+          if (!enableIdleMotion || !idleReady || idleInteracting || now < idleResumeAt) return;
+
+          if (idleNeedsRecenter) {
+            recenterIdleMotion();
+            planIdleSegment(now);
+          }
+
+          let progress = (now - idleSegmentStart) / idleSegmentDuration;
+          if (progress >= 1) {
+            planIdleSegment(now);
+            progress = 0;
+          }
+
+          const eased = 0.5 - Math.cos(Math.PI * THREE.MathUtils.clamp(progress, 0, 1)) * 0.5;
+          const theta = THREE.MathUtils.lerp(idleFromTheta, idleToTheta, eased);
+          const phi = THREE.MathUtils.lerp(idleFromPhi, idleToPhi, eased);
+          const radius = camera.position.distanceTo(controls.target);
+
+          idleSpherical.set(radius, phi, theta);
+          idleVector.setFromSpherical(idleSpherical);
+          camera.position.copy(controls.target).add(idleVector);
+          camera.lookAt(controls.target);
+        };
+
+        controls.addEventListener('start', () => {
+          if (!enableIdleMotion) return;
+          idleInteracting = true;
+        });
+
+        controls.addEventListener('end', () => {
+          if (!enableIdleMotion) return;
+          idleInteracting = false;
+          idleNeedsRecenter = true;
+          idleResumeAt = performance.now() + idleResumeDelay;
+        });
 
         const loader = new GLTFLoader();
         loader.load(
@@ -329,6 +440,12 @@ const {
             lastCameraPosition.copy(camera.position);
             lastCameraQuaternion.copy(camera.quaternion);
 
+            if (enableIdleMotion) {
+              idleReady = true;
+              idleResumeAt = performance.now() + 900;
+              idleNeedsRecenter = true;
+            }
+
             root.__meshyPointSurfaceTick = () => {
               const moved = lastCameraPosition.distanceToSquared(camera.position) > 0.000001;
               const turned = 1 - Math.abs(lastCameraQuaternion.dot(camera.quaternion)) > 0.000001;
@@ -359,7 +476,8 @@ const {
         observer.observe(root);
         resize();
 
-        const animate = () => {
+        const animate = (now = performance.now()) => {
+          applyIdleMotion(now);
           controls.update();
           if (typeof root.__meshyPointSurfaceTick === 'function') root.__meshyPointSurfaceTick();
           renderer.render(scene, camera);
