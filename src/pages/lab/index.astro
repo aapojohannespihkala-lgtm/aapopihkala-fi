@@ -6,8 +6,6 @@ import PointTree from '../../components/PointTree.astro';
 import PointTreeStudy from '../../components/PointTreeStudy.astro';
 import TreeField from '../../components/TreeField.astro';
 import PointBee from '../../components/PointBee.astro';
-import StormwaterCatchment from '../../components/StormwaterCatchment.astro';
-import RootNetwork from '../../components/RootNetwork.astro';
 import WaterDropMorph from '../../components/WaterDropMorph.astro';
 import RiverFlow from '../../components/RiverFlow.astro';
 import AccessibilityStep from '../../components/AccessibilityStep.astro';
@@ -416,38 +414,28 @@ import MeshyPixelatedPoiseVol10 from '../../components/MeshyPixelatedPoiseVol10.
           <footer class="experiment-footer"><p>Pistepilvenä rakennettu mehiläinen, jossa vartalo, raidat ja läpikuultavat siivet muodostavat kevyen kolmiulotteisen hyönteistutkielman.</p><p>Auto-rotate · zoom · wing buzz · point cloud</p></footer>
         </article>
 
-        <article class="experiment">
-          <header class="experiment-header"><div><p class="experiment-index">05</p><h2>Stormwater catchment</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
-          <div class="experiment-stage"><div class="experiment-viewport"><StormwaterCatchment /></div></div>
-          <footer class="experiment-footer"><p>Hulevesien valuma-aluetta kuvaava pistepilvimalli, jossa sade, virtausreitit, painanne ja ylivuoto muodostavat yhden liikkuvan järjestelmän.</p><p>Auto-rotate · zoom · rain · flow · basin</p></footer>
-        </article>
+
 
         <article class="experiment">
-          <header class="experiment-header"><div><p class="experiment-index">06</p><h2>Root network</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
-          <div class="experiment-stage experiment-stage--root-network"><div class="experiment-viewport experiment-viewport--root-network"><RootNetwork /></div></div>
-          <footer class="experiment-footer"><p>Maanalaista juuriverkostoa tutkiva kolmiulotteinen malli, jossa pääjuuret, hienojuuret, kasvualusta ja kosteuden liike muodostavat yhden järjestelmän.</p><p>Auto-rotate · zoom · roots · soil · moisture pulse</p></footer>
-        </article>
-
-        <article class="experiment">
-          <header class="experiment-header"><div><p class="experiment-index">07</p><h2>Water drop</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <header class="experiment-header"><div><p class="experiment-index">05</p><h2>Water drop</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
           <div class="experiment-stage experiment-stage--waterdrop"><div class="experiment-viewport experiment-viewport--waterdrop"><WaterDropMorph /></div></div>
           <footer class="experiment-footer"><p>Pintajännityksen koossa pitämä leijuva vesipisara, jonka pistepinta väreilee hitaasti ja hienovaraisesti.</p><p>Auto-rotate · zoom · surface tension · surface waves</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header"><div><p class="experiment-index">08</p><h2>River flow</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <header class="experiment-header"><div><p class="experiment-index">06</p><h2>River flow</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
           <div class="experiment-stage experiment-stage--river-flow"><div class="experiment-viewport experiment-viewport--river-flow"><RiverFlow /></div></div>
           <footer class="experiment-footer"><p>Mutkitteleva pistepinta toimii itse vetenä. Pinnassa kulkevat aallot ja niiden mukana jatkuvasti muovautuvat korkeuskäyrät tekevät virtauksen näkyväksi.</p><p>Auto-rotate · zoom · water surface · moving contours · flow</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header"><div><p class="experiment-index">09</p><h2>Accessibility step</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <header class="experiment-header"><div><p class="experiment-index">07</p><h2>Accessibility step</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
           <div class="experiment-stage"><div class="experiment-viewport"><AccessibilityStep /></div></div>
           <footer class="experiment-footer"><p>Pieni porras muuntuu hitaasti luiskaksi ja takaisin. Sama tasoero vaihtuu esteestä kuljettavaksi reitiksi yhdellä geometrisella eleellä.</p><p>Auto-rotate · zoom · step · ramp · morph</p></footer>
         </article>
 
         <article class="experiment">
-          <header class="experiment-header"><div><p class="experiment-index">10</p><h2>Segmented ring</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
+          <header class="experiment-header"><div><p class="experiment-index">08</p><h2>Segmented ring</h2></div><p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p></header>
           <div class="experiment-stage experiment-stage--segmented-ring"><div class="experiment-viewport experiment-viewport--segmented-ring"><SegmentedRing /></div></div>
           <footer class="experiment-footer"><p>Kuvan kaksiosainen rengas on rakennettu paksuksi kolmiulotteiseksi muodoksi. Kaksi vastakkaista katkosta pysyvät mukana, kun rengas kiertyy hitaasti tilassa.</p><p>Auto-rotate · zoom · segmented ring · continuous rotation</p></footer>
         </article>
@@ -560,11 +548,9 @@ import MeshyPixelatedPoiseVol10 from '../../components/MeshyPixelatedPoiseVol10.
   .experiment-viewport--butterfly, .experiment-viewport--bee { height: clamp(440px, 52vw, 620px); }
 
   .experiment-stage--tree,
-  .experiment-stage--root-network,
   .experiment-stage--river-flow { min-height: 540px; }
 
   .experiment-viewport--tree,
-  .experiment-viewport--root-network,
   .experiment-viewport--river-flow { height: clamp(480px, 56vw, 660px); }
 
   .experiment-stage--waterdrop, .experiment-stage--segmented-ring { min-height: 500px; }
@@ -607,7 +593,6 @@ import MeshyPixelatedPoiseVol10 from '../../components/MeshyPixelatedPoiseVol10.
     .experiment-stage--butterfly,
     .experiment-stage--bee,
     .experiment-stage--tree,
-    .experiment-stage--root-network,
     .experiment-stage--waterdrop,
     .experiment-stage--river-flow,
     .experiment-stage--segmented-ring { min-height: 390px; padding: 18px 0; }
@@ -619,7 +604,6 @@ import MeshyPixelatedPoiseVol10 from '../../components/MeshyPixelatedPoiseVol10.
     .experiment-viewport--butterfly,
     .experiment-viewport--bee,
     .experiment-viewport--tree,
-    .experiment-viewport--root-network,
     .experiment-viewport--waterdrop,
     .experiment-viewport--river-flow,
     .experiment-viewport--segmented-ring { width: 100%; height: 390px; }
