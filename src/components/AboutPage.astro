@@ -6,6 +6,7 @@ import SiteHeader from './SiteHeader.astro';
 import NightModeToggle from './NightModeToggle.astro';
 import AboutPortraitSection from './AboutPortraitSection.astro';
 import AboutPortraitPolish from './AboutPortraitPolish.astro';
+import AboutAxisMotion from './AboutAxisMotion.astro';
 import { site, type SiteLanguage } from '../config/site';
 
 interface Props {
@@ -105,6 +106,7 @@ const englishUrl = `${site.url}/en/about/`;
   <body>
     <SiteHeader lang={lang} languageHref={t.languageHref} />
     <AboutPortraitPolish />
+    <AboutAxisMotion />
 
     <main class="main-container about-page-shell">
       <a class="about-page-back" href={t.homeHref}>{t.back}</a>
