@@ -1,0 +1,102 @@
+<style is:global>
+  @media (hover: hover) and (pointer: fine) {
+    .about-portrait .meshy-point-surface--probe,
+    .about-portrait .meshy-point-surface--probe .meshy-point-surface__canvas,
+    .about-portrait .meshy-point-surface--probe:active,
+    .about-portrait .meshy-point-surface--probe:active .meshy-point-surface__canvas {
+      cursor: none !important;
+    }
+  }
+
+  .about-portrait .meshy-point-surface__probe-cross {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    transform: none !important;
+    z-index: auto !important;
+  }
+
+  .about-portrait .meshy-point-surface__probe-cross::before,
+  .about-portrait .meshy-point-surface__probe-cross::after {
+    content: '' !important;
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    background: currentColor !important;
+    opacity: 1 !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: auto !important;
+  }
+
+  .about-portrait .meshy-point-surface__probe-cross::before {
+    width: 18px !important;
+    height: 1px !important;
+  }
+
+  .about-portrait .meshy-point-surface__probe-cross::after {
+    width: 1px !important;
+    height: 18px !important;
+  }
+
+  .about-portrait .meshy-point-surface__probe-label,
+  .about-portrait .meshy-point-surface__probe.is-left .meshy-point-surface__probe-label,
+  .about-portrait .meshy-point-surface__probe.is-up .meshy-point-surface__probe-label {
+    left: 15px !important;
+    top: 12px !important;
+    right: auto !important;
+    bottom: auto !important;
+    display: grid !important;
+    gap: 3px !important;
+    min-width: max-content !important;
+    padding: 3px 5px !important;
+    border: 1px solid var(--line-soft) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: var(--moss-deep) !important;
+    font-size: 0.47rem !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  html.site-night-mode .about-portrait .meshy-point-surface__probe-label {
+    background: rgba(25, 34, 43, 0.96) !important;
+    border-color: rgba(167, 184, 193, 0.34) !important;
+    color: #eaf0f2 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16) !important;
+  }
+
+  .about-portrait .about-portrait__voice {
+    top: 9px !important;
+    right: 36px !important;
+    max-width: calc(100% - 72px) !important;
+    justify-items: end !important;
+    text-align: right !important;
+  }
+
+  .about-portrait .about-portrait__voice-status {
+    font-size: 0.38rem !important;
+    letter-spacing: 0.09em !important;
+  }
+
+  .about-portrait .about-portrait__voice-line {
+    max-width: 260px !important;
+    font-size: 0.46rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .about-portrait__frame.is-model-active .about-portrait__voice.is-visible {
+    transform: translate(-2px, 2px) !important;
+  }
+
+  @media (max-width: 640px) {
+    .about-portrait .about-portrait__voice {
+      top: 9px !important;
+      right: 34px !important;
+      max-width: calc(100% - 68px) !important;
+    }
+  }
+</style>
