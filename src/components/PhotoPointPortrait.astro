@@ -1,0 +1,382 @@
+---
+interface Props {
+  class?: string;
+  autoRotate?: boolean;
+  enableZoom?: boolean;
+  scale?: number;
+  cameraDistance?: number;
+}
+
+const {
+  class: className,
+  autoRotate = true,
+  enableZoom = true,
+  scale = 1,
+  cameraDistance = 6.4,
+} = Astro.props;
+---
+
+<div
+  class:list={['photo-point-portrait', className]}
+  data-photo-point-portrait
+  data-auto-rotate={autoRotate ? 'true' : 'false'}
+  data-enable-zoom={enableZoom ? 'true' : 'false'}
+  data-scale={scale}
+  data-camera-distance={cameraDistance}
+  role="img"
+  aria-label="Valokuva-aineistosta rakennettu pyöriteltävä 3D-pistepilvimuotokuva"
+>
+  <canvas class="photo-point-portrait__canvas" data-photo-point-portrait-canvas></canvas>
+  <span class="photo-point-portrait__status" data-photo-point-portrait-status>loading photo cloud</span>
+</div>
+
+<style>
+  .photo-point-portrait {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 320px;
+    overflow: hidden;
+    background: transparent;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .photo-point-portrait:active {
+    cursor: grabbing;
+  }
+
+  .photo-point-portrait__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+
+  .photo-point-portrait__status {
+    position: absolute;
+    left: 12px;
+    bottom: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--stone-light, #999);
+    transition: opacity 160ms ease;
+    pointer-events: none;
+  }
+
+  .photo-point-portrait[data-ready='true'] .photo-point-portrait__status {
+    opacity: 0;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const roots = document.querySelectorAll('[data-photo-point-portrait]')
+
+    roots.forEach(async (root) => {
+      if (root.dataset.photoPointPortraitInitialized === 'true') return
+      root.dataset.photoPointPortraitInitialized = 'true'
+
+      const canvas = root.querySelector('[data-photo-point-portrait-canvas]')
+      const status = root.querySelector('[data-photo-point-portrait-status]')
+      if (!canvas) return
+
+      try {
+        const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
+        const { OrbitControls } = await import(
+          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
+        )
+
+        const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
+        const lerp = (a, b, t) => a + (b - a) * t
+        const deg = (value) => THREE.MathUtils.degToRad(value)
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const wantsAutoRotate = root.dataset.autoRotate !== 'false'
+        const wantsZoom = root.dataset.enableZoom !== 'false'
+        const requestedScale = Number(root.dataset.scale ?? '1')
+        const requestedCameraDistance = Number(root.dataset.cameraDistance ?? '6.4')
+        const displayScale = Number.isFinite(requestedScale) ? requestedScale : 1
+        const cameraDistance = Number.isFinite(requestedCameraDistance)
+          ? requestedCameraDistance
+          : 6.4
+
+        const makeSampler = (src) =>
+          new Promise((resolve, reject) => {
+            const image = new Image()
+            image.decoding = 'async'
+            image.onload = () => {
+              const sampleCanvas = document.createElement('canvas')
+              sampleCanvas.width = 160
+              sampleCanvas.height = 200
+              const context = sampleCanvas.getContext('2d', { willReadFrequently: true })
+              if (!context) {
+                reject(new Error('2D canvas unavailable'))
+                return
+              }
+              context.drawImage(image, 0, 0, sampleCanvas.width, sampleCanvas.height)
+              const pixels = context.getImageData(0, 0, sampleCanvas.width, sampleCanvas.height).data
+              resolve((u, v) => {
+                const x = Math.round(clamp(u, 0, 1) * (sampleCanvas.width - 1))
+                const y = Math.round(clamp(v, 0, 1) * (sampleCanvas.height - 1))
+                const i = (y * sampleCanvas.width + x) * 4
+                return [pixels[i] / 255, pixels[i + 1] / 255, pixels[i + 2] / 255]
+              })
+            }
+            image.onerror = () => reject(new Error(`Failed to load ${src}`))
+            image.src = src
+          })
+
+        const [sampleFront, sampleSide] = await Promise.all([
+          makeSampler('/lab/portrait-front.jpg'),
+          makeSampler('/lab/portrait-side.jpg'),
+        ])
+
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: true,
+          alpha: true,
+          powerPreference: 'high-performance',
+        })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.45))
+        renderer.setClearColor(0xffffff, 0)
+        renderer.outputColorSpace = THREE.SRGBColorSpace
+
+        const scene = new THREE.Scene()
+        const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100)
+        camera.position.set(0, 0.02, cameraDistance)
+
+        const portrait = new THREE.Group()
+        portrait.position.y = -0.02
+        portrait.scale.setScalar(displayScale)
+        scene.add(portrait)
+
+        const controls = new OrbitControls(camera, renderer.domElement)
+        controls.enablePan = false
+        controls.enableZoom = wantsZoom
+        controls.minDistance = 4.8
+        controls.maxDistance = 9.2
+        controls.zoomSpeed = 0.5
+        controls.enableDamping = true
+        controls.dampingFactor = 0.06
+        controls.rotateSpeed = 0.5
+        controls.target.set(0, 0.02, 0)
+        controls.minAzimuthAngle = deg(-52)
+        controls.maxAzimuthAngle = deg(52)
+        controls.minPolarAngle = deg(73)
+        controls.maxPolarAngle = deg(107)
+        controls.autoRotate = wantsAutoRotate && !reducedMotion
+        controls.autoRotateSpeed = 0.18
+
+        const widthKeys = [
+          [-1.34, 0.34],
+          [-1.08, 0.56],
+          [-0.78, 0.7],
+          [-0.42, 0.79],
+          [-0.05, 0.84],
+          [0.38, 0.86],
+          [0.82, 0.88],
+          [1.16, 0.82],
+          [1.42, 0.58],
+        ]
+        const depthKeys = [
+          [-1.34, 0.32],
+          [-1.06, 0.48],
+          [-0.62, 0.59],
+          [-0.08, 0.67],
+          [0.48, 0.72],
+          [0.96, 0.71],
+          [1.28, 0.6],
+          [1.42, 0.42],
+        ]
+
+        const sampleCurve = (keys, y) => {
+          if (y <= keys[0][0]) return keys[0][1]
+          for (let i = 0; i < keys.length - 1; i += 1) {
+            const a = keys[i]
+            const b = keys[i + 1]
+            if (y <= b[0]) {
+              let t = clamp((y - a[0]) / (b[0] - a[0]), 0, 1)
+              t = t * t * (3 - 2 * t)
+              return lerp(a[1], b[1], t)
+            }
+          }
+          return keys[keys.length - 1][1]
+        }
+
+        const widthAt = (y) => sampleCurve(widthKeys, y)
+        const depthAt = (y) => sampleCurve(depthKeys, y)
+        const gaussian = (x, y, cx, cy, sx, sy) => {
+          const dx = (x - cx) / sx
+          const dy = (y - cy) / sy
+          return Math.exp(-0.5 * (dx * dx + dy * dy))
+        }
+
+        const surfacePoint = (y, angle) => {
+          const cos = Math.cos(angle)
+          const sin = Math.sin(angle)
+          const front = Math.max(0, sin)
+          const frontMask = front ** 2.1
+
+          let x = cos * widthAt(y)
+          let z = sin * depthAt(y)
+
+          z += 0.064 * (
+            gaussian(x, y, -0.41, -0.02, 0.22, 0.27) +
+            gaussian(x, y, 0.41, -0.02, 0.22, 0.27)
+          ) * frontMask
+          z -= 0.075 * (
+            gaussian(x, y, -0.34, 0.26, 0.19, 0.14) +
+            gaussian(x, y, 0.34, 0.26, 0.19, 0.14)
+          ) * frontMask
+          z += 0.18 * gaussian(x, y, 0, 0.2, 0.11, 0.38) * frontMask
+          z += 0.24 * gaussian(x, y, 0, -0.08, 0.14, 0.14) * frontMask
+          z += 0.06 * gaussian(x, y, 0, -0.82, 0.34, 0.21) * frontMask
+
+          if (y > 0.85) {
+            const hairLift = clamp((y - 0.85) / 0.57, 0, 1)
+            x *= 1 + 0.025 * (1 - hairLift)
+            z += 0.035 * (1 - hairLift)
+          }
+
+          return new THREE.Vector3(x, y, z)
+        }
+
+        const geometry = new THREE.BufferGeometry()
+        const positions = []
+        const colors = []
+        let seed = 19890417
+        const random = () => {
+          seed = (seed * 1664525 + 1013904223) >>> 0
+          return seed / 4294967296
+        }
+
+        const rows = 118
+        const sides = 164
+
+        for (let yi = 0; yi <= rows; yi += 1) {
+          const y = lerp(-1.34, 1.42, yi / rows)
+          for (let ai = 0; ai < sides; ai += 1) {
+            if (random() < 0.025) continue
+            const angle = (ai / sides) * Math.PI * 2
+            const point = surfacePoint(y, angle)
+            const sin = Math.sin(angle)
+            const cos = Math.cos(angle)
+
+            const jitter = 0.0022
+            point.x += (random() - 0.5) * jitter
+            point.y += (random() - 0.5) * jitter
+            point.z += (random() - 0.5) * jitter
+
+            const frontU = 0.49 + (point.x / Math.max(0.2, widthAt(y))) * 0.39
+            const imageV = 0.04 + ((1.42 - y) / 2.76) * 0.9
+            const sideUBase = 0.52 - (point.z / Math.max(0.2, depthAt(y))) * 0.39
+            const sideU = cos >= 0 ? sideUBase : 1 - sideUBase
+
+            const frontRgb = sampleFront(frontU, imageV)
+            const sideRgb = sampleSide(sideU, imageV)
+            const frontWeight = clamp((sin + 0.18) / 1.05, 0, 1) ** 1.6
+            const sideWeight = 1 - frontWeight
+            const backFade = sin < -0.3 ? 0.72 : 1
+
+            const r = (frontRgb[0] * frontWeight + sideRgb[0] * sideWeight) * backFade
+            const g = (frontRgb[1] * frontWeight + sideRgb[1] * sideWeight) * backFade
+            const b = (frontRgb[2] * frontWeight + sideRgb[2] * sideWeight) * backFade
+
+            positions.push(point.x, point.y, point.z)
+            colors.push(clamp(r, 0, 1), clamp(g, 0, 1), clamp(b, 0, 1))
+          }
+        }
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+
+        const pointTextureCanvas = document.createElement('canvas')
+        pointTextureCanvas.width = pointTextureCanvas.height = 32
+        const pointTextureContext = pointTextureCanvas.getContext('2d')
+        if (pointTextureContext) {
+          pointTextureContext.fillStyle = '#ffffff'
+          pointTextureContext.beginPath()
+          pointTextureContext.arc(16, 16, 13, 0, Math.PI * 2)
+          pointTextureContext.fill()
+        }
+        const pointTexture = new THREE.CanvasTexture(pointTextureCanvas)
+
+        const material = new THREE.PointsMaterial({
+          size: 0.021,
+          sizeAttenuation: true,
+          vertexColors: true,
+          map: pointTexture,
+          alphaTest: 0.25,
+          transparent: true,
+          opacity: 0.96,
+        })
+
+        const cloud = new THREE.Points(geometry, material)
+        portrait.add(cloud)
+
+        const resize = () => {
+          const rect = root.getBoundingClientRect()
+          const width = Math.max(1, Math.round(rect.width))
+          const height = Math.max(1, Math.round(rect.height))
+          renderer.setSize(width, height, false)
+          camera.aspect = width / height
+          camera.updateProjectionMatrix()
+        }
+
+        const resizeObserver = new ResizeObserver(resize)
+        resizeObserver.observe(root)
+        resize()
+
+        let animationFrame = 0
+        let isVisible = true
+        let isDocumentVisible = !document.hidden
+
+        const intersectionObserver = new IntersectionObserver(
+          (entries) => {
+            isVisible = entries.some((entry) => entry.isIntersecting)
+          },
+          { rootMargin: '160px' }
+        )
+        intersectionObserver.observe(root)
+
+        const handleVisibility = () => {
+          isDocumentVisible = !document.hidden
+        }
+        document.addEventListener('visibilitychange', handleVisibility)
+
+        const animate = () => {
+          animationFrame = requestAnimationFrame(animate)
+          if (!isVisible || !isDocumentVisible) return
+          controls.update()
+          renderer.render(scene, camera)
+        }
+
+        root.dataset.ready = 'true'
+        if (status) status.textContent = 'photo cloud ready'
+        animationFrame = requestAnimationFrame(animate)
+
+        window.addEventListener(
+          'pagehide',
+          () => {
+            cancelAnimationFrame(animationFrame)
+            resizeObserver.disconnect()
+            intersectionObserver.disconnect()
+            document.removeEventListener('visibilitychange', handleVisibility)
+            controls.dispose()
+            geometry.dispose()
+            material.dispose()
+            pointTexture.dispose()
+            renderer.dispose()
+          },
+          { once: true }
+        )
+      } catch (error) {
+        console.error('Photo point portrait failed to initialize', error)
+        if (status) status.textContent = 'photo cloud unavailable'
+      }
+    })
+  })()
+</script>
