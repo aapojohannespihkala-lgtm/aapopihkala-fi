@@ -130,7 +130,6 @@ const labels = lang === 'fi'
     let feed = null
     let heroHeading = null
     let aboutHeading = null
-    let articleHeadings = []
     let destinations = []
     let currentTarget = null
     let currentMode = 'next'
@@ -140,32 +139,9 @@ const labels = lang === 'fi'
 
     const behavior = () => reducedMotion() ? 'auto' : 'smooth'
 
-    const resolveSections = () => {
-      hero = document.querySelector('.main-container > .hero')
-      about = document.querySelector('[data-homepage-about-embed]')
-      feed = document.querySelector('.main-container > .feed')
-      heroHeading = hero?.querySelector('h1') ?? null
-      aboutHeading = about?.querySelector('.about-portrait h1') ?? null
-      articleHeadings = feed instanceof HTMLElement
-        ? Array.from(feed.querySelectorAll('.feed-post .post-title')).filter(
-            (heading) => heading instanceof HTMLElement
-          )
-        : []
-
-      if (
-        !(hero instanceof HTMLElement) ||
-        !(about instanceof HTMLElement) ||
-        !(feed instanceof HTMLElement) ||
-        !(heroHeading instanceof HTMLElement) ||
-        !(aboutHeading instanceof HTMLElement) ||
-        articleHeadings.length === 0
-      ) {
-        window.requestAnimationFrame(resolveSections)
-        return
-      }
-
-      destinations = [aboutHeading, ...articleHeadings]
-      updateState()
+    const getHeaderHeight = () => {
+      const header = document.querySelector('.topbar')
+      return header instanceof HTMLElement ? header.getBoundingClientRect().height : 64
     }
 
     const getReferenceHeadingTop = () => {
@@ -175,26 +151,90 @@ const labels = lang === 'fi'
 
       const heroRect = hero.getBoundingClientRect()
       const headingRect = heroHeading.getBoundingClientRect()
-      const header = document.querySelector('.topbar')
-      const headerHeight = header instanceof HTMLElement ? header.getBoundingClientRect().height : 64
       const headingOffsetInsideHero = headingRect.top - heroRect.top
 
-      return headerHeight + headingOffsetInsideHero
+      return getHeaderHeight() + headingOffsetInsideHero
     }
 
-    const getAlignedScrollTop = (heading) => {
+    const getHeadingScrollTop = (heading) => {
       if (!(heading instanceof HTMLElement)) return 0
       const headingDocumentTop = heading.getBoundingClientRect().top + window.scrollY
       return Math.max(0, headingDocumentTop - getReferenceHeadingTop())
     }
 
-    const scrollHeadingToHeroLevel = (heading) => {
-      if (!(heading instanceof HTMLElement)) return
+    const getDestinationScrollTop = (destination) => {
+      if (!destination) return 0
 
-      window.scrollTo({
-        top: getAlignedScrollTop(heading),
-        behavior: behavior(),
-      })
+      if (destination.kind === 'divider' && destination.anchor instanceof HTMLElement) {
+        const dividerDocumentTop = destination.anchor.getBoundingClientRect().top + window.scrollY
+        return Math.max(0, dividerDocumentTop - getHeaderHeight())
+      }
+
+      if (destination.heading instanceof HTMLElement) {
+        return getHeadingScrollTop(destination.heading)
+      }
+
+      return 0
+    }
+
+    const resolveSections = () => {
+      hero = document.querySelector('.main-container > .hero')
+      about = document.querySelector('[data-homepage-about-embed]')
+      feed = document.querySelector('.main-container > .feed')
+      heroHeading = hero?.querySelector('h1') ?? null
+      aboutHeading = about?.querySelector('.about-portrait h1') ?? null
+
+      const posts = feed instanceof HTMLElement
+        ? Array.from(feed.querySelectorAll('.feed-post')).filter(
+            (post) => post instanceof HTMLElement
+          )
+        : []
+
+      if (
+        !(hero instanceof HTMLElement) ||
+        !(about instanceof HTMLElement) ||
+        !(feed instanceof HTMLElement) ||
+        !(heroHeading instanceof HTMLElement) ||
+        !(aboutHeading instanceof HTMLElement) ||
+        posts.length === 0
+      ) {
+        window.requestAnimationFrame(resolveSections)
+        return
+      }
+
+      const articleDestinations = posts
+        .map((post, index) => {
+          const heading = post.querySelector('.post-title')
+          if (!(heading instanceof HTMLElement)) return null
+
+          if (index === 0) {
+            return {
+              kind: 'heading',
+              heading,
+              anchor: heading,
+            }
+          }
+
+          const previousDivider = posts[index - 1]?.querySelector('.post-divider')
+
+          return {
+            kind: previousDivider instanceof HTMLElement ? 'divider' : 'heading',
+            heading,
+            anchor: previousDivider instanceof HTMLElement ? previousDivider : heading,
+          }
+        })
+        .filter(Boolean)
+
+      destinations = [
+        {
+          kind: 'about',
+          heading: aboutHeading,
+          anchor: aboutHeading,
+        },
+        ...articleDestinations,
+      ]
+
+      updateState()
     }
 
     const updateState = () => {
@@ -208,16 +248,16 @@ const labels = lang === 'fi'
 
       button.classList.remove('is-up')
 
-      const nextHeading = destinations.find((heading) =>
-        getAlignedScrollTop(heading) > y + advanceThreshold
+      const nextDestination = destinations.find((destination) =>
+        getDestinationScrollTop(destination) > y + advanceThreshold
       )
 
-      if (nextHeading instanceof HTMLElement) {
+      if (nextDestination) {
         currentMode = 'next'
-        currentTarget = nextHeading
+        currentTarget = nextDestination
         button.setAttribute(
           'aria-label',
-          nextHeading === aboutHeading
+          nextDestination.kind === 'about'
             ? button.dataset.labelAbout || 'About'
             : button.dataset.labelNext || 'Next'
         )
@@ -238,8 +278,11 @@ const labels = lang === 'fi'
     }
 
     button.addEventListener('click', () => {
-      if (currentMode === 'next' && currentTarget instanceof HTMLElement) {
-        scrollHeadingToHeroLevel(currentTarget)
+      if (currentMode === 'next' && currentTarget) {
+        window.scrollTo({
+          top: getDestinationScrollTop(currentTarget),
+          behavior: behavior(),
+        })
         return
       }
 
