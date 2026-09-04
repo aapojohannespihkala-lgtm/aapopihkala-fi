@@ -21,6 +21,7 @@ import MeshyPixelatedPoise from '../../components/MeshyPixelatedPoise.astro';
 import MeshyPixelatedPoiseVol2 from '../../components/MeshyPixelatedPoiseVol2.astro';
 import MeshyPixelatedPoiseVol3 from '../../components/MeshyPixelatedPoiseVol3.astro';
 import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.astro';
+import MeshyPixelatedPoiseVol5 from '../../components/MeshyPixelatedPoiseVol5.astro';
 ---
 
 <!doctype html>
@@ -43,6 +44,27 @@ import MeshyPixelatedPoiseVol4 from '../../components/MeshyPixelatedPoiseVol4.as
     </header>
 
     <main class="lab-shell">
+      <section class="portrait-priority" aria-labelledby="meshy-pixelated-poise-vol5-title">
+        <article class="experiment experiment--priority">
+          <header class="experiment-header">
+            <div>
+              <p class="experiment-index">P10</p>
+              <h2 id="meshy-pixelated-poise-vol5-title">Pixelated Poise vol 5</h2>
+            </div>
+            <p class="experiment-hint">Vedä pyörittääksesi · rullaa zoomataksesi</p>
+          </header>
+          <div class="experiment-stage experiment-stage--portrait-multiview">
+            <div class="experiment-viewport experiment-viewport--portrait-multiview">
+              <MeshyPixelatedPoiseVol5 />
+            </div>
+          </div>
+          <footer class="experiment-footer">
+            <p>Pixelated Poise -pistepinta, jossa silmälasien etupinnan pistejakaumaa on tihennetty selvästi. Oikean mesh-pinnan taakse jäävät pisteet näkyvät vain haaleana ghost-kerroksena, kun taas silmälle näkyvä pinta piirtyy tummempana.</p>
+            <p>Surface points · dense glasses · true occlusion fade · static · free orbit · zoom</p>
+          </footer>
+        </article>
+      </section>
+
       <section class="portrait-priority" aria-labelledby="meshy-pixelated-poise-vol4-title">
         <article class="experiment experiment--priority">
           <header class="experiment-header">
