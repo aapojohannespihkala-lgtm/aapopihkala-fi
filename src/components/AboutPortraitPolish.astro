@@ -95,6 +95,47 @@
     color: #bdc9cf;
   }
 
+  html body .about-portrait .about-center-cross {
+    --center-cross-x: 0px;
+    --center-cross-y: 0px;
+    --center-cross-neg-x: 0px;
+    --center-cross-neg-y: 0px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 2;
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+    color: var(--moss);
+    opacity: 0.56;
+    transform: translate(-50%, -50%);
+  }
+
+  html body .about-portrait .about-center-cross::before,
+  html body .about-portrait .about-center-cross::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    background: currentColor;
+    transform: translate(-50%, -50%);
+  }
+
+  html body .about-portrait .about-center-cross::before {
+    width: 16px;
+    height: 1px;
+  }
+
+  html body .about-portrait .about-center-cross::after {
+    width: 1px;
+    height: 16px;
+  }
+
+  html body .about-portrait .about-center-cross.is-travelling {
+    animation: about-center-cross-travel 1000ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
   html body .about-portrait .about-portrait__voice {
     top: 9px !important;
     right: 36px !important;
@@ -105,12 +146,15 @@
   }
 
   html body .about-portrait .about-portrait__voice-status {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.42em;
     font-size: 0.38rem !important;
     letter-spacing: 0.09em !important;
   }
 
-  html body .about-portrait .about-portrait__voice-status.is-blinking {
-    animation: about-subject-blink 170ms steps(1, end) 3;
+  html body .about-portrait .about-portrait__voice-state.is-blinking {
+    animation: about-subject-state-blink 170ms steps(1, end) 3;
   }
 
   html body .about-portrait .about-portrait__voice-line {
@@ -129,7 +173,7 @@
     transform: translate(-2px, 2px) !important;
   }
 
-  @keyframes about-subject-blink {
+  @keyframes about-subject-state-blink {
     0%, 42% { opacity: 0.94; }
     43%, 100% { opacity: 0.12; }
   }
@@ -142,6 +186,33 @@
     100% {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  @keyframes about-center-cross-travel {
+    0% {
+      opacity: 0.56;
+      transform: translate(-50%, -50%) translate(0, 0);
+    }
+    40% {
+      opacity: 0.56;
+      transform: translate(-50%, -50%) translate(var(--center-cross-x), var(--center-cross-y));
+    }
+    47% {
+      opacity: 0;
+      transform: translate(-50%, -50%) translate(var(--center-cross-x), var(--center-cross-y));
+    }
+    53% {
+      opacity: 0;
+      transform: translate(-50%, -50%) translate(var(--center-cross-neg-x), var(--center-cross-neg-y));
+    }
+    60% {
+      opacity: 0.56;
+      transform: translate(-50%, -50%) translate(var(--center-cross-neg-x), var(--center-cross-neg-y));
+    }
+    100% {
+      opacity: 0.56;
+      transform: translate(-50%, -50%) translate(0, 0);
     }
   }
 
@@ -158,7 +229,8 @@
       transition: none;
     }
 
-    html body .about-portrait .about-portrait__voice-status.is-blinking,
+    html body .about-portrait .about-center-cross.is-travelling,
+    html body .about-portrait .about-portrait__voice-state.is-blinking,
     html body .about-portrait .about-portrait__voice-line.is-rolling {
       animation: none !important;
     }
@@ -255,28 +327,75 @@
       });
     };
 
+    const initializeCenterCross = () => {
+      const frames = document.querySelectorAll('[data-about-portrait-frame]');
+      const finePointer = window.matchMedia('(pointer: fine) and (hover: hover)');
+      if (!finePointer.matches) return;
+
+      frames.forEach((frame) => {
+        if (!(frame instanceof HTMLElement)) return;
+        if (frame.dataset.centerCrossInitialized === 'true') return;
+        frame.dataset.centerCrossInitialized = 'true';
+
+        const cross = document.createElement('span');
+        cross.className = 'about-center-cross';
+        cross.setAttribute('aria-hidden', 'true');
+        frame.append(cross);
+
+        let travelling = false;
+
+        const updateTravelDistance = () => {
+          const rect = frame.getBoundingClientRect();
+          const x = Math.max(0, rect.width * 0.5 - 24);
+          const y = Math.max(0, rect.height * 0.5 - 24);
+          cross.style.setProperty('--center-cross-x', `${Math.round(x)}px`);
+          cross.style.setProperty('--center-cross-y', `${Math.round(y)}px`);
+          cross.style.setProperty('--center-cross-neg-x', `${Math.round(-x)}px`);
+          cross.style.setProperty('--center-cross-neg-y', `${Math.round(-y)}px`);
+        };
+
+        const startTravel = () => {
+          if (travelling) return;
+          travelling = true;
+          updateTravelDistance();
+          cross.classList.remove('is-travelling');
+          void cross.offsetWidth;
+          cross.classList.add('is-travelling');
+        };
+
+        cross.addEventListener('animationend', () => {
+          cross.classList.remove('is-travelling');
+          travelling = false;
+        });
+
+        updateTravelDistance();
+        frame.addEventListener('pointerenter', startTravel);
+        window.addEventListener('resize', updateTravelDistance, { passive: true });
+      });
+    };
+
     const initializeVoicePolish = () => {
       const frames = document.querySelectorAll('[data-about-portrait-frame]');
 
-      const comments = [
-        'why are you pulling my hair',
-        'careful with the face',
-        "okay, i get it. i'm 3d.",
-        'you can let go now',
-        "i'm not a stress ball",
-        'orbit responsibly',
-        'please respect the topology',
-        'my neck was not designed for this',
-        'are you testing the model or me',
-        'i have approximately 42,000 reasons to be nervous',
-        'did the cursor come with a permit',
-        'this feels less like interaction and more like fieldwork',
-        'this is becoming personal',
-        'you have thoroughly established the third dimension',
-        'still here. still being rotated.',
-        'please return my face to its original coordinate system',
-        "i'm filing this under excessive orbit",
-        'that is enough user testing for one neck',
+      const voicePairs = [
+        { state: 'TUGGED', comment: 'why are you pulling my hair' },
+        { state: 'FRAGILE', comment: 'careful with the face' },
+        { state: 'VERIFIED', comment: "okay, i get it. i'm 3d." },
+        { state: 'HELD', comment: 'you can let go now' },
+        { state: 'COMPRESSED', comment: "i'm not a stress ball" },
+        { state: 'ORBITING', comment: 'orbit responsibly' },
+        { state: 'TOPOLOGICAL', comment: 'please respect the topology' },
+        { state: 'STRAINED', comment: 'my neck was not designed for this' },
+        { state: 'EVALUATED', comment: 'are you testing the model or me' },
+        { state: 'OVERSAMPLED', comment: 'i have approximately 42,000 reasons to be nervous' },
+        { state: 'UNLICENSED', comment: 'did the cursor come with a permit' },
+        { state: 'SURVEYED', comment: 'this feels less like interaction and more like fieldwork' },
+        { state: 'OFFENDED', comment: 'this is becoming personal' },
+        { state: 'VALIDATED', comment: 'you have thoroughly established the third dimension' },
+        { state: 'DIZZY', comment: 'still here. still being rotated.' },
+        { state: 'DISPLACED', comment: 'please return my face to its original coordinate system' },
+        { state: 'OVERROTATED', comment: "i'm filing this under excessive orbit" },
+        { state: 'FATIGUED', comment: 'that is enough user testing for one neck' },
       ];
 
       frames.forEach((frame) => {
@@ -296,6 +415,13 @@
         const voiceLine = voice.querySelector('[data-about-portrait-voice-line]');
         if (!(voiceStatus instanceof HTMLElement) || !(voiceLine instanceof HTMLElement)) return;
 
+        voiceStatus.innerHTML = `
+          <span class="about-portrait__voice-subject">SUBJECT /</span>
+          <span class="about-portrait__voice-state" data-about-portrait-voice-state>READY</span>
+        `;
+        const voiceState = voiceStatus.querySelector('[data-about-portrait-voice-state]');
+        if (!(voiceState instanceof HTMLElement)) return;
+
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let pointerDown = false;
         let dragDistance = 0;
@@ -304,7 +430,6 @@
         let cycleStarted = false;
         let firstTimer = 0;
         let repeatTimer = 0;
-        let commentIndex = 0;
         let lastComment = '';
 
         const clearTimers = () => {
@@ -318,16 +443,16 @@
           clearTimers();
           cycleStarted = false;
           voice.classList.remove('is-visible');
-          voiceStatus.classList.remove('is-blinking');
+          voiceState.classList.remove('is-blinking');
           voiceLine.classList.remove('is-rolling');
           voice.setAttribute('aria-hidden', 'true');
         };
 
-        const chooseComment = () => {
-          const candidates = comments.filter((comment) => comment !== lastComment);
-          const source = candidates.length ? candidates : comments;
+        const choosePair = () => {
+          const candidates = voicePairs.filter((pair) => pair.comment !== lastComment);
+          const source = candidates.length ? candidates : voicePairs;
           const next = source[Math.floor(Math.random() * source.length)];
-          lastComment = next;
+          lastComment = next.comment;
           return next;
         };
 
@@ -341,22 +466,19 @@
         const showNextComment = () => {
           if (!pointerDown || !cycleStarted) return;
 
-          voiceStatus.textContent = commentIndex === 0
-            ? 'SUBJECT / PROTESTING'
-            : 'SUBJECT / CONCERNED';
-          voiceLine.textContent = `> ${chooseComment()}`;
+          const pair = choosePair();
+          voiceState.textContent = pair.state;
+          voiceLine.textContent = `> ${pair.comment}`;
           voice.classList.add('is-visible');
           voice.setAttribute('aria-hidden', 'false');
 
-          restartAnimation(voiceStatus, 'is-blinking');
+          restartAnimation(voiceState, 'is-blinking');
           restartAnimation(voiceLine, 'is-rolling');
-          commentIndex += 1;
         };
 
         const startVoiceCycle = () => {
           if (cycleStarted) return;
           cycleStarted = true;
-          commentIndex = 0;
 
           firstTimer = window.setTimeout(() => {
             if (!pointerDown) return;
@@ -405,6 +527,7 @@
 
     const initialize = () => {
       initializeAboutProbe();
+      initializeCenterCross();
       initializeVoicePolish();
     };
 
