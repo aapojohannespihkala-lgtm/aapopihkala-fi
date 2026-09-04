@@ -24,139 +24,64 @@ const { lang } = Astro.props;
 
 const content = {
   fi: {
-    pageTitle:
-      'Aapo Pihkala - Maisema-arkkitehti Espoo',
-
-    pageDescription:
-      'Aapo Pihkala on Espoossa toimiva maisema-arkkitehti. Maisema-arkkitehtuuria kaupunkien, ihmisten ja luonnon rajapinnassa.',
-
-    heroPrimary:
-      'Maisema-arkkitehti.',
-
-    heroSecondary:
-      'Maisema-arkkitehtuuria kaupunkien, ihmisten ja luonnon rajapinnassa.',
-
-    location:
-      'Espoo, Suomi',
-
-    perspectiveLabel:
-      'Näkökulma',
-
-    sourceLabel:
-      'Lähde',
+    pageTitle: 'Aapo Pihkala - Maisema-arkkitehti Espoo',
+    pageDescription: 'Aapo Pihkala on Espoossa toimiva maisema-arkkitehti. Maisema-arkkitehtuuria kaupunkien, ihmisten ja luonnon rajapinnassa.',
+    heroPrimary: 'Maisema-arkkitehti.',
+    heroSecondary: 'Maisema-arkkitehtuuria kaupunkien, ihmisten ja luonnon rajapinnassa.',
+    location: 'Espoo, Suomi',
+    perspectiveLabel: 'Näkökulma',
+    sourceLabel: 'Lähde',
+    aboutIndex: 'ABOUT / 01',
+    aboutOpen: 'PROFIILI / AVAA ↗',
+    aboutLabel: 'Avaa tietoa minusta',
   },
-
   en: {
-    pageTitle:
-      'Aapo Pihkala - Landscape Architect, Espoo',
-
-    pageDescription:
-      'Aapo Pihkala is a landscape architect based in Espoo, Finland. Landscape architecture at the intersection of cities, people and nature.',
-
-    heroPrimary:
-      'Landscape architect.',
-
-    heroSecondary:
-      'Landscape architecture at the intersection of cities, people and nature.',
-
-    location:
-      'Espoo, Finland',
-
-    perspectiveLabel:
-      'Perspective',
-
-    sourceLabel:
-      'Source',
+    pageTitle: 'Aapo Pihkala - Landscape Architect, Espoo',
+    pageDescription: 'Aapo Pihkala is a landscape architect based in Espoo, Finland. Landscape architecture at the intersection of cities, people and nature.',
+    heroPrimary: 'Landscape architect.',
+    heroSecondary: 'Landscape architecture at the intersection of cities, people and nature.',
+    location: 'Espoo, Finland',
+    perspectiveLabel: 'Perspective',
+    sourceLabel: 'Source',
+    aboutIndex: 'ABOUT / 01',
+    aboutOpen: 'PROFILE / OPEN ↗',
+    aboutLabel: 'Open about page',
   },
 } as const;
 
-const t =
-  content[lang];
+const t = content[lang];
+const currentLanguage = site.languages[lang];
+const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
+const aboutHref = lang === 'fi' ? '/about/' : '/en/about/';
+const posts = await getPublishedPosts();
 
-const currentLanguage =
-  site.languages[lang];
-
-const alternateLanguage =
+const dateFormatter = new Intl.DateTimeFormat(
+  currentLanguage.locale,
   lang === 'fi'
-    ? site.languages.en
-    : site.languages.fi;
+    ? { day: 'numeric', month: 'numeric', year: 'numeric' }
+    : { day: 'numeric', month: 'short', year: 'numeric' }
+);
 
-const posts =
-  await getPublishedPosts();
-
-const dateFormatter =
-  new Intl.DateTimeFormat(
-    currentLanguage.locale,
-    lang === 'fi'
-      ? {
-          day: 'numeric',
-          month: 'numeric',
-          year: 'numeric',
-        }
-      : {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        }
-  );
-
-const getDisplayDate = (
-  publishedAt: string
-) => {
-  const datePart =
-    publishedAt.slice(
-      0,
-      10
-    );
-
-  return dateFormatter.format(
-    new Date(
-      `${datePart}T12:00:00`
-    )
-  );
+const getDisplayDate = (publishedAt: string) => {
+  const datePart = publishedAt.slice(0, 10);
+  return dateFormatter.format(new Date(`${datePart}T12:00:00`));
 };
 
-const canonicalUrl =
-  `${site.url}${currentLanguage.homePath}`;
-
-const finnishUrl =
-  `${site.url}${site.languages.fi.homePath}`;
-
-const englishUrl =
-  `${site.url}${site.languages.en.homePath}`;
+const canonicalUrl = `${site.url}${currentLanguage.homePath}`;
+const finnishUrl = `${site.url}${site.languages.fi.homePath}`;
+const englishUrl = `${site.url}${site.languages.en.homePath}`;
 
 const personSchema = {
-  '@context':
-    'https://schema.org',
-
-  '@type':
-    'Person',
-
-  name:
-    site.name,
-
-  url:
-    canonicalUrl,
-
-  jobTitle:
-    lang === 'fi'
-      ? 'Maisema-arkkitehti'
-      : 'Landscape Architect',
-
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: site.name,
+  url: canonicalUrl,
+  jobTitle: lang === 'fi' ? 'Maisema-arkkitehti' : 'Landscape Architect',
   homeLocation: {
-    '@type':
-      'Place',
-
-    name:
-      lang === 'fi'
-        ? 'Espoo, Suomi'
-        : 'Espoo, Finland',
+    '@type': 'Place',
+    name: lang === 'fi' ? 'Espoo, Suomi' : 'Espoo, Finland',
   },
-
-  sameAs: [
-    site.linkedinUrl,
-  ],
-
+  sameAs: [site.linkedinUrl],
   knowsAbout: [
     'Landscape architecture',
     'Urban planning',
@@ -168,7 +93,6 @@ const personSchema = {
 ---
 
 <!doctype html>
-
 <html lang={lang}>
   <head>
     <meta charset="UTF-8" />
@@ -180,13 +104,11 @@ const personSchema = {
     <link rel="alternate" hreflang="fi" href={finnishUrl} />
     <link rel="alternate" hreflang="en" href={englishUrl} />
     <link rel="alternate" hreflang="x-default" href={finnishUrl} />
-    <script
-      type="application/ld+json"
-      set:html={JSON.stringify(personSchema)}
-    />
+    <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
 
     <style>
       .hero {
+        position: relative;
         min-height: calc(100svh - 64px);
         padding: 0;
         display: flex;
@@ -196,6 +118,52 @@ const personSchema = {
       .hero-row {
         width: 100%;
         transform: translateY(clamp(14px, 3vh, 28px));
+      }
+
+      .hero-about-link {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: clamp(18px, 2.6vh, 28px);
+        min-height: 44px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border-top: 1px solid var(--line-soft);
+        border-bottom: 1px solid var(--line-soft);
+        color: var(--stone-light);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.47rem;
+        font-weight: 600;
+        line-height: 1;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        text-decoration: none;
+        transition: color 150ms ease, border-color 150ms ease;
+      }
+
+      .hero-about-link__open {
+        color: var(--stone);
+        transition: color 150ms ease, transform 150ms ease;
+      }
+
+      .hero-about-link:hover,
+      .hero-about-link:focus-visible {
+        color: var(--moss-deep);
+        border-color: var(--line);
+      }
+
+      .hero-about-link:hover .hero-about-link__open,
+      .hero-about-link:focus-visible .hero-about-link__open {
+        color: var(--moss-deep);
+        transform: translate(1px, -1px);
+      }
+
+      .hero-about-link:focus-visible {
+        outline: 1px solid var(--lichen);
+        outline-offset: 5px;
       }
 
       .location-icon {
@@ -244,22 +212,13 @@ const personSchema = {
         white-space: nowrap;
         opacity: 0;
         color: var(--moss);
-        font-family:
-          ui-monospace,
-          SFMono-Regular,
-          Menlo,
-          Monaco,
-          Consolas,
-          monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 0.56rem;
         font-weight: 500;
         line-height: 1;
         letter-spacing: 0.07em;
         transform: translateX(-4px);
-        transition:
-          max-width 220ms ease,
-          opacity 160ms ease,
-          transform 220ms ease;
+        transition: max-width 220ms ease, opacity 160ms ease, transform 220ms ease;
       }
 
       .hero-location-trigger.is-revealed .hero-location-coordinate {
@@ -277,13 +236,7 @@ const personSchema = {
         overflow: hidden;
         white-space: nowrap;
         color: var(--moss);
-        font-family:
-          ui-monospace,
-          SFMono-Regular,
-          Menlo,
-          Monaco,
-          Consolas,
-          monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 0.47rem;
         font-weight: 500;
         line-height: 1;
@@ -291,10 +244,7 @@ const personSchema = {
         text-transform: uppercase;
         opacity: 0;
         transform: translateX(-5px);
-        transition:
-          max-width 320ms cubic-bezier(0.22, 1, 0.36, 1),
-          opacity 90ms linear,
-          transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+        transition: max-width 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 90ms linear, transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
       }
 
       .hero-linkedin-terminal.is-active {
@@ -335,7 +285,19 @@ const personSchema = {
         84%, 100% { opacity: 0; }
       }
 
+      @media (max-height: 720px) and (min-width: 641px) {
+        .hero-row {
+          transform: translateY(0);
+        }
+
+        .hero-about-link {
+          bottom: 12px;
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
+        .hero-about-link,
+        .hero-about-link__open,
         .hero-location-coordinate,
         .hero-linkedin-terminal {
           transition: none;
@@ -361,21 +323,24 @@ const personSchema = {
       @media (max-width: 640px) {
         .hero {
           min-height: calc(100svh - 64px);
-          padding: 0;
+          padding: 0 0 58px;
         }
 
         .hero-row {
           transform: translateY(12px);
+        }
+
+        .hero-about-link {
+          bottom: 8px;
+          min-height: 40px;
+          font-size: 0.43rem;
         }
       }
     </style>
   </head>
 
   <body>
-    <SiteHeader
-      lang={lang}
-      languageHref={alternateLanguage.homePath}
-    />
+    <SiteHeader lang={lang} languageHref={alternateLanguage.homePath} />
 
     <main class="main-container">
       <section class="hero">
@@ -393,36 +358,16 @@ const personSchema = {
               type="button"
               data-location-reveal
               aria-expanded="false"
-              aria-label={
-                lang === 'fi'
-                  ? 'Näytä Espoon koordinaatit'
-                  : 'Show Espoo coordinates'
-              }
+              aria-label={lang === 'fi' ? 'Näytä Espoon koordinaatit' : 'Show Espoo coordinates'}
             >
-              <svg
-                class="location-icon"
-                viewBox="0 0 18 18"
-                aria-hidden="true"
-              >
+              <svg class="location-icon" viewBox="0 0 18 18" aria-hidden="true">
                 <line x1="0" y1="9" x2="18" y2="9" />
                 <line x1="9" y1="0" x2="9" y2="18" />
-                <rect
-                  class="location-icon__target-box"
-                  x="6"
-                  y="6"
-                  width="6"
-                  height="6"
-                  fill="none"
-                />
+                <rect class="location-icon__target-box" x="6" y="6" width="6" height="6" fill="none" />
               </svg>
 
               <span class="hero-location-label">{t.location}</span>
-              <span
-                class="hero-location-coordinate"
-                aria-hidden="true"
-              >
-                · 60.21° N / 24.66° E
-              </span>
+              <span class="hero-location-coordinate" aria-hidden="true">· 60.21° N / 24.66° E</span>
             </button>
 
             <a
@@ -434,20 +379,10 @@ const personSchema = {
             >
               <span>LinkedIn</span>
               <span class="hero-linkedin-arrow" aria-hidden="true">↗</span>
-              <span
-                class="hero-linkedin-terminal"
-                data-linkedin-terminal
-                aria-hidden="true"
-              >
+              <span class="hero-linkedin-terminal" data-linkedin-terminal aria-hidden="true">
                 <span class="hero-linkedin-terminal__prompt">&gt;</span>
-                <span
-                  class="hero-linkedin-terminal__text"
-                  data-linkedin-terminal-text
-                ></span>
-                <span
-                  class="hero-linkedin-terminal__cursor"
-                  data-linkedin-terminal-cursor
-                >_</span>
+                <span class="hero-linkedin-terminal__text" data-linkedin-terminal-text></span>
+                <span class="hero-linkedin-terminal__cursor" data-linkedin-terminal-cursor>_</span>
               </span>
             </a>
           </div>
@@ -456,6 +391,11 @@ const personSchema = {
             <MorphingTopography enableZoom={false} />
           </div>
         </div>
+
+        <a class="hero-about-link" href={aboutHref} aria-label={t.aboutLabel}>
+          <span>{t.aboutIndex}</span>
+          <span class="hero-about-link__open">{t.aboutOpen}</span>
+        </a>
       </section>
 
       <section class="feed">
@@ -464,10 +404,7 @@ const personSchema = {
             const publishedAt = post.data.publishedAt;
             const postNumber = String(posts.length - index).padStart(2, '0');
             const slug = getPostSlug(post.id);
-            const titleHref =
-              lang === 'fi'
-                ? `/artikkelit/${slug}/`
-                : `/en/articles/${slug}/`;
+            const titleHref = lang === 'fi' ? `/artikkelit/${slug}/` : `/en/articles/${slug}/`;
 
             return (
               <FeedPost
@@ -514,15 +451,12 @@ const personSchema = {
             hide()
             return
           }
-
           reveal()
         })
 
         window.addEventListener(
           'pagehide',
-          () => {
-            window.clearTimeout(hideTimer)
-          },
+          () => window.clearTimeout(hideTimer),
           { once: true }
         )
       })()
@@ -542,9 +476,7 @@ const personSchema = {
         let active = false
 
         const clearTimers = () => {
-          while (timers.length) {
-            window.clearTimeout(timers.pop())
-          }
+          while (timers.length) window.clearTimeout(timers.pop())
         }
 
         const after = (delay, callback) => {
