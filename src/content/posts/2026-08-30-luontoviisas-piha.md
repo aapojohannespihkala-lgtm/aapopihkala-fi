@@ -2,7 +2,18 @@
 status: "published"
 publishedAt: "2026-08-30T12:00:00+03:00"
 
-sourceUrl: "https://www.espoo.fi/fi/uutiset/2026/08/riku-lumiaron-luontipiha-nappasi-voiton-espoon-kaupungin-pihakisassa"
+sources:
+  - url: "https://www.espoo.fi/fi/uutiset/2026/08/riku-lumiaron-luontipiha-nappasi-voiton-espoon-kaupungin-pihakisassa"
+
+    fi:
+      name: "Espoon kaupunki"
+      linkText: "Espoon kaupunki · Luontoviisaat pihat -kilpailun tulokset"
+      title: "Riku Lumiaron Luontipiha nappasi voiton Espoon kaupungin pihakisassa"
+
+    en:
+      name: "City of Espoo"
+      linkText: "City of Espoo · Results of the nature-wise yards competition"
+      title: "Results and awarded entries in Espoo's nature-wise yards competition"
 
 interactiveGraphic: "bee"
 
@@ -16,10 +27,6 @@ fi:
     - Espoo
 
   intro: "Espoon luontoviisaat pihat -kilpailuun osallistui tänä kesänä 54 pihaa. Mukana oli pientalopihoja, taloyhtiöiden pihoja ja vapaa-ajan asuntojen pihoja. Palkituissa kohteissa oli monipuolista kasvillisuutta, vanhoja puita, lahopuuta, vettä ja eläimille sopivia suojapaikkoja. Voittajapihan lajistoltaan rikkaimpiin paikkoihin kuului ihmisen rakentama pieni lampi."
-
-  sourceName: "Espoon kaupunki"
-  sourceLinkText: "Espoon kaupunki · Luontoviisaat pihat -kilpailun tulokset"
-  sourceTitle: "Riku Lumiaron Luontipiha nappasi voiton Espoon kaupungin pihakisassa"
 
   graphicAlt: "Pistepilvenä esitetty hitaasti liikkuva kimalainen pölyttäjien ja luontoviisaan pihan symbolina."
 
@@ -68,10 +75,6 @@ en:
     - Espoo
 
   intro: "Espoo's nature-wise yards competition received 54 entries this summer. They included detached-house yards, housing-company yards and holiday-home yards. The awarded sites featured diverse planting, old trees, dead wood, water and shelter for animals. Among the most species-rich places in the winning yard was a small pond built by people."
-
-  sourceName: "City of Espoo"
-  sourceLinkText: "City of Espoo · Results of the nature-wise yards competition"
-  sourceTitle: "Results and awarded entries in Espoo's nature-wise yards competition"
 
   graphicAlt: "A slowly moving point-cloud bumblebee representing pollinators and a nature-wise urban yard."
 
