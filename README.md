@@ -109,6 +109,7 @@ Testit sijaitsevat:
 
 ```text
 tests/e2e/site-regressions.spec.ts
+tests/e2e/mobile-en-regression.spec.ts
 tests/e2e/river-flow-regression.spec.ts
 tests/e2e/photogrammetry-regression.spec.ts
 tests/e2e/meshy-poise-regression.spec.ts
@@ -123,6 +124,9 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - päivä/yö-tilan
 - kielilinkit
 - FI- ja EN-ingressin tarkoitetun desktop-rivijaon: FI-rivin viimeinen sana on `luonnon` ja EN-rivin `cities,`
+- 390 x 844 -mobiilinäkymän FI/EN-etusivusopimuksen: yksipalstainen hero, piilotettu hero-topografia ja poistettu pakotettu desktop-rivinvaihto
+- mobiilin FI/EN About-reittien lokalisaation ja pistepilvipään kehyksen pysymisen viewportin sisällä
+- englanninkielisen mobiiliartikkelireitin lokalisoidun kielilinkin sekä otsikko-, ingressi- ja interaktiivisen grafiikan ankkurit
 - sivun lopun back-to-top-labelin näkyvyyden ylöspäin osoittavan nuolen yhteydessä
 - About-upotuksen sijainnin
 - yhteisen interaktiokerroksen renderöitymisen kerran `BaseLayout`in kautta eikä headerin sisällä
