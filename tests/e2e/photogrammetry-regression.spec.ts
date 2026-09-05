@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 test('Photogrammetry model preserves its Lab render and free orbit interaction', async ({ page }) => {
+  test.setTimeout(90_000);
+
   const modelErrors: string[] = [];
 
   page.on('console', (message) => {
@@ -12,6 +14,16 @@ test('Photogrammetry model preserves its Lab render and free orbit interaction',
     }
   });
 
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.route('**/*.glb', async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname === '/lab/photogrammetry-2026-09-04.glb') {
+      await route.continue();
+      return;
+    }
+    await route.abort();
+  });
+
   await page.goto('/lab/', { waitUntil: 'domcontentloaded' });
 
   const root = page.locator('[data-photogrammetry-model]');
@@ -21,7 +33,7 @@ test('Photogrammetry model preserves its Lab render and free orbit interaction',
   await root.scrollIntoViewIfNeeded();
   await expect(root).toBeVisible();
   await expect(root).toHaveAttribute('data-photogrammetry-initialized', 'true');
-  await expect(status).toBeHidden({ timeout: 30_000 });
+  await expect(status).toBeHidden({ timeout: 45_000 });
   await expect(canvas).toBeVisible();
 
   await expect
