@@ -48,8 +48,8 @@ test('homepage keeps its key visual anchors and interactions', async ({ page }) 
   expect(topographyBox).not.toBeNull();
   expect(topographyBox!.width).toBeGreaterThan(300);
   expect(topographyBox!.width).toBeLessThan(340);
-  expect(topographyBox!.height).toBeGreaterThan(240);
-  expect(topographyBox!.height).toBeLessThan(300);
+  expect(topographyBox!.height).toBeGreaterThan(280);
+  expect(topographyBox!.height).toBeLessThan(320);
 
   await expect(page.locator('.language-switch')).toHaveAttribute('href', '/en/');
 
