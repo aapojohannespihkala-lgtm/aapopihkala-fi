@@ -27,7 +27,15 @@ jobs:
 
       - name: Static checks
         continue-on-error: true
-        run: npm run check
+        run: npm run check 2>&1 | tee static-check.log
+
+      - name: Upload static check diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: static-check-log
+          path: static-check.log
+          if-no-files-found: error
 
       - name: Build
         run: npm run build
