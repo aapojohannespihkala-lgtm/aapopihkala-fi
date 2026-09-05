@@ -1,3 +1,5 @@
+import { createAreaRasterController } from './areaRaster';
+
 type Point2 = {
   x: number;
   y: number;
@@ -59,6 +61,8 @@ export const initializeAreaInteraction = () => {
 
   if (overlay.dataset.areaInteractionInitialized === 'true') return;
   overlay.dataset.areaInteractionInitialized = 'true';
+
+  const areaRaster = createAreaRasterController();
 
   let pointer: Point2 = {
     x: window.innerWidth * 0.5,
@@ -257,7 +261,9 @@ export const initializeAreaInteraction = () => {
   };
 
   const setAreaHint = (text: string) => {
-    hint.textContent = text;
+    hint.textContent = areaRaster
+      ? text.replaceAll('TOPOGRAPHY', 'RASTER SURFACE')
+      : text;
   };
 
   const reliefHeight = (x: number, y: number) => {
@@ -525,6 +531,7 @@ export const initializeAreaInteraction = () => {
     label.textContent = 'AREA / DRAW';
     overlay.classList.remove('is-hovering-area', 'is-rotating-area');
     clearAreaTopography();
+    areaRaster?.clear();
     setAreaHint('AREA / HOLD + DRAW');
     updateAreaCursorLabel();
   };
@@ -534,6 +541,7 @@ export const initializeAreaInteraction = () => {
       path.setAttribute('d', '');
       startMarker.style.opacity = '0';
       updateCentroidSymbol();
+      areaRaster?.hideVector();
       return;
     }
 
@@ -548,6 +556,8 @@ export const initializeAreaInteraction = () => {
     startMarker.setAttribute('cy', String(start.y));
     startMarker.style.opacity = closed ? '0' : '0.82';
     updateCentroidSymbol();
+
+    if (!areaFinished || !closed) areaRaster?.renderVector(areaPoints);
   };
 
   const projectArea3D = () => {
@@ -650,6 +660,20 @@ export const initializeAreaInteraction = () => {
     updateFinishedAreaLabel();
     setAreaHint('AREA / DRAG TO ROTATE TOPOGRAPHY');
     updateAreaCursorLabel();
+
+    if (areaRaster) {
+      const capturedPoints = areaSourcePoints.map((point) => ({ ...point }));
+      areaRaster.hideVector();
+      void areaRaster.capture(capturedPoints).then((captured) => {
+        if (
+          captured &&
+          areaFinished &&
+          readout.dataset.mode === 'area'
+        ) {
+          areaRaster.setRotation(areaYaw, areaPitch);
+        }
+      });
+    }
   };
 
   const beginAreaRotation = (x: number, y: number) => {
@@ -676,6 +700,7 @@ export const initializeAreaInteraction = () => {
     areaPitch = rotationStartPitch - dy * 0.012;
 
     projectArea3D();
+    areaRaster?.setRotation(areaYaw, areaPitch);
     updateFinishedAreaLabel();
     setAreaHint(
       `AREA / X ${((areaPitch * 180) / Math.PI).toFixed(1)}° / Y ${((areaYaw * 180) / Math.PI).toFixed(1)}°`
@@ -784,8 +809,10 @@ export const initializeAreaInteraction = () => {
   };
 
   const syncAreaMode = () => {
-    const areaModeActive = readout.dataset.mode === 'area';
+    const mode = readout.dataset.mode ?? '';
+    const areaModeActive = mode === 'area';
     overlay.classList.toggle('is-visible', areaModeActive);
+    areaRaster?.syncMode(mode);
     clearAreaVisuals();
     if (areaModeActive) updateAreaCursorLabel();
   };
@@ -798,6 +825,7 @@ export const initializeAreaInteraction = () => {
 
   const cleanup = () => {
     modeObserver.disconnect();
+    areaRaster?.cleanup();
     window.removeEventListener('pointermove', handlePointerMove);
     window.removeEventListener('pointerdown', handlePointerDown, true);
     window.removeEventListener('pointerup', handlePointerUp, true);
