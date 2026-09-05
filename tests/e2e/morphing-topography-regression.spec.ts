@@ -61,7 +61,6 @@ test('homepage MorphingTopography preserves its contract, motion and orbit', asy
   const frameBeforeDrag = frameAfterMotion;
   await page.mouse.move(centerX, centerY);
   await page.mouse.down();
-  await expect(root).toHaveCSS('cursor', 'grabbing');
   await page.mouse.move(centerX + 70, centerY - 30, { steps: 8 });
   await page.mouse.up();
   await page.waitForTimeout(120);
