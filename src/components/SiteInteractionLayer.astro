@@ -351,9 +351,6 @@
     const svgNamespace = 'http://www.w3.org/2000/svg'
     const aReadout = document.querySelector('[data-a-readout]')
     const aReadoutLabel = document.querySelector('[data-a-readout-label]')
-    const aAxis = document.querySelector('[data-a-axis]')
-    const aAxisVertical = document.querySelector('[data-a-axis-vertical]')
-    const aAxisHorizontal = document.querySelector('[data-a-axis-horizontal]')
     const areaOverlay = document.querySelector('[data-area-overlay]')
     const areaSvg = document.querySelector('[data-area-svg]')
     const areaPath = document.querySelector('[data-area-path]')
@@ -366,7 +363,6 @@
 
     if (
       !aReadout ||
-      !aAxis ||
       !areaOverlay ||
       !areaSvg ||
       !areaPath ||
@@ -387,10 +383,7 @@
     }
 
     const blockedLegacyKeys = new Set(['g', 'm', 'c', 'n', 'p', 'e', 's'])
-    const aModes = ['cross', 'elev', 'grid', 'area', null]
 
-    let activeMode = null
-    let aModeIndex = -1
     let pointer = {
       x: window.innerWidth * 0.5,
       y: window.innerHeight * 0.5,
@@ -416,11 +409,8 @@
       areaSvg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
     }
 
-    const padCoordinate = (value) =>
-      String(Math.max(0, Math.round(value))).padStart(4, '0')
-
     const updateAreaCursorLabel = () => {
-      if (!aReadoutLabel || activeMode !== 'area') return
+      if (!aReadoutLabel || aReadout.dataset.mode !== 'area') return
 
       if (rotatingArea) {
         aReadoutLabel.textContent = 'AREA / ROTATE 3D'
@@ -442,23 +432,6 @@
       aReadoutLabel.textContent = areaFinished
         ? 'AREA / DRAW NEW'
         : 'AREA / DRAW'
-    }
-
-    const updateReadoutPosition = () => {
-      aReadout.style.left = `${pointer.x}px`
-      aReadout.style.top = `${pointer.y}px`
-
-      if (aAxisVertical) aAxisVertical.style.left = `${pointer.x}px`
-      if (aAxisHorizontal) aAxisHorizontal.style.top = `${pointer.y}px`
-
-      if (aReadoutLabel && (activeMode === 'elev' || activeMode === 'grid')) {
-        const y = Math.max(0, Math.min(window.innerHeight, pointer.y))
-        const level = ((window.innerHeight - y) / Math.max(1, window.innerHeight)) * 30
-        aReadoutLabel.textContent =
-          `X ${padCoordinate(pointer.x)} / Y ${padCoordinate(pointer.y)} / ELEV +${level.toFixed(1)}`
-      }
-
-      updateAreaCursorLabel()
     }
 
     const polygonArea = (points) => {
@@ -1050,42 +1023,12 @@
       updateAreaCursorLabel()
     }
 
-    const setMode = (mode) => {
-      activeMode = mode
-
-      document.body.classList.toggle('site-a-mode', Boolean(mode))
-      aReadout.dataset.mode = mode ?? ''
-      aReadout.classList.toggle('is-visible', Boolean(mode))
-      aAxis.classList.toggle('is-visible', mode === 'elev' || mode === 'grid')
-      areaOverlay.classList.toggle('is-visible', mode === 'area')
-
-      clearAreaVisuals()
-      updateReadoutPosition()
-    }
-
-    const cycleAMode = () => {
-      aModeIndex = (aModeIndex + 1) % aModes.length
-      setMode(aModes[aModeIndex])
-    }
-
-    const resetAMode = () => {
-      aModeIndex = -1
-      setMode(null)
-    }
-
     const handleKeydown = (event) => {
       if (event.defaultPrevented) return
       if (event.metaKey || event.ctrlKey || event.altKey) return
       if (isTypingTarget(event.target)) return
 
       const key = event.key.toLowerCase()
-
-      if (key === 'a') {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        cycleAMode()
-        return
-      }
 
       if (key === 'l') {
         event.preventDefault()
@@ -1097,11 +1040,6 @@
       if (blockedLegacyKeys.has(key)) {
         event.preventDefault()
         event.stopImmediatePropagation()
-        return
-      }
-
-      if (key === 'escape') {
-        resetAMode()
       }
     }
 
@@ -1111,9 +1049,7 @@
         y: event.clientY,
       }
 
-      updateReadoutPosition()
-
-      if (activeMode !== 'area') return
+      if (aReadout.dataset.mode !== 'area') return
 
       if (rotatingArea) {
         rotateAreaToPointer(event.clientX, event.clientY)
@@ -1136,9 +1072,7 @@
         y: event.clientY,
       }
 
-      updateReadoutPosition()
-
-      if (activeMode !== 'area') return
+      if (aReadout.dataset.mode !== 'area') return
 
       event.preventDefault()
       event.stopPropagation()
@@ -1148,7 +1082,7 @@
     }
 
     const handlePointerUp = (event) => {
-      if (event.button !== 0 || activeMode !== 'area') return
+      if (event.button !== 0 || aReadout.dataset.mode !== 'area') return
 
       if (rotatingArea) {
         event.preventDefault()
@@ -1171,7 +1105,7 @@
     }
 
     const handlePointerCancel = () => {
-      if (activeMode !== 'area') return
+      if (aReadout.dataset.mode !== 'area') return
 
       if (rotatingArea) {
         endAreaRotation()
@@ -1216,13 +1150,25 @@
 
     const handleResize = () => {
       setAreaViewBox()
-      updateReadoutPosition()
 
-      if (activeMode === 'area') clearAreaVisuals()
+      if (aReadout.dataset.mode === 'area') clearAreaVisuals()
     }
 
+    const syncAreaMode = () => {
+      const areaModeActive = aReadout.dataset.mode === 'area'
+      areaOverlay.classList.toggle('is-visible', areaModeActive)
+      clearAreaVisuals()
+      if (areaModeActive) updateAreaCursorLabel()
+    }
+
+    const aModeObserver = new MutationObserver(syncAreaMode)
+    aModeObserver.observe(aReadout, {
+      attributes: true,
+      attributeFilter: ['data-mode'],
+    })
+
     setAreaViewBox()
-    setMode(null)
+    syncAreaMode()
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initializeDateEasterEggs, { once: true })
@@ -1240,13 +1186,13 @@
     window.addEventListener(
       'pagehide',
       () => {
+        aModeObserver.disconnect()
         window.removeEventListener('keydown', handleKeydown, true)
         window.removeEventListener('pointermove', handlePointerMove)
         window.removeEventListener('pointerdown', handlePointerDown, true)
         window.removeEventListener('pointerup', handlePointerUp, true)
         window.removeEventListener('pointercancel', handlePointerCancel, true)
         window.removeEventListener('resize', handleResize)
-        document.body.classList.remove('site-a-mode')
       },
       { once: true }
     )
@@ -1254,9 +1200,11 @@
 </script>
 
 <script>
+  import { initializeACoordinateInteraction } from '../features/interactions/aCoordinate';
   import { initializeGridInteraction } from '../features/interactions/grid';
   import { initializeScrollReadout } from '../features/interactions/scrollReadout';
 
+  initializeACoordinateInteraction();
   initializeGridInteraction();
   initializeScrollReadout();
 </script>
