@@ -34,6 +34,11 @@ test('homepage keeps its key visual anchors and interactions', async ({ page }) 
 
   await expect(page.locator('[data-site-grid]')).toHaveCount(1);
   await expect(page.locator('header [data-site-grid]')).toHaveCount(0);
+  await expect(page.locator('[data-area-overlay]')).toHaveAttribute(
+    'data-area-polish',
+    'true'
+  );
+  await expect(page.locator('[data-area-raster-surface]')).toHaveCount(1);
 
   const topographyCanvas = page.locator('[data-morphing-topography-canvas]');
   await expect(topographyCanvas).toBeVisible();
@@ -216,6 +221,9 @@ test('AREA runtime preserves polygon topography and drag rotation', async ({ pag
   const points = page.locator('[data-area-points] .site-area-point');
   const contours = page.locator('[data-area-contours]');
   const centroid = page.locator('[data-area-centroid-symbol]');
+  const rasterSurface = page.locator('[data-area-raster-surface]');
+  const rasterPlane = page.locator('[data-area-raster-plane]');
+  const rasterImage = page.locator('[data-area-raster-image]');
 
   await expect(overlay).toHaveAttribute(
     'data-area-interaction-initialized',
@@ -253,9 +261,16 @@ test('AREA runtime preserves polygon topography and drag rotation', async ({ pag
   await expect(centroid).toHaveClass(/is-visible/);
   await expect.poll(() => points.count()).toBeGreaterThan(20);
   await expect(contours).not.toHaveAttribute('d', '');
+  await expect(rasterSurface).toHaveClass(/is-visible/, { timeout: 20_000 });
+  await expect(rasterImage).toHaveAttribute('src', /^data:image\/png;base64,/, {
+    timeout: 20_000,
+  });
 
   const pathBeforeRotation = await areaPath.getAttribute('d');
   expect(pathBeforeRotation).not.toBeNull();
+  const rasterTransformBeforeRotation = await rasterPlane.evaluate(
+    (element) => (element as HTMLElement).style.transform
+  );
 
   await page.mouse.move(440, 365);
   await expect(overlay).toHaveClass(/is-hovering-area/);
@@ -267,6 +282,13 @@ test('AREA runtime preserves polygon topography and drag rotation', async ({ pag
   await expect
     .poll(() => areaPath.getAttribute('d'))
     .not.toBe(pathBeforeRotation);
+  await expect
+    .poll(() =>
+      rasterPlane.evaluate(
+        (element) => (element as HTMLElement).style.transform
+      )
+    )
+    .not.toBe(rasterTransformBeforeRotation);
   await page.mouse.up();
   await expect(overlay).not.toHaveClass(/is-rotating-area/);
   await expect(hint).toHaveText('AREA / DRAG TO ROTATE RASTER SURFACE');
@@ -278,6 +300,12 @@ test('about portrait loads, pauses offscreen and preserves its main frame geomet
   const browserErrors = watchBrowserErrors(page);
   await setDayMode(page);
   await page.goto('/about/', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.locator('[data-area-overlay]')).toHaveAttribute(
+    'data-area-polish',
+    'false'
+  );
+  await expect(page.locator('[data-area-raster-surface]')).toHaveCount(0);
 
   await expect(
     page.getByRole('heading', { level: 1, name: 'Tietoa minusta' })
@@ -345,6 +373,12 @@ test('published article route renders its interactive graphic and language link'
   await page.goto('/artikkelit/luontoviisas-piha/', {
     waitUntil: 'domcontentloaded',
   });
+
+  await expect(page.locator('[data-area-overlay]')).toHaveAttribute(
+    'data-area-polish',
+    'true'
+  );
+  await expect(page.locator('[data-area-raster-surface]')).toHaveCount(1);
 
   await expect(page.locator('.post-title')).toBeVisible();
   await expect(page.locator('.post-news')).toBeVisible();
