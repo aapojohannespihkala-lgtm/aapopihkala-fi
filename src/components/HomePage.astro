@@ -2,6 +2,17 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import FeedPost from './FeedPost.astro';
 import MorphingTopography from './MorphingTopography.astro';
+import NightModeToggle from './NightModeToggle.astro';
+import HomepageEasterEggs from './HomepageEasterEggs.astro';
+import HomepagePassiveEasterEggs from './HomepagePassiveEasterEggs.astro';
+import HomepageHoverMeta from './HomepageHoverMeta.astro';
+import AreaTopographyPolish from './AreaTopographyPolish.astro';
+import RectangularAreaEasterEgg from './RectangularAreaEasterEgg.astro';
+import HeroSectionEasterEgg from './HeroSectionEasterEgg.astro';
+import HeroConceptLayers from './HeroConceptLayers.astro';
+import HomepageTitleDimension from './HomepageTitleDimension.astro';
+import HomepageAboutEmbed from './HomepageAboutEmbed.astro';
+import HomepageSectionNavigator from './HomepageSectionNavigator.astro';
 
 import {
   site,
@@ -550,5 +561,17 @@ const personSchema = {
         )
       })()
     </script>
+
+    <NightModeToggle lang={lang} />
+    <HomepageEasterEggs />
+    <HomepagePassiveEasterEggs />
+    <HomepageHoverMeta />
+    <AreaTopographyPolish />
+    <RectangularAreaEasterEgg />
+    <HeroSectionEasterEgg />
+    <HeroConceptLayers />
+    <HomepageTitleDimension />
+    <HomepageAboutEmbed lang={lang} />
+    <HomepageSectionNavigator lang={lang} />
   </Fragment>
 </BaseLayout>
