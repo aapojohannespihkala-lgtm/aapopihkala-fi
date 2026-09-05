@@ -4,6 +4,8 @@ from pathlib import Path
 def replace_once(path: str, old: str, new: str) -> None:
     file_path = Path(path)
     text = file_path.read_text(encoding="utf-8")
+    if new in text:
+        return
     if old not in text:
         raise RuntimeError(f"Expected snippet not found in {path}: {old!r}")
     file_path.write_text(text.replace(old, new, 1), encoding="utf-8")
@@ -12,6 +14,8 @@ def replace_once(path: str, old: str, new: str) -> None:
 def replace_all(path: str, old: str, new: str) -> None:
     file_path = Path(path)
     text = file_path.read_text(encoding="utf-8")
+    if old not in text and new in text:
+        return
     if old not in text:
         raise RuntimeError(f"Expected snippet not found in {path}: {old!r}")
     file_path.write_text(text.replace(old, new), encoding="utf-8")
