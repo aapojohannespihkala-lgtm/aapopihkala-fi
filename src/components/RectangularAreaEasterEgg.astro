@@ -137,7 +137,6 @@
       let finished = false
       let startPoint = null
       let endPoint = null
-      let previousMode = readout.dataset.mode ?? ''
 
       const setViewBox = () => {
         svg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`)
@@ -184,11 +183,7 @@
         finished = false
         startPoint = null
         endPoint = null
-        previousMode = 'rect'
 
-        document.body.classList.add('site-a-mode')
-        readout.dataset.mode = 'rect'
-        readout.classList.add('is-visible')
         root.classList.add('is-visible')
         syncGrid('rect')
         hint.textContent = 'RECT / HOLD + DRAW'
@@ -210,21 +205,13 @@
       const handleModeChange = () => {
         const nextMode = readout.dataset.mode ?? ''
 
-        if (rectActive) {
-          if (nextMode !== 'rect') {
-            deactivate()
-            previousMode = nextMode
-          }
+        if (nextMode === 'rect') {
+          if (!rectActive) activate()
           syncGrid(nextMode)
           return
         }
 
-        if (previousMode === 'area' && nextMode === '') {
-          activate()
-          return
-        }
-
-        previousMode = nextMode
+        if (rectActive) deactivate()
         syncGrid(nextMode)
       }
 
@@ -308,7 +295,7 @@
       window.addEventListener('pointercancel', handlePointerCancel)
       window.addEventListener('resize', setViewBox, { passive: true })
       setViewBox()
-      syncGrid()
+      handleModeChange()
 
       window.addEventListener(
         'pagehide',
