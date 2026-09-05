@@ -18,6 +18,12 @@
     outline: none;
   }
 
+  @media (max-width: 640px) {
+    html body .hero-concept-line-break {
+      display: none;
+    }
+  }
+
   @media (hover: none), (pointer: coarse) {
     html body .hero-wordfield {
       cursor: inherit;
@@ -44,6 +50,7 @@
     const keyWords = language === 'fi'
       ? new Set(['kaupunkien', 'ihmisten', 'luonnon'])
       : new Set(['cities', 'people', 'nature'])
+    const breakAfterWord = language === 'fi' ? 'luonnon' : 'cities'
 
     const parts = source.split(/(\s+)/)
     const fragment = document.createDocumentFragment()
@@ -68,6 +75,12 @@
       wrapper.tabIndex = 0
       wrapper.textContent = part
       fragment.append(wrapper)
+
+      if (normalized === breakAfterWord) {
+        const lineBreak = document.createElement('br')
+        lineBreak.className = 'hero-concept-line-break'
+        fragment.append(lineBreak)
+      }
     })
 
     secondary.dataset.heroConceptsInitialized = 'true'
