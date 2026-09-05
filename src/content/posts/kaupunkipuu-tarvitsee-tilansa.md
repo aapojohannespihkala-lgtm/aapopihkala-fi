@@ -2,7 +2,18 @@
 status: "published"
 publishedAt: "2026-08-30T09:00:00+03:00"
 
-sourceUrl: "https://www.syke.fi/sites/default/files/documents/Kaupunkivihrean_tasot_loppuraportti_0_1.pdf"
+sources:
+  - url: "https://www.syke.fi/sites/default/files/documents/Kaupunkivihrean_tasot_loppuraportti_0_1.pdf"
+
+    fi:
+      name: "Suomen ympäristökeskus"
+      linkText: "Suomen ympäristökeskus · Selvitys kaupunkivihreän ja latvuspeiton tyydyttävistä tasoista"
+      title: "Selvitys kaupunkivihreän ja latvuspeiton tyydyttävistä tasoista"
+
+    en:
+      name: "Finnish Environment Institute"
+      linkText: "Finnish Environment Institute · Report on urban green space and tree canopy cover"
+      title: "Report on urban green space and tree canopy cover"
 
 graphic: "/graphics/kaupunkipuu-tila.svg"
 interactiveGraphic: "tree"
@@ -17,10 +28,6 @@ fi:
     - asemakaavoitus
 
   intro: "Suomen ympäristökeskuksen selvitys tarkastelee kaupunkivihreän ja puiden latvuspeiton määrää ja laatua Suomessa. Selvityksen mukaan pelkkä koko kaupungin latvuspeittoprosentti ei kerro, miten puut jakautuvat kaupungin sisällä. Myös puiden ikä, koko ja kasvuolosuhteet vaikuttavat siihen, millaisia hyötyjä kaupunkipuusto tuottaa."
-
-  sourceName: "Suomen ympäristökeskus"
-  sourceLinkText: "Suomen ympäristökeskus · Selvitys kaupunkivihreän ja latvuspeiton tyydyttävistä tasoista"
-  sourceTitle: "Selvitys kaupunkivihreän ja latvuspeiton tyydyttävistä tasoista"
 
   graphicAlt: "Kolmiulotteinen piste- ja viivakaavio, jossa puun latvus, runko ja juuriston vaatima tila muodostavat yhden tilallisen kentän."
 
@@ -55,10 +62,6 @@ en:
     - urban planning
 
   intro: "A report by the Finnish Environment Institute examines the quantity and quality of urban green space and tree canopy cover in Finland. One of its key observations is that a city-wide canopy percentage does not show how trees are distributed within the city. The age, size and growing conditions of trees also affect the benefits that urban tree cover can provide."
-
-  sourceName: "Finnish Environment Institute"
-  sourceLinkText: "Finnish Environment Institute · Report on urban green space and tree canopy cover"
-  sourceTitle: "Report on urban green space and tree canopy cover"
 
   graphicAlt: "A three-dimensional point-and-line diagram in which the tree canopy, trunk and root-space requirement form a single spatial field."
 
