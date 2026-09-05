@@ -717,6 +717,7 @@ src/content.config.ts
 ```
 
 Jos artikkelista puuttuu pakollinen kenttä tai kenttä on väärässä muodossa, Astro-build epäonnistuu.
+
 Tämä on tarkoituksellista, jotta virheellinen artikkeli ei päädy tuotantoon.
 
 Nykyinen skeema hyväksyy siirtymävaiheessa sekä vanhan yhden lähteen rakenteen että uuden `sources`-rakenteen.
