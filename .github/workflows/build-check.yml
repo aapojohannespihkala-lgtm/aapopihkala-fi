@@ -9,17 +9,12 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -29,27 +24,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Update README for Vol 4 migration
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('README.md')
-          text = path.read_text()
-          text = text.replace(
-              'tests/e2e/meshy-poise-regression.spec.ts\n',
-              'tests/e2e/meshy-poise-regression.spec.ts\ntests/e2e/meshy-vol4-regression.spec.ts\n',
-          )
-          text = text.replace(
-              '- About-sivun 3D-pään renderöinnin pause/resume-käyttäytymisen sen poistuessa näkyvältä alueelta\n',
-              '- About-sivun 3D-pään renderöinnin pause/resume-käyttäytymisen sen poistuessa näkyvältä alueelta\n- Vol 4 -pään kamera-, zoom/pan-, idle-, surface probe- ja vapaan orbitoinnin sopimuksen\n',
-          )
-          text = text.replace(
-              'Runtime vie yhteiseen käyttöön `THREE`-moduulin, `OrbitControls`-ohjaimet ja `GLTFLoader`-lataimen.\n\n`PointBee.astro`, `PointButterfly.astro`, `SegmentedRing.astro`, `AccessibilityStep.astro`, `WaterDropMorph.astro`, `TreeField.astro`, `RiverFlow.astro`, `PhotogrammetryModel.astro` ja `MeshyPixelatedPoise.astro` käyttävät tätä yhteistä runtimea.',
-              'Runtime vie yhteiseen käyttöön `THREE`-moduulin, `OrbitControls`-ohjaimet, `GLTFLoader`-lataimen ja `MeshSurfaceSampler`-samplerin.\n\n`PointBee.astro`, `PointButterfly.astro`, `SegmentedRing.astro`, `AccessibilityStep.astro`, `WaterDropMorph.astro`, `TreeField.astro`, `RiverFlow.astro`, `PhotogrammetryModel.astro`, `MeshyPixelatedPoise.astro` ja `MeshyPixelatedPoiseVol4.astro` käyttävät tätä yhteistä runtimea.',
-          )
-          path.write_text(text)
-          PY
 
       - name: Static checks
         run: npm run check
@@ -62,17 +36,6 @@ jobs:
 
       - name: Browser regression tests
         run: npm run test:e2e
-
-      - name: Commit validated README update
-        if: github.event_name == 'pull_request'
-        run: |
-          if ! git diff --quiet -- README.md; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add README.md
-            git commit -m "Update README for Pixelated Poise Vol 4 migration"
-            git push origin HEAD:${{ github.event.pull_request.head.ref }}
-          fi
 
       - name: Upload browser test artifacts
         if: failure()
