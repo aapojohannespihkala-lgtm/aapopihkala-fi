@@ -322,7 +322,7 @@ Etusivun nykyinen topografia käyttää kuitenkin `MorphingTopography.astro`-kom
 
 ## Three.js
 
-Repo käyttää tällä hetkellä osittain npm-asennettua Three.js:ää.
+Repo käyttää npm-asennettua Three.js:ää yhteisen runtimen kautta.
 
 Yhteinen npm-runtime:
 
@@ -332,7 +332,7 @@ src/scripts/threeRuntime.ts
 
 Runtime vie yhteiseen käyttöön `THREE`-moduulin, `OrbitControls`-ohjaimet, `GLTFLoader`-lataimen ja `MeshSurfaceSampler`-samplerin.
 
-`PointBee.astro`, `PointButterfly.astro`, `SegmentedRing.astro`, `AccessibilityStep.astro`, `WaterDropMorph.astro`, `TreeField.astro`, `RiverFlow.astro`, `PhotogrammetryModel.astro`, `MeshyPixelatedPoise.astro`, `MeshyPixelatedPoiseVol4.astro` ja `MorphingTopography.astro` käyttävät tätä yhteistä runtimea. Three.js:n TypeScript-tyypit pidetään samassa `0.180.0`-versiossa runtime-riippuvuuden kanssa `@types/three`-dev-riippuvuutena. Kaikkia 3D-komponentteja ei ole vielä siirretty CDN-tuonneista yhteiseen npm-runtimeen, joten migraatio on tarkoituksella vielä osittainen.
+`PointBee.astro`, `PointButterfly.astro`, `SegmentedRing.astro`, `AccessibilityStep.astro`, `WaterDropMorph.astro`, `TreeField.astro`, `RiverFlow.astro`, `PhotogrammetryModel.astro`, `MeshyPixelatedPoise.astro`, `MeshyPixelatedPoiseVol4.astro` ja `MorphingTopography.astro` käyttävät tätä yhteistä runtimea. Three.js:n TypeScript-tyypit pidetään samassa `0.180.0`-versiossa runtime-riippuvuuden kanssa `@types/three`-dev-riippuvuutena. Repohaun perusteella Three.js CDN-tuonteja ei enää ole, joten npm-migraatio on valmis.
 
 ## README:n ylläpito
 
@@ -350,7 +350,6 @@ Jos merkittävä tekninen päivitystarve havaitaan mutta sitä ei tehdä samassa
 
 ### Tunnetut tekniset päivitystarpeet
 
-- Three.js:n npm-migraatio on vielä osittainen. Loput 3D-komponentit kannattaa siirtää yhteiseen runtimeen vasta regressiosuojan alla ja ilman renderöintiasetusten muutoksia.
 - Vanha yhden lähteen artikkelirakenne on vielä tuettu siirtymävaiheen vuoksi. Sisältö kannattaa myöhemmin yhtenäistää kokonaan `sources[]`-rakenteeseen.
 - `SiteInteractionLayer`in varsinainen interaktioruntime on nyt pilkottu scroll-, GRID-, A/coordinate- ja AREA-featureihin. Jäljellä oleva inline-liimakoodi sisältää vielä legacy-näppäinoikoteitä ja päivämäärän format toggle -easter eggin; ne voidaan myöhemmin irrottaa omiksi pieniksi featureiksi.
 
