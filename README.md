@@ -110,6 +110,7 @@ Testit sijaitsevat:
 ```text
 tests/e2e/site-regressions.spec.ts
 tests/e2e/mobile-en-regression.spec.ts
+tests/e2e/reduced-motion-regression.spec.ts
 tests/e2e/river-flow-regression.spec.ts
 tests/e2e/photogrammetry-regression.spec.ts
 tests/e2e/meshy-poise-regression.spec.ts
@@ -127,6 +128,9 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - 390 x 844 -mobiilinäkymän FI/EN-etusivusopimuksen: yksipalstainen hero, piilotettu hero-topografia ja poistettu pakotettu desktop-rivinvaihto
 - mobiilin FI/EN About-reittien lokalisaation ja pistepilvipään kehyksen pysymisen viewportin sisällä
 - englanninkielisen mobiiliartikkelireitin lokalisoidun kielilinkin sekä otsikko-, ingressi- ja interaktiivisen grafiikan ankkurit
+- `prefers-reduced-motion: reduce` -tilan globaalin CSS-sopimuksen: smooth scroll poistuu ja määritellyt käyttöliittymätransitionit poistuvat
+- reduced motion -tilassa MorphingTopographyn autonomisen morph/auto-rotate-liikkeen pysähtymisen siten, että manuaalinen drag-orbit säilyy
+- reduced motion -tilassa About-pään idle-huojunnan pysähtymisen siten, että manuaalinen drag-orbit säilyy, sekä probe-transitionin poistumisen
 - sivun lopun back-to-top-labelin näkyvyyden ylöspäin osoittavan nuolen yhteydessä
 - About-upotuksen sijainnin
 - yhteisen interaktiokerroksen renderöitymisen kerran `BaseLayout`in kautta eikä headerin sisällä
