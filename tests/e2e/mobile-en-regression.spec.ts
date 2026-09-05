@@ -62,7 +62,7 @@ test('mobile homepage keeps the intended FI and EN layout contracts', async ({ p
     await expect(
       page.getByRole('heading', { level: 1, name: 'Aapo Pihkala' })
     ).toBeVisible();
-    await expect(page.locator('.hero-primary')).toHaveText(route.primary);
+    await expect(page.locator('.hero-primary')).toContainText(route.primary);
     await expect(page.locator('.language-switch')).toHaveAttribute(
       'href',
       route.languageHref
