@@ -6,7 +6,6 @@ import NightModeToggle from './NightModeToggle.astro';
 import HomepageEasterEggs from './HomepageEasterEggs.astro';
 import HomepagePassiveEasterEggs from './HomepagePassiveEasterEggs.astro';
 import HomepageHoverMeta from './HomepageHoverMeta.astro';
-import AreaTopographyPolish from './AreaTopographyPolish.astro';
 import RectangularAreaEasterEgg from './RectangularAreaEasterEgg.astro';
 import HeroSectionEasterEgg from './HeroSectionEasterEgg.astro';
 import HeroConceptLayers from './HeroConceptLayers.astro';
@@ -109,6 +108,7 @@ const personSchema = {
   englishUrl={englishUrl}
   languageHref={alternateLanguage.homePath}
   initialNightMode
+  areaPolish
 >
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
@@ -566,7 +566,6 @@ const personSchema = {
     <HomepageEasterEggs />
     <HomepagePassiveEasterEggs />
     <HomepageHoverMeta />
-    <AreaTopographyPolish />
     <RectangularAreaEasterEgg />
     <HeroSectionEasterEgg />
     <HeroConceptLayers />
