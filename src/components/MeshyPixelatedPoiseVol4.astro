@@ -217,8 +217,37 @@ const {
   }
 </style>
 
+<script>
+  type ThreeRuntimeModule = typeof import('../scripts/threeRuntime');
+
+  const runtimeWindow = window as typeof window & {
+    __loadMeshyVol4ThreeRuntime?: () => Promise<ThreeRuntimeModule>;
+  };
+
+  runtimeWindow.__loadMeshyVol4ThreeRuntime = () => import('../scripts/threeRuntime');
+  window.dispatchEvent(new Event('meshy-vol4-three-runtime-loader-ready'));
+</script>
+
 <script is:inline>
   (() => {
+    const loadThreeRuntime = async () => {
+      if (typeof window.__loadMeshyVol4ThreeRuntime !== 'function') {
+        await new Promise((resolve) => {
+          window.addEventListener(
+            'meshy-vol4-three-runtime-loader-ready',
+            resolve,
+            { once: true }
+          );
+        });
+      }
+
+      const loader = window.__loadMeshyVol4ThreeRuntime;
+      if (typeof loader !== 'function') {
+        throw new Error('Shared Three.js runtime loader is unavailable');
+      }
+
+      return loader();
+    };
     const roots = document.querySelectorAll('[data-meshy-point-surface]');
 
     const estimateGeometryArea = (geometry, THREE) => {
@@ -286,16 +315,8 @@ const {
         root.dataset.meshyPointSurfaceLoadState = 'loading';
 
         try {
-          const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm');
-          const { OrbitControls } = await import(
-            'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
-          );
-          const { GLTFLoader } = await import(
-            'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js/+esm'
-          );
-          const { MeshSurfaceSampler } = await import(
-            'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/math/MeshSurfaceSampler.js/+esm'
-          );
+          const { THREE, OrbitControls, GLTFLoader, MeshSurfaceSampler } =
+            await loadThreeRuntime();
 
           const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
           const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
