@@ -120,6 +120,7 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - About-upotuksen sijainnin
 - yhteisen interaktiokerroksen renderöitymisen kerran `BaseLayout`in kautta eikä headerin sisällä
 - scroll readoutin arvot scrollauksen aikana ja automaattisen piilotuksen
+- GRID-overlayn näkyvyyden A-moodien syklin aikana
 - About-sivun 3D-pään latautumisen ja canvasin
 - 3D-pään renderöinnin pause/resume-käyttäytymisen sen poistuessa näkyvältä alueelta
 - artikkelisivun interaktiivisen grafiikan
@@ -160,6 +161,7 @@ src/
 │
 ├── features/
 │   └── interactions/
+│       ├── grid.ts
 │       └── scrollReadout.ts
 │
 ├── layouts/
@@ -245,15 +247,21 @@ src/components/SiteInteractionLayer.astro
 
 `SiteHeader` vastaa vain varsinaisesta navigaatiosta ja kielenvaihdosta. `BaseLayout` renderöi `SiteHeader`in ja `SiteInteractionLayer`in erillisinä sisaruksina, joten kokeellinen interaktiokerros ei kuulu headerin omistukseen.
 
-`SiteInteractionLayer` sisältää vielä sivustonlaajuisia interaktioita, kuten ruudukko-, A- ja AREA-toimintoja. Sen pilkkominen pienempiin feature-moduuleihin on käynnissä.
+`SiteInteractionLayer` sisältää vielä A- ja AREA-toimintojen yhteenkytkettyä selainlogiikkaa. Sen pilkkominen pienempiin feature-moduuleihin on käynnissä.
 
-Scroll readoutin selainruntime on jo irrotettu tiedostoon:
+Scroll readoutin selainruntime on irrotettu tiedostoon:
 
 ```text
 src/features/interactions/scrollReadout.ts
 ```
 
-`SiteInteractionLayer.astro` omistaa toistaiseksi scroll readoutin markupin ja tyylit, mutta scroll-eventin, prosentti- ja Y-arvon laskennan, `requestAnimationFrame`-throttlen sekä cleanupin hoitaa `scrollReadout.ts`.
+GRID-overlayn näkyvyysruntime on irrotettu tiedostoon:
+
+```text
+src/features/interactions/grid.ts
+```
+
+`SiteInteractionLayer.astro` omistaa toistaiseksi scroll readoutin ja GRID-overlayn markupin sekä tyylit. `scrollReadout.ts` hoitaa scroll-eventin, prosentti- ja Y-arvon laskennan, `requestAnimationFrame`-throttlen sekä cleanupin. `grid.ts` seuraa A-moodin `data-mode`-tilaa ja omistaa GRID-overlayn näkyvyysluokan.
 
 ## Etusivun keskeiset 3D-visualisoinnit
 
@@ -318,7 +326,7 @@ Jos merkittävä tekninen päivitystarve havaitaan mutta sitä ei tehdä samassa
 - Nykyinen TypeScript-tyyppivelka pitää siivota ennen kuin `astro check` voidaan muuttaa CI:ssä blokkaavaksi tarkistukseksi.
 - Three.js:n npm-migraatio on vielä osittainen. Loput 3D-komponentit kannattaa siirtää yhteiseen runtimeen vasta regressiosuojan alla ja ilman renderöintiasetusten muutoksia.
 - Vanha yhden lähteen artikkelirakenne on vielä tuettu siirtymävaiheen vuoksi. Sisältö kannattaa myöhemmin yhtenäistää kokonaan `sources[]`-rakenteeseen.
-- `SiteInteractionLayer`in modularisointi on käynnissä. Scroll readout on irrotettu omaksi TypeScript-moduulikseen; seuraavina eriytettävinä vastuina ovat grid, A/coordinate-moodit sekä AREA-piirto ja topografia.
+- `SiteInteractionLayer`in modularisointi on käynnissä. Scroll readout ja GRID-overlayn näkyvyysruntime on irrotettu omiksi TypeScript-moduuleikseen; seuraavina eriytettävinä vastuina ovat A/coordinate-moodit sekä AREA-piirto ja topografia.
 
 ## Artikkelien interaktiivinen grafiikka
 
