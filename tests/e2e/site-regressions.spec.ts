@@ -73,7 +73,7 @@ test('homepage keeps its key visual anchors and interactions', async ({ page }) 
   expect(browserErrors).toEqual([]);
 });
 
-test('about portrait loads and preserves its main frame geometry', async ({ page }) => {
+test('about portrait loads, pauses offscreen and preserves its main frame geometry', async ({ page }) => {
   const browserErrors = watchBrowserErrors(page);
   await setDayMode(page);
   await page.goto('/about/', { waitUntil: 'domcontentloaded' });
@@ -92,8 +92,36 @@ test('about portrait loads and preserves its main frame geometry', async ({ page
   expect(frameBox!.height).toBeGreaterThan(350);
   expect(frameBox!.height).toBeLessThan(510);
 
+  const portraitRoot = page.locator('[data-meshy-point-surface]');
   const status = page.locator('[data-meshy-point-surface-status]');
   await expect(status).toBeHidden({ timeout: 45_000 });
+  await expect(portraitRoot).toHaveAttribute(
+    'data-meshy-point-surface-load-state',
+    'ready',
+    { timeout: 45_000 }
+  );
+  await expect(portraitRoot).toHaveAttribute(
+    'data-meshy-point-surface-render-state',
+    'active',
+    { timeout: 10_000 }
+  );
+
+  await portraitRoot.evaluate((element) => {
+    (element as HTMLElement).style.display = 'none';
+  });
+  await expect(portraitRoot).toHaveAttribute(
+    'data-meshy-point-surface-render-state',
+    'paused',
+    { timeout: 10_000 }
+  );
+  await portraitRoot.evaluate((element) => {
+    (element as HTMLElement).style.removeProperty('display');
+  });
+  await expect(portraitRoot).toHaveAttribute(
+    'data-meshy-point-surface-render-state',
+    'active',
+    { timeout: 10_000 }
+  );
 
   const portraitCanvas = page.locator('[data-meshy-point-surface-canvas]');
   await expect(portraitCanvas).toBeVisible();
