@@ -9,12 +9,17 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -36,6 +41,30 @@ jobs:
 
       - name: Browser regression tests
         run: npm run test:e2e
+
+      - name: Refresh Three.js README status
+        if: success() && github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('README.md')
+          text = path.read_text()
+          old = "Ainakin `PointBee.astro` ja `PointButterfly.astro` käyttävät tätä yhteistä runtimea. Three.js:n TypeScript-tyypit pidetään samassa `0.180.0`-versiossa runtime-riippuvuuden kanssa `@types/three`-dev-riippuvuutena."
+          new = "`PointBee.astro`, `PointButterfly.astro`, `SegmentedRing.astro` ja `AccessibilityStep.astro` käyttävät tätä yhteistä runtimea. Three.js:n TypeScript-tyypit pidetään samassa `0.180.0`-versiossa runtime-riippuvuuden kanssa `@types/three`-dev-riippuvuutena."
+          if old not in text and new not in text:
+              raise SystemExit('README Three.js status text not found')
+          if old in text:
+              path.write_text(text.replace(old, new, 1))
+          PY
+          if ! git diff --quiet -- README.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "docs: update Three.js runtime migration status"
+            git push origin "HEAD:${GITHUB_HEAD_REF}"
+          fi
 
       - name: Upload browser test artifacts
         if: failure()
