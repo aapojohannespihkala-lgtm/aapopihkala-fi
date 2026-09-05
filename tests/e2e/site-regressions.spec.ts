@@ -123,16 +123,18 @@ test('homepage section navigator shows a back-to-top label at the page end', asy
 
   await expect(button).toHaveClass(/is-up/, { timeout: 10_000 });
 
-  const pseudo = await button.evaluate((element) => {
-    const style = window.getComputedStyle(element, '::after');
-    return {
-      content: style.content,
-      opacity: Number(style.opacity),
-    };
-  });
+  const pseudoContent = await button.evaluate((element) =>
+    window.getComputedStyle(element, '::after').content
+  );
+  expect(pseudoContent).toContain('Takaisin sivun alkuun');
 
-  expect(pseudo.content).toContain('Takaisin sivun alkuun');
-  expect(pseudo.opacity).toBeGreaterThan(0);
+  await expect
+    .poll(() =>
+      button.evaluate((element) =>
+        Number(window.getComputedStyle(element, '::after').opacity)
+      )
+    )
+    .toBeGreaterThan(0);
 
   expect(browserErrors).toEqual([]);
 });
