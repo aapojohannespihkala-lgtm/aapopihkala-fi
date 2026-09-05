@@ -3,6 +3,7 @@ import '../styles/global.css';
 
 import Analytics from '../components/Analytics.astro';
 import SiteHeader from '../components/SiteHeader.astro';
+import SiteInteractionLayer from '../components/SiteInteractionLayer.astro';
 
 import type { SiteLanguage } from '../config/site';
 
@@ -60,6 +61,7 @@ const {
 
   <body>
     <SiteHeader lang={lang} languageHref={languageHref} />
+    <SiteInteractionLayer />
     <slot />
     <Analytics lang={lang} />
     <slot name="afterAnalytics" />
