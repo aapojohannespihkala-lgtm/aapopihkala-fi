@@ -54,23 +54,20 @@ const {
   }
 </style>
 
-<script is:inline>
+<script>
+  import { THREE, OrbitControls } from '../scripts/threeRuntime'
+
   (() => {
-    const roots = document.querySelectorAll('[data-tree-field]')
+    const roots = document.querySelectorAll<HTMLElement>('[data-tree-field]')
 
     roots.forEach(async (root) => {
       if (root.dataset.treeFieldInitialized === 'true') return
       root.dataset.treeFieldInitialized = 'true'
 
-      const canvas = root.querySelector('[data-tree-field-canvas]')
+      const canvas = root.querySelector<HTMLCanvasElement>('[data-tree-field-canvas]')
       if (!canvas) return
 
       try {
-        const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
-        const { OrbitControls } = await import(
-          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
-        )
-
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         const wantsAutoRotate = root.dataset.autoRotate !== 'false'
         const wantsZoom = root.dataset.enableZoom !== 'false'
@@ -171,15 +168,15 @@ const {
           opacity: 0.065,
         })
 
-        const crownCenterX = (v) =>
+        const crownCenterX = (v: number) =>
           -0.04 + 0.09 * Math.sin(v * Math.PI * 2.2 + 0.4)
 
-        const crownCenterZ = (v) =>
+        const crownCenterZ = (v: number) =>
           0.04 * Math.sin(v * Math.PI * 3.1 - 0.6)
 
-        const crownY = (v) => 1.28 + v * 2.0
+        const crownY = (v: number) => 1.28 + v * 2.0
 
-        const crownRadius = (v, angle) => {
+        const crownRadius = (v: number, angle: number) => {
           const bell = Math.pow(Math.max(0, Math.sin(Math.PI * v)), 0.58)
           const base = 0.42 + 1.72 * bell
           const lobes =
@@ -190,7 +187,7 @@ const {
           return base * lobes
         }
 
-        const crownPoint = (v, angle) => {
+        const crownPoint = (v: number, angle: number) => {
           const radius = crownRadius(v, angle)
           const depthScale = 0.94 + 0.04 * Math.sin(v * Math.PI)
           return new THREE.Vector3(
@@ -200,7 +197,7 @@ const {
           )
         }
 
-        const canopyPositions = []
+        const canopyPositions: number[] = []
         const canopyRows = 27
         const canopyColumns = 84
 
@@ -223,9 +220,12 @@ const {
         const canopyPoints = new THREE.Points(canopyGeometry, canopyMaterial)
         canopyGroup.add(canopyPoints)
 
-        const canopyContours = []
+        const canopyContours: Array<{
+          line: THREE.Line
+          geometry: THREE.BufferGeometry
+        }> = []
         ;[0.08, 0.64, 1.22, 1.86].forEach((baseAngle, index) => {
-          const points = []
+          const points: THREE.Vector3[] = []
           const steps = 116
 
           for (let i = 0; i <= steps; i += 1) {
@@ -246,7 +246,7 @@ const {
           canopyContours.push({ line, geometry })
         })
 
-        const trunkPositions = []
+        const trunkPositions: number[] = []
         const trunkRows = 70
         const trunkColumns = 16
 
@@ -276,21 +276,21 @@ const {
         const trunkPoints = new THREE.Points(trunkGeometry, trunkMaterial)
         trunkGroup.add(trunkPoints)
 
-        const rootBoundary = (angle) =>
+        const rootBoundary = (angle: number) =>
           2.62 *
           (1 +
             0.1 * Math.sin(angle * 3 + 0.5) +
             0.06 * Math.cos(angle * 5 - 0.8) +
             0.04 * Math.sin(angle * 7 + 0.2))
 
-        const rootSurfaceY = (x, z) => {
+        const rootSurfaceY = (x: number, z: number) => {
           const rippleA = 0.045 * Math.sin(x * 1.25 + z * 0.35)
           const rippleB = 0.028 * Math.cos(z * 1.7 - x * 0.28)
           const centerDip = -0.075 * Math.exp(-(x * x + z * z) * 0.8)
           return -0.19 + rippleA + rippleB + centerDip
         }
 
-        const rootFieldPositions = []
+        const rootFieldPositions: number[] = []
         const spacing = 0.132
         const xMax = 3.05
         const zMax = 2.8
@@ -324,9 +324,12 @@ const {
         const rootFieldPoints = new THREE.Points(rootFieldGeometry, rootFieldMaterial)
         rootFieldGroup.add(rootFieldPoints)
 
-        const rootContours = []
+        const rootContours: Array<{
+          line: THREE.Line
+          geometry: THREE.BufferGeometry
+        }> = []
         ;[0.4, 0.61, 0.8, 0.98].forEach((scaleValue, index) => {
-          const points = []
+          const points: THREE.Vector3[] = []
           const steps = 112
 
           for (let i = 0; i <= steps; i += 1) {
@@ -388,7 +391,7 @@ const {
         }
         document.addEventListener('visibilitychange', handleVisibility)
 
-        const animate = (time) => {
+        const animate = (time: number) => {
           animationFrame = requestAnimationFrame(animate)
 
           const deltaSeconds = Math.min(0.05, Math.max(0, (time - previousTime) / 1000))
