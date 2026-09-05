@@ -153,6 +153,7 @@ test('A coordinate runtime preserves mode order and pointer readout', async ({ p
   const label = page.locator('[data-a-readout-label]');
   const axis = page.locator('[data-a-axis]');
   const areaOverlay = page.locator('[data-area-overlay]');
+  const rectOverlay = page.locator('[data-rect-area]');
 
   await expect(readout).toHaveAttribute(
     'data-a-coordinate-interaction-initialized',
@@ -188,10 +189,16 @@ test('A coordinate runtime preserves mode order and pointer readout', async ({ p
   await expect(areaOverlay).toHaveClass(/is-visible/);
 
   await page.keyboard.press('a');
-  await expect(readout).toHaveAttribute('data-mode', '');
-  await expect(readout).not.toHaveClass(/is-visible/);
+  await expect(readout).toHaveAttribute('data-mode', 'rect');
+  await expect(readout).toHaveClass(/is-visible/);
   await expect(areaOverlay).not.toHaveClass(/is-visible/);
-  await expect(page.locator('body')).not.toHaveClass(/site-a-mode/);
+  await expect(rectOverlay).toHaveClass(/is-visible/);
+  await expect(page.locator('body')).toHaveClass(/site-a-mode/);
+
+  await page.keyboard.press('a');
+  await expect(readout).toHaveAttribute('data-mode', 'cross');
+  await expect(rectOverlay).not.toHaveClass(/is-visible/);
+  await expect(areaOverlay).not.toHaveClass(/is-visible/);
 
   expect(browserErrors).toEqual([]);
 });
