@@ -125,6 +125,8 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - About-upotuksen sijainnin
 - yhteisen interaktiokerroksen renderöitymisen kerran `BaseLayout`in kautta eikä headerin sisällä
 - scroll readoutin arvot scrollauksen aikana ja automaattisen piilotuksen
+- legacy-näppäinoikoteiden estot sekä `L`-oikotien Animation Lab -navigoinnin
+- artikkelipäivämäärän format togglen klikkauksella sekä Enter/Space-näppäimillä
 - GRID-overlayn näkyvyyden A-moodien syklin aikana
 - A/coordinate-moodien järjestyksen, koordinaattireadoutin ja akselien käyttäytymisen
 - AREA-polygonin sulkeutumisen, pinta-alan, topografiapisteet, contourit ja drag-rotaation
@@ -176,7 +178,9 @@ src/
 │       ├── aCoordinate.ts
 │       ├── area.ts
 │       ├── areaRaster.ts
+│       ├── dateFormatToggle.ts
 │       ├── grid.ts
+│       ├── legacyShortcuts.ts
 │       └── scrollReadout.ts
 │
 ├── layouts/
@@ -262,7 +266,7 @@ src/components/SiteInteractionLayer.astro
 
 `SiteHeader` vastaa vain varsinaisesta navigaatiosta ja kielenvaihdosta. `BaseLayout` renderöi `SiteHeader`in ja `SiteInteractionLayer`in erillisinä sisaruksina, joten kokeellinen interaktiokerros ei kuulu headerin omistukseen.
 
-`SiteInteractionLayer.astro` omistaa yhteisen interaktiokerroksen markupin ja tyylit sekä käynnistää pienemmät TypeScript-featuret. Scroll-, GRID-, A/coordinate- ja AREA-runtime eivät enää elä komponentin isossa inline-scriptissä.
+`SiteInteractionLayer.astro` omistaa yhteisen interaktiokerroksen markupin ja tyylit sekä käynnistää pienemmät TypeScript-featuret. Scroll-, GRID-, A/coordinate-, AREA-, legacy-oikotie- ja päivämäärä-toggle-runtimet eivät enää elä komponentin inline-scriptissä.
 
 Feature-moduulit:
 
@@ -272,6 +276,8 @@ src/features/interactions/grid.ts
 src/features/interactions/aCoordinate.ts
 src/features/interactions/area.ts
 src/features/interactions/areaRaster.ts
+src/features/interactions/legacyShortcuts.ts
+src/features/interactions/dateFormatToggle.ts
 ```
 
 Vastuut:
@@ -281,6 +287,8 @@ Vastuut:
 - `aCoordinate.ts` omistaa A-moodien kierron, koordinaattireadoutin, ELEV-arvon ja akselien sijainnin.
 - `area.ts` omistaa AREA-piirron, polygonigeometrian, pinta-alan, centroidin, contour/topografia-laskennan, drag-rotaation ja AREA-moodin elinkaaren.
 - `areaRaster.ts` on AREA:n valinnainen rasteripinnan esityskerros. Se ei omista pointer- tai polygonitilaa, vaan saa geometrian ja rotaation suoraan `area.ts`:ltä.
+- `legacyShortcuts.ts` säilyttää vanhojen yksikirjaimisten oikoteiden estot ja `L`-oikotien Animation Labiin.
+- `dateFormatToggle.ts` alustaa artikkelipäivämäärien klikkaus- ja Enter/Space-toggle-käyttäytymisen.
 
 AREA-polish aktivoidaan `BaseLayout`in `areaPolish`-asetuksella vain sivuille, joilla se oli aiemminkin käytössä: etusivulle ja artikkelisivuille. About- ja Lab-sivuilla AREA käyttää edelleen native-esitystä ilman rasterikerrosta.
 
@@ -340,11 +348,7 @@ README tarkistetaan samassa muutoksessa aina, kun muutos vaikuttaa projektin kä
 - deploy- tai hosting-käytäntöjä
 - 3D-visualisointien lifecyclea tai niiden suojaavia testejä
 
-Jos merkittävä tekninen päivitystarve havaitaan mutta sitä ei tehdä samassa muutoksessa, se voidaan kirjata seuraavaan listaan. Kun tarve on ratkaistu, kohta poistetaan tai päivitetään.
-
-### Tunnetut tekniset päivitystarpeet
-
-- `SiteInteractionLayer`in varsinainen interaktioruntime on nyt pilkottu scroll-, GRID-, A/coordinate- ja AREA-featureihin. Jäljellä oleva inline-liimakoodi sisältää vielä legacy-näppäinoikoteitä ja päivämäärän format toggle -easter eggin; ne voidaan myöhemmin irrottaa omiksi pieniksi featureiksi.
+Jos merkittävä tekninen päivitystarve havaitaan mutta sitä ei tehdä samassa muutoksessa, se voidaan kirjata README:hen. Kun tarve on ratkaistu, kohta poistetaan tai päivitetään.
 
 ## Artikkelien interaktiivinen grafiikka
 

@@ -112,6 +112,67 @@ test('scroll readout follows scrolling and hides after idle', async ({ page }) =
   expect(browserErrors).toEqual([]);
 });
 
+test('legacy shortcuts keep blocked keys and the Lab shortcut', async ({ page }) => {
+  const browserErrors = watchBrowserErrors(page);
+  await setDayMode(page);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const readout = page.locator('[data-a-readout]');
+  const grid = page.locator('[data-site-grid]');
+
+  await expect(readout).toHaveAttribute(
+    'data-site-shortcuts-initialized',
+    'true',
+    { timeout: 10_000 }
+  );
+  await expect(readout).toHaveAttribute('data-mode', '');
+  await expect(grid).not.toHaveClass(/is-visible/);
+
+  await page.keyboard.press('g');
+  await expect(readout).toHaveAttribute('data-mode', '');
+  await expect(grid).not.toHaveClass(/is-visible/);
+
+  await page.keyboard.press('l');
+  await expect(page).toHaveURL(/\/lab\/$/);
+
+  expect(browserErrors).toEqual([]);
+});
+
+test('article date format toggle preserves click and keyboard behavior', async ({ page }) => {
+  const browserErrors = watchBrowserErrors(page);
+  await setDayMode(page);
+  await page.goto('/artikkelit/luontoviisas-piha/', {
+    waitUntil: 'domcontentloaded',
+  });
+
+  const date = page.locator('time.post-date').first();
+
+  await expect(date).toHaveAttribute(
+    'data-date-easter-egg',
+    'true',
+    { timeout: 10_000 }
+  );
+  await expect(date).toHaveAttribute('role', 'button');
+  await expect(date).toHaveAttribute('title', 'Toggle date format');
+
+  const originalDate = await date.textContent();
+  const datetime = await date.getAttribute('datetime');
+  expect(originalDate).not.toBeNull();
+  expect(datetime).not.toBeNull();
+  const isoDate = datetime!.slice(0, 10);
+
+  await date.click();
+  await expect(date).toHaveText(isoDate);
+
+  await date.press('Enter');
+  await expect(date).toHaveText(originalDate!);
+
+  await date.press('Space');
+  await expect(date).toHaveText(isoDate);
+
+  expect(browserErrors).toEqual([]);
+});
+
 test('grid overlay follows the A-mode cycle without changing other modes', async ({ page }) => {
   const browserErrors = watchBrowserErrors(page);
   await setDayMode(page);
