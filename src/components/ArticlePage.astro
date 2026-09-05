@@ -6,7 +6,6 @@ import type {
 import BaseLayout from '../layouts/BaseLayout.astro';
 import FeedPost from './FeedPost.astro';
 import NightModeToggle from './NightModeToggle.astro';
-import AreaTopographyPolish from './AreaTopographyPolish.astro';
 
 import {
   site,
@@ -217,6 +216,7 @@ const blogPostingSchema = {
   finnishUrl={finnishUrl}
   englishUrl={englishUrl}
   languageHref={languageHref}
+  areaPolish
 >
   <Fragment slot="head">
     <!-- Open Graph -->
@@ -365,6 +365,5 @@ const blogPostingSchema = {
 
   <Fragment slot="afterAnalytics">
     <NightModeToggle lang={lang} />
-    <AreaTopographyPolish />
   </Fragment>
 </BaseLayout>
