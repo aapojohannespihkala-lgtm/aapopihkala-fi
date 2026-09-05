@@ -57,23 +57,20 @@ const {
   }
 </style>
 
-<script is:inline>
+<script>
+  import { THREE, OrbitControls } from '../scripts/threeRuntime'
+
   (() => {
-    const roots = document.querySelectorAll('[data-water-drop-morph]')
+    const roots = document.querySelectorAll<HTMLElement>('[data-water-drop-morph]')
 
     roots.forEach(async (root) => {
       if (root.dataset.waterDropMorphInitialized === 'true') return
       root.dataset.waterDropMorphInitialized = 'true'
 
-      const canvas = root.querySelector('[data-water-drop-morph-canvas]')
+      const canvas = root.querySelector<HTMLCanvasElement>('[data-water-drop-morph-canvas]')
       if (!canvas) return
 
       try {
-        const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
-        const { OrbitControls } = await import(
-          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
-        )
-
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         const wantsAutoRotate = root.dataset.autoRotate !== 'false'
         const wantsZoom = root.dataset.enableZoom !== 'false'
@@ -170,7 +167,7 @@ const {
         shellGeometry.setAttribute('position', shellAttribute)
         specimen.add(new THREE.Points(shellGeometry, shellMaterial))
 
-        const updateShape = (timeSeconds) => {
+        const updateShape = (timeSeconds: number) => {
           const primaryPulse = wantsAnimation ? Math.sin(timeSeconds * 0.34) : 0
           const secondaryPulse = wantsAnimation ? Math.sin(timeSeconds * 0.21 + 1.35) : 0
           const tertiaryPulse = wantsAnimation ? Math.cos(timeSeconds * 0.27 - 0.7) : 0
@@ -291,7 +288,7 @@ const {
         }
         document.addEventListener('visibilitychange', handleVisibility)
 
-        const animateFrame = (time) => {
+        const animateFrame = (time: number) => {
           animationFrame = requestAnimationFrame(animateFrame)
           if (!isVisible || !isDocumentVisible) return
 
