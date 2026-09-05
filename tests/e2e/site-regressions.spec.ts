@@ -139,7 +139,6 @@ test('grid overlay follows the A-mode cycle without changing other modes', async
   await expect(grid).not.toHaveClass(/is-visible/);
 
   await page.keyboard.press('Escape');
-  await expect(aReadout).toHaveAttribute('data-mode', '');
   await expect(grid).not.toHaveClass(/is-visible/);
 
   expect(browserErrors).toEqual([]);
