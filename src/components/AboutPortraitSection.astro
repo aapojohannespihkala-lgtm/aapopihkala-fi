@@ -10,23 +10,25 @@ const { lang } = Astro.props;
 
 const content = {
   fi: {
-    kicker: 'ABOUT / LUONNOS',
+    kicker: 'ABOUT / PROFIILI',
     title: 'Tietoa minusta',
-    primary: 'Esittelyteksti tulossa.',
-    secondary: 'Tähän tulee myöhemmin lyhyt kuvaus minusta, työstäni ja tavastani katsoa maisemaa.',
-    placeholderOne: 'BIO / TBD',
-    placeholderTwo: 'TYÖ / TBD',
-    placeholderThree: 'NÄKÖKULMA / TBD',
+    primary: 'Olen Espoossa toimiva maisema-arkkitehti.',
+    secondary: 'Tarkastelen maisema-arkkitehtuuria kaupunkien, ihmisten ja luonnon rajapinnassa. Sivustolla kirjoitan muun muassa kaupunkiluonnosta, hulevesien hallinnasta, biodiversiteetistä ja kaupunkiympäristön suunnittelusta.',
+    topicOne: 'ESPOO / SUOMI',
+    topicTwo: 'MAISEMA-ARKKITEHTUURI',
+    topicThree: 'KAUPUNKI + LUONTO',
+    topicsLabel: 'Aiheita',
     hint: 'Vedä pyörittääksesi',
   },
   en: {
-    kicker: 'ABOUT / DRAFT',
+    kicker: 'ABOUT / PROFILE',
     title: 'About me',
-    primary: 'Introduction pending.',
-    secondary: 'A short description about me, my work and the way I look at landscapes will live here later.',
-    placeholderOne: 'BIO / TBD',
-    placeholderTwo: 'WORK / TBD',
-    placeholderThree: 'PERSPECTIVE / TBD',
+    primary: 'I am a landscape architect based in Espoo, Finland.',
+    secondary: 'I approach landscape architecture at the intersection of cities, people and nature. On this site I write about urban nature, stormwater management, biodiversity and urban planning.',
+    topicOne: 'ESPOO / FINLAND',
+    topicTwo: 'LANDSCAPE ARCHITECTURE',
+    topicThree: 'CITIES + NATURE',
+    topicsLabel: 'Topics',
     hint: 'Drag to rotate',
   },
 } as const;
@@ -46,10 +48,10 @@ const t = content[lang];
         <p class="about-portrait__secondary">{t.secondary}</p>
       </div>
 
-      <div class="about-portrait__placeholders" aria-label="Placeholder content">
-        <span>{t.placeholderOne}</span>
-        <span>{t.placeholderTwo}</span>
-        <span>{t.placeholderThree}</span>
+      <div class="about-portrait__placeholders" aria-label={t.topicsLabel}>
+        <span>{t.topicOne}</span>
+        <span>{t.topicTwo}</span>
+        <span>{t.topicThree}</span>
       </div>
     </div>
 
