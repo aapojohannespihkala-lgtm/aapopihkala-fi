@@ -9,17 +9,12 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -27,37 +22,11 @@ jobs:
           node-version: 22.19.0
           cache: npm
 
-      - name: Refresh package lock
-        run: npm install --package-lock-only --ignore-scripts
-
-      - name: Upload generated package lock
-        uses: actions/upload-artifact@v7
-        with:
-          name: generated-package-lock
-          path: package-lock.json
-          if-no-files-found: error
-
-      - name: Apply static type patch
-        run: python scripts/apply-static-check-types.py
-
       - name: Install dependencies
         run: npm ci
 
       - name: Static checks
-        id: static_check
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run check 2>&1 | tee static-check.log
-
-      - name: Upload static check diagnostics
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: static-check-log
-          path: static-check.log
-          if-no-files-found: error
+        run: npm run check
 
       - name: Build
         run: npm run build
@@ -67,17 +36,6 @@ jobs:
 
       - name: Browser regression tests
         run: npm run test:e2e
-
-      - name: Commit generated static fixes
-        if: success() && github.event_name == 'pull_request' && steps.static_check.outcome == 'success'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json src/components/PointBee.astro src/components/PointButterfly.astro src/components/Topography.astro
-          if ! git diff --cached --quiet; then
-            git commit -m "refactor: add explicit static types"
-            git push origin "HEAD:${GITHUB_HEAD_REF}"
-          fi
 
       - name: Upload browser test artifacts
         if: failure()
