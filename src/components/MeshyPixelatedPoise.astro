@@ -43,28 +43,21 @@
   .meshy-model__status[hidden] { display: none; }
 </style>
 
-<script is:inline>
-  (() => {
-    const roots = document.querySelectorAll('[data-meshy-model]');
+<script>
+  import { THREE, OrbitControls, GLTFLoader } from '../scripts/threeRuntime';
 
-    roots.forEach(async (root) => {
-      if (!(root instanceof HTMLElement)) return;
+  (() => {
+    const roots = document.querySelectorAll<HTMLElement>('[data-meshy-model]');
+
+    roots.forEach((root) => {
       if (root.dataset.meshyModelInitialized === 'true') return;
       root.dataset.meshyModelInitialized = 'true';
 
-      const canvas = root.querySelector('[data-meshy-model-canvas]');
-      const status = root.querySelector('[data-meshy-model-status]');
-      if (!(canvas instanceof HTMLCanvasElement)) return;
+      const canvas = root.querySelector<HTMLCanvasElement>('[data-meshy-model-canvas]');
+      const status = root.querySelector<HTMLElement>('[data-meshy-model-status]');
+      if (!canvas) return;
 
       try {
-        const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm');
-        const { OrbitControls } = await import(
-          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
-        );
-        const { GLTFLoader } = await import(
-          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js/+esm'
-        );
-
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.setClearColor(0x000000, 0);
@@ -131,12 +124,12 @@
             controls.maxDistance = radius * 12;
             controls.update();
 
-            if (status instanceof HTMLElement) status.hidden = true;
+            if (status) status.hidden = true;
           },
           undefined,
           (error) => {
             console.error('Pixelated Poise GLB load failed', error);
-            if (status instanceof HTMLElement) status.textContent = '3D-mallia ei voitu ladata';
+            if (status) status.textContent = '3D-mallia ei voitu ladata';
           }
         );
 
@@ -160,7 +153,7 @@
         animate();
       } catch (error) {
         console.error('Pixelated Poise viewer failed', error);
-        if (status instanceof HTMLElement) status.textContent = '3D-katselinta ei voitu ladata';
+        if (status) status.textContent = '3D-katselinta ei voitu ladata';
       }
     });
   })();
