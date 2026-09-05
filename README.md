@@ -344,7 +344,6 @@ Jos merkittävä tekninen päivitystarve havaitaan mutta sitä ei tehdä samassa
 
 ### Tunnetut tekniset päivitystarpeet
 
-- Vanha yhden lähteen artikkelirakenne on vielä tuettu siirtymävaiheen vuoksi. Sisältö kannattaa myöhemmin yhtenäistää kokonaan `sources[]`-rakenteeseen.
 - `SiteInteractionLayer`in varsinainen interaktioruntime on nyt pilkottu scroll-, GRID-, A/coordinate- ja AREA-featureihin. Jäljellä oleva inline-liimakoodi sisältää vielä legacy-näppäinoikoteitä ja päivämäärän format toggle -easter eggin; ne voidaan myöhemmin irrottaa omiksi pieniksi featureiksi.
 
 ## Artikkelien interaktiivinen grafiikka
@@ -600,7 +599,7 @@ Jos muutat toista kieliversiota sisällöllisesti, päivitä myös toinen vastaa
 
 Artikkelilla pitää olla vähintään yksi lähde.
 
-Lähteet määritellään `sources`-listana:
+Kaikki artikkelit käyttävät `sources`-listaa:
 
 ```yaml
 sources:
@@ -636,28 +635,6 @@ Ensimmäinen `sources`-listan lähde toimii artikkelin pääasiallisena lähteen
 Kaikki lähteet näytetään artikkelin alaosan `Lähde`- tai `Lähteet`-kohdassa.
 
 `FeedPost.astro` hoitaa lähteiden näyttämisen sekä etusivulla että yksittäisellä artikkelisivulla.
-
-### Vanha lähderakenne
-
-Sisältöskeema hyväksyy toistaiseksi myös vanhan yhden lähteen rakenteen:
-
-```yaml
-sourceUrl: "https://example.com/"
-
-fi:
-  sourceName: "Lähde"
-  sourceLinkText: "Lähde · Julkaisun nimi"
-  sourceTitle: "Julkaisun nimi"
-
-en:
-  sourceName: "Source"
-  sourceLinkText: "Source · Publication title"
-  sourceTitle: "Publication title"
-```
-
-Tämä on mukana, jotta vanhat artikkelit eivät rikkoudu siirtymän aikana.
-
-Kaikki uudet artikkelit tehdään `sources`-rakenteella.
 
 ## Artikkelin kuva
 
@@ -723,7 +700,7 @@ Jos artikkelista puuttuu pakollinen kenttä tai kenttä on väärässä muodossa
 
 Tämä on tarkoituksellista, jotta virheellinen artikkeli ei päädy tuotantoon.
 
-Nykyinen skeema hyväksyy siirtymävaiheessa sekä vanhan yhden lähteen rakenteen että uuden `sources`-rakenteen.
+Nykyinen skeema hyväksyy vain kanonisen `sources`-rakenteen.
 
 ## Sivujen rakenne
 
@@ -892,7 +869,7 @@ ChatGPT:n pitää käyttää sitä artikkelin teknisen rakenteen pohjana.
 
 Kun tuotat tähän projektiin uuden tai päivitetyn artikkelitiedoston:
 
-- käytä uuden artikkelin `sources`-rakennetta
+- käytä `sources`-rakennetta
 - säilytä FI- ja EN-versiot samassa tiedostossa
 - pidä FI- ja EN-versiot sisällöllisesti synkassa
 - käytä `draft`-tilaa, ellei julkaisemista pyydetä

@@ -45,34 +45,7 @@ const languagePost = z.object({
 });
 
 /* =========================================================
-   LEGACY SINGLE SOURCE FORMAT
-   ========================================================= */
-
-const legacyLanguagePost =
-  languagePost.extend({
-    sourceName:
-      z.string(),
-
-    sourceLinkText:
-      z.string(),
-
-    sourceTitle:
-      z.string(),
-  });
-
-const legacySourceFields = {
-  sourceUrl:
-    z.string().url(),
-
-  fi:
-    legacyLanguagePost,
-
-  en:
-    legacyLanguagePost,
-};
-
-/* =========================================================
-   NEW MULTIPLE SOURCES FORMAT
+   SOURCES
    ========================================================= */
 
 const localizedSource =
@@ -99,7 +72,7 @@ const source =
       localizedSource,
   });
 
-const multipleSourceFields = {
+const sourceFields = {
   sources:
     z.array(
       source
@@ -141,9 +114,7 @@ const commonFields = {
 /* =========================================================
    POST SCHEMA
 
-   During migration both source formats are accepted:
-   - old sourceUrl + localized source fields
-   - new sources array
+   All articles use the canonical sources array format.
    ========================================================= */
 
 const postSchema =
@@ -161,7 +132,7 @@ const postSchema =
           }),
 
       ...commonFields,
-      ...legacySourceFields,
+      ...sourceFields,
     }),
 
     z.object({
@@ -174,36 +145,7 @@ const postSchema =
         z.null(),
 
       ...commonFields,
-      ...legacySourceFields,
-    }),
-
-    z.object({
-      status:
-        z.literal(
-          'published'
-        ),
-
-      publishedAt:
-        z.string()
-          .datetime({
-            offset: true,
-          }),
-
-      ...commonFields,
-      ...multipleSourceFields,
-    }),
-
-    z.object({
-      status:
-        z.literal(
-          'draft'
-        ),
-
-      publishedAt:
-        z.null(),
-
-      ...commonFields,
-      ...multipleSourceFields,
+      ...sourceFields,
     }),
   ])
     .superRefine(

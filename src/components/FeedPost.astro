@@ -52,47 +52,24 @@ const interactiveGraphic =
 
 /* =========================================================
    SOURCES
-
-   Supports both:
-   - old single-source format
-   - new sources array
    ========================================================= */
 
 const sources =
-  'sources' in post.data
-    ? post.data.sources.map(
-        (source) => ({
-          url:
-            source.url,
+  post.data.sources.map(
+    (source) => ({
+      url:
+        source.url,
 
-          name:
-            source[lang].name,
+      name:
+        source[lang].name,
 
-          linkText:
-            source[lang].linkText,
+      linkText:
+        source[lang].linkText,
 
-          title:
-            source[lang].title,
-        })
-      )
-    : [
-        {
-          url:
-            post.data.sourceUrl,
-
-          name:
-            post.data[lang]
-              .sourceName,
-
-          linkText:
-            post.data[lang]
-              .sourceLinkText,
-
-          title:
-            post.data[lang]
-              .sourceTitle,
-        },
-      ];
+      title:
+        source[lang].title,
+    })
+  );
 
 const primarySource =
   sources[0];
