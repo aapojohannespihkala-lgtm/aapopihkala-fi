@@ -107,6 +107,44 @@ test('scroll readout follows scrolling and hides after idle', async ({ page }) =
   expect(browserErrors).toEqual([]);
 });
 
+test('grid overlay follows the A-mode cycle without changing other modes', async ({ page }) => {
+  const browserErrors = watchBrowserErrors(page);
+  await setDayMode(page);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const grid = page.locator('[data-site-grid]');
+  const aReadout = page.locator('[data-a-readout]');
+
+  await expect(grid).toHaveAttribute(
+    'data-grid-interaction-initialized',
+    'true',
+    { timeout: 10_000 }
+  );
+  await expect(grid).not.toHaveClass(/is-visible/);
+
+  await page.keyboard.press('a');
+  await expect(aReadout).toHaveAttribute('data-mode', 'cross');
+  await expect(grid).not.toHaveClass(/is-visible/);
+
+  await page.keyboard.press('a');
+  await expect(aReadout).toHaveAttribute('data-mode', 'elev');
+  await expect(grid).not.toHaveClass(/is-visible/);
+
+  await page.keyboard.press('a');
+  await expect(aReadout).toHaveAttribute('data-mode', 'grid');
+  await expect(grid).toHaveClass(/is-visible/);
+
+  await page.keyboard.press('a');
+  await expect(aReadout).toHaveAttribute('data-mode', 'area');
+  await expect(grid).not.toHaveClass(/is-visible/);
+
+  await page.keyboard.press('Escape');
+  await expect(aReadout).toHaveAttribute('data-mode', '');
+  await expect(grid).not.toHaveClass(/is-visible/);
+
+  expect(browserErrors).toEqual([]);
+});
+
 test('about portrait loads, pauses offscreen and preserves its main frame geometry', async ({ page }) => {
   const browserErrors = watchBrowserErrors(page);
   await setDayMode(page);
