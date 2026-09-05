@@ -350,9 +350,6 @@
   (() => {
     const svgNamespace = 'http://www.w3.org/2000/svg'
     const grid = document.querySelector('[data-site-grid]')
-    const scrollReadout = document.querySelector('[data-scroll-readout]')
-    const scrollYLabel = document.querySelector('[data-scroll-y]')
-    const scrollPercentLabel = document.querySelector('[data-scroll-percent]')
     const aReadout = document.querySelector('[data-a-readout]')
     const aReadoutLabel = document.querySelector('[data-a-readout-label]')
     const aAxis = document.querySelector('[data-a-axis]')
@@ -1187,32 +1184,6 @@
       if (drawingArea) clearAreaVisuals()
     }
 
-    let scrollHideTimer = 0
-    let scrollFrame = 0
-
-    const updateScrollReadout = () => {
-      scrollFrame = 0
-      if (!scrollReadout || !scrollYLabel || !scrollPercentLabel) return
-
-      const y = Math.max(0, Math.round(window.scrollY))
-      const maximum = Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
-      const percent = Math.max(0, Math.min(100, Math.round((window.scrollY / maximum) * 100)))
-
-      scrollYLabel.textContent = `Y ${String(y).padStart(4, '0')}`
-      scrollPercentLabel.textContent = `${percent}%`
-      scrollReadout.classList.add('is-visible')
-
-      window.clearTimeout(scrollHideTimer)
-      scrollHideTimer = window.setTimeout(() => {
-        scrollReadout.classList.remove('is-visible')
-      }, 900)
-    }
-
-    const handleScroll = () => {
-      if (scrollFrame) return
-      scrollFrame = window.requestAnimationFrame(updateScrollReadout)
-    }
-
     const initializeDateEasterEggs = () => {
       document.querySelectorAll('time.post-date').forEach((dateElement) => {
         if (!(dateElement instanceof HTMLElement)) return
@@ -1267,24 +1238,26 @@
     window.addEventListener('pointerdown', handlePointerDown, true)
     window.addEventListener('pointerup', handlePointerUp, true)
     window.addEventListener('pointercancel', handlePointerCancel, true)
-    window.addEventListener('scroll', handleScroll, { passive: true })
     window.addEventListener('resize', handleResize, { passive: true })
 
     window.addEventListener(
       'pagehide',
       () => {
-        window.clearTimeout(scrollHideTimer)
-        if (scrollFrame) window.cancelAnimationFrame(scrollFrame)
         window.removeEventListener('keydown', handleKeydown, true)
         window.removeEventListener('pointermove', handlePointerMove)
         window.removeEventListener('pointerdown', handlePointerDown, true)
         window.removeEventListener('pointerup', handlePointerUp, true)
         window.removeEventListener('pointercancel', handlePointerCancel, true)
-        window.removeEventListener('scroll', handleScroll)
         window.removeEventListener('resize', handleResize)
         document.body.classList.remove('site-a-mode')
       },
       { once: true }
     )
   })()
+</script>
+
+<script>
+  import { initializeScrollReadout } from '../features/interactions/scrollReadout';
+
+  initializeScrollReadout();
 </script>
