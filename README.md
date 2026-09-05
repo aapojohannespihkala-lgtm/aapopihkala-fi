@@ -322,7 +322,7 @@ Yhteinen npm-runtime:
 src/scripts/threeRuntime.ts
 ```
 
-Ainakin `PointBee.astro` ja `PointButterfly.astro` käyttävät tätä yhteistä runtimea. Three.js:n TypeScript-tyypit pidetään samassa `0.180.0`-versiossa runtime-riippuvuuden kanssa `@types/three`-dev-riippuvuutena. Kaikkia 3D-komponentteja ei ole vielä siirretty CDN-tuonneista yhteiseen npm-runtimeen, joten migraatio on tarkoituksella vielä osittainen.
+`PointBee.astro`, `PointButterfly.astro`, `SegmentedRing.astro` ja `AccessibilityStep.astro` käyttävät tätä yhteistä runtimea. Three.js:n TypeScript-tyypit pidetään samassa `0.180.0`-versiossa runtime-riippuvuuden kanssa `@types/three`-dev-riippuvuutena. Kaikkia 3D-komponentteja ei ole vielä siirretty CDN-tuonneista yhteiseen npm-runtimeen, joten migraatio on tarkoituksella vielä osittainen.
 
 ## README:n ylläpito
 
