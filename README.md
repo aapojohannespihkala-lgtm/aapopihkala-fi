@@ -392,7 +392,7 @@ Siellä määritellään muun muassa:
 Yhteinen meta-kuva:
 
 ```text
-public/graphics/metakuva.png
+public/graphics/metakuva1.png
 ```
 
 Kaikki artikkelit käyttävät samaa meta-kuvaa automaattisesti.
@@ -685,7 +685,7 @@ Jos artikkelilla ei ole kuvaa, jätä `graphic` ja `graphicAlt` pois.
 Artikkelin `graphic` ei vaikuta some-esikatselun meta-kuvaan. Meta-kuvana käytetään koko sivuston yhteistä:
 
 ```text
-public/graphics/metakuva.png
+public/graphics/metakuva1.png
 ```
 
 ## Artikkelien järjestys
