@@ -349,7 +349,6 @@
 <script is:inline>
   (() => {
     const svgNamespace = 'http://www.w3.org/2000/svg'
-    const grid = document.querySelector('[data-site-grid]')
     const aReadout = document.querySelector('[data-a-readout]')
     const aReadoutLabel = document.querySelector('[data-a-readout-label]')
     const aAxis = document.querySelector('[data-a-axis]')
@@ -366,7 +365,6 @@
     const areaHint = document.querySelector('[data-area-hint]')
 
     if (
-      !grid ||
       !aReadout ||
       !aAxis ||
       !areaOverlay ||
@@ -380,8 +378,8 @@
       !areaHint
     ) return
 
-    if (grid.dataset.siteShortcutsInitialized === 'true') return
-    grid.dataset.siteShortcutsInitialized = 'true'
+    if (aReadout.dataset.siteShortcutsInitialized === 'true') return
+    aReadout.dataset.siteShortcutsInitialized = 'true'
 
     const isTypingTarget = (target) => {
       if (!(target instanceof Element)) return false
@@ -1059,7 +1057,6 @@
       aReadout.dataset.mode = mode ?? ''
       aReadout.classList.toggle('is-visible', Boolean(mode))
       aAxis.classList.toggle('is-visible', mode === 'elev' || mode === 'grid')
-      grid.classList.toggle('is-visible', mode === 'grid')
       areaOverlay.classList.toggle('is-visible', mode === 'area')
 
       clearAreaVisuals()
@@ -1257,7 +1254,9 @@
 </script>
 
 <script>
+  import { initializeGridInteraction } from '../features/interactions/grid';
   import { initializeScrollReadout } from '../features/interactions/scrollReadout';
 
+  initializeGridInteraction();
   initializeScrollReadout();
 </script>
