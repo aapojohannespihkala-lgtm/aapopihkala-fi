@@ -203,6 +203,76 @@ test('A coordinate runtime preserves mode order and pointer readout', async ({ p
   expect(browserErrors).toEqual([]);
 });
 
+test('AREA runtime preserves polygon topography and drag rotation', async ({ page }) => {
+  const browserErrors = watchBrowserErrors(page);
+  await setDayMode(page);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const readout = page.locator('[data-a-readout]');
+  const overlay = page.locator('[data-area-overlay]');
+  const areaPath = page.locator('[data-area-path]');
+  const label = page.locator('[data-area-label]');
+  const hint = page.locator('[data-area-hint]');
+  const points = page.locator('[data-area-points] .site-area-point');
+  const contours = page.locator('[data-area-contours]');
+  const centroid = page.locator('[data-area-centroid-symbol]');
+
+  await expect(overlay).toHaveAttribute(
+    'data-area-interaction-initialized',
+    'true',
+    { timeout: 10_000 }
+  );
+
+  for (let index = 0; index < 4; index += 1) {
+    await page.keyboard.press('a');
+  }
+
+  await expect(readout).toHaveAttribute('data-mode', 'area');
+  await expect(overlay).toHaveClass(/is-visible/);
+
+  await page.mouse.move(420, 260);
+  await page.mouse.down();
+  for (const [x, y] of [
+    [500, 270],
+    [560, 330],
+    [550, 410],
+    [490, 470],
+    [400, 475],
+    [335, 420],
+    [325, 340],
+    [370, 285],
+    [420, 260],
+  ] as const) {
+    await page.mouse.move(x, y);
+  }
+  await page.mouse.up();
+
+  await expect(areaPath).toHaveAttribute('d', / Z$/);
+  await expect(label).toHaveText(/^AREA \/ \d+ px²$/);
+  await expect(hint).toHaveText('AREA / DRAG TO ROTATE TOPOGRAPHY');
+  await expect(centroid).toHaveClass(/is-visible/);
+  await expect.poll(() => points.count()).toBeGreaterThan(20);
+  await expect(contours).not.toHaveAttribute('d', '');
+
+  const pathBeforeRotation = await areaPath.getAttribute('d');
+  expect(pathBeforeRotation).not.toBeNull();
+
+  await page.mouse.move(440, 365);
+  await expect(overlay).toHaveClass(/is-hovering-area/);
+  await page.mouse.down();
+  await expect(overlay).toHaveClass(/is-rotating-area/);
+  await page.mouse.move(500, 330);
+  await expect(hint).toHaveText(/^AREA \/ X -?\d+\.\d° \/ Y -?\d+\.\d°$/);
+  await expect
+    .poll(() => areaPath.getAttribute('d'))
+    .not.toBe(pathBeforeRotation);
+  await page.mouse.up();
+  await expect(overlay).not.toHaveClass(/is-rotating-area/);
+  await expect(hint).toHaveText('AREA / DRAG TO ROTATE TOPOGRAPHY');
+
+  expect(browserErrors).toEqual([]);
+});
+
 test('about portrait loads, pauses offscreen and preserves its main frame geometry', async ({ page }) => {
   const browserErrors = watchBrowserErrors(page);
   await setDayMode(page);
