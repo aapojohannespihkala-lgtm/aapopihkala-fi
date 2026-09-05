@@ -259,7 +259,7 @@ test('AREA runtime preserves polygon topography and drag rotation', async ({ pag
 
   await page.mouse.move(440, 365);
   await expect(overlay).toHaveClass(/is-hovering-area/);
-  await expect(hint).toHaveText('AREA / DRAG TO ROTATE TOPOGRAPHY');
+  await expect(hint).toHaveText('AREA / DRAG TO ROTATE RASTER SURFACE');
   await page.mouse.down();
   await expect(overlay).toHaveClass(/is-rotating-area/);
   await page.mouse.move(500, 330);
@@ -269,7 +269,7 @@ test('AREA runtime preserves polygon topography and drag rotation', async ({ pag
     .not.toBe(pathBeforeRotation);
   await page.mouse.up();
   await expect(overlay).not.toHaveClass(/is-rotating-area/);
-  await expect(hint).toHaveText('AREA / DRAG TO ROTATE TOPOGRAPHY');
+  await expect(hint).toHaveText('AREA / DRAG TO ROTATE RASTER SURFACE');
 
   expect(browserErrors).toEqual([]);
 });
