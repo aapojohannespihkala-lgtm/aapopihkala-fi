@@ -249,7 +249,7 @@ test('AREA runtime preserves polygon topography and drag rotation', async ({ pag
 
   await expect(areaPath).toHaveAttribute('d', / Z$/);
   await expect(label).toHaveText(/^AREA \/ \d+ px²$/);
-  await expect(hint).toHaveText('AREA / DRAG TO ROTATE TOPOGRAPHY');
+  await expect(hint).toHaveText('AREA / HOLD + DRAW NEW');
   await expect(centroid).toHaveClass(/is-visible/);
   await expect.poll(() => points.count()).toBeGreaterThan(20);
   await expect(contours).not.toHaveAttribute('d', '');
@@ -259,6 +259,7 @@ test('AREA runtime preserves polygon topography and drag rotation', async ({ pag
 
   await page.mouse.move(440, 365);
   await expect(overlay).toHaveClass(/is-hovering-area/);
+  await expect(hint).toHaveText('AREA / DRAG TO ROTATE TOPOGRAPHY');
   await page.mouse.down();
   await expect(overlay).toHaveClass(/is-rotating-area/);
   await page.mouse.move(500, 330);
