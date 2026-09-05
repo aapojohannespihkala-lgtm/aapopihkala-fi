@@ -152,6 +152,7 @@ test('A coordinate runtime preserves mode order and pointer readout', async ({ p
   const readout = page.locator('[data-a-readout]');
   const label = page.locator('[data-a-readout-label]');
   const axis = page.locator('[data-a-axis]');
+  const areaOverlay = page.locator('[data-area-overlay]');
 
   await expect(readout).toHaveAttribute(
     'data-a-coordinate-interaction-initialized',
@@ -184,10 +185,12 @@ test('A coordinate runtime preserves mode order and pointer readout', async ({ p
   await page.keyboard.press('a');
   await expect(readout).toHaveAttribute('data-mode', 'area');
   await expect(axis).not.toHaveClass(/is-visible/);
+  await expect(areaOverlay).toHaveClass(/is-visible/);
 
   await page.keyboard.press('a');
   await expect(readout).toHaveAttribute('data-mode', '');
   await expect(readout).not.toHaveClass(/is-visible/);
+  await expect(areaOverlay).not.toHaveClass(/is-visible/);
   await expect(page.locator('body')).not.toHaveClass(/site-a-mode/);
 
   expect(browserErrors).toEqual([]);
