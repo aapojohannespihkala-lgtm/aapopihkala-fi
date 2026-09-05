@@ -51,27 +51,22 @@ test('homepage MorphingTopography preserves its contract, motion and orbit', asy
   expect(box!.height).toBeGreaterThan(280);
   expect(box!.height).toBeLessThan(320);
 
-  const frameBeforeMotion = await canvas.evaluate((element) =>
-    (element as HTMLCanvasElement).toDataURL()
-  );
+  const frameBeforeMotion = await canvas.screenshot();
   await page.waitForTimeout(700);
-  const frameAfterMotion = await canvas.evaluate((element) =>
-    (element as HTMLCanvasElement).toDataURL()
-  );
-  expect(frameAfterMotion).not.toBe(frameBeforeMotion);
+  const frameAfterMotion = await canvas.screenshot();
+  expect(frameAfterMotion.equals(frameBeforeMotion)).toBe(false);
 
   const centerX = box!.x + box!.width / 2;
   const centerY = box!.y + box!.height / 2;
   const frameBeforeDrag = frameAfterMotion;
   await page.mouse.move(centerX, centerY);
   await page.mouse.down();
+  await expect(root).toHaveCSS('cursor', 'grabbing');
   await page.mouse.move(centerX + 70, centerY - 30, { steps: 8 });
   await page.mouse.up();
   await page.waitForTimeout(120);
-  const frameAfterDrag = await canvas.evaluate((element) =>
-    (element as HTMLCanvasElement).toDataURL()
-  );
-  expect(frameAfterDrag).not.toBe(frameBeforeDrag);
+  const frameAfterDrag = await canvas.screenshot();
+  expect(frameAfterDrag.equals(frameBeforeDrag)).toBe(false);
 
   expect(browserErrors).toEqual([]);
 });
