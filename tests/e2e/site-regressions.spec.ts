@@ -76,6 +76,37 @@ test('homepage keeps its key visual anchors and interactions', async ({ page }) 
   expect(browserErrors).toEqual([]);
 });
 
+test('scroll readout follows scrolling and hides after idle', async ({ page }) => {
+  const browserErrors = watchBrowserErrors(page);
+  await setDayMode(page);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const readout = page.locator('[data-scroll-readout]');
+  const yLabel = page.locator('[data-scroll-y]');
+  const percentLabel = page.locator('[data-scroll-percent]');
+
+  await expect(readout).toHaveAttribute(
+    'data-scroll-readout-initialized',
+    'true',
+    { timeout: 10_000 }
+  );
+
+  await page.evaluate(() => {
+    const maximum = Math.max(
+      0,
+      document.documentElement.scrollHeight - window.innerHeight
+    );
+    window.scrollTo(0, Math.min(600, maximum));
+  });
+
+  await expect(readout).toHaveClass(/is-visible/);
+  await expect(yLabel).toHaveText(/^Y \d{4,}$/);
+  await expect(percentLabel).toHaveText(/^\d+%$/);
+  await expect(readout).not.toHaveClass(/is-visible/, { timeout: 2_500 });
+
+  expect(browserErrors).toEqual([]);
+});
+
 test('about portrait loads, pauses offscreen and preserves its main frame geometry', async ({ page }) => {
   const browserErrors = watchBrowserErrors(page);
   await setDayMode(page);
