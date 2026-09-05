@@ -42,8 +42,8 @@ test('homepage portrait keeps its Vol 4 camera, motion and orbit contract', asyn
   await expect(root).toHaveAttribute('data-camera-height', '0');
   await expect(root).toHaveAttribute('data-camera-fov', '38');
   await expect(root).toHaveAttribute('data-target-y', '0');
-  await expect(root).toHaveAttribute('data-idle-yaw-range', '10');
-  await expect(root).toHaveAttribute('data-idle-pitch-range', '4');
+  await expect(root).toHaveAttribute('data-idle-yaw-range', '14');
+  await expect(root).toHaveAttribute('data-idle-pitch-range', '8');
 
   await expect(status).toBeHidden({ timeout: 45_000 });
   await expect(root).toHaveAttribute('data-meshy-point-surface-load-state', 'ready', {

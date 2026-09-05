@@ -81,6 +81,62 @@ test('homepage keeps its key visual anchors and interactions', async ({ page }) 
   expect(browserErrors).toEqual([]);
 });
 
+test('homepage hero keeps the intended desktop line breaks in both languages', async ({ page }) => {
+  const browserErrors = watchBrowserErrors(page);
+  await setDayMode(page);
+
+  for (const [path, expectedWord] of [
+    ['/', 'luonnon'],
+    ['/en/', 'cities,'],
+  ] as const) {
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+
+    const secondary = page.locator('.hero-secondary');
+    await expect(secondary).toHaveClass(/hero-concepts-ready/, { timeout: 10_000 });
+
+    const lineBreak = secondary.locator('br.hero-concept-line-break');
+    await expect(lineBreak).toHaveCount(1);
+
+    const breakState = await lineBreak.evaluate((element) => ({
+      previousText: element.previousSibling?.textContent?.trim() ?? '',
+      display: window.getComputedStyle(element).display,
+    }));
+
+    expect(breakState.previousText).toBe(expectedWord);
+    expect(breakState.display).not.toBe('none');
+  }
+
+  expect(browserErrors).toEqual([]);
+});
+
+test('homepage section navigator shows a back-to-top label at the page end', async ({ page }) => {
+  const browserErrors = watchBrowserErrors(page);
+  await setDayMode(page);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const button = page.locator('[data-homepage-section-nav]');
+  await expect(button).toHaveAttribute('data-label-top', 'Takaisin sivun alkuun');
+
+  await page.evaluate(() => {
+    window.scrollTo(0, document.documentElement.scrollHeight);
+  });
+
+  await expect(button).toHaveClass(/is-up/, { timeout: 10_000 });
+
+  const pseudo = await button.evaluate((element) => {
+    const style = window.getComputedStyle(element, '::after');
+    return {
+      content: style.content,
+      opacity: Number(style.opacity),
+    };
+  });
+
+  expect(pseudo.content).toContain('Takaisin sivun alkuun');
+  expect(pseudo.opacity).toBeGreaterThan(0);
+
+  expect(browserErrors).toEqual([]);
+});
+
 test('scroll readout follows scrolling and hides after idle', async ({ page }) => {
   const browserErrors = watchBrowserErrors(page);
   await setDayMode(page);
@@ -210,7 +266,7 @@ test('grid overlay follows the A-mode cycle without changing other modes', async
   expect(browserErrors).toEqual([]);
 });
 
-test('A coordinate runtime preserves mode order and pointer readout', async ({ page }) => {
+test('A coordinate runtime preserves mode order and returns to the default cursor', async ({ page }) => {
   const browserErrors = watchBrowserErrors(page);
   await setDayMode(page);
   await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -220,6 +276,7 @@ test('A coordinate runtime preserves mode order and pointer readout', async ({ p
   const axis = page.locator('[data-a-axis]');
   const areaOverlay = page.locator('[data-area-overlay]');
   const rectOverlay = page.locator('[data-rect-area]');
+  const body = page.locator('body');
 
   await expect(readout).toHaveAttribute(
     'data-a-coordinate-interaction-initialized',
@@ -227,7 +284,7 @@ test('A coordinate runtime preserves mode order and pointer readout', async ({ p
     { timeout: 10_000 }
   );
   await expect(readout).toHaveAttribute('data-mode', '');
-  await expect(page.locator('body')).not.toHaveClass(/site-a-mode/);
+  await expect(body).not.toHaveClass(/site-a-mode/);
 
   await page.mouse.move(400, 450);
 
@@ -259,12 +316,20 @@ test('A coordinate runtime preserves mode order and pointer readout', async ({ p
   await expect(readout).toHaveClass(/is-visible/);
   await expect(areaOverlay).not.toHaveClass(/is-visible/);
   await expect(rectOverlay).toHaveClass(/is-visible/);
-  await expect(page.locator('body')).toHaveClass(/site-a-mode/);
+  await expect(body).toHaveClass(/site-a-mode/);
+
+  await page.keyboard.press('a');
+  await expect(readout).toHaveAttribute('data-mode', '');
+  await expect(readout).not.toHaveClass(/is-visible/);
+  await expect(rectOverlay).not.toHaveClass(/is-visible/);
+  await expect(areaOverlay).not.toHaveClass(/is-visible/);
+  await expect(body).not.toHaveClass(/site-a-mode/);
+
+  const cursor = await body.evaluate((element) => window.getComputedStyle(element).cursor);
+  expect(cursor).not.toBe('none');
 
   await page.keyboard.press('a');
   await expect(readout).toHaveAttribute('data-mode', 'cross');
-  await expect(rectOverlay).not.toHaveClass(/is-visible/);
-  await expect(areaOverlay).not.toHaveClass(/is-visible/);
 
   expect(browserErrors).toEqual([]);
 });

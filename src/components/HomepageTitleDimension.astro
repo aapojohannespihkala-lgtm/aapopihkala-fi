@@ -33,7 +33,7 @@
   }
 
   .homepage-title-dimension.is-visible {
-    opacity: 0.72;
+    opacity: 0.82;
     transform: translateY(0);
   }
 
@@ -43,10 +43,11 @@
     right: 0;
     top: 14px;
     height: 1px;
+    opacity: 0.58;
     background-image: repeating-linear-gradient(
       90deg,
-      rgba(89, 105, 93, 0.34) 0,
-      rgba(89, 105, 93, 0.34) 1px,
+      currentColor 0,
+      currentColor 1px,
       transparent 1px,
       transparent 4px
     );
@@ -57,10 +58,11 @@
     top: -7px;
     width: 1px;
     height: 22px;
+    opacity: 0.54;
     background-image: repeating-linear-gradient(
       180deg,
-      rgba(89, 105, 93, 0.3) 0,
-      rgba(89, 105, 93, 0.3) 1px,
+      currentColor 0,
+      currentColor 1px,
       transparent 1px,
       transparent 4px
     );
@@ -79,7 +81,8 @@
     top: 14px;
     width: 9px;
     height: 1px;
-    background: rgba(73, 88, 77, 0.46);
+    background: currentColor;
+    opacity: 0.64;
     transform: translateY(-0.5px) rotate(-45deg);
     transform-origin: 50% 50%;
   }

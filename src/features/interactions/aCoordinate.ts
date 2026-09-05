@@ -1,6 +1,6 @@
-type AMode = '' | 'cross' | 'elev' | 'grid' | 'area';
+type AMode = '' | 'cross' | 'elev' | 'grid' | 'area' | 'rect';
 
-const modes: AMode[] = ['cross', 'elev', 'grid', 'area', ''];
+const modes: AMode[] = ['cross', 'elev', 'grid', 'area', 'rect', ''];
 
 export const initializeACoordinateInteraction = () => {
   const readout = document.querySelector('[data-a-readout]');

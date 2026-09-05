@@ -63,10 +63,38 @@ const labels = lang === 'fi'
     transform: translateX(-50%);
   }
 
+  .homepage-section-nav-button--fixed::after {
+    content: attr(data-label-top);
+    position: absolute;
+    left: 50%;
+    top: 20px;
+    color: var(--stone-light);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.42rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition: opacity 150ms ease, color 150ms ease;
+  }
+
+  .homepage-section-nav-button--fixed.is-up::after {
+    opacity: 0.72;
+  }
+
   .homepage-section-nav-button:hover,
   .homepage-section-nav-button:focus-visible {
     color: var(--moss-deep);
     opacity: 0.94;
+  }
+
+  .homepage-section-nav-button--fixed:hover::after,
+  .homepage-section-nav-button--fixed:focus-visible::after {
+    color: var(--moss-deep);
   }
 
   .homepage-section-nav-button--fixed:hover {
@@ -112,7 +140,8 @@ const labels = lang === 'fi'
 
   @media (prefers-reduced-motion: reduce) {
     .homepage-section-nav-button,
-    .homepage-section-nav-button svg {
+    .homepage-section-nav-button svg,
+    .homepage-section-nav-button--fixed::after {
       transition: none;
     }
   }

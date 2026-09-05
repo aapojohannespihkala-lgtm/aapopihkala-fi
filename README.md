@@ -122,13 +122,15 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - etusivun topografiacanvasin renderöitymisen, geometrian, jatkuvan morph/auto-rotate-liikkeen ja drag-orbitoinnin
 - päivä/yö-tilan
 - kielilinkit
+- FI- ja EN-ingressin tarkoitetun desktop-rivijaon: FI-rivin viimeinen sana on `luonnon` ja EN-rivin `cities,`
+- sivun lopun back-to-top-labelin näkyvyyden ylöspäin osoittavan nuolen yhteydessä
 - About-upotuksen sijainnin
 - yhteisen interaktiokerroksen renderöitymisen kerran `BaseLayout`in kautta eikä headerin sisällä
 - scroll readoutin arvot scrollauksen aikana ja automaattisen piilotuksen
 - legacy-näppäinoikoteiden estot sekä `L`-oikotien Animation Lab -navigoinnin
 - artikkelipäivämäärän format togglen klikkauksella sekä Enter/Space-näppäimillä
 - GRID-overlayn näkyvyyden A-moodien syklin aikana
-- A/coordinate-moodien järjestyksen, koordinaattireadoutin ja akselien käyttäytymisen
+- A/coordinate-moodien järjestyksen, RECT-tilan ja syklin palautumisen lopuksi normaaliin oletuskursoriin
 - AREA-polygonin sulkeutumisen, pinta-alan, topografiapisteet, contourit ja drag-rotaation
 - AREA-rasteripinnan syntymisen, rasterikuvan latautumisen ja rasteritason rotaation
 - AREA-polishin sivukohtaisen rajauksen: käytössä etusivulla ja artikkeleissa, ei About-sivulla
@@ -284,7 +286,7 @@ Vastuut:
 
 - `scrollReadout.ts` hoitaa scroll-eventin, prosentti- ja Y-arvon laskennan, `requestAnimationFrame`-throttlen sekä cleanupin.
 - `grid.ts` seuraa A-moodin `data-mode`-tilaa ja omistaa GRID-overlayn näkyvyysluokan.
-- `aCoordinate.ts` omistaa A-moodien kierron, koordinaattireadoutin, ELEV-arvon ja akselien sijainnin.
+- `aCoordinate.ts` omistaa A-moodien kierron, mukaan lukien RECT-tilan sekä syklin lopun tyhjän oletustilan, koordinaattireadoutin, ELEV-arvon ja akselien sijainnin.
 - `area.ts` omistaa AREA-piirron, polygonigeometrian, pinta-alan, centroidin, contour/topografia-laskennan, drag-rotaation ja AREA-moodin elinkaaren.
 - `areaRaster.ts` on AREA:n valinnainen rasteripinnan esityskerros. Se ei omista pointer- tai polygonitilaa, vaan saa geometrian ja rotaation suoraan `area.ts`:ltä.
 - `legacyShortcuts.ts` säilyttää vanhojen yksikirjaimisten oikoteiden estot ja `L`-oikotien Animation Labiin.
@@ -319,6 +321,8 @@ src/components/AboutPortraitSection.astro
 Näiden visualisointien kamera-, geometria-, väri-, liike- ja interaktioasetuksia ei pidä muuttaa sivuvaikutuksena muiden refaktorointien yhteydessä. Selaintestit toimivat niiden perussuojana.
 
 Pistepilvipään raskas Three.js/GLB-alustus käynnistyy vasta, kun komponentti tulee lähelle näkyvää aluetta. Varsinainen renderöintisilmukka on aktiivinen vain komponentin ollessa näkyvän alueen läheisyydessä ja dokumentin ollessa aktiivinen. Kun pää on ruudun ulkopuolella tai välilehti on piilossa, animaatiosilmukka pysäytetään ja käynnistetään uudelleen näkyvyyden palatessa. Tämä lifecycle-optimointi ei muuta pään kamera-, geometria-, piste-, väri- tai idle-liikeasetuksia.
+
+About-kehyksen nykyinen tarkoituksellinen idle-huojunta käyttää 14 asteen yaw-liikerataa ja 8 asteen pitch-liikerataa molempiin suuntiin määritetyn keskiasennon ympärillä. Idle-segmentit kestävät satunnaisesti 3,2-5,2 sekuntia. Kamera, FOV, etäisyys, target, pistegeometria, pistekoko, värit, depth shading, drag-orbit, damping, zoom ja pan säilyvät erillisinä tästä huojunta-asetuksesta.
 
 Etusivun nykyinen topografia käyttää `MorphingTopography.astro`-komponenttia.
 
