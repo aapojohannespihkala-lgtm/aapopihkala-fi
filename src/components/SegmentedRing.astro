@@ -60,23 +60,20 @@ const {
   }
 </style>
 
-<script is:inline>
+<script>
+  import { THREE, OrbitControls } from '../scripts/threeRuntime'
+
   (() => {
-    const roots = document.querySelectorAll('[data-segmented-ring]')
+    const roots = document.querySelectorAll<HTMLElement>('[data-segmented-ring]')
 
     roots.forEach(async (root) => {
       if (root.dataset.segmentedRingInitialized === 'true') return
       root.dataset.segmentedRingInitialized = 'true'
 
-      const canvas = root.querySelector('[data-segmented-ring-canvas]')
+      const canvas = root.querySelector<HTMLCanvasElement>('[data-segmented-ring-canvas]')
       if (!canvas) return
 
       try {
-        const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm')
-        const { OrbitControls } = await import(
-          'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm'
-        )
-
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         const wantsAutoRotate = root.dataset.autoRotate !== 'false'
         const wantsAnimation = root.dataset.animate !== 'false' && !reducedMotion
@@ -134,12 +131,12 @@ const {
         const capRadiusSteps = 8
         const capAngleSteps = 22
 
-        const deg = (value) => value * Math.PI / 180
+        const deg = (value: number) => value * Math.PI / 180
 
-        const fieldPositions = []
-        const capPositions = []
+        const fieldPositions: number[] = []
+        const capPositions: number[] = []
 
-        const addTubeArc = (startAngle, endAngle) => {
+        const addTubeArc = (startAngle: number, endAngle: number) => {
           const arcLength = endAngle - startAngle
 
           for (let angleIndex = 0; angleIndex <= angleSteps; angleIndex += 1) {
@@ -251,7 +248,7 @@ const {
         }
         document.addEventListener('visibilitychange', handleVisibility)
 
-        const animateFrame = (time) => {
+        const animateFrame = (time: number) => {
           animationFrame = requestAnimationFrame(animateFrame)
           if (!isVisible || !isDocumentVisible) {
             previousTime = time
