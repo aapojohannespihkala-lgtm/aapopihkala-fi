@@ -47,7 +47,7 @@ Aja Astron staattiset tarkistukset:
 npm run check
 ```
 
-Huomaa, että nykyisessä koodipohjassa on vielä olemassa olevaa TypeScript-tyyppivelkaa erityisesti joissakin interaktiivisissa ja 3D-komponenteissa. CI ajaa `astro check`in tällä hetkellä diagnostisesti eikä pysäytä pipelinea sen virheisiin.
+`astro check` on osa pakollista CI-porttia. Tarkistuksen pitää valmistua ilman virheitä ennen kuin build- ja selainregressiovaiheisiin voidaan luottaa.
 
 Tee tuotantobuild:
 
@@ -99,7 +99,7 @@ npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-`npm run check` on toistaiseksi `continue-on-error`, koska nykyisessä koodissa on vanhaa tyyppivelkaa. Buildin ja Playwright-testien pitää kuitenkin onnistua.
+`npm run check` on blokkaava vaihe: jos Astro- tai TypeScript-tarkistus palauttaa virheen, CI epäonnistuu eikä muutosta pidetä hyväksyttynä.
 
 Jos Playwright-testi epäonnistuu, CI tallentaa `test-results/`-aineiston tutkittavaksi.
 
@@ -322,7 +322,7 @@ Yhteinen npm-runtime:
 src/scripts/threeRuntime.ts
 ```
 
-Ainakin `PointBee.astro` ja `PointButterfly.astro` käyttävät tätä yhteistä runtimea. Kaikkia 3D-komponentteja ei ole vielä siirretty CDN-tuonneista yhteiseen npm-runtimeen, joten migraatio on tarkoituksella vielä osittainen.
+Ainakin `PointBee.astro` ja `PointButterfly.astro` käyttävät tätä yhteistä runtimea. Three.js:n TypeScript-tyypit pidetään samassa `0.180.0`-versiossa runtime-riippuvuuden kanssa `@types/three`-dev-riippuvuutena. Kaikkia 3D-komponentteja ei ole vielä siirretty CDN-tuonneista yhteiseen npm-runtimeen, joten migraatio on tarkoituksella vielä osittainen.
 
 ## README:n ylläpito
 
@@ -340,7 +340,6 @@ Jos merkittävä tekninen päivitystarve havaitaan mutta sitä ei tehdä samassa
 
 ### Tunnetut tekniset päivitystarpeet
 
-- Nykyinen TypeScript-tyyppivelka pitää siivota ennen kuin `astro check` voidaan muuttaa CI:ssä blokkaavaksi tarkistukseksi.
 - Three.js:n npm-migraatio on vielä osittainen. Loput 3D-komponentit kannattaa siirtää yhteiseen runtimeen vasta regressiosuojan alla ja ilman renderöintiasetusten muutoksia.
 - Vanha yhden lähteen artikkelirakenne on vielä tuettu siirtymävaiheen vuoksi. Sisältö kannattaa myöhemmin yhtenäistää kokonaan `sources[]`-rakenteeseen.
 - `SiteInteractionLayer`in varsinainen interaktioruntime on nyt pilkottu scroll-, GRID-, A/coordinate- ja AREA-featureihin. Jäljellä oleva inline-liimakoodi sisältää vielä legacy-näppäinoikoteitä ja päivämäärän format toggle -easter eggin; ne voidaan myöhemmin irrottaa omiksi pieniksi featureiksi.
@@ -858,7 +857,7 @@ npm run build
 npm run test:e2e
 ```
 
-`npm run check` voi nykyisen tyyppivelan vuoksi vielä palauttaa virheitä. Buildin ja selainregressiotestien pitää silti onnistua.
+`npm run check` on pakollinen osa perustarkistusta ja sen pitää onnistua ennen buildin ja selainregressiotestien hyväksymistä.
 
 Julkaisun jälkeen tarkista:
 
