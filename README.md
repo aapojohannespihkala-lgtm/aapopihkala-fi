@@ -113,12 +113,13 @@ tests/e2e/river-flow-regression.spec.ts
 tests/e2e/photogrammetry-regression.spec.ts
 tests/e2e/meshy-poise-regression.spec.ts
 tests/e2e/meshy-vol4-regression.spec.ts
+tests/e2e/morphing-topography-regression.spec.ts
 ```
 
 Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 
 - etusivun keskeisen rakenteen
-- etusivun topografiacanvasin renderöitymisen ja geometrian
+- etusivun topografiacanvasin renderöitymisen, geometrian, jatkuvan morph/auto-rotate-liikkeen ja drag-orbitoinnin
 - päivä/yö-tilan
 - kielilinkit
 - About-upotuksen sijainnin
@@ -331,7 +332,7 @@ src/scripts/threeRuntime.ts
 
 Runtime vie yhteiseen käyttöön `THREE`-moduulin, `OrbitControls`-ohjaimet, `GLTFLoader`-lataimen ja `MeshSurfaceSampler`-samplerin.
 
-`PointBee.astro`, `PointButterfly.astro`, `SegmentedRing.astro`, `AccessibilityStep.astro`, `WaterDropMorph.astro`, `TreeField.astro`, `RiverFlow.astro`, `PhotogrammetryModel.astro`, `MeshyPixelatedPoise.astro` ja `MeshyPixelatedPoiseVol4.astro` käyttävät tätä yhteistä runtimea. Three.js:n TypeScript-tyypit pidetään samassa `0.180.0`-versiossa runtime-riippuvuuden kanssa `@types/three`-dev-riippuvuutena. Kaikkia 3D-komponentteja ei ole vielä siirretty CDN-tuonneista yhteiseen npm-runtimeen, joten migraatio on tarkoituksella vielä osittainen.
+`PointBee.astro`, `PointButterfly.astro`, `SegmentedRing.astro`, `AccessibilityStep.astro`, `WaterDropMorph.astro`, `TreeField.astro`, `RiverFlow.astro`, `PhotogrammetryModel.astro`, `MeshyPixelatedPoise.astro`, `MeshyPixelatedPoiseVol4.astro` ja `MorphingTopography.astro` käyttävät tätä yhteistä runtimea. Three.js:n TypeScript-tyypit pidetään samassa `0.180.0`-versiossa runtime-riippuvuuden kanssa `@types/three`-dev-riippuvuutena. Kaikkia 3D-komponentteja ei ole vielä siirretty CDN-tuonneista yhteiseen npm-runtimeen, joten migraatio on tarkoituksella vielä osittainen.
 
 ## README:n ylläpito
 
