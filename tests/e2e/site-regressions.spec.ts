@@ -32,6 +32,9 @@ test('homepage keeps its key visual anchors and interactions', async ({ page }) 
     page.getByRole('heading', { level: 1, name: 'Aapo Pihkala' })
   ).toBeVisible();
 
+  await expect(page.locator('[data-site-grid]')).toHaveCount(1);
+  await expect(page.locator('header [data-site-grid]')).toHaveCount(0);
+
   const topographyCanvas = page.locator('[data-morphing-topography-canvas]');
   await expect(topographyCanvas).toBeVisible();
   await expect
