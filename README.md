@@ -110,6 +110,7 @@ Testit sijaitsevat:
 ```text
 tests/e2e/site-regressions.spec.ts
 tests/e2e/river-flow-regression.spec.ts
+tests/e2e/photogrammetry-regression.spec.ts
 ```
 
 Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
@@ -130,6 +131,7 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - 3D-pään renderöinnin pause/resume-käyttäytymisen sen poistuessa näkyvältä alueelta
 - artikkelisivun interaktiivisen grafiikan
 - Animation Labin RiverFlow-canvasin oletusasetukset, renderöitymisen ja ajassa muuttuvan animaation
+- Animation Labin PhotogrammetryModel-GLB:n latautumisen, canvasin koon ja vapaan orbitoinnin
 - selaimen `pageerror`- ja `console.error`-virheet
 
 Testit on tarkoitettu suojaamaan erityisesti visuaalisesti herkkiä interaktiivisia osia refaktorointien aikana.
@@ -324,7 +326,9 @@ Yhteinen npm-runtime:
 src/scripts/threeRuntime.ts
 ```
 
-`PointBee.astro`, `PointButterfly.astro`, `SegmentedRing.astro`, `AccessibilityStep.astro`, `WaterDropMorph.astro`, `TreeField.astro` ja `RiverFlow.astro` käyttävät tätä yhteistä runtimea. Three.js:n TypeScript-tyypit pidetään samassa `0.180.0`-versiossa runtime-riippuvuuden kanssa `@types/three`-dev-riippuvuutena. Kaikkia 3D-komponentteja ei ole vielä siirretty CDN-tuonneista yhteiseen npm-runtimeen, joten migraatio on tarkoituksella vielä osittainen.
+Runtime vie yhteiseen käyttöön `THREE`-moduulin, `OrbitControls`-ohjaimet ja `GLTFLoader`-lataimen.
+
+`PointBee.astro`, `PointButterfly.astro`, `SegmentedRing.astro`, `AccessibilityStep.astro`, `WaterDropMorph.astro`, `TreeField.astro`, `RiverFlow.astro` ja `PhotogrammetryModel.astro` käyttävät tätä yhteistä runtimea. Three.js:n TypeScript-tyypit pidetään samassa `0.180.0`-versiossa runtime-riippuvuuden kanssa `@types/three`-dev-riippuvuutena. Kaikkia 3D-komponentteja ei ole vielä siirretty CDN-tuonneista yhteiseen npm-runtimeen, joten migraatio on tarkoituksella vielä osittainen.
 
 ## README:n ylläpito
 
@@ -697,7 +701,6 @@ public/graphics/metakuva.png
 ## Artikkelien järjestys
 
 Julkaistut artikkelit järjestetään automaattisesti `publishedAt`-kentän perusteella uusimmasta vanhimpaan.
-
 Logiikka sijaitsee tiedostossa:
 
 ```text
