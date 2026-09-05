@@ -1,3 +1,11 @@
+---
+interface Props {
+  areaPolish?: boolean;
+}
+
+const { areaPolish = false } = Astro.props;
+---
+
 <div class="site-grid-easter-egg" data-site-grid aria-hidden="true">
   <span class="site-grid-label">GRID / 32</span>
 </div>
@@ -18,7 +26,12 @@
   <span class="site-a-axis__horizontal" data-a-axis-horizontal></span>
 </div>
 
-<div class="site-area-overlay" data-area-overlay aria-hidden="true">
+<div
+  class="site-area-overlay"
+  data-area-overlay
+  data-area-polish={areaPolish ? 'true' : 'false'}
+  aria-hidden="true"
+>
   <svg class="site-area-svg" data-area-svg preserveAspectRatio="none" aria-hidden="true">
     <g class="site-area-topography" data-area-topography>
       <g class="site-area-points" data-area-points></g>
@@ -36,6 +49,42 @@
   <span class="site-area-label" data-area-label>AREA / DRAW</span>
   <span class="site-area-hint" data-area-hint>AREA / HOLD + DRAW</span>
 </div>
+
+{
+  areaPolish && (
+    <>
+      <div class="site-area-mode-grid" data-area-mode-grid aria-hidden="true">
+        <span class="site-area-mode-grid__label">GRID / 32</span>
+      </div>
+
+      <svg
+        class="site-area-free-select"
+        data-area-free-select
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path class="site-area-free-select__contrast" data-area-free-select-contrast />
+        <path class="site-area-free-select__fill" data-area-free-select-fill />
+        <path class="site-area-free-select__stroke" data-area-free-select-path />
+      </svg>
+
+      <div class="site-area-raster-surface" data-area-raster-surface aria-hidden="true">
+        <div class="site-area-raster-plane" data-area-raster-plane>
+          <img class="site-area-raster-image" data-area-raster-image alt="" />
+          <span class="site-area-raster-wash"></span>
+          <svg
+            class="site-area-raster-outline"
+            data-area-raster-outline
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path data-area-raster-outline-path />
+          </svg>
+        </div>
+      </div>
+    </>
+  )
+}
 
 <style>
   .site-grid-easter-egg {
@@ -318,6 +367,147 @@
     opacity: 0.7;
   }
 
+  .site-area-overlay[data-area-polish='true'] .site-area-topography,
+  .site-area-overlay[data-area-polish='true'] .site-area-centroid-symbol,
+  .site-area-overlay[data-area-polish='true'] .site-area-centroid-symbol.is-visible,
+  .site-area-overlay[data-area-polish='true'] .site-area-start {
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  .site-area-overlay[data-area-polish='true'] .site-area-outline,
+  .site-area-overlay[data-area-polish='true'].is-hovering-area .site-area-outline,
+  .site-area-overlay[data-area-polish='true'].is-rotating-area .site-area-outline {
+    fill: none !important;
+    stroke: transparent !important;
+    opacity: 0 !important;
+  }
+
+  .site-area-overlay[data-area-polish='true'] .site-area-hint {
+    opacity: 0.62;
+  }
+
+  .site-area-mode-grid {
+    position: fixed;
+    inset: 64px 0 0;
+    z-index: 45;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    background-image:
+      linear-gradient(rgba(89, 105, 93, 0.075) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(89, 105, 93, 0.075) 1px, transparent 1px);
+    background-size: 32px 32px;
+    transition: opacity 120ms ease;
+  }
+
+  .site-area-mode-grid.is-visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .site-area-mode-grid__label {
+    position: absolute;
+    right: 22px;
+    bottom: 18px;
+    color: var(--moss);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.58rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.08em;
+  }
+
+  .site-area-free-select {
+    position: fixed;
+    inset: 0;
+    z-index: 74;
+    display: none;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .site-area-free-select.is-visible {
+    display: block;
+  }
+
+  .site-area-free-select__contrast {
+    fill: rgba(255, 255, 255, 0.14);
+    stroke: none;
+    mix-blend-mode: screen;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .site-area-free-select__fill {
+    fill: rgba(18, 112, 47, 0.24);
+    stroke: none;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .site-area-free-select__stroke,
+  .site-area-raster-outline path {
+    fill: none;
+    stroke: rgba(248, 252, 249, 0.98);
+    stroke-width: 0.9;
+    stroke-dasharray: 2 2.8;
+    stroke-linecap: butt;
+    stroke-linejoin: miter;
+    vector-effect: non-scaling-stroke;
+    filter:
+      drop-shadow(0 0 0.45px rgba(255, 255, 255, 0.96))
+      drop-shadow(0 0 0.7px rgba(35, 73, 47, 0.58));
+  }
+
+  .site-area-raster-surface {
+    position: fixed;
+    inset: 0;
+    z-index: 74;
+    display: none;
+    pointer-events: none;
+    overflow: visible;
+  }
+
+  .site-area-raster-surface.is-visible {
+    display: block;
+  }
+
+  .site-area-raster-plane {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    backface-visibility: visible;
+    will-change: transform;
+  }
+
+  .site-area-raster-image,
+  .site-area-raster-wash,
+  .site-area-raster-outline {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .site-area-raster-image {
+    object-fit: fill;
+    user-select: none;
+  }
+
+  .site-area-raster-wash {
+    background: rgba(18, 112, 47, 0.25);
+  }
+
+  .site-area-raster-outline {
+    overflow: visible;
+  }
+
   :global(body.site-a-mode),
   :global(body.site-a-mode *) {
     cursor: none !important;
@@ -340,6 +530,9 @@
     .site-a-axis,
     .site-area-label,
     .site-area-outline,
+    .site-area-mode-grid,
+    .site-area-free-select,
+    .site-area-raster-plane,
     :global(.post-date[data-date-easter-egg]) {
       transition: none;
     }
