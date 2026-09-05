@@ -46,8 +46,8 @@ test('homepage keeps its key visual anchors and interactions', async ({ page }) 
 
   const topographyBox = await topographyCanvas.boundingBox();
   expect(topographyBox).not.toBeNull();
-  expect(topographyBox!.width).toBeGreaterThan(180);
-  expect(topographyBox!.width).toBeLessThan(240);
+  expect(topographyBox!.width).toBeGreaterThan(300);
+  expect(topographyBox!.width).toBeLessThan(340);
   expect(topographyBox!.height).toBeGreaterThan(240);
   expect(topographyBox!.height).toBeLessThan(300);
 
