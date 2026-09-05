@@ -119,6 +119,7 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - kielilinkit
 - About-upotuksen sijainnin
 - About-sivun 3D-pään latautumisen ja canvasin
+- 3D-pään renderöinnin pause/resume-käyttäytymisen sen poistuessa näkyvältä alueelta
 - artikkelisivun interaktiivisen grafiikan
 - selaimen `pageerror`- ja `console.error`-virheet
 
@@ -259,6 +260,8 @@ src/components/AboutPortraitSection.astro
 
 Näiden visualisointien kamera-, geometria-, väri-, liike- ja interaktioasetuksia ei pidä muuttaa sivuvaikutuksena muiden refaktorointien yhteydessä. Selaintestit toimivat niiden perussuojana.
 
+Pistepilvipään raskas Three.js/GLB-alustus käynnistyy vasta, kun komponentti tulee lähelle näkyvää aluetta. Varsinainen renderöintisilmukka on aktiivinen vain komponentin ollessa näkyvän alueen läheisyydessä ja dokumentin ollessa aktiivinen. Kun pää on ruudun ulkopuolella tai välilehti on piilossa, animaatiosilmukka pysäytetään ja käynnistetään uudelleen näkyvyyden palatessa. Tämä lifecycle-optimointi ei muuta pään kamera-, geometria-, piste-, väri- tai idle-liikeasetuksia.
+
 Repo sisältää myös vanhemman/erillisen:
 
 ```text
@@ -278,6 +281,27 @@ src/scripts/threeRuntime.ts
 ```
 
 Ainakin `PointBee.astro` ja `PointButterfly.astro` käyttävät tätä yhteistä runtimea. Kaikkia 3D-komponentteja ei ole vielä siirretty CDN-tuonneista yhteiseen npm-runtimeen, joten migraatio on tarkoituksella vielä osittainen.
+
+## README:n ylläpito
+
+README tarkistetaan samassa muutoksessa aina, kun muutos vaikuttaa projektin käyttöön, rakenteeseen tai ylläpitoon. Tämä koskee erityisesti:
+
+- Node- tai riippuvuusvaatimuksia
+- paikallisia kehitys- ja build-komentoja
+- CI- ja testauskäytäntöjä
+- sivujen, layoutien tai keskeisten komponenttien omistajuutta
+- sisältöskeemaa ja artikkelien julkaisuohjeita
+- deploy- tai hosting-käytäntöjä
+- 3D-visualisointien lifecyclea tai niiden suojaavia testejä
+
+Jos merkittävä tekninen päivitystarve havaitaan mutta sitä ei tehdä samassa muutoksessa, se voidaan kirjata seuraavaan listaan. Kun tarve on ratkaistu, kohta poistetaan tai päivitetään.
+
+### Tunnetut tekniset päivitystarpeet
+
+- Nykyinen TypeScript-tyyppivelka pitää siivota ennen kuin `astro check` voidaan muuttaa CI:ssä blokkaavaksi tarkistukseksi.
+- Three.js:n npm-migraatio on vielä osittainen. Loput 3D-komponentit kannattaa siirtää yhteiseen runtimeen vasta regressiosuojan alla ja ilman renderöintiasetusten muutoksia.
+- Vanha yhden lähteen artikkelirakenne on vielä tuettu siirtymävaiheen vuoksi. Sisältö kannattaa myöhemmin yhtenäistää kokonaan `sources[]`-rakenteeseen.
+- `SiteInteractionLayer` ja AREA-toiminnot sisältävät vielä paljon yhteenkytkettyä selainlogiikkaa. Niiden modulaarinen eriyttäminen on myöhempi ylläpidettävyys- ja suorituskykykohde.
 
 ## Artikkelien interaktiivinen grafiikka
 
