@@ -701,6 +701,7 @@ public/graphics/metakuva.png
 ## Artikkelien järjestys
 
 Julkaistut artikkelit järjestetään automaattisesti `publishedAt`-kentän perusteella uusimmasta vanhimpaan.
+
 Logiikka sijaitsee tiedostossa:
 
 ```text
