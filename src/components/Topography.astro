@@ -10,7 +10,7 @@
 
 <script>
   const canvases =
-    document.querySelectorAll(
+    document.querySelectorAll<HTMLCanvasElement>(
       '[data-topography]'
     );
 
@@ -24,9 +24,9 @@
   const contourCount = 54;
 
   const terrain = (
-    x,
-    y,
-    phase
+    x: number,
+    y: number,
+    phase: number
   ) => {
     const nx =
       x / (cols - 1);
@@ -141,9 +141,9 @@
   };
 
   const interpolate = (
-    a,
-    b,
-    level
+    a: number,
+    b: number,
+    level: number
   ) => {
     const delta =
       b - a;
@@ -163,11 +163,11 @@
   };
 
   const drawContour = (
-    ctx,
-    values,
-    level,
-    width,
-    height
+    ctx: CanvasRenderingContext2D,
+    values: Float32Array,
+    level: number,
+    width: number,
+    height: number
   ) => {
     const cellWidth =
       width /
@@ -180,14 +180,14 @@
     ctx.beginPath();
 
     const point = (
-      edge,
-      x,
-      y,
-      tl,
-      tr,
-      br,
-      bl
-    ) => {
+      edge: number,
+      x: number,
+      y: number,
+      tl: number,
+      tr: number,
+      br: number,
+      bl: number
+    ): [number, number] => {
       if (
         edge === 0
       ) {
@@ -258,14 +258,14 @@
     };
 
     const connect = (
-      edgeA,
-      edgeB,
-      x,
-      y,
-      tl,
-      tr,
-      br,
-      bl
+      edgeA: number,
+      edgeB: number,
+      x: number,
+      y: number,
+      tl: number,
+      tr: number,
+      br: number,
+      bl: number
     ) => {
       const a =
         point(
@@ -570,7 +570,7 @@
   };
 
   const setupCanvas = (
-    canvas
+    canvas: HTMLCanvasElement
   ) => {
     const ctx =
       canvas.getContext(
@@ -763,7 +763,7 @@
     };
 
     const animate = (
-      time
+      time: number
     ) => {
       if (
         reducedMotion.matches
