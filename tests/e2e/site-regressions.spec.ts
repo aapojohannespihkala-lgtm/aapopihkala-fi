@@ -144,6 +144,55 @@ test('grid overlay follows the A-mode cycle without changing other modes', async
   expect(browserErrors).toEqual([]);
 });
 
+test('A coordinate runtime preserves mode order and pointer readout', async ({ page }) => {
+  const browserErrors = watchBrowserErrors(page);
+  await setDayMode(page);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const readout = page.locator('[data-a-readout]');
+  const label = page.locator('[data-a-readout-label]');
+  const axis = page.locator('[data-a-axis]');
+
+  await expect(readout).toHaveAttribute(
+    'data-a-coordinate-interaction-initialized',
+    'true',
+    { timeout: 10_000 }
+  );
+  await expect(readout).toHaveAttribute('data-mode', '');
+  await expect(page.locator('body')).not.toHaveClass(/site-a-mode/);
+
+  await page.mouse.move(400, 450);
+
+  await page.keyboard.press('a');
+  await expect(readout).toHaveAttribute('data-mode', 'cross');
+  await expect(readout).toHaveClass(/is-visible/);
+  await expect(axis).not.toHaveClass(/is-visible/);
+
+  await page.keyboard.press('a');
+  await expect(readout).toHaveAttribute('data-mode', 'elev');
+  await expect(axis).toHaveClass(/is-visible/);
+  await expect(label).toHaveText('X 0400 / Y 0450 / ELEV +15.0');
+
+  await page.mouse.move(246, 321);
+  await expect(label).toHaveText('X 0246 / Y 0321 / ELEV +19.3');
+
+  await page.keyboard.press('a');
+  await expect(readout).toHaveAttribute('data-mode', 'grid');
+  await expect(axis).toHaveClass(/is-visible/);
+  await expect(label).toHaveText('X 0246 / Y 0321 / ELEV +19.3');
+
+  await page.keyboard.press('a');
+  await expect(readout).toHaveAttribute('data-mode', 'area');
+  await expect(axis).not.toHaveClass(/is-visible/);
+
+  await page.keyboard.press('a');
+  await expect(readout).toHaveAttribute('data-mode', '');
+  await expect(readout).not.toHaveClass(/is-visible/);
+  await expect(page.locator('body')).not.toHaveClass(/site-a-mode/);
+
+  expect(browserErrors).toEqual([]);
+});
+
 test('about portrait loads, pauses offscreen and preserves its main frame geometry', async ({ page }) => {
   const browserErrors = watchBrowserErrors(page);
   await setDayMode(page);
