@@ -121,6 +121,10 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - yhteisen interaktiokerroksen renderöitymisen kerran `BaseLayout`in kautta eikä headerin sisällä
 - scroll readoutin arvot scrollauksen aikana ja automaattisen piilotuksen
 - GRID-overlayn näkyvyyden A-moodien syklin aikana
+- A/coordinate-moodien järjestyksen, koordinaattireadoutin ja akselien käyttäytymisen
+- AREA-polygonin sulkeutumisen, pinta-alan, topografiapisteet, contourit ja drag-rotaation
+- AREA-rasteripinnan syntymisen, rasterikuvan latautumisen ja rasteritason rotaation
+- AREA-polishin sivukohtaisen rajauksen: käytössä etusivulla ja artikkeleissa, ei About-sivulla
 - About-sivun 3D-pään latautumisen ja canvasin
 - 3D-pään renderöinnin pause/resume-käyttäytymisen sen poistuessa näkyvältä alueelta
 - artikkelisivun interaktiivisen grafiikan
@@ -161,6 +165,9 @@ src/
 │
 ├── features/
 │   └── interactions/
+│       ├── aCoordinate.ts
+│       ├── area.ts
+│       ├── areaRaster.ts
 │       ├── grid.ts
 │       └── scrollReadout.ts
 │
@@ -247,21 +254,31 @@ src/components/SiteInteractionLayer.astro
 
 `SiteHeader` vastaa vain varsinaisesta navigaatiosta ja kielenvaihdosta. `BaseLayout` renderöi `SiteHeader`in ja `SiteInteractionLayer`in erillisinä sisaruksina, joten kokeellinen interaktiokerros ei kuulu headerin omistukseen.
 
-`SiteInteractionLayer` sisältää vielä A- ja AREA-toimintojen yhteenkytkettyä selainlogiikkaa. Sen pilkkominen pienempiin feature-moduuleihin on käynnissä.
+`SiteInteractionLayer.astro` omistaa yhteisen interaktiokerroksen markupin ja tyylit sekä käynnistää pienemmät TypeScript-featuret. Scroll-, GRID-, A/coordinate- ja AREA-runtime eivät enää elä komponentin isossa inline-scriptissä.
 
-Scroll readoutin selainruntime on irrotettu tiedostoon:
+Feature-moduulit:
 
 ```text
 src/features/interactions/scrollReadout.ts
-```
-
-GRID-overlayn näkyvyysruntime on irrotettu tiedostoon:
-
-```text
 src/features/interactions/grid.ts
+src/features/interactions/aCoordinate.ts
+src/features/interactions/area.ts
+src/features/interactions/areaRaster.ts
 ```
 
-`SiteInteractionLayer.astro` omistaa toistaiseksi scroll readoutin ja GRID-overlayn markupin sekä tyylit. `scrollReadout.ts` hoitaa scroll-eventin, prosentti- ja Y-arvon laskennan, `requestAnimationFrame`-throttlen sekä cleanupin. `grid.ts` seuraa A-moodin `data-mode`-tilaa ja omistaa GRID-overlayn näkyvyysluokan.
+Vastuut:
+
+- `scrollReadout.ts` hoitaa scroll-eventin, prosentti- ja Y-arvon laskennan, `requestAnimationFrame`-throttlen sekä cleanupin.
+- `grid.ts` seuraa A-moodin `data-mode`-tilaa ja omistaa GRID-overlayn näkyvyysluokan.
+- `aCoordinate.ts` omistaa A-moodien kierron, koordinaattireadoutin, ELEV-arvon ja akselien sijainnin.
+- `area.ts` omistaa AREA-piirron, polygonigeometrian, pinta-alan, centroidin, contour/topografia-laskennan, drag-rotaation ja AREA-moodin elinkaaren.
+- `areaRaster.ts` on AREA:n valinnainen rasteripinnan esityskerros. Se ei omista pointer- tai polygonitilaa, vaan saa geometrian ja rotaation suoraan `area.ts`:ltä.
+
+AREA-polish aktivoidaan `BaseLayout`in `areaPolish`-asetuksella vain sivuille, joilla se oli aiemminkin käytössä: etusivulle ja artikkelisivuille. About- ja Lab-sivuilla AREA käyttää edelleen native-esitystä ilman rasterikerrosta.
+
+Rasteripinnan `html2canvas` ladataan dynaamisella importilla vasta, kun käyttäjä sulkee kelvollisen AREA-polygonin. Näin rasterointikirjastoa ei tarvitse ladata sivun alkuperäiseen JavaScript-pakettiin vain piilotetun easter eggin vuoksi.
+
+Aiempi erillinen `AreaTopographyPolish.astro` on poistettu. AREA:n varsinainen tila ja tapahtumankäsittely ovat nyt yhdessä kanonisessa runtimessa, eikä polish ylläpidä erillistä `MutationObserver`- tai pointer-eventtikerrosta.
 
 ## Etusivun keskeiset 3D-visualisoinnit
 
@@ -326,7 +343,7 @@ Jos merkittävä tekninen päivitystarve havaitaan mutta sitä ei tehdä samassa
 - Nykyinen TypeScript-tyyppivelka pitää siivota ennen kuin `astro check` voidaan muuttaa CI:ssä blokkaavaksi tarkistukseksi.
 - Three.js:n npm-migraatio on vielä osittainen. Loput 3D-komponentit kannattaa siirtää yhteiseen runtimeen vasta regressiosuojan alla ja ilman renderöintiasetusten muutoksia.
 - Vanha yhden lähteen artikkelirakenne on vielä tuettu siirtymävaiheen vuoksi. Sisältö kannattaa myöhemmin yhtenäistää kokonaan `sources[]`-rakenteeseen.
-- `SiteInteractionLayer`in modularisointi on käynnissä. Scroll readout ja GRID-overlayn näkyvyysruntime on irrotettu omiksi TypeScript-moduuleikseen; seuraavina eriytettävinä vastuina ovat A/coordinate-moodit sekä AREA-piirto ja topografia.
+- `SiteInteractionLayer`in varsinainen interaktioruntime on nyt pilkottu scroll-, GRID-, A/coordinate- ja AREA-featureihin. Jäljellä oleva inline-liimakoodi sisältää vielä legacy-näppäinoikoteitä ja päivämäärän format toggle -easter eggin; ne voidaan myöhemmin irrottaa omiksi pieniksi featureiksi.
 
 ## Artikkelien interaktiivinen grafiikka
 
