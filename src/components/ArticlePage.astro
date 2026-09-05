@@ -5,6 +5,8 @@ import type {
 
 import BaseLayout from '../layouts/BaseLayout.astro';
 import FeedPost from './FeedPost.astro';
+import NightModeToggle from './NightModeToggle.astro';
+import AreaTopographyPolish from './AreaTopographyPolish.astro';
 
 import {
   site,
@@ -360,4 +362,9 @@ const blogPostingSchema = {
       />
     </section>
   </main>
+
+  <Fragment slot="afterAnalytics">
+    <NightModeToggle lang={lang} />
+    <AreaTopographyPolish />
+  </Fragment>
 </BaseLayout>
