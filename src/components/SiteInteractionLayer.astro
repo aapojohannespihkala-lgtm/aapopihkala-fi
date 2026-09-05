@@ -539,99 +539,18 @@ const { areaPolish = false } = Astro.props;
   }
 </style>
 
-<script is:inline>
-  (() => {
-    const readout = document.querySelector('[data-a-readout]')
-    if (!readout) return
-
-    if (readout.dataset.siteShortcutsInitialized === 'true') return
-    readout.dataset.siteShortcutsInitialized = 'true'
-
-    const isTypingTarget = (target) => {
-      if (!(target instanceof Element)) return false
-      return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
-    }
-
-    const blockedLegacyKeys = new Set(['g', 'm', 'c', 'n', 'p', 'e', 's'])
-
-    const handleKeydown = (event) => {
-      if (event.defaultPrevented) return
-      if (event.metaKey || event.ctrlKey || event.altKey) return
-      if (isTypingTarget(event.target)) return
-
-      const key = event.key.toLowerCase()
-
-      if (key === 'l') {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        window.location.assign('/lab/')
-        return
-      }
-
-      if (blockedLegacyKeys.has(key)) {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-      }
-    }
-
-    const initializeDateEasterEggs = () => {
-      document.querySelectorAll('time.post-date').forEach((dateElement) => {
-        if (!(dateElement instanceof HTMLElement)) return
-        if (dateElement.dataset.dateEasterEgg === 'true') return
-
-        const datetime = dateElement.getAttribute('datetime')
-        if (!datetime) return
-
-        dateElement.dataset.dateEasterEgg = 'true'
-        dateElement.dataset.originalDate = dateElement.textContent ?? ''
-        dateElement.dataset.isoDate = datetime.slice(0, 10)
-        dateElement.dataset.isoVisible = 'false'
-        dateElement.tabIndex = 0
-        dateElement.setAttribute('role', 'button')
-        dateElement.setAttribute('title', 'Toggle date format')
-
-        const toggleDate = () => {
-          const showIso = dateElement.dataset.isoVisible !== 'true'
-          dateElement.dataset.isoVisible = showIso ? 'true' : 'false'
-          dateElement.textContent = showIso
-            ? dateElement.dataset.isoDate ?? ''
-            : dateElement.dataset.originalDate ?? ''
-        }
-
-        dateElement.addEventListener('click', toggleDate)
-        dateElement.addEventListener('keydown', (event) => {
-          if (event.key !== 'Enter' && event.key !== ' ') return
-          event.preventDefault()
-          toggleDate()
-        })
-      })
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeDateEasterEggs, { once: true })
-    } else {
-      initializeDateEasterEggs()
-    }
-
-    window.addEventListener('keydown', handleKeydown, true)
-    window.addEventListener(
-      'pagehide',
-      () => {
-        window.removeEventListener('keydown', handleKeydown, true)
-      },
-      { once: true }
-    )
-  })()
-</script>
-
 <script>
   import { initializeACoordinateInteraction } from '../features/interactions/aCoordinate';
   import { initializeAreaInteraction } from '../features/interactions/area';
+  import { initializeDateFormatToggle } from '../features/interactions/dateFormatToggle';
   import { initializeGridInteraction } from '../features/interactions/grid';
+  import { initializeLegacyShortcuts } from '../features/interactions/legacyShortcuts';
   import { initializeScrollReadout } from '../features/interactions/scrollReadout';
 
   initializeACoordinateInteraction();
   initializeAreaInteraction();
+  initializeDateFormatToggle();
   initializeGridInteraction();
+  initializeLegacyShortcuts();
   initializeScrollReadout();
 </script>
