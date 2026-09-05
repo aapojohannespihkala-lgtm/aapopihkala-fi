@@ -312,13 +312,7 @@ Näiden visualisointien kamera-, geometria-, väri-, liike- ja interaktioasetuks
 
 Pistepilvipään raskas Three.js/GLB-alustus käynnistyy vasta, kun komponentti tulee lähelle näkyvää aluetta. Varsinainen renderöintisilmukka on aktiivinen vain komponentin ollessa näkyvän alueen läheisyydessä ja dokumentin ollessa aktiivinen. Kun pää on ruudun ulkopuolella tai välilehti on piilossa, animaatiosilmukka pysäytetään ja käynnistetään uudelleen näkyvyyden palatessa. Tämä lifecycle-optimointi ei muuta pään kamera-, geometria-, piste-, väri- tai idle-liikeasetuksia.
 
-Repo sisältää myös vanhemman/erillisen:
-
-```text
-src/components/Topography.astro
-```
-
-Etusivun nykyinen topografia käyttää kuitenkin `MorphingTopography.astro`-komponenttia.
+Etusivun nykyinen topografia käyttää `MorphingTopography.astro`-komponenttia.
 
 ## Three.js
 
