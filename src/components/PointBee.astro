@@ -59,15 +59,16 @@ const {
 
 <script>
   import { THREE, OrbitControls } from '../scripts/threeRuntime';
+  import type { BufferGeometry, Material, Vector3 } from 'three';
 
   (() => {
-    const roots = document.querySelectorAll('[data-point-bee]');
+    const roots = document.querySelectorAll<HTMLElement>('[data-point-bee]');
 
     roots.forEach(async (root) => {
       if (root.dataset.pointBeeInitialized === 'true') return;
       root.dataset.pointBeeInitialized = 'true';
 
-      const canvas = root.querySelector('[data-point-bee-canvas]');
+      const canvas = root.querySelector<HTMLCanvasElement>('[data-point-bee-canvas]');
       if (!canvas) return;
 
       try {
@@ -150,19 +151,19 @@ const {
           opacity: 0.7,
         });
 
-        const bodyPositions = [];
-        const bandPositions = [];
-        const bodyGeometries = [];
-        const lineGeometries = [];
+        const bodyPositions: number[] = [];
+        const bandPositions: number[] = [];
+        const bodyGeometries: BufferGeometry[] = [];
+        const lineGeometries: BufferGeometry[] = [];
 
         const addEllipsoidPoints = (
-          center,
-          radiusX,
-          radiusY,
-          radiusZ,
-          latSteps,
-          lonSteps,
-          target = bodyPositions
+          center: Vector3,
+          radiusX: number,
+          radiusY: number,
+          radiusZ: number,
+          latSteps: number,
+          lonSteps: number,
+          target: number[] = bodyPositions
         ) => {
           for (let lat = 1; lat < latSteps; lat += 1) {
             const phi = (lat / latSteps) * Math.PI;
@@ -239,17 +240,17 @@ const {
         bodyGeometries.push(bandGeometry);
         specimen.add(new THREE.Points(bandGeometry, bandPointMaterial));
 
-        const makeLine = (points, material = appendageMaterial) => {
+        const makeLine = (points: Vector3[], material: Material = appendageMaterial) => {
           const geometry = new THREE.BufferGeometry().setFromPoints(points);
           lineGeometries.push(geometry);
           return new THREE.Line(geometry, material);
         };
 
-        const makeWingSurface = (side, rear = false) => {
+        const makeWingSurface = (side: number, rear = false) => {
           const group = new THREE.Group();
           group.position.set(side * 0.12, 0.38, 0);
 
-          const positions = [];
+          const positions: number[] = [];
           const lengthSteps = rear ? 36 : 52;
           const widthSteps = rear ? 20 : 28;
           const length = rear ? 0.95 : 1.42;
@@ -275,7 +276,7 @@ const {
           bodyGeometries.push(geometry);
           group.add(new THREE.Points(geometry, wingPointMaterial));
 
-          const outline = [];
+          const outline: Vector3[] = [];
           const outlineSteps = 58;
 
           for (let i = 0; i <= outlineSteps; i += 1) {
@@ -307,7 +308,7 @@ const {
           outline.push(outline[0].clone());
           group.add(makeLine(outline, wingLineMaterial));
 
-          const centerVein = [];
+          const centerVein: Vector3[] = [];
           for (let i = 0; i <= 28; i += 1) {
             const u = i / 28;
             centerVein.push(
@@ -399,7 +400,7 @@ const {
 
         const animatesBee = wantsBuzz && !reducedMotion;
 
-        const animate = (time) => {
+        const animate = (time: number) => {
           animationFrame = requestAnimationFrame(animate);
           if (!isVisible || !isDocumentVisible) return;
 
