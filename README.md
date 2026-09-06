@@ -14,7 +14,7 @@ Sivusto:
 - TypeScript
 - Three.js
 - Playwright
-- Cloudflare
+- Cloudflare Workers
 - `@astrojs/sitemap`
 - Google Analytics 4
 
@@ -115,28 +115,30 @@ Testikoodi on yksittäisten regressiosopimusten tarkka lähde. README:ssa ei yll
 
 ## Cloudflare
 
-Cloudflare käyttää tuotantobuildiin komentoa:
-
-```bash
-npm run build
-```
-
-Tuotantohaara on:
+Tuotanto julkaistaan Cloudflare Workers Builds -integraatiolla. Projektin asetukset käyttävät:
 
 ```text
-main
+Build command: npm run build
+Deploy command: npx wrangler deploy
+Version command: npx wrangler versions upload
+Root directory: /
+Production branch: main
 ```
 
-GitHub Actionsin Build check ja Cloudflaren tuotantodeploy ovat eri vaiheita. CI tarkistaa repomuutoksen ja Cloudflare julkaisee tuotantoversion oman integraationsa mukaisesti.
+`wrangler.jsonc` on deployn kanoninen konfiguraatio. Astro tuottaa staattisen sivuston `dist/`-hakemistoon, jonka Wrangler julkaisee Worker Static Assets -resursseina. Worker-entry sijaitsee tiedostossa `worker/index.ts`.
 
-Staattisen Astro-buildin rinnalla repo voi käyttää Cloudflare Pages Functions -funktioita hakemiston `functions/` kautta silloin, kun selain ei voi turvallisesti tai teknisesti hakea ulkoista dataa suoraan. Currentin pörssisähködata kulkee saman domainin `/api/current/electricity`-reitin kautta. `public/_routes.json` rajaa Functions-kutsut vain tarkoitettuihin API-reitteihin, jotta tavalliset staattiset sivupyynnöt eivät turhaan käynnistä Functions-runtimea.
+Tavalliset sivupyynnöt palvellaan staattisista asseteista. Palvelinlogiikka ajetaan vain erikseen määritetyille reiteille, kuten Currentin pörssisähköreitille `/api/current/electricity`. Selain hakee tämän saman originin reitin kautta, ja Worker hakee varsinaisen datan ulkoisesta lähteestä.
+
+GitHub Actionsin Build check ja Cloudflaren tuotantodeploy ovat eri vaiheita. CI tarkistaa repomuutoksen ja Cloudflare julkaisee tuotantoversion oman Workers Builds -integraationsa mukaisesti.
 
 ## Projektin rakenne
 
-Keskeiset hakemistot:
+Keskeiset hakemistot ja deploy-tiedostot:
 
 ```text
-functions/               Cloudflare Pages Functions -palvelinreitit
+worker/                  Cloudflare Worker -entry ja palvelinreititys
+functions/               Worker-puolen rajatut palvelinhandlerit
+wrangler.jsonc           Cloudflare Workers -deploykonfiguraatio
 src/components/          sivu- ja käyttöliittymäkomponentit
 src/features/            selainruntimejen feature-moduulit
 src/layouts/             yhteiset layoutit
@@ -146,7 +148,8 @@ src/content/posts/       artikkelien Markdown-tiedostot
 src/pages/               Astro-reitit
 src/styles/              globaalit tyylit
 tests/e2e/               Playwright-regressiot
-public/                  staattiset tiedostot ja Pages Functions -reititysrajaukset
+public/                  staattiset lähdeassetit
+dist/                    Astron generoima build-output
 ```
 
 Tarkempi arkkitehtuurin omistajuus kuvataan `docs/ARCHITECTURE.md`-tiedostossa. Dokumentaatiossa ei ylläpidetä täydellistä tiedostopuuta, koska koodipohja muuttuu usein.
