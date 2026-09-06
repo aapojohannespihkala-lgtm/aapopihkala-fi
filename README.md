@@ -113,6 +113,7 @@ tests/e2e/accessibility-regression.spec.ts
 tests/e2e/mobile-en-regression.spec.ts
 tests/e2e/reduced-motion-regression.spec.ts
 tests/e2e/seo-regression.spec.ts
+tests/e2e/performance-regression.spec.ts
 tests/e2e/river-flow-regression.spec.ts
 tests/e2e/photogrammetry-regression.spec.ts
 tests/e2e/meshy-poise-regression.spec.ts
@@ -124,6 +125,7 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 
 - etusivun keskeisen rakenteen
 - etusivun topografiacanvasin renderöitymisen, geometrian, jatkuvan morph/auto-rotate-liikkeen ja drag-orbitoinnin
+- etusivun ensinäkymässä raskaan Meshy-pistepilven GLB-tiedoston lykkääntymisen siihen asti, että About-upotus tulee viewportiin
 - päivä/yö-tilan
 - kielilinkit
 - headerin FI/EN-saavutettavat nimet, näppäimistöjärjestyksen ja vähintään 24 x 24 px interaktiiviset kohteet
@@ -338,7 +340,7 @@ src/components/AboutPortraitSection.astro
 
 Näiden visualisointien kamera-, geometria-, väri-, liike- ja interaktioasetuksia ei pidä muuttaa sivuvaikutuksena muiden refaktorointien yhteydessä. Selaintestit toimivat niiden perussuojana.
 
-Pistepilvipään raskas Three.js/GLB-alustus käynnistyy vasta, kun komponentti tulee lähelle näkyvää aluetta. Varsinainen renderöintisilmukka on aktiivinen vain komponentin ollessa näkyvän alueen läheisyydessä ja dokumentin ollessa aktiivinen. Kun pää on ruudun ulkopuolella tai välilehti on piilossa, animaatiosilmukka pysäytetään ja käynnistetään uudelleen näkyvyyden palatessa. Tämä lifecycle-optimointi ei muuta pään kamera-, geometria-, piste-, väri- tai idle-liikeasetuksia.
+Pistepilvipään raskas Three.js/GLB-alustus käynnistyy vasta, kun komponentti tulee näkyvään viewportiin. Etusivun ensinäkymä ei siksi lataa noin 7,63 Mt:n Meshy-GLB:tä ennen About-upotukseen siirtymistä. Varsinainen renderöintisilmukka on aktiivinen vain komponentin ollessa näkyvän alueen läheisyydessä ja dokumentin ollessa aktiivinen. Kun pää on ruudun ulkopuolella tai välilehti on piilossa, animaatiosilmukka pysäytetään ja käynnistetään uudelleen näkyvyyden palatessa. Tämä lifecycle-optimointi ei muuta pään kamera-, geometria-, piste-, väri- tai idle-liikeasetuksia.
 
 About-kehyksen nykyinen tarkoituksellinen idle-huojunta käyttää 14 asteen yaw-liikerataa ja 8 asteen pitch-liikerataa molempiin suuntiin määritetyn keskiasennon ympärillä. Idle-segmentit kestävät satunnaisesti 3,2-5,2 sekuntia. Kamera, FOV, etäisyys, target, pistegeometria, pistekoko, värit, depth shading, drag-orbit, damping, zoom ja pan säilyvät erillisinä tästä huojunta-asetuksesta.
 
