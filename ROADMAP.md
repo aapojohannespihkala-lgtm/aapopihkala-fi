@@ -40,7 +40,7 @@ Jäljellä oleva audit kattaa ainakin:
 
 ## 5. Lighthouse ja suorituskykyaudit
 
-Mittaa vähintään Home-, About- ja artikkelisivut oikeilla suorituskykymittauksilla. Tarkista erityisesti:
+Mittaa vähintään Home-, About-, artikkeli- ja Current-sivut oikeilla suorituskykymittauksilla. Tarkista erityisesti:
 
 - LCP
 - CLS
