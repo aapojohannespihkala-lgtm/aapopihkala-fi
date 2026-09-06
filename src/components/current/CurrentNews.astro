@@ -1,7 +1,7 @@
 <section class="current-news" data-current-news aria-labelledby="current-news-title">
   <header class="news-heading">
     <p class="news-index">NEWS / 03</p>
-    <p class="news-mode">LOCAL PROTOTYPE / SEED POOL</p>
+    <p class="news-mode">LIVE RSS / LOADING</p>
   </header>
 
   <div class="news-intro">
@@ -16,8 +16,9 @@
 
         <div class="news-item__body">
           <p class="news-item__meta" data-news-meta>LOADING</p>
-          <h3 class="news-item__title" data-news-title>Loading prototype item</h3>
-          <p class="news-item__detail" data-news-detail>LOCAL / PROTOTYPE</p>
+          <h3 class="news-item__title" data-news-title>Loading live culture item</h3>
+          <p class="news-item__context" data-news-context>Loading context</p>
+          <p class="news-item__detail" data-news-detail>RSS / CURRENT</p>
         </div>
 
         <div class="news-item__feedback" aria-label={`Feedback for news slot ${index + 1}`}>
@@ -64,13 +65,13 @@
 
   <footer class="news-footer">
     <p>PROFILE / LOCAL STORAGE</p>
-    <p>FEEDS / NOT CONNECTED</p>
+    <p>FEEDS / LOADING</p>
   </footer>
 </section>
 
 <style>
   .current-news {
-    padding: 30px 0 6px;
+    padding: 20px 0 6px;
   }
 
   .news-heading,
@@ -81,7 +82,7 @@
   }
 
   .news-heading {
-    margin-bottom: 18px;
+    margin-bottom: 10px;
   }
 
   .news-index,
@@ -99,7 +100,7 @@
   .news-index,
   .news-mode {
     margin: 0;
-    font-size: 0.56rem;
+    font-size: 0.54rem;
     font-weight: 600;
     line-height: 1;
     letter-spacing: 0.09em;
@@ -116,9 +117,9 @@
   .news-intro {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(260px, 0.7fr);
-    gap: 42px;
+    gap: 36px;
     align-items: end;
-    padding: 4px 0 18px;
+    padding: 2px 0 12px;
   }
 
   .news-intro h2,
@@ -129,7 +130,7 @@
   .news-intro h2 {
     color: var(--ink);
     font-family: "Times New Roman", Times, serif;
-    font-size: clamp(2.2rem, 5vw, 4.6rem);
+    font-size: clamp(2rem, 4vw, 3.6rem);
     font-weight: 400;
     line-height: 0.9;
     letter-spacing: -0.035em;
@@ -137,12 +138,12 @@
   }
 
   .news-intro p {
-    max-width: 46ch;
+    max-width: 42ch;
     color: var(--stone);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.53rem;
-    line-height: 1.55;
-    letter-spacing: 0.055em;
+    font-size: 0.48rem;
+    line-height: 1.4;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
   }
 
@@ -152,20 +153,24 @@
 
   .news-item {
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) auto;
-    gap: 20px;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    gap: 16px;
     align-items: center;
-    min-height: 132px;
-    padding: 20px 0;
+    min-height: 102px;
+    padding: 13px 0;
     border-bottom: 1px solid var(--line-soft);
+  }
+
+  .news-item__body {
+    min-width: 0;
   }
 
   .news-item__number,
   .news-item__meta,
   .news-item__detail {
     margin: 0;
-    font-size: 0.5rem;
-    letter-spacing: 0.075em;
+    font-size: 0.46rem;
+    letter-spacing: 0.07em;
   }
 
   .news-item__number,
@@ -174,24 +179,33 @@
   }
 
   .news-item__meta {
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     color: var(--stone);
     font-weight: 600;
   }
 
   .news-item__title {
     margin: 0;
-    max-width: 28ch;
+    max-width: 36ch;
     color: var(--ink);
     font-family: "Times New Roman", Times, serif;
-    font-size: clamp(1.35rem, 2.8vw, 2.25rem);
+    font-size: clamp(1.15rem, 2.2vw, 1.75rem);
     font-weight: 400;
-    line-height: 1.04;
+    line-height: 1.02;
     letter-spacing: -0.02em;
   }
 
+  .news-item__context {
+    margin: 5px 0 0;
+    max-width: 68ch;
+    color: var(--stone);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.66rem;
+    line-height: 1.25;
+  }
+
   .news-item__detail {
-    margin-top: 10px;
+    margin-top: 5px;
   }
 
   .news-item__feedback {
@@ -201,14 +215,14 @@
 
   .news-feedback {
     display: grid;
-    width: 42px;
-    height: 42px;
+    width: 36px;
+    height: 36px;
     place-items: center;
     border: 1px solid var(--line);
     border-radius: 999px;
     background: transparent;
     color: var(--stone);
-    font-size: 1rem;
+    font-size: 0.92rem;
     line-height: 1;
     cursor: pointer;
   }
@@ -225,7 +239,7 @@
   }
 
   .news-debug {
-    margin-top: 28px;
+    margin-top: 20px;
     border-top: 1px solid var(--line-soft);
     border-bottom: 1px solid var(--line-soft);
     color: var(--stone-light);
@@ -234,7 +248,7 @@
   }
 
   .news-debug summary {
-    padding: 13px 0;
+    padding: 11px 0;
     cursor: pointer;
   }
 
@@ -298,7 +312,7 @@
   }
 
   .news-footer {
-    margin-top: 24px;
+    margin-top: 18px;
     color: var(--stone-light);
     font-size: 0.49rem;
     letter-spacing: 0.07em;
@@ -321,6 +335,10 @@
   }
 
   @media (max-width: 720px) {
+    .current-news {
+      padding-top: 24px;
+    }
+
     .news-heading,
     .news-footer {
       align-items: flex-start;
@@ -330,13 +348,27 @@
 
     .news-intro {
       grid-template-columns: 1fr;
-      gap: 14px;
+      gap: 12px;
+      padding-bottom: 16px;
+    }
+
+    .news-intro h2 {
+      font-size: clamp(2.2rem, 12vw, 3.2rem);
     }
 
     .news-item {
       grid-template-columns: 30px minmax(0, 1fr);
       gap: 14px;
       min-height: 0;
+      padding: 16px 0;
+    }
+
+    .news-item__title {
+      font-size: clamp(1.25rem, 7vw, 1.75rem);
+    }
+
+    .news-item__context {
+      font-size: 0.68rem;
     }
 
     .news-item__feedback {
