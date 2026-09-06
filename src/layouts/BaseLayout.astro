@@ -5,7 +5,7 @@ import Analytics from '../components/Analytics.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteInteractionLayer from '../components/SiteInteractionLayer.astro';
 
-import type { SiteLanguage } from '../config/site';
+import { site, type SiteLanguage } from '../config/site';
 
 interface Props {
   lang: SiteLanguage;
@@ -17,6 +17,7 @@ interface Props {
   languageHref: string;
   initialNightMode?: boolean;
   areaPolish?: boolean;
+  includeDefaultSocialMeta?: boolean;
 }
 
 const {
@@ -29,7 +30,16 @@ const {
   languageHref,
   initialNightMode = false,
   areaPolish = false,
+  includeDefaultSocialMeta = true,
 } = Astro.props;
+
+const currentLanguage = site.languages[lang];
+const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
+const metaImageUrl = `${site.url}${site.metaImage}`;
+const metaImageAlt =
+  lang === 'fi'
+    ? 'Aapo Pihkala - topografinen viivagrafiikka'
+    : 'Aapo Pihkala - topographic line graphic';
 ---
 
 <!doctype html>
@@ -58,6 +68,34 @@ const {
     <link rel="alternate" hreflang="fi" href={finnishUrl} />
     <link rel="alternate" hreflang="en" href={englishUrl} />
     <link rel="alternate" hreflang="x-default" href={finnishUrl} />
+    {
+      includeDefaultSocialMeta && (
+        <Fragment>
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content={site.name} />
+          <meta property="og:locale" content={currentLanguage.openGraphLocale} />
+          <meta
+            property="og:locale:alternate"
+            content={alternateLanguage.openGraphLocale}
+          />
+          <meta property="og:title" content={title} />
+          <meta property="og:description" content={description} />
+          <meta property="og:url" content={canonicalUrl} />
+          <meta property="og:image" content={metaImageUrl} />
+          <meta property="og:image:secure_url" content={metaImageUrl} />
+          <meta property="og:image:type" content="image/png" />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+          <meta property="og:image:alt" content={metaImageAlt} />
+
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={title} />
+          <meta name="twitter:description" content={description} />
+          <meta name="twitter:image" content={metaImageUrl} />
+          <meta name="twitter:image:alt" content={metaImageAlt} />
+        </Fragment>
+      )
+    }
     <slot name="head" />
   </head>
 
