@@ -55,7 +55,37 @@ const buildWeatherFixture = () => {
   };
 };
 
+const buildElectricityFixture = () => {
+  const localMidnightUtc = Date.UTC(2026, 8, 5, 21, 0, 0);
+  const prices = Array.from({ length: 96 }, (_, index) => {
+    const start = new Date(localMidnightUtc + index * 15 * 60 * 1000);
+    const end = new Date(start.getTime() + 15 * 60 * 1000);
+    let price = 1.33;
+
+    if (index >= 52 && index <= 59) price = 0.23;
+    if (index === 57) price = 0.2;
+
+    if (index === 64) price = 0.25;
+    if (index === 65) price = 0.27;
+    if (index === 66) price = 0.28;
+    if (index === 67) price = 0.44;
+
+    if (index >= 74 && index <= 81) price = 4.3;
+    if (index === 75) price = 5.99;
+
+    return {
+      price,
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+    };
+  });
+
+  return { prices: prices.reverse() };
+};
+
 test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-09-06T13:52:00.000Z'));
+
   await page.route('https://api.open-meteo.com/**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -63,9 +93,17 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify(buildWeatherFixture()),
     });
   });
+
+  await page.route('https://api.porssisahko.net/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(buildElectricityFixture()),
+    });
+  });
 });
 
-test('Current renders the compact Olari weather view', async ({ page }) => {
+test('Current renders electricity above the compact Olari weather view', async ({ page }) => {
   await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('.current-status-strip')).toBeVisible();
@@ -75,6 +113,26 @@ test('Current renders the compact Olari weather view', async ({ page }) => {
     'content',
     'noindex,nofollow'
   );
+
+  await expect(page.locator('[data-current-electricity]')).toBeVisible();
+  await expect(page.locator('.current-electricity-wrap + .current-weather-wrap')).toHaveCount(1);
+  await expect(page.locator('[data-electricity-price]')).toHaveText('0.44');
+  await expect(page.locator('[data-electricity-interval]')).toHaveText('16:45 - 17:00');
+  await expect(page.locator('[data-electricity-current-status]')).toHaveText('CURRENT 16:45');
+  await expect(page.locator('[data-electricity-hour-average]')).toHaveText('0.31');
+  await expect(page.locator('[data-electricity-hour-range]')).toHaveText('16:00 - 17:00');
+  await expect(page.locator('[data-electricity-cheapest-value]')).toHaveText('0.23');
+  await expect(page.locator('[data-electricity-cheapest-range]')).toHaveText('13:00 - 15:00');
+  await expect(page.locator('[data-electricity-expensive-value]')).toHaveText('4.51');
+  await expect(page.locator('[data-electricity-expensive-range]')).toHaveText('18:30 - 20:30');
+  await expect(page.locator('[data-electricity-low-value]')).toHaveText('0.20');
+  await expect(page.locator('[data-electricity-low-range]')).toHaveText('14:15 - 14:30');
+  await expect(page.locator('[data-electricity-high-value]')).toHaveText('5.99');
+  await expect(page.locator('[data-electricity-high-range]')).toHaveText('18:45 - 19:00');
+  await expect(page.locator('[data-electricity-price-path]')).toHaveCount(1);
+  await expect(page.locator('[data-electricity-current-line]')).toHaveCount(1);
+  await expect(page.locator('[data-electricity-low-band]')).toHaveCount(1);
+  await expect(page.locator('[data-electricity-high-band]')).toHaveCount(1);
 
   await expect(page.locator('[data-weather-temperature]')).toHaveText('12.4');
   await expect(page.locator('[data-weather-condition]')).toHaveText('Overcast');
@@ -125,10 +183,12 @@ test('Current renders the compact Olari weather view', async ({ page }) => {
   await expect(page.locator('a[href="/current/"]')).toHaveCount(0);
 });
 
-test('Current weather remains inside a 390 px mobile viewport', async ({ page }) => {
+test('Current modules remain inside a 390 px mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/current/', { waitUntil: 'networkidle' });
 
+  await expect(page.locator('[data-current-electricity]')).toBeVisible();
+  await expect(page.locator('[data-electricity-chart]')).toBeVisible();
   await expect(page.locator('[data-current-weather]')).toBeVisible();
   await expect(page.locator('[data-weather-hour]')).toHaveCount(6);
   await expect(page.locator('[data-weather-day]')).toHaveCount(5);
