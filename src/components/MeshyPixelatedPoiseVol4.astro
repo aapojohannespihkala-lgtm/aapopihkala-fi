@@ -1000,7 +1000,7 @@ const {
           (entries) => {
             if (entries.some((entry) => entry.isIntersecting)) startInitialization();
           },
-          { rootMargin: '320px 0px' }
+          { rootMargin: '0px' }
         );
         loadObserver.observe(root);
       } else {
