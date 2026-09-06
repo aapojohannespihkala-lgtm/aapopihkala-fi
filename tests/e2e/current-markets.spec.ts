@@ -11,31 +11,37 @@ const macroFixture = {
 };
 
 const tradingViewStubBody = `
-(() => {
-  const script = document.currentScript;
-  const widget = script?.parentElement?.querySelector('.tradingview-widget-container__widget');
-  if (!(widget instanceof HTMLElement)) return;
+class TradingViewTickersStub extends HTMLElement {
+  connectedCallback() {
+    this.dataset.tradingViewStub = 'true';
+    this.replaceChildren();
+    this.style.display = 'block';
+    this.style.height = '320px';
+  }
+}
 
-  const iframe = document.createElement('iframe');
-  iframe.title = 'TradingView market ticker';
-  iframe.dataset.tradingViewStub = 'true';
-  iframe.style.width = '100%';
-  iframe.style.height = '46px';
-  widget.append(iframe);
-})();
+if (!customElements.get('tv-tickers')) {
+  customElements.define('tv-tickers', TradingViewTickersStub);
+}
 `;
 
-const stubTradingView = async (page: Page, gate?: Promise<void>) => {
+const stubTradingView = async (page: Page) => {
   await page.route(
-    'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js',
+    'https://widgets.tradingview-widget.com/w/en/tv-tickers.js',
     async (route) => {
-      if (gate) await gate;
       await route.fulfill({
         status: 200,
         contentType: 'application/javascript',
         body: tradingViewStubBody,
       });
     }
+  );
+};
+
+const blockTradingView = async (page: Page) => {
+  await page.route(
+    'https://widgets.tradingview-widget.com/w/en/tv-tickers.js',
+    async (route) => route.abort()
   );
 };
 
@@ -49,7 +55,7 @@ const stubMarkets = async (page: Page) => {
   });
 };
 
-test('standalone Current Markets shows a compact dark TradingView feed and ECB macro context', async ({ page }) => {
+test('standalone Current Markets shows a static TradingView market list and ECB macro context', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubTradingView(page);
   await stubMarkets(page);
@@ -59,32 +65,25 @@ test('standalone Current Markets shows a compact dark TradingView feed and ECB m
   await expect(page.locator('h1')).toHaveText('Markets');
   await expect(page.locator('a.current-markets-status__link')).toHaveAttribute('href', '/current/');
 
-  const tickerHost = page.locator('[data-markets-ticker-host]');
-  await expect(tickerHost).toHaveCount(1);
-  await expect(tickerHost).toHaveAttribute('data-markets-ticker-theme', 'dark');
-  await expect(page.locator('[data-trading-view-stub]')).toHaveCount(1);
-  await expect(page.locator('[data-markets-ticker-fallback]')).toBeHidden();
-
-  const embedScript = page.locator(
-    '[data-markets-ticker-embed] script[src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js"]'
+  const tickers = page.locator('tv-tickers');
+  await expect(tickers).toHaveCount(1);
+  await expect(tickers).toHaveAttribute(
+    'symbols',
+    'AMEX:URTH,SP:SPX,TVC:SXXP,OMXNORDIC:OMXN40,OMXHEX:OMXH25,TVC:NI225,COINBASE:BTCEUR'
   );
-  await expect(embedScript).toHaveCount(1);
+  await expect(tickers).toHaveAttribute('direction', 'vertical');
+  await expect(tickers).toHaveAttribute('hide-chart', '');
+  await expect(tickers).toHaveAttribute('transparent', '');
+  await expect(tickers).toHaveAttribute('locale', 'en');
+  await expect(tickers).toHaveAttribute('data-trading-view-stub', 'true');
+  await expect(page.locator('tv-ticker-tape')).toHaveCount(0);
+  await expect(page.locator('[data-markets-tickers-fallback]')).toHaveCount(0);
 
-  const widgetConfig = await embedScript.textContent();
-  expect(widgetConfig).toContain('"proName":"AMEX:URTH"');
-  expect(widgetConfig).toContain('"proName":"OMXNORDIC:OMXN40"');
-  expect(widgetConfig).toContain('"proName":"OMXHEX:OMXH25"');
-  expect(widgetConfig).toContain('"proName":"COINBASE:BTCEUR"');
-  expect(widgetConfig).toContain('"colorTheme":"dark"');
-  expect(widgetConfig).toContain('"theme":"dark"');
-  expect(widgetConfig).toContain('"isTransparent":false');
-  expect(widgetConfig).toContain('"displayMode":"adaptive"');
-
-  const tickerBox = await tickerHost.boundingBox();
+  const tickerBox = await tickers.boundingBox();
   expect(tickerBox).not.toBeNull();
   if (tickerBox) {
-    expect(tickerBox.height).toBeGreaterThanOrEqual(68);
-    expect(tickerBox.height).toBeLessThanOrEqual(76);
+    expect(tickerBox.height).toBeGreaterThanOrEqual(319);
+    expect(tickerBox.height).toBeLessThanOrEqual(321);
   }
 
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
@@ -100,35 +99,26 @@ test('standalone Current Markets shows a compact dark TradingView feed and ECB m
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('Markets keeps its mobile layout stable while TradingView loads', async ({ page }) => {
+test('Markets keeps a useful static fallback if TradingView is blocked', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-
-  let releaseTicker = () => {};
-  const tickerGate = new Promise<void>((resolve) => {
-    releaseTicker = resolve;
-  });
-
-  await stubTradingView(page, tickerGate);
+  await blockTradingView(page);
   await stubMarkets(page);
 
   await page.goto('/current/markets/', { waitUntil: 'domcontentloaded' });
 
-  const fallback = page.locator('[data-markets-ticker-fallback]');
-  const macro = page.locator('.markets-macro');
+  const fallback = page.locator('[data-markets-tickers-fallback]');
   await expect(fallback).toBeVisible();
+  await expect(fallback.locator('p')).toHaveCount(7);
+  await expect(fallback.locator('p').nth(0)).toContainText('World');
+  await expect(fallback.locator('p').nth(3)).toContainText('Nordics');
+  await expect(fallback.locator('p').nth(6)).toContainText('BTC / EUR');
+  await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
 
-  const before = await macro.boundingBox();
-  releaseTicker();
-
-  await expect(page.locator('[data-trading-view-stub]')).toHaveCount(1);
-  await expect(fallback).toBeHidden();
-
-  const after = await macro.boundingBox();
-  expect(before).not.toBeNull();
-  expect(after).not.toBeNull();
-  if (before && after) {
-    expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1);
-  }
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
 test('Current places Markets above electricity', async ({ page }) => {
