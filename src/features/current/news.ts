@@ -182,6 +182,53 @@ const label = (value: string) => value.replaceAll('-', ' ').toUpperCase();
 const published = (value: string) =>
   publishedFormatter.format(new Date(value)).replace(',', ' / ').toUpperCase();
 
+const categoryName: Record<NewsItem['category'], string> = {
+  music: 'Music',
+  film: 'Film',
+  comics: 'Comics',
+  games: 'Games',
+  architecture: 'Architecture',
+  design: 'Design',
+  art: 'Art',
+  books: 'Books',
+  culture: 'Culture',
+};
+
+const contextFor = (item: NewsItem) => {
+  const category = categoryName[item.category];
+  const hasTag = (tag: string) => item.tags.includes(tag);
+
+  switch (item.kind) {
+    case 'review':
+      if (item.category === 'music' && hasTag('album')) return 'Album review';
+      if (item.category === 'comics') return 'Comics review';
+      return `${category} review`;
+    case 'interview':
+      if (item.category === 'comics') return 'Comics creator interview';
+      if (item.category === 'music') return 'Artist interview';
+      return `${category} interview`;
+    case 'release':
+      if (item.category === 'music' && hasTag('album')) return 'New album release';
+      if (item.category === 'music') return 'New music release';
+      return `${category} release`;
+    case 'reissue':
+      if (item.category === 'music') return 'Archive reissue';
+      return `${category} reissue`;
+    case 'retrospective':
+      return `${category} retrospective - archive story`;
+    case 'obituary':
+      return `${category} obituary - cultural legacy`;
+    case 'exhibition':
+      return `${category} exhibition`;
+    case 'discovery':
+      return `${category} discovery`;
+    case 'news':
+    default:
+      if (item.locality === 'finland') return `Finnish ${category.toLowerCase()} news`;
+      return `${category} news`;
+  }
+};
+
 export const initCurrentNews = () => {
   const root = document.querySelector<HTMLElement>('[data-current-news]');
   if (!root || root.dataset.currentNewsInitialized === 'true') return;
@@ -216,6 +263,7 @@ export const initCurrentNews = () => {
     const item = daily ? byId.get(daily.visible[index]) : undefined;
     const meta = slot.querySelector<HTMLElement>('[data-news-meta]');
     const title = slot.querySelector<HTMLElement>('[data-news-title]');
+    const context = slot.querySelector<HTMLElement>('[data-news-context]');
     const detail = slot.querySelector<HTMLElement>('[data-news-detail]');
     const buttons = [...slot.querySelectorAll<HTMLButtonElement>('[data-news-feedback]')];
 
@@ -223,6 +271,7 @@ export const initCurrentNews = () => {
       slot.removeAttribute('data-news-item-id');
       if (meta) meta.textContent = loading ? 'FEEDS / LOADING' : 'FEEDS / UNAVAILABLE';
       if (title) title.textContent = loading ? 'Loading live culture feeds' : 'No live item available';
+      if (context) context.textContent = loading ? 'Preparing a short context line' : 'No context available';
       if (detail) detail.textContent = loading ? 'RSS / CURRENT' : 'TRY AGAIN LATER';
       buttons.forEach((button) => { button.disabled = true; });
       return;
@@ -240,6 +289,7 @@ export const initCurrentNews = () => {
       link.style.textDecoration = 'none';
       title.replaceChildren(link);
     }
+    if (context) context.textContent = contextFor(item);
     if (detail) detail.textContent = `${label(item.kind)} / ${label(item.locality)} / ${published(item.publishedAt)}`;
     const replaceable = candidates(index).some((candidate) => candidate.id !== item.id);
     buttons.forEach((button) => { button.disabled = !replaceable; });
