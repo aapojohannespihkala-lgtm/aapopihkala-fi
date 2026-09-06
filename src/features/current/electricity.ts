@@ -22,7 +22,7 @@ type PriceWindow = {
   points: PricePoint[];
 };
 
-const PRICE_API_URL = 'https://api.porssisahko.net/v2/latest-prices.json';
+const PRICE_API_URL = '/api/current/electricity';
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 const NETWORK_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DISPLAY_REFRESH_INTERVAL_MS = 60 * 1000;
