@@ -109,6 +109,7 @@ Testit sijaitsevat:
 
 ```text
 tests/e2e/site-regressions.spec.ts
+tests/e2e/accessibility-regression.spec.ts
 tests/e2e/mobile-en-regression.spec.ts
 tests/e2e/reduced-motion-regression.spec.ts
 tests/e2e/seo-regression.spec.ts
@@ -125,6 +126,7 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - etusivun topografiacanvasin renderöitymisen, geometrian, jatkuvan morph/auto-rotate-liikkeen ja drag-orbitoinnin
 - päivä/yö-tilan
 - kielilinkit
+- headerin FI/EN-saavutettavat nimet, näppäimistöjärjestyksen ja vähintään 24 x 24 px interaktiiviset kohteet
 - FI- ja EN-ingressin tarkoitetun desktop-rivijaon: FI-rivin viimeinen sana on `luonnon` ja EN-rivin `cities,`
 - 390 x 844 -mobiilinäkymän FI/EN-etusivusopimuksen: yksipalstainen hero, piilotettu hero-topografia ja poistettu pakotettu desktop-rivinvaihto
 - mobiilin FI/EN About-reittien lokalisaation ja pistepilvipään kehyksen pysymisen viewportin sisällä
@@ -278,6 +280,8 @@ src/components/SiteInteractionLayer.astro
 ```
 
 `SiteHeader` vastaa vain varsinaisesta navigaatiosta ja kielenvaihdosta. `BaseLayout` renderöi `SiteHeader`in ja `SiteInteractionLayer`in erillisinä sisaruksina, joten kokeellinen interaktiokerros ei kuulu headerin omistukseen.
+
+Headerin interaktiiviset kohteet säilytetään vähintään 24 x 24 CSS-pikselin kokoisina. Yötilan näkyvä ikoni säilyy nykyisen kokoisena, mutta sen painikkeen hit-alue on suurempi.
 
 `SiteInteractionLayer.astro` omistaa yhteisen interaktiokerroksen markupin ja tyylit sekä käynnistää pienemmät TypeScript-featuret. Scroll-, GRID-, A/coordinate-, AREA-, legacy-oikotie- ja päivämäärä-toggle-runtimet eivät enää elä komponentin inline-scriptissä.
 
