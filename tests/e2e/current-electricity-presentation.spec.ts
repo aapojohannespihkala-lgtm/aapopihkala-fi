@@ -22,6 +22,16 @@ const buildElectricityFixture = () => {
   return { prices: prices.reverse() };
 };
 
+const buildHistoryFixture = () => ({
+  daily: Array.from({ length: 5 }, (_, index) => ({
+    day: `2026-09-${String(index + 1).padStart(2, '0')}`,
+    average: 2,
+    min: 0,
+    max: 5,
+    hours: 24,
+  })),
+});
+
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-09-06T16:11:00.000Z'));
 
@@ -36,6 +46,14 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify(buildElectricityFixture()),
     });
   });
+
+  await page.route('https://parassahko.fi/tilastot/data.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(buildHistoryFixture()),
+    });
+  });
 });
 
 test('Current keeps electricity annotations compact and separates current from inspected price markers', async ({ page }) => {
@@ -45,6 +63,16 @@ test('Current keeps electricity annotations compact and separates current from i
   await expect(page.locator('.electricity-now__label')).toHaveText('NOW / 15 MIN');
   await expect(page.locator('.electricity-extremes')).toBeHidden();
   await expect(page.locator('[data-electricity-window-leader]')).toHaveCount(0);
+  await expect(page.locator('[data-electricity-month-average]')).toHaveText('SEP AVG 1.92 c/kWh');
+  await expect(page.locator('[data-electricity-month-average]')).toHaveAttribute(
+    'aria-label',
+    'September month-to-date average 1.92 cents per kilowatt-hour'
+  );
+  await expect(page.locator('[data-electricity-history-source]')).toHaveText('PARASSÄHKÖ.FI');
+  await expect(page.locator('[data-electricity-history-source]')).toHaveAttribute(
+    'href',
+    'https://parassahko.fi/tilastot'
+  );
 
   const lowLabel = page.locator('[data-electricity-low-label]');
   const highLabel = page.locator('[data-electricity-high-label]');
@@ -132,4 +160,31 @@ test('Current keeps electricity annotations compact and separates current from i
     document: document.documentElement.scrollWidth,
   }));
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
+});
+
+test('Current keeps the month-average slot reserved when history is unavailable', async ({ page }) => {
+  await page.unroute('https://parassahko.fi/tilastot/data.json');
+  await page.route('https://parassahko.fi/tilastot/data.json', async (route) => {
+    await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/current/', { waitUntil: 'domcontentloaded' });
+
+  const monthAverage = page.locator('[data-electricity-month-average]');
+  await expect(monthAverage).toBeHidden();
+
+  const style = await monthAverage.evaluate((element) => {
+    const computed = getComputedStyle(element);
+    return {
+      display: computed.display,
+      visibility: computed.visibility,
+      minHeight: computed.minHeight,
+    };
+  });
+
+  expect(style.display).toBe('block');
+  expect(style.visibility).toBe('hidden');
+  expect(Number.parseFloat(style.minHeight)).toBeGreaterThan(0);
+  await expect(page.locator('[data-electricity-price]')).toHaveText('1.51');
 });

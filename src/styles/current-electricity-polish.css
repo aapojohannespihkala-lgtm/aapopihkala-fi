@@ -23,13 +23,26 @@
   white-space: nowrap;
 }
 
-.current-electricity .electricity-current__reading .electricity-average-comparison {
+.current-electricity .electricity-current__reading .electricity-average-comparison,
+.current-electricity .electricity-current__reading .electricity-month-average {
   min-height: 1em;
 }
 
-.current-electricity .electricity-current__reading .electricity-average-comparison[hidden] {
+.current-electricity .electricity-current__reading .electricity-average-comparison[hidden],
+.current-electricity .electricity-current__reading .electricity-month-average[hidden] {
   display: block;
   visibility: hidden;
+}
+
+.current-electricity .electricity-month-average {
+  margin: 7px 0 0 0.18em;
+  color: var(--stone-light);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.42rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
 }
 
 .current-electricity .electricity-chart-section .electricity-day-switch[hidden] {
@@ -114,6 +127,10 @@
 
   .current-electricity .electricity-now__interval {
     font-size: 0.35rem;
+  }
+
+  .current-electricity .electricity-month-average {
+    font-size: 0.36rem;
   }
 
   .current-electricity .electricity-chart-section .electricity-chart-frame,
