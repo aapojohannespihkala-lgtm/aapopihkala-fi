@@ -1,62 +1,28 @@
 <section class="current-markets" data-current-markets aria-labelledby="current-markets-title">
   <header class="markets-heading">
     <p class="markets-index">MARKETS / 00</p>
-    <p class="markets-context">GLOBAL / PORTFOLIO CONTEXT</p>
+    <p class="markets-context">GLOBAL / PERFORMANCE</p>
   </header>
 
   <h2 id="current-markets-title" class="sr-only">Markets</h2>
 
   <div class="markets-layout">
-    <section class="markets-market-view" aria-label="Relevant market benchmarks">
-      <div class="markets-reference-list" data-markets-reference-list>
-        <article class="markets-reference" data-market-reference="world">
-          <p class="markets-reference__label">WORLD / URTH</p>
-          <tv-ticker-tag symbol="AMEX:URTH" transparent locale="en">
-            <span class="markets-reference__fallback" data-market-tag-fallback>--</span>
-          </tv-ticker-tag>
-        </article>
-
-        <article class="markets-reference" data-market-reference="usa">
-          <p class="markets-reference__label">USA / SPY</p>
-          <tv-ticker-tag symbol="AMEX:SPY" transparent locale="en">
-            <span class="markets-reference__fallback" data-market-tag-fallback>--</span>
-          </tv-ticker-tag>
-        </article>
-
-        <article class="markets-reference" data-market-reference="europe">
-          <p class="markets-reference__label">EUROPE / VGK</p>
-          <tv-ticker-tag symbol="AMEX:VGK" transparent locale="en">
-            <span class="markets-reference__fallback" data-market-tag-fallback>--</span>
-          </tv-ticker-tag>
-        </article>
-
-        <article class="markets-reference" data-market-reference="nordics">
-          <p class="markets-reference__label">NORDICS / OMXN40</p>
-          <tv-ticker-tag symbol="OMXNORDIC:OMXN40" transparent locale="en">
-            <span class="markets-reference__fallback" data-market-tag-fallback>--</span>
-          </tv-ticker-tag>
-        </article>
-
-        <article class="markets-reference" data-market-reference="finland">
-          <p class="markets-reference__label">FINLAND / OMXH25</p>
-          <tv-ticker-tag symbol="OMXHEX:OMXH25" transparent locale="en">
-            <span class="markets-reference__fallback" data-market-tag-fallback>--</span>
-          </tv-ticker-tag>
-        </article>
-
-        <article class="markets-reference" data-market-reference="japan">
-          <p class="markets-reference__label">JAPAN / EWJ</p>
-          <tv-ticker-tag symbol="AMEX:EWJ" transparent locale="en">
-            <span class="markets-reference__fallback" data-market-tag-fallback>--</span>
-          </tv-ticker-tag>
-        </article>
-
-        <article class="markets-reference" data-market-reference="btc-eur">
-          <p class="markets-reference__label">BTC / EUR</p>
-          <tv-ticker-tag symbol="COINBASE:BTCEUR" transparent locale="en">
-            <span class="markets-reference__fallback" data-market-tag-fallback>--</span>
-          </tv-ticker-tag>
-        </article>
+    <section class="markets-market-view" aria-label="Market performance by period">
+      <div class="markets-performance">
+        <tv-market-data
+          view="performance"
+          symbol-sectors='[{"sectionName":"Markets","symbols":["AMEX:URTH","AMEX:SPY","AMEX:VGK","OMXNORDIC:OMXN40","OMXHEX:OMXH25","AMEX:EWJ","COINBASE:BTCEUR"]}]'
+          transparent
+          locale="en"
+          aria-label="World, USA, Europe, Nordic, Finland, Japan and Bitcoin performance"
+        >
+          <div class="markets-performance__fallback" data-markets-performance-fallback>
+            <p class="markets-performance__periods">TODAY / 1W / 1M / 6M / 1Y</p>
+            <p class="markets-performance__message" data-markets-performance-message>
+              Loading market performance
+            </p>
+          </div>
+        </tv-market-data>
       </div>
     </section>
 
@@ -97,12 +63,51 @@
   </footer>
 </section>
 
-<script
-  is:inline
-  type="module"
-  async
-  src="https://www.tradingview-widget.com/w/en/tv-ticker-tag.js"
-></script>
+<script is:inline type="module">
+  const root = document.querySelector('[data-current-markets]')
+  const widget = root?.querySelector('tv-market-data')
+
+  if (widget instanceof HTMLElement) {
+    const syncTheme = () => {
+      widget.setAttribute(
+        'theme',
+        document.documentElement.classList.contains('site-night-mode') ? 'dark' : 'light'
+      )
+    }
+
+    syncTheme()
+
+    const themeObserver = new MutationObserver(syncTheme)
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+
+    window.addEventListener('pagehide', () => themeObserver.disconnect(), { once: true })
+
+    const moduleUrls = [
+      'https://www.tradingview-widget.com/w/en/tv-market-data.js',
+      'https://widgets.tradingview-widget.com/w/en/tv-market-data.js',
+    ]
+
+    let loaded = false
+
+    for (const moduleUrl of moduleUrls) {
+      try {
+        await import(moduleUrl)
+        loaded = true
+        break
+      } catch {
+        // TradingView has used both widget hosts. Try the alternate host before falling back.
+      }
+    }
+
+    if (!loaded) {
+      const message = root?.querySelector('[data-markets-performance-message]')
+      if (message) message.textContent = 'Market performance unavailable'
+    }
+  }
+</script>
 
 <script>
   import { initCurrentMarkets } from '../../features/current/markets';
@@ -124,8 +129,7 @@
 
   .markets-index,
   .markets-context,
-  .markets-reference__label,
-  .markets-reference__fallback,
+  .markets-performance__fallback,
   .markets-macro,
   .markets-footer {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -151,52 +155,26 @@
 
   .markets-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(220px, 0.65fr);
+    grid-template-columns: minmax(0, 1.7fr) minmax(220px, 0.55fr);
     gap: 42px;
     align-items: start;
   }
 
-  .markets-market-view {
+  .markets-market-view,
+  .markets-performance {
     min-width: 0;
   }
 
-  .markets-reference-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .markets-performance {
     border-top: 1px solid var(--line-soft);
-    border-left: 1px solid var(--line-soft);
-  }
-
-  .markets-reference {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-    min-height: 48px;
-    padding: 7px 9px;
-    border-right: 1px solid var(--line-soft);
     border-bottom: 1px solid var(--line-soft);
-  }
-
-  .markets-reference__label {
-    min-width: 0;
-    margin: 0;
     overflow: hidden;
-    color: var(--stone-light);
-    font-size: 0.47rem;
-    font-weight: 600;
-    line-height: 1.15;
-    letter-spacing: 0.07em;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
-  tv-ticker-tag {
+  tv-market-data {
     display: block;
+    width: 100%;
     min-width: 0;
-    max-width: 100%;
-    justify-self: end;
     color-scheme: inherit;
     --tv-widget-background-color: transparent;
     --tv-widget-text-color: var(--stone);
@@ -204,16 +182,30 @@
     --tv-widget-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
 
-  .markets-reference__fallback {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 42px;
-    min-height: 28px;
+  tv-market-data:defined {
+    height: 410px;
+  }
+
+  tv-market-data:not(:defined) {
+    height: auto;
+  }
+
+  .markets-performance__fallback {
+    display: grid;
+    gap: 8px;
+    padding: 18px 2px;
     color: var(--stone-light);
-    font-size: 0.64rem;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.04em;
+    font-size: 0.5rem;
+    line-height: 1.4;
+    letter-spacing: 0.07em;
+  }
+
+  .markets-performance__fallback p {
+    margin: 0;
+  }
+
+  .markets-performance__periods {
+    color: var(--stone);
   }
 
   .markets-macro {
@@ -297,12 +289,6 @@
     border: 0;
   }
 
-  @media (max-width: 900px) and (min-width: 721px) {
-    .markets-reference-list {
-      grid-template-columns: 1fr;
-    }
-  }
-
   @media (max-width: 720px) {
     .markets-layout {
       grid-template-columns: 1fr;
@@ -318,13 +304,8 @@
       text-align: right;
     }
 
-    .markets-reference-list {
-      grid-template-columns: 1fr;
-    }
-
-    .markets-reference {
-      min-height: 46px;
-      padding: 6px 8px;
+    tv-market-data:defined {
+      height: 430px;
     }
 
     .markets-footer {
