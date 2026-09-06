@@ -88,15 +88,18 @@ Workflow ajetaan:
 - pull requestissa kohti `main`-haaraa
 - manuaalisesti `workflow_dispatch`-ajona
 
-CI suorittaa staattiset tarkistukset, tuotantobuildin ja Playwright-regressiotestit. `npm run check` on blokkaava vaihe.
+Rakennusvaiheen CI on tarkoituksella nopea ennen mergeä:
 
-Pelkät projektidokumentaatiomuutokset tiedostoissa `README.md`, `AGENTS.md`, `ROADMAP.md` ja `docs/**` käyttävät kevyttä CI-polkuja. Tällöin koko Node-, build-, Chromium- ja Playwright-ketjua ei ajeta turhaan.
+- pelkkä projektidokumentaatio (`README.md`, `AGENTS.md`, `ROADMAP.md`, `docs/**`) saa minimaalisen onnistuneen `build`-tarkistuksen ilman Node-, build- tai Playwright-vaiheita
+- muut pull requestit ajavat `npm ci`, `npm run check` ja `npm run build`
+- koko Playwright-regressiosarja ei blokkaa pull requestin mergeä rakennusvaiheessa
+- kun suoritettava muutos on mergattu `main`iin, `main`-ajo suorittaa lisäksi Chromium-asennuksen ja koko Playwright-regressiosarjan
 
-Kaikki lähdekoodiin, artikkeleihin, konfiguraatioon, testeihin tai workflow-tiedostoihin kohdistuvat muutokset saavat edelleen täyden CI-tarkistuksen.
+`npm run check` ja tuotantobuild ovat siis edelleen blokkaavia ennen tavallisen koodimuutoksen mergeä. Täysi selainregressio toimii rakennusvaiheessa mergeä seuraavana turvaverkkona.
 
 Jos samaan pull requestiin tai refiin tulee uusi commit vanhan CI-ajon ollessa kesken, vanhentunut ajo perutaan automaattisesti.
 
-Jos selainregressio epäonnistuu, CI tallentaa `test-results/`-aineiston tutkittavaksi.
+Jos `main`-haaran selainregressio epäonnistuu, CI tallentaa `test-results/`-aineiston tutkittavaksi ja regressio korjataan erillisellä jatkomuutoksella.
 
 ## Testaus
 
@@ -225,7 +228,7 @@ Ennen merkittävää muutosta tarkistetaan `README.md`, tehtävään liittyvät 
 
 Merkittävän pull requestin kuvaukseen jätetään tiivis handoff: mitä muutettiin, miksi, mikä rajattiin tarkoituksella ulos, miten muutos validoitiin ja mitä jatkotyötä mahdollisesti jäi.
 
-Kun käyttäjä pyytää ChatGPT:tä tekemään repository-muutoksen, oletus on viedä työ loppuun asti branchista ja pull requestista vaadittuihin CI-tarkistuksiin ja onnistuneeseen mergeen. Erillistä merge-lupaa ei oletuksena kysytä, ellei käyttäjä pyydä jättämään PR:ää auki, CI epäonnistu, merge-konflikti synny tai työn rajaus muutu olennaisesti.
+Kun käyttäjä pyytää ChatGPT:tä tekemään repository-muutoksen, oletus on viedä työ loppuun asti branchista ja pull requestista vaadittuun nopeaan pre-merge-CI-tarkistukseen ja onnistuneeseen mergeen. Erillistä merge-lupaa ei oletuksena kysytä, ellei käyttäjä pyydä jättämään PR:ää auki, vaadittu tarkistus epäonnistu, merge-konflikti synny tai työn rajaus muutu olennaisesti.
 
 Keskeneräinen merkittävä työ pidetään näkyvissä avoimessa pull requestissa tai `ROADMAP.md`:ssä eikä vain chat-kontekstissa.
 

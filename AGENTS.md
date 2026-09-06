@@ -57,12 +57,12 @@ If unfinished work must continue in a later session, keep it visible in an open 
 
 ## Change completion
 
-When the user asks ChatGPT to make a repository change, the default is to carry that change through to completion: create or update the working branch, open or update the pull request, wait for the required CI checks, and merge the pull request when those checks pass.
+When the user asks ChatGPT to make a repository change, the default is to carry that change through to completion: create or update the working branch, open or update the pull request, wait for the required pre-merge CI check, and merge the pull request when that check passes.
 
 Do not stop only to request separate merge approval unless:
 
 - the user explicitly asks to leave the pull request open or review before merge
-- CI fails or reports a meaningful regression
+- required pre-merge CI fails or reports a meaningful regression
 - a merge conflict or material ambiguity appears
 - the requested implementation expands beyond the agreed scope in a way that needs a user decision
 
@@ -85,19 +85,25 @@ During implementation:
 
 For validation and merge:
 
-- aim for one final CI cycle after the branch is current and the implementation is complete
+- aim for one final pre-merge CI cycle after the branch is current and the implementation is complete
 - verify that the required CI run started, then avoid repeatedly polling unchanged CI state
 - check CI again when enough time has passed for useful progress or when a merge decision can be made
 - distinguish required repository checks from optional external preview or deployment checks; investigate external failures when they indicate a real problem, but do not let irrelevant preview noise block an otherwise valid change
-- merge immediately after required checks pass when no conflict, regression or material ambiguity remains
+- merge immediately after the required pre-merge check passes when no conflict, regression or material ambiguity remains
 
-Do not trade away required validation for speed. The goal is fewer unnecessary writes, CI restarts and status checks, not weaker safeguards.
+During the active site-construction phase, optimize for fast iteration. Pull requests with executable changes are blocked by static checks and a production build, not by the full Playwright suite. Full browser regressions run on `main` after merge for executable changes. Documentation-only changes keep the minimal successful `build` check and skip Node, build and browser work entirely.
+
+If a post-merge browser regression later exposes a real problem, fix it promptly in a follow-up change. Do not hold routine construction-phase merges open waiting for the full browser suite.
 
 ## CI safety
 
-Documentation-only changes may use the lightweight CI path defined in `.github/workflows/build-check.yml`.
+The CI strategy in `.github/workflows/build-check.yml` is intentionally split by phase:
 
-Do not extend that fast path to source code, article content, configuration, tests or workflow files without a deliberate review of what validation would be skipped. Changes outside the documented documentation paths must continue to receive the full static check, build and browser regression pipeline unless the validation strategy is explicitly redesigned.
+- documentation-only changes: minimal required `build` check
+- pull requests with executable changes: `npm ci`, `npm run check` and `npm run build`
+- executable changes on `main`: the same static/build validation plus the full Playwright browser regression suite
+
+This is the deliberate validation strategy for the active site-construction phase. Do not weaken the required pull-request static checks or production build without explicit review. When the project moves from rapid construction to a more stable release phase, reconsider whether full browser regressions should return to the pre-merge gate.
 
 ## Documentation maintenance
 
