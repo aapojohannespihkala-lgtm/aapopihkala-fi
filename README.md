@@ -88,19 +88,13 @@ Workflow ajetaan:
 - pull requestissa kohti `main`-haaraa
 - manuaalisesti `workflow_dispatch`-ajona
 
-CI luokittelee ensin muutoksen. Jos muutos koskee ainoastaan projektidokumentaatiota (`README.md`, `AGENTS.md`, `ROADMAP.md` tai `docs/**`), raskas Node-, build- ja selainregressioketju ohitetaan tarkoituksella.
+CI suorittaa staattiset tarkistukset, tuotantobuildin ja Playwright-regressiotestit. `npm run check` on blokkaava vaihe.
 
-Kaikki muut muutokset, mukaan lukien lähdekoodi, sisältö, asetukset, testit ja itse workflowt, ajavat täyden tarkistuksen:
+Pelkät projektidokumentaatiomuutokset tiedostoissa `README.md`, `AGENTS.md`, `ROADMAP.md` ja `docs/**` käyttävät kevyttä CI-polkuja. Tällöin koko Node-, build-, Chromium- ja Playwright-ketjua ei ajeta turhaan.
 
-```text
-npm ci
-npm run check
-npm run build
-npx playwright install --with-deps chromium
-npm run test:e2e
-```
+Kaikki lähdekoodiin, artikkeleihin, konfiguraatioon, testeihin tai workflow-tiedostoihin kohdistuvat muutokset saavat edelleen täyden CI-tarkistuksen.
 
-Uusi ajo peruuttaa saman PR:n tai ref:n aiemman keskeneräisen ajon, jotta vanhentuneet tarkistukset eivät hidasta uusinta muutosta.
+Jos samaan pull requestiin tai refiin tulee uusi commit vanhan CI-ajon ollessa kesken, vanhentunut ajo perutaan automaattisesti.
 
 Jos selainregressio epäonnistuu, CI tallentaa `test-results/`-aineiston tutkittavaksi.
 
@@ -217,18 +211,20 @@ Current käyttää projektin yhteistä layoutia mutta on erillinen, päänavigaa
 
 - `docs/ARCHITECTURE.md` - arkkitehtuurin vastuurajat ja ylläpitoperiaatteet
 - `docs/CONTENT.md` - artikkelien kirjoittaminen ja julkaiseminen
-- `AGENTS.md` - projektin pysyvät kehitys- ja jatkuvuussäännöt
+- `AGENTS.md` - projektin pysyvät kehityssäännöt
 - `ROADMAP.md` - ajantasainen jatkokehityksen työlista
 
 ## Työn jatkuvuus
 
-GitHub-repo toimii projektin pysyvänä lähteenä myös silloin, kun työ jatkuu uudessa ChatGPT-keskustelussa.
+GitHub toimii projektin pysyvänä muistina. Uuden työsession ei pidä olla riippuvainen aiempien chat-keskustelujen kontekstista.
 
-Ennen merkittävää muutosta tarkistetaan README, tehtävän kannalta relevantti dokumentaatio, tarvittaessa ROADMAP sekä viimeisimmät mergatut PR:t. Tarkat toteutusdetaljit tarkistetaan aina nykyisestä koodista ja testeistä.
+Ennen merkittävää muutosta tarkistetaan `README.md`, tehtävään liittyvät `docs/`-tiedostot, tarvittaessa `ROADMAP.md`, viimeisimmät relevantit pull requestit sekä varsinainen koodi ja testit.
 
-Merkittävän PR:n kuvauksesta pitää selvitä tiiviisti mitä muutettiin, miksi, mitä rajattiin tarkoituksella muutoksen ulkopuolelle, miten muutos tarkistettiin ja jäikö jatkotyötä.
+Merkittävän pull requestin kuvaukseen jätetään tiivis handoff: mitä muutettiin, miksi, mikä rajattiin tarkoituksella ulos, miten muutos validoitiin ja mitä jatkotyötä mahdollisesti jäi.
 
-Keskeneräinen työ jätetään näkyviin avoimeen PR:ään tai `ROADMAP.md`-tiedostoon eikä vain chat-kontekstiin.
+Kun käyttäjä pyytää ChatGPT:tä tekemään repository-muutoksen, oletus on viedä työ loppuun asti branchista ja pull requestista vaadittuihin CI-tarkistuksiin ja onnistuneeseen mergeen. Erillistä merge-lupaa ei oletuksena kysytä, ellei käyttäjä pyydä jättämään PR:ää auki, CI epäonnistu, merge-konflikti synny tai työn rajaus muutu olennaisesti.
+
+Keskeneräinen merkittävä työ pidetään näkyvissä avoimessa pull requestissa tai `ROADMAP.md`:ssä eikä vain chat-kontekstissa.
 
 ## Dokumentaation ylläpito
 
