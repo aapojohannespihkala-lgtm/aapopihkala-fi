@@ -1,23 +1,20 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { site } from '../../config/site';
-import '../../styles/current-electricity-polish.css';
 import NightModeToggle from '../NightModeToggle.astro';
 import CurrentMarkets from './CurrentMarkets.astro';
-import CurrentElectricity from './CurrentElectricity.astro';
-import CurrentWeather from './CurrentWeather.astro';
 
-const canonicalUrl = `${site.url}/current/`;
+const canonicalUrl = `${site.url}/current/markets/`;
 ---
 
 <BaseLayout
   lang="en"
-  title="Current | Aapo Pihkala"
-  description="A personal view of what matters right now."
+  title="Markets | Current | Aapo Pihkala"
+  description="A compact view of relevant market benchmarks and euro-area macro context."
   canonicalUrl={canonicalUrl}
   finnishUrl={canonicalUrl}
   englishUrl={canonicalUrl}
-  languageHref="/"
+  languageHref="/current/"
   initialNightMode
   includeDefaultSocialMeta={false}
 >
@@ -25,42 +22,33 @@ const canonicalUrl = `${site.url}/current/`;
     <meta name="robots" content="noindex,nofollow" />
   </Fragment>
 
-  <main id="main-content" tabindex="-1" class="current-shell">
-    <header class="current-status-strip" aria-label="Current status">
-      <h1 class="current-status-strip__label">Current</h1>
-      <span class="current-status-strip__separator" aria-hidden="true">/</span>
+  <main id="main-content" tabindex="-1" class="current-markets-shell">
+    <header class="current-markets-status" aria-label="Current markets status">
+      <a href="/current/" class="current-markets-status__link">Current</a>
+      <span class="current-markets-status__separator" aria-hidden="true">/</span>
+      <h1 class="current-markets-status__label">Markets</h1>
+      <span class="current-markets-status__separator" aria-hidden="true">/</span>
 
-      <p class="current-clock" aria-label="Current time in Helsinki">
+      <p class="current-markets-clock" aria-label="Current time in Helsinki">
         <span data-current-date></span>
         <span aria-hidden="true">/</span>
         <span data-current-time></span>
       </p>
 
-      <span class="current-status-strip__separator" aria-hidden="true">/</span>
+      <span class="current-markets-status__separator" aria-hidden="true">/</span>
 
-      <p class="current-updated">
+      <p class="current-markets-updated">
         Updated <span data-current-updated>Waiting</span>
       </p>
     </header>
 
     <CurrentMarkets />
-
-    <div class="current-electricity-wrap">
-      <CurrentElectricity />
-    </div>
-
-    <div class="current-weather-wrap">
-      <CurrentWeather />
-    </div>
   </main>
 
   <Fragment slot="afterAnalytics">
     <script>
       import { initCurrentClock } from '../../features/current/clock';
-      import { initCurrentElectricityPresentation } from '../../features/current/electricityPresentation';
-
       initCurrentClock();
-      initCurrentElectricityPresentation();
     </script>
 
     <NightModeToggle lang="en" />
@@ -68,14 +56,14 @@ const canonicalUrl = `${site.url}/current/`;
 </BaseLayout>
 
 <style>
-  .current-shell {
+  .current-markets-shell {
     width: 100%;
     max-width: 1160px;
     margin: 0 auto;
     padding: 28px 32px 128px;
   }
 
-  .current-status-strip {
+  .current-markets-status {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -91,8 +79,8 @@ const canonicalUrl = `${site.url}/current/`;
     text-transform: uppercase;
   }
 
-  .current-status-strip h1,
-  .current-status-strip p {
+  .current-markets-status h1,
+  .current-markets-status p {
     margin: 0;
     color: inherit;
     font: inherit;
@@ -100,45 +88,45 @@ const canonicalUrl = `${site.url}/current/`;
     text-transform: inherit;
   }
 
-  .current-status-strip__label {
+  .current-markets-status__link {
+    color: var(--stone-light);
+    text-decoration: none;
+  }
+
+  .current-markets-status__link:hover,
+  .current-markets-status__link:focus-visible {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .current-markets-status__label,
+  .current-markets-status__separator {
     color: var(--stone-light) !important;
   }
 
-  .current-status-strip__separator {
-    color: var(--stone-light);
-  }
-
-  .current-clock {
+  .current-markets-clock {
     display: inline-flex;
     gap: 8px;
   }
 
-  .current-updated span {
+  .current-markets-updated span {
     color: var(--stone-light);
   }
 
-  .current-weather-wrap {
-    margin-top: 30px;
-    border-top: 1px solid var(--line);
-  }
-
   @media (max-width: 640px) {
-    .current-shell {
+    .current-markets-shell {
       padding: 22px 24px 96px;
     }
 
-    .current-status-strip {
+    .current-markets-status {
       gap: 7px;
       padding-bottom: 14px;
       font-size: 0.47rem;
     }
 
-    .current-clock {
+    .current-markets-clock {
       gap: 7px;
-    }
-
-    .current-weather-wrap {
-      margin-top: 25px;
     }
   }
 </style>

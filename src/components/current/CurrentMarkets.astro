@@ -1,0 +1,236 @@
+<section class="current-markets" data-current-markets aria-labelledby="current-markets-title">
+  <header class="markets-heading">
+    <p class="markets-index">MARKETS / 00</p>
+    <p class="markets-context">GLOBAL / PORTFOLIO CONTEXT</p>
+  </header>
+
+  <h2 id="current-markets-title" class="sr-only">Markets</h2>
+
+  <div class="markets-layout">
+    <section class="markets-market-view" aria-label="Relevant market benchmarks">
+      <tv-ticker-tape
+        symbols="AMEX:URTH,SP:SPX,TVC:SXXP,OMXNORDIC:OMXN40,OMXHEX:OMXH25,TVC:NI225,COINBASE:BTCEUR"
+        direction="vertical"
+        item-size="compact"
+        transparent
+      >
+        <p class="markets-loading">Loading market data</p>
+      </tv-ticker-tape>
+    </section>
+
+    <section class="markets-macro" aria-label="Currency and interest rates">
+      <div class="markets-macro__row">
+        <p class="markets-macro__label">EUR / USD</p>
+        <p class="markets-macro__value" data-market-value="eur-usd">--.----</p>
+      </div>
+
+      <div class="markets-macro__row">
+        <p class="markets-macro__label">EUR / SEK</p>
+        <p class="markets-macro__value" data-market-value="eur-sek">--.----</p>
+      </div>
+
+      <div class="markets-macro__row">
+        <p class="markets-macro__label">€STR</p>
+        <p class="markets-macro__value"><span data-market-value="estr">-.---</span>%</p>
+      </div>
+
+      <p class="markets-macro__updated">
+        ECB / <span data-markets-observation>WAITING</span>
+      </p>
+    </section>
+  </div>
+
+  <footer class="markets-footer">
+    <p>
+      DATA /
+      <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TRADINGVIEW</a>
+      ·
+      <a href="https://data.ecb.europa.eu/" target="_blank" rel="noopener">ECB</a>
+    </p>
+
+    <p class="markets-error" data-markets-error hidden>
+      Macro data unavailable.
+      <button type="button" data-markets-retry>Retry</button>
+    </p>
+  </footer>
+</section>
+
+<script is:inline type="module" src="https://www.tradingview-widget.com/w/en/tv-ticker-tape.js"></script>
+
+<script>
+  import { initCurrentMarkets } from '../../features/current/markets';
+  initCurrentMarkets();
+</script>
+
+<style>
+  .current-markets {
+    padding: 30px 0 6px;
+  }
+
+  .markets-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 25px;
+  }
+
+  .markets-index,
+  .markets-context,
+  .markets-macro,
+  .markets-footer,
+  .markets-loading {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    text-transform: uppercase;
+  }
+
+  .markets-index,
+  .markets-context {
+    margin: 0;
+    font-size: 0.56rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.09em;
+  }
+
+  .markets-index {
+    color: var(--moss);
+  }
+
+  .markets-context {
+    color: var(--stone-light);
+  }
+
+  .markets-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(220px, 0.65fr);
+    gap: 42px;
+    align-items: start;
+  }
+
+  .markets-market-view {
+    min-width: 0;
+    --tv-widget-background-color: transparent;
+    --tv-widget-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  tv-ticker-tape {
+    display: block;
+    width: 100%;
+    min-height: 280px;
+  }
+
+  .markets-loading {
+    margin: 0;
+    padding: 18px 0;
+    color: var(--stone-light);
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+  }
+
+  .markets-macro {
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .markets-macro__row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: 20px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .markets-macro__label,
+  .markets-macro__value {
+    margin: 0;
+  }
+
+  .markets-macro__label {
+    color: var(--stone);
+    font-size: 0.57rem;
+    font-weight: 600;
+    letter-spacing: 0.075em;
+  }
+
+  .markets-macro__value {
+    color: var(--ink);
+    font-family: "Times New Roman", Times, serif;
+    font-size: 1.45rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-transform: none;
+  }
+
+  .markets-macro__updated {
+    margin: 10px 0 0;
+    color: var(--stone-light);
+    font-size: 0.48rem;
+    letter-spacing: 0.075em;
+  }
+
+  .markets-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 25px;
+    color: var(--stone-light);
+    font-size: 0.49rem;
+    letter-spacing: 0.07em;
+  }
+
+  .markets-footer p {
+    margin: 0;
+  }
+
+  .markets-footer a,
+  .markets-error button {
+    color: inherit;
+  }
+
+  .markets-error button {
+    border: 0;
+    padding: 0;
+    background: none;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (max-width: 720px) {
+    .markets-layout {
+      grid-template-columns: 1fr;
+      gap: 26px;
+    }
+
+    .markets-heading {
+      gap: 16px;
+      margin-bottom: 21px;
+    }
+
+    .markets-context {
+      text-align: right;
+    }
+
+    tv-ticker-tape {
+      min-height: 330px;
+    }
+
+    .markets-footer {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+</style>
