@@ -64,10 +64,12 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('Current renders the Olari weather module without exposing it in navigation', async ({ page }) => {
+test('Current renders a compact status strip and the Olari weather module', async ({ page }) => {
   await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
+  await expect(page.locator('.current-status-strip')).toBeVisible();
   await expect(page.locator('h1')).toHaveText('Current');
+  await expect(page.locator('.current-lead')).toHaveCount(0);
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
     'content',
     'noindex,nofollow'
@@ -79,7 +81,19 @@ test('Current renders the Olari weather module without exposing it in navigation
     '06:20 - 20:08 · 4.8 h sun'
   );
   await expect(page.locator('[data-weather-temperature-path]')).toHaveCount(1);
-  await expect(page.locator('.language-switch')).toBeHidden();
+
+  const languageSwitch = page.locator('.language-switch');
+  await expect(languageSwitch).toBeVisible();
+  await expect(languageSwitch).toHaveAttribute('href', '/');
+
+  const nightModeToggle = page.locator('[data-night-mode-toggle]');
+  await expect(nightModeToggle).toBeVisible();
+  await expect(nightModeToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('html')).toHaveClass(/site-night-mode/);
+
+  await nightModeToggle.click();
+  await expect(nightModeToggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('html')).not.toHaveClass(/site-night-mode/);
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('a[href="/current/"]')).toHaveCount(0);
@@ -90,6 +104,8 @@ test('Current weather remains inside a 390 px mobile viewport', async ({ page })
   await page.goto('/current/', { waitUntil: 'networkidle' });
 
   await expect(page.locator('[data-current-weather]')).toBeVisible();
+  await expect(page.locator('.language-switch')).toBeVisible();
+  await expect(page.locator('[data-night-mode-toggle]')).toBeVisible();
 
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerWidth,
