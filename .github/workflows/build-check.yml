@@ -52,7 +52,11 @@ jobs:
             exit 0
           fi
 
-          mapfile -t changed_files < <(git diff --name-only "$base" "$head")
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            mapfile -t changed_files < <(git diff --name-only "$base...$head")
+          else
+            mapfile -t changed_files < <(git diff --name-only "$base" "$head")
+          fi
 
           if [[ ${#changed_files[@]} -eq 0 ]]; then
             echo "docs_only=false" >> "$GITHUB_OUTPUT"
@@ -76,35 +80,45 @@ jobs:
 
   build:
     needs: classify
-    if: needs.classify.outputs.docs_only != 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Documentation-only fast path
+        if: needs.classify.outputs.docs_only == 'true'
+        run: echo "Documentation-only change; full build and browser regression suite skipped."
+
       - name: Checkout
+        if: needs.classify.outputs.docs_only != 'true'
         uses: actions/checkout@v7
 
       - name: Setup Node
+        if: needs.classify.outputs.docs_only != 'true'
         uses: actions/setup-node@v7
         with:
           node-version: 22.19.0
           cache: npm
 
       - name: Install dependencies
+        if: needs.classify.outputs.docs_only != 'true'
         run: npm ci
 
       - name: Static checks
+        if: needs.classify.outputs.docs_only != 'true'
         run: npm run check
 
       - name: Build
+        if: needs.classify.outputs.docs_only != 'true'
         run: npm run build
 
       - name: Install Chromium
+        if: needs.classify.outputs.docs_only != 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Browser regression tests
+        if: needs.classify.outputs.docs_only != 'true'
         run: npm run test:e2e
 
       - name: Upload browser test artifacts
-        if: failure()
+        if: failure() && needs.classify.outputs.docs_only != 'true'
         uses: actions/upload-artifact@v7
         with:
           name: playwright-test-results
