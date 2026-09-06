@@ -57,7 +57,7 @@ If unfinished work must continue in a later session, keep it visible in an open 
 
 ## Change completion
 
-When the user asks ChatGPT to make a repository change, the default is to carry that change through to completion: create or update the working branch, open or update the pull request, wait for the required pre-merge CI check, and merge the pull request when that check passes.
+When the user asks ChatGPT to make a repository change, the default is to carry that change through to completion: create or update the working branch, open or update the pull request, wait for the required pre-merge CI check, and let the repository's automatic merge step complete when that check passes.
 
 Do not stop only to request separate merge approval unless:
 
@@ -87,9 +87,11 @@ For validation and merge:
 
 - aim for one final pre-merge CI cycle after the branch is current and the implementation is complete
 - verify that the required CI run started, then avoid repeatedly polling unchanged CI state
-- check CI again when enough time has passed for useful progress or when a merge decision can be made
+- check CI again only when intervention is actually needed
 - distinguish required repository checks from optional external preview or deployment checks; investigate external failures when they indicate a real problem, but do not let irrelevant preview noise block an otherwise valid change
-- merge immediately after the required pre-merge check passes when no conflict, regression or material ambiguity remains
+- let the automatic merge step finish after the required pre-merge check passes when no conflict, regression or material ambiguity remains
+
+Owner-authored pull requests from the same repository are automatically squash-merged by `.github/workflows/build-check.yml` after the required `build` job succeeds. Do not manually poll and merge these routine pull requests after opening them. If the strict `main` freshness rule reports the branch as behind, the merge job updates the branch and the next CI cycle continues automatically. Intervene only when automatic merge fails, CI fails, a conflict or material ambiguity appears, or the user explicitly asked for review before merge.
 
 During the active site-construction phase, optimize for fast iteration. Pull requests with executable changes are blocked by static checks and a production build, not by the full Playwright suite. Full browser regressions run on `main` after merge for executable changes. Documentation-only changes keep the minimal successful `build` check and skip Node, build and browser work entirely.
 
