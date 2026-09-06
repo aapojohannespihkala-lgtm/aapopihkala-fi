@@ -9,12 +9,14 @@
       <h2 id="current-electricity-title" class="electricity-price" aria-live="polite">
         <span data-electricity-price>--.--</span><span class="electricity-price__unit"> c/kWh</span>
       </h2>
-      <p class="electricity-interval" data-electricity-interval>Fetching 15 min price</p>
+      <p class="electricity-average-label" data-electricity-average-label>DAY AVG / TODAY</p>
+      <p class="electricity-average-comparison" data-electricity-average-comparison hidden></p>
     </div>
 
-    <div class="electricity-current__context">
-      <p>15 MIN SPOT</p>
-      <p data-electricity-current-status>FINLAND</p>
+    <div class="electricity-now" aria-live="polite">
+      <p class="electricity-now__label">NOW</p>
+      <p class="electricity-now__price" data-electricity-now-price>--.-- c/kWh</p>
+      <p class="electricity-now__interval" data-electricity-interval>Fetching 15 min price</p>
     </div>
   </div>
 
@@ -44,7 +46,11 @@
         aria-pressed="false"
         aria-controls="electricity-price-chart"
       >
-        TOMORROW<span class="electricity-day-switch__dot" aria-hidden="true"></span>
+        TOMORROW<span
+          class="electricity-day-switch__dot"
+          data-electricity-tomorrow-dot
+          aria-hidden="true"
+        ></span>
       </button>
     </div>
 
@@ -55,7 +61,7 @@
         data-electricity-chart
         role="img"
         tabindex="0"
-        aria-label="Electricity spot prices today in Finland. Touch, hover or use the arrow keys to inspect 15 minute prices."
+        aria-label="Electricity spot prices today in Finland. Lowest and highest two-hour windows are marked. Touch, hover or use the arrow keys to inspect 15 minute prices."
       ></svg>
       <div
         class="electricity-chart-tooltip"
@@ -70,41 +76,17 @@
     </div>
   </section>
 
-  <section class="electricity-stats" aria-label="Electricity price summary">
-    <div class="electricity-stat">
-      <p class="electricity-stat__label" data-electricity-primary-label>HOUR AVG</p>
-      <p class="electricity-stat__value"><span data-electricity-primary-value data-electricity-hour-average>--.--</span> c/kWh</p>
-      <p class="electricity-stat__detail" data-electricity-primary-range data-electricity-hour-range>--:-- - --:--</p>
+  <section class="electricity-extremes" aria-label="Daily electricity price extremes">
+    <div class="electricity-extreme">
+      <p class="electricity-extreme__label">DAY LOW</p>
+      <p class="electricity-extreme__value"><span data-electricity-low-value>--.--</span> c/kWh</p>
+      <p class="electricity-extreme__detail" data-electricity-low-range>--:-- - --:--</p>
     </div>
 
-    <div class="electricity-stat">
-      <p class="electricity-stat__label">DAY AVG</p>
-      <p class="electricity-stat__value"><span data-electricity-day-average>--.--</span> c/kWh</p>
-      <p class="electricity-stat__detail" data-electricity-day-average-detail>TODAY</p>
-    </div>
-
-    <div class="electricity-stat">
-      <p class="electricity-stat__label">LOWEST 2 H</p>
-      <p class="electricity-stat__value"><span data-electricity-cheapest-value>--.--</span> c/kWh</p>
-      <p class="electricity-stat__detail" data-electricity-cheapest-range>--:-- - --:--</p>
-    </div>
-
-    <div class="electricity-stat">
-      <p class="electricity-stat__label">HIGHEST 2 H</p>
-      <p class="electricity-stat__value"><span data-electricity-expensive-value>--.--</span> c/kWh</p>
-      <p class="electricity-stat__detail" data-electricity-expensive-range>--:-- - --:--</p>
-    </div>
-
-    <div class="electricity-stat">
-      <p class="electricity-stat__label">DAY LOW</p>
-      <p class="electricity-stat__value"><span data-electricity-low-value>--.--</span> c/kWh</p>
-      <p class="electricity-stat__detail" data-electricity-low-range>--:-- - --:--</p>
-    </div>
-
-    <div class="electricity-stat">
-      <p class="electricity-stat__label">DAY HIGH</p>
-      <p class="electricity-stat__value"><span data-electricity-high-value>--.--</span> c/kWh</p>
-      <p class="electricity-stat__detail" data-electricity-high-range>--:-- - --:--</p>
+    <div class="electricity-extreme electricity-extreme--high">
+      <p class="electricity-extreme__label">DAY HIGH</p>
+      <p class="electricity-extreme__value"><span data-electricity-high-value>--.--</span> c/kWh</p>
+      <p class="electricity-extreme__detail" data-electricity-high-range>--:-- - --:--</p>
     </div>
   </section>
 
@@ -143,11 +125,12 @@
 
   .electricity-index,
   .electricity-market,
-  .electricity-interval,
-  .electricity-current__context,
+  .electricity-average-label,
+  .electricity-average-comparison,
+  .electricity-now,
   .electricity-day-switch,
-  .electricity-stat__label,
-  .electricity-stat__detail,
+  .electricity-extreme__label,
+  .electricity-extreme__detail,
   .electricity-footer,
   .electricity-chart-tooltip {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -202,46 +185,78 @@
     white-space: nowrap;
   }
 
-  .electricity-interval {
+  .electricity-average-label,
+  .electricity-average-comparison {
     margin: 9px 0 0 0.18em;
-    color: var(--stone);
-    font-size: 0.52rem;
     font-weight: 600;
     line-height: 1;
     letter-spacing: 0.055em;
   }
 
-  .electricity-current__context {
+  .electricity-average-label {
+    color: var(--stone);
+    font-size: 0.52rem;
+  }
+
+  .electricity-average-comparison {
+    margin-top: 7px;
+    color: var(--stone-light);
+    font-size: 0.42rem;
+  }
+
+  .electricity-average-comparison[hidden] {
+    display: none;
+  }
+
+  .electricity-now {
     display: grid;
     gap: 5px;
     justify-items: end;
-    padding-bottom: 4px;
-    color: var(--stone-light);
-    font-size: 0.43rem;
-    font-weight: 500;
+    padding-bottom: 3px;
     line-height: 1.1;
-    letter-spacing: 0.055em;
+    letter-spacing: 0.045em;
   }
 
-  .electricity-current__context p {
+  .electricity-now p {
     margin: 0;
   }
 
+  .electricity-now__label {
+    color: var(--stone-light);
+    font-size: 0.42rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+
+  .electricity-now__price {
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 500;
+    text-transform: none;
+  }
+
+  .electricity-now__interval {
+    color: var(--stone);
+    font-size: 0.39rem;
+    font-weight: 500;
+  }
+
   .electricity-chart-section,
-  .electricity-stats,
+  .electricity-extremes,
   .electricity-footer {
     border-top: 1px solid var(--electricity-rule);
   }
 
   .electricity-chart-section {
-    padding: 18px 0 15px;
+    padding: 17px 0 12px;
   }
 
   .electricity-day-switch {
     display: flex;
     align-items: center;
     gap: 15px;
-    margin: 0 0 10px 34px;
+    margin: 0 0 8px 34px;
     font-size: 0.43rem;
     font-weight: 600;
     line-height: 1;
@@ -286,16 +301,20 @@
     vertical-align: 0.12em;
   }
 
+  .electricity-day-switch__dot[hidden] {
+    display: none;
+  }
+
   .electricity-chart-frame {
     position: relative;
     width: 100%;
-    min-height: 168px;
+    min-height: 192px;
   }
 
   .electricity-chart {
     display: block;
     width: 100%;
-    height: 168px;
+    height: 192px;
     overflow: visible;
     touch-action: pan-y;
   }
@@ -331,6 +350,24 @@
     opacity: 0.08;
   }
 
+  .electricity-chart :global(.electricity-chart__window-label) {
+    fill: var(--stone-light);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 7.5px;
+    font-weight: 600;
+    letter-spacing: 0.035em;
+    text-anchor: middle;
+  }
+
+  .electricity-chart :global(.electricity-chart__window-label--low) {
+    fill: var(--moss);
+  }
+
+  .electricity-chart :global(.electricity-chart__window-range) {
+    font-size: 7px;
+    font-weight: 500;
+  }
+
   .electricity-chart :global(.electricity-chart__area) {
     fill: var(--moss);
     opacity: 0.12;
@@ -357,6 +394,12 @@
     stroke: var(--moss-deep);
     stroke-width: 1.4;
     vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__inspection-band) {
+    fill: var(--ink);
+    opacity: 0.055;
+    pointer-events: none;
   }
 
   .electricity-chart :global(.electricity-chart__inspection-line) {
@@ -393,7 +436,7 @@
 
   .electricity-chart-tooltip {
     position: absolute;
-    top: 5px;
+    top: 32px;
     z-index: 2;
     display: grid;
     gap: 2px;
@@ -420,50 +463,41 @@
     color: var(--ink-soft);
   }
 
-  .electricity-stats {
+  .electricity-extremes {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    padding: 17px 0 18px;
   }
 
-  .electricity-stat {
-    min-width: 0;
-    padding: 18px 16px 19px;
-    text-align: center;
-  }
-
-  .electricity-stat:nth-child(3n + 2),
-  .electricity-stat:nth-child(3n + 3) {
-    border-left: 1px solid var(--electricity-rule);
-  }
-
-  .electricity-stat:nth-child(n + 4) {
-    border-top: 1px solid var(--electricity-rule);
-  }
-
-  .electricity-stat p {
+  .electricity-extreme p {
     margin: 0;
   }
 
-  .electricity-stat__label {
+  .electricity-extreme--high {
+    text-align: right;
+  }
+
+  .electricity-extreme__label {
     color: var(--stone-light);
-    font-size: 0.43rem;
+    font-size: 0.42rem;
     font-weight: 600;
     line-height: 1;
     letter-spacing: 0.06em;
   }
 
-  .electricity-stat__value {
-    margin-top: 8px !important;
+  .electricity-extreme__value {
+    margin-top: 7px !important;
     color: var(--ink-soft);
-    font-size: 0.88rem;
+    font-size: 0.84rem;
     line-height: 1.1;
     white-space: nowrap;
   }
 
-  .electricity-stat__detail {
-    margin-top: 7px !important;
+  .electricity-extreme__detail {
+    margin-top: 6px !important;
     color: var(--stone);
-    font-size: 0.4rem;
+    font-size: 0.38rem;
     font-weight: 500;
     line-height: 1.15;
     letter-spacing: 0.04em;
@@ -526,7 +560,7 @@
 
     .electricity-current {
       gap: 12px;
-      padding: 5px 0 23px;
+      padding: 5px 0 22px;
     }
 
     .electricity-price {
@@ -537,72 +571,76 @@
       font-size: 0.21em;
     }
 
-    .electricity-interval {
+    .electricity-average-label {
       margin-top: 7px;
       font-size: 0.46rem;
     }
 
-    .electricity-current__context {
+    .electricity-average-comparison {
       font-size: 0.36rem;
     }
 
+    .electricity-now {
+      gap: 4px;
+    }
+
+    .electricity-now__label {
+      font-size: 0.36rem;
+    }
+
+    .electricity-now__price {
+      font-size: 0.62rem;
+    }
+
+    .electricity-now__interval {
+      font-size: 0.34rem;
+    }
+
     .electricity-chart-section {
-      padding-top: 15px;
-      padding-bottom: 12px;
+      padding-top: 14px;
+      padding-bottom: 10px;
     }
 
     .electricity-day-switch {
       margin-left: 30px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       font-size: 0.39rem;
     }
 
     .electricity-chart-frame,
     .electricity-chart {
-      min-height: 142px;
-      height: 142px;
+      min-height: 168px;
+      height: 168px;
+    }
+
+    .electricity-chart :global(.electricity-chart__window-label) {
+      font-size: 7px;
+    }
+
+    .electricity-chart :global(.electricity-chart__window-range) {
+      font-size: 6.5px;
     }
 
     .electricity-chart-tooltip {
-      top: 3px;
+      top: 29px;
       font-size: 0.35rem;
     }
 
-    .electricity-stats {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .electricity-extremes {
+      gap: 12px;
+      padding: 15px 0 16px;
     }
 
-    .electricity-stat {
-      padding: 16px 7px 17px;
+    .electricity-extreme__label {
+      font-size: 0.37rem;
     }
 
-    .electricity-stat:nth-child(3n + 2),
-    .electricity-stat:nth-child(3n + 3) {
-      border-left: 0;
+    .electricity-extreme__value {
+      font-size: 0.74rem;
     }
 
-    .electricity-stat:nth-child(n + 4) {
-      border-top: 0;
-    }
-
-    .electricity-stat:nth-child(even) {
-      border-left: 1px solid var(--electricity-rule);
-    }
-
-    .electricity-stat:nth-child(n + 3) {
-      border-top: 1px solid var(--electricity-rule);
-    }
-
-    .electricity-stat__label {
-      font-size: 0.38rem;
-    }
-
-    .electricity-stat__value {
-      font-size: 0.77rem;
-    }
-
-    .electricity-stat__detail {
-      font-size: 0.35rem;
+    .electricity-extreme__detail {
+      font-size: 0.34rem;
     }
 
     .electricity-footer {
