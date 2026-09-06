@@ -40,8 +40,7 @@ const simplifyWindowLabel = (label: SVGGElement, band: SVGRectElement) => {
   const price = readWindowPrice(label, headline);
   const [rangeStart, rangeEnd] = splitWindowRange(readWindowRange(label, rangeStartLine));
   const bandX = readSvgNumber(band, 'x');
-  const bandWidth = readSvgNumber(band, 'width');
-  if (!Number.isFinite(bandX) || !Number.isFinite(bandWidth)) return;
+  if (!Number.isFinite(bandX)) return;
 
   let unitLine = label.querySelector<SVGTextElement>('[data-electricity-window-unit]');
   if (!unitLine) {
@@ -62,24 +61,24 @@ const simplifyWindowLabel = (label: SVGGElement, band: SVGRectElement) => {
   headline.textContent = price || '--.--';
   headline.setAttribute('y', '7');
   headline.setAttribute('x', '0');
-  headline.setAttribute('text-anchor', 'middle');
+  headline.setAttribute('text-anchor', 'start');
 
   unitLine.textContent = 'c/kWh';
   unitLine.setAttribute('y', '14');
   unitLine.setAttribute('x', '0');
-  unitLine.setAttribute('text-anchor', 'middle');
+  unitLine.setAttribute('text-anchor', 'start');
 
   rangeStartLine.textContent = rangeStart;
   rangeStartLine.setAttribute('y', '23');
-  rangeStartLine.setAttribute('x', '-20');
+  rangeStartLine.setAttribute('x', '0');
   rangeStartLine.setAttribute('text-anchor', 'start');
 
   rangeEndLine.textContent = rangeEnd;
   rangeEndLine.setAttribute('y', '31');
-  rangeEndLine.setAttribute('x', '-20');
+  rangeEndLine.setAttribute('x', '0');
   rangeEndLine.setAttribute('text-anchor', 'start');
 
-  label.setAttribute('transform', `translate(${(bandX + bandWidth / 2).toFixed(2)} 0)`);
+  label.setAttribute('transform', `translate(${bandX.toFixed(2)} 0)`);
 };
 
 export const initCurrentElectricityPresentation = () => {
