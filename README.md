@@ -126,11 +126,14 @@ main
 
 GitHub Actionsin Build check ja Cloudflaren tuotantodeploy ovat eri vaiheita. CI tarkistaa repomuutoksen ja Cloudflare julkaisee tuotantoversion oman integraationsa mukaisesti.
 
+Staattisen Astro-buildin rinnalla repo voi käyttää Cloudflare Pages Functions -funktioita hakemiston `functions/` kautta silloin, kun selain ei voi turvallisesti tai teknisesti hakea ulkoista dataa suoraan. Currentin pörssisähködata kulkee saman domainin `/api/current/electricity`-reitin kautta. `public/_routes.json` rajaa Functions-kutsut vain tarkoitettuihin API-reitteihin, jotta tavalliset staattiset sivupyynnöt eivät turhaan käynnistä Functions-runtimea.
+
 ## Projektin rakenne
 
 Keskeiset hakemistot:
 
 ```text
+functions/               Cloudflare Pages Functions -palvelinreitit
 src/components/          sivu- ja käyttöliittymäkomponentit
 src/features/            selainruntimejen feature-moduulit
 src/layouts/             yhteiset layoutit
@@ -140,7 +143,7 @@ src/content/posts/       artikkelien Markdown-tiedostot
 src/pages/               Astro-reitit
 src/styles/              globaalit tyylit
 tests/e2e/               Playwright-regressiot
-public/                  staattiset tiedostot
+public/                  staattiset tiedostot ja Pages Functions -reititysrajaukset
 ```
 
 Tarkempi arkkitehtuurin omistajuus kuvataan `docs/ARCHITECTURE.md`-tiedostossa. Dokumentaatiossa ei ylläpidetä täydellistä tiedostopuuta, koska koodipohja muuttuu usein.
