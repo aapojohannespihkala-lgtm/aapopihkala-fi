@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { onRequestGet as getElectricityPriceProxy } from '../../functions/api/current/electricity';
 
 const buildWeatherFixture = () => {
   const times = Array.from({ length: 144 }, (_, index) => {
@@ -83,6 +84,33 @@ const buildElectricityFixture = () => {
   return { prices: prices.reverse() };
 };
 
+test('Current electricity proxy returns validated upstream price data', async () => {
+  const originalFetch = globalThis.fetch;
+  const fixture = buildElectricityFixture();
+
+  globalThis.fetch = async (input, init) => {
+    expect(String(input)).toBe('https://api.porssisahko.net/v2/latest-prices.json');
+    expect(new Headers(init?.headers).get('Accept')).toBe('application/json');
+
+    return new Response(JSON.stringify(fixture), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  try {
+    const response = await getElectricityPriceProxy();
+    const data = (await response.json()) as { prices: unknown[] };
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(data.prices).toHaveLength(96);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-09-06T13:52:00.000Z'));
 
@@ -94,7 +122,7 @@ test.beforeEach(async ({ page }) => {
     });
   });
 
-  await page.route('https://api.porssisahko.net/**', async (route) => {
+  await page.route('**/api/current/electricity', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
