@@ -42,9 +42,14 @@ const PRICE_API_URL = '/api/current/electricity';
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 const NETWORK_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 const DISPLAY_REFRESH_INTERVAL_MS = 60 * 1000;
+const MINUTE_MS = 60 * 1000;
 const QUARTER_MS = 15 * 60 * 1000;
 const PRICE_AXIS_STEP = 5;
 const TOMORROW_SEEN_KEY = 'current-electricity-tomorrow-seen';
+const TOMORROW_POLL_FAST_START_MINUTE = 14 * 60 + 15;
+const TOMORROW_POLL_FAST_END_MINUTE = 14 * 60 + 17;
+const TOMORROW_POLL_RETRY_START_MINUTE = 14 * 60 + 22;
+const TOMORROW_POLL_RETRY_INTERVAL_MINUTES = 5;
 
 const datePartsFormatter = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
@@ -101,6 +106,19 @@ const getNextLocalDateKey = (date: Date) => {
 const getLocalMinuteOfDay = (date: Date) => {
   const parts = readLocalParts(date);
   return parts.hour * 60 + parts.minute;
+};
+
+export const shouldPollForTomorrowPublication = (date: Date) => {
+  const minute = getLocalMinuteOfDay(date);
+
+  if (minute >= TOMORROW_POLL_FAST_START_MINUTE && minute <= TOMORROW_POLL_FAST_END_MINUTE) {
+    return true;
+  }
+
+  return (
+    minute >= TOMORROW_POLL_RETRY_START_MINUTE &&
+    (minute - TOMORROW_POLL_RETRY_START_MINUTE) % TOMORROW_POLL_RETRY_INTERVAL_MINUTES === 0
+  );
 };
 
 const formatClock = (date: Date) => timeFormatter.format(date);
@@ -445,6 +463,8 @@ export const initCurrentElectricity = () => {
   let inspectedIndex: number | null = null;
   let activeTouchPointerId: number | null = null;
   let resizeFrame = 0;
+  let publicationPollTimer = 0;
+  let lastPublicationPollKey = '';
 
   const hideInspection = () => {
     chartTooltip.hidden = true;
@@ -631,6 +651,11 @@ export const initCurrentElectricity = () => {
     tomorrowDot.hidden = !tomorrowAvailable || tomorrowSeen;
   };
 
+  const hasCompleteTomorrowPrices = (now: Date) => {
+    const tomorrowKey = getNextLocalDateKey(now);
+    return isCompleteMarketDay(getPointsForDateKey(cachedPoints, tomorrowKey), tomorrowKey);
+  };
+
   const renderCachedData = () => {
     if (cachedPoints.length === 0) return;
 
@@ -722,7 +747,15 @@ export const initCurrentElectricity = () => {
   todayButton.addEventListener('click', () => selectDay('today'));
   tomorrowButton.addEventListener('click', () => selectDay('tomorrow'));
 
+  const getPublicationPollKey = (date: Date) =>
+    `${getLocalDateKey(date)}-${getLocalMinuteOfDay(date)}`;
+
   const loadPrices = async () => {
+    const requestTime = new Date();
+    if (shouldPollForTomorrowPublication(requestTime)) {
+      lastPublicationPollKey = getPublicationPollKey(requestTime);
+    }
+
     root.setAttribute('aria-busy', 'true');
     errorTarget.hidden = true;
 
@@ -754,8 +787,32 @@ export const initCurrentElectricity = () => {
     }
   };
 
+  const scheduleTomorrowPublicationPolling = () => {
+    const now = new Date();
+    const millisecondsIntoMinute = now.getSeconds() * 1000 + now.getMilliseconds();
+    const delay = Math.max(250, MINUTE_MS - millisecondsIntoMinute);
+
+    window.clearTimeout(publicationPollTimer);
+    publicationPollTimer = window.setTimeout(() => {
+      const pollTime = new Date();
+      const pollKey = getPublicationPollKey(pollTime);
+
+      if (
+        shouldPollForTomorrowPublication(pollTime) &&
+        pollKey !== lastPublicationPollKey &&
+        !hasCompleteTomorrowPrices(pollTime)
+      ) {
+        lastPublicationPollKey = pollKey;
+        void loadPrices();
+      }
+
+      scheduleTomorrowPublicationPolling();
+    }, delay);
+  };
+
   retryButton?.addEventListener('click', loadPrices);
   loadPrices();
+  scheduleTomorrowPublicationPolling();
   window.setInterval(renderCachedData, DISPLAY_REFRESH_INTERVAL_MS);
   window.setInterval(loadPrices, NETWORK_REFRESH_INTERVAL_MS);
 };
