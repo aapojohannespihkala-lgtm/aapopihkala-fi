@@ -63,8 +63,12 @@ test('standalone Current News uses live items and learns locally from both ratin
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
   await expect(page.locator('.news-mode')).toHaveText('LIVE RSS / 4 OF 4 SOURCES');
   await expect(page.locator('[data-news-slot]')).toHaveCount(3);
+  await expect(page.locator('[data-news-context]')).toHaveCount(3);
   await expect(page.locator('[data-news-debug-pool]')).toHaveText('10');
   await expect(page.locator('.news-footer')).toContainText('SOUNDI');
+
+  const contextLines = await page.locator('[data-news-context]').allTextContents();
+  expect(contextLines.every((value) => value.trim().length > 0 && !value.includes('Loading'))).toBe(true);
 
   const first = page.locator('[data-news-slot]').first();
   const firstId = await first.getAttribute('data-news-item-id');
@@ -88,6 +92,20 @@ test('standalone Current News uses live items and learns locally from both ratin
 
   await page.locator('.news-debug').evaluate((element) => { (element as HTMLDetailsElement).open = true; });
   await expect(page.locator('[data-news-debug-signal]')).not.toHaveCount(0);
+});
+
+test('Current News keeps all three daily items in one compact desktop viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 760 });
+  await page.goto('/current/news/', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.locator('.news-mode')).toHaveText('LIVE RSS / 4 OF 4 SOURCES');
+  const slots = page.locator('[data-news-slot]');
+  await expect(slots).toHaveCount(3);
+  await expect(page.locator('[data-news-context]')).toHaveCount(3);
+
+  const lastBox = await slots.nth(2).boundingBox();
+  expect(lastBox).not.toBeNull();
+  if (lastBox) expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(760);
 });
 
 test('Current News reset stays local and the page fits a 390 px viewport', async ({ page }) => {
