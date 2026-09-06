@@ -97,6 +97,8 @@ Rakennusvaiheen CI on tarkoituksella nopea ennen mergeä:
 
 `npm run check` ja tuotantobuild ovat siis edelleen blokkaavia ennen tavallisen koodimuutoksen mergeä. Täysi selainregressio toimii rakennusvaiheessa mergeä seuraavana turvaverkkona.
 
+Omistajan samasta repositoriosta avaamat ei-draft pull requestit squash-mergataan automaattisesti heti onnistuneen pakollisen `build`-tarkistuksen jälkeen. Jos repositorion strict `main` -sääntö huomaa branchin jääneen jälkeen, workflow päivittää branchin ja seuraava CI-kierros jatkaa automaattisesti ilman manuaalista merge- tai polling-vaihetta.
+
 Jos samaan pull requestiin tai refiin tulee uusi commit vanhan CI-ajon ollessa kesken, vanhentunut ajo perutaan automaattisesti.
 
 Jos `main`-haaran selainregressio epäonnistuu, CI tallentaa `test-results/`-aineiston tutkittavaksi ja regressio korjataan erillisellä jatkomuutoksella.
@@ -231,7 +233,7 @@ Ennen merkittävää muutosta tarkistetaan `README.md`, tehtävään liittyvät 
 
 Merkittävän pull requestin kuvaukseen jätetään tiivis handoff: mitä muutettiin, miksi, mikä rajattiin tarkoituksella ulos, miten muutos validoitiin ja mitä jatkotyötä mahdollisesti jäi.
 
-Kun käyttäjä pyytää ChatGPT:tä tekemään repository-muutoksen, oletus on viedä työ loppuun asti branchista ja pull requestista vaadittuun nopeaan pre-merge-CI-tarkistukseen ja onnistuneeseen mergeen. Erillistä merge-lupaa ei oletuksena kysytä, ellei käyttäjä pyydä jättämään PR:ää auki, vaadittu tarkistus epäonnistu, merge-konflikti synny tai työn rajaus muutu olennaisesti.
+Kun käyttäjä pyytää ChatGPT:tä tekemään repository-muutoksen, oletus on viedä työ loppuun asti branchista ja pull requestista vaadittuun nopeaan pre-merge-CI-tarkistukseen ja automaattiseen onnistuneeseen mergeen. Erillistä merge-lupaa ei oletuksena kysytä, eikä tavallista owner-PR:ää tarvitse pollata manuaalisesti mergen odottamiseksi, ellei automaattinen merge epäonnistu, käyttäjä pyydä jättämään PR:ää auki, vaadittu tarkistus epäonnistu, merge-konflikti synny tai työn rajaus muutu olennaisesti.
 
 Keskeneräinen merkittävä työ pidetään näkyvissä avoimessa pull requestissa tai `ROADMAP.md`:ssä eikä vain chat-kontekstissa.
 
