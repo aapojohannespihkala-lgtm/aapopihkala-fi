@@ -18,13 +18,11 @@ import {
 
 interface Props {
   post: CollectionEntry<'posts'>;
-  postNumber: string;
   lang: SiteLanguage;
 }
 
 const {
   post,
-  postNumber,
   lang,
 } = Astro.props;
 
@@ -351,7 +349,6 @@ const blogPostingSchema = {
       <FeedPost
         post={post}
         lang={lang}
-        postNumber={postNumber}
         displayDate={displayDate}
         perspectiveLabel={
           perspectiveLabel
