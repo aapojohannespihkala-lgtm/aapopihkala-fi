@@ -49,7 +49,7 @@ const stubMarkets = async (page: Page) => {
   });
 };
 
-test('standalone Current Markets shows a compact TradingView feed and ECB macro context', async ({ page }) => {
+test('standalone Current Markets shows a compact dark TradingView feed and ECB macro context', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubTradingView(page);
   await stubMarkets(page);
@@ -61,6 +61,7 @@ test('standalone Current Markets shows a compact TradingView feed and ECB macro 
 
   const tickerHost = page.locator('[data-markets-ticker-host]');
   await expect(tickerHost).toHaveCount(1);
+  await expect(tickerHost).toHaveAttribute('data-markets-ticker-theme', 'dark');
   await expect(page.locator('[data-trading-view-stub]')).toHaveCount(1);
   await expect(page.locator('[data-markets-ticker-fallback]')).toBeHidden();
 
@@ -74,11 +75,17 @@ test('standalone Current Markets shows a compact TradingView feed and ECB macro 
   expect(widgetConfig).toContain('"proName":"OMXNORDIC:OMXN40"');
   expect(widgetConfig).toContain('"proName":"OMXHEX:OMXH25"');
   expect(widgetConfig).toContain('"proName":"COINBASE:BTCEUR"');
+  expect(widgetConfig).toContain('"colorTheme":"dark"');
+  expect(widgetConfig).toContain('"theme":"dark"');
+  expect(widgetConfig).toContain('"isTransparent":false');
   expect(widgetConfig).toContain('"displayMode":"adaptive"');
 
   const tickerBox = await tickerHost.boundingBox();
   expect(tickerBox).not.toBeNull();
-  if (tickerBox) expect(tickerBox.height).toBeLessThanOrEqual(60);
+  if (tickerBox) {
+    expect(tickerBox.height).toBeGreaterThanOrEqual(68);
+    expect(tickerBox.height).toBeLessThanOrEqual(76);
+  }
 
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
   await expect(page.locator('[data-market-value="eur-sek"]')).toHaveText('11.1234');
