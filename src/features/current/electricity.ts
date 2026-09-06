@@ -45,6 +45,7 @@ const DISPLAY_REFRESH_INTERVAL_MS = 60 * 1000;
 const MINUTE_MS = 60 * 1000;
 const QUARTER_MS = 15 * 60 * 1000;
 const PRICE_AXIS_STEP = 5;
+const PRICE_AXIS_MINIMUM_CEILING = 20;
 const TOMORROW_SEEN_KEY = 'current-electricity-tomorrow-seen';
 const TOMORROW_POLL_FAST_START_MINUTE = 14 * 60 + 15;
 const TOMORROW_POLL_FAST_END_MINUTE = 14 * 60 + 17;
@@ -279,7 +280,10 @@ const renderChart = (
   const rawMinimum = Math.min(...prices);
   const rawMaximum = Math.max(...prices);
   const minimum = Math.min(0, Math.floor(rawMinimum / PRICE_AXIS_STEP) * PRICE_AXIS_STEP);
-  let maximum = Math.max(0, Math.ceil(rawMaximum / PRICE_AXIS_STEP) * PRICE_AXIS_STEP);
+  let maximum = Math.max(
+    PRICE_AXIS_MINIMUM_CEILING,
+    Math.ceil(rawMaximum / PRICE_AXIS_STEP) * PRICE_AXIS_STEP
+  );
 
   if (maximum <= minimum) maximum = minimum + PRICE_AXIS_STEP;
 

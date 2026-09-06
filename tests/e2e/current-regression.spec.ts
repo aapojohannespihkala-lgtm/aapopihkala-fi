@@ -157,7 +157,13 @@ test('Current renders electricity above the compact Olari weather view', async (
   await expect(page.locator('[data-electricity-low-band]')).toHaveCount(1);
   await expect(page.locator('[data-electricity-high-band]')).toHaveCount(1);
   await expect(page.locator('.electricity-stats')).toHaveCount(0);
-  await expect(page.locator('[data-electricity-y-label]')).toHaveText(['0', '5', '10']);
+  await expect(page.locator('[data-electricity-y-label]')).toHaveText([
+    '0',
+    '5',
+    '10',
+    '15',
+    '20',
+  ]);
 
   const electricityChart = page.locator('[data-electricity-chart]');
   const chartBox = await electricityChart.boundingBox();
