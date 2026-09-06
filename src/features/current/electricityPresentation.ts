@@ -2,6 +2,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const HISTORY_URL = 'https://parassahko.fi/tilastot/data.json';
 const HISTORY_PAGE_URL = 'https://parassahko.fi/tilastot';
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
+const HIGH_PRICE_WARNING_THRESHOLD = 10;
 
 const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const MONTH_NAMES_LONG = [
@@ -156,6 +157,14 @@ const simplifyWindowLabel = (label: SVGGElement, band: SVGRectElement) => {
   if (!headline || !rangeStartLine) return;
 
   const price = readWindowPrice(label, headline);
+  if (label.hasAttribute('data-electricity-high-label')) {
+    const numericPrice = Number(price);
+    band.classList.toggle(
+      'electricity-chart__band--high-warning',
+      Number.isFinite(numericPrice) && numericPrice > HIGH_PRICE_WARNING_THRESHOLD
+    );
+  }
+
   const [rangeStart, rangeEnd] = splitWindowRange(readWindowRange(label, rangeStartLine));
   const bandX = readSvgNumber(band, 'x');
   if (!Number.isFinite(bandX)) return;

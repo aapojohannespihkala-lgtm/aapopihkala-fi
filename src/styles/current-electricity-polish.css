@@ -62,6 +62,11 @@
   transition: opacity 120ms ease;
 }
 
+.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__band--high-warning {
+  fill: color-mix(in srgb, #b46861 64%, var(--stone));
+  opacity: 0.12;
+}
+
 .current-electricity [data-electricity-chart].electricity-chart.electricity-chart--inspecting .electricity-chart__window-label {
   opacity: 0.2;
 }

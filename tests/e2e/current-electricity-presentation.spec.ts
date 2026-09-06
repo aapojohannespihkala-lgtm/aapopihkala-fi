@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const buildElectricityFixture = () => {
+const buildElectricityFixture = (overrides: Record<number, number> = {}) => {
   const localMidnightUtc = Date.UTC(2026, 8, 5, 21, 0, 0);
   const prices = Array.from({ length: 96 }, (_, index) => {
     const start = new Date(localMidnightUtc + index * 15 * 60 * 1000);
@@ -11,6 +11,8 @@ const buildElectricityFixture = () => {
     if (index === 57) price = 0.2;
     if (index >= 74 && index <= 81) price = 4.3;
     if (index === 75) price = 5.99;
+
+    if (overrides[index] !== undefined) price = overrides[index];
 
     return {
       price,
@@ -76,9 +78,11 @@ test('Current keeps electricity annotations compact and separates current from i
 
   const lowLabel = page.locator('[data-electricity-low-label]');
   const highLabel = page.locator('[data-electricity-high-label]');
+  const highBand = page.locator('[data-electricity-high-band]');
 
   await expect(lowLabel).not.toContainText(/LOW/i);
   await expect(highLabel).not.toContainText(/HIGH/i);
+  await expect(highBand).not.toHaveClass(/electricity-chart__band--high-warning/);
 
   const lowLines = await lowLabel.locator('text').allTextContents();
   const highLines = await highLabel.locator('text').allTextContents();
@@ -96,7 +100,7 @@ test('Current keeps electricity annotations compact and separates current from i
 
   for (const [label, band] of [
     [lowLabel, page.locator('[data-electricity-low-band]')],
-    [highLabel, page.locator('[data-electricity-high-band]')],
+    [highLabel, highBand],
   ] as const) {
     const transform = await label.getAttribute('transform');
     const bandX = Number(await band.getAttribute('x'));
@@ -160,6 +164,28 @@ test('Current keeps electricity annotations compact and separates current from i
     document: document.documentElement.scrollWidth,
   }));
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
+});
+
+test('Current tints the highest two-hour electricity band when its average exceeds 10 c/kWh', async ({ page }) => {
+  await page.unroute('**/api/current/electricity');
+  const overrides: Record<number, number> = {};
+  for (let index = 74; index <= 81; index += 1) overrides[index] = 12;
+
+  await page.route('**/api/current/electricity', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(buildElectricityFixture(overrides)),
+    });
+  });
+
+  await page.goto('/current/', { waitUntil: 'domcontentloaded' });
+
+  const highBand = page.locator('[data-electricity-high-band]');
+  await expect(highBand).toHaveClass(/electricity-chart__band--high-warning/);
+
+  const warningOpacity = await highBand.evaluate((element) => getComputedStyle(element).opacity);
+  expect(Number(warningOpacity)).toBeCloseTo(0.12, 3);
 });
 
 test('Current keeps the month-average slot reserved when history is unavailable', async ({ page }) => {
