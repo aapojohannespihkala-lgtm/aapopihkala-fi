@@ -66,18 +66,26 @@ test('Current keeps electricity annotations compact and separates current from i
   expect(highLines[2]).toMatch(/^\d{2}:\d{2} -$/);
   expect(highLines[3]).toMatch(/^\d{2}:\d{2}$/);
 
-  for (const label of [lowLabel, highLabel]) {
-    const rangeLines = label.locator('.electricity-chart__window-range');
-    await expect(rangeLines).toHaveCount(2);
-    const starts = await rangeLines.evaluateAll((elements) =>
+  for (const [label, band] of [
+    [lowLabel, page.locator('[data-electricity-low-band]')],
+    [highLabel, page.locator('[data-electricity-high-band]')],
+  ] as const) {
+    const transform = await label.getAttribute('transform');
+    const bandX = Number(await band.getAttribute('x'));
+    const labelX = Number(transform?.match(/translate\(([-\d.]+)\s+[-\d.]+\)/)?.[1]);
+    const textAlignment = await label.locator('text').evaluateAll((elements) =>
       elements.map((element) => ({
         x: element.getAttribute('x'),
         anchor: element.getAttribute('text-anchor'),
       }))
     );
-    expect(starts[0]?.x).toBe(starts[1]?.x);
-    expect(starts[0]?.anchor).toBe('start');
-    expect(starts[1]?.anchor).toBe('start');
+
+    expect(labelX).toBeCloseTo(bandX, 2);
+    expect(textAlignment).toHaveLength(4);
+    for (const line of textAlignment) {
+      expect(line.x).toBe('0');
+      expect(line.anchor).toBe('start');
+    }
   }
 
   const currentLine = page.locator('[data-electricity-current-line]');
