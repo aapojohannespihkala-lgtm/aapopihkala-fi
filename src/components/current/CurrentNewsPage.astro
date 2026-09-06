@@ -1,0 +1,135 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { site } from '../../config/site';
+import NightModeToggle from '../NightModeToggle.astro';
+import CurrentNews from './CurrentNews.astro';
+
+const canonicalUrl = `${site.url}/current/news/`;
+---
+
+<BaseLayout
+  lang="en"
+  title="News | Current | Aapo Pihkala"
+  description="A local prototype for a small personal culture news feed."
+  canonicalUrl={canonicalUrl}
+  finnishUrl={canonicalUrl}
+  englishUrl={canonicalUrl}
+  languageHref="/current/"
+  initialNightMode
+  includeDefaultSocialMeta={false}
+>
+  <Fragment slot="head">
+    <meta name="robots" content="noindex,nofollow" />
+  </Fragment>
+
+  <main id="main-content" tabindex="-1" class="current-news-shell">
+    <header class="current-news-status" aria-label="Current news status">
+      <a href="/current/" class="current-news-status__link">Current</a>
+      <span class="current-news-status__separator" aria-hidden="true">/</span>
+      <h1 class="current-news-status__label">News</h1>
+      <span class="current-news-status__separator" aria-hidden="true">/</span>
+
+      <p class="current-news-clock" aria-label="Current time in Helsinki">
+        <span data-current-date></span>
+        <span aria-hidden="true">/</span>
+        <span data-current-time></span>
+      </p>
+
+      <span class="current-news-status__separator" aria-hidden="true">/</span>
+
+      <p class="current-news-updated">
+        Updated <span data-current-updated>Waiting</span>
+      </p>
+    </header>
+
+    <CurrentNews />
+  </main>
+
+  <Fragment slot="afterAnalytics">
+    <script>
+      import { initCurrentClock } from '../../features/current/clock';
+      import { initCurrentNewsPrototype } from '../../features/current/news';
+
+      initCurrentClock();
+      initCurrentNewsPrototype();
+    </script>
+
+    <NightModeToggle lang="en" />
+  </Fragment>
+</BaseLayout>
+
+<style>
+  .current-news-shell {
+    width: 100%;
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 28px 32px 128px;
+  }
+
+  .current-news-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line-soft);
+    color: var(--stone);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+  }
+
+  .current-news-status h1,
+  .current-news-status p {
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+  }
+
+  .current-news-status__link {
+    color: var(--stone-light);
+    text-decoration: none;
+  }
+
+  .current-news-status__link:hover,
+  .current-news-status__link:focus-visible {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .current-news-status__label,
+  .current-news-status__separator {
+    color: var(--stone-light) !important;
+  }
+
+  .current-news-clock {
+    display: inline-flex;
+    gap: 8px;
+  }
+
+  .current-news-updated span {
+    color: var(--stone-light);
+  }
+
+  @media (max-width: 640px) {
+    .current-news-shell {
+      padding: 22px 24px 96px;
+    }
+
+    .current-news-status {
+      gap: 7px;
+      padding-bottom: 14px;
+      font-size: 0.47rem;
+    }
+
+    .current-news-clock {
+      gap: 7px;
+    }
+  }
+</style>

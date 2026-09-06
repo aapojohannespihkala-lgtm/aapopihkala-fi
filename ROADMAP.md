@@ -57,3 +57,11 @@ Tee vain, jos komponenttien ylläpidettävyys sitä tarvitsee. Älä muuta samas
 ## 7. Valinnainen ajastettu julkaiseminen
 
 Nykyinen sivusto ei tarvitse automaattista ajastettua julkaisua. Jos tarve myöhemmin syntyy, voidaan toteuttaa `publishAt`-tyyppinen työnkulku erillisenä ominaisuutena.
+
+## 8. Current News -prototyypin jatko
+
+- Korvaa `/current/news/`-prototyypin paikallinen seed-pooli oikeilla, erikseen tarkistetuilla kulttuuriuutisfeedeillä.
+- Tarkista ennen käyttöönottoa lähteiden tekninen saatavuus, RSS/API-rakenne ja käyttöehdot.
+- Normalisoi ja deduplikoi ehdokkaat Worker-rajalla, mutta pidä henkilökohtainen peukkuprofiili oletuksena selaimen localStoragessa.
+- Arvioi käytännön käytön perusteella rankingin, diversity-penaltyjen ja positiivisen/negatiivisen palautteen painot.
+- Nosta News `/current/`-juureen vasta, kun standalone-näkymän lähteet ja oppimiskäytös ovat riittävän vakaat.
