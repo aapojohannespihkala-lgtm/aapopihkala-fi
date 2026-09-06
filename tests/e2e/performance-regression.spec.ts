@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('homepage initial topography load defers model-only runtime and GLB assets', async ({ page }) => {
+test('homepage initial view defers the portrait GLB until the About embed is visible', async ({ page }) => {
   await page.addInitScript(() => {
     try {
       window.localStorage.setItem('aapopihkala-night-mode', 'day');
@@ -16,6 +16,8 @@ test('homepage initial topography load defers model-only runtime and GLB assets'
   await page.goto('/', { waitUntil: 'domcontentloaded' });
 
   const topographyCanvas = page.locator('[data-morphing-topography-canvas]');
+  const portrait = page.locator('[data-homepage-about-embed] [data-meshy-point-surface]');
+
   await expect(topographyCanvas).toBeVisible();
   await expect
     .poll(
@@ -27,9 +29,9 @@ test('homepage initial topography load defers model-only runtime and GLB assets'
     )
     .toBeGreaterThan(200);
 
+  await expect(portrait).toHaveAttribute('data-meshy-point-surface-load-state', 'waiting');
   await page.waitForTimeout(500);
 
-  expect(requestedUrls.some((url) => url.includes('GLTFLoader'))).toBe(false);
   expect(
     requestedUrls.some((url) => url.includes('/lab/meshy-pixelated-poise.glb'))
   ).toBe(false);
