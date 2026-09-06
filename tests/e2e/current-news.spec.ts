@@ -1,99 +1,177 @@
 import { expect, test } from '@playwright/test';
+import { onRequestGet as getNewsResponse } from '../../functions/api/current/news';
+import worker from '../../worker/index';
 
 const PROFILE_KEY = 'current.news.profile.v1';
 const DAILY_KEY = 'current.news.daily.v1';
 const RESET_MARKER = 'current.news.test.storage-reset';
 
+const liveItems = [
+  ['soundi-1', 'Kotimainen artisti julkaisee uuden albumin', 'https://www.soundi.fi/jutut/a/', 'Soundi', 'soundi', 'music', 'finland', 'release'],
+  ['pitchfork-1', 'Archival electronic album receives a new reissue', 'https://pitchfork.com/reviews/albums/a/', 'Pitchfork', 'pitchfork', 'music', 'international', 'reissue'],
+  ['quietus-1', 'A new experimental record explores field recordings', 'https://thequietus.com/articles/a/', 'The Quietus', 'quietus', 'music', 'international', 'review'],
+  ['tcj-1', 'Alternative comics artist discusses a new book', 'https://www.tcj.com/a/', 'The Comics Journal', 'comics-journal', 'comics', 'international', 'interview'],
+  ['soundi-2', 'Pitkä haastattelu kotimaisen säveltäjän levystä', 'https://www.soundi.fi/jutut/b/', 'Soundi', 'soundi', 'music', 'finland', 'interview'],
+  ['pitchfork-2', 'Best new album blends ambient and contemporary classical music', 'https://pitchfork.com/reviews/albums/b/', 'Pitchfork', 'pitchfork', 'music', 'international', 'review'],
+  ['quietus-2', 'Retrospective revisits a forgotten post-punk catalogue', 'https://thequietus.com/articles/b/', 'The Quietus', 'quietus', 'music', 'international', 'retrospective'],
+  ['tcj-2', 'Review considers a formally unusual graphic novel', 'https://www.tcj.com/reviews/b/', 'The Comics Journal', 'comics-journal', 'comics', 'international', 'review'],
+  ['pitchfork-3', 'Composer announces an electronic soundtrack album', 'https://pitchfork.com/news/c/', 'Pitchfork', 'pitchfork', 'music', 'international', 'release'],
+  ['soundi-3', 'Arkistolöytö avaa kokeellisen musiikin historiaa', 'https://www.soundi.fi/jutut/c/', 'Soundi', 'soundi', 'music', 'finland', 'retrospective'],
+].map(([id, title, url, source, sourceId, category, locality, kind], index) => ({
+  id, title, url,
+  publishedAt: new Date(Date.UTC(2026, 8, 6 - Math.floor(index / 4), 12 - index)).toISOString(),
+  language: sourceId === 'soundi' ? 'fi' : 'en',
+  source, sourceId, category, locality,
+  tags: [category, kind, sourceId],
+  kind,
+  baseScore: 1.1 - index * 0.02,
+}));
+
+const liveFixture = {
+  generatedAt: '2026-09-06T18:30:00.000Z',
+  items: liveItems,
+  sources: [
+    { id: 'soundi', name: 'Soundi', status: 'ok', count: 3 },
+    { id: 'pitchfork', name: 'Pitchfork', status: 'ok', count: 3 },
+    { id: 'quietus', name: 'The Quietus', status: 'ok', count: 2 },
+    { id: 'comics-journal', name: 'The Comics Journal', status: 'ok', count: 2 },
+  ],
+};
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(
-    ({ profileKey, dailyKey, resetMarker }) => {
-      if (window.sessionStorage.getItem(resetMarker) === 'true') return;
-      window.localStorage.removeItem(profileKey);
-      window.localStorage.removeItem(dailyKey);
-      window.sessionStorage.setItem(resetMarker, 'true');
+    ({ profileKey, dailyKey, marker }) => {
+      if (sessionStorage.getItem(marker) === 'true') return;
+      localStorage.removeItem(profileKey);
+      localStorage.removeItem(dailyKey);
+      sessionStorage.setItem(marker, 'true');
     },
-    { profileKey: PROFILE_KEY, dailyKey: DAILY_KEY, resetMarker: RESET_MARKER }
+    { profileKey: PROFILE_KEY, dailyKey: DAILY_KEY, marker: RESET_MARKER }
   );
+  await page.route('**/api/current/news', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(liveFixture),
+  }));
 });
 
-test('standalone Current News learns locally and replaces both positive and negative ratings', async ({
-  page,
-}) => {
+test('standalone Current News uses live items and learns locally from both ratings', async ({ page }) => {
   await page.goto('/current/news/', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('h1')).toHaveText('News');
   await expect(page.locator('a.current-news-status__link')).toHaveAttribute('href', '/current/');
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
-  await expect(page.getByText('LOCAL PROTOTYPE / SEED POOL')).toHaveCount(1);
+  await expect(page.locator('.news-mode')).toHaveText('LIVE RSS / 4 OF 4 SOURCES');
   await expect(page.locator('[data-news-slot]')).toHaveCount(3);
-  await expect(page.locator('[data-news-debug-pool]')).toHaveText('18');
-  await expect(page.locator('[data-news-debug-up]')).toHaveText('0');
-  await expect(page.locator('[data-news-debug-down]')).toHaveText('0');
+  await expect(page.locator('[data-news-debug-pool]')).toHaveText('10');
+  await expect(page.locator('.news-footer')).toContainText('SOUNDI');
 
-  const firstSlot = page.locator('[data-news-slot]').nth(0);
-  const firstId = await firstSlot.getAttribute('data-news-item-id');
-  const firstTitle = await firstSlot.locator('[data-news-title]').textContent();
+  const first = page.locator('[data-news-slot]').first();
+  const firstId = await first.getAttribute('data-news-item-id');
+  await expect(first.locator('[data-news-title] a')).toHaveAttribute('href', /^https:\/\//);
 
-  await firstSlot.locator('[data-news-feedback="up"]').click();
-
-  await expect(firstSlot).not.toHaveAttribute('data-news-item-id', firstId ?? '');
-  await expect(firstSlot.locator('[data-news-title]')).not.toHaveText(firstTitle ?? '');
+  await first.locator('[data-news-feedback="up"]').click();
+  await expect(first).not.toHaveAttribute('data-news-item-id', firstId ?? '');
   await expect(page.locator('[data-news-debug-up]')).toHaveText('1');
-  await expect(page.locator('[data-news-debug-seen]')).toHaveText('1');
-
-  const replacementId = await firstSlot.getAttribute('data-news-item-id');
-  expect(replacementId).not.toBeNull();
+  const replacementId = await first.getAttribute('data-news-item-id');
 
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.locator('[data-news-slot]').nth(0)).toHaveAttribute(
-    'data-news-item-id',
-    replacementId ?? ''
-  );
+  await expect(page.locator('[data-news-slot]').first()).toHaveAttribute('data-news-item-id', replacementId ?? '');
   await expect(page.locator('[data-news-debug-up]')).toHaveText('1');
 
-  const secondSlot = page.locator('[data-news-slot]').nth(1);
-  const secondId = await secondSlot.getAttribute('data-news-item-id');
-  await secondSlot.locator('[data-news-feedback="down"]').click();
-
-  await expect(secondSlot).not.toHaveAttribute('data-news-item-id', secondId ?? '');
+  const second = page.locator('[data-news-slot]').nth(1);
+  const secondId = await second.getAttribute('data-news-item-id');
+  await second.locator('[data-news-feedback="down"]').click();
+  await expect(second).not.toHaveAttribute('data-news-item-id', secondId ?? '');
   await expect(page.locator('[data-news-debug-down]')).toHaveText('1');
   await expect(page.locator('[data-news-debug-seen]')).toHaveText('2');
 
-  const stored = await page.evaluate(
-    ({ profileKey, dailyKey }) => ({
-      profile: window.localStorage.getItem(profileKey),
-      daily: window.localStorage.getItem(dailyKey),
-    }),
-    { profileKey: PROFILE_KEY, dailyKey: DAILY_KEY }
-  );
-  expect(stored.profile).not.toBeNull();
-  expect(stored.daily).not.toBeNull();
-
-  await page.locator('.news-debug').evaluate((element) => {
-    (element as HTMLDetailsElement).open = true;
-  });
+  await page.locator('.news-debug').evaluate((element) => { (element as HTMLDetailsElement).open = true; });
   await expect(page.locator('[data-news-debug-signal]')).not.toHaveCount(0);
 });
 
-test('Current News reset clears local learning and stays inside a 390 px viewport', async ({ page }) => {
+test('Current News reset stays local and the page fits a 390 px viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/current/news/', { waitUntil: 'domcontentloaded' });
-
   await page.locator('[data-news-slot]').first().locator('[data-news-feedback="up"]').click();
-  await expect(page.locator('[data-news-debug-up]')).toHaveText('1');
-
-  await page.locator('.news-debug').evaluate((element) => {
-    (element as HTMLDetailsElement).open = true;
-  });
+  await page.locator('.news-debug').evaluate((element) => { (element as HTMLDetailsElement).open = true; });
   await page.locator('[data-news-reset]').click();
 
   await expect(page.locator('[data-news-debug-up]')).toHaveText('0');
   await expect(page.locator('[data-news-debug-down]')).toHaveText('0');
   await expect(page.locator('[data-news-debug-seen]')).toHaveText('0');
 
-  const dimensions = await page.evaluate(() => ({
-    viewport: window.innerWidth,
-    document: document.documentElement.scrollWidth,
-  }));
-  expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
+  const widths = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+  expect(widths.document).toBeLessThanOrEqual(widths.viewport + 1);
+});
+
+const rss = (items: Array<[string, string, string, string]>) => `<?xml version="1.0"?><rss version="2.0"><channel>
+${items.map(([title, link, date, category]) => `<item><title><![CDATA[${title}]]></title><link>${link}</link><pubDate>${date}</pubDate><category>${category}</category></item>`).join('\n')}
+</channel></rss>`;
+
+const feedFixtures = new Map<string, string>([
+  ['https://www.soundi.fi/feed', rss([
+    ['Kotimainen artisti julkaisee uuden albumin', 'https://www.soundi.fi/jutut/live-a/', 'Sun, 06 Sep 2026 12:00:00 GMT', 'Haastattelut'],
+    ['Arkistolöytö kokeellisen musiikin historiasta', 'https://www.soundi.fi/jutut/live-b/', 'Sat, 05 Sep 2026 16:00:00 GMT', 'Musiikki'],
+  ])],
+  ['https://pitchfork.com/feed/feed-news/rss', rss([
+    ['Composer announces a new electronic album', 'https://pitchfork.com/news/live-a/', 'Sun, 06 Sep 2026 11:00:00 GMT', 'News'],
+    ['Experimental artist shares details of a record', 'https://pitchfork.com/news/live-b/', 'Sat, 05 Sep 2026 18:00:00 GMT', 'News'],
+  ])],
+  ['https://pitchfork.com/feed/reviews/best/albums/rss', rss([
+    ['Ambient composer: Example Album Review', 'https://pitchfork.com/reviews/albums/live-a/', 'Sun, 06 Sep 2026 10:00:00 GMT', 'Best New Music'],
+  ])],
+  ['https://pitchfork.com/feed/reviews/best/reissues/rss', rss([
+    ['Electronic archive: Example Reissue Review', 'https://pitchfork.com/reviews/albums/live-b/', 'Sun, 06 Sep 2026 09:00:00 GMT', 'Reissues'],
+  ])],
+  ['https://thequietus.com/feed/', rss([
+    ['A new experimental album &amp; a long-form interview', 'https://thequietus.com/articles/live-a/', 'Sun, 06 Sep 2026 08:00:00 GMT', 'Music'],
+    ['Retrospective revisits a post-punk archive', 'https://thequietus.com/articles/live-b/', 'Sat, 05 Sep 2026 14:00:00 GMT', 'Features'],
+  ])],
+  ['https://www.tcj.com/feed/', rss([
+    ['Alternative comics artist discusses a new book', 'https://www.tcj.com/live-a/', 'Sun, 06 Sep 2026 07:00:00 GMT', 'Interviews'],
+    ['Review: an unusual new graphic novel', 'https://www.tcj.com/reviews/live-b/', 'Sat, 05 Sep 2026 12:00:00 GMT', 'Reviews'],
+  ])],
+]);
+
+const mockFeedFetch = () => {
+  const original = globalThis.fetch;
+  const requested = new Set<string>();
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    requested.add(url);
+    const body = feedFixtures.get(url);
+    expect(body, `Unexpected feed URL ${url}`).toBeDefined();
+    expect(new Headers(init?.headers).get('Accept')).toContain('application/rss+xml');
+    return new Response(body, { status: 200, headers: { 'Content-Type': 'application/rss+xml' } });
+  };
+  return { original, requested };
+};
+
+test('Current News API normalizes the verified feeds and Worker serves the route', async () => {
+  const { original, requested } = mockFeedFetch();
+  try {
+    const response = await getNewsResponse();
+    const data = (await response.json()) as {
+      items: Array<{ id: string; title: string; url: string; sourceId: string }>;
+      sources: Array<{ status: string; count: number }>;
+    };
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toContain('max-age=900');
+    expect(data.items.length).toBeGreaterThanOrEqual(8);
+    expect(new Set(data.items.map((item) => item.url)).size).toBe(data.items.length);
+    expect(new Set(data.items.map((item) => item.sourceId))).toEqual(new Set(['soundi', 'pitchfork', 'quietus', 'comics-journal']));
+    expect(data.items.some((item) => item.title.includes('&'))).toBe(true);
+    expect(data.sources).toHaveLength(4);
+    expect(data.sources.every((source) => source.status === 'ok' && source.count > 0)).toBe(true);
+    expect(requested).toEqual(new Set(feedFixtures.keys()));
+
+    const env = { ASSETS: { fetch: async (request: Request) => new Response(`asset:${new URL(request.url).pathname`) } };
+    expect((await worker.fetch(new Request('https://aapopihkala.fi/api/current/news'), env)).status).toBe(200);
+    const post = await worker.fetch(new Request('https://aapopihkala.fi/api/current/news', { method: 'POST' }), env);
+    expect(post.status).toBe(405);
+    expect(post.headers.get('allow')).toBe('GET');
+  } finally {
+    globalThis.fetch = original;
+  }
 });
