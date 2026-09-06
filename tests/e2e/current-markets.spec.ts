@@ -18,6 +18,7 @@ const expectedMarketSymbols = [
   'OMXHEX:OMXH25',
   'AMEX:EWJ',
   'COINBASE:BTCEUR',
+  'OMXHEX:REMEDY',
 ];
 
 const tradingViewStubBody = `
