@@ -19,7 +19,14 @@ type Feed = {
   tags: string[];
 };
 
-type Entry = { title: string; url: string; publishedAt: string; categories: string[] };
+type Entry = {
+  title: string;
+  summary: string;
+  url: string;
+  publishedAt: string;
+  categories: string[];
+};
+
 type Item = Entry & {
   id: string;
   language: NewsLanguage;
@@ -73,6 +80,7 @@ const MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const MAX_PER_FEED = 16;
 const MAX_PER_SOURCE = 14;
 const MAX_ITEMS = 48;
+const MAX_SUMMARY_LENGTH = 190;
 
 const entities: Record<string, string> = {
   amp: '&', apos: "'", gt: '>', lt: '<', nbsp: ' ', quot: '"', hellip: '…',
@@ -102,6 +110,28 @@ const tags = (block: string, name: string) => {
   const safe = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return [...block.matchAll(new RegExp(`<${safe}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${safe}>`, 'gi'))]
     .map((match) => text(match[1])).filter(Boolean);
+};
+
+const cleanSummary = (value: string, title: string) => {
+  let result = value
+    .replace(/\s+The post\s+[\s\S]*$/i, '')
+    .replace(/\s+(?:Continue reading|Read more|Lue lisää)\b[\s\S]*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!result) return '';
+
+  const normalizedTitle = title.toLocaleLowerCase('en-US').replace(/\s+/g, ' ').trim();
+  const normalizedResult = result.toLocaleLowerCase('en-US');
+  if (normalizedResult.startsWith(normalizedTitle)) {
+    result = result.slice(title.length).replace(/^[\s:–—-]+/, '').trim();
+  }
+
+  if (result.length <= MAX_SUMMARY_LENGTH) return result;
+  const clipped = result.slice(0, MAX_SUMMARY_LENGTH - 1);
+  const boundary = clipped.lastIndexOf(' ');
+  const end = boundary >= 110 ? boundary : clipped.length;
+  return `${clipped.slice(0, end).trimEnd()}…`;
 };
 
 const cleanUrl = (raw: string, host: string) => {
@@ -134,7 +164,10 @@ const parse = (xml: string, feed: Feed): Entry[] =>
       const title = tag(block, 'title');
       const url = cleanUrl(tag(block, 'link'), feed.host);
       const publishedAt = cleanDate(tag(block, 'pubDate') || tag(block, 'dc:date'));
-      return title && url && publishedAt ? { title, url, publishedAt, categories: tags(block, 'category') } : null;
+      const summary = cleanSummary(tag(block, 'description') || tag(block, 'content:encoded'), title);
+      return title && url && publishedAt
+        ? { title, summary, url, publishedAt, categories: tags(block, 'category') }
+        : null;
     })
     .filter((entry): entry is Entry => Boolean(entry))
     .slice(0, MAX_PER_FEED);
