@@ -98,3 +98,50 @@ jobs:
           name: playwright-test-results
           path: test-results/
           if-no-files-found: ignore
+
+  merge:
+    needs: build
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge or refresh pull request
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          state="$(gh api "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.mergeable_state')"
+
+          if [[ "$state" == "behind" ]]; then
+            gh api --method PUT \
+              "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/update-branch" \
+              --raw-field expected_head_sha="$HEAD_SHA"
+            echo "Pull request branch updated; the next CI cycle will continue automatically."
+            exit 0
+          fi
+
+          for attempt in 1 2 3; do
+            if gh api --method PUT \
+              "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/merge" \
+              --raw-field merge_method=squash \
+              --raw-field sha="$HEAD_SHA"; then
+              exit 0
+            fi
+
+            if [[ "$attempt" -lt 3 ]]; then
+              sleep 3
+            fi
+          done
+
+          echo "Automatic merge failed after required CI passed." >&2
+          exit 1
