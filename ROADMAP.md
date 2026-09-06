@@ -60,9 +60,9 @@ Nykyinen sivusto ei tarvitse automaattista ajastettua julkaisua. Jos tarve myöh
 
 ## 8. Current News -jatko
 
-- Standalone `/current/news/` käyttää ensimmäisessä live-versiossa Soundin, Pitchforkin, The Quietusin ja The Comics Journalin RSS-syötteitä. Worker normalisoi ja deduplikoi ehdokkaat, mutta henkilökohtainen peukkuprofiili säilyy selaimen localStoragessa.
-- Tarkista ja lisää seuraavaksi vahvempia suomalaisia kulttuuri-, design- ja arkkitehtuurilähteitä, kuten Kulttuuritoimitus, Archinfo ja Arkkitehti, vasta kun niiden tekninen syöte ja käyttöehdot on erikseen varmennettu.
+- Standalone `/current/news/` käyttää Soundin, Pitchforkin, The Quietusin, The Comics Journalin, Pelaajan, Muropaketin Pelit-syötteen, Infernon, Angry Metal Guyn ja Kulttuuritoimituksen RSS-syötteitä. Worker normalisoi ja deduplikoi ehdokkaat sekä tuottaa lyhyen RSS-ingressin, mutta henkilökohtainen peukkuprofiili säilyy selaimen localStoragessa.
+- Tarkista seuraavaksi arkkitehtuuri- ja design-lähteitä, kuten Archinfo ja Arkkitehti, mutta lisää ne vasta kun vakaa tekninen syöte tai muu sopiva rajapinta ja käyttöehdot on varmennettu.
 - Lisää vahvempi elokuvalähde samalla periaatteella. Älä ota käyttöön lähdettä vain siksi, että sisältö sopii, jos vakaa syöte tai käyttöehdot jäävät epäselviksi.
-- Arvioi käytännön käytön perusteella rankingin, diversity-penaltyjen ja positiivisen/negatiivisen palautteen painot.
+- Arvioi käytännön käytön perusteella rankingin, diversity-penaltyjen ja positiivisen/negatiivisen palautteen painot. Pelien ja metallimusiikin tarkemmat tagit on jo lisätty oppimissignaaleiksi.
 - Laajenna tapahtumien deduplikointia, jos otsikkopohjainen lähiläisyys ei riitä usean median käsitellessä samaa asiaa.
 - Nosta News `/current/`-juureen vasta, kun standalone-näkymän lähteet ja oppimiskäytös ovat riittävän vakaat.

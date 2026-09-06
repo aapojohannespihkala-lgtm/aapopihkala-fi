@@ -135,6 +135,22 @@ const feedFixtures = new Map<string, string>([
     ['Kotimainen artisti julkaisee uuden albumin', 'https://www.soundi.fi/jutut/live-a/', 'Sun, 06 Sep 2026 12:00:00 GMT', 'Haastattelut', '<p>Artistin uusi levy rakentuu pitkän tauon jälkeen syntyneistä kappaleista ja uudesta kokoonpanosta.</p> Lue lisää'],
     ['Arkistolöytö kokeellisen musiikin historiasta', 'https://www.soundi.fi/jutut/live-b/', 'Sat, 05 Sep 2026 16:00:00 GMT', 'Musiikki', 'Arkistosta löytynyt tallenne avaa uuden näkökulman kotimaisen kokeellisen musiikin historiaan.'],
   ])],
+  ['https://www.pelaaja.fi/feed/', rss([
+    ['Remedyn uusi peli nostaa pelisuunnittelun valokeilaan', 'https://www.pelaaja.fi/uutiset/live-a/', 'Sun, 06 Sep 2026 13:00:00 GMT', 'Remedy', 'Suomalaisstudion tuleva peli painottaa uudenlaista pelisuunnittelua ja laajentaa studion tuttua maailmaa.'],
+    ['GTA 6:n uusi yksityiskohta herättää keskustelua', 'https://www.pelaaja.fi/uutiset/live-b/', 'Sat, 05 Sep 2026 19:00:00 GMT', 'GTA 6', 'Rockstar on avannut yhden uuden yksityiskohdan Grand Theft Auto VI:n pelimekaniikasta.'],
+  ])],
+  ['https://muropaketti.com/pelit/feed', rss([
+    ['PlayStation 5:n levytuotannosta saatiin uusia tietoja', 'https://muropaketti.com/pelit/peliuutiset/live-a/', 'Sun, 06 Sep 2026 12:30:00 GMT', 'Pelit', 'Sonyn uusien lukujen perusteella PlayStationin fyysisten pelilevyjen tuotanto jatkuu odotettua vahvempana.'],
+    ['Kotimainen indiepeli palaa retropelien estetiikkaan', 'https://muropaketti.com/pelit/peliuutiset/live-b/', 'Sat, 05 Sep 2026 17:30:00 GMT', 'Pelit', 'Pieni suomalaisstudio rakentaa uuden indiepeliensä 1990-luvun retropelien estetiikan ympärille.'],
+  ])],
+  ['https://www.inferno.fi/feed', rss([
+    ['Kotimainen black metal -yhtye julkaisee uuden levyn', 'https://www.inferno.fi/uutiset/live-a/', 'Sun, 06 Sep 2026 12:15:00 GMT', 'black metal', 'Kotimainen black metal -yhtye on vahvistanut uuden albuminsa julkaisupäivän ja ensimmäisen kappaleen.'],
+    ['Progressive metal -yhtye palaa pitkän tauon jälkeen', 'https://www.inferno.fi/uutiset/live-b/', 'Sat, 05 Sep 2026 16:30:00 GMT', 'progressive metal', 'Progressive metal -yhtye kertoo paluunsa taustoista ja tulevan levyn syntyprosessista.'],
+  ])],
+  ['https://kulttuuritoimitus.fi/feed', rss([
+    ['Arkkitehtuurin uusi näyttely tarkastelee muuttuvaa kaupunkia', 'https://kulttuuritoimitus.fi/artikkelit/live-a/', 'Sun, 06 Sep 2026 11:45:00 GMT', 'Arkkitehtuuri', 'Näyttely kokoaa yhteen suunnitelmia, valokuvia ja tutkimusta suomalaisen kaupunkitilan muutoksesta.'],
+    ['Kokeellisen musiikin festivaali tuo uusia tekijöitä esiin', 'https://kulttuuritoimitus.fi/artikkelit/live-b/', 'Sat, 05 Sep 2026 15:45:00 GMT', 'Musiikki', 'Kotimainen festivaali nostaa ohjelmassaan esiin pieniä levymerkkejä ja kokeellisen musiikin uusia tekijöitä.'],
+  ])],
   ['https://pitchfork.com/feed/feed-news/rss', rss([
     ['Composer announces a new electronic album', 'https://pitchfork.com/news/live-a/', 'Sun, 06 Sep 2026 11:00:00 GMT', 'News', 'The composer has announced an electronic album recorded with a small group of collaborators.'],
     ['Experimental artist shares details of a record', 'https://pitchfork.com/news/live-b/', 'Sat, 05 Sep 2026 18:00:00 GMT', 'News', 'The forthcoming record combines field recordings, electronics, and newly written material.'],
@@ -148,6 +164,10 @@ const feedFixtures = new Map<string, string>([
   ['https://thequietus.com/feed/', rss([
     ['A new experimental album &amp; a long-form interview', 'https://thequietus.com/articles/live-a/', 'Sun, 06 Sep 2026 08:00:00 GMT', 'Music', 'The artist discusses a new experimental album, its source material, and the process behind it.'],
     ['Retrospective revisits a post-punk archive', 'https://thequietus.com/articles/live-b/', 'Sat, 05 Sep 2026 14:00:00 GMT', 'Features', 'A retrospective returns to a neglected post-punk catalogue and traces how the records were made.'],
+  ])],
+  ['https://www.angrymetalguy.com/feed/', rss([
+    ['Example Band - Black Metal Album Review', 'https://www.angrymetalguy.com/example-black-metal-review/', 'Sun, 06 Sep 2026 07:30:00 GMT', 'Black Metal', 'A black metal record stretches its arrangements with ambient passages and unusually restrained production.'],
+    ['Doom Group - New Doom Metal Review', 'https://www.angrymetalguy.com/example-doom-review/', 'Sat, 05 Sep 2026 13:30:00 GMT', 'Doom Metal', 'The doom metal album builds slow riffs around a sparse vocal performance and a deliberately dry mix.'],
   ])],
   ['https://www.tcj.com/feed/', rss([
     ['Alternative comics artist discusses a new book', 'https://www.tcj.com/live-a/', 'Sun, 06 Sep 2026 07:00:00 GMT', 'Interviews', 'The cartoonist discusses the historical research and visual decisions behind a new book.'],
@@ -174,19 +194,27 @@ test('Current News API normalizes the verified feeds and Worker serves the route
   try {
     const response = await getNewsResponse();
     const data = (await response.json()) as {
-      items: Array<{ id: string; title: string; summary: string; url: string; sourceId: string }>;
-      sources: Array<{ status: string; count: number }>;
+      items: Array<{ id: string; title: string; summary: string; url: string; sourceId: string; category: string; tags: string[] }>;
+      sources: Array<{ id: string; status: string; count: number }>;
     };
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toContain('max-age=900');
-    expect(data.items.length).toBeGreaterThanOrEqual(8);
+    expect(data.items.length).toBeGreaterThanOrEqual(16);
     expect(new Set(data.items.map((item) => item.url)).size).toBe(data.items.length);
-    expect(new Set(data.items.map((item) => item.sourceId))).toEqual(new Set(['soundi', 'pitchfork', 'quietus', 'comics-journal']));
+    expect(new Set(data.items.map((item) => item.sourceId))).toEqual(new Set([
+      'soundi', 'pelaaja', 'muropaketti-games', 'inferno', 'kulttuuritoimitus',
+      'pitchfork', 'quietus', 'angry-metal-guy', 'comics-journal',
+    ]));
     expect(data.items.some((item) => item.title.includes('&'))).toBe(true);
     expect(data.items.every((item) => item.summary.length <= 190 && !item.summary.includes('<'))).toBe(true);
     expect(data.items.some((item) => item.summary.includes('Artistin uusi levy rakentuu'))).toBe(true);
     expect(data.items.some((item) => item.summary.includes('Lue lisää'))).toBe(false);
-    expect(data.sources).toHaveLength(4);
+    expect(data.items.find((item) => item.sourceId === 'pelaaja')?.category).toBe('games');
+    expect(data.items.find((item) => item.sourceId === 'muropaketti-games')?.tags).toContain('playstation');
+    expect(data.items.find((item) => item.sourceId === 'inferno')?.tags).toContain('black-metal');
+    expect(data.items.find((item) => item.sourceId === 'angry-metal-guy')?.tags).toContain('black-metal');
+    expect(data.items.find((item) => item.sourceId === 'kulttuuritoimitus')?.category).toBe('architecture');
+    expect(data.sources).toHaveLength(9);
     expect(data.sources.every((source) => source.status === 'ok' && source.count > 0)).toBe(true);
     expect(requested).toEqual(new Set(feedFixtures.keys()));
 
