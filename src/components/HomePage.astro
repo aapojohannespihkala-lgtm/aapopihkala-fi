@@ -404,9 +404,8 @@ const personSchema = {
 
     <section class="feed">
       {
-        posts.map((post, index) => {
+        posts.map((post) => {
           const publishedAt = post.data.publishedAt;
-          const postNumber = String(posts.length - index).padStart(2, '0');
           const slug = getPostSlug(post.id);
           const titleHref = lang === 'fi' ? `/artikkelit/${slug}/` : `/en/articles/${slug}/`;
 
@@ -414,7 +413,6 @@ const personSchema = {
             <FeedPost
               post={post}
               lang={lang}
-              postNumber={postNumber}
               displayDate={getDisplayDate(publishedAt)}
               perspectiveLabel={t.perspectiveLabel}
               sourceLabel={t.sourceLabel}

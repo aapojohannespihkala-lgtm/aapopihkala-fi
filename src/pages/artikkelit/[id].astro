@@ -9,7 +9,6 @@ import {
 
 interface Props {
   post: PublishedPost;
-  postNumber: string;
 }
 
 export async function getStaticPaths() {
@@ -17,21 +16,13 @@ export async function getStaticPaths() {
     await getPublishedPosts();
 
   return posts.map(
-    (post, index) => ({
+    (post) => ({
       params: {
         id: getPostSlug(post.id),
       },
 
       props: {
         post,
-
-        postNumber:
-          String(
-            posts.length - index
-          ).padStart(
-            2,
-            '0'
-          ),
       },
     })
   );
@@ -39,12 +30,10 @@ export async function getStaticPaths() {
 
 const {
   post,
-  postNumber,
 } = Astro.props as Props;
 ---
 
 <ArticlePage
   post={post}
-  postNumber={postNumber}
   lang="fi"
 />
