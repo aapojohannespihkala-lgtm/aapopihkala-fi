@@ -166,7 +166,7 @@ test('Current News API normalizes the verified feeds and Worker serves the route
     expect(data.sources.every((source) => source.status === 'ok' && source.count > 0)).toBe(true);
     expect(requested).toEqual(new Set(feedFixtures.keys()));
 
-    const env = { ASSETS: { fetch: async (request: Request) => new Response(`asset:${new URL(request.url).pathname`) } };
+    const env = { ASSETS: { fetch: async (request: Request) => new Response(`asset:${new URL(request.url).pathname}`) } };
     expect((await worker.fetch(new Request('https://aapopihkala.fi/api/current/news'), env)).status).toBe(200);
     const post = await worker.fetch(new Request('https://aapopihkala.fi/api/current/news', { method: 'POST' }), env);
     expect(post.status).toBe(405);
