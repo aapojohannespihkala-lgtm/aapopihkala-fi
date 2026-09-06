@@ -127,6 +127,7 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - päivä/yö-tilan
 - kielilinkit
 - headerin FI/EN-saavutettavat nimet, näppäimistöjärjestyksen ja vähintään 24 x 24 px interaktiiviset kohteet
+- analytiikkasuostumuksen valintapainikkeiden ja analytiikka-asetusten vähintään 24 px korkeat interaktiiviset kohteet
 - FI- ja EN-ingressin tarkoitetun desktop-rivijaon: FI-rivin viimeinen sana on `luonnon` ja EN-rivin `cities,`
 - 390 x 844 -mobiilinäkymän FI/EN-etusivusopimuksen: yksipalstainen hero, piilotettu hero-topografia ja poistettu pakotettu desktop-rivinvaihto
 - mobiilin FI/EN About-reittien lokalisaation ja pistepilvipään kehyksen pysymisen viewportin sisällä
@@ -766,6 +767,8 @@ src/components/Analytics.astro
 Analytics liitetään yhteisen `BaseLayout.astro`-layoutin kautta.
 
 Analytics ladataan vasta, kun käyttäjä hyväksyy analytiikan sivuston suostumusvalinnassa. Käyttäjän valinta tallennetaan selaimen `localStorage`-tallennustilaan.
+
+Analytiikkasuostumuksen valintapainikkeiden ja analytiikka-asetusten interaktiivinen korkeus pidetään vähintään 24 CSS-pikselissä.
 
 Google Analyticsin Measurement ID sijaitsee tiedostossa:
 
