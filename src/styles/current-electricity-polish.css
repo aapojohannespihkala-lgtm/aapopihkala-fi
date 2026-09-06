@@ -23,26 +23,51 @@
   white-space: nowrap;
 }
 
-.current-electricity .electricity-chart__window-leader {
-  stroke: color-mix(in srgb, var(--stone-light) 54%, transparent);
-  stroke-width: 0.75;
-  stroke-dasharray: 1 3;
-  pointer-events: none;
-  vector-effect: non-scaling-stroke;
-}
-
-.current-electricity .electricity-chart__window-leader--low {
-  stroke: color-mix(in srgb, var(--moss) 62%, transparent);
-}
-
-.current-electricity .electricity-chart__window-label,
-.current-electricity .electricity-chart__window-leader {
+.current-electricity .electricity-chart__window-label {
   transition: opacity 120ms ease;
 }
 
-.current-electricity .electricity-chart--inspecting .electricity-chart__window-label,
-.current-electricity .electricity-chart--inspecting .electricity-chart__window-leader {
+.current-electricity .electricity-chart--inspecting .electricity-chart__window-label {
   opacity: 0.22;
+}
+
+.current-electricity .electricity-chart__window-label text:first-child {
+  font-size: 7.5px;
+}
+
+.current-electricity .electricity-chart__window-range {
+  font-size: 6.5px;
+}
+
+.current-electricity .electricity-chart__current-line {
+  stroke: var(--moss-deep);
+  stroke-width: 1.25;
+  stroke-dasharray: none;
+  opacity: 0.82;
+}
+
+.current-electricity .electricity-chart__current-point {
+  display: none;
+}
+
+.current-electricity .electricity-chart__inspection-line {
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.current-electricity .electricity-chart__inspection-point {
+  fill: var(--ink);
+  stroke: var(--page);
+  stroke-width: 1.2;
+}
+
+.current-electricity .electricity-chart__inspection-band {
+  opacity: 0.075;
+}
+
+.current-electricity .electricity-extremes {
+  display: none;
 }
 
 @media (max-width: 640px) {
@@ -60,5 +85,13 @@
 
   .current-electricity .electricity-now__interval {
     font-size: 0.35rem;
+  }
+
+  .current-electricity .electricity-chart__window-label text:first-child {
+    font-size: 7px;
+  }
+
+  .current-electricity .electricity-chart__window-range {
+    font-size: 6px;
   }
 }
