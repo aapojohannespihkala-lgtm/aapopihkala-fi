@@ -35,6 +35,7 @@ jobs:
           set -euo pipefail
 
           docs_only=false
+          css_only=false
 
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             mapfile -t changed_files < <(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")
@@ -46,19 +47,29 @@ jobs:
 
           if [[ ${#changed_files[@]} -gt 0 ]]; then
             docs_only=true
+            css_only=true
+
             for file in "${changed_files[@]}"; do
               case "$file" in
                 README.md|AGENTS.md|ROADMAP.md|docs/*)
                   ;;
                 *)
                   docs_only=false
-                  break
+                  ;;
+              esac
+
+              case "$file" in
+                *.css)
+                  ;;
+                *)
+                  css_only=false
                   ;;
               esac
             done
           fi
 
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          echo "css_only=$css_only" >> "$GITHUB_OUTPUT"
 
       - name: Documentation-only fast path
         if: steps.changes.outputs.docs_only == 'true'
@@ -76,8 +87,12 @@ jobs:
         run: npm ci
 
       - name: Static checks
-        if: steps.changes.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true' && steps.changes.outputs.css_only != 'true'
         run: npm run check
+
+      - name: CSS-only fast path
+        if: steps.changes.outputs.css_only == 'true'
+        run: echo "CSS-only change; Astro static checks skipped and production build retained."
 
       - name: Production build
         if: steps.changes.outputs.docs_only != 'true'
@@ -108,6 +123,7 @@ jobs:
       github.event.pull_request.user.login == github.repository_owner
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
       pull-requests: write
     steps:
@@ -131,11 +147,18 @@ jobs:
           fi
 
           for attempt in 1 2 3; do
-            if gh api --method PUT \
+            if merged="$(gh api --method PUT \
               "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/merge" \
               --raw-field merge_method=squash \
-              --raw-field sha="$HEAD_SHA"; then
-              exit 0
+              --raw-field sha="$HEAD_SHA" \
+              --jq '.merged')"; then
+              if [[ "$merged" == "true" ]]; then
+                gh api --method POST \
+                  "/repos/${GITHUB_REPOSITORY}/actions/workflows/build-check.yml/dispatches" \
+                  --raw-field ref=main
+                echo "Pull request merged and full post-merge validation dispatched on main."
+                exit 0
+              fi
             fi
 
             if [[ "$attempt" -lt 3 ]]; then

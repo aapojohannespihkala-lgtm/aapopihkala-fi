@@ -91,13 +91,15 @@ Workflow ajetaan:
 Rakennusvaiheen CI on tarkoituksella nopea ennen mergeä:
 
 - pelkkä projektidokumentaatio (`README.md`, `AGENTS.md`, `ROADMAP.md`, `docs/**`) saa minimaalisen onnistuneen `build`-tarkistuksen ilman Node-, build- tai Playwright-vaiheita
-- muut pull requestit ajavat `npm ci`, `npm run check` ja `npm run build`
+- vain `.css`-tiedostoja muuttavat pull requestit ajavat `npm ci` ja `npm run build`, mutta ohittavat `npm run check` -vaiheen
+- muut suoritettavat pull requestit ajavat `npm ci`, `npm run check` ja `npm run build`
 - koko Playwright-regressiosarja ei blokkaa pull requestin mergeä rakennusvaiheessa
-- kun suoritettava muutos on mergattu `main`iin, `main`-ajo suorittaa lisäksi Chromium-asennuksen ja koko Playwright-regressiosarjan
 
-`npm run check` ja tuotantobuild ovat siis edelleen blokkaavia ennen tavallisen koodimuutoksen mergeä. Täysi selainregressio toimii rakennusvaiheessa mergeä seuraavana turvaverkkona.
+CSS-only-muutoksessa tuotantobuild on edelleen blokkaava ennen mergeä. Muissa suoritettavissa muutoksissa sekä `npm run check` että tuotantobuild ovat blokkaavia.
 
 Omistajan samasta repositoriosta avaamat ei-draft pull requestit squash-mergataan automaattisesti heti onnistuneen pakollisen `build`-tarkistuksen jälkeen. Jos repositorion strict `main` -sääntö huomaa branchin jääneen jälkeen, workflow päivittää branchin ja seuraava CI-kierros jatkaa automaattisesti ilman manuaalista merge- tai polling-vaihetta.
+
+Automaattinen merge käynnistää erikseen täyden `workflow_dispatch`-validoinnin `main`-haaraan. Tämä ajo suorittaa staattiset tarkistukset, tuotantobuildin, Chromium-asennuksen ja koko Playwright-regressiosarjan, joten mergeä seuraava selainregressio ei riipu tokenilla tehdyn mergen push-triggeristä.
 
 Jos samaan pull requestiin tai refiin tulee uusi commit vanhan CI-ajon ollessa kesken, vanhentunut ajo perutaan automaattisesti.
 

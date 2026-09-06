@@ -80,6 +80,7 @@ Prefer one-pass repository changes. Before the first write:
 During implementation:
 
 - batch related edits into one coherent commit or the smallest practical number of commits
+- when the GitHub tools permit it, write multi-file changes as one Git tree and one commit instead of sequential per-file commits
 - avoid no-op commits, bookkeeping-only commits and repeated rewrites that do not change the resulting tree
 - do not push incremental "one more thing" commits after final validation has started unless a real issue must be fixed
 
@@ -91,9 +92,9 @@ For validation and merge:
 - distinguish required repository checks from optional external preview or deployment checks; investigate external failures when they indicate a real problem, but do not let irrelevant preview noise block an otherwise valid change
 - let the automatic merge step finish after the required pre-merge check passes when no conflict, regression or material ambiguity remains
 
-Owner-authored pull requests from the same repository are automatically squash-merged by `.github/workflows/build-check.yml` after the required `build` job succeeds. Do not manually poll and merge these routine pull requests after opening them. If the strict `main` freshness rule reports the branch as behind, the merge job updates the branch and the next CI cycle continues automatically. Intervene only when automatic merge fails, CI fails, a conflict or material ambiguity appears, or the user explicitly asked for review before merge.
+Owner-authored pull requests from the same repository are automatically squash-merged by `.github/workflows/build-check.yml` after the required `build` job succeeds. Do not manually poll and merge these routine pull requests after opening them. If the strict `main` freshness rule reports the branch as behind, the merge job updates the branch and the next CI cycle continues automatically. After a successful automatic merge, the workflow explicitly dispatches a full validation run on `main`, so post-merge browser coverage does not depend on the token-authored merge producing a new push-triggered workflow. Intervene only when automatic merge fails, CI fails, a conflict or material ambiguity appears, or the user explicitly asked for review before merge.
 
-During the active site-construction phase, optimize for fast iteration. Pull requests with executable changes are blocked by static checks and a production build, not by the full Playwright suite. Full browser regressions run on `main` after merge for executable changes. Documentation-only changes keep the minimal successful `build` check and skip Node, build and browser work entirely.
+During the active site-construction phase, optimize for fast iteration. Documentation-only changes keep the minimal successful `build` check and skip Node, build and browser work entirely. Pull requests that change only `.css` files keep dependency installation and the production build but skip `npm run check`. Other executable pull requests are blocked by both static checks and a production build. Full browser regressions do not block routine construction-phase merges and run after merge through the explicit `main` validation dispatch.
 
 If a post-merge browser regression later exposes a real problem, fix it promptly in a follow-up change. Do not hold routine construction-phase merges open waiting for the full browser suite.
 
@@ -102,10 +103,12 @@ If a post-merge browser regression later exposes a real problem, fix it promptly
 The CI strategy in `.github/workflows/build-check.yml` is intentionally split by phase:
 
 - documentation-only changes: minimal required `build` check
-- pull requests with executable changes: `npm ci`, `npm run check` and `npm run build`
-- executable changes on `main`: the same static/build validation plus the full Playwright browser regression suite
+- CSS-only pull requests: `npm ci` and `npm run build`, with `npm run check` skipped for faster visual iteration
+- other executable pull requests: `npm ci`, `npm run check` and `npm run build`
+- successful automatic merges: explicitly dispatch a full `main` validation run
+- executable post-merge validation: static/build validation plus the full Playwright browser regression suite
 
-This is the deliberate validation strategy for the active site-construction phase. Do not weaken the required pull-request static checks or production build without explicit review. When the project moves from rapid construction to a more stable release phase, reconsider whether full browser regressions should return to the pre-merge gate.
+This is the deliberate validation strategy for the active site-construction phase. Do not remove the production build from executable pull requests without explicit review. Do not extend the CSS-only exception beyond actual `.css` files without deliberate review. When the project moves from rapid construction to a more stable release phase, reconsider whether full browser regressions and CSS static checks should return to the pre-merge gate.
 
 ## Documentation maintenance
 
