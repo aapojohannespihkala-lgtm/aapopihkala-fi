@@ -578,52 +578,6 @@ a {
   padding-top: 32px;
 }
 
-
-/* =========================================================
-   POST INDEX
-   ========================================================= */
-
-
-.post-index-row {
-  width: 100%;
-
-  margin-bottom: 22px;
-
-  display: flex;
-  align-items: center;
-
-  gap: 12px;
-}
-
-
-.post-index {
-  color: var(--moss);
-
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    monospace;
-
-  font-size: 0.59rem;
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: 0.08em;
-}
-
-
-.post-index-line {
-  width: 34px;
-  height: 1px;
-
-  background: var(--lichen);
-
-  opacity: 0.7;
-}
-
-
 /* =========================================================
    POST META
    ========================================================= */
@@ -899,10 +853,6 @@ a {
 }
 
 
-.post-graphic + .source {
-  margin-top: 32px;
-}
-
 
 /* =========================================================
    SOURCE
@@ -940,10 +890,6 @@ a {
   text-transform: uppercase;
 }
 
-
-.source-placeholder {
-  color: var(--stone);
-}
 
 
 .source-link {
@@ -1181,10 +1127,6 @@ a:focus-visible {
   }
 
 
-  .post-index-row {
-    margin-bottom: 18px;
-  }
-
 
   .post-meta {
     margin-bottom: 18px;
@@ -1242,10 +1184,6 @@ a:focus-visible {
     margin-top: 38px;
   }
 
-
-  .post-graphic + .source {
-    margin-top: 28px;
-  }
 
 
   .source {
