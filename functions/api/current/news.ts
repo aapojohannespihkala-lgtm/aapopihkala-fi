@@ -59,6 +59,17 @@ const FEEDS: Feed[] = [
     tags: ['games', 'finnish-games'],
   },
   {
+    id: 'muropaketti-films', sourceId: 'muropaketti-films', source: 'Muropaketti',
+    url: 'https://muropaketti.com/elokuvat/feed', host: 'muropaketti.com', language: 'fi',
+    locality: 'finland', category: 'film', kind: 'news', score: 0.78,
+    tags: ['film', 'finnish-film-source'],
+  },
+  {
+    id: 'episodi', sourceId: 'episodi', source: 'Episodi', url: 'https://www.episodi.fi/feed/',
+    host: 'episodi.fi', language: 'fi', locality: 'finland', category: 'film', kind: 'news',
+    score: 0.66, tags: ['film', 'finnish-film-source'],
+  },
+  {
     id: 'inferno', sourceId: 'inferno', source: 'Inferno', url: 'https://www.inferno.fi/feed',
     host: 'inferno.fi', language: 'fi', locality: 'finland', category: 'music', kind: 'news',
     score: 0.91, tags: ['metal', 'finnish-metal'],
@@ -206,6 +217,7 @@ const tagHaystack = (entry: Entry) => `${haystack(entry)} ${entry.summary.toLoca
 const categoryFor = (feed: Feed, entry: Entry): NewsCategory => {
   if (feed.sourceId === 'comics-journal') return 'comics';
   if (feed.sourceId === 'pelaaja' || feed.sourceId === 'muropaketti-games') return 'games';
+  if (feed.sourceId === 'muropaketti-films' || feed.sourceId === 'episodi') return 'film';
   if (feed.sourceId === 'inferno' || feed.sourceId === 'angry-metal-guy') return 'music';
   const value = haystack(entry);
   if (/\b(elokuva|film|cinema|movie)\b/.test(value)) return 'film';
@@ -249,7 +261,11 @@ const keywordTags: Array<[string, RegExp]> = [
   ['game-design', /\b(game design|gameplay design|pelisuunnittelu)\b/],
   ['game-preservation', /\b(game preservation|pelihistoria|pelien säilyttäminen)\b/],
   ['restoration', /\b(restoration|restored|restaurointi|restauroitu)\b/],
-  ['film-history', /\b(film history|cinema history|elokuvahistoria)\b/], ['album', /\b(album|levy|levyn)\b/],
+  ['film-history', /\b(film history|cinema history|elokuvahistoria)\b/],
+  ['film-festival', /\b(film festival|elokuvafestivaali|cannes|venice film festival|sundance)\b/],
+  ['horror', /\b(horror|kauhu)\b/], ['sci-fi', /\b(sci[- ]?fi|science fiction|tieteiselokuva)\b/],
+  ['animation', /\b(animation|animaatio|anime)\b/], ['streaming', /\b(netflix|hbo max|prime video|disney\+|suoratoisto)\b/],
+  ['director', /\b(director|ohjaaja|ohjaajan)\b/], ['album', /\b(album|levy|levyn)\b/],
 ];
 
 const scoreBoost: Record<NewsKind, number> = {
@@ -269,12 +285,22 @@ const buildTags = (feed: Feed, entry: Entry, category: NewsCategory, kind: NewsK
   return [...result].slice(0, 16);
 };
 
-const noise = (title: string) => {
-  const value = title.toLocaleLowerCase('en-US');
-  return Math.min(0.24, [
+const noise = (feed: Feed, entry: Entry) => {
+  const value = `${entry.title} ${entry.summary}`.toLocaleLowerCase('fi-FI');
+  let penalty = [
     /\bkatso video\b/, /\bmusiikkivideo\b/, /\bkiertue\b/, /\bkeikalle\b/,
     /\btour dates?\b/, /\bshares? new video\b/,
-  ].filter((pattern) => pattern.test(value)).length * 0.08);
+  ].filter((pattern) => pattern.test(value)).length * 0.08;
+
+  if (feed.sourceId === 'episodi') {
+    penalty += [
+      /\btänään tv:ssä\b/, /\billalla tv:ssä\b/, /\bpoistuu netflixistä\b/,
+      /\bnetflixistä poistuu\b/, /\bilmaiskatselussa\b/, /\bnyt katsottavissa\b/,
+      /\brotten tomatoes\b/, /\bimdb\b/,
+    ].filter((pattern) => pattern.test(value)).length * 0.12;
+  }
+
+  return Math.min(0.48, penalty);
 };
 
 const hash = (value: string) => {
@@ -299,7 +325,7 @@ const toItem = (feed: Feed, entry: Entry): Item => {
     locality: feed.locality,
     tags: buildTags(feed, entry, category, kind),
     kind,
-    baseScore: Math.max(0.35, Math.min(1.25, feed.score + scoreBoost[kind] - noise(entry.title))),
+    baseScore: Math.max(0.35, Math.min(1.25, feed.score + scoreBoost[kind] - noise(feed, entry))),
   };
 };
 

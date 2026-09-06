@@ -143,6 +143,14 @@ const feedFixtures = new Map<string, string>([
     ['PlayStation 5:n levytuotannosta saatiin uusia tietoja', 'https://muropaketti.com/pelit/peliuutiset/live-a/', 'Sun, 06 Sep 2026 12:30:00 GMT', 'Pelit', 'Sonyn uusien lukujen perusteella PlayStationin fyysisten pelilevyjen tuotanto jatkuu odotettua vahvempana.'],
     ['Kotimainen indiepeli palaa retropelien estetiikkaan', 'https://muropaketti.com/pelit/peliuutiset/live-b/', 'Sat, 05 Sep 2026 17:30:00 GMT', 'Pelit', 'Pieni suomalaisstudio rakentaa uuden indiepeliensä 1990-luvun retropelien estetiikan ympärille.'],
   ])],
+  ['https://muropaketti.com/elokuvat/feed', rss([
+    ['Uusi kotimainen scifi-elokuva sai ensimmäisen trailerinsa', 'https://muropaketti.com/elokuvat/elokuvauutiset/live-film-a/', 'Sun, 06 Sep 2026 12:20:00 GMT', 'Elokuvat', 'Kotimaisen ohjaajan uusi scifi-elokuva yhdistää lähitulevaisuuden Helsingin ja pienen henkilödraaman.'],
+    ['Kauhuelokuvan restauroitu versio palaa valkokankaalle', 'https://muropaketti.com/elokuvat/elokuvauutiset/live-film-b/', 'Sat, 05 Sep 2026 17:20:00 GMT', 'Elokuvat', '1970-luvun kauhuklassikon restaurointi saa uuden teatterikierroksen ja arkistomateriaalista koostetun lisäosan.'],
+  ])],
+  ['https://www.episodi.fi/feed/', rss([
+    ['Ohjaajan uusi elokuva kilpailee Venetsian elokuvafestivaalilla', 'https://www.episodi.fi/uutiset/live-film-a/', 'Sun, 06 Sep 2026 12:10:00 GMT', 'Uutiset', 'Palkitun ohjaajan uusi draama saa ensi-iltansa Venetsian elokuvafestivaalilla ja saapuu myöhemmin teattereihin.'],
+    ['Tänään tv:ssä: kehuttu kauhuelokuva poistuu Netflixistä - Rotten Tomatoes 91', 'https://www.episodi.fi/uutiset/live-film-b/', 'Sun, 06 Sep 2026 12:05:00 GMT', 'Uutiset', 'Kauhuelokuva on nyt katsottavissa mutta poistuu Netflixistä pian. IMDb ja Rotten Tomatoes -luvut ovat korkeat.'],
+  ])],
   ['https://www.inferno.fi/feed', rss([
     ['Kotimainen black metal -yhtye julkaisee uuden levyn', 'https://www.inferno.fi/uutiset/live-a/', 'Sun, 06 Sep 2026 12:15:00 GMT', 'black metal', 'Kotimainen black metal -yhtye on vahvistanut uuden albuminsa julkaisupäivän ja ensimmäisen kappaleen.'],
     ['Progressive metal -yhtye palaa pitkän tauon jälkeen', 'https://www.inferno.fi/uutiset/live-b/', 'Sat, 05 Sep 2026 16:30:00 GMT', 'progressive metal', 'Progressive metal -yhtye kertoo paluunsa taustoista ja tulevan levyn syntyprosessista.'],
@@ -194,16 +202,25 @@ test('Current News API normalizes the verified feeds and Worker serves the route
   try {
     const response = await getNewsResponse();
     const data = (await response.json()) as {
-      items: Array<{ id: string; title: string; summary: string; url: string; sourceId: string; category: string; tags: string[] }>;
+      items: Array<{
+        id: string;
+        title: string;
+        summary: string;
+        url: string;
+        sourceId: string;
+        category: string;
+        tags: string[];
+        baseScore: number;
+      }>;
       sources: Array<{ id: string; status: string; count: number }>;
     };
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toContain('max-age=900');
-    expect(data.items.length).toBeGreaterThanOrEqual(16);
+    expect(data.items.length).toBeGreaterThanOrEqual(20);
     expect(new Set(data.items.map((item) => item.url)).size).toBe(data.items.length);
     expect(new Set(data.items.map((item) => item.sourceId))).toEqual(new Set([
-      'soundi', 'pelaaja', 'muropaketti-games', 'inferno', 'kulttuuritoimitus',
-      'pitchfork', 'quietus', 'angry-metal-guy', 'comics-journal',
+      'soundi', 'pelaaja', 'muropaketti-games', 'muropaketti-films', 'episodi', 'inferno',
+      'kulttuuritoimitus', 'pitchfork', 'quietus', 'angry-metal-guy', 'comics-journal',
     ]));
     expect(data.items.some((item) => item.title.includes('&'))).toBe(true);
     expect(data.items.every((item) => item.summary.length <= 190 && !item.summary.includes('<'))).toBe(true);
@@ -214,7 +231,18 @@ test('Current News API normalizes the verified feeds and Worker serves the route
     expect(data.items.find((item) => item.sourceId === 'inferno')?.tags).toContain('black-metal');
     expect(data.items.find((item) => item.sourceId === 'angry-metal-guy')?.tags).toContain('black-metal');
     expect(data.items.find((item) => item.sourceId === 'kulttuuritoimitus')?.category).toBe('architecture');
-    expect(data.sources).toHaveLength(9);
+    expect(data.items.find((item) => item.sourceId === 'muropaketti-films')?.category).toBe('film');
+    expect(data.items.find((item) => item.sourceId === 'muropaketti-films')?.tags).toContain('sci-fi');
+    expect(data.items.find((item) => item.sourceId === 'episodi')?.category).toBe('film');
+
+    const episodiItems = data.items.filter((item) => item.sourceId === 'episodi');
+    const normalFilm = episodiItems.find((item) => item.title.startsWith('Ohjaajan uusi elokuva'));
+    const noisyFilm = episodiItems.find((item) => item.title.startsWith('Tänään tv:ssä'));
+    expect(normalFilm?.tags).toContain('film-festival');
+    expect(noisyFilm?.tags).toContain('streaming');
+    expect(normalFilm?.baseScore ?? 0).toBeGreaterThan(noisyFilm?.baseScore ?? 1);
+
+    expect(data.sources).toHaveLength(11);
     expect(data.sources.every((source) => source.status === 'ok' && source.count > 0)).toBe(true);
     expect(requested).toEqual(new Set(feedFixtures.keys()));
 
