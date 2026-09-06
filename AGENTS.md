@@ -30,3 +30,25 @@ Every new interactive animation or animation study must also be added to `src/pa
 - Give each new experiment the next available lab number and a short descriptive title.
 - Keep the lab version fully interactive unless the component itself has a deliberate restriction.
 - Do not leave an article-only animation out of Animation Lab.
+
+## Documentation maintenance
+
+Update project documentation when a documented contract, workflow or architectural ownership boundary changes.
+
+Do not update documentation only because an implementation detail changed. In particular, documentation does not need a change solely because:
+
+- a new regression test was added inside the existing test strategy
+- a new component was added inside an existing architecture
+- an animation constant or visual tuning value changed
+- a local CSS fix was made
+- implementation code was refactored without changing ownership or public behavior
+
+Use the appropriate source of truth:
+
+- `README.md` for setup, commands, CI, deployment and the project overview
+- `docs/ARCHITECTURE.md` for stable ownership boundaries and architecture
+- `docs/CONTENT.md` for the article workflow and publishing contract
+- `ROADMAP.md` for unfinished development work
+- code and tests for exact implementation details and regression assertions
+
+Avoid maintaining exhaustive file inventories, test lists or duplicated schema examples in prose when the repository itself is the more reliable source.
