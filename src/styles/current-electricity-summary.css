@@ -1,3 +1,7 @@
+.current-electricity .electricity-extremes[hidden] {
+  display: none;
+}
+
 .current-electricity .electricity-summary-strip {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(112px, auto) minmax(0, 1fr);
