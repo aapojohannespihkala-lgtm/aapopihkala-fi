@@ -11,22 +11,27 @@ const macroFixture = {
 };
 
 const tradingViewStubBody = `
-class TradingViewSingleTickerStub extends HTMLElement {
+class TradingViewTickerTagStub extends HTMLElement {
   connectedCallback() {
     this.dataset.tradingViewStub = 'true';
-    this.style.display = 'block';
-    this.style.height = '63px';
+    this.replaceChildren();
+    const value = document.createElement('span');
+    value.textContent = '+0.42%';
+    this.append(value);
+    this.style.display = 'inline-block';
+    this.style.width = '92px';
+    this.style.height = '28px';
   }
 }
 
-if (!customElements.get('tv-single-ticker')) {
-  customElements.define('tv-single-ticker', TradingViewSingleTickerStub);
+if (!customElements.get('tv-ticker-tag')) {
+  customElements.define('tv-ticker-tag', TradingViewTickerTagStub);
 }
 `;
 
 const stubTradingView = async (page: Page) => {
   await page.route(
-    'https://widgets.tradingview-widget.com/w/en/tv-single-ticker.js',
+    'https://widgets.tradingview-widget.com/w/en/tv-ticker-tag.js',
     async (route) => {
       await route.fulfill({
         status: 200,
@@ -39,7 +44,7 @@ const stubTradingView = async (page: Page) => {
 
 const blockTradingView = async (page: Page) => {
   await page.route(
-    'https://widgets.tradingview-widget.com/w/en/tv-single-ticker.js',
+    'https://widgets.tradingview-widget.com/w/en/tv-ticker-tag.js',
     async (route) => route.abort()
   );
 };
@@ -54,7 +59,7 @@ const stubMarkets = async (page: Page) => {
   });
 };
 
-test('standalone Current Markets shows a compact static market grid and ECB macro context', async ({ page }) => {
+test('standalone Current Markets shows compact ticker tags and ECB macro context', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubTradingView(page);
   await stubMarkets(page);
@@ -64,39 +69,27 @@ test('standalone Current Markets shows a compact static market grid and ECB macr
   await expect(page.locator('h1')).toHaveText('Markets');
   await expect(page.locator('a.current-markets-status__link')).toHaveAttribute('href', '/current/');
 
-  const tickers = page.locator('tv-single-ticker');
-  await expect(tickers).toHaveCount(7);
-  await expect(tickers.nth(0)).toHaveAttribute('symbol', 'AMEX:URTH');
-  await expect(tickers.nth(1)).toHaveAttribute('symbol', 'AMEX:SPY');
-  await expect(tickers.nth(2)).toHaveAttribute('symbol', 'NASDAQ:VGK');
-  await expect(tickers.nth(3)).toHaveAttribute('symbol', 'OMXNORDIC:OMXN40');
-  await expect(tickers.nth(4)).toHaveAttribute('symbol', 'OMXHEX:OMXH25');
-  await expect(tickers.nth(5)).toHaveAttribute('symbol', 'AMEX:EWJ');
-  await expect(tickers.nth(6)).toHaveAttribute('symbol', 'COINBASE:BTCEUR');
-  await expect(tickers.nth(0)).toHaveAttribute('data-trading-view-stub', 'true');
-  await expect(page.locator('tv-tickers')).toHaveCount(0);
-  await expect(page.locator('tv-ticker-tape')).toHaveCount(0);
-  await expect(page.locator('[data-markets-single-tickers-ready="true"]')).toHaveCount(1);
-  await expect(page.locator('[data-market-single-fallback]').first()).toBeHidden();
+  const tags = page.locator('tv-ticker-tag');
+  await expect(tags).toHaveCount(7);
+  await expect(tags.nth(0)).toHaveAttribute('symbol', 'AMEX:URTH');
+  await expect(tags.nth(1)).toHaveAttribute('symbol', 'AMEX:SPY');
+  await expect(tags.nth(2)).toHaveAttribute('symbol', 'AMEX:VGK');
+  await expect(tags.nth(3)).toHaveAttribute('symbol', 'OMXNORDIC:OMXN40');
+  await expect(tags.nth(4)).toHaveAttribute('symbol', 'OMXHEX:OMXH25');
+  await expect(tags.nth(5)).toHaveAttribute('symbol', 'AMEX:EWJ');
+  await expect(tags.nth(6)).toHaveAttribute('symbol', 'COINBASE:BTCEUR');
+  await expect(page.locator('[data-trading-view-stub]')).toHaveCount(7);
+  await expect(page.locator('tv-single-ticker, tv-tickers, tv-ticker-tape')).toHaveCount(0);
 
   const references = page.locator('[data-market-reference]');
-  await expect(references).toHaveCount(7);
-  await expect(references.nth(0)).toContainText('WORLD / URTH');
-  await expect(references.nth(1)).toContainText('USA / SPY');
-  await expect(references.nth(2)).toContainText('EUROPE / VGK');
-  await expect(references.nth(5)).toContainText('JAPAN / EWJ');
-
-  const firstBox = await references.nth(0).boundingBox();
-  const secondBox = await references.nth(1).boundingBox();
-  const thirdBox = await references.nth(2).boundingBox();
-  expect(firstBox).not.toBeNull();
-  expect(secondBox).not.toBeNull();
-  expect(thirdBox).not.toBeNull();
-  if (firstBox && secondBox && thirdBox) {
-    expect(Math.abs(firstBox.y - secondBox.y)).toBeLessThanOrEqual(1);
-    expect(secondBox.x).toBeGreaterThan(firstBox.x);
-    expect(thirdBox.y).toBeGreaterThan(firstBox.y);
-    expect(firstBox.height).toBeLessThanOrEqual(100);
+  const first = await references.nth(0).boundingBox();
+  const second = await references.nth(1).boundingBox();
+  expect(first).not.toBeNull();
+  expect(second).not.toBeNull();
+  if (first && second) {
+    expect(Math.abs(first.x - second.x)).toBeLessThanOrEqual(1);
+    expect(second.y).toBeGreaterThan(first.y);
+    expect(first.width).toBeGreaterThan(280);
   }
 
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
@@ -112,19 +105,16 @@ test('standalone Current Markets shows a compact static market grid and ECB macr
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('Markets keeps a useful compact fallback if TradingView is blocked', async ({ page }) => {
+test('Markets keeps readable fallback rows if TradingView is blocked', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await blockTradingView(page);
   await stubMarkets(page);
 
   await page.goto('/current/markets/', { waitUntil: 'domcontentloaded' });
 
-  await expect(page.locator('[data-markets-single-tickers-ready="true"]')).toHaveCount(0);
-  const fallback = page.locator('[data-market-single-fallback]');
-  await expect(fallback).toHaveCount(7);
-  await expect(fallback.first()).toBeVisible();
+  await expect(page.locator('[data-market-tag-fallback]')).toHaveCount(7);
   await expect(page.locator('[data-market-reference="world"]')).toContainText('WORLD / URTH');
-  await expect(page.locator('[data-market-reference="nordics"]')).toContainText('NORDICS / OMXN40');
+  await expect(page.locator('[data-market-reference="europe"]')).toContainText('EUROPE / VGK');
   await expect(page.locator('[data-market-reference="btc-eur"]')).toContainText('BTC / EUR');
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
 
@@ -144,7 +134,6 @@ test('Current places Markets above electricity', async ({ page }) => {
   await expect(page.locator('h1')).toHaveText('Current');
   await expect(page.locator('[data-current-markets]')).toHaveCount(1);
   await expect(page.locator('[data-current-electricity]')).toHaveCount(1);
-  await expect(page.locator('tv-single-ticker')).toHaveCount(7);
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
 
   const moduleOrder = await page.evaluate(() =>
