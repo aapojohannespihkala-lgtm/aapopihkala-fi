@@ -10,30 +10,36 @@ const macroFixture = {
   source: 'ECB',
 };
 
+const expectedMarketSymbols = [
+  'AMEX:URTH',
+  'AMEX:SPY',
+  'AMEX:VGK',
+  'OMXNORDIC:OMXN40',
+  'OMXHEX:OMXH25',
+  'AMEX:EWJ',
+  'COINBASE:BTCEUR',
+];
+
 const tradingViewStubBody = `
-class TradingViewTickerTagStub extends HTMLElement {
+class TradingViewMarketDataStub extends HTMLElement {
   connectedCallback() {
     this.dataset.tradingViewStub = 'true';
     this.replaceChildren();
-    const value = document.createElement('span');
-    value.textContent = '+0.42%';
-    this.append(value);
-    this.style.display = 'inline-block';
-    this.style.width = '92px';
-    this.style.height = '28px';
+
+    const periods = document.createElement('div');
+    periods.dataset.marketDataStubPeriods = 'true';
+    periods.textContent = 'Today 1W 1M 6M 1Y';
+    this.append(periods);
   }
 }
 
-if (!customElements.get('tv-ticker-tag')) {
-  customElements.define('tv-ticker-tag', TradingViewTickerTagStub);
+if (!customElements.get('tv-market-data')) {
+  customElements.define('tv-market-data', TradingViewMarketDataStub);
 }
 `;
 
-const TRADING_VIEW_TICKER_TAG_URL =
-  'https://www.tradingview-widget.com/w/en/tv-ticker-tag.js';
-
 const stubTradingView = async (page: Page) => {
-  await page.route(TRADING_VIEW_TICKER_TAG_URL, async (route) => {
+  await page.route('**/tv-market-data.js', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/javascript',
@@ -43,7 +49,7 @@ const stubTradingView = async (page: Page) => {
 };
 
 const blockTradingView = async (page: Page) => {
-  await page.route(TRADING_VIEW_TICKER_TAG_URL, async (route) => route.abort());
+  await page.route('**/tv-market-data.js', async (route) => route.abort());
 };
 
 const stubMarkets = async (page: Page) => {
@@ -56,7 +62,7 @@ const stubMarkets = async (page: Page) => {
   });
 };
 
-test('standalone Current Markets shows compact ticker tags and ECB macro context', async ({ page }) => {
+test('standalone Current Markets shows TradingView period performance and ECB macro context', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubTradingView(page);
   await stubMarkets(page);
@@ -65,31 +71,32 @@ test('standalone Current Markets shows compact ticker tags and ECB macro context
 
   await expect(page.locator('h1')).toHaveText('Markets');
   await expect(page.locator('a.current-markets-status__link')).toHaveAttribute('href', '/current/');
+  await expect(page.getByText('GLOBAL / PERFORMANCE')).toHaveCount(1);
 
-  const moduleScript = page.locator(`script[src="${TRADING_VIEW_TICKER_TAG_URL}"]`);
-  await expect(moduleScript).toHaveCount(1);
+  const widget = page.locator('tv-market-data');
+  await expect(widget).toHaveCount(1);
+  await expect(widget).toHaveAttribute('view', 'performance');
+  await expect(widget).toHaveAttribute('transparent', '');
+  await expect(widget).toHaveAttribute('locale', 'en');
+  await expect(widget).toHaveAttribute('theme', 'dark');
+  await expect(widget).toHaveAttribute('data-trading-view-stub', 'true');
+  await expect(page.locator('[data-market-data-stub-periods]')).toHaveText('Today 1W 1M 6M 1Y');
+  await expect(page.locator('tv-ticker-tag, tv-single-ticker, tv-tickers, tv-ticker-tape')).toHaveCount(0);
 
-  const tags = page.locator('tv-ticker-tag');
-  await expect(tags).toHaveCount(7);
-  await expect(tags.nth(0)).toHaveAttribute('symbol', 'AMEX:URTH');
-  await expect(tags.nth(1)).toHaveAttribute('symbol', 'AMEX:SPY');
-  await expect(tags.nth(2)).toHaveAttribute('symbol', 'AMEX:VGK');
-  await expect(tags.nth(3)).toHaveAttribute('symbol', 'OMXNORDIC:OMXN40');
-  await expect(tags.nth(4)).toHaveAttribute('symbol', 'OMXHEX:OMXH25');
-  await expect(tags.nth(5)).toHaveAttribute('symbol', 'AMEX:EWJ');
-  await expect(tags.nth(6)).toHaveAttribute('symbol', 'COINBASE:BTCEUR');
-  await expect(page.locator('[data-trading-view-stub]')).toHaveCount(7);
-  await expect(page.locator('tv-single-ticker, tv-tickers, tv-ticker-tape')).toHaveCount(0);
+  const sectors = JSON.parse((await widget.getAttribute('symbol-sectors')) ?? '[]');
+  expect(sectors).toEqual([
+    {
+      sectionName: 'Markets',
+      symbols: expectedMarketSymbols,
+    },
+  ]);
 
-  const references = page.locator('[data-market-reference]');
-  const first = await references.nth(0).boundingBox();
-  const second = await references.nth(1).boundingBox();
-  expect(first).not.toBeNull();
-  expect(second).not.toBeNull();
-  if (first && second) {
-    expect(Math.abs(first.x - second.x)).toBeLessThanOrEqual(1);
-    expect(second.y).toBeGreaterThan(first.y);
-    expect(first.width).toBeGreaterThan(280);
+  const widgetBox = await widget.boundingBox();
+  expect(widgetBox).not.toBeNull();
+  if (widgetBox) {
+    expect(widgetBox.width).toBeGreaterThan(280);
+    expect(widgetBox.height).toBeGreaterThanOrEqual(420);
+    expect(widgetBox.height).toBeLessThanOrEqual(440);
   }
 
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
@@ -105,18 +112,24 @@ test('standalone Current Markets shows compact ticker tags and ECB macro context
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('Markets keeps readable fallback rows if TradingView is blocked', async ({ page }) => {
+test('Markets keeps a compact fallback if TradingView performance data is blocked', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await blockTradingView(page);
   await stubMarkets(page);
 
   await page.goto('/current/markets/', { waitUntil: 'domcontentloaded' });
 
-  await expect(page.locator('[data-market-tag-fallback]')).toHaveCount(7);
-  await expect(page.locator('[data-market-reference="world"]')).toContainText('WORLD / URTH');
-  await expect(page.locator('[data-market-reference="europe"]')).toContainText('EUROPE / VGK');
-  await expect(page.locator('[data-market-reference="btc-eur"]')).toContainText('BTC / EUR');
+  const fallback = page.locator('[data-markets-performance-fallback]');
+  await expect(fallback).toBeVisible();
+  await expect(fallback).toContainText('TODAY / 1W / 1M / 6M / 1Y');
+  await expect(page.locator('[data-markets-performance-message]')).toHaveText(
+    'Market performance unavailable'
+  );
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
+
+  const fallbackBox = await fallback.boundingBox();
+  expect(fallbackBox).not.toBeNull();
+  if (fallbackBox) expect(fallbackBox.height).toBeLessThan(120);
 
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerWidth,
@@ -125,7 +138,7 @@ test('Markets keeps readable fallback rows if TradingView is blocked', async ({ 
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('Current places Markets above electricity', async ({ page }) => {
+test('Current places Markets performance above electricity', async ({ page }) => {
   await stubTradingView(page);
   await stubMarkets(page);
 
@@ -133,6 +146,7 @@ test('Current places Markets above electricity', async ({ page }) => {
 
   await expect(page.locator('h1')).toHaveText('Current');
   await expect(page.locator('[data-current-markets]')).toHaveCount(1);
+  await expect(page.locator('tv-market-data')).toHaveAttribute('view', 'performance');
   await expect(page.locator('[data-current-electricity]')).toHaveCount(1);
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
 
