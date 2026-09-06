@@ -20,10 +20,29 @@ const expectMinimumTargetSize = async (target: Locator) => {
   expect(box!.height).toBeGreaterThanOrEqual(24);
 };
 
+test('skip navigation moves keyboard focus to the main landmark', async ({ page }) => {
+  await preparePage(page);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const skipLink = page.getByRole('link', { name: 'Siirry pääsisältöön' });
+  const main = page.locator('main#main-content');
+
+  await expect(main).toHaveCount(1);
+  await expect(main).toHaveAttribute('tabindex', '-1');
+
+  await page.keyboard.press('Tab');
+  await expect(skipLink).toBeFocused();
+  await page.keyboard.press('Enter');
+
+  await expect(main).toBeFocused();
+  await expect(page).toHaveURL(/#main-content$/);
+});
+
 test('header controls keep accessible names and explicit 24px targets', async ({ page }) => {
   await preparePage(page);
   await page.goto('/', { waitUntil: 'domcontentloaded' });
 
+  const skipLink = page.getByRole('link', { name: 'Siirry pääsisältöön' });
   const navigation = page.getByRole('navigation', { name: 'Päänavigaatio' });
   const home = page.getByRole('link', { name: 'Aapo Pihkalan etusivu' });
   const nightMode = page.getByRole('button', { name: 'Yötila' });
@@ -46,6 +65,8 @@ test('header controls keep accessible names and explicit 24px targets', async ({
   });
 
   await page.keyboard.press('Tab');
+  await expect(skipLink).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(home).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(nightMode).toBeFocused();
@@ -53,6 +74,18 @@ test('header controls keep accessible names and explicit 24px targets', async ({
   await expect(language).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(linkedin).toBeFocused();
+});
+
+test('About and article pages expose the shared main content target', async ({ page }) => {
+  await preparePage(page);
+
+  for (const path of ['/about/', '/artikkelit/luontoviisas-piha/']) {
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+
+    const main = page.locator('main#main-content');
+    await expect(main).toHaveCount(1);
+    await expect(main).toHaveAttribute('tabindex', '-1');
+  }
 });
 
 test('analytics consent controls keep explicit 24px targets', async ({ page }) => {
@@ -88,6 +121,7 @@ test('English header keeps localized navigation names', async ({ page }) => {
   await preparePage(page);
   await page.goto('/en/', { waitUntil: 'domcontentloaded' });
 
+  await expect(page.getByRole('link', { name: 'Skip to main content' })).toHaveCount(1);
   await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Aapo Pihkala homepage' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Night mode' })).toBeVisible();
