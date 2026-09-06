@@ -38,32 +38,45 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('Current keeps electricity window labels separate on mobile and clarifies the NOW reading', async ({ page }) => {
+test('Current keeps electricity annotations compact and separates current from inspected price markers', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('.electricity-now__label')).toHaveText('NOW / 15 MIN');
-  await expect(page.locator('[data-electricity-low-label]')).toContainText('LOW 2H');
-  await expect(page.locator('[data-electricity-high-label]')).toContainText('HIGH 2H');
-  await expect(page.locator('[data-electricity-window-leader]')).toHaveCount(2);
+  await expect(page.locator('.electricity-extremes')).toBeHidden();
+  await expect(page.locator('[data-electricity-window-leader]')).toHaveCount(0);
 
   const lowLabel = page.locator('[data-electricity-low-label]');
   const highLabel = page.locator('[data-electricity-high-label]');
-  const lowBox = await lowLabel.boundingBox();
-  const highBox = await highLabel.boundingBox();
 
-  expect(lowBox).not.toBeNull();
-  expect(highBox).not.toBeNull();
+  await expect(lowLabel).not.toContainText(/LOW/i);
+  await expect(highLabel).not.toContainText(/HIGH/i);
+  await expect(lowLabel).toContainText('c/kWh');
+  await expect(highLabel).toContainText('c/kWh');
 
-  if (lowBox && highBox) {
-    const overlaps = !(
-      lowBox.x + lowBox.width <= highBox.x ||
-      highBox.x + highBox.width <= lowBox.x ||
-      lowBox.y + lowBox.height <= highBox.y ||
-      highBox.y + highBox.height <= lowBox.y
-    );
-    expect(overlaps).toBe(false);
-  }
+  const lowLines = await lowLabel.locator('text').allTextContents();
+  const highLines = await highLabel.locator('text').allTextContents();
+
+  expect(lowLines).toHaveLength(3);
+  expect(highLines).toHaveLength(3);
+  expect(lowLines[1]).toMatch(/^\d{2}:\d{2} -$/);
+  expect(lowLines[2]).toMatch(/^\d{2}:\d{2}$/);
+  expect(highLines[1]).toMatch(/^\d{2}:\d{2} -$/);
+  expect(highLines[2]).toMatch(/^\d{2}:\d{2}$/);
+
+  const currentLine = page.locator('[data-electricity-current-line]');
+  const currentPoint = page.locator('[data-electricity-current-point]');
+  await expect(currentLine).toHaveCount(1);
+  await expect(currentPoint).toBeHidden();
+
+  const currentMarkerStyle = await currentLine.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      dash: style.strokeDasharray,
+      stroke: style.stroke,
+    };
+  });
+  expect(currentMarkerStyle.dash === 'none' || currentMarkerStyle.dash === '').toBe(true);
 
   const chart = page.locator('[data-electricity-chart]');
   const chartBox = await chart.boundingBox();
@@ -78,6 +91,9 @@ test('Current keeps electricity window labels separate on mobile and clarifies t
   }
 
   await expect(page.locator('[data-electricity-chart-tooltip]')).toBeVisible();
+  await expect(page.locator('[data-electricity-inspection-band]')).toHaveAttribute('opacity', '1');
+  await expect(page.locator('[data-electricity-inspection-line]')).toHaveAttribute('opacity', '1');
+  await expect(page.locator('[data-electricity-inspection-point]')).toHaveAttribute('opacity', '1');
   await expect(chart).toHaveClass(/electricity-chart--inspecting/);
 
   const dimensions = await page.evaluate(() => ({

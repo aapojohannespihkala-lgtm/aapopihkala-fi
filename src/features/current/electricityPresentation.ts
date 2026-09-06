@@ -1,26 +1,63 @@
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-const clamp = (value: number, minimum: number, maximum: number) =>
-  Math.max(minimum, Math.min(maximum, value));
-
 const readSvgNumber = (element: Element, attribute: string) => {
   const value = Number(element.getAttribute(attribute));
   return Number.isFinite(value) ? value : Number.NaN;
 };
 
-const setWindowCopy = (label: SVGGElement, kind: 'LOW' | 'HIGH') => {
+const readWindowPrice = (label: SVGGElement, headline: SVGTextElement) => {
+  const stored = label.dataset.windowPrice;
+  if (stored) return stored;
+
+  const current = headline.textContent ?? '';
+  const separatorIndex = current.indexOf('·');
+  const price = separatorIndex >= 0 ? current.slice(separatorIndex + 1).trim() : current.trim();
+  label.dataset.windowPrice = price;
+  return price;
+};
+
+const readWindowRange = (label: SVGGElement, range: SVGTextElement) => {
+  const stored = label.dataset.windowRange;
+  if (stored) return stored;
+
+  const value = range.textContent?.trim() ?? '';
+  label.dataset.windowRange = value;
+  return value;
+};
+
+const splitWindowRange = (value: string) => {
+  const match = value.match(/^(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/);
+  if (!match) return [value, ''] as const;
+  return [`${match[1]} -`, match[2]] as const;
+};
+
+const simplifyWindowLabel = (label: SVGGElement, band: SVGRectElement) => {
   const lines = label.querySelectorAll<SVGTextElement>('text');
   const headline = lines[0];
   const range = lines[1];
   if (!headline || !range) return;
 
-  const current = headline.textContent ?? '';
-  const separatorIndex = current.indexOf('·');
-  const price = separatorIndex >= 0 ? current.slice(separatorIndex + 1).trim() : '';
+  const price = readWindowPrice(label, headline);
+  const [rangeStart, rangeEnd] = splitWindowRange(readWindowRange(label, range));
+  const bandX = readSvgNumber(band, 'x');
+  const bandWidth = readSvgNumber(band, 'width');
+  if (!Number.isFinite(bandX) || !Number.isFinite(bandWidth)) return;
 
-  headline.textContent = price ? `${kind} 2H · ${price}` : `${kind} 2H`;
-  headline.setAttribute('y', '10');
-  range.setAttribute('y', '20');
+  let rangeEndLine = label.querySelector<SVGTextElement>('[data-electricity-window-range-end]');
+  if (!rangeEndLine) {
+    rangeEndLine = document.createElementNS(SVG_NS, 'text');
+    rangeEndLine.setAttribute('data-electricity-window-range-end', '');
+    rangeEndLine.setAttribute('class', 'electricity-chart__window-range');
+    label.append(rangeEndLine);
+  }
+
+  headline.textContent = price ? `${price} c/kWh` : '--.-- c/kWh';
+  headline.setAttribute('y', '9');
+  range.textContent = rangeStart;
+  range.setAttribute('y', '18');
+  rangeEndLine.textContent = rangeEnd;
+  rangeEndLine.setAttribute('y', '27');
+  label.setAttribute('transform', `translate(${(bandX + bandWidth / 2).toFixed(2)} 0)`);
 };
 
 export const initCurrentElectricityPresentation = () => {
@@ -47,24 +84,6 @@ export const initCurrentElectricityPresentation = () => {
     chartObserver.observe(chart, { childList: true });
   };
 
-  const addLeader = (
-    kind: 'low' | 'high',
-    labelX: number,
-    bandCenter: number,
-    plotTop: number
-  ) => {
-    const leader = document.createElementNS(SVG_NS, 'line');
-    leader.setAttribute('data-electricity-window-leader', kind);
-    leader.setAttribute('class', `electricity-chart__window-leader electricity-chart__window-leader--${kind}`);
-    leader.setAttribute('x1', labelX.toFixed(2));
-    leader.setAttribute('x2', bandCenter.toFixed(2));
-    leader.setAttribute('y1', '25');
-    leader.setAttribute('y2', Math.max(27, plotTop - 3).toFixed(2));
-
-    const firstBand = chart.querySelector('[data-electricity-low-band], [data-electricity-high-band]');
-    chart.insertBefore(leader, firstBand);
-  };
-
   const layoutWindowLabels = () => {
     frame = 0;
 
@@ -74,54 +93,10 @@ export const initCurrentElectricityPresentation = () => {
     const highBand = chart.querySelector<SVGRectElement>('[data-electricity-high-band]');
     if (!lowLabel || !highLabel || !lowBand || !highBand) return;
 
-    const width = chart.viewBox.baseVal.width;
-    if (!Number.isFinite(width) || width <= 0) return;
-
-    const bandCenter = (band: SVGRectElement) =>
-      readSvgNumber(band, 'x') + readSvgNumber(band, 'width') / 2;
-
-    const lowCenter = bandCenter(lowBand);
-    const highCenter = bandCenter(highBand);
-    if (!Number.isFinite(lowCenter) || !Number.isFinite(highCenter)) return;
-
-    const compact = width < 560;
-    const labelHalfWidth = compact ? 42 : 50;
-    const minimumGap = compact ? 100 : 120;
-    const leftLimit = labelHalfWidth + 2;
-    const rightLimit = width - labelHalfWidth - 2;
-
-    let lowX = clamp(lowCenter, leftLimit, rightLimit);
-    let highX = clamp(highCenter, leftLimit, rightLimit);
-
-    if (Math.abs(lowX - highX) < minimumGap && rightLimit - leftLimit >= minimumGap) {
-      const lowIsLeft = lowCenter <= highCenter;
-      const midpoint = clamp(
-        (lowCenter + highCenter) / 2,
-        leftLimit + minimumGap / 2,
-        rightLimit - minimumGap / 2
-      );
-
-      if (lowIsLeft) {
-        lowX = midpoint - minimumGap / 2;
-        highX = midpoint + minimumGap / 2;
-      } else {
-        lowX = midpoint + minimumGap / 2;
-        highX = midpoint - minimumGap / 2;
-      }
-    }
-
-    const plotTop = Math.min(readSvgNumber(lowBand, 'y'), readSvgNumber(highBand, 'y'));
-
     chartObserver.disconnect();
     chart.querySelectorAll('[data-electricity-window-leader]').forEach((leader) => leader.remove());
-
-    setWindowCopy(lowLabel, 'LOW');
-    setWindowCopy(highLabel, 'HIGH');
-    lowLabel.setAttribute('transform', `translate(${lowX.toFixed(2)} 0)`);
-    highLabel.setAttribute('transform', `translate(${highX.toFixed(2)} 0)`);
-
-    addLeader('low', lowX, lowCenter, plotTop);
-    addLeader('high', highX, highCenter, plotTop);
+    simplifyWindowLabel(lowLabel, lowBand);
+    simplifyWindowLabel(highLabel, highBand);
     observeChart();
     syncInspectionState();
   };
