@@ -40,6 +40,10 @@ const metaImageAlt =
   lang === 'fi'
     ? 'Aapo Pihkala - topografinen viivagrafiikka'
     : 'Aapo Pihkala - topographic line graphic';
+const skipToContentLabel =
+  lang === 'fi'
+    ? 'Siirry pääsisältöön'
+    : 'Skip to main content';
 ---
 
 <!doctype html>
@@ -96,10 +100,33 @@ const metaImageAlt =
         </Fragment>
       )
     }
+    <style>
+      .skip-link {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        z-index: 1000;
+        padding: 8px 12px;
+        background: var(--page);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        font-size: 0.78rem;
+        line-height: 1.2;
+        text-decoration: none;
+        transform: translateY(calc(-100% - 16px));
+      }
+
+      .skip-link:focus-visible {
+        outline: 1px solid var(--lichen);
+        outline-offset: 3px;
+        transform: translateY(0);
+      }
+    </style>
     <slot name="head" />
   </head>
 
   <body>
+    <a class="skip-link" href="#main-content">{skipToContentLabel}</a>
     <SiteHeader lang={lang} languageHref={languageHref} />
     <SiteInteractionLayer areaPolish={areaPolish} />
     <slot />

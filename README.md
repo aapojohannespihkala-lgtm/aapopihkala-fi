@@ -127,6 +127,7 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - päivä/yö-tilan
 - kielilinkit
 - headerin FI/EN-saavutettavat nimet, näppäimistöjärjestyksen ja vähintään 24 x 24 px interaktiiviset kohteet
+- FI/EN skip-navigation-linkin ensimmäisen tab-kohteen ja fokuksen siirtymisen `main#main-content`-landmarkiin
 - analytiikkasuostumuksen valintapainikkeiden ja analytiikka-asetusten vähintään 24 px korkeat interaktiiviset kohteet
 - FI- ja EN-ingressin tarkoitetun desktop-rivijaon: FI-rivin viimeinen sana on `luonnon` ja EN-rivin `cities,`
 - 390 x 844 -mobiilinäkymän FI/EN-etusivusopimuksen: yksipalstainen hero, piilotettu hero-topografia ja poistettu pakotettu desktop-rivinvaihto
@@ -257,6 +258,7 @@ src/layouts/BaseLayout.astro
 
 - `<html>`, `<head>` ja `<body>` -rakenteen
 - yhteiset globaalit tyylit
+- FI/EN skip-navigation-linkin ennen headeria
 - `SiteHeader`-komponentin
 - `SiteInteractionLayer`-komponentin erillisenä yhteisenä kerroksena
 - Analytics-komponentin
