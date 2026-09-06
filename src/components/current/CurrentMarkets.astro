@@ -12,7 +12,7 @@
         <tv-market-data
           view="performance"
           symbol-sectors='[{"sectionName":"Markets","symbols":["AMEX:URTH","AMEX:SPY","AMEX:VGK","OMXNORDIC:OMXN40","OMXHEX:OMXH25","AMEX:EWJ","COINBASE:BTCEUR"]}]'
-          transparent
+          transparent=""
           locale="en"
           aria-label="World, USA, Europe, Nordic, Finland, Japan and Bitcoin performance"
         >
@@ -168,7 +168,9 @@
   .markets-performance {
     border-top: 1px solid var(--line-soft);
     border-bottom: 1px solid var(--line-soft);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
   }
 
   tv-market-data {
@@ -183,6 +185,7 @@
   }
 
   tv-market-data:defined {
+    min-width: 780px;
     height: 410px;
   }
 
