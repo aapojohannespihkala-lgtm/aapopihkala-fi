@@ -111,7 +111,7 @@ const personSchema = {
   areaPolish
 >
   <Fragment slot="head">
-    <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(personSchema)} />
 
     <style>
       .hero {
