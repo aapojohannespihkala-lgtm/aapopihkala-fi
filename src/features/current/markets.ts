@@ -1,9 +1,10 @@
-type MarketMacroId = 'eur-usd' | 'eur-sek' | 'estr';
+type MarketMacroId = 'eur-usd' | 'euribor-3m';
 
 type MacroItem = {
   id: MarketMacroId;
   value: number;
   observedAt: string;
+  change1m: number;
 };
 
 type MarketsResponse = {
@@ -12,7 +13,7 @@ type MarketsResponse = {
 
 const MARKETS_API_URL = '/api/current/markets';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
-const MARKET_IDS = new Set<MarketMacroId>(['eur-usd', 'eur-sek', 'estr']);
+const MARKET_IDS = new Set<MarketMacroId>(['eur-usd', 'euribor-3m']);
 
 const isMacroItem = (value: unknown): value is MacroItem => {
   if (!value || typeof value !== 'object') return false;
@@ -23,18 +24,31 @@ const isMacroItem = (value: unknown): value is MacroItem => {
     MARKET_IDS.has(item.id as MarketMacroId) &&
     typeof item.value === 'number' &&
     Number.isFinite(item.value) &&
+    typeof item.change1m === 'number' &&
+    Number.isFinite(item.change1m) &&
     typeof item.observedAt === 'string' &&
     item.observedAt.length > 0
   );
 };
 
 const formatValue = (id: MarketMacroId, value: number) => {
-  const decimals = id === 'estr' ? 3 : 4;
+  const decimals = id === 'euribor-3m' ? 3 : 4;
 
   return new Intl.NumberFormat('en-GB', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(value);
+};
+
+const formatChange = (item: MacroItem) => {
+  if (item.id === 'eur-usd') {
+    const magnitude = Math.abs(item.change1m).toFixed(2);
+    if (Math.abs(item.change1m) < 0.005) return `FLAT · ${magnitude}% / 1M`;
+    return `${item.change1m > 0 ? 'EUR' : 'USD'} STRONGER · ${magnitude}% / 1M`;
+  }
+
+  const sign = item.change1m > 0 ? '+' : '';
+  return `${sign}${item.change1m.toFixed(3)} PP / 1M`;
 };
 
 export const initCurrentMarkets = () => {
@@ -49,8 +63,10 @@ export const initCurrentMarkets = () => {
   const renderItems = (items: MacroItem[]) => {
     for (const item of items) {
       const target = root.querySelector<HTMLElement>(`[data-market-value="${item.id}"]`);
-      if (!target) continue;
-      target.textContent = formatValue(item.id, item.value);
+      if (target) target.textContent = formatValue(item.id, item.value);
+
+      const changeTarget = root.querySelector<HTMLElement>(`[data-market-change="${item.id}"]`);
+      if (changeTarget) changeTarget.textContent = formatChange(item);
     }
 
     const latestObservation = items
