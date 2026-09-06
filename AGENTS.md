@@ -31,6 +31,30 @@ Every new interactive animation or animation study must also be added to `src/pa
 - Keep the lab version fully interactive unless the component itself has a deliberate restriction.
 - Do not leave an article-only animation out of Animation Lab.
 
+## Session continuity
+
+Do not rely on previous chat context as the source of truth for this project. The repository must contain the durable information needed to continue work in a new session.
+
+Before substantial work:
+
+- read `README.md`
+- read the relevant files under `docs/`
+- read `ROADMAP.md` when the task may affect unfinished work or priorities
+- inspect recent merged pull requests when recent implementation history or design intent matters
+- inspect the current code and tests for exact implementation details
+
+When a decision made during a chat should survive into future sessions, record it in the appropriate repository location before the task is considered complete. Do not create a running chat-history document.
+
+For meaningful pull requests, leave a compact handoff in the PR description covering:
+
+- what changed
+- why it changed
+- what was intentionally not changed when that boundary matters
+- how the change was validated
+- any follow-up work that remains
+
+If unfinished work must continue in a later session, keep it visible in an open pull request or in `ROADMAP.md` rather than only in chat context.
+
 ## Documentation maintenance
 
 Update project documentation when a documented contract, workflow or architectural ownership boundary changes.
@@ -49,6 +73,7 @@ Use the appropriate source of truth:
 - `docs/ARCHITECTURE.md` for stable ownership boundaries and architecture
 - `docs/CONTENT.md` for the article workflow and publishing contract
 - `ROADMAP.md` for unfinished development work
+- pull request descriptions for concise change history and handoff context
 - code and tests for exact implementation details and regression assertions
 
-Avoid maintaining exhaustive file inventories, test lists or duplicated schema examples in prose when the repository itself is the more reliable source.
+Avoid maintaining exhaustive file inventories, test lists, chat transcripts or duplicated schema examples in prose when the repository itself is the more reliable source.
