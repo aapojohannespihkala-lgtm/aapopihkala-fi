@@ -48,6 +48,28 @@ const FEEDS: Feed[] = [
     score: 0.86, tags: ['finnish-music'],
   },
   {
+    id: 'pelaaja', sourceId: 'pelaaja', source: 'Pelaaja', url: 'https://www.pelaaja.fi/feed/',
+    host: 'pelaaja.fi', language: 'fi', locality: 'finland', category: 'games', kind: 'news',
+    score: 0.92, tags: ['games', 'finnish-games'],
+  },
+  {
+    id: 'muropaketti-games', sourceId: 'muropaketti-games', source: 'Muropaketti',
+    url: 'https://muropaketti.com/pelit/feed', host: 'muropaketti.com', language: 'fi',
+    locality: 'finland', category: 'games', kind: 'news', score: 0.82,
+    tags: ['games', 'finnish-games'],
+  },
+  {
+    id: 'inferno', sourceId: 'inferno', source: 'Inferno', url: 'https://www.inferno.fi/feed',
+    host: 'inferno.fi', language: 'fi', locality: 'finland', category: 'music', kind: 'news',
+    score: 0.91, tags: ['metal', 'finnish-metal'],
+  },
+  {
+    id: 'kulttuuritoimitus', sourceId: 'kulttuuritoimitus', source: 'Kulttuuritoimitus',
+    url: 'https://kulttuuritoimitus.fi/feed', host: 'kulttuuritoimitus.fi', language: 'fi',
+    locality: 'finland', category: 'culture', kind: 'news', score: 0.94,
+    tags: ['finnish-culture'],
+  },
+  {
     id: 'pitchfork-news', sourceId: 'pitchfork', source: 'Pitchfork',
     url: 'https://pitchfork.com/feed/feed-news/rss', host: 'pitchfork.com', language: 'en',
     locality: 'international', category: 'music', kind: 'news', score: 0.82, tags: ['music-news'],
@@ -68,6 +90,12 @@ const FEEDS: Feed[] = [
     id: 'quietus', sourceId: 'quietus', source: 'The Quietus', url: 'https://thequietus.com/feed/',
     host: 'thequietus.com', language: 'en', locality: 'international', category: 'music', kind: 'news',
     score: 0.93, tags: ['experimental'],
+  },
+  {
+    id: 'angry-metal-guy', sourceId: 'angry-metal-guy', source: 'Angry Metal Guy',
+    url: 'https://www.angrymetalguy.com/feed/', host: 'angrymetalguy.com', language: 'en',
+    locality: 'international', category: 'music', kind: 'review', score: 0.98,
+    tags: ['metal', 'metal-review'],
   },
   {
     id: 'comics-journal', sourceId: 'comics-journal', source: 'The Comics Journal',
@@ -173,9 +201,12 @@ const parse = (xml: string, feed: Feed): Entry[] =>
     .slice(0, MAX_PER_FEED);
 
 const haystack = (entry: Entry) => `${entry.title} ${entry.categories.join(' ')}`.toLocaleLowerCase('en-US');
+const tagHaystack = (entry: Entry) => `${haystack(entry)} ${entry.summary.toLocaleLowerCase('en-US')}`;
 
 const categoryFor = (feed: Feed, entry: Entry): NewsCategory => {
   if (feed.sourceId === 'comics-journal') return 'comics';
+  if (feed.sourceId === 'pelaaja' || feed.sourceId === 'muropaketti-games') return 'games';
+  if (feed.sourceId === 'inferno' || feed.sourceId === 'angry-metal-guy') return 'music';
   const value = haystack(entry);
   if (/\b(elokuva|film|cinema|movie)\b/.test(value)) return 'film';
   if (/\b(arkkitehtuuri|architecture|urbanism|kaupunkisuunnittelu)\b/.test(value)) return 'architecture';
@@ -189,12 +220,12 @@ const categoryFor = (feed: Feed, entry: Entry): NewsCategory => {
 const kindFor = (feed: Feed, entry: Entry): NewsKind => {
   const value = haystack(entry);
   if (/\b(haastattelu|interview|q&a)\b/.test(value)) return 'interview';
-  if (/\b(arvio|review|reviews|criticism)\b/.test(value)) return 'review';
+  if (/\b(arvio|review|reviews|criticism|levyarvio)\b/.test(value)) return 'review';
   if (/\b(reissue|reissues|uudelleenjulkaisu|deluxe edition)\b/.test(value)) return 'reissue';
   if (/\b(obituary|rip|dies|died|kuoli|on kuollut)\b/.test(value)) return 'obituary';
   if (/\b(retrospective|archive|archival|anniversary|arkisto)\b/.test(value)) return 'retrospective';
   if (/\b(exhibition|näyttely)\b/.test(value)) return 'exhibition';
-  if (/\b(new album|debut album|uusi albumi|uuden albumin|julkaisee albumin)\b/.test(value)) return 'release';
+  if (/\b(new album|debut album|uusi albumi|uuden albumin|julkaisee albumin|uusi levy|tuleva levy)\b/.test(value)) return 'release';
   return feed.kind;
 };
 
@@ -205,7 +236,18 @@ const keywordTags: Array<[string, RegExp]> = [
   ['reissue', /\b(reissue|uudelleenjulkaisu)\b/], ['archive', /\b(archive|archival|arkisto)\b/],
   ['ambient', /\bambient\b/], ['electronic', /\b(electronic|elektroninen)\b/],
   ['experimental', /\b(experimental|kokeellinen)\b/], ['jazz', /\bjazz\b/],
-  ['post-punk', /\bpost[- ]punk\b/], ['punk', /\bpunk\b/], ['metal', /\b(metal|metalli)\b/],
+  ['post-punk', /\bpost[- ]punk\b/], ['punk', /\bpunk\b/],
+  ['black-metal', /\bblack metal\b/], ['death-metal', /\bdeath metal\b/],
+  ['doom-metal', /\bdoom metal\b/], ['progressive-metal', /\bprogressive metal\b/],
+  ['post-metal', /\bpost[- ]metal\b/], ['folk-metal', /\bfolk metal\b/],
+  ['melodic-death-metal', /\bmelodic death metal\b/], ['thrash-metal', /\bthrash metal\b/],
+  ['power-metal', /\bpower metal\b/], ['metalcore', /\bmetalcore\b/],
+  ['metal', /\b(metal|metalli)\b/],
+  ['gta', /\b(gta(?:\s*(?:6|vi))?|grand theft auto)\b/], ['remedy', /\bremedy\b/],
+  ['playstation', /\b(playstation|ps[456])\b/], ['xbox', /\bxbox\b/], ['nintendo', /\bnintendo\b/],
+  ['indie-games', /\b(indie games?|indiepelit?|indiepeli)\b/], ['retro-games', /\b(retro games?|retropelit?|retropeli)\b/],
+  ['game-design', /\b(game design|gameplay design|pelisuunnittelu)\b/],
+  ['game-preservation', /\b(game preservation|pelihistoria|pelien säilyttäminen)\b/],
   ['restoration', /\b(restoration|restored|restaurointi|restauroitu)\b/],
   ['film-history', /\b(film history|cinema history|elokuvahistoria)\b/], ['album', /\b(album|levy|levyn)\b/],
 ];
@@ -222,9 +264,9 @@ const buildTags = (feed: Feed, entry: Entry, category: NewsCategory, kind: NewsK
     const normalized = slug(value);
     if (normalized.length >= 2) result.add(normalized);
   }
-  const value = haystack(entry);
+  const value = tagHaystack(entry);
   for (const [name, pattern] of keywordTags) if (pattern.test(value)) result.add(name);
-  return [...result].slice(0, 12);
+  return [...result].slice(0, 16);
 };
 
 const noise = (title: string) => {
