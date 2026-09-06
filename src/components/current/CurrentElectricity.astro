@@ -24,8 +24,19 @@
         class="electricity-chart"
         data-electricity-chart
         role="img"
-        aria-label="Electricity spot prices today in Finland"
+        tabindex="0"
+        aria-label="Electricity spot prices today in Finland. Touch, hover or use the arrow keys to inspect 15 minute prices."
       ></svg>
+      <div
+        class="electricity-chart-tooltip"
+        data-electricity-chart-tooltip
+        role="status"
+        aria-live="polite"
+        hidden
+      >
+        <span class="electricity-chart-tooltip__time" data-electricity-chart-tooltip-time>--:-- - --:--</span>
+        <span class="electricity-chart-tooltip__price" data-electricity-chart-tooltip-price>--.-- c/kWh</span>
+      </div>
     </div>
   </section>
 
@@ -106,7 +117,8 @@
   .electricity-current__context,
   .electricity-stat__label,
   .electricity-stat__detail,
-  .electricity-footer {
+  .electricity-footer,
+  .electricity-chart-tooltip {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     text-transform: uppercase;
   }
@@ -195,6 +207,7 @@
   }
 
   .electricity-chart-frame {
+    position: relative;
     width: 100%;
     min-height: 168px;
   }
@@ -204,6 +217,12 @@
     width: 100%;
     height: 168px;
     overflow: visible;
+    touch-action: pan-y;
+  }
+
+  .electricity-chart:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--moss) 56%, transparent);
+    outline-offset: 4px;
   }
 
   .electricity-chart :global(.electricity-chart__guide) {
@@ -260,12 +279,65 @@
     vector-effect: non-scaling-stroke;
   }
 
-  .electricity-chart :global(.electricity-chart__axis-label) {
+  .electricity-chart :global(.electricity-chart__inspection-line) {
+    stroke: var(--ink-soft);
+    stroke-width: 1;
+    stroke-dasharray: 1 3;
+    pointer-events: none;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__inspection-point) {
+    fill: var(--page);
+    stroke: var(--ink);
+    stroke-width: 1.4;
+    pointer-events: none;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__axis-label),
+  .electricity-chart :global(.electricity-chart__y-label) {
     fill: var(--stone-light);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 9px;
     font-weight: 500;
     letter-spacing: 0.04em;
+  }
+
+  .electricity-chart :global(.electricity-chart__axis-label) {
+    font-size: 9px;
+  }
+
+  .electricity-chart :global(.electricity-chart__y-label) {
+    font-size: 7.5px;
+  }
+
+  .electricity-chart-tooltip {
+    position: absolute;
+    top: 5px;
+    z-index: 2;
+    display: grid;
+    gap: 2px;
+    transform: translateX(-50%);
+    min-width: 86px;
+    padding: 5px 7px;
+    border: 1px solid var(--electricity-rule);
+    background: color-mix(in srgb, var(--page) 94%, transparent);
+    color: var(--stone);
+    font-size: 0.39rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: 0.04em;
+    text-align: center;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .electricity-chart-tooltip[hidden] {
+    display: none;
+  }
+
+  .electricity-chart-tooltip__price {
+    color: var(--ink-soft);
   }
 
   .electricity-stats {
@@ -403,6 +475,11 @@
     .electricity-chart {
       min-height: 142px;
       height: 142px;
+    }
+
+    .electricity-chart-tooltip {
+      top: 3px;
+      font-size: 0.35rem;
     }
 
     .electricity-stats {

@@ -22,11 +22,26 @@ type PriceWindow = {
   points: PricePoint[];
 };
 
+type ChartGeometry = {
+  width: number;
+  height: number;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  plotWidth: number;
+  plotHeight: number;
+  minimum: number;
+  maximum: number;
+  span: number;
+};
+
 const PRICE_API_URL = '/api/current/electricity';
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 const NETWORK_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const DISPLAY_REFRESH_INTERVAL_MS = 60 * 1000;
 const QUARTER_MS = 15 * 60 * 1000;
+const PRICE_AXIS_STEP = 5;
 
 const datePartsFormatter = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
@@ -85,7 +100,10 @@ const formatPrice = (value: number) => {
   }).format(value);
 };
 
-const formatRange = (start: Date, end: Date) => `${formatClock(start)} - ${formatClock(end)}`;
+const formatMarketRange = (start: Date, quarterCount = 1) => {
+  const end = new Date(start.getTime() + quarterCount * QUARTER_MS);
+  return `${formatClock(start)} - ${formatClock(end)}`;
+};
 
 const averagePrice = (points: PricePoint[]) => {
   if (points.length === 0) return Number.NaN;
@@ -127,8 +145,15 @@ const getTodayPoints = (points: PricePoint[], now: Date) => {
 
 const getCurrentIndex = (points: PricePoint[], now: Date) => {
   const nowMs = now.getTime();
-  return points.findIndex((point) => point.startMs <= nowMs && point.endMs > nowMs);
+  return points.findIndex(
+    (point) => point.startMs <= nowMs && point.startMs + QUARTER_MS > nowMs
+  );
 };
+
+const hasQuarterCadence = (points: PricePoint[]) =>
+  points.every(
+    (point, index) => index === 0 || point.startMs - points[index - 1].startMs === QUARTER_MS
+  );
 
 const getCurrentHourPoints = (points: PricePoint[], currentIndex: number) => {
   if (currentIndex < 0 || currentIndex >= points.length) return [];
@@ -139,7 +164,7 @@ const getCurrentHourPoints = (points: PricePoint[], currentIndex: number) => {
   const hourPoints = points.slice(startIndex, startIndex + 4);
 
   if (hourPoints.length !== 4) return [];
-  if (hourPoints[3].endMs - hourPoints[0].startMs !== 4 * QUARTER_MS) return [];
+  if (!hasQuarterCadence(hourPoints)) return [];
 
   return hourPoints;
 };
@@ -150,9 +175,7 @@ const findPriceWindow = (points: PricePoint[], mode: 'lowest' | 'highest'): Pric
 
   for (let startIndex = 0; startIndex <= points.length - windowSize; startIndex += 1) {
     const windowPoints = points.slice(startIndex, startIndex + windowSize);
-    const duration = windowPoints[windowPoints.length - 1].endMs - windowPoints[0].startMs;
-
-    if (duration !== windowSize * QUARTER_MS) continue;
+    if (!hasQuarterCadence(windowPoints)) continue;
 
     const average = averagePrice(windowPoints);
     if (!Number.isFinite(average)) continue;
@@ -196,16 +219,16 @@ const renderChart = (
   currentIndex: number,
   cheapestWindow: PriceWindow | null,
   expensiveWindow: PriceWindow | null
-) => {
+): ChartGeometry | null => {
   if (points.length === 0) {
     svg.innerHTML = '';
-    return;
+    return null;
   }
 
   const containerWidth = svg.parentElement?.getBoundingClientRect().width ?? 760;
   const width = Math.max(300, Math.round(containerWidth));
   const height = width < 560 ? 142 : 168;
-  const left = 8;
+  const left = width < 560 ? 30 : 34;
   const right = 8;
   const top = 12;
   const bottom = 25;
@@ -215,11 +238,14 @@ const renderChart = (
   const prices = points.map((point) => point.price);
   const rawMinimum = Math.min(...prices);
   const rawMaximum = Math.max(...prices);
-  const rawSpan = Math.max(0.2, rawMaximum - rawMinimum);
-  const padding = Math.max(0.15, rawSpan * 0.12);
-  const minimum = Math.min(0, rawMinimum - padding);
-  const maximum = Math.max(0, rawMaximum + padding);
-  const span = Math.max(0.2, maximum - minimum);
+  const minimum = Math.min(0, Math.floor(rawMinimum / PRICE_AXIS_STEP) * PRICE_AXIS_STEP);
+  let maximum = Math.max(0, Math.ceil(rawMaximum / PRICE_AXIS_STEP) * PRICE_AXIS_STEP);
+
+  if (maximum <= minimum) {
+    maximum = minimum + PRICE_AXIS_STEP;
+  }
+
+  const span = maximum - minimum;
 
   const xBoundary = (index: number) => left + (index / points.length) * plotWidth;
   const xCenter = (index: number) => (xBoundary(index) + xBoundary(index + 1)) / 2;
@@ -235,10 +261,19 @@ const renderChart = (
     return `<rect ${dataAttribute} class="${className}" x="${x.toFixed(2)}" y="${top}" width="${bandWidth.toFixed(2)}" height="${plotHeight}" rx="1" />`;
   };
 
-  const guides = [0.25, 0.5, 0.75]
-    .map((ratio) => {
-      const y = top + plotHeight * ratio;
-      return `<line x1="${left}" x2="${width - right}" y1="${y.toFixed(2)}" y2="${y.toFixed(2)}" class="electricity-chart__guide" />`;
+  const axisValues: number[] = [];
+  for (let value = minimum; value <= maximum; value += PRICE_AXIS_STEP) {
+    axisValues.push(value);
+  }
+
+  const yAxis = axisValues
+    .map((value) => {
+      const y = yFor(value);
+      const lineClass = value === 0 ? 'electricity-chart__zero' : 'electricity-chart__guide';
+      return `
+        <line x1="${left}" x2="${width - right}" y1="${y.toFixed(2)}" y2="${y.toFixed(2)}" class="${lineClass}" />
+        <text data-electricity-y-label x="${left - 6}" y="${(y + 3).toFixed(2)}" text-anchor="end" class="electricity-chart__y-label">${value}</text>
+      `;
     })
     .join('');
 
@@ -268,14 +303,29 @@ const renderChart = (
     <title>Finland day-ahead spot electricity prices today in 15 minute intervals</title>
     ${renderBand(cheapestWindow, 'electricity-chart__band electricity-chart__band--low', 'data-electricity-low-band')}
     ${renderBand(expensiveWindow, 'electricity-chart__band electricity-chart__band--high', 'data-electricity-high-band')}
-    ${guides}
-    <line x1="${left}" x2="${width - right}" y1="${zeroY.toFixed(2)}" y2="${zeroY.toFixed(2)}" class="electricity-chart__zero" />
+    ${yAxis}
     <path d="${areaPath}" class="electricity-chart__area" />
     <path data-electricity-price-path d="${linePath}" class="electricity-chart__line" />
     ${currentMarker}
+    <line data-electricity-inspection-line class="electricity-chart__inspection-line" x1="0" x2="0" y1="${top}" y2="${top + plotHeight}" opacity="0" />
+    <circle data-electricity-inspection-point class="electricity-chart__inspection-point" cx="0" cy="0" r="3" opacity="0" />
     ${axisLabels}
     <text x="${width - right}" y="${height - 5}" text-anchor="end" class="electricity-chart__axis-label">24</text>
   `;
+
+  return {
+    width,
+    height,
+    left,
+    right,
+    top,
+    bottom,
+    plotWidth,
+    plotHeight,
+    minimum,
+    maximum,
+    span,
+  };
 };
 
 export const initCurrentElectricity = () => {
@@ -300,6 +350,10 @@ export const initCurrentElectricity = () => {
   const highValueTarget = root.querySelector<HTMLElement>('[data-electricity-high-value]');
   const highRangeTarget = root.querySelector<HTMLElement>('[data-electricity-high-range]');
   const chart = root.querySelector<SVGSVGElement>('[data-electricity-chart]');
+  const chartFrame = root.querySelector<HTMLElement>('.electricity-chart-frame');
+  const chartTooltip = root.querySelector<HTMLElement>('[data-electricity-chart-tooltip]');
+  const chartTooltipTime = root.querySelector<HTMLElement>('[data-electricity-chart-tooltip-time]');
+  const chartTooltipPrice = root.querySelector<HTMLElement>('[data-electricity-chart-tooltip-price]');
   const errorTarget = root.querySelector<HTMLElement>('[data-electricity-error]');
   const retryButton = root.querySelector<HTMLButtonElement>('[data-electricity-retry]');
 
@@ -319,6 +373,10 @@ export const initCurrentElectricity = () => {
     !highValueTarget ||
     !highRangeTarget ||
     !chart ||
+    !chartFrame ||
+    !chartTooltip ||
+    !chartTooltipTime ||
+    !chartTooltipPrice ||
     !errorTarget
   ) {
     return;
@@ -329,24 +387,166 @@ export const initCurrentElectricity = () => {
   let latestCurrentIndex = -1;
   let latestCheapestWindow: PriceWindow | null = null;
   let latestExpensiveWindow: PriceWindow | null = null;
+  let latestChartGeometry: ChartGeometry | null = null;
+  let inspectedIndex: number | null = null;
+  let activeTouchPointerId: number | null = null;
   let resizeFrame = 0;
+
+  const hideInspection = () => {
+    chartTooltip.hidden = true;
+    const inspectionLine = chart.querySelector<SVGLineElement>('[data-electricity-inspection-line]');
+    const inspectionPoint = chart.querySelector<SVGCircleElement>('[data-electricity-inspection-point]');
+    inspectionLine?.setAttribute('opacity', '0');
+    inspectionPoint?.setAttribute('opacity', '0');
+  };
+
+  const renderInspection = (index: number) => {
+    const geometry = latestChartGeometry;
+    const point = latestTodayPoints[index];
+    if (!geometry || !point) {
+      hideInspection();
+      return;
+    }
+
+    const xBoundary = (pointIndex: number) =>
+      geometry.left + (pointIndex / latestTodayPoints.length) * geometry.plotWidth;
+    const x = (xBoundary(index) + xBoundary(index + 1)) / 2;
+    const y =
+      geometry.top + ((geometry.maximum - point.price) / geometry.span) * geometry.plotHeight;
+    const inspectionLine = chart.querySelector<SVGLineElement>('[data-electricity-inspection-line]');
+    const inspectionPoint = chart.querySelector<SVGCircleElement>('[data-electricity-inspection-point]');
+
+    inspectionLine?.setAttribute('x1', x.toFixed(2));
+    inspectionLine?.setAttribute('x2', x.toFixed(2));
+    inspectionLine?.setAttribute('opacity', '1');
+    inspectionPoint?.setAttribute('cx', x.toFixed(2));
+    inspectionPoint?.setAttribute('cy', y.toFixed(2));
+    inspectionPoint?.setAttribute('opacity', '1');
+
+    chartTooltipTime.textContent = formatMarketRange(point.start);
+    chartTooltipPrice.textContent = `${formatPrice(point.price)} c/kWh`;
+    chartTooltip.hidden = false;
+
+    const frameWidth = chartFrame.clientWidth || geometry.width;
+    const desiredLeft = (x / geometry.width) * frameWidth;
+    const tooltipHalfWidth = chartTooltip.offsetWidth / 2;
+    const clampedLeft = Math.max(
+      tooltipHalfWidth + 4,
+      Math.min(frameWidth - tooltipHalfWidth - 4, desiredLeft)
+    );
+    chartTooltip.style.left = `${clampedLeft}px`;
+  };
 
   const renderLatestChart = () => {
     if (latestTodayPoints.length === 0) return;
     window.cancelAnimationFrame(resizeFrame);
-    resizeFrame = window.requestAnimationFrame(() =>
-      renderChart(
+    resizeFrame = window.requestAnimationFrame(() => {
+      latestChartGeometry = renderChart(
         chart,
         latestTodayPoints,
         latestCurrentIndex,
         latestCheapestWindow,
         latestExpensiveWindow
-      )
-    );
+      );
+
+      if (inspectedIndex !== null && inspectedIndex < latestTodayPoints.length) {
+        renderInspection(inspectedIndex);
+      } else {
+        hideInspection();
+      }
+    });
   };
 
+  const inspectAtClientX = (clientX: number) => {
+    const geometry = latestChartGeometry;
+    if (!geometry || latestTodayPoints.length === 0) return;
+
+    const rect = chart.getBoundingClientRect();
+    if (rect.width <= 0) return;
+
+    const svgX = ((clientX - rect.left) / rect.width) * geometry.width;
+    const ratio = (svgX - geometry.left) / geometry.plotWidth;
+    const index = Math.max(
+      0,
+      Math.min(latestTodayPoints.length - 1, Math.floor(ratio * latestTodayPoints.length))
+    );
+
+    inspectedIndex = index;
+    renderInspection(index);
+  };
+
+  chart.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'touch') {
+      activeTouchPointerId = event.pointerId;
+      try {
+        chart.setPointerCapture(event.pointerId);
+      } catch {
+        // Synthetic pointer events and some browsers may not expose an active pointer capture target.
+      }
+    }
+
+    inspectAtClientX(event.clientX);
+  });
+
+  chart.addEventListener('pointermove', (event) => {
+    if (event.pointerType === 'touch' && activeTouchPointerId !== event.pointerId) return;
+    inspectAtClientX(event.clientX);
+  });
+
+  chart.addEventListener('pointerup', (event) => {
+    if (activeTouchPointerId === event.pointerId) {
+      activeTouchPointerId = null;
+      try {
+        chart.releasePointerCapture(event.pointerId);
+      } catch {
+        // The pointer may already have been released by the browser.
+      }
+    }
+  });
+
+  chart.addEventListener('pointercancel', (event) => {
+    if (activeTouchPointerId === event.pointerId) {
+      activeTouchPointerId = null;
+    }
+  });
+
+  chart.addEventListener('pointerleave', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    inspectedIndex = null;
+    hideInspection();
+  });
+
+  chart.addEventListener('focus', () => {
+    if (inspectedIndex !== null) return;
+    const fallbackIndex = latestCurrentIndex >= 0 ? latestCurrentIndex : 0;
+    if (latestTodayPoints[fallbackIndex]) {
+      inspectedIndex = fallbackIndex;
+      renderInspection(fallbackIndex);
+    }
+  });
+
+  chart.addEventListener('blur', () => {
+    inspectedIndex = null;
+    hideInspection();
+  });
+
+  chart.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    if (latestTodayPoints.length === 0) return;
+
+    event.preventDefault();
+    const fallbackIndex = latestCurrentIndex >= 0 ? latestCurrentIndex : 0;
+    const currentInspectionIndex = inspectedIndex ?? fallbackIndex;
+    const direction = event.key === 'ArrowLeft' ? -1 : 1;
+    inspectedIndex = Math.max(
+      0,
+      Math.min(latestTodayPoints.length - 1, currentInspectionIndex + direction)
+    );
+    renderInspection(inspectedIndex);
+  });
+
   const resizeObserver = new ResizeObserver(renderLatestChart);
-  resizeObserver.observe(chart.parentElement ?? chart);
+  resizeObserver.observe(chartFrame);
 
   const renderCachedData = () => {
     if (cachedPoints.length === 0) return;
@@ -369,7 +569,7 @@ export const initCurrentElectricity = () => {
 
     priceTarget.textContent = currentPoint ? formatPrice(currentPoint.price) : '--.--';
     intervalTarget.textContent = currentPoint
-      ? formatRange(currentPoint.start, currentPoint.end)
+      ? formatMarketRange(currentPoint.start)
       : 'Current interval unavailable';
     currentStatusTarget.textContent = currentPoint
       ? `CURRENT ${formatClock(currentPoint.start)}`
@@ -377,32 +577,24 @@ export const initCurrentElectricity = () => {
 
     hourAverageTarget.textContent = formatPrice(averagePrice(hourPoints));
     hourRangeTarget.textContent =
-      hourPoints.length === 4
-        ? formatRange(hourPoints[0].start, hourPoints[hourPoints.length - 1].end)
-        : '--:-- - --:--';
+      hourPoints.length === 4 ? formatMarketRange(hourPoints[0].start, 4) : '--:-- - --:--';
 
     dayAverageTarget.textContent = formatPrice(averagePrice(todayPoints));
 
     cheapestValueTarget.textContent = formatPrice(cheapestWindow?.average ?? Number.NaN);
     cheapestRangeTarget.textContent = cheapestWindow
-      ? formatRange(
-          cheapestWindow.points[0].start,
-          cheapestWindow.points[cheapestWindow.points.length - 1].end
-        )
+      ? formatMarketRange(cheapestWindow.points[0].start, cheapestWindow.points.length)
       : '--:-- - --:--';
 
     expensiveValueTarget.textContent = formatPrice(expensiveWindow?.average ?? Number.NaN);
     expensiveRangeTarget.textContent = expensiveWindow
-      ? formatRange(
-          expensiveWindow.points[0].start,
-          expensiveWindow.points[expensiveWindow.points.length - 1].end
-        )
+      ? formatMarketRange(expensiveWindow.points[0].start, expensiveWindow.points.length)
       : '--:-- - --:--';
 
     lowValueTarget.textContent = formatPrice(lowPoint.price);
-    lowRangeTarget.textContent = formatRange(lowPoint.start, lowPoint.end);
+    lowRangeTarget.textContent = formatMarketRange(lowPoint.start);
     highValueTarget.textContent = formatPrice(highPoint.price);
-    highRangeTarget.textContent = formatRange(highPoint.start, highPoint.end);
+    highRangeTarget.textContent = formatMarketRange(highPoint.start);
 
     latestTodayPoints = todayPoints;
     latestCurrentIndex = currentIndex;

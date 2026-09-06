@@ -56,11 +56,11 @@ const buildWeatherFixture = () => {
   };
 };
 
-const buildElectricityFixture = () => {
+const buildElectricityFixture = (overrides: Record<number, number> = {}) => {
   const localMidnightUtc = Date.UTC(2026, 8, 5, 21, 0, 0);
   const prices = Array.from({ length: 96 }, (_, index) => {
     const start = new Date(localMidnightUtc + index * 15 * 60 * 1000);
-    const end = new Date(start.getTime() + 15 * 60 * 1000);
+    const end = new Date(start.getTime() + 15 * 60 * 1000 - 1000);
     let price = 1.33;
 
     if (index >= 52 && index <= 59) price = 0.23;
@@ -73,6 +73,10 @@ const buildElectricityFixture = () => {
 
     if (index >= 74 && index <= 81) price = 4.3;
     if (index === 75) price = 5.99;
+
+    if (overrides[index] !== undefined) {
+      price = overrides[index];
+    }
 
     return {
       price,
@@ -161,6 +165,38 @@ test('Current renders electricity above the compact Olari weather view', async (
   await expect(page.locator('[data-electricity-current-line]')).toHaveCount(1);
   await expect(page.locator('[data-electricity-low-band]')).toHaveCount(1);
   await expect(page.locator('[data-electricity-high-band]')).toHaveCount(1);
+  await expect(page.locator('[data-electricity-y-label]')).toHaveText(['0', '5', '10']);
+
+  const electricityChart = page.locator('[data-electricity-chart]');
+  const chartBox = await electricityChart.boundingBox();
+  expect(chartBox).not.toBeNull();
+
+  if (chartBox) {
+    await electricityChart.dispatchEvent('pointerdown', {
+      pointerType: 'touch',
+      pointerId: 7,
+      isPrimary: true,
+      clientX: chartBox.x + chartBox.width * 0.55,
+      clientY: chartBox.y + chartBox.height * 0.5,
+    });
+    await electricityChart.dispatchEvent('pointerup', {
+      pointerType: 'touch',
+      pointerId: 7,
+      isPrimary: true,
+      clientX: chartBox.x + chartBox.width * 0.55,
+      clientY: chartBox.y + chartBox.height * 0.5,
+    });
+  }
+
+  await expect(page.locator('[data-electricity-chart-tooltip]')).toBeVisible();
+  await expect(page.locator('[data-electricity-chart-tooltip-time]')).toHaveText(
+    /\d{2}:\d{2} - \d{2}:\d{2}/
+  );
+  await expect(page.locator('[data-electricity-chart-tooltip-price]')).toHaveText(
+    /-?\d+\.\d{2} c\/kWh/
+  );
+  await expect(page.locator('[data-electricity-inspection-line]')).toHaveAttribute('opacity', '1');
+  await expect(page.locator('[data-electricity-inspection-point]')).toHaveAttribute('opacity', '1');
 
   await expect(page.locator('[data-weather-temperature]')).toHaveText('12.4');
   await expect(page.locator('[data-weather-condition]')).toHaveText('Overcast');
@@ -209,6 +245,29 @@ test('Current renders electricity above the compact Olari weather view', async (
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('a[href="/current/"]')).toHaveCount(0);
+});
+
+test('Electricity chart rounds the five-cent axis around negative and high prices', async ({ page }) => {
+  await page.unroute('**/api/current/electricity');
+  await page.route('**/api/current/electricity', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(buildElectricityFixture({ 8: -1.2, 72: 23 })),
+    });
+  });
+
+  await page.goto('/current/', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.locator('[data-electricity-y-label]')).toHaveText([
+    '-5',
+    '0',
+    '5',
+    '10',
+    '15',
+    '20',
+    '25',
+  ]);
 });
 
 test('Current modules remain inside a 390 px mobile viewport', async ({ page }) => {
