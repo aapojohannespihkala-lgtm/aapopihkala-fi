@@ -4,14 +4,25 @@
     <p class="weather-location">OLARI / ESPOO</p>
   </header>
 
-  <div class="weather-summary">
-    <div class="weather-primary">
-      <p class="weather-temperature" aria-live="polite">
-        <span data-weather-temperature>--.-</span><span class="weather-temperature__unit">°C</span>
-      </p>
-      <h2 id="current-weather-title" class="weather-condition" data-weather-condition>
-        Fetching forecast
-      </h2>
+  <div class="weather-current">
+    <div class="weather-current__primary">
+      <div class="weather-current__temperature-row">
+        <p class="weather-temperature" aria-live="polite">
+          <span data-weather-temperature>--.-</span><span class="weather-temperature__unit">°C</span>
+        </p>
+
+        <div class="weather-current__icon" data-weather-current-icon aria-hidden="true"></div>
+      </div>
+
+      <div class="weather-current__caption">
+        <h2 id="current-weather-title" class="weather-condition" data-weather-condition>
+          Fetching forecast
+        </h2>
+
+        <p class="weather-current__range" aria-label="Today's low and high temperature">
+          <span data-weather-current-min>--</span>° / <span data-weather-current-max>--</span>°
+        </p>
+      </div>
     </div>
 
     <dl class="weather-metrics" aria-label="Current weather details">
@@ -30,14 +41,48 @@
     </dl>
   </div>
 
-  <div class="weather-chart-frame">
-    <svg
-      class="weather-chart"
-      data-weather-chart
-      role="img"
-      aria-label="Temperature and rain probability for the next 24 hours"
-    ></svg>
-  </div>
+  <section class="weather-hours" aria-labelledby="weather-hours-title">
+    <header class="weather-subheading">
+      <p id="weather-hours-title">HOURS / 06</p>
+      <p>NEXT 6 H</p>
+    </header>
+
+    <div class="weather-hour-grid" data-weather-hours aria-live="polite"></div>
+  </section>
+
+  <section class="weather-days" aria-labelledby="weather-days-title">
+    <header class="weather-subheading">
+      <p id="weather-days-title">FORECAST / 05</p>
+      <p>NEXT 5 DAYS</p>
+    </header>
+
+    <div class="weather-day-grid" data-weather-days aria-live="polite"></div>
+
+    <div class="weather-daily-chart-frame">
+      <svg
+        class="weather-daily-chart"
+        data-weather-daily-chart
+        role="img"
+        aria-label="High and low temperature development for the next five days"
+      ></svg>
+    </div>
+  </section>
+
+  <section class="weather-trace" aria-labelledby="weather-trace-title">
+    <header class="weather-subheading weather-subheading--trace">
+      <p id="weather-trace-title">TRACE / 24H</p>
+      <p>TEMPERATURE + RAIN</p>
+    </header>
+
+    <div class="weather-chart-frame">
+      <svg
+        class="weather-chart"
+        data-weather-chart
+        role="img"
+        aria-label="Temperature and rain probability for the next 24 hours"
+      ></svg>
+    </div>
+  </section>
 
   <div class="weather-notes" aria-label="Weather highlights">
     <div class="weather-note">
@@ -77,92 +122,134 @@
 
 <style>
   .current-weather {
-    padding: 58px 0 8px;
+    padding: 30px 0 8px;
   }
 
-  .weather-heading {
+  .weather-heading,
+  .weather-subheading {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 24px;
-    margin-bottom: 34px;
+  }
+
+  .weather-heading {
+    margin-bottom: 30px;
   }
 
   .weather-index,
   .weather-location,
+  .weather-subheading,
   .weather-metrics dt,
   .weather-note__label,
-  .weather-footer {
+  .weather-footer,
+  .weather-current__range {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     text-transform: uppercase;
   }
 
   .weather-index,
-  .weather-location {
+  .weather-location,
+  .weather-subheading p {
     margin: 0;
-    font-size: 0.58rem;
+    font-size: 0.56rem;
     font-weight: 600;
     line-height: 1;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.09em;
   }
 
-  .weather-index {
+  .weather-index,
+  .weather-subheading p:first-child {
     color: var(--moss);
   }
 
-  .weather-location {
-    color: var(--stone);
+  .weather-location,
+  .weather-subheading p:last-child {
+    color: var(--stone-light);
   }
 
-  .weather-summary {
+  .weather-current {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+    grid-template-columns: minmax(0, 1.25fr) minmax(310px, 0.75fr);
     align-items: end;
-    gap: 64px;
-    padding-bottom: 36px;
+    gap: 58px;
+    padding-bottom: 34px;
   }
 
-  .weather-primary {
+  .weather-current__primary {
     min-width: 0;
+  }
+
+  .weather-current__temperature-row {
+    display: flex;
+    align-items: center;
+    gap: clamp(20px, 4vw, 44px);
   }
 
   .weather-temperature {
     margin: 0;
     color: var(--ink);
     font-family: "Times New Roman", Times, serif;
-    font-size: clamp(4.2rem, 8vw, 7rem);
+    font-size: clamp(4.4rem, 9vw, 7.4rem);
     font-weight: 400;
-    line-height: 0.86;
+    line-height: 0.84;
     letter-spacing: -0.055em;
   }
 
   .weather-temperature__unit {
     margin-left: 0.08em;
     color: var(--stone-light);
-    font-size: 0.34em;
+    font-size: 0.32em;
     letter-spacing: -0.02em;
     vertical-align: top;
   }
 
+  .weather-current__icon {
+    width: clamp(42px, 6vw, 62px);
+    height: clamp(42px, 6vw, 62px);
+    flex: 0 0 auto;
+    color: var(--moss-deep);
+  }
+
+  .weather-current__caption {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  .weather-condition,
+  .weather-current__range {
+    margin: 0;
+  }
+
   .weather-condition {
-    margin: 22px 0 0;
     color: var(--stone);
-    font-size: 0.96rem;
+    font-size: 0.94rem;
     font-weight: 400;
-    line-height: 1.45;
+    line-height: 1.4;
     letter-spacing: -0.006em;
+  }
+
+  .weather-current__range {
+    color: var(--stone-light);
+    font-size: 0.54rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
   }
 
   .weather-metrics {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 20px;
+    gap: 18px;
     margin: 0;
   }
 
   .weather-metrics div {
     min-width: 0;
-    padding-top: 12px;
+    padding-top: 11px;
     border-top: 1px solid var(--line-soft);
   }
 
@@ -172,33 +259,166 @@
   }
 
   .weather-metrics dt {
-    margin-bottom: 9px;
+    margin-bottom: 8px;
     color: var(--stone-light);
-    font-size: 0.48rem;
+    font-size: 0.46rem;
     font-weight: 600;
     line-height: 1;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.075em;
   }
 
   .weather-metrics dd {
     color: var(--ink-soft);
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     line-height: 1.35;
     white-space: nowrap;
   }
 
+  .weather-hours,
+  .weather-days,
+  .weather-trace {
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .weather-hours,
+  .weather-days {
+    padding: 18px 0 22px;
+  }
+
+  .weather-trace {
+    padding: 18px 0 0;
+  }
+
+  .weather-subheading {
+    margin-bottom: 18px;
+  }
+
+  .weather-hour-grid,
+  .weather-day-grid {
+    display: grid;
+    gap: 0;
+  }
+
+  .weather-hour-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .weather-day-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    margin-bottom: 4px;
+  }
+
+  .weather-hour-grid :global(.weather-hour),
+  .weather-day-grid :global(.weather-day) {
+    min-width: 0;
+    text-align: center;
+  }
+
+  .weather-hour-grid :global(.weather-hour + .weather-hour),
+  .weather-day-grid :global(.weather-day + .weather-day) {
+    border-left: 1px solid color-mix(in srgb, var(--line-soft) 68%, transparent);
+  }
+
+  .weather-hour-grid :global(.weather-hour) {
+    padding: 4px 8px 2px;
+  }
+
+  .weather-day-grid :global(.weather-day) {
+    padding: 5px 8px 8px;
+  }
+
+  .weather-hour-grid :global(.weather-hour__time),
+  .weather-hour-grid :global(.weather-hour__rain),
+  .weather-day-grid :global(.weather-day__name),
+  .weather-day-grid :global(.weather-day__rain) {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    text-transform: uppercase;
+  }
+
+  .weather-hour-grid :global(.weather-hour__time),
+  .weather-day-grid :global(.weather-day__name) {
+    color: var(--stone);
+    font-size: 0.52rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.06em;
+  }
+
+  .weather-hour-grid :global(.weather-hour__icon),
+  .weather-day-grid :global(.weather-day__icon) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--moss-deep);
+  }
+
+  .weather-hour-grid :global(.weather-hour__icon) {
+    width: 27px;
+    height: 27px;
+    margin: 13px auto 9px;
+  }
+
+  .weather-day-grid :global(.weather-day__icon) {
+    width: 31px;
+    height: 31px;
+    margin: 13px auto 8px;
+  }
+
+  .weather-hour-grid :global(.weather-hour__temperature) {
+    margin: 0;
+    color: var(--ink);
+    font-family: "Times New Roman", Times, serif;
+    font-size: 1.14rem;
+    line-height: 1;
+  }
+
+  .weather-hour-grid :global(.weather-hour__rain),
+  .weather-day-grid :global(.weather-day__rain) {
+    margin-top: 8px;
+    color: var(--stone-light);
+    font-size: 0.43rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.04em;
+  }
+
+  .weather-current__icon :global(.weather-symbol),
+  .weather-hour-grid :global(.weather-symbol),
+  .weather-day-grid :global(.weather-symbol) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .weather-daily-chart-frame {
+    width: 100%;
+    min-height: 132px;
+    padding-top: 2px;
+  }
+
+  .weather-daily-chart {
+    display: block;
+    width: 100%;
+    height: 132px;
+    overflow: visible;
+  }
+
+  .weather-subheading--trace {
+    margin-bottom: 8px;
+  }
+
   .weather-chart-frame {
     width: 100%;
-    min-height: 272px;
-    padding: 18px 0 6px;
-    border-top: 1px solid var(--line-soft);
-    border-bottom: 1px solid var(--line-soft);
+    min-height: 150px;
+    padding: 0 0 4px;
   }
 
   .weather-chart {
     display: block;
     width: 100%;
-    height: 272px;
+    height: 150px;
     overflow: visible;
   }
 
@@ -206,16 +426,17 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0;
+    border-top: 1px solid var(--line-soft);
     border-bottom: 1px solid var(--line-soft);
   }
 
   .weather-note {
     min-width: 0;
-    padding: 20px 24px 22px 0;
+    padding: 18px 22px 20px 0;
   }
 
   .weather-note + .weather-note {
-    padding-left: 24px;
+    padding-left: 22px;
     border-left: 1px solid var(--line-soft);
   }
 
@@ -227,15 +448,15 @@
   .weather-note__label {
     margin-bottom: 8px;
     color: var(--stone-light);
-    font-size: 0.48rem;
+    font-size: 0.46rem;
     font-weight: 600;
     line-height: 1;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.075em;
   }
 
   .weather-note__value {
     color: var(--ink-soft);
-    font-size: 0.77rem;
+    font-size: 0.75rem;
     line-height: 1.48;
   }
 
@@ -244,12 +465,12 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 24px;
-    padding-top: 17px;
+    padding-top: 16px;
     color: var(--stone-light);
-    font-size: 0.45rem;
+    font-size: 0.43rem;
     font-weight: 500;
     line-height: 1.5;
-    letter-spacing: 0.065em;
+    letter-spacing: 0.06em;
   }
 
   .weather-footer p {
@@ -286,37 +507,101 @@
   }
 
   @media (max-width: 800px) {
-    .weather-summary {
+    .weather-current {
       grid-template-columns: 1fr;
-      gap: 34px;
+      gap: 30px;
     }
   }
 
   @media (max-width: 640px) {
     .current-weather {
-      padding-top: 44px;
+      padding-top: 26px;
     }
 
     .weather-heading {
-      margin-bottom: 30px;
+      margin-bottom: 26px;
     }
 
-    .weather-summary {
-      padding-bottom: 30px;
+    .weather-current {
+      padding-bottom: 28px;
+    }
+
+    .weather-current__temperature-row {
+      justify-content: space-between;
+    }
+
+    .weather-current__caption {
+      flex-wrap: wrap;
+      gap: 10px 16px;
     }
 
     .weather-metrics {
-      gap: 12px;
+      gap: 10px;
     }
 
     .weather-metrics dd {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
+    }
+
+    .weather-hours,
+    .weather-days {
+      padding-top: 16px;
+      padding-bottom: 18px;
+    }
+
+    .weather-trace {
+      padding-top: 16px;
+    }
+
+    .weather-subheading {
+      margin-bottom: 15px;
+    }
+
+    .weather-hour-grid :global(.weather-hour) {
+      padding-inline: 3px;
+    }
+
+    .weather-day-grid :global(.weather-day) {
+      padding-inline: 3px;
+    }
+
+    .weather-hour-grid :global(.weather-hour__time),
+    .weather-day-grid :global(.weather-day__name) {
+      font-size: 0.45rem;
+      letter-spacing: 0.035em;
+    }
+
+    .weather-hour-grid :global(.weather-hour__icon) {
+      width: 23px;
+      height: 23px;
+      margin-top: 11px;
+    }
+
+    .weather-day-grid :global(.weather-day__icon) {
+      width: 27px;
+      height: 27px;
+      margin-top: 11px;
+    }
+
+    .weather-hour-grid :global(.weather-hour__temperature) {
+      font-size: 1rem;
+    }
+
+    .weather-hour-grid :global(.weather-hour__rain),
+    .weather-day-grid :global(.weather-day__rain) {
+      font-size: 0.38rem;
+    }
+
+    .weather-daily-chart-frame,
+    .weather-daily-chart {
+      min-height: 118px;
+      height: 118px;
     }
 
     .weather-chart-frame,
     .weather-chart {
-      min-height: 238px;
-      height: 238px;
+      min-height: 132px;
+      height: 132px;
     }
 
     .weather-notes {
@@ -324,7 +609,7 @@
     }
 
     .weather-note {
-      padding: 16px 0 17px;
+      padding: 15px 0 16px;
     }
 
     .weather-note + .weather-note {
