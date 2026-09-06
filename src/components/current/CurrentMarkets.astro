@@ -85,25 +85,36 @@
       }
 
       currentNightMode = document.documentElement.classList.contains('site-night-mode')
+      const widgetTheme = currentNightMode ? 'dark' : 'light'
+      host.dataset.marketsTickerTheme = widgetTheme
+      host.style.colorScheme = widgetTheme
 
       const embed = document.createElement('div')
       embed.dataset.marketsTickerEmbed = ''
-      embed.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;'
+      embed.style.cssText = 'width:100%;min-width:0;'
 
       const container = document.createElement('div')
       container.className = 'tradingview-widget-container'
-      container.style.cssText = 'width:100%;height:100%;'
+      container.style.cssText = 'width:100%;min-width:0;'
 
       const widget = document.createElement('div')
       widget.className = 'tradingview-widget-container__widget'
-      widget.style.cssText = 'width:100%;height:100%;'
+      widget.style.cssText = 'width:100%;min-width:0;'
 
       container.append(widget)
       embed.append(container)
       host.append(embed)
 
       embedObserver = new MutationObserver(() => {
-        if (!embed.querySelector('iframe')) return
+        const iframe = embed.querySelector('iframe')
+        if (!(iframe instanceof HTMLIFrameElement)) return
+
+        iframe.dataset.marketsTickerFrame = ''
+        iframe.style.display = 'block'
+        iframe.style.width = '100%'
+        iframe.style.maxWidth = '100%'
+        iframe.style.minHeight = '68px'
+
         if (fallback instanceof HTMLElement) fallback.hidden = true
         window.clearTimeout(fallbackTimer)
         embedObserver?.disconnect()
@@ -116,10 +127,11 @@
       script.async = true
       script.textContent = JSON.stringify({
         symbols,
-        colorTheme: currentNightMode ? 'dark' : 'light',
+        colorTheme: widgetTheme,
+        theme: widgetTheme,
         locale: 'en',
         largeChartUrl: '',
-        isTransparent: true,
+        isTransparent: false,
         showSymbolLogo: false,
         displayMode: 'adaptive',
       })
@@ -222,10 +234,11 @@
   .markets-ticker-host {
     position: relative;
     width: 100%;
-    height: 56px;
+    min-height: 68px;
     overflow: hidden;
     border-top: 1px solid var(--line-soft);
     border-bottom: 1px solid var(--line-soft);
+    background: var(--page);
   }
 
   .markets-loading {
