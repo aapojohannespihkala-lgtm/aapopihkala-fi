@@ -8,14 +8,11 @@
 
   <div class="markets-layout">
     <section class="markets-market-view" aria-label="Relevant market benchmarks">
-      <tv-ticker-tape
-        symbols="AMEX:URTH,SP:SPX,TVC:SXXP,OMXNORDIC:OMXN40,OMXHEX:OMXH25,TVC:NI225,COINBASE:BTCEUR"
-        direction="vertical"
-        item-size="compact"
-        transparent
-      >
-        <p class="markets-loading">Loading market data</p>
-      </tv-ticker-tape>
+      <div class="markets-ticker-host" data-markets-ticker-host>
+        <p class="markets-loading" data-markets-ticker-fallback aria-live="polite">
+          Loading market data
+        </p>
+      </div>
     </section>
 
     <section class="markets-macro" aria-label="Currency and interest rates">
@@ -55,7 +52,117 @@
   </footer>
 </section>
 
-<script is:inline type="module" src="https://www.tradingview-widget.com/w/en/tv-ticker-tape.js"></script>
+<script is:inline>
+  (() => {
+    const root = document.querySelector('[data-current-markets]')
+    const host = root?.querySelector('[data-markets-ticker-host]')
+    if (!(host instanceof HTMLElement)) return
+
+    const fallback = host.querySelector('[data-markets-ticker-fallback]')
+    const scriptUrl = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js'
+    const symbols = [
+      { proName: 'AMEX:URTH', title: 'World' },
+      { proName: 'SP:SPX', title: 'S&P 500' },
+      { proName: 'TVC:SXXP', title: 'Europe' },
+      { proName: 'OMXNORDIC:OMXN40', title: 'Nordics' },
+      { proName: 'OMXHEX:OMXH25', title: 'Finland' },
+      { proName: 'TVC:NI225', title: 'Japan' },
+      { proName: 'COINBASE:BTCEUR', title: 'BTC / EUR' },
+    ]
+
+    let fallbackTimer = 0
+    let embedObserver = null
+    let currentNightMode = document.documentElement.classList.contains('site-night-mode')
+
+    const mountTicker = () => {
+      window.clearTimeout(fallbackTimer)
+      embedObserver?.disconnect()
+      host.querySelector('[data-markets-ticker-embed]')?.remove()
+
+      if (fallback instanceof HTMLElement) {
+        fallback.hidden = false
+        fallback.textContent = 'Loading market data'
+      }
+
+      currentNightMode = document.documentElement.classList.contains('site-night-mode')
+
+      const embed = document.createElement('div')
+      embed.dataset.marketsTickerEmbed = ''
+      embed.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;'
+
+      const container = document.createElement('div')
+      container.className = 'tradingview-widget-container'
+      container.style.cssText = 'width:100%;height:100%;'
+
+      const widget = document.createElement('div')
+      widget.className = 'tradingview-widget-container__widget'
+      widget.style.cssText = 'width:100%;height:100%;'
+
+      container.append(widget)
+      embed.append(container)
+      host.append(embed)
+
+      embedObserver = new MutationObserver(() => {
+        if (!embed.querySelector('iframe')) return
+        if (fallback instanceof HTMLElement) fallback.hidden = true
+        window.clearTimeout(fallbackTimer)
+        embedObserver?.disconnect()
+      })
+      embedObserver.observe(embed, { childList: true, subtree: true })
+
+      const script = document.createElement('script')
+      script.type = 'text/javascript'
+      script.src = scriptUrl
+      script.async = true
+      script.textContent = JSON.stringify({
+        symbols,
+        colorTheme: currentNightMode ? 'dark' : 'light',
+        locale: 'en',
+        largeChartUrl: '',
+        isTransparent: true,
+        showSymbolLogo: false,
+        displayMode: 'adaptive',
+      })
+
+      script.addEventListener(
+        'error',
+        () => {
+          if (fallback instanceof HTMLElement) fallback.textContent = 'Market feed unavailable'
+        },
+        { once: true }
+      )
+
+      container.append(script)
+
+      fallbackTimer = window.setTimeout(() => {
+        if (embed.querySelector('iframe')) return
+        if (fallback instanceof HTMLElement) fallback.textContent = 'Market feed unavailable'
+      }, 5000)
+    }
+
+    const themeObserver = new MutationObserver(() => {
+      const nextNightMode = document.documentElement.classList.contains('site-night-mode')
+      if (nextNightMode === currentNightMode) return
+      mountTicker()
+    })
+
+    mountTicker()
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        window.clearTimeout(fallbackTimer)
+        embedObserver?.disconnect()
+        themeObserver.disconnect()
+      },
+      { once: true }
+    )
+  })()
+</script>
 
 <script>
   import { initCurrentMarkets } from '../../features/current/markets';
@@ -110,22 +217,34 @@
 
   .markets-market-view {
     min-width: 0;
-    --tv-widget-background-color: transparent;
-    --tv-widget-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
 
-  tv-ticker-tape {
-    display: block;
+  .markets-ticker-host {
+    position: relative;
     width: 100%;
-    min-height: 280px;
+    height: 56px;
+    overflow: hidden;
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
   }
 
   .markets-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
     margin: 0;
-    padding: 18px 0;
+    padding: 0 12px;
+    pointer-events: none;
     color: var(--stone-light);
-    font-size: 0.56rem;
+    background: var(--page);
+    font-size: 0.52rem;
     letter-spacing: 0.08em;
+  }
+
+  .markets-loading[hidden] {
+    display: none;
   }
 
   .markets-macro {
@@ -212,7 +331,7 @@
   @media (max-width: 720px) {
     .markets-layout {
       grid-template-columns: 1fr;
-      gap: 26px;
+      gap: 24px;
     }
 
     .markets-heading {
@@ -222,10 +341,6 @@
 
     .markets-context {
       text-align: right;
-    }
-
-    tv-ticker-tape {
-      min-height: 330px;
     }
 
     .markets-footer {
