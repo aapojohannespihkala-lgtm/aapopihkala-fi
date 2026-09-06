@@ -191,9 +191,6 @@ const {
               baseZ * baseZ
             ) || 1
 
-            const nx = baseX / radius
-            const ny = baseY / radius
-            const nz = baseZ / radius
             const azimuth = Math.atan2(sz, sx)
             const latitude = Math.asin(THREE.MathUtils.clamp(sy, -1, 1))
             const bodyMask = Math.pow(Math.max(0, 1 - Math.abs(sy)), 0.52)
