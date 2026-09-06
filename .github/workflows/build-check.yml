@@ -14,17 +14,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  classify:
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      docs_only: ${{ steps.changes.outputs.docs_only }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Classify changed files
+      - name: Classify validation mode
         id: changes
         shell: bash
         env:
@@ -36,89 +34,65 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            base="$PR_BASE_SHA"
-            head="$PR_HEAD_SHA"
-          elif [[ "$EVENT_NAME" == "push" ]]; then
-            base="$PUSH_BEFORE_SHA"
-            head="$CURRENT_SHA"
-
-            if [[ -z "$base" || "$base" == "0000000000000000000000000000000000000000" ]]; then
-              echo "docs_only=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          else
-            echo "docs_only=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          docs_only=false
 
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            mapfile -t changed_files < <(git diff --name-only "$base...$head")
+            mapfile -t changed_files < <(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")
+          elif [[ "$EVENT_NAME" == "push" && -n "$PUSH_BEFORE_SHA" && "$PUSH_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
+            mapfile -t changed_files < <(git diff --name-only "$PUSH_BEFORE_SHA" "$CURRENT_SHA")
           else
-            mapfile -t changed_files < <(git diff --name-only "$base" "$head")
+            changed_files=()
           fi
 
-          if [[ ${#changed_files[@]} -eq 0 ]]; then
-            echo "docs_only=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [[ ${#changed_files[@]} -gt 0 ]]; then
+            docs_only=true
+            for file in "${changed_files[@]}"; do
+              case "$file" in
+                README.md|AGENTS.md|ROADMAP.md|docs/*)
+                  ;;
+                *)
+                  docs_only=false
+                  break
+                  ;;
+              esac
+            done
           fi
-
-          docs_only=true
-
-          for file in "${changed_files[@]}"; do
-            case "$file" in
-              README.md|AGENTS.md|ROADMAP.md|docs/*)
-                ;;
-              *)
-                docs_only=false
-                break
-                ;;
-            esac
-          done
 
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
 
-  build:
-    needs: classify
-    runs-on: ubuntu-latest
-    steps:
       - name: Documentation-only fast path
-        if: needs.classify.outputs.docs_only == 'true'
-        run: echo "Documentation-only change; full build and browser regression suite skipped."
-
-      - name: Checkout
-        if: needs.classify.outputs.docs_only != 'true'
-        uses: actions/checkout@v7
+        if: steps.changes.outputs.docs_only == 'true'
+        run: echo "Documentation-only change; executable project validation skipped."
 
       - name: Setup Node
-        if: needs.classify.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         uses: actions/setup-node@v7
         with:
           node-version: 22.19.0
           cache: npm
 
       - name: Install dependencies
-        if: needs.classify.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         run: npm ci
 
       - name: Static checks
-        if: needs.classify.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true'
         run: npm run check
 
-      - name: Build
-        if: needs.classify.outputs.docs_only != 'true'
+      - name: Production build
+        if: steps.changes.outputs.docs_only != 'true'
         run: npm run build
 
       - name: Install Chromium
-        if: needs.classify.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'
         run: npx playwright install --with-deps chromium
 
       - name: Browser regression tests
-        if: needs.classify.outputs.docs_only != 'true'
+        if: steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'
         run: npm run test:e2e
 
       - name: Upload browser test artifacts
-        if: failure() && needs.classify.outputs.docs_only != 'true'
+        if: failure() && steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v7
         with:
           name: playwright-test-results
