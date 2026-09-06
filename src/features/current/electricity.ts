@@ -349,10 +349,7 @@ const renderChart = (
 
   const currentMarker =
     currentIndex >= 0
-      ? `
-        <line data-electricity-current-line x1="${xCenter(currentIndex).toFixed(2)}" x2="${xCenter(currentIndex).toFixed(2)}" y1="${top}" y2="${top + plotHeight}" class="electricity-chart__current-line" />
-        <circle data-electricity-current-point cx="${xCenter(currentIndex).toFixed(2)}" cy="${yFor(points[currentIndex].price).toFixed(2)}" r="3" class="electricity-chart__current-point" />
-      `
+      ? `<line data-electricity-current-line x1="${xCenter(currentIndex).toFixed(2)}" x2="${xCenter(currentIndex).toFixed(2)}" y1="${top}" y2="${top + plotHeight}" class="electricity-chart__current-line" />`
       : '';
 
   const axisHours = [0, 6, 12, 18];
@@ -690,12 +687,16 @@ export const initCurrentElectricity = () => {
     );
     const selectedAverage = averagePrice(selectedPoints);
     const todayAverage = averagePrice(todayPoints);
+    const tomorrowAverage = tomorrowAvailable ? averagePrice(tomorrowPoints) : Number.NaN;
 
     averageTarget.textContent = formatPrice(selectedAverage);
     averageLabelTarget.textContent = `DAY AVG / ${selectedDay === 'today' ? 'TODAY' : 'TOMORROW'}`;
 
     if (selectedDay === 'tomorrow' && Number.isFinite(todayAverage)) {
       comparisonTarget.textContent = `${formatSignedPrice(selectedAverage - todayAverage)} VS TODAY`;
+      comparisonTarget.hidden = false;
+    } else if (selectedDay === 'today' && Number.isFinite(tomorrowAverage)) {
+      comparisonTarget.textContent = `TOMORROW AVG ${formatPrice(tomorrowAverage)} c/kWh`;
       comparisonTarget.hidden = false;
     } else {
       comparisonTarget.textContent = '';

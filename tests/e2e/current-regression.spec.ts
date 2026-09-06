@@ -150,16 +150,12 @@ test('Current renders electricity above the compact Olari weather view', async (
   await expect(page.locator('[data-electricity-average-label]')).toHaveText('DAY AVG / TODAY');
   await expect(page.locator('[data-electricity-now-price]')).toHaveText('0.44 c/kWh');
   await expect(page.locator('[data-electricity-interval]')).toHaveText('16:45 - 17:00');
-  await expect(page.locator('[data-electricity-low-value]')).toHaveText('0.20');
-  await expect(page.locator('[data-electricity-low-range]')).toHaveText('14:15 - 14:30');
-  await expect(page.locator('[data-electricity-high-value]')).toHaveText('5.99');
-  await expect(page.locator('[data-electricity-high-range]')).toHaveText('18:45 - 19:00');
+  await expect(page.locator('.electricity-extremes')).toBeHidden();
   await expect(page.locator('[data-electricity-price-path]')).toHaveCount(1);
   await expect(page.locator('[data-electricity-current-line]')).toHaveCount(1);
+  await expect(page.locator('[data-electricity-current-point]')).toHaveCount(0);
   await expect(page.locator('[data-electricity-low-band]')).toHaveCount(1);
   await expect(page.locator('[data-electricity-high-band]')).toHaveCount(1);
-  await expect(page.locator('[data-electricity-low-label]')).toContainText('LOWEST 2 H · 0.23');
-  await expect(page.locator('[data-electricity-high-label]')).toContainText('HIGHEST 2 H · 4.51');
   await expect(page.locator('.electricity-stats')).toHaveCount(0);
   await expect(page.locator('[data-electricity-y-label]')).toHaveText(['0', '5', '10']);
 

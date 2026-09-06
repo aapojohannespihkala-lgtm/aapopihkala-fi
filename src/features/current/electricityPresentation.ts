@@ -34,14 +34,22 @@ const splitWindowRange = (value: string) => {
 const simplifyWindowLabel = (label: SVGGElement, band: SVGRectElement) => {
   const lines = label.querySelectorAll<SVGTextElement>('text');
   const headline = lines[0];
-  const range = lines[1];
-  if (!headline || !range) return;
+  const rangeStartLine = lines[1];
+  if (!headline || !rangeStartLine) return;
 
   const price = readWindowPrice(label, headline);
-  const [rangeStart, rangeEnd] = splitWindowRange(readWindowRange(label, range));
+  const [rangeStart, rangeEnd] = splitWindowRange(readWindowRange(label, rangeStartLine));
   const bandX = readSvgNumber(band, 'x');
   const bandWidth = readSvgNumber(band, 'width');
   if (!Number.isFinite(bandX) || !Number.isFinite(bandWidth)) return;
+
+  let unitLine = label.querySelector<SVGTextElement>('[data-electricity-window-unit]');
+  if (!unitLine) {
+    unitLine = document.createElementNS(SVG_NS, 'text');
+    unitLine.setAttribute('data-electricity-window-unit', '');
+    unitLine.setAttribute('class', 'electricity-chart__window-unit');
+    label.insertBefore(unitLine, rangeStartLine);
+  }
 
   let rangeEndLine = label.querySelector<SVGTextElement>('[data-electricity-window-range-end]');
   if (!rangeEndLine) {
@@ -51,12 +59,26 @@ const simplifyWindowLabel = (label: SVGGElement, band: SVGRectElement) => {
     label.append(rangeEndLine);
   }
 
-  headline.textContent = price ? `${price} c/kWh` : '--.-- c/kWh';
-  headline.setAttribute('y', '9');
-  range.textContent = rangeStart;
-  range.setAttribute('y', '18');
+  headline.textContent = price || '--.--';
+  headline.setAttribute('y', '7');
+  headline.setAttribute('x', '0');
+  headline.setAttribute('text-anchor', 'middle');
+
+  unitLine.textContent = 'c/kWh';
+  unitLine.setAttribute('y', '14');
+  unitLine.setAttribute('x', '0');
+  unitLine.setAttribute('text-anchor', 'middle');
+
+  rangeStartLine.textContent = rangeStart;
+  rangeStartLine.setAttribute('y', '23');
+  rangeStartLine.setAttribute('x', '-20');
+  rangeStartLine.setAttribute('text-anchor', 'start');
+
   rangeEndLine.textContent = rangeEnd;
-  rangeEndLine.setAttribute('y', '27');
+  rangeEndLine.setAttribute('y', '31');
+  rangeEndLine.setAttribute('x', '-20');
+  rangeEndLine.setAttribute('text-anchor', 'start');
+
   label.setAttribute('transform', `translate(${(bandX + bandWidth / 2).toFixed(2)} 0)`);
 };
 
