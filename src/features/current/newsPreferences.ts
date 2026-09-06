@@ -27,6 +27,7 @@ export type NewsLanguage = 'fi' | 'en';
 export type NewsItem = {
   id: string;
   title: string;
+  summary?: string;
   url: string;
   publishedAt: string;
   language: NewsLanguage;

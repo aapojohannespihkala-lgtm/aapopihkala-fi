@@ -18,7 +18,10 @@ const liveItems = [
   ['pitchfork-3', 'Composer announces an electronic soundtrack album', 'https://pitchfork.com/news/c/', 'Pitchfork', 'pitchfork', 'music', 'international', 'release'],
   ['soundi-3', 'Arkistolöytö avaa kokeellisen musiikin historiaa', 'https://www.soundi.fi/jutut/c/', 'Soundi', 'soundi', 'music', 'finland', 'retrospective'],
 ].map(([id, title, url, source, sourceId, category, locality, kind], index) => ({
-  id, title, url,
+  id,
+  title,
+  summary: `Feed summary for ${title.toLowerCase()}.`,
+  url,
   publishedAt: new Date(Date.UTC(2026, 8, 6 - Math.floor(index / 4), 12 - index)).toISOString(),
   language: sourceId === 'soundi' ? 'fi' : 'en',
   source, sourceId, category, locality,
@@ -68,7 +71,7 @@ test('standalone Current News uses live items and learns locally from both ratin
   await expect(page.locator('.news-footer')).toContainText('SOUNDI');
 
   const contextLines = await page.locator('[data-news-context]').allTextContents();
-  expect(contextLines.every((value) => value.trim().length > 0 && !value.includes('Loading'))).toBe(true);
+  expect(contextLines.every((value) => value.startsWith('Feed summary for '))).toBe(true);
 
   const first = page.locator('[data-news-slot]').first();
   const firstId = await first.getAttribute('data-news-item-id');
@@ -123,32 +126,32 @@ test('Current News reset stays local and the page fits a 390 px viewport', async
   expect(widths.document).toBeLessThanOrEqual(widths.viewport + 1);
 });
 
-const rss = (items: Array<[string, string, string, string]>) => `<?xml version="1.0"?><rss version="2.0"><channel>
-${items.map(([title, link, date, category]) => `<item><title><![CDATA[${title}]]></title><link>${link}</link><pubDate>${date}</pubDate><category>${category}</category></item>`).join('\n')}
+const rss = (items: Array<[string, string, string, string, string]>) => `<?xml version="1.0"?><rss version="2.0"><channel>
+${items.map(([title, link, date, category, description]) => `<item><title><![CDATA[${title}]]></title><link>${link}</link><pubDate>${date}</pubDate><category>${category}</category><description><![CDATA[${description}]]></description></item>`).join('\n')}
 </channel></rss>`;
 
 const feedFixtures = new Map<string, string>([
   ['https://www.soundi.fi/feed', rss([
-    ['Kotimainen artisti julkaisee uuden albumin', 'https://www.soundi.fi/jutut/live-a/', 'Sun, 06 Sep 2026 12:00:00 GMT', 'Haastattelut'],
-    ['Arkistolöytö kokeellisen musiikin historiasta', 'https://www.soundi.fi/jutut/live-b/', 'Sat, 05 Sep 2026 16:00:00 GMT', 'Musiikki'],
+    ['Kotimainen artisti julkaisee uuden albumin', 'https://www.soundi.fi/jutut/live-a/', 'Sun, 06 Sep 2026 12:00:00 GMT', 'Haastattelut', '<p>Artistin uusi levy rakentuu pitkän tauon jälkeen syntyneistä kappaleista ja uudesta kokoonpanosta.</p> Lue lisää'],
+    ['Arkistolöytö kokeellisen musiikin historiasta', 'https://www.soundi.fi/jutut/live-b/', 'Sat, 05 Sep 2026 16:00:00 GMT', 'Musiikki', 'Arkistosta löytynyt tallenne avaa uuden näkökulman kotimaisen kokeellisen musiikin historiaan.'],
   ])],
   ['https://pitchfork.com/feed/feed-news/rss', rss([
-    ['Composer announces a new electronic album', 'https://pitchfork.com/news/live-a/', 'Sun, 06 Sep 2026 11:00:00 GMT', 'News'],
-    ['Experimental artist shares details of a record', 'https://pitchfork.com/news/live-b/', 'Sat, 05 Sep 2026 18:00:00 GMT', 'News'],
+    ['Composer announces a new electronic album', 'https://pitchfork.com/news/live-a/', 'Sun, 06 Sep 2026 11:00:00 GMT', 'News', 'The composer has announced an electronic album recorded with a small group of collaborators.'],
+    ['Experimental artist shares details of a record', 'https://pitchfork.com/news/live-b/', 'Sat, 05 Sep 2026 18:00:00 GMT', 'News', 'The forthcoming record combines field recordings, electronics, and newly written material.'],
   ])],
   ['https://pitchfork.com/feed/reviews/best/albums/rss', rss([
-    ['Ambient composer: Example Album Review', 'https://pitchfork.com/reviews/albums/live-a/', 'Sun, 06 Sep 2026 10:00:00 GMT', 'Best New Music'],
+    ['Ambient composer: Example Album Review', 'https://pitchfork.com/reviews/albums/live-a/', 'Sun, 06 Sep 2026 10:00:00 GMT', 'Best New Music', 'A spacious ambient record brings acoustic instruments into a restrained electronic setting.'],
   ])],
   ['https://pitchfork.com/feed/reviews/best/reissues/rss', rss([
-    ['Electronic archive: Example Reissue Review', 'https://pitchfork.com/reviews/albums/live-b/', 'Sun, 06 Sep 2026 09:00:00 GMT', 'Reissues'],
+    ['Electronic archive: Example Reissue Review', 'https://pitchfork.com/reviews/albums/live-b/', 'Sun, 06 Sep 2026 09:00:00 GMT', 'Reissues', 'A restored archival release gathers previously difficult-to-find electronic recordings.'],
   ])],
   ['https://thequietus.com/feed/', rss([
-    ['A new experimental album &amp; a long-form interview', 'https://thequietus.com/articles/live-a/', 'Sun, 06 Sep 2026 08:00:00 GMT', 'Music'],
-    ['Retrospective revisits a post-punk archive', 'https://thequietus.com/articles/live-b/', 'Sat, 05 Sep 2026 14:00:00 GMT', 'Features'],
+    ['A new experimental album &amp; a long-form interview', 'https://thequietus.com/articles/live-a/', 'Sun, 06 Sep 2026 08:00:00 GMT', 'Music', 'The artist discusses a new experimental album, its source material, and the process behind it.'],
+    ['Retrospective revisits a post-punk archive', 'https://thequietus.com/articles/live-b/', 'Sat, 05 Sep 2026 14:00:00 GMT', 'Features', 'A retrospective returns to a neglected post-punk catalogue and traces how the records were made.'],
   ])],
   ['https://www.tcj.com/feed/', rss([
-    ['Alternative comics artist discusses a new book', 'https://www.tcj.com/live-a/', 'Sun, 06 Sep 2026 07:00:00 GMT', 'Interviews'],
-    ['Review: an unusual new graphic novel', 'https://www.tcj.com/reviews/live-b/', 'Sat, 05 Sep 2026 12:00:00 GMT', 'Reviews'],
+    ['Alternative comics artist discusses a new book', 'https://www.tcj.com/live-a/', 'Sun, 06 Sep 2026 07:00:00 GMT', 'Interviews', 'The cartoonist discusses the historical research and visual decisions behind a new book.'],
+    ['Review: an unusual new graphic novel', 'https://www.tcj.com/reviews/live-b/', 'Sat, 05 Sep 2026 12:00:00 GMT', 'Reviews', 'The review examines a graphic novel built around an unusual page structure and shifting point of view.'],
   ])],
 ]);
 
@@ -171,7 +174,7 @@ test('Current News API normalizes the verified feeds and Worker serves the route
   try {
     const response = await getNewsResponse();
     const data = (await response.json()) as {
-      items: Array<{ id: string; title: string; url: string; sourceId: string }>;
+      items: Array<{ id: string; title: string; summary: string; url: string; sourceId: string }>;
       sources: Array<{ status: string; count: number }>;
     };
     expect(response.status).toBe(200);
@@ -180,6 +183,9 @@ test('Current News API normalizes the verified feeds and Worker serves the route
     expect(new Set(data.items.map((item) => item.url)).size).toBe(data.items.length);
     expect(new Set(data.items.map((item) => item.sourceId))).toEqual(new Set(['soundi', 'pitchfork', 'quietus', 'comics-journal']));
     expect(data.items.some((item) => item.title.includes('&'))).toBe(true);
+    expect(data.items.every((item) => item.summary.length <= 190 && !item.summary.includes('<'))).toBe(true);
+    expect(data.items.some((item) => item.summary.includes('Artistin uusi levy rakentuu'))).toBe(true);
+    expect(data.items.some((item) => item.summary.includes('Lue lisää'))).toBe(false);
     expect(data.sources).toHaveLength(4);
     expect(data.sources.every((source) => source.status === 'ok' && source.count > 0)).toBe(true);
     expect(requested).toEqual(new Set(feedFixtures.keys()));

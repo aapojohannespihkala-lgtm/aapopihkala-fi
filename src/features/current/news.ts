@@ -103,6 +103,7 @@ const validItem = (value: unknown): value is NewsItem => {
   if (
     typeof item.id !== 'string' || !item.id ||
     typeof item.title !== 'string' || !item.title ||
+    (item.summary !== undefined && typeof item.summary !== 'string') ||
     typeof item.url !== 'string' ||
     typeof item.publishedAt !== 'string' || Number.isNaN(new Date(item.publishedAt).getTime()) ||
     typeof item.source !== 'string' || !item.source ||
@@ -271,7 +272,7 @@ export const initCurrentNews = () => {
       slot.removeAttribute('data-news-item-id');
       if (meta) meta.textContent = loading ? 'FEEDS / LOADING' : 'FEEDS / UNAVAILABLE';
       if (title) title.textContent = loading ? 'Loading live culture feeds' : 'No live item available';
-      if (context) context.textContent = loading ? 'Preparing a short context line' : 'No context available';
+      if (context) context.textContent = loading ? 'Preparing feed summary' : 'No summary available';
       if (detail) detail.textContent = loading ? 'RSS / CURRENT' : 'TRY AGAIN LATER';
       buttons.forEach((button) => { button.disabled = true; });
       return;
@@ -289,7 +290,7 @@ export const initCurrentNews = () => {
       link.style.textDecoration = 'none';
       title.replaceChildren(link);
     }
-    if (context) context.textContent = contextFor(item);
+    if (context) context.textContent = item.summary?.trim() || contextFor(item);
     if (detail) detail.textContent = `${label(item.kind)} / ${label(item.locality)} / ${published(item.publishedAt)}`;
     const replaceable = candidates(index).some((candidate) => candidate.id !== item.id);
     buttons.forEach((button) => { button.disabled = !replaceable; });
