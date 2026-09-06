@@ -206,6 +206,68 @@
     overflow: visible;
   }
 
+  .electricity-chart :global(.electricity-chart__guide) {
+    stroke: var(--electricity-rule);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__zero) {
+    stroke: color-mix(in srgb, var(--stone-light) 48%, transparent);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__band) {
+    stroke: none;
+  }
+
+  .electricity-chart :global(.electricity-chart__band--low) {
+    fill: var(--lichen);
+    opacity: 0.12;
+  }
+
+  .electricity-chart :global(.electricity-chart__band--high) {
+    fill: var(--stone);
+    opacity: 0.08;
+  }
+
+  .electricity-chart :global(.electricity-chart__area) {
+    fill: var(--moss);
+    opacity: 0.12;
+  }
+
+  .electricity-chart :global(.electricity-chart__line) {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1.35;
+    stroke-linecap: square;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__current-line) {
+    stroke: var(--moss-deep);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__current-point) {
+    fill: var(--page);
+    stroke: var(--moss-deep);
+    stroke-width: 1.4;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__axis-label) {
+    fill: var(--stone-light);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
   .electricity-stats {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
