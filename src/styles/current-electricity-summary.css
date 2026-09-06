@@ -1,0 +1,64 @@
+.current-electricity .electricity-summary-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(112px, auto) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+  padding: 17px 0 18px;
+  border-top: 1px solid var(--electricity-rule);
+}
+
+.current-electricity .electricity-summary-strip .electricity-extreme__value {
+  color: var(--stone);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.current-electricity .electricity-summary-strip .electricity-extreme__detail {
+  color: var(--stone-light);
+}
+
+.current-electricity .electricity-summary-strip .electricity-month-average--summary {
+  align-self: center;
+  min-width: 112px;
+  min-height: 1em;
+  margin: 0;
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.015em;
+  text-align: center;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.current-electricity .electricity-summary-strip .electricity-month-average--summary[hidden] {
+  display: block;
+  visibility: hidden;
+}
+
+@media (max-width: 640px) {
+  .current-electricity .electricity-summary-strip {
+    grid-template-columns: minmax(0, 1fr) minmax(104px, auto) minmax(0, 1fr);
+    gap: 8px;
+    padding: 15px 0 16px;
+  }
+
+  .current-electricity .electricity-summary-strip .electricity-extreme__label {
+    font-size: 0.34rem;
+  }
+
+  .current-electricity .electricity-summary-strip .electricity-extreme__value {
+    font-size: 0.66rem;
+  }
+
+  .current-electricity .electricity-summary-strip .electricity-extreme__detail {
+    font-size: 0.31rem;
+  }
+
+  .current-electricity .electricity-summary-strip .electricity-month-average--summary {
+    min-width: 104px;
+    font-size: 0.7rem;
+  }
+}
