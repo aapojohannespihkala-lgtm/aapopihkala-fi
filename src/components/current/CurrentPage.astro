@@ -53,6 +53,27 @@ const canonicalUrl = `${site.url}/current/`;
     <div class="current-weather-wrap">
       <CurrentWeather />
     </div>
+
+    <script is:inline>
+      const sectionLinks = [
+        ['.markets-index', '/current/markets/', 'Open Markets'],
+        ['.electricity-index', '/current/electricity/', 'Open Electricity'],
+        ['.weather-index', '/current/weather/', 'Open Weather'],
+      ]
+
+      for (const [selector, href, label] of sectionLinks) {
+        const heading = document.querySelector(selector)
+        if (!(heading instanceof HTMLElement) || heading.querySelector('a')) continue
+
+        const link = document.createElement('a')
+        link.href = href
+        link.className = 'current-section-heading-link'
+        link.setAttribute('aria-label', label)
+
+        while (heading.firstChild) link.append(heading.firstChild)
+        heading.append(link)
+      }
+    </script>
   </main>
 
   <Fragment slot="afterAnalytics">
@@ -118,6 +139,18 @@ const canonicalUrl = `${site.url}/current/`;
 
   .current-updated span {
     color: var(--stone-light);
+  }
+
+  :global(.current-section-heading-link) {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  :global(.current-section-heading-link:hover),
+  :global(.current-section-heading-link:focus-visible) {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
   }
 
   .current-weather-wrap {
