@@ -8,10 +8,25 @@
 
   <div class="markets-layout">
     <section class="markets-market-view" aria-label="Relevant market benchmarks">
-      <div class="markets-ticker-host" data-markets-ticker-host>
-        <p class="markets-loading" data-markets-ticker-fallback aria-live="polite">
-          Loading market data
-        </p>
+      <div class="markets-tickers-host" data-markets-tickers-host>
+        <tv-tickers
+          data-markets-tickers
+          symbols="AMEX:URTH,SP:SPX,TVC:SXXP,OMXNORDIC:OMXN40,OMXHEX:OMXH25,TVC:NI225,COINBASE:BTCEUR"
+          direction="vertical"
+          hide-chart
+          transparent
+          locale="en"
+        >
+          <div class="markets-tickers-placeholder" data-markets-tickers-fallback aria-live="polite">
+            <p><span>World</span><span>--</span></p>
+            <p><span>USA</span><span>--</span></p>
+            <p><span>Europe</span><span>--</span></p>
+            <p><span>Nordics</span><span>--</span></p>
+            <p><span>Finland</span><span>--</span></p>
+            <p><span>Japan</span><span>--</span></p>
+            <p><span>BTC / EUR</span><span>--</span></p>
+          </div>
+        </tv-tickers>
       </div>
     </section>
 
@@ -52,129 +67,12 @@
   </footer>
 </section>
 
-<script is:inline>
-  (() => {
-    const root = document.querySelector('[data-current-markets]')
-    const host = root?.querySelector('[data-markets-ticker-host]')
-    if (!(host instanceof HTMLElement)) return
-
-    const fallback = host.querySelector('[data-markets-ticker-fallback]')
-    const scriptUrl = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js'
-    const symbols = [
-      { proName: 'AMEX:URTH', title: 'World' },
-      { proName: 'SP:SPX', title: 'S&P 500' },
-      { proName: 'TVC:SXXP', title: 'Europe' },
-      { proName: 'OMXNORDIC:OMXN40', title: 'Nordics' },
-      { proName: 'OMXHEX:OMXH25', title: 'Finland' },
-      { proName: 'TVC:NI225', title: 'Japan' },
-      { proName: 'COINBASE:BTCEUR', title: 'BTC / EUR' },
-    ]
-
-    let fallbackTimer = 0
-    let embedObserver = null
-    let currentNightMode = document.documentElement.classList.contains('site-night-mode')
-
-    const mountTicker = () => {
-      window.clearTimeout(fallbackTimer)
-      embedObserver?.disconnect()
-      host.querySelector('[data-markets-ticker-embed]')?.remove()
-
-      if (fallback instanceof HTMLElement) {
-        fallback.hidden = false
-        fallback.textContent = 'Loading market data'
-      }
-
-      currentNightMode = document.documentElement.classList.contains('site-night-mode')
-      const widgetTheme = currentNightMode ? 'dark' : 'light'
-      host.dataset.marketsTickerTheme = widgetTheme
-      host.style.colorScheme = widgetTheme
-
-      const embed = document.createElement('div')
-      embed.dataset.marketsTickerEmbed = ''
-      embed.style.cssText = 'width:100%;min-width:0;'
-
-      const container = document.createElement('div')
-      container.className = 'tradingview-widget-container'
-      container.style.cssText = 'width:100%;min-width:0;'
-
-      const widget = document.createElement('div')
-      widget.className = 'tradingview-widget-container__widget'
-      widget.style.cssText = 'width:100%;min-width:0;'
-
-      container.append(widget)
-      embed.append(container)
-      host.append(embed)
-
-      embedObserver = new MutationObserver(() => {
-        const iframe = embed.querySelector('iframe')
-        if (!(iframe instanceof HTMLIFrameElement)) return
-
-        iframe.dataset.marketsTickerFrame = ''
-        iframe.style.display = 'block'
-        iframe.style.width = '100%'
-        iframe.style.maxWidth = '100%'
-        iframe.style.minHeight = '68px'
-
-        if (fallback instanceof HTMLElement) fallback.hidden = true
-        window.clearTimeout(fallbackTimer)
-        embedObserver?.disconnect()
-      })
-      embedObserver.observe(embed, { childList: true, subtree: true })
-
-      const script = document.createElement('script')
-      script.type = 'text/javascript'
-      script.src = scriptUrl
-      script.async = true
-      script.textContent = JSON.stringify({
-        symbols,
-        colorTheme: widgetTheme,
-        theme: widgetTheme,
-        locale: 'en',
-        largeChartUrl: '',
-        isTransparent: false,
-        showSymbolLogo: false,
-        displayMode: 'adaptive',
-      })
-
-      script.addEventListener(
-        'error',
-        () => {
-          if (fallback instanceof HTMLElement) fallback.textContent = 'Market feed unavailable'
-        },
-        { once: true }
-      )
-
-      container.append(script)
-
-      fallbackTimer = window.setTimeout(() => {
-        if (embed.querySelector('iframe')) return
-        if (fallback instanceof HTMLElement) fallback.textContent = 'Market feed unavailable'
-      }, 5000)
-    }
-
-    const themeObserver = new MutationObserver(() => {
-      const nextNightMode = document.documentElement.classList.contains('site-night-mode')
-      if (nextNightMode === currentNightMode) return
-      mountTicker()
-    })
-
-    mountTicker()
-    themeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    })
-
-    window.addEventListener(
-      'pagehide',
-      () => {
-        window.clearTimeout(fallbackTimer)
-        embedObserver?.disconnect()
-        themeObserver.disconnect()
-      },
-      { once: true }
-    )
-  })()
-</script>
+<script
+  is:inline
+  type="module"
+  async
+  src="https://widgets.tradingview-widget.com/w/en/tv-tickers.js"
+></script>
 
 <script>
   import { initCurrentMarkets } from '../../features/current/markets';
@@ -198,7 +96,7 @@
   .markets-context,
   .markets-macro,
   .markets-footer,
-  .markets-loading {
+  .markets-tickers-placeholder {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     text-transform: uppercase;
   }
@@ -231,33 +129,50 @@
     min-width: 0;
   }
 
-  .markets-ticker-host {
-    position: relative;
+  .markets-tickers-host {
     width: 100%;
-    min-height: 68px;
-    overflow: hidden;
+    min-width: 0;
     border-top: 1px solid var(--line-soft);
     border-bottom: 1px solid var(--line-soft);
-    background: var(--page);
+    color-scheme: inherit;
+    --tv-widget-background-color: transparent;
+    --tv-widget-text-color: var(--stone);
+    --tv-widget-price-text-color: var(--ink);
+    --tv-widget-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
 
-  .markets-loading {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    display: flex;
-    align-items: center;
+  tv-tickers {
+    display: block;
+    width: 100%;
+    min-height: 320px;
+  }
+
+  .markets-tickers-placeholder {
+    display: grid;
+    min-height: 320px;
     margin: 0;
-    padding: 0 12px;
-    pointer-events: none;
-    color: var(--stone-light);
-    background: var(--page);
-    font-size: 0.52rem;
-    letter-spacing: 0.08em;
+    color: var(--stone);
+    font-size: 0.55rem;
+    letter-spacing: 0.075em;
   }
 
-  .markets-loading[hidden] {
-    display: none;
+  .markets-tickers-placeholder p {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 20px;
+    margin: 0;
+    padding: 0 4px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .markets-tickers-placeholder p:last-child {
+    border-bottom: 0;
+  }
+
+  .markets-tickers-placeholder span:last-child {
+    color: var(--stone-light);
+    font-variant-numeric: tabular-nums;
   }
 
   .markets-macro {
