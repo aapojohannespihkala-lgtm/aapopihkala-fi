@@ -40,10 +40,11 @@ type DaySelection = 'today' | 'tomorrow';
 
 const PRICE_API_URL = '/api/current/electricity';
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
-const NETWORK_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const NETWORK_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 const DISPLAY_REFRESH_INTERVAL_MS = 60 * 1000;
 const QUARTER_MS = 15 * 60 * 1000;
 const PRICE_AXIS_STEP = 5;
+const TOMORROW_SEEN_KEY = 'current-electricity-tomorrow-seen';
 
 const datePartsFormatter = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
@@ -113,6 +114,12 @@ const formatPrice = (value: number) => {
   }).format(value);
 };
 
+const formatSignedPrice = (value: number) => {
+  if (!Number.isFinite(value)) return '';
+  const prefix = value > 0 ? '+' : value < 0 ? '−' : '±';
+  return `${prefix}${formatPrice(Math.abs(value))} c/kWh`;
+};
+
 const formatMarketRange = (start: Date, quarterCount = 1) => {
   const end = new Date(start.getTime() + quarterCount * QUARTER_MS);
   return `${formatClock(start)} - ${formatClock(end)}`;
@@ -180,20 +187,6 @@ const isCompleteMarketDay = (points: PricePoint[], dateKey: string) => {
   return getLocalDateKey(endBoundary) !== dateKey && getLocalMinuteOfDay(endBoundary) === 0;
 };
 
-const getCurrentHourPoints = (points: PricePoint[], currentIndex: number) => {
-  if (currentIndex < 0 || currentIndex >= points.length) return [];
-
-  const minute = readLocalParts(points[currentIndex].start).minute;
-  const quarterOffset = Math.max(0, Math.min(3, Math.floor(minute / 15)));
-  const startIndex = Math.max(0, currentIndex - quarterOffset);
-  const hourPoints = points.slice(startIndex, startIndex + 4);
-
-  if (hourPoints.length !== 4) return [];
-  if (!hasQuarterCadence(hourPoints)) return [];
-
-  return hourPoints;
-};
-
 const findPriceWindow = (
   points: PricePoint[],
   mode: 'lowest' | 'highest',
@@ -256,10 +249,10 @@ const renderChart = (
 
   const containerWidth = svg.parentElement?.getBoundingClientRect().width ?? 760;
   const width = Math.max(300, Math.round(containerWidth));
-  const height = width < 560 ? 142 : 168;
+  const height = width < 560 ? 168 : 192;
   const left = width < 560 ? 30 : 34;
   const right = 8;
-  const top = 12;
+  const top = width < 560 ? 38 : 42;
   const bottom = 25;
   const plotWidth = width - left - right;
   const plotHeight = height - top - bottom;
@@ -270,18 +263,28 @@ const renderChart = (
   const minimum = Math.min(0, Math.floor(rawMinimum / PRICE_AXIS_STEP) * PRICE_AXIS_STEP);
   let maximum = Math.max(0, Math.ceil(rawMaximum / PRICE_AXIS_STEP) * PRICE_AXIS_STEP);
 
-  if (maximum <= minimum) {
-    maximum = minimum + PRICE_AXIS_STEP;
-  }
+  if (maximum <= minimum) maximum = minimum + PRICE_AXIS_STEP;
 
   const span = maximum - minimum;
-
   const xBoundary = (index: number) => left + (index / points.length) * plotWidth;
   const xCenter = (index: number) => (xBoundary(index) + xBoundary(index + 1)) / 2;
   const yFor = (price: number) => top + ((maximum - price) / span) * plotHeight;
   const zeroY = yFor(0);
   const linePath = buildStepPath(points, xBoundary, yFor);
   const areaPath = `${linePath} L ${xBoundary(points.length).toFixed(2)} ${zeroY.toFixed(2)} L ${xBoundary(0).toFixed(2)} ${zeroY.toFixed(2)} Z`;
+
+  const windowCenter = (window: PriceWindow | null) => {
+    if (!window) return Number.NaN;
+    return (
+      xBoundary(window.startIndex) +
+      xBoundary(window.startIndex + window.points.length)
+    ) / 2;
+  };
+
+  const lowCenter = windowCenter(cheapestWindow);
+  const highCenter = windowCenter(expensiveWindow);
+  const labelsOverlap =
+    Number.isFinite(lowCenter) && Number.isFinite(highCenter) && Math.abs(lowCenter - highCenter) < 118;
 
   const renderBand = (window: PriceWindow | null, className: string, dataAttribute: string) => {
     if (!window) return '';
@@ -290,10 +293,30 @@ const renderChart = (
     return `<rect ${dataAttribute} class="${className}" x="${x.toFixed(2)}" y="${top}" width="${bandWidth.toFixed(2)}" height="${plotHeight}" rx="1" />`;
   };
 
+  const renderWindowLabel = (
+    window: PriceWindow | null,
+    kind: 'LOWEST' | 'HIGHEST',
+    className: string,
+    dataAttribute: string,
+    row: number
+  ) => {
+    if (!window) return '';
+    const rawX = windowCenter(window);
+    const labelHalfWidth = width < 560 ? 44 : 54;
+    const x = Math.max(left + labelHalfWidth, Math.min(width - right - labelHalfWidth, rawX));
+    const baseY = labelsOverlap && row === 1 ? 23 : 11;
+    const range = formatMarketRange(window.points[0].start, window.points.length);
+
+    return `
+      <g ${dataAttribute} class="electricity-chart__window-label ${className}" transform="translate(${x.toFixed(2)} 0)">
+        <text y="${baseY}">${kind} 2 H · ${formatPrice(window.average)}</text>
+        <text y="${baseY + 10}" class="electricity-chart__window-range">${range}</text>
+      </g>
+    `;
+  };
+
   const axisValues: number[] = [];
-  for (let value = minimum; value <= maximum; value += PRICE_AXIS_STEP) {
-    axisValues.push(value);
-  }
+  for (let value = minimum; value <= maximum; value += PRICE_AXIS_STEP) axisValues.push(value);
 
   const yAxis = axisValues
     .map((value) => {
@@ -330,12 +353,15 @@ const renderChart = (
   svg.setAttribute('height', String(height));
   svg.innerHTML = `
     <title>Finland day-ahead spot electricity prices ${daySelection} in 15 minute intervals</title>
+    ${renderWindowLabel(cheapestWindow, 'LOWEST', 'electricity-chart__window-label--low', 'data-electricity-low-label', 0)}
+    ${renderWindowLabel(expensiveWindow, 'HIGHEST', 'electricity-chart__window-label--high', 'data-electricity-high-label', labelsOverlap ? 1 : 0)}
     ${renderBand(cheapestWindow, 'electricity-chart__band electricity-chart__band--low', 'data-electricity-low-band')}
     ${renderBand(expensiveWindow, 'electricity-chart__band electricity-chart__band--high', 'data-electricity-high-band')}
     ${yAxis}
     <path d="${areaPath}" class="electricity-chart__area" />
     <path data-electricity-price-path d="${linePath}" class="electricity-chart__line" />
     ${currentMarker}
+    <rect data-electricity-inspection-band class="electricity-chart__inspection-band" x="0" y="${top}" width="0" height="${plotHeight}" opacity="0" />
     <line data-electricity-inspection-line class="electricity-chart__inspection-line" x1="0" x2="0" y1="${top}" y2="${top + plotHeight}" opacity="0" />
     <circle data-electricity-inspection-point class="electricity-chart__inspection-point" cx="0" cy="0" r="3" opacity="0" />
     ${axisLabels}
@@ -359,27 +385,19 @@ const renderChart = (
 
 export const initCurrentElectricity = () => {
   const root = document.querySelector<HTMLElement>('[data-current-electricity]');
-  if (!root) return;
-  if (root.dataset.electricityInitialized === 'true') return;
-
+  if (!root || root.dataset.electricityInitialized === 'true') return;
   root.dataset.electricityInitialized = 'true';
 
-  const priceTarget = root.querySelector<HTMLElement>('[data-electricity-price]');
-  const intervalTarget = root.querySelector<HTMLElement>('[data-electricity-interval]');
-  const currentStatusTarget = root.querySelector<HTMLElement>('[data-electricity-current-status]');
+  const averageTarget = root.querySelector<HTMLElement>('[data-electricity-price]');
+  const averageLabelTarget = root.querySelector<HTMLElement>('[data-electricity-average-label]');
+  const comparisonTarget = root.querySelector<HTMLElement>('[data-electricity-average-comparison]');
+  const nowPriceTarget = root.querySelector<HTMLElement>('[data-electricity-now-price]');
+  const nowIntervalTarget = root.querySelector<HTMLElement>('[data-electricity-interval]');
   const chartSection = root.querySelector<HTMLElement>('[data-electricity-chart-section]');
   const daySwitch = root.querySelector<HTMLElement>('[data-electricity-day-switch]');
   const todayButton = root.querySelector<HTMLButtonElement>('[data-electricity-day="today"]');
   const tomorrowButton = root.querySelector<HTMLButtonElement>('[data-electricity-day="tomorrow"]');
-  const primaryLabelTarget = root.querySelector<HTMLElement>('[data-electricity-primary-label]');
-  const primaryValueTarget = root.querySelector<HTMLElement>('[data-electricity-primary-value]');
-  const primaryRangeTarget = root.querySelector<HTMLElement>('[data-electricity-primary-range]');
-  const dayAverageTarget = root.querySelector<HTMLElement>('[data-electricity-day-average]');
-  const dayAverageDetailTarget = root.querySelector<HTMLElement>('[data-electricity-day-average-detail]');
-  const cheapestValueTarget = root.querySelector<HTMLElement>('[data-electricity-cheapest-value]');
-  const cheapestRangeTarget = root.querySelector<HTMLElement>('[data-electricity-cheapest-range]');
-  const expensiveValueTarget = root.querySelector<HTMLElement>('[data-electricity-expensive-value]');
-  const expensiveRangeTarget = root.querySelector<HTMLElement>('[data-electricity-expensive-range]');
+  const tomorrowDot = root.querySelector<HTMLElement>('[data-electricity-tomorrow-dot]');
   const lowValueTarget = root.querySelector<HTMLElement>('[data-electricity-low-value]');
   const lowRangeTarget = root.querySelector<HTMLElement>('[data-electricity-low-range]');
   const highValueTarget = root.querySelector<HTMLElement>('[data-electricity-high-value]');
@@ -393,22 +411,16 @@ export const initCurrentElectricity = () => {
   const retryButton = root.querySelector<HTMLButtonElement>('[data-electricity-retry]');
 
   if (
-    !priceTarget ||
-    !intervalTarget ||
-    !currentStatusTarget ||
+    !averageTarget ||
+    !averageLabelTarget ||
+    !comparisonTarget ||
+    !nowPriceTarget ||
+    !nowIntervalTarget ||
     !chartSection ||
     !daySwitch ||
     !todayButton ||
     !tomorrowButton ||
-    !primaryLabelTarget ||
-    !primaryValueTarget ||
-    !primaryRangeTarget ||
-    !dayAverageTarget ||
-    !dayAverageDetailTarget ||
-    !cheapestValueTarget ||
-    !cheapestRangeTarget ||
-    !expensiveValueTarget ||
-    !expensiveRangeTarget ||
+    !tomorrowDot ||
     !lowValueTarget ||
     !lowRangeTarget ||
     !highValueTarget ||
@@ -436,8 +448,10 @@ export const initCurrentElectricity = () => {
 
   const hideInspection = () => {
     chartTooltip.hidden = true;
+    const inspectionBand = chart.querySelector<SVGRectElement>('[data-electricity-inspection-band]');
     const inspectionLine = chart.querySelector<SVGLineElement>('[data-electricity-inspection-line]');
     const inspectionPoint = chart.querySelector<SVGCircleElement>('[data-electricity-inspection-point]');
+    inspectionBand?.setAttribute('opacity', '0');
     inspectionLine?.setAttribute('opacity', '0');
     inspectionPoint?.setAttribute('opacity', '0');
   };
@@ -452,11 +466,17 @@ export const initCurrentElectricity = () => {
 
     const xBoundary = (pointIndex: number) =>
       geometry.left + (pointIndex / latestDayPoints.length) * geometry.plotWidth;
-    const x = (xBoundary(index) + xBoundary(index + 1)) / 2;
+    const x1 = xBoundary(index);
+    const x2 = xBoundary(index + 1);
+    const x = (x1 + x2) / 2;
     const y = geometry.top + ((geometry.maximum - point.price) / geometry.span) * geometry.plotHeight;
+    const inspectionBand = chart.querySelector<SVGRectElement>('[data-electricity-inspection-band]');
     const inspectionLine = chart.querySelector<SVGLineElement>('[data-electricity-inspection-line]');
     const inspectionPoint = chart.querySelector<SVGCircleElement>('[data-electricity-inspection-point]');
 
+    inspectionBand?.setAttribute('x', x1.toFixed(2));
+    inspectionBand?.setAttribute('width', Math.max(1, x2 - x1).toFixed(2));
+    inspectionBand?.setAttribute('opacity', '1');
     inspectionLine?.setAttribute('x1', x.toFixed(2));
     inspectionLine?.setAttribute('x2', x.toFixed(2));
     inspectionLine?.setAttribute('opacity', '1');
@@ -526,7 +546,6 @@ export const initCurrentElectricity = () => {
         // Synthetic pointer events and some browsers may not expose an active pointer capture target.
       }
     }
-
     inspectAtClientX(event.clientX);
   });
 
@@ -547,9 +566,7 @@ export const initCurrentElectricity = () => {
   });
 
   chart.addEventListener('pointercancel', (event) => {
-    if (activeTouchPointerId === event.pointerId) {
-      activeTouchPointerId = null;
-    }
+    if (activeTouchPointerId === event.pointerId) activeTouchPointerId = null;
   });
 
   chart.addEventListener('pointerleave', (event) => {
@@ -590,11 +607,28 @@ export const initCurrentElectricity = () => {
   const resizeObserver = new ResizeObserver(renderLatestChart);
   resizeObserver.observe(chartFrame);
 
-  const updateDaySwitch = (tomorrowAvailable: boolean) => {
+  const markTomorrowSeen = (tomorrowKey: string) => {
+    try {
+      window.sessionStorage.setItem(TOMORROW_SEEN_KEY, tomorrowKey);
+    } catch {
+      // Storage can be unavailable in privacy-restricted browsing modes.
+    }
+    tomorrowDot.hidden = true;
+  };
+
+  const updateDaySwitch = (tomorrowAvailable: boolean, tomorrowKey: string) => {
     daySwitch.hidden = !tomorrowAvailable;
     tomorrowButton.disabled = !tomorrowAvailable;
     todayButton.setAttribute('aria-pressed', String(selectedDay === 'today'));
     tomorrowButton.setAttribute('aria-pressed', String(selectedDay === 'tomorrow'));
+
+    let tomorrowSeen = selectedDay === 'tomorrow';
+    try {
+      tomorrowSeen = tomorrowSeen || window.sessionStorage.getItem(TOMORROW_SEEN_KEY) === tomorrowKey;
+    } catch {
+      // Keep the availability dot visible when storage cannot be read.
+    }
+    tomorrowDot.hidden = !tomorrowAvailable || tomorrowSeen;
   };
 
   const renderCachedData = () => {
@@ -615,14 +649,12 @@ export const initCurrentElectricity = () => {
       hideInspection();
     }
 
-    updateDaySwitch(tomorrowAvailable);
+    updateDaySwitch(tomorrowAvailable, tomorrowKey);
 
     const currentIndex = getCurrentIndex(todayPoints, now);
     const currentPoint = currentIndex >= 0 ? todayPoints[currentIndex] : null;
     const selectedPoints = selectedDay === 'tomorrow' ? tomorrowPoints : todayPoints;
     const selectedCurrentIndex = selectedDay === 'today' ? currentIndex : -1;
-    const hourPoints = getCurrentHourPoints(todayPoints, currentIndex);
-    const lowestHour = selectedDay === 'tomorrow' ? findPriceWindow(selectedPoints, 'lowest', 4) : null;
     const cheapestWindow = findPriceWindow(selectedPoints, 'lowest');
     const expensiveWindow = findPriceWindow(selectedPoints, 'highest');
     const lowPoint = selectedPoints.reduce((lowest, point) =>
@@ -631,40 +663,24 @@ export const initCurrentElectricity = () => {
     const highPoint = selectedPoints.reduce((highest, point) =>
       point.price > highest.price ? point : highest
     );
+    const selectedAverage = averagePrice(selectedPoints);
+    const todayAverage = averagePrice(todayPoints);
 
-    priceTarget.textContent = currentPoint ? formatPrice(currentPoint.price) : '--.--';
-    intervalTarget.textContent = currentPoint
-      ? formatMarketRange(currentPoint.start)
-      : 'Current interval unavailable';
-    currentStatusTarget.textContent = currentPoint
-      ? `CURRENT ${formatClock(currentPoint.start)}`
-      : 'TODAY';
+    averageTarget.textContent = formatPrice(selectedAverage);
+    averageLabelTarget.textContent = `DAY AVG / ${selectedDay === 'today' ? 'TODAY' : 'TOMORROW'}`;
 
-    if (selectedDay === 'today') {
-      primaryLabelTarget.textContent = 'HOUR AVG';
-      primaryValueTarget.textContent = formatPrice(averagePrice(hourPoints));
-      primaryRangeTarget.textContent =
-        hourPoints.length === 4 ? formatMarketRange(hourPoints[0].start, 4) : '--:-- - --:--';
+    if (selectedDay === 'tomorrow' && Number.isFinite(todayAverage)) {
+      comparisonTarget.textContent = `${formatSignedPrice(selectedAverage - todayAverage)} VS TODAY`;
+      comparisonTarget.hidden = false;
     } else {
-      primaryLabelTarget.textContent = 'LOWEST 1 H';
-      primaryValueTarget.textContent = formatPrice(lowestHour?.average ?? Number.NaN);
-      primaryRangeTarget.textContent = lowestHour
-        ? formatMarketRange(lowestHour.points[0].start, lowestHour.points.length)
-        : '--:-- - --:--';
+      comparisonTarget.textContent = '';
+      comparisonTarget.hidden = true;
     }
 
-    dayAverageTarget.textContent = formatPrice(averagePrice(selectedPoints));
-    dayAverageDetailTarget.textContent = selectedDay === 'today' ? 'TODAY' : 'TOMORROW';
-
-    cheapestValueTarget.textContent = formatPrice(cheapestWindow?.average ?? Number.NaN);
-    cheapestRangeTarget.textContent = cheapestWindow
-      ? formatMarketRange(cheapestWindow.points[0].start, cheapestWindow.points.length)
-      : '--:-- - --:--';
-
-    expensiveValueTarget.textContent = formatPrice(expensiveWindow?.average ?? Number.NaN);
-    expensiveRangeTarget.textContent = expensiveWindow
-      ? formatMarketRange(expensiveWindow.points[0].start, expensiveWindow.points.length)
-      : '--:-- - --:--';
+    nowPriceTarget.textContent = currentPoint ? `${formatPrice(currentPoint.price)} c/kWh` : '--.-- c/kWh';
+    nowIntervalTarget.textContent = currentPoint
+      ? formatMarketRange(currentPoint.start)
+      : 'Current interval unavailable';
 
     lowValueTarget.textContent = formatPrice(lowPoint.price);
     lowRangeTarget.textContent = formatMarketRange(lowPoint.start);
@@ -672,10 +688,13 @@ export const initCurrentElectricity = () => {
     highRangeTarget.textContent = formatMarketRange(highPoint.start);
 
     const dayText = selectedDay === 'today' ? 'today' : 'tomorrow';
-    chartSection.setAttribute('aria-label', `${dayText === 'today' ? "Today's" : "Tomorrow's"} 15 minute electricity prices`);
+    chartSection.setAttribute(
+      'aria-label',
+      `${dayText === 'today' ? "Today's" : "Tomorrow's"} 15 minute electricity prices`
+    );
     chart.setAttribute(
       'aria-label',
-      `Electricity spot prices ${dayText} in Finland. Touch, hover or use the arrow keys to inspect 15 minute prices.`
+      `Electricity spot prices ${dayText} in Finland. Lowest and highest two-hour windows are marked. Touch, hover or use the arrow keys to inspect 15 minute prices.`
     );
 
     latestDayPoints = selectedPoints;
@@ -695,6 +714,8 @@ export const initCurrentElectricity = () => {
     selectedDay = nextDay;
     inspectedIndex = null;
     hideInspection();
+
+    if (nextDay === 'tomorrow') markTomorrowSeen(getNextLocalDateKey(new Date()));
     renderCachedData();
   };
 
@@ -711,16 +732,11 @@ export const initCurrentElectricity = () => {
         cache: 'no-store',
       });
 
-      if (!response.ok) {
-        throw new Error(`Pörssisähkö.net request failed: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Pörssisähkö.net request failed: ${response.status}`);
 
       const data = (await response.json()) as PriceResponse;
       const points = normalizePrices(data);
-
-      if (points.length === 0) {
-        throw new Error('Pörssisähkö.net returned no usable price data');
-      }
+      if (points.length === 0) throw new Error('Pörssisähkö.net returned no usable price data');
 
       cachedPoints = points;
       renderCachedData();
@@ -734,7 +750,7 @@ export const initCurrentElectricity = () => {
       void error;
       root.setAttribute('aria-busy', 'false');
       errorTarget.hidden = false;
-      intervalTarget.textContent = 'Price data unavailable';
+      nowIntervalTarget.textContent = 'Price data unavailable';
     }
   };
 

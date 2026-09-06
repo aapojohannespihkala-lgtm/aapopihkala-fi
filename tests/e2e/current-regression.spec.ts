@@ -74,9 +74,7 @@ const buildElectricityFixture = (overrides: Record<number, number> = {}) => {
     if (index >= 74 && index <= 81) price = 4.3;
     if (index === 75) price = 5.99;
 
-    if (overrides[index] !== undefined) {
-      price = overrides[index];
-    }
+    if (overrides[index] !== undefined) price = overrides[index];
 
     return {
       price,
@@ -148,15 +146,10 @@ test('Current renders electricity above the compact Olari weather view', async (
 
   await expect(page.locator('[data-current-electricity]')).toBeVisible();
   await expect(page.locator('.current-electricity-wrap + .current-weather-wrap')).toHaveCount(1);
-  await expect(page.locator('[data-electricity-price]')).toHaveText('0.44');
+  await expect(page.locator('[data-electricity-price]')).toHaveText('1.46');
+  await expect(page.locator('[data-electricity-average-label]')).toHaveText('DAY AVG / TODAY');
+  await expect(page.locator('[data-electricity-now-price]')).toHaveText('0.44 c/kWh');
   await expect(page.locator('[data-electricity-interval]')).toHaveText('16:45 - 17:00');
-  await expect(page.locator('[data-electricity-current-status]')).toHaveText('CURRENT 16:45');
-  await expect(page.locator('[data-electricity-hour-average]')).toHaveText('0.31');
-  await expect(page.locator('[data-electricity-hour-range]')).toHaveText('16:00 - 17:00');
-  await expect(page.locator('[data-electricity-cheapest-value]')).toHaveText('0.23');
-  await expect(page.locator('[data-electricity-cheapest-range]')).toHaveText('13:00 - 15:00');
-  await expect(page.locator('[data-electricity-expensive-value]')).toHaveText('4.51');
-  await expect(page.locator('[data-electricity-expensive-range]')).toHaveText('18:30 - 20:30');
   await expect(page.locator('[data-electricity-low-value]')).toHaveText('0.20');
   await expect(page.locator('[data-electricity-low-range]')).toHaveText('14:15 - 14:30');
   await expect(page.locator('[data-electricity-high-value]')).toHaveText('5.99');
@@ -165,6 +158,9 @@ test('Current renders electricity above the compact Olari weather view', async (
   await expect(page.locator('[data-electricity-current-line]')).toHaveCount(1);
   await expect(page.locator('[data-electricity-low-band]')).toHaveCount(1);
   await expect(page.locator('[data-electricity-high-band]')).toHaveCount(1);
+  await expect(page.locator('[data-electricity-low-label]')).toContainText('LOWEST 2 H · 0.23');
+  await expect(page.locator('[data-electricity-high-label]')).toContainText('HIGHEST 2 H · 4.51');
+  await expect(page.locator('.electricity-stats')).toHaveCount(0);
   await expect(page.locator('[data-electricity-y-label]')).toHaveText(['0', '5', '10']);
 
   const electricityChart = page.locator('[data-electricity-chart]');
@@ -195,6 +191,7 @@ test('Current renders electricity above the compact Olari weather view', async (
   await expect(page.locator('[data-electricity-chart-tooltip-price]')).toHaveText(
     /-?\d+\.\d{2} c\/kWh/
   );
+  await expect(page.locator('[data-electricity-inspection-band]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-line]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-point]')).toHaveAttribute('opacity', '1');
 
