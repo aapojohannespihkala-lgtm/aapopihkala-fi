@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { site } from '../../config/site';
 import NightModeToggle from '../NightModeToggle.astro';
+import CurrentElectricity from './CurrentElectricity.astro';
 import CurrentWeather from './CurrentWeather.astro';
 
 const canonicalUrl = `${site.url}/current/`;
@@ -39,6 +40,10 @@ const canonicalUrl = `${site.url}/current/`;
         Updated <span data-current-updated>Waiting</span>
       </p>
     </header>
+
+    <div class="current-electricity-wrap">
+      <CurrentElectricity />
+    </div>
 
     <div class="current-weather-wrap">
       <CurrentWeather />
@@ -106,7 +111,8 @@ const canonicalUrl = `${site.url}/current/`;
   }
 
   .current-weather-wrap {
-    margin-top: -26px;
+    margin-top: 30px;
+    border-top: 1px solid var(--line);
   }
 
   @media (max-width: 640px) {
@@ -125,7 +131,7 @@ const canonicalUrl = `${site.url}/current/`;
     }
 
     .current-weather-wrap {
-      margin-top: -18px;
+      margin-top: 25px;
     }
   }
 </style>
