@@ -1,0 +1,172 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { site } from '../../config/site';
+import CurrentWeather from './CurrentWeather.astro';
+
+const canonicalUrl = `${site.url}/current/`;
+---
+
+<BaseLayout
+  lang="en"
+  title="Current | Aapo Pihkala"
+  description="A personal view of what matters right now."
+  canonicalUrl={canonicalUrl}
+  finnishUrl={canonicalUrl}
+  englishUrl={canonicalUrl}
+  languageHref="/"
+  initialNightMode
+  includeDefaultSocialMeta={false}
+>
+  <Fragment slot="head">
+    <meta name="robots" content="noindex,nofollow" />
+  </Fragment>
+
+  <main id="main-content" tabindex="-1" class="current-shell">
+    <header class="current-intro">
+      <div class="current-intro__meta">
+        <p class="current-index">CURRENT / 01</p>
+
+        <p class="current-clock" aria-label="Current time in Helsinki">
+          <span data-current-date></span>
+          <span aria-hidden="true">·</span>
+          <span data-current-time></span>
+        </p>
+      </div>
+
+      <div class="current-intro__title-row">
+        <div>
+          <h1>Current</h1>
+          <p class="current-lead">A personal view of what matters right now.</p>
+        </div>
+
+        <p class="current-updated">
+          UPDATED <span data-current-updated>WAITING</span>
+        </p>
+      </div>
+    </header>
+
+    <CurrentWeather />
+  </main>
+
+  <Fragment slot="afterAnalytics">
+    <script>
+      import { initCurrentClock } from '../../features/current/clock';
+      initCurrentClock();
+    </script>
+  </Fragment>
+</BaseLayout>
+
+<style>
+  :global(.language-switch) {
+    display: none;
+  }
+
+  .current-shell {
+    width: 100%;
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 64px 32px 128px;
+  }
+
+  .current-intro {
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .current-intro__meta,
+  .current-intro__title-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 32px;
+  }
+
+  .current-intro__meta {
+    align-items: baseline;
+    margin-bottom: 32px;
+  }
+
+  .current-intro__title-row {
+    align-items: flex-end;
+  }
+
+  .current-index,
+  .current-clock,
+  .current-updated {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    text-transform: uppercase;
+  }
+
+  .current-index {
+    color: var(--moss);
+    font-size: 0.58rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.1em;
+  }
+
+  .current-clock {
+    display: flex;
+    gap: 7px;
+    color: var(--stone);
+    font-size: 0.56rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.07em;
+  }
+
+  .current-intro h1 {
+    margin: 0;
+    color: var(--ink);
+    font-family: "Times New Roman", Times, serif;
+    font-size: clamp(4rem, 9vw, 7.2rem);
+    font-weight: 400;
+    line-height: 0.88;
+    letter-spacing: -0.05em;
+  }
+
+  .current-lead {
+    max-width: 500px;
+    margin: 25px 0 0;
+    color: var(--stone);
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  .current-updated {
+    margin-bottom: 7px;
+    color: var(--stone-light);
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .current-updated span {
+    color: var(--stone);
+  }
+
+  @media (max-width: 640px) {
+    .current-shell {
+      padding: 44px 24px 96px;
+    }
+
+    .current-intro {
+      padding-bottom: 38px;
+    }
+
+    .current-intro__meta {
+      margin-bottom: 26px;
+    }
+
+    .current-intro__title-row {
+      display: block;
+    }
+
+    .current-updated {
+      margin-top: 30px;
+      margin-bottom: 0;
+    }
+  }
+</style>

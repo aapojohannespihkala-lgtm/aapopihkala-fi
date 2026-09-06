@@ -1,0 +1,344 @@
+<section class="current-weather" data-current-weather aria-labelledby="current-weather-title">
+  <header class="weather-heading">
+    <p class="weather-index">WEATHER / 01</p>
+    <p class="weather-location">OLARI / ESPOO</p>
+  </header>
+
+  <div class="weather-summary">
+    <div class="weather-primary">
+      <p class="weather-temperature" aria-live="polite">
+        <span data-weather-temperature>--.-</span><span class="weather-temperature__unit">°C</span>
+      </p>
+      <h2 id="current-weather-title" class="weather-condition" data-weather-condition>
+        Fetching forecast
+      </h2>
+    </div>
+
+    <dl class="weather-metrics" aria-label="Current weather details">
+      <div>
+        <dt>FEELS</dt>
+        <dd data-weather-feels>--.-°</dd>
+      </div>
+      <div>
+        <dt>WIND</dt>
+        <dd data-weather-wind>--.- m/s</dd>
+      </div>
+      <div>
+        <dt>RAIN NOW</dt>
+        <dd data-weather-rain-now>--.- mm</dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="weather-chart-frame">
+    <svg
+      class="weather-chart"
+      data-weather-chart
+      role="img"
+      aria-label="Temperature and rain probability for the next 24 hours"
+    ></svg>
+  </div>
+
+  <div class="weather-notes" aria-label="Weather highlights">
+    <div class="weather-note">
+      <p class="weather-note__label">RAIN</p>
+      <p class="weather-note__value" data-weather-rain-note>Checking next hours</p>
+    </div>
+
+    <div class="weather-note">
+      <p class="weather-note__label">SUN</p>
+      <p class="weather-note__value" data-weather-sun>--:-- - --:--</p>
+    </div>
+
+    <div class="weather-note">
+      <p class="weather-note__label">TODAY</p>
+      <p class="weather-note__value" data-weather-today>--° / --°</p>
+    </div>
+  </div>
+
+  <footer class="weather-footer">
+    <p>
+      DATA /
+      <a href="https://open-meteo.com/" target="_blank" rel="noopener">OPEN-METEO</a>
+      · CC BY 4.0 · AUTO REFRESH 15 MIN
+    </p>
+
+    <p class="weather-error" data-weather-error hidden>
+      Forecast unavailable.
+      <button type="button" data-weather-retry>Retry</button>
+    </p>
+  </footer>
+</section>
+
+<script>
+  import { initCurrentWeather } from '../../features/current/weather';
+  initCurrentWeather();
+</script>
+
+<style>
+  .current-weather {
+    padding: 58px 0 8px;
+  }
+
+  .weather-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 34px;
+  }
+
+  .weather-index,
+  .weather-location,
+  .weather-metrics dt,
+  .weather-note__label,
+  .weather-footer {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    text-transform: uppercase;
+  }
+
+  .weather-index,
+  .weather-location {
+    margin: 0;
+    font-size: 0.58rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.1em;
+  }
+
+  .weather-index {
+    color: var(--moss);
+  }
+
+  .weather-location {
+    color: var(--stone);
+  }
+
+  .weather-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+    align-items: end;
+    gap: 64px;
+    padding-bottom: 36px;
+  }
+
+  .weather-primary {
+    min-width: 0;
+  }
+
+  .weather-temperature {
+    margin: 0;
+    color: var(--ink);
+    font-family: "Times New Roman", Times, serif;
+    font-size: clamp(4.2rem, 8vw, 7rem);
+    font-weight: 400;
+    line-height: 0.86;
+    letter-spacing: -0.055em;
+  }
+
+  .weather-temperature__unit {
+    margin-left: 0.08em;
+    color: var(--stone-light);
+    font-size: 0.34em;
+    letter-spacing: -0.02em;
+    vertical-align: top;
+  }
+
+  .weather-condition {
+    margin: 22px 0 0;
+    color: var(--stone);
+    font-size: 0.96rem;
+    font-weight: 400;
+    line-height: 1.45;
+    letter-spacing: -0.006em;
+  }
+
+  .weather-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    margin: 0;
+  }
+
+  .weather-metrics div {
+    min-width: 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .weather-metrics dt,
+  .weather-metrics dd {
+    margin: 0;
+  }
+
+  .weather-metrics dt {
+    margin-bottom: 9px;
+    color: var(--stone-light);
+    font-size: 0.48rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.08em;
+  }
+
+  .weather-metrics dd {
+    color: var(--ink-soft);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+
+  .weather-chart-frame {
+    width: 100%;
+    min-height: 272px;
+    padding: 18px 0 6px;
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .weather-chart {
+    display: block;
+    width: 100%;
+    height: 272px;
+    overflow: visible;
+  }
+
+  .weather-notes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .weather-note {
+    min-width: 0;
+    padding: 20px 24px 22px 0;
+  }
+
+  .weather-note + .weather-note {
+    padding-left: 24px;
+    border-left: 1px solid var(--line-soft);
+  }
+
+  .weather-note__label,
+  .weather-note__value {
+    margin: 0;
+  }
+
+  .weather-note__label {
+    margin-bottom: 8px;
+    color: var(--stone-light);
+    font-size: 0.48rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.08em;
+  }
+
+  .weather-note__value {
+    color: var(--ink-soft);
+    font-size: 0.77rem;
+    line-height: 1.48;
+  }
+
+  .weather-footer {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    padding-top: 17px;
+    color: var(--stone-light);
+    font-size: 0.45rem;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.065em;
+  }
+
+  .weather-footer p {
+    margin: 0;
+  }
+
+  .weather-footer a,
+  .weather-error button {
+    color: var(--stone);
+  }
+
+  .weather-footer a {
+    text-decoration: none;
+  }
+
+  .weather-footer a:hover,
+  .weather-footer a:focus-visible,
+  .weather-error button:hover,
+  .weather-error button:focus-visible {
+    color: var(--moss-deep);
+  }
+
+  .weather-error button {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0 2px;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  @media (max-width: 800px) {
+    .weather-summary {
+      grid-template-columns: 1fr;
+      gap: 34px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .current-weather {
+      padding-top: 44px;
+    }
+
+    .weather-heading {
+      margin-bottom: 30px;
+    }
+
+    .weather-summary {
+      padding-bottom: 30px;
+    }
+
+    .weather-metrics {
+      gap: 12px;
+    }
+
+    .weather-metrics dd {
+      font-size: 0.72rem;
+    }
+
+    .weather-chart-frame,
+    .weather-chart {
+      min-height: 238px;
+      height: 238px;
+    }
+
+    .weather-notes {
+      grid-template-columns: 1fr;
+    }
+
+    .weather-note {
+      padding: 16px 0 17px;
+    }
+
+    .weather-note + .weather-note {
+      padding-left: 0;
+      border-left: 0;
+      border-top: 1px solid var(--line-soft);
+    }
+
+    .weather-footer {
+      display: block;
+    }
+
+    .weather-error {
+      margin-top: 12px !important;
+    }
+  }
+</style>
