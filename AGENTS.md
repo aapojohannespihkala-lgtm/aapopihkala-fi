@@ -30,3 +30,69 @@ Every new interactive animation or animation study must also be added to `src/pa
 - Give each new experiment the next available lab number and a short descriptive title.
 - Keep the lab version fully interactive unless the component itself has a deliberate restriction.
 - Do not leave an article-only animation out of Animation Lab.
+
+## Session continuity
+
+Do not rely on previous chat context as the source of truth for this project. The repository must contain the durable information needed to continue work in a new session.
+
+Before substantial work:
+
+- read `README.md`
+- read the relevant files under `docs/`
+- read `ROADMAP.md` when the task may affect unfinished work or priorities
+- inspect recent merged pull requests when recent implementation history or design intent matters
+- inspect the current code and tests for exact implementation details
+
+When a decision made during a chat should survive into future sessions, record it in the appropriate repository location before the task is considered complete. Do not create a running chat-history document.
+
+For meaningful pull requests, leave a compact handoff in the PR description covering:
+
+- what changed
+- why it changed
+- what was intentionally not changed when that boundary matters
+- how the change was validated
+- any follow-up work that remains
+
+If unfinished work must continue in a later session, keep it visible in an open pull request or in `ROADMAP.md` rather than only in chat context.
+
+## Change completion
+
+When the user asks ChatGPT to make a repository change, the default is to carry that change through to completion: create or update the working branch, open or update the pull request, wait for the required CI checks, and merge the pull request when those checks pass.
+
+Do not stop only to request separate merge approval unless:
+
+- the user explicitly asks to leave the pull request open or review before merge
+- CI fails or reports a meaningful regression
+- a merge conflict or material ambiguity appears
+- the requested implementation expands beyond the agreed scope in a way that needs a user decision
+
+A successful merge is part of completing the requested repository change, not a separate task by default.
+
+## CI safety
+
+Documentation-only changes may use the lightweight CI path defined in `.github/workflows/build-check.yml`.
+
+Do not extend that fast path to source code, article content, configuration, tests or workflow files without a deliberate review of what validation would be skipped. Changes outside the documented documentation paths must continue to receive the full static check, build and browser regression pipeline unless the validation strategy is explicitly redesigned.
+
+## Documentation maintenance
+
+Update project documentation when a documented contract, workflow or architectural ownership boundary changes.
+
+Do not update documentation only because an implementation detail changed. In particular, documentation does not need a change solely because:
+
+- a new regression test was added inside the existing test strategy
+- a new component was added inside an existing architecture
+- an animation constant or visual tuning value changed
+- a local CSS fix was made
+- implementation code was refactored without changing ownership or public behavior
+
+Use the appropriate source of truth:
+
+- `README.md` for setup, commands, CI, deployment and the project overview
+- `docs/ARCHITECTURE.md` for stable ownership boundaries and architecture
+- `docs/CONTENT.md` for the article workflow and publishing contract
+- `ROADMAP.md` for unfinished development work
+- pull request descriptions for concise change history and handoff context
+- code and tests for exact implementation details and regression assertions
+
+Avoid maintaining exhaustive file inventories, test lists, chat transcripts or duplicated schema examples in prose when the repository itself is the more reliable source.
