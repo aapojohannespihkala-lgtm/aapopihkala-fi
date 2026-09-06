@@ -28,25 +28,26 @@
     </section>
 
     <section class="markets-macro" aria-label="Currency and interest rates">
-      <p class="markets-panel-label">ECB / MACRO</p>
+      <p class="markets-panel-label">FX / RATES</p>
 
       <div class="markets-macro__row">
         <p class="markets-macro__label">EUR / USD</p>
-        <p class="markets-macro__value" data-market-value="eur-usd">--.----</p>
+        <div class="markets-macro__reading">
+          <p class="markets-macro__value" data-market-value="eur-usd">--.----</p>
+          <p class="markets-macro__change" data-market-change="eur-usd">WAITING / 1M</p>
+        </div>
       </div>
 
       <div class="markets-macro__row">
-        <p class="markets-macro__label">EUR / SEK</p>
-        <p class="markets-macro__value" data-market-value="eur-sek">--.----</p>
-      </div>
-
-      <div class="markets-macro__row">
-        <p class="markets-macro__label">€STR</p>
-        <p class="markets-macro__value"><span data-market-value="estr">-.---</span>%</p>
+        <p class="markets-macro__label">3M EURIBOR</p>
+        <div class="markets-macro__reading">
+          <p class="markets-macro__value"><span data-market-value="euribor-3m">-.---</span>%</p>
+          <p class="markets-macro__change" data-market-change="euribor-3m">WAITING / 1M</p>
+        </div>
       </div>
 
       <p class="markets-macro__updated">
-        ECB / <span data-markets-observation>WAITING</span>
+        OBS / <span data-markets-observation>WAITING</span>
       </p>
     </section>
   </div>
@@ -57,6 +58,12 @@
       <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TRADINGVIEW</a>
       ·
       <a href="https://data.ecb.europa.eu/" target="_blank" rel="noopener">ECB</a>
+      ·
+      <a
+        href="https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/euribor-rates/"
+        target="_blank"
+        rel="noopener"
+      >BANK OF FINLAND</a>
     </p>
 
     <p class="markets-error" data-markets-error hidden>
@@ -214,7 +221,7 @@
   .markets-macro__row {
     display: grid;
     grid-template-columns: 1fr auto;
-    align-items: baseline;
+    align-items: start;
     gap: 20px;
     padding: 13px 0;
     border-bottom: 1px solid var(--line-soft);
@@ -225,15 +232,24 @@
   }
 
   .markets-macro__label,
-  .markets-macro__value {
+  .markets-macro__value,
+  .markets-macro__change {
     margin: 0;
   }
 
   .markets-macro__label {
+    padding-top: 3px;
     color: var(--stone);
     font-size: 0.57rem;
     font-weight: 600;
     letter-spacing: 0.075em;
+  }
+
+  .markets-macro__reading {
+    display: grid;
+    justify-items: end;
+    gap: 6px;
+    min-width: 0;
   }
 
   .markets-macro__value {
@@ -243,6 +259,17 @@
     font-variant-numeric: tabular-nums;
     line-height: 1;
     text-transform: none;
+  }
+
+  .markets-macro__change {
+    color: var(--stone-light);
+    font-size: 0.42rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.055em;
+    text-align: right;
+    white-space: nowrap;
   }
 
   .markets-macro__updated {
