@@ -79,11 +79,19 @@ test('Current renders the compact Olari weather view', async ({ page }) => {
   await expect(page.locator('[data-weather-temperature]')).toHaveText('12.4');
   await expect(page.locator('[data-weather-condition]')).toHaveText('Overcast');
   await expect(page.locator('[data-weather-current-icon] svg')).toHaveCount(1);
-  await expect(page.locator('[data-weather-current-min]')).toHaveText('8');
-  await expect(page.locator('[data-weather-current-max]')).toHaveText('15');
+  await expect(page.locator('.weather-current__reading [data-weather-current-min]')).toHaveText('8');
+  await expect(page.locator('.weather-current__reading [data-weather-current-max]')).toHaveText('15');
+
   await expect(page.locator('[data-weather-sunrise]')).toHaveText('06:20');
   await expect(page.locator('[data-weather-sunset]')).toHaveText('20:08');
   await expect(page.locator('[data-weather-daylight]')).toHaveText('13H 48M');
+  await expect(page.locator('[data-weather-solar-arc]')).toHaveCount(1);
+  await expect(page.locator('[data-weather-sun-position]')).toHaveAttribute('opacity', '1');
+  await expect(page.locator('[data-weather-solar]')).toHaveAttribute(
+    'aria-label',
+    'Sunrise 06:20, sunset 20:08, day length 13H 48M'
+  );
+  await expect(page.locator('.weather-current__solar')).not.toContainText('DAYLIGHT');
 
   await expect(page.locator('.weather-metrics')).toHaveCount(0);
   await expect(page.locator('.weather-subheading')).toHaveCount(0);
@@ -98,6 +106,7 @@ test('Current renders the compact Olari weather view', async ({ page }) => {
   await expect(page.locator('[data-weather-day]').first().locator('.weather-day__name')).toHaveText('MON');
   await expect(page.locator('[data-weather-daily-max-path]')).toHaveCount(1);
   await expect(page.locator('[data-weather-daily-min-path]')).toHaveCount(1);
+  await expect(page.locator('[data-weather-daily-chart] line')).toHaveCount(0);
 
   const languageSwitch = page.locator('.language-switch');
   await expect(languageSwitch).toBeVisible();
@@ -123,6 +132,7 @@ test('Current weather remains inside a 390 px mobile viewport', async ({ page })
   await expect(page.locator('[data-current-weather]')).toBeVisible();
   await expect(page.locator('[data-weather-hour]')).toHaveCount(6);
   await expect(page.locator('[data-weather-day]')).toHaveCount(5);
+  await expect(page.locator('[data-weather-solar-arc]')).toBeVisible();
   await expect(page.locator('[data-weather-daylight]')).toBeVisible();
   await expect(page.locator('.language-switch')).toBeVisible();
   await expect(page.locator('[data-night-mode-toggle]')).toBeVisible();
