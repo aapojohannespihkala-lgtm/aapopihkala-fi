@@ -55,6 +55,12 @@ For meaningful pull requests, leave a compact handoff in the PR description cove
 
 If unfinished work must continue in a later session, keep it visible in an open pull request or in `ROADMAP.md` rather than only in chat context.
 
+## CI safety
+
+Documentation-only changes may use the lightweight CI path defined in `.github/workflows/build-check.yml`.
+
+Do not extend that fast path to source code, article content, configuration, tests or workflow files without a deliberate review of what validation would be skipped. Changes outside the documented documentation paths must continue to receive the full static check, build and browser regression pipeline unless the validation strategy is explicitly redesigned.
+
 ## Documentation maintenance
 
 Update project documentation when a documented contract, workflow or architectural ownership boundary changes.
