@@ -17,6 +17,7 @@ export const initCurrentElectricitySummary = () => {
   month.classList.add('electricity-month-average--summary');
   summary.append(low, month, high);
   hiddenExtremes.before(summary);
+  hiddenExtremes.hidden = true;
   hiddenExtremes.setAttribute('aria-hidden', 'true');
 
   root.dataset.electricitySummaryInitialized = 'true';

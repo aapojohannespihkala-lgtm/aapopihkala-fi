@@ -42,6 +42,7 @@ const buildElectricityFixture = (includeTomorrow = true) => {
 
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-09-06T13:52:00.000Z'));
+  await page.route('**/tv-market-data.js', async (route) => route.abort());
   await page.route('https://api.open-meteo.com/**', async (route) => {
     await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
   });
@@ -92,8 +93,13 @@ test('Current switches the electricity day average and chart without moving the 
   await expect(page.locator('[data-electricity-now-price]')).toHaveText('0.44 c/kWh');
   await expect(page.locator('[data-electricity-interval]')).toHaveText('16:45 - 17:00');
 
-  const lowLines = await page.locator('[data-electricity-low-label] text').allTextContents();
-  const highLines = await page.locator('[data-electricity-high-label] text').allTextContents();
+  const lowLabel = page.locator('[data-electricity-low-label]');
+  const highLabel = page.locator('[data-electricity-high-label]');
+  await expect(lowLabel.locator('text').first()).toHaveText('0.46');
+  await expect(highLabel.locator('text').first()).toHaveText('6.19');
+
+  const lowLines = await lowLabel.locator('text').allTextContents();
+  const highLines = await highLabel.locator('text').allTextContents();
   expect(lowLines).toEqual(['0.46', 'c/kWh', '04:00 -', '06:00']);
   expect(highLines).toEqual(['6.19', 'c/kWh', '18:00 -', '20:00']);
   await expect(page.locator('[data-electricity-current-line]')).toHaveCount(0);
