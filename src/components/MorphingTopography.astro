@@ -57,14 +57,14 @@ const {
 </style>
 
 <script>
-  type ThreeRuntimeModule = typeof import('../scripts/threeRuntime');
+  type ThreeRuntimeModule = typeof import('../scripts/threeCoreRuntime');
 
   const runtimeWindow = window as typeof window & {
     __loadMorphingTopographyThreeRuntime?: () => Promise<ThreeRuntimeModule>;
   };
 
   runtimeWindow.__loadMorphingTopographyThreeRuntime = () =>
-    import('../scripts/threeRuntime');
+    import('../scripts/threeCoreRuntime');
   window.dispatchEvent(new Event('morphing-topography-three-runtime-loader-ready'));
 </script>
 
