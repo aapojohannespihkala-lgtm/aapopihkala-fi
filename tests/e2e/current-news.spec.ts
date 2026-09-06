@@ -2,14 +2,17 @@ import { expect, test } from '@playwright/test';
 
 const PROFILE_KEY = 'current.news.profile.v1';
 const DAILY_KEY = 'current.news.daily.v1';
+const RESET_MARKER = 'current.news.test.storage-reset';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(
-    ({ profileKey, dailyKey }) => {
+    ({ profileKey, dailyKey, resetMarker }) => {
+      if (window.sessionStorage.getItem(resetMarker) === 'true') return;
       window.localStorage.removeItem(profileKey);
       window.localStorage.removeItem(dailyKey);
+      window.sessionStorage.setItem(resetMarker, 'true');
     },
-    { profileKey: PROFILE_KEY, dailyKey: DAILY_KEY }
+    { profileKey: PROFILE_KEY, dailyKey: DAILY_KEY, resetMarker: RESET_MARKER }
   );
 });
 
