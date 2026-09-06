@@ -55,6 +55,35 @@ test('header controls keep accessible names and explicit 24px targets', async ({
   await expect(linkedin).toBeFocused();
 });
 
+test('analytics consent controls keep explicit 24px targets', async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      window.localStorage.setItem('aapopihkala-night-mode', 'day');
+      window.localStorage.removeItem('aapopihkala-analytics-consent-v1');
+    } catch {
+      // Storage can be unavailable in restricted browser contexts.
+    }
+  });
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const consent = page.getByRole('region', { name: 'Analytiikan suostumus' });
+  const accept = page.getByRole('button', { name: 'Hyväksy analytiikka' });
+  const reject = page.getByRole('button', { name: 'Vain välttämättömät' });
+
+  await expect(consent).toBeVisible();
+  await expectMinimumTargetSize(accept);
+  await expectMinimumTargetSize(reject);
+
+  await reject.click();
+
+  const settings = page.getByRole('button', { name: 'Analytiikka-asetukset' });
+  await expectMinimumTargetSize(settings);
+
+  await settings.click();
+  await expect(consent).toBeVisible();
+});
+
 test('English header keeps localized navigation names', async ({ page }) => {
   await preparePage(page);
   await page.goto('/en/', { waitUntil: 'domcontentloaded' });
