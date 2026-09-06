@@ -55,6 +55,19 @@ For meaningful pull requests, leave a compact handoff in the PR description cove
 
 If unfinished work must continue in a later session, keep it visible in an open pull request or in `ROADMAP.md` rather than only in chat context.
 
+## Change completion
+
+When the user asks ChatGPT to make a repository change, the default is to carry that change through to completion: create or update the working branch, open or update the pull request, wait for the required CI checks, and merge the pull request when those checks pass.
+
+Do not stop only to request separate merge approval unless:
+
+- the user explicitly asks to leave the pull request open or review before merge
+- CI fails or reports a meaningful regression
+- a merge conflict or material ambiguity appears
+- the requested implementation expands beyond the agreed scope in a way that needs a user decision
+
+A successful merge is part of completing the requested repository change, not a separate task by default.
+
 ## CI safety
 
 Documentation-only changes may use the lightweight CI path defined in `.github/workflows/build-check.yml`.
