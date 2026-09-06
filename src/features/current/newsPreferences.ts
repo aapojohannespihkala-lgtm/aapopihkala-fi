@@ -18,12 +18,18 @@ export type NewsKind =
   | 'news'
   | 'retrospective'
   | 'reissue'
+  | 'obituary'
   | 'exhibition'
   | 'discovery';
+
+export type NewsLanguage = 'fi' | 'en';
 
 export type NewsItem = {
   id: string;
   title: string;
+  url: string;
+  publishedAt: string;
+  language: NewsLanguage;
   source: string;
   sourceId: string;
   category: NewsCategory;
@@ -117,6 +123,18 @@ export const applyNewsFeedback = (
 const average = (values: number[]) =>
   values.length === 0 ? 0 : values.reduce((sum, value) => sum + value, 0) / values.length;
 
+const freshnessScore = (publishedAt: string) => {
+  const published = new Date(publishedAt).getTime();
+  if (!Number.isFinite(published)) return 0;
+
+  const ageHours = Math.max(0, (Date.now() - published) / 3_600_000);
+  if (ageHours <= 24) return 0.28;
+  if (ageHours <= 72) return 0.22;
+  if (ageHours <= 24 * 7) return 0.14;
+  if (ageHours <= 24 * 14) return 0.08;
+  return 0;
+};
+
 export const scoreNewsItem = (item: NewsItem, profile: NewsPreferenceProfile) => {
   const tagScores = item.tags.map((tag) => profile.tags[tag] ?? 0);
   const preferenceScore =
@@ -136,7 +154,7 @@ export const scoreNewsItem = (item: NewsItem, profile: NewsPreferenceProfile) =>
     knownSignals.filter((value) => Math.abs(value) < 0.05).length / Math.max(1, knownSignals.length);
   const discoveryScore = unknownShare * 0.12;
 
-  return item.baseScore + preferenceScore + discoveryScore;
+  return item.baseScore + preferenceScore + discoveryScore + freshnessScore(item.publishedAt);
 };
 
 const diversityPenalty = (item: NewsItem, context: NewsItem[]) => {

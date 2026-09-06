@@ -58,10 +58,11 @@ Tee vain, jos komponenttien ylläpidettävyys sitä tarvitsee. Älä muuta samas
 
 Nykyinen sivusto ei tarvitse automaattista ajastettua julkaisua. Jos tarve myöhemmin syntyy, voidaan toteuttaa `publishAt`-tyyppinen työnkulku erillisenä ominaisuutena.
 
-## 8. Current News -prototyypin jatko
+## 8. Current News -jatko
 
-- Korvaa `/current/news/`-prototyypin paikallinen seed-pooli oikeilla, erikseen tarkistetuilla kulttuuriuutisfeedeillä.
-- Tarkista ennen käyttöönottoa lähteiden tekninen saatavuus, RSS/API-rakenne ja käyttöehdot.
-- Normalisoi ja deduplikoi ehdokkaat Worker-rajalla, mutta pidä henkilökohtainen peukkuprofiili oletuksena selaimen localStoragessa.
+- Standalone `/current/news/` käyttää ensimmäisessä live-versiossa Soundin, Pitchforkin, The Quietusin ja The Comics Journalin RSS-syötteitä. Worker normalisoi ja deduplikoi ehdokkaat, mutta henkilökohtainen peukkuprofiili säilyy selaimen localStoragessa.
+- Tarkista ja lisää seuraavaksi vahvempia suomalaisia kulttuuri-, design- ja arkkitehtuurilähteitä, kuten Kulttuuritoimitus, Archinfo ja Arkkitehti, vasta kun niiden tekninen syöte ja käyttöehdot on erikseen varmennettu.
+- Lisää vahvempi elokuvalähde samalla periaatteella. Älä ota käyttöön lähdettä vain siksi, että sisältö sopii, jos vakaa syöte tai käyttöehdot jäävät epäselviksi.
 - Arvioi käytännön käytön perusteella rankingin, diversity-penaltyjen ja positiivisen/negatiivisen palautteen painot.
+- Laajenna tapahtumien deduplikointia, jos otsikkopohjainen lähiläisyys ei riitä usean median käsitellessä samaa asiaa.
 - Nosta News `/current/`-juureen vasta, kun standalone-näkymän lähteet ja oppimiskäytös ovat riittävän vakaat.

@@ -10,7 +10,7 @@ const canonicalUrl = `${site.url}/current/news/`;
 <BaseLayout
   lang="en"
   title="News | Current | Aapo Pihkala"
-  description="A local prototype for a small personal culture news feed."
+  description="A small personal culture news feed with local preference learning."
   canonicalUrl={canonicalUrl}
   finnishUrl={canonicalUrl}
   englishUrl={canonicalUrl}
@@ -48,10 +48,10 @@ const canonicalUrl = `${site.url}/current/news/`;
   <Fragment slot="afterAnalytics">
     <script>
       import { initCurrentClock } from '../../features/current/clock';
-      import { initCurrentNewsPrototype } from '../../features/current/news';
+      import { initCurrentNews } from '../../features/current/news';
 
       initCurrentClock();
-      initCurrentNewsPrototype();
+      initCurrentNews();
     </script>
 
     <NightModeToggle lang="en" />
