@@ -1,0 +1,455 @@
+<section class="current-electricity" data-current-electricity aria-labelledby="current-electricity-title">
+  <header class="electricity-heading">
+    <p class="electricity-index">ELECTRICITY / 00</p>
+    <p class="electricity-market">FI SPOT / VAT INCLUDED</p>
+  </header>
+
+  <div class="electricity-current">
+    <div class="electricity-current__reading">
+      <h2 id="current-electricity-title" class="electricity-price" aria-live="polite">
+        <span data-electricity-price>--.--</span><span class="electricity-price__unit"> c/kWh</span>
+      </h2>
+      <p class="electricity-interval" data-electricity-interval>Fetching 15 min price</p>
+    </div>
+
+    <div class="electricity-current__context">
+      <p>15 MIN SPOT</p>
+      <p data-electricity-current-status>FINLAND</p>
+    </div>
+  </div>
+
+  <section class="electricity-chart-section" aria-label="Today's 15 minute electricity prices">
+    <div class="electricity-chart-frame">
+      <svg
+        class="electricity-chart"
+        data-electricity-chart
+        role="img"
+        aria-label="Electricity spot prices today in Finland"
+      ></svg>
+    </div>
+  </section>
+
+  <section class="electricity-stats" aria-label="Electricity price summary">
+    <div class="electricity-stat">
+      <p class="electricity-stat__label">HOUR AVG</p>
+      <p class="electricity-stat__value"><span data-electricity-hour-average>--.--</span> c/kWh</p>
+      <p class="electricity-stat__detail" data-electricity-hour-range>--:-- - --:--</p>
+    </div>
+
+    <div class="electricity-stat">
+      <p class="electricity-stat__label">DAY AVG</p>
+      <p class="electricity-stat__value"><span data-electricity-day-average>--.--</span> c/kWh</p>
+      <p class="electricity-stat__detail">TODAY</p>
+    </div>
+
+    <div class="electricity-stat">
+      <p class="electricity-stat__label">LOWEST 2 H</p>
+      <p class="electricity-stat__value"><span data-electricity-cheapest-value>--.--</span> c/kWh</p>
+      <p class="electricity-stat__detail" data-electricity-cheapest-range>--:-- - --:--</p>
+    </div>
+
+    <div class="electricity-stat">
+      <p class="electricity-stat__label">HIGHEST 2 H</p>
+      <p class="electricity-stat__value"><span data-electricity-expensive-value>--.--</span> c/kWh</p>
+      <p class="electricity-stat__detail" data-electricity-expensive-range>--:-- - --:--</p>
+    </div>
+
+    <div class="electricity-stat">
+      <p class="electricity-stat__label">DAY LOW</p>
+      <p class="electricity-stat__value"><span data-electricity-low-value>--.--</span> c/kWh</p>
+      <p class="electricity-stat__detail" data-electricity-low-range>--:-- - --:--</p>
+    </div>
+
+    <div class="electricity-stat">
+      <p class="electricity-stat__label">DAY HIGH</p>
+      <p class="electricity-stat__value"><span data-electricity-high-value>--.--</span> c/kWh</p>
+      <p class="electricity-stat__detail" data-electricity-high-range>--:-- - --:--</p>
+    </div>
+  </section>
+
+  <footer class="electricity-footer">
+    <p>
+      DATA /
+      <a href="https://www.porssisahko.net/api-v1" target="_blank" rel="noopener">PÖRSSISÄHKÖ.NET</a>
+      · 15 MIN · VAT INCLUDED
+    </p>
+
+    <p class="electricity-error" data-electricity-error hidden>
+      Price data unavailable.
+      <button type="button" data-electricity-retry>Retry</button>
+    </p>
+  </footer>
+</section>
+
+<script>
+  import { initCurrentElectricity } from '../../features/current/electricity';
+  initCurrentElectricity();
+</script>
+
+<style>
+  .current-electricity {
+    --electricity-rule: color-mix(in srgb, var(--line-soft) 46%, transparent);
+    padding: 30px 0 6px;
+  }
+
+  .electricity-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 25px;
+  }
+
+  .electricity-index,
+  .electricity-market,
+  .electricity-interval,
+  .electricity-current__context,
+  .electricity-stat__label,
+  .electricity-stat__detail,
+  .electricity-footer {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    text-transform: uppercase;
+  }
+
+  .electricity-index,
+  .electricity-market {
+    margin: 0;
+    font-size: 0.56rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.09em;
+  }
+
+  .electricity-index {
+    color: var(--moss);
+  }
+
+  .electricity-market {
+    color: var(--stone-light);
+  }
+
+  .electricity-current {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 32px;
+    padding: 8px 0 27px;
+  }
+
+  .electricity-current__reading {
+    min-width: 0;
+  }
+
+  .electricity-price {
+    margin: 0;
+    color: var(--ink);
+    font-family: "Times New Roman", Times, serif;
+    font-size: clamp(4.5rem, 9vw, 6.8rem);
+    font-weight: 400;
+    line-height: 0.84;
+    letter-spacing: -0.05em;
+  }
+
+  .electricity-price__unit {
+    margin-left: 0.08em;
+    color: var(--stone-light);
+    font-size: 0.23em;
+    letter-spacing: 0;
+    vertical-align: 0.42em;
+    white-space: nowrap;
+  }
+
+  .electricity-interval {
+    margin: 9px 0 0 0.18em;
+    color: var(--stone);
+    font-size: 0.52rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.055em;
+  }
+
+  .electricity-current__context {
+    display: grid;
+    gap: 5px;
+    justify-items: end;
+    padding-bottom: 4px;
+    color: var(--stone-light);
+    font-size: 0.43rem;
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: 0.055em;
+  }
+
+  .electricity-current__context p {
+    margin: 0;
+  }
+
+  .electricity-chart-section,
+  .electricity-stats,
+  .electricity-footer {
+    border-top: 1px solid var(--electricity-rule);
+  }
+
+  .electricity-chart-section {
+    padding: 18px 0 15px;
+  }
+
+  .electricity-chart-frame {
+    width: 100%;
+    min-height: 168px;
+  }
+
+  .electricity-chart {
+    display: block;
+    width: 100%;
+    height: 168px;
+    overflow: visible;
+  }
+
+  .electricity-chart :global(.electricity-chart__guide) {
+    stroke: var(--electricity-rule);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__zero) {
+    stroke: color-mix(in srgb, var(--stone-light) 48%, transparent);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__band) {
+    stroke: none;
+  }
+
+  .electricity-chart :global(.electricity-chart__band--low) {
+    fill: var(--lichen);
+    opacity: 0.12;
+  }
+
+  .electricity-chart :global(.electricity-chart__band--high) {
+    fill: var(--stone);
+    opacity: 0.08;
+  }
+
+  .electricity-chart :global(.electricity-chart__area) {
+    fill: var(--moss);
+    opacity: 0.12;
+  }
+
+  .electricity-chart :global(.electricity-chart__line) {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1.35;
+    stroke-linecap: square;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__current-line) {
+    stroke: var(--moss-deep);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__current-point) {
+    fill: var(--page);
+    stroke: var(--moss-deep);
+    stroke-width: 1.4;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .electricity-chart :global(.electricity-chart__axis-label) {
+    fill: var(--stone-light);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  .electricity-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .electricity-stat {
+    min-width: 0;
+    padding: 18px 16px 19px;
+    text-align: center;
+  }
+
+  .electricity-stat:nth-child(3n + 2),
+  .electricity-stat:nth-child(3n + 3) {
+    border-left: 1px solid var(--electricity-rule);
+  }
+
+  .electricity-stat:nth-child(n + 4) {
+    border-top: 1px solid var(--electricity-rule);
+  }
+
+  .electricity-stat p {
+    margin: 0;
+  }
+
+  .electricity-stat__label {
+    color: var(--stone-light);
+    font-size: 0.43rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.06em;
+  }
+
+  .electricity-stat__value {
+    margin-top: 8px !important;
+    color: var(--ink-soft);
+    font-size: 0.88rem;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .electricity-stat__detail {
+    margin-top: 7px !important;
+    color: var(--stone);
+    font-size: 0.4rem;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: 0.04em;
+  }
+
+  .electricity-footer {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    padding-top: 15px;
+    color: var(--stone-light);
+    font-size: 0.43rem;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.06em;
+  }
+
+  .electricity-footer p {
+    margin: 0;
+  }
+
+  .electricity-footer a,
+  .electricity-error button {
+    color: var(--stone);
+  }
+
+  .electricity-footer a {
+    text-decoration: none;
+  }
+
+  .electricity-footer a:hover,
+  .electricity-footer a:focus-visible,
+  .electricity-error button:hover,
+  .electricity-error button:focus-visible {
+    color: var(--moss-deep);
+  }
+
+  .electricity-error button {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0 2px;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  @media (max-width: 640px) {
+    .current-electricity {
+      padding-top: 26px;
+    }
+
+    .electricity-heading {
+      margin-bottom: 20px;
+    }
+
+    .electricity-current {
+      gap: 12px;
+      padding: 5px 0 23px;
+    }
+
+    .electricity-price {
+      font-size: clamp(3.7rem, 20vw, 5.1rem);
+    }
+
+    .electricity-price__unit {
+      font-size: 0.21em;
+    }
+
+    .electricity-interval {
+      margin-top: 7px;
+      font-size: 0.46rem;
+    }
+
+    .electricity-current__context {
+      font-size: 0.36rem;
+    }
+
+    .electricity-chart-section {
+      padding-top: 15px;
+      padding-bottom: 12px;
+    }
+
+    .electricity-chart-frame,
+    .electricity-chart {
+      min-height: 142px;
+      height: 142px;
+    }
+
+    .electricity-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .electricity-stat {
+      padding: 16px 7px 17px;
+    }
+
+    .electricity-stat:nth-child(3n + 2),
+    .electricity-stat:nth-child(3n + 3) {
+      border-left: 0;
+    }
+
+    .electricity-stat:nth-child(n + 4) {
+      border-top: 0;
+    }
+
+    .electricity-stat:nth-child(even) {
+      border-left: 1px solid var(--electricity-rule);
+    }
+
+    .electricity-stat:nth-child(n + 3) {
+      border-top: 1px solid var(--electricity-rule);
+    }
+
+    .electricity-stat__label {
+      font-size: 0.38rem;
+    }
+
+    .electricity-stat__value {
+      font-size: 0.77rem;
+    }
+
+    .electricity-stat__detail {
+      font-size: 0.35rem;
+    }
+
+    .electricity-footer {
+      display: block;
+      padding-top: 13px;
+      font-size: 0.39rem;
+    }
+
+    .electricity-error {
+      margin-top: 10px !important;
+    }
+  }
+</style>
