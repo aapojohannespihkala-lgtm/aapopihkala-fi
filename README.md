@@ -111,6 +111,7 @@ Testit sijaitsevat:
 tests/e2e/site-regressions.spec.ts
 tests/e2e/mobile-en-regression.spec.ts
 tests/e2e/reduced-motion-regression.spec.ts
+tests/e2e/seo-regression.spec.ts
 tests/e2e/river-flow-regression.spec.ts
 tests/e2e/photogrammetry-regression.spec.ts
 tests/e2e/meshy-poise-regression.spec.ts
@@ -131,6 +132,7 @@ Nykyinen smoke/regressiosuoja tarkistaa muun muassa:
 - `prefers-reduced-motion: reduce` -tilan globaalin CSS-sopimuksen: smooth scroll poistuu ja määritellyt käyttöliittymätransitionit poistuvat
 - reduced motion -tilassa MorphingTopographyn autonomisen morph/auto-rotate-liikkeen pysähtymisen siten, että manuaalinen drag-orbit säilyy
 - reduced motion -tilassa About-pään idle-huojunnan pysähtymisen siten, että manuaalinen drag-orbit säilyy, sekä probe-transitionin poistumisen
+- Home- ja About-sivujen FI/EN canonical-, Open Graph- ja Twitter/X-metat sekä artikkelisivujen yhden article-meta-setin
 - sivun lopun back-to-top-labelin näkyvyyden ylöspäin osoittavan nuolen yhteydessä
 - About-upotuksen sijainnin
 - yhteisen interaktiokerroksen renderöitymisen kerran `BaseLayout`in kautta eikä headerin sisällä
@@ -256,6 +258,7 @@ src/layouts/BaseLayout.astro
 - `SiteInteractionLayer`-komponentin erillisenä yhteisenä kerroksena
 - Analytics-komponentin
 - title-, description-, canonical- ja hreflang-metatiedot
+- tavallisten sivujen Open Graph- ja Twitter/X-metatiedot sekä yhteisen meta-kuvan
 - tarvittaessa yötilan ennen ensimmäistä maalausta
 
 Etusivun, About-sivun ja artikkelisivujen omat komponentit renderöidään tämän layoutin sisään. Route-tiedostojen tehtävä on ensisijaisesti reititys ja oikean sivukomponentin käynnistäminen.
@@ -770,9 +773,9 @@ src/config/site.ts
 
 ### Meta-tiedot
 
-Yhteisiä title-, description-, canonical- ja hreflang-kenttiä käsittelee `BaseLayout.astro`.
+Yhteisiä title-, description-, canonical- ja hreflang-kenttiä sekä tavallisten sivujen Open Graph- ja Twitter/X-metatietoja käsittelee `BaseLayout.astro`.
 
-Artikkelisivujen artikkelikohtaiset metatiedot ja rakenteinen data muodostetaan `ArticlePage.astro`-komponentissa. Se käyttää muun muassa:
+Artikkelisivut kytkevät `BaseLayout`in oletussosiaalimetat pois ja muodostavat artikkelikohtaiset metatiedot sekä rakenteisen datan `ArticlePage.astro`-komponentissa. Se käyttää muun muassa:
 
 - artikkelin otsikkoa
 - artikkelin kielikohtaista `metaDescription`-kenttää
@@ -814,6 +817,15 @@ Robots-tiedosto:
 ```text
 public/robots.txt
 ```
+
+Etusivulla ja About-sivulla on FI/EN-versioissa:
+
+- canonical URL
+- FI/EN `hreflang`
+- Open Graph -metatiedot
+- Twitter/X-metatiedot
+- yhteinen meta-kuva
+- kielikohtainen meta description
 
 Yksittäisillä artikkelisivuilla on:
 
