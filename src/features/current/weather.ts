@@ -1,13 +1,7 @@
 type OpenMeteoCurrent = {
   time: string;
   temperature_2m: number;
-  apparent_temperature: number;
   weather_code: number;
-  precipitation: number;
-  cloud_cover: number;
-  wind_speed_10m: number;
-  wind_direction_10m: number;
-  wind_gusts_10m: number;
   is_day: number;
 };
 
@@ -15,22 +9,18 @@ type OpenMeteoHourly = {
   time: string[];
   temperature_2m: number[];
   precipitation_probability: number[];
-  precipitation: number[];
   weather_code: number[];
   is_day: number[];
 };
 
 type OpenMeteoDaily = {
   time: string[];
+  weather_code: number[];
   temperature_2m_min: number[];
   temperature_2m_max: number[];
-  precipitation_sum: number[];
   precipitation_probability_max: number[];
   sunrise: string[];
   sunset: string[];
-  wind_speed_10m_max: number[];
-  wind_gusts_10m_max: number[];
-  sunshine_duration: number[];
 };
 
 type OpenMeteoResponse = {
@@ -43,8 +33,17 @@ type HourPoint = {
   time: string;
   temperature: number;
   rainProbability: number;
-  precipitation: number;
+  weatherCode: number;
   isDay: boolean;
+};
+
+type DailyPoint = {
+  time: string;
+  label: string;
+  minimum: number;
+  maximum: number;
+  rainProbability: number;
+  weatherCode: number;
 };
 
 const LOCATION = {
@@ -87,180 +86,236 @@ const weatherDescriptions: Record<number, string> = {
   99: 'Heavy thunderstorm with hail',
 };
 
-const roundOne = (value: number) => Math.round(value * 10) / 10;
-
 const formatTime = (value: string) => {
   const match = value.match(/T(\d{2}:\d{2})/);
   return match?.[1] ?? '--:--';
 };
 
-const formatDirection = (degrees: number) => {
-  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-  const index = Math.round((((degrees % 360) + 360) % 360) / 45) % 8;
-  return directions[index];
+const readClockMinutes = (value: string) => {
+  const match = value.match(/T(\d{2}):(\d{2})/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+};
+
+const formatWeekday = (value: string) => {
+  const date = new Date(`${value}T12:00:00Z`);
+  return new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+    timeZone: 'UTC',
+  })
+    .format(date)
+    .toUpperCase();
+};
+
+const formatDaylightLength = (sunrise: string, sunset: string) => {
+  const start = readClockMinutes(sunrise);
+  const end = readClockMinutes(sunset);
+  if (start === null || end === null) return '--';
+
+  const duration = end >= start ? end - start : end + 24 * 60 - start;
+  const hours = Math.floor(duration / 60);
+  const minutes = duration % 60;
+  return `${hours}H ${String(minutes).padStart(2, '0')}M`;
 };
 
 const getWeatherDescription = (code: number) =>
   weatherDescriptions[code] ?? 'Variable weather';
 
-const getHourPoints = (data: OpenMeteoResponse): HourPoint[] => {
-  const currentHour = `${data.current.time.slice(0, 13)}:00`;
-  const startIndex = Math.max(
-    0,
-    data.hourly.time.findIndex((time) => time >= currentHour)
-  );
+const getWeatherKind = (code: number) => {
+  if (code === 0 || code === 1) return 'clear';
+  if (code === 2) return 'partly';
+  if (code === 3) return 'cloud';
+  if (code === 45 || code === 48) return 'fog';
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rain';
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+  if (code >= 95) return 'thunder';
+  return 'cloud';
+};
 
-  return data.hourly.time.slice(startIndex, startIndex + 24).map((time, offset) => {
+const weatherIconSvg = (code: number, isDay = true) => {
+  const kind = getWeatherKind(code);
+  const base = 'fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"';
+
+  const sun = `
+    <circle cx="18" cy="18" r="5.1" />
+    <path d="M18 5.2v4.1M18 26.7v4.1M5.2 18h4.1M26.7 18h4.1M8.9 8.9l2.9 2.9M24.2 24.2l2.9 2.9M27.1 8.9l-2.9 2.9M11.8 24.2l-2.9 2.9" />
+  `;
+
+  const moon = '<path d="M23.9 9.2a9.7 9.7 0 1 0 2.8 17.1 10.6 10.6 0 0 1-2.8-17.1Z" />';
+  const cloud = '<path d="M9.3 24.5h16.5a4.8 4.8 0 0 0 .3-9.6 8.1 8.1 0 0 0-15.4-1.8 5.7 5.7 0 0 0-1.4 11.4Z" />';
+
+  let drawing = cloud;
+
+  if (kind === 'clear') {
+    drawing = isDay ? sun : moon;
+  } else if (kind === 'partly') {
+    drawing = `
+      <g transform="translate(-5 -5) scale(.72)">${isDay ? sun : moon}</g>
+      <path d="M10 25h16a4.5 4.5 0 0 0 .2-9 7.5 7.5 0 0 0-14.3-1.7A5.3 5.3 0 0 0 10 25Z" />
+    `;
+  } else if (kind === 'fog') {
+    drawing = `
+      <path d="M10 19.5h15a4.1 4.1 0 0 0 .2-8.2 7 7 0 0 0-13.3-1.5 4.8 4.8 0 0 0-1.9 9.7Z" />
+      <path d="M7 24h22M10 28h16" />
+    `;
+  } else if (kind === 'rain') {
+    drawing = `${cloud}<path d="M13 27.5l-1.3 3M19 27.5l-1.3 3M25 27.5l-1.3 3" />`;
+  } else if (kind === 'snow') {
+    drawing = `${cloud}<path d="M12.5 29h.1M18.5 27.5h.1M24.5 29h.1" stroke-width="2.6" />`;
+  } else if (kind === 'thunder') {
+    drawing = `${cloud}<path d="M19.5 26.5h-4l2-4.5h4l-1.8 3.3h3.2l-5.7 6.2Z" />`;
+  }
+
+  return `<svg class="weather-symbol weather-symbol--${kind}" viewBox="0 0 36 36" aria-hidden="true"><g ${base}>${drawing}</g></svg>`;
+};
+
+const getHourPoints = (data: OpenMeteoResponse): HourPoint[] => {
+  const foundIndex = data.hourly.time.findIndex((time) => time > data.current.time);
+  const startIndex = foundIndex >= 0 ? foundIndex : 0;
+
+  return data.hourly.time.slice(startIndex, startIndex + 6).map((time, offset) => {
     const index = startIndex + offset;
     return {
       time,
       temperature: data.hourly.temperature_2m[index],
       rainProbability: data.hourly.precipitation_probability[index] ?? 0,
-      precipitation: data.hourly.precipitation[index] ?? 0,
+      weatherCode: data.hourly.weather_code[index] ?? data.current.weather_code,
       isDay: (data.hourly.is_day[index] ?? 0) === 1,
     };
   });
 };
 
-const getRainNote = (points: HourPoint[]) => {
-  const relevant = points.slice(0, 14);
-  const wetIndexes = relevant
-    .map((point, index) => ({ point, index }))
-    .filter(({ point }) => point.rainProbability >= 40 || point.precipitation >= 0.1);
+const getDailyPoints = (data: OpenMeteoResponse): DailyPoint[] =>
+  data.daily.time.slice(1, 6).map((time, offset) => {
+    const index = offset + 1;
+    return {
+      time,
+      label: formatWeekday(time),
+      minimum: data.daily.temperature_2m_min[index],
+      maximum: data.daily.temperature_2m_max[index],
+      rainProbability: data.daily.precipitation_probability_max[index] ?? 0,
+      weatherCode: data.daily.weather_code[index] ?? 3,
+    };
+  });
 
-  if (wetIndexes.length === 0) return 'No meaningful rain signal in the next 14 h';
+const buildLinePath = (points: Array<{ x: number; y: number }>) =>
+  points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(' ');
 
-  const first = wetIndexes[0].index;
-  let last = first;
-
-  for (const { index } of wetIndexes.slice(1)) {
-    if (index <= last + 1) last = index;
-    else break;
-  }
-
-  const window = relevant.slice(first, last + 1);
-  const total = window.reduce((sum, point) => sum + point.precipitation, 0);
-  const peakProbability = Math.max(...window.map((point) => point.rainProbability));
-  const start = formatTime(window[0].time);
-  const endHour = `${window.at(-1)?.time.slice(0, 13)}:59`;
-  const end = formatTime(endHour);
-
-  return `${start}-${end} · ${peakProbability}% · ${roundOne(total)} mm`;
+const renderHourlyPreview = (container: HTMLElement, points: HourPoint[]) => {
+  container.innerHTML = points
+    .map(
+      (point) => `
+        <div class="weather-hour" data-weather-hour>
+          <p class="weather-hour__time">${formatTime(point.time)}</p>
+          <div class="weather-hour__icon" aria-hidden="true">${weatherIconSvg(point.weatherCode, point.isDay)}</div>
+          <p class="weather-hour__temperature">${Math.round(point.temperature)}°</p>
+          <p class="weather-hour__rain">${Math.round(point.rainProbability)}% rain</p>
+        </div>
+      `
+    )
+    .join('');
 };
 
-const buildSmoothPath = (points: Array<{ x: number; y: number }>) => {
-  if (points.length === 0) return '';
-  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
-
-  let path = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
-
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const previous = points[index - 1] ?? points[index];
-    const current = points[index];
-    const next = points[index + 1];
-    const afterNext = points[index + 2] ?? next;
-
-    const control1 = {
-      x: current.x + (next.x - previous.x) / 6,
-      y: current.y + (next.y - previous.y) / 6,
-    };
-
-    const control2 = {
-      x: next.x - (afterNext.x - current.x) / 6,
-      y: next.y - (afterNext.y - current.y) / 6,
-    };
-
-    path += ` C ${control1.x.toFixed(2)} ${control1.y.toFixed(2)}, ${control2.x.toFixed(2)} ${control2.y.toFixed(2)}, ${next.x.toFixed(2)} ${next.y.toFixed(2)}`;
-  }
-
-  return path;
+const renderDailyPreview = (container: HTMLElement, points: DailyPoint[]) => {
+  container.innerHTML = points
+    .map(
+      (point) => `
+        <div class="weather-day" data-weather-day>
+          <p class="weather-day__name">${point.label}</p>
+          <div class="weather-day__icon" aria-hidden="true">${weatherIconSvg(point.weatherCode)}</div>
+          <p class="weather-day__rain">${Math.round(point.rainProbability)}% rain</p>
+        </div>
+      `
+    )
+    .join('');
 };
 
-const renderChart = (svg: SVGSVGElement, points: HourPoint[]) => {
+const renderDailyChart = (svg: SVGSVGElement, points: DailyPoint[]) => {
+  if (points.length === 0) return;
+
   const containerWidth = svg.parentElement?.getBoundingClientRect().width ?? 760;
-  const width = Math.max(320, Math.round(containerWidth));
-  const height = width < 560 ? 238 : 272;
-  const left = width < 560 ? 34 : 42;
-  const right = 12;
-  const top = 18;
-  const bottom = 42;
-  const rainHeight = width < 560 ? 36 : 42;
-  const plotBottom = height - bottom;
-  const rainTop = plotBottom - rainHeight;
-  const tempBottom = rainTop - 12;
-  const tempHeight = tempBottom - top;
-  const plotWidth = width - left - right;
-
-  const temperatures = points.map((point) => point.temperature);
-  const minimum = Math.floor(Math.min(...temperatures) - 1);
-  const maximum = Math.ceil(Math.max(...temperatures) + 1);
+  const width = Math.max(300, Math.round(containerWidth));
+  const height = width < 560 ? 108 : 116;
+  const top = 24;
+  const bottom = 24;
+  const plotHeight = height - top - bottom;
+  const values = points.flatMap((point) => [point.minimum, point.maximum]);
+  const minimum = Math.floor(Math.min(...values) - 1);
+  const maximum = Math.ceil(Math.max(...values) + 1);
   const span = Math.max(1, maximum - minimum);
-  const xStep = points.length > 1 ? plotWidth / (points.length - 1) : 0;
 
-  const tempPoints = points.map((point, index) => ({
-    x: left + xStep * index,
-    y: top + ((maximum - point.temperature) / span) * tempHeight,
-  }));
+  const xFor = (index: number) => ((index + 0.5) / points.length) * width;
+  const yFor = (value: number) => top + ((maximum - value) / span) * plotHeight;
 
-  const path = buildSmoothPath(tempPoints);
-  const gridValues = [maximum, (maximum + minimum) / 2, minimum];
+  const maxPoints = points.map((point, index) => ({ x: xFor(index), y: yFor(point.maximum) }));
+  const minPoints = points.map((point, index) => ({ x: xFor(index), y: yFor(point.minimum) }));
+  const maxPath = buildLinePath(maxPoints);
+  const minPath = buildLinePath(minPoints);
 
-  const nightRects = points
-    .map((point, index) => {
-      if (point.isDay) return '';
-      const x = left + xStep * index - xStep / 2;
-      const safeX = Math.max(left, x);
-      const rectWidth = index === 0 || index === points.length - 1 ? xStep / 2 : xStep;
-      return `<rect x="${safeX.toFixed(2)}" y="${top}" width="${rectWidth.toFixed(2)}" height="${(tempBottom - top).toFixed(2)}" fill="var(--bar)" opacity="0.42" />`;
-    })
+  const maxMarks = maxPoints
+    .map((point, index) => `
+      <circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="3" fill="var(--page)" stroke="var(--ink)" stroke-width="1.4" vector-effect="non-scaling-stroke" />
+      <text x="${point.x.toFixed(2)}" y="${Math.max(10, point.y - 8).toFixed(2)}" text-anchor="middle" fill="var(--ink)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="9">${Math.round(points[index].maximum)}°</text>
+    `)
     .join('');
 
-  const gridLines = gridValues
-    .map((value) => {
-      const y = top + ((maximum - value) / span) * tempHeight;
-      return `
-        <line x1="${left}" x2="${width - right}" y1="${y.toFixed(2)}" y2="${y.toFixed(2)}" stroke="var(--line-soft)" stroke-width="1" vector-effect="non-scaling-stroke" />
-        <text x="0" y="${(y + 3).toFixed(2)}" fill="var(--stone-light)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="9">${Math.round(value)}°</text>
-      `;
-    })
+  const minMarks = minPoints
+    .map((point, index) => `
+      <circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="2.7" fill="var(--page)" stroke="var(--stone)" stroke-width="1.25" vector-effect="non-scaling-stroke" />
+      <text x="${point.x.toFixed(2)}" y="${Math.min(height - 5, point.y + 15).toFixed(2)}" text-anchor="middle" fill="var(--stone)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="9">${Math.round(points[index].minimum)}°</text>
+    `)
     .join('');
-
-  const rainBars = points
-    .map((point, index) => {
-      const barWidth = Math.max(2, Math.min(10, xStep * 0.48));
-      const barHeight = (Math.max(0, Math.min(100, point.rainProbability)) / 100) * (rainHeight - 5);
-      const x = left + xStep * index - barWidth / 2;
-      const y = plotBottom - barHeight;
-      const fill = point.rainProbability >= 50 ? 'var(--lichen)' : 'var(--line)';
-      return `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${barHeight.toFixed(2)}" rx="1" fill="${fill}" opacity="0.82" />`;
-    })
-    .join('');
-
-  const labels = points
-    .map((point, index) => {
-      if (index % 4 !== 0 && index !== points.length - 1) return '';
-      const x = left + xStep * index;
-      const anchor = index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle';
-      return `<text x="${x.toFixed(2)}" y="${height - 9}" text-anchor="${anchor}" fill="var(--stone)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="9" letter-spacing="0.04em">${formatTime(point.time)}</text>`;
-    })
-    .join('');
-
-  const currentPoint = tempPoints[0];
 
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('height', String(height));
   svg.innerHTML = `
-    <title>Temperature and rain probability for the next 24 hours in Olari</title>
-    ${nightRects}
-    ${gridLines}
-    <line x1="${left}" x2="${width - right}" y1="${rainTop}" y2="${rainTop}" stroke="var(--line-soft)" stroke-width="1" vector-effect="non-scaling-stroke" />
-    <text x="0" y="${rainTop + 13}" fill="var(--stone-light)" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="8" letter-spacing="0.06em">RAIN</text>
-    ${rainBars}
-    <path data-weather-temperature-path d="${path}" fill="none" stroke="var(--moss-deep)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
-    <line x1="${currentPoint.x.toFixed(2)}" x2="${currentPoint.x.toFixed(2)}" y1="${top}" y2="${plotBottom}" stroke="var(--lichen)" stroke-width="1" stroke-dasharray="2 4" vector-effect="non-scaling-stroke" />
-    <circle cx="${currentPoint.x.toFixed(2)}" cy="${currentPoint.y.toFixed(2)}" r="3.2" fill="var(--page)" stroke="var(--moss-deep)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
-    ${labels}
+    <title>Daily high and low temperatures for the next five days in Olari</title>
+    <path data-weather-daily-max-path d="${maxPath}" fill="none" stroke="var(--ink)" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+    <path data-weather-daily-min-path d="${minPath}" fill="none" stroke="var(--stone)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+    ${maxMarks}
+    ${minMarks}
   `;
+};
+
+const renderSolarPosition = (
+  solarRoot: HTMLElement,
+  marker: SVGCircleElement,
+  currentTime: string,
+  sunrise: string,
+  sunset: string,
+  daylightLength: string
+) => {
+  const current = readClockMinutes(currentTime);
+  const start = readClockMinutes(sunrise);
+  const end = readClockMinutes(sunset);
+
+  const sunriseLabel = sunrise ? formatTime(sunrise) : '--:--';
+  const sunsetLabel = sunset ? formatTime(sunset) : '--:--';
+  solarRoot.setAttribute(
+    'aria-label',
+    `Sunrise ${sunriseLabel}, sunset ${sunsetLabel}, day length ${daylightLength}`
+  );
+
+  if (current === null || start === null || end === null || end <= start) {
+    marker.setAttribute('opacity', '0');
+    return;
+  }
+
+  const progress = (current - start) / (end - start);
+  if (progress < 0 || progress > 1) {
+    marker.setAttribute('opacity', '0');
+    return;
+  }
+
+  const angle = Math.PI * (1 - progress);
+  const x = 60 + 52 * Math.cos(angle);
+  const y = 36 - 27 * Math.sin(angle);
+
+  marker.setAttribute('cx', x.toFixed(2));
+  marker.setAttribute('cy', y.toFixed(2));
+  marker.setAttribute('opacity', '1');
 };
 
 const buildApiUrl = () => {
@@ -268,38 +323,22 @@ const buildApiUrl = () => {
     latitude: String(LOCATION.latitude),
     longitude: String(LOCATION.longitude),
     timezone: LOCATION.timeZone,
-    forecast_days: '3',
+    forecast_days: '6',
     temperature_unit: 'celsius',
-    wind_speed_unit: 'ms',
-    precipitation_unit: 'mm',
-    current: [
-      'temperature_2m',
-      'apparent_temperature',
-      'weather_code',
-      'precipitation',
-      'cloud_cover',
-      'wind_speed_10m',
-      'wind_direction_10m',
-      'wind_gusts_10m',
-      'is_day',
-    ].join(','),
+    current: ['temperature_2m', 'weather_code', 'is_day'].join(','),
     hourly: [
       'temperature_2m',
       'precipitation_probability',
-      'precipitation',
       'weather_code',
       'is_day',
     ].join(','),
     daily: [
+      'weather_code',
       'temperature_2m_min',
       'temperature_2m_max',
-      'precipitation_sum',
       'precipitation_probability_max',
       'sunrise',
       'sunset',
-      'wind_speed_10m_max',
-      'wind_gusts_10m_max',
-      'sunshine_duration',
     ].join(','),
   });
 
@@ -315,42 +354,52 @@ export const initCurrentWeather = () => {
 
   const temperatureTarget = root.querySelector<HTMLElement>('[data-weather-temperature]');
   const conditionTarget = root.querySelector<HTMLElement>('[data-weather-condition]');
-  const feelsTarget = root.querySelector<HTMLElement>('[data-weather-feels]');
-  const windTarget = root.querySelector<HTMLElement>('[data-weather-wind]');
-  const rainNowTarget = root.querySelector<HTMLElement>('[data-weather-rain-now]');
-  const rainNoteTarget = root.querySelector<HTMLElement>('[data-weather-rain-note]');
-  const sunTarget = root.querySelector<HTMLElement>('[data-weather-sun]');
-  const todayTarget = root.querySelector<HTMLElement>('[data-weather-today]');
+  const currentIconTarget = root.querySelector<HTMLElement>('[data-weather-current-icon]');
+  const currentMinTarget = root.querySelector<HTMLElement>('[data-weather-current-min]');
+  const currentMaxTarget = root.querySelector<HTMLElement>('[data-weather-current-max]');
+  const solarTarget = root.querySelector<HTMLElement>('[data-weather-solar]');
+  const sunriseTarget = root.querySelector<HTMLElement>('[data-weather-sunrise]');
+  const sunsetTarget = root.querySelector<HTMLElement>('[data-weather-sunset]');
+  const daylightTarget = root.querySelector<HTMLElement>('[data-weather-daylight]');
+  const sunPositionTarget = root.querySelector<SVGCircleElement>('[data-weather-sun-position]');
+  const hoursTarget = root.querySelector<HTMLElement>('[data-weather-hours]');
+  const daysTarget = root.querySelector<HTMLElement>('[data-weather-days]');
+  const dailyChart = root.querySelector<SVGSVGElement>('[data-weather-daily-chart]');
   const errorTarget = root.querySelector<HTMLElement>('[data-weather-error]');
   const retryButton = root.querySelector<HTMLButtonElement>('[data-weather-retry]');
-  const chart = root.querySelector<SVGSVGElement>('[data-weather-chart]');
 
   if (
     !temperatureTarget ||
     !conditionTarget ||
-    !feelsTarget ||
-    !windTarget ||
-    !rainNowTarget ||
-    !rainNoteTarget ||
-    !sunTarget ||
-    !todayTarget ||
-    !errorTarget ||
-    !chart
+    !currentIconTarget ||
+    !currentMinTarget ||
+    !currentMaxTarget ||
+    !solarTarget ||
+    !sunriseTarget ||
+    !sunsetTarget ||
+    !daylightTarget ||
+    !sunPositionTarget ||
+    !hoursTarget ||
+    !daysTarget ||
+    !dailyChart ||
+    !errorTarget
   ) {
     return;
   }
 
-  let latestPoints: HourPoint[] = [];
+  let latestDailyPoints: DailyPoint[] = [];
   let resizeFrame = 0;
 
-  const renderLatestChart = () => {
-    if (latestPoints.length === 0) return;
+  const renderLatestDailyChart = () => {
+    if (latestDailyPoints.length === 0) return;
     window.cancelAnimationFrame(resizeFrame);
-    resizeFrame = window.requestAnimationFrame(() => renderChart(chart, latestPoints));
+    resizeFrame = window.requestAnimationFrame(() =>
+      renderDailyChart(dailyChart, latestDailyPoints)
+    );
   };
 
-  const resizeObserver = new ResizeObserver(renderLatestChart);
-  resizeObserver.observe(chart.parentElement ?? chart);
+  const resizeObserver = new ResizeObserver(renderLatestDailyChart);
+  resizeObserver.observe(dailyChart.parentElement ?? dailyChart);
 
   const setLoadingState = () => {
     root.setAttribute('aria-busy', 'true');
@@ -358,33 +407,45 @@ export const initCurrentWeather = () => {
   };
 
   const renderData = (data: OpenMeteoResponse) => {
-    const points = getHourPoints(data);
-    if (points.length === 0) throw new Error('Open-Meteo returned no hourly forecast data');
+    const hourPoints = getHourPoints(data);
+    const dailyPoints = getDailyPoints(data);
 
-    latestPoints = points;
+    if (hourPoints.length === 0 || dailyPoints.length === 0) {
+      throw new Error('Open-Meteo returned incomplete forecast data');
+    }
 
-    temperatureTarget.textContent = roundOne(data.current.temperature_2m).toFixed(1);
+    latestDailyPoints = dailyPoints;
+
+    temperatureTarget.textContent = data.current.temperature_2m.toFixed(1);
     conditionTarget.textContent = getWeatherDescription(data.current.weather_code);
-    feelsTarget.textContent = `${roundOne(data.current.apparent_temperature).toFixed(1)}°`;
-    windTarget.textContent = `${roundOne(data.current.wind_speed_10m).toFixed(1)} m/s ${formatDirection(data.current.wind_direction_10m)}`;
-    rainNowTarget.textContent = `${roundOne(data.current.precipitation).toFixed(1)} mm`;
-    rainNoteTarget.textContent = getRainNote(points);
+    currentIconTarget.innerHTML = weatherIconSvg(
+      data.current.weather_code,
+      data.current.is_day === 1
+    );
 
-    const sunrise = data.daily.sunrise[0] ? formatTime(data.daily.sunrise[0]) : '--:--';
-    const sunset = data.daily.sunset[0] ? formatTime(data.daily.sunset[0]) : '--:--';
-    const sunshineHours = Number.isFinite(data.daily.sunshine_duration?.[0])
-      ? `${roundOne(data.daily.sunshine_duration[0] / 3600).toFixed(1)} h sun`
-      : '';
-    sunTarget.textContent = [`${sunrise} - ${sunset}`, sunshineHours]
-      .filter(Boolean)
-      .join(' · ');
+    currentMinTarget.textContent = String(Math.round(data.daily.temperature_2m_min[0]));
+    currentMaxTarget.textContent = String(Math.round(data.daily.temperature_2m_max[0]));
 
-    const minimum = Math.round(data.daily.temperature_2m_min[0]);
-    const maximum = Math.round(data.daily.temperature_2m_max[0]);
-    const rain = roundOne(data.daily.precipitation_sum[0]).toFixed(1);
-    todayTarget.textContent = `${minimum}° / ${maximum}° · ${rain} mm`;
+    const sunrise = data.daily.sunrise[0] ?? '';
+    const sunset = data.daily.sunset[0] ?? '';
+    const daylightLength = formatDaylightLength(sunrise, sunset);
 
-    renderLatestChart();
+    sunriseTarget.textContent = sunrise ? formatTime(sunrise) : '--:--';
+    sunsetTarget.textContent = sunset ? formatTime(sunset) : '--:--';
+    daylightTarget.textContent = daylightLength;
+    renderSolarPosition(
+      solarTarget,
+      sunPositionTarget,
+      data.current.time,
+      sunrise,
+      sunset,
+      daylightLength
+    );
+
+    renderHourlyPreview(hoursTarget, hourPoints);
+    renderDailyPreview(daysTarget, dailyPoints);
+    renderLatestDailyChart();
+
     root.setAttribute('aria-busy', 'false');
     errorTarget.hidden = true;
 
@@ -404,7 +465,9 @@ export const initCurrentWeather = () => {
         cache: 'no-store',
       });
 
-      if (!response.ok) throw new Error(`Open-Meteo request failed: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Open-Meteo request failed: ${response.status}`);
+      }
 
       const data = (await response.json()) as OpenMeteoResponse;
       renderData(data);
