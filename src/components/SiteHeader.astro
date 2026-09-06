@@ -81,6 +81,27 @@ const alternateLanguage = lang === 'fi' ? site.languages.en : site.languages.fi;
 </header>
 
 <style>
+  .topbar-name,
+  .language-switch,
+  .linkedin-link {
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  .topbar-name {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .topbar-actions :global(.night-mode-toggle) {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    flex-basis: 24px;
+    margin-inline: -4.8px;
+  }
+
   .language-switch__meta {
     position: absolute;
     left: 50%;
