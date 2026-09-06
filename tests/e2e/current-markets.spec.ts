@@ -29,24 +29,21 @@ if (!customElements.get('tv-ticker-tag')) {
 }
 `;
 
+const TRADING_VIEW_TICKER_TAG_URL =
+  'https://www.tradingview-widget.com/w/en/tv-ticker-tag.js';
+
 const stubTradingView = async (page: Page) => {
-  await page.route(
-    'https://widgets.tradingview-widget.com/w/en/tv-ticker-tag.js',
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/javascript',
-        body: tradingViewStubBody,
-      });
-    }
-  );
+  await page.route(TRADING_VIEW_TICKER_TAG_URL, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: tradingViewStubBody,
+    });
+  });
 };
 
 const blockTradingView = async (page: Page) => {
-  await page.route(
-    'https://widgets.tradingview-widget.com/w/en/tv-ticker-tag.js',
-    async (route) => route.abort()
-  );
+  await page.route(TRADING_VIEW_TICKER_TAG_URL, async (route) => route.abort());
 };
 
 const stubMarkets = async (page: Page) => {
@@ -68,6 +65,9 @@ test('standalone Current Markets shows compact ticker tags and ECB macro context
 
   await expect(page.locator('h1')).toHaveText('Markets');
   await expect(page.locator('a.current-markets-status__link')).toHaveAttribute('href', '/current/');
+
+  const moduleScript = page.locator(`script[src="${TRADING_VIEW_TICKER_TAG_URL}"]`);
+  await expect(moduleScript).toHaveCount(1);
 
   const tags = page.locator('tv-ticker-tag');
   await expect(tags).toHaveCount(7);
