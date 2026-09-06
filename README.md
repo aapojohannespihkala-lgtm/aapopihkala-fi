@@ -981,3 +981,64 @@ Tee vain, jos komponenttien ylläpidettävyys sitä tarvitsee. Älä muuta samas
 ### 7. Valinnainen ajastettu julkaiseminen
 
 Nykyinen sivusto ei tarvitse automaattista ajastettua julkaisua. Jos tarve myöhemmin syntyy, voidaan toteuttaa `publishAt`-tyyppinen työnkulku erillisenä ominaisuutena.
+
+## Current
+
+Henkilökohtainen ajankohtaisnäkymä sijaitsee reitissä:
+
+```text
+/current/
+```
+
+Route-tiedosto:
+
+```text
+src/pages/current/index.astro
+```
+
+Varsinainen sivukomponentti:
+
+```text
+src/components/current/CurrentPage.astro
+```
+
+Current käyttää yhteistä `BaseLayout.astro`-layoutia, mutta sitä ei linkitetä sivuston navigaatioon. Sivu on tällä hetkellä yksikielinen englanninkielinen henkilökohtainen näkymä ja se on merkitty `noindex,nofollow`-metalla.
+
+### Current-sää
+
+Ensimmäinen datamoduuli:
+
+```text
+src/components/current/CurrentWeather.astro
+```
+
+Selainruntimet:
+
+```text
+src/features/current/clock.ts
+src/features/current/weather.ts
+```
+
+Sää haetaan selaimessa Open-Meteon Forecast API:sta Olarin kiinteillä koordinaateilla. Toteutus ei tarvitse API-avainta. Data haetaan sivun avauksessa ja sen jälkeen 15 minuutin välein.
+
+Säämoduuli näyttää:
+
+- nykyisen lämpötilan ja tuntuman
+- säätilan
+- tuulen ja nykyisen sateen
+- 24 tunnin lämpötilakäyrän
+- tuntikohtaisen sateen todennäköisyyden
+- päivä- ja yöjaksot graafissa
+- auringonnousun, auringonlaskun ja ennustetun auringonpaisteen keston
+- päivän alimman ja ylimmän lämpötilan
+- päivän sademäärän
+
+Open-Meteo-lähdeviite pidetään näkyvissä säämoduulin yhteydessä. Currentin oma regressiotesti sijaitsee tiedostossa:
+
+```text
+tests/e2e/current-regression.spec.ts
+```
+
+Testi käyttää mockattua säädataa, tarkistaa Currentin perusrakenteen, `noindex,nofollow`-metan, sääkäyrän renderöitymisen, navigaatiolinkin puuttumisen sekä 390 x 844 -mobiilinäkymän leveyden.
+
+Currentia laajennetaan moduuli kerrallaan. Current-linkkiä ei lisätä etusivulle tai päänavigaatioon ilman erillistä päätöstä.
