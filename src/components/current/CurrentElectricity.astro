@@ -18,9 +18,39 @@
     </div>
   </div>
 
-  <section class="electricity-chart-section" aria-label="Today's 15 minute electricity prices">
+  <section
+    class="electricity-chart-section"
+    data-electricity-chart-section
+    aria-label="Today's 15 minute electricity prices"
+  >
+    <div
+      class="electricity-day-switch"
+      data-electricity-day-switch
+      role="group"
+      aria-label="Electricity price day"
+      hidden
+    >
+      <button
+        type="button"
+        data-electricity-day="today"
+        aria-pressed="true"
+        aria-controls="electricity-price-chart"
+      >
+        TODAY
+      </button>
+      <button
+        type="button"
+        data-electricity-day="tomorrow"
+        aria-pressed="false"
+        aria-controls="electricity-price-chart"
+      >
+        TOMORROW<span class="electricity-day-switch__dot" aria-hidden="true"></span>
+      </button>
+    </div>
+
     <div class="electricity-chart-frame">
       <svg
+        id="electricity-price-chart"
         class="electricity-chart"
         data-electricity-chart
         role="img"
@@ -42,15 +72,15 @@
 
   <section class="electricity-stats" aria-label="Electricity price summary">
     <div class="electricity-stat">
-      <p class="electricity-stat__label">HOUR AVG</p>
-      <p class="electricity-stat__value"><span data-electricity-hour-average>--.--</span> c/kWh</p>
-      <p class="electricity-stat__detail" data-electricity-hour-range>--:-- - --:--</p>
+      <p class="electricity-stat__label" data-electricity-primary-label>HOUR AVG</p>
+      <p class="electricity-stat__value"><span data-electricity-primary-value data-electricity-hour-average>--.--</span> c/kWh</p>
+      <p class="electricity-stat__detail" data-electricity-primary-range data-electricity-hour-range>--:-- - --:--</p>
     </div>
 
     <div class="electricity-stat">
       <p class="electricity-stat__label">DAY AVG</p>
       <p class="electricity-stat__value"><span data-electricity-day-average>--.--</span> c/kWh</p>
-      <p class="electricity-stat__detail">TODAY</p>
+      <p class="electricity-stat__detail" data-electricity-day-average-detail>TODAY</p>
     </div>
 
     <div class="electricity-stat">
@@ -115,6 +145,7 @@
   .electricity-market,
   .electricity-interval,
   .electricity-current__context,
+  .electricity-day-switch,
   .electricity-stat__label,
   .electricity-stat__detail,
   .electricity-footer,
@@ -204,6 +235,55 @@
 
   .electricity-chart-section {
     padding: 18px 0 15px;
+  }
+
+  .electricity-day-switch {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 0 0 10px 34px;
+    font-size: 0.43rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.07em;
+  }
+
+  .electricity-day-switch[hidden] {
+    display: none;
+  }
+
+  .electricity-day-switch button {
+    position: relative;
+    min-height: 24px;
+    padding: 0 0 3px;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: transparent;
+    color: var(--stone-light);
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+  }
+
+  .electricity-day-switch button[aria-pressed="true"] {
+    border-bottom-color: color-mix(in srgb, var(--moss) 68%, transparent);
+    color: var(--ink-soft);
+  }
+
+  .electricity-day-switch button:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--moss) 56%, transparent);
+    outline-offset: 3px;
+  }
+
+  .electricity-day-switch__dot {
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    margin-left: 5px;
+    border-radius: 50%;
+    background: var(--moss);
+    vertical-align: 0.12em;
   }
 
   .electricity-chart-frame {
@@ -469,6 +549,12 @@
     .electricity-chart-section {
       padding-top: 15px;
       padding-bottom: 12px;
+    }
+
+    .electricity-day-switch {
+      margin-left: 30px;
+      margin-bottom: 8px;
+      font-size: 0.39rem;
     }
 
     .electricity-chart-frame,
