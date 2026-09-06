@@ -23,47 +23,76 @@
   white-space: nowrap;
 }
 
-.current-electricity .electricity-chart__window-label {
+.current-electricity .electricity-current__reading .electricity-average-comparison {
+  min-height: 1em;
+}
+
+.current-electricity .electricity-current__reading .electricity-average-comparison[hidden] {
+  display: block;
+  visibility: hidden;
+}
+
+.current-electricity .electricity-chart-section .electricity-day-switch[hidden] {
+  display: flex;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.current-electricity .electricity-chart-section .electricity-chart-frame,
+.current-electricity .electricity-chart-section [data-electricity-chart].electricity-chart {
+  min-height: 192px;
+  height: 192px;
+  max-height: 192px;
+}
+
+.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-label {
   transition: opacity 120ms ease;
 }
 
-.current-electricity .electricity-chart--inspecting .electricity-chart__window-label {
-  opacity: 0.22;
+.current-electricity [data-electricity-chart].electricity-chart.electricity-chart--inspecting .electricity-chart__window-label {
+  opacity: 0.2;
 }
 
-.current-electricity .electricity-chart__window-label text:first-child {
+.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-label text:first-child {
   font-size: 7.5px;
 }
 
-.current-electricity .electricity-chart__window-range {
+.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-unit {
+  fill: var(--stone-light);
+  font-size: 5.8px;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-range {
   font-size: 6.5px;
 }
 
-.current-electricity .electricity-chart__current-line {
+.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__current-line {
   stroke: var(--moss-deep);
-  stroke-width: 1.25;
+  stroke-width: 1;
   stroke-dasharray: none;
-  opacity: 0.82;
+  opacity: 0.55;
 }
 
-.current-electricity .electricity-chart__current-point {
+.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__current-point {
   display: none;
 }
 
-.current-electricity .electricity-chart__inspection-line {
-  stroke: var(--ink-soft);
-  stroke-width: 1;
+.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__inspection-line {
+  stroke: var(--ink);
+  stroke-width: 1.1;
   stroke-dasharray: 2 2;
 }
 
-.current-electricity .electricity-chart__inspection-point {
+.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__inspection-point {
   fill: var(--ink);
   stroke: var(--page);
-  stroke-width: 1.2;
+  stroke-width: 1.25;
 }
 
-.current-electricity .electricity-chart__inspection-band {
-  opacity: 0.075;
+.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__inspection-band {
+  opacity: 0.09;
 }
 
 .current-electricity .electricity-extremes {
@@ -87,11 +116,22 @@
     font-size: 0.35rem;
   }
 
-  .current-electricity .electricity-chart__window-label text:first-child {
+  .current-electricity .electricity-chart-section .electricity-chart-frame,
+  .current-electricity .electricity-chart-section [data-electricity-chart].electricity-chart {
+    min-height: 168px;
+    height: 168px;
+    max-height: 168px;
+  }
+
+  .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-label text:first-child {
     font-size: 7px;
   }
 
-  .current-electricity .electricity-chart__window-range {
+  .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-unit {
+    font-size: 5.4px;
+  }
+
+  .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-range {
     font-size: 6px;
   }
 }

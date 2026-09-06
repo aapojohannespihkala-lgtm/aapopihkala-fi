@@ -51,36 +51,53 @@ test('Current keeps electricity annotations compact and separates current from i
 
   await expect(lowLabel).not.toContainText(/LOW/i);
   await expect(highLabel).not.toContainText(/HIGH/i);
-  await expect(lowLabel).toContainText('c/kWh');
-  await expect(highLabel).toContainText('c/kWh');
 
   const lowLines = await lowLabel.locator('text').allTextContents();
   const highLines = await highLabel.locator('text').allTextContents();
 
-  expect(lowLines).toHaveLength(3);
-  expect(highLines).toHaveLength(3);
-  expect(lowLines[1]).toMatch(/^\d{2}:\d{2} -$/);
-  expect(lowLines[2]).toMatch(/^\d{2}:\d{2}$/);
-  expect(highLines[1]).toMatch(/^\d{2}:\d{2} -$/);
-  expect(highLines[2]).toMatch(/^\d{2}:\d{2}$/);
+  expect(lowLines).toHaveLength(4);
+  expect(highLines).toHaveLength(4);
+  expect(lowLines[0]).toMatch(/^\d+\.\d{2}$/);
+  expect(highLines[0]).toMatch(/^\d+\.\d{2}$/);
+  expect(lowLines[1]).toBe('c/kWh');
+  expect(highLines[1]).toBe('c/kWh');
+  expect(lowLines[2]).toMatch(/^\d{2}:\d{2} -$/);
+  expect(lowLines[3]).toMatch(/^\d{2}:\d{2}$/);
+  expect(highLines[2]).toMatch(/^\d{2}:\d{2} -$/);
+  expect(highLines[3]).toMatch(/^\d{2}:\d{2}$/);
+
+  for (const label of [lowLabel, highLabel]) {
+    const rangeLines = label.locator('.electricity-chart__window-range');
+    await expect(rangeLines).toHaveCount(2);
+    const starts = await rangeLines.evaluateAll((elements) =>
+      elements.map((element) => ({
+        x: element.getAttribute('x'),
+        anchor: element.getAttribute('text-anchor'),
+      }))
+    );
+    expect(starts[0]?.x).toBe(starts[1]?.x);
+    expect(starts[0]?.anchor).toBe('start');
+    expect(starts[1]?.anchor).toBe('start');
+  }
 
   const currentLine = page.locator('[data-electricity-current-line]');
-  const currentPoint = page.locator('[data-electricity-current-point]');
   await expect(currentLine).toHaveCount(1);
-  await expect(currentPoint).toBeHidden();
+  await expect(page.locator('[data-electricity-current-point]')).toHaveCount(0);
 
   const currentMarkerStyle = await currentLine.evaluate((element) => {
     const style = getComputedStyle(element);
     return {
       dash: style.strokeDasharray,
-      stroke: style.stroke,
+      opacity: style.opacity,
     };
   });
   expect(currentMarkerStyle.dash === 'none' || currentMarkerStyle.dash === '').toBe(true);
+  expect(Number(currentMarkerStyle.opacity)).toBeLessThan(0.8);
 
   const chart = page.locator('[data-electricity-chart]');
   const chartBox = await chart.boundingBox();
   expect(chartBox).not.toBeNull();
+  expect(chartBox?.height).toBeCloseTo(168, 0);
 
   if (chartBox) {
     await chart.dispatchEvent('pointermove', {
@@ -95,6 +112,12 @@ test('Current keeps electricity annotations compact and separates current from i
   await expect(page.locator('[data-electricity-inspection-line]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-point]')).toHaveAttribute('opacity', '1');
   await expect(chart).toHaveClass(/electricity-chart--inspecting/);
+
+  const inspectionDash = await page
+    .locator('[data-electricity-inspection-line]')
+    .evaluate((element) => getComputedStyle(element).strokeDasharray);
+  expect(inspectionDash).not.toBe('none');
+  expect(inspectionDash).not.toBe('');
 
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerWidth,

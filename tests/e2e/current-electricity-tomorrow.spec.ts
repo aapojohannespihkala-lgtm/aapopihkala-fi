@@ -47,7 +47,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('Current switches the electricity day average and chart to tomorrow when prices are available', async ({ page }) => {
+test('Current switches the electricity day average and chart without moving the chart', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route('**/api/current/electricity', async (route) => {
     await route.fulfill({
@@ -63,6 +63,8 @@ test('Current switches the electricity day average and chart to tomorrow when pr
   const todayButton = page.locator('[data-electricity-day="today"]');
   const tomorrowButton = page.locator('[data-electricity-day="tomorrow"]');
   const tomorrowDot = page.locator('[data-electricity-tomorrow-dot]');
+  const comparison = page.locator('[data-electricity-average-comparison]');
+  const chart = page.locator('[data-electricity-chart]');
 
   await expect(daySwitch).toBeVisible();
   await expect(todayButton).toHaveAttribute('aria-pressed', 'true');
@@ -70,9 +72,14 @@ test('Current switches the electricity day average and chart to tomorrow when pr
   await expect(tomorrowDot).toBeVisible();
   await expect(page.locator('[data-electricity-price]')).toHaveText('1.46');
   await expect(page.locator('[data-electricity-average-label]')).toHaveText('DAY AVG / TODAY');
-  await expect(page.locator('[data-electricity-average-comparison]')).toBeHidden();
+  await expect(comparison).toHaveText('TOMORROW AVG 2.22 c/kWh');
+  await expect(comparison).toBeVisible();
   await expect(page.locator('[data-electricity-now-price]')).toHaveText('0.44 c/kWh');
   await expect(page.locator('[data-electricity-interval]')).toHaveText('16:45 - 17:00');
+
+  const todayChartBox = await chart.boundingBox();
+  expect(todayChartBox).not.toBeNull();
+  expect(todayChartBox?.height).toBeCloseTo(168, 0);
 
   await tomorrowButton.click();
 
@@ -81,22 +88,25 @@ test('Current switches the electricity day average and chart to tomorrow when pr
   await expect(tomorrowDot).toBeHidden();
   await expect(page.locator('[data-electricity-price]')).toHaveText('2.22');
   await expect(page.locator('[data-electricity-average-label]')).toHaveText('DAY AVG / TOMORROW');
-  await expect(page.locator('[data-electricity-average-comparison]')).toHaveText('+0.76 c/kWh VS TODAY');
+  await expect(comparison).toHaveText('+0.76 c/kWh VS TODAY');
   await expect(page.locator('[data-electricity-now-price]')).toHaveText('0.44 c/kWh');
   await expect(page.locator('[data-electricity-interval]')).toHaveText('16:45 - 17:00');
-  await expect(page.locator('[data-electricity-low-value]')).toHaveText('0.20');
-  await expect(page.locator('[data-electricity-low-range]')).toHaveText('04:30 - 04:45');
-  await expect(page.locator('[data-electricity-high-value]')).toHaveText('7.50');
-  await expect(page.locator('[data-electricity-high-range]')).toHaveText('18:45 - 19:00');
-  await expect(page.locator('[data-electricity-low-label]')).toContainText('LOWEST 2 H · 0.46');
-  await expect(page.locator('[data-electricity-low-label]')).toContainText('04:00 - 06:00');
-  await expect(page.locator('[data-electricity-high-label]')).toContainText('HIGHEST 2 H · 6.19');
-  await expect(page.locator('[data-electricity-high-label]')).toContainText('18:00 - 20:00');
+
+  const lowLines = await page.locator('[data-electricity-low-label] text').allTextContents();
+  const highLines = await page.locator('[data-electricity-high-label] text').allTextContents();
+  expect(lowLines).toEqual(['0.46', 'c/kWh', '04:00 -', '06:00']);
+  expect(highLines).toEqual(['6.19', 'c/kWh', '18:00 -', '20:00']);
   await expect(page.locator('[data-electricity-current-line]')).toHaveCount(0);
   await expect(page.locator('.electricity-stats')).toHaveCount(0);
-  await expect(page.locator('[data-electricity-chart]')).toHaveAttribute('aria-label', /tomorrow/);
+  await expect(chart).toHaveAttribute('aria-label', /tomorrow/);
 
-  const chart = page.locator('[data-electricity-chart]');
+  const tomorrowChartBox = await chart.boundingBox();
+  expect(tomorrowChartBox).not.toBeNull();
+  if (todayChartBox && tomorrowChartBox) {
+    expect(Math.abs(tomorrowChartBox.y - todayChartBox.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(tomorrowChartBox.height - todayChartBox.height)).toBeLessThanOrEqual(1);
+  }
+
   const chartBox = await chart.boundingBox();
   expect(chartBox).not.toBeNull();
 
@@ -129,12 +139,20 @@ test('Current switches the electricity day average and chart to tomorrow when pr
   await todayButton.click();
   await expect(page.locator('[data-electricity-price]')).toHaveText('1.46');
   await expect(page.locator('[data-electricity-average-label]')).toHaveText('DAY AVG / TODAY');
-  await expect(page.locator('[data-electricity-average-comparison]')).toBeHidden();
+  await expect(comparison).toHaveText('TOMORROW AVG 2.22 c/kWh');
   await expect(page.locator('[data-electricity-current-line]')).toHaveCount(1);
   await expect(tomorrowDot).toBeHidden();
+
+  const todayAgainChartBox = await chart.boundingBox();
+  expect(todayAgainChartBox).not.toBeNull();
+  if (todayChartBox && todayAgainChartBox) {
+    expect(Math.abs(todayAgainChartBox.y - todayChartBox.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(todayAgainChartBox.height - todayChartBox.height)).toBeLessThanOrEqual(1);
+  }
 });
 
-test('Current keeps the day switch hidden until a complete tomorrow price set exists', async ({ page }) => {
+test('Current keeps stable space until a complete tomorrow price set exists', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.route('**/api/current/electricity', async (route) => {
     await route.fulfill({
       status: 200,
@@ -145,8 +163,33 @@ test('Current keeps the day switch hidden until a complete tomorrow price set ex
 
   await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
-  await expect(page.locator('[data-electricity-day-switch]')).toBeHidden();
+  const daySwitch = page.locator('[data-electricity-day-switch]');
+  const comparison = page.locator('[data-electricity-average-comparison]');
+  const chart = page.locator('[data-electricity-chart]');
+
+  await expect(daySwitch).toBeHidden();
   await expect(page.locator('[data-electricity-price]')).toHaveText('1.46');
   await expect(page.locator('[data-electricity-average-label]')).toHaveText('DAY AVG / TODAY');
+  await expect(comparison).toBeHidden();
   await expect(page.locator('[data-electricity-now-price]')).toHaveText('0.44 c/kWh');
+
+  const reservedStyles = await page.evaluate(() => {
+    const switchElement = document.querySelector<HTMLElement>('[data-electricity-day-switch]');
+    const comparisonElement = document.querySelector<HTMLElement>('[data-electricity-average-comparison]');
+    return {
+      switchDisplay: switchElement ? getComputedStyle(switchElement).display : '',
+      switchVisibility: switchElement ? getComputedStyle(switchElement).visibility : '',
+      comparisonDisplay: comparisonElement ? getComputedStyle(comparisonElement).display : '',
+      comparisonVisibility: comparisonElement ? getComputedStyle(comparisonElement).visibility : '',
+    };
+  });
+
+  expect(reservedStyles.switchDisplay).toBe('flex');
+  expect(reservedStyles.switchVisibility).toBe('hidden');
+  expect(reservedStyles.comparisonDisplay).toBe('block');
+  expect(reservedStyles.comparisonVisibility).toBe('hidden');
+
+  const chartBox = await chart.boundingBox();
+  expect(chartBox).not.toBeNull();
+  expect(chartBox?.height).toBeCloseTo(168, 0);
 });
