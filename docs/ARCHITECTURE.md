@@ -110,6 +110,10 @@ Route ja sivukomponentti ovat erillään, ja Current käyttää yhteistä `BaseL
 
 Currentin selainruntimet sijaitsevat omassa `src/features/current/`-kokonaisuudessaan. Ulkoiset datalähteet, päivitysvälit ja moduulikohtaiset regressiosopimukset kuuluvat ensisijaisesti toteutukseen ja testeihin eikä niitä toisteta yksityiskohtaisesti tässä dokumentissa.
 
+Kun ulkoista dataa ei voida hakea selaimesta suoraan esimerkiksi CORS-rajoituksen tai salaisen tunnisteen vuoksi, Current käyttää saman originin palvelinreittiä Cloudflare Pages Functions -kerroksen kautta. Nämä reitit sijaitsevat projektin juuressa `functions/`-hakemistossa. Palvelinreitin tehtävä on rajata ja validoida ulkoinen datayhteys, kun taas datan esitykseen ja johdettuihin laskelmiin liittyvä selainlogiikka säilyy `src/features/current/`-kokonaisuudessa.
+
+Pages Functions -reitit rajataan `public/_routes.json`-tiedostolla vain tarkoitettuihin API-polkuhin. Näin sivuston tavalliset staattiset reitit eivät siirry Functions-runtimen läpi vain siksi, että projektissa on yksi palvelinpuolinen integraatio.
+
 ## Analytics
 
 Google Analyticsin yhteinen komponentti on:
