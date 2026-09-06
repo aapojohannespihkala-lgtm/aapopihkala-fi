@@ -68,6 +68,31 @@ Do not stop only to request separate merge approval unless:
 
 A successful merge is part of completing the requested repository change, not a separate task by default.
 
+## Efficient repository changes
+
+Prefer one-pass repository changes. Before the first write:
+
+- inspect the relevant files and current `main`
+- inspect the existing working branch or pull request when continuing earlier work
+- bring the working branch up to date with `main` before implementation when it is behind and the repository rules require an up-to-date branch
+- decide the complete agreed change before pushing whenever practical
+
+During implementation:
+
+- batch related edits into one coherent commit or the smallest practical number of commits
+- avoid no-op commits, bookkeeping-only commits and repeated rewrites that do not change the resulting tree
+- do not push incremental "one more thing" commits after final validation has started unless a real issue must be fixed
+
+For validation and merge:
+
+- aim for one final CI cycle after the branch is current and the implementation is complete
+- verify that the required CI run started, then avoid repeatedly polling unchanged CI state
+- check CI again when enough time has passed for useful progress or when a merge decision can be made
+- distinguish required repository checks from optional external preview or deployment checks; investigate external failures when they indicate a real problem, but do not let irrelevant preview noise block an otherwise valid change
+- merge immediately after required checks pass when no conflict, regression or material ambiguity remains
+
+Do not trade away required validation for speed. The goal is fewer unnecessary writes, CI restarts and status checks, not weaker safeguards.
+
 ## CI safety
 
 Documentation-only changes may use the lightweight CI path defined in `.github/workflows/build-check.yml`.
