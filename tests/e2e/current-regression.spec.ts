@@ -10,13 +10,7 @@ const buildWeatherFixture = () => {
     current: {
       time: '2026-09-06T11:15',
       temperature_2m: 12.4,
-      apparent_temperature: 11.2,
       weather_code: 3,
-      precipitation: 0,
-      cloud_cover: 86,
-      wind_speed_10m: 4.2,
-      wind_direction_10m: 245,
-      wind_gusts_10m: 8.4,
       is_day: 1,
     },
     hourly: {
@@ -24,9 +18,6 @@ const buildWeatherFixture = () => {
       temperature_2m: times.map((_, index) => 10 + Math.sin(index / 5) * 4),
       precipitation_probability: times.map((_, index) =>
         index >= 14 && index <= 17 ? 65 : 10
-      ),
-      precipitation: times.map((_, index) =>
-        index >= 14 && index <= 17 ? 0.3 : 0
       ),
       weather_code: times.map((_, index) => (index >= 14 && index <= 17 ? 61 : 3)),
       is_day: times.map((_, index) => (index % 24 >= 5 && index % 24 <= 18 ? 1 : 0)),
@@ -43,7 +34,6 @@ const buildWeatherFixture = () => {
       weather_code: [3, 2, 3, 61, 63, 1],
       temperature_2m_min: [8.2, 7.9, 9.1, 10.4, 8.7, 7.8],
       temperature_2m_max: [15.4, 14.8, 16.1, 17.2, 15.9, 16.8],
-      precipitation_sum: [1.2, 0.2, 0, 2.1, 4.4, 0],
       precipitation_probability_max: [65, 30, 15, 70, 80, 10],
       sunrise: [
         '2026-09-06T06:20',
@@ -61,9 +51,6 @@ const buildWeatherFixture = () => {
         '2026-09-10T19:54',
         '2026-09-11T19:51',
       ],
-      wind_speed_10m_max: [6.8, 5.9, 5.2, 7.1, 8.2, 4.8],
-      wind_gusts_10m_max: [11.4, 9.8, 8.1, 12.2, 14.1, 7.4],
-      sunshine_duration: [17100, 18900, 21600, 10200, 7200, 23400],
     },
   };
 };
@@ -78,7 +65,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('Current renders a compact status strip and glanceable Olari weather', async ({ page }) => {
+test('Current renders the compact Olari weather view', async ({ page }) => {
   await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('.current-status-strip')).toBeVisible();
@@ -94,19 +81,23 @@ test('Current renders a compact status strip and glanceable Olari weather', asyn
   await expect(page.locator('[data-weather-current-icon] svg')).toHaveCount(1);
   await expect(page.locator('[data-weather-current-min]')).toHaveText('8');
   await expect(page.locator('[data-weather-current-max]')).toHaveText('15');
+  await expect(page.locator('[data-weather-sunrise]')).toHaveText('06:20');
+  await expect(page.locator('[data-weather-sunset]')).toHaveText('20:08');
+  await expect(page.locator('[data-weather-daylight]')).toHaveText('13H 48M');
+
+  await expect(page.locator('.weather-metrics')).toHaveCount(0);
+  await expect(page.locator('.weather-subheading')).toHaveCount(0);
+  await expect(page.locator('[data-weather-chart]')).toHaveCount(0);
+  await expect(page.locator('[data-weather-rain-note]')).toHaveCount(0);
+  await expect(page.locator('[data-weather-today]')).toHaveCount(0);
 
   await expect(page.locator('[data-weather-hour]')).toHaveCount(6);
   await expect(page.locator('[data-weather-hour]').first().locator('.weather-hour__time')).toHaveText('12:00');
 
   await expect(page.locator('[data-weather-day]')).toHaveCount(5);
-  await expect(page.locator('[data-weather-day]').first().locator('.weather-day__name')).toHaveText('TOM');
+  await expect(page.locator('[data-weather-day]').first().locator('.weather-day__name')).toHaveText('MON');
   await expect(page.locator('[data-weather-daily-max-path]')).toHaveCount(1);
   await expect(page.locator('[data-weather-daily-min-path]')).toHaveCount(1);
-
-  await expect(page.locator('[data-weather-sun]')).toHaveText(
-    '06:20 - 20:08 · 4.8 h sun'
-  );
-  await expect(page.locator('[data-weather-temperature-path]')).toHaveCount(1);
 
   const languageSwitch = page.locator('.language-switch');
   await expect(languageSwitch).toBeVisible();
@@ -132,6 +123,7 @@ test('Current weather remains inside a 390 px mobile viewport', async ({ page })
   await expect(page.locator('[data-current-weather]')).toBeVisible();
   await expect(page.locator('[data-weather-hour]')).toHaveCount(6);
   await expect(page.locator('[data-weather-day]')).toHaveCount(5);
+  await expect(page.locator('[data-weather-daylight]')).toBeVisible();
   await expect(page.locator('.language-switch')).toBeVisible();
   await expect(page.locator('[data-night-mode-toggle]')).toBeVisible();
 
