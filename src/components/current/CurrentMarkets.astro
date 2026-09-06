@@ -1,13 +1,14 @@
 <section class="current-markets" data-current-markets aria-labelledby="current-markets-title">
   <header class="markets-heading">
     <p class="markets-index">MARKETS / 00</p>
-    <p class="markets-context">GLOBAL / PERFORMANCE</p>
   </header>
 
   <h2 id="current-markets-title" class="sr-only">Markets</h2>
 
   <div class="markets-layout">
     <section class="markets-market-view" aria-label="Market performance by period">
+      <p class="markets-panel-label">GLOBAL / PERFORMANCE</p>
+
       <div class="markets-performance">
         <tv-market-data
           view="performance"
@@ -27,6 +28,8 @@
     </section>
 
     <section class="markets-macro" aria-label="Currency and interest rates">
+      <p class="markets-panel-label">ECB / MACRO</p>
+
       <div class="markets-macro__row">
         <p class="markets-macro__label">EUR / USD</p>
         <p class="markets-macro__value" data-market-value="eur-usd">--.----</p>
@@ -120,15 +123,11 @@
   }
 
   .markets-heading {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
   }
 
   .markets-index,
-  .markets-context,
+  .markets-panel-label,
   .markets-performance__fallback,
   .markets-macro,
   .markets-footer {
@@ -137,7 +136,7 @@
   }
 
   .markets-index,
-  .markets-context {
+  .markets-panel-label {
     margin: 0;
     font-size: 0.56rem;
     font-weight: 600;
@@ -149,7 +148,8 @@
     color: var(--moss);
   }
 
-  .markets-context {
+  .markets-panel-label {
+    margin-bottom: 10px;
     color: var(--stone-light);
   }
 
@@ -186,7 +186,7 @@
 
   tv-market-data:defined {
     min-width: 780px;
-    height: 410px;
+    height: 360px;
   }
 
   tv-market-data:not(:defined) {
@@ -211,10 +211,6 @@
     color: var(--stone);
   }
 
-  .markets-macro {
-    border-top: 1px solid var(--line-soft);
-  }
-
   .markets-macro__row {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -222,6 +218,10 @@
     gap: 20px;
     padding: 13px 0;
     border-bottom: 1px solid var(--line-soft);
+  }
+
+  .markets-macro__row:first-of-type {
+    border-top: 1px solid var(--line-soft);
   }
 
   .markets-macro__label,
@@ -299,12 +299,11 @@
     }
 
     .markets-heading {
-      gap: 16px;
-      margin-bottom: 21px;
+      margin-bottom: 18px;
     }
 
-    .markets-context {
-      text-align: right;
+    .markets-panel-label {
+      margin-bottom: 9px;
     }
 
     tv-market-data:defined {
