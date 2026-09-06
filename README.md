@@ -88,7 +88,19 @@ Workflow ajetaan:
 - pull requestissa kohti `main`-haaraa
 - manuaalisesti `workflow_dispatch`-ajona
 
-CI suorittaa staattiset tarkistukset, tuotantobuildin ja Playwright-regressiotestit. `npm run check` on blokkaava vaihe.
+CI luokittelee ensin muutoksen. Jos muutos koskee ainoastaan projektidokumentaatiota (`README.md`, `AGENTS.md`, `ROADMAP.md` tai `docs/**`), raskas Node-, build- ja selainregressioketju ohitetaan tarkoituksella.
+
+Kaikki muut muutokset, mukaan lukien lähdekoodi, sisältö, asetukset, testit ja itse workflowt, ajavat täyden tarkistuksen:
+
+```text
+npm ci
+npm run check
+npm run build
+npx playwright install --with-deps chromium
+npm run test:e2e
+```
+
+Uusi ajo peruuttaa saman PR:n tai ref:n aiemman keskeneräisen ajon, jotta vanhentuneet tarkistukset eivät hidasta uusinta muutosta.
 
 Jos selainregressio epäonnistuu, CI tallentaa `test-results/`-aineiston tutkittavaksi.
 
@@ -205,8 +217,18 @@ Current käyttää projektin yhteistä layoutia mutta on erillinen, päänavigaa
 
 - `docs/ARCHITECTURE.md` - arkkitehtuurin vastuurajat ja ylläpitoperiaatteet
 - `docs/CONTENT.md` - artikkelien kirjoittaminen ja julkaiseminen
-- `AGENTS.md` - projektin pysyvät kehityssäännöt
+- `AGENTS.md` - projektin pysyvät kehitys- ja jatkuvuussäännöt
 - `ROADMAP.md` - ajantasainen jatkokehityksen työlista
+
+## Työn jatkuvuus
+
+GitHub-repo toimii projektin pysyvänä lähteenä myös silloin, kun työ jatkuu uudessa ChatGPT-keskustelussa.
+
+Ennen merkittävää muutosta tarkistetaan README, tehtävän kannalta relevantti dokumentaatio, tarvittaessa ROADMAP sekä viimeisimmät mergatut PR:t. Tarkat toteutusdetaljit tarkistetaan aina nykyisestä koodista ja testeistä.
+
+Merkittävän PR:n kuvauksesta pitää selvitä tiiviisti mitä muutettiin, miksi, mitä rajattiin tarkoituksella muutoksen ulkopuolelle, miten muutos tarkistettiin ja jäikö jatkotyötä.
+
+Keskeneräinen työ jätetään näkyviin avoimeen PR:ään tai `ROADMAP.md`-tiedostoon eikä vain chat-kontekstiin.
 
 ## Dokumentaation ylläpito
 
