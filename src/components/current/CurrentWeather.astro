@@ -5,9 +5,15 @@
   </header>
 
   <div class="weather-current">
-    <p class="weather-temperature" aria-live="polite">
-      <span data-weather-temperature>--.-</span><span class="weather-temperature__unit">°C</span>
-    </p>
+    <div class="weather-current__reading">
+      <p class="weather-temperature" aria-live="polite">
+        <span data-weather-temperature>--.-</span><span class="weather-temperature__unit">°C</span>
+      </p>
+
+      <p class="weather-current__range" aria-label="Today's low and high temperature">
+        <span data-weather-current-min>--</span>° / <span data-weather-current-max>--</span>°
+      </p>
+    </div>
 
     <div class="weather-current__visual">
       <div class="weather-current__icon" data-weather-current-icon aria-hidden="true"></div>
@@ -16,13 +22,43 @@
         Fetching forecast
       </h2>
 
-      <p class="weather-current__range" aria-label="Today's low and high temperature">
-        <span data-weather-current-min>--</span>° / <span data-weather-current-max>--</span>°
-      </p>
+      <div class="weather-current__solar" data-weather-solar aria-label="Sunrise and sunset">
+        <div class="weather-solar-diagram">
+          <span class="weather-solar-time" data-weather-sunrise>--:--</span>
 
-      <div class="weather-current__solar" aria-label="Sunrise, sunset and daylight length">
-        <p>SUN <span data-weather-sunrise>--:--</span> - <span data-weather-sunset>--:--</span></p>
-        <p>DAYLIGHT <span data-weather-daylight>--</span></p>
+          <svg
+            class="weather-solar-arc"
+            data-weather-solar-arc
+            viewBox="0 0 120 44"
+            role="img"
+            aria-label="Sun path from sunrise to sunset"
+          >
+            <path
+              d="M8 36 A52 27 0 0 1 112 36"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1"
+              vector-effect="non-scaling-stroke"
+            />
+            <circle cx="8" cy="36" r="1.5" fill="currentColor" />
+            <circle cx="112" cy="36" r="1.5" fill="currentColor" />
+            <circle
+              data-weather-sun-position
+              cx="8"
+              cy="36"
+              r="2.4"
+              fill="var(--page)"
+              stroke="var(--moss-deep)"
+              stroke-width="1.4"
+              opacity="0"
+              vector-effect="non-scaling-stroke"
+            />
+          </svg>
+
+          <span class="weather-solar-time" data-weather-sunset>--:--</span>
+        </div>
+
+        <p class="weather-solar-duration" data-weather-daylight>--</p>
       </div>
     </div>
   </div>
@@ -65,6 +101,7 @@
 
 <style>
   .current-weather {
+    --weather-rule: color-mix(in srgb, var(--line-soft) 46%, transparent);
     padding: 30px 0 8px;
   }
 
@@ -104,10 +141,14 @@
 
   .weather-current {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(150px, 0.34fr);
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 0.36fr);
     align-items: center;
     gap: clamp(24px, 6vw, 72px);
     padding: 8px 0 30px;
+  }
+
+  .weather-current__reading {
+    min-width: 0;
   }
 
   .weather-temperature {
@@ -126,6 +167,15 @@
     font-size: 0.31em;
     letter-spacing: -0.02em;
     vertical-align: top;
+  }
+
+  .weather-current__range {
+    margin: 7px 0 0 0.22em;
+    color: var(--stone);
+    font-size: 0.55rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.065em;
   }
 
   .weather-current__visual {
@@ -151,8 +201,7 @@
   }
 
   .weather-condition,
-  .weather-current__range,
-  .weather-current__solar p {
+  .weather-solar-duration {
     margin: 0;
   }
 
@@ -165,29 +214,47 @@
     letter-spacing: -0.004em;
   }
 
-  .weather-current__range {
-    margin-top: 5px;
-    color: var(--stone);
-    font-size: 0.54rem;
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: 0.065em;
+  .weather-current__solar {
+    width: min(100%, 172px);
+    margin-top: 12px;
+    color: var(--stone-light);
+    font-size: 0.4rem;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: 0.045em;
   }
 
-  .weather-current__solar {
+  .weather-solar-diagram {
     display: grid;
-    gap: 4px;
-    margin-top: 13px;
-    color: var(--stone-light);
-    font-size: 0.43rem;
-    font-weight: 500;
-    line-height: 1.2;
+    grid-template-columns: auto minmax(76px, 1fr) auto;
+    align-items: end;
+    gap: 5px;
+  }
+
+  .weather-solar-time {
+    padding-bottom: 1px;
+    white-space: nowrap;
+  }
+
+  .weather-solar-arc {
+    display: block;
+    width: 100%;
+    height: 31px;
+    overflow: visible;
+    color: color-mix(in srgb, var(--stone-light) 72%, transparent);
+  }
+
+  .weather-solar-duration {
+    margin-top: 3px;
+    color: var(--stone);
+    font-size: 0.42rem;
     letter-spacing: 0.055em;
   }
 
   .weather-hours,
-  .weather-days {
-    border-top: 1px solid var(--line-soft);
+  .weather-days,
+  .weather-footer {
+    border-top: 1px solid var(--weather-rule);
   }
 
   .weather-hours {
@@ -220,7 +287,7 @@
 
   .weather-hour-grid :global(.weather-hour + .weather-hour),
   .weather-day-grid :global(.weather-day + .weather-day) {
-    border-left: 1px solid color-mix(in srgb, var(--line-soft) 68%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--line-soft) 38%, transparent);
   }
 
   .weather-hour-grid :global(.weather-hour) {
@@ -306,7 +373,6 @@
     justify-content: space-between;
     gap: 24px;
     padding-top: 15px;
-    border-top: 1px solid var(--line-soft);
     color: var(--stone-light);
     font-size: 0.43rem;
     font-weight: 500;
@@ -357,13 +423,18 @@
     }
 
     .weather-current {
-      grid-template-columns: minmax(0, 1fr) minmax(105px, 0.42fr);
+      grid-template-columns: minmax(0, 1fr) minmax(118px, 0.44fr);
       gap: 12px;
       padding: 4px 0 25px;
     }
 
     .weather-temperature {
       font-size: clamp(4.5rem, 25vw, 6.1rem);
+    }
+
+    .weather-current__range {
+      margin-top: 5px;
+      font-size: 0.48rem;
     }
 
     .weather-current__icon {
@@ -376,15 +447,25 @@
       font-size: 0.72rem;
     }
 
-    .weather-current__range {
-      font-size: 0.48rem;
+    .weather-current__solar {
+      width: 126px;
+      margin-top: 9px;
+      font-size: 0.34rem;
+      letter-spacing: 0.03em;
     }
 
-    .weather-current__solar {
+    .weather-solar-diagram {
+      grid-template-columns: auto minmax(52px, 1fr) auto;
       gap: 3px;
-      margin-top: 10px;
-      font-size: 0.37rem;
-      letter-spacing: 0.04em;
+    }
+
+    .weather-solar-arc {
+      height: 26px;
+    }
+
+    .weather-solar-duration {
+      margin-top: 1px;
+      font-size: 0.36rem;
     }
 
     .weather-hours,
@@ -396,11 +477,7 @@
       padding-bottom: 19px;
     }
 
-    .weather-hour-grid :global(.weather-hour) {
-      padding-left: 4px;
-      padding-right: 4px;
-    }
-
+    .weather-hour-grid :global(.weather-hour),
     .weather-day-grid :global(.weather-day) {
       padding-left: 4px;
       padding-right: 4px;

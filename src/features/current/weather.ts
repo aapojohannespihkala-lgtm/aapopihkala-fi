@@ -91,6 +91,12 @@ const formatTime = (value: string) => {
   return match?.[1] ?? '--:--';
 };
 
+const readClockMinutes = (value: string) => {
+  const match = value.match(/T(\d{2}):(\d{2})/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+};
+
 const formatWeekday = (value: string) => {
   const date = new Date(`${value}T12:00:00Z`);
   return new Intl.DateTimeFormat('en-GB', {
@@ -102,14 +108,8 @@ const formatWeekday = (value: string) => {
 };
 
 const formatDaylightLength = (sunrise: string, sunset: string) => {
-  const readMinutes = (value: string) => {
-    const match = value.match(/T(\d{2}):(\d{2})/);
-    if (!match) return null;
-    return Number(match[1]) * 60 + Number(match[2]);
-  };
-
-  const start = readMinutes(sunrise);
-  const end = readMinutes(sunset);
+  const start = readClockMinutes(sunrise);
+  const end = readClockMinutes(sunset);
   if (start === null || end === null) return '--';
 
   const duration = end >= start ? end - start : end + 24 * 60 - start;
@@ -254,13 +254,6 @@ const renderDailyChart = (svg: SVGSVGElement, points: DailyPoint[]) => {
   const maxPath = buildLinePath(maxPoints);
   const minPath = buildLinePath(minPoints);
 
-  const guides = points
-    .map((_, index) => {
-      const x = xFor(index);
-      return `<line x1="${x.toFixed(2)}" x2="${x.toFixed(2)}" y1="${top}" y2="${height - bottom}" stroke="var(--line-soft)" stroke-width="1" opacity="0.42" vector-effect="non-scaling-stroke" />`;
-    })
-    .join('');
-
   const maxMarks = maxPoints
     .map((point, index) => `
       <circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="3" fill="var(--page)" stroke="var(--ink)" stroke-width="1.4" vector-effect="non-scaling-stroke" />
@@ -279,12 +272,50 @@ const renderDailyChart = (svg: SVGSVGElement, points: DailyPoint[]) => {
   svg.setAttribute('height', String(height));
   svg.innerHTML = `
     <title>Daily high and low temperatures for the next five days in Olari</title>
-    ${guides}
     <path data-weather-daily-max-path d="${maxPath}" fill="none" stroke="var(--ink)" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
     <path data-weather-daily-min-path d="${minPath}" fill="none" stroke="var(--stone)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
     ${maxMarks}
     ${minMarks}
   `;
+};
+
+const renderSolarPosition = (
+  solarRoot: HTMLElement,
+  marker: SVGCircleElement,
+  currentTime: string,
+  sunrise: string,
+  sunset: string,
+  daylightLength: string
+) => {
+  const current = readClockMinutes(currentTime);
+  const start = readClockMinutes(sunrise);
+  const end = readClockMinutes(sunset);
+
+  const sunriseLabel = sunrise ? formatTime(sunrise) : '--:--';
+  const sunsetLabel = sunset ? formatTime(sunset) : '--:--';
+  solarRoot.setAttribute(
+    'aria-label',
+    `Sunrise ${sunriseLabel}, sunset ${sunsetLabel}, day length ${daylightLength}`
+  );
+
+  if (current === null || start === null || end === null || end <= start) {
+    marker.setAttribute('opacity', '0');
+    return;
+  }
+
+  const progress = (current - start) / (end - start);
+  if (progress < 0 || progress > 1) {
+    marker.setAttribute('opacity', '0');
+    return;
+  }
+
+  const angle = Math.PI * (1 - progress);
+  const x = 60 + 52 * Math.cos(angle);
+  const y = 36 - 27 * Math.sin(angle);
+
+  marker.setAttribute('cx', x.toFixed(2));
+  marker.setAttribute('cy', y.toFixed(2));
+  marker.setAttribute('opacity', '1');
 };
 
 const buildApiUrl = () => {
@@ -326,9 +357,11 @@ export const initCurrentWeather = () => {
   const currentIconTarget = root.querySelector<HTMLElement>('[data-weather-current-icon]');
   const currentMinTarget = root.querySelector<HTMLElement>('[data-weather-current-min]');
   const currentMaxTarget = root.querySelector<HTMLElement>('[data-weather-current-max]');
+  const solarTarget = root.querySelector<HTMLElement>('[data-weather-solar]');
   const sunriseTarget = root.querySelector<HTMLElement>('[data-weather-sunrise]');
   const sunsetTarget = root.querySelector<HTMLElement>('[data-weather-sunset]');
   const daylightTarget = root.querySelector<HTMLElement>('[data-weather-daylight]');
+  const sunPositionTarget = root.querySelector<SVGCircleElement>('[data-weather-sun-position]');
   const hoursTarget = root.querySelector<HTMLElement>('[data-weather-hours]');
   const daysTarget = root.querySelector<HTMLElement>('[data-weather-days]');
   const dailyChart = root.querySelector<SVGSVGElement>('[data-weather-daily-chart]');
@@ -341,9 +374,11 @@ export const initCurrentWeather = () => {
     !currentIconTarget ||
     !currentMinTarget ||
     !currentMaxTarget ||
+    !solarTarget ||
     !sunriseTarget ||
     !sunsetTarget ||
     !daylightTarget ||
+    !sunPositionTarget ||
     !hoursTarget ||
     !daysTarget ||
     !dailyChart ||
@@ -393,9 +428,19 @@ export const initCurrentWeather = () => {
 
     const sunrise = data.daily.sunrise[0] ?? '';
     const sunset = data.daily.sunset[0] ?? '';
+    const daylightLength = formatDaylightLength(sunrise, sunset);
+
     sunriseTarget.textContent = sunrise ? formatTime(sunrise) : '--:--';
     sunsetTarget.textContent = sunset ? formatTime(sunset) : '--:--';
-    daylightTarget.textContent = formatDaylightLength(sunrise, sunset);
+    daylightTarget.textContent = daylightLength;
+    renderSolarPosition(
+      solarTarget,
+      sunPositionTarget,
+      data.current.time,
+      sunrise,
+      sunset,
+      daylightLength
+    );
 
     renderHourlyPreview(hoursTarget, hourPoints);
     renderDailyPreview(daysTarget, dailyPoints);
