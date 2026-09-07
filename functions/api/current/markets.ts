@@ -1,3 +1,5 @@
+import { onRequestGet as getPortfolioPerformance } from './portfolio';
+
 type MarketMacroId = 'euribor-3m';
 type MarketSeriesId = 'euribor-3m' | 'world';
 
@@ -310,7 +312,12 @@ const buildWorldSeries = (observations: Observation[]): MarketSeries => {
   };
 };
 
-export const onRequestGet = async () => {
+export const onRequestGet = async (context: { request: Request }) => {
+  const url = new URL(context.request.url);
+  if (url.searchParams.get('portfolio') === '1') {
+    return getPortfolioPerformance();
+  }
+
   try {
     const euribor = await fetchEuribor3m();
     const [euriborMonthlyResult, euriborDailyResult, worldResult] = await Promise.allSettled([
