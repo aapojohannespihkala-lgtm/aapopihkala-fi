@@ -71,8 +71,7 @@ Nykyinen sivusto ei tarvitse automaattista ajastettua julkaisua. Jos tarve myöh
 
 Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivisen rakennusvaiheen normaalia ChatGPT -> PR -> nopea CI -> automerge -työnkulkua.
 
-- Päivitä Astro 6 -sarjasta 7-sarjaan erillisenä maintenance-passina. Astro 5 -> 6 tehdään ja validoidaan omana vaiheena ennen seuraavaa majoria.
 - Päivitä Three.js ja `@types/three` samassa muutoksessa ja validoi erityisesti Animation Labin sekä etusivun ja Aboutin 3D-regressiot.
 - Pidä TypeScript nykyisessä tuetussa sarjassa, kunnes `@astrojs/check` tukee seuraavaa majoria. Nykyinen check-versio sallii TypeScript 5- ja 6-sarjat, ei 7-sarjaa.
-- Tarkista `npm audit` -löydökset Astro-päivitysten yhteydessä. Nykyinen asennus raportoi kolme transitiivista haavoittuvuutta ja yhden vanhentuneen `tsconfck`-riippuvuuden.
+- Tarkista `npm audit` -löydökset dependency- ja framework-päivitysten yhteydessä; käsittele jäljelle jäävät transitiiviset haavoittuvuudet erillisinä rajattuina maintenance-passeina.
 - Älä lisää automaattista riippuvuuspäivitys-PR-virtaa rakennusvaiheessa pelkän hygienian vuoksi, jos se kasvattaa PR-kohinaa. Arvioi Dependabot tai vastaava uudelleen vakaammassa vaiheessa.
