@@ -103,7 +103,9 @@ const PORTFOLIO_ORDER = [
   'storebrand-japan',
 ] as const;
 
-const ORDER_BY_ID = new Map(PORTFOLIO_ORDER.map((id, index) => [id, index] as const));
+const ORDER_BY_ID = new Map<string, number>(
+  PORTFOLIO_ORDER.map((id, index) => [id, index] as const)
+);
 
 const normalizeText = (body: string) =>
   body
