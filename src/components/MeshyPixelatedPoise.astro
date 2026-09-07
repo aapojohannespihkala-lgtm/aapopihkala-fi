@@ -93,8 +93,7 @@
           side: THREE.DoubleSide,
         });
 
-        const render = () => {
-          controls.update();
+        const renderFrame = () => {
           renderer.render(scene, camera);
         };
 
@@ -129,7 +128,7 @@
             controls.minDistance = Math.max(radius * 0.18, 0.01);
             controls.maxDistance = radius * 12;
             controls.update();
-            render();
+            renderFrame();
 
             if (status) status.hidden = true;
           },
@@ -146,7 +145,7 @@
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
-          render();
+          renderFrame();
         };
 
         const observer = new ResizeObserver(resize);
@@ -154,10 +153,11 @@
         resize();
 
         if (reducedMotion) {
-          controls.addEventListener('change', render);
+          controls.addEventListener('change', renderFrame);
         } else {
           const animate = () => {
-            render();
+            controls.update();
+            renderFrame();
             requestAnimationFrame(animate);
           };
           animate();
