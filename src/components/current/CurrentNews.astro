@@ -21,7 +21,11 @@
           <p class="news-item__detail" data-news-detail>RSS / CURRENT</p>
         </div>
 
-        <div class="news-item__feedback" aria-label={`Feedback for news slot ${index + 1}`}>
+        <div
+          class="news-item__feedback"
+          role="group"
+          aria-label={`Feedback for news slot ${index + 1}`}
+        >
           <button
             type="button"
             class="news-feedback"
@@ -304,6 +308,9 @@
   }
 
   .news-debug__reset {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
     margin-top: 18px;
     border: 0;
     padding: 0;
@@ -313,6 +320,11 @@
     text-decoration: underline;
     text-underline-offset: 0.18em;
     cursor: pointer;
+  }
+
+  .news-debug__reset:focus-visible {
+    outline: 1px solid var(--lichen);
+    outline-offset: 3px;
   }
 
   .news-footer {

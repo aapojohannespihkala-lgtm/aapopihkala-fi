@@ -299,12 +299,19 @@
   }
 
   .markets-error button {
+    min-width: 24px;
+    min-height: 24px;
     border: 0;
-    padding: 0;
+    padding: 0 2px;
     background: none;
     font: inherit;
     text-decoration: underline;
     cursor: pointer;
+  }
+
+  .markets-error button:focus-visible {
+    outline: 1px solid var(--lichen);
+    outline-offset: 3px;
   }
 
   .sr-only {

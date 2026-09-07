@@ -128,3 +128,27 @@ test('English header keeps localized navigation names', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Suomeksi' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Aapo Pihkala on LinkedIn' })).toBeVisible();
 });
+
+test('Current compact controls keep group semantics and 24px targets', async ({ page }) => {
+  await preparePage(page);
+  await page.goto('/current/news/', { waitUntil: 'domcontentloaded' });
+
+  const feedbackGroup = page.getByRole('group', { name: 'Feedback for news slot 1' });
+  await expect(feedbackGroup).toBeVisible();
+  await expectMinimumTargetSize(
+    feedbackGroup.getByRole('button', { name: 'Thumbs up, show another item' })
+  );
+  await expectMinimumTargetSize(
+    feedbackGroup.getByRole('button', { name: 'Thumbs down, show another item' })
+  );
+
+  const debug = page.locator('details.news-debug');
+  await debug.locator('summary').click();
+  await expectMinimumTargetSize(page.getByRole('button', { name: 'RESET LOCAL LEARNING' }));
+
+  await page.goto('/current/markets/', { waitUntil: 'domcontentloaded' });
+  await page.locator('[data-markets-error]').evaluate((element) => {
+    if (element instanceof HTMLElement) element.hidden = false;
+  });
+  await expectMinimumTargetSize(page.getByRole('button', { name: 'Retry' }));
+});
