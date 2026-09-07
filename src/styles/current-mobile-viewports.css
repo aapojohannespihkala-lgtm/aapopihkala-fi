@@ -11,4 +11,13 @@
   .current-shell .current-section-wrap[data-current-section='electricity'] {
     min-height: var(--current-mobile-section-viewport);
   }
+
+  /* Markets is the one intentional exception: the portfolio matrix may run
+     longer than one screen, but the following RATES / TRENDS block must not
+     intrude into the first aligned market viewport. */
+  .current-shell
+    .current-section-wrap[data-current-section='markets']
+    .markets-custom-performance {
+    min-height: var(--current-mobile-section-viewport);
+  }
 }
