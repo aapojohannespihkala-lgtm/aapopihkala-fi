@@ -14,6 +14,7 @@ test('Pixelated Poise loads its Lab render and accepts orbit interaction', async
     }
   });
 
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route('**/*.glb', async (route) => {
     if (route.request().url().endsWith('/lab/meshy-pixelated-poise.glb')) {
       await route.continue();
