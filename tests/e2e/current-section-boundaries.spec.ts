@@ -45,6 +45,18 @@ test.describe('Current section viewport boundaries', () => {
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
+      // Production market data makes the document tall enough to align every section at
+      // the top. CI deliberately does not depend on third-party market responses, so add
+      // inert scroll range after the Current content without changing section geometry.
+      await page.evaluate(() => {
+        const spacer = document.createElement('div');
+        spacer.setAttribute('data-current-boundary-test-spacer', '');
+        spacer.style.height = `${window.innerHeight * 2}px`;
+        spacer.style.pointerEvents = 'none';
+        spacer.setAttribute('aria-hidden', 'true');
+        document.body.append(spacer);
+      });
+
       const nav = page.locator('[data-current-section-nav]');
       await expect(nav).toBeVisible();
 
