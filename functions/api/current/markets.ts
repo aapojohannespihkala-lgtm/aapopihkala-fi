@@ -1,4 +1,5 @@
 type MarketMacroId = 'eur-usd' | 'euribor-3m';
+type MarketSeriesId = 'euribor-3m' | 'world';
 
 type Observation = {
   value: number;
@@ -10,11 +11,37 @@ type MarketMacroItem = Observation & {
   change1m: number;
 };
 
+type MarketSeries = Observation & {
+  id: MarketSeriesId;
+  change1y: number;
+  points: Observation[];
+};
+
+type YahooChartResponse = {
+  chart?: {
+    result?: Array<{
+      timestamp?: unknown;
+      indicators?: {
+        quote?: Array<{
+          close?: unknown;
+        }>;
+      };
+    }>;
+  };
+};
+
 const ECB_BASE_URL = 'https://data-api.ecb.europa.eu/service/data';
 const EUR_USD_URL = `${ECB_BASE_URL}/EXR/D.USD.EUR.SP00.A?lastNObservations=23&format=csvdata&detail=dataonly`;
+const EURIBOR_HISTORY_URL = `${ECB_BASE_URL}/FM/M.U2.EUR.RT.MM.EURIBOR3MD_.HSTA?lastNObservations=13&format=csvdata&detail=dataonly`;
 const EURIBOR_URL =
   'https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/euribor-rates/';
+const WORLD_SYMBOL = 'URTH';
+const WORLD_URLS = [
+  `https://query1.finance.yahoo.com/v8/finance/chart/${WORLD_SYMBOL}?range=1y&interval=1d`,
+  `https://query2.finance.yahoo.com/v8/finance/chart/${WORLD_SYMBOL}?range=1y&interval=1d`,
+];
 const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_SERIES_POINTS = 96;
 
 const jsonResponse = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), {
@@ -57,7 +84,10 @@ const parseCsvLine = (line: string) => {
   return values;
 };
 
-const parseEcbObservations = (csv: string): Observation[] => {
+const parseEcbObservations = (
+  csv: string,
+  frequency: 'daily' | 'monthly' = 'daily'
+): Observation[] => {
   const lines = csv
     .replace(/^\uFEFF/, '')
     .trim()
@@ -74,10 +104,14 @@ const parseEcbObservations = (csv: string): Observation[] => {
 
   const observations = lines.slice(1).flatMap((line) => {
     const row = parseCsvLine(line);
-    const observedAt = row[timeIndex];
+    const rawObservedAt = row[timeIndex] ?? '';
     const value = Number(row[valueIndex]);
+    const observedAt =
+      frequency === 'monthly' && /^\d{4}-\d{2}$/.test(rawObservedAt)
+        ? `${rawObservedAt}-01`
+        : rawObservedAt;
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(observedAt ?? '') || !Number.isFinite(value)) return [];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(observedAt) || !Number.isFinite(value)) return [];
     return [{ value, observedAt }];
   });
 
@@ -197,10 +231,152 @@ const fetchEuribor3m = async (): Promise<MarketMacroItem> => {
   };
 };
 
+const fetchEuriborHistory = async () => {
+  const response = await fetch(EURIBOR_HISTORY_URL, {
+    headers: { Accept: 'text/csv' },
+  });
+
+  if (!response.ok) throw new Error(`ECB Euribor history request failed: ${response.status}`);
+  return parseEcbObservations(await response.text(), 'monthly');
+};
+
+const parseYahooObservations = (data: YahooChartResponse): Observation[] => {
+  const result = data.chart?.result?.[0];
+  const timestamps = result?.timestamp;
+  const closes = result?.indicators?.quote?.[0]?.close;
+
+  if (!Array.isArray(timestamps) || !Array.isArray(closes)) {
+    throw new Error('Yahoo Finance response shape changed');
+  }
+
+  const observations: Observation[] = [];
+  const count = Math.min(timestamps.length, closes.length);
+
+  for (let index = 0; index < count; index += 1) {
+    const timestamp = timestamps[index];
+    const value = closes[index];
+    if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) continue;
+    if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+
+    observations.push({
+      observedAt: new Date(timestamp * 1000).toISOString().slice(0, 10),
+      value,
+    });
+  }
+
+  if (observations.length < 2) throw new Error('Yahoo Finance response has too few observations');
+  return observations.sort((a, b) => a.observedAt.localeCompare(b.observedAt));
+};
+
+const fetchWorldObservations = async () => {
+  let lastError: unknown;
+
+  for (const url of WORLD_URLS) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
+        },
+      });
+
+      if (!response.ok) throw new Error(`Yahoo Finance request failed: ${response.status}`);
+      return parseYahooObservations((await response.json()) as YahooChartResponse);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Yahoo Finance request failed');
+};
+
+const sampleObservations = (observations: Observation[]) => {
+  if (observations.length <= MAX_SERIES_POINTS) return observations;
+
+  const sampled: Observation[] = [observations[0]];
+  const step = (observations.length - 1) / (MAX_SERIES_POINTS - 1);
+
+  for (let index = 1; index < MAX_SERIES_POINTS - 1; index += 1) {
+    sampled.push(observations[Math.round(index * step)]);
+  }
+
+  sampled.push(observations.at(-1) as Observation);
+  return sampled;
+};
+
+const buildEuriborSeries = (
+  history: Observation[],
+  current: MarketMacroItem
+): MarketSeries => {
+  const byDate = new Map(history.map((item) => [item.observedAt, item]));
+  byDate.set(current.observedAt, { value: current.value, observedAt: current.observedAt });
+
+  const latestTime = Date.parse(`${current.observedAt}T00:00:00Z`);
+  const cutoffTime = latestTime - 370 * DAY_MS;
+  const observations = [...byDate.values()]
+    .filter((item) => Date.parse(`${item.observedAt}T00:00:00Z`) >= cutoffTime)
+    .sort((a, b) => a.observedAt.localeCompare(b.observedAt));
+  const first = observations[0];
+
+  if (!first || observations.length < 2) throw new Error('Euribor one-year history is incomplete');
+
+  return {
+    id: 'euribor-3m',
+    value: current.value,
+    observedAt: current.observedAt,
+    change1y: current.value - first.value,
+    points: sampleObservations(observations),
+  };
+};
+
+const buildWorldSeries = (observations: Observation[]): MarketSeries => {
+  const first = observations[0];
+  const latest = observations.at(-1);
+
+  if (!first || !latest || first.value === 0) throw new Error('World series is invalid');
+
+  return {
+    id: 'world',
+    value: latest.value,
+    observedAt: latest.observedAt,
+    change1y: (latest.value / first.value - 1) * 100,
+    points: sampleObservations(observations),
+  };
+};
+
 export const onRequestGet = async () => {
   try {
-    const items = await Promise.all([fetchEurUsd(), fetchEuribor3m()]);
-    return jsonResponse({ items, source: 'ECB + Bank of Finland' }, 200);
+    const [eurUsd, euribor] = await Promise.all([fetchEurUsd(), fetchEuribor3m()]);
+    const [euriborHistoryResult, worldResult] = await Promise.allSettled([
+      fetchEuriborHistory(),
+      fetchWorldObservations(),
+    ]);
+    const series: MarketSeries[] = [];
+
+    if (euriborHistoryResult.status === 'fulfilled') {
+      try {
+        series.push(buildEuriborSeries(euriborHistoryResult.value, euribor));
+      } catch {
+        // Keep the live Euribor value available even if its history is incomplete.
+      }
+    }
+
+    if (worldResult.status === 'fulfilled') {
+      try {
+        series.push(buildWorldSeries(worldResult.value));
+      } catch {
+        // The world chart is optional and must not take down the macro readings.
+      }
+    }
+
+    return jsonResponse(
+      {
+        items: [eurUsd, euribor],
+        series,
+        source: 'ECB + Bank of Finland + Yahoo Finance',
+      },
+      200
+    );
   } catch {
     return jsonResponse({ error: 'market_macro_unavailable' }, 502);
   }

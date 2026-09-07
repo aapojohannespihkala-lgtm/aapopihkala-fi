@@ -27,7 +27,7 @@
       </div>
     </section>
 
-    <section class="markets-macro" aria-label="Currency and interest rates">
+    <section class="markets-macro" aria-label="Currency, interest rates and world equity trend">
       <p class="markets-panel-label">FX / RATES</p>
 
       <div class="markets-macro__row">
@@ -35,20 +35,77 @@
         <div class="markets-macro__reading">
           <p class="markets-macro__value" data-market-value="eur-usd">--.----</p>
           <p class="markets-macro__change" data-market-change="eur-usd">WAITING / 1M</p>
+          <p class="markets-macro__observation">
+            OBS / <span data-market-observation="eur-usd">WAITING</span>
+          </p>
         </div>
       </div>
 
-      <div class="markets-macro__row">
+      <div class="markets-macro__row markets-macro__row--chart">
         <p class="markets-macro__label">3M EURIBOR</p>
         <div class="markets-macro__reading">
           <p class="markets-macro__value"><span data-market-value="euribor-3m">-.---</span>%</p>
           <p class="markets-macro__change" data-market-change="euribor-3m">WAITING / 1M</p>
+          <p class="markets-macro__observation">
+            OBS / <span data-market-observation="euribor-3m">WAITING</span>
+          </p>
+        </div>
+
+        <div class="markets-sparkline-wrap">
+          <div class="markets-sparkline__meta">
+            <span>1Y CHANGE</span>
+            <span data-market-series-change="euribor-3m">WAITING</span>
+          </div>
+          <svg
+            class="markets-sparkline markets-sparkline--pending"
+            data-market-sparkline="euribor-3m"
+            viewBox="0 0 240 56"
+            preserveAspectRatio="none"
+            role="img"
+          >
+            <path></path>
+          </svg>
+          <p class="markets-sparkline__fallback" data-market-sparkline-fallback="euribor-3m">
+            LOADING 1Y
+          </p>
         </div>
       </div>
 
-      <p class="markets-macro__updated">
-        OBS / <span data-markets-observation>WAITING</span>
-      </p>
+      <div class="markets-world">
+        <p class="markets-panel-label">WORLD / 1Y</p>
+
+        <div class="markets-macro__row markets-macro__row--chart">
+          <p class="markets-macro__label">WORLD / URTH</p>
+          <div class="markets-macro__reading">
+            <p class="markets-macro__value" data-market-value="world">----</p>
+            <p class="markets-macro__change">
+              <span data-market-series-change="world">WAITING</span> / 1Y
+            </p>
+            <p class="markets-macro__observation">
+              OBS / <span data-market-observation="world">WAITING</span>
+            </p>
+          </div>
+
+          <div class="markets-sparkline-wrap">
+            <div class="markets-sparkline__meta">
+              <span>MSCI WORLD ETF PROXY</span>
+              <span>URTH</span>
+            </div>
+            <svg
+              class="markets-sparkline markets-sparkline--pending"
+              data-market-sparkline="world"
+              viewBox="0 0 240 56"
+              preserveAspectRatio="none"
+              role="img"
+            >
+              <path></path>
+            </svg>
+            <p class="markets-sparkline__fallback" data-market-sparkline-fallback="world">
+              LOADING 1Y
+            </p>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -64,6 +121,8 @@
         target="_blank"
         rel="noopener"
       >BANK OF FINLAND</a>
+      ·
+      <a href="https://finance.yahoo.com/quote/URTH/" target="_blank" rel="noopener nofollow">YAHOO FINANCE</a>
     </p>
 
     <p class="markets-error" data-markets-error hidden>
@@ -233,7 +292,9 @@
 
   .markets-macro__label,
   .markets-macro__value,
-  .markets-macro__change {
+  .markets-macro__change,
+  .markets-macro__observation,
+  .markets-sparkline__fallback {
     margin: 0;
   }
 
@@ -272,11 +333,67 @@
     white-space: nowrap;
   }
 
-  .markets-macro__updated {
-    margin: 10px 0 0;
+  .markets-macro__observation {
     color: var(--stone-light);
-    font-size: 0.48rem;
-    letter-spacing: 0.075em;
+    font-size: 0.4rem;
+    line-height: 1.2;
+    letter-spacing: 0.065em;
+    white-space: nowrap;
+  }
+
+  .markets-sparkline-wrap {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 5px;
+    padding-top: 2px;
+  }
+
+  .markets-sparkline__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--stone-light);
+    font-size: 0.4rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.06em;
+  }
+
+  .markets-sparkline {
+    display: block;
+    width: 100%;
+    height: 46px;
+    color: var(--ink);
+    overflow: visible;
+  }
+
+  .markets-sparkline--pending {
+    display: none;
+  }
+
+  .markets-sparkline path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.25;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .markets-sparkline__fallback {
+    display: flex;
+    min-height: 46px;
+    align-items: center;
+    color: var(--stone-light);
+    font-size: 0.4rem;
+    letter-spacing: 0.06em;
+  }
+
+  .markets-sparkline__fallback[hidden] {
+    display: none;
+  }
+
+  .markets-world {
+    margin-top: 20px;
   }
 
   .markets-footer {

@@ -6,7 +6,31 @@ const macroFixture = {
     { id: 'eur-usd', value: 1.1712, observedAt: '2026-09-04', change1m: 0.9655 },
     { id: 'euribor-3m', value: 2.679, observedAt: '2026-09-04', change1m: 0.205 },
   ],
-  source: 'ECB + Bank of Finland',
+  series: [
+    {
+      id: 'euribor-3m',
+      value: 2.679,
+      observedAt: '2026-09-04',
+      change1y: -0.571,
+      points: [
+        { observedAt: '2025-09-01', value: 3.25 },
+        { observedAt: '2026-03-01', value: 2.9 },
+        { observedAt: '2026-09-04', value: 2.679 },
+      ],
+    },
+    {
+      id: 'world',
+      value: 180,
+      observedAt: '2026-09-04',
+      change1y: 20,
+      points: [
+        { observedAt: '2025-09-05', value: 150 },
+        { observedAt: '2026-03-04', value: 162 },
+        { observedAt: '2026-09-04', value: 180 },
+      ],
+    },
+  ],
+  source: 'ECB + Bank of Finland + Yahoo Finance',
 };
 
 const expectedMarketSymbols = [
@@ -62,7 +86,7 @@ const stubMarkets = async (page: Page) => {
   });
 };
 
-test('standalone Current Markets shows TradingView performance, EUR/USD direction and 3M Euribor', async ({ page }) => {
+test('standalone Current Markets shows TradingView performance, macro data and one-year trends', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubTradingView(page);
   await stubMarkets(page);
@@ -73,6 +97,7 @@ test('standalone Current Markets shows TradingView performance, EUR/USD directio
   await expect(page.locator('a.current-markets-status__link')).toHaveAttribute('href', '/current/');
   await expect(page.getByText('GLOBAL / PERFORMANCE')).toHaveCount(1);
   await expect(page.getByText('FX / RATES')).toHaveCount(1);
+  await expect(page.getByText('WORLD / 1Y')).toHaveCount(1);
 
   const widget = page.locator('tv-market-data');
   await expect(widget).toHaveCount(1);
@@ -104,10 +129,23 @@ test('standalone Current Markets shows TradingView performance, EUR/USD directio
   await expect(page.locator('[data-market-change="eur-usd"]')).toHaveText(
     'EUR STRONGER · 0.97% / 1M'
   );
+  await expect(page.locator('[data-market-observation="eur-usd"]')).toHaveText('2026-09-04');
   await expect(page.locator('[data-market-value="euribor-3m"]')).toHaveText('2.679');
   await expect(page.locator('[data-market-change="euribor-3m"]')).toHaveText('+0.205 PP / 1M');
+  await expect(page.locator('[data-market-series-change="euribor-3m"]')).toHaveText('-0.571 PP');
+  await expect(page.locator('[data-market-observation="euribor-3m"]')).toHaveText('2026-09-04');
+  await expect(page.locator('[data-market-value="world"]')).toHaveText('180.00');
+  await expect(page.locator('[data-market-series-change="world"]')).toHaveText('+20.00%');
+  await expect(page.locator('[data-market-observation="world"]')).toHaveText('2026-09-04');
   await expect(page.locator('[data-market-value="eur-sek"], [data-market-value="estr"]')).toHaveCount(0);
-  await expect(page.locator('[data-markets-observation]')).toHaveText('2026-09-04');
+
+  for (const id of ['euribor-3m', 'world']) {
+    const sparkline = page.locator(`[data-market-sparkline="${id}"]`);
+    await expect(sparkline).toBeVisible();
+    await expect(sparkline.locator('path')).toHaveAttribute('d', /^M/);
+    await expect(page.locator(`[data-market-sparkline-fallback="${id}"]`)).toBeHidden();
+  }
+
   await expect(page.locator('[data-markets-error]')).toBeHidden();
 
   const dimensions = await page.evaluate(() => ({
@@ -132,6 +170,9 @@ test('Markets keeps a compact fallback if TradingView performance data is blocke
   );
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
   await expect(page.locator('[data-market-value="euribor-3m"]')).toHaveText('2.679');
+  await expect(page.locator('[data-market-value="world"]')).toHaveText('180.00');
+  await expect(page.locator('[data-market-sparkline="euribor-3m"]')).toBeVisible();
+  await expect(page.locator('[data-market-sparkline="world"]')).toBeVisible();
 
   const fallbackBox = await fallback.boundingBox();
   expect(fallbackBox).not.toBeNull();
@@ -156,6 +197,7 @@ test('Current places Markets performance above electricity', async ({ page }) =>
   await expect(page.locator('[data-current-electricity]')).toHaveCount(1);
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
   await expect(page.locator('[data-market-value="euribor-3m"]')).toHaveText('2.679');
+  await expect(page.locator('[data-market-value="world"]')).toHaveText('180.00');
 
   const moduleOrder = await page.evaluate(() =>
     [...document.querySelectorAll('[data-current-markets], [data-current-electricity]')].map((element) =>
@@ -166,13 +208,13 @@ test('Current places Markets performance above electricity', async ({ page }) =>
   expect(moduleOrder).toEqual(['markets', 'electricity']);
 });
 
-test('Worker serves EUR/USD and daily 3M Euribor with one-month context', async () => {
+test('Worker serves macro readings and one-year Euribor and world histories', async () => {
   const originalFetch = globalThis.fetch;
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
 
-    if (url.hostname === 'data-api.ecb.europa.eu') {
+    if (url.hostname === 'data-api.ecb.europa.eu' && url.pathname.startsWith('/service/data/EXR/')) {
       expect(url.pathname).toBe('/service/data/EXR/D.USD.EUR.SP00.A');
       expect(url.searchParams.get('lastNObservations')).toBe('23');
       expect(url.searchParams.get('format')).toBe('csvdata');
@@ -185,6 +227,31 @@ test('Worker serves EUR/USD and daily 3M Euribor with one-month context', async 
       );
     }
 
+    if (url.hostname === 'data-api.ecb.europa.eu' && url.pathname.startsWith('/service/data/FM/')) {
+      expect(url.pathname).toBe('/service/data/FM/M.U2.EUR.RT.MM.EURIBOR3MD_.HSTA');
+      expect(url.searchParams.get('lastNObservations')).toBe('13');
+      expect(new Headers(init?.headers).get('Accept')).toBe('text/csv');
+
+      return new Response(
+        [
+          'TIME_PERIOD,OBS_VALUE',
+          '2025-09,3.250',
+          '2025-10,3.180',
+          '2025-11,3.120',
+          '2025-12,3.050',
+          '2026-01,3.000',
+          '2026-02,2.950',
+          '2026-03,2.900',
+          '2026-04,2.850',
+          '2026-05,2.800',
+          '2026-06,2.760',
+          '2026-07,2.720',
+          '2026-08,2.690',
+        ].join('\n'),
+        { status: 200, headers: { 'Content-Type': 'text/csv' } }
+      );
+    }
+
     if (url.hostname === 'www.suomenpankki.fi') {
       expect(url.pathname).toBe('/en/statistics/interest-rates-and-exchange-rates/euribor-rates/');
       expect(new Headers(init?.headers).get('Accept')).toBe('text/html');
@@ -193,6 +260,26 @@ test('Worker serves EUR/USD and daily 3M Euribor with one-month context', async 
         '<html><body><table><tr><td>4 Sep 2026</td><td>+2.154</td><td>+2.364</td><td>+2.679</td><td>+2.794</td><td>+3.108</td></tr><tr><td>7 Aug 2026</td><td>+2.132</td><td>+2.201</td><td>+2.474</td><td>+2.683</td><td>+2.898</td></tr></table></body></html>',
         { status: 200, headers: { 'Content-Type': 'text/html' } }
       );
+    }
+
+    if (url.hostname === 'query1.finance.yahoo.com') {
+      expect(url.pathname).toBe('/v8/finance/chart/URTH');
+      expect(url.searchParams.get('range')).toBe('1y');
+      expect(url.searchParams.get('interval')).toBe('1d');
+      expect(new Headers(init?.headers).get('Accept')).toBe('application/json');
+
+      return Response.json({
+        chart: {
+          result: [
+            {
+              timestamp: [1757030400, 1772582400, 1788480000],
+              indicators: {
+                quote: [{ close: [150, 162, 180] }],
+              },
+            },
+          ],
+        },
+      });
     }
 
     throw new Error(`Unexpected request: ${url}`);
@@ -213,7 +300,7 @@ test('Worker serves EUR/USD and daily 3M Euribor with one-month context', async 
 
     expect(apiResponse.status).toBe(200);
     const data = (await apiResponse.json()) as typeof macroFixture;
-    expect(data.source).toBe('ECB + Bank of Finland');
+    expect(data.source).toBe('ECB + Bank of Finland + Yahoo Finance');
     expect(data.items).toHaveLength(2);
     expect(data.items[0]).toMatchObject({
       id: 'eur-usd',
@@ -227,6 +314,21 @@ test('Worker serves EUR/USD and daily 3M Euribor with one-month context', async 
       observedAt: '2026-09-04',
     });
     expect(data.items[1].change1m).toBeCloseTo(0.205, 6);
+
+    expect(data.series).toHaveLength(2);
+    expect(data.series[0]).toMatchObject({
+      id: 'euribor-3m',
+      value: 2.679,
+      observedAt: '2026-09-04',
+    });
+    expect(data.series[0].change1y).toBeCloseTo(-0.571, 6);
+    expect(data.series[0].points.length).toBeGreaterThan(2);
+    expect(data.series[1]).toMatchObject({
+      id: 'world',
+      value: 180,
+      observedAt: '2026-09-04',
+    });
+    expect(data.series[1].change1y).toBeCloseTo(20, 6);
 
     const methodResponse = await worker.fetch(
       new Request('https://aapopihkala.fi/api/current/markets', { method: 'POST' }),
