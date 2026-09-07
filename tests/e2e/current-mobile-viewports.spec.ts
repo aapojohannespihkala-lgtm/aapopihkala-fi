@@ -42,12 +42,31 @@ const sectionGeometry = async (page: Page, sectionName: string) =>
     };
   }, sectionName);
 
+const marketGeometry = async (page: Page) =>
+  page.evaluate(() => {
+    const section = document.querySelector<HTMLElement>('[data-current-section="markets"]');
+    const performance = section?.querySelector<HTMLElement>('[data-current-market-performance]');
+    const macro = section?.querySelector<HTMLElement>('.markets-macro');
+    const sectionRect = section?.getBoundingClientRect();
+    const performanceRect = performance?.getBoundingClientRect();
+    const macroRect = macro?.getBoundingClientRect();
+
+    return {
+      viewportHeight: window.innerHeight,
+      sectionTop: sectionRect?.top ?? Number.NaN,
+      performanceTop: performanceRect?.top ?? Number.NaN,
+      performanceBottom: performanceRect?.bottom ?? Number.NaN,
+      performanceHeight: performanceRect?.height ?? Number.NaN,
+      macroTop: macroRect?.top ?? Number.NaN,
+    };
+  });
+
 test.describe('Current mobile viewport isolation', () => {
   for (const viewport of [
     { width: 390, height: 844 },
     { width: 360, height: 800 },
   ]) {
-    test(`keeps Weather and Electricity isolated at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    test(`keeps dashboard sections isolated at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await prepareCurrent(page);
       await page.setViewportSize(viewport);
       await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -69,6 +88,19 @@ test.describe('Current mobile viewport isolation', () => {
       const electricity = await sectionGeometry(page, 'electricity');
       expect(electricity.contentBottom).toBeLessThanOrEqual(electricity.viewportHeight + 1);
       expect(electricity.nextTop).toBeGreaterThanOrEqual(electricity.viewportHeight - 1);
+
+      await nav.click();
+
+      await expect.poll(async () => {
+        const markets = await marketGeometry(page);
+        return markets.sectionTop;
+      }).toBeLessThan(66);
+
+      const markets = await marketGeometry(page);
+      const availableMarketViewport = markets.viewportHeight - 64;
+      expect(markets.performanceHeight).toBeGreaterThanOrEqual(availableMarketViewport - 1);
+      expect(markets.performanceHeight).toBeLessThanOrEqual(availableMarketViewport * 2 + 1);
+      expect(markets.macroTop).toBeGreaterThanOrEqual(markets.viewportHeight - 1);
 
       const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       expect(documentWidth).toBeLessThanOrEqual(viewport.width + 1);
