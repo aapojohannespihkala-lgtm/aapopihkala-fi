@@ -1,0 +1,84 @@
+name: Diagnose Astro 7 CSS
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.event.pull_request.draft == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.20.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build without CSS minification and locate invalid CSS
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > astro.config.diagnostic.mjs <<'EOF'
+          import base from './astro.config.mjs';
+
+          export default {
+            ...base,
+            vite: {
+              ...(base.vite ?? {}),
+              build: {
+                ...(base.vite?.build ?? {}),
+                cssMinify: false,
+              },
+            },
+          };
+          EOF
+
+          npx astro build --config astro.config.diagnostic.mjs
+
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { transform } from 'lightningcss';
+
+          const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+            const full = path.join(dir, entry.name);
+            return entry.isDirectory() ? walk(full) : [full];
+          });
+
+          let failed = false;
+          for (const file of walk('dist').filter((file) => file.endsWith('.css'))) {
+            const code = fs.readFileSync(file);
+            try {
+              transform({ filename: file, code, minify: true });
+            } catch (error) {
+              failed = true;
+              console.error(`FAILED_CSS=${file}`);
+              console.error(error);
+              const text = code.toString('utf8');
+              const line = Number(error?.loc?.line ?? error?.line ?? 0);
+              if (line > 0) {
+                const lines = text.split('\n');
+                const start = Math.max(0, line - 4);
+                const end = Math.min(lines.length, line + 3);
+                for (let index = start; index < end; index += 1) {
+                  console.error(`${index + 1}: ${lines[index]}`);
+                }
+              }
+            }
+          }
+
+          if (failed) process.exit(1);
+          NODE
