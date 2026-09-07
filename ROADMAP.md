@@ -25,7 +25,7 @@ Valmistunut kohta poistetaan tai merkitään selvästi tehdyksi, jotta tiedosto 
 - Päätä erikseen, dokumentoidaanko ne tarkoituksellisiksi vai poistetaanko ne varmennetulla cleanup-PR:llä.
 - Tämä ei ole nykyinen bugi eikä kiireellinen työ.
 
-## 4. Laajempi saavutettavuysaudit
+## 4. Laajempi saavutettavuusaudit
 
 Nykyisiä parannuksia ovat muun muassa skip navigation, vähimmäiskokoiset interaktiiviset kohteet, reduced motion -tuki ja regressiotestit.
 
