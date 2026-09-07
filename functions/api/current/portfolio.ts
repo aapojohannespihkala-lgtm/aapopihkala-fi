@@ -197,7 +197,7 @@ export const onRequestGet = async () => {
       liveExpected: LIVE_SPECS.length,
       unavailable,
       source: 'Yahoo Finance',
-      version: 4,
+      version: 1,
     });
   } catch {
     return jsonResponse({
@@ -206,7 +206,7 @@ export const onRequestGet = async () => {
       liveExpected: LIVE_SPECS.length,
       unavailable: LIVE_SPECS.map((spec) => spec.id),
       source: 'Yahoo Finance',
-      version: 4,
+      version: 1,
     });
   }
 };
