@@ -1,11 +1,20 @@
 type MarketPerformanceId =
+  | 'handelsbanken-usa'
+  | 'nordnet-finland'
   | 'ishares-world'
   | 'ishares-europe'
+  | 'nordnet-sweden'
+  | 'spiltan-investmentbolag'
+  | 'storebrand-japan'
   | 'franklin-sp500-climate'
   | 'xact-norden'
   | 'nordea'
   | 'marimekko'
   | 'remedy'
+  | 'op-asia-index-a'
+  | 'op-europe-index-a'
+  | 'op-world-index-a'
+  | 'op-forest-owner-b'
   | 'btc'
   | 'bnb'
   | 'eth';
@@ -47,17 +56,42 @@ type MarketPerformanceChanges = {
 };
 
 type MarketPerformanceItem = PerformanceSpec & {
-  price: number;
+  price: number | null;
   observedAt: string;
   changes: MarketPerformanceChanges;
+};
+
+type OpFundSpec = PerformanceSpec & {
+  url: string;
+  rowLabel: string;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const EXPECTED_HOLDINGS = 19;
 
-const LIVE_SPECS: PerformanceSpec[] = [
+const YAHOO_SPECS: PerformanceSpec[] = [
+  {
+    id: 'handelsbanken-usa',
+    label: 'HANDELSBANKEN USA INDEKSI',
+    symbol: '0P00015D8I.ST',
+  },
+  {
+    id: 'nordnet-finland',
+    label: 'NORDNET SUOMI INDEKSI',
+    symbol: '0P000134K9.ST',
+  },
   { id: 'ishares-world', label: 'ISHARES CORE MSCI WORLD UCITS ETF USD (ACC)', symbol: 'EUNL.DE' },
   { id: 'ishares-europe', label: 'ISHARES CORE MSCI EUROPE UCITS ETF EUR (ACC)', symbol: 'EUNK.DE' },
+  {
+    id: 'nordnet-sweden',
+    label: 'NORDNET SVERIGE INDEX',
+    symbol: '0P0000J24W.ST',
+  },
+  {
+    id: 'spiltan-investmentbolag',
+    label: 'SPILTAN AKTIEFOND INVESTMENTBOLAG',
+    symbol: '0P0000ULAP.ST',
+  },
   {
     id: 'franklin-sp500-climate',
     label: 'FRANKLIN S&P 500 PARIS ALIGNED CLIMATE UCITS ETF',
@@ -71,6 +105,45 @@ const LIVE_SPECS: PerformanceSpec[] = [
   { id: 'bnb', label: 'BNB', symbol: 'BNB-EUR' },
   { id: 'eth', label: 'ETH', symbol: 'ETH-EUR' },
 ];
+
+const OP_SPECS: OpFundSpec[] = [
+  {
+    id: 'op-asia-index-a',
+    label: 'OP-AASIA INDEKSI A',
+    symbol: 'FI4000029491',
+    url: 'https://www.op.fi/en/private-customers/savings-and-investments/funds/all-funds/op-asia-index',
+    rowLabel: 'OP-Asia Index A',
+  },
+  {
+    id: 'op-europe-index-a',
+    label: 'OP-EUROOPPA INDEKSI A',
+    symbol: 'FI4000029301',
+    url: 'https://www.op.fi/en/private-customers/savings-and-investments/funds/all-funds/op-europe-index',
+    rowLabel: 'OP-Europe Index A',
+  },
+  {
+    id: 'op-world-index-a',
+    label: 'OP-MAAILMA INDEKSI A',
+    symbol: 'FI4000261128',
+    url: 'https://www.op.fi/en/private-customers/savings-and-investments/funds/all-funds/op-world-index',
+    rowLabel: 'OP-World Index A',
+  },
+  {
+    id: 'op-forest-owner-b',
+    label: 'OP-METSÄNOMISTAJA B',
+    symbol: 'FI4000108436',
+    url: 'https://www.op.fi/en/private-customers/savings-and-investments/funds/all-funds/op-forest-owner',
+    rowLabel: 'OP-Forest Owner B',
+  },
+];
+
+const STOREBRAND_SPEC: PerformanceSpec = {
+  id: 'storebrand-japan',
+  label: 'STOREBRAND JAPAN A EUR',
+  symbol: 'SE0013801479',
+};
+const STOREBRAND_URL =
+  'https://www.nordnet.fi/rahastot/lista/storebrand-japan-a-eur-dbe9644c';
 
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -160,7 +233,7 @@ const yearsBefore = (time: number, years: number) => {
   return date.getTime();
 };
 
-const buildPerformanceItem = (
+const buildYahooPerformanceItem = (
   spec: PerformanceSpec,
   observations: Observation[]
 ): MarketPerformanceItem => {
@@ -190,37 +263,181 @@ const buildPerformanceItem = (
   };
 };
 
-export const onRequestGet = async () => {
-  try {
-    const settled = await Promise.allSettled(
-      LIVE_SPECS.map(async (spec) =>
-        buildPerformanceItem(spec, await fetchYahooObservations(spec.symbol))
-      )
-    );
+const htmlToText = (html: string) =>
+  html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&minus;|&#8722;|&#x2212;/gi, '−')
+    .replace(/&#43;|&#x2b;/gi, '+')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-    const items = settled.flatMap((result) =>
-      result.status === 'fulfilled' ? [result.value] : []
-    );
-    const unavailable = settled.flatMap((result, index) =>
-      result.status === 'rejected' ? [LIVE_SPECS[index].id] : []
-    );
+const parsePercentToken = (token: string): number | null => {
+  const normalized = token.trim().replace(/−/g, '-');
+  if (normalized === '-') return null;
+  const value = Number(normalized.replace('%', '').replace(',', '.').trim());
+  return Number.isFinite(value) ? value : null;
+};
 
-    return jsonResponse({
-      items,
-      expected: EXPECTED_HOLDINGS,
-      liveExpected: LIVE_SPECS.length,
-      unavailable,
-      source: 'Yahoo Finance',
-      version: 2,
-    });
-  } catch {
-    return jsonResponse({
-      items: [],
-      expected: EXPECTED_HOLDINGS,
-      liveExpected: LIVE_SPECS.length,
-      unavailable: LIVE_SPECS.map((spec) => spec.id),
-      source: 'Yahoo Finance',
-      version: 2,
-    });
+const extractReturnTokens = (segment: string, count: number) => {
+  const matches = segment.match(/[+−-]?\d+(?:[.,]\d+)?\s*%|\s-\s/g) ?? [];
+  return matches.slice(0, count).map(parsePercentToken);
+};
+
+const extractFundRow = (
+  text: string,
+  sectionTitle: string,
+  nextSectionTitle: string,
+  rowLabel: string,
+  count: number
+) => {
+  const sectionStart = text.indexOf(sectionTitle);
+  if (sectionStart < 0) throw new Error(`${sectionTitle} section is missing`);
+  const nextSection = text.indexOf(nextSectionTitle, sectionStart + sectionTitle.length);
+  const section = text.slice(sectionStart, nextSection > sectionStart ? nextSection : undefined);
+  const rowStart = section.indexOf(rowLabel);
+  if (rowStart < 0) throw new Error(`${rowLabel} row is missing`);
+
+  const values = extractReturnTokens(section.slice(rowStart + rowLabel.length, rowStart + rowLabel.length + 420), count);
+  if (values.length < count) throw new Error(`${rowLabel} return row is incomplete`);
+  return values;
+};
+
+const inferObservationDate = (day: number, month: number) => {
+  const now = new Date();
+  let year = now.getUTCFullYear();
+  let candidate = Date.UTC(year, month - 1, day);
+  if (candidate > now.getTime() + 31 * DAY_MS) {
+    year -= 1;
+    candidate = Date.UTC(year, month - 1, day);
   }
+  return new Date(candidate).toISOString().slice(0, 10);
+};
+
+const extractOpObservationDate = (text: string) => {
+  const match = text.match(/Accumulated profit\s*\((\d{1,2})\.(\d{1,2})\)/i);
+  if (!match) return new Date().toISOString().slice(0, 10);
+  return inferObservationDate(Number(match[1]), Number(match[2]));
+};
+
+const annualizedToCumulative = (value: number | null, years: number) => {
+  if (value === null) return null;
+  return (Math.pow(1 + value / 100, years) - 1) * 100;
+};
+
+const fetchOpFund = async (spec: OpFundSpec): Promise<MarketPerformanceItem> => {
+  const response = await fetch(spec.url, {
+    headers: {
+      Accept: 'text/html',
+      'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
+    },
+  });
+  if (!response.ok) throw new Error(`OP request failed: ${response.status}`);
+
+  const text = htmlToText(await response.text());
+  const accumulated = extractFundRow(
+    text,
+    'Accumulated profit',
+    'Yearly performance',
+    spec.rowLabel,
+    6
+  );
+  const yearly = extractFundRow(
+    text,
+    'Yearly performance',
+    'Key figures',
+    spec.rowLabel,
+    6
+  );
+
+  return {
+    id: spec.id,
+    label: spec.label,
+    symbol: spec.symbol,
+    price: null,
+    observedAt: extractOpObservationDate(text),
+    changes: {
+      today: null,
+      week1: null,
+      month1: accumulated[0],
+      month3: accumulated[1],
+      month6: accumulated[2],
+      ytd: yearly[5],
+      year1: accumulated[3],
+      year3: annualizedToCumulative(accumulated[4], 3),
+      year5: annualizedToCumulative(accumulated[5], 5),
+    },
+  };
+};
+
+const fetchStorebrandJapan = async (): Promise<MarketPerformanceItem> => {
+  const response = await fetch(STOREBRAND_URL, {
+    headers: {
+      Accept: 'text/html',
+      'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
+    },
+  });
+  if (!response.ok) throw new Error(`Nordnet Storebrand request failed: ${response.status}`);
+
+  const text = htmlToText(await response.text());
+  const titleIndex = text.indexOf('Storebrand Japan A EUR');
+  if (titleIndex < 0) throw new Error('Storebrand Japan row is missing');
+  const summary = text.slice(titleIndex, titleIndex + 320);
+  const dailyMatch = summary.match(/([+−-]?\d+(?:[.,]\d+)?)\s*%\s*(\d{1,2})\.(\d{1,2})\./);
+  const yearMatch = summary.match(/([+−-]?\d+(?:[.,]\d+)?)\s*%\s*12\s*kk/i);
+  if (!yearMatch) throw new Error('Storebrand Japan 12 month return is missing');
+
+  const today = dailyMatch ? parsePercentToken(`${dailyMatch[1]}%`) : null;
+  const year1 = parsePercentToken(`${yearMatch[1]}%`);
+  const observedAt = dailyMatch
+    ? inferObservationDate(Number(dailyMatch[2]), Number(dailyMatch[3]))
+    : new Date().toISOString().slice(0, 10);
+
+  return {
+    ...STOREBRAND_SPEC,
+    price: null,
+    observedAt,
+    changes: {
+      today,
+      week1: null,
+      month1: null,
+      month3: null,
+      month6: null,
+      ytd: null,
+      year1,
+      year3: null,
+      year5: null,
+    },
+  };
+};
+
+export const onRequestGet = async () => {
+  const tasks: Array<{ id: MarketPerformanceId; load: () => Promise<MarketPerformanceItem> }> = [
+    ...YAHOO_SPECS.map((spec) => ({
+      id: spec.id,
+      load: async () => buildYahooPerformanceItem(spec, await fetchYahooObservations(spec.symbol)),
+    })),
+    ...OP_SPECS.map((spec) => ({ id: spec.id, load: () => fetchOpFund(spec) })),
+    { id: STOREBRAND_SPEC.id, load: fetchStorebrandJapan },
+  ];
+
+  const settled = await Promise.allSettled(tasks.map((task) => task.load()));
+  const items = settled.flatMap((result) =>
+    result.status === 'fulfilled' ? [result.value] : []
+  );
+  const unavailable = settled.flatMap((result, index) =>
+    result.status === 'rejected' ? [tasks[index].id] : []
+  );
+
+  return jsonResponse({
+    items,
+    expected: EXPECTED_HOLDINGS,
+    liveExpected: tasks.length,
+    unavailable,
+    source: 'Yahoo Finance + OP + Nordnet',
+    version: 3,
+  });
 };

@@ -32,11 +32,14 @@ type PerformancePeriod =
   | 'year3'
   | 'year5';
 
+type SortKey = 'market' | PerformancePeriod;
+type SortDirection = 'asc' | 'desc';
+
 type MarketPerformanceItem = {
   id: MarketPerformanceId;
   label: string;
   symbol: string;
-  price: number;
+  price: number | null;
   observedAt: string;
   changes: Record<PerformancePeriod, number | null>;
 };
@@ -58,7 +61,7 @@ type PeriodDefinition = {
   className: string;
 };
 
-const API_URL = '/api/current/markets?portfolio=1&v=5';
+const API_URL = '/api/current/markets?portfolio=1&v=6';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
 const PERIODS: PeriodDefinition[] = [
@@ -96,6 +99,8 @@ const DISPLAY_ROWS: DisplayRow[] = [
 ];
 
 const IDS = new Set<MarketPerformanceId>(DISPLAY_ROWS.map((row) => row.id));
+const DISPLAY_ROW_BY_ID = new Map(DISPLAY_ROWS.map((row) => [row.id, row]));
+const ORIGINAL_ORDER = new Map(DISPLAY_ROWS.map((row, index) => [row.id, index]));
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
@@ -113,7 +118,7 @@ const isPerformanceItem = (value: unknown): value is MarketPerformanceItem => {
     IDS.has(item.id as MarketPerformanceId) &&
     typeof item.label === 'string' &&
     typeof item.symbol === 'string' &&
-    isFiniteNumber(item.price) &&
+    (item.price === null || isFiniteNumber(item.price)) &&
     typeof item.observedAt === 'string' &&
     !!changes &&
     PERIODS.every(({ key }) => isNullableFiniteNumber(changes[key]))
@@ -139,23 +144,33 @@ const createCell = (period: PeriodDefinition) => {
   return cell;
 };
 
+const createSortHeader = (key: SortKey, label: string, className = '') => {
+  const cell = document.createElement('span');
+  cell.setAttribute('role', 'columnheader');
+  cell.setAttribute('aria-sort', 'none');
+  cell.dataset.marketSortCell = key;
+  if (className) cell.className = className;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'markets-sort-button';
+  button.dataset.marketSort = key;
+  button.textContent = label;
+  button.setAttribute(
+    'aria-label',
+    key === 'market' ? 'Sort holdings alphabetically' : `Sort holdings by ${label} performance`
+  );
+  cell.append(button);
+  return cell;
+};
+
 const syncHeader = (table: HTMLElement) => {
   const header = table.querySelector<HTMLElement>('.markets-custom-row--header');
   if (!header) return;
 
-  header.replaceChildren();
-
-  const market = document.createElement('span');
-  market.setAttribute('role', 'columnheader');
-  market.textContent = 'MARKET';
-  header.append(market);
-
+  header.replaceChildren(createSortHeader('market', 'MARKET'));
   for (const period of PERIODS) {
-    const cell = document.createElement('span');
-    cell.setAttribute('role', 'columnheader');
-    cell.className = period.className;
-    cell.textContent = period.label;
-    header.append(cell);
+    header.append(createSortHeader(period.key, period.label, period.className));
   }
 };
 
@@ -203,6 +218,8 @@ const resetRows = (root: HTMLElement) => {
   });
 };
 
+const rowId = (row: HTMLElement) => row.dataset.marketPerformanceRow as MarketPerformanceId;
+
 export const initCurrentMarketPerformance = () => {
   const root = document.querySelector<HTMLElement>('[data-current-market-performance]');
   if (!root || root.dataset.marketPerformanceInitialized === 'true') return;
@@ -210,11 +227,77 @@ export const initCurrentMarketPerformance = () => {
 
   syncDisplayRows(root);
 
+  const table = root.querySelector<HTMLElement>('.markets-custom-table');
   const status = root.querySelector<HTMLElement>('[data-market-performance-status]');
   const retry = root.querySelector<HTMLButtonElement>('[data-market-performance-retry]');
+  const latestItems = new Map<MarketPerformanceId, MarketPerformanceItem>();
+  let activeSort: { key: SortKey; direction: SortDirection } | null = null;
+
+  const updateSortHeader = () => {
+    table?.querySelectorAll<HTMLElement>('[data-market-sort-cell]').forEach((cell) => {
+      const key = cell.dataset.marketSortCell as SortKey;
+      const direction = activeSort?.key === key ? activeSort.direction : null;
+      cell.setAttribute('aria-sort', direction === 'desc' ? 'descending' : direction === 'asc' ? 'ascending' : 'none');
+    });
+  };
+
+  const sortRows = () => {
+    if (!table || !activeSort) return;
+    const { key, direction } = activeSort;
+    const rows = [...table.querySelectorAll<HTMLElement>('[data-market-performance-row]')];
+
+    rows.sort((left, right) => {
+      const leftId = rowId(left);
+      const rightId = rowId(right);
+      const originalDifference =
+        (ORIGINAL_ORDER.get(leftId) ?? Number.MAX_SAFE_INTEGER) -
+        (ORIGINAL_ORDER.get(rightId) ?? Number.MAX_SAFE_INTEGER);
+
+      if (key === 'market') {
+        const leftLabel = DISPLAY_ROW_BY_ID.get(leftId)?.label ?? leftId;
+        const rightLabel = DISPLAY_ROW_BY_ID.get(rightId)?.label ?? rightId;
+        const comparison = leftLabel.localeCompare(rightLabel, 'fi', { sensitivity: 'base' });
+        return comparison === 0 ? originalDifference : direction === 'asc' ? comparison : -comparison;
+      }
+
+      const leftValue = latestItems.get(leftId)?.changes[key] ?? null;
+      const rightValue = latestItems.get(rightId)?.changes[key] ?? null;
+      const leftAvailable = typeof leftValue === 'number' && Number.isFinite(leftValue);
+      const rightAvailable = typeof rightValue === 'number' && Number.isFinite(rightValue);
+
+      if (leftAvailable && !rightAvailable) return -1;
+      if (!leftAvailable && rightAvailable) return 1;
+      if (!leftAvailable || !rightAvailable || leftValue === rightValue) return originalDifference;
+      return direction === 'desc' ? rightValue - leftValue : leftValue - rightValue;
+    });
+
+    rows.forEach((row) => table.append(row));
+    updateSortHeader();
+  };
+
+  const activateSort = (key: SortKey) => {
+    const direction: SortDirection =
+      activeSort?.key === key
+        ? activeSort.direction === 'desc'
+          ? 'asc'
+          : 'desc'
+        : key === 'market'
+          ? 'asc'
+          : 'desc';
+    activeSort = { key, direction };
+    sortRows();
+  };
+
+  table?.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-market-sort]');
+    if (!button || !table.contains(button)) return;
+    activateSort(button.dataset.marketSort as SortKey);
+  });
 
   const render = (items: MarketPerformanceItem[], expected: number) => {
     resetRows(root);
+    latestItems.clear();
+    items.forEach((item) => latestItems.set(item.id, item));
 
     for (const item of items) {
       const row = root.querySelector<HTMLElement>(`[data-market-performance-row="${item.id}"]`);
@@ -237,6 +320,8 @@ export const initCurrentMarketPerformance = () => {
 
       row.dataset.marketPerformanceLoaded = 'true';
     }
+
+    if (activeSort) sortRows();
 
     if (status) {
       status.textContent =
@@ -265,6 +350,8 @@ export const initCurrentMarketPerformance = () => {
       root.setAttribute('aria-busy', 'false');
     } catch {
       resetRows(root);
+      latestItems.clear();
+      if (activeSort) sortRows();
       root.setAttribute('aria-busy', 'false');
       if (status) status.textContent = 'DATA UNAVAILABLE';
     }
