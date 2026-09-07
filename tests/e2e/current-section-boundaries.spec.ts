@@ -70,7 +70,8 @@ const expectPortfolioMatrix = async (page: Page, compact: boolean) => {
 
   const firstPortfolioRow = page.locator('[data-market-performance-row="handelsbanken-usa"]');
   await expect(firstPortfolioRow).toHaveCSS('display', 'grid');
-  await expect(firstPortfolioRow).toHaveCSS('min-height', '37px');
+  const expectedMinHeight = (page.viewportSize()?.width ?? 0) <= 520 ? '35px' : '37px';
+  await expect(firstPortfolioRow).toHaveCSS('min-height', expectedMinHeight);
 
   if (compact) {
     await expect(page.locator('.markets-custom-row--header .period-week1')).toBeHidden();
