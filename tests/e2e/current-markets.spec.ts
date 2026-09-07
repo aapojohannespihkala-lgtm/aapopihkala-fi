@@ -2,17 +2,17 @@ import { expect, test, type Page } from '@playwright/test';
 import worker from '../../worker/index';
 
 const macroFixture = {
-  items: [{ id: 'euribor-3m', value: 2.679, observedAt: '2026-09-04' }],
+  items: [{ id: 'euribor-3m', value: 2.679, observedAt: '2026-09-03' }],
   series: [
     {
       id: 'euribor-3m',
       value: 2.679,
-      observedAt: '2026-09-04',
+      observedAt: '2026-09-03',
       change1y: -0.571,
       points: [
         { observedAt: '2025-09-01', value: 3.25 },
         { observedAt: '2026-03-01', value: 2.9 },
-        { observedAt: '2026-09-04', value: 2.679 },
+        { observedAt: '2026-09-03', value: 2.679 },
       ],
     },
     {
@@ -83,7 +83,7 @@ const stubMarkets = async (page: Page) => {
   });
 };
 
-test('standalone Current Markets shows TradingView performance and one-year Euribor and world trends', async ({ page }) => {
+test('standalone Current Markets shows concise one-year Euribor and world trends', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubTradingView(page);
   await stubMarkets(page);
@@ -94,7 +94,7 @@ test('standalone Current Markets shows TradingView performance and one-year Euri
   await expect(page.locator('a.current-markets-status__link')).toHaveAttribute('href', '/current/');
   await expect(page.getByText('GLOBAL / PERFORMANCE')).toHaveCount(1);
   await expect(page.getByText('RATES / TRENDS')).toHaveCount(1);
-  await expect(page.getByText('WORLD / 1Y')).toHaveCount(1);
+  await expect(page.getByText('WORLD / 1Y')).toHaveCount(0);
   await expect(page.getByText('EUR / USD')).toHaveCount(0);
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveCount(0);
 
@@ -124,30 +124,35 @@ test('standalone Current Markets shows TradingView performance and one-year Euri
     expect(widgetBox.height).toBeLessThanOrEqual(440);
   }
 
+  await expect(page.locator('[data-markets-observation]')).toHaveText('2026-09-04');
+  await expect(page.locator('[data-market-observation]')).toHaveCount(0);
+
   await expect(page.locator('[data-market-value="euribor-3m"]')).toHaveText('2.679');
   await expect(page.locator('[data-market-series-change="euribor-3m"]')).toHaveText('-0.571 PP');
-  await expect(page.locator('[data-market-observation="euribor-3m"]')).toHaveText('2026-09-04');
-  await expect(page.locator('[data-market-value="world"]')).toHaveText('180.00');
+  await expect(page.locator('[data-market-value="world"]')).toHaveCount(0);
   await expect(page.locator('[data-market-series-change="world"]')).toHaveText('+20.00%');
-  await expect(page.locator('[data-market-observation="world"]')).toHaveText('2026-09-04');
+  await expect(page.locator('.markets-macro')).toContainText('INDEXED / 100 = 1Y AGO');
+  await expect(page.locator('.markets-macro')).not.toContainText('MSCI WORLD ETF PROXY');
+  await expect(page.locator('.markets-macro')).not.toContainText('WORLD / URTH');
+  await expect(page.locator('.markets-macro')).not.toContainText('1Y HISTORY');
 
   await expect(
     page.locator('[data-market-axis="euribor-3m"][data-axis-level="max"]')
-  ).toHaveText('3.250%');
+  ).toHaveText('3.5%');
   await expect(
     page.locator('[data-market-axis="euribor-3m"][data-axis-level="mid"]')
-  ).toHaveText('2.965%');
+  ).toHaveText('3.0%');
   await expect(
     page.locator('[data-market-axis="euribor-3m"][data-axis-level="min"]')
-  ).toHaveText('2.679%');
+  ).toHaveText('2.5%');
   await expect(page.locator('[data-market-axis="world"][data-axis-level="max"]')).toHaveText(
-    '180.00'
+    '120'
   );
   await expect(page.locator('[data-market-axis="world"][data-axis-level="mid"]')).toHaveText(
-    '165.00'
+    '110'
   );
   await expect(page.locator('[data-market-axis="world"][data-axis-level="min"]')).toHaveText(
-    '150.00'
+    '100'
   );
 
   for (const id of ['euribor-3m', 'world']) {
@@ -181,7 +186,8 @@ test('Markets keeps compact trend charts if TradingView performance data is bloc
     'Market performance unavailable'
   );
   await expect(page.locator('[data-market-value="euribor-3m"]')).toHaveText('2.679');
-  await expect(page.locator('[data-market-value="world"]')).toHaveText('180.00');
+  await expect(page.locator('[data-market-series-change="world"]')).toHaveText('+20.00%');
+  await expect(page.locator('[data-markets-observation]')).toHaveText('2026-09-04');
   await expect(page.locator('[data-market-sparkline="euribor-3m"]')).toBeVisible();
   await expect(page.locator('[data-market-sparkline="world"]')).toBeVisible();
 
@@ -208,7 +214,8 @@ test('Current places Markets performance above electricity', async ({ page }) =>
   await expect(page.locator('[data-current-electricity]')).toHaveCount(1);
   await expect(page.locator('[data-market-value="eur-usd"]')).toHaveCount(0);
   await expect(page.locator('[data-market-value="euribor-3m"]')).toHaveText('2.679');
-  await expect(page.locator('[data-market-value="world"]')).toHaveText('180.00');
+  await expect(page.locator('[data-market-series-change="world"]')).toHaveText('+20.00%');
+  await expect(page.locator('[data-markets-observation]')).toHaveText('2026-09-04');
 
   const moduleOrder = await page.evaluate(() =>
     [...document.querySelectorAll('[data-current-markets], [data-current-electricity]')].map((element) =>

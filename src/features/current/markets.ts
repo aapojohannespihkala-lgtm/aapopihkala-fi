@@ -23,10 +23,18 @@ type MarketsResponse = {
   series?: unknown;
 };
 
+type AxisScale = {
+  minimum: number;
+  midpoint: number;
+  maximum: number;
+  step: number;
+};
+
 const MARKETS_API_URL = '/api/current/markets';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 const MARKET_IDS = new Set<MarketMacroId>(['euribor-3m']);
 const SERIES_IDS = new Set<MarketSeriesId>(['euribor-3m', 'world']);
+const NICE_FACTORS = [1, 2, 2.5, 5, 10];
 
 const isSeriesPoint = (value: unknown): value is SeriesPoint => {
   if (!value || typeof value !== 'object') return false;
@@ -77,12 +85,6 @@ const formatEuriborValue = (value: number) =>
     maximumFractionDigits: 3,
   }).format(value);
 
-const formatWorldValue = (value: number) =>
-  new Intl.NumberFormat('en-GB', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-
 const formatSeriesChange = (series: MarketSeries) => {
   const sign = series.change1y > 0 ? '+' : '';
   return series.id === 'euribor-3m'
@@ -90,8 +92,63 @@ const formatSeriesChange = (series: MarketSeries) => {
     : `${sign}${series.change1y.toFixed(2)}%`;
 };
 
-const formatAxisValue = (series: MarketSeries, value: number) =>
-  series.id === 'euribor-3m' ? `${value.toFixed(3)}%` : value.toFixed(2);
+const niceStep = (minimumStep: number) => {
+  if (!Number.isFinite(minimumStep) || minimumStep <= 0) return 1;
+
+  const magnitude = 10 ** Math.floor(Math.log10(minimumStep));
+  const fraction = minimumStep / magnitude;
+  const factor = NICE_FACTORS.find((candidate) => candidate >= fraction) ?? 10;
+  return factor * magnitude;
+};
+
+const buildAxisScale = (values: number[]): AxisScale => {
+  let rawMinimum = Math.min(...values);
+  let rawMaximum = Math.max(...values);
+
+  if (rawMinimum === rawMaximum) {
+    const padding = Math.max(Math.abs(rawMinimum) * 0.05, 0.5);
+    rawMinimum -= padding;
+    rawMaximum += padding;
+  }
+
+  const step = niceStep((rawMaximum - rawMinimum) / 2);
+  let minimum = Math.floor(rawMinimum / step) * step;
+  let maximum = minimum + step * 2;
+
+  if (maximum < rawMaximum) {
+    maximum = Math.ceil(rawMaximum / step) * step;
+    minimum = maximum - step * 2;
+  }
+
+  return {
+    minimum,
+    midpoint: minimum + step,
+    maximum: minimum + step * 2,
+    step,
+  };
+};
+
+const decimalPlacesForStep = (step: number) => {
+  for (let decimals = 0; decimals <= 3; decimals += 1) {
+    const scaled = step * 10 ** decimals;
+    if (Math.abs(scaled - Math.round(scaled)) < 1e-8) return decimals;
+  }
+  return 3;
+};
+
+const formatAxisValue = (series: MarketSeries, value: number, step: number) => {
+  const decimals = decimalPlacesForStep(step);
+  const formatted = value.toFixed(decimals);
+  return series.id === 'euribor-3m' ? `${formatted}%` : formatted;
+};
+
+const getPlotValues = (series: MarketSeries) => {
+  if (series.id === 'euribor-3m') return series.points.map((point) => point.value);
+
+  const baseline = series.points[0]?.value;
+  if (!baseline || !Number.isFinite(baseline)) return [];
+  return series.points.map((point) => (point.value / baseline) * 100);
+};
 
 export const initCurrentMarkets = () => {
   const root = document.querySelector<HTMLElement>('[data-current-markets]');
@@ -105,34 +162,27 @@ export const initCurrentMarkets = () => {
     for (const item of items) {
       const target = root.querySelector<HTMLElement>(`[data-market-value="${item.id}"]`);
       if (target) target.textContent = formatEuriborValue(item.value);
-
-      const observationTarget = root.querySelector<HTMLElement>(
-        `[data-market-observation="${item.id}"]`
-      );
-      if (observationTarget) observationTarget.textContent = item.observedAt;
     }
   };
 
   const renderSparkline = (series: MarketSeries) => {
     const svg = root.querySelector<SVGSVGElement>(`[data-market-sparkline="${series.id}"]`);
     const path = svg?.querySelector<SVGPathElement>('path');
-    if (!svg || !path || series.points.length < 2) return;
+    const values = getPlotValues(series);
+    if (!svg || !path || values.length < 2) return;
 
     const width = 240;
     const height = 56;
     const padding = 2;
-    const values = series.points.map((point) => point.value);
-    const minimum = Math.min(...values);
-    const maximum = Math.max(...values);
-    const midpoint = minimum + (maximum - minimum) / 2;
-    const range = maximum - minimum || 1;
+    const scale = buildAxisScale(values);
+    const range = scale.maximum - scale.minimum || 1;
     const drawableWidth = width - padding * 2;
     const drawableHeight = height - padding * 2;
 
-    const d = series.points
-      .map((point, index) => {
-        const x = padding + (index / (series.points.length - 1)) * drawableWidth;
-        const y = padding + (1 - (point.value - minimum) / range) * drawableHeight;
+    const d = values
+      .map((value, index) => {
+        const x = padding + (index / (values.length - 1)) * drawableWidth;
+        const y = padding + (1 - (value - scale.minimum) / range) * drawableHeight;
         return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`;
       })
       .join(' ');
@@ -141,20 +191,22 @@ export const initCurrentMarkets = () => {
     svg.classList.remove('markets-sparkline--pending');
     svg.setAttribute(
       'aria-label',
-      `${series.id === 'euribor-3m' ? '3 month Euribor' : 'World equity proxy'} one year trend`
+      series.id === 'euribor-3m'
+        ? '3 month Euribor one year trend'
+        : 'World equity one year trend indexed to 100 at the start of the period'
     );
 
     const axisTicks: Array<['max' | 'mid' | 'min', number]> = [
-      ['max', maximum],
-      ['mid', midpoint],
-      ['min', minimum],
+      ['max', scale.maximum],
+      ['mid', scale.midpoint],
+      ['min', scale.minimum],
     ];
 
     for (const [level, value] of axisTicks) {
       const target = root.querySelector<HTMLElement>(
         `[data-market-axis="${series.id}"][data-axis-level="${level}"]`
       );
-      if (target) target.textContent = formatAxisValue(series, value);
+      if (target) target.textContent = formatAxisValue(series, value, scale.step);
     }
 
     const fallback = root.querySelector<HTMLElement>(
@@ -165,20 +217,15 @@ export const initCurrentMarkets = () => {
 
   const renderSeries = (seriesItems: MarketSeries[]) => {
     for (const series of seriesItems) {
-      if (series.id === 'world') {
-        const valueTarget = root.querySelector<HTMLElement>('[data-market-value="world"]');
-        if (valueTarget) valueTarget.textContent = formatWorldValue(series.value);
-      }
-
       const changeTarget = root.querySelector<HTMLElement>(
         `[data-market-series-change="${series.id}"]`
       );
       if (changeTarget) changeTarget.textContent = formatSeriesChange(series);
 
-      const observationTarget = root.querySelector<HTMLElement>(
-        `[data-market-observation="${series.id}"]`
-      );
-      if (observationTarget) observationTarget.textContent = series.observedAt;
+      if (series.id === 'world') {
+        const observationTarget = root.querySelector<HTMLElement>('[data-markets-observation]');
+        if (observationTarget) observationTarget.textContent = series.observedAt;
+      }
 
       renderSparkline(series);
     }
