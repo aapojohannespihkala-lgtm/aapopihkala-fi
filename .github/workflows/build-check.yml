@@ -175,6 +175,54 @@ jobs:
                   --raw-field ref=main
                 echo "Pull request merged and full post-merge validation dispatched on main."
 
+                if [[ "$HEAD_REF" == "maintenance/cleanup-stale-branches" ]]; then
+                  echo "Running one-time cleanup for branches whose same-repository pull requests are already merged."
+
+                  mapfile -t open_refs < <(
+                    gh api --paginate "/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" |
+                      jq -r --arg repo "$GITHUB_REPOSITORY" '.[] | select(.head.repo.full_name? == $repo) | .head.ref'
+                  )
+                  mapfile -t merged_refs < <(
+                    gh api --paginate "/repos/${GITHUB_REPOSITORY}/pulls?state=closed&per_page=100" |
+                      jq -r --arg repo "$GITHUB_REPOSITORY" '.[] | select(.merged_at != null and .head.repo.full_name? == $repo) | .head.ref'
+                  )
+
+                  declare -A open_ref_set=()
+                  declare -A merged_ref_set=()
+
+                  for ref in "${open_refs[@]}"; do
+                    open_ref_set["$ref"]=1
+                  done
+                  for ref in "${merged_refs[@]}"; do
+                    merged_ref_set["$ref"]=1
+                  done
+
+                  deleted_count=0
+                  failed_count=0
+
+                  for branch in "${!merged_ref_set[@]}"; do
+                    if [[ "$branch" == "main" || "$branch" == "$HEAD_REF" ]]; then
+                      continue
+                    fi
+                    if [[ -n "${open_ref_set[$branch]+x}" ]]; then
+                      continue
+                    fi
+
+                    if gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/${branch}" >/dev/null 2>&1; then
+                      if gh api --method DELETE \
+                        "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}" >/dev/null 2>&1; then
+                        echo "Deleted stale merged branch ${branch}."
+                        deleted_count=$((deleted_count + 1))
+                      else
+                        echo "Could not delete stale merged branch ${branch}."
+                        failed_count=$((failed_count + 1))
+                      fi
+                    fi
+                  done
+
+                  echo "One-time stale branch cleanup deleted ${deleted_count} branches; ${failed_count} deletions failed."
+                fi
+
                 if [[ -n "$HEAD_REF" && "$HEAD_REF" != "main" ]]; then
                   if gh api --method DELETE \
                     "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${HEAD_REF}" >/dev/null 2>&1; then
