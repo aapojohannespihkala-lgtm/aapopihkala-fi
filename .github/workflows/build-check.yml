@@ -175,52 +175,56 @@ jobs:
                   --raw-field ref=main
                 echo "Pull request merged and full post-merge validation dispatched on main."
 
-                if [[ "$HEAD_REF" == "maintenance/cleanup-stale-branches" ]]; then
-                  echo "Running one-time cleanup for branches whose same-repository pull requests are already merged."
+                if [[ "$HEAD_REF" == "maintenance/cleanup-ancestor-branches" ]]; then
+                  echo "Running one-time cleanup for branch tips already contained in main history."
 
                   mapfile -t open_refs < <(
                     gh api --paginate "/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" |
                       jq -r --arg repo "$GITHUB_REPOSITORY" '.[] | select(.head.repo.full_name? == $repo) | .head.ref'
                   )
-                  mapfile -t merged_refs < <(
-                    gh api --paginate "/repos/${GITHUB_REPOSITORY}/pulls?state=closed&per_page=100" |
-                      jq -r --arg repo "$GITHUB_REPOSITORY" '.[] | select(.merged_at != null and .head.repo.full_name? == $repo) | .head.ref'
-                  )
-
                   declare -A open_ref_set=()
-                  declare -A merged_ref_set=()
-
                   for ref in "${open_refs[@]}"; do
                     open_ref_set["$ref"]=1
                   done
-                  for ref in "${merged_refs[@]}"; do
-                    merged_ref_set["$ref"]=1
-                  done
+
+                  main_sha="$(gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+                  mapfile -t branch_rows < <(
+                    gh api --paginate "/repos/${GITHUB_REPOSITORY}/git/matching-refs/heads/" |
+                      jq -r '.[] | [(.ref | sub("^refs/heads/"; "")), .object.sha] | @tsv'
+                  )
 
                   deleted_count=0
                   failed_count=0
+                  preserved_count=0
 
-                  for branch in "${!merged_ref_set[@]}"; do
+                  for row in "${branch_rows[@]}"; do
+                    IFS=$'\t' read -r branch branch_sha <<< "$row"
+
                     if [[ "$branch" == "main" || "$branch" == "$HEAD_REF" ]]; then
                       continue
                     fi
                     if [[ -n "${open_ref_set[$branch]+x}" ]]; then
+                      echo "Preserved open pull request branch ${branch}."
+                      preserved_count=$((preserved_count + 1))
                       continue
                     fi
 
-                    if gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/${branch}" >/dev/null 2>&1; then
-                      if gh api --method DELETE \
-                        "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}" >/dev/null 2>&1; then
-                        echo "Deleted stale merged branch ${branch}."
-                        deleted_count=$((deleted_count + 1))
-                      else
-                        echo "Could not delete stale merged branch ${branch}."
-                        failed_count=$((failed_count + 1))
-                      fi
+                    merge_base="$(gh api "/repos/${GITHUB_REPOSITORY}/compare/${branch_sha}...${main_sha}" --jq '.merge_base_commit.sha' 2>/dev/null || true)"
+                    if [[ "$merge_base" != "$branch_sha" ]]; then
+                      continue
+                    fi
+
+                    if gh api --method DELETE \
+                      "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}" >/dev/null 2>&1; then
+                      echo "Deleted branch already contained in main: ${branch}."
+                      deleted_count=$((deleted_count + 1))
+                    else
+                      echo "Could not delete branch already contained in main: ${branch}."
+                      failed_count=$((failed_count + 1))
                     fi
                   done
 
-                  echo "One-time stale branch cleanup deleted ${deleted_count} branches; ${failed_count} deletions failed."
+                  echo "Ancestor cleanup deleted ${deleted_count} branches; ${failed_count} deletions failed; ${preserved_count} open PR branches preserved."
                 fi
 
                 if [[ -n "$HEAD_REF" && "$HEAD_REF" != "main" ]]; then
