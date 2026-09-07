@@ -1,4 +1,5 @@
 .current-shell {
+  overflow-x: hidden;
   overflow-x: clip;
 }
 
@@ -10,19 +11,22 @@
   max-width: 100%;
 }
 
-/* The remaining sideways scroll came from the Markets performance panel:
-   the panel was explicitly horizontally scrollable and the TradingView host
-   was forced to at least 780 px. Keep the widget inside the Current column
-   instead of creating a nested horizontal scroller. */
+/* TradingView becomes a defined custom element only after its module loads.
+   CurrentMarkets has scoped :defined rules that otherwise restore the old
+   780 px minimum width and horizontal scroller in production. Keep these
+   containment rules authoritative at every desktop width. */
 .current-shell .markets-performance {
   max-width: 100%;
-  overflow-x: clip;
-  overscroll-behavior-inline: none;
+  overflow-x: hidden !important;
+  overflow-x: clip !important;
+  overscroll-behavior-inline: none !important;
 }
 
 .current-shell tv-market-data,
 .current-shell tv-market-data:defined {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+  overflow-x: clip !important;
 }
