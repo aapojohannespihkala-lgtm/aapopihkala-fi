@@ -2,10 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import worker from '../../worker/index';
 
 const macroFixture = {
-  items: [
-    { id: 'eur-usd', value: 1.1712, observedAt: '2026-09-04', change1m: 0.9655 },
-    { id: 'euribor-3m', value: 2.679, observedAt: '2026-09-04', change1m: 0.205 },
-  ],
+  items: [{ id: 'euribor-3m', value: 2.679, observedAt: '2026-09-04' }],
   series: [
     {
       id: 'euribor-3m',
@@ -30,7 +27,7 @@ const macroFixture = {
       ],
     },
   ],
-  source: 'ECB + Bank of Finland + Yahoo Finance',
+  source: 'Bank of Finland + ECB + Yahoo Finance',
 };
 
 const expectedMarketSymbols = [
@@ -86,7 +83,7 @@ const stubMarkets = async (page: Page) => {
   });
 };
 
-test('standalone Current Markets shows TradingView performance, macro data and one-year trends', async ({ page }) => {
+test('standalone Current Markets shows TradingView performance and one-year Euribor and world trends', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubTradingView(page);
   await stubMarkets(page);
@@ -96,8 +93,10 @@ test('standalone Current Markets shows TradingView performance, macro data and o
   await expect(page.locator('h1')).toHaveText('Markets');
   await expect(page.locator('a.current-markets-status__link')).toHaveAttribute('href', '/current/');
   await expect(page.getByText('GLOBAL / PERFORMANCE')).toHaveCount(1);
-  await expect(page.getByText('FX / RATES')).toHaveCount(1);
+  await expect(page.getByText('RATES / TRENDS')).toHaveCount(1);
   await expect(page.getByText('WORLD / 1Y')).toHaveCount(1);
+  await expect(page.getByText('EUR / USD')).toHaveCount(0);
+  await expect(page.locator('[data-market-value="eur-usd"]')).toHaveCount(0);
 
   const widget = page.locator('tv-market-data');
   await expect(widget).toHaveCount(1);
@@ -125,24 +124,37 @@ test('standalone Current Markets shows TradingView performance, macro data and o
     expect(widgetBox.height).toBeLessThanOrEqual(440);
   }
 
-  await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
-  await expect(page.locator('[data-market-change="eur-usd"]')).toHaveText(
-    'EUR STRONGER · 0.97% / 1M'
-  );
-  await expect(page.locator('[data-market-observation="eur-usd"]')).toHaveText('2026-09-04');
   await expect(page.locator('[data-market-value="euribor-3m"]')).toHaveText('2.679');
-  await expect(page.locator('[data-market-change="euribor-3m"]')).toHaveText('+0.205 PP / 1M');
   await expect(page.locator('[data-market-series-change="euribor-3m"]')).toHaveText('-0.571 PP');
   await expect(page.locator('[data-market-observation="euribor-3m"]')).toHaveText('2026-09-04');
   await expect(page.locator('[data-market-value="world"]')).toHaveText('180.00');
   await expect(page.locator('[data-market-series-change="world"]')).toHaveText('+20.00%');
   await expect(page.locator('[data-market-observation="world"]')).toHaveText('2026-09-04');
-  await expect(page.locator('[data-market-value="eur-sek"], [data-market-value="estr"]')).toHaveCount(0);
+
+  await expect(
+    page.locator('[data-market-axis="euribor-3m"][data-axis-level="max"]')
+  ).toHaveText('3.250%');
+  await expect(
+    page.locator('[data-market-axis="euribor-3m"][data-axis-level="mid"]')
+  ).toHaveText('2.965%');
+  await expect(
+    page.locator('[data-market-axis="euribor-3m"][data-axis-level="min"]')
+  ).toHaveText('2.679%');
+  await expect(page.locator('[data-market-axis="world"][data-axis-level="max"]')).toHaveText(
+    '180.00'
+  );
+  await expect(page.locator('[data-market-axis="world"][data-axis-level="mid"]')).toHaveText(
+    '165.00'
+  );
+  await expect(page.locator('[data-market-axis="world"][data-axis-level="min"]')).toHaveText(
+    '150.00'
+  );
 
   for (const id of ['euribor-3m', 'world']) {
     const sparkline = page.locator(`[data-market-sparkline="${id}"]`);
     await expect(sparkline).toBeVisible();
     await expect(sparkline.locator('path')).toHaveAttribute('d', /^M/);
+    await expect(sparkline.locator('.markets-sparkline-grid line')).toHaveCount(3);
     await expect(page.locator(`[data-market-sparkline-fallback="${id}"]`)).toBeHidden();
   }
 
@@ -155,7 +167,7 @@ test('standalone Current Markets shows TradingView performance, macro data and o
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('Markets keeps a compact fallback if TradingView performance data is blocked', async ({ page }) => {
+test('Markets keeps compact trend charts if TradingView performance data is blocked', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await blockTradingView(page);
   await stubMarkets(page);
@@ -168,7 +180,6 @@ test('Markets keeps a compact fallback if TradingView performance data is blocke
   await expect(page.locator('[data-markets-performance-message]')).toHaveText(
     'Market performance unavailable'
   );
-  await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
   await expect(page.locator('[data-market-value="euribor-3m"]')).toHaveText('2.679');
   await expect(page.locator('[data-market-value="world"]')).toHaveText('180.00');
   await expect(page.locator('[data-market-sparkline="euribor-3m"]')).toBeVisible();
@@ -195,7 +206,7 @@ test('Current places Markets performance above electricity', async ({ page }) =>
   await expect(page.locator('[data-current-markets]')).toHaveCount(1);
   await expect(page.locator('tv-market-data')).toHaveAttribute('view', 'performance');
   await expect(page.locator('[data-current-electricity]')).toHaveCount(1);
-  await expect(page.locator('[data-market-value="eur-usd"]')).toHaveText('1.1712');
+  await expect(page.locator('[data-market-value="eur-usd"]')).toHaveCount(0);
   await expect(page.locator('[data-market-value="euribor-3m"]')).toHaveText('2.679');
   await expect(page.locator('[data-market-value="world"]')).toHaveText('180.00');
 
@@ -208,24 +219,11 @@ test('Current places Markets performance above electricity', async ({ page }) =>
   expect(moduleOrder).toEqual(['markets', 'electricity']);
 });
 
-test('Worker serves macro readings and one-year Euribor and world histories', async () => {
+test('Worker serves current Euribor and one-year Euribor and world histories without EUR/USD', async () => {
   const originalFetch = globalThis.fetch;
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
-
-    if (url.hostname === 'data-api.ecb.europa.eu' && url.pathname.startsWith('/service/data/EXR/')) {
-      expect(url.pathname).toBe('/service/data/EXR/D.USD.EUR.SP00.A');
-      expect(url.searchParams.get('lastNObservations')).toBe('23');
-      expect(url.searchParams.get('format')).toBe('csvdata');
-      expect(url.searchParams.get('detail')).toBe('dataonly');
-      expect(new Headers(init?.headers).get('Accept')).toBe('text/csv');
-
-      return new Response(
-        'TIME_PERIOD,OBS_VALUE\n2026-08-05,1.1600\n2026-09-04,1.1712',
-        { status: 200, headers: { 'Content-Type': 'text/csv' } }
-      );
-    }
 
     if (url.hostname === 'data-api.ecb.europa.eu' && url.pathname.startsWith('/service/data/FM/')) {
       expect(url.pathname).toBe('/service/data/FM/M.U2.EUR.RT.MM.EURIBOR3MD_.HSTA');
@@ -300,20 +298,13 @@ test('Worker serves macro readings and one-year Euribor and world histories', as
 
     expect(apiResponse.status).toBe(200);
     const data = (await apiResponse.json()) as typeof macroFixture;
-    expect(data.source).toBe('ECB + Bank of Finland + Yahoo Finance');
-    expect(data.items).toHaveLength(2);
+    expect(data.source).toBe('Bank of Finland + ECB + Yahoo Finance');
+    expect(data.items).toHaveLength(1);
     expect(data.items[0]).toMatchObject({
-      id: 'eur-usd',
-      value: 1.1712,
-      observedAt: '2026-09-04',
-    });
-    expect(data.items[0].change1m).toBeCloseTo(0.9655, 4);
-    expect(data.items[1]).toMatchObject({
       id: 'euribor-3m',
       value: 2.679,
       observedAt: '2026-09-04',
     });
-    expect(data.items[1].change1m).toBeCloseTo(0.205, 6);
 
     expect(data.series).toHaveLength(2);
     expect(data.series[0]).toMatchObject({
