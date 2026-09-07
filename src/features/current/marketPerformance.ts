@@ -47,7 +47,7 @@ type DisplayRow = {
   identifier: string;
 };
 
-const API_URL = '/api/current/market-performance';
+const API_URL = '/api/current/market-performance?v=3';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
 const DISPLAY_ROWS: DisplayRow[] = [
