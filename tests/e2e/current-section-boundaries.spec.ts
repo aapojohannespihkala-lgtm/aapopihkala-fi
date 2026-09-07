@@ -2,19 +2,32 @@ import { expect, test, type Page } from '@playwright/test';
 
 type SectionGeometry = {
   viewportHeight: number;
+  viewportWidth: number;
+  documentWidth: number;
   topbar: { top: number; bottom: number; height: number };
-  sections: Record<string, { top: number; bottom: number }>;
+  sections: Record<
+    string,
+    { top: number; bottom: number; inlineMinHeight: string; computedMinHeight: string }
+  >;
 };
 
 const readSectionGeometry = async (page: Page) =>
   page.evaluate<SectionGeometry>(() => {
-    const sections: Record<string, { top: number; bottom: number }> = {};
+    const sections: Record<
+      string,
+      { top: number; bottom: number; inlineMinHeight: string; computedMinHeight: string }
+    > = {};
 
     document.querySelectorAll<HTMLElement>('[data-current-section]').forEach((section) => {
       const name = section.dataset.currentSection;
       if (!name) return;
       const rect = section.getBoundingClientRect();
-      sections[name] = { top: rect.top, bottom: rect.bottom };
+      sections[name] = {
+        top: rect.top,
+        bottom: rect.bottom,
+        inlineMinHeight: section.style.minHeight,
+        computedMinHeight: getComputedStyle(section).minHeight,
+      };
     });
 
     const topbar = document.querySelector<HTMLElement>('.topbar');
@@ -22,6 +35,8 @@ const readSectionGeometry = async (page: Page) =>
 
     return {
       viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
       topbar: topbarRect
         ? { top: topbarRect.top, bottom: topbarRect.bottom, height: topbarRect.height }
         : { top: 0, bottom: 0, height: 0 },
@@ -65,21 +80,29 @@ const expectSectionDividerMaskedByHeader = async (page: Page, sectionName: strin
   expect(coveredByTopbar).toBe(true);
 };
 
-test.describe('Current section viewport boundaries', () => {
+test.describe('Current content-driven section navigation', () => {
   for (const viewport of [
-    { width: 1440, height: 900 },
-    { width: 1280, height: 800 },
+    { width: 1638, height: 675, label: '67-percent-like' },
+    { width: 1092, height: 450, label: '100-percent-like' },
+    { width: 874, height: 360, label: '125-percent-like' },
+    { width: 728, height: 300, label: '150-percent-like' },
   ]) {
-    test(`masks divider lines with the sticky header at ${viewport.width}x${viewport.height}`, async ({
-      page,
-    }) => {
-      await page.setViewportSize(viewport);
+    test(`keeps natural section heights and masked dividers at ${viewport.label}`, async ({ page }) => {
+      await page.addInitScript(() => {
+        try {
+          localStorage.setItem('aapopihkala-analytics-consent-v1', 'denied');
+        } catch {
+          // Storage may be unavailable before the page origin is established.
+        }
+      });
+
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
-      // Production market data makes the document tall enough to align every section at
-      // the intended entry point. CI deliberately does not depend on third-party market
-      // responses, so add inert scroll range after Current without changing section geometry.
+      // Third-party market data is intentionally not required in CI. Add inert scroll range
+      // so the last section can still be aligned under the sticky header without changing
+      // the geometry of the Current sections themselves.
       await page.evaluate(() => {
         const spacer = document.createElement('div');
         spacer.setAttribute('data-current-boundary-test-spacer', '');
@@ -94,29 +117,21 @@ test.describe('Current section viewport boundaries', () => {
       await expect(nav).toBeVisible();
       await expect(topbar).toHaveCSS('position', 'sticky');
 
-      await expect.poll(async () => {
-        const geometry = await readSectionGeometry(page);
-        return geometry.sections.electricity?.top - geometry.viewportHeight;
-      }).toBeGreaterThanOrEqual(2);
+      const initial = await readSectionGeometry(page);
+      expect(initial.documentWidth).toBeLessThanOrEqual(initial.viewportWidth + 1);
+
+      for (const name of ['weather', 'electricity', 'markets']) {
+        expect(initial.sections[name]?.inlineMinHeight).toBe('');
+        expect(initial.sections[name]?.computedMinHeight).toBe('0px');
+      }
 
       await nav.click();
       await expectSectionDividerMaskedByHeader(page, 'electricity');
-
-      await expect.poll(async () => {
-        const geometry = await readSectionGeometry(page);
-        return geometry.sections.markets?.top - geometry.viewportHeight;
-      }).toBeGreaterThanOrEqual(2);
-
-      const electricityView = await readSectionGeometry(page);
-      expect(electricityView.sections.weather.bottom).toBeLessThan(electricityView.topbar.bottom);
-      expect(electricityView.sections.weather.bottom).toBeGreaterThanOrEqual(electricityView.topbar.top);
+      await expect.poll(async () => nav.getAttribute('aria-label')).toContain('markets');
 
       await nav.click();
       await expectSectionDividerMaskedByHeader(page, 'markets');
-
-      const marketsView = await readSectionGeometry(page);
-      expect(marketsView.sections.electricity.bottom).toBeLessThan(marketsView.topbar.bottom);
-      expect(marketsView.sections.electricity.bottom).toBeGreaterThanOrEqual(marketsView.topbar.top);
+      await expect.poll(async () => nav.getAttribute('aria-label')).toContain('Back to Current top');
     });
   }
 });

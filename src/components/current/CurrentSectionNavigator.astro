@@ -99,7 +99,6 @@
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const behavior = () => reducedMotion() ? 'auto' : 'smooth'
-    const SECTION_BOTTOM_CLEARANCE = 8
     const SECTION_DIVIDER_MASK_INSET = 2
 
     const getDocumentTop = (section) =>
@@ -115,34 +114,10 @@
       Math.max(0, getTopbarHeight() - SECTION_DIVIDER_MASK_INSET)
 
     let sections = []
-    let firstSection = null
     let currentTarget = null
 
     const getSectionScrollTop = (section) =>
       Math.max(0, getDocumentTop(section) - getMaskedSectionTop())
-
-    const fitSectionsToViewport = () => {
-      if (!(firstSection instanceof HTMLElement)) return
-
-      const firstSectionTop = getDocumentTop(firstSection)
-      firstSection.style.minHeight = `${Math.max(
-        0,
-        Math.ceil(window.innerHeight - firstSectionTop + SECTION_BOTTOM_CLEARANCE)
-      )}px`
-
-      const middleSectionMinHeight = `${Math.max(
-        0,
-        Math.ceil(
-          window.innerHeight - getMaskedSectionTop() + SECTION_BOTTOM_CLEARANCE
-        )
-      )}px`
-
-      sections.slice(1, -1).forEach((section) => {
-        if (section instanceof HTMLElement) {
-          section.style.minHeight = middleSectionMinHeight
-        }
-      })
-    }
 
     const updateState = () => {
       if (!sections.length) return
@@ -172,15 +147,13 @@
       sections = Array.from(document.querySelectorAll('[data-current-section]')).filter(
         (section) => section instanceof HTMLElement
       )
-      firstSection = sections[0] ?? null
 
-      if (!(firstSection instanceof HTMLElement) || sections.length < 2) {
+      if (sections.length < 2) {
         window.requestAnimationFrame(resolveSections)
         return
       }
 
       button.hidden = false
-      fitSectionsToViewport()
       updateState()
     }
 
@@ -206,19 +179,8 @@
       })
     }
 
-    let layoutTicking = false
-    const scheduleLayoutUpdate = () => {
-      if (layoutTicking) return
-      layoutTicking = true
-      window.requestAnimationFrame(() => {
-        layoutTicking = false
-        fitSectionsToViewport()
-        updateState()
-      })
-    }
-
     window.addEventListener('scroll', scheduleStateUpdate, { passive: true })
-    window.addEventListener('resize', scheduleLayoutUpdate, { passive: true })
+    window.addEventListener('resize', scheduleStateUpdate, { passive: true })
 
     resolveSections()
   })()
