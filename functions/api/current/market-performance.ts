@@ -131,8 +131,8 @@ const parseYahooObservations = (data: YahooChartResponse): Observation[] => {
 const fetchYahooObservations = async (symbol: string) => {
   const encoded = encodeURIComponent(symbol);
   const urls = [
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?range=13mo&interval=1d`,
-    `https://query2.finance.yahoo.com/v8/finance/chart/${encoded}?range=13mo&interval=1d`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?range=2y&interval=1d`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encoded}?range=2y&interval=1d`,
   ];
   let lastError: unknown;
 
@@ -209,12 +209,16 @@ export const onRequestGet = async () => {
   const items = settled.flatMap((result) =>
     result.status === 'fulfilled' ? [result.value] : []
   );
+  const unavailable = settled.flatMap((result, index) =>
+    result.status === 'rejected' ? [LIVE_SPECS[index].id] : []
+  );
 
   return jsonResponse(
     {
       items,
       expected: PERFORMANCE_SPECS.length,
       liveExpected: LIVE_SPECS.length,
+      unavailable,
       source: 'Yahoo Finance + exact fund NAV adapters pending',
     },
     200
