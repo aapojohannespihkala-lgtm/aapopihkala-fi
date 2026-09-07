@@ -339,6 +339,16 @@ export const initCurrentMarkets = () => {
     const svg = root.querySelector<SVGSVGElement>(`[data-market-sparkline="${id}"]`);
     if (!svg) return;
 
+    const hitTarget = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    hitTarget.dataset.marketHitTarget = id;
+    hitTarget.setAttribute('x', '0');
+    hitTarget.setAttribute('y', '0');
+    hitTarget.setAttribute('width', String(CHART_WIDTH));
+    hitTarget.setAttribute('height', String(CHART_HEIGHT));
+    hitTarget.setAttribute('fill', 'transparent');
+    hitTarget.setAttribute('pointer-events', 'all');
+    svg.insertBefore(hitTarget, svg.firstChild);
+
     let activeTouchPointerId: number | null = null;
 
     const inspectAtClientX = (clientX: number) => {
@@ -359,6 +369,11 @@ export const initCurrentMarkets = () => {
       inspectedIndexes.set(id, index);
       renderInspection(id, index);
     };
+
+    svg.addEventListener('pointerenter', (event) => {
+      if (event.pointerType === 'touch') return;
+      inspectAtClientX(event.clientX);
+    });
 
     svg.addEventListener('pointerdown', (event) => {
       if (event.pointerType === 'touch') {
