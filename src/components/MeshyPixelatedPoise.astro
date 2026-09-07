@@ -68,7 +68,8 @@
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(36, 1, 0.01, 1000);
         const controls = new OrbitControls(camera, canvas);
-        controls.enableDamping = true;
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        controls.enableDamping = !reducedMotion;
         controls.dampingFactor = 0.06;
         controls.enablePan = true;
         controls.enableZoom = true;
@@ -91,6 +92,11 @@
           metalness: 0.02,
           side: THREE.DoubleSide,
         });
+
+        const render = () => {
+          controls.update();
+          renderer.render(scene, camera);
+        };
 
         const loader = new GLTFLoader();
         loader.load(
@@ -123,6 +129,7 @@
             controls.minDistance = Math.max(radius * 0.18, 0.01);
             controls.maxDistance = radius * 12;
             controls.update();
+            render();
 
             if (status) status.hidden = true;
           },
@@ -139,18 +146,22 @@
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
+          render();
         };
 
         const observer = new ResizeObserver(resize);
         observer.observe(root);
         resize();
 
-        const animate = () => {
-          controls.update();
-          renderer.render(scene, camera);
-          requestAnimationFrame(animate);
-        };
-        animate();
+        if (reducedMotion) {
+          controls.addEventListener('change', render);
+        } else {
+          const animate = () => {
+            render();
+            requestAnimationFrame(animate);
+          };
+          animate();
+        }
       } catch (error) {
         console.error('Pixelated Poise viewer failed', error);
         if (status) status.textContent = '3D-katselinta ei voitu ladata';
