@@ -110,11 +110,19 @@
     let firstSection = null
     let currentTarget = null
 
-    const fitFirstSectionToViewport = () => {
+    const fitSectionsToViewport = () => {
       if (!(firstSection instanceof HTMLElement)) return
+
       const sectionTop = getDocumentTop(firstSection)
       const remainingViewport = window.innerHeight - sectionTop
       firstSection.style.minHeight = `${Math.max(0, Math.ceil(remainingViewport + 2))}px`
+
+      const middleSectionMinHeight = `${Math.ceil(window.innerHeight + 2)}px`
+      sections.slice(1, -1).forEach((section) => {
+        if (section instanceof HTMLElement) {
+          section.style.minHeight = middleSectionMinHeight
+        }
+      })
     }
 
     const updateState = () => {
@@ -153,7 +161,7 @@
       }
 
       button.hidden = false
-      fitFirstSectionToViewport()
+      fitSectionsToViewport()
       updateState()
     }
 
@@ -175,7 +183,7 @@
       ticking = true
       window.requestAnimationFrame(() => {
         ticking = false
-        fitFirstSectionToViewport()
+        fitSectionsToViewport()
         updateState()
       })
     }
