@@ -1,0 +1,89 @@
+/* Current2 custom market rows are inserted after Astro's scoped styles are emitted.
+   These global rules keep the dynamic portfolio rows aligned with the static table header. */
+.current2-shell .markets-custom-table [data-market-performance-row] {
+  display: grid;
+  grid-template-columns: minmax(134px, 1.45fr) minmax(72px, 0.7fr) repeat(5, minmax(62px, 0.64fr));
+  align-items: center;
+  min-height: 37px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.current2-shell .markets-custom-table [data-market-performance-row]:last-child {
+  border-bottom: 0;
+}
+
+.current2-shell .markets-custom-table [data-market-performance-row] > span {
+  min-width: 0;
+  padding: 0 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.current2-shell .markets-custom-table [data-market-performance-row] > span:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+
+.current2-shell .markets-custom-table [data-market-performance-row] .markets-custom-market {
+  display: grid;
+  gap: 2px;
+}
+
+.current2-shell .markets-custom-table [data-market-performance-row] .markets-custom-market strong {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  text-overflow: ellipsis;
+}
+
+.current2-shell .markets-custom-table [data-market-performance-row] .markets-custom-market small {
+  color: var(--stone-light);
+  font-size: 0.54rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.current2-shell .markets-custom-table [data-market-performance-row] .markets-custom-price {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.current2-shell .markets-custom-table [data-market-performance-row] .is-positive {
+  color: #1ba88a;
+}
+
+.current2-shell .markets-custom-table [data-market-performance-row] .is-negative {
+  color: #ff5a67;
+}
+
+.current2-shell .markets-custom-table [data-market-performance-row] .is-flat {
+  color: var(--stone);
+}
+
+@media (max-width: 820px) {
+  .current2-shell .markets-custom-table [data-market-performance-row] {
+    grid-template-columns: minmax(128px, 1.5fr) minmax(70px, 0.72fr) repeat(3, minmax(62px, 0.64fr));
+  }
+
+  .current2-shell .markets-custom-table [data-market-performance-row] .period-week1,
+  .current2-shell .markets-custom-table [data-market-performance-row] .period-month6 {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .current2-shell .markets-custom-table [data-market-performance-row] {
+    grid-template-columns: minmax(112px, 1.55fr) minmax(64px, 0.72fr) repeat(3, minmax(56px, 0.66fr));
+    min-height: 35px;
+  }
+
+  .current2-shell .markets-custom-table [data-market-performance-row] > span {
+    padding: 0 5px;
+  }
+
+  .current2-shell .markets-custom-table [data-market-performance-row] .markets-custom-market strong {
+    font-size: 0.62rem;
+  }
+}

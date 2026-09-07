@@ -210,10 +210,6 @@ export const onRequestGet = async () => {
     result.status === 'fulfilled' ? [result.value] : []
   );
 
-  if (items.length === 0) {
-    return jsonResponse({ error: 'market_performance_unavailable' }, 502);
-  }
-
   return jsonResponse(
     {
       items,
