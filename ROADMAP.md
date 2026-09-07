@@ -22,14 +22,13 @@ Valmistunut kohta poistetaan tai merkitään selvästi tehdyksi, jotta tiedosto 
 
 Nykyisiä parannuksia ovat muun muassa skip navigation, vähimmäiskokoiset interaktiiviset kohteet, reduced motion -tuki ja regressiotestit.
 
-Jäljellä oleva audit kattaa ainakin:
+Semantiikka- ja kohdekoko-passissa Current Newsin palautekontrollit ryhmiteltiin saavutettavasti ja Newsin reset- sekä Marketsin retry-kontrolleille lisättiin eksplisiittiset 24 px vähimmäiskohteet regressiotesteineen.
 
-- semantiikan
-- fokusjärjestyksen
-- kontrastit
-- screen reader -käytön
-- näppäimistökäytön
-- mobiilikäytön
+Jäljellä olevat kohdat vaativat osin erillisen design-/interaktiopäätöksen:
+
+- kontrastipaletti: erityisesti pienessä tekstissä paljon käytetyt `--stone` ja `--stone-light` eivät nykyisellä vaalealla taustalla kaikissa käyttökohteissa yllä AA-tason normaalitekstin kontrastiin; korjaus muuttaisi sivuston näkyvää muted-väripalettia
+- Aboutin pyöriteltävä 3D-muotokuva: päätä tarjotaanko sille varsinainen näppäimistöohjaus vai määritelläänkö rotaatio eksplisiittisesti ei-välttämättömäksi visuaaliseksi tutkimiseksi ja siistitään sen saavutettavuussemantiikka sen mukaisesti
+- jatka manuaalista screen reader-, fokusjärjestys-, näppäimistö- ja mobiilitarkistusta näiden design-rajausten jälkeen
 
 ## 4. Lighthouse ja suorituskykyaudit
 
