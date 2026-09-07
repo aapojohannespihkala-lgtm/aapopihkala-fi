@@ -1,5 +1,6 @@
 import { onRequestGet as getElectricityPriceResponse } from '../functions/api/current/electricity';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets';
+import { onRequestGet as getEnrichedPortfolioResponse } from '../functions/api/current/portfolio-enriched';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
 
 type AssetsBinding = {
@@ -31,6 +32,7 @@ const worker = {
 
     if (url.pathname === MARKETS_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
+      if (url.searchParams.get('portfolio') === '1') return getEnrichedPortfolioResponse();
       return getMarketsResponse({ request });
     }
 
