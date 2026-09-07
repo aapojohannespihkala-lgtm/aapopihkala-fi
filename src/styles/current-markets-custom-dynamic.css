@@ -46,6 +46,53 @@
   text-align: left;
 }
 
+.current2-shell .markets-custom-table .markets-sort-button {
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-align: right;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.current2-shell .markets-custom-table .markets-custom-row--header > span:first-child .markets-sort-button {
+  text-align: left;
+}
+
+.current2-shell .markets-custom-table .markets-sort-button::after {
+  display: inline-block;
+  width: 0.85em;
+  margin-left: 0.25em;
+  content: '';
+  color: var(--stone-light);
+  text-align: right;
+}
+
+.current2-shell .markets-custom-table [aria-sort='descending'] .markets-sort-button,
+.current2-shell .markets-custom-table [aria-sort='ascending'] .markets-sort-button,
+.current2-shell .markets-custom-table .markets-sort-button:hover {
+  color: var(--ink-soft);
+}
+
+.current2-shell .markets-custom-table [aria-sort='descending'] .markets-sort-button::after {
+  content: '▾';
+}
+
+.current2-shell .markets-custom-table [aria-sort='ascending'] .markets-sort-button::after {
+  content: '▴';
+}
+
+.current2-shell .markets-custom-table .markets-sort-button:focus-visible {
+  outline: 1px solid var(--lichen);
+  outline-offset: 2px;
+}
+
 .current2-shell .markets-custom-table [data-market-performance-row] .markets-custom-market {
   display: grid;
   gap: 2px;
