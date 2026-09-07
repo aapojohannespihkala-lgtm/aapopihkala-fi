@@ -44,6 +44,48 @@ const readSectionGeometry = async (page: Page) =>
     };
   });
 
+const mockPortfolioApi = async (page: Page) => {
+  await page.route('**/api/current/markets*', async (route) => {
+    if (!route.request().url().includes('portfolio=1')) {
+      await route.continue();
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [], expected: 19, liveExpected: 19 }),
+    });
+  });
+};
+
+const expectPortfolioMatrix = async (page: Page, compact: boolean) => {
+  await expect(page.locator('tv-market-data')).toHaveCount(0);
+  await expect(page.locator('[data-current-market-performance]')).toHaveCount(1);
+  await expect(page.locator('[data-market-performance-summary]')).toHaveCount(1);
+  await expect(page.locator('[data-market-performance-row]')).toHaveCount(19);
+  await expect(page.locator('[data-market-sort]')).toHaveCount(10);
+  await expect(page.locator('[data-market-summary-period]')).toHaveText('1Y');
+  await expect(page.locator('[data-market-summary-coverage]')).toHaveText('0 OF 19 DATA');
+
+  const firstPortfolioRow = page.locator('[data-market-performance-row="handelsbanken-usa"]');
+  await expect(firstPortfolioRow).toHaveCSS('display', 'grid');
+  const expectedMinHeight = (page.viewportSize()?.width ?? 0) <= 520 ? '35px' : '37px';
+  await expect(firstPortfolioRow).toHaveCSS('min-height', expectedMinHeight);
+
+  if (compact) {
+    await expect(page.locator('.markets-custom-row--header .period-week1')).toBeHidden();
+    await expect(page.locator('.markets-custom-row--header .period-month6')).toBeHidden();
+    await expect(firstPortfolioRow.locator('.period-week1')).toBeHidden();
+    await expect(firstPortfolioRow.locator('.period-month6')).toBeHidden();
+  } else {
+    await expect(page.locator('.markets-custom-row--header .period-week1')).toBeVisible();
+    await expect(page.locator('.markets-custom-row--header .period-month6')).toBeVisible();
+    await expect(firstPortfolioRow.locator('.period-week1')).toBeVisible();
+    await expect(firstPortfolioRow.locator('.period-month6')).toBeVisible();
+  }
+};
+
 const expectSectionDividerMaskedByHeader = async (page: Page, sectionName: string) => {
   await expect
     .poll(async () => {
@@ -95,14 +137,14 @@ test.describe('Current content-driven section navigation', () => {
           // Storage may be unavailable before the page origin is established.
         }
       });
+      await mockPortfolioApi(page);
 
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
-      // Third-party market data is intentionally not required in CI. Add inert scroll range
-      // so the last section can still be aligned under the sticky header without changing
-      // the geometry of the Current sections themselves.
+      // Portfolio data is mocked in CI. Add inert scroll range so the last section can
+      // still be aligned under the sticky header without changing Current section geometry.
       await page.evaluate(() => {
         const spacer = document.createElement('div');
         spacer.setAttribute('data-current-boundary-test-spacer', '');
@@ -125,6 +167,8 @@ test.describe('Current content-driven section navigation', () => {
         expect(initial.sections[name]?.computedMinHeight).toBe('0px');
       }
 
+      await expectPortfolioMatrix(page, viewport.width <= 820);
+
       await nav.click();
       await expectSectionDividerMaskedByHeader(page, 'electricity');
       await expect.poll(async () => nav.getAttribute('aria-label')).toContain('markets');
@@ -134,4 +178,22 @@ test.describe('Current content-driven section navigation', () => {
       await expect.poll(async () => nav.getAttribute('aria-label')).toContain('Back to Current top');
     });
   }
+
+  test('uses the portfolio matrix on the standalone markets page', async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('aapopihkala-analytics-consent-v1', 'denied');
+      } catch {
+        // Storage may be unavailable before the page origin is established.
+      }
+    });
+    await mockPortfolioApi(page);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/current/markets/', { waitUntil: 'domcontentloaded' });
+
+    await expectPortfolioMatrix(page, true);
+    const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(documentWidth).toBeLessThanOrEqual(391);
+  });
 });

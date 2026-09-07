@@ -7,26 +7,20 @@ test('Current stays vertically scrollable only, including desktop fixed controls
     } catch {
       // Storage may be unavailable before the page origin is established.
     }
-
-    if (!customElements.get('tv-market-data')) {
-      customElements.define(
-        'tv-market-data',
-        class extends HTMLElement {
-          connectedCallback() {
-            if (this.shadowRoot) return;
-            const shadow = this.attachShadow({ mode: 'open' });
-            const wideContent = document.createElement('div');
-            wideContent.style.width = '2200px';
-            wideContent.style.height = '1px';
-            shadow.append(wideContent);
-          }
-        },
-      );
-    }
   });
 
-  await page.route('https://www.tradingview-widget.com/**', (route) => route.abort());
-  await page.route('https://widgets.tradingview-widget.com/**', (route) => route.abort());
+  await page.route('**/api/current/markets*', async (route) => {
+    if (!route.request().url().includes('portfolio=1')) {
+      await route.continue();
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [], expected: 19, liveExpected: 19 }),
+    });
+  });
 
   for (const viewport of [
     { width: 1440, height: 900 },
@@ -36,11 +30,12 @@ test('Current stays vertically scrollable only, including desktop fixed controls
   ]) {
     await page.setViewportSize(viewport);
     await page.goto('/current/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('[data-market-performance-row]')).toHaveCount(19);
 
     const before = await page.evaluate(() => {
       const shell = document.querySelector<HTMLElement>('.current-shell');
-      const performance = document.querySelector<HTMLElement>('.markets-performance');
-      const widget = document.querySelector<HTMLElement>('tv-market-data');
+      const performance = document.querySelector<HTMLElement>('[data-current-market-performance]');
+      const matrix = document.querySelector<HTMLElement>('.markets-custom-table');
       const analytics = document.querySelector<HTMLElement>('[data-analytics-settings]');
       const analyticsRect = analytics?.getBoundingClientRect();
 
@@ -51,11 +46,10 @@ test('Current stays vertically scrollable only, including desktop fixed controls
         rootOverflowX: getComputedStyle(document.documentElement).overflowX,
         bodyOverflowX: getComputedStyle(document.body).overflowX,
         shellRight: shell?.getBoundingClientRect().right ?? 0,
+        performanceRight: performance?.getBoundingClientRect().right ?? 0,
         performanceOverflowX: performance ? getComputedStyle(performance).overflowX : '',
-        widgetDefined: widget?.matches(':defined') ?? false,
-        widgetMinWidth: widget ? getComputedStyle(widget).minWidth : '',
-        widgetOverflowX: widget ? getComputedStyle(widget).overflowX : '',
-        widgetRight: widget?.getBoundingClientRect().right ?? 0,
+        matrixRight: matrix?.getBoundingClientRect().right ?? 0,
+        tradingViewCount: document.querySelectorAll('tv-market-data').length,
         analyticsVisible: analytics ? !analytics.hidden : false,
         analyticsLeft: analyticsRect?.left ?? 0,
         analyticsRight: analyticsRect?.right ?? 0,
@@ -67,11 +61,10 @@ test('Current stays vertically scrollable only, including desktop fixed controls
     expect(before.documentWidth).toBeLessThanOrEqual(before.viewport + 1);
     expect(before.bodyWidth).toBeLessThanOrEqual(before.viewport + 1);
     expect(before.shellRight).toBeLessThanOrEqual(before.viewport + 1);
-    expect(before.widgetRight).toBeLessThanOrEqual(before.viewport + 1);
+    expect(before.performanceRight).toBeLessThanOrEqual(before.viewport + 1);
+    expect(before.matrixRight).toBeLessThanOrEqual(before.viewport + 1);
     expect(before.performanceOverflowX).toBe('hidden');
-    expect(before.widgetDefined).toBe(true);
-    expect(before.widgetMinWidth).toBe('0px');
-    expect(before.widgetOverflowX).toBe('hidden');
+    expect(before.tradingViewCount).toBe(0);
     expect(before.analyticsVisible).toBe(true);
     expect(before.analyticsLeft).toBeGreaterThanOrEqual(-1);
     expect(before.analyticsRight).toBeLessThanOrEqual(before.viewport + 1);

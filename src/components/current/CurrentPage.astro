@@ -8,7 +8,7 @@ import '../../styles/current-layout.css';
 import NightModeToggle from '../NightModeToggle.astro';
 import CurrentWeather from './CurrentWeather.astro';
 import CurrentElectricity from './CurrentElectricity.astro';
-import CurrentMarkets from './CurrentMarkets.astro';
+import CurrentMarketsCustom from './CurrentMarketsCustom.astro';
 import CurrentSectionNavigator from './CurrentSectionNavigator.astro';
 
 const canonicalUrl = `${site.url}/current/`;
@@ -56,7 +56,7 @@ const canonicalUrl = `${site.url}/current/`;
     </div>
 
     <div class="current-section-wrap" data-current-section="markets">
-      <CurrentMarkets />
+      <CurrentMarketsCustom />
     </div>
 
     <script is:inline>
