@@ -62,8 +62,10 @@ test('Current stays vertically scrollable only, including desktop fixed controls
       };
     });
 
-    expect(before.rootOverflowX).toBe('hidden');
-    expect(before.bodyOverflowX).toBe('hidden');
+    expect(before.rootOverflowX).toBe('clip');
+    expect(before.bodyOverflowX).toBe('clip');
+    expect(before.documentWidth).toBeLessThanOrEqual(before.viewport + 1);
+    expect(before.bodyWidth).toBeLessThanOrEqual(before.viewport + 1);
     expect(before.shellRight).toBeLessThanOrEqual(before.viewport + 1);
     expect(before.widgetRight).toBeLessThanOrEqual(before.viewport + 1);
     expect(before.performanceOverflowX).toBe('hidden');
