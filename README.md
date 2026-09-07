@@ -129,6 +129,8 @@ Root directory: /
 Production branch: main
 ```
 
+Wrangler on lukittu projektin paikalliseksi dev-riippuvuudeksi, joten `npx wrangler` käyttää repon hallittua versiota eikä hae ajon hetkistä uusinta versiota.
+
 `wrangler.jsonc` on deployn kanoninen konfiguraatio. Astro tuottaa staattisen sivuston `dist/`-hakemistoon, jonka Wrangler julkaisee Worker Static Assets -resursseina. Worker-entry sijaitsee tiedostossa `worker/index.ts`.
 
 Tavalliset sivupyynnöt palvellaan staattisista asseteista. Palvelinlogiikka ajetaan vain erikseen määritetyille reiteille, kuten Currentin pörssisähköreitille `/api/current/electricity`. Selain hakee tämän saman originin reitin kautta, ja Worker hakee varsinaisen datan ulkoisesta lähteestä.
