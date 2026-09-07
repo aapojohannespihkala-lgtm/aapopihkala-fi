@@ -30,9 +30,11 @@ type YahooChartResponse = {
 };
 
 const ECB_BASE_URL = 'https://data-api.ecb.europa.eu/service/data';
-const EURIBOR_HISTORY_URL = `${ECB_BASE_URL}/FM/M.U2.EUR.RT.MM.EURIBOR3MD_.HSTA?lastNObservations=13&format=csvdata&detail=dataonly`;
+const EURIBOR_MONTHLY_HISTORY_URL = `${ECB_BASE_URL}/FM/M.U2.EUR.RT.MM.EURIBOR3MD_.HSTA?lastNObservations=13&format=csvdata&detail=dataonly`;
 const EURIBOR_URL =
   'https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/euribor-rates/';
+const EURIBOR_DAILY_HISTORY_URL =
+  'https://reports.suomenpankki.fi/WebForms/ReportViewerPage.aspx?output=&report=%2Ftilastot%2Fmarkkina-_ja_hallinnolliset_korot%2Feuriborkorot_pv_chrt_en';
 const WORLD_SYMBOL = 'URTH';
 const WORLD_URLS = [
   `https://query1.finance.yahoo.com/v8/finance/chart/${WORLD_SYMBOL}?range=1y&interval=1d`,
@@ -178,13 +180,25 @@ const fetchEuribor3m = async (): Promise<MarketMacroItem> => {
   };
 };
 
-const fetchEuriborHistory = async () => {
-  const response = await fetch(EURIBOR_HISTORY_URL, {
+const fetchEuriborMonthlyHistory = async () => {
+  const response = await fetch(EURIBOR_MONTHLY_HISTORY_URL, {
     headers: { Accept: 'text/csv' },
   });
 
   if (!response.ok) throw new Error(`ECB Euribor history request failed: ${response.status}`);
   return parseEcbObservations(await response.text());
+};
+
+const fetchEuriborDailyHistory = async () => {
+  const response = await fetch(EURIBOR_DAILY_HISTORY_URL, {
+    headers: {
+      Accept: 'text/html',
+      'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
+    },
+  });
+
+  if (!response.ok) throw new Error(`Bank of Finland Euribor history request failed: ${response.status}`);
+  return parseEuribor3mObservations(await response.text());
 };
 
 const parseYahooObservations = (data: YahooChartResponse): Observation[] => {
@@ -251,8 +265,16 @@ const sampleObservations = (observations: Observation[]) => {
   return sampled;
 };
 
-const buildEuriborSeries = (history: Observation[], current: MarketMacroItem): MarketSeries => {
-  const byDate = new Map(history.map((item) => [item.observedAt, item]));
+const buildEuriborSeries = (
+  histories: Observation[][],
+  current: MarketMacroItem
+): MarketSeries => {
+  const byDate = new Map<string, Observation>();
+
+  for (const history of histories) {
+    for (const item of history) byDate.set(item.observedAt, item);
+  }
+
   byDate.set(current.observedAt, { value: current.value, observedAt: current.observedAt });
 
   const latestTime = Date.parse(`${current.observedAt}T00:00:00Z`);
@@ -291,15 +313,25 @@ const buildWorldSeries = (observations: Observation[]): MarketSeries => {
 export const onRequestGet = async () => {
   try {
     const euribor = await fetchEuribor3m();
-    const [euriborHistoryResult, worldResult] = await Promise.allSettled([
-      fetchEuriborHistory(),
+    const [euriborMonthlyResult, euriborDailyResult, worldResult] = await Promise.allSettled([
+      fetchEuriborMonthlyHistory(),
+      fetchEuriborDailyHistory(),
       fetchWorldObservations(),
     ]);
     const series: MarketSeries[] = [];
+    const euriborHistories: Observation[][] = [];
 
-    if (euriborHistoryResult.status === 'fulfilled') {
+    if (euriborMonthlyResult.status === 'fulfilled') {
+      euriborHistories.push(euriborMonthlyResult.value);
+    }
+
+    if (euriborDailyResult.status === 'fulfilled') {
+      euriborHistories.push(euriborDailyResult.value);
+    }
+
+    if (euriborHistories.length > 0) {
       try {
-        series.push(buildEuriborSeries(euriborHistoryResult.value, euribor));
+        series.push(buildEuriborSeries(euriborHistories, euribor));
       } catch {
         // Keep the live Euribor value available even if its history is incomplete.
       }
