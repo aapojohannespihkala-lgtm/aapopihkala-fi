@@ -1,0 +1,180 @@
+<button
+  class="current2-section-nav-button"
+  type="button"
+  data-current2-section-nav
+  aria-label="Scroll to the next Current2 section"
+  hidden
+>
+  <svg viewBox="0 0 14 10" aria-hidden="true">
+    <path d="M2 2.5 L7 7.5 L12 2.5 Z"></path>
+  </svg>
+</button>
+
+<style is:global>
+  .current2-section-nav-button {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    z-index: 120;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--stone-light);
+    opacity: 0.64;
+    cursor: pointer;
+    transform: translateX(-50%);
+    transition:
+      color 150ms ease,
+      opacity 150ms ease,
+      transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .current2-section-nav-button:hover,
+  .current2-section-nav-button:focus-visible {
+    color: var(--moss-deep);
+    opacity: 0.94;
+  }
+
+  .current2-section-nav-button:hover {
+    transform: translate(-50%, 1px);
+  }
+
+  .current2-section-nav-button:focus-visible {
+    outline: 1px solid var(--lichen);
+    outline-offset: 3px;
+  }
+
+  .current2-section-nav-button svg {
+    width: 14px;
+    height: 10px;
+    overflow: visible;
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .current2-section-nav-button path {
+    fill: currentColor;
+    stroke: none;
+  }
+
+  .current2-section-nav-button.is-up svg {
+    transform: rotate(180deg);
+  }
+
+  .current2-section-nav-button.is-up:hover {
+    transform: translate(-50%, -1px);
+  }
+
+  @media (max-width: 640px) {
+    .current2-section-nav-button {
+      bottom: 16px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .current2-section-nav-button,
+    .current2-section-nav-button svg {
+      transition: none;
+    }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const button = document.querySelector('[data-current2-section-nav]')
+    if (!(button instanceof HTMLButtonElement)) return
+    if (button.dataset.initialized === 'true') return
+    button.dataset.initialized = 'true'
+
+    const reducedMotion = () =>
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    const behavior = () => reducedMotion() ? 'auto' : 'smooth'
+    const SECTION_DIVIDER_MASK_INSET = 2
+
+    const getDocumentTop = (section) =>
+      section.getBoundingClientRect().top + window.scrollY
+
+    const getTopbarHeight = () => {
+      const topbar = document.querySelector('.topbar')
+      if (!(topbar instanceof HTMLElement)) return 0
+      return Math.max(0, topbar.getBoundingClientRect().height)
+    }
+
+    const getMaskedSectionTop = () =>
+      Math.max(0, getTopbarHeight() - SECTION_DIVIDER_MASK_INSET)
+
+    const getSectionScrollTop = (section) =>
+      Math.max(0, getDocumentTop(section) - getMaskedSectionTop())
+
+    let sections = []
+    let currentTarget = null
+
+    const updateState = () => {
+      if (!sections.length) return
+
+      const threshold = window.scrollY + getTopbarHeight()
+      let currentIndex = 0
+
+      sections.forEach((section, index) => {
+        if (getDocumentTop(section) <= threshold) currentIndex = index
+      })
+
+      if (currentIndex < sections.length - 1) {
+        currentTarget = sections[currentIndex + 1]
+        button.classList.remove('is-up')
+        const label = currentTarget.dataset.current2Section || 'next section'
+        button.setAttribute('aria-label', `Scroll to ${label}`)
+        return
+      }
+
+      currentTarget = null
+      button.classList.add('is-up')
+      button.setAttribute('aria-label', 'Back to Current2 top')
+    }
+
+    const resolveSections = () => {
+      sections = Array.from(document.querySelectorAll('[data-current2-section]')).filter(
+        (section) => section instanceof HTMLElement
+      )
+
+      if (sections.length < 2) {
+        window.requestAnimationFrame(resolveSections)
+        return
+      }
+
+      button.hidden = false
+      updateState()
+    }
+
+    button.addEventListener('click', () => {
+      if (currentTarget instanceof HTMLElement) {
+        window.scrollTo({
+          top: getSectionScrollTop(currentTarget),
+          behavior: behavior(),
+        })
+        return
+      }
+
+      window.scrollTo({ top: 0, behavior: behavior() })
+    })
+
+    let ticking = false
+    const scheduleUpdate = () => {
+      if (ticking) return
+      ticking = true
+      window.requestAnimationFrame(() => {
+        ticking = false
+        updateState()
+      })
+    }
+
+    window.addEventListener('scroll', scheduleUpdate, { passive: true })
+    window.addEventListener('resize', scheduleUpdate, { passive: true })
+
+    resolveSections()
+  })()
+</script>
