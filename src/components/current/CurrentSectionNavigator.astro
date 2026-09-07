@@ -100,16 +100,11 @@
 
     const behavior = () => reducedMotion() ? 'auto' : 'smooth'
 
-    const getHeaderHeight = () => {
-      const header = document.querySelector('.topbar')
-      return header instanceof HTMLElement ? header.getBoundingClientRect().height : 64
-    }
-
     const getDocumentTop = (section) =>
       section.getBoundingClientRect().top + window.scrollY
 
     const getSectionScrollTop = (section) =>
-      Math.max(0, getDocumentTop(section) - getHeaderHeight())
+      Math.max(0, getDocumentTop(section))
 
     let sections = []
     let firstSection = null
@@ -126,7 +121,7 @@
       if (!sections.length) return
 
       const y = window.scrollY
-      const threshold = y + getHeaderHeight() + 40
+      const threshold = y + 40
       let currentIndex = 0
 
       sections.forEach((section, index) => {
