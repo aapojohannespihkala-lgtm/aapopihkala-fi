@@ -168,15 +168,14 @@ const canonicalUrl = `${site.url}/current/`;
   }
 
   .current-section-wrap {
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
     scroll-margin-top: 64px;
   }
 
-  .current-section-wrap--weather {
-    box-sizing: border-box;
-    min-height: calc(100svh - 116px);
-  }
-
   .current-section-wrap + .current-section-wrap {
+    margin-top: clamp(30px, 4.5vw, 56px);
     border-top: 1px solid var(--line);
   }
 
@@ -195,8 +194,8 @@ const canonicalUrl = `${site.url}/current/`;
       gap: 7px;
     }
 
-    .current-section-wrap--weather {
-      min-height: calc(100svh - 108px);
+    .current-section-wrap + .current-section-wrap {
+      margin-top: 28px;
     }
   }
 </style>
