@@ -3,12 +3,12 @@
 }
 
 .current-shell .current-weather .weather-heading {
-  margin-bottom: 13px;
+  margin-bottom: 12px;
 }
 
 .current-shell .current-weather .weather-current {
   gap: clamp(20px, 5vw, 56px);
-  padding: 0 clamp(18px, 4.5vw, 64px) 14px 0;
+  padding: 0 clamp(18px, 4.5vw, 64px) 12px 0;
 }
 
 .current-shell .current-weather .weather-temperature {
@@ -51,11 +51,11 @@
 }
 
 .current-shell .current-weather .weather-hours {
-  padding: 11px 0 12px;
+  padding: 8px 0 9px;
 }
 
 .current-shell .current-weather .weather-days {
-  padding: 11px 0 1px;
+  padding: 8px 0 0;
 }
 
 .current-shell .current-weather .weather-hour-grid .weather-hour,
@@ -67,13 +67,13 @@
 .current-shell .current-weather .weather-hour-grid .weather-hour__icon {
   width: 22px;
   height: 22px;
-  margin: 7px auto 5px;
+  margin: 6px auto 4px;
 }
 
 .current-shell .current-weather .weather-day-grid .weather-day__icon {
   width: 24px;
   height: 24px;
-  margin: 7px auto 4px;
+  margin: 6px auto 3px;
 }
 
 .current-shell .current-weather .weather-hour-grid .weather-hour__temperature {
@@ -82,19 +82,19 @@
 
 .current-shell .current-weather .weather-hour-grid .weather-hour__rain,
 .current-shell .current-weather .weather-day-grid .weather-day__rain {
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .current-shell .current-weather .weather-daily-chart-frame {
   width: 100%;
   max-width: 100%;
-  min-height: 104px;
+  min-height: 124px;
   margin-inline: 0;
   padding-top: 0;
 }
 
 .current-shell .current-weather .weather-daily-chart {
-  height: 104px;
+  height: 124px;
 }
 
 .current-shell .current-weather .weather-daily-chart text {
@@ -102,7 +102,7 @@
 }
 
 .current-shell .current-weather .weather-footer {
-  padding-top: 8px;
+  padding-top: 6px;
   border-top-color: color-mix(in srgb, var(--weather-rule) 78%, transparent);
   color: color-mix(in srgb, var(--stone-light) 92%, transparent);
   font-size: 0.4rem;
@@ -111,17 +111,17 @@
 
 @media (max-width: 640px) {
   .current-shell .current-section-wrap .current-weather {
-    padding-top: 17px;
+    padding-top: 16px;
   }
 
   .current-shell .current-weather .weather-heading {
-    margin-bottom: 11px;
+    margin-bottom: 10px;
   }
 
   .current-shell .current-weather .weather-current {
     grid-template-columns: minmax(0, 1fr) minmax(106px, 0.4fr);
     gap: 10px;
-    padding: 0 0 12px;
+    padding: 0 0 10px;
   }
 
   .current-shell .current-weather .weather-temperature {
@@ -164,11 +164,11 @@
 
   .current-shell .current-weather .weather-hours,
   .current-shell .current-weather .weather-days {
-    padding-top: 9px;
+    padding-top: 7px;
   }
 
   .current-shell .current-weather .weather-hours {
-    padding-bottom: 9px;
+    padding-bottom: 7px;
   }
 
   .current-shell .current-weather .weather-hour-grid .weather-hour,
@@ -186,13 +186,13 @@
   .current-shell .current-weather .weather-hour-grid .weather-hour__icon {
     width: 18px;
     height: 18px;
-    margin: 6px auto 4px;
+    margin: 5px auto 3px;
   }
 
   .current-shell .current-weather .weather-day-grid .weather-day__icon {
     width: 21px;
     height: 21px;
-    margin: 6px auto 3px;
+    margin: 5px auto 2px;
   }
 
   .current-shell .current-weather .weather-hour-grid .weather-hour__temperature {
@@ -201,20 +201,20 @@
 
   .current-shell .current-weather .weather-hour-grid .weather-hour__rain,
   .current-shell .current-weather .weather-day-grid .weather-day__rain {
-    margin-top: 3px;
+    margin-top: 2px;
     font-size: 0.32rem;
   }
 
   .current-shell .current-weather .weather-daily-chart-frame {
     width: 100%;
     max-width: 100%;
-    min-height: 92px;
+    min-height: 108px;
     margin-inline: 0;
   }
 
   .current-shell .current-weather .weather-daily-chart {
-    min-height: 92px;
-    height: 92px;
+    min-height: 108px;
+    height: 108px;
   }
 
   .current-shell .current-weather .weather-daily-chart text {
@@ -222,7 +222,7 @@
   }
 
   .current-shell .current-weather .weather-footer {
-    padding-top: 7px;
+    padding-top: 5px;
     color: color-mix(in srgb, var(--stone-light) 90%, transparent);
     font-size: 0.36rem;
     line-height: 1.25;
