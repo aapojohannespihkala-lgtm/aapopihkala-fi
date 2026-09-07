@@ -1,3 +1,5 @@
+import '../../styles/current-markets-custom-dynamic.css';
+
 type MarketPerformanceId =
   | 'handelsbanken-usa'
   | 'nordnet-finland'
@@ -164,6 +166,20 @@ const syncDisplayRows = (root: HTMLElement) => {
   table.dataset.portfolioRowsReady = 'true';
 };
 
+const resetRows = (root: HTMLElement) => {
+  root.querySelectorAll<HTMLElement>('[data-market-performance-row]').forEach((row) => {
+    row.removeAttribute('data-market-performance-loaded');
+
+    const price = row.querySelector<HTMLElement>('[data-market-performance-price]');
+    if (price) price.textContent = '--';
+
+    row.querySelectorAll<HTMLElement>('[data-market-performance-change]').forEach((cell) => {
+      cell.textContent = '--';
+      cell.classList.remove('is-positive', 'is-negative', 'is-flat');
+    });
+  });
+};
+
 export const initCurrentMarketPerformance = () => {
   const root = document.querySelector<HTMLElement>('[data-current-market-performance]');
   if (!root || root.dataset.marketPerformanceInitialized === 'true') return;
@@ -175,6 +191,8 @@ export const initCurrentMarketPerformance = () => {
   const retry = root.querySelector<HTMLButtonElement>('[data-market-performance-retry]');
 
   const render = (items: MarketPerformanceItem[], expected: number) => {
+    resetRows(root);
+
     for (const item of items) {
       const row = root.querySelector<HTMLElement>(`[data-market-performance-row="${item.id}"]`);
       if (!row) continue;
@@ -221,12 +239,12 @@ export const initCurrentMarketPerformance = () => {
 
       const data = (await response.json()) as MarketPerformanceResponse;
       const items = Array.isArray(data.items) ? data.items.filter(isPerformanceItem) : [];
-      if (items.length === 0) throw new Error('Market performance response contained no rows');
-
       const expected = typeof data.expected === 'number' ? data.expected : DISPLAY_ROWS.length;
+
       render(items, expected);
       root.setAttribute('aria-busy', 'false');
     } catch {
+      resetRows(root);
       root.setAttribute('aria-busy', 'false');
       if (status) status.textContent = 'DATA UNAVAILABLE';
     }
