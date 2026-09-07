@@ -66,3 +66,19 @@ Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivise
 - Pidä TypeScript nykyisessä tuetussa sarjassa, kunnes `@astrojs/check` tukee seuraavaa majoria. Nykyinen check-versio sallii TypeScript 5- ja 6-sarjat, ei 7-sarjaa.
 - Tarkista `npm audit` -löydökset dependency- ja framework-päivitysten yhteydessä; käsittele jäljelle jäävät transitiiviset haavoittuvuudet erillisinä rajattuina maintenance-passeina.
 - Älä lisää automaattista riippuvuuspäivitys-PR-virtaa rakennusvaiheessa pelkän hygienian vuoksi, jos se kasvattaa PR-kohinaa. Arvioi Dependabot tai vastaava uudelleen vakaammassa vaiheessa.
+
+## 9. SEO- ja reittihygienia
+
+- Pidä sitemap ja sivukohtaiset `robots`-metat keskenään johdonmukaisina.
+- Sulje sitemapista tarkoituksella `noindex`-reitit, kuten `/current/**` ja `/lab/`, ellei niiden indeksointipäätös myöhemmin muutu.
+- Lisää regressiotesti, joka varmistaa sitemap/noindex-konsistenssin keskeisille julkisille ja ei-indeksoitaville reiteille.
+- Tee samalla kevyt sisäisten linkkien ja reittien tarkistus, jotta vanhentuneita tai rikkinäisiä polkuja ei jää sivustolle.
+
+## 10. Currentin ulkoisten datalähteiden toimintavarmuus
+
+Currentin Electricity-, Markets- ja News-näkymät riippuvat useista ulkoisista lähteistä. Nykyinen rakenne sietää jo osittaisia lähdevikoja, mutta toimintavarmuutta kannattaa vahvistaa ilman että normaali kehitystyönkulku raskautuu.
+
+- Lisää Worker-puolen ulkoisiin verkkopyyntöihin eksplisiittiset timeoutit ja hallittu virheenkäsittely.
+- Arvioi, missä Current-datassa stale-while-revalidate- tai viimeksi onnistuneen datan fallback parantaa käytettävyyttä ilman harhaanjohtavaa vanhaa tietoa.
+- Suojaa HTML:ää parsivat lähteet, erityisesti Marketsin Bank of Finland -parseri, source-contract- tai fixture-regressiotesteillä, jotta upstream-rakenteen muutos havaitaan nopeasti.
+- Hyödynnä nykyistä Cloudflare-observabilityä lähdekohtaisten virheiden tunnistamiseen ennen uuden seurantainfran lisäämistä.
