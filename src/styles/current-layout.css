@@ -1,0 +1,28 @@
+.current-shell {
+  overflow-x: clip;
+}
+
+.current-shell .current-section-wrap,
+.current-shell [data-current-weather],
+.current-shell [data-current-electricity],
+.current-shell [data-current-markets] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The remaining sideways scroll came from the Markets performance panel:
+   the panel was explicitly horizontally scrollable and the TradingView host
+   was forced to at least 780 px. Keep the widget inside the Current column
+   instead of creating a nested horizontal scroller. */
+.current-shell .markets-performance {
+  max-width: 100%;
+  overflow-x: clip;
+  overscroll-behavior-inline: none;
+}
+
+.current-shell tv-market-data,
+.current-shell tv-market-data:defined {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
