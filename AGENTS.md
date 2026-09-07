@@ -97,9 +97,11 @@ For validation and merge:
 
 Owner-authored pull requests from the same repository are automatically squash-merged by `.github/workflows/build-check.yml` after the required `build` job succeeds. Do not manually poll and merge these routine pull requests after opening them. If the strict `main` freshness rule reports the branch as behind, the merge job updates the branch and the next CI cycle continues automatically. After a successful automatic merge, the workflow explicitly dispatches a full validation run on `main` and then best-effort deletes the merged owner head branch. Branch cleanup failure must not turn an already successful merge into a failed workflow. Git history and the merged pull request remain the durable change record. Intervene only when automatic merge fails, CI fails, a conflict or material ambiguity appears, or the user explicitly asked for review before merge.
 
+Current2 production data has a separate post-merge live smoke in `.github/workflows/current2-live-data-smoke.yml`. It runs only after a successful `main` Build check, retries through normal Cloudflare deployment lag, and verifies the live portfolio API rather than mocked or build-time data. Keep this check out of the pre-merge critical path.
+
 During the active site-construction phase, optimize for fast iteration. Documentation-only changes, including `CHATGPT.md`, keep the minimal successful `build` check and skip Node, build and browser work entirely. Pull requests that change only `.css` files keep dependency installation and the production build but skip `npm run check`. Other executable pull requests are blocked by both static checks and a production build. Changes that can affect Current layout also run the targeted Current section-boundary Playwright guard before merge. The full browser regression suite does not block routine construction-phase merges and runs after merge through the explicit `main` validation dispatch.
 
-If a post-merge browser regression later exposes a real problem, fix it promptly in a follow-up change. Do not hold routine construction-phase merges open waiting for the full browser suite.
+If a post-merge browser regression or Current2 live-data regression later exposes a real problem, fix it promptly in a follow-up change. Do not hold routine construction-phase merges open waiting for post-merge checks.
 
 ## CI safety
 
@@ -111,8 +113,9 @@ The CI strategy in `.github/workflows/build-check.yml` is intentionally split by
 - Current-layout-sensitive executable pull requests: the normal applicable static/build path plus the targeted `current-section-boundaries` Playwright guard
 - successful automatic merges: explicitly dispatch a full `main` validation run and best-effort delete the merged owner branch
 - executable post-merge validation: static/build validation plus the full Playwright browser regression suite
+- successful `main` Build checks: trigger the separate Current2 live-data smoke, which validates the deployed production portfolio API and remains outside the pull-request merge gate
 
-This is the deliberate validation strategy for the active site-construction phase. Do not remove the production build from executable pull requests without explicit review. Do not extend the CSS-only exception beyond actual `.css` files without deliberate review. Keep targeted pre-merge browser guards scoped to changes that can plausibly affect the protected behavior instead of making every executable pull request pay the browser-install cost. When the project moves from rapid construction to a more stable release phase, reconsider whether full browser regressions and CSS static checks should return to the pre-merge gate.
+This is the deliberate validation strategy for the active site-construction phase. Do not remove the production build from executable pull requests without explicit review. Do not extend the CSS-only exception beyond actual `.css` files without deliberate review. Keep targeted pre-merge browser guards scoped to changes that can plausibly affect the protected behavior instead of making every executable pull request pay the browser-install cost. Keep external production verification such as the Current2 live-data smoke post-merge so upstream or deploy latency cannot slow routine construction merges. When the project moves from rapid construction to a more stable release phase, reconsider whether full browser regressions and CSS static checks should return to the pre-merge gate.
 
 ## Documentation maintenance
 
