@@ -60,6 +60,9 @@ type MarketPerformanceItem = LivePerformanceSpec & {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const YAHOO_BATCH_SIZE = 2;
+const YAHOO_BATCH_PAUSE_MS = 220;
+const YAHOO_RETRY_PAUSE_MS = 180;
 
 // Current2 portfolio prototype. Exchange-traded holdings and crypto use exact Yahoo symbols.
 // Traditional funds stay in the expected count but are intentionally not proxied
@@ -90,12 +93,15 @@ const LIVE_SPECS = PERFORMANCE_SPECS.filter(
   (spec): spec is LivePerformanceSpec => typeof spec.symbol === 'string'
 );
 
+const sleep = (milliseconds: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+
 const jsonResponse = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'public, max-age=900, s-maxage=900, stale-while-revalidate=3600',
+      'Cache-Control': 'no-store, max-age=0',
       'X-Content-Type-Options': 'nosniff',
     },
   });
@@ -130,15 +136,18 @@ const parseYahooObservations = (data: YahooChartResponse): Observation[] => {
 
 const fetchYahooObservations = async (symbol: string) => {
   const encoded = encodeURIComponent(symbol);
+  const period2 = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
+  const period1 = period2 - 740 * 24 * 60 * 60;
+  const query = `period1=${period1}&period2=${period2}&interval=1d&events=history&includeAdjustedClose=true`;
   const urls = [
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?range=2y&interval=1d`,
-    `https://query2.finance.yahoo.com/v8/finance/chart/${encoded}?range=2y&interval=1d`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?${query}`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encoded}?${query}`,
   ];
   let lastError: unknown;
 
-  for (const url of urls) {
+  for (let index = 0; index < urls.length; index += 1) {
     try {
-      const response = await fetch(url, {
+      const response = await fetch(urls[index], {
         headers: {
           Accept: 'application/json',
           'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
@@ -148,6 +157,7 @@ const fetchYahooObservations = async (symbol: string) => {
       return parseYahooObservations((await response.json()) as YahooChartResponse);
     } catch (error) {
       lastError = error;
+      if (index < urls.length - 1) await sleep(YAHOO_RETRY_PAUSE_MS);
     }
   }
 
@@ -199,12 +209,29 @@ const buildPerformanceItem = (
   };
 };
 
+const fetchLivePerformance = async () => {
+  const settled: PromiseSettledResult<MarketPerformanceItem>[] = [];
+
+  for (let index = 0; index < LIVE_SPECS.length; index += YAHOO_BATCH_SIZE) {
+    const batch = LIVE_SPECS.slice(index, index + YAHOO_BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(async (spec) =>
+        buildPerformanceItem(spec, await fetchYahooObservations(spec.symbol))
+      )
+    );
+
+    settled.push(...results);
+
+    if (index + YAHOO_BATCH_SIZE < LIVE_SPECS.length) {
+      await sleep(YAHOO_BATCH_PAUSE_MS);
+    }
+  }
+
+  return settled;
+};
+
 export const onRequestGet = async () => {
-  const settled = await Promise.allSettled(
-    LIVE_SPECS.map(async (spec) =>
-      buildPerformanceItem(spec, await fetchYahooObservations(spec.symbol))
-    )
-  );
+  const settled = await fetchLivePerformance();
 
   const items = settled.flatMap((result) =>
     result.status === 'fulfilled' ? [result.value] : []

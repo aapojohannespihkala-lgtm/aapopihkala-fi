@@ -71,7 +71,7 @@ test.describe('Current2 responsive comparison', () => {
         }
       });
 
-      await page.route('**/api/current/market-performance', async (route) => {
+      await page.route('**/api/current/market-performance*', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
