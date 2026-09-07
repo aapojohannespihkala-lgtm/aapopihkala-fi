@@ -61,8 +61,15 @@ type PeriodDefinition = {
   className: string;
 };
 
+type SummaryEntry = {
+  id: MarketPerformanceId;
+  label: string;
+  value: number;
+};
+
 const API_URL = '/api/current/markets?portfolio=1&v=6';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+const DEFAULT_SUMMARY_PERIOD: PerformancePeriod = 'year1';
 
 const PERIODS: PeriodDefinition[] = [
   { key: 'today', label: '1D', className: 'period-day1' },
@@ -101,6 +108,7 @@ const DISPLAY_ROWS: DisplayRow[] = [
 const IDS = new Set<MarketPerformanceId>(DISPLAY_ROWS.map((row) => row.id));
 const DISPLAY_ROW_BY_ID = new Map(DISPLAY_ROWS.map((row) => [row.id, row]));
 const ORIGINAL_ORDER = new Map(DISPLAY_ROWS.map((row, index) => [row.id, index]));
+const PERIOD_BY_KEY = new Map(PERIODS.map((period) => [period.key, period]));
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
@@ -174,6 +182,46 @@ const syncHeader = (table: HTMLElement) => {
   }
 };
 
+const syncSummary = (root: HTMLElement) => {
+  if (root.querySelector('[data-market-performance-summary]')) return;
+  const table = root.querySelector<HTMLElement>('.markets-custom-table');
+  if (!table) return;
+
+  const summary = document.createElement('div');
+  summary.className = 'markets-performance-summary';
+  summary.dataset.marketPerformanceSummary = '';
+  summary.setAttribute('aria-label', 'Portfolio performance summary');
+
+  const overview = document.createElement('p');
+  overview.className = 'markets-performance-summary__overview';
+  overview.innerHTML = [
+    '<strong data-market-summary-period>1Y</strong>',
+    '<span data-market-summary-coverage>0 OF 19 DATA</span>',
+    '<span data-market-summary-balance>UP 0 / DOWN 0 / FLAT 0 / N/A 19</span>',
+  ].join('<span aria-hidden="true">/</span>');
+
+  const metrics = document.createElement('div');
+  metrics.className = 'markets-performance-summary__metrics';
+  for (const [label, key] of [
+    ['BEST', 'best'],
+    ['MEDIAN', 'median'],
+    ['WORST', 'worst'],
+  ] as const) {
+    const metric = document.createElement('p');
+    metric.className = 'markets-performance-summary__metric';
+    const name = document.createElement('span');
+    name.textContent = label;
+    const value = document.createElement('strong');
+    value.dataset[`marketSummary${key[0].toUpperCase()}${key.slice(1)}`] = '';
+    value.textContent = '--';
+    metric.append(name, value);
+    metrics.append(metric);
+  }
+
+  summary.append(overview, metrics);
+  table.before(summary);
+};
+
 const syncDisplayRows = (root: HTMLElement) => {
   const table = root.querySelector<HTMLElement>('.markets-custom-table');
   if (!table || table.dataset.portfolioRowsReady === 'true') return;
@@ -182,6 +230,7 @@ const syncDisplayRows = (root: HTMLElement) => {
   if (panelLabel) panelLabel.textContent = 'PORTFOLIO / PERFORMANCE';
 
   syncHeader(table);
+  syncSummary(root);
   table.querySelectorAll('[data-market-performance-row]').forEach((row) => row.remove());
 
   for (const item of DISPLAY_ROWS) {
@@ -232,18 +281,87 @@ export const initCurrentMarketPerformance = () => {
   const retry = root.querySelector<HTMLButtonElement>('[data-market-performance-retry]');
   const latestItems = new Map<MarketPerformanceId, MarketPerformanceItem>();
   let activeSort: { key: SortKey; direction: SortDirection } | null = null;
+  let summaryPeriod: PerformancePeriod = DEFAULT_SUMMARY_PERIOD;
+  let expectedHoldings = DISPLAY_ROWS.length;
 
   const updateSortHeader = () => {
     table?.querySelectorAll<HTMLElement>('[data-market-sort-cell]').forEach((cell) => {
       const key = cell.dataset.marketSortCell as SortKey;
       const direction = activeSort?.key === key ? activeSort.direction : null;
       cell.setAttribute('aria-sort', direction === 'desc' ? 'descending' : direction === 'asc' ? 'ascending' : 'none');
+      cell.classList.toggle('is-active-sort', direction !== null);
+      cell.classList.toggle('is-summary-period', key === summaryPeriod);
+
+      const button = cell.querySelector<HTMLButtonElement>('[data-market-sort]');
+      if (!button) return;
+      const label = button.textContent ?? key;
+      if (direction === null) {
+        button.setAttribute(
+          'aria-label',
+          key === 'market'
+            ? 'Sort holdings alphabetically A to Z'
+            : `Sort holdings by ${label} performance, best first`
+        );
+      } else if (direction === 'desc') {
+        button.setAttribute(
+          'aria-label',
+          key === 'market'
+            ? 'Sort holdings alphabetically A to Z'
+            : `Sort holdings by ${label} performance, worst first`
+        );
+      } else {
+        button.setAttribute('aria-label', `Reset ${label} sorting to portfolio order`);
+      }
+    });
+
+    table?.querySelectorAll<HTMLElement>('[data-market-performance-change]').forEach((cell) => {
+      cell.classList.toggle('is-summary-period', cell.dataset.marketPerformanceChange === summaryPeriod);
     });
   };
 
+  const summaryEntries = (period: PerformancePeriod) =>
+    [...latestItems.entries()].flatMap<SummaryEntry>(([id, item]) => {
+      const value = item.changes[period];
+      if (typeof value !== 'number' || !Number.isFinite(value)) return [];
+      return [{ id, label: DISPLAY_ROW_BY_ID.get(id)?.label ?? item.label, value }];
+    });
+
+  const updateSummary = () => {
+    const period = PERIOD_BY_KEY.get(summaryPeriod);
+    const entries = summaryEntries(summaryPeriod).sort((left, right) => left.value - right.value);
+    const available = entries.length;
+    const positive = entries.filter((entry) => entry.value > 0.005).length;
+    const negative = entries.filter((entry) => entry.value < -0.005).length;
+    const flat = available - positive - negative;
+    const unavailable = Math.max(expectedHoldings - available, 0);
+    const median =
+      available === 0
+        ? null
+        : available % 2 === 1
+          ? entries[Math.floor(available / 2)].value
+          : (entries[available / 2 - 1].value + entries[available / 2].value) / 2;
+    const best = entries.at(-1) ?? null;
+    const worst = entries.at(0) ?? null;
+
+    const periodTarget = root.querySelector<HTMLElement>('[data-market-summary-period]');
+    const coverageTarget = root.querySelector<HTMLElement>('[data-market-summary-coverage]');
+    const balanceTarget = root.querySelector<HTMLElement>('[data-market-summary-balance]');
+    const bestTarget = root.querySelector<HTMLElement>('[data-market-summary-best]');
+    const medianTarget = root.querySelector<HTMLElement>('[data-market-summary-median]');
+    const worstTarget = root.querySelector<HTMLElement>('[data-market-summary-worst]');
+
+    if (periodTarget) periodTarget.textContent = period?.label ?? summaryPeriod.toUpperCase();
+    if (coverageTarget) coverageTarget.textContent = `${available} OF ${expectedHoldings} DATA`;
+    if (balanceTarget) {
+      balanceTarget.textContent = `UP ${positive} / DOWN ${negative} / FLAT ${flat} / N/A ${unavailable}`;
+    }
+    if (bestTarget) bestTarget.textContent = best ? `${best.label} ${formatChange(best.value)}` : '--';
+    if (medianTarget) medianTarget.textContent = median === null ? '--' : formatChange(median);
+    if (worstTarget) worstTarget.textContent = worst ? `${worst.label} ${formatChange(worst.value)}` : '--';
+  };
+
   const sortRows = () => {
-    if (!table || !activeSort) return;
-    const { key, direction } = activeSort;
+    if (!table) return;
     const rows = [...table.querySelectorAll<HTMLElement>('[data-market-performance-row]')];
 
     rows.sort((left, right) => {
@@ -252,6 +370,9 @@ export const initCurrentMarketPerformance = () => {
       const originalDifference =
         (ORIGINAL_ORDER.get(leftId) ?? Number.MAX_SAFE_INTEGER) -
         (ORIGINAL_ORDER.get(rightId) ?? Number.MAX_SAFE_INTEGER);
+
+      if (!activeSort) return originalDifference;
+      const { key, direction } = activeSort;
 
       if (key === 'market') {
         const leftLabel = DISPLAY_ROW_BY_ID.get(leftId)?.label ?? leftId;
@@ -276,16 +397,18 @@ export const initCurrentMarketPerformance = () => {
   };
 
   const activateSort = (key: SortKey) => {
-    const direction: SortDirection =
-      activeSort?.key === key
-        ? activeSort.direction === 'desc'
-          ? 'asc'
-          : 'desc'
-        : key === 'market'
-          ? 'asc'
-          : 'desc';
-    activeSort = { key, direction };
+    if (key !== 'market') summaryPeriod = key;
+
+    if (activeSort?.key !== key) {
+      activeSort = { key, direction: key === 'market' ? 'asc' : 'desc' };
+    } else if (activeSort.direction === (key === 'market' ? 'asc' : 'desc')) {
+      activeSort = { key, direction: key === 'market' ? 'desc' : 'asc' };
+    } else {
+      activeSort = null;
+    }
+
     sortRows();
+    updateSummary();
   };
 
   table?.addEventListener('click', (event) => {
@@ -298,6 +421,7 @@ export const initCurrentMarketPerformance = () => {
     resetRows(root);
     latestItems.clear();
     items.forEach((item) => latestItems.set(item.id, item));
+    expectedHoldings = expected;
 
     for (const item of items) {
       const row = root.querySelector<HTMLElement>(`[data-market-performance-row="${item.id}"]`);
@@ -321,7 +445,8 @@ export const initCurrentMarketPerformance = () => {
       row.dataset.marketPerformanceLoaded = 'true';
     }
 
-    if (activeSort) sortRows();
+    sortRows();
+    updateSummary();
 
     if (status) {
       status.textContent =
@@ -351,12 +476,15 @@ export const initCurrentMarketPerformance = () => {
     } catch {
       resetRows(root);
       latestItems.clear();
-      if (activeSort) sortRows();
+      sortRows();
+      updateSummary();
       root.setAttribute('aria-busy', 'false');
       if (status) status.textContent = 'DATA UNAVAILABLE';
     }
   };
 
+  updateSortHeader();
+  updateSummary();
   retry?.addEventListener('click', load);
   void load();
   window.setInterval(load, REFRESH_INTERVAL_MS);
