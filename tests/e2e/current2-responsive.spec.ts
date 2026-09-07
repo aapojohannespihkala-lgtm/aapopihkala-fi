@@ -55,6 +55,16 @@ const expectMaskedByHeader = async (page: Page, sectionName: string) => {
   expect(top).toBeLessThan(geometry.topbar.bottom);
 };
 
+const denyAnalytics = async (page: Page) => {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('aapopihkala-analytics-consent-v1', 'denied');
+    } catch {
+      // Storage may be unavailable before the page origin is established.
+    }
+  });
+};
+
 test.describe('Current2 responsive comparison', () => {
   for (const viewport of [
     { width: 1638, height: 675, label: '67-percent-like' },
@@ -63,13 +73,7 @@ test.describe('Current2 responsive comparison', () => {
     { width: 728, height: 300, label: '150-percent-like' },
   ]) {
     test(`keeps content-driven sections and navigation at ${viewport.label}`, async ({ page }) => {
-      await page.addInitScript(() => {
-        try {
-          localStorage.setItem('aapopihkala-analytics-consent-v1', 'denied');
-        } catch {
-          // Storage may be unavailable before the page origin is established.
-        }
-      });
+      await denyAnalytics(page);
 
       await page.route('**/api/current/markets*', async (route) => {
         if (!route.request().url().includes('portfolio=1')) {
@@ -80,7 +84,7 @@ test.describe('Current2 responsive comparison', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ items: [], expected: 19, liveExpected: 10 }),
+          body: JSON.stringify({ items: [], expected: 19, liveExpected: 19 }),
         });
       });
 
@@ -109,6 +113,7 @@ test.describe('Current2 responsive comparison', () => {
       await expect(page.locator('tv-market-data')).toHaveCount(0);
       await expect(page.locator('[data-current-market-performance]')).toHaveCount(1);
       await expect(page.locator('[data-market-performance-row]')).toHaveCount(19);
+      await expect(page.locator('[data-market-sort]')).toHaveCount(10);
       await expect(page.getByText('Handelsbanken Usa Indeksi', { exact: true })).toBeVisible();
       await expect(page.getByText('Nordnet Suomi Indeksi', { exact: true })).toBeVisible();
       await expect(page.getByText('Marimekko', { exact: true })).toBeVisible();
@@ -156,4 +161,89 @@ test.describe('Current2 responsive comparison', () => {
         .toContain('Back to Current2 top');
     });
   }
+
+  test('sorts a performance column best first and reverses on a second click', async ({ page }) => {
+    await denyAnalytics(page);
+
+    const changes = (year3: number) => ({
+      today: 1,
+      week1: 2,
+      month1: 3,
+      month3: 4,
+      month6: 5,
+      ytd: 6,
+      year1: 7,
+      year3,
+      year5: 9,
+    });
+
+    await page.route('**/api/current/markets*', async (route) => {
+      if (!route.request().url().includes('portfolio=1')) {
+        await route.continue();
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          expected: 19,
+          items: [
+            {
+              id: 'marimekko',
+              label: 'MARIMEKKO',
+              symbol: 'MEKKO.HE',
+              price: 1,
+              observedAt: '2026-09-04',
+              changes: changes(-8),
+            },
+            {
+              id: 'remedy',
+              label: 'REMEDY',
+              symbol: 'REMEDY.HE',
+              price: 1,
+              observedAt: '2026-09-04',
+              changes: changes(18),
+            },
+            {
+              id: 'ishares-world',
+              label: 'ISHARES CORE MSCI WORLD UCITS ETF USD (ACC)',
+              symbol: 'EUNL.DE',
+              price: 1,
+              observedAt: '2026-09-04',
+              changes: changes(42),
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.setViewportSize({ width: 1638, height: 675 });
+    await page.goto('/current2/', { waitUntil: 'domcontentloaded' });
+
+    const year3Header = page.locator('[data-market-sort-cell="year3"]');
+    const year3Button = page.locator('[data-market-sort="year3"]');
+    await expect(year3Button).toBeVisible();
+    await expect(year3Header).toHaveAttribute('aria-sort', 'none');
+
+    await year3Button.click();
+    await expect(year3Header).toHaveAttribute('aria-sort', 'descending');
+    await expect
+      .poll(() =>
+        page
+          .locator('[data-market-performance-row][data-market-performance-loaded="true"]')
+          .evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.marketPerformanceRow))
+      )
+      .toEqual(['ishares-world', 'remedy', 'marimekko']);
+
+    await year3Button.click();
+    await expect(year3Header).toHaveAttribute('aria-sort', 'ascending');
+    await expect
+      .poll(() =>
+        page
+          .locator('[data-market-performance-row][data-market-performance-loaded="true"]')
+          .evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.marketPerformanceRow))
+      )
+      .toEqual(['marimekko', 'remedy', 'ishares-world']);
+  });
 });
