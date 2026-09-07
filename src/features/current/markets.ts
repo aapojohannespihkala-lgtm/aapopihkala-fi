@@ -25,16 +25,29 @@ type MarketsResponse = {
 
 type AxisScale = {
   minimum: number;
-  midpoint: number;
   maximum: number;
   step: number;
+  ticks: number[];
+};
+
+type ChartState = {
+  series: MarketSeries;
+  values: number[];
+  scale: AxisScale;
 };
 
 const MARKETS_API_URL = '/api/current/markets';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 const MARKET_IDS = new Set<MarketMacroId>(['euribor-3m']);
 const SERIES_IDS = new Set<MarketSeriesId>(['euribor-3m', 'world']);
-const NICE_FACTORS = [1, 2, 2.5, 5, 10];
+const AXIS_STEPS: Record<MarketSeriesId, number> = {
+  'euribor-3m': 0.2,
+  world: 10,
+};
+const CHART_WIDTH = 240;
+const CHART_HEIGHT = 64;
+const CHART_PADDING = 2;
+const SCALE_EPSILON = 1e-9;
 
 const isSeriesPoint = (value: unknown): value is SeriesPoint => {
   if (!value || typeof value !== 'object') return false;
@@ -92,55 +105,27 @@ const formatSeriesChange = (series: MarketSeries) => {
     : `${sign}${series.change1y.toFixed(2)}%`;
 };
 
-const niceStep = (minimumStep: number) => {
-  if (!Number.isFinite(minimumStep) || minimumStep <= 0) return 1;
+const buildAxisScale = (values: number[], step: number): AxisScale => {
+  const rawMinimum = Math.min(...values);
+  const rawMaximum = Math.max(...values);
+  let minimum = Math.floor((rawMinimum + SCALE_EPSILON) / step) * step;
+  let maximum = Math.ceil((rawMaximum - SCALE_EPSILON) / step) * step;
 
-  const magnitude = 10 ** Math.floor(Math.log10(minimumStep));
-  const fraction = minimumStep / magnitude;
-  const factor = NICE_FACTORS.find((candidate) => candidate >= fraction) ?? 10;
-  return factor * magnitude;
-};
-
-const buildAxisScale = (values: number[]): AxisScale => {
-  let rawMinimum = Math.min(...values);
-  let rawMaximum = Math.max(...values);
-
-  if (rawMinimum === rawMaximum) {
-    const padding = Math.max(Math.abs(rawMinimum) * 0.05, 0.5);
-    rawMinimum -= padding;
-    rawMaximum += padding;
+  if (maximum <= minimum) {
+    minimum -= step;
+    maximum += step;
   }
 
-  const step = niceStep((rawMaximum - rawMinimum) / 2);
-  let minimum = Math.floor(rawMinimum / step) * step;
-  let maximum = minimum + step * 2;
-
-  if (maximum < rawMaximum) {
-    maximum = Math.ceil(rawMaximum / step) * step;
-    minimum = maximum - step * 2;
+  const ticks: number[] = [];
+  for (let value = maximum; value >= minimum - SCALE_EPSILON; value -= step) {
+    ticks.push(Number(value.toFixed(10)));
   }
 
-  return {
-    minimum,
-    midpoint: minimum + step,
-    maximum: minimum + step * 2,
-    step,
-  };
+  return { minimum, maximum, step, ticks };
 };
 
-const decimalPlacesForStep = (step: number) => {
-  for (let decimals = 0; decimals <= 3; decimals += 1) {
-    const scaled = step * 10 ** decimals;
-    if (Math.abs(scaled - Math.round(scaled)) < 1e-8) return decimals;
-  }
-  return 3;
-};
-
-const formatAxisValue = (series: MarketSeries, value: number, step: number) => {
-  const decimals = decimalPlacesForStep(step);
-  const formatted = value.toFixed(decimals);
-  return series.id === 'euribor-3m' ? `${formatted}%` : formatted;
-};
+const formatAxisValue = (id: MarketSeriesId, value: number) =>
+  id === 'euribor-3m' ? `${value.toFixed(1)}%` : value.toFixed(0);
 
 const getPlotValues = (series: MarketSeries) => {
   if (series.id === 'euribor-3m') return series.points.map((point) => point.value);
@@ -150,6 +135,28 @@ const getPlotValues = (series: MarketSeries) => {
   return series.points.map((point) => (point.value / baseline) * 100);
 };
 
+const formatObservationDate = (observedAt: string) => {
+  const date = new Date(`${observedAt}T00:00:00Z`);
+  if (!Number.isFinite(date.getTime())) return observedAt;
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+    .format(date)
+    .toUpperCase();
+};
+
+const formatInspectionValue = (id: MarketSeriesId, value: number) => {
+  if (id === 'euribor-3m') return `${value.toFixed(3)}%`;
+
+  const change = value - 100;
+  const sign = change > 0 ? '+' : '';
+  return `${value.toFixed(1)} · ${sign}${change.toFixed(1)}%`;
+};
+
 export const initCurrentMarkets = () => {
   const root = document.querySelector<HTMLElement>('[data-current-markets]');
   if (!root || root.dataset.marketsInitialized === 'true') return;
@@ -157,6 +164,8 @@ export const initCurrentMarkets = () => {
 
   const errorTarget = root.querySelector<HTMLElement>('[data-markets-error]');
   const retryButton = root.querySelector<HTMLButtonElement>('[data-markets-retry]');
+  const chartStates = new Map<MarketSeriesId, ChartState>();
+  const inspectedIndexes = new Map<MarketSeriesId, number | null>();
 
   const renderItems = (items: MacroItem[]) => {
     for (const item of items) {
@@ -165,24 +174,122 @@ export const initCurrentMarkets = () => {
     }
   };
 
+  const hideInspection = (id: MarketSeriesId) => {
+    const tooltip = root.querySelector<HTMLElement>(`[data-market-tooltip="${id}"]`);
+    const svg = root.querySelector<SVGSVGElement>(`[data-market-sparkline="${id}"]`);
+    const line = svg?.querySelector<SVGLineElement>('[data-market-inspection-line]');
+    const point = svg?.querySelector<SVGCircleElement>('[data-market-inspection-point]');
+
+    if (tooltip) tooltip.hidden = true;
+    line?.setAttribute('opacity', '0');
+    point?.setAttribute('opacity', '0');
+  };
+
+  const renderInspection = (id: MarketSeriesId, index: number) => {
+    const state = chartStates.get(id);
+    const pointData = state?.series.points[index];
+    const value = state?.values[index];
+    const svg = root.querySelector<SVGSVGElement>(`[data-market-sparkline="${id}"]`);
+    const stage = root.querySelector<HTMLElement>(`[data-market-chart-stage="${id}"]`);
+    const tooltip = root.querySelector<HTMLElement>(`[data-market-tooltip="${id}"]`);
+    const tooltipDate = root.querySelector<HTMLElement>(`[data-market-tooltip-date="${id}"]`);
+    const tooltipValue = root.querySelector<HTMLElement>(`[data-market-tooltip-value="${id}"]`);
+
+    if (!state || !pointData || value === undefined || !svg || !stage || !tooltip) {
+      hideInspection(id);
+      return;
+    }
+
+    const range = state.scale.maximum - state.scale.minimum || 1;
+    const drawableWidth = CHART_WIDTH - CHART_PADDING * 2;
+    const drawableHeight = CHART_HEIGHT - CHART_PADDING * 2;
+    const x =
+      CHART_PADDING +
+      (index / Math.max(1, state.values.length - 1)) * drawableWidth;
+    const y =
+      CHART_PADDING +
+      (1 - (value - state.scale.minimum) / range) * drawableHeight;
+    const line = svg.querySelector<SVGLineElement>('[data-market-inspection-line]');
+    const marker = svg.querySelector<SVGCircleElement>('[data-market-inspection-point]');
+
+    line?.setAttribute('x1', x.toFixed(2));
+    line?.setAttribute('x2', x.toFixed(2));
+    line?.setAttribute('y1', String(CHART_PADDING));
+    line?.setAttribute('y2', String(CHART_HEIGHT - CHART_PADDING));
+    line?.setAttribute('opacity', '1');
+    marker?.setAttribute('cx', x.toFixed(2));
+    marker?.setAttribute('cy', y.toFixed(2));
+    marker?.setAttribute('opacity', '1');
+
+    if (tooltipDate) tooltipDate.textContent = formatObservationDate(pointData.observedAt);
+    if (tooltipValue) tooltipValue.textContent = formatInspectionValue(id, value);
+    tooltip.hidden = false;
+
+    const stageWidth = stage.clientWidth || CHART_WIDTH;
+    const desiredLeft = (x / CHART_WIDTH) * stageWidth;
+    const tooltipHalfWidth = tooltip.offsetWidth / 2;
+    const clampedLeft = Math.max(
+      tooltipHalfWidth + 4,
+      Math.min(stageWidth - tooltipHalfWidth - 4, desiredLeft)
+    );
+    tooltip.style.left = `${clampedLeft}px`;
+  };
+
+  const renderAxisAndGrid = (
+    id: MarketSeriesId,
+    svg: SVGSVGElement,
+    scale: AxisScale
+  ) => {
+    const axis = root.querySelector<HTMLElement>(`[data-market-axis="${id}"]`);
+    const grid = svg.querySelector<SVGGElement>('[data-market-grid]');
+    const range = scale.maximum - scale.minimum || 1;
+    const drawableHeight = CHART_HEIGHT - CHART_PADDING * 2;
+
+    if (axis) {
+      const labels = scale.ticks.map((value) => {
+        const label = document.createElement('span');
+        const ratio = (scale.maximum - value) / range;
+        label.className = 'markets-sparkline-axis__tick';
+        label.dataset.axisValue = String(value);
+        label.textContent = formatAxisValue(id, value);
+        label.style.top = `${ratio * 100}%`;
+        return label;
+      });
+      axis.replaceChildren(...labels);
+    }
+
+    if (grid) {
+      const lines = scale.ticks.map((value) => {
+        const ratio = (scale.maximum - value) / range;
+        const y = CHART_PADDING + ratio * drawableHeight;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(CHART_PADDING));
+        line.setAttribute('x2', String(CHART_WIDTH - CHART_PADDING));
+        line.setAttribute('y1', y.toFixed(2));
+        line.setAttribute('y2', y.toFixed(2));
+        return line;
+      });
+      grid.replaceChildren(...lines);
+    }
+  };
+
   const renderSparkline = (series: MarketSeries) => {
     const svg = root.querySelector<SVGSVGElement>(`[data-market-sparkline="${series.id}"]`);
-    const path = svg?.querySelector<SVGPathElement>('path');
+    const path = svg?.querySelector<SVGPathElement>('[data-market-line]');
     const values = getPlotValues(series);
     if (!svg || !path || values.length < 2) return;
 
-    const width = 240;
-    const height = 56;
-    const padding = 2;
-    const scale = buildAxisScale(values);
+    const scale = buildAxisScale(values, AXIS_STEPS[series.id]);
     const range = scale.maximum - scale.minimum || 1;
-    const drawableWidth = width - padding * 2;
-    const drawableHeight = height - padding * 2;
+    const drawableWidth = CHART_WIDTH - CHART_PADDING * 2;
+    const drawableHeight = CHART_HEIGHT - CHART_PADDING * 2;
 
     const d = values
       .map((value, index) => {
-        const x = padding + (index / (values.length - 1)) * drawableWidth;
-        const y = padding + (1 - (value - scale.minimum) / range) * drawableHeight;
+        const x = CHART_PADDING + (index / (values.length - 1)) * drawableWidth;
+        const y =
+          CHART_PADDING +
+          (1 - (value - scale.minimum) / range) * drawableHeight;
         return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`;
       })
       .join(' ');
@@ -192,21 +299,18 @@ export const initCurrentMarkets = () => {
     svg.setAttribute(
       'aria-label',
       series.id === 'euribor-3m'
-        ? '3 month Euribor one year trend'
-        : 'World equity one year trend indexed to 100 at the start of the period'
+        ? '3 month Euribor one year trend. Touch, hover or use the arrow keys to inspect values.'
+        : 'World equity one year trend indexed to 100 at the start of the period. Touch, hover or use the arrow keys to inspect values.'
     );
 
-    const axisTicks: Array<['max' | 'mid' | 'min', number]> = [
-      ['max', scale.maximum],
-      ['mid', scale.midpoint],
-      ['min', scale.minimum],
-    ];
+    renderAxisAndGrid(series.id, svg, scale);
+    chartStates.set(series.id, { series, values, scale });
 
-    for (const [level, value] of axisTicks) {
-      const target = root.querySelector<HTMLElement>(
-        `[data-market-axis="${series.id}"][data-axis-level="${level}"]`
-      );
-      if (target) target.textContent = formatAxisValue(series, value, scale.step);
+    const inspectedIndex = inspectedIndexes.get(series.id);
+    if (inspectedIndex !== null && inspectedIndex !== undefined && inspectedIndex < values.length) {
+      renderInspection(series.id, inspectedIndex);
+    } else {
+      hideInspection(series.id);
     }
 
     const fallback = root.querySelector<HTMLElement>(
@@ -230,6 +334,102 @@ export const initCurrentMarkets = () => {
       renderSparkline(series);
     }
   };
+
+  const bindChartInteraction = (id: MarketSeriesId) => {
+    const svg = root.querySelector<SVGSVGElement>(`[data-market-sparkline="${id}"]`);
+    if (!svg) return;
+
+    let activeTouchPointerId: number | null = null;
+
+    const inspectAtClientX = (clientX: number) => {
+      const state = chartStates.get(id);
+      if (!state || state.values.length === 0) return;
+
+      const rect = svg.getBoundingClientRect();
+      if (rect.width <= 0) return;
+
+      const svgX = ((clientX - rect.left) / rect.width) * CHART_WIDTH;
+      const drawableWidth = CHART_WIDTH - CHART_PADDING * 2;
+      const ratio = Math.max(
+        0,
+        Math.min(1, (svgX - CHART_PADDING) / drawableWidth)
+      );
+      const index = Math.round(ratio * (state.values.length - 1));
+
+      inspectedIndexes.set(id, index);
+      renderInspection(id, index);
+    };
+
+    svg.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'touch') {
+        activeTouchPointerId = event.pointerId;
+        try {
+          svg.setPointerCapture(event.pointerId);
+        } catch {
+          // Synthetic pointer events and some browsers may not expose pointer capture.
+        }
+      }
+      inspectAtClientX(event.clientX);
+    });
+
+    svg.addEventListener('pointermove', (event) => {
+      if (event.pointerType === 'touch' && activeTouchPointerId !== event.pointerId) return;
+      inspectAtClientX(event.clientX);
+    });
+
+    svg.addEventListener('pointerup', (event) => {
+      if (activeTouchPointerId === event.pointerId) {
+        activeTouchPointerId = null;
+        try {
+          svg.releasePointerCapture(event.pointerId);
+        } catch {
+          // The browser may already have released the pointer.
+        }
+      }
+    });
+
+    svg.addEventListener('pointercancel', (event) => {
+      if (activeTouchPointerId === event.pointerId) activeTouchPointerId = null;
+    });
+
+    svg.addEventListener('pointerleave', (event) => {
+      if (event.pointerType !== 'mouse') return;
+      inspectedIndexes.set(id, null);
+      hideInspection(id);
+    });
+
+    svg.addEventListener('focus', () => {
+      if (inspectedIndexes.get(id) !== null && inspectedIndexes.get(id) !== undefined) return;
+      const state = chartStates.get(id);
+      if (!state || state.values.length === 0) return;
+      const index = state.values.length - 1;
+      inspectedIndexes.set(id, index);
+      renderInspection(id, index);
+    });
+
+    svg.addEventListener('blur', () => {
+      inspectedIndexes.set(id, null);
+      hideInspection(id);
+    });
+
+    svg.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      const state = chartStates.get(id);
+      if (!state || state.values.length === 0) return;
+
+      event.preventDefault();
+      const currentIndex = inspectedIndexes.get(id) ?? state.values.length - 1;
+      const direction = event.key === 'ArrowLeft' ? -1 : 1;
+      const nextIndex = Math.max(
+        0,
+        Math.min(state.values.length - 1, currentIndex + direction)
+      );
+      inspectedIndexes.set(id, nextIndex);
+      renderInspection(id, nextIndex);
+    });
+  };
+
+  for (const id of SERIES_IDS) bindChartInteraction(id);
 
   const loadMarkets = async () => {
     root.setAttribute('aria-busy', 'true');
