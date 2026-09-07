@@ -154,7 +154,7 @@ const tags = (block: string, name: string) => {
 const cleanSummary = (value: string, title: string) => {
   let result = value
     .replace(/\s+The post\s+[\s\S]*$/i, '')
-    .replace(/\s+(?:Continue reading|Read more|Lue lisää)\b[\s\S]*$/i, '')
+    .replace(/\s+(?:Continue reading|Read more|Lue lisää)(?:\s|$)[\s\S]*$/i, '')
     .replace(/\s+/g, ' ')
     .trim();
 
