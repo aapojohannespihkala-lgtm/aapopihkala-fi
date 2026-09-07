@@ -262,7 +262,7 @@ const keywordTags: Array<[string, RegExp]> = [
   ['game-preservation', /\b(game preservation|pelihistoria|pelien säilyttäminen)\b/],
   ['restoration', /\b(restoration|restored|restaurointi|restauroitu)\b/],
   ['film-history', /\b(film history|cinema history|elokuvahistoria)\b/],
-  ['film-festival', /\b(film festival|elokuvafestivaali|cannes|venice film festival|sundance)\b/],
+  ['film-festival', /\b(film festival|cannes|venice film festival|sundance)\b|elokuvafestivaali/u],
   ['horror', /\b(horror|kauhu)\b/], ['sci-fi', /\b(sci[- ]?fi|science fiction|tieteiselokuva)\b/],
   ['animation', /\b(animation|animaatio|anime)\b/], ['streaming', /\b(netflix|hbo max|prime video|disney\+|suoratoisto)\b/],
   ['director', /\b(director|ohjaaja|ohjaajan)\b/], ['album', /\b(album|levy|levyn)\b/],
@@ -294,7 +294,7 @@ const noise = (feed: Feed, entry: Entry) => {
 
   if (feed.sourceId === 'episodi') {
     penalty += [
-      /\btänään tv:ssä\b/, /\billalla tv:ssä\b/, /\bpoistuu netflixistä\b/,
+      /tänään tv:ssä/, /illalla tv:ssä/, /poistuu netflixistä/,
       /\bnetflixistä poistuu\b/, /\bilmaiskatselussa\b/, /\bnyt katsottavissa\b/,
       /\brotten tomatoes\b/, /\bimdb\b/,
     ].filter((pattern) => pattern.test(value)).length * 0.12;
