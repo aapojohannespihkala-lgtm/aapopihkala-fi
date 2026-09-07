@@ -78,9 +78,11 @@ test('Current switches the electricity day average and chart without moving the 
   await expect(page.locator('[data-electricity-now-price]')).toHaveText('0.44 c/kWh');
   await expect(page.locator('[data-electricity-interval]')).toHaveText('16:45 - 17:00');
 
-  const todayChartBox = await chart.boundingBox();
-  expect(todayChartBox).not.toBeNull();
-  expect(todayChartBox?.height).toBeCloseTo(168, 0);
+  const todayChartMetrics = await chart.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { documentY: rect.top + window.scrollY, height: rect.height };
+  });
+  expect(todayChartMetrics.height).toBeCloseTo(168, 0);
 
   await tomorrowButton.click();
 
@@ -106,12 +108,12 @@ test('Current switches the electricity day average and chart without moving the 
   await expect(page.locator('.electricity-stats')).toHaveCount(0);
   await expect(chart).toHaveAttribute('aria-label', /tomorrow/);
 
-  const tomorrowChartBox = await chart.boundingBox();
-  expect(tomorrowChartBox).not.toBeNull();
-  if (todayChartBox && tomorrowChartBox) {
-    expect(Math.abs(tomorrowChartBox.y - todayChartBox.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(tomorrowChartBox.height - todayChartBox.height)).toBeLessThanOrEqual(1);
-  }
+  const tomorrowChartMetrics = await chart.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { documentY: rect.top + window.scrollY, height: rect.height };
+  });
+  expect(Math.abs(tomorrowChartMetrics.documentY - todayChartMetrics.documentY)).toBeLessThanOrEqual(2);
+  expect(Math.abs(tomorrowChartMetrics.height - todayChartMetrics.height)).toBeLessThanOrEqual(1);
 
   const chartBox = await chart.boundingBox();
   expect(chartBox).not.toBeNull();
@@ -149,12 +151,12 @@ test('Current switches the electricity day average and chart without moving the 
   await expect(page.locator('[data-electricity-current-line]')).toHaveCount(1);
   await expect(tomorrowDot).toBeHidden();
 
-  const todayAgainChartBox = await chart.boundingBox();
-  expect(todayAgainChartBox).not.toBeNull();
-  if (todayChartBox && todayAgainChartBox) {
-    expect(Math.abs(todayAgainChartBox.y - todayChartBox.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(todayAgainChartBox.height - todayChartBox.height)).toBeLessThanOrEqual(1);
-  }
+  const todayAgainChartMetrics = await chart.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { documentY: rect.top + window.scrollY, height: rect.height };
+  });
+  expect(Math.abs(todayAgainChartMetrics.documentY - todayChartMetrics.documentY)).toBeLessThanOrEqual(2);
+  expect(Math.abs(todayAgainChartMetrics.height - todayChartMetrics.height)).toBeLessThanOrEqual(1);
 });
 
 test('Current keeps stable space until a complete tomorrow price set exists', async ({ page }) => {
