@@ -1,6 +1,6 @@
 import { onRequestGet as getElectricityPriceResponse } from '../functions/api/current/electricity';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets';
-import { onRequestGet as getCompletePortfolioResponse } from '../functions/api/current/portfolio-complete';
+import { onRequestGet as getRecoveredPortfolioResponse } from '../functions/api/current/portfolio-recovered';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
 
 type AssetsBinding = {
@@ -32,7 +32,7 @@ const worker = {
 
     if (url.pathname === MARKETS_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      if (url.searchParams.get('portfolio') === '1') return getCompletePortfolioResponse();
+      if (url.searchParams.get('portfolio') === '1') return getRecoveredPortfolioResponse();
       return getMarketsResponse({ request });
     }
 
