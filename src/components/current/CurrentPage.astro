@@ -8,6 +8,7 @@ import NightModeToggle from '../NightModeToggle.astro';
 import CurrentWeather from './CurrentWeather.astro';
 import CurrentElectricity from './CurrentElectricity.astro';
 import CurrentMarkets from './CurrentMarkets.astro';
+import CurrentSectionNavigator from './CurrentSectionNavigator.astro';
 
 const canonicalUrl = `${site.url}/current/`;
 ---
@@ -45,15 +46,15 @@ const canonicalUrl = `${site.url}/current/`;
       </p>
     </header>
 
-    <div class="current-section-wrap">
+    <div class="current-section-wrap current-section-wrap--weather" data-current-section="weather">
       <CurrentWeather />
     </div>
 
-    <div class="current-section-wrap">
+    <div class="current-section-wrap" data-current-section="electricity">
       <CurrentElectricity />
     </div>
 
-    <div class="current-section-wrap">
+    <div class="current-section-wrap" data-current-section="markets">
       <CurrentMarkets />
     </div>
 
@@ -78,6 +79,8 @@ const canonicalUrl = `${site.url}/current/`;
       }
     </script>
   </main>
+
+  <CurrentSectionNavigator />
 
   <Fragment slot="afterAnalytics">
     <script>
@@ -156,6 +159,15 @@ const canonicalUrl = `${site.url}/current/`;
     text-underline-offset: 0.18em;
   }
 
+  .current-section-wrap {
+    scroll-margin-top: 64px;
+  }
+
+  .current-section-wrap--weather {
+    box-sizing: border-box;
+    min-height: calc(100svh - 116px);
+  }
+
   .current-section-wrap + .current-section-wrap {
     border-top: 1px solid var(--line);
   }
@@ -173,6 +185,10 @@ const canonicalUrl = `${site.url}/current/`;
 
     .current-clock {
       gap: 7px;
+    }
+
+    .current-section-wrap--weather {
+      min-height: calc(100svh - 108px);
     }
   }
 </style>
