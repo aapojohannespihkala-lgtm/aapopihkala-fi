@@ -25,7 +25,7 @@ Valmistunut kohta poistetaan tai merkitään selvästi tehdyksi, jotta tiedosto 
 - Päätä erikseen, dokumentoidaanko ne tarkoituksellisiksi vai poistetaanko ne varmennetulla cleanup-PR:llä.
 - Tämä ei ole nykyinen bugi eikä kiireellinen työ.
 
-## 4. Laajempi saavutettavuusaudit
+## 4. Laajempi saavutettavuysaudit
 
 Nykyisiä parannuksia ovat muun muassa skip navigation, vähimmäiskokoiset interaktiiviset kohteet, reduced motion -tuki ja regressiotestit.
 
@@ -66,3 +66,15 @@ Nykyinen sivusto ei tarvitse automaattista ajastettua julkaisua. Jos tarve myöh
 - Arvioi käytännön käytön perusteella rankingin, diversity-penaltyjen ja positiivisen/negatiivisen palautteen painot. Pelien, metallimusiikin ja elokuvien tarkemmat tagit on jo lisätty oppimissignaaleiksi.
 - Laajenna tapahtumien deduplikointia, jos otsikkopohjainen lähiläisyys ei riitä usean median käsitellessä samaa asiaa.
 - Nosta News `/current/`-juureen vasta, kun standalone-näkymän lähteet ja oppimiskäytös ovat riittävän vakaat.
+
+## 9. Riippuvuus- ja runtime-ylläpito
+
+Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivisen rakennusvaiheen normaalia ChatGPT -> PR -> nopea CI -> automerge -työnkulkua.
+
+- Päivitä Astro hallitusti nykyisestä 5-sarjasta uudempiin majoreihin vaiheittain. Älä niputa kahta major-siirtymää samaan sokkopäivitykseen.
+- Päivitä Three.js ja `@types/three` samassa muutoksessa ja validoi erityisesti Animation Labin sekä etusivun ja Aboutin 3D-regressiot.
+- Pidä TypeScript nykyisessä tuetussa sarjassa, kunnes `@astrojs/check` tukee seuraavaa majoria. Nykyinen check-versio sallii TypeScript 5- ja 6-sarjat, ei 7-sarjaa.
+- Lisää Wrangler projektin paikalliseksi lukituksi dev-riippuvuudeksi ennen seuraavaa deploy-työkalujen maintenance-päivitystä. Nykyinen `npx wrangler` ilman projektiversiota ei ole täysin toistettava.
+- Tarkista `npm audit` -löydökset Astro-päivitysten yhteydessä. Nykyinen asennus raportoi kolme transitiivista haavoittuvuutta ja yhden vanhentuneen `tsconfck`-riippuvuuden.
+- Arvioi Node 24 LTS erillisessä runtime-päivityksessä. Älä vaihda Node-majoria samalla kertaa Astro-majorin kanssa.
+- Älä lisää automaattista riippuvuuspäivitys-PR-virtaa rakennusvaiheessa pelkän hygienian vuoksi, jos se kasvattaa PR-kohinaa. Arvioi Dependabot tai vastaava uudelleen vakaammassa vaiheessa.
