@@ -8,7 +8,7 @@ import '../../styles/current-layout.css';
 import NightModeToggle from '../../components/NightModeToggle.astro';
 import CurrentWeather from '../../components/current/CurrentWeather.astro';
 import CurrentElectricity from '../../components/current/CurrentElectricity.astro';
-import CurrentMarkets from '../../components/current/CurrentMarkets.astro';
+import CurrentMarketsCustom from '../../components/current/CurrentMarketsCustom.astro';
 import Current2SectionNavigator from '../../components/current/Current2SectionNavigator.astro';
 
 const canonicalUrl = `${site.url}/current2/`;
@@ -49,7 +49,7 @@ const canonicalUrl = `${site.url}/current2/`;
     </div>
 
     <div class="current2-section" data-current2-section="markets">
-      <CurrentMarkets />
+      <CurrentMarketsCustom />
     </div>
   </main>
 

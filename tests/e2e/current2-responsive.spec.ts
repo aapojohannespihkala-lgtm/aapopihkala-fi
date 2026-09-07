@@ -93,6 +93,10 @@ test.describe('Current2 responsive comparison', () => {
       expect(initial.sections.electricity.inlineMinHeight).toBe('');
       expect(initial.sections.markets.inlineMinHeight).toBe('');
 
+      await expect(page.locator('tv-market-data')).toHaveCount(0);
+      await expect(page.locator('[data-current-market-performance]')).toHaveCount(1);
+      await expect(page.locator('[data-market-performance-row]')).toHaveCount(8);
+
       await nav.click();
       await expectMaskedByHeader(page, 'electricity');
 
@@ -102,6 +106,14 @@ test.describe('Current2 responsive comparison', () => {
 
       await nav.click();
       await expectMaskedByHeader(page, 'markets');
+
+      if (viewport.width <= 820) {
+        await expect(page.locator('.markets-custom-row--header .period-week1')).toBeHidden();
+        await expect(page.locator('.markets-custom-row--header .period-month6')).toBeHidden();
+      } else {
+        await expect(page.locator('.markets-custom-row--header .period-week1')).toBeVisible();
+        await expect(page.locator('.markets-custom-row--header .period-month6')).toBeVisible();
+      }
 
       await expect
         .poll(async () => nav.getAttribute('aria-label'))
