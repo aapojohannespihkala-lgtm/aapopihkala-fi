@@ -71,19 +71,26 @@
   opacity: 0.2;
 }
 
-.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-label text:first-child {
-  font-size: 7.5px;
+.current-shell.current-shell .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-label > text:first-child {
+  font-size: 11px !important;
+  font-weight: 700;
 }
 
-.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-unit {
-  fill: var(--stone-light);
-  font-size: 5.8px;
+.current-shell.current-shell .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-unit {
+  display: none !important;
+}
+
+.current-shell.current-shell .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-range {
+  font-size: 9px !important;
   font-weight: 500;
-  letter-spacing: 0.025em;
 }
 
-.current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-range {
-  font-size: 6.5px;
+.current-shell.current-shell .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-range:not([data-electricity-window-range-end]) {
+  transform: translateY(2px);
+}
+
+.current-shell.current-shell .current-electricity [data-electricity-chart].electricity-chart [data-electricity-window-range-end] {
+  transform: translateY(5px);
 }
 
 .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__current-line {
@@ -145,15 +152,19 @@
     max-height: 168px;
   }
 
-  .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-label text:first-child {
-    font-size: 7px;
+  .current-shell.current-shell .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-label > text:first-child {
+    font-size: 10px !important;
   }
 
-  .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-unit {
-    font-size: 5.4px;
+  .current-shell.current-shell .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-range {
+    font-size: 8.5px !important;
   }
 
-  .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-range {
-    font-size: 6px;
+  .current-shell.current-shell .current-electricity [data-electricity-chart].electricity-chart .electricity-chart__window-range:not([data-electricity-window-range-end]) {
+    transform: translateY(2px);
+  }
+
+  .current-shell.current-shell .current-electricity [data-electricity-chart].electricity-chart [data-electricity-window-range-end] {
+    transform: translateY(3px);
   }
 }
