@@ -1,20 +1,11 @@
 type MarketPerformanceId =
-  | 'handelsbanken-usa'
-  | 'nordnet-finland'
   | 'ishares-world'
   | 'ishares-europe'
-  | 'nordnet-sweden'
-  | 'spiltan-investmentbolag'
-  | 'storebrand-japan'
   | 'franklin-sp500-climate'
   | 'xact-norden'
   | 'nordea'
   | 'marimekko'
   | 'remedy'
-  | 'op-asia-index-a'
-  | 'op-europe-index-a'
-  | 'op-world-index-a'
-  | 'op-forest-owner-b'
   | 'btc'
   | 'bnb'
   | 'eth';
@@ -40,14 +31,10 @@ type YahooChartResponse = {
 type PerformanceSpec = {
   id: MarketPerformanceId;
   label: string;
-  symbol?: string;
-};
-
-type LivePerformanceSpec = PerformanceSpec & {
   symbol: string;
 };
 
-type MarketPerformanceItem = LivePerformanceSpec & {
+type MarketPerformanceItem = PerformanceSpec & {
   price: number;
   observedAt: string;
   changes: {
@@ -60,43 +47,26 @@ type MarketPerformanceItem = LivePerformanceSpec & {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const YAHOO_BATCH_SIZE = 2;
-const YAHOO_BATCH_PAUSE_MS = 220;
-const YAHOO_RETRY_PAUSE_MS = 180;
+const EXPECTED_HOLDINGS = 19;
 
-// Current2 portfolio prototype. Exchange-traded holdings and crypto use exact Yahoo symbols.
-// Traditional funds stay in the expected count but are intentionally not proxied
-// with an index: their exact NAV/history adapters will be added separately.
-const PERFORMANCE_SPECS: PerformanceSpec[] = [
-  { id: 'handelsbanken-usa', label: 'HANDELSBANKEN USA INDEKSI' },
-  { id: 'nordnet-finland', label: 'NORDNET SUOMI INDEKSI' },
+const LIVE_SPECS: PerformanceSpec[] = [
   { id: 'ishares-world', label: 'ISHARES CORE MSCI WORLD UCITS ETF USD (ACC)', symbol: 'EUNL.DE' },
   { id: 'ishares-europe', label: 'ISHARES CORE MSCI EUROPE UCITS ETF EUR (ACC)', symbol: 'EUNK.DE' },
-  { id: 'nordnet-sweden', label: 'NORDNET SVERIGE INDEX' },
-  { id: 'spiltan-investmentbolag', label: 'SPILTAN AKTIEFOND INVESTMENTBOLAG' },
-  { id: 'storebrand-japan', label: 'STOREBRAND JAPAN A EUR' },
-  { id: 'franklin-sp500-climate', label: 'FRANKLIN S&P 500 PARIS ALIGNED CLIMATE UCITS ETF', symbol: 'FLX5.DE' },
+  {
+    id: 'franklin-sp500-climate',
+    label: 'FRANKLIN S&P 500 PARIS ALIGNED CLIMATE UCITS ETF',
+    symbol: 'FLX5.DE',
+  },
   { id: 'xact-norden', label: 'XACT NORDEN', symbol: 'XACT-NORDEN.ST' },
   { id: 'nordea', label: 'NORDEA', symbol: 'NDA-FI.HE' },
   { id: 'marimekko', label: 'MARIMEKKO', symbol: 'MEKKO.HE' },
   { id: 'remedy', label: 'REMEDY', symbol: 'REMEDY.HE' },
-  { id: 'op-asia-index-a', label: 'OP-AASIA INDEKSI A' },
-  { id: 'op-europe-index-a', label: 'OP-EUROOPPA INDEKSI A' },
-  { id: 'op-world-index-a', label: 'OP-MAAILMA INDEKSI A' },
-  { id: 'op-forest-owner-b', label: 'OP-METSÄNOMISTAJA B' },
   { id: 'btc', label: 'BTC', symbol: 'BTC-EUR' },
   { id: 'bnb', label: 'BNB', symbol: 'BNB-EUR' },
   { id: 'eth', label: 'ETH', symbol: 'ETH-EUR' },
 ];
 
-const LIVE_SPECS = PERFORMANCE_SPECS.filter(
-  (spec): spec is LivePerformanceSpec => typeof spec.symbol === 'string'
-);
-
-const sleep = (milliseconds: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
-
-const jsonResponse = (body: unknown, status: number) =>
+const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -136,28 +106,25 @@ const parseYahooObservations = (data: YahooChartResponse): Observation[] => {
 
 const fetchYahooObservations = async (symbol: string) => {
   const encoded = encodeURIComponent(symbol);
-  const period2 = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
-  const period1 = period2 - 740 * 24 * 60 * 60;
-  const query = `period1=${period1}&period2=${period2}&interval=1d&events=history&includeAdjustedClose=true`;
   const urls = [
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?${query}`,
-    `https://query2.finance.yahoo.com/v8/finance/chart/${encoded}?${query}`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?range=1y&interval=1d`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encoded}?range=1y&interval=1d`,
   ];
   let lastError: unknown;
 
-  for (let index = 0; index < urls.length; index += 1) {
+  for (const url of urls) {
     try {
-      const response = await fetch(urls[index], {
+      const response = await fetch(url, {
         headers: {
           Accept: 'application/json',
           'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
         },
       });
+
       if (!response.ok) throw new Error(`Yahoo Finance request failed: ${response.status}`);
       return parseYahooObservations((await response.json()) as YahooChartResponse);
     } catch (error) {
       lastError = error;
-      if (index < urls.length - 1) await sleep(YAHOO_RETRY_PAUSE_MS);
     }
   }
 
@@ -182,7 +149,7 @@ const percentChange = (latest: number, reference: number) => {
 };
 
 const buildPerformanceItem = (
-  spec: LivePerformanceSpec,
+  spec: PerformanceSpec,
   observations: Observation[]
 ): MarketPerformanceItem => {
   const latest = observations.at(-1);
@@ -209,45 +176,37 @@ const buildPerformanceItem = (
   };
 };
 
-const fetchLivePerformance = async () => {
-  const settled: PromiseSettledResult<MarketPerformanceItem>[] = [];
-
-  for (let index = 0; index < LIVE_SPECS.length; index += YAHOO_BATCH_SIZE) {
-    const batch = LIVE_SPECS.slice(index, index + YAHOO_BATCH_SIZE);
-    const results = await Promise.allSettled(
-      batch.map(async (spec) =>
+export const onRequestGet = async () => {
+  try {
+    const settled = await Promise.allSettled(
+      LIVE_SPECS.map(async (spec) =>
         buildPerformanceItem(spec, await fetchYahooObservations(spec.symbol))
       )
     );
 
-    settled.push(...results);
+    const items = settled.flatMap((result) =>
+      result.status === 'fulfilled' ? [result.value] : []
+    );
+    const unavailable = settled.flatMap((result, index) =>
+      result.status === 'rejected' ? [LIVE_SPECS[index].id] : []
+    );
 
-    if (index + YAHOO_BATCH_SIZE < LIVE_SPECS.length) {
-      await sleep(YAHOO_BATCH_PAUSE_MS);
-    }
-  }
-
-  return settled;
-};
-
-export const onRequestGet = async () => {
-  const settled = await fetchLivePerformance();
-
-  const items = settled.flatMap((result) =>
-    result.status === 'fulfilled' ? [result.value] : []
-  );
-  const unavailable = settled.flatMap((result, index) =>
-    result.status === 'rejected' ? [LIVE_SPECS[index].id] : []
-  );
-
-  return jsonResponse(
-    {
+    return jsonResponse({
       items,
-      expected: PERFORMANCE_SPECS.length,
+      expected: EXPECTED_HOLDINGS,
       liveExpected: LIVE_SPECS.length,
       unavailable,
-      source: 'Yahoo Finance + exact fund NAV adapters pending',
-    },
-    200
-  );
+      source: 'Yahoo Finance',
+      version: 4,
+    });
+  } catch {
+    return jsonResponse({
+      items: [],
+      expected: EXPECTED_HOLDINGS,
+      liveExpected: LIVE_SPECS.length,
+      unavailable: LIVE_SPECS.map((spec) => spec.id),
+      source: 'Yahoo Finance',
+      version: 4,
+    });
+  }
 };
