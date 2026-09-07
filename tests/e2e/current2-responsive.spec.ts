@@ -71,6 +71,14 @@ test.describe('Current2 responsive comparison', () => {
         }
       });
 
+      await page.route('**/api/current/market-performance', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ items: [], expected: 19, liveExpected: 10 }),
+        });
+      });
+
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto('/current2/', { waitUntil: 'domcontentloaded' });
@@ -109,6 +117,13 @@ test.describe('Current2 responsive comparison', () => {
       await expect(page.getByText('ETH', { exact: true })).toBeVisible();
       await expect(page.locator('[data-market-performance-row="world"]')).toHaveCount(0);
 
+      const firstPortfolioRow = page.locator('[data-market-performance-row="handelsbanken-usa"]');
+      await expect(firstPortfolioRow).toHaveCSS('display', 'grid');
+      await expect(firstPortfolioRow).toHaveCSS('min-height', '37px');
+      await expect(page.locator('[data-market-performance-status]')).toHaveText(
+        'PARTIAL / 0 OF 19 HOLDINGS'
+      );
+
       await nav.click();
       await expectMaskedByHeader(page, 'electricity');
 
@@ -122,9 +137,13 @@ test.describe('Current2 responsive comparison', () => {
       if (viewport.width <= 820) {
         await expect(page.locator('.markets-custom-row--header .period-week1')).toBeHidden();
         await expect(page.locator('.markets-custom-row--header .period-month6')).toBeHidden();
+        await expect(firstPortfolioRow.locator('.period-week1')).toBeHidden();
+        await expect(firstPortfolioRow.locator('.period-month6')).toBeHidden();
       } else {
         await expect(page.locator('.markets-custom-row--header .period-week1')).toBeVisible();
         await expect(page.locator('.markets-custom-row--header .period-month6')).toBeVisible();
+        await expect(firstPortfolioRow.locator('.period-week1')).toBeVisible();
+        await expect(firstPortfolioRow.locator('.period-month6')).toBeVisible();
       }
 
       await expect
