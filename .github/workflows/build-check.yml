@@ -37,6 +37,7 @@ jobs:
           docs_only=false
           css_only=false
           current_ui_sensitive=false
+          meshy_poise_sensitive=false
 
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             mapfile -t changed_files < <(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")
@@ -72,12 +73,19 @@ jobs:
                   current_ui_sensitive=true
                   ;;
               esac
+
+              case "$file" in
+                src/components/MeshyPixelatedPoise.astro|tests/e2e/meshy-poise-regression.spec.ts)
+                  meshy_poise_sensitive=true
+                  ;;
+              esac
             done
           fi
 
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
           echo "css_only=$css_only" >> "$GITHUB_OUTPUT"
           echo "current_ui_sensitive=$current_ui_sensitive" >> "$GITHUB_OUTPUT"
+          echo "meshy_poise_sensitive=$meshy_poise_sensitive" >> "$GITHUB_OUTPUT"
 
       - name: Documentation-only fast path
         if: steps.changes.outputs.docs_only == 'true'
@@ -109,7 +117,9 @@ jobs:
       - name: Install Chromium
         if: >-
           steps.changes.outputs.docs_only != 'true' &&
-          (github.event_name != 'pull_request' || steps.changes.outputs.current_ui_sensitive == 'true')
+          (github.event_name != 'pull_request' ||
+          steps.changes.outputs.current_ui_sensitive == 'true' ||
+          steps.changes.outputs.meshy_poise_sensitive == 'true')
         run: npx playwright install --with-deps chromium
 
       - name: Current UI smoke guards
@@ -120,6 +130,12 @@ jobs:
           npx playwright test
           tests/e2e/current-section-boundaries.spec.ts
           tests/e2e/current-electricity-tomorrow.spec.ts
+
+      - name: Pixelated Poise smoke guard
+        if: >-
+          github.event_name == 'pull_request' &&
+          steps.changes.outputs.meshy_poise_sensitive == 'true'
+        run: npx playwright test tests/e2e/meshy-poise-regression.spec.ts
 
       - name: Browser regression tests
         if: steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'
