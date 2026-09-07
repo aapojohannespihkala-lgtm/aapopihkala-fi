@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+const captureCanvas = (canvas: ReturnType<Parameters<typeof test>[1]> extends never ? never : never) => canvas;
+
 test('Pixelated Poise preserves its Lab render and free orbit interaction', async ({ page }) => {
   test.setTimeout(90_000);
 
@@ -46,7 +48,8 @@ test('Pixelated Poise preserves its Lab render and free orbit interaction', asyn
   expect(box).not.toBeNull();
   if (!box) return;
 
-  const before = await canvas.screenshot();
+  const snapshot = () => canvas.evaluate((element) => (element as HTMLCanvasElement).toDataURL('image/png'));
+  const before = await snapshot();
   const startX = box.x + box.width * 0.5;
   const startY = box.y + box.height * 0.5;
 
@@ -56,7 +59,7 @@ test('Pixelated Poise preserves its Lab render and free orbit interaction', asyn
   await page.mouse.up();
   await page.waitForTimeout(250);
 
-  const after = await canvas.screenshot();
-  expect(Buffer.compare(before, after)).not.toBe(0);
+  const after = await snapshot();
+  expect(after).not.toBe(before);
   expect(modelErrors).toEqual([]);
 });
