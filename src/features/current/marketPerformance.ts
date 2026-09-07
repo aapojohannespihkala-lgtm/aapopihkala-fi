@@ -14,7 +14,10 @@ type MarketPerformanceId =
   | 'op-asia-index-a'
   | 'op-europe-index-a'
   | 'op-world-index-a'
-  | 'op-forest-owner-b';
+  | 'op-forest-owner-b'
+  | 'btc'
+  | 'bnb'
+  | 'eth';
 
 type MarketPerformanceItem = {
   id: MarketPerformanceId;
@@ -62,6 +65,9 @@ const DISPLAY_ROWS: DisplayRow[] = [
   { id: 'op-europe-index-a', label: 'OP-Eurooppa Indeksi A', identifier: 'FI4000029301' },
   { id: 'op-world-index-a', label: 'OP-Maailma Indeksi A', identifier: 'FI4000261128' },
   { id: 'op-forest-owner-b', label: 'OP-Metsänomistaja B', identifier: 'FI4000108436' },
+  { id: 'btc', label: 'BTC', identifier: 'BTC-EUR' },
+  { id: 'bnb', label: 'BNB', identifier: 'BNB-EUR' },
+  { id: 'eth', label: 'ETH', identifier: 'ETH-EUR' },
 ];
 
 const IDS = new Set<MarketPerformanceId>(DISPLAY_ROWS.map((row) => row.id));
