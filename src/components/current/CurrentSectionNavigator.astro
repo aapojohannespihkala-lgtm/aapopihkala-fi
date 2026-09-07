@@ -186,19 +186,29 @@
       window.scrollTo({ top: 0, behavior: behavior() })
     })
 
-    let ticking = false
-    const scheduleUpdate = () => {
-      if (ticking) return
-      ticking = true
+    let stateTicking = false
+    const scheduleStateUpdate = () => {
+      if (stateTicking) return
+      stateTicking = true
       window.requestAnimationFrame(() => {
-        ticking = false
+        stateTicking = false
+        updateState()
+      })
+    }
+
+    let layoutTicking = false
+    const scheduleLayoutUpdate = () => {
+      if (layoutTicking) return
+      layoutTicking = true
+      window.requestAnimationFrame(() => {
+        layoutTicking = false
         fitSectionsToViewport()
         updateState()
       })
     }
 
-    window.addEventListener('scroll', scheduleUpdate, { passive: true })
-    window.addEventListener('resize', scheduleUpdate, { passive: true })
+    window.addEventListener('scroll', scheduleStateUpdate, { passive: true })
+    window.addEventListener('resize', scheduleLayoutUpdate, { passive: true })
 
     resolveSections()
   })()
