@@ -99,6 +99,13 @@ const canonicalUrl = `${site.url}/current/`;
 </BaseLayout>
 
 <style>
+  /* Current still clips third-party horizontal overflow, but `clip` deliberately
+     avoids creating the scroll container that would disable the shared sticky header. */
+  :global(html:has(.current-shell)),
+  :global(body:has(.current-shell)) {
+    overflow-x: clip !important;
+  }
+
   .current-shell {
     width: 100%;
     max-width: 1160px;
