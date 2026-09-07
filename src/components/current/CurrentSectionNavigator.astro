@@ -13,17 +13,17 @@
   .current-section-nav-button {
     position: fixed;
     left: 50%;
-    bottom: 16px;
-    z-index: 120;
+    bottom: 26px;
+    z-index: 400;
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     border: 0;
     background: transparent;
-    color: var(--stone-light);
-    opacity: 0.64;
+    color: var(--stone);
+    opacity: 0.82;
     cursor: pointer;
     transform: translateX(-50%);
     transition:
@@ -35,7 +35,7 @@
   .current-section-nav-button:hover,
   .current-section-nav-button:focus-visible {
     color: var(--moss-deep);
-    opacity: 0.94;
+    opacity: 1;
   }
 
   .current-section-nav-button:hover {
@@ -69,9 +69,9 @@
 
   @media (max-width: 640px) {
     .current-section-nav-button {
-      bottom: 12px;
-      width: 26px;
-      height: 26px;
+      bottom: 18px;
+      width: 30px;
+      height: 30px;
     }
   }
 
@@ -90,16 +90,6 @@
     if (button.dataset.initialized === 'true') return
     button.dataset.initialized = 'true'
 
-    const sections = Array.from(document.querySelectorAll('[data-current-section]')).filter(
-      (section) => section instanceof HTMLElement
-    )
-    const firstSection = sections[0]
-
-    if (!(firstSection instanceof HTMLElement) || sections.length < 2) {
-      button.hidden = true
-      return
-    }
-
     const reducedMotion = () =>
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -116,15 +106,20 @@
     const getSectionScrollTop = (section) =>
       Math.max(0, getDocumentTop(section) - getHeaderHeight())
 
+    let sections = []
+    let firstSection = null
+    let currentTarget = null
+
     const fitFirstSectionToViewport = () => {
+      if (!(firstSection instanceof HTMLElement)) return
       const sectionTop = getDocumentTop(firstSection)
       const remainingViewport = window.innerHeight - sectionTop
-      firstSection.style.minHeight = `${Math.max(0, Math.ceil(remainingViewport + 1))}px`
+      firstSection.style.minHeight = `${Math.max(0, Math.ceil(remainingViewport + 2))}px`
     }
 
-    let currentTarget = sections[1]
-
     const updateState = () => {
+      if (!sections.length) return
+
       const y = window.scrollY
       const threshold = y + getHeaderHeight() + 40
       let currentIndex = 0
@@ -144,6 +139,22 @@
       currentTarget = null
       button.classList.add('is-up')
       button.setAttribute('aria-label', 'Back to Current top')
+    }
+
+    const resolveSections = () => {
+      sections = Array.from(document.querySelectorAll('[data-current-section]')).filter(
+        (section) => section instanceof HTMLElement
+      )
+      firstSection = sections[0] ?? null
+
+      if (!(firstSection instanceof HTMLElement) || sections.length < 2) {
+        window.requestAnimationFrame(resolveSections)
+        return
+      }
+
+      button.hidden = false
+      fitFirstSectionToViewport()
+      updateState()
     }
 
     button.addEventListener('click', () => {
@@ -172,7 +183,6 @@
     window.addEventListener('scroll', scheduleUpdate, { passive: true })
     window.addEventListener('resize', scheduleUpdate, { passive: true })
 
-    fitFirstSectionToViewport()
-    updateState()
+    resolveSections()
   })()
 </script>
