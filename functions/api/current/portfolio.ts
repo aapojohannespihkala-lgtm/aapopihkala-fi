@@ -67,12 +67,20 @@ type OpFundSpec = PerformanceSpec & {
 };
 
 type NordnetFundSpec = PerformanceSpec & {
-  url: string;
-  rowLabel: string;
+  slug: string;
+};
+
+type NordnetFundProfileResponse = {
+  navInfo?: {
+    latestNav?: { date?: unknown; value?: unknown };
+    previousNav?: { date?: unknown; value?: unknown };
+    returns?: Array<{ period?: unknown; development?: unknown }>;
+  };
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const EXPECTED_HOLDINGS = 19;
+const NORDNET_MARKET_DATA_BASE = 'https://api.prod.nntech.io';
 
 const YAHOO_SPECS: PerformanceSpec[] = [
   {
@@ -147,29 +155,25 @@ const NORDNET_FALLBACK_SPECS: NordnetFundSpec[] = [
     id: 'handelsbanken-usa',
     label: 'HANDELSBANKEN USA INDEKSI',
     symbol: 'SE0006800140',
-    url: 'https://www.nordnet.fi/rahastot/lista/handelsbanken-usa-index-a1-eur-348def3b',
-    rowLabel: 'Handelsbanken Usa Indeksi',
+    slug: 'handelsbanken-usa-index-a1-eur-348def3b',
   },
   {
     id: 'nordnet-finland',
     label: 'NORDNET SUOMI INDEKSI',
     symbol: 'SE0005993102',
-    url: 'https://www.nordnet.fi/rahastot/lista/nordnet-suomi-indeksi-eur-a401761d',
-    rowLabel: 'Nordnet Suomi Indeksi',
+    slug: 'nordnet-suomi-indeksi-eur-a401761d',
   },
   {
     id: 'nordnet-sweden',
     label: 'NORDNET SVERIGE INDEX',
     symbol: 'SE0002756973',
-    url: 'https://www.nordnet.fi/rahastot/lista/nordnet-sverige-index-sek-aa7a9014',
-    rowLabel: 'Nordnet Sverige Index',
+    slug: 'nordnet-sverige-index-sek-aa7a9014',
   },
   {
     id: 'spiltan-investmentbolag',
     label: 'SPILTAN AKTIEFOND INVESTMENTBOLAG',
     symbol: 'SE0004297927',
-    url: 'https://www.nordnet.fi/rahastot/lista/spiltan-aktiefond-investmentbolag-sek-d8fe1a7e',
-    rowLabel: 'Spiltan Aktiefond Investmentbolag',
+    slug: 'spiltan-aktiefond-investmentbolag-sek-d8fe1a7e',
   },
 ];
 
@@ -177,8 +181,7 @@ const STOREBRAND_SPEC: NordnetFundSpec = {
   id: 'storebrand-japan',
   label: 'STOREBRAND JAPAN A EUR',
   symbol: 'SE0013801479',
-  url: 'https://www.nordnet.fi/rahastot/lista/storebrand-japan-a-eur-dbe9644c',
-  rowLabel: 'Storebrand Japan A EUR',
+  slug: 'storebrand-japan-a-eur-dbe9644c',
 };
 
 const NORDNET_FALLBACK_BY_ID = new Map(
@@ -416,57 +419,88 @@ const fetchOpFund = async (spec: OpFundSpec): Promise<MarketPerformanceItem> => 
   };
 };
 
+const asFiniteNumber = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
+
 const fetchNordnetFund = async (spec: NordnetFundSpec): Promise<MarketPerformanceItem> => {
-  const response = await fetch(spec.url, {
-    headers: {
-      Accept: 'text/html',
-      'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
-    },
-  });
-  if (!response.ok) throw new Error(`Nordnet request failed: ${response.status}`);
+  const response = await fetch(
+    `${NORDNET_MARKET_DATA_BASE}/instrument-screening/v2/mutual-funds/web/${spec.slug}`,
+    {
+      headers: {
+        Accept: 'application/json',
+        'x-locale': 'fi-FI',
+        'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
+      },
+    }
+  );
+  if (!response.ok) throw new Error(`Nordnet fund profile request failed: ${response.status}`);
 
-  const text = htmlToText(await response.text());
-  const titleIndex = text.indexOf(spec.rowLabel);
-  if (titleIndex < 0) throw new Error(`${spec.rowLabel} row is missing`);
+  const data = (await response.json()) as NordnetFundProfileResponse;
+  const latest = data.navInfo?.latestNav;
+  const returns = new Map<string, number>();
 
-  const summary = text.slice(titleIndex + spec.rowLabel.length, titleIndex + spec.rowLabel.length + 420);
-  const dailyMatch = summary.match(/([+−-]?\d+(?:[.,]\d+)?)\s*%\s*(\d{1,2})\.(\d{1,2})\./);
-  const yearMatch = summary.match(/([+−-]?\d+(?:[.,]\d+)?)\s*%\s*12\s*kk/i);
-  const navDateMatch = summary.match(/NAV\s*\((\d{1,2})\.(\d{1,2})\.\)/i);
-  if (!yearMatch) throw new Error(`${spec.rowLabel} 12 month return is missing`);
+  for (const item of data.navInfo?.returns ?? []) {
+    if (typeof item.period !== 'string') continue;
+    const development = asFiniteNumber(item.development);
+    if (development !== null) returns.set(item.period, development);
+  }
 
-  const today = dailyMatch ? parsePercentToken(`${dailyMatch[1]}%`) : null;
-  const year1 = parsePercentToken(`${yearMatch[1]}%`);
-  const dateMatch = dailyMatch ?? navDateMatch;
-  const observedAt = dateMatch
-    ? inferObservationDate(Number(dateMatch[2]), Number(dateMatch[3]))
-    : new Date().toISOString().slice(0, 10);
+  const observedAt = typeof latest?.date === 'string' ? latest.date : new Date().toISOString().slice(0, 10);
+  const price = asFiniteNumber(latest?.value);
 
   return {
     id: spec.id,
     label: spec.label,
     symbol: spec.symbol,
-    price: null,
+    price,
     observedAt,
     changes: {
-      today,
-      week1: null,
-      month1: null,
-      month3: null,
-      month6: null,
-      ytd: null,
-      year1,
-      year3: null,
-      year5: null,
+      today: returns.get('DAY_1') ?? null,
+      week1: returns.get('WEEK_1') ?? null,
+      month1: returns.get('MONTH_1') ?? null,
+      month3: returns.get('MONTH_3') ?? null,
+      month6: returns.get('MONTH_6') ?? null,
+      ytd: returns.get('YTD') ?? null,
+      year1: returns.get('YEAR_1') ?? null,
+      year3: returns.get('YEAR_3') ?? null,
+      year5: returns.get('YEAR_5') ?? null,
     },
   };
 };
 
+const mergeMissingChanges = (
+  primary: MarketPerformanceItem,
+  fallback: MarketPerformanceItem
+): MarketPerformanceItem => ({
+  ...primary,
+  price: primary.price ?? fallback.price,
+  observedAt: primary.observedAt || fallback.observedAt,
+  changes: {
+    today: primary.changes.today ?? fallback.changes.today,
+    week1: primary.changes.week1 ?? fallback.changes.week1,
+    month1: primary.changes.month1 ?? fallback.changes.month1,
+    month3: primary.changes.month3 ?? fallback.changes.month3,
+    month6: primary.changes.month6 ?? fallback.changes.month6,
+    ytd: primary.changes.ytd ?? fallback.changes.ytd,
+    year1: primary.changes.year1 ?? fallback.changes.year1,
+    year3: primary.changes.year3 ?? fallback.changes.year3,
+    year5: primary.changes.year5 ?? fallback.changes.year5,
+  },
+});
+
 const loadYahooWithFallback = async (spec: PerformanceSpec): Promise<MarketPerformanceItem> => {
+  const fallback = NORDNET_FALLBACK_BY_ID.get(spec.id);
+
   try {
-    return buildYahooPerformanceItem(spec, await fetchYahooObservations(spec.symbol));
+    const yahoo = buildYahooPerformanceItem(spec, await fetchYahooObservations(spec.symbol));
+    if (!fallback) return yahoo;
+
+    try {
+      return mergeMissingChanges(yahoo, await fetchNordnetFund(fallback));
+    } catch {
+      return yahoo;
+    }
   } catch (error) {
-    const fallback = NORDNET_FALLBACK_BY_ID.get(spec.id);
     if (!fallback) throw error;
     return fetchNordnetFund(fallback);
   }
@@ -496,6 +530,6 @@ export const onRequestGet = async () => {
     liveExpected: tasks.length,
     unavailable,
     source: 'Yahoo Finance + OP + Nordnet',
-    version: 4,
+    version: 5,
   });
 };
