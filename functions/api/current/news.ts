@@ -264,7 +264,7 @@ const keywordTags: Array<[string, RegExp]> = [
   ['film-history', /\b(film history|cinema history|elokuvahistoria)\b/],
   ['film-festival', /\b(film festival|cannes|venice film festival|sundance)\b|elokuvafestivaali/u],
   ['horror', /\b(horror|kauhu)\b/], ['sci-fi', /\b(sci[- ]?fi|science fiction|tieteiselokuva)\b/],
-  ['animation', /\b(animation|animaatio|anime)\b/], ['streaming', /\b(netflix(?:istä|ista|issä|issa|iin|in)?|hbo max|prime video|disney\+|suoratoisto)\b/u],
+  ['animation', /\b(animation|animaatio|anime)\b/], ['streaming', /(?:^|[^\p{L}\p{N}])(?:netflix(?:istä|ista|issä|issa|iin|in)?|hbo max|prime video|disney\+|suoratoisto)(?=$|[^\p{L}\p{N}])/u],
   ['director', /\b(director|ohjaaja|ohjaajan)\b/], ['album', /\b(album|levy|levyn)\b/],
 ];
 
