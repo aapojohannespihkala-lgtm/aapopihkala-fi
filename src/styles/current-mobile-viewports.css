@@ -1,0 +1,14 @@
+/* Mobile Current is consumed one section at a time. Keep the two compact
+   dashboard sections tall enough that the following section cannot peek into
+   the same viewport when the section is aligned below the sticky header. */
+@media (max-width: 640px) {
+  .current-shell {
+    --current-mobile-sticky-header: 64px;
+    --current-mobile-section-viewport: calc(100dvh - var(--current-mobile-sticky-header));
+  }
+
+  .current-shell .current-section-wrap[data-current-section='weather'],
+  .current-shell .current-section-wrap[data-current-section='electricity'] {
+    min-height: var(--current-mobile-section-viewport);
+  }
+}
