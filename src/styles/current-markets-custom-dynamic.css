@@ -7,6 +7,8 @@
 
 :is(.current-shell, .current-markets-shell) .current-markets--custom .markets-custom-performance {
   width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 :is(.current-shell, .current-markets-shell) .current-markets--custom .markets-macro {
