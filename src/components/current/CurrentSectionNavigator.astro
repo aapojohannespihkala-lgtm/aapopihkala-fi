@@ -99,25 +99,34 @@
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const behavior = () => reducedMotion() ? 'auto' : 'smooth'
+    const SECTION_BOUNDARY_CLEARANCE = 20
+    const SECTION_ENTRY_OFFSET = 2
 
     const getDocumentTop = (section) =>
       section.getBoundingClientRect().top + window.scrollY
 
-    const getSectionScrollTop = (section) =>
-      Math.max(0, getDocumentTop(section))
-
     let sections = []
     let firstSection = null
     let currentTarget = null
+
+    const getSectionScrollTop = (section) => {
+      const entryOffset = section === firstSection ? 0 : SECTION_ENTRY_OFFSET
+      return Math.max(0, getDocumentTop(section) + entryOffset)
+    }
 
     const fitSectionsToViewport = () => {
       if (!(firstSection instanceof HTMLElement)) return
 
       const sectionTop = getDocumentTop(firstSection)
       const remainingViewport = window.innerHeight - sectionTop
-      firstSection.style.minHeight = `${Math.max(0, Math.ceil(remainingViewport + 2))}px`
+      firstSection.style.minHeight = `${Math.max(
+        0,
+        Math.ceil(remainingViewport + SECTION_BOUNDARY_CLEARANCE)
+      )}px`
 
-      const middleSectionMinHeight = `${Math.ceil(window.innerHeight + 2)}px`
+      const middleSectionMinHeight = `${Math.ceil(
+        window.innerHeight + SECTION_BOUNDARY_CLEARANCE
+      )}px`
       sections.slice(1, -1).forEach((section) => {
         if (section instanceof HTMLElement) {
           section.style.minHeight = middleSectionMinHeight
