@@ -175,37 +175,6 @@ jobs:
                   --raw-field ref=main
                 echo "Pull request merged and full post-merge validation dispatched on main."
 
-                if [[ "$HEAD_REF" == "maintenance/remove-final-stale-branches" ]]; then
-                  echo "Running final targeted stale branch cleanup."
-                  stale_branches=(
-                    "cleanup/remove-unused-about-link"
-                    "fix/current-chart-regression-tests"
-                    "fix/postmerge-current-tests-20260907"
-                    "maintenance/npm-audit-20260907"
-                    "noop"
-                    "noop2"
-                    "noop3"
-                    "noop-should-not-create"
-                  )
-                  deleted_count=0
-                  failed_count=0
-
-                  for branch in "${stale_branches[@]}"; do
-                    if gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/${branch}" >/dev/null 2>&1; then
-                      if gh api --method DELETE \
-                        "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}" >/dev/null 2>&1; then
-                        echo "Deleted verified stale branch ${branch}."
-                        deleted_count=$((deleted_count + 1))
-                      else
-                        echo "Could not delete verified stale branch ${branch}."
-                        failed_count=$((failed_count + 1))
-                      fi
-                    fi
-                  done
-
-                  echo "Final targeted cleanup deleted ${deleted_count} branches; ${failed_count} deletions failed."
-                fi
-
                 if [[ -n "$HEAD_REF" && "$HEAD_REF" != "main" ]]; then
                   if gh api --method DELETE \
                     "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${HEAD_REF}" >/dev/null 2>&1; then
