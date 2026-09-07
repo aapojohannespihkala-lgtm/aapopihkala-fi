@@ -23,7 +23,7 @@ Sivusto:
 Projektin Node-vaatimus on:
 
 ```text
-Node.js >= 22.19.0
+Node.js >= 24.20.0
 ```
 
 Versiovaatimus on määritelty `package.json`-tiedoston `engines`-kentässä.
