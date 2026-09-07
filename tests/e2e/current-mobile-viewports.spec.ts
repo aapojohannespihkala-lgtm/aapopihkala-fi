@@ -65,6 +65,7 @@ test.describe('Current mobile viewport isolation', () => {
   for (const viewport of [
     { width: 390, height: 844 },
     { width: 360, height: 800 },
+    { width: 375, height: 667 },
   ]) {
     test(`keeps dashboard sections isolated at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await prepareCurrent(page);
