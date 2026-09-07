@@ -99,15 +99,19 @@ jobs:
         run: npm run build
 
       - name: Install Chromium
-        if: steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'
+        if: steps.changes.outputs.docs_only != 'true'
         run: npx playwright install --with-deps chromium
+
+      - name: Current section boundary guard
+        if: steps.changes.outputs.docs_only != 'true' && github.event_name == 'pull_request'
+        run: npx playwright test tests/e2e/current-section-boundaries.spec.ts
 
       - name: Browser regression tests
         if: steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'
         run: npm run test:e2e
 
       - name: Upload browser test artifacts
-        if: failure() && steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'
+        if: failure() && steps.changes.outputs.docs_only != 'true'
         uses: actions/upload-artifact@v7
         with:
           name: playwright-test-results
