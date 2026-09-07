@@ -169,10 +169,22 @@ test('standalone Current Markets shows fine one-year axes and interactive inspec
   const euriborBox = await euriborSparkline.boundingBox();
   expect(euriborBox).not.toBeNull();
   if (euriborBox) {
-    await page.mouse.move(
-      euriborBox.x + euriborBox.width / 2,
-      euriborBox.y + euriborBox.height / 2
-    );
+    const clientX = euriborBox.x + euriborBox.width / 2;
+    const clientY = euriborBox.y + euriborBox.height / 2;
+    await euriborSparkline.dispatchEvent('pointerdown', {
+      pointerType: 'touch',
+      pointerId: 17,
+      isPrimary: true,
+      clientX,
+      clientY,
+    });
+    await euriborSparkline.dispatchEvent('pointerup', {
+      pointerType: 'touch',
+      pointerId: 17,
+      isPrimary: true,
+      clientX,
+      clientY,
+    });
   }
 
   const euriborTooltip = page.locator('[data-market-tooltip="euribor-3m"]');
@@ -231,7 +243,7 @@ test('Markets keeps compact trend charts if TradingView performance data is bloc
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('Current places Markets performance above electricity', async ({ page }) => {
+test('Current keeps Weather, Electricity and Markets in the intended order', async ({ page }) => {
   await stubTradingView(page);
   await stubMarkets(page);
 
@@ -247,12 +259,12 @@ test('Current places Markets performance above electricity', async ({ page }) =>
   await expect(page.locator('[data-markets-observation]')).toHaveText('2026-09-04');
 
   const moduleOrder = await page.evaluate(() =>
-    [...document.querySelectorAll('[data-current-markets], [data-current-electricity]')].map((element) =>
-      element.hasAttribute('data-current-markets') ? 'markets' : 'electricity'
+    [...document.querySelectorAll('[data-current-section]')].map((element) =>
+      element.getAttribute('data-current-section')
     )
   );
 
-  expect(moduleOrder).toEqual(['markets', 'electricity']);
+  expect(moduleOrder).toEqual(['weather', 'electricity', 'markets']);
 });
 
 test('Worker serves current Euribor and one-year Euribor and world histories without EUR/USD', async () => {

@@ -133,7 +133,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('Current renders electricity above the compact Olari weather view', async ({ page }) => {
+test('Current renders the compact Olari weather view above electricity', async ({ page }) => {
   await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('.current-status-strip')).toBeVisible();
@@ -145,7 +145,9 @@ test('Current renders electricity above the compact Olari weather view', async (
   );
 
   await expect(page.locator('[data-current-electricity]')).toBeVisible();
-  await expect(page.locator('.current-electricity-wrap + .current-weather-wrap')).toHaveCount(1);
+  await expect(
+    page.locator('[data-current-section="weather"] + [data-current-section="electricity"]')
+  ).toHaveCount(1);
   await expect(page.locator('[data-electricity-price]')).toHaveText('1.46');
   await expect(page.locator('[data-electricity-average-label]')).toHaveText('DAY AVG / TODAY');
   await expect(page.locator('[data-electricity-now-price]')).toHaveText('0.44 c/kWh');
