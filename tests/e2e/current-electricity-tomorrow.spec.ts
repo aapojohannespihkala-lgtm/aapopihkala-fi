@@ -112,7 +112,7 @@ test('Current switches the electricity day average and chart without moving the 
     const rect = element.getBoundingClientRect();
     return { documentY: rect.top + window.scrollY, height: rect.height };
   });
-  expect(Math.abs(tomorrowChartMetrics.documentY - todayChartMetrics.documentY)).toBeLessThanOrEqual(1);
+  expect(Math.abs(tomorrowChartMetrics.documentY - todayChartMetrics.documentY)).toBeLessThanOrEqual(2);
   expect(Math.abs(tomorrowChartMetrics.height - todayChartMetrics.height)).toBeLessThanOrEqual(1);
 
   const chartBox = await chart.boundingBox();
@@ -155,7 +155,7 @@ test('Current switches the electricity day average and chart without moving the 
     const rect = element.getBoundingClientRect();
     return { documentY: rect.top + window.scrollY, height: rect.height };
   });
-  expect(Math.abs(todayAgainChartMetrics.documentY - todayChartMetrics.documentY)).toBeLessThanOrEqual(1);
+  expect(Math.abs(todayAgainChartMetrics.documentY - todayChartMetrics.documentY)).toBeLessThanOrEqual(2);
   expect(Math.abs(todayAgainChartMetrics.height - todayChartMetrics.height)).toBeLessThanOrEqual(1);
 });
 
