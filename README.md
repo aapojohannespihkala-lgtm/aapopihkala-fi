@@ -90,12 +90,13 @@ Workflow ajetaan:
 
 Rakennusvaiheen CI on tarkoituksella nopea ennen mergeä:
 
-- pelkkä projektidokumentaatio (`README.md`, `AGENTS.md`, `ROADMAP.md`, `docs/**`) saa minimaalisen onnistuneen `build`-tarkistuksen ilman Node-, build- tai Playwright-vaiheita
+- pelkkä projektidokumentaatio (`README.md`, `AGENTS.md`, `CHATGPT.md`, `ROADMAP.md`, `docs/**`) saa minimaalisen onnistuneen `build`-tarkistuksen ilman Node-, build- tai Playwright-vaiheita
 - vain `.css`-tiedostoja muuttavat pull requestit ajavat `npm ci` ja `npm run build`, mutta ohittavat `npm run check` -vaiheen
 - muut suoritettavat pull requestit ajavat `npm ci`, `npm run check` ja `npm run build`
+- Current-layoutiin mahdollisesti vaikuttavat suoritettavat pull requestit ajavat lisäksi kohdennetun `current-section-boundaries`-Playwright-tarkistuksen ennen mergeä
 - koko Playwright-regressiosarja ei blokkaa pull requestin mergeä rakennusvaiheessa
 
-CSS-only-muutoksessa tuotantobuild on edelleen blokkaava ennen mergeä. Muissa suoritettavissa muutoksissa sekä `npm run check` että tuotantobuild ovat blokkaavia.
+CSS-only-muutoksessa tuotantobuild on edelleen blokkaava ennen mergeä. Muissa suoritettavissa muutoksissa sekä `npm run check` että tuotantobuild ovat blokkaavia. Kohdennettu Current-rajaustesti asentaa Chromiumin vain silloin, kun muuttuneet tiedostot voivat uskottavasti vaikuttaa Currentin layoutiin tai sen yhteisiin riippuvuuksiin.
 
 Omistajan samasta repositoriosta avaamat ei-draft pull requestit squash-mergataan automaattisesti heti onnistuneen pakollisen `build`-tarkistuksen jälkeen. Jos repositorion strict `main` -sääntö huomaa branchin jääneen jälkeen, workflow päivittää branchin ja seuraava CI-kierros jatkaa automaattisesti ilman manuaalista merge- tai polling-vaihetta.
 
@@ -222,6 +223,7 @@ Current käyttää projektin yhteistä layoutia mutta on erillinen, päänavigaa
 
 ## Projektidokumentaatio
 
+- `CHATGPT.md` - kompakti tehtäväkartta, joka ohjaa repository-työn suoraan relevantteihin lähteisiin ja testeihin
 - `docs/ARCHITECTURE.md` - arkkitehtuurin vastuurajat ja ylläpitoperiaatteet
 - `docs/CONTENT.md` - artikkelien kirjoittaminen ja julkaiseminen
 - `AGENTS.md` - projektin pysyvät kehityssäännöt
@@ -231,7 +233,7 @@ Current käyttää projektin yhteistä layoutia mutta on erillinen, päänavigaa
 
 GitHub toimii projektin pysyvänä muistina. Uuden työsession ei pidä olla riippuvainen aiempien chat-keskustelujen kontekstista.
 
-Ennen merkittävää muutosta tarkistetaan `README.md`, tehtävään liittyvät `docs/`-tiedostot, tarvittaessa `ROADMAP.md`, viimeisimmät relevantit pull requestit sekä varsinainen koodi ja testit.
+Ennen merkittävää repository-muutosta `CHATGPT.md` toimii ensimmäisenä tehtäväkarttana. Sen perusteella tarkistetaan tehtävään liittyvät `docs/`-tiedostot, tarvittaessa `ROADMAP.md`, viimeisimmät relevantit pull requestit sekä varsinainen koodi ja testit. `README.md` luetaan silloin, kun tehtävä koskee setupia, komentoja, CI:tä, deployta tai projektin yleiskuvaa, eikä sitä tarvitse avata jokaisessa rajatussa toteutusmuutoksessa.
 
 Merkittävän pull requestin kuvaukseen jätetään tiivis handoff: mitä muutettiin, miksi, mikä rajattiin tarkoituksella ulos, miten muutos validoitiin ja mitä jatkotyötä mahdollisesti jäi.
 

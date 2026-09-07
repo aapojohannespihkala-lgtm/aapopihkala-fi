@@ -37,7 +37,8 @@ Do not rely on previous chat context as the source of truth for this project. Th
 
 Before substantial work:
 
-- read `README.md`
+- read `CHATGPT.md` first as the compact task map and use it to identify the smallest relevant source set
+- read `README.md` when setup, commands, CI, deployment or the project overview matters rather than as a mandatory prerequisite for every narrowly scoped implementation change
 - read the relevant files under `docs/`
 - read `ROADMAP.md` when the task may affect unfinished work or priorities
 - inspect recent merged pull requests when recent implementation history or design intent matters
@@ -76,6 +77,7 @@ Prefer one-pass repository changes. Before the first write:
 - inspect the existing working branch or pull request when continuing earlier work
 - bring the working branch up to date with `main` before implementation when it is behind and the repository rules require an up-to-date branch
 - decide the complete agreed change before pushing whenever practical
+- for visually sensitive changes, inspect the applicable component-scoped CSS, route-level or global overrides, responsive breakpoints, third-party or custom-element loaded/defined states and existing regressions before writing
 
 During implementation:
 
@@ -83,6 +85,7 @@ During implementation:
 - when the GitHub tools permit it, write multi-file changes as one Git tree and one commit instead of sequential per-file commits
 - avoid no-op commits, bookkeeping-only commits and repeated rewrites that do not change the resulting tree
 - do not push incremental "one more thing" commits after final validation has started unless a real issue must be fixed
+- batch small visual adjustments that clearly belong to the same goal into one pull request when they can be validated together
 
 For validation and merge:
 
@@ -94,7 +97,7 @@ For validation and merge:
 
 Owner-authored pull requests from the same repository are automatically squash-merged by `.github/workflows/build-check.yml` after the required `build` job succeeds. Do not manually poll and merge these routine pull requests after opening them. If the strict `main` freshness rule reports the branch as behind, the merge job updates the branch and the next CI cycle continues automatically. After a successful automatic merge, the workflow explicitly dispatches a full validation run on `main`, so post-merge browser coverage does not depend on the token-authored merge producing a new push-triggered workflow. Intervene only when automatic merge fails, CI fails, a conflict or material ambiguity appears, or the user explicitly asked for review before merge.
 
-During the active site-construction phase, optimize for fast iteration. Documentation-only changes keep the minimal successful `build` check and skip Node, build and browser work entirely. Pull requests that change only `.css` files keep dependency installation and the production build but skip `npm run check`. Other executable pull requests are blocked by both static checks and a production build. Full browser regressions do not block routine construction-phase merges and run after merge through the explicit `main` validation dispatch.
+During the active site-construction phase, optimize for fast iteration. Documentation-only changes, including `CHATGPT.md`, keep the minimal successful `build` check and skip Node, build and browser work entirely. Pull requests that change only `.css` files keep dependency installation and the production build but skip `npm run check`. Other executable pull requests are blocked by both static checks and a production build. Changes that can affect Current layout also run the targeted Current section-boundary Playwright guard before merge. The full browser regression suite does not block routine construction-phase merges and runs after merge through the explicit `main` validation dispatch.
 
 If a post-merge browser regression later exposes a real problem, fix it promptly in a follow-up change. Do not hold routine construction-phase merges open waiting for the full browser suite.
 
@@ -102,13 +105,14 @@ If a post-merge browser regression later exposes a real problem, fix it promptly
 
 The CI strategy in `.github/workflows/build-check.yml` is intentionally split by phase:
 
-- documentation-only changes: minimal required `build` check
+- documentation-only changes, including `README.md`, `AGENTS.md`, `CHATGPT.md`, `ROADMAP.md` and `docs/**`: minimal required `build` check
 - CSS-only pull requests: `npm ci` and `npm run build`, with `npm run check` skipped for faster visual iteration
 - other executable pull requests: `npm ci`, `npm run check` and `npm run build`
+- Current-layout-sensitive executable pull requests: the normal applicable static/build path plus the targeted `current-section-boundaries` Playwright guard
 - successful automatic merges: explicitly dispatch a full `main` validation run
 - executable post-merge validation: static/build validation plus the full Playwright browser regression suite
 
-This is the deliberate validation strategy for the active site-construction phase. Do not remove the production build from executable pull requests without explicit review. Do not extend the CSS-only exception beyond actual `.css` files without deliberate review. When the project moves from rapid construction to a more stable release phase, reconsider whether full browser regressions and CSS static checks should return to the pre-merge gate.
+This is the deliberate validation strategy for the active site-construction phase. Do not remove the production build from executable pull requests without explicit review. Do not extend the CSS-only exception beyond actual `.css` files without deliberate review. Keep targeted pre-merge browser guards scoped to changes that can plausibly affect the protected behavior instead of making every executable pull request pay the browser-install cost. When the project moves from rapid construction to a more stable release phase, reconsider whether full browser regressions and CSS static checks should return to the pre-merge gate.
 
 ## Documentation maintenance
 
@@ -125,6 +129,7 @@ Do not update documentation only because an implementation detail changed. In pa
 Use the appropriate source of truth:
 
 - `README.md` for setup, commands, CI, deployment and the project overview
+- `CHATGPT.md` as the compact task-routing layer for repository work
 - `docs/ARCHITECTURE.md` for stable ownership boundaries and architecture
 - `docs/CONTENT.md` for the article workflow and publishing contract
 - `ROADMAP.md` for unfinished development work
