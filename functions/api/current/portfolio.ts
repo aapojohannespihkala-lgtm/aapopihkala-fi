@@ -66,6 +66,11 @@ type OpFundSpec = PerformanceSpec & {
   rowLabel: string;
 };
 
+type NordnetFundSpec = PerformanceSpec & {
+  url: string;
+  rowLabel: string;
+};
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const EXPECTED_HOLDINGS = 19;
 
@@ -137,13 +142,48 @@ const OP_SPECS: OpFundSpec[] = [
   },
 ];
 
-const STOREBRAND_SPEC: PerformanceSpec = {
+const NORDNET_FALLBACK_SPECS: NordnetFundSpec[] = [
+  {
+    id: 'handelsbanken-usa',
+    label: 'HANDELSBANKEN USA INDEKSI',
+    symbol: 'SE0006800140',
+    url: 'https://www.nordnet.fi/rahastot/lista/handelsbanken-usa-index-a1-eur-348def3b',
+    rowLabel: 'Handelsbanken Usa Indeksi',
+  },
+  {
+    id: 'nordnet-finland',
+    label: 'NORDNET SUOMI INDEKSI',
+    symbol: 'SE0005993102',
+    url: 'https://www.nordnet.fi/rahastot/lista/nordnet-suomi-indeksi-eur-a401761d',
+    rowLabel: 'Nordnet Suomi Indeksi',
+  },
+  {
+    id: 'nordnet-sweden',
+    label: 'NORDNET SVERIGE INDEX',
+    symbol: 'SE0002756973',
+    url: 'https://www.nordnet.fi/rahastot/lista/nordnet-sverige-index-sek-aa7a9014',
+    rowLabel: 'Nordnet Sverige Index',
+  },
+  {
+    id: 'spiltan-investmentbolag',
+    label: 'SPILTAN AKTIEFOND INVESTMENTBOLAG',
+    symbol: 'SE0004297927',
+    url: 'https://www.nordnet.fi/rahastot/lista/spiltan-aktiefond-investmentbolag-sek-d8fe1a7e',
+    rowLabel: 'Spiltan Aktiefond Investmentbolag',
+  },
+];
+
+const STOREBRAND_SPEC: NordnetFundSpec = {
   id: 'storebrand-japan',
   label: 'STOREBRAND JAPAN A EUR',
   symbol: 'SE0013801479',
+  url: 'https://www.nordnet.fi/rahastot/lista/storebrand-japan-a-eur-dbe9644c',
+  rowLabel: 'Storebrand Japan A EUR',
 };
-const STOREBRAND_URL =
-  'https://www.nordnet.fi/rahastot/lista/storebrand-japan-a-eur-dbe9644c';
+
+const NORDNET_FALLBACK_BY_ID = new Map(
+  NORDNET_FALLBACK_SPECS.map((spec) => [spec.id, spec] as const)
+);
 
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -301,7 +341,10 @@ const extractFundRow = (
   const rowStart = section.indexOf(rowLabel);
   if (rowStart < 0) throw new Error(`${rowLabel} row is missing`);
 
-  const values = extractReturnTokens(section.slice(rowStart + rowLabel.length, rowStart + rowLabel.length + 420), count);
+  const values = extractReturnTokens(
+    section.slice(rowStart + rowLabel.length, rowStart + rowLabel.length + 420),
+    count
+  );
   if (values.length < count) throw new Error(`${rowLabel} return row is incomplete`);
   return values;
 };
@@ -373,31 +416,36 @@ const fetchOpFund = async (spec: OpFundSpec): Promise<MarketPerformanceItem> => 
   };
 };
 
-const fetchStorebrandJapan = async (): Promise<MarketPerformanceItem> => {
-  const response = await fetch(STOREBRAND_URL, {
+const fetchNordnetFund = async (spec: NordnetFundSpec): Promise<MarketPerformanceItem> => {
+  const response = await fetch(spec.url, {
     headers: {
       Accept: 'text/html',
       'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
     },
   });
-  if (!response.ok) throw new Error(`Nordnet Storebrand request failed: ${response.status}`);
+  if (!response.ok) throw new Error(`Nordnet request failed: ${response.status}`);
 
   const text = htmlToText(await response.text());
-  const titleIndex = text.indexOf('Storebrand Japan A EUR');
-  if (titleIndex < 0) throw new Error('Storebrand Japan row is missing');
-  const summary = text.slice(titleIndex, titleIndex + 320);
+  const titleIndex = text.indexOf(spec.rowLabel);
+  if (titleIndex < 0) throw new Error(`${spec.rowLabel} row is missing`);
+
+  const summary = text.slice(titleIndex + spec.rowLabel.length, titleIndex + spec.rowLabel.length + 420);
   const dailyMatch = summary.match(/([+−-]?\d+(?:[.,]\d+)?)\s*%\s*(\d{1,2})\.(\d{1,2})\./);
   const yearMatch = summary.match(/([+−-]?\d+(?:[.,]\d+)?)\s*%\s*12\s*kk/i);
-  if (!yearMatch) throw new Error('Storebrand Japan 12 month return is missing');
+  const navDateMatch = summary.match(/NAV\s*\((\d{1,2})\.(\d{1,2})\.\)/i);
+  if (!yearMatch) throw new Error(`${spec.rowLabel} 12 month return is missing`);
 
   const today = dailyMatch ? parsePercentToken(`${dailyMatch[1]}%`) : null;
   const year1 = parsePercentToken(`${yearMatch[1]}%`);
-  const observedAt = dailyMatch
-    ? inferObservationDate(Number(dailyMatch[2]), Number(dailyMatch[3]))
+  const dateMatch = dailyMatch ?? navDateMatch;
+  const observedAt = dateMatch
+    ? inferObservationDate(Number(dateMatch[2]), Number(dateMatch[3]))
     : new Date().toISOString().slice(0, 10);
 
   return {
-    ...STOREBRAND_SPEC,
+    id: spec.id,
+    label: spec.label,
+    symbol: spec.symbol,
     price: null,
     observedAt,
     changes: {
@@ -414,14 +462,24 @@ const fetchStorebrandJapan = async (): Promise<MarketPerformanceItem> => {
   };
 };
 
+const loadYahooWithFallback = async (spec: PerformanceSpec): Promise<MarketPerformanceItem> => {
+  try {
+    return buildYahooPerformanceItem(spec, await fetchYahooObservations(spec.symbol));
+  } catch (error) {
+    const fallback = NORDNET_FALLBACK_BY_ID.get(spec.id);
+    if (!fallback) throw error;
+    return fetchNordnetFund(fallback);
+  }
+};
+
 export const onRequestGet = async () => {
   const tasks: Array<{ id: MarketPerformanceId; load: () => Promise<MarketPerformanceItem> }> = [
     ...YAHOO_SPECS.map((spec) => ({
       id: spec.id,
-      load: async () => buildYahooPerformanceItem(spec, await fetchYahooObservations(spec.symbol)),
+      load: () => loadYahooWithFallback(spec),
     })),
     ...OP_SPECS.map((spec) => ({ id: spec.id, load: () => fetchOpFund(spec) })),
-    { id: STOREBRAND_SPEC.id, load: fetchStorebrandJapan },
+    { id: STOREBRAND_SPEC.id, load: () => fetchNordnetFund(STOREBRAND_SPEC) },
   ];
 
   const settled = await Promise.allSettled(tasks.map((task) => task.load()));
@@ -438,6 +496,6 @@ export const onRequestGet = async () => {
     liveExpected: tasks.length,
     unavailable,
     source: 'Yahoo Finance + OP + Nordnet',
-    version: 3,
+    version: 4,
   });
 };
