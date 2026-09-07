@@ -76,5 +76,4 @@ Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivise
 - Pidä TypeScript nykyisessä tuetussa sarjassa, kunnes `@astrojs/check` tukee seuraavaa majoria. Nykyinen check-versio sallii TypeScript 5- ja 6-sarjat, ei 7-sarjaa.
 - Lisää Wrangler projektin paikalliseksi lukituksi dev-riippuvuudeksi ennen seuraavaa deploy-työkalujen maintenance-päivitystä. Nykyinen `npx wrangler` ilman projektiversiota ei ole täysin toistettava.
 - Tarkista `npm audit` -löydökset Astro-päivitysten yhteydessä. Nykyinen asennus raportoi kolme transitiivista haavoittuvuutta ja yhden vanhentuneen `tsconfck`-riippuvuuden.
-- Arvioi Node 24 LTS erillisessä runtime-päivityksessä. Älä vaihda Node-majoria samalla kertaa Astro-majorin kanssa.
 - Älä lisää automaattista riippuvuuspäivitys-PR-virtaa rakennusvaiheessa pelkän hygienian vuoksi, jos se kasvattaa PR-kohinaa. Arvioi Dependabot tai vastaava uudelleen vakaammassa vaiheessa.
