@@ -558,11 +558,6 @@ a {
 .feed-post {
   position: relative;
 
-  padding:
-    68px
-    0
-    16px;
-
   border-top: none;
 }
 
@@ -574,21 +569,12 @@ a {
 }
 
 
-.feed-post + .feed-post {
-  padding-top: 32px;
-}
-
 /* =========================================================
    POST META
    ========================================================= */
 
 
 .post-meta {
-  margin:
-    0
-    0
-    20px;
-
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -625,11 +611,6 @@ a {
 
 
 .post-title {
-  margin:
-    0
-    0
-    38px;
-
   max-width: 700px;
 
   font-family:
@@ -731,11 +712,6 @@ a {
 
 
 .post-perspective-label {
-  margin:
-    48px
-    0
-    20px;
-
   color: #8d938b;
 
   font-family:
@@ -862,17 +838,10 @@ a {
 .source {
   max-width: 640px;
 
-  margin-top: 52px;
-  padding-top: 16px;
-
   display: flex;
   align-items: baseline;
 
   gap: 12px;
-
-  border-top:
-    1px solid
-    var(--line-soft);
 
   color: var(--stone);
 
@@ -1114,29 +1083,14 @@ a:focus-visible {
   }
 
 
-  .feed-post {
-    padding:
-      56px
-      0
-      12px;
-  }
-
-
-  .feed-post + .feed-post {
-    padding-top: 26px;
-  }
-
 
 
   .post-meta {
-    margin-bottom: 18px;
     font-size: 0.625rem;
   }
 
 
   .post-title {
-    margin-bottom: 30px;
-
     font-size:
       clamp(
         2.35rem,
@@ -1159,11 +1113,6 @@ a:focus-visible {
 
 
   .post-perspective-label {
-    margin:
-      42px
-      0
-      18px;
-
     font-size: 0.96rem;
   }
 
@@ -1184,11 +1133,6 @@ a:focus-visible {
     margin-top: 38px;
   }
 
-
-
-  .source {
-    margin-top: 44px;
-  }
 }
 
 
