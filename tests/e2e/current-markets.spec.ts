@@ -83,7 +83,7 @@ const stubMarkets = async (page: Page) => {
   });
 };
 
-test('standalone Current Markets shows concise one-year Euribor and world trends', async ({ page }) => {
+test('standalone Current Markets shows fine one-year axes and interactive inspection', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubTradingView(page);
   await stubMarkets(page);
@@ -136,32 +136,61 @@ test('standalone Current Markets shows concise one-year Euribor and world trends
   await expect(page.locator('.markets-macro')).not.toContainText('WORLD / URTH');
   await expect(page.locator('.markets-macro')).not.toContainText('1Y HISTORY');
 
-  await expect(
-    page.locator('[data-market-axis="euribor-3m"][data-axis-level="max"]')
-  ).toHaveText('3.5%');
-  await expect(
-    page.locator('[data-market-axis="euribor-3m"][data-axis-level="mid"]')
-  ).toHaveText('3.0%');
-  await expect(
-    page.locator('[data-market-axis="euribor-3m"][data-axis-level="min"]')
-  ).toHaveText('2.5%');
-  await expect(page.locator('[data-market-axis="world"][data-axis-level="max"]')).toHaveText(
-    '120'
-  );
-  await expect(page.locator('[data-market-axis="world"][data-axis-level="mid"]')).toHaveText(
-    '110'
-  );
-  await expect(page.locator('[data-market-axis="world"][data-axis-level="min"]')).toHaveText(
-    '100'
-  );
+  await expect(page.locator('[data-market-axis="euribor-3m"] .markets-sparkline-axis__tick')).toHaveText([
+    '3.4%',
+    '3.2%',
+    '3.0%',
+    '2.8%',
+    '2.6%',
+  ]);
+  await expect(page.locator('[data-market-axis="world"] .markets-sparkline-axis__tick')).toHaveText([
+    '120',
+    '110',
+    '100',
+  ]);
 
-  for (const id of ['euribor-3m', 'world']) {
-    const sparkline = page.locator(`[data-market-sparkline="${id}"]`);
-    await expect(sparkline).toBeVisible();
-    await expect(sparkline.locator('path')).toHaveAttribute('d', /^M/);
-    await expect(sparkline.locator('.markets-sparkline-grid line')).toHaveCount(3);
-    await expect(page.locator(`[data-market-sparkline-fallback="${id}"]`)).toBeHidden();
+  const euriborSparkline = page.locator('[data-market-sparkline="euribor-3m"]');
+  const worldSparkline = page.locator('[data-market-sparkline="world"]');
+
+  await expect(euriborSparkline).toBeVisible();
+  await expect(worldSparkline).toBeVisible();
+  await expect(euriborSparkline).toHaveAttribute('tabindex', '0');
+  await expect(worldSparkline).toHaveAttribute('tabindex', '0');
+  await expect(euriborSparkline).toHaveAttribute('aria-label', /Touch, hover or use the arrow keys/);
+  await expect(worldSparkline).toHaveAttribute('aria-label', /Touch, hover or use the arrow keys/);
+  await expect(euriborSparkline.locator('[data-market-line]')).toHaveAttribute('d', /^M/);
+  await expect(worldSparkline.locator('[data-market-line]')).toHaveAttribute('d', /^M/);
+  await expect(euriborSparkline.locator('[data-market-grid] line')).toHaveCount(5);
+  await expect(worldSparkline.locator('[data-market-grid] line')).toHaveCount(3);
+  await expect(page.locator('[data-market-sparkline-fallback="euribor-3m"]')).toBeHidden();
+  await expect(page.locator('[data-market-sparkline-fallback="world"]')).toBeHidden();
+
+  await euriborSparkline.scrollIntoViewIfNeeded();
+  const euriborBox = await euriborSparkline.boundingBox();
+  expect(euriborBox).not.toBeNull();
+  if (euriborBox) {
+    await page.mouse.move(
+      euriborBox.x + euriborBox.width / 2,
+      euriborBox.y + euriborBox.height / 2
+    );
   }
+
+  const euriborTooltip = page.locator('[data-market-tooltip="euribor-3m"]');
+  await expect(euriborTooltip).toBeVisible();
+  await expect(page.locator('[data-market-tooltip-date="euribor-3m"]')).toContainText('MAR 2026');
+  await expect(page.locator('[data-market-tooltip-value="euribor-3m"]')).toHaveText('2.900%');
+  await expect(euriborSparkline.locator('[data-market-inspection-line]')).toHaveAttribute('opacity', '1');
+  await expect(euriborSparkline.locator('[data-market-inspection-point]')).toHaveAttribute('opacity', '1');
+
+  await worldSparkline.focus();
+  const worldTooltip = page.locator('[data-market-tooltip="world"]');
+  await expect(worldTooltip).toBeVisible();
+  await expect(page.locator('[data-market-tooltip-date="world"]')).toContainText('SEP');
+  await expect(page.locator('[data-market-tooltip-value="world"]')).toHaveText('120.0 · +20.0%');
+
+  await worldSparkline.press('ArrowLeft');
+  await expect(page.locator('[data-market-tooltip-date="world"]')).toContainText('MAR 2026');
+  await expect(page.locator('[data-market-tooltip-value="world"]')).toHaveText('108.0 · +8.0%');
 
   await expect(page.locator('[data-markets-error]')).toBeHidden();
 
