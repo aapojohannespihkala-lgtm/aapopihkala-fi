@@ -63,7 +63,7 @@ const localizedSource =
 const source =
   z.object({
     url:
-      z.string().url(),
+      z.url(),
 
     fi:
       localizedSource,
