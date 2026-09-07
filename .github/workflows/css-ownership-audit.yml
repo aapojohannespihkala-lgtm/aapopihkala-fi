@@ -24,50 +24,47 @@ jobs:
           const path = require('path');
 
           const root = process.cwd();
-          const globalPath = path.join(root, 'src/styles/global.css');
+          const src = path.join(root, 'src');
+          const globalPath = path.join(src, 'styles/global.css');
           const globalCss = fs.readFileSync(globalPath, 'utf8');
+          const relative = (file) => path.relative(root, file).replaceAll(path.sep, '/');
 
-          const files = [];
+          const astroFiles = [];
           function walk(dir) {
             for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
               const full = path.join(dir, entry.name);
               if (entry.isDirectory()) walk(full);
-              else if (/\.(astro|css|ts|js|mjs|md|mdx)$/.test(entry.name)) files.push(full);
+              else if (entry.name.endsWith('.astro')) astroFiles.push(full);
             }
           }
-          walk(path.join(root, 'src'));
-
-          const relative = (file) => path.relative(root, file).replaceAll(path.sep, '/');
-          const otherFiles = files.filter((file) => file !== globalPath);
-          const contents = new Map(otherFiles.map((file) => [file, fs.readFileSync(file, 'utf8')]));
+          walk(src);
 
           const classNames = [...new Set([...globalCss.matchAll(/\.([A-Za-z_][A-Za-z0-9_-]*)/g)].map((m) => m[1]))].sort();
           const variableNames = [...new Set([...globalCss.matchAll(/(--[A-Za-z0-9_-]+)\s*:/g)].map((m) => m[1]))].sort();
 
           console.log(`GLOBAL_CLASS_COUNT=${classNames.length}`);
           for (const className of classNames) {
-            const owners = [];
-            const needle = className;
-            for (const [file, text] of contents) {
-              if (text.includes(needle)) owners.push(relative(file));
+            const markupOwners = [];
+            const styleOwners = [];
+            for (const file of astroFiles) {
+              const text = fs.readFileSync(file, 'utf8');
+              const styleBlocks = [...text.matchAll(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/g)].map((m) => m[1]);
+              const markup = text.replace(/<style(?:\s[^>]*)?>[\s\S]*?<\/style>/g, '');
+              const classAttrs = [...markup.matchAll(/class\s*=\s*["']([^"']+)["']/g)].flatMap((m) => m[1].split(/\s+/));
+              if (classAttrs.includes(className)) markupOwners.push(relative(file));
+              if (styleBlocks.some((css) => new RegExp(`\\.${className}(?![A-Za-z0-9_-])`).test(css))) styleOwners.push(relative(file));
             }
-            if (owners.length === 0) {
-              console.log(`UNUSED_GLOBAL_CLASS=${className}`);
-            } else {
-              console.log(`GLOBAL_CLASS_OWNERS=${className}::${owners.join(',')}`);
-            }
+            console.log(`CLASS_OWNERS=${className}::markup=${markupOwners.join(',') || '-'}::styles=${styleOwners.join(',') || '-'}`);
           }
 
           console.log(`GLOBAL_VARIABLE_COUNT=${variableNames.length}`);
           for (const variable of variableNames) {
-            const owners = [];
-            for (const [file, text] of contents) {
-              if (text.includes(variable)) owners.push(relative(file));
+            const useCount = (globalCss.match(new RegExp(`var\\(${variable.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}[),]`, 'g')) || []).length;
+            const externalOwners = [];
+            for (const file of astroFiles) {
+              const text = fs.readFileSync(file, 'utf8');
+              if (text.includes(`var(${variable}`)) externalOwners.push(relative(file));
             }
-            if (owners.length === 0) {
-              console.log(`UNUSED_GLOBAL_VARIABLE=${variable}`);
-            } else {
-              console.log(`GLOBAL_VARIABLE_OWNERS=${variable}::${owners.join(',')}`);
-            }
+            console.log(`VARIABLE_USE=${variable}::global=${useCount}::external=${externalOwners.join(',') || '-'}`);
           }
           NODE
