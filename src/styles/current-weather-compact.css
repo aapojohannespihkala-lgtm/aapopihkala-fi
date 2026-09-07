@@ -86,7 +86,9 @@
 }
 
 .current-shell .current-weather .weather-daily-chart-frame {
+  width: calc(100% + 48px);
   min-height: 104px;
+  margin-inline: -24px;
   padding-top: 0;
 }
 
@@ -100,9 +102,9 @@
 
 .current-shell .current-weather .weather-footer {
   padding-top: 8px;
-  border-top-color: color-mix(in srgb, var(--weather-rule) 72%, transparent);
-  color: color-mix(in srgb, var(--stone-light) 82%, transparent);
-  font-size: 0.39rem;
+  border-top-color: color-mix(in srgb, var(--weather-rule) 78%, transparent);
+  color: color-mix(in srgb, var(--stone-light) 92%, transparent);
+  font-size: 0.4rem;
   line-height: 1.3;
 }
 
@@ -202,7 +204,12 @@
     font-size: 0.32rem;
   }
 
-  .current-shell .current-weather .weather-daily-chart-frame,
+  .current-shell .current-weather .weather-daily-chart-frame {
+    width: calc(100% + 24px);
+    min-height: 92px;
+    margin-inline: -12px;
+  }
+
   .current-shell .current-weather .weather-daily-chart {
     min-height: 92px;
     height: 92px;
@@ -214,7 +221,8 @@
 
   .current-shell .current-weather .weather-footer {
     padding-top: 7px;
-    font-size: 0.35rem;
+    color: color-mix(in srgb, var(--stone-light) 90%, transparent);
+    font-size: 0.36rem;
     line-height: 1.25;
   }
 }
