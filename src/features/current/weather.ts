@@ -237,9 +237,9 @@ const renderDailyChart = (svg: SVGSVGElement, points: DailyPoint[]) => {
 
   const containerWidth = svg.parentElement?.getBoundingClientRect().width ?? 760;
   const width = Math.max(300, Math.round(containerWidth));
-  const height = width < 560 ? 112 : 124;
-  const top = 16;
-  const bottom = 16;
+  const height = width < 560 ? 124 : 168;
+  const top = 18;
+  const bottom = 18;
   const plotHeight = height - top - bottom;
   const values = points.flatMap((point) => [point.minimum, point.maximum]);
   const minimum = Math.floor(Math.min(...values) - 1);
