@@ -1,4 +1,4 @@
-type MarketMacroId = 'eur-usd' | 'euribor-3m';
+type MarketMacroId = 'euribor-3m';
 type MarketSeriesId = 'euribor-3m' | 'world';
 
 type Observation = {
@@ -8,7 +8,6 @@ type Observation = {
 
 type MarketMacroItem = Observation & {
   id: MarketMacroId;
-  change1m: number;
 };
 
 type MarketSeries = Observation & {
@@ -31,7 +30,6 @@ type YahooChartResponse = {
 };
 
 const ECB_BASE_URL = 'https://data-api.ecb.europa.eu/service/data';
-const EUR_USD_URL = `${ECB_BASE_URL}/EXR/D.USD.EUR.SP00.A?lastNObservations=23&format=csvdata&detail=dataonly`;
 const EURIBOR_HISTORY_URL = `${ECB_BASE_URL}/FM/M.U2.EUR.RT.MM.EURIBOR3MD_.HSTA?lastNObservations=13&format=csvdata&detail=dataonly`;
 const EURIBOR_URL =
   'https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/euribor-rates/';
@@ -84,10 +82,7 @@ const parseCsvLine = (line: string) => {
   return values;
 };
 
-const parseEcbObservations = (
-  csv: string,
-  frequency: 'daily' | 'monthly' = 'daily'
-): Observation[] => {
+const parseEcbObservations = (csv: string): Observation[] => {
   const lines = csv
     .replace(/^\uFEFF/, '')
     .trim()
@@ -106,10 +101,7 @@ const parseEcbObservations = (
     const row = parseCsvLine(line);
     const rawObservedAt = row[timeIndex] ?? '';
     const value = Number(row[valueIndex]);
-    const observedAt =
-      frequency === 'monthly' && /^\d{4}-\d{2}$/.test(rawObservedAt)
-        ? `${rawObservedAt}-01`
-        : rawObservedAt;
+    const observedAt = /^\d{4}-\d{2}$/.test(rawObservedAt) ? `${rawObservedAt}-01` : rawObservedAt;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(observedAt) || !Number.isFinite(value)) return [];
     return [{ value, observedAt }];
@@ -117,26 +109,6 @@ const parseEcbObservations = (
 
   if (observations.length < 2) throw new Error('ECB response has too few observations');
   return observations.sort((a, b) => a.observedAt.localeCompare(b.observedAt));
-};
-
-const fetchEurUsd = async (): Promise<MarketMacroItem> => {
-  const response = await fetch(EUR_USD_URL, {
-    headers: { Accept: 'text/csv' },
-  });
-
-  if (!response.ok) throw new Error(`ECB request failed: ${response.status}`);
-
-  const observations = parseEcbObservations(await response.text());
-  const first = observations[0];
-  const latest = observations.at(-1);
-
-  if (!first || !latest || first.value === 0) throw new Error('ECB observations are invalid');
-
-  return {
-    id: 'eur-usd',
-    ...latest,
-    change1m: (latest.value / first.value - 1) * 100,
-  };
 };
 
 const htmlToText = (html: string) =>
@@ -189,31 +161,6 @@ const parseEuribor3mObservations = (html: string): Observation[] => {
   return observations;
 };
 
-const findOneMonthReference = (observations: Observation[]) => {
-  const latest = observations.at(-1);
-  if (!latest) throw new Error('Euribor latest observation is missing');
-
-  const latestTime = Date.parse(`${latest.observedAt}T00:00:00Z`);
-  const targetTime = latestTime - 30 * DAY_MS;
-  const candidates = observations.filter((item) => item.observedAt !== latest.observedAt);
-
-  const reference = candidates.reduce<Observation | undefined>((best, item) => {
-    if (!best) return item;
-    const itemDistance = Math.abs(Date.parse(`${item.observedAt}T00:00:00Z`) - targetTime);
-    const bestDistance = Math.abs(Date.parse(`${best.observedAt}T00:00:00Z`) - targetTime);
-    return itemDistance < bestDistance ? item : best;
-  }, undefined);
-
-  if (!reference) throw new Error('Euribor reference observation is missing');
-
-  const referenceTime = Date.parse(`${reference.observedAt}T00:00:00Z`);
-  if (latestTime - referenceTime < 20 * DAY_MS) {
-    throw new Error('Euribor history does not cover one month');
-  }
-
-  return { latest, reference };
-};
-
 const fetchEuribor3m = async (): Promise<MarketMacroItem> => {
   const response = await fetch(EURIBOR_URL, {
     headers: { Accept: 'text/html' },
@@ -222,12 +169,12 @@ const fetchEuribor3m = async (): Promise<MarketMacroItem> => {
   if (!response.ok) throw new Error(`Bank of Finland request failed: ${response.status}`);
 
   const observations = parseEuribor3mObservations(await response.text());
-  const { latest, reference } = findOneMonthReference(observations);
+  const latest = observations.at(-1);
+  if (!latest) throw new Error('Euribor latest observation is missing');
 
   return {
     id: 'euribor-3m',
     ...latest,
-    change1m: latest.value - reference.value,
   };
 };
 
@@ -237,7 +184,7 @@ const fetchEuriborHistory = async () => {
   });
 
   if (!response.ok) throw new Error(`ECB Euribor history request failed: ${response.status}`);
-  return parseEcbObservations(await response.text(), 'monthly');
+  return parseEcbObservations(await response.text());
 };
 
 const parseYahooObservations = (data: YahooChartResponse): Observation[] => {
@@ -304,10 +251,7 @@ const sampleObservations = (observations: Observation[]) => {
   return sampled;
 };
 
-const buildEuriborSeries = (
-  history: Observation[],
-  current: MarketMacroItem
-): MarketSeries => {
+const buildEuriborSeries = (history: Observation[], current: MarketMacroItem): MarketSeries => {
   const byDate = new Map(history.map((item) => [item.observedAt, item]));
   byDate.set(current.observedAt, { value: current.value, observedAt: current.observedAt });
 
@@ -346,7 +290,7 @@ const buildWorldSeries = (observations: Observation[]): MarketSeries => {
 
 export const onRequestGet = async () => {
   try {
-    const [eurUsd, euribor] = await Promise.all([fetchEurUsd(), fetchEuribor3m()]);
+    const euribor = await fetchEuribor3m();
     const [euriborHistoryResult, worldResult] = await Promise.allSettled([
       fetchEuriborHistory(),
       fetchWorldObservations(),
@@ -365,19 +309,19 @@ export const onRequestGet = async () => {
       try {
         series.push(buildWorldSeries(worldResult.value));
       } catch {
-        // The world chart is optional and must not take down the macro readings.
+        // The world chart is optional and must not take down the Euribor reading.
       }
     }
 
     return jsonResponse(
       {
-        items: [eurUsd, euribor],
+        items: [euribor],
         series,
-        source: 'ECB + Bank of Finland + Yahoo Finance',
+        source: 'Bank of Finland + ECB + Yahoo Finance',
       },
       200
     );
   } catch {
-    return jsonResponse({ error: 'market_macro_unavailable' }, 502);
+    return jsonResponse({ error: 'market_data_unavailable' }, 502);
   }
 };

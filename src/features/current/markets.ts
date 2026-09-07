@@ -1,11 +1,10 @@
-type MarketMacroId = 'eur-usd' | 'euribor-3m';
+type MarketMacroId = 'euribor-3m';
 type MarketSeriesId = 'euribor-3m' | 'world';
 
 type MacroItem = {
   id: MarketMacroId;
   value: number;
   observedAt: string;
-  change1m: number;
 };
 
 type SeriesPoint = {
@@ -26,7 +25,7 @@ type MarketsResponse = {
 
 const MARKETS_API_URL = '/api/current/markets';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
-const MARKET_IDS = new Set<MarketMacroId>(['eur-usd', 'euribor-3m']);
+const MARKET_IDS = new Set<MarketMacroId>(['euribor-3m']);
 const SERIES_IDS = new Set<MarketSeriesId>(['euribor-3m', 'world']);
 
 const isSeriesPoint = (value: unknown): value is SeriesPoint => {
@@ -45,12 +44,9 @@ const isMacroItem = (value: unknown): value is MacroItem => {
 
   const item = value as Partial<MacroItem>;
   return (
-    typeof item.id === 'string' &&
-    MARKET_IDS.has(item.id as MarketMacroId) &&
+    item.id === 'euribor-3m' &&
     typeof item.value === 'number' &&
     Number.isFinite(item.value) &&
-    typeof item.change1m === 'number' &&
-    Number.isFinite(item.change1m) &&
     typeof item.observedAt === 'string' &&
     item.observedAt.length > 0
   );
@@ -75,14 +71,11 @@ const isMarketSeries = (value: unknown): value is MarketSeries => {
   );
 };
 
-const formatValue = (id: MarketMacroId, value: number) => {
-  const decimals = id === 'euribor-3m' ? 3 : 4;
-
-  return new Intl.NumberFormat('en-GB', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
+const formatEuriborValue = (value: number) =>
+  new Intl.NumberFormat('en-GB', {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
   }).format(value);
-};
 
 const formatWorldValue = (value: number) =>
   new Intl.NumberFormat('en-GB', {
@@ -90,23 +83,15 @@ const formatWorldValue = (value: number) =>
     maximumFractionDigits: 2,
   }).format(value);
 
-const formatChange = (item: MacroItem) => {
-  if (item.id === 'eur-usd') {
-    const magnitude = Math.abs(item.change1m).toFixed(2);
-    if (Math.abs(item.change1m) < 0.005) return `FLAT · ${magnitude}% / 1M`;
-    return `${item.change1m > 0 ? 'EUR' : 'USD'} STRONGER · ${magnitude}% / 1M`;
-  }
-
-  const sign = item.change1m > 0 ? '+' : '';
-  return `${sign}${item.change1m.toFixed(3)} PP / 1M`;
-};
-
 const formatSeriesChange = (series: MarketSeries) => {
   const sign = series.change1y > 0 ? '+' : '';
   return series.id === 'euribor-3m'
     ? `${sign}${series.change1y.toFixed(3)} PP`
     : `${sign}${series.change1y.toFixed(2)}%`;
 };
+
+const formatAxisValue = (series: MarketSeries, value: number) =>
+  series.id === 'euribor-3m' ? `${value.toFixed(3)}%` : value.toFixed(2);
 
 export const initCurrentMarkets = () => {
   const root = document.querySelector<HTMLElement>('[data-current-markets]');
@@ -119,10 +104,7 @@ export const initCurrentMarkets = () => {
   const renderItems = (items: MacroItem[]) => {
     for (const item of items) {
       const target = root.querySelector<HTMLElement>(`[data-market-value="${item.id}"]`);
-      if (target) target.textContent = formatValue(item.id, item.value);
-
-      const changeTarget = root.querySelector<HTMLElement>(`[data-market-change="${item.id}"]`);
-      if (changeTarget) changeTarget.textContent = formatChange(item);
+      if (target) target.textContent = formatEuriborValue(item.value);
 
       const observationTarget = root.querySelector<HTMLElement>(
         `[data-market-observation="${item.id}"]`
@@ -142,6 +124,7 @@ export const initCurrentMarkets = () => {
     const values = series.points.map((point) => point.value);
     const minimum = Math.min(...values);
     const maximum = Math.max(...values);
+    const midpoint = minimum + (maximum - minimum) / 2;
     const range = maximum - minimum || 1;
     const drawableWidth = width - padding * 2;
     const drawableHeight = height - padding * 2;
@@ -160,6 +143,19 @@ export const initCurrentMarkets = () => {
       'aria-label',
       `${series.id === 'euribor-3m' ? '3 month Euribor' : 'World equity proxy'} one year trend`
     );
+
+    const axisTicks: Array<['max' | 'mid' | 'min', number]> = [
+      ['max', maximum],
+      ['mid', midpoint],
+      ['min', minimum],
+    ];
+
+    for (const [level, value] of axisTicks) {
+      const target = root.querySelector<HTMLElement>(
+        `[data-market-axis="${series.id}"][data-axis-level="${level}"]`
+      );
+      if (target) target.textContent = formatAxisValue(series, value);
+    }
 
     const fallback = root.querySelector<HTMLElement>(
       `[data-market-sparkline-fallback="${series.id}"]`
