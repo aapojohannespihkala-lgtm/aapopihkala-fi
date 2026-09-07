@@ -9,6 +9,20 @@ body {
 }
 
 .current-shell {
+  --current-font-serif: "Times New Roman", Times, serif;
+  --current-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --current-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --current-type-micro: 0.625rem; /* 10 px */
+  --current-type-label: 0.6875rem; /* 11 px */
+  --current-type-data: 0.8125rem; /* 13 px */
+  --current-type-copy: 0.875rem; /* 14 px */
+
+  --current-text-primary: var(--ink);
+  --current-text-secondary: var(--ink-soft);
+  --current-text-label: var(--stone);
+  --current-text-meta: var(--stone-light);
+
   overflow-x: hidden;
 }
 
@@ -18,6 +32,187 @@ body {
 .current-shell [data-current-markets] {
   min-width: 0;
   max-width: 100%;
+}
+
+/* Shared Current type system.
+   Serif is reserved for measured headline values, sans for plain-language copy,
+   and mono for labels, time, axes, sources and other technical metadata. */
+.current-shell :is(
+  .weather-temperature,
+  .weather-hour__temperature,
+  .electricity-price,
+  .markets-macro__value
+) {
+  font-family: var(--current-font-serif);
+}
+
+.current-shell :is(
+  .weather-condition
+) {
+  font-family: var(--current-font-sans);
+}
+
+.current-shell :is(
+  .current-status-strip,
+  .weather-index,
+  .weather-location,
+  .weather-current__range,
+  .weather-current__solar,
+  .weather-hour__time,
+  .weather-hour__rain,
+  .weather-day__name,
+  .weather-day__rain,
+  .weather-footer,
+  .electricity-index,
+  .electricity-market,
+  .electricity-average-label,
+  .electricity-average-comparison,
+  .electricity-now,
+  .electricity-day-switch,
+  .electricity-extreme__label,
+  .electricity-extreme__detail,
+  .electricity-footer,
+  .electricity-chart-tooltip,
+  .markets-index,
+  .markets-panel-label,
+  .markets-panel-observation,
+  .markets-performance__fallback,
+  .markets-macro,
+  .markets-footer,
+  .markets-sparkline-tooltip
+) {
+  font-family: var(--current-font-mono);
+}
+
+/* Level 1: section and panel labels. */
+.current-shell :is(
+  .weather-index,
+  .weather-location,
+  .electricity-index,
+  .electricity-market,
+  .markets-index,
+  .markets-panel-label,
+  .markets-macro__label
+) {
+  font-size: var(--current-type-label);
+}
+
+/* Level 2: small technical text that still needs to be genuinely readable. */
+.current-shell :is(
+  .current-status-strip,
+  .weather-current__range,
+  .weather-current__solar,
+  .weather-solar-duration,
+  .weather-hour__time,
+  .weather-hour__rain,
+  .weather-day__name,
+  .weather-day__rain,
+  .weather-footer,
+  .electricity-average-label,
+  .electricity-average-comparison,
+  .electricity-now__label,
+  .electricity-now__interval,
+  .electricity-month-average,
+  .electricity-day-switch,
+  .electricity-extreme__label,
+  .electricity-extreme__detail,
+  .electricity-footer,
+  .electricity-chart-tooltip,
+  .markets-panel-observation,
+  .markets-performance__fallback,
+  .markets-macro__change,
+  .markets-sparkline-context,
+  .markets-footer,
+  .markets-sparkline-tooltip
+) {
+  font-size: var(--current-type-micro);
+}
+
+/* Level 3: secondary values and short copy. */
+.current-shell :is(
+  .weather-condition,
+  .electricity-now__price,
+  .electricity-summary-strip .electricity-extreme__value
+) {
+  font-size: var(--current-type-data);
+}
+
+/* Color hierarchy is semantic rather than component-specific. */
+.current-shell :is(
+  .weather-index,
+  .electricity-index,
+  .markets-index
+) {
+  color: var(--moss);
+}
+
+.current-shell :is(
+  .weather-condition,
+  .electricity-now__price
+) {
+  color: var(--current-text-secondary);
+}
+
+.current-shell :is(
+  .weather-current__range,
+  .weather-hour__time,
+  .weather-day__name,
+  .electricity-average-label,
+  .markets-panel-label,
+  .markets-macro__label
+) {
+  color: var(--current-text-label);
+}
+
+.current-shell :is(
+  .weather-location,
+  .weather-current__solar,
+  .weather-hour__rain,
+  .weather-day__rain,
+  .weather-footer,
+  .electricity-market,
+  .electricity-average-comparison,
+  .electricity-now__label,
+  .electricity-now__interval,
+  .electricity-extreme__label,
+  .electricity-extreme__detail,
+  .electricity-footer,
+  .markets-panel-observation,
+  .markets-macro__change,
+  .markets-sparkline-context,
+  .markets-footer
+) {
+  color: var(--current-text-meta);
+}
+
+/* SVG and chart typography uses the same scale. A 9 px exception is kept only
+   for dense chart annotations where 10 px would materially reduce plot space. */
+.current-shell .current-weather .weather-daily-chart text {
+  font-family: var(--current-font-mono);
+  font-size: var(--current-type-micro);
+}
+
+.current-shell .current-electricity .electricity-chart :is(
+  .electricity-chart__axis-label,
+  .electricity-chart__y-label
+) {
+  font-family: var(--current-font-mono);
+  font-size: var(--current-type-micro);
+}
+
+.current-shell .current-electricity .electricity-chart :is(
+  .electricity-chart__window-label,
+  .electricity-chart__window-range
+) {
+  font-size: 9px;
+}
+
+.current-shell .current-electricity .electricity-chart .electricity-chart__window-unit {
+  font-size: 9px;
+}
+
+.current-shell .current-markets .markets-sparkline-axis {
+  font-size: 9px;
 }
 
 /* TradingView becomes a defined custom element only after its module loads.
@@ -36,4 +231,22 @@ body {
   max-width: 100% !important;
   min-width: 0 !important;
   overflow-x: hidden !important;
+}
+
+@media (max-width: 640px) {
+  .current-shell {
+    --current-type-micro: 0.5625rem; /* 9 px */
+    --current-type-label: 0.625rem; /* 10 px */
+    --current-type-data: 0.75rem; /* 12 px */
+    --current-type-copy: 0.8125rem; /* 13 px */
+  }
+
+  .current-shell .current-electricity .electricity-chart :is(
+    .electricity-chart__window-label,
+    .electricity-chart__window-range,
+    .electricity-chart__window-unit
+  ),
+  .current-shell .current-markets .markets-sparkline-axis {
+    font-size: 8.5px;
+  }
 }
