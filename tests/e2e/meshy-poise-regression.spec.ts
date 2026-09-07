@@ -1,35 +1,8 @@
 import { stat } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 
-const modelFixture = {
-  asset: { version: '2.0' },
-  scene: 0,
-  scenes: [{ nodes: [0] }],
-  nodes: [{ mesh: 0 }],
-  meshes: [{ primitives: [{ attributes: { POSITION: 0 }, indices: 1 }] }],
-  buffers: [
-    {
-      byteLength: 42,
-      uri: 'data:application/octet-stream;base64,AAAAvwAAAL8AAAAAAAAAPwAAAL8AAAAAAAAAAAAAAD8AAAAAAAABAAIA',
-    },
-  ],
-  bufferViews: [
-    { buffer: 0, byteOffset: 0, byteLength: 36, target: 34962 },
-    { buffer: 0, byteOffset: 36, byteLength: 6, target: 34963 },
-  ],
-  accessors: [
-    {
-      bufferView: 0,
-      byteOffset: 0,
-      componentType: 5126,
-      count: 3,
-      type: 'VEC3',
-      min: [-0.5, -0.5, 0],
-      max: [0.5, 0.5, 0],
-    },
-    { bufferView: 1, byteOffset: 0, componentType: 5123, count: 3, type: 'SCALAR' },
-  ],
-};
+const modelFixtureBase64 =
+  'Z2xURgIAAABYAgAAEAIAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAifSwic2NlbmUiOjAsInNjZW5lcyI6W3sibm9kZXMiOlswXX1dLCJub2RlcyI6W3sibWVzaCI6MH1dLCJtZXNoZXMiOlt7InByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjB9LCJpbmRpY2VzIjoxfV19XSwiYnVmZmVycyI6W3siYnl0ZUxlbmd0aCI6NDJ9XSwiYnVmZmVyVmlld3MiOlt7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MCwiYnl0ZUxlbmd0aCI6MzYsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0IjozNiwiYnl0ZUxlbmd0aCI6NiwidGFyZ2V0IjozNDk2M31dLCJhY2Nlc3NvcnMiOlt7ImJ1ZmZlclZpZXciOjAsImJ5dGVPZmZzZXQiOjAsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjozLCJ0eXBlIjoiVkVDMyIsIm1pbiI6Wy0wLjUsLTAuNSwwXSwibWF4IjpbMC41LDAuNSwwXX0seyJidWZmZXJWaWV3IjoxLCJieXRlT2Zmc2V0IjowLCJjb21wb25lbnRUeXBlIjo1MTIzLCJjb3VudCI6MywidHlwZSI6IlNDQUxBUiJ9XX0gICAsAAAAQklOAAAAAL8AAAC/AAAAAAAAAD8AAAC/AAAAAAAAAAAAAAA/AAAAAAAAAQACAAAA';
 
 test('Pixelated Poise loads its Lab render and accepts orbit interaction', async ({ page }) => {
   test.setTimeout(90_000);
@@ -53,8 +26,8 @@ test('Pixelated Poise loads its Lab render and accepts orbit interaction', async
     if (route.request().url().endsWith('/lab/meshy-pixelated-poise.glb')) {
       await route.fulfill({
         status: 200,
-        contentType: 'model/gltf+json',
-        body: JSON.stringify(modelFixture),
+        contentType: 'model/gltf-binary',
+        body: Buffer.from(modelFixtureBase64, 'base64'),
       });
       return;
     }
