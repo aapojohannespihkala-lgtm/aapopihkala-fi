@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const buildDay = (localMidnightUtc: number, day: 'today' | 'tomorrow') =>
   Array.from({ length: 96 }, (_, index) => {
@@ -40,6 +40,32 @@ const buildElectricityFixture = (includeTomorrow = true) => {
   return { prices: prices.reverse() };
 };
 
+const readStableChartMetrics = async (page: Page, chart: Locator) => {
+  const readMetrics = () =>
+    chart.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { documentY: rect.top + window.scrollY, height: rect.height };
+    });
+
+  let previous = await readMetrics();
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    await page.waitForTimeout(50);
+    const current = await readMetrics();
+
+    if (
+      Math.abs(current.documentY - previous.documentY) <= 0.25 &&
+      Math.abs(current.height - previous.height) <= 0.25
+    ) {
+      return current;
+    }
+
+    previous = current;
+  }
+
+  return previous;
+};
+
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-09-06T13:52:00.000Z'));
   await page.route('**/tv-market-data.js', async (route) => route.abort());
@@ -78,10 +104,7 @@ test('Current switches the electricity day average and chart without moving the 
   await expect(page.locator('[data-electricity-now-price]')).toHaveText('0.44 c/kWh');
   await expect(page.locator('[data-electricity-interval]')).toHaveText('16:45 - 17:00');
 
-  const todayChartMetrics = await chart.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return { documentY: rect.top + window.scrollY, height: rect.height };
-  });
+  const todayChartMetrics = await readStableChartMetrics(page, chart);
   expect(todayChartMetrics.height).toBeCloseTo(168, 0);
 
   await tomorrowButton.click();
@@ -108,10 +131,7 @@ test('Current switches the electricity day average and chart without moving the 
   await expect(page.locator('.electricity-stats')).toHaveCount(0);
   await expect(chart).toHaveAttribute('aria-label', /tomorrow/);
 
-  const tomorrowChartMetrics = await chart.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return { documentY: rect.top + window.scrollY, height: rect.height };
-  });
+  const tomorrowChartMetrics = await readStableChartMetrics(page, chart);
   expect(Math.abs(tomorrowChartMetrics.documentY - todayChartMetrics.documentY)).toBeLessThanOrEqual(2);
   expect(Math.abs(tomorrowChartMetrics.height - todayChartMetrics.height)).toBeLessThanOrEqual(1);
 
@@ -151,10 +171,7 @@ test('Current switches the electricity day average and chart without moving the 
   await expect(page.locator('[data-electricity-current-line]')).toHaveCount(1);
   await expect(tomorrowDot).toBeHidden();
 
-  const todayAgainChartMetrics = await chart.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return { documentY: rect.top + window.scrollY, height: rect.height };
-  });
+  const todayAgainChartMetrics = await readStableChartMetrics(page, chart);
   expect(Math.abs(todayAgainChartMetrics.documentY - todayChartMetrics.documentY)).toBeLessThanOrEqual(2);
   expect(Math.abs(todayAgainChartMetrics.height - todayChartMetrics.height)).toBeLessThanOrEqual(1);
 });
