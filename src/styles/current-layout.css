@@ -1,6 +1,15 @@
+/* Current contains a few fixed and third-party elements outside the main shell.
+   On desktop Chromium those can still contribute to the root scrollable overflow,
+   even when the Current shell itself is clipped. Keep the Current route strictly
+   vertical at the document root. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden !important;
+}
+
 .current-shell {
   overflow-x: hidden;
-  overflow-x: clip;
 }
 
 .current-shell .current-section-wrap,
@@ -18,7 +27,6 @@
 .current-shell .markets-performance {
   max-width: 100%;
   overflow-x: hidden !important;
-  overflow-x: clip !important;
   overscroll-behavior-inline: none !important;
 }
 
@@ -28,5 +36,4 @@
   max-width: 100% !important;
   min-width: 0 !important;
   overflow-x: hidden !important;
-  overflow-x: clip !important;
 }
