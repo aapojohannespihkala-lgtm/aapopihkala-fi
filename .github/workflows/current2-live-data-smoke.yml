@@ -1,11 +1,9 @@
 name: Current2 live data smoke
 
 on:
-  workflow_run:
-    workflows:
-      - Build check
-    types:
-      - completed
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
@@ -14,10 +12,6 @@ concurrency:
 
 jobs:
   verify:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     steps:
       - name: Verify live Current2 portfolio data
