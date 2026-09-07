@@ -1,9 +1,29 @@
 /* Current2 custom market rows are inserted after Astro's scoped styles are emitted.
-   These global rules keep the dynamic portfolio rows aligned with the static table header. */
+   These global rules keep the dynamic portfolio matrix aligned and keep the
+   separate rates/trends section below it. */
+.current2-shell .current-markets--custom .markets-layout--custom {
+  display: block;
+}
+
+.current2-shell .current-markets--custom .markets-custom-performance {
+  width: 100%;
+}
+
+.current2-shell .current-markets--custom .markets-macro {
+  width: 100%;
+  margin-top: 34px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.current2-shell .markets-custom-table .markets-custom-row--header,
 .current2-shell .markets-custom-table [data-market-performance-row] {
   display: grid;
-  grid-template-columns: minmax(134px, 1.45fr) minmax(72px, 0.7fr) repeat(5, minmax(62px, 0.64fr));
+  grid-template-columns: minmax(230px, 2.2fr) repeat(9, minmax(62px, 0.62fr));
   align-items: center;
+}
+
+.current2-shell .markets-custom-table [data-market-performance-row] {
   min-height: 37px;
   border-bottom: 1px solid var(--line-soft);
 }
@@ -12,13 +32,15 @@
   border-bottom: 0;
 }
 
+.current2-shell .markets-custom-table .markets-custom-row--header > span,
 .current2-shell .markets-custom-table [data-market-performance-row] > span {
   min-width: 0;
-  padding: 0 8px;
+  padding: 0 7px;
   text-align: right;
   white-space: nowrap;
 }
 
+.current2-shell .markets-custom-table .markets-custom-row--header > span:first-child,
 .current2-shell .markets-custom-table [data-market-performance-row] > span:first-child {
   padding-left: 0;
   text-align: left;
@@ -45,11 +67,6 @@
   letter-spacing: 0.04em;
 }
 
-.current2-shell .markets-custom-table [data-market-performance-row] .markets-custom-price {
-  color: var(--ink);
-  font-weight: 600;
-}
-
 .current2-shell .markets-custom-table [data-market-performance-row] .is-positive {
   color: #1ba88a;
 }
@@ -63,22 +80,35 @@
 }
 
 @media (max-width: 820px) {
+  .current2-shell .markets-custom-table .markets-custom-row--header,
   .current2-shell .markets-custom-table [data-market-performance-row] {
-    grid-template-columns: minmax(128px, 1.5fr) minmax(70px, 0.72fr) repeat(3, minmax(62px, 0.64fr));
+    grid-template-columns: minmax(150px, 1.7fr) repeat(4, minmax(58px, 0.7fr));
   }
 
-  .current2-shell .markets-custom-table [data-market-performance-row] .period-week1,
-  .current2-shell .markets-custom-table [data-market-performance-row] .period-month6 {
+  .current2-shell .markets-custom-table .period-week1,
+  .current2-shell .markets-custom-table .period-month3,
+  .current2-shell .markets-custom-table .period-month6,
+  .current2-shell .markets-custom-table .period-year3,
+  .current2-shell .markets-custom-table .period-year5 {
     display: none;
   }
 }
 
 @media (max-width: 520px) {
+  .current2-shell .markets-custom-table .markets-custom-row--header,
   .current2-shell .markets-custom-table [data-market-performance-row] {
-    grid-template-columns: minmax(112px, 1.55fr) minmax(64px, 0.72fr) repeat(3, minmax(56px, 0.66fr));
+    grid-template-columns: minmax(112px, 1.55fr) repeat(3, minmax(54px, 0.72fr));
+  }
+
+  .current2-shell .markets-custom-table .period-ytd {
+    display: none;
+  }
+
+  .current2-shell .markets-custom-table [data-market-performance-row] {
     min-height: 35px;
   }
 
+  .current2-shell .markets-custom-table .markets-custom-row--header > span,
   .current2-shell .markets-custom-table [data-market-performance-row] > span {
     padding: 0 5px;
   }

@@ -34,16 +34,22 @@ type PerformanceSpec = {
   symbol: string;
 };
 
+type MarketPerformanceChanges = {
+  today: number | null;
+  week1: number | null;
+  month1: number | null;
+  month3: number | null;
+  month6: number | null;
+  ytd: number | null;
+  year1: number | null;
+  year3: number | null;
+  year5: number | null;
+};
+
 type MarketPerformanceItem = PerformanceSpec & {
   price: number;
   observedAt: string;
-  changes: {
-    today: number;
-    week1: number;
-    month1: number;
-    month6: number;
-    year1: number;
-  };
+  changes: MarketPerformanceChanges;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -107,8 +113,8 @@ const parseYahooObservations = (data: YahooChartResponse): Observation[] => {
 const fetchYahooObservations = async (symbol: string) => {
   const encoded = encodeURIComponent(symbol);
   const urls = [
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?range=1y&interval=1d`,
-    `https://query2.finance.yahoo.com/v8/finance/chart/${encoded}?range=1y&interval=1d`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?range=10y&interval=1d`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encoded}?range=10y&interval=1d`,
   ];
   let lastError: unknown;
 
@@ -131,8 +137,8 @@ const fetchYahooObservations = async (symbol: string) => {
   throw lastError instanceof Error ? lastError : new Error('Yahoo Finance request failed');
 };
 
-const findReference = (observations: Observation[], targetTime: number) => {
-  let candidate = observations[0];
+const findReference = (observations: Observation[], targetTime: number): Observation | null => {
+  let candidate: Observation | null = null;
 
   for (const item of observations) {
     const itemTime = Date.parse(`${item.observedAt}T00:00:00Z`);
@@ -143,9 +149,15 @@ const findReference = (observations: Observation[], targetTime: number) => {
   return candidate;
 };
 
-const percentChange = (latest: number, reference: number) => {
-  if (!Number.isFinite(reference) || reference === 0) return 0;
-  return (latest / reference - 1) * 100;
+const percentChange = (latest: number, reference: Observation | null) => {
+  if (!reference || !Number.isFinite(reference.value) || reference.value === 0) return null;
+  return (latest / reference.value - 1) * 100;
+};
+
+const yearsBefore = (time: number, years: number) => {
+  const date = new Date(time);
+  date.setUTCFullYear(date.getUTCFullYear() - years);
+  return date.getTime();
 };
 
 const buildPerformanceItem = (
@@ -157,21 +169,23 @@ const buildPerformanceItem = (
   if (!latest || !previous) throw new Error(`${spec.id} observations are incomplete`);
 
   const latestTime = Date.parse(`${latest.observedAt}T00:00:00Z`);
-  const week = findReference(observations, latestTime - 7 * DAY_MS);
-  const month = findReference(observations, latestTime - 30 * DAY_MS);
-  const sixMonths = findReference(observations, latestTime - 183 * DAY_MS);
-  const year = findReference(observations, latestTime - 365 * DAY_MS);
+  const latestDate = new Date(latestTime);
+  const previousYearEnd = Date.UTC(latestDate.getUTCFullYear(), 0, 1) - DAY_MS;
 
   return {
     ...spec,
     price: latest.value,
     observedAt: latest.observedAt,
     changes: {
-      today: percentChange(latest.value, previous.value),
-      week1: percentChange(latest.value, week.value),
-      month1: percentChange(latest.value, month.value),
-      month6: percentChange(latest.value, sixMonths.value),
-      year1: percentChange(latest.value, year.value),
+      today: (latest.value / previous.value - 1) * 100,
+      week1: percentChange(latest.value, findReference(observations, latestTime - 7 * DAY_MS)),
+      month1: percentChange(latest.value, findReference(observations, latestTime - 30 * DAY_MS)),
+      month3: percentChange(latest.value, findReference(observations, latestTime - 92 * DAY_MS)),
+      month6: percentChange(latest.value, findReference(observations, latestTime - 183 * DAY_MS)),
+      ytd: percentChange(latest.value, findReference(observations, previousYearEnd)),
+      year1: percentChange(latest.value, findReference(observations, yearsBefore(latestTime, 1))),
+      year3: percentChange(latest.value, findReference(observations, yearsBefore(latestTime, 3))),
+      year5: percentChange(latest.value, findReference(observations, yearsBefore(latestTime, 5))),
     },
   };
 };
@@ -197,7 +211,7 @@ export const onRequestGet = async () => {
       liveExpected: LIVE_SPECS.length,
       unavailable,
       source: 'Yahoo Finance',
-      version: 1,
+      version: 2,
     });
   } catch {
     return jsonResponse({
@@ -206,7 +220,7 @@ export const onRequestGet = async () => {
       liveExpected: LIVE_SPECS.length,
       unavailable: LIVE_SPECS.map((spec) => spec.id),
       source: 'Yahoo Finance',
-      version: 1,
+      version: 2,
     });
   }
 };

@@ -21,19 +21,24 @@ type MarketPerformanceId =
   | 'bnb'
   | 'eth';
 
+type PerformancePeriod =
+  | 'today'
+  | 'week1'
+  | 'month1'
+  | 'month3'
+  | 'month6'
+  | 'ytd'
+  | 'year1'
+  | 'year3'
+  | 'year5';
+
 type MarketPerformanceItem = {
   id: MarketPerformanceId;
   label: string;
   symbol: string;
   price: number;
   observedAt: string;
-  changes: {
-    today: number;
-    week1: number;
-    month1: number;
-    month6: number;
-    year1: number;
-  };
+  changes: Record<PerformancePeriod, number | null>;
 };
 
 type MarketPerformanceResponse = {
@@ -47,8 +52,26 @@ type DisplayRow = {
   identifier: string;
 };
 
-const API_URL = '/api/current/markets?portfolio=1&v=4';
+type PeriodDefinition = {
+  key: PerformancePeriod;
+  label: string;
+  className: string;
+};
+
+const API_URL = '/api/current/markets?portfolio=1&v=5';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+
+const PERIODS: PeriodDefinition[] = [
+  { key: 'today', label: '1D', className: 'period-day1' },
+  { key: 'week1', label: '1W', className: 'period-week1' },
+  { key: 'month1', label: '1M', className: 'period-month1' },
+  { key: 'month3', label: '3M', className: 'period-month3' },
+  { key: 'month6', label: '6M', className: 'period-month6' },
+  { key: 'ytd', label: 'YTD', className: 'period-ytd' },
+  { key: 'year1', label: '1Y', className: 'period-year1' },
+  { key: 'year3', label: '3Y', className: 'period-year3' },
+  { key: 'year5', label: '5Y', className: 'period-year5' },
+];
 
 const DISPLAY_ROWS: DisplayRow[] = [
   { id: 'handelsbanken-usa', label: 'Handelsbanken Usa Indeksi', identifier: 'SE0006800140' },
@@ -77,6 +100,9 @@ const IDS = new Set<MarketPerformanceId>(DISPLAY_ROWS.map((row) => row.id));
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
+const isNullableFiniteNumber = (value: unknown): value is number | null =>
+  value === null || isFiniteNumber(value);
+
 const isPerformanceItem = (value: unknown): value is MarketPerformanceItem => {
   if (!value || typeof value !== 'object') return false;
   const item = value as Partial<MarketPerformanceItem>;
@@ -90,19 +116,9 @@ const isPerformanceItem = (value: unknown): value is MarketPerformanceItem => {
     isFiniteNumber(item.price) &&
     typeof item.observedAt === 'string' &&
     !!changes &&
-    isFiniteNumber(changes.today) &&
-    isFiniteNumber(changes.week1) &&
-    isFiniteNumber(changes.month1) &&
-    isFiniteNumber(changes.month6) &&
-    isFiniteNumber(changes.year1)
+    PERIODS.every(({ key }) => isNullableFiniteNumber(changes[key]))
   );
 };
-
-const formatPrice = (item: MarketPerformanceItem) =>
-  new Intl.NumberFormat('en-GB', {
-    minimumFractionDigits: item.price >= 1000 ? 0 : 2,
-    maximumFractionDigits: item.price >= 1000 ? 0 : 2,
-  }).format(item.price);
 
 const formatChange = (value: number) => {
   const sign = value > 0 ? '+' : '';
@@ -114,19 +130,43 @@ const applyChangeTone = (element: HTMLElement, value: number) => {
   element.classList.add(value > 0.005 ? 'is-positive' : value < -0.005 ? 'is-negative' : 'is-flat');
 };
 
-const createCell = (period: keyof MarketPerformanceItem['changes'], className?: string) => {
+const createCell = (period: PeriodDefinition) => {
   const cell = document.createElement('span');
   cell.setAttribute('role', 'cell');
-  cell.dataset.marketPerformanceChange = period;
+  cell.dataset.marketPerformanceChange = period.key;
+  cell.className = period.className;
   cell.textContent = '--';
-  if (className) cell.className = className;
   return cell;
+};
+
+const syncHeader = (table: HTMLElement) => {
+  const header = table.querySelector<HTMLElement>('.markets-custom-row--header');
+  if (!header) return;
+
+  header.replaceChildren();
+
+  const market = document.createElement('span');
+  market.setAttribute('role', 'columnheader');
+  market.textContent = 'MARKET';
+  header.append(market);
+
+  for (const period of PERIODS) {
+    const cell = document.createElement('span');
+    cell.setAttribute('role', 'columnheader');
+    cell.className = period.className;
+    cell.textContent = period.label;
+    header.append(cell);
+  }
 };
 
 const syncDisplayRows = (root: HTMLElement) => {
   const table = root.querySelector<HTMLElement>('.markets-custom-table');
   if (!table || table.dataset.portfolioRowsReady === 'true') return;
 
+  const panelLabel = root.querySelector<HTMLElement>('.markets-panel-heading--performance .markets-panel-label');
+  if (panelLabel) panelLabel.textContent = 'PORTFOLIO / PERFORMANCE';
+
+  syncHeader(table);
   table.querySelectorAll('[data-market-performance-row]').forEach((row) => row.remove());
 
   for (const item of DISPLAY_ROWS) {
@@ -145,21 +185,7 @@ const syncDisplayRows = (root: HTMLElement) => {
     identifier.textContent = item.identifier;
     market.append(label, identifier);
 
-    const price = document.createElement('span');
-    price.className = 'markets-custom-price';
-    price.setAttribute('role', 'cell');
-    price.dataset.marketPerformancePrice = '';
-    price.textContent = '--';
-
-    row.append(
-      market,
-      price,
-      createCell('today'),
-      createCell('week1', 'period-week1'),
-      createCell('month1'),
-      createCell('month6', 'period-month6'),
-      createCell('year1')
-    );
+    row.append(market, ...PERIODS.map(createCell));
     table.append(row);
   }
 
@@ -169,9 +195,6 @@ const syncDisplayRows = (root: HTMLElement) => {
 const resetRows = (root: HTMLElement) => {
   root.querySelectorAll<HTMLElement>('[data-market-performance-row]').forEach((row) => {
     row.removeAttribute('data-market-performance-loaded');
-
-    const price = row.querySelector<HTMLElement>('[data-market-performance-price]');
-    if (price) price.textContent = '--';
 
     row.querySelectorAll<HTMLElement>('[data-market-performance-change]').forEach((cell) => {
       cell.textContent = '--';
@@ -197,20 +220,17 @@ export const initCurrentMarketPerformance = () => {
       const row = root.querySelector<HTMLElement>(`[data-market-performance-row="${item.id}"]`);
       if (!row) continue;
 
-      const price = row.querySelector<HTMLElement>('[data-market-performance-price]');
-      if (price) price.textContent = formatPrice(item);
-
-      const values: Array<[keyof MarketPerformanceItem['changes'], number]> = [
-        ['today', item.changes.today],
-        ['week1', item.changes.week1],
-        ['month1', item.changes.month1],
-        ['month6', item.changes.month6],
-        ['year1', item.changes.year1],
-      ];
-
-      for (const [period, value] of values) {
-        const target = row.querySelector<HTMLElement>(`[data-market-performance-change="${period}"]`);
+      for (const period of PERIODS) {
+        const target = row.querySelector<HTMLElement>(`[data-market-performance-change="${period.key}"]`);
         if (!target) continue;
+
+        const value = item.changes[period.key];
+        if (typeof value !== 'number' || !Number.isFinite(value)) {
+          target.textContent = '--';
+          target.classList.remove('is-positive', 'is-negative', 'is-flat');
+          continue;
+        }
+
         target.textContent = formatChange(value);
         applyChangeTone(target, value);
       }
