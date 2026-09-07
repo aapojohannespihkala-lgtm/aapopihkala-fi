@@ -99,34 +99,44 @@
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const behavior = () => reducedMotion() ? 'auto' : 'smooth'
-    const SECTION_BOUNDARY_CLEARANCE = 20
-    const SECTION_ENTRY_OFFSET = 2
+    const SECTION_BOTTOM_CLEARANCE = 4
+    const SECTION_DIVIDER_MASK_INSET = 2
 
     const getDocumentTop = (section) =>
       section.getBoundingClientRect().top + window.scrollY
+
+    const getTopbarHeight = () => {
+      const topbar = document.querySelector('.topbar')
+      if (!(topbar instanceof HTMLElement)) return 0
+      return Math.max(0, topbar.getBoundingClientRect().height)
+    }
+
+    const getMaskedSectionTop = () =>
+      Math.max(0, getTopbarHeight() - SECTION_DIVIDER_MASK_INSET)
 
     let sections = []
     let firstSection = null
     let currentTarget = null
 
-    const getSectionScrollTop = (section) => {
-      const entryOffset = section === firstSection ? 0 : SECTION_ENTRY_OFFSET
-      return Math.max(0, getDocumentTop(section) + entryOffset)
-    }
+    const getSectionScrollTop = (section) =>
+      Math.max(0, getDocumentTop(section) - getMaskedSectionTop())
 
     const fitSectionsToViewport = () => {
       if (!(firstSection instanceof HTMLElement)) return
 
-      const sectionTop = getDocumentTop(firstSection)
-      const remainingViewport = window.innerHeight - sectionTop
+      const firstSectionTop = getDocumentTop(firstSection)
       firstSection.style.minHeight = `${Math.max(
         0,
-        Math.ceil(remainingViewport + SECTION_BOUNDARY_CLEARANCE)
+        Math.ceil(window.innerHeight - firstSectionTop + SECTION_BOTTOM_CLEARANCE)
       )}px`
 
-      const middleSectionMinHeight = `${Math.ceil(
-        window.innerHeight + SECTION_BOUNDARY_CLEARANCE
+      const middleSectionMinHeight = `${Math.max(
+        0,
+        Math.ceil(
+          window.innerHeight - getMaskedSectionTop() + SECTION_BOTTOM_CLEARANCE
+        )
       )}px`
+
       sections.slice(1, -1).forEach((section) => {
         if (section instanceof HTMLElement) {
           section.style.minHeight = middleSectionMinHeight
@@ -138,7 +148,7 @@
       if (!sections.length) return
 
       const y = window.scrollY
-      const threshold = y + 40
+      const threshold = y + getTopbarHeight()
       let currentIndex = 0
 
       sections.forEach((section, index) => {
