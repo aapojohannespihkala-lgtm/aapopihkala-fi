@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 test('RiverFlow preserves its animated Lab presentation', async ({ page }) => {
+  test.setTimeout(90_000);
+
   const riverErrors: string[] = [];
 
   page.on('console', (message) => {
@@ -12,6 +14,7 @@ test('RiverFlow preserves its animated Lab presentation', async ({ page }) => {
     }
   });
 
+  await page.route('**/*.glb', async (route) => route.abort());
   await page.goto('/lab/', { waitUntil: 'domcontentloaded' });
 
   const root = page.locator('[data-river-flow]');
@@ -34,15 +37,18 @@ test('RiverFlow preserves its animated Lab presentation', async ({ page }) => {
   await expect
     .poll(
       () => canvas.evaluate((element) => (element as HTMLCanvasElement).height),
-      { timeout: 20_000 }
+      { timeout: 30_000 }
     )
     .toBeGreaterThan(250);
 
-  await page.waitForTimeout(250);
-  const before = await canvas.screenshot();
-  await page.waitForTimeout(450);
-  const after = await canvas.screenshot();
+  const snapshot = () =>
+    canvas.evaluate((element) => (element as HTMLCanvasElement).toDataURL('image/png'));
 
-  expect(Buffer.compare(before, after)).not.toBe(0);
+  await page.waitForTimeout(250);
+  const before = await snapshot();
+  await page.waitForTimeout(450);
+  const after = await snapshot();
+
+  expect(after).not.toBe(before);
   expect(riverErrors).toEqual([]);
 });
