@@ -241,7 +241,7 @@ const buildStepPath = (
 
   let path = `M ${xBoundary(0).toFixed(2)} ${yFor(points[0].price).toFixed(2)}`;
 
-  points.forEach((point, index) => {
+  points.forEach((_, index) => {
     const right = xBoundary(index + 1);
     path += ` H ${right.toFixed(2)}`;
 
