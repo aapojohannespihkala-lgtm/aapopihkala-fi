@@ -1,11 +1,15 @@
 type MarketPerformanceId =
-  | 'world'
-  | 'usa'
-  | 'europe'
-  | 'nordic'
-  | 'finland'
-  | 'japan'
-  | 'bitcoin'
+  | 'handelsbanken-usa'
+  | 'nordnet-finland'
+  | 'ishares-world'
+  | 'ishares-europe'
+  | 'nordnet-sweden'
+  | 'spiltan-investmentbolag'
+  | 'storebrand-japan'
+  | 'franklin-sp500-climate'
+  | 'xact-norden'
+  | 'nordea'
+  | 'marimekko'
   | 'remedy';
 
 type Observation = {
@@ -29,10 +33,14 @@ type YahooChartResponse = {
 type PerformanceSpec = {
   id: MarketPerformanceId;
   label: string;
+  symbol?: string;
+};
+
+type LivePerformanceSpec = PerformanceSpec & {
   symbol: string;
 };
 
-type MarketPerformanceItem = PerformanceSpec & {
+type MarketPerformanceItem = LivePerformanceSpec & {
   price: number;
   observedAt: string;
   changes: {
@@ -45,16 +53,28 @@ type MarketPerformanceItem = PerformanceSpec & {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Current2 portfolio prototype. Exchange-traded holdings use exact Yahoo symbols.
+// The five traditional mutual funds stay in the expected count but are intentionally
+// not proxied with an index: their exact NAV/history adapters will be added separately.
 const PERFORMANCE_SPECS: PerformanceSpec[] = [
-  { id: 'world', label: 'WORLD', symbol: 'URTH' },
-  { id: 'usa', label: 'USA', symbol: 'SPY' },
-  { id: 'europe', label: 'EUROPE', symbol: 'VGK' },
-  { id: 'nordic', label: 'NORDIC 40', symbol: '^OMXN40' },
-  { id: 'finland', label: 'HELSINKI 25', symbol: '^OMXH25' },
-  { id: 'japan', label: 'JAPAN', symbol: 'EWJ' },
-  { id: 'bitcoin', label: 'BITCOIN / EUR', symbol: 'BTC-EUR' },
+  { id: 'handelsbanken-usa', label: 'HANDELSBANKEN USA INDEKSI' },
+  { id: 'nordnet-finland', label: 'NORDNET SUOMI INDEKSI' },
+  { id: 'ishares-world', label: 'ISHARES CORE MSCI WORLD UCITS ETF USD (ACC)', symbol: 'EUNL.DE' },
+  { id: 'ishares-europe', label: 'ISHARES CORE MSCI EUROPE UCITS ETF EUR (ACC)', symbol: 'EUNK.DE' },
+  { id: 'nordnet-sweden', label: 'NORDNET SVERIGE INDEX' },
+  { id: 'spiltan-investmentbolag', label: 'SPILTAN AKTIEFOND INVESTMENTBOLAG' },
+  { id: 'storebrand-japan', label: 'STOREBRAND JAPAN A EUR' },
+  { id: 'franklin-sp500-climate', label: 'FRANKLIN S&P 500 PARIS ALIGNED CLIMATE UCITS ETF', symbol: 'FLX5.DE' },
+  { id: 'xact-norden', label: 'XACT NORDEN', symbol: 'XACT-NORDEN.ST' },
+  { id: 'nordea', label: 'NORDEA', symbol: 'NDA-FI.HE' },
+  { id: 'marimekko', label: 'MARIMEKKO', symbol: 'MEKKO.HE' },
   { id: 'remedy', label: 'REMEDY', symbol: 'REMEDY.HE' },
 ];
+
+const LIVE_SPECS = PERFORMANCE_SPECS.filter(
+  (spec): spec is LivePerformanceSpec => typeof spec.symbol === 'string'
+);
 
 const jsonResponse = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), {
@@ -138,7 +158,7 @@ const percentChange = (latest: number, reference: number) => {
 };
 
 const buildPerformanceItem = (
-  spec: PerformanceSpec,
+  spec: LivePerformanceSpec,
   observations: Observation[]
 ): MarketPerformanceItem => {
   const latest = observations.at(-1);
@@ -167,7 +187,7 @@ const buildPerformanceItem = (
 
 export const onRequestGet = async () => {
   const settled = await Promise.allSettled(
-    PERFORMANCE_SPECS.map(async (spec) =>
+    LIVE_SPECS.map(async (spec) =>
       buildPerformanceItem(spec, await fetchYahooObservations(spec.symbol))
     )
   );
@@ -184,7 +204,8 @@ export const onRequestGet = async () => {
     {
       items,
       expected: PERFORMANCE_SPECS.length,
-      source: 'Yahoo Finance',
+      liveExpected: LIVE_SPECS.length,
+      source: 'Yahoo Finance + exact fund NAV adapters pending',
     },
     200
   );
