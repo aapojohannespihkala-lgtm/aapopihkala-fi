@@ -112,8 +112,11 @@ test.describe('Current2 responsive comparison', () => {
 
       await expect(page.locator('tv-market-data')).toHaveCount(0);
       await expect(page.locator('[data-current-market-performance]')).toHaveCount(1);
+      await expect(page.locator('[data-market-performance-summary]')).toHaveCount(1);
       await expect(page.locator('[data-market-performance-row]')).toHaveCount(19);
       await expect(page.locator('[data-market-sort]')).toHaveCount(10);
+      await expect(page.locator('[data-market-summary-period]')).toHaveText('1Y');
+      await expect(page.locator('[data-market-summary-coverage]')).toHaveText('0 OF 19 DATA');
       await expect(page.getByText('Handelsbanken Usa Indeksi', { exact: true })).toBeVisible();
       await expect(page.getByText('Nordnet Suomi Indeksi', { exact: true })).toBeVisible();
       await expect(page.getByText('Marimekko', { exact: true })).toBeVisible();
@@ -162,7 +165,7 @@ test.describe('Current2 responsive comparison', () => {
     });
   }
 
-  test('sorts a performance column best first and reverses on a second click', async ({ page }) => {
+  test('sorts performance best first, worst first, then restores portfolio order', async ({ page }) => {
     await denyAnalytics(page);
 
     const changes = (year3: number) => ({
@@ -221,6 +224,11 @@ test.describe('Current2 responsive comparison', () => {
     await page.setViewportSize({ width: 1638, height: 675 });
     await page.goto('/current2/', { waitUntil: 'domcontentloaded' });
 
+    const loadedOrder = () =>
+      page
+        .locator('[data-market-performance-row][data-market-performance-loaded="true"]')
+        .evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.marketPerformanceRow));
+
     const year3Header = page.locator('[data-market-sort-cell="year3"]');
     const year3Button = page.locator('[data-market-sort="year3"]');
     await expect(year3Button).toBeVisible();
@@ -228,22 +236,26 @@ test.describe('Current2 responsive comparison', () => {
 
     await year3Button.click();
     await expect(year3Header).toHaveAttribute('aria-sort', 'descending');
-    await expect
-      .poll(() =>
-        page
-          .locator('[data-market-performance-row][data-market-performance-loaded="true"]')
-          .evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.marketPerformanceRow))
-      )
-      .toEqual(['ishares-world', 'remedy', 'marimekko']);
+    await expect(year3Header).toHaveClass(/is-summary-period/);
+    await expect.poll(loadedOrder).toEqual(['ishares-world', 'remedy', 'marimekko']);
+    await expect(page.locator('[data-market-summary-period]')).toHaveText('3Y');
+    await expect(page.locator('[data-market-summary-coverage]')).toHaveText('3 OF 19 DATA');
+    await expect(page.locator('[data-market-summary-balance]')).toHaveText(
+      'UP 2 / DOWN 1 / FLAT 0 / N/A 16'
+    );
+    await expect(page.locator('[data-market-summary-best]')).toHaveText(
+      'iShares Core MSCI World UCITS ETF USD (Acc) +42.00%'
+    );
+    await expect(page.locator('[data-market-summary-median]')).toHaveText('+18.00%');
+    await expect(page.locator('[data-market-summary-worst]')).toHaveText('Marimekko -8.00%');
 
     await year3Button.click();
     await expect(year3Header).toHaveAttribute('aria-sort', 'ascending');
-    await expect
-      .poll(() =>
-        page
-          .locator('[data-market-performance-row][data-market-performance-loaded="true"]')
-          .evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.marketPerformanceRow))
-      )
-      .toEqual(['marimekko', 'remedy', 'ishares-world']);
+    await expect.poll(loadedOrder).toEqual(['marimekko', 'remedy', 'ishares-world']);
+
+    await year3Button.click();
+    await expect(year3Header).toHaveAttribute('aria-sort', 'none');
+    await expect.poll(loadedOrder).toEqual(['ishares-world', 'marimekko', 'remedy']);
+    await expect(page.locator('[data-market-summary-period]')).toHaveText('3Y');
   });
 });
