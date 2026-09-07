@@ -9,6 +9,7 @@ import NightModeToggle from '../../components/NightModeToggle.astro';
 import CurrentWeather from '../../components/current/CurrentWeather.astro';
 import CurrentElectricity from '../../components/current/CurrentElectricity.astro';
 import CurrentMarkets from '../../components/current/CurrentMarkets.astro';
+import Current2SectionNavigator from '../../components/current/Current2SectionNavigator.astro';
 
 const canonicalUrl = `${site.url}/current2/`;
 ---
@@ -51,6 +52,8 @@ const canonicalUrl = `${site.url}/current2/`;
       <CurrentMarkets />
     </div>
   </main>
+
+  <Current2SectionNavigator />
 
   <Fragment slot="afterAnalytics">
     <script>
