@@ -1,0 +1,113 @@
+name: Current2 live data smoke
+
+on:
+  workflow_run:
+    workflows:
+      - Build check
+    types:
+      - completed
+  workflow_dispatch:
+
+concurrency:
+  group: current2-live-data-smoke
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify live Current2 portfolio data
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          url="https://aapopihkala.fi/api/current/markets?portfolio=1&live_smoke=${GITHUB_RUN_ID}"
+
+          for attempt in $(seq 1 18); do
+            echo "Current2 live data attempt ${attempt}/18"
+
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 30 \
+              --header 'Accept: application/json' \
+              --header 'Cache-Control: no-cache' \
+              "$url" \
+              --output current2-live.json; then
+              if node <<'NODE'
+          const fs = require('node:fs');
+
+          const body = JSON.parse(fs.readFileSync('current2-live.json', 'utf8'));
+          const periods = ['today', 'week1', 'month1', 'month3', 'month6', 'ytd', 'year1', 'year3', 'year5'];
+          const items = Array.isArray(body.items) ? body.items : [];
+          const unavailable = Array.isArray(body.unavailable) ? body.unavailable : [];
+          const byId = new Map(items.map((item) => [item.id, item]));
+          const failures = [];
+
+          if (items.length !== 19) failures.push(`expected 19 items, got ${items.length}`);
+          if (body.expected !== 19) failures.push(`expected response.expected=19, got ${String(body.expected)}`);
+          if (unavailable.length > 0) failures.push(`unavailable: ${unavailable.join(', ')}`);
+
+          for (const period of periods) {
+            const missing = items
+              .filter((item) => item?.changes?.[period] === null || item?.changes?.[period] === undefined)
+              .map((item) => item.id);
+            console.log(`${period}: ${items.length - missing.length}/19 data${missing.length ? ` | missing ${missing.join(', ')}` : ''}`);
+          }
+
+          const requirePeriods = (id, requiredPeriods) => {
+            const item = byId.get(id);
+            if (!item) {
+              failures.push(`${id}: row missing`);
+              return;
+            }
+
+            const missing = requiredPeriods.filter(
+              (period) => item?.changes?.[period] === null || item?.changes?.[period] === undefined,
+            );
+            if (missing.length > 0) failures.push(`${id}: missing ${missing.join(', ')}`);
+          };
+
+          const fullNordnetPeriods = periods;
+          for (const id of [
+            'handelsbanken-usa',
+            'nordnet-finland',
+            'nordnet-sweden',
+            'spiltan-investmentbolag',
+            'storebrand-japan',
+          ]) {
+            requirePeriods(id, fullNordnetPeriods);
+          }
+
+          const opIndexPeriods = ['today', 'week1', 'month1', 'month3', 'month6', 'ytd', 'year1', 'year3', 'year5'];
+          for (const id of ['op-asia-index-a', 'op-europe-index-a', 'op-world-index-a']) {
+            requirePeriods(id, opIndexPeriods);
+          }
+
+          if (failures.length > 0) {
+            console.error(`Current2 live data incomplete: ${failures.join(' | ')}`);
+            process.exit(1);
+          }
+
+          console.log(`Current2 live portfolio verified: ${items.length}/19 rows, no unavailable sources.`);
+          NODE
+              then
+                exit 0
+              fi
+            fi
+
+            if [[ "$attempt" -lt 18 ]]; then
+              sleep 10
+            fi
+          done
+
+          echo "Current2 live data did not reach the required coverage." >&2
+          if [[ -f current2-live.json ]]; then
+            cat current2-live.json >&2
+          fi
+          exit 1
