@@ -71,7 +71,6 @@ Nykyinen sivusto ei tarvitse automaattista ajastettua julkaisua. Jos tarve myöh
 
 Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivisen rakennusvaiheen normaalia ChatGPT -> PR -> nopea CI -> automerge -työnkulkua.
 
-- Päivitä Three.js ja `@types/three` samassa muutoksessa ja validoi erityisesti Animation Labin sekä etusivun ja Aboutin 3D-regressiot.
 - Pidä TypeScript nykyisessä tuetussa sarjassa, kunnes `@astrojs/check` tukee seuraavaa majoria. Nykyinen check-versio sallii TypeScript 5- ja 6-sarjat, ei 7-sarjaa.
 - Tarkista `npm audit` -löydökset dependency- ja framework-päivitysten yhteydessä; käsittele jäljelle jäävät transitiiviset haavoittuvuudet erillisinä rajattuina maintenance-passeina.
 - Älä lisää automaattista riippuvuuspäivitys-PR-virtaa rakennusvaiheessa pelkän hygienian vuoksi, jos se kasvattaa PR-kohinaa. Arvioi Dependabot tai vastaava uudelleen vakaammassa vaiheessa.
