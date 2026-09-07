@@ -1,11 +1,11 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 type SectionGeometry = {
   viewportHeight: number;
   sections: Record<string, { top: number; bottom: number }>;
 };
 
-const readSectionGeometry = async (page: Parameters<typeof test>[0]['page']) =>
+const readSectionGeometry = async (page: Page) =>
   page.evaluate<SectionGeometry>(() => {
     const sections: Record<string, { top: number; bottom: number }> = {};
 
@@ -22,10 +22,7 @@ const readSectionGeometry = async (page: Parameters<typeof test>[0]['page']) =>
     };
   });
 
-const expectSectionEntryHidden = async (
-  page: Parameters<typeof test>[0]['page'],
-  sectionName: string
-) => {
+const expectSectionEntryHidden = async (page: Page, sectionName: string) => {
   await expect
     .poll(async () => (await readSectionGeometry(page)).sections[sectionName]?.top)
     .toBeLessThanOrEqual(0);
