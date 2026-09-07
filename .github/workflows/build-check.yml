@@ -149,6 +149,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
 
@@ -173,6 +174,16 @@ jobs:
                   "/repos/${GITHUB_REPOSITORY}/actions/workflows/build-check.yml/dispatches" \
                   --raw-field ref=main
                 echo "Pull request merged and full post-merge validation dispatched on main."
+
+                if [[ -n "$HEAD_REF" && "$HEAD_REF" != "main" ]]; then
+                  if gh api --method DELETE \
+                    "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${HEAD_REF}" >/dev/null 2>&1; then
+                    echo "Merged pull request branch ${HEAD_REF} deleted."
+                  else
+                    echo "Merged pull request branch ${HEAD_REF} could not be deleted; merge remains successful."
+                  fi
+                fi
+
                 exit 0
               fi
             fi

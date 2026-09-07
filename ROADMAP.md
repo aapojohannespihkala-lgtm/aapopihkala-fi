@@ -93,12 +93,12 @@ Tehty:
 - `AGENTS.md` ohjaa uuden session ensin tehtäväkarttaan ja tekee `README.md`:n lukemisesta tehtäväkohtaista sen sijaan, että se olisi pakollinen kaikissa rajatuissa muutoksissa.
 - Visuaalisten muutosten one-pass-tarkistus on kirjattu pysyviin ohjeisiin: tarkista scoped CSS, route/global-overridet, breakpointit, custom-element/third-party-state ja relevantit regressiot ennen ensimmäistä kirjoitusta.
 - Samaan visuaaliseen tavoitteeseen kuuluvien pienten muutosten batching yhteen PR:ään on kirjattu pysyväksi työskentelyperiaatteeksi.
-- PR #131 lisäsi Currentin section-boundary Playwright-guardin. Guard rajataan vain Current-layoutiin mahdollisesti vaikuttaviin muutoksiin, jotta Chromium-asennus ei hidasta jokaista suoritettavaa pull requestia.
+- PR #131 lisäsi Currentin section-boundary Playwright-guardin. Guard on rajattu vain Current-layoutiin mahdollisesti vaikuttaviin muutoksiin, jotta Chromium-asennus ei hidasta jokaista suoritettavaa pull requestia.
 - `CHATGPT.md` kuuluu dokumentaatio-only fast pathiin.
+- Onnistuneen owner-PR:n automerge dispatchaa ensin täyden `main`-validoinnin ja yrittää sen jälkeen poistaa mergetyn head-branchin. Poistovirhe ei muuta onnistunutta mergeä epäonnistuneeksi.
 
 Jäljellä:
 
-- Siivoa vanhat jo tarpeettomat työ-, backup-, noop- ja mergettyihin muutoksiin liittyvät branchit varmennetulla kertasiivouksella.
-- Ota branchien automaattinen poisto mergen jälkeen käyttöön, jos kertasiivous vahvistaa ettei vanhoja brancheja tarvita erillisenä arkistona. Git-historia ja mergetyt pull requestit säilyvät varsinaisena muutoshistoriana.
+- Siivoa vanhat jo tarpeettomat työ-, backup-, noop- ja mergettyihin muutoksiin liittyvät branchit varmennetulla kertasiivouksella. Nykyinen ChatGPT GitHub -yhteys ei tarjoa suoraa branch-refin poistotoimintoa, joten kertasiivousta ei tehdä epäsuoralla tai riskialttiilla kiertotiellä.
 - Laajenna pieniä kohdennettuja pre-merge UI-guardeja vain silloin, kun toistuva regressioluokka osoittaa niille todellisen tarpeen. Älä palauta koko Playwright-sarjaa blokkaavaksi rakennusvaiheessa.
 - Arvioi käytännön käytön jälkeen, vähentääkö tehtäväkartta uuden session repository-hakuja ja vähenevätkö peräkkäiset korjaus-PR:t.
