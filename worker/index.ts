@@ -31,7 +31,7 @@ const worker = {
 
     if (url.pathname === MARKETS_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return getMarketsResponse();
+      return getMarketsResponse({ request });
     }
 
     if (url.pathname === NEWS_PATH) {
