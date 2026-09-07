@@ -57,12 +57,11 @@
             <span data-market-series-change="euribor-3m">WAITING</span>
           </div>
           <svg
-            class="markets-sparkline"
+            class="markets-sparkline markets-sparkline--pending"
             data-market-sparkline="euribor-3m"
             viewBox="0 0 240 56"
             preserveAspectRatio="none"
             role="img"
-            hidden
           >
             <path></path>
           </svg>
@@ -93,12 +92,11 @@
               <span>URTH</span>
             </div>
             <svg
-              class="markets-sparkline"
+              class="markets-sparkline markets-sparkline--pending"
               data-market-sparkline="world"
               viewBox="0 0 240 56"
               preserveAspectRatio="none"
               role="img"
-              hidden
             >
               <path></path>
             </svg>
@@ -368,6 +366,10 @@
     height: 46px;
     color: var(--ink);
     overflow: visible;
+  }
+
+  .markets-sparkline--pending {
+    display: none;
   }
 
   .markets-sparkline path {

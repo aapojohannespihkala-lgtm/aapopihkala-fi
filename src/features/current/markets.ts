@@ -155,7 +155,7 @@ export const initCurrentMarkets = () => {
       .join(' ');
 
     path.setAttribute('d', d);
-    svg.hidden = false;
+    svg.classList.remove('markets-sparkline--pending');
     svg.setAttribute(
       'aria-label',
       `${series.id === 'euribor-3m' ? '3 month Euribor' : 'World equity proxy'} one year trend`
