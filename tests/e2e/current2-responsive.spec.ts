@@ -71,7 +71,12 @@ test.describe('Current2 responsive comparison', () => {
         }
       });
 
-      await page.route('**/api/current/market-performance*', async (route) => {
+      await page.route('**/api/current/markets*', async (route) => {
+        if (!route.request().url().includes('portfolio=1')) {
+          await route.continue();
+          return;
+        }
+
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
