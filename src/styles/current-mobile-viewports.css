@@ -4,7 +4,13 @@
 @media (max-width: 640px) {
   .current-shell {
     --current-mobile-sticky-header: 64px;
-    --current-mobile-section-viewport: calc(100dvh - var(--current-mobile-sticky-header));
+    --current-mobile-section-viewport: calc(100vh - var(--current-mobile-sticky-header));
+  }
+
+  @supports (height: 100dvh) {
+    .current-shell {
+      --current-mobile-section-viewport: calc(100dvh - var(--current-mobile-sticky-header));
+    }
   }
 
   .current-shell .current-section-wrap[data-current-section='weather'],
@@ -19,5 +25,115 @@
     .current-section-wrap[data-current-section='markets']
     .markets-custom-performance {
     min-height: var(--current-mobile-section-viewport);
+  }
+}
+
+/* Short phones need a tighter vertical rhythm rather than clipped content.
+   Keep every data point visible while preserving the one-screen contract for
+   Weather and Electricity down to a 667px-tall viewport. */
+@media (max-width: 640px) and (max-height: 720px) {
+  .current-shell .current-section-wrap .current-weather {
+    padding-top: 10px;
+  }
+
+  .current-shell .current-weather .weather-heading {
+    margin-bottom: 6px;
+  }
+
+  .current-shell .current-weather .weather-current {
+    padding-bottom: 6px;
+  }
+
+  .current-shell .current-weather .weather-temperature {
+    font-size: 3.4rem;
+  }
+
+  .current-shell .current-weather .weather-current__icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .current-shell .current-weather .weather-condition {
+    margin-top: 3px;
+  }
+
+  .current-shell .current-weather .weather-current__solar {
+    margin-top: 3px;
+  }
+
+  .current-shell .current-weather .weather-solar-arc {
+    height: 16px;
+  }
+
+  .current-shell .current-weather .weather-hours,
+  .current-shell .current-weather .weather-days {
+    padding-top: 4px;
+  }
+
+  .current-shell .current-weather .weather-hours {
+    padding-bottom: 4px;
+  }
+
+  .current-shell .current-weather .weather-hour-grid .weather-hour__icon {
+    width: 16px;
+    height: 16px;
+    margin: 3px auto 2px;
+  }
+
+  .current-shell .current-weather .weather-day-grid .weather-day__icon {
+    width: 18px;
+    height: 18px;
+    margin: 3px auto 1px;
+  }
+
+  .current-shell .current-weather .weather-daily-chart-frame,
+  .current-shell .current-weather .weather-daily-chart {
+    min-height: 92px;
+    height: 92px;
+  }
+
+  .current-shell .current-weather .weather-footer {
+    padding-top: 2px;
+  }
+
+  .current-shell .current-section-wrap .current-electricity {
+    padding-top: 16px;
+  }
+
+  .current-shell .current-electricity .electricity-heading {
+    margin-bottom: 12px;
+  }
+
+  .current-shell .current-electricity .electricity-current {
+    padding: 4px 0 14px;
+  }
+
+  .current-shell .current-electricity .electricity-price {
+    font-size: 3.8rem;
+  }
+
+  .current-shell .current-electricity .electricity-average-label,
+  .current-shell .current-electricity .electricity-average-comparison {
+    margin-top: 5px;
+  }
+
+  .current-shell .current-electricity .electricity-chart-section {
+    padding: 10px 0 8px;
+  }
+
+  .current-shell .current-electricity .electricity-day-switch {
+    margin-bottom: 5px;
+  }
+
+  .current-shell .current-electricity .electricity-chart-section .electricity-chart-frame,
+  .current-shell .current-electricity .electricity-chart-section [data-electricity-chart].electricity-chart {
+    min-height: 132px;
+    height: 132px;
+    max-height: 132px;
+  }
+
+  .current-shell .current-electricity .electricity-summary-strip {
+    gap: 6px;
+    padding: 9px 0 10px;
   }
 }
