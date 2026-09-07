@@ -74,6 +74,5 @@ Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivise
 - Päivitä Astro hallitusti nykyisestä 5-sarjasta uudempiin majoreihin vaiheittain. Älä niputa kahta major-siirtymää samaan sokkopäivitykseen.
 - Päivitä Three.js ja `@types/three` samassa muutoksessa ja validoi erityisesti Animation Labin sekä etusivun ja Aboutin 3D-regressiot.
 - Pidä TypeScript nykyisessä tuetussa sarjassa, kunnes `@astrojs/check` tukee seuraavaa majoria. Nykyinen check-versio sallii TypeScript 5- ja 6-sarjat, ei 7-sarjaa.
-- Lisää Wrangler projektin paikalliseksi lukituksi dev-riippuvuudeksi ennen seuraavaa deploy-työkalujen maintenance-päivitystä. Nykyinen `npx wrangler` ilman projektiversiota ei ole täysin toistettava.
 - Tarkista `npm audit` -löydökset Astro-päivitysten yhteydessä. Nykyinen asennus raportoi kolme transitiivista haavoittuvuutta ja yhden vanhentuneen `tsconfck`-riippuvuuden.
 - Älä lisää automaattista riippuvuuspäivitys-PR-virtaa rakennusvaiheessa pelkän hygienian vuoksi, jos se kasvattaa PR-kohinaa. Arvioi Dependabot tai vastaava uudelleen vakaammassa vaiheessa.
