@@ -126,10 +126,9 @@ const postSchema =
         ),
 
       publishedAt:
-        z.string()
-          .datetime({
-            offset: true,
-          }),
+        z.iso.datetime({
+          offset: true,
+        }),
 
       ...commonFields,
       ...sourceFields,
@@ -164,9 +163,7 @@ const postSchema =
           !post.fi.graphicAlt
         ) {
           context.addIssue({
-            code:
-              z.ZodIssueCode
-                .custom,
+            code: 'custom',
 
             path: [
               'fi',
@@ -182,9 +179,7 @@ const postSchema =
           !post.en.graphicAlt
         ) {
           context.addIssue({
-            code:
-              z.ZodIssueCode
-                .custom,
+            code: 'custom',
 
             path: [
               'en',
