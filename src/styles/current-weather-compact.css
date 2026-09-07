@@ -102,7 +102,7 @@
 }
 
 .current-shell .current-weather .weather-footer {
-  padding-top: 6px;
+  padding-top: 5px;
   border-top-color: color-mix(in srgb, var(--weather-rule) 78%, transparent);
   color: color-mix(in srgb, var(--stone-light) 92%, transparent);
   font-size: 0.4rem;
@@ -222,7 +222,7 @@
   }
 
   .current-shell .current-weather .weather-footer {
-    padding-top: 5px;
+    padding-top: 4px;
     color: color-mix(in srgb, var(--stone-light) 90%, transparent);
     font-size: 0.36rem;
     line-height: 1.25;
