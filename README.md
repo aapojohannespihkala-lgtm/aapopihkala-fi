@@ -100,7 +100,7 @@ CSS-only-muutoksessa tuotantobuild on edelleen blokkaava ennen mergeä. Muissa s
 
 Omistajan samasta repositoriosta avaamat ei-draft pull requestit squash-mergataan automaattisesti heti onnistuneen pakollisen `build`-tarkistuksen jälkeen. Jos repositorion strict `main` -sääntö huomaa branchin jääneen jälkeen, workflow päivittää branchin ja seuraava CI-kierros jatkaa automaattisesti ilman manuaalista merge- tai polling-vaihetta.
 
-Automaattinen merge käynnistää erikseen täyden `workflow_dispatch`-validoinnin `main`-haaraan. Tämä ajo suorittaa staattiset tarkistukset, tuotantobuildin, Chromium-asennuksen ja koko Playwright-regressiosarjan, joten mergeä seuraava selainregressio ei riipu tokenilla tehdyn mergen push-triggeristä.
+Automaattinen merge käynnistää erikseen täyden `workflow_dispatch`-validoinnin `main`-haaraan. Tämä ajo suorittaa staattiset tarkistukset, tuotantobuildin, Chromium-asennuksen ja koko Playwright-regressiosarjan, joten mergeä seuraava selainregressio ei riipu tokenilla tehdyn mergen push-triggeristä. Dispatchin jälkeen workflow yrittää poistaa onnistuneesti mergetyn owner-branchin. Branchin poistovirhe ei muuta jo onnistunutta mergeä epäonnistuneeksi, ja varsinainen historia säilyy Git-historiassa sekä mergetyssä pull requestissa.
 
 Jos samaan pull requestiin tai refiin tulee uusi commit vanhan CI-ajon ollessa kesken, vanhentunut ajo perutaan automaattisesti.
 
