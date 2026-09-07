@@ -162,6 +162,15 @@ export const initCurrentMarkets = () => {
   if (!root || root.dataset.marketsInitialized === 'true') return;
   root.dataset.marketsInitialized = 'true';
 
+  const worldContext = root.querySelector<HTMLElement>('.markets-sparkline-context');
+  if (worldContext && worldContext.dataset.contextWrapped !== 'true') {
+    const secondLine = document.createElement('span');
+    secondLine.textContent = '= 1Y AGO';
+    secondLine.style.display = 'block';
+    worldContext.replaceChildren(document.createTextNode('INDEXED / 100 '), secondLine);
+    worldContext.dataset.contextWrapped = 'true';
+  }
+
   const errorTarget = root.querySelector<HTMLElement>('[data-markets-error]');
   const retryButton = root.querySelector<HTMLButtonElement>('[data-markets-retry]');
   const chartStates = new Map<MarketSeriesId, ChartState>();
@@ -267,6 +276,8 @@ export const initCurrentMarkets = () => {
         line.setAttribute('x2', String(CHART_WIDTH - CHART_PADDING));
         line.setAttribute('y1', y.toFixed(2));
         line.setAttribute('y2', y.toFixed(2));
+        line.style.stroke = 'var(--stone-light)';
+        line.style.strokeOpacity = '0.18';
         return line;
       });
       grid.replaceChildren(...lines);
