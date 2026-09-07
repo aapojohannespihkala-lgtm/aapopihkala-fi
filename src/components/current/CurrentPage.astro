@@ -4,9 +4,9 @@ import { site } from '../../config/site';
 import '../../styles/current-electricity-polish.css';
 import '../../styles/current-electricity-summary.css';
 import NightModeToggle from '../NightModeToggle.astro';
-import CurrentMarkets from './CurrentMarkets.astro';
-import CurrentElectricity from './CurrentElectricity.astro';
 import CurrentWeather from './CurrentWeather.astro';
+import CurrentElectricity from './CurrentElectricity.astro';
+import CurrentMarkets from './CurrentMarkets.astro';
 
 const canonicalUrl = `${site.url}/current/`;
 ---
@@ -44,21 +44,23 @@ const canonicalUrl = `${site.url}/current/`;
       </p>
     </header>
 
-    <CurrentMarkets />
+    <div class="current-section-wrap">
+      <CurrentWeather />
+    </div>
 
-    <div class="current-electricity-wrap">
+    <div class="current-section-wrap">
       <CurrentElectricity />
     </div>
 
-    <div class="current-weather-wrap">
-      <CurrentWeather />
+    <div class="current-section-wrap">
+      <CurrentMarkets />
     </div>
 
     <script is:inline>
       const sectionLinks = [
-        ['.markets-index', '/current/markets/', 'Open Markets'],
-        ['.electricity-index', '/current/electricity/', 'Open Electricity'],
         ['.weather-index', '/current/weather/', 'Open Weather'],
+        ['.electricity-index', '/current/electricity/', 'Open Electricity'],
+        ['.markets-index', '/current/markets/', 'Open Markets'],
       ]
 
       for (const [selector, href, label] of sectionLinks) {
@@ -153,8 +155,7 @@ const canonicalUrl = `${site.url}/current/`;
     text-underline-offset: 0.18em;
   }
 
-  .current-weather-wrap {
-    margin-top: 30px;
+  .current-section-wrap + .current-section-wrap {
     border-top: 1px solid var(--line);
   }
 
@@ -171,10 +172,6 @@ const canonicalUrl = `${site.url}/current/`;
 
     .current-clock {
       gap: 7px;
-    }
-
-    .current-weather-wrap {
-      margin-top: 25px;
     }
   }
 </style>
