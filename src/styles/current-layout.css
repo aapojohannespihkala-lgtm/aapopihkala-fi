@@ -215,6 +215,169 @@ body {
   font-size: 9px;
 }
 
+/* Astro component styles are emitted after imported route styles in parts of the
+   production bundle. Keep the shared typography system authoritative so scoped
+   component declarations cannot silently restore 5-8 px text. */
+.current-shell.current-shell :is(
+  .weather-temperature,
+  .weather-hour__temperature,
+  .electricity-price,
+  .markets-macro__value
+) {
+  font-family: var(--current-font-serif) !important;
+}
+
+.current-shell.current-shell .weather-condition {
+  font-family: var(--current-font-sans) !important;
+}
+
+.current-shell.current-shell :is(
+  .current-status-strip,
+  .weather-index,
+  .weather-location,
+  .weather-current__range,
+  .weather-current__solar,
+  .weather-hour__time,
+  .weather-hour__rain,
+  .weather-day__name,
+  .weather-day__rain,
+  .weather-footer,
+  .electricity-index,
+  .electricity-market,
+  .electricity-average-label,
+  .electricity-average-comparison,
+  .electricity-now,
+  .electricity-day-switch,
+  .electricity-extreme__label,
+  .electricity-extreme__detail,
+  .electricity-footer,
+  .electricity-chart-tooltip,
+  .markets-index,
+  .markets-panel-label,
+  .markets-panel-observation,
+  .markets-performance__fallback,
+  .markets-macro,
+  .markets-footer,
+  .markets-sparkline-tooltip
+) {
+  font-family: var(--current-font-mono) !important;
+}
+
+.current-shell.current-shell :is(
+  .weather-index,
+  .weather-location,
+  .electricity-index,
+  .electricity-market,
+  .markets-index,
+  .markets-panel-label,
+  .markets-macro__label
+) {
+  font-size: var(--current-type-label) !important;
+}
+
+.current-shell.current-shell :is(
+  .current-status-strip,
+  .weather-current__range,
+  .weather-current__solar,
+  .weather-solar-duration,
+  .weather-hour__time,
+  .weather-hour__rain,
+  .weather-day__name,
+  .weather-day__rain,
+  .weather-footer,
+  .electricity-average-label,
+  .electricity-average-comparison,
+  .electricity-now__label,
+  .electricity-now__interval,
+  .electricity-month-average,
+  .electricity-day-switch,
+  .electricity-extreme__label,
+  .electricity-extreme__detail,
+  .electricity-footer,
+  .electricity-chart-tooltip,
+  .markets-panel-observation,
+  .markets-performance__fallback,
+  .markets-macro__change,
+  .markets-sparkline-context,
+  .markets-footer,
+  .markets-sparkline-tooltip
+) {
+  font-size: var(--current-type-micro) !important;
+}
+
+.current-shell.current-shell :is(
+  .weather-condition,
+  .electricity-now__price,
+  .electricity-summary-strip .electricity-extreme__value
+) {
+  font-size: var(--current-type-data) !important;
+}
+
+.current-shell.current-shell :is(
+  .weather-index,
+  .electricity-index,
+  .markets-index
+) {
+  color: var(--moss) !important;
+}
+
+.current-shell.current-shell :is(
+  .weather-condition,
+  .electricity-now__price
+) {
+  color: var(--current-text-secondary) !important;
+}
+
+.current-shell.current-shell :is(
+  .weather-current__range,
+  .weather-hour__time,
+  .weather-day__name,
+  .electricity-average-label,
+  .markets-panel-label,
+  .markets-macro__label
+) {
+  color: var(--current-text-label) !important;
+}
+
+.current-shell.current-shell :is(
+  .weather-location,
+  .weather-current__solar,
+  .weather-hour__rain,
+  .weather-day__rain,
+  .weather-footer,
+  .electricity-market,
+  .electricity-average-comparison,
+  .electricity-now__label,
+  .electricity-now__interval,
+  .electricity-extreme__label,
+  .electricity-extreme__detail,
+  .electricity-footer,
+  .markets-panel-observation,
+  .markets-macro__change,
+  .markets-sparkline-context,
+  .markets-footer
+) {
+  color: var(--current-text-meta) !important;
+}
+
+.current-shell.current-shell .current-weather .weather-daily-chart text,
+.current-shell.current-shell .current-electricity .electricity-chart :is(
+  .electricity-chart__axis-label,
+  .electricity-chart__y-label
+) {
+  font-family: var(--current-font-mono) !important;
+  font-size: var(--current-type-micro) !important;
+}
+
+.current-shell.current-shell .current-electricity .electricity-chart :is(
+  .electricity-chart__window-label,
+  .electricity-chart__window-range,
+  .electricity-chart__window-unit
+),
+.current-shell.current-shell .current-markets .markets-sparkline-axis {
+  font-size: 9px !important;
+}
+
 /* TradingView becomes a defined custom element only after its module loads.
    CurrentMarkets has scoped :defined rules that otherwise restore the old
    780 px minimum width and horizontal scroller in production. Keep these
@@ -248,5 +411,14 @@ body {
   ),
   .current-shell .current-markets .markets-sparkline-axis {
     font-size: 8.5px;
+  }
+
+  .current-shell.current-shell .current-electricity .electricity-chart :is(
+    .electricity-chart__window-label,
+    .electricity-chart__window-range,
+    .electricity-chart__window-unit
+  ),
+  .current-shell.current-shell .current-markets .markets-sparkline-axis {
+    font-size: 8.5px !important;
   }
 }
