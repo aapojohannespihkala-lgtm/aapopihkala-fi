@@ -10,7 +10,11 @@ type MarketPerformanceId =
   | 'xact-norden'
   | 'nordea'
   | 'marimekko'
-  | 'remedy';
+  | 'remedy'
+  | 'op-asia-index-a'
+  | 'op-europe-index-a'
+  | 'op-world-index-a'
+  | 'op-forest-owner-b';
 
 type Observation = {
   value: number;
@@ -55,8 +59,8 @@ type MarketPerformanceItem = LivePerformanceSpec & {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Current2 portfolio prototype. Exchange-traded holdings use exact Yahoo symbols.
-// The five traditional mutual funds stay in the expected count but are intentionally
-// not proxied with an index: their exact NAV/history adapters will be added separately.
+// Traditional funds stay in the expected count but are intentionally not proxied
+// with an index: their exact NAV/history adapters will be added separately.
 const PERFORMANCE_SPECS: PerformanceSpec[] = [
   { id: 'handelsbanken-usa', label: 'HANDELSBANKEN USA INDEKSI' },
   { id: 'nordnet-finland', label: 'NORDNET SUOMI INDEKSI' },
@@ -70,6 +74,10 @@ const PERFORMANCE_SPECS: PerformanceSpec[] = [
   { id: 'nordea', label: 'NORDEA', symbol: 'NDA-FI.HE' },
   { id: 'marimekko', label: 'MARIMEKKO', symbol: 'MEKKO.HE' },
   { id: 'remedy', label: 'REMEDY', symbol: 'REMEDY.HE' },
+  { id: 'op-asia-index-a', label: 'OP-AASIA INDEKSI A' },
+  { id: 'op-europe-index-a', label: 'OP-EUROOPPA INDEKSI A' },
+  { id: 'op-world-index-a', label: 'OP-MAAILMA INDEKSI A' },
+  { id: 'op-forest-owner-b', label: 'OP-METSÄNOMISTAJA B' },
 ];
 
 const LIVE_SPECS = PERFORMANCE_SPECS.filter(

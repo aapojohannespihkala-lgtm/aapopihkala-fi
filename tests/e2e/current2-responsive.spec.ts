@@ -95,11 +95,15 @@ test.describe('Current2 responsive comparison', () => {
 
       await expect(page.locator('tv-market-data')).toHaveCount(0);
       await expect(page.locator('[data-current-market-performance]')).toHaveCount(1);
-      await expect(page.locator('[data-market-performance-row]')).toHaveCount(12);
+      await expect(page.locator('[data-market-performance-row]')).toHaveCount(16);
       await expect(page.getByText('Handelsbanken Usa Indeksi', { exact: true })).toBeVisible();
       await expect(page.getByText('Nordnet Suomi Indeksi', { exact: true })).toBeVisible();
       await expect(page.getByText('Marimekko', { exact: true })).toBeVisible();
       await expect(page.getByText('Remedy', { exact: true })).toBeVisible();
+      await expect(page.getByText('OP-Aasia Indeksi A', { exact: true })).toBeVisible();
+      await expect(page.getByText('OP-Eurooppa Indeksi A', { exact: true })).toBeVisible();
+      await expect(page.getByText('OP-Maailma Indeksi A', { exact: true })).toBeVisible();
+      await expect(page.getByText('OP-Metsänomistaja B', { exact: true })).toBeVisible();
       await expect(page.locator('[data-market-performance-row="world"]')).toHaveCount(0);
 
       await nav.click();

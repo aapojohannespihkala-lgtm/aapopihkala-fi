@@ -10,7 +10,11 @@ type MarketPerformanceId =
   | 'xact-norden'
   | 'nordea'
   | 'marimekko'
-  | 'remedy';
+  | 'remedy'
+  | 'op-asia-index-a'
+  | 'op-europe-index-a'
+  | 'op-world-index-a'
+  | 'op-forest-owner-b';
 
 type MarketPerformanceItem = {
   id: MarketPerformanceId;
@@ -54,6 +58,10 @@ const DISPLAY_ROWS: DisplayRow[] = [
   { id: 'nordea', label: 'Nordea', identifier: 'NDA-FI.HE' },
   { id: 'marimekko', label: 'Marimekko', identifier: 'MEKKO.HE' },
   { id: 'remedy', label: 'Remedy', identifier: 'REMEDY.HE' },
+  { id: 'op-asia-index-a', label: 'OP-Aasia Indeksi A', identifier: 'FI4000029491' },
+  { id: 'op-europe-index-a', label: 'OP-Eurooppa Indeksi A', identifier: 'FI4000029301' },
+  { id: 'op-world-index-a', label: 'OP-Maailma Indeksi A', identifier: 'FI4000261128' },
+  { id: 'op-forest-owner-b', label: 'OP-Metsänomistaja B', identifier: 'FI4000108436' },
 ];
 
 const IDS = new Set<MarketPerformanceId>(DISPLAY_ROWS.map((row) => row.id));
