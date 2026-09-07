@@ -99,15 +99,15 @@ jobs:
         run: npm run build
 
       - name: Install Chromium
-        if: steps.changes.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || github.head_ref == 'fix/postmerge-current-tests-20260907')
+        if: steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'
         run: npx playwright install --with-deps chromium
 
       - name: Browser regression tests
-        if: steps.changes.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || github.head_ref == 'fix/postmerge-current-tests-20260907')
+        if: steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'
         run: npm run test:e2e
 
       - name: Upload browser test artifacts
-        if: failure() && steps.changes.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || github.head_ref == 'fix/postmerge-current-tests-20260907')
+        if: failure() && steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v7
         with:
           name: playwright-test-results
