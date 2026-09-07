@@ -1,22 +1,22 @@
-/* Current2 custom market rows are inserted after Astro's scoped styles are emitted.
-   These global rules keep the dynamic portfolio matrix aligned and keep the
-   separate rates/trends section below it. */
-.current2-shell .current-markets--custom .markets-layout--custom {
+/* Custom market rows are inserted after Astro's scoped styles are emitted.
+   These global rules keep the dynamic portfolio matrix aligned on Current,
+   Current2 and the standalone Current markets page. */
+:is(.current-shell, .current-markets-shell) .current-markets--custom .markets-layout--custom {
   display: block;
 }
 
-.current2-shell .current-markets--custom .markets-custom-performance {
+:is(.current-shell, .current-markets-shell) .current-markets--custom .markets-custom-performance {
   width: 100%;
 }
 
-.current2-shell .current-markets--custom .markets-macro {
+:is(.current-shell, .current-markets-shell) .current-markets--custom .markets-macro {
   width: 100%;
   margin-top: 34px;
   padding-top: 24px;
   border-top: 1px solid var(--line-soft);
 }
 
-.current2-shell .markets-performance-summary {
+:is(.current-shell, .current-markets-shell) .markets-performance-summary {
   margin: 0 0 12px;
   color: var(--stone-light);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -27,7 +27,7 @@
   text-transform: uppercase;
 }
 
-.current2-shell .markets-performance-summary__overview {
+:is(.current-shell, .current-markets-shell) .markets-performance-summary__overview {
   display: flex;
   flex-wrap: wrap;
   gap: 5px 9px;
@@ -38,40 +38,40 @@
   border-bottom: 1px solid var(--line-soft);
 }
 
-.current2-shell .markets-performance-summary__overview strong {
+:is(.current-shell, .current-markets-shell) .markets-performance-summary__overview strong {
   color: var(--ink-soft);
   font-size: 0.61rem;
 }
 
-.current2-shell .markets-performance-summary__metrics {
+:is(.current-shell, .current-markets-shell) .markets-performance-summary__metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-bottom: 1px solid var(--line-soft);
 }
 
-.current2-shell .markets-performance-summary__metric {
+:is(.current-shell, .current-markets-shell) .markets-performance-summary__metric {
   min-width: 0;
   margin: 0;
   padding: 9px 10px 9px 0;
 }
 
-.current2-shell .markets-performance-summary__metric + .markets-performance-summary__metric {
+:is(.current-shell, .current-markets-shell) .markets-performance-summary__metric + .markets-performance-summary__metric {
   padding-left: 10px;
   border-left: 1px solid var(--line-soft);
 }
 
-.current2-shell .markets-performance-summary__metric > span,
-.current2-shell .markets-performance-summary__metric > strong {
+:is(.current-shell, .current-markets-shell) .markets-performance-summary__metric > span,
+:is(.current-shell, .current-markets-shell) .markets-performance-summary__metric > strong {
   display: block;
   min-width: 0;
 }
 
-.current2-shell .markets-performance-summary__metric > span {
+:is(.current-shell, .current-markets-shell) .markets-performance-summary__metric > span {
   margin-bottom: 3px;
   font-size: 0.46rem;
 }
 
-.current2-shell .markets-performance-summary__metric > strong {
+:is(.current-shell, .current-markets-shell) .markets-performance-summary__metric > strong {
   overflow: hidden;
   color: var(--ink-soft);
   font-size: 0.57rem;
@@ -80,37 +80,37 @@
   white-space: nowrap;
 }
 
-.current2-shell .markets-custom-table .markets-custom-row--header,
-.current2-shell .markets-custom-table [data-market-performance-row] {
+:is(.current-shell, .current-markets-shell) .markets-custom-table .markets-custom-row--header,
+:is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] {
   display: grid;
   grid-template-columns: minmax(230px, 2.2fr) repeat(9, minmax(62px, 0.62fr));
   align-items: center;
 }
 
-.current2-shell .markets-custom-table [data-market-performance-row] {
+:is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] {
   min-height: 37px;
   border-bottom: 1px solid var(--line-soft);
 }
 
-.current2-shell .markets-custom-table [data-market-performance-row]:last-child {
+:is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row]:last-child {
   border-bottom: 0;
 }
 
-.current2-shell .markets-custom-table .markets-custom-row--header > span,
-.current2-shell .markets-custom-table [data-market-performance-row] > span {
+:is(.current-shell, .current-markets-shell) .markets-custom-table .markets-custom-row--header > span,
+:is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] > span {
   min-width: 0;
   padding: 0 7px;
   text-align: right;
   white-space: nowrap;
 }
 
-.current2-shell .markets-custom-table .markets-custom-row--header > span:first-child,
-.current2-shell .markets-custom-table [data-market-performance-row] > span:first-child {
+:is(.current-shell, .current-markets-shell) .markets-custom-table .markets-custom-row--header > span:first-child,
+:is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] > span:first-child {
   padding-left: 0;
   text-align: left;
 }
 
-.current2-shell .markets-custom-table .markets-sort-button {
+:is(.current-shell, .current-markets-shell) .markets-custom-table .markets-sort-button {
   width: 100%;
   padding: 4px 0;
   border: 0;
@@ -125,11 +125,11 @@
   cursor: pointer;
 }
 
-.current2-shell .markets-custom-table .markets-custom-row--header > span:first-child .markets-sort-button {
+:is(.current-shell, .current-markets-shell) .markets-custom-table .markets-custom-row--header > span:first-child .markets-sort-button {
   text-align: left;
 }
 
-.current2-shell .markets-custom-table .markets-sort-button::after {
+:is(.current-shell, .current-markets-shell) .markets-custom-table .markets-sort-button::after {
   display: inline-block;
   width: 0.85em;
   margin-left: 0.25em;
@@ -138,40 +138,40 @@
   text-align: right;
 }
 
-.current2-shell .markets-custom-table [aria-sort='descending'] .markets-sort-button,
-.current2-shell .markets-custom-table [aria-sort='ascending'] .markets-sort-button,
-.current2-shell .markets-custom-table .is-summary-period .markets-sort-button,
-.current2-shell .markets-custom-table .markets-sort-button:hover {
+:is(.current-shell, .current-markets-shell) .markets-custom-table [aria-sort='descending'] .markets-sort-button,
+:is(.current-shell, .current-markets-shell) .markets-custom-table [aria-sort='ascending'] .markets-sort-button,
+:is(.current-shell, .current-markets-shell) .markets-custom-table .is-summary-period .markets-sort-button,
+:is(.current-shell, .current-markets-shell) .markets-custom-table .markets-sort-button:hover {
   color: var(--ink-soft);
 }
 
-.current2-shell .markets-custom-table .is-summary-period {
+:is(.current-shell, .current-markets-shell) .markets-custom-table .is-summary-period {
   background: color-mix(in srgb, var(--lichen) 6%, transparent);
 }
 
-.current2-shell .markets-custom-table .markets-custom-row--header .is-active-sort {
+:is(.current-shell, .current-markets-shell) .markets-custom-table .markets-custom-row--header .is-active-sort {
   box-shadow: inset 0 -1px 0 var(--lichen);
 }
 
-.current2-shell .markets-custom-table [aria-sort='descending'] .markets-sort-button::after {
+:is(.current-shell, .current-markets-shell) .markets-custom-table [aria-sort='descending'] .markets-sort-button::after {
   content: '▾';
 }
 
-.current2-shell .markets-custom-table [aria-sort='ascending'] .markets-sort-button::after {
+:is(.current-shell, .current-markets-shell) .markets-custom-table [aria-sort='ascending'] .markets-sort-button::after {
   content: '▴';
 }
 
-.current2-shell .markets-custom-table .markets-sort-button:focus-visible {
+:is(.current-shell, .current-markets-shell) .markets-custom-table .markets-sort-button:focus-visible {
   outline: 1px solid var(--lichen);
   outline-offset: 2px;
 }
 
-.current2-shell .markets-custom-table [data-market-performance-row] .markets-custom-market {
+:is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] .markets-custom-market {
   display: grid;
   gap: 2px;
 }
 
-.current2-shell .markets-custom-table [data-market-performance-row] .markets-custom-market strong {
+:is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] .markets-custom-market strong {
   overflow: hidden;
   color: var(--ink-soft);
   font-size: 0.68rem;
@@ -180,80 +180,80 @@
   text-overflow: ellipsis;
 }
 
-.current2-shell .markets-custom-table [data-market-performance-row] .markets-custom-market small {
+:is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] .markets-custom-market small {
   color: var(--stone-light);
   font-size: 0.54rem;
   font-weight: 500;
   letter-spacing: 0.04em;
 }
 
-.current2-shell .markets-custom-table [data-market-performance-row] .is-positive {
+:is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] .is-positive {
   color: #1ba88a;
 }
 
-.current2-shell .markets-custom-table [data-market-performance-row] .is-negative {
+:is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] .is-negative {
   color: #ff5a67;
 }
 
-.current2-shell .markets-custom-table [data-market-performance-row] .is-flat {
+:is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] .is-flat {
   color: var(--stone);
 }
 
 @media (max-width: 820px) {
-  .current2-shell .markets-custom-table .markets-custom-row--header,
-  .current2-shell .markets-custom-table [data-market-performance-row] {
+  :is(.current-shell, .current-markets-shell) .markets-custom-table .markets-custom-row--header,
+  :is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] {
     grid-template-columns: minmax(150px, 1.7fr) repeat(4, minmax(58px, 0.7fr));
   }
 
-  .current2-shell .markets-custom-table .period-week1,
-  .current2-shell .markets-custom-table .period-month3,
-  .current2-shell .markets-custom-table .period-month6,
-  .current2-shell .markets-custom-table .period-year3,
-  .current2-shell .markets-custom-table .period-year5 {
+  :is(.current-shell, .current-markets-shell) .markets-custom-table .period-week1,
+  :is(.current-shell, .current-markets-shell) .markets-custom-table .period-month3,
+  :is(.current-shell, .current-markets-shell) .markets-custom-table .period-month6,
+  :is(.current-shell, .current-markets-shell) .markets-custom-table .period-year3,
+  :is(.current-shell, .current-markets-shell) .markets-custom-table .period-year5 {
     display: none;
   }
 }
 
 @media (max-width: 520px) {
-  .current2-shell .markets-performance-summary {
+  :is(.current-shell, .current-markets-shell) .markets-performance-summary {
     font-size: 0.49rem;
   }
 
-  .current2-shell .markets-performance-summary__overview {
+  :is(.current-shell, .current-markets-shell) .markets-performance-summary__overview {
     gap: 4px 7px;
   }
 
-  .current2-shell .markets-performance-summary__metric {
+  :is(.current-shell, .current-markets-shell) .markets-performance-summary__metric {
     padding-right: 6px;
   }
 
-  .current2-shell .markets-performance-summary__metric + .markets-performance-summary__metric {
+  :is(.current-shell, .current-markets-shell) .markets-performance-summary__metric + .markets-performance-summary__metric {
     padding-left: 6px;
   }
 
-  .current2-shell .markets-performance-summary__metric > strong {
+  :is(.current-shell, .current-markets-shell) .markets-performance-summary__metric > strong {
     font-size: 0.51rem;
   }
 
-  .current2-shell .markets-custom-table .markets-custom-row--header,
-  .current2-shell .markets-custom-table [data-market-performance-row] {
+  :is(.current-shell, .current-markets-shell) .markets-custom-table .markets-custom-row--header,
+  :is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] {
     grid-template-columns: minmax(112px, 1.55fr) repeat(3, minmax(54px, 0.72fr));
   }
 
-  .current2-shell .markets-custom-table .period-ytd {
+  :is(.current-shell, .current-markets-shell) .markets-custom-table .period-ytd {
     display: none;
   }
 
-  .current2-shell .markets-custom-table [data-market-performance-row] {
+  :is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] {
     min-height: 35px;
   }
 
-  .current2-shell .markets-custom-table .markets-custom-row--header > span,
-  .current2-shell .markets-custom-table [data-market-performance-row] > span {
+  :is(.current-shell, .current-markets-shell) .markets-custom-table .markets-custom-row--header > span,
+  :is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] > span {
     padding: 0 5px;
   }
 
-  .current2-shell .markets-custom-table [data-market-performance-row] .markets-custom-market strong {
+  :is(.current-shell, .current-markets-shell) .markets-custom-table [data-market-performance-row] .markets-custom-market strong {
     font-size: 0.62rem;
   }
 }
