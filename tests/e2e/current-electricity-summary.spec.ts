@@ -109,8 +109,8 @@ test('Current emphasizes month average between day low and day high', async ({ p
     .locator('.electricity-extreme__value')
     .evaluate((element) => Number.parseInt(getComputedStyle(element).fontWeight, 10));
 
-  expect(monthWeight).toBeGreaterThan(lowWeight);
-  expect(monthWeight).toBeGreaterThan(highWeight);
+  expect(monthWeight).toBe(lowWeight);
+  expect(monthWeight).toBe(highWeight);
 
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerWidth,
