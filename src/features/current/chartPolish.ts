@@ -203,6 +203,7 @@ const normalizeElectricityAnnotations = (chart: SVGSVGElement) => {
   const inspectionLabel = chart.querySelector<SVGGElement>('[data-electricity-inspection-label]');
   const lowBand = chart.querySelector<SVGRectElement>('[data-electricity-low-band]');
   const highBand = chart.querySelector<SVGRectElement>('[data-electricity-high-band]');
+  const inspectionLine = chart.querySelector<SVGLineElement>('[data-electricity-inspection-line]');
 
   const bandCenter = (band: SVGRectElement | null) => {
     if (!band) return undefined;
@@ -212,9 +213,29 @@ const normalizeElectricityAnnotations = (chart: SVGSVGElement) => {
     return x + width / 2;
   };
 
-  if (lowLabel) normalizeElectricityGroup(lowLabel, bandCenter(lowBand));
-  if (highLabel) normalizeElectricityGroup(highLabel, bandCenter(highBand));
-  if (inspectionLabel) normalizeElectricityGroup(inspectionLabel);
+  const inspectionX = Number(inspectionLine?.getAttribute('x1'));
+  const activeInspectionX =
+    inspectionLabel?.getAttribute('opacity') === '1' && Number.isFinite(inspectionX)
+      ? inspectionX
+      : undefined;
+
+  const containsInspection = (band: SVGRectElement | null) => {
+    if (activeInspectionX === undefined || !band) return false;
+    const x = Number(band.getAttribute('x'));
+    const width = Number(band.getAttribute('width'));
+    if (!Number.isFinite(x) || !Number.isFinite(width)) return false;
+    return activeInspectionX >= x && activeInspectionX < x + width;
+  };
+
+  if (lowLabel) {
+    normalizeElectricityGroup(lowLabel, bandCenter(lowBand));
+    lowLabel.setAttribute('opacity', containsInspection(lowBand) ? '0' : '1');
+  }
+  if (highLabel) {
+    normalizeElectricityGroup(highLabel, bandCenter(highBand));
+    highLabel.setAttribute('opacity', containsInspection(highBand) ? '0' : '1');
+  }
+  if (inspectionLabel) normalizeElectricityGroup(inspectionLabel, activeInspectionX);
 };
 
 const initElectricityPolish = () => {
