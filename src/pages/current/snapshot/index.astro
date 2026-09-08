@@ -4,14 +4,82 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
 
 <CurrentSnapshotPage />
 
+<script>
+  import { initSnapshotWeatherForecast } from '../../../features/current/snapshot-weather-forecast';
+
+  initSnapshotWeatherForecast();
+</script>
+
 <style is:global>
+  body:has(.snapshot-shell) .snapshot-weather {
+    grid-template-rows: minmax(0, 1fr) auto auto;
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather__forecast {
+    grid-column: 1 / -1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto repeat(3, minmax(0, 1fr));
+    align-items: baseline;
+    gap: 7px;
+    color: var(--ink-soft);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.4rem;
+    line-height: 1;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather__forecast-label,
+  body:has(.snapshot-shell) .snapshot-weather__forecast-time {
+    color: var(--stone);
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather__forecast-label {
+    white-space: nowrap;
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather__forecast-slot {
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather__forecast-temperature {
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather__forecast-condition {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   @media (max-width: 640px) {
     body:has(.snapshot-shell) .snapshot-grid {
       grid-template-rows:
-        minmax(0, 1.14fr)
-        minmax(0, 1.62fr)
-        minmax(0, 1.12fr)
-        minmax(0, 1.02fr);
+        minmax(0, 1.22fr)
+        minmax(0, 1.56fr)
+        minmax(0, 1.1fr)
+        minmax(0, 1fr);
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather {
+      row-gap: 2px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast {
+      gap: 5px;
+      font-size: 0.34rem;
+      letter-spacing: 0.025em;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-slot {
+      gap: 2px;
     }
 
     body:has(.snapshot-shell) .snapshot-rates {
@@ -52,10 +120,15 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
   @media (max-width: 380px), (max-height: 720px) {
     body:has(.snapshot-shell) .snapshot-grid {
       grid-template-rows:
-        minmax(0, 1.1fr)
-        minmax(0, 1.66fr)
-        minmax(0, 1.14fr)
+        minmax(0, 1.18fr)
+        minmax(0, 1.6fr)
+        minmax(0, 1.11fr)
         minmax(0, 1fr);
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast {
+      gap: 4px;
+      font-size: 0.3rem;
     }
 
     body:has(.snapshot-shell) [data-analytics-settings] {

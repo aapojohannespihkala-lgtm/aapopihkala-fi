@@ -1,18 +1,47 @@
 import { expect, test, type Page } from '@playwright/test';
 
 // Keep these fixtures deterministic so snapshot hierarchy and spacing regressions are measurable.
-const weatherFixture = {
-  current: {
-    time: '2026-09-08T15:08',
-    temperature_2m: 15.4,
-    weather_code: 3,
-  },
-  daily: {
-    time: ['2026-09-08'],
-    temperature_2m_min: [12],
-    temperature_2m_max: [18],
-  },
-};
+const weatherFixture = (() => {
+  const time = Array.from({ length: 48 }, (_, index) => {
+    const day = index < 24 ? '08' : '09';
+    const hour = String(index % 24).padStart(2, '0');
+    return `2026-09-${day}T${hour}:00`;
+  });
+  const temperature = Array.from({ length: 48 }, () => 14);
+  const weatherCode = Array.from({ length: 48 }, () => 3);
+  const precipitationProbability = Array.from({ length: 48 }, () => 10);
+
+  temperature[17] = 15;
+  weatherCode[17] = 3;
+  precipitationProbability[17] = 10;
+
+  temperature[19] = 14;
+  weatherCode[19] = 61;
+  precipitationProbability[19] = 65;
+
+  temperature[21] = 13;
+  weatherCode[21] = 2;
+  precipitationProbability[21] = 20;
+
+  return {
+    current: {
+      time: '2026-09-08T15:08',
+      temperature_2m: 15.4,
+      weather_code: 3,
+    },
+    daily: {
+      time: ['2026-09-08'],
+      temperature_2m_min: [12],
+      temperature_2m_max: [18],
+    },
+    hourly: {
+      time,
+      temperature_2m: temperature,
+      weather_code: weatherCode,
+      precipitation_probability: precipitationProbability,
+    },
+  };
+})();
 
 const electricityFixture = (() => {
   const localMidnightUtc = Date.UTC(2026, 8, 7, 21, 0, 0);
@@ -126,6 +155,17 @@ test.describe('Current Snapshot', () => {
       await expect(page.locator('[data-snapshot-weather-low]')).toHaveText('12');
       await expect(page.locator('[data-snapshot-weather-high]')).toHaveText('18');
       await expect(page.locator('[data-snapshot-weather-icon] path')).toHaveCount(1);
+      await expect(page.locator('[data-snapshot-weather-forecast]')).toBeVisible();
+      await expect(page.locator('.snapshot-weather__forecast-label')).toHaveText('NEXT 6H');
+      await expect(page.locator('[data-snapshot-weather-forecast-time="0"]')).toHaveText('17');
+      await expect(page.locator('[data-snapshot-weather-forecast-temperature="0"]')).toHaveText('15°');
+      await expect(page.locator('[data-snapshot-weather-forecast-condition="0"]')).toHaveText('OVERCAST');
+      await expect(page.locator('[data-snapshot-weather-forecast-time="1"]')).toHaveText('19');
+      await expect(page.locator('[data-snapshot-weather-forecast-temperature="1"]')).toHaveText('14°');
+      await expect(page.locator('[data-snapshot-weather-forecast-condition="1"]')).toHaveText('RAIN 65%');
+      await expect(page.locator('[data-snapshot-weather-forecast-time="2"]')).toHaveText('21');
+      await expect(page.locator('[data-snapshot-weather-forecast-temperature="2"]')).toHaveText('13°');
+      await expect(page.locator('[data-snapshot-weather-forecast-condition="2"]')).toHaveText('CLOUDY');
 
       await expect(page.locator('[data-snapshot-electricity-day-average]')).toHaveText('3.46');
       await expect(page.locator('[data-snapshot-electricity-current]')).toHaveText('4.82');
