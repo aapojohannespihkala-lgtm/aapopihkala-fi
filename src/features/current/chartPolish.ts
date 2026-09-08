@@ -1,4 +1,6 @@
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const SEPARATOR_GAP = 3;
+// Decimal points and clock colons intentionally share the local x=0 annotation axis.
 
 const installPolishStyles = () => {
   if (document.getElementById('current-chart-polish-styles')) return;
@@ -9,15 +11,16 @@ const installPolishStyles = () => {
     .current-shell .electricity-chart .electricity-chart__window-label > text {
       text-anchor: middle !important;
       transform: none !important;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .current-shell .electricity-chart .electricity-chart__window-label tspan {
+      font: inherit;
+      letter-spacing: inherit;
     }
 
     .current-shell .electricity-chart .electricity-chart__window-unit {
       display: none !important;
-    }
-
-    .current-shell .electricity-summary-strip .electricity-month-average--summary {
-      align-self: start !important;
-      margin-top: 13px !important;
     }
 
     .current-shell [data-current-section='rates'] .markets-sparkline-context {
@@ -34,10 +37,6 @@ const installPolishStyles = () => {
     }
 
     @media (max-width: 640px) {
-      .current-shell .electricity-summary-strip .electricity-month-average--summary {
-        margin-top: 12px !important;
-      }
-
       .current-shell [data-current-section='rates'] .markets-sparkline-frame {
         grid-template-columns: 28px minmax(0, 1fr) !important;
         gap: 4px !important;
@@ -51,10 +50,69 @@ const installPolishStyles = () => {
   document.head.append(style);
 };
 
+const createTspan = (
+  text: string,
+  x: number,
+  anchor: 'start' | 'middle' | 'end',
+  role: string
+) => {
+  const tspan = document.createElementNS(SVG_NS, 'tspan');
+  tspan.textContent = text;
+  tspan.setAttribute('x', String(x));
+  tspan.setAttribute('text-anchor', anchor);
+  tspan.dataset.alignmentRole = role;
+  return tspan;
+};
+
+const renderAlignedParts = (
+  node: SVGTextElement,
+  before: string,
+  separator: string,
+  after: string,
+  signature: string
+) => {
+  if (
+    node.dataset.alignmentSignature === signature &&
+    node.querySelectorAll(':scope > tspan').length === 3
+  ) {
+    return;
+  }
+
+  node.dataset.alignmentSignature = signature;
+  node.replaceChildren(
+    createTspan(before, -SEPARATOR_GAP, 'end', 'before'),
+    createTspan(separator, 0, 'middle', 'separator'),
+    createTspan(after, SEPARATOR_GAP, 'start', 'after')
+  );
+};
+
+const renderAlignedDecimal = (node: SVGTextElement, rawValue: string) => {
+  const value = rawValue.trim();
+  const match = value.match(/^([+-]?\d+)([.,])(\d+)$/);
+  if (!match) {
+    if (node.textContent !== value) node.textContent = value;
+    delete node.dataset.alignmentSignature;
+    return;
+  }
+
+  renderAlignedParts(node, match[1], match[2], match[3], `decimal:${value}`);
+};
+
+const renderAlignedClock = (
+  node: SVGTextElement,
+  rawClock: string,
+  trailingDash: boolean
+) => {
+  const match = rawClock.trim().match(/^(\d{2}):(\d{2})$/);
+  if (!match) return;
+  const suffix = trailingDash ? `${match[2]} -` : match[2];
+  renderAlignedParts(node, match[1], ':', suffix, `clock:${rawClock}:${trailingDash}`);
+};
+
 const splitClockRange = (value: string) => {
   const match = value.trim().match(/^(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/);
   if (!match) return null;
-  return { start: `${match[1]} -`, end: match[2] };
+  return { start: match[1], end: match[2] };
 };
 
 const normalizeElectricityGroup = (
@@ -75,23 +133,34 @@ const normalizeElectricityGroup = (
 
   if (!valueNode || !rangeNode) return;
 
-  const fullRange = rangeNode.dataset.fullClockRange ?? rangeNode.textContent?.trim() ?? '';
+  const valueText = valueNode.textContent?.trim() ?? '';
+  renderAlignedDecimal(valueNode, valueText);
+  valueNode.setAttribute('x', '0');
+  valueNode.setAttribute('y', '11');
+  valueNode.setAttribute('text-anchor', 'middle');
+
+  const visibleRange = rangeNode.textContent?.trim() ?? '';
+  const visibleParsed = splitClockRange(visibleRange);
+  if (visibleParsed) rangeNode.dataset.fullClockRange = visibleRange;
+
+  const fullRange = visibleParsed
+    ? visibleRange
+    : rangeNode.dataset.fullClockRange ?? '';
   const parsed = splitClockRange(fullRange);
+
   if (parsed) {
     rangeNode.dataset.fullClockRange = fullRange;
-    rangeNode.textContent = parsed.start;
+
     if (!rangeEndNode) {
       rangeEndNode = document.createElementNS(SVG_NS, 'text');
       rangeEndNode.classList.add('electricity-chart__window-range');
       rangeEndNode.setAttribute('data-electricity-window-range-end', '');
       group.append(rangeEndNode);
     }
-    rangeEndNode.textContent = parsed.end;
-  }
 
-  valueNode.setAttribute('x', '0');
-  valueNode.setAttribute('y', '11');
-  valueNode.setAttribute('text-anchor', 'middle');
+    renderAlignedClock(rangeNode, parsed.start, true);
+    renderAlignedClock(rangeEndNode, parsed.end, false);
+  }
 
   rangeNode.setAttribute('x', '0');
   rangeNode.setAttribute('y', '21');
