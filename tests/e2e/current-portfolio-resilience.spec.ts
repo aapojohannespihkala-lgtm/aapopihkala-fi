@@ -19,9 +19,29 @@ const opReaderBody = (isin: string, rowLabel: string) =>
     'Key figures',
   ].join(' ');
 
-test('portfolio feed survives two transient OP reader failures and recovers all missing rows', async () => {
+const nordnetResponse = () =>
+  Response.json({
+    navInfo: {
+      latestNav: { date: '2026-09-07', value: 123.45 },
+      returns: [
+        { period: 'DAY_1', development: 0.1 },
+        { period: 'WEEK_1', development: 0.2 },
+        { period: 'MONTH_1', development: 0.3 },
+        { period: 'MONTH_3', development: 0.4 },
+        { period: 'MONTH_6', development: 0.5 },
+        { period: 'YTD', development: 0.6 },
+        { period: 'YEAR_1', development: 0.7 },
+        { period: 'YEAR_3', development: 0.8 },
+        { period: 'YEAR_5', development: 0.9 },
+      ],
+    },
+  });
+
+test('portfolio feed merges a bounded resilient retry and survives three transient OP reader failures', async () => {
   const originalFetch = globalThis.fetch;
   const readerAttempts = new Map<string, number>();
+  let nordnetFinlandYahooAttempts = 0;
+  let nordnetFinlandProfileAttempts = 0;
   const chartDates = [
     '2020-09-01',
     '2021-09-01',
@@ -38,6 +58,13 @@ test('portfolio feed survives two transient OP reader failures and recovers all 
     const url = new URL(String(input));
 
     if (url.hostname === 'query1.finance.yahoo.com' || url.hostname === 'query2.finance.yahoo.com') {
+      if (decodeURIComponent(url.pathname).includes('0P000134K9.ST')) {
+        nordnetFinlandYahooAttempts += 1;
+        if (nordnetFinlandYahooAttempts <= 2) {
+          return new Response('temporary Yahoo failure', { status: 503 });
+        }
+      }
+
       return Response.json({
         chart: {
           result: [
@@ -51,22 +78,13 @@ test('portfolio feed survives two transient OP reader failures and recovers all 
     }
 
     if (url.hostname === 'api.prod.nntech.io') {
-      return Response.json({
-        navInfo: {
-          latestNav: { date: '2026-09-07', value: 123.45 },
-          returns: [
-            { period: 'DAY_1', development: 0.1 },
-            { period: 'WEEK_1', development: 0.2 },
-            { period: 'MONTH_1', development: 0.3 },
-            { period: 'MONTH_3', development: 0.4 },
-            { period: 'MONTH_6', development: 0.5 },
-            { period: 'YTD', development: 0.6 },
-            { period: 'YEAR_1', development: 0.7 },
-            { period: 'YEAR_3', development: 0.8 },
-            { period: 'YEAR_5', development: 0.9 },
-          ],
-        },
-      });
+      if (url.pathname.includes('nordnet-suomi-indeksi')) {
+        nordnetFinlandProfileAttempts += 1;
+        if (nordnetFinlandProfileAttempts === 1) {
+          return new Response('temporary Nordnet failure', { status: 503 });
+        }
+      }
+      return nordnetResponse();
     }
 
     if (url.hostname === 'www.op.fi') {
@@ -80,7 +98,7 @@ test('portfolio feed survives two transient OP reader failures and recovers all 
 
       const attempts = (readerAttempts.get(fixture[0]) ?? 0) + 1;
       readerAttempts.set(fixture[0], attempts);
-      if (attempts <= 2) {
+      if (attempts <= 3) {
         return new Response('temporary reader failure', { status: 503 });
       }
 
@@ -113,10 +131,16 @@ test('portfolio feed survives two transient OP reader failures and recovers all 
     expect(body.expected).toBe(19);
     expect(body.unavailable).toEqual([]);
     expect(body.source).toContain('OP official reader fallback');
-    expect(body.version).toBeGreaterThanOrEqual(12);
+    expect(body.version).toBeGreaterThanOrEqual(13);
+    expect(nordnetFinlandYahooAttempts).toBeGreaterThanOrEqual(3);
+    expect(nordnetFinlandProfileAttempts).toBeGreaterThanOrEqual(2);
+
+    const nordnetFinland = body.items.find((candidate) => candidate.id === 'nordnet-finland');
+    expect(nordnetFinland).toBeDefined();
+    expect(nordnetFinland?.changes.year5).not.toBeNull();
 
     for (const [slug, isin] of opFixtures) {
-      expect(readerAttempts.get(slug)).toBe(3);
+      expect(readerAttempts.get(slug)).toBe(4);
       const item = body.items.find((candidate) => candidate.symbol === isin);
       expect(item).toBeDefined();
       expect(item?.changes.today).toBeNull();
