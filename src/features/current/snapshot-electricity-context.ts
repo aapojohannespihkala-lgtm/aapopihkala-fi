@@ -1,0 +1,195 @@
+type MonthAverageResponse = {
+  average?: unknown;
+  kind?: unknown;
+  month?: unknown;
+  through?: unknown;
+};
+
+const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const formatPrice = (value: number) =>
+  new Intl.NumberFormat('en-GB', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+
+const monthFormatter = new Intl.DateTimeFormat('en-GB', {
+  month: 'short',
+  year: 'numeric',
+  timeZone: HELSINKI_TIME_ZONE,
+});
+
+const localClockFormatter = new Intl.DateTimeFormat('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+  timeZone: HELSINKI_TIME_ZONE,
+});
+
+const formatThrough = (value: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value;
+
+  const [, year, month, day] = match;
+  const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
+  const monthName = new Intl.DateTimeFormat('en-GB', {
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(date).toUpperCase();
+
+  return `${day} ${monthName}`;
+};
+
+const formatMonth = (value: string) => {
+  const match = /^(\d{4})-(\d{2})$/.exec(value);
+  if (!match) return value;
+
+  const [, year, month] = match;
+  return monthFormatter
+    .format(new Date(`${year}-${month}-15T12:00:00Z`))
+    .toUpperCase();
+};
+
+const getCurrentDayFraction = () => {
+  const parts = localClockFormatter.formatToParts(new Date());
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? 0);
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value ?? 0);
+  return Math.min(1, Math.max(0, (hour * 60 + minute) / (24 * 60)));
+};
+
+const ensureNowMarker = (root: HTMLElement) => {
+  const existing = root.querySelector<HTMLElement>('[data-snapshot-electricity-now-marker]');
+  if (existing) return existing;
+
+  const chart = root.querySelector<HTMLElement>('.snapshot-electricity__chart');
+  if (!chart) return null;
+
+  const marker = document.createElement('div');
+  marker.className = 'snapshot-electricity__now-marker';
+  marker.dataset.snapshotElectricityNowMarker = 'true';
+  marker.innerHTML = '<span>NOW</span><strong data-snapshot-electricity-now-overlay>--.--</strong>';
+  chart.append(marker);
+  return marker;
+};
+
+const positionNowMarker = (marker: HTMLElement) => {
+  const chartPercent = 2.5 + getCurrentDayFraction() * 95;
+  const clamped = Math.min(90, Math.max(10, chartPercent));
+  marker.style.left = `${clamped}%`;
+};
+
+const captureBaseElectricity = (root: HTMLElement, force = false) => {
+  const hero = root.querySelector<HTMLElement>('[data-snapshot-electricity-now]');
+  const current = root.querySelector<HTMLElement>('[data-snapshot-electricity-average]');
+  const currentLabel = current?.closest('div')?.querySelector<HTMLElement>('dt');
+
+  if (
+    hero &&
+    (force || hero.dataset.snapshotElectricityMonthAverage !== 'true')
+  ) {
+    const value = hero.textContent?.trim();
+    if (value && value !== '--.--') root.dataset.snapshotElectricityDayAverage = value;
+  }
+
+  if (
+    current &&
+    (force || current.dataset.snapshotElectricityCurrent === 'true' || currentLabel?.textContent?.trim().startsWith('NOW'))
+  ) {
+    const value = current.textContent?.trim();
+    if (value && value !== '--.--') root.dataset.snapshotElectricityCurrentPrice = value;
+  }
+};
+
+const renderDayContext = (root: HTMLElement) => {
+  const dayAverage = root.dataset.snapshotElectricityDayAverage;
+  const currentPrice = root.dataset.snapshotElectricityCurrentPrice;
+  const firstStat = root.querySelector<HTMLElement>('.snapshot-electricity__stats > div:first-child');
+  const firstLabel = firstStat?.querySelector<HTMLElement>('dt');
+  const firstValue = firstStat?.querySelector<HTMLElement>('dd');
+
+  if (firstLabel) firstLabel.textContent = 'DAY AVG';
+  if (firstValue && dayAverage) firstValue.textContent = dayAverage;
+
+  const marker = ensureNowMarker(root);
+  if (marker) {
+    const overlay = marker.querySelector<HTMLElement>('[data-snapshot-electricity-now-overlay]');
+    if (overlay && currentPrice) overlay.textContent = currentPrice;
+    positionNowMarker(marker);
+  }
+
+  const source = root.querySelector<HTMLElement>('.snapshot-electricity .snapshot-source');
+  if (source) source.textContent = 'DATA / PÖRSSISÄHKÖ.NET · PARASSÄHKÖ.FI';
+};
+
+const renderMonthAverage = (root: HTMLElement, data: MonthAverageResponse) => {
+  const average = data.average;
+  if (!isFiniteNumber(average)) return;
+
+  const hero = root.querySelector<HTMLElement>('[data-snapshot-electricity-now]');
+  const label = root.querySelector<HTMLElement>('.snapshot-electricity__value .snapshot-micro');
+  if (!hero || !label) return;
+
+  hero.textContent = formatPrice(average);
+  hero.dataset.snapshotElectricityMonthAverage = 'true';
+
+  if (
+    data.kind === 'month-to-date' &&
+    typeof data.through === 'string'
+  ) {
+    label.textContent = `MONTH AVG / THROUGH ${formatThrough(data.through)}`;
+  } else if (
+    data.kind === 'last-complete-month' &&
+    typeof data.month === 'string'
+  ) {
+    label.textContent = `LAST MONTH AVG / ${formatMonth(data.month)}`;
+  } else {
+    label.textContent = 'MONTH AVG';
+  }
+};
+
+export const initSnapshotElectricityContext = () => {
+  const root = document.querySelector<HTMLElement>('[data-current-snapshot]');
+  if (!root || root.dataset.electricityContextInitialized === 'true') return;
+
+  root.dataset.electricityContextInitialized = 'true';
+  let monthData: MonthAverageResponse | null = null;
+
+  const apply = (forceCapture = false) => {
+    captureBaseElectricity(root, forceCapture);
+    renderDayContext(root);
+    if (monthData) renderMonthAverage(root, monthData);
+  };
+
+  const loadMonthAverage = async () => {
+    try {
+      const response = await fetch('/api/current/electricity-month', {
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) return;
+
+      const data = (await response.json()) as MonthAverageResponse;
+      if (!isFiniteNumber(data.average)) return;
+      monthData = data;
+      apply(false);
+    } catch {
+      // Keep the day-average fallback already provided by the base snapshot.
+    }
+  };
+
+  window.addEventListener('current:data-updated', () => {
+    apply(true);
+    void loadMonthAverage();
+  });
+
+  window.addEventListener('resize', () => {
+    const marker = root.querySelector<HTMLElement>('[data-snapshot-electricity-now-marker]');
+    if (marker) positionNowMarker(marker);
+  });
+
+  window.setTimeout(() => apply(false), 0);
+  window.setTimeout(() => apply(false), 350);
+  void loadMonthAverage();
+};
