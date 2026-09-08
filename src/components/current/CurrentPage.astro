@@ -159,10 +159,12 @@ const canonicalUrl = `${site.url}/current/`;
       import { initCurrentClock } from '../../features/current/clock';
       import { initCurrentElectricityPresentation } from '../../features/current/electricityPresentation';
       import { initCurrentElectricitySummary } from '../../features/current/electricitySummary';
+      import { initCurrentChartPresentation } from '../../features/current/chartPresentation';
 
       initCurrentClock();
       initCurrentElectricityPresentation();
       initCurrentElectricitySummary();
+      initCurrentChartPresentation();
     </script>
 
     <NightModeToggle lang="en" />
