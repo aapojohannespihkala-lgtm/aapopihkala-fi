@@ -46,9 +46,10 @@ test('Current market charts keep runtime SVG paths unfilled and inspection marke
   await expect(path).toHaveAttribute('d', /^M/);
 
   const geometry = await svg.evaluate((node) => {
-    const rect = node.getBoundingClientRect();
-    const viewBox = node.viewBox.baseVal;
-    const pathNode = node.querySelector<SVGPathElement>('[data-market-line]');
+    const svgNode = node as SVGSVGElement;
+    const rect = svgNode.getBoundingClientRect();
+    const viewBox = svgNode.viewBox.baseVal;
+    const pathNode = svgNode.querySelector<SVGPathElement>('[data-market-line]');
     return {
       renderedWidth: rect.width,
       viewBoxWidth: viewBox.width,
