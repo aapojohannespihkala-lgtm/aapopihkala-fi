@@ -422,3 +422,54 @@ body {
     font-size: 8.5px !important;
   }
 }
+
+/* Shared chart annotation typography.
+   SVG window labels and HTML inspection readouts use the same visual hierarchy. */
+.current-shell.current-shell .current-electricity .electricity-chart .electricity-chart__window-label {
+  fill: var(--current-text-secondary) !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.035em !important;
+}
+
+.current-shell.current-shell .current-electricity .electricity-chart .electricity-chart__window-range {
+  fill: var(--current-text-meta) !important;
+  font-size: 9px !important;
+  font-weight: 500 !important;
+}
+
+.current-shell.current-shell .electricity-chart-tooltip,
+.current-shell.current-shell .markets-sparkline-tooltip {
+  color: var(--current-text-secondary) !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.035em !important;
+}
+
+.current-shell.current-shell .electricity-chart-tooltip__price,
+.current-shell.current-shell .markets-sparkline-tooltip__value {
+  color: var(--current-text-secondary) !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+}
+
+.current-shell.current-shell .electricity-chart-tooltip__time,
+.current-shell.current-shell .markets-sparkline-tooltip > span:not(.markets-sparkline-tooltip__value) {
+  color: var(--current-text-meta) !important;
+  font-size: 9px !important;
+  font-weight: 500 !important;
+}
+
+@media (max-width: 640px) {
+  .current-shell.current-shell .current-electricity .electricity-chart .electricity-chart__window-label,
+  .current-shell.current-shell .current-electricity .electricity-chart .electricity-chart__window-range,
+  .current-shell.current-shell .electricity-chart-tooltip,
+  .current-shell.current-shell .electricity-chart-tooltip__price,
+  .current-shell.current-shell .electricity-chart-tooltip__time,
+  .current-shell.current-shell .markets-sparkline-tooltip,
+  .current-shell.current-shell .markets-sparkline-tooltip__value,
+  .current-shell.current-shell .markets-sparkline-tooltip > span:not(.markets-sparkline-tooltip__value) {
+    font-size: 8.5px !important;
+  }
+}
