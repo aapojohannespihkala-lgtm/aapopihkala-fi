@@ -15,6 +15,11 @@ const installPolishStyles = () => {
       display: none !important;
     }
 
+    .current-shell .electricity-summary-strip .electricity-month-average--summary {
+      align-self: start !important;
+      margin-top: 13px !important;
+    }
+
     .current-shell [data-current-section='rates'] .markets-sparkline-context {
       display: none !important;
     }
@@ -29,6 +34,10 @@ const installPolishStyles = () => {
     }
 
     @media (max-width: 640px) {
+      .current-shell .electricity-summary-strip .electricity-month-average--summary {
+        margin-top: 12px !important;
+      }
+
       .current-shell [data-current-section='rates'] .markets-sparkline-frame {
         grid-template-columns: 28px minmax(0, 1fr) !important;
         gap: 4px !important;
@@ -55,7 +64,7 @@ const normalizeElectricityGroup = (
   const texts = Array.from(group.querySelectorAll<SVGTextElement>(':scope > text'));
   const valueNode =
     group.querySelector<SVGTextElement>('[data-electricity-inspection-value]') ?? texts[0];
-  let rangeNode =
+  const rangeNode =
     group.querySelector<SVGTextElement>('[data-electricity-inspection-range]') ??
     texts.find(
       (text) =>
@@ -95,8 +104,8 @@ const normalizeElectricityGroup = (
     rangeEndNode.setAttribute('text-anchor', 'middle');
   }
 
-  if (Number.isFinite(centerX)) {
-    group.setAttribute('transform', `translate(${centerX!.toFixed(2)} 0)`);
+  if (centerX !== undefined && Number.isFinite(centerX)) {
+    group.setAttribute('transform', `translate(${centerX.toFixed(2)} 0)`);
   }
 };
 
