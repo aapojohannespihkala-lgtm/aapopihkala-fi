@@ -1,11 +1,17 @@
 import { expect, test } from '@playwright/test';
-import { onRequestGet } from '../../functions/api/current/portfolio-stable';
+import { onRequestGet } from '../../functions/api/current/portfolio-complete';
 
 const opFixtures = [
   ['op-asia-index', 'FI4000029491', 'OP-Asia Index A'],
   ['op-europe-index', 'FI4000029301', 'OP-Europe Index A'],
   ['op-world-index', 'FI4000261128', 'OP-World Index A'],
   ['op-forest-owner', 'FI4000108436', 'OP-Forest Owner B'],
+] as const;
+
+const investingFixtures = [
+  ['op-aasia-indeksi-a-historical-data', 'FI4000029491'],
+  ['op-eurooppa-indeksi-a-historical-data', 'FI4000029301'],
+  ['fi4000261128-historical-data', 'FI4000261128'],
 ] as const;
 
 const opReaderBody = (isin: string, rowLabel: string) =>
@@ -18,6 +24,14 @@ const opReaderBody = (isin: string, rowLabel: string) =>
     `${rowLabel} +0.10 % +0.20 % +0.30 % +0.40 % +0.50 % +0.60 %`,
     'Key figures',
   ].join(' ');
+
+const investingHistoryBody = (isin: string) =>
+  [
+    `ISIN: ${isin}`,
+    '04.09.2026 | 120,000 | 120,000 | 120,000 | 120,000 | +0,50%',
+    '31.08.2026 | 118,000 | 118,000 | 118,000 | 118,000 | +0,25%',
+    '28.08.2026 | 117,000 | 117,000 | 117,000 | 117,000 | +0,10%',
+  ].join('\n');
 
 const nordnetResponse = () =>
   Response.json({
@@ -37,7 +51,7 @@ const nordnetResponse = () =>
     },
   });
 
-test('portfolio feed merges a bounded resilient retry and survives three transient OP reader failures', async () => {
+test('portfolio feed recovers transient sources and enriches OP index 1D/1W from NAV history', async () => {
   const originalFetch = globalThis.fetch;
   const readerAttempts = new Map<string, number>();
   let nordnetFinlandYahooAttempts = 0;
@@ -91,10 +105,19 @@ test('portfolio feed merges a bounded resilient retry and survives three transie
       return new Response('temporary upstream failure', { status: 503 });
     }
 
+    if (url.hostname === 'fi.investing.com') {
+      const fixture = investingFixtures.find(([slug]) => url.pathname.includes(slug));
+      if (!fixture) throw new Error(`Unexpected Investing request: ${url}`);
+      return new Response(investingHistoryBody(fixture[1]), {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+
     if (url.hostname === 'r.jina.ai') {
       const originalUrl = decodeURIComponent(url.pathname.slice(1));
       const fixture = opFixtures.find(([slug]) => originalUrl.includes(slug));
-      if (!fixture) throw new Error(`Unexpected OP reader request: ${url}`);
+      if (!fixture) throw new Error(`Unexpected reader request: ${url}`);
 
       const attempts = (readerAttempts.get(fixture[0]) ?? 0) + 1;
       readerAttempts.set(fixture[0], attempts);
@@ -131,7 +154,8 @@ test('portfolio feed merges a bounded resilient retry and survives three transie
     expect(body.expected).toBe(19);
     expect(body.unavailable).toEqual([]);
     expect(body.source).toContain('OP official reader fallback');
-    expect(body.version).toBeGreaterThanOrEqual(13);
+    expect(body.source).toContain('Investing.com ISIN-matched OP NAV history');
+    expect(body.version).toBeGreaterThanOrEqual(14);
     expect(nordnetFinlandYahooAttempts).toBeGreaterThanOrEqual(3);
     expect(nordnetFinlandProfileAttempts).toBeGreaterThanOrEqual(2);
 
@@ -139,12 +163,12 @@ test('portfolio feed merges a bounded resilient retry and survives three transie
     expect(nordnetFinland).toBeDefined();
     expect(nordnetFinland?.changes.year5).not.toBeNull();
 
-    for (const [slug, isin] of opFixtures) {
-      expect(readerAttempts.get(slug)).toBe(4);
+    for (const [slug, isin] of opFixtures.slice(0, 3)) {
+      expect(readerAttempts.get(slug)).toBe(5);
       const item = body.items.find((candidate) => candidate.symbol === isin);
       expect(item).toBeDefined();
-      expect(item?.changes.today).toBeNull();
-      expect(item?.changes.week1).toBeNull();
+      expect(item?.changes.today).toBeCloseTo((123.45 / 120 - 1) * 100, 6);
+      expect(item?.changes.week1).toBeCloseTo((123.45 / 118 - 1) * 100, 6);
       expect(item?.changes.month1).toBe(1);
       expect(item?.changes.month3).toBe(2);
       expect(item?.changes.month6).toBe(3);
@@ -153,6 +177,19 @@ test('portfolio feed merges a bounded resilient retry and survives three transie
       expect(item?.changes.year3).not.toBeNull();
       expect(item?.changes.year5).not.toBeNull();
     }
+
+    const forest = body.items.find((candidate) => candidate.id === 'op-forest-owner-b');
+    expect(readerAttempts.get('op-forest-owner')).toBe(4);
+    expect(forest).toBeDefined();
+    expect(forest?.changes.today).toBeNull();
+    expect(forest?.changes.week1).toBeNull();
+    expect(forest?.changes.month1).toBe(1);
+    expect(forest?.changes.month3).toBe(2);
+    expect(forest?.changes.month6).toBe(3);
+    expect(forest?.changes.ytd).toBe(0.6);
+    expect(forest?.changes.year1).toBe(4);
+    expect(forest?.changes.year3).not.toBeNull();
+    expect(forest?.changes.year5).not.toBeNull();
   } finally {
     globalThis.fetch = originalFetch;
   }

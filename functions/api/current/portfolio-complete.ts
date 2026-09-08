@@ -1,4 +1,4 @@
-import { onRequestGet as getBasePortfolio } from './portfolio';
+import { onRequestGet as getBasePortfolio } from './portfolio-stable';
 
 type PerformanceChanges = {
   today: number | null;
@@ -43,6 +43,10 @@ type NavPoint = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const READER_BASE = 'https://r.jina.ai/';
+const FETCH_TIMEOUT_MS = 2_500;
+const TASK_TIMEOUT_MS = 5_500;
+const MAX_REFERENCE_GAP_MS = 5 * DAY_MS;
 
 const OP_SHORT_HISTORY_SPECS: OpShortHistorySpec[] = [
   {
@@ -91,16 +95,77 @@ const parseNumber = (value: string) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const fetchWithTimeout = async (input: string, init: RequestInit = {}) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+const withTaskTimeout = async <T>(promise: Promise<T>, id: string): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${id} timed out`)), TASK_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+};
+
+const fetchTextWithReaderFallback = async (
+  url: string,
+  directHeaders: Record<string, string>,
+  locale: string
+) => {
+  let directError: unknown;
+
+  try {
+    const response = await fetchWithTimeout(url, { headers: directHeaders });
+    if (!response.ok) throw new Error(`direct request failed: ${response.status}`);
+    return await response.text();
+  } catch (error) {
+    directError = error;
+  }
+
+  try {
+    const response = await fetchWithTimeout(`${READER_BASE}${url}`, {
+      headers: {
+        Accept: 'text/plain',
+        'X-Cache-Tolerance': '300',
+        'X-Locale': locale,
+        'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
+      },
+    });
+    if (!response.ok) throw new Error(`reader request failed: ${response.status}`);
+    return await response.text();
+  } catch (readerError) {
+    throw readerError instanceof Error
+      ? readerError
+      : directError instanceof Error
+        ? directError
+        : new Error('source request failed');
+  }
+};
+
 const fetchOfficialOpNav = async (spec: OpShortHistorySpec): Promise<NavPoint> => {
-  const response = await fetch(spec.opUrl, {
-    headers: {
+  const body = await fetchTextWithReaderFallback(
+    spec.opUrl,
+    {
       Accept: 'text/html',
+      'Accept-Language': 'en-US,en;q=0.9',
       'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
     },
-  });
-  if (!response.ok) throw new Error(`OP NAV request failed: ${response.status}`);
+    'en-US'
+  );
 
-  const text = htmlToText(await response.text());
+  const text = htmlToText(body);
   if (!text.includes(spec.isin)) throw new Error(`OP NAV ISIN mismatch for ${spec.id}`);
 
   const match = text.match(/Unit value\s*\((\d{1,2})\.(\d{1,2})\.\)\s*([\d\s.,]+)\s*EUR/i);
@@ -114,14 +179,14 @@ const fetchOfficialOpNav = async (spec: OpShortHistorySpec): Promise<NavPoint> =
   };
 };
 
-const parseInvestingHistory = (html: string, isin: string): NavPoint[] => {
-  const text = htmlToText(html);
+const parseInvestingHistory = (body: string, isin: string): NavPoint[] => {
+  const text = htmlToText(body);
   if (!new RegExp(`ISIN\\s*:?\\s*${isin}`, 'i').test(text)) {
     throw new Error(`Investing ISIN mismatch for ${isin}`);
   }
 
   const points = new Map<string, NavPoint>();
-  const rowPattern = /(\d{2})\.(\d{2})\.(\d{4})\s+([\d\s]+,\d{2,4})\b/g;
+  const rowPattern = /(\d{2})\.(\d{2})\.(\d{4})\s*(?:\|\s*)?([\d\s]+,\d{2,4})\b/g;
 
   for (const match of text.matchAll(rowPattern)) {
     const value = parseNumber(match[4]);
@@ -136,15 +201,16 @@ const parseInvestingHistory = (html: string, isin: string): NavPoint[] => {
 };
 
 const fetchInvestingHistory = async (spec: OpShortHistorySpec) => {
-  const response = await fetch(spec.investingUrl, {
-    headers: {
+  const body = await fetchTextWithReaderFallback(
+    spec.investingUrl,
+    {
       Accept: 'text/html',
       'Accept-Language': 'fi-FI,fi;q=0.9,en;q=0.8',
       'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
     },
-  });
-  if (!response.ok) throw new Error(`Investing request failed: ${response.status}`);
-  return parseInvestingHistory(await response.text(), spec.isin);
+    'fi-FI'
+  );
+  return parseInvestingHistory(body, spec.isin);
 };
 
 const findReference = (points: NavPoint[], targetTime: number): NavPoint | null => {
@@ -168,7 +234,7 @@ const buildShortChanges = (official: NavPoint, history: NavPoint[]) => {
 
   if (sameDate) {
     const relativeError = Math.abs(sameDate.value / official.value - 1);
-    if (relativeError > 0.001) throw new Error('Investing NAV does not match OP NAV');
+    if (relativeError > 0.0015) throw new Error('Investing NAV does not match OP NAV');
   }
 
   byDate.set(official.observedAt, official);
@@ -182,19 +248,34 @@ const buildShortChanges = (official: NavPoint, history: NavPoint[]) => {
   }
 
   const latestTime = Date.parse(`${latest.observedAt}T00:00:00Z`);
+  const previousTime = Date.parse(`${previous.observedAt}T00:00:00Z`);
+  if (latestTime - previousTime > MAX_REFERENCE_GAP_MS) {
+    throw new Error('OP previous NAV is too stale');
+  }
+
+  const weekTarget = latestTime - 7 * DAY_MS;
+  const weekReference = findReference(points, weekTarget);
+  if (!weekReference) throw new Error('OP 1W NAV reference is missing');
+  const weekReferenceTime = Date.parse(`${weekReference.observedAt}T00:00:00Z`);
+  if (weekTarget - weekReferenceTime > MAX_REFERENCE_GAP_MS) {
+    throw new Error('OP 1W NAV reference is too stale');
+  }
+
   return {
     today: percentChange(latest, previous),
-    week1: percentChange(latest, findReference(points, latestTime - 7 * DAY_MS)),
+    week1: percentChange(latest, weekReference),
   };
 };
 
 const enrichOpShortHistory = async (item: PortfolioItem, spec: OpShortHistorySpec) => {
-  if (item.changes.today !== null && item.changes.week1 !== null) return { item, enriched: false };
+  if (item.changes.today !== null && item.changes.week1 !== null) {
+    return { item, enriched: false };
+  }
 
   try {
     const [official, history] = await Promise.all([
-      fetchOfficialOpNav(spec),
-      fetchInvestingHistory(spec),
+      withTaskTimeout(fetchOfficialOpNav(spec), `${spec.id} OP NAV`),
+      withTaskTimeout(fetchInvestingHistory(spec), `${spec.id} Investing history`),
     ]);
     const short = buildShortChanges(official, history);
     const changes = {
@@ -243,8 +324,8 @@ export const onRequestGet = async () => {
     JSON.stringify({
       ...body,
       items: results.map((result) => result.item),
-      source: enriched ? `${body.source} + Investing.com exact OP NAV history` : body.source,
-      version: Math.max(body.version ?? 0, 6),
+      source: enriched ? `${body.source} + Investing.com ISIN-matched OP NAV history` : body.source,
+      version: Math.max(body.version ?? 0, 14),
     }),
     {
       status: baseResponse.status,
