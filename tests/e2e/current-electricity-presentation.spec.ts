@@ -118,7 +118,7 @@ test('Current keeps electricity annotations compact and separates current from i
     expect(textAlignment).toHaveLength(4);
     for (const line of textAlignment) {
       expect(line.x).toBe('0');
-      expect(line.anchor).toBe('start');
+      expect(line.anchor).toBe('middle');
     }
   }
 
@@ -152,7 +152,15 @@ test('Current keeps electricity annotations compact and separates current from i
   await expect(page.locator('[data-electricity-chart-tooltip]')).toBeHidden();
   await expect(page.locator('[data-electricity-inspection-label]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-value]')).not.toHaveText('--.--');
-  await expect(page.locator('[data-electricity-inspection-range]')).not.toHaveText('--:-- - --:--');
+  const inspectionRange = page.locator('[data-electricity-inspection-range]');
+  await expect(inspectionRange).toHaveText(/^\d{2}:\d{2} -$/);
+  await expect(inspectionRange).toHaveAttribute(
+    'data-full-clock-range',
+    /^\d{2}:\d{2} - \d{2}:\d{2}$/
+  );
+  await expect(
+    page.locator('[data-electricity-inspection-label] [data-electricity-window-range-end]')
+  ).toHaveText(/^\d{2}:\d{2}$/);
   await expect(page.locator('[data-electricity-inspection-band]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-line]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-point]')).toHaveAttribute('opacity', '1');
