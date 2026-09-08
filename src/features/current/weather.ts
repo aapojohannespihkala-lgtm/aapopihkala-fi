@@ -46,6 +46,21 @@ type DailyPoint = {
   weatherCode: number;
 };
 
+export type SolarOrbitGeometry = {
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+  horizonY: number;
+  declinationDegrees: number;
+};
+
+export type SolarPosition = {
+  x: number;
+  y: number;
+  aboveHorizon: boolean;
+};
+
 const LOCATION = {
   latitude: 60.1719,
   longitude: 24.7314,
@@ -54,6 +69,17 @@ const LOCATION = {
 
 const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast';
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
+const DEG_TO_RAD = Math.PI / 180;
+const RAD_TO_DEG = 180 / Math.PI;
+const SOLAR_VIEWBOX = {
+  width: 120,
+  height: 44,
+  cx: 60,
+  horizonY: 22,
+  xScale: 52,
+  yScale: 22,
+} as const;
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const weatherDescriptions: Record<number, string> = {
   0: 'Clear sky',
@@ -95,6 +121,116 @@ const readClockMinutes = (value: string) => {
   const match = value.match(/T(\d{2}):(\d{2})/);
   if (!match) return null;
   return Number(match[1]) * 60 + Number(match[2]);
+};
+
+const parseIsoDate = (value: string) => {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+};
+
+const getSolarDeclinationRadians = (dateValue: string) => {
+  const date = parseIsoDate(dateValue);
+  if (!date) return null;
+
+  const year = date.getUTCFullYear();
+  const yearStart = Date.UTC(year, 0, 1);
+  const dayOfYear = Math.floor((date.getTime() - yearStart) / 86_400_000) + 1;
+  const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInYear = isLeapYear ? 366 : 365;
+  const gamma = (2 * Math.PI * (dayOfYear - 1)) / daysInYear;
+
+  return (
+    0.006918 -
+    0.399912 * Math.cos(gamma) +
+    0.070257 * Math.sin(gamma) -
+    0.006758 * Math.cos(2 * gamma) +
+    0.000907 * Math.sin(2 * gamma) -
+    0.002697 * Math.cos(3 * gamma) +
+    0.00148 * Math.sin(3 * gamma)
+  );
+};
+
+export const getSolarOrbitGeometry = (
+  dateValue: string,
+  latitude = LOCATION.latitude
+): SolarOrbitGeometry | null => {
+  const declination = getSolarDeclinationRadians(dateValue);
+  if (declination === null) return null;
+
+  const latitudeRadians = latitude * DEG_TO_RAD;
+  const cosDeclination = Math.cos(declination);
+
+  return {
+    cx: SOLAR_VIEWBOX.cx,
+    cy:
+      SOLAR_VIEWBOX.horizonY -
+      SOLAR_VIEWBOX.yScale * Math.sin(latitudeRadians) * Math.sin(declination),
+    rx: SOLAR_VIEWBOX.xScale * cosDeclination,
+    ry: SOLAR_VIEWBOX.yScale * Math.cos(latitudeRadians) * cosDeclination,
+    horizonY: SOLAR_VIEWBOX.horizonY,
+    declinationDegrees: declination * RAD_TO_DEG,
+  };
+};
+
+const normalizeHourAngle = (degrees: number) => {
+  const wrapped = ((degrees + 180) % 360 + 360) % 360 - 180;
+  return wrapped * DEG_TO_RAD;
+};
+
+export const getSolarPosition = (
+  dateValue: string,
+  currentTime: string,
+  sunrise: string,
+  sunset: string,
+  latitude = LOCATION.latitude
+): SolarPosition | null => {
+  const geometry = getSolarOrbitGeometry(dateValue, latitude);
+  const declination = getSolarDeclinationRadians(dateValue);
+  const current = readClockMinutes(currentTime);
+  const start = readClockMinutes(sunrise);
+  const end = readClockMinutes(sunset);
+
+  if (
+    !geometry ||
+    declination === null ||
+    current === null ||
+    start === null ||
+    end === null ||
+    end <= start
+  ) {
+    return null;
+  }
+
+  const solarNoon = (start + end) / 2;
+  const hourAngle = normalizeHourAngle((current - solarNoon) / 4);
+  const latitudeRadians = latitude * DEG_TO_RAD;
+  const cosDeclination = Math.cos(declination);
+  const altitudeProjection =
+    Math.sin(latitudeRadians) * Math.sin(declination) +
+    Math.cos(latitudeRadians) * cosDeclination * Math.cos(hourAngle);
+
+  return {
+    x:
+      SOLAR_VIEWBOX.cx +
+      SOLAR_VIEWBOX.xScale * cosDeclination * Math.sin(hourAngle),
+    y: SOLAR_VIEWBOX.horizonY - SOLAR_VIEWBOX.yScale * altitudeProjection,
+    aboveHorizon: altitudeProjection >= 0,
+  };
 };
 
 const formatWeekday = (value: string) => {
@@ -279,18 +415,95 @@ const renderDailyChart = (svg: SVGSVGElement, points: DailyPoint[]) => {
   `;
 };
 
+const createSvgElement = <K extends keyof SVGElementTagNameMap>(tagName: K) =>
+  document.createElementNS(SVG_NS, tagName);
+
+const ensureSolarOrbitElements = (svg: SVGSVGElement, marker: SVGCircleElement) => {
+  let visibleOrbit = svg.querySelector<SVGEllipseElement>('[data-weather-solar-orbit-visible]');
+  let hiddenOrbit = svg.querySelector<SVGEllipseElement>('[data-weather-solar-orbit-hidden]');
+  let horizon = svg.querySelector<SVGLineElement>('[data-weather-solar-horizon]');
+
+  if (visibleOrbit && hiddenOrbit && horizon) {
+    return { visibleOrbit, hiddenOrbit, horizon };
+  }
+
+  svg.querySelector('path')?.setAttribute('opacity', '0');
+  svg
+    .querySelectorAll<SVGCircleElement>('circle:not([data-weather-sun-position])')
+    .forEach((circle) => circle.setAttribute('opacity', '0'));
+
+  const defs = createSvgElement('defs');
+  const aboveClip = createSvgElement('clipPath');
+  const belowClip = createSvgElement('clipPath');
+  const aboveRect = createSvgElement('rect');
+  const belowRect = createSvgElement('rect');
+
+  aboveClip.id = 'weather-solar-above-horizon';
+  aboveClip.setAttribute('clipPathUnits', 'userSpaceOnUse');
+  aboveRect.setAttribute('x', '0');
+  aboveRect.setAttribute('y', '0');
+  aboveRect.setAttribute('width', String(SOLAR_VIEWBOX.width));
+  aboveRect.setAttribute('height', String(SOLAR_VIEWBOX.horizonY));
+  aboveClip.append(aboveRect);
+
+  belowClip.id = 'weather-solar-below-horizon';
+  belowClip.setAttribute('clipPathUnits', 'userSpaceOnUse');
+  belowRect.setAttribute('x', '0');
+  belowRect.setAttribute('y', String(SOLAR_VIEWBOX.horizonY));
+  belowRect.setAttribute('width', String(SOLAR_VIEWBOX.width));
+  belowRect.setAttribute('height', String(SOLAR_VIEWBOX.height - SOLAR_VIEWBOX.horizonY));
+  belowClip.append(belowRect);
+
+  defs.append(aboveClip, belowClip);
+
+  hiddenOrbit = createSvgElement('ellipse');
+  hiddenOrbit.setAttribute('data-weather-solar-orbit-hidden', '');
+  hiddenOrbit.setAttribute('fill', 'none');
+  hiddenOrbit.setAttribute('stroke', 'currentColor');
+  hiddenOrbit.setAttribute('stroke-width', '1');
+  hiddenOrbit.setAttribute('stroke-linecap', 'round');
+  hiddenOrbit.setAttribute('stroke-dasharray', '2.4 2.4');
+  hiddenOrbit.setAttribute('opacity', '0.45');
+  hiddenOrbit.setAttribute('vector-effect', 'non-scaling-stroke');
+  hiddenOrbit.setAttribute('clip-path', 'url(#weather-solar-below-horizon)');
+
+  visibleOrbit = createSvgElement('ellipse');
+  visibleOrbit.setAttribute('data-weather-solar-orbit-visible', '');
+  visibleOrbit.setAttribute('fill', 'none');
+  visibleOrbit.setAttribute('stroke', 'currentColor');
+  visibleOrbit.setAttribute('stroke-width', '1');
+  visibleOrbit.setAttribute('stroke-linecap', 'round');
+  visibleOrbit.setAttribute('vector-effect', 'non-scaling-stroke');
+  visibleOrbit.setAttribute('clip-path', 'url(#weather-solar-above-horizon)');
+
+  horizon = createSvgElement('line');
+  horizon.setAttribute('data-weather-solar-horizon', '');
+  horizon.setAttribute('x1', '7');
+  horizon.setAttribute('x2', '113');
+  horizon.setAttribute('y1', String(SOLAR_VIEWBOX.horizonY));
+  horizon.setAttribute('y2', String(SOLAR_VIEWBOX.horizonY));
+  horizon.setAttribute('stroke', 'currentColor');
+  horizon.setAttribute('stroke-width', '0.8');
+  horizon.setAttribute('opacity', '0.38');
+  horizon.setAttribute('vector-effect', 'non-scaling-stroke');
+
+  svg.insertBefore(defs, svg.firstChild);
+  svg.insertBefore(hiddenOrbit, marker);
+  svg.insertBefore(visibleOrbit, marker);
+  svg.insertBefore(horizon, marker);
+
+  return { visibleOrbit, hiddenOrbit, horizon };
+};
+
 const renderSolarPosition = (
   solarRoot: HTMLElement,
   marker: SVGCircleElement,
+  dateValue: string,
   currentTime: string,
   sunrise: string,
   sunset: string,
   daylightLength: string
 ) => {
-  const current = readClockMinutes(currentTime);
-  const start = readClockMinutes(sunrise);
-  const end = readClockMinutes(sunset);
-
   const sunriseLabel = sunrise ? formatTime(sunrise) : '--:--';
   const sunsetLabel = sunset ? formatTime(sunset) : '--:--';
   solarRoot.setAttribute(
@@ -298,24 +511,40 @@ const renderSolarPosition = (
     `Sunrise ${sunriseLabel}, sunset ${sunsetLabel}, day length ${daylightLength}`
   );
 
-  if (current === null || start === null || end === null || end <= start) {
+  const svg = marker.ownerSVGElement;
+  const geometry = getSolarOrbitGeometry(dateValue);
+  const position = getSolarPosition(dateValue, currentTime, sunrise, sunset);
+
+  if (!svg || !geometry || !position) {
     marker.setAttribute('opacity', '0');
     return;
   }
 
-  const progress = (current - start) / (end - start);
-  if (progress < 0 || progress > 1) {
-    marker.setAttribute('opacity', '0');
-    return;
+  const { visibleOrbit, hiddenOrbit } = ensureSolarOrbitElements(svg, marker);
+  const ellipseAttributes = {
+    cx: geometry.cx.toFixed(2),
+    cy: geometry.cy.toFixed(2),
+    rx: geometry.rx.toFixed(2),
+    ry: geometry.ry.toFixed(2),
+  };
+
+  for (const [name, value] of Object.entries(ellipseAttributes)) {
+    visibleOrbit.setAttribute(name, value);
+    hiddenOrbit.setAttribute(name, value);
   }
 
-  const angle = Math.PI * (1 - progress);
-  const x = 60 + 52 * Math.cos(angle);
-  const y = 36 - 27 * Math.sin(angle);
+  svg.setAttribute(
+    'aria-label',
+    "Sun's apparent 24-hour path. The solid part is above the horizon and the dashed part is below it."
+  );
+  svg.setAttribute('data-weather-solar-center-y', geometry.cy.toFixed(2));
+  svg.setAttribute('data-weather-solar-declination', geometry.declinationDegrees.toFixed(2));
 
-  marker.setAttribute('cx', x.toFixed(2));
-  marker.setAttribute('cy', y.toFixed(2));
-  marker.setAttribute('opacity', '1');
+  marker.setAttribute('cx', position.x.toFixed(2));
+  marker.setAttribute('cy', position.y.toFixed(2));
+  marker.setAttribute('data-weather-sun-above-horizon', String(position.aboveHorizon));
+  marker.setAttribute('stroke', position.aboveHorizon ? 'var(--moss-deep)' : 'currentColor');
+  marker.setAttribute('opacity', position.aboveHorizon ? '1' : '0.72');
 };
 
 const buildApiUrl = () => {
@@ -429,6 +658,7 @@ export const initCurrentWeather = () => {
     const sunrise = data.daily.sunrise[0] ?? '';
     const sunset = data.daily.sunset[0] ?? '';
     const daylightLength = formatDaylightLength(sunrise, sunset);
+    const solarDate = data.daily.time[0] ?? data.current.time.slice(0, 10);
 
     sunriseTarget.textContent = sunrise ? formatTime(sunrise) : '--:--';
     sunsetTarget.textContent = sunset ? formatTime(sunset) : '--:--';
@@ -436,6 +666,7 @@ export const initCurrentWeather = () => {
     renderSolarPosition(
       solarTarget,
       sunPositionTarget,
+      solarDate,
       data.current.time,
       sunrise,
       sunset,
