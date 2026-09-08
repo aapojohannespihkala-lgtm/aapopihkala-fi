@@ -2,6 +2,7 @@ import { onRequestGet as getElectricityPriceResponse } from '../functions/api/cu
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
+import { onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
 
 type AssetsBinding = {
   fetch(request: Request): Promise<Response>;
@@ -14,6 +15,7 @@ type WorkerEnv = {
 const ELECTRICITY_PATH = '/api/current/electricity';
 const MARKETS_PATH = '/api/current/markets';
 const NEWS_PATH = '/api/current/news';
+const LIIGA_PATH = '/api/current/liiga';
 
 const methodNotAllowed = () =>
   new Response('Method not allowed', {
@@ -39,6 +41,11 @@ const worker = {
     if (url.pathname === NEWS_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
       return getNewsResponse();
+    }
+
+    if (url.pathname === LIIGA_PATH) {
+      if (request.method !== 'GET') return methodNotAllowed();
+      return getLiigaResponse();
     }
 
     return env.ASSETS.fetch(request);

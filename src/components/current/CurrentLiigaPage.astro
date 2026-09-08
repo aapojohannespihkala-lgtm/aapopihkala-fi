@@ -1,0 +1,137 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { site } from '../../config/site';
+import NightModeToggle from '../NightModeToggle.astro';
+import CurrentLiiga from './CurrentLiiga.astro';
+
+const canonicalUrl = `${site.url}/current/liiga/`;
+---
+
+<BaseLayout
+  lang="en"
+  title="Liiga | Current | Aapo Pihkala"
+  description="Liiga standings and the latest Ilves result."
+  canonicalUrl={canonicalUrl}
+  finnishUrl={canonicalUrl}
+  englishUrl={canonicalUrl}
+  languageHref="/current/"
+  initialNightMode
+  includeDefaultSocialMeta={false}
+>
+  <Fragment slot="head">
+    <meta name="robots" content="noindex,nofollow" />
+  </Fragment>
+
+  <main id="main-content" tabindex="-1" class="current-liiga-shell">
+    <header class="current-liiga-status" aria-label="Current Liiga status">
+      <a href="/current/" class="current-liiga-status__link">Current</a>
+      <span class="current-liiga-status__separator" aria-hidden="true">/</span>
+      <h1 class="current-liiga-status__label">Liiga</h1>
+      <span class="current-liiga-status__separator" aria-hidden="true">/</span>
+
+      <p class="current-liiga-clock" aria-label="Current time in Helsinki">
+        <span data-current-date></span>
+        <span aria-hidden="true">/</span>
+        <span data-current-time></span>
+      </p>
+
+      <span class="current-liiga-status__separator" aria-hidden="true">/</span>
+
+      <p class="current-liiga-updated">
+        Updated <span data-current-updated>Waiting</span>
+      </p>
+    </header>
+
+    <CurrentLiiga />
+  </main>
+
+  <Fragment slot="afterAnalytics">
+    <script>
+      import { initCurrentClock } from '../../features/current/clock';
+      initCurrentClock();
+    </script>
+
+    <NightModeToggle lang="en" />
+  </Fragment>
+</BaseLayout>
+
+<style>
+  :global(html:has(.current-liiga-shell)),
+  :global(body:has(.current-liiga-shell)) {
+    overflow-x: clip !important;
+  }
+
+  .current-liiga-shell {
+    width: 100%;
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 28px 32px 128px;
+  }
+
+  .current-liiga-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line-soft);
+    color: var(--stone);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+  }
+
+  .current-liiga-status h1,
+  .current-liiga-status p {
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+  }
+
+  .current-liiga-status__link {
+    color: var(--stone-light);
+    text-decoration: none;
+  }
+
+  .current-liiga-status__link:hover,
+  .current-liiga-status__link:focus-visible {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .current-liiga-status__label,
+  .current-liiga-status__separator {
+    color: var(--stone-light) !important;
+  }
+
+  .current-liiga-clock {
+    display: inline-flex;
+    gap: 8px;
+  }
+
+  .current-liiga-updated span {
+    color: var(--stone-light);
+  }
+
+  @media (max-width: 640px) {
+    .current-liiga-shell {
+      padding: 22px 24px 96px;
+    }
+
+    .current-liiga-status {
+      gap: 7px;
+      padding-bottom: 14px;
+      font-size: 0.47rem;
+    }
+
+    .current-liiga-clock {
+      gap: 7px;
+    }
+  }
+</style>
