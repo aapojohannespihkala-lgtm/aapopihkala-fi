@@ -103,6 +103,10 @@ for (const viewport of [
     await year1Button.click();
     await expect.poll(loadedOrder).toEqual(['remedy', 'marimekko', 'ishares-world']);
     await expect(year1Header).toHaveAttribute('aria-sort', 'ascending');
+    await expect(year1Button).toHaveAttribute(
+      'aria-label',
+      'Sort holdings by 1Y performance, best first'
+    );
 
     await year1Button.click();
     await expect.poll(loadedOrder).toEqual(['ishares-world', 'marimekko', 'remedy']);
@@ -116,6 +120,7 @@ for (const viewport of [
     await marketButton.click();
     await expect.poll(loadedOrder).toEqual(['ishares-world', 'marimekko', 'remedy']);
     await expect(marketHeader).toHaveAttribute('aria-sort', 'ascending');
+    await expect(marketButton).toHaveAttribute('aria-label', 'Sort holdings alphabetically Z to A');
     await expect(year1Header).toHaveAttribute('aria-sort', 'none');
   });
 }
