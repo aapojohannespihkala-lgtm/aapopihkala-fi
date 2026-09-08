@@ -11,13 +11,13 @@ const weatherFixture = (() => {
   const weatherCode = Array.from({ length: 48 }, () => 3);
   const precipitationProbability = Array.from({ length: 48 }, () => 10);
 
-  temperature[17] = 15;
-  weatherCode[17] = 3;
-  precipitationProbability[17] = 10;
+  temperature[16] = 15;
+  weatherCode[16] = 3;
+  precipitationProbability[16] = 10;
 
-  temperature[19] = 14;
-  weatherCode[19] = 61;
-  precipitationProbability[19] = 65;
+  temperature[18] = 14;
+  weatherCode[18] = 61;
+  precipitationProbability[18] = 65;
 
   temperature[21] = 13;
   weatherCode[21] = 2;
@@ -64,6 +64,18 @@ const electricityFixture = (() => {
     }).reverse(),
   };
 })();
+
+const monthAverageFixture = {
+  average: 7.84,
+  kind: 'month-to-date',
+  month: '2026-09',
+  through: '2026-09-07',
+  hours: 168,
+  unit: 'c/kWh',
+  vatIncluded: true,
+  source: 'ParasSähkö.fi',
+  underlyingSource: 'Porssisahko.net API',
+};
 
 const portfolioFixture = {
   items: [
@@ -113,6 +125,14 @@ const prepareSnapshot = async (page: Page) => {
     });
   });
 
+  await page.route('**/api/current/electricity-month', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(monthAverageFixture),
+    });
+  });
+
   await page.route('**/api/current/electricity', async (route) => {
     await route.fulfill({
       status: 200,
@@ -154,27 +174,31 @@ test.describe('Current Snapshot', () => {
       await expect(page.locator('[data-snapshot-weather-condition]')).toHaveText('Overcast');
       await expect(page.locator('[data-snapshot-weather-low]')).toHaveText('12');
       await expect(page.locator('[data-snapshot-weather-high]')).toHaveText('18');
-      await expect(page.locator('[data-snapshot-weather-icon] path')).toHaveCount(1);
       await expect(page.locator('[data-snapshot-weather-forecast]')).toBeVisible();
-      await expect(page.locator('.snapshot-weather__forecast-label')).toHaveText('NEXT 6H');
-      await expect(page.locator('[data-snapshot-weather-forecast-time="0"]')).toHaveText('17');
+      await expect(page.locator('.snapshot-weather__forecast-label')).toHaveText('NEXT');
+      await expect(page.locator('[data-snapshot-weather-forecast-time="0"]')).toHaveText('16:00');
       await expect(page.locator('[data-snapshot-weather-forecast-temperature="0"]')).toHaveText('15°');
-      await expect(page.locator('[data-snapshot-weather-forecast-condition="0"]')).toHaveText('OVERCAST');
-      await expect(page.locator('[data-snapshot-weather-forecast-time="1"]')).toHaveText('19');
+      await expect(page.locator('[data-snapshot-weather-forecast-condition="0"]')).toHaveText('Overcast');
+      await expect(page.locator('[data-snapshot-weather-forecast-icon="0"] path')).toHaveCount(1);
+      await expect(page.locator('[data-snapshot-weather-forecast-time="1"]')).toHaveText('18:00');
       await expect(page.locator('[data-snapshot-weather-forecast-temperature="1"]')).toHaveText('14°');
-      await expect(page.locator('[data-snapshot-weather-forecast-condition="1"]')).toHaveText('RAIN 65%');
-      await expect(page.locator('[data-snapshot-weather-forecast-time="2"]')).toHaveText('21');
+      await expect(page.locator('[data-snapshot-weather-forecast-condition="1"]')).toHaveText('Rain');
+      await expect(page.locator('[data-snapshot-weather-forecast-icon="1"] path')).toHaveCount(2);
+      await expect(page.locator('[data-snapshot-weather-forecast-time="2"]')).toHaveText('21:00');
       await expect(page.locator('[data-snapshot-weather-forecast-temperature="2"]')).toHaveText('13°');
-      await expect(page.locator('[data-snapshot-weather-forecast-condition="2"]')).toHaveText('CLOUDY');
+      await expect(page.locator('[data-snapshot-weather-forecast-condition="2"]')).toHaveText('Partly cloudy');
 
-      await expect(page.locator('[data-snapshot-electricity-day-average]')).toHaveText('3.46');
-      await expect(page.locator('[data-snapshot-electricity-current]')).toHaveText('4.82');
-      await expect(page.locator('.snapshot-electricity__value .snapshot-micro')).toHaveText('DAY AVG / TODAY');
-      await expect(page.locator('.snapshot-electricity__stats > div:first-child dt')).toHaveText('NOW · +39% VS AVG');
+      await expect(page.locator('[data-snapshot-electricity-month-average]')).toHaveText('7.84');
+      await expect(page.locator('.snapshot-electricity__value .snapshot-micro')).toHaveText('MONTH AVG / THROUGH 07 SEP');
+      await expect(page.locator('.snapshot-electricity__stats > div:first-child dt')).toHaveText('DAY AVG');
+      await expect(page.locator('.snapshot-electricity__stats > div:first-child dd')).toHaveText('3.46');
+      await expect(page.locator('[data-snapshot-electricity-now-overlay]')).toHaveText('4.82');
+      await expect(page.locator('[data-snapshot-electricity-now-marker]')).toBeVisible();
       await expect(page.locator('[data-snapshot-electricity-low]')).toHaveText('1.20');
       await expect(page.locator('[data-snapshot-electricity-high]')).toHaveText('9.80');
       await expect(page.locator('[data-snapshot-electricity-chart-path]')).toHaveAttribute('d', /M/);
       await expect(page.locator('[data-snapshot-electricity-chart]')).toHaveAttribute('data-chart-points', '24');
+      await expect(page.locator('.snapshot-electricity .snapshot-source')).toContainText('PARASSÄHKÖ.FI');
 
       await expect(page.locator('.snapshot-markets .snapshot-kicker')).toHaveText('TODAY / SELECTED PERFORMANCE');
       await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.42%');
