@@ -42,6 +42,9 @@ Mittaa vähintään Home-, About-, artikkeli- ja Current-sivut oikeilla suoritus
 
 Portrait-GLB:n latausta on jo lykätty näkyvyyteen asti. Bundle- ja Three.js-puolella voi silti olla lisäoptimointipotentiaalia.
 
+- Tuotantobuild varoittaa tällä hetkellä vähintään yhdestä yli 500 kB minifioidusta chunkista. Selvitä bundle-analyysillä, mistä chunk muodostuu, ja arvioi lazy loading, `dynamic import()` tai muu tarkoituksenmukainen code splitting ennen varoitusrajan muuttamista.
+- Tee optimoinnit mitatun vaikutuksen perusteella. Älä hajota bundlea vain varoituksen poistamiseksi, jos se heikentää latauspolkua tai kasvattaa kokonaiskustannusta.
+
 ## 5. Valinnainen 3D-arkkitehtuurin jatkohajotus
 
 Tee vain, jos komponenttien ylläpidettävyys sitä tarvitsee. Älä muuta samassa työssä kamera-, geometria-, materiaali-, point-, morph-, damping- tai animaatioparametreja.
@@ -65,6 +68,9 @@ Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivise
 
 - Pidä TypeScript nykyisessä tuetussa sarjassa, kunnes `@astrojs/check` tukee seuraavaa majoria. Nykyinen check-versio sallii TypeScript 5- ja 6-sarjat, ei 7-sarjaa.
 - Tarkista `npm audit` -löydökset dependency- ja framework-päivitysten yhteydessä; käsittele jäljelle jäävät transitiiviset haavoittuvuudet erillisinä rajattuina maintenance-passeina.
+- Tarkista, onko `html2canvas` enää käytössä. Jos repo- ja runtime-tarkistus vahvistavat riippuvuuden kuolleeksi, poista se erillisessä pienessä maintenance-muutoksessa.
+- Käsittele `npm ci`:n install-script-policy tietoisesti. Nykyinen CI varoittaa `esbuild`- ja `workerd`-install-skripteistä, joita ei ole eksplisiittisesti hyväksytty allowScripts-politiikassa. Älä hyväksy skriptejä automaattisesti ilman pakettien ja tarpeen varmennusta.
+- Tee pienet Astro-, Wrangler-, Playwright-, TypeScript- ja Three.js-päivitykset rajattuina maintenance-passeina. Priorisoi regressioriski ja hyöty versionumeron tuoreuden sijaan.
 - Älä lisää automaattista riippuvuuspäivitys-PR-virtaa rakennusvaiheessa pelkän hygienian vuoksi, jos se kasvattaa PR-kohinaa. Arvioi Dependabot tai vastaava uudelleen vakaammassa vaiheessa.
 
 ## 9. SEO- ja reittihygienia
@@ -76,12 +82,15 @@ Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivise
 
 ## 10. Currentin ulkoisten datalähteiden toimintavarmuus
 
-Currentin Electricity-, Markets- ja News-näkymät riippuvat useista ulkoisista lähteistä. Nykyinen rakenne sietää jo osittaisia lähdevikoja, mutta toimintavarmuutta kannattaa vahvistaa ilman että normaali kehitystyönkulku raskautuu.
+Currentin Electricity-, Markets- ja News-näkymät riippuvat useista ulkoisista lähteistä. Marketsin viimeisimmät korjaukset ovat jo lisänneet rajattuja timeout-, retry- ja recovery-polkuja, mutta sama toimintavarmuustaso ei vielä kata kaikkia Current-lähteitä.
 
-- Lisää Worker-puolen ulkoisiin verkkopyyntöihin eksplisiittiset timeoutit ja hallittu virheenkäsittely.
-- Arvioi, missä Current-datassa stale-while-revalidate- tai viimeksi onnistuneen datan fallback parantaa käytettävyyttä ilman harhaanjohtavaa vanhaa tietoa.
-- Suojaa HTML:ää parsivat lähteet, erityisesti Marketsin Bank of Finland -parseri, source-contract- tai fixture-regressiotesteillä, jotta upstream-rakenteen muutos havaitaan nopeasti.
-- Hyödynnä nykyistä Cloudflare-observabilityä lähdekohtaisten virheiden tunnistamiseen ennen uuden seurantainfran lisäämistä.
+- Lisää Electricity-Workerin upstream-hakuun eksplisiittinen timeout ja hallittu virheenkäsittely, jotta yksi jumittava pörssisähkölähde ei voi pitää Worker-pyyntöä avoinna rajatta.
+- Lisää Newsin jokaiselle RSS-haulle lähdekohtainen timeout. `Promise.allSettled` ei yksin riitä, jos yksittäinen `fetch` ei koskaan valmistu.
+- Pidä retryt rajattuina ja lähdekohtaisina. Älä kasvata yhden API-pyynnön kokonaislatenssia hallitsemattomalla fallback-ketjulla.
+- Arvioi, missä Current-datassa stale-while-revalidate- tai viimeksi onnistuneen datan fallback parantaa käytettävyyttä ilman harhaanjohtavaa vanhaa tietoa. Jos viimeksi onnistunutta dataa käytetään, sen ikä pitää pystyä esittämään tai tulkitsemaan yksiselitteisesti.
+- Suojaa HTML- ja tekstimuotoa parsivat lähteet, erityisesti Bank of Finland- ja OP-adapterit, source-contract- tai fixture-regressiotesteillä, jotta upstream-rakenteen muutos havaitaan nopeasti.
+- Lisää tarvittaessa vastaavat fixture- tai contract-testit RSS-lähteille, jos lähdekohtaiset rakenteet alkavat aiheuttaa toistuvia regressioita.
+- Hyödynnä nykyistä Cloudflare-observabilityä lähdekohtaisten virheiden tunnistamiseen ennen uuden seurantainfran lisäämistä. Tavoite on nähdä ainakin epäonnistunut lähde, vaihe, timeout tai HTTP-virhe ilman että sisäistä diagnostiikkaa näytetään loppukäyttäjälle.
 
 ## 11. GitHub- ja ChatGPT-työnkulun optimointi
 
@@ -96,12 +105,25 @@ Tehty:
 - PR #131 lisäsi Currentin section-boundary Playwright-guardin. Guard on rajattu vain Current-layoutiin mahdollisesti vaikuttaviin muutoksiin, jotta Chromium-asennus ei hidasta jokaista suoritettavaa pull requestia.
 - `CHATGPT.md` kuuluu dokumentaatio-only fast pathiin.
 - Onnistuneen owner-PR:n automerge dispatchaa ensin täyden `main`-validoinnin ja yrittää sen jälkeen poistaa mergetyn head-branchin. Poistovirhe ei muuta onnistunutta mergeä epäonnistuneeksi.
-- Branchien kertasiivous valmistui kolmella varmennetulla passilla. Ensin poistettiin 128 branchia, joilla oli jo mergetty same-repository PR. Sen jälkeen poistettiin 58 branchia, joiden tarkka tip-commit oli jo `main`in historiassa. Lopuksi poistettiin kahdeksan erikseen varmennettua jäännösbranchia. Poistovirheitä ei ollut.
-- Branchimäärä putosi 196:sta yhteen. Repositoryssa on nyt vain `main`, ja tulevien onnistuneesti mergettyjen owner-branchien automaattinen best-effort-poisto estää saman kertymän syntymisen uudelleen.
+- Branchien suuri kertasiivous valmistui kolmella varmennetulla passilla: mergetyt same-repository-branchit, `main`in historiassa jo olevat tip-commitit ja erikseen varmennetut jäännösbranchit poistettiin ilman poistovirheitä.
 - Vanhasta draft-PR #120:stä löydettiin kolme edelleen relevanttia Current-regressiotestien korjausta. Ne siirrettiin puhtaasti nykyisen `main`in päälle PR #137:ssä, minkä jälkeen vanha draft suljettiin ilman mergeä.
 - Kaikki väliaikaiset kertasiivoushookit on poistettu workflowsta. Pysyväksi jää normaali automerge, täysi post-merge-validointi ja mergetyn head-branchin automaattinen best-effort-poisto.
 
 Jäljellä:
 
 - Laajenna pieniä kohdennettuja pre-merge UI-guardeja vain silloin, kun toistuva regressioluokka osoittaa niille todellisen tarpeen. Älä palauta koko Playwright-sarjaa blokkaavaksi rakennusvaiheessa.
+- Kun UI:n toteutustapa muuttuu mutta käyttäytymissopimus säilyy, suosi regressiotesteissä käyttäytymistä, saavutettavuutta ja näkyvää lopputulosta toteutuskohtaisen DOM-rakenteen sijaan. Tämä vähentää turhia korjaus-PR-ketjuja.
 - Arvioi käytännön käytön jälkeen, vähentääkö tehtäväkartta uuden session repository-hakuja ja vähenevätkö peräkkäiset korjaus-PR:t.
+- Tee ajoittain kevyt stale-branch-tarkistus. Suuri historiallinen branchivelka on siivottu, mutta aktiivisen kehityksen aikana uusia työ-, kokeilu- ja noop-brancheja voi taas kertyä eikä ROADMAPin pidä olettaa, että repossa olisi pysyvästi vain `main`.
+
+## 12. Current- ja Worker-arkkitehtuurin konsolidointi
+
+Current Markets -kehityksen aikana `functions/api/current/`-hakemistoon on kertynyt useita rinnakkaisia market- ja portfolio-handlerisukupolvia. Nykyinen toimiva tuotantopolku pitää säilyttää, mutta historiallisten toteutusten määrä kasvattaa ylläpidon epäselvyyttä.
+
+- Inventoi kaikki `markets*`- ja `portfolio*`-handlerit ja todista viittausten sekä testien avulla, mitkä ovat aktiivisen Worker-polun ulkopuolella. Poista vain varmasti käyttämättömät legacy-versiot rajatulla cleanup-PR:llä.
+- Keskitetään 19 portfolio-kohteen pysyvä metadata, järjestys ja periodisopimus yhteen kanoniseen määrittelyyn, jota backend, frontend ja testit voivat käyttää tarkoituksenmukaisesti ilman käsin synkronoitavia rinnakkaislistoja.
+- Erota ulkoiset lähteet selkeiksi adaptereiksi tai muuten rajatuiksi vastuiksi, erityisesti Yahoo-, Nordnet-, OP- ja Bank of Finland -poluissa. Timeout-, retry-, parseri- ja fallback-logiikan pitää olla lähdekohtaisesti testattavaa.
+- Pidä yhteinen data-contract selkeänä: aidosti puuttuva periodi saa olla `N/A`, mutta puuttuva rivi tai rikkoutunut lähdesopimus pitää erottaa siitä.
+- Arvioi `/current2/`-reitin pysyvä rooli. Jos sitä tarvitaan diagnostisena layout- ja viewport-laboratoriona, dokumentoi tämä yksiselitteisesti. Jos sen tehtävä on pääosin siirtynyt varsinaiseen Currentiin, suunnittele myöhempi poistaminen tai supistaminen.
+- Päivitä Current2-nimiset tuotantovalvonnat ja dokumentaatiot neutraalimpaan Current/portfolio-nimistöön silloin, kun ne eivät enää kuvaa vain `/current2/`-reittiä.
+- Yhtenäistä `wrangler.jsonc`:n Worker-first-reittisopimus ja `worker/index.ts`:n todellinen API-reititys niin, että kaikki Currentin Worker-käsittelemät reitit ovat konfiguraatiossa ymmärrettävissä ilman historiallista poikkeuslogiikkaa.
