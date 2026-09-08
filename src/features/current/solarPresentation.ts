@@ -10,7 +10,7 @@ const DISPLAY_SOLAR_VIEWBOX = {
   horizonY: 30,
 } as const;
 
-export const SOLAR_VERTICAL_EXAGGERATION = 1.35;
+export const SOLAR_VERTICAL_EXAGGERATION = 1.6;
 
 export const projectSolarDisplayY = (rawY: number) =>
   DISPLAY_SOLAR_VIEWBOX.horizonY +

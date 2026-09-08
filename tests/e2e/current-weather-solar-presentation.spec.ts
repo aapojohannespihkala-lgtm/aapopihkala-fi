@@ -60,14 +60,26 @@ const weatherFixture = {
 };
 
 test('solar presentation exaggerates only the vertical display dimension', () => {
-  expect(SOLAR_VERTICAL_EXAGGERATION).toBe(1.35);
+  expect(SOLAR_VERTICAL_EXAGGERATION).toBe(1.6);
   expect(projectSolarDisplayY(22)).toBe(30);
-  expect(projectSolarDisplayY(12)).toBeCloseTo(16.5, 6);
-  expect(projectSolarDisplayY(32)).toBeCloseTo(43.5, 6);
+  expect(projectSolarDisplayY(12)).toBeCloseTo(14, 6);
+  expect(projectSolarDisplayY(32)).toBeCloseTo(46, 6);
 
   const ellipse = projectSolarDisplayEllipse(18, 10);
-  expect(ellipse.centerY).toBeCloseTo(24.6, 6);
-  expect(ellipse.radiusY).toBeCloseTo(13.5, 6);
+  expect(ellipse.centerY).toBeCloseTo(23.6, 6);
+  expect(ellipse.radiusY).toBeCloseTo(16, 6);
+});
+
+test('stronger vertical emphasis keeps Espoo solstice orbits inside the display viewBox', () => {
+  for (const date of ['2026-06-21', '2026-12-21']) {
+    const geometry = getSolarOrbitGeometry(date);
+    expect(geometry).not.toBeNull();
+    if (!geometry) continue;
+
+    const ellipse = projectSolarDisplayEllipse(geometry.cy, geometry.ry);
+    expect(ellipse.centerY - ellipse.radiusY).toBeGreaterThanOrEqual(0);
+    expect(ellipse.centerY + ellipse.radiusY).toBeLessThanOrEqual(60);
+  }
 });
 
 test('Current renders the taller solar orbit without distorting the sun marker', async ({ page }) => {
@@ -102,7 +114,7 @@ test('Current renders the taller solar orbit without distorting the sun marker',
   const marker = page.locator('[data-weather-sun-position]');
 
   await expect(svg).toHaveAttribute('viewBox', '0 0 120 60');
-  await expect(svg).toHaveAttribute('data-weather-solar-vertical-exaggeration', '1.35');
+  await expect(svg).toHaveAttribute('data-weather-solar-vertical-exaggeration', '1.60');
   await expect(horizon).toHaveAttribute('y1', '30');
   await expect(horizon).toHaveAttribute('y2', '30');
   await expect(marker).toHaveAttribute('r', '2.4');
@@ -130,5 +142,5 @@ test('Current renders the taller solar orbit without distorting the sun marker',
   expect(presentation.hiddenCy).toBeCloseTo(expected.centerY, 2);
   expect(presentation.visibleRy).toBeCloseTo(expected.radiusY, 2);
   expect(presentation.hiddenRy).toBeCloseTo(expected.radiusY, 2);
-  expect(presentation.cssHeight).toBe('32px');
+  expect(presentation.cssHeight).toBe('38px');
 });
