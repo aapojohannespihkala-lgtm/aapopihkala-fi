@@ -280,7 +280,10 @@ export const initCurrentMarketPerformance = () => {
   const status = root.querySelector<HTMLElement>('[data-market-performance-status]');
   const retry = root.querySelector<HTMLButtonElement>('[data-market-performance-retry]');
   const latestItems = new Map<MarketPerformanceId, MarketPerformanceItem>();
-  let activeSort: { key: SortKey; direction: SortDirection } | null = null;
+  let activeSort: { key: SortKey; direction: SortDirection } | null = {
+    key: DEFAULT_SUMMARY_PERIOD,
+    direction: 'desc',
+  };
   let summaryPeriod: PerformancePeriod = DEFAULT_SUMMARY_PERIOD;
   let expectedHoldings = DISPLAY_ROWS.length;
 
