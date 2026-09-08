@@ -161,8 +161,8 @@
   .current-shell [data-current-section='rates'] .markets-sparkline-stage,
   .current-shell [data-current-section='rates'] .markets-sparkline,
   .current-shell [data-current-section='rates'] .markets-sparkline__fallback {
-    min-height: 88px;
-    height: 88px;
+    min-height: 104px;
+    height: 104px;
   }
 }
 
@@ -295,7 +295,7 @@
   .current-shell [data-current-section='rates'] .markets-sparkline-stage,
   .current-shell [data-current-section='rates'] .markets-sparkline,
   .current-shell [data-current-section='rates'] .markets-sparkline__fallback {
-    min-height: 72px;
-    height: 72px;
+    min-height: 84px;
+    height: 84px;
   }
 }
