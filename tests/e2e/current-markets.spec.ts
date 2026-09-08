@@ -114,7 +114,7 @@ test('standalone Current Markets shows portfolio performance and interactive one
   await expect(page.locator('[data-market-series-change="euribor-3m"]')).toHaveText('-0.571 PP');
   await expect(page.locator('[data-market-value="world"]')).toHaveCount(0);
   await expect(page.locator('[data-market-series-change="world"]')).toHaveText('+20.00%');
-  await expect(page.locator('.markets-macro')).not.toContainText('INDEXED / 100 = 1Y AGO');
+  await expect(page.locator('.markets-sparkline-context')).toBeHidden();
   await expect(page.locator('.markets-macro')).not.toContainText('MSCI WORLD ETF PROXY');
   await expect(page.locator('.markets-macro')).not.toContainText('WORLD / URTH');
   await expect(page.locator('.markets-macro')).not.toContainText('1Y HISTORY');
