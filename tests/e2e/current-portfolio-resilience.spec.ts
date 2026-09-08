@@ -19,8 +19,9 @@ const opReaderBody = (isin: string, rowLabel: string) =>
     'Key figures',
   ].join(' ');
 
-test('portfolio feed recovers missing OP rows through the bounded official reader fallback', async () => {
+test('portfolio feed retries transient OP reader failures and recovers all missing rows', async () => {
   const originalFetch = globalThis.fetch;
+  const readerAttempts = new Map<string, number>();
   const chartDates = [
     '2020-09-01',
     '2021-09-01',
@@ -76,6 +77,13 @@ test('portfolio feed recovers missing OP rows through the bounded official reade
       const originalUrl = decodeURIComponent(url.pathname.slice(1));
       const fixture = opFixtures.find(([slug]) => originalUrl.includes(slug));
       if (!fixture) throw new Error(`Unexpected OP reader request: ${url}`);
+
+      const attempts = (readerAttempts.get(fixture[0]) ?? 0) + 1;
+      readerAttempts.set(fixture[0], attempts);
+      if (attempts === 1) {
+        return new Response('temporary reader failure', { status: 503 });
+      }
+
       return new Response(opReaderBody(fixture[1], fixture[2]), {
         status: 200,
         headers: { 'Content-Type': 'text/plain' },
@@ -105,9 +113,10 @@ test('portfolio feed recovers missing OP rows through the bounded official reade
     expect(body.expected).toBe(19);
     expect(body.unavailable).toEqual([]);
     expect(body.source).toContain('OP official reader fallback');
-    expect(body.version).toBeGreaterThanOrEqual(10);
+    expect(body.version).toBeGreaterThanOrEqual(11);
 
-    for (const [, isin] of opFixtures) {
+    for (const [slug, isin] of opFixtures) {
+      expect(readerAttempts.get(slug)).toBe(2);
       const item = body.items.find((candidate) => candidate.symbol === isin);
       expect(item).toBeDefined();
       expect(item?.changes.today).toBeNull();
