@@ -1,0 +1,563 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { site } from '../../config/site';
+import NightModeToggle from '../NightModeToggle.astro';
+
+const canonicalUrl = `${site.url}/current/snapshot/`;
+---
+
+<BaseLayout
+  lang="en"
+  title="Current Snapshot | Aapo Pihkala"
+  description="A one-screen mobile summary of selected Current data."
+  canonicalUrl={canonicalUrl}
+  finnishUrl={canonicalUrl}
+  englishUrl={canonicalUrl}
+  languageHref="/"
+  initialNightMode
+  includeDefaultSocialMeta={false}
+>
+  <Fragment slot="head">
+    <meta name="robots" content="noindex,nofollow" />
+  </Fragment>
+
+  <main
+    id="main-content"
+    tabindex="-1"
+    class="snapshot-shell"
+    data-current-snapshot
+    aria-labelledby="current-snapshot-title"
+  >
+    <header class="snapshot-status">
+      <div class="snapshot-status__identity">
+        <h1 id="current-snapshot-title">CURRENT / SNAPSHOT</h1>
+        <span aria-hidden="true">/</span>
+        <span>OLARI / ESPOO</span>
+      </div>
+
+      <div class="snapshot-status__time">
+        <span data-current-date></span>
+        <span aria-hidden="true">/</span>
+        <span data-current-time></span>
+        <span aria-hidden="true">/</span>
+        <span>UPDATED <b data-current-updated>WAITING</b></span>
+      </div>
+
+      <button type="button" class="snapshot-refresh" data-snapshot-refresh>
+        REFRESH
+      </button>
+    </header>
+
+    <div class="snapshot-grid">
+      <section class="snapshot-panel snapshot-panel--weather" aria-labelledby="snapshot-weather-label">
+        <header class="snapshot-panel__heading">
+          <p id="snapshot-weather-label">WEATHER / 01</p>
+          <p>NOW / TODAY</p>
+        </header>
+
+        <div class="snapshot-weather">
+          <p class="snapshot-hero snapshot-weather__temperature">
+            <span data-snapshot-weather-temperature>--.-</span><small>°C</small>
+          </p>
+
+          <div class="snapshot-weather__meta">
+            <p class="snapshot-weather__condition" data-snapshot-weather-condition>FETCHING</p>
+            <p class="snapshot-micro">
+              LOW <b data-snapshot-weather-low>--</b>°
+              <span aria-hidden="true">/</span>
+              HIGH <b data-snapshot-weather-high>--</b>°
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="snapshot-panel snapshot-panel--electricity" aria-labelledby="snapshot-electricity-label">
+        <header class="snapshot-panel__heading">
+          <p id="snapshot-electricity-label">ELECTRICITY / 02</p>
+          <p>FI SPOT / VAT INCLUDED</p>
+        </header>
+
+        <div class="snapshot-electricity">
+          <div>
+            <p class="snapshot-hero snapshot-electricity__price">
+              <span data-snapshot-electricity-now>--.--</span><small> c/kWh</small>
+            </p>
+            <p class="snapshot-micro">NOW / 15 MIN</p>
+          </div>
+
+          <dl class="snapshot-electricity__stats">
+            <div>
+              <dt>DAY AVG</dt>
+              <dd data-snapshot-electricity-average>--.--</dd>
+            </div>
+            <div>
+              <dt>LOW</dt>
+              <dd data-snapshot-electricity-low>--.--</dd>
+            </div>
+            <div>
+              <dt>HIGH</dt>
+              <dd data-snapshot-electricity-high>--.--</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="snapshot-panel snapshot-panel--markets" aria-labelledby="snapshot-markets-label">
+        <header class="snapshot-panel__heading">
+          <p id="snapshot-markets-label">MARKETS / 03</p>
+          <p>TODAY</p>
+        </header>
+
+        <div class="snapshot-market-list" role="table" aria-label="Selected holdings performance today">
+          {
+            [
+              ['ishares-world', 'WORLD'],
+              ['handelsbanken-usa', 'USA'],
+              ['nordnet-finland', 'FINLAND'],
+              ['btc', 'BTC / EUR'],
+              ['remedy', 'REMEDY'],
+            ].map(([id, label]) => (
+              <div class="snapshot-market-row" role="row">
+                <span role="rowheader">{label}</span>
+                <strong role="cell" data-snapshot-market={id}>--</strong>
+              </div>
+            ))
+          }
+        </div>
+      </section>
+
+      <section class="snapshot-panel snapshot-panel--rates" aria-labelledby="snapshot-rates-label">
+        <header class="snapshot-panel__heading">
+          <p id="snapshot-rates-label">RATES / 04</p>
+          <p>3M EURIBOR</p>
+        </header>
+
+        <div class="snapshot-rates">
+          <p class="snapshot-rates__value">
+            <span data-snapshot-euribor>-.---</span><small>%</small>
+          </p>
+          <p class="snapshot-micro snapshot-rates__change">
+            <b data-snapshot-euribor-change>--</b> / 1Y
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <footer class="snapshot-footer">
+      <p>
+        DATA / OPEN-METEO · PÖRSSISÄHKÖ.NET · PORTFOLIO SOURCES · BANK OF FINLAND · ECB
+      </p>
+      <p data-snapshot-status aria-live="polite">LOADING LIVE DATA</p>
+    </footer>
+  </main>
+
+  <Fragment slot="afterAnalytics">
+    <script>
+      import { initCurrentClock } from '../../features/current/clock';
+      import { initCurrentSnapshot } from '../../features/current/snapshot';
+
+      initCurrentClock();
+      initCurrentSnapshot();
+    </script>
+
+    <NightModeToggle lang="en" />
+  </Fragment>
+</BaseLayout>
+
+<style>
+  :global(html:has(.snapshot-shell)),
+  :global(body:has(.snapshot-shell)) {
+    overflow-x: clip !important;
+  }
+
+  .snapshot-shell {
+    width: min(100%, 720px);
+    min-height: calc(100dvh - 64px);
+    margin: 0 auto;
+    padding: 22px 28px 26px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 0;
+  }
+
+  .snapshot-status,
+  .snapshot-panel__heading,
+  .snapshot-micro,
+  .snapshot-electricity__stats,
+  .snapshot-market-list,
+  .snapshot-footer,
+  .snapshot-refresh {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    text-transform: uppercase;
+  }
+
+  .snapshot-status {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 7px 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line-soft);
+    color: var(--stone);
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: 0.065em;
+  }
+
+  .snapshot-status__identity,
+  .snapshot-status__time {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .snapshot-status h1,
+  .snapshot-status b {
+    margin: 0;
+    color: var(--stone-light);
+    font: inherit;
+    letter-spacing: inherit;
+  }
+
+  .snapshot-status__time {
+    grid-column: 1 / -1;
+  }
+
+  .snapshot-refresh {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 24px;
+    min-height: 24px;
+    margin: -6px -5px -6px 0;
+    padding: 5px;
+    border: 0;
+    background: transparent;
+    color: var(--stone-light);
+    font-size: 0.46rem;
+    font-weight: 600;
+    letter-spacing: 0.065em;
+    cursor: pointer;
+  }
+
+  .snapshot-refresh:hover,
+  .snapshot-refresh:focus-visible {
+    color: var(--moss-deep);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .snapshot-grid {
+    display: grid;
+    grid-template-rows: 1fr 1.15fr 1.48fr 0.9fr;
+    min-height: 0;
+  }
+
+  .snapshot-panel {
+    min-height: 0;
+    padding: 13px 0 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 70%, transparent);
+  }
+
+  .snapshot-panel__heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 9px;
+    color: var(--stone-light);
+    font-size: 0.48rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.08em;
+  }
+
+  .snapshot-panel__heading p {
+    margin: 0;
+  }
+
+  .snapshot-panel__heading p:first-child {
+    color: var(--moss);
+  }
+
+  .snapshot-hero,
+  .snapshot-rates__value {
+    margin: 0;
+    color: var(--ink);
+    font-family: "Times New Roman", Times, serif;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.05em;
+  }
+
+  .snapshot-hero {
+    font-size: clamp(3.7rem, 18vw, 5rem);
+    line-height: 0.8;
+  }
+
+  .snapshot-hero small,
+  .snapshot-rates__value small {
+    margin-left: 0.08em;
+    color: var(--stone-light);
+    font-size: 0.25em;
+    letter-spacing: 0;
+    vertical-align: 0.38em;
+  }
+
+  .snapshot-weather,
+  .snapshot-electricity {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .snapshot-weather__meta {
+    display: grid;
+    justify-items: end;
+    gap: 7px;
+    min-width: 0;
+    text-align: right;
+  }
+
+  .snapshot-weather__condition {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+
+  .snapshot-micro {
+    margin: 0;
+    color: var(--stone);
+    font-size: 0.44rem;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: 0.055em;
+  }
+
+  .snapshot-micro b {
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+
+  .snapshot-electricity__stats {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    gap: 18px;
+    margin: 0;
+    font-size: 0.43rem;
+    line-height: 1.15;
+    letter-spacing: 0.055em;
+    text-align: right;
+  }
+
+  .snapshot-electricity__stats div {
+    display: grid;
+    gap: 5px;
+  }
+
+  .snapshot-electricity__stats dt {
+    color: var(--stone-light);
+  }
+
+  .snapshot-electricity__stats dd {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-transform: none;
+  }
+
+  .snapshot-market-list {
+    border-top: 1px solid color-mix(in srgb, var(--line-soft) 68%, transparent);
+    color: var(--stone);
+    font-size: 0.56rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.055em;
+  }
+
+  .snapshot-market-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 26px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 54%, transparent);
+  }
+
+  .snapshot-market-row span,
+  .snapshot-market-row strong {
+    min-width: 0;
+  }
+
+  .snapshot-market-row strong {
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  .snapshot-market-row strong.is-positive {
+    color: #1ba88a;
+  }
+
+  .snapshot-market-row strong.is-negative {
+    color: #ff5a67;
+  }
+
+  .snapshot-rates {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 22px;
+  }
+
+  .snapshot-rates__value {
+    font-size: clamp(2.5rem, 12vw, 3.6rem);
+    line-height: 0.9;
+  }
+
+  .snapshot-rates__change {
+    text-align: right;
+  }
+
+  .snapshot-footer {
+    display: grid;
+    gap: 4px;
+    padding-top: 10px;
+    color: var(--stone-light);
+    font-size: 0.36rem;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: 0.045em;
+  }
+
+  .snapshot-footer p {
+    margin: 0;
+  }
+
+  .snapshot-footer [data-snapshot-status] {
+    color: var(--stone);
+  }
+
+  @media (max-width: 640px) {
+    .snapshot-shell {
+      width: 100%;
+      min-height: calc(100dvh - 64px);
+      padding: 14px 20px 16px;
+    }
+
+    .snapshot-status {
+      gap: 5px 12px;
+      padding-bottom: 9px;
+      font-size: 0.43rem;
+    }
+
+    .snapshot-status__identity,
+    .snapshot-status__time {
+      gap: 5px;
+    }
+
+    .snapshot-panel {
+      padding: 10px 0 9px;
+    }
+
+    .snapshot-panel__heading {
+      margin-bottom: 7px;
+      font-size: 0.43rem;
+    }
+
+    .snapshot-hero {
+      font-size: clamp(3.5rem, 18vw, 4.6rem);
+    }
+
+    .snapshot-weather,
+    .snapshot-electricity {
+      gap: 12px;
+    }
+
+    .snapshot-weather__condition {
+      font-size: 0.7rem;
+    }
+
+    .snapshot-micro {
+      font-size: 0.39rem;
+    }
+
+    .snapshot-electricity__stats {
+      gap: 10px;
+      font-size: 0.37rem;
+    }
+
+    .snapshot-electricity__stats dd {
+      font-size: 0.64rem;
+    }
+
+    .snapshot-market-list {
+      font-size: 0.5rem;
+    }
+
+    .snapshot-market-row {
+      min-height: 24px;
+    }
+
+    .snapshot-rates__value {
+      font-size: clamp(2.2rem, 11vw, 3rem);
+    }
+
+    .snapshot-footer {
+      padding-top: 7px;
+      font-size: 0.32rem;
+    }
+  }
+
+  @media (max-width: 380px), (max-height: 720px) {
+    .snapshot-shell {
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+
+    .snapshot-status {
+      padding-bottom: 7px;
+    }
+
+    .snapshot-grid {
+      grid-template-rows: 0.95fr 1.08fr 1.35fr 0.82fr;
+    }
+
+    .snapshot-panel {
+      padding: 7px 0 6px;
+    }
+
+    .snapshot-panel__heading {
+      margin-bottom: 5px;
+    }
+
+    .snapshot-hero {
+      font-size: clamp(3rem, 16vw, 4rem);
+    }
+
+    .snapshot-weather__condition {
+      font-size: 0.64rem;
+    }
+
+    .snapshot-market-row {
+      min-height: 21px;
+    }
+
+    .snapshot-rates__value {
+      font-size: clamp(2rem, 10vw, 2.6rem);
+    }
+
+    .snapshot-footer {
+      gap: 2px;
+      padding-top: 5px;
+      font-size: 0.29rem;
+    }
+  }
+</style>
