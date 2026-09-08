@@ -190,9 +190,15 @@ test('Current renders the compact Olari weather view above electricity', async (
 
   await expect(page.locator('[data-electricity-chart-tooltip]')).toBeHidden();
   await expect(page.locator('[data-electricity-inspection-label]')).toHaveAttribute('opacity', '1');
-  await expect(page.locator('[data-electricity-inspection-range]')).toHaveText(
-    /\d{2}:\d{2} - \d{2}:\d{2}/
+  const inspectionRange = page.locator('[data-electricity-inspection-range]');
+  await expect(inspectionRange).toHaveText(/^\d{2}:\d{2} -$/);
+  await expect(inspectionRange).toHaveAttribute(
+    'data-full-clock-range',
+    /^\d{2}:\d{2} - \d{2}:\d{2}$/
   );
+  await expect(
+    page.locator('[data-electricity-inspection-label] [data-electricity-window-range-end]')
+  ).toHaveText(/^\d{2}:\d{2}$/);
   await expect(page.locator('[data-electricity-inspection-value]')).toHaveText(/-?\d+\.\d{2}/);
   await expect(page.locator('[data-electricity-inspection-band]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-line]')).toHaveAttribute('opacity', '1');
