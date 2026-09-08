@@ -41,8 +41,27 @@ type OpRecoverySpec = {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const READER_BASE = 'https://r.jina.ai/';
 const RECOVERY_FETCH_TIMEOUT_MS = 2_500;
-const RECOVERY_TASK_TIMEOUT_MS = 8_500;
-const RECOVERY_ATTEMPTS = 3;
+const RECOVERY_TASK_TIMEOUT_MS = 11_500;
+const RECOVERY_ATTEMPTS = 4;
+const RESILIENT_ATTEMPTS = 2;
+const PERFORMANCE_PERIODS = [
+  'today',
+  'week1',
+  'month1',
+  'month3',
+  'month6',
+  'ytd',
+  'year1',
+  'year3',
+  'year5',
+] as const;
+const NORDNET_FULL_PERIOD_IDS = new Set([
+  'handelsbanken-usa',
+  'nordnet-finland',
+  'nordnet-sweden',
+  'spiltan-investmentbolag',
+  'storebrand-japan',
+]);
 
 const OP_RECOVERY_SPECS: OpRecoverySpec[] = [
   {
@@ -271,21 +290,131 @@ const recoverOpFund = async (spec: OpRecoverySpec): Promise<PortfolioItem> => {
   throw lastError instanceof Error ? lastError : new Error(`${spec.id} recovery failed`);
 };
 
-export const onRequestGet = async () => {
-  const response = await getResilientPortfolio();
-  if (!response.ok) return response;
+const mergePortfolioItem = (current: PortfolioItem | undefined, incoming: PortfolioItem) => {
+  if (!current) return incoming;
 
-  let body: PortfolioResponse;
-  try {
-    body = (await response.clone().json()) as PortfolioResponse;
-  } catch {
-    return response;
+  const changes = { ...current.changes };
+  for (const period of PERFORMANCE_PERIODS) {
+    if (changes[period] === null && incoming.changes[period] !== null) {
+      changes[period] = incoming.changes[period];
+    }
   }
-  if (!Array.isArray(body.items)) return response;
+
+  return {
+    ...current,
+    price: current.price ?? incoming.price,
+    observedAt: current.observedAt || incoming.observedAt,
+    changes,
+  };
+};
+
+const needsResilientRetry = (body: PortfolioResponse) => {
+  if (body.items.length < body.expected || body.unavailable.length > 0) return true;
+
+  return body.items.some(
+    (item) =>
+      NORDNET_FULL_PERIOD_IDS.has(item.id) &&
+      PERFORMANCE_PERIODS.some((period) => item.changes[period] === null)
+  );
+};
+
+const loadResilientPortfolio = async () => {
+  let firstResponse: Response | null = null;
+  let firstBody: PortfolioResponse | null = null;
+  const byId = new Map<string, PortfolioItem>();
+  let source = '';
+  let version = 0;
+  let expected = PORTFOLIO_ORDER.length;
+  let liveExpected = PORTFOLIO_ORDER.length;
+
+  for (let attempt = 0; attempt < RESILIENT_ATTEMPTS; attempt += 1) {
+    const response = await getResilientPortfolio();
+    if (!firstResponse) firstResponse = response;
+    if (!response.ok) {
+      if (attempt === 0) return { response, body: null as PortfolioResponse | null };
+      break;
+    }
+
+    let body: PortfolioResponse;
+    try {
+      body = (await response.clone().json()) as PortfolioResponse;
+    } catch {
+      if (attempt === 0) return { response, body: null as PortfolioResponse | null };
+      break;
+    }
+    if (!Array.isArray(body.items)) {
+      if (attempt === 0) return { response, body: null as PortfolioResponse | null };
+      break;
+    }
+
+    if (!firstBody) firstBody = body;
+    expected = body.expected ?? expected;
+    liveExpected = body.liveExpected ?? liveExpected;
+    source = source || body.source;
+    version = Math.max(version, body.version ?? 0);
+
+    for (const item of body.items) {
+      byId.set(item.id, mergePortfolioItem(byId.get(item.id), item));
+    }
+
+    const mergedBody: PortfolioResponse = {
+      ...body,
+      items: [...byId.values()],
+      expected,
+      liveExpected,
+      unavailable: PORTFOLIO_ORDER.filter((id) => !byId.has(id)),
+      source,
+      version,
+    };
+
+    if (!needsResilientRetry(mergedBody)) {
+      return { response: firstResponse ?? response, body: mergedBody };
+    }
+  }
+
+  if (!firstResponse || !firstBody) {
+    throw new Error('Portfolio resilient response missing');
+  }
+
+  return {
+    response: firstResponse,
+    body: {
+      ...firstBody,
+      items: [...byId.values()],
+      expected,
+      liveExpected,
+      unavailable: PORTFOLIO_ORDER.filter((id) => !byId.has(id)),
+      source: source || firstBody.source,
+      version,
+    },
+  };
+};
+
+export const onRequestGet = async () => {
+  const { response, body } = await loadResilientPortfolio();
+  if (!response.ok || !body) return response;
 
   const byId = new Map(body.items.map((item) => [item.id, item] as const));
   const missingSpecs = OP_RECOVERY_SPECS.filter((spec) => !byId.has(spec.id));
-  if (missingSpecs.length === 0) return response;
+  if (missingSpecs.length === 0) {
+    return new Response(
+      JSON.stringify({
+        ...body,
+        items: [...byId.values()].sort(
+          (left, right) =>
+            (ORDER_BY_ID.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+            (ORDER_BY_ID.get(right.id) ?? Number.MAX_SAFE_INTEGER)
+        ),
+        unavailable: PORTFOLIO_ORDER.filter((id) => !byId.has(id)),
+        source: RESILIENT_ATTEMPTS > 1 ? `${body.source} + bounded resilient retry` : body.source,
+        version: Math.max(body.version ?? 0, 13),
+      }),
+      {
+        status: response.status,
+        headers: response.headers,
+      }
+    );
+  }
 
   const settled = await Promise.allSettled(
     missingSpecs.map((spec) => withTaskTimeout(recoverOpFund(spec), spec.id))
@@ -295,13 +424,12 @@ export const onRequestGet = async () => {
   );
 
   for (const item of recovered) byId.set(item.id, item);
-  const recoveredIds = new Set(recovered.map((item) => item.id));
   const items = [...byId.values()].sort(
     (left, right) =>
       (ORDER_BY_ID.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
       (ORDER_BY_ID.get(right.id) ?? Number.MAX_SAFE_INTEGER)
   );
-  const unavailable = (body.unavailable ?? []).filter((id) => !recoveredIds.has(id));
+  const unavailable = PORTFOLIO_ORDER.filter((id) => !byId.has(id));
 
   return new Response(
     JSON.stringify({
@@ -309,7 +437,7 @@ export const onRequestGet = async () => {
       items,
       unavailable,
       source: recovered.length > 0 ? `${body.source} + OP official reader fallback` : body.source,
-      version: Math.max(body.version ?? 0, 12),
+      version: Math.max(body.version ?? 0, 13),
     }),
     {
       status: response.status,
