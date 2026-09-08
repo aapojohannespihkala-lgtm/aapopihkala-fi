@@ -29,7 +29,7 @@ export const LIIGA_MARK_PATHS: Record<string, readonly string[]> = {
   ],
   'k-espoo': [
     'M9 35 5 39M39 35l4 4M9 35C2 24 5 10 16 6c5-2 11-2 16 0 11 4 14 18 7 29M14 32C9 24 11 14 19 11c3-1 7-1 10 0 8 3 10 13 5 21',
-    'M17 25v-8l4 3 3-6 3 6 4-3v8Z',
+    'M17 25v-8l4 3 3-6 3 6 4-3v8M17 25h14',
   ],
   kookoo: [
     'M8 10v28M8 24l13-14M8 24l13 14',
