@@ -472,9 +472,13 @@ export const initCurrentElectricity = () => {
     const inspectionBand = chart.querySelector<SVGRectElement>('[data-electricity-inspection-band]');
     const inspectionLine = chart.querySelector<SVGLineElement>('[data-electricity-inspection-line]');
     const inspectionPoint = chart.querySelector<SVGCircleElement>('[data-electricity-inspection-point]');
+    const lowWindowLabel = chart.querySelector<SVGGElement>('[data-electricity-low-label]');
+    const highWindowLabel = chart.querySelector<SVGGElement>('[data-electricity-high-label]');
     inspectionBand?.setAttribute('opacity', '0');
     inspectionLine?.setAttribute('opacity', '0');
     inspectionPoint?.setAttribute('opacity', '0');
+    lowWindowLabel?.removeAttribute('opacity');
+    highWindowLabel?.removeAttribute('opacity');
   };
 
   const renderInspection = (index: number) => {
@@ -505,8 +509,8 @@ export const initCurrentElectricity = () => {
     inspectionPoint?.setAttribute('cy', y.toFixed(2));
     inspectionPoint?.setAttribute('opacity', '1');
 
+    chartTooltipPrice.textContent = `15 MIN · ${formatPrice(point.price)}`;
     chartTooltipTime.textContent = formatMarketRange(point.start);
-    chartTooltipPrice.textContent = `${formatPrice(point.price)} c/kWh`;
     chartTooltip.hidden = false;
 
     const frameWidth = chartFrame.clientWidth || geometry.width;
@@ -517,6 +521,26 @@ export const initCurrentElectricity = () => {
       Math.min(frameWidth - tooltipHalfWidth - 4, desiredLeft)
     );
     chartTooltip.style.left = `${clampedLeft}px`;
+
+    const collisionDistance = Math.max(80, chartTooltip.offsetWidth * 0.75);
+    const lowWindowLabel = chart.querySelector<SVGGElement>('[data-electricity-low-label]');
+    const highWindowLabel = chart.querySelector<SVGGElement>('[data-electricity-high-label]');
+    const windowCenterInFrame = (window: PriceWindow | null) => {
+      if (!window) return Number.NaN;
+      const center =
+        (xBoundary(window.startIndex) + xBoundary(window.startIndex + window.points.length)) / 2;
+      return (center / geometry.width) * frameWidth;
+    };
+    const setWindowLabelVisibility = (label: SVGGElement | null, center: number) => {
+      if (!label || !Number.isFinite(center)) return;
+      label.setAttribute(
+        'opacity',
+        Math.abs(center - clampedLeft) < collisionDistance ? '0' : '1'
+      );
+    };
+
+    setWindowLabelVisibility(lowWindowLabel, windowCenterInFrame(latestCheapestWindow));
+    setWindowLabelVisibility(highWindowLabel, windowCenterInFrame(latestExpensiveWindow));
   };
 
   const renderLatestChart = () => {
