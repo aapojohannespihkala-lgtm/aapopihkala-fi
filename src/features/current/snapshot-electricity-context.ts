@@ -6,6 +6,10 @@ type MonthAverageResponse = {
 };
 
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
+const MONTH_NAMES = [
+  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+] as const;
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
@@ -16,12 +20,6 @@ const formatPrice = (value: number) =>
     maximumFractionDigits: 2,
   }).format(value);
 
-const monthFormatter = new Intl.DateTimeFormat('en-GB', {
-  month: 'short',
-  year: 'numeric',
-  timeZone: HELSINKI_TIME_ZONE,
-});
-
 const localClockFormatter = new Intl.DateTimeFormat('en-GB', {
   hour: '2-digit',
   minute: '2-digit',
@@ -29,18 +27,17 @@ const localClockFormatter = new Intl.DateTimeFormat('en-GB', {
   timeZone: HELSINKI_TIME_ZONE,
 });
 
+const getMonthName = (month: string) => {
+  const monthIndex = Number(month) - 1;
+  return MONTH_NAMES[monthIndex] ?? month;
+};
+
 const formatThrough = (value: string) => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return value;
 
-  const [, year, month, day] = match;
-  const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
-  const monthName = new Intl.DateTimeFormat('en-GB', {
-    month: 'short',
-    timeZone: 'UTC',
-  }).format(date).toUpperCase();
-
-  return `${day} ${monthName}`;
+  const [, , month, day] = match;
+  return `${day} ${getMonthName(month)}`;
 };
 
 const formatMonth = (value: string) => {
@@ -48,9 +45,7 @@ const formatMonth = (value: string) => {
   if (!match) return value;
 
   const [, year, month] = match;
-  return monthFormatter
-    .format(new Date(`${year}-${month}-15T12:00:00Z`))
-    .toUpperCase();
+  return `${getMonthName(month)} ${year}`;
 };
 
 const getCurrentDayFraction = () => {
