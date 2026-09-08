@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// Keep these fixtures deterministic so screenshot-derived spacing regressions are measurable.
+// Keep these fixtures deterministic so snapshot hierarchy and spacing regressions are measurable.
 const weatherFixture = {
   current: {
     time: '2026-09-08T15:08',
@@ -127,12 +127,16 @@ test.describe('Current Snapshot', () => {
       await expect(page.locator('[data-snapshot-weather-high]')).toHaveText('18');
       await expect(page.locator('[data-snapshot-weather-icon] path')).toHaveCount(1);
 
-      await expect(page.locator('[data-snapshot-electricity-now]')).toHaveText('4.82');
+      await expect(page.locator('[data-snapshot-electricity-day-average]')).toHaveText('3.46');
+      await expect(page.locator('[data-snapshot-electricity-current]')).toHaveText('4.82');
+      await expect(page.locator('.snapshot-electricity__value .snapshot-micro')).toHaveText('DAY AVG / TODAY');
+      await expect(page.locator('.snapshot-electricity__stats > div:first-child dt')).toHaveText('NOW · +39% VS AVG');
       await expect(page.locator('[data-snapshot-electricity-low]')).toHaveText('1.20');
       await expect(page.locator('[data-snapshot-electricity-high]')).toHaveText('9.80');
       await expect(page.locator('[data-snapshot-electricity-chart-path]')).toHaveAttribute('d', /M/);
       await expect(page.locator('[data-snapshot-electricity-chart]')).toHaveAttribute('data-chart-points', '24');
 
+      await expect(page.locator('.snapshot-markets .snapshot-kicker')).toHaveText('TODAY / SELECTED PERFORMANCE');
       await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.42%');
       await expect(page.locator('[data-snapshot-market="nordnet-finland"]')).toHaveText('-0.23%');
       await expect(page.locator('[data-snapshot-market="btc"]')).toHaveText('+1.84%');

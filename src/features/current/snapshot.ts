@@ -111,6 +111,15 @@ const formatRateChange = (value: number) => {
   return `${sign}${Math.abs(value).toFixed(3)} PP`;
 };
 
+const formatAverageComparison = (current: number, average: number) => {
+  if (Math.abs(average) < 0.005) return 'NOW · VS AVG N/A';
+
+  const percent = ((current - average) / Math.abs(average)) * 100;
+  const rounded = Math.round(percent);
+  const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '±';
+  return `NOW · ${sign}${Math.abs(rounded)}% VS AVG`;
+};
+
 const localDateFormatter = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
   month: '2-digit',
@@ -315,8 +324,28 @@ const loadElectricity = async (root: HTMLElement) => {
   const low = Math.min(...values);
   const high = Math.max(...values);
 
-  setText(root, '[data-snapshot-electricity-now]', current ? formatPrice(current.price) : '--.--');
-  setText(root, '[data-snapshot-electricity-average]', formatPrice(average));
+  const hero = root.querySelector<HTMLElement>('[data-snapshot-electricity-now]');
+  const secondary = root.querySelector<HTMLElement>('[data-snapshot-electricity-average]');
+  const secondaryLabel = secondary?.closest('div')?.querySelector<HTMLElement>('dt');
+
+  if (hero) {
+    hero.textContent = formatPrice(average);
+    hero.dataset.snapshotElectricityDayAverage = 'true';
+  }
+
+  setText(root, '.snapshot-electricity__value .snapshot-micro', 'DAY AVG / TODAY');
+
+  if (secondary) {
+    secondary.textContent = current ? formatPrice(current.price) : '--.--';
+    secondary.dataset.snapshotElectricityCurrent = 'true';
+  }
+
+  if (secondaryLabel) {
+    secondaryLabel.textContent = current
+      ? formatAverageComparison(current.price, average)
+      : 'NOW · UNAVAILABLE';
+  }
+
   setText(root, '[data-snapshot-electricity-low]', formatPrice(low));
   setText(root, '[data-snapshot-electricity-high]', formatPrice(high));
   renderElectricityChart(root, values);
@@ -337,6 +366,8 @@ const loadMarkets = async (root: HTMLElement) => {
 
   const data = (await response.json()) as SnapshotPortfolioResponse;
   if (!Array.isArray(data.items)) throw new Error('Markets response is incomplete');
+
+  setText(root, '.snapshot-markets .snapshot-kicker', 'TODAY / SELECTED PERFORMANCE');
 
   const byId = new Map<string, SnapshotPortfolioItem>();
   for (const raw of data.items) {
