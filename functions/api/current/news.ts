@@ -120,6 +120,7 @@ const MAX_PER_FEED = 16;
 const MAX_PER_SOURCE = 14;
 const MAX_ITEMS = 48;
 const MAX_SUMMARY_LENGTH = 190;
+const FEED_TIMEOUT_MS = 4_000;
 
 const entities: Record<string, string> = {
   amp: '&', apos: "'", gt: '>', lt: '<', nbsp: ' ', quot: '"', hellip: '…',
@@ -366,16 +367,24 @@ const balance = (items: Item[]) => {
 };
 
 const fetchFeed = async (feed: Feed) => {
-  const response = await fetch(feed.url, {
-    headers: {
-      Accept: 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.5',
-      'User-Agent': 'aapopihkala.fi Current News/1.0',
-    },
-  });
-  if (!response.ok) throw new Error(`${feed.id}:${response.status}`);
-  const xml = await response.text();
-  if (!/<rss\b/i.test(xml)) throw new Error(`${feed.id}:invalid-feed`);
-  return parse(xml, feed).map((entry) => toItem(feed, entry));
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(feed.url, {
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.5',
+        'User-Agent': 'aapopihkala.fi Current News/1.0',
+      },
+    });
+    if (!response.ok) throw new Error(`${feed.id}:${response.status}`);
+    const xml = await response.text();
+    if (!/<rss\b/i.test(xml)) throw new Error(`${feed.id}:invalid-feed`);
+    return parse(xml, feed).map((entry) => toItem(feed, entry));
+  } finally {
+    clearTimeout(timeout);
+  }
 };
 
 const statuses = (results: PromiseSettledResult<Item[]>[]): SourceStatus[] => {
