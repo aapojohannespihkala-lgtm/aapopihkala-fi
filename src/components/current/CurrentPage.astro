@@ -6,6 +6,7 @@ import '../../styles/current-electricity-summary.css';
 import '../../styles/current-weather-compact.css';
 import '../../styles/current-layout.css';
 import '../../styles/current-mobile-viewports.css';
+import '../../styles/current-solar-presentation.css';
 import NightModeToggle from '../NightModeToggle.astro';
 import CurrentWeather from './CurrentWeather.astro';
 import CurrentElectricity from './CurrentElectricity.astro';
@@ -161,8 +162,10 @@ const canonicalUrl = `${site.url}/current/`;
       import { initCurrentElectricitySummary } from '../../features/current/electricitySummary';
       import { initCurrentChartPresentation } from '../../features/current/chartPresentation';
       import { initCurrentChartPolish } from '../../features/current/chartPolish';
+      import { initCurrentSolarPresentation } from '../../features/current/solarPresentation';
 
       initCurrentClock();
+      initCurrentSolarPresentation();
       initCurrentElectricityPresentation();
       initCurrentElectricitySummary();
       initCurrentChartPolish();
