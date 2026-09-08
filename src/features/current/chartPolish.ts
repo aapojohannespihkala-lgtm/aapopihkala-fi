@@ -222,21 +222,34 @@ const initElectricityPolish = () => {
   if (!chart || chart.dataset.finalPolishInitialized === 'true') return;
   chart.dataset.finalPolishInitialized = 'true';
 
-  let frame = 0;
-  const schedule = () => {
-    cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(() => normalizeElectricityAnnotations(chart));
+  // This module owns electricity annotation normalization. Claim the older parity
+  // hook before chartPresentation initializes so two observers never rewrite the
+  // same SVG text in alternating animation frames.
+  chart.dataset.annotationParityInitialized = 'true';
+
+  let normalizing = false;
+  const normalize = () => {
+    if (normalizing) return;
+    normalizing = true;
+    try {
+      normalizeElectricityAnnotations(chart);
+    } finally {
+      normalizing = false;
+    }
   };
 
-  const observer = new MutationObserver(schedule);
+  // MutationObserver callbacks run before the next paint. Normalize immediately
+  // instead of deferring through requestAnimationFrame, which previously exposed
+  // one frame of raw text between interactive pointer updates.
+  const observer = new MutationObserver(normalize);
   observer.observe(chart, { childList: true, subtree: true, characterData: true });
 
   window.addEventListener('current:data-updated', (event) => {
     if (!(event instanceof CustomEvent) || event.detail?.source !== 'electricity') return;
-    schedule();
+    normalize();
   });
 
-  schedule();
+  normalize();
 };
 
 const initMarketsPolish = () => {
