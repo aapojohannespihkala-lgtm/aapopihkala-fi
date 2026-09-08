@@ -69,7 +69,7 @@ jobs:
               esac
 
               case "$file" in
-                src/components/current/*|src/features/current/*|src/pages/current/*|src/pages/current2/*|src/styles/current-*.css|src/styles/global.css|src/layouts/BaseLayout.astro|src/components/Analytics.astro|src/components/SiteHeader.astro|src/components/SiteInteractionLayer.astro|tests/e2e/current-section-boundaries.spec.ts|tests/e2e/current-horizontal-overflow.spec.ts|tests/e2e/current-electricity-alignment.spec.ts|tests/e2e/current-electricity-presentation.spec.ts|tests/e2e/current-electricity-summary.spec.ts|tests/e2e/current-electricity-tomorrow.spec.ts|tests/e2e/current-mobile-viewports.spec.ts|tests/e2e/current2-responsive.spec.ts|package.json|package-lock.json)
+                src/components/current/*|src/features/current/*|src/pages/current/*|src/styles/current-*.css|src/styles/global.css|src/layouts/BaseLayout.astro|src/components/Analytics.astro|src/components/SiteHeader.astro|src/components/SiteInteractionLayer.astro|tests/e2e/current-section-boundaries.spec.ts|tests/e2e/current-horizontal-overflow.spec.ts|tests/e2e/current-electricity-alignment.spec.ts|tests/e2e/current-electricity-presentation.spec.ts|tests/e2e/current-electricity-summary.spec.ts|tests/e2e/current-electricity-tomorrow.spec.ts|tests/e2e/current-mobile-viewports.spec.ts|package.json|package-lock.json)
                   current_ui_sensitive=true
                   ;;
               esac
@@ -135,7 +135,6 @@ jobs:
           tests/e2e/current-electricity-summary.spec.ts
           tests/e2e/current-electricity-tomorrow.spec.ts
           tests/e2e/current-mobile-viewports.spec.ts
-          tests/e2e/current2-responsive.spec.ts
 
       - name: Pixelated Poise smoke guard
         if: >-
@@ -199,9 +198,9 @@ jobs:
                   "/repos/${GITHUB_REPOSITORY}/actions/workflows/build-check.yml/dispatches" \
                   --raw-field ref=main
                 gh api --method POST \
-                  "/repos/${GITHUB_REPOSITORY}/actions/workflows/current2-live-data-smoke.yml/dispatches" \
+                  "/repos/${GITHUB_REPOSITORY}/actions/workflows/current-live-data-smoke.yml/dispatches" \
                   --raw-field ref=main
-                echo "Pull request merged; full main validation and Current2 live smoke dispatched."
+                echo "Pull request merged; full main validation and Current live smoke dispatched."
 
                 if [[ -n "$HEAD_REF" && "$HEAD_REF" != "main" ]]; then
                   if gh api --method DELETE \
