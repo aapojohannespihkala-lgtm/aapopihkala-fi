@@ -147,7 +147,7 @@ test('Current compact controls keep group semantics and 24px targets', async ({ 
   await expectMinimumTargetSize(page.getByRole('button', { name: 'RESET LOCAL LEARNING' }));
 
   await page.goto('/current/markets/', { waitUntil: 'domcontentloaded' });
-  await page.locator('[data-markets-error]').evaluate((element) => {
+  await page.locator('p.markets-error[data-markets-error]').evaluate((element) => {
     if (element instanceof HTMLElement) element.hidden = false;
   });
   await expectMinimumTargetSize(page.getByRole('button', { name: 'Retry' }));
