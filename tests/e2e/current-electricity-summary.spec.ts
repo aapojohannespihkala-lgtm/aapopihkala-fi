@@ -76,7 +76,10 @@ test('Current emphasizes month average between day low and day high', async ({ p
   await expect(items).toHaveCount(3);
   await expect(items.nth(0).locator('.electricity-extreme__label')).toHaveText('DAY LOW');
   await expect(items.nth(1)).toHaveAttribute('data-electricity-month-average', '');
-  await expect(items.nth(1)).toHaveText('SEP AVG 1.92 c/kWh');
+  await expect(items.nth(1).locator(':scope > span')).toHaveCount(3);
+  await expect(items.nth(1).locator('.electricity-month-average__label')).toHaveText('SEP AVG');
+  await expect(items.nth(1).locator('.electricity-month-average__value')).toHaveText('1.92 c/kWh');
+  await expect(items.nth(1).locator('.electricity-month-average__detail')).toHaveText('MONTH TO DATE');
   await expect(items.nth(2).locator('.electricity-extreme__label')).toHaveText('DAY HIGH');
 
   const [lowBox, monthBox, highBox] = await Promise.all([
@@ -93,7 +96,10 @@ test('Current emphasizes month average between day low and day high', async ({ p
     expect(monthBox.x + monthBox.width).toBeLessThan(highBox.x + highBox.width);
   }
 
-  const monthWeight = await items.nth(1).evaluate((element) => Number.parseInt(getComputedStyle(element).fontWeight, 10));
+  const monthWeight = await items
+    .nth(1)
+    .locator('.electricity-month-average__value')
+    .evaluate((element) => Number.parseInt(getComputedStyle(element).fontWeight, 10));
   const lowWeight = await items
     .nth(0)
     .locator('.electricity-extreme__value')
