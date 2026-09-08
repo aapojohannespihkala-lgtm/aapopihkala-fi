@@ -122,8 +122,8 @@ const readFullClockRange = (
 ) => {
   const candidates = [
     group.dataset.windowRange,
-    rangeNode.dataset.fullClockRange,
     rangeNode.textContent,
+    rangeNode.dataset.fullClockRange,
   ];
 
   for (const candidate of candidates) {
