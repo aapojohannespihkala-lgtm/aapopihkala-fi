@@ -485,19 +485,19 @@
 
   .markets-sparkline-tooltip {
     position: absolute;
-    top: 2px;
+    top: 0;
     z-index: 2;
     display: grid;
-    gap: 2px;
+    gap: 1px;
     transform: translateX(-50%);
     min-width: 82px;
-    padding: 4px 6px;
-    border: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
-    background: color-mix(in srgb, var(--page) 94%, transparent);
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: var(--stone);
     font-size: 0.36rem;
     font-weight: 600;
-    line-height: 1.15;
+    line-height: 1.2;
     letter-spacing: 0.035em;
     text-align: center;
     pointer-events: none;
@@ -508,7 +508,13 @@
     display: none;
   }
 
+  .markets-sparkline-tooltip > span:not(.markets-sparkline-tooltip__value) {
+    color: var(--stone);
+    font-weight: 500;
+  }
+
   .markets-sparkline-tooltip__value {
+    order: -1;
     color: var(--ink-soft);
     text-transform: none;
   }
