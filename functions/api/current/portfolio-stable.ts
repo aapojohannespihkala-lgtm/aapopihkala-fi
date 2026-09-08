@@ -40,8 +40,9 @@ type OpRecoverySpec = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const READER_BASE = 'https://r.jina.ai/';
-const RECOVERY_FETCH_TIMEOUT_MS = 3_500;
-const RECOVERY_TASK_TIMEOUT_MS = 4_500;
+const RECOVERY_FETCH_TIMEOUT_MS = 2_500;
+const RECOVERY_TASK_TIMEOUT_MS = 6_000;
+const RECOVERY_ATTEMPTS = 2;
 
 const OP_RECOVERY_SPECS: OpRecoverySpec[] = [
   {
@@ -206,7 +207,7 @@ const withTaskTimeout = async <T>(promise: Promise<T>, id: string): Promise<T> =
   }
 };
 
-const recoverOpFund = async (spec: OpRecoverySpec): Promise<PortfolioItem> => {
+const recoverOpFundOnce = async (spec: OpRecoverySpec): Promise<PortfolioItem> => {
   const response = await fetchWithTimeout(`${READER_BASE}${spec.url}`, {
     headers: {
       Accept: 'text/plain',
@@ -256,6 +257,20 @@ const recoverOpFund = async (spec: OpRecoverySpec): Promise<PortfolioItem> => {
   };
 };
 
+const recoverOpFund = async (spec: OpRecoverySpec): Promise<PortfolioItem> => {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < RECOVERY_ATTEMPTS; attempt += 1) {
+    try {
+      return await recoverOpFundOnce(spec);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`${spec.id} recovery failed`);
+};
+
 export const onRequestGet = async () => {
   const response = await getResilientPortfolio();
   if (!response.ok) return response;
@@ -294,7 +309,7 @@ export const onRequestGet = async () => {
       items,
       unavailable,
       source: recovered.length > 0 ? `${body.source} + OP official reader fallback` : body.source,
-      version: Math.max(body.version ?? 0, 10),
+      version: Math.max(body.version ?? 0, 11),
     }),
     {
       status: response.status,
