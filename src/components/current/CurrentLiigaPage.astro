@@ -119,6 +119,26 @@ const canonicalUrl = `${site.url}/current/liiga/`;
     color: var(--stone-light);
   }
 
+  :global(.current-liiga .liiga-heading) {
+    position: relative;
+    margin-bottom: clamp(158px, 15vw, 188px);
+  }
+
+  :global(.current-liiga .liiga-heading)::after {
+    position: absolute;
+    top: calc(100% + 22px);
+    left: 50%;
+    width: clamp(112px, 12vw, 146px);
+    aspect-ratio: 1;
+    content: '';
+    pointer-events: none;
+    background: var(--moss-deep);
+    opacity: 0.92;
+    transform: translateX(-50%);
+    -webkit-mask: url('/icons/current-ilves-emblem.svg') center / contain no-repeat;
+    mask: url('/icons/current-ilves-emblem.svg') center / contain no-repeat;
+  }
+
   @media (max-width: 640px) {
     .current-liiga-shell {
       padding: 22px 24px 96px;
@@ -132,6 +152,15 @@ const canonicalUrl = `${site.url}/current/liiga/`;
 
     .current-liiga-clock {
       gap: 7px;
+    }
+
+    :global(.current-liiga .liiga-heading) {
+      margin-bottom: 146px;
+    }
+
+    :global(.current-liiga .liiga-heading)::after {
+      top: calc(100% + 18px);
+      width: 108px;
     }
   }
 </style>
