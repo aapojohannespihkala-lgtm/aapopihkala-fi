@@ -313,7 +313,12 @@ export const initCurrentMarketPerformance = () => {
             : `Sort holdings by ${label} performance, worst first`
         );
       } else {
-        button.setAttribute('aria-label', `Reset ${label} sorting to portfolio order`);
+        button.setAttribute(
+          'aria-label',
+          key === 'market'
+            ? 'Sort holdings alphabetically Z to A'
+            : `Sort holdings by ${label} performance, best first`
+        );
       }
     });
 
@@ -404,10 +409,8 @@ export const initCurrentMarketPerformance = () => {
 
     if (activeSort?.key !== key) {
       activeSort = { key, direction: key === 'market' ? 'asc' : 'desc' };
-    } else if (activeSort.direction === (key === 'market' ? 'asc' : 'desc')) {
-      activeSort = { key, direction: key === 'market' ? 'desc' : 'asc' };
     } else {
-      activeSort = null;
+      activeSort = { key, direction: activeSort.direction === 'asc' ? 'desc' : 'asc' };
     }
 
     sortRows();

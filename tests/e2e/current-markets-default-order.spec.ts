@@ -72,7 +72,7 @@ for (const viewport of [
   { name: 'mobile', width: 390, height: 844 },
   { name: 'desktop', width: 1280, height: 900 },
 ]) {
-  test(`defaults portfolio order to best one-year performance on ${viewport.name}`, async ({ page }) => {
+  test(`keeps portfolio value sorting two-state on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
 
     await page.route('**/api/current/markets*', async (route) => {
@@ -91,11 +91,44 @@ for (const viewport of [
         .locator('[data-market-performance-row][data-market-performance-loaded="true"]')
         .evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.marketPerformanceRow));
 
+    const year1Header = page.locator('[data-market-sort-cell="year1"]');
+    const year1Button = page.locator('[data-market-sort="year1"]');
+    const marketHeader = page.locator('[data-market-sort-cell="market"]');
+    const marketButton = page.locator('[data-market-sort="market"]');
+    const summaryPeriod = page.locator('[data-market-summary-period]');
+
     await expect.poll(loadedOrder).toEqual(['ishares-world', 'marimekko', 'remedy']);
-    await expect(page.locator('[data-market-sort-cell="year1"]')).toHaveAttribute(
-      'aria-sort',
-      'descending'
+    await expect(year1Header).toHaveAttribute('aria-sort', 'descending');
+    await expect(summaryPeriod).toHaveText('1Y');
+
+    await year1Button.click();
+    await expect.poll(loadedOrder).toEqual(['remedy', 'marimekko', 'ishares-world']);
+    await expect(year1Header).toHaveAttribute('aria-sort', 'ascending');
+    await expect(year1Button).toHaveAttribute(
+      'aria-label',
+      'Sort holdings by 1Y performance, best first'
     );
-    await expect(page.locator('[data-market-summary-period]')).toHaveText('1Y');
+
+    await year1Button.click();
+    await expect.poll(loadedOrder).toEqual(['ishares-world', 'marimekko', 'remedy']);
+    await expect(year1Header).toHaveAttribute('aria-sort', 'descending');
+
+    await year1Button.click();
+    await expect.poll(loadedOrder).toEqual(['remedy', 'marimekko', 'ishares-world']);
+    await expect(year1Header).toHaveAttribute('aria-sort', 'ascending');
+    await expect(marketHeader).toHaveAttribute('aria-sort', 'none');
+
+    await marketButton.click();
+    await expect.poll(loadedOrder).toEqual(['ishares-world', 'marimekko', 'remedy']);
+    await expect(marketHeader).toHaveAttribute('aria-sort', 'ascending');
+    await expect(marketButton).toHaveAttribute('aria-label', 'Sort holdings alphabetically Z to A');
+    await expect(year1Header).toHaveAttribute('aria-sort', 'none');
+    await expect(summaryPeriod).toHaveText('1Y');
+
+    await marketButton.click();
+    await expect.poll(loadedOrder).toEqual(['remedy', 'marimekko', 'ishares-world']);
+    await expect(marketHeader).toHaveAttribute('aria-sort', 'descending');
+    await expect(marketButton).toHaveAttribute('aria-label', 'Sort holdings alphabetically A to Z');
+    await expect(summaryPeriod).toHaveText('1Y');
   });
 }
