@@ -287,7 +287,7 @@ const weatherIconSvg = (code: number, isDay = true) => {
   } else if (kind === 'partly') {
     drawing = `
       <g transform="translate(-5 -5) scale(.72)">${isDay ? sun : moon}</g>
-      <path d="M10 25h16a4.5 4.5 0 0 0 .2-9 7.5 7.5 0 0 0-14.3-1.7A5.3 5.3 0 0 0 10 25Z" />
+      <path d="M10 25h16a4.5 4.5 0 0 0 .2-9 7.5 7.5 0 0 0-14.3-1.7A5.3 5.3 0 0 0 10 25Z" fill="var(--page)" />
     `;
   } else if (kind === 'fog') {
     drawing = `
