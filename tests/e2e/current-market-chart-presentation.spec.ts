@@ -28,7 +28,7 @@ const macroFixture = {
   ],
 };
 
-test('Current market charts keep runtime SVG paths unfilled and inspection markers circular', async ({ page }) => {
+test('Current market charts render runtime SVG paths unfilled and inspection markers circular', async ({ page }) => {
   await page.route('**/api/current/markets*', async (route) => {
     await route.fulfill({
       status: 200,
