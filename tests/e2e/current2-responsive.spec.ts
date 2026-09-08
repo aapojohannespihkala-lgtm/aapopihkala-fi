@@ -165,7 +165,7 @@ test.describe('Current2 responsive comparison', () => {
     });
   }
 
-  test('sorts performance best first, worst first, then restores portfolio order', async ({ page }) => {
+  test('keeps performance sorting two-state until MARKET is clicked', async ({ page }) => {
     await denyAnalytics(page);
 
     const changes = (year3: number) => ({
@@ -231,6 +231,8 @@ test.describe('Current2 responsive comparison', () => {
 
     const year3Header = page.locator('[data-market-sort-cell="year3"]');
     const year3Button = page.locator('[data-market-sort="year3"]');
+    const marketHeader = page.locator('[data-market-sort-cell="market"]');
+    const marketButton = page.locator('[data-market-sort="market"]');
     await expect(year3Button).toBeVisible();
     await expect(year3Header).toHaveAttribute('aria-sort', 'none');
 
@@ -254,8 +256,14 @@ test.describe('Current2 responsive comparison', () => {
     await expect.poll(loadedOrder).toEqual(['marimekko', 'remedy', 'ishares-world']);
 
     await year3Button.click();
+    await expect(year3Header).toHaveAttribute('aria-sort', 'descending');
+    await expect.poll(loadedOrder).toEqual(['ishares-world', 'remedy', 'marimekko']);
+    await expect(page.locator('[data-market-summary-period]')).toHaveText('3Y');
+    await expect(marketHeader).toHaveAttribute('aria-sort', 'none');
+
+    await marketButton.click();
+    await expect(marketHeader).toHaveAttribute('aria-sort', 'ascending');
     await expect(year3Header).toHaveAttribute('aria-sort', 'none');
     await expect.poll(loadedOrder).toEqual(['ishares-world', 'marimekko', 'remedy']);
-    await expect(page.locator('[data-market-summary-period]')).toHaveText('3Y');
   });
 });
