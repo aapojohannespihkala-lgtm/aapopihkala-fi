@@ -6,80 +6,216 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
 
 <script>
   import { initSnapshotWeatherForecast } from '../../../features/current/snapshot-weather-forecast';
+  import { initSnapshotElectricityContext } from '../../../features/current/snapshot-electricity-context';
 
   initSnapshotWeatherForecast();
+  initSnapshotElectricityContext();
 </script>
 
 <style is:global>
   body:has(.snapshot-shell) .snapshot-weather {
-    grid-template-rows: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1.08fr) minmax(150px, 0.92fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    column-gap: 12px;
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather__copy {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather > .snapshot-weather__icon {
+    display: none;
   }
 
   body:has(.snapshot-shell) .snapshot-weather__forecast {
-    grid-column: 1 / -1;
+    grid-column: 2;
+    grid-row: 1;
     min-width: 0;
+    align-self: center;
     display: grid;
-    grid-template-columns: auto repeat(3, minmax(0, 1fr));
-    align-items: baseline;
-    gap: 7px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
     color: var(--ink-soft);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.4rem;
-    line-height: 1;
-    letter-spacing: 0.035em;
     text-transform: uppercase;
   }
 
-  body:has(.snapshot-shell) .snapshot-weather__forecast-label,
-  body:has(.snapshot-shell) .snapshot-weather__forecast-time {
-    color: var(--stone);
-  }
-
   body:has(.snapshot-shell) .snapshot-weather__forecast-label {
-    white-space: nowrap;
+    grid-column: 1 / -1;
+    margin-bottom: 1px;
+    color: var(--stone);
+    font-size: 0.44rem;
+    line-height: 1;
+    letter-spacing: 0.055em;
   }
 
   body:has(.snapshot-shell) .snapshot-weather__forecast-slot {
     min-width: 0;
-    display: flex;
-    align-items: baseline;
-    gap: 3px;
-    white-space: nowrap;
-    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 24px auto;
+    justify-items: center;
+    align-items: center;
+    gap: 2px;
+    color: var(--ink-soft);
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather__forecast-time {
+    color: var(--stone);
+    font-size: 0.42rem;
+    line-height: 1;
+    letter-spacing: 0.025em;
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather__forecast-icon {
+    width: 24px;
+    height: 24px;
+    overflow: visible;
+    color: var(--ink-soft);
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather__forecast-icon path,
+  body:has(.snapshot-shell) .snapshot-weather__forecast-icon circle {
+    vector-effect: non-scaling-stroke;
   }
 
   body:has(.snapshot-shell) .snapshot-weather__forecast-temperature {
-    color: var(--ink-soft);
+    color: var(--ink);
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body:has(.snapshot-shell) .snapshot-weather .snapshot-source {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  body:has(.snapshot-shell) [data-snapshot-electricity-month-average='true'] {
     font-weight: 600;
   }
 
-  body:has(.snapshot-shell) .snapshot-weather__forecast-condition {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  body:has(.snapshot-shell) .snapshot-electricity__chart {
+    position: relative;
+    padding-top: 10px;
+  }
+
+  body:has(.snapshot-shell) .snapshot-electricity__now-marker {
+    position: absolute;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+    transform: translateX(-50%);
+    color: var(--stone);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.39rem;
+    line-height: 1;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  body:has(.snapshot-shell) .snapshot-electricity__now-marker strong {
+    color: var(--ink);
+    font-size: 0.5rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body:has(.snapshot-shell) .snapshot-electricity__now-marker::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    height: 30px;
+    border-left: 1px solid color-mix(in srgb, var(--ink-soft) 60%, transparent);
   }
 
   @media (max-width: 640px) {
     body:has(.snapshot-shell) .snapshot-grid {
       grid-template-rows:
-        minmax(0, 1.22fr)
-        minmax(0, 1.56fr)
-        minmax(0, 1.1fr)
-        minmax(0, 1fr);
+        minmax(0, 1.15fr)
+        minmax(0, 1.62fr)
+        minmax(0, 1.11fr)
+        minmax(0, 1.02fr);
     }
 
     body:has(.snapshot-shell) .snapshot-weather {
+      grid-template-columns: minmax(0, 1.06fr) minmax(148px, 0.94fr);
+      column-gap: 8px;
       row-gap: 2px;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast {
       gap: 5px;
-      font-size: 0.34rem;
-      letter-spacing: 0.025em;
     }
 
-    body:has(.snapshot-shell) .snapshot-weather__forecast-slot {
-      gap: 2px;
+    body:has(.snapshot-shell) .snapshot-weather__forecast-label {
+      font-size: 0.4rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-time {
+      font-size: 0.39rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-temperature {
+      font-size: 0.58rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__condition {
+      font-size: 0.75rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__range {
+      font-size: 0.62rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-source {
+      font-size: 0.35rem;
+      line-height: 1.12;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__value .snapshot-micro {
+      font-size: 0.41rem;
+      line-height: 1.15;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__chart {
+      padding-top: 11px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__now-marker {
+      font-size: 0.4rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__now-marker strong {
+      font-size: 0.52rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-chart-labels {
+      font-size: 0.31rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__stats {
+      font-size: 0.39rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__stats dd {
+      font-size: 0.78rem;
+      font-weight: 550;
+    }
+
+    body:has(.snapshot-shell) .snapshot-market-list {
+      font-size: 0.5rem;
     }
 
     body:has(.snapshot-shell) .snapshot-rates {
@@ -91,13 +227,22 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
       align-items: center;
     }
 
+    body:has(.snapshot-shell) .snapshot-rates__label {
+      font-size: 0.5rem;
+    }
+
     body:has(.snapshot-shell) .snapshot-rates__change {
       margin-top: 2px;
+      font-size: 0.4rem;
       line-height: 1;
     }
 
     body:has(.snapshot-shell) .snapshot-rates .snapshot-source {
       padding-top: 2px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-footer {
+      font-size: 0.29rem;
     }
 
     body:has(.snapshot-shell) .snapshot-footer > span:first-child {
@@ -110,7 +255,7 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
       bottom: 10px;
       min-height: 14px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.26rem;
+      font-size: 0.28rem;
       line-height: 1;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -120,22 +265,79 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
   @media (max-width: 380px), (max-height: 720px) {
     body:has(.snapshot-shell) .snapshot-grid {
       grid-template-rows:
-        minmax(0, 1.18fr)
-        minmax(0, 1.6fr)
-        minmax(0, 1.11fr)
+        minmax(0, 1.12fr)
+        minmax(0, 1.64fr)
+        minmax(0, 1.12fr)
         minmax(0, 1fr);
     }
 
+    body:has(.snapshot-shell) .snapshot-weather {
+      grid-template-columns: minmax(0, 1fr) minmax(132px, 0.9fr);
+      column-gap: 5px;
+    }
+
     body:has(.snapshot-shell) .snapshot-weather__forecast {
-      gap: 4px;
+      gap: 3px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-label {
+      font-size: 0.34rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-time {
+      font-size: 0.34rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-icon {
+      width: 19px;
+      height: 19px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-slot {
+      grid-template-rows: auto 19px auto;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-temperature {
+      font-size: 0.5rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-source {
       font-size: 0.3rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__value .snapshot-micro {
+      font-size: 0.35rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__stats {
+      font-size: 0.33rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__stats dd {
+      font-size: 0.66rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-market-list {
+      font-size: 0.43rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-rates__label {
+      font-size: 0.42rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-rates__change {
+      font-size: 0.34rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-footer {
+      font-size: 0.25rem;
     }
 
     body:has(.snapshot-shell) [data-analytics-settings] {
       left: 16px;
       bottom: 7px;
       min-height: 12px;
-      font-size: 0.23rem;
+      font-size: 0.25rem;
     }
   }
 </style>
