@@ -82,8 +82,19 @@ const canonicalUrl = `${site.url}/current/`;
 
       const ratesTrends = document.querySelector('.markets-macro')
       if (ratesTrends instanceof HTMLElement) {
+        const mobileRates = window.matchMedia('(max-width: 640px)')
+        const syncRatesSection = () => {
+          if (mobileRates.matches) {
+            ratesTrends.dataset.currentSection = 'rates'
+          } else {
+            delete ratesTrends.dataset.currentSection
+          }
+        }
+
         ratesTrends.setAttribute('data-current-mobile-section', 'rates')
         ratesTrends.setAttribute('data-current-rates-trends', '')
+        syncRatesSection()
+        mobileRates.addEventListener('change', syncRatesSection)
       }
     </script>
   </main>
