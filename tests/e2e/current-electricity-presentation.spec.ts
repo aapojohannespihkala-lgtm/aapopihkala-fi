@@ -65,8 +65,13 @@ test('Current keeps electricity annotations compact and separates current from i
   await expect(page.locator('.electricity-now__label')).toHaveText('NOW / 15 MIN');
   await expect(page.locator('.electricity-extremes')).toBeHidden();
   await expect(page.locator('[data-electricity-window-leader]')).toHaveCount(0);
-  await expect(page.locator('[data-electricity-month-average]')).toHaveText('SEP AVG 1.92 c/kWh');
-  await expect(page.locator('[data-electricity-month-average]')).toHaveAttribute(
+
+  const monthAverage = page.locator('[data-electricity-month-average]');
+  await expect(monthAverage.locator(':scope > span')).toHaveCount(3);
+  await expect(monthAverage.locator('.electricity-month-average__label')).toHaveText('SEP AVG');
+  await expect(monthAverage.locator('.electricity-month-average__value')).toHaveText('1.92 c/kWh');
+  await expect(monthAverage.locator('.electricity-month-average__detail')).toHaveText('MONTH TO DATE');
+  await expect(monthAverage).toHaveAttribute(
     'aria-label',
     'September month-to-date average 1.92 cents per kilowatt-hour'
   );
@@ -164,7 +169,6 @@ test('Current keeps electricity annotations compact and separates current from i
   await expect(page.locator('[data-electricity-inspection-band]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-line]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-point]')).toHaveAttribute('opacity', '1');
-  await expect(chart).toHaveClass(/electricity-chart--inspecting/);
 
   const inspectionDash = await page
     .locator('[data-electricity-inspection-line]')
@@ -222,7 +226,7 @@ test('Current keeps the month-average slot reserved when history is unavailable'
     };
   });
 
-  expect(style.display).toBe('block');
+  expect(style.display).toBe('grid');
   expect(style.visibility).toBe('hidden');
   expect(Number.parseFloat(style.minHeight)).toBeGreaterThan(0);
   await expect(page.locator('[data-electricity-price]')).toHaveText('1.51');

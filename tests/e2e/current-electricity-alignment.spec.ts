@@ -71,38 +71,38 @@ test('aligns electricity decimal points and clock colons on one annotation axis'
 
   await expect(page.locator('[data-electricity-inspection-label]')).toHaveAttribute('opacity', '1');
 
-  const alignment = await page.evaluate(() => {
-    const readGroup = (selector: string) => {
-      const group = document.querySelector<SVGGElement>(selector);
-      const value = group?.querySelector<SVGTextElement>('text:first-of-type');
-      const ranges = group?.querySelectorAll<SVGTextElement>('.electricity-chart__window-range');
-      const separators = [
-        value?.querySelector<SVGTSpanElement>('[data-alignment-role="separator"]'),
-        ranges?.[0]?.querySelector<SVGTSpanElement>('[data-alignment-role="separator"]'),
-        ranges?.[1]?.querySelector<SVGTSpanElement>('[data-alignment-role="separator"]'),
+  await expect.poll(async () =>
+    page.evaluate(() => {
+      const selectors = [
+        '[data-electricity-low-label]',
+        '[data-electricity-inspection-label]',
+        '[data-electricity-high-label]',
       ];
 
-      return {
-        separatorX: separators.map((node) => Number(node?.getAttribute('x'))),
-        baselines: [
+      return selectors.every((selector) => {
+        const group = document.querySelector<SVGGElement>(selector);
+        const value = group?.querySelector<SVGTextElement>('text:first-of-type');
+        const ranges = group?.querySelectorAll<SVGTextElement>('.electricity-chart__window-range');
+        const separators = [
+          value?.querySelector<SVGTSpanElement>('[data-alignment-role="separator"]'),
+          ranges?.[0]?.querySelector<SVGTSpanElement>('[data-alignment-role="separator"]'),
+          ranges?.[1]?.querySelector<SVGTSpanElement>('[data-alignment-role="separator"]'),
+        ];
+        const baselines = [
           Number(value?.getAttribute('y')),
           Number(ranges?.[0]?.getAttribute('y')),
           Number(ranges?.[1]?.getAttribute('y')),
-        ],
-      };
-    };
+        ];
 
-    return {
-      low: readGroup('[data-electricity-low-label]'),
-      inspection: readGroup('[data-electricity-inspection-label]'),
-      high: readGroup('[data-electricity-high-label]'),
-    };
-  });
-
-  for (const group of [alignment.low, alignment.inspection, alignment.high]) {
-    expect(group.separatorX).toEqual([0, 0, 0]);
-    expect(group.baselines).toEqual([11, 21, 31]);
-  }
+        return (
+          separators.every((node) => node?.getAttribute('x') === '0') &&
+          baselines[0] === 11 &&
+          baselines[1] === 21 &&
+          baselines[2] === 31
+        );
+      });
+    })
+  ).toBe(true);
 
   const monthSummary = page.locator('[data-electricity-month-average]');
   await expect(monthSummary.locator(':scope > span')).toHaveCount(3);
