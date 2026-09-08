@@ -38,6 +38,8 @@ const WORLD_URLS = [
   'https://query2.finance.yahoo.com/v8/finance/chart/URTH?range=1y&interval=1d',
 ];
 const MAX_SERIES_POINTS = 96;
+const BASE_RESPONSE_TIMEOUT_MS = 5_000;
+const UPSTREAM_FETCH_TIMEOUT_MS = 5_000;
 
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -168,8 +170,32 @@ const sampleObservations = (observations: Observation[]) => {
   return sampled;
 };
 
+const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+};
+
+const fetchWithTimeout = async (url: string, init: RequestInit) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPSTREAM_FETCH_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 const fetchText = async (url: string, accept: string) => {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: {
       Accept: accept,
       'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
@@ -183,7 +209,7 @@ const fetchWorld = async () => {
   let lastError: unknown;
   for (const url of WORLD_URLS) {
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         headers: {
           Accept: 'application/json',
           'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
@@ -279,10 +305,23 @@ const buildStablePayload = async () => {
   };
 };
 
-export const onRequestGet = async (context: { request: Request }) => {
-  const baseResponse = await getResilientMarketsResponse(context);
+export const onRequestGetWithBaseTimeout = async (
+  context: { request: Request },
+  baseResponseTimeoutMs = BASE_RESPONSE_TIMEOUT_MS
+) => {
+  let baseResponse: Response | null = null;
 
-  if (baseResponse.ok) {
+  try {
+    baseResponse = await withTimeout(
+      getResilientMarketsResponse(context),
+      baseResponseTimeoutMs,
+      'Primary market feed'
+    );
+  } catch {
+    // A slow or failed primary feed must not prevent the independent recovery path.
+  }
+
+  if (baseResponse?.ok) {
     try {
       const payload = (await baseResponse.clone().json()) as MarketsPayload;
       if (hasCompleteFeed(payload)) return baseResponse;
@@ -294,6 +333,9 @@ export const onRequestGet = async (context: { request: Request }) => {
   try {
     return jsonResponse(await buildStablePayload());
   } catch {
-    return baseResponse.ok ? baseResponse : jsonResponse({ error: 'market_data_unavailable' }, 502);
+    return baseResponse?.ok ? baseResponse : jsonResponse({ error: 'market_data_unavailable' }, 502);
   }
 };
+
+export const onRequestGet = async (context: { request: Request }) =>
+  onRequestGetWithBaseTimeout(context);
