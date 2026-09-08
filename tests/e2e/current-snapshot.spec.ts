@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
+// Keep these fixtures deterministic so screenshot-derived spacing regressions are measurable.
 const weatherFixture = {
   current: {
     time: '2026-09-08T15:08',
@@ -150,6 +151,8 @@ test.describe('Current Snapshot', () => {
         const frame = document.querySelector<HTMLElement>('.snapshot-frame');
         const rect = snapshot?.getBoundingClientRect();
         const frameRect = frame?.getBoundingClientRect();
+        const panelBodies = Array.from(document.querySelectorAll<HTMLElement>('.snapshot-panel__body'));
+        const electricityPrice = document.querySelector<HTMLElement>('.snapshot-electricity__price');
 
         return {
           viewportHeight: window.innerHeight,
@@ -157,6 +160,15 @@ test.describe('Current Snapshot', () => {
           frameBottom: frameRect?.bottom ?? Number.POSITIVE_INFINITY,
           scrollHeight: document.documentElement.scrollHeight,
           scrollWidth: document.documentElement.scrollWidth,
+          panelOverflow: panelBodies.map((body) => ({
+            scrollHeight: body.scrollHeight,
+            clientHeight: body.clientHeight,
+            scrollWidth: body.scrollWidth,
+            clientWidth: body.clientWidth,
+          })),
+          electricityPriceWhiteSpace: electricityPrice
+            ? getComputedStyle(electricityPrice).whiteSpace
+            : '',
         };
       });
 
@@ -164,6 +176,12 @@ test.describe('Current Snapshot', () => {
       expect(geometry.frameBottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
       expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.viewportHeight + 1);
       expect(geometry.scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
+      expect(geometry.electricityPriceWhiteSpace).toBe('nowrap');
+
+      for (const panel of geometry.panelOverflow) {
+        expect(panel.scrollHeight).toBeLessThanOrEqual(panel.clientHeight + 1);
+        expect(panel.scrollWidth).toBeLessThanOrEqual(panel.clientWidth + 1);
+      }
     });
   }
 
