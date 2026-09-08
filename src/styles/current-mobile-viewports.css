@@ -5,6 +5,7 @@
   .current-shell {
     --current-mobile-sticky-header: 64px;
     --current-mobile-section-viewport: calc(100vh - var(--current-mobile-sticky-header));
+    --current-mobile-source-reserve: 84px;
     --current-mobile-hero-value: clamp(4.35rem, 21vw, 5rem);
     --current-mobile-macro-value: 1.6rem;
   }
@@ -19,6 +20,23 @@
   .current-shell .current-section-wrap[data-current-section='electricity'],
   .current-shell [data-current-section='rates'] {
     min-height: var(--current-mobile-section-viewport);
+  }
+
+  /* The mobile source rail owns the shared divider/source position. Keep
+     inline errors in their sections, but remove the duplicated source rows
+     and their now-empty spacing from normal flow. */
+  .current-shell .weather-footer > p:first-child,
+  .current-shell .electricity-footer > p:first-child,
+  .current-shell .markets-footer > p:first-child {
+    display: none;
+  }
+
+  .current-shell .weather-footer,
+  .current-shell .electricity-footer,
+  .current-shell .markets-footer {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
   }
 
   /* Keep the two hero measurements on the same mobile type tier. Section
@@ -82,18 +100,15 @@
     margin-top: 12px;
   }
 
-  .current-shell .current-weather .weather-footer {
-    margin-top: 18px;
-    padding-top: 8px;
-  }
-
   /* Electricity can safely fill the whole aligned content viewport. Keep the
-     intrinsic 168px mobile chart geometry intact and distribute the remaining
-     space around the chart instead of shrinking it. */
+     intrinsic 168px mobile chart geometry intact and reserve a shared footer
+     zone so the fixed source rail never competes with the summary strip. */
   .current-shell .current-section-wrap[data-current-section='electricity'] .current-electricity {
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    box-sizing: border-box;
     min-height: var(--current-mobile-section-viewport);
+    padding-bottom: var(--current-mobile-source-reserve);
   }
 
   .current-shell .current-electricity .electricity-heading {
@@ -121,25 +136,24 @@
     padding: 18px 0 20px;
   }
 
-  .current-shell .current-electricity .electricity-footer {
-    margin-top: 12px;
-    padding-top: 10px;
-  }
-
   /* Markets is the one intentional exception: the portfolio matrix may run
      longer than one screen, while RATES / TRENDS gets its own aligned viewport. */
   .current-shell
     .current-section-wrap[data-current-section='markets']
     .markets-custom-performance {
+    box-sizing: border-box;
     min-height: var(--current-mobile-section-viewport);
+    padding-bottom: var(--current-mobile-source-reserve);
   }
 
   /* RATES / TRENDS is a true one-screen state. Split its available height
-     evenly between the two trend rows and center each measurement/chart pair
-     inside its half so the previous dead space becomes useful visual rhythm. */
+     evenly between the two trend rows, while reserving the same source zone
+     used by Electricity. */
   .current-shell [data-current-section='rates'] {
     display: grid;
     grid-template-rows: auto repeat(2, minmax(0, 1fr));
+    box-sizing: border-box;
+    padding-bottom: var(--current-mobile-source-reserve);
   }
 
   .current-shell [data-current-section='rates'] > .markets-panel-heading {
@@ -171,6 +185,7 @@
    letterboxing and visibly moved the Weather graph away from its day columns. */
 @media (max-width: 640px) and (max-height: 720px) {
   .current-shell {
+    --current-mobile-source-reserve: 76px;
     --current-mobile-hero-value: 3.85rem;
     --current-mobile-macro-value: 1.45rem;
   }
@@ -235,11 +250,6 @@
     margin-top: 4px;
   }
 
-  .current-shell .current-weather .weather-footer {
-    margin-top: 6px;
-    padding-top: 2px;
-  }
-
   .current-shell .current-section-wrap .current-electricity {
     padding-top: 16px;
   }
@@ -275,11 +285,6 @@
   .current-shell .current-electricity .electricity-summary-strip {
     gap: 6px;
     padding: 9px 0 10px;
-  }
-
-  .current-shell .current-electricity .electricity-footer {
-    margin-top: 6px;
-    padding-top: 4px;
   }
 
   .current-shell [data-current-section='rates'] .markets-macro__row {
