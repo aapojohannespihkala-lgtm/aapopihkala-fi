@@ -81,6 +81,18 @@ for (const viewport of [
     await expect(page.locator('[data-liiga-row]')).toHaveCount(17);
     await expect(page.locator('[data-liiga-club-mark]')).toHaveCount(17);
     await expect(page.locator('[data-liiga-row="ilves"] [data-liiga-points]')).toHaveText('6');
+    await expect(page.locator('[data-liiga-club-mark] svg text')).toHaveCount(0);
+
+    const markSignatures = await page.locator('[data-liiga-club-mark] svg').evaluateAll((marks) =>
+      marks.map((mark) =>
+        Array.from(mark.querySelectorAll('path'))
+          .map((path) => path.getAttribute('d'))
+          .join('|')
+      )
+    );
+    expect(markSignatures).toHaveLength(17);
+    expect(new Set(markSignatures).size).toBe(17);
+    expect(markSignatures.every((signature) => signature.includes('|'))).toBe(true);
 
     const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     expect(hasOverflow).toBe(false);
