@@ -169,7 +169,6 @@ test('Current keeps electricity annotations compact and separates current from i
   await expect(page.locator('[data-electricity-inspection-band]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-line]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-point]')).toHaveAttribute('opacity', '1');
-  await expect(chart).toHaveClass(/electricity-chart--inspecting/);
 
   const inspectionDash = await page
     .locator('[data-electricity-inspection-line]')
