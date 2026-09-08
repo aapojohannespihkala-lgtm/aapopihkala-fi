@@ -262,6 +262,7 @@ const getWeatherKind = (code: number) => {
   if (code === 2) return 'partly';
   if (code === 3) return 'cloud';
   if (code === 45 || code === 48) return 'fog';
+  if (code === 56 || code === 57 || code === 66 || code === 67) return 'freezing';
   if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rain';
   if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
   if (code >= 95) return 'thunder';
@@ -296,6 +297,8 @@ const weatherIconSvg = (code: number, isDay = true) => {
     `;
   } else if (kind === 'rain') {
     drawing = `${cloud}<path d="M13 27.5l-1.3 3M19 27.5l-1.3 3M25 27.5l-1.3 3" />`;
+  } else if (kind === 'freezing') {
+    drawing = `${cloud}<path d="M13.5 27.5l-1.3 3M19.5 27.5l-1.3 3M26 27v4M24.3 28l3.4 2M27.7 28l-3.4 2" />`;
   } else if (kind === 'snow') {
     drawing = `${cloud}<path d="M12.5 29h.1M18.5 27.5h.1M24.5 29h.1" stroke-width="2.6" />`;
   } else if (kind === 'thunder') {
@@ -347,7 +350,7 @@ const renderHourlyPreview = (container: HTMLElement, points: HourPoint[]) => {
           <p class="weather-hour__time">${formatTime(point.time)}</p>
           <div class="weather-hour__icon" aria-hidden="true">${weatherIconSvg(point.weatherCode, point.isDay)}</div>
           <p class="weather-hour__temperature">${Math.round(point.temperature)}°</p>
-          <p class="weather-hour__rain">${Math.round(point.rainProbability)}% rain</p>
+          <p class="weather-hour__rain">${Math.round(point.rainProbability)}% precip</p>
         </div>
       `
     )
@@ -361,7 +364,7 @@ const renderDailyPreview = (container: HTMLElement, points: DailyPoint[]) => {
         <div class="weather-day" data-weather-day>
           <p class="weather-day__name">${point.label}</p>
           <div class="weather-day__icon" aria-hidden="true">${weatherIconSvg(point.weatherCode)}</div>
-          <p class="weather-day__rain">${Math.round(point.rainProbability)}% rain</p>
+          <p class="weather-day__rain">${Math.round(point.rainProbability)}% precip</p>
         </div>
       `
     )
