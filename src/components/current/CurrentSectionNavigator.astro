@@ -99,6 +99,19 @@
       overflow: visible;
     }
 
+    /* Weather starts below the Current status strip, unlike sections reached
+       through the navigation arrow. Subtract the measured start offset so its
+       divider lands on the same screen y-coordinate as the other sections. */
+    .current-shell
+      .current-section-wrap[data-current-section='weather']
+      .weather-footer {
+      top: calc(
+        var(--current-mobile-section-viewport)
+        - var(--current-mobile-source-divider-offset)
+        - var(--current-mobile-weather-start-offset, 0px)
+      );
+    }
+
     /* Rates already has a footer divider. Do not let the last chart row draw a
        second line immediately above it. */
     .current-shell [data-current-section='rates'] .markets-macro__row:last-of-type {
@@ -115,7 +128,10 @@
       display: grid;
       grid-template-rows: auto auto auto minmax(0, 1fr);
       box-sizing: border-box;
-      min-height: var(--current-mobile-section-viewport);
+      min-height: calc(
+        var(--current-mobile-section-viewport)
+        - var(--current-mobile-weather-start-offset, 0px)
+      );
       padding-bottom: var(--current-mobile-source-divider-offset);
     }
 
@@ -171,6 +187,19 @@
 
     const getMaskedSectionTop = () =>
       Math.max(0, getTopbarHeight() - SECTION_DIVIDER_MASK_INSET)
+
+    const syncWeatherStartOffset = () => {
+      const weather = document.querySelector('[data-current-section="weather"]')
+      if (!(weather instanceof HTMLElement)) return
+
+      if (!mobileSections.matches) {
+        weather.style.removeProperty('--current-mobile-weather-start-offset')
+        return
+      }
+
+      const startOffset = Math.max(0, getDocumentTop(weather) - getMaskedSectionTop())
+      weather.style.setProperty('--current-mobile-weather-start-offset', `${startOffset}px`)
+    }
 
     const appendSourceFooter = (section, className, html) => {
       if (!(section instanceof HTMLElement)) return
@@ -231,6 +260,7 @@
 
     const resolveSections = () => {
       ensureSectionSourceFooters()
+      syncWeatherStartOffset()
 
       const selector = mobileSections.matches
         ? '[data-current-section], [data-current-mobile-section]'
@@ -271,8 +301,13 @@
       })
     }
 
+    const handleResize = () => {
+      syncWeatherStartOffset()
+      scheduleStateUpdate()
+    }
+
     window.addEventListener('scroll', scheduleStateUpdate, { passive: true })
-    window.addEventListener('resize', scheduleStateUpdate, { passive: true })
+    window.addEventListener('resize', handleResize, { passive: true })
     mobileSections.addEventListener('change', resolveSections)
 
     resolveSections()
