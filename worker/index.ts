@@ -1,6 +1,6 @@
 import { onRequestGet as getElectricityPriceResponse } from '../functions/api/current/electricity';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
-import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-stable';
+import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
 
 type AssetsBinding = {

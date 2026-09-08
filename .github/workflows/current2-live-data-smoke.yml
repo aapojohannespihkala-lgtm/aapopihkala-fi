@@ -78,7 +78,7 @@ jobs:
             requirePeriods(id, fullNordnetPeriods);
           }
 
-          const opIndexPeriods = ['month1', 'month3', 'month6', 'ytd', 'year1', 'year3', 'year5'];
+          const opIndexPeriods = periods;
           for (const id of ['op-asia-index-a', 'op-europe-index-a', 'op-world-index-a']) {
             requirePeriods(id, opIndexPeriods);
           }
