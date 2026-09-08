@@ -262,7 +262,7 @@ export const onRequestGet = async () => {
 
   let body: PortfolioResponse;
   try {
-    body = (await response.json()) as PortfolioResponse;
+    body = (await response.clone().json()) as PortfolioResponse;
   } catch {
     return response;
   }
