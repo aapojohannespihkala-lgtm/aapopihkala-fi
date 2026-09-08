@@ -47,7 +47,8 @@ test('aligns electricity decimal points and clock colons on one annotation axis'
   await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
   const chart = page.locator('[data-electricity-chart]');
-  await expect(page.locator('[data-electricity-low-label]')).toBeVisible();
+  const lowLabel = page.locator('[data-electricity-low-label]');
+  await expect(lowLabel).toBeVisible();
   await expect(page.locator('[data-electricity-high-label]')).toBeVisible();
 
   const chartBox = await chart.boundingBox();
@@ -69,7 +70,9 @@ test('aligns electricity decimal points and clock colons on one annotation axis'
     });
   }
 
-  await expect(page.locator('[data-electricity-inspection-label]')).toHaveAttribute('opacity', '1');
+  const inspectionLabel = page.locator('[data-electricity-inspection-label]');
+  const inspectionLine = page.locator('[data-electricity-inspection-line]');
+  await expect(inspectionLabel).toHaveAttribute('opacity', '1');
 
   await expect.poll(async () =>
     page.evaluate(() => {
@@ -103,6 +106,55 @@ test('aligns electricity decimal points and clock colons on one annotation axis'
       });
     })
   ).toBe(true);
+
+  const chartMetrics = await page.evaluate(() => {
+    const svg = document.querySelector<SVGSVGElement>('[data-electricity-chart]');
+    const lowBand = svg?.querySelector<SVGRectElement>('[data-electricity-low-band]');
+    const endLabel = [...(svg?.querySelectorAll<SVGTextElement>('.electricity-chart__axis-label') ?? [])]
+      .find((node) => node.textContent?.trim() === '24');
+
+    return {
+      width: svg?.viewBox.baseVal.width ?? 0,
+      lowX: Number(lowBand?.getAttribute('x')),
+      lowWidth: Number(lowBand?.getAttribute('width')),
+      plotRight: Number(endLabel?.getAttribute('x')),
+    };
+  });
+
+  const moveInspectionToSvgX = async (svgX: number) => {
+    const box = await chart.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box || chartMetrics.width <= 0) return;
+
+    await chart.dispatchEvent('pointermove', {
+      pointerType: 'mouse',
+      clientX: box.x + (svgX / chartMetrics.width) * box.width,
+      clientY: box.y + box.height * 0.5,
+    });
+  };
+
+  const expectInspectionCentered = async () => {
+    await expect.poll(async () => {
+      const lineX = Number(await inspectionLine.getAttribute('x1'));
+      const transform = await inspectionLabel.getAttribute('transform');
+      const labelX = Number(transform?.match(/translate\(([-\d.]+)/)?.[1]);
+      return Math.abs(lineX - labelX);
+    }).toBeLessThan(0.02);
+  };
+
+  const quarterWidth = chartMetrics.lowWidth / 8;
+  expect(quarterWidth).toBeGreaterThan(0);
+
+  await moveInspectionToSvgX(chartMetrics.lowX + quarterWidth / 2);
+  await expectInspectionCentered();
+  await expect(lowLabel).toHaveAttribute('opacity', '0');
+
+  await moveInspectionToSvgX(chartMetrics.lowX + chartMetrics.lowWidth + quarterWidth / 2);
+  await expectInspectionCentered();
+  await expect(lowLabel).toHaveAttribute('opacity', '1');
+
+  await moveInspectionToSvgX(chartMetrics.plotRight - quarterWidth / 2);
+  await expectInspectionCentered();
 
   const monthSummary = page.locator('[data-electricity-month-average]');
   await expect(monthSummary.locator(':scope > span')).toHaveCount(3);
