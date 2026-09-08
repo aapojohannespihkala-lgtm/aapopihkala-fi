@@ -18,6 +18,19 @@
   border-top: 1px solid var(--line-soft);
 }
 
+:is(.current-shell, .current-markets-shell) .current-markets--custom .markets-sparkline-context {
+  display: none;
+}
+
+:is(.current-shell, .current-markets-shell) .current-markets--custom .markets-sparkline-frame {
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 4px;
+}
+
+:is(.current-shell, .current-markets-shell) .current-markets--custom .markets-sparkline__fallback {
+  padding-left: 30px;
+}
+
 :is(.current-shell, .current-markets-shell) .markets-performance-summary {
   margin: 0 0 12px;
   color: var(--stone-light);
