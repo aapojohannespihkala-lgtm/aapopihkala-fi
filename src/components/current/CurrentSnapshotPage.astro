@@ -92,7 +92,7 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
             <p class="snapshot-kicker">FI SPOT / VAT INCLUDED</p>
 
             <div class="snapshot-electricity__main">
-              <div>
+              <div class="snapshot-electricity__value">
                 <p class="snapshot-hero snapshot-electricity__price">
                   <span data-snapshot-electricity-now>--.--</span><small> c/kWh</small>
                 </p>
@@ -278,12 +278,12 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   }
 
   .snapshot-titleblock {
-    min-height: 112px;
+    min-height: 102px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 18px;
-    padding: 11px 20px 13px;
+    padding: 9px 20px 11px;
     border-bottom: 1px solid var(--ink-soft);
   }
 
@@ -291,9 +291,9 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
     margin: 0;
     color: var(--ink);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: clamp(4.2rem, 14vw, 6rem);
+    font-size: clamp(4rem, 13vw, 5.7rem);
     font-weight: 400;
-    line-height: 0.9;
+    line-height: 0.88;
     letter-spacing: -0.075em;
   }
 
@@ -301,8 +301,8 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
     display: grid;
     gap: 2px;
     color: var(--stone);
-    font-size: 0.46rem;
-    line-height: 1.45;
+    font-size: 0.44rem;
+    line-height: 1.4;
     letter-spacing: 0.045em;
     text-transform: uppercase;
   }
@@ -315,11 +315,12 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   .snapshot-grid {
     min-height: 0;
     display: grid;
-    grid-template-rows: 1.03fr 1.46fr 1.48fr 1.05fr;
+    grid-template-rows: minmax(0, 1.12fr) minmax(0, 1.58fr) minmax(0, 1.28fr) minmax(0, 0.92fr);
   }
 
   .snapshot-panel {
     min-height: 0;
+    overflow: hidden;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     border-bottom: 1px solid var(--ink-soft);
@@ -379,8 +380,8 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
 
   .snapshot-panel__body {
     min-height: 0;
-    position: relative;
-    padding: 10px 15px 8px;
+    overflow: hidden;
+    padding: 9px 15px 8px;
   }
 
   .snapshot-kicker,
@@ -398,13 +399,11 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   }
 
   .snapshot-source {
-    position: absolute;
-    left: 15px;
-    bottom: 7px;
     color: var(--stone);
     font-size: 0.34rem;
-    line-height: 1;
+    line-height: 1.15;
     letter-spacing: 0.04em;
+    white-space: nowrap;
   }
 
   .snapshot-hero,
@@ -418,7 +417,7 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   }
 
   .snapshot-hero {
-    font-size: clamp(3.7rem, 14vw, 5rem);
+    font-size: clamp(3.55rem, 13.5vw, 4.8rem);
     line-height: 0.82;
   }
 
@@ -426,17 +425,18 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   .snapshot-rates__value small {
     margin-left: 0.08em;
     color: var(--ink-soft);
-    font-size: 0.28em;
+    font-size: 0.27em;
     letter-spacing: 0;
-    vertical-align: 0.24em;
+    vertical-align: 0.22em;
   }
 
   .snapshot-weather {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 92px;
+    grid-template-rows: minmax(0, 1fr) auto;
     align-items: center;
     column-gap: 10px;
-    padding-bottom: 19px;
+    row-gap: 4px;
   }
 
   .snapshot-weather__copy {
@@ -444,17 +444,17 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   }
 
   .snapshot-weather__condition {
-    margin: 7px 0 0;
+    margin: 6px 0 0;
     color: var(--ink-soft);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.9rem;
+    font-size: 0.86rem;
     line-height: 1;
   }
 
   .snapshot-weather__range {
-    margin: 6px 0 0;
+    margin: 5px 0 0;
     color: var(--ink-soft);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     line-height: 1;
   }
 
@@ -471,16 +471,31 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
     vector-effect: non-scaling-stroke;
   }
 
+  .snapshot-weather .snapshot-source {
+    grid-column: 1 / -1;
+    align-self: end;
+  }
+
   .snapshot-electricity {
-    padding-bottom: 20px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    gap: 5px;
   }
 
   .snapshot-electricity__main {
+    min-height: 0;
     display: grid;
-    grid-template-columns: minmax(0, 0.95fr) minmax(120px, 1.05fr);
-    align-items: end;
-    gap: 16px;
-    margin-top: 7px;
+    grid-template-columns: minmax(190px, 1.22fr) minmax(110px, 0.78fr);
+    align-items: center;
+    gap: 14px;
+  }
+
+  .snapshot-electricity__value {
+    min-width: 0;
+  }
+
+  .snapshot-electricity__price {
+    white-space: nowrap;
   }
 
   .snapshot-micro {
@@ -532,7 +547,9 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   .snapshot-electricity__stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    margin: 9px 0 0;
+    margin: 0;
+    padding-top: 6px;
+    border-top: 1px solid var(--line-soft);
     color: var(--ink-soft);
     font-size: 0.42rem;
     line-height: 1.05;
@@ -557,16 +574,20 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   .snapshot-electricity__stats dd {
     margin: 4px 0 0;
     color: var(--ink);
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     font-variant-numeric: tabular-nums;
   }
 
   .snapshot-markets {
-    padding-bottom: 19px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 5px;
   }
 
   .snapshot-market-list {
-    margin-top: 7px;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: repeat(5, 1fr);
     color: var(--ink-soft);
     font-size: 0.58rem;
     font-weight: 500;
@@ -576,10 +597,10 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   }
 
   .snapshot-market-row {
+    min-height: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    min-height: 23px;
     border-bottom: 1px solid var(--line-soft);
   }
 
@@ -598,32 +619,34 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   }
 
   .snapshot-rates {
-    padding-bottom: 19px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 4px;
   }
 
   .snapshot-rates__main {
+    min-height: 0;
     display: grid;
-    grid-template-columns: minmax(0, 0.8fr) minmax(130px, 1.2fr);
-    align-items: end;
-    gap: 18px;
-    margin-top: 7px;
+    grid-template-columns: minmax(0, 0.78fr) minmax(130px, 1.22fr);
+    align-items: center;
+    gap: 16px;
   }
 
   .snapshot-rates__label {
     margin: 0 0 2px;
     color: var(--ink-soft);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.58rem;
+    font-size: 0.56rem;
     line-height: 1;
   }
 
   .snapshot-rates__value {
-    font-size: clamp(2.5rem, 10vw, 3.5rem);
+    font-size: clamp(2.35rem, 9.5vw, 3.25rem);
     line-height: 0.86;
   }
 
   .snapshot-rates__change {
-    margin-top: 5px;
+    margin-top: 4px;
   }
 
   .snapshot-rates__chart {
@@ -633,7 +656,7 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   }
 
   .snapshot-rates__chart svg {
-    height: 48px;
+    height: 44px;
     padding-left: 10px;
   }
 
@@ -657,12 +680,12 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
   }
 
   .snapshot-footer {
-    min-height: 34px;
+    min-height: 30px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 10px;
-    padding: 7px 15px 8px;
+    padding: 5px 15px 6px;
     border-top: 1px solid var(--ink-soft);
     color: var(--stone);
     font-size: 0.33rem;
@@ -673,8 +696,8 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
 
   .snapshot-refresh {
     min-width: 24px;
-    min-height: 24px;
-    padding: 4px 5px;
+    min-height: 22px;
+    padding: 3px 5px;
     border: 0;
     background: transparent;
     color: var(--stone);
@@ -695,101 +718,118 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
       width: 100%;
       height: calc(100dvh - 64px);
       min-height: 0;
-      padding: 8px 10px;
+      padding: 7px 9px;
     }
 
     .snapshot-frame {
       height: 100%;
       min-height: 0;
-      border-radius: 25px;
+      border-radius: 24px;
     }
 
     .snapshot-status {
-      padding: 10px 13px 8px;
-      font-size: 0.43rem;
+      padding: 7px 12px 6px;
+      font-size: 0.4rem;
+      line-height: 1.45;
     }
 
     .snapshot-titleblock {
-      min-height: 82px;
-      padding: 8px 13px 9px;
+      min-height: 67px;
+      padding: 5px 12px 7px;
     }
 
     .snapshot-titleblock h1 {
-      font-size: clamp(3.25rem, 16vw, 4.4rem);
+      font-size: clamp(3rem, 15vw, 3.9rem);
     }
 
     .snapshot-titleblock__meta {
-      font-size: 0.36rem;
+      font-size: 0.34rem;
+      line-height: 1.35;
+    }
+
+    .snapshot-grid {
+      grid-template-rows: minmax(0, 1.15fr) minmax(0, 1.65fr) minmax(0, 1.2fr) minmax(0, 0.9fr);
     }
 
     .snapshot-panel__heading {
-      min-height: 27px;
-      grid-template-columns: 39px minmax(0, 1fr) 30px;
-      font-size: 0.51rem;
+      min-height: 26px;
+      grid-template-columns: 38px minmax(0, 1fr) 30px;
+      font-size: 0.5rem;
     }
 
     .snapshot-panel__heading h2 {
-      padding-inline: 10px;
+      padding-inline: 9px;
     }
 
     .snapshot-panel__body {
-      padding: 7px 12px 6px;
+      padding: 6px 11px 5px;
     }
 
     .snapshot-source {
-      left: 12px;
-      bottom: 5px;
-      font-size: 0.28rem;
+      font-size: 0.32rem;
+      line-height: 1.1;
     }
 
     .snapshot-kicker {
-      font-size: 0.42rem;
+      font-size: 0.4rem;
     }
 
     .snapshot-hero {
-      font-size: clamp(3.05rem, 16vw, 4rem);
+      font-size: clamp(2.95rem, 15vw, 3.8rem);
     }
 
     .snapshot-weather {
-      grid-template-columns: minmax(0, 1fr) 74px;
-      padding-bottom: 15px;
+      grid-template-columns: minmax(0, 1fr) 72px;
+      row-gap: 3px;
     }
 
     .snapshot-weather__condition {
       margin-top: 4px;
-      font-size: 0.72rem;
+      font-size: 0.7rem;
     }
 
     .snapshot-weather__range {
       margin-top: 4px;
-      font-size: 0.6rem;
+      font-size: 0.58rem;
     }
 
     .snapshot-weather__icon {
-      width: 70px;
-      height: 48px;
+      width: 68px;
+      height: 46px;
     }
 
     .snapshot-electricity {
-      padding-bottom: 16px;
+      gap: 4px;
     }
 
     .snapshot-electricity__main {
-      gap: 10px;
-      margin-top: 5px;
+      grid-template-columns: minmax(188px, 1.28fr) minmax(106px, 0.72fr);
+      gap: 9px;
+    }
+
+    .snapshot-electricity__price small {
+      font-size: 0.24em;
     }
 
     .snapshot-electricity__chart svg {
-      height: 37px;
+      height: 34px;
     }
 
     .snapshot-chart-labels {
-      font-size: 0.26rem;
+      font-size: 0.27rem;
     }
 
     .snapshot-electricity__stats {
-      margin-top: 6px;
+      padding-top: 5px;
       font-size: 0.34rem;
+    }
+
+    .snapshot-electricity__stats div {
+      padding-right: 7px;
+    }
+
+    .snapshot-electricity__stats div + div {
+      padding-left: 10px;
     }
 
     .snapshot-electricity__stats dd {
@@ -797,156 +837,175 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
       font-size: 0.72rem;
     }
 
+    .snapshot-markets {
+      gap: 4px;
+    }
+
     .snapshot-market-list {
-      margin-top: 5px;
       font-size: 0.47rem;
     }
 
-    .snapshot-market-row {
-      min-height: 20px;
+    .snapshot-rates {
+      gap: 3px;
     }
 
     .snapshot-rates__main {
-      gap: 10px;
-      margin-top: 5px;
+      grid-template-columns: minmax(0, 0.78fr) minmax(126px, 1.22fr);
+      gap: 9px;
     }
 
     .snapshot-rates__label {
-      font-size: 0.48rem;
+      font-size: 0.46rem;
     }
 
     .snapshot-rates__value {
-      font-size: clamp(2rem, 10vw, 2.75rem);
+      font-size: clamp(1.95rem, 9.5vw, 2.55rem);
+    }
+
+    .snapshot-rates__change {
+      margin-top: 3px;
     }
 
     .snapshot-rates__chart svg {
-      height: 39px;
+      height: 34px;
     }
 
     .snapshot-footer {
-      min-height: 29px;
-      padding: 4px 11px 5px;
+      min-height: 25px;
+      padding: 2px 10px 3px;
       font-size: 0.27rem;
     }
 
     .snapshot-refresh {
+      min-height: 20px;
       font-size: 0.27rem;
     }
   }
 
   @media (max-width: 380px), (max-height: 720px) {
     .snapshot-shell {
-      padding: 5px 7px;
+      padding: 4px 6px;
     }
 
     .snapshot-frame {
-      border-radius: 21px;
+      border-radius: 20px;
     }
 
     .snapshot-status {
-      padding: 7px 10px 6px;
-      font-size: 0.36rem;
+      padding: 5px 9px 4px;
+      font-size: 0.35rem;
     }
 
     .snapshot-titleblock {
-      min-height: 66px;
-      padding: 5px 10px 6px;
+      min-height: 56px;
+      padding: 3px 9px 5px;
     }
 
     .snapshot-titleblock h1 {
-      font-size: clamp(2.75rem, 14vw, 3.5rem);
+      font-size: clamp(2.55rem, 13.5vw, 3.2rem);
     }
 
     .snapshot-titleblock__meta {
-      font-size: 0.3rem;
+      font-size: 0.29rem;
     }
 
     .snapshot-grid {
-      grid-template-rows: 0.98fr 1.38fr 1.42fr 1fr;
+      grid-template-rows: minmax(0, 1.12fr) minmax(0, 1.7fr) minmax(0, 1.23fr) minmax(0, 0.85fr);
     }
 
     .snapshot-panel__heading {
-      min-height: 23px;
-      grid-template-columns: 34px minmax(0, 1fr) 27px;
-      font-size: 0.44rem;
-    }
-
-    .snapshot-panel__body {
-      padding: 5px 10px 4px;
-    }
-
-    .snapshot-source {
-      left: 10px;
-      bottom: 4px;
-      font-size: 0.24rem;
-    }
-
-    .snapshot-kicker {
-      font-size: 0.36rem;
-    }
-
-    .snapshot-hero {
-      font-size: clamp(2.55rem, 14vw, 3.4rem);
-    }
-
-    .snapshot-weather {
-      padding-bottom: 13px;
-    }
-
-    .snapshot-weather__condition {
-      font-size: 0.62rem;
-    }
-
-    .snapshot-weather__range {
-      font-size: 0.52rem;
-    }
-
-    .snapshot-weather__icon {
-      width: 62px;
-      height: 42px;
-    }
-
-    .snapshot-electricity {
-      padding-bottom: 13px;
-    }
-
-    .snapshot-electricity__chart svg {
-      height: 31px;
-    }
-
-    .snapshot-electricity__stats {
-      margin-top: 4px;
-    }
-
-    .snapshot-market-list {
-      margin-top: 4px;
+      min-height: 22px;
+      grid-template-columns: 33px minmax(0, 1fr) 26px;
       font-size: 0.42rem;
     }
 
-    .snapshot-market-row {
-      min-height: 17px;
+    .snapshot-panel__body {
+      padding: 4px 9px 4px;
     }
 
-    .snapshot-rates {
-      padding-bottom: 13px;
+    .snapshot-source {
+      font-size: 0.28rem;
     }
 
-    .snapshot-rates__chart svg {
-      height: 32px;
+    .snapshot-kicker {
+      font-size: 0.34rem;
+    }
+
+    .snapshot-hero {
+      font-size: clamp(2.45rem, 13.5vw, 3.15rem);
+    }
+
+    .snapshot-weather {
+      grid-template-columns: minmax(0, 1fr) 60px;
+      row-gap: 2px;
+    }
+
+    .snapshot-weather__condition {
+      margin-top: 3px;
+      font-size: 0.6rem;
+    }
+
+    .snapshot-weather__range {
+      margin-top: 3px;
+      font-size: 0.5rem;
+    }
+
+    .snapshot-weather__icon {
+      width: 58px;
+      height: 39px;
+    }
+
+    .snapshot-electricity {
+      gap: 3px;
+    }
+
+    .snapshot-electricity__main {
+      grid-template-columns: minmax(164px, 1.32fr) minmax(88px, 0.68fr);
+      gap: 7px;
+    }
+
+    .snapshot-electricity__chart svg {
+      height: 28px;
+    }
+
+    .snapshot-chart-labels {
+      font-size: 0.23rem;
+    }
+
+    .snapshot-electricity__stats {
+      padding-top: 4px;
+      font-size: 0.3rem;
+    }
+
+    .snapshot-electricity__stats dd {
+      margin-top: 2px;
+      font-size: 0.62rem;
+    }
+
+    .snapshot-market-list {
+      font-size: 0.41rem;
+    }
+
+    .snapshot-rates__label {
+      font-size: 0.4rem;
     }
 
     .snapshot-rates__value {
-      font-size: clamp(1.7rem, 9vw, 2.2rem);
+      font-size: clamp(1.65rem, 8.7vw, 2rem);
+    }
+
+    .snapshot-rates__chart svg {
+      height: 28px;
     }
 
     .snapshot-footer {
-      min-height: 24px;
-      padding-block: 2px;
+      min-height: 22px;
+      padding-block: 1px;
       font-size: 0.23rem;
     }
 
     .snapshot-refresh {
-      min-height: 22px;
+      min-height: 18px;
       font-size: 0.23rem;
     }
   }
