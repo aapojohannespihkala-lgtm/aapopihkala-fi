@@ -1,5 +1,5 @@
 import { onRequestGet as getElectricityPriceResponse } from '../functions/api/current/electricity';
-import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets';
+import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-resilient';
 import { onRequestGet as getInvestingFallbackPortfolioResponse } from '../functions/api/current/portfolio-investing-fallback';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
 
