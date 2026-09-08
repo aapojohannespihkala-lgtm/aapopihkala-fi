@@ -1,0 +1,15 @@
+.current-shell .current-weather .weather-solar-arc {
+  height: 32px;
+}
+
+@media (max-width: 640px) {
+  .current-shell .current-weather .weather-solar-arc {
+    height: 26px;
+  }
+}
+
+@media (max-width: 640px) and (max-height: 720px) {
+  .current-shell .current-weather .weather-solar-arc {
+    height: 22px;
+  }
+}
