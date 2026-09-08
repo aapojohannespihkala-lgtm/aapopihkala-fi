@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { onRequestGet } from '../../functions/api/current/markets-resilient';
+import { onRequestGet } from '../../functions/api/current/markets-stable';
 
-test('Current market feed recovers when the Bank of Finland landing page parser breaks', async () => {
+test('Current market feed recovers through the Bank of Finland XML report', async () => {
   const originalFetch = globalThis.fetch;
 
   globalThis.fetch = async (input) => {
@@ -18,9 +18,16 @@ test('Current market feed recovers when the Bank of Finland landing page parser 
       url.hostname === 'reports.suomenpankki.fi' &&
       url.searchParams.get('report') === '/tilastot/markkina-_ja_hallinnolliset_korot/euriborkorot_pv_chrt_en'
     ) {
+      return new Response('upstream report unavailable', { status: 503 });
+    }
+
+    if (
+      url.hostname === 'reports.suomenpankki.fi' &&
+      url.searchParams.get('report') === '/tilastot/markkina-_ja_hallinnolliset_korot/euribor_korot_today_xml_en'
+    ) {
       return new Response(
-        '<html><body>4 Sep 2026 2.154 2.364 2.679 2.794 3.108 3 Sep 2026 2.182 2.321 2.655 2.789 3.109</body></html>',
-        { status: 200, headers: { 'Content-Type': 'text/html' } }
+        '<root>2026-09-04 2.154 2.364 2.679 2.716 2.794 3.108</root>',
+        { status: 200, headers: { 'Content-Type': 'application/xml' } }
       );
     }
 
@@ -61,9 +68,11 @@ test('Current market feed recovers when the Bank of Finland landing page parser 
       items: Array<{ id: string; value: number; observedAt: string }>;
       series: Array<{ id: string; change1y: number }>;
       recovered?: boolean;
+      recovery?: string;
     };
 
     expect(data.recovered).toBe(true);
+    expect(data.recovery).toBe('bof-xml');
     expect(data.items).toEqual([
       { id: 'euribor-3m', value: 2.679, observedAt: '2026-09-04' },
     ]);

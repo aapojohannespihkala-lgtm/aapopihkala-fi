@@ -105,3 +105,61 @@ jobs:
             cat current2-live.json >&2
           fi
           exit 1
+
+      - name: Verify live Current market macro feed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          url="https://aapopihkala.fi/api/current/markets?live_smoke=${GITHUB_RUN_ID}"
+
+          for attempt in $(seq 1 18); do
+            echo "Current market macro attempt ${attempt}/18"
+
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 30 \
+              --header 'Accept: application/json' \
+              --header 'Cache-Control: no-cache' \
+              "$url" \
+              --output current-market-live.json; then
+              if node <<'NODE'
+          const fs = require('node:fs');
+          const body = JSON.parse(fs.readFileSync('current-market-live.json', 'utf8'));
+          const items = Array.isArray(body.items) ? body.items : [];
+          const series = Array.isArray(body.series) ? body.series : [];
+          const euribor = items.find((item) => item?.id === 'euribor-3m');
+          const seriesIds = new Set(series.map((item) => item?.id));
+          const failures = [];
+
+          if (!euribor || typeof euribor.value !== 'number' || !Number.isFinite(euribor.value)) {
+            failures.push('3M Euribor item missing or invalid');
+          }
+          if (!euribor?.observedAt) failures.push('3M Euribor observation date missing');
+          if (!seriesIds.has('euribor-3m')) failures.push('Euribor 1Y series missing');
+          if (!seriesIds.has('world')) failures.push('World 1Y series missing');
+
+          if (failures.length > 0) {
+            console.error(`Current market macro feed incomplete: ${failures.join(' | ')}`);
+            process.exit(1);
+          }
+
+          console.log(`Current market feed verified: Euribor ${euribor.value} on ${euribor.observedAt}; series ${[...seriesIds].join(', ')}.`);
+          NODE
+              then
+                exit 0
+              fi
+            fi
+
+            if [[ "$attempt" -lt 18 ]]; then
+              sleep 10
+            fi
+          done
+
+          echo "Current market macro feed did not recover in production." >&2
+          if [[ -f current-market-live.json ]]; then
+            cat current-market-live.json >&2
+          fi
+          exit 1
