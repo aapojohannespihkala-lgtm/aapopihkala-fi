@@ -19,7 +19,7 @@ const opReaderBody = (isin: string, rowLabel: string) =>
     'Key figures',
   ].join(' ');
 
-test('portfolio feed retries transient OP reader failures and recovers all missing rows', async () => {
+test('portfolio feed survives two transient OP reader failures and recovers all missing rows', async () => {
   const originalFetch = globalThis.fetch;
   const readerAttempts = new Map<string, number>();
   const chartDates = [
@@ -80,7 +80,7 @@ test('portfolio feed retries transient OP reader failures and recovers all missi
 
       const attempts = (readerAttempts.get(fixture[0]) ?? 0) + 1;
       readerAttempts.set(fixture[0], attempts);
-      if (attempts === 1) {
+      if (attempts <= 2) {
         return new Response('temporary reader failure', { status: 503 });
       }
 
@@ -113,10 +113,10 @@ test('portfolio feed retries transient OP reader failures and recovers all missi
     expect(body.expected).toBe(19);
     expect(body.unavailable).toEqual([]);
     expect(body.source).toContain('OP official reader fallback');
-    expect(body.version).toBeGreaterThanOrEqual(11);
+    expect(body.version).toBeGreaterThanOrEqual(12);
 
     for (const [slug, isin] of opFixtures) {
-      expect(readerAttempts.get(slug)).toBe(2);
+      expect(readerAttempts.get(slug)).toBe(3);
       const item = body.items.find((candidate) => candidate.symbol === isin);
       expect(item).toBeDefined();
       expect(item?.changes.today).toBeNull();
