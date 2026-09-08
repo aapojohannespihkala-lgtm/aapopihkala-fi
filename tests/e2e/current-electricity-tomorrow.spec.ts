@@ -155,7 +155,9 @@ test('Current switches the electricity day average and chart without moving the 
     });
   }
 
-  await expect(page.locator('[data-electricity-chart-tooltip]')).toBeVisible();
+  await expect(page.locator('[data-electricity-inspection-label]')).toHaveAttribute('opacity', '1');
+  await expect(page.locator('[data-electricity-inspection-value]')).not.toHaveText('--.--');
+  await expect(page.locator('[data-electricity-inspection-range]')).not.toHaveText('--:-- - --:--');
   await expect(page.locator('[data-electricity-inspection-band]')).toHaveAttribute('opacity', '1');
 
   const dimensions = await page.evaluate(() => ({

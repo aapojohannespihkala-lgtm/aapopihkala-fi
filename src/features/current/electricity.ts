@@ -383,6 +383,10 @@ const renderChart = (
     <rect data-electricity-inspection-band class="electricity-chart__inspection-band" x="0" y="${top}" width="0" height="${plotHeight}" opacity="0" />
     <line data-electricity-inspection-line class="electricity-chart__inspection-line" x1="0" x2="0" y1="${top}" y2="${top + plotHeight}" opacity="0" />
     <circle data-electricity-inspection-point class="electricity-chart__inspection-point" cx="0" cy="0" r="3" opacity="0" />
+    <g data-electricity-inspection-label class="electricity-chart__window-label" opacity="0" transform="translate(0 0)">
+      <text data-electricity-inspection-value y="11">--.--</text>
+      <text data-electricity-inspection-range y="21" class="electricity-chart__window-range">--:-- - --:--</text>
+    </g>
     ${axisLabels}
     <text x="${width - right}" y="${height - 5}" text-anchor="end" class="electricity-chart__axis-label">24</text>
   `;
@@ -472,11 +476,13 @@ export const initCurrentElectricity = () => {
     const inspectionBand = chart.querySelector<SVGRectElement>('[data-electricity-inspection-band]');
     const inspectionLine = chart.querySelector<SVGLineElement>('[data-electricity-inspection-line]');
     const inspectionPoint = chart.querySelector<SVGCircleElement>('[data-electricity-inspection-point]');
+    const inspectionLabel = chart.querySelector<SVGGElement>('[data-electricity-inspection-label]');
     const lowWindowLabel = chart.querySelector<SVGGElement>('[data-electricity-low-label]');
     const highWindowLabel = chart.querySelector<SVGGElement>('[data-electricity-high-label]');
     inspectionBand?.setAttribute('opacity', '0');
     inspectionLine?.setAttribute('opacity', '0');
     inspectionPoint?.setAttribute('opacity', '0');
+    inspectionLabel?.setAttribute('opacity', '0');
     lowWindowLabel?.removeAttribute('opacity');
     highWindowLabel?.removeAttribute('opacity');
   };
@@ -498,6 +504,9 @@ export const initCurrentElectricity = () => {
     const inspectionBand = chart.querySelector<SVGRectElement>('[data-electricity-inspection-band]');
     const inspectionLine = chart.querySelector<SVGLineElement>('[data-electricity-inspection-line]');
     const inspectionPoint = chart.querySelector<SVGCircleElement>('[data-electricity-inspection-point]');
+    const inspectionLabel = chart.querySelector<SVGGElement>('[data-electricity-inspection-label]');
+    const inspectionValue = chart.querySelector<SVGTextElement>('[data-electricity-inspection-value]');
+    const inspectionRange = chart.querySelector<SVGTextElement>('[data-electricity-inspection-range]');
 
     inspectionBand?.setAttribute('x', x1.toFixed(2));
     inspectionBand?.setAttribute('width', Math.max(1, x2 - x1).toFixed(2));
@@ -509,38 +518,40 @@ export const initCurrentElectricity = () => {
     inspectionPoint?.setAttribute('cy', y.toFixed(2));
     inspectionPoint?.setAttribute('opacity', '1');
 
-    chartTooltipPrice.textContent = `15 MIN · ${formatPrice(point.price)}`;
-    chartTooltipTime.textContent = formatMarketRange(point.start);
-    chartTooltip.hidden = false;
-
-    const frameWidth = chartFrame.clientWidth || geometry.width;
-    const desiredLeft = (x / geometry.width) * frameWidth;
-    const tooltipHalfWidth = chartTooltip.offsetWidth / 2;
-    const clampedLeft = Math.max(
-      tooltipHalfWidth + 4,
-      Math.min(frameWidth - tooltipHalfWidth - 4, desiredLeft)
+    const labelHalfWidth = geometry.width < 560 ? 44 : 54;
+    const labelX = Math.max(
+      geometry.left + labelHalfWidth,
+      Math.min(geometry.width - geometry.right - labelHalfWidth, x)
     );
-    chartTooltip.style.left = `${clampedLeft}px`;
+    inspectionValue && (inspectionValue.textContent = formatPrice(point.price));
+    inspectionRange && (inspectionRange.textContent = formatMarketRange(point.start));
+    inspectionLabel?.setAttribute('transform', `translate(${labelX.toFixed(2)} 0)`);
+    inspectionLabel?.setAttribute('opacity', '1');
 
-    const collisionDistance = Math.max(80, chartTooltip.offsetWidth * 0.75);
+    chartTooltipPrice.textContent = formatPrice(point.price);
+    chartTooltipTime.textContent = formatMarketRange(point.start);
+    chartTooltip.hidden = true;
+
+    const collisionDistance = geometry.width < 560 ? 88 : 108;
     const lowWindowLabel = chart.querySelector<SVGGElement>('[data-electricity-low-label]');
     const highWindowLabel = chart.querySelector<SVGGElement>('[data-electricity-high-label]');
-    const windowCenterInFrame = (window: PriceWindow | null) => {
+    const windowCenterInSvg = (window: PriceWindow | null) => {
       if (!window) return Number.NaN;
-      const center =
-        (xBoundary(window.startIndex) + xBoundary(window.startIndex + window.points.length)) / 2;
-      return (center / geometry.width) * frameWidth;
+      return (
+        xBoundary(window.startIndex) +
+        xBoundary(window.startIndex + window.points.length)
+      ) / 2;
     };
     const setWindowLabelVisibility = (label: SVGGElement | null, center: number) => {
       if (!label || !Number.isFinite(center)) return;
       label.setAttribute(
         'opacity',
-        Math.abs(center - clampedLeft) < collisionDistance ? '0' : '1'
+        Math.abs(center - labelX) < collisionDistance ? '0' : '1'
       );
     };
 
-    setWindowLabelVisibility(lowWindowLabel, windowCenterInFrame(latestCheapestWindow));
-    setWindowLabelVisibility(highWindowLabel, windowCenterInFrame(latestExpensiveWindow));
+    setWindowLabelVisibility(lowWindowLabel, windowCenterInSvg(latestCheapestWindow));
+    setWindowLabelVisibility(highWindowLabel, windowCenterInSvg(latestExpensiveWindow));
   };
 
   const renderLatestChart = () => {
