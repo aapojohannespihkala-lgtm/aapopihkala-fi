@@ -82,6 +82,60 @@
       width: 14px;
       height: 10px;
     }
+
+    /* Keep the divider itself at one shared screen position. The source slot
+       below it is sized for two lines, then leaves a separate gap before the
+       fixed navigation arrow. */
+    .current-shell.current-shell {
+      --current-mobile-source-divider-offset: 124px;
+      --current-mobile-source-zone: 44px;
+    }
+
+    .current-shell .weather-footer,
+    .current-shell .electricity-footer,
+    .current-shell .current-mobile-source-footer {
+      height: var(--current-mobile-source-zone);
+      min-height: var(--current-mobile-source-zone);
+      overflow: visible;
+    }
+
+    /* Rates already has a footer divider. Do not let the last chart row draw a
+       second line immediately above it. */
+    .current-shell [data-current-section='rates'] .markets-macro__row:last-of-type {
+      border-bottom: 0;
+    }
+
+    /* Weather has substantially less content than Electricity and Rates. Let
+       its forecast area consume the available height instead of leaving one
+       large dead block below the daily graph. The graph keeps its tested 124px
+       geometry and is vertically centered inside the flexible daily area. */
+    .current-shell
+      .current-section-wrap[data-current-section='weather']
+      .current-weather {
+      display: grid;
+      grid-template-rows: auto auto auto minmax(0, 1fr);
+      box-sizing: border-box;
+      min-height: var(--current-mobile-section-viewport);
+      padding-bottom: var(--current-mobile-source-divider-offset);
+    }
+
+    .current-shell .current-weather .weather-days {
+      display: grid;
+      grid-template-rows: auto minmax(124px, 1fr);
+      min-height: 0;
+      align-content: stretch;
+    }
+
+    .current-shell .current-weather .weather-daily-chart-frame {
+      align-self: center;
+    }
+  }
+
+  @media (max-width: 640px) and (max-height: 720px) {
+    .current-shell.current-shell {
+      --current-mobile-source-divider-offset: 112px;
+      --current-mobile-source-zone: 40px;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
