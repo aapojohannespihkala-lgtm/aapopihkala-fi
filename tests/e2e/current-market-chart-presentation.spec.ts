@@ -39,7 +39,7 @@ test('Current market charts keep runtime SVG paths unfilled and inspection marke
 
   await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
-  const svg = page.locator('[data-current-section="rates"] [data-market-sparkline="euribor-3m"]');
+  const svg = page.locator('[data-current-markets] [data-market-sparkline="euribor-3m"]');
   const path = svg.locator('[data-market-line]');
 
   await expect(svg).toBeVisible();
