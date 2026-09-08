@@ -110,7 +110,7 @@ test('Current keeps electricity annotations compact and separates current from i
     const textAlignment = await label.locator('text').evaluateAll((elements) =>
       elements.map((element) => ({
         x: element.getAttribute('x'),
-        anchor: element.getAttribute('text-anchor'),
+        anchor: getComputedStyle(element).textAnchor,
       }))
     );
 
