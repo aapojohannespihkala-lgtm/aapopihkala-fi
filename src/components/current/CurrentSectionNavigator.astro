@@ -99,6 +99,7 @@
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const behavior = () => reducedMotion() ? 'auto' : 'smooth'
+    const mobileSections = window.matchMedia('(max-width: 640px)')
     const SECTION_DIVIDER_MASK_INSET = 2
 
     const getDocumentTop = (section) =>
@@ -133,7 +134,7 @@
       if (currentIndex < sections.length - 1) {
         currentTarget = sections[currentIndex + 1]
         button.classList.remove('is-up')
-        const label = currentTarget.dataset.currentSection || 'next section'
+        const label = currentTarget.dataset.currentSection || currentTarget.dataset.currentMobileSection || 'next section'
         button.setAttribute('aria-label', `Scroll to ${label}`)
         return
       }
@@ -144,7 +145,11 @@
     }
 
     const resolveSections = () => {
-      sections = Array.from(document.querySelectorAll('[data-current-section]')).filter(
+      const selector = mobileSections.matches
+        ? '[data-current-section], [data-current-mobile-section]'
+        : '[data-current-section]'
+
+      sections = Array.from(document.querySelectorAll(selector)).filter(
         (section) => section instanceof HTMLElement
       )
 
@@ -181,6 +186,7 @@
 
     window.addEventListener('scroll', scheduleStateUpdate, { passive: true })
     window.addEventListener('resize', scheduleStateUpdate, { passive: true })
+    mobileSections.addEventListener('change', resolveSections)
 
     resolveSections()
   })()
