@@ -1,4 +1,4 @@
-/* Mobile Current is consumed one section at a time. Keep the two compact
+/* Mobile Current is consumed one section at a time. Keep the compact
    dashboard sections tall enough that the following section cannot peek into
    the same viewport when the section is aligned below the sticky header. */
 @media (max-width: 640px) {
@@ -14,13 +14,13 @@
   }
 
   .current-shell .current-section-wrap[data-current-section='weather'],
-  .current-shell .current-section-wrap[data-current-section='electricity'] {
+  .current-shell .current-section-wrap[data-current-section='electricity'],
+  .current-shell [data-current-section='rates'] {
     min-height: var(--current-mobile-section-viewport);
   }
 
   /* Markets is the one intentional exception: the portfolio matrix may run
-     longer than one screen, but the following RATES / TRENDS block must not
-     intrude into the first aligned market viewport. */
+     longer than one screen, while RATES / TRENDS gets its own aligned viewport. */
   .current-shell
     .current-section-wrap[data-current-section='markets']
     .markets-custom-performance {

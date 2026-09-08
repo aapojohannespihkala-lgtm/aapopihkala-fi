@@ -61,6 +61,26 @@ const marketGeometry = async (page: Page) =>
     };
   });
 
+const ratesGeometry = async (page: Page) =>
+  page.evaluate(() => {
+    const rates = document.querySelector<HTMLElement>('[data-current-section="rates"]');
+    const lastRow = rates?.querySelector<HTMLElement>('.markets-macro__row:last-of-type');
+    const markets = rates?.closest<HTMLElement>('[data-current-markets]');
+    const footer = markets?.querySelector<HTMLElement>('.markets-footer');
+    const ratesRect = rates?.getBoundingClientRect();
+    const lastRowRect = lastRow?.getBoundingClientRect();
+    const footerRect = footer?.getBoundingClientRect();
+
+    return {
+      viewportHeight: window.innerHeight,
+      sectionTop: ratesRect?.top ?? Number.NaN,
+      sectionBottom: ratesRect?.bottom ?? Number.NaN,
+      sectionHeight: ratesRect?.height ?? Number.NaN,
+      lastRowBottom: lastRowRect?.bottom ?? Number.NaN,
+      footerTop: footerRect?.top ?? Number.POSITIVE_INFINITY,
+    };
+  });
+
 test.describe('Current mobile viewport isolation', () => {
   for (const viewport of [
     { width: 390, height: 844 },
@@ -102,6 +122,19 @@ test.describe('Current mobile viewport isolation', () => {
       expect(markets.performanceHeight).toBeGreaterThanOrEqual(availableMarketViewport - 1);
       expect(markets.performanceHeight).toBeLessThanOrEqual(availableMarketViewport * 2 + 1);
       expect(markets.macroTop).toBeGreaterThanOrEqual(markets.viewportHeight - 1);
+
+      await nav.click();
+
+      await expect.poll(async () => {
+        const rates = await ratesGeometry(page);
+        return rates.sectionTop;
+      }).toBeLessThan(66);
+
+      const rates = await ratesGeometry(page);
+      const availableRatesViewport = rates.viewportHeight - 64;
+      expect(rates.sectionHeight).toBeGreaterThanOrEqual(availableRatesViewport - 1);
+      expect(rates.lastRowBottom).toBeLessThanOrEqual(rates.viewportHeight + 1);
+      expect(rates.footerTop).toBeGreaterThanOrEqual(rates.viewportHeight - 1);
 
       const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       expect(documentWidth).toBeLessThanOrEqual(viewport.width + 1);
