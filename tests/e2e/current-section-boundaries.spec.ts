@@ -162,7 +162,7 @@ test.describe('Current content-driven section navigation', () => {
       const initial = await readSectionGeometry(page);
       expect(initial.documentWidth).toBeLessThanOrEqual(initial.viewportWidth + 1);
 
-      for (const name of ['weather', 'electricity', 'markets']) {
+      for (const name of ['weather', 'electricity', 'markets', 'rates']) {
         expect(initial.sections[name]?.inlineMinHeight).toBe('');
         expect(initial.sections[name]?.computedMinHeight).toBe('0px');
       }
@@ -175,6 +175,10 @@ test.describe('Current content-driven section navigation', () => {
 
       await nav.click();
       await expectSectionDividerMaskedByHeader(page, 'markets');
+      await expect.poll(async () => nav.getAttribute('aria-label')).toContain('rates');
+
+      await nav.click();
+      await expectSectionDividerMaskedByHeader(page, 'rates');
       await expect.poll(async () => nav.getAttribute('aria-label')).toContain('Back to Current top');
     });
   }
