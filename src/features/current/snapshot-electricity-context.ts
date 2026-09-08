@@ -76,14 +76,15 @@ const positionNowMarker = (marker: HTMLElement) => {
   marker.style.left = `${clamped}%`;
 };
 
-const captureBaseElectricity = (root: HTMLElement, force = false) => {
+const captureBaseElectricity = (root: HTMLElement) => {
   const hero = root.querySelector<HTMLElement>('[data-snapshot-electricity-now]');
+  const heroLabel = root.querySelector<HTMLElement>('.snapshot-electricity__value .snapshot-micro');
   const current = root.querySelector<HTMLElement>('[data-snapshot-electricity-average]');
   const currentLabel = current?.closest('div')?.querySelector<HTMLElement>('dt');
 
   if (
     hero &&
-    (force || hero.dataset.snapshotElectricityMonthAverage !== 'true')
+    heroLabel?.textContent?.trim().startsWith('DAY AVG')
   ) {
     const value = hero.textContent?.trim();
     if (value && value !== '--.--') root.dataset.snapshotElectricityDayAverage = value;
@@ -91,7 +92,7 @@ const captureBaseElectricity = (root: HTMLElement, force = false) => {
 
   if (
     current &&
-    (force || current.dataset.snapshotElectricityCurrent === 'true' || currentLabel?.textContent?.trim().startsWith('NOW'))
+    currentLabel?.textContent?.trim().startsWith('NOW')
   ) {
     const value = current.textContent?.trim();
     if (value && value !== '--.--') root.dataset.snapshotElectricityCurrentPrice = value;
@@ -152,8 +153,8 @@ export const initSnapshotElectricityContext = () => {
   root.dataset.electricityContextInitialized = 'true';
   let monthData: MonthAverageResponse | null = null;
 
-  const apply = (forceCapture = false) => {
-    captureBaseElectricity(root, forceCapture);
+  const apply = () => {
+    captureBaseElectricity(root);
     renderDayContext(root);
     if (monthData) renderMonthAverage(root, monthData);
   };
@@ -168,14 +169,14 @@ export const initSnapshotElectricityContext = () => {
       const data = (await response.json()) as MonthAverageResponse;
       if (!isFiniteNumber(data.average)) return;
       monthData = data;
-      apply(false);
+      apply();
     } catch {
       // Keep the day-average fallback already provided by the base snapshot.
     }
   };
 
   window.addEventListener('current:data-updated', () => {
-    apply(true);
+    apply();
     void loadMonthAverage();
   });
 
@@ -184,7 +185,7 @@ export const initSnapshotElectricityContext = () => {
     if (marker) positionNowMarker(marker);
   });
 
-  window.setTimeout(() => apply(false), 0);
-  window.setTimeout(() => apply(false), 350);
+  window.setTimeout(() => apply(), 0);
+  window.setTimeout(() => apply(), 350);
   void loadMonthAverage();
 };
