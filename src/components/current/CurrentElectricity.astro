@@ -71,7 +71,7 @@
         hidden
       >
         <span class="electricity-chart-tooltip__time" data-electricity-chart-tooltip-time>--:-- - --:--</span>
-        <span class="electricity-chart-tooltip__price" data-electricity-chart-tooltip-price>--.-- c/kWh</span>
+        <span class="electricity-chart-tooltip__price" data-electricity-chart-tooltip-price>15 MIN · --.--</span>
       </div>
     </div>
   </section>
@@ -436,20 +436,20 @@
 
   .electricity-chart-tooltip {
     position: absolute;
-    top: 32px;
+    top: 0;
     z-index: 2;
     display: grid;
-    gap: 2px;
+    gap: 1px;
     transform: translateX(-50%);
-    min-width: 86px;
-    padding: 5px 7px;
-    border: 1px solid var(--electricity-rule);
-    background: color-mix(in srgb, var(--page) 94%, transparent);
-    color: var(--stone);
-    font-size: 0.39rem;
+    min-width: 90px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--stone-light);
+    font-size: 0.42rem;
     font-weight: 600;
-    line-height: 1.15;
-    letter-spacing: 0.04em;
+    line-height: 1.2;
+    letter-spacing: 0.035em;
     text-align: center;
     pointer-events: none;
     white-space: nowrap;
@@ -459,7 +459,13 @@
     display: none;
   }
 
+  .electricity-chart-tooltip__time {
+    color: var(--stone);
+    font-weight: 500;
+  }
+
   .electricity-chart-tooltip__price {
+    order: -1;
     color: var(--ink-soft);
   }
 
@@ -622,8 +628,9 @@
     }
 
     .electricity-chart-tooltip {
-      top: 29px;
-      font-size: 0.35rem;
+      top: 0;
+      min-width: 82px;
+      font-size: 0.37rem;
     }
 
     .electricity-extremes {
