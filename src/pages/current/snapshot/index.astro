@@ -3,3 +3,66 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
 ---
 
 <CurrentSnapshotPage />
+
+<style is:global>
+  @media (max-width: 640px) {
+    body:has(.snapshot-shell) .snapshot-grid {
+      grid-template-rows:
+        minmax(0, 1.14fr)
+        minmax(0, 1.62fr)
+        minmax(0, 1.12fr)
+        minmax(0, 1.02fr);
+    }
+
+    body:has(.snapshot-shell) .snapshot-rates {
+      gap: 2px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-rates__main {
+      gap: 8px;
+      align-items: center;
+    }
+
+    body:has(.snapshot-shell) .snapshot-rates__change {
+      margin-top: 2px;
+      line-height: 1;
+    }
+
+    body:has(.snapshot-shell) .snapshot-rates .snapshot-source {
+      padding-top: 2px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-footer > span:first-child {
+      visibility: hidden;
+    }
+
+    body:has(.snapshot-shell) [data-analytics-settings] {
+      left: 20px;
+      right: auto;
+      bottom: 10px;
+      min-height: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.26rem;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+  }
+
+  @media (max-width: 380px), (max-height: 720px) {
+    body:has(.snapshot-shell) .snapshot-grid {
+      grid-template-rows:
+        minmax(0, 1.1fr)
+        minmax(0, 1.66fr)
+        minmax(0, 1.14fr)
+        minmax(0, 1fr);
+    }
+
+    body:has(.snapshot-shell) [data-analytics-settings] {
+      left: 16px;
+      bottom: 7px;
+      min-height: 12px;
+      font-size: 0.23rem;
+    }
+  }
+</style>

@@ -119,6 +119,7 @@ test.describe('Current Snapshot', () => {
 
       await expect(page.locator('[data-current-snapshot]')).toBeVisible();
       await expect(page.locator('[data-snapshot-status]')).toHaveText('LIVE DATA / OK');
+      await expect(page.locator('[data-analytics-settings]')).toBeVisible();
 
       await expect(page.locator('[data-snapshot-weather-temperature]')).toHaveText('15.4');
       await expect(page.locator('[data-snapshot-weather-condition]')).toHaveText('Overcast');
@@ -153,6 +154,16 @@ test.describe('Current Snapshot', () => {
         const frameRect = frame?.getBoundingClientRect();
         const panelBodies = Array.from(document.querySelectorAll<HTMLElement>('.snapshot-panel__body'));
         const electricityPrice = document.querySelector<HTMLElement>('.snapshot-electricity__price');
+        const ratesSource = document.querySelector<HTMLElement>('.snapshot-panel--rates .snapshot-source');
+        const ratesChange = document.querySelector<HTMLElement>('.snapshot-rates__change');
+        const analyticsSettings = document.querySelector<HTMLElement>('[data-analytics-settings]');
+        const footer = document.querySelector<HTMLElement>('.snapshot-footer');
+        const refresh = document.querySelector<HTMLElement>('[data-snapshot-refresh]');
+        const ratesSourceRect = ratesSource?.getBoundingClientRect();
+        const ratesChangeRect = ratesChange?.getBoundingClientRect();
+        const analyticsRect = analyticsSettings?.getBoundingClientRect();
+        const footerRect = footer?.getBoundingClientRect();
+        const refreshRect = refresh?.getBoundingClientRect();
 
         return {
           viewportHeight: window.innerHeight,
@@ -169,6 +180,16 @@ test.describe('Current Snapshot', () => {
           electricityPriceWhiteSpace: electricityPrice
             ? getComputedStyle(electricityPrice).whiteSpace
             : '',
+          ratesSourceTop: ratesSourceRect?.top ?? Number.NEGATIVE_INFINITY,
+          ratesChangeBottom: ratesChangeRect?.bottom ?? Number.POSITIVE_INFINITY,
+          analyticsTop: analyticsRect?.top ?? Number.NEGATIVE_INFINITY,
+          analyticsBottom: analyticsRect?.bottom ?? Number.POSITIVE_INFINITY,
+          analyticsLeft: analyticsRect?.left ?? Number.NEGATIVE_INFINITY,
+          analyticsRight: analyticsRect?.right ?? Number.POSITIVE_INFINITY,
+          footerTop: footerRect?.top ?? Number.POSITIVE_INFINITY,
+          footerBottom: footerRect?.bottom ?? Number.NEGATIVE_INFINITY,
+          footerLeft: footerRect?.left ?? Number.POSITIVE_INFINITY,
+          refreshLeft: refreshRect?.left ?? Number.NEGATIVE_INFINITY,
         };
       });
 
@@ -177,6 +198,11 @@ test.describe('Current Snapshot', () => {
       expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.viewportHeight + 1);
       expect(geometry.scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
       expect(geometry.electricityPriceWhiteSpace).toBe('nowrap');
+      expect(geometry.ratesSourceTop).toBeGreaterThanOrEqual(geometry.ratesChangeBottom + 1);
+      expect(geometry.analyticsTop).toBeGreaterThanOrEqual(geometry.footerTop - 1);
+      expect(geometry.analyticsBottom).toBeLessThanOrEqual(geometry.footerBottom + 1);
+      expect(geometry.analyticsLeft).toBeGreaterThanOrEqual(geometry.footerLeft - 1);
+      expect(geometry.analyticsRight).toBeLessThanOrEqual(geometry.refreshLeft - 2);
 
       for (const panel of geometry.panelOverflow) {
         expect(panel.scrollHeight).toBeLessThanOrEqual(panel.clientHeight + 1);
