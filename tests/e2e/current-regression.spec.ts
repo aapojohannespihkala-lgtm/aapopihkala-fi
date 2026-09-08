@@ -188,13 +188,12 @@ test('Current renders the compact Olari weather view above electricity', async (
     });
   }
 
-  await expect(page.locator('[data-electricity-chart-tooltip]')).toBeVisible();
-  await expect(page.locator('[data-electricity-chart-tooltip-time]')).toHaveText(
+  await expect(page.locator('[data-electricity-chart-tooltip]')).toBeHidden();
+  await expect(page.locator('[data-electricity-inspection-label]')).toHaveAttribute('opacity', '1');
+  await expect(page.locator('[data-electricity-inspection-range]')).toHaveText(
     /\d{2}:\d{2} - \d{2}:\d{2}/
   );
-  await expect(page.locator('[data-electricity-chart-tooltip-price]')).toHaveText(
-    /-?\d+\.\d{2} c\/kWh/
-  );
+  await expect(page.locator('[data-electricity-inspection-value]')).toHaveText(/-?\d+\.\d{2}/);
   await expect(page.locator('[data-electricity-inspection-band]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-line]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-point]')).toHaveAttribute('opacity', '1');

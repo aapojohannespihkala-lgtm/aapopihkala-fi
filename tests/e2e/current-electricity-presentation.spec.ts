@@ -104,6 +104,8 @@ test('Current keeps electricity annotations compact and separates current from i
   ] as const) {
     const transform = await label.getAttribute('transform');
     const bandX = Number(await band.getAttribute('x'));
+    const bandWidth = Number(await band.getAttribute('width'));
+    const bandCenter = bandX + bandWidth / 2;
     const labelX = Number(transform?.match(/translate\(([-\d.]+)\s+[-\d.]+\)/)?.[1]);
     const textAlignment = await label.locator('text').evaluateAll((elements) =>
       elements.map((element) => ({
@@ -112,7 +114,7 @@ test('Current keeps electricity annotations compact and separates current from i
       }))
     );
 
-    expect(labelX).toBeCloseTo(bandX, 2);
+    expect(labelX).toBeCloseTo(bandCenter, 2);
     expect(textAlignment).toHaveLength(4);
     for (const line of textAlignment) {
       expect(line.x).toBe('0');
@@ -147,7 +149,10 @@ test('Current keeps electricity annotations compact and separates current from i
     });
   }
 
-  await expect(page.locator('[data-electricity-chart-tooltip]')).toBeVisible();
+  await expect(page.locator('[data-electricity-chart-tooltip]')).toBeHidden();
+  await expect(page.locator('[data-electricity-inspection-label]')).toHaveAttribute('opacity', '1');
+  await expect(page.locator('[data-electricity-inspection-value]')).not.toHaveText('--.--');
+  await expect(page.locator('[data-electricity-inspection-range]')).not.toHaveText('--:-- - --:--');
   await expect(page.locator('[data-electricity-inspection-band]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-line]')).toHaveAttribute('opacity', '1');
   await expect(page.locator('[data-electricity-inspection-point]')).toHaveAttribute('opacity', '1');
