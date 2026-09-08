@@ -24,7 +24,7 @@ const electricityFixture = (() => {
         index === 0 ? 1.2 :
         index === 60 ? 4.82 :
         index === 95 ? 9.8 :
-        3;
+        2.2 + Math.sin(index / 9) * 1.1 + index / 45;
 
       return {
         price,
@@ -53,7 +53,13 @@ const macroFixture = {
       value: 2.679,
       observedAt: '2026-09-04',
       change1y: 0.652,
-      points: [],
+      points: [
+        { value: 3.331, observedAt: '2025-09-04' },
+        { value: 3.112, observedAt: '2025-12-04' },
+        { value: 2.921, observedAt: '2026-03-04' },
+        { value: 2.783, observedAt: '2026-06-04' },
+        { value: 2.679, observedAt: '2026-09-04' },
+      ],
     },
   ],
 };
@@ -117,10 +123,13 @@ test.describe('Current Snapshot', () => {
       await expect(page.locator('[data-snapshot-weather-condition]')).toHaveText('Overcast');
       await expect(page.locator('[data-snapshot-weather-low]')).toHaveText('12');
       await expect(page.locator('[data-snapshot-weather-high]')).toHaveText('18');
+      await expect(page.locator('[data-snapshot-weather-icon] path')).toHaveCount(1);
 
       await expect(page.locator('[data-snapshot-electricity-now]')).toHaveText('4.82');
       await expect(page.locator('[data-snapshot-electricity-low]')).toHaveText('1.20');
       await expect(page.locator('[data-snapshot-electricity-high]')).toHaveText('9.80');
+      await expect(page.locator('[data-snapshot-electricity-chart-path]')).toHaveAttribute('d', /M/);
+      await expect(page.locator('[data-snapshot-electricity-chart]')).toHaveAttribute('data-chart-points', '24');
 
       await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.42%');
       await expect(page.locator('[data-snapshot-market="nordnet-finland"]')).toHaveText('-0.23%');
@@ -128,20 +137,31 @@ test.describe('Current Snapshot', () => {
 
       await expect(page.locator('[data-snapshot-euribor]')).toHaveText('2.679');
       await expect(page.locator('[data-snapshot-euribor-change]')).toHaveText('+0.652 PP');
+      await expect(page.locator('[data-snapshot-euribor-chart-path]')).toHaveAttribute('d', /L/);
+      await expect(page.locator('[data-snapshot-euribor-chart-high]')).toHaveText('3.3');
+      await expect(page.locator('[data-snapshot-euribor-chart-low]')).toHaveText('2.7');
+
+      await expect(page.locator('a[href="/current/weather/"]')).toHaveCount(1);
+      await expect(page.locator('a[href="/current/electricity/"]')).toHaveCount(1);
+      await expect(page.locator('a[href="/current/markets/"]')).toHaveCount(2);
 
       const geometry = await page.evaluate(() => {
         const snapshot = document.querySelector<HTMLElement>('[data-current-snapshot]');
+        const frame = document.querySelector<HTMLElement>('.snapshot-frame');
         const rect = snapshot?.getBoundingClientRect();
+        const frameRect = frame?.getBoundingClientRect();
 
         return {
           viewportHeight: window.innerHeight,
           bottom: rect?.bottom ?? Number.POSITIVE_INFINITY,
+          frameBottom: frameRect?.bottom ?? Number.POSITIVE_INFINITY,
           scrollHeight: document.documentElement.scrollHeight,
           scrollWidth: document.documentElement.scrollWidth,
         };
       });
 
       expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
+      expect(geometry.frameBottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
       expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.viewportHeight + 1);
       expect(geometry.scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
     });

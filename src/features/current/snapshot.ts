@@ -35,9 +35,15 @@ type SnapshotMacroItem = {
   value?: unknown;
 };
 
+type SnapshotSeriesPoint = {
+  value?: unknown;
+  observedAt?: unknown;
+};
+
 type SnapshotMacroSeries = {
   id?: unknown;
   change1y?: unknown;
+  points?: unknown;
 };
 
 type SnapshotMacroResponse = {
@@ -142,6 +148,104 @@ const setText = (root: HTMLElement, selector: string, value: string) => {
   if (target) target.textContent = value;
 };
 
+const renderWeatherIcon = (root: HTMLElement, code: number) => {
+  const target = root.querySelector<SVGSVGElement>('[data-snapshot-weather-icon]');
+  if (!target) return;
+
+  const stroke = 'currentColor';
+  const cloud = `<path d="M25 47h44c10 0 17-6 17-14s-7-14-16-14c-2-9-10-15-20-15-11 0-20 8-21 19-8 1-14 6-14 13 0 6 4 11 10 11Z" fill="none" stroke="${stroke}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+  if (code <= 1) {
+    target.innerHTML = `<circle cx="48" cy="32" r="13" fill="none" stroke="${stroke}" stroke-width="1.5"/><path d="M48 8v8M48 48v8M24 32h8M64 32h8M31 15l6 6M59 43l6 6M65 15l-6 6M37 43l-6 6" fill="none" stroke="${stroke}" stroke-width="1.3" stroke-linecap="round"/>`;
+    return;
+  }
+
+  if (code === 2 || code === 3) {
+    target.innerHTML = code === 2
+      ? `<circle cx="64" cy="19" r="11" fill="none" stroke="${stroke}" stroke-width="1.3"/>${cloud}`
+      : cloud;
+    return;
+  }
+
+  if (code === 45 || code === 48) {
+    target.innerHTML = `${cloud}<path d="M23 53h50M31 59h38" fill="none" stroke="${stroke}" stroke-width="1.3" stroke-linecap="round"/>`;
+    return;
+  }
+
+  if (code >= 71 && code <= 86) {
+    target.innerHTML = `${cloud}<circle cx="35" cy="56" r="1.4" fill="${stroke}"/><circle cx="49" cy="58" r="1.4" fill="${stroke}"/><circle cx="63" cy="55" r="1.4" fill="${stroke}"/>`;
+    return;
+  }
+
+  if (code >= 95) {
+    target.innerHTML = `${cloud}<path d="M52 48l-7 9h7l-4 7 12-12h-7l5-4Z" fill="none" stroke="${stroke}" stroke-width="1.4" stroke-linejoin="round"/>`;
+    return;
+  }
+
+  target.innerHTML = `${cloud}<path d="M35 53l-3 7M50 53l-3 7M65 53l-3 7" fill="none" stroke="${stroke}" stroke-width="1.3" stroke-linecap="round"/>`;
+};
+
+const renderElectricityChart = (root: HTMLElement, values: number[]) => {
+  const path = root.querySelector<SVGPathElement>('[data-snapshot-electricity-chart-path]');
+  if (!path || values.length === 0) return;
+
+  const hourly = Array.from({ length: Math.ceil(values.length / 4) }, (_, index) => {
+    const chunk = values.slice(index * 4, index * 4 + 4);
+    return chunk.reduce((sum, value) => sum + value, 0) / chunk.length;
+  }).slice(0, 24);
+
+  const minimum = Math.min(...hourly);
+  const maximum = Math.max(...hourly);
+  const span = Math.max(maximum - minimum, 0.001);
+  const width = 240;
+  const left = 6;
+  const right = 234;
+  const bottom = 52;
+  const top = 6;
+  const step = hourly.length > 1 ? (right - left) / (hourly.length - 1) : 0;
+
+  const commands = hourly.map((value, index) => {
+    const x = left + index * step;
+    const normalized = (value - minimum) / span;
+    const y = bottom - normalized * (bottom - top);
+    return `M${x.toFixed(2)} ${bottom}V${y.toFixed(2)}`;
+  });
+
+  path.setAttribute('d', commands.join(''));
+  path.setAttribute('vector-effect', 'non-scaling-stroke');
+  path.closest('svg')?.setAttribute('data-chart-points', String(hourly.length));
+};
+
+const renderEuriborChart = (root: HTMLElement, points: SnapshotSeriesPoint[]) => {
+  const path = root.querySelector<SVGPathElement>('[data-snapshot-euribor-chart-path]');
+  if (!path) return;
+
+  const values = points.flatMap((point) => isFiniteNumber(point.value) ? [point.value] : []);
+  if (values.length < 2) {
+    path.removeAttribute('d');
+    return;
+  }
+
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const span = Math.max(maximum - minimum, 0.001);
+  const width = 220;
+  const height = 64;
+  const padX = 5;
+  const padY = 6;
+
+  const d = values.map((value, index) => {
+    const x = padX + (index / (values.length - 1)) * (width - padX * 2);
+    const y = padY + (1 - (value - minimum) / span) * (height - padY * 2);
+    return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join(' ');
+
+  path.setAttribute('d', d);
+  path.setAttribute('vector-effect', 'non-scaling-stroke');
+  setText(root, '[data-snapshot-euribor-chart-high]', maximum.toFixed(1));
+  setText(root, '[data-snapshot-euribor-chart-low]', minimum.toFixed(1));
+};
+
 const loadWeather = async (root: HTMLElement) => {
   const response = await fetch(buildWeatherUrl(), {
     headers: { Accept: 'application/json' },
@@ -165,6 +269,7 @@ const loadWeather = async (root: HTMLElement) => {
   setText(root, '[data-snapshot-weather-condition]', WEATHER_DESCRIPTIONS[code] ?? 'Variable weather');
   setText(root, '[data-snapshot-weather-low]', isFiniteNumber(low) ? String(Math.round(low)) : '--');
   setText(root, '[data-snapshot-weather-high]', isFiniteNumber(high) ? String(Math.round(high)) : '--');
+  renderWeatherIcon(root, code);
 };
 
 const loadElectricity = async (root: HTMLElement) => {
@@ -214,6 +319,7 @@ const loadElectricity = async (root: HTMLElement) => {
   setText(root, '[data-snapshot-electricity-average]', formatPrice(average));
   setText(root, '[data-snapshot-electricity-low]', formatPrice(low));
   setText(root, '[data-snapshot-electricity-high]', formatPrice(high));
+  renderElectricityChart(root, values);
 };
 
 const applyTone = (element: HTMLElement, value: number) => {
@@ -286,6 +392,10 @@ const loadRates = async (root: HTMLElement) => {
       ? formatRateChange(euriborSeries.change1y)
       : 'N/A'
   );
+
+  if (euriborSeries && Array.isArray(euriborSeries.points)) {
+    renderEuriborChart(root, euriborSeries.points as SnapshotSeriesPoint[]);
+  }
 };
 
 export const initCurrentSnapshot = () => {
