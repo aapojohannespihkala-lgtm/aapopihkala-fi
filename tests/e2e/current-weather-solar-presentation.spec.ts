@@ -106,10 +106,12 @@ test('Current renders the taller solar orbit without distorting the sun marker',
   expect(geometry).not.toBeNull();
   if (!geometry) return;
 
-  const expected = projectSolarDisplayEllipse(geometry.cy, geometry.ry);
+  // Weather serializes raw SVG geometry to two decimals before the presentation layer reads it.
+  const expected = projectSolarDisplayEllipse(
+    Number(geometry.cy.toFixed(2)),
+    Number(geometry.ry.toFixed(2))
+  );
   const svg = page.locator('[data-weather-solar-arc]');
-  const visibleOrbit = page.locator('[data-weather-solar-orbit-visible]');
-  const hiddenOrbit = page.locator('[data-weather-solar-orbit-hidden]');
   const horizon = page.locator('[data-weather-solar-horizon]');
   const marker = page.locator('[data-weather-sun-position]');
 
