@@ -72,6 +72,7 @@ test('aligns electricity decimal points and clock colons on one annotation axis'
 
   const inspectionLabel = page.locator('[data-electricity-inspection-label]');
   const inspectionLine = page.locator('[data-electricity-inspection-line]');
+  const inspectionRange = page.locator('[data-electricity-inspection-range]');
   await expect(inspectionLabel).toHaveAttribute('opacity', '1');
 
   await expect.poll(async () =>
@@ -106,6 +107,9 @@ test('aligns electricity decimal points and clock colons on one annotation axis'
       });
     })
   ).toBe(true);
+
+  const initialInspectionRange = await inspectionRange.getAttribute('data-full-clock-range');
+  expect(initialInspectionRange).toMatch(/^\d{2}:\d{2} - \d{2}:\d{2}$/);
 
   const chartMetrics = await page.evaluate(() => {
     const svg = document.querySelector<SVGSVGElement>('[data-electricity-chart]');
@@ -148,10 +152,13 @@ test('aligns electricity decimal points and clock colons on one annotation axis'
   await moveInspectionToSvgX(chartMetrics.lowX + quarterWidth / 2);
   await expectInspectionCentered();
   await expect(lowLabel).toHaveAttribute('opacity', '0');
+  await expect.poll(async () => inspectionRange.getAttribute('data-full-clock-range')).not.toBe(initialInspectionRange);
+  const lowInspectionRange = await inspectionRange.getAttribute('data-full-clock-range');
 
   await moveInspectionToSvgX(chartMetrics.lowX + chartMetrics.lowWidth + quarterWidth / 2);
   await expectInspectionCentered();
   await expect(lowLabel).toHaveAttribute('opacity', '1');
+  await expect.poll(async () => inspectionRange.getAttribute('data-full-clock-range')).not.toBe(lowInspectionRange);
 
   await moveInspectionToSvgX(chartMetrics.plotRight - quarterWidth / 2);
   await expectInspectionCentered();
