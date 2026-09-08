@@ -82,7 +82,7 @@ const canonicalUrl = `${site.url}/current/`;
 
       const ratesTrends = document.querySelector('.markets-macro')
       if (ratesTrends instanceof HTMLElement) {
-        ratesTrends.dataset.currentSection = 'rates'
+        ratesTrends.setAttribute('data-current-mobile-section', 'rates')
         ratesTrends.setAttribute('data-current-rates-trends', '')
       }
     </script>
