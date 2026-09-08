@@ -162,10 +162,11 @@ test.describe('Current content-driven section navigation', () => {
       const initial = await readSectionGeometry(page);
       expect(initial.documentWidth).toBeLessThanOrEqual(initial.viewportWidth + 1);
 
-      for (const name of ['weather', 'electricity', 'markets', 'rates']) {
+      for (const name of ['weather', 'electricity', 'markets']) {
         expect(initial.sections[name]?.inlineMinHeight).toBe('');
         expect(initial.sections[name]?.computedMinHeight).toBe('0px');
       }
+      expect(initial.sections.rates).toBeUndefined();
 
       await expectPortfolioMatrix(page, viewport.width <= 820);
 
@@ -175,10 +176,6 @@ test.describe('Current content-driven section navigation', () => {
 
       await nav.click();
       await expectSectionDividerMaskedByHeader(page, 'markets');
-      await expect.poll(async () => nav.getAttribute('aria-label')).toContain('rates');
-
-      await nav.click();
-      await expectSectionDividerMaskedByHeader(page, 'rates');
       await expect.poll(async () => nav.getAttribute('aria-label')).toContain('Back to Current top');
     });
   }
