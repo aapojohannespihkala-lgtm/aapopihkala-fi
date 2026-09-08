@@ -324,8 +324,8 @@ const loadResilientPortfolio = async () => {
   const byId = new Map<string, PortfolioItem>();
   let source = '';
   let version = 0;
-  let expected = PORTFOLIO_ORDER.length;
-  let liveExpected = PORTFOLIO_ORDER.length;
+  let expected: number = PORTFOLIO_ORDER.length;
+  let liveExpected: number = PORTFOLIO_ORDER.length;
 
   for (let attempt = 0; attempt < RESILIENT_ATTEMPTS; attempt += 1) {
     const response = await getResilientPortfolio();
