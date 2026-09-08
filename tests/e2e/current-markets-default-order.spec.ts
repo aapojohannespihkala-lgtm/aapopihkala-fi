@@ -122,5 +122,10 @@ for (const viewport of [
     await expect(marketHeader).toHaveAttribute('aria-sort', 'ascending');
     await expect(marketButton).toHaveAttribute('aria-label', 'Sort holdings alphabetically Z to A');
     await expect(year1Header).toHaveAttribute('aria-sort', 'none');
+
+    await marketButton.click();
+    await expect.poll(loadedOrder).toEqual(['remedy', 'marimekko', 'ishares-world']);
+    await expect(marketHeader).toHaveAttribute('aria-sort', 'descending');
+    await expect(marketButton).toHaveAttribute('aria-label', 'Sort holdings alphabetically A to Z');
   });
 }
