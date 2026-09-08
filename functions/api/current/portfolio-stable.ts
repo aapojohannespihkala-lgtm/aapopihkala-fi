@@ -41,8 +41,8 @@ type OpRecoverySpec = {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const READER_BASE = 'https://r.jina.ai/';
 const RECOVERY_FETCH_TIMEOUT_MS = 2_500;
-const RECOVERY_TASK_TIMEOUT_MS = 6_000;
-const RECOVERY_ATTEMPTS = 2;
+const RECOVERY_TASK_TIMEOUT_MS = 8_500;
+const RECOVERY_ATTEMPTS = 3;
 
 const OP_RECOVERY_SPECS: OpRecoverySpec[] = [
   {
@@ -309,7 +309,7 @@ export const onRequestGet = async () => {
       items,
       unavailable,
       source: recovered.length > 0 ? `${body.source} + OP official reader fallback` : body.source,
-      version: Math.max(body.version ?? 0, 11),
+      version: Math.max(body.version ?? 0, 12),
     }),
     {
       status: response.status,
