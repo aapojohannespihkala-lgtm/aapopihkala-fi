@@ -457,38 +457,83 @@ export const initCurrentMarkets = () => {
 
   for (const id of SERIES_IDS) bindChartInteraction(id);
 
+  const clearMarketError = () => {
+    delete root.dataset.marketsError;
+    if (!errorTarget) return;
+    errorTarget.hidden = true;
+    delete errorTarget.dataset.errorDetail;
+    errorTarget.removeAttribute('title');
+  };
+
+  const showMarketError = (error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    root.dataset.marketsError = message;
+    root.setAttribute('aria-busy', 'false');
+
+    if (errorTarget) {
+      errorTarget.hidden = false;
+      errorTarget.dataset.errorDetail = message;
+      errorTarget.title = message;
+    }
+
+    console.error('[current-markets] Failed to load market feed', {
+      endpoint: MARKETS_API_URL,
+      message,
+      error,
+    });
+  };
+
   const loadMarkets = async () => {
     root.setAttribute('aria-busy', 'true');
-    if (errorTarget) errorTarget.hidden = true;
+    clearMarketError();
 
     try {
-      const response = await fetch(MARKETS_API_URL, {
+      const requestUrl = `${MARKETS_API_URL}?_=${Date.now()}`;
+      const response = await fetch(requestUrl, {
         headers: { Accept: 'application/json' },
         cache: 'no-store',
       });
+      const responseBody = await response.text();
+      const responsePreview = responseBody.replace(/\s+/g, ' ').trim().slice(0, 160);
 
-      if (!response.ok) throw new Error(`Markets request failed: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(
+          `Markets request failed: ${response.status}${
+            responsePreview ? ` - ${responsePreview}` : ''
+          }`
+        );
+      }
 
-      const data = (await response.json()) as MarketsResponse;
+      let data: MarketsResponse;
+      try {
+        data = JSON.parse(responseBody) as MarketsResponse;
+      } catch {
+        const contentType = response.headers.get('content-type') || 'unknown content type';
+        throw new Error(`Markets response was not valid JSON (${contentType})`);
+      }
+
       if (!Array.isArray(data.items)) throw new Error('Markets response contained no data');
 
       const items = data.items.filter(isMacroItem);
       if (items.length !== MARKET_IDS.size) throw new Error('Markets response was incomplete');
 
       const seriesItems = Array.isArray(data.series) ? data.series.filter(isMarketSeries) : [];
+      if (!seriesItems.some((series) => series.id === 'euribor-3m')) {
+        throw new Error('Markets response contained no Euribor trend series');
+      }
 
       renderItems(items);
       renderSeries(seriesItems);
       root.setAttribute('aria-busy', 'false');
+      clearMarketError();
 
       window.dispatchEvent(
         new CustomEvent('current:data-updated', {
           detail: { source: 'markets', at: new Date().toISOString() },
         })
       );
-    } catch {
-      root.setAttribute('aria-busy', 'false');
-      if (errorTarget) errorTarget.hidden = false;
+    } catch (error) {
+      showMarketError(error);
     }
   };
 
