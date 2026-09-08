@@ -1,4 +1,4 @@
-name: Current2 live data smoke
+name: Current live data smoke
 
 on:
   push:
@@ -7,14 +7,14 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: current2-live-data-smoke
+  group: current-live-data-smoke
   cancel-in-progress: true
 
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify live Current2 portfolio data
+      - name: Verify live Current portfolio data
         shell: bash
         run: |
           set -euo pipefail
@@ -22,7 +22,7 @@ jobs:
           url="https://aapopihkala.fi/api/current/markets?portfolio=1&live_smoke=${GITHUB_RUN_ID}"
 
           for attempt in $(seq 1 18); do
-            echo "Current2 live data attempt ${attempt}/18"
+            echo "Current live portfolio attempt ${attempt}/18"
 
             if curl \
               --fail \
@@ -32,11 +32,11 @@ jobs:
               --header 'Accept: application/json' \
               --header 'Cache-Control: no-cache' \
               "$url" \
-              --output current2-live.json; then
+              --output current-portfolio-live.json; then
               if node <<'NODE'
           const fs = require('node:fs');
 
-          const body = JSON.parse(fs.readFileSync('current2-live.json', 'utf8'));
+          const body = JSON.parse(fs.readFileSync('current-portfolio-live.json', 'utf8'));
           const periods = ['today', 'week1', 'month1', 'month3', 'month6', 'ytd', 'year1', 'year3', 'year5'];
           const items = Array.isArray(body.items) ? body.items : [];
           const unavailable = Array.isArray(body.unavailable) ? body.unavailable : [];
@@ -87,11 +87,11 @@ jobs:
           requirePeriods('op-forest-owner-b', opForestPeriods);
 
           if (failures.length > 0) {
-            console.error(`Current2 live data incomplete: ${failures.join(' | ')}`);
+            console.error(`Current live portfolio incomplete: ${failures.join(' | ')}`);
             process.exit(1);
           }
 
-          console.log(`Current2 live portfolio verified: ${items.length}/19 rows, no unavailable sources.`);
+          console.log(`Current live portfolio verified: ${items.length}/19 rows, no unavailable sources.`);
           NODE
               then
                 exit 0
@@ -103,9 +103,9 @@ jobs:
             fi
           done
 
-          echo "Current2 live data did not reach the required coverage." >&2
-          if [[ -f current2-live.json ]]; then
-            cat current2-live.json >&2
+          echo "Current live portfolio did not reach the required coverage." >&2
+          if [[ -f current-portfolio-live.json ]]; then
+            cat current-portfolio-live.json >&2
           fi
           exit 1
 

@@ -124,6 +124,4 @@ Current Markets -kehityksen aikana `functions/api/current/`-hakemistoon on kerty
 - Keskitetään 19 portfolio-kohteen pysyvä metadata, järjestys ja periodisopimus yhteen kanoniseen määrittelyyn, jota backend, frontend ja testit voivat käyttää tarkoituksenmukaisesti ilman käsin synkronoitavia rinnakkaislistoja.
 - Erota ulkoiset lähteet selkeiksi adaptereiksi tai muuten rajatuiksi vastuiksi, erityisesti Yahoo-, Nordnet-, OP- ja Bank of Finland -poluissa. Timeout-, retry-, parseri- ja fallback-logiikan pitää olla lähdekohtaisesti testattavaa.
 - Pidä yhteinen data-contract selkeänä: aidosti puuttuva periodi saa olla `N/A`, mutta puuttuva rivi tai rikkoutunut lähdesopimus pitää erottaa siitä.
-- Arvioi `/current2/`-reitin pysyvä rooli. Jos sitä tarvitaan diagnostisena layout- ja viewport-laboratoriona, dokumentoi tämä yksiselitteisesti. Jos sen tehtävä on pääosin siirtynyt varsinaiseen Currentiin, suunnittele myöhempi poistaminen tai supistaminen.
-- Päivitä Current2-nimiset tuotantovalvonnat ja dokumentaatiot neutraalimpaan Current/portfolio-nimistöön silloin, kun ne eivät enää kuvaa vain `/current2/`-reittiä.
 - Yhtenäistä `wrangler.jsonc`:n Worker-first-reittisopimus ja `worker/index.ts`:n todellinen API-reititys niin, että kaikki Currentin Worker-käsittelemät reitit ovat konfiguraatiossa ymmärrettävissä ilman historiallista poikkeuslogiikkaa.
