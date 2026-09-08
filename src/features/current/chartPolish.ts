@@ -1,5 +1,6 @@
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const SEPARATOR_GAP = 3;
+// Decimal points and clock colons intentionally share the local x=0 annotation axis.
 
 const installPolishStyles = () => {
   if (document.getElementById('current-chart-polish-styles')) return;
