@@ -32,14 +32,10 @@
     font-size: var(--current-mobile-macro-value) !important;
   }
 
-  /* Weather: make the content itself consume the aligned mobile viewport so
-     spare height is distributed through the forecast instead of collecting
-     below the data footer. The daily SVG keeps its intrinsic 124px geometry. */
-  .current-shell .current-section-wrap[data-current-section='weather'] .current-weather {
-    display: grid;
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-    min-height: var(--current-mobile-section-viewport);
-    box-sizing: border-box;
+  /* Weather: use more of the screen through the measured hierarchy rather
+     than by enlarging microcopy. The daily SVG stays at its intrinsic mobile
+     124px height so its x positions remain aligned with the five-day grid. */
+  .current-shell .current-section-wrap .current-weather {
     padding-top: 22px;
   }
 
@@ -61,8 +57,6 @@
   }
 
   .current-shell .current-weather .weather-days {
-    display: grid;
-    align-content: center;
     padding: 10px 0 4px;
   }
 
@@ -181,7 +175,7 @@
     --current-mobile-macro-value: 1.45rem;
   }
 
-  .current-shell .current-section-wrap[data-current-section='weather'] .current-weather {
+  .current-shell .current-section-wrap .current-weather {
     padding-top: 10px;
   }
 
@@ -217,10 +211,6 @@
 
   .current-shell .current-weather .weather-hours {
     padding-bottom: 4px;
-  }
-
-  .current-shell .current-weather .weather-days {
-    align-content: start;
   }
 
   .current-shell .current-weather .weather-hour-grid .weather-hour__icon {
