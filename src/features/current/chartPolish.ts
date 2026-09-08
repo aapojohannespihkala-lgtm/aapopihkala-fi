@@ -115,6 +115,31 @@ const splitClockRange = (value: string) => {
   return { start: match[1], end: match[2] };
 };
 
+const readFullClockRange = (
+  group: SVGGElement,
+  rangeNode: SVGTextElement,
+  rangeEndNode: SVGTextElement | null
+) => {
+  const candidates = [
+    group.dataset.windowRange,
+    rangeNode.dataset.fullClockRange,
+    rangeNode.textContent,
+  ];
+
+  for (const candidate of candidates) {
+    const value = candidate?.trim() ?? '';
+    if (splitClockRange(value)) return value;
+  }
+
+  const start = (rangeNode.textContent?.trim() ?? '').replace(/\s*-\s*$/, '');
+  const end = rangeEndNode?.textContent?.trim() ?? '';
+  if (/^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end)) {
+    return `${start} - ${end}`;
+  }
+
+  return '';
+};
+
 const normalizeElectricityGroup = (
   group: SVGGElement,
   centerX?: number
@@ -139,13 +164,7 @@ const normalizeElectricityGroup = (
   valueNode.setAttribute('y', '11');
   valueNode.setAttribute('text-anchor', 'middle');
 
-  const visibleRange = rangeNode.textContent?.trim() ?? '';
-  const visibleParsed = splitClockRange(visibleRange);
-  if (visibleParsed) rangeNode.dataset.fullClockRange = visibleRange;
-
-  const fullRange = visibleParsed
-    ? visibleRange
-    : rangeNode.dataset.fullClockRange ?? '';
+  const fullRange = readFullClockRange(group, rangeNode, rangeEndNode);
   const parsed = splitClockRange(fullRange);
 
   if (parsed) {
