@@ -76,6 +76,7 @@ const positionNowMarker = (marker: HTMLElement) => {
   marker.style.left = `${clamped}%`;
 };
 
+// Only capture values while the base snapshot labels still identify their original roles.
 const captureBaseElectricity = (root: HTMLElement) => {
   const hero = root.querySelector<HTMLElement>('[data-snapshot-electricity-now]');
   const heroLabel = root.querySelector<HTMLElement>('.snapshot-electricity__value .snapshot-micro');
