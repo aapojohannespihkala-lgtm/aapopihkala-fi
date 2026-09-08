@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
+// Keep these fixtures deterministic so screenshot-derived spacing regressions are measurable.
 const weatherFixture = {
   current: {
     time: '2026-09-08T15:08',
