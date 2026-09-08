@@ -9,36 +9,6 @@
   </svg>
 </button>
 
-<aside
-  class="current-section-source-rail"
-  data-current-mobile-source-rail
-  data-current-source="weather"
-  aria-label="Current data source"
->
-  <p data-current-source-item="weather">
-    DATA /
-    <a href="https://open-meteo.com/" target="_blank" rel="noopener">OPEN-METEO</a>
-    · CC BY 4.0 · 15 MIN
-  </p>
-  <p data-current-source-item="electricity">
-    DATA /
-    <a href="https://www.porssisahko.net/api-v1" target="_blank" rel="noopener">PÖRSSISÄHKÖ.NET</a>
-    · 15 MIN · VAT INCLUDED
-  </p>
-  <p data-current-source-item="markets">
-    DATA /
-    <a href="https://finance.yahoo.com/" target="_blank" rel="noopener nofollow">YAHOO FINANCE</a>
-  </p>
-  <p data-current-source-item="rates">
-    DATA /
-    <a href="https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/euribor-rates/" target="_blank" rel="noopener">BANK OF FINLAND</a>
-    ·
-    <a href="https://data.ecb.europa.eu/" target="_blank" rel="noopener">ECB</a>
-    ·
-    <a href="https://stooq.com/" target="_blank" rel="noopener nofollow">STOOQ</a>
-  </p>
-</aside>
-
 <style is:global>
   .current-section-nav-button {
     position: fixed;
@@ -97,7 +67,7 @@
     transform: translate(-50%, -1px);
   }
 
-  .current-section-source-rail {
+  .current-mobile-source-footer {
     display: none;
   }
 
@@ -111,48 +81,6 @@
     .current-section-nav-button svg {
       width: 14px;
       height: 10px;
-    }
-
-    .current-section-source-rail {
-      position: fixed;
-      left: 24px;
-      right: 24px;
-      bottom: 62px;
-      z-index: 110;
-      display: block;
-      min-height: 24px;
-      padding-top: 8px;
-      border-top: 1px solid color-mix(in srgb, var(--line-soft) 58%, transparent);
-      background: var(--page);
-      color: var(--stone-light);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.39rem;
-      font-weight: 500;
-      line-height: 1.45;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
-    .current-section-source-rail p {
-      display: none;
-      margin: 0;
-    }
-
-    .current-section-source-rail[data-current-source='weather'] [data-current-source-item='weather'],
-    .current-section-source-rail[data-current-source='electricity'] [data-current-source-item='electricity'],
-    .current-section-source-rail[data-current-source='markets'] [data-current-source-item='markets'],
-    .current-section-source-rail[data-current-source='rates'] [data-current-source-item='rates'] {
-      display: block;
-    }
-
-    .current-section-source-rail a {
-      color: var(--stone);
-      text-decoration: none;
-    }
-
-    .current-section-source-rail a:hover,
-    .current-section-source-rail a:focus-visible {
-      color: var(--moss-deep);
     }
   }
 
@@ -171,7 +99,6 @@
     if (button.dataset.initialized === 'true') return
     button.dataset.initialized = 'true'
 
-    const sourceRail = document.querySelector('[data-current-mobile-source-rail]')
     const reducedMotion = () =>
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -191,17 +118,38 @@
     const getMaskedSectionTop = () =>
       Math.max(0, getTopbarHeight() - SECTION_DIVIDER_MASK_INSET)
 
+    const appendSourceFooter = (section, className, html) => {
+      if (!(section instanceof HTMLElement)) return
+      if (section.querySelector(`.${className}`)) return
+
+      const footer = document.createElement('footer')
+      footer.className = `current-mobile-source-footer ${className}`
+      footer.setAttribute('aria-label', 'Current data source')
+      footer.innerHTML = `<p>${html}</p>`
+      section.append(footer)
+    }
+
+    const ensureSectionSourceFooters = () => {
+      const markets = document.querySelector('[data-current-section="markets"]')
+      appendSourceFooter(
+        markets,
+        'current-mobile-source-footer--markets',
+        'DATA / <a href="https://finance.yahoo.com/" target="_blank" rel="noopener nofollow">YAHOO FINANCE</a>'
+      )
+
+      const rates = document.querySelector('[data-current-rates-trends]')
+      appendSourceFooter(
+        rates,
+        'current-mobile-source-footer--rates',
+        'DATA / <a href="https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/euribor-rates/" target="_blank" rel="noopener">BANK OF FINLAND</a> · <a href="https://data.ecb.europa.eu/" target="_blank" rel="noopener">ECB</a> · <a href="https://stooq.com/" target="_blank" rel="noopener nofollow">STOOQ</a>'
+      )
+    }
+
     let sections = []
     let currentTarget = null
 
     const getSectionScrollTop = (section) =>
       Math.max(0, getDocumentTop(section) - getMaskedSectionTop())
-
-    const updateSourceRail = (section) => {
-      if (!(sourceRail instanceof HTMLElement) || !(section instanceof HTMLElement)) return
-      const source = section.dataset.currentSection || section.dataset.currentMobileSection || ''
-      sourceRail.dataset.currentSource = source
-    }
 
     const updateState = () => {
       if (!sections.length) return
@@ -213,8 +161,6 @@
       sections.forEach((section, index) => {
         if (getDocumentTop(section) <= threshold) currentIndex = index
       })
-
-      updateSourceRail(sections[currentIndex])
 
       if (currentIndex < sections.length - 1) {
         currentTarget = sections[currentIndex + 1]
@@ -230,6 +176,8 @@
     }
 
     const resolveSections = () => {
+      ensureSectionSourceFooters()
+
       const selector = mobileSections.matches
         ? '[data-current-section], [data-current-mobile-section]'
         : '[data-current-section]'
