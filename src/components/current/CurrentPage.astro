@@ -96,6 +96,59 @@ const canonicalUrl = `${site.url}/current/`;
         syncRatesSection()
         mobileRates.addEventListener('change', syncRatesSection)
       }
+
+      const marketsUpdatedTarget = document.querySelector('[data-markets-observation]')
+      if (marketsUpdatedTarget instanceof HTMLElement) {
+        const marketsUpdatedLabel = marketsUpdatedTarget.parentElement
+        if (marketsUpdatedLabel instanceof HTMLElement) {
+          marketsUpdatedLabel.replaceChildren(
+            document.createTextNode('UPDATED / '),
+            marketsUpdatedTarget
+          )
+        }
+
+        const renderLatestMarketUpdate = (data) => {
+          const candidates = []
+          const collectObservedAt = (entry) => {
+            if (!entry || typeof entry !== 'object') return
+            if (typeof entry.observedAt === 'string' && entry.observedAt) {
+              candidates.push(entry.observedAt)
+            }
+            if (Array.isArray(entry.points)) {
+              for (const point of entry.points) collectObservedAt(point)
+            }
+          }
+
+          if (Array.isArray(data?.items)) {
+            for (const item of data.items) collectObservedAt(item)
+          }
+          if (Array.isArray(data?.series)) {
+            for (const series of data.series) collectObservedAt(series)
+          }
+
+          candidates.sort((a, b) => a.localeCompare(b))
+          const latest = candidates.at(-1)
+          if (latest) marketsUpdatedTarget.textContent = latest
+        }
+
+        const refreshLatestMarketUpdate = async () => {
+          try {
+            const response = await fetch(`/api/current/markets?_updated=${Date.now()}`, {
+              headers: { Accept: 'application/json' },
+              cache: 'no-store',
+            })
+            if (!response.ok) return
+            renderLatestMarketUpdate(await response.json())
+          } catch {
+            // Keep the latest successfully rendered date if the refresh fails.
+          }
+        }
+
+        window.addEventListener('current:data-updated', (event) => {
+          if (!(event instanceof CustomEvent) || event.detail?.source !== 'markets') return
+          void refreshLatestMarketUpdate()
+        })
+      }
     </script>
   </main>
 
