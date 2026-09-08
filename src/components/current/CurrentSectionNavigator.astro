@@ -201,6 +201,15 @@
       weather.style.setProperty('--current-mobile-weather-start-offset', `${startOffset}px`)
     }
 
+    const statusStrip = document.querySelector('.current-status-strip')
+    const statusResizeObserver = typeof ResizeObserver === 'function'
+      ? new ResizeObserver(() => syncWeatherStartOffset())
+      : null
+
+    if (statusResizeObserver && statusStrip instanceof HTMLElement) {
+      statusResizeObserver.observe(statusStrip)
+    }
+
     const appendSourceFooter = (section, className, html) => {
       if (!(section instanceof HTMLElement)) return
       if (section.querySelector(`.${className}`)) return
