@@ -53,6 +53,53 @@ const ensureLayoutStyles = () => {
       letter-spacing: 0.07em;
     }
 
+    body:has(.snapshot-shell) .snapshot-calendar__month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 10px);
+      grid-auto-rows: 10px;
+      gap: 1px;
+      margin-top: 1px;
+      color: var(--stone);
+      font-size: 0.42rem;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__month-day {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      color: var(--stone-light);
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-past {
+      color: var(--ink-soft);
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-outside {
+      color: color-mix(in srgb, var(--stone-light) 48%, transparent);
+      font-size: 0.82em;
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-today {
+      color: var(--ink);
+      font-weight: 750;
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-today::after {
+      content: '';
+      position: absolute;
+      width: 11px;
+      height: 11px;
+      border: 1px solid var(--ink-soft);
+      border-radius: 50%;
+      box-sizing: border-box;
+    }
+
     body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
       min-width: 0;
       width: 172px;
@@ -147,6 +194,19 @@ const ensureLayoutStyles = () => {
         font-size: 0.43rem;
       }
 
+      body:has(.snapshot-shell) .snapshot-calendar__month-grid {
+        grid-template-columns: repeat(7, 6px);
+        grid-auto-rows: 6px;
+        gap: 1px;
+        margin-top: 1px;
+        font-size: 0.28rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__month-day.is-today::after {
+        width: 7px;
+        height: 7px;
+      }
+
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
         width: 88px;
         grid-column: 3;
@@ -201,6 +261,18 @@ const ensureLayoutStyles = () => {
         font-size: 0.37rem;
       }
 
+      body:has(.snapshot-shell) .snapshot-calendar__month-grid {
+        grid-template-columns: repeat(7, 5px);
+        grid-auto-rows: 5px;
+        gap: 1px;
+        font-size: 0.24rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__month-day.is-today::after {
+        width: 6px;
+        height: 6px;
+      }
+
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
         width: 80px;
       }
@@ -238,6 +310,22 @@ const WEEKDAY_NAMES: Record<string, string> = {
   SUN: 'SUNDAY',
 };
 
+const MONTH_INDEXES: Record<string, number> = {
+  JAN: 0,
+  FEB: 1,
+  MAR: 2,
+  APR: 3,
+  MAY: 4,
+  JUN: 5,
+  JUL: 6,
+  AUG: 7,
+  SEP: 8,
+  SEPT: 8,
+  OCT: 9,
+  NOV: 10,
+  DEC: 11,
+};
+
 const compactCalendarText = (root: HTMLElement) => {
   const meta = root.querySelector<HTMLElement>('.snapshot-titleblock__meta');
   const date = root.querySelector<HTMLElement>('[data-snapshot-calendar-date]');
@@ -271,6 +359,65 @@ const compactCalendarText = (root: HTMLElement) => {
   }
 };
 
+const renderMonthGrid = (root: HTMLElement) => {
+  const meta = root.querySelector<HTMLElement>('.snapshot-titleblock__meta');
+  const date = root.querySelector<HTMLElement>('[data-snapshot-calendar-date]');
+  if (!meta || !date) return;
+
+  const dateText = date.textContent?.trim() ?? '';
+  const dateMatch = dateText.match(/^(\d{2})\s+([A-Z]{3,4})\s+(\d{4})$/);
+  if (!dateMatch) return;
+
+  const [, dayToken, monthToken, yearToken] = dateMatch;
+  const month = MONTH_INDEXES[monthToken];
+  const day = Number(dayToken);
+  const year = Number(yearToken);
+  if (month === undefined || !Number.isInteger(day) || !Number.isInteger(year)) return;
+
+  const signature = `${year}-${month}-${day}`;
+  let grid = meta.querySelector<HTMLElement>('[data-snapshot-month-calendar]');
+  if (grid?.dataset.monthCalendarSignature === signature) return;
+
+  if (!grid) {
+    grid = document.createElement('div');
+    grid.className = 'snapshot-calendar__month-grid';
+    grid.dataset.snapshotMonthCalendar = 'true';
+    grid.setAttribute('aria-hidden', 'true');
+    meta.append(grid);
+  }
+
+  const firstDay = new Date(Date.UTC(year, month, 1));
+  const mondayOffset = (firstDay.getUTCDay() + 6) % 7;
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const cellCount = Math.ceil((mondayOffset + daysInMonth) / 7) * 7;
+  const cells: HTMLElement[] = [];
+
+  for (let index = 0; index < cellCount; index += 1) {
+    const cell = document.createElement('span');
+    cell.className = 'snapshot-calendar__month-day';
+    const calendarDay = index - mondayOffset + 1;
+
+    if (calendarDay < 1 || calendarDay > daysInMonth) {
+      cell.classList.add('is-outside');
+      cell.textContent = '·';
+    } else {
+      cell.dataset.snapshotMonthCalendarDay = String(calendarDay);
+      cell.textContent = String(calendarDay);
+
+      if (calendarDay < day) cell.classList.add('is-past');
+      if (calendarDay === day) {
+        cell.classList.add('is-today');
+        cell.dataset.snapshotMonthCalendarToday = 'true';
+      }
+    }
+
+    cells.push(cell);
+  }
+
+  grid.replaceChildren(...cells);
+  grid.dataset.monthCalendarSignature = signature;
+};
+
 const compactDaylightText = (root: HTMLElement) => {
   const daylight = root.querySelector<HTMLElement>('[data-snapshot-calendar-daylight]');
   if (!daylight) return;
@@ -289,6 +436,7 @@ const applyCalendarLayout = (root: HTMLElement) => {
 
   ensureLayoutStyles();
   compactCalendarText(root);
+  renderMonthGrid(root);
   compactDaylightText(root);
 
   let panel = root.querySelector<HTMLElement>('[data-snapshot-calendar-solar-panel]');
@@ -328,6 +476,7 @@ export const initSnapshotCalendarLayout = () => {
   const observer = new MutationObserver(() => {
     apply();
     compactCalendarText(root);
+    renderMonthGrid(root);
     compactDaylightText(root);
   });
 
