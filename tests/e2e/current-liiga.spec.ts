@@ -118,11 +118,11 @@ for (const viewport of [
     await expect(page.locator('[data-liiga-next-away-team]')).toHaveText('Ilves');
     await expect(page.locator('[data-liiga-next-home-mark]')).toHaveAttribute('href', '#liiga-match-mark-karpat');
     await expect(page.locator('[data-liiga-next-away-mark]')).toHaveAttribute('href', '#liiga-match-mark-ilves');
-    await expect(page.locator('[data-liiga-next-date]')).toHaveText('WED 16 SEP / 18:30');
+    await expect(page.locator('[data-liiga-next-date]')).toHaveText('WED 16 SEPT / 18:30');
     await expect(page.locator('[data-liiga-next-venue]')).toHaveText('AWAY / NEXT');
     await expect(page.locator('[data-liiga-next-home]')).toBeVisible();
     await expect(page.locator('[data-liiga-next-home-opponent]')).toHaveText('KooKoo');
-    await expect(page.locator('[data-liiga-next-home-date]')).toHaveText('FRI 25 SEP / 18:30');
+    await expect(page.locator('[data-liiga-next-home-date]')).toHaveText('FRI 25 SEPT / 18:30');
 
     await expect(page.locator('[data-liiga-position]')).toHaveText('3 / 17');
     await expect(page.locator('[data-liiga-position-meta]')).toHaveText('6 P / 3 GP');
