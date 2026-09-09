@@ -386,10 +386,28 @@ const loadMarkets = async (root: HTMLElement) => {
   setText(root, '.snapshot-markets .snapshot-kicker', 'TODAY / SELECTED PERFORMANCE');
 
   const byId = new Map<string, SnapshotPortfolioItem>();
+  const todayValues: number[] = [];
   for (const raw of data.items) {
     if (!raw || typeof raw !== 'object') continue;
     const item = raw as SnapshotPortfolioItem;
     if (typeof item.id === 'string') byId.set(item.id, item);
+    const value = item.changes?.today;
+    if (isFiniteNumber(value)) todayValues.push(value);
+  }
+
+  todayValues.sort((left, right) => left - right);
+  const medianTarget = root.querySelector<HTMLElement>('[data-snapshot-market-median]');
+  if (medianTarget) {
+    const midpoint = Math.floor(todayValues.length / 2);
+    const median = todayValues.length === 0
+      ? null
+      : todayValues.length % 2 === 1
+        ? todayValues[midpoint]
+        : (todayValues[midpoint - 1] + todayValues[midpoint]) / 2;
+
+    medianTarget.textContent = median === null ? 'N/A' : formatPercent(median);
+    medianTarget.classList.remove('is-positive', 'is-negative');
+    if (median !== null) applyTone(medianTarget, median);
   }
 
   for (const id of SELECTED_MARKETS) {
