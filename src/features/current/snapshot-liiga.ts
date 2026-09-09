@@ -372,24 +372,38 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__match {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      grid-template-columns: auto auto auto;
+      justify-content: center;
       align-items: center;
-      gap: 6px;
+      column-gap: 8px;
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__team {
-      gap: 4px;
-      overflow: hidden;
+      width: max-content;
+      gap: 3px;
+      overflow: visible;
     }
 
-    body:has(.snapshot-shell) .snapshot-liiga__team--away {
-      justify-content: end;
+    body:has(.snapshot-shell) .snapshot-liiga__team:not(.snapshot-liiga__team--away) b {
+      order: 1;
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga__team:not(.snapshot-liiga__team--away) .snapshot-liiga__mark-wrap {
+      order: 2;
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga__team--away .snapshot-liiga__mark-wrap {
+      order: 1;
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga__team--away b {
+      order: 2;
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__team b {
       overflow: hidden;
       color: var(--ink-soft);
-      font-size: 0.43rem;
+      font-size: 0.45rem;
       font-weight: 700;
       line-height: 1;
       letter-spacing: 0.035em;
@@ -399,8 +413,8 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__mark-wrap {
       flex: 0 0 auto;
-      width: 22px;
-      height: 22px;
+      width: 42px;
+      height: 42px;
       color: var(--ink-soft);
     }
 
@@ -412,7 +426,7 @@ const ensureStyles = () => {
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__match-center {
-      min-width: 50px;
+      min-width: 58px;
       display: grid;
       justify-items: center;
       align-content: center;
@@ -421,7 +435,7 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__score {
       color: var(--ink);
-      font-size: 0.86rem;
+      font-size: 0.9rem;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
       line-height: 0.9;
@@ -513,24 +527,28 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match {
-        gap: 4px;
+        column-gap: 5px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__mark-wrap {
-        width: 19px;
-        height: 19px;
+        width: 34px;
+        height: 34px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-liiga__team {
+        gap: 2px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__team b {
-        font-size: 0.36rem;
+        font-size: 0.37rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match-center {
-        min-width: 46px;
+        min-width: 48px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__score {
-        font-size: 0.72rem;
+        font-size: 0.76rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match-center time {
@@ -542,7 +560,7 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__score {
-        font-size: 0.84rem;
+        font-size: 0.88rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__match-center time {
@@ -581,21 +599,25 @@ const ensureStyles = () => {
         font-size: 0.24rem;
       }
 
+      body:has(.snapshot-shell) .snapshot-liiga__match {
+        column-gap: 4px;
+      }
+
       body:has(.snapshot-shell) .snapshot-liiga__mark-wrap {
-        width: 16px;
-        height: 16px;
+        width: 28px;
+        height: 28px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__team b {
-        font-size: 0.28rem;
+        font-size: 0.29rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match-center {
-        min-width: 40px;
+        min-width: 42px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__score {
-        font-size: 0.62rem;
+        font-size: 0.64rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match-center time,
@@ -604,7 +626,7 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__score {
-        font-size: 0.72rem;
+        font-size: 0.74rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__last {
