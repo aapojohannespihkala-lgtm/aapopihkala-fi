@@ -118,7 +118,7 @@ test('renders league-wide live and upcoming games with Current glyphs', async ({
     standingsPelicans.evaluate((node) => getComputedStyle(node).getPropertyValue('--liiga-mark-scale').trim()),
     clubsPelicans.evaluate((node) => getComputedStyle(node).getPropertyValue('--liiga-mark-scale').trim()),
   ]);
-  expect(opticalScales).toEqual(['1.17', '1.17', '1.17']);
+  expect(opticalScales.map(Number)).toEqual([1.17, 1.17, 1.17]);
 
   const standingsKEspoo = page.locator('[data-liiga-row="k-espoo"] [data-liiga-mark-id="k-espoo"]');
   const kEspooBalance = await standingsKEspoo.evaluate((node) => ({
