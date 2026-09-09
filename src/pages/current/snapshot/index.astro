@@ -116,6 +116,16 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     display: none;
   }
 
+  body:has(.snapshot-shell) .snapshot-panel__heading,
+  body:has(.snapshot-shell) .snapshot-panel__heading h2,
+  body:has(.snapshot-shell) .snapshot-electricity__stats {
+    border-color: var(--line);
+  }
+
+  body:has(.snapshot-shell) .snapshot-market-row {
+    border-bottom-color: var(--line-soft);
+  }
+
   body:has(.snapshot-shell) .snapshot-weather {
     grid-template-columns: minmax(0, 0.94fr) minmax(190px, 1.06fr);
     grid-template-rows: minmax(0, 1fr) auto;
@@ -259,7 +269,7 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast-time {
-      font-size: 0.4rem;
+      font-size: 0.44rem;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast-icon {
@@ -284,12 +294,12 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     }
 
     body:has(.snapshot-shell) .snapshot-source {
-      font-size: 0.35rem;
+      font-size: 0.4rem;
       line-height: 1.12;
     }
 
     body:has(.snapshot-shell) .snapshot-electricity__value .snapshot-micro {
-      font-size: 0.41rem;
+      font-size: 0.43rem;
       line-height: 1.15;
     }
 
@@ -298,19 +308,19 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     }
 
     body:has(.snapshot-shell) .snapshot-electricity__now-marker {
-      font-size: 0.4rem;
+      font-size: 0.43rem;
     }
 
     body:has(.snapshot-shell) .snapshot-electricity__now-marker strong {
-      font-size: 0.52rem;
+      font-size: 0.56rem;
     }
 
     body:has(.snapshot-shell) .snapshot-chart-labels {
-      font-size: 0.31rem;
+      font-size: 0.36rem;
     }
 
     body:has(.snapshot-shell) .snapshot-electricity__stats {
-      font-size: 0.39rem;
+      font-size: 0.42rem;
     }
 
     body:has(.snapshot-shell) .snapshot-electricity__stats dd {
@@ -342,7 +352,7 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
 
     body:has(.snapshot-shell) .snapshot-rates__change {
       margin-top: 2px;
-      font-size: 0.4rem;
+      font-size: 0.43rem;
       line-height: 1;
     }
 
@@ -351,7 +361,7 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     }
 
     body:has(.snapshot-shell) .snapshot-footer {
-      font-size: 0.29rem;
+      font-size: 0.34rem;
     }
 
     body:has(.snapshot-shell) .snapshot-footer > span:first-child {
@@ -364,7 +374,7 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
       bottom: 10px;
       min-height: 14px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.28rem;
+      font-size: 0.34rem;
       line-height: 1;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -394,7 +404,7 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast-time {
-      font-size: 0.35rem;
+      font-size: 0.39rem;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast-icon {
@@ -411,15 +421,15 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     }
 
     body:has(.snapshot-shell) .snapshot-source {
-      font-size: 0.3rem;
+      font-size: 0.34rem;
     }
 
     body:has(.snapshot-shell) .snapshot-electricity__value .snapshot-micro {
-      font-size: 0.35rem;
+      font-size: 0.38rem;
     }
 
     body:has(.snapshot-shell) .snapshot-electricity__stats {
-      font-size: 0.33rem;
+      font-size: 0.36rem;
     }
 
     body:has(.snapshot-shell) .snapshot-electricity__stats dd {
@@ -440,18 +450,18 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     }
 
     body:has(.snapshot-shell) .snapshot-rates__change {
-      font-size: 0.34rem;
+      font-size: 0.37rem;
     }
 
     body:has(.snapshot-shell) .snapshot-footer {
-      font-size: 0.25rem;
+      font-size: 0.29rem;
     }
 
     body:has(.snapshot-shell) [data-analytics-settings] {
       left: 16px;
       bottom: 7px;
       min-height: 12px;
-      font-size: 0.25rem;
+      font-size: 0.29rem;
     }
   }
 </style>

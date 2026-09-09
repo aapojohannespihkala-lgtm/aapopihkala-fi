@@ -144,11 +144,11 @@ const ensureLayoutStyles = () => {
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__weekday,
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
-        font-size: 0.34rem;
+        font-size: 0.39rem;
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
-        font-size: 0.37rem;
+        font-size: 0.43rem;
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
@@ -159,7 +159,7 @@ const ensureLayoutStyles = () => {
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar {
         grid-template-columns: auto minmax(36px, 1fr) auto;
         gap: 3px;
-        font-size: 0.39rem;
+        font-size: 0.41rem;
         letter-spacing: 0.03em;
       }
 
@@ -173,7 +173,7 @@ const ensureLayoutStyles = () => {
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__daylight {
         margin-top: 1px;
-        font-size: 0.42rem;
+        font-size: 0.44rem;
       }
     }
 
@@ -202,11 +202,11 @@ const ensureLayoutStyles = () => {
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__weekday,
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
-        font-size: 0.29rem;
+        font-size: 0.34rem;
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
-        font-size: 0.31rem;
+        font-size: 0.37rem;
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
@@ -216,7 +216,7 @@ const ensureLayoutStyles = () => {
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar {
         grid-template-columns: auto minmax(31px, 1fr) auto;
         gap: 2px;
-        font-size: 0.33rem;
+        font-size: 0.36rem;
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar svg {
@@ -228,7 +228,7 @@ const ensureLayoutStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__daylight {
-        font-size: 0.35rem;
+        font-size: 0.38rem;
       }
     }
   `;
