@@ -153,7 +153,7 @@ test.describe('Current Snapshot Liiga summary', () => {
 
     await expect(liiga).toBeVisible();
     await expect(page.locator('#snapshot-rates-label')).toHaveText('RATES / 04');
-    await expect(page.locator('#snapshot-liiga-label')).toHaveText('LIIGA / 04');
+    await expect(page.locator('#snapshot-liiga-label')).toHaveText('LIIGA / 05');
     await expect(heading.locator('a[href="/current/rates/"]')).toHaveCount(1);
     await expect(heading.locator('a[href="/current/rates/"]')).toHaveText('+');
     await expect(heading.locator('a[href="/current/liiga/"]')).toHaveCount(1);
@@ -174,12 +174,14 @@ test.describe('Current Snapshot Liiga summary', () => {
     );
     await expect(liiga).not.toContainText('GP');
     await expect(liiga.locator('[data-snapshot-liiga-state]')).toBeHidden();
-    await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('ILV');
+    await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('Ilves');
     await expect(liiga.locator('[data-snapshot-liiga-away-team]')).toHaveText('TPS');
     await expect(liiga.locator('[data-snapshot-liiga-score]')).toHaveText('18:30');
     await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('FRI 11 SEPT');
-    await expect(liiga.locator('[data-snapshot-liiga-last]')).toHaveText('LAST / ILV 3-2 IFK');
+    await expect(liiga.locator('[data-snapshot-liiga-last]')).toHaveText('LAST / Ilves 3-2 HIFK');
     await expect(liiga.locator('.snapshot-liiga__mark')).toHaveCount(2);
+    await expect(liiga.locator('.snapshot-liiga__source')).toHaveText('DATA / LIIGA');
+    await expect(page.locator('.snapshot-panel--rates .snapshot-source')).toHaveText('DATA / ECB · BANK OF FINLAND');
 
     const geometry = await page.evaluate(() => {
       const panel = document.querySelector<HTMLElement>('.snapshot-panel--rates');
@@ -253,8 +255,8 @@ test.describe('Current Snapshot Liiga summary', () => {
     await expect(liiga).toHaveClass(/is-live/);
     await expect(liiga.locator('[data-snapshot-liiga-state]')).toHaveText('LIVE');
     await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('43:17');
-    await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('TAP');
-    await expect(liiga.locator('[data-snapshot-liiga-away-team]')).toHaveText('ILV');
+    await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('Tappara');
+    await expect(liiga.locator('[data-snapshot-liiga-away-team]')).toHaveText('Ilves');
     await expect(liiga.locator('[data-snapshot-liiga-score]')).toHaveText('1-2');
     await expect(liiga.locator('[data-snapshot-liiga-comparison]')).toHaveText(
       'ILV 28 P · TPS 31 P · GAP -3 P',
