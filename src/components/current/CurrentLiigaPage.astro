@@ -125,132 +125,17 @@ const canonicalUrl = `${site.url}/current/liiga/`;
   }
 
   :global(.current-liiga .liiga-heading)::after {
-    content: none;
-  }
-
-  :global(.current-liiga .liiga-heading__ilves-mark) {
+    content: '';
     position: absolute;
     top: calc(100% + 22px);
     left: 50%;
     width: clamp(112px, 12vw, 146px);
     aspect-ratio: 1;
-    overflow: visible;
     pointer-events: none;
-    color: var(--moss-deep);
-    opacity: 0.92;
+    background-color: var(--current-liiga-mark-color);
+    -webkit-mask: url('/icons/current-ilves-mascot-emblem.svg') center / contain no-repeat;
+    mask: url('/icons/current-ilves-mascot-emblem.svg') center / contain no-repeat;
     transform: translateX(-50%);
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="ilves"] svg),
-  :global(.current-liiga [data-liiga-row="ilves"] .liiga-team-mark svg),
-  :global(.current-liiga .liiga-match-team.is-ilves .liiga-match-team__mark) {
-    background: none;
-    -webkit-mask: none;
-    mask: none;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="ilves"] svg path),
-  :global(.current-liiga [data-liiga-row="ilves"] .liiga-team-mark svg path),
-  :global(.current-liiga .liiga-match-team.is-ilves .liiga-match-team__mark use) {
-    opacity: 1;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="lukko"] svg),
-  :global(.current-liiga [data-liiga-row="lukko"] .liiga-team-mark svg),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-lukko"])) {
-    background-color: currentColor;
-    -webkit-mask: url('/icons/current-lukko-emblem.svg') center / contain no-repeat;
-    mask: url('/icons/current-lukko-emblem.svg') center / contain no-repeat;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="lukko"] svg path),
-  :global(.current-liiga [data-liiga-row="lukko"] .liiga-team-mark svg path),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-lukko"]) use) {
-    opacity: 0;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="kalpa"] svg),
-  :global(.current-liiga [data-liiga-row="kalpa"] .liiga-team-mark svg),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-kalpa"])) {
-    background-color: currentColor;
-    -webkit-mask: url('/icons/current-kalpa-emblem.svg') center / contain no-repeat;
-    mask: url('/icons/current-kalpa-emblem.svg') center / contain no-repeat;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="kalpa"] svg path),
-  :global(.current-liiga [data-liiga-row="kalpa"] .liiga-team-mark svg path),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-kalpa"]) use) {
-    opacity: 0;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="tappara"] svg),
-  :global(.current-liiga [data-liiga-row="tappara"] .liiga-team-mark svg),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-tappara"])) {
-    background-color: currentColor;
-    -webkit-mask: url('/icons/current-tappara-emblem.svg') center / contain no-repeat;
-    mask: url('/icons/current-tappara-emblem.svg') center / contain no-repeat;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="tappara"] svg path),
-  :global(.current-liiga [data-liiga-row="tappara"] .liiga-team-mark svg path),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-tappara"]) use) {
-    opacity: 0;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="pelicans"] svg),
-  :global(.current-liiga [data-liiga-row="pelicans"] .liiga-team-mark svg),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-pelicans"])) {
-    background-color: currentColor;
-    -webkit-mask: url('/icons/current-pelicans-emblem.svg') center / contain no-repeat;
-    mask: url('/icons/current-pelicans-emblem.svg') center / contain no-repeat;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="pelicans"] svg path),
-  :global(.current-liiga [data-liiga-row="pelicans"] .liiga-team-mark svg path),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-pelicans"]) use) {
-    opacity: 0;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="k-espoo"] svg),
-  :global(.current-liiga [data-liiga-row="k-espoo"] .liiga-team-mark svg),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-k-espoo"])) {
-    background-color: currentColor;
-    -webkit-mask: url('/icons/current-k-espoo-emblem.svg') center / contain no-repeat;
-    mask: url('/icons/current-k-espoo-emblem.svg') center / contain no-repeat;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="k-espoo"] svg path),
-  :global(.current-liiga [data-liiga-row="k-espoo"] .liiga-team-mark svg path),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-k-espoo"]) use) {
-    opacity: 0;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="jyp"] svg),
-  :global(.current-liiga [data-liiga-row="jyp"] .liiga-team-mark svg),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-jyp"])) {
-    background-color: currentColor;
-    -webkit-mask: url('/icons/current-jyp-emblem.svg') center / contain no-repeat;
-    mask: url('/icons/current-jyp-emblem.svg') center / contain no-repeat;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="jyp"] svg path),
-  :global(.current-liiga [data-liiga-row="jyp"] .liiga-team-mark svg path),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-jyp"]) use) {
-    opacity: 0;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="kookoo"] svg),
-  :global(.current-liiga [data-liiga-row="kookoo"] .liiga-team-mark svg),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-kookoo"])) {
-    background-color: currentColor;
-    -webkit-mask: url('/icons/current-kookoo-emblem.svg') center / contain no-repeat;
-    mask: url('/icons/current-kookoo-emblem.svg') center / contain no-repeat;
-  }
-
-  :global(.current-liiga [data-liiga-club-mark="kookoo"] svg path),
-  :global(.current-liiga [data-liiga-row="kookoo"] .liiga-team-mark svg path),
-  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-kookoo"]) use) {
-    opacity: 0;
   }
 
   @media (max-width: 640px) {
@@ -272,7 +157,7 @@ const canonicalUrl = `${site.url}/current/liiga/`;
       margin-bottom: 146px;
     }
 
-    :global(.current-liiga .liiga-heading__ilves-mark) {
+    :global(.current-liiga .liiga-heading)::after {
       top: calc(100% + 18px);
       width: 108px;
     }

@@ -1,4 +1,4 @@
-/* Keep Current Liiga glyphs fully monochrome across light and night modes. */
+/* One rendering and color system for every Current Liiga team mark. */
 [data-current-liiga] {
   --current-liiga-mark-color: #000000;
 }
@@ -8,13 +8,17 @@ html.site-night-mode [data-current-liiga] {
 }
 
 [data-current-liiga] .liiga-match-team__mark,
-[data-current-liiga] .liiga-match-team.is-ilves .liiga-match-team__mark,
 [data-current-liiga] .liiga-team-mark,
-[data-current-liiga] .liiga-row.is-ilves .liiga-team-mark,
-[data-current-liiga] .liiga-club-mark svg,
-[data-current-liiga] .liiga-club-mark[data-liiga-club-mark='ilves'] svg,
+[data-current-liiga] .liiga-club-mark,
+[data-current-liiga] .liiga-club-mark > svg,
 [data-current-liiga] svg[data-liiga-mark-id] {
   color: var(--current-liiga-mark-color) !important;
+}
+
+[data-current-liiga] .liiga-match-team__mark,
+[data-current-liiga] .liiga-team-mark svg,
+[data-current-liiga] .liiga-club-mark > svg,
+[data-current-liiga] svg[data-liiga-mark-id] {
   opacity: 1 !important;
 }
 
@@ -31,16 +35,218 @@ html.site-night-mode [data-current-liiga] {
   opacity: 1 !important;
 }
 
-[data-current-liiga] [data-liiga-club-mark='sport'] svg,
-[data-current-liiga] [data-liiga-row='sport'] .liiga-team-mark svg,
-[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-sport']) {
-  background-color: currentColor;
-  -webkit-mask: url('/icons/current-sport-emblem.svg') center / contain no-repeat;
-  mask: url('/icons/current-sport-emblem.svg') center / contain no-repeat;
+/* Custom SVG source for each club that has an approved Current emblem. */
+[data-current-liiga] [data-liiga-club-mark='hifk'],
+[data-current-liiga] [data-liiga-row='hifk'] {
+  --liiga-custom-mark: url('/icons/current-hifk-emblem.svg');
 }
 
-[data-current-liiga] [data-liiga-club-mark='sport'] svg path,
-[data-current-liiga] [data-liiga-row='sport'] .liiga-team-mark svg path,
-[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-sport']) use {
-  opacity: 0;
+[data-current-liiga] [data-liiga-club-mark='ilves'],
+[data-current-liiga] [data-liiga-row='ilves'] {
+  --liiga-custom-mark: url('/icons/current-ilves-mascot-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='jokerit'],
+[data-current-liiga] [data-liiga-row='jokerit'] {
+  --liiga-custom-mark: url('/icons/current-jokerit-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='jukurit'],
+[data-current-liiga] [data-liiga-row='jukurit'] {
+  --liiga-custom-mark: url('/icons/current-jukurit-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='jyp'],
+[data-current-liiga] [data-liiga-row='jyp'] {
+  --liiga-custom-mark: url('/icons/current-jyp-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='kalpa'],
+[data-current-liiga] [data-liiga-row='kalpa'] {
+  --liiga-custom-mark: url('/icons/current-kalpa-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='k-espoo'],
+[data-current-liiga] [data-liiga-row='k-espoo'] {
+  --liiga-custom-mark: url('/icons/current-k-espoo-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='kookoo'],
+[data-current-liiga] [data-liiga-row='kookoo'] {
+  --liiga-custom-mark: url('/icons/current-kookoo-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='lukko'],
+[data-current-liiga] [data-liiga-row='lukko'] {
+  --liiga-custom-mark: url('/icons/current-lukko-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='pelicans'],
+[data-current-liiga] [data-liiga-row='pelicans'] {
+  --liiga-custom-mark: url('/icons/current-pelicans-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='saipa'],
+[data-current-liiga] [data-liiga-row='saipa'] {
+  --liiga-custom-mark: url('/icons/current-saipa-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='sport'],
+[data-current-liiga] [data-liiga-row='sport'] {
+  --liiga-custom-mark: url('/icons/current-sport-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='tappara'],
+[data-current-liiga] [data-liiga-row='tappara'] {
+  --liiga-custom-mark: url('/icons/current-tappara-emblem.svg');
+}
+
+[data-current-liiga] [data-liiga-club-mark='tps'],
+[data-current-liiga] [data-liiga-row='tps'] {
+  --liiga-custom-mark: url('/icons/current-tps-emblem.svg');
+}
+
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-hifk']) {
+  --liiga-custom-mark: url('/icons/current-hifk-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-ilves']) {
+  --liiga-custom-mark: url('/icons/current-ilves-mascot-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-jokerit']) {
+  --liiga-custom-mark: url('/icons/current-jokerit-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-jukurit']) {
+  --liiga-custom-mark: url('/icons/current-jukurit-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-jyp']) {
+  --liiga-custom-mark: url('/icons/current-jyp-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-kalpa']) {
+  --liiga-custom-mark: url('/icons/current-kalpa-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-k-espoo']) {
+  --liiga-custom-mark: url('/icons/current-k-espoo-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-kookoo']) {
+  --liiga-custom-mark: url('/icons/current-kookoo-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-lukko']) {
+  --liiga-custom-mark: url('/icons/current-lukko-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-pelicans']) {
+  --liiga-custom-mark: url('/icons/current-pelicans-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-saipa']) {
+  --liiga-custom-mark: url('/icons/current-saipa-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-sport']) {
+  --liiga-custom-mark: url('/icons/current-sport-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-tappara']) {
+  --liiga-custom-mark: url('/icons/current-tappara-emblem.svg');
+}
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-tps']) {
+  --liiga-custom-mark: url('/icons/current-tps-emblem.svg');
+}
+
+/* The same approved asset is the only visible mark in grid, standings and match cards. */
+[data-current-liiga] :is(
+  [data-liiga-club-mark='hifk'],
+  [data-liiga-club-mark='ilves'],
+  [data-liiga-club-mark='jokerit'],
+  [data-liiga-club-mark='jukurit'],
+  [data-liiga-club-mark='jyp'],
+  [data-liiga-club-mark='kalpa'],
+  [data-liiga-club-mark='k-espoo'],
+  [data-liiga-club-mark='kookoo'],
+  [data-liiga-club-mark='lukko'],
+  [data-liiga-club-mark='pelicans'],
+  [data-liiga-club-mark='saipa'],
+  [data-liiga-club-mark='sport'],
+  [data-liiga-club-mark='tappara'],
+  [data-liiga-club-mark='tps']
+) > svg,
+[data-current-liiga] :is(
+  [data-liiga-row='hifk'],
+  [data-liiga-row='ilves'],
+  [data-liiga-row='jokerit'],
+  [data-liiga-row='jukurit'],
+  [data-liiga-row='jyp'],
+  [data-liiga-row='kalpa'],
+  [data-liiga-row='k-espoo'],
+  [data-liiga-row='kookoo'],
+  [data-liiga-row='lukko'],
+  [data-liiga-row='pelicans'],
+  [data-liiga-row='saipa'],
+  [data-liiga-row='sport'],
+  [data-liiga-row='tappara'],
+  [data-liiga-row='tps']
+) .liiga-team-mark > svg,
+[data-current-liiga] .liiga-match-team__mark[style*='--liiga-custom-mark'],
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-hifk']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-ilves']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-jokerit']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-jukurit']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-jyp']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-kalpa']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-k-espoo']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-kookoo']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-lukko']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-pelicans']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-saipa']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-sport']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-tappara']),
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-tps']) {
+  background-color: currentColor !important;
+  -webkit-mask: var(--liiga-custom-mark) center / contain no-repeat;
+  mask: var(--liiga-custom-mark) center / contain no-repeat;
+}
+
+[data-current-liiga] :is(
+  [data-liiga-club-mark='hifk'],
+  [data-liiga-club-mark='ilves'],
+  [data-liiga-club-mark='jokerit'],
+  [data-liiga-club-mark='jukurit'],
+  [data-liiga-club-mark='jyp'],
+  [data-liiga-club-mark='kalpa'],
+  [data-liiga-club-mark='k-espoo'],
+  [data-liiga-club-mark='kookoo'],
+  [data-liiga-club-mark='lukko'],
+  [data-liiga-club-mark='pelicans'],
+  [data-liiga-club-mark='saipa'],
+  [data-liiga-club-mark='sport'],
+  [data-liiga-club-mark='tappara'],
+  [data-liiga-club-mark='tps']
+) > svg path,
+[data-current-liiga] :is(
+  [data-liiga-row='hifk'],
+  [data-liiga-row='ilves'],
+  [data-liiga-row='jokerit'],
+  [data-liiga-row='jukurit'],
+  [data-liiga-row='jyp'],
+  [data-liiga-row='kalpa'],
+  [data-liiga-row='k-espoo'],
+  [data-liiga-row='kookoo'],
+  [data-liiga-row='lukko'],
+  [data-liiga-row='pelicans'],
+  [data-liiga-row='saipa'],
+  [data-liiga-row='sport'],
+  [data-liiga-row='tappara'],
+  [data-liiga-row='tps']
+) .liiga-team-mark > svg path,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-hifk']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-ilves']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-jokerit']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-jukurit']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-jyp']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-kalpa']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-k-espoo']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-kookoo']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-lukko']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-pelicans']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-saipa']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-sport']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-tappara']) use,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-tps']) use {
+  opacity: 0 !important;
 }
