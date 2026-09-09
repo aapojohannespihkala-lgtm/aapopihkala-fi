@@ -40,6 +40,37 @@ test('Snapshot shows a compact month grid with today and ISO weeks marked', asyn
   await expect(weekNumbers).toHaveCount(5);
   expect(await weekNumbers.allTextContents()).toEqual(['36', '37', '38', '39', '40']);
 
+  const currentWeek = calendar.locator('[data-snapshot-month-week].is-current-week');
+  await expect(currentWeek).toHaveCount(1);
+  await expect(currentWeek).toHaveText('37');
+  await expect(calendar.locator('.snapshot-calendar__month-day.is-current-week')).toHaveCount(7);
+
+  const [weekStyle, dayStyle, greyStyle, currentWeekBox, firstDayBox] = await Promise.all([
+    currentWeek.evaluate((element) => ({
+      fontFamily: getComputedStyle(element).fontFamily,
+      fontSize: getComputedStyle(element).fontSize,
+      color: getComputedStyle(element).color,
+    })),
+    today.evaluate((element) => ({
+      fontFamily: getComputedStyle(element).fontFamily,
+      fontSize: getComputedStyle(element).fontSize,
+      color: getComputedStyle(element).color,
+    })),
+    calendar.locator('[data-snapshot-month-calendar-day="1"]').evaluate((element) => ({
+      color: getComputedStyle(element).color,
+    })),
+    currentWeek.boundingBox(),
+    calendar.locator('[data-snapshot-month-calendar-day="1"]').boundingBox(),
+  ]);
+
+  expect(weekStyle.fontFamily).toBe(dayStyle.fontFamily);
+  expect(weekStyle.fontSize).toBe(dayStyle.fontSize);
+  expect(weekStyle.color).not.toBe(greyStyle.color);
+  expect(dayStyle.color).not.toBe(greyStyle.color);
+  expect((currentWeekBox?.x ?? Number.POSITIVE_INFINITY) + (currentWeekBox?.width ?? 0)).toBeLessThanOrEqual(
+    (firstDayBox?.x ?? Number.NEGATIVE_INFINITY) - 2,
+  );
+
   const standaloneWeek = page.locator('[data-snapshot-calendar-week]');
   await expect(standaloneWeek).toHaveText('WEEK 37');
   const standaloneWeekBox = await standaloneWeek.boundingBox();

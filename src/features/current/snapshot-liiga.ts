@@ -150,6 +150,47 @@ const setText = (root: HTMLElement, selector: string, value: string) => {
   if (target) target.textContent = value;
 };
 
+const setStandingPosition = (
+  root: HTMLElement,
+  rank: number | null,
+  totalTeams: number | null,
+) => {
+  const target = root.querySelector<HTMLElement>('[data-snapshot-liiga-position]');
+  if (!target) return;
+
+  const hasValues = Number.isFinite(rank) && Number.isFinite(totalTeams);
+  const rankText = hasValues ? String(rank) : '--';
+  const totalText = hasValues ? String(totalTeams) : '--';
+
+  const rankElement = document.createElement('span');
+  rankElement.className = 'snapshot-liiga__position-rank';
+  rankElement.textContent = rankText;
+
+  const separator = document.createElement('span');
+  separator.className = 'snapshot-liiga__position-separator';
+  separator.setAttribute('aria-hidden', 'true');
+  separator.textContent = '/';
+
+  const totalElement = document.createElement('span');
+  totalElement.className = 'snapshot-liiga__position-total';
+  totalElement.textContent = totalText;
+
+  target.replaceChildren(rankElement, separator, totalElement);
+  target.setAttribute(
+    'aria-label',
+    hasValues ? `League position ${rank} of ${totalTeams}` : 'League position unavailable',
+  );
+};
+
+const setState = (root: HTMLElement, value: string, visible: boolean) => {
+  const target = root.querySelector<HTMLElement>('[data-snapshot-liiga-state]');
+  if (!target) return;
+
+  target.textContent = value;
+  if (visible) target.removeAttribute('hidden');
+  else target.setAttribute('hidden', '');
+};
+
 const renderTeam = (
   root: HTMLElement,
   side: 'home' | 'away',
@@ -191,12 +232,12 @@ const renderStanding = (
   standings: SnapshotLiigaTableTeam[] = [],
 ) => {
   if (!standing) {
-    setText(root, '[data-snapshot-liiga-position]', '#-- / --');
+    setStandingPosition(root, null, null);
     setText(root, '[data-snapshot-liiga-comparison]', 'ILV -- P · TOP -- P · GAP -- P');
     return;
   }
 
-  setText(root, '[data-snapshot-liiga-position]', `#${standing.rank} / ${standing.totalTeams}`);
+  setStandingPosition(root, standing.rank, standing.totalTeams);
 
   const leader = standings.find((team) => team.rank === 1) ?? standings[0] ?? null;
   if (!leader) {
@@ -253,7 +294,7 @@ const renderSnapshotLiiga = (root: HTMLElement, data: SnapshotLiigaResponse) => 
       `${live.homeGoals}-${live.awayGoals}`,
       formatGameClock(live.gameTime),
     );
-    setText(root, '[data-snapshot-liiga-state]', 'LIVE');
+    setState(root, 'LIVE', true);
     last?.setAttribute('hidden', '');
     return;
   }
@@ -262,18 +303,14 @@ const renderSnapshotLiiga = (root: HTMLElement, data: SnapshotLiigaResponse) => 
 
   if (!next) {
     renderGame(root, null, '--', 'NO SCHEDULED GAME');
-    setText(root, '[data-snapshot-liiga-state]', 'NEXT');
+    setState(root, 'NEXT', false);
     return;
   }
 
   const today = isGameToday(next.start, getReferenceTime(data.generatedAt));
   root.classList.toggle('is-today', today);
   renderGame(root, next, formatGameTime(next.start), formatGameDate(next.start));
-  setText(
-    root,
-    '[data-snapshot-liiga-state]',
-    `${today ? 'TODAY' : 'NEXT'} / ${next.homeTeamId === 'ilves' ? 'HOME' : 'AWAY'}`,
-  );
+  setState(root, today ? 'TODAY' : 'NEXT', false);
 };
 
 const ensureStyles = () => {
@@ -285,9 +322,9 @@ const ensureStyles = () => {
     body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split {
       grid-template-columns:
         44px
-        minmax(0, calc(50% - 78px))
+        minmax(0, calc(46% - 78px))
         34px
-        minmax(0, calc(50% - 34px))
+        minmax(0, calc(54% - 34px))
         34px;
     }
 
@@ -302,7 +339,7 @@ const ensureStyles = () => {
     }
 
     body:has(.snapshot-shell) .snapshot-rates__main {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 0.46fr) minmax(0, 0.54fr);
       gap: 0;
       align-items: stretch;
     }
@@ -352,10 +389,30 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__position {
       color: var(--ink);
-      font-size: 0.58rem;
-      font-weight: 750;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 1px;
+      font-size: 0.78rem;
+      font-weight: 800;
       font-variant-numeric: tabular-nums;
+      line-height: 0.9;
       white-space: nowrap;
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga__position-rank {
+      font-size: 1em;
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga__position-separator {
+      color: var(--stone);
+      font-size: 0.78em;
+      font-weight: 650;
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga__position-total {
+      color: var(--stone);
+      font-size: 0.72em;
+      font-weight: 650;
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__comparison {
@@ -499,9 +556,9 @@ const ensureStyles = () => {
       body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split {
         grid-template-columns:
           38px
-          minmax(0, calc(50% - 68px))
+          minmax(0, calc(46% - 68px))
           30px
-          minmax(0, calc(50% - 30px))
+          minmax(0, calc(54% - 30px))
           30px;
       }
 
@@ -519,7 +576,11 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__position {
-        font-size: 0.49rem;
+        font-size: 0.64rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-liiga__position-total {
+        font-size: 0.7em;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__comparison {
@@ -572,9 +633,9 @@ const ensureStyles = () => {
       body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split {
         grid-template-columns:
           33px
-          minmax(0, calc(50% - 59px))
+          minmax(0, calc(46% - 59px))
           26px
-          minmax(0, calc(50% - 26px))
+          minmax(0, calc(54% - 26px))
           26px;
       }
 
@@ -592,7 +653,11 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__position {
-        font-size: 0.42rem;
+        font-size: 0.55rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-liiga__position-total {
+        font-size: 0.68em;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__comparison {
@@ -686,7 +751,11 @@ const ensureSnapshotLiiga = () => {
   section.innerHTML = `
     <div class="snapshot-liiga__header">
       <span class="snapshot-liiga__name">ILVES</span>
-      <strong class="snapshot-liiga__position" data-snapshot-liiga-position>#-- / --</strong>
+      <strong class="snapshot-liiga__position" data-snapshot-liiga-position aria-label="League position unavailable">
+        <span class="snapshot-liiga__position-rank">--</span>
+        <span class="snapshot-liiga__position-separator" aria-hidden="true">/</span>
+        <span class="snapshot-liiga__position-total">--</span>
+      </strong>
     </div>
     <p class="snapshot-liiga__comparison" data-snapshot-liiga-comparison>ILV -- P · TOP -- P · GAP -- P</p>
     <div class="snapshot-liiga__match">
@@ -704,7 +773,7 @@ const ensureSnapshotLiiga = () => {
       </span>
     </div>
     <div class="snapshot-liiga__footer">
-      <span class="snapshot-liiga__state" data-snapshot-liiga-state>NEXT</span>
+      <span class="snapshot-liiga__state" data-snapshot-liiga-state hidden>NEXT</span>
       <span class="snapshot-liiga__last" data-snapshot-liiga-last>LAST / --</span>
     </div>
   `;
@@ -754,7 +823,7 @@ export const initSnapshotLiiga = () => {
     } catch {
       root.classList.remove('is-live', 'is-today');
       root.classList.add('is-unavailable');
-      setText(root, '[data-snapshot-liiga-state]', 'UNAVAILABLE');
+      setState(root, 'UNAVAILABLE', true);
       setText(root, '[data-snapshot-liiga-score]', '--');
       setText(root, '[data-snapshot-liiga-schedule]', '--');
     } finally {

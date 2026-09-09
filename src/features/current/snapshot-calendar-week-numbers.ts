@@ -26,11 +26,32 @@ const ensureStyles = () => {
     body:has(.snapshot-shell) .snapshot-calendar__month-week {
       display: grid;
       place-items: center end;
-      color: color-mix(in srgb, var(--stone-light) 76%, transparent);
-      font-size: 0.86em;
+      color: var(--stone-light);
+      font-family: inherit;
+      font-size: inherit;
       font-weight: 500;
       font-variant-numeric: tabular-nums;
       line-height: 1;
+      letter-spacing: inherit;
+      transform: translateX(-3px);
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__month-week.is-current-week {
+      color: var(--ink);
+      font-weight: 750;
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-past:not(.is-current-week):not(.is-today) {
+      color: var(--stone-light);
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-current-week {
+      color: var(--ink-soft);
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-current-week.is-today {
+      color: var(--ink);
+      font-weight: 750;
     }
 
     body:has(.snapshot-shell) .snapshot-calendar__month-day.is-today::after {
@@ -48,11 +69,19 @@ const ensureStyles = () => {
       body:has(.snapshot-shell) .snapshot-calendar__month-grid {
         grid-template-columns: 7px repeat(7, 6px);
       }
+
+      body:has(.snapshot-shell) .snapshot-calendar__month-week {
+        transform: translateX(-2px);
+      }
     }
 
     @media (max-width: 380px), (max-width: 640px) and (max-height: 720px) {
       body:has(.snapshot-shell) .snapshot-calendar__month-grid {
         grid-template-columns: 6px repeat(7, 5px);
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__month-week {
+        transform: translateX(-2px);
       }
     }
   `;
@@ -78,10 +107,11 @@ const decorateMonthGrid = (root: HTMLElement) => {
   const signature = grid?.dataset.monthCalendarSignature;
   if (!grid || !signature) return false;
 
-  const [yearToken, monthToken] = signature.split('-');
+  const [yearToken, monthToken, dayToken] = signature.split('-');
   const year = Number(yearToken);
   const month = Number(monthToken);
-  if (!Number.isInteger(year) || !Number.isInteger(month)) return false;
+  const day = Number(dayToken);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
 
   const dayCells = Array.from(
     grid.querySelectorAll<HTMLElement>('.snapshot-calendar__month-day')
@@ -102,16 +132,26 @@ const decorateMonthGrid = (root: HTMLElement) => {
   const firstDay = new Date(Date.UTC(year, month, 1));
   const mondayOffset = (firstDay.getUTCDay() + 6) % 7;
   const firstMonday = new Date(Date.UTC(year, month, 1 - mondayOffset));
+  const currentWeekIndex = Math.floor((mondayOffset + day - 1) / 7);
   const fragment = document.createDocumentFragment();
 
   dayCells.forEach((cell, index) => {
     if (index % 7 === 0) {
-      const weekStart = new Date(firstMonday.getTime() + (index / 7) * WEEK_MS);
+      const rowIndex = index / 7;
+      const weekStart = new Date(firstMonday.getTime() + rowIndex * WEEK_MS);
       const week = document.createElement('div');
       week.className = 'snapshot-calendar__month-week';
       week.dataset.snapshotMonthWeek = 'true';
+      if (rowIndex === currentWeekIndex) {
+        week.classList.add('is-current-week');
+        week.dataset.snapshotCurrentWeek = 'true';
+      }
       week.textContent = String(getIsoWeekNumber(weekStart)).padStart(2, '0');
       fragment.append(week);
+    }
+
+    if (Math.floor(index / 7) === currentWeekIndex && cell.dataset.snapshotMonthCalendarDay) {
+      cell.classList.add('is-current-week');
     }
 
     fragment.append(cell);
