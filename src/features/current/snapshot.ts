@@ -53,6 +53,7 @@ type SnapshotMacroResponse = {
 
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
+const MARKET_RETRY_DELAYS_MS = [0, 700, 1_500] as const;
 const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast';
 const QUARTER_MS = 15 * 60 * 1000;
 
@@ -357,14 +358,29 @@ const applyTone = (element: HTMLElement, value: number) => {
   if (value < -0.005) element.classList.add('is-negative');
 };
 
-const loadMarkets = async (root: HTMLElement) => {
-  const response = await fetch('/api/current/markets?portfolio=1&v=6', {
-    headers: { Accept: 'application/json' },
-    cache: 'no-store',
-  });
-  if (!response.ok) throw new Error(`Markets request failed: ${response.status}`);
+const fetchSnapshotMarkets = async (url: string) => {
+  let lastError: unknown;
 
-  const data = (await response.json()) as SnapshotPortfolioResponse;
+  for (const delay of MARKET_RETRY_DELAYS_MS) {
+    if (delay > 0) await new Promise((resolve) => window.setTimeout(resolve, delay));
+
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error(`Markets request failed: ${response.status}`);
+      return (await response.json()) as SnapshotPortfolioResponse;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Markets request failed');
+};
+
+const loadMarkets = async (root: HTMLElement) => {
+  const data = await fetchSnapshotMarkets('/api/current/markets?portfolio=1&v=6');
   if (!Array.isArray(data.items)) throw new Error('Markets response is incomplete');
 
   setText(root, '.snapshot-markets .snapshot-kicker', 'TODAY / SELECTED PERFORMANCE');
