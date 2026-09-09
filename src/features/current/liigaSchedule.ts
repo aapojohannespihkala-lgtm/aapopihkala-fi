@@ -93,6 +93,7 @@ const createTeam = (teamId: string, teamName: string, away = false) => {
   svg.setAttribute('class', 'liiga-match-team__mark liiga-schedule-team__mark');
   svg.setAttribute('viewBox', '0 0 48 48');
   svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('data-liiga-schedule-team-id', teamId);
   const use = document.createElementNS(SVG_NS, 'use');
   use.setAttribute('href', `#liiga-match-mark-${teamId}`);
   svg.append(use);
