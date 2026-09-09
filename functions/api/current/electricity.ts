@@ -9,6 +9,7 @@ type PriceResponse = {
 };
 
 const UPSTREAM_PRICE_URL = 'https://api.porssisahko.net/v2/latest-prices.json';
+const UPSTREAM_TIMEOUT_MS = 8_000;
 
 const jsonResponse = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), {
@@ -39,10 +40,17 @@ const isPriceResponse = (value: unknown): value is PriceResponse => {
   });
 };
 
-export const onRequestGet = async () => {
+export const fetchElectricityResponse = async (
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs = UPSTREAM_TIMEOUT_MS
+) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    const upstreamResponse = await fetch(UPSTREAM_PRICE_URL, {
+    const upstreamResponse = await fetchImpl(UPSTREAM_PRICE_URL, {
       headers: { Accept: 'application/json' },
+      signal: controller.signal,
     });
 
     if (!upstreamResponse.ok) {
@@ -57,5 +65,9 @@ export const onRequestGet = async () => {
     return jsonResponse(data, 200);
   } catch {
     return jsonResponse({ error: 'upstream_unavailable' }, 502);
+  } finally {
+    clearTimeout(timeout);
   }
 };
+
+export const onRequestGet = () => fetchElectricityResponse();
