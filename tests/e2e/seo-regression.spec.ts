@@ -104,3 +104,33 @@ test('article routes keep one article-specific social metadata set', async ({ pa
   await expect(page.locator('head meta[name="twitter:description"]')).toHaveCount(1);
   await expect(page.locator('head meta[name="twitter:image"]')).toHaveCount(1);
 });
+
+test('sitemap stays consistent with representative noindex routes', async ({ page, request }) => {
+  for (const path of ['/current/', '/current2/', '/lab/']) {
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+    await expectMetaContent(page, 'meta[name="robots"]', 'noindex,nofollow');
+  }
+
+  const indexResponse = await request.get('/sitemap-index.xml');
+  expect(indexResponse.ok()).toBe(true);
+
+  const indexBody = await indexResponse.text();
+  const sitemapPaths = [...indexBody.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
+    ([, location]) => new URL(location).pathname
+  );
+  expect(sitemapPaths.length).toBeGreaterThan(0);
+
+  const sitemapBodies: string[] = [];
+  for (const path of sitemapPaths) {
+    const response = await request.get(path);
+    expect(response.ok()).toBe(true);
+    sitemapBodies.push(await response.text());
+  }
+
+  const sitemapBody = sitemapBodies.join('\n');
+  expect(sitemapBody).toContain(`<loc>${siteUrl}/</loc>`);
+  expect(sitemapBody).toContain(`<loc>${siteUrl}/about/</loc>`);
+  expect(sitemapBody).not.toContain(`<loc>${siteUrl}/current/`);
+  expect(sitemapBody).not.toContain(`<loc>${siteUrl}/current2/`);
+  expect(sitemapBody).not.toContain(`<loc>${siteUrl}/lab/`);
+});
