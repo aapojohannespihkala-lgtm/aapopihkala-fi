@@ -103,6 +103,22 @@ for (const viewport of [
     await expect(page.locator('[data-liiga-row="ilves"] [data-liiga-points]')).toHaveText('6');
     await expect(page.locator('[data-liiga-club-mark] svg text')).toHaveCount(0);
 
+    const hpkShape = page.locator('[data-liiga-club-mark="hpk"] path').first();
+    const hpkPaint = await hpkShape.evaluate((path) => {
+      const styles = getComputedStyle(path);
+      return { fill: styles.fill, stroke: styles.stroke };
+    });
+    expect(hpkPaint.fill).not.toBe('none');
+    expect(hpkPaint.stroke).toBe('none');
+
+    const ilvesShape = page.locator('[data-liiga-club-mark="ilves"] path').first();
+    const ilvesPaint = await ilvesShape.evaluate((path) => {
+      const styles = getComputedStyle(path);
+      return { fill: styles.fill, stroke: styles.stroke };
+    });
+    expect(ilvesPaint.fill).toBe('none');
+    expect(ilvesPaint.stroke).not.toBe('none');
+
     const markSignatures = await page.locator('[data-liiga-club-mark] svg').evaluateAll((marks) =>
       marks.map((mark) =>
         Array.from(mark.querySelectorAll('path'))
