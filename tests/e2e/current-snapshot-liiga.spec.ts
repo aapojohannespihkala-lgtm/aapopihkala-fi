@@ -159,12 +159,21 @@ test.describe('Current Snapshot Liiga summary', () => {
     await expect(heading.locator('a[href="/current/liiga/"]')).toHaveCount(1);
     await expect(heading.locator('a[href="/current/liiga/"]')).toHaveText('+');
 
-    await expect(liiga.locator('[data-snapshot-liiga-position]')).toHaveText('#4 / 17');
+    await expect(liiga.locator('[data-snapshot-liiga-position]')).toHaveText('4/17');
+    await expect(liiga.locator('[data-snapshot-liiga-position]')).toHaveAttribute(
+      'aria-label',
+      'League position 4 of 17',
+    );
+    const positionSizes = await liiga.locator('[data-snapshot-liiga-position]').evaluate((element) => ({
+      rank: Number.parseFloat(getComputedStyle(element.querySelector('.snapshot-liiga__position-rank')!).fontSize),
+      total: Number.parseFloat(getComputedStyle(element.querySelector('.snapshot-liiga__position-total')!).fontSize),
+    }));
+    expect(positionSizes.rank).toBeGreaterThan(positionSizes.total);
     await expect(liiga.locator('[data-snapshot-liiga-comparison]')).toHaveText(
       'ILV 28 P · TPS 31 P · GAP -3 P',
     );
     await expect(liiga).not.toContainText('GP');
-    await expect(liiga.locator('[data-snapshot-liiga-state]')).toHaveText('NEXT / HOME');
+    await expect(liiga.locator('[data-snapshot-liiga-state]')).toBeHidden();
     await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('ILV');
     await expect(liiga.locator('[data-snapshot-liiga-away-team]')).toHaveText('TPS');
     await expect(liiga.locator('[data-snapshot-liiga-score]')).toHaveText('18:30');
@@ -215,8 +224,8 @@ test.describe('Current Snapshot Liiga summary', () => {
     expect(geometry.pageHeight).toBeLessThanOrEqual(geometry.viewportHeight + 1);
     expect(geometry.panelScrollWidth).toBeLessThanOrEqual(geometry.panelClientWidth + 1);
     expect(geometry.panelScrollHeight).toBeLessThanOrEqual(geometry.panelClientHeight + 1);
-    expect(Math.abs(geometry.headerDivider - geometry.panelMidpoint)).toBeLessThanOrEqual(2);
-    expect(Math.abs(geometry.bodyDivider - geometry.panelMidpoint)).toBeLessThanOrEqual(2);
+    expect(geometry.headerDivider).toBeLessThan(geometry.panelMidpoint - 4);
+    expect(geometry.bodyDivider).toBeLessThan(geometry.panelMidpoint - 4);
     expect(geometry.homeMarkWidth).toBeGreaterThanOrEqual(32);
     expect(geometry.awayMarkWidth).toBeGreaterThanOrEqual(32);
     expect(geometry.homeMarkToCenter).toBeLessThanOrEqual(6);
@@ -231,7 +240,7 @@ test.describe('Current Snapshot Liiga summary', () => {
 
     const liiga = page.locator('[data-snapshot-liiga]');
     await expect(liiga).toHaveClass(/is-today/);
-    await expect(liiga.locator('[data-snapshot-liiga-state]')).toHaveText('TODAY / HOME');
+    await expect(liiga.locator('[data-snapshot-liiga-state]')).toBeHidden();
     await expect(liiga.locator('[data-snapshot-liiga-score]')).toHaveText('18:30');
     await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('FRI 11 SEPT');
   });
