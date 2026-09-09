@@ -32,7 +32,10 @@ type TeamStanding = {
   goalDifference: number;
 };
 
-const LIIGA_GAMES_URL = 'https://liiga.fi/api/v1/games';
+const LIIGA_GAMES_URLS = [
+  'https://liiga.fi/api/v2/games',
+  'https://liiga.fi/api/v2/schedule',
+] as const;
 const UPSTREAM_TIMEOUT_MS = 8_000;
 
 const getSeasonId = (now = new Date()) => {
@@ -64,8 +67,150 @@ const fetchWithTimeout = async (url: string) => {
   }
 };
 
-const finiteGoal = (value: unknown) =>
-  typeof value === 'number' && Number.isFinite(value) ? value : null;
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+
+const firstString = (...values: unknown[]) => {
+  const value = values.find((candidate) => typeof candidate === 'string' && candidate.length > 0);
+  return typeof value === 'string' ? value : null;
+};
+
+const finiteNumber = (value: unknown) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const finiteGoal = (value: unknown) => finiteNumber(value);
+
+const normalizeTeam = (
+  value: unknown,
+  fallbackId: unknown,
+  fallbackGoals: unknown,
+): LiigaGameTeam | null => {
+  const team = asRecord(value);
+  const sourceId = firstString(
+    team?.teamId,
+    team?.id,
+    team?.name,
+    team?.abbreviation,
+    typeof value === 'string' ? value : null,
+    fallbackId,
+  );
+  const goals = finiteGoal(team?.goals ?? team?.score ?? fallbackGoals);
+
+  if (!sourceId && goals === null) return null;
+  return { teamId: sourceId, goals };
+};
+
+const normalizeGame = (value: unknown): LiigaGame | null => {
+  const game = asRecord(value);
+  if (!game) return null;
+
+  const homeTeam = normalizeTeam(
+    game.homeTeam ?? game.home,
+    game.homeTeamId ?? game.homeId,
+    game.homeGoals ?? game.homeScore,
+  );
+  const awayTeam = normalizeTeam(
+    game.awayTeam ?? game.away,
+    game.awayTeamId ?? game.awayId,
+    game.awayGoals ?? game.awayScore,
+  );
+  if (!homeTeam?.teamId || !awayTeam?.teamId) return null;
+
+  const status = firstString(game.finishedType, game.status, game.gameStatus) ?? '';
+  const normalizedStatus = status.toUpperCase();
+  const ended = typeof game.ended === 'boolean'
+    ? game.ended
+    : normalizedStatus.includes('ENDED') ||
+      normalizedStatus.includes('FINISHED') ||
+      normalizedStatus.includes('FINAL');
+
+  return {
+    id: typeof game.id === 'number' || typeof game.id === 'string'
+      ? game.id
+      : typeof game.gameId === 'number' || typeof game.gameId === 'string'
+        ? game.gameId
+        : null,
+    start: firstString(game.start, game.startTime, game.date, game.gameDate),
+    homeTeam,
+    awayTeam,
+    finishedType: status || null,
+    started: typeof game.started === 'boolean' ? game.started : null,
+    ended,
+    gameTime: finiteNumber(game.gameTime),
+    cacheUpdateDate: firstString(game.cacheUpdateDate, game.updatedAt, game.modifiedAt),
+  };
+};
+
+const extractGameArray = (payload: unknown): unknown[] | null => {
+  if (Array.isArray(payload)) return payload;
+
+  const root = asRecord(payload);
+  if (!root) return null;
+
+  for (const key of ['games', 'schedule', 'items', 'rows']) {
+    if (Array.isArray(root[key])) return root[key] as unknown[];
+  }
+
+  const data = asRecord(root.data);
+  if (!data) return null;
+
+  for (const key of ['games', 'schedule', 'items', 'rows']) {
+    if (Array.isArray(data[key])) return data[key] as unknown[];
+  }
+
+  return null;
+};
+
+const parseGames = (payload: unknown) => {
+  const items = extractGameArray(payload);
+  if (!items) return null;
+
+  const games = items
+    .map(normalizeGame)
+    .filter((game): game is LiigaGame => game !== null);
+
+  return games.length > 0 ? games : null;
+};
+
+const fetchLiigaGames = async (season: number) => {
+  const failures: string[] = [];
+
+  for (const endpoint of LIIGA_GAMES_URLS) {
+    const url = new URL(endpoint);
+    url.searchParams.set('tournament', 'runkosarja');
+    url.searchParams.set('season', String(season));
+
+    try {
+      const response = await fetchWithTimeout(url.toString());
+      if (!response.ok) {
+        failures.push(`${url.pathname}: HTTP ${response.status}`);
+        continue;
+      }
+
+      const games = parseGames(await response.json());
+      if (!games) {
+        failures.push(`${url.pathname}: no games in response`);
+        continue;
+      }
+
+      return { games, endpoint: url.pathname };
+    } catch (error) {
+      failures.push(
+        `${url.pathname}: ${error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'request failed'}`
+      );
+    }
+  }
+
+  throw new Error(failures.join(' | ') || 'Liiga upstream unavailable');
+};
 
 const finishedInRegulation = (game: LiigaGame) => {
   const finishedType = game.finishedType?.toUpperCase() ?? '';
@@ -195,28 +340,9 @@ const getLastIlvesGame = (games: LiigaGame[]) => {
 
 export const onRequestGet = async () => {
   const season = getSeasonId();
-  const url = new URL(LIIGA_GAMES_URL);
-  url.searchParams.set('tournament', 'runkosarja');
-  url.searchParams.set('season', String(season));
 
   try {
-    const response = await fetchWithTimeout(url.toString());
-    if (!response.ok) {
-      return Response.json(
-        { error: 'Liiga upstream unavailable', status: response.status },
-        { status: 502, headers: { 'Cache-Control': 'no-store' } }
-      );
-    }
-
-    const payload: unknown = await response.json();
-    if (!Array.isArray(payload)) {
-      return Response.json(
-        { error: 'Liiga upstream response was not an array' },
-        { status: 502, headers: { 'Cache-Control': 'no-store' } }
-      );
-    }
-
-    const games = payload as LiigaGame[];
+    const { games, endpoint } = await fetchLiigaGames(season);
     const generatedAt =
       games
         .map((game) => game.cacheUpdateDate)
@@ -229,6 +355,7 @@ export const onRequestGet = async () => {
         season,
         generatedAt,
         source: 'Liiga',
+        upstream: endpoint,
         standings: createStandings(games),
         lastIlvesGame: getLastIlvesGame(games),
       },
@@ -241,9 +368,8 @@ export const onRequestGet = async () => {
   } catch (error) {
     return Response.json(
       {
-        error: error instanceof Error && error.name === 'AbortError'
-          ? 'Liiga upstream timed out'
-          : 'Liiga data request failed',
+        error: 'Liiga data request failed',
+        detail: error instanceof Error ? error.message : 'Unknown upstream error',
       },
       { status: 502, headers: { 'Cache-Control': 'no-store' } }
     );
