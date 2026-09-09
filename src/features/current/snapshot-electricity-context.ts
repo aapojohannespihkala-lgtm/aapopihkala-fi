@@ -76,7 +76,7 @@ const positionNowMarker = (marker: HTMLElement) => {
   marker.style.left = `${clamped}%`;
 };
 
-// Only capture values while the base snapshot labels still identify their original roles.
+// Capture the base snapshot values before replacing the first support statistic with the month average.
 const captureBaseElectricity = (root: HTMLElement) => {
   const hero = root.querySelector<HTMLElement>('[data-snapshot-electricity-now]');
   const heroLabel = root.querySelector<HTMLElement>('.snapshot-electricity__value .snapshot-micro');
@@ -100,17 +100,10 @@ const captureBaseElectricity = (root: HTMLElement) => {
   }
 };
 
-const renderDayContext = (root: HTMLElement) => {
-  const dayAverage = root.dataset.snapshotElectricityDayAverage;
+const renderCurrentPrice = (root: HTMLElement) => {
   const currentPrice = root.dataset.snapshotElectricityCurrentPrice;
-  const firstStat = root.querySelector<HTMLElement>('.snapshot-electricity__stats > div:first-child');
-  const firstLabel = firstStat?.querySelector<HTMLElement>('dt');
-  const firstValue = firstStat?.querySelector<HTMLElement>('dd');
-
-  if (firstLabel) firstLabel.textContent = 'DAY AVG';
-  if (firstValue && dayAverage) firstValue.textContent = dayAverage;
-
   const marker = ensureNowMarker(root);
+
   if (marker) {
     const overlay = marker.querySelector<HTMLElement>('[data-snapshot-electricity-now-overlay]');
     if (overlay && currentPrice) overlay.textContent = currentPrice;
@@ -125,25 +118,27 @@ const renderMonthAverage = (root: HTMLElement, data: MonthAverageResponse) => {
   const average = data.average;
   if (!isFiniteNumber(average)) return;
 
-  const hero = root.querySelector<HTMLElement>('[data-snapshot-electricity-now]');
-  const label = root.querySelector<HTMLElement>('.snapshot-electricity__value .snapshot-micro');
-  if (!hero || !label) return;
+  const firstStat = root.querySelector<HTMLElement>('.snapshot-electricity__stats > div:first-child');
+  const firstLabel = firstStat?.querySelector<HTMLElement>('dt');
+  const firstValue = firstStat?.querySelector<HTMLElement>('dd');
+  if (!firstStat || !firstLabel || !firstValue) return;
 
-  hero.textContent = formatPrice(average);
-  hero.dataset.snapshotElectricityMonthAverage = 'true';
+  firstValue.textContent = formatPrice(average);
+  firstValue.dataset.snapshotElectricityMonthAverage = 'true';
+  firstLabel.textContent = data.kind === 'last-complete-month' ? 'LAST MONTH AVG' : 'MONTH AVG';
 
   if (
     data.kind === 'month-to-date' &&
     typeof data.through === 'string'
   ) {
-    label.textContent = `MONTH AVG / THROUGH ${formatThrough(data.through)}`;
+    firstStat.title = `Month average through ${formatThrough(data.through)}`;
   } else if (
     data.kind === 'last-complete-month' &&
     typeof data.month === 'string'
   ) {
-    label.textContent = `LAST MONTH AVG / ${formatMonth(data.month)}`;
+    firstStat.title = `Last complete month average ${formatMonth(data.month)}`;
   } else {
-    label.textContent = 'MONTH AVG';
+    firstStat.removeAttribute('title');
   }
 };
 
@@ -156,7 +151,7 @@ export const initSnapshotElectricityContext = () => {
 
   const apply = () => {
     captureBaseElectricity(root);
-    renderDayContext(root);
+    renderCurrentPrice(root);
     if (monthData) renderMonthAverage(root, monthData);
   };
 
@@ -172,7 +167,7 @@ export const initSnapshotElectricityContext = () => {
       monthData = data;
       apply();
     } catch {
-      // Keep the day-average fallback already provided by the base snapshot.
+      // Keep the day-average hero and current-price chart marker if month history is unavailable.
     }
   };
 
