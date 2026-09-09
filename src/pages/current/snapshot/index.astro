@@ -12,6 +12,12 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
   initSnapshotElectricityContext();
 
   const snapshotRoot = document.querySelector<HTMLElement>('[data-current-snapshot]');
+  const ratesOpen = snapshotRoot?.querySelector<HTMLAnchorElement>(
+    '.snapshot-panel--rates .snapshot-panel__open'
+  );
+  if (ratesOpen) ratesOpen.href = '/current/rates/';
+  snapshotRoot?.querySelector('.snapshot-rates__chart')?.remove();
+
   const heroClock = document.querySelector<HTMLElement>('#current-snapshot-title');
   const heroClockFormatter = new Intl.DateTimeFormat('en-GB', {
     hour: '2-digit',
