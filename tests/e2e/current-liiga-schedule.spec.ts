@@ -122,10 +122,10 @@ test('renders league-wide live and upcoming games with Current glyphs', async ({
 
   const standingsKEspoo = page.locator('[data-liiga-row="k-espoo"] [data-liiga-mark-id="k-espoo"]');
   const kEspooBalance = await standingsKEspoo.evaluate((node) => ({
-    scale: getComputedStyle(node).getPropertyValue('--liiga-mark-scale').trim(),
+    scale: Number(getComputedStyle(node).getPropertyValue('--liiga-mark-scale').trim()),
     y: getComputedStyle(node).getPropertyValue('--liiga-mark-y').trim(),
   }));
-  expect(kEspooBalance).toEqual({ scale: '0.92', y: '-1px' });
+  expect(kEspooBalance).toEqual({ scale: 0.92, y: '-1px' });
 
   const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   expect(hasOverflow).toBe(false);
