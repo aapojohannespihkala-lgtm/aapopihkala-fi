@@ -43,6 +43,7 @@ const applyMarketsRemedyLabelWhenReady = (
     return;
   }
 
+  // Wait only for the existing portfolio renderer to finish replacing its initial rows.
   if (attempt >= READY_RETRY_LIMIT) return;
   window.setTimeout(
     () => applyMarketsRemedyLabelWhenReady(formatted, attempt + 1),
