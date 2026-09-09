@@ -60,11 +60,16 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     minor.className = 'snapshot-number__minor';
     minor.textContent = match[2];
 
-    element.replaceChildren(
-      document.createTextNode(`${match[1]}.`),
-      minor,
-      document.createTextNode(match[3] ?? '')
-    );
+    const primary = document.createTextNode(`${match[1]}.`);
+    const suffix = match[3] ?? '';
+    if (suffix) {
+      const unit = document.createElement('small');
+      unit.className = 'snapshot-number__unit';
+      unit.textContent = suffix;
+      element.replaceChildren(primary, minor, unit);
+    } else {
+      element.replaceChildren(primary, minor);
+    }
   };
 
   const decorateHeadlineDecimals = () => {
@@ -73,6 +78,7 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     for (const selector of [
       '[data-snapshot-weather-temperature]',
       '[data-snapshot-electricity-now]',
+      '[data-snapshot-market-median]',
       '[data-snapshot-euribor]',
     ]) {
       const element = snapshotRoot.querySelector<HTMLElement>(selector);
@@ -97,7 +103,8 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
 
   body:has(.snapshot-shell) #current-snapshot-title,
   body:has(.snapshot-shell) .snapshot-hero,
-  body:has(.snapshot-shell) .snapshot-rates__value {
+  body:has(.snapshot-shell) .snapshot-rates__value,
+  body:has(.snapshot-shell) .snapshot-markets__median strong {
     font-size: var(--snapshot-headline-size);
     line-height: 0.86;
   }
@@ -118,6 +125,15 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
 
   body:has(.snapshot-shell) .snapshot-number__minor--seconds {
     margin-left: 0.015em;
+  }
+
+  body:has(.snapshot-shell) .snapshot-number__unit {
+    display: inline-block;
+    margin-left: 0.08em;
+    font-size: 0.27em;
+    line-height: 1;
+    letter-spacing: 0;
+    vertical-align: 0.22em;
   }
 
   body:has(.snapshot-shell) .snapshot-titleblock__meta span:last-child {
@@ -253,6 +269,73 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     letter-spacing: 0.025em;
   }
 
+  body:has(.snapshot-shell) .snapshot-markets {
+    grid-template-columns: minmax(0, 0.56fr) minmax(0, 0.44fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    column-gap: 14px;
+    row-gap: 5px;
+  }
+
+  body:has(.snapshot-shell) .snapshot-markets > .snapshot-kicker {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  body:has(.snapshot-shell) .snapshot-markets__median {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    align-self: center;
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: 5px;
+    font-size: 0.56rem;
+    line-height: 1;
+  }
+
+  body:has(.snapshot-shell) .snapshot-markets__median strong {
+    min-width: 0;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.075em;
+    text-transform: none;
+    white-space: nowrap;
+  }
+
+  body:has(.snapshot-shell) .snapshot-market-list {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+    align-self: stretch;
+  }
+
+  body:has(.snapshot-shell) .snapshot-markets > .snapshot-source {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  body:has(.snapshot-shell) .snapshot-liiga__position {
+    font-size: var(--snapshot-headline-size) !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.075em !important;
+    line-height: 0.86 !important;
+  }
+
+  body:has(.snapshot-shell) .snapshot-liiga__position-rank {
+    font-size: 1em !important;
+  }
+
+  body:has(.snapshot-shell) .snapshot-liiga__position-separator {
+    font-size: 0.6em !important;
+    font-weight: 500 !important;
+  }
+
+  body:has(.snapshot-shell) .snapshot-liiga__position-total {
+    font-size: 0.52em !important;
+    font-weight: 500 !important;
+  }
+
   @media (max-width: 640px) {
     body:has(.snapshot-shell) {
       --snapshot-headline-size: clamp(2.55rem, 12vw, 3.35rem);
@@ -334,6 +417,16 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     body:has(.snapshot-shell) .snapshot-electricity__stats dd {
       font-size: 0.78rem;
       font-weight: 550;
+    }
+
+    body:has(.snapshot-shell) .snapshot-markets {
+      column-gap: 10px;
+      row-gap: 4px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-markets__median {
+      gap: 3px;
+      font-size: 0.5rem;
     }
 
     body:has(.snapshot-shell) .snapshot-market-list {
@@ -442,6 +535,14 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
 
     body:has(.snapshot-shell) .snapshot-electricity__stats dd {
       font-size: 0.66rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-markets {
+      column-gap: 7px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-markets__median {
+      font-size: 0.42rem;
     }
 
     body:has(.snapshot-shell) .snapshot-market-list {
