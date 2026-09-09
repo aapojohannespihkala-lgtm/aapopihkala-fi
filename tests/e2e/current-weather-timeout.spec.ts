@@ -3,16 +3,18 @@ import { expect, test } from '@playwright/test';
 import { fetchCurrentExternal } from '../../src/features/current/externalFetchGuard';
 
 test('Open-Meteo requests abort after the bounded weather timeout', async () => {
-  let capturedSignal: AbortSignal | null = null;
+  let wasAborted = false;
 
   const hangingFetch = ((
     _input: RequestInfo | URL,
     init?: RequestInit
   ) => new Promise<Response>((_resolve, reject) => {
-    capturedSignal = init?.signal ?? null;
-    capturedSignal?.addEventListener(
+    init?.signal?.addEventListener(
       'abort',
-      () => reject(new DOMException('Aborted', 'AbortError')),
+      () => {
+        wasAborted = true;
+        reject(new DOMException('Aborted', 'AbortError'));
+      },
       { once: true }
     );
   })) as typeof fetch;
@@ -32,7 +34,7 @@ test('Open-Meteo requests abort after the bounded weather timeout', async () => 
 
   expect(thrown).toBeInstanceOf(DOMException);
   expect((thrown as DOMException).name).toBe('AbortError');
-  expect(capturedSignal?.aborted).toBe(true);
+  expect(wasAborted).toBe(true);
 });
 
 test('non-weather requests are not given an extra timeout signal', async () => {
