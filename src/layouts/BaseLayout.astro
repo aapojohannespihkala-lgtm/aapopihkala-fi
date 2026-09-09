@@ -135,5 +135,9 @@ const skipToContentLabel =
     <slot />
     <Analytics lang={lang} />
     <slot name="afterAnalytics" />
+    <script>
+      import { initCurrentLiigaIlvesFilled } from '../features/current/liiga-ilves-filled';
+      initCurrentLiigaIlvesFilled();
+    </script>
   </body>
 </html>
