@@ -33,7 +33,7 @@ test('Snapshot highlights only the current weekday and ISO week', async ({ page 
     fontWeight: Number(getComputedStyle(element).fontWeight),
     markerContent: getComputedStyle(element, '::after').content,
   }));
-  expect(todayStyle.fontWeight).toBeLessThan(700);
+  expect(todayStyle.fontWeight).toBeGreaterThanOrEqual(700);
   expect(todayStyle.markerContent).toBe('none');
 
   const weekdayStyle = await page.locator('[data-snapshot-calendar-weekday]').evaluate((element) => ({
@@ -72,7 +72,7 @@ test('Snapshot highlights only the current weekday and ISO week', async ({ page 
   expect(weekStyle.fontFamily).toBe(dayStyle.fontFamily);
   expect(weekStyle.fontSize).toBe(dayStyle.fontSize);
   expect(weekStyle.color).not.toBe(greyStyle.color);
-  expect(dayStyle.color).toBe(greyStyle.color);
+  expect(dayStyle.color).not.toBe(greyStyle.color);
   expect((currentWeekBox?.x ?? Number.POSITIVE_INFINITY) + (currentWeekBox?.width ?? 0)).toBeLessThanOrEqual(
     (firstDayBox?.x ?? Number.NEGATIVE_INFINITY) - 2,
   );

@@ -47,10 +47,14 @@ const ensureStyles = () => {
     }
 
     body:has(.snapshot-shell) .snapshot-calendar__month-day.is-past,
-    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-current-week,
-    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-today {
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-current-week {
       color: var(--stone-light) !important;
       font-weight: 500 !important;
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-today {
+      color: var(--ink) !important;
+      font-weight: 750 !important;
     }
 
     body:has(.snapshot-shell) .snapshot-calendar__month-day.is-today::after {
