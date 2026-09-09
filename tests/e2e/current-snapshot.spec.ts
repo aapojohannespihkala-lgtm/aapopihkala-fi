@@ -211,6 +211,13 @@ test.describe('Current Snapshot', () => {
 
       await expect(page.locator('.snapshot-markets .snapshot-kicker')).toHaveText('TODAY / SELECTED PERFORMANCE');
       await expect(page.locator('[data-snapshot-market-median]')).toHaveText('+0.42%');
+      const medianType = await page.locator('.snapshot-markets__median').evaluate((element) => ({
+        labelWeight: Number(getComputedStyle(element).fontWeight),
+        valueSize: Number.parseFloat(getComputedStyle(element.querySelector('strong')!).fontSize),
+        labelSize: Number.parseFloat(getComputedStyle(element).fontSize),
+      }));
+      expect(medianType.labelWeight).toBeGreaterThanOrEqual(700);
+      expect(medianType.valueSize).toBeGreaterThan(medianType.labelSize);
       await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.42%');
       await expect(page.locator('[data-snapshot-market="nordnet-finland"]')).toHaveText('-0.23%');
       await expect(page.locator('[data-snapshot-market="btc"]')).toHaveText('+1.84%');
