@@ -35,6 +35,7 @@ const LIIGA_GAMES_URLS = [
 ] as const;
 const UPSTREAM_TIMEOUT_MS = 8_000;
 const UPCOMING_LIMIT = 12;
+const MAX_LIVE_DURATION_MS = 4 * 60 * 60 * 1000;
 
 const getSeasonId = (now = new Date()) => {
   const helsinki = new Intl.DateTimeFormat('en-CA', {
@@ -216,21 +217,22 @@ const summarizeGame = (game: UpstreamGame): ScheduleGame | null => {
   };
 };
 
-const isLiveGame = (game: UpstreamGame, now = new Date()) => {
-  if (game.ended === true) return false;
-  if (game.started === true) return true;
-  if (typeof game.gameTime === 'number' && game.gameTime > 0) return true;
-  if (!game.start) return false;
+export const isLiigaScheduleGameLive = (game: UpstreamGame, now = new Date()) => {
+  if (game.ended === true || !game.start) return false;
 
   const start = Date.parse(game.start);
   if (!Number.isFinite(start)) return false;
-  const hasScore = finiteNumber(game.homeTeam?.goals) !== null && finiteNumber(game.awayTeam?.goals) !== null;
-  return hasScore && now.getTime() >= start && now.getTime() <= start + 4 * 60 * 60 * 1000;
+
+  const nowMs = now.getTime();
+  if (nowMs < start || nowMs > start + MAX_LIVE_DURATION_MS) return false;
+  if (game.started === true) return true;
+  if (typeof game.gameTime === 'number' && game.gameTime > 0) return true;
+  return false;
 };
 
 const getLiveGames = (games: UpstreamGame[], now = new Date()) =>
   games
-    .filter((game) => isLiveGame(game, now))
+    .filter((game) => isLiigaScheduleGameLive(game, now))
     .map(summarizeGame)
     .filter((game): game is ScheduleGame => game !== null)
     .sort((a, b) => a.start.localeCompare(b.start));
@@ -239,7 +241,7 @@ const getUpcomingGames = (games: UpstreamGame[], now = new Date()) => {
   const nowMs = now.getTime();
   return games
     .filter((game) => {
-      if (game.ended === true || isLiveGame(game, now) || !game.start) return false;
+      if (game.ended === true || isLiigaScheduleGameLive(game, now) || !game.start) return false;
       const start = Date.parse(game.start);
       return Number.isFinite(start) && start > nowMs;
     })

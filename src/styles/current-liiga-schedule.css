@@ -113,10 +113,64 @@
 }
 
 [data-current-liiga] .liiga-schedule-team__mark {
+  --liiga-schedule-mark-scale: 1;
+  --liiga-schedule-mark-y: 0px;
   width: 40px;
   height: 40px;
   flex: 0 0 auto;
   overflow: visible;
+  transform: translateY(var(--liiga-schedule-mark-y)) scale(var(--liiga-schedule-mark-scale));
+  transform-origin: center;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="pelicans"] {
+  --liiga-schedule-mark-scale: 1.17;
+  --liiga-schedule-mark-y: 1px;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="jukurit"] {
+  --liiga-schedule-mark-scale: 0.95;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="k-espoo"] {
+  --liiga-schedule-mark-scale: 0.92;
+  --liiga-schedule-mark-y: -1px;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="lukko"] {
+  --liiga-schedule-mark-scale: 1.09;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="jyp"] {
+  --liiga-schedule-mark-y: 2px;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="sport"] {
+  --liiga-schedule-mark-scale: 0.96;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="assat"] {
+  --liiga-schedule-mark-scale: 0.95;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="jokerit"] {
+  --liiga-schedule-mark-scale: 1.08;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="tappara"] {
+  --liiga-schedule-mark-scale: 0.95;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="hpk"] {
+  --liiga-schedule-mark-scale: 1.08;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="karpat"] {
+  --liiga-schedule-mark-scale: 1.11;
+}
+
+[data-current-liiga] .liiga-schedule-team__mark[data-liiga-schedule-team-id="ilves"] {
+  --liiga-schedule-mark-scale: 0.95;
 }
 
 [data-current-liiga] .liiga-schedule-game__center {
