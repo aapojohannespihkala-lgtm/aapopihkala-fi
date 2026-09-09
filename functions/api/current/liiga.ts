@@ -14,6 +14,7 @@ type LiigaGame = {
   started?: boolean | null;
   ended?: boolean | null;
   gameTime?: number | null;
+  spectators?: number | null;
   cacheUpdateDate?: string | null;
 };
 
@@ -153,6 +154,13 @@ const normalizeGame = (value: unknown): LiigaGame | null => {
     started,
     ended,
     gameTime,
+    spectators: finiteNumber(
+      game.spectators ??
+      game.attendance ??
+      game.audience ??
+      game.spectatorCount ??
+      game.attendanceCount
+    ),
     cacheUpdateDate: firstString(game.cacheUpdateDate, game.updatedAt, game.modifiedAt),
   };
 };
@@ -330,6 +338,7 @@ const basicGameSummary = (game: LiigaGame) => {
     homeGoals: resolved.homeGoals,
     awayGoals: resolved.awayGoals,
     gameTime: game.gameTime ?? null,
+    spectators: game.spectators ?? null,
   };
 };
 
@@ -404,6 +413,21 @@ const getNextIlvesGame = (games: LiigaGame[], now = new Date()) => {
   return game ? basicGameSummary(game) : null;
 };
 
+const getNextHomeIlvesGame = (games: LiigaGame[], now = new Date()) => {
+  const nowMs = now.getTime();
+  const game = games
+    .filter((candidate) => {
+      if (candidate.ended === true || isLiveGame(candidate, now) || !candidate.start) return false;
+      const resolved = resolveIlvesGame(candidate);
+      if (!resolved || resolved.home.id !== 'ilves') return false;
+      const start = Date.parse(candidate.start);
+      return Number.isFinite(start) && start > nowMs;
+    })
+    .sort((a, b) => String(a.start).localeCompare(String(b.start)))[0];
+
+  return game ? basicGameSummary(game) : null;
+};
+
 export const onRequestGet = async () => {
   const season = getSeasonId();
 
@@ -428,6 +452,7 @@ export const onRequestGet = async () => {
         ilvesStanding: ilvesStanding ? { ...ilvesStanding, totalTeams: standings.length } : null,
         lastIlvesGame: getLastIlvesGame(games),
         nextIlvesGame: getNextIlvesGame(games),
+        nextHomeIlvesGame: getNextHomeIlvesGame(games),
         liveIlvesGame: getLiveIlvesGame(games),
       },
       {

@@ -15,6 +15,7 @@ type IlvesStanding = LiigaStanding & {
 };
 
 type LiigaGame = {
+  id: number | string | null;
   start: string;
   homeTeamId: string;
   homeTeam: string;
@@ -23,6 +24,7 @@ type LiigaGame = {
   homeGoals: number | null;
   awayGoals: number | null;
   gameTime: number | null;
+  spectators?: number | null;
 };
 
 type LiigaLastGame = LiigaGame & {
@@ -44,8 +46,11 @@ type LiigaResponse = {
   ilvesStanding: IlvesStanding | null;
   lastIlvesGame: LiigaLastGame | null;
   nextIlvesGame: LiigaGame | null;
+  nextHomeIlvesGame: LiigaGame | null;
   liveIlvesGame: LiigaLiveGame | null;
 };
+
+type MatchScope = 'last' | 'next' | 'live';
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const LIVE_REFRESH_INTERVAL_MS = 30 * 1000;
@@ -108,6 +113,35 @@ const matchupLabel = (game: LiigaGame) => `${game.homeTeam} / ${game.awayTeam}`;
 
 const ilvesVenueLabel = (game: LiigaGame) => game.homeTeamId === 'ilves' ? 'HOME' : 'AWAY';
 
+const setMatchMark = (mark: SVGUseElement | null, teamId: string | null) => {
+  if (!mark) return;
+  const svg = mark.closest('svg');
+  if (!teamId) {
+    svg?.setAttribute('hidden', '');
+    return;
+  }
+  svg?.removeAttribute('hidden');
+  mark.setAttribute('href', `#liiga-match-mark-${teamId}`);
+};
+
+const renderMatchTeams = (root: HTMLElement, scope: MatchScope, game: LiigaGame | null) => {
+  const homeTeam = root.querySelector<HTMLElement>(`[data-liiga-${scope}-home-team]`);
+  const awayTeam = root.querySelector<HTMLElement>(`[data-liiga-${scope}-away-team]`);
+  const homeMark = root.querySelector<SVGUseElement>(`[data-liiga-${scope}-home-mark]`);
+  const awayMark = root.querySelector<SVGUseElement>(`[data-liiga-${scope}-away-mark]`);
+  const homeWrap = root.querySelector<HTMLElement>(`[data-liiga-${scope}-home-side]`);
+  const awayWrap = root.querySelector<HTMLElement>(`[data-liiga-${scope}-away-side]`);
+
+  if (!homeTeam || !awayTeam || !homeMark || !awayMark || !homeWrap || !awayWrap) return;
+
+  homeTeam.textContent = game?.homeTeam ?? '--';
+  awayTeam.textContent = game?.awayTeam ?? '--';
+  setMatchMark(homeMark, game?.homeTeamId ?? null);
+  setMatchMark(awayMark, game?.awayTeamId ?? null);
+  homeWrap.classList.toggle('is-ilves', game?.homeTeamId === 'ilves');
+  awayWrap.classList.toggle('is-ilves', game?.awayTeamId === 'ilves');
+};
+
 const renderStandings = (root: HTMLElement, standings: LiigaStanding[]) => {
   const table = root.querySelector<HTMLElement>('[data-liiga-standings]');
   if (!table) return;
@@ -137,38 +171,77 @@ const renderLastGame = (root: HTMLElement, game: LiigaLastGame | null) => {
   const score = root.querySelector<HTMLElement>('[data-liiga-last-score]');
   const date = root.querySelector<HTMLElement>('[data-liiga-last-date]');
   const result = root.querySelector<HTMLElement>('[data-liiga-last-result]');
-  if (!matchup || !score || !date || !result) return;
+  const audience = root.querySelector<HTMLElement>('[data-liiga-last-audience]');
+  if (!matchup || !score || !date || !result || !audience) return;
+
+  renderMatchTeams(root, 'last', game);
 
   if (!game) {
     matchup.textContent = 'NO COMPLETED GAME';
-    score.textContent = '-- : --';
+    score.textContent = '-- - --';
     date.textContent = '--';
     result.textContent = 'WAITING';
+    audience.textContent = 'ATTENDANCE --';
     return;
   }
 
   matchup.textContent = matchupLabel(game);
-  score.textContent = `${game.homeGoals} : ${game.awayGoals}`;
+  score.textContent = `${game.homeGoals} - ${game.awayGoals}`;
   date.textContent = formatGameDate(game.start);
   result.textContent = `${game.ilvesResult === 'W' ? 'WIN' : game.ilvesResult === 'L' ? 'LOSS' : 'DRAW'} / ${finishLabel(game.finish)}`;
+  audience.textContent = typeof game.spectators === 'number' && Number.isFinite(game.spectators)
+    ? `ATTENDANCE ${game.spectators}`
+    : 'ATTENDANCE --';
 };
 
-const renderNextGame = (root: HTMLElement, game: LiigaGame | null) => {
+const renderNextGame = (
+  root: HTMLElement,
+  game: LiigaGame | null,
+  nextHomeGame: LiigaGame | null,
+) => {
   const matchup = root.querySelector<HTMLElement>('[data-liiga-next-matchup]');
   const date = root.querySelector<HTMLElement>('[data-liiga-next-date]');
   const venue = root.querySelector<HTMLElement>('[data-liiga-next-venue]');
-  if (!matchup || !date || !venue) return;
+  const homeStrip = root.querySelector<HTMLElement>('[data-liiga-next-home]');
+  const homeOpponent = root.querySelector<HTMLElement>('[data-liiga-next-home-opponent]');
+  const homeDate = root.querySelector<HTMLElement>('[data-liiga-next-home-date]');
+  if (!matchup || !date || !venue || !homeStrip || !homeOpponent || !homeDate) return;
+
+  renderMatchTeams(root, 'next', game);
 
   if (!game) {
     matchup.textContent = 'NO SCHEDULED GAME';
     date.textContent = '--';
     venue.textContent = 'SEASON SCHEDULE';
+  } else {
+    matchup.textContent = matchupLabel(game);
+    date.textContent = formatGameDateTime(game.start);
+    venue.textContent = `${ilvesVenueLabel(game)} / NEXT`;
+  }
+
+  const repeatsNextGame = Boolean(
+    game &&
+    nextHomeGame &&
+    (
+      (game.id !== null && nextHomeGame.id !== null && String(game.id) === String(nextHomeGame.id)) ||
+      (
+        game.start === nextHomeGame.start &&
+        game.homeTeamId === nextHomeGame.homeTeamId &&
+        game.awayTeamId === nextHomeGame.awayTeamId
+      )
+    )
+  );
+
+  if (!nextHomeGame || repeatsNextGame) {
+    homeStrip.hidden = true;
     return;
   }
 
-  matchup.textContent = matchupLabel(game);
-  date.textContent = formatGameDateTime(game.start);
-  venue.textContent = `${ilvesVenueLabel(game)} / NEXT`;
+  homeStrip.hidden = false;
+  homeOpponent.textContent = nextHomeGame.homeTeamId === 'ilves'
+    ? nextHomeGame.awayTeam
+    : nextHomeGame.homeTeam;
+  homeDate.textContent = formatGameDateTime(nextHomeGame.start);
 };
 
 const renderIlvesStanding = (root: HTMLElement, standing: IlvesStanding | null) => {
@@ -200,8 +273,9 @@ const renderLiveGame = (root: HTMLElement, game: LiigaLiveGame | null) => {
   root.classList.toggle('is-live', Boolean(game));
   if (!game) return;
 
+  renderMatchTeams(root, 'live', game);
   matchup.textContent = matchupLabel(game);
-  score.textContent = `${game.homeGoals} : ${game.awayGoals}`;
+  score.textContent = `${game.homeGoals} - ${game.awayGoals}`;
   clock.textContent = formatGameClock(game.gameTime);
 };
 
@@ -248,7 +322,7 @@ export const initCurrentLiiga = () => {
       renderStandings(root, data.standings);
       renderIlvesStanding(root, data.ilvesStanding);
       renderLastGame(root, data.lastIlvesGame);
-      renderNextGame(root, data.nextIlvesGame);
+      renderNextGame(root, data.nextIlvesGame, data.nextHomeIlvesGame);
       renderLiveGame(root, data.liveIlvesGame);
       statusTarget.textContent = hasLiveGame ? 'LIVE / ILVES' : 'LIVE / LIIGA';
 
