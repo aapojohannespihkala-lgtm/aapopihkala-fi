@@ -58,14 +58,12 @@ body:has(.snapshot-shell)
     --snapshot-metric-heading-size: 0.5rem;
   }
 
-  /* The Liiga content column begins slightly left of the split heading's text
-     inset because the runtime grid and panel body use different origins. Use
-     the measured mobile inset so ILVES sits directly under LIIGA / 05. */
+  /* Match the Liiga copy to the split heading's text inset on mobile. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga {
-    padding-left: 20px !important;
+    padding-left: 6px !important;
   }
 }
 
