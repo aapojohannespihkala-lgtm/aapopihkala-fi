@@ -1,5 +1,6 @@
 import { initSnapshotCalendarLayout } from './snapshot-calendar-layout';
 import { initSnapshotCalendarSolarOrbit } from './snapshot-calendar-solar';
+import { initSnapshotCalendarWeekNumbers } from './snapshot-calendar-week-numbers';
 
 type MonthAverageResponse = {
   average?: unknown;
@@ -151,6 +152,7 @@ export const initSnapshotElectricityContext = () => {
 
   initSnapshotCalendarSolarOrbit();
   initSnapshotCalendarLayout();
+  initSnapshotCalendarWeekNumbers();
 
   root.dataset.electricityContextInitialized = 'true';
   let monthData: MonthAverageResponse | null = null;
