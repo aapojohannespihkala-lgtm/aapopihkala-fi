@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+const ILVES_LOGO_ASSET = 'current-ilves-mascot-emblem.svg';
+
 const teamIds = [
   'hifk',
   'hpk',
@@ -141,17 +143,24 @@ for (const viewport of [
     expect(hpkPaint.fill).not.toBe('none');
     expect(hpkPaint.stroke).toBe('none');
 
-    const ilvesShape = page.locator('[data-liiga-club-mark="ilves"] path').first();
-    const ilvesPaint = await ilvesShape.evaluate((path) => {
-      const styles = getComputedStyle(path);
-      return { fill: styles.fill, stroke: styles.stroke };
+    const ilvesMark = page.locator('[data-liiga-club-mark="ilves"] > svg');
+    await expect(ilvesMark.locator('path')).toHaveCount(0);
+    const ilvesMask = await ilvesMark.evaluate((mark) => {
+      const styles = getComputedStyle(mark);
+      return styles.getPropertyValue('mask-image') || styles.getPropertyValue('-webkit-mask-image');
     });
-    expect(ilvesPaint.fill).toBe('none');
-    expect(ilvesPaint.stroke).not.toBe('none');
+    expect(ilvesMask).toContain(ILVES_LOGO_ASSET);
 
     await expect(page.locator('#liiga-match-mark-hpk .liiga-team-mark__fill')).toHaveCount(3);
     await expect(page.locator('#liiga-match-mark-hpk .liiga-team-mark__shape')).toHaveCount(0);
-    await expect(page.locator('#liiga-match-mark-ilves .liiga-team-mark__shape').first()).toBeAttached();
+    await expect(page.locator('#liiga-match-mark-ilves path')).toHaveCount(0);
+
+    const ilvesMatchMark = page.locator('.liiga-match-team__mark:has(use[href="#liiga-match-mark-ilves"])').first();
+    const ilvesMatchMask = await ilvesMatchMark.evaluate((mark) => {
+      const styles = getComputedStyle(mark);
+      return styles.getPropertyValue('mask-image') || styles.getPropertyValue('-webkit-mask-image');
+    });
+    expect(ilvesMatchMask).toContain(ILVES_LOGO_ASSET);
 
     const hpkMatchShape = page.locator('#liiga-match-mark-hpk path').first();
     const hpkMatchPaint = await hpkMatchShape.evaluate((path) => {
@@ -161,15 +170,15 @@ for (const viewport of [
     expect(hpkMatchPaint.fill).not.toBe('none');
     expect(hpkMatchPaint.stroke).toBe('none');
 
-    const markSignatures = await page.locator('[data-liiga-club-mark] svg').evaluateAll((marks) =>
+    const markSignatures = await page.locator('[data-liiga-club-mark]:not([data-liiga-club-mark="ilves"]) svg').evaluateAll((marks) =>
       marks.map((mark) =>
         Array.from(mark.querySelectorAll('path'))
           .map((path) => path.getAttribute('d'))
           .join('|')
       )
     );
-    expect(markSignatures).toHaveLength(17);
-    expect(new Set(markSignatures).size).toBe(17);
+    expect(markSignatures).toHaveLength(16);
+    expect(new Set(markSignatures).size).toBe(16);
     expect(markSignatures.every((signature) => signature.includes('|'))).toBe(true);
 
     const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);

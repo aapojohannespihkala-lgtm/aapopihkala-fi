@@ -113,6 +113,13 @@ const getTeamAbbreviation = (teamId: string, fallback: string) =>
   getLiigaTeamById(teamId)?.abbreviation ?? fallback.slice(0, 3).toUpperCase();
 
 const createTeamMark = (teamId: string) => {
+  if (teamId === 'ilves') {
+    const mark = document.createElement('span');
+    mark.className = 'snapshot-liiga__mark snapshot-liiga__mark--ilves';
+    mark.setAttribute('aria-hidden', 'true');
+    return mark;
+  }
+
   const paths = getLiigaMarkPaths(teamId);
   if (paths.length === 0) return null;
 
@@ -482,6 +489,13 @@ const ensureStyles = () => {
       width: 100%;
       height: 100%;
       overflow: visible;
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga__mark--ilves {
+      overflow: hidden;
+      background: currentColor;
+      -webkit-mask: url('/icons/current-ilves-mascot-emblem.svg') center / contain no-repeat;
+      mask: url('/icons/current-ilves-mascot-emblem.svg') center / contain no-repeat;
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__match-center {
