@@ -1,3 +1,5 @@
+import { initSnapshotCalendarSolarOrbit } from './snapshot-calendar-solar';
+
 type MonthAverageResponse = {
   average?: unknown;
   kind?: unknown;
@@ -145,6 +147,8 @@ const renderMonthAverage = (root: HTMLElement, data: MonthAverageResponse) => {
 export const initSnapshotElectricityContext = () => {
   const root = document.querySelector<HTMLElement>('[data-current-snapshot]');
   if (!root || root.dataset.electricityContextInitialized === 'true') return;
+
+  initSnapshotCalendarSolarOrbit();
 
   root.dataset.electricityContextInitialized = 'true';
   let monthData: MonthAverageResponse | null = null;
