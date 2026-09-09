@@ -1,6 +1,6 @@
 ---
 import { LIIGA_TEAMS } from '../../config/liigaTeams';
-import { getLiigaMarkPaths } from '../../config/liigaMarks';
+import { getLiigaMarkPaths, isLiigaMarkFilled } from '../../config/liigaMarks';
 ---
 
 <section class="current-liiga" data-current-liiga aria-labelledby="current-liiga-title" aria-busy="true">
@@ -13,7 +13,7 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
               getLiigaMarkPaths(team.id).map((path, pathIndex) => (
                 <path
                   d={path}
-                  class={pathIndex === 0 ? 'liiga-team-mark__shape' : 'liiga-team-mark__shape liiga-team-mark__detail'}
+                  class={isLiigaMarkFilled(team.id) ? 'liiga-team-mark__fill' : pathIndex === 0 ? 'liiga-team-mark__shape' : 'liiga-team-mark__shape liiga-team-mark__detail'}
                 ></path>
               ))
             }
@@ -175,7 +175,7 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
                       getLiigaMarkPaths(team.id).map((path, pathIndex) => (
                         <path
                           d={path}
-                          class={pathIndex === 0 ? 'liiga-team-mark__shape' : 'liiga-team-mark__shape liiga-team-mark__detail'}
+                          class={isLiigaMarkFilled(team.id) ? 'liiga-team-mark__fill' : pathIndex === 0 ? 'liiga-team-mark__shape' : 'liiga-team-mark__shape liiga-team-mark__detail'}
                         ></path>
                       ))
                     }
@@ -217,7 +217,7 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
                 getLiigaMarkPaths(team.id).map((path, pathIndex) => (
                   <path
                     d={path}
-                    class={pathIndex === 0 ? 'liiga-team-mark__shape' : 'liiga-team-mark__shape liiga-team-mark__detail'}
+                    class={isLiigaMarkFilled(team.id) ? 'liiga-team-mark__fill' : pathIndex === 0 ? 'liiga-team-mark__shape' : 'liiga-team-mark__shape liiga-team-mark__detail'}
                   ></path>
                 ))
               }
@@ -646,6 +646,12 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
     stroke-linecap: round;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
+  }
+
+  :global(.liiga-team-mark__fill) {
+    fill: currentColor;
+    fill-rule: evenodd;
+    stroke: none;
   }
 
   :global(.liiga-team-mark__detail) {
