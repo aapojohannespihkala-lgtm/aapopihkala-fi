@@ -100,6 +100,9 @@ Tehty:
 - Samaan visuaaliseen tavoitteeseen kuuluvien pienten muutosten batching yhteen PR:ään on kirjattu pysyväksi työskentelyperiaatteeksi.
 - PR #131 lisäsi Currentin section-boundary Playwright-guardin. Guard on rajattu vain Current-layoutiin mahdollisesti vaikuttaviin muutoksiin, jotta Chromium-asennus ei hidasta jokaista suoritettavaa pull requestia.
 - `CHATGPT.md` kuuluu dokumentaatio-only fast pathiin.
+- Rakennusvaiheen tavallinen päivitys päättyy automergeen. Jälkivalidointi ja tuotantojulkaisu raportoidaan erillisinä tiloina. Jälkitarkistuksen korjaus ja erikseen pyydetty tuotantovarmennus ovat poikkeuksia.
+- Pre-merge-selaintestit valitaan muutoksen kohteen mukaan `.github/scripts/select-browser-tests.sh`-skriptillä. Yhteisille riippuvuuksille ja tuntemattomille Current-tiedostoille säilyy laajempi tarkistus.
+- Tiedostohauissa käytetään jo luettua ajantasaista aineistoa, päivitetään vain relevantit muuttuneet tiedostot ja tarkistetaan vastaava avoin PR ennen rinnakkaisen toteutuksen aloittamista.
 - Onnistuneen owner-PR:n automerge dispatchaa ensin täyden `main`-validoinnin ja yrittää sen jälkeen poistaa mergetyn head-branchin. Poistovirhe ei muuta onnistunutta mergeä epäonnistuneeksi.
 - Branchien suuri kertasiivous valmistui kolmella varmennetulla passilla: mergetyt same-repository-branchit, `main`in historiassa jo olevat tip-commitit ja erikseen varmennetut jäännösbranchit poistettiin ilman poistovirheitä.
 - Vanhasta draft-PR #120:stä löydettiin kolme edelleen relevanttia Current-regressiotestien korjausta. Ne siirrettiin puhtaasti nykyisen `main`in päälle PR #137:ssä, minkä jälkeen vanha draft suljettiin ilman mergeä.
