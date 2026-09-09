@@ -16,6 +16,8 @@ For a repository change:
 
 Read `README.md` when setup, commands, CI, deployment or the project overview matters. Do not require it for every narrowly scoped implementation change.
 
+For routine construction updates, use the smallest source set below and reuse already-read, unchanged content. After main advances, refresh only relevant changed files. Check for a PR already implementing the same request before creating another. Finish after successful required CI and automerge; post-merge checks and deployment are separate statuses. Follow `AGENTS.md` for the exceptions that require waiting further.
+
 ## Current UI and interaction
 
 Start with:
@@ -101,7 +103,7 @@ For SEO work, also inspect sitemap configuration, robots behavior and the exact 
 
 Start with:
 
-- `.github/workflows/build-check.yml`
+- `.github/workflows/build-check.yml` and `.github/scripts/select-browser-tests.sh`
 - `package.json`
 - `package-lock.json` when dependencies change
 - `playwright.config.ts` when browser execution changes
@@ -110,7 +112,7 @@ Start with:
 
 Keep the active construction-phase fast path intentional. Do not broaden documentation-only or CSS-only validation exceptions casually.
 
-The full Playwright suite remains post-merge validation. A small pre-merge Current section-boundary guard is intentionally blocking for executable pull requests.
+The full Playwright suite remains post-merge validation. Pre-merge guards are selected by changed paths: domain-specific changes stay narrow, shared dependencies and unknown Current files use broader coverage, and changed existing browser specs run themselves. The script is the exact mapping; avoid duplicating its file inventory here.
 
 ## Documentation and roadmap
 
