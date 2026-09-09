@@ -28,6 +28,7 @@ const ensureLayoutStyles = () => {
     body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
       min-width: 0;
       width: 112px;
+      justify-self: end;
       align-self: stretch;
       display: grid;
       grid-template-rows: minmax(0, 1fr) auto;
