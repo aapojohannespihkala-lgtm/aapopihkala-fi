@@ -45,4 +45,22 @@ test('Snapshot shows a compact month grid with today and ISO weeks marked', asyn
   const standaloneWeekBox = await standaloneWeek.boundingBox();
   expect(standaloneWeekBox?.width ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(1);
   expect(standaloneWeekBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(1);
+
+  await page.setViewportSize({ width: 1536, height: 960 });
+  const titleblockBox = await page.locator('.snapshot-titleblock').boundingBox();
+  const desktopCalendarBox = await calendar.boundingBox();
+
+  expect(titleblockBox).not.toBeNull();
+  expect(desktopCalendarBox).not.toBeNull();
+  expect((desktopCalendarBox?.y ?? Number.NEGATIVE_INFINITY)).toBeGreaterThanOrEqual(
+    (titleblockBox?.y ?? Number.POSITIVE_INFINITY) + 4
+  );
+  expect(
+    (desktopCalendarBox?.y ?? Number.POSITIVE_INFINITY) +
+      (desktopCalendarBox?.height ?? Number.POSITIVE_INFINITY)
+  ).toBeLessThanOrEqual(
+    (titleblockBox?.y ?? Number.NEGATIVE_INFINITY) +
+      (titleblockBox?.height ?? Number.NEGATIVE_INFINITY) -
+      4
+  );
 });
