@@ -10,11 +10,40 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
 
   initSnapshotWeatherForecast();
   initSnapshotElectricityContext();
+
+  const heroClock = document.querySelector<HTMLElement>('#current-snapshot-title');
+  const heroClockFormatter = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+    timeZone: 'Europe/Helsinki',
+  });
+
+  const renderHeroClock = () => {
+    if (!heroClock) return;
+    heroClock.textContent = heroClockFormatter.format(new Date());
+    heroClock.setAttribute('aria-label', `Current time in Helsinki ${heroClock.textContent}`);
+  };
+
+  renderHeroClock();
+  window.setInterval(renderHeroClock, 1000);
 </script>
 
 <style is:global>
+  body:has(.snapshot-shell) #current-snapshot-title {
+    font-size: clamp(2.8rem, 9vw, 4.4rem);
+    letter-spacing: -0.06em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  body:has(.snapshot-shell) .snapshot-titleblock__meta span:last-child {
+    display: none;
+  }
+
   body:has(.snapshot-shell) .snapshot-weather {
-    grid-template-columns: minmax(0, 1.08fr) minmax(150px, 0.92fr);
+    grid-template-columns: minmax(0, 0.94fr) minmax(190px, 1.06fr);
     grid-template-rows: minmax(0, 1fr) auto;
     column-gap: 12px;
   }
@@ -35,20 +64,11 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     min-width: 0;
     align-self: center;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
     color: var(--ink-soft);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     text-transform: uppercase;
-  }
-
-  body:has(.snapshot-shell) .snapshot-weather__forecast-label {
-    grid-column: 1 / -1;
-    margin-bottom: 1px;
-    color: var(--stone);
-    font-size: 0.44rem;
-    line-height: 1;
-    letter-spacing: 0.055em;
   }
 
   body:has(.snapshot-shell) .snapshot-weather__forecast-slot {
@@ -83,7 +103,7 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
   body:has(.snapshot-shell) .snapshot-weather__forecast-temperature {
     color: var(--ink);
     font-size: 0.62rem;
-    font-weight: 600;
+    font-weight: 650;
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
@@ -135,7 +155,17 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     border-left: 1px solid color-mix(in srgb, var(--ink-soft) 60%, transparent);
   }
 
+  body:has(.snapshot-shell) .snapshot-market-row strong {
+    font-size: 1.1em;
+    font-weight: 750;
+    letter-spacing: 0.025em;
+  }
+
   @media (max-width: 640px) {
+    body:has(.snapshot-shell) #current-snapshot-title {
+      font-size: clamp(2.55rem, 12vw, 3.35rem);
+    }
+
     body:has(.snapshot-shell) .snapshot-grid {
       grid-template-rows:
         minmax(0, 1.15fr)
@@ -145,30 +175,30 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     }
 
     body:has(.snapshot-shell) .snapshot-weather {
-      grid-template-columns: minmax(0, 1.06fr) minmax(148px, 0.94fr);
-      column-gap: 8px;
+      grid-template-columns: minmax(0, 0.94fr) minmax(166px, 1.06fr);
+      column-gap: 6px;
       row-gap: 2px;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast {
-      gap: 5px;
-    }
-
-    body:has(.snapshot-shell) .snapshot-weather__forecast-label {
-      font-size: 0.4rem;
+      gap: 3px;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast-time {
-      font-size: 0.39rem;
+      font-size: 0.4rem;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast-icon {
-      width: 22px;
-      height: 22px;
+      width: 21px;
+      height: 21px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-slot {
+      grid-template-rows: auto 21px auto;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast-temperature {
-      font-size: 0.58rem;
+      font-size: 0.59rem;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__condition {
@@ -218,6 +248,11 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
       font-size: 0.5rem;
     }
 
+    body:has(.snapshot-shell) .snapshot-market-row strong {
+      font-size: 0.62rem;
+      font-weight: 800;
+    }
+
     body:has(.snapshot-shell) .snapshot-rates {
       gap: 2px;
     }
@@ -263,6 +298,10 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
   }
 
   @media (max-width: 380px), (max-height: 720px) {
+    body:has(.snapshot-shell) #current-snapshot-title {
+      font-size: clamp(2.25rem, 11vw, 2.8rem);
+    }
+
     body:has(.snapshot-shell) .snapshot-grid {
       grid-template-rows:
         minmax(0, 1.12fr)
@@ -272,33 +311,29 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     }
 
     body:has(.snapshot-shell) .snapshot-weather {
-      grid-template-columns: minmax(0, 1fr) minmax(132px, 0.9fr);
-      column-gap: 5px;
+      grid-template-columns: minmax(0, 0.9fr) minmax(150px, 1.1fr);
+      column-gap: 3px;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast {
-      gap: 3px;
-    }
-
-    body:has(.snapshot-shell) .snapshot-weather__forecast-label {
-      font-size: 0.34rem;
+      gap: 2px;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast-time {
-      font-size: 0.34rem;
+      font-size: 0.35rem;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast-icon {
-      width: 19px;
-      height: 19px;
+      width: 18px;
+      height: 18px;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast-slot {
-      grid-template-rows: auto 19px auto;
+      grid-template-rows: auto 18px auto;
     }
 
     body:has(.snapshot-shell) .snapshot-weather__forecast-temperature {
-      font-size: 0.5rem;
+      font-size: 0.52rem;
     }
 
     body:has(.snapshot-shell) .snapshot-source {
@@ -319,6 +354,11 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
 
     body:has(.snapshot-shell) .snapshot-market-list {
       font-size: 0.43rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-market-row strong {
+      font-size: 0.55rem;
+      font-weight: 800;
     }
 
     body:has(.snapshot-shell) .snapshot-rates__label {
