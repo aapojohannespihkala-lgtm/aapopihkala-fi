@@ -72,7 +72,7 @@ test('Snapshot highlights only the current weekday and ISO week', async ({ page 
   expect(weekStyle.fontFamily).toBe(dayStyle.fontFamily);
   expect(weekStyle.fontSize).toBe(dayStyle.fontSize);
   expect(weekStyle.color).not.toBe(greyStyle.color);
-  expect(dayStyle.color).toBe(greyStyle.color);
+  expect(dayStyle.color).not.toBe(greyStyle.color);
   expect((currentWeekBox?.x ?? Number.POSITIVE_INFINITY) + (currentWeekBox?.width ?? 0)).toBeLessThanOrEqual(
     (firstDayBox?.x ?? Number.NEGATIVE_INFINITY) - 2,
   );
