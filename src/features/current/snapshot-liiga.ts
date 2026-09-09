@@ -754,7 +754,7 @@ const ensureSnapshotLiiga = () => {
   const existing = main.querySelector<HTMLElement>('[data-snapshot-liiga]');
   if (existing) return existing;
 
-remove moved source  const section = document.createElement('section');
+const section = document.createElement('section');
   section.className = 'snapshot-liiga';
   section.dataset.snapshotLiiga = 'true';
   section.setAttribute('aria-label', 'Ilves Liiga status');
