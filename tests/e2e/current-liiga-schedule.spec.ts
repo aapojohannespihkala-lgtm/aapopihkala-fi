@@ -1,4 +1,22 @@
 import { expect, test } from '@playwright/test';
+import { isLiigaScheduleGameLive } from '../../functions/api/current/liiga-schedule';
+
+test('does not expose future scheduled games as live even if upstream marks them started', () => {
+  const now = new Date('2026-09-09T15:13:00Z');
+  const fixture = {
+    id: 1,
+    start: '2026-09-09T15:30:00Z',
+    homeTeam: { teamId: 'pelicans', goals: 0 },
+    awayTeam: { teamId: 'kalpa', goals: 0 },
+    started: true,
+    ended: false,
+    gameTime: 0,
+  };
+
+  expect(isLiigaScheduleGameLive(fixture, now)).toBe(false);
+  expect(isLiigaScheduleGameLive({ ...fixture, start: '2026-09-09T15:00:00Z', gameTime: 780 }, now)).toBe(true);
+  expect(isLiigaScheduleGameLive({ ...fixture, start: '2026-09-09T15:00:00Z', started: false }, now)).toBe(false);
+});
 
 test('renders league-wide live and upcoming games with Current glyphs', async ({ page }) => {
   await page.route('**/api/current/liiga*', async (route) => {
@@ -86,6 +104,8 @@ test('renders league-wide live and upcoming games with Current glyphs', async ({
 
   await expect(schedule.locator('.liiga-match-team__mark use[href="#liiga-match-mark-pelicans"]')).toHaveCount(1);
   await expect(schedule.locator('.liiga-match-team__mark use[href="#liiga-match-mark-ilves"]')).toHaveCount(1);
+  await expect(schedule.locator('[data-liiga-schedule-team-id="pelicans"]')).toHaveCount(1);
+  await expect(schedule.locator('[data-liiga-schedule-team-id="ilves"]')).toHaveCount(1);
 
   const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   expect(hasOverflow).toBe(false);
