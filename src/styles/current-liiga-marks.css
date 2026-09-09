@@ -30,3 +30,17 @@ html.site-night-mode [data-current-liiga] {
 [data-current-liiga] .liiga-team-mark__detail {
   opacity: 1 !important;
 }
+
+[data-current-liiga] [data-liiga-club-mark='sport'] svg,
+[data-current-liiga] [data-liiga-row='sport'] .liiga-team-mark svg,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-sport']) {
+  background-color: currentColor;
+  -webkit-mask: url('/icons/current-sport-emblem.svg') center / contain no-repeat;
+  mask: url('/icons/current-sport-emblem.svg') center / contain no-repeat;
+}
+
+[data-current-liiga] [data-liiga-club-mark='sport'] svg path,
+[data-current-liiga] [data-liiga-row='sport'] .liiga-team-mark svg path,
+[data-current-liiga] .liiga-match-team__mark:has(use[href='#liiga-match-mark-sport']) use {
+  opacity: 0;
+}
