@@ -177,7 +177,17 @@ test.describe('Current Snapshot Liiga summary', () => {
       const panelBody = panel?.querySelector<HTMLElement>('.snapshot-panel__body');
       const liigaHeading = panel?.querySelector<HTMLElement>('#snapshot-liiga-label');
       const liigaBody = panel?.querySelector<HTMLElement>('[data-snapshot-liiga]');
+      const matchCenter = liigaBody?.querySelector<HTMLElement>('.snapshot-liiga__match-center');
+      const homeMark = liigaBody?.querySelector<HTMLElement>('[data-snapshot-liiga-home-mark]');
+      const awayMark = liigaBody?.querySelector<HTMLElement>('[data-snapshot-liiga-away-mark]');
+      const homeTeam = liigaBody?.querySelector<HTMLElement>('[data-snapshot-liiga-home-team]');
+      const awayTeam = liigaBody?.querySelector<HTMLElement>('[data-snapshot-liiga-away-team]');
       const panelRect = panel?.getBoundingClientRect();
+      const centerRect = matchCenter?.getBoundingClientRect();
+      const homeMarkRect = homeMark?.getBoundingClientRect();
+      const awayMarkRect = awayMark?.getBoundingClientRect();
+      const homeTeamRect = homeTeam?.getBoundingClientRect();
+      const awayTeamRect = awayTeam?.getBoundingClientRect();
       const panelMidpoint = panelRect ? panelRect.left + panelRect.width / 2 : Number.POSITIVE_INFINITY;
 
       return {
@@ -192,6 +202,12 @@ test.describe('Current Snapshot Liiga summary', () => {
         headerDivider: liigaHeading?.getBoundingClientRect().left ?? Number.POSITIVE_INFINITY,
         bodyDivider: liigaBody?.getBoundingClientRect().left ?? Number.POSITIVE_INFINITY,
         panelMidpoint,
+        homeMarkWidth: homeMarkRect?.width ?? 0,
+        awayMarkWidth: awayMarkRect?.width ?? 0,
+        homeMarkToCenter: centerRect && homeMarkRect ? centerRect.left - homeMarkRect.right : Number.POSITIVE_INFINITY,
+        awayMarkToCenter: centerRect && awayMarkRect ? awayMarkRect.left - centerRect.right : Number.POSITIVE_INFINITY,
+        homeTeamToCenter: centerRect && homeTeamRect ? centerRect.left - homeTeamRect.right : Number.POSITIVE_INFINITY,
+        awayTeamToCenter: centerRect && awayTeamRect ? awayTeamRect.left - centerRect.right : Number.POSITIVE_INFINITY,
       };
     });
 
@@ -201,6 +217,12 @@ test.describe('Current Snapshot Liiga summary', () => {
     expect(geometry.panelScrollHeight).toBeLessThanOrEqual(geometry.panelClientHeight + 1);
     expect(Math.abs(geometry.headerDivider - geometry.panelMidpoint)).toBeLessThanOrEqual(2);
     expect(Math.abs(geometry.bodyDivider - geometry.panelMidpoint)).toBeLessThanOrEqual(2);
+    expect(geometry.homeMarkWidth).toBeGreaterThanOrEqual(32);
+    expect(geometry.awayMarkWidth).toBeGreaterThanOrEqual(32);
+    expect(geometry.homeMarkToCenter).toBeLessThanOrEqual(6);
+    expect(geometry.awayMarkToCenter).toBeLessThanOrEqual(6);
+    expect(geometry.homeMarkToCenter).toBeLessThan(geometry.homeTeamToCenter);
+    expect(geometry.awayMarkToCenter).toBeLessThan(geometry.awayTeamToCenter);
   });
 
   test('labels the next game as today when the Helsinki dates match', async ({ page }) => {
