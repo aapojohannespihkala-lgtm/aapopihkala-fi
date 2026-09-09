@@ -68,7 +68,7 @@ Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivise
 
 - Pidä TypeScript nykyisessä tuetussa sarjassa, kunnes `@astrojs/check` tukee seuraavaa majoria. Nykyinen check-versio sallii TypeScript 5- ja 6-sarjat, ei 7-sarjaa.
 - Tarkista `npm audit` -löydökset dependency- ja framework-päivitysten yhteydessä; käsittele jäljelle jäävät transitiiviset haavoittuvuudet erillisinä rajattuina maintenance-passeina.
-- Tarkista, onko `html2canvas` enää käytössä. Jos repo- ja runtime-tarkistus vahvistavat riippuvuuden kuolleeksi, poista se erillisessä pienessä maintenance-muutoksessa.
+- `html2canvas` on edelleen käytössä AREA-rasterikaappauksessa `src/features/interactions/areaRaster.ts`:n dynaamisen importin kautta. Älä käsittele sitä kuolleena riippuvuutena, ellei kyseinen toiminto myöhemmin poistu tai korvaudu.
 - Käsittele `npm ci`:n install-script-policy tietoisesti. Nykyinen CI varoittaa `esbuild`- ja `workerd`-install-skripteistä, joita ei ole eksplisiittisesti hyväksytty allowScripts-politiikassa. Älä hyväksy skriptejä automaattisesti ilman pakettien ja tarpeen varmennusta.
 - Tee pienet Astro-, Wrangler-, Playwright-, TypeScript- ja Three.js-päivitykset rajattuina maintenance-passeina. Priorisoi regressioriski ja hyöty versionumeron tuoreuden sijaan.
 - Älä lisää automaattista riippuvuuspäivitys-PR-virtaa rakennusvaiheessa pelkän hygienian vuoksi, jos se kasvattaa PR-kohinaa. Arvioi Dependabot tai vastaava uudelleen vakaammassa vaiheessa.
@@ -84,7 +84,7 @@ Currentin Electricity-, Markets- ja News-näkymät riippuvat useista ulkoisista 
 
 - Pidä retryt rajattuina ja lähdekohtaisina. Älä kasvata yhden API-pyynnön kokonaislatenssia hallitsemattomalla fallback-ketjulla.
 - Arvioi, missä Current-datassa stale-while-revalidate- tai viimeksi onnistuneen datan fallback parantaa käytettävyyttä ilman harhaanjohtavaa vanhaa tietoa. Jos viimeksi onnistunutta dataa käytetään, sen ikä pitää pystyä esittämään tai tulkitsemaan yksiselitteisesti.
-- Suojaa HTML- ja tekstimuotoa parsivat lähteet, erityisesti Bank of Finland- ja OP-adapterit, source-contract- tai fixture-regressiotesteillä, jotta upstream-rakenteen muutos havaitaan nopeasti.
+- Suojaa HTML- ja tekstimuotoa parsivat lähteet, erityisesti Bank of Finland- ja OP-adapterit, source-contract- tai fixture-regressiotesteillä, jotta upstream-rakenteen muutos havaitaan nopeasti. Nykyinen portfolio-resilience-testi käyttää itse muodostettuja parserifixtureja, joten lisää tarkoituksenmukaisiin adaptereihin upstream-rakenteesta johdettuja pysyviä fixtureja tai vastaavia source-contract-tarkistuksia.
 - Lisää tarvittaessa vastaavat fixture- tai contract-testit RSS-lähteille, jos lähdekohtaiset rakenteet alkavat aiheuttaa toistuvia regressioita.
 - Hyödynnä nykyistä Cloudflare-observabilityä lähdekohtaisten virheiden tunnistamiseen ennen uuden seurantainfran lisäämistä. Tavoite on nähdä ainakin epäonnistunut lähde, vaihe, timeout tai HTTP-virhe ilman että sisäistä diagnostiikkaa näytetään loppukäyttäjälle.
 
@@ -116,10 +116,11 @@ Jäljellä:
 
 Current Markets -kehityksen aikana `functions/api/current/`-hakemistoon on kertynyt useita rinnakkaisia market- ja portfolio-handlerisukupolvia. Nykyinen toimiva tuotantopolku pitää säilyttää, mutta historiallisten toteutusten määrä kasvattaa ylläpidon epäselvyyttä.
 
-- Inventoi kaikki `markets*`- ja `portfolio*`-handlerit ja todista viittausten sekä testien avulla, mitkä ovat aktiivisen Worker-polun ulkopuolella. Poista vain varmasti käyttämättömät legacy-versiot rajatulla cleanup-PR:llä.
+- Inventoi kaikki `markets*`- ja `portfolio*`-handlerit ja todista viittausten sekä testien avulla, mitkä ovat aktiivisen Worker-polun ulkopuolella. Poista vain varmasti käyttämättömät legacy-versiot rajatulla cleanup-PR:llä. Nykyinen Worker tuo suoraan tuotantopolkuun `markets-stable.ts`:n ja `portfolio-complete.ts`:n, mutta rinnakkaisia historiallisia handlerisukupolvia on edelleen useita.
 - Keskitetään 19 portfolio-kohteen pysyvä metadata, järjestys ja periodisopimus yhteen kanoniseen määrittelyyn, jota backend, frontend ja testit voivat käyttää tarkoituksenmukaisesti ilman käsin synkronoitavia rinnakkaislistoja.
 - Erota ulkoiset lähteet selkeiksi adaptereiksi tai muuten rajatuiksi vastuiksi, erityisesti Yahoo-, Nordnet-, OP- ja Bank of Finland -poluissa. Timeout-, retry-, parseri- ja fallback-logiikan pitää olla lähdekohtaisesti testattavaa.
 - Pidä yhteinen data-contract selkeänä: aidosti puuttuva periodi saa olla `N/A`, mutta puuttuva rivi tai rikkoutunut lähdesopimus pitää erottaa siitä.
 - Arvioi `/current2/`-reitin pysyvä rooli. Jos sitä tarvitaan diagnostisena layout- ja viewport-laboratoriona, dokumentoi tämä yksiselitteisesti. Jos sen tehtävä on pääosin siirtynyt varsinaiseen Currentiin, suunnittele myöhempi poistaminen tai supistaminen.
 - Päivitä Current2-nimiset tuotantovalvonnat ja dokumentaatiot neutraalimpaan Current/portfolio-nimistöön silloin, kun ne eivät enää kuvaa vain `/current2/`-reittiä.
-- Yhtenäistä `wrangler.jsonc`:n Worker-first-reittisopimus ja `worker/index.ts`:n todellinen API-reititys niin, että kaikki Currentin Worker-käsittelemät reitit ovat konfiguraatiossa ymmärrettävissä ilman historiallista poikkeuslogiikkaa.
+- Yhtenäistä `wrangler.jsonc`:n Worker-first-reittisopimus ja `worker/index.ts`:n todellinen API-reititys niin, että kaikki Currentin Worker-käsittelemät reitit ovat konfiguraatiossa ymmärrettävissä ilman historiallista poikkeuslogiikkaa. Nykytilassa Worker käsittelee myös Markets- ja Liiga-API:t, mutta niitä ei ole listattu `run_worker_first`-reitteihin.
+- Laajenna `current-worker-regression.spec.ts`:n reittisopimus kattamaan myös Markets-, News- ja Liiga-polut sekä niiden GET-only/405-käyttäytyminen, jotta Worker-konfiguraation ja entrypointin välinen reititysdrifti havaitaan ennen tuotantoa.
