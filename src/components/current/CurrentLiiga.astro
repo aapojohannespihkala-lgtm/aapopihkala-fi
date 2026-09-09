@@ -12,36 +12,50 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
     <p class="liiga-source-state" data-liiga-status>LOADING / LIIGA</p>
   </header>
 
-  <section class="liiga-last" aria-labelledby="liiga-last-title">
+  <section class="liiga-ilves" aria-labelledby="liiga-ilves-title">
     <div class="liiga-panel-heading">
-      <p id="liiga-last-title">ILVES / LAST GAME</p>
-      <p data-liiga-last-date>--</p>
+      <p id="liiga-ilves-title">ILVES / STATUS</p>
+      <p data-liiga-ilves-position>#-- / 17</p>
     </div>
 
-    <p class="liiga-empty" data-liiga-last-empty hidden>No completed Ilves game found.</p>
-
-    <div class="liiga-last-game" data-liiga-last-game>
-      <div class="liiga-last-team">
-        <span class="liiga-last-team__mark" data-liiga-last-home-mark aria-hidden="true"></span>
-        <strong data-liiga-last-home-name>--</strong>
+    <article class="liiga-live-card" data-liiga-live-card hidden aria-live="polite">
+      <div class="liiga-live-card__header">
+        <span>LIVE / ILVES</span>
+        <span data-liiga-live-clock>LIVE</span>
       </div>
+      <p class="liiga-live-card__matchup" data-liiga-live-matchup>--</p>
+      <p class="liiga-live-card__score" data-liiga-live-score>0 : 0</p>
+    </article>
 
-      <div class="liiga-score" aria-live="polite">
-        <span data-liiga-last-home-score>--</span>
-        <span class="liiga-score__separator" aria-hidden="true">:</span>
-        <span data-liiga-last-away-score>--</span>
-      </div>
+    <div class="liiga-status-grid">
+      <article class="liiga-status-card">
+        <div class="liiga-status-card__header">
+          <span>LAST GAME</span>
+          <span data-liiga-last-date>--</span>
+        </div>
+        <p class="liiga-status-card__matchup" data-liiga-last-matchup>--</p>
+        <p class="liiga-status-card__score" data-liiga-last-score>-- : --</p>
+        <p class="liiga-status-card__meta" data-liiga-last-result>WAITING</p>
+      </article>
 
-      <div class="liiga-last-team liiga-last-team--away">
-        <span class="liiga-last-team__mark" data-liiga-last-away-mark aria-hidden="true"></span>
-        <strong data-liiga-last-away-name>--</strong>
-      </div>
+      <article class="liiga-status-card">
+        <div class="liiga-status-card__header">
+          <span>NEXT GAME</span>
+          <span data-liiga-next-venue>--</span>
+        </div>
+        <p class="liiga-status-card__matchup" data-liiga-next-matchup>--</p>
+        <p class="liiga-status-card__next" data-liiga-next-date>--</p>
+        <p class="liiga-status-card__meta">HELSINKI TIME</p>
+      </article>
 
-      <p class="liiga-last-meta">
-        <span data-liiga-last-result>WAITING</span>
-        <span aria-hidden="true">/</span>
-        <span data-liiga-last-finish>--</span>
-      </p>
+      <article class="liiga-status-card liiga-status-card--position">
+        <div class="liiga-status-card__header">
+          <span>POSITION</span>
+          <span>REGULAR SEASON</span>
+        </div>
+        <p class="liiga-status-card__position" data-liiga-position>-- / --</p>
+        <p class="liiga-status-card__meta" data-liiga-position-meta>WAITING FOR STANDINGS</p>
+      </article>
     </div>
   </section>
 
@@ -134,7 +148,7 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
     <p>
       DATA /
       <a href="https://liiga.fi/" target="_blank" rel="noopener nofollow">LIIGA</a>
-      · AUTO REFRESH 5 MIN
+      · AUTO REFRESH 5 MIN / 30 SEC LIVE
     </p>
     <p>CUSTOM GLYPHS / NOT OFFICIAL CLUB LOGOS</p>
     <p class="liiga-error" data-liiga-error hidden>
@@ -159,7 +173,8 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
   .liiga-panel-heading,
   .liiga-footer,
   .liiga-row,
-  .liiga-last-meta,
+  .liiga-status-card,
+  .liiga-live-card,
   .liiga-club-mark {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     text-transform: uppercase;
@@ -176,7 +191,9 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
   .liiga-index,
   .liiga-source-state,
   .liiga-panel-heading p,
-  .liiga-footer p {
+  .liiga-footer p,
+  .liiga-status-card p,
+  .liiga-live-card p {
     margin: 0;
   }
 
@@ -205,14 +222,18 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
     white-space: nowrap;
   }
 
-  .liiga-last,
+  .current-liiga.is-live .liiga-source-state {
+    color: var(--moss-deep);
+  }
+
+  .liiga-ilves,
   .liiga-standings-section,
   .liiga-clubs,
   .liiga-footer {
     border-top: 1px solid var(--liiga-rule);
   }
 
-  .liiga-last,
+  .liiga-ilves,
   .liiga-standings-section,
   .liiga-clubs {
     padding: 18px 0 24px;
@@ -235,83 +256,117 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
     color: var(--stone);
   }
 
-  .liiga-last-game {
+  .liiga-status-grid {
     display: grid;
-    grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr);
-    align-items: center;
-    gap: clamp(22px, 5vw, 58px);
-    min-height: 126px;
-    padding: 18px clamp(18px, 4vw, 42px);
-    border: 1px solid var(--liiga-rule);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid var(--liiga-rule);
+    border-left: 1px solid var(--liiga-rule);
   }
 
-  .liiga-last-team {
-    display: flex;
-    align-items: center;
-    gap: 14px;
+  .liiga-status-card {
     min-width: 0;
+    min-height: 196px;
+    padding: 17px 18px 18px;
+    border-right: 1px solid var(--liiga-rule);
+    border-bottom: 1px solid var(--liiga-rule);
   }
 
-  .liiga-last-team--away {
-    flex-direction: row-reverse;
-    text-align: right;
+  .liiga-status-card__header,
+  .liiga-live-card__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    color: var(--stone-light);
+    font-size: 0.45rem;
+    font-weight: 600;
+    letter-spacing: 0.065em;
   }
 
-  .liiga-last-team strong {
+  .liiga-status-card__header span:first-child,
+  .liiga-live-card__header span:first-child {
+    color: var(--stone);
+  }
+
+  .liiga-status-card__matchup,
+  .liiga-live-card__matchup {
     overflow: hidden;
+    margin-top: 28px !important;
     color: var(--ink-soft);
-    font-family: "Times New Roman", Times, serif;
-    font-size: clamp(1.4rem, 3vw, 2.4rem);
-    font-weight: 400;
-    line-height: 1;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.035em;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .liiga-last-team__mark {
-    width: 48px;
-    height: 48px;
-    flex: 0 0 auto;
-  }
-
-  .liiga-last-team__mark :global(svg) {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-
-  .liiga-score {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 9px;
+  .liiga-status-card__score,
+  .liiga-status-card__position,
+  .liiga-live-card__score {
     color: var(--ink);
     font-family: "Times New Roman", Times, serif;
-    font-size: clamp(3.8rem, 8vw, 6.8rem);
-    line-height: 0.8;
+    font-weight: 400;
+    line-height: 0.82;
     letter-spacing: -0.055em;
   }
 
-  .liiga-score__separator {
-    color: var(--stone-light);
-    font-size: 0.48em;
+  .liiga-status-card__score {
+    margin-top: 11px !important;
+    font-size: clamp(3.1rem, 5.5vw, 5.2rem);
   }
 
-  .liiga-last-meta {
-    grid-column: 1 / -1;
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin: -4px 0 0;
+  .liiga-status-card__next {
+    margin-top: 20px !important;
+    color: var(--ink);
+    font-family: "Times New Roman", Times, serif;
+    font-size: clamp(1.65rem, 3vw, 2.6rem);
+    line-height: 0.96;
+    letter-spacing: -0.035em;
+  }
+
+  .liiga-status-card__position {
+    margin-top: 35px !important;
+    font-size: clamp(3.8rem, 7vw, 6.4rem);
+  }
+
+  .liiga-status-card__meta {
+    margin-top: 16px !important;
     color: var(--stone-light);
     font-size: 0.46rem;
     letter-spacing: 0.065em;
   }
 
-  .liiga-empty {
-    margin: 0;
-    color: var(--stone-light);
-    font-size: 0.8rem;
+  .liiga-status-card--position {
+    background: color-mix(in srgb, var(--moss) 5%, transparent);
+  }
+
+  .liiga-status-card--position .liiga-status-card__position {
+    color: var(--moss-deep);
+  }
+
+  .liiga-live-card {
+    margin-bottom: 14px;
+    padding: 18px 20px 22px;
+    border: 1px solid var(--moss-deep);
+    background: color-mix(in srgb, var(--moss) 7%, transparent);
+  }
+
+  .liiga-live-card[hidden] {
+    display: none;
+  }
+
+  .liiga-live-card__header,
+  .liiga-live-card__header span:first-child {
+    color: var(--moss-deep);
+  }
+
+  .liiga-live-card__matchup {
+    margin-top: 18px !important;
+  }
+
+  .liiga-live-card__score {
+    margin-top: 7px !important;
+    color: var(--moss-deep);
+    font-size: clamp(4.8rem, 10vw, 8.6rem);
   }
 
   .liiga-table {
@@ -414,7 +469,8 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
 
   .liiga-row.is-ilves .liiga-team-mark,
   .liiga-row.is-ilves .liiga-team__name,
-  .liiga-row.is-ilves .liiga-points {
+  .liiga-row.is-ilves .liiga-points,
+  .liiga-row.is-ilves .liiga-rank {
     color: var(--moss-deep);
   }
 
@@ -509,36 +565,20 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
       align-items: start;
     }
 
-    .liiga-last-game {
-      grid-template-columns: 1fr auto 1fr;
-      gap: 12px;
-      min-height: 110px;
-      padding: 16px 10px;
+    .liiga-status-grid {
+      grid-template-columns: 1fr;
     }
 
-    .liiga-last-team {
-      display: grid;
-      justify-items: start;
-      gap: 7px;
+    .liiga-status-card {
+      min-height: 162px;
     }
 
-    .liiga-last-team--away {
-      justify-items: end;
+    .liiga-status-card__matchup {
+      margin-top: 20px !important;
     }
 
-    .liiga-last-team strong {
-      max-width: 100%;
-      font-size: 1.2rem;
-    }
-
-    .liiga-last-team__mark {
-      width: 38px;
-      height: 38px;
-    }
-
-    .liiga-score {
-      gap: 5px;
-      font-size: clamp(3rem, 17vw, 4.8rem);
+    .liiga-status-card__position {
+      margin-top: 25px !important;
     }
 
     .liiga-row {
@@ -586,8 +626,17 @@ import { getLiigaMarkPaths } from '../../config/liigaMarks';
       font-size: 0.4rem;
     }
 
-    .liiga-last-team strong {
-      font-size: 1.04rem;
+    .liiga-status-card__header,
+    .liiga-live-card__header {
+      font-size: 0.4rem;
+    }
+
+    .liiga-status-card__score {
+      font-size: 3.5rem;
+    }
+
+    .liiga-live-card__score {
+      font-size: 5rem;
     }
 
     .liiga-club-grid {
