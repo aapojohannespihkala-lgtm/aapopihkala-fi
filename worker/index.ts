@@ -4,6 +4,7 @@ import { onRequestGet as getMarketsResponse } from '../functions/api/current/mar
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
 import { onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
+import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/current/liiga-schedule';
 
 type AssetsBinding = {
   fetch(request: Request): Promise<Response>;
@@ -18,6 +19,7 @@ const ELECTRICITY_MONTH_PATH = '/api/current/electricity-month';
 const MARKETS_PATH = '/api/current/markets';
 const NEWS_PATH = '/api/current/news';
 const LIIGA_PATH = '/api/current/liiga';
+const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
 
 const methodNotAllowed = () =>
   new Response('Method not allowed', {
@@ -53,6 +55,11 @@ const worker = {
     if (url.pathname === LIIGA_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
       return getLiigaResponse();
+    }
+
+    if (url.pathname === LIIGA_SCHEDULE_PATH) {
+      if (request.method !== 'GET') return methodNotAllowed();
+      return getLiigaScheduleResponse();
     }
 
     return env.ASSETS.fetch(request);
