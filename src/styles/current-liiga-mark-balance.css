@@ -10,100 +10,119 @@
   transform-origin: center;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="pelicans"],
-  [data-liiga-schedule-team-id="pelicans"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-pelicans"])
+[data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id] {
+  --liiga-mark-scale: 1;
+  --liiga-mark-y: 0px;
+  transform: translateY(var(--liiga-mark-y)) scale(var(--liiga-mark-scale));
+  transform-origin: center;
+}
+
+:is(
+  [data-current-liiga] [data-liiga-mark-id="pelicans"],
+  [data-current-liiga] [data-liiga-schedule-team-id="pelicans"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-pelicans"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="pelicans"]
 ) {
   --liiga-mark-scale: 1.17;
   --liiga-mark-y: 1px;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="jukurit"],
-  [data-liiga-schedule-team-id="jukurit"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-jukurit"])
+:is(
+  [data-current-liiga] [data-liiga-mark-id="jukurit"],
+  [data-current-liiga] [data-liiga-schedule-team-id="jukurit"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-jukurit"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="jukurit"]
 ) {
   --liiga-mark-scale: 0.95;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="k-espoo"],
-  [data-liiga-schedule-team-id="k-espoo"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-k-espoo"])
+:is(
+  [data-current-liiga] [data-liiga-mark-id="k-espoo"],
+  [data-current-liiga] [data-liiga-schedule-team-id="k-espoo"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-k-espoo"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="k-espoo"]
 ) {
   --liiga-mark-scale: 0.92;
   --liiga-mark-y: -1px;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="lukko"],
-  [data-liiga-schedule-team-id="lukko"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-lukko"])
+:is(
+  [data-current-liiga] [data-liiga-mark-id="lukko"],
+  [data-current-liiga] [data-liiga-schedule-team-id="lukko"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-lukko"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="lukko"]
 ) {
   --liiga-mark-scale: 1.09;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="jyp"],
-  [data-liiga-schedule-team-id="jyp"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-jyp"])
+:is(
+  [data-current-liiga] [data-liiga-mark-id="jyp"],
+  [data-current-liiga] [data-liiga-schedule-team-id="jyp"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-jyp"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="jyp"]
 ) {
   --liiga-mark-y: 2px;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="sport"],
-  [data-liiga-schedule-team-id="sport"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-sport"])
+:is(
+  [data-current-liiga] [data-liiga-mark-id="sport"],
+  [data-current-liiga] [data-liiga-schedule-team-id="sport"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-sport"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="sport"]
 ) {
   --liiga-mark-scale: 0.96;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="assat"],
-  [data-liiga-schedule-team-id="assat"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-assat"])
+:is(
+  [data-current-liiga] [data-liiga-mark-id="assat"],
+  [data-current-liiga] [data-liiga-schedule-team-id="assat"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-assat"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="assat"]
 ) {
   --liiga-mark-scale: 0.95;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="jokerit"],
-  [data-liiga-schedule-team-id="jokerit"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-jokerit"])
+:is(
+  [data-current-liiga] [data-liiga-mark-id="jokerit"],
+  [data-current-liiga] [data-liiga-schedule-team-id="jokerit"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-jokerit"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="jokerit"]
 ) {
   --liiga-mark-scale: 1.08;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="tappara"],
-  [data-liiga-schedule-team-id="tappara"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-tappara"])
+:is(
+  [data-current-liiga] [data-liiga-mark-id="tappara"],
+  [data-current-liiga] [data-liiga-schedule-team-id="tappara"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-tappara"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="tappara"]
 ) {
   --liiga-mark-scale: 0.95;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="hpk"],
-  [data-liiga-schedule-team-id="hpk"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-hpk"])
+:is(
+  [data-current-liiga] [data-liiga-mark-id="hpk"],
+  [data-current-liiga] [data-liiga-schedule-team-id="hpk"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-hpk"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="hpk"]
 ) {
   --liiga-mark-scale: 1.08;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="karpat"],
-  [data-liiga-schedule-team-id="karpat"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-karpat"])
+:is(
+  [data-current-liiga] [data-liiga-mark-id="karpat"],
+  [data-current-liiga] [data-liiga-schedule-team-id="karpat"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-karpat"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="karpat"]
 ) {
   --liiga-mark-scale: 1.11;
 }
 
-[data-current-liiga] :is(
-  [data-liiga-mark-id="ilves"],
-  [data-liiga-schedule-team-id="ilves"],
-  .liiga-match-team__mark:has(use[href="#liiga-match-mark-ilves"])
+:is(
+  [data-current-liiga] [data-liiga-mark-id="ilves"],
+  [data-current-liiga] [data-liiga-schedule-team-id="ilves"],
+  [data-current-liiga] .liiga-match-team__mark:has(use[href="#liiga-match-mark-ilves"]),
+  [data-current-snapshot] .snapshot-liiga__mark-wrap[data-liiga-mark-id="ilves"]
 ) {
   --liiga-mark-scale: 0.95;
 }
