@@ -136,16 +136,19 @@ body:has(.snapshot-shell)
     transform: none !important;
   }
 
-  /* The Liiga source belongs to the same bottom baseline as the Rates source.
-     The main row ends just above that baseline, so extend by the fixed body gap. */
+  /* The Rates body uses a 4px row gap between the main content and its source.
+     Anchor the Liiga source to that same geometric row instead of guessing with
+     a translate or a negative bottom offset. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__source {
     position: absolute !important;
+    top: calc(100% + 4px) !important;
+    right: auto !important;
+    bottom: auto !important;
     left: 14px !important;
-    bottom: -18px !important;
     margin: 0 !important;
     transform: none !important;
   }
