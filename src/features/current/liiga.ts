@@ -10,26 +10,45 @@ type LiigaStanding = {
   goalDifference: number;
 };
 
-type LiigaLastGame = {
+type IlvesStanding = LiigaStanding & {
+  totalTeams: number;
+};
+
+type LiigaGame = {
   start: string;
   homeTeamId: string;
   homeTeam: string;
   awayTeamId: string;
   awayTeam: string;
+  homeGoals: number | null;
+  awayGoals: number | null;
+  gameTime: number | null;
+};
+
+type LiigaLastGame = LiigaGame & {
   homeGoals: number;
   awayGoals: number;
   ilvesResult: 'W' | 'L' | 'T';
   finish: 'REGULATION' | 'OVERTIME' | 'SHOOTOUT';
 };
 
+type LiigaLiveGame = LiigaGame & {
+  homeGoals: number;
+  awayGoals: number;
+};
+
 type LiigaResponse = {
   season: number;
   generatedAt?: string;
   standings: LiigaStanding[];
+  ilvesStanding: IlvesStanding | null;
   lastIlvesGame: LiigaLastGame | null;
+  nextIlvesGame: LiigaGame | null;
+  liveIlvesGame: LiigaLiveGame | null;
 };
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const LIVE_REFRESH_INTERVAL_MS = 30 * 1000;
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 
 const formatSeason = (season: number) =>
@@ -50,19 +69,44 @@ const formatGameDate = (value: string) => {
     .toUpperCase();
 };
 
+const formatGameDateTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--';
+
+  const datePart = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    timeZone: HELSINKI_TIME_ZONE,
+  })
+    .format(date)
+    .toUpperCase();
+  const timePart = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: HELSINKI_TIME_ZONE,
+  }).format(date);
+
+  return `${datePart} / ${timePart}`;
+};
+
+const formatGameClock = (value: number | null) => {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return 'LIVE';
+  const minutes = Math.floor(value / 60);
+  const seconds = Math.floor(value % 60);
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
 const finishLabel = (finish: LiigaLastGame['finish']) => {
   if (finish === 'OVERTIME') return 'OT';
   if (finish === 'SHOOTOUT') return 'SO';
   return 'REG';
 };
 
-const cloneTeamMark = (root: HTMLElement, teamId: string, target: HTMLElement | null) => {
-  if (!target) return;
-  const source = root.querySelector<HTMLElement>(`[data-liiga-club-mark="${teamId}"]`);
-  const mark = source?.querySelector('svg');
-  target.replaceChildren();
-  if (mark) target.append(mark.cloneNode(true));
-};
+const matchupLabel = (game: LiigaGame) => `${game.homeTeam} / ${game.awayTeam}`;
+
+const ilvesVenueLabel = (game: LiigaGame) => game.homeTeamId === 'ilves' ? 'HOME' : 'AWAY';
 
 const renderStandings = (root: HTMLElement, standings: LiigaStanding[]) => {
   const table = root.querySelector<HTMLElement>('[data-liiga-standings]');
@@ -89,30 +133,76 @@ const renderStandings = (root: HTMLElement, standings: LiigaStanding[]) => {
 };
 
 const renderLastGame = (root: HTMLElement, game: LiigaLastGame | null) => {
-  const empty = root.querySelector<HTMLElement>('[data-liiga-last-empty]');
-  const panel = root.querySelector<HTMLElement>('[data-liiga-last-game]');
-  if (!panel || !empty) return;
+  const matchup = root.querySelector<HTMLElement>('[data-liiga-last-matchup]');
+  const score = root.querySelector<HTMLElement>('[data-liiga-last-score]');
+  const date = root.querySelector<HTMLElement>('[data-liiga-last-date]');
+  const result = root.querySelector<HTMLElement>('[data-liiga-last-result]');
+  if (!matchup || !score || !date || !result) return;
 
   if (!game) {
-    panel.hidden = true;
-    empty.hidden = false;
+    matchup.textContent = 'NO COMPLETED GAME';
+    score.textContent = '-- : --';
+    date.textContent = '--';
+    result.textContent = 'WAITING';
     return;
   }
 
-  panel.hidden = false;
-  empty.hidden = true;
+  matchup.textContent = matchupLabel(game);
+  score.textContent = `${game.homeGoals} : ${game.awayGoals}`;
+  date.textContent = formatGameDate(game.start);
+  result.textContent = `${game.ilvesResult === 'W' ? 'WIN' : game.ilvesResult === 'L' ? 'LOSS' : 'DRAW'} / ${finishLabel(game.finish)}`;
+};
 
-  root.querySelector<HTMLElement>('[data-liiga-last-date]')!.textContent = formatGameDate(game.start);
-  root.querySelector<HTMLElement>('[data-liiga-last-result]')!.textContent =
-    game.ilvesResult === 'W' ? 'ILVES WIN' : game.ilvesResult === 'L' ? 'ILVES LOSS' : 'DRAW';
-  root.querySelector<HTMLElement>('[data-liiga-last-finish]')!.textContent = finishLabel(game.finish);
-  root.querySelector<HTMLElement>('[data-liiga-last-home-name]')!.textContent = game.homeTeam;
-  root.querySelector<HTMLElement>('[data-liiga-last-away-name]')!.textContent = game.awayTeam;
-  root.querySelector<HTMLElement>('[data-liiga-last-home-score]')!.textContent = String(game.homeGoals);
-  root.querySelector<HTMLElement>('[data-liiga-last-away-score]')!.textContent = String(game.awayGoals);
+const renderNextGame = (root: HTMLElement, game: LiigaGame | null) => {
+  const matchup = root.querySelector<HTMLElement>('[data-liiga-next-matchup]');
+  const date = root.querySelector<HTMLElement>('[data-liiga-next-date]');
+  const venue = root.querySelector<HTMLElement>('[data-liiga-next-venue]');
+  if (!matchup || !date || !venue) return;
 
-  cloneTeamMark(root, game.homeTeamId, root.querySelector<HTMLElement>('[data-liiga-last-home-mark]'));
-  cloneTeamMark(root, game.awayTeamId, root.querySelector<HTMLElement>('[data-liiga-last-away-mark]'));
+  if (!game) {
+    matchup.textContent = 'NO SCHEDULED GAME';
+    date.textContent = '--';
+    venue.textContent = 'SEASON SCHEDULE';
+    return;
+  }
+
+  matchup.textContent = matchupLabel(game);
+  date.textContent = formatGameDateTime(game.start);
+  venue.textContent = `${ilvesVenueLabel(game)} / NEXT`;
+};
+
+const renderIlvesStanding = (root: HTMLElement, standing: IlvesStanding | null) => {
+  const header = root.querySelector<HTMLElement>('[data-liiga-ilves-position]');
+  const position = root.querySelector<HTMLElement>('[data-liiga-position]');
+  const meta = root.querySelector<HTMLElement>('[data-liiga-position-meta]');
+  if (!header || !position || !meta) return;
+
+  if (!standing) {
+    header.textContent = '#-- / --';
+    position.textContent = '-- / --';
+    meta.textContent = 'WAITING FOR STANDINGS';
+    return;
+  }
+
+  header.textContent = `#${standing.rank} / ${standing.totalTeams}`;
+  position.textContent = `${standing.rank} / ${standing.totalTeams}`;
+  meta.textContent = `${standing.points} P / ${standing.games} GP`;
+};
+
+const renderLiveGame = (root: HTMLElement, game: LiigaLiveGame | null) => {
+  const card = root.querySelector<HTMLElement>('[data-liiga-live-card]');
+  const matchup = root.querySelector<HTMLElement>('[data-liiga-live-matchup]');
+  const score = root.querySelector<HTMLElement>('[data-liiga-live-score]');
+  const clock = root.querySelector<HTMLElement>('[data-liiga-live-clock]');
+  if (!card || !matchup || !score || !clock) return;
+
+  card.hidden = !game;
+  root.classList.toggle('is-live', Boolean(game));
+  if (!game) return;
+
+  matchup.textContent = matchupLabel(game);
+  score.textContent = `${game.homeGoals} : ${game.awayGoals}`;
+  clock.textContent = formatGameClock(game.gameTime);
 };
 
 export const initCurrentLiiga = () => {
@@ -129,10 +219,19 @@ export const initCurrentLiiga = () => {
 
   let refreshTimer = 0;
 
+  const scheduleRefresh = (isLive: boolean) => {
+    window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(
+      () => void load(),
+      isLive ? LIVE_REFRESH_INTERVAL_MS : REFRESH_INTERVAL_MS,
+    );
+  };
+
   const load = async () => {
     root.setAttribute('aria-busy', 'true');
     errorTarget.hidden = true;
     statusTarget.textContent = 'LOADING / LIIGA';
+    let hasLiveGame = false;
 
     try {
       const response = await fetch(`/api/current/liiga?_=${Date.now()}`, {
@@ -144,10 +243,14 @@ export const initCurrentLiiga = () => {
       const data = (await response.json()) as LiigaResponse;
       if (!Array.isArray(data.standings)) throw new Error('Invalid Liiga standings');
 
+      hasLiveGame = Boolean(data.liveIlvesGame);
       seasonTarget.textContent = formatSeason(data.season);
       renderStandings(root, data.standings);
+      renderIlvesStanding(root, data.ilvesStanding);
       renderLastGame(root, data.lastIlvesGame);
-      statusTarget.textContent = 'LIVE / LIIGA';
+      renderNextGame(root, data.nextIlvesGame);
+      renderLiveGame(root, data.liveIlvesGame);
+      statusTarget.textContent = hasLiveGame ? 'LIVE / ILVES' : 'LIVE / LIIGA';
 
       window.dispatchEvent(
         new CustomEvent('current:data-updated', {
@@ -159,17 +262,20 @@ export const initCurrentLiiga = () => {
       statusTarget.textContent = 'UNAVAILABLE';
     } finally {
       root.setAttribute('aria-busy', 'false');
+      scheduleRefresh(hasLiveGame);
     }
   };
 
-  retry.addEventListener('click', () => void load());
+  retry.addEventListener('click', () => {
+    window.clearTimeout(refreshTimer);
+    void load();
+  });
   void load();
 
-  refreshTimer = window.setInterval(() => void load(), REFRESH_INTERVAL_MS);
   window.addEventListener(
     'pagehide',
     () => {
-      window.clearInterval(refreshTimer);
+      window.clearTimeout(refreshTimer);
     },
     { once: true }
   );

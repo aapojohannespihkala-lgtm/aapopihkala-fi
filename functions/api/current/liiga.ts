@@ -126,11 +126,19 @@ const normalizeGame = (value: unknown): LiigaGame | null => {
 
   const status = firstString(game.finishedType, game.status, game.gameStatus) ?? '';
   const normalizedStatus = status.toUpperCase();
+  const gameTime = finiteNumber(game.gameTime);
   const ended = typeof game.ended === 'boolean'
     ? game.ended
     : normalizedStatus.includes('ENDED') ||
       normalizedStatus.includes('FINISHED') ||
       normalizedStatus.includes('FINAL');
+  const started = typeof game.started === 'boolean'
+    ? game.started
+    : ended ||
+      normalizedStatus.includes('STARTED') ||
+      normalizedStatus.includes('LIVE') ||
+      normalizedStatus.includes('PLAYING') ||
+      (gameTime !== null && gameTime > 0);
 
   return {
     id: typeof game.id === 'number' || typeof game.id === 'string'
@@ -142,9 +150,9 @@ const normalizeGame = (value: unknown): LiigaGame | null => {
     homeTeam,
     awayTeam,
     finishedType: status || null,
-    started: typeof game.started === 'boolean' ? game.started : null,
+    started,
     ended,
-    gameTime: finiteNumber(game.gameTime),
+    gameTime,
     cacheUpdateDate: firstString(game.cacheUpdateDate, game.updatedAt, game.modifiedAt),
   };
 };
@@ -295,39 +303,53 @@ const createStandings = (games: LiigaGame[]) => {
     .map((team, index) => ({ ...team, rank: index + 1 }));
 };
 
-const getLastIlvesGame = (games: LiigaGame[]) => {
-  const candidates = games
-    .filter((game) => {
-      if (game.ended !== true || !game.start) return false;
-      const home = game.homeTeam?.teamId ? getLiigaTeamBySourceId(game.homeTeam.teamId) : null;
-      const away = game.awayTeam?.teamId ? getLiigaTeamBySourceId(game.awayTeam.teamId) : null;
-      return home?.id === 'ilves' || away?.id === 'ilves';
-    })
-    .sort((a, b) => String(b.start).localeCompare(String(a.start)));
-
-  const game = candidates[0];
-  if (!game?.start) return null;
-
+const resolveIlvesGame = (game: LiigaGame) => {
   const home = game.homeTeam?.teamId ? getLiigaTeamBySourceId(game.homeTeam.teamId) : null;
   const away = game.awayTeam?.teamId ? getLiigaTeamBySourceId(game.awayTeam.teamId) : null;
-  const homeGoals = finiteGoal(game.homeTeam?.goals);
-  const awayGoals = finiteGoal(game.awayTeam?.goals);
+  if (!home || !away || (home.id !== 'ilves' && away.id !== 'ilves')) return null;
 
-  if (!home || !away || homeGoals === null || awayGoals === null) return null;
+  return {
+    home,
+    away,
+    homeGoals: finiteGoal(game.homeTeam?.goals),
+    awayGoals: finiteGoal(game.awayTeam?.goals),
+  };
+};
 
-  const ilvesGoals = home.id === 'ilves' ? homeGoals : awayGoals;
-  const opponentGoals = home.id === 'ilves' ? awayGoals : homeGoals;
-  const finishedType = game.finishedType?.toUpperCase() ?? '';
+const basicGameSummary = (game: LiigaGame) => {
+  const resolved = resolveIlvesGame(game);
+  if (!resolved || !game.start) return null;
 
   return {
     id: game.id ?? null,
     start: game.start,
-    homeTeamId: home.id,
-    homeTeam: home.name,
-    awayTeamId: away.id,
-    awayTeam: away.name,
-    homeGoals,
-    awayGoals,
+    homeTeamId: resolved.home.id,
+    homeTeam: resolved.home.name,
+    awayTeamId: resolved.away.id,
+    awayTeam: resolved.away.name,
+    homeGoals: resolved.homeGoals,
+    awayGoals: resolved.awayGoals,
+    gameTime: game.gameTime ?? null,
+  };
+};
+
+const getLastIlvesGame = (games: LiigaGame[]) => {
+  const candidates = games
+    .filter((game) => game.ended === true && resolveIlvesGame(game) !== null && Boolean(game.start))
+    .sort((a, b) => String(b.start).localeCompare(String(a.start)));
+
+  const game = candidates[0];
+  if (!game) return null;
+
+  const summary = basicGameSummary(game);
+  if (!summary || summary.homeGoals === null || summary.awayGoals === null) return null;
+
+  const ilvesGoals = summary.homeTeamId === 'ilves' ? summary.homeGoals : summary.awayGoals;
+  const opponentGoals = summary.homeTeamId === 'ilves' ? summary.awayGoals : summary.homeGoals;
+  const finishedType = game.finishedType?.toUpperCase() ?? '';
+
+  return {
+    ...summary,
     ilvesResult: ilvesGoals > opponentGoals ? 'W' : ilvesGoals < opponentGoals ? 'L' : 'T',
     finish:
       finishedType.includes('SHOOTOUT')
@@ -338,11 +360,57 @@ const getLastIlvesGame = (games: LiigaGame[]) => {
   };
 };
 
+const isLiveGame = (game: LiigaGame, now = new Date()) => {
+  if (game.ended === true) return false;
+  if (game.started === true) return true;
+  if (typeof game.gameTime === 'number' && game.gameTime > 0) return true;
+  if (!game.start) return false;
+
+  const start = Date.parse(game.start);
+  if (!Number.isFinite(start)) return false;
+  const withinGameWindow = now.getTime() >= start && now.getTime() <= start + 4 * 60 * 60 * 1000;
+  const resolved = resolveIlvesGame(game);
+  if (!resolved) return false;
+  return withinGameWindow && resolved.homeGoals !== null && resolved.awayGoals !== null;
+};
+
+const getLiveIlvesGame = (games: LiigaGame[], now = new Date()) => {
+  const game = games
+    .filter((candidate) => resolveIlvesGame(candidate) !== null && isLiveGame(candidate, now))
+    .sort((a, b) => String(b.start).localeCompare(String(a.start)))[0];
+
+  if (!game) return null;
+  const summary = basicGameSummary(game);
+  if (!summary) return null;
+
+  return {
+    ...summary,
+    homeGoals: summary.homeGoals ?? 0,
+    awayGoals: summary.awayGoals ?? 0,
+  };
+};
+
+const getNextIlvesGame = (games: LiigaGame[], now = new Date()) => {
+  const nowMs = now.getTime();
+  const game = games
+    .filter((candidate) => {
+      if (candidate.ended === true || isLiveGame(candidate, now) || !candidate.start) return false;
+      if (resolveIlvesGame(candidate) === null) return false;
+      const start = Date.parse(candidate.start);
+      return Number.isFinite(start) && start > nowMs;
+    })
+    .sort((a, b) => String(a.start).localeCompare(String(b.start)))[0];
+
+  return game ? basicGameSummary(game) : null;
+};
+
 export const onRequestGet = async () => {
   const season = getSeasonId();
 
   try {
     const { games, endpoint } = await fetchLiigaGames(season);
+    const standings = createStandings(games);
+    const ilvesStanding = standings.find((team) => team.id === 'ilves') ?? null;
     const generatedAt =
       games
         .map((game) => game.cacheUpdateDate)
@@ -356,12 +424,15 @@ export const onRequestGet = async () => {
         generatedAt,
         source: 'Liiga',
         upstream: endpoint,
-        standings: createStandings(games),
+        standings,
+        ilvesStanding: ilvesStanding ? { ...ilvesStanding, totalTeams: standings.length } : null,
         lastIlvesGame: getLastIlvesGame(games),
+        nextIlvesGame: getNextIlvesGame(games),
+        liveIlvesGame: getLiveIlvesGame(games),
       },
       {
         headers: {
-          'Cache-Control': 'public, max-age=60, stale-while-revalidate=180',
+          'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
         },
       }
     );
