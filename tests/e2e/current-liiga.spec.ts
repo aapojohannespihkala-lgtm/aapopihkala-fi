@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+const ILVES_LOGO_ASSET = 'current-ilves-mascot-emblem.svg';
+
 const teamIds = [
   'hifk',
   'hpk',
@@ -147,7 +149,7 @@ for (const viewport of [
       const styles = getComputedStyle(mark);
       return styles.getPropertyValue('mask-image') || styles.getPropertyValue('-webkit-mask-image');
     });
-    expect(ilvesMask).toContain('current-ilves-mascot-emblem.svg');
+    expect(ilvesMask).toContain(ILVES_LOGO_ASSET);
 
     await expect(page.locator('#liiga-match-mark-hpk .liiga-team-mark__fill')).toHaveCount(3);
     await expect(page.locator('#liiga-match-mark-hpk .liiga-team-mark__shape')).toHaveCount(0);
@@ -158,7 +160,7 @@ for (const viewport of [
       const styles = getComputedStyle(mark);
       return styles.getPropertyValue('mask-image') || styles.getPropertyValue('-webkit-mask-image');
     });
-    expect(ilvesMatchMask).toContain('current-ilves-mascot-emblem.svg');
+    expect(ilvesMatchMask).toContain(ILVES_LOGO_ASSET);
 
     const hpkMatchShape = page.locator('#liiga-match-mark-hpk path').first();
     const hpkMatchPaint = await hpkMatchShape.evaluate((path) => {
