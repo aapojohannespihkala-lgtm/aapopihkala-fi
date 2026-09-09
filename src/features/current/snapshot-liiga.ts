@@ -87,6 +87,7 @@ const createTeamMark = (teamId: string) => {
     const path = document.createElementNS(SVG_NS, 'path');
     path.setAttribute('d', d);
     path.setAttribute('vector-effect', 'non-scaling-stroke');
+
     if (filled) {
       path.setAttribute('fill', 'currentColor');
       path.setAttribute('stroke', 'none');
@@ -97,6 +98,7 @@ const createTeamMark = (teamId: string) => {
       path.setAttribute('stroke-linecap', 'round');
       path.setAttribute('stroke-linejoin', 'round');
     }
+
     svg.append(path);
   });
 
@@ -151,20 +153,17 @@ const renderLastGame = (root: HTMLElement, game: SnapshotLiigaLastGame | null) =
   const target = root.querySelector<HTMLElement>('[data-snapshot-liiga-last]');
   if (!target) return;
 
-  if (!game) {
-    target.textContent = 'LAST / --';
-    return;
-  }
-
-  target.textContent = `LAST / ${game.homeGoals}-${game.awayGoals} ${game.ilvesResult}`;
+  target.textContent = game
+    ? `LAST / ${game.homeGoals}-${game.awayGoals} ${game.ilvesResult}`
+    : 'LAST / --';
 };
 
 const renderSnapshotLiiga = (root: HTMLElement, data: SnapshotLiigaResponse) => {
   const live = data.liveIlvesGame;
   const next = data.nextIlvesGame;
+
   root.classList.toggle('is-live', Boolean(live));
   root.classList.remove('is-unavailable');
-
   renderStanding(root, data.ilvesStanding);
   renderLastGame(root, data.lastIlvesGame);
 
@@ -196,9 +195,35 @@ const ensureStyles = () => {
   const style = document.createElement('style');
   style.dataset.snapshotLiigaStyles = 'true';
   style.textContent = `
+    body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split {
+      grid-template-columns:
+        44px
+        minmax(0, calc(50% - 78px))
+        34px
+        minmax(0, calc(50% - 34px))
+        34px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split h2 {
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split .snapshot-panel__heading-secondary {
+      border-left: 1px solid color-mix(in srgb, var(--ink-soft) 76%, transparent);
+    }
+
     body:has(.snapshot-shell) .snapshot-rates__main {
-      grid-template-columns: minmax(0, 0.9fr) minmax(148px, 1.1fr);
-      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0;
+      align-items: stretch;
+    }
+
+    body:has(.snapshot-shell) .snapshot-rates__main > :first-child {
+      min-width: 0;
+      align-self: center;
+      padding-right: 12px;
     }
 
     body:has(.snapshot-shell) .snapshot-liiga {
@@ -350,9 +375,17 @@ const ensureStyles = () => {
     }
 
     @media (max-width: 640px) {
-      body:has(.snapshot-shell) .snapshot-rates__main {
-        grid-template-columns: minmax(0, 0.82fr) minmax(136px, 1.18fr);
-        gap: 7px;
+      body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split {
+        grid-template-columns:
+          38px
+          minmax(0, calc(50% - 68px))
+          30px
+          minmax(0, calc(50% - 30px))
+          30px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-rates__main > :first-child {
+        padding-right: 7px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga {
@@ -396,9 +429,17 @@ const ensureStyles = () => {
     }
 
     @media (max-width: 380px), (max-height: 720px) {
-      body:has(.snapshot-shell) .snapshot-rates__main {
-        grid-template-columns: minmax(0, 0.78fr) minmax(124px, 1.22fr);
-        gap: 5px;
+      body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split {
+        grid-template-columns:
+          33px
+          minmax(0, calc(50% - 59px))
+          26px
+          minmax(0, calc(50% - 26px))
+          26px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-rates__main > :first-child {
+        padding-right: 5px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga {
@@ -439,16 +480,44 @@ const ensureStyles = () => {
   document.head.append(style);
 };
 
+const ensureSplitHeading = (rates: HTMLElement) => {
+  const heading = rates.querySelector<HTMLElement>('.snapshot-panel__heading');
+  const ratesTitle = heading?.querySelector<HTMLElement>('h2');
+  const ratesOpen = heading?.querySelector<HTMLAnchorElement>('.snapshot-panel__open');
+  if (!heading || !ratesTitle || !ratesOpen) return;
+
+  heading.classList.add('snapshot-panel__heading--split');
+  ratesTitle.textContent = 'RATES / 04';
+  ratesOpen.href = '/current/rates/';
+  ratesOpen.setAttribute('aria-label', 'Open Rates detail');
+
+  if (heading.querySelector('[data-snapshot-liiga-heading]')) return;
+
+  const liigaTitle = ratesTitle.cloneNode(true) as HTMLElement;
+  liigaTitle.id = 'snapshot-liiga-label';
+  liigaTitle.textContent = 'LIIGA / 04';
+  liigaTitle.classList.add('snapshot-panel__heading-secondary');
+  liigaTitle.dataset.snapshotLiigaHeading = 'true';
+
+  const liigaOpen = ratesOpen.cloneNode(true) as HTMLAnchorElement;
+  liigaOpen.href = '/current/liiga/';
+  liigaOpen.setAttribute('aria-label', 'Open Liiga detail');
+  liigaOpen.dataset.snapshotLiigaOpen = 'true';
+
+  heading.append(liigaTitle, liigaOpen);
+};
+
 const ensureSnapshotLiiga = () => {
   const snapshot = document.querySelector<HTMLElement>('[data-current-snapshot]');
   const rates = snapshot?.querySelector<HTMLElement>('.snapshot-panel--rates');
   const main = rates?.querySelector<HTMLElement>('.snapshot-rates__main');
   if (!snapshot || !rates || !main) return null;
 
+  ensureSplitHeading(rates);
+
   const existing = main.querySelector<HTMLElement>('[data-snapshot-liiga]');
   if (existing) return existing;
 
-  rates.querySelector<HTMLElement>('.snapshot-panel__heading h2')!.textContent = 'RATES + ILVES / 04';
   const source = rates.querySelector<HTMLElement>('.snapshot-source');
   if (source) source.textContent = 'DATA / ECB · BANK OF FINLAND + LIIGA';
 
@@ -480,6 +549,7 @@ const ensureSnapshotLiiga = () => {
     </p>
     <p class="snapshot-liiga__last" data-snapshot-liiga-last>LAST / --</p>
   `;
+
   main.append(section);
   return section;
 };
@@ -495,7 +565,10 @@ export const initSnapshotLiiga = () => {
 
   const scheduleRefresh = (isLive: boolean) => {
     window.clearTimeout(refreshTimer);
-    refreshTimer = window.setTimeout(() => void load(), isLive ? LIVE_REFRESH_INTERVAL_MS : REFRESH_INTERVAL_MS);
+    refreshTimer = window.setTimeout(
+      () => void load(),
+      isLive ? LIVE_REFRESH_INTERVAL_MS : REFRESH_INTERVAL_MS,
+    );
   };
 
   const load = async () => {
@@ -517,7 +590,7 @@ export const initSnapshotLiiga = () => {
       window.dispatchEvent(
         new CustomEvent('current:data-updated', {
           detail: { source: 'liiga', at: data.generatedAt ?? new Date().toISOString() },
-        })
+        }),
       );
     } catch {
       root.classList.remove('is-live');
@@ -540,6 +613,6 @@ export const initSnapshotLiiga = () => {
   window.addEventListener(
     'pagehide',
     () => window.clearTimeout(refreshTimer),
-    { once: true }
+    { once: true },
   );
 };
