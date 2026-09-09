@@ -1,18 +1,31 @@
-.current-liiga {
-  --liiga-mark-tone: #000;
+[data-current-liiga] {
+  --current-liiga-mark-color: #000000;
 }
 
-.site-night-mode .current-liiga {
-  --liiga-mark-tone: #fff;
+html.site-night-mode [data-current-liiga] {
+  --current-liiga-mark-color: #ffffff;
 }
 
-.current-liiga .liiga-match-team__mark,
-.current-liiga .liiga-team-mark,
-.current-liiga .liiga-club-mark svg {
-  color: var(--liiga-mark-tone) !important;
+[data-current-liiga] .liiga-match-team__mark,
+[data-current-liiga] .liiga-match-team.is-ilves .liiga-match-team__mark,
+[data-current-liiga] .liiga-team-mark,
+[data-current-liiga] .liiga-row.is-ilves .liiga-team-mark,
+[data-current-liiga] .liiga-club-mark svg,
+[data-current-liiga] .liiga-club-mark[data-liiga-club-mark='ilves'] svg,
+[data-current-liiga] svg[data-liiga-mark-id] {
+  color: var(--current-liiga-mark-color) !important;
   opacity: 1 !important;
 }
 
-.current-liiga .liiga-team-mark__detail {
+[data-current-liiga] .liiga-team-mark__shape,
+[data-current-liiga] .liiga-team-mark__detail {
+  stroke: currentColor !important;
+}
+
+[data-current-liiga] .liiga-team-mark__fill {
+  fill: currentColor !important;
+}
+
+[data-current-liiga] .liiga-team-mark__detail {
   opacity: 1 !important;
 }
