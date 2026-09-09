@@ -153,6 +153,14 @@ for (const viewport of [
     await expect(page.locator('#liiga-match-mark-hpk .liiga-team-mark__shape')).toHaveCount(0);
     await expect(page.locator('#liiga-match-mark-ilves .liiga-team-mark__shape').first()).toBeAttached();
 
+    const hpkMatchShape = page.locator('#liiga-match-mark-hpk path').first();
+    const hpkMatchPaint = await hpkMatchShape.evaluate((path) => {
+      const styles = getComputedStyle(path);
+      return { fill: styles.fill, stroke: styles.stroke };
+    });
+    expect(hpkMatchPaint.fill).not.toBe('none');
+    expect(hpkMatchPaint.stroke).toBe('none');
+
     const markSignatures = await page.locator('[data-liiga-club-mark] svg').evaluateAll((marks) =>
       marks.map((mark) =>
         Array.from(mark.querySelectorAll('path'))
