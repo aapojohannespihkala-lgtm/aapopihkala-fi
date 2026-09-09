@@ -1,4 +1,4 @@
-/* Custom filled club glyph overrides for the Liiga clubs grid: HIFK, Ilves, Jokerit, Jukurit, TPS. */
+/* Custom filled club glyph overrides for the Liiga clubs grid: HIFK, Ilves, Jokerit, Jukurit, TPS, SaiPa. */
 .liiga-club-mark[data-liiga-club-mark="hifk"] > svg {
   display: none !important;
 }
@@ -67,4 +67,18 @@
   background: currentColor;
   -webkit-mask: url("/icons/current-tps-emblem.svg") center / contain no-repeat;
   mask: url("/icons/current-tps-emblem.svg") center / contain no-repeat;
+}
+
+.liiga-club-mark[data-liiga-club-mark="saipa"] > svg {
+  display: none !important;
+}
+
+.liiga-club-mark[data-liiga-club-mark="saipa"]::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 48px;
+  background: currentColor;
+  -webkit-mask: url("/icons/current-saipa-emblem.svg") center / contain no-repeat;
+  mask: url("/icons/current-saipa-emblem.svg") center / contain no-repeat;
 }
