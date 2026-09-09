@@ -31,39 +31,43 @@ const applyRemedyLabel = (price: number) => {
   if (marketsLabel) marketsLabel.textContent = `Remedy ${formatted}`;
 };
 
-const loadRemedyValue = async () => {
-  const response = await fetch(API_URL, {
-    headers: { Accept: 'application/json' },
-    cache: 'no-store',
-  });
-  if (!response.ok) return;
-
-  const data = (await response.json()) as PortfolioResponse;
-  if (!Array.isArray(data.items)) return;
-
-  const remedy = data.items.find((raw) => {
-    if (!raw || typeof raw !== 'object') return false;
-    return (raw as PortfolioItem).id === 'remedy';
-  }) as PortfolioItem | undefined;
-
-  if (typeof remedy?.price !== 'number' || !Number.isFinite(remedy.price)) return;
-  applyRemedyLabel(remedy.price);
-};
-
 export const initCurrentRemedyValueLabels = () => {
   const relevantPage =
     document.querySelector('[data-current-snapshot]') ||
     document.querySelector('[data-current-market-performance]');
   if (!relevantPage) return;
 
-  const observer = new MutationObserver(() => {
-    const marketsLabel = document.querySelector(
-      '[data-market-performance-row="remedy"] .markets-custom-market strong'
-    );
-    if (marketsLabel) void loadRemedyValue();
-  });
+  let remedyPrice: number | null = null;
 
+  const observer = new MutationObserver(() => {
+    if (remedyPrice !== null) applyRemedyLabel(remedyPrice);
+  });
   observer.observe(document.body, { childList: true, subtree: true });
-  void loadRemedyValue();
-  window.setInterval(() => void loadRemedyValue(), REFRESH_INTERVAL_MS);
+
+  const load = async () => {
+    try {
+      const response = await fetch(API_URL, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      });
+      if (!response.ok) return;
+
+      const data = (await response.json()) as PortfolioResponse;
+      if (!Array.isArray(data.items)) return;
+
+      const remedy = data.items.find((raw) => {
+        if (!raw || typeof raw !== 'object') return false;
+        return (raw as PortfolioItem).id === 'remedy';
+      }) as PortfolioItem | undefined;
+
+      if (typeof remedy?.price !== 'number' || !Number.isFinite(remedy.price)) return;
+      remedyPrice = remedy.price;
+      applyRemedyLabel(remedyPrice);
+    } catch {
+      // Keep the normal Remedy label if live value data is unavailable.
+    }
+  };
+
+  void load();
+  window.setInterval(() => void load(), REFRESH_INTERVAL_MS);
 };
