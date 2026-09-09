@@ -156,6 +156,13 @@ const ensureLayoutStyles = () => {
       white-space: nowrap;
     }
 
+    @media (min-width: 641px) and (max-height: 720px) {
+      body:has(.snapshot-shell) .snapshot-titleblock.snapshot-titleblock--calendar-split {
+        min-height: 102px;
+        padding: 9px 20px 11px;
+      }
+    }
+
     @media (max-width: 640px) {
       body:has(.snapshot-shell) .snapshot-titleblock.snapshot-titleblock--calendar-split {
         position: static;
@@ -233,7 +240,7 @@ const ensureLayoutStyles = () => {
       }
     }
 
-    @media (max-width: 380px), (max-height: 720px) {
+    @media (max-width: 380px), (max-width: 640px) and (max-height: 720px) {
       body:has(.snapshot-shell) .snapshot-titleblock.snapshot-titleblock--calendar-split {
         grid-template-columns: minmax(0, 1fr) 56px 80px;
         gap: 4px;
