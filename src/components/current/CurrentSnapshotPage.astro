@@ -137,6 +137,10 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
 
           <div class="snapshot-panel__body snapshot-markets">
             <p class="snapshot-kicker">GLOBAL / PERFORMANCE (TODAY)</p>
+            <div class="snapshot-markets__median" aria-label="Median selected-market performance today">
+              <span>1D / MEDIAN</span>
+              <strong data-snapshot-market-median>--</strong>
+            </div>
             <div class="snapshot-market-list" role="table" aria-label="Selected holdings performance today">
               {
                 [
@@ -580,8 +584,36 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
 
   .snapshot-markets {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
     gap: 5px;
+  }
+
+  .snapshot-markets__median {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    min-height: 0;
+    color: var(--stone);
+    font-size: 0.46rem;
+    font-weight: 500;
+    letter-spacing: 0.045em;
+    line-height: 1;
+  }
+
+  .snapshot-markets__median strong {
+    color: var(--ink-soft);
+    font-size: 0.76rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    letter-spacing: 0;
+  }
+
+  .snapshot-markets__median strong.is-positive {
+    color: #168a73;
+  }
+
+  .snapshot-markets__median strong.is-negative {
+    color: #b85a61;
   }
 
   .snapshot-market-list {
@@ -839,6 +871,14 @@ const canonicalUrl = `${site.url}/current/snapshot/`;
 
     .snapshot-markets {
       gap: 4px;
+    }
+
+    .snapshot-markets__median {
+      font-size: 0.4rem;
+    }
+
+    .snapshot-markets__median strong {
+      font-size: 0.68rem;
     }
 
     .snapshot-market-list {
