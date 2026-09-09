@@ -8,6 +8,14 @@ type SnapshotLiigaStanding = {
   totalTeams: number;
 };
 
+type SnapshotLiigaTableTeam = {
+  id: string;
+  name: string;
+  abbreviation: string;
+  rank: number;
+  points: number;
+};
+
 type SnapshotLiigaGame = {
   id: number | string | null;
   start: string;
@@ -28,6 +36,7 @@ type SnapshotLiigaLastGame = SnapshotLiigaGame & {
 
 type SnapshotLiigaResponse = {
   generatedAt?: string;
+  standings?: SnapshotLiigaTableTeam[];
   ilvesStanding: SnapshotLiigaStanding | null;
   lastIlvesGame: SnapshotLiigaLastGame | null;
   nextIlvesGame: SnapshotLiigaGame | null;
@@ -39,11 +48,11 @@ const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const LIVE_REFRESH_INTERVAL_MS = 30 * 1000;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-const formatGameDateTime = (value: string) => {
+const formatGameDate = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '--';
 
-  const datePart = new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat('en-GB', {
     weekday: 'short',
     day: '2-digit',
     month: 'short',
@@ -52,14 +61,45 @@ const formatGameDateTime = (value: string) => {
     .format(date)
     .replace(',', '')
     .toUpperCase();
-  const timePart = new Intl.DateTimeFormat('en-GB', {
+};
+
+const formatGameTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--';
+
+  return new Intl.DateTimeFormat('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
     timeZone: HELSINKI_TIME_ZONE,
   }).format(date);
+};
 
-  return `${datePart} / ${timePart}`;
+const getHelsinkiDateKey = (date: Date) => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: HELSINKI_TIME_ZONE,
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value ?? '';
+  const month = parts.find((part) => part.type === 'month')?.value ?? '';
+  const day = parts.find((part) => part.type === 'day')?.value ?? '';
+  return `${year}-${month}-${day}`;
+};
+
+const isGameToday = (value: string, reference: Date) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  return getHelsinkiDateKey(date) === getHelsinkiDateKey(reference);
+};
+
+const getReferenceTime = (generatedAt?: string) => {
+  if (generatedAt) {
+    const date = new Date(generatedAt);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  return new Date();
 };
 
 const formatGameClock = (value: number | null) => {
@@ -123,11 +163,17 @@ const renderTeam = (
   markTarget.replaceChildren(...(mark ? [mark] : []));
 };
 
-const renderGame = (root: HTMLElement, game: SnapshotLiigaGame | null, score: string) => {
+const renderGame = (
+  root: HTMLElement,
+  game: SnapshotLiigaGame | null,
+  primary: string,
+  secondary: string,
+) => {
   if (!game) {
     setText(root, '[data-snapshot-liiga-home-team]', '---');
     setText(root, '[data-snapshot-liiga-away-team]', '---');
-    setText(root, '[data-snapshot-liiga-score]', '--');
+    setText(root, '[data-snapshot-liiga-score]', primary);
+    setText(root, '[data-snapshot-liiga-schedule]', secondary);
     root.querySelector<HTMLElement>('[data-snapshot-liiga-home-mark]')?.replaceChildren();
     root.querySelector<HTMLElement>('[data-snapshot-liiga-away-mark]')?.replaceChildren();
     return;
@@ -135,58 +181,99 @@ const renderGame = (root: HTMLElement, game: SnapshotLiigaGame | null, score: st
 
   renderTeam(root, 'home', game.homeTeamId, game.homeTeam);
   renderTeam(root, 'away', game.awayTeamId, game.awayTeam);
-  setText(root, '[data-snapshot-liiga-score]', score);
+  setText(root, '[data-snapshot-liiga-score]', primary);
+  setText(root, '[data-snapshot-liiga-schedule]', secondary);
 };
 
-const renderStanding = (root: HTMLElement, standing: SnapshotLiigaStanding | null) => {
+const renderStanding = (
+  root: HTMLElement,
+  standing: SnapshotLiigaStanding | null,
+  standings: SnapshotLiigaTableTeam[] = [],
+) => {
   if (!standing) {
     setText(root, '[data-snapshot-liiga-position]', '#-- / --');
-    setText(root, '[data-snapshot-liiga-meta]', '-- P / -- GP');
+    setText(root, '[data-snapshot-liiga-comparison]', 'ILV -- P · TOP -- P · GAP -- P');
     return;
   }
 
   setText(root, '[data-snapshot-liiga-position]', `#${standing.rank} / ${standing.totalTeams}`);
-  setText(root, '[data-snapshot-liiga-meta]', `${standing.points} P / ${standing.games} GP`);
+
+  const leader = standings.find((team) => team.rank === 1) ?? standings[0] ?? null;
+  if (!leader) {
+    setText(
+      root,
+      '[data-snapshot-liiga-comparison]',
+      `ILV ${standing.points} P · TOP -- P · GAP -- P`,
+    );
+    return;
+  }
+
+  const leaderLabel = leader.id === 'ilves'
+    ? 'TOP'
+    : getTeamAbbreviation(leader.id, leader.name || leader.abbreviation);
+  const gap = standing.points - leader.points;
+  const gapLabel = gap > 0 ? `+${gap}` : String(gap);
+
+  setText(
+    root,
+    '[data-snapshot-liiga-comparison]',
+    `ILV ${standing.points} P · ${leaderLabel} ${leader.points} P · GAP ${gapLabel} P`,
+  );
 };
 
 const renderLastGame = (root: HTMLElement, game: SnapshotLiigaLastGame | null) => {
   const target = root.querySelector<HTMLElement>('[data-snapshot-liiga-last]');
   if (!target) return;
 
-  target.textContent = game
-    ? `LAST / ${game.homeGoals}-${game.awayGoals} ${game.ilvesResult}`
-    : 'LAST / --';
+  if (!game) {
+    target.textContent = 'LAST / --';
+    return;
+  }
+
+  const home = getTeamAbbreviation(game.homeTeamId, game.homeTeam);
+  const away = getTeamAbbreviation(game.awayTeamId, game.awayTeam);
+  target.textContent = `LAST / ${home} ${game.homeGoals}-${game.awayGoals} ${away}`;
 };
 
 const renderSnapshotLiiga = (root: HTMLElement, data: SnapshotLiigaResponse) => {
   const live = data.liveIlvesGame;
   const next = data.nextIlvesGame;
 
-  root.classList.toggle('is-live', Boolean(live));
-  root.classList.remove('is-unavailable');
-  renderStanding(root, data.ilvesStanding);
+  root.classList.remove('is-live', 'is-today', 'is-unavailable');
+  renderStanding(root, data.ilvesStanding, data.standings ?? []);
   renderLastGame(root, data.lastIlvesGame);
 
+  const last = root.querySelector<HTMLElement>('[data-snapshot-liiga-last]');
+
   if (live && typeof live.homeGoals === 'number' && typeof live.awayGoals === 'number') {
-    renderGame(root, live, `${live.homeGoals}-${live.awayGoals}`);
+    root.classList.add('is-live');
+    renderGame(
+      root,
+      live,
+      `${live.homeGoals}-${live.awayGoals}`,
+      formatGameClock(live.gameTime),
+    );
     setText(root, '[data-snapshot-liiga-state]', 'LIVE');
-    setText(root, '[data-snapshot-liiga-schedule]', formatGameClock(live.gameTime));
-    root.querySelector<HTMLElement>('[data-snapshot-liiga-last]')?.setAttribute('hidden', '');
+    last?.setAttribute('hidden', '');
     return;
   }
 
-  root.querySelector<HTMLElement>('[data-snapshot-liiga-last]')?.removeAttribute('hidden');
+  last?.removeAttribute('hidden');
 
   if (!next) {
-    renderGame(root, null, '--');
+    renderGame(root, null, '--', 'NO SCHEDULED GAME');
     setText(root, '[data-snapshot-liiga-state]', 'NEXT');
-    setText(root, '[data-snapshot-liiga-schedule]', 'NO SCHEDULED GAME');
     return;
   }
 
-  renderGame(root, next, 'VS');
-  setText(root, '[data-snapshot-liiga-state]', `NEXT / ${next.homeTeamId === 'ilves' ? 'HOME' : 'AWAY'}`);
-  setText(root, '[data-snapshot-liiga-schedule]', formatGameDateTime(next.start));
+  const today = isGameToday(next.start, getReferenceTime(data.generatedAt));
+  root.classList.toggle('is-today', today);
+  renderGame(root, next, formatGameTime(next.start), formatGameDate(next.start));
+  setText(
+    root,
+    '[data-snapshot-liiga-state]',
+    `${today ? 'TODAY' : 'NEXT'} / ${next.homeTeamId === 'ilves' ? 'HOME' : 'AWAY'}`,
+  );
 };
 
 const ensureStyles = () => {
@@ -231,9 +318,9 @@ const ensureStyles = () => {
       overflow: hidden;
       align-self: stretch;
       display: grid;
-      grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
       align-content: center;
-      gap: 2px;
+      gap: 4px;
       padding-left: 12px;
       border-left: 1px solid var(--line);
       color: var(--ink-soft);
@@ -242,9 +329,9 @@ const ensureStyles = () => {
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__header,
-    body:has(.snapshot-shell) .snapshot-liiga__schedule,
     body:has(.snapshot-shell) .snapshot-liiga__match,
-    body:has(.snapshot-shell) .snapshot-liiga__team {
+    body:has(.snapshot-shell) .snapshot-liiga__team,
+    body:has(.snapshot-shell) .snapshot-liiga__footer {
       min-width: 0;
       display: flex;
       align-items: center;
@@ -260,15 +347,7 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__name {
       color: var(--ink-soft);
-      font-weight: 700;
-      text-decoration: none;
-    }
-
-    body:has(.snapshot-shell) .snapshot-liiga__name:hover,
-    body:has(.snapshot-shell) .snapshot-liiga__name:focus-visible {
-      color: var(--moss-deep);
-      text-decoration: underline;
-      text-underline-offset: 0.16em;
+      font-weight: 750;
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__position {
@@ -279,13 +358,15 @@ const ensureStyles = () => {
       white-space: nowrap;
     }
 
-    body:has(.snapshot-shell) .snapshot-liiga__meta,
-    body:has(.snapshot-shell) .snapshot-liiga__last {
+    body:has(.snapshot-shell) .snapshot-liiga__comparison {
       margin: 0;
+      overflow: hidden;
       color: var(--stone);
-      font-size: 0.37rem;
+      font-size: 0.35rem;
+      font-weight: 600;
       line-height: 1;
-      letter-spacing: 0.045em;
+      letter-spacing: 0.035em;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
@@ -293,11 +374,11 @@ const ensureStyles = () => {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
       align-items: center;
-      gap: 4px;
+      gap: 6px;
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__team {
-      gap: 3px;
+      gap: 4px;
       overflow: hidden;
     }
 
@@ -308,7 +389,7 @@ const ensureStyles = () => {
     body:has(.snapshot-shell) .snapshot-liiga__team b {
       overflow: hidden;
       color: var(--ink-soft);
-      font-size: 0.45rem;
+      font-size: 0.43rem;
       font-weight: 700;
       line-height: 1;
       letter-spacing: 0.035em;
@@ -318,8 +399,8 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__mark-wrap {
       flex: 0 0 auto;
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       color: var(--ink-soft);
     }
 
@@ -330,19 +411,38 @@ const ensureStyles = () => {
       overflow: visible;
     }
 
+    body:has(.snapshot-shell) .snapshot-liiga__match-center {
+      min-width: 50px;
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 2px;
+    }
+
     body:has(.snapshot-shell) .snapshot-liiga__score {
       color: var(--ink);
-      font-size: 0.58rem;
+      font-size: 0.86rem;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
-      line-height: 1;
+      line-height: 0.9;
+      letter-spacing: -0.025em;
       white-space: nowrap;
     }
 
-    body:has(.snapshot-shell) .snapshot-liiga__schedule {
+    body:has(.snapshot-shell) .snapshot-liiga__match-center time {
+      color: var(--stone);
+      font-size: 0.3rem;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: 0.025em;
+      white-space: nowrap;
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga__footer {
       justify-content: space-between;
-      gap: 5px;
-      font-size: 0.36rem;
+      gap: 6px;
+      color: var(--stone);
+      font-size: 0.33rem;
       font-weight: 600;
       line-height: 1;
       letter-spacing: 0.035em;
@@ -353,12 +453,14 @@ const ensureStyles = () => {
       color: var(--ink-soft);
     }
 
-    body:has(.snapshot-shell) .snapshot-liiga__schedule time {
+    body:has(.snapshot-shell) .snapshot-liiga__last {
+      min-width: 0;
       overflow: hidden;
-      color: var(--stone);
       text-overflow: ellipsis;
     }
 
+    body:has(.snapshot-shell) .snapshot-liiga.is-today .snapshot-liiga__state,
+    body:has(.snapshot-shell) .snapshot-liiga.is-today .snapshot-liiga__score,
     body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__state,
     body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__score {
       color: var(--ink);
@@ -366,11 +468,16 @@ const ensureStyles = () => {
     }
 
     body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__score {
-      font-size: 0.7rem;
+      font-size: 1rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__match-center time {
+      color: var(--ink-soft);
+      font-size: 0.34rem;
     }
 
     body:has(.snapshot-shell) .snapshot-liiga.is-unavailable .snapshot-liiga__match,
-    body:has(.snapshot-shell) .snapshot-liiga.is-unavailable .snapshot-liiga__last {
+    body:has(.snapshot-shell) .snapshot-liiga.is-unavailable .snapshot-liiga__footer {
       opacity: 0.55;
     }
 
@@ -389,42 +496,57 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga {
-        gap: 1px;
+        gap: 2px;
         padding-left: 7px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__header {
-        font-size: 0.42rem;
+        font-size: 0.4rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__position {
-        font-size: 0.5rem;
+        font-size: 0.49rem;
       }
 
-      body:has(.snapshot-shell) .snapshot-liiga__meta,
-      body:has(.snapshot-shell) .snapshot-liiga__last {
-        font-size: 0.32rem;
+      body:has(.snapshot-shell) .snapshot-liiga__comparison {
+        font-size: 0.29rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-liiga__match {
+        gap: 4px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__mark-wrap {
-        width: 17px;
-        height: 17px;
+        width: 19px;
+        height: 19px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__team b {
-        font-size: 0.39rem;
+        font-size: 0.36rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-liiga__match-center {
+        min-width: 46px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__score {
-        font-size: 0.5rem;
+        font-size: 0.72rem;
       }
 
-      body:has(.snapshot-shell) .snapshot-liiga__schedule {
-        font-size: 0.31rem;
+      body:has(.snapshot-shell) .snapshot-liiga__match-center time {
+        font-size: 0.26rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-liiga__footer {
+        font-size: 0.28rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__score {
-        font-size: 0.61rem;
+        font-size: 0.84rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__match-center time {
+        font-size: 0.3rem;
       }
     }
 
@@ -443,33 +565,46 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga {
+        gap: 1px;
         padding-left: 5px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__header {
-        font-size: 0.36rem;
+        font-size: 0.34rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__position {
-        font-size: 0.43rem;
+        font-size: 0.42rem;
       }
 
-      body:has(.snapshot-shell) .snapshot-liiga__meta {
-        font-size: 0.28rem;
+      body:has(.snapshot-shell) .snapshot-liiga__comparison {
+        font-size: 0.24rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__mark-wrap {
-        width: 14px;
-        height: 14px;
+        width: 16px;
+        height: 16px;
       }
 
-      body:has(.snapshot-shell) .snapshot-liiga__team b,
-      body:has(.snapshot-shell) .snapshot-liiga__schedule {
+      body:has(.snapshot-shell) .snapshot-liiga__team b {
         font-size: 0.28rem;
       }
 
+      body:has(.snapshot-shell) .snapshot-liiga__match-center {
+        min-width: 40px;
+      }
+
       body:has(.snapshot-shell) .snapshot-liiga__score {
-        font-size: 0.44rem;
+        font-size: 0.62rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-liiga__match-center time,
+      body:has(.snapshot-shell) .snapshot-liiga__footer {
+        font-size: 0.23rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__score {
+        font-size: 0.72rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__last {
@@ -528,26 +663,28 @@ const ensureSnapshotLiiga = () => {
   section.setAttribute('aria-live', 'polite');
   section.innerHTML = `
     <div class="snapshot-liiga__header">
-      <a class="snapshot-liiga__name" href="/current/liiga/">ILVES</a>
+      <span class="snapshot-liiga__name">ILVES</span>
       <strong class="snapshot-liiga__position" data-snapshot-liiga-position>#-- / --</strong>
     </div>
-    <p class="snapshot-liiga__meta" data-snapshot-liiga-meta>-- P / -- GP</p>
+    <p class="snapshot-liiga__comparison" data-snapshot-liiga-comparison>ILV -- P · TOP -- P · GAP -- P</p>
     <div class="snapshot-liiga__match">
       <span class="snapshot-liiga__team">
         <span class="snapshot-liiga__mark-wrap" data-snapshot-liiga-home-mark></span>
         <b data-snapshot-liiga-home-team>---</b>
       </span>
-      <strong class="snapshot-liiga__score" data-snapshot-liiga-score>--</strong>
+      <span class="snapshot-liiga__match-center">
+        <strong class="snapshot-liiga__score" data-snapshot-liiga-score>--</strong>
+        <time data-snapshot-liiga-schedule>--</time>
+      </span>
       <span class="snapshot-liiga__team snapshot-liiga__team--away">
         <b data-snapshot-liiga-away-team>---</b>
         <span class="snapshot-liiga__mark-wrap" data-snapshot-liiga-away-mark></span>
       </span>
     </div>
-    <p class="snapshot-liiga__schedule">
+    <div class="snapshot-liiga__footer">
       <span class="snapshot-liiga__state" data-snapshot-liiga-state>NEXT</span>
-      <time data-snapshot-liiga-schedule>--</time>
-    </p>
-    <p class="snapshot-liiga__last" data-snapshot-liiga-last>LAST / --</p>
+      <span class="snapshot-liiga__last" data-snapshot-liiga-last>LAST / --</span>
+    </div>
   `;
 
   main.append(section);
@@ -593,9 +730,10 @@ export const initSnapshotLiiga = () => {
         }),
       );
     } catch {
-      root.classList.remove('is-live');
+      root.classList.remove('is-live', 'is-today');
       root.classList.add('is-unavailable');
       setText(root, '[data-snapshot-liiga-state]', 'UNAVAILABLE');
+      setText(root, '[data-snapshot-liiga-score]', '--');
       setText(root, '[data-snapshot-liiga-schedule]', '--');
     } finally {
       loading = false;
