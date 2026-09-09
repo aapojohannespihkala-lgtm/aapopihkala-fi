@@ -93,10 +93,10 @@ Rakennusvaiheen CI on tarkoituksella nopea ennen mergeä:
 - pelkkä projektidokumentaatio (`README.md`, `AGENTS.md`, `CHATGPT.md`, `ROADMAP.md`, `docs/**`) saa minimaalisen onnistuneen `build`-tarkistuksen ilman Node-, build- tai Playwright-vaiheita
 - vain `.css`-tiedostoja muuttavat pull requestit ajavat `npm ci` ja `npm run build`, mutta ohittavat `npm run check` -vaiheen
 - muut suoritettavat pull requestit ajavat `npm ci`, `npm run check` ja `npm run build`
-- Current-layoutiin mahdollisesti vaikuttavat suoritettavat pull requestit ajavat lisäksi kohdennetun `current-section-boundaries`-Playwright-tarkistuksen ennen mergeä
+- ennen mergeä ajettavat selaintestit valitaan muuttuneiden tiedostojen perusteella skriptillä `.github/scripts/select-browser-tests.sh`: osion muutokset ajavat kyseisen osion tarkistukset, yhteiset riippuvuudet ja tuntemattomat Current-tiedostot laajemman tarkistusjoukon
 - koko Playwright-regressiosarja ei blokkaa pull requestin mergeä rakennusvaiheessa
 
-CSS-only-muutoksessa tuotantobuild on edelleen blokkaava ennen mergeä. Muissa suoritettavissa muutoksissa sekä `npm run check` että tuotantobuild ovat blokkaavia. Kohdennettu Current-rajaustesti asentaa Chromiumin vain silloin, kun muuttuneet tiedostot voivat uskottavasti vaikuttaa Currentin layoutiin tai sen yhteisiin riippuvuuksiin.
+CSS-only-muutoksessa tuotantobuild on edelleen blokkaava ennen mergeä. Muissa suoritettavissa muutoksissa sekä `npm run check` että tuotantobuild ovat blokkaavia. Chromium asennetaan PR:ssä vain, kun valitsin palauttaa selaintestejä. Muutettujen osioiden testit yhdistetään ilman duplikaatteja. Muutettu olemassa oleva selaintesti ajetaan myös yksinään. Valitsimen kevyt regressiotarkistus ajetaan Pythonilla ilman Node- tai selainasennusta.
 
 Omistajan samasta repositoriosta avaamat ei-draft pull requestit squash-mergataan automaattisesti heti onnistuneen pakollisen `build`-tarkistuksen jälkeen. Jos repositorion strict `main` -sääntö huomaa branchin jääneen jälkeen, workflow päivittää branchin ja seuraava CI-kierros jatkaa automaattisesti ilman manuaalista merge- tai polling-vaihetta.
 
@@ -105,6 +105,8 @@ Automaattinen merge käynnistää erikseen täyden `workflow_dispatch`-validoinn
 Erillinen `.github/workflows/current2-live-data-smoke.yml` toimii Currentin post-merge-tuotantosmokena. Se käynnistyy `main`-pushissa ja owner-PR:n automergen jälkeen eksplisiittisenä `workflow_dispatch`-ajona. Vakioitu concurrency peruu päällekkäisen vanhemman ajon. Smoke odottaa tarvittaessa Cloudflare-deployta lyhyillä uusintayrityksillä ja tarkistaa tuotannosta Current-portfolion 19 riviä ja vaaditut tuottojaksot, market macro -syötteen keskeiset Euribor- ja aikasarjasopimukset sekä Liiga-syötteen lähteen, upstreamin, 17 joukkueen rakenteen ja Ilves-yhteenvedon johdonmukaisuuden. Live-smoke on post-merge-tarkistus eikä se hidasta tai blokkaa pull requestin mergeä.
 
 Jos samaan pull requestiin tai refiin tulee uusi commit vanhan CI-ajon ollessa kesken, vanhentunut ajo perutaan automaattisesti.
+
+Rakennusvaiheen tavallinen ChatGPT-päivitystehtävä päättyy onnistuneeseen pakolliseen CI:hin ja automergeen. Täyttä jälkivalidointia tai Cloudflare-julkaisua ei odoteta oletuksena. Vastauksessa erotetaan yhdistetty muutos, tarkistettu tuotantojulkaisu ja taustalle jääneet tarkistukset. Jälkitarkistuksen korjaustehtävässä tai erikseen pyydetyssä tuotantovarmennuksessa odotetaan kyseinen tulos.
 
 Jos `main`-haaran selainregressio tai Currentin live-data-smoke epäonnistuu, epäonnistuminen tutkitaan ja todellinen regressio korjataan erillisellä jatkomuutoksella. Selainregressioiden `test-results/`-aineisto tallennetaan CI-artifaktiksi silloin, kun se on saatavilla.
 

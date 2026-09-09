@@ -36,8 +36,6 @@ jobs:
 
           docs_only=false
           css_only=false
-          current_ui_sensitive=false
-          meshy_poise_sensitive=false
 
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             mapfile -t changed_files < <(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")
@@ -68,24 +66,17 @@ jobs:
                   ;;
               esac
 
-              case "$file" in
-                src/components/current/*|src/features/current/*|src/pages/current/*|src/pages/current2/*|src/styles/current-*.css|src/styles/global.css|src/layouts/BaseLayout.astro|src/components/Analytics.astro|src/components/SiteHeader.astro|src/components/SiteInteractionLayer.astro|tests/e2e/current-section-boundaries.spec.ts|tests/e2e/current-horizontal-overflow.spec.ts|tests/e2e/current-electricity-alignment.spec.ts|tests/e2e/current-electricity-presentation.spec.ts|tests/e2e/current-electricity-summary.spec.ts|tests/e2e/current-electricity-tomorrow.spec.ts|tests/e2e/current-mobile-viewports.spec.ts|tests/e2e/current-snapshot.spec.ts|tests/e2e/current-snapshot-month-calendar.spec.ts|tests/e2e/current2-responsive.spec.ts|package.json|package-lock.json)
-                  current_ui_sensitive=true
-                  ;;
-              esac
-
-              case "$file" in
-                src/components/MeshyPixelatedPoise.astro|tests/e2e/meshy-poise-regression.spec.ts)
-                  meshy_poise_sensitive=true
-                  ;;
-              esac
             done
           fi
 
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
           echo "css_only=$css_only" >> "$GITHUB_OUTPUT"
-          echo "current_ui_sensitive=$current_ui_sensitive" >> "$GITHUB_OUTPUT"
-          echo "meshy_poise_sensitive=$meshy_poise_sensitive" >> "$GITHUB_OUTPUT"
+          browser_tests="$(bash .github/scripts/select-browser-tests.sh "${changed_files[@]}" | paste -sd ' ' -)"
+          echo "browser_tests=$browser_tests" >> "$GITHUB_OUTPUT"
+          echo "Selected pre-merge browser tests: ${browser_tests:-none}"
+
+      - name: Verify browser test selection
+        run: python3 .github/scripts/test-select-browser-tests.py
 
       - name: Documentation-only fast path
         if: steps.changes.outputs.docs_only == 'true'
@@ -117,33 +108,19 @@ jobs:
       - name: Install Chromium
         if: >-
           steps.changes.outputs.docs_only != 'true' &&
-          (github.event_name != 'pull_request' ||
-          steps.changes.outputs.current_ui_sensitive == 'true' ||
-          steps.changes.outputs.meshy_poise_sensitive == 'true')
+          (github.event_name != 'pull_request' || steps.changes.outputs.browser_tests != '')
         run: npx playwright install --with-deps chromium
 
-      - name: Current UI smoke guards
+      - name: Selected browser guards
         if: >-
           github.event_name == 'pull_request' &&
-          steps.changes.outputs.current_ui_sensitive == 'true'
-        run: >-
-          npx playwright test
-          tests/e2e/current-section-boundaries.spec.ts
-          tests/e2e/current-horizontal-overflow.spec.ts
-          tests/e2e/current-electricity-alignment.spec.ts
-          tests/e2e/current-electricity-presentation.spec.ts
-          tests/e2e/current-electricity-summary.spec.ts
-          tests/e2e/current-electricity-tomorrow.spec.ts
-          tests/e2e/current-mobile-viewports.spec.ts
-          tests/e2e/current-snapshot.spec.ts
-          tests/e2e/current-snapshot-month-calendar.spec.ts
-          tests/e2e/current2-responsive.spec.ts
-
-      - name: Pixelated Poise smoke guard
-        if: >-
-          github.event_name == 'pull_request' &&
-          steps.changes.outputs.meshy_poise_sensitive == 'true'
-        run: npx playwright test tests/e2e/meshy-poise-regression.spec.ts
+          steps.changes.outputs.browser_tests != ''
+        env:
+          BROWSER_TESTS: ${{ steps.changes.outputs.browser_tests }}
+        shell: bash
+        run: |
+          read -r -a specs <<< "$BROWSER_TESTS"
+          npx playwright test "${specs[@]}"
 
       - name: Browser regression tests
         if: steps.changes.outputs.docs_only != 'true' && github.event_name != 'pull_request'

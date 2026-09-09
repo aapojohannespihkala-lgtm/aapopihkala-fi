@@ -39,7 +39,7 @@ Before substantial work:
 
 - read `CHATGPT.md` first as the compact task map and use it to identify the smallest relevant source set
 - read `README.md` when setup, commands, CI, deployment or the project overview matters rather than as a mandatory prerequisite for every narrowly scoped implementation change
-- read the relevant files under `docs/`
+- read files under `docs/` only when a documented contract relevant to the task is unresolved
 - read `ROADMAP.md` when the task may affect unfinished work or priorities
 - inspect recent merged pull requests when recent implementation history or design intent matters
 - inspect the current code and tests for exact implementation details
@@ -69,15 +69,24 @@ Do not stop only to request separate merge approval unless:
 
 A successful merge is part of completing the requested repository change, not a separate task by default.
 
+During active construction, finish an ordinary update after the required pre-merge checks and automatic merge succeed. Full post-merge browser validation, production data smoke and Cloudflare deployment continue independently; do not wait for them by default or restart the wait when a newer main commit supersedes a run. Report merge status separately from deployment and post-merge validation, and never describe an unchecked deployment as live or pending tests as passed. Wait further only when the user requests production verification, the task is explicitly to repair a failing post-merge check, or an already observed failure materially affects the requested result. Do not imply that the chat will monitor background work after the turn ends.
+
 ## Efficient repository changes
 
 Prefer one-pass repository changes. Before the first write:
 
 - inspect the relevant files and current `main`
-- inspect the existing working branch or pull request when continuing earlier work
+- check the open PR titles once for an existing implementation of the same task; reuse the relevant branch/PR instead of opening a duplicate, and inspect unrelated PRs only when asked
 - bring the working branch up to date with `main` before implementation when it is behind and the repository rules require an up-to-date branch
 - decide the complete agreed change before pushing whenever practical
 - for visually sensitive changes, inspect the applicable component-scoped CSS, route-level or global overrides, responsive breakpoints, third-party or custom-element loaded/defined states and existing regressions before writing
+
+For repository reading:
+
+- reuse instructions and source content already read in this session when still current
+- after main changes, inspect the changed paths and refresh only relevant changed files
+- use `CHATGPT.md` to choose a narrow source set; a local adjustment does not require a repository audit, full roadmap read or complete PR history
+- batch independent reads, and return selected metadata or relevant excerpts instead of full API payloads and logs
 
 During implementation:
 
@@ -99,7 +108,7 @@ Owner-authored pull requests from the same repository are automatically squash-m
 
 Current production data has a separate post-merge live smoke in `.github/workflows/current2-live-data-smoke.yml`. It runs on `main` pushes and is also dispatched explicitly after a successful owner-PR automerge. Its fixed concurrency group cancels an overlapping older run. The smoke retries through normal Cloudflare deployment lag and verifies the live portfolio, market macro and Liiga APIs rather than mocked or build-time data. Keep this check out of the pre-merge critical path.
 
-During the active site-construction phase, optimize for fast iteration. Documentation-only changes, including `CHATGPT.md`, keep the minimal successful `build` check and skip Node, build and browser work entirely. Pull requests that change only `.css` files keep dependency installation and the production build but skip `npm run check`. Other executable pull requests are blocked by both static checks and a production build. Changes that can affect Current layout also run the targeted Current section-boundary Playwright guard before merge. The full browser regression suite does not block routine construction-phase merges and runs after merge through the explicit `main` validation dispatch.
+During the active site-construction phase, optimize for fast iteration. Documentation-only changes, including `CHATGPT.md`, keep the minimal successful `build` check and skip Node, build and browser work entirely. Pull requests that change only `.css` files keep dependency installation and the production build but skip `npm run check`. Other executable pull requests are blocked by both static checks and a production build. Pre-merge browser guards are selected by changed paths through `.github/scripts/select-browser-tests.sh`. Domain changes run their relevant guards; shared layout, unknown Current files and CI/dependency changes use the broader construction guard set. Changed existing browser specs run themselves. The full browser regression suite does not block routine construction-phase merges and runs after merge through the explicit `main` validation dispatch.
 
 If a post-merge browser regression or Current live-data regression later exposes a real problem, fix it promptly in a follow-up change. Do not hold routine construction-phase merges open waiting for post-merge checks.
 
@@ -110,7 +119,7 @@ The CI strategy in `.github/workflows/build-check.yml` is intentionally split by
 - documentation-only changes, including `README.md`, `AGENTS.md`, `CHATGPT.md`, `ROADMAP.md` and `docs/**`: minimal required `build` check
 - CSS-only pull requests: `npm ci` and `npm run build`, with `npm run check` skipped for faster visual iteration
 - other executable pull requests: `npm ci`, `npm run check` and `npm run build`
-- Current-layout-sensitive executable pull requests: the normal applicable static/build path plus the targeted `current-section-boundaries` Playwright guard
+- targeted browser validation: `.github/scripts/select-browser-tests.sh` selects guards by changed paths, unions mixed changes and retains broader coverage for shared or unknown Current changes; its lightweight selector regression checks run in CI
 - successful automatic merges: explicitly dispatch a full `main` validation run and best-effort delete the merged owner branch
 - executable post-merge validation: static/build validation plus the full Playwright browser regression suite
 - Current production verification: the separate live-data smoke runs post-merge, validates the deployed portfolio, market macro and Liiga APIs, and remains outside the pull-request merge gate
