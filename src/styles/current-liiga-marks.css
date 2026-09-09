@@ -1,3 +1,4 @@
+/* Keep Current Liiga glyphs fully monochrome across light and night modes. */
 [data-current-liiga] {
   --current-liiga-mark-color: #000000;
 }
