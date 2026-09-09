@@ -74,7 +74,7 @@ const ensureLayoutStyles = () => {
       gap: 5px;
       margin: 0;
       color: var(--stone-light);
-      font-size: 0.44rem;
+      font-size: 0.5rem;
       font-weight: 500;
       line-height: 1.15;
       letter-spacing: 0.045em;
@@ -88,19 +88,21 @@ const ensureLayoutStyles = () => {
       color: color-mix(in srgb, var(--stone-light) 72%, transparent);
     }
 
+    /* Keep sunrise and sunset labels on the same visual line as the solar horizon. */
     body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar time {
       padding-bottom: 0;
       font-size: inherit;
       line-height: inherit;
       letter-spacing: inherit;
       white-space: nowrap;
+      transform: translateY(-10px);
     }
 
     body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__daylight {
       margin-top: 3px;
       color: var(--stone);
       text-align: center;
-      font-size: 0.46rem;
+      font-size: 0.52rem;
       font-weight: 500;
       line-height: 1.15;
       letter-spacing: 0.055em;
@@ -132,7 +134,7 @@ const ensureLayoutStyles = () => {
         min-width: 60px !important;
         max-width: 60px;
         box-sizing: border-box;
-        transform: translateX(-26px);
+        transform: translateX(-42px);
         justify-self: center;
         align-self: center;
         gap: 2px;
@@ -157,7 +159,7 @@ const ensureLayoutStyles = () => {
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar {
         grid-template-columns: auto minmax(36px, 1fr) auto;
         gap: 3px;
-        font-size: 0.34rem;
+        font-size: 0.39rem;
         letter-spacing: 0.03em;
       }
 
@@ -165,9 +167,13 @@ const ensureLayoutStyles = () => {
         height: 34px !important;
       }
 
+      body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar time {
+        transform: translateY(-9px);
+      }
+
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__daylight {
         margin-top: 1px;
-        font-size: 0.36rem;
+        font-size: 0.42rem;
       }
     }
 
@@ -190,7 +196,7 @@ const ensureLayoutStyles = () => {
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-titleblock__meta {
         min-width: 56px !important;
         max-width: 56px;
-        transform: translateX(-20px);
+        transform: translateX(-34px);
         padding-left: 1px;
       }
 
@@ -210,15 +216,19 @@ const ensureLayoutStyles = () => {
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar {
         grid-template-columns: auto minmax(31px, 1fr) auto;
         gap: 2px;
-        font-size: 0.29rem;
+        font-size: 0.33rem;
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar svg {
         height: 30px !important;
       }
 
+      body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar time {
+        transform: translateY(-8px);
+      }
+
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__daylight {
-        font-size: 0.31rem;
+        font-size: 0.35rem;
       }
     }
   `;
