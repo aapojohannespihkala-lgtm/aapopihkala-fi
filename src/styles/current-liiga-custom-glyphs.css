@@ -1,4 +1,18 @@
-/* Custom filled club glyph overrides for the Liiga clubs grid: Jokerit, Jukurit, TPS. */
+/* Custom filled club glyph overrides for the Liiga clubs grid: Ilves, Jokerit, Jukurit, TPS. */
+.liiga-club-mark[data-liiga-club-mark="ilves"] > svg {
+  display: none !important;
+}
+
+.liiga-club-mark[data-liiga-club-mark="ilves"]::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 48px;
+  background: currentColor;
+  -webkit-mask: url("/icons/current-ilves-mascot-emblem.svg") center / contain no-repeat;
+  mask: url("/icons/current-ilves-mascot-emblem.svg") center / contain no-repeat;
+}
+
 .liiga-club-mark[data-liiga-club-mark="jokerit"] > svg {
   display: none !important;
 }
