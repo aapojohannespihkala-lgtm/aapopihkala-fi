@@ -19,12 +19,12 @@ const ensureLayoutStyles = () => {
       position: absolute;
       left: 50%;
       top: 50%;
-      min-width: 112px !important;
+      min-width: 132px !important;
       max-width: none;
       transform: translate(-50%, -50%);
       z-index: 1;
       justify-items: center;
-      gap: 4px;
+      gap: 5px;
       text-align: center;
       pointer-events: none;
     }
@@ -35,13 +35,13 @@ const ensureLayoutStyles = () => {
     }
 
     body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
-      font-size: 0.54rem;
+      font-size: 0.66rem;
       font-weight: 650;
       letter-spacing: 0.05em;
     }
 
     body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
-      font-size: 0.4rem;
+      font-size: 0.48rem;
       font-weight: 550;
       letter-spacing: 0.05em;
     }
@@ -76,7 +76,7 @@ const ensureLayoutStyles = () => {
     body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar svg {
       display: block;
       width: 100%;
-      height: 31px !important;
+      height: 42px !important;
       overflow: visible;
       color: color-mix(in srgb, var(--stone-light) 72%, transparent);
     }
@@ -127,11 +127,11 @@ const ensureLayoutStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
-        font-size: 0.33rem;
+        font-size: 0.37rem;
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
-        font-size: 0.28rem;
+        font-size: 0.31rem;
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
@@ -147,7 +147,7 @@ const ensureLayoutStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar svg {
-        height: 26px !important;
+        height: 34px !important;
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__daylight {
@@ -170,11 +170,11 @@ const ensureLayoutStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
-        font-size: 0.28rem;
+        font-size: 0.31rem;
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
-        font-size: 0.24rem;
+        font-size: 0.27rem;
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
@@ -188,7 +188,7 @@ const ensureLayoutStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar svg {
-        height: 24px !important;
+        height: 30px !important;
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__daylight {
@@ -216,6 +216,15 @@ const compactCalendarText = (root: HTMLElement) => {
   week.textContent = `${year} / W${weekNumber}`;
 };
 
+const compactDaylightText = (root: HTMLElement) => {
+  const daylight = root.querySelector<HTMLElement>('[data-snapshot-calendar-daylight]');
+  if (!daylight) return;
+
+  const text = daylight.textContent?.trim() ?? '';
+  const compact = text.replace(/^DAYLIGHT\s*\/\s*/i, '');
+  if (compact && compact !== text) daylight.textContent = compact;
+};
+
 const applyCalendarLayout = (root: HTMLElement) => {
   const titleblock = root.querySelector<HTMLElement>('.snapshot-titleblock');
   const meta = root.querySelector<HTMLElement>('.snapshot-titleblock__meta');
@@ -225,6 +234,7 @@ const applyCalendarLayout = (root: HTMLElement) => {
 
   ensureLayoutStyles();
   compactCalendarText(root);
+  compactDaylightText(root);
 
   let panel = root.querySelector<HTMLElement>('[data-snapshot-calendar-solar-panel]');
   if (!panel) {
@@ -241,7 +251,7 @@ const applyCalendarLayout = (root: HTMLElement) => {
 
   sunrise?.classList.add('snapshot-calendar__sunrise');
   sunset?.classList.add('snapshot-calendar__sunset');
-  svg?.removeAttribute('preserveAspectRatio');
+  svg?.setAttribute('preserveAspectRatio', 'none');
 
   if (solar.parentElement !== panel) panel.append(solar);
   if (daylight.parentElement !== panel) panel.append(daylight);
@@ -263,6 +273,7 @@ export const initSnapshotCalendarLayout = () => {
   const observer = new MutationObserver(() => {
     apply();
     compactCalendarText(root);
+    compactDaylightText(root);
   });
 
   observer.observe(root, { childList: true, subtree: true, characterData: true });
