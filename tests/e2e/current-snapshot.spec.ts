@@ -188,10 +188,10 @@ test.describe('Current Snapshot', () => {
       await expect(page.locator('[data-snapshot-weather-forecast-temperature="2"]')).toHaveText('13°');
       await expect(page.locator('[data-snapshot-weather-forecast-condition="2"]')).toHaveText('Partly cloudy');
 
+      await expect(page.locator('[data-snapshot-electricity-now]')).toHaveText('3.46');
+      await expect(page.locator('.snapshot-electricity__value .snapshot-micro')).toHaveText('DAY AVG / TODAY');
+      await expect(page.locator('.snapshot-electricity__stats > div:first-child dt')).toHaveText('MONTH AVG');
       await expect(page.locator('[data-snapshot-electricity-month-average]')).toHaveText('7.84');
-      await expect(page.locator('.snapshot-electricity__value .snapshot-micro')).toHaveText('MONTH AVG / THROUGH 07 SEP');
-      await expect(page.locator('.snapshot-electricity__stats > div:first-child dt')).toHaveText('DAY AVG');
-      await expect(page.locator('.snapshot-electricity__stats > div:first-child dd')).toHaveText('3.46');
       await expect(page.locator('[data-snapshot-electricity-now-overlay]')).toHaveText('4.82');
       await expect(page.locator('[data-snapshot-electricity-now-marker]')).toBeVisible();
       await expect(page.locator('[data-snapshot-electricity-low]')).toHaveText('1.20');
