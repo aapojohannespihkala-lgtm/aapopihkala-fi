@@ -25,4 +25,6 @@ test('Snapshot shows a compact month grid with today marked', async ({ page }) =
   await expect(calendar.locator('[data-snapshot-month-calendar-today]')).toHaveText('8');
   await expect(calendar.locator('.snapshot-calendar__month-day').first()).toHaveText('·');
   await expect(calendar.locator('.snapshot-calendar__month-day')).toHaveCount(35);
+  await expect(calendar.locator('.snapshot-calendar__month-day').last()).toBeVisible();
+  await expect(calendar.locator('.snapshot-calendar__month-day').last()).toHaveText('·');
 });
