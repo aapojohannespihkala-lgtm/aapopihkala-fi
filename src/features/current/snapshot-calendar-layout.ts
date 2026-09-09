@@ -88,6 +88,7 @@ const ensureLayoutStyles = () => {
       color: color-mix(in srgb, var(--stone-light) 72%, transparent);
     }
 
+    /* Keep sunrise and sunset labels on the same visual line as the solar horizon. */
     body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar time {
       padding-bottom: 0;
       font-size: inherit;
