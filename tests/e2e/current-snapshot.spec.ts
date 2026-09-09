@@ -216,13 +216,12 @@ test.describe('Current Snapshot', () => {
 
       await expect(page.locator('[data-snapshot-euribor]')).toHaveText('2.679');
       await expect(page.locator('[data-snapshot-euribor-change]')).toHaveText('+0.652 PP');
-      await expect(page.locator('[data-snapshot-euribor-chart-path]')).toHaveAttribute('d', /L/);
-      await expect(page.locator('[data-snapshot-euribor-chart-high]')).toHaveText('3.3');
-      await expect(page.locator('[data-snapshot-euribor-chart-low]')).toHaveText('2.7');
+      await expect(page.locator('.snapshot-rates__chart')).toHaveCount(0);
 
       await expect(page.locator('a[href="/current/weather/"]')).toHaveCount(1);
       await expect(page.locator('a[href="/current/electricity/"]')).toHaveCount(1);
-      await expect(page.locator('a[href="/current/markets/"]')).toHaveCount(2);
+      await expect(page.locator('a[href="/current/markets/"]')).toHaveCount(1);
+      await expect(page.locator('a[href="/current/rates/"]')).toHaveCount(1);
 
       const geometry = await page.evaluate(() => {
         const snapshot = document.querySelector<HTMLElement>('[data-current-snapshot]');
