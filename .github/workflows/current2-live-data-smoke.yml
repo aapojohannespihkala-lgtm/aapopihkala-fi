@@ -166,3 +166,59 @@ jobs:
             cat current-market-live.json >&2
           fi
           exit 1
+
+      - name: Verify live Current Liiga feed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          url="https://aapopihkala.fi/api/current/liiga?live_smoke=${GITHUB_RUN_ID}"
+
+          for attempt in $(seq 1 18); do
+            echo "Current Liiga attempt ${attempt}/18"
+
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 30 \
+              --header 'Accept: application/json' \
+              --header 'Cache-Control: no-cache' \
+              "$url" \
+              --output current-liiga-live.json; then
+              if node <<'NODE'
+          const fs = require('node:fs');
+          const body = JSON.parse(fs.readFileSync('current-liiga-live.json', 'utf8'));
+          const standings = Array.isArray(body.standings) ? body.standings : [];
+          const failures = [];
+
+          if (!Number.isFinite(body.season)) failures.push(`invalid season: ${String(body.season)}`);
+          if (body.source !== 'Liiga') failures.push(`invalid source: ${String(body.source)}`);
+          if (!['/api/v2/games', '/api/v2/schedule'].includes(body.upstream)) {
+            failures.push(`unexpected upstream: ${String(body.upstream)}`);
+          }
+          if (standings.length !== 17) failures.push(`expected 17 standings rows, got ${standings.length}`);
+          if (!standings.some((team) => team?.id === 'ilves')) failures.push('Ilves row missing');
+
+          if (failures.length > 0) {
+            console.error(`Current Liiga feed incomplete: ${failures.join(' | ')}`);
+            process.exit(1);
+          }
+
+          console.log(`Current Liiga verified: season ${body.season}, ${standings.length} rows via ${body.upstream}.`);
+          NODE
+              then
+                exit 0
+              fi
+            fi
+
+            if [[ "$attempt" -lt 18 ]]; then
+              sleep 10
+            fi
+          done
+
+          echo "Current Liiga feed did not recover in production." >&2
+          if [[ -f current-liiga-live.json ]]; then
+            cat current-liiga-live.json >&2
+          fi
+          exit 1
