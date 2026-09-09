@@ -132,13 +132,22 @@ const prepareSnapshot = async (page: Page, liigaFixture: typeof normalLiigaFixtu
 };
 
 test.describe('Current Snapshot Liiga summary', () => {
-  test('shows compact Ilves position, next game and last result inside the rates panel', async ({ page }) => {
+  test('splits the final panel into separate Rates and Liiga headers with detail links', async ({ page }) => {
     await prepareSnapshot(page, normalLiigaFixture);
     await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
 
+    const panel = page.locator('.snapshot-panel--rates');
+    const heading = panel.locator('.snapshot-panel__heading');
     const liiga = page.locator('[data-snapshot-liiga]');
+
     await expect(liiga).toBeVisible();
-    await expect(page.locator('#snapshot-rates-label')).toHaveText('RATES + ILVES / 04');
+    await expect(page.locator('#snapshot-rates-label')).toHaveText('RATES / 04');
+    await expect(page.locator('#snapshot-liiga-label')).toHaveText('LIIGA / 04');
+    await expect(heading.locator('a[href="/current/rates/"]')).toHaveCount(1);
+    await expect(heading.locator('a[href="/current/rates/"]')).toHaveText('+');
+    await expect(heading.locator('a[href="/current/liiga/"]')).toHaveCount(1);
+    await expect(heading.locator('a[href="/current/liiga/"]')).toHaveText('+');
+
     await expect(liiga.locator('[data-snapshot-liiga-position]')).toHaveText('#4 / 17');
     await expect(liiga.locator('[data-snapshot-liiga-meta]')).toHaveText('28 P / 16 GP');
     await expect(liiga.locator('[data-snapshot-liiga-state]')).toHaveText('NEXT / HOME');
@@ -151,16 +160,25 @@ test.describe('Current Snapshot Liiga summary', () => {
     await expect(liiga.locator('.snapshot-liiga__mark')).toHaveCount(2);
 
     const geometry = await page.evaluate(() => {
-      const panel = document.querySelector<HTMLElement>('.snapshot-panel--rates .snapshot-panel__body');
+      const panel = document.querySelector<HTMLElement>('.snapshot-panel--rates');
+      const panelBody = panel?.querySelector<HTMLElement>('.snapshot-panel__body');
+      const liigaHeading = panel?.querySelector<HTMLElement>('#snapshot-liiga-label');
+      const liigaBody = panel?.querySelector<HTMLElement>('[data-snapshot-liiga]');
+      const panelRect = panel?.getBoundingClientRect();
+      const panelMidpoint = panelRect ? panelRect.left + panelRect.width / 2 : Number.POSITIVE_INFINITY;
+
       return {
         pageWidth: document.documentElement.scrollWidth,
         pageHeight: document.documentElement.scrollHeight,
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
-        panelScrollWidth: panel?.scrollWidth ?? Number.POSITIVE_INFINITY,
-        panelClientWidth: panel?.clientWidth ?? 0,
-        panelScrollHeight: panel?.scrollHeight ?? Number.POSITIVE_INFINITY,
-        panelClientHeight: panel?.clientHeight ?? 0,
+        panelScrollWidth: panelBody?.scrollWidth ?? Number.POSITIVE_INFINITY,
+        panelClientWidth: panelBody?.clientWidth ?? 0,
+        panelScrollHeight: panelBody?.scrollHeight ?? Number.POSITIVE_INFINITY,
+        panelClientHeight: panelBody?.clientHeight ?? 0,
+        headerDivider: liigaHeading?.getBoundingClientRect().left ?? Number.POSITIVE_INFINITY,
+        bodyDivider: liigaBody?.getBoundingClientRect().left ?? Number.POSITIVE_INFINITY,
+        panelMidpoint,
       };
     });
 
@@ -168,6 +186,8 @@ test.describe('Current Snapshot Liiga summary', () => {
     expect(geometry.pageHeight).toBeLessThanOrEqual(geometry.viewportHeight + 1);
     expect(geometry.panelScrollWidth).toBeLessThanOrEqual(geometry.panelClientWidth + 1);
     expect(geometry.panelScrollHeight).toBeLessThanOrEqual(geometry.panelClientHeight + 1);
+    expect(Math.abs(geometry.headerDivider - geometry.panelMidpoint)).toBeLessThanOrEqual(2);
+    expect(Math.abs(geometry.bodyDivider - geometry.panelMidpoint)).toBeLessThanOrEqual(2);
   });
 
   test('promotes an active Ilves game to live score and clock', async ({ page }) => {
