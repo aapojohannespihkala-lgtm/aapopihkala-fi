@@ -73,8 +73,9 @@ export const LIIGA_MARK_PATHS: Record<string, readonly string[]> = {
     'M14 16 9 13M17 13l-4-4M26 14c2-2 5-2 7-1',
   ],
   tappara: [
-    'M24 8v32M10 14h28',
-    'M10 14l8 8M38 14l-8 8M15 36h18',
+    'M11 38 34 11M14 9l11 3-7 7-7-3Z',
+    'M37 38 14 11M34 9l-11 3 7 7 7-3Z',
+    'M20 24h8M24 20v8',
   ],
   tps: [
     'M24 5a19 19 0 1 0 0 38 19 19 0 0 0 0-38Z',
