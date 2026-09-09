@@ -12,7 +12,7 @@ type SnapshotHourlyWeatherResponse = {
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast';
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
-const FORECAST_SLOT_STEPS = [0, 2, 5] as const;
+const FORECAST_SLOT_STEPS = [0, 2, 4, 6] as const;
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
@@ -107,11 +107,6 @@ const createForecastMarkup = () => {
   container.className = 'snapshot-weather__forecast';
   container.dataset.snapshotWeatherForecast = 'true';
   container.setAttribute('aria-label', 'Upcoming weather');
-
-  const label = document.createElement('span');
-  label.className = 'snapshot-weather__forecast-label';
-  label.textContent = 'NEXT';
-  container.append(label);
 
   FORECAST_SLOT_STEPS.forEach((_, index) => {
     const slot = document.createElement('span');
