@@ -393,7 +393,7 @@ const renderMonthGrid = (root: HTMLElement) => {
   const cells: HTMLElement[] = [];
 
   for (let index = 0; index < cellCount; index += 1) {
-    const cell = document.createElement('span');
+    const cell = document.createElement('div');
     cell.className = 'snapshot-calendar__month-day';
     const calendarDay = index - mondayOffset + 1;
 
