@@ -1,4 +1,5 @@
 const OPEN_METEO_ORIGIN = 'https://api.open-meteo.com';
+const FALLBACK_BASE_URL = 'https://aapopihkala.fi/';
 
 export const CURRENT_WEATHER_TIMEOUT_MS = 8_000;
 
@@ -18,7 +19,7 @@ export const fetchCurrentExternal = async (
   let url: URL;
 
   try {
-    url = new URL(getRequestUrl(input), window.location.href);
+    url = new URL(getRequestUrl(input), FALLBACK_BASE_URL);
   } catch {
     return fetchImpl(input, init);
   }
@@ -28,7 +29,7 @@ export const fetchCurrentExternal = async (
   }
 
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     return await fetchImpl(input, {
@@ -36,7 +37,7 @@ export const fetchCurrentExternal = async (
       signal: controller.signal,
     });
   } finally {
-    window.clearTimeout(timeout);
+    clearTimeout(timeout);
   }
 };
 
