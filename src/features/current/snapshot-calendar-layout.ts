@@ -5,8 +5,8 @@ const ensureLayoutStyles = () => {
   style.dataset.snapshotCalendarLayoutStyles = 'true';
   style.textContent = `
     body:has(.snapshot-shell) .snapshot-titleblock.snapshot-titleblock--calendar-split {
-      grid-template-columns: minmax(0, auto) minmax(74px, 1fr) 112px;
-      gap: 10px;
+      grid-template-columns: minmax(0, 1fr) 76px 136px;
+      gap: 8px;
     }
 
     body:has(.snapshot-shell) .snapshot-titleblock--calendar-split #current-snapshot-title {
@@ -14,10 +14,12 @@ const ensureLayoutStyles = () => {
     }
 
     body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-titleblock__meta {
-      min-width: 74px !important;
-      max-width: 104px;
+      min-width: 76px !important;
+      max-width: 76px;
+      justify-self: center;
       align-self: center;
       gap: 3px;
+      text-align: center;
     }
 
     body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date,
@@ -27,13 +29,13 @@ const ensureLayoutStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
       min-width: 0;
-      width: 112px;
+      width: 136px;
       justify-self: end;
       align-self: stretch;
       display: grid;
       grid-template-rows: minmax(0, 1fr) auto;
       align-items: center;
-      padding-left: 9px;
+      padding-left: 10px;
       border-left: 1px solid color-mix(in srgb, var(--ink-soft) 58%, transparent);
     }
 
@@ -41,9 +43,9 @@ const ensureLayoutStyles = () => {
       min-width: 0;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: 48px auto;
+      grid-template-rows: 54px auto;
       align-items: center;
-      gap: 0 5px;
+      gap: 0 6px;
       margin: 0;
       color: var(--stone);
     }
@@ -52,7 +54,7 @@ const ensureLayoutStyles = () => {
       grid-column: 1 / -1;
       grid-row: 1;
       width: 100%;
-      height: 48px !important;
+      height: 54px !important;
       overflow: visible;
     }
 
@@ -70,7 +72,7 @@ const ensureLayoutStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar time {
       padding: 0;
-      font-size: 0.34rem;
+      font-size: 0.36rem;
       line-height: 1;
       letter-spacing: 0.02em;
       white-space: nowrap;
@@ -79,17 +81,17 @@ const ensureLayoutStyles = () => {
     body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__daylight {
       margin-top: 3px;
       text-align: center;
-      font-size: 0.34rem;
+      font-size: 0.36rem;
       line-height: 1;
       white-space: nowrap;
     }
 
     @media (max-width: 640px) {
       body:has(.snapshot-shell) .snapshot-titleblock.snapshot-titleblock--calendar-split {
-        grid-template-columns: minmax(0, 1fr) 58px 68px;
-        gap: 4px;
-        padding-left: 12px;
-        padding-right: 12px;
+        grid-template-columns: minmax(0, 1fr) 48px 84px;
+        gap: 3px;
+        padding-left: 10px;
+        padding-right: 10px;
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-number__minor--seconds {
@@ -97,21 +99,64 @@ const ensureLayoutStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-titleblock__meta {
-        min-width: 58px !important;
-        max-width: 58px;
+        min-width: 48px !important;
+        max-width: 48px;
+        justify-self: center;
         gap: 2px;
+        text-align: center;
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
-        font-size: 0.37rem;
+        font-size: 0.33rem;
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
-        font-size: 0.31rem;
+        font-size: 0.28rem;
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
-        width: 68px;
+        width: 84px;
+        padding-left: 6px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar {
+        grid-template-rows: 44px auto;
+        gap: 0 4px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar svg {
+        height: 44px !important;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar time,
+      body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__daylight {
+        font-size: 0.27rem;
+      }
+    }
+
+    @media (max-width: 380px), (max-height: 720px) {
+      body:has(.snapshot-shell) .snapshot-titleblock.snapshot-titleblock--calendar-split {
+        grid-template-columns: minmax(0, 1fr) 44px 74px;
+        gap: 2px;
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-titleblock__meta {
+        min-width: 44px !important;
+        max-width: 44px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
+        font-size: 0.29rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
+        font-size: 0.25rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
+        width: 74px;
         padding-left: 5px;
       }
 
@@ -126,48 +171,7 @@ const ensureLayoutStyles = () => {
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar time,
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__daylight {
-        font-size: 0.27rem;
-      }
-    }
-
-    @media (max-width: 380px), (max-height: 720px) {
-      body:has(.snapshot-shell) .snapshot-titleblock.snapshot-titleblock--calendar-split {
-        grid-template-columns: minmax(0, 1fr) 48px 56px;
-        gap: 4px;
-        padding-left: 8px;
-        padding-right: 8px;
-      }
-
-      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-titleblock__meta {
-        min-width: 48px !important;
-        max-width: 48px;
-      }
-
-      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
-        font-size: 0.32rem;
-      }
-
-      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
-        font-size: 0.27rem;
-      }
-
-      body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
-        width: 56px;
-        padding-left: 4px;
-      }
-
-      body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar {
-        grid-template-rows: 36px auto;
-        gap: 0 2px;
-      }
-
-      body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar svg {
-        height: 36px !important;
-      }
-
-      body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar time,
-      body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__daylight {
-        font-size: 0.24rem;
+        font-size: 0.23rem;
       }
     }
   `;
