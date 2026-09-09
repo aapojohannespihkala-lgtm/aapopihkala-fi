@@ -169,7 +169,7 @@ test.describe('Current Snapshot Liiga summary', () => {
     await expect(liiga.locator('[data-snapshot-liiga-away-team]')).toHaveText('TPS');
     await expect(liiga.locator('[data-snapshot-liiga-score]')).toHaveText('18:30');
     await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('FRI 11 SEPT');
-    await expect(liiga.locator('[data-snapshot-liiga-last]')).toHaveText('LAST / ILV 3-2 HIFK');
+    await expect(liiga.locator('[data-snapshot-liiga-last]')).toHaveText('LAST / ILV 3-2 IFK');
     await expect(liiga.locator('.snapshot-liiga__mark')).toHaveCount(2);
 
     const geometry = await page.evaluate(() => {
