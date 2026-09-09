@@ -1,4 +1,4 @@
-/* Custom filled club glyph overrides for the Liiga clubs grid: Jokerit, Jukurit, TPS, SaiPa. */
+/* Custom filled Liiga club glyph overrides: Jokerit, Jukurit, TPS, SaiPa. */
 .liiga-club-mark[data-liiga-club-mark="jokerit"] > svg {
   display: none !important;
 }
