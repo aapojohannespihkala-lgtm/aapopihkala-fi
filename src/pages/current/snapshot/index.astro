@@ -11,6 +11,7 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
   initSnapshotWeatherForecast();
   initSnapshotElectricityContext();
 
+  const snapshotRoot = document.querySelector<HTMLElement>('[data-current-snapshot]');
   const heroClock = document.querySelector<HTMLElement>('#current-snapshot-title');
   const heroClockFormatter = new Intl.DateTimeFormat('en-GB', {
     hour: '2-digit',
@@ -22,20 +23,93 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
 
   const renderHeroClock = () => {
     if (!heroClock) return;
-    heroClock.textContent = heroClockFormatter.format(new Date());
-    heroClock.setAttribute('aria-label', `Current time in Helsinki ${heroClock.textContent}`);
+
+    const formatted = heroClockFormatter.format(new Date());
+    const parts = formatted.split(':');
+    const seconds = parts.pop();
+    const primary = parts.join(':');
+
+    if (seconds) {
+      const minor = document.createElement('span');
+      minor.className = 'snapshot-number__minor snapshot-number__minor--seconds';
+      minor.textContent = `:${seconds}`;
+      heroClock.replaceChildren(document.createTextNode(primary), minor);
+    } else {
+      heroClock.textContent = formatted;
+    }
+
+    heroClock.setAttribute('aria-label', `Current time in Helsinki ${formatted}`);
   };
+
+  const decorateDecimal = (element: HTMLElement) => {
+    if (element.querySelector('.snapshot-number__minor')) return;
+
+    const value = element.textContent?.trim() ?? '';
+    const match = value.match(/^([+−-]?\d+)\.(\d+)(.*)$/);
+    if (!match) return;
+
+    const minor = document.createElement('span');
+    minor.className = 'snapshot-number__minor';
+    minor.textContent = match[2];
+
+    element.replaceChildren(
+      document.createTextNode(`${match[1]}.`),
+      minor,
+      document.createTextNode(match[3] ?? '')
+    );
+  };
+
+  const decorateHeadlineDecimals = () => {
+    if (!snapshotRoot) return;
+
+    for (const selector of [
+      '[data-snapshot-weather-temperature]',
+      '[data-snapshot-electricity-now]',
+      '[data-snapshot-euribor]',
+    ]) {
+      const element = snapshotRoot.querySelector<HTMLElement>(selector);
+      if (element) decorateDecimal(element);
+    }
+  };
+
+  if (snapshotRoot) {
+    const observer = new MutationObserver(() => decorateHeadlineDecimals());
+    observer.observe(snapshotRoot, { childList: true, subtree: true });
+    decorateHeadlineDecimals();
+  }
 
   renderHeroClock();
   window.setInterval(renderHeroClock, 1000);
 </script>
 
 <style is:global>
+  body:has(.snapshot-shell) {
+    --snapshot-headline-size: clamp(2.8rem, 9vw, 4.4rem);
+  }
+
+  body:has(.snapshot-shell) #current-snapshot-title,
+  body:has(.snapshot-shell) .snapshot-hero,
+  body:has(.snapshot-shell) .snapshot-rates__value {
+    font-size: var(--snapshot-headline-size);
+    line-height: 0.86;
+  }
+
   body:has(.snapshot-shell) #current-snapshot-title {
-    font-size: clamp(2.8rem, 9vw, 4.4rem);
     letter-spacing: -0.06em;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+  }
+
+  body:has(.snapshot-shell) .snapshot-number__minor {
+    display: inline-block;
+    font-size: 0.72em;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    vertical-align: 0.06em;
+  }
+
+  body:has(.snapshot-shell) .snapshot-number__minor--seconds {
+    margin-left: 0.015em;
   }
 
   body:has(.snapshot-shell) .snapshot-titleblock__meta span:last-child {
@@ -162,8 +236,8 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
   }
 
   @media (max-width: 640px) {
-    body:has(.snapshot-shell) #current-snapshot-title {
-      font-size: clamp(2.55rem, 12vw, 3.35rem);
+    body:has(.snapshot-shell) {
+      --snapshot-headline-size: clamp(2.55rem, 12vw, 3.35rem);
     }
 
     body:has(.snapshot-shell) .snapshot-grid {
@@ -298,8 +372,8 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
   }
 
   @media (max-width: 380px), (max-height: 720px) {
-    body:has(.snapshot-shell) #current-snapshot-title {
-      font-size: clamp(2.25rem, 11vw, 2.8rem);
+    body:has(.snapshot-shell) {
+      --snapshot-headline-size: clamp(2.25rem, 11vw, 2.8rem);
     }
 
     body:has(.snapshot-shell) .snapshot-grid {
