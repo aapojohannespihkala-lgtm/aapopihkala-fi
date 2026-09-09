@@ -1,0 +1,420 @@
+<section class="current-rates" data-current-rates data-current-markets aria-labelledby="current-rates-title">
+  <header class="rates-heading">
+    <p class="rates-index">RATES / 00</p>
+  </header>
+
+  <h2 id="current-rates-title" class="sr-only">Rates</h2>
+
+  <section class="markets-macro" aria-label="Interest rate and world equity trends">
+    <div class="markets-panel-heading">
+      <p class="markets-panel-label">RATES / TRENDS</p>
+      <p class="markets-panel-observation">
+        OBS / <span data-markets-observation>WAITING</span>
+      </p>
+    </div>
+
+    <div class="markets-macro__row markets-macro__row--chart">
+      <p class="markets-macro__label">3M EURIBOR</p>
+      <div class="markets-macro__reading">
+        <p class="markets-macro__value"><span data-market-value="euribor-3m">-.---</span>%</p>
+        <p class="markets-macro__change">
+          <span data-market-series-change="euribor-3m">WAITING</span> / 1Y
+        </p>
+      </div>
+
+      <div class="markets-sparkline-wrap">
+        <div class="markets-sparkline-frame">
+          <div class="markets-sparkline-axis" data-market-axis="euribor-3m" aria-hidden="true"></div>
+          <div class="markets-sparkline-stage" data-market-chart-stage="euribor-3m">
+            <svg
+              class="markets-sparkline markets-sparkline--pending"
+              data-market-sparkline="euribor-3m"
+              viewBox="0 0 240 64"
+              preserveAspectRatio="none"
+              role="img"
+              tabindex="0"
+              aria-label="3 month Euribor one year trend. Touch, hover or use the arrow keys to inspect values."
+            >
+              <g class="markets-sparkline-grid" data-market-grid></g>
+              <path data-market-line></path>
+              <line class="markets-sparkline__inspection-line" data-market-inspection-line x1="0" x2="0" y1="2" y2="62" opacity="0"></line>
+              <circle class="markets-sparkline__inspection-point" data-market-inspection-point cx="0" cy="0" r="3" opacity="0"></circle>
+            </svg>
+            <div class="markets-sparkline-tooltip" data-market-tooltip="euribor-3m" role="status" aria-live="polite" hidden>
+              <span data-market-tooltip-date="euribor-3m">-- --- ----</span>
+              <span class="markets-sparkline-tooltip__value" data-market-tooltip-value="euribor-3m">-.---%</span>
+            </div>
+          </div>
+        </div>
+        <p class="markets-sparkline__fallback" data-market-sparkline-fallback="euribor-3m">LOADING</p>
+      </div>
+    </div>
+
+    <div class="markets-macro__row markets-macro__row--chart">
+      <p class="markets-macro__label">WORLD</p>
+      <div class="markets-macro__reading">
+        <p class="markets-macro__value" data-market-series-change="world">WAITING</p>
+        <p class="markets-macro__change">1Y</p>
+      </div>
+
+      <div class="markets-sparkline-wrap">
+        <p class="markets-sparkline-context">INDEXED / 100 = 1Y AGO</p>
+        <div class="markets-sparkline-frame">
+          <div class="markets-sparkline-axis" data-market-axis="world" aria-hidden="true"></div>
+          <div class="markets-sparkline-stage" data-market-chart-stage="world">
+            <svg
+              class="markets-sparkline markets-sparkline--pending"
+              data-market-sparkline="world"
+              viewBox="0 0 240 64"
+              preserveAspectRatio="none"
+              role="img"
+              tabindex="0"
+              aria-label="World equity one year trend indexed to 100 at the start of the period. Touch, hover or use the arrow keys to inspect values."
+            >
+              <g class="markets-sparkline-grid" data-market-grid></g>
+              <path data-market-line></path>
+              <line class="markets-sparkline__inspection-line" data-market-inspection-line x1="0" x2="0" y1="2" y2="62" opacity="0"></line>
+              <circle class="markets-sparkline__inspection-point" data-market-inspection-point cx="0" cy="0" r="3" opacity="0"></circle>
+            </svg>
+            <div class="markets-sparkline-tooltip" data-market-tooltip="world" role="status" aria-live="polite" hidden>
+              <span data-market-tooltip-date="world">-- --- ----</span>
+              <span class="markets-sparkline-tooltip__value" data-market-tooltip-value="world">---.-</span>
+            </div>
+          </div>
+        </div>
+        <p class="markets-sparkline__fallback" data-market-sparkline-fallback="world">LOADING</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="markets-footer">
+    <p>
+      DATA /
+      <a href="https://data.ecb.europa.eu/" target="_blank" rel="noopener">ECB</a>
+      ·
+      <a href="https://www.suomenpankki.fi/en/statistics/interest-rates-and-exchange-rates/euribor-rates/" target="_blank" rel="noopener">BANK OF FINLAND</a>
+      ·
+      <a href="https://finance.yahoo.com/quote/URTH/" target="_blank" rel="noopener nofollow">YAHOO FINANCE</a>
+    </p>
+
+    <p class="markets-error" data-markets-error hidden>
+      Rate trend data unavailable.
+      <button type="button" data-markets-retry>Retry</button>
+    </p>
+  </footer>
+</section>
+
+<script>
+  import { initCurrentMarkets } from '../../features/current/markets';
+  initCurrentMarkets();
+</script>
+
+<style>
+  .current-rates {
+    padding: 30px 0 6px;
+  }
+
+  .rates-heading {
+    margin-bottom: 20px;
+  }
+
+  .rates-index,
+  .markets-panel-label,
+  .markets-panel-observation,
+  .markets-macro,
+  .markets-footer,
+  .markets-sparkline-tooltip {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    text-transform: uppercase;
+  }
+
+  .rates-index,
+  .markets-panel-label {
+    margin: 0;
+    font-size: 0.56rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.09em;
+  }
+
+  .rates-index {
+    color: var(--moss);
+  }
+
+  .markets-panel-label,
+  .markets-macro__label {
+    color: var(--stone);
+  }
+
+  .markets-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .markets-panel-observation {
+    margin: 0;
+    color: var(--stone-light);
+    font-size: 0.5rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: 0.055em;
+    white-space: nowrap;
+  }
+
+  .markets-macro {
+    min-width: 0;
+    max-width: 680px;
+  }
+
+  .markets-macro__row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 20px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .markets-macro__row:first-of-type {
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .markets-macro__label,
+  .markets-macro__value,
+  .markets-macro__change,
+  .markets-sparkline-context,
+  .markets-sparkline__fallback {
+    margin: 0;
+  }
+
+  .markets-macro__label {
+    padding-top: 3px;
+    font-size: 0.57rem;
+    font-weight: 600;
+    letter-spacing: 0.075em;
+  }
+
+  .markets-macro__reading {
+    display: grid;
+    justify-items: end;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .markets-macro__value {
+    color: var(--ink);
+    font-family: "Times New Roman", Times, serif;
+    font-size: 1.36rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-transform: none;
+  }
+
+  .markets-macro__change {
+    color: var(--stone-light);
+    font-size: 0.42rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.055em;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .markets-sparkline-wrap {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 5px;
+    padding-top: 3px;
+  }
+
+  .markets-sparkline-context {
+    color: var(--stone-light);
+    font-size: 0.38rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.06em;
+  }
+
+  .markets-sparkline-frame {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 7px;
+    align-items: stretch;
+  }
+
+  .markets-sparkline-axis {
+    position: relative;
+    min-height: 52px;
+    color: var(--stone-light);
+    font-size: 0.38rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-align: right;
+    text-transform: none;
+  }
+
+  .markets-sparkline-axis :global(.markets-sparkline-axis__tick) {
+    position: absolute;
+    right: 0;
+    transform: translateY(-50%);
+    white-space: nowrap;
+  }
+
+  .markets-sparkline-stage {
+    position: relative;
+    min-width: 0;
+    min-height: 52px;
+  }
+
+  .markets-sparkline {
+    display: block;
+    width: 100%;
+    height: 52px;
+    color: var(--ink);
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+
+  .markets-sparkline:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--moss) 56%, transparent);
+    outline-offset: 3px;
+  }
+
+  .markets-sparkline--pending {
+    display: none;
+  }
+
+  .markets-sparkline-grid line {
+    stroke: var(--line-soft);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .markets-sparkline path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.25;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .markets-sparkline__inspection-line {
+    stroke: var(--ink-soft);
+    stroke-width: 1;
+    stroke-dasharray: 1 3;
+    pointer-events: none;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .markets-sparkline__inspection-point {
+    fill: var(--page);
+    stroke: var(--ink);
+    stroke-width: 1.4;
+    pointer-events: none;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .markets-sparkline-tooltip {
+    position: absolute;
+    top: 0;
+    z-index: 2;
+    display: grid;
+    gap: 1px;
+    transform: translateX(-50%);
+    min-width: 82px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--stone);
+    font-size: 0.36rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.035em;
+    text-align: center;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .markets-sparkline-tooltip[hidden] {
+    display: none;
+  }
+
+  .markets-sparkline-tooltip > span:not(.markets-sparkline-tooltip__value) {
+    color: var(--stone);
+    font-weight: 500;
+  }
+
+  .markets-sparkline-tooltip__value {
+    order: -1;
+    color: var(--ink-soft);
+    text-transform: none;
+  }
+
+  .markets-sparkline__fallback {
+    display: flex;
+    min-height: 52px;
+    align-items: center;
+    padding-left: 49px;
+    color: var(--stone-light);
+    font-size: 0.4rem;
+    letter-spacing: 0.06em;
+  }
+
+  .markets-sparkline__fallback[hidden] {
+    display: none;
+  }
+
+  .markets-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    max-width: 680px;
+    margin-top: 18px;
+    color: var(--stone-light);
+    font-size: 0.49rem;
+    letter-spacing: 0.07em;
+  }
+
+  .markets-footer p {
+    margin: 0;
+  }
+
+  .markets-footer a,
+  .markets-error button {
+    color: inherit;
+  }
+
+  .markets-error button {
+    min-width: 24px;
+    min-height: 24px;
+    border: 0;
+    padding: 0 2px;
+    background: none;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (max-width: 520px) {
+    .markets-footer {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+</style>
