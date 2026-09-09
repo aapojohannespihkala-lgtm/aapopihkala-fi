@@ -12,6 +12,7 @@ const replaceMark = (target: Element, pathData: string) => {
   target.setAttribute('data-liiga-ilves-filled', 'true');
 };
 
+// Keep the heading emblem on the same filled path as the inline Liiga marks.
 const ensureHeadingMark = (root: Element, pathData: string) => {
   const heading = root.querySelector('.liiga-heading');
   if (!heading || heading.querySelector('[data-liiga-ilves-heading-mark]')) return;
