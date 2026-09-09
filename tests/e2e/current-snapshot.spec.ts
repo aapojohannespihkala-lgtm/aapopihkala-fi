@@ -210,6 +210,7 @@ test.describe('Current Snapshot', () => {
       await expect(page.locator('.snapshot-electricity .snapshot-source')).toContainText('PARASSÄHKÖ.FI');
 
       await expect(page.locator('.snapshot-markets .snapshot-kicker')).toHaveText('TODAY / SELECTED PERFORMANCE');
+      await expect(page.locator('[data-snapshot-market-median]')).toHaveText('+0.42%');
       await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.42%');
       await expect(page.locator('[data-snapshot-market="nordnet-finland"]')).toHaveText('-0.23%');
       await expect(page.locator('[data-snapshot-market="btc"]')).toHaveText('+1.84%');
