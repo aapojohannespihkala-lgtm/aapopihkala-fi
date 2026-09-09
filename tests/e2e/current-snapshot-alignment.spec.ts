@@ -122,12 +122,14 @@ test('desktop Snapshot uses one alignment grid for Markets, Rates and Liiga', as
     const rect = (selector: string) => document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
     const medianLabel = rect('.snapshot-markets__median > span');
     const world = rect('.snapshot-market-row:first-child > span');
+    const ratesMain = rect('.snapshot-panel--rates .snapshot-rates__main');
     const ratesLabel = rect('.snapshot-rates__label');
     const ratesValue = rect('.snapshot-rates__value');
     const ratesChange = rect('.snapshot-rates__change');
     const ratesSource = rect('.snapshot-panel--rates > .snapshot-panel__body > .snapshot-source');
     const liigaHeadingElement = document.querySelector<HTMLElement>('#snapshot-liiga-label');
     const liigaHeading = liigaHeadingElement?.getBoundingClientRect();
+    const liigaBody = rect('.snapshot-liiga');
     const liigaName = rect('.snapshot-liiga__name');
     const liigaValue = rect('.snapshot-liiga__position');
     const liigaComparison = rect('.snapshot-liiga__comparison');
@@ -146,6 +148,9 @@ test('desktop Snapshot uses one alignment grid for Markets, Rates and Liiga', as
       valueTopDelta: Math.abs((liigaValue?.top ?? 0) - (ratesValue?.top ?? 0)),
       supportTopDelta: Math.abs((liigaComparison?.top ?? 0) - (ratesChange?.top ?? 0)),
       sourceTopDelta: Math.abs((liigaSource?.top ?? 0) - (ratesSource?.top ?? 0)),
+      sourceOffset: (liigaSource?.top ?? 0) - (ratesSource?.top ?? 0),
+      liigaBottomOffset: (liigaBody?.bottom ?? 0) - (ratesMain?.bottom ?? 0),
+      ratesSourceGap: (ratesSource?.top ?? 0) - (ratesMain?.bottom ?? 0),
       copyLeftDelta: Math.abs((liigaName?.left ?? 0) - headingTextLeft),
       homeFits: homeTeam ? homeTeam.scrollWidth <= homeTeam.clientWidth + 1 : false,
       awayFits: awayTeam ? awayTeam.scrollWidth <= awayTeam.clientWidth + 1 : false,
@@ -158,7 +163,14 @@ test('desktop Snapshot uses one alignment grid for Markets, Rates and Liiga', as
   expect(geometry.labelTopDelta).toBeLessThanOrEqual(12);
   expect(geometry.valueTopDelta).toBeLessThanOrEqual(12);
   expect(geometry.supportTopDelta).toBeLessThanOrEqual(14);
-  expect(geometry.sourceTopDelta).toBeLessThanOrEqual(4);
+  expect(
+    geometry.sourceTopDelta,
+    `Source geometry: ${JSON.stringify({
+      sourceOffset: geometry.sourceOffset,
+      liigaBottomOffset: geometry.liigaBottomOffset,
+      ratesSourceGap: geometry.ratesSourceGap,
+    })}`,
+  ).toBeLessThanOrEqual(4);
   expect(geometry.copyLeftDelta).toBeLessThanOrEqual(4);
   expect(geometry.homeFits).toBe(true);
   expect(geometry.awayFits).toBe(true);
