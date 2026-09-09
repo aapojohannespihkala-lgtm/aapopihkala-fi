@@ -102,11 +102,11 @@ Omistajan samasta repositoriosta avaamat ei-draft pull requestit squash-mergataa
 
 Automaattinen merge käynnistää erikseen täyden `workflow_dispatch`-validoinnin `main`-haaraan. Tämä ajo suorittaa staattiset tarkistukset, tuotantobuildin, Chromium-asennuksen ja koko Playwright-regressiosarjan, joten mergeä seuraava selainregressio ei riipu tokenilla tehdyn mergen push-triggeristä. Dispatchin jälkeen workflow yrittää poistaa onnistuneesti mergetyn owner-branchin. Branchin poistovirhe ei muuta jo onnistunutta mergeä epäonnistuneeksi, ja varsinainen historia säilyy Git-historiassa sekä mergetyssä pull requestissa.
 
-Erillinen `.github/workflows/current2-live-data-smoke.yml` käynnistyy onnistuneen `main`-haaran Build checkin jälkeen. Se odottaa tarvittaessa Cloudflare-deployta lyhyillä uusintayrityksillä ja tarkistaa tuotannon `/api/current/markets?portfolio=1`-vastauksesta kaikki 19 Current2-riviä, `unavailable`-tilan sekä Nordnet- ja OP-adapterien vaaditut tuottojaksot. Live-smoke on post-merge-tarkistus eikä se hidasta tai blokkaa pull requestin mergeä.
+Erillinen `.github/workflows/current2-live-data-smoke.yml` toimii Currentin post-merge-tuotantosmokena. Se käynnistyy `main`-pushissa ja owner-PR:n automergen jälkeen eksplisiittisenä `workflow_dispatch`-ajona. Vakioitu concurrency peruu päällekkäisen vanhemman ajon. Smoke odottaa tarvittaessa Cloudflare-deployta lyhyillä uusintayrityksillä ja tarkistaa tuotannosta Current-portfolion 19 riviä ja vaaditut tuottojaksot, market macro -syötteen keskeiset Euribor- ja aikasarjasopimukset sekä Liiga-syötteen lähteen, upstreamin, 17 joukkueen rakenteen ja Ilves-yhteenvedon johdonmukaisuuden. Live-smoke on post-merge-tarkistus eikä se hidasta tai blokkaa pull requestin mergeä.
 
 Jos samaan pull requestiin tai refiin tulee uusi commit vanhan CI-ajon ollessa kesken, vanhentunut ajo perutaan automaattisesti.
 
-Jos `main`-haaran selainregressio tai Current2:n live-data-smoke epäonnistuu, epäonnistuminen tutkitaan ja todellinen regressio korjataan erillisellä jatkomuutoksella. Selainregressioiden `test-results/`-aineisto tallennetaan CI-artifaktiksi silloin, kun se on saatavilla.
+Jos `main`-haaran selainregressio tai Currentin live-data-smoke epäonnistuu, epäonnistuminen tutkitaan ja todellinen regressio korjataan erillisellä jatkomuutoksella. Selainregressioiden `test-results/`-aineisto tallennetaan CI-artifaktiksi silloin, kun se on saatavilla.
 
 ## Testaus
 
@@ -134,9 +134,9 @@ Production branch: main
 
 `wrangler.jsonc` on deployn kanoninen konfiguraatio. Astro tuottaa staattisen sivuston `dist/`-hakemistoon, jonka Wrangler julkaisee Worker Static Assets -resursseina. Worker-entry sijaitsee tiedostossa `worker/index.ts`.
 
-Tavalliset sivupyynnöt palvellaan staattisista asseteista. Palvelinlogiikka ajetaan vain erikseen määritetyille reiteille, kuten Currentin pörssisähköreitille `/api/current/electricity`. Selain hakee tämän saman originin reitin kautta, ja Worker hakee varsinaisen datan ulkoisesta lähteestä.
+Tavalliset sivupyynnöt palvellaan staattisista asseteista. Palvelinlogiikka ajetaan vain erikseen määritetyille Currentin API-reiteille, kuten pörssisähkö-, markkina-, uutis- ja Liiga-reiteille. Selain hakee nämä saman originin reitit, ja Worker hakee tai normalisoi varsinaisen datan ulkoisista lähteistä.
 
-GitHub Actionsin Build check ja Cloudflaren tuotantodeploy ovat eri vaiheita. CI tarkistaa repomuutoksen ja Cloudflare julkaisee tuotantoversion oman Workers Builds -integraationsa mukaisesti. Current2:n erillinen live-data-smoke tarkistaa julkaistun API:n vasta Build checkin jälkeen eikä korvaa Cloudflaren deploy-mekanismia.
+GitHub Actionsin Build check ja Cloudflaren tuotantodeploy ovat eri vaiheita. CI tarkistaa repomuutoksen ja Cloudflare julkaisee tuotantoversion oman Workers Builds -integraationsa mukaisesti. Currentin erillinen live-data-smoke tarkistaa julkaistut tuotanto-API:t post-merge-vaiheessa eikä korvaa Cloudflaren deploy-mekanismia.
 
 ## Projektin rakenne
 

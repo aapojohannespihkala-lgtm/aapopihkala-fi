@@ -116,9 +116,11 @@ Kun ulkoista dataa ei voida hakea selaimesta suoraan esimerkiksi CORS-rajoitukse
 worker/index.ts
 ```
 
-Cloudflare Workers Builds käyttää `wrangler.jsonc`-konfiguraatiota. Astro tuottaa edelleen staattisen `dist/`-buildin, joka julkaistaan Worker Static Assets -resursseina. Tavalliset sivupyynnöt palvellaan staattisina assetteina, ja Worker ajetaan ensin vain erikseen määritetyille palvelinreiteille, kuten `/api/current/electricity`.
+Cloudflare Workers Builds käyttää `wrangler.jsonc`-konfiguraatiota. Astro tuottaa edelleen staattisen `dist/`-buildin, joka julkaistaan Worker Static Assets -resursseina. Tavalliset sivupyynnöt palvellaan staattisina assetteina. `worker/index.ts`:n omistamat Current-API-reitit listataan `wrangler.jsonc`:n `assets.run_worker_first`-asetuksessa, jotta Worker käsittelee ne ennen staattisten assettien fallbackia. Worker-entryn reitityksen ja Worker-first-listan pitää pysyä keskenään synkassa.
 
-Rajatut ulkoisen datan handlerit voivat sijaita `functions/`-hakemistossa, mutta hakemisto ei ole Cloudflare Pages Functions -automaattireititys. Worker-entry vastaa varsinaisesta HTTP-reitityksestä. Palvelinhandlerin tehtävä on rajata ja validoida ulkoinen datayhteys, kun taas datan esitykseen ja johdettuihin laskelmiin liittyvä selainlogiikka säilyy `src/features/current/`-kokonaisuudessa.
+Rajatut ulkoisen datan handlerit voivat sijaita `functions/`-hakemistossa, mutta hakemisto ei ole Cloudflare Pages Functions -automaattireititys. Worker-entry vastaa varsinaisesta HTTP-reitityksestä. Palvelinhandlerin tehtävä on rajata ja validoida ulkoinen datayhteys sekä tarvittaessa normalisoida, yhdistää tai aggregoida lähdedata vakaaksi saman originin API-sopimukseksi. Käyttöliittymän esitystila, DOM-päivitykset ja näkymäkohtainen selainkäyttäytyminen säilyvät `src/features/current/`-kokonaisuudessa.
+
+Currentin selainpyyntöjen tulee käyttää vakaata saman originin API-osoitetta, kun palvelinreitti tarjoaa tarkoituksellisen HTTP-cache-sopimuksen. Turhaa query-parametripohjaista cachebustia ei lisätä päälle, ellei lähde tai ominaisuus sitä nimenomaisesti vaadi.
 
 ## Analytics
 

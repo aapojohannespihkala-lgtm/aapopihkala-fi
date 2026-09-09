@@ -363,9 +363,8 @@ export const initCurrentLiiga = () => {
     let hasLiveGame = false;
 
     try {
-      const response = await fetch(`/api/current/liiga?_=${Date.now()}`, {
+      const response = await fetch('/api/current/liiga', {
         headers: { Accept: 'application/json' },
-        cache: 'no-store',
       });
       if (!response.ok) throw new Error(`Liiga request failed: ${response.status}`);
 
