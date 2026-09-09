@@ -50,7 +50,7 @@ const ensureStyles = () => {
       }
     }
 
-    @media (max-width: 380px), (max-height: 720px) {
+    @media (max-width: 380px), (max-width: 640px) and (max-height: 720px) {
       body:has(.snapshot-shell) .snapshot-calendar__month-grid {
         grid-template-columns: 6px repeat(7, 5px);
       }
