@@ -13,7 +13,7 @@ import { getLiigaMarkPaths, isLiigaMarkFilled } from '../../config/liigaMarks';
               getLiigaMarkPaths(team.id).map((path, pathIndex) => (
                 <path
                   d={path}
-                  class={pathIndex === 0 ? 'liiga-team-mark__shape' : 'liiga-team-mark__shape liiga-team-mark__detail'}
+                  class={isLiigaMarkFilled(team.id) ? 'liiga-team-mark__fill' : pathIndex === 0 ? 'liiga-team-mark__shape' : 'liiga-team-mark__shape liiga-team-mark__detail'}
                 ></path>
               ))
             }
