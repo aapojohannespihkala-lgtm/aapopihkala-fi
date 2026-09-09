@@ -1,0 +1,13 @@
+.liiga-club-mark[data-liiga-club-mark="jokerit"] > svg {
+  display: none !important;
+}
+
+.liiga-club-mark[data-liiga-club-mark="jokerit"]::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 48px;
+  background: currentColor;
+  -webkit-mask: url("/icons/current-jokerit-emblem.svg") center / contain no-repeat;
+  mask: url("/icons/current-jokerit-emblem.svg") center / contain no-repeat;
+}
