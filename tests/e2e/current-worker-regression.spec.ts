@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { fetchElectricityResponse } from '../../functions/api/current/electricity';
+import { fetchElectricityMonthResponse } from '../../functions/api/current/electricity-month';
 import worker from '../../worker/index';
 
 const buildWorkerElectricityFixture = () => ({
@@ -12,19 +13,42 @@ const buildWorkerElectricityFixture = () => ({
   ],
 });
 
-test('Worker serves Current electricity API and keeps static assets as fallback', async () => {
+const buildWorkerElectricityMonthFixture = () => ({
+  daily: [],
+  monthly: [
+    {
+      month: '2026-08',
+      average: 7.84,
+      hours: 744,
+    },
+  ],
+});
+
+test('Worker serves Current electricity APIs and keeps static assets as fallback', async () => {
   const originalFetch = globalThis.fetch;
   const upstreamFixture = buildWorkerElectricityFixture();
+  const monthFixture = buildWorkerElectricityMonthFixture();
 
   globalThis.fetch = async (input, init) => {
-    expect(String(input)).toBe('https://api.porssisahko.net/v2/latest-prices.json');
+    const url = String(input);
     expect(new Headers(init?.headers).get('Accept')).toBe('application/json');
     expect(init?.signal).toBeInstanceOf(AbortSignal);
 
-    return new Response(JSON.stringify(upstreamFixture), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    if (url === 'https://api.porssisahko.net/v2/latest-prices.json') {
+      return new Response(JSON.stringify(upstreamFixture), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (url === 'https://parassahko.fi/tilastot/data.json') {
+      return new Response(JSON.stringify(monthFixture), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    throw new Error(`Unexpected upstream URL: ${url}`);
   };
 
   const env = {
@@ -43,6 +67,19 @@ test('Worker serves Current electricity API and keeps static assets as fallback'
     expect(apiResponse.status).toBe(200);
     expect(await apiResponse.json()).toEqual(upstreamFixture);
 
+    const monthResponse = await worker.fetch(
+      new Request('https://aapopihkala.fi/api/current/electricity-month'),
+      env
+    );
+
+    expect(monthResponse.status).toBe(200);
+    expect(await monthResponse.json()).toMatchObject({
+      average: 7.84,
+      kind: 'last-complete-month',
+      month: '2026-08',
+      hours: 744,
+    });
+
     const staticResponse = await worker.fetch(
       new Request('https://aapopihkala.fi/current/'),
       env
@@ -51,13 +88,15 @@ test('Worker serves Current electricity API and keeps static assets as fallback'
     expect(staticResponse.status).toBe(200);
     expect(await staticResponse.text()).toBe('asset:/current/');
 
-    const methodResponse = await worker.fetch(
-      new Request('https://aapopihkala.fi/api/current/electricity', { method: 'POST' }),
-      env
-    );
+    for (const path of ['/api/current/electricity', '/api/current/electricity-month']) {
+      const methodResponse = await worker.fetch(
+        new Request(`https://aapopihkala.fi${path}`, { method: 'POST' }),
+        env
+      );
 
-    expect(methodResponse.status).toBe(405);
-    expect(methodResponse.headers.get('allow')).toBe('GET');
+      expect(methodResponse.status).toBe(405);
+      expect(methodResponse.headers.get('allow')).toBe('GET');
+    }
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -76,5 +115,21 @@ test('Current electricity returns a bounded upstream failure after abort', async
 
   expect(response.status).toBe(502);
   expect(await response.json()).toEqual({ error: 'upstream_unavailable' });
+  expect(Date.now() - startedAt).toBeLessThan(1_000);
+});
+
+test('Current electricity month returns a bounded upstream failure after abort', async () => {
+  const abortingFetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
+    new Promise<Response>((_resolve, reject) => {
+      const signal = init?.signal;
+      expect(signal).toBeInstanceOf(AbortSignal);
+      signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+    })) as typeof fetch;
+
+  const startedAt = Date.now();
+  const response = await fetchElectricityMonthResponse(abortingFetch, 5);
+
+  expect(response.status).toBe(502);
+  expect(await response.json()).toEqual({ error: 'statistics_unavailable' });
   expect(Date.now() - startedAt).toBeLessThan(1_000);
 });
