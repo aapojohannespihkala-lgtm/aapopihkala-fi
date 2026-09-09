@@ -66,6 +66,10 @@ const skipToContentLabel =
         </script>
       )
     }
+    <script>
+      import { installCurrentExternalFetchGuard } from '../features/current/externalFetchGuard';
+      installCurrentExternalFetchGuard();
+    </script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
