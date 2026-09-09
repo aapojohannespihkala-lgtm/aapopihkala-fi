@@ -215,7 +215,7 @@ test.describe('Current Snapshot', () => {
       await expect(page.locator('[data-snapshot-market="nordnet-finland"]')).toHaveText('-0.23%');
       await expect(page.locator('[data-snapshot-market="btc"]')).toHaveText('+1.84%');
 
-      await expect(page.locator('[data-snapshot-euribor]')).toHaveText('2.679');
+      await expect(page.locator('[data-snapshot-euribor]')).toHaveText('2.68');
       await expect(page.locator('[data-snapshot-euribor-change]')).toHaveText('+0.652 PP');
       await expect(page.locator('.snapshot-rates__chart')).toHaveCount(0);
 
