@@ -10,7 +10,8 @@
       "/api/current/electricity-month",
       "/api/current/markets",
       "/api/current/news",
-      "/api/current/liiga"
+      "/api/current/liiga",
+      "/api/current/liiga-schedule"
     ]
   },
   "observability": {

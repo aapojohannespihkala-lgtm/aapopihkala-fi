@@ -10,6 +10,7 @@ const workerFirstPaths = [
   '/api/current/markets',
   '/api/current/news',
   '/api/current/liiga',
+  '/api/current/liiga-schedule',
 ];
 
 const buildWorkerElectricityFixture = () => ({
@@ -95,6 +96,16 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
       kind: 'last-complete-month',
       month: '2026-08',
       hours: 744,
+    });
+
+    const scheduleResponse = await worker.fetch(
+      new Request('https://aapopihkala.fi/api/current/liiga-schedule'),
+      env
+    );
+
+    expect(scheduleResponse.status).toBe(502);
+    expect(await scheduleResponse.json()).toMatchObject({
+      error: 'Liiga schedule request failed',
     });
 
     const staticResponse = await worker.fetch(
