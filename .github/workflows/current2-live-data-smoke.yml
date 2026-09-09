@@ -1,4 +1,4 @@
-name: Current2 live data smoke
+name: Current live data smoke
 
 on:
   push:
@@ -7,14 +7,14 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: current2-live-data-smoke
+  group: current-live-data-smoke
   cancel-in-progress: true
 
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify live Current2 portfolio data
+      - name: Verify live Current portfolio data
         shell: bash
         run: |
           set -euo pipefail
@@ -22,7 +22,7 @@ jobs:
           url="https://aapopihkala.fi/api/current/markets?portfolio=1&live_smoke=${GITHUB_RUN_ID}"
 
           for attempt in $(seq 1 18); do
-            echo "Current2 live data attempt ${attempt}/18"
+            echo "Current portfolio attempt ${attempt}/18"
 
             if curl \
               --fail \
@@ -87,11 +87,11 @@ jobs:
           requirePeriods('op-forest-owner-b', opForestPeriods);
 
           if (failures.length > 0) {
-            console.error(`Current2 live data incomplete: ${failures.join(' | ')}`);
+            console.error(`Current portfolio data incomplete: ${failures.join(' | ')}`);
             process.exit(1);
           }
 
-          console.log(`Current2 live portfolio verified: ${items.length}/19 rows, no unavailable sources.`);
+          console.log(`Current live portfolio verified: ${items.length}/19 rows, no unavailable sources.`);
           NODE
               then
                 exit 0
@@ -103,7 +103,7 @@ jobs:
             fi
           done
 
-          echo "Current2 live data did not reach the required coverage." >&2
+          echo "Current portfolio data did not reach the required coverage." >&2
           if [[ -f current2-live.json ]]; then
             cat current2-live.json >&2
           fi
@@ -191,6 +191,12 @@ jobs:
           const body = JSON.parse(fs.readFileSync('current-liiga-live.json', 'utf8'));
           const standings = Array.isArray(body.standings) ? body.standings : [];
           const failures = [];
+          const ids = standings.map((team) => team?.id).filter((id) => typeof id === 'string');
+          const ranks = standings.map((team) => team?.rank).filter((rank) => Number.isFinite(rank));
+          const ilves = standings.find((team) => team?.id === 'ilves');
+          const ilvesStanding = body.ilvesStanding;
+          const ilvesGames = [body.lastIlvesGame, body.nextIlvesGame, body.liveIlvesGame]
+            .filter(Boolean);
 
           if (!Number.isFinite(body.season)) failures.push(`invalid season: ${String(body.season)}`);
           if (body.source !== 'Liiga') failures.push(`invalid source: ${String(body.source)}`);
@@ -198,14 +204,55 @@ jobs:
             failures.push(`unexpected upstream: ${String(body.upstream)}`);
           }
           if (standings.length !== 17) failures.push(`expected 17 standings rows, got ${standings.length}`);
-          if (!standings.some((team) => team?.id === 'ilves')) failures.push('Ilves row missing');
+          if (new Set(ids).size !== 17) failures.push(`expected 17 unique team ids, got ${new Set(ids).size}`);
+          if (new Set(ranks).size !== 17 || ranks.some((rank) => rank < 1 || rank > 17)) {
+            failures.push('standings ranks are missing, duplicated or out of range');
+          }
+          if (standings.some((team) =>
+            !team ||
+            !Number.isFinite(team.games) || team.games < 0 ||
+            !Number.isFinite(team.wins) || team.wins < 0 ||
+            !Number.isFinite(team.ties) || team.ties < 0 ||
+            !Number.isFinite(team.losses) || team.losses < 0 ||
+            !Number.isFinite(team.points) || team.points < 0 ||
+            !Number.isFinite(team.goalDifference)
+          )) {
+            failures.push('standings contain invalid numeric values');
+          }
+          if (!ilves) {
+            failures.push('Ilves row missing');
+          } else if (
+            !ilvesStanding ||
+            ilvesStanding.totalTeams !== 17 ||
+            ilvesStanding.rank !== ilves.rank ||
+            ilvesStanding.games !== ilves.games ||
+            ilvesStanding.points !== ilves.points
+          ) {
+            failures.push('Ilves standing summary does not match standings row');
+          }
+
+          for (const game of ilvesGames) {
+            if (game.homeTeamId !== 'ilves' && game.awayTeamId !== 'ilves') {
+              failures.push(`Ilves game summary does not contain Ilves: ${String(game.id)}`);
+            }
+            if (!game.start || !Number.isFinite(Date.parse(game.start))) {
+              failures.push(`Ilves game summary has invalid start: ${String(game.id)}`);
+            }
+          }
+
+          if (body.lastIlvesGame && (!ilves || ilves.games < 1)) {
+            failures.push('completed Ilves game exists but standings still show zero games');
+          }
+          if (standings.every((team) => team?.games === 0) && ilvesGames.length === 0) {
+            failures.push('standings and Ilves game summaries are both empty');
+          }
 
           if (failures.length > 0) {
             console.error(`Current Liiga feed incomplete: ${failures.join(' | ')}`);
             process.exit(1);
           }
 
-          console.log(`Current Liiga verified: season ${body.season}, ${standings.length} rows via ${body.upstream}.`);
+          console.log(`Current Liiga verified: season ${body.season}, ${standings.length} valid rows via ${body.upstream}.`);
           NODE
               then
                 exit 0

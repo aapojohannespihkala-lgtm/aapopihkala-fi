@@ -145,7 +145,7 @@ test.describe('Current Snapshot Liiga summary', () => {
     await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('ILV');
     await expect(liiga.locator('[data-snapshot-liiga-away-team]')).toHaveText('TPS');
     await expect(liiga.locator('[data-snapshot-liiga-score]')).toHaveText('VS');
-    await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('FRI 11 SEP / 18:30');
+    await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('FRI 11 SEPT / 18:30');
     await expect(liiga.locator('[data-snapshot-liiga-last]')).toHaveText('LAST / 3-2 W');
     await expect(liiga.locator('a[href="/current/liiga/"]')).toHaveCount(1);
     await expect(liiga.locator('.snapshot-liiga__mark')).toHaveCount(2);

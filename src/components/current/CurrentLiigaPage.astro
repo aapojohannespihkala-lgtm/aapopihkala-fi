@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { site } from '../../config/site';
+import '../../styles/current-liiga-schedule.css';
 import NightModeToggle from '../NightModeToggle.astro';
 import CurrentLiiga from './CurrentLiiga.astro';
 
@@ -10,7 +11,7 @@ const canonicalUrl = `${site.url}/current/liiga/`;
 <BaseLayout
   lang="en"
   title="Liiga | Current | Aapo Pihkala"
-  description="Liiga standings with Ilves results, next game and live score status."
+  description="Liiga live and upcoming games, standings, and Ilves status."
   canonicalUrl={canonicalUrl}
   finnishUrl={canonicalUrl}
   englishUrl={canonicalUrl}
@@ -48,7 +49,10 @@ const canonicalUrl = `${site.url}/current/liiga/`;
   <Fragment slot="afterAnalytics">
     <script>
       import { initCurrentClock } from '../../features/current/clock';
+      import { initCurrentLiigaSchedule } from '../../features/current/liigaSchedule';
+
       initCurrentClock();
+      initCurrentLiigaSchedule();
     </script>
 
     <NightModeToggle lang="en" />

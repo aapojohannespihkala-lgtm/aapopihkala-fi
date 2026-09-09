@@ -8,7 +8,9 @@
     "run_worker_first": [
       "/api/current/electricity",
       "/api/current/electricity-month",
-      "/api/current/news"
+      "/api/current/markets",
+      "/api/current/news",
+      "/api/current/liiga"
     ]
   },
   "observability": {
