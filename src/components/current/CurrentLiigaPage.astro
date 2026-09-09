@@ -139,6 +139,20 @@ const canonicalUrl = `${site.url}/current/liiga/`;
     mask: url('/icons/current-ilves-emblem.svg') center / contain no-repeat;
   }
 
+  :global(.current-liiga [data-liiga-club-mark="ilves"] svg),
+  :global(.current-liiga [data-liiga-row="ilves"] .liiga-team-mark svg),
+  :global(.current-liiga .liiga-match-team.is-ilves .liiga-match-team__mark) {
+    background-color: currentColor;
+    -webkit-mask: url('/icons/current-ilves-emblem.svg') center / contain no-repeat;
+    mask: url('/icons/current-ilves-emblem.svg') center / contain no-repeat;
+  }
+
+  :global(.current-liiga [data-liiga-club-mark="ilves"] svg path),
+  :global(.current-liiga [data-liiga-row="ilves"] .liiga-team-mark svg path),
+  :global(.current-liiga .liiga-match-team.is-ilves .liiga-match-team__mark use) {
+    opacity: 0;
+  }
+
   @media (max-width: 640px) {
     .current-liiga-shell {
       padding: 22px 24px 96px;
