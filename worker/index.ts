@@ -1,4 +1,5 @@
 import { onRequestGet as getElectricityPriceResponse } from '../functions/api/current/electricity';
+import { onRequestGet as getElectricityMonthResponse } from '../functions/api/current/electricity-month';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
@@ -13,6 +14,7 @@ type WorkerEnv = {
 };
 
 const ELECTRICITY_PATH = '/api/current/electricity';
+const ELECTRICITY_MONTH_PATH = '/api/current/electricity-month';
 const MARKETS_PATH = '/api/current/markets';
 const NEWS_PATH = '/api/current/news';
 const LIIGA_PATH = '/api/current/liiga';
@@ -30,6 +32,11 @@ const worker = {
     if (url.pathname === ELECTRICITY_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
       return getElectricityPriceResponse();
+    }
+
+    if (url.pathname === ELECTRICITY_MONTH_PATH) {
+      if (request.method !== 'GET') return methodNotAllowed();
+      return getElectricityMonthResponse();
     }
 
     if (url.pathname === MARKETS_PATH) {

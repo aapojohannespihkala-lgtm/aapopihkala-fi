@@ -17,6 +17,7 @@ type StatisticsResponse = {
 
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 const STATISTICS_URL = 'https://parassahko.fi/tilastot/data.json';
+const STATISTICS_TIMEOUT_MS = 8_000;
 
 const jsonResponse = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), {
@@ -72,10 +73,17 @@ const findLatestCompleteMonth = (monthly: unknown[]) => {
   return valid.at(-1) ?? null;
 };
 
-export const onRequestGet = async () => {
+export const fetchElectricityMonthResponse = async (
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs = STATISTICS_TIMEOUT_MS
+) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    const upstream = await fetch(STATISTICS_URL, {
+    const upstream = await fetchImpl(STATISTICS_URL, {
       headers: { Accept: 'application/json' },
+      signal: controller.signal,
     });
 
     if (!upstream.ok) {
@@ -149,5 +157,9 @@ export const onRequestGet = async () => {
     }, 200);
   } catch {
     return jsonResponse({ error: 'statistics_unavailable' }, 502);
+  } finally {
+    clearTimeout(timeout);
   }
 };
+
+export const onRequestGet = () => fetchElectricityMonthResponse();
