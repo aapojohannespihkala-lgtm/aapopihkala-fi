@@ -1,4 +1,4 @@
-/* Custom filled club glyph overrides for the Liiga clubs grid. */
+/* Custom filled club glyph overrides for the Liiga clubs grid: Jokerit, Jukurit and TPS. */
 .liiga-club-mark[data-liiga-club-mark="jokerit"] > svg {
   display: none !important;
 }
@@ -25,4 +25,18 @@
   background: currentColor;
   -webkit-mask: url("/icons/current-jukurit-emblem.svg") center / contain no-repeat;
   mask: url("/icons/current-jukurit-emblem.svg") center / contain no-repeat;
+}
+
+.liiga-club-mark[data-liiga-club-mark="tps"] > svg {
+  display: none !important;
+}
+
+.liiga-club-mark[data-liiga-club-mark="tps"]::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 48px;
+  background: currentColor;
+  -webkit-mask: url("/icons/current-tps-emblem.svg") center / contain no-repeat;
+  mask: url("/icons/current-tps-emblem.svg") center / contain no-repeat;
 }
