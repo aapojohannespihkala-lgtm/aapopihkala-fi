@@ -239,6 +239,20 @@ const canonicalUrl = `${site.url}/current/liiga/`;
     opacity: 0;
   }
 
+  :global(.current-liiga [data-liiga-club-mark="kookoo"] svg),
+  :global(.current-liiga [data-liiga-row="kookoo"] .liiga-team-mark svg),
+  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-kookoo"])) {
+    background-color: currentColor;
+    -webkit-mask: url('/icons/current-kookoo-emblem.svg') center / contain no-repeat;
+    mask: url('/icons/current-kookoo-emblem.svg') center / contain no-repeat;
+  }
+
+  :global(.current-liiga [data-liiga-club-mark="kookoo"] svg path),
+  :global(.current-liiga [data-liiga-row="kookoo"] .liiga-team-mark svg path),
+  :global(.current-liiga .liiga-match-team__mark:has(use[href="#liiga-match-mark-kookoo"]) use) {
+    opacity: 0;
+  }
+
   @media (max-width: 640px) {
     .current-liiga-shell {
       padding: 22px 24px 96px;
