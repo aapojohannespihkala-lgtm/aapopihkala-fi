@@ -76,7 +76,7 @@ const positionNowMarker = (marker: HTMLElement) => {
   marker.style.left = `${clamped}%`;
 };
 
-// Capture the base snapshot values before replacing the first support statistic with month average.
+// Capture the base snapshot values before replacing the first support statistic with the month average.
 const captureBaseElectricity = (root: HTMLElement) => {
   const hero = root.querySelector<HTMLElement>('[data-snapshot-electricity-now]');
   const heroLabel = root.querySelector<HTMLElement>('.snapshot-electricity__value .snapshot-micro');
