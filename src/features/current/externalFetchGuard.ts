@@ -1,4 +1,5 @@
 const OPEN_METEO_ORIGIN = 'https://api.open-meteo.com';
+const OPEN_METEO_FORECAST_PATH = '/v1/forecast';
 const FALLBACK_BASE_URL = 'https://aapopihkala.fi/';
 
 export const CURRENT_WEATHER_TIMEOUT_MS = 8_000;
@@ -24,7 +25,11 @@ export const fetchCurrentExternal = async (
     return fetchImpl(input, init);
   }
 
-  if (url.origin !== OPEN_METEO_ORIGIN || init?.signal) {
+  const isCurrentWeatherRequest =
+    url.origin === OPEN_METEO_ORIGIN &&
+    url.pathname === OPEN_METEO_FORECAST_PATH;
+
+  if (!isCurrentWeatherRequest || init?.signal) {
     return fetchImpl(input, init);
   }
 
