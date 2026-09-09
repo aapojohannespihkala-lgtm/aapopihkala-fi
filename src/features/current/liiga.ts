@@ -142,6 +142,61 @@ const renderMatchTeams = (root: HTMLElement, scope: MatchScope, game: LiigaGame 
   awayWrap.classList.toggle('is-ilves', game?.awayTeamId === 'ilves');
 };
 
+const prepareStandingsColumns = (root: HTMLElement) => {
+  const table = root.querySelector<HTMLElement>('.liiga-table');
+  if (!table || table.dataset.liigaColumnsPrepared === 'true') return;
+  table.dataset.liigaColumnsPrepared = 'true';
+
+  const header = table.querySelector<HTMLElement>('.liiga-row--header');
+  if (header) {
+    const cells = Array.from(header.querySelectorAll<HTMLElement>(':scope > span'));
+    cells.find((cell) => cell.textContent?.trim() === 'LP')?.remove();
+    const points = Array.from(header.querySelectorAll<HTMLElement>(':scope > span'))
+      .find((cell) => cell.textContent?.trim() === 'P');
+    if (points) header.append(points);
+  }
+
+  table.querySelectorAll<HTMLElement>('[data-liiga-row]').forEach((row) => {
+    row.querySelector<HTMLElement>('[data-liiga-bonus]')?.remove();
+    const points = row.querySelector<HTMLElement>('[data-liiga-points]');
+    if (points) row.append(points);
+  });
+
+  const mobile = window.matchMedia('(max-width: 760px)');
+  const applyLayout = () => {
+    table.querySelectorAll<HTMLElement>('.liiga-row').forEach((row) => {
+      row.style.gridTemplateColumns = mobile.matches
+        ? '26px minmax(110px, 1fr) 36px 38px 42px'
+        : '30px minmax(170px, 1fr) repeat(6, minmax(42px, 0.34fr))';
+
+      let difference = row.querySelector<HTMLElement>('[data-liiga-difference]');
+      let points = row.querySelector<HTMLElement>('[data-liiga-points]');
+
+      if (row.classList.contains('liiga-row--header')) {
+        const cells = Array.from(row.querySelectorAll<HTMLElement>(':scope > span'));
+        difference = cells.find((cell) => cell.textContent?.trim() === 'ME') ?? null;
+        points = cells.find((cell) => cell.textContent?.trim() === 'P') ?? null;
+      }
+
+      if (mobile.matches) {
+        difference?.style.setProperty('grid-column', '4');
+        points?.style.setProperty('grid-column', '5');
+      } else {
+        difference?.style.removeProperty('grid-column');
+        points?.style.removeProperty('grid-column');
+      }
+    });
+  };
+
+  applyLayout();
+  mobile.addEventListener('change', applyLayout);
+  window.addEventListener(
+    'pagehide',
+    () => mobile.removeEventListener('change', applyLayout),
+    { once: true }
+  );
+};
+
 const renderStandings = (root: HTMLElement, standings: LiigaStanding[]) => {
   const table = root.querySelector<HTMLElement>('[data-liiga-standings]');
   if (!table) return;
@@ -156,7 +211,6 @@ const renderStandings = (root: HTMLElement, standings: LiigaStanding[]) => {
     row.querySelector<HTMLElement>('[data-liiga-wins]')!.textContent = String(entry.wins);
     row.querySelector<HTMLElement>('[data-liiga-ties]')!.textContent = String(entry.ties);
     row.querySelector<HTMLElement>('[data-liiga-losses]')!.textContent = String(entry.losses);
-    row.querySelector<HTMLElement>('[data-liiga-bonus]')!.textContent = String(entry.bonusPoints);
     row.querySelector<HTMLElement>('[data-liiga-points]')!.textContent = String(entry.points);
     row.querySelector<HTMLElement>('[data-liiga-difference]')!.textContent =
       entry.goalDifference > 0 ? `+${entry.goalDifference}` : String(entry.goalDifference);
@@ -283,6 +337,7 @@ export const initCurrentLiiga = () => {
   const root = document.querySelector<HTMLElement>('[data-current-liiga]');
   if (!root || root.dataset.liigaInitialized === 'true') return;
   root.dataset.liigaInitialized = 'true';
+  prepareStandingsColumns(root);
 
   const errorTarget = root.querySelector<HTMLElement>('[data-liiga-error]');
   const retry = root.querySelector<HTMLButtonElement>('[data-liiga-retry]');
