@@ -76,8 +76,6 @@ Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivise
 ## 9. SEO- ja reittihygienia
 
 - Pidä sitemap ja sivukohtaiset `robots`-metat keskenään johdonmukaisina.
-- Sulje sitemapista tarkoituksella `noindex`-reitit, kuten `/current/**` ja `/lab/`, ellei niiden indeksointipäätös myöhemmin muutu.
-- Lisää regressiotesti, joka varmistaa sitemap/noindex-konsistenssin keskeisille julkisille ja ei-indeksoitaville reiteille.
 - Tee samalla kevyt sisäisten linkkien ja reittien tarkistus, jotta vanhentuneita tai rikkinäisiä polkuja ei jää sivustolle.
 
 ## 10. Currentin ulkoisten datalähteiden toimintavarmuus
