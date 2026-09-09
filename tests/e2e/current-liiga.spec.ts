@@ -36,7 +36,7 @@ const standings = teamIds.map((id, index) => ({
 
 const fixture = {
   season: 2027,
-  generatedAt: '2026-09-08T19:16:00Z',
+  generatedAt: '2026-09-09T10:30:00Z',
   source: 'Liiga',
   standings,
   ilvesStanding: {
@@ -53,19 +53,33 @@ const fixture = {
     homeGoals: 0,
     awayGoals: 4,
     gameTime: 3600,
+    spectators: 3532,
     ilvesResult: 'W',
     finish: 'REGULATION',
   },
   nextIlvesGame: {
-    id: 2701318,
-    start: '2026-09-11T15:30:00Z',
-    homeTeamId: 'ilves',
-    homeTeam: 'Ilves',
-    awayTeamId: 'karpat',
-    awayTeam: 'Kärpät',
+    id: 2701370,
+    start: '2026-09-16T15:30:00Z',
+    homeTeamId: 'karpat',
+    homeTeam: 'Kärpät',
+    awayTeamId: 'ilves',
+    awayTeam: 'Ilves',
     homeGoals: null,
     awayGoals: null,
     gameTime: null,
+    spectators: null,
+  },
+  nextHomeIlvesGame: {
+    id: 2701406,
+    start: '2026-09-25T15:30:00Z',
+    homeTeamId: 'ilves',
+    homeTeam: 'Ilves',
+    awayTeamId: 'kookoo',
+    awayTeam: 'KooKoo',
+    homeGoals: null,
+    awayGoals: null,
+    gameTime: null,
+    spectators: null,
   },
   liveIlvesGame: null,
 };
@@ -74,7 +88,7 @@ for (const viewport of [
   { name: 'mobile', width: 390, height: 844 },
   { name: 'desktop', width: 1280, height: 900 },
 ]) {
-  test(`renders Ilves status and Liiga standings on ${viewport.name}`, async ({ page }) => {
+  test(`renders Ilves match boards and Liiga standings on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
 
     await page.route('**/api/current/liiga*', async (route) => {
@@ -89,11 +103,27 @@ for (const viewport of [
 
     await expect(page.getByRole('heading', { name: 'Liiga', level: 1 })).toBeVisible();
     await expect(page.locator('[data-liiga-season]')).toHaveText('2026-27');
+
     await expect(page.locator('[data-liiga-last-matchup]')).toHaveText('HPK / Ilves');
-    await expect(page.locator('[data-liiga-last-score]')).toHaveText('0 : 4');
+    await expect(page.locator('[data-liiga-last-home-team]')).toHaveText('HPK');
+    await expect(page.locator('[data-liiga-last-away-team]')).toHaveText('Ilves');
+    await expect(page.locator('[data-liiga-last-home-mark]')).toHaveAttribute('href', '#liiga-match-mark-hpk');
+    await expect(page.locator('[data-liiga-last-away-mark]')).toHaveAttribute('href', '#liiga-match-mark-ilves');
+    await expect(page.locator('[data-liiga-last-score]')).toHaveText('0 - 4');
+    await expect(page.locator('[data-liiga-last-audience]')).toHaveText('ATTENDANCE 3532');
     await expect(page.locator('[data-liiga-last-result]')).toHaveText('WIN / REG');
-    await expect(page.locator('[data-liiga-next-matchup]')).toHaveText('Ilves / Kärpät');
-    await expect(page.locator('[data-liiga-next-date]')).toHaveText('FRI 11 SEP / 18:30');
+
+    await expect(page.locator('[data-liiga-next-matchup]')).toHaveText('Kärpät / Ilves');
+    await expect(page.locator('[data-liiga-next-home-team]')).toHaveText('Kärpät');
+    await expect(page.locator('[data-liiga-next-away-team]')).toHaveText('Ilves');
+    await expect(page.locator('[data-liiga-next-home-mark]')).toHaveAttribute('href', '#liiga-match-mark-karpat');
+    await expect(page.locator('[data-liiga-next-away-mark]')).toHaveAttribute('href', '#liiga-match-mark-ilves');
+    await expect(page.locator('[data-liiga-next-date]')).toHaveText('WED 16 SEP / 18:30');
+    await expect(page.locator('[data-liiga-next-venue]')).toHaveText('AWAY / NEXT');
+    await expect(page.locator('[data-liiga-next-home]')).toBeVisible();
+    await expect(page.locator('[data-liiga-next-home-opponent]')).toHaveText('KooKoo');
+    await expect(page.locator('[data-liiga-next-home-date]')).toHaveText('FRI 25 SEP / 18:30');
+
     await expect(page.locator('[data-liiga-position]')).toHaveText('3 / 17');
     await expect(page.locator('[data-liiga-position-meta]')).toHaveText('6 P / 3 GP');
     await expect(page.locator('[data-liiga-live-card]')).toBeHidden();
@@ -119,7 +149,7 @@ for (const viewport of [
   });
 }
 
-test('promotes a live Ilves score and game clock', async ({ page }) => {
+test('promotes a live Ilves score with team glyphs and game clock', async ({ page }) => {
   const liveFixture = {
     ...fixture,
     liveIlvesGame: {
@@ -132,6 +162,7 @@ test('promotes a live Ilves score and game clock', async ({ page }) => {
       homeGoals: 2,
       awayGoals: 1,
       gameTime: 2120,
+      spectators: null,
     },
   };
 
@@ -147,7 +178,11 @@ test('promotes a live Ilves score and game clock', async ({ page }) => {
 
   await expect(page.locator('[data-liiga-live-card]')).toBeVisible();
   await expect(page.locator('[data-liiga-live-matchup]')).toHaveText('Ilves / Tappara');
-  await expect(page.locator('[data-liiga-live-score]')).toHaveText('2 : 1');
+  await expect(page.locator('[data-liiga-live-home-team]')).toHaveText('Ilves');
+  await expect(page.locator('[data-liiga-live-away-team]')).toHaveText('Tappara');
+  await expect(page.locator('[data-liiga-live-home-mark]')).toHaveAttribute('href', '#liiga-match-mark-ilves');
+  await expect(page.locator('[data-liiga-live-away-mark]')).toHaveAttribute('href', '#liiga-match-mark-tappara');
+  await expect(page.locator('[data-liiga-live-score]')).toHaveText('2 - 1');
   await expect(page.locator('[data-liiga-live-clock]')).toHaveText('35:20');
   await expect(page.locator('[data-liiga-status]')).toHaveText('LIVE / ILVES');
 });
