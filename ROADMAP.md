@@ -84,8 +84,6 @@ Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivise
 
 Currentin Electricity-, Markets- ja News-näkymät riippuvat useista ulkoisista lähteistä. Marketsin viimeisimmät korjaukset ovat jo lisänneet rajattuja timeout-, retry- ja recovery-polkuja, mutta sama toimintavarmuustaso ei vielä kata kaikkia Current-lähteitä.
 
-- Lisää Electricity-Workerin upstream-hakuun eksplisiittinen timeout ja hallittu virheenkäsittely, jotta yksi jumittava pörssisähkölähde ei voi pitää Worker-pyyntöä avoinna rajatta.
-- Lisää Newsin jokaiselle RSS-haulle lähdekohtainen timeout. `Promise.allSettled` ei yksin riitä, jos yksittäinen `fetch` ei koskaan valmistu.
 - Pidä retryt rajattuina ja lähdekohtaisina. Älä kasvata yhden API-pyynnön kokonaislatenssia hallitsemattomalla fallback-ketjulla.
 - Arvioi, missä Current-datassa stale-while-revalidate- tai viimeksi onnistuneen datan fallback parantaa käytettävyyttä ilman harhaanjohtavaa vanhaa tietoa. Jos viimeksi onnistunutta dataa käytetään, sen ikä pitää pystyä esittämään tai tulkitsemaan yksiselitteisesti.
 - Suojaa HTML- ja tekstimuotoa parsivat lähteet, erityisesti Bank of Finland- ja OP-adapterit, source-contract- tai fixture-regressiotesteillä, jotta upstream-rakenteen muutos havaitaan nopeasti.
