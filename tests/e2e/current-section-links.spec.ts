@@ -14,6 +14,10 @@ test('Current section headings link to their standalone pages', async ({ page })
     'href',
     '/current/markets/'
   );
+  await expect(page.locator('.markets-macro .markets-panel-label a.current-section-heading-link')).toHaveAttribute(
+    'href',
+    '/current/rates/'
+  );
   await expect(page.locator('.electricity-index a.current-section-heading-link')).toHaveAttribute(
     'href',
     '/current/electricity/'
@@ -39,5 +43,15 @@ test('Weather has a standalone Current detail page', async ({ page }) => {
   await expect(page.locator('h1')).toHaveText('Weather');
   await expect(page.locator('.current-detail-status__link')).toHaveAttribute('href', '/current/');
   await expect(page.locator('[data-current-weather]')).toHaveCount(1);
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
+});
+
+test('Rates has a standalone Current detail page', async ({ page }) => {
+  await page.goto('/current/rates/', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.locator('h1')).toHaveText('Rates');
+  await expect(page.locator('.current-detail-status__link')).toHaveAttribute('href', '/current/');
+  await expect(page.locator('[data-current-rates]')).toHaveCount(1);
+  await expect(page.locator('[data-market-value="euribor-3m"]')).toHaveCount(1);
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
 });
