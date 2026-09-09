@@ -1,5 +1,5 @@
 .liiga-club-mark[data-liiga-club-mark="jokerit"] > svg {
-  display: none;
+  display: none !important;
 }
 
 .liiga-club-mark[data-liiga-club-mark="jokerit"]::before {
