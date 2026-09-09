@@ -19,9 +19,13 @@ const weatherFixture = (() => {
   weatherCode[18] = 61;
   precipitationProbability[18] = 65;
 
-  temperature[21] = 13;
-  weatherCode[21] = 2;
-  precipitationProbability[21] = 20;
+  temperature[20] = 13;
+  weatherCode[20] = 2;
+  precipitationProbability[20] = 20;
+
+  temperature[22] = 12;
+  weatherCode[22] = 0;
+  precipitationProbability[22] = 5;
 
   return {
     current: {
@@ -169,13 +173,15 @@ test.describe('Current Snapshot', () => {
       await expect(page.locator('[data-current-snapshot]')).toBeVisible();
       await expect(page.locator('[data-snapshot-status]')).toHaveText('LIVE DATA / OK');
       await expect(page.locator('[data-analytics-settings]')).toBeVisible();
+      await expect(page.locator('#current-snapshot-title')).toHaveText('15:08:00');
 
       await expect(page.locator('[data-snapshot-weather-temperature]')).toHaveText('15.4');
       await expect(page.locator('[data-snapshot-weather-condition]')).toHaveText('Overcast');
       await expect(page.locator('[data-snapshot-weather-low]')).toHaveText('12');
       await expect(page.locator('[data-snapshot-weather-high]')).toHaveText('18');
       await expect(page.locator('[data-snapshot-weather-forecast]')).toBeVisible();
-      await expect(page.locator('.snapshot-weather__forecast-label')).toHaveText('NEXT');
+      await expect(page.locator('.snapshot-weather__forecast-label')).toHaveCount(0);
+      await expect(page.locator('[data-snapshot-weather-forecast-slot]')).toHaveCount(4);
       await expect(page.locator('[data-snapshot-weather-forecast-time="0"]')).toHaveText('16:00');
       await expect(page.locator('[data-snapshot-weather-forecast-temperature="0"]')).toHaveText('15°');
       await expect(page.locator('[data-snapshot-weather-forecast-condition="0"]')).toHaveText('Overcast');
@@ -184,9 +190,12 @@ test.describe('Current Snapshot', () => {
       await expect(page.locator('[data-snapshot-weather-forecast-temperature="1"]')).toHaveText('14°');
       await expect(page.locator('[data-snapshot-weather-forecast-condition="1"]')).toHaveText('Rain');
       await expect(page.locator('[data-snapshot-weather-forecast-icon="1"] path')).toHaveCount(2);
-      await expect(page.locator('[data-snapshot-weather-forecast-time="2"]')).toHaveText('21:00');
+      await expect(page.locator('[data-snapshot-weather-forecast-time="2"]')).toHaveText('20:00');
       await expect(page.locator('[data-snapshot-weather-forecast-temperature="2"]')).toHaveText('13°');
       await expect(page.locator('[data-snapshot-weather-forecast-condition="2"]')).toHaveText('Partly cloudy');
+      await expect(page.locator('[data-snapshot-weather-forecast-time="3"]')).toHaveText('22:00');
+      await expect(page.locator('[data-snapshot-weather-forecast-temperature="3"]')).toHaveText('12°');
+      await expect(page.locator('[data-snapshot-weather-forecast-condition="3"]')).toHaveText('Clear');
 
       await expect(page.locator('[data-snapshot-electricity-now]')).toHaveText('3.46');
       await expect(page.locator('.snapshot-electricity__value .snapshot-micro')).toHaveText('DAY AVG / TODAY');
@@ -222,6 +231,7 @@ test.describe('Current Snapshot', () => {
         const frameRect = frame?.getBoundingClientRect();
         const panelBodies = Array.from(document.querySelectorAll<HTMLElement>('.snapshot-panel__body'));
         const electricityPrice = document.querySelector<HTMLElement>('.snapshot-electricity__price');
+        const marketValue = document.querySelector<HTMLElement>('.snapshot-market-row strong');
         const ratesSource = document.querySelector<HTMLElement>('.snapshot-panel--rates .snapshot-source');
         const ratesChange = document.querySelector<HTMLElement>('.snapshot-rates__change');
         const analyticsSettings = document.querySelector<HTMLElement>('[data-analytics-settings]');
@@ -248,6 +258,7 @@ test.describe('Current Snapshot', () => {
           electricityPriceWhiteSpace: electricityPrice
             ? getComputedStyle(electricityPrice).whiteSpace
             : '',
+          marketValueWeight: marketValue ? Number(getComputedStyle(marketValue).fontWeight) : 0,
           ratesSourceTop: ratesSourceRect?.top ?? Number.NEGATIVE_INFINITY,
           ratesChangeBottom: ratesChangeRect?.bottom ?? Number.POSITIVE_INFINITY,
           analyticsTop: analyticsRect?.top ?? Number.NEGATIVE_INFINITY,
@@ -266,6 +277,7 @@ test.describe('Current Snapshot', () => {
       expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.viewportHeight + 1);
       expect(geometry.scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
       expect(geometry.electricityPriceWhiteSpace).toBe('nowrap');
+      expect(geometry.marketValueWeight).toBeGreaterThanOrEqual(700);
       expect(geometry.ratesSourceTop).toBeGreaterThanOrEqual(geometry.ratesChangeBottom + 1);
       expect(geometry.analyticsTop).toBeGreaterThanOrEqual(geometry.footerTop - 1);
       expect(geometry.analyticsBottom).toBeLessThanOrEqual(geometry.footerBottom + 1);
