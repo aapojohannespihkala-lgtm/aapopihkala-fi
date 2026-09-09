@@ -7,9 +7,11 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
 <script>
   import { initSnapshotWeatherForecast } from '../../../features/current/snapshot-weather-forecast';
   import { initSnapshotElectricityContext } from '../../../features/current/snapshot-electricity-context';
+  import { initSnapshotLiiga } from '../../../features/current/snapshot-liiga';
 
   initSnapshotWeatherForecast();
   initSnapshotElectricityContext();
+  initSnapshotLiiga();
 
   const snapshotRoot = document.querySelector<HTMLElement>('[data-current-snapshot]');
   const ratesOpen = snapshotRoot?.querySelector<HTMLAnchorElement>(
