@@ -180,7 +180,7 @@ for (const viewport of [
 test('uses a stable same-origin Liiga API URL so HTTP caching can apply', async ({ page }) => {
   let requestUrl: string | null = null;
 
-  await page.route('**/api/current/liiga*', async (route) => {
+  await page.route('**/api/current/liiga', async (route) => {
     requestUrl = route.request().url();
     await route.fulfill({
       status: 200,

@@ -92,15 +92,15 @@ test('renders league-wide live and upcoming games with Current glyphs', async ({
   await expect(schedule).toBeVisible();
   await expect(schedule.locator('[data-liiga-schedule-game]')).toHaveCount(3);
   await expect(schedule.locator('[data-liiga-schedule-live]')).toHaveCount(1);
-  await expect(schedule).toContainText('SPORT');
+  await expect(schedule).toContainText('Sport');
   await expect(schedule).toContainText('TPS');
   await expect(schedule).toContainText('2 - 1');
   await expect(schedule).toContainText('LIVE / 35:20');
-  await expect(schedule).toContainText('PELICANS');
-  await expect(schedule).toContainText('KALPA');
+  await expect(schedule).toContainText('Pelicans');
+  await expect(schedule).toContainText('KalPa');
   await expect(schedule).toContainText('19:30');
-  await expect(schedule).toContainText('ILVES');
-  await expect(schedule).toContainText('TAPPARA');
+  await expect(schedule).toContainText('Ilves');
+  await expect(schedule).toContainText('Tappara');
 
   await expect(schedule.locator('.liiga-match-team__mark use[href="#liiga-match-mark-pelicans"]')).toHaveCount(1);
   await expect(schedule.locator('.liiga-match-team__mark use[href="#liiga-match-mark-ilves"]')).toHaveCount(1);
