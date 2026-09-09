@@ -126,7 +126,8 @@ test('desktop Snapshot uses one alignment grid for Markets, Rates and Liiga', as
     const ratesValue = rect('.snapshot-rates__value');
     const ratesChange = rect('.snapshot-rates__change');
     const ratesSource = rect('.snapshot-panel--rates > .snapshot-panel__body > .snapshot-source');
-    const liigaHeading = rect('#snapshot-liiga-label');
+    const liigaHeadingElement = document.querySelector<HTMLElement>('#snapshot-liiga-label');
+    const liigaHeading = liigaHeadingElement?.getBoundingClientRect();
     const liigaName = rect('.snapshot-liiga__name');
     const liigaValue = rect('.snapshot-liiga__position');
     const liigaComparison = rect('.snapshot-liiga__comparison');
@@ -135,6 +136,9 @@ test('desktop Snapshot uses one alignment grid for Markets, Rates and Liiga', as
     const awayTeam = document.querySelector<HTMLElement>('[data-snapshot-liiga-away-team]');
 
     const centerY = (value?: DOMRect) => value ? value.top + value.height / 2 : Number.POSITIVE_INFINITY;
+    const headingTextLeft = liigaHeading && liigaHeadingElement
+      ? liigaHeading.left + Number.parseFloat(getComputedStyle(liigaHeadingElement).paddingLeft)
+      : Number.POSITIVE_INFINITY;
 
     return {
       marketLabelDelta: Math.abs(centerY(medianLabel) - centerY(world)),
@@ -142,7 +146,7 @@ test('desktop Snapshot uses one alignment grid for Markets, Rates and Liiga', as
       valueTopDelta: Math.abs((liigaValue?.top ?? 0) - (ratesValue?.top ?? 0)),
       supportTopDelta: Math.abs((liigaComparison?.top ?? 0) - (ratesChange?.top ?? 0)),
       sourceTopDelta: Math.abs((liigaSource?.top ?? 0) - (ratesSource?.top ?? 0)),
-      copyLeftDelta: Math.abs((liigaName?.left ?? 0) - (liigaHeading?.left ?? 0)),
+      copyLeftDelta: Math.abs((liigaName?.left ?? 0) - headingTextLeft),
       homeFits: homeTeam ? homeTeam.scrollWidth <= homeTeam.clientWidth + 1 : false,
       awayFits: awayTeam ? awayTeam.scrollWidth <= awayTeam.clientWidth + 1 : false,
       homeOverflow: homeTeam ? getComputedStyle(homeTeam).textOverflow : '',
