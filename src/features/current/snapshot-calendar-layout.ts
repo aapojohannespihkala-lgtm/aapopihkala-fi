@@ -123,10 +123,6 @@ const ensureLayoutStyles = () => {
         letter-spacing: -0.065em;
       }
 
-      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-number__minor--seconds {
-        font-size: 0.5em;
-      }
-
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-titleblock__meta {
         position: static;
         left: auto;
@@ -187,10 +183,6 @@ const ensureLayoutStyles = () => {
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split #current-snapshot-title {
         font-size: clamp(2.1rem, 10vw, 2.35rem) !important;
-      }
-
-      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-number__minor--seconds {
-        font-size: 0.48em;
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-titleblock__meta {
