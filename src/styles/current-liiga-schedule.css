@@ -132,6 +132,7 @@
   font-family: "Times New Roman", Times, serif;
   font-size: clamp(1.5rem, 2.6vw, 2.35rem);
   font-weight: 400;
+  font-variant-numeric: tabular-nums;
   line-height: 0.9;
   letter-spacing: -0.035em;
   white-space: nowrap;
