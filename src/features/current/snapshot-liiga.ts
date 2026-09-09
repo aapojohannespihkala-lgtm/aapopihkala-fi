@@ -197,7 +197,8 @@ const renderTeam = (
   teamId: string,
   teamName: string,
 ) => {
-  setText(root, `[data-snapshot-liiga-${side}-team]`, getTeamAbbreviation(teamId, teamName));
+  const displayName = getLiigaTeamById(teamId)?.name ?? teamName;
+  setText(root, `[data-snapshot-liiga-${side}-team]`, displayName);
   const markTarget = root.querySelector<HTMLElement>(`[data-snapshot-liiga-${side}-mark]`);
   if (!markTarget) return;
   const mark = createTeamMark(teamId);
@@ -271,8 +272,8 @@ const renderLastGame = (root: HTMLElement, game: SnapshotLiigaLastGame | null) =
     return;
   }
 
-  const home = getTeamAbbreviation(game.homeTeamId, game.homeTeam);
-  const away = getTeamAbbreviation(game.awayTeamId, game.awayTeam);
+  const home = getLiigaTeamById(game.homeTeamId)?.name ?? game.homeTeam;
+  const away = getLiigaTeamById(game.awayTeamId)?.name ?? game.awayTeam;
   target.textContent = `LAST / ${home} ${game.homeGoals}-${game.awayGoals} ${away}`;
 };
 
@@ -322,9 +323,9 @@ const ensureStyles = () => {
     body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split {
       grid-template-columns:
         44px
-        minmax(0, calc(46% - 78px))
+        minmax(0, calc(42% - 78px))
         34px
-        minmax(0, calc(54% - 34px))
+        minmax(0, calc(58% - 34px))
         34px;
     }
 
@@ -339,7 +340,7 @@ const ensureStyles = () => {
     }
 
     body:has(.snapshot-shell) .snapshot-rates__main {
-      grid-template-columns: minmax(0, 0.46fr) minmax(0, 0.54fr);
+      grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
       gap: 0;
       align-items: stretch;
     }
@@ -355,7 +356,7 @@ const ensureStyles = () => {
       overflow: hidden;
       align-self: stretch;
       display: grid;
-      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      grid-template-rows: auto auto minmax(0, 1fr) auto auto;
       align-content: center;
       gap: 4px;
       padding-left: 12px;
@@ -377,7 +378,7 @@ const ensureStyles = () => {
     body:has(.snapshot-shell) .snapshot-liiga__header {
       justify-content: space-between;
       gap: 6px;
-      font-size: 0.48rem;
+      font-size: 0.58rem;
       line-height: 1;
       letter-spacing: 0.05em;
     }
@@ -392,7 +393,7 @@ const ensureStyles = () => {
       display: inline-flex;
       align-items: baseline;
       gap: 1px;
-      font-size: 0.78rem;
+      font-size: 1.45rem;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
       line-height: 0.9;
@@ -405,13 +406,13 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__position-separator {
       color: var(--stone);
-      font-size: 0.78em;
+      font-size: 0.6em;
       font-weight: 650;
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__position-total {
       color: var(--stone);
-      font-size: 0.72em;
+      font-size: 0.52em;
       font-weight: 650;
     }
 
@@ -419,7 +420,7 @@ const ensureStyles = () => {
       margin: 0;
       overflow: hidden;
       color: var(--stone);
-      font-size: 0.35rem;
+      font-size: 0.42rem;
       font-weight: 600;
       line-height: 1;
       letter-spacing: 0.035em;
@@ -429,15 +430,15 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__match {
       display: grid;
-      grid-template-columns: auto auto auto;
-      justify-content: center;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      width: 100%;
       align-items: center;
-      column-gap: 8px;
+      column-gap: 12px;
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__team {
-      width: max-content;
-      gap: 3px;
+      width: 100%;
+      gap: 6px;
       overflow: visible;
     }
 
@@ -460,7 +461,8 @@ const ensureStyles = () => {
     body:has(.snapshot-shell) .snapshot-liiga__team b {
       overflow: hidden;
       color: var(--ink-soft);
-      font-size: 0.45rem;
+      max-width: min(24vw, 8rem);
+      font-size: 0.56rem;
       font-weight: 700;
       line-height: 1;
       letter-spacing: 0.035em;
@@ -470,8 +472,8 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__mark-wrap {
       flex: 0 0 auto;
-      width: 42px;
-      height: 42px;
+      width: 54px;
+      height: 54px;
       color: var(--ink-soft);
     }
 
@@ -483,7 +485,7 @@ const ensureStyles = () => {
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__match-center {
-      min-width: 58px;
+      min-width: 82px;
       display: grid;
       justify-items: center;
       align-content: center;
@@ -492,7 +494,7 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__score {
       color: var(--ink);
-      font-size: 0.9rem;
+      font-size: 1.18rem;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
       line-height: 0.9;
@@ -502,7 +504,7 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__match-center time {
       color: var(--stone);
-      font-size: 0.3rem;
+      font-size: 0.36rem;
       font-weight: 600;
       line-height: 1;
       letter-spacing: 0.025em;
@@ -513,7 +515,17 @@ const ensureStyles = () => {
       justify-content: space-between;
       gap: 6px;
       color: var(--stone);
-      font-size: 0.33rem;
+      font-size: 0.38rem;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: 0.035em;
+      white-space: nowrap;
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga__source {
+      margin: 0;
+      color: var(--stone);
+      font-size: 0.34rem;
       font-weight: 600;
       line-height: 1;
       letter-spacing: 0.035em;
@@ -556,9 +568,9 @@ const ensureStyles = () => {
       body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split {
         grid-template-columns:
           38px
-          minmax(0, calc(46% - 68px))
+          minmax(0, calc(42% - 68px))
           30px
-          minmax(0, calc(54% - 30px))
+          minmax(0, calc(58% - 30px))
           30px;
       }
 
@@ -567,16 +579,16 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga {
-        gap: 2px;
+        gap: 4px;
         padding-left: 7px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__header {
-        font-size: 0.4rem;
+        font-size: 0.48rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__position {
-        font-size: 0.64rem;
+        font-size: 1.02rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__position-total {
@@ -584,7 +596,7 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__comparison {
-        font-size: 0.29rem;
+        font-size: 0.4rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match {
@@ -592,8 +604,8 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__mark-wrap {
-        width: 34px;
-        height: 34px;
+        width: 44px;
+        height: 44px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__team {
@@ -601,23 +613,24 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__team b {
-        font-size: 0.37rem;
+        max-width: 7rem;
+        font-size: 0.46rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match-center {
-        min-width: 48px;
+        min-width: 64px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__score {
-        font-size: 0.76rem;
+        font-size: 0.94rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match-center time {
-        font-size: 0.26rem;
+        font-size: 0.3rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__footer {
-        font-size: 0.28rem;
+        font-size: 0.32rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__score {
@@ -633,9 +646,9 @@ const ensureStyles = () => {
       body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split {
         grid-template-columns:
           33px
-          minmax(0, calc(46% - 59px))
+          minmax(0, calc(42% - 59px))
           26px
-          minmax(0, calc(54% - 26px))
+          minmax(0, calc(58% - 26px))
           26px;
       }
 
@@ -653,7 +666,7 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__position {
-        font-size: 0.55rem;
+        font-size: 0.84rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__position-total {
@@ -661,33 +674,34 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__comparison {
-        font-size: 0.24rem;
+        font-size: 0.28rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match {
-        column-gap: 4px;
+        column-gap: 5px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__mark-wrap {
-        width: 28px;
-        height: 28px;
+        width: 36px;
+        height: 36px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__team b {
-        font-size: 0.29rem;
+        max-width: 5.5rem;
+        font-size: 0.38rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match-center {
-        min-width: 42px;
+        min-width: 54px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__score {
-        font-size: 0.64rem;
+        font-size: 0.8rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match-center time,
       body:has(.snapshot-shell) .snapshot-liiga__footer {
-        font-size: 0.23rem;
+        font-size: 0.26rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga.is-live .snapshot-liiga__score {
@@ -717,7 +731,7 @@ const ensureSplitHeading = (rates: HTMLElement) => {
 
   const liigaTitle = ratesTitle.cloneNode(true) as HTMLElement;
   liigaTitle.id = 'snapshot-liiga-label';
-  liigaTitle.textContent = 'LIIGA / 04';
+  liigaTitle.textContent = 'LIIGA / 05';
   liigaTitle.classList.add('snapshot-panel__heading-secondary');
   liigaTitle.dataset.snapshotLiigaHeading = 'true';
 
@@ -740,10 +754,7 @@ const ensureSnapshotLiiga = () => {
   const existing = main.querySelector<HTMLElement>('[data-snapshot-liiga]');
   if (existing) return existing;
 
-  const source = rates.querySelector<HTMLElement>('.snapshot-source');
-  if (source) source.textContent = 'DATA / ECB · BANK OF FINLAND + LIIGA';
-
-  const section = document.createElement('section');
+const section = document.createElement('section');
   section.className = 'snapshot-liiga';
   section.dataset.snapshotLiiga = 'true';
   section.setAttribute('aria-label', 'Ilves Liiga status');
@@ -776,6 +787,7 @@ const ensureSnapshotLiiga = () => {
       <span class="snapshot-liiga__state" data-snapshot-liiga-state hidden>NEXT</span>
       <span class="snapshot-liiga__last" data-snapshot-liiga-last>LAST / --</span>
     </div>
+    <p class="snapshot-liiga__source">DATA / LIIGA</p>
   `;
 
   main.append(section);

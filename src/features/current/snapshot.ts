@@ -449,7 +449,7 @@ const loadRates = async (root: HTMLElement) => {
 
   if (!euribor || !isFiniteNumber(euribor.value)) throw new Error('Euribor is unavailable');
 
-  setText(root, '[data-snapshot-euribor]', euribor.value.toFixed(3));
+  setText(root, '[data-snapshot-euribor]', euribor.value.toFixed(2));
   setText(
     root,
     '[data-snapshot-euribor-change]',
