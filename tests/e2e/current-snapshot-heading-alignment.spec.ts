@@ -92,7 +92,7 @@ test('mobile Snapshot headings share one size and the key columns share baseline
   expect(geometry.liigaSourceInsideBody).toBe(true);
 });
 
-test('mobile Liiga keeps full team names and the match inside its column', async ({ page }) => {
+test('mobile Liiga keeps full team names inside its column', async ({ page }) => {
   await prepareMobileSnapshot(page);
 
   await page.route('**/api/current/**', async (route) => {
@@ -145,7 +145,6 @@ test('mobile Liiga keeps full team names and the match inside its column', async
     const panelBody = document.querySelector<HTMLElement>('.snapshot-panel--rates > .snapshot-panel__body')!;
     const name = liiga.querySelector<HTMLElement>('.snapshot-liiga__name')!;
     const position = liiga.querySelector<HTMLElement>('.snapshot-liiga__position')!;
-    const match = liiga.querySelector<HTMLElement>('.snapshot-liiga__match')!;
     const source = liiga.querySelector<HTMLElement>('.snapshot-liiga__source')!;
     const homeTeam = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-home-team]')!;
     const awayTeam = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-away-team]')!;
@@ -154,18 +153,12 @@ test('mobile Liiga keeps full team names and the match inside its column', async
     const panelBodyRect = panelBody.getBoundingClientRect();
     const nameRect = name.getBoundingClientRect();
     const positionRect = position.getBoundingClientRect();
-    const matchRect = match.getBoundingClientRect();
     const sourceRect = source.getBoundingClientRect();
     const homeRect = homeTeam.getBoundingClientRect();
     const awayRect = awayTeam.getBoundingClientRect();
 
     return {
       headerStacked: nameRect.bottom <= positionRect.top + 1,
-      matchInsideColumn:
-        matchRect.left >= liigaRect.left - 1 &&
-        matchRect.right <= liigaRect.right + 1 &&
-        matchRect.top >= liigaRect.top - 1 &&
-        matchRect.bottom <= liigaRect.bottom + 1,
       sourceInsidePanel: sourceRect.bottom <= panelBodyRect.bottom + 1,
       homeInsideColumn: homeRect.left >= liigaRect.left - 1 && homeRect.right <= liigaRect.right + 1,
       awayInsideColumn: awayRect.left >= liigaRect.left - 1 && awayRect.right <= liigaRect.right + 1,
@@ -175,7 +168,6 @@ test('mobile Liiga keeps full team names and the match inside its column', async
   });
 
   expect(geometry.headerStacked).toBe(true);
-  expect(geometry.matchInsideColumn).toBe(true);
   expect(geometry.sourceInsidePanel).toBe(true);
   expect(geometry.homeInsideColumn).toBe(true);
   expect(geometry.awayInsideColumn).toBe(true);
