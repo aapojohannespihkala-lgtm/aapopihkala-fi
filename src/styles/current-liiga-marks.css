@@ -1,0 +1,18 @@
+.current-liiga {
+  --liiga-mark-tone: #000;
+}
+
+.site-night-mode .current-liiga {
+  --liiga-mark-tone: #fff;
+}
+
+.current-liiga .liiga-match-team__mark,
+.current-liiga .liiga-team-mark,
+.current-liiga .liiga-club-mark svg {
+  color: var(--liiga-mark-tone) !important;
+  opacity: 1 !important;
+}
+
+.current-liiga .liiga-team-mark__detail {
+  opacity: 1 !important;
+}
