@@ -1,0 +1,224 @@
+[data-current-liiga] .liiga-schedule-section {
+  padding: 18px 0 24px;
+  border-top: 1px solid var(--liiga-rule);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-transform: uppercase;
+}
+
+[data-current-liiga] .liiga-schedule-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+  color: var(--stone-light);
+  font-size: 0.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.07em;
+}
+
+[data-current-liiga] .liiga-schedule-heading p {
+  margin: 0;
+}
+
+[data-current-liiga] .liiga-schedule-heading p:first-child {
+  color: var(--stone);
+}
+
+[data-current-liiga] .liiga-schedule-groups {
+  border-top: 1px solid var(--liiga-rule);
+}
+
+[data-current-liiga] .liiga-schedule-day {
+  border-left: 1px solid var(--liiga-rule);
+  border-right: 1px solid var(--liiga-rule);
+}
+
+[data-current-liiga] .liiga-schedule-day + .liiga-schedule-day {
+  border-top: 1px solid var(--liiga-rule);
+}
+
+[data-current-liiga] .liiga-schedule-day__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--liiga-rule);
+  color: var(--stone-light);
+  font-size: 0.46rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.065em;
+}
+
+[data-current-liiga] .liiga-schedule-day__heading span:first-child {
+  color: var(--stone);
+}
+
+[data-current-liiga] .liiga-schedule-day.is-live .liiga-schedule-day__heading,
+[data-current-liiga] .liiga-schedule-day.is-live .liiga-schedule-day__heading span:first-child {
+  color: var(--moss-deep);
+}
+
+[data-current-liiga] .liiga-schedule-day.is-live {
+  background: color-mix(in srgb, var(--moss) 6%, transparent);
+}
+
+[data-current-liiga] .liiga-schedule-game {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(82px, 0.28fr) minmax(0, 1fr);
+  align-items: center;
+  min-height: 78px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--liiga-rule);
+}
+
+[data-current-liiga] .liiga-schedule-game:last-child {
+  border-bottom: 0;
+}
+
+[data-current-liiga] .liiga-schedule-team {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  color: var(--stone);
+}
+
+[data-current-liiga] .liiga-schedule-team--away {
+  justify-content: flex-start;
+}
+
+[data-current-liiga] .liiga-schedule-team.is-ilves {
+  color: var(--moss-deep);
+}
+
+[data-current-liiga] .liiga-schedule-team__name {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-current-liiga] .liiga-schedule-team.is-ilves .liiga-schedule-team__name {
+  color: var(--moss-deep);
+}
+
+[data-current-liiga] .liiga-schedule-team__mark {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+[data-current-liiga] .liiga-schedule-game__center {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+  text-align: center;
+}
+
+[data-current-liiga] .liiga-schedule-game__primary {
+  color: var(--ink);
+  font-family: "Times New Roman", Times, serif;
+  font-size: clamp(1.5rem, 2.6vw, 2.35rem);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+}
+
+[data-current-liiga] .liiga-schedule-game__secondary {
+  color: var(--stone-light);
+  font-size: 0.4rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+[data-current-liiga] .liiga-schedule-game.is-live .liiga-schedule-game__primary,
+[data-current-liiga] .liiga-schedule-game.is-live .liiga-schedule-game__secondary {
+  color: var(--moss-deep);
+}
+
+[data-current-liiga] .liiga-schedule-empty {
+  margin: 0;
+  padding: 18px 0 2px;
+  color: var(--stone-light);
+  font-size: 0.46rem;
+  letter-spacing: 0.06em;
+}
+
+[data-current-liiga] .liiga-schedule-empty[hidden] {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  [data-current-liiga] .liiga-schedule-game {
+    grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr);
+    min-height: 70px;
+    padding: 9px 10px;
+  }
+
+  [data-current-liiga] .liiga-schedule-team {
+    gap: 7px;
+  }
+
+  [data-current-liiga] .liiga-schedule-team__name {
+    font-size: 0.64rem;
+  }
+
+  [data-current-liiga] .liiga-schedule-team__mark {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (max-width: 420px) {
+  [data-current-liiga] .liiga-schedule-heading {
+    font-size: 0.44rem;
+  }
+
+  [data-current-liiga] .liiga-schedule-day__heading {
+    padding: 9px 10px;
+    font-size: 0.4rem;
+  }
+
+  [data-current-liiga] .liiga-schedule-game {
+    grid-template-columns: minmax(0, 1fr) 62px minmax(0, 1fr);
+    min-height: 64px;
+    padding: 8px 7px;
+  }
+
+  [data-current-liiga] .liiga-schedule-team {
+    gap: 5px;
+  }
+
+  [data-current-liiga] .liiga-schedule-team__name {
+    font-size: 0.56rem;
+  }
+
+  [data-current-liiga] .liiga-schedule-team__mark {
+    width: 30px;
+    height: 30px;
+  }
+
+  [data-current-liiga] .liiga-schedule-game__primary {
+    font-size: 1.35rem;
+  }
+
+  [data-current-liiga] .liiga-schedule-game__secondary {
+    font-size: 0.34rem;
+  }
+}
