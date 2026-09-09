@@ -6,7 +6,24 @@
 }
 
 [data-current-liiga] .liiga-schedule-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
   margin-bottom: 14px;
+  color: var(--stone-light);
+  font-size: 0.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.07em;
+}
+
+[data-current-liiga] .liiga-schedule-heading p {
+  margin: 0;
+}
+
+[data-current-liiga] .liiga-schedule-heading p:first-child {
+  color: var(--stone);
 }
 
 [data-current-liiga] .liiga-schedule-groups {
@@ -168,6 +185,10 @@
 }
 
 @media (max-width: 420px) {
+  [data-current-liiga] .liiga-schedule-heading {
+    font-size: 0.44rem;
+  }
+
   [data-current-liiga] .liiga-schedule-day__heading {
     padding: 9px 10px;
     font-size: 0.4rem;
