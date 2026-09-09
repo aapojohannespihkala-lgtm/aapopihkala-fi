@@ -37,6 +37,13 @@ const ensureStyles = () => {
       content: none !important;
     }
 
+    @media (min-width: 641px) {
+      body:has(.snapshot-shell) .snapshot-calendar__month-grid {
+        grid-auto-rows: 8px;
+        margin-top: 0;
+      }
+    }
+
     @media (max-width: 640px) {
       body:has(.snapshot-shell) .snapshot-calendar__month-grid {
         grid-template-columns: 7px repeat(7, 6px);
