@@ -1,60 +1,37 @@
 import { expect, test } from '@playwright/test';
 
-import { fetchCurrentExternal } from '../../src/features/current/externalFetchGuard';
+test('Current weather leaves loading state when Open-Meteo stalls', async ({ page }) => {
+  test.setTimeout(20_000);
 
-test('Open-Meteo requests abort after the bounded weather timeout', async () => {
-  let wasAborted = false;
+  await page.route('https://api.open-meteo.com/**', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 12_000));
+    try {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: '{}',
+      });
+    } catch {
+      // The browser request is expected to be aborted by the Current weather timeout.
+    }
+  });
 
-  const hangingFetch = ((
-    _input: RequestInfo | URL,
-    init?: RequestInit
-  ) => new Promise<Response>((_resolve, reject) => {
-    init?.signal?.addEventListener(
-      'abort',
-      () => {
-        wasAborted = true;
-        reject(new DOMException('Aborted', 'AbortError'));
-      },
-      { once: true }
-    );
-  })) as typeof fetch;
+  await page.route('**/api/current/**', async (route) => {
+    await route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: '{}',
+    });
+  });
 
-  let thrown: unknown = null;
+  await page.goto('/current/', { waitUntil: 'domcontentloaded' });
 
-  try {
-    await fetchCurrentExternal(
-      hangingFetch,
-      'https://api.open-meteo.com/v1/forecast?latitude=60.1719&longitude=24.7314',
-      { headers: { Accept: 'application/json' } },
-      25
-    );
-  } catch (error) {
-    thrown = error;
-  }
+  const weather = page.locator('[data-current-weather]');
+  const condition = page.locator('[data-weather-condition]');
+  const error = page.locator('[data-weather-error]');
 
-  expect(thrown).toBeInstanceOf(DOMException);
-  expect((thrown as DOMException).name).toBe('AbortError');
-  expect(wasAborted).toBe(true);
-});
-
-test('non-weather requests are not given an extra timeout signal', async () => {
-  let capturedSignal: AbortSignal | null | undefined;
-
-  const successfulFetch = ((
-    _input: RequestInfo | URL,
-    init?: RequestInit
-  ) => {
-    capturedSignal = init?.signal;
-    return Promise.resolve(new Response('{}', { status: 200 }));
-  }) as typeof fetch;
-
-  const response = await fetchCurrentExternal(
-    successfulFetch,
-    '/api/current/news',
-    { headers: { Accept: 'application/json' } },
-    25
-  );
-
-  expect(response.status).toBe(200);
-  expect(capturedSignal).toBeUndefined();
+  await expect(weather).toHaveAttribute('aria-busy', 'true');
+  await expect(weather).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 });
+  await expect(condition).toHaveText('Forecast unavailable');
+  await expect(error).toBeVisible();
 });
