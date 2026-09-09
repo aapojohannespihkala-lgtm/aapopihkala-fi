@@ -12,7 +12,30 @@ const replaceMark = (target: Element, pathData: string) => {
   target.setAttribute('data-liiga-ilves-filled', 'true');
 };
 
+// Keep the heading emblem on the same filled path as the inline Liiga marks.
+const ensureHeadingMark = (root: Element, pathData: string) => {
+  const heading = root.querySelector('.liiga-heading');
+  if (!heading || heading.querySelector('[data-liiga-ilves-heading-mark]')) return;
+
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 48 48');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.setAttribute('class', 'liiga-heading__ilves-mark');
+  svg.setAttribute('data-liiga-ilves-heading-mark', 'true');
+
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', pathData);
+  path.setAttribute('fill', 'currentColor');
+  path.setAttribute('fill-rule', 'evenodd');
+
+  svg.append(path);
+  heading.append(svg);
+};
+
 const applyFilledIlves = (root: Element, pathData: string) => {
+  ensureHeadingMark(root, pathData);
+
   const symbol = root.querySelector('#liiga-match-mark-ilves');
   if (symbol) replaceMark(symbol, pathData);
 
