@@ -19,19 +19,26 @@ const ensureLayoutStyles = () => {
       position: absolute;
       left: 50%;
       top: 50%;
-      min-width: 132px !important;
+      min-width: 144px !important;
       max-width: none;
       transform: translate(-50%, -50%);
       z-index: 1;
       justify-items: center;
-      gap: 5px;
+      gap: 4px;
       text-align: center;
       pointer-events: none;
     }
 
+    body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__weekday,
     body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date,
     body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
       white-space: nowrap;
+    }
+
+    body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__weekday {
+      font-size: 0.64rem;
+      font-weight: 550;
+      letter-spacing: 0.07em;
     }
 
     body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
@@ -41,9 +48,9 @@ const ensureLayoutStyles = () => {
     }
 
     body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
-      font-size: 0.88rem;
+      font-size: 0.64rem;
       font-weight: 550;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.07em;
     }
 
     body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
@@ -103,44 +110,52 @@ const ensureLayoutStyles = () => {
     @media (max-width: 640px) {
       body:has(.snapshot-shell) .snapshot-titleblock.snapshot-titleblock--calendar-split {
         position: static;
-        grid-template-columns: minmax(0, 1fr) 48px 94px;
-        gap: 3px;
+        grid-template-columns: minmax(0, 1fr) 60px 88px;
+        gap: 5px;
         padding-left: 10px;
         padding-right: 10px;
       }
 
+      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split #current-snapshot-title {
+        font-size: clamp(2.25rem, 10.4vw, 2.55rem) !important;
+        letter-spacing: -0.065em;
+      }
+
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-number__minor--seconds {
-        font-size: 0.66em;
+        font-size: 0.5em;
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-titleblock__meta {
         position: static;
         left: auto;
         top: auto;
-        min-width: 48px !important;
-        max-width: 48px;
+        min-width: 60px !important;
+        max-width: 60px;
+        box-sizing: border-box;
         transform: none;
         justify-self: center;
         align-self: center;
         gap: 2px;
+        padding-left: 2px;
         text-align: center;
+      }
+
+      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__weekday,
+      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
+        font-size: 0.34rem;
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
         font-size: 0.37rem;
       }
 
-      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
-        font-size: 0.31rem;
-      }
-
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
-        width: 94px;
+        width: 88px;
         grid-column: 3;
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar {
-        grid-template-columns: auto minmax(38px, 1fr) auto;
+        grid-template-columns: auto minmax(36px, 1fr) auto;
         gap: 3px;
         font-size: 0.28rem;
         letter-spacing: 0.03em;
@@ -158,31 +173,41 @@ const ensureLayoutStyles = () => {
 
     @media (max-width: 380px), (max-height: 720px) {
       body:has(.snapshot-shell) .snapshot-titleblock.snapshot-titleblock--calendar-split {
-        grid-template-columns: minmax(0, 1fr) 42px 82px;
-        gap: 2px;
+        grid-template-columns: minmax(0, 1fr) 56px 80px;
+        gap: 4px;
         padding-left: 8px;
         padding-right: 8px;
       }
 
+      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split #current-snapshot-title {
+        font-size: clamp(2.1rem, 10vw, 2.35rem) !important;
+      }
+
+      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-number__minor--seconds {
+        font-size: 0.48em;
+      }
+
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-titleblock__meta {
-        min-width: 42px !important;
-        max-width: 42px;
+        min-width: 56px !important;
+        max-width: 56px;
+        padding-left: 1px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__weekday,
+      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
+        font-size: 0.29rem;
       }
 
       body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
         font-size: 0.31rem;
       }
 
-      body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
-        font-size: 0.27rem;
-      }
-
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel {
-        width: 82px;
+        width: 80px;
       }
 
       body:has(.snapshot-shell) .snapshot-calendar__solar-panel .snapshot-calendar__solar {
-        grid-template-columns: auto minmax(32px, 1fr) auto;
+        grid-template-columns: auto minmax(31px, 1fr) auto;
         gap: 2px;
         font-size: 0.24rem;
       }
@@ -200,20 +225,47 @@ const ensureLayoutStyles = () => {
   document.head.append(style);
 };
 
+const WEEKDAY_NAMES: Record<string, string> = {
+  MON: 'MONDAY',
+  TUE: 'TUESDAY',
+  WED: 'WEDNESDAY',
+  THU: 'THURSDAY',
+  FRI: 'FRIDAY',
+  SAT: 'SATURDAY',
+  SUN: 'SUNDAY',
+};
+
 const compactCalendarText = (root: HTMLElement) => {
+  const meta = root.querySelector<HTMLElement>('.snapshot-titleblock__meta');
   const date = root.querySelector<HTMLElement>('[data-snapshot-calendar-date]');
   const week = root.querySelector<HTMLElement>('[data-snapshot-calendar-week]');
-  if (!date || !week) return;
+  if (!meta || !date || !week) return;
 
-  const match = date.textContent?.trim().match(/^([A-Z]{3}) \/ (\d{2}) ([A-Z]{3}) (\d{4})$/);
-  if (!match) return;
+  let weekday = root.querySelector<HTMLElement>('[data-snapshot-calendar-weekday]');
+  if (!weekday) {
+    weekday = document.createElement('div');
+    weekday.className = 'snapshot-calendar__weekday';
+    weekday.dataset.snapshotCalendarWeekday = 'true';
+    date.before(weekday);
+  }
 
-  const [, weekday, day, month, year] = match;
-  const weekMatch = week.textContent?.trim().match(/^WEEK \/ (\d{2})$/);
-  const weekNumber = weekMatch?.[1] ?? '--';
+  const dateText = date.textContent?.trim() ?? '';
+  const dateMatch = dateText.match(/^([A-Z]{3,9})\s*\/\s*(\d{2})\s+([A-Z]{3,4})\s+(\d{4})$/);
+  if (dateMatch) {
+    const [, weekdayToken, day, month, year] = dateMatch;
+    const weekdayText = WEEKDAY_NAMES[weekdayToken.slice(0, 3)] ?? weekdayToken;
+    const formattedDate = `${day} ${month} ${year}`;
 
-  date.textContent = `${weekday} / ${day} ${month}`;
-  week.textContent = `${year} / W${weekNumber}`;
+    if (weekday.textContent !== weekdayText) weekday.textContent = weekdayText;
+    if (date.textContent !== formattedDate) date.textContent = formattedDate;
+  }
+
+  const weekText = week.textContent?.trim() ?? '';
+  const weekMatch = weekText.match(/^WEEK\s*\/?\s*(\d{1,2})$/);
+  if (weekMatch) {
+    const formattedWeek = `WEEK ${weekMatch[1].padStart(2, '0')}`;
+    if (week.textContent !== formattedWeek) week.textContent = formattedWeek;
+  }
 };
 
 const compactDaylightText = (root: HTMLElement) => {
@@ -257,7 +309,7 @@ const applyCalendarLayout = (root: HTMLElement) => {
   if (daylight.parentElement !== panel) panel.append(daylight);
 
   titleblock.classList.add('snapshot-titleblock--calendar-split');
-  meta.setAttribute('aria-label', 'Helsinki date and ISO week number');
+  meta.setAttribute('aria-label', 'Helsinki weekday, date and ISO week number');
   return true;
 };
 
