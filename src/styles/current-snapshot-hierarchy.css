@@ -1,0 +1,49 @@
+/* Snapshot-only hierarchy fixes that must win over component-scoped and runtime-injected rules. */
+body:has(.snapshot-shell) .snapshot-markets .snapshot-markets__median > strong {
+  font-size: var(--snapshot-headline-size) !important;
+  line-height: 0.86 !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.075em !important;
+}
+
+body:has(.snapshot-shell) .snapshot-panel--rates #snapshot-liiga-label {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+body:has(.snapshot-shell)
+  .snapshot-panel--rates
+  .snapshot-rates__main
+  .snapshot-liiga
+  .snapshot-liiga__header {
+  justify-content: flex-start;
+}
+
+body:has(.snapshot-shell)
+  .snapshot-panel--rates
+  .snapshot-rates__main
+  .snapshot-liiga
+  .snapshot-liiga__position {
+  margin-left: 0;
+}
+
+@media (min-width: 641px) {
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__header {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__position {
+    align-self: flex-start;
+  }
+}
