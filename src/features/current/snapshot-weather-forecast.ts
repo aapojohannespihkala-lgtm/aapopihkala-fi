@@ -5,13 +5,21 @@ type SnapshotHourlyWeather = {
   precipitation_probability?: unknown;
 };
 
+type SnapshotDailyWeather = {
+  time?: unknown;
+  sunrise?: unknown;
+  sunset?: unknown;
+};
+
 type SnapshotHourlyWeatherResponse = {
   hourly?: SnapshotHourlyWeather;
+  daily?: SnapshotDailyWeather;
 };
 
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast';
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
+const CALENDAR_INTERVAL_MS = 60 * 1000;
 const FORECAST_SLOT_STEPS = [0, 2, 4, 6] as const;
 
 const isFiniteNumber = (value: unknown): value is number =>
@@ -27,6 +35,14 @@ const helsinkiMinuteFormatter = new Intl.DateTimeFormat('en-CA', {
   timeZone: HELSINKI_TIME_ZONE,
 });
 
+const helsinkiCalendarFormatter = new Intl.DateTimeFormat('en-GB', {
+  year: 'numeric',
+  month: 'short',
+  day: '2-digit',
+  weekday: 'short',
+  timeZone: HELSINKI_TIME_ZONE,
+});
+
 const getHelsinkiMinuteKey = (date: Date) => {
   const parts = Object.fromEntries(
     helsinkiMinuteFormatter
@@ -38,6 +54,41 @@ const getHelsinkiMinuteKey = (date: Date) => {
   return `${parts.year ?? '0000'}-${parts.month ?? '00'}-${parts.day ?? '00'}T${parts.hour ?? '00'}:${parts.minute ?? '00'}`;
 };
 
+const getHelsinkiCalendarParts = (date: Date) =>
+  Object.fromEntries(
+    helsinkiCalendarFormatter
+      .formatToParts(date)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value])
+  );
+
+const getIsoWeekNumber = (year: number, month: number, day: number) => {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const weekday = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - weekday);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil(((date.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+};
+
+const readClockMinutes = (value: string) => {
+  const match = value.match(/T(\d{2}):(\d{2})/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+};
+
+const formatSolarTime = (value: string) => value.slice(11, 16) || '--:--';
+
+const formatDaylightLength = (sunrise: string, sunset: string) => {
+  const start = readClockMinutes(sunrise);
+  const end = readClockMinutes(sunset);
+  if (start === null || end === null) return '--';
+
+  const duration = end >= start ? end - start : end + 24 * 60 - start;
+  const hours = Math.floor(duration / 60);
+  const minutes = duration % 60;
+  return `${hours}H ${String(minutes).padStart(2, '0')}M`;
+};
+
 const buildForecastUrl = () => {
   const params = new URLSearchParams({
     latitude: '60.1719',
@@ -46,6 +97,7 @@ const buildForecastUrl = () => {
     forecast_days: '2',
     temperature_unit: 'celsius',
     hourly: ['temperature_2m', 'weather_code', 'precipitation_probability'].join(','),
+    daily: ['sunrise', 'sunset'].join(','),
   });
 
   return `${WEATHER_API_URL}?${params.toString()}`;
@@ -154,6 +206,262 @@ const ensureForecast = (root: HTMLElement) => {
   return forecast;
 };
 
+const ensureCalendarStyles = () => {
+  if (document.querySelector('[data-snapshot-calendar-styles]')) return;
+
+  const style = document.createElement('style');
+  style.dataset.snapshotCalendarStyles = 'true';
+  style.textContent = `
+    body:has(.snapshot-shell) .snapshot-titleblock__meta {
+      min-width: 154px;
+      gap: 1px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__date {
+      color: var(--ink-soft);
+      font-size: 0.53rem;
+      font-weight: 650;
+      line-height: 1.1;
+      letter-spacing: 0.045em;
+      white-space: nowrap;
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__week,
+    body:has(.snapshot-shell) .snapshot-calendar__daylight {
+      color: var(--stone);
+      font-size: 0.39rem;
+      font-weight: 550;
+      line-height: 1.05;
+      letter-spacing: 0.045em;
+      white-space: nowrap;
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__solar {
+      display: grid;
+      grid-template-columns: auto minmax(62px, 1fr) auto;
+      align-items: end;
+      gap: 4px;
+      margin-top: 1px;
+      color: var(--stone);
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__solar time {
+      padding-bottom: 1px;
+      font-size: 0.36rem;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__solar svg {
+      display: block;
+      width: 100%;
+      height: 22px;
+      overflow: visible;
+      color: color-mix(in srgb, var(--ink-soft) 72%, transparent);
+    }
+
+    body:has(.snapshot-shell) .snapshot-calendar__daylight {
+      margin-top: 1px;
+      text-align: center;
+    }
+
+    @media (max-width: 640px) {
+      body:has(.snapshot-shell) .snapshot-titleblock__meta {
+        min-width: 140px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__date {
+        font-size: 0.43rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__week,
+      body:has(.snapshot-shell) .snapshot-calendar__daylight {
+        font-size: 0.34rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__solar {
+        grid-template-columns: auto minmax(54px, 1fr) auto;
+        gap: 3px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__solar time {
+        font-size: 0.32rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__solar svg {
+        height: 19px;
+      }
+    }
+
+    @media (max-width: 380px), (max-height: 720px) {
+      body:has(.snapshot-shell) .snapshot-titleblock__meta {
+        min-width: 126px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__date {
+        font-size: 0.37rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__week,
+      body:has(.snapshot-shell) .snapshot-calendar__daylight {
+        font-size: 0.29rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__solar {
+        grid-template-columns: auto minmax(44px, 1fr) auto;
+        gap: 2px;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__solar time {
+        font-size: 0.28rem;
+      }
+
+      body:has(.snapshot-shell) .snapshot-calendar__solar svg {
+        height: 16px;
+      }
+    }
+  `;
+  document.head.append(style);
+};
+
+const ensureCalendarSolar = (root: HTMLElement) => {
+  const meta = root.querySelector<HTMLElement>('.snapshot-titleblock__meta');
+  if (!meta || meta.dataset.snapshotCalendarReady === 'true') return meta;
+
+  ensureCalendarStyles();
+
+  const date = document.createElement('div');
+  date.className = 'snapshot-calendar__date';
+  date.dataset.snapshotCalendarDate = 'true';
+  date.textContent = '--- / -- --- ----';
+
+  const week = document.createElement('div');
+  week.className = 'snapshot-calendar__week';
+  week.dataset.snapshotCalendarWeek = 'true';
+  week.textContent = 'WEEK / --';
+
+  const solar = document.createElement('div');
+  solar.className = 'snapshot-calendar__solar';
+  solar.dataset.snapshotCalendarSolar = 'true';
+  solar.setAttribute('aria-label', 'Sunrise, sunset and daylight');
+
+  const sunrise = document.createElement('time');
+  sunrise.dataset.snapshotCalendarSunrise = 'true';
+  sunrise.textContent = '--:--';
+
+  const arc = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  arc.setAttribute('viewBox', '0 0 120 40');
+  arc.setAttribute('aria-hidden', 'true');
+  arc.innerHTML = `
+    <path d="M8 32 A52 24 0 0 1 112 32" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" />
+    <circle cx="8" cy="32" r="1.4" fill="currentColor" />
+    <circle cx="112" cy="32" r="1.4" fill="currentColor" />
+    <circle data-snapshot-calendar-sun-position cx="8" cy="32" r="2.1" fill="var(--page)" stroke="var(--moss-deep)" stroke-width="1.3" opacity="0" vector-effect="non-scaling-stroke" />
+  `;
+
+  const sunset = document.createElement('time');
+  sunset.dataset.snapshotCalendarSunset = 'true';
+  sunset.textContent = '--:--';
+
+  solar.append(sunrise, arc, sunset);
+
+  const daylight = document.createElement('div');
+  daylight.className = 'snapshot-calendar__daylight';
+  daylight.dataset.snapshotCalendarDaylight = 'true';
+  daylight.textContent = 'DAYLIGHT / --';
+
+  meta.replaceChildren(date, week, solar, daylight);
+  meta.dataset.snapshotCalendarReady = 'true';
+  meta.setAttribute('aria-label', 'Helsinki date, week number and daylight');
+  return meta;
+};
+
+const renderCalendar = (root: HTMLElement) => {
+  const parts = getHelsinkiCalendarParts(new Date());
+  const weekday = (parts.weekday ?? '---').toUpperCase();
+  const day = parts.day ?? '--';
+  const month = (parts.month ?? '---').toUpperCase();
+  const year = Number(parts.year ?? '0');
+  const monthNumber = Number(
+    Object.fromEntries(
+      helsinkiMinuteFormatter
+        .formatToParts(new Date())
+        .filter((part) => part.type !== 'literal')
+        .map((part) => [part.type, part.value])
+    ).month ?? '0'
+  );
+  const dayNumber = Number(day);
+  const weekNumber = year > 0 && monthNumber > 0 && dayNumber > 0
+    ? getIsoWeekNumber(year, monthNumber, dayNumber)
+    : null;
+
+  const dateTarget = root.querySelector<HTMLElement>('[data-snapshot-calendar-date]');
+  const weekTarget = root.querySelector<HTMLElement>('[data-snapshot-calendar-week]');
+
+  if (dateTarget) dateTarget.textContent = `${weekday} / ${day} ${month} ${parts.year ?? '----'}`;
+  if (weekTarget) weekTarget.textContent = weekNumber ? `WEEK / ${String(weekNumber).padStart(2, '0')}` : 'WEEK / --';
+};
+
+const renderSolarPosition = (root: HTMLElement) => {
+  const solar = root.querySelector<HTMLElement>('[data-snapshot-calendar-solar]');
+  const marker = root.querySelector<SVGCircleElement>('[data-snapshot-calendar-sun-position]');
+  if (!solar || !marker) return;
+
+  const sunrise = solar.dataset.sunrise;
+  const sunset = solar.dataset.sunset;
+  if (!sunrise || !sunset) {
+    marker.setAttribute('opacity', '0');
+    return;
+  }
+
+  const start = readClockMinutes(sunrise);
+  const end = readClockMinutes(sunset);
+  const current = readClockMinutes(getHelsinkiMinuteKey(new Date()));
+  if (start === null || end === null || current === null || end <= start || current < start || current > end) {
+    marker.setAttribute('opacity', '0');
+    return;
+  }
+
+  const progress = Math.min(1, Math.max(0, (current - start) / (end - start)));
+  const x = 60 - 52 * Math.cos(Math.PI * progress);
+  const y = 32 - 24 * Math.sin(Math.PI * progress);
+  marker.setAttribute('cx', x.toFixed(2));
+  marker.setAttribute('cy', y.toFixed(2));
+  marker.setAttribute('opacity', '1');
+};
+
+const renderSolarData = (root: HTMLElement, data: SnapshotHourlyWeatherResponse) => {
+  const sunrises = Array.isArray(data.daily?.sunrise) ? data.daily.sunrise : [];
+  const sunsets = Array.isArray(data.daily?.sunset) ? data.daily.sunset : [];
+  const sunrise = typeof sunrises[0] === 'string' ? sunrises[0] : null;
+  const sunset = typeof sunsets[0] === 'string' ? sunsets[0] : null;
+  if (!sunrise || !sunset) return;
+
+  const sunriseTarget = root.querySelector<HTMLTimeElement>('[data-snapshot-calendar-sunrise]');
+  const sunsetTarget = root.querySelector<HTMLTimeElement>('[data-snapshot-calendar-sunset]');
+  const daylightTarget = root.querySelector<HTMLElement>('[data-snapshot-calendar-daylight]');
+  const solar = root.querySelector<HTMLElement>('[data-snapshot-calendar-solar]');
+  const daylight = formatDaylightLength(sunrise, sunset);
+
+  if (sunriseTarget) {
+    sunriseTarget.textContent = formatSolarTime(sunrise);
+    sunriseTarget.dateTime = sunrise;
+  }
+  if (sunsetTarget) {
+    sunsetTarget.textContent = formatSolarTime(sunset);
+    sunsetTarget.dateTime = sunset;
+  }
+  if (daylightTarget) daylightTarget.textContent = `DAYLIGHT / ${daylight}`;
+  if (solar) {
+    solar.dataset.sunrise = sunrise;
+    solar.dataset.sunset = sunset;
+    solar.setAttribute('aria-label', `Sunrise ${formatSolarTime(sunrise)}, sunset ${formatSolarTime(sunset)}, daylight ${daylight}`);
+  }
+
+  renderSolarPosition(root);
+};
+
 const renderUnavailable = (forecast: HTMLElement) => {
   FORECAST_SLOT_STEPS.forEach((_, index) => {
     const time = forecast.querySelector<HTMLElement>(`[data-snapshot-weather-forecast-time="${index}"]`);
@@ -182,6 +490,8 @@ const loadForecast = async (root: HTMLElement, forecast: HTMLElement) => {
   const precipitation = Array.isArray(data.hourly?.precipitation_probability)
     ? data.hourly.precipitation_probability
     : [];
+
+  renderSolarData(root, data);
 
   if (times.length === 0) throw new Error('Hourly weather response is incomplete');
 
@@ -245,6 +555,10 @@ export const initSnapshotWeatherForecast = () => {
   const forecast = ensureForecast(root);
   if (!forecast) return;
 
+  ensureCalendarSolar(root);
+  renderCalendar(root);
+  renderSolarPosition(root);
+
   root.dataset.weatherForecastInitialized = 'true';
   const refreshButton = root.querySelector<HTMLButtonElement>('[data-snapshot-refresh]');
 
@@ -258,7 +572,13 @@ export const initSnapshotWeatherForecast = () => {
     }
   };
 
+  const refreshCalendar = () => {
+    renderCalendar(root);
+    renderSolarPosition(root);
+  };
+
   refreshButton?.addEventListener('click', () => void refresh());
   void refresh();
   window.setInterval(() => void refresh(), REFRESH_INTERVAL_MS);
+  window.setInterval(refreshCalendar, CALENDAR_INTERVAL_MS);
 };
