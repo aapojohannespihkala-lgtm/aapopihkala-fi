@@ -80,12 +80,12 @@ Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivise
 
 ## 10. Currentin ulkoisten datalähteiden toimintavarmuus
 
-Currentin Electricity-, Markets- ja News-näkymät riippuvat useista ulkoisista lähteistä. Marketsin viimeisimmät korjaukset ovat jo lisänneet rajattuja timeout-, retry- ja recovery-polkuja, mutta sama toimintavarmuustaso ei vielä kata kaikkia Current-lähteitä.
+Currentin Electricity-, Markets-, News- ja Liiga-näkymät riippuvat useista ulkoisista lähteistä. Marketsin viimeisimmät korjaukset ovat jo lisänneet rajattuja timeout-, retry- ja recovery-polkuja, ja Currentin production-smoke kattaa portfolion, market macro -syötteen sekä Liigan keskeiset rakennesopimukset. Sama toimintavarmuustaso ei silti vielä kata kaikkia lähteitä ja upstream-rakenteita fixture- tai source-contract-tasolla.
 
 - Pidä retryt rajattuina ja lähdekohtaisina. Älä kasvata yhden API-pyynnön kokonaislatenssia hallitsemattomalla fallback-ketjulla.
 - Arvioi, missä Current-datassa stale-while-revalidate- tai viimeksi onnistuneen datan fallback parantaa käytettävyyttä ilman harhaanjohtavaa vanhaa tietoa. Jos viimeksi onnistunutta dataa käytetään, sen ikä pitää pystyä esittämään tai tulkitsemaan yksiselitteisesti.
 - Suojaa HTML- ja tekstimuotoa parsivat lähteet, erityisesti Bank of Finland- ja OP-adapterit, source-contract- tai fixture-regressiotesteillä, jotta upstream-rakenteen muutos havaitaan nopeasti. Nykyinen portfolio-resilience-testi käyttää itse muodostettuja parserifixtureja, joten lisää tarkoituksenmukaisiin adaptereihin upstream-rakenteesta johdettuja pysyviä fixtureja tai vastaavia source-contract-tarkistuksia.
-- Lisää tarvittaessa vastaavat fixture- tai contract-testit RSS-lähteille, jos lähdekohtaiset rakenteet alkavat aiheuttaa toistuvia regressioita.
+- Lisää tarvittaessa vastaavat fixture- tai contract-testit RSS-lähteille ja Liigan upstream-rakenteelle, jos lähdekohtaiset rakenteet alkavat aiheuttaa toistuvia regressioita. Liigan production-smoke suojaa jo lähteen, upstream-valinnan, joukkue- ja rankkirakenteen sekä Ilves-yhteenvedon johdonmukaisuutta, mutta se ei korvaa pysyvää upstream-fixturea.
 - Hyödynnä nykyistä Cloudflare-observabilityä lähdekohtaisten virheiden tunnistamiseen ennen uuden seurantainfran lisäämistä. Tavoite on nähdä ainakin epäonnistunut lähde, vaihe, timeout tai HTTP-virhe ilman että sisäistä diagnostiikkaa näytetään loppukäyttäjälle.
 
 ## 11. GitHub- ja ChatGPT-työnkulun optimointi
@@ -122,5 +122,3 @@ Current Markets -kehityksen aikana `functions/api/current/`-hakemistoon on kerty
 - Pidä yhteinen data-contract selkeänä: aidosti puuttuva periodi saa olla `N/A`, mutta puuttuva rivi tai rikkoutunut lähdesopimus pitää erottaa siitä.
 - Arvioi `/current2/`-reitin pysyvä rooli. Jos sitä tarvitaan diagnostisena layout- ja viewport-laboratoriona, dokumentoi tämä yksiselitteisesti. Jos sen tehtävä on pääosin siirtynyt varsinaiseen Currentiin, suunnittele myöhempi poistaminen tai supistaminen.
 - Päivitä Current2-nimiset tuotantovalvonnat ja dokumentaatiot neutraalimpaan Current/portfolio-nimistöön silloin, kun ne eivät enää kuvaa vain `/current2/`-reittiä.
-- Yhtenäistä `wrangler.jsonc`:n Worker-first-reittisopimus ja `worker/index.ts`:n todellinen API-reititys niin, että kaikki Currentin Worker-käsittelemät reitit ovat konfiguraatiossa ymmärrettävissä ilman historiallista poikkeuslogiikkaa. Nykytilassa Worker käsittelee myös Markets- ja Liiga-API:t, mutta niitä ei ole listattu `run_worker_first`-reitteihin.
-- Laajenna `current-worker-regression.spec.ts`:n reittisopimus kattamaan myös Markets-, News- ja Liiga-polut sekä niiden GET-only/405-käyttäytyminen, jotta Worker-konfiguraation ja entrypointin välinen reititysdrifti havaitaan ennen tuotantoa.
