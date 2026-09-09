@@ -1,14 +1,40 @@
 /* Snapshot-only hierarchy fixes that must win over component-scoped and runtime-injected rules. */
+body:has(.snapshot-shell) {
+  --snapshot-section-heading-size: 0.62rem;
+  --snapshot-metric-heading-size: 0.56rem;
+}
+
+/* Keep every panel title on one typographic system. Split headings such as
+   LIIGA / 05 inherit the exact same size and left-aligned treatment. */
+body:has(.snapshot-shell) .snapshot-panel__heading h2,
+body:has(.snapshot-shell) .snapshot-panel--rates #snapshot-liiga-label {
+  justify-content: flex-start !important;
+  text-align: left !important;
+  font-size: var(--snapshot-section-heading-size) !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+}
+
+/* Primary labels inside the data areas use one shared title size and always
+   sit at the left edge of their own content column. */
+body:has(.snapshot-shell) .snapshot-markets__median > span,
+body:has(.snapshot-shell) .snapshot-rates__label,
+body:has(.snapshot-shell) .snapshot-liiga__name {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  justify-self: start !important;
+  text-align: left !important;
+  font-size: var(--snapshot-metric-heading-size) !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.035em !important;
+}
+
 body:has(.snapshot-shell) .snapshot-markets .snapshot-markets__median > strong {
   font-size: var(--snapshot-headline-size) !important;
   line-height: 0.86 !important;
   font-weight: 400 !important;
   letter-spacing: -0.075em !important;
-}
-
-body:has(.snapshot-shell) .snapshot-panel--rates #snapshot-liiga-label {
-  justify-content: flex-start;
-  text-align: left;
 }
 
 body:has(.snapshot-shell)
@@ -25,6 +51,20 @@ body:has(.snapshot-shell)
   .snapshot-liiga
   .snapshot-liiga__position {
   margin-left: 0;
+}
+
+@media (max-width: 640px) {
+  body:has(.snapshot-shell) {
+    --snapshot-metric-heading-size: 0.5rem;
+  }
+
+  /* Match the Liiga copy to the split heading's text inset on mobile. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga {
+    padding-left: 6px !important;
+  }
 }
 
 @media (min-width: 641px) {
