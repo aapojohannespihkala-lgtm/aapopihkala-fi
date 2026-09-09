@@ -28,32 +28,78 @@ body:has(.snapshot-shell)
 }
 
 @media (min-width: 641px) {
+  /* Markets: use the same five-row rhythm on both sides. The median label now
+     shares the first row with WORLD instead of being vertically centered in a
+     large empty area. */
   body:has(.snapshot-shell) .snapshot-markets {
     grid-template-columns: minmax(0, 0.4fr) minmax(0, 0.6fr) !important;
     column-gap: 24px !important;
   }
 
   body:has(.snapshot-shell) .snapshot-markets__median {
+    align-self: stretch !important;
+    display: grid !important;
+    grid-template-rows: repeat(5, minmax(0, 1fr)) !important;
+    align-content: stretch !important;
+    gap: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  body:has(.snapshot-shell) .snapshot-markets__median > span {
+    grid-row: 1 !important;
+    align-self: center !important;
+  }
+
+  body:has(.snapshot-shell) .snapshot-markets__median > strong {
+    grid-row: 2 / span 2 !important;
     align-self: start !important;
-    padding-top: 28px;
   }
 
   body:has(.snapshot-shell) .snapshot-market-list {
     align-self: stretch !important;
   }
 
+  /* Rates is the master grid for the lower panel. Keep the body divider on the
+     same 42% split as the heading, accounting for the panel-body inset. */
+  body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-rates__main {
+    position: relative;
+    grid-template-columns: calc(42% - 2px) minmax(0, 1fr) !important;
+    gap: 0 !important;
+    align-items: stretch !important;
+  }
+
+  body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-rates__main::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    bottom: -18px;
+    left: calc(42% - 2px);
+    border-left: 1px solid var(--line);
+    pointer-events: none;
+  }
+
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga {
+    position: relative;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: visible !important;
     display: grid !important;
     grid-template-columns: minmax(150px, 0.36fr) minmax(0, 0.64fr) !important;
-    grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 1fr) auto !important;
+    grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 1fr) !important;
     column-gap: clamp(18px, 2vw, 28px) !important;
     row-gap: 4px !important;
     align-content: stretch !important;
+    padding-left: 14px !important;
+    border-left: 0 !important;
   }
 
+  /* Center the Liiga metric stack in the same way as the Euribor stack. No
+     translate offsets: the label, headline and comparison are aligned by grid. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
@@ -66,7 +112,7 @@ body:has(.snapshot-shell)
     align-items: flex-start !important;
     justify-content: flex-start !important;
     gap: 5px !important;
-    transform: translateY(20px);
+    transform: none !important;
   }
 
   body:has(.snapshot-shell)
@@ -78,7 +124,7 @@ body:has(.snapshot-shell)
     grid-row: 3 !important;
     align-self: start !important;
     margin-top: 2px !important;
-    transform: translateY(20px);
+    transform: none !important;
   }
 
   body:has(.snapshot-shell)
@@ -90,18 +136,23 @@ body:has(.snapshot-shell)
     grid-row: 4 !important;
     align-self: start !important;
     margin-top: 3px !important;
-    transform: translateY(20px);
+    transform: none !important;
   }
 
+  /* The Rates body uses a 4px row gap between the main content and its source.
+     Anchor the Liiga source to that same geometric row. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__source {
-    grid-column: 1 !important;
-    grid-row: 6 !important;
-    align-self: end !important;
-    transform: translateY(20px);
+    position: absolute !important;
+    top: calc(100% + 4px) !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 14px !important;
+    margin: 0 !important;
+    transform: none !important;
   }
 
   body:has(.snapshot-shell)
@@ -110,7 +161,7 @@ body:has(.snapshot-shell)
     .snapshot-liiga
     .snapshot-liiga__match {
     grid-column: 2 !important;
-    grid-row: 1 / 7 !important;
+    grid-row: 1 / 6 !important;
     align-self: center !important;
     justify-self: stretch !important;
     width: 100% !important;
@@ -156,10 +207,6 @@ body:has(.snapshot-shell)
 }
 
 @media (min-width: 1000px) {
-  body:has(.snapshot-shell) .snapshot-markets__median {
-    padding-top: 24px;
-  }
-
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
