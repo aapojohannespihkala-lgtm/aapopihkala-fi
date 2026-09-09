@@ -1,7 +1,16 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { fetchElectricityResponse } from '../../functions/api/current/electricity';
 import { fetchElectricityMonthResponse } from '../../functions/api/current/electricity-month';
 import worker from '../../worker/index';
+
+const workerFirstPaths = [
+  '/api/current/electricity',
+  '/api/current/electricity-month',
+  '/api/current/markets',
+  '/api/current/news',
+  '/api/current/liiga',
+];
 
 const buildWorkerElectricityFixture = () => ({
   prices: [
@@ -24,7 +33,15 @@ const buildWorkerElectricityMonthFixture = () => ({
   ],
 });
 
-test('Worker serves Current electricity APIs and keeps static assets as fallback', async () => {
+test('Wrangler sends every Current API route through the Worker first', () => {
+  const config = JSON.parse(
+    readFileSync(new URL('../../wrangler.jsonc', import.meta.url), 'utf8')
+  );
+
+  expect(config.assets?.run_worker_first).toEqual(workerFirstPaths);
+});
+
+test('Worker serves Current APIs, enforces GET-only routes and keeps static assets as fallback', async () => {
   const originalFetch = globalThis.fetch;
   const upstreamFixture = buildWorkerElectricityFixture();
   const monthFixture = buildWorkerElectricityMonthFixture();
@@ -88,7 +105,7 @@ test('Worker serves Current electricity APIs and keeps static assets as fallback
     expect(staticResponse.status).toBe(200);
     expect(await staticResponse.text()).toBe('asset:/current/');
 
-    for (const path of ['/api/current/electricity', '/api/current/electricity-month']) {
+    for (const path of workerFirstPaths) {
       const methodResponse = await worker.fetch(
         new Request(`https://aapopihkala.fi${path}`, { method: 'POST' }),
         env

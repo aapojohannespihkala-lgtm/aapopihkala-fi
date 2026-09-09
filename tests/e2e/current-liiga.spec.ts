@@ -177,6 +177,27 @@ for (const viewport of [
   });
 }
 
+test('uses a stable same-origin Liiga API URL so HTTP caching can apply', async ({ page }) => {
+  let requestUrl: string | null = null;
+
+  await page.route('**/api/current/liiga*', async (route) => {
+    requestUrl = route.request().url();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(fixture),
+    });
+  });
+
+  await page.goto('/current/liiga/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('[data-liiga-status]')).toHaveText('LIVE / LIIGA');
+
+  expect(requestUrl).not.toBeNull();
+  const url = new URL(requestUrl!);
+  expect(url.pathname).toBe('/api/current/liiga');
+  expect(url.search).toBe('');
+});
+
 test('promotes a live Ilves score with team glyphs and game clock', async ({ page }) => {
   const liveFixture = {
     ...fixture,
