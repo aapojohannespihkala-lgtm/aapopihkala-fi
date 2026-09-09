@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { fetchElectricityResponse } from '../../functions/api/current/electricity';
 import worker from '../../worker/index';
 
 const buildWorkerElectricityFixture = () => ({
@@ -18,6 +19,7 @@ test('Worker serves Current electricity API and keeps static assets as fallback'
   globalThis.fetch = async (input, init) => {
     expect(String(input)).toBe('https://api.porssisahko.net/v2/latest-prices.json');
     expect(new Headers(init?.headers).get('Accept')).toBe('application/json');
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
 
     return new Response(JSON.stringify(upstreamFixture), {
       status: 200,
@@ -59,4 +61,20 @@ test('Worker serves Current electricity API and keeps static assets as fallback'
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test('Current electricity returns a bounded upstream failure after abort', async () => {
+  const abortingFetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
+    new Promise<Response>((_resolve, reject) => {
+      const signal = init?.signal;
+      expect(signal).toBeInstanceOf(AbortSignal);
+      signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+    })) as typeof fetch;
+
+  const startedAt = Date.now();
+  const response = await fetchElectricityResponse(abortingFetch, 5);
+
+  expect(response.status).toBe(502);
+  expect(await response.json()).toEqual({ error: 'upstream_unavailable' });
+  expect(Date.now() - startedAt).toBeLessThan(1_000);
 });
