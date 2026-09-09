@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+const ILVES_LOGO_ASSET = 'current-ilves-mascot-emblem.svg';
+
 const normalLiigaFixture = {
   generatedAt: '2026-09-09T12:00:00.000Z',
   ilvesStanding: {
@@ -180,6 +182,15 @@ test.describe('Current Snapshot Liiga summary', () => {
     await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('FRI 11 SEPT');
     await expect(liiga.locator('[data-snapshot-liiga-last]')).toHaveText('LAST / Ilves 3-2 HIFK');
     await expect(liiga.locator('.snapshot-liiga__mark')).toHaveCount(2);
+
+    const ilvesMark = liiga.locator('[data-snapshot-liiga-home-mark] .snapshot-liiga__mark--ilves');
+    await expect(ilvesMark).toHaveCount(1);
+    const ilvesMask = await ilvesMark.evaluate((mark) => {
+      const styles = getComputedStyle(mark);
+      return styles.getPropertyValue('mask-image') || styles.getPropertyValue('-webkit-mask-image');
+    });
+    expect(ilvesMask).toContain(ILVES_LOGO_ASSET);
+
     await expect(liiga.locator('.snapshot-liiga__source')).toHaveText('DATA / LIIGA');
     await expect(page.locator('.snapshot-panel--rates .snapshot-source')).toHaveText('DATA / ECB · BANK OF FINLAND');
 
