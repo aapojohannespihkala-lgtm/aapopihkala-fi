@@ -36,22 +36,21 @@ const ensureStyles = () => {
       transform: translateX(-3px);
     }
 
+    body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__weekday {
+      color: var(--ink);
+      font-weight: 750 !important;
+    }
+
     body:has(.snapshot-shell) .snapshot-calendar__month-week.is-current-week {
       color: var(--ink);
       font-weight: 750;
     }
 
-    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-past:not(.is-current-week):not(.is-today) {
-      color: var(--stone-light);
-    }
-
-    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-current-week {
-      color: var(--ink-soft);
-    }
-
-    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-current-week.is-today {
-      color: var(--ink);
-      font-weight: 750;
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-past,
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-current-week,
+    body:has(.snapshot-shell) .snapshot-calendar__month-day.is-today {
+      color: var(--stone-light) !important;
+      font-weight: 500 !important;
     }
 
     body:has(.snapshot-shell) .snapshot-calendar__month-day.is-today::after {
