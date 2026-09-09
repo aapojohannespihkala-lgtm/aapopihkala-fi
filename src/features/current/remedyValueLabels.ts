@@ -9,6 +9,8 @@ type PortfolioResponse = {
 
 const API_URL = '/api/current/markets?portfolio=1&v=6';
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
+const READY_RETRY_MS = 50;
+const READY_RETRY_LIMIT = 40;
 
 const formatRemedyPrice = (value: number) =>
   `${new Intl.NumberFormat('en-GB', {
@@ -16,19 +18,42 @@ const formatRemedyPrice = (value: number) =>
     maximumFractionDigits: 2,
   }).format(value)} €`;
 
-const applyRemedyLabel = (price: number) => {
-  const formatted = formatRemedyPrice(price);
-
+const applySnapshotRemedyLabel = (formatted: string) => {
   const snapshotValue = document.querySelector<HTMLElement>('[data-snapshot-market="remedy"]');
   const snapshotLabel = snapshotValue
     ?.closest<HTMLElement>('.snapshot-market-row')
     ?.querySelector<HTMLElement>('[role="rowheader"]');
-  if (snapshotLabel) snapshotLabel.textContent = `REMEDY ${formatted}`;
 
-  const marketsLabel = document.querySelector<HTMLElement>(
-    '[data-market-performance-row="remedy"] .markets-custom-market strong'
+  if (snapshotLabel) snapshotLabel.textContent = `REMEDY ${formatted}`;
+};
+
+const applyMarketsRemedyLabelWhenReady = (
+  formatted: string,
+  attempt = 0
+) => {
+  const marketRoot = document.querySelector<HTMLElement>('[data-current-market-performance]');
+  if (!marketRoot) return;
+
+  const table = marketRoot.querySelector<HTMLElement>('.markets-custom-table');
+  if (table?.dataset.portfolioRowsReady === 'true') {
+    const label = table.querySelector<HTMLElement>(
+      '[data-market-performance-row="remedy"] .markets-custom-market strong'
+    );
+    if (label) label.textContent = `Remedy ${formatted}`;
+    return;
+  }
+
+  if (attempt >= READY_RETRY_LIMIT) return;
+  window.setTimeout(
+    () => applyMarketsRemedyLabelWhenReady(formatted, attempt + 1),
+    READY_RETRY_MS
   );
-  if (marketsLabel) marketsLabel.textContent = `Remedy ${formatted}`;
+};
+
+const applyRemedyLabel = (price: number) => {
+  const formatted = formatRemedyPrice(price);
+  applySnapshotRemedyLabel(formatted);
+  applyMarketsRemedyLabelWhenReady(formatted);
 };
 
 export const initCurrentRemedyValueLabels = () => {
@@ -36,13 +61,6 @@ export const initCurrentRemedyValueLabels = () => {
     document.querySelector('[data-current-snapshot]') ||
     document.querySelector('[data-current-market-performance]');
   if (!relevantPage) return;
-
-  let remedyPrice: number | null = null;
-
-  const observer = new MutationObserver(() => {
-    if (remedyPrice !== null) applyRemedyLabel(remedyPrice);
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
 
   const load = async () => {
     try {
@@ -61,8 +79,7 @@ export const initCurrentRemedyValueLabels = () => {
       }) as PortfolioItem | undefined;
 
       if (typeof remedy?.price !== 'number' || !Number.isFinite(remedy.price)) return;
-      remedyPrice = remedy.price;
-      applyRemedyLabel(remedyPrice);
+      applyRemedyLabel(remedy.price);
     } catch {
       // Keep the normal Remedy label if live value data is unavailable.
     }
