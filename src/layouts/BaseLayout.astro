@@ -140,5 +140,9 @@ const skipToContentLabel =
     <slot />
     <Analytics lang={lang} />
     <slot name="afterAnalytics" />
+    <script>
+      import { initCurrentRemedyValueLabels } from '../features/current/remedyValueLabels';
+      initCurrentRemedyValueLabels();
+    </script>
   </body>
 </html>
