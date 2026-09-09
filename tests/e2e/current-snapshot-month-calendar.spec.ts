@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('Snapshot shows a compact month grid with today marked', async ({ page }) => {
+test('Snapshot shows a compact month grid with today and ISO weeks marked', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-09-08T12:08:00.000Z'));
 
   await page.addInitScript(() => {
@@ -22,9 +22,27 @@ test('Snapshot shows a compact month grid with today marked', async ({ page }) =
   await expect(calendar).toBeVisible();
   await expect(calendar.locator('[data-snapshot-month-calendar-day]')).toHaveCount(30);
   await expect(calendar.locator('.is-outside')).toHaveCount(5);
-  await expect(calendar.locator('[data-snapshot-month-calendar-today]')).toHaveText('8');
   await expect(calendar.locator('.snapshot-calendar__month-day').first()).toHaveText('·');
   await expect(calendar.locator('.snapshot-calendar__month-day')).toHaveCount(35);
   await expect(calendar.locator('.snapshot-calendar__month-day').last()).toBeVisible();
   await expect(calendar.locator('.snapshot-calendar__month-day').last()).toHaveText('·');
+
+  const today = calendar.locator('[data-snapshot-month-calendar-today]');
+  await expect(today).toHaveText('8');
+  const todayStyle = await today.evaluate((element) => ({
+    fontWeight: Number(getComputedStyle(element).fontWeight),
+    markerContent: getComputedStyle(element, '::after').content,
+  }));
+  expect(todayStyle.fontWeight).toBeGreaterThanOrEqual(700);
+  expect(todayStyle.markerContent).toBe('none');
+
+  const weekNumbers = calendar.locator('[data-snapshot-month-week]');
+  await expect(weekNumbers).toHaveCount(5);
+  expect(await weekNumbers.allTextContents()).toEqual(['36', '37', '38', '39', '40']);
+
+  const standaloneWeek = page.locator('[data-snapshot-calendar-week]');
+  await expect(standaloneWeek).toHaveText('WEEK 37');
+  const standaloneWeekBox = await standaloneWeek.boundingBox();
+  expect(standaloneWeekBox?.width ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(1);
+  expect(standaloneWeekBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(1);
 });
