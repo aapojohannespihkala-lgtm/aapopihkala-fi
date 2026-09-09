@@ -1,10 +1,10 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
-const prepareMobileSnapshot = async (page: Parameters<typeof test>[0] extends never ? never : any) => {
+const prepareMobileSnapshot = async (page: Page) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
-  await page.route('https://api.open-meteo.com/**', async (route: any) => {
+  await page.route('https://api.open-meteo.com/**', async (route) => {
     await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
   });
 };
