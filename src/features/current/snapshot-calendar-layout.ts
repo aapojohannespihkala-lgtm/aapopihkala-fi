@@ -35,13 +35,13 @@ const ensureLayoutStyles = () => {
     }
 
     body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__date {
-      font-size: 0.66rem;
+      font-size: 0.88rem;
       font-weight: 650;
       letter-spacing: 0.05em;
     }
 
     body:has(.snapshot-shell) .snapshot-titleblock--calendar-split .snapshot-calendar__week {
-      font-size: 0.48rem;
+      font-size: 0.88rem;
       font-weight: 550;
       letter-spacing: 0.05em;
     }
