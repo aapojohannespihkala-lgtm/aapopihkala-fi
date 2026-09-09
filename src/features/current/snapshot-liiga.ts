@@ -600,7 +600,7 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match {
-        column-gap: 7px;
+        column-gap: 5px;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__mark-wrap {
