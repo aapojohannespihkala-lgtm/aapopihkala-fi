@@ -84,6 +84,9 @@ body:has(.snapshot-shell)
     .snapshot-rates__main
     .snapshot-liiga {
     position: relative;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
     overflow: visible !important;
     display: grid !important;
     grid-template-columns: minmax(150px, 0.36fr) minmax(0, 0.64fr) !important;
@@ -137,8 +140,7 @@ body:has(.snapshot-shell)
   }
 
   /* The Rates body uses a 4px row gap between the main content and its source.
-     Anchor the Liiga source to that same geometric row instead of guessing with
-     a translate or a negative bottom offset. */
+     Anchor the Liiga source to that same geometric row. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
