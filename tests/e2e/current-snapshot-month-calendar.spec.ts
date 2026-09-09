@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('Snapshot shows a compact month grid with today and ISO weeks marked', async ({ page }) => {
+test('Snapshot highlights only the current weekday and ISO week', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-09-08T12:08:00.000Z'));
 
   await page.addInitScript(() => {
@@ -33,8 +33,14 @@ test('Snapshot shows a compact month grid with today and ISO weeks marked', asyn
     fontWeight: Number(getComputedStyle(element).fontWeight),
     markerContent: getComputedStyle(element, '::after').content,
   }));
-  expect(todayStyle.fontWeight).toBeGreaterThanOrEqual(700);
+  expect(todayStyle.fontWeight).toBeLessThan(700);
   expect(todayStyle.markerContent).toBe('none');
+
+  const weekdayStyle = await page.locator('[data-snapshot-calendar-weekday]').evaluate((element) => ({
+    fontWeight: Number(getComputedStyle(element).fontWeight),
+    color: getComputedStyle(element).color,
+  }));
+  expect(weekdayStyle.fontWeight).toBeGreaterThanOrEqual(700);
 
   const weekNumbers = calendar.locator('[data-snapshot-month-week]');
   await expect(weekNumbers).toHaveCount(5);
@@ -66,7 +72,7 @@ test('Snapshot shows a compact month grid with today and ISO weeks marked', asyn
   expect(weekStyle.fontFamily).toBe(dayStyle.fontFamily);
   expect(weekStyle.fontSize).toBe(dayStyle.fontSize);
   expect(weekStyle.color).not.toBe(greyStyle.color);
-  expect(dayStyle.color).not.toBe(greyStyle.color);
+  expect(dayStyle.color).toBe(greyStyle.color);
   expect((currentWeekBox?.x ?? Number.POSITIVE_INFINITY) + (currentWeekBox?.width ?? 0)).toBeLessThanOrEqual(
     (firstDayBox?.x ?? Number.NEGATIVE_INFINITY) - 2,
   );
