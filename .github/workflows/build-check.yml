@@ -183,6 +183,9 @@ jobs:
                 gh api --method POST \
                   "/repos/${GITHUB_REPOSITORY}/actions/workflows/current-external-feed-smoke.yml/dispatches" \
                   --raw-field ref=main
+                gh api --method POST \
+                  "/repos/${GITHUB_REPOSITORY}/actions/workflows/current-news-source-contract-smoke.yml/dispatches" \
+                  --raw-field ref=main
                 echo "Pull request merged; full main validation and Current live smokes dispatched."
 
                 if [[ -n "$HEAD_REF" && "$HEAD_REF" != "main" ]]; then
