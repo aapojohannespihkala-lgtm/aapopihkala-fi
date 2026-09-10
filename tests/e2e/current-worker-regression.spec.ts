@@ -34,6 +34,20 @@ const buildWorkerElectricityMonthFixture = () => ({
   ],
 });
 
+const buildLiigaScheduleFixture = () => ({
+  games: [
+    {
+      id: 2701370,
+      start: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      homeTeam: { teamId: 'Kärpät', goals: null },
+      awayTeam: { teamId: 'Ilves', goals: null },
+      started: false,
+      ended: false,
+      gameTime: null,
+    },
+  ],
+});
+
 test('Wrangler sends every Current API route through the Worker first', () => {
   const config = JSON.parse(
     readFileSync(new URL('../../wrangler.jsonc', import.meta.url), 'utf8')
@@ -46,6 +60,7 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
   const originalFetch = globalThis.fetch;
   const upstreamFixture = buildWorkerElectricityFixture();
   const monthFixture = buildWorkerElectricityMonthFixture();
+  const scheduleFixture = buildLiigaScheduleFixture();
 
   globalThis.fetch = async (input, init) => {
     const url = String(input);
@@ -61,6 +76,13 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
 
     if (url === 'https://parassahko.fi/tilastot/data.json') {
       return new Response(JSON.stringify(monthFixture), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (url.startsWith('https://liiga.fi/api/v2/games?')) {
+      return new Response(JSON.stringify(scheduleFixture), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -103,9 +125,18 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
       env
     );
 
-    expect(scheduleResponse.status).toBe(502);
+    expect(scheduleResponse.status).toBe(200);
     expect(await scheduleResponse.json()).toMatchObject({
-      error: 'Liiga schedule request failed',
+      source: 'Liiga',
+      upstream: '/api/v2/games',
+      liveGames: [],
+      upcomingGames: [
+        expect.objectContaining({
+          id: 2701370,
+          homeTeamId: 'karpat',
+          awayTeamId: 'ilves',
+        }),
+      ],
     });
 
     const staticResponse = await worker.fetch(
