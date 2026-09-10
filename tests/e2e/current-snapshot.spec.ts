@@ -110,7 +110,34 @@ const macroFixture = {
   ],
 };
 
-const prepareSnapshot = async (page: Page) => {
+const liigaFixture = {
+  generatedAt: '2026-09-08T12:08:00.000Z',
+  ilvesStanding: { rank: 6, games: 9, points: 6, totalTeams: 17 },
+  standings: [
+    { id: 'pelicans', name: 'Pelicans', abbreviation: 'PEL', rank: 1, points: 9 },
+    { id: 'ilves', name: 'Ilves', abbreviation: 'ILV', rank: 6, points: 6 },
+  ],
+  lastIlvesGame: null,
+  nextIlvesGame: {
+    id: 301,
+    start: '2026-09-08T15:30:00.000Z',
+    homeTeamId: 'karpat',
+    homeTeam: 'Kärpät',
+    awayTeamId: 'ilves',
+    awayTeam: 'Ilves',
+    homeGoals: null,
+    awayGoals: null,
+    gameTime: null,
+  },
+  liveIlvesGame: null,
+};
+
+type SnapshotFixtureOptions = {
+  marketsAvailable?: boolean;
+  liigaAvailable?: boolean;
+};
+
+const prepareSnapshot = async (page: Page, options: SnapshotFixtureOptions = {}) => {
   await page.clock.setFixedTime(new Date('2026-09-08T12:08:00.000Z'));
 
   await page.addInitScript(() => {
@@ -145,12 +172,29 @@ const prepareSnapshot = async (page: Page) => {
     });
   });
 
+  await page.route('**/api/current/liiga*', async (route) => {
+    if (options.liigaAvailable === false) {
+      await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(liigaFixture),
+    });
+  });
+
   await page.route('**/api/current/markets*', async (route) => {
     const url = new URL(route.request().url());
-    const body = url.searchParams.get('portfolio') === '1'
-      ? portfolioFixture
-      : macroFixture;
+    const isPortfolio = url.searchParams.get('portfolio') === '1';
 
+    if (isPortfolio && options.marketsAvailable === false) {
+      await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+      return;
+    }
+
+    const body = isPortfolio ? portfolioFixture : macroFixture;
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -297,6 +341,18 @@ test.describe('Current Snapshot', () => {
       }
     });
   }
+
+  test('counts Markets and Liiga independently in live source status', async ({ page }) => {
+    await prepareSnapshot(page, { marketsAvailable: false, liigaAvailable: false });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.locator('[data-snapshot-liiga]')).toHaveClass(/is-unavailable/);
+    await expect(page.locator('[data-snapshot-status]')).toHaveText('LIVE DATA / 3 OF 5 SOURCES');
+    await expect(page.locator('[data-snapshot-market-median]')).toHaveText('--');
+    await expect(page.locator('[data-snapshot-euribor]')).toHaveText('2.68');
+  });
 
   test('stays noindex and is not linked from the main Current page', async ({ page }) => {
     await prepareSnapshot(page);
