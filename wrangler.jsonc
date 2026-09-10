@@ -8,6 +8,7 @@
     "run_worker_first": [
       "/api/current/electricity",
       "/api/current/electricity-month",
+      "/api/current/hsl",
       "/api/current/markets",
       "/api/current/news",
       "/api/current/liiga",

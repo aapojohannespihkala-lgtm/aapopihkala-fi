@@ -1,0 +1,404 @@
+<section class="current-hsl" data-current-hsl aria-labelledby="current-hsl-title">
+  <header class="hsl-heading">
+    <p id="current-hsl-title" class="hsl-index">HSL / LIVE</p>
+    <p class="hsl-mode">DEPARTURES / REALTIME</p>
+  </header>
+
+  <form class="hsl-query" data-hsl-form autocomplete="off">
+    <label class="hsl-field">
+      <span>STOP CODE</span>
+      <input
+        type="text"
+        name="stop"
+        data-hsl-stop
+        placeholder="E1234"
+        maxlength="7"
+        autocapitalize="characters"
+        autocomplete="off"
+        spellcheck="false"
+        required
+      />
+    </label>
+
+    <label class="hsl-field hsl-field--routes">
+      <span>ROUTES / OPTIONAL</span>
+      <input
+        type="text"
+        name="routes"
+        data-hsl-routes
+        placeholder="100, 200A"
+        maxlength="60"
+        autocapitalize="characters"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </label>
+
+    <button type="submit" class="hsl-submit" data-hsl-submit>LOAD</button>
+  </form>
+
+  <div class="hsl-meta">
+    <p data-hsl-status>ENTER STOP CODE</p>
+    <p>REFRESH / 30 S</p>
+  </div>
+
+  <div class="hsl-results" data-hsl-results hidden>
+    <div class="hsl-results__header" aria-hidden="true">
+      <span>LINE</span>
+      <span>DESTINATION</span>
+      <span>DEPARTURE</span>
+      <span>DATA</span>
+    </div>
+    <div class="hsl-departures" data-hsl-departures aria-live="polite"></div>
+  </div>
+
+  <p class="hsl-message" data-hsl-empty hidden>NO MATCHING DEPARTURES.</p>
+  <p class="hsl-message hsl-message--error" data-hsl-error role="status" hidden></p>
+
+  <footer class="hsl-footer">
+    <p>
+      DATA /
+      <a href="https://digitransit.fi/" target="_blank" rel="noopener">HSL DIGITRANSIT</a>
+      · LIVE WHEN AVAILABLE · NO LOCAL STORAGE
+    </p>
+  </footer>
+</section>
+
+<script>
+  import { initCurrentHsl } from '../../features/current/hsl';
+  initCurrentHsl();
+</script>
+
+<style>
+  .current-hsl {
+    --hsl-rule: color-mix(in srgb, var(--line-soft) 52%, transparent);
+    padding: 30px 0 8px;
+  }
+
+  .hsl-heading,
+  .hsl-meta,
+  .hsl-results__header,
+  .hsl-footer,
+  .hsl-field,
+  .hsl-submit,
+  .hsl-departure {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .hsl-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .hsl-index,
+  .hsl-mode,
+  .hsl-meta p,
+  .hsl-footer p,
+  .hsl-departure p {
+    margin: 0;
+  }
+
+  .hsl-index,
+  .hsl-mode {
+    font-size: 0.56rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .hsl-index {
+    color: var(--moss);
+  }
+
+  .hsl-mode {
+    color: var(--stone-light);
+  }
+
+  .hsl-query {
+    display: grid;
+    grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.2fr) auto;
+    gap: 12px;
+    align-items: end;
+    padding: 7px 0 24px;
+  }
+
+  .hsl-field {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+    color: var(--stone);
+    font-size: 0.48rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .hsl-field input {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid var(--line-soft);
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.69rem;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+  }
+
+  .hsl-field input::placeholder {
+    color: var(--stone-light);
+    opacity: 0.7;
+  }
+
+  .hsl-field input:focus-visible,
+  .hsl-submit:focus-visible {
+    outline: 1px solid var(--moss-deep);
+    outline-offset: 2px;
+  }
+
+  .hsl-submit {
+    min-width: 72px;
+    min-height: 38px;
+    padding: 8px 13px;
+    border: 1px solid var(--line-soft);
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 0.54rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+  }
+
+  .hsl-submit:hover,
+  .hsl-submit:focus-visible {
+    border-color: var(--moss);
+    color: var(--moss-deep);
+  }
+
+  .hsl-submit:disabled {
+    cursor: wait;
+    opacity: 0.45;
+  }
+
+  .hsl-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 13px 0;
+    border-top: 1px solid var(--hsl-rule);
+    border-bottom: 1px solid var(--hsl-rule);
+    color: var(--stone-light);
+    font-size: 0.43rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hsl-meta p:first-child {
+    color: var(--stone);
+  }
+
+  .hsl-results {
+    padding-top: 4px;
+  }
+
+  .hsl-results__header,
+  .hsl-departure {
+    display: grid;
+    grid-template-columns: 70px minmax(0, 1fr) 132px 70px;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .hsl-results__header {
+    padding: 13px 0 9px;
+    color: var(--stone-light);
+    font-size: 0.4rem;
+    font-weight: 600;
+    letter-spacing: 0.065em;
+    text-transform: uppercase;
+  }
+
+  .hsl-departure {
+    min-height: 72px;
+    padding: 13px 0;
+    border-top: 1px solid var(--hsl-rule);
+  }
+
+  .hsl-departure__line {
+    color: var(--ink);
+    font-family: "Times New Roman", Times, serif !important;
+    font-size: 1.55rem;
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+
+  .hsl-departure__destination {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink-soft);
+    font-size: 0.68rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hsl-departure__time {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: start;
+    gap: 3px 9px;
+    align-items: baseline;
+  }
+
+  .hsl-departure__countdown {
+    color: var(--ink);
+    font-family: "Times New Roman", Times, serif;
+    font-size: 1.18rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .hsl-departure__clock,
+  .hsl-departure__delay {
+    color: var(--stone-light);
+    font-size: 0.42rem;
+    font-weight: 600;
+    letter-spacing: 0.045em;
+    white-space: nowrap;
+  }
+
+  .hsl-departure__delay {
+    grid-column: 1 / -1;
+    color: var(--stone);
+  }
+
+  .hsl-departure__state {
+    color: var(--stone-light);
+    font-size: 0.43rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-align: right;
+  }
+
+  .hsl-departure__state--live {
+    color: var(--moss);
+  }
+
+  .hsl-message {
+    margin: 22px 0 0;
+    color: var(--stone);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hsl-message--error {
+    color: var(--ink-soft);
+  }
+
+  .hsl-footer {
+    margin-top: 22px;
+    padding-top: 15px;
+    border-top: 1px solid var(--hsl-rule);
+    color: var(--stone-light);
+    font-size: 0.43rem;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hsl-footer a {
+    color: var(--stone);
+    text-decoration: none;
+  }
+
+  .hsl-footer a:hover,
+  .hsl-footer a:focus-visible {
+    color: var(--moss-deep);
+  }
+
+  @media (max-width: 640px) {
+    .current-hsl {
+      padding-top: 26px;
+    }
+
+    .hsl-heading {
+      margin-bottom: 19px;
+    }
+
+    .hsl-query {
+      grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+      gap: 10px;
+      padding-bottom: 20px;
+    }
+
+    .hsl-submit {
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+
+    .hsl-field {
+      font-size: 0.43rem;
+    }
+
+    .hsl-field input {
+      font-size: 0.61rem;
+    }
+
+    .hsl-meta {
+      font-size: 0.39rem;
+    }
+
+    .hsl-results__header,
+    .hsl-departure {
+      grid-template-columns: 48px minmax(0, 1fr) 86px 48px;
+      gap: 8px;
+    }
+
+    .hsl-results__header {
+      font-size: 0.34rem;
+      letter-spacing: 0.04em;
+    }
+
+    .hsl-departure {
+      min-height: 64px;
+      padding: 11px 0;
+    }
+
+    .hsl-departure__line {
+      font-size: 1.27rem;
+    }
+
+    .hsl-departure__destination {
+      font-size: 0.58rem;
+    }
+
+    .hsl-departure__time {
+      gap: 2px 5px;
+    }
+
+    .hsl-departure__countdown {
+      font-size: 0.92rem;
+    }
+
+    .hsl-departure__clock,
+    .hsl-departure__delay,
+    .hsl-departure__state {
+      font-size: 0.34rem;
+    }
+  }
+</style>
