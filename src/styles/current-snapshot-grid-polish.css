@@ -34,6 +34,34 @@ body:has(.snapshot-shell) .snapshot-markets {
   column-gap: 0 !important;
 }
 
+/* When Liiga is unavailable, keep one calm primary placeholder and the source.
+   Hide the repeated comparison and match dashes that otherwise read as broken data. */
+body:has(.snapshot-shell)
+  .snapshot-panel--rates
+  .snapshot-rates__main
+  .snapshot-liiga.is-unavailable
+  .snapshot-liiga__comparison,
+body:has(.snapshot-shell)
+  .snapshot-panel--rates
+  .snapshot-rates__main
+  .snapshot-liiga.is-unavailable
+  .snapshot-liiga__match,
+body:has(.snapshot-shell)
+  .snapshot-panel--rates
+  .snapshot-rates__main
+  .snapshot-liiga.is-unavailable
+  .snapshot-liiga__footer {
+  display: none !important;
+}
+
+body:has(.snapshot-shell)
+  .snapshot-panel--rates
+  .snapshot-rates__main
+  .snapshot-liiga.is-unavailable
+  .snapshot-liiga__position {
+  opacity: 0.58;
+}
+
 @media (max-width: 640px) {
   body:has(.snapshot-shell) {
     --snapshot-liiga-index-width: 38px;
