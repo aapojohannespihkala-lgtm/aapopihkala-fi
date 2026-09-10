@@ -29,17 +29,23 @@ type FetchHslOptions = {
 
 const DIGITRANSIT_URL = 'https://api.digitransit.fi/routing/v2/hsl/gtfs/v1';
 const UPSTREAM_TIMEOUT_MS = 8_000;
+const HISTORY_LOOKBACK_SECONDS = 2 * 60 * 60;
 const MAX_ROUTE_FILTERS = 8;
-const MAX_DEPARTURES = 24;
+const MAX_DEPARTURES = 64;
 const STOP_CODE_PATTERN = /^[A-Z]{1,2}\d{3,5}$/;
 const ROUTE_PATTERN = /^[0-9A-Z]{1,8}$/;
 
 const DEPARTURES_QUERY = `
-  query CurrentHslDepartures($stopQuery: String!, $numberOfDepartures: Int!) {
+  query CurrentHslDepartures(
+    $stopQuery: String!
+    $startTime: Long!
+    $numberOfDepartures: Int!
+  ) {
     stops(name: $stopQuery) {
       name
       code
       stoptimesWithoutPatterns(
+        startTime: $startTime
         numberOfDepartures: $numberOfDepartures
         omitCanceled: true
         omitNonPickups: true
@@ -172,6 +178,7 @@ export const fetchHslDeparturesResponse = async ({
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const startTime = Math.floor(Date.now() / 1000) - HISTORY_LOOKBACK_SECONDS;
     const upstreamResponse = await fetchImpl(DIGITRANSIT_URL, {
       method: 'POST',
       headers: {
@@ -183,7 +190,8 @@ export const fetchHslDeparturesResponse = async ({
         query: DEPARTURES_QUERY,
         variables: {
           stopQuery: stopCode,
-          numberOfDepartures: 40,
+          startTime,
+          numberOfDepartures: 80,
         },
       }),
       signal: controller.signal,
@@ -226,7 +234,7 @@ export const fetchHslDeparturesResponse = async ({
     const departures = stoptimes
       .map((entry) => normalizeDeparture(entry, routeFilters))
       .filter((entry): entry is HslDeparture => Boolean(entry))
-      .sort((a, b) => a.departureAt.localeCompare(b.departureAt))
+      .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
       .slice(0, MAX_DEPARTURES);
 
     return jsonResponse(
