@@ -1,5 +1,6 @@
 import { getLiigaMarkPaths, isLiigaMarkFilled } from '../../config/liigaMarks';
 import { getLiigaTeamById } from '../../config/liigaTeams';
+import '../../styles/current-liiga-mark-balance.css';
 
 type SnapshotLiigaStanding = {
   rank: number;
@@ -208,6 +209,7 @@ const renderTeam = (
   setText(root, `[data-snapshot-liiga-${side}-team]`, displayName);
   const markTarget = root.querySelector<HTMLElement>(`[data-snapshot-liiga-${side}-mark]`);
   if (!markTarget) return;
+  markTarget.dataset.liigaMarkId = teamId;
   const mark = createTeamMark(teamId);
   markTarget.replaceChildren(...(mark ? [mark] : []));
 };
@@ -223,8 +225,12 @@ const renderGame = (
     setText(root, '[data-snapshot-liiga-away-team]', '---');
     setText(root, '[data-snapshot-liiga-score]', primary);
     setText(root, '[data-snapshot-liiga-schedule]', secondary);
-    root.querySelector<HTMLElement>('[data-snapshot-liiga-home-mark]')?.replaceChildren();
-    root.querySelector<HTMLElement>('[data-snapshot-liiga-away-mark]')?.replaceChildren();
+    const homeMark = root.querySelector<HTMLElement>('[data-snapshot-liiga-home-mark]');
+    const awayMark = root.querySelector<HTMLElement>('[data-snapshot-liiga-away-mark]');
+    homeMark?.replaceChildren();
+    awayMark?.replaceChildren();
+    homeMark?.removeAttribute('data-liiga-mark-id');
+    awayMark?.removeAttribute('data-liiga-mark-id');
     return;
   }
 
@@ -482,6 +488,16 @@ const ensureStyles = () => {
       width: 54px;
       height: 54px;
       color: var(--ink-soft);
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga__mark-wrap[data-liiga-mark-id='ilves'] {
+      background-color: currentColor;
+      -webkit-mask: url('/icons/current-ilves-mascot-emblem.svg') center / contain no-repeat;
+      mask: url('/icons/current-ilves-mascot-emblem.svg') center / contain no-repeat;
+    }
+
+    body:has(.snapshot-shell) .snapshot-liiga__mark-wrap[data-liiga-mark-id='ilves'] .snapshot-liiga__mark {
+      opacity: 0;
     }
 
     body:has(.snapshot-shell) .snapshot-liiga__mark {

@@ -211,6 +211,9 @@ test.describe('Current Snapshot Liiga summary', () => {
       const homeTeamRect = homeTeam?.getBoundingClientRect();
       const awayTeamRect = awayTeam?.getBoundingClientRect();
       const panelMidpoint = panelRect ? panelRect.left + panelRect.width / 2 : Number.POSITIVE_INFINITY;
+      const homeMarkStyle = homeMark ? getComputedStyle(homeMark) : null;
+      const awayMarkStyle = awayMark ? getComputedStyle(awayMark) : null;
+      const homeMarkSvg = homeMark?.querySelector<SVGElement>('.snapshot-liiga__mark');
 
       return {
         pageWidth: document.documentElement.scrollWidth,
@@ -230,6 +233,12 @@ test.describe('Current Snapshot Liiga summary', () => {
         awayMarkToCenter: centerRect && awayMarkRect ? awayMarkRect.left - centerRect.right : Number.POSITIVE_INFINITY,
         homeTeamToCenter: centerRect && homeTeamRect ? centerRect.left - homeTeamRect.right : Number.POSITIVE_INFINITY,
         awayTeamToCenter: centerRect && awayTeamRect ? awayTeamRect.left - centerRect.right : Number.POSITIVE_INFINITY,
+        homeMarkId: homeMark?.dataset.liigaMarkId ?? '',
+        awayMarkId: awayMark?.dataset.liigaMarkId ?? '',
+        homeMarkScale: Number.parseFloat(homeMarkStyle?.getPropertyValue('--liiga-mark-scale') ?? ''),
+        awayMarkScale: Number.parseFloat(awayMarkStyle?.getPropertyValue('--liiga-mark-scale') ?? ''),
+        homeMaskImage: homeMarkStyle?.maskImage ?? '',
+        homeMarkSvgOpacity: homeMarkSvg ? getComputedStyle(homeMarkSvg).opacity : '',
       };
     });
 
@@ -245,6 +254,12 @@ test.describe('Current Snapshot Liiga summary', () => {
     expect(geometry.awayMarkToCenter).toBeLessThanOrEqual(6);
     expect(geometry.homeMarkToCenter).toBeLessThan(geometry.homeTeamToCenter);
     expect(geometry.awayMarkToCenter).toBeLessThan(geometry.awayTeamToCenter);
+    expect(geometry.homeMarkId).toBe('ilves');
+    expect(geometry.awayMarkId).toBe('tps');
+    expect(geometry.homeMarkScale).toBeCloseTo(0.95, 5);
+    expect(geometry.awayMarkScale).toBeCloseTo(1, 5);
+    expect(geometry.homeMaskImage).toContain('current-ilves-mascot-emblem.svg');
+    expect(geometry.homeMarkSvgOpacity).toBe('0');
   });
 
   test('labels the next game as today when the Helsinki dates match', async ({ page }) => {
