@@ -386,16 +386,18 @@ const loadMarkets = async (root: HTMLElement) => {
   setText(root, '.snapshot-markets .snapshot-kicker', 'TODAY / SELECTED PERFORMANCE');
 
   const byId = new Map<string, SnapshotPortfolioItem>();
-  const todayValues: number[] = [];
   for (const raw of data.items) {
     if (!raw || typeof raw !== 'object') continue;
     const item = raw as SnapshotPortfolioItem;
     if (typeof item.id === 'string') byId.set(item.id, item);
-    const value = item.changes?.today;
-    if (isFiniteNumber(value)) todayValues.push(value);
   }
 
+  const todayValues = SELECTED_MARKETS.flatMap((id) => {
+    const value = byId.get(id)?.changes?.today;
+    return isFiniteNumber(value) ? [value] : [];
+  });
   todayValues.sort((left, right) => left - right);
+
   const medianTarget = root.querySelector<HTMLElement>('[data-snapshot-market-median]');
   if (medianTarget) {
     const midpoint = Math.floor(todayValues.length / 2);
