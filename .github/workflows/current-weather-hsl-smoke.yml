@@ -1,0 +1,143 @@
+name: Current weather and HSL feed smoke
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: current-weather-hsl-feed-smoke
+  cancel-in-progress: true
+
+jobs:
+  weather:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Current Open-Meteo weather source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          url='https://api.open-meteo.com/v1/forecast?latitude=60.1719&longitude=24.7314&timezone=Europe%2FHelsinki&forecast_days=6&temperature_unit=celsius&current=temperature_2m%2Cweather_code%2Cis_day&hourly=temperature_2m%2Cprecipitation_probability%2Cweather_code%2Cis_day&daily=weather_code%2Ctemperature_2m_min%2Ctemperature_2m_max%2Cprecipitation_probability_max%2Csunrise%2Csunset'
+
+          for attempt in $(seq 1 6); do
+            echo "Open-Meteo attempt ${attempt}/6"
+
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 20 \
+              --header 'Accept: application/json' \
+              "$url" \
+              --output current-weather-live.json; then
+              if node <<'NODE'
+          const fs = require('node:fs');
+          const body = JSON.parse(fs.readFileSync('current-weather-live.json', 'utf8'));
+          const failures = [];
+          const current = body.current;
+          const hourly = body.hourly;
+          const daily = body.daily;
+
+          if (!current || !Number.isFinite(current.temperature_2m) || !Number.isFinite(current.weather_code)) {
+            failures.push('current weather is missing or invalid');
+          }
+          if (!current?.time || !Number.isFinite(Date.parse(current.time))) failures.push('current weather time is invalid');
+
+          for (const key of ['time', 'temperature_2m', 'precipitation_probability', 'weather_code', 'is_day']) {
+            if (!Array.isArray(hourly?.[key]) || hourly[key].length < 6) failures.push(`hourly.${key} missing or too short`);
+          }
+
+          for (const key of ['time', 'weather_code', 'temperature_2m_min', 'temperature_2m_max', 'precipitation_probability_max', 'sunrise', 'sunset']) {
+            if (!Array.isArray(daily?.[key]) || daily[key].length < 6) failures.push(`daily.${key} missing or too short`);
+          }
+
+          if (failures.length > 0) {
+            console.error(`Open-Meteo source invalid: ${failures.join(' | ')}`);
+            process.exit(1);
+          }
+
+          console.log(`Open-Meteo verified: current ${current.temperature_2m} C at ${current.time}, ${daily.time.length} forecast days.`);
+          NODE
+              then
+                exit 0
+              fi
+            fi
+
+            if [[ "$attempt" -lt 6 ]]; then
+              sleep 10
+            fi
+          done
+
+          echo "Open-Meteo source did not recover." >&2
+          [[ -f current-weather-live.json ]] && cat current-weather-live.json >&2
+          exit 1
+
+  hsl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify live Current HSL feed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          url="https://aapopihkala.fi/api/current/hsl?live_smoke=${GITHUB_RUN_ID}"
+
+          for attempt in $(seq 1 18); do
+            echo "Current HSL attempt ${attempt}/18"
+
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 20 \
+              --request POST \
+              --header 'Accept: application/json' \
+              --header 'Content-Type: application/json' \
+              --header 'Cache-Control: no-cache' \
+              --data '{"stopCode":"E3239","routes":["121","125"]}' \
+              "$url" \
+              --output current-hsl-live.json; then
+              if node <<'NODE'
+          const fs = require('node:fs');
+          const body = JSON.parse(fs.readFileSync('current-hsl-live.json', 'utf8'));
+          const failures = [];
+          const departures = Array.isArray(body.departures) ? body.departures : null;
+          const routes = Array.isArray(body.routes) ? body.routes : [];
+
+          if (body.source !== 'HSL Digitransit') failures.push(`unexpected source: ${String(body.source)}`);
+          if (!body.fetchedAt || !Number.isFinite(Date.parse(body.fetchedAt))) failures.push('fetchedAt missing or invalid');
+          if (body.stop?.code !== 'E3239') failures.push(`unexpected stop code: ${String(body.stop?.code)}`);
+          if (typeof body.stop?.name !== 'string' || body.stop.name.length === 0) failures.push('stop name missing');
+          if (!routes.includes('121') || !routes.includes('125')) failures.push(`route filter echo invalid: ${routes.join(', ')}`);
+          if (!departures) failures.push('departures is not an array');
+
+          for (const departure of departures ?? []) {
+            if (!['121', '125'].includes(departure?.route)) failures.push(`unexpected route: ${String(departure?.route)}`);
+            if (!Number.isFinite(Date.parse(departure?.scheduledAt))) failures.push('departure scheduledAt invalid');
+            if (!Number.isFinite(Date.parse(departure?.departureAt))) failures.push('departure departureAt invalid');
+            if (!Number.isFinite(departure?.delaySeconds)) failures.push('departure delaySeconds invalid');
+            if (typeof departure?.realtime !== 'boolean') failures.push('departure realtime flag invalid');
+          }
+
+          if (failures.length > 0) {
+            console.error(`Current HSL feed invalid: ${failures.join(' | ')}`);
+            process.exit(1);
+          }
+
+          console.log(`Current HSL verified: ${body.stop.name} ${body.stop.code}, ${departures.length} departures.`);
+          NODE
+              then
+                exit 0
+              fi
+            fi
+
+            if [[ "$attempt" -lt 18 ]]; then
+              sleep 10
+            fi
+          done
+
+          echo "Current HSL feed did not recover in production." >&2
+          [[ -f current-hsl-live.json ]] && cat current-hsl-live.json >&2
+          exit 1
