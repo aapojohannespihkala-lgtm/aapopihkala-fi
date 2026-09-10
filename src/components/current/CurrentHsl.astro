@@ -26,7 +26,7 @@
     <p>
       DATA /
       <a href="https://digitransit.fi/" target="_blank" rel="noopener">HSL DIGITRANSIT</a>
-      · LIVE WHEN AVAILABLE · AUTO REFRESH 30 S
+      · 2 PREVIOUS + NEXT 6 · LIVE WHEN AVAILABLE · AUTO REFRESH 30 S
     </p>
   </footer>
 </section>
@@ -128,6 +128,14 @@
     min-height: 72px;
     padding: 13px 0;
     border-top: 1px solid var(--hsl-rule);
+  }
+
+  .hsl-departure--previous {
+    opacity: 0.64;
+  }
+
+  .hsl-departure--first-upcoming {
+    border-top-color: var(--line);
   }
 
   .hsl-departure__line {

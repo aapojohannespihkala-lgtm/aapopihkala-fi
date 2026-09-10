@@ -19,6 +19,11 @@ type HslResponse = {
   departures: HslDeparture[];
 };
 
+type VisibleDeparture = {
+  departure: HslDeparture;
+  previous: boolean;
+};
+
 const REFRESH_INTERVAL_MS = 30_000;
 const REQUEST_TIMEOUT_MS = 8_000;
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
@@ -26,7 +31,8 @@ const DEFAULT_QUERY = {
   stopCode: 'E3239',
   routes: ['121', '125'],
 } as const;
-const MAX_VISIBLE_DEPARTURES = 6;
+const MAX_PREVIOUS_DEPARTURES = 2;
+const MAX_UPCOMING_DEPARTURES = 6;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -50,6 +56,11 @@ const isHslResponse = (value: unknown): value is HslResponse => {
   });
 };
 
+const timestampOf = (value: string) => {
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+};
+
 const formatClock = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '--:--';
@@ -63,18 +74,43 @@ const formatClock = (value: string) => {
 };
 
 const formatCountdown = (value: string) => {
-  const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) return '--';
+  const timestamp = timestampOf(value);
+  if (timestamp === null) return '--';
 
-  const minutes = Math.ceil((timestamp - Date.now()) / 60_000);
-  if (minutes <= 0) return 'NOW';
-  return `${minutes} MIN`;
+  const deltaMs = timestamp - Date.now();
+  if (deltaMs > 0) return `${Math.ceil(deltaMs / 60_000)} MIN`;
+  if (deltaMs > -30_000) return 'NOW';
+
+  return `${Math.max(1, Math.ceil(Math.abs(deltaMs) / 60_000))} MIN AGO`;
 };
 
 const formatDelay = (seconds: number) => {
   const minutes = Math.round(seconds / 60);
   if (minutes === 0) return '';
   return `${minutes > 0 ? '+' : ''}${minutes} MIN`;
+};
+
+const selectVisibleDepartures = (departures: HslDeparture[]): VisibleDeparture[] => {
+  const now = Date.now();
+  const sorted = departures
+    .map((departure) => ({ departure, scheduledTime: timestampOf(departure.scheduledAt) }))
+    .filter(
+      (entry): entry is { departure: HslDeparture; scheduledTime: number } =>
+        entry.scheduledTime !== null
+    )
+    .sort((a, b) => a.scheduledTime - b.scheduledTime);
+
+  const previous = sorted
+    .filter((entry) => entry.scheduledTime < now)
+    .slice(-MAX_PREVIOUS_DEPARTURES)
+    .map(({ departure }) => ({ departure, previous: true }));
+
+  const upcoming = sorted
+    .filter((entry) => entry.scheduledTime >= now)
+    .slice(0, MAX_UPCOMING_DEPARTURES)
+    .map(({ departure }) => ({ departure, previous: false }));
+
+  return [...previous, ...upcoming];
 };
 
 const errorMessage = (status: number, error: string | null) => {
@@ -109,14 +145,23 @@ export const initCurrentHsl = () => {
     latestData = data;
     departuresTarget.replaceChildren();
 
-    const visibleDepartures = data.departures.slice(0, MAX_VISIBLE_DEPARTURES);
-    const liveCount = visibleDepartures.filter((departure) => departure.realtime).length;
-    status.textContent = `${data.stop.name} / ${data.stop.code} / ${liveCount} LIVE`;
+    const visibleDepartures = selectVisibleDepartures(data.departures);
+    const previousCount = visibleDepartures.filter(({ previous }) => previous).length;
+    const liveCount = visibleDepartures.filter(({ departure }) => departure.realtime).length;
+    status.textContent = `${data.stop.name} / ${data.stop.code} / ${previousCount} PREV / ${liveCount} LIVE`;
 
-    for (const departure of visibleDepartures) {
+    let upcomingStarted = false;
+
+    for (const { departure, previous } of visibleDepartures) {
       const row = document.createElement('div');
-      row.className = 'hsl-departure';
+      row.className = previous ? 'hsl-departure hsl-departure--previous' : 'hsl-departure';
       row.dataset.hslDeparture = '';
+      row.dataset.hslPrevious = String(previous);
+
+      if (!previous && !upcomingStarted && previousCount > 0) {
+        row.classList.add('hsl-departure--first-upcoming');
+        upcomingStarted = true;
+      }
 
       const line = document.createElement('p');
       line.className = 'hsl-departure__line';
