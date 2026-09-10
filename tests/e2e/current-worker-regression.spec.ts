@@ -98,13 +98,23 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
       hours: 744,
     });
 
+    const liigaResponse = await worker.fetch(
+      new Request('https://aapopihkala.fi/api/current/liiga'),
+      env
+    );
+
+    expect(liigaResponse.status).toBe(502);
+    expect(await liigaResponse.json()).toEqual({
+      error: 'Liiga data request failed',
+    });
+
     const scheduleResponse = await worker.fetch(
       new Request('https://aapopihkala.fi/api/current/liiga-schedule'),
       env
     );
 
     expect(scheduleResponse.status).toBe(502);
-    expect(await scheduleResponse.json()).toMatchObject({
+    expect(await scheduleResponse.json()).toEqual({
       error: 'Liiga schedule request failed',
     });
 
