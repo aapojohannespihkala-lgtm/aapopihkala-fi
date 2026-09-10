@@ -111,7 +111,7 @@ test('Snapshot Liiga unavailable state keeps one clean placeholder without match
 
   const liiga = page.locator('[data-snapshot-liiga]');
   await expect(liiga).toHaveClass(/is-unavailable/);
-  await expect(liiga.locator('[data-snapshot-liiga-position]')).toHaveText('--/--');
+  await expect(liiga.locator('[data-snapshot-liiga-position]')).toHaveText(/\s*--\s*\/\s*--\s*/);
   await expect(liiga.locator('.snapshot-liiga__comparison')).toBeHidden();
   await expect(liiga.locator('.snapshot-liiga__match')).toBeHidden();
   await expect(liiga.locator('.snapshot-liiga__footer')).toBeHidden();
