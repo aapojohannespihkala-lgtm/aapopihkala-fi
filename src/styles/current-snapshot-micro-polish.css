@@ -109,13 +109,13 @@
     transform-origin: center center !important;
   }
 
-  /* Keep the score/date block optically centered on the logos rather than the full label+logo stack. */
+  /* Center the time/date block between the visible mark centers while preserving its vertical alignment. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__match-center {
-    transform: translateY(3px);
+    transform: translate(5px, 3px);
   }
 
   /* Visually shorten the next-game date to WED 16 and make it legible at mobile size. */
