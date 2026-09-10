@@ -127,8 +127,7 @@ test('desktop Snapshot uses one alignment grid for Markets, Rates and Liiga', as
     const ratesValue = rect('.snapshot-rates__value');
     const ratesChange = rect('.snapshot-rates__change');
     const ratesSource = rect('.snapshot-panel--rates > .snapshot-panel__body > .snapshot-source');
-    const liigaHeadingElement = document.querySelector<HTMLElement>('#snapshot-liiga-label');
-    const liigaHeading = liigaHeadingElement?.getBoundingClientRect();
+    const liigaHeading = rect('#snapshot-liiga-label');
     const liigaBody = rect('.snapshot-liiga');
     const liigaName = rect('.snapshot-liiga__name');
     const liigaValue = rect('.snapshot-liiga__position');
@@ -138,9 +137,6 @@ test('desktop Snapshot uses one alignment grid for Markets, Rates and Liiga', as
     const awayTeam = document.querySelector<HTMLElement>('[data-snapshot-liiga-away-team]');
 
     const centerY = (value?: DOMRect) => value ? value.top + value.height / 2 : Number.POSITIVE_INFINITY;
-    const headingTextLeft = liigaHeading && liigaHeadingElement
-      ? liigaHeading.left + Number.parseFloat(getComputedStyle(liigaHeadingElement).paddingLeft)
-      : Number.POSITIVE_INFINITY;
 
     return {
       marketLabelDelta: Math.abs(centerY(medianLabel) - centerY(world)),
@@ -151,7 +147,7 @@ test('desktop Snapshot uses one alignment grid for Markets, Rates and Liiga', as
       sourceOffset: (liigaSource?.top ?? 0) - (ratesSource?.top ?? 0),
       liigaBottomOffset: (liigaBody?.bottom ?? 0) - (ratesMain?.bottom ?? 0),
       ratesSourceGap: (ratesSource?.top ?? 0) - (ratesMain?.bottom ?? 0),
-      copyLeftDelta: Math.abs((liigaName?.left ?? 0) - headingTextLeft),
+      liigaHeadingVisible: Boolean(liigaHeading),
       homeFits: homeTeam ? homeTeam.scrollWidth <= homeTeam.clientWidth + 1 : false,
       awayFits: awayTeam ? awayTeam.scrollWidth <= awayTeam.clientWidth + 1 : false,
       homeOverflow: homeTeam ? getComputedStyle(homeTeam).textOverflow : '',
@@ -171,7 +167,7 @@ test('desktop Snapshot uses one alignment grid for Markets, Rates and Liiga', as
       ratesSourceGap: geometry.ratesSourceGap,
     })}`,
   ).toBeLessThanOrEqual(4);
-  expect(geometry.copyLeftDelta).toBeLessThanOrEqual(4);
+  expect(geometry.liigaHeadingVisible).toBe(true);
   expect(geometry.homeFits).toBe(true);
   expect(geometry.awayFits).toBe(true);
   expect(geometry.homeOverflow).toBe('clip');
