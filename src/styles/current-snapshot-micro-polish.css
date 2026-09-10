@@ -18,13 +18,30 @@
     column-gap: 7px !important;
   }
 
-  /* Raise the complete match group slightly against the large 6/17 headline. */
+  /* Raise the complete match group slightly and nudge it right for a cleaner gap from 6/17. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__match {
-    transform: translateY(-2px);
+    transform: translate(1px, -2px);
+  }
+
+  /* Keep full team names clearly above their marks while preserving the inward optical offsets. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) b {
+    transform: translate(-3px, -2px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away b {
+    transform: translate(3px, -2px) !important;
   }
 }
 

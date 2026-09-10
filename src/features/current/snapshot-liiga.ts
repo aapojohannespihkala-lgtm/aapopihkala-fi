@@ -1,5 +1,5 @@
 import { getLiigaMarkPaths, isLiigaMarkFilled } from '../../config/liigaMarks';
-import { getLiigaTeamById } from '../../config/liigaTeams';
+import { getLiigaTeamById, getLiigaTeamBySourceId } from '../../config/liigaTeams';
 
 type SnapshotLiigaStanding = {
   rank: number;
@@ -112,6 +112,9 @@ const formatGameClock = (value: number | null) => {
 const getTeamAbbreviation = (teamId: string, fallback: string) =>
   getLiigaTeamById(teamId)?.abbreviation ?? fallback.slice(0, 3).toUpperCase();
 
+const getTeamDisplayName = (teamId: string, fallback: string) =>
+  getLiigaTeamById(teamId)?.name ?? getLiigaTeamBySourceId(fallback)?.name ?? fallback;
+
 const createTeamMark = (teamId: string) => {
   if (teamId === 'ilves') {
     const mark = document.createElement('span');
@@ -204,7 +207,7 @@ const renderTeam = (
   teamId: string,
   teamName: string,
 ) => {
-  const displayName = getLiigaTeamById(teamId)?.name ?? teamName;
+  const displayName = getTeamDisplayName(teamId, teamName);
   setText(root, `[data-snapshot-liiga-${side}-team]`, displayName);
   const markTarget = root.querySelector<HTMLElement>(`[data-snapshot-liiga-${side}-mark]`);
   if (!markTarget) return;
@@ -241,7 +244,7 @@ const renderStanding = (
 ) => {
   if (!standing) {
     setStandingPosition(root, null, null);
-    setText(root, '[data-snapshot-liiga-comparison]', 'ILV -- P · TOP -- P · GAP -- P');
+    setText(root, '[data-snapshot-liiga-comparison]', 'ILV -- P · TOP -- P');
     return;
   }
 
@@ -252,7 +255,7 @@ const renderStanding = (
     setText(
       root,
       '[data-snapshot-liiga-comparison]',
-      `ILV ${standing.points} P · TOP -- P · GAP -- P`,
+      `ILV ${standing.points} P · TOP -- P`,
     );
     return;
   }
@@ -260,13 +263,11 @@ const renderStanding = (
   const leaderLabel = leader.id === 'ilves'
     ? 'TOP'
     : getTeamAbbreviation(leader.id, leader.name || leader.abbreviation);
-  const gap = standing.points - leader.points;
-  const gapLabel = gap > 0 ? `+${gap}` : String(gap);
 
   setText(
     root,
     '[data-snapshot-liiga-comparison]',
-    `ILV ${standing.points} P · ${leaderLabel} ${leader.points} P · GAP ${gapLabel} P`,
+    `ILV ${standing.points} P · ${leaderLabel} ${leader.points} P`,
   );
 };
 
@@ -279,8 +280,8 @@ const renderLastGame = (root: HTMLElement, game: SnapshotLiigaLastGame | null) =
     return;
   }
 
-  const home = getLiigaTeamById(game.homeTeamId)?.name ?? game.homeTeam;
-  const away = getLiigaTeamById(game.awayTeamId)?.name ?? game.awayTeam;
+  const home = getTeamDisplayName(game.homeTeamId, game.homeTeam);
+  const away = getTeamDisplayName(game.awayTeamId, game.awayTeam);
   target.textContent = `LAST / ${home} ${game.homeGoals}-${game.awayGoals} ${away}`;
 };
 
@@ -768,7 +769,7 @@ const ensureSnapshotLiiga = () => {
   const existing = main.querySelector<HTMLElement>('[data-snapshot-liiga]');
   if (existing) return existing;
 
-const section = document.createElement('section');
+  const section = document.createElement('section');
   section.className = 'snapshot-liiga';
   section.dataset.snapshotLiiga = 'true';
   section.setAttribute('aria-label', 'Ilves Liiga status');
@@ -782,7 +783,7 @@ const section = document.createElement('section');
         <span class="snapshot-liiga__position-total">--</span>
       </strong>
     </div>
-    <p class="snapshot-liiga__comparison" data-snapshot-liiga-comparison>ILV -- P · TOP -- P · GAP -- P</p>
+    <p class="snapshot-liiga__comparison" data-snapshot-liiga-comparison>ILV -- P · TOP -- P</p>
     <div class="snapshot-liiga__match">
       <span class="snapshot-liiga__team">
         <span class="snapshot-liiga__mark-wrap" data-snapshot-liiga-home-mark></span>
