@@ -11,6 +11,9 @@ type GuardedFetch = typeof fetch & {
 const getRequestUrl = (input: RequestInfo | URL) =>
   input instanceof Request ? input.url : String(input);
 
+const getUpstreamSignal = (input: RequestInfo | URL, init?: RequestInit) =>
+  init?.signal ?? (input instanceof Request ? input.signal : undefined);
+
 export const fetchCurrentExternal = async (
   fetchImpl: typeof fetch,
   input: RequestInfo | URL,
@@ -29,12 +32,24 @@ export const fetchCurrentExternal = async (
     url.origin === OPEN_METEO_ORIGIN &&
     url.pathname === OPEN_METEO_FORECAST_PATH;
 
-  if (!isCurrentWeatherRequest || init?.signal) {
+  if (!isCurrentWeatherRequest) {
     return fetchImpl(input, init);
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const upstreamSignal = getUpstreamSignal(input, init);
+  const forwardAbort = () => controller.abort(upstreamSignal?.reason);
+
+  if (upstreamSignal?.aborted) {
+    controller.abort(upstreamSignal.reason);
+  } else {
+    upstreamSignal?.addEventListener('abort', forwardAbort, { once: true });
+  }
+
+  const timeout = setTimeout(
+    () => controller.abort(new DOMException('Current weather request timed out', 'TimeoutError')),
+    timeoutMs
+  );
 
   try {
     return await fetchImpl(input, {
@@ -43,6 +58,7 @@ export const fetchCurrentExternal = async (
     });
   } finally {
     clearTimeout(timeout);
+    upstreamSignal?.removeEventListener('abort', forwardAbort);
   }
 };
 

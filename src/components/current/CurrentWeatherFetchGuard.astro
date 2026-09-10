@@ -1,53 +1,8 @@
 ---
 ---
 
-<script is:inline>
-  (() => {
-    const installKey = '__currentWeatherFetchTimeoutInstalled';
-    if (window[installKey]) return;
-    window[installKey] = true;
+<script>
+  import { installCurrentExternalFetchGuard } from '../../features/current/externalFetchGuard';
 
-    const nativeFetch = window.fetch.bind(window);
-    const weatherOrigin = 'https://api.open-meteo.com';
-    const weatherPath = '/v1/forecast';
-    const timeoutMs = 8_000;
-
-    window.fetch = (input, init = {}) => {
-      let target;
-
-      try {
-        const raw = input instanceof Request
-          ? input.url
-          : input instanceof URL
-            ? input.href
-            : String(input);
-        target = new URL(raw, window.location.href);
-      } catch {
-        return nativeFetch(input, init);
-      }
-
-      if (target.origin !== weatherOrigin || target.pathname !== weatherPath) {
-        return nativeFetch(input, init);
-      }
-
-      const controller = new AbortController();
-      const upstreamSignal = init.signal ?? (input instanceof Request ? input.signal : undefined);
-      const forwardAbort = () => controller.abort(upstreamSignal?.reason);
-
-      if (upstreamSignal?.aborted) {
-        controller.abort(upstreamSignal.reason);
-      } else {
-        upstreamSignal?.addEventListener('abort', forwardAbort, { once: true });
-      }
-
-      const timeout = window.setTimeout(() => {
-        controller.abort(new DOMException('Current weather request timed out', 'TimeoutError'));
-      }, timeoutMs);
-
-      return nativeFetch(input, { ...init, signal: controller.signal }).finally(() => {
-        window.clearTimeout(timeout);
-        upstreamSignal?.removeEventListener('abort', forwardAbort);
-      });
-    };
-  })();
+  installCurrentExternalFetchGuard();
 </script>
