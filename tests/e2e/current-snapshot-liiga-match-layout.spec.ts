@@ -137,6 +137,7 @@ const geometry = async (page: Page) => page.evaluate(() => {
   const positionRect = position.getBoundingClientRect();
   const comparisonRect = comparison.getBoundingClientRect();
   const matchRect = match.getBoundingClientRect();
+  const centerRect = center.getBoundingClientRect();
   const homeTeamRect = homeTeam.getBoundingClientRect();
   const awayTeamRect = awayTeam.getBoundingClientRect();
   const homeNameRect = homeName.getBoundingClientRect();
@@ -144,6 +145,9 @@ const geometry = async (page: Page) => page.evaluate(() => {
   const homeMarkRect = homeMark.getBoundingClientRect();
   const awayMarkRect = awayMark.getBoundingClientRect();
   const sourceRect = source.getBoundingClientRect();
+  const comparisonRange = document.createRange();
+  comparisonRange.selectNodeContents(comparison);
+  const comparisonTextRect = comparisonRange.getBoundingClientRect();
   const live = getComputedStyle(center, '::after');
 
   return {
@@ -156,6 +160,7 @@ const geometry = async (page: Page) => page.evaluate(() => {
     rateChangeBottom: rateChangeRect.bottom,
     positionLeft: positionRect.left,
     comparisonLeft: comparisonRect.left,
+    comparisonTextLeft: comparisonTextRect.left,
     comparisonBottom: comparisonRect.bottom,
     matchLeft: matchRect.left,
     matchRight: matchRect.right,
@@ -185,6 +190,10 @@ const geometry = async (page: Page) => page.evaluate(() => {
     awayMarkTop: awayMarkRect.top,
     homeMarkWidth: homeMarkRect.width,
     awayMarkWidth: awayMarkRect.width,
+    homeMarkToCenter: centerRect.left - homeMarkRect.right,
+    awayMarkToCenter: awayMarkRect.left - centerRect.right,
+    homeNameToCenter: centerRect.left - homeNameRect.right,
+    awayNameToCenter: awayNameRect.left - centerRect.right,
     liveContent: live.content.replaceAll('"', ''),
     liveDisplay: live.display,
   };
@@ -205,7 +214,8 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }
     const g = await geometry(page);
     expect(g.pageWidth).toBeLessThanOrEqual(g.viewportWidth + 1);
     expect(g.positionLeft).toBeGreaterThanOrEqual(g.splitX + 4);
-    expect(g.comparisonLeft).toBeGreaterThanOrEqual(g.splitX + 4);
+    expect(g.comparisonLeft).toBeGreaterThanOrEqual(g.splitX - 1);
+    expect(g.comparisonTextLeft).toBeGreaterThanOrEqual(g.splitX + 4);
     expect(g.matchLeft).toBeLessThanOrEqual(g.mainLeft + 1);
     expect(g.matchRight).toBeGreaterThanOrEqual(g.mainRight - 1);
     expect(g.matchWidth).toBeGreaterThanOrEqual(g.mainWidth - 2);
@@ -224,8 +234,14 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }
     expect(g.homeMarkRight).toBeLessThanOrEqual(g.matchRight + 1);
     expect(g.awayMarkLeft).toBeGreaterThanOrEqual(g.matchLeft - 1);
     expect(g.awayMarkRight).toBeLessThanOrEqual(g.matchRight + 1);
-    expect(g.homeMarkWidth).toBeGreaterThanOrEqual(viewport.width <= 380 ? 26 : 29);
-    expect(g.awayMarkWidth).toBeGreaterThanOrEqual(viewport.width <= 380 ? 26 : 29);
+    expect(g.homeMarkWidth).toBeGreaterThanOrEqual(viewport.width <= 380 ? 30 : 32);
+    expect(g.awayMarkWidth).toBeGreaterThanOrEqual(viewport.width <= 380 ? 30 : 32);
+    expect(g.homeMarkToCenter).toBeGreaterThanOrEqual(0);
+    expect(g.homeMarkToCenter).toBeLessThanOrEqual(6);
+    expect(g.awayMarkToCenter).toBeGreaterThanOrEqual(0);
+    expect(g.awayMarkToCenter).toBeLessThanOrEqual(6);
+    expect(g.homeMarkToCenter).toBeLessThan(g.homeNameToCenter);
+    expect(g.awayMarkToCenter).toBeLessThan(g.awayNameToCenter);
     expect(g.liveContent).not.toBe('LIVE');
   });
 
@@ -253,6 +269,10 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }
     expect(g.awayNameBottom).toBeLessThanOrEqual(g.awayMarkTop + 1);
     expect(g.homeNameScrollWidth).toBeLessThanOrEqual(g.homeNameClientWidth + 1);
     expect(g.awayNameScrollWidth).toBeLessThanOrEqual(g.awayNameClientWidth + 1);
+    expect(g.homeMarkToCenter).toBeGreaterThanOrEqual(0);
+    expect(g.homeMarkToCenter).toBeLessThanOrEqual(6);
+    expect(g.awayMarkToCenter).toBeGreaterThanOrEqual(0);
+    expect(g.awayMarkToCenter).toBeLessThanOrEqual(6);
     expect(g.liveContent).toBe('LIVE');
     expect(g.liveDisplay).not.toBe('none');
   });
