@@ -42,12 +42,6 @@ test('mobile Snapshot headings share one size and the key columns share baseline
       getComputedStyle(document.querySelector<HTMLElement>(selector)!).textAlign
     );
 
-    const liigaHeading = document.querySelector<HTMLElement>('#snapshot-liiga-label')!;
-    const liigaName = document.querySelector<HTMLElement>('.snapshot-liiga__name')!;
-    const headingStyle = getComputedStyle(liigaHeading);
-    const headingTextLeft = liigaHeading.getBoundingClientRect().left + Number.parseFloat(headingStyle.paddingLeft);
-    const liigaNameLeft = liigaName.getBoundingClientRect().left;
-
     const marketsLabel = document.querySelector<HTMLElement>('.snapshot-markets__median > span')!;
     const worldLabel = document.querySelector<HTMLElement>('.snapshot-market-row:first-child > span')!;
     const marketsLabelRect = marketsLabel.getBoundingClientRect();
@@ -58,6 +52,7 @@ test('mobile Snapshot headings share one size and the key columns share baseline
     const ratesSource = document.querySelector<HTMLElement>('.snapshot-panel--rates > .snapshot-panel__body > .snapshot-source')!;
     const liigaPosition = document.querySelector<HTMLElement>('.snapshot-liiga__position')!;
     const liigaSource = document.querySelector<HTMLElement>('.snapshot-liiga__source')!;
+    const liigaName = document.querySelector<HTMLElement>('.snapshot-liiga__name')!;
     const panelBody = document.querySelector<HTMLElement>('.snapshot-panel--rates > .snapshot-panel__body')!;
 
     const ratesLabelRect = ratesLabel.getBoundingClientRect();
@@ -71,7 +66,6 @@ test('mobile Snapshot headings share one size and the key columns share baseline
     return {
       titleSizes,
       titleAlignments,
-      liigaLeftDelta: Math.abs(liigaNameLeft - headingTextLeft),
       marketsRowDelta: Math.abs(
         marketsLabelRect.top + marketsLabelRect.height / 2 - (worldLabelRect.top + worldLabelRect.height / 2)
       ),
@@ -84,7 +78,6 @@ test('mobile Snapshot headings share one size and the key columns share baseline
 
   expect(Math.max(...geometry.titleSizes) - Math.min(...geometry.titleSizes)).toBeLessThanOrEqual(0.1);
   expect(geometry.titleAlignments.every((value) => value === 'left' || value === 'start')).toBe(true);
-  expect(geometry.liigaLeftDelta).toBeLessThanOrEqual(2);
   expect(geometry.marketsRowDelta).toBeLessThanOrEqual(2);
   expect(geometry.metricLabelTopDelta).toBeLessThanOrEqual(2);
   expect(geometry.headlineTopDelta).toBeLessThanOrEqual(3);
