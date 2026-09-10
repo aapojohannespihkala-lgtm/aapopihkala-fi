@@ -202,9 +202,9 @@ body:has(.snapshot-shell)
     overflow: visible !important;
   }
 
-  /* Names sit directly above their marks. The full-width row now gives each team
-     enough room for complete text, while the team units hug the score so the two
-     32px marks remain the nearest visual anchors to the match center. */
+  /* Names sit directly above their marks. The full-width row gives each team
+     enough room for complete text. Labels offset slightly outward while the two
+     32px marks stay nearest the score/time. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
@@ -251,7 +251,22 @@ body:has(.snapshot-shell)
     font-size: 0.4rem !important;
     line-height: 1 !important;
     margin: 0 !important;
-    transform: none !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) b {
+    transform: translateX(-4px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away b {
+    transform: translateX(4px) !important;
   }
 
   body:has(.snapshot-shell)
@@ -412,6 +427,22 @@ body:has(.snapshot-shell)
     .snapshot-liiga
     .snapshot-liiga__team b {
     font-size: 0.36rem !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) b {
+    transform: translateX(-3px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away b {
+    transform: translateX(3px) !important;
   }
 
   body:has(.snapshot-shell)
