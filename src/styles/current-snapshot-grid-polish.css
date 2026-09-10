@@ -67,6 +67,17 @@ body:has(.snapshot-shell)
     --snapshot-liiga-index-width: 38px;
   }
 
+  /* Rebalance the fixed mobile dashboard height slightly toward Rates / Liiga.
+     Electricity still keeps the second-largest panel, while the lower panel gets
+     enough real height for a 32px mark row without overlapping the Euribor change. */
+  body:has(.snapshot-shell) .snapshot-grid {
+    grid-template-rows:
+      minmax(0, 1.12fr)
+      minmax(0, 1.38fr)
+      minmax(0, 1.12fr)
+      minmax(0, 1.28fr) !important;
+  }
+
   /* The Euribor chart is intentionally removed on Snapshot, so the lower panel
      has useful horizontal space outside the metric itself. Let Liiga cover the
      full Rates / Liiga main area, keep its summary on the 58% side, and reserve
@@ -102,7 +113,7 @@ body:has(.snapshot-shell)
     align-self: stretch !important;
     display: grid !important;
     grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr) !important;
-    grid-template-rows: minmax(0, 1fr) 38px !important;
+    grid-template-rows: minmax(0, 1fr) 40px !important;
     column-gap: 0 !important;
     row-gap: 2px !important;
     align-content: stretch !important;
@@ -121,7 +132,7 @@ body:has(.snapshot-shell)
     content: '';
     position: absolute;
     top: 0;
-    bottom: 40px;
+    bottom: 42px;
     left: 42%;
     z-index: 0;
     border-left: 1px solid var(--line);
@@ -181,18 +192,19 @@ body:has(.snapshot-shell)
     justify-self: stretch !important;
     width: 100% !important;
     min-width: 0 !important;
-    min-height: 38px !important;
+    min-height: 40px !important;
     box-sizing: border-box !important;
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(58px, auto) minmax(0, 1fr) !important;
+    grid-template-columns: minmax(0, 1fr) minmax(60px, auto) minmax(0, 1fr) !important;
     align-items: center !important;
     column-gap: 5px !important;
     padding: 0 8px !important;
     overflow: visible !important;
   }
 
-  /* Names sit directly above their marks. With the full-width match row each
-     team now has enough real width, so nothing should depend on clipping. */
+  /* Names sit directly above their marks. The full-width row now gives each team
+     enough room for complete text, while the team units hug the score so the two
+     32px marks remain the nearest visual anchors to the match center. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
@@ -201,11 +213,26 @@ body:has(.snapshot-shell)
     min-width: 0 !important;
     width: 100% !important;
     display: grid !important;
-    grid-template-rows: auto 29px !important;
-    justify-items: center !important;
+    grid-template-rows: auto 32px !important;
     align-content: center !important;
     gap: 1px !important;
     overflow: visible !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) {
+    justify-items: end !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away {
+    justify-items: start !important;
   }
 
   body:has(.snapshot-shell)
@@ -235,9 +262,8 @@ body:has(.snapshot-shell)
     .snapshot-liiga__mark-wrap {
     grid-row: 2 !important;
     order: 0 !important;
-    width: 29px !important;
-    height: 29px !important;
-    justify-self: center !important;
+    width: 32px !important;
+    height: 32px !important;
     overflow: visible !important;
   }
 
@@ -246,7 +272,7 @@ body:has(.snapshot-shell)
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__match-center {
-    min-width: 58px !important;
+    min-width: 60px !important;
     display: grid !important;
     grid-template-rows: auto auto auto !important;
     justify-items: center !important;
@@ -327,7 +353,7 @@ body:has(.snapshot-shell)
     .snapshot-rates__main
     .snapshot-liiga {
     grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr) !important;
-    grid-template-rows: minmax(0, 1fr) 35px !important;
+    grid-template-rows: minmax(0, 1fr) 38px !important;
     row-gap: 1px !important;
   }
 
@@ -335,7 +361,7 @@ body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga::before {
-    bottom: 36px;
+    bottom: 39px;
   }
 
   body:has(.snapshot-shell)
@@ -356,8 +382,8 @@ body:has(.snapshot-shell)
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__match {
-    min-height: 35px !important;
-    grid-template-columns: minmax(0, 1fr) minmax(54px, auto) minmax(0, 1fr) !important;
+    min-height: 38px !important;
+    grid-template-columns: minmax(0, 1fr) minmax(56px, auto) minmax(0, 1fr) !important;
     column-gap: 3px !important;
     padding: 0 6px !important;
   }
@@ -367,7 +393,7 @@ body:has(.snapshot-shell)
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__team {
-    grid-template-rows: auto 26px !important;
+    grid-template-rows: auto 30px !important;
   }
 
   body:has(.snapshot-shell)
@@ -376,8 +402,8 @@ body:has(.snapshot-shell)
     .snapshot-liiga
     .snapshot-liiga__team
     .snapshot-liiga__mark-wrap {
-    width: 26px !important;
-    height: 26px !important;
+    width: 30px !important;
+    height: 30px !important;
   }
 
   body:has(.snapshot-shell)
@@ -401,7 +427,7 @@ body:has(.snapshot-shell)
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__match-center {
-    min-width: 54px !important;
+    min-width: 56px !important;
   }
 
   body:has(.snapshot-shell)
