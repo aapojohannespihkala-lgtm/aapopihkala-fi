@@ -13,9 +13,10 @@ electricity() { add current-electricity-alignment current-electricity-presentati
 weather() { add current-weather-solar-geometry current-weather-solar-presentation current-weather-timeout; }
 markets() { add current-markets current-markets-default-order current-markets-fallback current-markets-timeout; }
 liiga() { add current-liiga current-liiga-schedule current-snapshot-liiga; }
+hsl() { add current-hsl; }
 snapshot() { add current-snapshot current-snapshot-liiga current-snapshot-month-calendar; }
 all_current() {
-  layout; electricity; weather; markets; liiga; snapshot
+  layout; electricity; weather; markets; liiga; hsl; snapshot
   add current-news current-news-timeout current2-responsive
 }
 
@@ -32,6 +33,8 @@ for file in "$@"; do
       snapshot ;;
     src/components/current/CurrentLiiga*|src/pages/current/liiga/*|src/features/current/liiga*|src/styles/current-liiga*|src/config/liiga*|public/icons/current-*)
       liiga ;;
+    src/components/current/CurrentHsl*|src/pages/current/hsl/*|src/features/current/hsl*)
+      hsl ;;
     src/components/current/CurrentElectricity*|src/pages/current/electricity/*|src/features/current/electricity*|src/styles/current-electricity*)
       layout; electricity; add current-snapshot ;;
     src/components/current/CurrentWeather*|src/pages/current/weather/*|src/features/current/weather*|src/features/current/solarPresentation.ts|src/styles/current-weather*|src/styles/current-solar*)
@@ -50,6 +53,8 @@ for file in "$@"; do
       liiga; add current-worker-regression ;;
     functions/api/current/electricity*)
       electricity; add current-worker-regression current-regression ;;
+    functions/api/current/hsl*)
+      hsl; add current-worker-regression ;;
     functions/api/current/news*)
       add current-news current-news-timeout ;;
     functions/api/current/*|worker/*|wrangler.jsonc)

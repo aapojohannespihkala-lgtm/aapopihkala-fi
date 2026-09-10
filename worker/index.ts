@@ -1,5 +1,6 @@
 import { onRequestGet as getElectricityPriceResponse } from '../functions/api/current/electricity';
 import { onRequestGet as getElectricityMonthResponse } from '../functions/api/current/electricity-month';
+import { fetchHslDeparturesResponse } from '../functions/api/current/hsl';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
@@ -12,19 +13,21 @@ type AssetsBinding = {
 
 type WorkerEnv = {
   ASSETS: AssetsBinding;
+  DIGITRANSIT_API_KEY?: string;
 };
 
 const ELECTRICITY_PATH = '/api/current/electricity';
 const ELECTRICITY_MONTH_PATH = '/api/current/electricity-month';
+const HSL_PATH = '/api/current/hsl';
 const MARKETS_PATH = '/api/current/markets';
 const NEWS_PATH = '/api/current/news';
 const LIIGA_PATH = '/api/current/liiga';
 const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
 
-const methodNotAllowed = () =>
+const methodNotAllowed = (allow = 'GET') =>
   new Response('Method not allowed', {
     status: 405,
-    headers: { Allow: 'GET' },
+    headers: { Allow: allow },
   });
 
 const publicLiigaResponse = async (response: Response, error: string) => {
@@ -51,6 +54,14 @@ const worker = {
     if (url.pathname === ELECTRICITY_MONTH_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
       return getElectricityMonthResponse();
+    }
+
+    if (url.pathname === HSL_PATH) {
+      if (request.method !== 'POST') return methodNotAllowed('POST');
+      return fetchHslDeparturesResponse({
+        request,
+        apiKey: env.DIGITRANSIT_API_KEY,
+      });
     }
 
     if (url.pathname === MARKETS_PATH) {

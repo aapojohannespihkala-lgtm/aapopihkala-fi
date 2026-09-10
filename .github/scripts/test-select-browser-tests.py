@@ -20,11 +20,22 @@ class SelectionTests(unittest.TestCase):
         self.assertIn('tests/e2e/current-snapshot-liiga.spec.ts', specs)
         self.assertFalse(any('electricity' in s or 'calendar' in s or 'current2' in s for s in specs))
 
+    def test_hsl_is_scoped_to_its_ui_and_worker_guards(self):
+        self.assertEqual(
+            selected('src/features/current/hsl.ts'),
+            ['tests/e2e/current-hsl.spec.ts'],
+        )
+        self.assertEqual(
+            selected('functions/api/current/hsl.ts'),
+            ['tests/e2e/current-hsl.spec.ts', 'tests/e2e/current-worker-regression.spec.ts'],
+        )
+
     def test_shared_layout_retains_all_domain_guards(self):
         specs = selected('src/layouts/BaseLayout.astro')
         for name in ['current-section-boundaries', 'current-electricity-alignment',
-                     'current-snapshot-month-calendar', 'current-liiga', 'current-news',
-                     'current-markets', 'current-weather-timeout', 'current2-responsive']:
+                     'current-snapshot-month-calendar', 'current-liiga', 'current-hsl',
+                     'current-news', 'current-markets', 'current-weather-timeout',
+                     'current2-responsive']:
             self.assertIn(f'tests/e2e/{name}.spec.ts', specs)
 
     def test_mixed_changes_union_without_duplicates(self):

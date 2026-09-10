@@ -2,16 +2,20 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { fetchElectricityResponse } from '../../functions/api/current/electricity';
 import { fetchElectricityMonthResponse } from '../../functions/api/current/electricity-month';
+import { fetchHslDeparturesResponse } from '../../functions/api/current/hsl';
 import worker from '../../worker/index';
 
 const workerFirstPaths = [
   '/api/current/electricity',
   '/api/current/electricity-month',
+  '/api/current/hsl',
   '/api/current/markets',
   '/api/current/news',
   '/api/current/liiga',
   '/api/current/liiga-schedule',
 ];
+
+const getOnlyWorkerPaths = workerFirstPaths.filter((path) => path !== '/api/current/hsl');
 
 const buildWorkerElectricityFixture = () => ({
   prices: [
@@ -49,6 +53,39 @@ const buildWorkerLiigaScheduleFixture = (start: string) => ({
   ],
 });
 
+const buildWorkerHslFixture = () => ({
+  data: {
+    stops: [
+      {
+        name: 'Example Stop',
+        code: 'E1234',
+        stoptimesWithoutPatterns: [
+          {
+            serviceDay: 1_789_000_000,
+            scheduledDeparture: 36_000,
+            realtimeDeparture: 36_060,
+            departureDelay: 60,
+            realtime: true,
+            realtimeState: 'UPDATED',
+            headsign: 'Central Station',
+            trip: { route: { shortName: '100' } },
+          },
+          {
+            serviceDay: 1_789_000_000,
+            scheduledDeparture: 36_600,
+            realtimeDeparture: 36_600,
+            departureDelay: 0,
+            realtime: false,
+            realtimeState: 'SCHEDULED',
+            headsign: 'Other destination',
+            trip: { route: { shortName: '999' } },
+          },
+        ],
+      },
+    ],
+  },
+});
+
 test('Wrangler sends every Current API route through the Worker first', () => {
   const config = JSON.parse(
     readFileSync(new URL('../../wrangler.jsonc', import.meta.url), 'utf8')
@@ -57,10 +94,11 @@ test('Wrangler sends every Current API route through the Worker first', () => {
   expect(config.assets?.run_worker_first).toEqual(workerFirstPaths);
 });
 
-test('Worker serves Current APIs, enforces GET-only routes and keeps static assets as fallback', async () => {
+test('Worker serves Current APIs, enforces route methods and keeps static assets as fallback', async () => {
   const originalFetch = globalThis.fetch;
   const upstreamFixture = buildWorkerElectricityFixture();
   const monthFixture = buildWorkerElectricityMonthFixture();
+  const hslFixture = buildWorkerHslFixture();
   const scheduleStart = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const scheduleFixture = buildWorkerLiigaScheduleFixture(scheduleStart);
 
@@ -79,6 +117,23 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
 
     if (url === 'https://parassahko.fi/tilastot/data.json') {
       return new Response(JSON.stringify(monthFixture), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (url === 'https://api.digitransit.fi/routing/v2/hsl/gtfs/v1') {
+      expect(init?.method).toBe('POST');
+      expect(headers.get('Content-Type')).toBe('application/json');
+      expect(headers.get('digitransit-subscription-key')).toBe('test-digitransit-key');
+
+      const body = JSON.parse(String(init?.body));
+      expect(body.variables).toMatchObject({
+        stopQuery: 'E1234',
+        numberOfDepartures: 40,
+      });
+
+      return new Response(JSON.stringify(hslFixture), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -106,6 +161,7 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
       fetch: async (request: Request) =>
         new Response(`asset:${new URL(request.url).pathname}`, { status: 200 }),
     },
+    DIGITRANSIT_API_KEY: 'test-digitransit-key',
   };
 
   try {
@@ -128,6 +184,31 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
       kind: 'last-complete-month',
       month: '2026-08',
       hours: 744,
+    });
+
+    const hslResponse = await worker.fetch(
+      new Request('https://aapopihkala.fi/api/current/hsl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stopCode: 'E1234', routes: ['100'] }),
+      }),
+      env
+    );
+
+    expect(hslResponse.status).toBe(200);
+    expect(await hslResponse.json()).toMatchObject({
+      source: 'HSL Digitransit',
+      stop: { code: 'E1234', name: 'Example Stop' },
+      routes: ['100'],
+      departures: [
+        {
+          route: '100',
+          headsign: 'Central Station',
+          delaySeconds: 60,
+          realtime: true,
+          realtimeState: 'UPDATED',
+        },
+      ],
     });
 
     const liigaResponse = await worker.fetch(
@@ -166,6 +247,13 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
       ],
     });
 
+    const hslMethodResponse = await worker.fetch(
+      new Request('https://aapopihkala.fi/api/current/hsl'),
+      env
+    );
+    expect(hslMethodResponse.status).toBe(405);
+    expect(hslMethodResponse.headers.get('allow')).toBe('POST');
+
     const staticResponse = await worker.fetch(
       new Request('https://aapopihkala.fi/current/'),
       env
@@ -174,7 +262,7 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
     expect(staticResponse.status).toBe(200);
     expect(await staticResponse.text()).toBe('asset:/current/');
 
-    for (const path of workerFirstPaths) {
+    for (const path of getOnlyWorkerPaths) {
       const methodResponse = await worker.fetch(
         new Request(`https://aapopihkala.fi${path}`, { method: 'POST' }),
         env
@@ -217,5 +305,31 @@ test('Current electricity month returns a bounded upstream failure after abort',
 
   expect(response.status).toBe(502);
   expect(await response.json()).toEqual({ error: 'statistics_unavailable' });
+  expect(Date.now() - startedAt).toBeLessThan(1_000);
+});
+
+test('Current HSL returns a bounded upstream failure after abort', async () => {
+  const abortingFetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
+    new Promise<Response>((_resolve, reject) => {
+      const signal = init?.signal;
+      expect(signal).toBeInstanceOf(AbortSignal);
+      signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+    })) as typeof fetch;
+
+  const request = new Request('https://aapopihkala.fi/api/current/hsl', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stopCode: 'E1234', routes: ['100'] }),
+  });
+  const startedAt = Date.now();
+  const response = await fetchHslDeparturesResponse({
+    request,
+    apiKey: 'test-digitransit-key',
+    fetchImpl: abortingFetch,
+    timeoutMs: 5,
+  });
+
+  expect(response.status).toBe(502);
+  expect(await response.json()).toEqual({ error: 'upstream_unavailable' });
   expect(Date.now() - startedAt).toBeLessThan(1_000);
 });
