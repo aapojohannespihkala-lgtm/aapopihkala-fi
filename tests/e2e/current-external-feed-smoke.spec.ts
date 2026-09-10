@@ -22,7 +22,7 @@ test('Current external feed smoke covers the previously unmonitored production s
 
 test('Current external feed smoke keeps every network probe bounded', async () => {
   const workflow = await readFile(workflowPath, 'utf8');
-  const curlCommands = workflow.split(/\n(?=\s*if curl \\\\)/).slice(1);
+  const curlCommands = workflow.split(/\n(?=\s*if curl \\)/).slice(1);
 
   expect(curlCommands).toHaveLength(4);
   for (const command of curlCommands) {
