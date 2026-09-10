@@ -469,33 +469,123 @@ export const initCurrentSnapshot = () => {
 
   root.dataset.snapshotInitialized = 'true';
 
+  type SnapshotSourceName = 'weather' | 'electricity' | 'markets' | 'rates' | 'liiga';
+  type SnapshotSourceState = 'pending' | 'fulfilled' | 'rejected';
+
   const refreshButton = root.querySelector<HTMLButtonElement>('[data-snapshot-refresh]');
   const status = root.querySelector<HTMLElement>('[data-snapshot-status]');
+  const sourceStates: Record<SnapshotSourceName, SnapshotSourceState> = {
+    weather: 'pending',
+    electricity: 'pending',
+    markets: 'pending',
+    rates: 'pending',
+    liiga: 'pending',
+  };
+  let refreshing = false;
 
-  const refresh = async () => {
-    root.setAttribute('aria-busy', 'true');
-    if (status) status.textContent = 'REFRESHING LIVE DATA';
+  const readLiigaState = (): SnapshotSourceState => {
+    const liiga = root.querySelector<HTMLElement>('[data-snapshot-liiga]');
+    if (!liiga) return 'pending';
+    if (liiga.classList.contains('is-unavailable')) return 'rejected';
 
-    const results = await Promise.allSettled([
-      loadWeather(root),
-      loadElectricity(root),
-      loadMarkets(root),
-      loadRates(root),
-    ]);
+    const position = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-position]');
+    const homeTeam = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-home-team]');
+    const schedule = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-schedule]');
+    const positionLabel = position?.getAttribute('aria-label') ?? '';
+    const homeTeamText = homeTeam?.textContent?.trim() ?? '';
+    const scheduleText = schedule?.textContent?.trim() ?? '';
 
-    const failures = results.filter((result) => result.status === 'rejected').length;
-    root.setAttribute('aria-busy', 'false');
-
-    if (status) {
-      status.textContent =
-        failures === 0
-          ? 'LIVE DATA / OK'
-          : failures === results.length
-            ? 'LIVE DATA / UNAVAILABLE'
-            : `LIVE DATA / ${results.length - failures} OF ${results.length} SOURCES`;
+    if (
+      (positionLabel.startsWith('League position ') && positionLabel !== 'League position unavailable') ||
+      (homeTeamText !== '' && homeTeamText !== '---') ||
+      scheduleText === 'NO SCHEDULED GAME'
+    ) {
+      return 'fulfilled';
     }
 
-    if (failures < results.length) {
+    return 'pending';
+  };
+
+  const renderStatus = () => {
+    if (!status) return;
+
+    const states = Object.values(sourceStates);
+    const hasPending = refreshing || states.some((state) => state === 'pending');
+    root.setAttribute('aria-busy', hasPending ? 'true' : 'false');
+
+    if (hasPending) {
+      status.textContent = 'REFRESHING LIVE DATA';
+      return;
+    }
+
+    const fulfilled = states.filter((state) => state === 'fulfilled').length;
+    status.textContent =
+      fulfilled === states.length
+        ? 'LIVE DATA / OK'
+        : fulfilled === 0
+          ? 'LIVE DATA / UNAVAILABLE'
+          : `LIVE DATA / ${fulfilled} OF ${states.length} SOURCES`;
+  };
+
+  const syncLiigaStateFromDom = () => {
+    const nextState = readLiigaState();
+    if (nextState === 'pending' && sourceStates.liiga !== 'pending') return;
+    if (nextState === sourceStates.liiga) return;
+    sourceStates.liiga = nextState;
+    renderStatus();
+  };
+
+  const mutationTouchesLiiga = (mutation: MutationRecord) => {
+    const target = mutation.target instanceof Element ? mutation.target : mutation.target.parentElement;
+    if (target?.closest('[data-snapshot-liiga]')) return true;
+
+    return Array.from(mutation.addedNodes).some((node) =>
+      node instanceof Element && (node.matches('[data-snapshot-liiga]') || node.querySelector('[data-snapshot-liiga]'))
+    );
+  };
+
+  const liigaObserver = new MutationObserver((mutations) => {
+    if (mutations.some(mutationTouchesLiiga)) syncLiigaStateFromDom();
+  });
+  liigaObserver.observe(root, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['class', 'aria-label'],
+  });
+
+  const handleDataUpdated = (event: Event) => {
+    const detail = (event as CustomEvent<{ source?: string }>).detail;
+    if (detail?.source !== 'liiga') return;
+    sourceStates.liiga = 'fulfilled';
+    renderStatus();
+  };
+  window.addEventListener('current:data-updated', handleDataUpdated);
+  syncLiigaStateFromDom();
+
+  const baseSources = [
+    ['weather', () => loadWeather(root)],
+    ['electricity', () => loadElectricity(root)],
+    ['markets', () => loadMarkets(root)],
+    ['rates', () => loadRates(root)],
+  ] as const;
+
+  const refresh = async () => {
+    refreshing = true;
+    for (const [name] of baseSources) sourceStates[name] = 'pending';
+    renderStatus();
+
+    const results = await Promise.allSettled(baseSources.map(([, load]) => load()));
+    results.forEach((result, index) => {
+      const [name] = baseSources[index];
+      sourceStates[name] = result.status === 'fulfilled' ? 'fulfilled' : 'rejected';
+    });
+
+    refreshing = false;
+    renderStatus();
+
+    if (results.some((result) => result.status === 'fulfilled')) {
       window.dispatchEvent(
         new CustomEvent('current:data-updated', {
           detail: { source: 'snapshot', at: new Date().toISOString() },
@@ -504,7 +594,10 @@ export const initCurrentSnapshot = () => {
     }
   };
 
-  refreshButton?.addEventListener('click', () => void refresh());
+  refreshButton?.addEventListener('click', () => {
+    sourceStates.liiga = 'pending';
+    void refresh();
+  });
   void refresh();
   window.setInterval(() => void refresh(), REFRESH_INTERVAL_MS);
 };
