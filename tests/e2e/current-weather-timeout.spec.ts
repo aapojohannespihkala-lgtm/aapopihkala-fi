@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-import { fetchCurrentExternal } from '../../src/features/current/externalFetchGuard';
+import {
+  fetchCurrentExternal,
+  fetchCurrentGuarded,
+} from '../../src/features/current/externalFetchGuard';
 
 test('Open-Meteo requests abort after the bounded weather timeout', async () => {
   let wasAborted = false;
@@ -101,7 +104,61 @@ test('caller abort is forwarded to the guarded weather request', async () => {
   expect(guardedSignal?.reason).toBe(abortReason);
 });
 
-test('non-weather requests are not given an extra timeout signal', async () => {
+test('Snapshot Current API requests abort after the bounded Snapshot timeout', async () => {
+  let wasAborted = false;
+
+  const hangingFetch = ((
+    _input: RequestInfo | URL,
+    init?: RequestInit
+  ) => new Promise<Response>((_resolve, reject) => {
+    init?.signal?.addEventListener(
+      'abort',
+      () => {
+        wasAborted = true;
+        reject(new DOMException('Aborted', 'AbortError'));
+      },
+      { once: true }
+    );
+  })) as typeof fetch;
+
+  await expect(
+    fetchCurrentGuarded(
+      hangingFetch,
+      '/api/current/liiga',
+      { headers: { Accept: 'application/json' } },
+      {
+        pageUrl: 'https://aapopihkala.fi/current/snapshot/',
+        snapshotApiTimeoutMs: 25,
+      }
+    )
+  ).rejects.toMatchObject({ name: 'AbortError' });
+
+  expect(wasAborted).toBe(true);
+});
+
+test('Snapshot timeout does not leak to other Current pages', async () => {
+  let capturedSignal: AbortSignal | null | undefined;
+
+  const successfulFetch = ((
+    _input: RequestInfo | URL,
+    init?: RequestInit
+  ) => {
+    capturedSignal = init?.signal;
+    return Promise.resolve(new Response('{}', { status: 200 }));
+  }) as typeof fetch;
+
+  const response = await fetchCurrentGuarded(
+    successfulFetch,
+    '/api/current/liiga',
+    { headers: { Accept: 'application/json' } },
+    { pageUrl: 'https://aapopihkala.fi/current/liiga/' }
+  );
+
+  expect(response.status).toBe(200);
+  expect(capturedSignal).toBeUndefined();
+});
+
+test('non-weather requests are not given an extra timeout signal by the legacy external helper', async () => {
   let capturedSignal: AbortSignal | null | undefined;
 
   const successfulFetch = ((
