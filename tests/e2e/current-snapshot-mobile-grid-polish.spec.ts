@@ -87,3 +87,33 @@ test('Snapshot mobile aligns Markets to the Rates-Liiga split and stacks team la
   expect(geometry.homeNameAboveMark).toBe(true);
   expect(geometry.awayNameAboveMark).toBe(true);
 });
+
+test('Snapshot Liiga unavailable state keeps one clean placeholder without match fragments', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+
+  await page.route('https://api.open-meteo.com/**', async (route) => {
+    await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.route('**/api/current/**', async (route) => {
+    const url = new URL(route.request().url());
+
+    if (url.pathname === '/api/current/liiga') {
+      await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+      return;
+    }
+
+    await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
+
+  const liiga = page.locator('[data-snapshot-liiga]');
+  await expect(liiga).toHaveClass(/is-unavailable/);
+  await expect(liiga.locator('[data-snapshot-liiga-position]')).toHaveText('--/--');
+  await expect(liiga.locator('.snapshot-liiga__comparison')).toBeHidden();
+  await expect(liiga.locator('.snapshot-liiga__match')).toBeHidden();
+  await expect(liiga.locator('.snapshot-liiga__footer')).toBeHidden();
+  await expect(liiga.locator('.snapshot-liiga__source')).toBeVisible();
+});
