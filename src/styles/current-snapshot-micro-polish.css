@@ -1,0 +1,39 @@
+/* Final optical tuning for the compact Snapshot mobile layout. */
+@media (max-width: 640px) {
+  /* Keep the Euribor percent sign visually attached to the headline value. */
+  body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-rates__value small {
+    margin-left: 0.02em !important;
+  }
+
+  /* Lift the supporting market rows onto the same optical baseline as 1D / MEDIAN. */
+  body:has(.snapshot-shell) .snapshot-panel--markets .snapshot-market-list {
+    transform: translateY(-1px);
+  }
+
+  /* Give the standing and match a touch more separation without changing the structure. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga {
+    column-gap: 7px !important;
+  }
+
+  /* Raise the complete match group slightly against the large 6/17 headline. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__match {
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 380px), (max-height: 720px) {
+  /* Preserve the same optical separation on the narrowest supported mobile view. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga {
+    column-gap: 5px !important;
+  }
+}
