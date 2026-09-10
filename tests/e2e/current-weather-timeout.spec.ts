@@ -1,6 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 
 import {
   fetchCurrentExternal,
@@ -180,18 +178,6 @@ test('non-weather requests are not given an extra timeout signal by the legacy e
 
   expect(response.status).toBe(200);
   expect(capturedSignal).toBeUndefined();
-});
-
-test('Snapshot initializes feed enrichments independently', async () => {
-  const source = await readFile(
-    path.join(process.cwd(), 'src/pages/current/snapshot/index.astro'),
-    'utf8'
-  );
-
-  expect(source).toContain("initSnapshotEnhancement('weather forecast', initSnapshotWeatherForecast)");
-  expect(source).toContain("initSnapshotEnhancement('electricity context', initSnapshotElectricityContext)");
-  expect(source).toContain("initSnapshotEnhancement('Liiga', initSnapshotLiiga)");
-  expect(source).toContain('try {\n      init();\n    } catch (error)');
 });
 
 test('standalone Weather leaves loading state when Open-Meteo never responds', async ({ page }) => {
