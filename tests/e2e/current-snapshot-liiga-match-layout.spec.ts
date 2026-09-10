@@ -117,53 +117,81 @@ const prepareSnapshot = async (page: Page, liigaFixture: unknown) => {
 };
 
 const geometry = async (page: Page) => page.evaluate(() => {
-  const liiga = document.querySelector<HTMLElement>('[data-snapshot-liiga]')!;
+  const main = document.querySelector<HTMLElement>('.snapshot-panel--rates .snapshot-rates__main')!;
+  const rateChange = main.querySelector<HTMLElement>('.snapshot-rates__change')!;
+  const liiga = main.querySelector<HTMLElement>('[data-snapshot-liiga]')!;
   const position = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-position]')!;
   const comparison = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-comparison]')!;
   const match = liiga.querySelector<HTMLElement>('.snapshot-liiga__match')!;
   const center = liiga.querySelector<HTMLElement>('.snapshot-liiga__match-center')!;
+  const homeTeam = liiga.querySelector<HTMLElement>('.snapshot-liiga__team:not(.snapshot-liiga__team--away)')!;
+  const awayTeam = liiga.querySelector<HTMLElement>('.snapshot-liiga__team--away')!;
   const homeName = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-home-team]')!;
   const awayName = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-away-team]')!;
   const homeMark = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-home-mark]')!;
   const awayMark = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-away-mark]')!;
   const source = liiga.querySelector<HTMLElement>('.snapshot-liiga__source')!;
 
-  const lr = liiga.getBoundingClientRect();
-  const pr = position.getBoundingClientRect();
-  const cr = comparison.getBoundingClientRect();
-  const mr = match.getBoundingClientRect();
-  const hnr = homeName.getBoundingClientRect();
-  const anr = awayName.getBoundingClientRect();
-  const hmr = homeMark.getBoundingClientRect();
-  const amr = awayMark.getBoundingClientRect();
-  const sr = source.getBoundingClientRect();
+  const mainRect = main.getBoundingClientRect();
+  const rateChangeRect = rateChange.getBoundingClientRect();
+  const positionRect = position.getBoundingClientRect();
+  const comparisonRect = comparison.getBoundingClientRect();
+  const matchRect = match.getBoundingClientRect();
+  const homeTeamRect = homeTeam.getBoundingClientRect();
+  const awayTeamRect = awayTeam.getBoundingClientRect();
+  const homeNameRect = homeName.getBoundingClientRect();
+  const awayNameRect = awayName.getBoundingClientRect();
+  const homeMarkRect = homeMark.getBoundingClientRect();
+  const awayMarkRect = awayMark.getBoundingClientRect();
+  const sourceRect = source.getBoundingClientRect();
   const live = getComputedStyle(center, '::after');
 
   return {
     pageWidth: document.documentElement.scrollWidth,
     viewportWidth: window.innerWidth,
-    liigaTop: lr.top,
-    liigaBottom: lr.bottom,
-    positionRight: pr.right,
-    positionBottom: pr.bottom,
-    comparisonTop: cr.top,
-    matchLeft: mr.left,
-    matchTop: mr.top,
-    matchBottom: mr.bottom,
-    sourceTop: sr.top,
-    homeNameBottom: hnr.bottom,
-    awayNameBottom: anr.bottom,
-    homeMarkTop: hmr.top,
-    awayMarkTop: amr.top,
-    homeMarkWidth: hmr.width,
-    awayMarkWidth: amr.width,
+    mainLeft: mainRect.left,
+    mainRight: mainRect.right,
+    mainWidth: mainRect.width,
+    splitX: mainRect.left + mainRect.width * 0.42,
+    rateChangeBottom: rateChangeRect.bottom,
+    positionLeft: positionRect.left,
+    comparisonLeft: comparisonRect.left,
+    comparisonBottom: comparisonRect.bottom,
+    matchLeft: matchRect.left,
+    matchRight: matchRect.right,
+    matchTop: matchRect.top,
+    matchBottom: matchRect.bottom,
+    matchWidth: matchRect.width,
+    sourceTop: sourceRect.top,
+    homeTeamLeft: homeTeamRect.left,
+    homeTeamRight: homeTeamRect.right,
+    awayTeamLeft: awayTeamRect.left,
+    awayTeamRight: awayTeamRect.right,
+    homeNameLeft: homeNameRect.left,
+    homeNameRight: homeNameRect.right,
+    awayNameLeft: awayNameRect.left,
+    awayNameRight: awayNameRect.right,
+    homeNameBottom: homeNameRect.bottom,
+    awayNameBottom: awayNameRect.bottom,
+    homeNameClientWidth: homeName.clientWidth,
+    homeNameScrollWidth: homeName.scrollWidth,
+    awayNameClientWidth: awayName.clientWidth,
+    awayNameScrollWidth: awayName.scrollWidth,
+    homeMarkLeft: homeMarkRect.left,
+    homeMarkRight: homeMarkRect.right,
+    awayMarkLeft: awayMarkRect.left,
+    awayMarkRight: awayMarkRect.right,
+    homeMarkTop: homeMarkRect.top,
+    awayMarkTop: awayMarkRect.top,
+    homeMarkWidth: homeMarkRect.width,
+    awayMarkWidth: awayMarkRect.width,
     liveContent: live.content.replaceAll('"', ''),
     liveDisplay: live.display,
   };
 });
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }]) {
-  test(`next Liiga match has a collision-free mobile composition at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+  test(`next Liiga match uses the shared lower-panel width at ${viewport.width}x${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await prepareSnapshot(page, nextFixture);
     await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
@@ -176,36 +204,55 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }
 
     const g = await geometry(page);
     expect(g.pageWidth).toBeLessThanOrEqual(g.viewportWidth + 1);
-    expect(g.matchTop).toBeGreaterThanOrEqual(g.liigaTop - 1);
-    expect(g.matchBottom).toBeLessThanOrEqual(g.liigaBottom + 1);
-    expect(g.positionRight).toBeLessThanOrEqual(g.matchLeft + 1);
-    expect(g.comparisonTop).toBeGreaterThanOrEqual(Math.max(g.positionBottom, g.matchBottom) - 1);
+    expect(g.positionLeft).toBeGreaterThanOrEqual(g.splitX + 4);
+    expect(g.comparisonLeft).toBeGreaterThanOrEqual(g.splitX + 4);
+    expect(g.matchLeft).toBeLessThanOrEqual(g.mainLeft + 1);
+    expect(g.matchRight).toBeGreaterThanOrEqual(g.mainRight - 1);
+    expect(g.matchWidth).toBeGreaterThanOrEqual(g.mainWidth - 2);
+    expect(g.matchTop).toBeGreaterThanOrEqual(g.rateChangeBottom - 1);
+    expect(g.matchTop).toBeGreaterThanOrEqual(g.comparisonBottom - 1);
     expect(g.matchBottom).toBeLessThan(g.sourceTop);
     expect(g.homeNameBottom).toBeLessThanOrEqual(g.homeMarkTop + 1);
     expect(g.awayNameBottom).toBeLessThanOrEqual(g.awayMarkTop + 1);
-    expect(g.homeMarkWidth).toBeGreaterThanOrEqual(viewport.width <= 380 ? 30 : 32);
-    expect(g.awayMarkWidth).toBeGreaterThanOrEqual(viewport.width <= 380 ? 30 : 32);
+    expect(g.homeNameLeft).toBeGreaterThanOrEqual(g.homeTeamLeft - 1);
+    expect(g.homeNameRight).toBeLessThanOrEqual(g.homeTeamRight + 1);
+    expect(g.awayNameLeft).toBeGreaterThanOrEqual(g.awayTeamLeft - 1);
+    expect(g.awayNameRight).toBeLessThanOrEqual(g.awayTeamRight + 1);
+    expect(g.homeNameScrollWidth).toBeLessThanOrEqual(g.homeNameClientWidth + 1);
+    expect(g.awayNameScrollWidth).toBeLessThanOrEqual(g.awayNameClientWidth + 1);
+    expect(g.homeMarkLeft).toBeGreaterThanOrEqual(g.matchLeft - 1);
+    expect(g.homeMarkRight).toBeLessThanOrEqual(g.matchRight + 1);
+    expect(g.awayMarkLeft).toBeGreaterThanOrEqual(g.matchLeft - 1);
+    expect(g.awayMarkRight).toBeLessThanOrEqual(g.matchRight + 1);
+    expect(g.homeMarkWidth).toBeGreaterThanOrEqual(viewport.width <= 380 ? 26 : 29);
+    expect(g.awayMarkWidth).toBeGreaterThanOrEqual(viewport.width <= 380 ? 26 : 29);
     expect(g.liveContent).not.toBe('LIVE');
   });
 
-  test(`live Liiga match shows score, LIVE and clock without overlap at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+  test(`live Liiga match uses the shared width and exposes LIVE at ${viewport.width}x${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await prepareSnapshot(page, liveFixture);
     await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
 
     const liiga = page.locator('[data-snapshot-liiga]');
     await expect(liiga).toHaveClass(/is-live/);
+    await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('Tappara');
+    await expect(liiga.locator('[data-snapshot-liiga-away-team]')).toHaveText('Ilves');
     await expect(liiga.locator('[data-snapshot-liiga-score]')).toHaveText('1-2');
     await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('43:17');
 
     const g = await geometry(page);
-    expect(g.matchTop).toBeGreaterThanOrEqual(g.liigaTop - 1);
-    expect(g.matchBottom).toBeLessThanOrEqual(g.liigaBottom + 1);
-    expect(g.positionRight).toBeLessThanOrEqual(g.matchLeft + 1);
-    expect(g.comparisonTop).toBeGreaterThanOrEqual(Math.max(g.positionBottom, g.matchBottom) - 1);
+    expect(g.pageWidth).toBeLessThanOrEqual(g.viewportWidth + 1);
+    expect(g.matchLeft).toBeLessThanOrEqual(g.mainLeft + 1);
+    expect(g.matchRight).toBeGreaterThanOrEqual(g.mainRight - 1);
+    expect(g.matchWidth).toBeGreaterThanOrEqual(g.mainWidth - 2);
+    expect(g.matchTop).toBeGreaterThanOrEqual(g.rateChangeBottom - 1);
+    expect(g.matchTop).toBeGreaterThanOrEqual(g.comparisonBottom - 1);
     expect(g.matchBottom).toBeLessThan(g.sourceTop);
     expect(g.homeNameBottom).toBeLessThanOrEqual(g.homeMarkTop + 1);
     expect(g.awayNameBottom).toBeLessThanOrEqual(g.awayMarkTop + 1);
+    expect(g.homeNameScrollWidth).toBeLessThanOrEqual(g.homeNameClientWidth + 1);
+    expect(g.awayNameScrollWidth).toBeLessThanOrEqual(g.awayNameClientWidth + 1);
     expect(g.liveContent).toBe('LIVE');
     expect(g.liveDisplay).not.toBe('none');
   });
