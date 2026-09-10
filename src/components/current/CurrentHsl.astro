@@ -1,44 +1,11 @@
 <section class="current-hsl" data-current-hsl aria-labelledby="current-hsl-title">
   <header class="hsl-heading">
-    <p id="current-hsl-title" class="hsl-index">HSL / LIVE</p>
-    <p class="hsl-mode">DEPARTURES / REALTIME</p>
+    <p id="current-hsl-title" class="hsl-index">HSL / YLISRINNE</p>
+    <p class="hsl-mode">121 + 125 / KAMPPI + TAPIOLA</p>
   </header>
 
-  <form class="hsl-query" data-hsl-form autocomplete="off">
-    <label class="hsl-field">
-      <span>STOP CODE</span>
-      <input
-        type="text"
-        name="stop"
-        data-hsl-stop
-        placeholder="E1234"
-        maxlength="7"
-        autocapitalize="characters"
-        autocomplete="off"
-        spellcheck="false"
-        required
-      />
-    </label>
-
-    <label class="hsl-field hsl-field--routes">
-      <span>ROUTES / OPTIONAL</span>
-      <input
-        type="text"
-        name="routes"
-        data-hsl-routes
-        placeholder="100, 200A"
-        maxlength="60"
-        autocapitalize="characters"
-        autocomplete="off"
-        spellcheck="false"
-      />
-    </label>
-
-    <button type="submit" class="hsl-submit" data-hsl-submit>LOAD</button>
-  </form>
-
   <div class="hsl-meta">
-    <p data-hsl-status>ENTER STOP CODE</p>
+    <p data-hsl-status>YLISRINNE / E3239 / FETCHING</p>
     <p>REFRESH / 30 S</p>
   </div>
 
@@ -52,14 +19,14 @@
     <div class="hsl-departures" data-hsl-departures aria-live="polite"></div>
   </div>
 
-  <p class="hsl-message" data-hsl-empty hidden>NO MATCHING DEPARTURES.</p>
+  <p class="hsl-message" data-hsl-empty hidden>NO 121 OR 125 DEPARTURES.</p>
   <p class="hsl-message hsl-message--error" data-hsl-error role="status" hidden></p>
 
   <footer class="hsl-footer">
     <p>
       DATA /
       <a href="https://digitransit.fi/" target="_blank" rel="noopener">HSL DIGITRANSIT</a>
-      · LIVE WHEN AVAILABLE · NO LOCAL STORAGE
+      · LIVE WHEN AVAILABLE · AUTO REFRESH 30 S
     </p>
   </footer>
 </section>
@@ -79,8 +46,6 @@
   .hsl-meta,
   .hsl-results__header,
   .hsl-footer,
-  .hsl-field,
-  .hsl-submit,
   .hsl-departure {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
@@ -116,76 +81,6 @@
 
   .hsl-mode {
     color: var(--stone-light);
-  }
-
-  .hsl-query {
-    display: grid;
-    grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.2fr) auto;
-    gap: 12px;
-    align-items: end;
-    padding: 7px 0 24px;
-  }
-
-  .hsl-field {
-    display: grid;
-    gap: 7px;
-    min-width: 0;
-    color: var(--stone);
-    font-size: 0.48rem;
-    font-weight: 600;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-  }
-
-  .hsl-field input {
-    width: 100%;
-    min-width: 0;
-    min-height: 38px;
-    padding: 8px 10px;
-    border: 1px solid var(--line-soft);
-    border-radius: 0;
-    background: transparent;
-    color: var(--ink);
-    font: inherit;
-    font-size: 0.69rem;
-    letter-spacing: 0.045em;
-    text-transform: uppercase;
-  }
-
-  .hsl-field input::placeholder {
-    color: var(--stone-light);
-    opacity: 0.7;
-  }
-
-  .hsl-field input:focus-visible,
-  .hsl-submit:focus-visible {
-    outline: 1px solid var(--moss-deep);
-    outline-offset: 2px;
-  }
-
-  .hsl-submit {
-    min-width: 72px;
-    min-height: 38px;
-    padding: 8px 13px;
-    border: 1px solid var(--line-soft);
-    border-radius: 0;
-    background: transparent;
-    color: var(--ink-soft);
-    font-size: 0.54rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    cursor: pointer;
-  }
-
-  .hsl-submit:hover,
-  .hsl-submit:focus-visible {
-    border-color: var(--moss);
-    color: var(--moss-deep);
-  }
-
-  .hsl-submit:disabled {
-    cursor: wait;
-    opacity: 0.45;
   }
 
   .hsl-meta {
@@ -337,26 +232,14 @@
     }
 
     .hsl-heading {
+      align-items: flex-start;
       margin-bottom: 19px;
     }
 
-    .hsl-query {
-      grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
-      gap: 10px;
-      padding-bottom: 20px;
-    }
-
-    .hsl-submit {
-      grid-column: 1 / -1;
-      width: 100%;
-    }
-
-    .hsl-field {
-      font-size: 0.43rem;
-    }
-
-    .hsl-field input {
-      font-size: 0.61rem;
+    .hsl-mode {
+      max-width: 180px;
+      line-height: 1.35;
+      text-align: right;
     }
 
     .hsl-meta {
