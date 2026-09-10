@@ -137,7 +137,7 @@ test('HSL upstream query starts two hours in the past', async () => {
   expect(body.query).toContain('$startTime: Long!');
   expect(body.query).toContain('startTime: $startTime');
   expect(body.variables.stopQuery).toBe('E3239');
-  expect(body.variables.numberOfDepartures).toBe(80);
+  expect(body.variables.numberOfDepartures).toBe(40);
   expect(
     Math.abs(body.variables.startTime - (Math.floor(Date.now() / 1000) - 2 * 60 * 60))
   ).toBeLessThan(5);
