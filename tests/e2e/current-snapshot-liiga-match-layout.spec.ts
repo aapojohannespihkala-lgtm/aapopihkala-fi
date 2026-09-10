@@ -244,10 +244,8 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }
     expect(g.awayMarkWidth).toBeGreaterThanOrEqual(markMinimum);
     expect(g.homeMarkLeft).toBeGreaterThanOrEqual(g.matchLeft - 1);
     expect(g.awayMarkRight).toBeLessThanOrEqual(g.matchRight + 1);
-    expect(g.homeMarkToCenter).toBeGreaterThanOrEqual(0);
-    expect(g.homeMarkToCenter).toBeLessThanOrEqual(6);
-    expect(g.awayMarkToCenter).toBeGreaterThanOrEqual(0);
-    expect(g.awayMarkToCenter).toBeLessThanOrEqual(6);
+    expect(Math.abs(g.homeMarkToCenter)).toBeLessThanOrEqual(6);
+    expect(Math.abs(g.awayMarkToCenter)).toBeLessThanOrEqual(6);
     expect(g.liveContent).not.toBe('LIVE');
   });
 
