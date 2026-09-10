@@ -22,6 +22,11 @@ type HslResponse = {
 const REFRESH_INTERVAL_MS = 30_000;
 const REQUEST_TIMEOUT_MS = 8_000;
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
+const DEFAULT_QUERY = {
+  stopCode: 'E3239',
+  routes: ['121', '125'],
+} as const;
+const MAX_VISIBLE_DEPARTURES = 6;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -44,9 +49,6 @@ const isHslResponse = (value: unknown): value is HslResponse => {
     );
   });
 };
-
-const parseRoutes = (value: string) =>
-  [...new Set(value.split(/[\s,]+/).map((route) => route.trim().toUpperCase()).filter(Boolean))];
 
 const formatClock = (value: string) => {
   const date = new Date(value);
@@ -77,8 +79,7 @@ const formatDelay = (seconds: number) => {
 
 const errorMessage = (status: number, error: string | null) => {
   if (status === 503 || error === 'missing_configuration') return 'DIGITRANSIT API KEY NOT CONFIGURED.';
-  if (status === 404 || error === 'stop_not_found') return 'STOP NOT FOUND.';
-  if (status === 400) return 'CHECK STOP CODE AND ROUTE FILTERS.';
+  if (status === 404 || error === 'stop_not_found') return 'YLISRINNE E3239 NOT FOUND.';
   if (error === 'upstream_auth_failed') return 'DIGITRANSIT AUTHENTICATION FAILED.';
   return 'HSL DATA UNAVAILABLE.';
 };
@@ -88,21 +89,18 @@ export const initCurrentHsl = () => {
   if (!root || root.dataset.hslInitialized === 'true') return;
   root.dataset.hslInitialized = 'true';
 
-  const form = root.querySelector<HTMLFormElement>('[data-hsl-form]');
-  const stopInput = root.querySelector<HTMLInputElement>('[data-hsl-stop]');
-  const routesInput = root.querySelector<HTMLInputElement>('[data-hsl-routes]');
-  const submit = root.querySelector<HTMLButtonElement>('[data-hsl-submit]');
   const status = root.querySelector<HTMLElement>('[data-hsl-status]');
   const results = root.querySelector<HTMLElement>('[data-hsl-results]');
   const departuresTarget = root.querySelector<HTMLElement>('[data-hsl-departures]');
   const empty = root.querySelector<HTMLElement>('[data-hsl-empty]');
   const error = root.querySelector<HTMLElement>('[data-hsl-error]');
 
-  if (!form || !stopInput || !routesInput || !submit || !status || !results || !departuresTarget || !empty || !error) {
-    return;
-  }
+  if (!status || !results || !departuresTarget || !empty || !error) return;
 
-  let currentQuery: { stopCode: string; routes: string[] } | null = null;
+  const currentQuery = {
+    stopCode: DEFAULT_QUERY.stopCode,
+    routes: [...DEFAULT_QUERY.routes],
+  };
   let latestData: HslResponse | null = null;
   let activeController: AbortController | null = null;
   let refreshTimer = 0;
@@ -111,10 +109,11 @@ export const initCurrentHsl = () => {
     latestData = data;
     departuresTarget.replaceChildren();
 
-    const liveCount = data.departures.filter((departure) => departure.realtime).length;
+    const visibleDepartures = data.departures.slice(0, MAX_VISIBLE_DEPARTURES);
+    const liveCount = visibleDepartures.filter((departure) => departure.realtime).length;
     status.textContent = `${data.stop.name} / ${data.stop.code} / ${liveCount} LIVE`;
 
-    for (const departure of data.departures) {
+    for (const departure of visibleDepartures) {
       const row = document.createElement('div');
       row.className = 'hsl-departure';
       row.dataset.hslDeparture = '';
@@ -159,7 +158,7 @@ export const initCurrentHsl = () => {
       departuresTarget.append(row);
     }
 
-    const hasDepartures = data.departures.length > 0;
+    const hasDepartures = visibleDepartures.length > 0;
     results.hidden = !hasDepartures;
     empty.hidden = hasDepartures;
     error.hidden = true;
@@ -173,13 +172,12 @@ export const initCurrentHsl = () => {
     }
   };
 
-  const requestDepartures = async (query: { stopCode: string; routes: string[] }) => {
+  const requestDepartures = async () => {
     activeController?.abort();
     const controller = new AbortController();
     activeController = controller;
     const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-    submit.disabled = true;
     root.setAttribute('aria-busy', 'true');
     error.hidden = true;
 
@@ -190,7 +188,7 @@ export const initCurrentHsl = () => {
           Accept: 'application/json',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(query),
+        body: JSON.stringify(currentQuery),
         cache: 'no-store',
         credentials: 'same-origin',
         signal: controller.signal,
@@ -227,34 +225,21 @@ export const initCurrentHsl = () => {
     } finally {
       window.clearTimeout(timeout);
       if (activeController === controller) activeController = null;
-      submit.disabled = false;
       root.removeAttribute('aria-busy');
     }
   };
 
   const refresh = () => {
-    if (!currentQuery || document.visibilityState !== 'visible') return;
-    void requestDepartures(currentQuery);
+    if (document.visibilityState !== 'visible') return;
+    void requestDepartures();
   };
-
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-
-    const stopCode = stopInput.value.trim().toUpperCase();
-    const routes = parseRoutes(routesInput.value);
-    currentQuery = { stopCode, routes };
-    latestData = null;
-    status.textContent = 'FETCHING DEPARTURES';
-    results.hidden = true;
-    empty.hidden = true;
-    error.hidden = true;
-    void requestDepartures(currentQuery);
-  });
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') refresh();
   });
 
+  status.textContent = 'YLISRINNE / E3239 / FETCHING';
+  void requestDepartures();
   refreshTimer = window.setInterval(refresh, REFRESH_INTERVAL_MS);
   window.setInterval(updateCountdowns, 10_000);
 
