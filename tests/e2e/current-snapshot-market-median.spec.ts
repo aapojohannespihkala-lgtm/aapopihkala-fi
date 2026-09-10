@@ -27,11 +27,11 @@ test('calculates the Snapshot median from all Markets portfolio items', async ({
         contentType: 'application/json',
         body: JSON.stringify({
           items: [
-            { id: 'ishares-world', changes: { today: 0.42 } },
-            { id: 'handelsbanken-usa', changes: { today: 0.71 } },
-            { id: 'nordnet-finland', changes: { today: -0.23 } },
-            { id: 'btc', changes: { today: 1.84 } },
-            { id: 'remedy', changes: { today: -0.61 } },
+            { id: 'ishares-world', changes: { today: 0.4 } },
+            { id: 'handelsbanken-usa', changes: { today: 0.7 } },
+            { id: 'nordnet-finland', changes: { today: -0.2 } },
+            { id: 'btc', changes: { today: 1.8 } },
+            { id: 'remedy', changes: { today: -0.6 } },
             { id: 'not-displayed', changes: { today: -10 } },
           ],
         }),
@@ -45,6 +45,6 @@ test('calculates the Snapshot median from all Markets portfolio items', async ({
   await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('[data-snapshot-market-median]')).toHaveText('+0.10%');
-  await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.42%');
-  await expect(page.locator('[data-snapshot-market="remedy"]')).toHaveText('-0.61%');
+  await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.40%');
+  await expect(page.locator('[data-snapshot-market="remedy"]')).toHaveText('-0.60%');
 });
