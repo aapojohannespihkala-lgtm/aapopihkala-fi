@@ -31,7 +31,7 @@ const DIGITRANSIT_URL = 'https://api.digitransit.fi/routing/v2/hsl/gtfs/v1';
 const UPSTREAM_TIMEOUT_MS = 8_000;
 const HISTORY_LOOKBACK_SECONDS = 2 * 60 * 60;
 const MAX_ROUTE_FILTERS = 8;
-const MAX_DEPARTURES = 64;
+const MAX_DEPARTURES = 40;
 const STOP_CODE_PATTERN = /^[A-Z]{1,2}\d{3,5}$/;
 const ROUTE_PATTERN = /^[0-9A-Z]{1,8}$/;
 
@@ -191,7 +191,7 @@ export const fetchHslDeparturesResponse = async ({
         variables: {
           stopQuery: stopCode,
           startTime,
-          numberOfDepartures: 80,
+          numberOfDepartures: 40,
         },
       }),
       signal: controller.signal,
