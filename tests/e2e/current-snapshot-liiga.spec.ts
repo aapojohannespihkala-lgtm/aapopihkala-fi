@@ -69,9 +69,24 @@ const todayLiigaFixture = {
   generatedAt: '2026-09-11T08:00:00.000Z',
 };
 
+const karpatLiigaFixture = {
+  ...normalLiigaFixture,
+  nextIlvesGame: {
+    ...normalLiigaFixture.nextIlvesGame,
+    homeTeamId: 'oulun-karpat',
+    homeTeam: 'Karpat',
+    awayTeamId: 'ilves',
+    awayTeam: 'Ilves',
+  },
+};
+
 const prepareSnapshot = async (
   page: Page,
-  liigaFixture: typeof normalLiigaFixture | typeof liveLiigaFixture,
+  liigaFixture:
+    | typeof normalLiigaFixture
+    | typeof liveLiigaFixture
+    | typeof todayLiigaFixture
+    | typeof karpatLiigaFixture,
 ) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -145,7 +160,7 @@ const prepareSnapshot = async (
 };
 
 test.describe('Current Snapshot Liiga summary', () => {
-  test('shows the point gap, dominant next-game time and team-aware last result', async ({ page }) => {
+  test('shows the compact standing comparison, dominant next-game time and team-aware last result', async ({ page }) => {
     await prepareSnapshot(page, normalLiigaFixture);
     await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
 
@@ -171,9 +186,8 @@ test.describe('Current Snapshot Liiga summary', () => {
       total: Number.parseFloat(getComputedStyle(element.querySelector('.snapshot-liiga__position-total')!).fontSize),
     }));
     expect(positionSizes.rank).toBeGreaterThan(positionSizes.total);
-    await expect(liiga.locator('[data-snapshot-liiga-comparison]')).toHaveText(
-      'ILV 28 P · TPS 31 P · GAP -3 P',
-    );
+    await expect(liiga.locator('[data-snapshot-liiga-comparison]')).toHaveText('ILV 28 P · TPS 31 P');
+    await expect(liiga.locator('[data-snapshot-liiga-comparison]')).not.toContainText('GAP');
     await expect(liiga).not.toContainText('GP');
     await expect(liiga.locator('[data-snapshot-liiga-state]')).toBeHidden();
     await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('Ilves');
@@ -230,6 +244,8 @@ test.describe('Current Snapshot Liiga summary', () => {
         awayMarkToCenter: centerRect && awayMarkRect ? awayMarkRect.left - centerRect.right : Number.POSITIVE_INFINITY,
         homeTeamToCenter: centerRect && homeTeamRect ? centerRect.left - homeTeamRect.right : Number.POSITIVE_INFINITY,
         awayTeamToCenter: centerRect && awayTeamRect ? awayTeamRect.left - centerRect.right : Number.POSITIVE_INFINITY,
+        homeLabelGap: homeMarkRect && homeTeamRect ? homeMarkRect.top - homeTeamRect.bottom : Number.NEGATIVE_INFINITY,
+        awayLabelGap: awayMarkRect && awayTeamRect ? awayMarkRect.top - awayTeamRect.bottom : Number.NEGATIVE_INFINITY,
       };
     });
 
@@ -245,6 +261,8 @@ test.describe('Current Snapshot Liiga summary', () => {
     expect(geometry.awayMarkToCenter).toBeLessThanOrEqual(6);
     expect(geometry.homeMarkToCenter).toBeLessThan(geometry.homeTeamToCenter);
     expect(geometry.awayMarkToCenter).toBeLessThan(geometry.awayTeamToCenter);
+    expect(geometry.homeLabelGap).toBeGreaterThanOrEqual(1);
+    expect(geometry.awayLabelGap).toBeGreaterThanOrEqual(1);
   });
 
   test('labels the next game as today when the Helsinki dates match', async ({ page }) => {
@@ -269,9 +287,16 @@ test.describe('Current Snapshot Liiga summary', () => {
     await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('Tappara');
     await expect(liiga.locator('[data-snapshot-liiga-away-team]')).toHaveText('Ilves');
     await expect(liiga.locator('[data-snapshot-liiga-score]')).toHaveText('1-2');
-    await expect(liiga.locator('[data-snapshot-liiga-comparison]')).toHaveText(
-      'ILV 28 P · TPS 31 P · GAP -3 P',
-    );
+    await expect(liiga.locator('[data-snapshot-liiga-comparison]')).toHaveText('ILV 28 P · TPS 31 P');
     await expect(liiga.locator('[data-snapshot-liiga-last]')).toBeHidden();
+  });
+
+  test('restores canonical team diacritics when the feed name is plain ASCII', async ({ page }) => {
+    await prepareSnapshot(page, karpatLiigaFixture);
+    await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
+
+    const liiga = page.locator('[data-snapshot-liiga]');
+    await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('Kärpät');
+    await expect(liiga.locator('[data-snapshot-liiga-away-team]')).toHaveText('Ilves');
   });
 });
