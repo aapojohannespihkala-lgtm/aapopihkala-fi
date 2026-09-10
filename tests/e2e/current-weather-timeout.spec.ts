@@ -37,6 +37,70 @@ test('Open-Meteo requests abort after the bounded weather timeout', async () => 
   expect(wasAborted).toBe(true);
 });
 
+test('weather timeout remains bounded when the caller supplies an AbortSignal', async () => {
+  let wasAborted = false;
+  const caller = new AbortController();
+
+  const hangingFetch = ((
+    _input: RequestInfo | URL,
+    init?: RequestInit
+  ) => new Promise<Response>((_resolve, reject) => {
+    init?.signal?.addEventListener(
+      'abort',
+      () => {
+        wasAborted = true;
+        reject(new DOMException('Aborted', 'AbortError'));
+      },
+      { once: true }
+    );
+  })) as typeof fetch;
+
+  const startedAt = Date.now();
+  await expect(
+    fetchCurrentExternal(
+      hangingFetch,
+      'https://api.open-meteo.com/v1/forecast?latitude=60.1719&longitude=24.7314',
+      { signal: caller.signal },
+      25
+    )
+  ).rejects.toMatchObject({ name: 'AbortError' });
+
+  expect(wasAborted).toBe(true);
+  expect(Date.now() - startedAt).toBeLessThan(1_000);
+});
+
+test('caller abort is forwarded to the guarded weather request', async () => {
+  const caller = new AbortController();
+  const abortReason = new DOMException('Caller cancelled weather request', 'AbortError');
+  let guardedSignal: AbortSignal | null | undefined;
+
+  const hangingFetch = ((
+    _input: RequestInfo | URL,
+    init?: RequestInit
+  ) => new Promise<Response>((_resolve, reject) => {
+    guardedSignal = init?.signal;
+    init?.signal?.addEventListener(
+      'abort',
+      () => reject(init.signal?.reason ?? new DOMException('Aborted', 'AbortError')),
+      { once: true }
+    );
+  })) as typeof fetch;
+
+  const request = fetchCurrentExternal(
+    hangingFetch,
+    'https://api.open-meteo.com/v1/forecast?latitude=60.1719&longitude=24.7314',
+    { signal: caller.signal },
+    5_000
+  );
+
+  caller.abort(abortReason);
+
+  await expect(request).rejects.toBe(abortReason);
+  expect(guardedSignal).toBeInstanceOf(AbortSignal);
+  expect(guardedSignal?.aborted).toBe(true);
+  expect(guardedSignal?.reason).toBe(abortReason);
+});
+
 test('non-weather requests are not given an extra timeout signal', async () => {
   let capturedSignal: AbortSignal | null | undefined;
 
