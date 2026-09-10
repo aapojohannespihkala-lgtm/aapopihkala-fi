@@ -3,6 +3,8 @@ const OPEN_METEO_FORECAST_PATH = '/v1/forecast';
 const FALLBACK_BASE_URL = 'https://aapopihkala.fi/';
 
 export const CURRENT_WEATHER_TIMEOUT_MS = 8_000;
+// Snapshot composes several Current API feeds in one screen. Bound each browser request so one
+// stalled edge response cannot leave the whole summary refreshing indefinitely.
 export const CURRENT_SNAPSHOT_API_TIMEOUT_MS = 10_000;
 
 type GuardedFetch = typeof fetch & {
