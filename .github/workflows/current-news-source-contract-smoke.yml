@@ -1,0 +1,91 @@
+name: Current News source contract smoke
+
+on:
+  workflow_run:
+    workflows:
+      - Build check
+    types:
+      - completed
+  workflow_dispatch:
+
+concurrency:
+  group: current-news-source-contract-smoke
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        feed:
+          - id: soundi
+            url: https://www.soundi.fi/feed
+          - id: pelaaja
+            url: https://www.pelaaja.fi/feed/
+          - id: muropaketti-games
+            url: https://muropaketti.com/pelit/feed
+          - id: muropaketti-films
+            url: https://muropaketti.com/elokuvat/feed
+          - id: episodi
+            url: https://www.episodi.fi/feed/
+          - id: inferno
+            url: https://www.inferno.fi/feed
+          - id: kulttuuritoimitus
+            url: https://kulttuuritoimitus.fi/feed
+          - id: pitchfork-news
+            url: https://pitchfork.com/feed/feed-news/rss
+          - id: pitchfork-albums
+            url: https://pitchfork.com/feed/reviews/best/albums/rss
+          - id: pitchfork-reissues
+            url: https://pitchfork.com/feed/reviews/best/reissues/rss
+          - id: quietus
+            url: https://thequietus.com/feed/
+          - id: angry-metal-guy
+            url: https://www.angrymetalguy.com/feed/
+          - id: comics-journal
+            url: https://www.tcj.com/feed/
+    steps:
+      - name: Verify ${{ matrix.feed.id }} RSS contract
+        shell: bash
+        env:
+          FEED_ID: ${{ matrix.feed.id }}
+          FEED_URL: ${{ matrix.feed.url }}
+        run: |
+          set -euo pipefail
+
+          headers="feed-headers.txt"
+          body="feed-body.xml"
+
+          http_code="$(curl \
+            --location \
+            --silent \
+            --show-error \
+            --max-time 8 \
+            --user-agent 'aapopihkala.fi Current News/1.0' \
+            --header 'Accept: application/rss+xml, application/xml;q=0.9, text/xml;q=0.8' \
+            --dump-header "$headers" \
+            --output "$body" \
+            --write-out '%{http_code}' \
+            "$FEED_URL" || true)"
+
+          content_type="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {value=$0} END{sub(/^[^:]*:[[:space:]]*/, "", value); sub(/\r$/, "", value); print value}' "$headers")"
+          bytes="$(wc -c < "$body" 2>/dev/null || echo 0)"
+          rss_count="$(grep -Eio '<rss([[:space:]>])' "$body" 2>/dev/null | wc -l || true)"
+          item_count="$(grep -Eio '<item([[:space:]>])' "$body" 2>/dev/null | wc -l || true)"
+
+          echo "$FEED_ID: HTTP $http_code | content-type ${content_type:-unknown} | bytes $bytes | rss=$rss_count | items=$item_count"
+
+          if [[ ! "$http_code" =~ ^2 ]]; then
+            echo "$FEED_ID returned non-2xx HTTP status." >&2
+            exit 1
+          fi
+
+          if [[ "$rss_count" -lt 1 || "$item_count" -lt 1 ]]; then
+            echo "$FEED_ID no longer matches the expected RSS item contract." >&2
+            head -c 500 "$body" >&2 || true
+            exit 1
+          fi
