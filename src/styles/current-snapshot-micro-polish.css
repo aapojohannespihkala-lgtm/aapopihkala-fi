@@ -44,7 +44,24 @@
     transform: translate(1px, -2px);
   }
 
-  /* Keep intrinsic label widths while centering each label exactly on its 32px logo. */
+  /* Pull both team blocks inward so the marks sit closer and symmetrically around the match time. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) {
+    transform: translateX(6px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away {
+    transform: translateX(-6px) !important;
+  }
+
+  /* Keep intrinsic label widths while centering each label exactly on its logo. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
@@ -70,6 +87,26 @@
     .snapshot-liiga
     .snapshot-liiga__team--away b {
     transform: translate(calc(16px - 50%), -4px) !important;
+  }
+
+  /* Lift the marks toward the time baseline while keeping the team labels attached to their marks. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team
+    .snapshot-liiga__mark-wrap {
+    transform: translateY(-2px) !important;
+  }
+
+  /* The Ilves mascot fills its square more aggressively than the outlined opponent marks. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__mark--ilves {
+    transform: scale(0.88) !important;
+    transform-origin: center center !important;
   }
 
   /* Keep the score/date block optically centered on the logos rather than the full label+logo stack. */
@@ -117,6 +154,22 @@
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) {
+    transform: translateX(4px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away {
+    transform: translateX(-4px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
     .snapshot-liiga__team:not(.snapshot-liiga__team--away) b {
     transform: translate(calc(50% - 15px), -4px) !important;
   }
@@ -127,6 +180,15 @@
     .snapshot-liiga
     .snapshot-liiga__team--away b {
     transform: translate(calc(15px - 50%), -4px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team
+    .snapshot-liiga__mark-wrap {
+    transform: translateY(-1px) !important;
   }
 
   body:has(.snapshot-shell)
