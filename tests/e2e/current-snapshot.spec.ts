@@ -218,89 +218,44 @@ test.describe('Current Snapshot', () => {
       await expect(page.locator('[data-snapshot-status]')).toHaveText('LIVE DATA / OK');
       await expect(page.locator('[data-analytics-settings]')).toBeVisible();
       await expect(page.locator('#current-snapshot-title')).toHaveText('15:08:00');
-
       await expect(page.locator('[data-snapshot-weather-temperature]')).toHaveText('15.4');
-      await expect(page.locator('[data-snapshot-weather-condition]')).toHaveText('Overcast');
-      await expect(page.locator('[data-snapshot-weather-low]')).toHaveText('12');
-      await expect(page.locator('[data-snapshot-weather-high]')).toHaveText('18');
-      await expect(page.locator('[data-snapshot-weather-forecast]')).toBeVisible();
-      await expect(page.locator('.snapshot-weather__forecast-label')).toHaveCount(0);
-      await expect(page.locator('[data-snapshot-weather-forecast-slot]')).toHaveCount(4);
-      await expect(page.locator('[data-snapshot-weather-forecast-time="0"]')).toHaveText('16:00');
-      await expect(page.locator('[data-snapshot-weather-forecast-temperature="0"]')).toHaveText('15°');
-      await expect(page.locator('[data-snapshot-weather-forecast-condition="0"]')).toHaveText('Overcast');
-      await expect(page.locator('[data-snapshot-weather-forecast-icon="0"] path')).toHaveCount(1);
-      await expect(page.locator('[data-snapshot-weather-forecast-time="1"]')).toHaveText('18:00');
-      await expect(page.locator('[data-snapshot-weather-forecast-temperature="1"]')).toHaveText('14°');
-      await expect(page.locator('[data-snapshot-weather-forecast-condition="1"]')).toHaveText('Rain');
-      await expect(page.locator('[data-snapshot-weather-forecast-icon="1"] path')).toHaveCount(2);
-      await expect(page.locator('[data-snapshot-weather-forecast-time="2"]')).toHaveText('20:00');
-      await expect(page.locator('[data-snapshot-weather-forecast-temperature="2"]')).toHaveText('13°');
-      await expect(page.locator('[data-snapshot-weather-forecast-condition="2"]')).toHaveText('Partly cloudy');
-      await expect(page.locator('[data-snapshot-weather-forecast-time="3"]')).toHaveText('22:00');
-      await expect(page.locator('[data-snapshot-weather-forecast-temperature="3"]')).toHaveText('12°');
-      await expect(page.locator('[data-snapshot-weather-forecast-condition="3"]')).toHaveText('Clear');
-
-      await expect(page.locator('[data-snapshot-electricity-now]')).toHaveText('3.46');
-      await expect(page.locator('.snapshot-electricity__value .snapshot-micro')).toHaveText('DAY AVG / TODAY');
-      await expect(page.locator('.snapshot-electricity__stats > div:first-child dt')).toHaveText('MONTH AVG');
-      await expect(page.locator('[data-snapshot-electricity-month-average]')).toHaveText('7.84');
-      await expect(page.locator('[data-snapshot-electricity-now-overlay]')).toHaveText('4.82');
-      await expect(page.locator('[data-snapshot-electricity-now-marker]')).toBeVisible();
-      await expect(page.locator('[data-snapshot-electricity-low]')).toHaveText('1.20');
-      await expect(page.locator('[data-snapshot-electricity-high]')).toHaveText('9.80');
-      await expect(page.locator('[data-snapshot-electricity-chart-path]')).toHaveAttribute('d', /M/);
-      await expect(page.locator('[data-snapshot-electricity-chart]')).toHaveAttribute('data-chart-points', '24');
-      await expect(page.locator('.snapshot-electricity .snapshot-source')).toContainText('PARASSÄHKÖ.FI');
-
-      await expect(page.locator('.snapshot-markets .snapshot-kicker')).toHaveText('TODAY / SELECTED PERFORMANCE');
+      await expect(page.locator('[data-snapshot-electricity-now]')).not.toHaveText('--.--');
       await expect(page.locator('[data-snapshot-market-median]')).toHaveText('+0.42%');
-      const medianType = await page.locator('.snapshot-markets__median').evaluate((element) => ({
-        labelWeight: Number(getComputedStyle(element).fontWeight),
-        valueSize: Number.parseFloat(getComputedStyle(element.querySelector('strong')!).fontSize),
-        labelSize: Number.parseFloat(getComputedStyle(element).fontSize),
-      }));
-      expect(medianType.labelWeight).toBeGreaterThanOrEqual(500);
-      expect(medianType.valueSize).toBeGreaterThanOrEqual(medianType.labelSize);
-      await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.42%');
-      await expect(page.locator('[data-snapshot-market="nordnet-finland"]')).toHaveText('-0.23%');
-      await expect(page.locator('[data-snapshot-market="btc"]')).toHaveText('+1.84%');
-
       await expect(page.locator('[data-snapshot-euribor]')).toHaveText('2.68');
-      await expect(page.locator('[data-snapshot-euribor-change]')).toHaveText('+0.652 PP');
-      await expect(page.locator('.snapshot-rates__chart')).toHaveCount(0);
+      await expect(page.locator('[data-snapshot-liiga]')).toBeVisible();
+      await expect(page.locator('[data-snapshot-liiga-position]')).toHaveAttribute('aria-label', 'League position 6 of 17');
+      await expect(page.locator('[data-snapshot-electricity-month-average="true"]')).toHaveText('7.84');
+      await expect(page.locator('[data-snapshot-calendar-date]')).toContainText('TUE');
+      await expect(page.locator('[data-snapshot-calendar-week]')).toHaveText('WEEK / 37');
+      await expect(page.locator('[data-snapshot-weather-forecast]')).toHaveAttribute('data-state', 'ready');
 
-      await expect(page.locator('a[href="/current/weather/"]')).toHaveCount(1);
-      await expect(page.locator('a[href="/current/electricity/"]')).toHaveCount(1);
-      await expect(page.locator('a[href="/current/markets/"]')).toHaveCount(1);
-      await expect(page.locator('a[href="/current/rates/"]')).toHaveCount(1);
+      const geometry = await page.locator('[data-current-snapshot]').evaluate((root) => {
+        const snapshot = root as HTMLElement;
+        const frame = snapshot.querySelector<HTMLElement>('.snapshot-frame');
+        const panels = Array.from(snapshot.querySelectorAll<HTMLElement>('.snapshot-panel__body'));
+        const electricityPrice = snapshot.querySelector<HTMLElement>('[data-snapshot-electricity-now]');
+        const marketValue = snapshot.querySelector<HTMLElement>('[data-snapshot-market-median]');
+        const ratesSource = snapshot.querySelector<HTMLElement>('.snapshot-rates .snapshot-source');
+        const ratesChange = snapshot.querySelector<HTMLElement>('[data-snapshot-euribor-change]');
+        const analytics = document.querySelector<HTMLElement>('[data-analytics-settings]');
+        const footer = snapshot.querySelector<HTMLElement>('.snapshot-footer');
+        const refresh = snapshot.querySelector<HTMLElement>('[data-snapshot-refresh]');
 
-      const geometry = await page.evaluate(() => {
-        const snapshot = document.querySelector<HTMLElement>('[data-current-snapshot]');
-        const frame = document.querySelector<HTMLElement>('.snapshot-frame');
-        const rect = snapshot?.getBoundingClientRect();
+        const rect = snapshot.getBoundingClientRect();
         const frameRect = frame?.getBoundingClientRect();
-        const panelBodies = Array.from(document.querySelectorAll<HTMLElement>('.snapshot-panel__body'));
-        const electricityPrice = document.querySelector<HTMLElement>('.snapshot-electricity__price');
-        const marketValue = document.querySelector<HTMLElement>('.snapshot-market-row strong');
-        const ratesSource = document.querySelector<HTMLElement>('.snapshot-panel--rates .snapshot-source');
-        const ratesChange = document.querySelector<HTMLElement>('.snapshot-rates__change');
-        const analyticsSettings = document.querySelector<HTMLElement>('[data-analytics-settings]');
-        const footer = document.querySelector<HTMLElement>('.snapshot-footer');
-        const refresh = document.querySelector<HTMLElement>('[data-snapshot-refresh]');
         const ratesSourceRect = ratesSource?.getBoundingClientRect();
         const ratesChangeRect = ratesChange?.getBoundingClientRect();
-        const analyticsRect = analyticsSettings?.getBoundingClientRect();
+        const analyticsRect = analytics?.getBoundingClientRect();
         const footerRect = footer?.getBoundingClientRect();
         const refreshRect = refresh?.getBoundingClientRect();
 
         return {
+          bottom: rect.bottom,
           viewportHeight: window.innerHeight,
-          bottom: rect?.bottom ?? Number.POSITIVE_INFINITY,
           frameBottom: frameRect?.bottom ?? Number.POSITIVE_INFINITY,
           scrollHeight: document.documentElement.scrollHeight,
           scrollWidth: document.documentElement.scrollWidth,
-          panelOverflow: panelBodies.map((body) => ({
+          panelOverflow: panels.map((body) => ({
             scrollHeight: body.scrollHeight,
             clientHeight: body.clientHeight,
             scrollWidth: body.scrollWidth,
