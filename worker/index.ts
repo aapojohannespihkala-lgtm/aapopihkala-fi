@@ -27,6 +27,18 @@ const methodNotAllowed = () =>
     headers: { Allow: 'GET' },
   });
 
+const publicLiigaResponse = async (response: Response, error: string) => {
+  if (response.status < 500) return response;
+
+  return Response.json(
+    { error },
+    {
+      status: response.status,
+      headers: response.headers,
+    }
+  );
+};
+
 const worker = {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(request.url);
@@ -54,12 +66,12 @@ const worker = {
 
     if (url.pathname === LIIGA_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return getLiigaResponse();
+      return publicLiigaResponse(await getLiigaResponse(), 'Liiga data request failed');
     }
 
     if (url.pathname === LIIGA_SCHEDULE_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return getLiigaScheduleResponse();
+      return publicLiigaResponse(await getLiigaScheduleResponse(), 'Liiga schedule request failed');
     }
 
     return env.ASSETS.fetch(request);
