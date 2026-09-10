@@ -44,6 +44,7 @@ const WORLD_URLS = [
 ];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_SERIES_POINTS = 96;
+const UPSTREAM_FETCH_TIMEOUT_MS = 5_000;
 
 const jsonResponse = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), {
@@ -165,8 +166,19 @@ const parseEuribor3mObservations = (html: string): Observation[] => {
   return observations;
 };
 
+const fetchWithTimeout = async (url: string, init: RequestInit) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPSTREAM_FETCH_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 const fetchEuribor3m = async (): Promise<MarketMacroItem> => {
-  const response = await fetch(EURIBOR_URL, {
+  const response = await fetchWithTimeout(EURIBOR_URL, {
     headers: { Accept: 'text/html' },
   });
 
@@ -183,7 +195,7 @@ const fetchEuribor3m = async (): Promise<MarketMacroItem> => {
 };
 
 const fetchEuriborMonthlyHistory = async () => {
-  const response = await fetch(EURIBOR_MONTHLY_HISTORY_URL, {
+  const response = await fetchWithTimeout(EURIBOR_MONTHLY_HISTORY_URL, {
     headers: { Accept: 'text/csv' },
   });
 
@@ -192,7 +204,7 @@ const fetchEuriborMonthlyHistory = async () => {
 };
 
 const fetchEuriborDailyHistory = async () => {
-  const response = await fetch(EURIBOR_DAILY_HISTORY_URL, {
+  const response = await fetchWithTimeout(EURIBOR_DAILY_HISTORY_URL, {
     headers: {
       Accept: 'text/html',
       'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
@@ -236,7 +248,7 @@ const fetchWorldObservations = async () => {
 
   for (const url of WORLD_URLS) {
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         headers: {
           Accept: 'application/json',
           'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
