@@ -10,12 +10,29 @@
     transform: translateY(-1px);
   }
 
+  /* Match the synthetic Liiga index to the real 04 index size. */
+  body:has(.snapshot-shell) .snapshot-panel--rates #snapshot-liiga-label::before {
+    font-size: 0.5rem !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.05em !important;
+  }
+
   /* Give the standing and match a touch more separation without changing the structure. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga {
     column-gap: 7px !important;
+  }
+
+  /* Bring the total-team count closer to the visual weight of the standing rank. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__position-total {
+    font-size: 0.62em !important;
   }
 
   /* Raise the complete match group slightly and nudge it right for a cleaner gap from 6/17. */
@@ -27,13 +44,24 @@
     transform: translate(1px, -2px);
   }
 
-  /* Keep full team names clearly above their marks while preserving the inward optical offsets. */
+  /* Keep intrinsic label widths while centering each label exactly on its 32px logo. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team b {
+    width: max-content !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    text-align: center !important;
+  }
+
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__team:not(.snapshot-liiga__team--away) b {
-    transform: translate(-3px, -2px) !important;
+    transform: translate(calc(50% - 16px), -4px) !important;
   }
 
   body:has(.snapshot-shell)
@@ -41,7 +69,34 @@
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__team--away b {
-    transform: translate(3px, -2px) !important;
+    transform: translate(calc(16px - 50%), -4px) !important;
+  }
+
+  /* Keep the score/date block optically centered on the logos rather than the full label+logo stack. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__match-center {
+    transform: translateY(3px);
+  }
+
+  /* Visually shorten the next-game date to WED 16 and make it legible at mobile size. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga:not(.is-live)
+    .snapshot-liiga__match-center time {
+    display: block !important;
+    width: 6.6ch !important;
+    max-width: 6.6ch !important;
+    overflow: hidden !important;
+    font-size: 0.36rem !important;
+    font-weight: 650 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.03em !important;
+    text-align: center !important;
+    white-space: nowrap !important;
   }
 }
 
@@ -52,5 +107,33 @@
     .snapshot-rates__main
     .snapshot-liiga {
     column-gap: 5px !important;
+  }
+
+  body:has(.snapshot-shell) .snapshot-panel--rates #snapshot-liiga-label::before {
+    font-size: 0.42rem !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) b {
+    transform: translate(calc(50% - 15px), -4px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away b {
+    transform: translate(calc(15px - 50%), -4px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga:not(.is-live)
+    .snapshot-liiga__match-center time {
+    font-size: 0.33rem !important;
   }
 }
