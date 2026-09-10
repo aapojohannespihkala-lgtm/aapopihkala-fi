@@ -1,0 +1,275 @@
+name: Current external feed smoke
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: current-external-feed-smoke
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify live Current electricity feeds
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          electricity_url="https://aapopihkala.fi/api/current/electricity?live_smoke=${GITHUB_RUN_ID}"
+          month_url="https://aapopihkala.fi/api/current/electricity-month?live_smoke=${GITHUB_RUN_ID}"
+
+          for attempt in $(seq 1 18); do
+            echo "Current electricity attempt ${attempt}/18"
+
+            electricity_ok=false
+            month_ok=false
+
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 20 \
+              --header 'Accept: application/json' \
+              --header 'Cache-Control: no-cache' \
+              "$electricity_url" \
+              --output current-electricity-live.json; then
+              if node <<'NODE'
+          const fs = require('node:fs');
+          const body = JSON.parse(fs.readFileSync('current-electricity-live.json', 'utf8'));
+          const prices = Array.isArray(body.prices) ? body.prices : [];
+          const now = Date.now();
+          const failures = [];
+
+          if (prices.length < 96) failures.push(`expected at least 96 quarter-hour prices, got ${prices.length}`);
+
+          const normalized = prices.map((entry, index) => {
+            const start = Date.parse(entry?.startDate);
+            const end = Date.parse(entry?.endDate);
+            const price = entry?.price;
+
+            if (!Number.isFinite(price)) failures.push(`price ${index} is not finite`);
+            if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+              failures.push(`price ${index} has invalid timestamps`);
+            } else if (end - start !== 15 * 60 * 1000) {
+              failures.push(`price ${index} interval is not 15 minutes`);
+            }
+
+            return { start, end };
+          });
+
+          const coversNow = normalized.some(({ start, end }) =>
+            Number.isFinite(start) && Number.isFinite(end) && start <= now && end > now
+          );
+          const latestEnd = Math.max(...normalized.map(({ end }) => end).filter(Number.isFinite));
+
+          if (!coversNow) failures.push('no price interval covers the current time');
+          if (!Number.isFinite(latestEnd) || latestEnd <= now) failures.push('latest price interval is stale');
+
+          if (failures.length > 0) {
+            console.error(`Current electricity feed invalid: ${failures.join(' | ')}`);
+            process.exit(1);
+          }
+
+          console.log(`Current electricity verified: ${prices.length} quarter-hour prices with a current interval.`);
+          NODE
+              then
+                electricity_ok=true
+              fi
+            fi
+
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 20 \
+              --header 'Accept: application/json' \
+              --header 'Cache-Control: no-cache' \
+              "$month_url" \
+              --output current-electricity-month-live.json; then
+              if node <<'NODE'
+          const fs = require('node:fs');
+          const body = JSON.parse(fs.readFileSync('current-electricity-month-live.json', 'utf8'));
+          const failures = [];
+
+          if (!Number.isFinite(body.average)) failures.push(`invalid average: ${String(body.average)}`);
+          if (!['month-to-date', 'last-complete-month'].includes(body.kind)) {
+            failures.push(`invalid kind: ${String(body.kind)}`);
+          }
+          if (typeof body.month !== 'string' || !/^\d{4}-\d{2}$/.test(body.month)) {
+            failures.push(`invalid month: ${String(body.month)}`);
+          }
+          if (body.unit !== 'c/kWh') failures.push(`invalid unit: ${String(body.unit)}`);
+          if (body.vatIncluded !== true) failures.push('VAT flag is not true');
+          if (body.source !== 'ParasSähkö.fi') failures.push(`invalid source: ${String(body.source)}`);
+
+          if (failures.length > 0) {
+            console.error(`Current electricity month feed invalid: ${failures.join(' | ')}`);
+            process.exit(1);
+          }
+
+          console.log(`Current electricity month verified: ${body.kind} ${body.month}, average ${body.average}.`);
+          NODE
+              then
+                month_ok=true
+              fi
+            fi
+
+            if [[ "$electricity_ok" == true && "$month_ok" == true ]]; then
+              exit 0
+            fi
+
+            if [[ "$attempt" -lt 18 ]]; then
+              sleep 10
+            fi
+          done
+
+          echo "Current electricity feeds did not recover in production." >&2
+          [[ -f current-electricity-live.json ]] && cat current-electricity-live.json >&2
+          [[ -f current-electricity-month-live.json ]] && cat current-electricity-month-live.json >&2
+          exit 1
+
+      - name: Verify live Current News feed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          url="https://aapopihkala.fi/api/current/news?live_smoke=${GITHUB_RUN_ID}"
+
+          for attempt in $(seq 1 18); do
+            echo "Current News attempt ${attempt}/18"
+
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 20 \
+              --header 'Accept: application/json' \
+              --header 'Cache-Control: no-cache' \
+              "$url" \
+              --output current-news-live.json; then
+              if node <<'NODE'
+          const fs = require('node:fs');
+          const body = JSON.parse(fs.readFileSync('current-news-live.json', 'utf8'));
+          const items = Array.isArray(body.items) ? body.items : [];
+          const sources = Array.isArray(body.sources) ? body.sources : [];
+          const failures = [];
+
+          if (!body.generatedAt || !Number.isFinite(Date.parse(body.generatedAt))) {
+            failures.push('generatedAt missing or invalid');
+          }
+          if (items.length < 3) failures.push(`expected at least 3 news items, got ${items.length}`);
+          if (sources.length < 8) failures.push(`expected source statuses, got ${sources.length}`);
+          if (sources.every((source) => source?.status === 'error')) failures.push('all News sources are failing');
+
+          for (const item of items.slice(0, 12)) {
+            if (!item?.title || !item?.url || !item?.sourceId) {
+              failures.push('news item missing title, url or sourceId');
+              break;
+            }
+            if (!Number.isFinite(Date.parse(item.publishedAt))) {
+              failures.push(`news item has invalid publishedAt: ${String(item.publishedAt)}`);
+              break;
+            }
+          }
+
+          if (failures.length > 0) {
+            console.error(`Current News feed invalid: ${failures.join(' | ')}`);
+            process.exit(1);
+          }
+
+          const okSources = sources.filter((source) => source?.status === 'ok').length;
+          const partialSources = sources.filter((source) => source?.status === 'partial').length;
+          const errorSources = sources.filter((source) => source?.status === 'error').length;
+          console.log(`Current News verified: ${items.length} items; sources ok=${okSources}, partial=${partialSources}, error=${errorSources}.`);
+          NODE
+              then
+                exit 0
+              fi
+            fi
+
+            if [[ "$attempt" -lt 18 ]]; then
+              sleep 10
+            fi
+          done
+
+          echo "Current News feed did not recover in production." >&2
+          [[ -f current-news-live.json ]] && cat current-news-live.json >&2
+          exit 1
+
+      - name: Verify Current Open-Meteo weather source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          url='https://api.open-meteo.com/v1/forecast?latitude=60.1719&longitude=24.7314&timezone=Europe%2FHelsinki&forecast_days=6&temperature_unit=celsius&current=temperature_2m%2Cweather_code%2Cis_day&hourly=temperature_2m%2Cprecipitation_probability%2Cweather_code%2Cis_day&daily=weather_code%2Ctemperature_2m_min%2Ctemperature_2m_max%2Cprecipitation_probability_max%2Csunrise%2Csunset'
+
+          for attempt in $(seq 1 6); do
+            echo "Open-Meteo attempt ${attempt}/6"
+
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 20 \
+              --header 'Accept: application/json' \
+              "$url" \
+              --output current-weather-live.json; then
+              if node <<'NODE'
+          const fs = require('node:fs');
+          const body = JSON.parse(fs.readFileSync('current-weather-live.json', 'utf8'));
+          const failures = [];
+          const current = body.current;
+          const hourly = body.hourly;
+          const daily = body.daily;
+
+          if (!current || !Number.isFinite(current.temperature_2m) || !Number.isFinite(current.weather_code)) {
+            failures.push('current weather is missing or invalid');
+          }
+          if (!current?.time || !Number.isFinite(Date.parse(current.time))) failures.push('current weather time is invalid');
+
+          const hourlyKeys = ['time', 'temperature_2m', 'precipitation_probability', 'weather_code', 'is_day'];
+          for (const key of hourlyKeys) {
+            if (!Array.isArray(hourly?.[key]) || hourly[key].length < 6) {
+              failures.push(`hourly.${key} missing or too short`);
+            }
+          }
+
+          const dailyKeys = [
+            'time',
+            'weather_code',
+            'temperature_2m_min',
+            'temperature_2m_max',
+            'precipitation_probability_max',
+            'sunrise',
+            'sunset',
+          ];
+          for (const key of dailyKeys) {
+            if (!Array.isArray(daily?.[key]) || daily[key].length < 6) {
+              failures.push(`daily.${key} missing or too short`);
+            }
+          }
+
+          if (failures.length > 0) {
+            console.error(`Open-Meteo source invalid: ${failures.join(' | ')}`);
+            process.exit(1);
+          }
+
+          console.log(`Open-Meteo verified: current ${current.temperature_2m}°C at ${current.time}, ${daily.time.length} forecast days.`);
+          NODE
+              then
+                exit 0
+              fi
+            fi
+
+            if [[ "$attempt" -lt 6 ]]; then
+              sleep 10
+            fi
+          done
+
+          echo "Open-Meteo source did not recover." >&2
+          [[ -f current-weather-live.json ]] && cat current-weather-live.json >&2
+          exit 1
