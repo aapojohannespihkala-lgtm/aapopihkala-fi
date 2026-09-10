@@ -34,6 +34,21 @@ const buildWorkerElectricityMonthFixture = () => ({
   ],
 });
 
+const buildWorkerLiigaScheduleFixture = (start: string) => ({
+  games: [
+    {
+      id: 2701370,
+      start,
+      homeTeam: { teamId: 'hpk', goals: null },
+      awayTeam: { teamId: 'ilves', goals: null },
+      started: false,
+      ended: false,
+      gameTime: null,
+      cacheUpdateDate: '2026-09-10T01:00:00.000Z',
+    },
+  ],
+});
+
 test('Wrangler sends every Current API route through the Worker first', () => {
   const config = JSON.parse(
     readFileSync(new URL('../../wrangler.jsonc', import.meta.url), 'utf8')
@@ -46,10 +61,13 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
   const originalFetch = globalThis.fetch;
   const upstreamFixture = buildWorkerElectricityFixture();
   const monthFixture = buildWorkerElectricityMonthFixture();
+  const scheduleStart = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const scheduleFixture = buildWorkerLiigaScheduleFixture(scheduleStart);
 
   globalThis.fetch = async (input, init) => {
     const url = String(input);
-    expect(new Headers(init?.headers).get('Accept')).toBe('application/json');
+    const headers = new Headers(init?.headers);
+    expect(headers.get('Accept')).toBe('application/json');
     expect(init?.signal).toBeInstanceOf(AbortSignal);
 
     if (url === 'https://api.porssisahko.net/v2/latest-prices.json') {
@@ -61,6 +79,20 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
 
     if (url === 'https://parassahko.fi/tilastot/data.json') {
       return new Response(JSON.stringify(monthFixture), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (
+      url.startsWith('https://liiga.fi/api/v2/games?') &&
+      headers.get('User-Agent') === 'aapopihkala.fi Current Liiga schedule'
+    ) {
+      const requestUrl = new URL(url);
+      expect(requestUrl.searchParams.get('tournament')).toBe('runkosarja');
+      expect(requestUrl.searchParams.get('season')).toMatch(/^\d{4}$/);
+
+      return new Response(JSON.stringify(scheduleFixture), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -113,9 +145,25 @@ test('Worker serves Current APIs, enforces GET-only routes and keeps static asse
       env
     );
 
-    expect(scheduleResponse.status).toBe(502);
-    expect(await scheduleResponse.json()).toEqual({
-      error: 'Liiga schedule request failed',
+    expect(scheduleResponse.status).toBe(200);
+    expect(await scheduleResponse.json()).toMatchObject({
+      generatedAt: '2026-09-10T01:00:00.000Z',
+      source: 'Liiga',
+      upstream: '/api/v2/games',
+      liveGames: [],
+      upcomingGames: [
+        {
+          id: 2701370,
+          start: scheduleStart,
+          homeTeamId: 'hpk',
+          homeTeam: 'HPK',
+          awayTeamId: 'ilves',
+          awayTeam: 'Ilves',
+          homeGoals: null,
+          awayGoals: null,
+          gameTime: null,
+        },
+      ],
     });
 
     const staticResponse = await worker.fetch(
