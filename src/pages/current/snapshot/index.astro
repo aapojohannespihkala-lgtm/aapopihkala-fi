@@ -9,17 +9,9 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
   import { initSnapshotElectricityContext } from '../../../features/current/snapshot-electricity-context';
   import { initSnapshotLiiga } from '../../../features/current/snapshot-liiga';
 
-  const initSnapshotEnhancement = (name: string, init: () => void) => {
-    try {
-      init();
-    } catch (error) {
-      console.error(`[current-snapshot] Failed to initialize ${name}`, error);
-    }
-  };
-
-  initSnapshotEnhancement('weather forecast', initSnapshotWeatherForecast);
-  initSnapshotEnhancement('electricity context', initSnapshotElectricityContext);
-  initSnapshotEnhancement('Liiga', initSnapshotLiiga);
+  initSnapshotWeatherForecast();
+  initSnapshotElectricityContext();
+  initSnapshotLiiga();
 
   const snapshotRoot = document.querySelector<HTMLElement>('[data-current-snapshot]');
   const ratesOpen = snapshotRoot?.querySelector<HTMLAnchorElement>(
@@ -470,13 +462,115 @@ import CurrentSnapshotPage from '../../../components/current/CurrentSnapshotPage
     }
 
     body:has(.snapshot-shell) .snapshot-footer {
-      min-height: 24px;
-      padding: 4px 10px;
+      font-size: 0.34rem;
     }
 
-    body:has(.snapshot-shell) .snapshot-titleblock__meta {
-      justify-items: end;
-      text-align: right;
+    body:has(.snapshot-shell) .snapshot-footer > span:first-child {
+      visibility: hidden;
+    }
+
+    body:has(.snapshot-shell) [data-analytics-settings] {
+      left: 20px;
+      right: auto;
+      bottom: 10px;
+      min-height: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.34rem;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+  }
+
+  @media (max-width: 380px), (max-height: 720px) {
+    body:has(.snapshot-shell) {
+      --snapshot-headline-size: clamp(2.25rem, 11vw, 2.8rem);
+    }
+
+    body:has(.snapshot-shell) .snapshot-grid {
+      grid-template-rows:
+        minmax(0, 1.12fr)
+        minmax(0, 1.64fr)
+        minmax(0, 1.12fr)
+        minmax(0, 1fr);
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather {
+      grid-template-columns: minmax(0, 0.9fr) minmax(150px, 1.1fr);
+      column-gap: 3px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast {
+      gap: 2px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-time {
+      font-size: 0.39rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-slot {
+      grid-template-rows: auto 18px auto;
+    }
+
+    body:has(.snapshot-shell) .snapshot-weather__forecast-temperature {
+      font-size: 0.52rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-source {
+      font-size: 0.34rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__value .snapshot-micro {
+      font-size: 0.38rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__stats {
+      font-size: 0.36rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-electricity__stats dd {
+      font-size: 0.66rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-markets {
+      column-gap: 7px;
+    }
+
+    body:has(.snapshot-shell) .snapshot-markets__median {
+      font-size: 0.42rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-market-list {
+      font-size: 0.43rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-market-row strong {
+      font-size: 0.55rem;
+      font-weight: 800 !important;
+    }
+
+    body:has(.snapshot-shell) .snapshot-rates__label {
+      font-size: 0.42rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-rates__change {
+      font-size: 0.37rem;
+    }
+
+    body:has(.snapshot-shell) .snapshot-footer {
+      font-size: 0.29rem;
+    }
+
+    body:has(.snapshot-shell) [data-analytics-settings] {
+      left: 16px;
+      bottom: 7px;
+      min-height: 12px;
+      font-size: 0.29rem;
     }
   }
 </style>
