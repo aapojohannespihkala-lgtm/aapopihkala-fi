@@ -28,3 +28,11 @@ test('Current external feed smoke keeps every network probe bounded', async () =
   expect(curlCount).toBe(4);
   expect(timeoutCount).toBe(curlCount);
 });
+
+test('electricity live smoke accepts upstream inclusive quarter-hour end timestamps', async () => {
+  const workflow = await readFile(workflowPath, 'utf8');
+
+  expect(workflow).toContain('const intervalMs = end - start;');
+  expect(workflow).toContain('Math.abs(intervalMs - 15 * 60 * 1000) > 1');
+  expect(workflow).toContain('start <= now && end >= now');
+});
