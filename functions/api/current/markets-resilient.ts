@@ -44,6 +44,7 @@ const WORLD_URLS = [
 ];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_SERIES_POINTS = 96;
+const UPSTREAM_FETCH_TIMEOUT_MS = 5_000;
 
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -196,8 +197,19 @@ const sampleObservations = (observations: Observation[]) => {
   return sampled;
 };
 
+const fetchWithTimeout = async (url: string, init: RequestInit) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPSTREAM_FETCH_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 const fetchText = async (url: string, accept: string) => {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: {
       Accept: accept,
       'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
@@ -211,7 +223,7 @@ const fetchWorld = async () => {
   let lastError: unknown;
   for (const url of WORLD_URLS) {
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         headers: {
           Accept: 'application/json',
           'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
