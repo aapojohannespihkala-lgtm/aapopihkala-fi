@@ -130,7 +130,7 @@ test('HSL upstream query starts two hours in the past', async () => {
   expect(response.status).toBe(200);
   expect(upstreamBody).not.toBeNull();
 
-  const body = upstreamBody as {
+  const body = upstreamBody as unknown as {
     query: string;
     variables: { stopQuery: string; startTime: number; numberOfDepartures: number };
   };
