@@ -118,8 +118,9 @@ const prepareSnapshot = async (page: Page, liigaFixture: unknown) => {
 
 const geometry = async (page: Page) => page.evaluate(() => {
   const main = document.querySelector<HTMLElement>('.snapshot-panel--rates .snapshot-rates__main')!;
-  const rateChange = main.querySelector<HTMLElement>('.snapshot-rates__change')!;
+  const euribor = main.firstElementChild as HTMLElement;
   const liiga = main.querySelector<HTMLElement>('[data-snapshot-liiga]')!;
+  const heading = document.querySelector<HTMLElement>('#snapshot-liiga-label')!;
   const position = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-position]')!;
   const comparison = liiga.querySelector<HTMLElement>('[data-snapshot-liiga-comparison]')!;
   const match = liiga.querySelector<HTMLElement>('.snapshot-liiga__match')!;
@@ -133,7 +134,9 @@ const geometry = async (page: Page) => page.evaluate(() => {
   const source = liiga.querySelector<HTMLElement>('.snapshot-liiga__source')!;
 
   const mainRect = main.getBoundingClientRect();
-  const rateChangeRect = rateChange.getBoundingClientRect();
+  const euriborRect = euribor.getBoundingClientRect();
+  const liigaRect = liiga.getBoundingClientRect();
+  const headingRect = heading.getBoundingClientRect();
   const positionRect = position.getBoundingClientRect();
   const comparisonRect = comparison.getBoundingClientRect();
   const matchRect = match.getBoundingClientRect();
@@ -145,9 +148,6 @@ const geometry = async (page: Page) => page.evaluate(() => {
   const homeMarkRect = homeMark.getBoundingClientRect();
   const awayMarkRect = awayMark.getBoundingClientRect();
   const sourceRect = source.getBoundingClientRect();
-  const comparisonRange = document.createRange();
-  comparisonRange.selectNodeContents(comparison);
-  const comparisonTextRect = comparisonRange.getBoundingClientRect();
   const live = getComputedStyle(center, '::after');
 
   return {
@@ -155,18 +155,23 @@ const geometry = async (page: Page) => page.evaluate(() => {
     viewportWidth: window.innerWidth,
     mainLeft: mainRect.left,
     mainRight: mainRect.right,
-    mainWidth: mainRect.width,
-    splitX: mainRect.left + mainRect.width * 0.42,
-    rateChangeBottom: rateChangeRect.bottom,
-    positionLeft: positionRect.left,
-    comparisonLeft: comparisonRect.left,
-    comparisonTextLeft: comparisonTextRect.left,
+    euriborLeft: euriborRect.left,
+    euriborRight: euriborRect.right,
+    euriborWidth: euriborRect.width,
+    liigaLeft: liigaRect.left,
+    liigaRight: liigaRect.right,
+    liigaWidth: liigaRect.width,
+    headingLeft: headingRect.left,
+    positionTop: positionRect.top,
+    positionRight: positionRect.right,
+    positionBottom: positionRect.bottom,
+    comparisonTop: comparisonRect.top,
+    comparisonRight: comparisonRect.right,
     comparisonBottom: comparisonRect.bottom,
     matchLeft: matchRect.left,
     matchRight: matchRect.right,
     matchTop: matchRect.top,
     matchBottom: matchRect.bottom,
-    matchWidth: matchRect.width,
     sourceTop: sourceRect.top,
     homeTeamLeft: homeTeamRect.left,
     homeTeamRight: homeTeamRect.right,
@@ -192,15 +197,13 @@ const geometry = async (page: Page) => page.evaluate(() => {
     awayMarkWidth: awayMarkRect.width,
     homeMarkToCenter: centerRect.left - homeMarkRect.right,
     awayMarkToCenter: awayMarkRect.left - centerRect.right,
-    homeNameToCenter: centerRect.left - homeNameRect.right,
-    awayNameToCenter: awayNameRect.left - centerRect.right,
     liveContent: live.content.replaceAll('"', ''),
     liveDisplay: live.display,
   };
 });
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }]) {
-  test(`next Liiga match uses the shared lower-panel width at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+  test(`next Liiga match stays beside the standing at ${viewport.width}x${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await prepareSnapshot(page, nextFixture);
     await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
@@ -212,16 +215,23 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }
     await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('WED 16 SEPT');
 
     const g = await geometry(page);
+    const euriborMinimum = viewport.width <= 380 ? 118 : 124;
+    const markMinimum = viewport.width <= 380 ? 30 : 32;
+
     expect(g.pageWidth).toBeLessThanOrEqual(g.viewportWidth + 1);
-    expect(g.positionLeft).toBeGreaterThanOrEqual(g.splitX + 4);
-    expect(g.comparisonLeft).toBeGreaterThanOrEqual(g.splitX - 1);
-    expect(g.comparisonTextLeft).toBeGreaterThanOrEqual(g.splitX + 4);
-    expect(g.matchLeft).toBeLessThanOrEqual(g.mainLeft + 1);
-    expect(g.matchRight).toBeGreaterThanOrEqual(g.mainRight - 1);
-    expect(g.matchWidth).toBeGreaterThanOrEqual(g.mainWidth - 2);
-    expect(g.matchTop).toBeGreaterThanOrEqual(g.rateChangeBottom - 1);
-    expect(g.matchTop).toBeGreaterThanOrEqual(g.comparisonBottom - 1);
-    expect(g.matchBottom).toBeLessThan(g.sourceTop);
+    expect(g.euriborLeft).toBeGreaterThanOrEqual(g.mainLeft - 1);
+    expect(g.euriborWidth).toBeGreaterThanOrEqual(euriborMinimum - 1);
+    expect(g.liigaLeft).toBeGreaterThanOrEqual(g.euriborRight - 1);
+    expect(g.liigaRight).toBeLessThanOrEqual(g.mainRight + 1);
+    expect(Math.abs(g.headingLeft - g.liigaLeft)).toBeLessThanOrEqual(2);
+
+    expect(g.comparisonTop).toBeGreaterThanOrEqual(g.positionBottom - 1);
+    expect(g.positionRight).toBeLessThanOrEqual(g.matchLeft + 1);
+    expect(g.comparisonRight).toBeLessThanOrEqual(g.matchLeft + 1);
+    expect(g.matchTop).toBeLessThan(g.positionBottom);
+    expect(g.matchBottom).toBeGreaterThan(g.positionTop);
+    expect(Math.max(g.matchBottom, g.comparisonBottom)).toBeLessThan(g.sourceTop);
+
     expect(g.homeNameBottom).toBeLessThanOrEqual(g.homeMarkTop + 1);
     expect(g.awayNameBottom).toBeLessThanOrEqual(g.awayMarkTop + 1);
     expect(g.homeNameLeft).toBeGreaterThanOrEqual(g.homeTeamLeft - 1);
@@ -230,22 +240,18 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }
     expect(g.awayNameRight).toBeLessThanOrEqual(g.awayTeamRight + 1);
     expect(g.homeNameScrollWidth).toBeLessThanOrEqual(g.homeNameClientWidth + 1);
     expect(g.awayNameScrollWidth).toBeLessThanOrEqual(g.awayNameClientWidth + 1);
+    expect(g.homeMarkWidth).toBeGreaterThanOrEqual(markMinimum);
+    expect(g.awayMarkWidth).toBeGreaterThanOrEqual(markMinimum);
     expect(g.homeMarkLeft).toBeGreaterThanOrEqual(g.matchLeft - 1);
-    expect(g.homeMarkRight).toBeLessThanOrEqual(g.matchRight + 1);
-    expect(g.awayMarkLeft).toBeGreaterThanOrEqual(g.matchLeft - 1);
     expect(g.awayMarkRight).toBeLessThanOrEqual(g.matchRight + 1);
-    expect(g.homeMarkWidth).toBeGreaterThanOrEqual(viewport.width <= 380 ? 30 : 32);
-    expect(g.awayMarkWidth).toBeGreaterThanOrEqual(viewport.width <= 380 ? 30 : 32);
     expect(g.homeMarkToCenter).toBeGreaterThanOrEqual(0);
     expect(g.homeMarkToCenter).toBeLessThanOrEqual(6);
     expect(g.awayMarkToCenter).toBeGreaterThanOrEqual(0);
     expect(g.awayMarkToCenter).toBeLessThanOrEqual(6);
-    expect(g.homeMarkToCenter).toBeLessThan(g.homeNameToCenter);
-    expect(g.awayMarkToCenter).toBeLessThan(g.awayNameToCenter);
     expect(g.liveContent).not.toBe('LIVE');
   });
 
-  test(`live Liiga match uses the shared width and exposes LIVE at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+  test(`live Liiga match stays beside the standing and exposes LIVE at ${viewport.width}x${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await prepareSnapshot(page, liveFixture);
     await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
@@ -258,21 +264,19 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }
     await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('43:17');
 
     const g = await geometry(page);
+    const euriborMinimum = viewport.width <= 380 ? 118 : 124;
+
     expect(g.pageWidth).toBeLessThanOrEqual(g.viewportWidth + 1);
-    expect(g.matchLeft).toBeLessThanOrEqual(g.mainLeft + 1);
-    expect(g.matchRight).toBeGreaterThanOrEqual(g.mainRight - 1);
-    expect(g.matchWidth).toBeGreaterThanOrEqual(g.mainWidth - 2);
-    expect(g.matchTop).toBeGreaterThanOrEqual(g.rateChangeBottom - 1);
-    expect(g.matchTop).toBeGreaterThanOrEqual(g.comparisonBottom - 1);
-    expect(g.matchBottom).toBeLessThan(g.sourceTop);
-    expect(g.homeNameBottom).toBeLessThanOrEqual(g.homeMarkTop + 1);
-    expect(g.awayNameBottom).toBeLessThanOrEqual(g.awayMarkTop + 1);
+    expect(g.euriborWidth).toBeGreaterThanOrEqual(euriborMinimum - 1);
+    expect(g.liigaLeft).toBeGreaterThanOrEqual(g.euriborRight - 1);
+    expect(g.positionRight).toBeLessThanOrEqual(g.matchLeft + 1);
+    expect(g.comparisonTop).toBeGreaterThanOrEqual(g.positionBottom - 1);
+    expect(g.comparisonRight).toBeLessThanOrEqual(g.matchLeft + 1);
+    expect(g.matchTop).toBeLessThan(g.positionBottom);
+    expect(g.matchBottom).toBeGreaterThan(g.positionTop);
+    expect(Math.max(g.matchBottom, g.comparisonBottom)).toBeLessThan(g.sourceTop);
     expect(g.homeNameScrollWidth).toBeLessThanOrEqual(g.homeNameClientWidth + 1);
     expect(g.awayNameScrollWidth).toBeLessThanOrEqual(g.awayNameClientWidth + 1);
-    expect(g.homeMarkToCenter).toBeGreaterThanOrEqual(0);
-    expect(g.homeMarkToCenter).toBeLessThanOrEqual(6);
-    expect(g.awayMarkToCenter).toBeGreaterThanOrEqual(0);
-    expect(g.awayMarkToCenter).toBeLessThanOrEqual(6);
     expect(g.liveContent).toBe('LIVE');
     expect(g.liveDisplay).not.toBe('none');
   });
