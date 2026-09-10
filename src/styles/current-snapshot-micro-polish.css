@@ -44,17 +44,32 @@
     transform: translate(1px, -2px);
   }
 
-  /* Use the mark width as the label box so each team name shares the exact logo centerline. */
+  /* Keep intrinsic label widths while centering each label exactly on its 32px logo. */
   body:has(.snapshot-shell)
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__team b {
-    width: 32px !important;
-    max-width: 32px !important;
+    width: max-content !important;
+    max-width: 100% !important;
     overflow: visible !important;
     text-align: center !important;
-    transform: translateY(-4px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) b {
+    transform: translate(calc(50% - 16px), -4px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away b {
+    transform: translate(calc(16px - 50%), -4px) !important;
   }
 
   /* Keep the score/date block optically centered on the logos rather than the full label+logo stack. */
@@ -102,9 +117,16 @@
     .snapshot-panel--rates
     .snapshot-rates__main
     .snapshot-liiga
-    .snapshot-liiga__team b {
-    width: 30px !important;
-    max-width: 30px !important;
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) b {
+    transform: translate(calc(50% - 15px), -4px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away b {
+    transform: translate(calc(15px - 50%), -4px) !important;
   }
 
   body:has(.snapshot-shell)
