@@ -160,13 +160,40 @@ jobs:
           const items = Array.isArray(body.items) ? body.items : [];
           const sources = Array.isArray(body.sources) ? body.sources : [];
           const failures = [];
+          const expectedSourceIds = [
+            'soundi',
+            'pelaaja',
+            'muropaketti-games',
+            'muropaketti-films',
+            'episodi',
+            'inferno',
+            'kulttuuritoimitus',
+            'pitchfork',
+            'quietus',
+            'angry-metal-guy',
+            'comics-journal',
+          ];
+          const sourceIds = sources
+            .map((source) => source?.id)
+            .filter((id) => typeof id === 'string');
+          const missingSourceIds = expectedSourceIds.filter((id) => !sourceIds.includes(id));
+          const unexpectedSourceIds = sourceIds.filter((id) => !expectedSourceIds.includes(id));
+          const invalidStatuses = sources.filter(
+            (source) => !['ok', 'partial', 'error'].includes(source?.status),
+          );
+          const partialSources = sources.filter((source) => source?.status === 'partial');
+          const errorSources = sources.filter((source) => source?.status === 'error');
 
           if (!body.generatedAt || !Number.isFinite(Date.parse(body.generatedAt))) {
             failures.push('generatedAt missing or invalid');
           }
           if (items.length < 3) failures.push(`expected at least 3 news items, got ${items.length}`);
-          if (sources.length < 8) failures.push(`expected source statuses, got ${sources.length}`);
-          if (sources.every((source) => source?.status === 'error')) failures.push('all News sources are failing');
+          if (missingSourceIds.length > 0) failures.push(`missing source statuses: ${missingSourceIds.join(', ')}`);
+          if (unexpectedSourceIds.length > 0) failures.push(`unexpected source statuses: ${unexpectedSourceIds.join(', ')}`);
+          if (invalidStatuses.length > 0) failures.push('one or more source statuses are invalid');
+          if (errorSources.length > 0) {
+            failures.push(`fully failing sources: ${errorSources.map((source) => source.id).join(', ')}`);
+          }
 
           for (const item of items.slice(0, 12)) {
             if (!item?.title || !item?.url || !item?.sourceId) {
@@ -179,15 +206,21 @@ jobs:
             }
           }
 
+          const okSources = sources.filter((source) => source?.status === 'ok').length;
+          console.log(`Current News status: ${items.length} items; sources ok=${okSources}, partial=${partialSources.length}, error=${errorSources.length}.`);
+          if (partialSources.length > 0) {
+            console.log(`Current News partial sources: ${partialSources.map((source) => source.id).join(', ')}.`);
+          }
+          if (errorSources.length > 0) {
+            console.error(`Current News error sources: ${errorSources.map((source) => source.id).join(', ')}.`);
+          }
+
           if (failures.length > 0) {
             console.error(`Current News feed invalid: ${failures.join(' | ')}`);
             process.exit(1);
           }
 
-          const okSources = sources.filter((source) => source?.status === 'ok').length;
-          const partialSources = sources.filter((source) => source?.status === 'partial').length;
-          const errorSources = sources.filter((source) => source?.status === 'error').length;
-          console.log(`Current News verified: ${items.length} items; sources ok=${okSources}, partial=${partialSources}, error=${errorSources}.`);
+          console.log('Current News verified: every configured logical source returned usable data.');
           NODE
               then
                 exit 0
