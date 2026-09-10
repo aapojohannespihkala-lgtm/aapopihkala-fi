@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-test('calculates the Snapshot median from the displayed selected markets only', async ({ page }) => {
+// Product intent: the Snapshot headline median represents all portfolio rows from the Markets page,
+// even though Snapshot displays only a selected subset as individual rows.
+test('calculates the Snapshot median from all Markets portfolio items', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
@@ -30,7 +32,7 @@ test('calculates the Snapshot median from the displayed selected markets only', 
             { id: 'nordnet-finland', changes: { today: -0.23 } },
             { id: 'btc', changes: { today: 1.84 } },
             { id: 'remedy', changes: { today: -0.61 } },
-            { id: 'not-displayed', changes: { today: 100 } },
+            { id: 'not-displayed', changes: { today: -10 } },
           ],
         }),
       });
@@ -42,7 +44,7 @@ test('calculates the Snapshot median from the displayed selected markets only', 
 
   await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
 
-  await expect(page.locator('[data-snapshot-market-median]')).toHaveText('+0.42%');
+  await expect(page.locator('[data-snapshot-market-median]')).toHaveText('+0.10%');
   await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.42%');
   await expect(page.locator('[data-snapshot-market="remedy"]')).toHaveText('-0.61%');
 });
