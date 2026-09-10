@@ -19,3 +19,13 @@ test('Current external feed smoke covers the previously unmonitored production s
   expect(workflow).toContain('hourly=temperature_2m%2Cprecipitation_probability%2Cweather_code%2Cis_day');
   expect(workflow).toContain('daily=weather_code%2Ctemperature_2m_min%2Ctemperature_2m_max%2Cprecipitation_probability_max%2Csunrise%2Csunset');
 });
+
+test('Current external feed smoke keeps every network probe bounded', async () => {
+  const workflow = await readFile(workflowPath, 'utf8');
+  const curlCommands = workflow.split(/\n(?=\s*if curl \\\\)/).slice(1);
+
+  expect(curlCommands).toHaveLength(4);
+  for (const command of curlCommands) {
+    expect(command).toContain('--max-time 20');
+  }
+});
