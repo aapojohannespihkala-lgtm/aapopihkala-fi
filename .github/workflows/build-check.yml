@@ -180,7 +180,10 @@ jobs:
                 gh api --method POST \
                   "/repos/${GITHUB_REPOSITORY}/actions/workflows/current2-live-data-smoke.yml/dispatches" \
                   --raw-field ref=main
-                echo "Pull request merged; full main validation and Current2 live smoke dispatched."
+                gh api --method POST \
+                  "/repos/${GITHUB_REPOSITORY}/actions/workflows/current-external-feed-smoke.yml/dispatches" \
+                  --raw-field ref=main
+                echo "Pull request merged; full main validation and Current live smokes dispatched."
 
                 if [[ -n "$HEAD_REF" && "$HEAD_REF" != "main" ]]; then
                   if gh api --method DELETE \
