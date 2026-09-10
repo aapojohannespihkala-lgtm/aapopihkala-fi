@@ -1,0 +1,117 @@
+/* Snapshot-only alignment polish layered after the main hierarchy rules. */
+body:has(.snapshot-shell) {
+  --snapshot-liiga-index-width: 44px;
+}
+
+/* Give Liiga the same visual index box used by the standalone panel headings. */
+body:has(.snapshot-shell) .snapshot-panel--rates #snapshot-liiga-label {
+  position: relative;
+  box-sizing: border-box;
+  padding-left: calc(var(--snapshot-liiga-index-width) + 13px) !important;
+}
+
+body:has(.snapshot-shell) .snapshot-panel--rates #snapshot-liiga-label::before {
+  content: '05';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--snapshot-liiga-index-width);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid color-mix(in srgb, var(--ink-soft) 76%, transparent);
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
+/* Markets uses the same 42% split axis as Rates / Liiga. The first market
+   label therefore begins on the exact vertical line where the lower sections meet. */
+body:has(.snapshot-shell) .snapshot-markets {
+  grid-template-columns: calc(42% - 2px) minmax(0, 1fr) !important;
+  column-gap: 0 !important;
+}
+
+@media (max-width: 640px) {
+  body:has(.snapshot-shell) {
+    --snapshot-liiga-index-width: 38px;
+  }
+
+  /* Stack complete team names above their marks instead of spending horizontal
+     space beside the marks. Keep the marks nearest the game time and offset the
+     labels slightly outward so the match remains easy to scan. */
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team {
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 1px !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) {
+    align-items: flex-end !important;
+    justify-content: center !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away {
+    align-items: flex-start !important;
+    justify-content: center !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team b {
+    order: 1 !important;
+    width: auto !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    text-align: center !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) b {
+    margin-right: 4px !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away b {
+    margin-left: 4px !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team
+    .snapshot-liiga__mark-wrap {
+    order: 2 !important;
+  }
+}
+
+@media (max-width: 380px), (max-height: 720px) {
+  body:has(.snapshot-shell) {
+    --snapshot-liiga-index-width: 33px;
+  }
+}
