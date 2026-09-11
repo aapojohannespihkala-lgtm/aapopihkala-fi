@@ -1,5 +1,11 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { onRequestGet } from '../../functions/api/current/markets-stable';
+
+const bankOfFinlandTodayFixture = readFileSync(
+  new URL('../fixtures/current/bof-euribor-today.html', import.meta.url),
+  'utf8'
+);
 
 test('Current market feed recovers through the Bank of Finland XML report', async () => {
   const originalFetch = globalThis.fetch;
@@ -25,10 +31,10 @@ test('Current market feed recovers through the Bank of Finland XML report', asyn
       url.hostname === 'reports.suomenpankki.fi' &&
       url.searchParams.get('report') === '/tilastot/markkina-_ja_hallinnolliset_korot/euribor_korot_today_xml_en'
     ) {
-      return new Response(
-        '<root>2026-09-04 2.154 2.364 2.679 2.716 2.794 3.108</root>',
-        { status: 200, headers: { 'Content-Type': 'application/xml' } }
-      );
+      return new Response(bankOfFinlandTodayFixture, {
+        status: 200,
+        headers: { 'Content-Type': 'application/xml' },
+      });
     }
 
     if (url.hostname === 'data-api.ecb.europa.eu') {
@@ -74,10 +80,10 @@ test('Current market feed recovers through the Bank of Finland XML report', asyn
     expect(data.recovered).toBe(true);
     expect(data.recovery).toBe('bof-xml');
     expect(data.items).toEqual([
-      { id: 'euribor-3m', value: 2.679, observedAt: '2026-09-04' },
+      { id: 'euribor-3m', value: 2.669, observedAt: '2026-09-07' },
     ]);
     expect(data.series.map((series) => series.id)).toEqual(['euribor-3m', 'world']);
-    expect(data.series.find((series) => series.id === 'euribor-3m')?.change1y).toBeCloseTo(-0.571, 6);
+    expect(data.series.find((series) => series.id === 'euribor-3m')?.change1y).toBeCloseTo(-0.581, 6);
     expect(data.series.find((series) => series.id === 'world')?.change1y).toBeCloseTo(20, 6);
   } finally {
     globalThis.fetch = originalFetch;
