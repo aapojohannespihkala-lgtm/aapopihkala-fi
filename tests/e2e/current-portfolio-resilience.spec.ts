@@ -1,5 +1,11 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { onRequestGet } from '../../functions/api/current/portfolio-complete';
+
+const opWorldReaderFixture = readFileSync(
+  new URL('../fixtures/current/op-world-index-reader.txt', import.meta.url),
+  'utf8'
+);
 
 const opFixtures = [
   ['op-asia-index', 'FI4000029491', 'OP-Asia Index A'],
@@ -125,7 +131,11 @@ test('portfolio feed recovers transient sources and enriches OP index 1D/1W from
         return new Response('temporary reader failure', { status: 503 });
       }
 
-      return new Response(opReaderBody(fixture[1], fixture[2]), {
+      const body = fixture[0] === 'op-world-index'
+        ? opWorldReaderFixture
+        : opReaderBody(fixture[1], fixture[2]);
+
+      return new Response(body, {
         status: 200,
         headers: { 'Content-Type': 'text/plain' },
       });
@@ -167,13 +177,16 @@ test('portfolio feed recovers transient sources and enriches OP index 1D/1W from
       expect(readerAttempts.get(slug)).toBe(5);
       const item = body.items.find((candidate) => candidate.symbol === isin);
       expect(item).toBeDefined();
-      expect(item?.changes.today).toBeCloseTo((123.45 / 120 - 1) * 100, 6);
-      expect(item?.changes.week1).toBeCloseTo((123.45 / 118 - 1) * 100, 6);
-      expect(item?.changes.month1).toBe(1);
-      expect(item?.changes.month3).toBe(2);
-      expect(item?.changes.month6).toBe(3);
-      expect(item?.changes.ytd).toBe(0.6);
-      expect(item?.changes.year1).toBe(4);
+
+      const isWorld = slug === 'op-world-index';
+      const latestNav = isWorld ? 281.74 : 123.45;
+      expect(item?.changes.today).toBeCloseTo((latestNav / 120 - 1) * 100, 6);
+      expect(item?.changes.week1).toBeCloseTo((latestNav / 118 - 1) * 100, 6);
+      expect(item?.changes.month1).toBe(isWorld ? -2.27 : 1);
+      expect(item?.changes.month3).toBe(isWorld ? 3.35 : 2);
+      expect(item?.changes.month6).toBe(isWorld ? 12.75 : 3);
+      expect(item?.changes.ytd).toBe(isWorld ? 12.86 : 0.6);
+      expect(item?.changes.year1).toBe(isWorld ? 19.08 : 4);
       expect(item?.changes.year3).not.toBeNull();
       expect(item?.changes.year5).not.toBeNull();
     }
