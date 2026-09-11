@@ -10,7 +10,7 @@ const env = {
   },
 };
 
-test('Snapshot portfolio uses the bounded resilient feed instead of full enrichment', async () => {
+test('Snapshot portfolio retries the bounded feed when visible values are incomplete', async () => {
   const originalFetch = globalThis.fetch;
 
   globalThis.fetch = async () => new Response('temporary upstream failure', { status: 503 });
@@ -32,8 +32,8 @@ test('Snapshot portfolio uses the bounded resilient feed instead of full enrichm
     };
 
     expect(body.expected).toBe(19);
-    expect(body.source).toContain('Resilient Yahoo Finance + OP + Nordnet');
-    expect(body.version).toBe(9);
+    expect(body.source).toContain('Snapshot completeness retry');
+    expect(body.version).toBe(15);
     expect(body.unavailable).toHaveLength(19);
   } finally {
     globalThis.fetch = originalFetch;

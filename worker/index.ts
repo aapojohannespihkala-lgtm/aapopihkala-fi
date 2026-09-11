@@ -3,7 +3,7 @@ import { onRequestGet as getElectricityMonthResponse } from '../functions/api/cu
 import { fetchHslDeparturesResponse } from '../functions/api/current/hsl';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
-import { onRequestGet as getSnapshotPortfolioResponse } from '../functions/api/current/portfolio-resilient';
+import { onRequestGet as getSnapshotPortfolioResponse } from '../functions/api/current/portfolio-snapshot';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
 import { fetchLiigaResponse, onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
 import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/current/liiga-schedule';
