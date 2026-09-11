@@ -3,8 +3,9 @@ import { onRequestGet as getElectricityMonthResponse } from '../functions/api/cu
 import { fetchHslDeparturesResponse } from '../functions/api/current/hsl';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
+import { onRequestGet as getSnapshotPortfolioResponse } from '../functions/api/current/portfolio-resilient';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
-import { onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
+import { fetchLiigaResponse, onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
 import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/current/liiga-schedule';
 
 type AssetsBinding = {
@@ -23,12 +24,24 @@ const MARKETS_PATH = '/api/current/markets';
 const NEWS_PATH = '/api/current/news';
 const LIIGA_PATH = '/api/current/liiga';
 const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
+const SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS = 4_000;
 
 const methodNotAllowed = (allow = 'GET') =>
   new Response('Method not allowed', {
     status: 405,
     headers: { Allow: allow },
   });
+
+const isSnapshotRequest = (request: Request) => {
+  const referer = request.headers.get('Referer');
+  if (!referer) return false;
+
+  try {
+    return new URL(referer).pathname === '/current/snapshot/';
+  } catch {
+    return false;
+  }
+};
 
 const publicLiigaResponse = async (response: Response, error: string) => {
   if (response.status < 500) return response;
@@ -45,6 +58,7 @@ const publicLiigaResponse = async (response: Response, error: string) => {
 const worker = {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(request.url);
+    const snapshotRequest = isSnapshotRequest(request);
 
     if (url.pathname === ELECTRICITY_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
@@ -66,7 +80,9 @@ const worker = {
 
     if (url.pathname === MARKETS_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      if (url.searchParams.get('portfolio') === '1') return getPortfolioResponse();
+      if (url.searchParams.get('portfolio') === '1') {
+        return snapshotRequest ? getSnapshotPortfolioResponse() : getPortfolioResponse();
+      }
       return getMarketsResponse({ request });
     }
 
@@ -77,7 +93,10 @@ const worker = {
 
     if (url.pathname === LIIGA_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return publicLiigaResponse(await getLiigaResponse(), 'Liiga data request failed');
+      const response = snapshotRequest
+        ? await fetchLiigaResponse(SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS)
+        : await getLiigaResponse();
+      return publicLiigaResponse(response, 'Liiga data request failed');
     }
 
     if (url.pathname === LIIGA_SCHEDULE_PATH) {
