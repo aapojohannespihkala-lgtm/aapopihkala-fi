@@ -237,6 +237,7 @@ jobs:
           exit 1
 
       - name: Verify Current Open-Meteo weather source
+        if: ${{ always() }}
         shell: bash
         run: |
           set -euo pipefail
