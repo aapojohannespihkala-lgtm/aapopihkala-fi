@@ -3,9 +3,18 @@ const OPEN_METEO_FORECAST_PATH = '/v1/forecast';
 const FALLBACK_BASE_URL = 'https://aapopihkala.fi/';
 
 export const CURRENT_WEATHER_TIMEOUT_MS = 8_000;
+// Snapshot composes several Current API feeds in one screen. Bound each browser request so one
+// stalled edge response cannot leave the whole summary refreshing indefinitely.
+export const CURRENT_SNAPSHOT_API_TIMEOUT_MS = 10_000;
 
 type GuardedFetch = typeof fetch & {
   currentExternalFetchGuard?: true;
+};
+
+type CurrentFetchGuardOptions = {
+  pageUrl?: string;
+  weatherTimeoutMs?: number;
+  snapshotApiTimeoutMs?: number;
 };
 
 const getRequestUrl = (input: RequestInfo | URL) =>
@@ -14,16 +23,22 @@ const getRequestUrl = (input: RequestInfo | URL) =>
 const getUpstreamSignal = (input: RequestInfo | URL, init?: RequestInit) =>
   init?.signal ?? (input instanceof Request ? input.signal : undefined);
 
-export const fetchCurrentExternal = async (
+const getTimeoutLabel = (isWeatherRequest: boolean) =>
+  isWeatherRequest ? 'Current weather request timed out' : 'Current Snapshot API request timed out';
+
+export const fetchCurrentGuarded = async (
   fetchImpl: typeof fetch,
   input: RequestInfo | URL,
   init?: RequestInit,
-  timeoutMs = CURRENT_WEATHER_TIMEOUT_MS
+  options: CurrentFetchGuardOptions = {}
 ) => {
+  const pageUrl = options.pageUrl ?? FALLBACK_BASE_URL;
   let url: URL;
+  let page: URL;
 
   try {
-    url = new URL(getRequestUrl(input), FALLBACK_BASE_URL);
+    url = new URL(getRequestUrl(input), pageUrl);
+    page = new URL(pageUrl, FALLBACK_BASE_URL);
   } catch {
     return fetchImpl(input, init);
   }
@@ -31,11 +46,18 @@ export const fetchCurrentExternal = async (
   const isCurrentWeatherRequest =
     url.origin === OPEN_METEO_ORIGIN &&
     url.pathname === OPEN_METEO_FORECAST_PATH;
+  const isSnapshotApiRequest =
+    page.pathname === '/current/snapshot/' &&
+    url.origin === page.origin &&
+    url.pathname.startsWith('/api/current/');
 
-  if (!isCurrentWeatherRequest) {
+  if (!isCurrentWeatherRequest && !isSnapshotApiRequest) {
     return fetchImpl(input, init);
   }
 
+  const timeoutMs = isCurrentWeatherRequest
+    ? options.weatherTimeoutMs ?? CURRENT_WEATHER_TIMEOUT_MS
+    : options.snapshotApiTimeoutMs ?? CURRENT_SNAPSHOT_API_TIMEOUT_MS;
   const controller = new AbortController();
   const upstreamSignal = getUpstreamSignal(input, init);
   const forwardAbort = () => controller.abort(upstreamSignal?.reason);
@@ -47,7 +69,7 @@ export const fetchCurrentExternal = async (
   }
 
   const timeout = setTimeout(
-    () => controller.abort(new DOMException('Current weather request timed out', 'TimeoutError')),
+    () => controller.abort(new DOMException(getTimeoutLabel(isCurrentWeatherRequest), 'TimeoutError')),
     timeoutMs
   );
 
@@ -62,13 +84,25 @@ export const fetchCurrentExternal = async (
   }
 };
 
+export const fetchCurrentExternal = async (
+  fetchImpl: typeof fetch,
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  timeoutMs = CURRENT_WEATHER_TIMEOUT_MS
+) =>
+  fetchCurrentGuarded(fetchImpl, input, init, {
+    weatherTimeoutMs: timeoutMs,
+  });
+
 export const installCurrentExternalFetchGuard = () => {
   const currentFetch = window.fetch as GuardedFetch;
   if (currentFetch.currentExternalFetchGuard) return;
 
   const fetchImpl = currentFetch.bind(window);
   const guardedFetch = ((input: RequestInfo | URL, init?: RequestInit) =>
-    fetchCurrentExternal(fetchImpl, input, init)) as GuardedFetch;
+    fetchCurrentGuarded(fetchImpl, input, init, {
+      pageUrl: window.location.href,
+    })) as GuardedFetch;
 
   guardedFetch.currentExternalFetchGuard = true;
   window.fetch = guardedFetch;
