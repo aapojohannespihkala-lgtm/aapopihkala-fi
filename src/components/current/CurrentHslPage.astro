@@ -51,6 +51,41 @@ const canonicalUrl = `${site.url}/current/hsl/`;
       initCurrentClock();
     </script>
 
+    <script>
+      const routeIds: Record<string, string> = {
+        '121': 'HSL:2121',
+        '125': 'HSL:2125',
+      };
+
+      const departures = document.querySelector<HTMLElement>('[data-hsl-departures]');
+      if (departures) {
+        const linkLiveRoutes = () => {
+          for (const row of departures.querySelectorAll<HTMLElement>('[data-hsl-departure]')) {
+            if (!row.querySelector('.hsl-departure__vehicle')) continue;
+
+            const line = row.querySelector<HTMLElement>('.hsl-departure__line');
+            if (!line || line instanceof HTMLAnchorElement) continue;
+
+            const route = line.textContent?.trim() ?? '';
+            const routeId = routeIds[route];
+            if (!routeId) continue;
+
+            const link = document.createElement('a');
+            link.className = `${line.className} hsl-departure__line-link`;
+            link.href = `https://reittiopas.hsl.fi/linjat/${routeId}`;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.textContent = route;
+            link.setAttribute('aria-label', `Open HSL live map for line ${route}`);
+            line.replaceWith(link);
+          }
+        };
+
+        linkLiveRoutes();
+        new MutationObserver(linkLiveRoutes).observe(departures, { childList: true });
+      }
+    </script>
+
     <NightModeToggle lang="en" />
   </Fragment>
 </BaseLayout>
@@ -128,5 +163,17 @@ const canonicalUrl = `${site.url}/current/hsl/`;
     .current-detail-clock {
       gap: 7px;
     }
+  }
+</style>
+
+<style is:global>
+  .hsl-departure__line-link {
+    text-decoration: none;
+  }
+
+  .hsl-departure__line-link:hover,
+  .hsl-departure__line-link:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
   }
 </style>
