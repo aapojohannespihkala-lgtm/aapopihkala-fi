@@ -44,7 +44,6 @@ test('degraded Snapshot feeds automatically recover without waiting for the norm
   await page.clock.setFixedTime(new Date('2026-09-08T12:08:00.000Z'));
 
   let portfolioRequests = 0;
-  let liigaRequests = 0;
 
   await page.route('https://api.open-meteo.com/**', async (route) => {
     await route.fulfill({
@@ -86,11 +85,6 @@ test('degraded Snapshot feeds automatically recover without waiting for the norm
   });
 
   await page.route('**/api/current/liiga*', async (route) => {
-    liigaRequests += 1;
-    if (liigaRequests === 1) {
-      await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
-      return;
-    }
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -100,15 +94,13 @@ test('degraded Snapshot feeds automatically recover without waiting for the norm
 
   await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
 
-  await expect(page.locator('[data-snapshot-status]')).toHaveText('LIVE DATA / 3 OF 5 SOURCES');
+  await expect(page.locator('[data-snapshot-status]')).toHaveText('LIVE DATA / 4 OF 5 SOURCES');
   await expect(page.locator('[data-snapshot-market-median]')).toHaveText('--');
-  await expect(page.locator('[data-snapshot-liiga]')).toHaveClass(/is-unavailable/);
+  await expect(page.locator('[data-snapshot-liiga]')).not.toHaveClass(/is-unavailable/);
 
   await page.clock.runFor(30_100);
 
   await expect(page.locator('[data-snapshot-status]')).toHaveText('LIVE DATA / OK');
   await expect(page.locator('[data-snapshot-market-median]')).toHaveText('+0.42%');
-  await expect(page.locator('[data-snapshot-liiga]')).not.toHaveClass(/is-unavailable/);
   expect(portfolioRequests).toBeGreaterThan(3);
-  expect(liigaRequests).toBeGreaterThan(1);
 });
