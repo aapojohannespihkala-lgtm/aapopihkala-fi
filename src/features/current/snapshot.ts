@@ -23,6 +23,8 @@ type SnapshotPortfolioItem = {
   id?: unknown;
   changes?: {
     today?: unknown;
+    month1?: unknown;
+    year1?: unknown;
   };
 };
 
@@ -50,6 +52,8 @@ type SnapshotMacroResponse = {
   items?: unknown;
   series?: unknown;
 };
+
+type SnapshotMarketPeriod = 'today' | 'month1' | 'year1';
 
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
@@ -358,6 +362,56 @@ const applyTone = (element: HTMLElement, value: number) => {
   if (value < -0.005) element.classList.add('is-negative');
 };
 
+const getMedian = (values: number[]) => {
+  if (values.length === 0) return null;
+
+  const sorted = [...values].sort((left, right) => left - right);
+  const midpoint = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? sorted[midpoint]
+    : (sorted[midpoint - 1] + sorted[midpoint]) / 2;
+};
+
+const ensureMarketMedianDetails = (root: HTMLElement) => {
+  const median = root.querySelector<HTMLElement>('.snapshot-markets__median');
+  if (!median) return;
+
+  median.setAttribute('aria-label', 'Median portfolio performance for one day, one month and one year');
+  if (median.querySelector('[data-snapshot-market-median-details]')) return;
+
+  const style = document.createElement('style');
+  style.dataset.snapshotMarketMedianStyles = 'true';
+  style.textContent = `
+    body:has(.snapshot-shell) .snapshot-markets__median-details {
+      grid-row: 4 / 6;
+      align-self: stretch;
+      display: grid;
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      align-items: center;
+    }
+  `;
+  if (!document.querySelector('[data-snapshot-market-median-styles]')) document.head.append(style);
+
+  const details = document.createElement('div');
+  details.className = 'snapshot-markets__median-details snapshot-micro';
+  details.dataset.snapshotMarketMedianDetails = 'true';
+  details.innerHTML = `
+    <div>1M / MEDIAN <strong data-snapshot-market-median-month>--</strong></div>
+    <div>1Y / MEDIAN <strong data-snapshot-market-median-year>--</strong></div>
+  `;
+  median.append(details);
+};
+
+const renderMarketMedian = (root: HTMLElement, selector: string, values: number[]) => {
+  const target = root.querySelector<HTMLElement>(selector);
+  if (!target) return;
+
+  const median = getMedian(values);
+  target.textContent = median === null ? 'N/A' : formatPercent(median);
+  target.classList.remove('is-positive', 'is-negative');
+  if (median !== null) applyTone(target, median);
+};
+
 const fetchSnapshotMarkets = async (url: string) => {
   let lastError: unknown;
 
@@ -384,31 +438,29 @@ const loadMarkets = async (root: HTMLElement) => {
   if (!Array.isArray(data.items)) throw new Error('Markets response is incomplete');
 
   setText(root, '.snapshot-markets .snapshot-kicker', 'TODAY / SELECTED PERFORMANCE');
+  ensureMarketMedianDetails(root);
 
   const byId = new Map<string, SnapshotPortfolioItem>();
-  const todayValues: number[] = [];
+  const medianValues: Record<SnapshotMarketPeriod, number[]> = {
+    today: [],
+    month1: [],
+    year1: [],
+  };
+
   for (const raw of data.items) {
     if (!raw || typeof raw !== 'object') continue;
     const item = raw as SnapshotPortfolioItem;
     if (typeof item.id === 'string') byId.set(item.id, item);
-    const value = item.changes?.today;
-    if (isFiniteNumber(value)) todayValues.push(value);
+
+    for (const period of Object.keys(medianValues) as SnapshotMarketPeriod[]) {
+      const value = item.changes?.[period];
+      if (isFiniteNumber(value)) medianValues[period].push(value);
+    }
   }
 
-  todayValues.sort((left, right) => left - right);
-  const medianTarget = root.querySelector<HTMLElement>('[data-snapshot-market-median]');
-  if (medianTarget) {
-    const midpoint = Math.floor(todayValues.length / 2);
-    const median = todayValues.length === 0
-      ? null
-      : todayValues.length % 2 === 1
-        ? todayValues[midpoint]
-        : (todayValues[midpoint - 1] + todayValues[midpoint]) / 2;
-
-    medianTarget.textContent = median === null ? 'N/A' : formatPercent(median);
-    medianTarget.classList.remove('is-positive', 'is-negative');
-    if (median !== null) applyTone(medianTarget, median);
-  }
+  renderMarketMedian(root, '[data-snapshot-market-median]', medianValues.today);
+  renderMarketMedian(root, '[data-snapshot-market-median-month]', medianValues.month1);
+  renderMarketMedian(root, '[data-snapshot-market-median-year]', medianValues.year1);
 
   for (const id of SELECTED_MARKETS) {
     const target = root.querySelector<HTMLElement>(`[data-snapshot-market="${id}"]`);
