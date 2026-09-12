@@ -6,7 +6,7 @@
 
   <div class="hsl-meta">
     <p data-hsl-status>YLISRINNE / E3239 / FETCHING</p>
-    <p>REFRESH / 30 S</p>
+    <p>REFRESH / 15 S</p>
   </div>
 
   <div class="hsl-results" data-hsl-results hidden>
@@ -26,7 +26,7 @@
     <p>
       DATA /
       <a href="https://digitransit.fi/" target="_blank" rel="noopener">HSL DIGITRANSIT</a>
-      · 2 PREVIOUS + NEXT 6 · LIVE WHEN AVAILABLE · AUTO REFRESH 30 S
+      · GPS / HSL GTFS-RT · 2 PREVIOUS + NEXT 6 · AUTO REFRESH 15 S
     </p>
   </footer>
 </section>
@@ -146,12 +146,30 @@
     letter-spacing: -0.025em;
   }
 
+  .hsl-departure__destination-wrap {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+  }
+
   .hsl-departure__destination {
     min-width: 0;
     overflow: hidden;
     color: var(--ink-soft);
     font-size: 0.68rem;
     line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hsl-departure__vehicle {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--moss);
+    font-size: 0.41rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.045em;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -186,6 +204,12 @@
     color: var(--stone);
   }
 
+  .hsl-departure__state-wrap {
+    display: grid;
+    justify-items: end;
+    gap: 3px;
+  }
+
   .hsl-departure__state {
     color: var(--stone-light);
     font-size: 0.43rem;
@@ -196,6 +220,14 @@
 
   .hsl-departure__state--live {
     color: var(--moss);
+  }
+
+  .hsl-departure__state-age {
+    color: var(--stone-light);
+    font-size: 0.35rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
   }
 
   .hsl-message {
@@ -278,6 +310,11 @@
       font-size: 0.58rem;
     }
 
+    .hsl-departure__vehicle {
+      font-size: 0.32rem;
+      letter-spacing: 0.025em;
+    }
+
     .hsl-departure__time {
       gap: 2px 5px;
     }
@@ -290,6 +327,10 @@
     .hsl-departure__delay,
     .hsl-departure__state {
       font-size: 0.34rem;
+    }
+
+    .hsl-departure__state-age {
+      font-size: 0.29rem;
     }
   }
 </style>
