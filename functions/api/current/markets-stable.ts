@@ -183,12 +183,22 @@ const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, label: str
   }
 };
 
-const fetchWithTimeout = async (url: string, init: RequestInit) => {
+export const fetchWithTimeout = async (
+  url: string,
+  init: RequestInit,
+  timeoutMs = UPSTREAM_FETCH_TIMEOUT_MS
+) => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), UPSTREAM_FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    const body = response.body ? await response.arrayBuffer() : null;
+    return new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
   } finally {
     clearTimeout(timer);
   }
