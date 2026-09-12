@@ -52,6 +52,11 @@ const canonicalUrl = `${site.url}/current/hsl/`;
     </script>
 
     <script>
+      import { initCurrentHslActiveLabels } from '../../features/current/hsl-active-label';
+      initCurrentHslActiveLabels();
+    </script>
+
+    <script>
       const routeIds: Record<string, string> = {
         '121': 'HSL:2121',
         '125': 'HSL:2125',
