@@ -48,7 +48,7 @@ test('calculates Snapshot medians from all Markets portfolio items', async ({ pa
   const details = page.locator('[data-snapshot-market-median-details]');
   const month = page.locator('[data-snapshot-market-median-month]');
   const year = page.locator('[data-snapshot-market-median-year]');
-  const referenceRow = page.locator('.snapshot-rates__change');
+  const referenceRow = page.locator('.snapshot-panel--rates .snapshot-rates__change');
   const referenceValue = page.locator('[data-snapshot-euribor-change]');
 
   await expect(headline).toHaveText('+0.10%');
