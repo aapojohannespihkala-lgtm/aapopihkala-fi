@@ -15,6 +15,13 @@
       "/api/current/liiga-schedule"
     ]
   },
+  "d1_databases": [
+    {
+      "binding": "HSL_MODEL_DB",
+      "database_name": "aapopihkala-hsl-eta",
+      "database_id": "9a761c4f-4c08-46b1-a0bd-480af8d4d5a1"
+    }
+  ],
   "triggers": {
     "crons": ["* * * * *"]
   },
