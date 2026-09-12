@@ -212,7 +212,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }
     await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('Kärpät');
     await expect(liiga.locator('[data-snapshot-liiga-away-team]')).toHaveText('Ilves');
     await expect(liiga.locator('[data-snapshot-liiga-score]')).toHaveText('18:30');
-    await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('WED 16 SEPT');
+    await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('WED 16');
 
     const g = await geometry(page);
     const euriborMinimum = viewport.width <= 380 ? 118 : 124;
