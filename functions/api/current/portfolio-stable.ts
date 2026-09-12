@@ -204,11 +204,18 @@ const annualizedToCumulative = (value: number | null, years: number) => {
   return (Math.pow(1 + value / 100, years) - 1) * 100;
 };
 
-const fetchWithTimeout = async (input: string, init: RequestInit = {}) => {
+export const fetchTextWithTimeout = async (
+  input: string,
+  init: RequestInit = {},
+  timeoutMs = RECOVERY_FETCH_TIMEOUT_MS,
+  fetchImpl: typeof fetch = fetch
+) => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), RECOVERY_FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(input, { ...init, signal: controller.signal });
+    const response = await fetchImpl(input, { ...init, signal: controller.signal });
+    if (!response.ok) return { response, body: null as string | null };
+    return { response, body: await response.text() };
   } finally {
     clearTimeout(timer);
   }
@@ -227,7 +234,7 @@ const withTaskTimeout = async <T>(promise: Promise<T>, id: string): Promise<T> =
 };
 
 const recoverOpFundOnce = async (spec: OpRecoverySpec): Promise<PortfolioItem> => {
-  const response = await fetchWithTimeout(`${READER_BASE}${spec.url}`, {
+  const { response, body } = await fetchTextWithTimeout(`${READER_BASE}${spec.url}`, {
     headers: {
       Accept: 'text/plain',
       'X-Cache-Tolerance': '300',
@@ -235,9 +242,11 @@ const recoverOpFundOnce = async (spec: OpRecoverySpec): Promise<PortfolioItem> =
       'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
     },
   });
-  if (!response.ok) throw new Error(`OP reader request failed: ${response.status}`);
+  if (!response.ok || body === null) {
+    throw new Error(`OP reader request failed: ${response.status}`);
+  }
 
-  const text = normalizeText(await response.text());
+  const text = normalizeText(body);
   if (!text.includes(spec.isin)) throw new Error(`OP reader ISIN mismatch for ${spec.id}`);
 
   const accumulated = extractFundRow(
