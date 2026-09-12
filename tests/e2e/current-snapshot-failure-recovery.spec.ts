@@ -41,9 +41,10 @@ const liigaFixture = {
 };
 
 test('degraded Snapshot feeds automatically recover without waiting for the normal refresh interval', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2026-09-08T12:08:00.000Z'));
+  await page.clock.install({ time: new Date('2026-09-08T12:08:00.000Z') });
 
   let portfolioRequests = 0;
+  let marketsAvailable = false;
 
   await page.route('https://api.open-meteo.com/**', async (route) => {
     await route.fulfill({
@@ -65,7 +66,7 @@ test('degraded Snapshot feeds automatically recover without waiting for the norm
     const url = new URL(route.request().url());
     if (url.searchParams.get('portfolio') === '1') {
       portfolioRequests += 1;
-      if (portfolioRequests <= 3) {
+      if (!marketsAvailable) {
         await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
         return;
       }
@@ -98,9 +99,11 @@ test('degraded Snapshot feeds automatically recover without waiting for the norm
   await expect(page.locator('[data-snapshot-market-median]')).toHaveText('--');
   await expect(page.locator('[data-snapshot-liiga]')).not.toHaveClass(/is-unavailable/);
 
+  const failedPortfolioRequests = portfolioRequests;
+  marketsAvailable = true;
   await page.clock.runFor(30_100);
 
   await expect(page.locator('[data-snapshot-status]')).toHaveText('LIVE DATA / OK');
   await expect(page.locator('[data-snapshot-market-median]')).toHaveText('+0.42%');
-  expect(portfolioRequests).toBeGreaterThan(3);
+  expect(portfolioRequests).toBeGreaterThan(failedPortfolioRequests);
 });
