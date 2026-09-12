@@ -5,6 +5,7 @@ import {
   enrichHslResponseWithLearning,
   type HslLearningDb,
 } from '../functions/api/current/hsl-learning';
+import { recordHslDistancePassages } from '../functions/api/current/hsl-passage-learning';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
 import { onRequestGet as getSnapshotPortfolioResponse } from '../functions/api/current/portfolio-snapshot';
@@ -95,6 +96,12 @@ const hslLearningDb = (db?: HslLearningDb) => {
   return adapter;
 };
 
+const enrichAndRecordHsl = async (response: Response, db?: HslLearningDb) => {
+  const enriched = await enrichHslResponseWithLearning(response, db);
+  await recordHslDistancePassages(enriched, db);
+  return enriched;
+};
+
 const methodNotAllowed = (allow = 'GET') =>
   new Response('Method not allowed', {
     status: 405,
@@ -143,7 +150,7 @@ const collectHslLearningSnapshot = async (env: WorkerEnv) => {
     console.error('Scheduled HSL learning snapshot failed', response.status);
     return;
   }
-  await enrichHslResponseWithLearning(response, hslLearningDb(env.HSL_MODEL_DB));
+  await enrichAndRecordHsl(response, hslLearningDb(env.HSL_MODEL_DB));
 };
 
 const worker = {
@@ -167,7 +174,7 @@ const worker = {
         request,
         apiKey: env.DIGITRANSIT_API_KEY,
       });
-      return enrichHslResponseWithLearning(response, hslLearningDb(env.HSL_MODEL_DB));
+      return enrichAndRecordHsl(response, hslLearningDb(env.HSL_MODEL_DB));
     }
 
     if (url.pathname === MARKETS_PATH) {
