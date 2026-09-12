@@ -96,7 +96,7 @@ jobs:
               --header 'Accept: application/json' \
               --header 'Content-Type: application/json' \
               --header 'Cache-Control: no-cache' \
-              --data '{"stopCode":"E3239","routes":["121","125"]}' \
+              --data '{"stopCode":"E3239","stopName":"Ylisrinne","routes":["121","125"]}' \
               "$url" \
               --output current-hsl-live.json; then
               if node <<'NODE'
