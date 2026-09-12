@@ -48,6 +48,8 @@ test('calculates Snapshot medians from all Markets portfolio items', async ({ pa
   const details = page.locator('[data-snapshot-market-median-details]');
   const month = page.locator('[data-snapshot-market-median-month]');
   const year = page.locator('[data-snapshot-market-median-year]');
+  const referenceRow = page.locator('.snapshot-panel--rates .snapshot-rates__change');
+  const referenceValue = page.locator('[data-snapshot-euribor-change]');
 
   await expect(headline).toHaveText('+0.10%');
   await expect(month).toHaveText('+0.50%');
@@ -55,18 +57,46 @@ test('calculates Snapshot medians from all Markets portfolio items', async ({ pa
   await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.40%');
   await expect(page.locator('[data-snapshot-market="remedy"]')).toHaveText('-0.60%');
 
-  const [headlineSize, monthSize, yearSize, detailsWeight, monthWeight, yearWeight] = await Promise.all([
+  const [
+    headlineSize,
+    headlineColor,
+    detailsSize,
+    detailsColor,
+    referenceSize,
+    referenceColor,
+    monthSize,
+    monthWeight,
+    monthColor,
+    yearSize,
+    yearWeight,
+    yearColor,
+    referenceValueSize,
+    referenceValueWeight,
+  ] = await Promise.all([
     headline.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+    headline.evaluate((element) => getComputedStyle(element).color),
+    details.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+    details.evaluate((element) => getComputedStyle(element).color),
+    referenceRow.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+    referenceRow.evaluate((element) => getComputedStyle(element).color),
     month.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
-    year.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
-    details.evaluate((element) => getComputedStyle(element).fontWeight),
     month.evaluate((element) => getComputedStyle(element).fontWeight),
+    month.evaluate((element) => getComputedStyle(element).color),
+    year.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
     year.evaluate((element) => getComputedStyle(element).fontWeight),
+    year.evaluate((element) => getComputedStyle(element).color),
+    referenceValue.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+    referenceValue.evaluate((element) => getComputedStyle(element).fontWeight),
   ]);
 
+  expect(detailsSize).toBe(referenceSize);
+  expect(detailsColor).toBe(referenceColor);
+  expect(monthSize).toBe(referenceValueSize);
+  expect(yearSize).toBe(referenceValueSize);
+  expect(monthWeight).toBe(referenceValueWeight);
+  expect(yearWeight).toBe(referenceValueWeight);
+  expect(monthColor).toBe(headlineColor);
+  expect(yearColor).toBe(headlineColor);
   expect(monthSize).toBeLessThan(headlineSize * 0.5);
   expect(yearSize).toBeLessThan(headlineSize * 0.5);
-  expect(detailsWeight).toBe('400');
-  expect(monthWeight).toBe('600');
-  expect(yearWeight).toBe('600');
 });
