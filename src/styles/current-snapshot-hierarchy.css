@@ -267,7 +267,7 @@ body:has(.snapshot-shell)
     .snapshot-liiga
     .snapshot-liiga__match-center {
     min-width: 46px !important;
-    gap: 1px !important;
+    gap: 3px !important;
   }
 
   body:has(.snapshot-shell)
@@ -276,7 +276,7 @@ body:has(.snapshot-shell)
     .snapshot-liiga
     .snapshot-liiga__score {
     font-size: 0.76rem !important;
-    transform: translateY(2px);
+    transform: translateY(4px);
   }
 
   body:has(.snapshot-shell)
@@ -284,7 +284,8 @@ body:has(.snapshot-shell)
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__match-center time {
-    font-size: 0.28rem !important;
+    font-size: 0.32rem !important;
+    line-height: 1.1 !important;
   }
 
   /* Last-game detail is desktop supporting data. Keep mobile focused on the next game. */
