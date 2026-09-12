@@ -95,12 +95,19 @@ const parseNumber = (value: string) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const fetchWithTimeout = async (input: string, init: RequestInit = {}) => {
+export const fetchTextWithTimeout = async (
+  input: string,
+  init: RequestInit = {},
+  timeoutMs = FETCH_TIMEOUT_MS,
+  fetchImpl: typeof fetch = fetch
+) => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    return await fetch(input, { ...init, signal: controller.signal });
+    const response = await fetchImpl(input, { ...init, signal: controller.signal });
+    const body = await response.text();
+    return { body, ok: response.ok, status: response.status };
   } finally {
     clearTimeout(timer);
   }
@@ -127,15 +134,15 @@ const fetchTextWithReaderFallback = async (
   let directError: unknown;
 
   try {
-    const response = await fetchWithTimeout(url, { headers: directHeaders });
-    if (!response.ok) throw new Error(`direct request failed: ${response.status}`);
-    return await response.text();
+    const result = await fetchTextWithTimeout(url, { headers: directHeaders });
+    if (!result.ok) throw new Error(`direct request failed: ${result.status}`);
+    return result.body;
   } catch (error) {
     directError = error;
   }
 
   try {
-    const response = await fetchWithTimeout(`${READER_BASE}${url}`, {
+    const result = await fetchTextWithTimeout(`${READER_BASE}${url}`, {
       headers: {
         Accept: 'text/plain',
         'X-Cache-Tolerance': '300',
@@ -143,8 +150,8 @@ const fetchTextWithReaderFallback = async (
         'User-Agent': 'Mozilla/5.0 (compatible; aapopihkala.fi/1.0)',
       },
     });
-    if (!response.ok) throw new Error(`reader request failed: ${response.status}`);
-    return await response.text();
+    if (!result.ok) throw new Error(`reader request failed: ${result.status}`);
+    return result.body;
   } catch (readerError) {
     throw readerError instanceof Error
       ? readerError
