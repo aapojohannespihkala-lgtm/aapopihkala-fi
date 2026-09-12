@@ -395,6 +395,13 @@ const ensureMarketMedianDetails = (root: HTMLElement) => {
       grid-template-rows: repeat(2, minmax(0, 1fr));
       align-items: center;
     }
+
+    body:has(.snapshot-shell) .snapshot-markets__median-details strong {
+      font-size: inherit !important;
+      line-height: 1 !important;
+      font-weight: 650;
+      letter-spacing: 0.01em;
+    }
   `;
   if (!document.querySelector('[data-snapshot-market-median-styles]')) document.head.append(style);
 
