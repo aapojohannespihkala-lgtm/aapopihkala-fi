@@ -382,9 +382,15 @@ const ensureMarketMedianDetails = (root: HTMLElement) => {
   const style = document.createElement('style');
   style.dataset.snapshotMarketMedianStyles = 'true';
   style.textContent = `
+    body:has(.snapshot-shell) .snapshot-markets__median {
+      position: relative;
+    }
+
     body:has(.snapshot-shell) .snapshot-markets__median-details {
-      grid-row: 4 / 6;
-      align-self: stretch;
+      position: absolute;
+      right: auto;
+      bottom: 0;
+      left: 0;
       display: grid;
       grid-template-rows: repeat(2, minmax(0, 1fr));
       align-items: center;
