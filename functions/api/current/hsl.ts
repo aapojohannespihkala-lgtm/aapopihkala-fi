@@ -1,7 +1,23 @@
+import {
+  parseHslVehiclePositions,
+  type HslVehiclePosition,
+} from './hsl-vehicle-positions';
+
 type HslRequestBody = {
   stopCode?: unknown;
   stopName?: unknown;
   routes?: unknown;
+};
+
+type HslVehicle = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  distanceMeters: number | null;
+  bearing: number | null;
+  speedKmh: number | null;
+  updatedAt: string | null;
+  currentStatus: 'INCOMING_AT' | 'STOPPED_AT' | 'IN_TRANSIT_TO';
 };
 
 type HslDeparture = {
@@ -12,6 +28,13 @@ type HslDeparture = {
   delaySeconds: number;
   realtime: boolean;
   realtimeState: string;
+  vehicle: HslVehicle | null;
+};
+
+type NormalizedDeparture = Omit<HslDeparture, 'vehicle'> & {
+  journeyKey: string | null;
+  targetStopPosition: number | null;
+  tripStopIds: string[];
 };
 
 type HslContext = {
@@ -29,6 +52,7 @@ type FetchHslOptions = {
 };
 
 const DIGITRANSIT_URL = 'https://api.digitransit.fi/routing/v2/hsl/gtfs/v1';
+const HSL_VEHICLE_POSITIONS_URL = 'https://realtime.hsl.fi/realtime/vehicle-positions/v2/hsl';
 const UPSTREAM_TIMEOUT_MS = 8_000;
 const HISTORY_LOOKBACK_SECONDS = 2 * 60 * 60;
 const MAX_ROUTE_FILTERS = 8;
@@ -37,6 +61,7 @@ const MAX_STOP_NAME_LENGTH = 80;
 const STOP_CODE_PATTERN = /^[A-Z]{1,2}\d{3,5}$/;
 const ROUTE_PATTERN = /^[0-9A-Z]{1,8}$/;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/;
+const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 
 const DEPARTURES_QUERY = `
   query CurrentHslDepartures(
@@ -45,8 +70,11 @@ const DEPARTURES_QUERY = `
     $numberOfDepartures: Int!
   ) {
     stops(name: $stopQuery) {
+      gtfsId
       name
       code
+      lat
+      lon
       stoptimesWithoutPatterns(
         startTime: $startTime
         numberOfDepartures: $numberOfDepartures
@@ -60,9 +88,18 @@ const DEPARTURES_QUERY = `
         realtime
         realtimeState
         headsign
+        stopPosition
         trip {
+          directionId
           route {
+            gtfsId
             shortName
+          }
+          stops {
+            gtfsId
+          }
+          stoptimes {
+            scheduledDeparture
           }
         }
       }
@@ -125,10 +162,68 @@ const toIso = (serviceDay: number, secondsAfterMidnight: number) => {
   return Number.isNaN(value.getTime()) ? null : value.toISOString();
 };
 
+const stripFeedPrefix = (value: unknown) => {
+  if (typeof value !== 'string') return '';
+  const normalized = value.trim();
+  const separator = normalized.indexOf(':');
+  return separator >= 0 ? normalized.slice(separator + 1) : normalized;
+};
+
+const normalizeDirectionId = (value: unknown) => {
+  if (typeof value === 'number' && Number.isInteger(value)) return value;
+  if (typeof value === 'string' && /^[01]$/.test(value.trim())) return Number(value.trim());
+  return null;
+};
+
+const formatServiceDate = (serviceDay: number) => {
+  const date = new Date(serviceDay * 1000);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: HELSINKI_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  return year && month && day ? `${year}${month}${day}` : null;
+};
+
+const formatGtfsTime = (secondsAfterMidnight: number) => {
+  if (!Number.isFinite(secondsAfterMidnight) || secondsAfterMidnight < 0) return null;
+  const totalSeconds = Math.round(secondsAfterMidnight);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+const normalizeGtfsTime = (value: string) => {
+  const match = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(value.trim());
+  if (!match) return value.trim();
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const seconds = Number(match[3] ?? '0');
+  if (minutes > 59 || seconds > 59) return value.trim();
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+const journeyKey = (
+  routeId: string,
+  startDate: string,
+  startTime: string,
+  directionId: number | null
+) => {
+  if (!routeId || !startDate || !startTime || directionId === null) return null;
+  return `${routeId}|${startDate}|${normalizeGtfsTime(startTime)}|${directionId}`;
+};
+
 const normalizeDeparture = (
   value: unknown,
   routeFilters: Set<string>
-): HslDeparture | null => {
+): NormalizedDeparture | null => {
   if (!isRecord(value)) return null;
 
   const trip = value.trip;
@@ -154,6 +249,23 @@ const normalizeDeparture = (
   const reportedDelay = finiteNumber(value.departureDelay);
   const delaySeconds = reportedDelay ?? Math.round(effectiveDeparture - scheduledDeparture);
 
+  const routeId = stripFeedPrefix(trip.route.gtfsId);
+  const directionId = normalizeDirectionId(trip.directionId);
+  const tripStoptimes = Array.isArray(trip.stoptimes) ? trip.stoptimes : [];
+  const firstScheduledDeparture = tripStoptimes
+    .map((stoptime) => isRecord(stoptime) ? finiteNumber(stoptime.scheduledDeparture) : null)
+    .find((departure): departure is number => departure !== null);
+  const startDate = formatServiceDate(serviceDay);
+  const startTime = firstScheduledDeparture === undefined
+    ? null
+    : formatGtfsTime(firstScheduledDeparture);
+
+  const tripStopIds = Array.isArray(trip.stops)
+    ? trip.stops
+        .map((stop) => isRecord(stop) ? stripFeedPrefix(stop.gtfsId) : '')
+        .filter(Boolean)
+    : [];
+
   return {
     route,
     headsign: typeof value.headsign === 'string' ? value.headsign.trim() : '',
@@ -167,6 +279,122 @@ const normalizeDeparture = (
         : realtime
           ? 'UPDATED'
           : 'SCHEDULED',
+    journeyKey:
+      routeId && startDate && startTime
+        ? journeyKey(routeId, startDate, startTime, directionId)
+        : null,
+    targetStopPosition: finiteNumber(value.stopPosition),
+    tripStopIds,
+  };
+};
+
+const haversineDistanceMeters = (
+  fromLat: number,
+  fromLon: number,
+  toLat: number,
+  toLon: number
+) => {
+  const radians = (degrees: number) => degrees * (Math.PI / 180);
+  const earthRadiusMeters = 6_371_000;
+  const latitudeDelta = radians(toLat - fromLat);
+  const longitudeDelta = radians(toLon - fromLon);
+  const fromLatitude = radians(fromLat);
+  const toLatitude = radians(toLat);
+  const a =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(fromLatitude) * Math.cos(toLatitude) * Math.sin(longitudeDelta / 2) ** 2;
+  return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const fetchVehiclePositions = async (
+  fetchImpl: typeof fetch,
+  signal: AbortSignal
+): Promise<HslVehiclePosition[]> => {
+  try {
+    const response = await fetchImpl(HSL_VEHICLE_POSITIONS_URL, {
+      method: 'GET',
+      headers: { Accept: 'application/x-protobuf' },
+      signal,
+    });
+    if (!response.ok) return [];
+    return parseHslVehiclePositions(await response.arrayBuffer());
+  } catch {
+    return [];
+  }
+};
+
+const vehicleMapByJourney = (vehicles: HslVehiclePosition[]) => {
+  const byJourney = new Map<string, HslVehiclePosition[]>();
+
+  for (const vehicle of vehicles) {
+    const key = journeyKey(
+      stripFeedPrefix(vehicle.routeId),
+      vehicle.startDate,
+      vehicle.startTime,
+      vehicle.directionId
+    );
+    if (!key) continue;
+    const current = byJourney.get(key) ?? [];
+    current.push(vehicle);
+    byJourney.set(key, current);
+  }
+
+  return byJourney;
+};
+
+const chooseVehicle = (
+  departure: NormalizedDeparture,
+  candidates: HslVehiclePosition[],
+  stopLat: number | null,
+  stopLon: number | null
+) => {
+  const targetPosition = departure.targetStopPosition;
+  const eligible = candidates.filter((vehicle) => {
+    if (!vehicle.stopId || targetPosition === null || departure.tripStopIds.length === 0) return true;
+    const currentStopPosition = departure.tripStopIds.indexOf(stripFeedPrefix(vehicle.stopId));
+    return currentStopPosition < 0 || currentStopPosition <= targetPosition;
+  });
+
+  const source = eligible.length > 0 ? eligible : candidates;
+  return source
+    .map((vehicle) => ({
+      vehicle,
+      distance:
+        stopLat !== null && stopLon !== null
+          ? haversineDistanceMeters(vehicle.latitude, vehicle.longitude, stopLat, stopLon)
+          : Number.POSITIVE_INFINITY,
+    }))
+    .sort((a, b) => {
+      if (a.distance !== b.distance) return a.distance - b.distance;
+      return (b.vehicle.timestamp ?? 0) - (a.vehicle.timestamp ?? 0);
+    })[0]?.vehicle ?? null;
+};
+
+const publicVehicle = (
+  vehicle: HslVehiclePosition | null,
+  stopLat: number | null,
+  stopLon: number | null
+): HslVehicle | null => {
+  if (!vehicle) return null;
+  const distanceMeters = stopLat !== null && stopLon !== null
+    ? Math.round(haversineDistanceMeters(vehicle.latitude, vehicle.longitude, stopLat, stopLon))
+    : null;
+  const updatedAt = vehicle.timestamp === null
+    ? null
+    : new Date(vehicle.timestamp * 1000).toISOString();
+
+  return {
+    id: vehicle.vehicleId,
+    latitude: vehicle.latitude,
+    longitude: vehicle.longitude,
+    distanceMeters,
+    bearing: vehicle.bearing,
+    speedKmh:
+      vehicle.speedMetersPerSecond === null
+        ? null
+        : Math.round(vehicle.speedMetersPerSecond * 36) / 10,
+    updatedAt,
+    currentStatus: vehicle.currentStatus,
   };
 };
 
@@ -253,15 +481,40 @@ export const fetchHslDeparturesResponse = async ({
     }
 
     const routeFilters = new Set(routes);
-    const departures = stoptimes
+    const normalizedDepartures = stoptimes
       .map((entry) => normalizeDeparture(entry, routeFilters))
-      .filter((entry): entry is HslDeparture => Boolean(entry))
+      .filter((entry): entry is NormalizedDeparture => Boolean(entry))
       .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
       .slice(0, MAX_DEPARTURES);
+
+    const stopLat = finiteNumber(stop.lat);
+    const stopLon = finiteNumber(stop.lon);
+    const vehiclesByJourney = vehicleMapByJourney(
+      await fetchVehiclePositions(fetchImpl, controller.signal)
+    );
+
+    const departures: HslDeparture[] = normalizedDepartures.map((departure) => {
+      const candidates = departure.journeyKey
+        ? vehiclesByJourney.get(departure.journeyKey) ?? []
+        : [];
+      const vehicle = chooseVehicle(departure, candidates, stopLat, stopLon);
+      const {
+        journeyKey: _journeyKey,
+        targetStopPosition: _targetStopPosition,
+        tripStopIds: _tripStopIds,
+        ...publicDeparture
+      } = departure;
+
+      return {
+        ...publicDeparture,
+        vehicle: publicVehicle(vehicle, stopLat, stopLon),
+      };
+    });
 
     return jsonResponse(
       {
         source: 'HSL Digitransit',
+        vehicleSource: 'HSL GTFS-RT',
         fetchedAt: new Date().toISOString(),
         stop: {
           code: stopCode,
