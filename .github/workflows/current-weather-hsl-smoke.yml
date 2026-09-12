@@ -74,6 +74,110 @@ jobs:
           [[ -f current-weather-live.json ]] && cat current-weather-live.json >&2
           exit 1
 
+  hsl_vehicle_positions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify HSL GTFS-RT vehicle positions source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          url='https://realtime.hsl.fi/realtime/vehicle-positions/v2/hsl'
+
+          for attempt in $(seq 1 6); do
+            echo "HSL vehicle positions attempt ${attempt}/6"
+            rm -f current-hsl-vehicle-positions.pb current-hsl-vehicle-positions.headers
+
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              --max-time 20 \
+              --header 'Accept: application/x-protobuf' \
+              --dump-header current-hsl-vehicle-positions.headers \
+              "$url" \
+              --output current-hsl-vehicle-positions.pb; then
+              if node <<'NODE'
+          const fs = require('node:fs');
+          const bytes = fs.readFileSync('current-hsl-vehicle-positions.pb');
+          const headers = fs.readFileSync('current-hsl-vehicle-positions.headers', 'utf8');
+          const failures = [];
+
+          if (bytes.length < 100) failures.push(`protobuf payload unexpectedly small: ${bytes.length} bytes`);
+          if (!/^content-type:\s*(application\/x-protobuf|application\/octet-stream)/im.test(headers)) {
+            failures.push('unexpected content type');
+          }
+
+          let offset = 0;
+          let entityCount = 0;
+          const readVarint = () => {
+            let value = 0;
+            let multiplier = 1;
+            for (let index = 0; index < 10; index += 1) {
+              if (offset >= bytes.length) throw new Error('truncated varint');
+              const byte = bytes[offset++];
+              value += (byte & 0x7f) * multiplier;
+              if ((byte & 0x80) === 0) return value;
+              multiplier *= 128;
+            }
+            throw new Error('invalid varint');
+          };
+          const skipField = (wireType) => {
+            if (wireType === 0) {
+              readVarint();
+            } else if (wireType === 1) {
+              offset += 8;
+            } else if (wireType === 2) {
+              offset += readVarint();
+            } else if (wireType === 5) {
+              offset += 4;
+            } else {
+              throw new Error(`unsupported wire type ${wireType}`);
+            }
+            if (offset > bytes.length) throw new Error('truncated field');
+          };
+
+          try {
+            while (offset < bytes.length) {
+              const key = readVarint();
+              const field = Math.floor(key / 8);
+              const wireType = key & 7;
+              if (field === 2 && wireType === 2) {
+                const length = readVarint();
+                if (length <= 0 || offset + length > bytes.length) throw new Error('invalid entity length');
+                offset += length;
+                entityCount += 1;
+              } else {
+                skipField(wireType);
+              }
+            }
+          } catch (error) {
+            failures.push(`invalid GTFS-RT protobuf envelope: ${error instanceof Error ? error.message : String(error)}`);
+          }
+
+          if (entityCount === 0) failures.push('GTFS-RT feed contains no entities');
+
+          if (failures.length > 0) {
+            console.error(`HSL vehicle positions source invalid: ${failures.join(' | ')}`);
+            process.exit(1);
+          }
+
+          console.log(`HSL vehicle positions verified: ${entityCount} GTFS-RT entities, ${bytes.length} bytes.`);
+          NODE
+              then
+                exit 0
+              fi
+            fi
+
+            if [[ "$attempt" -lt 6 ]]; then
+              sleep 10
+            fi
+          done
+
+          echo "HSL vehicle positions source did not recover." >&2
+          [[ -f current-hsl-vehicle-positions.headers ]] && cat current-hsl-vehicle-positions.headers >&2
+          exit 1
+
   hsl:
     runs-on: ubuntu-latest
     steps:
