@@ -75,10 +75,13 @@ export const fetchCurrentGuarded = async (
   );
 
   try {
-    return await fetchImpl(input, {
+    const response = await fetchImpl(input, {
       ...init,
       signal: controller.signal,
     });
+    // fetch() resolves when headers arrive, so keep the deadline active until the body is readable.
+    if (response.body) await response.clone().arrayBuffer();
+    return response;
   } finally {
     clearTimeout(timeout);
     upstreamSignal?.removeEventListener('abort', forwardAbort);
