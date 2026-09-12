@@ -16,6 +16,7 @@ test('HSL detail shows two previous scheduled departures plus the next departure
     expect(route.request().method()).toBe('POST');
     expect(route.request().postDataJSON()).toEqual({
       stopCode: 'E3239',
+      stopName: 'Ylisrinne',
       routes: ['121', '125'],
     });
 
@@ -97,12 +98,16 @@ test('HSL detail shows two previous scheduled departures plus the next departure
   expect(requestCount).toBeGreaterThanOrEqual(1);
 });
 
-test('HSL upstream query starts two hours in the past', async () => {
+test('HSL upstream query searches by stop name, selects code, and starts two hours in the past', async () => {
   let upstreamBody: Record<string, unknown> | null = null;
   const request = new Request('https://aapopihkala.fi/api/current/hsl', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ stopCode: 'E3239', routes: ['121', '125'] }),
+    body: JSON.stringify({
+      stopCode: 'E3239',
+      stopName: 'Ylisrinne',
+      routes: ['121', '125'],
+    }),
   });
 
   const response = await fetchHslDeparturesResponse({
@@ -114,6 +119,11 @@ test('HSL upstream query starts two hours in the past', async () => {
         JSON.stringify({
           data: {
             stops: [
+              {
+                name: 'Ylisrinne',
+                code: 'E3240',
+                stoptimesWithoutPatterns: [],
+              },
               {
                 name: 'Ylisrinne',
                 code: 'E3239',
@@ -128,6 +138,9 @@ test('HSL upstream query starts two hours in the past', async () => {
   });
 
   expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({
+    stop: { code: 'E3239', name: 'Ylisrinne' },
+  });
   expect(upstreamBody).not.toBeNull();
 
   const body = upstreamBody as unknown as {
@@ -136,7 +149,7 @@ test('HSL upstream query starts two hours in the past', async () => {
   };
   expect(body.query).toContain('$startTime: Long!');
   expect(body.query).toContain('startTime: $startTime');
-  expect(body.variables.stopQuery).toBe('E3239');
+  expect(body.variables.stopQuery).toBe('Ylisrinne');
   expect(body.variables.numberOfDepartures).toBe(40);
   expect(
     Math.abs(body.variables.startTime - (Math.floor(Date.now() / 1000) - 2 * 60 * 60))

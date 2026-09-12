@@ -29,6 +29,7 @@ const REQUEST_TIMEOUT_MS = 8_000;
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 const DEFAULT_QUERY = {
   stopCode: 'E3239',
+  stopName: 'Ylisrinne',
   routes: ['121', '125'],
 } as const;
 const MAX_PREVIOUS_DEPARTURES = 2;
@@ -135,6 +136,7 @@ export const initCurrentHsl = () => {
 
   const currentQuery = {
     stopCode: DEFAULT_QUERY.stopCode,
+    stopName: DEFAULT_QUERY.stopName,
     routes: [...DEFAULT_QUERY.routes],
   };
   let latestData: HslResponse | null = null;

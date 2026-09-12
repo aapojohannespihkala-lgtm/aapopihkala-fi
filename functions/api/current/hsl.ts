@@ -1,5 +1,6 @@
 type HslRequestBody = {
   stopCode?: unknown;
+  stopName?: unknown;
   routes?: unknown;
 };
 
@@ -32,8 +33,10 @@ const UPSTREAM_TIMEOUT_MS = 8_000;
 const HISTORY_LOOKBACK_SECONDS = 2 * 60 * 60;
 const MAX_ROUTE_FILTERS = 8;
 const MAX_DEPARTURES = 40;
+const MAX_STOP_NAME_LENGTH = 80;
 const STOP_CODE_PATTERN = /^[A-Z]{1,2}\d{3,5}$/;
 const ROUTE_PATTERN = /^[0-9A-Z]{1,8}$/;
+const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/;
 
 const DEPARTURES_QUERY = `
   query CurrentHslDepartures(
@@ -84,6 +87,22 @@ const normalizeStopCode = (value: unknown) => {
   if (typeof value !== 'string') return null;
   const normalized = value.trim().toUpperCase();
   return STOP_CODE_PATTERN.test(normalized) ? normalized : null;
+};
+
+const normalizeStopName = (value: unknown) => {
+  if (value === undefined) return '';
+  if (typeof value !== 'string') return null;
+
+  const normalized = value.trim();
+  if (
+    !normalized ||
+    normalized.length > MAX_STOP_NAME_LENGTH ||
+    CONTROL_CHARACTER_PATTERN.test(normalized)
+  ) {
+    return null;
+  }
+
+  return normalized;
 };
 
 const normalizeRoutes = (value: unknown): string[] | null => {
@@ -171,6 +190,9 @@ export const fetchHslDeparturesResponse = async ({
   const stopCode = normalizeStopCode(body.stopCode);
   if (!stopCode) return jsonResponse({ error: 'invalid_stop_code' }, 400);
 
+  const stopName = normalizeStopName(body.stopName);
+  if (stopName === null) return jsonResponse({ error: 'invalid_stop_name' }, 400);
+
   const routes = normalizeRoutes(body.routes);
   if (!routes) return jsonResponse({ error: 'invalid_routes' }, 400);
 
@@ -189,9 +211,9 @@ export const fetchHslDeparturesResponse = async ({
       body: JSON.stringify({
         query: DEPARTURES_QUERY,
         variables: {
-          stopQuery: stopCode,
+          stopQuery: stopName || stopCode,
           startTime,
-          numberOfDepartures: 40,
+          numberOfDepartures: MAX_DEPARTURES,
         },
       }),
       signal: controller.signal,
