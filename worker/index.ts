@@ -1,6 +1,10 @@
 import { onRequestGet as getElectricityPriceResponse } from '../functions/api/current/electricity';
 import { onRequestGet as getElectricityMonthResponse } from '../functions/api/current/electricity-month';
 import { fetchHslDeparturesResponse } from '../functions/api/current/hsl';
+import {
+  enrichHslResponseWithLearning,
+  type HslLearningDb,
+} from '../functions/api/current/hsl-learning';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
 import { onRequestGet as getSnapshotPortfolioResponse } from '../functions/api/current/portfolio-snapshot';
@@ -15,6 +19,11 @@ type AssetsBinding = {
 type WorkerEnv = {
   ASSETS: AssetsBinding;
   DIGITRANSIT_API_KEY?: string;
+  HSL_MODEL_DB?: HslLearningDb;
+};
+
+type ScheduledController = {
+  scheduledTime: number;
 };
 
 const ELECTRICITY_PATH = '/api/current/electricity';
@@ -25,6 +34,11 @@ const NEWS_PATH = '/api/current/news';
 const LIIGA_PATH = '/api/current/liiga';
 const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
 const SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS = 4_000;
+const HSL_LEARNING_QUERY = {
+  stopCode: 'E3239',
+  stopName: 'Ylisrinne',
+  routes: ['121', '125'],
+};
 
 const methodNotAllowed = (allow = 'GET') =>
   new Response('Method not allowed', {
@@ -55,6 +69,28 @@ const publicLiigaResponse = async (response: Response, error: string) => {
   );
 };
 
+const collectHslLearningSnapshot = async (env: WorkerEnv) => {
+  if (!env.HSL_MODEL_DB || !env.DIGITRANSIT_API_KEY) return;
+
+  const request = new Request('https://aapopihkala.fi/api/current/hsl', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(HSL_LEARNING_QUERY),
+  });
+  const response = await fetchHslDeparturesResponse({
+    request,
+    apiKey: env.DIGITRANSIT_API_KEY,
+  });
+  if (!response.ok) {
+    console.error('Scheduled HSL learning snapshot failed', response.status);
+    return;
+  }
+  await enrichHslResponseWithLearning(response, env.HSL_MODEL_DB);
+};
+
 const worker = {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(request.url);
@@ -72,10 +108,11 @@ const worker = {
 
     if (url.pathname === HSL_PATH) {
       if (request.method !== 'POST') return methodNotAllowed('POST');
-      return fetchHslDeparturesResponse({
+      const response = await fetchHslDeparturesResponse({
         request,
         apiKey: env.DIGITRANSIT_API_KEY,
       });
+      return enrichHslResponseWithLearning(response, env.HSL_MODEL_DB);
     }
 
     if (url.pathname === MARKETS_PATH) {
@@ -105,6 +142,10 @@ const worker = {
     }
 
     return env.ASSETS.fetch(request);
+  },
+
+  async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
+    await collectHslLearningSnapshot(env);
   },
 };
 

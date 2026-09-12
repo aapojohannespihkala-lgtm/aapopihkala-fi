@@ -15,6 +15,9 @@
       "/api/current/liiga-schedule"
     ]
   },
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
   "observability": {
     "enabled": true
   }
