@@ -394,13 +394,15 @@ const ensureMarketMedianDetails = (root: HTMLElement) => {
       display: grid;
       grid-template-rows: repeat(2, minmax(0, 1fr));
       align-items: center;
+      font-weight: 400;
     }
 
     body:has(.snapshot-shell) .snapshot-markets__median-details strong {
+      color: var(--ink-soft);
       font-size: inherit !important;
-      line-height: 1 !important;
-      font-weight: 650;
-      letter-spacing: 0.01em;
+      line-height: inherit !important;
+      font-weight: 600;
+      letter-spacing: inherit;
     }
   `;
   if (!document.querySelector('[data-snapshot-market-median-styles]')) document.head.append(style);
