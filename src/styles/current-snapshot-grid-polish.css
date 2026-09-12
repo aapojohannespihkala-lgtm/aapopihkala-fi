@@ -71,8 +71,8 @@ body:has(.snapshot-shell)
   body:has(.snapshot-shell) .snapshot-grid {
     grid-template-rows:
       minmax(0, 1.12fr)
-      minmax(0, 1.42fr)
-      minmax(0, 1.22fr)
+      minmax(0, 1.34fr)
+      minmax(0, 1.30fr)
       minmax(0, 1.14fr) !important;
   }
 
