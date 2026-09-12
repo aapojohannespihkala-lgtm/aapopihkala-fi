@@ -1,3 +1,8 @@
+import {
+  updateHslGpsPassageState,
+  type HslGpsPassageState,
+} from './hsl-passage-state';
+
 type HslVehicle = {
   id: string;
   latitude: number;
@@ -215,8 +220,51 @@ const formatConfidence = (seconds: number | null) => {
 const formatMae = (seconds: number | null) =>
   seconds === null ? '--' : `${(seconds / 60).toFixed(1)} MIN`;
 
-const selectVisibleDepartures = (departures: HslDeparture[]): VisibleDeparture[] => {
+const passageKey = (departure: HslDeparture) =>
+  `${departure.route}|${departure.scheduledAt}|${departure.vehicle?.id ?? ''}`;
+
+const updateGpsPassageStates = (
+  departures: HslDeparture[],
+  states: Map<string, HslGpsPassageState>
+) => {
+  const activeKeys = new Set<string>();
+
+  for (const departure of departures) {
+    if (!departure.vehicle) continue;
+    const key = passageKey(departure);
+    activeKeys.add(key);
+    const next = updateHslGpsPassageState(states.get(key), {
+      distanceMeters: departure.vehicle.distanceMeters,
+      updatedAt: departure.vehicle.updatedAt,
+    });
+    if (next) states.set(key, next);
+  }
+
+  for (const key of states.keys()) {
+    if (!activeKeys.has(key)) states.delete(key);
+  }
+};
+
+const isPreviousDeparture = (
+  departure: HslDeparture,
+  now: number,
+  gpsPassageStates: Map<string, HslGpsPassageState>
+) => {
+  if (departure.vehicle) {
+    return gpsPassageStates.get(passageKey(departure))?.passed === true;
+  }
+
+  const effectiveTime = timestampOf(departure.realtime ? departure.departureAt : departure.scheduledAt);
+  return effectiveTime !== null && effectiveTime < now;
+};
+
+const selectVisibleDepartures = (
+  departures: HslDeparture[],
+  gpsPassageStates: Map<string, HslGpsPassageState>
+): VisibleDeparture[] => {
   const now = Date.now();
+  updateGpsPassageStates(departures, gpsPassageStates);
+
   const sorted = departures
     .map((departure) => ({ departure, scheduledTime: timestampOf(departure.scheduledAt) }))
     .filter(
@@ -226,12 +274,12 @@ const selectVisibleDepartures = (departures: HslDeparture[]): VisibleDeparture[]
     .sort((a, b) => a.scheduledTime - b.scheduledTime);
 
   const previous = sorted
-    .filter((entry) => entry.scheduledTime < now)
+    .filter(({ departure }) => isPreviousDeparture(departure, now, gpsPassageStates))
     .slice(-MAX_PREVIOUS_DEPARTURES)
     .map(({ departure }) => ({ departure, previous: true }));
 
   const upcoming = sorted
-    .filter((entry) => entry.scheduledTime >= now)
+    .filter(({ departure }) => !isPreviousDeparture(departure, now, gpsPassageStates))
     .slice(0, MAX_UPCOMING_DEPARTURES)
     .map(({ departure }) => ({ departure, previous: false }));
 
@@ -270,6 +318,7 @@ export const initCurrentHsl = () => {
     stopName: DEFAULT_QUERY.stopName,
     routes: [...DEFAULT_QUERY.routes],
   };
+  const gpsPassageStates = new Map<string, HslGpsPassageState>();
   let latestData: HslResponse | null = null;
   let activeController: AbortController | null = null;
   let refreshTimer = 0;
@@ -308,7 +357,7 @@ export const initCurrentHsl = () => {
     latestData = data;
     departuresTarget.replaceChildren();
 
-    const visibleDepartures = selectVisibleDepartures(data.departures);
+    const visibleDepartures = selectVisibleDepartures(data.departures, gpsPassageStates);
     const previousCount = visibleDepartures.filter(({ previous }) => previous).length;
     const liveCount = visibleDepartures.filter(({ departure }) => departure.realtime).length;
     const gpsCount = visibleDepartures.filter(({ departure }) => departure.vehicle !== null).length;
