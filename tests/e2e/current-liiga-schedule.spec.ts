@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { isLiigaScheduleGameLive } from '../../functions/api/current/liiga-schedule';
+import {
+  fetchLiigaScheduleResponse,
+  isLiigaScheduleGameLive,
+} from '../../functions/api/current/liiga-schedule';
 
 test('does not expose future scheduled games as live even if upstream marks them started', () => {
   const now = new Date('2026-09-09T15:13:00Z');
@@ -16,6 +19,39 @@ test('does not expose future scheduled games as live even if upstream marks them
   expect(isLiigaScheduleGameLive(fixture, now)).toBe(false);
   expect(isLiigaScheduleGameLive({ ...fixture, start: '2026-09-09T15:00:00Z', gameTime: 780 }, now)).toBe(true);
   expect(isLiigaScheduleGameLive({ ...fixture, start: '2026-09-09T15:00:00Z', started: false }, now)).toBe(false);
+});
+
+test('Liiga schedule timeout remains active while reading the response body', async () => {
+  const fetchImpl: typeof fetch = async (_input, init) => {
+    const signal = init?.signal;
+
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const abort = () => controller.error(new DOMException('Aborted', 'AbortError'));
+        if (signal?.aborted) {
+          abort();
+          return;
+        }
+        signal?.addEventListener('abort', abort, { once: true });
+      },
+    });
+
+    return new Response(body, {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  const startedAt = Date.now();
+  const response = await fetchLiigaScheduleResponse(25, fetchImpl);
+  const elapsedMs = Date.now() - startedAt;
+
+  expect(response.status).toBe(502);
+  expect(elapsedMs).toBeLessThan(500);
+
+  const payload = await response.json() as { error?: string; detail?: string };
+  expect(payload.error).toBe('Liiga schedule request failed');
+  expect(payload.detail).toContain('timeout');
 });
 
 test('renders league-wide live and upcoming games with Current glyphs', async ({ page }) => {

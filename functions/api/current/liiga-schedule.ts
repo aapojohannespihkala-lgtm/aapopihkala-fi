@@ -49,17 +49,25 @@ const getSeasonId = (now = new Date()) => {
   return month >= 7 ? year + 1 : year;
 };
 
-const fetchWithTimeout = async (url: string) => {
+const fetchJsonWithTimeout = async (
+  url: string,
+  timeoutMs = UPSTREAM_TIMEOUT_MS,
+  fetchImpl: typeof fetch = fetch,
+) => {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, {
+    const response = await fetchImpl(url, {
       headers: {
         Accept: 'application/json',
         'User-Agent': 'aapopihkala.fi Current Liiga schedule',
       },
       signal: controller.signal,
     });
+
+    if (!response.ok) return { response, payload: null };
+    const payload: unknown = await response.json();
+    return { response, payload };
   } finally {
     clearTimeout(timeout);
   }
@@ -170,7 +178,11 @@ const parseGames = (payload: unknown) => {
   return games.length > 0 ? games : null;
 };
 
-const fetchLiigaGames = async (season: number) => {
+const fetchLiigaGames = async (
+  season: number,
+  upstreamTimeoutMs = UPSTREAM_TIMEOUT_MS,
+  fetchImpl: typeof fetch = fetch,
+) => {
   const failures: string[] = [];
 
   for (const endpoint of LIIGA_GAMES_URLS) {
@@ -179,12 +191,16 @@ const fetchLiigaGames = async (season: number) => {
     url.searchParams.set('season', String(season));
 
     try {
-      const response = await fetchWithTimeout(url.toString());
+      const { response, payload } = await fetchJsonWithTimeout(
+        url.toString(),
+        upstreamTimeoutMs,
+        fetchImpl,
+      );
       if (!response.ok) {
         failures.push(`${url.pathname}: HTTP ${response.status}`);
         continue;
       }
-      const games = parseGames(await response.json());
+      const games = parseGames(payload);
       if (!games) {
         failures.push(`${url.pathname}: no games in response`);
         continue;
@@ -251,10 +267,13 @@ const getUpcomingGames = (games: UpstreamGame[], now = new Date()) => {
     .slice(0, UPCOMING_LIMIT);
 };
 
-export const onRequestGet = async () => {
+export const fetchLiigaScheduleResponse = async (
+  upstreamTimeoutMs = UPSTREAM_TIMEOUT_MS,
+  fetchImpl: typeof fetch = fetch,
+) => {
   const season = getSeasonId();
   try {
-    const { games, endpoint } = await fetchLiigaGames(season);
+    const { games, endpoint } = await fetchLiigaGames(season, upstreamTimeoutMs, fetchImpl);
     const liveGames = getLiveGames(games);
     const upcomingGames = getUpcomingGames(games);
     const generatedAt = games
@@ -290,3 +309,5 @@ export const onRequestGet = async () => {
     );
   }
 };
+
+export const onRequestGet = () => fetchLiigaScheduleResponse();
