@@ -193,7 +193,11 @@ test.describe('Current Snapshot Liiga summary', () => {
     await expect(liiga.locator('[data-snapshot-liiga-home-team]')).toHaveText('Ilves');
     await expect(liiga.locator('[data-snapshot-liiga-away-team]')).toHaveText('TPS');
     await expect(liiga.locator('[data-snapshot-liiga-score]')).toHaveText('18:30');
-    await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('FRI 11 SEPT');
+    await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('FRI 11');
+    const scheduleFontSize = await liiga.locator('[data-snapshot-liiga-schedule]').evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).fontSize)
+    );
+    expect(scheduleFontSize).toBeGreaterThanOrEqual(5.5);
     await expect(liiga.locator('[data-snapshot-liiga-last]')).toHaveText('LAST / Ilves 3-2 HIFK');
     await expect(liiga.locator('.snapshot-liiga__mark')).toHaveCount(2);
 
@@ -273,7 +277,7 @@ test.describe('Current Snapshot Liiga summary', () => {
     await expect(liiga).toHaveClass(/is-today/);
     await expect(liiga.locator('[data-snapshot-liiga-state]')).toBeHidden();
     await expect(liiga.locator('[data-snapshot-liiga-score]')).toHaveText('18:30');
-    await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('FRI 11 SEPT');
+    await expect(liiga.locator('[data-snapshot-liiga-schedule]')).toHaveText('FRI 11');
   });
 
   test('promotes an active Ilves game to live score and clock', async ({ page }) => {

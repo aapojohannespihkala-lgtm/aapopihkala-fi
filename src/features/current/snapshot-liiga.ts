@@ -55,7 +55,6 @@ const formatGameDate = (value: string) => {
   return new Intl.DateTimeFormat('en-GB', {
     weekday: 'short',
     day: '2-digit',
-    month: 'short',
     timeZone: HELSINKI_TIME_ZONE,
   })
     .format(date)
@@ -519,7 +518,7 @@ const ensureStyles = () => {
 
     body:has(.snapshot-shell) .snapshot-liiga__match-center time {
       color: var(--stone);
-      font-size: 0.36rem;
+      font-size: 0.48rem;
       font-weight: 600;
       line-height: 1;
       letter-spacing: 0.025em;
@@ -641,7 +640,7 @@ const ensureStyles = () => {
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__match-center time {
-        font-size: 0.3rem;
+        font-size: 0.4rem;
       }
 
       body:has(.snapshot-shell) .snapshot-liiga__footer {
@@ -714,7 +713,10 @@ const ensureStyles = () => {
         font-size: 0.8rem;
       }
 
-      body:has(.snapshot-shell) .snapshot-liiga__match-center time,
+      body:has(.snapshot-shell) .snapshot-liiga__match-center time {
+        font-size: 0.34rem;
+      }
+
       body:has(.snapshot-shell) .snapshot-liiga__footer {
         font-size: 0.26rem;
       }
