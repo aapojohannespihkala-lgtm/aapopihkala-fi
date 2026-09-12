@@ -1,3 +1,14 @@
+type HslVehicle = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  distanceMeters: number | null;
+  bearing: number | null;
+  speedKmh: number | null;
+  updatedAt: string | null;
+  currentStatus: 'INCOMING_AT' | 'STOPPED_AT' | 'IN_TRANSIT_TO';
+};
+
 type HslDeparture = {
   route: string;
   headsign: string;
@@ -6,10 +17,12 @@ type HslDeparture = {
   delaySeconds: number;
   realtime: boolean;
   realtimeState: string;
+  vehicle: HslVehicle | null;
 };
 
 type HslResponse = {
   source: string;
+  vehicleSource?: string;
   fetchedAt: string;
   stop: {
     code: string;
@@ -24,7 +37,7 @@ type VisibleDeparture = {
   previous: boolean;
 };
 
-const REFRESH_INTERVAL_MS = 30_000;
+const REFRESH_INTERVAL_MS = 15_000;
 const REQUEST_TIMEOUT_MS = 8_000;
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
 const DEFAULT_QUERY = {
@@ -37,6 +50,24 @@ const MAX_UPCOMING_DEPARTURES = 6;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const isNullableNumber = (value: unknown) => value === null || typeof value === 'number';
+
+const isHslVehicle = (value: unknown): value is HslVehicle => {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === 'string' &&
+    typeof value.latitude === 'number' &&
+    typeof value.longitude === 'number' &&
+    isNullableNumber(value.distanceMeters) &&
+    isNullableNumber(value.bearing) &&
+    isNullableNumber(value.speedKmh) &&
+    (value.updatedAt === null || typeof value.updatedAt === 'string') &&
+    (value.currentStatus === 'INCOMING_AT' ||
+      value.currentStatus === 'STOPPED_AT' ||
+      value.currentStatus === 'IN_TRANSIT_TO')
+  );
+};
 
 const isHslResponse = (value: unknown): value is HslResponse => {
   if (!isRecord(value) || !isRecord(value.stop) || !Array.isArray(value.departures)) return false;
@@ -52,7 +83,8 @@ const isHslResponse = (value: unknown): value is HslResponse => {
       typeof departure.departureAt === 'string' &&
       typeof departure.delaySeconds === 'number' &&
       typeof departure.realtime === 'boolean' &&
-      typeof departure.realtimeState === 'string'
+      typeof departure.realtimeState === 'string' &&
+      (departure.vehicle === null || isHslVehicle(departure.vehicle))
     );
   });
 };
@@ -89,6 +121,36 @@ const formatDelay = (seconds: number) => {
   const minutes = Math.round(seconds / 60);
   if (minutes === 0) return '';
   return `${minutes > 0 ? '+' : ''}${minutes} MIN`;
+};
+
+const formatDistance = (meters: number) => {
+  if (meters < 1000) return `${Math.max(10, Math.round(meters / 10) * 10)} M`;
+  if (meters < 10_000) return `${(meters / 1000).toFixed(1)} KM`;
+  return `${Math.round(meters / 1000)} KM`;
+};
+
+const formatVehicleAge = (value: string | null) => {
+  if (!value) return '';
+  const timestamp = timestampOf(value);
+  if (timestamp === null) return '';
+  return `${Math.max(0, Math.floor((Date.now() - timestamp) / 1000))} S`;
+};
+
+const formatVehicleSummary = (vehicle: HslVehicle) => {
+  const parts = ['GPS'];
+  if (vehicle.distanceMeters !== null) {
+    parts.push(
+      vehicle.currentStatus === 'STOPPED_AT' && vehicle.distanceMeters <= 120
+        ? 'AT STOP'
+        : `${formatDistance(vehicle.distanceMeters)} AWAY`
+    );
+  }
+  if (vehicle.currentStatus === 'STOPPED_AT') {
+    parts.push('STOPPED');
+  } else if (vehicle.speedKmh !== null && vehicle.speedKmh >= 1) {
+    parts.push(`${Math.round(vehicle.speedKmh)} KM/H`);
+  }
+  return parts.join(' / ');
 };
 
 const selectVisibleDepartures = (departures: HslDeparture[]): VisibleDeparture[] => {
@@ -150,7 +212,8 @@ export const initCurrentHsl = () => {
     const visibleDepartures = selectVisibleDepartures(data.departures);
     const previousCount = visibleDepartures.filter(({ previous }) => previous).length;
     const liveCount = visibleDepartures.filter(({ departure }) => departure.realtime).length;
-    status.textContent = `${data.stop.name} / ${data.stop.code} / ${previousCount} PREV / ${liveCount} LIVE`;
+    const gpsCount = visibleDepartures.filter(({ departure }) => departure.vehicle !== null).length;
+    status.textContent = `${data.stop.name} / ${data.stop.code} / ${previousCount} PREV / ${liveCount} LIVE / ${gpsCount} GPS`;
 
     let upcomingStarted = false;
 
@@ -169,9 +232,20 @@ export const initCurrentHsl = () => {
       line.className = 'hsl-departure__line';
       line.textContent = departure.route;
 
+      const destinationWrap = document.createElement('div');
+      destinationWrap.className = 'hsl-departure__destination-wrap';
+
       const destination = document.createElement('p');
       destination.className = 'hsl-departure__destination';
       destination.textContent = departure.headsign || 'Destination unavailable';
+      destinationWrap.append(destination);
+
+      if (departure.vehicle) {
+        const vehicle = document.createElement('p');
+        vehicle.className = 'hsl-departure__vehicle';
+        vehicle.textContent = formatVehicleSummary(departure.vehicle);
+        destinationWrap.append(vehicle);
+      }
 
       const time = document.createElement('div');
       time.className = 'hsl-departure__time';
@@ -195,13 +269,25 @@ export const initCurrentHsl = () => {
         time.append(countdown, clock);
       }
 
+      const stateWrap = document.createElement('div');
+      stateWrap.className = 'hsl-departure__state-wrap';
+
       const realtime = document.createElement('p');
-      realtime.className = departure.realtime
+      realtime.className = departure.vehicle || departure.realtime
         ? 'hsl-departure__state hsl-departure__state--live'
         : 'hsl-departure__state';
-      realtime.textContent = departure.realtime ? 'LIVE' : 'SCHED';
+      realtime.textContent = departure.vehicle ? 'GPS' : departure.realtime ? 'LIVE' : 'SCHED';
+      stateWrap.append(realtime);
 
-      row.append(line, destination, time, realtime);
+      if (departure.vehicle?.updatedAt) {
+        const age = document.createElement('span');
+        age.className = 'hsl-departure__state-age';
+        age.dataset.hslVehicleAge = departure.vehicle.updatedAt;
+        age.textContent = formatVehicleAge(departure.vehicle.updatedAt);
+        stateWrap.append(age);
+      }
+
+      row.append(line, destinationWrap, time, stateWrap);
       departuresTarget.append(row);
     }
 
@@ -211,11 +297,15 @@ export const initCurrentHsl = () => {
     error.hidden = true;
   };
 
-  const updateCountdowns = () => {
+  const updateRelativeTimes = () => {
     if (!latestData) return;
     for (const target of root.querySelectorAll<HTMLElement>('[data-hsl-countdown]')) {
       const value = target.dataset.hslCountdown;
       if (value) target.textContent = formatCountdown(value);
+    }
+    for (const target of root.querySelectorAll<HTMLElement>('[data-hsl-vehicle-age]')) {
+      const value = target.dataset.hslVehicleAge;
+      if (value) target.textContent = formatVehicleAge(value);
     }
   };
 
@@ -288,7 +378,7 @@ export const initCurrentHsl = () => {
   status.textContent = 'YLISRINNE / E3239 / FETCHING';
   void requestDepartures();
   refreshTimer = window.setInterval(refresh, REFRESH_INTERVAL_MS);
-  window.setInterval(updateCountdowns, 10_000);
+  window.setInterval(updateRelativeTimes, 5_000);
 
   window.addEventListener('pagehide', () => {
     activeController?.abort();
