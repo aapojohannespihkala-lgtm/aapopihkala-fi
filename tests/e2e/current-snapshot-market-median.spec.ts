@@ -45,6 +45,7 @@ test('calculates Snapshot medians from all Markets portfolio items', async ({ pa
   await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
 
   const headline = page.locator('[data-snapshot-market-median]');
+  const details = page.locator('[data-snapshot-market-median-details]');
   const month = page.locator('[data-snapshot-market-median-month]');
   const year = page.locator('[data-snapshot-market-median-year]');
 
@@ -54,12 +55,18 @@ test('calculates Snapshot medians from all Markets portfolio items', async ({ pa
   await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.40%');
   await expect(page.locator('[data-snapshot-market="remedy"]')).toHaveText('-0.60%');
 
-  const [headlineSize, monthSize, yearSize] = await Promise.all([
+  const [headlineSize, monthSize, yearSize, detailsWeight, monthWeight, yearWeight] = await Promise.all([
     headline.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
     month.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
     year.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+    details.evaluate((element) => getComputedStyle(element).fontWeight),
+    month.evaluate((element) => getComputedStyle(element).fontWeight),
+    year.evaluate((element) => getComputedStyle(element).fontWeight),
   ]);
 
   expect(monthSize).toBeLessThan(headlineSize * 0.5);
   expect(yearSize).toBeLessThan(headlineSize * 0.5);
+  expect(detailsWeight).toBe('400');
+  expect(monthWeight).toBe('600');
+  expect(yearWeight).toBe('600');
 });
