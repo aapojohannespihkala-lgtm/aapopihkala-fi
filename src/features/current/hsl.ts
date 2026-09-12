@@ -9,6 +9,14 @@ type HslVehicle = {
   currentStatus: 'INCOMING_AT' | 'STOPPED_AT' | 'IN_TRANSIT_TO';
 };
 
+type HslModelPrediction = {
+  predictedAt: string;
+  adjustmentSeconds: number;
+  confidenceSeconds: number | null;
+  sampleSize: number;
+  method: 'hsl-residual' | 'gps-history' | 'hsl-residual+gps-history';
+};
+
 type HslDeparture = {
   route: string;
   headsign: string;
@@ -18,6 +26,20 @@ type HslDeparture = {
   realtime: boolean;
   realtimeState: string;
   vehicle: HslVehicle | null;
+  model?: HslModelPrediction | null;
+};
+
+type HslLearningSummary = {
+  enabled: true;
+  version: string;
+  observations: number;
+  arrivals: number;
+  scoredTrips: number;
+  modelScoredTrips: number;
+  hslMaeSeconds: number | null;
+  modelMaeSeconds: number | null;
+  modelWins: number;
+  lastArrivalAt: string | null;
 };
 
 type HslResponse = {
@@ -30,6 +52,7 @@ type HslResponse = {
   };
   routes: string[];
   departures: HslDeparture[];
+  learning?: HslLearningSummary;
 };
 
 type VisibleDeparture = {
@@ -69,10 +92,39 @@ const isHslVehicle = (value: unknown): value is HslVehicle => {
   );
 };
 
+const isHslModelPrediction = (value: unknown): value is HslModelPrediction => {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.predictedAt === 'string' &&
+    typeof value.adjustmentSeconds === 'number' &&
+    isNullableNumber(value.confidenceSeconds) &&
+    typeof value.sampleSize === 'number' &&
+    (value.method === 'hsl-residual' ||
+      value.method === 'gps-history' ||
+      value.method === 'hsl-residual+gps-history')
+  );
+};
+
+const isHslLearningSummary = (value: unknown): value is HslLearningSummary => {
+  if (!isRecord(value) || value.enabled !== true) return false;
+  return (
+    typeof value.version === 'string' &&
+    typeof value.observations === 'number' &&
+    typeof value.arrivals === 'number' &&
+    typeof value.scoredTrips === 'number' &&
+    typeof value.modelScoredTrips === 'number' &&
+    isNullableNumber(value.hslMaeSeconds) &&
+    isNullableNumber(value.modelMaeSeconds) &&
+    typeof value.modelWins === 'number' &&
+    (value.lastArrivalAt === null || typeof value.lastArrivalAt === 'string')
+  );
+};
+
 const isHslResponse = (value: unknown): value is HslResponse => {
   if (!isRecord(value) || !isRecord(value.stop) || !Array.isArray(value.departures)) return false;
   if (typeof value.fetchedAt !== 'string') return false;
   if (typeof value.stop.code !== 'string' || typeof value.stop.name !== 'string') return false;
+  if (value.learning !== undefined && !isHslLearningSummary(value.learning)) return false;
 
   return value.departures.every((departure) => {
     if (!isRecord(departure)) return false;
@@ -84,7 +136,8 @@ const isHslResponse = (value: unknown): value is HslResponse => {
       typeof departure.delaySeconds === 'number' &&
       typeof departure.realtime === 'boolean' &&
       typeof departure.realtimeState === 'string' &&
-      (departure.vehicle === null || isHslVehicle(departure.vehicle))
+      (departure.vehicle === null || isHslVehicle(departure.vehicle)) &&
+      (departure.model === undefined || departure.model === null || isHslModelPrediction(departure.model))
     );
   });
 };
@@ -153,6 +206,15 @@ const formatVehicleSummary = (vehicle: HslVehicle) => {
   return parts.join(' / ');
 };
 
+const formatConfidence = (seconds: number | null) => {
+  if (seconds === null) return '';
+  if (seconds < 60) return '±<1 MIN';
+  return `±${Math.max(1, Math.round(seconds / 60))} MIN`;
+};
+
+const formatMae = (seconds: number | null) =>
+  seconds === null ? '--' : `${(seconds / 60).toFixed(1)} MIN`;
+
 const selectVisibleDepartures = (departures: HslDeparture[]): VisibleDeparture[] => {
   const now = Date.now();
   const sorted = departures
@@ -193,6 +255,13 @@ export const initCurrentHsl = () => {
   const departuresTarget = root.querySelector<HTMLElement>('[data-hsl-departures]');
   const empty = root.querySelector<HTMLElement>('[data-hsl-empty]');
   const error = root.querySelector<HTMLElement>('[data-hsl-error]');
+  const learningPanel = root.querySelector<HTMLElement>('[data-hsl-learning]');
+  const learningState = root.querySelector<HTMLElement>('[data-hsl-learning-state]');
+  const learningArrivals = root.querySelector<HTMLElement>('[data-hsl-learning-arrivals]');
+  const learningHslMae = root.querySelector<HTMLElement>('[data-hsl-learning-hsl-mae]');
+  const learningModelMae = root.querySelector<HTMLElement>('[data-hsl-learning-model-mae]');
+  const learningWins = root.querySelector<HTMLElement>('[data-hsl-learning-wins]');
+  const learningMeta = root.querySelector<HTMLElement>('[data-hsl-learning-meta]');
 
   if (!status || !results || !departuresTarget || !empty || !error) return;
 
@@ -205,6 +274,36 @@ export const initCurrentHsl = () => {
   let activeController: AbortController | null = null;
   let refreshTimer = 0;
 
+  const renderLearning = (learning: HslLearningSummary | undefined) => {
+    if (
+      !learningPanel ||
+      !learningState ||
+      !learningArrivals ||
+      !learningHslMae ||
+      !learningModelMae ||
+      !learningWins ||
+      !learningMeta
+    ) {
+      return;
+    }
+
+    if (!learning) {
+      learningPanel.hidden = true;
+      return;
+    }
+
+    learningPanel.hidden = false;
+    learningState.textContent = learning.modelScoredTrips >= 5 ? 'COMPARING' : 'LEARNING';
+    learningArrivals.textContent = String(learning.arrivals);
+    learningHslMae.textContent = formatMae(learning.hslMaeSeconds);
+    learningModelMae.textContent = formatMae(learning.modelMaeSeconds);
+    learningWins.textContent =
+      learning.modelScoredTrips > 0
+        ? `${learning.modelWins} / ${learning.modelScoredTrips}`
+        : '--';
+    learningMeta.textContent = `${learning.version.toUpperCase()} / ${learning.observations} OBS / 5 MIN SCORE WINDOW`;
+  };
+
   const render = (data: HslResponse) => {
     latestData = data;
     departuresTarget.replaceChildren();
@@ -213,7 +312,8 @@ export const initCurrentHsl = () => {
     const previousCount = visibleDepartures.filter(({ previous }) => previous).length;
     const liveCount = visibleDepartures.filter(({ departure }) => departure.realtime).length;
     const gpsCount = visibleDepartures.filter(({ departure }) => departure.vehicle !== null).length;
-    status.textContent = `${data.stop.name} / ${data.stop.code} / ${previousCount} PREV / ${liveCount} LIVE / ${gpsCount} GPS`;
+    const modelCount = visibleDepartures.filter(({ departure }) => departure.model != null).length;
+    status.textContent = `${data.stop.name} / ${data.stop.code} / ${previousCount} PREV / ${liveCount} LIVE / ${gpsCount} GPS${modelCount > 0 ? ` / ${modelCount} AAPO` : ''}`;
 
     let upcomingStarted = false;
 
@@ -269,6 +369,22 @@ export const initCurrentHsl = () => {
         time.append(countdown, clock);
       }
 
+      if (departure.model) {
+        const modelRow = document.createElement('span');
+        modelRow.className = 'hsl-departure__model';
+
+        const modelCountdown = document.createElement('span');
+        modelCountdown.dataset.hslModelCountdown = departure.model.predictedAt;
+        modelCountdown.textContent = `AAPO ${formatCountdown(departure.model.predictedAt)}`;
+
+        const modelMeta = document.createElement('span');
+        const confidence = formatConfidence(departure.model.confidenceSeconds);
+        modelMeta.textContent = `${confidence ? `${confidence} / ` : ''}N${departure.model.sampleSize}`;
+
+        modelRow.append(modelCountdown, modelMeta);
+        time.append(modelRow);
+      }
+
       const stateWrap = document.createElement('div');
       stateWrap.className = 'hsl-departure__state-wrap';
 
@@ -291,6 +407,7 @@ export const initCurrentHsl = () => {
       departuresTarget.append(row);
     }
 
+    renderLearning(data.learning);
     const hasDepartures = visibleDepartures.length > 0;
     results.hidden = !hasDepartures;
     empty.hidden = hasDepartures;
@@ -302,6 +419,10 @@ export const initCurrentHsl = () => {
     for (const target of root.querySelectorAll<HTMLElement>('[data-hsl-countdown]')) {
       const value = target.dataset.hslCountdown;
       if (value) target.textContent = formatCountdown(value);
+    }
+    for (const target of root.querySelectorAll<HTMLElement>('[data-hsl-model-countdown]')) {
+      const value = target.dataset.hslModelCountdown;
+      if (value) target.textContent = `AAPO ${formatCountdown(value)}`;
     }
     for (const target of root.querySelectorAll<HTMLElement>('[data-hsl-vehicle-age]')) {
       const value = target.dataset.hslVehicleAge;
