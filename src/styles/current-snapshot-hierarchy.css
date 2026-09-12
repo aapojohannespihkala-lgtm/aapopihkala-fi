@@ -267,7 +267,7 @@ body:has(.snapshot-shell)
     .snapshot-liiga
     .snapshot-liiga__match-center {
     min-width: 46px !important;
-    gap: 3px !important;
+    gap: 6px !important;
   }
 
   body:has(.snapshot-shell)
@@ -284,8 +284,8 @@ body:has(.snapshot-shell)
     .snapshot-rates__main
     .snapshot-liiga
     .snapshot-liiga__match-center time {
-    font-size: 0.32rem !important;
-    line-height: 1.1 !important;
+    font-size: 0.34rem !important;
+    line-height: 1.15 !important;
   }
 
   /* Last-game detail is desktop supporting data. Keep mobile focused on the next game. */
