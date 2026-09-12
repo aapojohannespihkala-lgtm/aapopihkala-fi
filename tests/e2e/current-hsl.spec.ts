@@ -67,7 +67,7 @@ const buildVehicleFeed = () => {
 const requestUrl = (input: RequestInfo | URL) =>
   typeof input === 'string' ? input : input instanceof Request ? input.url : input.toString();
 
-test('HSL detail shows two previous scheduled departures plus GPS for a late bus', async ({ page }) => {
+test('HSL keeps a scheduled-past GPS bus active while it is still approaching', async ({ page }) => {
   const now = Date.now();
   const previousGoneScheduled = new Date(now - 12 * 60_000).toISOString();
   const previousGoneRealtime = new Date(now - 5 * 60_000).toISOString();
@@ -154,10 +154,10 @@ test('HSL detail shows two previous scheduled departures plus GPS for a late bus
 
   await expect(page.getByText('HSL / YLISRINNE')).toBeVisible();
   await expect(page.getByText('121 + 125 / KAMPPI + TAPIOLA')).toBeVisible();
-  await expect(page.locator('[data-hsl-status]')).toContainText('Ylisrinne / E3239 / 2 PREV / 3 LIVE / 1 GPS');
+  await expect(page.locator('[data-hsl-status]')).toContainText('Ylisrinne / E3239 / 1 PREV / 3 LIVE / 1 GPS');
   await expect(page.locator('[data-hsl-departure]')).toHaveCount(4);
-  await expect(page.locator('[data-hsl-previous="true"]')).toHaveCount(2);
-  await expect(page.locator('[data-hsl-previous="false"]')).toHaveCount(2);
+  await expect(page.locator('[data-hsl-previous="true"]')).toHaveCount(1);
+  await expect(page.locator('[data-hsl-previous="false"]')).toHaveCount(3);
 
   const previousGone = page.locator('[data-hsl-previous="true"]').first();
   await expect(previousGone).toContainText('121');
@@ -165,13 +165,13 @@ test('HSL detail shows two previous scheduled departures plus GPS for a late bus
   await expect(previousGone).toContainText('+7 MIN');
   await expect(previousGone).toContainText('LIVE');
 
-  const previousLate = page.locator('[data-hsl-previous="true"]').nth(1);
-  await expect(previousLate).toContainText('125');
-  await expect(previousLate).toContainText('+8 MIN');
-  await expect(previousLate).toContainText('GPS / 820 M AWAY / 25 KM/H');
-  await expect(previousLate.locator('[data-hsl-countdown]')).toContainText('MIN');
-  await expect(previousLate.locator('[data-hsl-countdown]')).not.toContainText('AGO');
-  await expect(previousLate.locator('[data-hsl-vehicle-age]')).toContainText('S');
+  const lateGps = page.locator('[data-hsl-previous="false"]').filter({ hasText: 'GPS / 820 M AWAY / 25 KM/H' });
+  await expect(lateGps).toHaveCount(1);
+  await expect(lateGps).toContainText('125');
+  await expect(lateGps).toContainText('+8 MIN');
+  await expect(lateGps.locator('[data-hsl-countdown]')).toContainText('MIN');
+  await expect(lateGps.locator('[data-hsl-countdown]')).not.toContainText('AGO');
+  await expect(lateGps.locator('[data-hsl-vehicle-age]')).toContainText('S');
   await expect(page.locator('.hsl-departure--first-upcoming')).toHaveCount(1);
 
   await expect(page.locator('[data-hsl-form]')).toHaveCount(0);
