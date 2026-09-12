@@ -268,6 +268,7 @@ body:has(.snapshot-shell)
     .snapshot-liiga__match-center {
     min-width: 46px !important;
     gap: 6px !important;
+    transform: translateY(4px) !important;
   }
 
   body:has(.snapshot-shell)
@@ -276,7 +277,7 @@ body:has(.snapshot-shell)
     .snapshot-liiga
     .snapshot-liiga__score {
     font-size: 0.76rem !important;
-    transform: translateY(4px);
+    transform: none !important;
   }
 
   body:has(.snapshot-shell)
