@@ -128,7 +128,8 @@ jobs:
             } else if (wireType === 1) {
               offset += 8;
             } else if (wireType === 2) {
-              offset += readVarint();
+              const length = readVarint();
+              offset += length;
             } else if (wireType === 5) {
               offset += 4;
             } else {
