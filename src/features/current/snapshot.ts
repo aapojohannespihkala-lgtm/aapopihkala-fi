@@ -379,6 +379,10 @@ const ensureMarketMedianDetails = (root: HTMLElement) => {
   median.setAttribute('aria-label', 'Median portfolio performance for one day, one month and one year');
   if (median.querySelector('[data-snapshot-market-median-details]')) return;
 
+  const referenceRow = root.querySelector<HTMLElement>('.snapshot-rates__change');
+  const referenceValue = referenceRow?.querySelector<HTMLElement>('[data-snapshot-euribor-change]');
+  if (!referenceRow || !referenceValue) return;
+
   const style = document.createElement('style');
   style.dataset.snapshotMarketMedianStyles = 'true';
   style.textContent = `
@@ -394,26 +398,40 @@ const ensureMarketMedianDetails = (root: HTMLElement) => {
       display: grid;
       grid-template-rows: repeat(2, minmax(0, 1fr));
       align-items: center;
-      font-weight: 400;
+      margin: 0;
     }
 
-    body:has(.snapshot-shell) .snapshot-markets__median-details strong {
-      color: var(--ink-soft);
-      font-size: inherit !important;
-      line-height: inherit !important;
-      font-weight: 600;
-      letter-spacing: inherit;
+    body:has(.snapshot-shell) .snapshot-markets__median-details b.is-positive {
+      color: #168a73 !important;
+    }
+
+    body:has(.snapshot-shell) .snapshot-markets__median-details b.is-negative {
+      color: #b85a61 !important;
     }
   `;
   if (!document.querySelector('[data-snapshot-market-median-styles]')) document.head.append(style);
 
-  const details = document.createElement('div');
-  details.className = 'snapshot-markets__median-details snapshot-micro';
+  const details = referenceRow.cloneNode(false) as HTMLElement;
+  details.classList.add('snapshot-markets__median-details');
   details.dataset.snapshotMarketMedianDetails = 'true';
-  details.innerHTML = `
-    <div>1M / MEDIAN <strong data-snapshot-market-median-month>--</strong></div>
-    <div>1Y / MEDIAN <strong data-snapshot-market-median-year>--</strong></div>
-  `;
+
+  const monthValue = referenceValue.cloneNode(false) as HTMLElement;
+  monthValue.removeAttribute('data-snapshot-euribor-change');
+  monthValue.dataset.snapshotMarketMedianMonth = '';
+  monthValue.textContent = '--';
+
+  const yearValue = referenceValue.cloneNode(false) as HTMLElement;
+  yearValue.removeAttribute('data-snapshot-euribor-change');
+  yearValue.dataset.snapshotMarketMedianYear = '';
+  yearValue.textContent = '--';
+
+  const monthRow = document.createElement('span');
+  monthRow.append('1M / MEDIAN ', monthValue);
+
+  const yearRow = document.createElement('span');
+  yearRow.append('1Y / MEDIAN ', yearValue);
+
+  details.replaceChildren(monthRow, yearRow);
   median.append(details);
 };
 
