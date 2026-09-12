@@ -40,6 +40,61 @@ const HSL_LEARNING_QUERY = {
   routes: ['121', '125'],
 };
 
+const HSL_LEARNING_SCHEMA_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS hsl_eta_observations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trip_key TEXT NOT NULL,
+    stop_code TEXT NOT NULL,
+    route TEXT NOT NULL,
+    scheduled_at TEXT NOT NULL,
+    observed_at TEXT NOT NULL,
+    observed_minute INTEGER NOT NULL,
+    hsl_predicted_at TEXT NOT NULL,
+    hsl_delay_seconds INTEGER NOT NULL,
+    realtime INTEGER NOT NULL,
+    distance_meters INTEGER,
+    speed_kmh REAL,
+    vehicle_status TEXT,
+    vehicle_updated_at TEXT,
+    model_predicted_at TEXT,
+    model_sample_size INTEGER,
+    model_adjustment_seconds INTEGER,
+    model_confidence_seconds INTEGER,
+    UNIQUE(trip_key, observed_minute)
+  )`,
+  'CREATE INDEX IF NOT EXISTS hsl_eta_observations_trip_idx ON hsl_eta_observations(trip_key, observed_at)',
+  'CREATE INDEX IF NOT EXISTS hsl_eta_observations_route_idx ON hsl_eta_observations(route, observed_at)',
+  `CREATE TABLE IF NOT EXISTS hsl_eta_arrivals (
+    trip_key TEXT PRIMARY KEY,
+    stop_code TEXT NOT NULL,
+    route TEXT NOT NULL,
+    scheduled_at TEXT NOT NULL,
+    actual_arrival_at TEXT NOT NULL,
+    detected_by TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  'CREATE INDEX IF NOT EXISTS hsl_eta_arrivals_route_idx ON hsl_eta_arrivals(route, actual_arrival_at)',
+];
+
+const hslLearningDbAdapters = new WeakMap<object, HslLearningDb>();
+
+const hslLearningDb = (db?: HslLearningDb) => {
+  if (!db) return undefined;
+  const key = db as object;
+  const existing = hslLearningDbAdapters.get(key);
+  if (existing) return existing;
+
+  const adapter: HslLearningDb = {
+    prepare: (query) => db.prepare(query),
+    batch: (statements) => db.batch(statements),
+    exec: async () => {
+      await db.batch(HSL_LEARNING_SCHEMA_STATEMENTS.map((query) => db.prepare(query)));
+    },
+  };
+  hslLearningDbAdapters.set(key, adapter);
+  return adapter;
+};
+
 const methodNotAllowed = (allow = 'GET') =>
   new Response('Method not allowed', {
     status: 405,
@@ -88,7 +143,7 @@ const collectHslLearningSnapshot = async (env: WorkerEnv) => {
     console.error('Scheduled HSL learning snapshot failed', response.status);
     return;
   }
-  await enrichHslResponseWithLearning(response, env.HSL_MODEL_DB);
+  await enrichHslResponseWithLearning(response, hslLearningDb(env.HSL_MODEL_DB));
 };
 
 const worker = {
@@ -112,7 +167,7 @@ const worker = {
         request,
         apiKey: env.DIGITRANSIT_API_KEY,
       });
-      return enrichHslResponseWithLearning(response, env.HSL_MODEL_DB);
+      return enrichHslResponseWithLearning(response, hslLearningDb(env.HSL_MODEL_DB));
     }
 
     if (url.pathname === MARKETS_PATH) {
