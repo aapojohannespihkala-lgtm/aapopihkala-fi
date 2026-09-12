@@ -66,6 +66,16 @@ body:has(.snapshot-shell)
     --snapshot-rates-mobile-split: max(124px, 37%);
   }
 
+  /* Give Markets the vertical space added by its supporting medians by
+     transferring unused air from Electricity without changing total height. */
+  body:has(.snapshot-shell) .snapshot-grid {
+    grid-template-rows:
+      minmax(0, 1.15fr)
+      minmax(0, 1.5fr)
+      minmax(0, 1.35fr)
+      minmax(0, 0.9fr) !important;
+  }
+
   /* Euribor may shrink only to its readable minimum. The remaining width is Liiga. */
   body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-rates__main {
     position: relative;
@@ -354,6 +364,14 @@ body:has(.snapshot-shell)
   body:has(.snapshot-shell) {
     --snapshot-liiga-index-width: 33px;
     --snapshot-rates-mobile-split: max(118px, 37%);
+  }
+
+  body:has(.snapshot-shell) .snapshot-grid {
+    grid-template-rows:
+      minmax(0, 1.12fr)
+      minmax(0, 1.55fr)
+      minmax(0, 1.38fr)
+      minmax(0, 0.85fr) !important;
   }
 
   body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-panel__heading--split {
