@@ -65,6 +65,16 @@ body:has(.snapshot-shell)
   margin-left: 0;
 }
 
+/* Reuse Current Liiga's established Ilves mark scale and a small optical lift. */
+body:has(.snapshot-shell)
+  .snapshot-panel--rates
+  .snapshot-rates__main
+  .snapshot-liiga
+  .snapshot-liiga__mark--ilves {
+  transform: translateY(-2px) scale(0.95) !important;
+  transform-origin: center;
+}
+
 @media (max-width: 640px) {
   /* Give the lower split panel enough room for a complete compact match row. */
   body:has(.snapshot-shell) .snapshot-grid {
