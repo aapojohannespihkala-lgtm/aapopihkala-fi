@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { onRequestGet as getResilientMarketsResponse } from '../../functions/api/current/markets-resilient';
-import { onRequestGetWithBaseTimeout } from '../../functions/api/current/markets-stable';
+import {
+  fetchWithTimeout,
+  onRequestGetWithBaseTimeout,
+} from '../../functions/api/current/markets-stable';
 
 test('Current market feed recovers when the primary upstream never resolves', async () => {
   const originalFetch = globalThis.fetch;
@@ -153,6 +156,39 @@ test('Current resilient market recovery bounds every fallback upstream request',
     };
     expect(data.recovered).toBe(true);
     expect(data.items).toEqual([{ id: 'euribor-3m', value: 2.679, observedAt: '2026-09-04' }]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('Current stable market recovery aborts stalled response bodies', async () => {
+  const originalFetch = globalThis.fetch;
+  let aborted = false;
+
+  globalThis.fetch = async (_input, init) => {
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        init?.signal?.addEventListener(
+          'abort',
+          () => {
+            aborted = true;
+            controller.error(new DOMException('Aborted', 'AbortError'));
+          },
+          { once: true }
+        );
+      },
+    });
+
+    return new Response(body, { status: 200 });
+  };
+
+  try {
+    const startedAt = Date.now();
+    await expect(fetchWithTimeout('https://example.com/stalled', {}, 25)).rejects.toThrow();
+    expect(Date.now() - startedAt).toBeLessThan(1_000);
+    expect(aborted).toBe(true);
   } finally {
     globalThis.fetch = originalFetch;
   }
