@@ -184,6 +184,9 @@ jobs:
                   "/repos/${GITHUB_REPOSITORY}/actions/workflows/current-external-feed-smoke.yml/dispatches" \
                   --raw-field ref=main
                 gh api --method POST \
+                  "/repos/${GITHUB_REPOSITORY}/actions/workflows/current-snapshot-browser-smoke.yml/dispatches" \
+                  --raw-field ref=main
+                gh api --method POST \
                   "/repos/${GITHUB_REPOSITORY}/actions/workflows/current-news-source-contract-smoke.yml/dispatches" \
                   --raw-field ref=main
                 gh api --method POST \
