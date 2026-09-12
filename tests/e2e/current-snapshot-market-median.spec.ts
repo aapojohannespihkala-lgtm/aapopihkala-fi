@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-// Product intent: the Snapshot headline median represents all portfolio rows from the Markets page,
-// even though Snapshot displays only a selected subset as individual rows.
-test('calculates the Snapshot median from all Markets portfolio items', async ({ page }) => {
+// Product intent: the Snapshot headline and supporting medians represent all portfolio rows from
+// the Markets page, even though Snapshot displays only a selected subset as individual rows.
+test('calculates Snapshot medians from all Markets portfolio items', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
@@ -27,12 +27,12 @@ test('calculates the Snapshot median from all Markets portfolio items', async ({
         contentType: 'application/json',
         body: JSON.stringify({
           items: [
-            { id: 'ishares-world', changes: { today: 0.4 } },
-            { id: 'handelsbanken-usa', changes: { today: 0.7 } },
-            { id: 'nordnet-finland', changes: { today: -0.2 } },
-            { id: 'btc', changes: { today: 1.8 } },
-            { id: 'remedy', changes: { today: -0.6 } },
-            { id: 'not-displayed', changes: { today: -10 } },
+            { id: 'ishares-world', changes: { today: 0.4, month1: 2, year1: 10 } },
+            { id: 'handelsbanken-usa', changes: { today: 0.7, month1: 4, year1: 20 } },
+            { id: 'nordnet-finland', changes: { today: -0.2, month1: -1, year1: -5 } },
+            { id: 'btc', changes: { today: 1.8, month1: 5, year1: 40 } },
+            { id: 'remedy', changes: { today: -0.6, month1: -3, year1: -10 } },
+            { id: 'not-displayed', changes: { today: -10, month1: -20, year1: -50 } },
           ],
         }),
       });
@@ -45,6 +45,8 @@ test('calculates the Snapshot median from all Markets portfolio items', async ({
   await page.goto('/current/snapshot/', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('[data-snapshot-market-median]')).toHaveText('+0.10%');
+  await expect(page.locator('[data-snapshot-market-median-month]')).toHaveText('+0.50%');
+  await expect(page.locator('[data-snapshot-market-median-year]')).toHaveText('+2.50%');
   await expect(page.locator('[data-snapshot-market="ishares-world"]')).toHaveText('+0.40%');
   await expect(page.locator('[data-snapshot-market="remedy"]')).toHaveText('-0.60%');
 });
