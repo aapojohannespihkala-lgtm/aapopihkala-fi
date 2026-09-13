@@ -21,11 +21,19 @@ class WidgetRepository(context: Context) {
     private val prefs = context.getSharedPreferences("snapshot_widget", Context.MODE_PRIVATE)
 
     suspend fun fetchAndCache(): WidgetPayload? = withContext(Dispatchers.IO) {
-        val remote = fetchText(SnapshotEndpoints.PRESENTATION_URL, 7_000)
-            ?.let(WidgetPayloadCodec::parse)
+        val presentationText = fetchText(SnapshotEndpoints.PRESENTATION_URL, PRESENTATION_TIMEOUT_MS)
+        val parsedPresentation = presentationText?.let(WidgetPayloadCodec::parse)
+        val remoteStatus = when {
+            presentationText == null -> "LEGACY/NET"
+            parsedPresentation == null -> "LEGACY/PARSE"
+            !parsedPresentation.isCompatible() -> "LEGACY/COMPAT"
+            parsedPresentation.sections.isEmpty() -> "LEGACY/EMPTY"
+            else -> "V2"
+        }
+        val remote = parsedPresentation
             ?.takeIf { it.isCompatible() && it.sections.isNotEmpty() }
 
-        val payload = (remote ?: fetchLegacyPayload())?.let(::tagBuildVersion)
+        val payload = (remote ?: fetchLegacyPayload())?.let { tagBuildVersion(it, remoteStatus) }
         if (payload != null) {
             prefs.edit()
                 .putString(KEY_CACHE, WidgetPayloadCodec.encode(payload))
@@ -48,8 +56,8 @@ class WidgetRepository(context: Context) {
         prefs.edit().putString(KEY_STATUS, STATUS_LOADING).apply()
     }
 
-    private fun tagBuildVersion(payload: WidgetPayload): WidgetPayload {
-        val marker = "v${BuildConfig.VERSION_NAME}"
+    private fun tagBuildVersion(payload: WidgetPayload, source: String): WidgetPayload {
+        val marker = "v${BuildConfig.VERSION_NAME} · $source"
         return payload.copy(
             sections = payload.sections.map { section ->
                 if (section.id == "weather") {
@@ -162,6 +170,7 @@ class WidgetRepository(context: Context) {
             setRequestProperty("Accept", "application/json")
             setRequestProperty("User-Agent", "SnapshotWidget/${BuildConfig.VERSION_NAME}")
             setRequestProperty("Referer", SnapshotEndpoints.PAGE_URL)
+            setRequestProperty("Cache-Control", "no-cache")
         }
         return try {
             if (connection.responseCode !in 200..299) return null
@@ -209,6 +218,7 @@ class WidgetRepository(context: Context) {
         }.format(Date())
 
     companion object {
+        private const val PRESENTATION_TIMEOUT_MS = 12_000
         private const val KEY_CACHE = "snapshot_payload_v2"
         private const val KEY_STATUS = "snapshot_status"
         const val STATUS_IDLE = "idle"
