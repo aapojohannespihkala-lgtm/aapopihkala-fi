@@ -29,9 +29,10 @@ type HslDeparture = {
   realtime: boolean;
   realtimeState: string;
   vehicle: HslVehicle | null;
+  passageConfirmedAt: string | null;
 };
 
-type NormalizedDeparture = Omit<HslDeparture, 'vehicle'> & {
+type NormalizedDeparture = Omit<HslDeparture, 'vehicle' | 'passageConfirmedAt'> & {
   journeyKey: string | null;
   targetStopPosition: number | null;
   tripStopIds: string[];
@@ -356,6 +357,30 @@ export const hslVehicleMatchesTargetStop = ({
   return currentStopPosition < 0 || currentStopPosition <= targetStopPosition;
 };
 
+const rankVehicle = (
+  vehicle: HslVehiclePosition,
+  stopLat: number | null,
+  stopLon: number | null
+) => ({
+  vehicle,
+  distance:
+    stopLat !== null && stopLon !== null
+      ? haversineDistanceMeters(vehicle.latitude, vehicle.longitude, stopLat, stopLon)
+      : Number.POSITIVE_INFINITY,
+});
+
+const bestVehicle = (
+  vehicles: HslVehiclePosition[],
+  stopLat: number | null,
+  stopLon: number | null
+) =>
+  vehicles
+    .map((vehicle) => rankVehicle(vehicle, stopLat, stopLon))
+    .sort((a, b) => {
+      if (a.distance !== b.distance) return a.distance - b.distance;
+      return (b.vehicle.timestamp ?? 0) - (a.vehicle.timestamp ?? 0);
+    })[0]?.vehicle ?? null;
+
 const chooseVehicle = (
   departure: NormalizedDeparture,
   candidates: HslVehiclePosition[],
@@ -370,19 +395,29 @@ const chooseVehicle = (
     })
   );
 
-  return eligible
-    .map((vehicle) => ({
-      vehicle,
-      distance:
-        stopLat !== null && stopLon !== null
-          ? haversineDistanceMeters(vehicle.latitude, vehicle.longitude, stopLat, stopLon)
-          : Number.POSITIVE_INFINITY,
-    }))
-    .sort((a, b) => {
-      if (a.distance !== b.distance) return a.distance - b.distance;
-      return (b.vehicle.timestamp ?? 0) - (a.vehicle.timestamp ?? 0);
-    })[0]?.vehicle ?? null;
+  return bestVehicle(eligible, stopLat, stopLon);
 };
+
+const choosePassedVehicle = (
+  departure: NormalizedDeparture,
+  candidates: HslVehiclePosition[],
+  stopLat: number | null,
+  stopLon: number | null
+) => {
+  const passed = candidates.filter((vehicle) =>
+    !hslVehicleMatchesTargetStop({
+      stopId: vehicle.stopId,
+      targetStopPosition: departure.targetStopPosition,
+      tripStopIds: departure.tripStopIds,
+    })
+  );
+  return bestVehicle(passed, stopLat, stopLon);
+};
+
+const vehicleTimestampIso = (vehicle: HslVehiclePosition | null) =>
+  vehicle?.timestamp === null || vehicle?.timestamp === undefined
+    ? null
+    : new Date(vehicle.timestamp * 1000).toISOString();
 
 const publicVehicle = (
   vehicle: HslVehiclePosition | null,
@@ -393,9 +428,7 @@ const publicVehicle = (
   const distanceMeters = stopLat !== null && stopLon !== null
     ? Math.round(haversineDistanceMeters(vehicle.latitude, vehicle.longitude, stopLat, stopLon))
     : null;
-  const updatedAt = vehicle.timestamp === null
-    ? null
-    : new Date(vehicle.timestamp * 1000).toISOString();
+  const updatedAt = vehicleTimestampIso(vehicle);
 
   return {
     id: vehicle.vehicleId,
@@ -512,6 +545,9 @@ export const fetchHslDeparturesResponse = async ({
         ? vehiclesByJourney.get(departure.journeyKey) ?? []
         : [];
       const vehicle = chooseVehicle(departure, candidates, stopLat, stopLon);
+      const passedVehicle = vehicle
+        ? null
+        : choosePassedVehicle(departure, candidates, stopLat, stopLon);
       const {
         journeyKey: _journeyKey,
         targetStopPosition: _targetStopPosition,
@@ -522,6 +558,7 @@ export const fetchHslDeparturesResponse = async ({
       return {
         ...publicDeparture,
         vehicle: publicVehicle(vehicle, stopLat, stopLon),
+        passageConfirmedAt: vehicleTimestampIso(passedVehicle),
       };
     });
 
