@@ -58,6 +58,19 @@ type LiigaData = {
   nextIlvesGame?: unknown;
 };
 
+type SolarData = {
+  sunrise: string;
+  sunset: string;
+  daylight: string;
+};
+
+type SolarForecastResponse = {
+  daily?: {
+    sunrise?: unknown;
+    sunset?: unknown;
+  };
+};
+
 const PROD_THEME: WidgetTheme = {
   background: '#1D2A35',
   panel: '#22323E',
@@ -76,6 +89,10 @@ const PROD_LAYOUTS: WidgetLayouts = {
   large: ['weather', 'electricity', 'markets', 'rates', 'liiga'],
 };
 const DEV_LAYOUTS: WidgetLayouts = { ...PROD_LAYOUTS };
+
+const SOLAR_API_URL = 'https://api.open-meteo.com/v1/forecast';
+const SOLAR_TIMEOUT_MS = 4_000;
+const SOLAR_TIME_ZONE = 'Europe/Helsinki';
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -118,6 +135,65 @@ const readJson = async <T>(response: Response): Promise<T | null> => {
   }
 };
 
+const formatSolarClock = (value: string) => {
+  const match = value.match(/T(\d{2}:\d{2})/);
+  return match?.[1] ?? null;
+};
+
+const readClockMinutes = (value: string) => {
+  const match = value.match(/T(\d{2}):(\d{2})/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+};
+
+const formatDaylightLength = (sunrise: string, sunset: string) => {
+  const start = readClockMinutes(sunrise);
+  const end = readClockMinutes(sunset);
+  if (start === null || end === null) return null;
+
+  const duration = end >= start ? end - start : end + 24 * 60 - start;
+  const hours = Math.floor(duration / 60);
+  const minutes = duration % 60;
+  return `${hours}H${String(minutes).padStart(2, '0')}M`;
+};
+
+const fetchSolarData = async (): Promise<SolarData | null> => {
+  const params = new URLSearchParams({
+    latitude: '60.1719',
+    longitude: '24.7314',
+    timezone: SOLAR_TIME_ZONE,
+    forecast_days: '1',
+    daily: 'sunrise,sunset',
+  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SOLAR_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${SOLAR_API_URL}?${params.toString()}`, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+    const data = await readJson<SolarForecastResponse>(response);
+    const sunriseRaw = Array.isArray(data?.daily?.sunrise)
+      ? stringValue(data.daily.sunrise[0])
+      : null;
+    const sunsetRaw = Array.isArray(data?.daily?.sunset)
+      ? stringValue(data.daily.sunset[0])
+      : null;
+    if (!sunriseRaw || !sunsetRaw) return null;
+
+    const sunrise = formatSolarClock(sunriseRaw);
+    const sunset = formatSolarClock(sunsetRaw);
+    const daylight = formatDaylightLength(sunriseRaw, sunsetRaw);
+    if (!sunrise || !sunset || !daylight) return null;
+    return { sunrise, sunset, daylight };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 const weatherColumns = (value: unknown): WidgetColumn[] => {
   if (!Array.isArray(value)) return [];
 
@@ -131,7 +207,7 @@ const weatherColumns = (value: unknown): WidgetColumn[] => {
   }).slice(0, 4);
 };
 
-const buildWeatherSection = (value: unknown): WidgetSection | null => {
+const buildWeatherSection = (value: unknown, solar: SolarData | null): WidgetSection | null => {
   const weather = asRecord(value);
   if (!weather) return null;
   const temperature = finiteNumber(weather.temperature);
@@ -141,7 +217,11 @@ const buildWeatherSection = (value: unknown): WidgetSection | null => {
   const condition = stringValue(weather.condition);
   if (temperature === null && low === null && high === null) return null;
   const range = low === null && high === null ? '' : `${formatDegree(low)} / ${formatDegree(high)}`;
-  const detail = [condition, range].filter(Boolean).join(' / ');
+  const weatherDetail = [condition, range].filter(Boolean).join(' / ');
+  const solarDetail = solar
+    ? `↑${solar.sunrise} ↓${solar.sunset} ☀${solar.daylight}`
+    : '';
+  const detail = [weatherDetail, solarDetail].filter(Boolean).join('\n');
 
   return {
     id: 'weather',
@@ -312,9 +392,10 @@ export const buildWidgetV2Payload = (
   liiga: LiigaData | null,
   channel: 'prod' | 'dev',
   generatedAt = new Date().toISOString(),
+  solar: SolarData | null = null,
 ): WidgetV2Payload => {
   const sections = [
-    buildWeatherSection(base?.weather),
+    buildWeatherSection(base?.weather, solar),
     buildElectricitySection(base?.electricity),
     buildMarketsSection(base?.markets),
     buildRatesSection(base?.rates),
@@ -339,15 +420,16 @@ export const onRequestGet = async (context: { request: Request }) => {
   const url = new URL(context.request.url);
   const channel = url.searchParams.get('channel') === 'dev' ? 'dev' : 'prod';
 
-  const [baseResponse, liigaResponse] = await Promise.all([
+  const [baseResponse, liigaResponse, solar] = await Promise.all([
     getWidgetResponse({ request: context.request }),
     fetchLiigaResponse(4_000),
+    fetchSolarData(),
   ]);
   const [base, liiga] = await Promise.all([
     readJson<BaseWidgetData>(baseResponse),
     readJson<LiigaData>(liigaResponse),
   ]);
-  const payload = buildWidgetV2Payload(base, liiga, channel);
+  const payload = buildWidgetV2Payload(base, liiga, channel, new Date().toISOString(), solar);
   const hasSections = payload.sections.length > 0;
 
   return Response.json(
