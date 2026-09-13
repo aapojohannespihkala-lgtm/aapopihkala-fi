@@ -1,53 +1,76 @@
 package fi.aapopihkala.snapshotwidget
 
 import android.content.Context
+import java.io.IOException
+import java.net.ConnectException
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
+import java.net.UnknownHostException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import javax.net.ssl.SSLException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 object SnapshotEndpoints {
-    const val PRESENTATION_URL = "https://aapopihkala.fi/api/current/widget?v=2&channel=prod"
+    const val PRESENTATION_URL = "https://aapopihkala.fi/api/current/widget-v2?channel=prod"
     const val LEGACY_URL = "https://aapopihkala.fi/api/current/widget"
     const val PAGE_URL = "https://aapopihkala.fi/current/snapshot/"
 }
+
+private data class FetchTextResult(
+    val body: String?,
+    val status: String
+)
+
+private data class LegacyFetchResult(
+    val payload: WidgetPayload?,
+    val status: String
+)
 
 class WidgetRepository(context: Context) {
     private val prefs = context.getSharedPreferences("snapshot_widget", Context.MODE_PRIVATE)
 
     suspend fun fetchAndCache(): WidgetPayload? = withContext(Dispatchers.IO) {
-        val presentationText = fetchText(SnapshotEndpoints.PRESENTATION_URL, PRESENTATION_TIMEOUT_MS)
-        val parsedPresentation = presentationText?.let(WidgetPayloadCodec::parse)
-        val remoteStatus = when {
-            presentationText == null -> "LEGACY/NET"
-            parsedPresentation == null -> "LEGACY/PARSE"
-            !parsedPresentation.isCompatible() -> "LEGACY/COMPAT"
-            parsedPresentation.sections.isEmpty() -> "LEGACY/EMPTY"
-            else -> "V2"
+        val presentation = fetchText(SnapshotEndpoints.PRESENTATION_URL, PRESENTATION_TIMEOUT_MS)
+        val parsedPresentation = presentation.body?.let(WidgetPayloadCodec::parse)
+        val v2Status = when {
+            presentation.body == null -> presentation.status
+            parsedPresentation == null -> "PARSE"
+            !parsedPresentation.isCompatible() -> "COMPAT"
+            parsedPresentation.sections.isEmpty() -> "EMPTY"
+            else -> "OK"
         }
         val remote = parsedPresentation
             ?.takeIf { it.isCompatible() && it.sections.isNotEmpty() }
 
-        val payload = (remote ?: fetchLegacyPayload())?.let { tagBuildVersion(it, remoteStatus) }
+        val legacy = if (remote == null) fetchLegacyPayload() else LegacyFetchResult(null, "SKIP")
+        val payload = remote ?: legacy.payload
+
+        val editor = prefs.edit()
+            .putString(KEY_V2_STATUS, v2Status)
+            .putString(KEY_LEGACY_STATUS, legacy.status)
+            .putLong(KEY_LAST_ATTEMPT_MS, System.currentTimeMillis())
+
         if (payload != null) {
-            prefs.edit()
+            editor
                 .putString(KEY_CACHE, WidgetPayloadCodec.encode(payload))
                 .putString(KEY_STATUS, STATUS_OK)
-                .apply()
         } else {
-            prefs.edit().putString(KEY_STATUS, STATUS_ERROR).apply()
+            editor.putString(KEY_STATUS, STATUS_ERROR)
         }
+        editor.apply()
         payload
     }
 
     fun loadCached(): WidgetPayload? {
         val json = prefs.getString(KEY_CACHE, null) ?: return null
-        return WidgetPayloadCodec.parse(json)?.takeIf { it.isCompatible() }
+        val payload = WidgetPayloadCodec.parse(json)?.takeIf { it.isCompatible() } ?: return null
+        return decorateDiagnostics(payload)
     }
 
     fun status(): String = prefs.getString(KEY_STATUS, STATUS_IDLE) ?: STATUS_IDLE
@@ -56,12 +79,22 @@ class WidgetRepository(context: Context) {
         prefs.edit().putString(KEY_STATUS, STATUS_LOADING).apply()
     }
 
-    private fun tagBuildVersion(payload: WidgetPayload, source: String): WidgetPayload {
-        val marker = "v${BuildConfig.VERSION_NAME} · $source"
+    private fun decorateDiagnostics(payload: WidgetPayload): WidgetPayload {
+        val v2 = prefs.getString(KEY_V2_STATUS, "?") ?: "?"
+        val legacy = prefs.getString(KEY_LEGACY_STATUS, "?") ?: "?"
+        val cache = cacheAge(payload.generatedAt)
         return payload.copy(
             sections = payload.sections.map { section ->
                 if (section.id == "weather") {
-                    section.copy(label = "${section.label} · $marker")
+                    val secondary = listOfNotNull(
+                        section.secondary?.takeIf { it.isNotBlank() },
+                        "L $legacy",
+                        "C$cache"
+                    ).joinToString(" · ")
+                    section.copy(
+                        label = "WEATHER · ${BuildConfig.VERSION_NAME} · V2 $v2",
+                        secondary = secondary
+                    )
                 } else {
                     section
                 }
@@ -69,28 +102,33 @@ class WidgetRepository(context: Context) {
         )
     }
 
-    private fun fetchLegacyPayload(): WidgetPayload? {
-        val body = fetchText(SnapshotEndpoints.LEGACY_URL, 7_000) ?: return null
-        val root = runCatching { JSONObject(body) }.getOrNull() ?: return null
+    private fun fetchLegacyPayload(): LegacyFetchResult {
+        val fetched = fetchText(SnapshotEndpoints.LEGACY_URL, LEGACY_TIMEOUT_MS)
+        val body = fetched.body ?: return LegacyFetchResult(null, fetched.status)
+        val root = runCatching { JSONObject(body) }.getOrNull()
+            ?: return LegacyFetchResult(null, "PARSE")
         val sections = buildList {
             root.optJSONObject("weather")?.let(::legacyWeather)?.let(::add)
             root.optJSONObject("electricity")?.let(::legacyElectricity)?.let(::add)
             root.optJSONObject("markets")?.let(::legacyMarkets)?.let(::add)
             root.optJSONObject("rates")?.let(::legacyRates)?.let(::add)
         }
-        if (sections.isEmpty()) return null
+        if (sections.isEmpty()) return LegacyFetchResult(null, "EMPTY")
 
-        return WidgetPayload(
-            schemaVersion = 2,
-            minEngineVersion = 2,
-            channel = "legacy",
-            generatedAt = root.optString("updated").takeIf { it.isNotBlank() } ?: isoNow(),
-            refreshMinutes = 15,
-            title = "CURRENT / SNAPSHOT",
-            pageUrl = SnapshotEndpoints.PAGE_URL,
-            theme = WidgetTheme.default(),
-            layouts = WidgetLayouts.default(),
-            sections = sections
+        return LegacyFetchResult(
+            WidgetPayload(
+                schemaVersion = 2,
+                minEngineVersion = 2,
+                channel = "legacy",
+                generatedAt = root.optString("updated").takeIf { it.isNotBlank() } ?: isoNow(),
+                refreshMinutes = 15,
+                title = "CURRENT / SNAPSHOT",
+                pageUrl = SnapshotEndpoints.PAGE_URL,
+                theme = WidgetTheme.default(),
+                layouts = WidgetLayouts.default(),
+                sections = sections
+            ),
+            "OK"
         )
     }
 
@@ -161,24 +199,75 @@ class WidgetRepository(context: Context) {
         )
     }
 
-    private fun fetchText(url: String, timeoutMs: Int): String? {
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = timeoutMs
-            readTimeout = timeoutMs
-            instanceFollowRedirects = true
-            setRequestProperty("Accept", "application/json")
-            setRequestProperty("User-Agent", "SnapshotWidget/${BuildConfig.VERSION_NAME}")
-            setRequestProperty("Referer", SnapshotEndpoints.PAGE_URL)
-            setRequestProperty("Cache-Control", "no-cache")
-        }
+    private fun fetchText(url: String, timeoutMs: Int): FetchTextResult {
+        var connection: HttpURLConnection? = null
         return try {
-            if (connection.responseCode !in 200..299) return null
-            connection.inputStream.bufferedReader().use { it.readText() }
-        } catch (_: Exception) {
-            null
+            connection = (URL(url).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = timeoutMs
+                readTimeout = timeoutMs
+                instanceFollowRedirects = true
+                setRequestProperty("Accept", "application/json")
+                setRequestProperty("User-Agent", "SnapshotWidget/${BuildConfig.VERSION_NAME}")
+                setRequestProperty("Referer", SnapshotEndpoints.PAGE_URL)
+                setRequestProperty("Cache-Control", "no-cache")
+            }
+            val code = connection.responseCode
+            if (code !in 200..299) {
+                FetchTextResult(null, "HTTP$code")
+            } else {
+                FetchTextResult(
+                    connection.inputStream.bufferedReader().use { it.readText() },
+                    "OK"
+                )
+            }
+        } catch (_: SocketTimeoutException) {
+            FetchTextResult(null, "TIMEOUT")
+        } catch (_: UnknownHostException) {
+            FetchTextResult(null, "DNS")
+        } catch (_: SSLException) {
+            FetchTextResult(null, "SSL")
+        } catch (_: ConnectException) {
+            FetchTextResult(null, "CONNECT")
+        } catch (_: SecurityException) {
+            FetchTextResult(null, "SECURITY")
+        } catch (_: IOException) {
+            FetchTextResult(null, "IO")
+        } catch (error: Exception) {
+            val name = error.javaClass.simpleName
+                .removeSuffix("Exception")
+                .uppercase(Locale.US)
+                .take(12)
+            FetchTextResult(null, if (name.isBlank()) "ERROR" else name)
         } finally {
-            connection.disconnect()
+            connection?.disconnect()
+        }
+    }
+
+    private fun cacheAge(generatedAt: String): String {
+        val timestamp = parseIsoMillis(generatedAt) ?: return "?"
+        val minutes = ((System.currentTimeMillis() - timestamp).coerceAtLeast(0L) / 60_000L)
+        return when {
+            minutes < 60 -> "${minutes}M"
+            minutes < 24 * 60 -> "${minutes / 60}H"
+            else -> "${minutes / (24 * 60)}D"
+        }
+    }
+
+    private fun parseIsoMillis(value: String): Long? {
+        val patterns = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+            "yyyy-MM-dd'T'HH:mm:ssXXX",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        )
+        return patterns.firstNotNullOfOrNull { pattern ->
+            runCatching {
+                SimpleDateFormat(pattern, Locale.US).apply {
+                    isLenient = false
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }.parse(value)?.time
+            }.getOrNull()
         }
     }
 
@@ -219,8 +308,12 @@ class WidgetRepository(context: Context) {
 
     companion object {
         private const val PRESENTATION_TIMEOUT_MS = 12_000
+        private const val LEGACY_TIMEOUT_MS = 7_000
         private const val KEY_CACHE = "snapshot_payload_v2"
         private const val KEY_STATUS = "snapshot_status"
+        private const val KEY_V2_STATUS = "snapshot_v2_status"
+        private const val KEY_LEGACY_STATUS = "snapshot_legacy_status"
+        private const val KEY_LAST_ATTEMPT_MS = "snapshot_last_attempt_ms"
         const val STATUS_IDLE = "idle"
         const val STATUS_LOADING = "loading"
         const val STATUS_OK = "ok"
