@@ -45,6 +45,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
@@ -60,6 +61,11 @@ private data class Palette(
     val accent: Color,
     val positive: Color,
     val negative: Color
+)
+
+private data class HeaderDateTime(
+    val time: String,
+    val date: String
 )
 
 class SnapshotUpdateWorker(
@@ -147,7 +153,7 @@ private fun SnapshotContent(payload: WidgetPayload?, status: String) {
             .padding(outerPadding)
     ) {
         Header(payload, status, palette)
-        Spacer(GlanceModifier.height(if (sizeClass == WidgetSizeClass.COMPACT) 6.dp else 9.dp))
+        Spacer(GlanceModifier.height(if (sizeClass == WidgetSizeClass.COMPACT) 6.dp else 7.dp))
 
         if (payload == null || payload.sections.isEmpty()) {
             EmptyState(status, palette)
@@ -168,6 +174,7 @@ private fun Header(payload: WidgetPayload?, status: String, palette: Palette) {
     val openPage = actionStartActivity(
         Intent(Intent.ACTION_VIEW, Uri.parse(payload?.pageUrl ?: SnapshotEndpoints.PAGE_URL))
     )
+    val headerDateTime = currentHeaderDateTime()
     val statusText = when {
         status == WidgetRepository.STATUS_LOADING -> "LOADING DATA"
         status == WidgetRepository.STATUS_ERROR && payload == null -> "CONNECTION ERROR"
@@ -181,16 +188,25 @@ private fun Header(payload: WidgetPayload?, status: String, palette: Palette) {
     ) {
         Column(modifier = GlanceModifier.defaultWeight().clickable(openPage)) {
             Text(
-                text = payload?.title ?: "CURRENT / SNAPSHOT",
+                text = headerDateTime.time,
                 style = TextStyle(
                     color = ColorProvider(palette.foreground),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Medium
                 )
             )
             Text(
+                text = headerDateTime.date,
+                style = TextStyle(
+                    color = ColorProvider(palette.muted),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Medium
+                ),
+                maxLines = 1
+            )
+            Text(
                 text = statusText,
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 9.sp)
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp)
             )
         }
         Text(
@@ -635,6 +651,25 @@ private fun toneColor(tone: String, palette: Palette): Color = when (tone.lowerc
     "negative" -> palette.negative
     "accent" -> palette.accent
     else -> palette.foreground
+}
+
+private fun currentHeaderDateTime(): HeaderDateTime {
+    val helsinki = TimeZone.getTimeZone("Europe/Helsinki")
+    val calendar = Calendar.getInstance(helsinki, Locale.UK).apply {
+        firstDayOfWeek = Calendar.MONDAY
+        minimalDaysInFirstWeek = 4
+    }
+    val time = SimpleDateFormat("HH:mm", Locale.US).apply {
+        timeZone = helsinki
+    }.format(calendar.time)
+    val date = SimpleDateFormat("EEE dd MMM yyyy", Locale.US).apply {
+        timeZone = helsinki
+    }.format(calendar.time).uppercase(Locale.US)
+    val week = calendar.get(Calendar.WEEK_OF_YEAR)
+    return HeaderDateTime(
+        time = time,
+        date = "$date / W${String.format(Locale.US, "%02d", week)}"
+    )
 }
 
 private fun localTime(value: String): String {
