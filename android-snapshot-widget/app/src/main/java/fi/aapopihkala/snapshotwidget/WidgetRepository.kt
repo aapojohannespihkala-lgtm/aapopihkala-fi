@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 object SnapshotEndpoints {
-    const val PRESENTATION_URL = "https://aapopihkala.fi/api/current/widget-v2?channel=prod"
+    const val PRESENTATION_URL = "https://aapopihkala.fi/api/current/widget?v=2&channel=prod"
     const val LEGACY_URL = "https://aapopihkala.fi/api/current/widget"
     const val PAGE_URL = "https://aapopihkala.fi/current/snapshot/"
 }
