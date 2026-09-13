@@ -499,6 +499,7 @@ const loadTrainingRows = async (db: HslLearningDb) => {
       o.model_predicted_at
     FROM hsl_eta_observations o
     INNER JOIN hsl_eta_arrivals a ON a.trip_key = o.trip_key
+    WHERE a.detected_by <> 'gtfs_stop_progress'
     ORDER BY o.observed_at DESC
     LIMIT ${MAX_TRAINING_ROWS}
   `).all<HslLearningTrainingRow>();

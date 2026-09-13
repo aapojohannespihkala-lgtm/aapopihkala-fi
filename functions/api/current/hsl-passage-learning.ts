@@ -10,6 +10,7 @@ type HslPassageDeparture = {
   scheduledAt: string;
   departureAt: string;
   vehicle: HslPassageVehicle | null;
+  passageConfirmedAt?: string | null;
 };
 
 type HslPassagePayload = {
@@ -38,6 +39,7 @@ const MIN_DISTANCE_RISE_METERS = 500;
 const MIN_PASSAGE_ELAPSED_MS = 20_000;
 const MAX_PASSAGE_ELAPSED_MS = 15 * 60_000;
 const MAX_HSL_FUTURE_LEAD_MS = 2 * 60_000;
+const PASSAGE_RECOVERY_LOOKBACK_MS = 20 * 60_000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -64,11 +66,32 @@ const isPassagePayload = (value: unknown): value is HslPassagePayload => {
 const tripKeyFor = (stopCode: string, departure: Pick<HslPassageDeparture, 'route' | 'scheduledAt'>) =>
   `${stopCode}|${departure.route}|${departure.scheduledAt}`;
 
-export const inferHslPassageFromHistory = (
-  observations: HslPassageObservation[],
-  hslPredictedAt: string
-): HslPassageInference | null => {
-  const normalized = observations
+export const shouldCheckHslPassage = (
+  departure: HslPassageDeparture,
+  fetchedAt: string
+) => {
+  if (timestampOf(departure.passageConfirmedAt ?? null) !== null) return true;
+
+  if (
+    departure.vehicle?.distanceMeters !== null &&
+    departure.vehicle?.distanceMeters !== undefined &&
+    Number.isFinite(departure.vehicle.distanceMeters)
+  ) {
+    return true;
+  }
+
+  const fetchedMs = timestampOf(fetchedAt);
+  const departureMs = timestampOf(departure.departureAt);
+  if (fetchedMs === null || departureMs === null) return false;
+
+  return (
+    departureMs >= fetchedMs - PASSAGE_RECOVERY_LOOKBACK_MS &&
+    departureMs <= fetchedMs + MAX_HSL_FUTURE_LEAD_MS
+  );
+};
+
+const normalizedObservations = (observations: HslPassageObservation[]) =>
+  observations
     .map((observation) => {
       const observedMs = timestampOf(observation.vehicle_updated_at ?? observation.observed_at);
       const distanceMeters = observation.distance_meters;
@@ -87,6 +110,11 @@ export const inferHslPassageFromHistory = (
     )
     .sort((a, b) => a.observedMs - b.observedMs);
 
+export const inferHslPassageFromHistory = (
+  observations: HslPassageObservation[],
+  hslPredictedAt: string
+): HslPassageInference | null => {
+  const normalized = normalizedObservations(observations);
   if (normalized.length < 2) return null;
 
   const latest = normalized[normalized.length - 1];
@@ -121,6 +149,24 @@ export const inferHslPassageFromHistory = (
   };
 };
 
+export const confirmedHslPassageTime = (
+  observations: HslPassageObservation[],
+  confirmedAt: string
+) => {
+  const confirmedMs = timestampOf(confirmedAt);
+  if (confirmedMs === null) return null;
+
+  const normalized = normalizedObservations(observations).filter(
+    (observation) => observation.observedMs <= confirmedMs
+  );
+  if (normalized.length === 0) return new Date(confirmedMs).toISOString();
+
+  const closest = normalized.reduce((best, observation) =>
+    observation.distanceMeters < best.distanceMeters ? observation : best
+  );
+  return closest.observedAt;
+};
+
 const loadTripHistory = async (db: HslLearningDb, tripKey: string) => {
   const result = await db.prepare(`
     SELECT observed_at, vehicle_updated_at, distance_meters
@@ -144,7 +190,7 @@ export const recordHslDistancePassages = async (
     if (!isPassagePayload(payload)) return;
 
     for (const departure of payload.departures) {
-      if (!departure.vehicle || departure.vehicle.distanceMeters === null) continue;
+      if (!shouldCheckHslPassage(departure, payload.fetchedAt)) continue;
 
       const tripKey = tripKeyFor(payload.stop.code, departure);
       const existing = await db.prepare(
@@ -154,7 +200,13 @@ export const recordHslDistancePassages = async (
 
       const history = await loadTripHistory(db, tripKey);
       const inference = inferHslPassageFromHistory(history, departure.departureAt);
-      if (!inference) continue;
+      const confirmedAt = departure.passageConfirmedAt ?? null;
+      const confirmedTime = confirmedAt
+        ? confirmedHslPassageTime(history, confirmedAt)
+        : null;
+
+      const actualArrivalAt = inference?.actualArrivalAt ?? confirmedTime;
+      if (!actualArrivalAt) continue;
 
       await db.prepare(`
         INSERT OR IGNORE INTO hsl_eta_arrivals (
@@ -165,8 +217,8 @@ export const recordHslDistancePassages = async (
         payload.stop.code,
         departure.route,
         departure.scheduledAt,
-        inference.actualArrivalAt,
-        'gps_distance_turn',
+        actualArrivalAt,
+        inference ? 'gps_distance_turn' : 'gtfs_stop_progress',
         payload.fetchedAt
       ).run();
     }

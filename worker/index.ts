@@ -158,7 +158,10 @@ const collectHslLearningSnapshot = async (env: WorkerEnv) => {
   const db = hslLearningDb(env.HSL_MODEL_DB);
   await recordHslRawLearningSnapshot(response, db);
   await recordHslDistancePassages(response, db);
-  await enrichAndRecordHsl(response, db);
+
+  // The scheduled collector needs enrichment only to persist AAPO predictions.
+  // Passage inference already ran above, so do not perform the same D1 scan twice.
+  await enrichHslResponseWithLearning(response, db);
 };
 
 const worker = {
