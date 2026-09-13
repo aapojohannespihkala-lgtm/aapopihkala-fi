@@ -179,12 +179,23 @@ const jsonResponse = (body: unknown, status = 200) =>
     },
   });
 
-const fetchWithTimeout = async (input: string, init: RequestInit = {}) => {
+export const fetchWithTimeout = async (
+  input: string,
+  init: RequestInit = {},
+  timeoutMs = FETCH_TIMEOUT_MS,
+  fetchImpl: typeof fetch = fetch
+) => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    return await fetch(input, { ...init, signal: controller.signal });
+    const response = await fetchImpl(input, { ...init, signal: controller.signal });
+    const body = response.body ? await response.arrayBuffer() : null;
+    return new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
   } finally {
     clearTimeout(timer);
   }

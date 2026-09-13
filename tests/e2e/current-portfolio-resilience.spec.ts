@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { onRequestGet } from '../../functions/api/current/portfolio-complete';
+import { fetchWithTimeout } from '../../functions/api/current/portfolio-resilient';
 
 const opWorldReaderFixture = readFileSync(
   new URL('../fixtures/current/op-world-index-reader.txt', import.meta.url),
@@ -56,6 +57,38 @@ const nordnetResponse = () =>
       ],
     },
   });
+
+test('resilient portfolio timeout covers a stalled response body', async () => {
+  let seenSignal: AbortSignal | null | undefined;
+
+  const fetchImpl: typeof fetch = async (_input, init) => {
+    seenSignal = init?.signal;
+    const signal = seenSignal;
+
+    return new Response(
+      new ReadableStream({
+        start(controller) {
+          signal?.addEventListener(
+            'abort',
+            () => controller.error(signal.reason ?? new DOMException('Aborted', 'AbortError')),
+            { once: true }
+          );
+        },
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  };
+
+  const startedAt = Date.now();
+
+  await expect(
+    fetchWithTimeout('https://query1.finance.yahoo.com/example', {}, 25, fetchImpl)
+  ).rejects.toThrow();
+
+  expect(Date.now() - startedAt).toBeLessThan(1_000);
+  expect(seenSignal).toBeInstanceOf(AbortSignal);
+  expect(seenSignal?.aborted).toBe(true);
+});
 
 test('portfolio feed recovers transient sources and enriches OP index 1D/1W from NAV history', async () => {
   const originalFetch = globalThis.fetch;
