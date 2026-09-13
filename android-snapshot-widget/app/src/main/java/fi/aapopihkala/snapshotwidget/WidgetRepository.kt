@@ -25,7 +25,7 @@ class WidgetRepository(context: Context) {
             ?.let(WidgetPayloadCodec::parse)
             ?.takeIf { it.isCompatible() && it.sections.isNotEmpty() }
 
-        val payload = remote ?: fetchLegacyPayload()
+        val payload = (remote ?: fetchLegacyPayload())?.let(::tagBuildVersion)
         if (payload != null) {
             prefs.edit()
                 .putString(KEY_CACHE, WidgetPayloadCodec.encode(payload))
@@ -46,6 +46,19 @@ class WidgetRepository(context: Context) {
 
     fun markLoading() {
         prefs.edit().putString(KEY_STATUS, STATUS_LOADING).apply()
+    }
+
+    private fun tagBuildVersion(payload: WidgetPayload): WidgetPayload {
+        val marker = "v${BuildConfig.VERSION_NAME}"
+        return payload.copy(
+            sections = payload.sections.map { section ->
+                if (section.id == "weather") {
+                    section.copy(label = "${section.label} · $marker")
+                } else {
+                    section
+                }
+            }
+        )
     }
 
     private fun fetchLegacyPayload(): WidgetPayload? {
@@ -147,7 +160,7 @@ class WidgetRepository(context: Context) {
             readTimeout = timeoutMs
             instanceFollowRedirects = true
             setRequestProperty("Accept", "application/json")
-            setRequestProperty("User-Agent", "SnapshotWidget/2.0")
+            setRequestProperty("User-Agent", "SnapshotWidget/${BuildConfig.VERSION_NAME}")
             setRequestProperty("Referer", SnapshotEndpoints.PAGE_URL)
         }
         return try {
