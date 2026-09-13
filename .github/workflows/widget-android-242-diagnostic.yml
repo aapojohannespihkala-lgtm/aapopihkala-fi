@@ -1,0 +1,67 @@
+name: Widget Android 2.4.2 diagnostic
+
+on:
+  push:
+    branches:
+      - diag/widget-android-242-request
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Probe production exactly like Android 2.4.2
+        shell: bash
+        run: |
+          cat > /tmp/Probe.java <<'JAVA'
+          import java.io.*;
+          import java.net.*;
+          import java.nio.charset.StandardCharsets;
+
+          public class Probe {
+            static void probe(String label, String url, int timeoutMs) {
+              long started = System.currentTimeMillis();
+              HttpURLConnection c = null;
+              try {
+                c = (HttpURLConnection) new URL(url).openConnection();
+                c.setRequestMethod("GET");
+                c.setConnectTimeout(timeoutMs);
+                c.setReadTimeout(timeoutMs);
+                c.setInstanceFollowRedirects(true);
+                c.setRequestProperty("Accept", "application/json");
+                c.setRequestProperty("User-Agent", "SnapshotWidget/2.4.2");
+                c.setRequestProperty("Referer", "https://aapopihkala.fi/current/snapshot/");
+                c.setRequestProperty("Cache-Control", "no-cache");
+                int status = c.getResponseCode();
+                InputStream in = status >= 200 && status <= 299 ? c.getInputStream() : c.getErrorStream();
+                String body = "";
+                if (in != null) body = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                System.out.printf("%s status=%d elapsedMs=%d type=%s schema=%s bytes=%d body=%s%n",
+                  label, status, System.currentTimeMillis() - started,
+                  c.getHeaderField("Content-Type"), c.getHeaderField("X-Widget-Schema"),
+                  body.getBytes(StandardCharsets.UTF_8).length,
+                  body.substring(0, Math.min(180, body.length())).replace('\n', ' '));
+              } catch (Exception e) {
+                System.out.printf("%s ERROR elapsedMs=%d %s: %s%n", label,
+                  System.currentTimeMillis() - started, e.getClass().getName(), e.getMessage());
+              } finally {
+                if (c != null) c.disconnect();
+              }
+            }
+
+            public static void main(String[] args) {
+              for (int i = 1; i <= 5; i++) {
+                probe("v2-path-" + i, "https://aapopihkala.fi/api/current/widget-v2?channel=prod&diag=" + System.nanoTime(), 12000);
+                probe("v2-query-" + i, "https://aapopihkala.fi/api/current/widget?v=2&channel=prod&diag=" + System.nanoTime(), 12000);
+                probe("legacy-" + i, "https://aapopihkala.fi/api/current/widget?diag=" + System.nanoTime(), 7000);
+              }
+            }
+          }
+          JAVA
+          javac /tmp/Probe.java
+          java -cp /tmp Probe
