@@ -28,7 +28,8 @@ const departure = {
   realtimeState: 'UPDATED',
   journeyKey: '2125|20260913|14:00:00|1',
   targetStopPosition: 2,
-  tripStopIds: ['HSL:stop-a', 'HSL:stop-b', 'HSL:E3239', 'HSL:stop-d'],
+  // normalizeDeparture strips the HSL: prefix before vehicle selection.
+  tripStopIds: ['stop-a', 'stop-b', 'E3239', 'stop-d'],
 };
 
 test('does not reattach a journey vehicle once its known stop is after Ylisrinne', () => {
