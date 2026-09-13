@@ -74,8 +74,9 @@ jobs:
 
       - name: Verify release signature
         if: github.event_name != 'pull_request'
-                run: |
+        run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android-snapshot-widget/app/build/outputs/apk/release/app-release.apk
+
       - name: Prepare APK
         if: github.event_name != 'pull_request'
         run: cp android-snapshot-widget/app/build/outputs/apk/release/app-release.apk SnapshotWidget.apk
