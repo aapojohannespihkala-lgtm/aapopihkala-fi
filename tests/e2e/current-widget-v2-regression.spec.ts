@@ -54,7 +54,25 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
       },
     },
     'prod',
-    '2026-09-13T13:05:00.000Z'
+    '2026-09-13T13:05:00.000Z',
+    null,
+    {
+      fetchedAt: '2026-09-13T13:05:00.000Z',
+      departures: [
+        {
+          route: '121',
+          headsign: 'Central',
+          departureAt: '2026-09-13T13:10:00.000Z',
+          realtime: true,
+        },
+        {
+          route: '125',
+          headsign: 'Metro',
+          departureAt: '2026-09-13T13:17:00.000Z',
+          realtime: false,
+        },
+      ],
+    }
   );
 
   expect(payload).toMatchObject({
@@ -64,7 +82,7 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
     refreshMinutes: 15,
     layouts: {
       compact: ['weather', 'electricity', 'markets', 'rates'],
-      large: ['weather', 'electricity', 'markets', 'rates', 'liiga'],
+      large: ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga'],
     },
   });
 
@@ -107,11 +125,27 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
     { label: 'REMEDY', value: '+1.64%', tone: 'positive' },
   ]);
 
+  const hsl = payload.sections.find((section) => section.id === 'hsl');
+  expect(hsl).toMatchObject({
+    index: '04',
+    primary: '5 MIN',
+    secondary: '121 / CENTRAL',
+    detail: '16:10 / LIVE',
+    tone: 'accent',
+    span: 'full',
+    layout: 'split',
+    rows: [
+      { label: '121', value: '16:10 / 5 MIN', tone: 'accent' },
+      { label: '125', value: '16:17 / 12 MIN', tone: 'neutral' },
+    ],
+  });
+
   const rates = payload.sections.find((section) => section.id === 'rates');
-  expect(rates).toMatchObject({ span: 'half', layout: 'stack' });
+  expect(rates).toMatchObject({ index: '05', span: 'half', layout: 'stack' });
 
   const liiga = payload.sections.find((section) => section.id === 'liiga');
   expect(liiga).toMatchObject({
+    index: '06',
     primary: '6/17',
     secondary: 'KÄRPÄT - ILVES',
     detail: 'WED 16 18:30',
@@ -122,4 +156,9 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
       { label: 'START', value: 'WED 16 18:30' },
     ],
   });
+});
+
+test('widget v2 omits HSL without usable departures', () => {
+  const payload = buildWidgetV2Payload(null, null, 'prod', '2026-09-13T13:05:00.000Z');
+  expect(payload.sections.some((section) => section.id === 'hsl')).toBe(false);
 });
