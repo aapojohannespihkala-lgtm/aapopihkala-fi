@@ -1,3 +1,4 @@
+import { CURRENT_HSL_QUERY } from '../../../src/features/current/hsl-query';
 import { fetchHslDeparturesResponse } from './hsl';
 
 export type WidgetHslDeparture = {
@@ -17,12 +18,6 @@ type FetchWidgetHslOptions = {
   apiKey?: string;
   timeoutMs?: number;
 };
-
-const WIDGET_QUERY = {
-  stopCode: 'E3239',
-  stopName: 'Ylisrinne',
-  routes: ['121', '125'],
-} as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -45,7 +40,7 @@ export const fetchWidgetHslData = async ({
       Accept: 'application/json',
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(WIDGET_QUERY),
+    body: JSON.stringify(CURRENT_HSL_QUERY),
   });
 
   const response = await fetchHslDeparturesResponse({
