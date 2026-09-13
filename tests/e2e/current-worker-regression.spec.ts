@@ -10,6 +10,7 @@ const workerFirstPaths = [
   '/api/current/electricity-month',
   '/api/current/hsl',
   '/api/current/markets',
+  '/api/current/widget',
   '/api/current/news',
   '/api/current/liiga',
   '/api/current/liiga-schedule',
