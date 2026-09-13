@@ -11,3 +11,5 @@ The app keeps the old `/api/current/widget` data response as a fallback, refresh
 Android engine changes are validated with a debug APK on the pull request. After an Android-changing PR is merged, the merge workflow explicitly dispatches the Android release workflow on `main`, which builds and uploads the persistently signed `SnapshotWidget.apk`. Server-only widget changes do not trigger an APK build.
 
 Version 2.2 introduces the first horizontal large-layout experiment: Weather keeps current conditions on the left and places the four forecast points beside them on the right. Other sections remain unchanged so the direction can be evaluated incrementally.
+
+Version 2.3 replaces the generic `CURRENT / SNAPSHOT` header with local Helsinki time plus weekday, date, month, year and ISO week number. The existing UPDATED status and REFRESH action remain visible.
