@@ -11,6 +11,7 @@ import { recordHslRawLearningSnapshot } from '../functions/api/current/hsl-raw-l
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
 import { onRequestGet as getSnapshotPortfolioResponse } from '../functions/api/current/portfolio-snapshot';
+import { onRequestGet as getWidgetResponse } from '../functions/api/current/widget';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
 import { fetchLiigaResponse, onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
 import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/current/liiga-schedule';
@@ -33,6 +34,7 @@ const ELECTRICITY_PATH = '/api/current/electricity';
 const ELECTRICITY_MONTH_PATH = '/api/current/electricity-month';
 const HSL_PATH = '/api/current/hsl';
 const MARKETS_PATH = '/api/current/markets';
+const WIDGET_PATH = '/api/current/widget';
 const NEWS_PATH = '/api/current/news';
 const LIIGA_PATH = '/api/current/liiga';
 const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
@@ -191,6 +193,11 @@ const worker = {
         return snapshotRequest ? getSnapshotPortfolioResponse() : getPortfolioResponse();
       }
       return getMarketsResponse({ request });
+    }
+
+    if (url.pathname === WIDGET_PATH) {
+      if (request.method !== 'GET') return methodNotAllowed();
+      return getWidgetResponse({ request });
     }
 
     if (url.pathname === NEWS_PATH) {
