@@ -354,46 +354,38 @@ private fun MediumMetric(section: WidgetSection, palette: Palette, modifier: Gla
 
 @Composable
 private fun LargeLayout(sections: List<WidgetSection>, palette: Palette) {
-    if (sections.isEmpty()) return
-
-    val fullWidthSections = if (sections.size > 3) sections.dropLast(2) else sections
-    val bottomSections = if (sections.size > 3) sections.takeLast(2) else emptyList()
-
+    val rows = largeRows(sections)
     Column(modifier = GlanceModifier.fillMaxWidth()) {
-        fullWidthSections.forEachIndexed { index, section ->
-            LargeSectionBlock(
-                section = section,
-                palette = palette,
-                showDivider = index < fullWidthSections.lastIndex || bottomSections.isNotEmpty()
-            )
-        }
-
-        if (bottomSections.isNotEmpty()) {
-            Row(modifier = GlanceModifier.fillMaxWidth()) {
-                LargeBottomMetric(bottomSections[0], palette, GlanceModifier.defaultWeight())
-                if (bottomSections.size > 1) {
-                    VerticalDivider(palette)
-                    LargeBottomMetric(bottomSections[1], palette, GlanceModifier.defaultWeight())
-                }
+        rows.forEachIndexed { rowIndex, rowSections ->
+            if (rowSections.size == 1 && rowSections.first().span != "half") {
+                DetailedSection(rowSections.first(), palette)
+            } else {
+                LargeHalfRow(rowSections, palette)
+            }
+            if (rowIndex < rows.lastIndex) {
+                Spacer(GlanceModifier.height(5.dp))
+                HorizontalDivider(palette)
+                Spacer(GlanceModifier.height(5.dp))
             }
         }
     }
 }
 
 @Composable
-private fun LargeSectionBlock(section: WidgetSection, palette: Palette, showDivider: Boolean) {
-    Column(modifier = GlanceModifier.fillMaxWidth()) {
-        DetailedSection(section, palette)
-        if (showDivider) {
-            Spacer(GlanceModifier.height(5.dp))
-            HorizontalDivider(palette)
-            Spacer(GlanceModifier.height(5.dp))
+private fun LargeHalfRow(sections: List<WidgetSection>, palette: Palette) {
+    Row(modifier = GlanceModifier.fillMaxWidth()) {
+        LargeHalfMetric(sections[0], palette, GlanceModifier.defaultWeight())
+        if (sections.size > 1) {
+            VerticalDivider(palette)
+            LargeHalfMetric(sections[1], palette, GlanceModifier.defaultWeight())
+        } else {
+            Spacer(GlanceModifier.defaultWeight())
         }
     }
 }
 
 @Composable
-private fun LargeBottomMetric(section: WidgetSection, palette: Palette, modifier: GlanceModifier) {
+private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: GlanceModifier) {
     Column(modifier = modifier.padding(horizontal = 7.dp)) {
         SectionHeading(section, palette)
         Spacer(GlanceModifier.height(3.dp))
@@ -427,11 +419,16 @@ private fun LargeBottomMetric(section: WidgetSection, palette: Palette, modifier
 
 @Composable
 private fun DetailedSection(section: WidgetSection, palette: Palette) {
-    if (section.id == "weather" && section.columns.isNotEmpty()) {
-        LargeWeatherSection(section, palette)
-        return
+    val hasSupport = section.columns.isNotEmpty() || section.bars.isNotEmpty() || section.rows.isNotEmpty()
+    if (section.layout == "split" && hasSupport) {
+        SplitSection(section, palette)
+    } else {
+        StackSection(section, palette)
     }
+}
 
+@Composable
+private fun StackSection(section: WidgetSection, palette: Palette) {
     Column(modifier = GlanceModifier.fillMaxWidth()) {
         SectionHeading(section, palette)
         section.secondary?.let {
@@ -443,15 +440,7 @@ private fun DetailedSection(section: WidgetSection, palette: Palette) {
             )
         }
         Spacer(GlanceModifier.height(2.dp))
-        Text(
-            text = section.primary,
-            style = TextStyle(
-                color = ColorProvider(toneColor(section.tone, palette)),
-                fontSize = if (section.id == "markets") 27.sp else 25.sp,
-                fontWeight = FontWeight.Medium
-            ),
-            maxLines = 1
-        )
+        PrimaryValue(section, palette, 25)
         section.detail?.let {
             Spacer(GlanceModifier.height(3.dp))
             Text(
@@ -460,25 +449,12 @@ private fun DetailedSection(section: WidgetSection, palette: Palette) {
                 maxLines = 2
             )
         }
-        if (section.columns.isNotEmpty()) {
-            Spacer(GlanceModifier.height(5.dp))
-            ColumnStrip(section.columns, palette)
-        }
-        if (section.bars.isNotEmpty()) {
-            Spacer(GlanceModifier.height(5.dp))
-            BarStrip(section.bars, palette)
-        }
-        if (section.rows.isNotEmpty()) {
-            Spacer(GlanceModifier.height(4.dp))
-            Column(modifier = GlanceModifier.fillMaxWidth()) {
-                section.rows.take(5).forEach { item -> DetailRow(item, palette) }
-            }
-        }
+        SupportingContent(section, palette)
     }
 }
 
 @Composable
-private fun LargeWeatherSection(section: WidgetSection, palette: Palette) {
+private fun SplitSection(section: WidgetSection, palette: Palette) {
     Column(modifier = GlanceModifier.fillMaxWidth()) {
         SectionHeading(section, palette)
         Spacer(GlanceModifier.height(4.dp))
@@ -495,15 +471,7 @@ private fun LargeWeatherSection(section: WidgetSection, palette: Palette) {
                     )
                     Spacer(GlanceModifier.height(2.dp))
                 }
-                Text(
-                    text = section.primary,
-                    style = TextStyle(
-                        color = ColorProvider(toneColor(section.tone, palette)),
-                        fontSize = 25.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    maxLines = 1
-                )
+                PrimaryValue(section, palette, 25)
                 section.detail?.let {
                     Spacer(GlanceModifier.height(2.dp))
                     Text(
@@ -515,8 +483,46 @@ private fun LargeWeatherSection(section: WidgetSection, palette: Palette) {
             }
             Spacer(GlanceModifier.width(10.dp))
             Column(modifier = GlanceModifier.defaultWeight()) {
-                ColumnStrip(section.columns, palette)
+                SupportingContent(section, palette, includeTopSpacing = false)
             }
+        }
+    }
+}
+
+@Composable
+private fun PrimaryValue(section: WidgetSection, palette: Palette, sizeSp: Int) {
+    Text(
+        text = section.primary,
+        style = TextStyle(
+            color = ColorProvider(toneColor(section.tone, palette)),
+            fontSize = sizeSp.sp,
+            fontWeight = FontWeight.Medium
+        ),
+        maxLines = 1
+    )
+}
+
+@Composable
+private fun SupportingContent(
+    section: WidgetSection,
+    palette: Palette,
+    includeTopSpacing: Boolean = true
+) {
+    var rendered = false
+    if (section.columns.isNotEmpty()) {
+        if (includeTopSpacing) Spacer(GlanceModifier.height(5.dp))
+        ColumnStrip(section.columns, palette)
+        rendered = true
+    }
+    if (section.bars.isNotEmpty()) {
+        if (includeTopSpacing || rendered) Spacer(GlanceModifier.height(if (rendered) 4.dp else 5.dp))
+        BarStrip(section.bars, palette)
+        rendered = true
+    }
+    if (section.rows.isNotEmpty()) {
+        if (includeTopSpacing || rendered) Spacer(GlanceModifier.height(if (rendered) 4.dp else 5.dp))
+        Column(modifier = GlanceModifier.fillMaxWidth()) {
+            section.rows.take(5).forEach { item -> DetailRow(item, palette) }
         }
     }
 }
