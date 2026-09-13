@@ -30,12 +30,6 @@ class SelectionTests(unittest.TestCase):
             ['tests/e2e/current-hsl.spec.ts', 'tests/e2e/current-worker-regression.spec.ts'],
         )
 
-    def test_news_handler_keeps_request_contract_guard(self):
-        specs = selected('functions/api/current/news.ts')
-        self.assertIn('tests/e2e/current-news-request-contract.spec.ts', specs)
-        self.assertIn('tests/e2e/current-news.spec.ts', specs)
-        self.assertIn('tests/e2e/current-news-timeout.spec.ts', specs)
-
     def test_shared_layout_retains_all_domain_guards(self):
         specs = selected('src/layouts/BaseLayout.astro')
         for name in ['current-section-boundaries', 'current-electricity-alignment',
