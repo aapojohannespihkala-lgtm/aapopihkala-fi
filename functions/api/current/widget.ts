@@ -5,6 +5,12 @@ import { onRequestGet as getSnapshotPortfolioResponse } from './portfolio-snapsh
 type WeatherResponse = {
   current?: {
     temperature_2m?: unknown;
+    weather_code?: unknown;
+  };
+  hourly?: {
+    time?: unknown;
+    temperature_2m?: unknown;
+    weather_code?: unknown;
   };
   daily?: {
     temperature_2m_min?: unknown;
@@ -76,6 +82,16 @@ const localDateFormatter = new Intl.DateTimeFormat('en-GB', {
   timeZone: HELSINKI_TIME_ZONE,
 });
 
+const localDateTimeFormatter = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+  timeZone: HELSINKI_TIME_ZONE,
+});
+
 const getLocalDateKey = (date: Date) => {
   const parts = Object.fromEntries(
     localDateFormatter
@@ -85,6 +101,41 @@ const getLocalDateKey = (date: Date) => {
   );
 
   return `${parts.year ?? '0000'}-${parts.month ?? '00'}-${parts.day ?? '00'}`;
+};
+
+const getLocalDateTimeKey = (date: Date) => {
+  const parts = Object.fromEntries(
+    localDateTimeFormatter
+      .formatToParts(date)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value])
+  );
+
+  return `${parts.year ?? '0000'}-${parts.month ?? '00'}-${parts.day ?? '00'}T${parts.hour ?? '00'}:${parts.minute ?? '00'}`;
+};
+
+const weatherCodeLabel = (value: unknown) => {
+  if (!isFiniteNumber(value)) return null;
+  const code = Math.round(value);
+  if (code === 0) return 'Clear sky';
+  if (code === 1) return 'Mostly clear';
+  if (code === 2) return 'Partly cloudy';
+  if (code === 3) return 'Overcast';
+  if (code === 45 || code === 48) return 'Fog';
+  if (code === 51) return 'Light drizzle';
+  if (code === 53 || code === 55) return 'Drizzle';
+  if (code === 56 || code === 57) return 'Freezing drizzle';
+  if (code === 61) return 'Light rain';
+  if (code === 63 || code === 65) return 'Rain';
+  if (code === 66 || code === 67) return 'Freezing rain';
+  if (code === 71) return 'Light snow';
+  if (code === 73 || code === 75 || code === 77) return 'Snow';
+  if (code === 80) return 'Light showers';
+  if (code === 81 || code === 82) return 'Showers';
+  if (code === 85 || code === 86) return 'Snow showers';
+  if (code === 95) return 'Thunderstorm';
+  if (code === 96 || code === 99) return 'Thunderstorm / hail';
+  return null;
 };
 
 const jsonResponse = (body: unknown, status: number) =>
@@ -102,9 +153,10 @@ const buildWeatherUrl = () => {
     latitude: '60.1719',
     longitude: '24.7314',
     timezone: HELSINKI_TIME_ZONE,
-    forecast_days: '1',
+    forecast_days: '2',
     temperature_unit: 'celsius',
-    current: 'temperature_2m',
+    current: ['temperature_2m', 'weather_code'].join(','),
+    hourly: ['temperature_2m', 'weather_code'].join(','),
     daily: ['temperature_2m_min', 'temperature_2m_max'].join(','),
   });
 
@@ -135,7 +187,7 @@ const readJson = async <T>(response: Response): Promise<T | null> => {
   }
 };
 
-const loadWeather = async () => {
+const loadWeather = async (now: Date) => {
   const data = await readJson<WeatherResponse>(await fetchWeatherResponse());
   if (!data) return null;
 
@@ -147,11 +199,35 @@ const loadWeather = async () => {
 
   if (!isFiniteNumber(temperature)) return null;
 
+  const times = Array.isArray(data.hourly?.time) ? data.hourly.time : [];
+  const temperatures = Array.isArray(data.hourly?.temperature_2m)
+    ? data.hourly.temperature_2m
+    : [];
+  const weatherCodes = Array.isArray(data.hourly?.weather_code)
+    ? data.hourly.weather_code
+    : [];
+  const nowKey = getLocalDateTimeKey(now);
+
+  const futureHours = times.flatMap((rawTime, index) => {
+    if (typeof rawTime !== 'string' || rawTime < nowKey) return [];
+    const forecastTemperature = temperatures[index];
+    if (!isFiniteNumber(forecastTemperature)) return [];
+
+    return [{
+      time: rawTime.slice(11, 16),
+      temperature: forecastTemperature,
+      condition: weatherCodeLabel(weatherCodes[index]),
+    }];
+  });
+  const forecast = futureHours.filter((_item, index) => index % 2 === 0).slice(0, 4);
+
   return {
     location: LOCATION,
     temperature,
+    condition: weatherCodeLabel(data.current?.weather_code),
     min: isFiniteNumber(low) ? low : null,
     max: isFiniteNumber(high) ? high : null,
+    forecast,
   };
 };
 
@@ -196,6 +272,7 @@ const loadElectricity = async (now: Date) => {
     average: values.reduce((sum, value) => sum + value, 0) / values.length,
     low: Math.min(...values),
     high: Math.max(...values),
+    series: values,
   };
 };
 
@@ -288,7 +365,7 @@ const safely = async <T>(loader: () => Promise<T>): Promise<T | null> => {
 
 export const buildWidgetResponse = async (request: Request, now = new Date()) => {
   const [weather, electricity, markets, rates] = await Promise.all([
-    safely(loadWeather),
+    safely(() => loadWeather(now)),
     safely(() => loadElectricity(now)),
     safely(loadPortfolio),
     safely(() => loadRates(request)),
