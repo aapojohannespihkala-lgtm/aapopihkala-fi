@@ -342,21 +342,35 @@ const vehicleMapByJourney = (vehicles: HslVehiclePosition[]) => {
   return byJourney;
 };
 
+export const hslVehicleMatchesTargetStop = ({
+  stopId,
+  targetStopPosition,
+  tripStopIds,
+}: {
+  stopId: string;
+  targetStopPosition: number | null;
+  tripStopIds: string[];
+}) => {
+  if (!stopId || targetStopPosition === null || tripStopIds.length === 0) return true;
+  const currentStopPosition = tripStopIds.indexOf(stripFeedPrefix(stopId));
+  return currentStopPosition < 0 || currentStopPosition <= targetStopPosition;
+};
+
 const chooseVehicle = (
   departure: NormalizedDeparture,
   candidates: HslVehiclePosition[],
   stopLat: number | null,
   stopLon: number | null
 ) => {
-  const targetPosition = departure.targetStopPosition;
-  const eligible = candidates.filter((vehicle) => {
-    if (!vehicle.stopId || targetPosition === null || departure.tripStopIds.length === 0) return true;
-    const currentStopPosition = departure.tripStopIds.indexOf(stripFeedPrefix(vehicle.stopId));
-    return currentStopPosition < 0 || currentStopPosition <= targetPosition;
-  });
+  const eligible = candidates.filter((vehicle) =>
+    hslVehicleMatchesTargetStop({
+      stopId: vehicle.stopId,
+      targetStopPosition: departure.targetStopPosition,
+      tripStopIds: departure.tripStopIds,
+    })
+  );
 
-  const source = eligible.length > 0 ? eligible : candidates;
-  return source
+  return eligible
     .map((vehicle) => ({
       vehicle,
       distance:
