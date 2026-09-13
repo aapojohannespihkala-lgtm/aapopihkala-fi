@@ -98,9 +98,12 @@ const DEV_THEME: WidgetTheme = { ...PROD_THEME };
 const PROD_LAYOUTS: WidgetLayouts = {
   compact: ['weather', 'electricity', 'markets', 'rates'],
   medium: ['weather', 'electricity', 'markets', 'rates'],
+  large: ['weather', 'electricity', 'markets', 'rates', 'liiga'],
+};
+const DEV_LAYOUTS: WidgetLayouts = {
+  ...PROD_LAYOUTS,
   large: ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga'],
 };
-const DEV_LAYOUTS: WidgetLayouts = { ...PROD_LAYOUTS };
 
 const SOLAR_API_URL = 'https://api.open-meteo.com/v1/forecast';
 const SOLAR_TIMEOUT_MS = 4_000;
@@ -386,7 +389,7 @@ const buildHslSection = (
   };
 };
 
-const buildRatesSection = (value: unknown): WidgetSection | null => {
+const buildRatesSection = (value: unknown, index = '04'): WidgetSection | null => {
   const rates = asRecord(value);
   if (!rates) return null;
   const current = finiteNumber(rates.euribor3m);
@@ -394,7 +397,7 @@ const buildRatesSection = (value: unknown): WidgetSection | null => {
   if (current === null && yearAgo === null) return null;
   return {
     id: 'rates',
-    index: '05',
+    index,
     label: 'RATES',
     primary: formatPercent(current, false, 2),
     secondary: '3M EURIBOR',
@@ -422,7 +425,7 @@ const helsinkiDateTime = (value: unknown) => {
   return `${part('weekday').toUpperCase()} ${part('day')} ${part('hour')}:${part('minute')}`.trim();
 };
 
-const buildLiigaSection = (value: unknown): WidgetSection | null => {
+const buildLiigaSection = (value: unknown, index = '05'): WidgetSection | null => {
   const liiga = asRecord(value);
   if (!liiga) return null;
   const standing = asRecord(liiga.ilvesStanding);
@@ -436,7 +439,7 @@ const buildLiigaSection = (value: unknown): WidgetSection | null => {
     const awayGoals = finiteNumber(live.awayGoals);
     return {
       id: 'liiga',
-      index: '06',
+      index,
       label: 'LIIGA',
       primary: homeGoals !== null && awayGoals !== null ? `${homeGoals.toFixed(0)}-${awayGoals.toFixed(0)}` : 'LIVE',
       secondary: 'ILVES / LIVE',
@@ -463,7 +466,7 @@ const buildLiigaSection = (value: unknown): WidgetSection | null => {
 
   return {
     id: 'liiga',
-    index: '06',
+    index,
     label: 'LIIGA',
     primary: rank !== null && totalTeams !== null ? `${rank.toFixed(0)}/${totalTeams.toFixed(0)}` : 'ILVES',
     secondary: nextHome && nextAway
@@ -484,13 +487,15 @@ export const buildWidgetV2Payload = (
   solar: SolarData | null = null,
   hsl: WidgetHslData | null = null,
 ): WidgetV2Payload => {
+  const hslSection = channel === 'dev' ? buildHslSection(hsl, generatedAt) : null;
+  const hasHsl = hslSection !== null;
   const sections = [
     buildWeatherSection(base?.weather, solar),
     buildElectricitySection(base?.electricity),
     buildMarketsSection(base?.markets),
-    buildHslSection(hsl, generatedAt),
-    buildRatesSection(base?.rates),
-    buildLiigaSection(liiga),
+    hslSection,
+    buildRatesSection(base?.rates, hasHsl ? '05' : '04'),
+    buildLiigaSection(liiga, hasHsl ? '06' : '05'),
   ].filter((section): section is WidgetSection => section !== null);
 
   return {
@@ -516,11 +521,13 @@ export const onRequestGet = async (context: WidgetV2Context) => {
     getWidgetResponse({ request: context.request }),
     fetchLiigaResponse(4_000),
     fetchSolarData(),
-    fetchWidgetHslData({
-      request: context.request,
-      apiKey: context.env?.DIGITRANSIT_API_KEY,
-      timeoutMs: 4_000,
-    }),
+    channel === 'dev'
+      ? fetchWidgetHslData({
+          request: context.request,
+          apiKey: context.env?.DIGITRANSIT_API_KEY,
+          timeoutMs: 4_000,
+        })
+      : Promise.resolve(null),
   ]);
   const [base, liiga] = await Promise.all([
     readJson<BaseWidgetData>(baseResponse),
