@@ -278,7 +278,7 @@ const buildElectricitySection = (value: unknown): WidgetSection | null => {
     secondary: 'DAY AVG / TODAY',
     detail: `NOW ${formatNumber(price)}  LOW ${formatNumber(low)}  HIGH ${formatNumber(high)}`,
     span: 'full',
-    layout: 'stack',
+    layout: 'split',
     bars: hourlyBars(electricity.series),
   };
 };
@@ -308,7 +308,7 @@ const buildMarketsSection = (value: unknown): WidgetSection | null => {
     secondary: '1D / MEDIAN',
     tone: toneFor(median),
     span: 'full',
-    layout: 'stack',
+    layout: 'split',
     rows,
   };
 };
