@@ -97,6 +97,9 @@ const formatNumber = (value: number | null, digits = 2) =>
 const formatTemperature = (value: number | null) =>
   value === null ? '--.-°C' : `${value.toFixed(1)}°C`;
 
+const formatDegree = (value: number | null) =>
+  value === null ? '--°' : `${Math.round(value)}°`;
+
 const formatPrice = (value: number | null) =>
   value === null ? '--.-- c/kWh' : `${value.toFixed(2)} c/kWh`;
 
@@ -115,6 +118,19 @@ const readJson = async <T>(response: Response): Promise<T | null> => {
   }
 };
 
+const weatherColumns = (value: unknown): WidgetColumn[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((raw) => {
+    const item = asRecord(raw);
+    if (!item) return [];
+    const time = stringValue(item.time);
+    const temperature = finiteNumber(item.temperature);
+    if (!time || temperature === null) return [];
+    return [{ label: time, value: formatDegree(temperature) }];
+  }).slice(0, 4);
+};
+
 const buildWeatherSection = (value: unknown): WidgetSection | null => {
   const weather = asRecord(value);
   if (!weather) return null;
@@ -122,14 +138,42 @@ const buildWeatherSection = (value: unknown): WidgetSection | null => {
   const low = finiteNumber(weather.min);
   const high = finiteNumber(weather.max);
   const location = stringValue(weather.location);
+  const condition = stringValue(weather.condition);
   if (temperature === null && low === null && high === null) return null;
   const range = low === null && high === null ? '' : `${formatTemperature(low)} / ${formatTemperature(high)}`;
+  const detail = [condition, range].filter(Boolean).join(' / ');
+
   return {
-    id: 'weather', index: '01', label: 'WEATHER',
+    id: 'weather',
+    index: '01',
+    label: 'WEATHER',
     primary: formatTemperature(temperature),
     secondary: location ?? undefined,
-    detail: range || undefined,
+    detail: detail || undefined,
+    columns: weatherColumns(weather.forecast),
   };
+};
+
+const hourlyBars = (value: unknown): number[] => {
+  if (!Array.isArray(value)) return [];
+  const prices = value
+    .map(finiteNumber)
+    .filter((price): price is number => price !== null);
+  if (prices.length === 0) return [];
+
+  const hourly: number[] = [];
+  for (let index = 0; index < prices.length; index += 4) {
+    const chunk = prices.slice(index, index + 4);
+    if (chunk.length === 0) continue;
+    hourly.push(chunk.reduce((sum, price) => sum + price, 0) / chunk.length);
+  }
+  if (hourly.length === 0) return [];
+
+  const low = Math.min(...hourly);
+  const high = Math.max(...hourly);
+  if (high === low) return hourly.map(() => 0.5);
+
+  return hourly.slice(0, 32).map((price) => (price - low) / (high - low));
 };
 
 const buildElectricitySection = (value: unknown): WidgetSection | null => {
@@ -141,10 +185,13 @@ const buildElectricitySection = (value: unknown): WidgetSection | null => {
   const high = finiteNumber(electricity.high);
   if ([price, average, low, high].every((item) => item === null)) return null;
   return {
-    id: 'electricity', index: '02', label: 'ELECTRICITY',
+    id: 'electricity',
+    index: '02',
+    label: 'ELECTRICITY',
     primary: formatPrice(average),
     secondary: 'DAY AVG / TODAY',
     detail: `NOW ${formatNumber(price)}  LOW ${formatNumber(low)}  HIGH ${formatNumber(high)}`,
+    bars: hourlyBars(electricity.series),
   };
 };
 
@@ -166,10 +213,13 @@ const buildMarketsSection = (value: unknown): WidgetSection | null => {
   ];
   if (median === null && rows.every((row) => row.value === '--')) return null;
   return {
-    id: 'markets', index: '03', label: 'MARKETS',
+    id: 'markets',
+    index: '03',
+    label: 'MARKETS',
     primary: formatPercent(median, true, 2),
     secondary: '1D / MEDIAN',
-    tone: toneFor(median), rows,
+    tone: toneFor(median),
+    rows,
   };
 };
 
@@ -180,7 +230,9 @@ const buildRatesSection = (value: unknown): WidgetSection | null => {
   const yearAgo = finiteNumber(rates.yearAgo);
   if (current === null && yearAgo === null) return null;
   return {
-    id: 'rates', index: '04', label: 'RATES',
+    id: 'rates',
+    index: '04',
+    label: 'RATES',
     primary: formatPercent(current, false, 2),
     secondary: '3M EURIBOR',
     detail: `1Y AGO ${formatPercent(yearAgo, false, 2)}`,
@@ -193,8 +245,12 @@ const helsinkiDateTime = (value: unknown) => {
   const date = new Date(dateString);
   if (!Number.isFinite(date.getTime())) return null;
   const parts = new Intl.DateTimeFormat('en-GB', {
-    weekday: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit',
-    hour12: false, timeZone: 'Europe/Helsinki',
+    weekday: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Europe/Helsinki',
   }).formatToParts(date);
   const part = (type: string) =>
     parts.find((item) => item.type === type)?.value ?? '';
@@ -214,9 +270,12 @@ const buildLiigaSection = (value: unknown): WidgetSection | null => {
     const homeGoals = finiteNumber(live.homeGoals);
     const awayGoals = finiteNumber(live.awayGoals);
     return {
-      id: 'liiga', index: '05', label: 'LIIGA',
+      id: 'liiga',
+      index: '05',
+      label: 'LIIGA',
       primary: homeGoals !== null && awayGoals !== null ? `${homeGoals.toFixed(0)}-${awayGoals.toFixed(0)}` : 'LIVE',
-      secondary: 'ILVES / LIVE', tone: 'accent',
+      secondary: 'ILVES / LIVE',
+      tone: 'accent',
       rows: [{ label: home.toUpperCase(), value: away.toUpperCase() }],
     };
   }
@@ -229,13 +288,18 @@ const buildLiigaSection = (value: unknown): WidgetSection | null => {
   if (!standing && !next) return null;
 
   const rows: WidgetRow[] = [];
-  if (nextHome && nextAway) rows.push({ label: 'NEXT', value: `${nextHome.toUpperCase()} - ${nextAway.toUpperCase()}` });
+  if (nextHome && nextAway) {
+    rows.push({ label: 'NEXT', value: `${nextHome.toUpperCase()} - ${nextAway.toUpperCase()}` });
+  }
   if (nextAt) rows.push({ label: 'START', value: nextAt });
 
   return {
-    id: 'liiga', index: '05', label: 'LIIGA',
+    id: 'liiga',
+    index: '05',
+    label: 'LIIGA',
     primary: rank !== null && totalTeams !== null ? `${rank.toFixed(0)}/${totalTeams.toFixed(0)}` : 'ILVES',
-    secondary: 'ILVES / STANDING', rows,
+    secondary: 'ILVES / STANDING',
+    rows,
   };
 };
 
@@ -287,7 +351,9 @@ export const onRequestGet = async (context: { request: Request }) => {
     {
       status: hasSections ? 200 : 503,
       headers: {
-        'Cache-Control': channel === 'dev' ? 'no-store' : 'public, max-age=60, s-maxage=180, stale-while-revalidate=600',
+        'Cache-Control': channel === 'dev'
+          ? 'no-store'
+          : 'public, max-age=60, s-maxage=180, stale-while-revalidate=600',
         'X-Content-Type-Options': 'nosniff',
         'X-Widget-Schema': '2',
       },

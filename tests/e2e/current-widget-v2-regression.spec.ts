@@ -8,14 +8,26 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
       weather: {
         location: 'OLARI / ESPOO',
         temperature: 16.2,
+        condition: 'Light drizzle',
         min: 12.5,
         max: 16.9,
+        forecast: [
+          { time: '16:00', temperature: 16, condition: 'Light drizzle' },
+          { time: '18:00', temperature: 15, condition: 'Rain' },
+          { time: '20:00', temperature: 15, condition: 'Partly cloudy' },
+          { time: '22:00', temperature: 13, condition: 'Partly cloudy' },
+        ],
       },
       electricity: {
         price: 2.54,
         average: 1.83,
         low: 0.39,
         high: 5.03,
+        series: [
+          0, 0, 0, 0,
+          10, 10, 10, 10,
+          5, 5, 5, 5,
+        ],
       },
       markets: {
         median: 0.08,
@@ -56,11 +68,25 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
     },
   });
 
+  const weather = payload.sections.find((section) => section.id === 'weather');
+  expect(weather).toMatchObject({
+    primary: '16.2°C',
+    secondary: 'OLARI / ESPOO',
+    detail: 'Light drizzle / 12.5°C / 16.9°C',
+    columns: [
+      { label: '16:00', value: '16°' },
+      { label: '18:00', value: '15°' },
+      { label: '20:00', value: '15°' },
+      { label: '22:00', value: '13°' },
+    ],
+  });
+
   const electricity = payload.sections.find((section) => section.id === 'electricity');
   expect(electricity).toMatchObject({
     primary: '1.83 c/kWh',
     secondary: 'DAY AVG / TODAY',
     detail: 'NOW 2.54  LOW 0.39  HIGH 5.03',
+    bars: [0, 1, 0.5],
   });
 
   const markets = payload.sections.find((section) => section.id === 'markets');
