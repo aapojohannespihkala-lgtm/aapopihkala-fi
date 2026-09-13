@@ -75,6 +75,8 @@ export type HslLearningSummary = {
   version: string;
   observations: number;
   arrivals: number;
+  dueTrips: number;
+  detectedDueTrips: number;
   scoredTrips: number;
   modelScoredTrips: number;
   hslMaeSeconds: number | null;
@@ -94,6 +96,7 @@ const ARRIVAL_STOPPED_RADIUS_METERS = 150;
 const ARRIVAL_NEAR_RADIUS_METERS = 55;
 const ARRIVAL_NEAR_MAX_SPEED_KMH = 12;
 const MAX_VEHICLE_AGE_MS = 90_000;
+const PASSAGE_DUE_GRACE_MS = 2 * 60_000;
 const HELSINKI_PERIOD_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: HELSINKI_TIME_ZONE,
   weekday: 'short',
@@ -511,6 +514,30 @@ const countTable = async (db: HslLearningDb, table: 'hsl_eta_observations' | 'hs
   return row && Number.isFinite(Number(row.count)) ? Number(row.count) : 0;
 };
 
+const passageCoverage = async (db: HslLearningDb, observedAt: string) => {
+  const observedMs = timestampOf(observedAt);
+  if (observedMs === null) return { dueTrips: 0, detectedDueTrips: 0 };
+  const cutoffAt = isoOf(observedMs - PASSAGE_DUE_GRACE_MS);
+  const row = await db.prepare(`
+    SELECT
+      COUNT(*) AS due_trips,
+      COALESCE(SUM(CASE WHEN a.trip_key IS NOT NULL THEN 1 ELSE 0 END), 0) AS detected_due_trips
+    FROM (
+      SELECT trip_key
+      FROM hsl_eta_observations
+      GROUP BY trip_key
+      HAVING MAX(hsl_predicted_at) <= ?
+    ) due
+    LEFT JOIN hsl_eta_arrivals a ON a.trip_key = due.trip_key
+  `).bind(cutoffAt).first<{ due_trips: number; detected_due_trips: number }>();
+
+  return {
+    dueTrips: row && Number.isFinite(Number(row.due_trips)) ? Number(row.due_trips) : 0,
+    detectedDueTrips:
+      row && Number.isFinite(Number(row.detected_due_trips)) ? Number(row.detected_due_trips) : 0,
+  };
+};
+
 const lastArrival = async (db: HslLearningDb) => {
   const row = await db.prepare(
     'SELECT actual_arrival_at FROM hsl_eta_arrivals ORDER BY actual_arrival_at DESC LIMIT 1'
@@ -670,12 +697,14 @@ const addPredictions = (
 
 const learningSummary = async (
   db: HslLearningDb,
-  trainingRows: HslLearningTrainingRow[]
+  trainingRows: HslLearningTrainingRow[],
+  observedAt: string
 ): Promise<HslLearningSummary> => {
   const scoreboard = buildHslLearningScoreboard(trainingRows);
-  const [observations, arrivals, lastArrivalAt] = await Promise.all([
+  const [observations, arrivals, coverage, lastArrivalAt] = await Promise.all([
     countTable(db, 'hsl_eta_observations'),
     countTable(db, 'hsl_eta_arrivals'),
+    passageCoverage(db, observedAt),
     lastArrival(db),
   ]);
 
@@ -684,6 +713,7 @@ const learningSummary = async (
     version: MODEL_VERSION,
     observations,
     arrivals,
+    ...coverage,
     ...scoreboard,
     lastArrivalAt,
   };
@@ -707,7 +737,7 @@ export const enrichHslResponseWithLearning = async (
     const trainingRows = await loadTrainingRows(db);
     addPredictions(payload, trainingRows);
     await insertObservations(db, payload, observedMs);
-    payload.learning = await learningSummary(db, trainingRows);
+    payload.learning = await learningSummary(db, trainingRows, payload.fetchedAt);
 
     const headers = new Headers(backup.headers);
     headers.set('Content-Type', 'application/json; charset=utf-8');
