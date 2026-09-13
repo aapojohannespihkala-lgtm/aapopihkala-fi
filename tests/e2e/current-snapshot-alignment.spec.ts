@@ -123,9 +123,9 @@ test('desktop Snapshot uses one alignment grid for Markets, Rates and Liiga', as
     const medianLabel = rect('.snapshot-markets__median > span');
     const world = rect('.snapshot-market-row:first-child > span');
     const ratesMain = rect('.snapshot-panel--rates .snapshot-rates__main');
-    const ratesLabel = rect('.snapshot-rates__label');
-    const ratesValue = rect('.snapshot-rates__value');
-    const ratesChange = rect('.snapshot-rates__change');
+    const ratesLabel = rect('.snapshot-panel--rates .snapshot-rates__label');
+    const ratesValue = rect('.snapshot-panel--rates .snapshot-rates__value');
+    const ratesChange = rect('.snapshot-panel--rates .snapshot-rates__change');
     const ratesSource = rect('.snapshot-panel--rates > .snapshot-panel__body > .snapshot-source');
     const liigaHeading = rect('#snapshot-liiga-label');
     const liigaBody = rect('.snapshot-liiga');

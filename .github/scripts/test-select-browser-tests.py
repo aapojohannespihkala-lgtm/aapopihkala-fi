@@ -33,9 +33,9 @@ class SelectionTests(unittest.TestCase):
     def test_shared_layout_retains_all_domain_guards(self):
         specs = selected('src/layouts/BaseLayout.astro')
         for name in ['current-section-boundaries', 'current-electricity-alignment',
-                     'current-snapshot-month-calendar', 'current-liiga', 'current-hsl',
-                     'current-news', 'current-markets', 'current-weather-timeout',
-                     'current2-responsive']:
+                     'current-snapshot-alignment', 'current-snapshot-month-calendar',
+                     'current-liiga', 'current-hsl', 'current-news', 'current-markets',
+                     'current-weather-timeout', 'current2-responsive']:
             self.assertIn(f'tests/e2e/{name}.spec.ts', specs)
 
     def test_mixed_changes_union_without_duplicates(self):
