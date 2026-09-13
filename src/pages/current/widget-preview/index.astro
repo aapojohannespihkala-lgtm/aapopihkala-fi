@@ -81,11 +81,48 @@ const title = 'Snapshot Widget Preview';
       const localTime = (value: string) => {
         const date = new Date(value);
         if (!Number.isFinite(date.getTime())) return value;
-        return new Intl.DateTimeFormat('fi-FI', {
+        return new Intl.DateTimeFormat('en-GB', {
           hour: '2-digit',
           minute: '2-digit',
+          hour12: false,
           timeZone: 'Europe/Helsinki',
         }).format(date);
+      };
+
+      const isoWeek = (year: number, month: number, day: number) => {
+        const date = new Date(Date.UTC(year, month - 1, day));
+        const weekday = date.getUTCDay() || 7;
+        date.setUTCDate(date.getUTCDate() + 4 - weekday);
+        const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+        return Math.ceil((((date.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7);
+      };
+
+      const currentHeaderDateTime = () => {
+        const now = new Date();
+        const parts = new Intl.DateTimeFormat('en-GB', {
+          weekday: 'short',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          timeZone: 'Europe/Helsinki',
+        }).formatToParts(now);
+        const part = (type: Intl.DateTimeFormatPartTypes) =>
+          parts.find((item) => item.type === type)?.value ?? '';
+        const year = Number(part('year'));
+        const monthName = part('month').slice(0, 3).toUpperCase();
+        const monthNumber = Number(new Intl.DateTimeFormat('en-GB', {
+          month: '2-digit',
+          timeZone: 'Europe/Helsinki',
+        }).format(now));
+        const day = Number(part('day'));
+        const week = isoWeek(year, monthNumber, day);
+        return {
+          time: `${part('hour')}:${part('minute')}`,
+          date: `${part('weekday').toUpperCase()} ${String(day).padStart(2, '0')} ${monthName} ${year} / W${String(week).padStart(2, '0')}`,
+        };
       };
 
       const renderRows = (rows: Row[] = []) => rows.map((row) => `
@@ -135,13 +172,15 @@ const title = 'Snapshot Widget Preview';
         if (!payload || !widget || !stage) return;
         stage.dataset.size = size;
         applyTheme(payload.theme);
+        const header = currentHeaderDateTime();
         const byId = new Map(payload.sections.map((section) => [section.id, section]));
         const ids = payload.layouts[size] ?? [];
         const sections = ids.map((id) => byId.get(id)).filter((item): item is Section => Boolean(item));
         widget.innerHTML = `
           <header class="widget-header">
             <div>
-              <strong>${escapeHtml(payload.title)}</strong>
+              <strong>${escapeHtml(header.time)}</strong>
+              <span>${escapeHtml(header.date)}</span>
               <span>UPDATED ${escapeHtml(localTime(payload.generatedAt))}</span>
             </div>
             <b>REFRESH</b>
@@ -161,7 +200,7 @@ const title = 'Snapshot Widget Preview';
       const load = async () => {
         if (status) status.textContent = 'Loading widget payload...';
         try {
-          const response = await fetch(`/api/current/widget?v=2&channel=${channel}`, {
+          const response = await fetch(`/api/current/widget-v2?channel=${channel}`, {
             headers: { Accept: 'application/json' },
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -233,11 +272,11 @@ const title = 'Snapshot Widget Preview';
   }
   [data-size="large"] .widget-preview { min-height: 700px; }
   [data-size="medium"] .widget-preview { min-height: 340px; }
-  .widget-header { display: flex; align-items: start; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .widget-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
   .widget-header div { display: grid; gap: 2px; }
-  .widget-header strong { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 18px; }
-  .widget-header span, .widget-header b { color: var(--muted); font-size: 11px; }
-  .widget-header b { color: var(--accent); }
+  .widget-header strong { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 19px; font-weight: 500; }
+  .widget-header span { color: var(--muted); font-size: 8px; }
+  .widget-header b { color: var(--accent); font-size: 9px; }
   .widget-sections { display: grid; }
   [data-size="compact"] .widget-sections,
   [data-size="medium"] .widget-sections { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -249,7 +288,7 @@ const title = 'Snapshot Widget Preview';
   .metric-secondary { margin-top: 9px; color: var(--muted); font-size: 10px; }
   .metric-primary { margin-top: 3px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: clamp(26px, 6vw, 50px); font-weight: 400; line-height: 1; }
   [data-size="compact"] .metric-primary { font-size: 25px; }
-  .metric-detail { margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.35; }
+  .metric-detail { margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.35; white-space: pre-line; }
   .metric-row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent); padding: 4px 0; font-size: 11px; color: var(--muted); }
   .metric-row strong { font-weight: 500; text-align: right; }
   .metric-columns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }

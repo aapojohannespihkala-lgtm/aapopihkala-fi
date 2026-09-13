@@ -69,37 +69,13 @@ class WidgetRepository(context: Context) {
 
     fun loadCached(): WidgetPayload? {
         val json = prefs.getString(KEY_CACHE, null) ?: return null
-        val payload = WidgetPayloadCodec.parse(json)?.takeIf { it.isCompatible() } ?: return null
-        return decorateDiagnostics(payload)
+        return WidgetPayloadCodec.parse(json)?.takeIf { it.isCompatible() }
     }
 
     fun status(): String = prefs.getString(KEY_STATUS, STATUS_IDLE) ?: STATUS_IDLE
 
     fun markLoading() {
         prefs.edit().putString(KEY_STATUS, STATUS_LOADING).apply()
-    }
-
-    private fun decorateDiagnostics(payload: WidgetPayload): WidgetPayload {
-        val v2 = prefs.getString(KEY_V2_STATUS, "?") ?: "?"
-        val legacy = prefs.getString(KEY_LEGACY_STATUS, "?") ?: "?"
-        val cache = cacheAge(payload.generatedAt)
-        return payload.copy(
-            sections = payload.sections.map { section ->
-                if (section.id == "weather") {
-                    val secondary = listOfNotNull(
-                        section.secondary?.takeIf { it.isNotBlank() },
-                        "L $legacy",
-                        "C$cache"
-                    ).joinToString(" · ")
-                    section.copy(
-                        label = "WEATHER · ${BuildConfig.VERSION_NAME} · V2 $v2",
-                        secondary = secondary
-                    )
-                } else {
-                    section
-                }
-            }
-        )
     }
 
     private fun fetchLegacyPayload(): LegacyFetchResult {
@@ -241,33 +217,6 @@ class WidgetRepository(context: Context) {
             FetchTextResult(null, if (name.isBlank()) "ERROR" else name)
         } finally {
             connection?.disconnect()
-        }
-    }
-
-    private fun cacheAge(generatedAt: String): String {
-        val timestamp = parseIsoMillis(generatedAt) ?: return "?"
-        val minutes = ((System.currentTimeMillis() - timestamp).coerceAtLeast(0L) / 60_000L)
-        return when {
-            minutes < 60 -> "${minutes}M"
-            minutes < 24 * 60 -> "${minutes / 60}H"
-            else -> "${minutes / (24 * 60)}D"
-        }
-    }
-
-    private fun parseIsoMillis(value: String): Long? {
-        val patterns = listOf(
-            "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
-            "yyyy-MM-dd'T'HH:mm:ssXXX",
-            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss'Z'"
-        )
-        return patterns.firstNotNullOfOrNull { pattern ->
-            runCatching {
-                SimpleDateFormat(pattern, Locale.US).apply {
-                    isLenient = false
-                    timeZone = TimeZone.getTimeZone("UTC")
-                }.parse(value)?.time
-            }.getOrNull()
         }
     }
 
