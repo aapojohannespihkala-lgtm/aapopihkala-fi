@@ -94,6 +94,12 @@ const ARRIVAL_STOPPED_RADIUS_METERS = 150;
 const ARRIVAL_NEAR_RADIUS_METERS = 55;
 const ARRIVAL_NEAR_MAX_SPEED_KMH = 12;
 const MAX_VEHICLE_AGE_MS = 90_000;
+const HELSINKI_PERIOD_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: HELSINKI_TIME_ZONE,
+  weekday: 'short',
+  hour: '2-digit',
+  hourCycle: 'h23',
+});
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS hsl_eta_observations (
@@ -169,12 +175,7 @@ const tripKeyFor = (stopCode: string, departure: Pick<HslLearningDeparture, 'rou
 
 const periodBucket = (timestamp: number) => {
   const date = new Date(timestamp);
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: HELSINKI_TIME_ZONE,
-    weekday: 'short',
-    hour: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date);
+  const parts = HELSINKI_PERIOD_FORMATTER.formatToParts(date);
   const weekday = parts.find((part) => part.type === 'weekday')?.value ?? '';
   const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? '0');
   const dayType = weekday === 'Sat' || weekday === 'Sun' ? 'weekend' : 'weekday';
