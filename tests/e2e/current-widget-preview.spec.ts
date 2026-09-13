@@ -21,7 +21,7 @@ const payload = (channel: 'prod' | 'dev') => ({
   layouts: {
     compact: ['weather', 'electricity', 'markets', 'rates'],
     medium: ['weather', 'electricity', 'markets', 'rates'],
-    large: ['weather', 'electricity', 'markets', 'rates', 'liiga'],
+    large: ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga'],
   },
   sections: [
     {
@@ -63,8 +63,23 @@ const payload = (channel: 'prod' | 'dev') => ({
       ],
     },
     {
-      id: 'rates',
+      id: 'hsl',
       index: '04',
+      label: 'HSL',
+      primary: '5 MIN',
+      secondary: '121 / CENTRAL',
+      detail: '12:35 / LIVE',
+      tone: 'accent',
+      span: 'full',
+      layout: 'split',
+      rows: [
+        { label: '121', value: '12:35 / 5 MIN', tone: 'accent' },
+        { label: '125', value: '12:42 / 12 MIN', tone: 'neutral' },
+      ],
+    },
+    {
+      id: 'rates',
+      index: '05',
       label: 'RATES',
       primary: '2.65%',
       secondary: '3M EURIBOR',
@@ -73,7 +88,7 @@ const payload = (channel: 'prod' | 'dev') => ({
     },
     {
       id: 'liiga',
-      index: '05',
+      index: '06',
       label: 'LIIGA',
       primary: '6/17',
       secondary: 'KÄRPÄT - ILVES',
@@ -124,6 +139,13 @@ test('widget preview uses the v2 presentation endpoint and Android-style header'
   await expect(markets).toHaveAttribute('data-layout', 'split');
   await expect(markets.locator('.metric-support')).toContainText('WORLD');
   await expect(markets.locator('.metric-support')).toContainText('FINLAND');
+
+  const hsl = page.locator('[data-section="hsl"]');
+  await expect(hsl).toHaveAttribute('data-span', 'full');
+  await expect(hsl).toHaveAttribute('data-layout', 'split');
+  await expect(hsl.locator('.metric-main')).toContainText('5 MIN');
+  await expect(hsl.locator('.metric-support')).toContainText('121');
+  await expect(hsl.locator('.metric-support')).toContainText('125');
 
   await expect(page.locator('[data-section="rates"]')).toHaveAttribute('data-span', 'half');
   await expect(page.locator('[data-section="liiga"]')).toHaveAttribute('data-span', 'half');
