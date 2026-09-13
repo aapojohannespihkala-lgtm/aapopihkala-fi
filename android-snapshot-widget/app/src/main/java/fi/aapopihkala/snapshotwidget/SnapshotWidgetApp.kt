@@ -11,24 +11,23 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalSize
 import androidx.glance.action.ActionParameters
-import androidx.glance.action.actionStartActivity
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.updateAll
 import androidx.glance.background
-import androidx.glance.clickable
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
-import androidx.glance.layout.defaultWeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
@@ -119,11 +118,7 @@ class SnapshotRepository(context: Context) {
 
     fun loadCached(): SnapshotData? {
         val json = prefs.getString(KEY_CACHE, null) ?: return null
-        return try {
-            parse(json)
-        } catch (_: Exception) {
-            null
-        }
+        return runCatching { parse(json) }.getOrNull()
     }
 
     private fun parse(json: String): SnapshotData {
@@ -188,10 +183,8 @@ class SnapshotUpdateWorker(
     appContext: Context,
     params: WorkerParameters
 ) : CoroutineWorker(appContext, params) {
-
     override suspend fun doWork(): Result {
-        val data = SnapshotRepository(applicationContext).fetchAndCache()
-        if (data != null) {
+        if (SnapshotRepository(applicationContext).fetchAndCache() != null) {
             SnapshotWidget().updateAll(applicationContext)
         }
         return Result.success()
@@ -212,11 +205,10 @@ class SnapshotUpdateWorker(
         }
 
         fun refreshNow(context: Context) {
-            val request = OneTimeWorkRequestBuilder<SnapshotUpdateWorker>().build()
             WorkManager.getInstance(context).enqueueUniqueWork(
                 IMMEDIATE_NAME,
                 ExistingWorkPolicy.REPLACE,
-                request
+                OneTimeWorkRequestBuilder<SnapshotUpdateWorker>().build()
             )
         }
 
@@ -242,13 +234,12 @@ class SnapshotWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val cached = SnapshotRepository(context).loadCached()
-        provideContent {
-            SnapshotContent(cached)
-        }
+        provideContent { SnapshotContent(cached) }
     }
 }
 
 private val Background = Color(0xFF0B0B0B)
+private val Panel = Color(0xFF151514)
 private val Foreground = Color(0xFFF2F2EE)
 private val Muted = Color(0xFF8D8D88)
 private val Line = Color(0xFF30302D)
@@ -288,12 +279,10 @@ private fun SnapshotContent(data: SnapshotData?) {
         Header(data)
         Spacer(GlanceModifier.height(8.dp))
 
-        if (data == null) {
-            EmptyState()
-        } else if (compact) {
-            CompactGrid(data)
-        } else {
-            FullGrid(data)
+        when {
+            data == null -> EmptyState()
+            compact -> CompactGrid(data)
+            else -> FullGrid(data)
         }
     }
 }
@@ -308,9 +297,7 @@ private fun Header(data: SnapshotData?) {
         modifier = GlanceModifier.fillMaxWidth(),
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
-        Column(
-            modifier = GlanceModifier.defaultWeight().clickable(openPage)
-        ) {
+        Column(modifier = GlanceModifier.defaultWeight().clickable(openPage)) {
             Text(
                 text = "CURRENT / SNAPSHOT",
                 style = TextStyle(
@@ -399,15 +386,31 @@ private fun FullGrid(data: SnapshotData) {
 @Composable
 private fun CompactGrid(data: SnapshotData) {
     Row(modifier = GlanceModifier.fillMaxWidth()) {
-        CompactMetric("WEATHER", formatTemperature(data.weather?.temperature), GlanceModifier.defaultWeight())
+        CompactMetric(
+            "WEATHER",
+            formatTemperature(data.weather?.temperature),
+            GlanceModifier.defaultWeight()
+        )
         Spacer(GlanceModifier.width(6.dp))
-        CompactMetric("ELECTRICITY", formatPrice(data.electricity?.price), GlanceModifier.defaultWeight())
+        CompactMetric(
+            "ELECTRICITY",
+            formatPrice(data.electricity?.price),
+            GlanceModifier.defaultWeight()
+        )
     }
     Spacer(GlanceModifier.height(6.dp))
     Row(modifier = GlanceModifier.fillMaxWidth()) {
-        CompactMetric("MARKETS", formatPercent(data.markets?.median), GlanceModifier.defaultWeight())
+        CompactMetric(
+            "MARKETS",
+            formatPercent(data.markets?.median),
+            GlanceModifier.defaultWeight()
+        )
         Spacer(GlanceModifier.width(6.dp))
-        CompactMetric("3M EURIBOR", formatPercent(data.rates?.euribor3m, signed = false), GlanceModifier.defaultWeight())
+        CompactMetric(
+            "3M EURIBOR",
+            formatPercent(data.rates?.euribor3m, signed = false),
+            GlanceModifier.defaultWeight()
+        )
     }
 }
 
@@ -432,7 +435,7 @@ private fun MetricBlock(
 private fun CompactMetric(label: String, value: String, modifier: GlanceModifier) {
     Column(
         modifier = modifier
-            .background(Color(0xFF151514))
+            .background(Panel)
             .cornerRadius(12.dp)
             .padding(8.dp)
     ) {
@@ -470,7 +473,8 @@ private fun formatPercent(value: Double?, signed: Boolean = true): String {
 }
 
 private fun minMax(min: Double?, max: Double?): String =
-    if (min == null && max == null) "" else "${formatTemperature(min)} / ${formatTemperature(max)}"
+    if (min == null && max == null) ""
+    else "${formatTemperature(min)} / ${formatTemperature(max)}"
 
 private fun shortTime(value: String): String {
     val time = Regex("T(\\d{2}:\\d{2})").find(value)?.groupValues?.getOrNull(1)
@@ -486,7 +490,7 @@ class SnapshotWidgetReceiver : GlanceAppWidgetReceiver() {
     }
 
     override fun onDisabled(context: Context) {
-        super.onDisabled(context)
         SnapshotUpdateWorker.cancel(context)
+        super.onDisabled(context)
     }
 }
