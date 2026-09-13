@@ -1,0 +1,151 @@
+/* Restore the desktop Rates / Liiga geometry guarded by the Snapshot alignment regression. */
+@media (min-width: 641px) {
+  body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-rates__main {
+    position: relative;
+    grid-template-columns: calc(42% - 2px) minmax(0, 1fr) !important;
+    gap: 0 !important;
+    align-items: stretch !important;
+  }
+
+  body:has(.snapshot-shell) .snapshot-panel--rates .snapshot-rates__main::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    bottom: -18px;
+    left: calc(42% - 2px);
+    border-left: 1px solid var(--line);
+    pointer-events: none;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga {
+    position: relative;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: visible !important;
+    display: grid !important;
+    grid-template-columns: minmax(150px, 0.36fr) minmax(0, 0.64fr) !important;
+    grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 1fr) !important;
+    column-gap: clamp(18px, 2vw, 28px) !important;
+    row-gap: 4px !important;
+    align-content: stretch !important;
+    padding-left: 14px !important;
+    border-left: 0 !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__header {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    align-self: end !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 5px !important;
+    transform: none !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__comparison {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    align-self: start !important;
+    margin-top: 2px !important;
+    transform: none !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__footer {
+    grid-column: 1 !important;
+    grid-row: 4 !important;
+    align-self: start !important;
+    margin-top: 3px !important;
+    transform: none !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__source {
+    position: absolute !important;
+    top: calc(100% + 4px) !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 14px !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__match {
+    grid-column: 2 !important;
+    grid-row: 1 / 6 !important;
+    align-self: center !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+    column-gap: clamp(14px, 1.5vw, 22px) !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__position {
+    align-self: flex-start !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team:not(.snapshot-liiga__team--away) {
+    justify-content: flex-end !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team--away {
+    justify-content: flex-start !important;
+  }
+
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga
+    .snapshot-liiga__team b {
+    flex: 0 0 auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (min-width: 1000px) {
+  body:has(.snapshot-shell)
+    .snapshot-panel--rates
+    .snapshot-rates__main
+    .snapshot-liiga {
+    grid-template-columns: minmax(170px, 0.34fr) minmax(0, 0.66fr) !important;
+  }
+}
