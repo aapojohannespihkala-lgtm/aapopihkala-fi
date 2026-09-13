@@ -27,6 +27,66 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify production Widget v2 endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --input-type=module <<'NODE'
+          const url = `https://aapopihkala.fi/api/current/widget-v2?channel=prod&live_smoke=${process.env.GITHUB_RUN_ID}`;
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 20_000);
+          const started = Date.now();
+
+          try {
+            const response = await fetch(url, {
+              headers: {
+                Accept: 'application/json',
+                'Cache-Control': 'no-cache',
+                'User-Agent': 'SnapshotWidgetSmoke/1.0',
+              },
+              signal: controller.signal,
+            });
+            const body = await response.text();
+            const diagnostics = {
+              status: response.status,
+              elapsedMs: Date.now() - started,
+              contentType: response.headers.get('content-type'),
+              widgetSchema: response.headers.get('x-widget-schema'),
+              body: body.slice(0, 2000),
+            };
+            console.log(JSON.stringify(diagnostics, null, 2));
+
+            if (!response.ok) {
+              console.error(`Widget v2 returned HTTP ${response.status}`);
+              process.exitCode = 1;
+            } else {
+              let payload;
+              try {
+                payload = JSON.parse(body);
+              } catch {
+                console.error('Widget v2 did not return valid JSON.');
+                process.exitCode = 1;
+              }
+
+              if (payload) {
+                const sections = Array.isArray(payload.sections) ? payload.sections : [];
+                console.log(`Widget v2 sections: ${sections.map((section) => section?.id).filter(Boolean).join(', ')}`);
+                if (payload.schemaVersion !== 2 || sections.length < 4) {
+                  console.error('Widget v2 payload shape is incomplete.');
+                  process.exitCode = 1;
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`Widget v2 request failed after ${Date.now() - started} ms`);
+            console.error(error);
+            process.exitCode = 1;
+          } finally {
+            clearTimeout(timeout);
+          }
+          NODE
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
