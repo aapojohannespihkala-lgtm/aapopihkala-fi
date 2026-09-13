@@ -12,6 +12,7 @@ import { onRequestGet as getMarketsResponse } from '../functions/api/current/mar
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
 import { onRequestGet as getSnapshotPortfolioResponse } from '../functions/api/current/portfolio-snapshot';
 import { onRequestGet as getWidgetResponse } from '../functions/api/current/widget';
+import { onRequestGet as getWidgetV2Response } from '../functions/api/current/widget-v2';
 import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
 import { fetchLiigaResponse, onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
 import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/current/liiga-schedule';
@@ -200,7 +201,9 @@ const worker = {
 
     if (url.pathname === WIDGET_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return getWidgetResponse({ request });
+      return url.searchParams.get('v') === '2'
+        ? getWidgetV2Response({ request })
+        : getWidgetResponse({ request });
     }
 
     if (url.pathname === NEWS_PATH) {

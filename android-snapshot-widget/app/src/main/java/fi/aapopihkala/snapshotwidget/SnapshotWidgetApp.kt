@@ -44,383 +44,33 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import java.net.HttpURLConnection
-import java.net.URL
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
 
-data class SnapshotData(
-    val updated: String?,
-    val weather: Weather?,
-    val electricity: Electricity?,
-    val markets: Markets?,
-    val rates: Rates?
-) {
-    data class Weather(
-        val location: String?,
-        val temperature: Double?,
-        val min: Double?,
-        val max: Double?
-    )
+private enum class WidgetSizeClass { COMPACT, MEDIUM, LARGE }
 
-    data class Electricity(
-        val price: Double?,
-        val average: Double?,
-        val low: Double?,
-        val high: Double?
-    )
-
-    data class Markets(
-        val median: Double?,
-        val world: Double?,
-        val usa: Double?,
-        val finland: Double?,
-        val btcEur: Double?,
-        val remedy: Double?
-    )
-
-    data class Rates(
-        val euribor3m: Double?,
-        val yearAgo: Double?
-    )
-}
-
-object SnapshotConfig {
-    const val DATA_URL = "https://aapopihkala.fi/api/current/widget"
-    const val ELECTRICITY_URL = "https://aapopihkala.fi/api/current/electricity"
-    const val PORTFOLIO_URL = "https://aapopihkala.fi/api/current/markets?portfolio=1"
-    const val MARKETS_URL = "https://aapopihkala.fi/api/current/markets"
-    const val PAGE_URL = "https://aapopihkala.fi/current/snapshot/"
-    const val WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=60.1719&longitude=24.7314&timezone=Europe%2FHelsinki&forecast_days=1&temperature_unit=celsius&current=temperature_2m&daily=temperature_2m_min%2Ctemperature_2m_max"
-}
-
-class SnapshotRepository(context: Context) {
-    private val prefs = context.getSharedPreferences("snapshot_widget", Context.MODE_PRIVATE)
-
-    suspend fun fetchAndCache(): SnapshotData? = withContext(Dispatchers.IO) {
-        val primary = runCatching { fetchPrimary() }.getOrNull()?.takeIf { it.hasAnyData() }
-        val data = primary ?: runCatching { fetchFallback() }.getOrNull()
-        if (data != null && data.hasAnyData()) {
-            prefs.edit()
-                .putString(KEY_CACHE, toJson(data))
-                .putString(KEY_STATUS, STATUS_OK)
-                .apply()
-            data
-        } else {
-            prefs.edit().putString(KEY_STATUS, STATUS_ERROR).apply()
-            null
-        }
-    }
-
-    fun loadCached(): SnapshotData? {
-        val json = prefs.getString(KEY_CACHE, null) ?: return null
-        return runCatching { parse(json) }.getOrNull()
-    }
-
-    fun status(): String = prefs.getString(KEY_STATUS, STATUS_IDLE) ?: STATUS_IDLE
-
-    fun markLoading() {
-        prefs.edit().putString(KEY_STATUS, STATUS_LOADING).apply()
-    }
-
-    private fun fetchPrimary(): SnapshotData? {
-        val root = fetchJson(SnapshotConfig.DATA_URL, 5_000) ?: return null
-        return parse(root.toString())
-    }
-
-    private suspend fun fetchFallback(): SnapshotData? = coroutineScope {
-        val weather = async(Dispatchers.IO) { runCatching { loadWeather() }.getOrNull() }
-        val electricity = async(Dispatchers.IO) { runCatching { loadElectricity() }.getOrNull() }
-        val markets = async(Dispatchers.IO) { runCatching { loadMarkets() }.getOrNull() }
-        val rates = async(Dispatchers.IO) { runCatching { loadRates() }.getOrNull() }
-        SnapshotData(
-            updated = isoNow(),
-            weather = weather.await(),
-            electricity = electricity.await(),
-            markets = markets.await(),
-            rates = rates.await()
-        ).takeIf { it.hasAnyData() }
-    }
-
-    private fun loadWeather(): SnapshotData.Weather? {
-        val root = fetchJson(SnapshotConfig.WEATHER_URL, 5_000) ?: return null
-        val current = root.optJSONObject("current")
-        val daily = root.optJSONObject("daily")
-        val temperature = current?.optFiniteDouble("temperature_2m") ?: return null
-        return SnapshotData.Weather(
-            location = "OLARI / ESPOO",
-            temperature = temperature,
-            min = daily?.optJSONArray("temperature_2m_min")?.optFiniteDouble(0),
-            max = daily?.optJSONArray("temperature_2m_max")?.optFiniteDouble(0)
-        )
-    }
-
-    private fun loadElectricity(): SnapshotData.Electricity? {
-        val root = fetchJson(SnapshotConfig.ELECTRICITY_URL, 5_000) ?: return null
-        val prices = root.optJSONArray("prices") ?: return null
-        val now = Date()
-        val today = localDateKey(now)
-        val dayPoints = mutableListOf<PricePoint>()
-
-        for (i in 0 until prices.length()) {
-            val item = prices.optJSONObject(i) ?: continue
-            val price = item.optFiniteDouble("price") ?: continue
-            val start = parseIsoDate(item.optString("startDate")) ?: continue
-            val end = parseIsoDate(item.optString("endDate")) ?: continue
-            if (localDateKey(start) == today) dayPoints += PricePoint(price, start, end)
-        }
-        if (dayPoints.isEmpty()) return null
-
-        val values = dayPoints.map { it.price }
-        val current = dayPoints.firstOrNull { now.time >= it.start.time && now.time < it.end.time }
-            ?: dayPoints.filter { it.start.time <= now.time }.maxByOrNull { it.start.time }
-
-        return SnapshotData.Electricity(
-            price = current?.price,
-            average = values.average(),
-            low = values.minOrNull(),
-            high = values.maxOrNull()
-        )
-    }
-
-    private fun loadMarkets(): SnapshotData.Markets? {
-        val root = fetchJson(SnapshotConfig.PORTFOLIO_URL, 6_000) ?: return null
-        val items = root.optJSONArray("items") ?: return null
-        val values = mutableListOf<Double>()
-        val byId = mutableMapOf<String, Double>()
-
-        for (i in 0 until items.length()) {
-            val item = items.optJSONObject(i) ?: continue
-            val id = item.optString("id").takeIf { it.isNotBlank() } ?: continue
-            val today = item.optJSONObject("changes")?.optFiniteDouble("today") ?: continue
-            values += today
-            byId[id] = today
-        }
-        if (values.isEmpty()) return null
-
-        return SnapshotData.Markets(
-            median = median(values),
-            world = byId["ishares-world"],
-            usa = byId["handelsbanken-usa"],
-            finland = byId["nordnet-finland"],
-            btcEur = byId["btc"],
-            remedy = byId["remedy"]
-        )
-    }
-
-    private fun loadRates(): SnapshotData.Rates? {
-        val root = fetchJson(SnapshotConfig.MARKETS_URL, 6_000) ?: return null
-        val items = root.optJSONArray("items") ?: return null
-        var current: Double? = null
-        for (i in 0 until items.length()) {
-            val item = items.optJSONObject(i) ?: continue
-            if (item.optString("id") == "euribor-3m") {
-                current = item.optFiniteDouble("value")
-                break
-            }
-        }
-        current ?: return null
-
-        var yearAgo: Double? = null
-        val series = root.optJSONArray("series")
-        if (series != null) {
-            for (i in 0 until series.length()) {
-                val item = series.optJSONObject(i) ?: continue
-                if (item.optString("id") != "euribor-3m") continue
-                val change1y = item.optFiniteDouble("change1y")
-                if (change1y != null) yearAgo = current - change1y
-                if (yearAgo == null) {
-                    val points = item.optJSONArray("points")
-                    if (points != null) {
-                        for (j in 0 until points.length()) {
-                            yearAgo = points.optJSONObject(j)?.optFiniteDouble("value")
-                            if (yearAgo != null) break
-                        }
-                    }
-                }
-                break
-            }
-        }
-        return SnapshotData.Rates(current, yearAgo)
-    }
-
-    private fun fetchJson(url: String, timeoutMs: Int): JSONObject? {
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = timeoutMs
-            readTimeout = timeoutMs
-            instanceFollowRedirects = true
-            setRequestProperty("Accept", "application/json")
-            setRequestProperty("User-Agent", "SnapshotWidget/1.1")
-            setRequestProperty("Referer", SnapshotConfig.PAGE_URL)
-        }
-        return try {
-            if (connection.responseCode !in 200..299) return null
-            val body = connection.inputStream.bufferedReader().use { it.readText() }
-            JSONObject(body)
-        } finally {
-            connection.disconnect()
-        }
-    }
-
-    private fun parse(json: String): SnapshotData {
-        val root = JSONObject(json)
-        val weather = root.optJSONObject("weather")
-        val electricity = root.optJSONObject("electricity")
-        val markets = root.optJSONObject("markets")
-        val rates = root.optJSONObject("rates")
-        return SnapshotData(
-            updated = root.optNullableString("updated"),
-            weather = weather?.let {
-                SnapshotData.Weather(
-                    it.optNullableString("location"),
-                    it.optFiniteDouble("temperature"),
-                    it.optFiniteDouble("min"),
-                    it.optFiniteDouble("max")
-                )
-            },
-            electricity = electricity?.let {
-                SnapshotData.Electricity(
-                    it.optFiniteDouble("price"),
-                    it.optFiniteDouble("average"),
-                    it.optFiniteDouble("low"),
-                    it.optFiniteDouble("high")
-                )
-            },
-            markets = markets?.let {
-                SnapshotData.Markets(
-                    it.optFiniteDouble("median"),
-                    it.optFiniteDouble("world"),
-                    it.optFiniteDouble("usa"),
-                    it.optFiniteDouble("finland"),
-                    it.optFiniteDouble("btcEur"),
-                    it.optFiniteDouble("remedy")
-                )
-            },
-            rates = rates?.let {
-                SnapshotData.Rates(
-                    it.optFiniteDouble("euribor3m"),
-                    it.optFiniteDouble("yearAgo")
-                )
-            }
-        )
-    }
-
-    private fun toJson(data: SnapshotData): String {
-        val root = JSONObject().putNullable("updated", data.updated)
-        root.putNullable("weather", data.weather?.let {
-            JSONObject()
-                .putNullable("location", it.location)
-                .putNullable("temperature", it.temperature)
-                .putNullable("min", it.min)
-                .putNullable("max", it.max)
-        })
-        root.putNullable("electricity", data.electricity?.let {
-            JSONObject()
-                .putNullable("price", it.price)
-                .putNullable("average", it.average)
-                .putNullable("low", it.low)
-                .putNullable("high", it.high)
-        })
-        root.putNullable("markets", data.markets?.let {
-            JSONObject()
-                .putNullable("median", it.median)
-                .putNullable("world", it.world)
-                .putNullable("usa", it.usa)
-                .putNullable("finland", it.finland)
-                .putNullable("btcEur", it.btcEur)
-                .putNullable("remedy", it.remedy)
-        })
-        root.putNullable("rates", data.rates?.let {
-            JSONObject()
-                .putNullable("euribor3m", it.euribor3m)
-                .putNullable("yearAgo", it.yearAgo)
-        })
-        return root.toString()
-    }
-
-    private fun SnapshotData.hasAnyData() =
-        weather != null || electricity != null || markets != null || rates != null
-
-    private fun JSONObject.optNullableString(name: String): String? =
-        if (has(name) && !isNull(name)) optString(name).takeIf { it.isNotBlank() } else null
-
-    private fun JSONObject.optFiniteDouble(name: String): Double? =
-        if (has(name) && !isNull(name)) optDouble(name).takeUnless { it.isNaN() || it.isInfinite() } else null
-
-    private fun JSONArray.optFiniteDouble(index: Int): Double? =
-        if (index in 0 until length() && !isNull(index)) optDouble(index).takeUnless { it.isNaN() || it.isInfinite() } else null
-
-    private fun JSONObject.putNullable(name: String, value: Any?): JSONObject =
-        put(name, value ?: JSONObject.NULL)
-
-    private fun median(values: List<Double>): Double {
-        val sorted = values.sorted()
-        val middle = sorted.size / 2
-        return if (sorted.size % 2 == 1) sorted[middle]
-        else (sorted[middle - 1] + sorted[middle]) / 2.0
-    }
-
-    private fun localDateKey(date: Date): String =
-        SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
-            timeZone = TimeZone.getTimeZone("Europe/Helsinki")
-        }.format(date)
-
-    private fun parseIsoDate(value: String): Date? {
-        if (value.isBlank()) return null
-        val patterns = listOf(
-            "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
-            "yyyy-MM-dd'T'HH:mm:ssXXX",
-            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss'Z'"
-        )
-        for (pattern in patterns) {
-            val parsed = runCatching {
-                SimpleDateFormat(pattern, Locale.US).apply {
-                    isLenient = false
-                    timeZone = TimeZone.getTimeZone("UTC")
-                }.parse(value)
-            }.getOrNull()
-            if (parsed != null) return parsed
-        }
-        return null
-    }
-
-    private fun isoNow(): String =
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }.format(Date())
-
-    private data class PricePoint(val price: Double, val start: Date, val end: Date)
-
-    companion object {
-        private const val KEY_CACHE = "snapshot_json"
-        private const val KEY_STATUS = "snapshot_status"
-        const val STATUS_IDLE = "idle"
-        const val STATUS_LOADING = "loading"
-        const val STATUS_OK = "ok"
-        const val STATUS_ERROR = "error"
-    }
-}
+private data class Palette(
+    val background: Color,
+    val panel: Color,
+    val foreground: Color,
+    val muted: Color,
+    val line: Color,
+    val accent: Color,
+    val positive: Color,
+    val negative: Color
+)
 
 class SnapshotUpdateWorker(
     appContext: Context,
     params: WorkerParameters
 ) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
-        val repository = SnapshotRepository(applicationContext)
-        val data = repository.fetchAndCache()
+        val repository = WidgetRepository(applicationContext)
+        val payload = repository.fetchAndCache()
         SnapshotWidget().updateAll(applicationContext)
-        return if (data != null) Result.success() else Result.retry()
+        return if (payload != null) Result.success() else Result.retry()
     }
 
     companion object {
@@ -458,7 +108,7 @@ class RefreshAction : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
-        val repository = SnapshotRepository(context)
+        val repository = WidgetRepository(context)
         repository.markLoading()
         SnapshotWidget().updateAll(context)
         repository.fetchAndCache()
@@ -470,71 +120,58 @@ class SnapshotWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val repository = SnapshotRepository(context)
-        val cached = repository.loadCached()
+        val repository = WidgetRepository(context)
+        val payload = repository.loadCached()
         val status = repository.status()
-        provideContent { SnapshotContent(cached, status) }
+        provideContent { SnapshotContent(payload, status) }
     }
 }
 
-private val Background = Color(0xFF0B0B0B)
-private val Panel = Color(0xFF151514)
-private val Foreground = Color(0xFFF2F2EE)
-private val Muted = Color(0xFF8D8D88)
-private val Line = Color(0xFF30302D)
-private val Accent = Color(0xFFB7FF57)
-
-private val labelStyle = TextStyle(
-    color = ColorProvider(Muted),
-    fontSize = 9.sp,
-    fontWeight = FontWeight.Medium
-)
-
-private val valueStyle = TextStyle(
-    color = ColorProvider(Foreground),
-    fontSize = 19.sp,
-    fontWeight = FontWeight.Bold
-)
-
-private val smallValueStyle = TextStyle(
-    color = ColorProvider(Foreground),
-    fontSize = 11.sp,
-    fontWeight = FontWeight.Medium
-)
-
 @Composable
-private fun SnapshotContent(data: SnapshotData?, status: String) {
+private fun SnapshotContent(payload: WidgetPayload?, status: String) {
     val size = LocalSize.current
-    val compact = size.height < 150.dp || size.width < 235.dp
+    val sizeClass = when {
+        size.height < 180.dp || size.width < 235.dp -> WidgetSizeClass.COMPACT
+        size.height < 330.dp -> WidgetSizeClass.MEDIUM
+        else -> WidgetSizeClass.LARGE
+    }
+    val palette = palette(payload?.theme ?: WidgetTheme.default())
+    val outerPadding = if (sizeClass == WidgetSizeClass.COMPACT) 10.dp else 14.dp
 
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(Background)
-            .cornerRadius(20.dp)
+            .background(palette.background)
+            .cornerRadius(22.dp)
             .appWidgetBackground()
-            .padding(if (compact) 10.dp else 14.dp)
+            .padding(outerPadding)
     ) {
-        Header(data, status)
-        Spacer(GlanceModifier.height(8.dp))
+        Header(payload, status, palette)
+        Spacer(GlanceModifier.height(if (sizeClass == WidgetSizeClass.COMPACT) 6.dp else 9.dp))
 
-        when {
-            data == null -> EmptyState(status)
-            compact -> CompactGrid(data)
-            else -> FullGrid(data)
+        if (payload == null || payload.sections.isEmpty()) {
+            EmptyState(status, palette)
+            return@Column
+        }
+
+        val sections = orderedSections(payload, sizeClass)
+        when (sizeClass) {
+            WidgetSizeClass.COMPACT -> CompactLayout(sections, palette)
+            WidgetSizeClass.MEDIUM -> MediumLayout(sections, palette)
+            WidgetSizeClass.LARGE -> LargeLayout(sections, palette)
         }
     }
 }
 
 @Composable
-private fun Header(data: SnapshotData?, status: String) {
+private fun Header(payload: WidgetPayload?, status: String, palette: Palette) {
     val openPage = actionStartActivity(
-        Intent(Intent.ACTION_VIEW, Uri.parse(SnapshotConfig.PAGE_URL))
+        Intent(Intent.ACTION_VIEW, Uri.parse(payload?.pageUrl ?: SnapshotEndpoints.PAGE_URL))
     )
     val statusText = when {
-        status == SnapshotRepository.STATUS_LOADING -> "LOADING DATA"
-        status == SnapshotRepository.STATUS_ERROR && data == null -> "CONNECTION ERROR"
-        data?.updated != null -> "UPDATED ${shortTime(data.updated)}"
+        status == WidgetRepository.STATUS_LOADING -> "LOADING DATA"
+        status == WidgetRepository.STATUS_ERROR && payload == null -> "CONNECTION ERROR"
+        payload?.generatedAt?.isNotBlank() == true -> "UPDATED ${localTime(payload.generatedAt)}"
         else -> "WAITING FOR DATA"
     }
 
@@ -544,22 +181,25 @@ private fun Header(data: SnapshotData?, status: String) {
     ) {
         Column(modifier = GlanceModifier.defaultWeight().clickable(openPage)) {
             Text(
-                text = "CURRENT / SNAPSHOT",
+                text = payload?.title ?: "CURRENT / SNAPSHOT",
                 style = TextStyle(
-                    color = ColorProvider(Foreground),
+                    color = ColorProvider(palette.foreground),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
             )
-            Text(text = statusText, style = labelStyle)
+            Text(
+                text = statusText,
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 9.sp)
+            )
         }
         Text(
-            text = if (status == SnapshotRepository.STATUS_LOADING) "..." else "REFRESH",
+            text = if (status == WidgetRepository.STATUS_LOADING) "..." else "REFRESH",
             modifier = GlanceModifier
                 .clickable(actionRunCallback<RefreshAction>())
                 .padding(6.dp),
             style = TextStyle(
-                color = ColorProvider(Accent),
+                color = ColorProvider(palette.accent),
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -568,165 +208,335 @@ private fun Header(data: SnapshotData?, status: String) {
 }
 
 @Composable
-private fun EmptyState(status: String) {
+private fun EmptyState(status: String, palette: Palette) {
     Box(
         modifier = GlanceModifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
             Text(
-                if (status == SnapshotRepository.STATUS_LOADING) "LOADING..." else if (status == SnapshotRepository.STATUS_ERROR) "NO CONNECTION" else "NO DATA",
-                style = valueStyle
+                text = when (status) {
+                    WidgetRepository.STATUS_LOADING -> "LOADING..."
+                    WidgetRepository.STATUS_ERROR -> "NO CONNECTION"
+                    else -> "NO DATA"
+                },
+                style = TextStyle(
+                    color = ColorProvider(palette.foreground),
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold
+                )
             )
             Spacer(GlanceModifier.height(4.dp))
             Text(
-                if (status == SnapshotRepository.STATUS_ERROR) "Tap REFRESH to try again" else "Tap REFRESH to load the latest data",
-                style = labelStyle
+                text = if (status == WidgetRepository.STATUS_ERROR) "Tap REFRESH to try again" else "Tap REFRESH to load data",
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 9.sp)
+            )
+        }
+    }
+}
+
+private fun orderedSections(payload: WidgetPayload, sizeClass: WidgetSizeClass): List<WidgetSection> {
+    val ids = when (sizeClass) {
+        WidgetSizeClass.COMPACT -> payload.layouts.compact
+        WidgetSizeClass.MEDIUM -> payload.layouts.medium
+        WidgetSizeClass.LARGE -> payload.layouts.large
+    }
+    val byId = payload.sections.associateBy { it.id }
+    return ids.mapNotNull(byId::get)
+}
+
+@Composable
+private fun CompactLayout(sections: List<WidgetSection>, palette: Palette) {
+    val visible = sections.take(4)
+    visible.chunked(2).forEachIndexed { rowIndex, rowSections ->
+        Row(modifier = GlanceModifier.fillMaxWidth()) {
+            rowSections.forEachIndexed { index, section ->
+                CompactMetric(section, palette, GlanceModifier.defaultWeight())
+                if (index == 0 && rowSections.size > 1) Spacer(GlanceModifier.width(6.dp))
+            }
+            if (rowSections.size == 1) Spacer(GlanceModifier.defaultWeight())
+        }
+        if (rowIndex < visible.chunked(2).lastIndex) Spacer(GlanceModifier.height(6.dp))
+    }
+}
+
+@Composable
+private fun CompactMetric(section: WidgetSection, palette: Palette, modifier: GlanceModifier) {
+    Column(
+        modifier = modifier
+            .background(palette.panel)
+            .cornerRadius(11.dp)
+            .padding(8.dp)
+    ) {
+        Text(
+            text = section.label,
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+            maxLines = 1
+        )
+        Text(
+            text = section.primary,
+            style = TextStyle(
+                color = ColorProvider(toneColor(section.tone, palette)),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            ),
+            maxLines = 1
+        )
+        section.secondary?.let {
+            Text(
+                text = it,
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 7.sp),
+                maxLines = 1
             )
         }
     }
 }
 
 @Composable
-private fun FullGrid(data: SnapshotData) {
-    Row(modifier = GlanceModifier.fillMaxWidth()) {
-        MetricBlock(
-            modifier = GlanceModifier.defaultWeight(),
-            index = "01",
-            label = "WEATHER",
-            value = formatTemperature(data.weather?.temperature),
-            detail = listOfNotNull(
-                data.weather?.location,
-                minMax(data.weather?.min, data.weather?.max)
-            ).joinToString(" / ")
-        )
-        Divider()
-        MetricBlock(
-            modifier = GlanceModifier.defaultWeight(),
-            index = "02",
-            label = "ELECTRICITY",
-            value = formatPrice(data.electricity?.price),
-            detail = "AVG ${formatNumber(data.electricity?.average)}  LOW ${formatNumber(data.electricity?.low)}  HIGH ${formatNumber(data.electricity?.high)}"
-        )
-    }
-
-    Spacer(GlanceModifier.height(8.dp))
-
-    Row(modifier = GlanceModifier.fillMaxWidth()) {
-        MetricBlock(
-            modifier = GlanceModifier.defaultWeight(),
-            index = "03",
-            label = "MARKETS",
-            value = formatPercent(data.markets?.median),
-            detail = "WORLD ${formatSigned(data.markets?.world)}  USA ${formatSigned(data.markets?.usa)}  FI ${formatSigned(data.markets?.finland)}  BTC ${formatSigned(data.markets?.btcEur)}"
-        )
-        Divider()
-        MetricBlock(
-            modifier = GlanceModifier.defaultWeight(),
-            index = "04",
-            label = "3M EURIBOR",
-            value = formatPercent(data.rates?.euribor3m, signed = false),
-            detail = data.rates?.yearAgo?.let { "1Y AGO ${formatPercent(it, signed = false)}" } ?: "1Y AGO --"
-        )
+private fun MediumLayout(sections: List<WidgetSection>, palette: Palette) {
+    val visible = sections.take(4)
+    visible.chunked(2).forEachIndexed { rowIndex, rowSections ->
+        Row(modifier = GlanceModifier.fillMaxWidth()) {
+            rowSections.forEachIndexed { index, section ->
+                MediumMetric(section, palette, GlanceModifier.defaultWeight())
+                if (index == 0 && rowSections.size > 1) VerticalDivider(palette)
+            }
+            if (rowSections.size == 1) Spacer(GlanceModifier.defaultWeight())
+        }
+        if (rowIndex < visible.chunked(2).lastIndex) {
+            Spacer(GlanceModifier.height(7.dp))
+            HorizontalDivider(palette)
+            Spacer(GlanceModifier.height(7.dp))
+        }
     }
 }
 
 @Composable
-private fun CompactGrid(data: SnapshotData) {
-    Row(modifier = GlanceModifier.fillMaxWidth()) {
-        CompactMetric(
-            "WEATHER",
-            formatTemperature(data.weather?.temperature),
-            GlanceModifier.defaultWeight()
+private fun MediumMetric(section: WidgetSection, palette: Palette, modifier: GlanceModifier) {
+    Column(modifier = modifier.padding(horizontal = 7.dp)) {
+        SectionHeading(section, palette)
+        Spacer(GlanceModifier.height(3.dp))
+        Text(
+            text = section.primary,
+            style = TextStyle(
+                color = ColorProvider(toneColor(section.tone, palette)),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            ),
+            maxLines = 1
         )
-        Spacer(GlanceModifier.width(6.dp))
-        CompactMetric(
-            "ELECTRICITY",
-            formatPrice(data.electricity?.price),
-            GlanceModifier.defaultWeight()
-        )
-    }
-    Spacer(GlanceModifier.height(6.dp))
-    Row(modifier = GlanceModifier.fillMaxWidth()) {
-        CompactMetric(
-            "MARKETS",
-            formatPercent(data.markets?.median),
-            GlanceModifier.defaultWeight()
-        )
-        Spacer(GlanceModifier.width(6.dp))
-        CompactMetric(
-            "3M EURIBOR",
-            formatPercent(data.rates?.euribor3m, signed = false),
-            GlanceModifier.defaultWeight()
-        )
+        section.detail?.let {
+            Spacer(GlanceModifier.height(2.dp))
+            Text(
+                text = it,
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+                maxLines = 2
+            )
+        }
     }
 }
 
 @Composable
-private fun MetricBlock(
-    modifier: GlanceModifier,
-    index: String,
-    label: String,
-    value: String,
-    detail: String
-) {
-    Column(modifier = modifier.padding(horizontal = 4.dp)) {
-        Text("$index / $label", style = labelStyle)
+private fun LargeLayout(sections: List<WidgetSection>, palette: Palette) {
+    sections.forEachIndexed { index, section ->
+        DetailedSection(section, palette)
+        if (index < sections.lastIndex) {
+            Spacer(GlanceModifier.height(7.dp))
+            HorizontalDivider(palette)
+            Spacer(GlanceModifier.height(7.dp))
+        }
+    }
+}
+
+@Composable
+private fun DetailedSection(section: WidgetSection, palette: Palette) {
+    Column(modifier = GlanceModifier.fillMaxWidth()) {
+        SectionHeading(section, palette)
+        section.secondary?.let {
+            Spacer(GlanceModifier.height(3.dp))
+            Text(
+                text = it,
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+                maxLines = 1
+            )
+        }
         Spacer(GlanceModifier.height(2.dp))
-        Text(value, style = valueStyle)
-        Spacer(GlanceModifier.height(2.dp))
-        Text(detail.ifBlank { "--" }, style = labelStyle, maxLines = 2)
+        Text(
+            text = section.primary,
+            style = TextStyle(
+                color = ColorProvider(toneColor(section.tone, palette)),
+                fontSize = if (section.id == "markets") 29.sp else 27.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            maxLines = 1
+        )
+        section.detail?.let {
+            Spacer(GlanceModifier.height(3.dp))
+            Text(
+                text = it,
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 9.sp),
+                maxLines = 2
+            )
+        }
+        if (section.columns.isNotEmpty()) {
+            Spacer(GlanceModifier.height(6.dp))
+            ColumnStrip(section.columns, palette)
+        }
+        if (section.bars.isNotEmpty()) {
+            Spacer(GlanceModifier.height(6.dp))
+            BarStrip(section.bars, palette)
+        }
+        if (section.rows.isNotEmpty()) {
+            Spacer(GlanceModifier.height(5.dp))
+            section.rows.forEach { item -> DetailRow(item, palette) }
+        }
     }
 }
 
 @Composable
-private fun CompactMetric(label: String, value: String, modifier: GlanceModifier) {
-    Column(
-        modifier = modifier
-            .background(Panel)
-            .cornerRadius(12.dp)
-            .padding(8.dp)
+private fun SectionHeading(section: WidgetSection, palette: Palette) {
+    Row(modifier = GlanceModifier.fillMaxWidth()) {
+        Text(
+            text = section.index,
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp)
+        )
+        Spacer(GlanceModifier.width(8.dp))
+        Text(
+            text = section.label,
+            style = TextStyle(
+                color = ColorProvider(palette.muted),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun DetailRow(item: WidgetItem, palette: Palette) {
+    Row(modifier = GlanceModifier.fillMaxWidth()) {
+        Text(
+            text = item.label,
+            modifier = GlanceModifier.defaultWeight(),
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+            maxLines = 1
+        )
+        Text(
+            text = item.value,
+            style = TextStyle(
+                color = ColorProvider(toneColor(item.tone, palette)),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun ColumnStrip(items: List<WidgetItem>, palette: Palette) {
+    Row(modifier = GlanceModifier.fillMaxWidth()) {
+        items.take(4).forEach { item ->
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                Text(
+                    text = item.label,
+                    style = TextStyle(color = ColorProvider(palette.muted), fontSize = 7.sp),
+                    maxLines = 1
+                )
+                Text(
+                    text = item.value,
+                    style = TextStyle(
+                        color = ColorProvider(toneColor(item.tone, palette)),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BarStrip(values: List<Double>, palette: Palette) {
+    Row(
+        modifier = GlanceModifier.fillMaxWidth().height(34.dp),
+        verticalAlignment = Alignment.Vertical.Bottom
     ) {
-        Text(label, style = labelStyle)
-        Text(value, style = smallValueStyle)
+        values.take(32).forEach { value ->
+            val normalized = value.coerceIn(0.0, 1.0)
+            Box(
+                modifier = GlanceModifier
+                    .defaultWeight()
+                    .height((5.0 + normalized * 29.0).dp)
+                    .background(palette.foreground)
+            ) {}
+            Spacer(GlanceModifier.width(1.dp))
+        }
     }
 }
 
 @Composable
-private fun Divider() {
+private fun HorizontalDivider(palette: Palette) {
     Box(
         modifier = GlanceModifier
-            .width(1.dp)
-            .height(52.dp)
-            .background(Line)
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(palette.line)
     ) {}
 }
 
-private fun formatTemperature(value: Double?): String =
-    value?.let { String.format(Locale.US, "%.1f°C", it) } ?: "--.-°C"
-
-private fun formatPrice(value: Double?): String =
-    value?.let { String.format(Locale.US, "%.2f c/kWh", it) } ?: "--.-- c/kWh"
-
-private fun formatNumber(value: Double?): String =
-    value?.let { String.format(Locale.US, "%.2f", it) } ?: "--"
-
-private fun formatSigned(value: Double?): String =
-    value?.let { String.format(Locale.US, "%+.1f%%", it) } ?: "--"
-
-private fun formatPercent(value: Double?, signed: Boolean = true): String {
-    if (value == null) return "--.-%"
-    return if (signed) String.format(Locale.US, "%+.1f%%", value)
-    else String.format(Locale.US, "%.2f%%", value)
+@Composable
+private fun VerticalDivider(palette: Palette) {
+    Box(
+        modifier = GlanceModifier
+            .width(1.dp)
+            .height(58.dp)
+            .background(palette.line)
+    ) {}
 }
 
-private fun minMax(min: Double?, max: Double?): String =
-    if (min == null && max == null) ""
-    else "${formatTemperature(min)} / ${formatTemperature(max)}"
+private fun palette(theme: WidgetTheme) = Palette(
+    background = parseColor(theme.background, Color(0xFF1D2A35)),
+    panel = parseColor(theme.panel, Color(0xFF22323E)),
+    foreground = parseColor(theme.foreground, Color(0xFFEEF2F4)),
+    muted = parseColor(theme.muted, Color(0xFFAAB4BC)),
+    line = parseColor(theme.line, Color(0xFF64717B)),
+    accent = parseColor(theme.accent, Color(0xFFDCE4E8)),
+    positive = parseColor(theme.positive, Color(0xFF15967F)),
+    negative = parseColor(theme.negative, Color(0xFFC45F6C))
+)
 
-private fun shortTime(value: String): String {
-    val time = Regex("T(\\d{2}:\\d{2})").find(value)?.groupValues?.getOrNull(1)
-    return time ?: value.take(16)
+private fun parseColor(value: String, fallback: Color): Color =
+    runCatching { Color(android.graphics.Color.parseColor(value)) }.getOrDefault(fallback)
+
+private fun toneColor(tone: String, palette: Palette): Color = when (tone.lowercase()) {
+    "positive" -> palette.positive
+    "negative" -> palette.negative
+    "accent" -> palette.accent
+    else -> palette.foreground
+}
+
+private fun localTime(value: String): String {
+    val patterns = listOf(
+        "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss'Z'"
+    )
+    val parsed = patterns.firstNotNullOfOrNull { pattern ->
+        runCatching {
+            SimpleDateFormat(pattern, Locale.US).apply {
+                isLenient = false
+                timeZone = TimeZone.getTimeZone("UTC")
+            }.parse(value)
+        }.getOrNull()
+    } ?: return value.take(16)
+
+    return SimpleDateFormat("HH:mm", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("Europe/Helsinki")
+    }.format(parsed)
 }
 
 class SnapshotWidgetReceiver : GlanceAppWidgetReceiver() {
