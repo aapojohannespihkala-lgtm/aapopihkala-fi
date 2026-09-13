@@ -157,6 +157,12 @@ jobs:
         run: |
           set -euo pipefail
 
+          android_changed=false
+          if gh api --paginate "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" \
+            --jq '.[].filename' | grep -Eq '^(android-snapshot-widget/|\.github/workflows/android-snapshot-widget\.yml$)'; then
+            android_changed=true
+          fi
+
           state="$(gh api "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.mergeable_state')"
 
           if [[ "$state" == "behind" ]]; then
@@ -192,6 +198,14 @@ jobs:
                 gh api --method POST \
                   "/repos/${GITHUB_REPOSITORY}/actions/workflows/current-weather-hsl-smoke.yml/dispatches" \
                   --raw-field ref=main
+
+                if [[ "$android_changed" == "true" ]]; then
+                  gh api --method POST \
+                    "/repos/${GITHUB_REPOSITORY}/actions/workflows/android-snapshot-widget.yml/dispatches" \
+                    --raw-field ref=main
+                  echo "Android files changed; signed APK release build dispatched."
+                fi
+
                 echo "Pull request merged; full main validation and Current live smokes dispatched."
 
                 if [[ -n "$HEAD_REF" && "$HEAD_REF" != "main" ]]; then
