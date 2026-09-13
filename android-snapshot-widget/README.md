@@ -8,4 +8,6 @@ Most widget changes should now happen in the server presentation contract and ca
 
 The app keeps the old `/api/current/widget` data response as a fallback, refreshes with WorkManager every 15 minutes and includes a manual REFRESH action.
 
-GitHub Actions builds an installable debug APK only when files under `android-snapshot-widget/` or the Android workflow itself change. The APK is intended for direct personal installation, not Play Store distribution.
+Android engine changes are validated with a debug APK on the pull request. After an Android-changing PR is merged, the merge workflow explicitly dispatches the Android release workflow on `main`, which builds and uploads the persistently signed `SnapshotWidget.apk`. Server-only widget changes do not trigger an APK build.
+
+Version 2.2 introduces the first horizontal large-layout experiment: Weather keeps current conditions on the left and places the four forecast points beside them on the right. Other sections remain unchanged so the direction can be evaluated incrementally.
