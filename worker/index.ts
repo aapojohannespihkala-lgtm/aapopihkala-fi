@@ -6,6 +6,7 @@ import {
   type HslLearningDb,
 } from '../functions/api/current/hsl-learning';
 import { recordHslDistancePassages } from '../functions/api/current/hsl-passage-learning';
+import { filterRecordedHslPassages } from '../functions/api/current/hsl-recorded-passage';
 import { recordHslRawLearningSnapshot } from '../functions/api/current/hsl-raw-learning';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
@@ -175,11 +176,13 @@ const worker = {
 
     if (url.pathname === HSL_PATH) {
       if (request.method !== 'POST') return methodNotAllowed('POST');
+      const db = hslLearningDb(env.HSL_MODEL_DB);
       const response = await fetchHslDeparturesResponse({
         request,
         apiKey: env.DIGITRANSIT_API_KEY,
       });
-      return enrichAndRecordHsl(response, hslLearningDb(env.HSL_MODEL_DB));
+      const enriched = await enrichAndRecordHsl(response, db);
+      return filterRecordedHslPassages(enriched, db);
     }
 
     if (url.pathname === MARKETS_PATH) {
