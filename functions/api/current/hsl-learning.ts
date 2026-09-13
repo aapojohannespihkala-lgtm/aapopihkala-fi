@@ -97,6 +97,9 @@ const ARRIVAL_NEAR_RADIUS_METERS = 55;
 const ARRIVAL_NEAR_MAX_SPEED_KMH = 12;
 const MAX_VEHICLE_AGE_MS = 90_000;
 const PASSAGE_DUE_GRACE_MS = 2 * 60_000;
+const PASSAGE_COVERAGE_LOOKBACK_MS = 24 * 60 * 60_000;
+const TRAINING_ROWS_CACHE_MS = 5 * 60_000;
+const LEARNING_SUMMARY_CACHE_MS = 2 * 60_000;
 const HELSINKI_PERIOD_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: HELSINKI_TIME_ZONE,
   weekday: 'short',
@@ -130,6 +133,8 @@ CREATE INDEX IF NOT EXISTS hsl_eta_observations_trip_idx
   ON hsl_eta_observations(trip_key, observed_at);
 CREATE INDEX IF NOT EXISTS hsl_eta_observations_route_idx
   ON hsl_eta_observations(route, observed_at);
+CREATE INDEX IF NOT EXISTS hsl_eta_observations_observed_idx
+  ON hsl_eta_observations(observed_at);
 
 CREATE TABLE IF NOT EXISTS hsl_eta_arrivals (
   trip_key TEXT PRIMARY KEY,
@@ -142,9 +147,19 @@ CREATE TABLE IF NOT EXISTS hsl_eta_arrivals (
 );
 CREATE INDEX IF NOT EXISTS hsl_eta_arrivals_route_idx
   ON hsl_eta_arrivals(route, actual_arrival_at);
+CREATE INDEX IF NOT EXISTS hsl_eta_arrivals_actual_idx
+  ON hsl_eta_arrivals(actual_arrival_at);
 `;
 
 const schemaReady = new WeakMap<object, Promise<void>>();
+const trainingRowsCache = new WeakMap<
+  object,
+  { expiresAt: number; rows: HslLearningTrainingRow[] }
+>();
+const learningSummaryCache = new WeakMap<
+  object,
+  { expiresAt: number; summary: HslLearningSummary }
+>();
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -491,6 +506,11 @@ export const ensureHslLearningSchema = async (db: HslLearningDb) => {
 };
 
 const loadTrainingRows = async (db: HslLearningDb) => {
+  const key = db as object;
+  const now = Date.now();
+  const cached = trainingRowsCache.get(key);
+  if (cached && cached.expiresAt > now) return cached.rows;
+
   const result = await db.prepare(`
     SELECT
       o.trip_key,
@@ -506,7 +526,9 @@ const loadTrainingRows = async (db: HslLearningDb) => {
     ORDER BY o.observed_at DESC
     LIMIT ${MAX_TRAINING_ROWS}
   `).all<HslLearningTrainingRow>();
-  return result.results ?? [];
+  const rows = result.results ?? [];
+  trainingRowsCache.set(key, { expiresAt: now + TRAINING_ROWS_CACHE_MS, rows });
+  return rows;
 };
 
 const countTable = async (db: HslLearningDb, table: 'hsl_eta_observations' | 'hsl_eta_arrivals') => {
@@ -518,6 +540,7 @@ const passageCoverage = async (db: HslLearningDb, observedAt: string) => {
   const observedMs = timestampOf(observedAt);
   if (observedMs === null) return { dueTrips: 0, detectedDueTrips: 0 };
   const cutoffAt = isoOf(observedMs - PASSAGE_DUE_GRACE_MS);
+  const lookbackAt = isoOf(observedMs - PASSAGE_COVERAGE_LOOKBACK_MS);
   const row = await db.prepare(`
     SELECT
       COUNT(*) AS due_trips,
@@ -525,11 +548,12 @@ const passageCoverage = async (db: HslLearningDb, observedAt: string) => {
     FROM (
       SELECT trip_key
       FROM hsl_eta_observations
+      WHERE observed_at >= ?
       GROUP BY trip_key
       HAVING MAX(hsl_predicted_at) <= ?
     ) due
     LEFT JOIN hsl_eta_arrivals a ON a.trip_key = due.trip_key
-  `).bind(cutoffAt).first<{ due_trips: number; detected_due_trips: number }>();
+  `).bind(lookbackAt, cutoffAt).first<{ due_trips: number; detected_due_trips: number }>();
 
   return {
     dueTrips: row && Number.isFinite(Number(row.due_trips)) ? Number(row.due_trips) : 0,
@@ -700,6 +724,11 @@ const learningSummary = async (
   trainingRows: HslLearningTrainingRow[],
   observedAt: string
 ): Promise<HslLearningSummary> => {
+  const key = db as object;
+  const now = Date.now();
+  const cached = learningSummaryCache.get(key);
+  if (cached && cached.expiresAt > now) return cached.summary;
+
   const scoreboard = buildHslLearningScoreboard(trainingRows);
   const [observations, arrivals, coverage, lastArrivalAt] = await Promise.all([
     countTable(db, 'hsl_eta_observations'),
@@ -708,7 +737,7 @@ const learningSummary = async (
     lastArrival(db),
   ]);
 
-  return {
+  const summary: HslLearningSummary = {
     enabled: true,
     version: MODEL_VERSION,
     observations,
@@ -717,6 +746,8 @@ const learningSummary = async (
     ...scoreboard,
     lastArrivalAt,
   };
+  learningSummaryCache.set(key, { expiresAt: now + LEARNING_SUMMARY_CACHE_MS, summary });
+  return summary;
 };
 
 export const enrichHslResponseWithLearning = async (
