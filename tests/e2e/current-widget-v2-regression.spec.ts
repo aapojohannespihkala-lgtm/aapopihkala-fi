@@ -1,84 +1,90 @@
 import { expect, test } from '@playwright/test';
 import { buildWidgetV2Payload } from '../../functions/api/current/widget-v2';
 
-test('widget v2 exposes a generic adaptive presentation contract', () => {
+const hslFixture = {
+  fetchedAt: '2026-09-13T13:05:00.000Z',
+  departures: [
+    {
+      route: '121',
+      headsign: 'Central',
+      departureAt: '2026-09-13T13:10:00.000Z',
+      realtime: true,
+    },
+    {
+      route: '125',
+      headsign: 'Metro',
+      departureAt: '2026-09-13T13:17:00.000Z',
+      realtime: false,
+    },
+  ],
+};
+
+const baseFixture = {
+  updated: '2026-09-13T13:05:00.000Z',
+  weather: {
+    location: 'OLARI / ESPOO',
+    temperature: 16.2,
+    condition: 'Light drizzle',
+    min: 12.5,
+    max: 16.9,
+    forecast: [
+      { time: '16:00', temperature: 16, condition: 'Light drizzle' },
+      { time: '18:00', temperature: 15, condition: 'Rain' },
+      { time: '20:00', temperature: 15, condition: 'Partly cloudy' },
+      { time: '22:00', temperature: 13, condition: 'Partly cloudy' },
+    ],
+  },
+  electricity: {
+    price: 2.54,
+    average: 1.83,
+    low: 0.39,
+    high: 5.03,
+    series: [
+      0, 0, 0, 0,
+      10, 10, 10, 10,
+      5, 5, 5, 5,
+    ],
+  },
+  markets: {
+    median: 0.08,
+    world: 0.94,
+    usa: 1.36,
+    finland: -1.09,
+    btcEur: -0.62,
+    remedy: 1.64,
+  },
+  rates: {
+    euribor3m: 2.65,
+    yearAgo: 2.03,
+  },
+};
+
+const liigaFixture = {
+  ilvesStanding: {
+    rank: 6,
+    totalTeams: 17,
+  },
+  nextIlvesGame: {
+    start: '2026-09-16T15:30:00.000Z',
+    homeTeam: 'Kärpät',
+    awayTeam: 'Ilves',
+  },
+};
+
+test('widget v2 exposes HSL through the dev large-layout presentation contract', () => {
   const payload = buildWidgetV2Payload(
-    {
-      updated: '2026-09-13T13:05:00.000Z',
-      weather: {
-        location: 'OLARI / ESPOO',
-        temperature: 16.2,
-        condition: 'Light drizzle',
-        min: 12.5,
-        max: 16.9,
-        forecast: [
-          { time: '16:00', temperature: 16, condition: 'Light drizzle' },
-          { time: '18:00', temperature: 15, condition: 'Rain' },
-          { time: '20:00', temperature: 15, condition: 'Partly cloudy' },
-          { time: '22:00', temperature: 13, condition: 'Partly cloudy' },
-        ],
-      },
-      electricity: {
-        price: 2.54,
-        average: 1.83,
-        low: 0.39,
-        high: 5.03,
-        series: [
-          0, 0, 0, 0,
-          10, 10, 10, 10,
-          5, 5, 5, 5,
-        ],
-      },
-      markets: {
-        median: 0.08,
-        world: 0.94,
-        usa: 1.36,
-        finland: -1.09,
-        btcEur: -0.62,
-        remedy: 1.64,
-      },
-      rates: {
-        euribor3m: 2.65,
-        yearAgo: 2.03,
-      },
-    },
-    {
-      ilvesStanding: {
-        rank: 6,
-        totalTeams: 17,
-      },
-      nextIlvesGame: {
-        start: '2026-09-16T15:30:00.000Z',
-        homeTeam: 'Kärpät',
-        awayTeam: 'Ilves',
-      },
-    },
-    'prod',
+    baseFixture,
+    liigaFixture,
+    'dev',
     '2026-09-13T13:05:00.000Z',
     null,
-    {
-      fetchedAt: '2026-09-13T13:05:00.000Z',
-      departures: [
-        {
-          route: '121',
-          headsign: 'Central',
-          departureAt: '2026-09-13T13:10:00.000Z',
-          realtime: true,
-        },
-        {
-          route: '125',
-          headsign: 'Metro',
-          departureAt: '2026-09-13T13:17:00.000Z',
-          realtime: false,
-        },
-      ],
-    }
+    hslFixture,
   );
 
   expect(payload).toMatchObject({
     schemaVersion: 2,
     minEngineVersion: 2,
-    channel: 'prod',
+    channel: 'dev',
     refreshMinutes: 15,
     layouts: {
       compact: ['weather', 'electricity', 'markets', 'rates'],
@@ -158,7 +164,23 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
   });
 });
 
+test('widget v2 keeps the prod layout unchanged while HSL is staged', () => {
+  const payload = buildWidgetV2Payload(
+    baseFixture,
+    liigaFixture,
+    'prod',
+    '2026-09-13T13:05:00.000Z',
+    null,
+    hslFixture,
+  );
+
+  expect(payload.layouts.large).toEqual(['weather', 'electricity', 'markets', 'rates', 'liiga']);
+  expect(payload.sections.some((section) => section.id === 'hsl')).toBe(false);
+  expect(payload.sections.find((section) => section.id === 'rates')?.index).toBe('04');
+  expect(payload.sections.find((section) => section.id === 'liiga')?.index).toBe('05');
+});
+
 test('widget v2 omits HSL without usable departures', () => {
-  const payload = buildWidgetV2Payload(null, null, 'prod', '2026-09-13T13:05:00.000Z');
+  const payload = buildWidgetV2Payload(null, null, 'dev', '2026-09-13T13:05:00.000Z');
   expect(payload.sections.some((section) => section.id === 'hsl')).toBe(false);
 });
