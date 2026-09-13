@@ -140,7 +140,7 @@ const buildWeatherSection = (value: unknown): WidgetSection | null => {
   const location = stringValue(weather.location);
   const condition = stringValue(weather.condition);
   if (temperature === null && low === null && high === null) return null;
-  const range = low === null && high === null ? '' : `${formatTemperature(low)} / ${formatTemperature(high)}`;
+  const range = low === null && high === null ? '' : `${formatDegree(low)} / ${formatDegree(high)}`;
   const detail = [condition, range].filter(Boolean).join(' / ');
 
   return {
@@ -275,6 +275,7 @@ const buildLiigaSection = (value: unknown): WidgetSection | null => {
       label: 'LIIGA',
       primary: homeGoals !== null && awayGoals !== null ? `${homeGoals.toFixed(0)}-${awayGoals.toFixed(0)}` : 'LIVE',
       secondary: 'ILVES / LIVE',
+      detail: `${home.toUpperCase()} - ${away.toUpperCase()}`,
       tone: 'accent',
       rows: [{ label: home.toUpperCase(), value: away.toUpperCase() }],
     };
@@ -298,7 +299,10 @@ const buildLiigaSection = (value: unknown): WidgetSection | null => {
     index: '05',
     label: 'LIIGA',
     primary: rank !== null && totalTeams !== null ? `${rank.toFixed(0)}/${totalTeams.toFixed(0)}` : 'ILVES',
-    secondary: 'ILVES / STANDING',
+    secondary: nextHome && nextAway
+      ? `${nextHome.toUpperCase()} - ${nextAway.toUpperCase()}`
+      : 'ILVES / STANDING',
+    detail: nextAt ?? undefined,
     rows,
   };
 };
