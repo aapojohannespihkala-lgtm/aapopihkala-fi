@@ -38,6 +38,7 @@ const MIN_DISTANCE_RISE_METERS = 500;
 const MIN_PASSAGE_ELAPSED_MS = 20_000;
 const MAX_PASSAGE_ELAPSED_MS = 15 * 60_000;
 const MAX_HSL_FUTURE_LEAD_MS = 2 * 60_000;
+const PASSAGE_RECOVERY_LOOKBACK_MS = 20 * 60_000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -63,6 +64,28 @@ const isPassagePayload = (value: unknown): value is HslPassagePayload => {
 
 const tripKeyFor = (stopCode: string, departure: Pick<HslPassageDeparture, 'route' | 'scheduledAt'>) =>
   `${stopCode}|${departure.route}|${departure.scheduledAt}`;
+
+export const shouldCheckHslPassage = (
+  departure: HslPassageDeparture,
+  fetchedAt: string
+) => {
+  if (
+    departure.vehicle?.distanceMeters !== null &&
+    departure.vehicle?.distanceMeters !== undefined &&
+    Number.isFinite(departure.vehicle.distanceMeters)
+  ) {
+    return true;
+  }
+
+  const fetchedMs = timestampOf(fetchedAt);
+  const departureMs = timestampOf(departure.departureAt);
+  if (fetchedMs === null || departureMs === null) return false;
+
+  return (
+    departureMs >= fetchedMs - PASSAGE_RECOVERY_LOOKBACK_MS &&
+    departureMs <= fetchedMs + MAX_HSL_FUTURE_LEAD_MS
+  );
+};
 
 export const inferHslPassageFromHistory = (
   observations: HslPassageObservation[],
@@ -144,7 +167,10 @@ export const recordHslDistancePassages = async (
     if (!isPassagePayload(payload)) return;
 
     for (const departure of payload.departures) {
-      if (!departure.vehicle || departure.vehicle.distanceMeters === null) continue;
+      // A vehicle can disappear from GTFS-RT immediately after it passes the stop.
+      // Keep checking a short post-departure window so a distance turn already
+      // persisted in D1 can still be converted into an arrival on the next poll.
+      if (!shouldCheckHslPassage(departure, payload.fetchedAt)) continue;
 
       const tripKey = tripKeyFor(payload.stop.code, departure);
       const existing = await db.prepare(
