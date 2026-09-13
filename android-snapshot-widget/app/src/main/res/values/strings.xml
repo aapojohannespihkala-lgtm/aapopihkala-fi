@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Snapshot Widget</string>
+    <string name="widget_description">Aapo Pihkala Current Snapshot</string>
+</resources>
