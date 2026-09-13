@@ -1,4 +1,5 @@
 import { fetchLiigaResponse } from './liiga';
+import { fetchWidgetHslData, type WidgetHslData } from './widget-hsl';
 import { onRequestGet as getWidgetResponse } from './widget';
 
 type Tone = 'neutral' | 'positive' | 'negative' | 'accent';
@@ -75,6 +76,13 @@ type SolarForecastResponse = {
   };
 };
 
+type WidgetV2Context = {
+  request: Request;
+  env?: {
+    DIGITRANSIT_API_KEY?: string;
+  };
+};
+
 const PROD_THEME: WidgetTheme = {
   background: '#1D2A35',
   panel: '#22323E',
@@ -92,7 +100,10 @@ const PROD_LAYOUTS: WidgetLayouts = {
   medium: ['weather', 'electricity', 'markets', 'rates'],
   large: ['weather', 'electricity', 'markets', 'rates', 'liiga'],
 };
-const DEV_LAYOUTS: WidgetLayouts = { ...PROD_LAYOUTS };
+const DEV_LAYOUTS: WidgetLayouts = {
+  ...PROD_LAYOUTS,
+  large: ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga'],
+};
 
 const SOLAR_API_URL = 'https://api.open-meteo.com/v1/forecast';
 const SOLAR_TIMEOUT_MS = 4_000;
@@ -313,7 +324,72 @@ const buildMarketsSection = (value: unknown): WidgetSection | null => {
   };
 };
 
-const buildRatesSection = (value: unknown): WidgetSection | null => {
+const timestampOf = (value: string) => {
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const hslClock = (value: string) => {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '--:--';
+  return new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Europe/Helsinki',
+  }).format(date);
+};
+
+const hslCountdown = (departureAt: string, now: number) => {
+  const departure = timestampOf(departureAt);
+  if (departure === null) return null;
+  const delta = departure - now;
+  if (delta < -30_000) return null;
+  if (delta <= 30_000) return 'NOW';
+  return `${Math.ceil(delta / 60_000)} MIN`;
+};
+
+const buildHslSection = (
+  data: WidgetHslData | null,
+  generatedAt: string
+): WidgetSection | null => {
+  if (!data) return null;
+  const generatedTimestamp = timestampOf(generatedAt) ?? Date.now();
+  const upcoming = data.departures
+    .map((departure) => ({
+      ...departure,
+      timestamp: timestampOf(departure.departureAt),
+      countdown: hslCountdown(departure.departureAt, generatedTimestamp),
+    }))
+    .filter(
+      (departure): departure is typeof departure & { timestamp: number; countdown: string } =>
+        departure.timestamp !== null && departure.countdown !== null
+    )
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .slice(0, 5);
+
+  const next = upcoming[0];
+  if (!next) return null;
+
+  return {
+    id: 'hsl',
+    index: '04',
+    label: 'HSL',
+    primary: next.countdown,
+    secondary: [next.route, next.headsign].filter(Boolean).join(' / ').toUpperCase(),
+    detail: `${hslClock(next.departureAt)} / ${next.realtime ? 'LIVE' : 'SCHED'}`,
+    tone: next.realtime ? 'accent' : 'neutral',
+    span: 'full',
+    layout: 'split',
+    rows: upcoming.slice(0, 4).map((departure) => ({
+      label: departure.route,
+      value: `${hslClock(departure.departureAt)} / ${departure.countdown}`,
+      tone: departure.realtime ? 'accent' : 'neutral',
+    })),
+  };
+};
+
+const buildRatesSection = (value: unknown, index = '04'): WidgetSection | null => {
   const rates = asRecord(value);
   if (!rates) return null;
   const current = finiteNumber(rates.euribor3m);
@@ -321,7 +397,7 @@ const buildRatesSection = (value: unknown): WidgetSection | null => {
   if (current === null && yearAgo === null) return null;
   return {
     id: 'rates',
-    index: '04',
+    index,
     label: 'RATES',
     primary: formatPercent(current, false, 2),
     secondary: '3M EURIBOR',
@@ -349,7 +425,7 @@ const helsinkiDateTime = (value: unknown) => {
   return `${part('weekday').toUpperCase()} ${part('day')} ${part('hour')}:${part('minute')}`.trim();
 };
 
-const buildLiigaSection = (value: unknown): WidgetSection | null => {
+const buildLiigaSection = (value: unknown, index = '05'): WidgetSection | null => {
   const liiga = asRecord(value);
   if (!liiga) return null;
   const standing = asRecord(liiga.ilvesStanding);
@@ -363,7 +439,7 @@ const buildLiigaSection = (value: unknown): WidgetSection | null => {
     const awayGoals = finiteNumber(live.awayGoals);
     return {
       id: 'liiga',
-      index: '05',
+      index,
       label: 'LIIGA',
       primary: homeGoals !== null && awayGoals !== null ? `${homeGoals.toFixed(0)}-${awayGoals.toFixed(0)}` : 'LIVE',
       secondary: 'ILVES / LIVE',
@@ -390,7 +466,7 @@ const buildLiigaSection = (value: unknown): WidgetSection | null => {
 
   return {
     id: 'liiga',
-    index: '05',
+    index,
     label: 'LIIGA',
     primary: rank !== null && totalTeams !== null ? `${rank.toFixed(0)}/${totalTeams.toFixed(0)}` : 'ILVES',
     secondary: nextHome && nextAway
@@ -409,13 +485,17 @@ export const buildWidgetV2Payload = (
   channel: 'prod' | 'dev',
   generatedAt = new Date().toISOString(),
   solar: SolarData | null = null,
+  hsl: WidgetHslData | null = null,
 ): WidgetV2Payload => {
+  const hslSection = channel === 'dev' ? buildHslSection(hsl, generatedAt) : null;
+  const hasHsl = hslSection !== null;
   const sections = [
     buildWeatherSection(base?.weather, solar),
     buildElectricitySection(base?.electricity),
     buildMarketsSection(base?.markets),
-    buildRatesSection(base?.rates),
-    buildLiigaSection(liiga),
+    hslSection,
+    buildRatesSection(base?.rates, hasHsl ? '05' : '04'),
+    buildLiigaSection(liiga, hasHsl ? '06' : '05'),
   ].filter((section): section is WidgetSection => section !== null);
 
   return {
@@ -432,20 +512,28 @@ export const buildWidgetV2Payload = (
   };
 };
 
-export const onRequestGet = async (context: { request: Request }) => {
+export const onRequestGet = async (context: WidgetV2Context) => {
   const url = new URL(context.request.url);
   const channel = url.searchParams.get('channel') === 'dev' ? 'dev' : 'prod';
+  const generatedAt = new Date().toISOString();
 
-  const [baseResponse, liigaResponse, solar] = await Promise.all([
+  const [baseResponse, liigaResponse, solar, hsl] = await Promise.all([
     getWidgetResponse({ request: context.request }),
     fetchLiigaResponse(4_000),
     fetchSolarData(),
+    channel === 'dev'
+      ? fetchWidgetHslData({
+          request: context.request,
+          apiKey: context.env?.DIGITRANSIT_API_KEY,
+          timeoutMs: 4_000,
+        })
+      : Promise.resolve(null),
   ]);
   const [base, liiga] = await Promise.all([
     readJson<BaseWidgetData>(baseResponse),
     readJson<LiigaData>(liigaResponse),
   ]);
-  const payload = buildWidgetV2Payload(base, liiga, channel, new Date().toISOString(), solar);
+  const payload = buildWidgetV2Payload(base, liiga, channel, generatedAt, solar, hsl);
   const hasSections = payload.sections.length > 0;
 
   return Response.json(

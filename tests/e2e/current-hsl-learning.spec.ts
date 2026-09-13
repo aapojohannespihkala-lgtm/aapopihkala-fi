@@ -96,6 +96,8 @@ test('HSL detail shows Aapo ETA beside the live HSL estimate and model scoreboar
           version: 'median-residual-v1',
           observations: 120,
           arrivals: 18,
+          dueTrips: 20,
+          detectedDueTrips: 18,
           scoredTrips: 15,
           modelScoredTrips: 8,
           hslMaeSeconds: 126,
