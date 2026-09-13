@@ -19,9 +19,9 @@ const payload = (channel: 'prod' | 'dev') => ({
     negative: '#C45F6C',
   },
   layouts: {
-    compact: ['weather', 'rates'],
-    medium: ['weather', 'rates'],
-    large: ['weather', 'rates', 'liiga'],
+    compact: ['weather', 'electricity', 'markets', 'rates'],
+    medium: ['weather', 'electricity', 'markets', 'rates'],
+    large: ['weather', 'electricity', 'markets', 'rates', 'liiga'],
   },
   sections: [
     {
@@ -36,6 +36,30 @@ const payload = (channel: 'prod' | 'dev') => ({
       columns: [
         { label: '16:00', value: '16°' },
         { label: '18:00', value: '15°' },
+      ],
+    },
+    {
+      id: 'electricity',
+      index: '02',
+      label: 'ELECTRICITY',
+      primary: '1.83 c/kWh',
+      secondary: 'DAY AVG / TODAY',
+      detail: 'NOW 2.54  LOW 0.39  HIGH 5.03',
+      span: 'full',
+      layout: 'split',
+      bars: [0, 1, 0.5, 0.8],
+    },
+    {
+      id: 'markets',
+      index: '03',
+      label: 'MARKETS',
+      primary: '+0.08%',
+      secondary: '1D / MEDIAN',
+      span: 'full',
+      layout: 'split',
+      rows: [
+        { label: 'WORLD', value: '+0.94%', tone: 'positive' },
+        { label: 'FINLAND', value: '-1.09%', tone: 'negative' },
       ],
     },
     {
@@ -91,6 +115,15 @@ test('widget preview uses the v2 presentation endpoint and Android-style header'
   await expect(weather).toHaveAttribute('data-span', 'full');
   await expect(weather).toHaveAttribute('data-layout', 'split');
   await expect(weather.locator('.metric-support')).toContainText('16:00');
+
+  const electricity = page.locator('[data-section="electricity"]');
+  await expect(electricity).toHaveAttribute('data-layout', 'split');
+  await expect(electricity.locator('.metric-support .metric-bars')).toBeVisible();
+
+  const markets = page.locator('[data-section="markets"]');
+  await expect(markets).toHaveAttribute('data-layout', 'split');
+  await expect(markets.locator('.metric-support')).toContainText('WORLD');
+  await expect(markets.locator('.metric-support')).toContainText('FINLAND');
 
   await expect(page.locator('[data-section="rates"]')).toHaveAttribute('data-span', 'half');
   await expect(page.locator('[data-section="liiga"]')).toHaveAttribute('data-span', 'half');
