@@ -1,19 +1,21 @@
 import { expect, test } from '@playwright/test';
 import { hslActiveGpsLabel } from '../../src/features/current/hsl-active-label';
 
-test('active GPS label suppresses a stale past departure estimate', () => {
+test('active GPS label uses an approximate AAPO minute estimate when HSL time is stale', () => {
   const now = Date.parse('2026-09-12T19:10:00.000Z');
 
   expect(hslActiveGpsLabel({
     departureAt: '2026-09-12T19:07:00.000Z',
+    modelPredictedAt: '2026-09-12T19:17:00.000Z',
     previous: false,
     hasVehicle: true,
     atStop: false,
     now,
-  })).toBe('TRACKING');
+  })).toBe('~7 MIN');
 
   expect(hslActiveGpsLabel({
     departureAt: '2026-09-12T19:07:00.000Z',
+    modelPredictedAt: '2026-09-12T19:17:00.000Z',
     previous: true,
     hasVehicle: true,
     atStop: false,
@@ -21,10 +23,31 @@ test('active GPS label suppresses a stale past departure estimate', () => {
   })).toBeNull();
 });
 
-test('HSL detail shows TRACKING instead of MIN AGO for an active GPS bus', async ({ page }) => {
+test('active GPS label uses NOW at the stop and GPS when no numeric estimate exists', () => {
+  const now = Date.parse('2026-09-12T19:10:00.000Z');
+
+  expect(hslActiveGpsLabel({
+    departureAt: '2026-09-12T19:07:00.000Z',
+    previous: false,
+    hasVehicle: true,
+    atStop: true,
+    now,
+  })).toBe('NOW');
+
+  expect(hslActiveGpsLabel({
+    departureAt: '2026-09-12T19:07:00.000Z',
+    previous: false,
+    hasVehicle: true,
+    atStop: false,
+    now,
+  })).toBe('GPS');
+});
+
+test('HSL detail shows an approximate minute ETA instead of TRACKING for an active GPS bus', async ({ page }) => {
   const now = Date.now();
   const scheduledAt = new Date(now - 7 * 60_000).toISOString();
   const departureAt = new Date(now - 3 * 60_000).toISOString();
+  const modelPredictedAt = new Date(now + 7 * 60_000).toISOString();
 
   await page.route('**/api/current/hsl', async (route) => {
     await route.fulfill({
@@ -55,6 +78,13 @@ test('HSL detail shows TRACKING instead of MIN AGO for an active GPS bus', async
               updatedAt: new Date(now - 5_000).toISOString(),
               currentStatus: 'IN_TRANSIT_TO',
             },
+            model: {
+              predictedAt: modelPredictedAt,
+              adjustmentSeconds: 600,
+              confidenceSeconds: 50,
+              sampleSize: 7,
+              method: 'hsl-residual',
+            },
           },
         ],
       }),
@@ -65,7 +95,9 @@ test('HSL detail shows TRACKING instead of MIN AGO for an active GPS bus', async
 
   const row = page.locator('[data-hsl-departure]').first();
   await expect(row).toHaveAttribute('data-hsl-previous', 'false');
-  await expect(row.locator('[data-hsl-countdown]')).toHaveText('TRACKING');
+  await expect(row.locator('[data-hsl-countdown]')).toHaveText('~7 MIN');
+  await expect(row.locator('[data-hsl-countdown]')).not.toContainText('TRACKING');
   await expect(row.locator('[data-hsl-countdown]')).not.toContainText('AGO');
   await expect(row).toContainText('GPS / 790 M AWAY / 36 KM/H');
+  await expect(row).toContainText('AAPO 7 MIN');
 });
