@@ -89,7 +89,7 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
     secondary: 'DAY AVG / TODAY',
     detail: 'NOW 2.54  LOW 0.39  HIGH 5.03',
     span: 'full',
-    layout: 'stack',
+    layout: 'split',
     bars: [0, 1, 0.5],
   });
 
@@ -97,7 +97,7 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
   expect(markets).toMatchObject({
     primary: '+0.08%',
     span: 'full',
-    layout: 'stack',
+    layout: 'split',
   });
   expect(markets?.rows).toEqual([
     { label: 'WORLD', value: '+0.94%', tone: 'positive' },
