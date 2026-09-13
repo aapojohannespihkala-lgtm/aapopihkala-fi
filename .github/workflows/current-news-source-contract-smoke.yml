@@ -65,8 +65,8 @@ jobs:
             --silent \
             --show-error \
             --max-time 8 \
-            --user-agent 'aapopihkala.fi Current News/1.0' \
-            --header 'Accept: application/rss+xml, application/xml;q=0.9, text/xml;q=0.8' \
+            --user-agent 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36' \
+            --header 'Accept: application/rss+xml, application/atom+xml, application/xml, text/xml, */*;q=0.8' \
             --dump-header "$headers" \
             --output "$body" \
             --write-out '%{http_code}' \
