@@ -15,6 +15,7 @@ on:
 permissions:
   contents: read
 
+# Main builds use the persistent Snapshot Widget signing key.
 jobs:
   build:
     runs-on: ubuntu-latest
