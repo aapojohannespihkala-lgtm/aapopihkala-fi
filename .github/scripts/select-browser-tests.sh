@@ -14,10 +14,11 @@ weather() { add current-weather-solar-geometry current-weather-solar-presentatio
 markets() { add current-markets current-markets-default-order current-markets-fallback current-markets-timeout; }
 liiga() { add current-liiga current-liiga-schedule current-snapshot-liiga; }
 hsl() { add current-hsl; }
+news() { add current-news current-news-timeout current-news-request-contract; }
 snapshot() { add current-snapshot current-snapshot-alignment current-snapshot-liiga current-snapshot-month-calendar; }
 all_current() {
-  layout; electricity; weather; markets; liiga; hsl; snapshot
-  add current-news current-news-timeout current2-responsive
+  layout; electricity; weather; markets; liiga; hsl; news; snapshot
+  add current2-responsive
 }
 
 # An unknown/empty change set must not silently disable the construction guards.
@@ -42,7 +43,7 @@ for file in "$@"; do
     src/components/current/CurrentMarkets*|src/components/current/CurrentRates*|src/pages/current/markets/*|src/pages/current/rates/*|src/features/current/market*|src/features/current/remedy*|src/styles/current-markets*)
       layout; markets; add current-snapshot ;;
     src/components/current/CurrentNews*|src/pages/current/news/*|src/features/current/news*)
-      add current-news current-news-timeout ;;
+      news ;;
     src/pages/current2/*|src/components/current/Current2*)
       add current2-responsive ;;
     src/features/current/chart*)
@@ -56,7 +57,7 @@ for file in "$@"; do
     functions/api/current/hsl*)
       hsl; add current-worker-regression ;;
     functions/api/current/news*)
-      add current-news current-news-timeout ;;
+      news ;;
     functions/api/current/*|worker/*|wrangler.jsonc)
       add current-worker-regression current-portfolio-resilience current-markets-fallback current-markets-timeout ;;
     src/components/MeshyPixelatedPoise.astro|src/scripts/threeRuntime.ts)

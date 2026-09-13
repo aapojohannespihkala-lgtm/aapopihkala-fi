@@ -121,6 +121,15 @@ const MAX_PER_SOURCE = 14;
 const MAX_ITEMS = 48;
 const MAX_SUMMARY_LENGTH = 190;
 const FEED_TIMEOUT_MS = 4_000;
+const DEFAULT_FEED_HEADERS = {
+  Accept: 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.5',
+  'User-Agent': 'aapopihkala.fi Current News/1.0',
+};
+const BROWSER_FEED_HEADERS = {
+  Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*;q=0.8',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36',
+};
+const feedHeaders = (feed: Feed) => feed.id === 'angry-metal-guy' ? BROWSER_FEED_HEADERS : DEFAULT_FEED_HEADERS;
 
 const entities: Record<string, string> = {
   amp: '&', apos: "'", gt: '>', lt: '<', nbsp: ' ', quot: '"', hellip: '…',
@@ -373,10 +382,7 @@ const fetchFeed = async (feed: Feed) => {
   try {
     const response = await fetch(feed.url, {
       signal: controller.signal,
-      headers: {
-        Accept: 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.5',
-        'User-Agent': 'aapopihkala.fi Current News/1.0',
-      },
+      headers: feedHeaders(feed),
     });
     if (!response.ok) throw new Error(`${feed.id}:${response.status}`);
     const xml = await response.text();
