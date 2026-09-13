@@ -286,8 +286,8 @@ const selectVisibleDepartures = (
   return [...previous, ...upcoming];
 };
 
-const errorMessage = (status: number, error: string | null) => {
-  if (status === 503 || error === 'missing_configuration') return 'DIGITRANSIT API KEY NOT CONFIGURED.';
+export const hslErrorMessage = (status: number, error: string | null) => {
+  if (error === 'missing_configuration') return 'DIGITRANSIT API KEY NOT CONFIGURED.';
   if (status === 404 || error === 'stop_not_found') return 'YLISRINNE E3239 NOT FOUND.';
   if (error === 'upstream_auth_failed') return 'DIGITRANSIT AUTHENTICATION FAILED.';
   return 'HSL DATA UNAVAILABLE.';
@@ -519,15 +519,20 @@ export const initCurrentHsl = () => {
       const message = reason instanceof Error ? reason.message : '';
       const [statusValue, code = ''] = message.split(':', 2);
       const statusCode = Number(statusValue);
+      const explicitConfigurationError =
+        code === 'missing_configuration' || code === 'upstream_auth_failed';
 
       if (!latestData) {
         results.hidden = true;
         empty.hidden = true;
+      } else if (!explicitConfigurationError && !controller.signal.aborted) {
+        error.hidden = true;
+        return;
       }
 
       error.textContent = controller.signal.aborted
         ? 'HSL REQUEST TIMED OUT.'
-        : errorMessage(Number.isFinite(statusCode) ? statusCode : 0, code || null);
+        : hslErrorMessage(Number.isFinite(statusCode) ? statusCode : 0, code || null);
       error.hidden = false;
     } finally {
       window.clearTimeout(timeout);
