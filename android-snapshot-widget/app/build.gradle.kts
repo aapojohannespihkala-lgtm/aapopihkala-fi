@@ -6,6 +6,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val signingStorePath = providers.environmentVariable("SNAPSHOT_SIGNING_STORE_PATH").orNull
+val signingStorePassword = providers.environmentVariable("SNAPSHOT_SIGNING_STORE_PASSWORD").orNull
+
 android {
     namespace = "fi.aapopihkala.snapshotwidget"
     compileSdk = 36
@@ -16,6 +19,24 @@ android {
         targetSdk = 36
         versionCode = 3
         versionName = "2.0"
+    }
+
+    if (signingStorePath != null && signingStorePassword != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(signingStorePath)
+                storePassword = signingStorePassword
+                keyAlias = "snapshot-widget"
+                keyPassword = signingStorePassword
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.findByName("release")
+            isMinifyEnabled = false
+        }
     }
 
     buildFeatures {

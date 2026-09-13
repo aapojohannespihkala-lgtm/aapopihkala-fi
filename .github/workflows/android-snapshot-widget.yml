@@ -40,14 +40,47 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Build installable debug APK
+      - name: Compile PR debug APK
+        if: github.event_name == 'pull_request'
         working-directory: android-snapshot-widget
         run: gradle --no-daemon :app:assembleDebug
 
+      - name: Require persistent signing key
+        if: github.event_name != 'pull_request'
+        env:
+          SIGNING_KEY_B64: ${{ secrets.ANDROID_SIGNING_KEY_B64 }}
+        run: |
+          if [ -z "$SIGNING_KEY_B64" ]; then
+            echo 'ANDROID_SIGNING_KEY_B64 repository secret is required for stable APK builds.' >&2
+            exit 1
+          fi
+
+      - name: Restore persistent signing key
+        if: github.event_name != 'pull_request'
+        env:
+          SIGNING_KEY_B64: ${{ secrets.ANDROID_SIGNING_KEY_B64 }}
+        run: |
+          echo "$SIGNING_KEY_B64" | base64 --decode > "$RUNNER_TEMP/snapshot-widget-release.p12"
+          chmod 600 "$RUNNER_TEMP/snapshot-widget-release.p12"
+
+      - name: Build signed release APK
+        if: github.event_name != 'pull_request'
+        working-directory: android-snapshot-widget
+        env:
+          SNAPSHOT_SIGNING_STORE_PATH: ${{ runner.temp }}/snapshot-widget-release.p12
+          SNAPSHOT_SIGNING_STORE_PASSWORD: snapshot-widget-2026
+        run: gradle --no-daemon :app:assembleRelease
+
+      - name: Verify release signature
+        if: github.event_name != 'pull_request'
+        run: apksigner verify --verbose --print-certs android-snapshot-widget/app/build/outputs/apk/release/app-release.apk
+
       - name: Prepare APK
-        run: cp android-snapshot-widget/app/build/outputs/apk/debug/app-debug.apk SnapshotWidget.apk
+        if: github.event_name != 'pull_request'
+        run: cp android-snapshot-widget/app/build/outputs/apk/release/app-release.apk SnapshotWidget.apk
 
       - name: Upload APK
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: SnapshotWidget-APK
