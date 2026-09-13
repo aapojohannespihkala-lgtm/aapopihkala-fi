@@ -36,6 +36,7 @@ const ELECTRICITY_MONTH_PATH = '/api/current/electricity-month';
 const HSL_PATH = '/api/current/hsl';
 const MARKETS_PATH = '/api/current/markets';
 const WIDGET_PATH = '/api/current/widget';
+const WIDGET_V2_PATH = '/api/current/widget-v2';
 const NEWS_PATH = '/api/current/news';
 const LIIGA_PATH = '/api/current/liiga';
 const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
@@ -204,6 +205,11 @@ const worker = {
       return url.searchParams.get('v') === '2'
         ? getWidgetV2Response({ request })
         : getWidgetResponse({ request });
+    }
+
+    if (url.pathname === WIDGET_V2_PATH) {
+      if (request.method !== 'GET') return methodNotAllowed();
+      return getWidgetV2Response({ request });
     }
 
     if (url.pathname === NEWS_PATH) {
