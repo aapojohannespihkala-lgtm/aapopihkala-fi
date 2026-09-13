@@ -55,6 +55,8 @@ data class WidgetSection(
     val secondary: String? = null,
     val detail: String? = null,
     val tone: String = "neutral",
+    val span: String = "full",
+    val layout: String = "stack",
     val rows: List<WidgetItem> = emptyList(),
     val columns: List<WidgetItem> = emptyList(),
     val bars: List<Double> = emptyList()
@@ -79,6 +81,23 @@ data class WidgetPayload(
         const val ENGINE_VERSION = 2
         const val ENGINE_SCHEMA_VERSION = 2
     }
+}
+
+fun largeRows(sections: List<WidgetSection>): List<List<WidgetSection>> {
+    val rows = mutableListOf<List<WidgetSection>>()
+    var index = 0
+    while (index < sections.size) {
+        val section = sections[index]
+        if (section.span == "half") {
+            val next = sections.getOrNull(index + 1)?.takeIf { it.span == "half" }
+            rows += if (next != null) listOf(section, next) else listOf(section)
+            index += if (next != null) 2 else 1
+        } else {
+            rows += listOf(section)
+            index += 1
+        }
+    }
+    return rows
 }
 
 object WidgetPayloadCodec {
@@ -116,6 +135,8 @@ object WidgetPayloadCodec {
                 secondary = section.nullableString("secondary"),
                 detail = section.nullableString("detail"),
                 tone = section.optString("tone", "neutral"),
+                span = section.enumOr("span", setOf("full", "half"), "full"),
+                layout = section.enumOr("layout", setOf("stack", "split"), "stack"),
                 rows = section.optJSONArray("rows").items(),
                 columns = section.optJSONArray("columns").items(),
                 bars = section.optJSONArray("bars").numbers()
@@ -169,6 +190,8 @@ object WidgetPayloadCodec {
                 .put("label", section.label)
                 .put("primary", section.primary)
                 .put("tone", section.tone)
+                .put("span", section.span)
+                .put("layout", section.layout)
             section.secondary?.let { objectValue.put("secondary", it) }
             section.detail?.let { objectValue.put("detail", it) }
             if (section.rows.isNotEmpty()) objectValue.put("rows", itemArray(section.rows))
@@ -192,6 +215,11 @@ object WidgetPayloadCodec {
 
     private fun JSONObject?.stringOr(name: String, fallback: String): String =
         this?.optString(name)?.takeIf { it.isNotBlank() } ?: fallback
+
+    private fun JSONObject.enumOr(name: String, allowed: Set<String>, fallback: String): String {
+        val value = optString(name).lowercase()
+        return value.takeIf(allowed::contains) ?: fallback
+    }
 
     private fun JSONObject.nullableString(name: String): String? =
         if (has(name) && !isNull(name)) optString(name).takeIf { it.isNotBlank() } else null
