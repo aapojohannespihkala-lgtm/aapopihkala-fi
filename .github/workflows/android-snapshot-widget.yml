@@ -41,10 +41,10 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Compile PR debug APK
+      - name: Test and compile PR debug APK
         if: github.event_name == 'pull_request'
         working-directory: android-snapshot-widget
-        run: gradle --no-daemon :app:assembleDebug
+        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug
 
       - name: Require persistent signing key
         if: github.event_name != 'pull_request'

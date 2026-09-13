@@ -19,9 +19,9 @@ const payload = (channel: 'prod' | 'dev') => ({
     negative: '#C45F6C',
   },
   layouts: {
-    compact: ['weather'],
-    medium: ['weather'],
-    large: ['weather'],
+    compact: ['weather', 'rates'],
+    medium: ['weather', 'rates'],
+    large: ['weather', 'rates', 'liiga'],
   },
   sections: [
     {
@@ -31,6 +31,30 @@ const payload = (channel: 'prod' | 'dev') => ({
       primary: '16.2°C',
       secondary: 'OLARI / ESPOO',
       detail: 'Light drizzle / 13° / 17°',
+      span: 'full',
+      layout: 'split',
+      columns: [
+        { label: '16:00', value: '16°' },
+        { label: '18:00', value: '15°' },
+      ],
+    },
+    {
+      id: 'rates',
+      index: '04',
+      label: 'RATES',
+      primary: '2.65%',
+      secondary: '3M EURIBOR',
+      span: 'half',
+      layout: 'stack',
+    },
+    {
+      id: 'liiga',
+      index: '05',
+      label: 'LIIGA',
+      primary: '6/17',
+      secondary: 'KÄRPÄT - ILVES',
+      span: 'half',
+      layout: 'stack',
     },
   ],
 });
@@ -61,7 +85,15 @@ test('widget preview uses the v2 presentation endpoint and Android-style header'
   );
   await expect(page.locator('.widget-header')).toContainText('UPDATED 12:30');
   await expect(page.locator('.widget-header')).not.toContainText('CURRENT / SNAPSHOT');
-  await expect(page.locator('[data-section="weather"]')).toContainText('16.2°C');
+
+  const weather = page.locator('[data-section="weather"]');
+  await expect(weather).toContainText('16.2°C');
+  await expect(weather).toHaveAttribute('data-span', 'full');
+  await expect(weather).toHaveAttribute('data-layout', 'split');
+  await expect(weather.locator('.metric-support')).toContainText('16:00');
+
+  await expect(page.locator('[data-section="rates"]')).toHaveAttribute('data-span', 'half');
+  await expect(page.locator('[data-section="liiga"]')).toHaveAttribute('data-span', 'half');
 
   expect(v2Requests).toBe(1);
   expect(legacyV2Requests).toBe(0);

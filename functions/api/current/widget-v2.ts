@@ -2,6 +2,8 @@ import { fetchLiigaResponse } from './liiga';
 import { onRequestGet as getWidgetResponse } from './widget';
 
 type Tone = 'neutral' | 'positive' | 'negative' | 'accent';
+type WidgetSpan = 'full' | 'half';
+type WidgetLayout = 'stack' | 'split';
 type WidgetRow = { label: string; value: string; tone?: Tone };
 type WidgetColumn = { label: string; value: string; tone?: Tone };
 
@@ -13,6 +15,8 @@ export type WidgetSection = {
   secondary?: string;
   detail?: string;
   tone?: Tone;
+  span?: WidgetSpan;
+  layout?: WidgetLayout;
   rows?: WidgetRow[];
   columns?: WidgetColumn[];
   bars?: number[];
@@ -230,6 +234,8 @@ const buildWeatherSection = (value: unknown, solar: SolarData | null): WidgetSec
     primary: formatTemperature(temperature),
     secondary: location ?? undefined,
     detail: detail || undefined,
+    span: 'full',
+    layout: 'split',
     columns: weatherColumns(weather.forecast),
   };
 };
@@ -271,6 +277,8 @@ const buildElectricitySection = (value: unknown): WidgetSection | null => {
     primary: formatPrice(average),
     secondary: 'DAY AVG / TODAY',
     detail: `NOW ${formatNumber(price)}  LOW ${formatNumber(low)}  HIGH ${formatNumber(high)}`,
+    span: 'full',
+    layout: 'stack',
     bars: hourlyBars(electricity.series),
   };
 };
@@ -299,6 +307,8 @@ const buildMarketsSection = (value: unknown): WidgetSection | null => {
     primary: formatPercent(median, true, 2),
     secondary: '1D / MEDIAN',
     tone: toneFor(median),
+    span: 'full',
+    layout: 'stack',
     rows,
   };
 };
@@ -316,6 +326,8 @@ const buildRatesSection = (value: unknown): WidgetSection | null => {
     primary: formatPercent(current, false, 2),
     secondary: '3M EURIBOR',
     detail: `1Y AGO ${formatPercent(yearAgo, false, 2)}`,
+    span: 'half',
+    layout: 'stack',
   };
 };
 
@@ -357,6 +369,8 @@ const buildLiigaSection = (value: unknown): WidgetSection | null => {
       secondary: 'ILVES / LIVE',
       detail: `${home.toUpperCase()} - ${away.toUpperCase()}`,
       tone: 'accent',
+      span: 'half',
+      layout: 'stack',
       rows: [{ label: home.toUpperCase(), value: away.toUpperCase() }],
     };
   }
@@ -383,6 +397,8 @@ const buildLiigaSection = (value: unknown): WidgetSection | null => {
       ? `${nextHome.toUpperCase()} - ${nextAway.toUpperCase()}`
       : 'ILVES / STANDING',
     detail: nextAt ?? undefined,
+    span: 'half',
+    layout: 'stack',
     rows,
   };
 };
