@@ -338,12 +338,73 @@ private fun MediumMetric(section: WidgetSection, palette: Palette, modifier: Gla
 
 @Composable
 private fun LargeLayout(sections: List<WidgetSection>, palette: Palette) {
-    sections.forEachIndexed { index, section ->
+    if (sections.isEmpty()) return
+
+    val fullWidthSections = if (sections.size > 3) sections.dropLast(2) else sections
+    val bottomSections = if (sections.size > 3) sections.takeLast(2) else emptyList()
+
+    Column(modifier = GlanceModifier.fillMaxWidth()) {
+        fullWidthSections.forEachIndexed { index, section ->
+            LargeSectionBlock(
+                section = section,
+                palette = palette,
+                showDivider = index < fullWidthSections.lastIndex || bottomSections.isNotEmpty()
+            )
+        }
+
+        if (bottomSections.isNotEmpty()) {
+            Row(modifier = GlanceModifier.fillMaxWidth()) {
+                LargeBottomMetric(bottomSections[0], palette, GlanceModifier.defaultWeight())
+                if (bottomSections.size > 1) {
+                    VerticalDivider(palette)
+                    LargeBottomMetric(bottomSections[1], palette, GlanceModifier.defaultWeight())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LargeSectionBlock(section: WidgetSection, palette: Palette, showDivider: Boolean) {
+    Column(modifier = GlanceModifier.fillMaxWidth()) {
         DetailedSection(section, palette)
-        if (index < sections.lastIndex) {
-            Spacer(GlanceModifier.height(7.dp))
+        if (showDivider) {
+            Spacer(GlanceModifier.height(5.dp))
             HorizontalDivider(palette)
-            Spacer(GlanceModifier.height(7.dp))
+            Spacer(GlanceModifier.height(5.dp))
+        }
+    }
+}
+
+@Composable
+private fun LargeBottomMetric(section: WidgetSection, palette: Palette, modifier: GlanceModifier) {
+    Column(modifier = modifier.padding(horizontal = 7.dp)) {
+        SectionHeading(section, palette)
+        Spacer(GlanceModifier.height(3.dp))
+        Text(
+            text = section.primary,
+            style = TextStyle(
+                color = ColorProvider(toneColor(section.tone, palette)),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            maxLines = 1
+        )
+        section.secondary?.let {
+            Spacer(GlanceModifier.height(2.dp))
+            Text(
+                text = it,
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+                maxLines = 1
+            )
+        }
+        section.detail?.let {
+            Spacer(GlanceModifier.height(2.dp))
+            Text(
+                text = it,
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+                maxLines = 1
+            )
         }
     }
 }
@@ -365,7 +426,7 @@ private fun DetailedSection(section: WidgetSection, palette: Palette) {
             text = section.primary,
             style = TextStyle(
                 color = ColorProvider(toneColor(section.tone, palette)),
-                fontSize = if (section.id == "markets") 29.sp else 27.sp,
+                fontSize = if (section.id == "markets") 27.sp else 25.sp,
                 fontWeight = FontWeight.Medium
             ),
             maxLines = 1
@@ -379,16 +440,18 @@ private fun DetailedSection(section: WidgetSection, palette: Palette) {
             )
         }
         if (section.columns.isNotEmpty()) {
-            Spacer(GlanceModifier.height(6.dp))
+            Spacer(GlanceModifier.height(5.dp))
             ColumnStrip(section.columns, palette)
         }
         if (section.bars.isNotEmpty()) {
-            Spacer(GlanceModifier.height(6.dp))
+            Spacer(GlanceModifier.height(5.dp))
             BarStrip(section.bars, palette)
         }
         if (section.rows.isNotEmpty()) {
-            Spacer(GlanceModifier.height(5.dp))
-            section.rows.forEach { item -> DetailRow(item, palette) }
+            Spacer(GlanceModifier.height(4.dp))
+            Column(modifier = GlanceModifier.fillMaxWidth()) {
+                section.rows.take(5).forEach { item -> DetailRow(item, palette) }
+            }
         }
     }
 }
@@ -460,21 +523,28 @@ private fun ColumnStrip(items: List<WidgetItem>, palette: Palette) {
 
 @Composable
 private fun BarStrip(values: List<Double>, palette: Palette) {
+    val bars = compactBars(values)
     Row(
-        modifier = GlanceModifier.fillMaxWidth().height(34.dp),
+        modifier = GlanceModifier.fillMaxWidth().height(28.dp),
         verticalAlignment = Alignment.Vertical.Bottom
     ) {
-        values.take(32).forEach { value ->
+        bars.forEach { value ->
             val normalized = value.coerceIn(0.0, 1.0)
             Box(
                 modifier = GlanceModifier
                     .defaultWeight()
-                    .height((5.0 + normalized * 29.0).dp)
+                    .height((4.0 + normalized * 24.0).dp)
+                    .padding(horizontal = 1.dp)
                     .background(palette.foreground)
             ) {}
-            Spacer(GlanceModifier.width(1.dp))
         }
     }
+}
+
+private fun compactBars(values: List<Double>, maxBars: Int = 8): List<Double> {
+    if (values.size <= maxBars) return values
+    val chunkSize = (values.size + maxBars - 1) / maxBars
+    return values.chunked(chunkSize).map { bucket -> bucket.average() }.take(maxBars)
 }
 
 @Composable
