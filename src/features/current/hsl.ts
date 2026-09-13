@@ -2,6 +2,7 @@ import {
   updateHslGpsPassageState,
   type HslGpsPassageState,
 } from './hsl-passage-state';
+import { CURRENT_HSL_QUERY, currentHslStopLabel } from './hsl-query';
 
 type HslVehicle = {
   id: string;
@@ -70,11 +71,6 @@ type VisibleDeparture = {
 const REFRESH_INTERVAL_MS = 15_000;
 const REQUEST_TIMEOUT_MS = 8_000;
 const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
-const DEFAULT_QUERY = {
-  stopCode: 'E3239',
-  stopName: 'Ylisrinne',
-  routes: ['121', '125'],
-} as const;
 const MAX_PREVIOUS_DEPARTURES = 2;
 const MAX_UPCOMING_DEPARTURES = 6;
 
@@ -292,7 +288,7 @@ const selectVisibleDepartures = (
 
 export const hslErrorMessage = (status: number, error: string | null) => {
   if (error === 'missing_configuration') return 'DIGITRANSIT API KEY NOT CONFIGURED.';
-  if (status === 404 || error === 'stop_not_found') return 'YLISRINNE E3239 NOT FOUND.';
+  if (status === 404 || error === 'stop_not_found') return `${currentHslStopLabel()} NOT FOUND.`;
   if (error === 'upstream_auth_failed') return 'DIGITRANSIT AUTHENTICATION FAILED.';
   return 'HSL DATA UNAVAILABLE.';
 };
@@ -318,9 +314,9 @@ export const initCurrentHsl = () => {
   if (!status || !results || !departuresTarget || !empty || !error) return;
 
   const currentQuery = {
-    stopCode: DEFAULT_QUERY.stopCode,
-    stopName: DEFAULT_QUERY.stopName,
-    routes: [...DEFAULT_QUERY.routes],
+    stopCode: CURRENT_HSL_QUERY.stopCode,
+    stopName: CURRENT_HSL_QUERY.stopName,
+    routes: [...CURRENT_HSL_QUERY.routes],
   };
   const gpsPassageStates = new Map<string, HslGpsPassageState>();
   let latestData: HslResponse | null = null;
@@ -554,7 +550,7 @@ export const initCurrentHsl = () => {
     if (document.visibilityState === 'visible') refresh();
   });
 
-  status.textContent = 'YLISRINNE / E3239 / FETCHING';
+  status.textContent = `${currentHslStopLabel()} / FETCHING`;
   void requestDepartures();
   refreshTimer = window.setInterval(refresh, REFRESH_INTERVAL_MS);
   window.setInterval(updateRelativeTimes, 5_000);
