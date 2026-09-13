@@ -91,6 +91,15 @@ test('does not scan stale no-GPS departures indefinitely', () => {
   ).toBe(false);
 });
 
+test('does not scan no-GPS departures that are still well in the future', () => {
+  expect(
+    shouldCheckHslPassage(
+      departure('2026-09-13T12:30:00.000Z', null),
+      '2026-09-13T12:22:00.000Z'
+    )
+  ).toBe(false);
+});
+
 test('explicit GTFS stop progress always triggers passage processing', () => {
   expect(
     shouldCheckHslPassage(
