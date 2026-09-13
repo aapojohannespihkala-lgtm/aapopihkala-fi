@@ -411,6 +411,11 @@ private fun LargeBottomMetric(section: WidgetSection, palette: Palette, modifier
 
 @Composable
 private fun DetailedSection(section: WidgetSection, palette: Palette) {
+    if (section.id == "weather" && section.columns.isNotEmpty()) {
+        LargeWeatherSection(section, palette)
+        return
+    }
+
     Column(modifier = GlanceModifier.fillMaxWidth()) {
         SectionHeading(section, palette)
         section.secondary?.let {
@@ -451,6 +456,50 @@ private fun DetailedSection(section: WidgetSection, palette: Palette) {
             Spacer(GlanceModifier.height(4.dp))
             Column(modifier = GlanceModifier.fillMaxWidth()) {
                 section.rows.take(5).forEach { item -> DetailRow(item, palette) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LargeWeatherSection(section: WidgetSection, palette: Palette) {
+    Column(modifier = GlanceModifier.fillMaxWidth()) {
+        SectionHeading(section, palette)
+        Spacer(GlanceModifier.height(4.dp))
+        Row(
+            modifier = GlanceModifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Vertical.CenterVertically
+        ) {
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                section.secondary?.let {
+                    Text(
+                        text = it,
+                        style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+                        maxLines = 1
+                    )
+                    Spacer(GlanceModifier.height(2.dp))
+                }
+                Text(
+                    text = section.primary,
+                    style = TextStyle(
+                        color = ColorProvider(toneColor(section.tone, palette)),
+                        fontSize = 25.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    maxLines = 1
+                )
+                section.detail?.let {
+                    Spacer(GlanceModifier.height(2.dp))
+                    Text(
+                        text = it,
+                        style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+                        maxLines = 2
+                    )
+                }
+            }
+            Spacer(GlanceModifier.width(10.dp))
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                ColumnStrip(section.columns, palette)
             }
         }
     }
