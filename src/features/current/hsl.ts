@@ -39,6 +39,8 @@ type HslLearningSummary = {
   version: string;
   observations: number;
   arrivals: number;
+  dueTrips: number;
+  detectedDueTrips: number;
   scoredTrips: number;
   modelScoredTrips: number;
   hslMaeSeconds: number | null;
@@ -116,6 +118,8 @@ const isHslLearningSummary = (value: unknown): value is HslLearningSummary => {
     typeof value.version === 'string' &&
     typeof value.observations === 'number' &&
     typeof value.arrivals === 'number' &&
+    typeof value.dueTrips === 'number' &&
+    typeof value.detectedDueTrips === 'number' &&
     typeof value.scoredTrips === 'number' &&
     typeof value.modelScoredTrips === 'number' &&
     isNullableNumber(value.hslMaeSeconds) &&
@@ -350,7 +354,7 @@ export const initCurrentHsl = () => {
       learning.modelScoredTrips > 0
         ? `${learning.modelWins} / ${learning.modelScoredTrips}`
         : '--';
-    learningMeta.textContent = `${learning.version.toUpperCase()} / ${learning.observations} OBS / 5 MIN SCORE WINDOW`;
+    learningMeta.textContent = `${learning.version.toUpperCase()} / ${learning.observations} OBS / PASSAGES ${learning.detectedDueTrips}/${learning.dueTrips} / 5 MIN SCORE WINDOW`;
   };
 
   const render = (data: HslResponse) => {
