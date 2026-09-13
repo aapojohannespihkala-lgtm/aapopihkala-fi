@@ -12,12 +12,12 @@ The long-term goal is that normal content, ordering and presentation changes can
 
 - Keep the widget calm, minimal and readable at a glance.
 - Prefer useful information over decorative headings. The generic `CURRENT / SNAPSHOT` heading was removed in favor of time, date and ISO week number.
-- Use horizontal space before adding vertical height. Large-layout sections may place the main metric on the left and supporting detail on the right.
+- Use horizontal space before adding vertical height.
 - Preserve a clear hierarchy: one primary value, supporting context, then small technical/detail text.
 - Treat the mobile Snapshot page as a reference, not a layout template.
-- Evolve the widget one section at a time. Avoid redesigning all sections in one iteration unless the underlying layout model genuinely changes.
+- Evolve the widget one section at a time unless the underlying layout grammar genuinely changes.
 - Keep server-driven design changes separate from Android engine changes.
-- Temporary diagnostics may be shown during development, but they are not part of the intended final visual design.
+- Keep diagnostics available for debugging without mixing them into normal content.
 
 ## Current information architecture
 
@@ -42,11 +42,11 @@ The current large widget contains these sections:
    - Ilves standing
    - next match and start time when available
 
-HSL is a planned future section. It is intentionally not part of the widget yet. The layout should leave room for adding HSL later without forcing a full redesign.
+HSL is a planned future section. It is intentionally not part of the widget yet. The layout grammar should allow HSL to be added without another whole-widget redesign.
 
 ## Header
 
-The large widget currently uses a practical header instead of a product title:
+The large widget uses a practical header instead of a product title:
 
 ```text
 23:57                         REFRESH
@@ -69,6 +69,7 @@ The website/Pages Functions side owns:
 - section order by size class
 - colors/theme
 - rows, columns and normalized bar data
+- large-layout `span` and `layout` metadata
 - prod/dev presentation variants
 
 The authoritative v2 presentation endpoint is:
@@ -83,7 +84,7 @@ The development channel is:
 /api/current/widget-v2?channel=dev
 ```
 
-Important: `/api/current/widget?v=2` is not the v2 presentation endpoint. `functions/api/current/widget.ts` is the legacy/raw compatibility endpoint and currently ignores that query parameter. Do not switch the Android engine back to that URL expecting a v2 payload.
+Important: `/api/current/widget?v=2` is not the v2 presentation endpoint. `functions/api/current/widget.ts` is the legacy/raw compatibility endpoint and does not provide the rich presentation contract.
 
 The legacy compatibility endpoint is:
 
@@ -99,15 +100,16 @@ The Android app owns:
 
 - Glance rendering
 - size-class selection
-- generic primitives such as primary values, rows, columns and bars
+- generic presentation primitives
+- large-row grouping from server metadata
 - cache persistence
 - refresh actions
 - WorkManager background scheduling
 - compatibility checks
 - fallback behavior
-- temporary phone-side diagnostics
+- internal network/fallback status tracking
 
-The Android renderer should not contain product-specific section ordering beyond safe fallback defaults.
+The Android renderer should not contain product-specific section IDs or ordering rules beyond safe fallback defaults.
 
 The data flow is conceptually:
 
@@ -135,9 +137,9 @@ The v2 payload includes `schemaVersion` and `minEngineVersion`.
 
 The Android engine must reject a payload that requires a newer engine than the installed APK understands. In that case it should retain the last compatible cached payload and/or use the compatibility fallback.
 
-Server-side changes may safely add, remove, reorder or restyle sections when they use rendering primitives already understood by the installed Android engine. A new rendering primitive or Android/platform capability requires a new APK.
+Server-side changes may safely add, remove, reorder or restyle sections when they use rendering primitives already understood by the installed Android engine. A genuinely new rendering capability or Android/platform capability requires a new APK.
 
-Generic section primitives currently include:
+Generic section content primitives include:
 
 - `primary`
 - `secondary`
@@ -147,11 +149,30 @@ Generic section primitives currently include:
 - `columns`
 - normalized `bars`
 
+Large-layout composition also supports:
+
+- `span: full` - one section occupies the full widget width
+- `span: half` - compact metric that can pair with the next adjacent half-width section
+- `layout: stack` - normal vertical metric presentation
+- `layout: split` - main metric on the left and supporting columns, bars and/or rows on the right
+
+Missing `span` or `layout` values default to `full` and `stack`. This keeps older cached payloads compatible. Older v2 APKs can also safely ignore the added fields while the existing section order remains compatible.
+
+The current production presentation uses:
+
+- Weather: `full + split`
+- Electricity: `full + stack`
+- Markets: `full + stack`
+- Rates: `half + stack`
+- Liiga: `half + stack`
+
+The next presentation experiments can therefore move Electricity or Markets to `split` without adding another section-specific branch to the Android renderer.
+
 ## Size classes
 
 The widget has compact, medium and large size classes. The v2 payload supplies section order/visibility for each class.
 
-The current design work is primarily focused on the large phone widget shown in development screenshots. Changes should still avoid breaking compact and medium rendering.
+`span` and `layout` currently guide the large presentation. Compact and medium remain intentionally denser and should continue to be checked whenever the server contract changes.
 
 ## Browser preview
 
@@ -161,9 +182,9 @@ Use:
 /current/widget-preview/
 ```
 
-The preview reads the same v2 presentation model and can be used to inspect compact, medium and large layouts plus prod/dev variants.
+The preview reads `/api/current/widget-v2` directly and uses the same `span` and `layout` metadata as the Android engine. It can inspect compact, medium and large layouts plus prod/dev variants.
 
-It is a design approximation, not a pixel-identical Android emulator. Final spacing and Glance behavior must still be verified on a real Android launcher when the engine or layout primitive changes.
+The preview is a design approximation, not a pixel-identical Android emulator. Final spacing and Glance behavior must still be verified on a real Android launcher when the engine or layout primitive changes.
 
 ## Preferred development workflow
 
@@ -175,64 +196,56 @@ For a normal presentation change:
 4. promote the presentation to prod
 5. refresh the installed widget
 
-No APK should be required for this loop.
+No APK should be required for this loop when the presentation uses primitives already understood by the installed engine.
 
 For an Android engine change:
 
 1. make the smallest engine change needed
 2. bump `versionName` and `versionCode`
-3. build/test through the Android GitHub Actions workflow
-4. merge only after the debug build compiles
-5. let the `main` release workflow create the persistently signed APK
-6. install over the existing app and verify on-device
+3. add or update unit/regression tests for the primitive
+4. build/test through the Android GitHub Actions workflow
+5. merge only after the tests and debug APK compile succeed
+6. let the `main` release workflow create the persistently signed APK
+7. install over the existing app and verify on-device
 
-Do not use APK rebuilds for changes that can be expressed by the existing presentation primitives.
+Do not use APK rebuilds for changes that can be expressed by the existing presentation grammar.
 
 ## APK and signing workflow
 
 Android source lives under `android-snapshot-widget/`.
 
-The Android workflow is path-filtered so ordinary Current/site/presentation changes do not build an APK. Android-changing pull requests compile a debug APK. After merge to `main`, the release workflow restores the persistent signing key, builds the signed release APK, verifies its signature and uploads the artifact.
+The Android workflow is path-filtered so ordinary Current/site/presentation changes do not build an APK. Android-changing pull requests run unit tests and compile a debug APK. After merge to `main`, the release workflow restores the persistent signing key, builds the signed release APK, verifies its signature and uploads the artifact.
 
 Keeping the signing identity stable is essential so new versions install over the existing app instead of conflicting with it.
 
+Signing credentials must be stored in GitHub Actions secrets rather than committed to workflow source. Credential rotation and secret cleanup are tracked separately from presentation work.
+
 ## Current development state
 
-As of version `2.4.4`, the rich v2 payload is working on the test phone. A successful refresh has been observed with the full Weather, Electricity, Markets, Rates and Liiga content visible.
+### 2.5.0
 
-Version `2.4.4` is intentionally a diagnostic build. It adds phone-side status text so networking/cache failures can be identified without guessing or changing endpoints repeatedly. The diagnostics should be removed or reduced once the refresh path is considered stable.
+The temporary visible diagnostics from the 2.4.x debugging phase were removed. V2 request status, legacy fallback status and last-attempt state remain available internally, while normal Weather content is no longer decorated with debugging labels.
 
-The current visible diagnostic pattern is similar to:
+The browser preview was also corrected to use the authoritative `/api/current/widget-v2` endpoint and to mirror the Android time/date/week header.
 
-```text
-WEATHER · 2.4.4 · V2 OK
-OLARI / ESPOO · L SKIP · C0M
-```
+### 2.6.0
 
-Interpretation:
+The large renderer moved from product-specific rules to generic presentation metadata:
 
-- `V2 OK` - the v2 endpoint returned a compatible non-empty payload
-- `V2 TIMEOUT` - socket/connect read timed out
-- `V2 DNS` - hostname resolution failed
-- `V2 SSL` - TLS/SSL failure
-- `V2 CONNECT` - connection could not be established
-- `V2 HTTP###` - endpoint returned a non-2xx status
-- `V2 IO` - other I/O failure
-- `V2 PARSE` - HTTP body arrived but the payload could not be parsed
-- `V2 COMPAT` - parsed payload requires an unsupported engine/schema
-- `V2 EMPTY` - compatible payload contained no sections
-- `L OK` - v2 failed and the legacy fallback succeeded
-- `L SKIP` - v2 succeeded, so legacy fallback was not requested
-- `L <error>` - legacy fallback also failed with the shown reason
-- `C0M`, `C47M`, `C2H`, etc. - approximate age of the cached payload
+- Weather no longer gets a special `section.id == "weather"` branch
+- Markets no longer gets a section-ID-specific primary font size
+- the last two sections are no longer implicitly treated as the bottom pair
+- adjacent `span: half` sections form a row through the generic `largeRows` grouping function
+- `layout: split` works with generic columns, bars or rows
+- Android PR CI runs unit tests before the debug APK build
 
-The installed APK version is rendered from `BuildConfig.VERSION_NAME`, not from cached server data. This prevents screenshots from showing a stale app version after a failed refresh.
+This is the intended foundation for the next Electricity and Markets iterations and for adding HSL later.
 
 ## Cache and failure behavior
 
 The widget keeps the latest compatible payload in SharedPreferences. A failed refresh must not destroy good cached content.
 
-When v2 succeeds, the cache is replaced with the new v2 payload. When v2 fails but legacy succeeds, the legacy payload can be cached as fallback content. If both fail, the previous cache is retained and status/diagnostics should make the failure visible.
+When v2 succeeds, the cache is replaced with the new v2 payload. When v2 fails but legacy succeeds, the legacy payload can be cached as fallback content. If both fail, the previous cache is retained.
 
 The `UPDATED` timestamp describes the payload generation time, not necessarily the time when the widget was last redrawn. The header clock can therefore be newer than `UPDATED` when cached data is being displayed.
 
@@ -243,13 +256,17 @@ Key server-side files:
 - `functions/api/current/widget.ts` - legacy/raw widget data endpoint
 - `functions/api/current/widget-v2.ts` - v2 presentation builder and layout/theme contract
 - `functions/api/current/liiga.ts` and related Current APIs - upstream domain data used by the presentation
+- `src/pages/current/widget-preview/index.astro` - browser presentation preview
+- `tests/e2e/current-widget-v2-regression.spec.ts` - server presentation contract regression
+- `tests/e2e/current-widget-preview.spec.ts` - browser preview regression
 - `docs/WIDGET.md` - this handover/design document
 
 Key Android files:
 
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SnapshotWidgetApp.kt` - Glance layouts, header, refresh action and WorkManager worker
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetModels.kt` - v2 model, parsing and compatibility
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetRepository.kt` - endpoint access, cache, fallback and diagnostics
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetModels.kt` - v2 model, parsing, compatibility and pure layout grouping
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetRepository.kt` - endpoint access, cache, fallback and internal diagnostics
+- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/WidgetLayoutTest.kt` - pure layout grammar unit tests
 - `android-snapshot-widget/app/build.gradle.kts` - Android version and release configuration
 - `.github/workflows/android-snapshot-widget.yml` - Android CI/release build
 
@@ -261,14 +278,18 @@ The main decisions behind the current implementation are:
 - Server-driven presentation contract so most design work does not require reinstalling the APK.
 - The mobile Snapshot page is the reference, while the widget remains intentionally more minimal.
 - Header uses time/date/week instead of the redundant `CURRENT / SNAPSHOT` title.
-- Weather was the first large-layout horizontal experiment: current conditions on the left, forecast on the right.
-- Sunrise, sunset and daylight length were brought over from the Snapshot weather concept.
+- Presentation semantics belong to generic primitives, not section IDs.
+- Weather was the first `split` section and established the horizontal grammar.
+- Half-width sections are explicitly declared by the server rather than inferred from list position.
+- Sunrise, sunset and daylight length remain part of the Weather presentation.
 - Development proceeds section by section while keeping the whole dashboard composition in mind.
-- HSL is planned but deferred until the existing sections and layout grammar are stable.
-- Do not diagnose phone networking by changing endpoints blindly. Keep the endpoint fixed and expose the actual HTTP/network/cache state instead.
+- HSL is planned but deferred until Electricity and Markets have been tuned with the generic grammar.
+- Phone networking should be diagnosed from actual request/cache state rather than by changing endpoints blindly.
 
 ## Next steps
 
-Once the 2.4.4 diagnostics have demonstrated stable refresh behavior, remove or greatly reduce the visible debug text while retaining useful internal failure reporting.
-
-After that, continue design work incrementally. Weather is currently the most developed horizontal section. Electricity and Markets are the next candidates for better use of horizontal space. The bottom area should be designed with a future HSL section in mind rather than filled ad hoc.
+1. Prototype Electricity as `layout: split` in the dev presentation channel, with the day average and current context on the left and the normalized price bars on the right.
+2. Prototype Markets as `layout: split`, with the 1-day median on the left and the market rows on the right.
+3. Compare both variants in `/current/widget-preview/` and on a real launcher before promoting them to prod.
+4. Add HSL only after the lower-area composition is stable.
+5. Finish the signing credential rotation tracked separately so no signing password remains in workflow source.
