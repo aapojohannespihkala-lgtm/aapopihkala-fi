@@ -72,7 +72,7 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
   expect(weather).toMatchObject({
     primary: '16.2°C',
     secondary: 'OLARI / ESPOO',
-    detail: 'Light drizzle / 12.5°C / 16.9°C',
+    detail: 'Light drizzle / 13° / 17°',
     columns: [
       { label: '16:00', value: '16°' },
       { label: '18:00', value: '15°' },
@@ -102,7 +102,8 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
   const liiga = payload.sections.find((section) => section.id === 'liiga');
   expect(liiga).toMatchObject({
     primary: '6/17',
-    secondary: 'ILVES / STANDING',
+    secondary: 'KÄRPÄT - ILVES',
+    detail: 'WED 16 18:30',
     rows: [
       { label: 'NEXT', value: 'KÄRPÄT - ILVES' },
       { label: 'START', value: 'WED 16 18:30' },
