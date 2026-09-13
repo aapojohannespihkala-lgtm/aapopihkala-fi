@@ -342,7 +342,7 @@ const vehicleMapByJourney = (vehicles: HslVehiclePosition[]) => {
   return byJourney;
 };
 
-const chooseVehicle = (
+export const chooseVehicle = (
   departure: NormalizedDeparture,
   candidates: HslVehiclePosition[],
   stopLat: number | null,
@@ -355,8 +355,7 @@ const chooseVehicle = (
     return currentStopPosition < 0 || currentStopPosition <= targetPosition;
   });
 
-  const source = eligible.length > 0 ? eligible : candidates;
-  return source
+  return eligible
     .map((vehicle) => ({
       vehicle,
       distance:
