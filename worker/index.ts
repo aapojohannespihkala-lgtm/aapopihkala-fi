@@ -6,6 +6,7 @@ import {
   type HslLearningDb,
 } from '../functions/api/current/hsl-learning';
 import { recordHslDistancePassages } from '../functions/api/current/hsl-passage-learning';
+import { recordHslRawLearningSnapshot } from '../functions/api/current/hsl-raw-learning';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
 import { onRequestGet as getPortfolioResponse } from '../functions/api/current/portfolio-complete';
 import { onRequestGet as getSnapshotPortfolioResponse } from '../functions/api/current/portfolio-snapshot';
@@ -150,7 +151,11 @@ const collectHslLearningSnapshot = async (env: WorkerEnv) => {
     console.error('Scheduled HSL learning snapshot failed', response.status);
     return;
   }
-  await enrichAndRecordHsl(response, hslLearningDb(env.HSL_MODEL_DB));
+
+  const db = hslLearningDb(env.HSL_MODEL_DB);
+  await recordHslRawLearningSnapshot(response, db);
+  await recordHslDistancePassages(response, db);
+  await enrichAndRecordHsl(response, db);
 };
 
 const worker = {
