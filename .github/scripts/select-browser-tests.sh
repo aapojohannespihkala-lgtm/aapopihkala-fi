@@ -14,7 +14,7 @@ weather() { add current-weather-solar-geometry current-weather-solar-presentatio
 markets() { add current-markets current-markets-default-order current-markets-fallback current-markets-timeout; }
 liiga() { add current-liiga current-liiga-schedule current-snapshot-liiga; }
 hsl() { add current-hsl; }
-snapshot() { add current-snapshot current-snapshot-liiga current-snapshot-month-calendar; }
+snapshot() { add current-snapshot current-snapshot-alignment current-snapshot-liiga current-snapshot-month-calendar; }
 all_current() {
   layout; electricity; weather; markets; liiga; hsl; snapshot
   add current-news current-news-timeout current2-responsive
