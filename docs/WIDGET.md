@@ -18,6 +18,7 @@ The long-term goal is that normal content, ordering and presentation changes can
 - Evolve the widget one section at a time unless the underlying layout grammar genuinely changes.
 - Keep server-driven design changes separate from Android engine changes.
 - Keep diagnostics available for debugging without mixing them into normal content.
+- Optional upstream sections must fail independently rather than taking down the whole presentation payload.
 
 ## Current information architecture
 
@@ -35,14 +36,18 @@ The current large widget contains these sections:
 3. Markets
    - selected 1-day median as the main value
    - World, USA, Finland, BTC/EUR and Remedy rows
-4. Rates
+4. HSL
+   - next departure countdown as the main value
+   - route, destination, clock time and live/scheduled state
+   - a short list of upcoming departures
+5. Rates
    - 3M Euribor
    - one-year-ago comparison
-5. Liiga
+6. Liiga
    - Ilves standing
    - next match and start time when available
 
-HSL is a planned future section. It is intentionally not part of the widget yet. The layout grammar should allow HSL to be added without another whole-widget redesign.
+HSL is included only in the large layout. Compact and medium retain the denser Weather, Electricity, Markets and Rates composition.
 
 ## Header
 
@@ -71,6 +76,7 @@ The website/Pages Functions side owns:
 - rows, columns and normalized bar data
 - large-layout `span` and `layout` metadata
 - prod/dev presentation variants
+- bounded optional upstream adapters such as HSL
 
 The authoritative v2 presentation endpoint is:
 
@@ -94,6 +100,8 @@ The legacy compatibility endpoint is:
 
 The presentation builder is implemented in `functions/api/current/widget-v2.ts`. It builds on the legacy/current data sources and adds the versioned presentation model used by the Android renderer.
 
+HSL is fetched through a dedicated widget adapter. The adapter reuses the same Current HSL query configuration as the web page, applies a short timeout and returns `null` when usable departure data is unavailable. The v2 builder then simply omits HSL while retaining all other sections.
+
 ### Android rendering layer
 
 The Android app owns:
@@ -115,6 +123,8 @@ The data flow is conceptually:
 
 ```text
 Current data sources
+        |
+        +--> HSL adapter (optional, bounded)
         |
         v
 legacy /api/current/widget
@@ -158,21 +168,32 @@ Large-layout composition also supports:
 
 Missing `span` or `layout` values default to `full` and `stack`. This keeps older cached payloads compatible. Older v2 APKs can also safely ignore the added fields while the existing section order remains compatible.
 
-The current production presentation uses:
+The current large production presentation uses:
 
 - Weather: `full + split`
-- Electricity: `full + stack`
-- Markets: `full + stack`
+- Electricity: `full + split`
+- Markets: `full + split`
+- HSL: `full + split`
 - Rates: `half + stack`
 - Liiga: `half + stack`
 
-The next presentation experiments can therefore move Electricity or Markets to `split` without adding another section-specific branch to the Android renderer.
+No section-specific Android renderer branch is required for those layouts.
+
+## HSL behavior
+
+The HSL section is intentionally glanceable rather than a copy of the full Current HSL panel.
+
+The large widget shows the next usable departure as the primary countdown. Route and destination are supporting context, while the right side lists several upcoming departures with their clock time and countdown. Realtime departures use the existing accent tone.
+
+The widget presentation does not include the configured stop name or stop code. The Current page and the widget adapter share one query configuration module so location-related configuration is not duplicated across implementations.
+
+HSL fetching is bounded to four seconds in the widget path. Missing configuration, upstream errors, timeouts or an empty departure list omit only the HSL section. They do not make the v2 payload fail when other sections remain available.
 
 ## Size classes
 
 The widget has compact, medium and large size classes. The v2 payload supplies section order/visibility for each class.
 
-`span` and `layout` currently guide the large presentation. Compact and medium remain intentionally denser and should continue to be checked whenever the server contract changes.
+`span` and `layout` guide the large presentation. Compact and medium remain intentionally denser and should continue to be checked whenever the server contract changes.
 
 ## Browser preview
 
@@ -183,6 +204,8 @@ Use:
 ```
 
 The preview reads `/api/current/widget-v2` directly and uses the same `span` and `layout` metadata as the Android engine. It can inspect compact, medium and large layouts plus prod/dev variants.
+
+The preview styles are global within the standalone preview page because widget markup is generated dynamically. Scoped Astro styles do not automatically attach to elements created later with `innerHTML`.
 
 The preview is a design approximation, not a pixel-identical Android emulator. Final spacing and Glance behavior must still be verified on a real Android launcher when the engine or layout primitive changes.
 
@@ -239,13 +262,21 @@ The large renderer moved from product-specific rules to generic presentation met
 - `layout: split` works with generic columns, bars or rows
 - Android PR CI runs unit tests before the debug APK build
 
-This is the intended foundation for the next Electricity and Markets iterations and for adding HSL later.
+This engine version is sufficient for subsequent Electricity, Markets and HSL presentation changes, so those changes do not require another APK.
+
+### Server presentation after 2.6.0
+
+Electricity and Markets were promoted to `layout: split` using the existing engine. HSL was then added as another full-width split section, with Rates and Liiga remaining as the bottom half-width pair.
+
+The browser preview regression also exposed and fixed a latent Astro style-scoping issue for dynamically generated widget markup.
 
 ## Cache and failure behavior
 
 The widget keeps the latest compatible payload in SharedPreferences. A failed refresh must not destroy good cached content.
 
 When v2 succeeds, the cache is replaced with the new v2 payload. When v2 fails but legacy succeeds, the legacy payload can be cached as fallback content. If both fail, the previous cache is retained.
+
+An optional section failure inside a successful v2 build should omit that section rather than turn the whole response into a failure.
 
 The `UPDATED` timestamp describes the payload generation time, not necessarily the time when the widget was last redrawn. The header clock can therefore be newer than `UPDATED` when cached data is being displayed.
 
@@ -255,7 +286,10 @@ Key server-side files:
 
 - `functions/api/current/widget.ts` - legacy/raw widget data endpoint
 - `functions/api/current/widget-v2.ts` - v2 presentation builder and layout/theme contract
+- `functions/api/current/widget-hsl.ts` - bounded HSL adapter for the widget presentation
+- `functions/api/current/hsl.ts` - Current HSL upstream data endpoint
 - `functions/api/current/liiga.ts` and related Current APIs - upstream domain data used by the presentation
+- `src/features/current/hsl-query.ts` - shared Current/widget HSL query configuration
 - `src/pages/current/widget-preview/index.astro` - browser presentation preview
 - `tests/e2e/current-widget-v2-regression.spec.ts` - server presentation contract regression
 - `tests/e2e/current-widget-preview.spec.ts` - browser preview regression
@@ -279,17 +313,16 @@ The main decisions behind the current implementation are:
 - The mobile Snapshot page is the reference, while the widget remains intentionally more minimal.
 - Header uses time/date/week instead of the redundant `CURRENT / SNAPSHOT` title.
 - Presentation semantics belong to generic primitives, not section IDs.
-- Weather was the first `split` section and established the horizontal grammar.
+- Weather established the `split` grammar, followed by Electricity, Markets and HSL.
 - Half-width sections are explicitly declared by the server rather than inferred from list position.
 - Sunrise, sunset and daylight length remain part of the Weather presentation.
+- HSL is large-only and fails independently from the rest of the v2 payload.
 - Development proceeds section by section while keeping the whole dashboard composition in mind.
-- HSL is planned but deferred until Electricity and Markets have been tuned with the generic grammar.
 - Phone networking should be diagnosed from actual request/cache state rather than by changing endpoints blindly.
 
 ## Next steps
 
-1. Prototype Electricity as `layout: split` in the dev presentation channel, with the day average and current context on the left and the normalized price bars on the right.
-2. Prototype Markets as `layout: split`, with the 1-day median on the left and the market rows on the right.
-3. Compare both variants in `/current/widget-preview/` and on a real launcher before promoting them to prod.
-4. Add HSL only after the lower-area composition is stable.
-5. Finish the signing credential rotation tracked separately so no signing password remains in workflow source.
+1. Verify the six-section large composition on a real launcher and tune only spacing/text density if needed.
+2. Decide whether `refreshMinutes` should actually drive Android scheduling or be removed from the contract, since WorkManager currently uses a fixed 15-minute period.
+3. Unify Solar location handling with the Weather data source instead of keeping a separate coordinate assumption.
+4. Finish the signing credential rotation tracked separately so no signing password remains in workflow source.
