@@ -43,8 +43,6 @@ The app refreshes with WorkManager every 15 minutes and includes a manual REFRES
 
 Network, compatibility and fallback diagnostics are retained internally. Temporary phone-side diagnostic labels used during the 2.4.x debugging phase are no longer mixed into normal widget content.
 
-Optional server-side sections are isolated from the rest of the payload. For example, an unavailable HSL upstream omits only the HSL section rather than preventing Weather, Electricity, Markets, Rates or Liiga from rendering.
-
 ## APK workflow
 
 Android engine changes are validated with unit tests and a debug APK on the pull request. After an Android-changing PR is merged, the Android release workflow on `main` builds and uploads the persistently signed release APK. Server-only widget changes do not require a new APK.
@@ -53,16 +51,15 @@ A new APK is needed only when the Android renderer, platform behavior, networkin
 
 ## Current development state
 
-Version `2.6.0` introduced the generic large-layout grammar. Weather, Electricity and Markets use full-width split presentation. Rates and Liiga use half-width presentation metadata instead of being inferred from their section IDs or position.
+Version `2.6.0` introduces the generic large-layout grammar. Weather is now expressed as a full-width split section instead of being recognized by its section ID. Rates and Liiga use half-width presentation metadata instead of being inferred from their position at the end of the section list.
 
 The current large-layout direction uses:
 
 - time, date and ISO week in the header instead of `CURRENT / SNAPSHOT`
 - horizontal Weather layout with current conditions and forecast side by side
 - sunrise, sunset and daylight length
-- Electricity with day average and price context on the left plus intraday bars on the right
-- Markets with the median on the left plus market rows on the right
-- HSL with the next departure on the left plus upcoming departures on the right
+- server-driven electricity bars and market detail rows
 - Rates and Liiga as half-width lower metrics
+- HSL reserved as a future section after the current layout grammar is stable
 
-HSL is a server-side presentation addition and does not require an APK newer than 2.6.0. Its fetch is bounded and the section is omitted when usable departure data is unavailable. The Current page and widget adapter use the same HSL query configuration source.
+Electricity and Markets are the next candidates for `layout: split`, once their horizontal compositions have been tuned in the dev presentation channel and browser preview.
