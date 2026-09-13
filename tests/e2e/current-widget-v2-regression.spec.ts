@@ -73,6 +73,8 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
     primary: '16.2°C',
     secondary: 'OLARI / ESPOO',
     detail: 'Light drizzle / 13° / 17°',
+    span: 'full',
+    layout: 'split',
     columns: [
       { label: '16:00', value: '16°' },
       { label: '18:00', value: '15°' },
@@ -86,11 +88,17 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
     primary: '1.83 c/kWh',
     secondary: 'DAY AVG / TODAY',
     detail: 'NOW 2.54  LOW 0.39  HIGH 5.03',
+    span: 'full',
+    layout: 'stack',
     bars: [0, 1, 0.5],
   });
 
   const markets = payload.sections.find((section) => section.id === 'markets');
-  expect(markets?.primary).toBe('+0.08%');
+  expect(markets).toMatchObject({
+    primary: '+0.08%',
+    span: 'full',
+    layout: 'stack',
+  });
   expect(markets?.rows).toEqual([
     { label: 'WORLD', value: '+0.94%', tone: 'positive' },
     { label: 'USA', value: '+1.36%', tone: 'positive' },
@@ -99,11 +107,16 @@ test('widget v2 exposes a generic adaptive presentation contract', () => {
     { label: 'REMEDY', value: '+1.64%', tone: 'positive' },
   ]);
 
+  const rates = payload.sections.find((section) => section.id === 'rates');
+  expect(rates).toMatchObject({ span: 'half', layout: 'stack' });
+
   const liiga = payload.sections.find((section) => section.id === 'liiga');
   expect(liiga).toMatchObject({
     primary: '6/17',
     secondary: 'KÄRPÄT - ILVES',
     detail: 'WED 16 18:30',
+    span: 'half',
+    layout: 'stack',
     rows: [
       { label: 'NEXT', value: 'KÄRPÄT - ILVES' },
       { label: 'START', value: 'WED 16 18:30' },
