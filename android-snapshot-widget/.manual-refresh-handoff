@@ -1,0 +1,1 @@
+manual refresh now hands off network work to SnapshotUpdateWorker
