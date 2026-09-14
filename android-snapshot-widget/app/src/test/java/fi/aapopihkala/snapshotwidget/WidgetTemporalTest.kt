@@ -28,6 +28,46 @@ class WidgetTemporalTest {
     }
 
     @Test
+    fun countdownFallbackNeverShowsNowForExpiredTarget() {
+        assertEquals(
+            "--",
+            countdownFallbackText(
+                fallback = "1 MIN",
+                resolvedTargetMs = 999_999L,
+                wallNowMs = 1_000_000L,
+            )
+        )
+    }
+
+    @Test
+    fun countdownFallbackHidesUnresolvedCountdownButKeepsFutureAndNormalValues() {
+        assertEquals(
+            "--",
+            countdownFallbackText(
+                fallback = "5 MIN",
+                resolvedTargetMs = null,
+                wallNowMs = 1_000_000L,
+            )
+        )
+        assertEquals(
+            "5 MIN",
+            countdownFallbackText(
+                fallback = "5 MIN",
+                resolvedTargetMs = 1_300_000L,
+                wallNowMs = 1_000_000L,
+            )
+        )
+        assertEquals(
+            "+2.50%",
+            countdownFallbackText(
+                fallback = "+2.50%",
+                resolvedTargetMs = null,
+                wallNowMs = 1_000_000L,
+            )
+        )
+    }
+
+    @Test
     fun temporalSectionRollsToNextFutureDeparture() {
         val section = WidgetSection(
             id = "hsl",
