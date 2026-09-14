@@ -57,6 +57,7 @@ data class WidgetSection(
     val tone: String = "neutral",
     val span: String = "full",
     val layout: String = "stack",
+    val countdownTargetMs: Long? = null,
     val rows: List<WidgetItem> = emptyList(),
     val columns: List<WidgetItem> = emptyList(),
     val bars: List<Double> = emptyList()
@@ -100,6 +101,15 @@ fun largeRows(sections: List<WidgetSection>): List<List<WidgetSection>> {
     return rows
 }
 
+fun countdownElapsedRealtimeBase(
+    targetEpochMs: Long,
+    wallNowMs: Long,
+    elapsedNowMs: Long,
+): Long? {
+    val remainingMs = targetEpochMs - wallNowMs
+    return if (remainingMs > 0L) elapsedNowMs + remainingMs else null
+}
+
 object WidgetPayloadCodec {
     fun parse(json: String): WidgetPayload? = runCatching {
         val root = JSONObject(json)
@@ -137,6 +147,7 @@ object WidgetPayloadCodec {
                 tone = section.optString("tone", "neutral"),
                 span = section.enumOr("span", setOf("full", "half"), "full"),
                 layout = section.enumOr("layout", setOf("stack", "split"), "stack"),
+                countdownTargetMs = section.nullableLong("countdownTargetMs"),
                 rows = section.optJSONArray("rows").items(),
                 columns = section.optJSONArray("columns").items(),
                 bars = section.optJSONArray("bars").numbers()
@@ -194,6 +205,7 @@ object WidgetPayloadCodec {
                 .put("layout", section.layout)
             section.secondary?.let { objectValue.put("secondary", it) }
             section.detail?.let { objectValue.put("detail", it) }
+            section.countdownTargetMs?.let { objectValue.put("countdownTargetMs", it) }
             if (section.rows.isNotEmpty()) objectValue.put("rows", itemArray(section.rows))
             if (section.columns.isNotEmpty()) objectValue.put("columns", itemArray(section.columns))
             if (section.bars.isNotEmpty()) objectValue.put("bars", JSONArray(section.bars))
@@ -223,6 +235,17 @@ object WidgetPayloadCodec {
 
     private fun JSONObject.nullableString(name: String): String? =
         if (has(name) && !isNull(name)) optString(name).takeIf { it.isNotBlank() } else null
+
+    private fun JSONObject.nullableLong(name: String): Long? {
+        if (!has(name) || isNull(name)) return null
+        val value = opt(name)
+        val parsed = when (value) {
+            is Number -> value.toLong()
+            is String -> value.toLongOrNull()
+            else -> null
+        }
+        return parsed?.takeIf { it > 0L }
+    }
 
     private fun JSONObject?.stringList(name: String): List<String> =
         this?.optJSONArray(name).strings()
