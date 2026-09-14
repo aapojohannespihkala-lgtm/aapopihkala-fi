@@ -34,6 +34,8 @@ type Position = {
 };
 
 const decoder = new TextDecoder();
+const MAX_VEHICLE_POSITION_AGE_SECONDS = 5 * 60;
+const MAX_VEHICLE_POSITION_FUTURE_SKEW_SECONDS = 60;
 
 const ensureRemaining = (reader: Reader, count: number) => {
   if (count < 0 || reader.offset + count > reader.bytes.length) {
@@ -257,9 +259,15 @@ const parseFeedEntity = (bytes: Uint8Array) => {
   return vehicle;
 };
 
+const isFreshVehiclePosition = (timestamp: number | null, nowSeconds: number) =>
+  timestamp !== null &&
+  timestamp >= nowSeconds - MAX_VEHICLE_POSITION_AGE_SECONDS &&
+  timestamp <= nowSeconds + MAX_VEHICLE_POSITION_FUTURE_SKEW_SECONDS;
+
 export const parseHslVehiclePositions = (buffer: ArrayBuffer) => {
   const reader: Reader = { bytes: new Uint8Array(buffer), offset: 0 };
   const vehicles: HslVehiclePosition[] = [];
+  const nowSeconds = Math.floor(Date.now() / 1000);
 
   try {
     while (reader.offset < reader.bytes.length) {
@@ -269,7 +277,7 @@ export const parseHslVehiclePositions = (buffer: ArrayBuffer) => {
 
       if (field === 2 && wireType === 2) {
         const vehicle = parseFeedEntity(readLengthDelimited(reader));
-        if (vehicle) vehicles.push(vehicle);
+        if (vehicle && isFreshVehiclePosition(vehicle.timestamp, nowSeconds)) vehicles.push(vehicle);
       } else {
         skipField(reader, wireType);
       }
