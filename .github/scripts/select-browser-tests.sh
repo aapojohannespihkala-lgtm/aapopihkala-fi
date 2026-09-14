@@ -13,7 +13,7 @@ electricity() { add current-electricity-alignment current-electricity-presentati
 weather() { add current-weather-solar-geometry current-weather-solar-presentation current-weather-timeout; }
 markets() { add current-markets current-markets-default-order current-markets-fallback current-markets-timeout; }
 liiga() { add current-liiga current-liiga-schedule current-snapshot-liiga; }
-hsl() { add current-hsl; }
+hsl() { add current-hsl current-hsl-vehicle-freshness; }
 snapshot() { add current-snapshot current-snapshot-alignment current-snapshot-liiga current-snapshot-month-calendar; }
 all_current() {
   layout; electricity; weather; markets; liiga; hsl; snapshot
