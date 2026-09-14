@@ -141,9 +141,10 @@ test('widget v2 exposes production HSL through the large-layout presentation con
     tone: 'accent',
     span: 'full',
     layout: 'split',
+    countdownTargetMs: 1789305000000,
     rows: [
-      { label: '121', value: '16:10 / 5 MIN', tone: 'accent' },
-      { label: '125', value: '16:17 / 12 MIN', tone: 'neutral' },
+      { label: '121', value: '16:10', tone: 'accent' },
+      { label: '125', value: '16:17', tone: 'neutral' },
     ],
   });
 
