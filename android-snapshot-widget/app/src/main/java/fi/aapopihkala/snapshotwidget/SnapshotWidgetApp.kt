@@ -47,6 +47,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
@@ -664,16 +665,11 @@ private fun ElectricityBarStrip(
     palette: Palette,
 ) {
     Column(modifier = GlanceModifier.fillMaxWidth()) {
-        currentPrice?.let {
+        electricityCurrentPriceLabel(currentPrice)?.let { price ->
             Row(modifier = GlanceModifier.fillMaxWidth()) {
+                Spacer(GlanceModifier.defaultWeight())
                 Text(
-                    text = "NOW",
-                    modifier = GlanceModifier.defaultWeight(),
-                    style = TextStyle(color = ColorProvider(palette.muted), fontSize = 7.sp),
-                    maxLines = 1
-                )
-                Text(
-                    text = it,
+                    text = price,
                     style = TextStyle(
                         color = ColorProvider(palette.foreground),
                         fontSize = 9.sp,
@@ -685,6 +681,10 @@ private fun ElectricityBarStrip(
             Spacer(GlanceModifier.height(2.dp))
         }
         BarStrip(values, palette)
+        ElectricityTimeMarker(
+            currentHour = electricityCurrentHour(System.currentTimeMillis()),
+            palette = palette,
+        )
         Spacer(GlanceModifier.height(1.dp))
         Row(modifier = GlanceModifier.fillMaxWidth()) {
             listOf("00", "06", "12", "18").forEach { label ->
@@ -697,6 +697,43 @@ private fun ElectricityBarStrip(
             }
         }
     }
+}
+
+@Composable
+private fun ElectricityTimeMarker(currentHour: Int, palette: Palette) {
+    val activeHour = currentHour.coerceIn(0, 23)
+    Row(
+        modifier = GlanceModifier.fillMaxWidth().height(6.dp),
+        verticalAlignment = Alignment.Vertical.CenterVertically
+    ) {
+        repeat(24) { hour ->
+            Box(
+                modifier = GlanceModifier.defaultWeight().height(6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (hour == activeHour) {
+                    Box(
+                        modifier = GlanceModifier
+                            .width(1.dp)
+                            .height(6.dp)
+                            .background(palette.accent)
+                    ) {}
+                }
+            }
+        }
+    }
+}
+
+internal fun electricityCurrentPriceLabel(value: String?): String? =
+    value?.trim()?.substringBefore(' ')?.takeIf { it.isNotBlank() }
+
+internal fun electricityCurrentHour(
+    epochMs: Long,
+    timeZone: TimeZone = TimeZone.getTimeZone("Europe/Helsinki"),
+): Int {
+    val calendar = Calendar.getInstance(timeZone)
+    calendar.timeInMillis = epochMs
+    return calendar.get(Calendar.HOUR_OF_DAY).coerceIn(0, 23)
 }
 
 @Composable
