@@ -9,14 +9,18 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.glance.appwidget.updateAll
+import java.util.Calendar
+import java.util.Locale
+import java.util.TimeZone
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 private const val ACTION_HSL_ROLLOVER = "fi.aapopihkala.snapshotwidget.action.HSL_ROLLOVER"
-private const val EXTRA_TARGET_MS = "snapshot_hsl_target_ms"
+private const val ACTION_MIDNIGHT_REFRESH = "fi.aapopihkala.snapshotwidget.action.MIDNIGHT_REFRESH"
 private const val HSL_ALARM_REQUEST_CODE = 8104
+private const val MIDNIGHT_ALARM_REQUEST_CODE = 8105
 
 internal fun nextHslRolloverTarget(payload: WidgetPayload?, wallNowMs: Long): Long? {
     val hsl = payload?.sections?.firstOrNull { it.id == "hsl" } ?: return null
@@ -26,6 +30,18 @@ internal fun nextHslRolloverTarget(payload: WidgetPayload?, wallNowMs: Long): Lo
     }
         .filter { it > wallNowMs }
         .minOrNull()
+}
+
+internal fun nextHelsinkiMidnightMs(wallNowMs: Long): Long {
+    val calendar = Calendar.getInstance(TimeZone.getTimeZone("Europe/Helsinki"), Locale.UK).apply {
+        timeInMillis = wallNowMs
+        add(Calendar.DAY_OF_MONTH, 1)
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 1)
+        set(Calendar.MILLISECOND, 0)
+    }
+    return calendar.timeInMillis
 }
 
 internal object SnapshotHslRolloverScheduler {
@@ -38,10 +54,10 @@ internal object SnapshotHslRolloverScheduler {
     fun schedule(context: Context, payload: WidgetPayload?) {
         val appContext = context.applicationContext
         val alarmManager = appContext.getSystemService(AlarmManager::class.java) ?: return
-        alarmManager.cancel(rolloverPendingIntent(appContext))
+        alarmManager.cancel(hslPendingIntent(appContext))
 
         val targetMs = nextHslRolloverTarget(payload, System.currentTimeMillis()) ?: return
-        val targetIntent = rolloverPendingIntent(appContext, targetMs)
+        val targetIntent = hslPendingIntent(appContext)
         try {
             if (canScheduleExact(appContext)) {
                 alarmManager.setExactAndAllowWhileIdle(
@@ -67,27 +83,43 @@ internal object SnapshotHslRolloverScheduler {
 
     fun cancel(context: Context) {
         val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
-        alarmManager.cancel(rolloverPendingIntent(context))
+        alarmManager.cancel(hslPendingIntent(context))
     }
 
-    private fun rolloverPendingIntent(context: Context, targetMs: Long? = null): PendingIntent {
-        val intent = Intent(context, SnapshotHslRolloverReceiver::class.java)
-            .setAction(ACTION_HSL_ROLLOVER)
-        targetMs?.let { intent.putExtra(EXTRA_TARGET_MS, it) }
-        return PendingIntent.getBroadcast(
-            context,
-            HSL_ALARM_REQUEST_CODE,
-            intent,
+    private fun hslPendingIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        HSL_ALARM_REQUEST_CODE,
+        Intent(context, SnapshotHslRolloverReceiver::class.java).setAction(ACTION_HSL_ROLLOVER),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+}
+
+private object SnapshotMidnightRefreshScheduler {
+    fun schedule(context: Context) {
+        val appContext = context.applicationContext
+        val alarmManager = appContext.getSystemService(AlarmManager::class.java) ?: return
+        val pendingIntent = PendingIntent.getBroadcast(
+            appContext,
+            MIDNIGHT_ALARM_REQUEST_CODE,
+            Intent(appContext, SnapshotHslRolloverReceiver::class.java).setAction(ACTION_MIDNIGHT_REFRESH),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        alarmManager.cancel(pendingIntent)
+        alarmManager.setAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            nextHelsinkiMidnightMs(System.currentTimeMillis()),
+            pendingIntent,
         )
     }
 }
 
-// Keep the repository call-site stable while the underlying timing primitive moves
-// from WorkManager to AlarmManager.
+// Keep the repository call-site stable while local temporal updates move away
+// from WorkManager. WorkManager remains responsible for network refreshes only.
 internal object SnapshotTemporalRefreshScheduler {
-    fun schedule(context: Context, payload: WidgetPayload?) =
+    fun schedule(context: Context, payload: WidgetPayload?) {
         SnapshotHslRolloverScheduler.schedule(context, payload)
+        SnapshotMidnightRefreshScheduler.schedule(context)
+    }
 }
 
 class SnapshotHslRolloverReceiver : BroadcastReceiver() {
@@ -103,7 +135,7 @@ class SnapshotHslRolloverReceiver : BroadcastReceiver() {
 
                 val payload = WidgetRepository(appContext).loadCached()
                 SnapshotWidget().updateAll(appContext)
-                SnapshotHslRolloverScheduler.schedule(appContext, payload)
+                SnapshotTemporalRefreshScheduler.schedule(appContext, payload)
             } finally {
                 pendingResult.finish()
             }
