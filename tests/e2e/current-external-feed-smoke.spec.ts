@@ -36,3 +36,14 @@ test('electricity live smoke accepts upstream inclusive quarter-hour end timesta
   expect(workflow).toContain('Math.abs(intervalMs - 15 * 60 * 1000) > 1');
   expect(workflow).toContain('start <= now && end >= now');
 });
+
+test('News aggregate smoke distinguishes degraded coverage from per-source contract failures', async () => {
+  const workflow = await readFile(workflowPath, 'utf8');
+
+  expect(workflow).toContain('const MIN_LOGICAL_SOURCES = 8;');
+  expect(workflow).toContain('const MIN_USABLE_SOURCE_RATIO = 0.7;');
+  expect(workflow).toContain("const usableSources = sources.filter((source) => ['ok', 'partial'].includes(source?.status));");
+  expect(workflow).toContain('usable source coverage too low');
+  expect(workflow).toContain('individual RSS health is covered by the source-contract smoke');
+  expect(workflow).not.toContain('failures.push(`fully failing sources:');
+});
