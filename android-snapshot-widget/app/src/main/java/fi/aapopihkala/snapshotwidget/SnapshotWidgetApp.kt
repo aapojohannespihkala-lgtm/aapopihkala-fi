@@ -525,14 +525,18 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
                 PrimaryValue(section, palette, 25)
                 section.detail?.let {
                     Spacer(GlanceModifier.height(2.dp))
-                    SolarAwareDetail(
-                        detail = it,
-                        textColor = palette.muted,
-                        daylightColor = palette.foreground,
-                        nightColor = palette.line,
-                        horizonColor = palette.background,
-                        fontSizeSp = 8
-                    )
+                    if (section.id == "electricity") {
+                        ElectricityDetail(detail = it, palette = palette)
+                    } else {
+                        SolarAwareDetail(
+                            detail = it,
+                            textColor = palette.muted,
+                            daylightColor = palette.foreground,
+                            nightColor = palette.line,
+                            horizonColor = palette.background,
+                            fontSizeSp = 8
+                        )
+                    }
                 }
             }
             Spacer(GlanceModifier.width(10.dp))
@@ -541,6 +545,28 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
             }
         }
     }
+}
+
+@Composable
+private fun ElectricityDetail(detail: String, palette: Palette) {
+    electricityDetailLines(detail).forEachIndexed { index, line ->
+        if (index > 0) Spacer(GlanceModifier.height(1.dp))
+        Text(
+            text = line,
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+            maxLines = 1
+        )
+    }
+}
+
+internal fun electricityDetailLines(detail: String): List<String> {
+    val match = Regex("^MONTH AVG\\s+(\\S+)\\s+LOW\\s+(\\S+)\\s+HIGH\\s+(\\S+)$")
+        .matchEntire(detail.trim())
+        ?: return listOf(detail.trim())
+    return listOf(
+        "MONTH AVG ${match.groupValues[1]}",
+        "LOW ${match.groupValues[2]}   HIGH ${match.groupValues[3]}",
+    )
 }
 
 @Composable
@@ -680,11 +706,13 @@ private fun ElectricityBarStrip(
             }
             Spacer(GlanceModifier.height(2.dp))
         }
-        BarStrip(values, palette)
-        ElectricityTimeMarker(
-            currentHour = electricityCurrentHour(System.currentTimeMillis()),
-            palette = palette,
-        )
+        Box(modifier = GlanceModifier.fillMaxWidth().height(28.dp)) {
+            BarStrip(values, palette)
+            ElectricityTimeMarker(
+                currentHour = electricityCurrentHour(System.currentTimeMillis()),
+                palette = palette,
+            )
+        }
         Spacer(GlanceModifier.height(1.dp))
         Row(modifier = GlanceModifier.fillMaxWidth()) {
             listOf("00", "06", "12", "18").forEach { label ->
@@ -703,20 +731,20 @@ private fun ElectricityBarStrip(
 private fun ElectricityTimeMarker(currentHour: Int, palette: Palette) {
     val activeHour = currentHour.coerceIn(0, 23)
     Row(
-        modifier = GlanceModifier.fillMaxWidth().height(6.dp),
+        modifier = GlanceModifier.fillMaxSize(),
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
         repeat(24) { hour ->
             Box(
-                modifier = GlanceModifier.defaultWeight().height(6.dp),
+                modifier = GlanceModifier.defaultWeight().height(28.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (hour == activeHour) {
                     Box(
                         modifier = GlanceModifier
-                            .width(1.dp)
-                            .height(6.dp)
-                            .background(palette.accent)
+                            .width(2.dp)
+                            .height(28.dp)
+                            .background(palette.line)
                     ) {}
                 }
             }
