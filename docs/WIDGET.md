@@ -121,7 +121,9 @@ The Android app owns:
 
 The Android renderer should not contain product-specific section IDs or ordering rules beyond safe fallback defaults.
 
-The installed 2.6.0 app reads the production presentation URL directly. It does not expose a runtime switch for `channel=dev`; dev remains a browser-preview staging channel for future presentation experiments.
+The installed 2.7.1 app reads the production presentation URL directly. It does not expose a runtime switch for `channel=dev`; dev remains a browser-preview staging channel for future presentation experiments.
+
+Glance/AppWidget rendering must also respect RemoteViews child limits. In the large layout, each logical presentation row is wrapped in its own `LargeRowBlock`; the root large `Column` must receive one direct child per logical row rather than separate section, spacer and divider children. This grouping is a platform constraint, not cosmetic structure. Flattening those children can silently truncate later sections on some launchers. The constraint was first handled in 2.1, accidentally reintroduced by the generic 2.6 layout refactor, and restored in 2.7.1.
 
 The data flow is conceptually:
 
@@ -195,7 +197,7 @@ The widget presentation does not include the configured stop name or stop code. 
 
 HSL fetching is bounded to four seconds in the widget path. Missing configuration, upstream errors, timeouts or an empty departure list omit only the HSL section. They do not make the v2 payload fail when other sections remain available.
 
-HSL is now served to the production channel using presentation primitives already supported by Android 2.6.0, so no APK update is required. The on-device launcher check is the final spacing/density validation. If the six-section composition needs tuning, the server presentation can be adjusted or rolled back independently of the app.
+HSL is now served to the production channel using presentation primitives already supported by the Android engine. If the six-section composition needs tuning, the server presentation can be adjusted or rolled back independently of the app.
 
 ## Size classes
 
@@ -215,7 +217,7 @@ The preview reads `/api/current/widget-v2` directly and uses the same `span` and
 
 The preview styles are global within the standalone preview page because widget markup is generated dynamically. Scoped Astro styles do not automatically attach to elements created later with `innerHTML`.
 
-The preview is a design approximation, not a pixel-identical Android emulator. Final spacing and Glance behavior must still be verified on a real Android launcher for production presentation changes.
+The preview is a design approximation, not a pixel-identical Android emulator. Final spacing, RemoteViews child-budget behavior and Glance rendering must still be verified on a real Android launcher for Android engine changes.
 
 ## Preferred development workflow
 
@@ -234,7 +236,7 @@ For an Android engine change:
 
 1. make the smallest engine change needed
 2. bump `versionName` and `versionCode`
-3. add or update unit/regression tests for the primitive
+3. add or update unit/regression tests for the primitive where practical
 4. build/test through the Android GitHub Actions workflow
 5. merge only after the tests and debug APK compile succeed
 6. let the `main` release workflow create the persistently signed APK
@@ -271,7 +273,15 @@ The large renderer moved from product-specific rules to generic presentation met
 - `layout: split` works with generic columns, bars or rows
 - Android PR CI runs unit tests before the debug APK build
 
-This engine version is sufficient for subsequent Electricity, Markets and HSL presentation changes, so those changes do not require another APK.
+This engine version made Electricity, Markets and HSL presentation changes possible without section-specific Android branches.
+
+### 2.7.0
+
+Weather gained a native day/night horizon disk. The disk is rendered as a bitmap from the existing sunrise, sunset and daylight-duration detail, and the horizontal chord is solved so the light upper segment area equals the actual daylight fraction of a 24-hour day.
+
+### 2.7.1
+
+The large-layout RemoteViews grouping was restored after on-device testing showed Rates and Liiga disappearing below Markets. The regression came from 2.6 flattening logical large rows and separator elements directly into the root `Column`; 2.7.0 merely made the already-fragile layout visible during the next installed build. `LargeRowBlock` now keeps the root child count bounded while preserving the generic `span`/`layout` grammar and the Weather daylight disk.
 
 ### Server presentation after 2.6.0
 
@@ -309,10 +319,12 @@ Key server-side files:
 
 Key Android files:
 
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SnapshotWidgetApp.kt` - Glance layouts, header, refresh action and WorkManager worker
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SnapshotWidgetApp.kt` - Glance layouts, row grouping, header, refresh action and WorkManager worker
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SolarDetailVisual.kt` - Weather solar parsing, daylight-area geometry and day/night bitmap rendering
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetModels.kt` - v2 model, parsing, compatibility and pure layout grouping
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetRepository.kt` - endpoint access, cache, fallback and internal diagnostics
 - `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/WidgetLayoutTest.kt` - pure layout grammar unit tests
+- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/SolarDetailVisualTest.kt` - Weather solar parsing and chord-area geometry tests
 - `android-snapshot-widget/app/build.gradle.kts` - Android version and release configuration
 - `.github/workflows/android-snapshot-widget.yml` - Android CI/release build
 
@@ -327,16 +339,18 @@ The main decisions behind the current implementation are:
 - Presentation semantics belong to generic primitives, not section IDs.
 - Weather established the `split` grammar, followed by Electricity, Markets and HSL.
 - Half-width sections are explicitly declared by the server rather than inferred from list position.
-- Sunrise, sunset and daylight length remain part of the Weather presentation.
+- Large logical rows must remain grouped below Glance/RemoteViews child limits; do not flatten section/divider/spacer children into the root large `Column`.
+- Sunrise, sunset and daylight length remain part of the Weather presentation, with 2.7.0 adding the area-proportional horizon disk.
 - Widget Weather and solar data share one server-side source configuration.
 - Periodic refresh scheduling belongs to Android/WorkManager, not to the server presentation contract.
-- Installed Android 2.6.0 consumes the prod channel directly; dev variants remain browser-preview staging for future experiments.
-- HSL is large-only, optional on upstream failure and production-enabled without a new APK.
+- Installed Android 2.7.1 consumes the prod channel directly; dev variants remain browser-preview staging for future experiments.
+- HSL is large-only, optional on upstream failure and production-enabled.
 - Development proceeds section by section while keeping the whole dashboard composition in mind.
 - Phone networking should be diagnosed from actual request/cache state rather than by changing endpoints blindly.
 
 ## Next steps
 
-1. Refresh the installed large widget and verify the six-section HSL composition on the real launcher.
-2. Tune or roll back HSL spacing/text density server-side if the on-device composition needs adjustment.
-3. Finish the signing credential rotation tracked separately so no signing password remains in workflow source.
+1. Verify on the real launcher that 2.7.1 restores Rates and Liiga while retaining the Weather daylight disk.
+2. After the layout is complete again, tune the Weather daylight disk size, contrast and text hierarchy without changing unrelated sections.
+3. Review the six-section HSL composition on-device and tune server-side spacing/density if needed.
+4. Finish the signing credential rotation tracked separately so no signing password remains in workflow source.
