@@ -2,7 +2,6 @@ package fi.aapopihkala.snapshotwidget
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WidgetTemporalTest {
@@ -56,6 +55,7 @@ class WidgetTemporalTest {
         assertEquals(1_789_305_000_000L, parsed?.sections?.single()?.countdownTargetMs)
 
         val encoded = WidgetPayloadCodec.encode(parsed!!)
-        assertTrue(encoded.contains("\"countdownTargetMs\":1789305000000"))
+        val reparsed = WidgetPayloadCodec.parse(encoded)
+        assertEquals(1_789_305_000_000L, reparsed?.sections?.single()?.countdownTargetMs)
     }
 }
