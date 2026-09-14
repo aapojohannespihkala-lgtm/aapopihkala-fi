@@ -62,21 +62,26 @@ internal object SnapshotHslRolloverScheduler {
         val targetIntent = hslPendingIntent(appContext)
         try {
             if (canScheduleExact(appContext)) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
+                // This is display-state UI: do not wake a sleeping device merely to redraw
+                // a home-screen widget. While the device is awake, setExact rolls the cached
+                // HSL section at the departure boundary. If the device sleeps across the
+                // target, Android delivers the overdue alarm after wake and the resolver
+                // jumps straight to the first still-future departure.
+                alarmManager.setExact(
+                    AlarmManager.RTC,
                     targetMs,
                     targetIntent,
                 )
             } else {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
+                alarmManager.set(
+                    AlarmManager.RTC,
                     targetMs,
                     targetIntent,
                 )
             }
         } catch (_: SecurityException) {
-            alarmManager.setAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
+            alarmManager.set(
+                AlarmManager.RTC,
                 targetMs,
                 targetIntent,
             )

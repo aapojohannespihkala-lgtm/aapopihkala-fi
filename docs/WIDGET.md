@@ -232,9 +232,11 @@ Starting in **2.10.0**, HSL rollover uses `AlarmManager` instead:
 
 No HSL network request is required for this cached rollover. Route, destination, realtime/scheduled tone and the visible departure list advance together.
 
-On Android versions before API 31, exact alarms are available without special app access. On Android 12+ the app declares `SCHEDULE_EXACT_ALARM` and checks `AlarmManager.canScheduleExactAlarms()` before using `setExactAndAllowWhileIdle()`.
+Starting in **2.10.1**, the HSL boundary uses a non-wakeup `AlarmManager.setExact(AlarmManager.RTC, ...)` alarm rather than `setExactAndAllowWhileIdle()`. HSL is display-state UI: there is no benefit in waking a sleeping phone merely to redraw a home-screen widget that cannot be seen. While the device is awake, the exact alarm rebuilds the section at the departure boundary. If the device sleeps across one or more departures, the overdue alarm is delivered after wake and the temporal resolver immediately promotes the first still-future cached departure. This also avoids making closely spaced bus departures depend on allow-while-idle alarm frequency limits.
 
-If exact-alarm access is unavailable, Android deliberately does **not** start a ticking Chronometer. It shows the absolute Helsinki departure time instead and uses an inexact alarm/network refresh as a safe fallback. This avoids ever presenting a stale negative countdown. On newer Android versions exact alarm access may need to be granted under the system's **Alarms & reminders** special app access.
+On Android versions before API 31, exact alarms are available without special app access. On Android 12+ the app declares `SCHEDULE_EXACT_ALARM` and checks `AlarmManager.canScheduleExactAlarms()` before using the exact path.
+
+If exact-alarm access is unavailable, Android deliberately does **not** start a ticking Chronometer. It shows the absolute Helsinki departure time instead and uses a non-wakeup inexact `AlarmManager.set(AlarmManager.RTC, ...)` alarm/network refresh as a safe fallback. This avoids ever presenting a stale negative countdown. On newer Android versions exact alarm access may need to be granted under the system's **Alarms & reminders** special app access.
 
 The alarm receiver also reschedules after boot/package replacement/permission-state broadcasts when a widget is present. A compatibility `SnapshotTemporalUpdateWorker` remains only so one-time temporal WorkManager jobs already queued by 2.9.x can finish harmlessly after an APK upgrade; new versions do not enqueue temporal WorkManager jobs.
 
@@ -277,7 +279,7 @@ Live/local time behavior is deliberately independent from normal network cadence
 
 - header seconds: native `TextClock`
 - HSL countdown: native `Chronometer` only when exact rollover is available
-- HSL rollover: one `AlarmManager` target for the next absolute departure
+- HSL rollover: one non-wakeup exact `AlarmManager` target for the next absolute departure while the device is awake
 - exact-alarm unavailable fallback: absolute departure clock, never a negative Chronometer
 - header date rollover: local inexact AlarmManager rebuild near Helsinki midnight
 - network data: periodic/manual WorkManager fetches
@@ -393,6 +395,7 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.9.6**: periodic network worker requires connectivity.
 - **2.9.7**: attempted prewarmed WorkManager HSL rollover + final-minute `DUE` guard; superseded after on-device delay evidence.
 - **2.10.0**: HSL rollover moved to one next-departure AlarmManager target; LIVE/SCHED share identical rollover; exact-alarm-unavailable mode shows the absolute departure clock instead of allowing a negative Chronometer.
+- **2.10.1**: HSL exact rollover uses non-wakeup `setExact(RTC)` for visible-state accuracy without allow-while-idle frequency throttling; sleeping devices catch up to the first future cached departure after wake.
 
 ## Key files
 
