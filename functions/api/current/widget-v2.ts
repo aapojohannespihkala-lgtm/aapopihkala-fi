@@ -18,6 +18,7 @@ export type WidgetSection = {
   tone?: Tone;
   span?: WidgetSpan;
   layout?: WidgetLayout;
+  countdownTargetMs?: number;
   rows?: WidgetRow[];
   columns?: WidgetColumn[];
   bars?: number[];
@@ -379,9 +380,10 @@ const buildHslSection = (
     tone: next.realtime ? 'accent' : 'neutral',
     span: 'full',
     layout: 'split',
+    countdownTargetMs: next.timestamp,
     rows: upcoming.slice(0, 4).map((departure) => ({
       label: departure.route,
-      value: `${hslClock(departure.departureAt)} / ${departure.countdown}`,
+      value: hslClock(departure.departureAt),
       tone: departure.realtime ? 'accent' : 'neutral',
     })),
   };
