@@ -15,12 +15,13 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
 private val COUNTDOWN_FALLBACK_PATTERN = Regex("^\\d+\\s+MIN$")
-internal const val COUNTDOWN_DUE_WINDOW_MS = 60_000L
 
 @Composable
 internal fun LiveHeaderClock(
@@ -49,7 +50,6 @@ internal fun LiveCountdownValue(
     val context = LocalContext.current
     val wallNow = System.currentTimeMillis()
     val resolvedTarget = targetEpochMs ?: cachedCountdownTargetMs(context = context, fallback = fallback, wallNowMs = wallNow)
-    val staticOverride = countdownStaticOverride(resolvedTarget, wallNow)
     val elapsedNow = SystemClock.elapsedRealtime()
     val base = resolvedTarget?.let {
         countdownElapsedRealtimeBase(
@@ -58,10 +58,17 @@ internal fun LiveCountdownValue(
             elapsedNowMs = elapsedNow,
         )
     }
+    val exactRolloverAvailable = SnapshotHslRolloverScheduler.canScheduleExact(context)
 
     when {
-        staticOverride != null -> CountdownText(
-            text = staticOverride,
+        resolvedTarget != null && resolvedTarget <= wallNow -> CountdownText(
+            text = "--",
+            color = color,
+            sizeSp = sizeSp,
+            modifier = modifier,
+        )
+        resolvedTarget != null && !exactRolloverAvailable -> CountdownText(
+            text = countdownClockLabel(resolvedTarget),
             color = color,
             sizeSp = sizeSp,
             modifier = modifier,
@@ -111,15 +118,6 @@ private fun CountdownText(
     )
 }
 
-internal fun countdownStaticOverride(
-    resolvedTargetMs: Long?,
-    wallNowMs: Long,
-): String? {
-    val target = resolvedTargetMs ?: return null
-    val remainingMs = target - wallNowMs
-    return if (remainingMs in 1..COUNTDOWN_DUE_WINDOW_MS) "DUE" else null
-}
-
 internal fun countdownFallbackText(
     fallback: String,
     resolvedTargetMs: Long?,
@@ -129,6 +127,11 @@ internal fun countdownFallbackText(
     resolvedTargetMs == null && COUNTDOWN_FALLBACK_PATTERN.matches(fallback) -> "--"
     else -> fallback
 }
+
+internal fun countdownClockLabel(targetEpochMs: Long): String =
+    SimpleDateFormat("HH:mm", Locale.UK).apply {
+        timeZone = TimeZone.getTimeZone("Europe/Helsinki")
+    }.format(Date(targetEpochMs))
 
 private fun currentHeaderDateLabel(): String {
     val helsinki = TimeZone.getTimeZone("Europe/Helsinki")
