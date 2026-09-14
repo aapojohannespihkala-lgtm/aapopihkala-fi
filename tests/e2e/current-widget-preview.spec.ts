@@ -23,7 +23,6 @@ const payload = (channel: 'prod' | 'dev') => {
     minEngineVersion: 2,
     channel,
     generatedAt: '2026-09-14T09:30:00.000Z',
-    refreshMinutes: 15,
     title: 'CURRENT / SNAPSHOT',
     pageUrl: '/current/snapshot/',
     theme: {

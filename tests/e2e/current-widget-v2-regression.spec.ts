@@ -85,12 +85,12 @@ test('widget v2 exposes HSL through the dev large-layout presentation contract',
     schemaVersion: 2,
     minEngineVersion: 2,
     channel: 'dev',
-    refreshMinutes: 15,
     layouts: {
       compact: ['weather', 'electricity', 'markets', 'rates'],
       large: ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga'],
     },
   });
+  expect(payload).not.toHaveProperty('refreshMinutes');
 
   const weather = payload.sections.find((section) => section.id === 'weather');
   expect(weather).toMatchObject({

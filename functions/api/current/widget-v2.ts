@@ -41,7 +41,6 @@ export type WidgetV2Payload = {
   minEngineVersion: 2;
   channel: 'prod' | 'dev';
   generatedAt: string;
-  refreshMinutes: number;
   title: string;
   pageUrl: string;
   theme: WidgetTheme;
@@ -505,7 +504,6 @@ export const buildWidgetV2Payload = (
     minEngineVersion: 2,
     channel,
     generatedAt: stringValue(base?.updated) ?? generatedAt,
-    refreshMinutes: 15,
     title: 'CURRENT / SNAPSHOT',
     pageUrl: 'https://aapopihkala.fi/current/snapshot/',
     theme: channel === 'dev' ? DEV_THEME : PROD_THEME,
