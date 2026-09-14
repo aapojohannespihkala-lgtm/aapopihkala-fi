@@ -152,32 +152,52 @@ private fun SnapshotContent(payload: WidgetPayload?, status: String) {
             .appWidgetBackground()
             .padding(outerPadding)
     ) {
-        Header(payload, status, palette)
+        Header(payload, palette)
         Spacer(GlanceModifier.height(if (sizeClass == WidgetSizeClass.COMPACT) 6.dp else 7.dp))
 
         if (payload == null || payload.sections.isEmpty()) {
-            EmptyState(status, palette)
-            return@Column
+            EmptyState(
+                status = status,
+                palette = palette,
+                modifier = GlanceModifier.defaultWeight().fillMaxWidth()
+            )
+        } else {
+            val sections = orderedSections(payload, sizeClass)
+            when (sizeClass) {
+                WidgetSizeClass.COMPACT -> CompactLayout(sections, palette)
+                WidgetSizeClass.MEDIUM -> MediumLayout(sections, palette)
+                WidgetSizeClass.LARGE -> LargeLayout(sections, palette)
+            }
+            Spacer(GlanceModifier.defaultWeight())
         }
 
-        val sections = orderedSections(payload, sizeClass)
-        when (sizeClass) {
-            WidgetSizeClass.COMPACT -> CompactLayout(sections, palette)
-            WidgetSizeClass.MEDIUM -> MediumLayout(sections, palette)
-            WidgetSizeClass.LARGE -> LargeLayout(sections, palette)
-        }
+        Footer(payload, status, palette)
     }
 }
 
 @Composable
-private fun Header(payload: WidgetPayload?, status: String, palette: Palette) {
+private fun Header(payload: WidgetPayload?, palette: Palette) {
     val openPage = actionStartActivity(
         Intent(Intent.ACTION_VIEW, Uri.parse(payload?.pageUrl ?: SnapshotEndpoints.PAGE_URL))
     )
-    val headerDateTime = currentHeaderDateTime()
+
+    Column(
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .clickable(openPage)
+    ) {
+        LiveHeaderClock(color = palette.foreground)
+    }
+}
+
+@Composable
+private fun Footer(payload: WidgetPayload?, status: String, palette: Palette) {
     val statusText = when {
-        status == WidgetRepository.STATUS_LOADING -> "LOADING DATA"
+        status == WidgetRepository.STATUS_LOADING -> "UPDATING"
         status == WidgetRepository.STATUS_ERROR && payload == null -> "CONNECTION ERROR"
+        status == WidgetRepository.STATUS_ERROR && payload?.generatedAt?.isNotBlank() == true ->
+            "UPDATE FAILED · LAST ${localTime(payload.generatedAt)}"
+        status == WidgetRepository.STATUS_ERROR -> "UPDATE FAILED"
         payload?.generatedAt?.isNotBlank() == true -> "UPDATED ${localTime(payload.generatedAt)}"
         else -> "WAITING FOR DATA"
     }
@@ -186,40 +206,47 @@ private fun Header(payload: WidgetPayload?, status: String, palette: Palette) {
         modifier = GlanceModifier.fillMaxWidth(),
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
-        Column(modifier = GlanceModifier.defaultWeight().clickable(openPage)) {
-            LiveHeaderClock(color = palette.foreground)
+        Text(
+            text = statusText,
+            modifier = GlanceModifier.defaultWeight(),
+            style = TextStyle(
+                color = ColorProvider(palette.muted),
+                fontSize = 8.sp
+            ),
+            maxLines = 1
+        )
+        if (status == WidgetRepository.STATUS_LOADING) {
+            LiveRefreshSpinner(
+                modifier = GlanceModifier
+                    .width(32.dp)
+                    .height(32.dp)
+                    .padding(6.dp)
+            )
+        } else {
             Text(
-                text = headerDateTime.date,
+                text = "↻",
+                modifier = GlanceModifier
+                    .clickable(actionRunCallback<RefreshAction>())
+                    .padding(7.dp),
                 style = TextStyle(
-                    color = ColorProvider(palette.muted),
-                    fontSize = 8.sp,
+                    color = ColorProvider(palette.accent),
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Medium
                 ),
                 maxLines = 1
             )
-            Text(
-                text = statusText,
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp)
-            )
         }
-        Text(
-            text = if (status == WidgetRepository.STATUS_LOADING) "..." else "REFRESH",
-            modifier = GlanceModifier
-                .clickable(actionRunCallback<RefreshAction>())
-                .padding(6.dp),
-            style = TextStyle(
-                color = ColorProvider(palette.accent),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold
-            )
-        )
     }
 }
 
 @Composable
-private fun EmptyState(status: String, palette: Palette) {
+private fun EmptyState(
+    status: String,
+    palette: Palette,
+    modifier: GlanceModifier = GlanceModifier.fillMaxSize()
+) {
     Box(
-        modifier = GlanceModifier.fillMaxSize(),
+        modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
@@ -237,7 +264,7 @@ private fun EmptyState(status: String, palette: Palette) {
             )
             Spacer(GlanceModifier.height(4.dp))
             Text(
-                text = if (status == WidgetRepository.STATUS_ERROR) "Tap REFRESH to try again" else "Tap REFRESH to load data",
+                text = if (status == WidgetRepository.STATUS_ERROR) "Tap ↻ to try again" else "Tap ↻ to load data",
                 style = TextStyle(color = ColorProvider(palette.muted), fontSize = 9.sp)
             )
         }
