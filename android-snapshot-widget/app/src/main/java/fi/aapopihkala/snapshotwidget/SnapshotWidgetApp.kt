@@ -443,10 +443,13 @@ private fun StackSection(section: WidgetSection, palette: Palette) {
         PrimaryValue(section, palette, 25)
         section.detail?.let {
             Spacer(GlanceModifier.height(3.dp))
-            Text(
-                text = it,
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 9.sp),
-                maxLines = 2
+            SolarAwareDetail(
+                detail = it,
+                textColor = palette.muted,
+                daylightColor = palette.foreground,
+                nightColor = palette.line,
+                horizonColor = palette.background,
+                fontSizeSp = 9
             )
         }
         SupportingContent(section, palette)
@@ -474,10 +477,13 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
                 PrimaryValue(section, palette, 25)
                 section.detail?.let {
                     Spacer(GlanceModifier.height(2.dp))
-                    Text(
-                        text = it,
-                        style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
-                        maxLines = 2
+                    SolarAwareDetail(
+                        detail = it,
+                        textColor = palette.muted,
+                        daylightColor = palette.foreground,
+                        nightColor = palette.line,
+                        horizonColor = palette.background,
+                        fontSizeSp = 8
                     )
                 }
             }
