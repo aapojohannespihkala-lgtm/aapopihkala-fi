@@ -20,6 +20,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 private val COUNTDOWN_FALLBACK_PATTERN = Regex("^\\d+\\s+MIN$")
+internal const val COUNTDOWN_DUE_WINDOW_MS = 60_000L
 
 @Composable
 internal fun LiveHeaderClock(
@@ -48,6 +49,7 @@ internal fun LiveCountdownValue(
     val context = LocalContext.current
     val wallNow = System.currentTimeMillis()
     val resolvedTarget = targetEpochMs ?: cachedCountdownTargetMs(context = context, fallback = fallback, wallNowMs = wallNow)
+    val staticOverride = countdownStaticOverride(resolvedTarget, wallNow)
     val elapsedNow = SystemClock.elapsedRealtime()
     val base = resolvedTarget?.let {
         countdownElapsedRealtimeBase(
@@ -57,34 +59,65 @@ internal fun LiveCountdownValue(
         )
     }
 
-    if (base != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-        val remoteViews = RemoteViews(context.packageName, R.layout.widget_live_countdown).apply {
-            setChronometer(R.id.widget_live_countdown, base, null, true)
-            setChronometerCountDown(R.id.widget_live_countdown, true)
-            setTextColor(R.id.widget_live_countdown, color.toArgb())
-            setTextViewTextSize(
-                R.id.widget_live_countdown,
-                TypedValue.COMPLEX_UNIT_SP,
-                sizeSp.toFloat(),
-            )
+    when {
+        staticOverride != null -> CountdownText(
+            text = staticOverride,
+            color = color,
+            sizeSp = sizeSp,
+            modifier = modifier,
+        )
+        base != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> {
+            val remoteViews = RemoteViews(context.packageName, R.layout.widget_live_countdown).apply {
+                setChronometer(R.id.widget_live_countdown, base, null, true)
+                setChronometerCountDown(R.id.widget_live_countdown, true)
+                setTextColor(R.id.widget_live_countdown, color.toArgb())
+                setTextViewTextSize(
+                    R.id.widget_live_countdown,
+                    TypedValue.COMPLEX_UNIT_SP,
+                    sizeSp.toFloat(),
+                )
+            }
+            AndroidRemoteViews(remoteViews = remoteViews, modifier = modifier)
         }
-        AndroidRemoteViews(remoteViews = remoteViews, modifier = modifier)
-    } else {
-        Text(
+        else -> CountdownText(
             text = countdownFallbackText(
                 fallback = fallback,
                 resolvedTargetMs = resolvedTarget,
                 wallNowMs = wallNow,
             ),
+            color = color,
+            sizeSp = sizeSp,
             modifier = modifier,
-            style = TextStyle(
-                color = ColorProvider(color),
-                fontSize = sizeSp.sp,
-                fontWeight = FontWeight.Medium,
-            ),
-            maxLines = 1,
         )
     }
+}
+
+@Composable
+private fun CountdownText(
+    text: String,
+    color: Color,
+    sizeSp: Int,
+    modifier: GlanceModifier,
+) {
+    Text(
+        text = text,
+        modifier = modifier,
+        style = TextStyle(
+            color = ColorProvider(color),
+            fontSize = sizeSp.sp,
+            fontWeight = FontWeight.Medium,
+        ),
+        maxLines = 1,
+    )
+}
+
+internal fun countdownStaticOverride(
+    resolvedTargetMs: Long?,
+    wallNowMs: Long,
+): String? {
+    val target = resolvedTargetMs ?: return null
+    val remainingMs = target - wallNowMs
+    return if (remainingMs in 1..COUNTDOWN_DUE_WINDOW_MS) "DUE" else null
 }
 
 internal fun countdownFallbackText(
