@@ -187,14 +187,7 @@ private fun Header(payload: WidgetPayload?, status: String, palette: Palette) {
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
         Column(modifier = GlanceModifier.defaultWeight().clickable(openPage)) {
-            Text(
-                text = headerDateTime.time,
-                style = TextStyle(
-                    color = ColorProvider(palette.foreground),
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            )
+            LiveHeaderClock(color = palette.foreground)
             Text(
                 text = headerDateTime.date,
                 style = TextStyle(
@@ -512,14 +505,11 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
 
 @Composable
 private fun PrimaryValue(section: WidgetSection, palette: Palette, sizeSp: Int) {
-    Text(
-        text = section.primary,
-        style = TextStyle(
-            color = ColorProvider(toneColor(section.tone, palette)),
-            fontSize = sizeSp.sp,
-            fontWeight = FontWeight.Medium
-        ),
-        maxLines = 1
+    LiveCountdownValue(
+        targetEpochMs = section.countdownTargetMs,
+        fallback = section.primary,
+        color = toneColor(section.tone, palette),
+        sizeSp = sizeSp,
     )
 }
 
