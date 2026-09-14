@@ -19,6 +19,8 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 
+private val COUNTDOWN_FALLBACK_PATTERN = Regex("^\\d+\\s+MIN$")
+
 @Composable
 internal fun LiveHeaderClock(
     color: Color,
@@ -69,7 +71,11 @@ internal fun LiveCountdownValue(
         AndroidRemoteViews(remoteViews = remoteViews, modifier = modifier)
     } else {
         Text(
-            text = if (resolvedTarget != null && resolvedTarget <= wallNow) "NOW" else fallback,
+            text = countdownFallbackText(
+                fallback = fallback,
+                resolvedTargetMs = resolvedTarget,
+                wallNowMs = wallNow,
+            ),
             modifier = modifier,
             style = TextStyle(
                 color = ColorProvider(color),
@@ -79,6 +85,16 @@ internal fun LiveCountdownValue(
             maxLines = 1,
         )
     }
+}
+
+internal fun countdownFallbackText(
+    fallback: String,
+    resolvedTargetMs: Long?,
+    wallNowMs: Long,
+): String = when {
+    resolvedTargetMs != null && resolvedTargetMs <= wallNowMs -> "--"
+    resolvedTargetMs == null && COUNTDOWN_FALLBACK_PATTERN.matches(fallback) -> "--"
+    else -> fallback
 }
 
 private fun currentHeaderDateLabel(): String {
@@ -101,7 +117,7 @@ private fun cachedCountdownTargetMs(
     fallback: String,
     wallNowMs: Long,
 ): Long? {
-    if (!fallback.matches(Regex("^\\d+\\s+MIN$"))) return null
+    if (!COUNTDOWN_FALLBACK_PATTERN.matches(fallback)) return null
     val section = WidgetRepository(context).loadCached()?.sections?.firstOrNull {
         it.primary == fallback && it.countdownTargetMs == null
     } ?: return null
