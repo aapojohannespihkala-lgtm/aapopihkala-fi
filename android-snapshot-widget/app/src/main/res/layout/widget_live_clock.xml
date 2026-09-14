@@ -1,9 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextClock xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_live_clock"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:format24Hour="HH:mm"
-    android:includeFontPadding="false"
-    android:singleLine="true"
-    android:timeZone="Europe/Helsinki" />
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <TextClock
+        android:id="@+id/widget_live_clock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:format24Hour="HH:mm:ss"
+        android:includeFontPadding="false"
+        android:singleLine="true"
+        android:timeZone="Europe/Helsinki" />
+
+    <Space
+        android:layout_width="10dp"
+        android:layout_height="1dp" />
+
+    <TextView
+        android:id="@+id/widget_live_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:singleLine="true" />
+
+</LinearLayout>
