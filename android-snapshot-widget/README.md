@@ -1,41 +1,55 @@
-# Snapshot Widget
+# Android Snapshot Widget
 
-Native Android home-screen widget for `https://aapopihkala.fi/current/snapshot/`.
+## Purpose
 
-The widget is a compact companion to the mobile Snapshot page. The website is the visual/information-design reference, but the Android widget is intentionally more minimal and uses home-screen space differently rather than copying the page pixel for pixel.
+The Android home-screen widget is a compact, glanceable companion to `/current/snapshot/`.
 
-For the full architecture, handover notes, version history, constraints and workflow, see `docs/WIDGET.md`.
+The mobile Snapshot page is the visual and information-design reference, but the widget is not intended to be a pixel-for-pixel copy. It should preserve the same hierarchy, terminology and data priorities while using Android home-screen space efficiently.
 
-## Architecture
+The long-term architecture is server-driven: ordinary content, ordering, data and presentation changes should ship from the website repository without requiring a new APK. A new APK is appropriate only when the Android rendering/network/platform engine itself gains or changes a capability.
 
-The Android app is a small native presentation/runtime engine. It reads the rich production presentation contract from:
+## Product and design principles
 
-```text
-https://aapopihkala.fi/api/current/widget-v2?channel=prod
-```
+- Keep the widget calm, minimal and readable at a glance.
+- Use horizontal space before adding vertical height.
+- Prefer one strong primary value per section with supporting context around it.
+- Treat the Snapshot page as a reference, not a layout template.
+- Evolve one section at a time unless the generic layout grammar genuinely changes.
+- Keep server presentation changes separate from Android engine changes.
+- Preserve the last good compatible payload through temporary network failures.
+- Optional upstream sections must fail independently rather than taking down the whole presentation payload.
+- Do not hide important Android/network failure modes behind a generic `null`; retain compact diagnostics.
+- Avoid unnecessary APK installs: validate server-driven work in the browser preview first.
 
-The compatibility fallback is:
+## Current large-widget information architecture
 
-```text
-https://aapopihkala.fi/api/current/widget
-```
+The production large widget currently contains:
 
-Important: `/api/current/widget?v=2` is not the canonical rich v2 endpoint.
+1. Weather
+   - current temperature
+   - daily low/high
+   - four forecast points
+   - sunrise, sunset and daylight length
+   - an area-proportional day/night horizon disk
+2. Electricity
+   - day average as the main value
+   - current, low and high price
+   - intraday price silhouette
+3. Markets
+   - selected 1-day median as the main value
+   - World, USA, Finland, BTC/EUR and Remedy rows
+4. HSL
+   - next departure as a live local countdown
+   - route/destination context
+   - upcoming departures as clock times
+5. Rates
+   - 3M Euribor
+   - one-year-ago comparison
+6. Liiga
+   - Ilves position / total teams
+   - live or next Ilves game
 
-Most widget content/layout changes should happen in the server presentation and be checked at `/current/widget-preview/`. A new APK is needed only when Android rendering, networking/cache behavior or platform capabilities change.
-
-## Current large layout
-
-The production large widget contains:
-
-- Weather
-- Electricity
-- Markets
-- HSL
-- Rates
-- Liiga
-
-Large composition is server-driven through generic `span`/`layout` metadata. Current production uses full-width split rows for Weather, Electricity, Markets and HSL, followed by half-width Rates + Liiga.
+Compact and medium remain intentionally denser than the large composition. HSL is large-only.
 
 ### Markets data contract
 
@@ -48,11 +62,11 @@ The right-side WORLD, USA, FINLAND, BTC / EUR and REMEDY rows are the correspond
 Network data still refreshes on the WorkManager cadence, but time-sensitive UI is local/native:
 
 - header clock: Android `TextClock`, `HH:mm:ss`
-- HSL next departure: Android `Chronometer` when exact rollover alarms are available
-- cached HSL departure rollover: one local `AlarmManager` alarm for the next absolute departure target
+- HSL next departure: Android `Chronometer` while outside the final one-minute due guard when exact rollover alarms are available
+- cached HSL departure rollover: exact local `AlarmManager` rebuild at the due-guard boundary and again at the absolute departure target
 - header date: refreshed by ordinary widget rebuilds
 
-The server attaches absolute targets to the visible HSL departure rows. Android always selects the first still-future target. LIVE vs SCHED only describes the source/status of the departure; both use the same rollover rule. When the selected target is reached, the alarm receiver rebuilds from cache, drops the passed departure, promotes the next one and immediately schedules that next target. No HSL network request is required for this rollover.
+The server attaches absolute targets to the visible HSL departure rows. Android always selects the first still-future target. LIVE vs SCHED only describes the source/status of the departure; both use the same rollover rule. One minute before the selected target, an exact local alarm rebuilds the widget and replaces the ticking Chronometer with the static `DUE` label. At the target, the next exact alarm rebuilds from cache, drops the passed departure, promotes the next one and immediately schedules that departure's guard and rollover. This prevents ordinary target-alarm or launcher rebuild latency from exposing a negative Chronometer. No HSL network request is required for this cached rollover.
 
 On Android 12+ exact rollover uses the `SCHEDULE_EXACT_ALARM` special access when granted. If exact alarms are not available, the widget deliberately shows the absolute departure clock instead of a ticking Chronometer that could roll below zero; an inexact alarm/network refresh can still advance the row later.
 
@@ -128,4 +142,4 @@ Android-changing PRs run unit tests and compile a debug APK. After merge to `mai
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.0**.
+Current app version: **2.10.1**.

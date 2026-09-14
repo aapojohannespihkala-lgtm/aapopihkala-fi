@@ -22,6 +22,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 private val COUNTDOWN_FALLBACK_PATTERN = Regex("^\\d+\\s+MIN$")
+internal const val COUNTDOWN_DUE_WINDOW_MS = 60_000L
 
 @Composable
 internal fun LiveHeaderClock(
@@ -59,6 +60,11 @@ internal fun LiveCountdownValue(
         )
     }
     val exactRolloverAvailable = SnapshotHslRolloverScheduler.canScheduleExact(context)
+    val staticOverride = if (exactRolloverAvailable) {
+        countdownStaticOverride(resolvedTarget, wallNow)
+    } else {
+        null
+    }
 
     when {
         resolvedTarget != null && resolvedTarget <= wallNow -> CountdownText(
@@ -69,6 +75,12 @@ internal fun LiveCountdownValue(
         )
         resolvedTarget != null && !exactRolloverAvailable -> CountdownText(
             text = countdownClockLabel(resolvedTarget),
+            color = color,
+            sizeSp = sizeSp,
+            modifier = modifier,
+        )
+        staticOverride != null -> CountdownText(
+            text = staticOverride,
             color = color,
             sizeSp = sizeSp,
             modifier = modifier,
@@ -116,6 +128,15 @@ private fun CountdownText(
         ),
         maxLines = 1,
     )
+}
+
+internal fun countdownStaticOverride(
+    resolvedTargetMs: Long?,
+    wallNowMs: Long,
+): String? {
+    val target = resolvedTargetMs ?: return null
+    val remainingMs = target - wallNowMs
+    return if (remainingMs in 1..COUNTDOWN_DUE_WINDOW_MS) "DUE" else null
 }
 
 internal fun countdownFallbackText(

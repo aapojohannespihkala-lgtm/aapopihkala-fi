@@ -34,6 +34,11 @@ internal fun nextHslRolloverTarget(payload: WidgetPayload?, wallNowMs: Long): Lo
         .minOrNull()
 }
 
+internal fun guardedHslAlarmTime(targetMs: Long, wallNowMs: Long): Long {
+    val guardStartMs = targetMs - COUNTDOWN_DUE_WINDOW_MS
+    return if (guardStartMs > wallNowMs) guardStartMs else targetMs
+}
+
 internal fun nextHelsinkiMidnightMs(wallNowMs: Long): Long {
     val calendar = Calendar.getInstance(TimeZone.getTimeZone("Europe/Helsinki"), Locale.UK).apply {
         timeInMillis = wallNowMs
@@ -58,13 +63,21 @@ internal object SnapshotHslRolloverScheduler {
         val alarmManager = appContext.getSystemService(AlarmManager::class.java) ?: return
         alarmManager.cancel(hslPendingIntent(appContext))
 
-        val targetMs = nextHslRolloverTarget(payload, System.currentTimeMillis()) ?: return
+        val wallNowMs = System.currentTimeMillis()
+        val targetMs = nextHslRolloverTarget(payload, wallNowMs) ?: return
         val targetIntent = hslPendingIntent(appContext)
+        val exactRolloverAvailable = canScheduleExact(appContext)
+        val alarmAtMs = if (exactRolloverAvailable) {
+            guardedHslAlarmTime(targetMs, wallNowMs)
+        } else {
+            targetMs
+        }
+
         try {
-            if (canScheduleExact(appContext)) {
+            if (exactRolloverAvailable) {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
-                    targetMs,
+                    alarmAtMs,
                     targetIntent,
                 )
             } else {
