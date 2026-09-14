@@ -706,13 +706,11 @@ private fun ElectricityBarStrip(
             }
             Spacer(GlanceModifier.height(2.dp))
         }
-        Box(modifier = GlanceModifier.fillMaxWidth().height(28.dp)) {
-            BarStrip(values, palette)
-            ElectricityTimeMarker(
-                currentHour = electricityCurrentHour(System.currentTimeMillis()),
-                palette = palette,
-            )
-        }
+        ElectricityChart(
+            values = values,
+            currentHour = electricityCurrentHour(System.currentTimeMillis()),
+            palette = palette,
+        )
         Spacer(GlanceModifier.height(1.dp))
         Row(modifier = GlanceModifier.fillMaxWidth()) {
             listOf("00", "06", "12", "18").forEach { label ->
@@ -728,28 +726,62 @@ private fun ElectricityBarStrip(
 }
 
 @Composable
-private fun ElectricityTimeMarker(currentHour: Int, palette: Palette) {
+private fun ElectricityChart(
+    values: List<Double>,
+    currentHour: Int,
+    palette: Palette,
+) {
+    val bars = compactBars(values)
     val activeHour = currentHour.coerceIn(0, 23)
     Row(
-        modifier = GlanceModifier.fillMaxSize(),
-        verticalAlignment = Alignment.Vertical.CenterVertically
+        modifier = GlanceModifier.fillMaxWidth().height(28.dp),
+        verticalAlignment = Alignment.Vertical.Bottom
     ) {
         repeat(24) { hour ->
-            Box(
-                modifier = GlanceModifier.defaultWeight().height(28.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (hour == activeHour) {
+            val barIndex = electricityBarIndexForHour(hour, bars.size)
+            val normalized = bars.getOrNull(barIndex)?.coerceIn(0.0, 1.0) ?: 0.0
+            val barHeight = (4.0 + normalized * 24.0).dp
+
+            if (hour == activeHour) {
+                Row(
+                    modifier = GlanceModifier.defaultWeight().height(28.dp),
+                    verticalAlignment = Alignment.Vertical.Bottom
+                ) {
+                    Box(
+                        modifier = GlanceModifier
+                            .defaultWeight()
+                            .height(barHeight)
+                            .background(palette.foreground)
+                    ) {}
                     Box(
                         modifier = GlanceModifier
                             .width(2.dp)
                             .height(28.dp)
                             .background(palette.line)
                     ) {}
+                    Box(
+                        modifier = GlanceModifier
+                            .defaultWeight()
+                            .height(barHeight)
+                            .background(palette.foreground)
+                    ) {}
                 }
+            } else {
+                Box(
+                    modifier = GlanceModifier
+                        .defaultWeight()
+                        .height(barHeight)
+                        .background(palette.foreground)
+                ) {}
             }
         }
     }
+}
+
+internal fun electricityBarIndexForHour(hour: Int, barCount: Int): Int {
+    if (barCount <= 0) return 0
+    val safeHour = hour.coerceIn(0, 23)
+    return ((safeHour * barCount) / 24).coerceIn(0, barCount - 1)
 }
 
 internal fun electricityCurrentPriceLabel(value: String?): String? =
