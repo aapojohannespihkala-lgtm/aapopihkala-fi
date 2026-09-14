@@ -1,6 +1,6 @@
 import { fetchLiigaResponse } from './liiga';
 import { fetchWidgetHslData, type WidgetHslData } from './widget-hsl';
-import { onRequestGet as getWidgetResponse } from './widget';
+import { onRequestGet as getWidgetResponse, WIDGET_WEATHER_SOURCE } from './widget';
 
 type Tone = 'neutral' | 'positive' | 'negative' | 'accent';
 type WidgetSpan = 'full' | 'half';
@@ -105,9 +105,7 @@ const DEV_LAYOUTS: WidgetLayouts = {
   large: ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga'],
 };
 
-const SOLAR_API_URL = 'https://api.open-meteo.com/v1/forecast';
 const SOLAR_TIMEOUT_MS = 4_000;
-const SOLAR_TIME_ZONE = 'Europe/Helsinki';
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -172,19 +170,23 @@ const formatDaylightLength = (sunrise: string, sunset: string) => {
   return `${hours}H${String(minutes).padStart(2, '0')}M`;
 };
 
-const fetchSolarData = async (): Promise<SolarData | null> => {
+export const buildWidgetSolarUrl = () => {
   const params = new URLSearchParams({
-    latitude: '60.1719',
-    longitude: '24.7314',
-    timezone: SOLAR_TIME_ZONE,
+    latitude: String(WIDGET_WEATHER_SOURCE.latitude),
+    longitude: String(WIDGET_WEATHER_SOURCE.longitude),
+    timezone: WIDGET_WEATHER_SOURCE.timeZone,
     forecast_days: '1',
     daily: 'sunrise,sunset',
   });
+  return `${WIDGET_WEATHER_SOURCE.apiUrl}?${params.toString()}`;
+};
+
+const fetchSolarData = async (): Promise<SolarData | null> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), SOLAR_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${SOLAR_API_URL}?${params.toString()}`, {
+    const response = await fetch(buildWidgetSolarUrl(), {
       headers: { Accept: 'application/json' },
       signal: controller.signal,
     });
