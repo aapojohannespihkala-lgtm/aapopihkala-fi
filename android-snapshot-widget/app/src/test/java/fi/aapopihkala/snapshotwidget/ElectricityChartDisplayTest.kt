@@ -31,6 +31,15 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
+    fun currentHourMapsToExpectedElectricityBarBucket() {
+        assertEquals(0, electricityBarIndexForHour(0, 8))
+        assertEquals(1, electricityBarIndexForHour(5, 8))
+        assertEquals(6, electricityBarIndexForHour(18, 8))
+        assertEquals(7, electricityBarIndexForHour(23, 8))
+        assertEquals(0, electricityBarIndexForHour(12, 0))
+    }
+
+    @Test
     fun currentHourUsesRequestedTimeZone() {
         val seventeenHoursAfterEpoch = 17L * 60L * 60L * 1000L
 
