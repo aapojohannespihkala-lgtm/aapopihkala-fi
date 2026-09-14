@@ -173,6 +173,39 @@ jobs:
             exit 0
           fi
 
+          if [[ "$android_changed" == "true" ]]; then
+            echo "Waiting for Android Snapshot Widget PR validation for ${HEAD_SHA}."
+            android_ready=false
+
+            for attempt in $(seq 1 60); do
+              android_run="$(gh api --method GET \
+                "/repos/${GITHUB_REPOSITORY}/actions/workflows/android-snapshot-widget.yml/runs?event=pull_request&head_sha=${HEAD_SHA}&per_page=20" \
+                --jq '.workflow_runs | max_by(.run_number) | if . == null then "" else "\(.status) \(.conclusion // "")" end')"
+              android_status=""
+              android_conclusion=""
+              read -r android_status android_conclusion <<< "$android_run"
+
+              if [[ "$android_status" == "completed" ]]; then
+                if [[ "$android_conclusion" != "success" ]]; then
+                  echo "Android Snapshot Widget validation finished with ${android_conclusion:-unknown}." >&2
+                  exit 1
+                fi
+                android_ready=true
+                echo "Android Snapshot Widget validation passed."
+                break
+              fi
+
+              if [[ "$attempt" -lt 60 ]]; then
+                sleep 10
+              fi
+            done
+
+            if [[ "$android_ready" != "true" ]]; then
+              echo "Timed out waiting for Android Snapshot Widget validation." >&2
+              exit 1
+            fi
+          fi
+
           for attempt in 1 2 3; do
             if merged="$(gh api --method PUT \
               "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/merge" \
