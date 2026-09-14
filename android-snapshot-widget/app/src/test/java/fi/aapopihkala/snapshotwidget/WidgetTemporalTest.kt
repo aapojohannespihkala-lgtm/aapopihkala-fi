@@ -96,6 +96,29 @@ class WidgetTemporalTest {
     }
 
     @Test
+    fun temporalSectionChoosesEarliestFutureDepartureWhenRowsAreUnsorted() {
+        val section = WidgetSection(
+            id = "hsl",
+            index = "04",
+            label = "HSL",
+            primary = "10 MIN",
+            rows = listOf(
+                WidgetItem("400", "08:25", "neutral", "400 / KAMPPI", 601_000L),
+                WidgetItem("121", "08:17", "neutral", "121 / TAPIOLA", 121_000L),
+                WidgetItem("125", "08:20", "accent", "125 / TAPIOLA", 301_000L),
+            )
+        )
+
+        val resolved = resolveTemporalSection(section, wallNowMs = 1_000L)
+
+        assertEquals(121_000L, resolved.countdownTargetMs)
+        assertEquals("2 MIN", resolved.primary)
+        assertEquals("121 / TAPIOLA", resolved.secondary)
+        assertEquals("08:17 / SCHED", resolved.detail)
+        assertEquals(listOf("121", "125", "400"), resolved.rows.map { it.label })
+    }
+
+    @Test
     fun temporalSectionClearsAfterTheLastKnownDeparture() {
         val section = WidgetSection(
             id = "hsl",

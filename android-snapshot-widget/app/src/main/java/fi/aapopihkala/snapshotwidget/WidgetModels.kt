@@ -124,7 +124,7 @@ internal fun resolveTemporalSection(section: WidgetSection, wallNowMs: Long): Wi
     val timedRows = section.rows.mapIndexedNotNull { index, item ->
         val target = item.countdownTargetMs?.takeIf { it > wallNowMs } ?: return@mapIndexedNotNull null
         Triple(index, item, target)
-    }
+    }.sortedBy { it.third }
     val next = timedRows.firstOrNull()
     if (next != null) {
         val (index, item, target) = next
@@ -135,7 +135,7 @@ internal fun resolveTemporalSection(section: WidgetSection, wallNowMs: Long): Wi
             detail = "${item.value} / $liveLabel",
             tone = item.tone,
             countdownTargetMs = target,
-            rows = section.rows.drop(index)
+            rows = timedRows.map { it.second }
         )
     }
 
