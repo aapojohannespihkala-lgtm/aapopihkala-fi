@@ -23,11 +23,18 @@ class SelectionTests(unittest.TestCase):
     def test_hsl_is_scoped_to_its_ui_and_worker_guards(self):
         self.assertEqual(
             selected('src/features/current/hsl.ts'),
-            ['tests/e2e/current-hsl.spec.ts'],
+            [
+                'tests/e2e/current-hsl-vehicle-freshness.spec.ts',
+                'tests/e2e/current-hsl.spec.ts',
+            ],
         )
         self.assertEqual(
             selected('functions/api/current/hsl.ts'),
-            ['tests/e2e/current-hsl.spec.ts', 'tests/e2e/current-worker-regression.spec.ts'],
+            [
+                'tests/e2e/current-hsl-vehicle-freshness.spec.ts',
+                'tests/e2e/current-hsl.spec.ts',
+                'tests/e2e/current-worker-regression.spec.ts',
+            ],
         )
 
     def test_shared_layout_retains_all_domain_guards(self):
