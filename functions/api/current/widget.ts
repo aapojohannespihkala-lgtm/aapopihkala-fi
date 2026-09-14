@@ -59,11 +59,17 @@ type MarketsResponse = {
   series?: unknown;
 };
 
-const HELSINKI_TIME_ZONE = 'Europe/Helsinki';
-const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast';
+export const WIDGET_WEATHER_SOURCE = {
+  apiUrl: 'https://api.open-meteo.com/v1/forecast',
+  latitude: 60.1719,
+  longitude: 24.7314,
+  timeZone: 'Europe/Helsinki',
+  label: 'OLARI / ESPOO',
+} as const;
+
+const HELSINKI_TIME_ZONE = WIDGET_WEATHER_SOURCE.timeZone;
 const WEATHER_TIMEOUT_MS = 6_000;
 const QUARTER_MS = 15 * 60 * 1000;
-const LOCATION = 'OLARI / ESPOO';
 const SELECTED_MARKETS = {
   world: 'ishares-world',
   usa: 'handelsbanken-usa',
@@ -148,11 +154,11 @@ const jsonResponse = (body: unknown, status: number) =>
     },
   });
 
-const buildWeatherUrl = () => {
+export const buildWidgetWeatherUrl = () => {
   const params = new URLSearchParams({
-    latitude: '60.1719',
-    longitude: '24.7314',
-    timezone: HELSINKI_TIME_ZONE,
+    latitude: String(WIDGET_WEATHER_SOURCE.latitude),
+    longitude: String(WIDGET_WEATHER_SOURCE.longitude),
+    timezone: WIDGET_WEATHER_SOURCE.timeZone,
     forecast_days: '2',
     temperature_unit: 'celsius',
     current: ['temperature_2m', 'weather_code'].join(','),
@@ -160,7 +166,7 @@ const buildWeatherUrl = () => {
     daily: ['temperature_2m_min', 'temperature_2m_max'].join(','),
   });
 
-  return `${WEATHER_API_URL}?${params.toString()}`;
+  return `${WIDGET_WEATHER_SOURCE.apiUrl}?${params.toString()}`;
 };
 
 const fetchWeatherResponse = async () => {
@@ -168,7 +174,7 @@ const fetchWeatherResponse = async () => {
   const timeout = setTimeout(() => controller.abort(), WEATHER_TIMEOUT_MS);
 
   try {
-    return await fetch(buildWeatherUrl(), {
+    return await fetch(buildWidgetWeatherUrl(), {
       headers: { Accept: 'application/json' },
       signal: controller.signal,
     });
@@ -222,7 +228,7 @@ const loadWeather = async (now: Date) => {
   const forecast = futureHours.filter((_item, index) => index % 2 === 0).slice(0, 4);
 
   return {
-    location: LOCATION,
+    location: WIDGET_WEATHER_SOURCE.label,
     temperature,
     condition: weatherCodeLabel(data.current?.weather_code),
     min: isFiniteNumber(low) ? low : null,
