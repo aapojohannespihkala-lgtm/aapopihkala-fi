@@ -14,14 +14,11 @@
         android:singleLine="true"
         android:timeZone="Europe/Helsinki" />
 
-    <Space
-        android:layout_width="10dp"
-        android:layout_height="1dp" />
-
     <TextView
         android:id="@+id/widget_live_date"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
         android:ellipsize="end"
         android:includeFontPadding="false"
         android:maxLines="1"
