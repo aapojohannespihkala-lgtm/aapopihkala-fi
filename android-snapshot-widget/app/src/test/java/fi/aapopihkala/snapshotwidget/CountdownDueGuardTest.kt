@@ -2,7 +2,8 @@ package fi.aapopihkala.snapshotwidget
 
 import java.time.Instant
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CountdownDueGuardTest {
@@ -13,30 +14,42 @@ class CountdownDueGuardTest {
     }
 
     @Test
-    fun finalMinuteUsesStaticDueLabel() {
+    fun countdownUsesMinutesBeforeFinalTwoMinutes() {
+        assertFalse(
+            countdownUsesLiveSeconds(
+                resolvedTargetMs = 1_120_001L,
+                wallNowMs = 1_000_000L,
+            )
+        )
         assertEquals(
-            "DUE",
-            countdownStaticOverride(
-                resolvedTargetMs = 1_060_000L,
+            "3 MIN",
+            countdownLabel(
+                targetEpochMs = 1_120_001L,
                 wallNowMs = 1_000_000L,
             )
         )
     }
 
     @Test
-    fun countdownKeepsTickingBeforeDueWindow() {
-        assertNull(
-            countdownStaticOverride(
-                resolvedTargetMs = 1_060_001L,
+    fun finalTwoMinutesUseLiveSeconds() {
+        assertTrue(
+            countdownUsesLiveSeconds(
+                resolvedTargetMs = 1_120_000L,
+                wallNowMs = 1_000_000L,
+            )
+        )
+        assertTrue(
+            countdownUsesLiveSeconds(
+                resolvedTargetMs = 1_000_001L,
                 wallNowMs = 1_000_000L,
             )
         )
     }
 
     @Test
-    fun expiredTargetDoesNotUseDueLabel() {
-        assertNull(
-            countdownStaticOverride(
+    fun expiredTargetDoesNotUseLiveSeconds() {
+        assertFalse(
+            countdownUsesLiveSeconds(
                 resolvedTargetMs = 999_999L,
                 wallNowMs = 1_000_000L,
             )
