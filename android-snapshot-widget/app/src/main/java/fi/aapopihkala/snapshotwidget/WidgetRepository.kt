@@ -98,7 +98,7 @@ class WidgetRepository(context: Context) {
 
     fun status(): String = prefs.getString(KEY_STATUS, STATUS_IDLE) ?: STATUS_IDLE
 
-    fun diagnostics(): WidgetFetchDiagnostics = WidgetFetchDiagnostics(
+    internal fun diagnostics(): WidgetFetchDiagnostics = WidgetFetchDiagnostics(
         v2Status = prefs.getString(KEY_V2_STATUS, "IDLE") ?: "IDLE",
         legacyStatus = prefs.getString(KEY_LEGACY_STATUS, "IDLE") ?: "IDLE",
         v2Retried = prefs.getBoolean(KEY_V2_RETRIED, false),
