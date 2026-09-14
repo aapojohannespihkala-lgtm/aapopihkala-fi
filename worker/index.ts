@@ -45,7 +45,7 @@ const NEWS_PATH = '/api/current/news';
 const LIIGA_PATH = '/api/current/liiga';
 const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
 const SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS = 4_000;
-const HSL_HEAVY_LEARNING_INTERVAL_MINUTES = 5;
+const HSL_HEAVY_LEARNING_INTERVAL_MINUTES = 10;
 const HSL_LEARNING_QUERY = {
   stopCode: 'E3239',
   stopName: 'Ylisrinne',
@@ -173,7 +173,7 @@ const collectHslLearningSnapshot = async (env: WorkerEnv, scheduledTime: number)
   if (!shouldRefreshHslLearningSnapshot(scheduledTime)) return;
 
   // Raw observations and arrival detection run every minute. The expensive historical
-  // training/scoreboard scan runs every five minutes and publishes one tiny snapshot
+  // training/scoreboard scan runs every ten minutes and publishes one tiny snapshot
   // for public requests instead of repeating that work on every 15-second page refresh.
   const enriched = await enrichHslResponseWithLearning(response, db);
   const filtered = await filterRecordedHslPassages(enriched, db);
