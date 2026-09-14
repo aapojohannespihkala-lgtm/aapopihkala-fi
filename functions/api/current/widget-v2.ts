@@ -1,3 +1,4 @@
+import { onRequestGet as getElectricityMonthResponse } from './electricity-month';
 import { fetchLiigaResponse } from './liiga';
 import { fetchWidgetHslData, type WidgetHslData } from './widget-hsl';
 import { onRequestGet as getWidgetResponse, WIDGET_WEATHER_SOURCE } from './widget';
@@ -61,6 +62,10 @@ type BaseWidgetData = {
   electricity?: unknown;
   markets?: unknown;
   rates?: unknown;
+};
+
+type ElectricityMonthData = {
+  average?: unknown;
 };
 
 type LiigaData = {
@@ -278,7 +283,10 @@ const hourlyBars = (value: unknown): number[] => {
   return hourly.slice(0, 32).map((price) => (price - low) / (high - low));
 };
 
-const buildElectricitySection = (value: unknown): WidgetSection | null => {
+const buildElectricitySection = (
+  value: unknown,
+  monthAverage: number | null,
+): WidgetSection | null => {
   const electricity = asRecord(value);
   if (!electricity) return null;
   const price = finiteNumber(electricity.price);
@@ -292,10 +300,11 @@ const buildElectricitySection = (value: unknown): WidgetSection | null => {
     label: 'ELECTRICITY',
     primary: formatPrice(average),
     secondary: 'DAY AVG / TODAY',
-    detail: `NOW ${formatNumber(price)}  LOW ${formatNumber(low)}  HIGH ${formatNumber(high)}`,
+    detail: `MONTH AVG ${formatNumber(monthAverage)}  LOW ${formatNumber(low)}  HIGH ${formatNumber(high)}`,
     span: 'full',
     layout: 'split',
     bars: hourlyBars(electricity.series),
+    rows: price === null ? [] : [{ label: 'NOW', value: formatPrice(price) }],
   };
 };
 
@@ -500,12 +509,13 @@ export const buildWidgetV2Payload = (
   generatedAt = new Date().toISOString(),
   solar: SolarData | null = null,
   hsl: WidgetHslData | null = null,
+  electricityMonthAverage: number | null = null,
 ): WidgetV2Payload => {
   const hslSection = buildHslSection(hsl, generatedAt);
   const hasHsl = hslSection !== null;
   const sections = [
     buildWeatherSection(base?.weather, solar),
-    buildElectricitySection(base?.electricity),
+    buildElectricitySection(base?.electricity, electricityMonthAverage),
     buildMarketsSection(base?.markets),
     hslSection,
     buildRatesSection(base?.rates, hasHsl ? '05' : '04'),
@@ -530,7 +540,7 @@ export const onRequestGet = async (context: WidgetV2Context) => {
   const channel = url.searchParams.get('channel') === 'dev' ? 'dev' : 'prod';
   const generatedAt = new Date().toISOString();
 
-  const [baseResponse, liigaResponse, solar, hsl] = await Promise.all([
+  const [baseResponse, liigaResponse, solar, hsl, electricityMonthResponse] = await Promise.all([
     getWidgetResponse({ request: context.request }),
     fetchLiigaResponse(4_000),
     fetchSolarData(),
@@ -539,12 +549,22 @@ export const onRequestGet = async (context: WidgetV2Context) => {
       apiKey: context.env?.DIGITRANSIT_API_KEY,
       timeoutMs: 4_000,
     }),
+    getElectricityMonthResponse(),
   ]);
-  const [base, liiga] = await Promise.all([
+  const [base, liiga, electricityMonth] = await Promise.all([
     readJson<BaseWidgetData>(baseResponse),
     readJson<LiigaData>(liigaResponse),
+    readJson<ElectricityMonthData>(electricityMonthResponse),
   ]);
-  const payload = buildWidgetV2Payload(base, liiga, channel, generatedAt, solar, hsl);
+  const payload = buildWidgetV2Payload(
+    base,
+    liiga,
+    channel,
+    generatedAt,
+    solar,
+    hsl,
+    finiteNumber(electricityMonth?.average),
+  );
   const hasSections = payload.sections.length > 0;
 
   return Response.json(
