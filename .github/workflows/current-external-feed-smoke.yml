@@ -160,44 +160,45 @@ jobs:
           const items = Array.isArray(body.items) ? body.items : [];
           const sources = Array.isArray(body.sources) ? body.sources : [];
           const failures = [];
-          const expectedSourceIds = [
-            'soundi',
-            'pelaaja',
-            'muropaketti-games',
-            'muropaketti-films',
-            'episodi',
-            'inferno',
-            'kulttuuritoimitus',
-            'pitchfork',
-            'quietus',
-            'angry-metal-guy',
-            'comics-journal',
-          ];
+          const MIN_LOGICAL_SOURCES = 8;
+          const MIN_USABLE_SOURCE_RATIO = 0.7;
           const sourceIds = sources
             .map((source) => source?.id)
-            .filter((id) => typeof id === 'string');
-          const missingSourceIds = expectedSourceIds.filter((id) => !sourceIds.includes(id));
-          const unexpectedSourceIds = sourceIds.filter((id) => !expectedSourceIds.includes(id));
+            .filter((id) => typeof id === 'string' && id.length > 0);
+          const uniqueSourceIds = new Set(sourceIds);
           const invalidStatuses = sources.filter(
             (source) => !['ok', 'partial', 'error'].includes(source?.status),
           );
           const partialSources = sources.filter((source) => source?.status === 'partial');
           const errorSources = sources.filter((source) => source?.status === 'error');
+          const usableSources = sources.filter((source) => ['ok', 'partial'].includes(source?.status));
+          const minimumUsableSources = Math.max(
+            MIN_LOGICAL_SOURCES,
+            Math.ceil(sources.length * MIN_USABLE_SOURCE_RATIO),
+          );
 
           if (!body.generatedAt || !Number.isFinite(Date.parse(body.generatedAt))) {
             failures.push('generatedAt missing or invalid');
           }
           if (items.length < 3) failures.push(`expected at least 3 news items, got ${items.length}`);
-          if (missingSourceIds.length > 0) failures.push(`missing source statuses: ${missingSourceIds.join(', ')}`);
-          if (unexpectedSourceIds.length > 0) failures.push(`unexpected source statuses: ${unexpectedSourceIds.join(', ')}`);
+          if (sources.length < MIN_LOGICAL_SOURCES) {
+            failures.push(`expected at least ${MIN_LOGICAL_SOURCES} logical sources, got ${sources.length}`);
+          }
+          if (sourceIds.length !== sources.length || uniqueSourceIds.size !== sourceIds.length) {
+            failures.push('source status ids are missing or duplicated');
+          }
           if (invalidStatuses.length > 0) failures.push('one or more source statuses are invalid');
-          if (errorSources.length > 0) {
-            failures.push(`fully failing sources: ${errorSources.map((source) => source.id).join(', ')}`);
+          if (usableSources.length < minimumUsableSources) {
+            failures.push(`usable source coverage too low: ${usableSources.length}/${sources.length}`);
           }
 
           for (const item of items.slice(0, 12)) {
             if (!item?.title || !item?.url || !item?.sourceId) {
               failures.push('news item missing title, url or sourceId');
+              break;
+            }
+            if (!uniqueSourceIds.has(item.sourceId)) {
+              failures.push(`news item references unknown sourceId: ${String(item.sourceId)}`);
               break;
             }
             if (!Number.isFinite(Date.parse(item.publishedAt))) {
@@ -212,15 +213,15 @@ jobs:
             console.log(`Current News partial sources: ${partialSources.map((source) => source.id).join(', ')}.`);
           }
           if (errorSources.length > 0) {
-            console.error(`Current News error sources: ${errorSources.map((source) => source.id).join(', ')}.`);
+            console.error(`Current News degraded sources: ${errorSources.map((source) => source.id).join(', ')}.`);
           }
 
           if (failures.length > 0) {
-            console.error(`Current News feed invalid: ${failures.join(' | ')}`);
+            console.error(`Current News aggregate invalid: ${failures.join(' | ')}`);
             process.exit(1);
           }
 
-          console.log('Current News verified: every configured logical source returned usable data.');
+          console.log(`Current News aggregate verified: ${usableSources.length}/${sources.length} logical sources usable; individual RSS health is covered by the source-contract smoke.`);
           NODE
               then
                 exit 0
@@ -232,7 +233,7 @@ jobs:
             fi
           done
 
-          echo "Current News feed did not recover in production." >&2
+          echo "Current News aggregate did not recover in production." >&2
           [[ -f current-news-live.json ]] && cat current-news-live.json >&2
           exit 1
 
