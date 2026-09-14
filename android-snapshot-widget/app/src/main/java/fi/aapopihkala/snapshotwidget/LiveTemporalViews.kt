@@ -22,7 +22,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 private val COUNTDOWN_FALLBACK_PATTERN = Regex("^\\d+\\s+MIN$")
-internal const val COUNTDOWN_DUE_WINDOW_MS = 60_000L
+internal const val COUNTDOWN_SECONDS_WINDOW_MS = 120_000L
 
 @Composable
 internal fun LiveHeaderClock(
@@ -60,11 +60,6 @@ internal fun LiveCountdownValue(
         )
     }
     val exactRolloverAvailable = SnapshotHslRolloverScheduler.canScheduleExact(context)
-    val staticOverride = if (exactRolloverAvailable) {
-        countdownStaticOverride(resolvedTarget, wallNow)
-    } else {
-        null
-    }
 
     when {
         resolvedTarget != null && resolvedTarget <= wallNow -> CountdownText(
@@ -73,14 +68,14 @@ internal fun LiveCountdownValue(
             sizeSp = sizeSp,
             modifier = modifier,
         )
-        resolvedTarget != null && !exactRolloverAvailable -> CountdownText(
-            text = countdownClockLabel(resolvedTarget),
+        resolvedTarget != null && exactRolloverAvailable && !countdownUsesLiveSeconds(resolvedTarget, wallNow) -> CountdownText(
+            text = countdownLabel(resolvedTarget, wallNow) ?: fallback,
             color = color,
             sizeSp = sizeSp,
             modifier = modifier,
         )
-        staticOverride != null -> CountdownText(
-            text = staticOverride,
+        resolvedTarget != null && !exactRolloverAvailable -> CountdownText(
+            text = countdownClockLabel(resolvedTarget),
             color = color,
             sizeSp = sizeSp,
             modifier = modifier,
@@ -130,13 +125,13 @@ private fun CountdownText(
     )
 }
 
-internal fun countdownStaticOverride(
+internal fun countdownUsesLiveSeconds(
     resolvedTargetMs: Long?,
     wallNowMs: Long,
-): String? {
-    val target = resolvedTargetMs ?: return null
+): Boolean {
+    val target = resolvedTargetMs ?: return false
     val remainingMs = target - wallNowMs
-    return if (remainingMs in 1..COUNTDOWN_DUE_WINDOW_MS) "DUE" else null
+    return remainingMs in 1..COUNTDOWN_SECONDS_WINDOW_MS
 }
 
 internal fun countdownFallbackText(
