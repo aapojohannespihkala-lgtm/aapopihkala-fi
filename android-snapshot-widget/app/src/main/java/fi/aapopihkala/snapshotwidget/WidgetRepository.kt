@@ -58,7 +58,8 @@ internal fun shouldRetryV2Status(status: String): Boolean {
 }
 
 class WidgetRepository(context: Context) {
-    private val prefs = context.getSharedPreferences("snapshot_widget", Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences("snapshot_widget", Context.MODE_PRIVATE)
 
     suspend fun fetchAndCache(): WidgetPayload? = withContext(Dispatchers.IO) {
         var presentation = fetchPresentation(PRESENTATION_TIMEOUT_MS)
@@ -88,12 +89,15 @@ class WidgetRepository(context: Context) {
             editor.putString(KEY_STATUS, STATUS_ERROR)
         }
         editor.apply()
+        SnapshotTemporalRefreshScheduler.schedule(appContext, payload ?: loadCached())
         payload
     }
 
     fun loadCached(): WidgetPayload? {
         val json = prefs.getString(KEY_CACHE, null) ?: return null
-        return WidgetPayloadCodec.parse(json)?.takeIf { it.isCompatible() }
+        return WidgetPayloadCodec.parse(json)
+            ?.takeIf { it.isCompatible() }
+            ?.resolveTemporalSections(System.currentTimeMillis())
     }
 
     fun status(): String = prefs.getString(KEY_STATUS, STATUS_IDLE) ?: STATUS_IDLE

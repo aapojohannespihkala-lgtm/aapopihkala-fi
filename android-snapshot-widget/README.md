@@ -43,8 +43,10 @@ Network data still refreshes on the WorkManager cadence, but time-sensitive UI i
 
 - header clock: Android `TextClock`, `HH:mm:ss`
 - HSL next departure: Android `Chronometer`
+- cached HSL departure rollover: lightweight local WorkManager updates at known departure times
+- header date rollover: a local update at Helsinki midnight
 
-This avoids tying seconds or departure countdowns to a 15-minute network refresh.
+The server attaches absolute targets to the visible HSL departure rows. Android always selects the first still-future target. When its countdown reaches zero, the passed departure is dropped and the widget rebuilds locally onto the next known departure instead of displaying `NOW` or a negative countdown. No HSL network request is required for that rollover.
 
 The header currently reads approximately:
 
@@ -89,6 +91,8 @@ Generic content primitives include:
 - normalized `bars`
 - optional countdown target data
 
+Rows may carry optional temporal metadata used by the Android runtime to advance a countdown section locally while keeping the visible row layout unchanged.
+
 Large layout supports:
 
 - `span: full`
@@ -96,7 +100,7 @@ Large layout supports:
 - `layout: stack`
 - `layout: split`
 
-Missing layout metadata defaults to `full + stack` for backward-compatible cached payloads.
+Missing layout metadata defaults to `full + stack` for backward-compatible cached payloads. Payload compatibility rejects missing/zero schema or engine versions rather than treating them as implicitly supported.
 
 ## Android / RemoteViews constraints
 
@@ -112,8 +116,8 @@ Keep large rows wrapped in `LargeRowBlock`. Use only RemoteViews-safe native vie
 
 ## APK workflow
 
-Android-changing PRs run unit tests and compile a debug APK. After merge to `main`, the Android release workflow restores the persistent signing identity, builds the signed release APK, verifies the signature and uploads the artifact.
+Android-changing PRs run unit tests and compile a debug APK. After merge to `main`, the Android release workflow runs the Android unit tests again, restores the persistent signing identity, builds the signed release APK, verifies the signature and uploads the artifact.
 
 Server-only presentation changes do not require an APK.
 
-Current engine version: **2.8.4**.
+Current engine version: **2.9.0**.
