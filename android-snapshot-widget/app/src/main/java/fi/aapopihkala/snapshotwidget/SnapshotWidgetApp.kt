@@ -559,6 +559,17 @@ private fun SupportingContent(
     includeTopSpacing: Boolean = true
 ) {
     var rendered = false
+    val electricityNow = if (section.id == "electricity") {
+        section.rows.firstOrNull { it.label == "NOW" }
+    } else {
+        null
+    }
+    val visibleRows = if (section.id == "electricity") {
+        section.rows.filterNot { it.label == "NOW" }
+    } else {
+        section.rows
+    }
+
     if (section.columns.isNotEmpty()) {
         if (includeTopSpacing) Spacer(GlanceModifier.height(5.dp))
         ColumnStrip(section.columns, palette)
@@ -566,13 +577,17 @@ private fun SupportingContent(
     }
     if (section.bars.isNotEmpty()) {
         if (includeTopSpacing || rendered) Spacer(GlanceModifier.height(if (rendered) 4.dp else 5.dp))
-        BarStrip(section.bars, palette)
+        if (section.id == "electricity") {
+            ElectricityBarStrip(section.bars, electricityNow?.value, palette)
+        } else {
+            BarStrip(section.bars, palette)
+        }
         rendered = true
     }
-    if (section.rows.isNotEmpty()) {
+    if (visibleRows.isNotEmpty()) {
         if (includeTopSpacing || rendered) Spacer(GlanceModifier.height(if (rendered) 4.dp else 5.dp))
         Column(modifier = GlanceModifier.fillMaxWidth()) {
-            section.rows.take(5).forEach { item -> DetailRow(item, palette) }
+            visibleRows.take(5).forEach { item -> DetailRow(item, palette) }
         }
     }
 }
@@ -635,6 +650,48 @@ private fun ColumnStrip(items: List<WidgetItem>, palette: Palette) {
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     ),
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ElectricityBarStrip(
+    values: List<Double>,
+    currentPrice: String?,
+    palette: Palette,
+) {
+    Column(modifier = GlanceModifier.fillMaxWidth()) {
+        currentPrice?.let {
+            Row(modifier = GlanceModifier.fillMaxWidth()) {
+                Text(
+                    text = "NOW",
+                    modifier = GlanceModifier.defaultWeight(),
+                    style = TextStyle(color = ColorProvider(palette.muted), fontSize = 7.sp),
+                    maxLines = 1
+                )
+                Text(
+                    text = it,
+                    style = TextStyle(
+                        color = ColorProvider(palette.foreground),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    maxLines = 1
+                )
+            }
+            Spacer(GlanceModifier.height(2.dp))
+        }
+        BarStrip(values, palette)
+        Spacer(GlanceModifier.height(1.dp))
+        Row(modifier = GlanceModifier.fillMaxWidth()) {
+            listOf("00", "06", "12", "18").forEach { label ->
+                Text(
+                    text = label,
+                    modifier = GlanceModifier.defaultWeight(),
+                    style = TextStyle(color = ColorProvider(palette.muted), fontSize = 6.sp),
                     maxLines = 1
                 )
             }
