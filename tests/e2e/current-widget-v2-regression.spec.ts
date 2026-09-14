@@ -79,6 +79,7 @@ test('widget v2 exposes production HSL through the large-layout presentation con
     '2026-09-13T13:05:00.000Z',
     null,
     hslFixture,
+    4.21,
   );
 
   expect(payload).toMatchObject({
@@ -112,10 +113,11 @@ test('widget v2 exposes production HSL through the large-layout presentation con
   expect(electricity).toMatchObject({
     primary: '1.83 c/kWh',
     secondary: 'DAY AVG / TODAY',
-    detail: 'NOW 2.54  LOW 0.39  HIGH 5.03',
+    detail: 'MONTH AVG 4.21  LOW 0.39  HIGH 5.03',
     span: 'full',
     layout: 'split',
     bars: [0, 1, 0.5],
+    rows: [{ label: 'NOW', value: '2.54 c/kWh' }],
   });
 
   const markets = payload.sections.find((section) => section.id === 'markets');
