@@ -203,13 +203,13 @@ const worker = {
     if (url.pathname === WIDGET_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
       return url.searchParams.get('v') === '2'
-        ? getWidgetV2Response({ request })
+        ? getWidgetV2Response({ request, env })
         : getWidgetResponse({ request });
     }
 
     if (url.pathname === WIDGET_V2_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return getWidgetV2Response({ request });
+      return getWidgetV2Response({ request, env });
     }
 
     if (url.pathname === NEWS_PATH) {

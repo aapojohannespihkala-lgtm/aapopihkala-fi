@@ -96,6 +96,13 @@ test('Wrangler sends every Current API route through the Worker first', () => {
   expect(config.assets?.run_worker_first).toEqual(workerFirstPaths);
 });
 
+test('Worker preserves environment bindings for both Widget v2 routes', () => {
+  const source = readFileSync(new URL('../../worker/index.ts', import.meta.url), 'utf8');
+  const calls = source.match(/getWidgetV2Response\(\{ request, env \}\)/g) ?? [];
+
+  expect(calls).toHaveLength(2);
+});
+
 test('Worker serves Current APIs, enforces route methods and keeps static assets as fallback', async () => {
   const originalFetch = globalThis.fetch;
   const upstreamFixture = buildWorkerElectricityFixture();
