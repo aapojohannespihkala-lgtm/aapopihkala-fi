@@ -1,5 +1,6 @@
 package fi.aapopihkala.snapshotwidget
 
+import java.net.URI
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -160,6 +161,16 @@ internal fun resolveTemporalSection(section: WidgetSection, wallNowMs: Long): Wi
 internal fun WidgetPayload.resolveTemporalSections(wallNowMs: Long): WidgetPayload =
     copy(sections = sections.map { resolveTemporalSection(it, wallNowMs) })
 
+internal fun safeSnapshotPageUrl(value: String?): String {
+    val candidate = value?.trim()?.takeIf { it.isNotEmpty() } ?: return SnapshotEndpoints.PAGE_URL
+    val uri = runCatching { URI(candidate) }.getOrNull() ?: return SnapshotEndpoints.PAGE_URL
+    val allowed = uri.scheme.equals("https", ignoreCase = true) &&
+        uri.host.equals("aapopihkala.fi", ignoreCase = true) &&
+        uri.userInfo == null &&
+        (uri.port == -1 || uri.port == 443)
+    return if (allowed) candidate else SnapshotEndpoints.PAGE_URL
+}
+
 object WidgetPayloadCodec {
     fun parse(json: String): WidgetPayload? = runCatching {
         val root = JSONObject(json)
@@ -211,7 +222,7 @@ object WidgetPayloadCodec {
             generatedAt = root.optString("generatedAt"),
             refreshMinutes = root.optInt("refreshMinutes", 15).coerceAtLeast(15),
             title = root.optString("title", "CURRENT / SNAPSHOT"),
-            pageUrl = root.optString("pageUrl", SnapshotEndpoints.PAGE_URL),
+            pageUrl = safeSnapshotPageUrl(root.optString("pageUrl", SnapshotEndpoints.PAGE_URL)),
             theme = theme,
             layouts = layouts,
             sections = sections
