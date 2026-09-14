@@ -5,7 +5,13 @@ import { onRequestGet as getWidgetResponse, WIDGET_WEATHER_SOURCE } from './widg
 type Tone = 'neutral' | 'positive' | 'negative' | 'accent';
 type WidgetSpan = 'full' | 'half';
 type WidgetLayout = 'stack' | 'split';
-type WidgetRow = { label: string; value: string; tone?: Tone };
+type WidgetRow = {
+  label: string;
+  value: string;
+  tone?: Tone;
+  secondary?: string;
+  countdownTargetMs?: number;
+};
 type WidgetColumn = { label: string; value: string; tone?: Tone };
 
 export type WidgetSection = {
@@ -343,8 +349,7 @@ const hslCountdown = (departureAt: string, now: number) => {
   const departure = timestampOf(departureAt);
   if (departure === null) return null;
   const delta = departure - now;
-  if (delta < -30_000) return null;
-  if (delta <= 30_000) return 'NOW';
+  if (delta <= 0) return null;
   return `${Math.ceil(delta / 60_000)} MIN`;
 };
 
@@ -385,6 +390,8 @@ const buildHslSection = (
       label: departure.route,
       value: hslClock(departure.departureAt),
       tone: departure.realtime ? 'accent' : 'neutral',
+      secondary: [departure.route, departure.headsign].filter(Boolean).join(' / ').toUpperCase(),
+      countdownTargetMs: departure.timestamp,
     })),
   };
 };

@@ -44,7 +44,9 @@ data class WidgetLayouts(
 data class WidgetItem(
     val label: String,
     val value: String,
-    val tone: String = "neutral"
+    val tone: String = "neutral",
+    val secondary: String? = null,
+    val countdownTargetMs: Long? = null
 )
 
 data class WidgetSection(
@@ -76,7 +78,7 @@ data class WidgetPayload(
     val sections: List<WidgetSection>
 ) {
     fun isCompatible(): Boolean =
-        schemaVersion <= ENGINE_SCHEMA_VERSION && minEngineVersion <= ENGINE_VERSION
+        schemaVersion in 1..ENGINE_SCHEMA_VERSION && minEngineVersion in 1..ENGINE_VERSION
 
     companion object {
         const val ENGINE_VERSION = 2
@@ -109,6 +111,54 @@ fun countdownElapsedRealtimeBase(
     val remainingMs = targetEpochMs - wallNowMs
     return if (remainingMs > 0L) elapsedNowMs + remainingMs else null
 }
+
+internal fun countdownLabel(targetEpochMs: Long, wallNowMs: Long): String? {
+    val remainingMs = targetEpochMs - wallNowMs
+    if (remainingMs <= 0L) return null
+    val minutes = (remainingMs + 59_999L) / 60_000L
+    return "$minutes MIN"
+}
+
+internal fun resolveTemporalSection(section: WidgetSection, wallNowMs: Long): WidgetSection {
+    val timedRows = section.rows.mapIndexedNotNull { index, item ->
+        val target = item.countdownTargetMs?.takeIf { it > wallNowMs } ?: return@mapIndexedNotNull null
+        Triple(index, item, target)
+    }
+    val next = timedRows.firstOrNull()
+    if (next != null) {
+        val (index, item, target) = next
+        val liveLabel = if (item.tone.equals("accent", ignoreCase = true)) "LIVE" else "SCHED"
+        return section.copy(
+            primary = countdownLabel(target, wallNowMs) ?: section.primary,
+            secondary = item.secondary ?: if (index == 0) section.secondary else item.label,
+            detail = "${item.value} / $liveLabel",
+            tone = item.tone,
+            countdownTargetMs = target,
+            rows = section.rows.drop(index)
+        )
+    }
+
+    if (section.rows.any { it.countdownTargetMs != null }) {
+        return section.copy(
+            primary = "--",
+            secondary = null,
+            detail = null,
+            tone = "neutral",
+            countdownTargetMs = null,
+            rows = emptyList()
+        )
+    }
+
+    val target = section.countdownTargetMs ?: return section
+    return if (target > wallNowMs) {
+        section.copy(primary = countdownLabel(target, wallNowMs) ?: section.primary)
+    } else {
+        section
+    }
+}
+
+internal fun WidgetPayload.resolveTemporalSections(wallNowMs: Long): WidgetPayload =
+    copy(sections = sections.map { resolveTemporalSection(it, wallNowMs) })
 
 object WidgetPayloadCodec {
     fun parse(json: String): WidgetPayload? = runCatching {
@@ -217,11 +267,13 @@ object WidgetPayloadCodec {
 
     private fun itemArray(items: List<WidgetItem>) = JSONArray().apply {
         items.forEach { item ->
-            put(JSONObject()
+            val objectValue = JSONObject()
                 .put("label", item.label)
                 .put("value", item.value)
                 .put("tone", item.tone)
-            )
+            item.secondary?.let { objectValue.put("secondary", it) }
+            item.countdownTargetMs?.let { objectValue.put("countdownTargetMs", it) }
+            put(objectValue)
         }
     }
 
@@ -269,7 +321,13 @@ object WidgetPayloadCodec {
     private fun JSONArray?.items(): List<WidgetItem> = objects().mapNotNull { item ->
         val label = item.optString("label").takeIf { it.isNotBlank() } ?: return@mapNotNull null
         val value = item.optString("value").takeIf { it.isNotBlank() } ?: return@mapNotNull null
-        WidgetItem(label, value, item.optString("tone", "neutral"))
+        WidgetItem(
+            label = label,
+            value = value,
+            tone = item.optString("tone", "neutral"),
+            secondary = item.nullableString("secondary"),
+            countdownTargetMs = item.nullableLong("countdownTargetMs")
+        )
     }
 
     private fun JSONArray?.numbers(): List<Double> {

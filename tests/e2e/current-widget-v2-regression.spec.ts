@@ -143,8 +143,20 @@ test('widget v2 exposes production HSL through the large-layout presentation con
     layout: 'split',
     countdownTargetMs: 1789305000000,
     rows: [
-      { label: '121', value: '16:10', tone: 'accent' },
-      { label: '125', value: '16:17', tone: 'neutral' },
+      {
+        label: '121',
+        value: '16:10',
+        tone: 'accent',
+        secondary: '121 / CENTRAL',
+        countdownTargetMs: 1789305000000,
+      },
+      {
+        label: '125',
+        value: '16:17',
+        tone: 'neutral',
+        secondary: '125 / METRO',
+        countdownTargetMs: 1789305420000,
+      },
     ],
   });
 
@@ -164,6 +176,26 @@ test('widget v2 exposes production HSL through the large-layout presentation con
       { label: 'START', value: 'WED 16 18:30' },
     ],
   });
+});
+
+test('widget v2 skips a departure once its countdown reaches zero', () => {
+  const payload = buildWidgetV2Payload(
+    baseFixture,
+    liigaFixture,
+    'prod',
+    '2026-09-13T13:10:00.000Z',
+    null,
+    hslFixture,
+  );
+
+  const hsl = payload.sections.find((section) => section.id === 'hsl');
+  expect(hsl).toMatchObject({
+    primary: '7 MIN',
+    secondary: '125 / METRO',
+    detail: '16:17 / SCHED',
+    countdownTargetMs: 1789305420000,
+  });
+  expect(hsl?.primary).not.toBe('NOW');
 });
 
 test('widget v2 keeps prod and dev on the same large HSL layout', () => {

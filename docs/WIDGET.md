@@ -63,7 +63,7 @@ Current header direction:
 
 - Time is a native Android `TextClock` with seconds (`HH:mm:ss`). It advances locally without a widget/network refresh.
 - Date and ISO week use the same visual size as the clock and share the same row.
-- The date/week text is written when the widget RemoteViews is rebuilt; unlike `TextClock`, it does not independently roll over at midnight.
+- The date/week text is written when the widget RemoteViews is rebuilt. A lightweight local WorkManager update is scheduled for Helsinki midnight so the date can roll over without waiting for a successful network refresh.
 
 Refresh/status lives in the bottom footer:
 
@@ -140,6 +140,7 @@ The Android app owns:
 - size-class selection
 - generic presentation primitives
 - RemoteViews-compatible native live views (`TextClock`, `Chronometer`, `ProgressBar`)
+- local temporal rollover updates for cached HSL departures and header midnight
 - large-row grouping
 - compatible cache persistence
 - manual refresh action
@@ -178,6 +179,8 @@ WidgetRepository
    v
 compatible cache
    |
+   +--> local temporal resolver + scheduled rollover updates
+   |
    v
 Glance renderer + native live temporal views
 ```
@@ -186,7 +189,7 @@ Glance renderer + native live temporal views
 
 The v2 payload includes `schemaVersion` and `minEngineVersion`.
 
-Android must reject a payload requiring an engine version newer than the installed APK understands. In that case it retains the latest compatible cache and/or uses compatibility fallback behavior.
+Android rejects payloads with a missing/zero schema or engine version and payloads requiring a newer schema/engine than the installed APK understands. In that case it retains the latest compatible cache and/or uses compatibility fallback behavior.
 
 Generic section primitives include:
 
@@ -199,12 +202,14 @@ Generic section primitives include:
 - normalized `bars`
 - optional absolute countdown target data for locally ticking values
 
+Rows can additionally carry optional `secondary` and `countdownTargetMs` metadata. Android uses that metadata generically to advance a cached countdown section to the first still-future row while leaving ordinary row rendering unchanged.
+
 Large-layout composition supports:
 
-- `span: full` — full width
-- `span: half` — compact half-width metric, pairable with the next adjacent half section
-- `layout: stack` — normal vertical presentation
-- `layout: split` — main metric left, supporting content right
+- `span: full` - full width
+- `span: half` - compact half-width metric, pairable with the next adjacent half section
+- `layout: stack` - normal vertical presentation
+- `layout: split` - main metric left, supporting content right
 
 Missing `span`/`layout` values default to `full` + `stack` for cache/backward compatibility.
 
@@ -248,9 +253,11 @@ Sunrise, sunset and daylight duration remain visible as text beside the disk.
 
 The 15-minute network cadence is not appropriate for a countdown. HSL therefore separates data freshness from local time progression.
 
-The server supplies an absolute next-departure target when available. Android converts that wall-clock target to a `Chronometer` base using `SystemClock.elapsedRealtime()` and lets the native view count down locally between network refreshes.
+The server supplies an absolute target for the current departure and absolute targets plus route/destination metadata for the visible upcoming rows. Android converts the selected wall-clock target to a `Chronometer` base using `SystemClock.elapsedRealtime()` and lets the native view count down locally between network refreshes.
 
-Older cached HSL payloads without the absolute target can temporarily derive it from the clock time in the section detail when safe. This compatibility bridge prevents a cached `9 MIN` value from remaining frozen after an APK upgrade.
+Android also schedules lightweight local widget rebuilds for the known departure targets. When a countdown reaches zero, the passed departure is removed from the resolved cached section and the first still-future row becomes the new countdown target. The main route/destination, clock detail, realtime/scheduled tone and right-side rows advance together. The widget therefore does not intentionally show `NOW` or a negative countdown for a departure that has already reached its stop time, and this rollover does not require another HSL network request.
+
+Older cached HSL payloads without the row-level targets can temporarily derive the current target from the clock time in the section detail when safe. This compatibility bridge prevents a cached minute label from remaining frozen after an APK upgrade. A normal network refresh upgrades the cache to the richer row metadata.
 
 Upcoming departures on the right remain absolute clock times; they do not need per-minute network polling.
 
@@ -258,11 +265,15 @@ Upcoming departures on the right remain absolute clock times; they do not need p
 
 WorkManager owns the normal periodic network cadence and currently uses Android's minimum practical 15-minute periodic interval. WorkManager timing is opportunistic: 15 minutes is not a guarantee that execution happens at an exact wall-clock boundary.
 
-Live time-based UI is therefore deliberately independent of WorkManager:
+Live time-based UI is therefore deliberately independent of the network cadence:
 
 - header seconds: native `TextClock`
 - HSL next-departure countdown: native `Chronometer`
-- network data: WorkManager/manual refresh
+- HSL target rollover: lightweight one-time WorkManager updates scheduled from cached absolute targets
+- header date rollover: lightweight one-time WorkManager update at Helsinki midnight
+- network data: periodic WorkManager/manual refresh
+
+The temporal workers start shortly before their target and wait locally until the target when Android starts them on time. If Android delays a worker, it rebuilds the widget as soon as it is allowed to run and resolves directly to the then-current future target.
 
 ### v2 retry policy (2.8.4)
 
@@ -312,11 +323,11 @@ Normal successful rich-v2 operation shows only `UPDATED HH:mm`. Failure/fallback
 
 The widget keeps the latest compatible payload in SharedPreferences.
 
-- v2 success -> cache the rich v2 payload
+- v2 success -> cache the rich v2 payload and schedule its known local temporal updates
 - v2 transient failure -> retry once
 - v2 still fails -> try legacy
 - legacy success -> cache legacy payload and identify fallback in the footer
-- v2 + legacy failure -> preserve the previous cache and show failure diagnostics
+- v2 + legacy failure -> preserve the previous cache, keep its useful local temporal behavior and show failure diagnostics
 - optional section failure inside a valid v2 response -> omit only that section
 
 `UPDATED`/`LAST` refer to the payload generation time. They are not the same thing as the continuously ticking header clock.
@@ -337,7 +348,7 @@ Use:
 
 The preview reads `/api/current/widget-v2` and uses the same `span`/`layout` metadata as Android. It can inspect compact, medium and large layouts and prod/dev variants.
 
-The browser preview is a design approximation, not an Android launcher emulator. It cannot prove RemoteViews compatibility, launcher child-budget behavior, native TextClock/Chronometer behavior or OEM-specific background networking.
+The browser preview is a design approximation, not an Android launcher emulator. It cannot prove RemoteViews compatibility, launcher child-budget behavior, native TextClock/Chronometer behavior or OEM-specific background scheduling/networking.
 
 ## Preferred development workflow
 
@@ -360,7 +371,7 @@ No APK should be required when existing Android primitives are sufficient.
 4. add/update pure unit tests where practical
 5. run Android PR CI (tests + debug compile)
 6. merge only when Android CI is green
-7. let the `main` release workflow restore the permanent signing key, build the signed release and verify its signature
+7. let the `main` release workflow run Android tests again, restore the permanent signing key, build the signed release and verify its signature
 8. install over the existing app and verify on a real launcher
 9. update this document and `android-snapshot-widget/README.md` when behavior/architecture changed
 
@@ -372,7 +383,7 @@ Android source lives under `android-snapshot-widget/`.
 
 The GitHub Android workflow uses the persistent signing identity stored in Actions secrets. New signed releases must install over previous signed releases without uninstalling the app.
 
-Signing credentials must not be committed to repository source.
+Signing credentials must not be committed to repository source. Keystore file extensions are ignored by the Android subproject. The remaining hard-coded keystore password in the workflow should be rotated into an Actions secret as a separate credential migration so the release workflow is not broken by changing only one side.
 
 ## Version history relevant to current architecture
 
@@ -419,34 +430,48 @@ Hardens phone-side networking without changing endpoints:
 - footer exposes v2/legacy diagnostic codes only on failure/fallback
 - retry policy and diagnostic formatting have unit coverage
 
+### 2.9.0
+
+Hardens local temporal behavior and payload validation:
+
+- HSL presentation rows carry absolute targets and route/destination context
+- cached HSL countdown rolls directly to the next future departure instead of `NOW` or negative time
+- local one-time WorkManager updates rebuild the widget at known HSL departure targets without fetching the network
+- a local midnight rebuild keeps the static date/week header from waiting on network success
+- missing/zero schema and engine versions are rejected as incompatible
+- release APK builds run Android unit tests before assembly
+
 ## Key file map
 
 Server/presentation:
 
-- `functions/api/current/widget.ts` — legacy/raw widget data endpoint
-- `functions/api/current/widget-v2.ts` — rich v2 presentation builder
-- `functions/api/current/widget-hsl.ts` — bounded widget HSL adapter
-- `functions/api/current/hsl.ts` — Current HSL upstream endpoint
-- `src/features/current/hsl-query.ts` — shared Current/widget HSL query configuration
-- `src/pages/current/widget-preview/index.astro` — browser preview
-- `tests/e2e/current-widget-v2-regression.spec.ts` — presentation contract regression
-- `tests/e2e/current-widget-preview.spec.ts` — preview regression
-- `tests/e2e/current-widget-weather-source.spec.ts` — Weather/solar source consistency
+- `functions/api/current/widget.ts` - legacy/raw widget data endpoint
+- `functions/api/current/widget-v2.ts` - rich v2 presentation builder
+- `functions/api/current/widget-hsl.ts` - bounded widget HSL adapter
+- `functions/api/current/hsl.ts` - Current HSL upstream endpoint
+- `src/features/current/hsl-query.ts` - shared Current/widget HSL query configuration
+- `src/pages/current/widget-preview/index.astro` - browser preview
+- `tests/e2e/current-widget-v2-regression.spec.ts` - presentation contract regression
+- `tests/e2e/current-widget-preview.spec.ts` - preview regression
+- `tests/e2e/current-widget-weather-source.spec.ts` - Weather/solar source consistency
 
 Android:
 
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SnapshotWidgetApp.kt` — Glance composition, refresh action, worker and footer
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetRepository.kt` — v2 access, controlled retry, legacy fallback, cache and diagnostics
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/LiveTemporalViews.kt` — native TextClock and HSL Chronometer
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/RefreshSpinner.kt` — native manual-refresh spinner
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SolarDetailVisual.kt` — day/night disk geometry and bitmap rendering
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetModels.kt` — presentation model, codec and compatibility
-- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/WidgetNetworkingTest.kt` — retry/diagnostic policy tests
-- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/WidgetTemporalTest.kt` — countdown/cache temporal tests
-- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/WidgetLayoutTest.kt` — layout grammar tests
-- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/SolarDetailVisualTest.kt` — solar geometry tests
-- `android-snapshot-widget/app/build.gradle.kts` — app version/release config
-- `.github/workflows/android-snapshot-widget.yml` — Android CI/release workflow
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SnapshotWidgetApp.kt` - Glance composition, refresh action, worker and footer
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetRepository.kt` - v2 access, controlled retry, legacy fallback, cache and diagnostics
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/LiveTemporalViews.kt` - native TextClock and HSL Chronometer
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetTemporalRefresh.kt` - local HSL/midnight temporal rebuild scheduling
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/RefreshSpinner.kt` - native manual-refresh spinner
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SolarDetailVisual.kt` - day/night disk geometry and bitmap rendering
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetModels.kt` - presentation model, codec, temporal resolver and compatibility
+- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/WidgetNetworkingTest.kt` - retry/diagnostic policy tests
+- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/WidgetTemporalTest.kt` - countdown/cache temporal tests
+- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/WidgetTemporalRefreshTest.kt` - scheduled temporal-target tests
+- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/WidgetModelCompatibilityTest.kt` - schema/engine compatibility tests
+- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/WidgetLayoutTest.kt` - layout grammar tests
+- `android-snapshot-widget/app/src/test/java/fi/aapopihkala/snapshotwidget/SolarDetailVisualTest.kt` - solar geometry tests
+- `android-snapshot-widget/app/build.gradle.kts` - app version/release config
+- `.github/workflows/android-snapshot-widget.yml` - Android CI/release workflow
 
 ## Decision log
 
@@ -455,6 +480,8 @@ Android:
 - Production rich endpoint remains `/api/current/widget-v2?channel=prod`; do not switch endpoints based on speculative phone-side failures.
 - Header time is local/native because a network refresh cadence cannot act as a clock.
 - HSL next-departure countdown is local/native for the same reason.
+- A passed HSL departure has no useful `NOW` state for this widget; rollover should select the next still-future departure.
+- Known cached departure targets may trigger local widget rebuilds without triggering HSL network requests.
 - Manual refresh feedback uses a native ProgressBar because widget hosts do not reliably animate arbitrary glyph transforms.
 - A transient v2 failure gets one bounded retry; semantic/permanent failures go directly to legacy fallback.
 - Last good compatible cache is more valuable than clearing sections on a temporary network failure.
@@ -466,7 +493,8 @@ Android:
 
 ## Next priorities
 
-1. Observe 2.8.4 on the real Huawei/EMUI launcher and record which network diagnostic codes occur if refresh instability remains.
-2. Fix the Electricity primary-value truncation (`15.20 c/k...`) using the existing server presentation grammar if possible, avoiding another APK.
-3. Tune Weather disk size/contrast only after networking is stable.
-4. Keep six-section density under observation before adding more dashboard sections.
+1. Verify 2.9.0 HSL rollover on the real Huawei/EMUI launcher, including a route change between adjacent departures and a network failure while cached targets remain.
+2. Move the release keystore password from the public workflow into a rotated Actions secret without changing the persistent signing identity.
+3. Move manual refresh networking out of the Glance action callback and onto the existing immediate WorkManager path.
+4. Fix the Electricity primary-value truncation (`15.20 c/k...`) using the existing server presentation grammar if possible, avoiding another APK.
+5. Keep six-section density under observation before adding more dashboard sections.

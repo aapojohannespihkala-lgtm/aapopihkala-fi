@@ -64,13 +64,13 @@ jobs:
           echo "$SIGNING_KEY_B64" | base64 --decode > "$RUNNER_TEMP/snapshot-widget-release.p12"
           chmod 600 "$RUNNER_TEMP/snapshot-widget-release.p12"
 
-      - name: Build signed release APK
+      - name: Test and build signed release APK
         if: github.event_name != 'pull_request'
         working-directory: android-snapshot-widget
         env:
           SNAPSHOT_SIGNING_STORE_PATH: ${{ runner.temp }}/snapshot-widget-release.p12
           SNAPSHOT_SIGNING_STORE_PASSWORD: snapshot-widget-2026
-        run: gradle --no-daemon :app:assembleRelease
+        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleRelease
 
       - name: Verify release signature
         if: github.event_name != 'pull_request'
