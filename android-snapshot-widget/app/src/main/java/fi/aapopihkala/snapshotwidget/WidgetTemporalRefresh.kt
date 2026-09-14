@@ -9,6 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.glance.appwidget.updateAll
+import androidx.work.CoroutineWorker
+import androidx.work.WorkerParameters
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
@@ -119,6 +121,20 @@ internal object SnapshotTemporalRefreshScheduler {
     fun schedule(context: Context, payload: WidgetPayload?) {
         SnapshotHslRolloverScheduler.schedule(context, payload)
         SnapshotMidnightRefreshScheduler.schedule(context)
+    }
+}
+
+// Compatibility shim for one-time temporal WorkManager jobs that may still be
+// queued from 2.9.x when the APK is upgraded. New code never enqueues this worker.
+class SnapshotTemporalUpdateWorker(
+    appContext: Context,
+    params: WorkerParameters,
+) : CoroutineWorker(appContext, params) {
+    override suspend fun doWork(): Result {
+        val payload = WidgetRepository(applicationContext).loadCached()
+        SnapshotWidget().updateAll(applicationContext)
+        SnapshotTemporalRefreshScheduler.schedule(applicationContext, payload)
+        return Result.success()
     }
 }
 
