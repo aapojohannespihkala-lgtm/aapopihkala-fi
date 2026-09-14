@@ -357,16 +357,31 @@ private fun LargeLayout(sections: List<WidgetSection>, palette: Palette) {
     val rows = largeRows(sections)
     Column(modifier = GlanceModifier.fillMaxWidth()) {
         rows.forEachIndexed { rowIndex, rowSections ->
-            if (rowSections.size == 1 && rowSections.first().span != "half") {
-                DetailedSection(rowSections.first(), palette)
-            } else {
-                LargeHalfRow(rowSections, palette)
-            }
-            if (rowIndex < rows.lastIndex) {
-                Spacer(GlanceModifier.height(5.dp))
-                HorizontalDivider(palette)
-                Spacer(GlanceModifier.height(5.dp))
-            }
+            LargeRowBlock(
+                sections = rowSections,
+                palette = palette,
+                showDivider = rowIndex < rows.lastIndex
+            )
+        }
+    }
+}
+
+@Composable
+private fun LargeRowBlock(
+    sections: List<WidgetSection>,
+    palette: Palette,
+    showDivider: Boolean
+) {
+    Column(modifier = GlanceModifier.fillMaxWidth()) {
+        if (sections.size == 1 && sections.first().span != "half") {
+            DetailedSection(sections.first(), palette)
+        } else {
+            LargeHalfRow(sections, palette)
+        }
+        if (showDivider) {
+            Spacer(GlanceModifier.height(5.dp))
+            HorizontalDivider(palette)
+            Spacer(GlanceModifier.height(5.dp))
         }
     }
 }
