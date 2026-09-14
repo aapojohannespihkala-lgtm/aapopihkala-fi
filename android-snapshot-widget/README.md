@@ -48,11 +48,13 @@ The right-side WORLD, USA, FINLAND, BTC / EUR and REMEDY rows are the correspond
 Network data still refreshes on the WorkManager cadence, but time-sensitive UI is local/native:
 
 - header clock: Android `TextClock`, `HH:mm:ss`
-- HSL next departure: Android `Chronometer` outside the final-minute guard
-- cached HSL departure rollover: lightweight local WorkManager updates around known departure times
-- header date rollover: a local update at Helsinki midnight
+- HSL next departure: Android `Chronometer` when exact rollover alarms are available
+- cached HSL departure rollover: one local `AlarmManager` alarm for the next absolute departure target
+- header date: refreshed by ordinary widget rebuilds
 
-The server attaches absolute targets to the visible HSL departure rows. Android always selects the first still-future target. Starting in 2.9.7, the final minute uses a static `DUE` guard instead of allowing the native Chronometer to roll below zero; the local temporal worker then advances the cached section to the next known departure. No HSL network request is required for that rollover.
+The server attaches absolute targets to the visible HSL departure rows. Android always selects the first still-future target. LIVE vs SCHED only describes the source/status of the departure; both use the same rollover rule. When the selected target is reached, the alarm receiver rebuilds from cache, drops the passed departure, promotes the next one and immediately schedules that next target. No HSL network request is required for this rollover.
+
+On Android 12+ exact rollover uses the `SCHEDULE_EXACT_ALARM` special access when granted. If exact alarms are not available, the widget deliberately shows the absolute departure clock instead of a ticking Chronometer that could roll below zero; an inexact alarm/network refresh can still advance the row later.
 
 The header currently reads approximately:
 
@@ -126,4 +128,4 @@ Android-changing PRs run unit tests and compile a debug APK. After merge to `mai
 
 Server-only presentation changes do not require an APK.
 
-Current engine version: **2.9.0**.
+Current app version: **2.10.0**.

@@ -39,7 +39,7 @@ The production large widget currently contains:
    - World, USA, Finland, BTC/EUR and Remedy 1-day rows
    - the same portfolio response as `/current/markets/`; do not maintain a parallel widget-only median feed
 4. HSL
-   - next departure as a locally advancing countdown
+   - next departure as a locally advancing countdown when exact rollover is available
    - route/destination context
    - upcoming departures as clock times
 5. Rates
@@ -61,7 +61,7 @@ The header is native/live Android time rather than a server timestamp:
 
 - Time uses Android `TextClock` and advances locally with seconds.
 - Date and ISO week share the same row.
-- A lightweight local temporal rebuild is scheduled around Helsinki midnight so the date can roll without a successful network refresh.
+- A local AlarmManager rebuild is scheduled around Helsinki midnight so the date can roll without a successful network refresh.
 
 Refresh/status lives in the footer:
 
@@ -130,9 +130,10 @@ The Android app owns:
 - RemoteViews-safe native live views (`TextClock`, `Chronometer`, `ProgressBar`)
 - compatible cache persistence
 - local HSL temporal rollover
-- Helsinki-midnight temporal rebuild
+- local Helsinki-midnight rebuild
 - manual refresh action
-- WorkManager scheduling
+- WorkManager network scheduling
+- AlarmManager local temporal scheduling
 - endpoint/fallback logic
 - retry policy
 - compact network diagnostics
@@ -165,7 +166,8 @@ WidgetRepository
    v
 compatible cache
    |
-   +--> local temporal resolver / scheduled rebuilds
+   +--> temporal resolver
+   +--> AlarmManager next-departure rollover
    |
    v
 Glance renderer + native live temporal views
@@ -214,20 +216,27 @@ The 15-minute network cadence is not appropriate for a departure countdown. HSL 
 
 The server supplies absolute timestamps for the current departure and visible upcoming departures. Android converts the selected wall-clock target to a `Chronometer` base using `SystemClock.elapsedRealtime()` and lets the native view advance locally between network refreshes.
 
-### Rollover behavior
+LIVE vs SCHED does **not** change rollover behavior. It only tells the user whether the current departure time came from realtime or scheduled data. Both are represented by the same absolute `countdownTargetMs` and use the same local rollover path.
 
-A native Android `Chronometer` continues below zero if its target passes and the widget is not rebuilt. WorkManager timing is opportunistic, so a worker scheduled only one minute before the target is not guaranteed to be running exactly at the departure second.
+### Rollover behavior from 2.10.0
 
-Starting in **2.9.7**, HSL uses a guarded two-phase rollover:
+The 2.9.x WorkManager-based temporal rollover was not reliable enough on-device. A native Chronometer keeps counting below zero if no widget rebuild occurs, while WorkManager intentionally does not guarantee execution at an exact wall-clock second. On-device evidence showed departures remaining active many minutes after their target.
 
-1. The temporal worker is scheduled about five minutes before each known departure target, giving Android substantially more time to start it.
-2. At the start of the final minute, the widget rebuilds and the ticking Chronometer is replaced by the static label `DUE` for that departure.
-3. Just after the target time, the same worker rebuilds the widget again.
-4. The cached temporal resolver drops the passed row and promotes the first still-future row to the primary countdown.
+Starting in **2.10.0**, HSL rollover uses `AlarmManager` instead:
 
-This means the final minute is intentionally static rather than allowing a native Chronometer to cross below zero. The next route, destination, realtime/scheduled tone and right-side departure rows advance together without another HSL network request.
+1. After every successful/cache-preserving widget refresh, Android resolves the first still-future HSL departure.
+2. Only that next absolute departure target is scheduled as the active HSL alarm.
+3. When the target is reached, the broadcast receiver rebuilds the widget from the existing cache.
+4. The temporal resolver drops the passed departure and promotes the first still-future row.
+5. The receiver immediately schedules the promoted departure as the next alarm.
 
-If Android delays the worker until after the target, the pre-target `DUE` rebuild is skipped and the worker immediately performs the post-target rebuild when it is allowed to run.
+No HSL network request is required for this cached rollover. Route, destination, realtime/scheduled tone and the visible departure list advance together.
+
+On Android versions before API 31, exact alarms are available without special app access. On Android 12+ the app declares `SCHEDULE_EXACT_ALARM` and checks `AlarmManager.canScheduleExactAlarms()` before using `setExactAndAllowWhileIdle()`.
+
+If exact-alarm access is unavailable, Android deliberately does **not** start a ticking Chronometer. It shows the absolute Helsinki departure time instead and uses an inexact alarm/network refresh as a safe fallback. This avoids ever presenting a stale negative countdown. On newer Android versions exact alarm access may need to be granted under the system's **Alarms & reminders** special app access.
+
+The alarm receiver also reschedules after boot/package replacement/permission-state broadcasts when a widget is present. A compatibility `SnapshotTemporalUpdateWorker` remains only so one-time temporal WorkManager jobs already queued by 2.9.x can finish harmlessly after an APK upgrade; new versions do not enqueue temporal WorkManager jobs.
 
 Older cached HSL payloads without row-level absolute targets can still derive a current target from the section clock detail when that inference is safe. A normal network refresh upgrades the cache to the richer row metadata.
 
@@ -264,13 +273,13 @@ The periodic network refresh uses WorkManager at Android's minimum practical 15-
 
 A user-triggered manual refresh remains an immediate one-time work request so it gives direct feedback and uses the existing retry/fallback diagnostics.
 
-Live time-based UI is deliberately independent from normal network cadence:
+Live/local time behavior is deliberately independent from normal network cadence:
 
 - header seconds: native `TextClock`
-- HSL countdown: native `Chronometer` outside the final-minute guard
-- HSL final minute: static `DUE`
-- HSL rollover: prewarmed one-time WorkManager temporal worker
-- header date rollover: local temporal rebuild near Helsinki midnight
+- HSL countdown: native `Chronometer` only when exact rollover is available
+- HSL rollover: one `AlarmManager` target for the next absolute departure
+- exact-alarm unavailable fallback: absolute departure clock, never a negative Chronometer
+- header date rollover: local inexact AlarmManager rebuild near Helsinki midnight
 - network data: periodic/manual WorkManager fetches
 
 ### v2 retry policy
@@ -293,11 +302,11 @@ If v2 still fails, Android tries the legacy endpoint. If both fail, the previous
 
 The widget keeps the latest compatible payload in SharedPreferences.
 
-- v2 success -> cache rich payload and schedule known temporal targets
+- v2 success -> cache rich payload and schedule the next local HSL alarm target
 - v2 transient failure -> retry once
 - v2 still fails -> try legacy
 - legacy success -> cache legacy payload and identify fallback in footer
-- v2 + legacy failure -> preserve previous cache and show diagnostics
+- v2 + legacy failure -> preserve previous cache and keep/reschedule its usable local HSL target
 - optional section failure inside valid v2 -> omit only that section
 
 Diagnostic codes include:
@@ -326,7 +335,7 @@ Use:
 
 The preview reads `/api/current/widget-v2` and uses the same server presentation metadata as Android. It can inspect compact, medium and large layouts plus prod/dev variants.
 
-The preview is a design approximation, not an Android launcher emulator. It cannot prove RemoteViews compatibility, native TextClock/Chronometer behavior, OEM background scheduling or phone-side networking.
+The preview is a design approximation, not an Android launcher emulator. It cannot prove RemoteViews compatibility, native TextClock/Chronometer behavior, exact-alarm special access, OEM alarm/background behavior or phone-side networking.
 
 ## Preferred development workflow
 
@@ -382,7 +391,8 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.9.4**: `pageUrl` validation hardening.
 - **2.9.5**: removed stale `NOW` compatibility fallback.
 - **2.9.6**: periodic network worker requires connectivity.
-- **2.9.7**: prewarmed HSL temporal workers + final-minute `DUE` guard to prevent native Chronometer rollover below zero.
+- **2.9.7**: attempted prewarmed WorkManager HSL rollover + final-minute `DUE` guard; superseded after on-device delay evidence.
+- **2.10.0**: HSL rollover moved to one next-departure AlarmManager target; LIVE/SCHED share identical rollover; exact-alarm-unavailable mode shows the absolute departure clock instead of allowing a negative Chronometer.
 
 ## Key files
 
@@ -391,9 +401,9 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - `functions/api/current/portfolio.ts` — portfolio performance response shared by Markets page and widget medians
 - `functions/api/current/widget-hsl.ts` — bounded HSL widget adapter
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetModels.kt` — presentation model, codec and temporal row resolver
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetRepository.kt` — network/cache/retry/fallback behavior
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetRepository.kt` — network/cache/retry/fallback behavior and local schedule handoff
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SnapshotWidgetApp.kt` — Glance composition and WorkManager network refresh
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/LiveTemporalViews.kt` — live clock/countdown rendering and final-minute guard
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetTemporalRefresh.kt` — local target/midnight rebuild scheduling
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/LiveTemporalViews.kt` — live clock/countdown rendering and exact-alarm-aware safe fallback
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetTemporalRefresh.kt` — AlarmManager HSL rollover, midnight rebuild and 2.9.x worker compatibility shim
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SolarDetailVisual.kt` — Weather day/night disk
 - `.github/workflows/android-snapshot-widget.yml` — Android PR/release build and signature verification
