@@ -104,6 +104,8 @@ The presentation builder is implemented in `functions/api/current/widget-v2.ts`.
 
 HSL is fetched through a dedicated widget adapter only for the dev presentation while the six-section large composition is being evaluated. The adapter reuses the same Current HSL query configuration as the web page, applies a short timeout and returns `null` when usable departure data is unavailable. The v2 builder then omits HSL while retaining all other sections.
 
+Widget Weather and the v2 solar request share one server-side weather source configuration so their endpoint, location and timezone cannot drift independently. The standalone Current Weather feature remains a separate client-side flow.
+
 ### Android rendering layer
 
 The Android app owns:
@@ -169,6 +171,8 @@ Large-layout composition also supports:
 - `layout: split` - main metric on the left and supporting columns, bars and/or rows on the right
 
 Missing `span` or `layout` values default to `full` and `stack`. This keeps older cached payloads compatible. Older v2 APKs can also safely ignore the added fields while the existing section order remains compatible.
+
+Refresh cadence is platform behavior rather than presentation metadata. The server v2 payload therefore does not advertise a refresh interval. Android owns the periodic WorkManager schedule and currently uses the platform-compatible 15-minute period. The Android parser still accepts the historical `refreshMinutes` field and defaults it to 15 for cache/backward compatibility, but the value does not control scheduling.
 
 The current large production presentation uses:
 
@@ -273,6 +277,8 @@ Electricity and Markets were promoted to `layout: split` using the existing engi
 
 The browser preview regression also exposed and fixed a latent Astro style-scoping issue for dynamically generated widget markup.
 
+Widget Weather and solar data now use the same source configuration. The server presentation contract also stopped advertising `refreshMinutes` because periodic scheduling belongs to Android/WorkManager rather than the presentation layer.
+
 ## Cache and failure behavior
 
 The widget keeps the latest compatible payload in SharedPreferences. A failed refresh must not destroy good cached content.
@@ -287,7 +293,7 @@ The `UPDATED` timestamp describes the payload generation time, not necessarily t
 
 Key server-side files:
 
-- `functions/api/current/widget.ts` - legacy/raw widget data endpoint
+- `functions/api/current/widget.ts` - legacy/raw widget data endpoint and shared widget weather source configuration
 - `functions/api/current/widget-v2.ts` - v2 presentation builder and layout/theme contract
 - `functions/api/current/widget-hsl.ts` - bounded HSL adapter for the widget presentation
 - `functions/api/current/hsl.ts` - Current HSL upstream data endpoint
@@ -296,6 +302,7 @@ Key server-side files:
 - `src/pages/current/widget-preview/index.astro` - browser presentation preview
 - `tests/e2e/current-widget-v2-regression.spec.ts` - server presentation contract regression
 - `tests/e2e/current-widget-preview.spec.ts` - browser preview regression
+- `tests/e2e/current-widget-weather-source.spec.ts` - widget Weather/Solar source consistency regression
 - `docs/WIDGET.md` - this handover/design document
 
 Key Android files:
@@ -319,6 +326,8 @@ The main decisions behind the current implementation are:
 - Weather established the `split` grammar, followed by Electricity and Markets, with HSL staged next.
 - Half-width sections are explicitly declared by the server rather than inferred from list position.
 - Sunrise, sunset and daylight length remain part of the Weather presentation.
+- Widget Weather and solar data share one server-side source configuration.
+- Periodic refresh scheduling belongs to Android/WorkManager, not to the server presentation contract.
 - HSL is large-only, dev-staged and fails independently from the rest of the v2 payload.
 - Development proceeds section by section while keeping the whole dashboard composition in mind.
 - Phone networking should be diagnosed from actual request/cache state rather than by changing endpoints blindly.
@@ -327,6 +336,4 @@ The main decisions behind the current implementation are:
 
 1. Inspect the six-section dev composition in `/current/widget-preview/?size=large&channel=dev` and on a real launcher.
 2. Tune HSL spacing/text density if needed, then promote the HSL layout and fetch to prod without changing the APK.
-3. Decide whether `refreshMinutes` should actually drive Android scheduling or be removed from the contract, since WorkManager currently uses a fixed 15-minute period.
-4. Unify Solar location handling with the Weather data source instead of keeping a separate coordinate assumption.
-5. Finish the signing credential rotation tracked separately so no signing password remains in workflow source.
+3. Finish the signing credential rotation tracked separately so no signing password remains in workflow source.
