@@ -28,6 +28,38 @@ class WidgetTemporalTest {
     }
 
     @Test
+    fun cachedClockDetailRecoversUpcomingDeparture() {
+        assertEquals(
+            1_789_360_080_000L,
+            countdownTargetFromClockDetail(
+                detail = "07:28 / LIVE",
+                wallNowMs = 1_789_359_900_000L,
+            )
+        )
+    }
+
+    @Test
+    fun cachedClockDetailHandlesMidnightRollover() {
+        assertEquals(
+            1_789_419_900_000L,
+            countdownTargetFromClockDetail(
+                detail = "00:05 / LIVE",
+                wallNowMs = 1_789_419_480_000L,
+            )
+        )
+    }
+
+    @Test
+    fun cachedClockDetailRejectsClearlyStaleDeparture() {
+        assertNull(
+            countdownTargetFromClockDetail(
+                detail = "06:00 / LIVE",
+                wallNowMs = 1_789_359_900_000L,
+            )
+        )
+    }
+
+    @Test
     fun codecPreservesCountdownTarget() {
         val json = """
             {
