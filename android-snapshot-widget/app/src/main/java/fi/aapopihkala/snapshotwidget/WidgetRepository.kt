@@ -28,14 +28,16 @@ private data class FetchTextResult(
     val status: String
 )
 
-private data class PresentationFetchResult(
+internal data class WidgetFetchResult(
     val payload: WidgetPayload?,
     val status: String
 )
 
-private data class LegacyFetchResult(
+internal data class WidgetFetchOutcome(
     val payload: WidgetPayload?,
-    val status: String
+    val v2Status: String,
+    val legacyStatus: String,
+    val v2Retried: Boolean,
 )
 
 internal data class WidgetFetchDiagnostics(
@@ -57,37 +59,65 @@ internal fun shouldRetryV2Status(status: String): Boolean {
     return code == 408 || code == 425 || code == 429 || code in 500..599
 }
 
+internal suspend fun fetchWidgetPayloadWithFallback(
+    primaryTimeoutMs: Int,
+    retryTimeoutMs: Int,
+    retryDelay: suspend () -> Unit,
+    fetchV2: suspend (Int) -> WidgetFetchResult,
+    fetchLegacy: suspend () -> WidgetFetchResult,
+): WidgetFetchOutcome {
+    var presentation = fetchV2(primaryTimeoutMs)
+    var retried = false
+
+    if (presentation.payload == null && shouldRetryV2Status(presentation.status)) {
+        retried = true
+        retryDelay()
+        presentation = fetchV2(retryTimeoutMs)
+    }
+
+    val legacy = if (presentation.payload == null) {
+        fetchLegacy()
+    } else {
+        WidgetFetchResult(null, "SKIP")
+    }
+
+    return WidgetFetchOutcome(
+        payload = presentation.payload ?: legacy.payload,
+        v2Status = presentation.status,
+        legacyStatus = legacy.status,
+        v2Retried = retried,
+    )
+}
+
+internal fun widgetCacheJsonAfterFetch(
+    previousCacheJson: String?,
+    payload: WidgetPayload?,
+): String? = payload?.let(WidgetPayloadCodec::encode) ?: previousCacheJson
+
 class WidgetRepository(context: Context) {
     private val appContext = context.applicationContext
     private val prefs = appContext.getSharedPreferences("snapshot_widget", Context.MODE_PRIVATE)
 
     suspend fun fetchAndCache(): WidgetPayload? = withContext(Dispatchers.IO) {
-        var presentation = fetchPresentation(PRESENTATION_TIMEOUT_MS)
-        var retried = false
-
-        if (presentation.payload == null && shouldRetryV2Status(presentation.status)) {
-            retried = true
-            delay(PRESENTATION_RETRY_DELAY_MS)
-            presentation = fetchPresentation(PRESENTATION_RETRY_TIMEOUT_MS)
-        }
-
-        val remote = presentation.payload
-        val legacy = if (remote == null) fetchLegacyPayload() else LegacyFetchResult(null, "SKIP")
-        val payload = remote ?: legacy.payload
+        val previousCacheJson = prefs.getString(KEY_CACHE, null)
+        val outcome = fetchWidgetPayloadWithFallback(
+            primaryTimeoutMs = PRESENTATION_TIMEOUT_MS,
+            retryTimeoutMs = PRESENTATION_RETRY_TIMEOUT_MS,
+            retryDelay = { delay(PRESENTATION_RETRY_DELAY_MS) },
+            fetchV2 = { timeoutMs -> fetchPresentation(timeoutMs) },
+            fetchLegacy = { fetchLegacyPayload() },
+        )
+        val payload = outcome.payload
+        val cacheJson = widgetCacheJsonAfterFetch(previousCacheJson, payload)
 
         val editor = prefs.edit()
-            .putString(KEY_V2_STATUS, presentation.status)
-            .putString(KEY_LEGACY_STATUS, legacy.status)
-            .putBoolean(KEY_V2_RETRIED, retried)
+            .putString(KEY_V2_STATUS, outcome.v2Status)
+            .putString(KEY_LEGACY_STATUS, outcome.legacyStatus)
+            .putBoolean(KEY_V2_RETRIED, outcome.v2Retried)
             .putLong(KEY_LAST_ATTEMPT_MS, System.currentTimeMillis())
 
-        if (payload != null) {
-            editor
-                .putString(KEY_CACHE, WidgetPayloadCodec.encode(payload))
-                .putString(KEY_STATUS, STATUS_OK)
-        } else {
-            editor.putString(KEY_STATUS, STATUS_ERROR)
-        }
+        cacheJson?.let { editor.putString(KEY_CACHE, it) }
+        editor.putString(KEY_STATUS, if (payload != null) STATUS_OK else STATUS_ERROR)
         editor.apply()
         SnapshotTemporalRefreshScheduler.schedule(appContext, payload ?: loadCached())
         payload
@@ -112,7 +142,7 @@ class WidgetRepository(context: Context) {
         prefs.edit().putString(KEY_STATUS, STATUS_LOADING).apply()
     }
 
-    private fun fetchPresentation(timeoutMs: Int): PresentationFetchResult {
+    private fun fetchPresentation(timeoutMs: Int): WidgetFetchResult {
         val fetched = fetchText(SnapshotEndpoints.PRESENTATION_URL, timeoutMs)
         val parsed = fetched.body?.let(WidgetPayloadCodec::parse)
         val status = when {
@@ -122,26 +152,26 @@ class WidgetRepository(context: Context) {
             parsed.sections.isEmpty() -> "EMPTY"
             else -> "OK"
         }
-        return PresentationFetchResult(
+        return WidgetFetchResult(
             payload = parsed?.takeIf { it.isCompatible() && it.sections.isNotEmpty() },
             status = status,
         )
     }
 
-    private fun fetchLegacyPayload(): LegacyFetchResult {
+    private fun fetchLegacyPayload(): WidgetFetchResult {
         val fetched = fetchText(SnapshotEndpoints.LEGACY_URL, LEGACY_TIMEOUT_MS)
-        val body = fetched.body ?: return LegacyFetchResult(null, fetched.status)
+        val body = fetched.body ?: return WidgetFetchResult(null, fetched.status)
         val root = runCatching { JSONObject(body) }.getOrNull()
-            ?: return LegacyFetchResult(null, "PARSE")
+            ?: return WidgetFetchResult(null, "PARSE")
         val sections = buildList {
             root.optJSONObject("weather")?.let(::legacyWeather)?.let(::add)
             root.optJSONObject("electricity")?.let(::legacyElectricity)?.let(::add)
             root.optJSONObject("markets")?.let(::legacyMarkets)?.let(::add)
             root.optJSONObject("rates")?.let(::legacyRates)?.let(::add)
         }
-        if (sections.isEmpty()) return LegacyFetchResult(null, "EMPTY")
+        if (sections.isEmpty()) return WidgetFetchResult(null, "EMPTY")
 
-        return LegacyFetchResult(
+        return WidgetFetchResult(
             WidgetPayload(
                 schemaVersion = 2,
                 minEngineVersion = 2,
