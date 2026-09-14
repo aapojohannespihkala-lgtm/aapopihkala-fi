@@ -123,6 +123,8 @@ The Android app owns:
 
 The Android renderer should not contain product-specific section IDs or ordering rules beyond safe fallback defaults.
 
+The installed 2.6.0 app reads the production presentation URL directly. It does not expose a runtime switch for `channel=dev`. Dev presentation variants can therefore be evaluated in the browser preview, while launcher verification happens after a reversible server-side promotion to prod.
+
 The data flow is conceptually:
 
 ```text
@@ -194,7 +196,7 @@ The widget presentation does not include the configured stop name or stop code. 
 
 HSL fetching is bounded to four seconds in the widget path. Missing configuration, upstream errors, timeouts or an empty departure list omit only the HSL section. They do not make the v2 payload fail when other sections remain available.
 
-HSL remains dev-only until the six-section large composition has been checked on a real launcher. The prod endpoint does not fetch HSL and keeps the five-section layout unchanged.
+HSL remains dev-only while its six-section composition is evaluated in the browser preview. Because the installed Android app is fixed to the prod presentation URL, HSL cannot be viewed on the real launcher while it remains dev-only. The next launcher check should therefore use a small server-only promotion to prod. If spacing or density is poor on-device, that presentation change can be rolled back without another APK.
 
 ## Size classes
 
@@ -214,7 +216,7 @@ The preview reads `/api/current/widget-v2` directly and uses the same `span` and
 
 The preview styles are global within the standalone preview page because widget markup is generated dynamically. Scoped Astro styles do not automatically attach to elements created later with `innerHTML`.
 
-The preview is a design approximation, not a pixel-identical Android emulator. Final spacing and Glance behavior must still be verified on a real Android launcher when the engine or layout primitive changes.
+The preview is a design approximation, not a pixel-identical Android emulator. Final spacing and Glance behavior must still be verified on a real Android launcher after the presentation is promoted to the channel consumed by the app.
 
 ## Preferred development workflow
 
@@ -222,9 +224,10 @@ For a normal presentation change:
 
 1. change the server presentation, preferably in the dev channel first
 2. inspect `/current/widget-preview/`
-3. check compact, medium and large behavior
-4. promote the presentation to prod
-5. refresh the installed widget
+3. check compact, medium and large browser behavior
+4. promote the presentation to prod in a small reversible change
+5. refresh the installed widget and verify the real launcher
+6. roll back or tune server-side if the on-device composition needs adjustment
 
 No APK should be required for this loop when the presentation uses primitives already understood by the installed engine.
 
@@ -273,7 +276,7 @@ This engine version is sufficient for subsequent Electricity, Markets and HSL pr
 
 ### Server presentation after 2.6.0
 
-Electricity and Markets were promoted to `layout: split` using the existing engine. HSL is implemented as another full-width split section but is currently staged only in the dev channel. Production remains on the five-section layout until the six-section composition has been checked on a real launcher.
+Electricity and Markets were promoted to `layout: split` using the existing engine. HSL is implemented as another full-width split section but is currently staged only in the dev channel. Production remains on the five-section layout until HSL is deliberately promoted for launcher verification.
 
 The browser preview regression also exposed and fixed a latent Astro style-scoping issue for dynamically generated widget markup.
 
@@ -328,12 +331,14 @@ The main decisions behind the current implementation are:
 - Sunrise, sunset and daylight length remain part of the Weather presentation.
 - Widget Weather and solar data share one server-side source configuration.
 - Periodic refresh scheduling belongs to Android/WorkManager, not to the server presentation contract.
+- Installed Android 2.6.0 consumes the prod channel directly; dev variants are browser-preview staging until promoted.
 - HSL is large-only, dev-staged and fails independently from the rest of the v2 payload.
 - Development proceeds section by section while keeping the whole dashboard composition in mind.
 - Phone networking should be diagnosed from actual request/cache state rather than by changing endpoints blindly.
 
 ## Next steps
 
-1. Inspect the six-section dev composition in `/current/widget-preview/?size=large&channel=dev` and on a real launcher.
-2. Tune HSL spacing/text density if needed, then promote the HSL layout and fetch to prod without changing the APK.
-3. Finish the signing credential rotation tracked separately so no signing password remains in workflow source.
+1. Inspect and tune the six-section HSL composition in `/current/widget-preview/?size=large&channel=dev`.
+2. Promote HSL to prod in a small server-only change, refresh the installed widget and verify the real launcher.
+3. Roll back or tune the server presentation if the on-device HSL density needs adjustment.
+4. Finish the signing credential rotation tracked separately so no signing password remains in workflow source.
