@@ -34,9 +34,13 @@ internal fun nextHslRolloverTarget(payload: WidgetPayload?, wallNowMs: Long): Lo
         .minOrNull()
 }
 
-internal fun guardedHslAlarmTime(targetMs: Long, wallNowMs: Long): Long {
-    val guardStartMs = targetMs - COUNTDOWN_DUE_WINDOW_MS
-    return if (guardStartMs > wallNowMs) guardStartMs else targetMs
+internal fun nextHslDisplayAlarmTime(targetMs: Long, wallNowMs: Long): Long {
+    val remainingMs = targetMs - wallNowMs
+    if (remainingMs <= 0L || remainingMs <= COUNTDOWN_SECONDS_WINDOW_MS) return targetMs
+
+    val displayedMinutes = (remainingMs + 59_999L) / 60_000L
+    val nextBoundaryMs = targetMs - (displayedMinutes - 1L) * 60_000L
+    return nextBoundaryMs.coerceAtLeast(wallNowMs + 1L)
 }
 
 internal fun nextHelsinkiMidnightMs(wallNowMs: Long): Long {
@@ -68,7 +72,7 @@ internal object SnapshotHslRolloverScheduler {
         val targetIntent = hslPendingIntent(appContext)
         val exactRolloverAvailable = canScheduleExact(appContext)
         val alarmAtMs = if (exactRolloverAvailable) {
-            guardedHslAlarmTime(targetMs, wallNowMs)
+            nextHslDisplayAlarmTime(targetMs, wallNowMs)
         } else {
             targetMs
         }
