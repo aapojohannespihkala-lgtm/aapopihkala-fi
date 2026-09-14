@@ -45,7 +45,7 @@ internal data class WidgetFetchDiagnostics(
 ) {
     private fun v2Label(): String = "V2 $v2Status${if (v2Retried) "/R" else ""}"
 
-    fun failureLabel(): String = "$v2Label() · L $legacyStatus"
+    fun failureLabel(): String = "${v2Label()} · L $legacyStatus"
 
     fun legacyFallbackLabel(): String = "LEGACY · ${v2Label()}"
 }
