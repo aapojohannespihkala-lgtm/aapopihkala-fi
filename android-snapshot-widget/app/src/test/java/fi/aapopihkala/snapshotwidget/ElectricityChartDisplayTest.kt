@@ -46,12 +46,22 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun markerPositionIsPreciseAndStaysInsideStrokeBounds() {
-        assertEquals(3f, electricityMarkerX(0f, 480), 0.01f)
-        assertEquals(120f, electricityMarkerX(0.25f, 480), 0.01f)
-        assertEquals(240f, electricityMarkerX(0.5f, 480), 0.01f)
-        assertEquals(373f, electricityMarkerX(373f / 480f, 480), 0.01f)
-        assertEquals(477f, electricityMarkerX(1f, 480), 0.01f)
+    fun timelineTicksIncludeTwentyFourAtTheRightEdge() {
+        assertEquals(8f, electricityAxisHourX(0, 480), 0.01f)
+        assertEquals(124f, electricityAxisHourX(6, 480), 0.01f)
+        assertEquals(240f, electricityAxisHourX(12, 480), 0.01f)
+        assertEquals(356f, electricityAxisHourX(18, 480), 0.01f)
+        assertEquals(472f, electricityAxisHourX(24, 480), 0.01f)
+    }
+
+    @Test
+    fun currentPriceStaysCenteredOnMarkerWhenThereIsRoom() {
+        val dayFraction = (20f + 26f / 60f) / 24f
+        val markerX = electricityMarkerX(dayFraction, 480)
+
+        assertEquals(markerX, electricityPriceCenterX(markerX, 45f, 480), 0.01f)
+        assertEquals(22.5f, electricityPriceCenterX(8f, 45f, 480), 0.01f)
+        assertEquals(457.5f, electricityPriceCenterX(472f, 45f, 480), 0.01f)
     }
 
     @Test

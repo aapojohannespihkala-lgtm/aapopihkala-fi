@@ -693,48 +693,27 @@ private fun ElectricityBarStrip(
     currentPrice: String?,
     palette: Palette,
 ) {
-    Column(modifier = GlanceModifier.fillMaxWidth()) {
-        electricityCurrentPriceLabel(currentPrice)?.let { price ->
-            Row(modifier = GlanceModifier.fillMaxWidth()) {
-                Spacer(GlanceModifier.defaultWeight())
-                Text(
-                    text = price,
-                    style = TextStyle(
-                        color = ColorProvider(palette.foreground),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    maxLines = 1
-                )
-            }
-            Spacer(GlanceModifier.height(2.dp))
-        }
-        Image(
-            provider = ImageProvider(
-                renderElectricityChartBitmap(
-                    values = values,
-                    epochMs = System.currentTimeMillis(),
-                    barColor = palette.foreground.toArgb(),
-                    markerOuterColor = palette.foreground.toArgb(),
-                    markerInnerColor = palette.background.toArgb(),
-                )
-            ),
-            contentDescription = "Electricity price profile with current time marker",
-            modifier = GlanceModifier.fillMaxWidth().height(28.dp),
-            contentScale = ContentScale.FillBounds,
-        )
-        Spacer(GlanceModifier.height(1.dp))
-        Row(modifier = GlanceModifier.fillMaxWidth()) {
-            listOf("00", "06", "12", "18").forEach { label ->
-                Text(
-                    text = label,
-                    modifier = GlanceModifier.defaultWeight(),
-                    style = TextStyle(color = ColorProvider(palette.muted), fontSize = 6.sp),
-                    maxLines = 1
-                )
-            }
-        }
-    }
+    val price = electricityCurrentPriceLabel(currentPrice)
+    Image(
+        provider = ImageProvider(
+            renderElectricityChartBitmap(
+                values = values,
+                epochMs = System.currentTimeMillis(),
+                currentPrice = price,
+                barColor = palette.foreground.toArgb(),
+                markerOuterColor = palette.foreground.toArgb(),
+                markerInnerColor = palette.background.toArgb(),
+                currentPriceColor = palette.foreground.toArgb(),
+                axisLabelColor = palette.muted.toArgb(),
+            )
+        ),
+        contentDescription = buildString {
+            append("Electricity price profile with current time marker")
+            price?.let { append("; current price ").append(it) }
+        },
+        modifier = GlanceModifier.fillMaxWidth().height(48.dp),
+        contentScale = ContentScale.FillBounds,
+    )
 }
 
 internal fun electricityCurrentPriceLabel(value: String?): String? =
