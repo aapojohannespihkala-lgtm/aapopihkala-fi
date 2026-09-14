@@ -308,6 +308,8 @@ const buildMarketsSection = (value: unknown): WidgetSection | null => {
   const markets = asRecord(value);
   if (!markets) return null;
   const median = finiteNumber(markets.median);
+  const month1Median = finiteNumber(markets.month1Median);
+  const year1Median = finiteNumber(markets.year1Median);
   const rows = [
     marketRow('WORLD', markets.world),
     marketRow('USA', markets.usa),
@@ -316,12 +318,17 @@ const buildMarketsSection = (value: unknown): WidgetSection | null => {
     marketRow('REMEDY', markets.remedy),
   ];
   if (median === null && rows.every((row) => row.value === '--')) return null;
+  const longerMedians = [
+    `1M ${formatPercent(month1Median, true, 2)}`,
+    `1Y ${formatPercent(year1Median, true, 2)}`,
+  ].join('  ·  ');
   return {
     id: 'markets',
     index: '03',
     label: 'MARKETS',
     primary: formatPercent(median, true, 2),
     secondary: '1D / MEDIAN',
+    detail: longerMedians,
     tone: toneFor(median),
     span: 'full',
     layout: 'split',

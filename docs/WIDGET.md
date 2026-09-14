@@ -34,8 +34,10 @@ The production large widget currently contains:
    - current, low and high price
    - normalized intraday price bars
 3. Markets
-   - selected 1-day median as the main value
-   - World, USA, Finland, BTC/EUR and Remedy rows
+   - 1-day portfolio median as the main value
+   - small 1-month and 1-year portfolio medians
+   - World, USA, Finland, BTC/EUR and Remedy 1-day rows
+   - the same portfolio response as `/current/markets/`; do not maintain a parallel widget-only median feed
 4. HSL
    - next departure as a locally advancing countdown
    - route/destination context
@@ -115,6 +117,8 @@ The presentation builder is `functions/api/current/widget-v2.ts`.
 HSL uses a dedicated bounded widget adapter. HSL upstream failure should omit only HSL; it must not invalidate an otherwise usable v2 payload.
 
 Weather and solar data share the same server-side source configuration so coordinates/timezone cannot drift independently.
+
+Markets deliberately shares the portfolio feed used by `/current/markets/`: `/api/current/markets?portfolio=1&v=6` resolves to the same `functions/api/current/portfolio.ts` response used by the widget's legacy data builder. The widget computes 1D, 1M and 1Y medians from the available holdings in that shared response using the same median rule as the Markets page. The selected WORLD, USA, FINLAND, BTC/EUR and REMEDY rows are also read from that response. If the Markets data contract changes, update both consumers rather than introducing a widget-only portfolio fork.
 
 ## Android runtime layer
 
@@ -383,6 +387,8 @@ Signing credentials must not be committed to repository source. Keystore file ex
 ## Key files
 
 - `functions/api/current/widget-v2.ts` — rich server presentation builder
+- `functions/api/current/widget.ts` — legacy/widget base data builder; Markets must share the main portfolio feed
+- `functions/api/current/portfolio.ts` — portfolio performance response shared by Markets page and widget medians
 - `functions/api/current/widget-hsl.ts` — bounded HSL widget adapter
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetModels.kt` — presentation model, codec and temporal row resolver
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetRepository.kt` — network/cache/retry/fallback behavior

@@ -37,16 +37,22 @@ The production large widget contains:
 
 Large composition is server-driven through generic `span`/`layout` metadata. Current production uses full-width split rows for Weather, Electricity, Markets and HSL, followed by half-width Rates + Liiga.
 
+### Markets data contract
+
+The widget Markets section must use the same portfolio feed as `/current/markets/`, not a parallel snapshot-specific portfolio calculation. The main value is the **1D median** across the available holdings in that shared feed. The widget also shows the shared **1M** and **1Y** medians as small supporting values.
+
+The right-side WORLD, USA, FINLAND, BTC / EUR and REMEDY rows are the corresponding 1D values from that same portfolio response. This keeps the widget and Markets page numerically aligned whenever they are rendering the same response generation.
+
 ## Live time behavior
 
 Network data still refreshes on the WorkManager cadence, but time-sensitive UI is local/native:
 
 - header clock: Android `TextClock`, `HH:mm:ss`
-- HSL next departure: Android `Chronometer`
-- cached HSL departure rollover: lightweight local WorkManager updates at known departure times
+- HSL next departure: Android `Chronometer` outside the final-minute guard
+- cached HSL departure rollover: lightweight local WorkManager updates around known departure times
 - header date rollover: a local update at Helsinki midnight
 
-The server attaches absolute targets to the visible HSL departure rows. Android always selects the first still-future target. When its countdown reaches zero, the passed departure is dropped and the widget rebuilds locally onto the next known departure instead of displaying `NOW` or a negative countdown. No HSL network request is required for that rollover.
+The server attaches absolute targets to the visible HSL departure rows. Android always selects the first still-future target. Starting in 2.9.7, the final minute uses a static `DUE` guard instead of allowing the native Chronometer to roll below zero; the local temporal worker then advances the cached section to the next known departure. No HSL network request is required for that rollover.
 
 The header currently reads approximately:
 
