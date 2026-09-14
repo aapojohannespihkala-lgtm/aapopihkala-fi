@@ -16,7 +16,7 @@ import kotlinx.coroutines.delay
 
 private const val INPUT_TARGET_MS = "snapshot_temporal_target_ms"
 private const val WORK_PREFIX = "snapshot-widget-temporal"
-private const val EARLY_START_MS = 60_000L
+private const val EARLY_START_MS = 5 * 60_000L
 private const val POST_TARGET_DELAY_MS = 500L
 
 internal fun nextHelsinkiMidnightMs(wallNowMs: Long): Long {
@@ -52,8 +52,16 @@ class SnapshotTemporalUpdateWorker(
         val targetMs = inputData.getLong(INPUT_TARGET_MS, -1L)
         if (targetMs <= 0L) return Result.success()
 
-        val waitMs = targetMs + POST_TARGET_DELAY_MS - System.currentTimeMillis()
-        if (waitMs > 0L) delay(waitMs)
+        val dueWindowStartMs = targetMs - COUNTDOWN_DUE_WINDOW_MS
+        val waitUntilDueMs = dueWindowStartMs - System.currentTimeMillis()
+        if (waitUntilDueMs > 0L) delay(waitUntilDueMs)
+
+        if (System.currentTimeMillis() < targetMs) {
+            SnapshotWidget().updateAll(applicationContext)
+        }
+
+        val waitUntilRolloverMs = targetMs + POST_TARGET_DELAY_MS - System.currentTimeMillis()
+        if (waitUntilRolloverMs > 0L) delay(waitUntilRolloverMs)
         SnapshotWidget().updateAll(applicationContext)
         return Result.success()
     }
