@@ -2,64 +2,118 @@
 
 Native Android home-screen widget for `https://aapopihkala.fi/current/snapshot/`.
 
-The widget is a compact, glanceable companion to the mobile Snapshot page. Snapshot is the visual and information-design reference, but the Android widget is intentionally more minimal and uses home-screen space differently rather than copying the page pixel for pixel.
+The widget is a compact companion to the mobile Snapshot page. The website is the visual/information-design reference, but the Android widget is intentionally more minimal and uses home-screen space differently rather than copying the page pixel for pixel.
+
+For the full architecture, handover notes, version history, constraints and workflow, see `docs/WIDGET.md`.
 
 ## Architecture
 
-Version 2 is a small native presentation engine. It reads a versioned presentation contract from:
+The Android app is a small native presentation/runtime engine. It reads the rich production presentation contract from:
 
 ```text
 https://aapopihkala.fi/api/current/widget-v2?channel=prod
 ```
 
-The engine caches the latest compatible payload and renders compact, medium or large layouts from server-provided sections, ordering, theme and presentation metadata.
-
-The legacy endpoint remains available as a compatibility fallback:
+The compatibility fallback is:
 
 ```text
 https://aapopihkala.fi/api/current/widget
 ```
 
-Important: `/api/current/widget?v=2` is not the v2 presentation endpoint. The rich presentation model lives at `/api/current/widget-v2`.
+Important: `/api/current/widget?v=2` is not the canonical rich v2 endpoint.
 
-Most widget changes should happen in the server presentation contract and can be checked at `/current/widget-preview/` without rebuilding the APK. See `docs/WIDGET.md` for the full architecture, design goals, workflow, file map and roadmap.
+Most widget content/layout changes should happen in the server presentation and be checked at `/current/widget-preview/`. A new APK is needed only when Android rendering, networking/cache behavior or platform capabilities change.
+
+## Current large layout
+
+The production large widget contains:
+
+- Weather
+- Electricity
+- Markets
+- HSL
+- Rates
+- Liiga
+
+Large composition is server-driven through generic `span`/`layout` metadata. Current production uses full-width split rows for Weather, Electricity, Markets and HSL, followed by half-width Rates + Liiga.
+
+## Live time behavior
+
+Network data still refreshes on the WorkManager cadence, but time-sensitive UI is local/native:
+
+- header clock: Android `TextClock`, `HH:mm:ss`
+- HSL next departure: Android `Chronometer`
+
+This avoids tying seconds or departure countdowns to a 15-minute network refresh.
+
+The header currently reads approximately:
+
+```text
+08:06:26  MON 14 SEP · W38
+```
+
+The bottom footer owns refresh/status:
+
+```text
+UPDATED 08:04                                      ↻
+```
+
+Tapping `↻` starts a manual refresh and swaps the symbol to a native indeterminate `ProgressBar` until the attempt finishes.
+
+## Refresh, retry and fallback
+
+`WidgetRepository` keeps the last compatible cache and always preserves it if a refresh fails.
+
+Starting in 2.8.4, the rich v2 request gets one bounded retry for transient errors such as timeout, DNS/connectivity/SSL/IO failures, HTTP 408/425/429 and HTTP 5xx. Semantic/permanent failures such as `PARSE`, `COMPAT`, `EMPTY`, `SECURITY` and ordinary 4xx are not blindly retried.
+
+If v2 still fails, Android tries the legacy endpoint. If both fail, the old compatible cache remains visible.
+
+The footer exposes compact diagnostics only when useful, for example:
+
+```text
+V2 TIMEOUT/R · L DNS · LAST 08:04
+```
+
+`/R` means the v2 request used its one retry. When legacy succeeds after v2 failure, the footer identifies the fallback instead of pretending the rich presentation succeeded.
 
 ## Presentation grammar
 
-The Android renderer is intended to understand generic presentation primitives rather than product-specific section IDs. Section content can use primary, secondary and detail text plus rows, columns and normalized bars.
+Generic content primitives include:
 
-Large-layout composition additionally supports:
+- `primary`
+- `secondary`
+- `detail`
+- `tone`
+- `rows`
+- `columns`
+- normalized `bars`
+- optional countdown target data
 
-- `span: full` for a full-width row
-- `span: half` for a compact half-width metric that can pair with the next half-width section
-- `layout: stack` for normal vertical presentation
-- `layout: split` for a two-column presentation with the primary metric on the left and supporting columns, bars or rows on the right
+Large layout supports:
 
-Missing presentation metadata defaults to `full` + `stack`, so older cached payloads remain compatible.
+- `span: full`
+- `span: half`
+- `layout: stack`
+- `layout: split`
 
-## Refresh and fallback
+Missing layout metadata defaults to `full + stack` for backward-compatible cached payloads.
 
-The app refreshes with WorkManager every 15 minutes and includes a manual REFRESH action. It keeps the last compatible cache and falls back to the legacy endpoint if v2 is unavailable.
+## Android / RemoteViews constraints
 
-Network, compatibility and fallback diagnostics are retained internally. Temporary phone-side diagnostic labels used during the 2.4.x debugging phase are no longer mixed into normal widget content.
+Glance widgets are ultimately rendered through RemoteViews, so launcher compatibility matters beyond compilation.
+
+Do not:
+
+- flatten logical large rows into many direct root `Column` children
+- introduce arbitrary Android view classes into `AndroidRemoteViews`
+- use `Space` inside RemoteViews XML
+
+Keep large rows wrapped in `LargeRowBlock`. Use only RemoteViews-safe native views such as TextView/TextClock/Chronometer/ProgressBar where needed.
 
 ## APK workflow
 
-Android engine changes are validated with unit tests and a debug APK on the pull request. After an Android-changing PR is merged, the Android release workflow on `main` builds and uploads the persistently signed release APK. Server-only widget changes do not require a new APK.
+Android-changing PRs run unit tests and compile a debug APK. After merge to `main`, the Android release workflow restores the persistent signing identity, builds the signed release APK, verifies the signature and uploads the artifact.
 
-A new APK is needed only when the Android renderer, platform behavior, networking/cache engine or supported presentation primitives change.
+Server-only presentation changes do not require an APK.
 
-## Current development state
-
-Version `2.6.0` introduces the generic large-layout grammar. Weather is now expressed as a full-width split section instead of being recognized by its section ID. Rates and Liiga use half-width presentation metadata instead of being inferred from their position at the end of the section list.
-
-The current large-layout direction uses:
-
-- time, date and ISO week in the header instead of `CURRENT / SNAPSHOT`
-- horizontal Weather layout with current conditions and forecast side by side
-- sunrise, sunset and daylight length
-- server-driven electricity bars and market detail rows
-- Rates and Liiga as half-width lower metrics
-- HSL reserved as a future section after the current layout grammar is stable
-
-Electricity and Markets are the next candidates for `layout: split`, once their horizontal compositions have been tuned in the dev presentation channel and browser preview.
+Current engine version: **2.8.4**.
