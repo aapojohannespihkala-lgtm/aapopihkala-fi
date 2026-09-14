@@ -6,6 +6,10 @@ import {
   type HslLearningDb,
 } from '../functions/api/current/hsl-learning';
 import { recordHslDistancePassages } from '../functions/api/current/hsl-passage-learning';
+import {
+  attachHslLearningPublicSnapshot,
+  saveHslLearningPublicSnapshot,
+} from '../functions/api/current/hsl-public-learning';
 import { filterRecordedHslPassages } from '../functions/api/current/hsl-recorded-passage';
 import { recordHslRawLearningSnapshot } from '../functions/api/current/hsl-raw-learning';
 import { onRequestGet as getMarketsResponse } from '../functions/api/current/markets-stable';
@@ -41,6 +45,7 @@ const NEWS_PATH = '/api/current/news';
 const LIIGA_PATH = '/api/current/liiga';
 const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
 const SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS = 4_000;
+const HSL_HEAVY_LEARNING_INTERVAL_MINUTES = 5;
 const HSL_LEARNING_QUERY = {
   stopCode: 'E3239',
   stopName: 'Ylisrinne',
@@ -71,6 +76,7 @@ const HSL_LEARNING_SCHEMA_STATEMENTS = [
   )`,
   'CREATE INDEX IF NOT EXISTS hsl_eta_observations_trip_idx ON hsl_eta_observations(trip_key, observed_at)',
   'CREATE INDEX IF NOT EXISTS hsl_eta_observations_route_idx ON hsl_eta_observations(route, observed_at)',
+  'CREATE INDEX IF NOT EXISTS hsl_eta_observations_observed_idx ON hsl_eta_observations(observed_at)',
   `CREATE TABLE IF NOT EXISTS hsl_eta_arrivals (
     trip_key TEXT PRIMARY KEY,
     stop_code TEXT NOT NULL,
@@ -81,6 +87,12 @@ const HSL_LEARNING_SCHEMA_STATEMENTS = [
     created_at TEXT NOT NULL
   )`,
   'CREATE INDEX IF NOT EXISTS hsl_eta_arrivals_route_idx ON hsl_eta_arrivals(route, actual_arrival_at)',
+  'CREATE INDEX IF NOT EXISTS hsl_eta_arrivals_actual_idx ON hsl_eta_arrivals(actual_arrival_at)',
+  `CREATE TABLE IF NOT EXISTS hsl_eta_public_snapshot (
+    id INTEGER PRIMARY KEY,
+    payload_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
 ];
 
 const hslLearningDbAdapters = new WeakMap<object, HslLearningDb>();
@@ -102,11 +114,8 @@ const hslLearningDb = (db?: HslLearningDb) => {
   return adapter;
 };
 
-const enrichAndRecordHsl = async (response: Response, db?: HslLearningDb) => {
-  const enriched = await enrichHslResponseWithLearning(response, db);
-  await recordHslDistancePassages(enriched, db);
-  return enriched;
-};
+export const shouldRefreshHslLearningSnapshot = (scheduledTime: number) =>
+  Math.floor(scheduledTime / 60_000) % HSL_HEAVY_LEARNING_INTERVAL_MINUTES === 0;
 
 const methodNotAllowed = (allow = 'GET') =>
   new Response('Method not allowed', {
@@ -137,7 +146,7 @@ const publicLiigaResponse = async (response: Response, error: string) => {
   );
 };
 
-const collectHslLearningSnapshot = async (env: WorkerEnv) => {
+const collectHslLearningSnapshot = async (env: WorkerEnv, scheduledTime: number) => {
   if (!env.HSL_MODEL_DB || !env.DIGITRANSIT_API_KEY) return;
 
   const request = new Request('https://aapopihkala.fi/api/current/hsl', {
@@ -161,9 +170,14 @@ const collectHslLearningSnapshot = async (env: WorkerEnv) => {
   await recordHslRawLearningSnapshot(response, db);
   await recordHslDistancePassages(response, db);
 
-  // The scheduled collector needs enrichment only to persist AAPO predictions.
-  // Passage inference already ran above, so do not perform the same D1 scan twice.
-  await enrichHslResponseWithLearning(response, db);
+  if (!shouldRefreshHslLearningSnapshot(scheduledTime)) return;
+
+  // Raw observations and arrival detection run every minute. The expensive historical
+  // training/scoreboard scan runs every five minutes and publishes one tiny snapshot
+  // for public requests instead of repeating that work on every 15-second page refresh.
+  const enriched = await enrichHslResponseWithLearning(response, db);
+  const filtered = await filterRecordedHslPassages(enriched, db);
+  await saveHslLearningPublicSnapshot(filtered, db);
 };
 
 const worker = {
@@ -188,8 +202,8 @@ const worker = {
         request,
         apiKey: env.DIGITRANSIT_API_KEY,
       });
-      const enriched = await enrichAndRecordHsl(response, db);
-      return filterRecordedHslPassages(enriched, db);
+      const withLearning = await attachHslLearningPublicSnapshot(response, db);
+      return filterRecordedHslPassages(withLearning, db);
     }
 
     if (url.pathname === MARKETS_PATH) {
@@ -233,8 +247,8 @@ const worker = {
     return env.ASSETS.fetch(request);
   },
 
-  async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    await collectHslLearningSnapshot(env);
+  async scheduled(controller: ScheduledController, env: WorkerEnv): Promise<void> {
+    await collectHslLearningSnapshot(env, controller.scheduledTime);
   },
 };
 
