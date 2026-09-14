@@ -37,6 +37,28 @@ class WidgetTemporalRefreshTest {
     }
 
     @Test
+    fun exactRolloverSchedulesDueGuardBeforeDeparture() {
+        assertEquals(
+            1_000_000L,
+            guardedHslAlarmTime(
+                targetMs = 1_060_000L,
+                wallNowMs = 900_000L,
+            )
+        )
+    }
+
+    @Test
+    fun exactRolloverSchedulesDepartureAfterDueGuardStarts() {
+        assertEquals(
+            1_060_000L,
+            guardedHslAlarmTime(
+                targetMs = 1_060_000L,
+                wallNowMs = 1_000_000L,
+            )
+        )
+    }
+
+    @Test
     fun rolloverReturnsNullWhenNoFutureDepartureRemains() {
         val now = 2_000_000L
         val payload = WidgetPayload(
