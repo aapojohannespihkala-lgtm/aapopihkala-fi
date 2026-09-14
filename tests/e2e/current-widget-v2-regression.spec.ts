@@ -71,7 +71,7 @@ const liigaFixture = {
   },
 };
 
-test('widget v2 exposes HSL through the large-layout presentation contract', () => {
+test('widget v2 exposes production HSL through the large-layout presentation contract', () => {
   const payload = buildWidgetV2Payload(
     baseFixture,
     liigaFixture,
