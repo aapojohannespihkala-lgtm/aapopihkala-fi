@@ -31,31 +31,36 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun currentHourMapsToExpectedElectricityBarBucket() {
-        assertEquals(0, electricityBarIndexForHour(0, 8))
-        assertEquals(1, electricityBarIndexForHour(5, 8))
-        assertEquals(6, electricityBarIndexForHour(18, 8))
-        assertEquals(7, electricityBarIndexForHour(23, 8))
-        assertEquals(0, electricityBarIndexForHour(12, 0))
+    fun currentTimeFractionUsesMinutesAcrossTheWholeDay() {
+        val utc = TimeZone.getTimeZone("UTC")
+
+        assertEquals(0f, electricityDayFraction(0L, utc), 0.0001f)
+        assertEquals(0.25f, electricityDayFraction(6L * 60L * 60L * 1000L, utc), 0.0001f)
+        assertEquals(0.5f, electricityDayFraction(12L * 60L * 60L * 1000L, utc), 0.0001f)
+
+        val eighteenThirtyNineMs = (18L * 60L + 39L) * 60L * 1000L
+        assertEquals(373f / 480f, electricityDayFraction(eighteenThirtyNineMs, utc), 0.0001f)
+
+        val twentyThreeFiftyNineMs = (23L * 60L + 59L) * 60L * 1000L
+        assertEquals(1439f / 1440f, electricityDayFraction(twentyThreeFiftyNineMs, utc), 0.0001f)
     }
 
     @Test
-    fun currentHourUsesRequestedTimeZone() {
-        val seventeenHoursAfterEpoch = 17L * 60L * 60L * 1000L
+    fun markerPositionIsPreciseAndStaysInsideStrokeBounds() {
+        assertEquals(3f, electricityMarkerX(0f, 480), 0.01f)
+        assertEquals(120f, electricityMarkerX(0.25f, 480), 0.01f)
+        assertEquals(240f, electricityMarkerX(0.5f, 480), 0.01f)
+        assertEquals(373f, electricityMarkerX(373f / 480f, 480), 0.01f)
+        assertEquals(477f, electricityMarkerX(1f, 480), 0.01f)
+    }
 
+    @Test
+    fun chartKeepsHourlyResolutionAndClampsInvalidValues() {
         assertEquals(
-            17,
-            electricityCurrentHour(
-                epochMs = seventeenHoursAfterEpoch,
-                timeZone = TimeZone.getTimeZone("UTC"),
-            ),
+            listOf(0f, 0.5f, 1f, 0f, 1f, 0f),
+            normalizedElectricityBars(listOf(0.0, 0.5, 1.0, -1.0, 2.0, Double.NaN)),
         )
-        assertEquals(
-            19,
-            electricityCurrentHour(
-                epochMs = seventeenHoursAfterEpoch,
-                timeZone = TimeZone.getTimeZone("GMT+02:00"),
-            ),
-        )
+        assertEquals(24, normalizedElectricityBars(List(30) { 0.5 }).size)
+        assertEquals(emptyList<Float>(), normalizedElectricityBars(listOf(0.5), maxBars = 0))
     }
 }
