@@ -45,7 +45,6 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
@@ -61,11 +60,6 @@ private data class Palette(
     val accent: Color,
     val positive: Color,
     val negative: Color
-)
-
-private data class HeaderDateTime(
-    val time: String,
-    val date: String
 )
 
 class SnapshotUpdateWorker(
@@ -706,25 +700,6 @@ private fun toneColor(tone: String, palette: Palette): Color = when (tone.lowerc
     "negative" -> palette.negative
     "accent" -> palette.accent
     else -> palette.foreground
-}
-
-private fun currentHeaderDateTime(): HeaderDateTime {
-    val helsinki = TimeZone.getTimeZone("Europe/Helsinki")
-    val calendar = Calendar.getInstance(helsinki, Locale.UK).apply {
-        firstDayOfWeek = Calendar.MONDAY
-        minimalDaysInFirstWeek = 4
-    }
-    val time = SimpleDateFormat("HH:mm", Locale.US).apply {
-        timeZone = helsinki
-    }.format(calendar.time)
-    val date = SimpleDateFormat("EEE dd MMM yyyy", Locale.US).apply {
-        timeZone = helsinki
-    }.format(calendar.time).uppercase(Locale.US)
-    val week = calendar.get(Calendar.WEEK_OF_YEAR)
-    return HeaderDateTime(
-        time = time,
-        date = "$date / W${String.format(Locale.US, "%02d", week)}"
-    )
 }
 
 private fun localTime(value: String): String {
