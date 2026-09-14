@@ -55,11 +55,12 @@ test('public HSL payload fails open when cached learning is invalid', () => {
   expect(mergeHslLearningSnapshotPayload(live, { learning: {}, departures: 'invalid' })).toBe(live);
 });
 
-test('heavy HSL learning refresh is limited to five-minute cron buckets', () => {
+test('heavy HSL learning refresh is limited to ten-minute cron buckets', () => {
   const base = Date.UTC(2026, 8, 14, 5, 0, 0);
   expect(shouldRefreshHslLearningSnapshot(base)).toBe(true);
-  expect(shouldRefreshHslLearningSnapshot(base + 4 * 60_000)).toBe(false);
-  expect(shouldRefreshHslLearningSnapshot(base + 5 * 60_000)).toBe(true);
+  expect(shouldRefreshHslLearningSnapshot(base + 5 * 60_000)).toBe(false);
   expect(shouldRefreshHslLearningSnapshot(base + 9 * 60_000)).toBe(false);
   expect(shouldRefreshHslLearningSnapshot(base + 10 * 60_000)).toBe(true);
+  expect(shouldRefreshHslLearningSnapshot(base + 19 * 60_000)).toBe(false);
+  expect(shouldRefreshHslLearningSnapshot(base + 20 * 60_000)).toBe(true);
 });
