@@ -38,12 +38,9 @@ internal object SnapshotHslRolloverScheduler {
     fun schedule(context: Context, payload: WidgetPayload?) {
         val appContext = context.applicationContext
         val alarmManager = appContext.getSystemService(AlarmManager::class.java) ?: return
-        val pendingIntent = rolloverPendingIntent(appContext)
-        alarmManager.cancel(pendingIntent)
+        alarmManager.cancel(rolloverPendingIntent(appContext))
 
         val targetMs = nextHslRolloverTarget(payload, System.currentTimeMillis()) ?: return
-        pendingIntent.intentSender
-
         val targetIntent = rolloverPendingIntent(appContext, targetMs)
         try {
             if (canScheduleExact(appContext)) {
@@ -84,6 +81,13 @@ internal object SnapshotHslRolloverScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
+}
+
+// Keep the repository call-site stable while the underlying timing primitive moves
+// from WorkManager to AlarmManager.
+internal object SnapshotTemporalRefreshScheduler {
+    fun schedule(context: Context, payload: WidgetPayload?) =
+        SnapshotHslRolloverScheduler.schedule(context, payload)
 }
 
 class SnapshotHslRolloverReceiver : BroadcastReceiver() {
