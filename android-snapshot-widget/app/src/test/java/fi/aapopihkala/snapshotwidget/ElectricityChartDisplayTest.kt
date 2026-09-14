@@ -15,6 +15,22 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
+    fun electricityDetailSplitsMonthAverageFromLowAndHigh() {
+        assertEquals(
+            listOf("MONTH AVG 5.93", "LOW 1.38   HIGH 32.38"),
+            electricityDetailLines("MONTH AVG 5.93 LOW 1.38 HIGH 32.38"),
+        )
+    }
+
+    @Test
+    fun electricityDetailKeepsUnknownFormatIntact() {
+        assertEquals(
+            listOf("CUSTOM DETAIL"),
+            electricityDetailLines("CUSTOM DETAIL"),
+        )
+    }
+
+    @Test
     fun currentHourUsesRequestedTimeZone() {
         val seventeenHoursAfterEpoch = 17L * 60L * 60L * 1000L
 
