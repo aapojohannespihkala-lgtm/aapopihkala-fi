@@ -87,6 +87,7 @@ test('widget v2 exposes production HSL through the large-layout presentation con
     channel: 'prod',
     layouts: {
       compact: ['weather', 'electricity', 'markets', 'rates'],
+      medium: ['weather', 'electricity', 'markets', 'rates'],
       large: ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga'],
     },
   });
