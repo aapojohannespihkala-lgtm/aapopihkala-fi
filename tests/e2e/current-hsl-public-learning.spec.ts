@@ -43,6 +43,18 @@ test('public HSL payload reuses the latest learning summary and matching model o
   });
 });
 
+test('public HSL payload fails open when cached learning is invalid', () => {
+  const live = {
+    source: 'HSL Digitransit',
+    departures: [
+      { route: '125', scheduledAt: '2026-09-14T05:00:00.000Z', departureAt: '2026-09-14T05:02:00.000Z' },
+    ],
+  };
+
+  expect(mergeHslLearningSnapshotPayload(live, { departures: [] })).toBe(live);
+  expect(mergeHslLearningSnapshotPayload(live, { learning: {}, departures: 'invalid' })).toBe(live);
+});
+
 test('heavy HSL learning refresh is limited to five-minute cron buckets', () => {
   const base = Date.UTC(2026, 8, 14, 5, 0, 0);
   expect(shouldRefreshHslLearningSnapshot(base)).toBe(true);
