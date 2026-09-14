@@ -1,6 +1,6 @@
 import { onRequestGet as getElectricityResponse } from './electricity';
 import { onRequestGet as getMarketsResponse } from './markets-stable';
-import { onRequestGet as getSnapshotPortfolioResponse } from './portfolio-snapshot';
+import { onRequestGet as getPortfolioPerformance } from './portfolio';
 
 type WeatherResponse = {
   current?: {
@@ -32,6 +32,8 @@ type PortfolioItem = {
   id?: unknown;
   changes?: {
     today?: unknown;
+    month1?: unknown;
+    year1?: unknown;
   };
 };
 
@@ -292,17 +294,21 @@ const median = (values: number[]) => {
 };
 
 const loadPortfolio = async () => {
-  const data = await readJson<PortfolioResponse>(await getSnapshotPortfolioResponse());
+  const data = await readJson<PortfolioResponse>(await getPortfolioPerformance());
   if (!data || !Array.isArray(data.items)) return null;
 
   const byId = new Map<string, PortfolioItem>();
   const todayValues: number[] = [];
+  const month1Values: number[] = [];
+  const year1Values: number[] = [];
 
   for (const raw of data.items) {
     if (!raw || typeof raw !== 'object') continue;
     const item = raw as PortfolioItem;
     if (typeof item.id === 'string') byId.set(item.id, item);
     if (isFiniteNumber(item.changes?.today)) todayValues.push(item.changes.today);
+    if (isFiniteNumber(item.changes?.month1)) month1Values.push(item.changes.month1);
+    if (isFiniteNumber(item.changes?.year1)) year1Values.push(item.changes.year1);
   }
 
   const selectedValue = (id: string) => {
@@ -312,6 +318,8 @@ const loadPortfolio = async () => {
 
   return {
     median: median(todayValues),
+    month1Median: median(month1Values),
+    year1Median: median(year1Values),
     world: selectedValue(SELECTED_MARKETS.world),
     usa: selectedValue(SELECTED_MARKETS.usa),
     finland: selectedValue(SELECTED_MARKETS.finland),
