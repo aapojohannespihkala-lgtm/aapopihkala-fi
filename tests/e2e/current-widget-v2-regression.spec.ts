@@ -71,11 +71,11 @@ const liigaFixture = {
   },
 };
 
-test('widget v2 exposes HSL through the dev large-layout presentation contract', () => {
+test('widget v2 exposes production HSL through the large-layout presentation contract', () => {
   const payload = buildWidgetV2Payload(
     baseFixture,
     liigaFixture,
-    'dev',
+    'prod',
     '2026-09-13T13:05:00.000Z',
     null,
     hslFixture,
@@ -84,9 +84,10 @@ test('widget v2 exposes HSL through the dev large-layout presentation contract',
   expect(payload).toMatchObject({
     schemaVersion: 2,
     minEngineVersion: 2,
-    channel: 'dev',
+    channel: 'prod',
     layouts: {
       compact: ['weather', 'electricity', 'markets', 'rates'],
+      medium: ['weather', 'electricity', 'markets', 'rates'],
       large: ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga'],
     },
   });
@@ -164,8 +165,8 @@ test('widget v2 exposes HSL through the dev large-layout presentation contract',
   });
 });
 
-test('widget v2 keeps the prod layout unchanged while HSL is staged', () => {
-  const payload = buildWidgetV2Payload(
+test('widget v2 keeps prod and dev on the same large HSL layout', () => {
+  const prod = buildWidgetV2Payload(
     baseFixture,
     liigaFixture,
     'prod',
@@ -173,14 +174,31 @@ test('widget v2 keeps the prod layout unchanged while HSL is staged', () => {
     null,
     hslFixture,
   );
+  const dev = buildWidgetV2Payload(
+    baseFixture,
+    liigaFixture,
+    'dev',
+    '2026-09-13T13:05:00.000Z',
+    null,
+    hslFixture,
+  );
 
-  expect(payload.layouts.large).toEqual(['weather', 'electricity', 'markets', 'rates', 'liiga']);
+  const expected = ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga'];
+  expect(prod.layouts.large).toEqual(expected);
+  expect(dev.layouts.large).toEqual(expected);
+  expect(prod.sections.some((section) => section.id === 'hsl')).toBe(true);
+  expect(dev.sections.some((section) => section.id === 'hsl')).toBe(true);
+});
+
+test('widget v2 omits HSL section without usable departures but keeps the rest of prod', () => {
+  const payload = buildWidgetV2Payload(
+    baseFixture,
+    liigaFixture,
+    'prod',
+    '2026-09-13T13:05:00.000Z',
+  );
+
   expect(payload.sections.some((section) => section.id === 'hsl')).toBe(false);
   expect(payload.sections.find((section) => section.id === 'rates')?.index).toBe('04');
   expect(payload.sections.find((section) => section.id === 'liiga')?.index).toBe('05');
-});
-
-test('widget v2 omits HSL without usable departures', () => {
-  const payload = buildWidgetV2Payload(null, null, 'dev', '2026-09-13T13:05:00.000Z');
-  expect(payload.sections.some((section) => section.id === 'hsl')).toBe(false);
 });

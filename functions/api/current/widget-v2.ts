@@ -97,12 +97,9 @@ const DEV_THEME: WidgetTheme = { ...PROD_THEME };
 const PROD_LAYOUTS: WidgetLayouts = {
   compact: ['weather', 'electricity', 'markets', 'rates'],
   medium: ['weather', 'electricity', 'markets', 'rates'],
-  large: ['weather', 'electricity', 'markets', 'rates', 'liiga'],
-};
-const DEV_LAYOUTS: WidgetLayouts = {
-  ...PROD_LAYOUTS,
   large: ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga'],
 };
+const DEV_LAYOUTS: WidgetLayouts = { ...PROD_LAYOUTS };
 
 const SOLAR_TIMEOUT_MS = 4_000;
 
@@ -488,7 +485,7 @@ export const buildWidgetV2Payload = (
   solar: SolarData | null = null,
   hsl: WidgetHslData | null = null,
 ): WidgetV2Payload => {
-  const hslSection = channel === 'dev' ? buildHslSection(hsl, generatedAt) : null;
+  const hslSection = buildHslSection(hsl, generatedAt);
   const hasHsl = hslSection !== null;
   const sections = [
     buildWeatherSection(base?.weather, solar),
@@ -521,13 +518,11 @@ export const onRequestGet = async (context: WidgetV2Context) => {
     getWidgetResponse({ request: context.request }),
     fetchLiigaResponse(4_000),
     fetchSolarData(),
-    channel === 'dev'
-      ? fetchWidgetHslData({
-          request: context.request,
-          apiKey: context.env?.DIGITRANSIT_API_KEY,
-          timeoutMs: 4_000,
-        })
-      : Promise.resolve(null),
+    fetchWidgetHslData({
+      request: context.request,
+      apiKey: context.env?.DIGITRANSIT_API_KEY,
+      timeoutMs: 4_000,
+    }),
   ]);
   const [base, liiga] = await Promise.all([
     readJson<BaseWidgetData>(baseResponse),
