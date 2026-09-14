@@ -236,8 +236,16 @@ object WidgetPayloadCodec {
     private fun JSONObject.nullableString(name: String): String? =
         if (has(name) && !isNull(name)) optString(name).takeIf { it.isNotBlank() } else null
 
-    private fun JSONObject.nullableLong(name: String): Long? =
-        if (has(name) && !isNull(name)) optLong(name).takeIf { it > 0L } else null
+    private fun JSONObject.nullableLong(name: String): Long? {
+        if (!has(name) || isNull(name)) return null
+        val value = opt(name)
+        val parsed = when (value) {
+            is Number -> value.toLong()
+            is String -> value.toLongOrNull()
+            else -> null
+        }
+        return parsed?.takeIf { it > 0L }
+    }
 
     private fun JSONObject?.stringList(name: String): List<String> =
         this?.optJSONArray(name).strings()
