@@ -117,8 +117,7 @@ class RefreshAction : ActionCallback {
         val repository = WidgetRepository(context)
         repository.markLoading()
         SnapshotWidget().updateAll(context)
-        repository.fetchAndCache()
-        SnapshotWidget().updateAll(context)
+        SnapshotUpdateWorker.refreshNow(context)
     }
 }
 
