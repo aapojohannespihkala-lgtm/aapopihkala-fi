@@ -43,6 +43,12 @@ The widget Markets section must use the same portfolio feed as `/current/markets
 
 The right-side WORLD, USA, FINLAND, BTC / EUR and REMEDY rows are the corresponding 1D values from that same portfolio response. This keeps the widget and Markets page numerically aligned whenever they are rendering the same response generation.
 
+### Electricity chart
+
+Electricity keeps the day average as the primary value, shows the month average on its own detail line and LOW/HIGH on the next line. The current price is shown as a bare number above the intraday chart.
+
+The chart is rendered into one Android bitmap before Glance hands it to the launcher. The bitmap keeps the hourly server bars and draws the current-time marker last, at minute-level precision. The marker uses a light outer stroke and dark inner stroke so it remains visible both over the pale price bars and over the dark widget background. This avoids relying on launcher-specific RemoteViews overlay or very narrow weighted-layout behavior.
+
 ## Live time behavior
 
 Network data still refreshes on the WorkManager cadence, but time-sensitive UI is local/native:
@@ -120,7 +126,7 @@ Do not:
 - introduce arbitrary Android view classes into `AndroidRemoteViews`
 - use `Space` inside RemoteViews XML
 
-Keep large rows wrapped in `LargeRowBlock`. Use only RemoteViews-safe native views such as TextView/TextClock/Chronometer/ProgressBar where needed.
+Keep large rows wrapped in `LargeRowBlock`. Use only RemoteViews-safe native views such as TextView/TextClock/Chronometer/ProgressBar where needed. For small custom graphics whose exact layering matters, prefer one pre-rendered bitmap over stacked Glance children whose z-order or narrow weighted sizing can vary by launcher.
 
 ## APK workflow
 
@@ -128,4 +134,4 @@ Android-changing PRs run unit tests and compile a debug APK. After merge to `mai
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.1**.
+Current app version: **2.10.7**.

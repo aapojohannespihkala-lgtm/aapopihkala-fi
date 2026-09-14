@@ -5,10 +5,13 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.clickable
@@ -26,6 +29,7 @@ import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
+import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
@@ -47,7 +51,6 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
@@ -706,10 +709,19 @@ private fun ElectricityBarStrip(
             }
             Spacer(GlanceModifier.height(2.dp))
         }
-        ElectricityChart(
-            values = values,
-            currentHour = electricityCurrentHour(System.currentTimeMillis()),
-            palette = palette,
+        Image(
+            provider = ImageProvider(
+                renderElectricityChartBitmap(
+                    values = values,
+                    epochMs = System.currentTimeMillis(),
+                    barColor = palette.foreground.toArgb(),
+                    markerOuterColor = palette.foreground.toArgb(),
+                    markerInnerColor = palette.background.toArgb(),
+                )
+            ),
+            contentDescription = "Electricity price profile with current time marker",
+            modifier = GlanceModifier.fillMaxWidth().height(28.dp),
+            contentScale = ContentScale.FillBounds,
         )
         Spacer(GlanceModifier.height(1.dp))
         Row(modifier = GlanceModifier.fillMaxWidth()) {
@@ -725,76 +737,8 @@ private fun ElectricityBarStrip(
     }
 }
 
-@Composable
-private fun ElectricityChart(
-    values: List<Double>,
-    currentHour: Int,
-    palette: Palette,
-) {
-    val bars = compactBars(values)
-    val activeHour = currentHour.coerceIn(0, 23)
-    Row(
-        modifier = GlanceModifier.fillMaxWidth().height(28.dp),
-        verticalAlignment = Alignment.Vertical.Bottom
-    ) {
-        repeat(24) { hour ->
-            val barIndex = electricityBarIndexForHour(hour, bars.size)
-            val normalized = bars.getOrNull(barIndex)?.coerceIn(0.0, 1.0) ?: 0.0
-            val barHeight = (4.0 + normalized * 24.0).dp
-
-            if (hour == activeHour) {
-                Row(
-                    modifier = GlanceModifier.defaultWeight().height(28.dp),
-                    verticalAlignment = Alignment.Vertical.Bottom
-                ) {
-                    Box(
-                        modifier = GlanceModifier
-                            .defaultWeight()
-                            .height(barHeight)
-                            .background(palette.foreground)
-                    ) {}
-                    Box(
-                        modifier = GlanceModifier
-                            .width(2.dp)
-                            .height(28.dp)
-                            .background(palette.line)
-                    ) {}
-                    Box(
-                        modifier = GlanceModifier
-                            .defaultWeight()
-                            .height(barHeight)
-                            .background(palette.foreground)
-                    ) {}
-                }
-            } else {
-                Box(
-                    modifier = GlanceModifier
-                        .defaultWeight()
-                        .height(barHeight)
-                        .background(palette.foreground)
-                ) {}
-            }
-        }
-    }
-}
-
-internal fun electricityBarIndexForHour(hour: Int, barCount: Int): Int {
-    if (barCount <= 0) return 0
-    val safeHour = hour.coerceIn(0, 23)
-    return ((safeHour * barCount) / 24).coerceIn(0, barCount - 1)
-}
-
 internal fun electricityCurrentPriceLabel(value: String?): String? =
     value?.trim()?.substringBefore(' ')?.takeIf { it.isNotBlank() }
-
-internal fun electricityCurrentHour(
-    epochMs: Long,
-    timeZone: TimeZone = TimeZone.getTimeZone("Europe/Helsinki"),
-): Int {
-    val calendar = Calendar.getInstance(timeZone)
-    calendar.timeInMillis = epochMs
-    return calendar.get(Calendar.HOUR_OF_DAY).coerceIn(0, 23)
-}
 
 @Composable
 private fun BarStrip(values: List<Double>, palette: Palette) {
