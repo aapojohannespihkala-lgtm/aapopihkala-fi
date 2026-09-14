@@ -134,4 +134,4 @@ Android-changing PRs run unit tests and compile a debug APK. After merge to `mai
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.8**.
+Current app version: **2.10.9**.
