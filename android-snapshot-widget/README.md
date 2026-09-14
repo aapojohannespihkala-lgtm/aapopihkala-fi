@@ -1,55 +1,41 @@
-# Android Snapshot Widget
+# Snapshot Widget
 
-## Purpose
+Native Android home-screen widget for `https://aapopihkala.fi/current/snapshot/`.
 
-The Android home-screen widget is a compact, glanceable companion to `/current/snapshot/`.
+The widget is a compact companion to the mobile Snapshot page. The website is the visual/information-design reference, but the Android widget is intentionally more minimal and uses home-screen space differently rather than copying the page pixel for pixel.
 
-The mobile Snapshot page is the visual and information-design reference, but the widget is not intended to be a pixel-for-pixel copy. It should preserve the same hierarchy, terminology and data priorities while using Android home-screen space efficiently.
+For the full architecture, handover notes, version history, constraints and workflow, see `docs/WIDGET.md`.
 
-The long-term architecture is server-driven: ordinary content, ordering, data and presentation changes should ship from the website repository without requiring a new APK. A new APK is appropriate only when the Android rendering/network/platform engine itself gains or changes a capability.
+## Architecture
 
-## Product and design principles
+The Android app is a small native presentation/runtime engine. It reads the rich production presentation contract from:
 
-- Keep the widget calm, minimal and readable at a glance.
-- Use horizontal space before adding vertical height.
-- Prefer one strong primary value per section with supporting context around it.
-- Treat the Snapshot page as a reference, not a layout template.
-- Evolve one section at a time unless the generic layout grammar genuinely changes.
-- Keep server presentation changes separate from Android engine changes.
-- Preserve the last good compatible payload through temporary network failures.
-- Optional upstream sections must fail independently rather than taking down the whole presentation payload.
-- Do not hide important Android/network failure modes behind a generic `null`; retain compact diagnostics.
-- Avoid unnecessary APK installs: validate server-driven work in the browser preview first.
+```text
+https://aapopihkala.fi/api/current/widget-v2?channel=prod
+```
 
-## Current large-widget information architecture
+The compatibility fallback is:
 
-The production large widget currently contains:
+```text
+https://aapopihkala.fi/api/current/widget
+```
 
-1. Weather
-   - current temperature
-   - daily low/high
-   - four forecast points
-   - sunrise, sunset and daylight length
-   - an area-proportional day/night horizon disk
-2. Electricity
-   - day average as the main value
-   - current, low and high price
-   - intraday price silhouette
-3. Markets
-   - selected 1-day median as the main value
-   - World, USA, Finland, BTC/EUR and Remedy rows
-4. HSL
-   - next departure as a live local countdown
-   - route/destination context
-   - upcoming departures as clock times
-5. Rates
-   - 3M Euribor
-   - one-year-ago comparison
-6. Liiga
-   - Ilves position / total teams
-   - live or next Ilves game
+Important: `/api/current/widget?v=2` is not the canonical rich v2 endpoint.
 
-Compact and medium remain intentionally denser than the large composition. HSL is large-only.
+Most widget content/layout changes should happen in the server presentation and be checked at `/current/widget-preview/`. A new APK is needed only when Android rendering, networking/cache behavior or platform capabilities change.
+
+## Current large layout
+
+The production large widget contains:
+
+- Weather
+- Electricity
+- Markets
+- HSL
+- Rates
+- Liiga
+
+Large composition is server-driven through generic `span`/`layout` metadata. Current production uses full-width split rows for Weather, Electricity, Markets and HSL, followed by half-width Rates + Liiga.
 
 ### Markets data contract
 
@@ -62,7 +48,7 @@ The right-side WORLD, USA, FINLAND, BTC / EUR and REMEDY rows are the correspond
 Network data still refreshes on the WorkManager cadence, but time-sensitive UI is local/native:
 
 - header clock: Android `TextClock`, `HH:mm:ss`
-- HSL next departure: Android `Chronometer` while outside the final one-minute due guard when exact rollover alarms are available
+- HSL next departure: Android `Chronometer` outside the final one-minute due guard when exact rollover alarms are available
 - cached HSL departure rollover: exact local `AlarmManager` rebuild at the due-guard boundary and again at the absolute departure target
 - header date: refreshed by ordinary widget rebuilds
 

@@ -167,7 +167,7 @@ WidgetRepository
 compatible cache
    |
    +--> temporal resolver
-   +--> AlarmManager next-departure rollover
+   +--> AlarmManager due guard + next-departure rollover
    |
    v
 Glance renderer + native live temporal views
@@ -218,19 +218,20 @@ The server supplies absolute timestamps for the current departure and visible up
 
 LIVE vs SCHED does **not** change rollover behavior. It only tells the user whether the current departure time came from realtime or scheduled data. Both are represented by the same absolute `countdownTargetMs` and use the same local rollover path.
 
-### Rollover behavior from 2.10.0
+### Rollover behavior from 2.10.1
 
-The 2.9.x WorkManager-based temporal rollover was not reliable enough on-device. A native Chronometer keeps counting below zero if no widget rebuild occurs, while WorkManager intentionally does not guarantee execution at an exact wall-clock second. On-device evidence showed departures remaining active many minutes after their target.
+The 2.9.x WorkManager-based temporal rollover was not reliable enough on-device. Version 2.10.0 moved rollover to exact local `AlarmManager` targets, but a native Chronometer could still cross below zero during ordinary alarm or launcher rebuild latency at the exact departure second.
 
-Starting in **2.10.0**, HSL rollover uses `AlarmManager` instead:
+Starting in **2.10.1**, exact-alarm rollover uses a two-phase guard:
 
 1. After every successful/cache-preserving widget refresh, Android resolves the first still-future HSL departure.
-2. Only that next absolute departure target is scheduled as the active HSL alarm.
-3. When the target is reached, the broadcast receiver rebuilds the widget from the existing cache.
-4. The temporal resolver drops the passed departure and promotes the first still-future row.
-5. The receiver immediately schedules the promoted departure as the next alarm.
+2. If the departure is more than one minute away, the active exact alarm is scheduled for the start of the final minute.
+3. That guard alarm rebuilds the widget and replaces the ticking Chronometer with a static `DUE` label.
+4. The receiver then schedules the same departure's absolute target as the next exact alarm.
+5. At the target, the broadcast receiver rebuilds from cache, the temporal resolver drops the passed departure and promotes the first still-future row.
+6. The receiver immediately schedules the promoted departure's guard or target as appropriate.
 
-No HSL network request is required for this cached rollover. Route, destination, realtime/scheduled tone and the visible departure list advance together.
+No HSL network request is required for this cached rollover. Route, destination, realtime/scheduled tone and the visible departure list advance together. The final-minute static guard prevents ordinary target-alarm or launcher rebuild latency from exposing a stale negative Chronometer while still switching to the next known departure at the rollover target.
 
 On Android versions before API 31, exact alarms are available without special app access. On Android 12+ the app declares `SCHEDULE_EXACT_ALARM` and checks `AlarmManager.canScheduleExactAlarms()` before using `setExactAndAllowWhileIdle()`.
 
@@ -276,8 +277,8 @@ A user-triggered manual refresh remains an immediate one-time work request so it
 Live/local time behavior is deliberately independent from normal network cadence:
 
 - header seconds: native `TextClock`
-- HSL countdown: native `Chronometer` only when exact rollover is available
-- HSL rollover: one `AlarmManager` target for the next absolute departure
+- HSL countdown: native `Chronometer` only before the final one-minute due guard when exact rollover is available
+- HSL rollover: exact `AlarmManager` due-guard alarm followed by the absolute departure target
 - exact-alarm unavailable fallback: absolute departure clock, never a negative Chronometer
 - header date rollover: local inexact AlarmManager rebuild near Helsinki midnight
 - network data: periodic/manual WorkManager fetches
@@ -302,7 +303,7 @@ If v2 still fails, Android tries the legacy endpoint. If both fail, the previous
 
 The widget keeps the latest compatible payload in SharedPreferences.
 
-- v2 success -> cache rich payload and schedule the next local HSL alarm target
+- v2 success -> cache rich payload and schedule the next local HSL guard/rollover alarm
 - v2 transient failure -> retry once
 - v2 still fails -> try legacy
 - legacy success -> cache legacy payload and identify fallback in footer
@@ -393,6 +394,7 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.9.6**: periodic network worker requires connectivity.
 - **2.9.7**: attempted prewarmed WorkManager HSL rollover + final-minute `DUE` guard; superseded after on-device delay evidence.
 - **2.10.0**: HSL rollover moved to one next-departure AlarmManager target; LIVE/SCHED share identical rollover; exact-alarm-unavailable mode shows the absolute departure clock instead of allowing a negative Chronometer.
+- **2.10.1**: exact AlarmManager rollover gained a final-minute `DUE` guard alarm before the departure target so target/rebuild latency cannot roll the native Chronometer below zero.
 
 ## Key files
 
