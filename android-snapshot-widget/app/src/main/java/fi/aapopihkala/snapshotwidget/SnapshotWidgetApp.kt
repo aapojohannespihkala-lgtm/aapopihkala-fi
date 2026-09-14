@@ -129,12 +129,17 @@ class SnapshotWidget : GlanceAppWidget() {
         val repository = WidgetRepository(context)
         val payload = repository.loadCached()
         val status = repository.status()
-        provideContent { SnapshotContent(payload, status) }
+        val diagnostics = repository.diagnostics()
+        provideContent { SnapshotContent(payload, status, diagnostics) }
     }
 }
 
 @Composable
-private fun SnapshotContent(payload: WidgetPayload?, status: String) {
+private fun SnapshotContent(
+    payload: WidgetPayload?,
+    status: String,
+    diagnostics: WidgetFetchDiagnostics,
+) {
     val size = LocalSize.current
     val sizeClass = when {
         size.height < 180.dp || size.width < 235.dp -> WidgetSizeClass.COMPACT
@@ -171,7 +176,7 @@ private fun SnapshotContent(payload: WidgetPayload?, status: String) {
             Spacer(GlanceModifier.defaultWeight())
         }
 
-        Footer(payload, status, palette)
+        Footer(payload, status, diagnostics, palette)
     }
 }
 
@@ -191,14 +196,21 @@ private fun Header(payload: WidgetPayload?, palette: Palette) {
 }
 
 @Composable
-private fun Footer(payload: WidgetPayload?, status: String, palette: Palette) {
+private fun Footer(
+    payload: WidgetPayload?,
+    status: String,
+    diagnostics: WidgetFetchDiagnostics,
+    palette: Palette,
+) {
+    val payloadTime = payload?.generatedAt?.takeIf { it.isNotBlank() }?.let(::localTime)
     val statusText = when {
         status == WidgetRepository.STATUS_LOADING -> "UPDATING"
-        status == WidgetRepository.STATUS_ERROR && payload == null -> "CONNECTION ERROR"
-        status == WidgetRepository.STATUS_ERROR && payload?.generatedAt?.isNotBlank() == true ->
-            "UPDATE FAILED · LAST ${localTime(payload.generatedAt)}"
-        status == WidgetRepository.STATUS_ERROR -> "UPDATE FAILED"
-        payload?.generatedAt?.isNotBlank() == true -> "UPDATED ${localTime(payload.generatedAt)}"
+        status == WidgetRepository.STATUS_ERROR && payloadTime != null ->
+            "${diagnostics.failureLabel()} · LAST $payloadTime"
+        status == WidgetRepository.STATUS_ERROR -> diagnostics.failureLabel()
+        payload?.channel == "legacy" && payloadTime != null ->
+            "${diagnostics.legacyFallbackLabel()} · UPDATED $payloadTime"
+        payloadTime != null -> "UPDATED $payloadTime"
         else -> "WAITING FOR DATA"
     }
 
