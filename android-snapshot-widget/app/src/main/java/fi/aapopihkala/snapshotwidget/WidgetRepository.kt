@@ -13,6 +13,7 @@ import java.util.Locale
 import java.util.TimeZone
 import javax.net.ssl.SSLException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
@@ -27,33 +28,56 @@ private data class FetchTextResult(
     val status: String
 )
 
+private data class PresentationFetchResult(
+    val payload: WidgetPayload?,
+    val status: String
+)
+
 private data class LegacyFetchResult(
     val payload: WidgetPayload?,
     val status: String
 )
 
+internal data class WidgetFetchDiagnostics(
+    val v2Status: String,
+    val legacyStatus: String,
+    val v2Retried: Boolean,
+) {
+    private fun v2Label(): String = "V2 $v2Status${if (v2Retried) "/R" else ""}"
+
+    fun failureLabel(): String = "$v2Label() · L $legacyStatus"
+
+    fun legacyFallbackLabel(): String = "LEGACY · ${v2Label()}"
+}
+
+internal fun shouldRetryV2Status(status: String): Boolean {
+    if (status in setOf("TIMEOUT", "DNS", "SSL", "CONNECT", "IO")) return true
+    if (!status.startsWith("HTTP")) return false
+    val code = status.removePrefix("HTTP").toIntOrNull() ?: return false
+    return code == 408 || code == 425 || code == 429 || code in 500..599
+}
+
 class WidgetRepository(context: Context) {
     private val prefs = context.getSharedPreferences("snapshot_widget", Context.MODE_PRIVATE)
 
     suspend fun fetchAndCache(): WidgetPayload? = withContext(Dispatchers.IO) {
-        val presentation = fetchText(SnapshotEndpoints.PRESENTATION_URL, PRESENTATION_TIMEOUT_MS)
-        val parsedPresentation = presentation.body?.let(WidgetPayloadCodec::parse)
-        val v2Status = when {
-            presentation.body == null -> presentation.status
-            parsedPresentation == null -> "PARSE"
-            !parsedPresentation.isCompatible() -> "COMPAT"
-            parsedPresentation.sections.isEmpty() -> "EMPTY"
-            else -> "OK"
-        }
-        val remote = parsedPresentation
-            ?.takeIf { it.isCompatible() && it.sections.isNotEmpty() }
+        var presentation = fetchPresentation(PRESENTATION_TIMEOUT_MS)
+        var retried = false
 
+        if (presentation.payload == null && shouldRetryV2Status(presentation.status)) {
+            retried = true
+            delay(PRESENTATION_RETRY_DELAY_MS)
+            presentation = fetchPresentation(PRESENTATION_RETRY_TIMEOUT_MS)
+        }
+
+        val remote = presentation.payload
         val legacy = if (remote == null) fetchLegacyPayload() else LegacyFetchResult(null, "SKIP")
         val payload = remote ?: legacy.payload
 
         val editor = prefs.edit()
-            .putString(KEY_V2_STATUS, v2Status)
+            .putString(KEY_V2_STATUS, presentation.status)
             .putString(KEY_LEGACY_STATUS, legacy.status)
+            .putBoolean(KEY_V2_RETRIED, retried)
             .putLong(KEY_LAST_ATTEMPT_MS, System.currentTimeMillis())
 
         if (payload != null) {
@@ -74,8 +98,30 @@ class WidgetRepository(context: Context) {
 
     fun status(): String = prefs.getString(KEY_STATUS, STATUS_IDLE) ?: STATUS_IDLE
 
+    fun diagnostics(): WidgetFetchDiagnostics = WidgetFetchDiagnostics(
+        v2Status = prefs.getString(KEY_V2_STATUS, "IDLE") ?: "IDLE",
+        legacyStatus = prefs.getString(KEY_LEGACY_STATUS, "IDLE") ?: "IDLE",
+        v2Retried = prefs.getBoolean(KEY_V2_RETRIED, false),
+    )
+
     fun markLoading() {
         prefs.edit().putString(KEY_STATUS, STATUS_LOADING).apply()
+    }
+
+    private fun fetchPresentation(timeoutMs: Int): PresentationFetchResult {
+        val fetched = fetchText(SnapshotEndpoints.PRESENTATION_URL, timeoutMs)
+        val parsed = fetched.body?.let(WidgetPayloadCodec::parse)
+        val status = when {
+            fetched.body == null -> fetched.status
+            parsed == null -> "PARSE"
+            !parsed.isCompatible() -> "COMPAT"
+            parsed.sections.isEmpty() -> "EMPTY"
+            else -> "OK"
+        }
+        return PresentationFetchResult(
+            payload = parsed?.takeIf { it.isCompatible() && it.sections.isNotEmpty() },
+            status = status,
+        )
     }
 
     private fun fetchLegacyPayload(): LegacyFetchResult {
@@ -257,11 +303,14 @@ class WidgetRepository(context: Context) {
 
     companion object {
         private const val PRESENTATION_TIMEOUT_MS = 12_000
+        private const val PRESENTATION_RETRY_TIMEOUT_MS = 6_500
+        private const val PRESENTATION_RETRY_DELAY_MS = 750L
         private const val LEGACY_TIMEOUT_MS = 7_000
         private const val KEY_CACHE = "snapshot_payload_v2"
         private const val KEY_STATUS = "snapshot_status"
         private const val KEY_V2_STATUS = "snapshot_v2_status"
         private const val KEY_LEGACY_STATUS = "snapshot_legacy_status"
+        private const val KEY_V2_RETRIED = "snapshot_v2_retried"
         private const val KEY_LAST_ATTEMPT_MS = "snapshot_last_attempt_ms"
         const val STATUS_IDLE = "idle"
         const val STATUS_LOADING = "loading"
