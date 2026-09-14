@@ -37,22 +37,33 @@ class WidgetTemporalRefreshTest {
     }
 
     @Test
-    fun exactRolloverSchedulesDueGuardBeforeDeparture() {
+    fun exactRefreshSchedulesNextDisplayedMinuteBoundary() {
         assertEquals(
-            1_000_000L,
-            guardedHslAlarmTime(
-                targetMs = 1_060_000L,
-                wallNowMs = 900_000L,
+            1_060_000L,
+            nextHslDisplayAlarmTime(
+                targetMs = 1_360_000L,
+                wallNowMs = 1_000_000L,
             )
         )
     }
 
     @Test
-    fun exactRolloverSchedulesDepartureAfterDueGuardStarts() {
+    fun exactRefreshSwitchesToSecondsAtTwoMinutes() {
         assertEquals(
-            1_060_000L,
-            guardedHslAlarmTime(
-                targetMs = 1_060_000L,
+            1_000_001L,
+            nextHslDisplayAlarmTime(
+                targetMs = 1_120_001L,
+                wallNowMs = 1_000_000L,
+            )
+        )
+    }
+
+    @Test
+    fun secondsWindowSchedulesDepartureRollover() {
+        assertEquals(
+            1_120_000L,
+            nextHslDisplayAlarmTime(
+                targetMs = 1_120_000L,
                 wallNowMs = 1_000_000L,
             )
         )
