@@ -20,8 +20,11 @@ import androidx.glance.layout.width
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import java.util.Calendar
+import java.util.TimeZone
 import kotlin.math.PI
-import kotlin.math.acos
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 internal data class SolarDetail(
@@ -63,37 +66,105 @@ internal fun parseSolarDetail(detail: String): SolarDetail? {
     )
 }
 
+private fun clockMinutes(value: String): Double? {
+    val parts = value.split(':')
+    if (parts.size != 2) return null
+
+    val hour = parts[0].toIntOrNull() ?: return null
+    val minute = parts[1].toIntOrNull() ?: return null
+    if (hour !in 0..23 || minute !in 0..59) return null
+
+    return hour * 60.0 + minute
+}
+
+private fun forwardMinutes(from: Double, to: Double): Double {
+    var delta = to - from
+    while (delta < 0.0) delta += 24.0 * 60.0
+    while (delta >= 24.0 * 60.0) delta -= 24.0 * 60.0
+    return delta
+}
+
+private fun currentHelsinkiMinute(): Double {
+    val calendar = Calendar.getInstance(TimeZone.getTimeZone("Europe/Helsinki"))
+    return calendar.get(Calendar.HOUR_OF_DAY) * 60.0 +
+        calendar.get(Calendar.MINUTE) +
+        calendar.get(Calendar.SECOND) / 60.0
+}
+
+internal fun solarDaylightFraction(
+    sunrise: String,
+    sunset: String
+): Double? {
+    val rise = clockMinutes(sunrise) ?: return null
+    val set = clockMinutes(sunset) ?: return null
+    return (forwardMinutes(rise, set) / (24.0 * 60.0)).coerceIn(0.0, 1.0)
+}
+
+internal fun solarNoonMinute(
+    sunrise: String,
+    sunset: String
+): Double? {
+    val rise = clockMinutes(sunrise) ?: return null
+    val set = clockMinutes(sunset) ?: return null
+    val daylight = forwardMinutes(rise, set)
+    return (rise + daylight / 2.0) % (24.0 * 60.0)
+}
+
 /**
- * Returns the horizontal chord offset from the circle centre, normalized by radius.
- * -1 means the horizon is at the bottom edge, +1 at the top edge.
- * The area above the chord equals [daylightFraction] of the whole circle.
+ * Horizontal horizon offset from the circle centre, normalized by radius.
+ *
+ * +1 = top edge
+ *  0 = centre
+ * -1 = bottom edge
+ *
+ * The horizon is chosen so that a sun moving uniformly on the outer
+ * circumference crosses it exactly at sunrise and sunset.
  */
 internal fun daylightHorizonOffset(daylightFraction: Double): Double {
-    val target = daylightFraction.coerceIn(0.0, 1.0)
-    if (target <= 0.0) return 1.0
-    if (target >= 1.0) return -1.0
+    val p = daylightFraction.coerceIn(0.0, 1.0)
+    return cos(PI * p)
+}
 
-    var low = -1.0
-    var high = 1.0
-    repeat(60) {
-        val middle = (low + high) / 2.0
-        val root = sqrt((1.0 - middle * middle).coerceAtLeast(0.0))
-        val upperFraction = (acos(middle) - middle * root) / PI
-        if (upperFraction > target) {
-            low = middle
-        } else {
-            high = middle
-        }
-    }
-    return (low + high) / 2.0
+internal data class SunPosition(
+    val x: Float,
+    val y: Float
+)
+
+/**
+ * Uniform 24-hour circular sun path on the disk circumference.
+ *
+ * Solar noon     = top
+ * + 6 hours      = right
+ * + 12 hours     = bottom
+ * + 18 hours     = left
+ */
+internal fun sunPosition(
+    sunrise: String,
+    sunset: String,
+    centre: Float,
+    diskRadius: Float,
+    nowMinute: Double = currentHelsinkiMinute()
+): SunPosition? {
+    val noon = solarNoonMinute(sunrise, sunset) ?: return null
+    val elapsed = forwardMinutes(noon, nowMinute)
+    val angle = 2.0 * PI * elapsed / (24.0 * 60.0)
+
+    return SunPosition(
+        x = centre + diskRadius * sin(angle).toFloat(),
+        y = centre - diskRadius * cos(angle).toFloat()
+    )
 }
 
 internal fun renderDayNightDisk(
     daylightFraction: Double,
+    sunrise: String,
+    sunset: String,
     daylightColor: Int,
     nightColor: Int,
     horizonColor: Int,
-    sizePx: Int = 96
+    sunColor: Int = daylightColor,
+    sizePx: Int = 96,
+    nowMinute: Double = currentHelsinkiMinute()
 ): Bitmap {
     val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
@@ -106,7 +177,11 @@ internal fun renderDayNightDisk(
     paint.color = nightColor
     canvas.drawCircle(centre, centre, radius, paint)
 
-    val offset = daylightHorizonOffset(daylightFraction)
+    // Use the same sunrise/sunset pair for both the horizon and the moving sun.
+    // This guarantees that the marker is exactly on the horizon at those times.
+    val geometryDaylightFraction =
+        solarDaylightFraction(sunrise, sunset) ?: daylightFraction.coerceIn(0.0, 1.0)
+    val offset = daylightHorizonOffset(geometryDaylightFraction)
     val horizonY = centre - (offset * radius).toFloat()
 
     canvas.save()
@@ -121,6 +196,26 @@ internal fun renderDayNightDisk(
     paint.color = horizonColor
     canvas.drawLine(centre - halfChord, horizonY, centre + halfChord, horizonY, paint)
     canvas.drawCircle(centre, centre, radius, paint)
+
+    val sun = sunPosition(
+        sunrise = sunrise,
+        sunset = sunset,
+        centre = centre,
+        diskRadius = radius,
+        nowMinute = nowMinute
+    )
+
+    if (sun != null) {
+        val sunRadius = sizePx * 0.045f
+
+        // Dark ring keeps the marker readable on both the day and night fills.
+        paint.style = Paint.Style.FILL
+        paint.color = horizonColor
+        canvas.drawCircle(sun.x, sun.y, sunRadius * 1.35f, paint)
+
+        paint.color = sunColor
+        canvas.drawCircle(sun.x, sun.y, sunRadius, paint)
+    }
 
     return bitmap
 }
@@ -158,12 +253,14 @@ internal fun SolarAwareDetail(
             provider = ImageProvider(
                 renderDayNightDisk(
                     daylightFraction = solar.daylightFraction,
+                    sunrise = solar.sunrise,
+                    sunset = solar.sunset,
                     daylightColor = daylightColor.toArgb(),
                     nightColor = nightColor.toArgb(),
                     horizonColor = horizonColor.toArgb()
                 )
             ),
-            contentDescription = "Daylight share",
+            contentDescription = "Daylight and current sun position",
             modifier = GlanceModifier.width(28.dp).height(28.dp)
         )
         Spacer(GlanceModifier.width(6.dp))
