@@ -39,6 +39,44 @@ class SolarDetailVisualTest {
     }
 
     @Test
+    fun `weather range falls back to structured low and high rows`() {
+        assertEquals(
+            "6° / 17°",
+            weatherRangeFromRows(
+                listOf(
+                    WidgetItem(label = "LOW", value = "6°"),
+                    WidgetItem(label = "HIGH", value = "17°"),
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `weather forecast falls back to structured columns and keeps six`() {
+        val columns = listOf(
+            WidgetItem(label = "17:00", value = "17°"),
+            WidgetItem(label = "19:00", value = "15°"),
+            WidgetItem(label = "21:00", value = "13°"),
+            WidgetItem(label = "23:00", value = "14°"),
+            WidgetItem(label = "01:00", value = "12°"),
+            WidgetItem(label = "03:00", value = "11°"),
+            WidgetItem(label = "05:00", value = "10°"),
+        )
+
+        assertEquals(
+            listOf(
+                WeatherForecastPoint("17:00", "17°"),
+                WeatherForecastPoint("19:00", "15°"),
+                WeatherForecastPoint("21:00", "13°"),
+                WeatherForecastPoint("23:00", "14°"),
+                WeatherForecastPoint("01:00", "12°"),
+                WeatherForecastPoint("03:00", "11°"),
+            ),
+            weatherForecastFromColumns(columns)
+        )
+    }
+
+    @Test
     fun `twelve hour day puts horizon through circle centre`() {
         assertEquals(0.0, daylightHorizonOffset(0.5), 1e-9)
     }
