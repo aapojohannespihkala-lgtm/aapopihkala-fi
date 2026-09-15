@@ -45,9 +45,9 @@ The right-side WORLD, USA, FINLAND, BTC / EUR and REMEDY rows are the correspond
 
 ### Electricity chart
 
-Electricity keeps the day average as the primary value, shows the month average on its own detail line and LOW/HIGH on the next line. The current price is shown as a bare number centered over the current-time marker.
+Electricity keeps the day average as the primary value, shows the month average on its own detail line and LOW/HIGH on the next line. The current price is shown as a bare number anchored to the current-time marker.
 
-The chart is rendered into one Android bitmap before Glance hands it to the launcher. The bitmap keeps the hourly server bars and draws the current-time marker at minute-level precision. Its time axis is labeled `00`, `06`, `12`, `18`, `24`. The marker uses a light outer stroke and dark inner stroke so it remains visible both over the pale price bars and over the dark widget background. This avoids relying on launcher-specific RemoteViews overlay or very narrow weighted-layout behavior.
+The chart is rendered into one Android bitmap before Glance hands it to the launcher. The bitmap uses the same approximate 3:1 aspect ratio as the large-widget chart slot so launcher scaling does not squash the price and axis text horizontally. It keeps the hourly server bars and draws the current-time marker at minute-level precision. Its time axis is labeled `00`, `06`, `12`, `18`, `24`; the edge labels use inward alignment so they remain fully visible. The current-price label uses the marker itself as its anchor, switching to left/right alignment near midnight and the end of the day instead of drifting away from the marker. The marker uses a light outer stroke and dark inner stroke so it remains visible both over the pale price bars and over the dark widget background.
 
 ## Live time behavior
 
@@ -134,4 +134,4 @@ Android-changing PRs run unit tests and compile a debug APK. After merge to `mai
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.9**.
+Current app version: **2.10.10**.
