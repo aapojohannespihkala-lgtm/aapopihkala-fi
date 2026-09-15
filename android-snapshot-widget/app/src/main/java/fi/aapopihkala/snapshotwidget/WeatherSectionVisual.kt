@@ -20,7 +20,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 
-private val SOLAR_BLOCK_WIDTH = 166.dp
+private val SOLAR_BLOCK_WIDTH = 140.dp
 
 internal data class WeatherNowDetail(
     val condition: String,
@@ -98,71 +98,48 @@ internal fun WeatherSectionContent(
             )
         }
 
-        Spacer(GlanceModifier.height(3.dp))
+        Spacer(GlanceModifier.height(4.dp))
 
         if (solar != null) {
-            Row(modifier = GlanceModifier.fillMaxWidth()) {
-                Spacer(GlanceModifier.defaultWeight())
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Vertical.CenterVertically,
+            ) {
+                WeatherNowBlock(
+                    primary = section.primary,
+                    condition = now.condition,
+                    range = range,
+                    foreground = foreground,
+                    muted = muted,
+                    modifier = GlanceModifier.defaultWeight(),
+                )
+                Spacer(GlanceModifier.width(6.dp))
                 Column(
-                    modifier = GlanceModifier.width(SOLAR_BLOCK_WIDTH),
+                    modifier = GlanceModifier.defaultWeight(),
                     horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
                 ) {
-                    Text(
-                        text = solar.daylightLabel,
-                        style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
-                        maxLines = 1,
+                    WeatherSolarBlock(
+                        solar = solar,
+                        foreground = foreground,
+                        muted = muted,
+                        line = line,
+                        background = background,
                     )
                 }
             }
-            Spacer(GlanceModifier.height(1.dp))
-        }
-
-        Row(
-            modifier = GlanceModifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Vertical.CenterVertically,
-        ) {
-            Text(
-                text = section.primary,
-                modifier = GlanceModifier.defaultWeight(),
-                style = TextStyle(
-                    color = ColorProvider(foreground),
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.Medium,
-                ),
-                maxLines = 1,
-            )
-
-            if (solar != null) {
-                Spacer(GlanceModifier.width(8.dp))
-                WeatherSolarDiskRow(
-                    solar = solar,
-                    foreground = foreground,
-                    muted = muted,
-                    line = line,
-                    background = background,
-                )
-            }
-        }
-
-        if (now.condition.isNotBlank()) {
-            Spacer(GlanceModifier.height(2.dp))
-            Text(
-                text = now.condition,
-                style = TextStyle(color = ColorProvider(muted), fontSize = 9.sp),
-                maxLines = 1,
-            )
-        }
-        if (range.isNotBlank()) {
-            Spacer(GlanceModifier.height(1.dp))
-            Text(
-                text = range,
-                style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
-                maxLines = 1,
+        } else {
+            WeatherNowBlock(
+                primary = section.primary,
+                condition = now.condition,
+                range = range,
+                foreground = foreground,
+                muted = muted,
+                modifier = GlanceModifier.fillMaxWidth(),
             )
         }
 
         if (forecast.isNotEmpty()) {
-            Spacer(GlanceModifier.height(5.dp))
+            Spacer(GlanceModifier.height(6.dp))
             WeatherForecastRow(
                 points = forecast,
                 foreground = foreground,
@@ -173,7 +150,47 @@ internal fun WeatherSectionContent(
 }
 
 @Composable
-private fun WeatherSolarDiskRow(
+private fun WeatherNowBlock(
+    primary: String,
+    condition: String,
+    range: String,
+    foreground: Color,
+    muted: Color,
+    modifier: GlanceModifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = primary,
+            style = TextStyle(
+                color = ColorProvider(foreground),
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Medium,
+            ),
+            maxLines = 1,
+        )
+
+        if (condition.isNotBlank()) {
+            Spacer(GlanceModifier.height(2.dp))
+            Text(
+                text = condition,
+                style = TextStyle(color = ColorProvider(muted), fontSize = 9.sp),
+                maxLines = 1,
+            )
+        }
+
+        if (range.isNotBlank()) {
+            Spacer(GlanceModifier.height(1.dp))
+            Text(
+                text = range,
+                style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeatherSolarBlock(
     solar: SolarDetail,
     foreground: Color,
     muted: Color,
@@ -184,9 +201,15 @@ private fun WeatherSolarDiskRow(
         modifier = GlanceModifier.width(SOLAR_BLOCK_WIDTH),
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
     ) {
+        Text(
+            text = solar.daylightLabel,
+            style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
+            maxLines = 1,
+        )
+        Spacer(GlanceModifier.height(1.dp))
         Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
             Column(
-                modifier = GlanceModifier.width(56.dp),
+                modifier = GlanceModifier.width(48.dp),
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
             ) {
                 Text(
@@ -195,7 +218,7 @@ private fun WeatherSolarDiskRow(
                     maxLines = 1,
                 )
             }
-            Spacer(GlanceModifier.width(4.dp))
+            Spacer(GlanceModifier.width(3.dp))
             Image(
                 provider = ImageProvider(
                     renderDayNightDisk(
@@ -210,9 +233,9 @@ private fun WeatherSolarDiskRow(
                 contentDescription = "Daylight and current sun position",
                 modifier = GlanceModifier.width(34.dp).height(34.dp),
             )
-            Spacer(GlanceModifier.width(4.dp))
+            Spacer(GlanceModifier.width(3.dp))
             Column(
-                modifier = GlanceModifier.width(56.dp),
+                modifier = GlanceModifier.width(48.dp),
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
             ) {
                 Text(
