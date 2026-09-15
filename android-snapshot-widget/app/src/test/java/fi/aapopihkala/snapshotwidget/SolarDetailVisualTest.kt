@@ -14,7 +14,28 @@ class SolarDetailVisualTest {
         assertEquals("06:37", parsed.sunrise)
         assertEquals("19:39", parsed.sunset)
         assertEquals(13 * 60 + 2, parsed.daylightMinutes)
+        assertEquals("13H02M", parsed.daylightLabel)
         assertEquals("↑06:37  ↓19:39  13H02M", parsed.compactLabel)
+    }
+
+    @Test
+    fun `weather forecast parser keeps six points and excludes metadata from condition`() {
+        val detail = "Overcast / 8° / 14°\n↑06:37 ↓19:39 ☀13H02M\n" +
+            "FORECAST 16:00=12°|18:00=11°|20:00=10°|22:00=9°|00:00=8°|02:00=7°|04:00=6°"
+
+        assertEquals(
+            listOf(
+                WeatherForecastPoint("16:00", "12°"),
+                WeatherForecastPoint("18:00", "11°"),
+                WeatherForecastPoint("20:00", "10°"),
+                WeatherForecastPoint("22:00", "9°"),
+                WeatherForecastPoint("00:00", "8°"),
+                WeatherForecastPoint("02:00", "7°"),
+            ),
+            parseWeatherForecast(detail),
+        )
+        assertEquals("Overcast / 8° / 14°", weatherConditionText(detail))
+        assertEquals("Overcast / 8° / 14°", requireNotNull(parseSolarDetail(detail)).conditionText)
     }
 
     @Test

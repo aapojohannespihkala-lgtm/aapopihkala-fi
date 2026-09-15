@@ -33,9 +33,12 @@ internal fun LiveHeaderClock(
     val remoteViews = RemoteViews(context.packageName, R.layout.widget_live_clock).apply {
         setTextColor(R.id.widget_live_clock, color.toArgb())
         setTextColor(R.id.widget_live_date, color.toArgb())
+        setTextColor(R.id.widget_live_week, color.toArgb())
         setTextViewTextSize(R.id.widget_live_clock, TypedValue.COMPLEX_UNIT_SP, 19f)
         setTextViewTextSize(R.id.widget_live_date, TypedValue.COMPLEX_UNIT_SP, 19f)
+        setTextViewTextSize(R.id.widget_live_week, TypedValue.COMPLEX_UNIT_SP, 19f)
         setTextViewText(R.id.widget_live_date, currentHeaderDateLabel())
+        setTextViewText(R.id.widget_live_week, currentHeaderWeekLabel())
     }
     AndroidRemoteViews(remoteViews = remoteViews, modifier = modifier)
 }
@@ -149,19 +152,23 @@ internal fun countdownClockLabel(targetEpochMs: Long): String =
         timeZone = TimeZone.getTimeZone("Europe/Helsinki")
     }.format(Date(targetEpochMs))
 
-private fun currentHeaderDateLabel(): String {
-    val helsinki = TimeZone.getTimeZone("Europe/Helsinki")
-    val calendar = Calendar.getInstance(helsinki, Locale.UK).apply {
+private fun currentHeaderCalendar(): Calendar =
+    Calendar.getInstance(TimeZone.getTimeZone("Europe/Helsinki"), Locale.UK).apply {
         firstDayOfWeek = Calendar.MONDAY
         minimalDaysInFirstWeek = 4
     }
-    val weekdays = arrayOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
+
+private fun currentHeaderDateLabel(): String {
+    val calendar = currentHeaderCalendar()
     val months = arrayOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
-    val weekday = weekdays[calendar.get(Calendar.DAY_OF_WEEK) - 1]
     val day = calendar.get(Calendar.DAY_OF_MONTH)
     val month = months[calendar.get(Calendar.MONTH)]
-    val week = calendar.get(Calendar.WEEK_OF_YEAR)
-    return String.format(Locale.US, "%s %02d %s · W%02d", weekday, day, month, week)
+    return String.format(Locale.US, "%02d %s", day, month)
+}
+
+private fun currentHeaderWeekLabel(): String {
+    val week = currentHeaderCalendar().get(Calendar.WEEK_OF_YEAR)
+    return String.format(Locale.US, "W%02d", week)
 }
 
 private fun cachedCountdownTargetMs(
