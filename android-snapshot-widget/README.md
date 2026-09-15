@@ -35,7 +35,11 @@ The production large widget contains:
 - Rates
 - Liiga
 
-Large composition is server-driven through generic `span`/`layout` metadata. Current production uses full-width split rows for Weather, Electricity, Markets and HSL, followed by half-width Rates + Liiga.
+Large composition is server-driven through generic `span`/`layout` metadata. Weather uses a full-width stack so its six-point forecast can sit directly below the current temperature. Electricity, Markets and HSL use full-width split rows, followed by half-width Rates + Liiga.
+
+### Weather layout
+
+The large Weather section keeps location and current temperature first, then renders six upcoming forecast readings in one centered row. The condition/day-range text stays compact beside the solar visual. The day-night disk has the daylight duration centered above it, with sunrise aligned to the left of the disk centreline and sunset aligned to the right.
 
 ### Markets data contract
 
@@ -56,16 +60,16 @@ Network data still refreshes on the WorkManager cadence, but time-sensitive UI i
 - header clock: Android `TextClock`, `HH:mm:ss`
 - HSL next departure: Android `Chronometer` outside the final one-minute due guard when exact rollover alarms are available
 - cached HSL departure rollover: exact local `AlarmManager` rebuild at the due-guard boundary and again at the absolute departure target
-- header date: refreshed by ordinary widget rebuilds
+- header date/week: refreshed by ordinary widget rebuilds
 
 The server attaches absolute targets to the visible HSL departure rows. Android always selects the first still-future target. LIVE vs SCHED only describes the source/status of the departure; both use the same rollover rule. One minute before the selected target, an exact local alarm rebuilds the widget and replaces the ticking Chronometer with the static `DUE` label. At the target, the next exact alarm rebuilds from cache, drops the passed departure, promotes the next one and immediately schedules that departure's guard and rollover. This prevents ordinary target-alarm or launcher rebuild latency from exposing a negative Chronometer. No HSL network request is required for this cached rollover.
 
 On Android 12+ exact rollover uses the `SCHEDULE_EXACT_ALARM` special access when granted. If exact alarms are not available, the widget deliberately shows the absolute departure clock instead of a ticking Chronometer that could roll below zero; an inexact alarm/network refresh can still advance the row later.
 
-The header currently reads approximately:
+The header uses the full row as three aligned zones:
 
 ```text
-08:06:26  MON 14 SEP · W38
+08:06:26                 15 SEP                    W38
 ```
 
 The bottom footer owns refresh/status:
@@ -134,4 +138,4 @@ Android-changing PRs run unit tests and compile a debug APK. After merge to `mai
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.11**.
+Current app version: **2.10.12**.
