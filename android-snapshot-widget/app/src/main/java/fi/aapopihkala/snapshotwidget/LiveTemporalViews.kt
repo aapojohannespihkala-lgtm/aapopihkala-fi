@@ -160,10 +160,12 @@ private fun currentHeaderCalendar(): Calendar =
 
 private fun currentHeaderDateLabel(): String {
     val calendar = currentHeaderCalendar()
+    val weekdays = arrayOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
     val months = arrayOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+    val weekday = weekdays[calendar.get(Calendar.DAY_OF_WEEK) - 1]
     val day = calendar.get(Calendar.DAY_OF_MONTH)
     val month = months[calendar.get(Calendar.MONTH)]
-    return String.format(Locale.US, "%02d %s", day, month)
+    return String.format(Locale.US, "%s %02d %s", weekday, day, month)
 }
 
 private fun currentHeaderWeekLabel(): String {
