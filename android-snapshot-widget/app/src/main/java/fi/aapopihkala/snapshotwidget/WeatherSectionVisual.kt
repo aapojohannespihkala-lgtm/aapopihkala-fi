@@ -20,10 +20,10 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 
-private val SOLAR_BLOCK_WIDTH = 124.dp
-private val SOLAR_TIME_WIDTH = 42.dp
+private val SOLAR_BLOCK_WIDTH = 132.dp
+private val SOLAR_TIME_WIDTH = 44.dp
 private val SOLAR_DISK_SIZE = 36.dp
-private val SOLAR_GAP = 2.dp
+private val SOLAR_GAP = 4.dp
 
 internal data class WeatherNowDetail(
     val condition: String,
@@ -106,7 +106,7 @@ internal fun WeatherSectionContent(
         if (solar != null) {
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Vertical.CenterVertically,
+                verticalAlignment = Alignment.Vertical.Top,
             ) {
                 WeatherNowBlock(
                     primary = section.primary,
@@ -119,7 +119,7 @@ internal fun WeatherSectionContent(
                 Spacer(GlanceModifier.width(6.dp))
                 Column(
                     modifier = GlanceModifier.defaultWeight(),
-                    horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+                    horizontalAlignment = Alignment.Horizontal.Start,
                 ) {
                     WeatherSolarBlock(
                         solar = solar,
@@ -172,22 +172,27 @@ private fun WeatherNowBlock(
             maxLines = 1,
         )
 
-        if (condition.isNotBlank()) {
+        if (condition.isNotBlank() || range.isNotBlank()) {
             Spacer(GlanceModifier.height(2.dp))
-            Text(
-                text = condition,
-                style = TextStyle(color = ColorProvider(muted), fontSize = 9.sp),
-                maxLines = 1,
-            )
-        }
-
-        if (range.isNotBlank()) {
-            Spacer(GlanceModifier.height(1.dp))
-            Text(
-                text = range,
-                style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
-                maxLines = 1,
-            )
+            Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
+                if (condition.isNotBlank()) {
+                    Text(
+                        text = condition,
+                        style = TextStyle(color = ColorProvider(muted), fontSize = 9.sp),
+                        maxLines = 1,
+                    )
+                }
+                if (condition.isNotBlank() && range.isNotBlank()) {
+                    Spacer(GlanceModifier.width(8.dp))
+                }
+                if (range.isNotBlank()) {
+                    Text(
+                        text = range,
+                        style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
+                        maxLines = 1,
+                    )
+                }
+            }
         }
     }
 }
