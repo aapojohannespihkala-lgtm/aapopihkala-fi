@@ -251,8 +251,12 @@ const buildWeatherSection = (value: unknown, solar: SolarData | null): WidgetSec
   const solarDetail = solar
     ? `↑${solar.sunrise} ↓${solar.sunset} ☀${solar.daylight}`
     : '';
-  const forecastDetail = weatherForecastDetail(weatherColumns(weather.forecast));
+  const forecastColumns = weatherColumns(weather.forecast);
+  const forecastDetail = weatherForecastDetail(forecastColumns);
   const detail = [weatherDetail, solarDetail, forecastDetail].filter(Boolean).join('\n');
+  const weatherRows: WidgetRow[] = [];
+  if (low !== null) weatherRows.push({ label: 'LOW', value: formatDegree(low) });
+  if (high !== null) weatherRows.push({ label: 'HIGH', value: formatDegree(high) });
 
   return {
     id: 'weather',
@@ -263,6 +267,8 @@ const buildWeatherSection = (value: unknown, solar: SolarData | null): WidgetSec
     detail: detail || undefined,
     span: 'full',
     layout: 'stack',
+    rows: weatherRows,
+    columns: forecastColumns,
   };
 };
 
