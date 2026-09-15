@@ -13,10 +13,13 @@ import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.width
+import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
@@ -36,18 +39,54 @@ internal data class SolarDetail(
     val daylightFraction: Double
         get() = (daylightMinutes / (24.0 * 60.0)).coerceIn(0.0, 1.0)
 
-    val compactLabel: String
+    val daylightLabel: String
         get() {
             val hours = daylightMinutes / 60
             val minutes = daylightMinutes % 60
-            return "↑$sunrise  ↓$sunset  ${hours}H${minutes.toString().padStart(2, '0')}M"
+            return "${hours}H${minutes.toString().padStart(2, '0')}M"
         }
+
+    val compactLabel: String
+        get() = "↑$sunrise  ↓$sunset  $daylightLabel"
 }
+
+internal data class WeatherForecastPoint(
+    val time: String,
+    val temperature: String,
+)
 
 private val solarDetailPattern = Regex(
     """↑\s*(\d{1,2}:\d{2})\s+↓\s*(\d{1,2}:\d{2})\s+☀?\s*(\d{1,2})H(\d{2})M""",
     RegexOption.IGNORE_CASE
 )
+private const val WEATHER_FORECAST_PREFIX = "FORECAST "
+
+internal fun parseWeatherForecast(detail: String): List<WeatherForecastPoint> {
+    val line = detail.lines()
+        .map(String::trim)
+        .firstOrNull { it.startsWith(WEATHER_FORECAST_PREFIX) }
+        ?: return emptyList()
+
+    return line.removePrefix(WEATHER_FORECAST_PREFIX)
+        .split('|')
+        .mapNotNull { raw ->
+            val separator = raw.indexOf('=')
+            if (separator <= 0 || separator >= raw.lastIndex) return@mapNotNull null
+            val time = raw.substring(0, separator).trim()
+            val temperature = raw.substring(separator + 1).trim()
+            if (time.isBlank() || temperature.isBlank()) null
+            else WeatherForecastPoint(time = time, temperature = temperature)
+        }
+        .take(6)
+}
+
+internal fun weatherConditionText(detail: String): String =
+    detail.lines()
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+        .filterNot { solarDetailPattern.containsMatchIn(it) }
+        .filterNot { it.startsWith(WEATHER_FORECAST_PREFIX) }
+        .joinToString("\n")
 
 internal fun parseSolarDetail(detail: String): SolarDetail? {
     val lines = detail.lines().map(String::trim).filter(String::isNotEmpty)
@@ -59,7 +98,7 @@ internal fun parseSolarDetail(detail: String): SolarDetail? {
     if (daylightMinutes !in 0..24 * 60) return null
 
     return SolarDetail(
-        conditionText = lines.filterNot { it == solarLine }.joinToString("\n"),
+        conditionText = weatherConditionText(detail),
         sunrise = match.groupValues[1],
         sunset = match.groupValues[2],
         daylightMinutes = daylightMinutes
@@ -177,8 +216,6 @@ internal fun renderDayNightDisk(
     paint.color = nightColor
     canvas.drawCircle(centre, centre, radius, paint)
 
-    // Use the same sunrise/sunset pair for both the horizon and the moving sun.
-    // This guarantees that the marker is exactly on the horizon at those times.
     val geometryDaylightFraction =
         solarDaylightFraction(sunrise, sunset) ?: daylightFraction.coerceIn(0.0, 1.0)
     val offset = daylightHorizonOffset(geometryDaylightFraction)
@@ -208,7 +245,6 @@ internal fun renderDayNightDisk(
     if (sun != null) {
         val sunRadius = sizePx * 0.045f
 
-        // Dark ring keeps the marker readable on both the day and night fills.
         paint.style = Paint.Style.FILL
         paint.color = horizonColor
         canvas.drawCircle(sun.x, sun.y, sunRadius * 1.35f, paint)
@@ -221,6 +257,101 @@ internal fun renderDayNightDisk(
 }
 
 @Composable
+private fun WeatherForecastStrip(
+    points: List<WeatherForecastPoint>,
+    textColor: Color,
+    valueColor: Color,
+) {
+    Column(
+        modifier = GlanceModifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+    ) {
+        Row {
+            points.take(6).forEach { point ->
+                Column(
+                    modifier = GlanceModifier.width(40.dp),
+                    horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+                ) {
+                    Text(
+                        text = point.time,
+                        style = TextStyle(color = ColorProvider(textColor), fontSize = 7.sp),
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = point.temperature,
+                        style = TextStyle(
+                            color = ColorProvider(valueColor),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SolarTimeline(
+    solar: SolarDetail,
+    textColor: Color,
+    daylightColor: Color,
+    nightColor: Color,
+    horizonColor: Color,
+) {
+    Column(
+        modifier = GlanceModifier.width(148.dp),
+        horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+    ) {
+        Text(
+            text = solar.daylightLabel,
+            style = TextStyle(color = ColorProvider(textColor), fontSize = 8.sp),
+            maxLines = 1,
+        )
+        Spacer(GlanceModifier.height(1.dp))
+        Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
+            Column(
+                modifier = GlanceModifier.width(48.dp),
+                horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+            ) {
+                Text(
+                    text = "↑${solar.sunrise}",
+                    style = TextStyle(color = ColorProvider(textColor), fontSize = 8.sp),
+                    maxLines = 1,
+                )
+            }
+            Spacer(GlanceModifier.width(4.dp))
+            Image(
+                provider = ImageProvider(
+                    renderDayNightDisk(
+                        daylightFraction = solar.daylightFraction,
+                        sunrise = solar.sunrise,
+                        sunset = solar.sunset,
+                        daylightColor = daylightColor.toArgb(),
+                        nightColor = nightColor.toArgb(),
+                        horizonColor = horizonColor.toArgb()
+                    )
+                ),
+                contentDescription = "Daylight and current sun position",
+                modifier = GlanceModifier.width(32.dp).height(32.dp)
+            )
+            Spacer(GlanceModifier.width(4.dp))
+            Column(
+                modifier = GlanceModifier.width(48.dp),
+                horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+            ) {
+                Text(
+                    text = "↓${solar.sunset}",
+                    style = TextStyle(color = ColorProvider(textColor), fontSize = 8.sp),
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 internal fun SolarAwareDetail(
     detail: String,
     textColor: Color,
@@ -230,7 +361,10 @@ internal fun SolarAwareDetail(
     fontSizeSp: Int
 ) {
     val solar = parseSolarDetail(detail)
-    if (solar == null) {
+    val forecast = parseWeatherForecast(detail)
+    val conditionText = solar?.conditionText ?: weatherConditionText(detail)
+
+    if (solar == null && forecast.isEmpty()) {
         Text(
             text = detail,
             style = TextStyle(color = ColorProvider(textColor), fontSize = fontSizeSp.sp),
@@ -239,35 +373,42 @@ internal fun SolarAwareDetail(
         return
     }
 
-    if (solar.conditionText.isNotBlank()) {
-        Text(
-            text = solar.conditionText,
-            style = TextStyle(color = ColorProvider(textColor), fontSize = fontSizeSp.sp),
-            maxLines = 1
+    if (forecast.isNotEmpty()) {
+        WeatherForecastStrip(
+            points = forecast,
+            textColor = textColor,
+            valueColor = daylightColor,
         )
         Spacer(GlanceModifier.height(3.dp))
     }
 
-    Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
-        Image(
-            provider = ImageProvider(
-                renderDayNightDisk(
-                    daylightFraction = solar.daylightFraction,
-                    sunrise = solar.sunrise,
-                    sunset = solar.sunset,
-                    daylightColor = daylightColor.toArgb(),
-                    nightColor = nightColor.toArgb(),
-                    horizonColor = horizonColor.toArgb()
+    if (solar != null) {
+        Row(
+            modifier = GlanceModifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Vertical.CenterVertically,
+        ) {
+            if (conditionText.isNotBlank()) {
+                Text(
+                    text = conditionText,
+                    modifier = GlanceModifier.defaultWeight(),
+                    style = TextStyle(color = ColorProvider(textColor), fontSize = fontSizeSp.sp),
+                    maxLines = 2,
                 )
-            ),
-            contentDescription = "Daylight and current sun position",
-            modifier = GlanceModifier.width(28.dp).height(28.dp)
-        )
-        Spacer(GlanceModifier.width(6.dp))
+                Spacer(GlanceModifier.width(6.dp))
+            }
+            SolarTimeline(
+                solar = solar,
+                textColor = textColor,
+                daylightColor = daylightColor,
+                nightColor = nightColor,
+                horizonColor = horizonColor,
+            )
+        }
+    } else if (conditionText.isNotBlank()) {
         Text(
-            text = solar.compactLabel,
+            text = conditionText,
             style = TextStyle(color = ColorProvider(textColor), fontSize = fontSizeSp.sp),
-            maxLines = 1
+            maxLines = 2,
         )
     }
 }
