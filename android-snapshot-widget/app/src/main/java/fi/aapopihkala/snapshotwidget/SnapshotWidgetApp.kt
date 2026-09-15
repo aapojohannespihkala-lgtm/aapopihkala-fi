@@ -525,7 +525,7 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
                     )
                     Spacer(GlanceModifier.height(2.dp))
                 }
-                PrimaryValue(section, palette, 25)
+                PrimaryValue(section, palette, if (section.id == "electricity") 22 else 25)
                 section.detail?.let {
                     Spacer(GlanceModifier.height(2.dp))
                     if (section.id == "electricity") {
