@@ -470,6 +470,17 @@ private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: 
 
 @Composable
 private fun DetailedSection(section: WidgetSection, palette: Palette) {
+    if (section.id == "weather") {
+        WeatherSectionContent(
+            section = section,
+            foreground = palette.foreground,
+            muted = palette.muted,
+            line = palette.line,
+            background = palette.background,
+        )
+        return
+    }
+
     val hasSupport = section.columns.isNotEmpty() || section.bars.isNotEmpty() || section.rows.isNotEmpty()
     if (section.layout == "split" && hasSupport) {
         SplitSection(section, palette)
