@@ -27,6 +27,7 @@ import java.util.Calendar
 import java.util.TimeZone
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -130,6 +131,26 @@ private fun currentHelsinkiMinute(): Double {
         calendar.get(Calendar.SECOND) / 60.0
 }
 
+private fun blendArgb(
+    foreground: Int,
+    background: Int,
+    foregroundWeight: Float,
+): Int {
+    val weight = foregroundWeight.coerceIn(0f, 1f)
+
+    fun blendChannel(foregroundChannel: Int, backgroundChannel: Int): Int =
+        (backgroundChannel + (foregroundChannel - backgroundChannel) * weight)
+            .roundToInt()
+            .coerceIn(0, 255)
+
+    return android.graphics.Color.argb(
+        blendChannel(android.graphics.Color.alpha(foreground), android.graphics.Color.alpha(background)),
+        blendChannel(android.graphics.Color.red(foreground), android.graphics.Color.red(background)),
+        blendChannel(android.graphics.Color.green(foreground), android.graphics.Color.green(background)),
+        blendChannel(android.graphics.Color.blue(foreground), android.graphics.Color.blue(background)),
+    )
+}
+
 internal fun solarDaylightFraction(
     sunrise: String,
     sunset: String
@@ -194,6 +215,8 @@ internal fun sunPosition(
     )
 }
 
+internal fun sunIsAboveHorizon(sunY: Float, horizonY: Float): Boolean = sunY <= horizonY
+
 internal fun renderDayNightDisk(
     daylightFraction: Double,
     sunrise: String,
@@ -211,9 +234,11 @@ internal fun renderDayNightDisk(
     val centre = sizePx / 2f
     val radius = sizePx * 0.42f
     val circle = Path().apply { addCircle(centre, centre, radius, Path.Direction.CW) }
+    val diskDaylightColor = blendArgb(daylightColor, horizonColor, 0.88f)
+    val diskNightColor = blendArgb(nightColor, horizonColor, 0.52f)
 
     paint.style = Paint.Style.FILL
-    paint.color = nightColor
+    paint.color = diskNightColor
     canvas.drawCircle(centre, centre, radius, paint)
 
     val geometryDaylightFraction =
@@ -223,15 +248,17 @@ internal fun renderDayNightDisk(
 
     canvas.save()
     canvas.clipPath(circle)
-    paint.color = daylightColor
+    paint.color = diskDaylightColor
     canvas.drawRect(0f, 0f, sizePx.toFloat(), horizonY, paint)
     canvas.restore()
 
     val halfChord = (radius * sqrt((1.0 - offset * offset).coerceAtLeast(0.0))).toFloat()
+    val outlineStrokeWidth = (sizePx * 0.016f).coerceAtLeast(1f)
+    val horizonStrokeWidth = (sizePx * 0.010f).coerceAtLeast(1f)
+
     paint.style = Paint.Style.STROKE
-    paint.strokeWidth = sizePx * 0.025f
+    paint.strokeWidth = outlineStrokeWidth
     paint.color = horizonColor
-    canvas.drawLine(centre - halfChord, horizonY, centre + halfChord, horizonY, paint)
     canvas.drawCircle(centre, centre, radius, paint)
 
     val sun = sunPosition(
@@ -243,15 +270,30 @@ internal fun renderDayNightDisk(
     )
 
     if (sun != null) {
-        val sunRadius = sizePx * 0.045f
+        val sunRadius = sizePx * 0.042f
+        val sunStrokeWidth = (sizePx * 0.012f).coerceAtLeast(1f)
 
-        paint.style = Paint.Style.FILL
-        paint.color = horizonColor
-        canvas.drawCircle(sun.x, sun.y, sunRadius * 1.35f, paint)
+        if (sunIsAboveHorizon(sun.y, horizonY)) {
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = sunStrokeWidth
+            paint.color = blendArgb(nightColor, horizonColor, 0.85f)
+            canvas.drawCircle(sun.x, sun.y, sunRadius * 1.16f, paint)
 
-        paint.color = sunColor
-        canvas.drawCircle(sun.x, sun.y, sunRadius, paint)
+            paint.style = Paint.Style.FILL
+            paint.color = sunColor
+            canvas.drawCircle(sun.x, sun.y, sunRadius, paint)
+        } else {
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = sunStrokeWidth
+            paint.color = blendArgb(sunColor, horizonColor, 0.58f)
+            canvas.drawCircle(sun.x, sun.y, sunRadius, paint)
+        }
     }
+
+    paint.style = Paint.Style.STROKE
+    paint.strokeWidth = horizonStrokeWidth
+    paint.color = horizonColor
+    canvas.drawLine(centre - halfChord, horizonY, centre + halfChord, horizonY, paint)
 
     return bitmap
 }
