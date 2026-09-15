@@ -229,8 +229,13 @@ const weatherColumns = (value: unknown): WidgetColumn[] => {
     const temperature = finiteNumber(item.temperature);
     if (!time || temperature === null) return [];
     return [{ label: time, value: formatDegree(temperature) }];
-  }).slice(0, 4);
+  }).slice(0, 6);
 };
+
+const weatherForecastDetail = (items: WidgetColumn[]) =>
+  items.length === 0
+    ? ''
+    : `FORECAST ${items.map((item) => `${item.label}=${item.value}`).join('|')}`;
 
 const buildWeatherSection = (value: unknown, solar: SolarData | null): WidgetSection | null => {
   const weather = asRecord(value);
@@ -246,7 +251,8 @@ const buildWeatherSection = (value: unknown, solar: SolarData | null): WidgetSec
   const solarDetail = solar
     ? `↑${solar.sunrise} ↓${solar.sunset} ☀${solar.daylight}`
     : '';
-  const detail = [weatherDetail, solarDetail].filter(Boolean).join('\n');
+  const forecastDetail = weatherForecastDetail(weatherColumns(weather.forecast));
+  const detail = [weatherDetail, solarDetail, forecastDetail].filter(Boolean).join('\n');
 
   return {
     id: 'weather',
@@ -256,8 +262,7 @@ const buildWeatherSection = (value: unknown, solar: SolarData | null): WidgetSec
     secondary: location ?? undefined,
     detail: detail || undefined,
     span: 'full',
-    layout: 'split',
-    columns: weatherColumns(weather.forecast),
+    layout: 'stack',
   };
 };
 
