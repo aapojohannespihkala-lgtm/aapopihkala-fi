@@ -39,7 +39,7 @@ Large composition is server-driven through generic `span`/`layout` metadata. Wea
 
 ### Weather layout
 
-The large Weather section keeps location and current temperature first, then renders six upcoming forecast readings in one centered row. The condition/day-range text stays compact beside the solar visual. The day-night disk has the daylight duration centered above it, with sunrise aligned to the left of the disk centreline and sunset aligned to the right.
+The large Weather section keeps location and current temperature first, then renders six upcoming forecast readings in one centered row. The condition/day-range text stays compact beside the solar visual. The day-night disk has the daylight duration centered above it, with sunrise aligned to the left of the disk centreline and sunset aligned to the right. The current-sun marker follows the disk circumference, stays filled while above the horizon and becomes a hollow ring while behind it; the horizon line passes over the marker at sunrise and sunset.
 
 ### Markets data contract
 
@@ -138,4 +138,4 @@ Android-changing PRs run unit tests and compile a debug APK. After merge to `mai
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.21**.
+Current app version: **2.10.22**.
