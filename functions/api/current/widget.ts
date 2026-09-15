@@ -227,7 +227,7 @@ const loadWeather = async (now: Date) => {
       condition: weatherCodeLabel(weatherCodes[index]),
     }];
   });
-  const forecast = futureHours.filter((_item, index) => index % 2 === 0).slice(0, 4);
+  const forecast = futureHours.filter((_item, index) => index % 2 === 0).slice(0, 6);
 
   return {
     location: WIDGET_WEATHER_SOURCE.label,
