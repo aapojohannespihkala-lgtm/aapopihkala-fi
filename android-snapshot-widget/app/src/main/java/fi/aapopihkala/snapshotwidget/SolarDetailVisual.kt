@@ -235,11 +235,6 @@ internal fun renderDayNightDisk(
     val radius = sizePx * 0.42f
     val circle = Path().apply { addCircle(centre, centre, radius, Path.Direction.CW) }
     val diskDaylightColor = blendArgb(daylightColor, horizonColor, 0.88f)
-    val diskNightColor = blendArgb(nightColor, horizonColor, 0.52f)
-
-    paint.style = Paint.Style.FILL
-    paint.color = diskNightColor
-    canvas.drawCircle(centre, centre, radius, paint)
 
     val geometryDaylightFraction =
         solarDaylightFraction(sunrise, sunset) ?: daylightFraction.coerceIn(0.0, 1.0)
@@ -248,6 +243,7 @@ internal fun renderDayNightDisk(
 
     canvas.save()
     canvas.clipPath(circle)
+    paint.style = Paint.Style.FILL
     paint.color = diskDaylightColor
     canvas.drawRect(0f, 0f, sizePx.toFloat(), horizonY, paint)
     canvas.restore()
@@ -256,10 +252,13 @@ internal fun renderDayNightDisk(
     val outlineStrokeWidth = (sizePx * 0.016f).coerceAtLeast(1f)
     val horizonStrokeWidth = (sizePx * 0.010f).coerceAtLeast(1f)
 
+    canvas.save()
+    canvas.clipRect(0f, horizonY, sizePx.toFloat(), sizePx.toFloat())
     paint.style = Paint.Style.STROKE
     paint.strokeWidth = outlineStrokeWidth
-    paint.color = horizonColor
+    paint.color = nightColor
     canvas.drawCircle(centre, centre, radius, paint)
+    canvas.restore()
 
     val sun = sunPosition(
         sunrise = sunrise,
@@ -292,7 +291,7 @@ internal fun renderDayNightDisk(
 
     paint.style = Paint.Style.STROKE
     paint.strokeWidth = horizonStrokeWidth
-    paint.color = horizonColor
+    paint.color = nightColor
     canvas.drawLine(centre - halfChord, horizonY, centre + halfChord, horizonY, paint)
 
     return bitmap
