@@ -47,21 +47,32 @@ class ElectricityChartDisplayTest {
 
     @Test
     fun timelineTicksIncludeTwentyFourAtTheRightEdge() {
-        assertEquals(8f, electricityAxisHourX(0, 480), 0.01f)
-        assertEquals(124f, electricityAxisHourX(6, 480), 0.01f)
-        assertEquals(240f, electricityAxisHourX(12, 480), 0.01f)
-        assertEquals(356f, electricityAxisHourX(18, 480), 0.01f)
-        assertEquals(472f, electricityAxisHourX(24, 480), 0.01f)
+        assertEquals(8f, electricityAxisHourX(0, 288), 0.01f)
+        assertEquals(76f, electricityAxisHourX(6, 288), 0.01f)
+        assertEquals(144f, electricityAxisHourX(12, 288), 0.01f)
+        assertEquals(212f, electricityAxisHourX(18, 288), 0.01f)
+        assertEquals(280f, electricityAxisHourX(24, 288), 0.01f)
     }
 
     @Test
-    fun currentPriceStaysCenteredOnMarkerWhenThereIsRoom() {
-        val dayFraction = (20f + 26f / 60f) / 24f
-        val markerX = electricityMarkerX(dayFraction, 480)
+    fun currentPriceUsesMarkerAsItsAnchorWithoutClippingAtDayEdges() {
+        assertEquals(
+            ElectricityPriceAlignment.START,
+            electricityPriceAlignment(markerX = 8f, textWidthPx = 48f, widthPx = 288),
+        )
+        assertEquals(
+            ElectricityPriceAlignment.CENTER,
+            electricityPriceAlignment(markerX = 144f, textWidthPx = 48f, widthPx = 288),
+        )
+        assertEquals(
+            ElectricityPriceAlignment.END,
+            electricityPriceAlignment(markerX = 280f, textWidthPx = 48f, widthPx = 288),
+        )
+    }
 
-        assertEquals(markerX, electricityPriceCenterX(markerX, 45f, 480), 0.01f)
-        assertEquals(22.5f, electricityPriceCenterX(8f, 45f, 480), 0.01f)
-        assertEquals(457.5f, electricityPriceCenterX(472f, 45f, 480), 0.01f)
+    @Test
+    fun chartBitmapMatchesTheThreeToOneDisplaySlot() {
+        assertEquals(3f, ELECTRICITY_CHART_BITMAP_WIDTH.toFloat() / ELECTRICITY_CHART_BITMAP_HEIGHT, 0.001f)
     }
 
     @Test

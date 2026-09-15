@@ -7,20 +7,22 @@ import android.graphics.Typeface
 import java.util.Calendar
 import java.util.TimeZone
 
-internal const val ELECTRICITY_CHART_BITMAP_WIDTH = 480
+internal const val ELECTRICITY_CHART_BITMAP_WIDTH = 288
 internal const val ELECTRICITY_CHART_BITMAP_HEIGHT = 96
 internal const val ELECTRICITY_CHART_HORIZONTAL_PADDING_PX = 8f
-internal const val ELECTRICITY_MARKER_OUTER_STROKE_PX = 6f
-internal const val ELECTRICITY_MARKER_INNER_STROKE_PX = 2f
+internal const val ELECTRICITY_MARKER_OUTER_STROKE_PX = 4f
+internal const val ELECTRICITY_MARKER_INNER_STROKE_PX = 1.5f
 
 private const val MILLIS_PER_DAY = 24f * 60f * 60f * 1000f
 private const val MIN_BAR_HEIGHT_FRACTION = 4f / 28f
-private const val PLOT_TOP_PX = 28f
-private const val PLOT_BOTTOM_PX = 75f
-private const val CURRENT_PRICE_TEXT_SIZE_PX = 27f
-private const val AXIS_TEXT_SIZE_PX = 17f
-private const val CURRENT_PRICE_BASELINE_PX = 24f
-private const val AXIS_BASELINE_PX = 94f
+private const val PLOT_TOP_PX = 34f
+private const val PLOT_BOTTOM_PX = 74f
+private const val CURRENT_PRICE_TEXT_SIZE_PX = 24f
+private const val AXIS_TEXT_SIZE_PX = 16f
+private const val CURRENT_PRICE_BASELINE_PX = 25f
+private const val AXIS_BASELINE_PX = 92f
+
+internal enum class ElectricityPriceAlignment { START, CENTER, END }
 
 internal fun electricityDayFraction(
     epochMs: Long,
@@ -58,16 +60,18 @@ internal fun electricityAxisHourX(
     horizontalPaddingPx = horizontalPaddingPx,
 )
 
-internal fun electricityPriceCenterX(
+internal fun electricityPriceAlignment(
     markerX: Float,
     textWidthPx: Float,
     widthPx: Int,
-): Float {
-    if (widthPx <= 0) return 0f
+): ElectricityPriceAlignment {
+    if (widthPx <= 0) return ElectricityPriceAlignment.CENTER
     val halfText = (textWidthPx / 2f).coerceAtLeast(0f)
-    val left = halfText.coerceAtMost(widthPx / 2f)
-    val right = (widthPx.toFloat() - left).coerceAtLeast(left)
-    return markerX.coerceIn(left, right)
+    return when {
+        markerX - halfText < 0f -> ElectricityPriceAlignment.START
+        markerX + halfText > widthPx.toFloat() -> ElectricityPriceAlignment.END
+        else -> ElectricityPriceAlignment.CENTER
+    }
 }
 
 internal fun normalizedElectricityBars(
@@ -145,24 +149,33 @@ internal fun renderElectricityChartBitmap(
         val pricePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = currentPriceColor
             textSize = CURRENT_PRICE_TEXT_SIZE_PX
-            textAlign = Paint.Align.CENTER
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         }
-        val priceCenterX = electricityPriceCenterX(
-            markerX = markerX,
-            textWidthPx = pricePaint.measureText(price),
-            widthPx = safeWidth,
-        )
-        canvas.drawText(price, priceCenterX, CURRENT_PRICE_BASELINE_PX, pricePaint)
+        pricePaint.textAlign = when (
+            electricityPriceAlignment(
+                markerX = markerX,
+                textWidthPx = pricePaint.measureText(price),
+                widthPx = safeWidth,
+            )
+        ) {
+            ElectricityPriceAlignment.START -> Paint.Align.LEFT
+            ElectricityPriceAlignment.CENTER -> Paint.Align.CENTER
+            ElectricityPriceAlignment.END -> Paint.Align.RIGHT
+        }
+        canvas.drawText(price, markerX, CURRENT_PRICE_BASELINE_PX, pricePaint)
     }
 
     val axisPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = axisLabelColor
         textSize = AXIS_TEXT_SIZE_PX
-        textAlign = Paint.Align.CENTER
         typeface = Typeface.create("sans-serif", Typeface.NORMAL)
     }
     listOf(0 to "00", 6 to "06", 12 to "12", 18 to "18", 24 to "24").forEach { (hour, label) ->
+        axisPaint.textAlign = when (hour) {
+            0 -> Paint.Align.LEFT
+            24 -> Paint.Align.RIGHT
+            else -> Paint.Align.CENTER
+        }
         canvas.drawText(
             label,
             electricityAxisHourX(hour, safeWidth),
