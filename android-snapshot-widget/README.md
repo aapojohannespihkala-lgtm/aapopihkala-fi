@@ -49,7 +49,7 @@ The right-side WORLD, USA, FINLAND, BTC / EUR and REMEDY rows are the correspond
 
 ### Electricity chart
 
-Electricity keeps the day average as the primary value, shows the month average on its own detail line and LOW/HIGH on the next line. The large split layout uses a slightly smaller primary-value size for Electricity so the full `c/kWh` value remains readable instead of ellipsizing. The current price is shown as a bare number anchored to the current-time marker.
+Electricity keeps the day average as the primary value, shows the month average on its own detail line and LOW/HIGH on the next line. In the large split layout, the numeric day average uses the same primary-value scale as the other main metrics while `c/kWh` is rendered as a smaller unit beside it. This keeps the number visually strong without ellipsizing the full value. The current price is shown as a bare number anchored to the current-time marker.
 
 The chart is rendered into one Android bitmap before Glance hands it to the launcher. The bitmap uses the same approximate 3:1 aspect ratio as the large-widget chart slot so launcher scaling does not squash the price and axis text horizontally. It keeps the hourly server bars and draws the current-time marker at minute-level precision. Its time axis is labeled `00`, `06`, `12`, `18`, `24`; the edge labels use inward alignment so they remain fully visible. The current-price label uses the marker itself as its anchor, switching to left/right alignment near midnight and the end of the day instead of drifting away from the marker. The marker uses a light outer stroke and dark inner stroke so it remains visible both over the pale price bars and over the dark widget background.
 
@@ -69,7 +69,7 @@ On Android 12+ exact rollover uses the `SCHEDULE_EXACT_ALARM` special access whe
 The header uses the full row as three aligned zones:
 
 ```text
-08:06:26                 15 SEP                    W38
+08:06:26              MON 14 SEP               W38
 ```
 
 The bottom footer owns refresh/status:
@@ -138,4 +138,4 @@ Android-changing PRs run unit tests and compile a debug APK. After merge to `mai
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.12**.
+Current app version: **2.10.21**.
