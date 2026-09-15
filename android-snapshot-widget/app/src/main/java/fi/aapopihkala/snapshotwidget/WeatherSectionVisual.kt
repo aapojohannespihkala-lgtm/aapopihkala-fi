@@ -20,7 +20,10 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 
-private val SOLAR_BLOCK_WIDTH = 140.dp
+private val SOLAR_BLOCK_WIDTH = 124.dp
+private val SOLAR_TIME_WIDTH = 42.dp
+private val SOLAR_DISK_SIZE = 36.dp
+private val SOLAR_GAP = 2.dp
 
 internal data class WeatherNowDetail(
     val condition: String,
@@ -206,19 +209,19 @@ private fun WeatherSolarBlock(
             style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
             maxLines = 1,
         )
-        Spacer(GlanceModifier.height(1.dp))
+        Spacer(GlanceModifier.height(2.dp))
         Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
             Column(
-                modifier = GlanceModifier.width(48.dp),
+                modifier = GlanceModifier.width(SOLAR_TIME_WIDTH),
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
             ) {
                 Text(
-                    text = "↑${solar.sunrise}",
+                    text = solar.sunrise,
                     style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
                     maxLines = 1,
                 )
             }
-            Spacer(GlanceModifier.width(3.dp))
+            Spacer(GlanceModifier.width(SOLAR_GAP))
             Image(
                 provider = ImageProvider(
                     renderDayNightDisk(
@@ -231,15 +234,15 @@ private fun WeatherSolarBlock(
                     )
                 ),
                 contentDescription = "Daylight and current sun position",
-                modifier = GlanceModifier.width(34.dp).height(34.dp),
+                modifier = GlanceModifier.width(SOLAR_DISK_SIZE).height(SOLAR_DISK_SIZE),
             )
-            Spacer(GlanceModifier.width(3.dp))
+            Spacer(GlanceModifier.width(SOLAR_GAP))
             Column(
-                modifier = GlanceModifier.width(48.dp),
+                modifier = GlanceModifier.width(SOLAR_TIME_WIDTH),
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
             ) {
                 Text(
-                    text = "↓${solar.sunset}",
+                    text = solar.sunset,
                     style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
                     maxLines = 1,
                 )
