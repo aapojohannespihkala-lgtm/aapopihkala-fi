@@ -94,6 +94,29 @@ internal fun widgetCacheJsonAfterFetch(
     payload: WidgetPayload?,
 ): String? = payload?.let(WidgetPayloadCodec::encode) ?: previousCacheJson
 
+internal fun weatherNeedsLegacyEnrichment(payload: WidgetPayload): Boolean {
+    val weather = payload.sections.firstOrNull { it.id == "weather" } ?: return false
+    return weather.rows.isEmpty() || weather.columns.isEmpty()
+}
+
+internal fun mergeLegacyWeather(
+    presentation: WidgetPayload,
+    legacy: WidgetPayload?,
+): WidgetPayload {
+    val legacyWeather = legacy?.sections?.firstOrNull { it.id == "weather" } ?: return presentation
+    val presentationWeather = presentation.sections.firstOrNull { it.id == "weather" } ?: return presentation
+    val mergedWeather = presentationWeather.copy(
+        detail = presentationWeather.detail ?: legacyWeather.detail,
+        rows = presentationWeather.rows.ifEmpty { legacyWeather.rows },
+        columns = presentationWeather.columns.ifEmpty { legacyWeather.columns },
+    )
+    return presentation.copy(
+        sections = presentation.sections.map { section ->
+            if (section.id == "weather") mergedWeather else section
+        }
+    )
+}
+
 class WidgetRepository(context: Context) {
     private val appContext = context.applicationContext
     private val prefs = appContext.getSharedPreferences("snapshot_widget", Context.MODE_PRIVATE)
@@ -107,7 +130,14 @@ class WidgetRepository(context: Context) {
             fetchV2 = { timeoutMs -> fetchPresentation(timeoutMs) },
             fetchLegacy = { fetchLegacyPayload() },
         )
-        val payload = outcome.payload
+        var payload = outcome.payload
+        if (
+            payload != null &&
+            payload.channel != "legacy" &&
+            weatherNeedsLegacyEnrichment(payload)
+        ) {
+            payload = mergeLegacyWeather(payload, fetchLegacyPayload().payload)
+        }
         val cacheJson = widgetCacheJsonAfterFetch(previousCacheJson, payload)
 
         val editor = prefs.edit()
@@ -193,14 +223,40 @@ class WidgetRepository(context: Context) {
         val low = value.finite("min")
         val high = value.finite("max")
         if (temperature == null && low == null && high == null) return null
-        val detail = if (low == null && high == null) null else "${temperature(low)} / ${temperature(high)}"
+
+        val condition = value.optString("condition").takeIf { it.isNotBlank() }
+        val range = if (low == null && high == null) {
+            null
+        } else {
+            listOfNotNull(low?.let(::degree), high?.let(::degree)).joinToString(" / ")
+        }
+        val detail = listOfNotNull(condition, range).joinToString(" / ").takeIf { it.isNotBlank() }
+        val rows = buildList {
+            low?.let { add(WidgetItem("LOW", degree(it))) }
+            high?.let { add(WidgetItem("HIGH", degree(it))) }
+        }
+        val columns = buildList {
+            val forecast = value.optJSONArray("forecast")
+            if (forecast != null) {
+                for (index in 0 until forecast.length()) {
+                    val item = forecast.optJSONObject(index) ?: continue
+                    val time = item.optString("time").takeIf { it.isNotBlank() } ?: continue
+                    val forecastTemperature = item.finite("temperature") ?: continue
+                    add(WidgetItem(time, degree(forecastTemperature)))
+                    if (size >= 6) break
+                }
+            }
+        }
+
         return WidgetSection(
             id = "weather",
             index = "01",
             label = "WEATHER",
             primary = temperature(temperature),
             secondary = value.optString("location").takeIf { it.isNotBlank() },
-            detail = detail
+            detail = detail,
+            rows = rows,
+            columns = columns,
         )
     }
 
@@ -317,6 +373,9 @@ class WidgetRepository(context: Context) {
 
     private fun temperature(value: Double?): String =
         value?.let { String.format(Locale.US, "%.1f°C", it) } ?: "--.-°C"
+
+    private fun degree(value: Double): String =
+        String.format(Locale.US, "%.0f°", value)
 
     private fun price(value: Double?): String =
         value?.let { String.format(Locale.US, "%.2f c/kWh", it) } ?: "--.-- c/kWh"

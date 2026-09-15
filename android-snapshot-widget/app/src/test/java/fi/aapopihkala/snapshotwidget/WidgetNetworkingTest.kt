@@ -176,6 +176,49 @@ class WidgetNetworkingTest {
         assertEquals("previous-cache", widgetCacheJsonAfterFetch("previous-cache", outcome.payload))
     }
 
+    @Test
+    fun missingStructuredWeatherUsesLegacyRowsAndForecastWithoutReplacingSolarDetail() {
+        val presentationWeather = WidgetSection(
+            id = "weather",
+            index = "01",
+            label = "WEATHER",
+            primary = "16.3°C",
+            detail = "Clear sky\n↑06:48 ↓19:42 ☀12H54M",
+        )
+        val legacyWeather = WidgetSection(
+            id = "weather",
+            index = "01",
+            label = "WEATHER",
+            primary = "16.3°C",
+            detail = "Clear sky / 6° / 17°",
+            rows = listOf(
+                WidgetItem("LOW", "6°"),
+                WidgetItem("HIGH", "17°"),
+            ),
+            columns = listOf(
+                WidgetItem("18:00", "15°"),
+                WidgetItem("20:00", "13°"),
+                WidgetItem("22:00", "12°"),
+                WidgetItem("00:00", "11°"),
+                WidgetItem("02:00", "10°"),
+                WidgetItem("04:00", "9°"),
+            ),
+        )
+        val presentation = payload("prod").copy(sections = listOf(presentationWeather))
+        val legacy = payload("legacy").copy(sections = listOf(legacyWeather))
+
+        assertTrue(weatherNeedsLegacyEnrichment(presentation))
+        val merged = mergeLegacyWeather(presentation, legacy)
+        val weather = merged.sections.single()
+
+        assertEquals(presentationWeather.detail, weather.detail)
+        assertEquals(listOf("6°", "17°"), weather.rows.map { it.value })
+        assertEquals(6, weather.columns.size)
+        assertEquals("18:00", weather.columns.first().label)
+        assertEquals("04:00", weather.columns.last().label)
+        assertFalse(weatherNeedsLegacyEnrichment(merged))
+    }
+
     private fun payload(channel: String) = WidgetPayload(
         schemaVersion = 2,
         minEngineVersion = 2,
