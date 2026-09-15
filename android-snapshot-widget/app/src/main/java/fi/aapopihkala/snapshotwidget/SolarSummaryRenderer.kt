@@ -7,7 +7,7 @@ import android.graphics.RectF
 
 private const val SOLAR_SUMMARY_WIDTH_PX = 360
 private const val SOLAR_SUMMARY_HEIGHT_PX = 132
-private const val SOLAR_SUMMARY_DISK_PX = 92
+private const val SOLAR_SUMMARY_DISK_PX = 84
 
 /**
  * Renders the complete daylight summary into one bitmap so Glance text measurement
@@ -45,14 +45,14 @@ internal fun renderSolarSummary(
     textPaint.textSize = 23f
     canvas.drawText(solar.daylightLabel, centreX, 25f, textPaint)
 
-    textPaint.textSize = 24f
-    val timeBaseline = diskCentreY + 8f
+    textPaint.textSize = 21f
+    val timeBaseline = diskCentreY + 7f
 
     textPaint.textAlign = Paint.Align.RIGHT
-    canvas.drawText(solar.sunrise, diskLeft - 14f, timeBaseline, textPaint)
+    canvas.drawText(solar.sunrise, diskLeft - 12f, timeBaseline, textPaint)
 
     textPaint.textAlign = Paint.Align.LEFT
-    canvas.drawText(solar.sunset, diskRight + 14f, timeBaseline, textPaint)
+    canvas.drawText(solar.sunset, diskRight + 12f, timeBaseline, textPaint)
 
     val disk = renderDayNightDisk(
         daylightFraction = solar.daylightFraction,
