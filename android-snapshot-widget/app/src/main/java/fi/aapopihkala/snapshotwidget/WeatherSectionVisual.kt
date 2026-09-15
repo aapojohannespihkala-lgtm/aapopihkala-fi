@@ -78,41 +78,37 @@ internal fun WeatherSectionContent(
         }
 
         Spacer(GlanceModifier.height(3.dp))
+        if (solar != null) {
+            Row(modifier = GlanceModifier.fillMaxWidth()) {
+                Spacer(GlanceModifier.defaultWeight())
+                Text(
+                    text = solar.daylightLabel,
+                    modifier = GlanceModifier.width(166.dp),
+                    style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
+                    maxLines = 1,
+                )
+            }
+            Spacer(GlanceModifier.height(1.dp))
+        }
+
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.Vertical.CenterVertically,
         ) {
-            Column(modifier = GlanceModifier.defaultWeight()) {
-                Text(
-                    text = section.primary,
-                    style = TextStyle(
-                        color = ColorProvider(foreground),
-                        fontSize = 25.sp,
-                        fontWeight = FontWeight.Medium,
-                    ),
-                    maxLines = 1,
-                )
-                if (now.condition.isNotBlank()) {
-                    Spacer(GlanceModifier.height(2.dp))
-                    Text(
-                        text = now.condition,
-                        style = TextStyle(color = ColorProvider(muted), fontSize = 9.sp),
-                        maxLines = 1,
-                    )
-                }
-                if (now.range.isNotBlank()) {
-                    Spacer(GlanceModifier.height(1.dp))
-                    Text(
-                        text = now.range,
-                        style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
-                        maxLines = 1,
-                    )
-                }
-            }
+            Text(
+                text = section.primary,
+                modifier = GlanceModifier.defaultWeight(),
+                style = TextStyle(
+                    color = ColorProvider(foreground),
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                maxLines = 1,
+            )
 
             if (solar != null) {
                 Spacer(GlanceModifier.width(10.dp))
-                WeatherSolarTimeline(
+                WeatherSolarDiskRow(
                     solar = solar,
                     foreground = foreground,
                     muted = muted,
@@ -120,6 +116,23 @@ internal fun WeatherSectionContent(
                     background = background,
                 )
             }
+        }
+
+        if (now.condition.isNotBlank()) {
+            Spacer(GlanceModifier.height(2.dp))
+            Text(
+                text = now.condition,
+                style = TextStyle(color = ColorProvider(muted), fontSize = 9.sp),
+                maxLines = 1,
+            )
+        }
+        if (now.range.isNotBlank()) {
+            Spacer(GlanceModifier.height(1.dp))
+            Text(
+                text = now.range,
+                style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
+                maxLines = 1,
+            )
         }
 
         if (forecast.isNotEmpty()) {
@@ -134,53 +147,45 @@ internal fun WeatherSectionContent(
 }
 
 @Composable
-private fun WeatherSolarTimeline(
+private fun WeatherSolarDiskRow(
     solar: SolarDetail,
     foreground: Color,
     muted: Color,
     line: Color,
     background: Color,
 ) {
-    Column(
+    Row(
         modifier = GlanceModifier.width(166.dp),
-        horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
+        verticalAlignment = Alignment.Vertical.CenterVertically,
     ) {
         Text(
-            text = solar.daylightLabel,
+            text = "↑${solar.sunrise}",
+            modifier = GlanceModifier.width(58.dp),
             style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
             maxLines = 1,
         )
-        Spacer(GlanceModifier.height(1.dp))
-        Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
-            Text(
-                text = "↑${solar.sunrise}",
-                modifier = GlanceModifier.width(58.dp),
-                style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
-                maxLines = 1,
-            )
-            Spacer(GlanceModifier.width(4.dp))
-            Image(
-                provider = ImageProvider(
-                    renderDayNightDisk(
-                        daylightFraction = solar.daylightFraction,
-                        sunrise = solar.sunrise,
-                        sunset = solar.sunset,
-                        daylightColor = foreground.toArgb(),
-                        nightColor = line.toArgb(),
-                        horizonColor = background.toArgb(),
-                    )
-                ),
-                contentDescription = "Daylight and current sun position",
-                modifier = GlanceModifier.width(34.dp).height(34.dp),
-            )
-            Spacer(GlanceModifier.width(4.dp))
-            Text(
-                text = "↓${solar.sunset}",
-                modifier = GlanceModifier.width(58.dp),
-                style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
-                maxLines = 1,
-            )
-        }
+        Spacer(GlanceModifier.width(4.dp))
+        Image(
+            provider = ImageProvider(
+                renderDayNightDisk(
+                    daylightFraction = solar.daylightFraction,
+                    sunrise = solar.sunrise,
+                    sunset = solar.sunset,
+                    daylightColor = foreground.toArgb(),
+                    nightColor = line.toArgb(),
+                    horizonColor = background.toArgb(),
+                )
+            ),
+            contentDescription = "Daylight and current sun position",
+            modifier = GlanceModifier.width(34.dp).height(34.dp),
+        )
+        Spacer(GlanceModifier.width(4.dp))
+        Text(
+            text = "↓${solar.sunset}",
+            modifier = GlanceModifier.width(58.dp),
+            style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
+            maxLines = 1,
+        )
     }
 }
 
