@@ -1,6 +1,7 @@
 package fi.aapopihkala.snapshotwidget
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -115,6 +116,7 @@ class SolarDetailVisualTest {
 
         assertEquals(horizonY, sun.y, 0.001f)
         assertTrue(sun.x < centre)
+        assertTrue(sunIsAboveHorizon(sun.y, horizonY))
     }
 
     @Test
@@ -153,6 +155,27 @@ class SolarDetailVisualTest {
 
         assertEquals(horizonY, sun.y, 0.001f)
         assertTrue(sun.x > centre)
+        assertTrue(sunIsAboveHorizon(sun.y, horizonY))
+    }
+
+    @Test
+    fun `sun drops behind horizon after sunset`() {
+        val centre = 100f
+        val radius = 80f
+        val p = solarDaylightFraction("06:00", "19:00") ?: error("Missing daylight fraction")
+        val horizonY = centre - daylightHorizonOffset(p).toFloat() * radius
+
+        val sun = requireNotNull(
+            sunPosition(
+                sunrise = "06:00",
+                sunset = "19:00",
+                centre = centre,
+                diskRadius = radius,
+                nowMinute = 20.0 * 60.0
+            )
+        )
+
+        assertFalse(sunIsAboveHorizon(sun.y, horizonY))
     }
 
     @Test
