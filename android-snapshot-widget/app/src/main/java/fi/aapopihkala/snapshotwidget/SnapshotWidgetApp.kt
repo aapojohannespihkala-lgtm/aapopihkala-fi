@@ -427,7 +427,9 @@ private fun LargeHalfRow(sections: List<WidgetSection>, palette: Palette) {
     Row(modifier = GlanceModifier.fillMaxWidth()) {
         LargeHalfMetric(sections[0], palette, GlanceModifier.defaultWeight())
         if (sections.size > 1) {
+            Spacer(GlanceModifier.width(7.dp))
             VerticalDivider(palette)
+            Spacer(GlanceModifier.width(7.dp))
             LargeHalfMetric(sections[1], palette, GlanceModifier.defaultWeight())
         } else {
             Spacer(GlanceModifier.defaultWeight())
@@ -437,7 +439,7 @@ private fun LargeHalfRow(sections: List<WidgetSection>, palette: Palette) {
 
 @Composable
 private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: GlanceModifier) {
-    Column(modifier = modifier.padding(horizontal = 7.dp)) {
+    Column(modifier = modifier) {
         SectionHeading(section, palette)
         Spacer(GlanceModifier.height(3.dp))
         Text(
@@ -536,7 +538,11 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
                     )
                     Spacer(GlanceModifier.height(2.dp))
                 }
-                PrimaryValue(section, palette, if (section.id == "electricity") 22 else 25)
+                if (section.id == "electricity") {
+                    ElectricityPrimaryValue(section, palette)
+                } else {
+                    PrimaryValue(section, palette, 25)
+                }
                 section.detail?.let {
                     Spacer(GlanceModifier.height(2.dp))
                     if (section.id == "electricity") {
@@ -557,6 +563,51 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
             Column(modifier = GlanceModifier.defaultWeight()) {
                 SupportingContent(section, palette, includeTopSpacing = false)
             }
+        }
+    }
+}
+
+internal data class ElectricityPrimaryParts(
+    val value: String,
+    val unit: String?,
+)
+
+internal fun electricityPrimaryParts(primary: String): ElectricityPrimaryParts {
+    val trimmed = primary.trim()
+    val splitAt = trimmed.indexOf(' ')
+    if (splitAt <= 0 || splitAt >= trimmed.lastIndex) {
+        return ElectricityPrimaryParts(value = trimmed, unit = null)
+    }
+    return ElectricityPrimaryParts(
+        value = trimmed.substring(0, splitAt),
+        unit = trimmed.substring(splitAt + 1).trim().takeIf(String::isNotBlank),
+    )
+}
+
+@Composable
+private fun ElectricityPrimaryValue(section: WidgetSection, palette: Palette) {
+    val parts = electricityPrimaryParts(section.primary)
+    Row(verticalAlignment = Alignment.Vertical.Bottom) {
+        Text(
+            text = parts.value,
+            style = TextStyle(
+                color = ColorProvider(toneColor(section.tone, palette)),
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Medium,
+            ),
+            maxLines = 1,
+        )
+        parts.unit?.let { unit ->
+            Spacer(GlanceModifier.width(4.dp))
+            Text(
+                text = unit,
+                style = TextStyle(
+                    color = ColorProvider(toneColor(section.tone, palette)),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                maxLines = 1,
+            )
         }
     }
 }

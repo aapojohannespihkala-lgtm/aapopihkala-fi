@@ -26,7 +26,7 @@ The production large widget currently contains:
 1. Weather
    - current temperature and condition
    - daily low/high
-   - four forecast points
+   - six forecast points
    - sunrise, sunset and daylight length
    - area-proportional day/night horizon disk
 2. Electricity
@@ -53,10 +53,10 @@ Compact and medium remain intentionally denser than the large composition. HSL i
 
 ## Header and footer
 
-The header is native/live Android time rather than a server timestamp:
+The header is native/live Android time rather than a server timestamp and uses three aligned zones:
 
 ```text
-08:06:26  MON 14 SEP · W38
+08:06:26              MON 14 SEP               W38
 ```
 
 - Time uses Android `TextClock` and advances locally with seconds.
@@ -395,17 +395,18 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.9.7**: attempted prewarmed WorkManager HSL rollover + final-minute `DUE` guard; superseded after on-device delay evidence.
 - **2.10.0**: HSL rollover moved to one next-departure AlarmManager target; LIVE/SCHED share identical rollover; exact-alarm-unavailable mode shows the absolute departure clock instead of allowing a negative Chronometer.
 - **2.10.1**: exact AlarmManager rollover gained a final-minute `DUE` guard alarm before the departure target so target/rebuild latency cannot roll the native Chronometer below zero.
+- **2.10.21**: aligned the large half-width row to the common outer grid and split Electricity's primary number and unit into separate visual scales.
 
 ## Key files
 
-- `functions/api/current/widget-v2.ts` — rich server presentation builder
-- `functions/api/current/widget.ts` — legacy/widget base data builder; Markets must share the main portfolio feed
-- `functions/api/current/portfolio.ts` — portfolio performance response shared by Markets page and widget medians
-- `functions/api/current/widget-hsl.ts` — bounded HSL widget adapter
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetModels.kt` — presentation model, codec and temporal row resolver
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetRepository.kt` — network/cache/retry/fallback behavior and local schedule handoff
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SnapshotWidgetApp.kt` — Glance composition and WorkManager network refresh
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/LiveTemporalViews.kt` — live clock/countdown rendering and exact-alarm-aware safe fallback
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetTemporalRefresh.kt` — AlarmManager HSL rollover, midnight rebuild and 2.9.x worker compatibility shim
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SolarDetailVisual.kt` — Weather day/night disk
-- `.github/workflows/android-snapshot-widget.yml` — Android PR/release build and signature verification
+- `functions/api/current/widget-v2.ts` - rich server presentation builder
+- `functions/api/current/widget.ts` - legacy/widget base data builder; Markets must share the main portfolio feed
+- `functions/api/current/portfolio.ts` - portfolio performance response shared by Markets page and widget medians
+- `functions/api/current/widget-hsl.ts` - bounded HSL widget adapter
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetModels.kt` - presentation model, codec and temporal row resolver
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetRepository.kt` - network/cache/retry/fallback behavior and local schedule handoff
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SnapshotWidgetApp.kt` - Glance composition and WorkManager network refresh
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/LiveTemporalViews.kt` - live clock/countdown rendering and exact-alarm-aware safe fallback
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetTemporalRefresh.kt` - AlarmManager HSL rollover, midnight rebuild and 2.9.x worker compatibility shim
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SolarDetailVisual.kt` - Weather day/night disk
+- `.github/workflows/android-snapshot-widget.yml` - Android PR/release build and signature verification

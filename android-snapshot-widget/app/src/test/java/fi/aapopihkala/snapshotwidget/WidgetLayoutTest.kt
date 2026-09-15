@@ -50,4 +50,13 @@ class WidgetLayoutTest {
         assertEquals("full", section.span)
         assertEquals("stack", section.layout)
     }
+
+    @Test
+    fun `electricity primary separates value and unit`() {
+        val parts = electricityPrimaryParts("16.35 c/kWh")
+
+        assertEquals("16.35", parts.value)
+        assertEquals("c/kWh", parts.unit)
+        assertEquals(null, electricityPrimaryParts("16.35").unit)
+    }
 }
