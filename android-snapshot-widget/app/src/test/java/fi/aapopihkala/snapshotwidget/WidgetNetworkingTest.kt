@@ -177,6 +177,93 @@ class WidgetNetworkingTest {
     }
 
     @Test
+    fun successfulPartialV2KeepsExpectedLastKnownGoodSection() {
+        val layouts = WidgetLayouts(
+            compact = listOf("weather", "electricity"),
+            medium = listOf("weather", "electricity"),
+            large = listOf("weather", "electricity"),
+        )
+        val oldWeather = WidgetSection(
+            id = "weather",
+            index = "01",
+            label = "WEATHER",
+            primary = "8.0°C",
+            observedAt = "2026-09-14T06:00:00Z",
+        )
+        val freshElectricity = WidgetSection(
+            id = "electricity",
+            index = "02",
+            label = "ELECTRICITY",
+            primary = "3.00 c/kWh",
+            fetchedAt = "2026-09-15T06:00:00Z",
+        )
+        val previous = payload("prod").copy(layouts = layouts, sections = listOf(oldWeather))
+        val presentation = payload("prod").copy(layouts = layouts, sections = listOf(freshElectricity))
+
+        val merged = mergeMissingExpectedSections(presentation, previous)
+
+        assertEquals(listOf("electricity", "weather"), merged.sections.map { it.id })
+        assertEquals("2026-09-14T06:00:00Z", merged.sections.last().observedAt)
+    }
+
+    @Test
+    fun sectionRemovedFromNewLayoutIsNotCarriedForward() {
+        val previous = payload("prod")
+        val electricity = WidgetSection(
+            id = "electricity",
+            index = "02",
+            label = "ELECTRICITY",
+            primary = "3.00 c/kWh",
+        )
+        val electricityOnly = WidgetLayouts(
+            compact = listOf("electricity"),
+            medium = listOf("electricity"),
+            large = listOf("electricity"),
+        )
+        val presentation = payload("prod").copy(
+            layouts = electricityOnly,
+            sections = listOf(electricity),
+        )
+
+        val merged = mergeMissingExpectedSections(presentation, previous)
+
+        assertEquals(listOf("electricity"), merged.sections.map { it.id })
+    }
+
+    @Test
+    fun untrackedSectionWithoutFreshnessPolicyIsNotCarriedForward() {
+        val layouts = WidgetLayouts(
+            compact = listOf("weather"),
+            medium = listOf("weather"),
+            large = listOf("weather", "liiga"),
+        )
+        val liiga = WidgetSection(
+            id = "liiga",
+            index = "06",
+            label = "LIIGA",
+            primary = "1/16",
+        )
+        val previous = payload("prod").copy(layouts = layouts, sections = listOf(liiga))
+        val presentation = payload("prod").copy(layouts = layouts)
+
+        val merged = mergeMissingExpectedSections(presentation, previous)
+
+        assertEquals(listOf("weather"), merged.sections.map { it.id })
+    }
+
+    @Test
+    fun legacyPayloadDoesNotMergeRichCachedSections() {
+        val presentation = payload("legacy")
+        val previous = payload("prod").copy(
+            sections = listOf(
+                WidgetSection("hsl", "04", "HSL", "5 MIN", fetchedAt = "2026-09-14T06:00:00Z")
+            )
+        )
+
+        assertSame(presentation, mergeMissingExpectedSections(presentation, previous))
+    }
+
+    @Test
     fun missingStructuredWeatherUsesLegacyRowsAndForecastWithoutReplacingSolarDetail() {
         val presentationWeather = WidgetSection(
             id = "weather",
