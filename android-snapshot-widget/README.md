@@ -53,14 +53,19 @@ Electricity keeps the day average as the primary value, shows the month average 
 
 The chart is rendered into one Android bitmap before Glance hands it to the launcher. The bitmap uses the same approximate 3:1 aspect ratio as the large-widget chart slot so launcher scaling does not squash the price and axis text horizontally. It keeps the hourly server bars and draws the current-time marker at minute-level precision. Its time axis is labeled `00`, `06`, `12`, `18`, `24`; the edge labels use inward alignment so they remain fully visible. The current-price label uses the marker itself as its anchor, switching to left/right alignment near midnight and the end of the day instead of drifting away from the marker. The marker uses a light outer stroke and dark inner stroke so it remains visible both over the pale price bars and over the dark widget background.
 
+Because the `NOW` electricity price changes on 15-minute market intervals, Android also schedules the next quarter-hour boundary locally. When that boundary arrives while the device is awake, the alarm enqueues a connected one-time WorkManager refresh. The regular 15-minute periodic WorkManager job remains the fallback rather than being replaced.
+
 ## Live time behavior
 
-Network data still refreshes on the WorkManager cadence, but time-sensitive UI is local/native:
+Normal network data still refreshes on the WorkManager cadence, while selected time-sensitive behavior is driven by local/native scheduling:
 
 - header clock: Android `TextClock`, `HH:mm:ss`
+- Electricity `NOW`: quarter-hour AlarmManager trigger that enqueues a connected one-time WorkManager refresh
 - HSL next departure: Android `Chronometer` outside the final one-minute due guard when exact rollover alarms are available
 - cached HSL departure rollover: exact local `AlarmManager` rebuild at the due-guard boundary and again at the absolute departure target
 - header date/week: refreshed by ordinary widget rebuilds
+
+The Electricity quarter-hour alarm is non-wakeup. If exact-alarm access is available it uses an exact `RTC` alarm; otherwise it uses an inexact `RTC` alarm. A sleeping device is not woken just to refresh an invisible home-screen price. After wake, or if the inexact alarm is delayed, the normal WorkManager cadence still provides recovery.
 
 The server attaches absolute targets to the visible HSL departure rows. Android always selects the first still-future target. LIVE vs SCHED only describes the source/status of the departure; both use the same rollover rule. One minute before the selected target, an exact local alarm rebuilds the widget and replaces the ticking Chronometer with the static `DUE` label. At the target, the next exact alarm rebuilds from cache, drops the passed departure, promotes the next one and immediately schedules that departure's guard and rollover. This prevents ordinary target-alarm or launcher rebuild latency from exposing a negative Chronometer. No HSL network request is required for this cached rollover.
 
@@ -87,6 +92,8 @@ Tapping `↻` starts a manual refresh and swaps the symbol to a native indetermi
 Starting in 2.8.4, the rich v2 request gets one bounded retry for transient errors such as timeout, DNS/connectivity/SSL/IO failures, HTTP 408/425/429 and HTTP 5xx. Semantic/permanent failures such as `PARSE`, `COMPAT`, `EMPTY`, `SECURITY` and ordinary 4xx are not blindly retried.
 
 If v2 still fails, Android tries the legacy endpoint. If both fail, the old compatible cache remains visible.
+
+The quarter-hour Electricity trigger uses the same `SnapshotUpdateWorker`, endpoint/fallback path and cache preservation as periodic/manual refreshes. The AlarmManager receiver itself does not perform networking.
 
 The footer exposes compact diagnostics only when useful, for example:
 
@@ -141,4 +148,4 @@ Android-changing PRs run unit tests and compile a debug APK. After merge to `mai
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.24**.
+Current app version: **2.10.25**.
