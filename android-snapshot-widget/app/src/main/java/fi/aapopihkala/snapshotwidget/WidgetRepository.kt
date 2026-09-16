@@ -52,6 +52,14 @@ internal data class WidgetFetchDiagnostics(
     fun legacyFallbackLabel(): String = "LEGACY · ${v2Label()}"
 }
 
+private val preservableSectionIds = setOf(
+    "weather",
+    "electricity",
+    "markets",
+    "rates",
+    "hsl",
+)
+
 internal fun shouldRetryV2Status(status: String): Boolean {
     if (status in setOf("TIMEOUT", "DNS", "SSL", "CONNECT", "IO")) return true
     if (!status.startsWith("HTTP")) return false
@@ -93,6 +101,35 @@ internal fun widgetCacheJsonAfterFetch(
     previousCacheJson: String?,
     payload: WidgetPayload?,
 ): String? = payload?.let(WidgetPayloadCodec::encode) ?: previousCacheJson
+
+internal fun mergeMissingExpectedSections(
+    presentation: WidgetPayload,
+    previous: WidgetPayload?,
+): WidgetPayload {
+    if (presentation.channel == "legacy" || previous == null || !previous.isCompatible()) {
+        return presentation
+    }
+
+    val expectedIds = (
+        presentation.layouts.compact +
+            presentation.layouts.medium +
+            presentation.layouts.large
+        ).toSet()
+    val currentIds = presentation.sections.mapTo(mutableSetOf()) { it.id }
+    val carried = previous.sections
+        .filter { section ->
+            section.id in preservableSectionIds &&
+                section.id in expectedIds &&
+                section.id !in currentIds
+        }
+        .map { section ->
+            if (section.observedAt != null || section.fetchedAt != null) section
+            else section.copy(fetchedAt = previous.generatedAt)
+        }
+
+    return if (carried.isEmpty()) presentation
+    else presentation.copy(sections = presentation.sections + carried)
+}
 
 internal fun weatherNeedsLegacyEnrichment(payload: WidgetPayload): Boolean {
     val weather = payload.sections.firstOrNull { it.id == "weather" } ?: return false
@@ -137,6 +174,12 @@ class WidgetRepository(context: Context) {
             weatherNeedsLegacyEnrichment(payload)
         ) {
             payload = mergeLegacyWeather(payload, fetchLegacyPayload().payload)
+        }
+        if (payload != null && payload.channel != "legacy") {
+            val previousPayload = previousCacheJson
+                ?.let(WidgetPayloadCodec::parse)
+                ?.takeIf { it.isCompatible() }
+            payload = mergeMissingExpectedSections(payload, previousPayload)
         }
         val cacheJson = widgetCacheJsonAfterFetch(previousCacheJson, payload)
 

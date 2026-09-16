@@ -33,13 +33,17 @@ private fun sectionFreshnessMs(section: WidgetSection, payloadGeneratedAt: Strin
         .mapNotNull(::parseWidgetGeneratedAtMs)
         .firstOrNull()
 
+private fun staleLabel(label: String): String =
+    if (label.endsWith(" / STALE")) label else "$label / STALE"
+
 /**
  * Prevents an old locally cached payload from presenting realtime sections as current.
  * Section-level source timestamps take precedence over the payload generation time so a
  * newly generated response cannot make old source data appear fresh. Older cached payloads
  * without section freshness metadata keep using generatedAt for backward compatibility.
- * Slow-moving sections (markets/rates/schedules) remain available; their upstream freshness
- * is a server-side concern. HSL keeps only future non-LIVE schedule rows.
+ * Stale Weather and Electricity values remain visible as last-known-good data and are marked
+ * STALE instead of disappearing. HSL still removes stale LIVE data and keeps only future
+ * non-LIVE schedule rows, also marked STALE. Slow-moving sections remain available.
  */
 internal fun WidgetPayload.withSafeCachedFreshness(nowMs: Long): WidgetPayload {
     val safeSections = sections.mapNotNull { section ->
@@ -48,13 +52,20 @@ internal fun WidgetPayload.withSafeCachedFreshness(nowMs: Long): WidgetPayload {
         val ageMs = (nowMs - sourceMs).coerceAtLeast(0L)
         if (ageMs <= maxAgeMs) return@mapNotNull section
 
-        if (section.id != "hsl") return@mapNotNull null
+        if (section.id != "hsl") {
+            return@mapNotNull section.copy(
+                label = staleLabel(section.label),
+                tone = "neutral",
+            )
+        }
+
         val scheduledRows = section.rows.filter { item ->
             !item.tone.equals("accent", ignoreCase = true) &&
                 item.countdownTargetMs?.let { it > nowMs } == true
         }
         if (scheduledRows.isEmpty()) null
         else section.copy(
+            label = staleLabel(section.label),
             primary = "--",
             secondary = null,
             detail = null,

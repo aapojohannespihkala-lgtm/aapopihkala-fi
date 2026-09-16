@@ -61,6 +61,22 @@ class AndroidVersionGuardTests(unittest.TestCase):
         )
         self.assertEqual(errors, [])
 
+    def test_numeric_minor_version_bump_passes(self):
+        errors = MODULE.validate_version_bump(
+            ['android-snapshot-widget/app/src/main/java/example/Widget.kt'],
+            BASE,
+            head(name='2.11.0'),
+        )
+        self.assertEqual(errors, [])
+
+    def test_numeric_version_name_downgrade_fails(self):
+        errors = MODULE.validate_version_bump(
+            ['android-snapshot-widget/app/src/main/java/example/Widget.kt'],
+            BASE,
+            head(name='2.10.25'),
+        )
+        self.assertTrue(any('versionName' in error for error in errors))
+
     def test_unchanged_version_fails(self):
         errors = MODULE.validate_version_bump(
             ['android-snapshot-widget/app/src/main/java/example/Widget.kt'],

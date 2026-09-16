@@ -3,6 +3,7 @@ package fi.aapopihkala.snapshotwidget
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WidgetFreshnessTest {
@@ -16,10 +17,13 @@ class WidgetFreshnessTest {
     }
 
     @Test
-    fun oldElectricityAndWeatherCacheIsNotPresentedAsCurrent() {
+    fun oldElectricityAndWeatherCacheRemainsVisibleButIsMarkedStale() {
         val payload = payload("2026-09-15T10:00:00Z", listOf(section("electricity"), section("weather"), section("markets")))
         val result = payload.withSafeCachedFreshness(now)
-        assertEquals(listOf("markets"), result.sections.map { it.id })
+        assertEquals(listOf("electricity", "weather", "markets"), result.sections.map { it.id })
+        assertEquals("ELECTRICITY / STALE", result.sections[0].label)
+        assertEquals("WEATHER / STALE", result.sections[1].label)
+        assertEquals("MARKETS", result.sections[2].label)
     }
 
     @Test
@@ -32,22 +36,18 @@ class WidgetFreshnessTest {
             ),
         )
         val result = payload.withSafeCachedFreshness(now)
-        assertEquals(listOf("weather"), result.sections.map { it.id })
+        assertEquals(listOf("electricity", "weather"), result.sections.map { it.id })
+        assertEquals("ELECTRICITY / STALE", result.sections[0].label)
+        assertEquals("WEATHER", result.sections[1].label)
     }
 
     @Test
     fun invalidObservedAtFallsBackToFetchedAt() {
         val payload = payload(
             "2026-09-15T12:19:00Z",
-            listOf(
-                section(
-                    "electricity",
-                    observedAt = "not-a-time",
-                    fetchedAt = "2026-09-15T11:00:00Z",
-                ),
-            ),
+            listOf(section("electricity", observedAt = "not-a-time", fetchedAt = "2026-09-15T11:00:00Z")),
         )
-        assertNull(payload.withSafeCachedFreshness(now).sections.firstOrNull())
+        assertEquals("ELECTRICITY / STALE", payload.withSafeCachedFreshness(now).sections.single().label)
     }
 
     @Test
@@ -71,7 +71,9 @@ class WidgetFreshnessTest {
             ),
         )
         val result = payload.withSafeCachedFreshness(now)
-        assertEquals(listOf("electricity", "markets", "rates"), result.sections.map { it.id })
+        assertEquals(listOf("weather", "electricity", "markets", "rates"), result.sections.map { it.id })
+        assertEquals("WEATHER / STALE", result.sections[0].label)
+        assertEquals("ELECTRICITY", result.sections[1].label)
     }
 
     @Test
@@ -99,6 +101,7 @@ class WidgetFreshnessTest {
         assertEquals(1, safeHsl.rows.size)
         assertEquals("SCHEDULE", safeHsl.rows.single().label)
         assertEquals("neutral", safeHsl.rows.single().tone)
+        assertEquals("HSL / STALE", safeHsl.label)
     }
 
     @Test
@@ -113,6 +116,7 @@ class WidgetFreshnessTest {
     fun malformedTimestampDoesNotDestroyCachedPayload() {
         val result = payload("not-a-time", listOf(section("weather"))).withSafeCachedFreshness(now)
         assertNotNull(result.sections.singleOrNull())
+        assertTrue(result.sections.single().label == "WEATHER")
     }
 
     private fun section(
