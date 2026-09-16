@@ -8,6 +8,7 @@ import {
 import { recordHslDistancePassages } from '../functions/api/current/hsl-passage-learning';
 import {
   attachHslLearningPublicSnapshot,
+  readHslLearningHealth,
   saveHslLearningPublicSnapshot,
 } from '../functions/api/current/hsl-public-learning';
 import { filterRecordedHslPassages } from '../functions/api/current/hsl-recorded-passage';
@@ -21,23 +22,14 @@ import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
 import { fetchLiigaResponse, onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
 import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/current/liiga-schedule';
 
-type AssetsBinding = {
-  fetch(request: Request): Promise<Response>;
-};
-
-type WorkerEnv = {
-  ASSETS: AssetsBinding;
-  DIGITRANSIT_API_KEY?: string;
-  HSL_MODEL_DB?: HslLearningDb;
-};
-
-type ScheduledController = {
-  scheduledTime: number;
-};
+type AssetsBinding = { fetch(request: Request): Promise<Response> };
+type WorkerEnv = { ASSETS: AssetsBinding; DIGITRANSIT_API_KEY?: string; HSL_MODEL_DB?: HslLearningDb };
+type ScheduledController = { scheduledTime: number };
 
 const ELECTRICITY_PATH = '/api/current/electricity';
 const ELECTRICITY_MONTH_PATH = '/api/current/electricity-month';
 const HSL_PATH = '/api/current/hsl';
+const HSL_HEALTH_PATH = '/api/current/hsl-learning-health';
 const MARKETS_PATH = '/api/current/markets';
 const WIDGET_PATH = '/api/current/widget';
 const WIDGET_V2_PATH = '/api/current/widget-v2';
@@ -46,69 +38,42 @@ const LIIGA_PATH = '/api/current/liiga';
 const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
 const SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS = 4_000;
 const HSL_HEAVY_LEARNING_INTERVAL_MINUTES = 10;
-const HSL_LEARNING_QUERY = {
-  stopCode: 'E3239',
-  stopName: 'Ylisrinne',
-  routes: ['121', '125'],
-};
+const HSL_LEARNING_QUERY = { stopCode: 'E3239', stopName: 'Ylisrinne', routes: ['121', '125'] };
 
 const HSL_LEARNING_SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS hsl_eta_observations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    trip_key TEXT NOT NULL,
-    stop_code TEXT NOT NULL,
-    route TEXT NOT NULL,
-    scheduled_at TEXT NOT NULL,
-    observed_at TEXT NOT NULL,
-    observed_minute INTEGER NOT NULL,
-    hsl_predicted_at TEXT NOT NULL,
-    hsl_delay_seconds INTEGER NOT NULL,
-    realtime INTEGER NOT NULL,
-    distance_meters INTEGER,
-    speed_kmh REAL,
-    vehicle_status TEXT,
-    vehicle_updated_at TEXT,
-    model_predicted_at TEXT,
-    model_sample_size INTEGER,
-    model_adjustment_seconds INTEGER,
-    model_confidence_seconds INTEGER,
+    id INTEGER PRIMARY KEY AUTOINCREMENT, trip_key TEXT NOT NULL, stop_code TEXT NOT NULL,
+    route TEXT NOT NULL, scheduled_at TEXT NOT NULL, observed_at TEXT NOT NULL,
+    observed_minute INTEGER NOT NULL, hsl_predicted_at TEXT NOT NULL, hsl_delay_seconds INTEGER NOT NULL,
+    realtime INTEGER NOT NULL, distance_meters INTEGER, speed_kmh REAL, vehicle_status TEXT,
+    vehicle_updated_at TEXT, model_predicted_at TEXT, model_sample_size INTEGER,
+    model_adjustment_seconds INTEGER, model_confidence_seconds INTEGER,
     UNIQUE(trip_key, observed_minute)
   )`,
   'CREATE INDEX IF NOT EXISTS hsl_eta_observations_trip_idx ON hsl_eta_observations(trip_key, observed_at)',
   'CREATE INDEX IF NOT EXISTS hsl_eta_observations_route_idx ON hsl_eta_observations(route, observed_at)',
   'CREATE INDEX IF NOT EXISTS hsl_eta_observations_observed_idx ON hsl_eta_observations(observed_at)',
   `CREATE TABLE IF NOT EXISTS hsl_eta_arrivals (
-    trip_key TEXT PRIMARY KEY,
-    stop_code TEXT NOT NULL,
-    route TEXT NOT NULL,
-    scheduled_at TEXT NOT NULL,
-    actual_arrival_at TEXT NOT NULL,
-    detected_by TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    trip_key TEXT PRIMARY KEY, stop_code TEXT NOT NULL, route TEXT NOT NULL, scheduled_at TEXT NOT NULL,
+    actual_arrival_at TEXT NOT NULL, detected_by TEXT NOT NULL, created_at TEXT NOT NULL
   )`,
   'CREATE INDEX IF NOT EXISTS hsl_eta_arrivals_route_idx ON hsl_eta_arrivals(route, actual_arrival_at)',
   'CREATE INDEX IF NOT EXISTS hsl_eta_arrivals_actual_idx ON hsl_eta_arrivals(actual_arrival_at)',
   `CREATE TABLE IF NOT EXISTS hsl_eta_public_snapshot (
-    id INTEGER PRIMARY KEY,
-    payload_json TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    id INTEGER PRIMARY KEY, payload_json TEXT NOT NULL, updated_at TEXT NOT NULL
   )`,
 ];
 
 const hslLearningDbAdapters = new WeakMap<object, HslLearningDb>();
-
 const hslLearningDb = (db?: HslLearningDb) => {
   if (!db) return undefined;
   const key = db as object;
   const existing = hslLearningDbAdapters.get(key);
   if (existing) return existing;
-
   const adapter: HslLearningDb = {
     prepare: (query) => db.prepare(query),
     batch: (statements) => db.batch(statements),
-    exec: async () => {
-      await db.batch(HSL_LEARNING_SCHEMA_STATEMENTS.map((query) => db.prepare(query)));
-    },
+    exec: async () => { await db.batch(HSL_LEARNING_SCHEMA_STATEMENTS.map((query) => db.prepare(query))); },
   };
   hslLearningDbAdapters.set(key, adapter);
   return adapter;
@@ -117,64 +82,29 @@ const hslLearningDb = (db?: HslLearningDb) => {
 export const shouldRefreshHslLearningSnapshot = (scheduledTime: number) =>
   Math.floor(scheduledTime / 60_000) % HSL_HEAVY_LEARNING_INTERVAL_MINUTES === 0;
 
-const methodNotAllowed = (allow = 'GET') =>
-  new Response('Method not allowed', {
-    status: 405,
-    headers: { Allow: allow },
-  });
-
+const methodNotAllowed = (allow = 'GET') => new Response('Method not allowed', { status: 405, headers: { Allow: allow } });
 const isSnapshotRequest = (request: Request) => {
   const referer = request.headers.get('Referer');
   if (!referer) return false;
-
-  try {
-    return new URL(referer).pathname === '/current/snapshot/';
-  } catch {
-    return false;
-  }
+  try { return new URL(referer).pathname === '/current/snapshot/'; } catch { return false; }
 };
-
 const publicLiigaResponse = async (response: Response, error: string) => {
   if (response.status < 500) return response;
-
-  return Response.json(
-    { error },
-    {
-      status: response.status,
-      headers: response.headers,
-    }
-  );
+  return Response.json({ error }, { status: response.status, headers: response.headers });
 };
 
 const collectHslLearningSnapshot = async (env: WorkerEnv, scheduledTime: number) => {
   if (!env.HSL_MODEL_DB || !env.DIGITRANSIT_API_KEY) return;
-
   const request = new Request('https://aapopihkala.fi/api/current/hsl', {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
+    method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify(HSL_LEARNING_QUERY),
   });
-  const response = await fetchHslDeparturesResponse({
-    request,
-    apiKey: env.DIGITRANSIT_API_KEY,
-  });
-  if (!response.ok) {
-    console.error('Scheduled HSL learning snapshot failed', response.status);
-    return;
-  }
-
+  const response = await fetchHslDeparturesResponse({ request, apiKey: env.DIGITRANSIT_API_KEY });
+  if (!response.ok) { console.error('Scheduled HSL learning snapshot failed', response.status); return; }
   const db = hslLearningDb(env.HSL_MODEL_DB);
   await recordHslRawLearningSnapshot(response, db);
   await recordHslDistancePassages(response, db);
-
   if (!shouldRefreshHslLearningSnapshot(scheduledTime)) return;
-
-  // Raw observations and arrival detection run every minute. The expensive historical
-  // training/scoreboard scan runs every ten minutes and publishes one tiny snapshot
-  // for public requests instead of repeating that work on every 15-second page refresh.
   const enriched = await enrichHslResponseWithLearning(response, db);
   const filtered = await filterRecordedHslPassages(enriched, db);
   await saveHslLearningPublicSnapshot(filtered, db);
@@ -184,72 +114,41 @@ const worker = {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(request.url);
     const snapshotRequest = isSnapshotRequest(request);
-
-    if (url.pathname === ELECTRICITY_PATH) {
-      if (request.method !== 'GET') return methodNotAllowed();
-      return getElectricityPriceResponse();
-    }
-
-    if (url.pathname === ELECTRICITY_MONTH_PATH) {
-      if (request.method !== 'GET') return methodNotAllowed();
-      return getElectricityMonthResponse();
-    }
-
+    if (url.pathname === ELECTRICITY_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityPriceResponse(); }
+    if (url.pathname === ELECTRICITY_MONTH_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityMonthResponse(); }
     if (url.pathname === HSL_PATH) {
       if (request.method !== 'POST') return methodNotAllowed('POST');
       const db = hslLearningDb(env.HSL_MODEL_DB);
-      const response = await fetchHslDeparturesResponse({
-        request,
-        apiKey: env.DIGITRANSIT_API_KEY,
-      });
+      const response = await fetchHslDeparturesResponse({ request, apiKey: env.DIGITRANSIT_API_KEY });
       const withLearning = await attachHslLearningPublicSnapshot(response, db);
       return filterRecordedHslPassages(withLearning, db);
     }
-
+    if (url.pathname === HSL_HEALTH_PATH) {
+      if (request.method !== 'GET') return methodNotAllowed();
+      return Response.json(await readHslLearningHealth(hslLearningDb(env.HSL_MODEL_DB)), {
+        headers: { 'Cache-Control': 'private, no-store' },
+      });
+    }
     if (url.pathname === MARKETS_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      if (url.searchParams.get('portfolio') === '1') {
-        return snapshotRequest ? getSnapshotPortfolioResponse() : getPortfolioResponse();
-      }
+      if (url.searchParams.get('portfolio') === '1') return snapshotRequest ? getSnapshotPortfolioResponse() : getPortfolioResponse();
       return getMarketsResponse({ request });
     }
-
     if (url.pathname === WIDGET_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return url.searchParams.get('v') === '2'
-        ? getWidgetV2Response({ request, env })
-        : getWidgetResponse({ request });
+      return url.searchParams.get('v') === '2' ? getWidgetV2Response({ request, env }) : getWidgetResponse({ request });
     }
-
-    if (url.pathname === WIDGET_V2_PATH) {
-      if (request.method !== 'GET') return methodNotAllowed();
-      return getWidgetV2Response({ request, env });
-    }
-
-    if (url.pathname === NEWS_PATH) {
-      if (request.method !== 'GET') return methodNotAllowed();
-      return getNewsResponse();
-    }
-
+    if (url.pathname === WIDGET_V2_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getWidgetV2Response({ request, env }); }
+    if (url.pathname === NEWS_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getNewsResponse(); }
     if (url.pathname === LIIGA_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      const response = snapshotRequest
-        ? await fetchLiigaResponse(SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS)
-        : await getLiigaResponse();
+      const response = snapshotRequest ? await fetchLiigaResponse(SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS) : await getLiigaResponse();
       return publicLiigaResponse(response, 'Liiga data request failed');
     }
-
-    if (url.pathname === LIIGA_SCHEDULE_PATH) {
-      if (request.method !== 'GET') return methodNotAllowed();
-      return publicLiigaResponse(await getLiigaScheduleResponse(), 'Liiga schedule request failed');
-    }
-
+    if (url.pathname === LIIGA_SCHEDULE_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return publicLiigaResponse(await getLiigaScheduleResponse(), 'Liiga schedule request failed'); }
     return env.ASSETS.fetch(request);
   },
-
-  async scheduled(controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    await collectHslLearningSnapshot(env, controller.scheduledTime);
-  },
+  async scheduled(controller: ScheduledController, env: WorkerEnv): Promise<void> { await collectHslLearningSnapshot(env, controller.scheduledTime); },
 };
 
 export default worker;
