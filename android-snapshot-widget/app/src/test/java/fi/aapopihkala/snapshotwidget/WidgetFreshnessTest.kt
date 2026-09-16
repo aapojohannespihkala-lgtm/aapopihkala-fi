@@ -6,7 +6,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class WidgetFreshnessTest {
-    private val now = 1_789_436_400_000L // 2026-09-15T12:20:00Z
+    private val now = 1_789_474_800_000L // 2026-09-15T12:20:00Z
 
     @Test
     fun freshRealtimeSectionsRemainAvailable() {
