@@ -60,6 +60,8 @@ data class WidgetSection(
     val tone: String = "neutral",
     val span: String = "full",
     val layout: String = "stack",
+    val observedAt: String? = null,
+    val fetchedAt: String? = null,
     val countdownTargetMs: Long? = null,
     val rows: List<WidgetItem> = emptyList(),
     val columns: List<WidgetItem> = emptyList(),
@@ -210,6 +212,8 @@ object WidgetPayloadCodec {
                 tone = section.optString("tone", "neutral"),
                 span = section.enumOr("span", setOf("full", "half"), "full"),
                 layout = section.enumOr("layout", setOf("stack", "split"), "stack"),
+                observedAt = section.nullableString("observedAt"),
+                fetchedAt = section.nullableString("fetchedAt"),
                 countdownTargetMs = section.nullableLong("countdownTargetMs"),
                 rows = section.optJSONArray("rows").items(),
                 columns = section.optJSONArray("columns").items(),
@@ -268,6 +272,8 @@ object WidgetPayloadCodec {
                 .put("layout", section.layout)
             section.secondary?.let { objectValue.put("secondary", it) }
             section.detail?.let { objectValue.put("detail", it) }
+            section.observedAt?.let { objectValue.put("observedAt", it) }
+            section.fetchedAt?.let { objectValue.put("fetchedAt", it) }
             section.countdownTargetMs?.let { objectValue.put("countdownTargetMs", it) }
             if (section.rows.isNotEmpty()) objectValue.put("rows", itemArray(section.rows))
             if (section.columns.isNotEmpty()) objectValue.put("columns", itemArray(section.columns))

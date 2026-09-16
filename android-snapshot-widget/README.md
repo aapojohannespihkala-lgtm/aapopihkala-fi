@@ -108,8 +108,11 @@ Generic content primitives include:
 - `columns`
 - normalized `bars`
 - optional countdown target data
+- optional section-level `observedAt` and `fetchedAt` freshness timestamps
 
 Rows may carry optional temporal metadata used by the Android runtime to advance a countdown section locally while keeping the visible row layout unchanged.
+
+For realtime cache freshness, Android prefers a section's `observedAt`, then `fetchedAt`, and falls back to the payload `generatedAt` for older compatible payloads. This prevents a newly generated presentation response from making older source data appear fresh while preserving backward compatibility and the last-known-good cache model.
 
 Large layout supports:
 
@@ -138,4 +141,4 @@ Android-changing PRs run unit tests and compile a debug APK. After merge to `mai
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.23**.
+Current app version: **2.10.24**.

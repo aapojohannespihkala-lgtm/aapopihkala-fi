@@ -27,16 +27,25 @@ internal fun parseWidgetGeneratedAtMs(value: String): Long? {
     }
 }
 
+private fun sectionFreshnessMs(section: WidgetSection, payloadGeneratedAt: String): Long? =
+    sequenceOf(section.observedAt, section.fetchedAt, payloadGeneratedAt)
+        .filterNotNull()
+        .mapNotNull(::parseWidgetGeneratedAtMs)
+        .firstOrNull()
+
 /**
  * Prevents an old locally cached payload from presenting realtime sections as current.
- * Slow-moving sections (markets/rates/schedules) remain available; their upstream
- * freshness is a server-side concern. HSL keeps only future non-LIVE schedule rows.
+ * Section-level source timestamps take precedence over the payload generation time so a
+ * newly generated response cannot make old source data appear fresh. Older cached payloads
+ * without section freshness metadata keep using generatedAt for backward compatibility.
+ * Slow-moving sections (markets/rates/schedules) remain available; their upstream freshness
+ * is a server-side concern. HSL keeps only future non-LIVE schedule rows.
  */
 internal fun WidgetPayload.withSafeCachedFreshness(nowMs: Long): WidgetPayload {
-    val generatedMs = parseWidgetGeneratedAtMs(generatedAt) ?: return this
-    val ageMs = (nowMs - generatedMs).coerceAtLeast(0L)
     val safeSections = sections.mapNotNull { section ->
         val maxAgeMs = realtimeCacheMaxAgeMs[section.id] ?: return@mapNotNull section
+        val sourceMs = sectionFreshnessMs(section, generatedAt) ?: return@mapNotNull section
+        val ageMs = (nowMs - sourceMs).coerceAtLeast(0L)
         if (ageMs <= maxAgeMs) return@mapNotNull section
 
         if (section.id != "hsl") return@mapNotNull null
