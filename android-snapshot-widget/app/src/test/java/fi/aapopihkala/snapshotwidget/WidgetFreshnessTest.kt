@@ -23,6 +23,28 @@ class WidgetFreshnessTest {
     }
 
     @Test
+    fun sectionSourceTimeOverridesFreshPayloadGenerationTime() {
+        val payload = payload(
+            "2026-09-15T12:19:00Z",
+            listOf(
+                section("electricity", observedAt = "2026-09-15T11:00:00Z", fetchedAt = "2026-09-15T12:19:00Z"),
+                section("weather", fetchedAt = "2026-09-15T12:10:00Z"),
+            ),
+        )
+        val result = payload.withSafeCachedFreshness(now)
+        assertEquals(listOf("weather"), result.sections.map { it.id })
+    }
+
+    @Test
+    fun fetchedAtIsUsedWhenObservedAtIsMissing() {
+        val payload = payload(
+            "2026-09-15T12:19:00Z",
+            listOf(section("hsl", fetchedAt = "2026-09-15T12:00:00Z")),
+        )
+        assertNull(payload.withSafeCachedFreshness(now).sections.firstOrNull())
+    }
+
+    @Test
     fun staleHslDropsLiveRowsButKeepsFutureStaticScheduleFallback() {
         val future = now + 20 * 60_000L
         val hsl = section("hsl").copy(rows = listOf(
@@ -50,7 +72,18 @@ class WidgetFreshnessTest {
         assertNotNull(result.sections.singleOrNull())
     }
 
-    private fun section(id: String) = WidgetSection(id, "01", id.uppercase(), "VALUE")
+    private fun section(
+        id: String,
+        observedAt: String? = null,
+        fetchedAt: String? = null,
+    ) = WidgetSection(
+        id = id,
+        index = "01",
+        label = id.uppercase(),
+        primary = "VALUE",
+        observedAt = observedAt,
+        fetchedAt = fetchedAt,
+    )
 
     private fun payload(generatedAt: String, sections: List<WidgetSection>) = WidgetPayload(
         schemaVersion = 2,

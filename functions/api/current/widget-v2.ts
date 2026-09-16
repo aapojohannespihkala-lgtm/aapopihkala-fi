@@ -25,6 +25,8 @@ export type WidgetSection = {
   tone?: Tone;
   span?: WidgetSpan;
   layout?: WidgetLayout;
+  observedAt?: string;
+  fetchedAt?: string;
   countdownTargetMs?: number;
   rows?: WidgetRow[];
   columns?: WidgetColumn[];
@@ -237,7 +239,11 @@ const weatherForecastDetail = (items: WidgetColumn[]) =>
     ? ''
     : `FORECAST ${items.map((item) => `${item.label}=${item.value}`).join('|')}`;
 
-const buildWeatherSection = (value: unknown, solar: SolarData | null): WidgetSection | null => {
+const buildWeatherSection = (
+  value: unknown,
+  solar: SolarData | null,
+  fetchedAt?: string,
+): WidgetSection | null => {
   const weather = asRecord(value);
   if (!weather) return null;
   const temperature = finiteNumber(weather.temperature);
@@ -267,6 +273,7 @@ const buildWeatherSection = (value: unknown, solar: SolarData | null): WidgetSec
     detail: detail || undefined,
     span: 'full',
     layout: 'stack',
+    fetchedAt,
     rows: weatherRows,
     columns: forecastColumns,
   };
@@ -297,6 +304,7 @@ const hourlyBars = (value: unknown): number[] => {
 const buildElectricitySection = (
   value: unknown,
   monthAverage: number | null,
+  fetchedAt?: string,
 ): WidgetSection | null => {
   const electricity = asRecord(value);
   if (!electricity) return null;
@@ -314,6 +322,7 @@ const buildElectricitySection = (
     detail: `MONTH AVG ${formatNumber(monthAverage)}  LOW ${formatNumber(low)}  HIGH ${formatNumber(high)}`,
     span: 'full',
     layout: 'split',
+    fetchedAt,
     bars: hourlyBars(electricity.series),
     rows: price === null ? [] : [{ label: 'NOW', value: formatPrice(price) }],
   };
@@ -412,6 +421,7 @@ const buildHslSection = (
     tone: next.realtime ? 'accent' : 'neutral',
     span: 'full',
     layout: 'split',
+    fetchedAt: data.fetchedAt,
     countdownTargetMs: next.timestamp,
     rows: upcoming.slice(0, 4).map((departure) => ({
       label: departure.route,
@@ -522,11 +532,12 @@ export const buildWidgetV2Payload = (
   hsl: WidgetHslData | null = null,
   electricityMonthAverage: number | null = null,
 ): WidgetV2Payload => {
+  const baseFetchedAt = stringValue(base?.updated) ?? generatedAt;
   const hslSection = buildHslSection(hsl, generatedAt);
   const hasHsl = hslSection !== null;
   const sections = [
-    buildWeatherSection(base?.weather, solar),
-    buildElectricitySection(base?.electricity, electricityMonthAverage),
+    buildWeatherSection(base?.weather, solar, baseFetchedAt),
+    buildElectricitySection(base?.electricity, electricityMonthAverage, baseFetchedAt),
     buildMarketsSection(base?.markets),
     hslSection,
     buildRatesSection(base?.rates, hasHsl ? '05' : '04'),
@@ -537,7 +548,7 @@ export const buildWidgetV2Payload = (
     schemaVersion: 2,
     minEngineVersion: 2,
     channel,
-    generatedAt: stringValue(base?.updated) ?? generatedAt,
+    generatedAt: baseFetchedAt,
     title: 'CURRENT / SNAPSHOT',
     pageUrl: 'https://aapopihkala.fi/current/snapshot/',
     theme: channel === 'dev' ? DEV_THEME : PROD_THEME,
