@@ -251,6 +251,7 @@ const buildWeatherSection = (
   const high = finiteNumber(weather.max);
   const location = stringValue(weather.location);
   const condition = stringValue(weather.condition);
+  const observedAt = stringValue(weather.observedAt);
   if (temperature === null && low === null && high === null) return null;
   const range = low === null && high === null ? '' : `${formatDegree(low)} / ${formatDegree(high)}`;
   const weatherDetail = [condition, range].filter(Boolean).join(' / ');
@@ -273,6 +274,7 @@ const buildWeatherSection = (
     detail: detail || undefined,
     span: 'full',
     layout: 'stack',
+    observedAt: observedAt ?? undefined,
     fetchedAt,
     rows: weatherRows,
     columns: forecastColumns,

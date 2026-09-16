@@ -3,7 +3,9 @@ import { onRequestGet as getMarketsResponse } from './markets-stable';
 import { onRequestGet as getPortfolioPerformance } from './portfolio';
 
 type WeatherResponse = {
+  utc_offset_seconds?: unknown;
   current?: {
+    time?: unknown;
     temperature_2m?: unknown;
     weather_code?: unknown;
   };
@@ -122,6 +124,36 @@ const getLocalDateTimeKey = (date: Date) => {
   return `${parts.year ?? '0000'}-${parts.month ?? '00'}-${parts.day ?? '00'}T${parts.hour ?? '00'}:${parts.minute ?? '00'}`;
 };
 
+export const normalizeWeatherObservedAt = (
+  value: unknown,
+  utcOffsetSeconds: unknown,
+): string | null => {
+  if (typeof value !== 'string' || !isFiniteNumber(utcOffsetSeconds)) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value.trim());
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6] ?? '0');
+  const localAsUtcMs = Date.UTC(year, month - 1, day, hour, minute, second);
+  const normalized = new Date(localAsUtcMs);
+  if (
+    normalized.getUTCFullYear() !== year ||
+    normalized.getUTCMonth() !== month - 1 ||
+    normalized.getUTCDate() !== day ||
+    normalized.getUTCHours() !== hour ||
+    normalized.getUTCMinutes() !== minute ||
+    normalized.getUTCSeconds() !== second
+  ) {
+    return null;
+  }
+
+  return new Date(localAsUtcMs - utcOffsetSeconds * 1000).toISOString();
+};
+
 const weatherCodeLabel = (value: unknown) => {
   if (!isFiniteNumber(value)) return null;
   const code = Math.round(value);
@@ -233,6 +265,7 @@ const loadWeather = async (now: Date) => {
     location: WIDGET_WEATHER_SOURCE.label,
     temperature,
     condition: weatherCodeLabel(data.current?.weather_code),
+    observedAt: normalizeWeatherObservedAt(data.current?.time, data.utc_offset_seconds),
     min: isFiniteNumber(low) ? low : null,
     max: isFiniteNumber(high) ? high : null,
     forecast,
