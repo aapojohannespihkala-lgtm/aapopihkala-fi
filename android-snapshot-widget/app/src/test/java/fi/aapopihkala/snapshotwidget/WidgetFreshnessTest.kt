@@ -36,12 +36,55 @@ class WidgetFreshnessTest {
     }
 
     @Test
+    fun invalidObservedAtFallsBackToFetchedAt() {
+        val payload = payload(
+            "2026-09-15T12:19:00Z",
+            listOf(
+                section(
+                    "electricity",
+                    observedAt = "not-a-time",
+                    fetchedAt = "2026-09-15T11:00:00Z",
+                ),
+            ),
+        )
+        assertNull(payload.withSafeCachedFreshness(now).sections.firstOrNull())
+    }
+
+    @Test
     fun fetchedAtIsUsedWhenObservedAtIsMissing() {
         val payload = payload(
             "2026-09-15T12:19:00Z",
             listOf(section("hsl", fetchedAt = "2026-09-15T12:00:00Z")),
         )
         assertNull(payload.withSafeCachedFreshness(now).sections.firstOrNull())
+    }
+
+    @Test
+    fun staleRealtimeSectionDoesNotRemoveIndependentSections() {
+        val payload = payload(
+            "2026-09-15T12:19:00Z",
+            listOf(
+                section("weather", observedAt = "2026-09-15T10:00:00Z"),
+                section("electricity", observedAt = "2026-09-15T12:10:00Z"),
+                section("markets", observedAt = "2026-09-12T00:00:00Z"),
+                section("rates", observedAt = "2026-09-12T00:00:00Z"),
+            ),
+        )
+        val result = payload.withSafeCachedFreshness(now)
+        assertEquals(listOf("electricity", "markets", "rates"), result.sections.map { it.id })
+    }
+
+    @Test
+    fun marketsAndRatesRemainAvailableAcrossSlowSourceCadence() {
+        val payload = payload(
+            "2026-09-15T12:19:00Z",
+            listOf(
+                section("markets", observedAt = "2026-09-12T00:00:00Z"),
+                section("rates", observedAt = "2026-09-12T00:00:00Z"),
+            ),
+        )
+        val result = payload.withSafeCachedFreshness(now)
+        assertEquals(listOf("markets", "rates"), result.sections.map { it.id })
     }
 
     @Test
