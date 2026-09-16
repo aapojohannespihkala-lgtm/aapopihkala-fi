@@ -92,6 +92,12 @@ Tapping `↻` starts a manual refresh and swaps the symbol to a native indetermi
 
 `WidgetRepository` keeps the last compatible cache and always preserves it if a refresh fails.
 
+A successful rich v2 response may also be partial when one optional upstream source fails. If the new server layout still expects Weather, Electricity, Markets, Rates or HSL but that section is missing from the response, Android carries the previous compatible section forward instead of replacing it with a blank gap. The new layout remains authoritative: a section intentionally removed from all size layouts is not restored. Liiga is not carried this way because it does not yet have a section-level freshness timestamp that makes stale live or standing data safe to preserve.
+
+Carried sections keep their own `observedAt` or `fetchedAt`. Older compatible caches that predate section-level timestamps are anchored to their previous payload `generatedAt`, so a newly generated partial response cannot make old cached values look fresh.
+
+Weather and Electricity remain visible after their freshness limit as last-known-good values, with `/ STALE` appended to the section label. HSL remains stricter: stale LIVE rows are removed; only still-future static schedule rows may remain, and that fallback is also labeled `/ STALE`. Markets and Rates retain their slower source cadence and are not hidden merely because of weekends or market holidays.
+
 Starting in 2.8.4, the rich v2 request gets one bounded retry for transient errors such as timeout, DNS/connectivity/SSL/IO failures, HTTP 408/425/429 and HTTP 5xx. Semantic/permanent failures such as `PARSE`, `COMPAT`, `EMPTY`, `SECURITY` and ordinary 4xx are not blindly retried.
 
 If v2 still fails, Android tries the legacy endpoint. If both fail, the old compatible cache remains visible.
@@ -147,8 +153,8 @@ Keep large rows wrapped in `LargeRowBlock`. Use only RemoteViews-safe native vie
 
 ## APK workflow
 
-Android-changing PRs run unit tests and compile a debug APK. After merge to `main`, the Android release workflow runs the Android unit tests again, restores the persistent signing identity, builds the signed release APK, verifies the signature and uploads the artifact.
+Android-changing PRs run the version-bump guard, unit tests and a debug APK compile. Production Android changes must increase `versionCode` and advance the numeric `versionName`. After merge to `main`, the Android release workflow runs the Android unit tests again, restores the persistent signing identity, builds the signed release APK, verifies the signature and uploads the artifact.
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.26**.
+Current app version: **2.10.27**.
