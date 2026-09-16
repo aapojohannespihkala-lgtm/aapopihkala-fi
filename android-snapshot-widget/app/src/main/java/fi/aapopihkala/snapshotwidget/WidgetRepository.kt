@@ -116,11 +116,16 @@ internal fun mergeMissingExpectedSections(
             presentation.layouts.large
         ).toSet()
     val currentIds = presentation.sections.mapTo(mutableSetOf()) { it.id }
-    val carried = previous.sections.filter { section ->
-        section.id in preservableSectionIds &&
-            section.id in expectedIds &&
-            section.id !in currentIds
-    }
+    val carried = previous.sections
+        .filter { section ->
+            section.id in preservableSectionIds &&
+                section.id in expectedIds &&
+                section.id !in currentIds
+        }
+        .map { section ->
+            if (section.observedAt != null || section.fetchedAt != null) section
+            else section.copy(fetchedAt = previous.generatedAt)
+        }
 
     return if (carried.isEmpty()) presentation
     else presentation.copy(sections = presentation.sections + carried)
