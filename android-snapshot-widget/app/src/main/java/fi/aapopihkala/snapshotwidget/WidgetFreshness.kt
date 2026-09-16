@@ -8,8 +8,8 @@ private const val MINUTE_MS = 60_000L
 
 private val realtimeCacheMaxAgeMs = mapOf(
     "hsl" to 5 * MINUTE_MS,
-    "electricity" to 45 * MINUTE_MS,
-    "weather" to 90 * MINUTE_MS,
+    "electricity" to 20 * MINUTE_MS,
+    "weather" to 30 * MINUTE_MS,
 )
 
 internal fun parseWidgetGeneratedAtMs(value: String): Long? {
