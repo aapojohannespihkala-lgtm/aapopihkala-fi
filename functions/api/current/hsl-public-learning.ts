@@ -11,6 +11,13 @@ type HslPublicPayload = {
   learning?: unknown;
 };
 
+export type HslLearningHealth = {
+  available: boolean;
+  updatedAt: string | null;
+  ageSeconds: number | null;
+  learning: unknown | null;
+};
+
 const MAX_SNAPSHOT_AGE_MS = 15 * 60_000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -51,6 +58,45 @@ export const mergeHslLearningSnapshotPayload = (
       return model === undefined ? departure : { ...departure, model };
     }),
   };
+};
+
+export const learningHealthFromSnapshot = (
+  payloadJson: string,
+  updatedAt: string,
+  nowMs = Date.now()
+): HslLearningHealth => {
+  const updatedMs = new Date(updatedAt).getTime();
+  const ageSeconds = Number.isFinite(updatedMs) ? Math.max(0, Math.round((nowMs - updatedMs) / 1000)) : null;
+
+  try {
+    const payload: unknown = JSON.parse(payloadJson);
+    return {
+      available: isPublicPayload(payload) && isRecord(payload.learning),
+      updatedAt,
+      ageSeconds,
+      learning: isPublicPayload(payload) && isRecord(payload.learning) ? payload.learning : null,
+    };
+  } catch {
+    return { available: false, updatedAt, ageSeconds, learning: null };
+  }
+};
+
+export const readHslLearningHealth = async (db?: HslLearningDb): Promise<HslLearningHealth> => {
+  if (!db) return { available: false, updatedAt: null, ageSeconds: null, learning: null };
+
+  try {
+    const row = await db.prepare(`
+      SELECT payload_json, updated_at
+      FROM hsl_eta_public_snapshot
+      WHERE id = 1
+      LIMIT 1
+    `).first<{ payload_json: string; updated_at: string }>();
+    if (!row) return { available: false, updatedAt: null, ageSeconds: null, learning: null };
+    return learningHealthFromSnapshot(row.payload_json, row.updated_at);
+  } catch (error) {
+    console.error('HSL learning health read failed', error);
+    return { available: false, updatedAt: null, ageSeconds: null, learning: null };
+  }
 };
 
 export const saveHslLearningPublicSnapshot = async (
