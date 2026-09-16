@@ -9,7 +9,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.glance.appwidget.updateAll
+import androidx.work.Constraints
 import androidx.work.CoroutineWorker
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import java.util.Calendar
 import java.util.Locale
@@ -21,8 +26,12 @@ import kotlinx.coroutines.launch
 
 private const val ACTION_HSL_ROLLOVER = "fi.aapopihkala.snapshotwidget.action.HSL_ROLLOVER"
 private const val ACTION_MIDNIGHT_REFRESH = "fi.aapopihkala.snapshotwidget.action.MIDNIGHT_REFRESH"
+private const val ACTION_ELECTRICITY_QUARTER_REFRESH = "fi.aapopihkala.snapshotwidget.action.ELECTRICITY_QUARTER_REFRESH"
 private const val HSL_ALARM_REQUEST_CODE = 8104
 private const val MIDNIGHT_ALARM_REQUEST_CODE = 8105
+private const val ELECTRICITY_ALARM_REQUEST_CODE = 8106
+private const val IMMEDIATE_NETWORK_WORK_NAME = "snapshot-widget-immediate"
+private const val ELECTRICITY_QUARTER_MS = 15 * 60_000L
 
 internal fun nextHslRolloverTarget(payload: WidgetPayload?, wallNowMs: Long): Long? {
     val hsl = payload?.sections?.firstOrNull { it.id == "hsl" } ?: return null
@@ -42,6 +51,9 @@ internal fun nextHslDisplayAlarmTime(targetMs: Long, wallNowMs: Long): Long {
     val nextBoundaryMs = targetMs - (displayedMinutes - 1L) * 60_000L
     return nextBoundaryMs.coerceAtLeast(wallNowMs + 1L)
 }
+
+internal fun nextElectricityQuarterRefreshMs(wallNowMs: Long): Long =
+    (Math.floorDiv(wallNowMs, ELECTRICITY_QUARTER_MS) + 1L) * ELECTRICITY_QUARTER_MS
 
 internal fun nextHelsinkiMidnightMs(wallNowMs: Long): Long {
     val calendar = Calendar.getInstance(TimeZone.getTimeZone("Europe/Helsinki"), Locale.UK).apply {
@@ -113,6 +125,50 @@ internal object SnapshotHslRolloverScheduler {
     )
 }
 
+internal object SnapshotElectricityRefreshScheduler {
+    fun schedule(context: Context) {
+        val appContext = context.applicationContext
+        val alarmManager = appContext.getSystemService(AlarmManager::class.java) ?: return
+        val pendingIntent = electricityPendingIntent(appContext)
+        alarmManager.cancel(pendingIntent)
+        val targetMs = nextElectricityQuarterRefreshMs(System.currentTimeMillis())
+
+        try {
+            if (SnapshotHslRolloverScheduler.canScheduleExact(appContext)) {
+                alarmManager.setExact(
+                    AlarmManager.RTC,
+                    targetMs,
+                    pendingIntent,
+                )
+            } else {
+                alarmManager.set(
+                    AlarmManager.RTC,
+                    targetMs,
+                    pendingIntent,
+                )
+            }
+        } catch (_: SecurityException) {
+            alarmManager.set(
+                AlarmManager.RTC,
+                targetMs,
+                pendingIntent,
+            )
+        }
+    }
+
+    fun cancel(context: Context) {
+        val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
+        alarmManager.cancel(electricityPendingIntent(context))
+    }
+
+    private fun electricityPendingIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        ELECTRICITY_ALARM_REQUEST_CODE,
+        Intent(context, SnapshotHslRolloverReceiver::class.java).setAction(ACTION_ELECTRICITY_QUARTER_REFRESH),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+}
+
 private object SnapshotMidnightRefreshScheduler {
     fun schedule(context: Context) {
         val appContext = context.applicationContext
@@ -132,11 +188,26 @@ private object SnapshotMidnightRefreshScheduler {
     }
 }
 
+private fun enqueueElectricityQuarterRefresh(context: Context) {
+    val constraints = Constraints.Builder()
+        .setRequiredNetworkType(NetworkType.CONNECTED)
+        .build()
+    val request = OneTimeWorkRequestBuilder<SnapshotUpdateWorker>()
+        .setConstraints(constraints)
+        .build()
+    WorkManager.getInstance(context).enqueueUniqueWork(
+        IMMEDIATE_NETWORK_WORK_NAME,
+        ExistingWorkPolicy.KEEP,
+        request,
+    )
+}
+
 // Keep the repository call-site stable while local temporal updates move away
 // from WorkManager. WorkManager remains responsible for network refreshes only.
 internal object SnapshotTemporalRefreshScheduler {
     fun schedule(context: Context, payload: WidgetPayload?) {
         SnapshotHslRolloverScheduler.schedule(context, payload)
+        SnapshotElectricityRefreshScheduler.schedule(context)
         SnapshotMidnightRefreshScheduler.schedule(context)
     }
 }
@@ -163,6 +234,13 @@ class SnapshotHslRolloverReceiver : BroadcastReceiver() {
             try {
                 if (!hasSnapshotWidgets(appContext)) {
                     SnapshotHslRolloverScheduler.cancel(appContext)
+                    SnapshotElectricityRefreshScheduler.cancel(appContext)
+                    return@launch
+                }
+
+                if (intent.action == ACTION_ELECTRICITY_QUARTER_REFRESH) {
+                    SnapshotElectricityRefreshScheduler.schedule(appContext)
+                    enqueueElectricityQuarterRefresh(appContext)
                     return@launch
                 }
 

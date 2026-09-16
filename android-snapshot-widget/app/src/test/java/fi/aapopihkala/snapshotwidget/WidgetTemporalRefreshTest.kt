@@ -70,6 +70,22 @@ class WidgetTemporalRefreshTest {
     }
 
     @Test
+    fun electricityRefreshTargetsNextQuarterBoundary() {
+        val quarter = 15 * 60_000L
+        val now = 10 * quarter + 7 * 60_000L
+
+        assertEquals(11 * quarter, nextElectricityQuarterRefreshMs(now))
+    }
+
+    @Test
+    fun electricityRefreshDoesNotRepeatCurrentQuarterBoundary() {
+        val quarter = 15 * 60_000L
+        val now = 10 * quarter
+
+        assertEquals(11 * quarter, nextElectricityQuarterRefreshMs(now))
+    }
+
+    @Test
     fun rolloverReturnsNullWhenNoFutureDepartureRemains() {
         val now = 2_000_000L
         val payload = WidgetPayload(
