@@ -30,6 +30,30 @@ class WidgetFreshnessHardeningTest {
     }
 
     @Test
+    fun electricityAndWeatherUseTighterFreshnessWindows() {
+        val result = payload(
+            listOf(
+                section("electricity", "3.10 c/kWh", fetchedAt = "2026-09-15T12:00:00Z"),
+                section("electricity-old", "ignored"),
+                section("weather", "12.0°C", observedAt = "2026-09-15T11:50:00Z"),
+            )
+        ).withSafeCachedFreshness(now)
+
+        assertFalse(result.sections.single { it.id == "electricity" }.label.contains("STALE"))
+        assertFalse(result.sections.single { it.id == "weather" }.label.contains("STALE"))
+
+        val justTooOld = payload(
+            listOf(
+                section("electricity", "3.10 c/kWh", fetchedAt = "2026-09-15T11:59:00Z"),
+                section("weather", "12.0°C", observedAt = "2026-09-15T11:49:00Z"),
+            )
+        ).withSafeCachedFreshness(now)
+
+        assertTrue(justTooOld.sections.single { it.id == "electricity" }.label.endsWith(" / STALE"))
+        assertTrue(justTooOld.sections.single { it.id == "weather" }.label.endsWith(" / STALE"))
+    }
+
+    @Test
     fun freshSectionsAreNotMarkedStale() {
         val result = payload(
             listOf(
