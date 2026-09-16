@@ -70,6 +70,28 @@ class WidgetTemporalRefreshTest {
     }
 
     @Test
+    fun hslNetworkRefreshTargetsFourMinutesAfterFetchedAt() {
+        val fetchedAt = "2026-09-16T08:00:00Z"
+        val sourceMs = parseWidgetGeneratedAtMs(fetchedAt)!!
+        val now = sourceMs + 60_000L
+
+        assertEquals(
+            sourceMs + 4 * 60_000L,
+            nextHslNetworkRefreshMs(payloadWithHsl(fetchedAt), now),
+        )
+    }
+
+    @Test
+    fun staleOrMissingHslUsesFiveMinuteRecoveryDelay() {
+        val now = parseWidgetGeneratedAtMs("2026-09-16T08:10:00Z")!!
+        val stalePayload = payloadWithHsl("2026-09-16T08:00:00Z")
+        val missingPayload = stalePayload.copy(sections = emptyList())
+
+        assertEquals(now + 5 * 60_000L, nextHslNetworkRefreshMs(stalePayload, now))
+        assertEquals(now + 5 * 60_000L, nextHslNetworkRefreshMs(missingPayload, now))
+    }
+
+    @Test
     fun electricityRefreshTargetsNextQuarterBoundary() {
         val quarter = 15 * 60_000L
         val now = 10 * quarter + 7 * 60_000L
@@ -114,4 +136,25 @@ class WidgetTemporalRefreshTest {
 
         assertEquals(null, nextHslRolloverTarget(payload, now))
     }
+
+    private fun payloadWithHsl(fetchedAt: String) = WidgetPayload(
+        schemaVersion = 2,
+        minEngineVersion = 2,
+        channel = "prod",
+        generatedAt = fetchedAt,
+        refreshMinutes = 15,
+        title = "CURRENT / SNAPSHOT",
+        pageUrl = SnapshotEndpoints.PAGE_URL,
+        theme = WidgetTheme.default(),
+        layouts = WidgetLayouts.default(),
+        sections = listOf(
+            WidgetSection(
+                id = "hsl",
+                index = "04",
+                label = "HSL",
+                primary = "5 MIN",
+                fetchedAt = fetchedAt,
+            )
+        ),
+    )
 }

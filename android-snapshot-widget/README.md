@@ -61,11 +61,14 @@ Normal network data still refreshes on the WorkManager cadence, while selected t
 
 - header clock: Android `TextClock`, `HH:mm:ss`
 - Electricity `NOW`: quarter-hour AlarmManager trigger that enqueues a connected one-time WorkManager refresh
+- HSL network freshness: source `fetchedAt` drives a non-wakeup refresh before the 5-minute LIVE stale limit
 - HSL next departure: Android `Chronometer` outside the final one-minute due guard when exact rollover alarms are available
 - cached HSL departure rollover: exact local `AlarmManager` rebuild at the due-guard boundary and again at the absolute departure target
 - header date/week: refreshed by ordinary widget rebuilds
 
 The Electricity quarter-hour alarm is non-wakeup. If exact-alarm access is available it uses an exact `RTC` alarm; otherwise it uses an inexact `RTC` alarm. A sleeping device is not woken just to refresh an invisible home-screen price. After wake, or if the inexact alarm is delayed, the normal WorkManager cadence still provides recovery.
+
+HSL data freshness is separate from countdown progression. A successful HSL payload schedules a non-wakeup network trigger four minutes after its source `fetchedAt`. If HSL is missing or already stale, Android schedules a five-minute recovery attempt instead of entering a tight retry loop. The trigger enqueues the same connected `SnapshotUpdateWorker` path as other scheduled refreshes, so retry/fallback and last-known-good behavior remain centralized. Sleeping devices are not woken solely for HSL network freshness, and the ordinary 15-minute WorkManager cadence remains the fallback.
 
 The server attaches absolute targets to the visible HSL departure rows. Android always selects the first still-future target. LIVE vs SCHED only describes the source/status of the departure; both use the same rollover rule. One minute before the selected target, an exact local alarm rebuilds the widget and replaces the ticking Chronometer with the static `DUE` label. At the target, the next exact alarm rebuilds from cache, drops the passed departure, promotes the next one and immediately schedules that departure's guard and rollover. This prevents ordinary target-alarm or launcher rebuild latency from exposing a negative Chronometer. No HSL network request is required for this cached rollover.
 
@@ -93,7 +96,7 @@ Starting in 2.8.4, the rich v2 request gets one bounded retry for transient erro
 
 If v2 still fails, Android tries the legacy endpoint. If both fail, the old compatible cache remains visible.
 
-The quarter-hour Electricity trigger uses the same `SnapshotUpdateWorker`, endpoint/fallback path and cache preservation as periodic/manual refreshes. The AlarmManager receiver itself does not perform networking.
+The scheduled Electricity and HSL freshness triggers use the same `SnapshotUpdateWorker`, endpoint/fallback path and cache preservation as periodic/manual refreshes. The AlarmManager receiver itself does not perform networking.
 
 The footer exposes compact diagnostics only when useful, for example:
 
@@ -148,4 +151,4 @@ Android-changing PRs run unit tests and compile a debug APK. After merge to `mai
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.25**.
+Current app version: **2.10.26**.
