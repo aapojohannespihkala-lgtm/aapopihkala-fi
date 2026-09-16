@@ -335,12 +335,13 @@ const marketRow = (label: string, value: unknown): WidgetRow => {
   return { label, value: formatPercent(number, true, 2), tone: toneFor(number) };
 };
 
-const buildMarketsSection = (value: unknown): WidgetSection | null => {
+const buildMarketsSection = (value: unknown, fetchedAt?: string): WidgetSection | null => {
   const markets = asRecord(value);
   if (!markets) return null;
   const median = finiteNumber(markets.median);
   const month1Median = finiteNumber(markets.month1Median);
   const year1Median = finiteNumber(markets.year1Median);
+  const observedAt = stringValue(markets.observedAt);
   const rows = [
     marketRow('WORLD', markets.world),
     marketRow('USA', markets.usa),
@@ -363,6 +364,8 @@ const buildMarketsSection = (value: unknown): WidgetSection | null => {
     tone: toneFor(median),
     span: 'full',
     layout: 'split',
+    observedAt: observedAt ?? undefined,
+    fetchedAt,
     rows,
   };
 };
@@ -435,11 +438,16 @@ const buildHslSection = (
   };
 };
 
-const buildRatesSection = (value: unknown, index = '04'): WidgetSection | null => {
+const buildRatesSection = (
+  value: unknown,
+  index = '04',
+  fetchedAt?: string,
+): WidgetSection | null => {
   const rates = asRecord(value);
   if (!rates) return null;
   const current = finiteNumber(rates.euribor3m);
   const yearAgo = finiteNumber(rates.yearAgo);
+  const observedAt = stringValue(rates.observedAt);
   if (current === null && yearAgo === null) return null;
   return {
     id: 'rates',
@@ -450,6 +458,8 @@ const buildRatesSection = (value: unknown, index = '04'): WidgetSection | null =
     detail: `1Y AGO ${formatPercent(yearAgo, false, 2)}`,
     span: 'half',
     layout: 'stack',
+    observedAt: observedAt ?? undefined,
+    fetchedAt,
   };
 };
 
@@ -540,9 +550,9 @@ export const buildWidgetV2Payload = (
   const sections = [
     buildWeatherSection(base?.weather, solar, baseFetchedAt),
     buildElectricitySection(base?.electricity, electricityMonthAverage, baseFetchedAt),
-    buildMarketsSection(base?.markets),
+    buildMarketsSection(base?.markets, baseFetchedAt),
     hslSection,
-    buildRatesSection(base?.rates, hasHsl ? '05' : '04'),
+    buildRatesSection(base?.rates, hasHsl ? '05' : '04', baseFetchedAt),
     buildLiigaSection(liiga, hasHsl ? '06' : '05'),
   ].filter((section): section is WidgetSection => section !== null);
 
