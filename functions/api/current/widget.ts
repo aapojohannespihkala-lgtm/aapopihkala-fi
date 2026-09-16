@@ -32,6 +32,7 @@ type ElectricityResponse = {
 
 type PortfolioItem = {
   id?: unknown;
+  observedAt?: unknown;
   changes?: {
     today?: unknown;
     month1?: unknown;
@@ -46,6 +47,7 @@ type PortfolioResponse = {
 type MarketItem = {
   id?: unknown;
   value?: unknown;
+  observedAt?: unknown;
 };
 
 type MarketSeriesPoint = {
@@ -152,6 +154,38 @@ export const normalizeWeatherObservedAt = (
   }
 
   return new Date(localAsUtcMs - utcOffsetSeconds * 1000).toISOString();
+};
+
+export const normalizeSourceObservedAt = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (dateOnly) {
+    const year = Number(dateOnly[1]);
+    const month = Number(dateOnly[2]);
+    const day = Number(dateOnly[3]);
+    const timestamp = Date.UTC(year, month - 1, day);
+    const normalized = new Date(timestamp);
+    if (
+      normalized.getUTCFullYear() !== year ||
+      normalized.getUTCMonth() !== month - 1 ||
+      normalized.getUTCDate() !== day
+    ) {
+      return null;
+    }
+    return normalized.toISOString();
+  }
+
+  const timestamp = Date.parse(trimmed);
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
+};
+
+export const oldestSourceObservedAt = (values: unknown[]): string | null => {
+  const normalized = values
+    .map(normalizeSourceObservedAt)
+    .filter((value): value is string => value !== null)
+    .sort();
+  return normalized[0] ?? null;
 };
 
 const weatherCodeLabel = (value: unknown) => {
@@ -332,6 +366,7 @@ const loadPortfolio = async () => {
 
   const byId = new Map<string, PortfolioItem>();
   const todayValues: number[] = [];
+  const todayObservedAt: unknown[] = [];
   const month1Values: number[] = [];
   const year1Values: number[] = [];
 
@@ -339,7 +374,10 @@ const loadPortfolio = async () => {
     if (!raw || typeof raw !== 'object') continue;
     const item = raw as PortfolioItem;
     if (typeof item.id === 'string') byId.set(item.id, item);
-    if (isFiniteNumber(item.changes?.today)) todayValues.push(item.changes.today);
+    if (isFiniteNumber(item.changes?.today)) {
+      todayValues.push(item.changes.today);
+      todayObservedAt.push(item.observedAt);
+    }
     if (isFiniteNumber(item.changes?.month1)) month1Values.push(item.changes.month1);
     if (isFiniteNumber(item.changes?.year1)) year1Values.push(item.changes.year1);
   }
@@ -353,6 +391,7 @@ const loadPortfolio = async () => {
     median: median(todayValues),
     month1Median: median(month1Values),
     year1Median: median(year1Values),
+    observedAt: oldestSourceObservedAt(todayObservedAt),
     world: selectedValue(SELECTED_MARKETS.world),
     usa: selectedValue(SELECTED_MARKETS.usa),
     finland: selectedValue(SELECTED_MARKETS.finland),
@@ -399,6 +438,7 @@ const loadRates = async (request: Request) => {
   return {
     euribor3m: euribor.value,
     yearAgo,
+    observedAt: normalizeSourceObservedAt(euribor.observedAt),
   };
 };
 
