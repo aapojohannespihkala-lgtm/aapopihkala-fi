@@ -31,16 +31,15 @@ class WidgetFreshnessHardeningTest {
 
     @Test
     fun electricityAndWeatherUseTighterFreshnessWindows() {
-        val result = payload(
+        val atLimit = payload(
             listOf(
                 section("electricity", "3.10 c/kWh", fetchedAt = "2026-09-15T12:00:00Z"),
-                section("electricity-old", "ignored"),
                 section("weather", "12.0°C", observedAt = "2026-09-15T11:50:00Z"),
             )
         ).withSafeCachedFreshness(now)
 
-        assertFalse(result.sections.single { it.id == "electricity" }.label.contains("STALE"))
-        assertFalse(result.sections.single { it.id == "weather" }.label.contains("STALE"))
+        assertFalse(atLimit.sections.single { it.id == "electricity" }.label.contains("STALE"))
+        assertFalse(atLimit.sections.single { it.id == "weather" }.label.contains("STALE"))
 
         val justTooOld = payload(
             listOf(
