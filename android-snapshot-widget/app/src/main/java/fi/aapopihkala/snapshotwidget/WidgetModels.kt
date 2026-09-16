@@ -158,8 +158,10 @@ internal fun resolveTemporalSection(section: WidgetSection, wallNowMs: Long): Wi
     }
 }
 
-internal fun WidgetPayload.resolveTemporalSections(wallNowMs: Long): WidgetPayload =
-    copy(sections = sections.map { resolveTemporalSection(it, wallNowMs) })
+internal fun WidgetPayload.resolveTemporalSections(wallNowMs: Long): WidgetPayload {
+    val safe = withSafeCachedFreshness(wallNowMs)
+    return safe.copy(sections = safe.sections.map { resolveTemporalSection(it, wallNowMs) })
+}
 
 internal fun safeSnapshotPageUrl(value: String?): String {
     val candidate = value?.trim()?.takeIf { it.isNotEmpty() } ?: return SnapshotEndpoints.PAGE_URL
