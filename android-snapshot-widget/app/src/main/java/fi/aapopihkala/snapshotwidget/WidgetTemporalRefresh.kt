@@ -25,13 +25,17 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 private const val ACTION_HSL_ROLLOVER = "fi.aapopihkala.snapshotwidget.action.HSL_ROLLOVER"
+private const val ACTION_HSL_NETWORK_REFRESH = "fi.aapopihkala.snapshotwidget.action.HSL_NETWORK_REFRESH"
 private const val ACTION_MIDNIGHT_REFRESH = "fi.aapopihkala.snapshotwidget.action.MIDNIGHT_REFRESH"
 private const val ACTION_ELECTRICITY_QUARTER_REFRESH = "fi.aapopihkala.snapshotwidget.action.ELECTRICITY_QUARTER_REFRESH"
 private const val HSL_ALARM_REQUEST_CODE = 8104
 private const val MIDNIGHT_ALARM_REQUEST_CODE = 8105
 private const val ELECTRICITY_ALARM_REQUEST_CODE = 8106
+private const val HSL_NETWORK_ALARM_REQUEST_CODE = 8107
 private const val IMMEDIATE_NETWORK_WORK_NAME = "snapshot-widget-immediate"
 private const val ELECTRICITY_QUARTER_MS = 15 * 60_000L
+private const val HSL_NETWORK_REFRESH_MS = 4 * 60_000L
+private const val HSL_NETWORK_RETRY_MS = 5 * 60_000L
 
 internal fun nextHslRolloverTarget(payload: WidgetPayload?, wallNowMs: Long): Long? {
     val hsl = payload?.sections?.firstOrNull { it.id == "hsl" } ?: return null
@@ -50,6 +54,20 @@ internal fun nextHslDisplayAlarmTime(targetMs: Long, wallNowMs: Long): Long {
     val displayedMinutes = (remainingMs + 59_999L) / 60_000L
     val nextBoundaryMs = targetMs - (displayedMinutes - 1L) * 60_000L
     return nextBoundaryMs.coerceAtLeast(wallNowMs + 1L)
+}
+
+internal fun nextHslNetworkRefreshMs(payload: WidgetPayload?, wallNowMs: Long): Long {
+    val hsl = payload?.sections?.firstOrNull { it.id == "hsl" }
+    val sourceMs = if (hsl == null) {
+        null
+    } else {
+        sequenceOf(hsl.observedAt, hsl.fetchedAt, payload.generatedAt)
+            .filterNotNull()
+            .mapNotNull(::parseWidgetGeneratedAtMs)
+            .firstOrNull()
+    }
+    val targetMs = sourceMs?.plus(HSL_NETWORK_REFRESH_MS)
+    return targetMs?.takeIf { it > wallNowMs } ?: (wallNowMs + HSL_NETWORK_RETRY_MS)
 }
 
 internal fun nextElectricityQuarterRefreshMs(wallNowMs: Long): Long =
@@ -125,6 +143,50 @@ internal object SnapshotHslRolloverScheduler {
     )
 }
 
+internal object SnapshotHslNetworkRefreshScheduler {
+    fun schedule(context: Context, payload: WidgetPayload?) {
+        val appContext = context.applicationContext
+        val alarmManager = appContext.getSystemService(AlarmManager::class.java) ?: return
+        val pendingIntent = hslNetworkPendingIntent(appContext)
+        alarmManager.cancel(pendingIntent)
+        val targetMs = nextHslNetworkRefreshMs(payload, System.currentTimeMillis())
+
+        try {
+            if (SnapshotHslRolloverScheduler.canScheduleExact(appContext)) {
+                alarmManager.setExact(
+                    AlarmManager.RTC,
+                    targetMs,
+                    pendingIntent,
+                )
+            } else {
+                alarmManager.set(
+                    AlarmManager.RTC,
+                    targetMs,
+                    pendingIntent,
+                )
+            }
+        } catch (_: SecurityException) {
+            alarmManager.set(
+                AlarmManager.RTC,
+                targetMs,
+                pendingIntent,
+            )
+        }
+    }
+
+    fun cancel(context: Context) {
+        val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
+        alarmManager.cancel(hslNetworkPendingIntent(context))
+    }
+
+    private fun hslNetworkPendingIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        HSL_NETWORK_ALARM_REQUEST_CODE,
+        Intent(context, SnapshotHslRolloverReceiver::class.java).setAction(ACTION_HSL_NETWORK_REFRESH),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+}
+
 internal object SnapshotElectricityRefreshScheduler {
     fun schedule(context: Context) {
         val appContext = context.applicationContext
@@ -188,7 +250,7 @@ private object SnapshotMidnightRefreshScheduler {
     }
 }
 
-private fun enqueueElectricityQuarterRefresh(context: Context) {
+private fun enqueueScheduledNetworkRefresh(context: Context) {
     val constraints = Constraints.Builder()
         .setRequiredNetworkType(NetworkType.CONNECTED)
         .build()
@@ -207,6 +269,7 @@ private fun enqueueElectricityQuarterRefresh(context: Context) {
 internal object SnapshotTemporalRefreshScheduler {
     fun schedule(context: Context, payload: WidgetPayload?) {
         SnapshotHslRolloverScheduler.schedule(context, payload)
+        SnapshotHslNetworkRefreshScheduler.schedule(context, payload)
         SnapshotElectricityRefreshScheduler.schedule(context)
         SnapshotMidnightRefreshScheduler.schedule(context)
     }
@@ -234,13 +297,21 @@ class SnapshotHslRolloverReceiver : BroadcastReceiver() {
             try {
                 if (!hasSnapshotWidgets(appContext)) {
                     SnapshotHslRolloverScheduler.cancel(appContext)
+                    SnapshotHslNetworkRefreshScheduler.cancel(appContext)
                     SnapshotElectricityRefreshScheduler.cancel(appContext)
                     return@launch
                 }
 
                 if (intent.action == ACTION_ELECTRICITY_QUARTER_REFRESH) {
                     SnapshotElectricityRefreshScheduler.schedule(appContext)
-                    enqueueElectricityQuarterRefresh(appContext)
+                    enqueueScheduledNetworkRefresh(appContext)
+                    return@launch
+                }
+
+                if (intent.action == ACTION_HSL_NETWORK_REFRESH) {
+                    val payload = WidgetRepository(appContext).loadCached()
+                    SnapshotHslNetworkRefreshScheduler.schedule(appContext, payload)
+                    enqueueScheduledNetworkRefresh(appContext)
                     return@launch
                 }
 

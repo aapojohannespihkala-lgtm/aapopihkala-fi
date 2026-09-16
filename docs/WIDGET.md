@@ -130,6 +130,7 @@ The Android app owns:
 - RemoteViews-safe native live views (`TextClock`, `Chronometer`, `ProgressBar`)
 - compatible cache persistence
 - local HSL temporal rollover
+- HSL source-freshness network trigger
 - local Helsinki-midnight rebuild
 - quarter-hour Electricity refresh trigger
 - manual refresh action
@@ -169,6 +170,7 @@ compatible cache
    |
    +--> temporal resolver
    +--> AlarmManager due guard + next-departure rollover
+   +--> AlarmManager HSL freshness target -> WorkManager network refresh
    +--> AlarmManager Electricity quarter boundary -> WorkManager network refresh
    |
    v
@@ -218,6 +220,10 @@ Current production large composition:
 ## HSL live countdown
 
 The 15-minute network cadence is not appropriate for a departure countdown. HSL therefore separates data freshness from local time progression.
+
+The HSL adapter carries its actual source `fetchedAt`. Android schedules a non-wakeup freshness trigger four minutes after that source time, before the five-minute LIVE stale guard. If HSL is missing or its source time is already stale, Android schedules a five-minute recovery attempt rather than repeatedly retrying immediately. The trigger only enqueues the existing connected `SnapshotUpdateWorker`; networking, bounded retry, legacy fallback and cache preservation remain centralized in `WidgetRepository`.
+
+The freshness alarm does not wake a sleeping device. With exact-alarm access Android uses exact non-wakeup `RTC`; without that access it uses an inexact non-wakeup `RTC`. The ordinary 15-minute periodic WorkManager job remains the recovery path when the device is asleep, exact access is unavailable or an alarm is delayed.
 
 The server supplies absolute timestamps for the current departure and visible upcoming departures. Android converts the selected wall-clock target to a `Chronometer` base using `SystemClock.elapsedRealtime()` and lets the native view advance locally between network refreshes.
 
@@ -277,9 +283,11 @@ The large-row grouping is a platform constraint, not cosmetic structure. Flatten
 
 The periodic network refresh uses WorkManager at Android's minimum practical 15-minute interval and requires `NetworkType.CONNECTED`. WorkManager timing is opportunistic; 15 minutes is not an exact wall-clock guarantee.
 
+HSL realtime data has a five-minute stale guard, so periodic WorkManager alone is too slow. Android schedules a source-aware refresh four minutes after HSL `fetchedAt`. If the source section is absent or already stale, the next recovery attempt is five minutes later. The HSL freshness alarm is non-wakeup and enqueues a connected one-time WorkManager job; it does not perform networking inside the receiver. This keeps the existing retry/fallback/cache path authoritative and prevents stale LIVE rows from being treated as current.
+
 Electricity needs a tighter wall-clock relationship because the visible `NOW` price changes at `00`, `15`, `30` and `45` minutes. Android therefore schedules the next quarter-hour boundary with AlarmManager. When the device is awake and exact-alarm access is available, this is an exact non-wakeup `RTC` alarm. Without exact access it is an inexact non-wakeup `RTC` alarm. The boundary receiver immediately schedules the following boundary and enqueues a connected one-time `SnapshotUpdateWorker` job. The receiver itself never performs the network request.
 
-The Electricity alarm intentionally does not wake a sleeping device just to refresh an invisible home-screen value. If the alarm is deferred across sleep, the normal periodic WorkManager job remains the recovery path after wake/network availability. The quarter-hour trigger is an alignment improvement, not a replacement for the existing periodic schedule.
+The HSL freshness and Electricity alarms intentionally do not wake a sleeping device just to refresh invisible home-screen values. If an alarm is deferred across sleep, the normal periodic WorkManager job remains the recovery path after wake/network availability. These triggers improve alignment and freshness; they do not replace the existing periodic schedule.
 
 A user-triggered manual refresh remains an immediate one-time work request so it gives direct feedback and uses the existing retry/fallback diagnostics.
 
@@ -287,6 +295,7 @@ Live/local time behavior is deliberately independent from normal network cadence
 
 - header seconds: native `TextClock`
 - Electricity current price: quarter-hour AlarmManager trigger -> connected one-time WorkManager fetch
+- HSL network freshness: source `fetchedAt` + four-minute AlarmManager trigger -> connected one-time WorkManager fetch
 - HSL countdown: native `Chronometer` only before the final one-minute due guard when exact rollover is available
 - HSL rollover: exact `AlarmManager` due-guard alarm followed by the absolute departure target
 - exact-alarm unavailable fallback: absolute departure clock, never a negative Chronometer
@@ -313,14 +322,14 @@ If v2 still fails, Android tries the legacy endpoint. If both fail, the previous
 
 The widget keeps the latest compatible payload in SharedPreferences.
 
-- v2 success -> cache rich payload and schedule the next local HSL guard/rollover plus Electricity quarter boundary
+- v2 success -> cache rich payload and schedule HSL source-freshness, HSL guard/rollover and Electricity quarter boundary alarms
 - v2 transient failure -> retry once
 - v2 still fails -> try legacy
 - legacy success -> cache legacy payload and identify fallback in footer
 - v2 + legacy failure -> preserve previous cache and keep/reschedule usable local temporal targets
-- optional section failure inside valid v2 -> omit only that section
+- optional section failure inside valid v2 -> omit only that section; HSL freshness scheduling still retries later
 
-Realtime stale guards use section source timestamps when available. Weather and Electricity prefer `observedAt`, then `fetchedAt`, while old compatible payloads continue to fall back to payload `generatedAt`. HSL keeps its own fetched timestamp and local future schedule fallback rules.
+Realtime stale guards use section source timestamps when available. Weather and Electricity prefer `observedAt`, then `fetchedAt`, while old compatible payloads continue to fall back to payload `generatedAt`. HSL keeps its own fetched timestamp and local future schedule fallback rules. Once HSL is over five minutes old, cached LIVE rows are discarded; only still-future static schedule rows may remain until fresh network data arrives.
 
 Diagnostic codes include:
 
@@ -410,6 +419,7 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.10.21**: aligned the large half-width row to the common outer grid and split Electricity's primary number and unit into separate visual scales.
 - **2.10.24**: added section-level source freshness timestamps and made Android stale guards prefer source time over payload generation time.
 - **2.10.25**: added a non-wakeup quarter-hour Electricity alarm that enqueues a connected one-time WorkManager refresh while retaining periodic WorkManager as fallback.
+- **2.10.26**: added source-aware HSL network freshness scheduling four minutes after `fetchedAt`, with a five-minute recovery delay for stale or missing HSL data.
 
 ## Key files
 
@@ -421,6 +431,6 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetRepository.kt` - network/cache/retry/fallback behavior and local schedule handoff
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SnapshotWidgetApp.kt` - Glance composition and WorkManager periodic/manual network refresh
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/LiveTemporalViews.kt` - live clock/countdown rendering and exact-alarm-aware safe fallback
-- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetTemporalRefresh.kt` - AlarmManager HSL rollover, Electricity quarter-hour network trigger, midnight rebuild and 2.9.x worker compatibility shim
+- `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/WidgetTemporalRefresh.kt` - AlarmManager HSL rollover, HSL source-freshness trigger, Electricity quarter-hour network trigger, midnight rebuild and 2.9.x worker compatibility shim
 - `android-snapshot-widget/app/src/main/java/fi/aapopihkala/snapshotwidget/SolarDetailVisual.kt` - Weather day/night disk
 - `.github/workflows/android-snapshot-widget.yml` - Android PR/release build and signature verification
