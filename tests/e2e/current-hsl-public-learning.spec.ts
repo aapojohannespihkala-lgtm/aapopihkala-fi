@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { mergeHslLearningSnapshotPayload } from '../../functions/api/current/hsl-public-learning';
+import {
+  learningHealthFromSnapshot,
+  mergeHslLearningSnapshotPayload,
+} from '../../functions/api/current/hsl-public-learning';
 import { shouldRefreshHslLearningSnapshot } from '../../worker/index';
 
 test('public HSL payload reuses the latest learning summary and matching model only', () => {
@@ -11,48 +14,37 @@ test('public HSL payload reuses the latest learning summary and matching model o
     ],
   };
   const snapshot = {
-    learning: {
-      enabled: true,
-      observations: 2029,
-      arrivals: 31,
-    },
+    learning: { enabled: true, observations: 2029, arrivals: 31 },
     departures: [
-      {
-        route: '125',
-        scheduledAt: '2026-09-14T05:00:00.000Z',
-        model: { predictedAt: '2026-09-14T05:01:30.000Z', sampleSize: 12 },
-      },
-      {
-        route: '999',
-        scheduledAt: '2026-09-14T05:09:00.000Z',
-        model: { predictedAt: '2026-09-14T05:10:00.000Z', sampleSize: 20 },
-      },
+      { route: '125', scheduledAt: '2026-09-14T05:00:00.000Z', model: { predictedAt: '2026-09-14T05:01:30.000Z', sampleSize: 12 } },
+      { route: '999', scheduledAt: '2026-09-14T05:09:00.000Z', model: { predictedAt: '2026-09-14T05:10:00.000Z', sampleSize: 20 } },
     ],
   };
-
   expect(mergeHslLearningSnapshotPayload(live, snapshot)).toEqual({
     ...live,
     learning: snapshot.learning,
-    departures: [
-      {
-        ...live.departures[0],
-        model: snapshot.departures[0].model,
-      },
-      live.departures[1],
-    ],
+    departures: [{ ...live.departures[0], model: snapshot.departures[0].model }, live.departures[1]],
   });
 });
 
 test('public HSL payload fails open when cached learning is invalid', () => {
-  const live = {
-    source: 'HSL Digitransit',
-    departures: [
-      { route: '125', scheduledAt: '2026-09-14T05:00:00.000Z', departureAt: '2026-09-14T05:02:00.000Z' },
-    ],
-  };
-
+  const live = { source: 'HSL Digitransit', departures: [{ route: '125', scheduledAt: '2026-09-14T05:00:00.000Z' }] };
   expect(mergeHslLearningSnapshotPayload(live, { departures: [] })).toBe(live);
   expect(mergeHslLearningSnapshotPayload(live, { learning: {}, departures: 'invalid' })).toBe(live);
+});
+
+test('learning health exposes metrics from the single cached snapshot row', () => {
+  const updatedAt = '2026-09-16T08:20:00.000Z';
+  const payload = JSON.stringify({
+    learning: { observations: 7000, arrivals: 110, hslMaeSeconds: 44, modelMaeSeconds: 42 },
+    departures: [],
+  });
+  expect(learningHealthFromSnapshot(payload, updatedAt, Date.parse('2026-09-16T08:22:00.000Z'))).toEqual({
+    available: true,
+    updatedAt,
+    ageSeconds: 120,
+    learning: { observations: 7000, arrivals: 110, hslMaeSeconds: 44, modelMaeSeconds: 42 },
+  });
 });
 
 test('heavy HSL learning refresh is limited to ten-minute cron buckets', () => {
