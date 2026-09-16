@@ -45,6 +45,12 @@ def parse_android_version(content: str) -> AndroidVersion:
     return AndroidVersion(code=int(code_match.group(1)), name=name_match.group(1))
 
 
+def numeric_version_name(value: str) -> tuple[int, ...] | None:
+    if not re.fullmatch(r"\d+(?:\.\d+)+", value):
+        return None
+    return tuple(int(part) for part in value.split("."))
+
+
 def validate_version_bump(
     changed_paths: Iterable[str],
     base_content: str,
@@ -61,10 +67,19 @@ def validate_version_bump(
         errors.append(
             f"versionCode must increase for Android production changes: {base.code} -> {head.code}"
         )
+
     if head.name == base.name:
         errors.append(
             f"versionName must change for Android production changes: {base.name!r}"
         )
+    else:
+        base_name = numeric_version_name(base.name)
+        head_name = numeric_version_name(head.name)
+        if base_name is not None and head_name is not None and head_name <= base_name:
+            errors.append(
+                f"numeric versionName must increase for Android production changes: "
+                f"{base.name!r} -> {head.name!r}"
+            )
     return errors
 
 
