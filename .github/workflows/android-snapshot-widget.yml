@@ -6,11 +6,15 @@ on:
     paths:
       - 'android-snapshot-widget/**'
       - '.github/workflows/android-snapshot-widget.yml'
+      - '.github/scripts/check-android-version-bump.py'
+      - '.github/scripts/test-check-android-version-bump.py'
   push:
     branches: [main]
     paths:
       - 'android-snapshot-widget/**'
       - '.github/workflows/android-snapshot-widget.yml'
+      - '.github/scripts/check-android-version-bump.py'
+      - '.github/scripts/test-check-android-version-bump.py'
 
 permissions:
   contents: read
@@ -23,6 +27,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Test Android version bump guard
+        run: python3 .github/scripts/test-check-android-version-bump.py
+
+      - name: Require Android version bump for production changes
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 .github/scripts/check-android-version-bump.py "$PR_BASE_SHA" "$PR_HEAD_SHA"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4

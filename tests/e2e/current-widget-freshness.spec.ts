@@ -89,3 +89,27 @@ test('widget v2 carries section-level freshness metadata without changing the sc
   expect(payload.sections.find((section) => section.id === 'rates')?.fetchedAt).toBe(baseUpdated);
   expect(payload.sections.find((section) => section.id === 'hsl')?.fetchedAt).toBe(hslFetchedAt);
 });
+
+test('missing optional sections do not remove healthy widget sections', () => {
+  const payload = buildWidgetV2Payload(
+    {
+      updated: '2026-09-16T08:30:00.000Z',
+      weather: { location: 'OLARI / ESPOO', temperature: 12.4 },
+      electricity: { price: 2.1, average: 3.2, low: 1.0, high: 5.0, series: [1, 2, 3, 4] },
+      markets: { median: 0.8 },
+      rates: { euribor3m: 2.04 },
+    },
+    null,
+    'prod',
+    '2026-09-16T08:31:00.000Z',
+    null,
+    null,
+  );
+
+  expect(payload.sections.map((section) => section.id)).toEqual([
+    'weather',
+    'electricity',
+    'markets',
+    'rates',
+  ]);
+});
