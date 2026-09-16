@@ -57,6 +57,30 @@ class WidgetFreshnessHardeningTest {
         assertEquals("--", safe.primary)
     }
 
+    @Test
+    fun carriedOldCompatibleSectionKeepsItsPreviousPayloadAge() {
+        val previous = payload(
+            listOf(section("weather", "8.0°C"))
+        ).copy(generatedAt = "2026-09-15T10:00:00Z")
+        val presentation = payload(
+            listOf(section("electricity", "3.10 c/kWh", fetchedAt = "2026-09-15T12:10:00Z"))
+        ).copy(
+            generatedAt = "2026-09-15T12:19:00Z",
+            layouts = WidgetLayouts(
+                compact = listOf("weather", "electricity"),
+                medium = listOf("weather", "electricity"),
+                large = listOf("weather", "electricity"),
+            ),
+        )
+
+        val merged = mergeMissingExpectedSections(presentation, previous)
+        val carriedWeather = merged.sections.single { it.id == "weather" }
+
+        assertEquals(previous.generatedAt, carriedWeather.fetchedAt)
+        assertEquals("WEATHER / STALE", merged.withSafeCachedFreshness(now)
+            .sections.single { it.id == "weather" }.label)
+    }
+
     private fun section(
         id: String,
         primary: String,
