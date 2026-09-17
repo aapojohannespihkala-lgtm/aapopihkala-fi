@@ -14,6 +14,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import java.util.Calendar
@@ -197,21 +198,21 @@ internal object SnapshotElectricityRefreshScheduler {
 
         try {
             if (SnapshotHslRolloverScheduler.canScheduleExact(appContext)) {
-                alarmManager.setExact(
-                    AlarmManager.RTC,
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
                     targetMs,
                     pendingIntent,
                 )
             } else {
-                alarmManager.set(
-                    AlarmManager.RTC,
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
                     targetMs,
                     pendingIntent,
                 )
             }
         } catch (_: SecurityException) {
-            alarmManager.set(
-                AlarmManager.RTC,
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
                 targetMs,
                 pendingIntent,
             )
@@ -256,6 +257,7 @@ private fun enqueueScheduledNetworkRefresh(context: Context) {
         .build()
     val request = OneTimeWorkRequestBuilder<SnapshotUpdateWorker>()
         .setConstraints(constraints)
+        .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
         .build()
     WorkManager.getInstance(context).enqueueUniqueWork(
         IMMEDIATE_NETWORK_WORK_NAME,
@@ -304,6 +306,7 @@ class SnapshotHslRolloverReceiver : BroadcastReceiver() {
 
                 if (intent.action == ACTION_ELECTRICITY_QUARTER_REFRESH) {
                     SnapshotElectricityRefreshScheduler.schedule(appContext)
+                    SnapshotWidget().updateAll(appContext)
                     enqueueScheduledNetworkRefresh(appContext)
                     return@launch
                 }
@@ -311,6 +314,7 @@ class SnapshotHslRolloverReceiver : BroadcastReceiver() {
                 if (intent.action == ACTION_HSL_NETWORK_REFRESH) {
                     val payload = WidgetRepository(appContext).loadCached()
                     SnapshotHslNetworkRefreshScheduler.schedule(appContext, payload)
+                    SnapshotWidget().updateAll(appContext)
                     enqueueScheduledNetworkRefresh(appContext)
                     return@launch
                 }
