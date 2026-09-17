@@ -53,22 +53,22 @@ Electricity keeps the day average as the primary value, shows the month average 
 
 The chart is rendered into one Android bitmap before Glance hands it to the launcher. The bitmap uses the same approximate 3:1 aspect ratio as the large-widget chart slot so launcher scaling does not squash the price and axis text horizontally. It keeps the hourly server bars and draws the current-time marker at minute-level precision. Its time axis is labeled `00`, `06`, `12`, `18`, `24`; the edge labels use inward alignment so they remain fully visible. The current-price label uses the marker itself as its anchor, switching to left/right alignment near midnight and the end of the day instead of drifting away from the marker. The marker uses a light outer stroke and dark inner stroke so it remains visible both over the pale price bars and over the dark widget background.
 
-Because the `NOW` electricity price changes on 15-minute market intervals, Android also schedules the next quarter-hour boundary locally. When that boundary arrives while the device is awake, the alarm enqueues a connected one-time WorkManager refresh. The regular 15-minute periodic WorkManager job remains the fallback rather than being replaced.
+Because the `NOW` electricity price changes on 15-minute market intervals, Android schedules the next quarter-hour boundary locally. That alarm is also the background freshness watchdog for the full widget: it rebuilds the cached presentation first, then enqueues a connected expedited WorkManager refresh. The regular 15-minute periodic WorkManager job remains an additional fallback rather than being replaced.
 
 ## Live time behavior
 
 Normal network data still refreshes on the WorkManager cadence, while selected time-sensitive behavior is driven by local/native scheduling:
 
 - header clock: Android `TextClock`, `HH:mm:ss`
-- Electricity `NOW`: quarter-hour AlarmManager trigger that enqueues a connected one-time WorkManager refresh
+- Electricity `NOW`: quarter-hour wakeup AlarmManager trigger that rebuilds cached freshness and enqueues a connected expedited WorkManager refresh
 - HSL network freshness: source `fetchedAt` drives a non-wakeup refresh before the 5-minute LIVE stale limit
 - HSL next departure: Android `Chronometer` outside the final one-minute due guard when exact rollover alarms are available
 - cached HSL departure rollover: exact local `AlarmManager` rebuild at the due-guard boundary and again at the absolute departure target
 - header date/week: refreshed by ordinary widget rebuilds
 
-The Electricity quarter-hour alarm is non-wakeup. If exact-alarm access is available it uses an exact `RTC` alarm; otherwise it uses an inexact `RTC` alarm. A sleeping device is not woken just to refresh an invisible home-screen price. After wake, or if the inexact alarm is delayed, the normal WorkManager cadence still provides recovery.
+The Electricity quarter-hour alarm uses `RTC_WAKEUP`. If exact-alarm access is available it uses `setExactAndAllowWhileIdle`; otherwise it uses `setAndAllowWhileIdle`. This intentionally trades a small amount of battery for reliable visible freshness across Doze: the alarm can wake the app, refresh the cached STALE presentation immediately and hand the bounded network work to WorkManager. The scheduled worker is expedited when quota permits and automatically falls back to ordinary one-time work if expedited quota is unavailable.
 
-HSL data freshness is separate from countdown progression. A successful HSL payload schedules a non-wakeup network trigger four minutes after its source `fetchedAt`. If HSL is missing or already stale, Android schedules a five-minute recovery attempt instead of entering a tight retry loop. The trigger enqueues the same connected `SnapshotUpdateWorker` path as other scheduled refreshes, so retry/fallback and last-known-good behavior remain centralized. Sleeping devices are not woken solely for HSL network freshness, and the ordinary 15-minute WorkManager cadence remains the fallback.
+HSL data freshness is separate from countdown progression. A successful HSL payload schedules a non-wakeup network trigger four minutes after its source `fetchedAt`. If HSL is missing or already stale, Android schedules a five-minute recovery attempt instead of entering a tight retry loop. The trigger rebuilds the cached widget before enqueueing the same connected `SnapshotUpdateWorker` path as other scheduled refreshes, so stale LIVE content cannot remain visually fresh just because WorkManager is delayed. Sleeping devices are not woken solely for the 4-minute HSL trigger; the quarter-hour Electricity watchdog provides the bounded sleeping-device fallback.
 
 The server attaches absolute targets to the visible HSL departure rows. Android always selects the first still-future target. LIVE vs SCHED only describes the source/status of the departure; both use the same rollover rule. One minute before the selected target, an exact local alarm rebuilds the widget and replaces the ticking Chronometer with the static `DUE` label. At the target, the next exact alarm rebuilds from cache, drops the passed departure, promotes the next one and immediately schedules that departure's guard and rollover. This prevents ordinary target-alarm or launcher rebuild latency from exposing a negative Chronometer. No HSL network request is required for this cached rollover.
 
@@ -102,7 +102,7 @@ Starting in 2.8.4, the rich v2 request gets one bounded retry for transient erro
 
 If v2 still fails, Android tries the legacy endpoint. If both fail, the old compatible cache remains visible.
 
-The scheduled Electricity and HSL freshness triggers use the same `SnapshotUpdateWorker`, endpoint/fallback path and cache preservation as periodic/manual refreshes. The AlarmManager receiver itself does not perform networking.
+The scheduled Electricity and HSL freshness triggers rebuild the cached widget before enqueueing the same `SnapshotUpdateWorker`, endpoint/fallback path and cache preservation as periodic/manual refreshes. The AlarmManager receiver itself does not perform networking.
 
 The footer exposes compact diagnostics only when useful, for example:
 
@@ -157,4 +157,4 @@ Android-changing PRs run the version-bump guard, unit tests and a debug APK comp
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.27**.
+Current app version: **2.10.29**.
