@@ -113,18 +113,16 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun currentPriceIsAnchoredToTheHighestBar() {
+    fun currentPriceUsesCurrentTimeForXAndPeakHeightForY() {
         assertEquals(
             2,
             electricityHighestBarIndex(listOf(0.2f, 0.8f, 1f, 0.4f)),
         )
         assertEquals(
-            30f,
-            electricityBarCenterX(
-                index = 2,
-                barCount = 24,
-                plotLeftPx = 0f,
-                plotRightPx = 288f,
+            165f,
+            electricityMarkerX(
+                dayFraction = 13.75f / 24f,
+                widthPx = 288,
             ),
             0.01f,
         )
