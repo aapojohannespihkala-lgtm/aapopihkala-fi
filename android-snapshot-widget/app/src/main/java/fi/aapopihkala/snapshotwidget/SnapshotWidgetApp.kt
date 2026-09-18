@@ -58,7 +58,8 @@ import java.util.concurrent.TimeUnit
 private enum class WidgetSizeClass { COMPACT, MEDIUM, LARGE }
 
 internal object WidgetTypography {
-    const val HEADER = 16
+    const val SECTION_HEADING = 9
+    const val HEADER = SECTION_HEADING
     const val PRIMARY_FULL = 22
     const val PRIMARY_HALF = 22
     const val PRIMARY_MEDIUM = 20
@@ -763,7 +764,7 @@ private fun SectionHeading(section: WidgetSection, palette: Palette) {
             text = section.label,
             style = TextStyle(
                 color = ColorProvider(palette.muted),
-                fontSize = WidgetTypography.SUPPORTING_VALUE.sp,
+                fontSize = WidgetTypography.SECTION_HEADING.sp,
                 fontWeight = FontWeight.Medium
             ),
             maxLines = 1

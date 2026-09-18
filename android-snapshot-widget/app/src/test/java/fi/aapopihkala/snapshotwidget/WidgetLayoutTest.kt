@@ -127,7 +127,8 @@ class WidgetLayoutTest {
     fun `large widget typography keeps primary values and header internally consistent`() {
         assertEquals(WidgetTypography.PRIMARY_HALF, WidgetTypography.PRIMARY_FULL)
         assertEquals(22, WidgetTypography.PRIMARY_FULL)
-        assertEquals(16, WidgetTypography.HEADER)
+        assertEquals(9, WidgetTypography.SECTION_HEADING)
+        assertEquals(WidgetTypography.SECTION_HEADING, WidgetTypography.HEADER)
     }
 
 }
