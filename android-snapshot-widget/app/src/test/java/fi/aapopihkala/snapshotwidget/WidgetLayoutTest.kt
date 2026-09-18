@@ -52,6 +52,27 @@ class WidgetLayoutTest {
     }
 
     @Test
+    fun `large half support row skips duplicated summary rows`() {
+        val section = WidgetSection(
+            id = "liiga",
+            index = "06",
+            label = "LIIGA",
+            primary = "6/17",
+            secondary = "KALPA - ILVES",
+            detail = "FRI 18 18:30",
+            span = "half",
+            rows = listOf(
+                WidgetRow(label = "NEXT", value = "KALPA - ILVES"),
+                WidgetRow(label = "START", value = "FRI 18 18:30"),
+                WidgetRow(label = "LAST", value = "ILVES 3-2 HIFK")
+            )
+        )
+
+        assertEquals("LAST", largeHalfSupportRow(section)?.label)
+        assertEquals("ILVES 3-2 HIFK", largeHalfSupportRow(section)?.value)
+    }
+
+    @Test
     fun `electricity primary separates value and unit`() {
         val parts = electricityPrimaryParts("16.35 c/kWh")
 
