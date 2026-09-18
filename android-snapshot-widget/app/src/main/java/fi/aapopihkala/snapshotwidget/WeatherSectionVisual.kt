@@ -161,14 +161,10 @@ private fun WeatherNowBlock(
             Spacer(GlanceModifier.height(4.dp))
         }
 
-        Text(
+        PrimaryValueText(
             text = primary,
-            style = TextStyle(
-                color = ColorProvider(foreground),
-                fontSize = WidgetTypography.PRIMARY_FULL.sp,
-                fontWeight = FontWeight.Medium,
-            ),
-            maxLines = 1,
+            color = foreground,
+            sizeSp = WidgetTypography.PRIMARY_FULL,
         )
 
         if (condition.isNotBlank() || range.isNotBlank()) {
