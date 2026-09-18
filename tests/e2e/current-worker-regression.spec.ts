@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { fetchElectricityResponse } from '../../functions/api/current/electricity';
 import { fetchElectricityMonthResponse } from '../../functions/api/current/electricity-month';
 import { fetchHslDeparturesResponse } from '../../functions/api/current/hsl';
-import worker from '../../worker/index';
+import worker, { serveWidgetWithLastKnownGood } from '../../worker/index';
 
 const workerFirstPaths = [
   '/api/current/electricity',
@@ -341,4 +341,57 @@ test('Current HSL returns a bounded upstream failure after abort', async () => {
   expect(response.status).toBe(502);
   expect(await response.json()).toEqual({ error: 'upstream_unavailable' });
   expect(Date.now() - startedAt).toBeLessThan(1_000);
+});
+
+
+test('Widget serves last-known-good payload when a refresh returns 503', async () => {
+  const entries = new Map<string, Response>();
+  const cache = {
+    match: async (request: Request) => entries.get(request.url)?.clone(),
+    put: async (request: Request, response: Response) => {
+      entries.set(request.url, response.clone());
+    },
+  };
+
+  const request = new Request('https://aapopihkala.fi/api/current/widget-v2?channel=prod');
+  const healthy = await serveWidgetWithLastKnownGood(
+    request,
+    async () => Response.json({
+      schemaVersion: 2,
+      generatedAt: '2026-09-18T14:00:00.000Z',
+      sections: [{ id: 'weather', observedAt: '2026-09-18T14:00:00.000Z' }],
+    }),
+    cache,
+  );
+  expect(healthy.status).toBe(200);
+
+  const degraded = await serveWidgetWithLastKnownGood(
+    request,
+    async () => Response.json({ error: 'widget_data_unavailable' }, { status: 503 }),
+    cache,
+  );
+
+  expect(degraded.status).toBe(200);
+  expect(degraded.headers.get('x-widget-fallback')).toBe('last-known-good');
+  expect(degraded.headers.get('cache-control')).toBe('private, no-store');
+  expect(await degraded.json()).toMatchObject({
+    generatedAt: '2026-09-18T14:00:00.000Z',
+    sections: [{ id: 'weather' }],
+  });
+});
+
+test('Widget does not hide a 503 when no last-known-good payload exists', async () => {
+  const cache = {
+    match: async (_request: Request) => undefined,
+    put: async (_request: Request, _response: Response) => undefined,
+  };
+  const request = new Request('https://aapopihkala.fi/api/current/widget');
+
+  const response = await serveWidgetWithLastKnownGood(
+    request,
+    async () => Response.json({ error: 'widget_data_unavailable' }, { status: 503 }),
+    cache,
+  );
+
+  expect(response.status).toBe(503);
 });
