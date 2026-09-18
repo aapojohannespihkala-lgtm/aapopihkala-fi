@@ -78,14 +78,14 @@ internal fun WeatherSectionContent(
         Row(modifier = GlanceModifier.fillMaxWidth()) {
             Text(
                 text = section.index,
-                style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
+                style = TextStyle(color = ColorProvider(muted), fontSize = WidgetTypography.SUPPORTING.sp),
             )
             Spacer(GlanceModifier.width(8.dp))
             Text(
                 text = section.label,
                 style = TextStyle(
                     color = ColorProvider(muted),
-                    fontSize = 9.sp,
+                    fontSize = WidgetTypography.SUPPORTING_VALUE.sp,
                     fontWeight = FontWeight.Medium,
                 ),
                 maxLines = 1,
@@ -155,7 +155,7 @@ private fun WeatherNowBlock(
         secondary?.takeIf(String::isNotBlank)?.let {
             Text(
                 text = it,
-                style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
+                style = TextStyle(color = ColorProvider(muted), fontSize = WidgetTypography.SUPPORTING.sp),
                 maxLines = 1,
             )
             Spacer(GlanceModifier.height(4.dp))
@@ -165,7 +165,7 @@ private fun WeatherNowBlock(
             text = primary,
             style = TextStyle(
                 color = ColorProvider(foreground),
-                fontSize = 25.sp,
+                fontSize = WidgetTypography.PRIMARY_FULL.sp,
                 fontWeight = FontWeight.Medium,
             ),
             maxLines = 1,
@@ -177,7 +177,7 @@ private fun WeatherNowBlock(
                 if (condition.isNotBlank()) {
                     Text(
                         text = condition,
-                        style = TextStyle(color = ColorProvider(muted), fontSize = 9.sp),
+                        style = TextStyle(color = ColorProvider(muted), fontSize = WidgetTypography.SUPPORTING_VALUE.sp),
                         maxLines = 1,
                     )
                 }
@@ -187,7 +187,7 @@ private fun WeatherNowBlock(
                 if (range.isNotBlank()) {
                     Text(
                         text = range,
-                        style = TextStyle(color = ColorProvider(muted), fontSize = 8.sp),
+                        style = TextStyle(color = ColorProvider(muted), fontSize = WidgetTypography.SUPPORTING.sp),
                         maxLines = 1,
                     )
                 }
@@ -235,14 +235,14 @@ private fun WeatherForecastRow(
             ) {
                 Text(
                     text = point.time,
-                    style = TextStyle(color = ColorProvider(muted), fontSize = 7.sp),
+                    style = TextStyle(color = ColorProvider(muted), fontSize = WidgetTypography.MICRO.sp),
                     maxLines = 1,
                 )
                 Text(
                     text = point.temperature,
                     style = TextStyle(
                         color = ColorProvider(foreground),
-                        fontSize = 10.sp,
+                        fontSize = WidgetTypography.FORECAST_VALUE.sp,
                         fontWeight = FontWeight.Bold,
                     ),
                     maxLines = 1,
