@@ -53,7 +53,7 @@ The right-side WORLD, USA, FINLAND, BTC / EUR and REMEDY rows are the correspond
 
 ### Electricity chart
 
-Electricity keeps the day average as the primary value. Its first compact detail row shows the next day's average once the complete day-ahead price set is available, using `--.--` before publication. The second compact row shows the month average followed by the current day's LOW/HIGH values. These compact rows omit the `c/kWh` unit. In the large split layout, the numeric day average uses the same primary-value scale as the other main metrics while `c/kWh` is rendered as a smaller unit beside it. This keeps the number visually strong without ellipsizing the full value. The current price is shown as a bare number anchored to the current-time marker.
+Electricity keeps the day average as the primary value. Its first compact detail row shows the next day's average once the complete day-ahead price set is available, using `--.--` before publication. The second compact row shows the month average followed by the current day's LOW/HIGH values. These compact rows omit the `c/kWh` unit and span the full section width below the main value/chart row. In the large split layout, the numeric day average uses the same primary-value scale as the other main metrics while `c/kWh` is rendered as a smaller unit beside it. The chart occupies the same right-side grid column as Markets and HSL support content, with its visual left and right edges aligned to that column and the widget content edge. The bar baseline aligns with the bottom of the large day-average value, while the time-axis labels remain below that shared baseline. The current price is shown as a bare number anchored to the current-time marker.
 
 The chart is rendered into one Android bitmap before Glance hands it to the launcher. The bitmap uses the same approximate 3:1 aspect ratio as the large-widget chart slot so launcher scaling does not squash the price and axis text horizontally. It keeps the hourly server bars and draws the current-time marker at minute-level precision. Its time axis is labeled `00`, `06`, `12`, `18`, `24`; the edge labels use inward alignment so they remain fully visible. The current-price label uses the marker itself as its anchor, switching to left/right alignment near midnight and the end of the day instead of drifting away from the marker. The marker uses a light outer stroke and dark inner stroke so it remains visible both over the pale price bars and over the dark widget background.
 
@@ -163,4 +163,4 @@ Server-only presentation changes do not require an APK.
 
 Typography uses a shared semantic scale for header, full-width and half-width primary values, compact units, supporting text, row values and micro labels. Compound units such as `c/kWh` intentionally use the smaller unit role while short numeric suffixes remain part of their primary value.
 
-Current app version: **2.10.33**.
+Current app version: **2.10.34**.

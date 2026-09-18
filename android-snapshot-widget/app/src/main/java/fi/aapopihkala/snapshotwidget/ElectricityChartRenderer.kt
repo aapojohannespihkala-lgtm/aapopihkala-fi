@@ -9,7 +9,8 @@ import java.util.TimeZone
 
 internal const val ELECTRICITY_CHART_BITMAP_WIDTH = 288
 internal const val ELECTRICITY_CHART_BITMAP_HEIGHT = 96
-internal const val ELECTRICITY_CHART_HORIZONTAL_PADDING_PX = 8f
+internal const val ELECTRICITY_CHART_DISPLAY_HEIGHT_DP = 48
+internal const val ELECTRICITY_CHART_HORIZONTAL_PADDING_PX = 0f
 internal const val ELECTRICITY_MARKER_OUTER_STROKE_PX = 4f
 internal const val ELECTRICITY_MARKER_INNER_STROKE_PX = 1.5f
 
@@ -21,6 +22,11 @@ private const val CURRENT_PRICE_TEXT_SIZE_PX = 21f
 private const val AXIS_TEXT_SIZE_PX = 16f
 private const val CURRENT_PRICE_BASELINE_PX = 25f
 private const val AXIS_BASELINE_PX = 92f
+
+internal fun electricityChartBaselineInsetDp(): Float =
+    ELECTRICITY_CHART_DISPLAY_HEIGHT_DP.toFloat() *
+        (ELECTRICITY_CHART_BITMAP_HEIGHT.toFloat() - PLOT_BOTTOM_PX) /
+        ELECTRICITY_CHART_BITMAP_HEIGHT.toFloat()
 
 internal enum class ElectricityPriceAlignment { START, CENTER, END }
 

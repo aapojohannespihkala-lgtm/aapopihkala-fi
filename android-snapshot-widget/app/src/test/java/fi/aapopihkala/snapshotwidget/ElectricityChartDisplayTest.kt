@@ -46,19 +46,19 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun timelineTicksIncludeTwentyFourAtTheRightEdge() {
-        assertEquals(8f, electricityAxisHourX(0, 288), 0.01f)
-        assertEquals(76f, electricityAxisHourX(6, 288), 0.01f)
+    fun timelineTicksUseTheFullRightColumnWidth() {
+        assertEquals(0f, electricityAxisHourX(0, 288), 0.01f)
+        assertEquals(72f, electricityAxisHourX(6, 288), 0.01f)
         assertEquals(144f, electricityAxisHourX(12, 288), 0.01f)
-        assertEquals(212f, electricityAxisHourX(18, 288), 0.01f)
-        assertEquals(280f, electricityAxisHourX(24, 288), 0.01f)
+        assertEquals(216f, electricityAxisHourX(18, 288), 0.01f)
+        assertEquals(288f, electricityAxisHourX(24, 288), 0.01f)
     }
 
     @Test
     fun currentPriceUsesMarkerAsItsAnchorWithoutClippingAtDayEdges() {
         assertEquals(
             ElectricityPriceAlignment.START,
-            electricityPriceAlignment(markerX = 8f, textWidthPx = 48f, widthPx = 288),
+            electricityPriceAlignment(markerX = 0f, textWidthPx = 48f, widthPx = 288),
         )
         assertEquals(
             ElectricityPriceAlignment.CENTER,
@@ -66,8 +66,13 @@ class ElectricityChartDisplayTest {
         )
         assertEquals(
             ElectricityPriceAlignment.END,
-            electricityPriceAlignment(markerX = 280f, textWidthPx = 48f, widthPx = 288),
+            electricityPriceAlignment(markerX = 288f, textWidthPx = 48f, widthPx = 288),
         )
+    }
+
+    @Test
+    fun chartBaselineLeavesAxisFooterBelowThePrimaryValue() {
+        assertEquals(11f, electricityChartBaselineInsetDp(), 0.01f)
     }
 
     @Test

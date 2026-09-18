@@ -171,6 +171,12 @@ const title = 'Snapshot Widget Preview';
         const span = section.span ?? 'full';
         const layout = section.layout ?? 'stack';
         const support = renderSupport(section);
+        const fullWidthDetail = section.id === 'electricity' && section.detail
+          ? `<div class="metric-detail metric-detail--full">${escapeHtml(section.detail)}</div>`
+          : '';
+        const inlineDetail = section.id !== 'electricity' && section.detail
+          ? `<div class="metric-detail">${escapeHtml(section.detail)}</div>`
+          : '';
         return `
           <section class="metric-section span-${span} layout-${layout}" data-section="${escapeHtml(section.id)}" data-span="${span}" data-layout="${layout}">
             <div class="metric-heading"><span>${escapeHtml(section.index)}</span><strong>${escapeHtml(section.label)}</strong></div>
@@ -178,9 +184,10 @@ const title = 'Snapshot Widget Preview';
               <div class="metric-main">
                 ${section.secondary ? `<div class="metric-secondary">${escapeHtml(section.secondary)}</div>` : ''}
                 <div class="metric-primary ${toneClass(section.tone)}">${escapeHtml(section.primary)}</div>
-                ${section.detail ? `<div class="metric-detail">${escapeHtml(section.detail)}</div>` : ''}
+                ${inlineDetail}
               </div>
               ${support ? `<div class="metric-support">${support}</div>` : ''}
+              ${fullWidthDetail}
             </div>
           </section>
         `;
@@ -330,6 +337,15 @@ const title = 'Snapshot Widget Preview';
   [data-size="large"] .layout-split .metric-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: center; }
   [data-size="large"] .layout-split .metric-secondary { margin-top: 4px; }
   [data-size="large"] .layout-split .metric-detail { font-size: 8px; }
+  [data-size="large"] [data-section="electricity"] .metric-body {
+    align-items: end;
+    column-gap: 10px;
+    row-gap: 1px;
+  }
+  [data-size="large"] [data-section="electricity"] .metric-detail--full {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
   [data-size="large"] .layout-split .metric-support .metric-columns,
   [data-size="large"] .layout-split .metric-support .metric-bars { margin-top: 0; }
   [data-size="large"] .span-half .metric-row,
