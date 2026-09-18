@@ -6,6 +6,7 @@ import java.net.ConnectException
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.URL
+import java.net.InetAddress
 import java.net.UnknownHostException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -379,6 +380,10 @@ class WidgetRepository(context: Context) {
         } catch (_: SocketTimeoutException) {
             FetchTextResult(null, "TIMEOUT")
         } catch (_: UnknownHostException) {
+            // Android can retain a transient negative DNS result for the process even after
+            // connectivity has recovered. A fresh resolver lookup gives the retry path a
+            // chance to recover instead of leaving the widget on its stale device cache.
+            runCatching { InetAddress.getAllByName(URL(url).host) }
             FetchTextResult(null, "DNS")
         } catch (_: SSLException) {
             FetchTextResult(null, "SSL")
