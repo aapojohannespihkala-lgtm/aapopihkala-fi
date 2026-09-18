@@ -214,7 +214,7 @@ Missing layout metadata defaults to `full + stack` for backward-compatible cache
 
 Current production large composition:
 
-- Weather: `full + split`
+- Weather: `full + stack`
 - Electricity: `full + split`
 - Markets: `full + split`
 - HSL: `full + split`
