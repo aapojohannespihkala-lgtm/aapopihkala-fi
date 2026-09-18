@@ -106,9 +106,9 @@ test('widget v2 exposes production HSL through the large-layout presentation con
   expect(weather).toMatchObject({
     primary: '16.2°C',
     secondary: 'OLARI / ESPOO',
-    detail: 'Light drizzle / 13° / 17°',
+    detail: 'Light drizzle / 13° / 17°\nFORECAST 16:00=16°|18:00=15°|20:00=15°|22:00=13°',
     span: 'full',
-    layout: 'split',
+    layout: 'stack',
     columns: [
       { label: '16:00', value: '16°' },
       { label: '18:00', value: '15°' },
