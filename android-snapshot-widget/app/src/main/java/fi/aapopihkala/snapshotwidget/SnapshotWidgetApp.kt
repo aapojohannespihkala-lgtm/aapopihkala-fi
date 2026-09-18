@@ -437,7 +437,7 @@ private fun LargeHalfRow(sections: List<WidgetSection>, palette: Palette) {
     }
 }
 
-internal fun largeHalfSupportRow(section: WidgetSection): WidgetRow? =
+internal fun largeHalfSupportRow(section: WidgetSection): WidgetItem? =
     section.rows.firstOrNull { row ->
         row.value != section.secondary && row.value != section.detail
     }
