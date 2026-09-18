@@ -58,9 +58,8 @@ import java.util.concurrent.TimeUnit
 private enum class WidgetSizeClass { COMPACT, MEDIUM, LARGE }
 
 internal object WidgetTypography {
-    const val HEADER_TIME = 19
-    const val HEADER_META = 16
-    const val PRIMARY_FULL = 25
+    const val HEADER = 16
+    const val PRIMARY_FULL = 22
     const val PRIMARY_HALF = 22
     const val PRIMARY_MEDIUM = 20
     const val PRIMARY_COMPACT = 13
