@@ -560,6 +560,11 @@ private fun StackSection(section: WidgetSection, palette: Palette) {
 
 @Composable
 private fun SplitSection(section: WidgetSection, palette: Palette) {
+    if (section.id == "electricity") {
+        ElectricitySplitSection(section, palette)
+        return
+    }
+
     Column(modifier = GlanceModifier.fillMaxWidth()) {
         SectionHeading(section, palette)
         Spacer(GlanceModifier.height(4.dp))
@@ -576,31 +581,68 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
                     )
                     Spacer(GlanceModifier.height(2.dp))
                 }
-                if (section.id == "electricity") {
-                    ElectricityPrimaryValue(section, palette)
-                } else {
-                    PrimaryValue(section, palette, WidgetTypography.PRIMARY_FULL)
-                }
+                PrimaryValue(section, palette, WidgetTypography.PRIMARY_FULL)
                 section.detail?.let {
                     Spacer(GlanceModifier.height(2.dp))
-                    if (section.id == "electricity") {
-                        ElectricityDetail(detail = it, palette = palette)
-                    } else {
-                        SolarAwareDetail(
-                            detail = it,
-                            textColor = palette.muted,
-                            daylightColor = palette.foreground,
-                            nightColor = palette.line,
-                            horizonColor = palette.background,
-                            fontSizeSp = WidgetTypography.SUPPORTING
-                        )
-                    }
+                    SolarAwareDetail(
+                        detail = it,
+                        textColor = palette.muted,
+                        daylightColor = palette.foreground,
+                        nightColor = palette.line,
+                        horizonColor = palette.background,
+                        fontSizeSp = WidgetTypography.SUPPORTING
+                    )
                 }
             }
             Spacer(GlanceModifier.width(10.dp))
             Column(modifier = GlanceModifier.defaultWeight()) {
                 SupportingContent(section, palette, includeTopSpacing = false)
             }
+        }
+    }
+}
+
+@Composable
+private fun ElectricitySplitSection(section: WidgetSection, palette: Palette) {
+    val electricityNow = section.rows.firstOrNull { it.label == "NOW" }
+    val chartBaselineInset = if (section.bars.isNotEmpty()) {
+        electricityChartBaselineInsetDp().dp
+    } else {
+        0.dp
+    }
+
+    Column(modifier = GlanceModifier.fillMaxWidth()) {
+        SectionHeading(section, palette)
+        Spacer(GlanceModifier.height(4.dp))
+        Row(
+            modifier = GlanceModifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Vertical.Bottom
+        ) {
+            Column(
+                modifier = GlanceModifier
+                    .defaultWeight()
+                    .padding(bottom = chartBaselineInset)
+            ) {
+                section.secondary?.let {
+                    Text(
+                        text = it,
+                        style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),
+                        maxLines = 1
+                    )
+                    Spacer(GlanceModifier.height(2.dp))
+                }
+                ElectricityPrimaryValue(section, palette)
+            }
+            Spacer(GlanceModifier.width(10.dp))
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                if (section.bars.isNotEmpty()) {
+                    ElectricityBarStrip(section.bars, electricityNow?.value, palette)
+                }
+            }
+        }
+        section.detail?.let {
+            Spacer(GlanceModifier.height(1.dp))
+            ElectricityDetail(detail = it, palette = palette)
         }
     }
 }
@@ -811,7 +853,7 @@ private fun ElectricityBarStrip(
             append("Electricity price profile with current time marker")
             price?.let { append("; current price ").append(it) }
         },
-        modifier = GlanceModifier.fillMaxWidth().height(48.dp),
+        modifier = GlanceModifier.fillMaxWidth().height(ELECTRICITY_CHART_DISPLAY_HEIGHT_DP.dp),
         contentScale = ContentScale.FillBounds,
     )
 }

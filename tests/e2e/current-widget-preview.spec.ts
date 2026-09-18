@@ -134,9 +134,10 @@ test('widget preview uses the v2 production presentation and Android-style heade
 
   const electricity = page.locator('[data-section="electricity"]');
   await expect(electricity).toHaveAttribute('data-layout', 'split');
-  await expect(electricity.locator('.metric-detail')).toContainText('TOMORROW AVG 2.22');
-  await expect(electricity.locator('.metric-detail')).toContainText('MONTH AVG 4.21  LOW 0.39  HIGH 5.03');
-  await expect(electricity.locator('.metric-detail')).not.toContainText('c/kWh');
+  await expect(electricity.locator('.metric-main .metric-detail')).toHaveCount(0);
+  await expect(electricity.locator('.metric-detail--full')).toContainText('TOMORROW AVG 2.22');
+  await expect(electricity.locator('.metric-detail--full')).toContainText('MONTH AVG 4.21  LOW 0.39  HIGH 5.03');
+  await expect(electricity.locator('.metric-detail--full')).not.toContainText('c/kWh');
   await expect(electricity.locator('.metric-support .metric-bars')).toBeVisible();
 
   const markets = page.locator('[data-section="markets"]');
