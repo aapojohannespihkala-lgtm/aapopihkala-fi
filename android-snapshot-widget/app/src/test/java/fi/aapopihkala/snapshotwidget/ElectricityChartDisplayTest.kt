@@ -121,6 +121,37 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
+    fun currentPriceAccountsForEveryBarUnderItsTextWidth() {
+        assertEquals(
+            126f to 162f,
+            electricityPriceHorizontalBounds(
+                markerX = 144f,
+                textWidthPx = 36f,
+                widthPx = 288,
+                alignment = ElectricityPriceAlignment.CENTER,
+            ),
+        )
+        assertEquals(
+            listOf(10, 11, 12, 13),
+            electricityBarsOverlappingHorizontalRange(
+                leftPx = 126f,
+                rightPx = 162f,
+                barCount = 24,
+                plotLeftPx = 0f,
+                plotRightPx = 288f,
+            ),
+        )
+        assertEquals(
+            12f,
+            electricityHighestBarTopPx(
+                barTops = listOf(40f, 22f, 12f, 30f),
+                indices = listOf(1, 2, 3),
+            ),
+            0.01f,
+        )
+    }
+
+    @Test
     fun timeAxisKeepsTheSameBottomInsetInTheExpandedSlot() {
         assertEquals(94f, electricityAxisBaselinePx(), 0.01f)
     }
