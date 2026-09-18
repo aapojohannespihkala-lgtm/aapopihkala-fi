@@ -636,7 +636,7 @@ private fun ElectricitySplitSection(section: WidgetSection, palette: Palette) {
 internal data class PrimaryValueParts(
     val value: String,
     val unit: String?,
-    val spacedUnit: Boolean = false,
+    val unitGapDp: Int = 0,
 )
 
 internal fun primaryValueParts(primary: String): PrimaryValueParts {
@@ -647,14 +647,16 @@ internal fun primaryValueParts(primary: String): PrimaryValueParts {
         return PrimaryValueParts(
             value = match.groupValues[1],
             unit = if (rawUnit.equals("MIN", ignoreCase = true)) "min" else rawUnit,
-            spacedUnit = true,
+            unitGapDp = 4,
         )
     }
 
     Regex("^(.+?)(°C|%)$").matchEntire(trimmed)?.let { match ->
+        val unit = match.groupValues[2]
         return PrimaryValueParts(
             value = match.groupValues[1],
-            unit = match.groupValues[2],
+            unit = unit,
+            unitGapDp = if (unit == "°C") 2 else 0,
         )
     }
 
@@ -685,8 +687,8 @@ internal fun PrimaryValueText(
             maxLines = 1,
         )
         parts.unit?.let { unit ->
-            if (parts.spacedUnit) {
-                Spacer(GlanceModifier.width(4.dp))
+            if (parts.unitGapDp > 0) {
+                Spacer(GlanceModifier.width(parts.unitGapDp.dp))
             }
             Text(
                 text = unit,
