@@ -85,7 +85,7 @@ internal fun WeatherSectionContent(
                 text = section.label,
                 style = TextStyle(
                     color = ColorProvider(muted),
-                    fontSize = WidgetTypography.SUPPORTING_VALUE.sp,
+                    fontSize = WidgetTypography.SECTION_HEADING.sp,
                     fontWeight = FontWeight.Medium,
                 ),
                 maxLines = 1,
