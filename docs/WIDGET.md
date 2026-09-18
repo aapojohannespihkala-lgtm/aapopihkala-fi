@@ -48,8 +48,9 @@ The production large widget currently contains:
 6. Liiga
    - Ilves standing
    - next match and start time when available
-   - previous Ilves result as one compact support row
-   - live score, teams, period and total elapsed game time during a live match
+   - next match and start time combined on one line
+   - previous Ilves result and `LAST` marker combined on one line
+   - live score plus one teams, `LIVE` and total elapsed game-time line during a live match
 
 Compact and medium remain intentionally denser than the large composition. HSL is currently large-only.
 
