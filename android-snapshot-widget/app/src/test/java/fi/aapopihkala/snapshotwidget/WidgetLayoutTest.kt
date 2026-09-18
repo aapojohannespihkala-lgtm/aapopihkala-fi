@@ -62,9 +62,9 @@ class WidgetLayoutTest {
             detail = "FRI 18 18:30",
             span = "half",
             rows = listOf(
-                WidgetRow(label = "NEXT", value = "KALPA - ILVES"),
-                WidgetRow(label = "START", value = "FRI 18 18:30"),
-                WidgetRow(label = "LAST", value = "ILVES 3-2 HIFK")
+                WidgetItem(label = "NEXT", value = "KALPA - ILVES"),
+                WidgetItem(label = "START", value = "FRI 18 18:30"),
+                WidgetItem(label = "LAST", value = "ILVES 3-2 HIFK")
             )
         )
 
