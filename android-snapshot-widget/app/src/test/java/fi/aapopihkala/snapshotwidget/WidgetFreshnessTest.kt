@@ -113,6 +113,25 @@ class WidgetFreshnessTest {
     }
 
     @Test
+    fun staleLiigaLiveSectionIsRemoved() {
+        val liiga = section("liiga", observedAt = "2026-09-15T12:00:00Z").copy(
+            primary = "1-2",
+            secondary = "KALPA - ILVES · LIVE 45:32",
+            tone = "accent",
+        )
+        assertNull(payload("2026-09-15T12:19:00Z", listOf(liiga)).withSafeCachedFreshness(now).sections.firstOrNull())
+    }
+
+    @Test
+    fun oldNonLiveLiigaSectionRemainsAvailable() {
+        val liiga = section("liiga", observedAt = "2026-09-15T10:00:00Z").copy(
+            primary = "4/16",
+            secondary = "ILVES - TPS · SAT 19 17:00",
+        )
+        assertEquals("LIIGA", payload("2026-09-15T12:19:00Z", listOf(liiga)).withSafeCachedFreshness(now).sections.single().label)
+    }
+
+    @Test
     fun malformedTimestampDoesNotDestroyCachedPayload() {
         val result = payload("not-a-time", listOf(section("weather"))).withSafeCachedFreshness(now)
         assertNotNull(result.sections.singleOrNull())
