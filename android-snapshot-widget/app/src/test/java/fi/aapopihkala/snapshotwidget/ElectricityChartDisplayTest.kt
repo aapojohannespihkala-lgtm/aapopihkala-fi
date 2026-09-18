@@ -146,7 +146,7 @@ class ElectricityChartDisplayTest {
             electricityHighestBarTopPx(
                 barTops = listOf(40f, 22f, 12f, 30f),
                 indices = listOf(1, 2, 3),
-            ),
+            ) ?: Float.NaN,
             0.01f,
         )
     }
