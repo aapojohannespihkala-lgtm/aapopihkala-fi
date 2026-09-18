@@ -48,8 +48,9 @@ The production large widget currently contains:
 6. Liiga
    - Ilves standing
    - next match and start time when available
-   - previous Ilves result as one compact support row
-   - live score, teams, period and total elapsed game time during a live match
+   - next match and start time combined on one line
+   - previous Ilves result and `LAST` marker combined on one line
+   - live score plus one teams, `LIVE` and total elapsed game-time line during a live match
 
 Compact and medium remain intentionally denser than the large composition. HSL is currently large-only.
 
@@ -219,7 +220,7 @@ Current production large composition:
 - Rates: `half + stack`
 - Liiga: `half + stack`
 
-Half-width sections may render one support row when it does not duplicate the section's secondary or detail text. Liiga uses this row for the previous result in its normal state. During a live match, Liiga keeps the row unused and presents the score, teams, period and elapsed time through the primary, secondary and detail fields.
+Liiga keeps its half-width presentation within the standard primary, secondary and detail fields. In the normal state, the secondary line combines the next match and start time while the detail line combines the previous result and `LAST`. During a live match, the score is primary and one secondary line combines the teams, `LIVE` and total elapsed game time. No support row is added, so the footer retains its reserved space.
 
 ## HSL live countdown
 
