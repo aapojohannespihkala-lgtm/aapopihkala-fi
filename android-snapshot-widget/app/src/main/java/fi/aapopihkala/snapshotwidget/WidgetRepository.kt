@@ -4,6 +4,7 @@ import android.content.Context
 import java.io.IOException
 import java.net.ConnectException
 import java.net.HttpURLConnection
+import java.net.InetAddress
 import java.net.SocketTimeoutException
 import java.net.URL
 import java.net.UnknownHostException
@@ -379,6 +380,7 @@ class WidgetRepository(context: Context) {
         } catch (_: SocketTimeoutException) {
             FetchTextResult(null, "TIMEOUT")
         } catch (_: UnknownHostException) {
+            runCatching { InetAddress.getAllByName(URL(url).host) }
             FetchTextResult(null, "DNS")
         } catch (_: SSLException) {
             FetchTextResult(null, "SSL")
