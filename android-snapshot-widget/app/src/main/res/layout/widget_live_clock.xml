@@ -9,7 +9,17 @@
         android:id="@+id/widget_live_clock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:format24Hour="HH:mm:ss"
+        android:format24Hour="HH:mm"
+        android:gravity="start|center_vertical"
+        android:includeFontPadding="false"
+        android:singleLine="true"
+        android:timeZone="Europe/Helsinki" />
+
+    <TextClock
+        android:id="@+id/widget_live_seconds"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:format24Hour=":ss"
         android:gravity="start|center_vertical"
         android:includeFontPadding="false"
         android:singleLine="true"
