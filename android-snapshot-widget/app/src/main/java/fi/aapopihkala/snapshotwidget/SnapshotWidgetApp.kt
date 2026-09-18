@@ -65,6 +65,7 @@ internal object WidgetTypography {
     const val PRIMARY_MEDIUM = 20
     const val PRIMARY_COMPACT = 13
     const val UNIT = 13
+    const val HEADER_SECONDS = UNIT
     const val STATUS_PRIMARY = 19
     const val SUPPORTING_VALUE = 9
     const val SUPPORTING = 8
@@ -475,14 +476,10 @@ private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: 
     Column(modifier = modifier) {
         SectionHeading(section, palette)
         Spacer(GlanceModifier.height(3.dp))
-        Text(
+        PrimaryValueText(
             text = section.primary,
-            style = TextStyle(
-                color = ColorProvider(toneColor(section.tone, palette)),
-                fontSize = WidgetTypography.PRIMARY_HALF.sp,
-                fontWeight = FontWeight.Medium
-            ),
-            maxLines = 1
+            color = toneColor(section.tone, palette),
+            sizeSp = WidgetTypography.PRIMARY_HALF,
         )
         section.secondary?.let {
             Spacer(GlanceModifier.height(2.dp))
@@ -636,42 +633,65 @@ private fun ElectricitySplitSection(section: WidgetSection, palette: Palette) {
     }
 }
 
-internal data class ElectricityPrimaryParts(
+internal data class PrimaryValueParts(
     val value: String,
     val unit: String?,
+    val spacedUnit: Boolean = false,
 )
 
-internal fun electricityPrimaryParts(primary: String): ElectricityPrimaryParts {
+internal fun primaryValueParts(primary: String): PrimaryValueParts {
     val trimmed = primary.trim()
-    val splitAt = trimmed.indexOf(' ')
-    if (splitAt <= 0 || splitAt >= trimmed.lastIndex) {
-        return ElectricityPrimaryParts(value = trimmed, unit = null)
+
+    Regex("^(.+?)\\s+(c/kWh|MIN|min)$").matchEntire(trimmed)?.let { match ->
+        val rawUnit = match.groupValues[2]
+        return PrimaryValueParts(
+            value = match.groupValues[1],
+            unit = if (rawUnit.equals("MIN", ignoreCase = true)) "min" else rawUnit,
+            spacedUnit = true,
+        )
     }
-    return ElectricityPrimaryParts(
-        value = trimmed.substring(0, splitAt),
-        unit = trimmed.substring(splitAt + 1).trim().takeIf(String::isNotBlank),
-    )
+
+    Regex("^(.+?)(°C|%)$").matchEntire(trimmed)?.let { match ->
+        return PrimaryValueParts(
+            value = match.groupValues[1],
+            unit = match.groupValues[2],
+        )
+    }
+
+    return PrimaryValueParts(value = trimmed, unit = null)
 }
 
+internal fun electricityPrimaryParts(primary: String): PrimaryValueParts = primaryValueParts(primary)
+
 @Composable
-private fun ElectricityPrimaryValue(section: WidgetSection, palette: Palette) {
-    val parts = electricityPrimaryParts(section.primary)
-    Row(verticalAlignment = Alignment.Vertical.Bottom) {
+internal fun PrimaryValueText(
+    text: String,
+    color: Color,
+    sizeSp: Int,
+    modifier: GlanceModifier = GlanceModifier,
+) {
+    val parts = primaryValueParts(text)
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.Vertical.Bottom,
+    ) {
         Text(
             text = parts.value,
             style = TextStyle(
-                color = ColorProvider(toneColor(section.tone, palette)),
-                fontSize = WidgetTypography.PRIMARY_FULL.sp,
+                color = ColorProvider(color),
+                fontSize = sizeSp.sp,
                 fontWeight = FontWeight.Medium,
             ),
             maxLines = 1,
         )
         parts.unit?.let { unit ->
-            Spacer(GlanceModifier.width(4.dp))
+            if (parts.spacedUnit) {
+                Spacer(GlanceModifier.width(4.dp))
+            }
             Text(
                 text = unit,
                 style = TextStyle(
-                    color = ColorProvider(toneColor(section.tone, palette)),
+                    color = ColorProvider(color),
                     fontSize = WidgetTypography.UNIT.sp,
                     fontWeight = FontWeight.Medium,
                 ),
@@ -679,6 +699,15 @@ private fun ElectricityPrimaryValue(section: WidgetSection, palette: Palette) {
             )
         }
     }
+}
+
+@Composable
+private fun ElectricityPrimaryValue(section: WidgetSection, palette: Palette) {
+    PrimaryValueText(
+        text = section.primary,
+        color = toneColor(section.tone, palette),
+        sizeSp = WidgetTypography.PRIMARY_FULL,
+    )
 }
 
 @Composable
