@@ -426,6 +426,7 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.10.25**: added a non-wakeup quarter-hour Electricity alarm that enqueues a connected one-time WorkManager refresh while retaining periodic WorkManager as fallback.
 - **2.10.26**: added source-aware HSL network freshness scheduling four minutes after `fetchedAt`, with a five-minute recovery delay for stale or missing HSL data.
 - **2.10.30**: added one deduplicated support row to large half-width sections; Liiga uses it for the previous result and shows live period plus elapsed game time in its detail line.
+- **2.10.31**: centralized Android typography into named semantic roles without changing the established rendered sizes.
 
 ## Key files
 

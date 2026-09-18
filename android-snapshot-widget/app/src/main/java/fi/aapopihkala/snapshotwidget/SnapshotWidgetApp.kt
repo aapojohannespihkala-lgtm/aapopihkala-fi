@@ -57,6 +57,21 @@ import java.util.concurrent.TimeUnit
 
 private enum class WidgetSizeClass { COMPACT, MEDIUM, LARGE }
 
+internal object WidgetTypography {
+    const val HEADER = 19
+    const val PRIMARY_FULL = 25
+    const val PRIMARY_HALF = 22
+    const val PRIMARY_MEDIUM = 20
+    const val PRIMARY_COMPACT = 13
+    const val UNIT = 13
+    const val STATUS_PRIMARY = 19
+    const val ACTION = 18
+    const val SUPPORTING_VALUE = 9
+    const val SUPPORTING = 8
+    const val MICRO = 7
+    const val FORECAST_VALUE = 10
+}
+
 private data class Palette(
     val background: Color,
     val panel: Color,
@@ -227,7 +242,7 @@ private fun Footer(
             modifier = GlanceModifier.defaultWeight(),
             style = TextStyle(
                 color = ColorProvider(palette.muted),
-                fontSize = 8.sp
+                fontSize = WidgetTypography.SUPPORTING.sp
             ),
             maxLines = 1
         )
@@ -246,7 +261,7 @@ private fun Footer(
                     .padding(7.dp),
                 style = TextStyle(
                     color = ColorProvider(palette.accent),
-                    fontSize = 18.sp,
+                    fontSize = WidgetTypography.ACTION.sp,
                     fontWeight = FontWeight.Medium
                 ),
                 maxLines = 1
@@ -274,14 +289,14 @@ private fun EmptyState(
                 },
                 style = TextStyle(
                     color = ColorProvider(palette.foreground),
-                    fontSize = 19.sp,
+                    fontSize = WidgetTypography.STATUS_PRIMARY.sp,
                     fontWeight = FontWeight.Bold
                 )
             )
             Spacer(GlanceModifier.height(4.dp))
             Text(
                 text = if (status == WidgetRepository.STATUS_ERROR) "Tap ↻ to try again" else "Tap ↻ to load data",
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 9.sp)
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING_VALUE.sp)
             )
         }
     }
@@ -322,14 +337,14 @@ private fun CompactMetric(section: WidgetSection, palette: Palette, modifier: Gl
     ) {
         Text(
             text = section.label,
-            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),
             maxLines = 1
         )
         Text(
             text = section.primary,
             style = TextStyle(
                 color = ColorProvider(toneColor(section.tone, palette)),
-                fontSize = 13.sp,
+                fontSize = WidgetTypography.PRIMARY_COMPACT.sp,
                 fontWeight = FontWeight.Bold
             ),
             maxLines = 1
@@ -337,7 +352,7 @@ private fun CompactMetric(section: WidgetSection, palette: Palette, modifier: Gl
         section.secondary?.let {
             Text(
                 text = it,
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 7.sp),
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.MICRO.sp),
                 maxLines = 1
             )
         }
@@ -372,7 +387,7 @@ private fun MediumMetric(section: WidgetSection, palette: Palette, modifier: Gla
             text = section.primary,
             style = TextStyle(
                 color = ColorProvider(toneColor(section.tone, palette)),
-                fontSize = 20.sp,
+                fontSize = WidgetTypography.PRIMARY_MEDIUM.sp,
                 fontWeight = FontWeight.Bold
             ),
             maxLines = 1
@@ -381,7 +396,7 @@ private fun MediumMetric(section: WidgetSection, palette: Palette, modifier: Gla
             Spacer(GlanceModifier.height(2.dp))
             Text(
                 text = it,
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),
                 maxLines = 2
             )
         }
@@ -451,7 +466,7 @@ private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: 
             text = section.primary,
             style = TextStyle(
                 color = ColorProvider(toneColor(section.tone, palette)),
-                fontSize = 22.sp,
+                fontSize = WidgetTypography.PRIMARY_HALF.sp,
                 fontWeight = FontWeight.Medium
             ),
             maxLines = 1
@@ -460,7 +475,7 @@ private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: 
             Spacer(GlanceModifier.height(2.dp))
             Text(
                 text = it,
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),
                 maxLines = 1
             )
         }
@@ -468,7 +483,7 @@ private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: 
             Spacer(GlanceModifier.height(2.dp))
             Text(
                 text = it,
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),
                 maxLines = 1
             )
         }
@@ -508,12 +523,12 @@ private fun StackSection(section: WidgetSection, palette: Palette) {
             Spacer(GlanceModifier.height(3.dp))
             Text(
                 text = it,
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),
                 maxLines = 1
             )
         }
         Spacer(GlanceModifier.height(2.dp))
-        PrimaryValue(section, palette, 25)
+        PrimaryValue(section, palette, WidgetTypography.PRIMARY_FULL)
         section.detail?.let {
             Spacer(GlanceModifier.height(3.dp))
             SolarAwareDetail(
@@ -522,7 +537,7 @@ private fun StackSection(section: WidgetSection, palette: Palette) {
                 daylightColor = palette.foreground,
                 nightColor = palette.line,
                 horizonColor = palette.background,
-                fontSizeSp = 9
+                fontSizeSp = WidgetTypography.SUPPORTING_VALUE
             )
         }
         SupportingContent(section, palette)
@@ -542,7 +557,7 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
                 section.secondary?.let {
                     Text(
                         text = it,
-                        style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+                        style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),
                         maxLines = 1
                     )
                     Spacer(GlanceModifier.height(2.dp))
@@ -550,7 +565,7 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
                 if (section.id == "electricity") {
                     ElectricityPrimaryValue(section, palette)
                 } else {
-                    PrimaryValue(section, palette, 25)
+                    PrimaryValue(section, palette, WidgetTypography.PRIMARY_FULL)
                 }
                 section.detail?.let {
                     Spacer(GlanceModifier.height(2.dp))
@@ -563,7 +578,7 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
                             daylightColor = palette.foreground,
                             nightColor = palette.line,
                             horizonColor = palette.background,
-                            fontSizeSp = 8
+                            fontSizeSp = WidgetTypography.SUPPORTING
                         )
                     }
                 }
@@ -601,7 +616,7 @@ private fun ElectricityPrimaryValue(section: WidgetSection, palette: Palette) {
             text = parts.value,
             style = TextStyle(
                 color = ColorProvider(toneColor(section.tone, palette)),
-                fontSize = 25.sp,
+                fontSize = WidgetTypography.PRIMARY_FULL.sp,
                 fontWeight = FontWeight.Medium,
             ),
             maxLines = 1,
@@ -612,7 +627,7 @@ private fun ElectricityPrimaryValue(section: WidgetSection, palette: Palette) {
                 text = unit,
                 style = TextStyle(
                     color = ColorProvider(toneColor(section.tone, palette)),
-                    fontSize = 13.sp,
+                    fontSize = WidgetTypography.UNIT.sp,
                     fontWeight = FontWeight.Medium,
                 ),
                 maxLines = 1,
@@ -627,7 +642,7 @@ private fun ElectricityDetail(detail: String, palette: Palette) {
         if (index > 0) Spacer(GlanceModifier.height(1.dp))
         Text(
             text = line,
-            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),
             maxLines = 1
         )
     }
@@ -698,14 +713,14 @@ private fun SectionHeading(section: WidgetSection, palette: Palette) {
     Row(modifier = GlanceModifier.fillMaxWidth()) {
         Text(
             text = section.index,
-            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp)
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp)
         )
         Spacer(GlanceModifier.width(8.dp))
         Text(
             text = section.label,
             style = TextStyle(
                 color = ColorProvider(palette.muted),
-                fontSize = 9.sp,
+                fontSize = WidgetTypography.SUPPORTING_VALUE.sp,
                 fontWeight = FontWeight.Medium
             ),
             maxLines = 1
@@ -719,14 +734,14 @@ private fun DetailRow(item: WidgetItem, palette: Palette) {
         Text(
             text = item.label,
             modifier = GlanceModifier.defaultWeight(),
-            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),
             maxLines = 1
         )
         Text(
             text = item.value,
             style = TextStyle(
                 color = ColorProvider(toneColor(item.tone, palette)),
-                fontSize = 9.sp,
+                fontSize = WidgetTypography.SUPPORTING_VALUE.sp,
                 fontWeight = FontWeight.Medium
             ),
             maxLines = 1
@@ -741,14 +756,14 @@ private fun ColumnStrip(items: List<WidgetItem>, palette: Palette) {
             Column(modifier = GlanceModifier.defaultWeight()) {
                 Text(
                     text = item.label,
-                    style = TextStyle(color = ColorProvider(palette.muted), fontSize = 7.sp),
+                    style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.MICRO.sp),
                     maxLines = 1
                 )
                 Text(
                     text = item.value,
                     style = TextStyle(
                         color = ColorProvider(toneColor(item.tone, palette)),
-                        fontSize = 10.sp,
+                        fontSize = WidgetTypography.FORECAST_VALUE.sp,
                         fontWeight = FontWeight.Bold
                     ),
                     maxLines = 1
