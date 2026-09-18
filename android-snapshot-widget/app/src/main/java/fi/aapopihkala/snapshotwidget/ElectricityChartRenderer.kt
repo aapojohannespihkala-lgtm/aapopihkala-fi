@@ -16,14 +16,14 @@ internal const val ELECTRICITY_MARKER_INNER_STROKE_PX = 1.5f
 
 private const val MILLIS_PER_DAY = 24f * 60f * 60f * 1000f
 private const val MIN_BAR_HEIGHT_FRACTION = 4f / 28f
-private const val PLOT_TOP_PX = 16f
+private const val PLOT_TOP_PX = 30f
 private const val PLOT_BOTTOM_PX = 56f
-private const val CURRENT_PRICE_TEXT_SIZE_PX = 21f
-private const val AXIS_TEXT_SIZE_PX = 16f
-private const val CURRENT_PRICE_PREFERRED_BASELINE_PX = 21f
+private const val CURRENT_PRICE_TEXT_SIZE_PX = 19f
+private const val CURRENT_PRICE_MIN_TEXT_SIZE_PX = 8f
 private const val CURRENT_PRICE_SAFE_TOP_PX = 2f
-private const val CURRENT_PRICE_SAFE_BOTTOM_PX = 2f
-private const val AXIS_BASELINE_PX = 92f
+private const val CURRENT_PRICE_PLOT_GAP_PX = 2f
+private const val AXIS_TEXT_SIZE_PX = 16f
+private const val AXIS_BASELINE_PX = 87f
 private const val PRIMARY_BOTTOM_INSET_DP = 11f
 
 internal fun electricityPrimaryBottomInsetDp(): Float = PRIMARY_BOTTOM_INSET_DP
@@ -33,20 +33,24 @@ internal fun electricityPlotBaselineInsetDp(): Float =
         (ELECTRICITY_CHART_BITMAP_HEIGHT.toFloat() - PLOT_BOTTOM_PX) /
         ELECTRICITY_CHART_BITMAP_HEIGHT.toFloat()
 
-internal fun electricitySafePriceBaselinePx(
-    preferredBaselinePx: Float,
+internal fun electricityPriceFitsAbovePlot(
     fontTopPx: Float,
     fontBottomPx: Float,
-    heightPx: Int,
+    plotTopPx: Float = PLOT_TOP_PX,
     safeTopPx: Float = CURRENT_PRICE_SAFE_TOP_PX,
-    safeBottomPx: Float = CURRENT_PRICE_SAFE_BOTTOM_PX,
-): Float {
-    val safeHeight = heightPx.coerceAtLeast(1).toFloat()
-    val minimumBaseline = safeTopPx - fontTopPx
-    val maximumBaseline = safeHeight - safeBottomPx - fontBottomPx
-    if (maximumBaseline < minimumBaseline) return minimumBaseline
-    return preferredBaselinePx.coerceIn(minimumBaseline, maximumBaseline)
+    plotGapPx: Float = CURRENT_PRICE_PLOT_GAP_PX,
+): Boolean {
+    val baseline = plotTopPx - plotGapPx - fontBottomPx
+    return baseline + fontTopPx >= safeTopPx
 }
+
+internal fun electricityPriceBaselineAbovePlotPx(
+    fontBottomPx: Float,
+    plotTopPx: Float = PLOT_TOP_PX,
+    plotGapPx: Float = CURRENT_PRICE_PLOT_GAP_PX,
+): Float = plotTopPx - plotGapPx - fontBottomPx
+
+internal fun electricityAxisBaselinePx(): Float = AXIS_BASELINE_PX
 
 internal enum class ElectricityPriceAlignment { START, CENTER, END }
 
@@ -177,6 +181,16 @@ internal fun renderElectricityChartBitmap(
             textSize = CURRENT_PRICE_TEXT_SIZE_PX
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         }
+        while (
+            pricePaint.textSize > CURRENT_PRICE_MIN_TEXT_SIZE_PX &&
+            !electricityPriceFitsAbovePlot(
+                fontTopPx = pricePaint.fontMetrics.top,
+                fontBottomPx = pricePaint.fontMetrics.bottom,
+                plotTopPx = plotTop,
+            )
+        ) {
+            pricePaint.textSize -= 1f
+        }
         pricePaint.textAlign = when (
             electricityPriceAlignment(
                 markerX = markerX,
@@ -189,11 +203,9 @@ internal fun renderElectricityChartBitmap(
             ElectricityPriceAlignment.END -> Paint.Align.RIGHT
         }
         val fontMetrics = pricePaint.fontMetrics
-        val priceBaseline = electricitySafePriceBaselinePx(
-            preferredBaselinePx = CURRENT_PRICE_PREFERRED_BASELINE_PX,
-            fontTopPx = fontMetrics.top,
+        val priceBaseline = electricityPriceBaselineAbovePlotPx(
             fontBottomPx = fontMetrics.bottom,
-            heightPx = safeHeight,
+            plotTopPx = plotTop,
         )
         canvas.drawText(price, markerX, priceBaseline, pricePaint)
     }

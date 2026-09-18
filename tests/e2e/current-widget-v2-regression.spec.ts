@@ -148,7 +148,7 @@ test('widget v2 exposes production HSL through the large-layout presentation con
   expect(electricity).toMatchObject({
     primary: '1.83 c/kWh',
     secondary: 'DAY AVG / TODAY',
-    detail: 'TOMORROW AVG 2.22\nMONTH AVG 4.21  LOW 0.39  HIGH 5.03',
+    detail: 'LOW 0.39  HIGH 5.03\nTOMORROW AVG 2.22\nMONTH AVG 4.21',
     span: 'full',
     layout: 'split',
     bars: [0, 1, 0.5],
@@ -387,6 +387,6 @@ test('widget v2 keeps a stable tomorrow placeholder before prices are available'
   );
 
   expect(payload.sections.find((section) => section.id === 'electricity')?.detail).toBe(
-    'TOMORROW AVG --.--\nMONTH AVG 4.21  LOW 0.39  HIGH 5.03'
+    'LOW 0.39  HIGH 5.03\nTOMORROW AVG --.--\nMONTH AVG 4.21'
   );
 });

@@ -97,18 +97,19 @@ class WidgetLayoutTest {
     }
 
     @Test
-    fun `electricity detail keeps tomorrow and month stats on two compact rows`() {
+    fun `electricity detail keeps low high tomorrow and month on three compact rows`() {
         assertEquals(
             listOf(
+                "LOW 1.56  HIGH 12.53",
                 "TOMORROW AVG 2.22",
-                "MONTH AVG 6.62  LOW 1.56  HIGH 12.53"
+                "MONTH AVG 6.62"
             ),
             electricityDetailLines(
-                "TOMORROW AVG 2.22\nMONTH AVG 6.62  LOW 1.56  HIGH 12.53"
+                "LOW 1.56  HIGH 12.53\nTOMORROW AVG 2.22\nMONTH AVG 6.62"
             )
         )
         assertEquals(
-            listOf("MONTH AVG 6.62", "LOW 1.56   HIGH 12.53"),
+            listOf("LOW 1.56   HIGH 12.53", "MONTH AVG 6.62"),
             electricityDetailLines("MONTH AVG 6.62  LOW 1.56  HIGH 12.53")
         )
     }

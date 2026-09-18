@@ -327,8 +327,9 @@ const buildElectricitySection = (
     primary: formatPrice(average),
     secondary: 'DAY AVG / TODAY',
     detail: [
+      `LOW ${formatCompactPrice(low)}  HIGH ${formatCompactPrice(high)}`,
       `TOMORROW AVG ${formatCompactPrice(tomorrowAverage)}`,
-      `MONTH AVG ${formatCompactPrice(monthAverage)}  LOW ${formatCompactPrice(low)}  HIGH ${formatCompactPrice(high)}`,
+      `MONTH AVG ${formatCompactPrice(monthAverage)}`,
     ].join('\n'),
     span: 'full',
     layout: 'split',

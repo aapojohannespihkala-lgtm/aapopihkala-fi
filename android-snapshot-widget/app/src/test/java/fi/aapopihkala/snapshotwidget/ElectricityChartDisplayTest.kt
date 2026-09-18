@@ -17,7 +17,7 @@ class ElectricityChartDisplayTest {
     @Test
     fun electricityDetailSplitsMonthAverageFromLowAndHigh() {
         assertEquals(
-            listOf("MONTH AVG 5.93", "LOW 1.38   HIGH 32.38"),
+            listOf("LOW 1.38   HIGH 32.38", "MONTH AVG 5.93"),
             electricityDetailLines("MONTH AVG 5.93 LOW 1.38 HIGH 32.38"),
         )
     }
@@ -71,38 +71,34 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun chartPlotBaselineIsRaisedNineDpAboveThePrimaryLayoutBottom() {
+    fun chartBottomBaselineStaysAtTheApprovedPosition() {
         assertEquals(11f, electricityPrimaryBottomInsetDp(), 0.01f)
         assertEquals(20f, electricityPlotBaselineInsetDp(), 0.01f)
+    }
+
+    @Test
+    fun currentPriceSitsFullyAboveTheBarArea() {
         assertEquals(
-            9f,
-            electricityPlotBaselineInsetDp() - electricityPrimaryBottomInsetDp(),
+            true,
+            electricityPriceFitsAbovePlot(
+                fontTopPx = -19f,
+                fontBottomPx = 5f,
+                plotTopPx = 30f,
+            )
+        )
+        assertEquals(
+            23f,
+            electricityPriceBaselineAbovePlotPx(
+                fontBottomPx = 5f,
+                plotTopPx = 30f,
+            ),
             0.01f,
         )
     }
 
     @Test
-    fun currentPriceBaselineCannotClipTheFontTopOrBottom() {
-        assertEquals(
-            22f,
-            electricitySafePriceBaselinePx(
-                preferredBaselinePx = 21f,
-                fontTopPx = -20f,
-                fontBottomPx = 5f,
-                heightPx = 96,
-            ),
-            0.01f,
-        )
-        assertEquals(
-            89f,
-            electricitySafePriceBaselinePx(
-                preferredBaselinePx = 94f,
-                fontTopPx = -20f,
-                fontBottomPx = 5f,
-                heightPx = 96,
-            ),
-            0.01f,
-        )
+    fun timeAxisMovesTwoAndAHalfDpUpWithoutMovingThePlotBottom() {
+        assertEquals(87f, electricityAxisBaselinePx(), 0.01f)
     }
 
     @Test
