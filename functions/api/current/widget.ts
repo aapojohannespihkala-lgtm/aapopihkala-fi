@@ -76,6 +76,8 @@ export const WIDGET_WEATHER_SOURCE = {
 
 const HELSINKI_TIME_ZONE = WIDGET_WEATHER_SOURCE.timeZone;
 const WEATHER_TIMEOUT_MS = 6_000;
+const ELECTRICITY_DIRECT_TIMEOUT_MS = 5_000;
+const ELECTRICITY_DIRECT_URL = 'https://api.porssisahko.net/v2/latest-prices.json';
 const QUARTER_MS = 15 * 60 * 1000;
 const SELECTED_MARKETS = {
   world: 'ishares-world',
@@ -398,9 +400,29 @@ export const summarizeWidgetElectricity = (prices: unknown, now: Date) => {
   };
 };
 
+const fetchDirectElectricityResponse = async () => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ELECTRICITY_DIRECT_TIMEOUT_MS);
+  try {
+    return await fetch(ELECTRICITY_DIRECT_URL, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 const loadElectricity = async (now: Date) => {
-  const data = await readJson<ElectricityResponse>(await getElectricityResponse());
-  return data ? summarizeWidgetElectricity(data.prices, now) : null;
+  const primary = await readJson<ElectricityResponse>(await getElectricityResponse());
+  const primarySummary = primary ? summarizeWidgetElectricity(primary.prices, now) : null;
+  if (primarySummary) return primarySummary;
+
+  // Keep electricity independent from a transient failure in the internal Current
+  // handler. The direct source uses the same documented quarter-hour feed and is
+  // still bounded by its own timeout and the same schema/summarization contract.
+  const direct = await readJson<ElectricityResponse>(await fetchDirectElectricityResponse());
+  return direct ? summarizeWidgetElectricity(direct.prices, now) : null;
 };
 
 const median = (values: number[]) => {
