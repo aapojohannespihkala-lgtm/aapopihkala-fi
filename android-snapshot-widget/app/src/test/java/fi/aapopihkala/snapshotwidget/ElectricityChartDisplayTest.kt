@@ -71,12 +71,36 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun chartPlotBaselineIsRaisedSevenDpAboveThePrimaryLayoutBottom() {
+    fun chartPlotBaselineIsRaisedNineDpAboveThePrimaryLayoutBottom() {
         assertEquals(11f, electricityPrimaryBottomInsetDp(), 0.01f)
-        assertEquals(18f, electricityPlotBaselineInsetDp(), 0.01f)
+        assertEquals(20f, electricityPlotBaselineInsetDp(), 0.01f)
         assertEquals(
-            7f,
+            9f,
             electricityPlotBaselineInsetDp() - electricityPrimaryBottomInsetDp(),
+            0.01f,
+        )
+    }
+
+    @Test
+    fun currentPriceBaselineCannotClipTheFontTopOrBottom() {
+        assertEquals(
+            22f,
+            electricitySafePriceBaselinePx(
+                preferredBaselinePx = 21f,
+                fontTopPx = -20f,
+                fontBottomPx = 5f,
+                heightPx = 96,
+            ),
+            0.01f,
+        )
+        assertEquals(
+            89f,
+            electricitySafePriceBaselinePx(
+                preferredBaselinePx = 94f,
+                fontTopPx = -20f,
+                fontBottomPx = 5f,
+                heightPx = 96,
+            ),
             0.01f,
         )
     }
