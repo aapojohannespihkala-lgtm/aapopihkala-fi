@@ -128,7 +128,7 @@ class WidgetLayoutTest {
         assertEquals(WidgetTypography.PRIMARY_HALF, WidgetTypography.PRIMARY_FULL)
         assertEquals(22, WidgetTypography.PRIMARY_FULL)
         assertEquals(9, WidgetTypography.SECTION_HEADING)
-        assertEquals(WidgetTypography.SECTION_HEADING, WidgetTypography.HEADER)
+        assertEquals(WidgetTypography.PRIMARY_FULL, WidgetTypography.HEADER)
     }
 
 }
