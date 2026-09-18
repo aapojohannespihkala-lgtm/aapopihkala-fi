@@ -161,4 +161,6 @@ Android-changing PRs run the version-bump guard, unit tests and a debug APK comp
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.30**.
+Typography uses a shared semantic scale for header, full-width and half-width primary values, compact units, supporting text, row values and micro labels. Compound units such as `c/kWh` intentionally use the smaller unit role while short numeric suffixes remain part of their primary value.
+
+Current app version: **2.10.31**.
