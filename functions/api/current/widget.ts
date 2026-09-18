@@ -32,6 +32,7 @@ type ElectricityResponse = {
 
 type PortfolioItem = {
   id?: unknown;
+  price?: unknown;
   observedAt?: unknown;
   changes?: {
     today?: unknown;
@@ -386,6 +387,10 @@ const loadPortfolio = async () => {
     const value = byId.get(id)?.changes?.today;
     return isFiniteNumber(value) ? value : null;
   };
+  const selectedPrice = (id: string) => {
+    const value = byId.get(id)?.price;
+    return isFiniteNumber(value) ? value : null;
+  };
 
   return {
     median: median(todayValues),
@@ -397,6 +402,7 @@ const loadPortfolio = async () => {
     finland: selectedValue(SELECTED_MARKETS.finland),
     btcEur: selectedValue(SELECTED_MARKETS.btcEur),
     remedy: selectedValue(SELECTED_MARKETS.remedy),
+    remedyPrice: selectedPrice(SELECTED_MARKETS.remedy),
   };
 };
 
