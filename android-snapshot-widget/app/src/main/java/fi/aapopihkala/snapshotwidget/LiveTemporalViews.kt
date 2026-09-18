@@ -34,9 +34,9 @@ internal fun LiveHeaderClock(
         setTextColor(R.id.widget_live_clock, color.toArgb())
         setTextColor(R.id.widget_live_date, color.toArgb())
         setTextColor(R.id.widget_live_week, color.toArgb())
-        setTextViewTextSize(R.id.widget_live_clock, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER.toFloat())
-        setTextViewTextSize(R.id.widget_live_date, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER.toFloat())
-        setTextViewTextSize(R.id.widget_live_week, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER.toFloat())
+        setTextViewTextSize(R.id.widget_live_clock, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER_TIME.toFloat())
+        setTextViewTextSize(R.id.widget_live_date, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER_META.toFloat())
+        setTextViewTextSize(R.id.widget_live_week, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER_META.toFloat())
         setTextViewText(R.id.widget_live_date, currentHeaderDateLabel())
         setTextViewText(R.id.widget_live_week, currentHeaderWeekLabel())
     }
