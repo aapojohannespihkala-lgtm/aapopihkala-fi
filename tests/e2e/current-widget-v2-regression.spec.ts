@@ -177,17 +177,15 @@ test('widget v2 exposes production HSL through the large-layout presentation con
   expect(liiga).toMatchObject({
     index: '06',
     primary: '6/17',
-    secondary: 'KÄRPÄT - ILVES',
-    detail: 'WED 16 18:30',
+    secondary: 'KÄRPÄT - ILVES · WED 16 18:30',
+    detail: 'ILVES - HIFK 3-2 · LAST',
     span: 'half',
     layout: 'stack',
-    rows: [
-      { label: 'LAST', value: 'ILVES 3-2 HIFK', tone: 'positive' },
-    ],
+    rows: [],
   });
 });
 
-test('widget v2 shows live Liiga score, teams, period and elapsed game time', () => {
+test('widget v2 shows live Liiga score, teams and elapsed game time in two rows', () => {
   const payload = buildWidgetV2Payload(
     baseFixture,
     {
@@ -207,8 +205,7 @@ test('widget v2 shows live Liiga score, teams, period and elapsed game time', ()
   const liiga = payload.sections.find((section) => section.id === 'liiga');
   expect(liiga).toMatchObject({
     primary: '2-1',
-    secondary: 'ILVES - KALPA',
-    detail: 'LIVE · 2ND · 34:18',
+    secondary: 'ILVES - KALPA · LIVE 34:18',
     tone: 'accent',
     rows: [],
   });
@@ -233,9 +230,10 @@ test('widget v2 marks overtime results compactly', () => {
   );
 
   const liiga = payload.sections.find((section) => section.id === 'liiga');
-  expect(liiga?.rows).toEqual([
-    { label: 'LAST', value: 'KALPA 2-3 ILVES OT', tone: 'positive' },
-  ]);
+  expect(liiga).toMatchObject({
+    detail: 'KALPA - ILVES 2-3 OT · LAST',
+    rows: [],
+  });
 });
 
 test('widget v2 skips a departure once its countdown reaches zero', () => {
