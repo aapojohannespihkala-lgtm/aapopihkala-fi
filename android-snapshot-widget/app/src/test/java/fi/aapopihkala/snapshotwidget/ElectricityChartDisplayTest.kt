@@ -78,20 +78,43 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun currentPriceSitsFullyAboveTheBarArea() {
+    fun barsUseAlmostTheFullUpperChartSpace() {
         assertEquals(
-            true,
-            electricityPriceFitsAbovePlot(
+            4f,
+            electricityNaturalBarTopPx(
+                normalized = 1f,
+                plotTopPx = 4f,
+                plotBottomPx = 68f,
+            ),
+            0.01f,
+        )
+        assertEquals(
+            58.857f,
+            electricityNaturalBarTopPx(
+                normalized = 0f,
+                plotTopPx = 4f,
+                plotBottomPx = 68f,
+            ),
+            0.01f,
+        )
+    }
+
+    @Test
+    fun currentPriceFloatsAboveItsCurrentBarWithoutReservingGlobalHeadroom() {
+        assertEquals(13, electricityCurrentBarIndex(13f / 24f, 24))
+        assertEquals(
+            24f,
+            electricityPriceSafeBarTopPx(
                 fontTopPx = -16f,
                 fontBottomPx = 4f,
-                plotTopPx = 24f,
-            )
+            ),
+            0.01f,
         )
         assertEquals(
             18f,
-            electricityPriceBaselineAbovePlotPx(
+            electricityPriceBaselineAboveBarPx(
+                barTopPx = 24f,
                 fontBottomPx = 4f,
-                plotTopPx = 24f,
             ),
             0.01f,
         )
