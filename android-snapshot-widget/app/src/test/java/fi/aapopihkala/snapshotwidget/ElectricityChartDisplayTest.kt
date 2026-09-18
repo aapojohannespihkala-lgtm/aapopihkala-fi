@@ -71,53 +71,36 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun chartBottomBaselineStaysFixedWhileTheSlotExpandsUpward() {
-        assertEquals(7f, electricityPrimaryBottomInsetDp(), 0.01f)
+    fun chartStartsAtTheElectricityHeadingAndKeepsTheApprovedBaseline() {
         assertEquals(16f, electricityPlotBaselineInsetDp(), 0.01f)
-        assertEquals(34f, electricityPlotBaselineFromTopDp(), 0.01f)
+        assertEquals(48f, electricityPlotBaselineFromTopDp(), 0.01f)
+        assertEquals(9f, electricityPriceBaselineFromTopDp(), 0.01f)
     }
 
     @Test
-    fun priceLabelReservesOnlyTheHeadroomItNeedsAboveThePeak() {
+    fun barsScaleThroughTheSpaceBelowTheHeadingLevelPrice() {
         assertEquals(
-            24f,
-            electricityPriceReservedPlotTopPx(
-                fontTopPx = -16f,
-                fontBottomPx = 4f,
-            ),
-            0.01f,
-        )
-        assertEquals(
-            24f,
+            28f,
             electricityNaturalBarTopPx(
                 normalized = 1f,
-                plotTopPx = 24f,
-                plotBottomPx = 68f,
+                plotTopPx = 28f,
+                plotBottomPx = 96f,
             ),
             0.01f,
         )
         assertEquals(
-            61.714f,
+            86.286f,
             electricityNaturalBarTopPx(
                 normalized = 0f,
-                plotTopPx = 24f,
-                plotBottomPx = 68f,
+                plotTopPx = 28f,
+                plotBottomPx = 96f,
             ),
             0.01f,
         )
     }
 
     @Test
-    fun currentTimeMarkerStillTracksTheCurrentHour() {
-        assertEquals(13, electricityCurrentBarIndex(13f / 24f, 24))
-    }
-
-    @Test
-    fun currentPriceUsesCurrentTimeForXAndPeakHeightForY() {
-        assertEquals(
-            2,
-            electricityHighestBarIndex(listOf(0.2f, 0.8f, 1f, 0.4f)),
-        )
+    fun currentPriceTracksTimeAndMarkerEdgesReachTheNumber() {
         assertEquals(
             165f,
             electricityMarkerX(
@@ -127,9 +110,8 @@ class ElectricityChartDisplayTest {
             0.01f,
         )
         assertEquals(
-            18f,
-            electricityPriceBaselineAboveBarPx(
-                barTopPx = 24f,
+            22f,
+            electricityMarkerLineTopPx(
                 fontBottomPx = 4f,
             ),
             0.01f,
@@ -137,8 +119,8 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun timeAxisKeepsTheSameBottomInsetInTheExpandedSlot() {
-        assertEquals(94f, electricityAxisBaselinePx(), 0.01f)
+    fun timeAxisStaysBelowTheFixedBarBaseline() {
+        assertEquals(118f, electricityAxisBaselinePx(), 0.01f)
     }
 
     @Test

@@ -603,24 +603,15 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
 @Composable
 private fun ElectricitySplitSection(section: WidgetSection, palette: Palette) {
     val electricityNow = section.rows.firstOrNull { it.label == "NOW" }
-    val chartBaselineInset = if (section.bars.isNotEmpty()) {
-        electricityPrimaryBottomInsetDp().dp
-    } else {
-        0.dp
-    }
 
     Column(modifier = GlanceModifier.fillMaxWidth()) {
-        SectionHeading(section, palette)
-        Spacer(GlanceModifier.height(4.dp))
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Vertical.Bottom
+            verticalAlignment = Alignment.Vertical.Top
         ) {
-            Column(
-                modifier = GlanceModifier
-                    .defaultWeight()
-                    .padding(bottom = chartBaselineInset)
-            ) {
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                SectionHeading(section, palette)
+                Spacer(GlanceModifier.height(4.dp))
                 section.secondary?.let {
                     Text(
                         text = it,
