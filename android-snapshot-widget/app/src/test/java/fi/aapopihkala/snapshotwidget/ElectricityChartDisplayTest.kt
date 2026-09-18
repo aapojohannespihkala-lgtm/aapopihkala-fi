@@ -17,7 +17,7 @@ class ElectricityChartDisplayTest {
     @Test
     fun electricityDetailSplitsMonthAverageFromLowAndHigh() {
         assertEquals(
-            listOf("MONTH AVG 5.93", "LOW 1.38   HIGH 32.38"),
+            listOf("LOW 1.38   HIGH 32.38", "MONTH AVG 5.93"),
             electricityDetailLines("MONTH AVG 5.93 LOW 1.38 HIGH 32.38"),
         )
     }
