@@ -55,7 +55,7 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun currentPriceUsesMarkerAsItsAnchorWithoutClippingAtDayEdges() {
+    fun priceLabelAlignmentProtectsChartEdges() {
         assertEquals(
             ElectricityPriceAlignment.START,
             electricityPriceAlignment(markerX = 0f, textWidthPx = 48f, widthPx = 288),
@@ -78,21 +78,29 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun barsUseAlmostTheFullUpperChartSpace() {
+    fun priceLabelReservesOnlyTheHeadroomItNeedsAboveThePeak() {
         assertEquals(
-            4f,
+            24f,
+            electricityPriceReservedPlotTopPx(
+                fontTopPx = -16f,
+                fontBottomPx = 4f,
+            ),
+            0.01f,
+        )
+        assertEquals(
+            24f,
             electricityNaturalBarTopPx(
                 normalized = 1f,
-                plotTopPx = 4f,
+                plotTopPx = 24f,
                 plotBottomPx = 68f,
             ),
             0.01f,
         )
         assertEquals(
-            58.857f,
+            61.714f,
             electricityNaturalBarTopPx(
                 normalized = 0f,
-                plotTopPx = 4f,
+                plotTopPx = 24f,
                 plotBottomPx = 68f,
             ),
             0.01f,
@@ -100,13 +108,23 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun currentPriceFloatsAboveItsCurrentBarWithoutReservingGlobalHeadroom() {
+    fun currentTimeMarkerStillTracksTheCurrentHour() {
         assertEquals(13, electricityCurrentBarIndex(13f / 24f, 24))
+    }
+
+    @Test
+    fun currentPriceIsAnchoredToTheHighestBar() {
         assertEquals(
-            24f,
-            electricityPriceSafeBarTopPx(
-                fontTopPx = -16f,
-                fontBottomPx = 4f,
+            2,
+            electricityHighestBarIndex(listOf(0.2f, 0.8f, 1f, 0.4f)),
+        )
+        assertEquals(
+            30f,
+            electricityBarCenterX(
+                index = 2,
+                barCount = 24,
+                plotLeftPx = 0f,
+                plotRightPx = 288f,
             ),
             0.01f,
         )
@@ -116,37 +134,6 @@ class ElectricityChartDisplayTest {
                 barTopPx = 24f,
                 fontBottomPx = 4f,
             ),
-            0.01f,
-        )
-    }
-
-    @Test
-    fun currentPriceAccountsForEveryBarUnderItsTextWidth() {
-        assertEquals(
-            126f to 162f,
-            electricityPriceHorizontalBounds(
-                markerX = 144f,
-                textWidthPx = 36f,
-                widthPx = 288,
-                alignment = ElectricityPriceAlignment.CENTER,
-            ),
-        )
-        assertEquals(
-            listOf(10, 11, 12, 13),
-            electricityBarsOverlappingHorizontalRange(
-                leftPx = 126f,
-                rightPx = 162f,
-                barCount = 24,
-                plotLeftPx = 0f,
-                plotRightPx = 288f,
-            ),
-        )
-        assertEquals(
-            12f,
-            electricityHighestBarTopPx(
-                barTops = listOf(40f, 22f, 12f, 30f),
-                indices = listOf(1, 2, 3),
-            ) ?: Float.NaN,
             0.01f,
         )
     }
