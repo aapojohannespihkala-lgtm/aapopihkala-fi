@@ -73,6 +73,50 @@ internal fun electricityPriceBaselineAboveBarPx(
     plotGapPx: Float = CURRENT_PRICE_PLOT_GAP_PX,
 ): Float = barTopPx - plotGapPx - fontBottomPx
 
+internal fun electricityPriceHorizontalBounds(
+    markerX: Float,
+    textWidthPx: Float,
+    widthPx: Int,
+    alignment: ElectricityPriceAlignment,
+): Pair<Float, Float> {
+    val safeWidth = widthPx.coerceAtLeast(1).toFloat()
+    val width = textWidthPx.coerceAtLeast(0f)
+    val left = when (alignment) {
+        ElectricityPriceAlignment.START -> markerX
+        ElectricityPriceAlignment.CENTER -> markerX - width / 2f
+        ElectricityPriceAlignment.END -> markerX - width
+    }
+    val right = when (alignment) {
+        ElectricityPriceAlignment.START -> markerX + width
+        ElectricityPriceAlignment.CENTER -> markerX + width / 2f
+        ElectricityPriceAlignment.END -> markerX
+    }
+    return left.coerceIn(0f, safeWidth) to right.coerceIn(0f, safeWidth)
+}
+
+internal fun electricityBarsOverlappingHorizontalRange(
+    leftPx: Float,
+    rightPx: Float,
+    barCount: Int,
+    plotLeftPx: Float,
+    plotRightPx: Float,
+): List<Int> {
+    if (barCount <= 0 || plotRightPx <= plotLeftPx) return emptyList()
+    val rangeLeft = minOf(leftPx, rightPx)
+    val rangeRight = maxOf(leftPx, rightPx)
+    val slotWidth = (plotRightPx - plotLeftPx) / barCount.toFloat()
+    return (0 until barCount).filter { index ->
+        val barLeft = plotLeftPx + index * slotWidth
+        val barRight = plotLeftPx + (index + 1) * slotWidth
+        barRight > rangeLeft && barLeft < rangeRight
+    }
+}
+
+internal fun electricityHighestBarTopPx(
+    barTops: List<Float>,
+    indices: List<Int>,
+): Float? = indices.mapNotNull { index -> barTops.getOrNull(index) }.minOrNull()
+
 internal fun electricityAxisBaselinePx(): Float = AXIS_BASELINE_PX
 
 internal enum class ElectricityPriceAlignment { START, CENTER, END }
@@ -176,17 +220,81 @@ internal fun renderElectricityChartBitmap(
     }
 
     val minimumHeight = plotHeight * MIN_BAR_HEIGHT_FRACTION
-    val maximumCurrentBarTop = plotBottom - minimumHeight
-    if (pricePaint != null) {
-        while (
-            pricePaint.textSize > CURRENT_PRICE_MIN_TEXT_SIZE_PX &&
-            electricityPriceSafeBarTopPx(
-                fontTopPx = pricePaint.fontMetrics.top,
-                fontBottomPx = pricePaint.fontMetrics.bottom,
-            ) > maximumCurrentBarTop
-        ) {
+    val maximumSafeBarTop = plotBottom - minimumHeight
+    val naturalBarTops = bars.map { normalized ->
+        electricityNaturalBarTopPx(
+            normalized = normalized,
+            plotTopPx = plotTop,
+            plotBottomPx = plotBottom,
+        )
+    }
+
+    var priceAlignment: ElectricityPriceAlignment? = null
+    var priceOverlapIndices: List<Int> = emptyList()
+    var priceReferenceTop: Float? = null
+    if (price != null && pricePaint != null && bars.isNotEmpty()) {
+        while (true) {
+            val measuredWidth = pricePaint.measureText(price)
+            val alignment = electricityPriceAlignment(
+                markerX = markerX,
+                textWidthPx = measuredWidth,
+                widthPx = safeWidth,
+            )
+            val (labelLeft, labelRight) = electricityPriceHorizontalBounds(
+                markerX = markerX,
+                textWidthPx = measuredWidth,
+                widthPx = safeWidth,
+                alignment = alignment,
+            )
+            val overlapIndices = electricityBarsOverlappingHorizontalRange(
+                leftPx = labelLeft,
+                rightPx = labelRight,
+                barCount = bars.size,
+                plotLeftPx = plotLeft,
+                plotRightPx = plotRight,
+            )
+            val highestNaturalTop = electricityHighestBarTopPx(
+                barTops = naturalBarTops,
+                indices = overlapIndices,
+            ) ?: naturalBarTops.getOrNull(currentBarIndex ?: -1)
+
+            val fontMetrics = pricePaint.fontMetrics
+            val baseline = highestNaturalTop?.let { barTop ->
+                electricityPriceBaselineAboveBarPx(
+                    barTopPx = barTop,
+                    fontBottomPx = fontMetrics.bottom,
+                )
+            } ?: (CURRENT_PRICE_SAFE_TOP_PX - fontMetrics.top)
+            val glyphTop = baseline + fontMetrics.top
+            priceAlignment = alignment
+            priceOverlapIndices = overlapIndices
+            priceReferenceTop = highestNaturalTop
+            if (
+                glyphTop >= CURRENT_PRICE_SAFE_TOP_PX ||
+                pricePaint.textSize <= CURRENT_PRICE_MIN_TEXT_SIZE_PX
+            ) {
+                break
+            }
             pricePaint.textSize -= 1f
         }
+    }
+
+    val forcedSafeTop = pricePaint?.let {
+        electricityPriceSafeBarTopPx(
+            fontTopPx = it.fontMetrics.top,
+            fontBottomPx = it.fontMetrics.bottom,
+        ).coerceAtMost(maximumSafeBarTop)
+    }
+    val overlapSet = priceOverlapIndices.toSet()
+    if (
+        pricePaint != null &&
+        priceReferenceTop != null &&
+        electricityPriceBaselineAboveBarPx(
+            barTopPx = priceReferenceTop!!,
+            fontBottomPx = pricePaint.fontMetrics.bottom,
+        ) + pricePaint.fontMetrics.top < CURRENT_PRICE_SAFE_TOP_PX
+    ) {
+        priceReferenceTop = forcedSafeTop
     }
 
     var currentBarTop: Float? = null
@@ -196,21 +304,15 @@ internal fun renderElectricityChartBitmap(
             style = Paint.Style.FILL
         }
         val slotWidth = (plotRight - plotLeft) / bars.size.toFloat()
-        val safeCurrentBarTop = pricePaint?.let {
-            electricityPriceSafeBarTopPx(
-                fontTopPx = it.fontMetrics.top,
-                fontBottomPx = it.fontMetrics.bottom,
-            ).coerceAtMost(maximumCurrentBarTop)
-        }
 
-        bars.forEachIndexed { index, normalized ->
-            val naturalTop = electricityNaturalBarTopPx(
-                normalized = normalized,
-                plotTopPx = plotTop,
-                plotBottomPx = plotBottom,
-            )
-            val top = if (index == currentBarIndex && safeCurrentBarTop != null) {
-                maxOf(naturalTop, safeCurrentBarTop)
+        bars.forEachIndexed { index, _ ->
+            val naturalTop = naturalBarTops[index]
+            val top = if (
+                forcedSafeTop != null &&
+                priceReferenceTop == forcedSafeTop &&
+                index in overlapSet
+            ) {
+                maxOf(naturalTop, forcedSafeTop)
             } else {
                 naturalTop
             }
@@ -222,6 +324,22 @@ internal fun renderElectricityChartBitmap(
             }
             canvas.drawRect(left, top, right, plotBottom, paint)
             if (index == currentBarIndex) currentBarTop = top
+        }
+        if (priceOverlapIndices.isNotEmpty()) {
+            priceReferenceTop = electricityHighestBarTopPx(
+                barTops = bars.indices.map { index ->
+                    if (
+                        forcedSafeTop != null &&
+                        priceReferenceTop == forcedSafeTop &&
+                        index in overlapSet
+                    ) {
+                        maxOf(naturalBarTops[index], forcedSafeTop)
+                    } else {
+                        naturalBarTops[index]
+                    }
+                },
+                indices = priceOverlapIndices,
+            )
         }
     }
     val outerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -240,19 +358,13 @@ internal fun renderElectricityChartBitmap(
     canvas.drawLine(markerX, markerTop, markerX, plotBottom, innerPaint)
 
     if (price != null && pricePaint != null) {
-        pricePaint.textAlign = when (
-            electricityPriceAlignment(
-                markerX = markerX,
-                textWidthPx = pricePaint.measureText(price),
-                widthPx = safeWidth,
-            )
-        ) {
+        pricePaint.textAlign = when (priceAlignment ?: ElectricityPriceAlignment.CENTER) {
             ElectricityPriceAlignment.START -> Paint.Align.LEFT
             ElectricityPriceAlignment.CENTER -> Paint.Align.CENTER
             ElectricityPriceAlignment.END -> Paint.Align.RIGHT
         }
         val fontMetrics = pricePaint.fontMetrics
-        val priceBaseline = currentBarTop?.let { barTop ->
+        val priceBaseline = priceReferenceTop?.let { barTop ->
             electricityPriceBaselineAboveBarPx(
                 barTopPx = barTop,
                 fontBottomPx = fontMetrics.bottom,
