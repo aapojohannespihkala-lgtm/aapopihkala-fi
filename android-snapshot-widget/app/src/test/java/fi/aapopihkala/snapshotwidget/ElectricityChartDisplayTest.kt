@@ -71,10 +71,10 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun chartBottomBaselineStaysAtTheApprovedPositionWhileTheSlotGetsShorter() {
+    fun chartBottomBaselineStaysFixedWhileTheSlotExpandsUpward() {
         assertEquals(7f, electricityPrimaryBottomInsetDp(), 0.01f)
         assertEquals(16f, electricityPlotBaselineInsetDp(), 0.01f)
-        assertEquals(28f, electricityPlotBaselineFromTopDp(), 0.01f)
+        assertEquals(34f, electricityPlotBaselineFromTopDp(), 0.01f)
     }
 
     @Test
@@ -98,8 +98,8 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun timeAxisStaysSafelyInsideTheShorterChartSlot() {
-        assertEquals(82f, electricityAxisBaselinePx(), 0.01f)
+    fun timeAxisKeepsTheSameBottomInsetInTheExpandedSlot() {
+        assertEquals(94f, electricityAxisBaselinePx(), 0.01f)
     }
 
     @Test
