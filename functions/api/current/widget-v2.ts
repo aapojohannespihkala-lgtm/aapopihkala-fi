@@ -426,7 +426,7 @@ const buildHslSection = (
         departure.timestamp !== null && departure.countdown !== null
     )
     .sort((a, b) => a.timestamp - b.timestamp)
-    .slice(0, 5);
+    .slice(0, 6);
 
   const next = upcoming[0];
   if (!next) return null;

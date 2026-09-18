@@ -213,6 +213,13 @@ test('widget v2 exposes production HSL through the large-layout presentation con
         secondary: '121 / TAPIOLA',
         countdownTargetMs: 1789307100000,
       },
+      {
+        label: '125',
+        value: '16:55',
+        tone: 'neutral',
+        secondary: '125 / KAMPPI',
+        countdownTargetMs: 1789307700000,
+      },
     ],
   });
 
