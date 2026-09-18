@@ -32,9 +32,11 @@ internal fun LiveHeaderClock(
     val context = LocalContext.current
     val remoteViews = RemoteViews(context.packageName, R.layout.widget_live_clock).apply {
         setTextColor(R.id.widget_live_clock, color.toArgb())
+        setTextColor(R.id.widget_live_seconds, color.toArgb())
         setTextColor(R.id.widget_live_date, color.toArgb())
         setTextColor(R.id.widget_live_week, color.toArgb())
         setTextViewTextSize(R.id.widget_live_clock, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER.toFloat())
+        setTextViewTextSize(R.id.widget_live_seconds, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER_SECONDS.toFloat())
         setTextViewTextSize(R.id.widget_live_date, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER.toFloat())
         setTextViewTextSize(R.id.widget_live_week, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER.toFloat())
         setTextViewText(R.id.widget_live_date, currentHeaderDateLabel())
@@ -116,15 +118,11 @@ private fun CountdownText(
     sizeSp: Int,
     modifier: GlanceModifier,
 ) {
-    Text(
+    PrimaryValueText(
         text = text,
+        color = color,
+        sizeSp = sizeSp,
         modifier = modifier,
-        style = TextStyle(
-            color = ColorProvider(color),
-            fontSize = sizeSp.sp,
-            fontWeight = FontWeight.Medium,
-        ),
-        maxLines = 1,
     )
 }
 
