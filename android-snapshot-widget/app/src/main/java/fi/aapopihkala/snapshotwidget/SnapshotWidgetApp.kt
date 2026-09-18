@@ -235,7 +235,7 @@ private fun Footer(
     Row(
         modifier = GlanceModifier
             .fillMaxWidth()
-            .padding(bottom = 4.dp),
+            .padding(bottom = 8.dp),
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
         Text(
@@ -250,17 +250,17 @@ private fun Footer(
         if (status == WidgetRepository.STATUS_LOADING) {
             LiveRefreshSpinner(
                 modifier = GlanceModifier
-                    .width(32.dp)
-                    .height(32.dp)
-                    .padding(6.dp)
+                    .width(24.dp)
+                    .height(24.dp)
+                    .padding(4.dp)
             )
         } else {
             Image(
                 provider = ImageProvider(renderRefreshIconBitmap(palette.accent.toArgb())),
                 contentDescription = "Refresh",
                 modifier = GlanceModifier
-                    .width(22.dp)
-                    .height(22.dp)
+                    .width(20.dp)
+                    .height(20.dp)
                     .clickable(actionRunCallback<RefreshAction>()),
                 contentScale = ContentScale.Fit,
             )
@@ -639,7 +639,6 @@ private fun ElectricitySplitSection(section: WidgetSection, palette: Palette) {
             }
         }
         section.detail?.let {
-            Spacer(GlanceModifier.height(1.dp))
             ElectricityDetail(detail = it, palette = palette)
         }
     }
@@ -692,8 +691,7 @@ private fun ElectricityPrimaryValue(section: WidgetSection, palette: Palette) {
 
 @Composable
 private fun ElectricityDetail(detail: String, palette: Palette) {
-    electricityDetailLines(detail).forEachIndexed { index, line ->
-        if (index > 0) Spacer(GlanceModifier.height(1.dp))
+    electricityDetailLines(detail).forEach { line ->
         Text(
             text = line,
             style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),

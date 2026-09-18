@@ -17,8 +17,8 @@ android {
         applicationId = "fi.aapopihkala.snapshotwidget"
         minSdk = 23
         targetSdk = 36
-        versionCode = 67
-        versionName = "2.10.38"
+        versionCode = 68
+        versionName = "2.10.39"
     }
 
     if (signingStorePath != null && signingStorePassword != null) {

@@ -71,9 +71,10 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun chartBottomBaselineStaysAtTheApprovedPosition() {
-        assertEquals(11f, electricityPrimaryBottomInsetDp(), 0.01f)
-        assertEquals(20f, electricityPlotBaselineInsetDp(), 0.01f)
+    fun chartBottomBaselineStaysAtTheApprovedPositionWhileTheSlotGetsShorter() {
+        assertEquals(7f, electricityPrimaryBottomInsetDp(), 0.01f)
+        assertEquals(16f, electricityPlotBaselineInsetDp(), 0.01f)
+        assertEquals(28f, electricityPlotBaselineFromTopDp(), 0.01f)
     }
 
     @Test
@@ -81,29 +82,33 @@ class ElectricityChartDisplayTest {
         assertEquals(
             true,
             electricityPriceFitsAbovePlot(
-                fontTopPx = -19f,
-                fontBottomPx = 5f,
-                plotTopPx = 30f,
+                fontTopPx = -16f,
+                fontBottomPx = 4f,
+                plotTopPx = 24f,
             )
         )
         assertEquals(
-            23f,
+            18f,
             electricityPriceBaselineAbovePlotPx(
-                fontBottomPx = 5f,
-                plotTopPx = 30f,
+                fontBottomPx = 4f,
+                plotTopPx = 24f,
             ),
             0.01f,
         )
     }
 
     @Test
-    fun timeAxisMovesTwoAndAHalfDpUpWithoutMovingThePlotBottom() {
-        assertEquals(87f, electricityAxisBaselinePx(), 0.01f)
+    fun timeAxisStaysSafelyInsideTheShorterChartSlot() {
+        assertEquals(82f, electricityAxisBaselinePx(), 0.01f)
     }
 
     @Test
-    fun chartBitmapMatchesTheThreeToOneDisplaySlot() {
-        assertEquals(3f, ELECTRICITY_CHART_BITMAP_WIDTH.toFloat() / ELECTRICITY_CHART_BITMAP_HEIGHT, 0.001f)
+    fun chartBitmapKeepsTwoPixelsPerDisplayDpVertically() {
+        assertEquals(
+            2f,
+            ELECTRICITY_CHART_BITMAP_HEIGHT.toFloat() / ELECTRICITY_CHART_DISPLAY_HEIGHT_DP,
+            0.001f,
+        )
     }
 
     @Test
