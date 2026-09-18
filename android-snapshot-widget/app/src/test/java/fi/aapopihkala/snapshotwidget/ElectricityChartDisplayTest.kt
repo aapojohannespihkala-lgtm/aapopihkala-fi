@@ -71,9 +71,9 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun chartStartsAtTheElectricityHeadingAndKeepsTheApprovedBaseline() {
+    fun chartStartsAtTheElectricityHeadingAndRestoresTheApprovedBaseline() {
         assertEquals(16f, electricityPlotBaselineInsetDp(), 0.01f)
-        assertEquals(48f, electricityPlotBaselineFromTopDp(), 0.01f)
+        assertEquals(54f, electricityPlotBaselineFromTopDp(), 0.01f)
         assertEquals(9f, electricityPriceBaselineFromTopDp(), 0.01f)
     }
 
@@ -84,16 +84,16 @@ class ElectricityChartDisplayTest {
             electricityNaturalBarTopPx(
                 normalized = 1f,
                 plotTopPx = 28f,
-                plotBottomPx = 96f,
+                plotBottomPx = 108f,
             ),
             0.01f,
         )
         assertEquals(
-            86.286f,
+            96.571f,
             electricityNaturalBarTopPx(
                 normalized = 0f,
                 plotTopPx = 28f,
-                plotBottomPx = 96f,
+                plotBottomPx = 108f,
             ),
             0.01f,
         )
@@ -120,7 +120,7 @@ class ElectricityChartDisplayTest {
 
     @Test
     fun timeAxisStaysBelowTheFixedBarBaseline() {
-        assertEquals(118f, electricityAxisBaselinePx(), 0.01f)
+        assertEquals(130f, electricityAxisBaselinePx(), 0.01f)
     }
 
     @Test
