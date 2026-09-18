@@ -8,6 +8,7 @@ private const val MINUTE_MS = 60_000L
 
 private val realtimeCacheMaxAgeMs = mapOf(
     "hsl" to 5 * MINUTE_MS,
+    "liiga" to 5 * MINUTE_MS,
     "electricity" to 20 * MINUTE_MS,
     "weather" to 30 * MINUTE_MS,
 )
@@ -51,6 +52,13 @@ internal fun WidgetPayload.withSafeCachedFreshness(nowMs: Long): WidgetPayload {
         val sourceMs = sectionFreshnessMs(section, generatedAt) ?: return@mapNotNull section
         val ageMs = (nowMs - sourceMs).coerceAtLeast(0L)
         if (ageMs <= maxAgeMs) return@mapNotNull section
+
+        if (section.id == "liiga") {
+            val isLive = section.secondary?.contains("· LIVE") == true ||
+                section.primary.equals("LIVE", ignoreCase = true)
+            if (!isLive) return@mapNotNull section
+            return@mapNotNull null
+        }
 
         if (section.id != "hsl") {
             return@mapNotNull section.copy(
