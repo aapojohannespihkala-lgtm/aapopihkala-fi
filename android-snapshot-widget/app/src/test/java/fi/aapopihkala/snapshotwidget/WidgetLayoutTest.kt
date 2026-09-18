@@ -116,10 +116,10 @@ class WidgetLayoutTest {
 
     @Test
     fun `large primary values separate and normalize known units`() {
-        assertEquals(PrimaryValueParts("16.35", "c/kWh", true), primaryValueParts("16.35 c/kWh"))
-        assertEquals(PrimaryValueParts("15.0", "°C"), primaryValueParts("15.0°C"))
+        assertEquals(PrimaryValueParts("16.35", "c/kWh", 4), primaryValueParts("16.35 c/kWh"))
+        assertEquals(PrimaryValueParts("15.0", "°C", 2), primaryValueParts("15.0°C"))
         assertEquals(PrimaryValueParts("+0.72", "%"), primaryValueParts("+0.72%"))
-        assertEquals(PrimaryValueParts("11", "min", true), primaryValueParts("11 MIN"))
+        assertEquals(PrimaryValueParts("11", "min", 4), primaryValueParts("11 MIN"))
         assertEquals(PrimaryValueParts("2.63", "%"), primaryValueParts("2.63%"))
         assertEquals(PrimaryValueParts("6/17", null), primaryValueParts("6/17"))
         assertEquals(primaryValueParts("16.35 c/kWh"), electricityPrimaryParts("16.35 c/kWh"))
