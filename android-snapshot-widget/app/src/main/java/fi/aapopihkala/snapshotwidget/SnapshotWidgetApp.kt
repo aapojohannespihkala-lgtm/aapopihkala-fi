@@ -65,7 +65,6 @@ internal object WidgetTypography {
     const val PRIMARY_COMPACT = 13
     const val UNIT = 13
     const val STATUS_PRIMARY = 19
-    const val ACTION = 18
     const val SUPPORTING_VALUE = 9
     const val SUPPORTING = 8
     const val MICRO = 7
@@ -254,17 +253,14 @@ private fun Footer(
                     .padding(6.dp)
             )
         } else {
-            Text(
-                text = "↻",
+            Image(
+                provider = ImageProvider(renderRefreshIconBitmap(palette.accent.toArgb())),
+                contentDescription = "Refresh",
                 modifier = GlanceModifier
-                    .clickable(actionRunCallback<RefreshAction>())
-                    .padding(7.dp),
-                style = TextStyle(
-                    color = ColorProvider(palette.accent),
-                    fontSize = WidgetTypography.ACTION.sp,
-                    fontWeight = FontWeight.Medium
-                ),
-                maxLines = 1
+                    .width(32.dp)
+                    .height(32.dp)
+                    .clickable(actionRunCallback<RefreshAction>()),
+                contentScale = ContentScale.Fit,
             )
         }
     }
@@ -295,7 +291,7 @@ private fun EmptyState(
             )
             Spacer(GlanceModifier.height(4.dp))
             Text(
-                text = if (status == WidgetRepository.STATUS_ERROR) "Tap ↻ to try again" else "Tap ↻ to load data",
+                text = if (status == WidgetRepository.STATUS_ERROR) "Tap refresh to try again" else "Tap refresh to load data",
                 style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING_VALUE.sp)
             )
         }
@@ -606,7 +602,7 @@ private fun SplitSection(section: WidgetSection, palette: Palette) {
 private fun ElectricitySplitSection(section: WidgetSection, palette: Palette) {
     val electricityNow = section.rows.firstOrNull { it.label == "NOW" }
     val chartBaselineInset = if (section.bars.isNotEmpty()) {
-        electricityChartBaselineInsetDp().dp
+        electricityPrimaryBottomInsetDp().dp
     } else {
         0.dp
     }

@@ -71,8 +71,14 @@ class ElectricityChartDisplayTest {
     }
 
     @Test
-    fun chartBaselineLeavesAxisFooterBelowThePrimaryValue() {
-        assertEquals(11f, electricityChartBaselineInsetDp(), 0.01f)
+    fun chartPlotBaselineIsRaisedThreeDpAboveThePrimaryLayoutBottom() {
+        assertEquals(11f, electricityPrimaryBottomInsetDp(), 0.01f)
+        assertEquals(14f, electricityPlotBaselineInsetDp(), 0.01f)
+        assertEquals(
+            3f,
+            electricityPlotBaselineInsetDp() - electricityPrimaryBottomInsetDp(),
+            0.01f,
+        )
     }
 
     @Test
