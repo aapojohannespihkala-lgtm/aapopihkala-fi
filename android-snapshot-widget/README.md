@@ -43,7 +43,7 @@ The large Weather section keeps location and current temperature first, then ren
 
 ### Liiga layout
 
-The large half-width Liiga section shows the Ilves standing, next match and start time, plus one compact `LAST` row for the previous result. During a live match, the score becomes the primary value and the supporting lines show the teams plus `LIVE`, period and total elapsed game time. Half-width sections render at most one non-duplicate support row below their normal detail line so the shared Rates + Liiga row keeps its existing height and alignment.
+The large half-width Liiga section shows the Ilves standing as its primary value. The next match and start time share one compact secondary line, while the previous result and `LAST` marker share the detail line. During a live match, the score remains the primary value and the teams, `LIVE` marker and total elapsed game time share one secondary line. This keeps the section within the existing Rates + Liiga row height and preserves the footer.
 
 ### Markets data contract
 
