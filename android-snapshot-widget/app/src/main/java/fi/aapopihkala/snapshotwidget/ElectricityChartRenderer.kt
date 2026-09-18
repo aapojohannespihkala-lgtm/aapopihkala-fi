@@ -16,11 +16,13 @@ internal const val ELECTRICITY_MARKER_INNER_STROKE_PX = 1.5f
 
 private const val MILLIS_PER_DAY = 24f * 60f * 60f * 1000f
 private const val MIN_BAR_HEIGHT_FRACTION = 4f / 28f
-private const val PLOT_TOP_PX = 20f
-private const val PLOT_BOTTOM_PX = 60f
+private const val PLOT_TOP_PX = 16f
+private const val PLOT_BOTTOM_PX = 56f
 private const val CURRENT_PRICE_TEXT_SIZE_PX = 21f
 private const val AXIS_TEXT_SIZE_PX = 16f
-private const val CURRENT_PRICE_BASELINE_PX = 11f
+private const val CURRENT_PRICE_PREFERRED_BASELINE_PX = 21f
+private const val CURRENT_PRICE_SAFE_TOP_PX = 2f
+private const val CURRENT_PRICE_SAFE_BOTTOM_PX = 2f
 private const val AXIS_BASELINE_PX = 92f
 private const val PRIMARY_BOTTOM_INSET_DP = 11f
 
@@ -30,6 +32,21 @@ internal fun electricityPlotBaselineInsetDp(): Float =
     ELECTRICITY_CHART_DISPLAY_HEIGHT_DP.toFloat() *
         (ELECTRICITY_CHART_BITMAP_HEIGHT.toFloat() - PLOT_BOTTOM_PX) /
         ELECTRICITY_CHART_BITMAP_HEIGHT.toFloat()
+
+internal fun electricitySafePriceBaselinePx(
+    preferredBaselinePx: Float,
+    fontTopPx: Float,
+    fontBottomPx: Float,
+    heightPx: Int,
+    safeTopPx: Float = CURRENT_PRICE_SAFE_TOP_PX,
+    safeBottomPx: Float = CURRENT_PRICE_SAFE_BOTTOM_PX,
+): Float {
+    val safeHeight = heightPx.coerceAtLeast(1).toFloat()
+    val minimumBaseline = safeTopPx - fontTopPx
+    val maximumBaseline = safeHeight - safeBottomPx - fontBottomPx
+    if (maximumBaseline < minimumBaseline) return minimumBaseline
+    return preferredBaselinePx.coerceIn(minimumBaseline, maximumBaseline)
+}
 
 internal enum class ElectricityPriceAlignment { START, CENTER, END }
 
@@ -171,7 +188,14 @@ internal fun renderElectricityChartBitmap(
             ElectricityPriceAlignment.CENTER -> Paint.Align.CENTER
             ElectricityPriceAlignment.END -> Paint.Align.RIGHT
         }
-        canvas.drawText(price, markerX, CURRENT_PRICE_BASELINE_PX, pricePaint)
+        val fontMetrics = pricePaint.fontMetrics
+        val priceBaseline = electricitySafePriceBaselinePx(
+            preferredBaselinePx = CURRENT_PRICE_PREFERRED_BASELINE_PX,
+            fontTopPx = fontMetrics.top,
+            fontBottomPx = fontMetrics.bottom,
+            heightPx = safeHeight,
+        )
+        canvas.drawText(price, markerX, priceBaseline, pricePaint)
     }
 
     val axisPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
