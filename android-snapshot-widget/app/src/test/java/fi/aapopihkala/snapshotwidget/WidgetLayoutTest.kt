@@ -115,12 +115,14 @@ class WidgetLayoutTest {
     }
 
     @Test
-    fun `electricity primary separates value and unit`() {
-        val parts = electricityPrimaryParts("16.35 c/kWh")
-
-        assertEquals("16.35", parts.value)
-        assertEquals("c/kWh", parts.unit)
-        assertEquals(null, electricityPrimaryParts("16.35").unit)
+    fun `large primary values separate and normalize known units`() {
+        assertEquals(PrimaryValueParts("16.35", "c/kWh", true), primaryValueParts("16.35 c/kWh"))
+        assertEquals(PrimaryValueParts("15.0", "°C"), primaryValueParts("15.0°C"))
+        assertEquals(PrimaryValueParts("+0.72", "%"), primaryValueParts("+0.72%"))
+        assertEquals(PrimaryValueParts("11", "min", true), primaryValueParts("11 MIN"))
+        assertEquals(PrimaryValueParts("2.63", "%"), primaryValueParts("2.63%"))
+        assertEquals(PrimaryValueParts("6/17", null), primaryValueParts("6/17"))
+        assertEquals(primaryValueParts("16.35 c/kWh"), electricityPrimaryParts("16.35 c/kWh"))
     }
 
     @Test
@@ -129,6 +131,7 @@ class WidgetLayoutTest {
         assertEquals(22, WidgetTypography.PRIMARY_FULL)
         assertEquals(9, WidgetTypography.SECTION_HEADING)
         assertEquals(WidgetTypography.PRIMARY_FULL, WidgetTypography.HEADER)
+        assertEquals(WidgetTypography.UNIT, WidgetTypography.HEADER_SECONDS)
     }
 
 }
