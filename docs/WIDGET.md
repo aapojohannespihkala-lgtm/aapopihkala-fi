@@ -48,6 +48,8 @@ The production large widget currently contains:
 6. Liiga
    - Ilves standing
    - next match and start time when available
+   - previous Ilves result as one compact support row
+   - live score, teams, period and total elapsed game time during a live match
 
 Compact and medium remain intentionally denser than the large composition. HSL is currently large-only.
 
@@ -216,6 +218,8 @@ Current production large composition:
 - HSL: `full + split`
 - Rates: `half + stack`
 - Liiga: `half + stack`
+
+Half-width sections may render one support row when it does not duplicate the section's secondary or detail text. Liiga uses this row for the previous result in its normal state. During a live match, Liiga keeps the row unused and presents the score, teams, period and elapsed time through the primary, secondary and detail fields.
 
 ## HSL live countdown
 
@@ -420,6 +424,7 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.10.24**: added section-level source freshness timestamps and made Android stale guards prefer source time over payload generation time.
 - **2.10.25**: added a non-wakeup quarter-hour Electricity alarm that enqueues a connected one-time WorkManager refresh while retaining periodic WorkManager as fallback.
 - **2.10.26**: added source-aware HSL network freshness scheduling four minutes after `fetchedAt`, with a five-minute recovery delay for stale or missing HSL data.
+- **2.10.30**: added one deduplicated support row to large half-width sections; Liiga uses it for the previous result and shows live period plus elapsed game time in its detail line.
 
 ## Key files
 

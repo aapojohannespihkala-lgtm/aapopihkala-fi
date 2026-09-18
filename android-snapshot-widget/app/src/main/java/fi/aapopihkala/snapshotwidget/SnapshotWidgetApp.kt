@@ -437,6 +437,11 @@ private fun LargeHalfRow(sections: List<WidgetSection>, palette: Palette) {
     }
 }
 
+internal fun largeHalfSupportRow(section: WidgetSection): WidgetItem? =
+    section.rows.firstOrNull { row ->
+        row.value != section.secondary && row.value != section.detail
+    }
+
 @Composable
 private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: GlanceModifier) {
     Column(modifier = modifier) {
@@ -466,6 +471,10 @@ private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: 
                 style = TextStyle(color = ColorProvider(palette.muted), fontSize = 8.sp),
                 maxLines = 1
             )
+        }
+        largeHalfSupportRow(section)?.let {
+            Spacer(GlanceModifier.height(2.dp))
+            DetailRow(it, palette)
         }
     }
 }

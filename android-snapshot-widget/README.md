@@ -41,6 +41,10 @@ Large composition is server-driven through generic `span`/`layout` metadata. Wea
 
 The large Weather section keeps location and current temperature first, then renders six upcoming forecast readings in one centered row. The condition/day-range text stays compact beside the solar visual. The day-night disk has the daylight duration centered above it, with sunrise aligned to the left of the disk centreline and sunset aligned to the right. Daylight duration, sunrise and sunset use one shared text scale. The daylight portion of the disk is filled, while the below-horizon portion stays unfilled and is defined by the same line tone used by section dividers. The current-sun marker follows the disk circumference, stays filled while above the horizon and becomes a hollow ring while behind it; the horizon line passes over the marker at sunrise and sunset.
 
+### Liiga layout
+
+The large half-width Liiga section shows the Ilves standing, next match and start time, plus one compact `LAST` row for the previous result. During a live match, the score becomes the primary value and the supporting lines show the teams plus `LIVE`, period and total elapsed game time. Half-width sections render at most one non-duplicate support row below their normal detail line so the shared Rates + Liiga row keeps its existing height and alignment.
+
 ### Markets data contract
 
 The widget Markets section must use the same portfolio feed as `/current/markets/`, not a parallel snapshot-specific portfolio calculation. The main value is the **1D median** across the available holdings in that shared feed. The widget also shows the shared **1M** and **1Y** medians as small supporting values.
@@ -157,4 +161,4 @@ Android-changing PRs run the version-bump guard, unit tests and a debug APK comp
 
 Server-only presentation changes do not require an APK.
 
-Current app version: **2.10.29**.
+Current app version: **2.10.30**.
