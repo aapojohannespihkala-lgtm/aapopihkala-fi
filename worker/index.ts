@@ -25,6 +25,10 @@ import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/curre
 type AssetsBinding = { fetch(request: Request): Promise<Response> };
 type WorkerEnv = { ASSETS: AssetsBinding; DIGITRANSIT_API_KEY?: string; HSL_MODEL_DB?: HslLearningDb };
 type ScheduledController = { scheduledTime: number };
+type WidgetResponseCache = {
+  match(request: Request): Promise<Response | undefined>;
+  put(request: Request, response: Response): Promise<void>;
+};
 
 const ELECTRICITY_PATH = '/api/current/electricity';
 const ELECTRICITY_MONTH_PATH = '/api/current/electricity-month';
@@ -39,6 +43,60 @@ const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
 const SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS = 4_000;
 const HSL_HEAVY_LEARNING_INTERVAL_MINUTES = 10;
 const HSL_LEARNING_QUERY = { stopCode: 'E3239', stopName: 'Ylisrinne', routes: ['121', '125'] };
+
+const WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS = 24 * 60 * 60;
+
+const defaultWidgetCache = (): WidgetResponseCache | undefined =>
+  (globalThis as typeof globalThis & { caches?: { default?: WidgetResponseCache } }).caches?.default;
+
+const widgetCacheKey = (request: Request) => {
+  const url = new URL(request.url);
+  url.searchParams.delete('_');
+  return new Request(url.toString(), { method: 'GET' });
+};
+
+export const serveWidgetWithLastKnownGood = async (
+  request: Request,
+  load: () => Promise<Response>,
+  cache: WidgetResponseCache | undefined = defaultWidgetCache(),
+) => {
+  const response = await load();
+  if (!cache) return response;
+
+  const key = widgetCacheKey(request);
+  if (response.ok) {
+    const headers = new Headers(response.headers);
+    headers.set('Cache-Control', `public, max-age=${WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS}`);
+    const cached = new Response(response.clone().body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+    try {
+      await cache.put(key, cached);
+    } catch {
+      // Cache is a resilience layer only; a cache write failure must not fail a healthy feed.
+    }
+    return response;
+  }
+
+  if (response.status !== 503) return response;
+
+  try {
+    const fallback = await cache.match(key);
+    if (!fallback) return response;
+    const headers = new Headers(fallback.headers);
+    headers.set('Cache-Control', 'private, no-store');
+    headers.set('X-Widget-Fallback', 'last-known-good');
+    return new Response(fallback.body, {
+      status: 200,
+      statusText: 'OK',
+      headers,
+    });
+  } catch {
+    return response;
+  }
+};
 
 const HSL_LEARNING_SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS hsl_eta_observations (
@@ -136,9 +194,9 @@ const worker = {
     }
     if (url.pathname === WIDGET_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return url.searchParams.get('v') === '2' ? getWidgetV2Response({ request, env }) : getWidgetResponse({ request });
+      return serveWidgetWithLastKnownGood(request, () => url.searchParams.get('v') === '2' ? getWidgetV2Response({ request, env }) : getWidgetResponse({ request }));
     }
-    if (url.pathname === WIDGET_V2_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getWidgetV2Response({ request, env }); }
+    if (url.pathname === WIDGET_V2_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return serveWidgetWithLastKnownGood(request, () => getWidgetV2Response({ request, env })); }
     if (url.pathname === NEWS_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getNewsResponse(); }
     if (url.pathname === LIIGA_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
