@@ -233,7 +233,9 @@ private fun Footer(
     }
 
     Row(
-        modifier = GlanceModifier.fillMaxWidth(),
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp),
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
         Text(
@@ -257,8 +259,8 @@ private fun Footer(
                 provider = ImageProvider(renderRefreshIconBitmap(palette.accent.toArgb())),
                 contentDescription = "Refresh",
                 modifier = GlanceModifier
-                    .width(32.dp)
-                    .height(32.dp)
+                    .width(22.dp)
+                    .height(22.dp)
                     .clickable(actionRunCallback<RefreshAction>()),
                 contentScale = ContentScale.Fit,
             )

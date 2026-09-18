@@ -9,7 +9,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 internal const val REFRESH_ICON_BITMAP_SIZE_PX = 64
-internal const val REFRESH_ICON_SAFE_INSET_PX = 9f
+internal const val REFRESH_ICON_SAFE_INSET_PX = 12f
 
 internal fun renderRefreshIconBitmap(
     color: Int,
@@ -20,8 +20,8 @@ internal fun renderRefreshIconBitmap(
     val canvas = Canvas(bitmap)
     val scale = safeSize / REFRESH_ICON_BITMAP_SIZE_PX.toFloat()
     val center = safeSize / 2f
-    val radius = 18f * scale
-    val strokeWidth = 5f * scale
+    val radius = 15f * scale
+    val strokeWidth = 4f * scale
 
     val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.color = color
@@ -49,8 +49,8 @@ internal fun renderRefreshIconBitmap(
     val normalY = tangentX
     val tipX = center + radius * cos(radians).toFloat()
     val tipY = center + radius * sin(radians).toFloat()
-    val arrowLength = 9f * scale
-    val arrowHalfWidth = 5.5f * scale
+    val arrowLength = 7f * scale
+    val arrowHalfWidth = 4.5f * scale
     val backX = tipX - tangentX * arrowLength
     val backY = tipY - tangentY * arrowLength
 
