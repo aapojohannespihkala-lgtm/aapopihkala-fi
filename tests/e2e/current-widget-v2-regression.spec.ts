@@ -6,14 +6,38 @@ const hslFixture = {
   departures: [
     {
       route: '121',
-      headsign: 'Central',
+      headsign: 'Tapiola (M) via Niittykumpu',
       departureAt: '2026-09-13T13:10:00.000Z',
       realtime: true,
     },
     {
       route: '125',
-      headsign: 'Metro',
+      headsign: 'Kamppi via Lauttasaari',
       departureAt: '2026-09-13T13:17:00.000Z',
+      realtime: false,
+    },
+    {
+      route: '121',
+      headsign: 'Tapiola (M)',
+      departureAt: '2026-09-13T13:25:00.000Z',
+      realtime: true,
+    },
+    {
+      route: '125',
+      headsign: 'Kamppi',
+      departureAt: '2026-09-13T13:35:00.000Z',
+      realtime: true,
+    },
+    {
+      route: '121',
+      headsign: 'Tapiola',
+      departureAt: '2026-09-13T13:45:00.000Z',
+      realtime: false,
+    },
+    {
+      route: '125',
+      headsign: 'Kamppi',
+      departureAt: '2026-09-13T13:55:00.000Z',
       realtime: false,
     },
   ],
@@ -52,6 +76,7 @@ const baseFixture = {
     finland: -1.09,
     btcEur: -0.62,
     remedy: 1.64,
+    remedyPrice: 13.72,
   },
   rates: {
     euribor3m: 2.65,
@@ -139,14 +164,14 @@ test('widget v2 exposes production HSL through the large-layout presentation con
     { label: 'USA', value: '+1.36%', tone: 'positive' },
     { label: 'FINLAND', value: '-1.09%', tone: 'negative' },
     { label: 'BTC / EUR', value: '-0.62%', tone: 'negative' },
-    { label: 'REMEDY', value: '+1.64%', tone: 'positive' },
+    { label: 'REMEDY 13.72 €', value: '+1.64%', tone: 'positive' },
   ]);
 
   const hsl = payload.sections.find((section) => section.id === 'hsl');
   expect(hsl).toMatchObject({
     index: '04',
     primary: '5 MIN',
-    secondary: '121 / CENTRAL',
+    secondary: '121 / TAPIOLA',
     detail: '16:10 / LIVE',
     tone: 'accent',
     span: 'full',
@@ -157,15 +182,36 @@ test('widget v2 exposes production HSL through the large-layout presentation con
         label: '121',
         value: '16:10',
         tone: 'accent',
-        secondary: '121 / CENTRAL',
+        secondary: '121 / TAPIOLA',
         countdownTargetMs: 1789305000000,
       },
       {
         label: '125',
         value: '16:17',
         tone: 'neutral',
-        secondary: '125 / METRO',
+        secondary: '125 / KAMPPI',
         countdownTargetMs: 1789305420000,
+      },
+      {
+        label: '121',
+        value: '16:25',
+        tone: 'accent',
+        secondary: '121 / TAPIOLA',
+        countdownTargetMs: 1789305900000,
+      },
+      {
+        label: '125',
+        value: '16:35',
+        tone: 'accent',
+        secondary: '125 / KAMPPI',
+        countdownTargetMs: 1789306500000,
+      },
+      {
+        label: '121',
+        value: '16:45',
+        tone: 'neutral',
+        secondary: '121 / TAPIOLA',
+        countdownTargetMs: 1789307100000,
       },
     ],
   });
@@ -249,7 +295,7 @@ test('widget v2 skips a departure once its countdown reaches zero', () => {
   const hsl = payload.sections.find((section) => section.id === 'hsl');
   expect(hsl).toMatchObject({
     primary: '7 MIN',
-    secondary: '125 / METRO',
+    secondary: '125 / KAMPPI',
     detail: '16:17 / SCHED',
     countdownTargetMs: 1789305420000,
   });
