@@ -71,6 +71,7 @@ type ElectricityMonthData = {
 };
 
 type LiigaData = {
+  generatedAt?: unknown;
   ilvesStanding?: unknown;
   liveIlvesGame?: unknown;
   nextIlvesGame?: unknown;
@@ -517,6 +518,7 @@ const buildLiigaSection = (value: unknown, index = '05'): WidgetSection | null =
   const live = asRecord(liiga.liveIlvesGame);
   const next = asRecord(liiga.nextIlvesGame);
   const last = asRecord(liiga.lastIlvesGame);
+  const observedAt = stringValue(liiga.generatedAt);
 
   if (live) {
     const home = stringValue(live.homeTeam) ?? '--';
@@ -533,6 +535,7 @@ const buildLiigaSection = (value: unknown, index = '05'): WidgetSection | null =
       tone: 'accent',
       span: 'half',
       layout: 'stack',
+      observedAt: observedAt ?? undefined,
       rows: [],
     };
   }
