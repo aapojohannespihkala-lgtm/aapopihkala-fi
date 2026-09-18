@@ -54,18 +54,6 @@ internal fun electricityHighestBarIndex(values: List<Float>): Int? {
     return values.indexOfFirst { it == maxValue }.takeIf { it >= 0 }
 }
 
-internal fun electricityBarCenterX(
-    index: Int,
-    barCount: Int,
-    plotLeftPx: Float,
-    plotRightPx: Float,
-): Float {
-    if (barCount <= 0 || plotRightPx <= plotLeftPx) return plotLeftPx
-    val safeIndex = index.coerceIn(0, barCount - 1)
-    val slotWidth = (plotRightPx - plotLeftPx) / barCount.toFloat()
-    return plotLeftPx + (safeIndex + 0.5f) * slotWidth
-}
-
 internal fun electricityPriceReservedPlotTopPx(
     fontTopPx: Float,
     fontBottomPx: Float,
@@ -258,15 +246,9 @@ internal fun renderElectricityChartBitmap(
         val peakIndex = electricityHighestBarIndex(bars)
         val peakTop = peakIndex?.let { barTops.getOrNull(it) }
         if (peakIndex != null && peakTop != null) {
-            val peakX = electricityBarCenterX(
-                index = peakIndex,
-                barCount = bars.size,
-                plotLeftPx = plotLeft,
-                plotRightPx = plotRight,
-            )
             pricePaint.textAlign = when (
                 electricityPriceAlignment(
-                    markerX = peakX,
+                    markerX = markerX,
                     textWidthPx = pricePaint.measureText(price),
                     widthPx = safeWidth,
                 )
@@ -279,7 +261,7 @@ internal fun renderElectricityChartBitmap(
                 barTopPx = peakTop,
                 fontBottomPx = pricePaint.fontMetrics.bottom,
             )
-            canvas.drawText(price, peakX, priceBaseline, pricePaint)
+            canvas.drawText(price, markerX, priceBaseline, pricePaint)
         }
     }
 
