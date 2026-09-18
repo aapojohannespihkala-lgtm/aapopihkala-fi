@@ -36,12 +36,13 @@ The production large widget currently contains:
 3. Markets
    - 1-day portfolio median as the main value
    - small 1-month and 1-year portfolio medians
-   - World, USA, Finland, BTC/EUR and Remedy 1-day rows
+   - World, USA, Finland and BTC/EUR 1-day rows
+   - Remedy price alongside its 1-day change
    - the same portfolio response as `/current/markets/`; do not maintain a parallel widget-only median feed
 4. HSL
    - next departure as a locally advancing countdown when exact rollover is available
-   - route/destination context
-   - upcoming departures as clock times
+   - route plus compact `TAPIOLA` or `KAMPPI` destination context
+   - up to five upcoming departures as clock times
 5. Rates
    - 3M Euribor
    - one-year-ago comparison

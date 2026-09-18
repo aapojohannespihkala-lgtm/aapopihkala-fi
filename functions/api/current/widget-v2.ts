@@ -144,6 +144,9 @@ const formatDegree = (value: number | null) =>
 const formatPrice = (value: number | null) =>
   value === null ? '--.-- c/kWh' : `${value.toFixed(2)} c/kWh`;
 
+const formatEuroPrice = (value: number | null) =>
+  value === null ? null : `${value.toFixed(2)} €`;
+
 const formatPercent = (value: number | null, signed = false, digits = 2) => {
   if (value === null) return '--';
   const sign = signed && value > 0 ? '+' : '';
@@ -343,12 +346,13 @@ const buildMarketsSection = (value: unknown, fetchedAt?: string): WidgetSection 
   const month1Median = finiteNumber(markets.month1Median);
   const year1Median = finiteNumber(markets.year1Median);
   const observedAt = stringValue(markets.observedAt);
+  const remedyPrice = formatEuroPrice(finiteNumber(markets.remedyPrice));
   const rows = [
     marketRow('WORLD', markets.world),
     marketRow('USA', markets.usa),
     marketRow('FINLAND', markets.finland),
     marketRow('BTC / EUR', markets.btcEur),
-    marketRow('REMEDY', markets.remedy),
+    marketRow(['REMEDY', remedyPrice].filter(Boolean).join(' '), markets.remedy),
   ];
   if (median === null && rows.every((row) => row.value === '--')) return null;
   const longerMedians = [
@@ -387,6 +391,16 @@ const hslClock = (value: string) => {
   }).format(date);
 };
 
+const compactHslDestination = (value: string) => {
+  const normalized = value.trim().toUpperCase();
+  if (normalized.includes('TAPIOLA')) return 'TAPIOLA';
+  if (normalized.includes('KAMPPI')) return 'KAMPPI';
+  return normalized;
+};
+
+const hslRouteLabel = (route: string, headsign: string) =>
+  [route, compactHslDestination(headsign)].filter(Boolean).join(' / ');
+
 const hslCountdown = (departureAt: string, now: number) => {
   const departure = timestampOf(departureAt);
   if (departure === null) return null;
@@ -422,18 +436,18 @@ const buildHslSection = (
     index: '04',
     label: 'HSL',
     primary: next.countdown,
-    secondary: [next.route, next.headsign].filter(Boolean).join(' / ').toUpperCase(),
+    secondary: hslRouteLabel(next.route, next.headsign),
     detail: `${hslClock(next.departureAt)} / ${next.realtime ? 'LIVE' : 'SCHED'}`,
     tone: next.realtime ? 'accent' : 'neutral',
     span: 'full',
     layout: 'split',
     fetchedAt: data.fetchedAt,
     countdownTargetMs: next.timestamp,
-    rows: upcoming.slice(0, 4).map((departure) => ({
+    rows: upcoming.map((departure) => ({
       label: departure.route,
       value: hslClock(departure.departureAt),
       tone: departure.realtime ? 'accent' : 'neutral',
-      secondary: [departure.route, departure.headsign].filter(Boolean).join(' / ').toUpperCase(),
+      secondary: hslRouteLabel(departure.route, departure.headsign),
       countdownTargetMs: departure.timestamp,
     })),
   };
