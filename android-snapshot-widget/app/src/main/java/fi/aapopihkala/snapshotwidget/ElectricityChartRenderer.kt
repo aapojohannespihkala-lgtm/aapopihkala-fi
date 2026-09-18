@@ -8,8 +8,8 @@ import java.util.Calendar
 import java.util.TimeZone
 
 internal const val ELECTRICITY_CHART_BITMAP_WIDTH = 288
-internal const val ELECTRICITY_CHART_BITMAP_HEIGHT = 88
-internal const val ELECTRICITY_CHART_DISPLAY_HEIGHT_DP = 44
+internal const val ELECTRICITY_CHART_BITMAP_HEIGHT = 100
+internal const val ELECTRICITY_CHART_DISPLAY_HEIGHT_DP = 50
 internal const val ELECTRICITY_CHART_HORIZONTAL_PADDING_PX = 0f
 internal const val ELECTRICITY_MARKER_OUTER_STROKE_PX = 4f
 internal const val ELECTRICITY_MARKER_INNER_STROKE_PX = 1.5f
@@ -17,13 +17,13 @@ internal const val ELECTRICITY_MARKER_INNER_STROKE_PX = 1.5f
 private const val MILLIS_PER_DAY = 24f * 60f * 60f * 1000f
 private const val MIN_BAR_HEIGHT_FRACTION = 4f / 28f
 private const val PLOT_TOP_PX = 24f
-private const val PLOT_BOTTOM_PX = 56f
+private const val PLOT_BOTTOM_PX = 68f
 private const val CURRENT_PRICE_TEXT_SIZE_PX = 17f
 private const val CURRENT_PRICE_MIN_TEXT_SIZE_PX = 10f
 private const val CURRENT_PRICE_SAFE_TOP_PX = 2f
 private const val CURRENT_PRICE_PLOT_GAP_PX = 2f
 private const val AXIS_TEXT_SIZE_PX = 16f
-private const val AXIS_BASELINE_PX = 82f
+private const val AXIS_BASELINE_PX = 94f
 private const val PRIMARY_BOTTOM_INSET_DP = 7f
 
 internal fun electricityPrimaryBottomInsetDp(): Float = PRIMARY_BOTTOM_INSET_DP
