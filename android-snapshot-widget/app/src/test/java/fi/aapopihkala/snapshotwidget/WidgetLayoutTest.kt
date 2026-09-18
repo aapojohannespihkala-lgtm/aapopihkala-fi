@@ -73,6 +73,30 @@ class WidgetLayoutTest {
     }
 
     @Test
+    fun `HSL support rows exclude current departure and keep five following`() {
+        val section = WidgetSection(
+            id = "hsl",
+            index = "04",
+            label = "HSL",
+            primary = "5 MIN",
+            countdownTargetMs = 1_000L,
+            rows = listOf(
+                WidgetItem(label = "121", value = "16:10", countdownTargetMs = 1_000L),
+                WidgetItem(label = "125", value = "16:17", countdownTargetMs = 2_000L),
+                WidgetItem(label = "121", value = "16:25", countdownTargetMs = 3_000L),
+                WidgetItem(label = "125", value = "16:35", countdownTargetMs = 4_000L),
+                WidgetItem(label = "121", value = "16:45", countdownTargetMs = 5_000L),
+                WidgetItem(label = "125", value = "16:55", countdownTargetMs = 6_000L),
+            )
+        )
+
+        assertEquals(
+            listOf("16:17", "16:25", "16:35", "16:45", "16:55"),
+            visibleSupportRows(section).take(5).map { it.value }
+        )
+    }
+
+    @Test
     fun `electricity primary separates value and unit`() {
         val parts = electricityPrimaryParts("16.35 c/kWh")
 

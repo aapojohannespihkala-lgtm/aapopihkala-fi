@@ -457,8 +457,22 @@ internal fun largeHalfSupportRow(section: WidgetSection): WidgetItem? =
         row.value != section.secondary && row.value != section.detail
     }
 
+internal fun visibleSupportRows(section: WidgetSection): List<WidgetItem> = when (section.id) {
+    "electricity" -> section.rows.filterNot { it.label == "NOW" }
+    "hsl" -> section.rows.filterNot { row ->
+        row.countdownTargetMs != null && row.countdownTargetMs == section.countdownTargetMs
+    }
+    else -> section.rows
+}
+
 @Composable
 private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: GlanceModifier) {
+    val supportColor = if (section.id == "liiga") {
+        palette.foreground.copy(alpha = 0.78f)
+    } else {
+        palette.muted
+    }
+
     Column(modifier = modifier) {
         SectionHeading(section, palette)
         Spacer(GlanceModifier.height(3.dp))
@@ -475,7 +489,7 @@ private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: 
             Spacer(GlanceModifier.height(2.dp))
             Text(
                 text = it,
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),
+                style = TextStyle(color = ColorProvider(supportColor), fontSize = WidgetTypography.SUPPORTING.sp),
                 maxLines = 1
             )
         }
@@ -483,7 +497,7 @@ private fun LargeHalfMetric(section: WidgetSection, palette: Palette, modifier: 
             Spacer(GlanceModifier.height(2.dp))
             Text(
                 text = it,
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetTypography.SUPPORTING.sp),
+                style = TextStyle(color = ColorProvider(supportColor), fontSize = WidgetTypography.SUPPORTING.sp),
                 maxLines = 1
             )
         }
@@ -680,11 +694,7 @@ private fun SupportingContent(
     } else {
         null
     }
-    val visibleRows = if (section.id == "electricity") {
-        section.rows.filterNot { it.label == "NOW" }
-    } else {
-        section.rows
-    }
+    val visibleRows = visibleSupportRows(section)
 
     if (section.columns.isNotEmpty()) {
         if (includeTopSpacing) Spacer(GlanceModifier.height(5.dp))
@@ -846,7 +856,7 @@ private fun VerticalDivider(palette: Palette) {
     Box(
         modifier = GlanceModifier
             .width(1.dp)
-            .height(58.dp)
+            .height(68.dp)
             .background(palette.line)
     ) {}
 }

@@ -36,7 +36,7 @@ const title = 'Snapshot Widget Preview';
       type Tone = 'neutral' | 'positive' | 'negative' | 'accent';
       type Span = 'full' | 'half';
       type Layout = 'stack' | 'split';
-      type Row = { label: string; value: string; tone?: Tone };
+      type Row = { label: string; value: string; tone?: Tone; countdownTargetMs?: number };
       type Column = { label: string; value: string; tone?: Tone };
       type Section = {
         id: string;
@@ -48,6 +48,7 @@ const title = 'Snapshot Widget Preview';
         tone?: Tone;
         span?: Span;
         layout?: Layout;
+        countdownTargetMs?: number;
         rows?: Row[];
         columns?: Column[];
         bars?: number[];
@@ -153,11 +154,18 @@ const title = 'Snapshot Widget Preview';
         </div>
       `;
 
-      const renderSupport = (section: Section) => [
-        renderColumns(section.columns),
-        renderBars(section.bars),
-        renderRows(section.rows),
-      ].filter(Boolean).join('');
+      const renderSupport = (section: Section) => {
+        const rows = section.id === 'hsl' && section.countdownTargetMs !== undefined
+          ? (section.rows ?? [])
+              .filter((row) => row.countdownTargetMs !== section.countdownTargetMs)
+              .slice(0, 5)
+          : section.rows;
+        return [
+          renderColumns(section.columns),
+          renderBars(section.bars),
+          renderRows(rows),
+        ].filter(Boolean).join('');
+      };
 
       const renderSection = (section: Section) => {
         const span = section.span ?? 'full';
@@ -309,6 +317,8 @@ const title = 'Snapshot Widget Preview';
   .metric-secondary { margin-top: 9px; color: var(--muted); font-size: 10px; }
   .metric-primary { margin-top: 3px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 25px; font-weight: 400; line-height: 1; }
   [data-size="large"] .span-half .metric-primary { font-size: 22px; }
+  [data-size="large"] [data-section="liiga"] .metric-secondary,
+  [data-size="large"] [data-section="liiga"] .metric-detail { color: color-mix(in srgb, var(--foreground) 78%, var(--background)); }
   .metric-detail { margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.35; white-space: pre-line; }
   .metric-row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent); padding: 4px 0; font-size: 11px; color: var(--muted); }
   .metric-row strong { font-weight: 500; text-align: right; }

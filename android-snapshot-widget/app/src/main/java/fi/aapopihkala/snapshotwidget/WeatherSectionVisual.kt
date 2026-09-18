@@ -182,7 +182,7 @@ private fun WeatherNowBlock(
                     )
                 }
                 if (condition.isNotBlank() && range.isNotBlank()) {
-                    Spacer(GlanceModifier.width(7.dp))
+                    Spacer(GlanceModifier.width(4.dp))
                 }
                 if (range.isNotBlank()) {
                     Text(
