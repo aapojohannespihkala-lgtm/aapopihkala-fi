@@ -69,6 +69,14 @@ const liigaFixture = {
     homeTeam: 'Kärpät',
     awayTeam: 'Ilves',
   },
+  lastIlvesGame: {
+    homeTeam: 'Ilves',
+    awayTeam: 'HIFK',
+    homeGoals: 3,
+    awayGoals: 2,
+    ilvesResult: 'W',
+    finish: 'REGULATION',
+  },
 };
 
 test('widget v2 exposes production HSL through the large-layout presentation contract', () => {
@@ -174,10 +182,60 @@ test('widget v2 exposes production HSL through the large-layout presentation con
     span: 'half',
     layout: 'stack',
     rows: [
-      { label: 'NEXT', value: 'KÄRPÄT - ILVES' },
-      { label: 'START', value: 'WED 16 18:30' },
+      { label: 'LAST', value: 'ILVES 3-2 HIFK', tone: 'positive' },
     ],
   });
+});
+
+test('widget v2 shows live Liiga score, teams, period and elapsed game time', () => {
+  const payload = buildWidgetV2Payload(
+    baseFixture,
+    {
+      ...liigaFixture,
+      liveIlvesGame: {
+        homeTeam: 'Ilves',
+        awayTeam: 'KalPa',
+        homeGoals: 2,
+        awayGoals: 1,
+        gameTime: 2058,
+      },
+    },
+    'prod',
+    '2026-09-13T13:05:00.000Z',
+  );
+
+  const liiga = payload.sections.find((section) => section.id === 'liiga');
+  expect(liiga).toMatchObject({
+    primary: '2-1',
+    secondary: 'ILVES - KALPA',
+    detail: 'LIVE · 2ND · 34:18',
+    tone: 'accent',
+    rows: [],
+  });
+});
+
+test('widget v2 marks overtime results compactly', () => {
+  const payload = buildWidgetV2Payload(
+    baseFixture,
+    {
+      ...liigaFixture,
+      lastIlvesGame: {
+        homeTeam: 'KalPa',
+        awayTeam: 'Ilves',
+        homeGoals: 2,
+        awayGoals: 3,
+        ilvesResult: 'W',
+        finish: 'OVERTIME',
+      },
+    },
+    'prod',
+    '2026-09-13T13:05:00.000Z',
+  );
+
+  const liiga = payload.sections.find((section) => section.id === 'liiga');
+  expect(liiga?.rows).toEqual([
+    { label: 'LAST', value: 'KALPA 2-3 ILVES OT', tone: 'positive' },
+  ]);
 });
 
 test('widget v2 skips a departure once its countdown reaches zero', () => {
