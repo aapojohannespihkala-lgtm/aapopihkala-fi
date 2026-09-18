@@ -163,4 +163,4 @@ Server-only presentation changes do not require an APK.
 
 Typography uses a shared semantic scale for header, full-width and half-width primary values, compact units, supporting text, row values and micro labels. Compound units such as `c/kWh` intentionally use the smaller unit role while short numeric suffixes remain part of their primary value.
 
-Current app version: **2.10.45**.
+Current app version: **2.10.46**.
