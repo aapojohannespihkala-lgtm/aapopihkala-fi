@@ -161,6 +161,6 @@ Android-changing PRs run the version-bump guard, unit tests and a debug APK comp
 
 Server-only presentation changes do not require an APK.
 
-Typography uses a shared semantic scale for the header, primary values, compact units, supporting text, row values and micro labels. In the large widget, full-width and half-width section primary values intentionally share the same 22 sp scale, while the clock, date and ISO week share the same 22 sp scale as the large primary values. Compound units such as `c/kWh` intentionally use the smaller unit role while short numeric suffixes remain part of their primary value.
+Typography uses a shared semantic scale for the header, primary values, compact units, supporting text, row values and micro labels. In the large widget, full-width and half-width section primary values intentionally share the same 22 sp scale, while the clock, date and ISO week share the same 22 sp scale as the large primary values. Large primary measurements render the numeric value at 22 sp and known units such as `°C`, `%`, `min` and `c/kWh` at the shared 13 sp unit scale. Clock seconds use that same 13 sp secondary scale.
 
-Current app version: **2.10.51**.
+Current app version: **2.10.52**.
