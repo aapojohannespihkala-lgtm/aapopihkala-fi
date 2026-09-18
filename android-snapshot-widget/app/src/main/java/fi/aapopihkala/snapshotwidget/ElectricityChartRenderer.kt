@@ -286,14 +286,15 @@ internal fun renderElectricityChartBitmap(
         ).coerceAtMost(maximumSafeBarTop)
     }
     val overlapSet = priceOverlapIndices.toSet()
-    if (
-        pricePaint != null &&
-        priceReferenceTop != null &&
+    val needsLocalBarCap = if (pricePaint != null && priceReferenceTop != null) {
         electricityPriceBaselineAboveBarPx(
-            barTopPx = priceReferenceTop!!,
+            barTopPx = priceReferenceTop,
             fontBottomPx = pricePaint.fontMetrics.bottom,
         ) + pricePaint.fontMetrics.top < CURRENT_PRICE_SAFE_TOP_PX
-    ) {
+    } else {
+        false
+    }
+    if (needsLocalBarCap) {
         priceReferenceTop = forcedSafeTop
     }
 
@@ -304,18 +305,16 @@ internal fun renderElectricityChartBitmap(
             style = Paint.Style.FILL
         }
         val slotWidth = (plotRight - plotLeft) / bars.size.toFloat()
-
-        bars.forEachIndexed { index, _ ->
-            val naturalTop = naturalBarTops[index]
-            val top = if (
-                forcedSafeTop != null &&
-                priceReferenceTop == forcedSafeTop &&
-                index in overlapSet
-            ) {
+        val renderedBarTops = naturalBarTops.mapIndexed { index, naturalTop ->
+            if (needsLocalBarCap && forcedSafeTop != null && index in overlapSet) {
                 maxOf(naturalTop, forcedSafeTop)
             } else {
                 naturalTop
             }
+        }
+
+        bars.forEachIndexed { index, _ ->
+            val top = renderedBarTops[index]
             val left = plotLeft + index * slotWidth
             val right = if (index == bars.lastIndex) {
                 plotRight
@@ -327,17 +326,7 @@ internal fun renderElectricityChartBitmap(
         }
         if (priceOverlapIndices.isNotEmpty()) {
             priceReferenceTop = electricityHighestBarTopPx(
-                barTops = bars.indices.map { index ->
-                    if (
-                        forcedSafeTop != null &&
-                        priceReferenceTop == forcedSafeTop &&
-                        index in overlapSet
-                    ) {
-                        maxOf(naturalBarTops[index], forcedSafeTop)
-                    } else {
-                        naturalBarTops[index]
-                    }
-                },
+                barTops = renderedBarTops,
                 indices = priceOverlapIndices,
             )
         }
