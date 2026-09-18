@@ -8,8 +8,8 @@ import java.util.Calendar
 import java.util.TimeZone
 
 internal const val ELECTRICITY_CHART_BITMAP_WIDTH = 288
-internal const val ELECTRICITY_CHART_BITMAP_HEIGHT = 128
-internal const val ELECTRICITY_CHART_DISPLAY_HEIGHT_DP = 64
+internal const val ELECTRICITY_CHART_BITMAP_HEIGHT = 140
+internal const val ELECTRICITY_CHART_DISPLAY_HEIGHT_DP = 70
 internal const val ELECTRICITY_CHART_HORIZONTAL_PADDING_PX = 0f
 internal const val ELECTRICITY_MARKER_OUTER_STROKE_PX = 4f
 internal const val ELECTRICITY_MARKER_INNER_STROKE_PX = 1.5f
@@ -17,12 +17,12 @@ internal const val ELECTRICITY_MARKER_INNER_STROKE_PX = 1.5f
 private const val MILLIS_PER_DAY = 24f * 60f * 60f * 1000f
 private const val MIN_BAR_HEIGHT_FRACTION = 4f / 28f
 private const val PLOT_TOP_PX = 28f
-private const val PLOT_BOTTOM_PX = 96f
+private const val PLOT_BOTTOM_PX = 108f
 private const val CURRENT_PRICE_TEXT_SIZE_PX = 17f
 private const val CURRENT_PRICE_BASELINE_PX = 18f
 private const val CURRENT_PRICE_MARKER_GAP_PX = 0f
 private const val AXIS_TEXT_SIZE_PX = 16f
-private const val AXIS_BASELINE_PX = 118f
+private const val AXIS_BASELINE_PX = 130f
 
 internal fun electricityPlotBaselineInsetDp(): Float =
     ELECTRICITY_CHART_DISPLAY_HEIGHT_DP.toFloat() *
