@@ -315,14 +315,14 @@ private fun WeatherForecastStrip(
                 ) {
                     Text(
                         text = point.time,
-                        style = TextStyle(color = ColorProvider(textColor), fontSize = 7.sp),
+                        style = TextStyle(color = ColorProvider(textColor), fontSize = WidgetTypography.MICRO.sp),
                         maxLines = 1,
                     )
                     Text(
                         text = point.temperature,
                         style = TextStyle(
                             color = ColorProvider(valueColor),
-                            fontSize = 10.sp,
+                            fontSize = WidgetTypography.FORECAST_VALUE.sp,
                             fontWeight = FontWeight.Bold,
                         ),
                         maxLines = 1,
@@ -347,7 +347,7 @@ private fun SolarTimeline(
     ) {
         Text(
             text = solar.daylightLabel,
-            style = TextStyle(color = ColorProvider(textColor), fontSize = 8.sp),
+            style = TextStyle(color = ColorProvider(textColor), fontSize = WidgetTypography.SUPPORTING.sp),
             maxLines = 1,
         )
         Spacer(GlanceModifier.height(1.dp))
@@ -358,7 +358,7 @@ private fun SolarTimeline(
             ) {
                 Text(
                     text = "↑${solar.sunrise}",
-                    style = TextStyle(color = ColorProvider(textColor), fontSize = 8.sp),
+                    style = TextStyle(color = ColorProvider(textColor), fontSize = WidgetTypography.SUPPORTING.sp),
                     maxLines = 1,
                 )
             }
@@ -384,7 +384,7 @@ private fun SolarTimeline(
             ) {
                 Text(
                     text = "↓${solar.sunset}",
-                    style = TextStyle(color = ColorProvider(textColor), fontSize = 8.sp),
+                    style = TextStyle(color = ColorProvider(textColor), fontSize = WidgetTypography.SUPPORTING.sp),
                     maxLines = 1,
                 )
             }
