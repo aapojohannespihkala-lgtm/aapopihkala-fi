@@ -122,4 +122,12 @@ class WidgetLayoutTest {
         assertEquals("c/kWh", parts.unit)
         assertEquals(null, electricityPrimaryParts("16.35").unit)
     }
+
+    @Test
+    fun `large widget typography keeps primary values and header internally consistent`() {
+        assertEquals(WidgetTypography.PRIMARY_HALF, WidgetTypography.PRIMARY_FULL)
+        assertEquals(22, WidgetTypography.PRIMARY_FULL)
+        assertEquals(16, WidgetTypography.HEADER)
+    }
+
 }
