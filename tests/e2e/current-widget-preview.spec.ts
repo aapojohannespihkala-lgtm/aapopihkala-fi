@@ -59,7 +59,7 @@ const payload = (channel: 'prod' | 'dev') => ({
       label: 'ELECTRICITY',
       primary: '1.83 c/kWh',
       secondary: 'DAY AVG / TODAY',
-      detail: 'TOMORROW AVG 2.22\nMONTH AVG 4.21  LOW 0.39  HIGH 5.03',
+      detail: 'LOW 0.39  HIGH 5.03\nTOMORROW AVG 2.22\nMONTH AVG 4.21',
       span: 'full',
       layout: 'split',
       bars: [0, 1, 0.5, 0.8],
@@ -135,8 +135,9 @@ test('widget preview uses the v2 production presentation and Android-style heade
   const electricity = page.locator('[data-section="electricity"]');
   await expect(electricity).toHaveAttribute('data-layout', 'split');
   await expect(electricity.locator('.metric-main .metric-detail')).toHaveCount(0);
+  await expect(electricity.locator('.metric-detail--full')).toContainText('LOW 0.39  HIGH 5.03');
   await expect(electricity.locator('.metric-detail--full')).toContainText('TOMORROW AVG 2.22');
-  await expect(electricity.locator('.metric-detail--full')).toContainText('MONTH AVG 4.21  LOW 0.39  HIGH 5.03');
+  await expect(electricity.locator('.metric-detail--full')).toContainText('MONTH AVG 4.21');
   await expect(electricity.locator('.metric-detail--full')).not.toContainText('c/kWh');
   await expect(electricity.locator('.metric-support .metric-bars')).toBeVisible();
 
