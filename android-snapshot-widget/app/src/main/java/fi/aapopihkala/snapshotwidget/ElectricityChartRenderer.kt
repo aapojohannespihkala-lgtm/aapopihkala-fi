@@ -16,7 +16,7 @@ internal const val ELECTRICITY_MARKER_INNER_STROKE_PX = 1.5f
 
 private const val MILLIS_PER_DAY = 24f * 60f * 60f * 1000f
 private const val MIN_BAR_HEIGHT_FRACTION = 4f / 28f
-private const val PLOT_TOP_PX = 24f
+private const val PLOT_TOP_PX = 4f
 private const val PLOT_BOTTOM_PX = 68f
 private const val CURRENT_PRICE_TEXT_SIZE_PX = 17f
 private const val CURRENT_PRICE_MIN_TEXT_SIZE_PX = 10f
@@ -38,22 +38,40 @@ internal fun electricityPlotBaselineFromTopDp(): Float =
         PLOT_BOTTOM_PX /
         ELECTRICITY_CHART_BITMAP_HEIGHT.toFloat()
 
-internal fun electricityPriceFitsAbovePlot(
-    fontTopPx: Float,
-    fontBottomPx: Float,
-    plotTopPx: Float = PLOT_TOP_PX,
-    safeTopPx: Float = CURRENT_PRICE_SAFE_TOP_PX,
-    plotGapPx: Float = CURRENT_PRICE_PLOT_GAP_PX,
-): Boolean {
-    val baseline = plotTopPx - plotGapPx - fontBottomPx
-    return baseline + fontTopPx >= safeTopPx
+internal fun electricityCurrentBarIndex(
+    dayFraction: Float,
+    barCount: Int,
+): Int? {
+    if (barCount <= 0) return null
+    return (dayFraction.coerceIn(0f, 0.999999f) * barCount)
+        .toInt()
+        .coerceIn(0, barCount - 1)
 }
 
-internal fun electricityPriceBaselineAbovePlotPx(
-    fontBottomPx: Float,
+internal fun electricityNaturalBarTopPx(
+    normalized: Float,
     plotTopPx: Float = PLOT_TOP_PX,
+    plotBottomPx: Float = PLOT_BOTTOM_PX,
+): Float {
+    val plotHeight = (plotBottomPx - plotTopPx).coerceAtLeast(1f)
+    val minimumHeight = plotHeight * MIN_BAR_HEIGHT_FRACTION
+    val barHeight = minimumHeight +
+        normalized.coerceIn(0f, 1f) * (plotHeight - minimumHeight)
+    return plotBottomPx - barHeight
+}
+
+internal fun electricityPriceSafeBarTopPx(
+    fontTopPx: Float,
+    fontBottomPx: Float,
+    safeTopPx: Float = CURRENT_PRICE_SAFE_TOP_PX,
     plotGapPx: Float = CURRENT_PRICE_PLOT_GAP_PX,
-): Float = plotTopPx - plotGapPx - fontBottomPx
+): Float = safeTopPx + plotGapPx + (fontBottomPx - fontTopPx)
+
+internal fun electricityPriceBaselineAboveBarPx(
+    barTopPx: Float,
+    fontBottomPx: Float,
+    plotGapPx: Float = CURRENT_PRICE_PLOT_GAP_PX,
+): Float = barTopPx - plotGapPx - fontBottomPx
 
 internal fun electricityAxisBaselinePx(): Float = AXIS_BASELINE_PX
 
@@ -142,30 +160,70 @@ internal fun renderElectricityChartBitmap(
     val plotBottom = PLOT_BOTTOM_PX.coerceIn(plotTop, safeHeight.toFloat())
     val plotHeight = (plotBottom - plotTop).coerceAtLeast(1f)
 
+    val dayFraction = electricityDayFraction(epochMs)
+    val markerX = electricityMarkerX(
+        dayFraction = dayFraction,
+        widthPx = safeWidth,
+    )
+    val currentBarIndex = electricityCurrentBarIndex(dayFraction, bars.size)
+    val price = currentPrice?.takeIf { it.isNotBlank() }
+    val pricePaint = price?.let {
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = currentPriceColor
+            textSize = CURRENT_PRICE_TEXT_SIZE_PX
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        }
+    }
+
+    val minimumHeight = plotHeight * MIN_BAR_HEIGHT_FRACTION
+    val maximumCurrentBarTop = plotBottom - minimumHeight
+    if (pricePaint != null) {
+        while (
+            pricePaint.textSize > CURRENT_PRICE_MIN_TEXT_SIZE_PX &&
+            electricityPriceSafeBarTopPx(
+                fontTopPx = pricePaint.fontMetrics.top,
+                fontBottomPx = pricePaint.fontMetrics.bottom,
+            ) > maximumCurrentBarTop
+        ) {
+            pricePaint.textSize -= 1f
+        }
+    }
+
+    var currentBarTop: Float? = null
     if (bars.isNotEmpty()) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = barColor
             style = Paint.Style.FILL
         }
         val slotWidth = (plotRight - plotLeft) / bars.size.toFloat()
-        val minimumHeight = plotHeight * MIN_BAR_HEIGHT_FRACTION
+        val safeCurrentBarTop = pricePaint?.let {
+            electricityPriceSafeBarTopPx(
+                fontTopPx = it.fontMetrics.top,
+                fontBottomPx = it.fontMetrics.bottom,
+            ).coerceAtMost(maximumCurrentBarTop)
+        }
 
         bars.forEachIndexed { index, normalized ->
-            val barHeight = minimumHeight + normalized * (plotHeight - minimumHeight)
+            val naturalTop = electricityNaturalBarTopPx(
+                normalized = normalized,
+                plotTopPx = plotTop,
+                plotBottomPx = plotBottom,
+            )
+            val top = if (index == currentBarIndex && safeCurrentBarTop != null) {
+                maxOf(naturalTop, safeCurrentBarTop)
+            } else {
+                naturalTop
+            }
             val left = plotLeft + index * slotWidth
             val right = if (index == bars.lastIndex) {
                 plotRight
             } else {
                 plotLeft + (index + 1) * slotWidth + 0.5f
             }
-            canvas.drawRect(left, plotBottom - barHeight, right, plotBottom, paint)
+            canvas.drawRect(left, top, right, plotBottom, paint)
+            if (index == currentBarIndex) currentBarTop = top
         }
     }
-
-    val markerX = electricityMarkerX(
-        dayFraction = electricityDayFraction(epochMs),
-        widthPx = safeWidth,
-    )
     val outerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = markerOuterColor
         strokeWidth = ELECTRICITY_MARKER_OUTER_STROKE_PX
@@ -177,25 +235,11 @@ internal fun renderElectricityChartBitmap(
         strokeCap = Paint.Cap.BUTT
     }
 
-    canvas.drawLine(markerX, plotTop, markerX, plotBottom, outerPaint)
-    canvas.drawLine(markerX, plotTop, markerX, plotBottom, innerPaint)
+    val markerTop = currentBarTop ?: plotTop
+    canvas.drawLine(markerX, markerTop, markerX, plotBottom, outerPaint)
+    canvas.drawLine(markerX, markerTop, markerX, plotBottom, innerPaint)
 
-    currentPrice?.takeIf { it.isNotBlank() }?.let { price ->
-        val pricePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = currentPriceColor
-            textSize = CURRENT_PRICE_TEXT_SIZE_PX
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-        }
-        while (
-            pricePaint.textSize > CURRENT_PRICE_MIN_TEXT_SIZE_PX &&
-            !electricityPriceFitsAbovePlot(
-                fontTopPx = pricePaint.fontMetrics.top,
-                fontBottomPx = pricePaint.fontMetrics.bottom,
-                plotTopPx = plotTop,
-            )
-        ) {
-            pricePaint.textSize -= 1f
-        }
+    if (price != null && pricePaint != null) {
         pricePaint.textAlign = when (
             electricityPriceAlignment(
                 markerX = markerX,
@@ -208,10 +252,12 @@ internal fun renderElectricityChartBitmap(
             ElectricityPriceAlignment.END -> Paint.Align.RIGHT
         }
         val fontMetrics = pricePaint.fontMetrics
-        val priceBaseline = electricityPriceBaselineAbovePlotPx(
-            fontBottomPx = fontMetrics.bottom,
-            plotTopPx = plotTop,
-        )
+        val priceBaseline = currentBarTop?.let { barTop ->
+            electricityPriceBaselineAboveBarPx(
+                barTopPx = barTop,
+                fontBottomPx = fontMetrics.bottom,
+            )
+        } ?: (CURRENT_PRICE_SAFE_TOP_PX - fontMetrics.top)
         canvas.drawText(price, markerX, priceBaseline, pricePaint)
     }
 
