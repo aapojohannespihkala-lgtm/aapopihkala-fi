@@ -16,11 +16,11 @@ internal const val ELECTRICITY_MARKER_INNER_STROKE_PX = 1.5f
 
 private const val MILLIS_PER_DAY = 24f * 60f * 60f * 1000f
 private const val MIN_BAR_HEIGHT_FRACTION = 4f / 28f
-private const val PLOT_TOP_PX = 28f
-private const val PLOT_BOTTOM_PX = 68f
+private const val PLOT_TOP_PX = 20f
+private const val PLOT_BOTTOM_PX = 60f
 private const val CURRENT_PRICE_TEXT_SIZE_PX = 21f
 private const val AXIS_TEXT_SIZE_PX = 16f
-private const val CURRENT_PRICE_BASELINE_PX = 19f
+private const val CURRENT_PRICE_BASELINE_PX = 11f
 private const val AXIS_BASELINE_PX = 92f
 private const val PRIMARY_BOTTOM_INSET_DP = 11f
 
