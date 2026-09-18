@@ -132,8 +132,8 @@ const stringValue = (value: unknown): string | null =>
 const toneFor = (value: number | null): Tone =>
   value === null || value === 0 ? 'neutral' : value > 0 ? 'positive' : 'negative';
 
-const formatNumber = (value: number | null, digits = 2) =>
-  value === null ? '--' : value.toFixed(digits);
+const formatCompactPrice = (value: number | null) =>
+  value === null ? '--.--' : value.toFixed(2);
 
 const formatTemperature = (value: number | null) =>
   value === null ? '--.-°C' : `${value.toFixed(1)}°C`;
@@ -316,6 +316,7 @@ const buildElectricitySection = (
   if (!electricity) return null;
   const price = finiteNumber(electricity.price);
   const average = finiteNumber(electricity.average);
+  const tomorrowAverage = finiteNumber(electricity.tomorrowAverage);
   const low = finiteNumber(electricity.low);
   const high = finiteNumber(electricity.high);
   if ([price, average, low, high].every((item) => item === null)) return null;
@@ -325,7 +326,10 @@ const buildElectricitySection = (
     label: 'ELECTRICITY',
     primary: formatPrice(average),
     secondary: 'DAY AVG / TODAY',
-    detail: `MONTH AVG ${formatNumber(monthAverage)}  LOW ${formatNumber(low)}  HIGH ${formatNumber(high)}`,
+    detail: [
+      `TOMORROW AVG ${formatCompactPrice(tomorrowAverage)}`,
+      `MONTH AVG ${formatCompactPrice(monthAverage)}  LOW ${formatCompactPrice(low)}  HIGH ${formatCompactPrice(high)}`,
+    ].join('\n'),
     span: 'full',
     layout: 'split',
     fetchedAt,

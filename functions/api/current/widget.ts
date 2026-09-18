@@ -127,6 +127,20 @@ const getLocalDateTimeKey = (date: Date) => {
   return `${parts.year ?? '0000'}-${parts.month ?? '00'}-${parts.day ?? '00'}T${parts.hour ?? '00'}:${parts.minute ?? '00'}`;
 };
 
+const getNextLocalDateKey = (date: Date) => {
+  const [year, month, day] = getLocalDateKey(date).split('-').map(Number);
+  const next = new Date(Date.UTC(year, month - 1, day + 1));
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(
+    next.getUTCDate()
+  ).padStart(2, '0')}`;
+};
+
+const getLocalMinuteOfDay = (date: Date) => {
+  const time = getLocalDateTimeKey(date).slice(11);
+  const [hour, minute] = time.split(':').map(Number);
+  return hour * 60 + minute;
+};
+
 export const normalizeWeatherObservedAt = (
   value: unknown,
   utcOffsetSeconds: unknown,
@@ -307,11 +321,36 @@ const loadWeather = async (now: Date) => {
   };
 };
 
-const loadElectricity = async (now: Date) => {
-  const data = await readJson<ElectricityResponse>(await getElectricityResponse());
-  if (!data || !Array.isArray(data.prices)) return null;
+type WidgetElectricityPoint = {
+  price: number;
+  start: Date;
+  startMs: number;
+  endMs: number;
+};
 
-  const points = data.prices
+const hasQuarterCadence = (points: WidgetElectricityPoint[]) =>
+  points.every(
+    (point, index) => index === 0 || point.startMs - points[index - 1].startMs === QUARTER_MS
+  );
+
+const isCompleteMarketDay = (points: WidgetElectricityPoint[], dateKey: string) => {
+  if (points.length < 92 || !hasQuarterCadence(points)) return false;
+
+  const first = points[0];
+  const last = points.at(-1);
+  if (!first || !last) return false;
+  if (getLocalDateKey(first.start) !== dateKey || getLocalMinuteOfDay(first.start) !== 0) {
+    return false;
+  }
+
+  const endBoundary = new Date(last.startMs + QUARTER_MS);
+  return getLocalDateKey(endBoundary) !== dateKey && getLocalMinuteOfDay(endBoundary) === 0;
+};
+
+export const summarizeWidgetElectricity = (prices: unknown, now: Date) => {
+  if (!Array.isArray(prices)) return null;
+
+  const points: WidgetElectricityPoint[] = prices
     .flatMap((raw) => {
       if (!raw || typeof raw !== 'object') return [];
       const entry = raw as ElectricityEntry;
@@ -337,19 +376,31 @@ const loadElectricity = async (now: Date) => {
   const dayPoints = points.filter((point) => getLocalDateKey(point.start) === today);
   if (dayPoints.length === 0) return null;
 
+  const tomorrow = getNextLocalDateKey(now);
+  const tomorrowPoints = points.filter((point) => getLocalDateKey(point.start) === tomorrow);
+  const completeTomorrow = isCompleteMarketDay(tomorrowPoints, tomorrow);
   const nowMs = now.getTime();
   const current =
     dayPoints.find((point) => point.startMs <= nowMs && point.startMs + QUARTER_MS > nowMs) ??
     dayPoints.find((point) => point.startMs <= nowMs && point.endMs >= nowMs);
   const values = dayPoints.map((point) => point.price);
+  const tomorrowValues = completeTomorrow ? tomorrowPoints.map((point) => point.price) : [];
 
   return {
     price: current?.price ?? null,
     average: values.reduce((sum, value) => sum + value, 0) / values.length,
+    tomorrowAverage: tomorrowValues.length > 0
+      ? tomorrowValues.reduce((sum, value) => sum + value, 0) / tomorrowValues.length
+      : null,
     low: Math.min(...values),
     high: Math.max(...values),
     series: values,
   };
+};
+
+const loadElectricity = async (now: Date) => {
+  const data = await readJson<ElectricityResponse>(await getElectricityResponse());
+  return data ? summarizeWidgetElectricity(data.prices, now) : null;
 };
 
 const median = (values: number[]) => {

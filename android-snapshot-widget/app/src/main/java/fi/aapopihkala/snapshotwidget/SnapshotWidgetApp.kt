@@ -663,9 +663,13 @@ private fun ElectricityDetail(detail: String, palette: Palette) {
 }
 
 internal fun electricityDetailLines(detail: String): List<String> {
+    val normalized = detail.trim()
+    val serverLines = normalized.lines().map(String::trim).filter(String::isNotEmpty)
+    if (serverLines.size > 1) return serverLines.take(2)
+
     val match = Regex("^MONTH AVG\\s+(\\S+)\\s+LOW\\s+(\\S+)\\s+HIGH\\s+(\\S+)$")
-        .matchEntire(detail.trim())
-        ?: return listOf(detail.trim())
+        .matchEntire(normalized)
+        ?: return listOf(normalized)
     return listOf(
         "MONTH AVG ${match.groupValues[1]}",
         "LOW ${match.groupValues[2]}   HIGH ${match.groupValues[3]}",

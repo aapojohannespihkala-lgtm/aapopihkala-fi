@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { summarizeWidgetElectricity } from '../../functions/api/current/widget';
 import { buildWidgetV2Payload } from '../../functions/api/current/widget-v2';
 
 const hslFixture = {
@@ -61,6 +62,7 @@ const baseFixture = {
   electricity: {
     price: 2.54,
     average: 1.83,
+    tomorrowAverage: 2.22,
     low: 0.39,
     high: 5.03,
     series: [
@@ -146,7 +148,7 @@ test('widget v2 exposes production HSL through the large-layout presentation con
   expect(electricity).toMatchObject({
     primary: '1.83 c/kWh',
     secondary: 'DAY AVG / TODAY',
-    detail: 'MONTH AVG 4.21  LOW 0.39  HIGH 5.03',
+    detail: 'TOMORROW AVG 2.22\nMONTH AVG 4.21  LOW 0.39  HIGH 5.03',
     span: 'full',
     layout: 'split',
     bars: [0, 1, 0.5],
@@ -345,4 +347,46 @@ test('widget v2 omits HSL section without usable departures but keeps the rest o
   expect(payload.sections.some((section) => section.id === 'hsl')).toBe(false);
   expect(payload.sections.find((section) => section.id === 'rates')?.index).toBe('04');
   expect(payload.sections.find((section) => section.id === 'liiga')?.index).toBe('05');
+});
+
+test('widget electricity exposes tomorrow average only after the full market day is available', () => {
+  const localMidnightUtc = Date.UTC(2026, 8, 12, 21, 0, 0);
+  const day = (offsetDays: number, price: number, count = 96) =>
+    Array.from({ length: count }, (_, index) => {
+      const start = new Date(localMidnightUtc + offsetDays * 24 * 60 * 60 * 1000 + index * 15 * 60 * 1000);
+      return {
+        price,
+        startDate: start.toISOString(),
+        endDate: new Date(start.getTime() + 15 * 60 * 1000 - 1000).toISOString(),
+      };
+    });
+  const now = new Date('2026-09-13T13:05:00.000Z');
+
+  const complete = summarizeWidgetElectricity([...day(0, 1.5), ...day(1, 2.25)], now);
+  const partial = summarizeWidgetElectricity([...day(0, 1.5), ...day(1, 2.25, 95)], now);
+
+  expect(complete?.tomorrowAverage).toBe(2.25);
+  expect(partial?.tomorrowAverage).toBeNull();
+});
+
+test('widget v2 keeps a stable tomorrow placeholder before prices are available', () => {
+  const payload = buildWidgetV2Payload(
+    {
+      ...baseFixture,
+      electricity: {
+        ...baseFixture.electricity,
+        tomorrowAverage: null,
+      },
+    },
+    liigaFixture,
+    'prod',
+    '2026-09-13T13:05:00.000Z',
+    null,
+    hslFixture,
+    4.21,
+  );
+
+  expect(payload.sections.find((section) => section.id === 'electricity')?.detail).toBe(
+    'TOMORROW AVG --.--\nMONTH AVG 4.21  LOW 0.39  HIGH 5.03'
+  );
 });

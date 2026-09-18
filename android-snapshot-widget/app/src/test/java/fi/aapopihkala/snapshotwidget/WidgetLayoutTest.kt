@@ -97,6 +97,23 @@ class WidgetLayoutTest {
     }
 
     @Test
+    fun `electricity detail keeps tomorrow and month stats on two compact rows`() {
+        assertEquals(
+            listOf(
+                "TOMORROW AVG 2.22",
+                "MONTH AVG 6.62  LOW 1.56  HIGH 12.53"
+            ),
+            electricityDetailLines(
+                "TOMORROW AVG 2.22\nMONTH AVG 6.62  LOW 1.56  HIGH 12.53"
+            )
+        )
+        assertEquals(
+            listOf("MONTH AVG 6.62", "LOW 1.56   HIGH 12.53"),
+            electricityDetailLines("MONTH AVG 6.62  LOW 1.56  HIGH 12.53")
+        )
+    }
+
+    @Test
     fun `electricity primary separates value and unit`() {
         val parts = electricityPrimaryParts("16.35 c/kWh")
 
