@@ -482,19 +482,13 @@ const helsinkiDateTime = (value: unknown) => {
   return `${part('weekday').toUpperCase()} ${part('day')} ${part('hour')}:${part('minute')}`.trim();
 };
 
-const formatLiigaLiveTime = (value: unknown) => {
+const formatLiigaGameClock = (value: unknown) => {
   const seconds = finiteNumber(value);
-  if (seconds === null || seconds < 0) return 'LIVE';
+  if (seconds === null || seconds < 0) return null;
 
   const totalSeconds = Math.floor(seconds);
-  const period =
-    totalSeconds < 20 * 60 ? '1ST' :
-    totalSeconds < 40 * 60 ? '2ND' :
-    totalSeconds < 60 * 60 ? '3RD' :
-    'OT';
   const minutes = Math.floor(totalSeconds / 60);
-  const clock = `${minutes}:${String(totalSeconds % 60).padStart(2, '0')}`;
-  return `LIVE · ${period} · ${clock}`;
+  return `${minutes}:${String(totalSeconds % 60).padStart(2, '0')}`;
 };
 
 const buildLiigaSection = (value: unknown, index = '05'): WidgetSection | null => {
@@ -510,13 +504,13 @@ const buildLiigaSection = (value: unknown, index = '05'): WidgetSection | null =
     const away = stringValue(live.awayTeam) ?? '--';
     const homeGoals = finiteNumber(live.homeGoals);
     const awayGoals = finiteNumber(live.awayGoals);
+    const gameClock = formatLiigaGameClock(live.gameTime);
     return {
       id: 'liiga',
       index,
       label: 'LIIGA',
       primary: homeGoals !== null && awayGoals !== null ? `${homeGoals.toFixed(0)}-${awayGoals.toFixed(0)}` : 'LIVE',
-      secondary: `${home.toUpperCase()} - ${away.toUpperCase()}`,
-      detail: formatLiigaLiveTime(live.gameTime),
+      secondary: `${home.toUpperCase()} - ${away.toUpperCase()} · LIVE${gameClock ? ` ${gameClock}` : ''}`,
       tone: 'accent',
       span: 'half',
       layout: 'stack',
@@ -531,34 +525,31 @@ const buildLiigaSection = (value: unknown, index = '05'): WidgetSection | null =
   const nextAt = helsinkiDateTime(next?.start);
   if (!standing && !next && !last) return null;
 
-  const rows: WidgetRow[] = [];
   const lastHome = stringValue(last?.homeTeam);
   const lastAway = stringValue(last?.awayTeam);
   const lastHomeGoals = finiteNumber(last?.homeGoals);
   const lastAwayGoals = finiteNumber(last?.awayGoals);
+  let lastSummary: string | null = null;
   if (lastHome && lastAway && lastHomeGoals !== null && lastAwayGoals !== null) {
     const finish = stringValue(last?.finish);
     const finishSuffix = finish === 'OVERTIME' ? ' OT' : finish === 'SHOOTOUT' ? ' SO' : '';
-    const result = stringValue(last?.ilvesResult);
-    rows.push({
-      label: 'LAST',
-      value: `${lastHome.toUpperCase()} ${lastHomeGoals.toFixed(0)}-${lastAwayGoals.toFixed(0)} ${lastAway.toUpperCase()}${finishSuffix}`,
-      tone: result === 'W' ? 'positive' : result === 'L' ? 'negative' : 'neutral',
-    });
+    lastSummary = `${lastHome.toUpperCase()} - ${lastAway.toUpperCase()} ${lastHomeGoals.toFixed(0)}-${lastAwayGoals.toFixed(0)}${finishSuffix} · LAST`;
   }
+
+  const nextSummary = nextHome && nextAway
+    ? `${nextHome.toUpperCase()} - ${nextAway.toUpperCase()}`
+    : null;
 
   return {
     id: 'liiga',
     index,
     label: 'LIIGA',
     primary: rank !== null && totalTeams !== null ? `${rank.toFixed(0)}/${totalTeams.toFixed(0)}` : 'ILVES',
-    secondary: nextHome && nextAway
-      ? `${nextHome.toUpperCase()} - ${nextAway.toUpperCase()}`
-      : 'ILVES / STANDING',
-    detail: nextAt ?? undefined,
+    secondary: [nextSummary, nextAt].filter(Boolean).join(' · ') || 'ILVES / STANDING',
+    detail: lastSummary ?? undefined,
     span: 'half',
     layout: 'stack',
-    rows,
+    rows: [],
   };
 };
 
