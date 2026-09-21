@@ -243,6 +243,72 @@ test('Current Markets retries transient portfolio and macro request failures', a
   expect(macroAttempts).toBeGreaterThanOrEqual(2);
 });
 
+test('Current Markets retries successful but incomplete OP short-history data', async ({ page }) => {
+  let portfolioAttempts = 0;
+
+  const opBase = {
+    id: 'op-asia-index-a',
+    label: 'OP-AASIA INDEKSI A',
+    symbol: 'FI4000029491',
+    price: 152.34,
+    observedAt: '2026-09-18',
+    changes: {
+      today: null,
+      week1: null,
+      month1: 1.1,
+      month3: 3.2,
+      month6: 6.4,
+      ytd: 8.6,
+      year1: 12.8,
+      year3: 27.1,
+      year5: 41.3,
+    },
+  };
+
+  await page.route('**/api/current/markets*', async (route) => {
+    const url = new URL(route.request().url());
+
+    if (url.searchParams.get('portfolio') === '1') {
+      portfolioAttempts += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          expected: 1,
+          items: [
+            portfolioAttempts === 1
+              ? opBase
+              : {
+                  ...opBase,
+                  changes: {
+                    ...opBase.changes,
+                    today: 0.42,
+                    week1: 1.37,
+                  },
+                },
+          ],
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(macroFixture),
+    });
+  });
+
+  await page.goto('/current/markets/', { waitUntil: 'domcontentloaded' });
+
+  const opAsia = page.locator('[data-market-performance-row="op-asia-index-a"]');
+  await expect(opAsia.locator('[data-market-performance-change="today"]')).toHaveText('+0.42%');
+  await expect(opAsia.locator('[data-market-performance-change="week1"]')).toHaveText('+1.37%');
+  await expect(page.locator('[data-market-performance-status]')).toHaveText('LIVE / 1 HOLDINGS');
+
+  expect(portfolioAttempts).toBeGreaterThanOrEqual(2);
+});
+
 test('Markets keeps compact trend charts if portfolio performance data is unavailable', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubMarkets(page, false);

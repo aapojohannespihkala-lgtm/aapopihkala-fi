@@ -69,7 +69,12 @@ type SummaryEntry = {
 
 const API_URL = '/api/current/markets?portfolio=1&v=6';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
-const MARKET_RETRY_DELAYS_MS = [0, 700, 1_500] as const;
+const MARKET_RETRY_DELAYS_MS = [0, 2_000, 6_000, 12_000] as const;
+const OP_SHORT_HISTORY_IDS = new Set<MarketPerformanceId>([
+  'op-asia-index-a',
+  'op-europe-index-a',
+  'op-world-index-a',
+]);
 const DEFAULT_SUMMARY_PERIOD: PerformancePeriod = 'year1';
 
 const PERIODS: PeriodDefinition[] = [
@@ -424,7 +429,36 @@ export const initCurrentMarketPerformance = () => {
     activateSort(button.dataset.marketSort as SortKey);
   });
 
-  const render = (items: MarketPerformanceItem[], expected: number) => {
+  const needsPortfolioRecovery = (items: MarketPerformanceItem[], expected: number) =>
+    items.length < expected ||
+    items.some(
+      (item) =>
+        OP_SHORT_HISTORY_IDS.has(item.id) &&
+        (item.changes.today === null || item.changes.week1 === null)
+    );
+
+  const mergePerformanceItem = (
+    current: MarketPerformanceItem | undefined,
+    incoming: MarketPerformanceItem
+  ): MarketPerformanceItem => {
+    if (!current) return incoming;
+
+    const changes = { ...current.changes };
+    for (const period of PERIODS) {
+      const value = incoming.changes[period.key];
+      if (value !== null) changes[period.key] = value;
+    }
+
+    return {
+      ...current,
+      ...incoming,
+      price: incoming.price ?? current.price,
+      observedAt: incoming.observedAt || current.observedAt,
+      changes,
+    };
+  };
+
+  const render = (items: MarketPerformanceItem[], expected: number, complete: boolean) => {
     resetRows(root);
     latestItems.clear();
     items.forEach((item) => latestItems.set(item.id, item));
@@ -456,62 +490,85 @@ export const initCurrentMarketPerformance = () => {
     updateSummary();
 
     if (status) {
-      status.textContent =
-        items.length === expected
-          ? `LIVE / ${items.length} HOLDINGS`
+      status.textContent = complete
+        ? `LIVE / ${items.length} HOLDINGS`
+        : items.length === expected
+          ? `PARTIAL / ${items.length} HOLDINGS`
           : `PARTIAL / ${items.length} OF ${expected} HOLDINGS`;
     }
   };
 
   const fetchMarketPerformance = async () => {
+    const response = await fetch(API_URL, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(`Market performance request failed: ${response.status}`);
+
+    const data = (await response.json()) as MarketPerformanceResponse;
+    if (!Array.isArray(data.items)) throw new Error('Market performance response contained no data');
+
+    return {
+      items: data.items.filter(isPerformanceItem),
+      expected: typeof data.expected === 'number' ? data.expected : DISPLAY_ROWS.length,
+    };
+  };
+
+  const load = async () => {
+    root.setAttribute('aria-busy', 'true');
+    if (status) status.textContent = 'LOADING / MARKET DATA';
+
+    const previousItems = new Map(latestItems);
+    const recoveredItems = new Map<MarketPerformanceId, MarketPerformanceItem>();
+    let sawResponse = false;
+    let expected = expectedHoldings;
     let lastError: unknown;
 
     for (const delay of MARKET_RETRY_DELAYS_MS) {
       if (delay > 0) await new Promise((resolve) => window.setTimeout(resolve, delay));
 
       try {
-        const response = await fetch(API_URL, {
-          headers: { Accept: 'application/json' },
-          cache: 'no-store',
-        });
-        if (!response.ok) throw new Error(`Market performance request failed: ${response.status}`);
+        const result = await fetchMarketPerformance();
+        sawResponse = true;
+        expected = result.expected;
 
-        const data = (await response.json()) as MarketPerformanceResponse;
-        if (!Array.isArray(data.items)) throw new Error('Market performance response contained no data');
-
-        const items = data.items.filter(isPerformanceItem);
-        const expected = typeof data.expected === 'number' ? data.expected : DISPLAY_ROWS.length;
-        if (items.length === 0 && expected > 0) {
-          throw new Error('Market performance response contained no usable holdings');
+        for (const item of result.items) {
+          recoveredItems.set(item.id, mergePerformanceItem(recoveredItems.get(item.id), item));
         }
 
-        return { items, expected };
+        const currentItems = [...recoveredItems.values()];
+        const complete = !needsPortfolioRecovery(currentItems, expected);
+        const displayItems = new Map(previousItems);
+        for (const item of currentItems) {
+          displayItems.set(item.id, mergePerformanceItem(displayItems.get(item.id), item));
+        }
+
+        render([...displayItems.values()], expected, complete);
+        if (complete) {
+          root.setAttribute('aria-busy', 'false');
+          return;
+        }
       } catch (error) {
         lastError = error;
       }
     }
 
-    throw lastError instanceof Error ? lastError : new Error('Market performance request failed');
-  };
+    root.setAttribute('aria-busy', 'false');
+    if (sawResponse) return;
 
-  const load = async () => {
-    root.setAttribute('aria-busy', 'true');
-    if (status) status.textContent = 'LOADING / MARKET DATA';
-    const hadData = latestItems.size > 0;
+    if (previousItems.size > 0) {
+      if (status) status.textContent = 'STALE / MARKET DATA';
+      return;
+    }
 
-    try {
-      const { items, expected } = await fetchMarketPerformance();
-      render(items, expected);
-      root.setAttribute('aria-busy', 'false');
-    } catch {
-      if (!hadData) {
-        resetRows(root);
-        latestItems.clear();
-        sortRows();
-        updateSummary();
-      }
-      root.setAttribute('aria-busy', 'false');
-      if (status) status.textContent = hadData ? 'STALE / MARKET DATA' : 'DATA UNAVAILABLE';
+    resetRows(root);
+    latestItems.clear();
+    sortRows();
+    updateSummary();
+    if (status) status.textContent = 'DATA UNAVAILABLE';
+
+    if (lastError) {
+      console.error('[current-market-performance] Failed to load portfolio feed', lastError);
     }
   };
 
