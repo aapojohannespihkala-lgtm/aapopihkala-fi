@@ -38,6 +38,7 @@ type ChartState = {
 
 const MARKETS_API_URL = '/api/current/markets';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+const MARKET_RETRY_DELAYS_MS = [0, 700, 1_500] as const;
 const MARKET_IDS = new Set<MarketMacroId>(['euribor-3m']);
 const SERIES_IDS = new Set<MarketSeriesId>(['euribor-3m', 'world']);
 const AXIS_STEPS: Record<MarketSeriesId, number> = {
@@ -486,55 +487,63 @@ export const initCurrentMarkets = () => {
   const loadMarkets = async () => {
     root.setAttribute('aria-busy', 'true');
     clearMarketError();
+    let lastError: unknown;
 
-    try {
-      const requestUrl = `${MARKETS_API_URL}?_=${Date.now()}`;
-      const response = await fetch(requestUrl, {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-      });
-      const responseBody = await response.text();
-      const responsePreview = responseBody.replace(/\s+/g, ' ').trim().slice(0, 160);
+    for (const delay of MARKET_RETRY_DELAYS_MS) {
+      if (delay > 0) await new Promise((resolve) => window.setTimeout(resolve, delay));
 
-      if (!response.ok) {
-        throw new Error(
-          `Markets request failed: ${response.status}${
-            responsePreview ? ` - ${responsePreview}` : ''
-          }`
-        );
-      }
-
-      let data: MarketsResponse;
       try {
-        data = JSON.parse(responseBody) as MarketsResponse;
-      } catch {
-        const contentType = response.headers.get('content-type') || 'unknown content type';
-        throw new Error(`Markets response was not valid JSON (${contentType})`);
+        const requestUrl = `${MARKETS_API_URL}?_=${Date.now()}`;
+        const response = await fetch(requestUrl, {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        });
+        const responseBody = await response.text();
+        const responsePreview = responseBody.replace(/\s+/g, ' ').trim().slice(0, 160);
+
+        if (!response.ok) {
+          throw new Error(
+            `Markets request failed: ${response.status}${
+              responsePreview ? ` - ${responsePreview}` : ''
+            }`
+          );
+        }
+
+        let data: MarketsResponse;
+        try {
+          data = JSON.parse(responseBody) as MarketsResponse;
+        } catch {
+          const contentType = response.headers.get('content-type') || 'unknown content type';
+          throw new Error(`Markets response was not valid JSON (${contentType})`);
+        }
+
+        if (!Array.isArray(data.items)) throw new Error('Markets response contained no data');
+
+        const items = data.items.filter(isMacroItem);
+        if (items.length !== MARKET_IDS.size) throw new Error('Markets response was incomplete');
+
+        const seriesItems = Array.isArray(data.series) ? data.series.filter(isMarketSeries) : [];
+        if (!seriesItems.some((series) => series.id === 'euribor-3m')) {
+          throw new Error('Markets response contained no Euribor trend series');
+        }
+
+        renderItems(items);
+        renderSeries(seriesItems);
+        root.setAttribute('aria-busy', 'false');
+        clearMarketError();
+
+        window.dispatchEvent(
+          new CustomEvent('current:data-updated', {
+            detail: { source: 'markets', at: new Date().toISOString() },
+          })
+        );
+        return;
+      } catch (error) {
+        lastError = error;
       }
-
-      if (!Array.isArray(data.items)) throw new Error('Markets response contained no data');
-
-      const items = data.items.filter(isMacroItem);
-      if (items.length !== MARKET_IDS.size) throw new Error('Markets response was incomplete');
-
-      const seriesItems = Array.isArray(data.series) ? data.series.filter(isMarketSeries) : [];
-      if (!seriesItems.some((series) => series.id === 'euribor-3m')) {
-        throw new Error('Markets response contained no Euribor trend series');
-      }
-
-      renderItems(items);
-      renderSeries(seriesItems);
-      root.setAttribute('aria-busy', 'false');
-      clearMarketError();
-
-      window.dispatchEvent(
-        new CustomEvent('current:data-updated', {
-          detail: { source: 'markets', at: new Date().toISOString() },
-        })
-      );
-    } catch (error) {
-      showMarketError(error);
     }
+
+    showMarketError(lastError);
   };
 
   retryButton?.addEventListener('click', loadMarkets);

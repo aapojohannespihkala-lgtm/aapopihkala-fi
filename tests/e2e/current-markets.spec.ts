@@ -196,6 +196,53 @@ test('standalone Current Markets shows portfolio performance and interactive one
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
+test('Current Markets retries transient portfolio and macro request failures', async ({ page }) => {
+  let portfolioAttempts = 0;
+  let macroAttempts = 0;
+
+  await page.route('**/api/current/markets*', async (route) => {
+    const url = new URL(route.request().url());
+
+    if (url.searchParams.get('portfolio') === '1') {
+      portfolioAttempts += 1;
+      if (portfolioAttempts === 1) {
+        await route.fulfill({ status: 503, body: 'Temporary portfolio failure' });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(portfolioFixture),
+      });
+      return;
+    }
+
+    macroAttempts += 1;
+    if (macroAttempts === 1) {
+      await route.fulfill({ status: 503, body: 'Temporary macro failure' });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(macroFixture),
+    });
+  });
+
+  await page.goto('/current/', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.locator('[data-market-performance-status]')).toHaveText('PARTIAL / 1 OF 19 HOLDINGS');
+  await expect(page.locator('[data-market-performance-row="handelsbanken-usa"] [data-market-performance-change="year1"]')).toHaveText('+21.92%');
+  await expect(page.locator('[data-market-value="euribor-3m"]')).toHaveText('2.679');
+  await expect(page.locator('[data-market-series-change="world"]')).toHaveText('+20.00%');
+  await expect(page.locator('[data-markets-error]')).toBeHidden();
+
+  expect(portfolioAttempts).toBe(2);
+  expect(macroAttempts).toBe(2);
+});
+
 test('Markets keeps compact trend charts if portfolio performance data is unavailable', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubMarkets(page, false);

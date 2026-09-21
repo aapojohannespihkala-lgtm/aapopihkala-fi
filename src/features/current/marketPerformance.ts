@@ -69,6 +69,7 @@ type SummaryEntry = {
 
 const API_URL = '/api/current/markets?portfolio=1&v=6';
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+const MARKET_RETRY_DELAYS_MS = [0, 700, 1_500] as const;
 const DEFAULT_SUMMARY_PERIOD: PerformancePeriod = 'year1';
 
 const PERIODS: PeriodDefinition[] = [
@@ -462,30 +463,55 @@ export const initCurrentMarketPerformance = () => {
     }
   };
 
+  const fetchMarketPerformance = async () => {
+    let lastError: unknown;
+
+    for (const delay of MARKET_RETRY_DELAYS_MS) {
+      if (delay > 0) await new Promise((resolve) => window.setTimeout(resolve, delay));
+
+      try {
+        const response = await fetch(API_URL, {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`Market performance request failed: ${response.status}`);
+
+        const data = (await response.json()) as MarketPerformanceResponse;
+        if (!Array.isArray(data.items)) throw new Error('Market performance response contained no data');
+
+        const items = data.items.filter(isPerformanceItem);
+        const expected = typeof data.expected === 'number' ? data.expected : DISPLAY_ROWS.length;
+        if (items.length === 0 && expected > 0) {
+          throw new Error('Market performance response contained no usable holdings');
+        }
+
+        return { items, expected };
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('Market performance request failed');
+  };
+
   const load = async () => {
     root.setAttribute('aria-busy', 'true');
     if (status) status.textContent = 'LOADING / MARKET DATA';
+    const hadData = latestItems.size > 0;
 
     try {
-      const response = await fetch(API_URL, {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-      });
-      if (!response.ok) throw new Error(`Market performance request failed: ${response.status}`);
-
-      const data = (await response.json()) as MarketPerformanceResponse;
-      const items = Array.isArray(data.items) ? data.items.filter(isPerformanceItem) : [];
-      const expected = typeof data.expected === 'number' ? data.expected : DISPLAY_ROWS.length;
-
+      const { items, expected } = await fetchMarketPerformance();
       render(items, expected);
       root.setAttribute('aria-busy', 'false');
     } catch {
-      resetRows(root);
-      latestItems.clear();
-      sortRows();
-      updateSummary();
+      if (!hadData) {
+        resetRows(root);
+        latestItems.clear();
+        sortRows();
+        updateSummary();
+      }
       root.setAttribute('aria-busy', 'false');
-      if (status) status.textContent = 'DATA UNAVAILABLE';
+      if (status) status.textContent = hadData ? 'STALE / MARKET DATA' : 'DATA UNAVAILABLE';
     }
   };
 
