@@ -309,6 +309,37 @@ test('Current Markets retries successful but incomplete OP short-history data', 
   expect(portfolioAttempts).toBeGreaterThanOrEqual(2);
 });
 
+test('Current Markets labels last-known-good portfolio data as stale', async ({ page }) => {
+  await page.route('**/api/current/markets*', async (route) => {
+    const url = new URL(route.request().url());
+
+    if (url.searchParams.get('portfolio') === '1') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { 'X-Portfolio-Fallback': 'last-known-good' },
+        body: JSON.stringify({ ...portfolioFixture, expected: 1, liveExpected: 1 }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(macroFixture),
+    });
+  });
+
+  await page.goto('/current/markets/', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.locator('[data-market-performance-status]')).toHaveText('STALE / 1 HOLDINGS');
+  await expect(
+    page.locator(
+      '[data-market-performance-row="handelsbanken-usa"] [data-market-performance-change="year1"]'
+    )
+  ).toHaveText('+21.92%');
+});
+
 test('Markets keeps compact trend charts if portfolio performance data is unavailable', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubMarkets(page, false);
