@@ -448,7 +448,10 @@ test('Portfolio fills degraded live data from one shared last-known-good cache e
   expect(body.unavailable).toEqual([]);
   expect(body.fallback).toBe('last-known-good');
 
-  const byId = new Map(body.items.map((item: { id: string }) => [item.id, item]));
+  const byId = new Map<
+    string,
+    { id: string; changes: Record<string, number | null> }
+  >(body.items.map((item: { id: string; changes: Record<string, number | null> }) => [item.id, item]));
   expect(byId.get('storebrand-japan')).toBeDefined();
   expect(byId.get('marimekko')).toBeDefined();
   expect(byId.get('remedy')).toBeDefined();
@@ -456,7 +459,7 @@ test('Portfolio fills degraded live data from one shared last-known-good cache e
   expect(byId.get('handelsbanken-usa')?.changes.year1).toBe(99);
 });
 
-test('Portfolio live smoke bypasses last-known-good fallback while still seeding it on success', async () => {
+test('Portfolio live smoke bypasses last-known-good fallback for incomplete data', async () => {
   const entries = new Map<string, Response>();
   const cache = {
     match: async (request: Request) => entries.get(request.url)?.clone(),
