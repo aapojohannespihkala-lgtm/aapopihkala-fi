@@ -25,7 +25,7 @@ import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/curre
 type AssetsBinding = { fetch(request: Request): Promise<Response> };
 type WorkerEnv = { ASSETS: AssetsBinding; DIGITRANSIT_API_KEY?: string; HSL_MODEL_DB?: HslLearningDb };
 type ScheduledController = { scheduledTime: number };
-type WidgetResponseCache = {
+type ResponseCache = {
   match(request: Request): Promise<Response | undefined>;
   put(request: Request, response: Response): Promise<void>;
 };
@@ -45,9 +45,43 @@ const HSL_HEAVY_LEARNING_INTERVAL_MINUTES = 10;
 const HSL_LEARNING_QUERY = { stopCode: 'E3239', stopName: 'Ylisrinne', routes: ['121', '125'] };
 
 const WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS = 24 * 60 * 60;
+const PORTFOLIO_LAST_KNOWN_GOOD_TTL_SECONDS = 24 * 60 * 60;
+const PORTFOLIO_PERIODS = [
+  'today',
+  'week1',
+  'month1',
+  'month3',
+  'month6',
+  'ytd',
+  'year1',
+  'year3',
+  'year5',
+] as const;
+const PORTFOLIO_HOLDING_IDS = [
+  'handelsbanken-usa',
+  'nordnet-finland',
+  'ishares-world',
+  'ishares-europe',
+  'nordnet-sweden',
+  'spiltan-investmentbolag',
+  'storebrand-japan',
+  'franklin-sp500-climate',
+  'xact-norden',
+  'nordea',
+  'marimekko',
+  'remedy',
+  'op-asia-index-a',
+  'op-europe-index-a',
+  'op-world-index-a',
+  'op-forest-owner-b',
+  'btc',
+  'bnb',
+  'eth',
+] as const;
+const OP_FOREST_REQUIRED_PERIODS = ['month3', 'month6', 'ytd', 'year1', 'year3', 'year5'] as const;
 
-const defaultWidgetCache = (): WidgetResponseCache | undefined =>
-  (globalThis as typeof globalThis & { caches?: { default?: WidgetResponseCache } }).caches?.default;
+const defaultResponseCache = (): ResponseCache | undefined =>
+  (globalThis as typeof globalThis & { caches?: { default?: ResponseCache } }).caches?.default;
 
 const widgetCacheKey = (request: Request) => {
   const url = new URL(request.url);
@@ -58,7 +92,7 @@ const widgetCacheKey = (request: Request) => {
 export const serveWidgetWithLastKnownGood = async (
   request: Request,
   load: () => Promise<Response>,
-  cache: WidgetResponseCache | undefined = defaultWidgetCache(),
+  cache: ResponseCache | undefined = defaultResponseCache(),
 ) => {
   const response = await load();
   if (!cache) return response;
@@ -96,6 +130,188 @@ export const serveWidgetWithLastKnownGood = async (
   } catch {
     return response;
   }
+};
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+const portfolioCacheKey = (request: Request) => {
+  const url = new URL(request.url);
+  url.search = '';
+  url.searchParams.set('portfolio', '1');
+  url.searchParams.set('cache', 'last-known-good-v1');
+  return new Request(url.toString(), { method: 'GET' });
+};
+
+const parsePortfolioBody = async (response: Response) => {
+  try {
+    return asRecord(await response.clone().json());
+  } catch {
+    return null;
+  }
+};
+
+const isFinitePortfolioValue = (value: unknown) =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const isCompletePortfolioBody = (body: Record<string, unknown>) => {
+  if (body.expected !== PORTFOLIO_HOLDING_IDS.length) return false;
+  if (!Array.isArray(body.items) || body.items.length !== PORTFOLIO_HOLDING_IDS.length) return false;
+  if (!Array.isArray(body.unavailable) || body.unavailable.length > 0) return false;
+
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const candidate of body.items) {
+    const item = asRecord(candidate);
+    if (!item || typeof item.id !== 'string') continue;
+    byId.set(item.id, item);
+  }
+  if (byId.size !== PORTFOLIO_HOLDING_IDS.length) return false;
+
+  for (const id of PORTFOLIO_HOLDING_IDS) {
+    const item = byId.get(id);
+    const changes = item ? asRecord(item.changes) : null;
+    if (!changes) return false;
+
+    const requiredPeriods =
+      id === 'op-forest-owner-b' ? OP_FOREST_REQUIRED_PERIODS : PORTFOLIO_PERIODS;
+    if (requiredPeriods.some((period) => !isFinitePortfolioValue(changes[period]))) return false;
+  }
+
+  return true;
+};
+
+const mergePortfolioItem = (
+  cached: Record<string, unknown>,
+  live: Record<string, unknown> | undefined,
+) => {
+  if (!live) return cached;
+
+  const cachedChanges = asRecord(cached.changes) ?? {};
+  const liveChanges = asRecord(live.changes) ?? {};
+  const changes = { ...cachedChanges };
+
+  for (const period of PORTFOLIO_PERIODS) {
+    const value = liveChanges[period];
+    if (isFinitePortfolioValue(value)) changes[period] = value;
+  }
+
+  return {
+    ...cached,
+    ...live,
+    price: isFinitePortfolioValue(live.price) ? live.price : cached.price,
+    observedAt:
+      typeof live.observedAt === 'string' && live.observedAt
+        ? live.observedAt
+        : cached.observedAt,
+    changes,
+  };
+};
+
+const mergePortfolioBodies = (
+  cachedBody: Record<string, unknown>,
+  liveBody: Record<string, unknown>,
+) => {
+  const cachedItems = Array.isArray(cachedBody.items) ? cachedBody.items : [];
+  const liveItems = Array.isArray(liveBody.items) ? liveBody.items : [];
+  const cachedById = new Map<string, Record<string, unknown>>();
+  const liveById = new Map<string, Record<string, unknown>>();
+
+  for (const candidate of cachedItems) {
+    const item = asRecord(candidate);
+    if (item && typeof item.id === 'string') cachedById.set(item.id, item);
+  }
+  for (const candidate of liveItems) {
+    const item = asRecord(candidate);
+    if (item && typeof item.id === 'string') liveById.set(item.id, item);
+  }
+
+  const items = PORTFOLIO_HOLDING_IDS.flatMap((id) => {
+    const cached = cachedById.get(id);
+    if (!cached) return [];
+    return [mergePortfolioItem(cached, liveById.get(id))];
+  });
+  const liveSource = typeof liveBody.source === 'string' ? liveBody.source : '';
+  const cachedSource = typeof cachedBody.source === 'string' ? cachedBody.source : '';
+
+  return {
+    ...cachedBody,
+    ...liveBody,
+    items,
+    expected: PORTFOLIO_HOLDING_IDS.length,
+    unavailable: [],
+    source: [liveSource || cachedSource, 'last-known-good'].filter(Boolean).join(' + '),
+    fallback: 'last-known-good',
+  };
+};
+
+const portfolioFallbackResponse = (
+  body: Record<string, unknown>,
+  cachedHeaders: Headers,
+) => {
+  const headers = new Headers(cachedHeaders);
+  headers.set('Cache-Control', 'private, no-store');
+  headers.set('Content-Type', 'application/json; charset=utf-8');
+  headers.set('X-Portfolio-Fallback', 'last-known-good');
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    statusText: 'OK',
+    headers,
+  });
+};
+
+export const servePortfolioWithLastKnownGood = async (
+  request: Request,
+  load: () => Promise<Response>,
+  cache: ResponseCache | undefined = defaultResponseCache(),
+) => {
+  const response = await load();
+  if (!cache) return response;
+
+  const liveBody = response.ok ? await parsePortfolioBody(response) : null;
+  const complete = Boolean(liveBody && isCompletePortfolioBody(liveBody));
+  const key = portfolioCacheKey(request);
+
+  if (complete && liveBody) {
+    const headers = new Headers(response.headers);
+    headers.set('Cache-Control', `public, max-age=${PORTFOLIO_LAST_KNOWN_GOOD_TTL_SECONDS}`);
+    headers.set('Content-Type', 'application/json; charset=utf-8');
+
+    try {
+      await cache.put(
+        key,
+        new Response(JSON.stringify(liveBody), {
+          status: 200,
+          statusText: 'OK',
+          headers,
+        }),
+      );
+    } catch {
+      // Cache is a resilience layer only; a cache write failure must not fail healthy live data.
+    }
+    return response;
+  }
+
+  if (new URL(request.url).searchParams.has('live_smoke')) return response;
+
+  let cached: Response | undefined;
+  try {
+    cached = await cache.match(key);
+  } catch {
+    return response;
+  }
+  if (!cached) return response;
+
+  const cachedBody = await parsePortfolioBody(cached);
+  if (!cachedBody || !isCompletePortfolioBody(cachedBody)) return response;
+
+  const fallbackBody =
+    response.ok && liveBody
+      ? mergePortfolioBodies(cachedBody, liveBody)
+      : { ...cachedBody, fallback: 'last-known-good' };
+
+  return portfolioFallbackResponse(fallbackBody, cached.headers);
 };
 
 const HSL_LEARNING_SCHEMA_STATEMENTS = [
@@ -189,7 +405,10 @@ const worker = {
     }
     if (url.pathname === MARKETS_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      if (url.searchParams.get('portfolio') === '1') return snapshotRequest ? getSnapshotPortfolioResponse() : getPortfolioResponse();
+      if (url.searchParams.get('portfolio') === '1') {
+        if (snapshotRequest) return getSnapshotPortfolioResponse();
+        return servePortfolioWithLastKnownGood(request, getPortfolioResponse);
+      }
       return getMarketsResponse({ request });
     }
     if (url.pathname === WIDGET_PATH) {

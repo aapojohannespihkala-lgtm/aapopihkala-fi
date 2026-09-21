@@ -459,7 +459,12 @@ export const initCurrentMarketPerformance = () => {
     };
   };
 
-  const render = (items: MarketPerformanceItem[], expected: number, complete: boolean) => {
+  const render = (
+    items: MarketPerformanceItem[],
+    expected: number,
+    complete: boolean,
+    stale: boolean
+  ) => {
     resetRows(root);
     latestItems.clear();
     items.forEach((item) => latestItems.set(item.id, item));
@@ -491,11 +496,15 @@ export const initCurrentMarketPerformance = () => {
     updateSummary();
 
     if (status) {
-      status.textContent = complete
-        ? `LIVE / ${items.length} HOLDINGS`
-        : items.length === expected
-          ? `PARTIAL / ${items.length} HOLDINGS`
-          : `PARTIAL / ${items.length} OF ${expected} HOLDINGS`;
+      status.textContent = stale
+        ? items.length === expected
+          ? `STALE / ${items.length} HOLDINGS`
+          : `STALE / ${items.length} OF ${expected} HOLDINGS`
+        : complete
+          ? `LIVE / ${items.length} HOLDINGS`
+          : items.length === expected
+            ? `PARTIAL / ${items.length} HOLDINGS`
+            : `PARTIAL / ${items.length} OF ${expected} HOLDINGS`;
     }
   };
 
@@ -512,6 +521,7 @@ export const initCurrentMarketPerformance = () => {
     return {
       items: data.items.filter(isPerformanceItem),
       expected: typeof data.expected === 'number' ? data.expected : DISPLAY_ROWS.length,
+      stale: response.headers.get('x-portfolio-fallback') === 'last-known-good',
     };
   };
 
@@ -539,7 +549,11 @@ export const initCurrentMarketPerformance = () => {
     const recoveredItems = new Map<MarketPerformanceId, MarketPerformanceItem>();
     let expected = expectedHoldings;
 
-    const renderRecovered = (result: { items: MarketPerformanceItem[]; expected: number }) => {
+    const renderRecovered = (result: {
+      items: MarketPerformanceItem[];
+      expected: number;
+      stale: boolean;
+    }) => {
       expected = result.expected;
       for (const item of result.items) {
         recoveredItems.set(item.id, mergePerformanceItem(recoveredItems.get(item.id), item));
@@ -552,8 +566,8 @@ export const initCurrentMarketPerformance = () => {
         displayItems.set(item.id, mergePerformanceItem(displayItems.get(item.id), item));
       }
 
-      render([...displayItems.values()], expected, complete);
-      return complete;
+      render([...displayItems.values()], expected, complete, result.stale);
+      return complete && !result.stale;
     };
 
     try {

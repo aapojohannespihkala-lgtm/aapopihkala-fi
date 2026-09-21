@@ -3,7 +3,10 @@ import { expect, test } from '@playwright/test';
 import { fetchElectricityResponse } from '../../functions/api/current/electricity';
 import { fetchElectricityMonthResponse } from '../../functions/api/current/electricity-month';
 import { fetchHslDeparturesResponse } from '../../functions/api/current/hsl';
-import worker, { serveWidgetWithLastKnownGood } from '../../worker/index';
+import worker, {
+  servePortfolioWithLastKnownGood,
+  serveWidgetWithLastKnownGood,
+} from '../../worker/index';
 
 const workerFirstPaths = [
   '/api/current/electricity',
@@ -343,6 +346,146 @@ test('Current HSL returns a bounded upstream failure after abort', async () => {
   expect(Date.now() - startedAt).toBeLessThan(1_000);
 });
 
+
+test('Portfolio fills degraded live data from one shared last-known-good cache entry', async () => {
+  const periods = ['today', 'week1', 'month1', 'month3', 'month6', 'ytd', 'year1', 'year3', 'year5'];
+  const ids = [
+    'handelsbanken-usa',
+    'nordnet-finland',
+    'ishares-world',
+    'ishares-europe',
+    'nordnet-sweden',
+    'spiltan-investmentbolag',
+    'storebrand-japan',
+    'franklin-sp500-climate',
+    'xact-norden',
+    'nordea',
+    'marimekko',
+    'remedy',
+    'op-asia-index-a',
+    'op-europe-index-a',
+    'op-world-index-a',
+    'op-forest-owner-b',
+    'btc',
+    'bnb',
+    'eth',
+  ];
+  const changesFor = (id: string) =>
+    Object.fromEntries(
+      periods.map((period, index) => [
+        period,
+        id === 'op-forest-owner-b' && ['today', 'week1', 'month1'].includes(period)
+          ? null
+          : index + 1,
+      ])
+    );
+  const completeBody = {
+    items: ids.map((id) => ({
+      id,
+      label: id.toUpperCase(),
+      symbol: id,
+      price: 100,
+      observedAt: '2026-09-21',
+      changes: changesFor(id),
+    })),
+    expected: 19,
+    liveExpected: 19,
+    unavailable: [],
+    source: 'test-live',
+    version: 14,
+  };
+
+  const entries = new Map<string, Response>();
+  const cache = {
+    match: async (request: Request) => entries.get(request.url)?.clone(),
+    put: async (request: Request, response: Response) => {
+      entries.set(request.url, response.clone());
+    },
+  };
+
+  const seed = await servePortfolioWithLastKnownGood(
+    new Request('https://aapopihkala.fi/api/current/markets?portfolio=1&live_smoke=seed'),
+    async () => Response.json(completeBody),
+    cache,
+  );
+  expect(seed.status).toBe(200);
+  expect(entries.size).toBe(1);
+
+  const missing = new Set([
+    'storebrand-japan',
+    'marimekko',
+    'remedy',
+    'op-asia-index-a',
+    'op-europe-index-a',
+    'op-world-index-a',
+  ]);
+  const degradedItems = completeBody.items
+    .filter((item) => !missing.has(item.id))
+    .map((item) =>
+      item.id === 'handelsbanken-usa'
+        ? { ...item, changes: { ...item.changes, year1: 99 } }
+        : item
+    );
+
+  const recovered = await servePortfolioWithLastKnownGood(
+    new Request('https://aapopihkala.fi/api/current/markets?portfolio=1&v=6'),
+    async () =>
+      Response.json({
+        ...completeBody,
+        items: degradedItems,
+        unavailable: [...missing],
+        source: 'degraded-live',
+      }),
+    cache,
+  );
+
+  expect(recovered.status).toBe(200);
+  expect(recovered.headers.get('x-portfolio-fallback')).toBe('last-known-good');
+  expect(recovered.headers.get('cache-control')).toBe('private, no-store');
+
+  const body = await recovered.json();
+  expect(body.items).toHaveLength(19);
+  expect(body.unavailable).toEqual([]);
+  expect(body.fallback).toBe('last-known-good');
+
+  const byId = new Map<
+    string,
+    { id: string; changes: Record<string, number | null> }
+  >(body.items.map((item: { id: string; changes: Record<string, number | null> }) => [item.id, item]));
+  expect(byId.get('storebrand-japan')).toBeDefined();
+  expect(byId.get('marimekko')).toBeDefined();
+  expect(byId.get('remedy')).toBeDefined();
+  expect(byId.get('op-asia-index-a')).toBeDefined();
+  expect(byId.get('handelsbanken-usa')?.changes.year1).toBe(99);
+});
+
+test('Portfolio live smoke bypasses last-known-good fallback for incomplete data', async () => {
+  const entries = new Map<string, Response>();
+  const cache = {
+    match: async (request: Request) => entries.get(request.url)?.clone(),
+    put: async (request: Request, response: Response) => {
+      entries.set(request.url, response.clone());
+    },
+  };
+  const partial = {
+    items: [],
+    expected: 19,
+    liveExpected: 19,
+    unavailable: ['marimekko'],
+    source: 'partial',
+    version: 14,
+  };
+
+  const response = await servePortfolioWithLastKnownGood(
+    new Request('https://aapopihkala.fi/api/current/markets?portfolio=1&live_smoke=check'),
+    async () => Response.json(partial),
+    cache,
+  );
+
+  expect(response.status).toBe(200);
+  expect(response.headers.get('x-portfolio-fallback')).toBeNull();
+  expect(await response.json()).toEqual(partial);
+});
 
 test('Widget serves last-known-good payload when a refresh returns 503', async () => {
   const entries = new Map<string, Response>();
