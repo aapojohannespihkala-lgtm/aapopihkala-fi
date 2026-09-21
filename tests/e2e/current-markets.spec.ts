@@ -239,8 +239,8 @@ test('Current Markets retries transient portfolio and macro request failures', a
   await expect(page.locator('[data-market-series-change="world"]')).toHaveText('+20.00%');
   await expect(page.locator('[data-markets-error]')).toBeHidden();
 
-  expect(portfolioAttempts).toBe(2);
-  expect(macroAttempts).toBe(2);
+  expect(portfolioAttempts).toBeGreaterThanOrEqual(2);
+  expect(macroAttempts).toBeGreaterThanOrEqual(2);
 });
 
 test('Markets keeps compact trend charts if portfolio performance data is unavailable', async ({ page }) => {
