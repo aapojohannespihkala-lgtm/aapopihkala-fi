@@ -10,6 +10,23 @@ import org.junit.Test
 
 class WidgetNetworkingTest {
     @Test
+    fun loadingStatusExpiresInsteadOfLeavingPermanentSpinner() {
+        val startedAt = 1_000_000L
+        assertEquals(
+            WidgetRepository.STATUS_LOADING,
+            resolvedWidgetStatus(WidgetRepository.STATUS_LOADING, startedAt, startedAt + 60_000L),
+        )
+        assertEquals(
+            WidgetRepository.STATUS_ERROR,
+            resolvedWidgetStatus(WidgetRepository.STATUS_LOADING, startedAt, startedAt + 120_001L),
+        )
+        assertEquals(
+            WidgetRepository.STATUS_OK,
+            resolvedWidgetStatus(WidgetRepository.STATUS_OK, startedAt, startedAt + 600_000L),
+        )
+    }
+
+    @Test
     fun retriesTransientTransportAndServerFailures() {
         assertTrue(shouldRetryV2Status("TIMEOUT"))
         assertTrue(shouldRetryV2Status("DNS"))
