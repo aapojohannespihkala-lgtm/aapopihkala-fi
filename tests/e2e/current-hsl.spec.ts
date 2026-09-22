@@ -174,6 +174,8 @@ test('HSL keeps a scheduled-past GPS bus active while it is still approaching', 
   await expect(lateGps.locator('[data-hsl-vehicle-age]')).toContainText('S');
   await expect(page.locator('.hsl-departure--first-upcoming')).toHaveCount(1);
 
+  await expect(page.locator('[data-hsl-learning]')).toHaveCount(0);
+  await expect(page.locator('[data-hsl-model-countdown]')).toHaveCount(0);
   await expect(page.locator('[data-hsl-form]')).toHaveCount(0);
   await expect(page.locator('[data-hsl-stop]')).toHaveCount(0);
   await expect(page.locator('[data-hsl-routes]')).toHaveCount(0);
