@@ -4,7 +4,6 @@ import android.content.Context
 import java.io.IOException
 import java.net.ConnectException
 import java.net.HttpURLConnection
-import java.net.InetAddress
 import java.net.SocketTimeoutException
 import java.net.URL
 import java.net.UnknownHostException
@@ -52,6 +51,14 @@ internal data class WidgetFetchDiagnostics(
 
     fun legacyFallbackLabel(): String = "LEGACY · ${v2Label()}"
 }
+
+private const val LOADING_STATUS_MAX_AGE_MS = 2 * 60_000L
+
+internal fun resolvedWidgetStatus(status: String, lastAttemptMs: Long, nowMs: Long): String =
+    if (status == WidgetRepository.STATUS_LOADING &&
+        lastAttemptMs > 0L &&
+        nowMs - lastAttemptMs > LOADING_STATUS_MAX_AGE_MS
+    ) WidgetRepository.STATUS_ERROR else status
 
 private val preservableSectionIds = setOf(
     "weather",
@@ -204,7 +211,11 @@ class WidgetRepository(context: Context) {
             ?.resolveTemporalSections(System.currentTimeMillis())
     }
 
-    fun status(): String = prefs.getString(KEY_STATUS, STATUS_IDLE) ?: STATUS_IDLE
+    fun status(): String = resolvedWidgetStatus(
+        prefs.getString(KEY_STATUS, STATUS_IDLE) ?: STATUS_IDLE,
+        prefs.getLong(KEY_LAST_ATTEMPT_MS, 0L),
+        System.currentTimeMillis(),
+    )
 
     internal fun diagnostics(): WidgetFetchDiagnostics = WidgetFetchDiagnostics(
         v2Status = prefs.getString(KEY_V2_STATUS, "IDLE") ?: "IDLE",
@@ -213,7 +224,10 @@ class WidgetRepository(context: Context) {
     )
 
     fun markLoading() {
-        prefs.edit().putString(KEY_STATUS, STATUS_LOADING).apply()
+        prefs.edit()
+            .putString(KEY_STATUS, STATUS_LOADING)
+            .putLong(KEY_LAST_ATTEMPT_MS, System.currentTimeMillis())
+            .apply()
     }
 
     private fun fetchPresentation(timeoutMs: Int): WidgetFetchResult {
@@ -380,7 +394,6 @@ class WidgetRepository(context: Context) {
         } catch (_: SocketTimeoutException) {
             FetchTextResult(null, "TIMEOUT")
         } catch (_: UnknownHostException) {
-            runCatching { InetAddress.getAllByName(URL(url).host) }
             FetchTextResult(null, "DNS")
         } catch (_: SSLException) {
             FetchTextResult(null, "SSL")
