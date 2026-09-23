@@ -238,3 +238,38 @@ test('standalone web widget shows an explicit unavailable state when production 
   await expect(page.locator('[data-status]')).toBeVisible();
   await expect(page.locator('[data-status]')).toContainText('Widget unavailable: HTTP 503');
 });
+
+
+test('standalone large widget keeps the Android information hierarchy on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(payload('prod')),
+    });
+  });
+
+  await page.goto('/current/widget/');
+
+  await expect(page.locator('.android-header')).toBeVisible();
+  await expect(page.locator('.android-header [data-live-clock]')).toHaveText(/^\d{2}:\d{2}:\d{2}$/);
+  await expect(page.locator('.android-header [data-live-date]')).toHaveText(/^[A-Z]{3} \d{2} [A-Z]{3}$/);
+  await expect(page.locator('.android-header [data-live-week]')).toHaveText(/^W\d{2}$/);
+  await expect(page.locator('.widget-header')).toHaveCount(0);
+
+  for (const id of ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga']) {
+    await expect(page.locator(`[data-section="${id}"]`)).toBeVisible();
+  }
+
+  await expect(page.locator('[data-section="weather"] .metric-row')).toHaveCount(0);
+  await expect(page.locator('[data-section="electricity"] .android-electricity-chart')).toBeVisible();
+  await expect(page.locator('[data-section="electricity"] .android-primary')).toContainText('1.83');
+  await expect(page.locator('[data-section="electricity"] .android-primary')).toContainText('c/kWh');
+  await expect(page.locator('.android-footer')).toContainText('UPDATED 12:30');
+  await expect(page.getByRole('button', { name: 'Refresh widget' })).toBeVisible();
+
+  const widgetBox = await page.locator('[data-widget]').boundingBox();
+  expect(widgetBox).not.toBeNull();
+  expect(widgetBox!.height).toBeLessThan(760);
+});
