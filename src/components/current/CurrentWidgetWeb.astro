@@ -544,6 +544,7 @@ const isPreview = mode === 'preview';
       if (!isPreview) {
         window.setInterval(updateStandaloneClock, 1000);
         window.addEventListener('resize', updateStandaloneLayout, { passive: true });
+        window.visualViewport?.addEventListener('resize', updateStandaloneLayout, { passive: true });
       }
 </script>
 
