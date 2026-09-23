@@ -18,6 +18,7 @@ import androidx.glance.LocalSize
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.ActionCallback
@@ -89,7 +90,18 @@ internal data class Palette(
 internal suspend fun updateAllSnapshotWidgets(context: Context) {
     val appContext = context.applicationContext
     runCatching { SnapshotWidget().updateAll(appContext) }
-    runCatching { SnapshotTabletWidget().updateAll(appContext) }
+
+    val appWidgetManager = AppWidgetManager.getInstance(appContext)
+    val glanceManager = GlanceAppWidgetManager(appContext)
+    val tabletComponent = ComponentName(appContext, SnapshotTabletWidgetReceiver::class.java)
+    appWidgetManager.getAppWidgetIds(tabletComponent).forEach { appWidgetId ->
+        runCatching {
+            SnapshotTabletWidget().update(
+                appContext,
+                glanceManager.getGlanceIdBy(appWidgetId)
+            )
+        }
+    }
 }
 
 internal fun hasAnySnapshotWidgets(context: Context): Boolean {
