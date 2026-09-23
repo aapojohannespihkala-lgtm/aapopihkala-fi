@@ -242,11 +242,14 @@ test('standalone web widget shows an explicit unavailable state when production 
 
 test('standalone large widget keeps the Android information hierarchy on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  const mobilePayload = payload('prod');
+  mobilePayload.sections[0].detail = 'Light drizzle / 13° / 17°\n↑07:07 ↓19:18 ☀12H11M';
+
   await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(payload('prod')),
+      body: JSON.stringify(mobilePayload),
     });
   });
 
@@ -268,6 +271,23 @@ test('standalone large widget keeps the Android information hierarchy on mobile'
   await expect(page.locator('[data-section="electricity"] .android-primary')).toContainText('c/kWh');
   await expect(page.locator('.android-footer')).toContainText('UPDATED 12:30');
   await expect(page.getByRole('button', { name: 'Refresh widget' })).toBeVisible();
+  await expect(page.locator('.android-refresh-icon')).toBeVisible();
+
+  const parityStyles = await page.evaluate(() => {
+    const sections = document.querySelector('.android-sections');
+    const solarDisk = document.querySelector('.android-solar-disk');
+    const halfRow = document.querySelector('.android-half-row');
+    return {
+      sectionsBorderTop: sections ? getComputedStyle(sections).borderTopWidth : null,
+      solarDiskWidth: solarDisk ? getComputedStyle(solarDisk).width : null,
+      halfRowBorderBottom: halfRow ? getComputedStyle(halfRow).borderBottomWidth : null,
+    };
+  });
+  expect(parityStyles).toEqual({
+    sectionsBorderTop: '0px',
+    solarDiskWidth: '27px',
+    halfRowBorderBottom: '0px',
+  });
 
   const widgetBox = await page.locator('[data-widget]').boundingBox();
   expect(widgetBox).not.toBeNull();
