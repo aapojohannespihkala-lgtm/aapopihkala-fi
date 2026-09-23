@@ -165,4 +165,6 @@ Server-only presentation changes do not require an APK.
 
 Typography uses a shared semantic scale for the header, primary values, compact units, supporting text, row values and micro labels. In the large widget, full-width and half-width section primary values intentionally share the same 22 sp scale, while the clock, date and ISO week share the same 22 sp scale and medium visual weight as the large primary values. Large primary measurements render the numeric value at 22 sp and known units such as `°C`, `%`, `min` and `c/kWh` at the shared 13 sp unit scale. Text units use a small gap from the value, while `°C` uses a narrower 2 dp gap and `%` remains attached. Clock seconds use that same 13 sp secondary scale.
 
-Current app version: **2.10.57**.
+Current app version: **2.10.58**.
+
+Version 2.10.58 adds a small launcher activity for OEM Android builds that leave a sideloaded widget-only package in the package-manager stopped/not-launched state. Opening Snapshot Widget once clears that platform state, re-establishes periodic WorkManager refreshes, performs a foreground-safe fetch/cache refresh, and requests an immediate Glance rebuild. The activity also remains available as a manual recovery/refresh entry point without changing the widget presentation.

@@ -85,23 +85,31 @@ private data class Palette(
     val negative: Color
 )
 
+internal suspend fun refreshSnapshotWidget(context: Context): Boolean {
+    val appContext = context.applicationContext
+    val repository = WidgetRepository(appContext)
+
+    // The first render is only a fast visual bootstrap. A launcher/OEM rendering
+    // quirk must never prevent the network/cache refresh itself from running.
+    runCatching { SnapshotWidget().updateAll(appContext) }
+
+    val payload = repository.fetchAndCache()
+    val rendered = runCatching { SnapshotWidget().updateAll(appContext) }.isSuccess
+    return payload != null && rendered
+}
+
 class SnapshotUpdateWorker(
     appContext: Context,
     params: WorkerParameters
 ) : CoroutineWorker(appContext, params) {
-    override suspend fun doWork(): Result {
-        val repository = WidgetRepository(applicationContext)
-        SnapshotWidget().updateAll(applicationContext)
-        val payload = repository.fetchAndCache()
-        SnapshotWidget().updateAll(applicationContext)
-        return if (payload != null) Result.success() else Result.retry()
-    }
+    override suspend fun doWork(): Result =
+        if (refreshSnapshotWidget(applicationContext)) Result.success() else Result.retry()
 
     companion object {
         private const val PERIODIC_NAME = "snapshot-widget-periodic"
         private const val IMMEDIATE_NAME = "snapshot-widget-immediate"
 
-        fun schedule(context: Context) {
+        fun ensurePeriodic(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
@@ -113,6 +121,10 @@ class SnapshotUpdateWorker(
                 ExistingPeriodicWorkPolicy.UPDATE,
                 request
             )
+        }
+
+        fun schedule(context: Context) {
+            ensurePeriodic(context)
             refreshNow(context)
         }
 

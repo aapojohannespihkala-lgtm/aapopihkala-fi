@@ -297,7 +297,9 @@ The HSL freshness and Electricity alarms intentionally do not wake a sleeping de
 
 A user-triggered manual refresh remains an immediate one-time work request so it gives direct feedback and uses the existing retry/fallback diagnostics.
 
-Widget-host bootstrap is deliberately redundant with the provider lifecycle. `onEnabled` still establishes the normal schedule, while every `onUpdate` also re-establishes periodic work and queues the unique immediate refresh. The network worker renders the current Glance state before it fetches, so a host that adds a widget instance without a useful `onEnabled` transition can replace the static `initialLayout` promptly and then continue through the normal cache/retry path.
+Widget-host bootstrap is deliberately redundant with the provider lifecycle. `onEnabled` still establishes the normal schedule, while every `onUpdate` also re-establishes periodic work and queues the unique immediate refresh. The network worker attempts a fast Glance render before networking but treats that pre-render as best-effort, so a rendering quirk cannot prevent the fetch/cache path itself from running.
+
+Version 2.10.58 also exposes a minimal launcher activity. This is required for OEM Android builds observed to keep a sideloaded widget-only package in PackageManager's `stopped=true, notLaunched=true` state after install/update. On those builds the widget provider can be registered with the host while the application process never starts, leaving only `initialLayout` visible and producing no network traffic. Opening the app once is an explicit user launch that clears that platform state. The activity re-establishes the periodic schedule, runs the same repository refresh directly while it is foregrounded, and requests a Glance rebuild. It remains a manual recovery entry point afterward.
 
 Live/local time behavior is deliberately independent from normal network cadence where possible:
 
@@ -439,6 +441,7 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.10.30**: added one deduplicated support row to large half-width sections; Liiga uses it for the previous result and shows live period plus elapsed game time in its detail line.
 - **2.10.31**: centralized Android typography into named semantic roles without changing the established rendered sizes.
 - **2.10.57**: added host-update bootstrap and a pre-network Glance render so newly added widget instances do not depend solely on `onEnabled` to leave the static initial layout.
+- **2.10.58**: added an explicit launcher/bootstrap activity for OEM Android builds that keep sideloaded widget-only packages stopped/not-launched; opening it once starts the package, restores periodic scheduling, performs a foreground refresh and rebuilds the existing widget.
 
 ## Key files
 
