@@ -240,6 +240,46 @@ test('standalone web widget shows an explicit unavailable state when production 
 });
 
 
+test('standalone web widget keeps the last good payload when production temporarily returns 503', async ({ page }) => {
+  let fail = false;
+
+  await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {
+    if (fail) {
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'widget_data_unavailable' }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(payload('prod')),
+    });
+  });
+
+  await page.goto('/current/widget/');
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'ready');
+  await expect(page.locator('[data-section="weather"] .android-primary')).toContainText('16.2');
+  await expect(page.locator('[data-section="weather"] .android-primary')).toContainText('°C');
+
+  const cached = await page.evaluate(() =>
+    window.localStorage.getItem('current-widget-v2-prod:last-good')
+  );
+  expect(cached).not.toBeNull();
+
+  fail = true;
+  await page.reload();
+
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'stale');
+  await expect(page.locator('[data-widget]')).not.toContainText('UNAVAILABLE');
+  await expect(page.locator('[data-section="weather"] .android-primary')).toContainText('16.2');
+  await expect(page.locator('[data-section="weather"] .android-primary')).toContainText('°C');
+  await expect(page.locator('.android-footer')).toContainText('STALE 12:30');
+});
+
 test('standalone large widget keeps the Android information hierarchy on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const mobilePayload = payload('prod');

@@ -119,6 +119,11 @@ const DEV_LAYOUTS: WidgetLayouts = { ...PROD_LAYOUTS };
 
 const SOLAR_TIMEOUT_MS = 4_000;
 
+export const widgetV2CacheControl = (channel: 'prod' | 'dev', hasSections: boolean) => {
+  if (!hasSections || channel === 'dev') return 'no-store';
+  return 'public, max-age=60, s-maxage=180, stale-while-revalidate=600, stale-if-error=86400';
+};
+
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -646,9 +651,8 @@ export const onRequestGet = async (context: WidgetV2Context) => {
     {
       status: hasSections ? 200 : 503,
       headers: {
-        'Cache-Control': channel === 'dev'
-          ? 'no-store'
-          : 'public, max-age=60, s-maxage=180, stale-while-revalidate=600',
+        'Cache-Control': widgetV2CacheControl(channel, hasSections),
+        ...(hasSections ? {} : { 'Retry-After': '5' }),
         'X-Content-Type-Options': 'nosniff',
         'X-Widget-Schema': '2',
       },

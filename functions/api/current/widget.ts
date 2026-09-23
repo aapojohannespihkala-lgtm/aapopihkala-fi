@@ -229,12 +229,18 @@ const weatherCodeLabel = (value: unknown) => {
   return null;
 };
 
+export const widgetResponseCacheControl = (status: number) =>
+  status >= 500
+    ? 'no-store'
+    : 'public, max-age=60, s-maxage=300, stale-while-revalidate=900, stale-if-error=86400';
+
 const jsonResponse = (body: unknown, status: number) =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=900',
+      'Cache-Control': widgetResponseCacheControl(status),
+      ...(status >= 500 ? { 'Retry-After': '5' } : {}),
       'X-Content-Type-Options': 'nosniff',
     },
   });

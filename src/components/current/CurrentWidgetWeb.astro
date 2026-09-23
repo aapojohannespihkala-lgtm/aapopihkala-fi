@@ -47,6 +47,51 @@ const isPreview = mode === 'preview';
         : 'large';
       let channel = isPreview && params.get('channel') === 'dev' ? 'dev' : 'prod';
       let payload = null;
+      let retryTimer = null;
+      const WIDGET_CACHE_KEY = 'current-widget-v2-prod:last-good';
+      const RETRY_DELAY_MS = 60_000;
+
+      const isUsablePayload = (value) =>
+        value &&
+        typeof value === 'object' &&
+        value.schemaVersion === 2 &&
+        Array.isArray(value.sections) &&
+        value.sections.length > 0;
+
+      const readCachedPayload = () => {
+        if (isPreview || channel !== 'prod') return null;
+        try {
+          const raw = window.localStorage.getItem(WIDGET_CACHE_KEY);
+          if (!raw) return null;
+          const cached = JSON.parse(raw);
+          return isUsablePayload(cached) ? cached : null;
+        } catch {
+          return null;
+        }
+      };
+
+      const storeCachedPayload = (value) => {
+        if (isPreview || channel !== 'prod' || !isUsablePayload(value)) return;
+        try {
+          window.localStorage.setItem(WIDGET_CACHE_KEY, JSON.stringify(value));
+        } catch {
+          // Storage can be unavailable in privacy-restricted browser contexts.
+        }
+      };
+
+      const scheduleRetry = () => {
+        if (isPreview || retryTimer !== null) return;
+        retryTimer = window.setTimeout(() => {
+          retryTimer = null;
+          void load();
+        }, RETRY_DELAY_MS);
+      };
+
+      const clearRetry = () => {
+        if (retryTimer === null) return;
+        window.clearTimeout(retryTimer);
+        retryTimer = null;
+      };
 
       const escapeHtml = (value) => value
         .replaceAll('&', '&amp;')
@@ -503,13 +548,32 @@ const isPreview = mode === 'preview';
         try {
           const response = await fetch(`/api/current/widget-v2?channel=${channel}`, {
             headers: { Accept: 'application/json' },
+            cache: 'no-store',
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          payload = await response.json();
+          const nextPayload = await response.json();
+          if (!isUsablePayload(nextPayload)) throw new Error('invalid widget payload');
+          payload = nextPayload;
+          storeCachedPayload(payload);
+          clearRetry();
           render();
           if (root) root.dataset.loadState = 'ready';
         } catch (error) {
           const message = error instanceof Error ? error.message : 'unknown error';
+          const cached = readCachedPayload();
+          if (cached) {
+            payload = cached;
+            render();
+            if (root) root.dataset.loadState = 'stale';
+            if (status) status.textContent = `Using cached widget data: ${message}`;
+            const footerStatus = widget?.querySelector('[data-footer-status]');
+            if (footerStatus) footerStatus.textContent = `STALE ${localTime(payload.generatedAt)}`;
+            const refreshButton = widget?.querySelector('[data-widget-refresh]');
+            refreshButton?.setAttribute('aria-busy', 'false');
+            scheduleRetry();
+            return;
+          }
+
           if (root) root.dataset.loadState = 'error';
           if (status) status.textContent = `Widget unavailable: ${message}`;
           if (widget) {
@@ -520,6 +584,7 @@ const isPreview = mode === 'preview';
               </div>
             `;
           }
+          scheduleRetry();
         }
       };
 
@@ -677,6 +742,7 @@ const isPreview = mode === 'preview';
     background: #0f151a;
   }
   .widget-standalone-shell .preview-status { display: none; }
+  .widget-standalone-shell[data-load-state="stale"] .device-stage { opacity: 1; }
   .widget-standalone-shell .device-stage { width: min(100%, 560px); }
   .widget-standalone-shell .widget-preview {
     min-height: 0;
