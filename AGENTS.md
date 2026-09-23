@@ -1,5 +1,22 @@
 # Repository instructions
 
+## Core project rules
+
+These rules apply to every repository task unless the user explicitly requests a justified exception.
+
+- Treat the repository as the source of truth. Start with `CHATGPT.md`, then read the smallest relevant set of code, tests and documentation needed for the task.
+- Keep each change as small and coherent as practical. Do not mix unrelated cleanup, refactoring, dependency work or visual retuning into the requested change.
+- Preserve existing public behavior unless the task intentionally changes it. This includes URLs, data contracts, localization, accessibility behavior, responsive behavior and tuned animation or 3D parameters.
+- Reuse the established architecture and shared runtimes before creating parallel implementations. Prefer existing components, feature modules, Worker routes and the shared npm Three.js runtime.
+- Add, remove or upgrade dependencies only when the requested change needs it. Keep `package-lock.json` aligned and use `npm ci` for normal installs.
+- Never commit API keys, access tokens, credentials, private configuration, unnecessary personal data or machine-specific secrets. Keep secrets in the deployment secret system and out of browser-delivered code.
+- Treat external data sources as unreliable boundaries. Keep credentials and unsuitable cross-origin access on the Worker side, use bounded failure handling and preserve explicit cache and fallback contracts.
+- Protect meaningful behavior changes with the smallest relevant regression coverage. Do not weaken or delete a valid test only to make CI pass.
+- Keep Finnish and English user-facing content equivalent in meaning whenever both versions exist, unless the user explicitly requests a language-specific exception.
+- Update documentation when a stable contract, workflow or ownership boundary changes. Keep implementation details in code and tests instead of duplicating them in prose.
+- Finish repository changes through the branch, pull request, required pre-merge CI and automatic merge workflow described below unless one of the documented exceptions applies.
+
+
 ## Bilingual content parity
 
 Finnish (`fi`) and English (`en`) article content are two language versions of the same article, not independent editorial content.
