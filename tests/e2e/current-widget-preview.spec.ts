@@ -209,6 +209,7 @@ test('standalone web widget uses the production renderer without preview control
   await expect(page).toHaveTitle('Snapshot Widget');
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
   await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-mode', 'standalone');
+  await expect(page.locator('script[src*="/_astro/"]')).toHaveCount(0);
   await expect(page.locator('.preview-tools')).toHaveCount(0);
   await expect(page.locator('[data-status]')).toBeHidden();
   await expect(page.locator('[data-stage]')).toHaveAttribute('data-size', 'compact');
@@ -217,4 +218,23 @@ test('standalone web widget uses the production renderer without preview control
 
   expect(prodRequests).toBe(1);
   expect(devRequests).toBe(0);
+});
+
+
+test('standalone web widget shows an explicit unavailable state when production data fails', async ({ page }) => {
+  await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {
+    await route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'widget_data_unavailable' }),
+    });
+  });
+
+  await page.goto('/current/widget/');
+
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'error');
+  await expect(page.locator('[data-widget]')).toContainText('UNAVAILABLE');
+  await expect(page.locator('[data-widget]')).toContainText('HTTP 503');
+  await expect(page.locator('[data-status]')).toBeVisible();
+  await expect(page.locator('[data-status]')).toContainText('Widget unavailable: HTTP 503');
 });
