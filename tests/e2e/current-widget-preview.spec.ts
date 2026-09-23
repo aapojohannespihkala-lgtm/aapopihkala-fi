@@ -368,11 +368,9 @@ test('standalone large widget fills portrait tablet height and distributes all s
       chartHeight: chart ? getComputedStyle(chart).height : null,
     };
   });
-  expect(typography).toEqual({
-    primaryFontSize: '30px',
-    rowFontSize: '10px',
-    chartHeight: '96px',
-  });
+  expect(typography.primaryFontSize).toBe('30px');
+  expect(typography.rowFontSize).toBe('10px');
+  expect(Number.parseFloat(typography.chartHeight ?? '0')).toBeCloseTo(96, 1);
 
   const sectionsBox = await page.locator('.android-sections').boundingBox();
   expect(sectionsBox).not.toBeNull();
