@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">Snapshot Widget</string>
     <string name="widget_description">Aapo Pihkala Current Snapshot</string>
+    <string name="startup_version">Version %1$s</string>
+    <string name="startup_starting">Starting and refreshing the widget…</string>
+    <string name="startup_ready">Widget updated. You can return to the home screen.</string>
+    <string name="startup_no_widget">The app is ready. Add Snapshot Widget from your launcher widget list.</string>
+    <string name="startup_offline">The widget started, but data could not be loaded. Check Wi-Fi and tap Refresh widget.</string>
+    <string name="startup_failed">Widget startup failed. Tap Refresh widget to try again.</string>
+    <string name="startup_refresh">Refresh widget</string>
 </resources>
