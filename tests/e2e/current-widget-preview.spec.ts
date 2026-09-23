@@ -255,6 +255,7 @@ test('standalone large widget keeps the Android information hierarchy on mobile'
 
   await page.goto('/current/widget/');
 
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-layout-mode', 'phone');
   await expect(page.locator('.android-header')).toBeVisible();
   await expect(page.locator('.android-header [data-live-clock]')).toHaveText(/^\d{2}:\d{2}:\d{2}$/);
   await expect(page.locator('.android-header [data-live-date]')).toHaveText(/^[A-Z]{3} \d{2} [A-Z]{3}$/);
@@ -295,7 +296,7 @@ test('standalone large widget keeps the Android information hierarchy on mobile'
 });
 
 
-test('standalone large widget scales up on tablet without changing the mobile layout', async ({ page }) => {
+test('standalone large widget scales to tablet width without stretching landscape height', async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {
     await route.fulfill({
@@ -307,13 +308,58 @@ test('standalone large widget scales up on tablet without changing the mobile la
 
   await page.goto('/current/widget/');
 
+  const root = page.locator('[data-widget-root]');
   const stage = page.locator('[data-stage]');
+  await expect(root).toHaveAttribute('data-layout-mode', 'scaled');
   await expect(stage).toBeVisible();
-  const zoom = await stage.evaluate((element) => getComputedStyle(element).zoom);
-  expect(zoom).toBe('1.58');
+  const zoom = Number(await stage.evaluate((element) => getComputedStyle(element).zoom));
+  expect(zoom).toBeGreaterThan(1.35);
+  expect(zoom).toBeLessThan(1.6);
 
   const widgetBox = await page.locator('[data-widget]').boundingBox();
   expect(widgetBox).not.toBeNull();
-  expect(widgetBox!.width).toBeGreaterThan(870);
-  expect(widgetBox!.width).toBeLessThan(900);
+  expect(widgetBox!.width).toBeGreaterThan(760);
+  expect(widgetBox!.width).toBeLessThan(890);
+  expect(widgetBox!.height).toBeLessThan(750);
 });
+
+test('standalone large widget fills portrait tablet height and distributes all sections', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1200 });
+  const tabletPayload = payload('prod');
+  tabletPayload.sections[0].detail = 'Light drizzle / 13° / 17°\n↑07:07 ↓19:18 ☀12H11M';
+
+  await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(tabletPayload),
+    });
+  });
+
+  await page.goto('/current/widget/');
+
+  const root = page.locator('[data-widget-root]');
+  const stage = page.locator('[data-stage]');
+  await expect(root).toHaveAttribute('data-layout-mode', 'portrait-tablet');
+  await expect(root).toHaveClass(/is-portrait-tablet/);
+
+  const zoom = Number(await stage.evaluate((element) => getComputedStyle(element).zoom));
+  expect(zoom).toBeGreaterThan(1.3);
+  expect(zoom).toBeLessThan(1.4);
+
+  for (const id of ['weather', 'electricity', 'markets', 'hsl', 'rates', 'liiga']) {
+    await expect(page.locator(`[data-section="${id}"]`)).toBeVisible();
+  }
+
+  const widgetBox = await page.locator('[data-widget]').boundingBox();
+  expect(widgetBox).not.toBeNull();
+  expect(widgetBox!.width).toBeGreaterThan(740);
+  expect(widgetBox!.width).toBeLessThan(780);
+  expect(widgetBox!.height).toBeGreaterThan(1080);
+  expect(widgetBox!.height).toBeLessThan(1130);
+
+  const sectionsBox = await page.locator('.android-sections').boundingBox();
+  expect(sectionsBox).not.toBeNull();
+  expect(sectionsBox!.height).toBeGreaterThan(900);
+});
+

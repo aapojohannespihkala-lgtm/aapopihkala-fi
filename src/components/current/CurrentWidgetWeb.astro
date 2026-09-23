@@ -411,6 +411,43 @@ const isPreview = mode === 'preview';
         });
       };
 
+      const updateStandaloneLayout = () => {
+        if (isPreview || !root || !stage || !widget) return;
+
+        const viewportWidth = document.documentElement.clientWidth;
+        const viewportHeight = document.documentElement.clientHeight;
+        const isTablet = viewportWidth >= 700;
+        const isPortraitTablet = isTablet && size === 'large' && viewportHeight > viewportWidth;
+
+        root.classList.toggle('is-portrait-tablet', isPortraitTablet);
+        root.dataset.layoutMode = isPortraitTablet ? 'portrait-tablet' : (isTablet ? 'scaled' : 'phone');
+
+        if (!isTablet) {
+          stage.style.zoom = '';
+          widget.style.minHeight = '';
+          return;
+        }
+
+        widget.style.minHeight = '';
+        stage.style.zoom = '1';
+
+        const availableWidth = Math.max(560, viewportWidth - 40);
+        const widthScale = availableWidth / 560;
+
+        if (isPortraitTablet) {
+          const scale = Math.min(1.6, Math.max(1.15, widthScale));
+          stage.style.zoom = String(scale);
+          const targetRenderedHeight = Math.max(0, viewportHeight * 0.92);
+          widget.style.minHeight = `${Math.round(targetRenderedHeight / scale)}px`;
+          return;
+        }
+
+        const naturalHeight = Math.max(1, widget.offsetHeight);
+        const heightScale = Math.max(1, (viewportHeight - 28) / naturalHeight);
+        const scale = Math.min(1.6, Math.max(1, Math.min(widthScale, heightScale)));
+        stage.style.zoom = String(scale);
+      };
+
       const render = () => {
         if (!payload || !widget || !stage) return;
         stage.dataset.size = size;
@@ -435,6 +472,7 @@ const isPreview = mode === 'preview';
           `;
           updateStandaloneClock();
           bindStandaloneRefresh();
+          updateStandaloneLayout();
         } else {
           widget.innerHTML = `
             <header class="widget-header">
@@ -501,8 +539,13 @@ const isPreview = mode === 'preview';
       });
 
       updateUrl();
+      updateStandaloneLayout();
       void load();
-      if (!isPreview) window.setInterval(updateStandaloneClock, 1000);
+      if (!isPreview) {
+        window.setInterval(updateStandaloneClock, 1000);
+        window.addEventListener('resize', updateStandaloneLayout, { passive: true });
+        window.visualViewport?.addEventListener('resize', updateStandaloneLayout, { passive: true });
+      }
 </script>
 
 <style is:global>
@@ -980,23 +1023,45 @@ const isPreview = mode === 'preview';
     to { rotate: 360deg; }
   }
 
-  @media (min-width: 720px) {
-    .widget-standalone-shell .device-stage { zoom: 1.2; }
+  .widget-standalone-shell.is-portrait-tablet .widget-preview {
+    display: flex;
+    flex-direction: column;
   }
-  @media (min-width: 768px) {
-    .widget-standalone-shell .device-stage { zoom: 1.28; }
+  .widget-standalone-shell.is-portrait-tablet .android-header,
+  .widget-standalone-shell.is-portrait-tablet .android-footer {
+    flex: 0 0 auto;
   }
-  @media (min-width: 840px) {
-    .widget-standalone-shell .device-stage { zoom: 1.38; }
+  .widget-standalone-shell.is-portrait-tablet .android-sections {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: 1.12fr 1.18fr 1fr 1fr .9fr;
   }
-  @media (min-width: 920px) {
-    .widget-standalone-shell .device-stage { zoom: 1.48; }
+  .widget-standalone-shell.is-portrait-tablet .android-section {
+    min-height: 0;
+    padding-block: max(8px, 1.05vh);
   }
-  @media (min-width: 1000px) {
-    .widget-standalone-shell .device-stage { zoom: 1.58; }
+  .widget-standalone-shell.is-portrait-tablet .android-weather {
+    display: grid;
+    align-content: center;
   }
-  @media (min-width: 1080px) {
-    .widget-standalone-shell .device-stage { zoom: 1.6; }
+  .widget-standalone-shell.is-portrait-tablet .android-split-section,
+  .widget-standalone-shell.is-portrait-tablet .android-electricity {
+    align-content: center;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-electricity {
+    row-gap: 6px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-half-row {
+    min-height: 0;
+    align-items: center;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-half-section {
+    align-self: center;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-footer {
+    min-height: 32px;
+    padding-top: 7px;
   }
 
   @media (max-width: 420px) {
