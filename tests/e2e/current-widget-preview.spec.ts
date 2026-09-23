@@ -242,11 +242,14 @@ test('standalone web widget shows an explicit unavailable state when production 
 
 test('standalone large widget keeps the Android information hierarchy on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  const mobilePayload = payload('prod');
+  mobilePayload.sections[0].detail = 'Light drizzle / 13° / 17°\n↑07:07 ↓19:18 ☀12H11M';
+
   await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(payload('prod')),
+      body: JSON.stringify(mobilePayload),
     });
   });
 
