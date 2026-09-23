@@ -358,6 +358,22 @@ test('standalone large widget fills portrait tablet height and distributes all s
   expect(widgetBox!.height).toBeGreaterThan(1080);
   expect(widgetBox!.height).toBeLessThan(1130);
 
+  const typography = await page.evaluate(() => {
+    const primary = document.querySelector('[data-section="weather"] .android-primary');
+    const row = document.querySelector('[data-section="hsl"] .android-row');
+    const chart = document.querySelector('[data-section="electricity"] .android-electricity-chart');
+    return {
+      primaryFontSize: primary ? getComputedStyle(primary).fontSize : null,
+      rowFontSize: row ? getComputedStyle(row).fontSize : null,
+      chartHeight: chart ? getComputedStyle(chart).height : null,
+    };
+  });
+  expect(typography).toEqual({
+    primaryFontSize: '30px',
+    rowFontSize: '10px',
+    chartHeight: '96px',
+  });
+
   const sectionsBox = await page.locator('.android-sections').boundingBox();
   expect(sectionsBox).not.toBeNull();
   expect(sectionsBox!.height).toBeGreaterThan(900);
