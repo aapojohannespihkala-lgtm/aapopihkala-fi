@@ -271,6 +271,7 @@ test('standalone large widget keeps the Android information hierarchy on mobile'
   await expect(page.locator('[data-section="electricity"] .android-primary')).toContainText('c/kWh');
   await expect(page.locator('.android-footer')).toContainText('UPDATED 12:30');
   await expect(page.getByRole('button', { name: 'Refresh widget' })).toBeVisible();
+  await expect(page.locator('.android-refresh-icon')).toBeVisible();
 
   const parityStyles = await page.evaluate(() => {
     const sections = document.querySelector('.android-sections');

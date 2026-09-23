@@ -430,7 +430,7 @@ const isPreview = mode === 'preview';
             <div class="android-sections">${renderAndroidLarge(sections)}</div>
             <footer class="android-footer">
               <span data-footer-status>UPDATED ${escapeHtml(localTime(payload.generatedAt))}</span>
-              <button type="button" data-widget-refresh aria-label="Refresh widget">↻</button>
+              <button type="button" data-widget-refresh aria-label="Refresh widget"><span class="android-refresh-icon" aria-hidden="true"></span></button>
             </footer>
           `;
           updateStandaloneClock();
@@ -945,16 +945,35 @@ const isPreview = mode === 'preview';
   .android-footer button {
     width: 24px;
     height: 24px;
+    display: grid;
+    place-items: center;
     border: 0;
     padding: 0;
     background: transparent;
     color: var(--accent);
-    font: inherit;
-    font-size: 22px;
-    line-height: 1;
     cursor: pointer;
   }
-  .android-footer button[aria-busy="true"] {
+  .android-refresh-icon {
+    position: relative;
+    display: block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--accent);
+    border-left-color: transparent;
+    border-radius: 50%;
+  }
+  .android-refresh-icon::after {
+    content: "";
+    position: absolute;
+    right: -2px;
+    top: -1px;
+    width: 5px;
+    height: 5px;
+    border-top: 2px solid var(--accent);
+    border-right: 2px solid var(--accent);
+    rotate: 18deg;
+  }
+  .android-footer button[aria-busy="true"] .android-refresh-icon {
     animation: widget-refresh-spin .9s linear infinite;
   }
   @keyframes widget-refresh-spin {
