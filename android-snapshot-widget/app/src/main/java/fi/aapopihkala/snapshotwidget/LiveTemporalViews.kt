@@ -28,6 +28,10 @@ internal const val COUNTDOWN_SECONDS_WINDOW_MS = 120_000L
 internal fun LiveHeaderClock(
     color: Color,
     modifier: GlanceModifier = GlanceModifier,
+    clockSizeSp: Int = WidgetTypography.HEADER,
+    secondsSizeSp: Int = WidgetTypography.HEADER_SECONDS,
+    dateSizeSp: Int = WidgetTypography.HEADER,
+    weekSizeSp: Int = WidgetTypography.HEADER,
 ) {
     val context = LocalContext.current
     val remoteViews = RemoteViews(context.packageName, R.layout.widget_live_clock).apply {
@@ -35,10 +39,10 @@ internal fun LiveHeaderClock(
         setTextColor(R.id.widget_live_seconds, color.toArgb())
         setTextColor(R.id.widget_live_date, color.toArgb())
         setTextColor(R.id.widget_live_week, color.toArgb())
-        setTextViewTextSize(R.id.widget_live_clock, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER.toFloat())
-        setTextViewTextSize(R.id.widget_live_seconds, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER_SECONDS.toFloat())
-        setTextViewTextSize(R.id.widget_live_date, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER.toFloat())
-        setTextViewTextSize(R.id.widget_live_week, TypedValue.COMPLEX_UNIT_SP, WidgetTypography.HEADER.toFloat())
+        setTextViewTextSize(R.id.widget_live_clock, TypedValue.COMPLEX_UNIT_SP, clockSizeSp.toFloat())
+        setTextViewTextSize(R.id.widget_live_seconds, TypedValue.COMPLEX_UNIT_SP, secondsSizeSp.toFloat())
+        setTextViewTextSize(R.id.widget_live_date, TypedValue.COMPLEX_UNIT_SP, dateSizeSp.toFloat())
+        setTextViewTextSize(R.id.widget_live_week, TypedValue.COMPLEX_UNIT_SP, weekSizeSp.toFloat())
         setTextViewText(R.id.widget_live_date, currentHeaderDateLabel())
         setTextViewText(R.id.widget_live_week, currentHeaderWeekLabel())
     }
@@ -52,6 +56,7 @@ internal fun LiveCountdownValue(
     color: Color,
     sizeSp: Int,
     modifier: GlanceModifier = GlanceModifier,
+    unitSizeSp: Int = WidgetTypography.UNIT,
 ) {
     val context = LocalContext.current
     val wallNow = System.currentTimeMillis()
@@ -72,18 +77,21 @@ internal fun LiveCountdownValue(
             color = color,
             sizeSp = sizeSp,
             modifier = modifier,
+            unitSizeSp = unitSizeSp,
         )
         resolvedTarget != null && exactRolloverAvailable && !countdownUsesLiveSeconds(resolvedTarget, wallNow) -> CountdownText(
             text = countdownLabel(resolvedTarget, wallNow) ?: fallback,
             color = color,
             sizeSp = sizeSp,
             modifier = modifier,
+            unitSizeSp = unitSizeSp,
         )
         resolvedTarget != null && !exactRolloverAvailable -> CountdownText(
             text = countdownClockLabel(resolvedTarget),
             color = color,
             sizeSp = sizeSp,
             modifier = modifier,
+            unitSizeSp = unitSizeSp,
         )
         base != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> {
             val remoteViews = RemoteViews(context.packageName, R.layout.widget_live_countdown).apply {
@@ -107,6 +115,7 @@ internal fun LiveCountdownValue(
             color = color,
             sizeSp = sizeSp,
             modifier = modifier,
+            unitSizeSp = unitSizeSp,
         )
     }
 }
@@ -117,12 +126,14 @@ private fun CountdownText(
     color: Color,
     sizeSp: Int,
     modifier: GlanceModifier,
+    unitSizeSp: Int,
 ) {
     PrimaryValueText(
         text = text,
         color = color,
         sizeSp = sizeSp,
         modifier = modifier,
+        unitSizeSp = unitSizeSp,
     )
 }
 

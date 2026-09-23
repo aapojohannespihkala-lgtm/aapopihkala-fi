@@ -4,7 +4,6 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -285,7 +284,7 @@ class SnapshotTemporalUpdateWorker(
 ) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
         val payload = WidgetRepository(applicationContext).loadCached()
-        SnapshotWidget().updateAll(applicationContext)
+        updateAllSnapshotWidgets(applicationContext)
         SnapshotTemporalRefreshScheduler.schedule(applicationContext, payload)
         return Result.success()
     }
@@ -297,7 +296,7 @@ class SnapshotHslRolloverReceiver : BroadcastReceiver() {
         val appContext = context.applicationContext
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
-                if (!hasSnapshotWidgets(appContext)) {
+                if (!hasAnySnapshotWidgets(appContext)) {
                     SnapshotHslRolloverScheduler.cancel(appContext)
                     SnapshotHslNetworkRefreshScheduler.cancel(appContext)
                     SnapshotElectricityRefreshScheduler.cancel(appContext)
@@ -306,7 +305,7 @@ class SnapshotHslRolloverReceiver : BroadcastReceiver() {
 
                 if (intent.action == ACTION_ELECTRICITY_QUARTER_REFRESH) {
                     SnapshotElectricityRefreshScheduler.schedule(appContext)
-                    SnapshotWidget().updateAll(appContext)
+                    updateAllSnapshotWidgets(appContext)
                     enqueueScheduledNetworkRefresh(appContext)
                     return@launch
                 }
@@ -314,13 +313,13 @@ class SnapshotHslRolloverReceiver : BroadcastReceiver() {
                 if (intent.action == ACTION_HSL_NETWORK_REFRESH) {
                     val payload = WidgetRepository(appContext).loadCached()
                     SnapshotHslNetworkRefreshScheduler.schedule(appContext, payload)
-                    SnapshotWidget().updateAll(appContext)
+                    updateAllSnapshotWidgets(appContext)
                     enqueueScheduledNetworkRefresh(appContext)
                     return@launch
                 }
 
                 val payload = WidgetRepository(appContext).loadCached()
-                SnapshotWidget().updateAll(appContext)
+                updateAllSnapshotWidgets(appContext)
                 SnapshotTemporalRefreshScheduler.schedule(appContext, payload)
             } finally {
                 pendingResult.finish()
@@ -329,8 +328,3 @@ class SnapshotHslRolloverReceiver : BroadcastReceiver() {
     }
 }
 
-private fun hasSnapshotWidgets(context: Context): Boolean {
-    val manager = AppWidgetManager.getInstance(context)
-    val component = ComponentName(context, SnapshotWidgetReceiver::class.java)
-    return manager.getAppWidgetIds(component).isNotEmpty()
-}
