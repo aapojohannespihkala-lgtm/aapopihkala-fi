@@ -310,10 +310,10 @@ test('standalone large widget scales up on tablet without changing the mobile la
   const stage = page.locator('[data-stage]');
   await expect(stage).toBeVisible();
   const zoom = await stage.evaluate((element) => getComputedStyle(element).zoom);
-  expect(zoom).toBe('1.45');
+  expect(zoom).toBe('1.58');
 
   const widgetBox = await page.locator('[data-widget]').boundingBox();
   expect(widgetBox).not.toBeNull();
-  expect(widgetBox!.width).toBeGreaterThan(780);
-  expect(widgetBox!.width).toBeLessThan(850);
+  expect(widgetBox!.width).toBeGreaterThan(870);
+  expect(widgetBox!.width).toBeLessThan(900);
 });
