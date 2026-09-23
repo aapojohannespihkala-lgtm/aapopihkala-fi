@@ -48,16 +48,16 @@ const isPreview = mode === 'preview';
       let channel = isPreview && params.get('channel') === 'dev' ? 'dev' : 'prod';
       let payload = null;
 
-      const escapeHtml = (value: string) => value
+      const escapeHtml = (value) => value
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#039;');
 
-      const toneClass = (tone?: Tone) => tone ? `tone-${tone}` : 'tone-neutral';
+      const toneClass = (tone) => tone ? `tone-${tone}` : 'tone-neutral';
 
-      const localTime = (value: string) => {
+      const localTime = (value) => {
         const date = new Date(value);
         if (!Number.isFinite(date.getTime())) return value;
         return new Intl.DateTimeFormat('en-GB', {
@@ -68,7 +68,7 @@ const isPreview = mode === 'preview';
         }).format(date);
       };
 
-      const isoWeek = (year: number, month: number, day: number) => {
+      const isoWeek = (year, month, day) => {
         const date = new Date(Date.UTC(year, month - 1, day));
         const weekday = date.getUTCDay() || 7;
         date.setUTCDate(date.getUTCDate() + 4 - weekday);
