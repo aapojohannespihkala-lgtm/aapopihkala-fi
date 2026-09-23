@@ -213,7 +213,8 @@ test('standalone web widget uses the production renderer without preview control
   await expect(page.locator('.preview-tools')).toHaveCount(0);
   await expect(page.locator('[data-status]')).toBeHidden();
   await expect(page.locator('[data-stage]')).toHaveAttribute('data-size', 'compact');
-  await expect(page.locator('[data-section="weather"]')).toContainText('16.2°C');
+  await expect(page.locator('[data-section="weather"] .android-primary')).toContainText('16.2');
+  await expect(page.locator('[data-section="weather"] .android-primary')).toContainText('°C');
   await expect(page.locator('[data-section="hsl"]')).toHaveCount(0);
 
   expect(prodRequests).toBe(1);
@@ -262,7 +263,8 @@ test('standalone web widget keeps the last good payload when production temporar
 
   await page.goto('/current/widget/');
   await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'ready');
-  await expect(page.locator('[data-section="weather"]')).toContainText('16.2°C');
+  await expect(page.locator('[data-section="weather"] .android-primary')).toContainText('16.2');
+  await expect(page.locator('[data-section="weather"] .android-primary')).toContainText('°C');
 
   const cached = await page.evaluate(() =>
     window.localStorage.getItem('current-widget-v2-prod:last-good')
@@ -274,7 +276,8 @@ test('standalone web widget keeps the last good payload when production temporar
 
   await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'stale');
   await expect(page.locator('[data-widget]')).not.toContainText('UNAVAILABLE');
-  await expect(page.locator('[data-section="weather"]')).toContainText('16.2°C');
+  await expect(page.locator('[data-section="weather"] .android-primary')).toContainText('16.2');
+  await expect(page.locator('[data-section="weather"] .android-primary')).toContainText('°C');
   await expect(page.locator('.android-footer')).toContainText('STALE 12:30');
 });
 
