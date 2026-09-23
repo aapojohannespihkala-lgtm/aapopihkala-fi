@@ -548,6 +548,7 @@ const isPreview = mode === 'preview';
         try {
           const response = await fetch(`/api/current/widget-v2?channel=${channel}`, {
             headers: { Accept: 'application/json' },
+            cache: 'no-store',
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const nextPayload = await response.json();

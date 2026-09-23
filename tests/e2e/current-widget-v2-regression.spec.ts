@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { summarizeWidgetElectricity } from '../../functions/api/current/widget';
-import { buildWidgetV2Payload } from '../../functions/api/current/widget-v2';
+import {
+  summarizeWidgetElectricity,
+  widgetResponseCacheControl,
+} from '../../functions/api/current/widget';
+import {
+  buildWidgetV2Payload,
+  widgetV2CacheControl,
+} from '../../functions/api/current/widget-v2';
 
 const hslFixture = {
   fetchedAt: '2026-09-13T13:05:00.000Z',
@@ -389,4 +395,16 @@ test('widget v2 keeps a stable tomorrow placeholder before prices are available'
   expect(payload.sections.find((section) => section.id === 'electricity')?.detail).toBe(
     'LOW 0.39  HIGH 5.03\nTOMORROW AVG --.--\nMONTH AVG 4.21'
   );
+});
+
+
+test('widget endpoints never cache transient 5xx responses', () => {
+  expect(widgetResponseCacheControl(503)).toBe('no-store');
+  expect(widgetV2CacheControl('prod', false)).toBe('no-store');
+  expect(widgetV2CacheControl('dev', true)).toBe('no-store');
+});
+
+test('healthy production widget responses permit stale-on-error edge fallback', () => {
+  expect(widgetResponseCacheControl(200)).toContain('stale-if-error=86400');
+  expect(widgetV2CacheControl('prod', true)).toContain('stale-if-error=86400');
 });
