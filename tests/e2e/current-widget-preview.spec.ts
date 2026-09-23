@@ -293,3 +293,27 @@ test('standalone large widget keeps the Android information hierarchy on mobile'
   expect(widgetBox).not.toBeNull();
   expect(widgetBox!.height).toBeLessThan(760);
 });
+
+
+test('standalone large widget scales up on tablet without changing the mobile layout', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(payload('prod')),
+    });
+  });
+
+  await page.goto('/current/widget/');
+
+  const stage = page.locator('[data-stage]');
+  await expect(stage).toBeVisible();
+  const zoom = await stage.evaluate((element) => getComputedStyle(element).zoom);
+  expect(zoom).toBe('1.45');
+
+  const widgetBox = await page.locator('[data-widget]').boundingBox();
+  expect(widgetBox).not.toBeNull();
+  expect(widgetBox!.width).toBeGreaterThan(780);
+  expect(widgetBox!.width).toBeLessThan(850);
+});
