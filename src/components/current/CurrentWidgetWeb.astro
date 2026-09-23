@@ -1026,42 +1026,156 @@ const isPreview = mode === 'preview';
   .widget-standalone-shell.is-portrait-tablet .widget-preview {
     display: flex;
     flex-direction: column;
+    padding: 18px;
   }
   .widget-standalone-shell.is-portrait-tablet .android-header,
   .widget-standalone-shell.is-portrait-tablet .android-footer {
     flex: 0 0 auto;
   }
+  .widget-standalone-shell.is-portrait-tablet .android-header {
+    gap: 16px;
+    padding-bottom: 12px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-header strong {
+    font-size: 28px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-header strong small {
+    font-size: 16px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-header span,
+  .widget-standalone-shell.is-portrait-tablet .android-header b {
+    font-size: 26px;
+  }
   .widget-standalone-shell.is-portrait-tablet .android-sections {
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
-    grid-template-rows: 1.12fr 1.18fr 1fr 1fr .9fr;
+    grid-template-rows: auto auto auto auto auto;
+    align-content: space-between;
   }
   .widget-standalone-shell.is-portrait-tablet .android-section {
     min-height: 0;
-    padding-block: max(8px, 1.05vh);
+    padding-block: 12px;
   }
-  .widget-standalone-shell.is-portrait-tablet .android-weather {
-    display: grid;
-    align-content: center;
+  .widget-standalone-shell.is-portrait-tablet .android-heading {
+    gap: 10px;
+    font-size: 10px;
   }
-  .widget-standalone-shell.is-portrait-tablet .android-split-section,
+  .widget-standalone-shell.is-portrait-tablet .android-heading strong {
+    font-size: 11px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-secondary,
+  .widget-standalone-shell.is-portrait-tablet .android-detail,
+  .widget-standalone-shell.is-portrait-tablet .android-weather-condition,
+  .widget-standalone-shell.is-portrait-tablet .android-electricity-detail,
+  .widget-standalone-shell.is-portrait-tablet .android-half-copy {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-secondary {
+    margin-top: 6px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-primary {
+    margin-top: 4px;
+    font-size: 30px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-primary small {
+    font-size: 17px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-weather-top {
+    grid-template-columns: 128px minmax(0, 190px);
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-weather-condition {
+    margin-top: 5px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-weather-condition small {
+    font-size: 10px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-solar,
+  .widget-standalone-shell.is-portrait-tablet .android-solar > strong {
+    font-size: 10px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-solar > div {
+    grid-template-columns: 1fr 34px 1fr;
+    gap: 8px;
+    width: 190px;
+    margin-top: 4px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-solar-disk {
+    width: 34px;
+    height: 34px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-solar-disk b {
+    width: 5px;
+    height: 5px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-forecast {
+    margin-top: 8px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-forecast span {
+    font-size: 9px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-forecast strong {
+    font-size: 13px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-split-section {
+    column-gap: 18px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-row {
+    gap: 10px;
+    min-height: 17px;
+    font-size: 10px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-row strong {
+    font-size: 11px;
+  }
   .widget-standalone-shell.is-portrait-tablet .android-electricity {
-    align-content: center;
+    row-gap: 8px;
   }
-  .widget-standalone-shell.is-portrait-tablet .android-electricity {
-    row-gap: 6px;
+  .widget-standalone-shell.is-portrait-tablet .android-electricity-chart {
+    height: 96px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-chart-bars {
+    inset: 18px 0 20px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-chart-price {
+    font-size: 11px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-time-marker {
+    top: 16px;
+    bottom: 20px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-axis {
+    font-size: 9px;
   }
   .widget-standalone-shell.is-portrait-tablet .android-half-row {
     min-height: 0;
-    align-items: center;
+    align-items: stretch;
   }
   .widget-standalone-shell.is-portrait-tablet .android-half-section {
-    align-self: center;
+    align-self: stretch;
+    display: grid;
+    align-content: center;
+    padding-block: 12px 10px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-half-section + .android-half-section {
+    padding-left: 14px;
+    margin-left: 14px;
   }
   .widget-standalone-shell.is-portrait-tablet .android-footer {
-    min-height: 32px;
-    padding-top: 7px;
+    min-height: 38px;
+    padding-top: 10px;
+    font-size: 10px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-footer button {
+    width: 30px;
+    height: 30px;
+  }
+  .widget-standalone-shell.is-portrait-tablet .android-refresh-icon {
+    width: 22px;
+    height: 22px;
   }
 
   @media (max-width: 420px) {
