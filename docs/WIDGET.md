@@ -297,6 +297,8 @@ The HSL freshness and Electricity alarms intentionally do not wake a sleeping de
 
 A user-triggered manual refresh remains an immediate one-time work request so it gives direct feedback and uses the existing retry/fallback diagnostics.
 
+Widget-host bootstrap is deliberately redundant with the provider lifecycle. `onEnabled` still establishes the normal schedule, while every `onUpdate` also re-establishes periodic work and queues the unique immediate refresh. The network worker renders the current Glance state before it fetches, so a host that adds a widget instance without a useful `onEnabled` transition can replace the static `initialLayout` promptly and then continue through the normal cache/retry path.
+
 Live/local time behavior is deliberately independent from normal network cadence where possible:
 
 - header seconds: native `TextClock`
@@ -436,6 +438,7 @@ Signing credentials must not be committed to repository source. Keystore file ex
 - **2.10.26**: added source-aware HSL network freshness scheduling four minutes after `fetchedAt`, with a five-minute recovery delay for stale or missing HSL data.
 - **2.10.30**: added one deduplicated support row to large half-width sections; Liiga uses it for the previous result and shows live period plus elapsed game time in its detail line.
 - **2.10.31**: centralized Android typography into named semantic roles without changing the established rendered sizes.
+- **2.10.57**: added host-update bootstrap and a pre-network Glance render so newly added widget instances do not depend solely on `onEnabled` to leave the static initial layout.
 
 ## Key files
 

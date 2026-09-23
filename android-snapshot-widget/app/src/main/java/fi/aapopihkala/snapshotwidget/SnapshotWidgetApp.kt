@@ -1,5 +1,6 @@
 package fi.aapopihkala.snapshotwidget
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -90,6 +91,7 @@ class SnapshotUpdateWorker(
 ) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
         val repository = WidgetRepository(applicationContext)
+        SnapshotWidget().updateAll(applicationContext)
         val payload = repository.fetchAndCache()
         SnapshotWidget().updateAll(applicationContext)
         return if (payload != null) Result.success() else Result.retry()
@@ -974,6 +976,17 @@ class SnapshotWidgetReceiver : GlanceAppWidgetReceiver() {
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         SnapshotUpdateWorker.schedule(context)
+    }
+
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray,
+    ) {
+        super.onUpdate(context, appWidgetManager, appWidgetIds)
+        if (appWidgetIds.isNotEmpty()) {
+            SnapshotUpdateWorker.schedule(context)
+        }
     }
 
     override fun onDisabled(context: Context) {
