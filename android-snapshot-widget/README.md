@@ -96,6 +96,8 @@ Tapping the bitmap refresh icon starts a manual refresh and swaps the icon to a 
 
 `WidgetRepository` keeps the last compatible cache and always preserves it if a refresh fails.
 
+Widget initialization is not tied only to the provider-wide `onEnabled` callback. Every host `onUpdate` also re-establishes the periodic work and queues the unique immediate refresh. The worker renders the current Glance state once before networking, so a newly added widget can leave the static `initialLayout` before the first fetch completes and still reaches the normal retry/cache path afterward.
+
 A successful rich v2 response may also be partial when one optional upstream source fails. If the new server layout still expects Weather, Electricity, Markets, Rates or HSL but that section is missing from the response, Android carries the previous compatible section forward instead of replacing it with a blank gap. The new layout remains authoritative: a section intentionally removed from all size layouts is not restored. Liiga is not carried this way because it does not yet have a section-level freshness timestamp that makes stale live or standing data safe to preserve.
 
 Carried sections keep their own `observedAt` or `fetchedAt`. Older compatible caches that predate section-level timestamps are anchored to their previous payload `generatedAt`, so a newly generated partial response cannot make old cached values look fresh.
@@ -163,4 +165,4 @@ Server-only presentation changes do not require an APK.
 
 Typography uses a shared semantic scale for the header, primary values, compact units, supporting text, row values and micro labels. In the large widget, full-width and half-width section primary values intentionally share the same 22 sp scale, while the clock, date and ISO week share the same 22 sp scale and medium visual weight as the large primary values. Large primary measurements render the numeric value at 22 sp and known units such as `°C`, `%`, `min` and `c/kWh` at the shared 13 sp unit scale. Text units use a small gap from the value, while `°C` uses a narrower 2 dp gap and `%` remains attached. Clock seconds use that same 13 sp secondary scale.
 
-Current app version: **2.10.54**.
+Current app version: **2.10.57**.
