@@ -209,7 +209,6 @@ test('standalone web widget uses the production renderer without preview control
   await expect(page).toHaveTitle('Snapshot Widget');
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
   await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-mode', 'standalone');
-  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-layout-mode', 'phone');
   await expect(page.locator('script[src*="/_astro/"]')).toHaveCount(0);
   await expect(page.locator('.preview-tools')).toHaveCount(0);
   await expect(page.locator('[data-status]')).toBeHidden();
@@ -256,6 +255,7 @@ test('standalone large widget keeps the Android information hierarchy on mobile'
 
   await page.goto('/current/widget/');
 
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-layout-mode', 'phone');
   await expect(page.locator('.android-header')).toBeVisible();
   await expect(page.locator('.android-header [data-live-clock]')).toHaveText(/^\d{2}:\d{2}:\d{2}$/);
   await expect(page.locator('.android-header [data-live-date]')).toHaveText(/^[A-Z]{3} \d{2} [A-Z]{3}$/);
@@ -312,14 +312,15 @@ test('standalone large widget scales to tablet width without stretching landscap
   const stage = page.locator('[data-stage]');
   await expect(root).toHaveAttribute('data-layout-mode', 'scaled');
   await expect(stage).toBeVisible();
-  const zoom = await stage.evaluate((element) => getComputedStyle(element).zoom);
-  expect(zoom).toBe('1.6');
+  const zoom = Number(await stage.evaluate((element) => getComputedStyle(element).zoom));
+  expect(zoom).toBeGreaterThan(1.35);
+  expect(zoom).toBeLessThan(1.6);
 
   const widgetBox = await page.locator('[data-widget]').boundingBox();
   expect(widgetBox).not.toBeNull();
-  expect(widgetBox!.width).toBeGreaterThan(880);
-  expect(widgetBox!.width).toBeLessThan(910);
-  expect(widgetBox!.height).toBeLessThan(760);
+  expect(widgetBox!.width).toBeGreaterThan(760);
+  expect(widgetBox!.width).toBeLessThan(890);
+  expect(widgetBox!.height).toBeLessThan(750);
 });
 
 test('standalone large widget fills portrait tablet height and distributes all sections', async ({ page }) => {

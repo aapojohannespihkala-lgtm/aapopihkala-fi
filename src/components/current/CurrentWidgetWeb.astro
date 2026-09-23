@@ -428,16 +428,24 @@ const isPreview = mode === 'preview';
           return;
         }
 
+        widget.style.minHeight = '';
+        stage.style.zoom = '1';
+
         const availableWidth = Math.max(560, viewportWidth - 40);
-        const scale = Math.min(1.6, Math.max(1.15, availableWidth / 560));
-        stage.style.zoom = String(scale);
+        const widthScale = availableWidth / 560;
 
         if (isPortraitTablet) {
+          const scale = Math.min(1.6, Math.max(1.15, widthScale));
+          stage.style.zoom = String(scale);
           const targetRenderedHeight = Math.max(0, viewportHeight * 0.92);
           widget.style.minHeight = `${Math.round(targetRenderedHeight / scale)}px`;
-        } else {
-          widget.style.minHeight = '';
+          return;
         }
+
+        const naturalHeight = Math.max(1, widget.offsetHeight);
+        const heightScale = Math.max(1, (viewportHeight - 28) / naturalHeight);
+        const scale = Math.min(1.6, Math.max(1, Math.min(widthScale, heightScale)));
+        stage.style.zoom = String(scale);
       };
 
       const render = () => {
