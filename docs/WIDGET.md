@@ -363,7 +363,15 @@ Use:
 
 The preview reads `/api/current/widget-v2` and uses the same server presentation metadata as Android. It can inspect compact, medium and large layouts plus prod/dev variants.
 
-The preview is a design approximation, not an Android launcher emulator. It cannot prove RemoteViews compatibility, native TextClock/Chronometer behavior, exact-alarm special access, OEM alarm/background behavior or phone-side networking.
+The clean production-only browser view is available at:
+
+```text
+/current/widget/
+```
+
+It shares the same renderer as the preview, always reads the production presentation and accepts `?size=compact`, `?size=medium` or `?size=large`. It intentionally omits the preview controls and remains excluded from search indexing.
+
+The preview and browser view are design approximations, not Android launcher emulators. They cannot prove RemoteViews compatibility, native TextClock/Chronometer behavior, exact-alarm special access, OEM alarm/background behavior or phone-side networking.
 
 ## Preferred development workflow
 

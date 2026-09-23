@@ -185,3 +185,36 @@ test('widget preview keeps HSL when switching between prod and dev channels', as
   await expect(page).toHaveURL(/channel=dev/);
   await expect(page.locator('[data-section="hsl"]')).toHaveCount(1);
 });
+
+
+test('standalone web widget uses the production renderer without preview controls', async ({ page }) => {
+  let prodRequests = 0;
+  let devRequests = 0;
+
+  await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {
+    prodRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(payload('prod')),
+    });
+  });
+  await page.route(/\/api\/current\/widget-v2\?channel=dev$/, async (route) => {
+    devRequests += 1;
+    await route.abort();
+  });
+
+  await page.goto('/current/widget/?size=compact&channel=dev');
+
+  await expect(page).toHaveTitle('Snapshot Widget');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-mode', 'standalone');
+  await expect(page.locator('.preview-tools')).toHaveCount(0);
+  await expect(page.locator('[data-status]')).toBeHidden();
+  await expect(page.locator('[data-stage]')).toHaveAttribute('data-size', 'compact');
+  await expect(page.locator('[data-section="weather"]')).toContainText('16.2°C');
+  await expect(page.locator('[data-section="hsl"]')).toHaveCount(0);
+
+  expect(prodRequests).toBe(1);
+  expect(devRequests).toBe(0);
+});
