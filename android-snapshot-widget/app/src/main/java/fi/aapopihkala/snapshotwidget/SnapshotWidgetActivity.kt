@@ -118,7 +118,8 @@ class SnapshotWidgetActivity : Activity() {
 
     private fun currentWidgetCount(): Int {
         val manager = AppWidgetManager.getInstance(this)
-        val component = ComponentName(this, SnapshotWidgetReceiver::class.java)
-        return manager.getAppWidgetIds(component).size
+        val phone = ComponentName(this, SnapshotWidgetReceiver::class.java)
+        val tablet = ComponentName(this, SnapshotTabletWidgetReceiver::class.java)
+        return manager.getAppWidgetIds(phone).size + manager.getAppWidgetIds(tablet).size
     }
 }

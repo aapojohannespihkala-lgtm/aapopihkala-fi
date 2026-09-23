@@ -1,6 +1,7 @@
 package fi.aapopihkala.snapshotwidget
 
 import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -74,7 +75,7 @@ internal object WidgetTypography {
     const val FORECAST_VALUE = 10
 }
 
-private data class Palette(
+internal data class Palette(
     val background: Color,
     val panel: Color,
     val foreground: Color,
@@ -85,17 +86,28 @@ private data class Palette(
     val negative: Color
 )
 
+internal suspend fun updateAllSnapshotWidgets(context: Context) {
+    val appContext = context.applicationContext
+    runCatching { SnapshotWidget().updateAll(appContext) }
+    runCatching { SnapshotTabletWidget().updateAll(appContext) }
+}
+
+internal fun hasAnySnapshotWidgets(context: Context): Boolean {
+    val manager = AppWidgetManager.getInstance(context)
+    val phone = ComponentName(context, SnapshotWidgetReceiver::class.java)
+    val tablet = ComponentName(context, SnapshotTabletWidgetReceiver::class.java)
+    return manager.getAppWidgetIds(phone).isNotEmpty() ||
+        manager.getAppWidgetIds(tablet).isNotEmpty()
+}
+
 internal suspend fun refreshSnapshotWidget(context: Context): Boolean {
     val appContext = context.applicationContext
     val repository = WidgetRepository(appContext)
 
-    // The first render is only a fast visual bootstrap. A launcher/OEM rendering
-    // quirk must never prevent the network/cache refresh itself from running.
-    runCatching { SnapshotWidget().updateAll(appContext) }
-
+    updateAllSnapshotWidgets(appContext)
     val payload = repository.fetchAndCache()
-    val rendered = runCatching { SnapshotWidget().updateAll(appContext) }.isSuccess
-    return payload != null && rendered
+    updateAllSnapshotWidgets(appContext)
+    return payload != null
 }
 
 class SnapshotUpdateWorker(
@@ -151,7 +163,7 @@ class RefreshAction : ActionCallback {
     ) {
         val repository = WidgetRepository(context)
         repository.markLoading()
-        SnapshotWidget().updateAll(context)
+        updateAllSnapshotWidgets(context)
         SnapshotUpdateWorker.refreshNow(context)
     }
 }
@@ -685,6 +697,7 @@ internal fun PrimaryValueText(
     color: Color,
     sizeSp: Int,
     modifier: GlanceModifier = GlanceModifier,
+    unitSizeSp: Int = WidgetTypography.UNIT,
 ) {
     val parts = primaryValueParts(text)
     Row(
@@ -708,7 +721,7 @@ internal fun PrimaryValueText(
                 text = unit,
                 style = TextStyle(
                     color = ColorProvider(color),
-                    fontSize = WidgetTypography.UNIT.sp,
+                    fontSize = unitSizeSp.sp,
                     fontWeight = FontWeight.Medium,
                 ),
                 maxLines = 1,
@@ -940,7 +953,7 @@ private fun VerticalDivider(palette: Palette) {
     ) {}
 }
 
-private fun palette(theme: WidgetTheme) = Palette(
+internal fun palette(theme: WidgetTheme) = Palette(
     background = parseColor(theme.background, Color(0xFF1D2A35)),
     panel = parseColor(theme.panel, Color(0xFF22323E)),
     foreground = parseColor(theme.foreground, Color(0xFFEEF2F4)),
@@ -954,14 +967,14 @@ private fun palette(theme: WidgetTheme) = Palette(
 private fun parseColor(value: String, fallback: Color): Color =
     runCatching { Color(android.graphics.Color.parseColor(value)) }.getOrDefault(fallback)
 
-private fun toneColor(tone: String, palette: Palette): Color = when (tone.lowercase()) {
+internal fun toneColor(tone: String, palette: Palette): Color = when (tone.lowercase()) {
     "positive" -> palette.positive
     "negative" -> palette.negative
     "accent" -> palette.accent
     else -> palette.foreground
 }
 
-private fun localTime(value: String): String {
+internal fun localTime(value: String): String {
     val patterns = listOf(
         "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
         "yyyy-MM-dd'T'HH:mm:ssXXX",
@@ -1002,7 +1015,9 @@ class SnapshotWidgetReceiver : GlanceAppWidgetReceiver() {
     }
 
     override fun onDisabled(context: Context) {
-        SnapshotUpdateWorker.cancel(context)
         super.onDisabled(context)
+        if (!hasAnySnapshotWidgets(context)) {
+            SnapshotUpdateWorker.cancel(context)
+        }
     }
 }
