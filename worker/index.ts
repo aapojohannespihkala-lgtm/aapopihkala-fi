@@ -6,7 +6,6 @@ import { onRequestGet as getPortfolioResponse } from '../functions/api/current/p
 import { onRequestGet as getSnapshotPortfolioResponse } from '../functions/api/current/portfolio-snapshot';
 import { onRequestGet as getWidgetResponse } from '../functions/api/current/widget';
 import { onRequestGet as getWidgetV2Response } from '../functions/api/current/widget-v2';
-import { onRequestGet as getNewsResponse } from '../functions/api/current/news';
 import { fetchLiigaResponse, onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
 import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/current/liiga-schedule';
 
@@ -23,7 +22,6 @@ const HSL_PATH = '/api/current/hsl';
 const MARKETS_PATH = '/api/current/markets';
 const WIDGET_PATH = '/api/current/widget';
 const WIDGET_V2_PATH = '/api/current/widget-v2';
-const NEWS_PATH = '/api/current/news';
 const LIIGA_PATH = '/api/current/liiga';
 const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
 const SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS = 4_000;
@@ -332,7 +330,6 @@ const worker = {
       return serveWidgetWithLastKnownGood(request, () => url.searchParams.get('v') === '2' ? getWidgetV2Response({ request, env }) : getWidgetResponse({ request }));
     }
     if (url.pathname === WIDGET_V2_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return serveWidgetWithLastKnownGood(request, () => getWidgetV2Response({ request, env })); }
-    if (url.pathname === NEWS_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getNewsResponse(); }
     if (url.pathname === LIIGA_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
       const response = snapshotRequest ? await fetchLiigaResponse(SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS) : await getLiigaResponse();
