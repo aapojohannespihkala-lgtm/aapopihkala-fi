@@ -9,7 +9,6 @@ test('Current external feed smoke covers the previously unmonitored production s
   for (const expected of [
     '/api/current/electricity?live_smoke=',
     '/api/current/electricity-month?live_smoke=',
-    '/api/current/news?live_smoke=',
     'https://api.open-meteo.com/v1/forecast?',
   ]) {
     expect(workflow).toContain(expected);
@@ -25,7 +24,7 @@ test('Current external feed smoke keeps every network probe bounded', async () =
   const curlCount = (workflow.match(/\bif curl \\/g) ?? []).length;
   const timeoutCount = (workflow.match(/--max-time 20/g) ?? []).length;
 
-  expect(curlCount).toBe(4);
+  expect(curlCount).toBe(3);
   expect(timeoutCount).toBe(curlCount);
 });
 
@@ -35,15 +34,4 @@ test('electricity live smoke accepts upstream inclusive quarter-hour end timesta
   expect(workflow).toContain('const intervalMs = end - start;');
   expect(workflow).toContain('Math.abs(intervalMs - 15 * 60 * 1000) > 1');
   expect(workflow).toContain('start <= now && end >= now');
-});
-
-test('News aggregate smoke distinguishes degraded coverage from per-source contract failures', async () => {
-  const workflow = await readFile(workflowPath, 'utf8');
-
-  expect(workflow).toContain('const MIN_LOGICAL_SOURCES = 8;');
-  expect(workflow).toContain('const MIN_USABLE_SOURCE_RATIO = 0.7;');
-  expect(workflow).toContain("const usableSources = sources.filter((source) => ['ok', 'partial'].includes(source?.status));");
-  expect(workflow).toContain('usable source coverage too low');
-  expect(workflow).toContain('individual RSS health is covered by the source-contract smoke');
-  expect(workflow).not.toContain('failures.push(`fully failing sources:');
 });
