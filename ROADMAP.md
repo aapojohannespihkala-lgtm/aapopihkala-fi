@@ -22,7 +22,7 @@ Valmistunut kohta poistetaan tai merkitään selvästi tehdyksi, jotta tiedosto 
 
 Nykyisiä parannuksia ovat muun muassa skip navigation, vähimmäiskokoiset interaktiiviset kohteet, reduced motion -tuki ja regressiotestit.
 
-Semantiikka- ja kohdekoko-passissa Current Newsin palautekontrollit ryhmiteltiin saavutettavasti ja Newsin reset- sekä Marketsin retry-kontrolleille lisättiin eksplisiittiset 24 px vähimmäiskohteet regressiotesteineen.
+Marketsin retry-kontrolleille on lisätty eksplisiittiset 24 px vähimmäiskohteet regressiotesteineen.
 
 Jäljellä olevat kohdat vaativat osin erillisen design-/interaktiopäätöksen:
 
@@ -53,15 +53,6 @@ Tee vain, jos komponenttien ylläpidettävyys sitä tarvitsee. Älä muuta samas
 
 Nykyinen sivusto ei tarvitse automaattista ajastettua julkaisua. Jos tarve myöhemmin syntyy, voidaan toteuttaa `publishAt`-tyyppinen työnkulku erillisenä ominaisuutena.
 
-## 7. Current News -jatko
-
-- Standalone `/current/news/` käyttää Soundin, Pitchforkin, The Quietusin, The Comics Journalin, Pelaajan, Muropaketin Pelit- ja Elokuvat-syötteiden, Infernon, Angry Metal Guyn, Kulttuuritoimituksen ja Episodin RSS-syötteitä. Worker normalisoi ja deduplikoi ehdokkaat sekä tuottaa lyhyen RSS-ingressin, mutta henkilökohtainen peukkuprofiili säilyy selaimen localStoragessa.
-- Episodin kohinapitoista tv- ja suoratoistosisältöä alennetaan lähdekohtaisella ranking-penaltyllä. Elokuvien oppimissignaaleihin kuuluu muun muassa restaurointi, elokuvahistoria, festivaalit, kauhu, scifi, animaatio, suoratoisto ja ohjaajat.
-- Tarkista seuraavaksi arkkitehtuuri- ja design-lähteitä, kuten Archinfo ja Arkkitehti, mutta lisää ne vasta kun vakaa tekninen syöte tai muu sopiva rajapinta ja käyttöehdot on varmennettu.
-- Arvioi käytännön käytön perusteella rankingin, diversity-penaltyjen ja positiivisen/negatiivisen palautteen painot. Pelien, metallimusiikin ja elokuvien tarkemmat tagit on jo lisätty oppimissignaaleiksi.
-- Laajenna tapahtumien deduplikointia, jos otsikkopohjainen lähiläisyys ei riitä usean median käsitellessä samaa asiaa.
-- Nosta News `/current/`-juureen vasta, kun standalone-näkymän lähteet ja oppimiskäytös ovat riittävän vakaat.
-
 ## 8. Riippuvuus- ja runtime-ylläpito
 
 Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivisen rakennusvaiheen normaalia ChatGPT -> PR -> nopea CI -> automerge -työnkulkua.
@@ -80,12 +71,12 @@ Tee nämä erillisinä maintenance-passeina niin, etteivät ne hidasta aktiivise
 
 ## 10. Currentin ulkoisten datalähteiden toimintavarmuus
 
-Currentin Electricity-, Markets-, News- ja Liiga-näkymät riippuvat useista ulkoisista lähteistä. Marketsin viimeisimmät korjaukset ovat jo lisänneet rajattuja timeout-, retry- ja recovery-polkuja, ja Currentin production-smoke kattaa portfolion, market macro -syötteen sekä Liigan keskeiset rakennesopimukset. Sama toimintavarmuustaso ei silti vielä kata kaikkia lähteitä ja upstream-rakenteita fixture- tai source-contract-tasolla.
+Currentin Electricity-, Markets- ja Liiga-näkymät riippuvat useista ulkoisista lähteistä. Marketsin viimeisimmät korjaukset ovat jo lisänneet rajattuja timeout-, retry- ja recovery-polkuja, ja Currentin production-smoke kattaa portfolion, market macro -syötteen sekä Liigan keskeiset rakennesopimukset. Sama toimintavarmuustaso ei silti vielä kata kaikkia lähteitä ja upstream-rakenteita fixture- tai source-contract-tasolla.
 
 - Pidä retryt rajattuina ja lähdekohtaisina. Älä kasvata yhden API-pyynnön kokonaislatenssia hallitsemattomalla fallback-ketjulla.
 - Arvioi, missä Current-datassa stale-while-revalidate- tai viimeksi onnistuneen datan fallback parantaa käytettävyyttä ilman harhaanjohtavaa vanhaa tietoa. Jos viimeksi onnistunutta dataa käytetään, sen ikä pitää pystyä esittämään tai tulkitsemaan yksiselitteisesti.
 - Suojaa HTML- ja tekstimuotoa parsivat lähteet, erityisesti Bank of Finland- ja OP-adapterit, source-contract- tai fixture-regressiotesteillä, jotta upstream-rakenteen muutos havaitaan nopeasti. Nykyinen portfolio-resilience-testi käyttää itse muodostettuja parserifixtureja, joten lisää tarkoituksenmukaisiin adaptereihin upstream-rakenteesta johdettuja pysyviä fixtureja tai vastaavia source-contract-tarkistuksia.
-- Lisää tarvittaessa vastaavat fixture- tai contract-testit RSS-lähteille ja Liigan upstream-rakenteelle, jos lähdekohtaiset rakenteet alkavat aiheuttaa toistuvia regressioita. Liigan production-smoke suojaa jo lähteen, upstream-valinnan, joukkue- ja rankkirakenteen sekä Ilves-yhteenvedon johdonmukaisuutta, mutta se ei korvaa pysyvää upstream-fixturea.
+- Lisää tarvittaessa vastaavat fixture- tai contract-testit Liigan upstream-rakenteelle, jos lähdekohtaiset rakenteet alkavat aiheuttaa toistuvia regressioita. Liigan production-smoke suojaa jo lähteen, upstream-valinnan, joukkue- ja rankkirakenteen sekä Ilves-yhteenvedon johdonmukaisuutta, mutta se ei korvaa pysyvää upstream-fixturea.
 - Hyödynnä nykyistä Cloudflare-observabilityä lähdekohtaisten virheiden tunnistamiseen ennen uuden seurantainfran lisäämistä. Tavoite on nähdä ainakin epäonnistunut lähde, vaihe, timeout tai HTTP-virhe ilman että sisäistä diagnostiikkaa näytetään loppukäyttäjälle.
 
 ## 11. GitHub- ja ChatGPT-työnkulun optimointi
