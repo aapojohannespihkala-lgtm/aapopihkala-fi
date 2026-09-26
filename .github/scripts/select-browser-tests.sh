@@ -17,7 +17,7 @@ hsl() { add current-hsl current-hsl-vehicle-freshness; }
 snapshot() { add current-snapshot current-snapshot-alignment current-snapshot-liiga current-snapshot-month-calendar; }
 all_current() {
   layout; electricity; weather; markets; liiga; hsl; snapshot
-  add current-news current-news-timeout current2-responsive
+  add current2-responsive
 }
 
 # An unknown/empty change set must not silently disable the construction guards.
@@ -41,8 +41,6 @@ for file in "$@"; do
       layout; weather; add current-regression current-snapshot ;;
     src/components/current/CurrentMarkets*|src/components/current/CurrentRates*|src/pages/current/markets/*|src/pages/current/rates/*|src/features/current/market*|src/features/current/remedy*|src/styles/current-markets*)
       layout; markets; add current-snapshot ;;
-    src/components/current/CurrentNews*|src/pages/current/news/*|src/features/current/news*)
-      add current-news current-news-timeout ;;
     src/pages/current2/*|src/components/current/Current2*)
       add current2-responsive ;;
     src/features/current/chart*)
@@ -55,8 +53,6 @@ for file in "$@"; do
       electricity; add current-worker-regression current-regression ;;
     functions/api/current/hsl*)
       hsl; add current-worker-regression ;;
-    functions/api/current/news*)
-      add current-news current-news-timeout ;;
     functions/api/current/*|worker/*|wrangler.jsonc)
       add current-worker-regression current-portfolio-resilience current-markets-fallback current-markets-timeout ;;
     src/components/MeshyPixelatedPoise.astro|src/scripts/threeRuntime.ts)
