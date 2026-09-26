@@ -221,6 +221,24 @@ test('standalone web widget uses the production renderer without preview control
 });
 
 
+test('standalone web widget marks an edge last-known-good response as stale', async ({ page }) => {
+  await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'X-Widget-Fallback': 'last-known-good' },
+      body: JSON.stringify(payload('prod')),
+    });
+  });
+
+  await page.goto('/current/widget/');
+
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'stale');
+  await expect(page.locator('[data-widget]')).not.toContainText('UNAVAILABLE');
+  await expect(page.locator('[data-section="weather"]')).toContainText('16.2°C');
+  await expect(page.locator('.android-footer')).toContainText('STALE 12:30');
+});
+
 test('standalone web widget shows an explicit unavailable state when production data fails', async ({ page }) => {
   await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {
     await route.fulfill({

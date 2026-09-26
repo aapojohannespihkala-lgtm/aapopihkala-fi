@@ -67,10 +67,36 @@ const OP_FOREST_REQUIRED_PERIODS = ['month3', 'month6', 'ytd', 'year1', 'year3',
 const defaultResponseCache = (): ResponseCache | undefined =>
   (globalThis as typeof globalThis & { caches?: { default?: ResponseCache } }).caches?.default;
 
-const widgetCacheKey = (request: Request) => {
-  const url = new URL(request.url);
-  url.searchParams.delete('_');
-  return new Request(url.toString(), { method: 'GET' });
+const widgetCacheKeys = (request: Request) => {
+  const source = new URL(request.url);
+  const isV2 =
+    source.pathname === WIDGET_V2_PATH ||
+    (source.pathname === WIDGET_PATH && source.searchParams.get('v') === '2');
+  const channel = source.searchParams.get('channel') === 'dev' ? 'dev' : 'prod';
+  const liveSmoke = source.searchParams.get('live_smoke');
+
+  const buildKey = (pathname: string, params: Array<[string, string]> = []) => {
+    const url = new URL(source.origin);
+    url.pathname = pathname;
+    for (const [key, value] of params) url.searchParams.set(key, value);
+    return new Request(url.toString(), { method: 'GET' });
+  };
+
+  if (isV2) {
+    const sharedParams: Array<[string, string]> = [['channel', channel]];
+    if (liveSmoke) sharedParams.push(['live_smoke', liveSmoke]);
+    return [
+      buildKey(WIDGET_V2_PATH, sharedParams),
+      buildKey(WIDGET_PATH, [['v', '2'], ...sharedParams]),
+    ];
+  }
+
+  return [
+    buildKey(
+      WIDGET_PATH,
+      liveSmoke ? [['live_smoke', liveSmoke]] : [],
+    ),
+  ];
 };
 
 export const serveWidgetWithLastKnownGood = async (
@@ -81,7 +107,7 @@ export const serveWidgetWithLastKnownGood = async (
   const response = await load();
   if (!cache) return response;
 
-  const key = widgetCacheKey(request);
+  const keys = widgetCacheKeys(request);
   if (response.ok) {
     const headers = new Headers(response.headers);
     headers.set('Cache-Control', `public, max-age=${WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS}`);
@@ -90,30 +116,36 @@ export const serveWidgetWithLastKnownGood = async (
       statusText: response.statusText,
       headers,
     });
-    try {
-      await cache.put(key, cached);
-    } catch {
-      // Cache is a resilience layer only; a cache write failure must not fail a healthy feed.
+    for (const key of keys) {
+      try {
+        await cache.put(key, cached.clone());
+      } catch {
+        // Cache is a resilience layer only; one alias failing must not fail a healthy feed.
+      }
     }
     return response;
   }
 
   if (response.status !== 503) return response;
 
-  try {
-    const fallback = await cache.match(key);
-    if (!fallback) return response;
-    const headers = new Headers(fallback.headers);
-    headers.set('Cache-Control', 'private, no-store');
-    headers.set('X-Widget-Fallback', 'last-known-good');
-    return new Response(fallback.body, {
-      status: 200,
-      statusText: 'OK',
-      headers,
-    });
-  } catch {
-    return response;
+  for (const key of keys) {
+    try {
+      const fallback = await cache.match(key);
+      if (!fallback) continue;
+      const headers = new Headers(fallback.headers);
+      headers.set('Cache-Control', 'private, no-store');
+      headers.set('X-Widget-Fallback', 'last-known-good');
+      return new Response(fallback.body, {
+        status: 200,
+        statusText: 'OK',
+        headers,
+      });
+    } catch {
+      // Try the other compatible Widget cache alias before returning the live failure.
+    }
   }
+
+  return response;
 };
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>

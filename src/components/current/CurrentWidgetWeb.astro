@@ -551,13 +551,23 @@ const isPreview = mode === 'preview';
             cache: 'no-store',
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const serverFallback = response.headers.get('x-widget-fallback') === 'last-known-good';
           const nextPayload = await response.json();
           if (!isUsablePayload(nextPayload)) throw new Error('invalid widget payload');
           payload = nextPayload;
           storeCachedPayload(payload);
-          clearRetry();
           render();
-          if (root) root.dataset.loadState = 'ready';
+
+          if (serverFallback) {
+            if (root) root.dataset.loadState = 'stale';
+            if (status) status.textContent = 'Using server-cached widget data';
+            const footerStatus = widget?.querySelector('[data-footer-status]');
+            if (footerStatus) footerStatus.textContent = `STALE ${localTime(payload.generatedAt)}`;
+            scheduleRetry();
+          } else {
+            clearRetry();
+            if (root) root.dataset.loadState = 'ready';
+          }
         } catch (error) {
           const message = error instanceof Error ? error.message : 'unknown error';
           const cached = readCachedPayload();
