@@ -15,7 +15,6 @@ const workerFirstPaths = [
   '/api/current/markets',
   '/api/current/widget',
   '/api/current/widget-v2',
-  '/api/current/news',
   '/api/current/liiga',
   '/api/current/liiga-schedule',
 ];

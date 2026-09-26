@@ -41,7 +41,7 @@ class SelectionTests(unittest.TestCase):
         specs = selected('src/layouts/BaseLayout.astro')
         for name in ['current-section-boundaries', 'current-electricity-alignment',
                      'current-snapshot-alignment', 'current-snapshot-month-calendar',
-                     'current-liiga', 'current-hsl', 'current-news', 'current-markets',
+                     'current-liiga', 'current-hsl', 'current-markets',
                      'current-weather-timeout', 'current2-responsive']:
             self.assertIn(f'tests/e2e/{name}.spec.ts', specs)
 
