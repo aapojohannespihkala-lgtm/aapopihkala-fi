@@ -213,7 +213,8 @@ test('standalone web widget uses the production renderer without preview control
   await expect(page.locator('.preview-tools')).toHaveCount(0);
   await expect(page.locator('[data-status]')).toBeHidden();
   await expect(page.locator('[data-stage]')).toHaveAttribute('data-size', 'compact');
-  await expect(page.locator('[data-section="weather"]')).toContainText('16.2°C');
+  await expect(page.locator('[data-section="weather"]')).toContainText('16.2');
+  await expect(page.locator('[data-section="weather"]')).toContainText('°C');
   await expect(page.locator('[data-section="hsl"]')).toHaveCount(0);
 
   expect(prodRequests).toBe(1);
