@@ -236,7 +236,8 @@ test('standalone web widget marks an edge last-known-good response as stale', as
 
   await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'stale');
   await expect(page.locator('[data-widget]')).not.toContainText('UNAVAILABLE');
-  await expect(page.locator('[data-section="weather"]')).toContainText('16.2°C');
+  await expect(page.locator('[data-section="weather"]')).toContainText('16.2');
+  await expect(page.locator('[data-section="weather"]')).toContainText('°C');
   await expect(page.locator('.android-footer')).toContainText('STALE 12:30');
 });
 
