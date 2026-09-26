@@ -523,6 +523,48 @@ test('Widget serves last-known-good payload when a refresh returns 503', async (
   });
 });
 
+test('Widget v2 aliases share one last-known-good payload', async () => {
+  const entries = new Map<string, Response>();
+  const cache = {
+    match: async (request: Request) => entries.get(request.url)?.clone(),
+    put: async (request: Request, response: Response) => {
+      entries.set(request.url, response.clone());
+    },
+  };
+
+  const legacyRequest = new Request(
+    'https://aapopihkala.fi/api/current/widget?v=2&channel=prod&_=legacy-refresh'
+  );
+  const healthy = await serveWidgetWithLastKnownGood(
+    legacyRequest,
+    async () => Response.json({
+      schemaVersion: 2,
+      generatedAt: '2026-09-26T12:30:00.000Z',
+      sections: [{ id: 'weather', observedAt: '2026-09-26T12:30:00.000Z' }],
+    }),
+    cache,
+  );
+  expect(healthy.status).toBe(200);
+  expect(entries.has('https://aapopihkala.fi/api/current/widget-v2?channel=prod')).toBe(true);
+  expect(entries.has('https://aapopihkala.fi/api/current/widget?v=2&channel=prod')).toBe(true);
+
+  const webRequest = new Request(
+    'https://aapopihkala.fi/api/current/widget-v2?channel=prod'
+  );
+  const degraded = await serveWidgetWithLastKnownGood(
+    webRequest,
+    async () => Response.json({ error: 'widget_data_unavailable' }, { status: 503 }),
+    cache,
+  );
+
+  expect(degraded.status).toBe(200);
+  expect(degraded.headers.get('x-widget-fallback')).toBe('last-known-good');
+  expect(await degraded.json()).toMatchObject({
+    generatedAt: '2026-09-26T12:30:00.000Z',
+    sections: [{ id: 'weather' }],
+  });
+});
+
 test('Widget does not hide a 503 when no last-known-good payload exists', async () => {
   const cache = {
     match: async (_request: Request) => undefined,

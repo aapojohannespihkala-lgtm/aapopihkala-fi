@@ -90,6 +90,63 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Verify production standalone Widget in browser
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --input-type=module <<'NODE'
+          import { chromium } from '@playwright/test';
+
+          const url = `https://aapopihkala.fi/current/widget/?live_smoke=${process.env.GITHUB_RUN_ID}`;
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+
+          try {
+            let verified = false;
+            let diagnostics = null;
+
+            for (let attempt = 1; attempt <= 6; attempt += 1) {
+              await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+              await page.waitForTimeout(2_000);
+
+              diagnostics = await page.evaluate(() => {
+                const root = document.querySelector('[data-widget-root]');
+                const status = document.querySelector('[data-status]');
+                const sections = [...document.querySelectorAll('[data-section]')]
+                  .map((section) => section.getAttribute('data-section'))
+                  .filter(Boolean);
+                return {
+                  loadState: root?.getAttribute('data-load-state') ?? null,
+                  status: status?.textContent?.trim() ?? '',
+                  sections,
+                  unavailable: document.querySelector('[data-widget]')?.textContent?.includes('UNAVAILABLE') ?? false,
+                };
+              });
+              console.log(JSON.stringify({ attempt, ...diagnostics }, null, 2));
+
+              if (
+                (diagnostics.loadState === 'ready' || diagnostics.loadState === 'stale') &&
+                !diagnostics.unavailable &&
+                diagnostics.sections.length >= 4
+              ) {
+                verified = true;
+                break;
+              }
+
+              if (attempt < 6) await page.waitForTimeout(10_000);
+            }
+
+            if (!verified) {
+              console.error('Production standalone Widget remained unavailable.');
+              console.error(JSON.stringify(diagnostics, null, 2));
+              process.exitCode = 1;
+            }
+          } finally {
+            await browser.close();
+          }
+          NODE
+
       - name: Verify production Snapshot sources in browser
         shell: bash
         run: |
