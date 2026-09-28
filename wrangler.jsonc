@@ -21,6 +21,12 @@
       "/private-model/*"
     ]
   },
+  "r2_buckets": [
+    {
+      "binding": "PRIVATE_MODEL_BUCKET",
+      "bucket_name": "private-model-assets"
+    }
+  ],
   "observability": {
     "enabled": true
   }
