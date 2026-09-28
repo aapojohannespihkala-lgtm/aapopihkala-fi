@@ -179,6 +179,7 @@ test('private viewer selects a visible mesh, shows bounded identity, and ignores
   await expect(panel).toBeVisible();
   await expect(page.locator('#selection-mesh')).not.toHaveText('-');
   await expect(page.locator('#selection-floor')).toHaveText('1F');
+  await expect(page.locator('#selection-scene')).toHaveText('P133D REVIEW ROOT - BABYLON Y-UP');
 
   await page.getByRole('button', { name: 'Tyhjennä' }).click();
   await expect(panel).toBeHidden();
