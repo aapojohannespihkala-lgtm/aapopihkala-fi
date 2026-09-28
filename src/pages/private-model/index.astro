@@ -124,6 +124,8 @@ const title = 'Private 3D viewer';
         <button id="orbit-button" type="button">Orbit</button>
         <button id="top-button" type="button">Ylhäältä</button>
         <button id="bottom-button" type="button">Alhaalta</button>
+        <button id="d1-plan-button" type="button">D 1F</button>
+        <button id="d2-plan-button" type="button">D 2F</button>
         <div id="viewer-status" class="status" role="status">Ladataan suojattua mallia...</div>
       </div>
 
@@ -141,8 +143,19 @@ const title = 'Private 3D viewer';
       const orbitButton = document.querySelector<HTMLButtonElement>('#orbit-button');
       const topButton = document.querySelector<HTMLButtonElement>('#top-button');
       const bottomButton = document.querySelector<HTMLButtonElement>('#bottom-button');
+      const d1PlanButton = document.querySelector<HTMLButtonElement>('#d1-plan-button');
+      const d2PlanButton = document.querySelector<HTMLButtonElement>('#d2-plan-button');
 
-      if (!canvas || !status || !fitButton || !orbitButton || !topButton || !bottomButton) {
+      if (
+        !canvas ||
+        !status ||
+        !fitButton ||
+        !orbitButton ||
+        !topButton ||
+        !bottomButton ||
+        !d1PlanButton ||
+        !d2PlanButton
+      ) {
         throw new Error('Private viewer controls are missing');
       }
 
@@ -155,10 +168,20 @@ const title = 'Private 3D viewer';
       const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 5000);
       camera.up.set(0, 1, 0);
 
+      const planCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 5000);
+      planCamera.up.set(0, 0, -1);
+
       const controls = new OrbitControls(camera, canvas);
       controls.enableDamping = true;
       controls.dampingFactor = 0.08;
       controls.screenSpacePanning = true;
+
+      const planControls = new OrbitControls(planCamera, canvas);
+      planControls.enableDamping = true;
+      planControls.dampingFactor = 0.08;
+      planControls.screenSpacePanning = true;
+      planControls.enableRotate = false;
+      planControls.enabled = false;
 
       const ambient = new THREE.HemisphereLight(0xffffff, 0x777777, 2.2);
       scene.add(ambient);
@@ -172,6 +195,154 @@ const title = 'Private 3D viewer';
 
       const modelCenter = new THREE.Vector3();
       let fitDistance = 10;
+      let activeCamera = camera;
+      let fullModelScene: any = null;
+      let dInteriorScene: any = null;
+      let activePlanFloor: '1F' | '2F' | null = null;
+      const dVisibilityBaseline = new Map<any, boolean>();
+
+      const setModelScene = (root: any) => {
+        modelRoot.clear();
+        if (root) modelRoot.add(root);
+        modelRoot.updateMatrixWorld(true);
+      };
+
+      const restoreDVisibility = () => {
+        for (const [object, visible] of dVisibilityBaseline.entries()) {
+          object.visible = visible;
+        }
+      };
+
+      const semanticName = (object: any) => {
+        const names: string[] = [];
+        let current = object;
+        let depth = 0;
+
+        while (current && depth < 12) {
+          if (current.name) names.push(String(current.name));
+          current = current.parent;
+          depth += 1;
+        }
+
+        return names.join(' | ').toUpperCase();
+      };
+
+      const hasFloorToken = (object: any, floor: '1F' | '2F') => {
+        const name = semanticName(object);
+        return new RegExp('(^|[_\\s-])' + floor + '([_\\s-]|$)').test(name);
+      };
+
+      const computeVisibleBounds = (root: any) => {
+        const bounds = new THREE.Box3();
+        let found = false;
+
+        root.updateMatrixWorld(true);
+        root.traverse((object: any) => {
+          if (!object.isMesh || !object.visible || !object.geometry) return;
+
+          let current = object.parent;
+          while (current && current !== root.parent) {
+            if (!current.visible) return;
+            current = current.parent;
+          }
+
+          if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+          if (!object.geometry.boundingBox) return;
+
+          const meshBounds = object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld);
+          if (meshBounds.isEmpty()) return;
+          bounds.union(meshBounds);
+          found = true;
+        });
+
+        return found ? bounds : null;
+      };
+
+      const activateFullModel = () => {
+        restoreDVisibility();
+        activePlanFloor = null;
+        planControls.enabled = false;
+        controls.enabled = true;
+        activeCamera = camera;
+        setModelScene(fullModelScene);
+      };
+
+      const fitPlanCamera = () => {
+        if (!dInteriorScene || !activePlanFloor) return;
+
+        const box = computeVisibleBounds(dInteriorScene);
+        if (!box) return;
+
+        const center = new THREE.Vector3();
+        const size = new THREE.Vector3();
+        box.getCenter(center);
+        box.getSize(size);
+
+        const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
+        let halfWidth = Math.max(size.x * 0.54, 0.25);
+        let halfHeight = Math.max(size.z * 0.54, 0.25);
+        const modelAspect = halfWidth / halfHeight;
+
+        if (aspect > modelAspect) {
+          halfWidth = halfHeight * aspect;
+        } else {
+          halfHeight = halfWidth / aspect;
+        }
+
+        const distance = Math.max(size.length() * 1.25, size.y * 4, 4);
+        planCamera.position.set(center.x, box.max.y + distance, center.z);
+        planCamera.up.set(0, 0, -1);
+        planCamera.lookAt(center);
+        planCamera.left = -halfWidth;
+        planCamera.right = halfWidth;
+        planCamera.top = halfHeight;
+        planCamera.bottom = -halfHeight;
+        planCamera.near = Math.max(distance / 10000, 0.001);
+        planCamera.far = Math.max(distance * 4 + size.y, 1000);
+        planCamera.zoom = 1;
+        planCamera.updateProjectionMatrix();
+
+        planControls.target.copy(center);
+        planControls.update();
+      };
+
+      const applyDPlanVisibility = (floor: '1F' | '2F') => {
+        restoreDVisibility();
+        let matchedMeshes = 0;
+
+        dInteriorScene.traverse((object: any) => {
+          if (!object.isMesh) return;
+          const baseline = dVisibilityBaseline.get(object) ?? object.visible;
+          const show = baseline && hasFloorToken(object, floor);
+          object.visible = show;
+          if (show) matchedMeshes += 1;
+        });
+
+        return matchedMeshes;
+      };
+
+      const activateDPlan = (floor: '1F' | '2F') => {
+        if (!dInteriorScene) {
+          status.textContent = 'D-asunnon pohjanäkymää ei löydy tästä mallista';
+          return;
+        }
+
+        setModelScene(dInteriorScene);
+        const matchedMeshes = applyDPlanVisibility(floor);
+        if (matchedMeshes === 0) {
+          restoreDVisibility();
+          activateFullModel();
+          status.textContent = `D ${floor} - kerrostunnistetta ei löytynyt`;
+          return;
+        }
+
+        controls.enabled = false;
+        planControls.enabled = true;
+        activePlanFloor = floor;
+        activeCamera = planCamera;
+        fitPlanCamera();
+        status.textContent = `D ${floor} - ortografinen pohjanäkymä`;
+      };
 
       const updateSize = () => {
         const width = Math.max(canvas.clientWidth, 1);
@@ -184,10 +355,14 @@ const title = 'Private 3D viewer';
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
+          if (activePlanFloor) fitPlanCamera();
         }
       };
 
       const fitModel = () => {
+        if (!fullModelScene) return;
+        activateFullModel();
+
         const box = new THREE.Box3().setFromObject(modelRoot);
         if (box.isEmpty()) return;
 
@@ -210,7 +385,10 @@ const title = 'Private 3D viewer';
       };
 
       const axisView = (direction: 'top' | 'bottom') => {
+        if (!fullModelScene) return;
+        activateFullModel();
         controls.target.copy(modelCenter);
+
         if (direction === 'top') {
           camera.position.copy(modelCenter).add(new THREE.Vector3(0, fitDistance, 0));
           camera.up.set(0, 0, -1);
@@ -218,6 +396,7 @@ const title = 'Private 3D viewer';
           camera.position.copy(modelCenter).add(new THREE.Vector3(0, -fitDistance, 0));
           camera.up.set(0, 0, 1);
         }
+
         camera.lookAt(modelCenter);
         camera.updateProjectionMatrix();
         controls.update();
@@ -225,12 +404,24 @@ const title = 'Private 3D viewer';
 
       const loadModel = async () => {
         const loader = new GLTFLoader();
+
         try {
           const gltf = await loader.loadAsync('/private-model/model.glb');
-          modelRoot.clear();
-          modelRoot.add(gltf.scene);
+          fullModelScene = gltf.scene;
+          dInteriorScene =
+            gltf.scenes.find((candidate: any) => candidate.name === 'D CURRENT INTERIOR - BABYLON Y-UP') ??
+            null;
+
+          dVisibilityBaseline.clear();
+          if (dInteriorScene) {
+            dInteriorScene.traverse((object: any) => {
+              if (object.isMesh) dVisibilityBaseline.set(object, object.visible);
+            });
+          }
+
+          setModelScene(fullModelScene);
           fitModel();
-          status.textContent = 'Malli ladattu';
+          status.textContent = dInteriorScene ? 'Malli ladattu - D-pohjat käytettävissä' : 'Malli ladattu';
         } catch (error) {
           console.error(error);
           status.textContent = 'Suojattua mallia ei ole vielä käytettävissä';
@@ -241,6 +432,8 @@ const title = 'Private 3D viewer';
       orbitButton.addEventListener('click', fitModel);
       topButton.addEventListener('click', () => axisView('top'));
       bottomButton.addEventListener('click', () => axisView('bottom'));
+      d1PlanButton.addEventListener('click', () => activateDPlan('1F'));
+      d2PlanButton.addEventListener('click', () => activateDPlan('2F'));
 
       const resizeObserver = new ResizeObserver(updateSize);
       resizeObserver.observe(canvas.parentElement ?? canvas);
@@ -248,7 +441,8 @@ const title = 'Private 3D viewer';
       renderer.setAnimationLoop(() => {
         updateSize();
         controls.update();
-        renderer.render(scene, camera);
+        planControls.update();
+        renderer.render(scene, activeCamera);
       });
 
       void loadModel();
