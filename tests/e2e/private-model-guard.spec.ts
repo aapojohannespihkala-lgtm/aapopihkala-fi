@@ -23,7 +23,11 @@ const makeMinimalGlb = (json: Record<string, unknown>) => {
 };
 
 
-const makeTriangleGlb = (nodeExtras: Record<string, unknown> = {}) => {
+const makeTriangleGlb = (
+  nodeExtras: Record<string, unknown> = {},
+  materialExtras: Record<string, unknown> | null = null,
+  materialOpacity = 1,
+) => {
   const positions = Buffer.alloc(36);
   [-1, -1, 0, 1, -1, 0, 0, 1, 0].forEach((value, index) => {
     positions.writeFloatLE(value, index * 4);
@@ -34,7 +38,34 @@ const makeTriangleGlb = (nodeExtras: Record<string, unknown> = {}) => {
     scene: 0,
     scenes: [{ name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [0] }],
     nodes: [{ name: 'D_1F_TEST_GROUP', mesh: 0, extras: nodeExtras }],
-    meshes: [{ name: 'TEST_TRIANGLE', primitives: [{ attributes: { POSITION: 0 } }] }],
+    meshes: [
+      {
+        name: 'TEST_TRIANGLE',
+        primitives: [
+          {
+            attributes: { POSITION: 0 },
+            ...(materialExtras ? { material: 0 } : {}),
+          },
+        ],
+      },
+    ],
+    ...(materialExtras
+      ? {
+          materials: [
+            {
+              name: 'TEST_ARCH_BASE',
+              pbrMetallicRoughness: {
+                baseColorFactor: [0.45, 0.55, 0.65, materialOpacity],
+                metallicFactor: 0,
+                roughnessFactor: 1,
+              },
+              alphaMode: materialOpacity < 1 ? 'BLEND' : 'OPAQUE',
+              doubleSided: true,
+              extras: materialExtras,
+            },
+          ],
+        }
+      : {}),
     buffers: [{ byteLength: positions.length }],
     bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: positions.length, target: 34962 }],
     accessors: [
@@ -314,4 +345,44 @@ test('private viewer roof test layer toggles explicit roof metadata and exposes 
 
   await page.getByRole('button', { name: 'Sulje' }).click();
   await expect(layerPanel).toBeHidden();
+});
+
+
+test('private viewer makes ARCH_BASE opaque and uses absolute roof opacity', async ({ page }) => {
+  const model = makeTriangleGlb(
+    { presentationLayer: 'REFERENCE_ROOF' },
+    { presentationGroup: 'ARCH_BASE' },
+    0.58,
+  );
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-arch-base-opacity', '1');
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  const opacity = page.locator('#roof-layer-opacity');
+  const output = page.locator('#roof-layer-opacity-value');
+
+  await expect(output).toHaveAttribute('data-material-opacity', '1');
+
+  await opacity.fill('40');
+  await opacity.dispatchEvent('input');
+  await expect(output).toHaveText('40 %');
+  await expect(output).toHaveAttribute('data-material-opacity', '0.4');
+
+  await opacity.fill('100');
+  await opacity.dispatchEvent('input');
+  await expect(output).toHaveAttribute('data-material-opacity', '1');
+
+  await page.getByRole('button', { name: 'Iso' }).click();
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(output).toHaveAttribute('data-material-opacity', '1');
 });
