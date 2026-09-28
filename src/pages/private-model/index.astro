@@ -84,6 +84,59 @@ const title = 'Private 3D viewer';
         text-align: right;
       }
 
+      .selection-panel {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 2;
+        width: min(340px, calc(100% - 24px));
+        max-height: calc(100% - 24px);
+        overflow: auto;
+        padding: 12px;
+        border: 1px solid #d7d7d2;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 8px 28px rgba(25, 28, 25, 0.14);
+      }
+
+      .selection-panel[hidden] { display: none; }
+
+      .selection-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .selection-header h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 650;
+      }
+
+      .selection-header button {
+        padding: 6px 9px;
+        font-size: 12px;
+      }
+
+      .selection-grid {
+        display: grid;
+        grid-template-columns: minmax(80px, auto) minmax(0, 1fr);
+        gap: 6px 10px;
+        margin: 0;
+        font-size: 13px;
+      }
+
+      .selection-grid dt {
+        color: #6c6e69;
+      }
+
+      .selection-grid dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
       .viewport {
         position: relative;
         width: 100%;
@@ -139,6 +192,22 @@ const title = 'Private 3D viewer';
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
+        <aside id="selection-panel" class="selection-panel" aria-live="polite" hidden>
+          <div class="selection-header">
+            <h2>Valittu kohde</h2>
+            <button id="clear-selection-button" type="button">Tyhjennä</button>
+          </div>
+          <dl class="selection-grid">
+            <dt>Mesh</dt>
+            <dd id="selection-mesh">-</dd>
+            <dt>Ryhmä</dt>
+            <dd id="selection-group">-</dd>
+            <dt>Scene</dt>
+            <dd id="selection-scene">-</dd>
+            <dt>Kerros</dt>
+            <dd id="selection-floor">-</dd>
+          </dl>
+        </aside>
       </section>
     </main>
 
@@ -153,6 +222,12 @@ const title = 'Private 3D viewer';
       const bottomButton = document.querySelector<HTMLButtonElement>('#bottom-button');
       const d1PlanButton = document.querySelector<HTMLButtonElement>('#d1-plan-button');
       const d2PlanButton = document.querySelector<HTMLButtonElement>('#d2-plan-button');
+      const selectionPanel = document.querySelector<HTMLElement>('#selection-panel');
+      const selectionMesh = document.querySelector<HTMLElement>('#selection-mesh');
+      const selectionGroup = document.querySelector<HTMLElement>('#selection-group');
+      const selectionScene = document.querySelector<HTMLElement>('#selection-scene');
+      const selectionFloor = document.querySelector<HTMLElement>('#selection-floor');
+      const clearSelectionButton = document.querySelector<HTMLButtonElement>('#clear-selection-button');
 
       if (
         !canvas ||
@@ -162,7 +237,13 @@ const title = 'Private 3D viewer';
         !topButton ||
         !bottomButton ||
         !d1PlanButton ||
-        !d2PlanButton
+        !d2PlanButton ||
+        !selectionPanel ||
+        !selectionMesh ||
+        !selectionGroup ||
+        !selectionScene ||
+        !selectionFloor ||
+        !clearSelectionButton
       ) {
         throw new Error('Private viewer controls are missing');
       }
@@ -208,6 +289,12 @@ const title = 'Private 3D viewer';
       let dInteriorScene: any = null;
       let activePlanFloor: '1F' | '2F' | null = null;
       const dVisibilityBaseline = new Map<any, boolean>();
+      let sourceSceneNames = new WeakMap<any, string>();
+      const raycaster = new THREE.Raycaster();
+      const pointer = new THREE.Vector2();
+      let selectionHelper: any = null;
+      let pointerDown: { pointerId: number; x: number; y: number } | null = null;
+      const pickDragThresholdPx = 6;
 
       const setModelScene = (root: any) => {
         modelRoot.clear();
@@ -287,7 +374,99 @@ const title = 'Private 3D viewer';
         return found ? bounds : null;
       };
 
+      const isEffectivelyVisible = (object: any) => {
+        let current = object;
+        while (current && current !== modelRoot.parent) {
+          if (!current.visible) return false;
+          if (current === modelRoot) return true;
+          current = current.parent;
+        }
+        return false;
+      };
+
+      const nearestNamedAncestor = (object: any) => {
+        let current = object.parent;
+        while (current && current !== modelRoot) {
+          if (current.name) return String(current.name);
+          current = current.parent;
+        }
+        return '';
+      };
+
+      const sceneNameForObject = (object: any) => {
+        let current = object;
+        while (current && current !== modelRoot) {
+          if (current.isScene) {
+            return sourceSceneNames.get(current) || (current.name ? String(current.name) : '');
+          }
+          current = current.parent;
+        }
+
+        const fallback = activePlanFloor ? dInteriorScene : fullModelScene;
+        if (!fallback) return '';
+        return sourceSceneNames.get(fallback) || (fallback.name ? String(fallback.name) : '');
+      };
+
+      const explicitFloorToken = (object: any) => {
+        const has1F = hasFloorToken(object, '1F');
+        const has2F = hasFloorToken(object, '2F');
+        if (has1F && has2F) return '1F / 2F';
+        if (has1F) return '1F';
+        if (has2F) return '2F';
+        return '-';
+      };
+
+      const clearSelection = () => {
+        if (selectionHelper) {
+          scene.remove(selectionHelper);
+          selectionHelper.geometry?.dispose?.();
+          selectionHelper.material?.dispose?.();
+          selectionHelper = null;
+        }
+
+        selectionPanel.hidden = true;
+        selectionMesh.textContent = '-';
+        selectionGroup.textContent = '-';
+        selectionScene.textContent = '-';
+        selectionFloor.textContent = '-';
+      };
+
+      const selectObject = (object: any) => {
+        clearSelection();
+
+        selectionMesh.textContent = object.name ? String(object.name) : '(nimetön mesh)';
+        selectionGroup.textContent = nearestNamedAncestor(object) || '-';
+        selectionScene.textContent = sceneNameForObject(object) || '-';
+        selectionFloor.textContent = explicitFloorToken(object);
+        selectionPanel.hidden = false;
+
+        selectionHelper = new THREE.BoxHelper(object, 0x356a8a);
+        scene.add(selectionHelper);
+        selectionHelper.update();
+      };
+
+      const selectAtClientPoint = (clientX: number, clientY: number) => {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(pointer, activeCamera);
+
+        const hit = raycaster
+          .intersectObjects(modelRoot.children, true)
+          .find((candidate: any) => candidate.object?.isMesh && isEffectivelyVisible(candidate.object));
+
+        if (!hit) {
+          clearSelection();
+          return;
+        }
+
+        selectObject(hit.object);
+      };
+
       const activateFullModel = () => {
+        clearSelection();
         restoreDVisibility();
         activePlanFloor = null;
         planControls.enabled = false;
@@ -351,6 +530,7 @@ const title = 'Private 3D viewer';
       };
 
       const activateDPlan = (floor: '1F' | '2F') => {
+        clearSelection();
         if (!dInteriorScene) {
           status.textContent = 'D-asunnon pohjanäkymää ei löydy tästä mallista';
           return;
@@ -436,6 +616,15 @@ const title = 'Private 3D viewer';
 
         try {
           const gltf = await loader.loadAsync('/private-model/model.glb');
+          sourceSceneNames = new WeakMap<any, string>();
+          const sourceScenes = gltf?.parser?.json?.scenes;
+          if (Array.isArray(sourceScenes)) {
+            gltf.scenes?.forEach((candidate: any, index: number) => {
+              const sourceName = sourceScenes[index]?.name;
+              if (sourceName) sourceSceneNames.set(candidate, String(sourceName));
+            });
+          }
+
           fullModelScene = gltf.scene;
           dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
 
@@ -461,6 +650,27 @@ const title = 'Private 3D viewer';
       bottomButton.addEventListener('click', () => axisView('bottom'));
       d1PlanButton.addEventListener('click', () => activateDPlan('1F'));
       d2PlanButton.addEventListener('click', () => activateDPlan('2F'));
+      clearSelectionButton.addEventListener('click', clearSelection);
+
+      canvas.addEventListener('pointerdown', (event) => {
+        pointerDown = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+      });
+
+      canvas.addEventListener('pointerup', (event) => {
+        if (!pointerDown || pointerDown.pointerId !== event.pointerId) return;
+
+        const distance = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
+        pointerDown = null;
+        if (distance <= pickDragThresholdPx) selectAtClientPoint(event.clientX, event.clientY);
+      });
+
+      canvas.addEventListener('pointercancel', () => {
+        pointerDown = null;
+      });
+
+      window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') clearSelection();
+      });
 
       const resizeObserver = new ResizeObserver(updateSize);
       resizeObserver.observe(canvas.parentElement ?? canvas);
@@ -469,6 +679,7 @@ const title = 'Private 3D viewer';
         updateSize();
         controls.update();
         planControls.update();
+        selectionHelper?.update?.();
         renderer.render(scene, activeCamera);
       });
 
