@@ -84,6 +84,65 @@ const title = 'Private 3D viewer';
         text-align: right;
       }
 
+      .layers-panel {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 2;
+        width: min(290px, calc(100% - 24px));
+        padding: 12px;
+        border: 1px solid #d7d7d2;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 8px 28px rgba(25, 28, 25, 0.14);
+      }
+
+      .layers-panel[hidden] { display: none; }
+
+      .layers-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .layers-header h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 650;
+      }
+
+      .layers-header button {
+        padding: 6px 9px;
+        font-size: 12px;
+      }
+
+      .layer-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+
+      .layer-opacity {
+        display: grid;
+        grid-template-columns: auto minmax(90px, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        font-size: 12px;
+        color: #555853;
+      }
+
+      .layer-opacity input { width: 100%; }
+
+      .layer-count {
+        margin-top: 8px;
+        color: #777a75;
+        font-size: 11px;
+      }
+
       .selection-panel {
         position: absolute;
         top: 12px;
@@ -187,11 +246,28 @@ const title = 'Private 3D viewer';
         <button id="bottom-button" type="button">Alhaalta</button>
         <button id="d1-plan-button" type="button">D 1F</button>
         <button id="d2-plan-button" type="button">D 2F</button>
+        <button id="layers-button" type="button" aria-expanded="false" aria-controls="layers-panel">Layerit</button>
         <div id="viewer-status" class="status" role="status">Ladataan suojattua mallia...</div>
       </div>
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
+        <aside id="layers-panel" class="layers-panel" hidden>
+          <div class="layers-header">
+            <h2>Layerit</h2>
+            <button id="close-layers-button" type="button">Sulje</button>
+          </div>
+          <label class="layer-row">
+            <input id="roof-layer-visible" type="checkbox" checked />
+            <span>Katto (testi)</span>
+          </label>
+          <label class="layer-opacity">
+            <span>Peittävyys</span>
+            <input id="roof-layer-opacity" type="range" min="0" max="100" step="5" value="100" />
+            <output id="roof-layer-opacity-value">100 %</output>
+          </label>
+          <div id="roof-layer-count" class="layer-count">0 kohdetta</div>
+        </aside>
         <aside id="selection-panel" class="selection-panel" aria-live="polite" hidden>
           <div class="selection-header">
             <h2>Valittu kohde</h2>
@@ -222,6 +298,13 @@ const title = 'Private 3D viewer';
       const bottomButton = document.querySelector<HTMLButtonElement>('#bottom-button');
       const d1PlanButton = document.querySelector<HTMLButtonElement>('#d1-plan-button');
       const d2PlanButton = document.querySelector<HTMLButtonElement>('#d2-plan-button');
+      const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
+      const layersPanel = document.querySelector<HTMLElement>('#layers-panel');
+      const closeLayersButton = document.querySelector<HTMLButtonElement>('#close-layers-button');
+      const roofLayerVisibleInput = document.querySelector<HTMLInputElement>('#roof-layer-visible');
+      const roofLayerOpacityInput = document.querySelector<HTMLInputElement>('#roof-layer-opacity');
+      const roofLayerOpacityValue = document.querySelector<HTMLOutputElement>('#roof-layer-opacity-value');
+      const roofLayerCount = document.querySelector<HTMLElement>('#roof-layer-count');
       const selectionPanel = document.querySelector<HTMLElement>('#selection-panel');
       const selectionMesh = document.querySelector<HTMLElement>('#selection-mesh');
       const selectionGroup = document.querySelector<HTMLElement>('#selection-group');
@@ -238,6 +321,13 @@ const title = 'Private 3D viewer';
         !bottomButton ||
         !d1PlanButton ||
         !d2PlanButton ||
+        !layersButton ||
+        !layersPanel ||
+        !closeLayersButton ||
+        !roofLayerVisibleInput ||
+        !roofLayerOpacityInput ||
+        !roofLayerOpacityValue ||
+        !roofLayerCount ||
         !selectionPanel ||
         !selectionMesh ||
         !selectionGroup ||
@@ -293,8 +383,15 @@ const title = 'Private 3D viewer';
       const raycaster = new THREE.Raycaster();
       const pointer = new THREE.Vector2();
       let selectionHelper: any = null;
+      let selectedObject: any = null;
       let pointerDown: { pointerId: number; x: number; y: number } | null = null;
       const pickDragThresholdPx = 6;
+      const roofLayerMembers = new Set<any>();
+      const roofLayerMeshes = new Set<any>();
+      const roofLayerVisibilityBaseline = new Map<any, boolean>();
+      const roofLayerMaterialBaseline = new Map<any, { opacity: number; transparent: boolean }>();
+      let roofLayerVisible = true;
+      let roofLayerOpacity = 1;
 
       const setModelScene = (root: any) => {
         modelRoot.clear();
@@ -348,6 +445,85 @@ const title = 'Private 3D viewer';
         return new RegExp('(^|[_\\s-])' + floor + '([_\\s-]|$)').test(name);
       };
 
+      const isRoofLayerMember = (object: any) => {
+        const data = object?.userData ?? {};
+        return (
+          data.presentationLayer === 'REFERENCE_ROOF' ||
+          data.representationKind === 'presentationRoofStepFace' ||
+          Array.isArray(data.derivedRoofReferenceEnvelopeY_M) ||
+          (
+            data.sourceContract === 'R3-D09' &&
+            Object.prototype.hasOwnProperty.call(data, 'physicalEaveExtentClaim')
+          )
+        );
+      };
+
+      const registerRoofMaterial = (material: any) => {
+        if (!material || roofLayerMaterialBaseline.has(material)) return material;
+        roofLayerMaterialBaseline.set(material, {
+          opacity: typeof material.opacity === 'number' ? material.opacity : 1,
+          transparent: Boolean(material.transparent),
+        });
+        return material;
+      };
+
+      const cloneRoofMeshMaterial = (mesh: any) => {
+        const material = mesh.material;
+        if (Array.isArray(material)) {
+          mesh.material = material.map((item: any) => registerRoofMaterial(item.clone()));
+        } else if (material?.clone) {
+          mesh.material = registerRoofMaterial(material.clone());
+        }
+      };
+
+      const applyRoofLayerState = () => {
+        for (const member of roofLayerMembers) {
+          const baseline = roofLayerVisibilityBaseline.get(member) ?? true;
+          member.visible = baseline && roofLayerVisible;
+        }
+
+        for (const [material, baseline] of roofLayerMaterialBaseline.entries()) {
+          material.opacity = Math.max(0, Math.min(1, baseline.opacity * roofLayerOpacity));
+          material.transparent = baseline.transparent || material.opacity < 0.999;
+          material.needsUpdate = true;
+        }
+
+        roofLayerOpacityValue.textContent = `${Math.round(roofLayerOpacity * 100)} %`;
+      };
+
+      const initializeRoofLayer = () => {
+        roofLayerMembers.clear();
+        roofLayerMeshes.clear();
+        roofLayerVisibilityBaseline.clear();
+        roofLayerMaterialBaseline.clear();
+
+        if (!fullModelScene) {
+          roofLayerCount.textContent = '0 kohdetta';
+          return;
+        }
+
+        fullModelScene.traverse((object: any) => {
+          if (!isRoofLayerMember(object)) return;
+
+          roofLayerMembers.add(object);
+          roofLayerVisibilityBaseline.set(object, object.visible);
+
+          object.traverse((child: any) => {
+            if (!child.isMesh || roofLayerMeshes.has(child)) return;
+            roofLayerMeshes.add(child);
+            cloneRoofMeshMaterial(child);
+          });
+        });
+
+        roofLayerCount.textContent = `${roofLayerMeshes.size} kohdetta`;
+        applyRoofLayerState();
+      };
+
+      const setLayersPanelOpen = (open: boolean) => {
+        layersPanel.hidden = !open;
+        layersButton.setAttribute('aria-expanded', String(open));
+      };
+
       const computeVisibleBounds = (root: any) => {
         const bounds = new THREE.Box3();
         let found = false;
@@ -382,6 +558,11 @@ const title = 'Private 3D viewer';
           current = current.parent;
         }
         return false;
+      };
+
+      const hasVisibleMaterial = (object: any) => {
+        const materials = Array.isArray(object?.material) ? object.material : [object?.material];
+        return materials.some((material: any) => !material || material.opacity === undefined || material.opacity > 0.01);
       };
 
       const nearestNamedAncestor = (object: any) => {
@@ -425,6 +606,7 @@ const title = 'Private 3D viewer';
         }
 
         selectionPanel.hidden = true;
+        selectedObject = null;
         selectionMesh.textContent = '-';
         selectionGroup.textContent = '-';
         selectionScene.textContent = '-';
@@ -434,6 +616,7 @@ const title = 'Private 3D viewer';
       const selectObject = (object: any) => {
         clearSelection();
 
+        selectedObject = object;
         selectionMesh.textContent = object.name ? String(object.name) : '(nimetön mesh)';
         selectionGroup.textContent = nearestNamedAncestor(object) || '-';
         selectionScene.textContent = sceneNameForObject(object) || '-';
@@ -455,7 +638,12 @@ const title = 'Private 3D viewer';
 
         const hit = raycaster
           .intersectObjects(modelRoot.children, true)
-          .find((candidate: any) => candidate.object?.isMesh && isEffectivelyVisible(candidate.object));
+          .find(
+            (candidate: any) =>
+              candidate.object?.isMesh &&
+              isEffectivelyVisible(candidate.object) &&
+              hasVisibleMaterial(candidate.object),
+          );
 
         if (!hit) {
           clearSelection();
@@ -473,6 +661,7 @@ const title = 'Private 3D viewer';
         controls.enabled = true;
         activeCamera = camera;
         setModelScene(fullModelScene);
+        applyRoofLayerState();
       };
 
       const fitPlanCamera = () => {
@@ -628,6 +817,8 @@ const title = 'Private 3D viewer';
           fullModelScene = gltf.scene;
           dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
 
+          initializeRoofLayer();
+
           dVisibilityBaseline.clear();
           if (dInteriorScene) {
             dInteriorScene.traverse((object: any) => {
@@ -650,6 +841,18 @@ const title = 'Private 3D viewer';
       bottomButton.addEventListener('click', () => axisView('bottom'));
       d1PlanButton.addEventListener('click', () => activateDPlan('1F'));
       d2PlanButton.addEventListener('click', () => activateDPlan('2F'));
+      layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
+      closeLayersButton.addEventListener('click', () => setLayersPanelOpen(false));
+      roofLayerVisibleInput.addEventListener('change', () => {
+        roofLayerVisible = roofLayerVisibleInput.checked;
+        if (selectedObject && roofLayerMeshes.has(selectedObject) && !roofLayerVisible) clearSelection();
+        applyRoofLayerState();
+      });
+      roofLayerOpacityInput.addEventListener('input', () => {
+        roofLayerOpacity = Math.max(0, Math.min(1, Number(roofLayerOpacityInput.value) / 100));
+        if (selectedObject && roofLayerMeshes.has(selectedObject) && roofLayerOpacity <= 0.01) clearSelection();
+        applyRoofLayerState();
+      });
       clearSelectionButton.addEventListener('click', clearSelection);
 
       canvas.addEventListener('pointerdown', (event) => {
