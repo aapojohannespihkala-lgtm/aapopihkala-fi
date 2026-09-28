@@ -57,7 +57,7 @@ test('private model handler rejects unsupported methods before auth or assets', 
   expect(assetFetches).toBe(0);
 });
 
-test('private viewer exposes D apartment floor plan presets', async ({ page }) => {
+test('private viewer exposes D apartment floor plan presets and bounded selection UI', async ({ page }) => {
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({
       status: 404,
@@ -71,5 +71,15 @@ test('private viewer exposes D apartment floor plan presets', async ({ page }) =
   await expect(page.getByRole('button', { name: 'D 1F' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D 2F' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Fit / Reset' })).toBeVisible();
+
+  const selectionPanel = page.locator('#selection-panel');
+  await expect(selectionPanel).toBeHidden();
+  await expect(page.locator('#selection-mesh')).toHaveText('-');
+  await expect(page.locator('#selection-group')).toHaveText('-');
+  await expect(page.locator('#selection-scene')).toHaveText('-');
+  await expect(page.locator('#selection-floor')).toHaveText('-');
+
+  await page.locator('#private-model-canvas').click({ position: { x: 24, y: 24 } });
+  await expect(selectionPanel).toBeHidden();
 });
 
