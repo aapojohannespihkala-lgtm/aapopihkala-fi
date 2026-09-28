@@ -668,7 +668,7 @@ const title = 'Private 3D viewer';
 
       const syncViewState = (preset: 'orbit' | 'top' | 'bottom' | 'isometric' | 'd-plan') => {
         canvas.dataset.viewPreset = preset;
-        canvas.dataset.cameraProjection = activeCamera.isOrthographicCamera ? 'orthographic' : 'perspective';
+        canvas.dataset.cameraProjection = (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective';
       };
 
       const fitIsometricCamera = () => {
