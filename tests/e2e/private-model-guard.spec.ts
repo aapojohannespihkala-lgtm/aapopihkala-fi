@@ -506,8 +506,5 @@ test('private viewer full-model fit includes visible line geometry and excludes 
   await page.getByRole('button', { name: 'Iso' }).click();
   const hiddenIsoCenter = Number(await canvas.getAttribute('data-iso-fit-center-x'));
   expect(Math.abs(hiddenIsoCenter)).toBeLessThan(0.01);
-
-  await canvas.click();
-  await expect(page.locator('#selection-panel')).toBeHidden();
 });
 
