@@ -244,6 +244,7 @@ const title = 'Private 3D viewer';
         <button id="orbit-button" type="button">Orbit</button>
         <button id="top-button" type="button">Ylhäältä</button>
         <button id="bottom-button" type="button">Alhaalta</button>
+        <button id="iso-button" type="button">Iso</button>
         <button id="d1-plan-button" type="button">D 1F</button>
         <button id="d2-plan-button" type="button">D 2F</button>
         <button id="layers-button" type="button" aria-expanded="false" aria-controls="layers-panel">Layerit</button>
@@ -296,6 +297,7 @@ const title = 'Private 3D viewer';
       const orbitButton = document.querySelector<HTMLButtonElement>('#orbit-button');
       const topButton = document.querySelector<HTMLButtonElement>('#top-button');
       const bottomButton = document.querySelector<HTMLButtonElement>('#bottom-button');
+      const isoButton = document.querySelector<HTMLButtonElement>('#iso-button');
       const d1PlanButton = document.querySelector<HTMLButtonElement>('#d1-plan-button');
       const d2PlanButton = document.querySelector<HTMLButtonElement>('#d2-plan-button');
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
@@ -319,6 +321,7 @@ const title = 'Private 3D viewer';
         !orbitButton ||
         !topButton ||
         !bottomButton ||
+        !isoButton ||
         !d1PlanButton ||
         !d2PlanButton ||
         !layersButton ||
@@ -350,6 +353,9 @@ const title = 'Private 3D viewer';
       const planCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 5000);
       planCamera.up.set(0, 0, -1);
 
+      const isoCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 5000);
+      isoCamera.up.set(0, 1, 0);
+
       const controls = new OrbitControls(camera, canvas);
       controls.enableDamping = true;
       controls.dampingFactor = 0.08;
@@ -361,6 +367,13 @@ const title = 'Private 3D viewer';
       planControls.screenSpacePanning = true;
       planControls.enableRotate = false;
       planControls.enabled = false;
+
+      const isoControls = new OrbitControls(isoCamera, canvas);
+      isoControls.enableDamping = true;
+      isoControls.dampingFactor = 0.08;
+      isoControls.screenSpacePanning = true;
+      isoControls.enableRotate = false;
+      isoControls.enabled = false;
 
       const ambient = new THREE.HemisphereLight(0xffffff, 0x777777, 2.2);
       scene.add(ambient);
@@ -374,7 +387,7 @@ const title = 'Private 3D viewer';
 
       const modelCenter = new THREE.Vector3();
       let fitDistance = 10;
-      let activeCamera: typeof camera | typeof planCamera = camera;
+      let activeCamera: typeof camera | typeof planCamera | typeof isoCamera = camera;
       let fullModelScene: any = null;
       let dInteriorScene: any = null;
       let activePlanFloor: '1F' | '2F' | null = null;
@@ -653,15 +666,77 @@ const title = 'Private 3D viewer';
         selectObject(hit.object);
       };
 
+      const syncViewState = (preset: 'orbit' | 'top' | 'bottom' | 'isometric' | 'd-plan') => {
+        canvas.dataset.viewPreset = preset;
+        canvas.dataset.cameraProjection = activeCamera.isOrthographicCamera ? 'orthographic' : 'perspective';
+      };
+
+      const fitIsometricCamera = () => {
+        if (!fullModelScene) return;
+
+        const box = computeVisibleBounds(fullModelScene);
+        if (!box) return;
+
+        const center = new THREE.Vector3();
+        const sphere = new THREE.Sphere();
+        box.getCenter(center);
+        box.getBoundingSphere(sphere);
+
+        const radius = Math.max(sphere.radius, 0.25);
+        const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
+        let halfHeight = radius * 1.16;
+        let halfWidth = halfHeight * aspect;
+        if (halfWidth < radius * 1.16) {
+          halfHeight = (radius * 1.16) / aspect;
+          halfWidth = halfHeight * aspect;
+        }
+
+        const direction = new THREE.Vector3(1, 1, 1).normalize();
+        const distance = Math.max(radius * 3.2, 4);
+        isoCamera.position.copy(center).addScaledVector(direction, distance);
+        isoCamera.up.set(0, 1, 0);
+        isoCamera.lookAt(center);
+        isoCamera.left = -halfWidth;
+        isoCamera.right = halfWidth;
+        isoCamera.top = halfHeight;
+        isoCamera.bottom = -halfHeight;
+        isoCamera.near = Math.max(distance / 10000, 0.001);
+        isoCamera.far = Math.max(distance * 4 + radius * 2, 1000);
+        isoCamera.zoom = 1;
+        isoCamera.updateProjectionMatrix();
+
+        isoControls.target.copy(center);
+        isoControls.update();
+      };
+
+      const activateIsometric = () => {
+        if (!fullModelScene) return;
+
+        clearSelection();
+        restoreDVisibility();
+        activePlanFloor = null;
+        controls.enabled = false;
+        planControls.enabled = false;
+        isoControls.enabled = true;
+        activeCamera = isoCamera;
+        setModelScene(fullModelScene);
+        applyRoofLayerState();
+        fitIsometricCamera();
+        syncViewState('isometric');
+        status.textContent = 'Isometrinen - ortografinen 3/4-näkymä';
+      };
+
       const activateFullModel = () => {
         clearSelection();
         restoreDVisibility();
         activePlanFloor = null;
         planControls.enabled = false;
+        isoControls.enabled = false;
         controls.enabled = true;
         activeCamera = camera;
         setModelScene(fullModelScene);
         applyRoofLayerState();
+        syncViewState('orbit');
       };
 
       const fitPlanCamera = () => {
@@ -735,10 +810,12 @@ const title = 'Private 3D viewer';
         }
 
         controls.enabled = false;
+        isoControls.enabled = false;
         planControls.enabled = true;
         activePlanFloor = floor;
         activeCamera = planCamera;
         fitPlanCamera();
+        syncViewState('d-plan');
         status.textContent = `D ${floor} - ortografinen pohjanäkymä`;
       };
 
@@ -754,6 +831,7 @@ const title = 'Private 3D viewer';
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
           if (activePlanFloor) fitPlanCamera();
+          else if (activeCamera === isoCamera) fitIsometricCamera();
         }
       };
 
@@ -798,6 +876,7 @@ const title = 'Private 3D viewer';
         camera.lookAt(modelCenter);
         camera.updateProjectionMatrix();
         controls.update();
+        syncViewState(direction);
       };
 
       const loadModel = async () => {
@@ -839,6 +918,7 @@ const title = 'Private 3D viewer';
       orbitButton.addEventListener('click', fitModel);
       topButton.addEventListener('click', () => axisView('top'));
       bottomButton.addEventListener('click', () => axisView('bottom'));
+      isoButton.addEventListener('click', activateIsometric);
       d1PlanButton.addEventListener('click', () => activateDPlan('1F'));
       d2PlanButton.addEventListener('click', () => activateDPlan('2F'));
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
@@ -882,6 +962,7 @@ const title = 'Private 3D viewer';
         updateSize();
         controls.update();
         planControls.update();
+        isoControls.update();
         selectionHelper?.update?.();
         renderer.render(scene, activeCamera);
       });
