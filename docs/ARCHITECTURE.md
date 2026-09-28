@@ -92,6 +92,16 @@ Kamera-, geometria-, materiaali-, piste-, morph-, damping- ja animaatioparametre
 
 Interaktiivisten 3D-animaatioiden orbitointia koskeva projektisääntö on `AGENTS.md`-tiedostossa.
 
+## Suojattu 3D-katselu
+
+Yksityinen 3D-katselu käyttää geneeristä `/private-model/`-reittiä. Reitti ei ole julkinen sisältöreitti eikä sitä linkitetä navigaatioon tai indeksoida hakukoneisiin.
+
+Sekä viewer-sivu että mallin `/private-model/model.glb`-vastine kulkevat Cloudflare Worker -kerroksen läpi ennen Static Assets -fallbackia. Worker validoi Cloudflare Accessin `Cf-Access-Jwt-Assertion`-tokenin allekirjoituksen, issuerin, audience-claimin ja voimassaolon ennen kuin se palvelee yhtään private-model-reitin assettia. Puuttuva tai virheellinen Access-konfiguraatio epäonnistuu suljetusti eikä päästä pyyntöä staattisille asseteille.
+
+Varsinainen 3D-malli ei kuulu Git-repositoryyn eikä Astro-buildin julkisiin assetteihin. Malli haetaan vain Workerille sidotusta yksityisestä objektitallennuksesta. Reitti pysyy tarkoituksella käyttökelvottomana, kunnes Cloudflare Access -sovellus, `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`, `PRIVATE_MODEL_BUCKET`-binding ja `PRIVATE_MODEL_OBJECT_KEY` on asetettu tuotantoympäristöön. Mallin tai tunnistetietojen lisääminen Git-historiaan ei kuulu tähän julkaisureittiin.
+
+Viewer käyttää repositoryn yhteistä npm Three.js -runtimea. Se ei käytä erillistä CDN-runtimea eikä muodosta rinnakkaista 3D-kirjastopinon versiota.
+
 ## Animation Lab
 
 Animation Lab sijaitsee `src/pages/lab/`-reitissä. Uusien interaktiivisten animaatiotutkielmien pariteettisääntö on määritelty `AGENTS.md`-tiedostossa.

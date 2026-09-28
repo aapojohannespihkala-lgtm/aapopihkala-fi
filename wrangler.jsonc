@@ -16,7 +16,9 @@
       "/api/current/widget",
       "/api/current/widget-v2",
       "/api/current/liiga",
-      "/api/current/liiga-schedule"
+      "/api/current/liiga-schedule",
+      "/private-model",
+      "/private-model/*"
     ]
   },
   "observability": {
