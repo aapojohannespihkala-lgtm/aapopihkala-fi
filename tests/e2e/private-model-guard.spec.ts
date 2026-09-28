@@ -102,3 +102,40 @@ test('private viewer resolves the source D scene even when Three runtime names a
   await expect(page.getByRole('status')).toHaveText('Malli ladattu - D-pohjat käytettävissä');
 });
 
+
+test('private viewer fits inside the browser viewport without document scrolling', async ({ page }) => {
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/octet-stream',
+      body: '',
+    });
+  });
+
+  for (const viewport of [
+    { width: 1280, height: 720 },
+    { width: 700, height: 520 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/private-model/');
+
+    const metrics = await page.evaluate(() => {
+      const viewportElement = document.querySelector<HTMLElement>('.viewport');
+      const rect = viewportElement?.getBoundingClientRect();
+      return {
+        clientHeight: document.documentElement.clientHeight,
+        scrollHeight: document.documentElement.scrollHeight,
+        bodyClientHeight: document.body.clientHeight,
+        bodyScrollHeight: document.body.scrollHeight,
+        viewportTop: rect?.top ?? -1,
+        viewportBottom: rect?.bottom ?? -1,
+        innerHeight: window.innerHeight,
+      };
+    });
+
+    expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.clientHeight + 1);
+    expect(metrics.bodyScrollHeight).toBeLessThanOrEqual(metrics.bodyClientHeight + 1);
+    expect(metrics.viewportTop).toBeGreaterThanOrEqual(0);
+    expect(metrics.viewportBottom).toBeLessThanOrEqual(metrics.innerHeight + 1);
+  }
+});
