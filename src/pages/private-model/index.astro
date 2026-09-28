@@ -22,20 +22,26 @@ const title = 'Private 3D viewer';
 
       html, body {
         margin: 0;
-        min-height: 100%;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
         background: #f4f4f1;
       }
 
       body {
-        min-height: 100vh;
+        height: 100vh;
+        height: 100dvh;
+        min-height: 0;
         padding: 10px;
       }
 
       .viewer-shell {
         width: 100%;
-        min-height: calc(100vh - 20px);
+        height: calc(100vh - 20px);
+        height: calc(100dvh - 20px);
+        min-height: 0;
         display: grid;
-        grid-template-rows: auto minmax(560px, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
         gap: 10px;
       }
 
@@ -81,8 +87,8 @@ const title = 'Private 3D viewer';
       .viewport {
         position: relative;
         width: 100%;
-        min-height: 560px;
-        height: calc(100vh - 86px);
+        min-height: 0;
+        height: auto;
         overflow: hidden;
         border: 1px solid #d7d7d2;
         border-radius: 10px;
@@ -101,12 +107,14 @@ const title = 'Private 3D viewer';
       @media (max-width: 760px) {
         body { padding: 6px; }
         .viewer-shell {
-          min-height: calc(100vh - 12px);
-          grid-template-rows: auto minmax(480px, 1fr);
+          height: calc(100vh - 12px);
+          height: calc(100dvh - 12px);
+          min-height: 0;
+          grid-template-rows: auto minmax(0, 1fr);
         }
         .viewport {
-          min-height: 480px;
-          height: calc(100vh - 132px);
+          min-height: 0;
+          height: auto;
         }
         .status {
           width: 100%;
