@@ -245,6 +245,105 @@ const makeLineGlb = () => {
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
+
+const makeLocusLayerGlb = () => {
+  const waterPositions = Buffer.alloc(24);
+  [-1, 0, 0, 1, 0, 0].forEach((value, index) => {
+    waterPositions.writeFloatLE(value, index * 4);
+  });
+
+  const wastewaterPositions = Buffer.alloc(24);
+  [-1, 0.4, 0, 1, 0.4, 0].forEach((value, index) => {
+    wastewaterPositions.writeFloatLE(value, index * 4);
+  });
+
+  const binary = Buffer.concat([waterPositions, wastewaterPositions]);
+  const json = {
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [0, 1] }],
+    nodes: [
+      {
+        name: 'LOCUS_WATER_LINE',
+        mesh: 0,
+        extras: {
+          presentationLayer: 'G3_LOCUS_SITE',
+          presentationSubgroup: 'WATER',
+          ModelStage: 'WORK_TEST_PRESENTATION',
+        },
+      },
+      {
+        name: 'LOCUS_WASTEWATER_LINE',
+        mesh: 1,
+        extras: {
+          presentationLayer: 'G3_LOCUS_SITE',
+          presentationSubgroup: 'WASTEWATER',
+          ModelStage: 'WORK_TEST_PRESENTATION',
+        },
+      },
+    ],
+    meshes: [
+      {
+        name: 'LOCUS_WATER_SEGMENTS',
+        primitives: [{ attributes: { POSITION: 0 }, mode: 1 }],
+      },
+      {
+        name: 'LOCUS_WASTEWATER_SEGMENTS',
+        primitives: [{ attributes: { POSITION: 1 }, mode: 1 }],
+      },
+    ],
+    buffers: [{ byteLength: binary.length }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: waterPositions.length, target: 34962 },
+      {
+        buffer: 0,
+        byteOffset: waterPositions.length,
+        byteLength: wastewaterPositions.length,
+        target: 34962,
+      },
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 2,
+        type: 'VEC3',
+        min: [-1, 0, 0],
+        max: [1, 0, 0],
+      },
+      {
+        bufferView: 1,
+        componentType: 5126,
+        count: 2,
+        type: 'VEC3',
+        min: [-1, 0.4, 0],
+        max: [1, 0.4, 0],
+      },
+    ],
+  };
+
+  const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
+  const jsonPadding = (4 - (jsonBuffer.length % 4)) % 4;
+  const jsonChunk = Buffer.concat([jsonBuffer, Buffer.alloc(jsonPadding, 0x20)]);
+  const binPadding = (4 - (binary.length % 4)) % 4;
+  const binChunk = Buffer.concat([binary, Buffer.alloc(binPadding)]);
+
+  const header = Buffer.alloc(12);
+  header.write('glTF', 0, 'ascii');
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + jsonChunk.length + 8 + binChunk.length, 8);
+
+  const jsonHeader = Buffer.alloc(8);
+  jsonHeader.writeUInt32LE(jsonChunk.length, 0);
+  jsonHeader.writeUInt32LE(0x4e4f534a, 4);
+
+  const binHeader = Buffer.alloc(8);
+  binHeader.writeUInt32LE(binChunk.length, 0);
+  binHeader.writeUInt32LE(0x004e4942, 4);
+
+  return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
+};
+
 test('private model route matching is bounded to its own prefix', () => {
   expect(isPrivateModelPath('/private-model')).toBe(true);
   expect(isPrivateModelPath('/private-model/')).toBe(true);
@@ -392,6 +491,55 @@ test('private viewer selects visible LineSegments and clears hidden line selecti
 
   await page.getByRole('button', { name: 'Layerit' }).click();
   await page.locator('#roof-layer-visible').uncheck();
+  await expect(panel).toBeHidden();
+
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(panel).toBeHidden();
+});
+
+test('private viewer exposes G3 LOCUS SITE as an opt-in WORK_TEST layer with subgroup legend', async ({ page }) => {
+  const model = makeLocusLayerGlb();
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const panel = page.locator('#selection-panel');
+  await page.getByRole('button', { name: 'Layerit' }).click();
+
+  const locusToggle = page.locator('#locus-layer-visible');
+  await expect(page.getByText('Locus kunnallistekniikka (WORK_TEST)')).toBeVisible();
+  await expect(locusToggle).toBeEnabled();
+  await expect(locusToggle).not.toBeChecked();
+  await expect(page.locator('#locus-layer-count')).toHaveText('2 kohdetta');
+  await expect(page.locator('#locus-water-count')).toHaveText('Vesi 1');
+  await expect(page.locator('#locus-wastewater-count')).toHaveText('Jätevesi 1');
+  await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
+
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(panel).toBeHidden();
+
+  await locusToggle.check();
+  await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'true');
+  await page.getByRole('button', { name: 'Fit / Reset' }).click();
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(panel).toBeVisible();
+  await expect(page.locator('#selection-mesh')).toContainText('LOCUS_WATER_LINE');
+
+  await locusToggle.uncheck();
+  await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
   await expect(panel).toBeHidden();
 
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
