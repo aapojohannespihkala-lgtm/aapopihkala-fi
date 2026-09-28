@@ -229,6 +229,43 @@ test('private viewer fits inside the browser viewport without document scrolling
 });
 
 
+
+test('private viewer uses a true orthographic isometric preset without resetting layer state', async ({ page }) => {
+  const model = makeTriangleGlb({ presentationLayer: 'REFERENCE_ROOF' });
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  const opacity = page.locator('#roof-layer-opacity');
+  await opacity.fill('40');
+  await opacity.dispatchEvent('input');
+  await expect(page.locator('#roof-layer-opacity-value')).toHaveText('40 %');
+
+  await page.getByRole('button', { name: 'Iso' }).click();
+  await expect(page.locator('#viewer-status')).toHaveText('Isometrinen - ortografinen 3/4-näkymä');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(opacity).toHaveValue('40');
+  await expect(page.locator('#roof-layer-visible')).toBeChecked();
+
+  const canvas = page.locator('#private-model-canvas');
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(page.locator('#selection-panel')).toBeVisible();
+});
+
 test('private viewer roof test layer toggles explicit roof metadata and exposes opacity control', async ({
   page,
 }) => {
