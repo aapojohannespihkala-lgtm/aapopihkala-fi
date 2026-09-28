@@ -143,6 +143,36 @@ const title = 'Private 3D viewer';
         font-size: 11px;
       }
 
+      .layer-section {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e2e3de;
+      }
+
+      .layer-legend {
+        display: grid;
+        gap: 5px;
+        margin-top: 8px;
+        color: #62655f;
+        font-size: 11px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .legend-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex: 0 0 auto;
+      }
+
+      .legend-swatch.water { background: #2f80ed; }
+      .legend-swatch.wastewater { background: #c04472; }
+
       .selection-panel {
         position: absolute;
         top: 12px;
@@ -268,6 +298,23 @@ const title = 'Private 3D viewer';
             <output id="roof-layer-opacity-value">100 %</output>
           </label>
           <div id="roof-layer-count" class="layer-count">0 kohdetta</div>
+          <div class="layer-section">
+            <label class="layer-row">
+              <input id="locus-layer-visible" type="checkbox" disabled />
+              <span>Locus kunnallistekniikka (WORK_TEST)</span>
+            </label>
+            <div id="locus-layer-count" class="layer-count">0 kohdetta</div>
+            <div class="layer-legend" aria-label="Locus kunnallistekniikan selite">
+              <span class="legend-item">
+                <span class="legend-swatch water" aria-hidden="true"></span>
+                <span id="locus-water-count">Vesi 0</span>
+              </span>
+              <span class="legend-item">
+                <span class="legend-swatch wastewater" aria-hidden="true"></span>
+                <span id="locus-wastewater-count">Jätevesi 0</span>
+              </span>
+            </div>
+          </div>
         </aside>
         <aside id="selection-panel" class="selection-panel" aria-live="polite" hidden>
           <div class="selection-header">
@@ -307,6 +354,10 @@ const title = 'Private 3D viewer';
       const roofLayerOpacityInput = document.querySelector<HTMLInputElement>('#roof-layer-opacity');
       const roofLayerOpacityValue = document.querySelector<HTMLOutputElement>('#roof-layer-opacity-value');
       const roofLayerCount = document.querySelector<HTMLElement>('#roof-layer-count');
+      const locusLayerVisibleInput = document.querySelector<HTMLInputElement>('#locus-layer-visible');
+      const locusLayerCount = document.querySelector<HTMLElement>('#locus-layer-count');
+      const locusWaterCount = document.querySelector<HTMLElement>('#locus-water-count');
+      const locusWastewaterCount = document.querySelector<HTMLElement>('#locus-wastewater-count');
       const selectionPanel = document.querySelector<HTMLElement>('#selection-panel');
       const selectionMesh = document.querySelector<HTMLElement>('#selection-mesh');
       const selectionGroup = document.querySelector<HTMLElement>('#selection-group');
@@ -331,6 +382,10 @@ const title = 'Private 3D viewer';
         !roofLayerOpacityInput ||
         !roofLayerOpacityValue ||
         !roofLayerCount ||
+        !locusLayerVisibleInput ||
+        !locusLayerCount ||
+        !locusWaterCount ||
+        !locusWastewaterCount ||
         !selectionPanel ||
         !selectionMesh ||
         !selectionGroup ||
@@ -406,6 +461,12 @@ const title = 'Private 3D viewer';
       const roofLayerMaterialBaseline = new Map<any, { opacity: number; transparent: boolean }>();
       let roofLayerVisible = true;
       let roofLayerOpacity = 1;
+      const locusLayerMembers = new Set<any>();
+      const locusLayerObjects = new Set<any>();
+      const locusWaterObjects = new Set<any>();
+      const locusWastewaterObjects = new Set<any>();
+      const locusLayerVisibilityBaseline = new Map<any, boolean>();
+      let locusLayerVisible = false;
       let archBaseMaterialCloneCount = 0;
 
       const setModelScene = (root: any) => {
@@ -471,6 +532,19 @@ const title = 'Private 3D viewer';
             Object.prototype.hasOwnProperty.call(data, 'physicalEaveExtentClaim')
           )
         );
+      };
+
+      const isLocusLayerMember = (object: any) =>
+        object?.userData?.presentationLayer === 'G3_LOCUS_SITE';
+
+      const hasLocusLayerAncestor = (object: any) => {
+        let current = object;
+        while (current && current !== fullModelScene?.parent) {
+          if (isLocusLayerMember(current)) return true;
+          if (current === fullModelScene) break;
+          current = current.parent;
+        }
+        return false;
       };
 
       const isArchBaseMaterial = (material: any) =>
@@ -565,6 +639,54 @@ const title = 'Private 3D viewer';
 
         roofLayerCount.textContent = `${roofLayerMeshes.size} kohdetta`;
         applyRoofLayerState();
+      };
+
+      const applyLocusLayerState = () => {
+        for (const member of locusLayerMembers) {
+          const baseline = locusLayerVisibilityBaseline.get(member) ?? true;
+          member.visible = baseline && locusLayerVisible;
+        }
+
+        locusLayerVisibleInput.checked = locusLayerVisible;
+        locusLayerVisibleInput.disabled = locusLayerMembers.size === 0;
+        canvas.dataset.locusLayerVisible = locusLayerVisible ? 'true' : 'false';
+
+        if (selectedObject && !isEffectivelyVisible(selectedObject)) clearSelection();
+      };
+
+      const initializeLocusLayer = () => {
+        locusLayerMembers.clear();
+        locusLayerObjects.clear();
+        locusWaterObjects.clear();
+        locusWastewaterObjects.clear();
+        locusLayerVisibilityBaseline.clear();
+        locusLayerVisible = false;
+
+        if (fullModelScene) {
+          fullModelScene.traverse((object: any) => {
+            if (isLocusLayerMember(object)) {
+              locusLayerMembers.add(object);
+              locusLayerVisibilityBaseline.set(object, object.visible);
+            }
+
+            if (!hasLocusLayerAncestor(object)) return;
+            const subgroup = object?.userData?.presentationSubgroup;
+            if (subgroup !== 'WATER' && subgroup !== 'WASTEWATER') return;
+
+            locusLayerObjects.add(object);
+            if (subgroup === 'WATER') locusWaterObjects.add(object);
+            if (subgroup === 'WASTEWATER') locusWastewaterObjects.add(object);
+          });
+        }
+
+        const objectCount = locusLayerObjects.size || locusLayerMembers.size;
+        locusLayerCount.textContent = `${objectCount} kohdetta`;
+        locusWaterCount.textContent = `Vesi ${locusWaterObjects.size}`;
+        locusWastewaterCount.textContent = `Jätevesi ${locusWastewaterObjects.size}`;
+        canvas.dataset.locusLayerCount = String(objectCount);
+        canvas.dataset.locusWaterCount = String(locusWaterObjects.size);
+        canvas.dataset.locusWastewaterCount = String(locusWastewaterObjects.size);
+        applyLocusLayerState();
       };
 
       const setLayersPanelOpen = (open: boolean) => {
@@ -947,6 +1069,7 @@ const title = 'Private 3D viewer';
 
           initializeFullModelArchBase();
           initializeRoofLayer();
+          initializeLocusLayer();
 
           dVisibilityBaseline.clear();
           if (dInteriorScene) {
@@ -982,6 +1105,10 @@ const title = 'Private 3D viewer';
         roofLayerOpacity = Math.max(0, Math.min(1, Number(roofLayerOpacityInput.value) / 100));
         if (selectedObject && roofLayerMeshes.has(selectedObject) && roofLayerOpacity <= 0.01) clearSelection();
         applyRoofLayerState();
+      });
+      locusLayerVisibleInput.addEventListener('change', () => {
+        locusLayerVisible = locusLayerVisibleInput.checked;
+        applyLocusLayerState();
       });
       clearSelectionButton.addEventListener('click', clearSelection);
 
