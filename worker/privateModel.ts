@@ -108,6 +108,11 @@ const fetchJwks = async (teamOrigin: string) => {
   return payload.keys;
 };
 
+const denyAccess = (reason: string) => {
+  console.info(`private-model auth deny: ${reason}`);
+  return false;
+};
+
 export const verifyPrivateModelAccess = async (
   request: Request,
   env: Pick<PrivateModelEnv, 'CF_ACCESS_TEAM_DOMAIN' | 'CF_ACCESS_AUD'>,
@@ -115,24 +120,32 @@ export const verifyPrivateModelAccess = async (
   const teamOrigin = normalizeTeamDomain(env.CF_ACCESS_TEAM_DOMAIN);
   const audience = env.CF_ACCESS_AUD?.trim();
   const token = request.headers.get(ACCESS_HEADER);
-  if (!teamOrigin || !audience || !token) return false;
+
+  if (!teamOrigin) return denyAccess('team-domain-config');
+  if (!audience) return denyAccess('audience-config');
+  if (!token) return denyAccess('jwt-missing');
 
   const parts = token.split('.');
-  if (parts.length !== 3) return false;
+  if (parts.length !== 3) return denyAccess('jwt-shape');
 
   try {
     const header = decodeJsonSegment<JwtHeader>(parts[0]);
     const payload = decodeJsonSegment<JwtPayload>(parts[1]);
-    if (header.alg !== 'RS256' || !header.kid) return false;
-    if (payload.iss !== teamOrigin || !audienceMatches(payload.aud, audience)) return false;
+
+    if (header.alg !== 'RS256') return denyAccess('jwt-alg');
+    if (!header.kid) return denyAccess('jwt-kid');
+    if (payload.iss !== teamOrigin) return denyAccess('jwt-issuer');
+    if (!audienceMatches(payload.aud, audience)) return denyAccess('jwt-audience');
 
     const now = Math.floor(Date.now() / 1000);
-    if (typeof payload.exp !== 'number' || payload.exp <= now) return false;
-    if (typeof payload.nbf === 'number' && payload.nbf > now) return false;
+    if (typeof payload.exp !== 'number' || payload.exp <= now) return denyAccess('jwt-expired');
+    if (typeof payload.nbf === 'number' && payload.nbf > now) return denyAccess('jwt-not-before');
 
     const keys = await fetchJwks(teamOrigin);
-    const jwk = keys?.find((candidate) => candidate.kid === header.kid);
-    if (!jwk) return false;
+    if (!keys) return denyAccess('jwks-fetch');
+
+    const jwk = keys.find((candidate) => candidate.kid === header.kid);
+    if (!jwk) return denyAccess('jwks-kid');
 
     const key = await crypto.subtle.importKey(
       'jwk',
@@ -144,9 +157,16 @@ export const verifyPrivateModelAccess = async (
 
     const signedData = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
     const signature = decodeBase64Url(parts[2]);
-    return crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signature, signedData);
+    const verified = await crypto.subtle.verify(
+      'RSASSA-PKCS1-v1_5',
+      key,
+      signature,
+      signedData,
+    );
+
+    return verified || denyAccess('jwt-signature');
   } catch {
-    return false;
+    return denyAccess('jwt-exception');
   }
 };
 
@@ -184,10 +204,20 @@ export const handlePrivateModelRequest = async (
   const pathname = new URL(request.url).pathname;
   if (pathname === PRIVATE_MODEL_PATH) {
     const key = env.PRIVATE_MODEL_OBJECT_KEY?.trim();
-    if (!key || !env.PRIVATE_MODEL_BUCKET) return notFound();
+    if (!key) {
+      console.info('private-model r2 deny: object-key-config');
+      return notFound();
+    }
+    if (!env.PRIVATE_MODEL_BUCKET) {
+      console.info('private-model r2 deny: bucket-binding');
+      return notFound();
+    }
 
     const object = await env.PRIVATE_MODEL_BUCKET.get(key);
-    if (!object) return notFound();
+    if (!object) {
+      console.info('private-model r2 deny: object-not-found');
+      return notFound();
+    }
 
     const headers = privateHeaders();
     object.writeHttpMetadata?.(headers);
