@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
-const noindexRoutePrefixes = ['/current/', '/current2/', '/lab/'];
+const noindexRoutePrefixes = ['/current/', '/current2/', '/lab/', '/private-model/'];
 
 // Deployment refresh: 2026-09-04 portrait lab
 export default defineConfig({

@@ -1,0 +1,58 @@
+import { expect, test } from '@playwright/test';
+
+import {
+  handlePrivateModelRequest,
+  isPrivateModelPath,
+  type PrivateModelEnv,
+} from '../../worker/privateModel';
+
+test('private model route matching is bounded to its own prefix', () => {
+  expect(isPrivateModelPath('/private-model')).toBe(true);
+  expect(isPrivateModelPath('/private-model/')).toBe(true);
+  expect(isPrivateModelPath('/private-model/model.glb')).toBe(true);
+  expect(isPrivateModelPath('/private-modelish')).toBe(false);
+  expect(isPrivateModelPath('/current/private-model')).toBe(false);
+});
+
+test('private model handler fails closed before static assets without Access configuration', async () => {
+  let assetFetches = 0;
+  const env: PrivateModelEnv = {
+    ASSETS: {
+      fetch: async () => {
+        assetFetches += 1;
+        return new Response('should not be reached');
+      },
+    },
+  };
+
+  const response = await handlePrivateModelRequest(
+    new Request('https://example.test/private-model/', { method: 'GET' }),
+    env,
+  );
+
+  expect(response.status).toBe(404);
+  expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+  expect(response.headers.get('X-Robots-Tag')).toContain('noindex');
+  expect(assetFetches).toBe(0);
+});
+
+test('private model handler rejects unsupported methods before auth or assets', async () => {
+  let assetFetches = 0;
+  const env: PrivateModelEnv = {
+    ASSETS: {
+      fetch: async () => {
+        assetFetches += 1;
+        return new Response('should not be reached');
+      },
+    },
+  };
+
+  const response = await handlePrivateModelRequest(
+    new Request('https://example.test/private-model/model.glb', { method: 'POST' }),
+    env,
+  );
+
+  expect(response.status).toBe(405);
+  expect(response.headers.get('Allow')).toBe('GET, HEAD');
+  expect(assetFetches).toBe(0);
+});
