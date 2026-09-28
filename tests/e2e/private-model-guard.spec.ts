@@ -56,3 +56,20 @@ test('private model handler rejects unsupported methods before auth or assets', 
   expect(response.headers.get('Allow')).toBe('GET, HEAD');
   expect(assetFetches).toBe(0);
 });
+
+test('private viewer exposes D apartment floor plan presets', async ({ page }) => {
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/octet-stream',
+      body: '',
+    });
+  });
+
+  await page.goto('/private-model/');
+
+  await expect(page.getByRole('button', { name: 'D 1F' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'D 2F' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Fit / Reset' })).toBeVisible();
+});
+
