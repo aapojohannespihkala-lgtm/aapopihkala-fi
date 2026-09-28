@@ -275,7 +275,7 @@ const title = 'Private 3D viewer';
             <button id="clear-selection-button" type="button">Tyhjennä</button>
           </div>
           <dl class="selection-grid">
-            <dt>Mesh</dt>
+            <dt>Kohde</dt>
             <dd id="selection-mesh">-</dd>
             <dt>Ryhmä</dt>
             <dd id="selection-group">-</dd>
@@ -394,6 +394,7 @@ const title = 'Private 3D viewer';
       const dVisibilityBaseline = new Map<any, boolean>();
       let sourceSceneNames = new WeakMap<any, string>();
       const raycaster = new THREE.Raycaster();
+      raycaster.params.Line.threshold = 0.08;
       const pointer = new THREE.Vector2();
       let selectionHelper: any = null;
       let selectedObject: any = null;
@@ -667,7 +668,7 @@ const title = 'Private 3D viewer';
         clearSelection();
 
         selectedObject = object;
-        selectionMesh.textContent = object.name ? String(object.name) : '(nimetön mesh)';
+        selectionMesh.textContent = object.name ? String(object.name) : '(nimetön kohde)';
         selectionGroup.textContent = nearestNamedAncestor(object) || '-';
         selectionScene.textContent = sceneNameForObject(object) || '-';
         selectionFloor.textContent = explicitFloorToken(object);
@@ -690,7 +691,7 @@ const title = 'Private 3D viewer';
           .intersectObjects(modelRoot.children, true)
           .find(
             (candidate: any) =>
-              candidate.object?.isMesh &&
+              (candidate.object?.isMesh || candidate.object?.isLine || candidate.object?.isLineSegments) &&
               isEffectivelyVisible(candidate.object) &&
               hasVisibleMaterial(candidate.object),
           );
@@ -974,8 +975,8 @@ const title = 'Private 3D viewer';
       closeLayersButton.addEventListener('click', () => setLayersPanelOpen(false));
       roofLayerVisibleInput.addEventListener('change', () => {
         roofLayerVisible = roofLayerVisibleInput.checked;
-        if (selectedObject && roofLayerMeshes.has(selectedObject) && !roofLayerVisible) clearSelection();
         applyRoofLayerState();
+        if (selectedObject && !isEffectivelyVisible(selectedObject)) clearSelection();
       });
       roofLayerOpacityInput.addEventListener('input', () => {
         roofLayerOpacity = Math.max(0, Math.min(1, Number(roofLayerOpacityInput.value) / 100));
