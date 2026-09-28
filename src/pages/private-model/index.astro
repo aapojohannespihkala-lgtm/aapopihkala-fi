@@ -195,7 +195,7 @@ const title = 'Private 3D viewer';
 
       const modelCenter = new THREE.Vector3();
       let fitDistance = 10;
-      let activeCamera = camera;
+      let activeCamera: typeof camera | typeof planCamera = camera;
       let fullModelScene: any = null;
       let dInteriorScene: any = null;
       let activePlanFloor: '1F' | '2F' | null = null;
