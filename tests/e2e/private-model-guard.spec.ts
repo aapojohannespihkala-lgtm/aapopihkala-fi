@@ -102,6 +102,89 @@ const makeTriangleGlb = (
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
+const makeMeshAndLineGlb = () => {
+  const trianglePositions = Buffer.alloc(36);
+  [-1, -1, 0, 1, -1, 0, 0, 1, 0].forEach((value, index) => {
+    trianglePositions.writeFloatLE(value, index * 4);
+  });
+
+  const linePositions = Buffer.alloc(24);
+  [20, 0, 0, 24, 0, 0].forEach((value, index) => {
+    linePositions.writeFloatLE(value, index * 4);
+  });
+
+  const binary = Buffer.concat([trianglePositions, linePositions]);
+  const json = {
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [0, 1] }],
+    nodes: [
+      { name: 'BUILDING_MESH', mesh: 0 },
+      {
+        name: 'SITE_LINE',
+        mesh: 1,
+        extras: { presentationLayer: 'REFERENCE_ROOF' },
+      },
+    ],
+    meshes: [
+      { name: 'BUILDING_TRIANGLE', primitives: [{ attributes: { POSITION: 0 } }] },
+      {
+        name: 'SITE_LINE_SEGMENTS',
+        primitives: [{ attributes: { POSITION: 1 }, mode: 1 }],
+      },
+    ],
+    buffers: [{ byteLength: binary.length }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: trianglePositions.length, target: 34962 },
+      {
+        buffer: 0,
+        byteOffset: trianglePositions.length,
+        byteLength: linePositions.length,
+        target: 34962,
+      },
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 3,
+        type: 'VEC3',
+        min: [-1, -1, 0],
+        max: [1, 1, 0],
+      },
+      {
+        bufferView: 1,
+        componentType: 5126,
+        count: 2,
+        type: 'VEC3',
+        min: [20, 0, 0],
+        max: [24, 0, 0],
+      },
+    ],
+  };
+
+  const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
+  const jsonPadding = (4 - (jsonBuffer.length % 4)) % 4;
+  const jsonChunk = Buffer.concat([jsonBuffer, Buffer.alloc(jsonPadding, 0x20)]);
+  const binPadding = (4 - (binary.length % 4)) % 4;
+  const binChunk = Buffer.concat([binary, Buffer.alloc(binPadding)]);
+
+  const header = Buffer.alloc(12);
+  header.write('glTF', 0, 'ascii');
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + jsonChunk.length + 8 + binChunk.length, 8);
+
+  const jsonHeader = Buffer.alloc(8);
+  jsonHeader.writeUInt32LE(jsonChunk.length, 0);
+  jsonHeader.writeUInt32LE(0x4e4f534a, 4);
+
+  const binHeader = Buffer.alloc(8);
+  binHeader.writeUInt32LE(binChunk.length, 0);
+  binHeader.writeUInt32LE(0x004e4942, 4);
+
+  return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
+};
+
 test('private model route matching is bounded to its own prefix', () => {
   expect(isPrivateModelPath('/private-model')).toBe(true);
   expect(isPrivateModelPath('/private-model/')).toBe(true);
@@ -386,3 +469,45 @@ test('private viewer makes ARCH_BASE opaque and uses absolute roof opacity', asy
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-camera-projection', 'orthographic');
   await expect(output).toHaveAttribute('data-material-opacity', '1');
 });
+
+test('private viewer full-model fit includes visible line geometry and excludes hidden line layers', async ({ page }) => {
+  const model = makeMeshAndLineGlb();
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const visibleFitCenter = Number(await canvas.getAttribute('data-fit-center-x'));
+  const visibleFitRadius = Number(await canvas.getAttribute('data-fit-radius'));
+  expect(visibleFitCenter).toBeGreaterThan(10);
+  expect(visibleFitRadius).toBeGreaterThan(12);
+
+  await page.getByRole('button', { name: 'Iso' }).click();
+  const visibleIsoCenter = Number(await canvas.getAttribute('data-iso-fit-center-x'));
+  expect(visibleIsoCenter).toBeGreaterThan(10);
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  await page.locator('#roof-layer-visible').uncheck();
+  await page.getByRole('button', { name: 'Fit / Reset' }).click();
+
+  const hiddenFitCenter = Number(await canvas.getAttribute('data-fit-center-x'));
+  const hiddenFitRadius = Number(await canvas.getAttribute('data-fit-radius'));
+  expect(Math.abs(hiddenFitCenter)).toBeLessThan(0.01);
+  expect(hiddenFitRadius).toBeLessThan(2);
+
+  await page.getByRole('button', { name: 'Iso' }).click();
+  const hiddenIsoCenter = Number(await canvas.getAttribute('data-iso-fit-center-x'));
+  expect(Math.abs(hiddenIsoCenter)).toBeLessThan(0.01);
+
+  await canvas.click();
+  await expect(page.locator('#selection-panel')).toBeHidden();
+});
+
