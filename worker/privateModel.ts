@@ -14,13 +14,13 @@ type PrivateModelBucket = {
 export type PrivateModelEnv = {
   ASSETS: AssetsBinding;
   PRIVATE_MODEL_BUCKET?: PrivateModelBucket;
-  PRIVATE_MODEL_OBJECT_KEY?: string;
   CF_ACCESS_TEAM_DOMAIN?: string;
   CF_ACCESS_AUD?: string;
 };
 
 export const PRIVATE_MODEL_PREFIX = '/private-model';
 const PRIVATE_MODEL_PATH = `${PRIVATE_MODEL_PREFIX}/model.glb`;
+const PRIVATE_MODEL_OBJECT_KEY = 'model.glb';
 const ACCESS_HEADER = 'cf-access-jwt-assertion';
 const JWKS_TTL_MS = 5 * 60 * 1000;
 
@@ -203,17 +203,12 @@ export const handlePrivateModelRequest = async (
 
   const pathname = new URL(request.url).pathname;
   if (pathname === PRIVATE_MODEL_PATH) {
-    const key = env.PRIVATE_MODEL_OBJECT_KEY?.trim();
-    if (!key) {
-      console.info('private-model r2 deny: object-key-config');
-      return notFound();
-    }
     if (!env.PRIVATE_MODEL_BUCKET) {
       console.info('private-model r2 deny: bucket-binding');
       return notFound();
     }
 
-    const object = await env.PRIVATE_MODEL_BUCKET.get(key);
+    const object = await env.PRIVATE_MODEL_BUCKET.get(PRIVATE_MODEL_OBJECT_KEY);
     if (!object) {
       console.info('private-model r2 deny: object-not-found');
       return notFound();
