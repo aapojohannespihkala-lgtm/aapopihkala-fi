@@ -185,6 +185,66 @@ const makeMeshAndLineGlb = () => {
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
+
+const makeLineGlb = () => {
+  const linePositions = Buffer.alloc(24);
+  [-1, 0, 0, 1, 0, 0].forEach((value, index) => {
+    linePositions.writeFloatLE(value, index * 4);
+  });
+
+  const json = {
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [0] }],
+    nodes: [
+      {
+        name: 'SITE_LINE',
+        mesh: 0,
+        extras: { presentationLayer: 'REFERENCE_ROOF' },
+      },
+    ],
+    meshes: [
+      {
+        name: 'SITE_LINE_SEGMENTS',
+        primitives: [{ attributes: { POSITION: 0 }, mode: 1 }],
+      },
+    ],
+    buffers: [{ byteLength: linePositions.length }],
+    bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: linePositions.length, target: 34962 }],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 2,
+        type: 'VEC3',
+        min: [-1, 0, 0],
+        max: [1, 0, 0],
+      },
+    ],
+  };
+
+  const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
+  const jsonPadding = (4 - (jsonBuffer.length % 4)) % 4;
+  const jsonChunk = Buffer.concat([jsonBuffer, Buffer.alloc(jsonPadding, 0x20)]);
+  const binPadding = (4 - (linePositions.length % 4)) % 4;
+  const binChunk = Buffer.concat([linePositions, Buffer.alloc(binPadding)]);
+
+  const header = Buffer.alloc(12);
+  header.write('glTF', 0, 'ascii');
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + jsonChunk.length + 8 + binChunk.length, 8);
+
+  const jsonHeader = Buffer.alloc(8);
+  jsonHeader.writeUInt32LE(jsonChunk.length, 0);
+  jsonHeader.writeUInt32LE(0x4e4f534a, 4);
+
+  const binHeader = Buffer.alloc(8);
+  binHeader.writeUInt32LE(binChunk.length, 0);
+  binHeader.writeUInt32LE(0x004e4942, 4);
+
+  return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
+};
+
 test('private model route matching is bounded to its own prefix', () => {
   expect(isPrivateModelPath('/private-model')).toBe(true);
   expect(isPrivateModelPath('/private-model/')).toBe(true);
@@ -302,6 +362,39 @@ test('private viewer selects a visible mesh, shows bounded identity, and ignores
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2 + 40);
   await page.mouse.up();
+  await expect(panel).toBeHidden();
+});
+
+
+test('private viewer selects visible LineSegments and clears hidden line selection', async ({ page }) => {
+  const model = makeLineGlb();
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const panel = page.locator('#selection-panel');
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(panel).toBeVisible();
+  await expect(page.locator('#selection-mesh')).toContainText('SITE_LINE');
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  await page.locator('#roof-layer-visible').uncheck();
+  await expect(panel).toBeHidden();
+
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeHidden();
 });
 
