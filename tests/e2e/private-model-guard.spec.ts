@@ -251,7 +251,7 @@ test('private viewer uses a true orthographic isometric preset without resetting
   await expect(page.locator('#roof-layer-opacity-value')).toHaveText('40 %');
 
   await page.getByRole('button', { name: 'Iso' }).click();
-  await expect(page.getByRole('status')).toHaveText('Isometrinen - ortografinen 3/4-näkymä');
+  await expect(page.locator('#viewer-status')).toHaveText('Isometrinen - ortografinen 3/4-näkymä');
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-view-preset', 'isometric');
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-camera-projection', 'orthographic');
   await expect(opacity).toHaveValue('40');
