@@ -227,6 +227,27 @@ const title = 'Private 3D viewer';
         return names.join(' | ').toUpperCase();
       };
 
+      const normalizeSceneName = (name: unknown) =>
+        String(name ?? '')
+          .toUpperCase()
+          .replace(/[^A-Z0-9]+/g, ' ')
+          .trim();
+
+      const findSourceNamedScene = (gltf: any, sourceName: string) => {
+        const sourceScenes = gltf?.parser?.json?.scenes;
+        if (Array.isArray(sourceScenes)) {
+          const sourceIndex = sourceScenes.findIndex((candidate: any) => candidate?.name === sourceName);
+          if (sourceIndex >= 0 && gltf.scenes?.[sourceIndex]) {
+            return gltf.scenes[sourceIndex];
+          }
+        }
+
+        const target = normalizeSceneName(sourceName);
+        return (
+          gltf.scenes?.find((candidate: any) => normalizeSceneName(candidate?.name) === target) ?? null
+        );
+      };
+
       const hasFloorToken = (object: any, floor: '1F' | '2F') => {
         const name = semanticName(object);
         return new RegExp('(^|[_\\s-])' + floor + '([_\\s-]|$)').test(name);
@@ -408,9 +429,7 @@ const title = 'Private 3D viewer';
         try {
           const gltf = await loader.loadAsync('/private-model/model.glb');
           fullModelScene = gltf.scene;
-          dInteriorScene =
-            gltf.scenes.find((candidate: any) => candidate.name === 'D CURRENT INTERIOR - BABYLON Y-UP') ??
-            null;
+          dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
 
           dVisibilityBaseline.clear();
           if (dInteriorScene) {
