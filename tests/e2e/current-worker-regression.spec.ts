@@ -19,6 +19,8 @@ const workerFirstPaths = [
   '/api/current/liiga-schedule',
 ];
 
+const privateWorkerFirstPaths = ['/private-model', '/private-model/*'];
+
 const getOnlyWorkerPaths = workerFirstPaths.filter((path) => path !== '/api/current/hsl');
 
 const buildWorkerElectricityFixture = () => ({
@@ -95,7 +97,10 @@ test('Wrangler sends every Current API route through the Worker first', () => {
     readFileSync(new URL('../../wrangler.jsonc', import.meta.url), 'utf8')
   );
 
-  expect(config.assets?.run_worker_first).toEqual(workerFirstPaths);
+  expect(config.assets?.run_worker_first).toEqual([
+    ...workerFirstPaths,
+    ...privateWorkerFirstPaths,
+  ]);
 });
 
 test('Worker preserves environment bindings for both Widget v2 routes', () => {
