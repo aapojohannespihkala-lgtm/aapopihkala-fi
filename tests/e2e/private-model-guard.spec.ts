@@ -6,6 +6,22 @@ import {
   type PrivateModelEnv,
 } from '../../worker/privateModel';
 
+const makeMinimalGlb = (json: Record<string, unknown>) => {
+  const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
+  const padding = (4 - (jsonBuffer.length % 4)) % 4;
+  const jsonChunk = Buffer.concat([jsonBuffer, Buffer.alloc(padding, 0x20)]);
+  const header = Buffer.alloc(12);
+  header.write('glTF', 0, 'ascii');
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + jsonChunk.length, 8);
+
+  const chunkHeader = Buffer.alloc(8);
+  chunkHeader.writeUInt32LE(jsonChunk.length, 0);
+  chunkHeader.writeUInt32LE(0x4e4f534a, 4);
+
+  return Buffer.concat([header, chunkHeader, jsonChunk]);
+};
+
 test('private model route matching is bounded to its own prefix', () => {
   expect(isPrivateModelPath('/private-model')).toBe(true);
   expect(isPrivateModelPath('/private-model/')).toBe(true);
@@ -57,12 +73,24 @@ test('private model handler rejects unsupported methods before auth or assets', 
   expect(assetFetches).toBe(0);
 });
 
-test('private viewer exposes D apartment floor plan presets', async ({ page }) => {
+test('private viewer resolves the source D scene even when Three runtime names are sanitized', async ({
+  page,
+}) => {
+  const model = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [] },
+    ],
+    nodes: [],
+  });
+
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({
-      status: 404,
-      contentType: 'application/octet-stream',
-      body: '',
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
     });
   });
 
@@ -71,5 +99,6 @@ test('private viewer exposes D apartment floor plan presets', async ({ page }) =
   await expect(page.getByRole('button', { name: 'D 1F' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D 2F' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Fit / Reset' })).toBeVisible();
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu - D-pohjat käytettävissä');
 });
 
