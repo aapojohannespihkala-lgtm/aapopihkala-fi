@@ -6,6 +6,7 @@ import {
 
 const PRIVATE_WORK_TEST_PREFIX = `${PRIVATE_MODEL_PREFIX}/work-test`;
 export const PRIVATE_WORK_TEST_CATALOG_PATH = `${PRIVATE_WORK_TEST_PREFIX}/catalog.json`;
+export const PRIVATE_WORK_TEST_IMPORT_PATH = `${PRIVATE_WORK_TEST_PREFIX}/import.json`;
 
 export type PrivateWorkTestCandidate = {
   id: string;
@@ -27,6 +28,30 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
   },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
+type PrivateWorkTestStoredObject = {
+  body: ReadableStream<Uint8Array> | null;
+  size?: number;
+  etag?: string;
+  customMetadata?: Record<string, string>;
+  writeHttpMetadata?: (headers: Headers) => void;
+};
+
+type PrivateWorkTestBucket = {
+  get(key: string): Promise<PrivateWorkTestStoredObject | null>;
+  put(
+    key: string,
+    value: ArrayBuffer,
+    options: {
+      httpMetadata: {
+        contentType: string;
+        contentDisposition: string;
+        cacheControl: string;
+      };
+      customMetadata: Record<string, string>;
+    },
+  ): Promise<PrivateWorkTestStoredObject>;
+};
+
 const privateHeaders = () =>
   new Headers({
     'Cache-Control': 'private, no-store',
@@ -41,19 +66,19 @@ const notFound = () =>
     headers: privateHeaders(),
   });
 
-const methodNotAllowed = () => {
+const methodNotAllowed = (allow = 'GET, HEAD') => {
   const headers = privateHeaders();
-  headers.set('Allow', 'GET, HEAD');
+  headers.set('Allow', allow);
   return new Response('Method not allowed', { status: 405, headers });
 };
 
-const privateJsonResponse = (request: Request, payload: unknown) => {
+const privateJsonResponse = (request: Request, payload: unknown, status = 200) => {
   const body = JSON.stringify(payload);
   const headers = privateHeaders();
   headers.set('Content-Type', 'application/json; charset=utf-8');
   headers.set('Content-Length', String(new TextEncoder().encode(body).byteLength));
   return new Response(request.method === 'HEAD' ? null : body, {
-    status: 200,
+    status,
     headers,
   });
 };
@@ -64,6 +89,34 @@ export const isPrivateWorkTestPath = (pathname: string) =>
 export const getPrivateWorkTestCandidate = (pathname: string) =>
   PRIVATE_WORK_TEST_CANDIDATES.find((candidate) => candidate.path === pathname) ?? null;
 
+export const getPrivateWorkTestCandidateById = (id: string) =>
+  PRIVATE_WORK_TEST_CANDIDATES.find((candidate) => candidate.id === id) ?? null;
+
+export const isTrustedPrivateWorkTestSourceUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === 'https:' &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      url.hostname.endsWith('.oaiusercontent.com') &&
+      url.pathname.startsWith('/files/') &&
+      url.pathname.endsWith('/raw') &&
+      url.searchParams.has('sig') &&
+      url.searchParams.has('se') &&
+      !url.hash
+    );
+  } catch {
+    return false;
+  }
+};
+
+const sha256Hex = async (value: ArrayBuffer) => {
+  const digest = await crypto.subtle.digest('SHA-256', value);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
 export const isPrivateWorkTestObjectValid = (
   object: { size?: number; customMetadata?: Record<string, string> },
   candidate: PrivateWorkTestCandidate,
@@ -71,30 +124,136 @@ export const isPrivateWorkTestObjectValid = (
   object.size === candidate.expectedSize &&
   object.customMetadata?.sha256?.trim().toLowerCase() === candidate.expectedSha256;
 
+const handlePrivateWorkTestImport = async (
+  request: Request,
+  env: PrivateModelEnv,
+): Promise<Response> => {
+  if (!(await verifyPrivateModelAccess(request, env))) return notFound();
+  if (request.method !== 'POST') return methodNotAllowed('POST');
+
+  const bucket = env.PRIVATE_MODEL_BUCKET as unknown as PrivateWorkTestBucket | undefined;
+  if (!bucket) {
+    console.info('private-model work-test import deny: bucket-binding');
+    return notFound();
+  }
+
+  let payload: { candidateId?: unknown; sourceUrl?: unknown };
+  try {
+    payload = (await request.json()) as { candidateId?: unknown; sourceUrl?: unknown };
+  } catch {
+    return privateJsonResponse(request, { error: 'invalid-json' }, 400);
+  }
+
+  if (
+    typeof payload.candidateId !== 'string' ||
+    typeof payload.sourceUrl !== 'string' ||
+    payload.sourceUrl.length > 5000
+  ) {
+    return privateJsonResponse(request, { error: 'invalid-request' }, 400);
+  }
+
+  const candidate = getPrivateWorkTestCandidateById(payload.candidateId);
+  if (!candidate || !isTrustedPrivateWorkTestSourceUrl(payload.sourceUrl)) {
+    console.info('private-model work-test import deny: candidate-or-source');
+    return notFound();
+  }
+
+  const existing = await bucket.get(candidate.objectKey);
+  if (existing && isPrivateWorkTestObjectValid(existing, candidate)) {
+    return privateJsonResponse(request, {
+      candidate: { id: candidate.id, label: candidate.label, path: candidate.path },
+      ready: true,
+      seeded: false,
+    });
+  }
+
+  let sourceResponse: Response;
+  try {
+    sourceResponse = await fetch(payload.sourceUrl, {
+      headers: { Accept: 'model/gltf-binary, application/octet-stream;q=0.9, */*;q=0.1' },
+      redirect: 'follow',
+      cache: 'no-store',
+    });
+  } catch {
+    return privateJsonResponse(request, { error: 'source-fetch-failed' }, 502);
+  }
+
+  if (
+    !sourceResponse.ok ||
+    !sourceResponse.url ||
+    !isTrustedPrivateWorkTestSourceUrl(sourceResponse.url)
+  ) {
+    return privateJsonResponse(request, { error: 'source-fetch-denied' }, 502);
+  }
+
+  const declaredLength = sourceResponse.headers.get('Content-Length');
+  if (
+    declaredLength &&
+    Number.isFinite(Number(declaredLength)) &&
+    Number(declaredLength) !== candidate.expectedSize
+  ) {
+    return privateJsonResponse(request, { error: 'source-size-mismatch' }, 422);
+  }
+
+  const bytes = await sourceResponse.arrayBuffer();
+  if (bytes.byteLength !== candidate.expectedSize) {
+    return privateJsonResponse(request, { error: 'source-size-mismatch' }, 422);
+  }
+
+  const sha256 = await sha256Hex(bytes);
+  if (sha256 !== candidate.expectedSha256) {
+    return privateJsonResponse(request, { error: 'source-sha256-mismatch' }, 422);
+  }
+
+  await bucket.put(candidate.objectKey, bytes, {
+    httpMetadata: {
+      contentType: 'model/gltf-binary',
+      contentDisposition: 'inline',
+      cacheControl: 'private, no-store',
+    },
+    customMetadata: {
+      sha256: candidate.expectedSha256,
+    },
+  });
+
+  const written = await bucket.get(candidate.objectKey);
+  if (!written || !isPrivateWorkTestObjectValid(written, candidate)) {
+    console.info('private-model work-test import deny: r2-readback');
+    return privateJsonResponse(request, { error: 'r2-readback-failed' }, 500);
+  }
+
+  return privateJsonResponse(request, {
+    candidate: { id: candidate.id, label: candidate.label, path: candidate.path },
+    ready: true,
+    seeded: true,
+  });
+};
+
 export const handlePrivateWorkTestRequest = async (
   request: Request,
   env: PrivateModelEnv,
 ): Promise<Response> => {
+  const pathname = new URL(request.url).pathname;
+
+  if (pathname === PRIVATE_WORK_TEST_IMPORT_PATH) {
+    return handlePrivateWorkTestImport(request, env);
+  }
+
   if (request.method !== 'GET' && request.method !== 'HEAD') return methodNotAllowed();
   if (!(await verifyPrivateModelAccess(request, env))) return notFound();
 
-  const bucket = env.PRIVATE_MODEL_BUCKET;
+  const bucket = env.PRIVATE_MODEL_BUCKET as unknown as PrivateWorkTestBucket | undefined;
   if (!bucket) {
     console.info('private-model work-test deny: bucket-binding');
     return notFound();
   }
-
-  const pathname = new URL(request.url).pathname;
 
   if (pathname === PRIVATE_WORK_TEST_CATALOG_PATH) {
     const candidates = [];
 
     for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
       const object = await bucket.get(candidate.objectKey);
-      const identity = object as
-        | ({ size?: number; customMetadata?: Record<string, string> } & typeof object)
-        | null;
-      if (!identity || !isPrivateWorkTestObjectValid(identity, candidate)) continue;
+      if (!object || !isPrivateWorkTestObjectValid(object, candidate)) continue;
 
       candidates.push({
         id: candidate.id,
@@ -110,11 +269,8 @@ export const handlePrivateWorkTestRequest = async (
   if (!candidate) return notFound();
 
   const object = await bucket.get(candidate.objectKey);
-  const identity = object as
-    | ({ size?: number; customMetadata?: Record<string, string> } & typeof object)
-    | null;
 
-  if (!object || !identity || !isPrivateWorkTestObjectValid(identity, candidate)) {
+  if (!object || !isPrivateWorkTestObjectValid(object, candidate)) {
     console.info('private-model work-test deny: candidate-not-ready');
     return notFound();
   }
