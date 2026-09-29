@@ -18,63 +18,74 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test/catalog.json')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/import.json')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p136b-d-current-wall-corrected.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/p137j-d1f-user-current-doors.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-testing')).toBe(false);
   expect(isPrivateWorkTestPath('/private-model/model.glb')).toBe(false);
 });
 
-test('private WORK_TEST candidate allowlist exposes only the named p136B route', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(1);
+test('private WORK_TEST candidate allowlist exposes only the named p136B and p137J routes', () => {
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(2);
 
-  const candidate = PRIVATE_WORK_TEST_CANDIDATES[0];
-  expect(candidate.id).toBe('p136b-d-current-wall-corrected');
-  expect(candidate.objectKey).toBe('work-test/p136b-d-current-wall-corrected.glb');
-  expect(candidate.expectedSize).toBe(1_149_768);
-  expect(candidate.expectedSha256).toBe(
+  const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
+  expect(p136b.id).toBe('p136b-d-current-wall-corrected');
+  expect(p136b.objectKey).toBe('work-test/p136b-d-current-wall-corrected.glb');
+  expect(p136b.expectedSize).toBe(1_149_768);
+  expect(p136b.expectedSha256).toBe(
     '8a0f78f3f150f43fda65c93f9536594fe72d7713a6a6a946191e00b61cc4f4bf',
   );
 
-  expect(getPrivateWorkTestCandidate(candidate.path)?.id).toBe(candidate.id);
-  expect(getPrivateWorkTestCandidateById(candidate.id)?.path).toBe(candidate.path);
+  const p137j = PRIVATE_WORK_TEST_CANDIDATES[1];
+  expect(p137j.id).toBe('p137j-d1f-user-current-doors');
+  expect(p137j.objectKey).toBe('work-test/p137j-d1f-user-current-doors.glb');
+  expect(p137j.expectedSize).toBe(1_154_364);
+  expect(p137j.expectedSha256).toBe(
+    '9e8a7286b1fbeb9730cf1a8ed358fbd07391c5cc7bb084320b30a4506b3186a4',
+  );
+
+  for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
+    expect(getPrivateWorkTestCandidate(candidate.path)?.id).toBe(candidate.id);
+    expect(getPrivateWorkTestCandidateById(candidate.id)?.path).toBe(candidate.path);
+  }
   expect(getPrivateWorkTestCandidateById('not-allowlisted')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/model.glb')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/../model.glb')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/p136b-d-current-wall-corrected.glb/extra')).toBeNull();
 });
 
-test('private WORK_TEST candidate requires exact R2 size and SHA metadata before availability', () => {
-  const candidate = PRIVATE_WORK_TEST_CANDIDATES[0];
+test('private WORK_TEST candidates require exact R2 size and SHA metadata before availability', () => {
+  for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
+    expect(
+      isPrivateWorkTestObjectValid(
+        {
+          size: candidate.expectedSize,
+          customMetadata: { sha256: candidate.expectedSha256 },
+        },
+        candidate,
+      ),
+    ).toBe(true);
 
-  expect(
-    isPrivateWorkTestObjectValid(
-      {
-        size: candidate.expectedSize,
-        customMetadata: { sha256: candidate.expectedSha256 },
-      },
-      candidate,
-    ),
-  ).toBe(true);
+    expect(
+      isPrivateWorkTestObjectValid(
+        {
+          size: candidate.expectedSize + 1,
+          customMetadata: { sha256: candidate.expectedSha256 },
+        },
+        candidate,
+      ),
+    ).toBe(false);
 
-  expect(
-    isPrivateWorkTestObjectValid(
-      {
-        size: candidate.expectedSize + 1,
-        customMetadata: { sha256: candidate.expectedSha256 },
-      },
-      candidate,
-    ),
-  ).toBe(false);
+    expect(
+      isPrivateWorkTestObjectValid(
+        {
+          size: candidate.expectedSize,
+          customMetadata: { sha256: '00'.repeat(32) },
+        },
+        candidate,
+      ),
+    ).toBe(false);
 
-  expect(
-    isPrivateWorkTestObjectValid(
-      {
-        size: candidate.expectedSize,
-        customMetadata: { sha256: '00'.repeat(32) },
-      },
-      candidate,
-    ),
-  ).toBe(false);
-
-  expect(isPrivateWorkTestObjectValid({ size: candidate.expectedSize }, candidate)).toBe(false);
+    expect(isPrivateWorkTestObjectValid({ size: candidate.expectedSize }, candidate)).toBe(false);
+  }
 });
 
 test('private WORK_TEST ingest accepts only signed oaiusercontent raw-file URLs', () => {
