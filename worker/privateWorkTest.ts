@@ -26,6 +26,14 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_149_768,
     expectedSha256: '8a0f78f3f150f43fda65c93f9536594fe72d7713a6a6a946191e00b61cc4f4bf',
   },
+  {
+    id: 'p137j-d1f-user-current-doors',
+    label: 'p137J - D 1F user current doors',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p137j-d1f-user-current-doors.glb`,
+    objectKey: 'work-test/p137j-d1f-user-current-doors.glb',
+    expectedSize: 1_154_364,
+    expectedSha256: '9e8a7286b1fbeb9730cf1a8ed358fbd07391c5cc7bb084320b30a4506b3186a4',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
