@@ -3,16 +3,20 @@ import { expect, test } from '@playwright/test';
 import {
   PRIVATE_WORK_TEST_CANDIDATES,
   PRIVATE_WORK_TEST_CATALOG_PATH,
+  PRIVATE_WORK_TEST_IMPORT_PATH,
   getPrivateWorkTestCandidate,
+  getPrivateWorkTestCandidateById,
   handlePrivateWorkTestRequest,
   isPrivateWorkTestObjectValid,
   isPrivateWorkTestPath,
+  isTrustedPrivateWorkTestSourceUrl,
 } from '../../worker/privateWorkTest';
 import type { PrivateModelEnv } from '../../worker/privateModel';
 
 test('private WORK_TEST route matching is bounded to the dedicated prefix', () => {
   expect(isPrivateWorkTestPath('/private-model/work-test')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/catalog.json')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/import.json')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p136b-d-current-wall-corrected.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-testing')).toBe(false);
   expect(isPrivateWorkTestPath('/private-model/model.glb')).toBe(false);
@@ -30,6 +34,8 @@ test('private WORK_TEST candidate allowlist exposes only the named p136B route',
   );
 
   expect(getPrivateWorkTestCandidate(candidate.path)?.id).toBe(candidate.id);
+  expect(getPrivateWorkTestCandidateById(candidate.id)?.path).toBe(candidate.path);
+  expect(getPrivateWorkTestCandidateById('not-allowlisted')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/model.glb')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/../model.glb')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/p136b-d-current-wall-corrected.glb/extra')).toBeNull();
@@ -69,6 +75,71 @@ test('private WORK_TEST candidate requires exact R2 size and SHA metadata before
   ).toBe(false);
 
   expect(isPrivateWorkTestObjectValid({ size: candidate.expectedSize }, candidate)).toBe(false);
+});
+
+test('private WORK_TEST ingest accepts only signed oaiusercontent raw-file URLs', () => {
+  const trusted =
+    'https://sdmntprdenmarkeast.oaiusercontent.com/files/abc123/raw?se=2026-09-29T10%3A00%3A00Z&sig=signature';
+
+  expect(isTrustedPrivateWorkTestSourceUrl(trusted)).toBe(true);
+  expect(
+    isTrustedPrivateWorkTestSourceUrl(
+      'https://sdmntprdenmarkeast.oaiusercontent.com/files/abc123/raw?se=x',
+    ),
+  ).toBe(false);
+  expect(
+    isTrustedPrivateWorkTestSourceUrl(
+      'https://sdmntprdenmarkeast.oaiusercontent.com/files/abc123/not-raw?se=x&sig=y',
+    ),
+  ).toBe(false);
+  expect(
+    isTrustedPrivateWorkTestSourceUrl(
+      'https://sdmntprdenmarkeast.oaiusercontent.com.evil.example/files/abc123/raw?se=x&sig=y',
+    ),
+  ).toBe(false);
+  expect(
+    isTrustedPrivateWorkTestSourceUrl(
+      'http://sdmntprdenmarkeast.oaiusercontent.com/files/abc123/raw?se=x&sig=y',
+    ),
+  ).toBe(false);
+});
+
+test('private WORK_TEST ingest fails closed before R2 access without Access configuration', async () => {
+  let bucketReads = 0;
+  let bucketWrites = 0;
+  const env = {
+    ASSETS: {
+      fetch: async () => new Response('unused'),
+    },
+    PRIVATE_MODEL_BUCKET: {
+      get: async () => {
+        bucketReads += 1;
+        return null;
+      },
+      put: async () => {
+        bucketWrites += 1;
+        throw new Error('must not write');
+      },
+    },
+  } as unknown as PrivateModelEnv;
+
+  const response = await handlePrivateWorkTestRequest(
+    new Request(`https://example.test${PRIVATE_WORK_TEST_IMPORT_PATH}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        candidateId: PRIVATE_WORK_TEST_CANDIDATES[0].id,
+        sourceUrl:
+          'https://sdmntprdenmarkeast.oaiusercontent.com/files/abc123/raw?se=x&sig=y',
+      }),
+    }),
+    env,
+  );
+
+  expect(response.status).toBe(404);
+  expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+  expect(bucketReads).toBe(0);
+  expect(bucketWrites).toBe(0);
 });
 
 test('private WORK_TEST catalog fails closed before R2 access without Access configuration', async () => {

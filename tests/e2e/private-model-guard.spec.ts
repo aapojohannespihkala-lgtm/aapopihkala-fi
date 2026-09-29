@@ -1041,6 +1041,85 @@ test('private viewer loads an allowlisted WORK_TEST candidate from the protected
   expect(candidateLoads).toBe(1);
 });
 
+test('private viewer imports an exact WORK_TEST candidate from a protected fragment link without a file picker', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P136B REVIEW ROOT - BABYLON Y-UP', nodes: [] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [] },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p136b-d-current-wall-corrected';
+  const candidateLabel = 'p136B - D current wall corrected';
+  const candidatePath = '/private-model/work-test/p136b-d-current-wall-corrected.glb';
+  const sourceUrl =
+    'https://sdmntprdenmarkeast.oaiusercontent.com/files/abc123/raw?se=2026-09-29T13%3A00%3A00Z&sig=signature';
+  let importRequests = 0;
+  let candidateLoads = 0;
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: currentModel,
+    });
+  });
+  await page.route('**/private-model/work-test/import.json', async (route) => {
+    importRequests += 1;
+    expect(route.request().method()).toBe('POST');
+    expect(route.request().postDataJSON()).toEqual({ candidateId, sourceUrl });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidate: { id: candidateId, label: candidateLabel, path: candidatePath },
+        ready: true,
+        seeded: true,
+      }),
+    });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    candidateLoads += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: candidateModel,
+    });
+  });
+
+  const fragment = new URLSearchParams({
+    workTestCandidate: candidateId,
+    workTestImport: sourceUrl,
+  }).toString();
+  await page.goto(`/private-model/#${fragment}`);
+
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-work-test-import', 'ready');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'work-test');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(page.getByRole('status')).toHaveText('WORK_TEST-malli ladattu - D-pohjat käytettävissä');
+  await expect(page.locator('#work-test-file-input')).toHaveCount(0);
+  await expect(page).not.toHaveURL(/workTestImport=/);
+  expect(importRequests).toBe(1);
+  expect(candidateLoads).toBe(1);
+});
+
 test('private viewer fails safe when the protected WORK_TEST catalog is unavailable', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
