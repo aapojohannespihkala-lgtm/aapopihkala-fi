@@ -1004,6 +1004,44 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '9');
   await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '7');
   await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '7');
+  await expect(canvas).toHaveAttribute('data-d1-known-door-label-count', '7');
+  await expect(canvas).toHaveAttribute('data-d1-known-door-labels-visible', 'true');
+
+  const knownDoorLegend = page.locator('#d1-known-door-legend');
+  const knownDoorLabels = page.locator('#d1-known-door-label-layer .d1-known-door-label');
+  await expect(knownDoorLegend).toBeVisible();
+  await expect(knownDoorLabels).toHaveCount(7);
+  await expect(page.locator('#d1-known-door-legend-list li')).toHaveCount(7);
+  await expect
+    .poll(async () =>
+      knownDoorLabels.evaluateAll((nodes) =>
+        nodes.every((node) => {
+          const element = node as HTMLElement;
+          return Boolean(element.style.left && element.style.top);
+        }),
+      ),
+    )
+    .toBe(true);
+
+  const knownDoorIds = await knownDoorLabels.evaluateAll((nodes) =>
+    nodes.map((node) => (node as HTMLElement).dataset.g2Id),
+  );
+  expect(knownDoorIds).toEqual([
+    'G2_DOOR_EXT_D_1F_S_001',
+    'G2_DOOR_EXT_D_1F_N_001',
+    'G2_DOOR_INT_D_1F_VH_WEST_2015_001',
+    'G2_DOOR_INT_D_1F_WC_001',
+    'G2_DOOR_INT_D_1F_SAUNA_PESUH_2015_001',
+    'G2_DOOR_INT_D_1F_VH_NORTH_2015_001',
+    'G2_DOOR_INT_D_1F_VARASTO_2015_001',
+  ]);
+  await expect(page.locator('#d1-known-door-legend-list code').nth(0)).toHaveText(
+    'G2_DOOR_EXT_D_1F_S_001',
+  );
+  await expect(page.locator('#d1-known-door-legend-list code').nth(6)).toHaveText(
+    'G2_DOOR_INT_D_1F_VARASTO_2015_001',
+  );
+
   await expect(canvas).toHaveAttribute('data-d2f-boundary-context-prepared', 'true');
   await expect(canvas).toHaveAttribute(
     'data-d2f-boundary-context-source',
@@ -1063,6 +1101,10 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '7');
   await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '9');
   await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '4');
+  await expect(canvas).toHaveAttribute('data-d1-known-door-label-count', '7');
+  await expect(canvas).toHaveAttribute('data-d1-known-door-labels-visible', 'false');
+  await expect(knownDoorLegend).toBeHidden();
+  await expect(page.locator('#d1-known-door-label-layer')).toBeHidden();
   await expect(page.locator('#coordinate-floor')).toHaveText('D 2F');
   await expect(coordinatePanel).toBeVisible();
   await expect(canvas).toHaveAttribute('data-review-grid-visible', 'true');
@@ -1070,6 +1112,8 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await page.getByRole('button', { name: 'Orbit' }).click();
   await expect(coordinatePanel).toBeHidden();
   await expect(canvas).toHaveAttribute('data-review-grid-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-d1-known-door-labels-visible', 'false');
+  await expect(knownDoorLegend).toBeHidden();
   await expect(canvas).toHaveAttribute('data-d-review-active', 'false');
   await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '0');
   await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '0');

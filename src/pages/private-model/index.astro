@@ -246,6 +246,105 @@ const title = 'Private 3D viewer';
         font-size: 10px;
       }
 
+      .d1-known-door-label-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .d1-known-door-label-layer[hidden],
+      .d1-known-door-legend[hidden] {
+        display: none;
+      }
+
+      .d1-known-door-label {
+        position: absolute;
+        display: grid;
+        width: 24px;
+        height: 24px;
+        place-items: center;
+        border: 2px solid #a34a2a;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 2px 8px rgba(25, 28, 25, 0.22);
+        color: #7f321d;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1;
+        transform: translate(-50%, -145%);
+      }
+
+      .d1-known-door-legend {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 3;
+        width: min(390px, calc(100% - 24px));
+        max-height: calc(100% - 24px);
+        overflow: auto;
+        padding: 10px 12px;
+        border: 1px solid #d7d7d2;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 8px 28px rgba(25, 28, 25, 0.12);
+        pointer-events: none;
+      }
+
+      .d1-known-door-legend h2 {
+        margin: 0 0 6px;
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .d1-known-door-legend ol {
+        display: grid;
+        gap: 5px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .d1-known-door-legend li {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        gap: 7px;
+        align-items: start;
+        font-size: 10px;
+      }
+
+      .d1-known-door-legend-number {
+        display: grid;
+        width: 20px;
+        height: 20px;
+        place-items: center;
+        border: 1px solid #a34a2a;
+        border-radius: 999px;
+        color: #7f321d;
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .d1-known-door-legend-name {
+        display: block;
+        margin-bottom: 1px;
+        font-weight: 700;
+      }
+
+      .d1-known-door-legend code {
+        display: block;
+        color: #656862;
+        font-size: 9px;
+        overflow-wrap: anywhere;
+      }
+
+      .d1-known-door-legend-note {
+        margin-top: 7px;
+        color: #777a75;
+        font-size: 10px;
+      }
+
       .selection-panel {
         position: absolute;
         top: 12px;
@@ -362,6 +461,14 @@ const title = 'Private 3D viewer';
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
+        <div id="d1-known-door-label-layer" class="d1-known-door-label-layer" aria-hidden="true" hidden></div>
+        <aside id="d1-known-door-legend" class="d1-known-door-legend" aria-label="Tunnetut D 1F -ovet" hidden>
+          <h2>Tunnetut D 1F -ovet 7/7</h2>
+          <ol id="d1-known-door-legend-list"></ol>
+          <div class="d1-known-door-legend-note">
+            Numerottomia aukkoja ei nimetä automaattisesti. Klikkaa vain omat aiemmin merkitsemäsi numerottomat aukot.
+          </div>
+        </aside>
         <aside id="coordinate-panel" class="coordinate-panel" aria-live="polite" hidden>
           <div class="coordinate-title-row">
             <strong class="coordinate-title">YLIS-G1-LOCAL</strong>
@@ -456,6 +563,9 @@ const title = 'Private 3D viewer';
       const locusLayerCount = document.querySelector<HTMLElement>('#locus-layer-count');
       const locusWaterCount = document.querySelector<HTMLElement>('#locus-water-count');
       const locusWastewaterCount = document.querySelector<HTMLElement>('#locus-wastewater-count');
+      const d1KnownDoorLabelLayer = document.querySelector<HTMLElement>('#d1-known-door-label-layer');
+      const d1KnownDoorLegend = document.querySelector<HTMLElement>('#d1-known-door-legend');
+      const d1KnownDoorLegendList = document.querySelector<HTMLOListElement>('#d1-known-door-legend-list');
       const coordinatePanel = document.querySelector<HTMLElement>('#coordinate-panel');
       const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
       const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
@@ -492,6 +602,9 @@ const title = 'Private 3D viewer';
         !locusLayerCount ||
         !locusWaterCount ||
         !locusWastewaterCount ||
+        !d1KnownDoorLabelLayer ||
+        !d1KnownDoorLegend ||
+        !d1KnownDoorLegendList ||
         !coordinatePanel ||
         !coordinateFloor ||
         !coordinatePointer ||
@@ -582,6 +695,16 @@ const title = 'Private 3D viewer';
       const dReviewEmphasisMeshes = new Set<any>();
       const dReviewContextMeshes = new Set<any>();
       const dReviewDoorMarkerLines = new Set<any>();
+      const d1KnownDoorReviewItems = [
+        { number: 1, id: 'G2_DOOR_EXT_D_1F_S_001', name: 'Etelä - ulko-ovi' },
+        { number: 2, id: 'G2_DOOR_EXT_D_1F_N_001', name: 'Pohjoinen - ulko-ovi' },
+        { number: 3, id: 'G2_DOOR_INT_D_1F_VH_WEST_2015_001', name: 'VH WEST' },
+        { number: 4, id: 'G2_DOOR_INT_D_1F_WC_001', name: 'WC' },
+        { number: 5, id: 'G2_DOOR_INT_D_1F_SAUNA_PESUH_2015_001', name: 'SAUNA-PESUH' },
+        { number: 6, id: 'G2_DOOR_INT_D_1F_VH_NORTH_2015_001', name: 'VH NORTH' },
+        { number: 7, id: 'G2_DOOR_INT_D_1F_VARASTO_2015_001', name: 'VARASTO' },
+      ] as const;
+      const d1KnownDoorLabelBindings: Array<{ element: HTMLElement; marker: any }> = [];
       const dReviewMaterialBaseline = new Map<
         any,
         { opacity: number; transparent: boolean; depthWrite: boolean }
@@ -944,6 +1067,106 @@ const title = 'Private 3D viewer';
         );
       };
 
+      const clearD1KnownDoorReviewLabels = () => {
+        d1KnownDoorLabelBindings.length = 0;
+        d1KnownDoorLabelLayer.replaceChildren();
+        d1KnownDoorLegendList.replaceChildren();
+        d1KnownDoorLabelLayer.hidden = true;
+        d1KnownDoorLegend.hidden = true;
+        canvas.dataset.d1KnownDoorLabelCount = '0';
+        canvas.dataset.d1KnownDoorLabelsVisible = 'false';
+      };
+
+      const rebuildD1KnownDoorReviewLabels = () => {
+        clearD1KnownDoorReviewLabels();
+        if (activeModelSourceKind !== 'work-test') return;
+
+        for (const item of d1KnownDoorReviewItems) {
+          const marker = [...dReviewDoorMarkerLines].find(
+            (candidate: any) =>
+              candidate?.userData?.storey === '1F' &&
+              candidate?.userData?.derivedFromG2Id === item.id,
+          );
+          if (!marker) continue;
+
+          const label = document.createElement('span');
+          label.className = 'd1-known-door-label';
+          label.textContent = String(item.number);
+          label.dataset.reviewDoorNumber = String(item.number);
+          label.dataset.g2Id = item.id;
+          d1KnownDoorLabelLayer.append(label);
+          d1KnownDoorLabelBindings.push({ element: label, marker });
+
+          const legendItem = document.createElement('li');
+          const legendNumber = document.createElement('span');
+          legendNumber.className = 'd1-known-door-legend-number';
+          legendNumber.textContent = String(item.number);
+          const legendBody = document.createElement('span');
+          const legendName = document.createElement('span');
+          legendName.className = 'd1-known-door-legend-name';
+          legendName.textContent = item.name;
+          const legendId = document.createElement('code');
+          legendId.textContent = item.id;
+          legendBody.append(legendName, legendId);
+          legendItem.append(legendNumber, legendBody);
+          d1KnownDoorLegendList.append(legendItem);
+        }
+
+        canvas.dataset.d1KnownDoorLabelCount = String(d1KnownDoorLabelBindings.length);
+      };
+
+      const setD1KnownDoorReviewLabelsVisible = (visible: boolean) => {
+        const show =
+          visible &&
+          activeModelSourceKind === 'work-test' &&
+          activePlanFloor === '1F' &&
+          d1KnownDoorLabelBindings.length === d1KnownDoorReviewItems.length;
+        d1KnownDoorLabelLayer.hidden = !show;
+        d1KnownDoorLegend.hidden = !show;
+        canvas.dataset.d1KnownDoorLabelsVisible = show ? 'true' : 'false';
+      };
+
+      const updateD1KnownDoorReviewLabelPositions = () => {
+        if (
+          d1KnownDoorLabelLayer.hidden ||
+          activePlanFloor !== '1F' ||
+          activeCamera !== planCamera
+        ) {
+          return;
+        }
+
+        for (const binding of d1KnownDoorLabelBindings) {
+          const { element, marker } = binding;
+          if (!marker.visible) {
+            element.hidden = true;
+            continue;
+          }
+
+          marker.updateWorldMatrix(true, false);
+          marker.geometry?.computeBoundingBox?.();
+          const localBounds = marker.geometry?.boundingBox;
+          if (!localBounds || localBounds.isEmpty()) {
+            element.hidden = true;
+            continue;
+          }
+
+          const worldBounds = localBounds.clone().applyMatrix4(marker.matrixWorld);
+          const center = worldBounds.getCenter(new THREE.Vector3()).project(planCamera);
+          const onScreen =
+            center.z >= -1 &&
+            center.z <= 1 &&
+            center.x >= -1.05 &&
+            center.x <= 1.05 &&
+            center.y >= -1.05 &&
+            center.y <= 1.05;
+          element.hidden = !onScreen;
+          if (!onScreen) continue;
+
+          element.style.left = `${((center.x + 1) * 0.5 * canvas.clientWidth).toFixed(1)}px`;
+          element.style.top = `${((1 - center.y) * 0.5 * canvas.clientHeight).toFixed(1)}px`;
+        }
+      };
+
       const prepareDReviewStyling = () => {
         dReviewEmphasisMeshes.clear();
         dReviewContextMeshes.clear();
@@ -1005,6 +1228,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.dReviewDoorMarkerPreparedCount = String(dReviewDoorMarkerLines.size);
         canvas.dataset.dReviewPrepared =
           dReviewEmphasisMeshes.size > 0 || dReviewDoorMarkerLines.size > 0 ? 'true' : 'false';
+        rebuildD1KnownDoorReviewLabels();
       };
 
       const applyDReviewStyling = (floor: '1F' | '2F') => {
@@ -1455,6 +1679,7 @@ const title = 'Private 3D viewer';
         restoreDVisibility();
         activePlanFloor = null;
         deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
         controls.enabled = false;
         planControls.enabled = false;
         isoControls.enabled = true;
@@ -1471,6 +1696,7 @@ const title = 'Private 3D viewer';
         restoreDVisibility();
         activePlanFloor = null;
         deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
         planControls.enabled = false;
         isoControls.enabled = false;
         controls.enabled = true;
@@ -1562,6 +1788,7 @@ const title = 'Private 3D viewer';
         activeCamera = planCamera;
         fitPlanCamera();
         activateDCoordinateReview(floor);
+        setD1KnownDoorReviewLabelsVisible(floor === '1F');
         syncViewState('d-plan');
         status.textContent =
           floor === '2F' && canvas.dataset.d2fBoundaryContextPrepared === 'true'
@@ -1943,6 +2170,7 @@ const title = 'Private 3D viewer';
         planControls.update();
         isoControls.update();
         selectionHelper?.update?.();
+        updateD1KnownDoorReviewLabelPositions();
         renderer.render(scene, activeCamera);
       });
 
