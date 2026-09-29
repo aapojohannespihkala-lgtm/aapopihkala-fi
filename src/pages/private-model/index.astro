@@ -2114,6 +2114,43 @@ const title = 'Private 3D viewer';
       const p139abBuildingSceneName =
         'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP';
       const p139abZPresentationLayer = 'Z_CREDIBLE_WASTEWATER_REVIEW';
+      const p139acReviewId = 'p139ac-ground-infra-review';
+      const p139acReviewQueryKey = 'review';
+      const p139acVerticalReferenceM = 21.75;
+      const p139acGroundControls = [
+        [-6.92, 15.811, 23.0],
+        [43.441, 16.055, 20.4],
+        [43.284, -9.207, 18.3],
+        [-0.477, -9.22, 20.6572304],
+        [-6.861, -9.077, 21.0],
+        [0.0, 10.81, 21.5],
+        [6.935, 13.586, 21.35],
+        [11.432, 11.009, 21.46],
+        [13.553, 11.009, 20.5],
+        [25.4, 10.81, 20.4],
+        [28.993, 13.586, 20.35],
+        [29.417, 7.332, 20.0],
+        [38.325, 7.332, 19.8],
+        [29.417, 3.951, 20.05],
+        [38.325, 3.951, 19.9],
+        [29.417, -2.895, 19.9],
+        [38.325, -2.895, 19.85],
+        [32.81, -5.177, 19.5],
+        [0.0, 0.0, 21.6],
+        [1.251, -1.965, 21.35],
+        [11.601, -1.965, 21.3],
+        [13.298, -1.965, 20.35],
+        [23.478, -1.965, 20.3],
+      ] as const;
+      const p139acGroundTriangles = [
+        [4, 18, 0], [18, 5, 0], [9, 10, 8], [22, 9, 8], [7, 5, 18], [20, 7, 18],
+        [14, 2, 1], [21, 22, 8], [7, 21, 8], [21, 7, 20], [22, 21, 3], [21, 20, 3],
+        [20, 19, 3], [19, 20, 18], [19, 4, 3], [19, 18, 4], [15, 13, 22], [13, 9, 22],
+        [5, 6, 0], [7, 6, 5], [6, 7, 8], [10, 6, 8], [6, 1, 0], [6, 10, 1],
+        [10, 12, 1], [12, 14, 1], [14, 16, 2], [9, 11, 10], [13, 11, 9], [11, 12, 10],
+        [17, 16, 15], [16, 17, 2], [2, 17, 3], [17, 22, 3], [17, 15, 22], [13, 16, 14],
+        [16, 13, 15], [11, 13, 14], [12, 11, 14],
+      ] as const;
 
       const workTestCatalogPath = '/private-model/work-test/catalog.json';
       const workTestImportPath = '/private-model/work-test/import.json';
@@ -2229,6 +2266,87 @@ const title = 'Private 3D viewer';
         return composite;
       };
 
+      const isP139acGroundInfraReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p139acReviewId;
+
+      const buildP139acGroundInfraReviewScene = (gltf: any, zScene: any) => {
+        const composite = buildP139abVisibleReviewScene(gltf, zScene);
+        composite.name = 'P139AC GROUND + Z-BACKED UNDERGROUND INFRA REVIEW';
+
+        const groundGroup = new THREE.Group();
+        groundGroup.name = 'P139AC_HISTORICAL_GROUND_REVIEW';
+
+        const positions = p139acGroundControls.flatMap(([x, y, elevation]) => [
+          x,
+          elevation - p139acVerticalReferenceM,
+          -y,
+        ]);
+        const indices = p139acGroundTriangles.flatMap((triangle) => [...triangle]);
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+
+        const material = new THREE.MeshBasicMaterial({
+          color: 0x7c9061,
+          transparent: true,
+          opacity: 0.42,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        });
+        const ground = new THREE.Mesh(geometry, material);
+        ground.name = 'P139AC_HISTORICAL_GROUND_REVIEW_SURFACE';
+        ground.renderOrder = 1;
+        ground.userData = {
+          Canonical: false,
+          ModelStage: 'WORK_TEST_VIEW',
+          presentationOnly: true,
+          source: '1974-204-A-P-1.tif / G1 T02',
+          minimumSourceGroundElevationM: 18.3,
+          currentGroundClaim: false,
+          asBuiltClaim: false,
+          verticalDatumStatus: 'OPEN_UNVERIFIED',
+        };
+        groundGroup.add(ground);
+
+        const boundaryPositions: number[] = [];
+        const boundaryControlIndexes = [0, 1, 2, 3, 4, 0];
+        for (let index = 0; index < boundaryControlIndexes.length - 1; index += 1) {
+          for (const controlIndex of [boundaryControlIndexes[index], boundaryControlIndexes[index + 1]]) {
+            const [x, y, elevation] = p139acGroundControls[controlIndex];
+            boundaryPositions.push(x, elevation - p139acVerticalReferenceM + 0.015, -y);
+          }
+        }
+        const boundaryGeometry = new THREE.BufferGeometry();
+        boundaryGeometry.setAttribute(
+          'position',
+          new THREE.Float32BufferAttribute(boundaryPositions, 3),
+        );
+        const boundary = new THREE.LineSegments(
+          boundaryGeometry,
+          new THREE.LineBasicMaterial({ color: 0x252525, transparent: true, opacity: 0.85 }),
+        );
+        boundary.name = 'P139AC_HISTORICAL_LOT_GROUND_REVIEW_BOUNDARY';
+        groundGroup.add(boundary);
+
+        groundGroup.userData = {
+          reviewScope: 'GROUND_PLUS_Z_BACKED_UNDERGROUND_INFRA',
+          groundMinimumElevationM: 18.3,
+          undergroundInfraHardCeilingOnLotM: 18.3,
+          noZRoutesPhysical: false,
+          currentClaim: false,
+          asBuiltClaim: false,
+        };
+        composite.add(groundGroup);
+        composite.userData = {
+          ...composite.userData,
+          reviewScope: 'GROUND_PLUS_Z_BACKED_UNDERGROUND_INFRA',
+          groundMinimumElevationM: 18.3,
+          undergroundInfraHardCeilingOnLotM: 18.3,
+        };
+        return composite;
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         const loader = new GLTFLoader();
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
@@ -2237,6 +2355,8 @@ const title = 'Private 3D viewer';
           const gltf = await loader.loadAsync(candidate.path);
           const isP139nReview = candidate.id === p139nCandidateId;
           const isP139abZReview = candidate.id === p139abCandidateId;
+          const isP139acGroundInfraReview =
+            isP139abZReview && isP139acGroundInfraReviewRequested();
 
           if (isP139nReview) {
             const planScene = findSourceNamedScene(gltf, p139nPlanSceneName);
@@ -2245,25 +2365,32 @@ const title = 'Private 3D viewer';
           } else if (isP139abZReview) {
             const zScene = findSourceNamedScene(gltf, p139abZSceneName);
             if (!zScene) throw new Error('p139AB Z credibility scene missing');
-            gltf.scene = buildP139abVisibleReviewScene(gltf, zScene);
+            gltf.scene = isP139acGroundInfraReview
+              ? buildP139acGroundInfraReviewScene(gltf, zScene)
+              : buildP139abVisibleReviewScene(gltf, zScene);
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
           locusLayerLabel.textContent = isP139nReview
             ? 'Kunnallistekniikka / KVV-reitit (WORK_TEST)'
-            : isP139abZReview
-              ? 'Z-review: vain Z-lähteistetty jätevesi'
-              : 'Locus kunnallistekniikka (WORK_TEST)';
+            : isP139acGroundInfraReview
+              ? 'Maanpinta + Z-lähteistetty maanalainen infra'
+              : isP139abZReview
+                ? 'Z-review: vain Z-lähteistetty jätevesi'
+                : 'Locus kunnallistekniikka (WORK_TEST)';
 
           if (isP139nReview) {
             canvas.dataset.workTestReviewMode = 'site-plan-only';
             activateSitePlanOnly();
             status.textContent = 'SITE ORTHO / PLAN ONLY - Z UNKNOWN / NOT AS-BUILT';
           } else if (isP139abZReview) {
-            canvas.dataset.workTestReviewMode = 'z-credibility-only';
+            canvas.dataset.workTestReviewMode = isP139acGroundInfraReview
+              ? 'ground-infra-review'
+              : 'z-credibility-only';
             activateIsometric();
-            status.textContent =
-              'Z-KATSELU - vain lähteistetyt jätevesikorkeudet - datum sitomatta / ei as-built';
+            status.textContent = isP139acGroundInfraReview
+              ? 'MAANPINTA + INFRA - alin maanpinta +18,30 - vain Z-lähteistetty maanalainen infra - ei as-built'
+              : 'Z-KATSELU - vain lähteistetyt jätevesikorkeudet - datum sitomatta / ei as-built';
           } else {
             delete canvas.dataset.workTestReviewMode;
           }

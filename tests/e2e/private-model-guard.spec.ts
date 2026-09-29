@@ -1493,6 +1493,65 @@ test('private viewer opens p139AB as a Z-only orthographic wastewater review', a
   await expect(page.locator('#locus-layer-visible')).toBeDisabled();
 });
 
+test('private viewer composes p139AC ground and Z-backed underground infra review on p139AB', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP',
+        nodes: [],
+      },
+      {
+        name: 'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT',
+        nodes: [],
+      },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p139ab-z-credible-wastewater-review';
+  const candidateLabel = 'p139AB Z-uskottavuus - jätevesi';
+  const candidatePath = '/private-model/work-test/p139ab-z-credible-wastewater-review.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p139ac-ground-infra-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  await page.getByRole('button', { name: 'Avaa WORK_TEST' }).click();
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'ground-infra-review');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(page.getByRole('status')).toHaveText(
+    'MAANPINTA + INFRA - alin maanpinta +18,30 - vain Z-lähteistetty maanalainen infra - ei as-built',
+  );
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  await expect(page.getByText('Maanpinta + Z-lähteistetty maanalainen infra')).toBeVisible();
+  await expect(page.locator('#locus-layer-visible')).toBeDisabled();
+});
+
 test('private viewer imports an exact WORK_TEST candidate from a protected fragment link without a file picker', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
