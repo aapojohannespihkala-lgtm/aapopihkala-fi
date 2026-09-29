@@ -1,0 +1,123 @@
+import { expect, test } from '@playwright/test';
+
+import {
+  PRIVATE_WORK_TEST_CANDIDATES,
+  PRIVATE_WORK_TEST_CATALOG_PATH,
+  getPrivateWorkTestCandidate,
+  handlePrivateWorkTestRequest,
+  isPrivateWorkTestObjectValid,
+  isPrivateWorkTestPath,
+} from '../../worker/privateWorkTest';
+import type { PrivateModelEnv } from '../../worker/privateModel';
+
+test('private WORK_TEST route matching is bounded to the dedicated prefix', () => {
+  expect(isPrivateWorkTestPath('/private-model/work-test')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/catalog.json')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/p136b-d-current-wall-corrected.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-testing')).toBe(false);
+  expect(isPrivateWorkTestPath('/private-model/model.glb')).toBe(false);
+});
+
+test('private WORK_TEST candidate allowlist exposes only the named p136B route', () => {
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(1);
+
+  const candidate = PRIVATE_WORK_TEST_CANDIDATES[0];
+  expect(candidate.id).toBe('p136b-d-current-wall-corrected');
+  expect(candidate.objectKey).toBe('work-test/p136b-d-current-wall-corrected.glb');
+  expect(candidate.expectedSize).toBe(1_149_768);
+  expect(candidate.expectedSha256).toBe(
+    '8a0f78f3f150f43fda65c93f9536594fe72d7713a6a6a946191e00b61cc4f4bf',
+  );
+
+  expect(getPrivateWorkTestCandidate(candidate.path)?.id).toBe(candidate.id);
+  expect(getPrivateWorkTestCandidate('/private-model/work-test/model.glb')).toBeNull();
+  expect(getPrivateWorkTestCandidate('/private-model/work-test/../model.glb')).toBeNull();
+  expect(getPrivateWorkTestCandidate('/private-model/work-test/p136b-d-current-wall-corrected.glb/extra')).toBeNull();
+});
+
+test('private WORK_TEST candidate requires exact R2 size and SHA metadata before availability', () => {
+  const candidate = PRIVATE_WORK_TEST_CANDIDATES[0];
+
+  expect(
+    isPrivateWorkTestObjectValid(
+      {
+        size: candidate.expectedSize,
+        customMetadata: { sha256: candidate.expectedSha256 },
+      },
+      candidate,
+    ),
+  ).toBe(true);
+
+  expect(
+    isPrivateWorkTestObjectValid(
+      {
+        size: candidate.expectedSize + 1,
+        customMetadata: { sha256: candidate.expectedSha256 },
+      },
+      candidate,
+    ),
+  ).toBe(false);
+
+  expect(
+    isPrivateWorkTestObjectValid(
+      {
+        size: candidate.expectedSize,
+        customMetadata: { sha256: '00'.repeat(32) },
+      },
+      candidate,
+    ),
+  ).toBe(false);
+
+  expect(isPrivateWorkTestObjectValid({ size: candidate.expectedSize }, candidate)).toBe(false);
+});
+
+test('private WORK_TEST catalog fails closed before R2 access without Access configuration', async () => {
+  let bucketReads = 0;
+  const env: PrivateModelEnv = {
+    ASSETS: {
+      fetch: async () => new Response('unused'),
+    },
+    PRIVATE_MODEL_BUCKET: {
+      get: async () => {
+        bucketReads += 1;
+        return null;
+      },
+    },
+  };
+
+  const response = await handlePrivateWorkTestRequest(
+    new Request(`https://example.test${PRIVATE_WORK_TEST_CATALOG_PATH}`, { method: 'GET' }),
+    env,
+  );
+
+  expect(response.status).toBe(404);
+  expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+  expect(response.headers.get('X-Robots-Tag')).toContain('noindex');
+  expect(bucketReads).toBe(0);
+});
+
+test('private WORK_TEST backend rejects writes before auth or R2 access', async () => {
+  let bucketReads = 0;
+  const env: PrivateModelEnv = {
+    ASSETS: {
+      fetch: async () => new Response('unused'),
+    },
+    PRIVATE_MODEL_BUCKET: {
+      get: async () => {
+        bucketReads += 1;
+        return null;
+      },
+    },
+  };
+
+  const response = await handlePrivateWorkTestRequest(
+    new Request('https://example.test/private-model/work-test/p136b-d-current-wall-corrected.glb', {
+      method: 'POST',
+    }),
+    env,
+  );
+
+  expect(response.status).toBe(405);
+  expect(response.headers.get('Allow')).toBe('GET, HEAD');
+  expect(bucketReads).toBe(0);
+});
