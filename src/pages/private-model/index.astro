@@ -581,6 +581,7 @@ const title = 'Private 3D viewer';
       let activeModelSourceKind: 'current' | 'work-test' = 'current';
       const dReviewEmphasisMeshes = new Set<any>();
       const dReviewContextMeshes = new Set<any>();
+      const dReviewDoorMarkerLines = new Set<any>();
       const dReviewMaterialBaseline = new Map<
         any,
         { opacity: number; transparent: boolean; depthWrite: boolean }
@@ -619,6 +620,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.dReviewActive = 'false';
         canvas.dataset.dReviewEmphasisCount = '0';
         canvas.dataset.dReviewContextHiddenCount = '0';
+        canvas.dataset.dReviewDoorMarkerVisibleCount = '0';
       };
 
       const restoreDVisibility = () => {
@@ -931,16 +933,52 @@ const title = 'Private 3D viewer';
         );
       };
 
+      const isP128BDoorReviewMarker = (object: any) => {
+        const data = object?.userData ?? {};
+        return (
+          (object.isLine || object.isLineSegments) &&
+          data.PresentationOnly === true &&
+          data.Pass === '128B' &&
+          data.markerType === 'HORIZONTAL_ONLY_REFERENCE_AT_HOST_FLOOR' &&
+          typeof data.derivedFromG2Id === 'string'
+        );
+      };
+
       const prepareDReviewStyling = () => {
         dReviewEmphasisMeshes.clear();
         dReviewContextMeshes.clear();
+        dReviewDoorMarkerLines.clear();
         dReviewMaterialBaseline.clear();
         canvas.dataset.dReviewPrepared = 'false';
+        canvas.dataset.dReviewDoorMarkerPreparedCount = '0';
         restoreDReviewStyling();
 
         if (activeModelSourceKind !== 'work-test' || !dInteriorScene) return;
 
         dInteriorScene.traverse((object: any) => {
+          if (isP128BDoorReviewMarker(object)) {
+            dReviewDoorMarkerLines.add(object);
+            const promoteDoorMarkerMaterial = (material: any) => {
+              if (!material?.clone) return material;
+              const clone = material.clone();
+              clone.opacity = 1;
+              clone.transparent = true;
+              clone.depthTest = false;
+              clone.depthWrite = false;
+              clone.needsUpdate = true;
+              return clone;
+            };
+
+            if (Array.isArray(object.material)) {
+              object.material = object.material.map((material: any) =>
+                promoteDoorMarkerMaterial(material),
+              );
+            } else {
+              object.material = promoteDoorMarkerMaterial(object.material);
+            }
+            object.renderOrder = 120;
+          }
+
           if (!object.isMesh) return;
           if (isP136BReviewContext(object)) dReviewContextMeshes.add(object);
           if (!isP136BReviewEmphasis(object)) return;
@@ -964,17 +1002,24 @@ const title = 'Private 3D viewer';
           }
         });
 
-        canvas.dataset.dReviewPrepared = dReviewEmphasisMeshes.size > 0 ? 'true' : 'false';
+        canvas.dataset.dReviewDoorMarkerPreparedCount = String(dReviewDoorMarkerLines.size);
+        canvas.dataset.dReviewPrepared =
+          dReviewEmphasisMeshes.size > 0 || dReviewDoorMarkerLines.size > 0 ? 'true' : 'false';
       };
 
       const applyDReviewStyling = (floor: '1F' | '2F') => {
-        if (activeModelSourceKind !== 'work-test' || dReviewEmphasisMeshes.size === 0) {
+        if (
+          activeModelSourceKind !== 'work-test' ||
+          (dReviewEmphasisMeshes.size === 0 && dReviewDoorMarkerLines.size === 0)
+        ) {
           canvas.dataset.dReviewActive = 'false';
+          canvas.dataset.dReviewDoorMarkerVisibleCount = '0';
           return;
         }
 
         let emphasized = 0;
         let contextHidden = 0;
+        let doorMarkersVisible = 0;
 
         for (const object of dReviewContextMeshes) {
           if (!object.visible || !hasFloorToken(object, floor)) continue;
@@ -995,9 +1040,16 @@ const title = 'Private 3D viewer';
           emphasized += 1;
         }
 
-        canvas.dataset.dReviewActive = emphasized > 0 ? 'true' : 'false';
+        for (const object of dReviewDoorMarkerLines) {
+          if (!object.visible || !hasFloorToken(object, floor)) continue;
+          doorMarkersVisible += 1;
+        }
+
+        canvas.dataset.dReviewActive =
+          emphasized > 0 || doorMarkersVisible > 0 ? 'true' : 'false';
         canvas.dataset.dReviewEmphasisCount = String(emphasized);
         canvas.dataset.dReviewContextHiddenCount = String(contextHidden);
+        canvas.dataset.dReviewDoorMarkerVisibleCount = String(doorMarkersVisible);
       };
 
       const semanticName = (object: any) => {
