@@ -1438,6 +1438,10 @@ test('private viewer opens p139AB as a Z-only orthographic wastewater review', a
     scene: 0,
     scenes: [
       {
+        name: 'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP',
+        nodes: [],
+      },
+      {
         name: 'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT',
         nodes: [],
       },
