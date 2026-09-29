@@ -116,6 +116,19 @@ const makeDReviewGlb = () => {
   [-0.75, -0.75, -0.2, 0.75, -0.75, -0.2].forEach((value, index) => {
     leaked2FLinePositions.writeFloatLE(value, index * 4);
   });
+  const doorMarkerIds = [
+    'G2_DOOR_EXT_D_1F_S_001',
+    'G2_DOOR_EXT_D_1F_N_001',
+    'G2_DOOR_INT_D_1F_VH_WEST_2015_001',
+    'G2_DOOR_INT_D_1F_WC_001',
+    'G2_DOOR_INT_D_1F_SAUNA_PESUH_2015_001',
+    'G2_DOOR_INT_D_1F_VH_NORTH_2015_001',
+    'G2_DOOR_INT_D_1F_VARASTO_2015_001',
+    'G2_DOOR_EXT_D_2F_S_001_ANCHOR',
+    'G2_DOOR_INT_D_2F_WC_001',
+    'G2_DOOR_INT_D_2F_ROOM4_001',
+    'G2_DOOR_INT_D_2F_ROOM3_001',
+  ];
 
   const binary = Buffer.concat([wallPositions, contextPositions, leaked2FLinePositions]);
   const json = {
@@ -126,7 +139,10 @@ const makeDReviewGlb = () => {
       { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [0] },
     ],
     nodes: [
-      { name: 'P136B_D_REVIEW_ROOT', children: [1, 2, 3, 4] },
+      {
+        name: 'P136B_D_REVIEW_ROOT',
+        children: [1, 2, 3, 4, ...doorMarkerIds.map((_, index) => 5 + index)],
+      },
       {
         name: 'P123C_D1F_WINDOW_TRANSPARENT_WALL_HELPER',
         mesh: 0,
@@ -167,11 +183,30 @@ const makeDReviewGlb = () => {
           alpha: 0.38,
         },
       },
+      ...doorMarkerIds.map((g2Id, index) => ({
+        name: `P128B_HMARK_${g2Id}`,
+        mesh: 3,
+        translation: [0, 0, index * 0.01],
+        extras: {
+          PresentationOnly: true,
+          Canonical: false,
+          Pass: '128B',
+          derivedFromG2Id: g2Id,
+          storey: index < 7 ? '1F' : '2F',
+          markerType: 'HORIZONTAL_ONLY_REFERENCE_AT_HOST_FLOOR',
+          markerVerticalExtentM: null,
+          doorHeightClaim: false,
+          doorLeafGeometryAdded: false,
+          physicalDoorVoid: false,
+          asBuiltClaim: false,
+        },
+      })),
     ],
     meshes: [
       { primitives: [{ attributes: { POSITION: 0 }, material: 0 }] },
       { primitives: [{ attributes: { POSITION: 1 }, material: 1 }] },
       { primitives: [{ attributes: { POSITION: 2 }, material: 1, mode: 1 }] },
+      { primitives: [{ attributes: { POSITION: 2 }, material: 2, mode: 1 }] },
     ],
     materials: [
       {
@@ -184,6 +219,11 @@ const makeDReviewGlb = () => {
         name: 'P117D_D1F_REVIEW_CONTEXT_TRANSPARENT',
         pbrMetallicRoughness: { baseColorFactor: [0.18, 0.68, 0.42, 0.12] },
         alphaMode: 'BLEND',
+        doubleSided: true,
+      },
+      {
+        name: 'P128B_D_DOOR_HORIZONTAL_ONLY_MARKER_ORANGE',
+        pbrMetallicRoughness: { baseColorFactor: [0.78, 0.22, 0.1, 1] },
         doubleSided: true,
       },
     ],
@@ -950,6 +990,7 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-d-review-prepared', 'true');
+  await expect(canvas).toHaveAttribute('data-d-review-door-marker-prepared-count', '11');
 
   await page.getByRole('button', { name: 'D 1F' }).click();
   await expect(page.getByRole('status')).toHaveText(
@@ -960,8 +1001,9 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-d-review-active', 'true');
   await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '1');
   await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '1');
-  await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '2');
-  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '3');
+  await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '9');
+  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '7');
+  await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '7');
   await expect(canvas).toHaveAttribute('data-d2f-boundary-context-prepared', 'true');
   await expect(canvas).toHaveAttribute(
     'data-d2f-boundary-context-source',
@@ -1018,8 +1060,9 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-d-review-active', 'true');
   await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '1');
   await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '0');
-  await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '3');
-  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '2');
+  await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '7');
+  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '9');
+  await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '4');
   await expect(page.locator('#coordinate-floor')).toHaveText('D 2F');
   await expect(coordinatePanel).toBeVisible();
   await expect(canvas).toHaveAttribute('data-review-grid-visible', 'true');
@@ -1030,6 +1073,7 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-d-review-active', 'false');
   await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '0');
   await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '0');
+  await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '0');
 });
 
 
