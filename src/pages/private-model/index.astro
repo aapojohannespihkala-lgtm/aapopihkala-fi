@@ -1980,6 +1980,57 @@ const title = 'Private 3D viewer';
         syncViewState(direction);
       };
 
+      const activateSitePlanOnly = () => {
+        if (!fullModelScene) return;
+
+        clearSelection();
+        restoreDVisibility();
+        activePlanFloor = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        controls.enabled = false;
+        planControls.enabled = false;
+        isoControls.enabled = true;
+        activeCamera = isoCamera;
+        setModelScene(fullModelScene);
+        applyRoofLayerState();
+        applyLocusLayerState();
+
+        const box = computeVisibleBounds(fullModelScene, true);
+        if (box) {
+          const center = new THREE.Vector3();
+          const size = new THREE.Vector3();
+          box.getCenter(center);
+          box.getSize(size);
+
+          const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
+          let halfWidth = Math.max(size.x * 0.54, 0.25);
+          let halfHeight = Math.max(size.z * 0.54, 0.25);
+          const modelAspect = halfWidth / halfHeight;
+
+          if (aspect > modelAspect) halfWidth = halfHeight * aspect;
+          else halfHeight = halfWidth / aspect;
+
+          const distance = Math.max(size.length() * 1.25, size.y * 4, 4);
+          isoCamera.position.set(center.x, box.max.y + distance, center.z);
+          isoCamera.up.set(0, 0, -1);
+          isoCamera.lookAt(center);
+          isoCamera.left = -halfWidth;
+          isoCamera.right = halfWidth;
+          isoCamera.top = halfHeight;
+          isoCamera.bottom = -halfHeight;
+          isoCamera.near = Math.max(distance / 10000, 0.001);
+          isoCamera.far = Math.max(distance * 4 + size.y, 1000);
+          isoCamera.zoom = 1;
+          isoCamera.updateProjectionMatrix();
+
+          isoControls.target.copy(center);
+          isoControls.update();
+        }
+
+        syncViewState('top');
+      };
+
       type ModelSourceKind = 'current' | 'work-test';
 
       const applyLoadedModel = (
@@ -2140,7 +2191,7 @@ const title = 'Private 3D viewer';
 
           if (isP139nReview) {
             canvas.dataset.workTestReviewMode = 'site-plan-only';
-            axisView('top');
+            activateSitePlanOnly();
             status.textContent = 'SITE ORTHO / PLAN ONLY - Z UNKNOWN / NOT AS-BUILT';
           } else {
             delete canvas.dataset.workTestReviewMode;
