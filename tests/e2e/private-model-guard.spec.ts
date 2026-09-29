@@ -102,6 +102,119 @@ const makeTriangleGlb = (
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
+
+const makeDReviewGlb = () => {
+  const wallPositions = Buffer.alloc(36);
+  [-1, -1, 0, 1, -1, 0, 0, 1, 0].forEach((value, index) => {
+    wallPositions.writeFloatLE(value, index * 4);
+  });
+  const contextPositions = Buffer.alloc(36);
+  [-1, -1, -0.1, 1, -1, -0.1, 0, 1, -0.1].forEach((value, index) => {
+    contextPositions.writeFloatLE(value, index * 4);
+  });
+
+  const binary = Buffer.concat([wallPositions, contextPositions]);
+  const json = {
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P136B REVIEW ROOT - BABYLON Y-UP', nodes: [] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [0] },
+    ],
+    nodes: [
+      { name: 'P136B_D_REVIEW_ROOT', children: [1, 2] },
+      {
+        name: 'D_1F_REVIEW_WALL',
+        mesh: 0,
+        extras: {
+          PresentationOnly: true,
+          Canonical: false,
+          Pass: '123C',
+          sourceP123BNode: 434,
+          alpha: 0.38,
+        },
+      },
+      {
+        name: 'D_1F_REVIEW_CONTEXT',
+        mesh: 1,
+        extras: {
+          PresentationOnly: true,
+          Canonical: false,
+          Pass: '117D',
+          representationKind: 'referenceFootprint',
+        },
+      },
+    ],
+    meshes: [
+      { primitives: [{ attributes: { POSITION: 0 }, material: 0 }] },
+      { primitives: [{ attributes: { POSITION: 1 }, material: 1 }] },
+    ],
+    materials: [
+      {
+        name: 'P123C_D_REVIEW_WALL_TRANSPARENT',
+        pbrMetallicRoughness: { baseColorFactor: [0.08, 1, 0.18, 0.38] },
+        alphaMode: 'BLEND',
+        doubleSided: true,
+      },
+      {
+        name: 'P117D_D1F_REVIEW_CONTEXT_TRANSPARENT',
+        pbrMetallicRoughness: { baseColorFactor: [0.18, 0.68, 0.42, 0.12] },
+        alphaMode: 'BLEND',
+        doubleSided: true,
+      },
+    ],
+    buffers: [{ byteLength: binary.length }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: wallPositions.length, target: 34962 },
+      {
+        buffer: 0,
+        byteOffset: wallPositions.length,
+        byteLength: contextPositions.length,
+        target: 34962,
+      },
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 3,
+        type: 'VEC3',
+        min: [-1, -1, 0],
+        max: [1, 1, 0],
+      },
+      {
+        bufferView: 1,
+        componentType: 5126,
+        count: 3,
+        type: 'VEC3',
+        min: [-1, -1, -0.1],
+        max: [1, 1, -0.1],
+      },
+    ],
+  };
+
+  const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
+  const jsonPadding = (4 - (jsonBuffer.length % 4)) % 4;
+  const jsonChunk = Buffer.concat([jsonBuffer, Buffer.alloc(jsonPadding, 0x20)]);
+  const binPadding = (4 - (binary.length % 4)) % 4;
+  const binChunk = Buffer.concat([binary, Buffer.alloc(binPadding)]);
+
+  const header = Buffer.alloc(12);
+  header.write('glTF', 0, 'ascii');
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + jsonChunk.length + 8 + binChunk.length, 8);
+
+  const jsonHeader = Buffer.alloc(8);
+  jsonHeader.writeUInt32LE(jsonChunk.length, 0);
+  jsonHeader.writeUInt32LE(0x4e4f534a, 4);
+
+  const binHeader = Buffer.alloc(8);
+  binHeader.writeUInt32LE(binChunk.length, 0);
+  binHeader.writeUInt32LE(0x004e4942, 4);
+
+  return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
+};
+
 const makeMeshAndLineGlb = () => {
   const trianglePositions = Buffer.alloc(36);
   [-1, -1, 0, 1, -1, 0, 0, 1, 0].forEach((value, index) => {
@@ -749,6 +862,53 @@ test('private viewer full-model fit includes visible line geometry and excludes 
   expect(Math.abs(hiddenIsoCenter)).toBeLessThan(0.01);
 });
 
+
+
+
+test('private viewer turns p136B D floor views into isolated review views', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [] },
+    ],
+    nodes: [],
+  });
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: currentModel,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await page.locator('#work-test-file-input').setInputFiles({
+    name: 'Ylisrinne_G1c_G2b_GENERAL_REVIEW_WORK_TEST_p136B_D_current_wall_corrected.glb',
+    mimeType: 'model/gltf-binary',
+    buffer: makeDReviewGlb(),
+  });
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-d-review-prepared', 'true');
+
+  await page.getByRole('button', { name: 'D 1F' }).click();
+  await expect(page.getByRole('status')).toHaveText(
+    'D 1F - tarkastusnäkymä, tarkastusgeometria korostettu',
+  );
+  await expect(canvas).toHaveAttribute('data-view-preset', 'd-plan');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-d-review-active', 'true');
+  await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '1');
+  await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '1');
+
+  await page.getByRole('button', { name: 'Orbit' }).click();
+  await expect(canvas).toHaveAttribute('data-d-review-active', 'false');
+  await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '0');
+  await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '0');
+});
 
 
 test('private viewer loads a local WORK_TEST GLB and returns to CURRENT without a candidate network route', async ({ page }) => {
