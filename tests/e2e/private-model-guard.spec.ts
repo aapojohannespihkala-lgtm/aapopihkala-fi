@@ -112,8 +112,12 @@ const makeDReviewGlb = () => {
   [-1, -1, -0.1, 1, -1, -0.1, 0, 1, -0.1].forEach((value, index) => {
     contextPositions.writeFloatLE(value, index * 4);
   });
+  const leaked2FLinePositions = Buffer.alloc(24);
+  [-0.75, -0.75, -0.2, 0.75, -0.75, -0.2].forEach((value, index) => {
+    leaked2FLinePositions.writeFloatLE(value, index * 4);
+  });
 
-  const binary = Buffer.concat([wallPositions, contextPositions]);
+  const binary = Buffer.concat([wallPositions, contextPositions, leaked2FLinePositions]);
   const json = {
     asset: { version: '2.0' },
     scene: 0,
@@ -122,9 +126,9 @@ const makeDReviewGlb = () => {
       { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [0] },
     ],
     nodes: [
-      { name: 'P136B_D_REVIEW_ROOT', children: [1, 2] },
+      { name: 'P136B_D_REVIEW_ROOT', children: [1, 2, 3] },
       {
-        name: 'D_1F_REVIEW_WALL',
+        name: 'P123C_D1F_WINDOW_TRANSPARENT_WALL_HELPER',
         mesh: 0,
         extras: {
           PresentationOnly: true,
@@ -135,7 +139,7 @@ const makeDReviewGlb = () => {
         },
       },
       {
-        name: 'D_1F_REVIEW_CONTEXT',
+        name: 'P117D_REVIEW_P87_VIEW_G2_D15_SPACE_SAUNA_1F_SRC',
         mesh: 1,
         extras: {
           PresentationOnly: true,
@@ -144,10 +148,19 @@ const makeDReviewGlb = () => {
           representationKind: 'referenceFootprint',
         },
       },
+      {
+        name: 'P87_VIEW_P84_OUTLINE_G2_D15_SPACE_WC_2F_SRC',
+        mesh: 2,
+        extras: {
+          presentationOnly: true,
+          presentationLayer: 'CURRENT_D_OUTLINE',
+        },
+      },
     ],
     meshes: [
       { primitives: [{ attributes: { POSITION: 0 }, material: 0 }] },
       { primitives: [{ attributes: { POSITION: 1 }, material: 1 }] },
+      { primitives: [{ attributes: { POSITION: 2 }, material: 1, mode: 1 }] },
     ],
     materials: [
       {
@@ -172,6 +185,12 @@ const makeDReviewGlb = () => {
         byteLength: contextPositions.length,
         target: 34962,
       },
+      {
+        buffer: 0,
+        byteOffset: wallPositions.length + contextPositions.length,
+        byteLength: leaked2FLinePositions.length,
+        target: 34962,
+      },
     ],
     accessors: [
       {
@@ -189,6 +208,14 @@ const makeDReviewGlb = () => {
         type: 'VEC3',
         min: [-1, -1, -0.1],
         max: [1, 1, -0.1],
+      },
+      {
+        bufferView: 2,
+        componentType: 5126,
+        count: 2,
+        type: 'VEC3',
+        min: [-0.75, -0.75, -0.2],
+        max: [0.75, -0.75, -0.2],
       },
     ],
   };
@@ -903,6 +930,8 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-d-review-active', 'true');
   await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '1');
   await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '1');
+  await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '2');
+  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '1');
 
   await page.getByRole('button', { name: 'Orbit' }).click();
   await expect(canvas).toHaveAttribute('data-d-review-active', 'false');
