@@ -543,7 +543,7 @@ const title = 'Private 3D viewer';
           <div class="layer-section">
             <label class="layer-row">
               <input id="locus-layer-visible" type="checkbox" disabled />
-              <span>Locus kunnallistekniikka (WORK_TEST)</span>
+              <span id="locus-layer-label">Locus kunnallistekniikka (WORK_TEST)</span>
             </label>
             <div id="locus-layer-count" class="layer-count">0 kohdetta</div>
             <div class="layer-legend" aria-label="Locus kunnallistekniikan selite">
@@ -601,6 +601,7 @@ const title = 'Private 3D viewer';
       const roofLayerOpacityValue = document.querySelector<HTMLOutputElement>('#roof-layer-opacity-value');
       const roofLayerCount = document.querySelector<HTMLElement>('#roof-layer-count');
       const locusLayerVisibleInput = document.querySelector<HTMLInputElement>('#locus-layer-visible');
+      const locusLayerLabel = document.querySelector<HTMLElement>('#locus-layer-label');
       const locusLayerCount = document.querySelector<HTMLElement>('#locus-layer-count');
       const locusWaterCount = document.querySelector<HTMLElement>('#locus-water-count');
       const locusWastewaterCount = document.querySelector<HTMLElement>('#locus-wastewater-count');
@@ -642,6 +643,7 @@ const title = 'Private 3D viewer';
         !roofLayerOpacityValue ||
         !roofLayerCount ||
         !locusLayerVisibleInput ||
+        !locusLayerLabel ||
         !locusLayerCount ||
         !locusWaterCount ||
         !locusWastewaterCount ||
@@ -1439,8 +1441,15 @@ const title = 'Private 3D viewer';
         );
       };
 
+      const routePresentationLayers = new Set([
+        'G3_LOCUS_SITE',
+        'LOCUS_PARCEL_ROUTES',
+        'KVV_1974_SITE_ROUTES',
+        'KVV_2017_A1F_WATER',
+      ]);
+
       const isLocusLayerMember = (object: any) =>
-        object?.userData?.presentationLayer === 'G3_LOCUS_SITE';
+        routePresentationLayers.has(String(object?.userData?.presentationLayer ?? ''));
 
       const hasLocusLayerAncestor = (object: any) => {
         let current = object;
@@ -1973,6 +1982,57 @@ const title = 'Private 3D viewer';
         syncViewState(direction);
       };
 
+      const activateSitePlanOnly = () => {
+        if (!fullModelScene) return;
+
+        clearSelection();
+        restoreDVisibility();
+        activePlanFloor = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        controls.enabled = false;
+        planControls.enabled = false;
+        isoControls.enabled = true;
+        activeCamera = isoCamera;
+        setModelScene(fullModelScene);
+        applyRoofLayerState();
+        applyLocusLayerState();
+
+        const box = computeVisibleBounds(fullModelScene, true);
+        if (box) {
+          const center = new THREE.Vector3();
+          const size = new THREE.Vector3();
+          box.getCenter(center);
+          box.getSize(size);
+
+          const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
+          let halfWidth = Math.max(size.x * 0.54, 0.25);
+          let halfHeight = Math.max(size.z * 0.54, 0.25);
+          const modelAspect = halfWidth / halfHeight;
+
+          if (aspect > modelAspect) halfWidth = halfHeight * aspect;
+          else halfHeight = halfWidth / aspect;
+
+          const distance = Math.max(size.length() * 1.25, size.y * 4, 4);
+          isoCamera.position.set(center.x, box.max.y + distance, center.z);
+          isoCamera.up.set(0, 0, -1);
+          isoCamera.lookAt(center);
+          isoCamera.left = -halfWidth;
+          isoCamera.right = halfWidth;
+          isoCamera.top = halfHeight;
+          isoCamera.bottom = -halfHeight;
+          isoCamera.near = Math.max(distance / 10000, 0.001);
+          isoCamera.far = Math.max(distance * 4 + size.y, 1000);
+          isoCamera.zoom = 1;
+          isoCamera.updateProjectionMatrix();
+
+          isoControls.target.copy(center);
+          isoControls.update();
+        }
+
+        syncViewState('top');
+      };
+
       type ModelSourceKind = 'current' | 'work-test';
 
       const applyLoadedModel = (
@@ -2032,6 +2092,7 @@ const title = 'Private 3D viewer';
         try {
           const gltf = await loader.loadAsync('/private-model/model.glb');
           applyLoadedModel(gltf, 'current', 'CURRENT');
+          locusLayerLabel.textContent = 'Locus kunnallistekniikka (WORK_TEST)';
         } catch (error) {
           console.error(error);
           status.textContent = 'Suojattua mallia ei ole vielä käytettävissä';
@@ -2043,6 +2104,10 @@ const title = 'Private 3D viewer';
         label: string;
         path: string;
       };
+
+      const p139nCandidateId = 'p139n-federated-kvv-review';
+      const p139nPlanSceneName =
+        'P139N SITE_PLAN_OVERLAY - Z UNKNOWN - PLAN ONLY - NOT AS-BUILT';
 
       const workTestCatalogPath = '/private-model/work-test/catalog.json';
       const workTestImportPath = '/private-model/work-test/import.json';
@@ -2117,9 +2182,29 @@ const title = 'Private 3D viewer';
 
         try {
           const gltf = await loader.loadAsync(candidate.path);
+          const isP139nReview = candidate.id === p139nCandidateId;
+
+          if (isP139nReview) {
+            const planScene = findSourceNamedScene(gltf, p139nPlanSceneName);
+            if (!planScene) throw new Error('p139N SITE_PLAN_OVERLAY scene missing');
+            gltf.scene = planScene;
+          }
+
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
+          locusLayerLabel.textContent = isP139nReview
+            ? 'Kunnallistekniikka / KVV-reitit (WORK_TEST)'
+            : 'Locus kunnallistekniikka (WORK_TEST)';
+
+          if (isP139nReview) {
+            canvas.dataset.workTestReviewMode = 'site-plan-only';
+            activateSitePlanOnly();
+            status.textContent = 'SITE ORTHO / PLAN ONLY - Z UNKNOWN / NOT AS-BUILT';
+          } else {
+            delete canvas.dataset.workTestReviewMode;
+          }
         } catch (error) {
           console.error(error);
+          delete canvas.dataset.workTestReviewMode;
           status.textContent = 'WORK_TEST-kandidaattia ei voitu avata';
         }
       };
