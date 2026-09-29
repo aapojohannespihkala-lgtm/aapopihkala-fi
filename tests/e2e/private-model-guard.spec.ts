@@ -1183,7 +1183,7 @@ test('private viewer makes p137J user-current D1F doors visible as A/B review ma
   });
 
   const candidateId = 'p137j-d1f-user-current-doors';
-  const candidateLabel = 'p137J - D 1F user current doors';
+  const candidateLabel = 'p138D architecture baseline - p137J geometry';
   const candidatePath = '/private-model/work-test/p137j-d1f-user-current-doors.glb';
 
   await page.route('**/private-model/work-test/catalog.json', async (route) => {

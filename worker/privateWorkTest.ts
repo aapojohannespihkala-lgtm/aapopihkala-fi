@@ -28,7 +28,7 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
   },
   {
     id: 'p137j-d1f-user-current-doors',
-    label: 'p137J - D 1F user current doors',
+    label: 'p138D architecture baseline - p137J geometry',
     path: `${PRIVATE_WORK_TEST_PREFIX}/p137j-d1f-user-current-doors.glb`,
     objectKey: 'work-test/p137j-d1f-user-current-doors.glb',
     expectedSize: 1_154_364,
