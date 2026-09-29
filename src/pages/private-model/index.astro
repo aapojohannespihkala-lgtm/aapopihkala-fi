@@ -1279,6 +1279,9 @@ const title = 'Private 3D viewer';
       };
 
       const workTestCatalogPath = '/private-model/work-test/catalog.json';
+      const workTestImportPath = '/private-model/work-test/import.json';
+      const workTestImportFragmentKey = 'workTestImport';
+      const workTestCandidateFragmentKey = 'workTestCandidate';
       let workTestCandidates = new Map<string, WorkTestCandidate>();
 
       const isWorkTestCandidate = (value: unknown): value is WorkTestCandidate => {
@@ -1355,6 +1358,81 @@ const title = 'Private 3D viewer';
         }
       };
 
+      const readWorkTestImportIntent = () => {
+        if (!window.location.hash.startsWith('#')) return null;
+        const params = new URLSearchParams(window.location.hash.slice(1));
+        const sourceUrl = params.get(workTestImportFragmentKey);
+        const candidateId = params.get(workTestCandidateFragmentKey);
+        if (
+          !sourceUrl ||
+          sourceUrl.length > 5000 ||
+          !candidateId ||
+          !/^[a-z0-9-]+$/.test(candidateId)
+        ) {
+          return null;
+        }
+
+        return { candidateId, sourceUrl };
+      };
+
+      const clearWorkTestImportFragment = () => {
+        if (!window.location.hash) return;
+        window.history.replaceState(
+          null,
+          '',
+          `${window.location.pathname}${window.location.search}`,
+        );
+      };
+
+      const importWorkTestCandidateFromFragment = async () => {
+        const intent = readWorkTestImportIntent();
+        if (!intent) return false;
+
+        clearWorkTestImportFragment();
+        canvas.dataset.workTestImport = 'loading';
+        status.textContent = 'Valmistellaan suojattua WORK_TEST-kandidaattia...';
+
+        try {
+          const response = await fetch(workTestImportPath, {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            cache: 'no-store',
+            body: JSON.stringify(intent),
+          });
+          if (!response.ok) throw new Error(`WORK_TEST import HTTP ${response.status}`);
+
+          const payload = (await response.json()) as {
+            candidate?: unknown;
+            ready?: unknown;
+          };
+          if (!isWorkTestCandidate(payload.candidate) || payload.ready !== true) {
+            throw new Error('WORK_TEST import response invalid');
+          }
+          if (payload.candidate.id !== intent.candidateId) {
+            throw new Error('WORK_TEST import candidate mismatch');
+          }
+
+          await loadWorkTestCatalog();
+          const candidate = workTestCandidates.get(intent.candidateId);
+          if (!candidate) throw new Error('WORK_TEST candidate missing after import');
+
+          workTestSelect.value = candidate.id;
+          workTestButton.disabled = false;
+          canvas.dataset.workTestImport = 'ready';
+          await loadWorkTestCandidate(candidate);
+          return true;
+        } catch (error) {
+          console.error(error);
+          canvas.dataset.workTestImport = 'failed';
+          status.textContent = 'WORK_TEST-kandidaatin valmistelu epäonnistui';
+          await loadWorkTestCatalog();
+          return false;
+        }
+      };
+
       fitButton.addEventListener('click', fitModel);
       orbitButton.addEventListener('click', fitModel);
       topButton.addEventListener('click', () => axisView('top'));
@@ -1426,8 +1504,11 @@ const title = 'Private 3D viewer';
         renderer.render(scene, activeCamera);
       });
 
-      void loadCurrentModel();
-      void loadWorkTestCatalog();
+      void (async () => {
+        await loadCurrentModel();
+        const imported = await importWorkTestCandidateFromFragment();
+        if (!imported) await loadWorkTestCatalog();
+      })();
     </script>
   </body>
 </html>
