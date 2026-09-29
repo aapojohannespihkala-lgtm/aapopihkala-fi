@@ -34,6 +34,14 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_154_364,
     expectedSha256: '9e8a7286b1fbeb9730cf1a8ed358fbd07391c5cc7bb084320b30a4506b3186a4',
   },
+  {
+    id: 'g3-locus-site-p06-axis-corrected',
+    label: 'G3 Locus site p06 - axis corrected',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/g3-locus-site-p06-axis-corrected.glb`,
+    objectKey: 'work-test/g3-locus-site-p06-axis-corrected.glb',
+    expectedSize: 1_158_672,
+    expectedSha256: '0b4549b160fadf9c6c15adc1fb04fc0c0b0f9b46e6e19b6844a55205356d7efb',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
