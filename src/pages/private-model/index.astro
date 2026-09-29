@@ -2152,6 +2152,73 @@ const title = 'Private 3D viewer';
         [16, 13, 15], [11, 13, 14], [12, 11, 14],
       ] as const;
 
+      const p139adReviewId = 'p139ad-locus-work-z-review';
+      const p139adGroundHardCeilingM = 18.3;
+      const p139adLocusWorkZRoutes = [
+        {
+          name: 'P139AD_LOCUS_WATER_MAIN_WORK_Z',
+          sourceObject: 'G3_LOCUS_SITE_WATER_MAIN_REF_001',
+          system: 'WATER',
+          workZBasis: 'SOURCE_Z_CHAIN_WITH_INTERPOLATION_AND_EXTRAPOLATION',
+          sourceZNote:
+            'V143824/V64034/V56198/V230222 and southern valid Z anchors retained; malformed 8.608/5.148/0.102/0.375/0.000 XML Z values remain provenance only.',
+          points: [
+            [33.94264749, 72.14682966, 17.956704],
+            [37.68305195, 56.60733098, 17.907],
+            [43.12868161, 35.81823962, 17.841],
+            [43.83156532, 32.50308684, 17.83],
+            [47.27606113, 16.26108641, 17.778],
+            [47.21488606, 6.136409869, 17.690896],
+            [47.15509268, -2.936477576, 17.61284],
+            [45.88198948, -33.36202808, 17.350861],
+            [48.65783681, -38.44981426, 17.301],
+            [53.61335046, -47.4360285, 17.212716],
+          ],
+        },
+        {
+          name: 'P139AD_LOCUS_WATER_PARCEL_WORK_Z',
+          sourceObject: 'G3_LOCUS_SITE_WATER_PARCEL_UNCERTAIN_001',
+          system: 'WATER',
+          workZBasis: 'MAIN_TIE_PLUS_REFINABLE_BUILDING_SIDE_ASSUMPTION',
+          sourceZNote:
+            'Parcel XML Z chain 8.608 -> 5.148 -> 0 -> 0 is rejected as physical elevation; work Z rises smoothly from the water-main work tie to +18.000 m at the building-side endpoint.',
+          points: [
+            [47.21488633, 6.136410518, 17.690896],
+            [44.50380323, 5.859251822, 17.729908],
+            [40.66895387, 5.458080448, 17.785104],
+            [31.56756166, 4.249234327, 17.916536],
+            [25.79397554, 3.437147639, 18.0],
+          ],
+        },
+        {
+          name: 'P139AD_LOCUS_WASTEWATER_MAIN_WORK_Z',
+          sourceObject: 'G3_LOCUS_SITE_WASTEWATER_MAIN_REF_001',
+          system: 'WASTEWATER',
+          workZBasis: 'J6899_NEARBY_PLUS_J6898_J6897_SOURCE_CHAIN_AND_EXTRAPOLATION',
+          sourceZNote:
+            'J6898 17.817 -> 17.777 and continuous J6897 endpoint 17.260 are retained; conflicting J6763 16.591 at the same southern XY stays provenance only.',
+          points: [
+            [34.51746395, 72.37588076, 17.968],
+            [44.74598609, 31.18968577, 17.817],
+            [48.16777006, 15.8805449, 17.777],
+            [46.56826726, -37.7224216, 17.26],
+            [52.78991938, -47.7641468, 17.146115],
+          ],
+        },
+        {
+          name: 'P139AD_LOCUS_WASTEWATER_PARCEL_WORK_Z',
+          sourceObject: 'G3_LOCUS_SITE_WASTEWATER_PARCEL_UNCERTAIN_001',
+          system: 'WASTEWATER',
+          workZBasis: '1974_PARALLEL_ROUTE_PROFILE_TRANSFER',
+          sourceZNote:
+            'Locus J29638 XML is 0 -> 0 and remains provenance only. WORK_TEST profile transfers the nearby 1974 Ø150 source-elevation fall +18.15 -> +17.90 without same-pipe or topology claim.',
+          points: [
+            [26.86638639, 4.776953135, 18.15],
+            [48.28282211, 15.66568334, 17.9],
+          ],
+        },
+      ] as const;
+
       const workTestCatalogPath = '/private-model/work-test/catalog.json';
       const workTestImportPath = '/private-model/work-test/import.json';
       const workTestImportFragmentKey = 'workTestImport';
@@ -2347,6 +2414,89 @@ const title = 'Private 3D viewer';
         return composite;
       };
 
+      const isP139adLocusWorkZReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p139adReviewId;
+
+      const buildP139adLocusWorkZReviewScene = (gltf: any, zScene: any) => {
+        const composite = buildP139acGroundInfraReviewScene(gltf, zScene);
+        composite.name = 'P139AD LOCUS WORK Z + GROUND REVIEW';
+
+        const workZGroup = new THREE.Group();
+        workZGroup.name = 'P139AD_LOCUS_WORK_Z_ASSUMPTIONS';
+
+        for (const route of p139adLocusWorkZRoutes) {
+          const elevations = route.points.map((point) => point[2]);
+          const maxElevationM = Math.max(...elevations);
+          if (maxElevationM >= p139adGroundHardCeilingM) {
+            throw new Error(`p139AD route exceeds underground hard ceiling: ${route.name}`);
+          }
+
+          const positions = route.points.flatMap(([x, y, elevation]) => [
+            x,
+            elevation - p139acVerticalReferenceM,
+            -y,
+          ]);
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+          const material = new THREE.LineBasicMaterial({
+            color: route.system === 'WATER' ? 0x1f7fc9 : 0xb2672d,
+            transparent: true,
+            opacity: 0.95,
+          });
+          const line = new THREE.Line(geometry, material);
+          line.name = route.name;
+          line.renderOrder = 3;
+          line.userData = {
+            Canonical: false,
+            ModelStage: 'WORK_TEST_VIEW',
+            presentationOnly: true,
+            sourceObject: route.sourceObject,
+            sourceXYState: 'PRESERVED_EXACT_FROM_G3_LOCUS_SITE_P02',
+            sourceZPreservedAsProvenance: true,
+            workZAssumption: true,
+            refinable: true,
+            workZBasis: route.workZBasis,
+            sourceZNote: route.sourceZNote,
+            minimumWorkElevationM: Math.min(...elevations),
+            maximumWorkElevationM: maxElevationM,
+            undergroundHardCeilingM: p139adGroundHardCeilingM,
+            physicalZClaim: false,
+            samePipeClaim: false,
+            topologyLinkClaim: false,
+            currentClaim: false,
+            asBuiltClaim: false,
+            verticalDatumStatus: 'OPEN_UNVERIFIED',
+          };
+          workZGroup.add(line);
+        }
+
+        workZGroup.userData = {
+          Canonical: false,
+          ModelStage: 'WORK_TEST_VIEW',
+          reviewScope: 'LOCUS_WORK_Z_ASSUMPTIONS',
+          routeCount: p139adLocusWorkZRoutes.length,
+          verticalReferenceElevationM: p139acVerticalReferenceM,
+          undergroundHardCeilingM: p139adGroundHardCeilingM,
+          sourceXYMutation: false,
+          sourceZMutation: false,
+          physicalZClaim: false,
+          currentClaim: false,
+          asBuiltClaim: false,
+        };
+        composite.add(workZGroup);
+        composite.userData = {
+          ...composite.userData,
+          reviewScope: 'GROUND_PLUS_SOURCE_Z_PLUS_LOCUS_WORK_Z',
+          locusWorkZRouteCount: p139adLocusWorkZRoutes.length,
+          locusWorkZMaxElevationM: Math.max(
+            ...p139adLocusWorkZRoutes.flatMap((route) => route.points.map((point) => point[2])),
+          ),
+          locusWorkZAssumptionsRefinable: true,
+        };
+        return composite;
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         const loader = new GLTFLoader();
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
@@ -2357,6 +2507,8 @@ const title = 'Private 3D viewer';
           const isP139abZReview = candidate.id === p139abCandidateId;
           const isP139acGroundInfraReview =
             isP139abZReview && isP139acGroundInfraReviewRequested();
+          const isP139adLocusWorkZReview =
+            isP139abZReview && isP139adLocusWorkZReviewRequested();
 
           if (isP139nReview) {
             const planScene = findSourceNamedScene(gltf, p139nPlanSceneName);
@@ -2365,34 +2517,51 @@ const title = 'Private 3D viewer';
           } else if (isP139abZReview) {
             const zScene = findSourceNamedScene(gltf, p139abZSceneName);
             if (!zScene) throw new Error('p139AB Z credibility scene missing');
-            gltf.scene = isP139acGroundInfraReview
-              ? buildP139acGroundInfraReviewScene(gltf, zScene)
-              : buildP139abVisibleReviewScene(gltf, zScene);
+            gltf.scene = isP139adLocusWorkZReview
+              ? buildP139adLocusWorkZReviewScene(gltf, zScene)
+              : isP139acGroundInfraReview
+                ? buildP139acGroundInfraReviewScene(gltf, zScene)
+                : buildP139abVisibleReviewScene(gltf, zScene);
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
           locusLayerLabel.textContent = isP139nReview
             ? 'Kunnallistekniikka / KVV-reitit (WORK_TEST)'
-            : isP139acGroundInfraReview
-              ? 'Maanpinta + Z-lähteistetty maanalainen infra'
-              : isP139abZReview
-                ? 'Z-review: vain Z-lähteistetty jätevesi'
-                : 'Locus kunnallistekniikka (WORK_TEST)';
+            : isP139adLocusWorkZReview
+              ? 'Locus work-Z + maanpinta + source-Z referenssi'
+              : isP139acGroundInfraReview
+                ? 'Maanpinta + Z-lähteistetty maanalainen infra'
+                : isP139abZReview
+                  ? 'Z-review: vain Z-lähteistetty jätevesi'
+                  : 'Locus kunnallistekniikka (WORK_TEST)';
 
           if (isP139nReview) {
             canvas.dataset.workTestReviewMode = 'site-plan-only';
             activateSitePlanOnly();
             status.textContent = 'SITE ORTHO / PLAN ONLY - Z UNKNOWN / NOT AS-BUILT';
           } else if (isP139abZReview) {
-            canvas.dataset.workTestReviewMode = isP139acGroundInfraReview
-              ? 'ground-infra-review'
-              : 'z-credibility-only';
+            canvas.dataset.workTestReviewMode = isP139adLocusWorkZReview
+              ? 'locus-work-z-review'
+              : isP139acGroundInfraReview
+                ? 'ground-infra-review'
+                : 'z-credibility-only';
+            if (isP139adLocusWorkZReview) {
+              canvas.dataset.locusWorkZRouteCount = String(p139adLocusWorkZRoutes.length);
+              canvas.dataset.locusWorkZMaxElevation = '18.150';
+            } else {
+              delete canvas.dataset.locusWorkZRouteCount;
+              delete canvas.dataset.locusWorkZMaxElevation;
+            }
             activateIsometric();
-            status.textContent = isP139acGroundInfraReview
-              ? 'MAANPINTA + INFRA - alin maanpinta +18,30 - vain Z-lähteistetty maanalainen infra - ei as-built'
-              : 'Z-KATSELU - vain lähteistetyt jätevesikorkeudet - datum sitomatta / ei as-built';
+            status.textContent = isP139adLocusWorkZReview
+              ? 'LOCUS WORK-Z - 4 reittiä oletuskoroilla - max +18,15 < maanpintaraja +18,30 - ei as-built'
+              : isP139acGroundInfraReview
+                ? 'MAANPINTA + INFRA - alin maanpinta +18,30 - vain Z-lähteistetty maanalainen infra - ei as-built'
+                : 'Z-KATSELU - vain lähteistetyt jätevesikorkeudet - datum sitomatta / ei as-built';
           } else {
             delete canvas.dataset.workTestReviewMode;
+            delete canvas.dataset.locusWorkZRouteCount;
+            delete canvas.dataset.locusWorkZMaxElevation;
           }
         } catch (error) {
           console.error(error);
