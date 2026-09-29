@@ -494,6 +494,13 @@ const title = 'Private 3D viewer';
       const locusLayerVisibilityBaseline = new Map<any, boolean>();
       let locusLayerVisible = false;
       let archBaseMaterialCloneCount = 0;
+      let activeModelSourceKind: 'current' | 'work-test' = 'current';
+      const dReviewEmphasisMeshes = new Set<any>();
+      const dReviewContextMeshes = new Set<any>();
+      const dReviewMaterialBaseline = new Map<
+        any,
+        { opacity: number; transparent: boolean; depthWrite: boolean }
+      >();
 
       const setModelScene = (root: any) => {
         modelRoot.clear();
@@ -501,10 +508,120 @@ const title = 'Private 3D viewer';
         modelRoot.updateMatrixWorld(true);
       };
 
+      const restoreDReviewStyling = () => {
+        for (const [material, baseline] of dReviewMaterialBaseline.entries()) {
+          material.opacity = baseline.opacity;
+          material.transparent = baseline.transparent;
+          material.depthWrite = baseline.depthWrite;
+          material.needsUpdate = true;
+        }
+        canvas.dataset.dReviewActive = 'false';
+        canvas.dataset.dReviewEmphasisCount = '0';
+        canvas.dataset.dReviewContextHiddenCount = '0';
+      };
+
       const restoreDVisibility = () => {
         for (const [object, visible] of dVisibilityBaseline.entries()) {
           object.visible = visible;
         }
+        restoreDReviewStyling();
+      };
+
+      const isP136BReviewEmphasis = (object: any) => {
+        const data = object?.userData ?? {};
+        if (data.PresentationOnly !== true || data.Pass !== '123C') return false;
+        if (Object.prototype.hasOwnProperty.call(data, 'sourceP122BNode')) return true;
+        if (Object.prototype.hasOwnProperty.call(data, 'sourceLowWallNode')) return true;
+        return (
+          Object.prototype.hasOwnProperty.call(data, 'sourceP123BNode') &&
+          Number(data.alpha) >= 0.35
+        );
+      };
+
+      const isP136BReviewContext = (object: any) => {
+        const data = object?.userData ?? {};
+        if (
+          data.PresentationOnly === true &&
+          (data.representationKind === 'referenceFootprint' ||
+            data.representationKind === 'stairHostFootprint')
+        ) {
+          return true;
+        }
+        return (
+          data.PresentationOnly === true &&
+          data.Pass === '123C' &&
+          Object.prototype.hasOwnProperty.call(data, 'sourceP123BNode') &&
+          Number(data.alpha) < 0.35
+        );
+      };
+
+      const prepareDReviewStyling = () => {
+        dReviewEmphasisMeshes.clear();
+        dReviewContextMeshes.clear();
+        dReviewMaterialBaseline.clear();
+        canvas.dataset.dReviewPrepared = 'false';
+        restoreDReviewStyling();
+
+        if (activeModelSourceKind !== 'work-test' || !dInteriorScene) return;
+
+        dInteriorScene.traverse((object: any) => {
+          if (!object.isMesh) return;
+          if (isP136BReviewContext(object)) dReviewContextMeshes.add(object);
+          if (!isP136BReviewEmphasis(object)) return;
+
+          dReviewEmphasisMeshes.add(object);
+          const cloneAndRegister = (material: any) => {
+            if (!material?.clone) return material;
+            const clone = material.clone();
+            dReviewMaterialBaseline.set(clone, {
+              opacity: typeof clone.opacity === 'number' ? clone.opacity : 1,
+              transparent: Boolean(clone.transparent),
+              depthWrite: clone.depthWrite !== false,
+            });
+            return clone;
+          };
+
+          if (Array.isArray(object.material)) {
+            object.material = object.material.map((material: any) => cloneAndRegister(material));
+          } else {
+            object.material = cloneAndRegister(object.material);
+          }
+        });
+
+        canvas.dataset.dReviewPrepared = dReviewEmphasisMeshes.size > 0 ? 'true' : 'false';
+      };
+
+      const applyDReviewStyling = (floor: '1F' | '2F') => {
+        if (activeModelSourceKind !== 'work-test' || dReviewEmphasisMeshes.size === 0) {
+          canvas.dataset.dReviewActive = 'false';
+          return;
+        }
+
+        let emphasized = 0;
+        let contextHidden = 0;
+
+        for (const object of dReviewContextMeshes) {
+          if (!object.visible || !hasFloorToken(object, floor)) continue;
+          object.visible = false;
+          contextHidden += 1;
+        }
+
+        for (const object of dReviewEmphasisMeshes) {
+          if (!object.visible || !hasFloorToken(object, floor)) continue;
+          const objectMaterials = Array.isArray(object.material) ? object.material : [object.material];
+          for (const material of objectMaterials) {
+            if (!material) continue;
+            material.opacity = 1;
+            material.transparent = false;
+            material.depthWrite = true;
+            material.needsUpdate = true;
+          }
+          emphasized += 1;
+        }
+
+        canvas.dataset.dReviewActive = emphasized > 0 ? 'true' : 'false';
+        canvas.dataset.dReviewEmphasisCount = String(emphasized);
+        canvas.dataset.dReviewContextHiddenCount = String(contextHidden);
       };
 
       const semanticName = (object: any) => {
@@ -978,6 +1095,7 @@ const title = 'Private 3D viewer';
           if (show) matchedMeshes += 1;
         });
 
+        applyDReviewStyling(floor);
         return matchedMeshes;
       };
 
@@ -1004,7 +1122,10 @@ const title = 'Private 3D viewer';
         activeCamera = planCamera;
         fitPlanCamera();
         syncViewState('d-plan');
-        status.textContent = `D ${floor} - ortografinen pohjanäkymä`;
+        status.textContent =
+          canvas.dataset.dReviewActive === 'true'
+            ? `D ${floor} - tarkastusnäkymä, tarkastusgeometria korostettu`
+            : `D ${floor} - ortografinen pohjanäkymä`;
       };
 
       const updateSize = () => {
@@ -1095,6 +1216,7 @@ const title = 'Private 3D viewer';
 
         fullModelScene = gltf.scene;
         dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
+        activeModelSourceKind = sourceKind;
 
         initializeFullModelArchBase();
         initializeRoofLayer();
@@ -1106,6 +1228,7 @@ const title = 'Private 3D viewer';
             if (object.isMesh) dVisibilityBaseline.set(object, object.visible);
           });
         }
+        prepareDReviewStyling();
 
         modelSourceBadge.textContent = sourceLabel;
         modelSourceBadge.dataset.kind = sourceKind;
