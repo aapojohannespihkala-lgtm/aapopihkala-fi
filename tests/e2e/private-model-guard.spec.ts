@@ -911,12 +911,31 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
     });
   });
 
-  await page.goto('/private-model/');
-  await page.locator('#work-test-file-input').setInputFiles({
-    name: 'Ylisrinne_G1c_G2b_GENERAL_REVIEW_WORK_TEST_p136B_D_current_wall_corrected.glb',
-    mimeType: 'model/gltf-binary',
-    buffer: makeDReviewGlb(),
+  const candidateId = 'p136b-d-current-wall-corrected';
+  const candidateLabel = 'p136B - D current wall corrected';
+  const candidatePath = '/private-model/work-test/p136b-d-current-wall-corrected.glb';
+
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
   });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: makeDReviewGlb(),
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.locator('#work-test-select')).toBeEnabled();
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  await page.getByRole('button', { name: 'Avaa WORK_TEST' }).click();
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-d-review-prepared', 'true');
@@ -940,7 +959,7 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
 });
 
 
-test('private viewer loads a local WORK_TEST GLB and returns to CURRENT without a candidate network route', async ({ page }) => {
+test('private viewer loads an allowlisted WORK_TEST candidate from the protected catalog and returns to CURRENT', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
@@ -959,7 +978,11 @@ test('private viewer loads a local WORK_TEST GLB and returns to CURRENT without 
     ],
     nodes: [],
   });
+  const candidateId = 'p136b-d-current-wall-corrected';
+  const candidateLabel = 'p136B - D current wall corrected';
+  const candidatePath = '/private-model/work-test/p136b-d-current-wall-corrected.glb';
   let currentLoads = 0;
+  let candidateLoads = 0;
 
   await page.route('**/private-model/model.glb', async (route) => {
     currentLoads += 1;
@@ -969,25 +992,44 @@ test('private viewer loads a local WORK_TEST GLB and returns to CURRENT without 
       body: currentModel,
     });
   });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    candidateLoads += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: candidateModel,
+    });
+  });
 
   await page.goto('/private-model/');
   await expect(page.getByRole('status')).toHaveText('Malli ladattu - D-pohjat käytettävissä');
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'current');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-work-test-catalog', 'ready');
+  await expect(page.locator('#work-test-file-input')).toHaveCount(0);
+  await expect(page.locator('#work-test-select')).toBeEnabled();
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  await expect(page.locator('#work-test-select')).toContainText(candidateLabel);
+  await expect(page.getByRole('button', { name: 'Avaa WORK_TEST' })).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeHidden();
 
-  const candidateName = 'Ylisrinne_G1c_G2b_GENERAL_REVIEW_WORK_TEST_p136B_D_current_wall_corrected.glb';
-  await page.locator('#work-test-file-input').setInputFiles({
-    name: candidateName,
-    mimeType: 'model/gltf-binary',
-    buffer: candidateModel,
-  });
+  await page.getByRole('button', { name: 'Avaa WORK_TEST' }).click();
 
   await expect(page.getByRole('status')).toHaveText('WORK_TEST-malli ladattu - D-pohjat käytettävissä');
-  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateName}`);
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'work-test');
   await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeVisible();
   expect(currentLoads).toBe(1);
+  expect(candidateLoads).toBe(1);
 
   await page.getByRole('button', { name: 'Palaa CURRENTiin' }).click();
 
@@ -996,4 +1038,43 @@ test('private viewer loads a local WORK_TEST GLB and returns to CURRENT without 
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'current');
   await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeHidden();
   expect(currentLoads).toBe(2);
+  expect(candidateLoads).toBe(1);
 });
+
+test('private viewer fails safe when the protected WORK_TEST catalog is unavailable', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [] }],
+    nodes: [],
+  });
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: currentModel,
+    });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: '{}',
+    });
+  });
+
+  await page.goto('/private-model/');
+
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+  await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'current');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute(
+    'data-work-test-catalog',
+    'unavailable',
+  );
+  await expect(page.locator('#work-test-select')).toBeDisabled();
+  await expect(page.locator('#work-test-select')).toContainText('Ei WORK_TEST-kandidaatteja');
+  await expect(page.getByRole('button', { name: 'Avaa WORK_TEST' })).toBeDisabled();
+});
+

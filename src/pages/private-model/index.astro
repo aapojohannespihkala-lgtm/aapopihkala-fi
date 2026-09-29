@@ -293,9 +293,11 @@ const title = 'Private 3D viewer';
         <button id="d1-plan-button" type="button">D 1F</button>
         <button id="d2-plan-button" type="button">D 2F</button>
         <button id="layers-button" type="button" aria-expanded="false" aria-controls="layers-panel">Layerit</button>
-        <button id="work-test-button" type="button">Avaa WORK_TEST GLB</button>
+        <select id="work-test-select" aria-label="WORK_TEST-kandidaatti" disabled>
+          <option value="">WORK_TEST ei saatavilla</option>
+        </select>
+        <button id="work-test-button" type="button" disabled>Avaa WORK_TEST</button>
         <button id="current-model-button" type="button" hidden>Palaa CURRENTiin</button>
-        <input id="work-test-file-input" type="file" accept=".glb,model/gltf-binary" hidden />
         <div id="viewer-status" class="status" role="status">Ladataan suojattua mallia...</div>
       </div>
 
@@ -366,9 +368,9 @@ const title = 'Private 3D viewer';
       const d1PlanButton = document.querySelector<HTMLButtonElement>('#d1-plan-button');
       const d2PlanButton = document.querySelector<HTMLButtonElement>('#d2-plan-button');
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
+      const workTestSelect = document.querySelector<HTMLSelectElement>('#work-test-select');
       const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
       const currentModelButton = document.querySelector<HTMLButtonElement>('#current-model-button');
-      const workTestFileInput = document.querySelector<HTMLInputElement>('#work-test-file-input');
       const modelSourceBadge = document.querySelector<HTMLElement>('#model-source-badge');
       const layersPanel = document.querySelector<HTMLElement>('#layers-panel');
       const closeLayersButton = document.querySelector<HTMLButtonElement>('#close-layers-button');
@@ -398,9 +400,9 @@ const title = 'Private 3D viewer';
         !d1PlanButton ||
         !d2PlanButton ||
         !layersButton ||
+        !workTestSelect ||
         !workTestButton ||
         !currentModelButton ||
-        !workTestFileInput ||
         !modelSourceBadge ||
         !layersPanel ||
         !closeLayersButton ||
@@ -1270,22 +1272,86 @@ const title = 'Private 3D viewer';
         }
       };
 
-      const loadWorkTestFile = async (file: File) => {
-        if (!file.name.toLowerCase().endsWith('.glb')) {
-          status.textContent = 'Valitse .glb-muotoinen WORK_TEST-tiedosto';
+      type WorkTestCandidate = {
+        id: string;
+        label: string;
+        path: string;
+      };
+
+      const workTestCatalogPath = '/private-model/work-test/catalog.json';
+      let workTestCandidates = new Map<string, WorkTestCandidate>();
+
+      const isWorkTestCandidate = (value: unknown): value is WorkTestCandidate => {
+        if (!value || typeof value !== 'object') return false;
+        const candidate = value as Record<string, unknown>;
+        return (
+          typeof candidate.id === 'string' &&
+          /^[a-z0-9-]+$/.test(candidate.id) &&
+          typeof candidate.label === 'string' &&
+          candidate.label.trim().length > 0 &&
+          typeof candidate.path === 'string' &&
+          /^\/private-model\/work-test\/[a-z0-9-]+\.glb$/.test(candidate.path)
+        );
+      };
+
+      const setWorkTestCatalog = (candidates: WorkTestCandidate[]) => {
+        workTestCandidates = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+        workTestSelect.replaceChildren();
+
+        if (candidates.length === 0) {
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'Ei WORK_TEST-kandidaatteja';
+          workTestSelect.append(option);
+          workTestSelect.disabled = true;
+          workTestButton.disabled = true;
+          canvas.dataset.workTestCatalog = 'empty';
           return;
         }
 
+        for (const candidate of candidates) {
+          const option = document.createElement('option');
+          option.value = candidate.id;
+          option.textContent = candidate.label;
+          workTestSelect.append(option);
+        }
+
+        workTestSelect.disabled = false;
+        workTestSelect.value = candidates[0].id;
+        workTestButton.disabled = false;
+        canvas.dataset.workTestCatalog = 'ready';
+      };
+
+      const loadWorkTestCatalog = async () => {
+        try {
+          const response = await fetch(workTestCatalogPath, {
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+          });
+          if (!response.ok) throw new Error(`WORK_TEST catalog HTTP ${response.status}`);
+
+          const payload = (await response.json()) as { candidates?: unknown };
+          const candidates = Array.isArray(payload.candidates)
+            ? payload.candidates.filter(isWorkTestCandidate)
+            : [];
+          setWorkTestCatalog(candidates);
+        } catch (error) {
+          console.error(error);
+          setWorkTestCatalog([]);
+          canvas.dataset.workTestCatalog = 'unavailable';
+        }
+      };
+
+      const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         const loader = new GLTFLoader();
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
 
         try {
-          const data = await file.arrayBuffer();
-          const gltf = await loader.parseAsync(data, '');
-          applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${file.name}`);
+          const gltf = await loader.loadAsync(candidate.path);
+          applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
         } catch (error) {
           console.error(error);
-          status.textContent = 'WORK_TEST-tiedostoa ei voitu avata';
+          status.textContent = 'WORK_TEST-kandidaattia ei voitu avata';
         }
       };
 
@@ -1296,13 +1362,16 @@ const title = 'Private 3D viewer';
       isoButton.addEventListener('click', activateIsometric);
       d1PlanButton.addEventListener('click', () => activateDPlan('1F'));
       d2PlanButton.addEventListener('click', () => activateDPlan('2F'));
-      workTestButton.addEventListener('click', () => {
-        workTestFileInput.value = '';
-        workTestFileInput.click();
+      workTestSelect.addEventListener('change', () => {
+        workTestButton.disabled = !workTestCandidates.has(workTestSelect.value);
       });
-      workTestFileInput.addEventListener('change', () => {
-        const file = workTestFileInput.files?.[0];
-        if (file) void loadWorkTestFile(file);
+      workTestButton.addEventListener('click', () => {
+        const candidate = workTestCandidates.get(workTestSelect.value);
+        if (!candidate) {
+          status.textContent = 'Valitse WORK_TEST-kandidaatti';
+          return;
+        }
+        void loadWorkTestCandidate(candidate);
       });
       currentModelButton.addEventListener('click', () => {
         void loadCurrentModel();
@@ -1358,6 +1427,7 @@ const title = 'Private 3D viewer';
       });
 
       void loadCurrentModel();
+      void loadWorkTestCatalog();
     </script>
   </body>
 </html>
