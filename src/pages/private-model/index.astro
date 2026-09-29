@@ -659,9 +659,15 @@ const title = 'Private 3D viewer';
         );
       };
 
+      const isDPlanRenderable = (object: any) =>
+        object.isMesh || object.isLine || object.isLineSegments || object.isPoints;
+
       const hasFloorToken = (object: any, floor: '1F' | '2F') => {
+        const explicitStorey = String(object?.userData?.storey ?? '').toUpperCase();
+        if (explicitStorey === floor) return true;
+
         const name = semanticName(object);
-        return new RegExp('(^|[_\\s-])' + floor + '([_\\s-]|$)').test(name);
+        return new RegExp('(^|[_\\s-])(?:D[_\\s-]?)?' + floor + '([_\\s-]|$)').test(name);
       };
 
       const isRoofLayerMember = (object: any) => {
@@ -1085,18 +1091,22 @@ const title = 'Private 3D viewer';
 
       const applyDPlanVisibility = (floor: '1F' | '2F') => {
         restoreDVisibility();
-        let matchedMeshes = 0;
+        let matchedRenderables = 0;
+        let hiddenOtherFloorRenderables = 0;
 
         dInteriorScene.traverse((object: any) => {
-          if (!object.isMesh) return;
+          if (!isDPlanRenderable(object)) return;
           const baseline = dVisibilityBaseline.get(object) ?? object.visible;
           const show = baseline && hasFloorToken(object, floor);
           object.visible = show;
-          if (show) matchedMeshes += 1;
+          if (show) matchedRenderables += 1;
+          else if (baseline) hiddenOtherFloorRenderables += 1;
         });
 
+        canvas.dataset.dPlanVisibleRenderableCount = String(matchedRenderables);
+        canvas.dataset.dPlanHiddenOtherFloorCount = String(hiddenOtherFloorRenderables);
         applyDReviewStyling(floor);
-        return matchedMeshes;
+        return matchedRenderables;
       };
 
       const activateDPlan = (floor: '1F' | '2F') => {
@@ -1225,7 +1235,7 @@ const title = 'Private 3D viewer';
         dVisibilityBaseline.clear();
         if (dInteriorScene) {
           dInteriorScene.traverse((object: any) => {
-            if (object.isMesh) dVisibilityBaseline.set(object, object.visible);
+            if (isDPlanRenderable(object)) dVisibilityBaseline.set(object, object.visible);
           });
         }
         prepareDReviewStyling();
