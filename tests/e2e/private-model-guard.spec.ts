@@ -103,7 +103,8 @@ const makeTriangleGlb = (
 };
 
 
-const makeDReviewGlb = () => {
+const makeDReviewGlb = (options: { includeUserCurrentDoors?: boolean } = {}) => {
+  const { includeUserCurrentDoors = false } = options;
   const wallPositions = Buffer.alloc(36);
   [-1, -1, 0, 1, -1, 0, 0, 1, 0].forEach((value, index) => {
     wallPositions.writeFloatLE(value, index * 4);
@@ -129,6 +130,36 @@ const makeDReviewGlb = () => {
     'G2_DOOR_INT_D_2F_ROOM4_001',
     'G2_DOOR_INT_D_2F_ROOM3_001',
   ];
+  const userCurrentDoorIds = [
+    'D1F_USER_CURRENT_DOOR_A',
+    'D1F_USER_CURRENT_DOOR_B',
+  ];
+  const userCurrentDoorNodes = includeUserCurrentDoors
+    ? userCurrentDoorIds.map((reviewDoorId, index) => ({
+        name: `P137J_HMARK_USER_DOOR_${index === 0 ? 'A' : 'B'}_D_1F`,
+        mesh: 3,
+        translation: [0.2 + index * 0.2, 0, 0.2 + index * 0.05],
+        extras: {
+          PresentationOnly: true,
+          Canonical: false,
+          Pass: '137J',
+          reviewDoorId,
+          reviewAnchorId: `HUMAN_REVIEW_ANCHOR_${index === 0 ? 'A' : 'B'}`,
+          storey: '1F',
+          sourceClass: 'USER_CURRENT_STATE_DIRECT_OBSERVATION',
+          userConfirmedDoor: true,
+          userConfirmedCurrentState: true,
+          approx: true,
+          markerType: 'HORIZONTAL_ONLY_REFERENCE_AT_HOST_FLOOR',
+          markerVerticalExtentM: null,
+          doorHeightClaim: false,
+          doorLeafGeometryAdded: false,
+          physicalDoorVoid: false,
+          asBuiltClaim: false,
+          refinementPending: true,
+        },
+      }))
+    : [];
 
   const binary = Buffer.concat([wallPositions, contextPositions, leaked2FLinePositions]);
   const json = {
@@ -141,7 +172,14 @@ const makeDReviewGlb = () => {
     nodes: [
       {
         name: 'P136B_D_REVIEW_ROOT',
-        children: [1, 2, 3, 4, ...doorMarkerIds.map((_, index) => 5 + index)],
+        children: [
+          1,
+          2,
+          3,
+          4,
+          ...doorMarkerIds.map((_, index) => 5 + index),
+          ...userCurrentDoorNodes.map((_, index) => 5 + doorMarkerIds.length + index),
+        ],
       },
       {
         name: 'P123C_D1F_WINDOW_TRANSPARENT_WALL_HELPER',
@@ -201,6 +239,7 @@ const makeDReviewGlb = () => {
           asBuiltClaim: false,
         },
       })),
+      ...userCurrentDoorNodes,
     ],
     meshes: [
       { primitives: [{ attributes: { POSITION: 0 }, material: 0 }] },
@@ -1011,6 +1050,9 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   const knownDoorLabels = page.locator('#d1-known-door-label-layer .d1-known-door-label');
   await expect(knownDoorLegend).toBeVisible();
   await expect(knownDoorLabels).toHaveCount(7);
+  await expect(knownDoorLabels.first()).toHaveCSS('position', 'absolute');
+  await expect(canvas).toHaveAttribute('data-d1-user-door-label-count', '0');
+  await expect(canvas).toHaveAttribute('data-d1-user-door-labels-visible', 'false');
   await expect(page.locator('#d1-known-door-legend-list li')).toHaveCount(7);
   await expect
     .poll(async () =>
@@ -1118,6 +1160,90 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '0');
   await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '0');
   await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '0');
+});
+
+
+test('private viewer makes p137J user-current D1F doors visible as A/B review markers', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [] },
+    ],
+    nodes: [],
+  });
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: currentModel,
+    });
+  });
+
+  const candidateId = 'p137j-d1f-user-current-doors';
+  const candidateLabel = 'p137J - D 1F user current doors';
+  const candidatePath = '/private-model/work-test/p137j-d1f-user-current-doors.glb';
+
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: makeDReviewGlb({ includeUserCurrentDoors: true }),
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  await page.getByRole('button', { name: 'Avaa WORK_TEST' }).click();
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-d-review-door-marker-prepared-count', '13');
+  await expect(canvas).toHaveAttribute('data-d1-user-door-label-count', '2');
+
+  await page.getByRole('button', { name: 'D 1F' }).click();
+  await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '9');
+  await expect(canvas).toHaveAttribute('data-d1-known-door-label-count', '7');
+  await expect(canvas).toHaveAttribute('data-d1-user-door-label-count', '2');
+  await expect(canvas).toHaveAttribute('data-d1-user-door-labels-visible', 'true');
+
+  const userDoorSection = page.locator('#d1-user-door-legend-section');
+  const userDoorLabels = page.locator('#d1-known-door-label-layer .d1-user-door-label');
+  await expect(userDoorSection).toBeVisible();
+  await expect(userDoorLabels).toHaveCount(2);
+  await expect(userDoorLabels.nth(0)).toHaveText('A');
+  await expect(userDoorLabels.nth(1)).toHaveText('B');
+  await expect(userDoorLabels.nth(0)).toHaveCSS('position', 'absolute');
+  expect(
+    await userDoorLabels.evaluateAll((nodes) =>
+      nodes.map((node) => (node as HTMLElement).dataset.reviewDoorId),
+    ),
+  ).toEqual(['D1F_USER_CURRENT_DOOR_A', 'D1F_USER_CURRENT_DOOR_B']);
+  await expect(page.locator('#d1-user-door-legend-list code').nth(0)).toHaveText(
+    'D1F_USER_CURRENT_DOOR_A',
+  );
+  await expect(page.locator('#d1-user-door-legend-list code').nth(1)).toHaveText(
+    'D1F_USER_CURRENT_DOOR_B',
+  );
+
+  await page.getByRole('button', { name: 'D 2F' }).click();
+  await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '4');
+  await expect(canvas).toHaveAttribute('data-d1-user-door-labels-visible', 'false');
+  await expect(userDoorSection).toBeHidden();
+
+  await page.getByRole('button', { name: 'Orbit' }).click();
+  await expect(canvas).toHaveAttribute('data-d1-user-door-labels-visible', 'false');
+  await expect(userDoorSection).toBeHidden();
 });
 
 

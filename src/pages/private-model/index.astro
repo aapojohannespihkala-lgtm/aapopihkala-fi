@@ -259,7 +259,7 @@ const title = 'Private 3D viewer';
         display: none;
       }
 
-      .d1-known-door-label {
+      :global(.d1-known-door-label) {
         position: absolute;
         display: grid;
         width: 24px;
@@ -274,6 +274,13 @@ const title = 'Private 3D viewer';
         font-weight: 800;
         line-height: 1;
         transform: translate(-50%, -145%);
+      }
+
+      :global(.d1-user-door-label) {
+        border-color: #7b247d;
+        background: rgba(255, 248, 255, 0.98);
+        color: #611563;
+        box-shadow: 0 2px 10px rgba(97, 21, 99, 0.3);
       }
 
       .d1-known-door-legend {
@@ -306,7 +313,7 @@ const title = 'Private 3D viewer';
         list-style: none;
       }
 
-      .d1-known-door-legend li {
+      .d1-known-door-legend :global(li) {
         display: grid;
         grid-template-columns: 24px minmax(0, 1fr);
         gap: 7px;
@@ -314,7 +321,7 @@ const title = 'Private 3D viewer';
         font-size: 10px;
       }
 
-      .d1-known-door-legend-number {
+      .d1-known-door-legend :global(.d1-known-door-legend-number) {
         display: grid;
         width: 20px;
         height: 20px;
@@ -326,13 +333,18 @@ const title = 'Private 3D viewer';
         font-weight: 800;
       }
 
-      .d1-known-door-legend-name {
+      .d1-known-door-legend :global(.d1-user-door-legend-number) {
+        border-color: #7b247d;
+        color: #611563;
+      }
+
+      .d1-known-door-legend :global(.d1-known-door-legend-name) {
         display: block;
         margin-bottom: 1px;
         font-weight: 700;
       }
 
-      .d1-known-door-legend code {
+      .d1-known-door-legend :global(code) {
         display: block;
         color: #656862;
         font-size: 9px;
@@ -343,6 +355,28 @@ const title = 'Private 3D viewer';
         margin-top: 7px;
         color: #777a75;
         font-size: 10px;
+      }
+
+      .d1-user-door-legend-section {
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid #d7d7d2;
+      }
+
+      .d1-user-door-legend-section[hidden] {
+        display: none;
+      }
+
+      .d1-user-door-legend-section h3 {
+        margin: 0 0 6px;
+        font-size: 11px;
+        font-weight: 750;
+      }
+
+      .d1-user-door-legend-note {
+        margin-top: 6px;
+        color: #777a75;
+        font-size: 9px;
       }
 
       .selection-panel {
@@ -462,12 +496,19 @@ const title = 'Private 3D viewer';
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
         <div id="d1-known-door-label-layer" class="d1-known-door-label-layer" aria-hidden="true" hidden></div>
-        <aside id="d1-known-door-legend" class="d1-known-door-legend" aria-label="Tunnetut D 1F -ovet" hidden>
-          <h2>Tunnetut D 1F -ovet 7/7</h2>
+        <aside id="d1-known-door-legend" class="d1-known-door-legend" aria-label="D 1F -ovien tarkastusselite" hidden>
+          <h2>Lähteistetyt D 1F -ovet 7/7</h2>
           <ol id="d1-known-door-legend-list"></ol>
           <div class="d1-known-door-legend-note">
-            Numerottomia aukkoja ei nimetä automaattisesti. Klikkaa vain omat aiemmin merkitsemäsi numerottomat aukot.
+            Numerot 1-7 ovat aiemmin lähteistetyt ovimarkkerit.
           </div>
+          <section id="d1-user-door-legend-section" class="d1-user-door-legend-section" hidden>
+            <h3>Käyttäjän vahvistamat nykytilaovet 2/2</h3>
+            <ol id="d1-user-door-legend-list"></ol>
+            <div class="d1-user-door-legend-note">
+              A/B ovat p137J WORK_TEST -markkereita. Sijainti ja leveys ovat vielä tarkennettavissa.
+            </div>
+          </section>
         </aside>
         <aside id="coordinate-panel" class="coordinate-panel" aria-live="polite" hidden>
           <div class="coordinate-title-row">
@@ -566,6 +607,8 @@ const title = 'Private 3D viewer';
       const d1KnownDoorLabelLayer = document.querySelector<HTMLElement>('#d1-known-door-label-layer');
       const d1KnownDoorLegend = document.querySelector<HTMLElement>('#d1-known-door-legend');
       const d1KnownDoorLegendList = document.querySelector<HTMLOListElement>('#d1-known-door-legend-list');
+      const d1UserDoorLegendSection = document.querySelector<HTMLElement>('#d1-user-door-legend-section');
+      const d1UserDoorLegendList = document.querySelector<HTMLOListElement>('#d1-user-door-legend-list');
       const coordinatePanel = document.querySelector<HTMLElement>('#coordinate-panel');
       const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
       const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
@@ -605,6 +648,8 @@ const title = 'Private 3D viewer';
         !d1KnownDoorLabelLayer ||
         !d1KnownDoorLegend ||
         !d1KnownDoorLegendList ||
+        !d1UserDoorLegendSection ||
+        !d1UserDoorLegendList ||
         !coordinatePanel ||
         !coordinateFloor ||
         !coordinatePointer ||
@@ -704,7 +749,12 @@ const title = 'Private 3D viewer';
         { number: 6, id: 'G2_DOOR_INT_D_1F_VH_NORTH_2015_001', name: 'VH NORTH' },
         { number: 7, id: 'G2_DOOR_INT_D_1F_VARASTO_2015_001', name: 'VARASTO' },
       ] as const;
+      const d1UserDoorReviewItems = [
+        { label: 'A', id: 'D1F_USER_CURRENT_DOOR_A', name: 'Nykytilaovi A' },
+        { label: 'B', id: 'D1F_USER_CURRENT_DOOR_B', name: 'Nykytilaovi B' },
+      ] as const;
       const d1KnownDoorLabelBindings: Array<{ element: HTMLElement; marker: any }> = [];
+      const d1UserDoorLabelBindings: Array<{ element: HTMLElement; marker: any }> = [];
       const dReviewMaterialBaseline = new Map<
         any,
         { opacity: number; transparent: boolean; depthWrite: boolean }
@@ -1056,25 +1106,39 @@ const title = 'Private 3D viewer';
         );
       };
 
-      const isP128BDoorReviewMarker = (object: any) => {
+      const isDReviewDoorMarker = (object: any) => {
         const data = object?.userData ?? {};
-        return (
-          (object.isLine || object.isLineSegments) &&
-          data.PresentationOnly === true &&
-          data.Pass === '128B' &&
-          data.markerType === 'HORIZONTAL_ONLY_REFERENCE_AT_HOST_FLOOR' &&
-          typeof data.derivedFromG2Id === 'string'
-        );
+        if (
+          !(object.isLine || object.isLineSegments) ||
+          data.PresentationOnly !== true ||
+          data.markerType !== 'HORIZONTAL_ONLY_REFERENCE_AT_HOST_FLOOR'
+        ) {
+          return false;
+        }
+
+        const sourceBacked =
+          data.Pass === '128B' && typeof data.derivedFromG2Id === 'string';
+        const userCurrent =
+          data.Pass === '137J' &&
+          data.sourceClass === 'USER_CURRENT_STATE_DIRECT_OBSERVATION' &&
+          d1UserDoorReviewItems.some((item) => item.id === data.reviewDoorId);
+
+        return sourceBacked || userCurrent;
       };
 
       const clearD1KnownDoorReviewLabels = () => {
         d1KnownDoorLabelBindings.length = 0;
+        d1UserDoorLabelBindings.length = 0;
         d1KnownDoorLabelLayer.replaceChildren();
         d1KnownDoorLegendList.replaceChildren();
+        d1UserDoorLegendList.replaceChildren();
         d1KnownDoorLabelLayer.hidden = true;
         d1KnownDoorLegend.hidden = true;
+        d1UserDoorLegendSection.hidden = true;
         canvas.dataset.d1KnownDoorLabelCount = '0';
         canvas.dataset.d1KnownDoorLabelsVisible = 'false';
+        canvas.dataset.d1UserDoorLabelCount = '0';
+        canvas.dataset.d1UserDoorLabelsVisible = 'false';
       };
 
       const rebuildD1KnownDoorReviewLabels = () => {
@@ -1112,7 +1176,39 @@ const title = 'Private 3D viewer';
           d1KnownDoorLegendList.append(legendItem);
         }
 
+        for (const item of d1UserDoorReviewItems) {
+          const marker = [...dReviewDoorMarkerLines].find(
+            (candidate: any) =>
+              candidate?.userData?.storey === '1F' &&
+              candidate?.userData?.reviewDoorId === item.id,
+          );
+          if (!marker) continue;
+
+          const label = document.createElement('span');
+          label.className = 'd1-known-door-label d1-user-door-label';
+          label.textContent = item.label;
+          label.dataset.reviewDoorId = item.id;
+          d1KnownDoorLabelLayer.append(label);
+          d1UserDoorLabelBindings.push({ element: label, marker });
+
+          const legendItem = document.createElement('li');
+          const legendNumber = document.createElement('span');
+          legendNumber.className =
+            'd1-known-door-legend-number d1-user-door-legend-number';
+          legendNumber.textContent = item.label;
+          const legendBody = document.createElement('span');
+          const legendName = document.createElement('span');
+          legendName.className = 'd1-known-door-legend-name';
+          legendName.textContent = item.name;
+          const legendId = document.createElement('code');
+          legendId.textContent = item.id;
+          legendBody.append(legendName, legendId);
+          legendItem.append(legendNumber, legendBody);
+          d1UserDoorLegendList.append(legendItem);
+        }
+
         canvas.dataset.d1KnownDoorLabelCount = String(d1KnownDoorLabelBindings.length);
+        canvas.dataset.d1UserDoorLabelCount = String(d1UserDoorLabelBindings.length);
       };
 
       const setD1KnownDoorReviewLabelsVisible = (visible: boolean) => {
@@ -1121,9 +1217,13 @@ const title = 'Private 3D viewer';
           activeModelSourceKind === 'work-test' &&
           activePlanFloor === '1F' &&
           d1KnownDoorLabelBindings.length === d1KnownDoorReviewItems.length;
+        const showUserCurrent =
+          show && d1UserDoorLabelBindings.length === d1UserDoorReviewItems.length;
         d1KnownDoorLabelLayer.hidden = !show;
         d1KnownDoorLegend.hidden = !show;
+        d1UserDoorLegendSection.hidden = !showUserCurrent;
         canvas.dataset.d1KnownDoorLabelsVisible = show ? 'true' : 'false';
+        canvas.dataset.d1UserDoorLabelsVisible = showUserCurrent ? 'true' : 'false';
       };
 
       const updateD1KnownDoorReviewLabelPositions = () => {
@@ -1135,7 +1235,7 @@ const title = 'Private 3D viewer';
           return;
         }
 
-        for (const binding of d1KnownDoorLabelBindings) {
+        for (const binding of [...d1KnownDoorLabelBindings, ...d1UserDoorLabelBindings]) {
           const { element, marker } = binding;
           if (!marker.visible) {
             element.hidden = true;
@@ -1179,8 +1279,9 @@ const title = 'Private 3D viewer';
         if (activeModelSourceKind !== 'work-test' || !dInteriorScene) return;
 
         dInteriorScene.traverse((object: any) => {
-          if (isP128BDoorReviewMarker(object)) {
+          if (isDReviewDoorMarker(object)) {
             dReviewDoorMarkerLines.add(object);
+            const isUserCurrentDoor = object?.userData?.Pass === '137J';
             const promoteDoorMarkerMaterial = (material: any) => {
               if (!material?.clone) return material;
               const clone = material.clone();
@@ -1188,6 +1289,9 @@ const title = 'Private 3D viewer';
               clone.transparent = true;
               clone.depthTest = false;
               clone.depthWrite = false;
+              if (isUserCurrentDoor && clone.color?.setHex) {
+                clone.color.setHex(0x7b247d);
+              }
               clone.needsUpdate = true;
               return clone;
             };
@@ -1199,7 +1303,7 @@ const title = 'Private 3D viewer';
             } else {
               object.material = promoteDoorMarkerMaterial(object.material);
             }
-            object.renderOrder = 120;
+            object.renderOrder = isUserCurrentDoor ? 140 : 120;
           }
 
           if (!object.isMesh) return;
