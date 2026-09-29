@@ -968,6 +968,49 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
     'G1_G2_D2F_PLAN_HOST_ENVELOPE',
   );
 
+  const coordinatePanel = page.locator('#coordinate-panel');
+  await expect(coordinatePanel).toBeVisible();
+  await expect(page.locator('#coordinate-floor')).toHaveText('D 1F');
+  await expect(canvas).toHaveAttribute('data-review-coordinate-frame', 'YLIS-G1-LOCAL');
+  await expect(canvas).toHaveAttribute('data-review-grid-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-review-grid-major-step-m', '1');
+  await expect(canvas).toHaveAttribute('data-review-grid-minor-step-m', '0.5');
+
+  const coordinateBox = await canvas.boundingBox();
+  expect(coordinateBox).not.toBeNull();
+  if (!coordinateBox) return;
+
+  await page.mouse.move(
+    coordinateBox.x + coordinateBox.width * 0.5,
+    coordinateBox.y + coordinateBox.height * 0.5,
+  );
+  await expect(canvas).toHaveAttribute('data-review-pointer-x', /-?\d+\.\d{3}/);
+  await expect(canvas).toHaveAttribute('data-review-pointer-y', /-?\d+\.\d{3}/);
+  const centerX = Number(await canvas.getAttribute('data-review-pointer-x'));
+  const centerY = Number(await canvas.getAttribute('data-review-pointer-y'));
+
+  await canvas.click({ position: { x: coordinateBox.width * 0.5, y: coordinateBox.height * 0.5 } });
+  await expect(canvas).toHaveAttribute('data-review-anchor-x', centerX.toFixed(3));
+  await expect(canvas).toHaveAttribute('data-review-anchor-y', centerY.toFixed(3));
+  await expect(page.locator('#coordinate-anchor')).toContainText('X ');
+  await expect(page.locator('#coordinate-anchor')).toContainText('Y ');
+
+  await page.mouse.move(
+    coordinateBox.x + coordinateBox.width * 0.75,
+    coordinateBox.y + coordinateBox.height * 0.5,
+  );
+  await expect
+    .poll(async () => Number(await canvas.getAttribute('data-review-pointer-x')))
+    .toBeGreaterThan(centerX);
+
+  await page.mouse.move(
+    coordinateBox.x + coordinateBox.width * 0.5,
+    coordinateBox.y + coordinateBox.height * 0.25,
+  );
+  await expect
+    .poll(async () => Number(await canvas.getAttribute('data-review-pointer-y')))
+    .toBeGreaterThan(centerY);
+
   await page.getByRole('button', { name: 'D 2F' }).click();
   await expect(page.getByRole('status')).toHaveText(
     'D 2F - tarkastusnäkymä, sisäseinät korostettu; rajaavat seinät kontekstina',
@@ -977,8 +1020,13 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '0');
   await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '3');
   await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '2');
+  await expect(page.locator('#coordinate-floor')).toHaveText('D 2F');
+  await expect(coordinatePanel).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-review-grid-visible', 'true');
 
   await page.getByRole('button', { name: 'Orbit' }).click();
+  await expect(coordinatePanel).toBeHidden();
+  await expect(canvas).toHaveAttribute('data-review-grid-visible', 'false');
   await expect(canvas).toHaveAttribute('data-d-review-active', 'false');
   await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '0');
   await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '0');
