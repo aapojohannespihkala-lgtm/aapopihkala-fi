@@ -749,3 +749,62 @@ test('private viewer full-model fit includes visible line geometry and excludes 
   expect(Math.abs(hiddenIsoCenter)).toBeLessThan(0.01);
 });
 
+
+
+test('private viewer loads a local WORK_TEST GLB and returns to CURRENT without a candidate network route', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P133D REVIEW ROOT - BABYLON Y-UP', nodes: [] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [] },
+    ],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P136B REVIEW ROOT - BABYLON Y-UP', nodes: [] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [] },
+    ],
+    nodes: [],
+  });
+  let currentLoads = 0;
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    currentLoads += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: currentModel,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu - D-pohjat käytettävissä');
+  await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'current');
+  await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeHidden();
+
+  const candidateName = 'Ylisrinne_G1c_G2b_GENERAL_REVIEW_WORK_TEST_p136B_D_current_wall_corrected.glb';
+  await page.locator('#work-test-file-input').setInputFiles({
+    name: candidateName,
+    mimeType: 'model/gltf-binary',
+    buffer: candidateModel,
+  });
+
+  await expect(page.getByRole('status')).toHaveText('WORK_TEST-malli ladattu - D-pohjat käytettävissä');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateName}`);
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'work-test');
+  await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeVisible();
+  expect(currentLoads).toBe(1);
+
+  await page.getByRole('button', { name: 'Palaa CURRENTiin' }).click();
+
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu - D-pohjat käytettävissä');
+  await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'current');
+  await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeHidden();
+  expect(currentLoads).toBe(2);
+});

@@ -63,6 +63,20 @@ const title = 'Private 3D viewer';
         white-space: nowrap;
       }
 
+      .model-source-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 5px 8px;
+        border: 1px solid #d7d7d2;
+        border-radius: 999px;
+        background: #f7f7f4;
+        color: #555853;
+        font-size: 12px;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
       button {
         border: 1px solid #b9bbb5;
         border-radius: 7px;
@@ -270,6 +284,7 @@ const title = 'Private 3D viewer';
     <main class="viewer-shell">
       <div class="toolbar" aria-label="3D-katselun ohjaimet">
         <div class="title">Private 3D viewer</div>
+        <span id="model-source-badge" class="model-source-badge" data-kind="current">CURRENT</span>
         <button id="fit-button" type="button">Fit / Reset</button>
         <button id="orbit-button" type="button">Orbit</button>
         <button id="top-button" type="button">Ylhäältä</button>
@@ -278,6 +293,9 @@ const title = 'Private 3D viewer';
         <button id="d1-plan-button" type="button">D 1F</button>
         <button id="d2-plan-button" type="button">D 2F</button>
         <button id="layers-button" type="button" aria-expanded="false" aria-controls="layers-panel">Layerit</button>
+        <button id="work-test-button" type="button">Avaa WORK_TEST GLB</button>
+        <button id="current-model-button" type="button" hidden>Palaa CURRENTiin</button>
+        <input id="work-test-file-input" type="file" accept=".glb,model/gltf-binary" hidden />
         <div id="viewer-status" class="status" role="status">Ladataan suojattua mallia...</div>
       </div>
 
@@ -348,6 +366,10 @@ const title = 'Private 3D viewer';
       const d1PlanButton = document.querySelector<HTMLButtonElement>('#d1-plan-button');
       const d2PlanButton = document.querySelector<HTMLButtonElement>('#d2-plan-button');
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
+      const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
+      const currentModelButton = document.querySelector<HTMLButtonElement>('#current-model-button');
+      const workTestFileInput = document.querySelector<HTMLInputElement>('#work-test-file-input');
+      const modelSourceBadge = document.querySelector<HTMLElement>('#model-source-badge');
       const layersPanel = document.querySelector<HTMLElement>('#layers-panel');
       const closeLayersButton = document.querySelector<HTMLButtonElement>('#close-layers-button');
       const roofLayerVisibleInput = document.querySelector<HTMLInputElement>('#roof-layer-visible');
@@ -376,6 +398,10 @@ const title = 'Private 3D viewer';
         !d1PlanButton ||
         !d2PlanButton ||
         !layersButton ||
+        !workTestButton ||
+        !currentModelButton ||
+        !workTestFileInput ||
+        !modelSourceBadge ||
         !layersPanel ||
         !closeLayersButton ||
         !roofLayerVisibleInput ||
@@ -1050,40 +1076,83 @@ const title = 'Private 3D viewer';
         syncViewState(direction);
       };
 
-      const loadModel = async () => {
+      type ModelSourceKind = 'current' | 'work-test';
+
+      const applyLoadedModel = (
+        gltf: any,
+        sourceKind: ModelSourceKind,
+        sourceLabel: string,
+      ) => {
+        clearSelection();
+        sourceSceneNames = new WeakMap<any, string>();
+        const sourceScenes = gltf?.parser?.json?.scenes;
+        if (Array.isArray(sourceScenes)) {
+          gltf.scenes?.forEach((candidate: any, index: number) => {
+            const sourceName = sourceScenes[index]?.name;
+            if (sourceName) sourceSceneNames.set(candidate, String(sourceName));
+          });
+        }
+
+        fullModelScene = gltf.scene;
+        dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
+
+        initializeFullModelArchBase();
+        initializeRoofLayer();
+        initializeLocusLayer();
+
+        dVisibilityBaseline.clear();
+        if (dInteriorScene) {
+          dInteriorScene.traverse((object: any) => {
+            if (object.isMesh) dVisibilityBaseline.set(object, object.visible);
+          });
+        }
+
+        modelSourceBadge.textContent = sourceLabel;
+        modelSourceBadge.dataset.kind = sourceKind;
+        currentModelButton.hidden = sourceKind === 'current';
+        canvas.dataset.modelSource = sourceKind;
+
+        setModelScene(fullModelScene);
+        fitModel();
+        status.textContent =
+          sourceKind === 'work-test'
+            ? dInteriorScene
+              ? 'WORK_TEST-malli ladattu - D-pohjat käytettävissä'
+              : 'WORK_TEST-malli ladattu'
+            : dInteriorScene
+              ? 'Malli ladattu - D-pohjat käytettävissä'
+              : 'Malli ladattu';
+      };
+
+      const loadCurrentModel = async () => {
         const loader = new GLTFLoader();
+        status.textContent = 'Ladataan suojattua mallia...';
 
         try {
           const gltf = await loader.loadAsync('/private-model/model.glb');
-          sourceSceneNames = new WeakMap<any, string>();
-          const sourceScenes = gltf?.parser?.json?.scenes;
-          if (Array.isArray(sourceScenes)) {
-            gltf.scenes?.forEach((candidate: any, index: number) => {
-              const sourceName = sourceScenes[index]?.name;
-              if (sourceName) sourceSceneNames.set(candidate, String(sourceName));
-            });
-          }
-
-          fullModelScene = gltf.scene;
-          dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
-
-          initializeFullModelArchBase();
-          initializeRoofLayer();
-          initializeLocusLayer();
-
-          dVisibilityBaseline.clear();
-          if (dInteriorScene) {
-            dInteriorScene.traverse((object: any) => {
-              if (object.isMesh) dVisibilityBaseline.set(object, object.visible);
-            });
-          }
-
-          setModelScene(fullModelScene);
-          fitModel();
-          status.textContent = dInteriorScene ? 'Malli ladattu - D-pohjat käytettävissä' : 'Malli ladattu';
+          applyLoadedModel(gltf, 'current', 'CURRENT');
         } catch (error) {
           console.error(error);
           status.textContent = 'Suojattua mallia ei ole vielä käytettävissä';
+        }
+      };
+
+      const loadWorkTestFile = async (file: File) => {
+        if (!file.name.toLowerCase().endsWith('.glb')) {
+          status.textContent = 'Valitse .glb-muotoinen WORK_TEST-tiedosto';
+          return;
+        }
+
+        const loader = new GLTFLoader();
+        status.textContent = 'Avataan WORK_TEST-kandidaattia...';
+
+        try {
+          const data = await file.arrayBuffer();
+          const gltf = await loader.parseAsync(data, '');
+          applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${file.name}`);
+        } catch (error) {
+          console.error(error);
+          status.textContent = 'WORK_TEST-tiedostoa ei voitu avata';
         }
       };
 
@@ -1094,6 +1163,17 @@ const title = 'Private 3D viewer';
       isoButton.addEventListener('click', activateIsometric);
       d1PlanButton.addEventListener('click', () => activateDPlan('1F'));
       d2PlanButton.addEventListener('click', () => activateDPlan('2F'));
+      workTestButton.addEventListener('click', () => {
+        workTestFileInput.value = '';
+        workTestFileInput.click();
+      });
+      workTestFileInput.addEventListener('change', () => {
+        const file = workTestFileInput.files?.[0];
+        if (file) void loadWorkTestFile(file);
+      });
+      currentModelButton.addEventListener('click', () => {
+        void loadCurrentModel();
+      });
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
       closeLayersButton.addEventListener('click', () => setLayersPanelOpen(false));
       roofLayerVisibleInput.addEventListener('change', () => {
@@ -1144,7 +1224,7 @@ const title = 'Private 3D viewer';
         renderer.render(scene, activeCamera);
       });
 
-      void loadModel();
+      void loadCurrentModel();
     </script>
   </body>
 </html>
