@@ -543,7 +543,7 @@ const title = 'Private 3D viewer';
           <div class="layer-section">
             <label class="layer-row">
               <input id="locus-layer-visible" type="checkbox" disabled />
-              <span>Locus kunnallistekniikka (WORK_TEST)</span>
+              <span>Kunnallistekniikka / KVV-reitit (WORK_TEST)</span>
             </label>
             <div id="locus-layer-count" class="layer-count">0 kohdetta</div>
             <div class="layer-legend" aria-label="Locus kunnallistekniikan selite">
@@ -1439,8 +1439,15 @@ const title = 'Private 3D viewer';
         );
       };
 
+      const routePresentationLayers = new Set([
+        'G3_LOCUS_SITE',
+        'LOCUS_PARCEL_ROUTES',
+        'KVV_1974_SITE_ROUTES',
+        'KVV_2017_A1F_WATER',
+      ]);
+
       const isLocusLayerMember = (object: any) =>
-        object?.userData?.presentationLayer === 'G3_LOCUS_SITE';
+        routePresentationLayers.has(String(object?.userData?.presentationLayer ?? ''));
 
       const hasLocusLayerAncestor = (object: any) => {
         let current = object;
@@ -2044,6 +2051,10 @@ const title = 'Private 3D viewer';
         path: string;
       };
 
+      const p139nCandidateId = 'p139n-federated-kvv-review';
+      const p139nPlanSceneName =
+        'P139N SITE_PLAN_OVERLAY - Z UNKNOWN - PLAN ONLY - NOT AS-BUILT';
+
       const workTestCatalogPath = '/private-model/work-test/catalog.json';
       const workTestImportPath = '/private-model/work-test/import.json';
       const workTestImportFragmentKey = 'workTestImport';
@@ -2117,9 +2128,26 @@ const title = 'Private 3D viewer';
 
         try {
           const gltf = await loader.loadAsync(candidate.path);
+          const isP139nReview = candidate.id === p139nCandidateId;
+
+          if (isP139nReview) {
+            const planScene = findSourceNamedScene(gltf, p139nPlanSceneName);
+            if (!planScene) throw new Error('p139N SITE_PLAN_OVERLAY scene missing');
+            gltf.scene = planScene;
+          }
+
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
+
+          if (isP139nReview) {
+            canvas.dataset.workTestReviewMode = 'site-plan-only';
+            axisView('top');
+            status.textContent = 'SITE ORTHO / PLAN ONLY - Z UNKNOWN / NOT AS-BUILT';
+          } else {
+            delete canvas.dataset.workTestReviewMode;
+          }
         } catch (error) {
           console.error(error);
+          delete canvas.dataset.workTestReviewMode;
           status.textContent = 'WORK_TEST-kandidaattia ei voitu avata';
         }
       };
