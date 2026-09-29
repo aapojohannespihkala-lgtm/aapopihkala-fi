@@ -234,7 +234,8 @@ const title = 'Private 3D viewer';
         color: #6c6e69;
       }
 
-      .coordinate-line output {
+      .coordinate-line > span:last-child {
+        color: #20211f;
         font-variant-numeric: tabular-nums;
         font-weight: 650;
       }
@@ -368,11 +369,11 @@ const title = 'Private 3D viewer';
           </div>
           <div class="coordinate-line">
             <span>Osoitin</span>
-            <output id="coordinate-pointer">X - / Y -</output>
+            <span id="coordinate-pointer">X - / Y -</span>
           </div>
           <div class="coordinate-line">
             <span>Klikattu</span>
-            <output id="coordinate-anchor">X - / Y -</output>
+            <span id="coordinate-anchor">X - / Y -</span>
           </div>
           <div class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä</div>
         </aside>
@@ -457,8 +458,8 @@ const title = 'Private 3D viewer';
       const locusWastewaterCount = document.querySelector<HTMLElement>('#locus-wastewater-count');
       const coordinatePanel = document.querySelector<HTMLElement>('#coordinate-panel');
       const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
-      const coordinatePointer = document.querySelector<HTMLOutputElement>('#coordinate-pointer');
-      const coordinateAnchor = document.querySelector<HTMLOutputElement>('#coordinate-anchor');
+      const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
+      const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
       const selectionPanel = document.querySelector<HTMLElement>('#selection-panel');
       const selectionMesh = document.querySelector<HTMLElement>('#selection-mesh');
       const selectionGroup = document.querySelector<HTMLElement>('#selection-group');
