@@ -42,6 +42,14 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_158_672,
     expectedSha256: '0b4549b160fadf9c6c15adc1fb04fc0c0b0f9b46e6e19b6844a55205356d7efb',
   },
+  {
+    id: 'p139n-federated-kvv-review',
+    label: 'p139N federated KVV review - PLAN ONLY',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p139n-federated-kvv-review.glb`,
+    objectKey: 'work-test/p139n-federated-kvv-review.glb',
+    expectedSize: 1_193_724,
+    expectedSha256: 'b713b9cc29b1e865dc7ca0b640589d9d1440cffe5e665297c6760745a149e515',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
