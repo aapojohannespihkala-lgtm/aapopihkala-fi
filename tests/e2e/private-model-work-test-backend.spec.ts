@@ -19,12 +19,13 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test/import.json')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p136b-d-current-wall-corrected.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p137j-d1f-user-current-doors.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/g3-locus-site-p06-axis-corrected.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-testing')).toBe(false);
   expect(isPrivateWorkTestPath('/private-model/model.glb')).toBe(false);
 });
 
-test('private WORK_TEST candidate allowlist exposes only the named p136B and p137J routes', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(2);
+test('private WORK_TEST candidate allowlist exposes only the named p136B, p137J and Locus p06 routes', () => {
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(3);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -40,6 +41,14 @@ test('private WORK_TEST candidate allowlist exposes only the named p136B and p13
   expect(p137j.expectedSize).toBe(1_154_364);
   expect(p137j.expectedSha256).toBe(
     '9e8a7286b1fbeb9730cf1a8ed358fbd07391c5cc7bb084320b30a4506b3186a4',
+  );
+
+  const locus = PRIVATE_WORK_TEST_CANDIDATES[2];
+  expect(locus.id).toBe('g3-locus-site-p06-axis-corrected');
+  expect(locus.objectKey).toBe('work-test/g3-locus-site-p06-axis-corrected.glb');
+  expect(locus.expectedSize).toBe(1_158_672);
+  expect(locus.expectedSha256).toBe(
+    '0b4549b160fadf9c6c15adc1fb04fc0c0b0f9b46e6e19b6844a55205356d7efb',
   );
 
   for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
