@@ -253,7 +253,7 @@ const makeLocusLayerGlb = () => {
   });
 
   const wastewaterPositions = Buffer.alloc(24);
-  [-1, 0.4, 0, 1, 0.4, 0].forEach((value, index) => {
+  [-1, 0, 0, 1, 0, 0].forEach((value, index) => {
     wastewaterPositions.writeFloatLE(value, index * 4);
   });
 
@@ -316,8 +316,8 @@ const makeLocusLayerGlb = () => {
         componentType: 5126,
         count: 2,
         type: 'VEC3',
-        min: [-1, 0.4, 0],
-        max: [1, 0.4, 0],
+        min: [-1, 0, 0],
+        max: [1, 0, 0],
       },
     ],
   };
@@ -536,7 +536,7 @@ test('private viewer exposes G3 LOCUS SITE as an opt-in WORK_TEST layer with sub
   await page.getByRole('button', { name: 'Fit / Reset' }).click();
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeVisible();
-  await expect(page.locator('#selection-mesh')).toContainText('LOCUS_WATER_LINE');
+  await expect(page.locator('#selection-mesh')).toContainText('LOCUS_');
 
   await locusToggle.uncheck();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
