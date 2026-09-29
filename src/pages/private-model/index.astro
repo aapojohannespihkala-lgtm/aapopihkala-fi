@@ -187,6 +187,65 @@ const title = 'Private 3D viewer';
       .legend-swatch.water { background: #2f80ed; }
       .legend-swatch.wastewater { background: #c04472; }
 
+      .coordinate-panel {
+        position: absolute;
+        bottom: 12px;
+        left: 12px;
+        z-index: 3;
+        width: min(330px, calc(100% - 24px));
+        padding: 10px 12px;
+        border: 1px solid #c9cbc5;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 8px 28px rgba(25, 28, 25, 0.12);
+        pointer-events: none;
+      }
+
+      .coordinate-panel[hidden] { display: none; }
+
+      .coordinate-title-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 7px;
+      }
+
+      .coordinate-title {
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .coordinate-floor {
+        color: #62655f;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .coordinate-line {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr);
+        gap: 8px;
+        margin-top: 4px;
+        font-size: 12px;
+      }
+
+      .coordinate-line span {
+        color: #6c6e69;
+      }
+
+      .coordinate-line > span:last-child {
+        color: #20211f;
+        font-variant-numeric: tabular-nums;
+        font-weight: 650;
+      }
+
+      .coordinate-note {
+        margin-top: 7px;
+        color: #777a75;
+        font-size: 10px;
+      }
+
       .selection-panel {
         position: absolute;
         top: 12px;
@@ -303,6 +362,21 @@ const title = 'Private 3D viewer';
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
+        <aside id="coordinate-panel" class="coordinate-panel" aria-live="polite" hidden>
+          <div class="coordinate-title-row">
+            <strong class="coordinate-title">YLIS-G1-LOCAL</strong>
+            <span id="coordinate-floor" class="coordinate-floor">D 1F</span>
+          </div>
+          <div class="coordinate-line">
+            <span>Osoitin</span>
+            <span id="coordinate-pointer">X - / Y -</span>
+          </div>
+          <div class="coordinate-line">
+            <span>Klikattu</span>
+            <span id="coordinate-anchor">X - / Y -</span>
+          </div>
+          <div class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä</div>
+        </aside>
         <aside id="layers-panel" class="layers-panel" hidden>
           <div class="layers-header">
             <h2>Layerit</h2>
@@ -382,6 +456,10 @@ const title = 'Private 3D viewer';
       const locusLayerCount = document.querySelector<HTMLElement>('#locus-layer-count');
       const locusWaterCount = document.querySelector<HTMLElement>('#locus-water-count');
       const locusWastewaterCount = document.querySelector<HTMLElement>('#locus-wastewater-count');
+      const coordinatePanel = document.querySelector<HTMLElement>('#coordinate-panel');
+      const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
+      const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
+      const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
       const selectionPanel = document.querySelector<HTMLElement>('#selection-panel');
       const selectionMesh = document.querySelector<HTMLElement>('#selection-mesh');
       const selectionGroup = document.querySelector<HTMLElement>('#selection-group');
@@ -414,6 +492,10 @@ const title = 'Private 3D viewer';
         !locusLayerCount ||
         !locusWaterCount ||
         !locusWastewaterCount ||
+        !coordinatePanel ||
+        !coordinateFloor ||
+        !coordinatePointer ||
+        !coordinateAnchor ||
         !selectionPanel ||
         !selectionMesh ||
         !selectionGroup ||
@@ -504,6 +586,22 @@ const title = 'Private 3D viewer';
         { opacity: number; transparent: boolean; depthWrite: boolean }
       >();
       let d2FBoundaryReviewContext: any = null;
+      const dCoordinateGridGroup = new THREE.Group();
+      dCoordinateGridGroup.name = 'P137E_D_PLAN_YLIS_G1_LOCAL_GRID';
+      dCoordinateGridGroup.visible = false;
+      scene.add(dCoordinateGridGroup);
+      const dCoordinateEnvelope = Object.freeze({
+        xMin: 0,
+        xMax: 6.375,
+        yMin: 0,
+        yMax: 10.81,
+      });
+      const dReviewPlaneY: Record<'1F' | '2F', number> = {
+        '1F': 0.08,
+        '2F': 2.84,
+      };
+      let dCoordinateGridFloor: '1F' | '2F' | null = null;
+      let dCoordinateAnchorMarker: any = null;
 
       const setModelScene = (root: any) => {
         modelRoot.clear();
@@ -595,6 +693,214 @@ const title = 'Private 3D viewer';
         d2FBoundaryReviewContext = context;
         canvas.dataset.d2fBoundaryContextPrepared = 'true';
         canvas.dataset.d2fBoundaryContextSource = 'G1_G2_D2F_PLAN_HOST_ENVELOPE';
+      };
+
+      const disposeCoordinateObject = (object: any) => {
+        object.geometry?.dispose?.();
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        for (const material of materials) material?.dispose?.();
+      };
+
+      const clearDCoordinateGrid = () => {
+        for (const child of [...dCoordinateGridGroup.children]) {
+          dCoordinateGridGroup.remove(child);
+          disposeCoordinateObject(child);
+        }
+        dCoordinateGridFloor = null;
+      };
+
+      const coordinateSteps = (max: number, step: number) => {
+        const values: number[] = [];
+        for (let value = 0; value < max - 1e-6; value += step) {
+          values.push(Number(value.toFixed(6)));
+        }
+        if (!values.some((value) => Math.abs(value - max) < 1e-6)) values.push(max);
+        return values;
+      };
+
+      const prepareDCoordinateGrid = (floor: '1F' | '2F') => {
+        if (dCoordinateGridFloor === floor && dCoordinateGridGroup.children.length > 0) return;
+
+        clearDCoordinateGrid();
+        const planeY = dReviewPlaneY[floor];
+        const majorPoints: any[] = [];
+        const minorPoints: any[] = [];
+
+        const appendLine = (
+          target: any[],
+          x1: number,
+          y1: number,
+          x2: number,
+          y2: number,
+        ) => {
+          target.push(
+            new THREE.Vector3(x1, planeY, -y1),
+            new THREE.Vector3(x2, planeY, -y2),
+          );
+        };
+
+        for (const x of coordinateSteps(dCoordinateEnvelope.xMax, 0.5)) {
+          const isBoundary =
+            Math.abs(x - dCoordinateEnvelope.xMin) < 1e-6 ||
+            Math.abs(x - dCoordinateEnvelope.xMax) < 1e-6;
+          const isMajor = isBoundary || Math.abs(x - Math.round(x)) < 1e-6;
+          appendLine(
+            isMajor ? majorPoints : minorPoints,
+            x,
+            dCoordinateEnvelope.yMin,
+            x,
+            dCoordinateEnvelope.yMax,
+          );
+        }
+
+        for (const y of coordinateSteps(dCoordinateEnvelope.yMax, 0.5)) {
+          const isBoundary =
+            Math.abs(y - dCoordinateEnvelope.yMin) < 1e-6 ||
+            Math.abs(y - dCoordinateEnvelope.yMax) < 1e-6;
+          const isMajor = isBoundary || Math.abs(y - Math.round(y)) < 1e-6;
+          appendLine(
+            isMajor ? majorPoints : minorPoints,
+            dCoordinateEnvelope.xMin,
+            y,
+            dCoordinateEnvelope.xMax,
+            y,
+          );
+        }
+
+        const makeGridLines = (points: any[], opacity: number, suffix: string) => {
+          const geometry = new THREE.BufferGeometry().setFromPoints(points);
+          const material = new THREE.LineBasicMaterial({
+            color: 0x59645f,
+            transparent: true,
+            opacity,
+            depthTest: false,
+            depthWrite: false,
+          });
+          const lines = new THREE.LineSegments(geometry, material);
+          lines.name = `P137E_D_PLAN_GRID_${suffix}_${floor}`;
+          lines.renderOrder = 80;
+          lines.userData = {
+            PresentationOnly: true,
+            Canonical: false,
+            Pass: '137E',
+            storey: floor,
+            representationKind: 'reviewCoordinateGrid',
+            coordinateFrame: 'YLIS-G1-LOCAL',
+          };
+          return lines;
+        };
+
+        dCoordinateGridGroup.add(
+          makeGridLines(minorPoints, 0.16, 'MINOR_0_5M'),
+          makeGridLines(majorPoints, 0.36, 'MAJOR_1M'),
+        );
+        dCoordinateGridFloor = floor;
+      };
+
+      const clearDCoordinateAnchor = () => {
+        if (dCoordinateAnchorMarker) {
+          scene.remove(dCoordinateAnchorMarker);
+          disposeCoordinateObject(dCoordinateAnchorMarker);
+          dCoordinateAnchorMarker = null;
+        }
+        coordinateAnchor.textContent = 'X - / Y -';
+        delete canvas.dataset.reviewAnchorX;
+        delete canvas.dataset.reviewAnchorY;
+      };
+
+      const formatReviewCoordinate = (value: number) =>
+        value.toFixed(3).replace('.', ',');
+
+      const dReviewCoordinateAtClientPoint = (clientX: number, clientY: number) => {
+        if (!activePlanFloor || activeCamera !== planCamera) return null;
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return null;
+
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(pointer, planCamera);
+
+        const planeY = dReviewPlaneY[activePlanFloor];
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -planeY);
+        const world = new THREE.Vector3();
+        if (!raycaster.ray.intersectPlane(plane, world)) return null;
+
+        return { world, xM: world.x, yM: -world.z };
+      };
+
+      const updateDCoordinatePointer = (clientX: number, clientY: number) => {
+        const coordinate = dReviewCoordinateAtClientPoint(clientX, clientY);
+        if (!coordinate) return;
+        coordinatePointer.textContent =
+          `X ${formatReviewCoordinate(coordinate.xM)} m / Y ${formatReviewCoordinate(coordinate.yM)} m`;
+        canvas.dataset.reviewPointerX = coordinate.xM.toFixed(3);
+        canvas.dataset.reviewPointerY = coordinate.yM.toFixed(3);
+      };
+
+      const setDCoordinateAnchor = (clientX: number, clientY: number) => {
+        const coordinate = dReviewCoordinateAtClientPoint(clientX, clientY);
+        if (!coordinate || !activePlanFloor) return;
+
+        clearDCoordinateAnchor();
+        const radius = 0.12;
+        const markerY = dReviewPlaneY[activePlanFloor] + 0.015;
+        const points = [
+          new THREE.Vector3(coordinate.xM - radius, markerY, coordinate.world.z),
+          new THREE.Vector3(coordinate.xM + radius, markerY, coordinate.world.z),
+          new THREE.Vector3(coordinate.xM, markerY, coordinate.world.z - radius),
+          new THREE.Vector3(coordinate.xM, markerY, coordinate.world.z + radius),
+        ];
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({
+          color: 0xa34a2a,
+          depthTest: false,
+          depthWrite: false,
+        });
+        const marker = new THREE.LineSegments(geometry, material);
+        marker.name = `P137E_D_PLAN_REVIEW_ANCHOR_${activePlanFloor}`;
+        marker.renderOrder = 110;
+        marker.userData = {
+          PresentationOnly: true,
+          Canonical: false,
+          Pass: '137E',
+          storey: activePlanFloor,
+          representationKind: 'humanReviewAnchorMarker',
+          coordinateFrame: 'YLIS-G1-LOCAL',
+          approx: true,
+        };
+        scene.add(marker);
+        dCoordinateAnchorMarker = marker;
+
+        coordinateAnchor.textContent =
+          `X ${formatReviewCoordinate(coordinate.xM)} m / Y ${formatReviewCoordinate(coordinate.yM)} m`;
+        canvas.dataset.reviewAnchorX = coordinate.xM.toFixed(3);
+        canvas.dataset.reviewAnchorY = coordinate.yM.toFixed(3);
+      };
+
+      const activateDCoordinateReview = (floor: '1F' | '2F') => {
+        const floorChanged = dCoordinateGridFloor !== floor;
+        prepareDCoordinateGrid(floor);
+        dCoordinateGridGroup.visible = true;
+        coordinatePanel.hidden = false;
+        coordinateFloor.textContent = `D ${floor}`;
+        coordinatePointer.textContent = 'X - / Y -';
+        delete canvas.dataset.reviewPointerX;
+        delete canvas.dataset.reviewPointerY;
+        if (floorChanged) clearDCoordinateAnchor();
+        canvas.dataset.reviewCoordinateFrame = 'YLIS-G1-LOCAL';
+        canvas.dataset.reviewGridVisible = 'true';
+        canvas.dataset.reviewGridMajorStepM = '1';
+        canvas.dataset.reviewGridMinorStepM = '0.5';
+      };
+
+      const deactivateDCoordinateReview = () => {
+        dCoordinateGridGroup.visible = false;
+        coordinatePanel.hidden = true;
+        coordinatePointer.textContent = 'X - / Y -';
+        delete canvas.dataset.reviewPointerX;
+        delete canvas.dataset.reviewPointerY;
+        clearDCoordinateAnchor();
+        canvas.dataset.reviewGridVisible = 'false';
       };
 
       const isP136BReviewEmphasis = (object: any) => {
@@ -1096,6 +1402,7 @@ const title = 'Private 3D viewer';
         clearSelection();
         restoreDVisibility();
         activePlanFloor = null;
+        deactivateDCoordinateReview();
         controls.enabled = false;
         planControls.enabled = false;
         isoControls.enabled = true;
@@ -1111,6 +1418,7 @@ const title = 'Private 3D viewer';
         clearSelection();
         restoreDVisibility();
         activePlanFloor = null;
+        deactivateDCoordinateReview();
         planControls.enabled = false;
         isoControls.enabled = false;
         controls.enabled = true;
@@ -1201,6 +1509,7 @@ const title = 'Private 3D viewer';
         activePlanFloor = floor;
         activeCamera = planCamera;
         fitPlanCamera();
+        activateDCoordinateReview(floor);
         syncViewState('d-plan');
         status.textContent =
           floor === '2F' && canvas.dataset.d2fBoundaryContextPrepared === 'true'
@@ -1546,6 +1855,10 @@ const title = 'Private 3D viewer';
       });
       clearSelectionButton.addEventListener('click', clearSelection);
 
+      canvas.addEventListener('pointermove', (event) => {
+        if (activePlanFloor) updateDCoordinatePointer(event.clientX, event.clientY);
+      });
+
       canvas.addEventListener('pointerdown', (event) => {
         pointerDown = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
       });
@@ -1555,7 +1868,10 @@ const title = 'Private 3D viewer';
 
         const distance = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
         pointerDown = null;
-        if (distance <= pickDragThresholdPx) selectAtClientPoint(event.clientX, event.clientY);
+        if (distance <= pickDragThresholdPx) {
+          if (activePlanFloor) setDCoordinateAnchor(event.clientX, event.clientY);
+          selectAtClientPoint(event.clientX, event.clientY);
+        }
       });
 
       canvas.addEventListener('pointercancel', () => {
