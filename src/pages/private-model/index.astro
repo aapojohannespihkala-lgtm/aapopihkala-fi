@@ -503,6 +503,7 @@ const title = 'Private 3D viewer';
         any,
         { opacity: number; transparent: boolean; depthWrite: boolean }
       >();
+      let d2FBoundaryReviewContext: any = null;
 
       const setModelScene = (root: any) => {
         modelRoot.clear();
@@ -527,6 +528,73 @@ const title = 'Private 3D viewer';
           object.visible = visible;
         }
         restoreDReviewStyling();
+      };
+
+      const clearD2FBoundaryReviewContext = () => {
+        if (d2FBoundaryReviewContext) {
+          d2FBoundaryReviewContext.parent?.remove(d2FBoundaryReviewContext);
+          d2FBoundaryReviewContext.geometry?.dispose?.();
+          const materials = Array.isArray(d2FBoundaryReviewContext.material)
+            ? d2FBoundaryReviewContext.material
+            : [d2FBoundaryReviewContext.material];
+          for (const material of materials) material?.dispose?.();
+          d2FBoundaryReviewContext = null;
+        }
+
+        canvas.dataset.d2fBoundaryContextPrepared = 'false';
+        delete canvas.dataset.d2fBoundaryContextSource;
+      };
+
+      const prepareD2FBoundaryReviewContext = () => {
+        clearD2FBoundaryReviewContext();
+        if (activeModelSourceKind !== 'work-test' || !dInteriorScene) return;
+
+        const z = 2.76 + 0.06;
+        const points = [
+          new THREE.Vector3(0, z, 0),
+          new THREE.Vector3(0, z, -10.81),
+          new THREE.Vector3(0, z, -10.81),
+          new THREE.Vector3(6.375, z, -10.81),
+          new THREE.Vector3(6.375, z, -10.81),
+          new THREE.Vector3(6.375, z, 0),
+          new THREE.Vector3(6.375, z, 0),
+          new THREE.Vector3(0, z, 0),
+        ];
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({
+          color: 0x167c5a,
+          transparent: true,
+          opacity: 0.95,
+          depthTest: false,
+          depthWrite: false,
+        });
+        const context = new THREE.LineSegments(geometry, material);
+        context.name = 'P137B_D2F_PERIMETER_REVIEW_CONTEXT';
+        context.renderOrder = 100;
+        context.userData = {
+          PresentationOnly: true,
+          Canonical: false,
+          Pass: '137B',
+          storey: '2F',
+          representationKind: 'reviewBoundaryContext',
+          sourceContract: 'G1_G2_D2F_PLAN_HOST_ENVELOPE',
+          sourceEnvelopeYLISG1Local: {
+            xM: [0, 6.375],
+            yM: [0, 10.81],
+            hostZ_M: 2.76,
+          },
+          presentationLiftM: 0.06,
+          exactWallFaceClaim: false,
+          wallCenterlineClaim: false,
+          wallThicknessClaim: false,
+          asBuiltClaim: false,
+          humanReview: 'NOT_YET_REVIEWED',
+        };
+
+        dInteriorScene.add(context);
+        d2FBoundaryReviewContext = context;
+        canvas.dataset.d2fBoundaryContextPrepared = 'true';
+        canvas.dataset.d2fBoundaryContextSource = 'G1_G2_D2F_PLAN_HOST_ENVELOPE';
       };
 
       const isP136BReviewEmphasis = (object: any) => {
@@ -1055,7 +1123,7 @@ const title = 'Private 3D viewer';
       const fitPlanCamera = () => {
         if (!dInteriorScene || !activePlanFloor) return;
 
-        const box = computeVisibleBounds(dInteriorScene);
+        const box = computeVisibleBounds(dInteriorScene, true);
         if (!box) return;
 
         const center = new THREE.Vector3();
@@ -1135,9 +1203,13 @@ const title = 'Private 3D viewer';
         fitPlanCamera();
         syncViewState('d-plan');
         status.textContent =
-          canvas.dataset.dReviewActive === 'true'
-            ? `D ${floor} - tarkastusnäkymä, tarkastusgeometria korostettu`
-            : `D ${floor} - ortografinen pohjanäkymä`;
+          floor === '2F' && canvas.dataset.d2fBoundaryContextPrepared === 'true'
+            ? canvas.dataset.dReviewActive === 'true'
+              ? 'D 2F - tarkastusnäkymä, sisäseinät korostettu; rajaavat seinät kontekstina'
+              : 'D 2F - tarkastusnäkymä, rajaavat seinät kontekstina'
+            : canvas.dataset.dReviewActive === 'true'
+              ? `D ${floor} - tarkastusnäkymä, tarkastusgeometria korostettu`
+              : `D ${floor} - ortografinen pohjanäkymä`;
       };
 
       const updateSize = () => {
@@ -1226,6 +1298,7 @@ const title = 'Private 3D viewer';
           });
         }
 
+        clearD2FBoundaryReviewContext();
         fullModelScene = gltf.scene;
         dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
         activeModelSourceKind = sourceKind;
@@ -1233,6 +1306,7 @@ const title = 'Private 3D viewer';
         initializeFullModelArchBase();
         initializeRoofLayer();
         initializeLocusLayer();
+        prepareD2FBoundaryReviewContext();
 
         dVisibilityBaseline.clear();
         if (dInteriorScene) {

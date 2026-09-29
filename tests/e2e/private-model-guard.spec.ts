@@ -126,7 +126,7 @@ const makeDReviewGlb = () => {
       { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [0] },
     ],
     nodes: [
-      { name: 'P136B_D_REVIEW_ROOT', children: [1, 2, 3] },
+      { name: 'P136B_D_REVIEW_ROOT', children: [1, 2, 3, 4] },
       {
         name: 'P123C_D1F_WINDOW_TRANSPARENT_WALL_HELPER',
         mesh: 0,
@@ -154,6 +154,17 @@ const makeDReviewGlb = () => {
         extras: {
           presentationOnly: true,
           presentationLayer: 'CURRENT_D_OUTLINE',
+        },
+      },
+      {
+        name: 'P123C_D2F_TRANSPARENT_FULL_WALL_HELPER',
+        mesh: 0,
+        extras: {
+          PresentationOnly: true,
+          Canonical: false,
+          Pass: '123C',
+          sourceP122BNode: 432,
+          alpha: 0.38,
         },
       },
     ],
@@ -950,7 +961,22 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '1');
   await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '1');
   await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '2');
-  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '1');
+  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '3');
+  await expect(canvas).toHaveAttribute('data-d2f-boundary-context-prepared', 'true');
+  await expect(canvas).toHaveAttribute(
+    'data-d2f-boundary-context-source',
+    'G1_G2_D2F_PLAN_HOST_ENVELOPE',
+  );
+
+  await page.getByRole('button', { name: 'D 2F' }).click();
+  await expect(page.getByRole('status')).toHaveText(
+    'D 2F - tarkastusnäkymä, sisäseinät korostettu; rajaavat seinät kontekstina',
+  );
+  await expect(canvas).toHaveAttribute('data-d-review-active', 'true');
+  await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '1');
+  await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '0');
+  await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '3');
+  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '2');
 
   await page.getByRole('button', { name: 'Orbit' }).click();
   await expect(canvas).toHaveAttribute('data-d-review-active', 'false');
