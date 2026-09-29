@@ -543,7 +543,7 @@ const title = 'Private 3D viewer';
           <div class="layer-section">
             <label class="layer-row">
               <input id="locus-layer-visible" type="checkbox" disabled />
-              <span>Kunnallistekniikka / KVV-reitit (WORK_TEST)</span>
+              <span id="locus-layer-label">Locus kunnallistekniikka (WORK_TEST)</span>
             </label>
             <div id="locus-layer-count" class="layer-count">0 kohdetta</div>
             <div class="layer-legend" aria-label="Locus kunnallistekniikan selite">
@@ -601,6 +601,7 @@ const title = 'Private 3D viewer';
       const roofLayerOpacityValue = document.querySelector<HTMLOutputElement>('#roof-layer-opacity-value');
       const roofLayerCount = document.querySelector<HTMLElement>('#roof-layer-count');
       const locusLayerVisibleInput = document.querySelector<HTMLInputElement>('#locus-layer-visible');
+      const locusLayerLabel = document.querySelector<HTMLElement>('#locus-layer-label');
       const locusLayerCount = document.querySelector<HTMLElement>('#locus-layer-count');
       const locusWaterCount = document.querySelector<HTMLElement>('#locus-water-count');
       const locusWastewaterCount = document.querySelector<HTMLElement>('#locus-wastewater-count');
@@ -642,6 +643,7 @@ const title = 'Private 3D viewer';
         !roofLayerOpacityValue ||
         !roofLayerCount ||
         !locusLayerVisibleInput ||
+        !locusLayerLabel ||
         !locusLayerCount ||
         !locusWaterCount ||
         !locusWastewaterCount ||
@@ -2090,6 +2092,7 @@ const title = 'Private 3D viewer';
         try {
           const gltf = await loader.loadAsync('/private-model/model.glb');
           applyLoadedModel(gltf, 'current', 'CURRENT');
+          locusLayerLabel.textContent = 'Locus kunnallistekniikka (WORK_TEST)';
         } catch (error) {
           console.error(error);
           status.textContent = 'Suojattua mallia ei ole vielä käytettävissä';
@@ -2188,6 +2191,9 @@ const title = 'Private 3D viewer';
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
+          locusLayerLabel.textContent = isP139nReview
+            ? 'Kunnallistekniikka / KVV-reitit (WORK_TEST)'
+            : 'Locus kunnallistekniikka (WORK_TEST)';
 
           if (isP139nReview) {
             canvas.dataset.workTestReviewMode = 'site-plan-only';
