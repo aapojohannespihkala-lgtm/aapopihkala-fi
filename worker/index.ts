@@ -9,6 +9,7 @@ import { onRequestGet as getWidgetV2Response } from '../functions/api/current/wi
 import { fetchLiigaResponse, onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
 import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/current/liiga-schedule';
 import { handlePrivateModelRequest, isPrivateModelPath, type PrivateModelEnv } from './privateModel';
+import { handlePrivateWorkTestRequest, isPrivateWorkTestPath } from './privateWorkTest';
 
 type WorkerEnv = PrivateModelEnv & { DIGITRANSIT_API_KEY?: string };
 type ResponseCache = {
@@ -343,6 +344,7 @@ const worker = {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(request.url);
     const snapshotRequest = isSnapshotRequest(request);
+    if (isPrivateWorkTestPath(url.pathname)) return handlePrivateWorkTestRequest(request, env);
     if (isPrivateModelPath(url.pathname)) return handlePrivateModelRequest(request, env);
     if (url.pathname === ELECTRICITY_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityPriceResponse(); }
     if (url.pathname === ELECTRICITY_MONTH_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityMonthResponse(); }
