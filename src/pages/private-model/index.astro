@@ -2111,6 +2111,9 @@ const title = 'Private 3D viewer';
       const p139abCandidateId = 'p139ab-z-credible-wastewater-review';
       const p139abZSceneName =
         'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
+      const p139abBuildingSceneName =
+        'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP';
+      const p139abZPresentationLayer = 'Z_CREDIBLE_WASTEWATER_REVIEW';
 
       const workTestCatalogPath = '/private-model/work-test/catalog.json';
       const workTestImportPath = '/private-model/work-test/import.json';
@@ -2179,6 +2182,53 @@ const title = 'Private 3D viewer';
         }
       };
 
+      const hasP139abZRouteAncestor = (object: any) => {
+        let current = object;
+        while (current) {
+          if (String(current?.userData?.presentationLayer ?? '') === p139abZPresentationLayer) {
+            return true;
+          }
+          current = current.parent;
+        }
+        return false;
+      };
+
+      const buildP139abVisibleReviewScene = (gltf: any, zScene: any) => {
+        const buildingScene = findSourceNamedScene(gltf, p139abBuildingSceneName);
+        if (!buildingScene) throw new Error('p139AB building context scene missing');
+
+        const composite = new THREE.Group();
+        composite.name = 'P139AB VISIBLE BUILDING + Z ROUTES REVIEW';
+
+        const buildingClone = buildingScene.clone(true);
+        buildingClone.traverse((object: any) => {
+          const name = String(object?.name ?? '').toUpperCase();
+          if (
+            name.includes('P139C_WATER_CONNECTION_ZONE_REVIEW_HELPER') ||
+            name.includes('P139E_WASTEWATER_CONNECTION_ZONE_REVIEW_HELPER')
+          ) {
+            object.visible = false;
+          }
+        });
+
+        const zRouteClone = zScene.clone(true);
+        zRouteClone.traverse((object: any) => {
+          const renderable =
+            object.isMesh || object.isLine || object.isLineSegments || object.isPoints;
+          if (renderable && !hasP139abZRouteAncestor(object)) object.visible = false;
+        });
+
+        composite.add(buildingClone, zRouteClone);
+        composite.userData = {
+          ...composite.userData,
+          reviewScope: 'Z_CREDIBILITY_ONLY',
+          buildingContext: true,
+          sourceBuildingScene: p139abBuildingSceneName,
+          sourceZScene: p139abZSceneName,
+        };
+        return composite;
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         const loader = new GLTFLoader();
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
@@ -2195,7 +2245,7 @@ const title = 'Private 3D viewer';
           } else if (isP139abZReview) {
             const zScene = findSourceNamedScene(gltf, p139abZSceneName);
             if (!zScene) throw new Error('p139AB Z credibility scene missing');
-            gltf.scene = zScene;
+            gltf.scene = buildP139abVisibleReviewScene(gltf, zScene);
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
