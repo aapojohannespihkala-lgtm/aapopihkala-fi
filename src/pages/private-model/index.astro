@@ -2108,6 +2108,9 @@ const title = 'Private 3D viewer';
       const p139nCandidateId = 'p139n-federated-kvv-review';
       const p139nPlanSceneName =
         'P139N SITE_PLAN_OVERLAY - Z UNKNOWN - PLAN ONLY - NOT AS-BUILT';
+      const p139abCandidateId = 'p139ab-z-credible-wastewater-review';
+      const p139abZSceneName =
+        'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
 
       const workTestCatalogPath = '/private-model/work-test/catalog.json';
       const workTestImportPath = '/private-model/work-test/import.json';
@@ -2183,22 +2186,34 @@ const title = 'Private 3D viewer';
         try {
           const gltf = await loader.loadAsync(candidate.path);
           const isP139nReview = candidate.id === p139nCandidateId;
+          const isP139abZReview = candidate.id === p139abCandidateId;
 
           if (isP139nReview) {
             const planScene = findSourceNamedScene(gltf, p139nPlanSceneName);
             if (!planScene) throw new Error('p139N SITE_PLAN_OVERLAY scene missing');
             gltf.scene = planScene;
+          } else if (isP139abZReview) {
+            const zScene = findSourceNamedScene(gltf, p139abZSceneName);
+            if (!zScene) throw new Error('p139AB Z credibility scene missing');
+            gltf.scene = zScene;
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
           locusLayerLabel.textContent = isP139nReview
             ? 'Kunnallistekniikka / KVV-reitit (WORK_TEST)'
-            : 'Locus kunnallistekniikka (WORK_TEST)';
+            : isP139abZReview
+              ? 'Z-review: vain Z-lähteistetty jätevesi'
+              : 'Locus kunnallistekniikka (WORK_TEST)';
 
           if (isP139nReview) {
             canvas.dataset.workTestReviewMode = 'site-plan-only';
             activateSitePlanOnly();
             status.textContent = 'SITE ORTHO / PLAN ONLY - Z UNKNOWN / NOT AS-BUILT';
+          } else if (isP139abZReview) {
+            canvas.dataset.workTestReviewMode = 'z-credibility-only';
+            activateIsometric();
+            status.textContent =
+              'Z-KATSELU - vain lähteistetyt jätevesikorkeudet - datum sitomatta / ei as-built';
           } else {
             delete canvas.dataset.workTestReviewMode;
           }

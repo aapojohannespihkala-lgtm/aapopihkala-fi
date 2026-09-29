@@ -50,6 +50,14 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_193_724,
     expectedSha256: 'b713b9cc29b1e865dc7ca0b640589d9d1440cffe5e665297c6760745a149e515',
   },
+  {
+    id: 'p139ab-z-credible-wastewater-review',
+    label: 'p139AB Z-uskottavuus - jätevesi',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p139ab-z-credible-wastewater-review.glb`,
+    objectKey: 'work-test/p139ab-z-credible-wastewater-review.glb',
+    expectedSize: 1_199_352,
+    expectedSha256: '6470e7c529546231725856e94c11203d86b1e66f0e6645bb36ce01aec2275159',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
