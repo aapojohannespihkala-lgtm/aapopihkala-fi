@@ -2374,6 +2374,8 @@ const title = 'Private 3D viewer';
       const p139nPlanSceneName =
         'P139N SITE_PLAN_OVERLAY - Z UNKNOWN - PLAN ONLY - NOT AS-BUILT';
       const p139abCandidateId = 'p139ab-z-credible-wastewater-review';
+      const p143aCandidateId = 'p143a-scalgo-terrain';
+      const p143aReviewId = 'p143a-scalgo-terrain-review';
       const p139abZSceneName =
         'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
       const p139abBuildingSceneName =
@@ -2526,8 +2528,9 @@ const title = 'Private 3D viewer';
         }
 
         workTestSelect.disabled = false;
-        const reviewCandidateId =
-          isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
+        const reviewCandidateId = isP143aScalgoTerrainReviewRequested()
+          ? p143aCandidateId
+          : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
             ? p139abCandidateId
             : null;
         const reviewCandidate = reviewCandidateId
@@ -2686,6 +2689,9 @@ const title = 'Private 3D viewer';
         };
         return composite;
       };
+
+      const isP143aScalgoTerrainReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p143aReviewId;
 
       const isP139acGroundInfraReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p139acReviewId;
@@ -2857,6 +2863,8 @@ const title = 'Private 3D viewer';
 
         try {
           const gltf = await loader.loadAsync(candidate.path);
+          const isP143aScalgoTerrainReview =
+            candidate.id === p143aCandidateId && isP143aScalgoTerrainReviewRequested();
           const isP139nReview = candidate.id === p139nCandidateId;
           const isP139abZReview = candidate.id === p139abCandidateId;
           const isP139acGroundInfraReview =
@@ -2879,17 +2887,24 @@ const title = 'Private 3D viewer';
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
-          locusLayerLabel.textContent = isP139nReview
-            ? 'Kunnallistekniikka / KVV-reitit (WORK_TEST)'
-            : isP139adLocusWorkZReview
-              ? 'Locus work-Z + maanpinta + source-Z referenssi'
-              : isP139acGroundInfraReview
-                ? 'Maanpinta + Z-lähteistetty maanalainen infra'
-                : isP139abZReview
-                  ? 'Z-review: vain Z-lähteistetty jätevesi'
-                  : 'Locus kunnallistekniikka (WORK_TEST)';
+          locusLayerLabel.textContent = isP143aScalgoTerrainReview
+            ? 'SCALGO maasto + rakennus (WORK_TEST)'
+            : isP139nReview
+              ? 'Kunnallistekniikka / KVV-reitit (WORK_TEST)'
+              : isP139adLocusWorkZReview
+                ? 'Locus work-Z + maanpinta + source-Z referenssi'
+                : isP139acGroundInfraReview
+                  ? 'Maanpinta + Z-lähteistetty maanalainen infra'
+                  : isP139abZReview
+                    ? 'Z-review: vain Z-lähteistetty jätevesi'
+                    : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP139nReview) {
+          if (isP143aScalgoTerrainReview) {
+            canvas.dataset.workTestReviewMode = 'scalgo-terrain-review';
+            activateIsometric();
+            status.textContent =
+              'SCALGO MAASTO + RAKENNUS - WORK_TEST - pystykorkosilta oletus / ei as-built';
+          } else if (isP139nReview) {
             canvas.dataset.workTestReviewMode = 'site-plan-only';
             activateSitePlanOnly();
             status.textContent = 'SITE ORTHO / PLAN ONLY - Z UNKNOWN / NOT AS-BUILT';
@@ -3097,8 +3112,9 @@ const title = 'Private 3D viewer';
         if (imported) return;
 
         await loadWorkTestCatalog();
-        const reviewCandidateId =
-          isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
+        const reviewCandidateId = isP143aScalgoTerrainReviewRequested()
+          ? p143aCandidateId
+          : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
             ? p139abCandidateId
             : null;
         const reviewCandidate = reviewCandidateId
