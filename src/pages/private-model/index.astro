@@ -3116,6 +3116,8 @@ const title = 'Private 3D viewer';
       const p144cReviewId = 'p144c-g3-1974-iv-review';
       const p145bCandidateId = 'p145b-1974-iv-section-worktargets';
       const p145bReviewId = 'p145b-1974-iv-section-worktargets-review';
+      const p155cbCandidateId = 'p155cb-d-storage-roof';
+      const p155cbReviewId = 'p155cb-d-storage-roof-review';
       const p139abZSceneName =
         'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
       const p139abBuildingSceneName =
@@ -3813,8 +3815,13 @@ const title = 'Private 3D viewer';
       const isP145b1974IvSectionWorkTargetsReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p145bReviewId;
 
+      const isP155cbDStorageRoofReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p155cbReviewId;
+
       const getRequestedReviewCandidateId = () =>
-        isP145b1974IvSectionWorkTargetsReviewRequested()
+        isP155cbDStorageRoofReviewRequested()
+          ? p155cbCandidateId
+          : isP145b1974IvSectionWorkTargetsReviewRequested()
           ? p145bCandidateId
           : isP144cG31974IvReviewRequested()
             ? p144cCandidateId
@@ -4118,6 +4125,8 @@ const title = 'Private 3D viewer';
             candidate.id === p144cCandidateId && isP144cG31974IvReviewRequested();
           const isP145b1974IvSectionWorkTargetsReview =
             candidate.id === p145bCandidateId && isP145b1974IvSectionWorkTargetsReviewRequested();
+          const isP155cbDStorageRoofReview =
+            candidate.id === p155cbCandidateId && isP155cbDStorageRoofReviewRequested();
           const isP139nReview = candidate.id === p139nCandidateId;
           const isP139abZReview = candidate.id === p139abCandidateId;
           const isP139acGroundInfraReview =
@@ -4155,11 +4164,17 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.g3SectionPlaneOrientationStatus;
           delete canvas.dataset.g3TopologyLinkClaim;
           delete canvas.dataset.g3PenetrationClaim;
+          delete canvas.dataset.p155PresentationOnly;
+          delete canvas.dataset.p155CurrentRelativeLevel;
+          delete canvas.dataset.p155AbsoluteTopZClaim;
+          delete canvas.dataset.p155PhysicalRoofThicknessClaim;
           delete canvas.dataset.scalgoLabelFlowCorridorCount;
           delete canvas.dataset.scalgoLabelMinimumSameCorridorSpacingM;
           delete canvas.dataset.scalgoLabelBuildingExclusion;
           delete canvas.dataset.scalgoLabelCorridorSemanticBoundary;
-          locusLayerLabel.textContent = isP145b1974IvSectionWorkTargetsReview
+          locusLayerLabel.textContent = isP155cbDStorageRoofReview
+            ? 'D varaston kattoreferenssi (WORK_TEST / presentation-only)'
+            : isP145b1974IvSectionWorkTargetsReview
             ? '1974 IV section work-targetit (WORK_TEST / presentation-only / workAssumption)'
             : isP144cG31974IvReview
               ? 'P143H SCALGO kartografia + 1974 IV plan-ankkurit (WORK_TEST)'
@@ -4185,7 +4200,16 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP145b1974IvSectionWorkTargetsReview) {
+          if (isP155cbDStorageRoofReview) {
+            canvas.dataset.workTestReviewMode = 'p155cb-d-storage-roof-review';
+            canvas.dataset.p155PresentationOnly = 'true';
+            canvas.dataset.p155CurrentRelativeLevel = 'MATCH_1F_ROOF_ZONE';
+            canvas.dataset.p155AbsoluteTopZClaim = 'false';
+            canvas.dataset.p155PhysicalRoofThicknessClaim = 'false';
+            activateIsometric();
+            status.textContent =
+              'P155C-B D-varaston kattoreferenssi - WORK_TEST / presentation-only - ei fyysinen kattorakenne';
+          } else if (isP145b1974IvSectionWorkTargetsReview) {
             canvas.dataset.workTestReviewMode = 'p145b-1974-iv-section-worktargets-review';
             canvas.dataset.scalgoContourMajorIntervalM = '1.0';
             canvas.dataset.scalgoContourHalfIntervalM = '0.5';
