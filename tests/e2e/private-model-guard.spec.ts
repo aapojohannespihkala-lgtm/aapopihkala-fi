@@ -1752,6 +1752,69 @@ test('private viewer autoloads the exact p143A SCALGO terrain review candidate',
   );
 });
 
+test('private viewer autoloads the exact p143F SCALGO contour review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P143F SCALGO TERRAIN + 1M/0.1M CONTOURS + P142A ARCHITECTURE - BABYLON Y-UP',
+        nodes: [],
+      },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p143f-scalgo-contours';
+  const candidateLabel = 'p143F SCALGO terrain + contours - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p143f-scalgo-contours.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [
+          {
+            id: 'p143a-scalgo-terrain',
+            label: 'p143A SCALGO terrain + architecture - WORK_TEST',
+            path: '/private-model/work-test/p143a-scalgo-terrain.glb',
+          },
+          { id: candidateId, label: candidateLabel, path: candidatePath },
+        ],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p143f-scalgo-contours-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'scalgo-contour-review');
+  await expect(canvas).toHaveAttribute('data-scalgo-contour-major-interval-m', '1.0');
+  await expect(canvas).toHaveAttribute('data-scalgo-contour-minor-interval-m', '0.1');
+  await expect(canvas).toHaveAttribute('data-scalgo-contour-source-grid-resolution-m', '1.0');
+  await expect(canvas).toHaveAttribute('data-terrain-vertical-bridge-status', 'WORK_OFFSET_UNVERIFIED');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'SCALGO MAASTO + KORKEUSKÄYRÄT - 1 m pää / 0,10 m väli - välikäyrät interpoloitu 1 m rasterista',
+  );
+});
+
 test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra for depth review', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
