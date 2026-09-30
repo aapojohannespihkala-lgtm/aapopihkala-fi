@@ -74,6 +74,14 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_481_704,
     expectedSha256: '2f0be722f43a0e47ad59f2c65e1f1449a6e5af51b80811e71f8a5dc9a28fbfb0',
   },
+  {
+    id: 'p143g-scalgo-cartography',
+    label: 'p143G SCALGO smoothed cartography - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p143g-scalgo-cartography.glb`,
+    objectKey: 'work-test/p143g-scalgo-cartography.glb',
+    expectedSize: 1_661_536,
+    expectedSha256: 'fdde532b713249178111a9e830ebe6b52cf8a600b9f206fdc049abb072d55e02',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
