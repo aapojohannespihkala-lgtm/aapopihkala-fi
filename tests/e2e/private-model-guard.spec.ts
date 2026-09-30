@@ -3042,3 +3042,72 @@ test('private viewer fails safe when the protected WORK_TEST catalog is unavaila
   await expect(page.locator('#work-test-button')).toBeDisabled();
 });
 
+test('private viewer autoloads the exact P154C D wall cutout review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'D WALL CUTOUTS WORK_TEST P154C - BABYLON Y-UP', nodes: [] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [] },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p154c-d-wall-cutouts';
+  const candidateLabel = 'P154C D wall solids + door/window cutouts - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p154c-d-wall-cutouts.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p154c-d-wall-cutouts-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p154c-d-wall-cutouts-review');
+  await expect(canvas).toHaveAttribute('data-p154-result-wall-piece-count', '126');
+  await expect(canvas).toHaveAttribute('data-p154-cutout-identity-count', '18');
+  await expect(canvas).toHaveAttribute('data-p154-door-cutout-count', '11');
+  await expect(canvas).toHaveAttribute('data-p154-window-cutout-count', '7');
+  await expect(canvas).toHaveAttribute('data-p154-excluded-unmapped-user-opening-count', '2');
+  await expect(canvas).toHaveAttribute(
+    'data-p154-excluded-unmapped-user-opening-ids',
+    'D1F_USER_CURRENT_DOOR_A,D1F_USER_CURRENT_DOOR_B',
+  );
+  await expect(canvas).toHaveAttribute('data-p154-opening-treatment', 'P154C_WORK_TEST_CUTOUT_APPLIED');
+  await expect(canvas).toHaveAttribute('data-p154-door-vertical-basis', 'REFINABLE_WORK_ASSUMPTION_2_100M');
+  await expect(canvas).toHaveAttribute('data-p154-window-vertical-basis', 'SOURCE_REFERENCE_OPENING');
+  await expect(canvas).toHaveAttribute('data-p154-normal-extent-role', 'HOST_SOLID_INTERSECTION_ONLY');
+  await expect(canvas).toHaveAttribute('data-p154-source-primitive-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p154-physical-door-height-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p154-physical-opening-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p154-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p154-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p154-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p154-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'P154C D-seinäsolidit + aukot - WORK_TEST / 18 cutoutia - ovikorkeus 2,100 m refinable - ei CURRENT/as-built',
+  );
+});
+
