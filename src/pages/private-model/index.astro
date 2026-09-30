@@ -141,6 +141,43 @@ const title = 'Private 3D viewer';
         text-align: left;
       }
 
+      .clip-control {
+        display: grid;
+        gap: 6px;
+        padding: 7px 6px;
+        border-top: 1px solid #e2e3de;
+        color: #555853;
+        font-size: 12px;
+      }
+
+      .clip-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-weight: 650;
+      }
+
+      .clip-toggle input {
+        margin: 0;
+      }
+
+      .clip-range {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 5px 8px;
+        align-items: center;
+      }
+
+      .clip-range input {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+
+      .clip-range output {
+        font-variant-numeric: tabular-nums;
+      }
+
       .toolbar-menu-label {
         padding: 5px 6px 2px;
         color: #777a75;
@@ -857,6 +894,17 @@ const title = 'Private 3D viewer';
           <div class="toolbar-menu-panel right">
             <button id="fit-button" type="button">Sovita näkymään</button>
             <button id="show-all-objects-button" type="button" disabled>Näytä kaikki</button>
+            <div class="clip-control" aria-label="Leikkaustaso">
+              <label class="clip-toggle" for="clip-plane-enabled">
+                <span>Leikkaa yläpuoli</span>
+                <input id="clip-plane-enabled" type="checkbox" disabled />
+              </label>
+              <label class="clip-range" for="clip-plane-height">
+                <span>Korkeus</span>
+                <output id="clip-plane-value" for="clip-plane-height">-</output>
+                <input id="clip-plane-height" type="range" min="0" max="1" step="0.05" value="1" disabled />
+              </label>
+            </div>
             <button id="profile-button" type="button" aria-expanded="false" aria-controls="profile-panel" disabled>Pituusleikkaus</button>
           </div>
         </details>
@@ -1069,6 +1117,9 @@ const title = 'Private 3D viewer';
       const isolateSelectionButton = document.querySelector<HTMLButtonElement>('#isolate-selection-button');
       const hideSelectionButton = document.querySelector<HTMLButtonElement>('#hide-selection-button');
       const showAllObjectsButton = document.querySelector<HTMLButtonElement>('#show-all-objects-button');
+      const clipPlaneEnabledInput = document.querySelector<HTMLInputElement>('#clip-plane-enabled');
+      const clipPlaneHeightInput = document.querySelector<HTMLInputElement>('#clip-plane-height');
+      const clipPlaneValue = document.querySelector<HTMLOutputElement>('#clip-plane-value');
 
       if (
         !canvas ||
@@ -1132,7 +1183,10 @@ const title = 'Private 3D viewer';
         !clearSelectionButton ||
         !isolateSelectionButton ||
         !hideSelectionButton ||
-        !showAllObjectsButton
+        !showAllObjectsButton ||
+        !clipPlaneEnabledInput ||
+        !clipPlaneHeightInput ||
+        !clipPlaneValue
       ) {
         throw new Error('Private viewer controls are missing');
       }
@@ -1199,6 +1253,7 @@ const title = 'Private 3D viewer';
       let selectedObject: any = null;
       const objectVisibilityBaseline = new Map<any, boolean>();
       let objectVisibilityFilterActive = false;
+      const horizontalClipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
       let pointerDown: { pointerId: number; x: number; y: number } | null = null;
       const pickDragThresholdPx = 6;
       const roofLayerMembers = new Set<any>();
@@ -2572,6 +2627,75 @@ const title = 'Private 3D viewer';
         status.textContent = 'Objektisuodatus poistettu - aiempi näkyvyystila palautettu';
       };
 
+      const setHorizontalClippingState = () => {
+        const requestedHeight = Number(clipPlaneHeightInput.value);
+        const enabled =
+          clipPlaneEnabledInput.checked &&
+          !clipPlaneEnabledInput.disabled &&
+          Number.isFinite(requestedHeight);
+
+        clipPlaneHeightInput.disabled = !enabled;
+        clipPlaneValue.textContent = Number.isFinite(requestedHeight)
+          ? `${requestedHeight.toFixed(2)} m`
+          : '-';
+
+        if (enabled) {
+          horizontalClipPlane.normal.set(0, -1, 0);
+          horizontalClipPlane.constant = requestedHeight;
+          renderer.clippingPlanes = [horizontalClipPlane];
+          canvas.dataset.horizontalClip = 'active';
+          canvas.dataset.horizontalClipHeightM = requestedHeight.toFixed(3);
+          canvas.dataset.horizontalClipSide = 'above';
+        } else {
+          renderer.clippingPlanes = [];
+          canvas.dataset.horizontalClip = 'inactive';
+          delete canvas.dataset.horizontalClipHeightM;
+          delete canvas.dataset.horizontalClipSide;
+        }
+      };
+
+      const resetHorizontalClipping = () => {
+        renderer.clippingPlanes = [];
+        clipPlaneEnabledInput.checked = false;
+        clipPlaneEnabledInput.disabled = true;
+        clipPlaneHeightInput.disabled = true;
+        clipPlaneHeightInput.min = '0';
+        clipPlaneHeightInput.max = '1';
+        clipPlaneHeightInput.step = '0.05';
+        clipPlaneHeightInput.value = '1';
+        clipPlaneValue.textContent = '-';
+        canvas.dataset.horizontalClip = 'inactive';
+        delete canvas.dataset.horizontalClipHeightM;
+        delete canvas.dataset.horizontalClipMinY;
+        delete canvas.dataset.horizontalClipMaxY;
+        delete canvas.dataset.horizontalClipSide;
+      };
+
+      const configureHorizontalClippingRange = () => {
+        if (!fullModelScene) return;
+        fullModelScene.updateMatrixWorld(true);
+        const bounds = new THREE.Box3().setFromObject(fullModelScene);
+        if (
+          bounds.isEmpty() ||
+          !Number.isFinite(bounds.min.y) ||
+          !Number.isFinite(bounds.max.y)
+        ) {
+          return;
+        }
+
+        const minY = bounds.min.y;
+        const maxY = Math.max(bounds.max.y, minY + 0.01);
+        const step = Math.max((maxY - minY) / 200, 0.01);
+        clipPlaneHeightInput.min = String(minY);
+        clipPlaneHeightInput.max = String(maxY);
+        clipPlaneHeightInput.step = String(step);
+        clipPlaneHeightInput.value = String(maxY);
+        clipPlaneValue.textContent = `${maxY.toFixed(2)} m`;
+        clipPlaneEnabledInput.disabled = false;
+        canvas.dataset.horizontalClipMinY = minY.toFixed(3);
+        canvas.dataset.horizontalClipMaxY = maxY.toFixed(3);
+      };
+
       const selectAtClientPoint = (clientX: number, clientY: number) => {
         const rect = canvas.getBoundingClientRect();
         if (rect.width <= 0 || rect.height <= 0) return;
@@ -3139,6 +3263,7 @@ const title = 'Private 3D viewer';
         sourceLabel: string,
       ) => {
         resetObjectVisibilityFilterState();
+        resetHorizontalClipping();
         clearSelection();
         sourceSceneNames = new WeakMap<any, string>();
         const sourceScenes = gltf?.parser?.json?.scenes;
@@ -3174,6 +3299,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.modelSource = sourceKind;
 
         setModelScene(fullModelScene);
+        configureHorizontalClippingRange();
         fitModel();
         status.textContent =
           sourceKind === 'work-test'
@@ -4998,6 +5124,8 @@ const title = 'Private 3D viewer';
       isolateSelectionButton.addEventListener('click', isolateSelectedObject);
       hideSelectionButton.addEventListener('click', hideSelectedObject);
       showAllObjectsButton.addEventListener('click', restoreObjectVisibility);
+      clipPlaneEnabledInput.addEventListener('change', setHorizontalClippingState);
+      clipPlaneHeightInput.addEventListener('input', setHorizontalClippingState);
 
       canvas.addEventListener('pointermove', (event) => {
         if (activePlanFloor) updateDCoordinatePointer(event.clientX, event.clientY);
