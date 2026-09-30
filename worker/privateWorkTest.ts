@@ -197,6 +197,16 @@ const sha256Hex = async (value: ArrayBuffer) => {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 };
 
+export const validatePrivateWorkTestUploadBytes = async (
+  bytes: ArrayBuffer,
+  expected: Pick<PrivateWorkTestCandidate, 'expectedSize' | 'expectedSha256'>,
+) => {
+  if (bytes.byteLength !== expected.expectedSize) return 'upload-size-mismatch' as const;
+  const sha256 = await sha256Hex(bytes);
+  if (sha256 !== expected.expectedSha256) return 'upload-sha256-mismatch' as const;
+  return null;
+};
+
 export const isPrivateWorkTestObjectValid = (
   object: { size?: number; customMetadata?: Record<string, string> },
   candidate: PrivateWorkTestCandidate,
@@ -233,13 +243,9 @@ const handlePrivateWorkTestUpload = async (
   }
 
   const bytes = await request.arrayBuffer();
-  if (bytes.byteLength !== candidate.expectedSize) {
-    return privateJsonResponse(request, { error: 'upload-size-mismatch' }, 422);
-  }
-
-  const sha256 = await sha256Hex(bytes);
-  if (sha256 !== candidate.expectedSha256) {
-    return privateJsonResponse(request, { error: 'upload-sha256-mismatch' }, 422);
+  const validationError = await validatePrivateWorkTestUploadBytes(bytes, candidate);
+  if (validationError) {
+    return privateJsonResponse(request, { error: validationError }, 422);
   }
 
   await bucket.put(candidate.objectKey, bytes, {
