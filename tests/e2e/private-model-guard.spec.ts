@@ -2363,6 +2363,55 @@ test('private viewer autoloads the exact P145B 1974 IV section work-target revie
   );
 });
 
+test('private viewer autoloads the exact P155C-B D storage-roof review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P155C-B D STORAGE ROOF PRESENTATION - BABYLON Y-UP', nodes: [] }],
+    nodes: [],
+  });
+  const candidateId = 'p155cb-d-storage-roof';
+  const candidateLabel = 'P155C-B D storage roof presentation - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p155cb-d-storage-roof.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p155cb-d-storage-roof-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p155cb-d-storage-roof-review');
+  await expect(canvas).toHaveAttribute('data-p155-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-p155-current-relative-level', 'MATCH_1F_ROOF_ZONE');
+  await expect(canvas).toHaveAttribute('data-p155-absolute-top-z-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p155-physical-roof-thickness-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'P155C-B D-varaston kattoreferenssi - WORK_TEST / presentation-only - ei fyysinen kattorakenne',
+  );
+});
+
 test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra for depth review', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },

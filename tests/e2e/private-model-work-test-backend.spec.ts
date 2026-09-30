@@ -34,12 +34,13 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test/p143j-scalgo-label-flow.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p144c-g3-1974-iv-on-p143h.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p145b-1974-iv-section-worktargets.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/p155cb-d-storage-roof.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-testing')).toBe(false);
   expect(isPrivateWorkTestPath('/private-model/model.glb')).toBe(false);
 });
 
-test('private WORK_TEST candidate allowlist exposes the named review routes including p139N, p139AB, p143A, p143F, p143G, p143H, p143J, P144C and P145B', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(12);
+test('private WORK_TEST candidate allowlist exposes the named review routes including P145B and P155C-B', () => {
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(13);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -137,6 +138,14 @@ test('private WORK_TEST candidate allowlist exposes the named review routes incl
     '0d6754bde828bba9b7e78806c5ab8eac0a11a5077f43b8f3a5410f74e16c40e9',
   );
 
+  const p155cb = PRIVATE_WORK_TEST_CANDIDATES[12];
+  expect(p155cb.id).toBe('p155cb-d-storage-roof');
+  expect(p155cb.objectKey).toBe('work-test/p155cb-d-storage-roof.glb');
+  expect(p155cb.expectedSize).toBe(1_187_956);
+  expect(p155cb.expectedSha256).toBe(
+    '9adf08632a89b8a76540addd611e7d5b6a9be59b76b3e4e871621b6f624f7c82',
+  );
+
   for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
     expect(getPrivateWorkTestCandidate(candidate.path)?.id).toBe(candidate.id);
     expect(getPrivateWorkTestCandidateById(candidate.id)?.path).toBe(candidate.path);
@@ -148,6 +157,8 @@ test('private WORK_TEST candidate allowlist exposes the named review routes incl
   expect(getPrivateWorkTestUploadCandidate(p143jUploadPath)?.id).toBe('p143j-scalgo-label-flow');
   const p145bUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p145b-1974-iv-section-worktargets.glb`;
   expect(getPrivateWorkTestUploadCandidate(p145bUploadPath)?.id).toBe('p145b-1974-iv-section-worktargets');
+  const p155cbUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p155cb-d-storage-roof.glb`;
+  expect(getPrivateWorkTestUploadCandidate(p155cbUploadPath)?.id).toBe('p155cb-d-storage-roof');
   expect(getPrivateWorkTestUploadCandidate(`${p143hUploadPath}/extra`)).toBeNull();
   expect(getPrivateWorkTestUploadCandidate(`${PRIVATE_WORK_TEST_UPLOAD_PREFIX}../model.glb`)).toBeNull();
   expect(getPrivateWorkTestUploadCandidate(`${PRIVATE_WORK_TEST_UPLOAD_PREFIX}not-allowlisted.glb`)).toBeNull();

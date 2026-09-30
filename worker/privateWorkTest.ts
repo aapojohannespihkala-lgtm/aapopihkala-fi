@@ -116,6 +116,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_732_508,
     expectedSha256: '0d6754bde828bba9b7e78806c5ab8eac0a11a5077f43b8f3a5410f74e16c40e9',
   },
+  // P155D viewer integration: exact P155C-B presentation-only storage-roof candidate.
+  {
+    id: 'p155cb-d-storage-roof',
+    label: 'P155C-B D storage roof presentation - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p155cb-d-storage-roof.glb`,
+    objectKey: 'work-test/p155cb-d-storage-roof.glb',
+    expectedSize: 1_187_956,
+    expectedSha256: '9adf08632a89b8a76540addd611e7d5b6a9be59b76b3e4e871621b6f624f7c82',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
