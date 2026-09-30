@@ -11,6 +11,7 @@ import {
   handlePrivateWorkTestRequest,
   isPrivateWorkTestObjectValid,
   isPrivateWorkTestPath,
+  isTrustedPrivateWorkTestResolvedSourceUrl,
   isTrustedPrivateWorkTestSourceUrl,
   validatePrivateWorkTestUploadBytes,
 } from '../../worker/privateWorkTest';
@@ -201,6 +202,17 @@ test('private WORK_TEST ingest accepts only signed oaiusercontent raw-file URLs'
     'https://sdmntprdenmarkeast.oaiusercontent.com/files/abc123/raw?se=2026-09-29T10%3A00%3A00Z&sig=signature';
 
   expect(isTrustedPrivateWorkTestSourceUrl(trusted)).toBe(true);
+  expect(
+    isTrustedPrivateWorkTestResolvedSourceUrl(
+      'https://sdmntprdenmarkeast.oaiusercontent.com/files/abc123/raw',
+    ),
+  ).toBe(true);
+  expect(isTrustedPrivateWorkTestResolvedSourceUrl(trusted)).toBe(true);
+  expect(
+    isTrustedPrivateWorkTestResolvedSourceUrl(
+      'https://sdmntprdenmarkeast.oaiusercontent.com.evil.example/files/abc123/raw',
+    ),
+  ).toBe(false);
   expect(
     isTrustedPrivateWorkTestSourceUrl(
       'https://sdmntprdenmarkeast.oaiusercontent.com/files/abc123/raw?se=x',

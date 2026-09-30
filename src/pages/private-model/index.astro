@@ -3452,6 +3452,8 @@ const title = 'Private 3D viewer';
       const workTestCatalogPath = '/private-model/work-test/catalog.json';
       const workTestImportPath = '/private-model/work-test/import.json';
       const workTestUploadPrefix = '/private-model/work-test/upload/';
+      const manualWorkTestUploadDebug =
+        new URLSearchParams(window.location.search).get('manualWorkTestUpload') === '1';
       const workTestImportFragmentKey = 'workTestImport';
       const workTestCandidateFragmentKey = 'workTestCandidate';
       let workTestCandidates = new Map<string, WorkTestCandidate>();
@@ -3470,7 +3472,7 @@ const title = 'Private 3D viewer';
       };
 
       const setWorkTestUploadFallback = (candidateId: string | null) => {
-        if (candidateId) {
+        if (candidateId && manualWorkTestUploadDebug) {
           workTestUploadButton.hidden = false;
           workTestUploadButton.disabled = false;
           workTestUploadButton.dataset.candidateId = candidateId;
@@ -4247,6 +4249,25 @@ const title = 'Private 3D viewer';
         }
       };
 
+      const isTrustedWorkTestBrowserSourceUrl = (value: string, requireSignature = true) => {
+        try {
+          const url = new URL(value);
+          return (
+            url.protocol === 'https:' &&
+            !url.username &&
+            !url.password &&
+            !url.port &&
+            url.hostname.endsWith('.oaiusercontent.com') &&
+            url.pathname.startsWith('/files/') &&
+            url.pathname.endsWith('/raw') &&
+            (!requireSignature || (url.searchParams.has('sig') && url.searchParams.has('se'))) &&
+            !url.hash
+          );
+        } catch {
+          return false;
+        }
+      };
+
       const readWorkTestImportIntent = () => {
         if (!window.location.hash.startsWith('#')) return null;
         const params = new URLSearchParams(window.location.hash.slice(1));
@@ -4255,6 +4276,7 @@ const title = 'Private 3D viewer';
         if (
           !sourceUrl ||
           sourceUrl.length > 5000 ||
+          !isTrustedWorkTestBrowserSourceUrl(sourceUrl) ||
           !candidateId ||
           !/^[a-z0-9-]+$/.test(candidateId)
         ) {
@@ -4271,6 +4293,78 @@ const title = 'Private 3D viewer';
           '',
           `${window.location.pathname}${window.location.search}`,
         );
+      };
+
+      const relayWorkTestCandidateFromSource = async (intent: {
+        candidateId: string;
+        sourceUrl: string;
+      }) => {
+        if (!isTrustedWorkTestBrowserSourceUrl(intent.sourceUrl)) return false;
+
+        canvas.dataset.workTestRelay = 'loading';
+        status.textContent = 'Valmistellaan WORK_TEST-kandidaattia automaattisesti...';
+
+        try {
+          const sourceResponse = await fetch(intent.sourceUrl, {
+            headers: {
+              Accept: 'model/gltf-binary, application/octet-stream;q=0.9, */*;q=0.1',
+            },
+            cache: 'no-store',
+            credentials: 'omit',
+            referrerPolicy: 'no-referrer',
+          });
+          if (
+            !sourceResponse.ok ||
+            !sourceResponse.url ||
+            !isTrustedWorkTestBrowserSourceUrl(sourceResponse.url, false)
+          ) {
+            throw new Error(`WORK_TEST browser source HTTP ${sourceResponse.status}`);
+          }
+
+          const bytes = await sourceResponse.arrayBuffer();
+          const uploadResponse = await fetch(
+            `${workTestUploadPrefix}${encodeURIComponent(intent.candidateId)}.glb`,
+            {
+              method: 'PUT',
+              headers: {
+                Accept: 'application/json',
+                'Content-Type': 'model/gltf-binary',
+              },
+              cache: 'no-store',
+              body: bytes,
+            },
+          );
+          if (!uploadResponse.ok) {
+            throw new Error(`WORK_TEST relay upload HTTP ${uploadResponse.status}`);
+          }
+
+          const payload = (await uploadResponse.json()) as {
+            candidate?: unknown;
+            ready?: unknown;
+          };
+          if (!isWorkTestCandidate(payload.candidate) || payload.ready !== true) {
+            throw new Error('WORK_TEST relay upload response invalid');
+          }
+          if (payload.candidate.id !== intent.candidateId) {
+            throw new Error('WORK_TEST relay upload candidate mismatch');
+          }
+
+          await loadWorkTestCatalog();
+          const candidate = workTestCandidates.get(intent.candidateId);
+          if (!candidate) throw new Error('WORK_TEST candidate missing after browser relay');
+
+          workTestSelect.value = candidate.id;
+          workTestButton.disabled = false;
+          setWorkTestUploadFallback(null);
+          canvas.dataset.workTestRelay = 'ready';
+          canvas.dataset.workTestImport = 'ready';
+          await loadWorkTestCandidate(candidate);
+          return true;
+        } catch (error) {
+          console.error(error);
+          canvas.dataset.workTestRelay = 'failed';
+          return false;
+        }
       };
 
       const uploadWorkTestCandidateFile = async (file: File) => {
@@ -4376,12 +4470,15 @@ const title = 'Private 3D viewer';
           return true;
         } catch (error) {
           console.error(error);
+          const relayed = await relayWorkTestCandidateFromSource(intent);
+          if (relayed) return true;
+
           canvas.dataset.workTestImport = 'failed';
           await loadWorkTestCatalog();
           if (!workTestCandidates.has(intent.candidateId)) {
             setWorkTestUploadFallback(intent.candidateId);
             status.textContent =
-              'WORK_TEST-lähteen nouto epäonnistui - tuo sama tarkistettu .glb paikallisena';
+              'WORK_TEST-kandidaatin automaattinen valmistelu epäonnistui - tekninen julkaisu on kesken';
           }
           return false;
         }
@@ -4510,7 +4607,7 @@ const title = 'Private 3D viewer';
           if (reviewCandidateId) {
             setWorkTestUploadFallback(reviewCandidateId);
             status.textContent =
-              'WORK_TEST ei ole palvelimella - tuo tarkistettu .glb paikallisena';
+              'WORK_TEST ei ole palvelinpuolen katalogissa - tekninen julkaisu on kesken';
           }
         }
       })();
