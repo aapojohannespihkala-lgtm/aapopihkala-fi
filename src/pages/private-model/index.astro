@@ -4259,7 +4259,9 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP151cWholeBuildingReview) {
+          if (isP156i2017KvvMainReview) {
+            applyP156iReviewState();
+          } else if (isP151cWholeBuildingReview) {
             canvas.dataset.workTestReviewMode = 'p151c-whole-building-review';
             canvas.dataset.p151TargetCoverageCount = '14';
             canvas.dataset.p151CarrierRole = 'WHOLE_BUILDING_MINIMUM_REVIEW_CARRIER';
