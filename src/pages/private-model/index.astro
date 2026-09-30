@@ -450,6 +450,122 @@ const title = 'Private 3D viewer';
         font-size: 9px;
       }
 
+      .profile-panel {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        left: 12px;
+        z-index: 5;
+        max-height: min(410px, calc(100% - 24px));
+        overflow: auto;
+        padding: 12px;
+        border: 1px solid #c9cbc5;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.97);
+        box-shadow: 0 8px 28px rgba(25, 28, 25, 0.18);
+      }
+
+      .profile-panel[hidden] { display: none; }
+
+      .profile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+
+      .profile-header h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .profile-header button {
+        padding: 6px 9px;
+        font-size: 12px;
+      }
+
+      .profile-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 10px 16px;
+        margin-bottom: 7px;
+        font-size: 12px;
+      }
+
+      .profile-controls label {
+        display: grid;
+        gap: 3px;
+        color: #555852;
+      }
+
+      .profile-controls select {
+        min-width: min(330px, 72vw);
+      }
+
+      .profile-summary {
+        color: #20211f;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 650;
+      }
+
+      .profile-chart {
+        display: block;
+        width: 100%;
+        height: min(250px, 32vh);
+        min-height: 190px;
+        border: 1px solid #e0e1dc;
+        border-radius: 7px;
+        background: #fafaf7;
+      }
+
+      :global(.profile-grid-line) {
+        stroke: rgba(65, 69, 63, 0.15);
+        stroke-width: 1;
+      }
+
+      :global(.profile-axis-line) {
+        stroke: rgba(42, 45, 41, 0.58);
+        stroke-width: 1;
+      }
+
+      :global(.profile-axis-label) {
+        fill: #555852;
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      :global(.profile-terrain-path) {
+        fill: none;
+        stroke: #71895f;
+        stroke-width: 2.2;
+      }
+
+      :global(.profile-pipe-path) {
+        fill: none;
+        stroke: #2d6f9f;
+        stroke-width: 2.2;
+      }
+
+      :global(.profile-pipe-path.wastewater) {
+        stroke: #a55f2f;
+      }
+
+      :global(.profile-legend-text) {
+        fill: #3e413c;
+        font-size: 10px;
+      }
+
+      .profile-note {
+        margin-top: 6px;
+        color: #6c6f69;
+        font-size: 10px;
+        line-height: 1.35;
+      }
+
       .selection-panel {
         position: absolute;
         top: 12px;
@@ -560,6 +676,7 @@ const title = 'Private 3D viewer';
         <button id="d1-plan-button" type="button">D 1F</button>
         <button id="d2-plan-button" type="button">D 2F</button>
         <button id="layers-button" type="button" aria-expanded="false" aria-controls="layers-panel">Layerit</button>
+        <button id="profile-button" type="button" aria-expanded="false" aria-controls="profile-panel" disabled>Pituusleikkaus</button>
         <select id="work-test-select" aria-label="WORK_TEST-kandidaatti" disabled>
           <option value="">WORK_TEST ei saatavilla</option>
         </select>
@@ -637,6 +754,23 @@ const title = 'Private 3D viewer';
             </div>
           </div>
         </aside>
+        <aside id="profile-panel" class="profile-panel" aria-live="polite" hidden>
+          <div class="profile-header">
+            <h2>Infra pituusleikkaus</h2>
+            <button id="close-profile-button" type="button">Sulje</button>
+          </div>
+          <div class="profile-controls">
+            <label>
+              Reitti
+              <select id="profile-route-select" aria-label="Pituusleikkauksen reitti"></select>
+            </label>
+            <div id="profile-summary" class="profile-summary">Valitse reitti.</div>
+          </div>
+          <svg id="profile-svg" class="profile-chart" viewBox="0 0 760 250" role="img" aria-label="SCALGO-maanpinnan ja putken WORK_Z-korkojen pituusleikkaus"></svg>
+          <div class="profile-note">
+            SCALGO-maanpinta ja putken WORK_Z näytteistetään samoissa YLIS-G1-LOCAL XY-pisteissä 1 m välein. Peitesyvyys näytetään vain kohdissa, joissa terrain-mesh antaa osuman. 21,750 m work-offset on edelleen varmentamaton eikä tulos ole as-built.
+          </div>
+        </aside>
         <aside id="selection-panel" class="selection-panel" aria-live="polite" hidden>
           <div class="selection-header">
             <h2>Valittu kohde</h2>
@@ -673,6 +807,7 @@ const title = 'Private 3D viewer';
       const d1PlanButton = document.querySelector<HTMLButtonElement>('#d1-plan-button');
       const d2PlanButton = document.querySelector<HTMLButtonElement>('#d2-plan-button');
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
+      const profileButton = document.querySelector<HTMLButtonElement>('#profile-button');
       const workTestSelect = document.querySelector<HTMLSelectElement>('#work-test-select');
       const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
       const currentModelButton = document.querySelector<HTMLButtonElement>('#current-model-button');
@@ -699,6 +834,11 @@ const title = 'Private 3D viewer';
       const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
       const heightScale = document.querySelector<HTMLElement>('#height-scale');
       const heightScaleTicks = document.querySelector<HTMLElement>('#height-scale-ticks');
+      const profilePanel = document.querySelector<HTMLElement>('#profile-panel');
+      const closeProfileButton = document.querySelector<HTMLButtonElement>('#close-profile-button');
+      const profileRouteSelect = document.querySelector<HTMLSelectElement>('#profile-route-select');
+      const profileSummary = document.querySelector<HTMLElement>('#profile-summary');
+      const profileSvg = document.querySelector<SVGSVGElement>('#profile-svg');
       const selectionPanel = document.querySelector<HTMLElement>('#selection-panel');
       const selectionMesh = document.querySelector<HTMLElement>('#selection-mesh');
       const selectionGroup = document.querySelector<HTMLElement>('#selection-group');
@@ -721,6 +861,7 @@ const title = 'Private 3D viewer';
         !d1PlanButton ||
         !d2PlanButton ||
         !layersButton ||
+        !profileButton ||
         !workTestSelect ||
         !workTestButton ||
         !currentModelButton ||
@@ -747,6 +888,11 @@ const title = 'Private 3D viewer';
         !coordinateAnchor ||
         !heightScale ||
         !heightScaleTicks ||
+        !profilePanel ||
+        !closeProfileButton ||
+        !profileRouteSelect ||
+        !profileSummary ||
+        !profileSvg ||
         !selectionPanel ||
         !selectionMesh ||
         !selectionGroup ||
@@ -2319,6 +2465,7 @@ const title = 'Private 3D viewer';
         fullModelScene = gltf.scene;
         dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
         activeModelSourceKind = sourceKind;
+        setInfraProfileAvailable(false);
 
         initializeFullModelArchBase();
         initializeRoofLayer();
@@ -2425,6 +2572,7 @@ const title = 'Private 3D viewer';
       const p139adLocusWorkZRoutes = [
         {
           name: 'P139AD_LOCUS_WATER_MAIN_WORK_Z',
+          label: 'Vesijohto - katu',
           sourceObject: 'G3_LOCUS_SITE_WATER_MAIN_REF_001',
           system: 'WATER',
           workZBasis: 'SOURCE_Z_CHAIN_WITH_INTERPOLATION_AND_EXTRAPOLATION',
@@ -2445,6 +2593,7 @@ const title = 'Private 3D viewer';
         },
         {
           name: 'P139AD_LOCUS_WATER_PARCEL_WORK_Z',
+          label: 'Vesijohto - tonttihaara',
           sourceObject: 'G3_LOCUS_SITE_WATER_PARCEL_UNCERTAIN_001',
           system: 'WATER',
           workZBasis: 'MAIN_TIE_PLUS_REFINABLE_BUILDING_SIDE_ASSUMPTION',
@@ -2460,6 +2609,7 @@ const title = 'Private 3D viewer';
         },
         {
           name: 'P139AD_LOCUS_WASTEWATER_MAIN_WORK_Z',
+          label: 'Jätevesi - katu',
           sourceObject: 'G3_LOCUS_SITE_WASTEWATER_MAIN_REF_001',
           system: 'WASTEWATER',
           workZBasis: 'J6899_NEARBY_PLUS_J6898_J6897_SOURCE_CHAIN_AND_EXTRAPOLATION',
@@ -2475,6 +2625,7 @@ const title = 'Private 3D viewer';
         },
         {
           name: 'P139AD_LOCUS_WASTEWATER_PARCEL_WORK_Z',
+          label: 'Jätevesi - tonttihaara',
           sourceObject: 'G3_LOCUS_SITE_WASTEWATER_PARCEL_UNCERTAIN_001',
           system: 'WASTEWATER',
           workZBasis: '1974_PARALLEL_ROUTE_PROFILE_TRANSFER',
@@ -2486,6 +2637,344 @@ const title = 'Private 3D viewer';
           ],
         },
       ] as const;
+
+      type InfraProfileSample = {
+        chainageM: number;
+        x: number;
+        y: number;
+        pipeElevationM: number;
+        terrainElevationM: number | null;
+        coverM: number | null;
+      };
+
+      const p143eProfileSampleSpacingM = 1;
+      let p143eProfileAvailable = false;
+
+      const setProfilePanelOpen = (open: boolean) => {
+        const nextOpen = open && p143eProfileAvailable;
+        profilePanel.hidden = !nextOpen;
+        profileButton.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+        if (nextOpen) renderSelectedInfraProfile();
+      };
+
+      const setInfraProfileAvailable = (available: boolean) => {
+        p143eProfileAvailable = available;
+        profileButton.disabled = !available;
+        canvas.dataset.infraProfileAvailable = available ? 'true' : 'false';
+        if (!available) {
+          setProfilePanelOpen(false);
+          profileRouteSelect.replaceChildren();
+          profileSummary.textContent = 'Pituusleikkaus on käytettävissä SCALGO + infra -katselussa.';
+          profileSvg.replaceChildren();
+          delete canvas.dataset.profileRoute;
+          delete canvas.dataset.profileSampleCount;
+          delete canvas.dataset.profileTerrainHitCount;
+          delete canvas.dataset.profileMinCoverM;
+          delete canvas.dataset.profileMeanCoverM;
+          delete canvas.dataset.profileMaxCoverM;
+        }
+      };
+
+      const populateInfraProfileRoutes = () => {
+        const previous = profileRouteSelect.value;
+        profileRouteSelect.replaceChildren();
+        for (const route of p139adLocusWorkZRoutes) {
+          const option = document.createElement('option');
+          option.value = route.name;
+          option.textContent = route.label;
+          profileRouteSelect.append(option);
+        }
+        const defaultRoute = 'P139AD_LOCUS_WASTEWATER_PARCEL_WORK_Z';
+        profileRouteSelect.value =
+          p139adLocusWorkZRoutes.some((route) => route.name === previous)
+            ? previous
+            : defaultRoute;
+      };
+
+      const findScalgoTerrainMeshes = (root: any) => {
+        const meshes: any[] = [];
+        root?.traverse?.((object: any) => {
+          if (!object?.isMesh) return;
+          let cursor: any = object;
+          while (cursor) {
+            const name = String(cursor.name ?? '').toUpperCase();
+            const geometryType = String(cursor.userData?.geometryType ?? '').toLowerCase();
+            if (
+              geometryType === 'terrainreferencesurface' ||
+              name.includes('P143A_SCALGO_CURRENT_TERRAIN_WORKTEST')
+            ) {
+              meshes.push(object);
+              return;
+            }
+            cursor = cursor.parent;
+          }
+        });
+        return [...new Set(meshes)];
+      };
+
+      const sampleRouteAtOneMetre = (route: (typeof p139adLocusWorkZRoutes)[number]) => {
+        const samples: Omit<InfraProfileSample, 'terrainElevationM' | 'coverM'>[] = [];
+        let cumulativeM = 0;
+
+        for (let index = 0; index < route.points.length - 1; index += 1) {
+          const start = route.points[index];
+          const end = route.points[index + 1];
+          const segmentLengthM = Math.hypot(end[0] - start[0], end[1] - start[1]);
+          const steps = Math.max(1, Math.ceil(segmentLengthM / p143eProfileSampleSpacingM));
+
+          for (let step = 0; step <= steps; step += 1) {
+            if (index > 0 && step === 0) continue;
+            const t = step / steps;
+            samples.push({
+              chainageM: cumulativeM + segmentLengthM * t,
+              x: start[0] + (end[0] - start[0]) * t,
+              y: start[1] + (end[1] - start[1]) * t,
+              pipeElevationM: start[2] + (end[2] - start[2]) * t,
+            });
+          }
+          cumulativeM += segmentLengthM;
+        }
+
+        return samples;
+      };
+
+      const sampleScalgoTerrainAtRoute = (
+        route: (typeof p139adLocusWorkZRoutes)[number],
+      ): InfraProfileSample[] => {
+        if (!fullModelScene) return [];
+        const terrainMeshes = findScalgoTerrainMeshes(fullModelScene);
+        if (terrainMeshes.length === 0) return [];
+
+        fullModelScene.updateMatrixWorld(true);
+        const terrainBounds = new THREE.Box3();
+        for (const mesh of terrainMeshes) terrainBounds.expandByObject(mesh);
+        if (terrainBounds.isEmpty()) return [];
+
+        const rawSamples = sampleRouteAtOneMetre(route);
+        const terrainRaycaster = new THREE.Raycaster();
+        const topY = terrainBounds.max.y + 10;
+        const bottomY = terrainBounds.min.y - 10;
+        const rayLength = Math.max(topY - bottomY, 20);
+        const down = new THREE.Vector3(0, -1, 0);
+        const up = new THREE.Vector3(0, 1, 0);
+
+        return rawSamples.map((sample) => {
+          const z = -sample.y;
+          const intersections: any[] = [];
+
+          terrainRaycaster.set(new THREE.Vector3(sample.x, topY, z), down);
+          terrainRaycaster.far = rayLength;
+          intersections.push(...terrainRaycaster.intersectObjects(terrainMeshes, false));
+
+          if (intersections.length === 0) {
+            terrainRaycaster.set(new THREE.Vector3(sample.x, bottomY, z), up);
+            terrainRaycaster.far = rayLength;
+            intersections.push(...terrainRaycaster.intersectObjects(terrainMeshes, false));
+          }
+
+          const hit =
+            intersections.length > 0
+              ? intersections.reduce((highest, candidate) =>
+                  candidate.point.y > highest.point.y ? candidate : highest,
+                )
+              : null;
+          const terrainElevationM = hit ? hit.point.y + p139acVerticalReferenceM : null;
+          return {
+            ...sample,
+            terrainElevationM,
+            coverM:
+              terrainElevationM === null ? null : terrainElevationM - sample.pipeElevationM,
+          };
+        });
+      };
+
+      const svgEl = <K extends keyof SVGElementTagNameMap>(
+        name: K,
+        attributes: Record<string, string | number> = {},
+      ) => {
+        const element = document.createElementNS('http://www.w3.org/2000/svg', name);
+        for (const [key, value] of Object.entries(attributes)) {
+          element.setAttribute(key, String(value));
+        }
+        return element;
+      };
+
+      const renderSelectedInfraProfile = () => {
+        if (!p143eProfileAvailable || !fullModelScene) return;
+        const route =
+          p139adLocusWorkZRoutes.find((candidate) => candidate.name === profileRouteSelect.value) ??
+          p139adLocusWorkZRoutes[0];
+        if (!route) return;
+
+        const samples = sampleScalgoTerrainAtRoute(route);
+        const valid = samples.filter(
+          (sample): sample is InfraProfileSample & { terrainElevationM: number; coverM: number } =>
+            sample.terrainElevationM !== null && sample.coverM !== null,
+        );
+        profileSvg.replaceChildren();
+
+        canvas.dataset.profileRoute = route.name;
+        canvas.dataset.profileSampleCount = String(samples.length);
+        canvas.dataset.profileTerrainHitCount = String(valid.length);
+
+        if (samples.length === 0) {
+          profileSummary.textContent = 'SCALGO terrain-meshiä ei löytynyt tästä katselusta.';
+          delete canvas.dataset.profileMinCoverM;
+          delete canvas.dataset.profileMeanCoverM;
+          delete canvas.dataset.profileMaxCoverM;
+          return;
+        }
+
+        const covers = valid.map((sample) => sample.coverM);
+        if (covers.length > 0) {
+          const minCover = Math.min(...covers);
+          const maxCover = Math.max(...covers);
+          const meanCover = covers.reduce((sum, value) => sum + value, 0) / covers.length;
+          canvas.dataset.profileMinCoverM = minCover.toFixed(3);
+          canvas.dataset.profileMeanCoverM = meanCover.toFixed(3);
+          canvas.dataset.profileMaxCoverM = maxCover.toFixed(3);
+          const coveragePct = Math.round((valid.length / samples.length) * 100);
+          profileSummary.textContent =
+            `${route.label}: peitto min ${minCover.toFixed(2).replace('.', ',')} m / keski ${meanCover.toFixed(2).replace('.', ',')} m / max ${maxCover.toFixed(2).replace('.', ',')} m - terrain-osumat ${valid.length}/${samples.length} (${coveragePct} %)`;
+        } else {
+          profileSummary.textContent =
+            `${route.label}: reitti ei osu nykyisen SCALGO-terrain-cropin alueelle.`;
+          delete canvas.dataset.profileMinCoverM;
+          delete canvas.dataset.profileMeanCoverM;
+          delete canvas.dataset.profileMaxCoverM;
+        }
+
+        const width = 760;
+        const height = 250;
+        const margin = { left: 52, right: 18, top: 24, bottom: 36 };
+        const plotWidth = width - margin.left - margin.right;
+        const plotHeight = height - margin.top - margin.bottom;
+        const totalLengthM = Math.max(samples[samples.length - 1]?.chainageM ?? 1, 1);
+
+        const elevations = [
+          ...samples.map((sample) => sample.pipeElevationM),
+          ...valid.map((sample) => sample.terrainElevationM),
+        ];
+        let minElevation = Math.min(...elevations);
+        let maxElevation = Math.max(...elevations);
+        const padding = Math.max((maxElevation - minElevation) * 0.12, 0.4);
+        minElevation -= padding;
+        maxElevation += padding;
+        const elevationSpan = Math.max(maxElevation - minElevation, 0.1);
+
+        const xFor = (chainageM: number) =>
+          margin.left + (chainageM / totalLengthM) * plotWidth;
+        const yFor = (elevationM: number) =>
+          margin.top + ((maxElevation - elevationM) / elevationSpan) * plotHeight;
+
+        for (let tick = 0; tick <= 4; tick += 1) {
+          const value = maxElevation - (elevationSpan * tick) / 4;
+          const y = yFor(value);
+          const line = svgEl('line', {
+            x1: margin.left,
+            y1: y,
+            x2: width - margin.right,
+            y2: y,
+            class: 'profile-grid-line',
+          });
+          const label = svgEl('text', {
+            x: margin.left - 7,
+            y: y + 3,
+            'text-anchor': 'end',
+            class: 'profile-axis-label',
+          });
+          label.textContent = `${value.toFixed(1).replace('.', ',')} m`;
+          profileSvg.append(line, label);
+        }
+
+        for (let tick = 0; tick <= 4; tick += 1) {
+          const chainageM = (totalLengthM * tick) / 4;
+          const x = xFor(chainageM);
+          const line = svgEl('line', {
+            x1: x,
+            y1: margin.top,
+            x2: x,
+            y2: height - margin.bottom,
+            class: 'profile-grid-line',
+          });
+          const label = svgEl('text', {
+            x,
+            y: height - 15,
+            'text-anchor': 'middle',
+            class: 'profile-axis-label',
+          });
+          label.textContent = `${chainageM.toFixed(0)} m`;
+          profileSvg.append(line, label);
+        }
+
+        profileSvg.append(
+          svgEl('line', {
+            x1: margin.left,
+            y1: height - margin.bottom,
+            x2: width - margin.right,
+            y2: height - margin.bottom,
+            class: 'profile-axis-line',
+          }),
+          svgEl('line', {
+            x1: margin.left,
+            y1: margin.top,
+            x2: margin.left,
+            y2: height - margin.bottom,
+            class: 'profile-axis-line',
+          }),
+        );
+
+        const terrainPathParts: string[] = [];
+        let terrainOpen = false;
+        for (const sample of samples) {
+          if (sample.terrainElevationM === null) {
+            terrainOpen = false;
+            continue;
+          }
+          const command = terrainOpen ? 'L' : 'M';
+          terrainPathParts.push(
+            `${command}${xFor(sample.chainageM).toFixed(2)},${yFor(sample.terrainElevationM).toFixed(2)}`,
+          );
+          terrainOpen = true;
+        }
+        if (terrainPathParts.length > 0) {
+          profileSvg.append(
+            svgEl('path', {
+              d: terrainPathParts.join(' '),
+              class: 'profile-terrain-path',
+              'data-series': 'terrain',
+            }),
+          );
+        }
+
+        const pipePath = samples
+          .map(
+            (sample, index) =>
+              `${index === 0 ? 'M' : 'L'}${xFor(sample.chainageM).toFixed(2)},${yFor(sample.pipeElevationM).toFixed(2)}`,
+          )
+          .join(' ');
+        profileSvg.append(
+          svgEl('path', {
+            d: pipePath,
+            class: `profile-pipe-path ${route.system === 'WASTEWATER' ? 'wastewater' : ''}`,
+            'data-series': 'pipe',
+          }),
+        );
+
+        const terrainLegend = svgEl('text', {
+          x: margin.left + 8,
+          y: 14,
+          class: 'profile-legend-text',
+        });
+        terrainLegend.textContent = 'SCALGO-maanpinta työvertailussa';
+        const pipeLegend = svgEl('text', {
+          x: margin.left + 220,
+          y: 14,
+          class: 'profile-legend-text',
+        });
+        pipeLegend.textContent = `${route.label} WORK_Z`;
+        profileSvg.append(terrainLegend, pipeLegend);
+      };
 
       const workTestCatalogPath = '/private-model/work-test/catalog.json';
       const workTestImportPath = '/private-model/work-test/import.json';
@@ -3018,6 +3507,8 @@ const title = 'Private 3D viewer';
               gltf.scene?.userData?.scalgoTerrainBaseRenderableCount ?? 0,
             );
             canvas.dataset.terrainVerticalBridgeStatus = 'WORK_OFFSET_UNVERIFIED';
+            populateInfraProfileRoutes();
+            setInfraProfileAvailable(true);
             activateIsometric();
             status.textContent =
               'SCALGO NYKYMAASTO + LOCUS WORK-Z - 4 reittiä - työoffset 21,750 m / ei as-built';
@@ -3177,6 +3668,9 @@ const title = 'Private 3D viewer';
       });
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
       closeLayersButton.addEventListener('click', () => setLayersPanelOpen(false));
+      profileButton.addEventListener('click', () => setProfilePanelOpen(profilePanel.hidden));
+      closeProfileButton.addEventListener('click', () => setProfilePanelOpen(false));
+      profileRouteSelect.addEventListener('change', renderSelectedInfraProfile);
       roofLayerVisibleInput.addEventListener('change', () => {
         roofLayerVisible = roofLayerVisibleInput.checked;
         applyRoofLayerState();
@@ -3217,7 +3711,9 @@ const title = 'Private 3D viewer';
       });
 
       window.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') clearSelection();
+        if (event.key !== 'Escape') return;
+        if (!profilePanel.hidden) setProfilePanelOpen(false);
+        else clearSelection();
       });
 
       const resizeObserver = new ResizeObserver(updateSize);
