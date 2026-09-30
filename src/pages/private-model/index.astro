@@ -747,6 +747,21 @@ const title = 'Private 3D viewer';
         overflow-wrap: anywhere;
       }
 
+      .selection-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 11px;
+        padding-top: 10px;
+        border-top: 1px solid #e2e3de;
+      }
+
+      .selection-actions button {
+        flex: 1 1 auto;
+        padding: 7px 9px;
+        font-size: 12px;
+      }
+
       .viewport {
         position: relative;
         width: 100%;
@@ -841,6 +856,7 @@ const title = 'Private 3D viewer';
           <summary aria-label="Lisää toimintoja">⋯</summary>
           <div class="toolbar-menu-panel right">
             <button id="fit-button" type="button">Sovita näkymään</button>
+            <button id="show-all-objects-button" type="button" disabled>Näytä kaikki</button>
             <button id="profile-button" type="button" aria-expanded="false" aria-controls="profile-panel" disabled>Pituusleikkaus</button>
           </div>
         </details>
@@ -961,6 +977,10 @@ const title = 'Private 3D viewer';
             <dt>Kerros</dt>
             <dd id="selection-floor">-</dd>
           </dl>
+          <div class="selection-actions" aria-label="Valitun kohteen näkyvyys">
+            <button id="isolate-selection-button" type="button">Isoloi</button>
+            <button id="hide-selection-button" type="button">Piilota</button>
+          </div>
         </aside>
       </section>
     </main>
@@ -1046,6 +1066,9 @@ const title = 'Private 3D viewer';
       const selectionScene = document.querySelector<HTMLElement>('#selection-scene');
       const selectionFloor = document.querySelector<HTMLElement>('#selection-floor');
       const clearSelectionButton = document.querySelector<HTMLButtonElement>('#clear-selection-button');
+      const isolateSelectionButton = document.querySelector<HTMLButtonElement>('#isolate-selection-button');
+      const hideSelectionButton = document.querySelector<HTMLButtonElement>('#hide-selection-button');
+      const showAllObjectsButton = document.querySelector<HTMLButtonElement>('#show-all-objects-button');
 
       if (
         !canvas ||
@@ -1106,7 +1129,10 @@ const title = 'Private 3D viewer';
         !selectionGroup ||
         !selectionScene ||
         !selectionFloor ||
-        !clearSelectionButton
+        !clearSelectionButton ||
+        !isolateSelectionButton ||
+        !hideSelectionButton ||
+        !showAllObjectsButton
       ) {
         throw new Error('Private viewer controls are missing');
       }
@@ -1171,6 +1197,8 @@ const title = 'Private 3D viewer';
       const pointer = new THREE.Vector2();
       let selectionHelper: any = null;
       let selectedObject: any = null;
+      const objectVisibilityBaseline = new Map<any, boolean>();
+      let objectVisibilityFilterActive = false;
       let pointerDown: { pointerId: number; x: number; y: number } | null = null;
       const pickDragThresholdPx = 6;
       const roofLayerMembers = new Set<any>();
@@ -2434,6 +2462,31 @@ const title = 'Private 3D viewer';
         return '-';
       };
 
+      const isObjectVisibilityRenderable = (object: any) =>
+        object?.isMesh === true || object?.isLine === true || object?.isLineSegments === true;
+
+      const resetObjectVisibilityFilterState = () => {
+        objectVisibilityBaseline.clear();
+        objectVisibilityFilterActive = false;
+        showAllObjectsButton.disabled = true;
+        delete canvas.dataset.objectVisibilityMode;
+        delete canvas.dataset.objectVisibilityTarget;
+        canvas.dataset.objectVisibilityFilter = 'inactive';
+      };
+
+      const captureObjectVisibilityBaseline = () => {
+        if (objectVisibilityFilterActive) return;
+        objectVisibilityBaseline.clear();
+        modelRoot.traverse((object: any) => {
+          if (isObjectVisibilityRenderable(object)) {
+            objectVisibilityBaseline.set(object, object.visible);
+          }
+        });
+        objectVisibilityFilterActive = true;
+        showAllObjectsButton.disabled = false;
+        canvas.dataset.objectVisibilityFilter = 'active';
+      };
+
       const clearSelection = () => {
         if (selectionHelper) {
           scene.remove(selectionHelper);
@@ -2463,6 +2516,60 @@ const title = 'Private 3D viewer';
         selectionHelper = new THREE.BoxHelper(object, 0x356a8a);
         scene.add(selectionHelper);
         selectionHelper.update();
+      };
+
+      const isolateSelectedObject = () => {
+        const target = selectedObject;
+        if (!target) return;
+
+        captureObjectVisibilityBaseline();
+        const keepVisible = new Set<any>();
+        let current = target;
+        while (current && current !== modelRoot) {
+          keepVisible.add(current);
+          current = current.parent;
+        }
+        target.traverse((object: any) => keepVisible.add(object));
+
+        modelRoot.traverse((object: any) => {
+          if (!isObjectVisibilityRenderable(object)) return;
+          const baselineVisible = objectVisibilityBaseline.get(object) ?? object.visible;
+          object.visible = baselineVisible && keepVisible.has(object);
+        });
+
+        canvas.dataset.objectVisibilityMode = 'isolate';
+        canvas.dataset.objectVisibilityTarget = target.name ? String(target.name) : '(unnamed)';
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        selectionHelper?.update?.();
+        status.textContent = target.name
+          ? `Eristetty kohde: ${String(target.name)}`
+          : 'Eristetty valittu kohde';
+      };
+
+      const hideSelectedObject = () => {
+        const target = selectedObject;
+        if (!target) return;
+
+        captureObjectVisibilityBaseline();
+        target.visible = false;
+        canvas.dataset.objectVisibilityMode = 'hide';
+        canvas.dataset.objectVisibilityTarget = target.name ? String(target.name) : '(unnamed)';
+        clearSelection();
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        status.textContent = target.name
+          ? `Piilotettu kohde: ${String(target.name)}`
+          : 'Valittu kohde piilotettu';
+      };
+
+      const restoreObjectVisibility = () => {
+        if (!objectVisibilityFilterActive) return;
+        for (const [object, visible] of objectVisibilityBaseline.entries()) {
+          object.visible = visible;
+        }
+        resetObjectVisibilityFilterState();
+        clearSelection();
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        status.textContent = 'Objektisuodatus poistettu - aiempi näkyvyystila palautettu';
       };
 
       const selectAtClientPoint = (clientX: number, clientY: number) => {
@@ -3031,6 +3138,7 @@ const title = 'Private 3D viewer';
         sourceKind: ModelSourceKind,
         sourceLabel: string,
       ) => {
+        resetObjectVisibilityFilterState();
         clearSelection();
         sourceSceneNames = new WeakMap<any, string>();
         const sourceScenes = gltf?.parser?.json?.scenes;
@@ -4887,6 +4995,9 @@ const title = 'Private 3D viewer';
         applyViewerLayerState({ locusVisible: locusLayerVisibleInput.checked }, 'manual');
       });
       clearSelectionButton.addEventListener('click', clearSelection);
+      isolateSelectionButton.addEventListener('click', isolateSelectedObject);
+      hideSelectionButton.addEventListener('click', hideSelectedObject);
+      showAllObjectsButton.addEventListener('click', restoreObjectVisibility);
 
       canvas.addEventListener('pointermove', (event) => {
         if (activePlanFloor) updateDCoordinatePointer(event.clientX, event.clientY);

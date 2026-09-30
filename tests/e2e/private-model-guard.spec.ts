@@ -1049,6 +1049,53 @@ test('private viewer selects a visible mesh, shows bounded identity, and ignores
 
 
 
+test('private viewer can isolate, hide, and restore a selected object without changing model data', async ({ page }) => {
+  const model = makeTriangleGlb();
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const panel = page.locator('#selection-panel');
+  const showAll = page.locator('#show-all-objects-button');
+  await expect(canvas).toHaveAttribute('data-object-visibility-filter', 'inactive');
+  await expect(showAll).toBeDisabled();
+
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(panel).toBeVisible();
+
+  await page.getByRole('button', { name: 'Isoloi' }).click();
+  await expect(canvas).toHaveAttribute('data-object-visibility-filter', 'active');
+  await expect(canvas).toHaveAttribute('data-object-visibility-mode', 'isolate');
+  await expect(showAll).toBeEnabled();
+  await expect(panel).toBeVisible();
+
+  await page.getByRole('button', { name: 'Piilota' }).click();
+  await expect(canvas).toHaveAttribute('data-object-visibility-mode', 'hide');
+  await expect(panel).toBeHidden();
+
+  await page.locator('#more-menu > summary').click();
+  await showAll.click();
+  await expect(canvas).toHaveAttribute('data-object-visibility-filter', 'inactive');
+  await expect(showAll).toBeDisabled();
+
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(panel).toBeVisible();
+});
+
+
 test('private viewer derives four edge modes from mesh geometry and preserves semantic lines', async ({ page }) => {
   const model = makeAdjacentTrianglesWithLinesGlb();
 
