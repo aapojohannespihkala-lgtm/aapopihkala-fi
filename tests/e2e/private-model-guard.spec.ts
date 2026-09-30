@@ -1679,6 +1679,26 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
     'LOCUS WORK-Z - 4 reittiä oletuskoroilla - max +18,15 < maanpintaraja +18,30 - ei as-built',
   );
 
+  await page.getByRole('button', { name: 'Julk +Y' }).click();
+  await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
+  await expect(canvas).toHaveAttribute('data-elevation-direction', 'pos-y');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
+  await expect(page.locator('#height-scale')).toBeVisible();
+  await expect(page.locator('#height-scale .height-scale-label').first()).toBeVisible();
+  await expect(page.getByRole('status')).toHaveText(
+    'Ortografinen julkisivu +Y - YLIS-G1-LOCAL Z-asteikko',
+  );
+
+  await page.getByRole('button', { name: 'Julk +X' }).click();
+  await expect(canvas).toHaveAttribute('data-elevation-direction', 'pos-x');
+  await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
+
+  await page.getByRole('button', { name: 'Iso' }).click();
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-height-scale-visible', 'false');
+
   await page.getByRole('button', { name: 'Layerit' }).click();
   await expect(page.getByText('Locus work-Z + maanpinta + source-Z referenssi')).toBeVisible();
   await expect(page.locator('#locus-layer-visible')).toBeDisabled();
