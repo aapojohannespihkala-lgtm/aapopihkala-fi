@@ -4143,6 +4143,8 @@ const title = 'Private 3D viewer';
             candidate.id === p155cbCandidateId && isP155cbDStorageRoofReviewRequested();
           const isP151cWholeBuildingReview =
             candidate.id === p151cCandidateId && isP151cWholeBuildingReviewRequested();
+          const isP156i2017KvvMainReview =
+            candidate.id === p156iCandidateId && isP156i2017KvvMainReviewRequested();
           const isP139nReview = candidate.id === p139nCandidateId;
           const isP139abZReview = candidate.id === p139abCandidateId;
           const isP139acGroundInfraReview =
@@ -4188,13 +4190,27 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p151CarrierRole;
           delete canvas.dataset.p151ExcludedBranches;
           delete canvas.dataset.p151HumanReview;
+          delete canvas.dataset.p156SourceFamily;
+          delete canvas.dataset.p156TimeRole;
+          delete canvas.dataset.p156PresentationOnly;
+          delete canvas.dataset.p156DisplayZAssumption;
+          delete canvas.dataset.p156WorkDatumStatus;
+          delete canvas.dataset.p156VerticalDatumStatus;
+          delete canvas.dataset.p156PhysicalZClaim;
+          delete canvas.dataset.p156CurrentClaim;
+          delete canvas.dataset.p156AsBuiltClaim;
+          delete canvas.dataset.p156TopologyLinkClaim;
+          delete canvas.dataset.p156SamePipeClaim;
+          delete canvas.dataset.p156PenetrationClaim;
           delete canvas.dataset.scalgoLabelFlowCorridorCount;
           delete canvas.dataset.scalgoLabelMinimumSameCorridorSpacingM;
           delete canvas.dataset.scalgoLabelBuildingExclusion;
           delete canvas.dataset.scalgoLabelCorridorSemanticBoundary;
-          locusLayerLabel.textContent = isP151cWholeBuildingReview
-            ? 'Koko rakennus (WORK_TEST / minimum review carrier)'
-            : isP155cbDStorageRoofReview
+          locusLayerLabel.textContent = isP156i2017KvvMainReview
+            ? '2017 KVV mainCandidate (WORK_TEST / presentation-only +8,700 m)'
+            : isP151cWholeBuildingReview
+              ? 'Koko rakennus (WORK_TEST / minimum review carrier)'
+              : isP155cbDStorageRoofReview
               ? 'D varaston kattoreferenssi (WORK_TEST / presentation-only)'
               : isP145b1974IvSectionWorkTargetsReview
             ? '1974 IV section work-targetit (WORK_TEST / presentation-only / workAssumption)'
