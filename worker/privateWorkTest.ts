@@ -107,6 +107,7 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_720_068,
     expectedSha256: '739e5cfed61edae7464af4edf77dfdf4c34354def6f88c993c2ca62f2c29ece1',
   },
+  // P145C contract: presentation-only work targets; no physical Z, topology-link or penetration claim.
   {
     id: 'p145b-1974-iv-section-worktargets',
     label: 'P145B 1974 IV section work-targets - WORK_TEST',
