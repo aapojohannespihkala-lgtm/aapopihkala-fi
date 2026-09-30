@@ -1009,8 +1009,14 @@ test('private viewer resolves the source D scene even when Three runtime names a
 
 
 
-test('private viewer selects a visible mesh, shows bounded identity, and ignores orbit drags', async ({ page }) => {
-  const model = makeTriangleGlb();
+test('private viewer selects a visible mesh, shows bounded identity, metadata, and ignores orbit drags', async ({ page }) => {
+  const model = makeTriangleGlb({
+    Pass: '149E_TEST',
+    representationKind: 'wallSolid',
+    Canonical: false,
+    humanReview: 'NOT_RUN',
+    nestedIgnored: { shouldNotRender: true },
+  });
 
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({
@@ -1036,6 +1042,18 @@ test('private viewer selects a visible mesh, shows bounded identity, and ignores
   await expect(page.locator('#selection-mesh')).not.toHaveText('-');
   await expect(page.locator('#selection-floor')).toHaveText('1F');
   await expect(page.locator('#selection-scene')).toHaveText('P133D REVIEW ROOT - BABYLON Y-UP');
+  await expect(page.locator('#selection-kind')).toHaveText('Mesh');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Pass');
+  await expect(page.locator('#selection-metadata-list')).toContainText('149E_TEST');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Representation kind');
+  await expect(page.locator('#selection-metadata-list')).toContainText('wallSolid');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Canonical');
+  await expect(page.locator('#selection-metadata-list')).toContainText('false');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Human review');
+  await expect(page.locator('#selection-metadata-list')).toContainText('NOT_RUN');
+  await expect(page.locator('#selection-metadata-list')).not.toContainText('shouldNotRender');
+  await expect(canvas).toHaveAttribute('data-selection-metadata-count', '4');
+  await expect(canvas).toHaveAttribute('data-selection-metadata-source', 'userData');
 
   await page.getByRole('button', { name: 'Tyhjennä' }).click();
   await expect(panel).toBeHidden();
