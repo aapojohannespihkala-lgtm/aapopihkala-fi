@@ -792,8 +792,9 @@ const title = 'Private 3D viewer';
         border-top: 1px solid #e2e3de;
       }
 
-      .selection-metadata-title {
+      .selection-metadata > summary {
         color: #555853;
+        cursor: pointer;
         font-size: 11px;
         font-weight: 750;
         letter-spacing: 0.04em;
@@ -1069,11 +1070,11 @@ const title = 'Private 3D viewer';
             <dt>Tyyppi</dt>
             <dd id="selection-kind">-</dd>
           </dl>
-          <section class="selection-metadata" aria-label="Valitun kohteen metadata">
-            <div class="selection-metadata-title">Metadata</div>
+          <details class="selection-metadata">
+            <summary>Metadata</summary>
             <dl id="selection-metadata-list" class="selection-metadata-list"></dl>
             <div id="selection-metadata-empty" class="selection-metadata-empty">Ei lisämetadataa</div>
-          </section>
+          </details>
           <div class="selection-actions" aria-label="Valitun kohteen näkyvyys">
             <button id="isolate-selection-button" type="button">Isoloi</button>
             <button id="hide-selection-button" type="button">Piilota</button>
