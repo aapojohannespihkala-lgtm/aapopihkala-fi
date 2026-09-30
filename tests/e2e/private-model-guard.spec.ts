@@ -2465,6 +2465,63 @@ test('private viewer autoloads the exact P151C whole-building review carrier', a
   );
 });
 
+test('private viewer autoloads the exact P156I 2017 KVV main presentation review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P156I 2017 KVV MAIN WORK_ASSUMPTION + P156B CARRIER - BABYLON Y-UP', nodes: [] }],
+    nodes: [],
+  });
+  const candidateId = 'p156i-2017-kvv-main-presentation';
+  const candidateLabel = 'P156I 2017 KVV mainCandidate presentation - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p156i-2017-kvv-main-presentation.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p156i-2017-kvv-main-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p156i-2017-kvv-main-review');
+  await expect(canvas).toHaveAttribute('data-p156-source-family', 'KVV_MAIN_2017_WORK_ASSUMPTION');
+  await expect(canvas).toHaveAttribute('data-p156-time-role', '2017_PROJECT_PLAN_DERIVED');
+  await expect(canvas).toHaveAttribute('data-p156-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-p156-display-z-assumption', 'true');
+  await expect(canvas).toHaveAttribute('data-p156-work-datum-status', 'PRESENTATION_ONLY_REFINABLE');
+  await expect(canvas).toHaveAttribute('data-p156-vertical-datum-status', 'OPEN_UNVERIFIED');
+  await expect(canvas).toHaveAttribute('data-p156-physical-z-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p156-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p156-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p156-topology-link-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p156-same-pipe-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p156-penetration-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'P156I 2017 KVV mainCandidate - WORK_TEST / presentation-only +8,700 m - ei fyysinen putkikorko',
+  );
+});
+
 test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra for depth review', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
