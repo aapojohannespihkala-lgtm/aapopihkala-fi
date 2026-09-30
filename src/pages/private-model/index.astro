@@ -963,6 +963,25 @@ const title = 'Private 3D viewer';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       const status = document.querySelector<HTMLElement>('#viewer-status');
+      const toolbarMenus = Array.from(document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu'));
+
+      const closeToolbarMenus = (except: HTMLDetailsElement | null = null) => {
+        toolbarMenus.forEach((menu) => {
+          if (menu !== except) menu.open = false;
+        });
+      };
+
+      toolbarMenus.forEach((menu) => {
+        menu.addEventListener('toggle', () => {
+          if (menu.open) closeToolbarMenus(menu);
+        });
+        menu.addEventListener('click', (event) => {
+          const target = event.target;
+          if (target instanceof Element && target.closest('button')) {
+            menu.open = false;
+          }
+        });
+      });
       const fitButton = document.querySelector<HTMLButtonElement>('#fit-button');
       const orbitButton = document.querySelector<HTMLButtonElement>('#orbit-button');
       const topButton = document.querySelector<HTMLButtonElement>('#top-button');
@@ -4368,6 +4387,7 @@ const title = 'Private 3D viewer';
         }
       };
 
+      layersButton.addEventListener('click', () => closeToolbarMenus());
       fitButton.addEventListener('click', fitModel);
       orbitButton.addEventListener('click', fitModel);
       topButton.addEventListener('click', () => axisView('top'));
