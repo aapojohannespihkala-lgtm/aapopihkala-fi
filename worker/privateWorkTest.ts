@@ -152,6 +152,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_535_172,
     expectedSha256: '0653be4435879acb479ca272dc8fd4a3c7299c863c0082797236d4c5c20167c0',
   },
+  // P153E-B viewer integration: exact P153C D stair + guard/lowWall candidate.
+  {
+    id: 'p153c-d-stair-guard-lowwall',
+    label: 'P153C D stair + guard/lowWall - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p153c-d-stair-guard-lowwall.glb`,
+    objectKey: 'work-test/p153c-d-stair-guard-lowwall.glb',
+    expectedSize: 1_743_512,
+    expectedSha256: '03525ed32e75f721c90dee0a566abea2d00c742a5f4d29ec43c2b13fafe7ed94',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
