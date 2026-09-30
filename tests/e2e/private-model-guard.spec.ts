@@ -2552,7 +2552,7 @@ test('private viewer imports an exact WORK_TEST candidate from a protected fragm
   expect(candidateLoads).toBe(1);
 });
 
-test('private viewer falls back to an authenticated local GLB upload when protected source fetch fails', async ({ page }) => {
+test('private viewer automatically relays the protected source in-browser when server-side import fails', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
@@ -2577,6 +2577,7 @@ test('private viewer falls back to an authenticated local GLB upload when protec
     'https://sdmntprdenmarkeast.oaiusercontent.com/files/fallback/raw?se=2026-09-30T20%3A00%3A00Z&sig=signature';
   let uploaded = false;
   let uploadRequests = 0;
+  let sourceRequests = 0;
 
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
@@ -2586,6 +2587,14 @@ test('private viewer falls back to an authenticated local GLB upload when protec
       status: 502,
       contentType: 'application/json',
       body: JSON.stringify({ error: 'source-fetch-denied' }),
+    });
+  });
+  await page.route('https://sdmntprdenmarkeast.oaiusercontent.com/**', async (route) => {
+    sourceRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: candidateModel,
     });
   });
   await page.route('**/private-model/work-test/catalog.json', async (route) => {
@@ -2635,24 +2644,15 @@ test('private viewer falls back to an authenticated local GLB upload when protec
   }).toString();
   await page.goto(`/private-model/?review=p143h-scalgo-label-axis-review#${fragment}`);
 
-  const uploadButton = page.getByRole('button', { name: 'Tuo WORK_TEST .glb' });
-  await expect(uploadButton).toBeVisible();
-  await expect(page.getByRole('status')).toHaveText(
-    'WORK_TEST ei ole palvelimella - tuo tarkistettu .glb paikallisena',
-  );
-
-  await page.locator('#work-test-upload-input').setInputFiles({
-    name: 'Ylisrinne_p143H.glb',
-    mimeType: 'model/gltf-binary',
-    buffer: candidateModel,
-  });
-
   const canvas = page.locator('#private-model-canvas');
-  await expect(canvas).toHaveAttribute('data-work-test-upload', 'ready');
+  await expect(canvas).toHaveAttribute('data-work-test-relay', 'ready');
+  await expect(canvas).toHaveAttribute('data-work-test-import', 'ready');
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'scalgo-label-axis-review');
   await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
-  await expect(uploadButton).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Tuo WORK_TEST .glb' })).toBeHidden();
+  await expect(page).not.toHaveURL(/workTestImport=/);
+  expect(sourceRequests).toBe(1);
   expect(uploadRequests).toBe(1);
 });
 
