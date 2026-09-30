@@ -1704,7 +1704,7 @@ test('private viewer loads an allowlisted WORK_TEST candidate from the protected
   await expect(page.locator('#work-test-select')).toBeEnabled();
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
   await expect(page.locator('#work-test-select')).toContainText(candidateLabel);
-  await expect(page.getByRole('button', { name: 'Avaa WORK_TEST' })).toBeEnabled();
+  await expect(page.locator('#work-test-button')).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeHidden();
 
   await clickModelAction(page, 'Avaa WORK_TEST');
@@ -2345,7 +2345,7 @@ test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra fo
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
   await expect(page.locator('#height-scale')).toBeVisible();
 
-  await expect(page.getByRole('button', { name: 'Pituusleikkaus' })).toBeEnabled();
+  await expect(page.locator('#profile-button')).toBeEnabled();
   await clickMoreAction(page, 'Pituusleikkaus');
   await expect(page.locator('#profile-panel')).toBeVisible();
   await expect(page.locator('#profile-route-select')).toHaveValue(
@@ -2751,6 +2751,6 @@ test('private viewer fails safe when the protected WORK_TEST catalog is unavaila
   );
   await expect(page.locator('#work-test-select')).toBeDisabled();
   await expect(page.locator('#work-test-select')).toContainText('Ei WORK_TEST-kandidaatteja');
-  await expect(page.getByRole('button', { name: 'Avaa WORK_TEST' })).toBeDisabled();
+  await expect(page.locator('#work-test-button')).toBeDisabled();
 });
 
