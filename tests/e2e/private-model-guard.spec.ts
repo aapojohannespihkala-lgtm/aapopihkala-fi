@@ -1065,7 +1065,7 @@ test('private viewer can isolate, hide, and restore a selected object without ch
 
   const canvas = page.locator('#private-model-canvas');
   const panel = page.locator('#selection-panel');
-  const showAll = page.getByRole('button', { name: 'Näytä kaikki' });
+  const showAll = page.locator('#show-all-objects-button');
   await expect(canvas).toHaveAttribute('data-object-visibility-filter', 'inactive');
   await expect(showAll).toBeDisabled();
 
