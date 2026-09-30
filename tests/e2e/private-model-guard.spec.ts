@@ -1043,6 +1043,10 @@ test('private viewer selects a visible mesh, shows bounded identity, metadata, a
   await expect(page.locator('#selection-floor')).toHaveText('1F');
   await expect(page.locator('#selection-scene')).toHaveText('P133D REVIEW ROOT - BABYLON Y-UP');
   await expect(page.locator('#selection-kind')).toHaveText('Mesh');
+  const metadataDetails = page.locator('#selection-panel details.selection-metadata');
+  await expect(metadataDetails).not.toHaveAttribute('open', '');
+  await metadataDetails.locator('summary').click();
+  await expect(metadataDetails).toHaveAttribute('open', '');
   await expect(page.locator('#selection-metadata-list')).toContainText('Pass');
   await expect(page.locator('#selection-metadata-list')).toContainText('149E_TEST');
   await expect(page.locator('#selection-metadata-list')).toContainText('Representation Kind');
