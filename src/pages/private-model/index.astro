@@ -246,6 +246,65 @@ const title = 'Private 3D viewer';
         font-size: 10px;
       }
 
+      .height-scale {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        bottom: 12px;
+        z-index: 1;
+        width: 88px;
+        pointer-events: none;
+        color: #343733;
+        font-size: 11px;
+      }
+
+      .height-scale[hidden] { display: none; }
+
+      .height-scale-title {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 3px 5px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.9);
+        font-size: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .height-scale-ticks {
+        position: absolute;
+        top: 28px;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        border-right: 1px solid rgba(52, 55, 51, 0.6);
+      }
+
+      .height-scale-tick {
+        position: absolute;
+        right: 0;
+        width: 9px;
+        border-top: 1px solid rgba(52, 55, 51, 0.55);
+      }
+
+      .height-scale-tick.zero {
+        width: 15px;
+        border-top-width: 2px;
+        border-top-color: rgba(32, 33, 31, 0.85);
+      }
+
+      .height-scale-label {
+        position: absolute;
+        right: 13px;
+        transform: translateY(-50%);
+        padding: 1px 3px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.82);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
       .d1-known-door-label-layer {
         position: absolute;
         inset: 0;
@@ -482,6 +541,10 @@ const title = 'Private 3D viewer';
         <button id="top-button" type="button">Ylhäältä</button>
         <button id="bottom-button" type="button">Alhaalta</button>
         <button id="iso-button" type="button">Iso</button>
+        <button id="elev-pos-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
+        <button id="elev-neg-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -Y suunnasta">Julk -Y</button>
+        <button id="elev-pos-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +X suunnasta">Julk +X</button>
+        <button id="elev-neg-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -X suunnasta">Julk -X</button>
         <button id="d1-plan-button" type="button">D 1F</button>
         <button id="d2-plan-button" type="button">D 2F</button>
         <button id="layers-button" type="button" aria-expanded="false" aria-controls="layers-panel">Layerit</button>
@@ -524,6 +587,10 @@ const title = 'Private 3D viewer';
             <span id="coordinate-anchor">X - / Y -</span>
           </div>
           <div class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä</div>
+        </aside>
+        <aside id="height-scale" class="height-scale" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
+          <div class="height-scale-title">YLIS-G1-LOCAL Z</div>
+          <div id="height-scale-ticks" class="height-scale-ticks"></div>
         </aside>
         <aside id="layers-panel" class="layers-panel" hidden>
           <div class="layers-header">
@@ -587,6 +654,10 @@ const title = 'Private 3D viewer';
       const topButton = document.querySelector<HTMLButtonElement>('#top-button');
       const bottomButton = document.querySelector<HTMLButtonElement>('#bottom-button');
       const isoButton = document.querySelector<HTMLButtonElement>('#iso-button');
+      const elevPosYButton = document.querySelector<HTMLButtonElement>('#elev-pos-y-button');
+      const elevNegYButton = document.querySelector<HTMLButtonElement>('#elev-neg-y-button');
+      const elevPosXButton = document.querySelector<HTMLButtonElement>('#elev-pos-x-button');
+      const elevNegXButton = document.querySelector<HTMLButtonElement>('#elev-neg-x-button');
       const d1PlanButton = document.querySelector<HTMLButtonElement>('#d1-plan-button');
       const d2PlanButton = document.querySelector<HTMLButtonElement>('#d2-plan-button');
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
@@ -614,6 +685,8 @@ const title = 'Private 3D viewer';
       const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
       const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
       const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
+      const heightScale = document.querySelector<HTMLElement>('#height-scale');
+      const heightScaleTicks = document.querySelector<HTMLElement>('#height-scale-ticks');
       const selectionPanel = document.querySelector<HTMLElement>('#selection-panel');
       const selectionMesh = document.querySelector<HTMLElement>('#selection-mesh');
       const selectionGroup = document.querySelector<HTMLElement>('#selection-group');
@@ -629,6 +702,10 @@ const title = 'Private 3D viewer';
         !topButton ||
         !bottomButton ||
         !isoButton ||
+        !elevPosYButton ||
+        !elevNegYButton ||
+        !elevPosXButton ||
+        !elevNegXButton ||
         !d1PlanButton ||
         !d2PlanButton ||
         !layersButton ||
@@ -656,6 +733,8 @@ const title = 'Private 3D viewer';
         !coordinateFloor ||
         !coordinatePointer ||
         !coordinateAnchor ||
+        !heightScale ||
+        !heightScaleTicks ||
         !selectionPanel ||
         !selectionMesh ||
         !selectionGroup ||
@@ -713,6 +792,9 @@ const title = 'Private 3D viewer';
       const modelCenter = new THREE.Vector3();
       let fitDistance = 10;
       let activeCamera: typeof camera | typeof planCamera | typeof isoCamera = camera;
+      type ElevationDirection = 'pos-y' | 'neg-y' | 'pos-x' | 'neg-x';
+      let activeElevationDirection: ElevationDirection | null = null;
+      let heightScaleSignature = '';
       let fullModelScene: any = null;
       let dInteriorScene: any = null;
       let activePlanFloor: '1F' | '2F' | null = null;
@@ -1740,9 +1822,163 @@ const title = 'Private 3D viewer';
         selectObject(hit.object);
       };
 
-      const syncViewState = (preset: 'orbit' | 'top' | 'bottom' | 'isometric' | 'd-plan') => {
+      const syncViewState = (preset: 'orbit' | 'top' | 'bottom' | 'isometric' | 'd-plan' | 'elevation') => {
         canvas.dataset.viewPreset = preset;
         canvas.dataset.cameraProjection = (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective';
+      };
+
+      const setHeightScaleVisible = (visible: boolean) => {
+        heightScale.hidden = !visible;
+        canvas.dataset.heightScaleVisible = visible ? 'true' : 'false';
+        if (!visible) {
+          heightScaleTicks.replaceChildren();
+          heightScaleSignature = '';
+          delete canvas.dataset.heightScaleMinZ;
+          delete canvas.dataset.heightScaleMaxZ;
+          delete canvas.dataset.heightScaleStepM;
+        }
+      };
+
+      const deactivateElevationView = () => {
+        activeElevationDirection = null;
+        delete canvas.dataset.elevationDirection;
+        setHeightScaleVisible(false);
+      };
+
+      const heightScaleStepForSpan = (spanM: number) => {
+        if (spanM <= 14) return 1;
+        if (spanM <= 28) return 2;
+        if (spanM <= 70) return 5;
+        return 10;
+      };
+
+      const updateHeightScale = () => {
+        if (!activeElevationDirection || activeCamera !== isoCamera || heightScale.hidden) return;
+
+        const halfHeight = Math.max(
+          (isoCamera.top - isoCamera.bottom) / (2 * Math.max(isoCamera.zoom, 1e-6)),
+          0.001,
+        );
+        const centerZ = isoControls.target.y;
+        const minZ = centerZ - halfHeight;
+        const maxZ = centerZ + halfHeight;
+        const spanZ = Math.max(maxZ - minZ, 0.001);
+        const stepM = heightScaleStepForSpan(spanZ);
+        const signature = [minZ, maxZ, stepM, canvas.clientHeight]
+          .map((value) => Number(value).toFixed(3))
+          .join('|');
+        if (signature === heightScaleSignature) return;
+        heightScaleSignature = signature;
+
+        heightScaleTicks.replaceChildren();
+        const first = Math.ceil((minZ - 1e-9) / stepM) * stepM;
+        for (let value = first; value <= maxZ + 1e-9; value += stepM) {
+          const normalized = (maxZ - value) / spanZ;
+          const topPct = Math.max(0, Math.min(100, normalized * 100));
+
+          const tick = document.createElement('div');
+          tick.className = 'height-scale-tick';
+          if (Math.abs(value) < 1e-8) tick.classList.add('zero');
+          tick.style.top = `${topPct}%`;
+
+          const label = document.createElement('div');
+          label.className = 'height-scale-label';
+          label.style.top = `${topPct}%`;
+          const normalizedValue = Math.abs(value) < 0.0005 ? 0 : value;
+          const prefix = normalizedValue > 0 ? '+' : '';
+          label.textContent = `${prefix}${normalizedValue.toFixed(1).replace('.', ',')} m`;
+
+          heightScaleTicks.append(tick, label);
+        }
+
+        canvas.dataset.heightScaleMinZ = minZ.toFixed(3);
+        canvas.dataset.heightScaleMaxZ = maxZ.toFixed(3);
+        canvas.dataset.heightScaleStepM = String(stepM);
+        canvas.dataset.heightScaleFrame = 'YLIS-G1-LOCAL';
+      };
+
+      const fitElevationCamera = (direction: ElevationDirection) => {
+        if (!fullModelScene) return false;
+        const box = computeVisibleBounds(fullModelScene, true);
+        if (!box) return false;
+
+        const center = new THREE.Vector3();
+        const size = new THREE.Vector3();
+        box.getCenter(center);
+        box.getSize(size);
+
+        const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
+        const horizontalSize =
+          direction === 'pos-y' || direction === 'neg-y' ? size.x : size.z;
+        let halfWidth = Math.max(horizontalSize * 0.56, 0.25);
+        let halfHeight = Math.max(size.y * 0.56, 0.25);
+        const modelAspect = halfWidth / Math.max(halfHeight, 1e-6);
+        if (aspect > modelAspect) halfWidth = halfHeight * aspect;
+        else halfHeight = halfWidth / aspect;
+
+        const distance = Math.max(size.length() * 1.35, 4);
+        const offset =
+          direction === 'pos-y'
+            ? new THREE.Vector3(0, 0, -distance)
+            : direction === 'neg-y'
+              ? new THREE.Vector3(0, 0, distance)
+              : direction === 'pos-x'
+                ? new THREE.Vector3(distance, 0, 0)
+                : new THREE.Vector3(-distance, 0, 0);
+
+        isoCamera.position.copy(center).add(offset);
+        isoCamera.up.set(0, 1, 0);
+        isoCamera.lookAt(center);
+        isoCamera.left = -halfWidth;
+        isoCamera.right = halfWidth;
+        isoCamera.top = halfHeight;
+        isoCamera.bottom = -halfHeight;
+        isoCamera.near = Math.max(distance / 10000, 0.001);
+        isoCamera.far = Math.max(distance * 4 + size.length() * 2, 1000);
+        isoCamera.zoom = 1;
+        isoCamera.updateProjectionMatrix();
+
+        isoControls.target.copy(center);
+        isoControls.update();
+        heightScaleSignature = '';
+        updateHeightScale();
+        return true;
+      };
+
+      const activateElevationView = (direction: ElevationDirection) => {
+        if (!fullModelScene) return;
+
+        clearSelection();
+        restoreDVisibility();
+        activePlanFloor = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        controls.enabled = false;
+        planControls.enabled = false;
+        isoControls.enabled = true;
+        activeCamera = isoCamera;
+        setModelScene(fullModelScene);
+        applyRoofLayerState();
+        applyLocusLayerState();
+
+        activeElevationDirection = direction;
+        canvas.dataset.elevationDirection = direction;
+        setHeightScaleVisible(true);
+        if (!fitElevationCamera(direction)) {
+          deactivateElevationView();
+          return;
+        }
+
+        syncViewState('elevation');
+        const label =
+          direction === 'pos-y'
+            ? '+Y'
+            : direction === 'neg-y'
+              ? '-Y'
+              : direction === 'pos-x'
+                ? '+X'
+                : '-X';
+        status.textContent = `Ortografinen julkisivu ${label} - YLIS-G1-LOCAL Z-asteikko`;
       };
 
       const fitIsometricCamera = () => {
@@ -1788,6 +2024,7 @@ const title = 'Private 3D viewer';
       const activateIsometric = () => {
         if (!fullModelScene) return;
 
+        deactivateElevationView();
         clearSelection();
         restoreDVisibility();
         activePlanFloor = null;
@@ -1805,6 +2042,7 @@ const title = 'Private 3D viewer';
       };
 
       const activateFullModel = () => {
+        deactivateElevationView();
         clearSelection();
         restoreDVisibility();
         activePlanFloor = null;
@@ -1879,6 +2117,7 @@ const title = 'Private 3D viewer';
       };
 
       const activateDPlan = (floor: '1F' | '2F') => {
+        deactivateElevationView();
         clearSelection();
         if (!dInteriorScene) {
           status.textContent = 'D-asunnon pohjanäkymää ei löydy tästä mallista';
@@ -1925,7 +2164,10 @@ const title = 'Private 3D viewer';
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
           if (activePlanFloor) fitPlanCamera();
-          else if (activeCamera === isoCamera) fitIsometricCamera();
+          else if (activeCamera === isoCamera) {
+            if (activeElevationDirection) fitElevationCamera(activeElevationDirection);
+            else fitIsometricCamera();
+          }
         }
       };
 
@@ -1985,6 +2227,7 @@ const title = 'Private 3D viewer';
       const activateSitePlanOnly = () => {
         if (!fullModelScene) return;
 
+        deactivateElevationView();
         clearSelection();
         restoreDVisibility();
         activePlanFloor = null;
@@ -2735,6 +2978,10 @@ const title = 'Private 3D viewer';
       topButton.addEventListener('click', () => axisView('top'));
       bottomButton.addEventListener('click', () => axisView('bottom'));
       isoButton.addEventListener('click', activateIsometric);
+      elevPosYButton.addEventListener('click', () => activateElevationView('pos-y'));
+      elevNegYButton.addEventListener('click', () => activateElevationView('neg-y'));
+      elevPosXButton.addEventListener('click', () => activateElevationView('pos-x'));
+      elevNegXButton.addEventListener('click', () => activateElevationView('neg-x'));
       d1PlanButton.addEventListener('click', () => activateDPlan('1F'));
       d2PlanButton.addEventListener('click', () => activateDPlan('2F'));
       workTestSelect.addEventListener('change', () => {
@@ -2806,6 +3053,7 @@ const title = 'Private 3D viewer';
         isoControls.update();
         selectionHelper?.update?.();
         updateD1KnownDoorReviewLabelPositions();
+        updateHeightScale();
         renderer.render(scene, activeCamera);
       });
 
