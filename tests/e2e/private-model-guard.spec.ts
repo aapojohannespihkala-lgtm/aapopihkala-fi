@@ -633,6 +633,118 @@ const makeMeshAndLineGlb = () => {
 };
 
 
+
+const makeAdjacentTrianglesWithLinesGlb = () => {
+  const triangleA = Buffer.alloc(36);
+  [0, 0, 0, 1, 0, 0, 0, 1, 0].forEach((value, index) => {
+    triangleA.writeFloatLE(value, index * 4);
+  });
+  const triangleB = Buffer.alloc(36);
+  [1, 0, 0, 1, 1, 0, 0, 1, 0].forEach((value, index) => {
+    triangleB.writeFloatLE(value, index * 4);
+  });
+  const legacyLine = Buffer.alloc(24);
+  [0.2, 0.2, 0, 0.8, 0.8, 0].forEach((value, index) => {
+    legacyLine.writeFloatLE(value, index * 4);
+  });
+  const semanticLine = Buffer.alloc(24);
+  [0, 0.5, 0, 1, 0.5, 0].forEach((value, index) => {
+    semanticLine.writeFloatLE(value, index * 4);
+  });
+
+  const binary = Buffer.concat([triangleA, triangleB, legacyLine, semanticLine]);
+  const offsets = [
+    0,
+    triangleA.length,
+    triangleA.length + triangleB.length,
+    triangleA.length + triangleB.length + legacyLine.length,
+  ];
+  const json = {
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P146A EDGE MODE TEST - BABYLON Y-UP', nodes: [0, 1, 2, 3] }],
+    nodes: [
+      { name: 'ARCH_TRIANGLE_A', mesh: 0 },
+      { name: 'ARCH_TRIANGLE_B', mesh: 1 },
+      { name: 'LEGACY_UNTYPED_GRAY_LINE', mesh: 2 },
+      {
+        name: 'SEMANTIC_ANNOTATION_LINE',
+        mesh: 3,
+        extras: { presentationLayer: 'TECHNICAL_ANNOTATION' },
+      },
+    ],
+    meshes: [
+      { primitives: [{ attributes: { POSITION: 0 } }] },
+      { primitives: [{ attributes: { POSITION: 1 } }] },
+      { primitives: [{ attributes: { POSITION: 2 }, mode: 1 }] },
+      { primitives: [{ attributes: { POSITION: 3 }, mode: 1 }] },
+    ],
+    buffers: [{ byteLength: binary.length }],
+    bufferViews: [
+      { buffer: 0, byteOffset: offsets[0], byteLength: triangleA.length, target: 34962 },
+      { buffer: 0, byteOffset: offsets[1], byteLength: triangleB.length, target: 34962 },
+      { buffer: 0, byteOffset: offsets[2], byteLength: legacyLine.length, target: 34962 },
+      { buffer: 0, byteOffset: offsets[3], byteLength: semanticLine.length, target: 34962 },
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 3,
+        type: 'VEC3',
+        min: [0, 0, 0],
+        max: [1, 1, 0],
+      },
+      {
+        bufferView: 1,
+        componentType: 5126,
+        count: 3,
+        type: 'VEC3',
+        min: [0, 0, 0],
+        max: [1, 1, 0],
+      },
+      {
+        bufferView: 2,
+        componentType: 5126,
+        count: 2,
+        type: 'VEC3',
+        min: [0.2, 0.2, 0],
+        max: [0.8, 0.8, 0],
+      },
+      {
+        bufferView: 3,
+        componentType: 5126,
+        count: 2,
+        type: 'VEC3',
+        min: [0, 0.5, 0],
+        max: [1, 0.5, 0],
+      },
+    ],
+  };
+
+  const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
+  const jsonPadding = (4 - (jsonBuffer.length % 4)) % 4;
+  const jsonChunk = Buffer.concat([jsonBuffer, Buffer.alloc(jsonPadding, 0x20)]);
+  const binPadding = (4 - (binary.length % 4)) % 4;
+  const binChunk = Buffer.concat([binary, Buffer.alloc(binPadding)]);
+
+  const header = Buffer.alloc(12);
+  header.write('glTF', 0, 'ascii');
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + jsonChunk.length + 8 + binChunk.length, 8);
+
+  const jsonHeader = Buffer.alloc(8);
+  jsonHeader.writeUInt32LE(jsonChunk.length, 0);
+  jsonHeader.writeUInt32LE(0x4e4f534a, 4);
+
+  const binHeader = Buffer.alloc(8);
+  binHeader.writeUInt32LE(binChunk.length, 0);
+  binHeader.writeUInt32LE(0x004e4942, 4);
+
+  return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
+};
+
+
 const makeLineGlb = () => {
   const linePositions = Buffer.alloc(24);
   [-1, 0, 0, 1, 0, 0].forEach((value, index) => {
@@ -909,6 +1021,50 @@ test('private viewer selects a visible mesh, shows bounded identity, and ignores
   await page.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2 + 40);
   await page.mouse.up();
   await expect(panel).toBeHidden();
+});
+
+
+
+test('private viewer derives four edge modes from mesh geometry and preserves semantic lines', async ({ page }) => {
+  const model = makeAdjacentTrianglesWithLinesGlb();
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-edge-mode', 'visible');
+  await expect(canvas).toHaveAttribute('data-edge-source-mesh-count', '2');
+  await expect(canvas).toHaveAttribute('data-edge-overlay-segment-count', '4');
+  await expect(canvas).toHaveAttribute('data-edge-legacy-suppressed-count', '1');
+  await expect(canvas).toHaveAttribute('data-edge-semantic-line-count', '1');
+  await expect(canvas).toHaveAttribute('data-edge-depth-test', 'true');
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  const edgeMode = page.locator('#edge-mode-select');
+
+  await edgeMode.selectOption('object');
+  await expect(canvas).toHaveAttribute('data-edge-mode', 'object');
+  await expect(canvas).toHaveAttribute('data-edge-overlay-segment-count', '6');
+  await expect(canvas).toHaveAttribute('data-edge-depth-test', 'false');
+
+  await edgeMode.selectOption('unified');
+  await expect(canvas).toHaveAttribute('data-edge-mode', 'unified');
+  await expect(canvas).toHaveAttribute('data-edge-overlay-segment-count', '4');
+  await expect(canvas).toHaveAttribute('data-edge-depth-test', 'false');
+
+  await edgeMode.selectOption('none');
+  await expect(canvas).toHaveAttribute('data-edge-mode', 'none');
+  await expect(canvas).toHaveAttribute('data-edge-overlay-segment-count', '0');
+  await expect(canvas).toHaveAttribute('data-edge-legacy-suppressed-count', '1');
+  await expect(canvas).toHaveAttribute('data-edge-semantic-line-count', '1');
 });
 
 
