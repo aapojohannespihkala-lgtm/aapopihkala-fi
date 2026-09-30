@@ -157,6 +157,30 @@ const title = 'Private 3D viewer';
         font-size: 11px;
       }
 
+      .layer-select {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+        color: #555853;
+      }
+
+      .layer-select select {
+        width: 100%;
+        border: 1px solid #c8cac4;
+        border-radius: 6px;
+        padding: 6px 7px;
+        background: #fff;
+        color: #20211f;
+        font: inherit;
+      }
+
+      .layer-note {
+        margin-top: 7px;
+        color: #777a75;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
       .layer-section {
         margin-top: 12px;
         padding-top: 12px;
@@ -739,6 +763,18 @@ const title = 'Private 3D viewer';
           </label>
           <div id="roof-layer-count" class="layer-count">0 kohdetta</div>
           <div class="layer-section">
+            <label class="layer-select">
+              <span>Reunaviivat</span>
+              <select id="edge-mode-select" aria-label="Reunaviivojen esitystapa">
+                <option value="none">Ei reunaviivoja</option>
+                <option value="object">Objektireunat</option>
+                <option value="unified">Yhdistetyt reunat</option>
+                <option value="visible" selected>Näkyvät reunat</option>
+              </select>
+            </label>
+            <div class="layer-note">Johdetaan näkymässä mallipinnoista - ei erillistä reunageometriaa malliin.</div>
+          </div>
+          <div class="layer-section">
             <label class="layer-row">
               <input id="locus-layer-visible" type="checkbox" disabled />
               <span id="locus-layer-label">Locus kunnallistekniikka (WORK_TEST)</span>
@@ -822,6 +858,7 @@ const title = 'Private 3D viewer';
       const roofLayerOpacityInput = document.querySelector<HTMLInputElement>('#roof-layer-opacity');
       const roofLayerOpacityValue = document.querySelector<HTMLOutputElement>('#roof-layer-opacity-value');
       const roofLayerCount = document.querySelector<HTMLElement>('#roof-layer-count');
+      const edgeModeSelect = document.querySelector<HTMLSelectElement>('#edge-mode-select');
       const locusLayerVisibleInput = document.querySelector<HTMLInputElement>('#locus-layer-visible');
       const locusLayerLabel = document.querySelector<HTMLElement>('#locus-layer-label');
       const locusLayerCount = document.querySelector<HTMLElement>('#locus-layer-count');
@@ -878,6 +915,7 @@ const title = 'Private 3D viewer';
         !roofLayerOpacityInput ||
         !roofLayerOpacityValue ||
         !roofLayerCount ||
+        !edgeModeSelect ||
         !locusLayerVisibleInput ||
         !locusLayerLabel ||
         !locusLayerCount ||
@@ -977,6 +1015,13 @@ const title = 'Private 3D viewer';
       const roofLayerMaterialBaseline = new Map<any, { opacity: number; transparent: boolean }>();
       let roofLayerVisible = true;
       let roofLayerOpacity = 1;
+      type EdgeMode = 'none' | 'object' | 'unified' | 'visible';
+      let edgeMode: EdgeMode = 'visible';
+      const edgeOverlayGroup = new THREE.Group();
+      edgeOverlayGroup.name = 'P146A_VIEWER_DERIVED_EDGES';
+      edgeOverlayGroup.renderOrder = 30;
+      scene.add(edgeOverlayGroup);
+      const legacyEdgeVisibilityBaseline = new Map<any, boolean>();
       const locusLayerMembers = new Set<any>();
       const locusLayerObjects = new Set<any>();
       const locusWaterObjects = new Set<any>();
@@ -1029,6 +1074,7 @@ const title = 'Private 3D viewer';
         modelRoot.clear();
         if (root) modelRoot.add(root);
         modelRoot.updateMatrixWorld(true);
+        refreshEdgeRendering(root);
       };
 
       const restoreDReviewStyling = () => {
@@ -1697,6 +1743,266 @@ const title = 'Private 3D viewer';
       const isLocusLayerMember = (object: any) =>
         routePresentationLayers.has(String(object?.userData?.presentationLayer ?? ''));
 
+      const edgeSemanticTokens = [
+        'ANNOTATION',
+        'ANCHOR',
+        'BARB',
+        'BOUNDARY',
+        'CONTOUR',
+        'GRID',
+        'LABEL',
+        'MARKER',
+        'PROFILE',
+        'ROUTE',
+        'UTILITY',
+      ];
+
+      const isSemanticViewerLine = (object: any) => {
+        const data = object?.userData ?? {};
+        const presentationLayer = String(data.presentationLayer ?? '').toUpperCase();
+        if (presentationLayer) return true;
+        if (data.presentationSubgroup) return true;
+        if (data.markerType) return true;
+
+        const semantic = [
+          object?.name,
+          data.representationKind,
+          data.geometryType,
+          data.reviewScope,
+          data.sourceContract,
+          data.markerType,
+        ]
+          .map((value) => String(value ?? '').toUpperCase())
+          .join(' ');
+
+        return edgeSemanticTokens.some((token) => semantic.includes(token));
+      };
+
+      const isTreeVisible = (object: any) => {
+        let current = object;
+        while (current) {
+          if (current.visible === false) return false;
+          if (current === modelRoot) break;
+          current = current.parent;
+        }
+        return true;
+      };
+
+      const hasVisibleEdgeMaterial = (object: any) => {
+        const materials = Array.isArray(object?.material) ? object.material : [object?.material];
+        return materials.some((material: any) => material && (material.opacity ?? 1) > 0.01);
+      };
+
+      const isEdgeMeshCandidate = (object: any) => {
+        if (!object?.isMesh || !object.geometry || !isTreeVisible(object) || !hasVisibleEdgeMaterial(object)) {
+          return false;
+        }
+
+        const data = object.userData ?? {};
+        const presentationLayer = String(data.presentationLayer ?? '').toUpperCase();
+        if (routePresentationLayers.has(presentationLayer)) return false;
+        if (data.presentationSubgroup === 'WATER' || data.presentationSubgroup === 'WASTEWATER') {
+          return false;
+        }
+
+        const semantic = [
+          object.name,
+          data.representationKind,
+          data.geometryType,
+          data.reviewScope,
+          data.presentationLayer,
+        ]
+          .map((value) => String(value ?? '').toUpperCase())
+          .join(' ');
+
+        const nonArchitectureTokens = [
+          'ANCHOR',
+          'BARB',
+          'CONTOUR',
+          'GROUND_REVIEW',
+          'LABEL',
+          'MARKER',
+          'POINT',
+          'ROUTE',
+          'TERRAIN',
+          'UTILITY',
+        ];
+        if (nonArchitectureTokens.some((token) => semantic.includes(token))) return false;
+
+        if (
+          data.presentationOnly === true &&
+          !isRoofLayerMember(object) &&
+          !isArchBaseMaterial(Array.isArray(object.material) ? object.material[0] : object.material)
+        ) {
+          return false;
+        }
+
+        return true;
+      };
+
+      const clearEdgeOverlay = () => {
+        const geometries = new Set<any>();
+        const materials = new Set<any>();
+        edgeOverlayGroup.traverse((object: any) => {
+          if (object.geometry) geometries.add(object.geometry);
+          const objectMaterials = Array.isArray(object.material) ? object.material : [object.material];
+          for (const material of objectMaterials) if (material) materials.add(material);
+        });
+        edgeOverlayGroup.clear();
+        for (const geometry of geometries) geometry.dispose?.();
+        for (const material of materials) material.dispose?.();
+      };
+
+      const restoreLegacyEdgeVisibility = () => {
+        for (const [object, visible] of legacyEdgeVisibilityBaseline.entries()) {
+          object.visible = visible;
+        }
+        legacyEdgeVisibilityBaseline.clear();
+      };
+
+      const makeEdgeMaterial = (depthTest: boolean) =>
+        new THREE.LineBasicMaterial({
+          color: 0x6d716e,
+          transparent: true,
+          opacity: 0.72,
+          depthTest,
+          depthWrite: false,
+        });
+
+      const vertexKey = (point: any) =>
+        [point.x, point.y, point.z].map((value) => Math.round(value * 10000)).join(',');
+
+      const addUnifiedMeshEdges = (
+        mesh: any,
+        edgeMap: Map<string, { a: any; b: any; normals: any[] }>,
+      ) => {
+        const geometry = mesh.geometry;
+        const position = geometry?.getAttribute?.('position');
+        if (!position || position.itemSize < 3) return;
+
+        const index = geometry.getIndex?.();
+        const triangleCount = index
+          ? Math.floor(index.count / 3)
+          : Math.floor(position.count / 3);
+        const readVertex = (vertexIndex: number) =>
+          new THREE.Vector3()
+            .fromBufferAttribute(position, vertexIndex)
+            .applyMatrix4(mesh.matrixWorld);
+
+        for (let triangle = 0; triangle < triangleCount; triangle += 1) {
+          const i0 = index ? index.getX(triangle * 3) : triangle * 3;
+          const i1 = index ? index.getX(triangle * 3 + 1) : triangle * 3 + 1;
+          const i2 = index ? index.getX(triangle * 3 + 2) : triangle * 3 + 2;
+          const vertices = [readVertex(i0), readVertex(i1), readVertex(i2)];
+          const normal = new THREE.Vector3()
+            .subVectors(vertices[1], vertices[0])
+            .cross(new THREE.Vector3().subVectors(vertices[2], vertices[0]));
+          if (normal.lengthSq() < 1e-12) continue;
+          normal.normalize();
+
+          for (const [aIndex, bIndex] of [[0, 1], [1, 2], [2, 0]]) {
+            const a = vertices[aIndex];
+            const b = vertices[bIndex];
+            const aKey = vertexKey(a);
+            const bKey = vertexKey(b);
+            const key = aKey < bKey ? aKey + '|' + bKey : bKey + '|' + aKey;
+            const record = edgeMap.get(key);
+            if (record) {
+              record.normals.push(normal.clone());
+            } else {
+              edgeMap.set(key, { a: a.clone(), b: b.clone(), normals: [normal.clone()] });
+            }
+          }
+        }
+      };
+
+      const buildUnifiedEdgeGeometry = (meshes: any[]) => {
+        const edgeMap = new Map<string, { a: any; b: any; normals: any[] }>();
+        for (const mesh of meshes) addUnifiedMeshEdges(mesh, edgeMap);
+
+        const creaseCos = Math.cos(THREE.MathUtils.degToRad(8));
+        const points: any[] = [];
+        for (const record of edgeMap.values()) {
+          let keep = record.normals.length === 1;
+          if (!keep) {
+            const reference = record.normals[0];
+            keep = record.normals
+              .slice(1)
+              .some((normal) => Math.abs(reference.dot(normal)) < creaseCos);
+          }
+          if (keep) points.push(record.a, record.b);
+        }
+
+        return new THREE.BufferGeometry().setFromPoints(points);
+      };
+
+      const refreshEdgeRendering = (root: any) => {
+        restoreLegacyEdgeVisibility();
+        clearEdgeOverlay();
+
+        let suppressedLegacyLines = 0;
+        let semanticLines = 0;
+        const meshes: any[] = [];
+
+        if (root) {
+          root.updateMatrixWorld?.(true);
+          root.traverse?.((object: any) => {
+            if (object.isLine || object.isLineSegments) {
+              if (isSemanticViewerLine(object)) {
+                if (isTreeVisible(object)) semanticLines += 1;
+              } else {
+                legacyEdgeVisibilityBaseline.set(object, object.visible);
+                if (object.visible) suppressedLegacyLines += 1;
+                object.visible = false;
+              }
+              return;
+            }
+            if (isEdgeMeshCandidate(object)) meshes.push(object);
+          });
+        }
+
+        let segmentCount = 0;
+        const depthTest = edgeMode === 'visible';
+
+        if (edgeMode === 'object') {
+          const material = makeEdgeMaterial(false);
+          for (const mesh of meshes) {
+            const geometry = new THREE.EdgesGeometry(mesh.geometry, 8);
+            const positions = geometry.getAttribute('position');
+            if (!positions || positions.count === 0) {
+              geometry.dispose();
+              continue;
+            }
+            const edgeObject = new THREE.LineSegments(geometry, material);
+            edgeObject.matrixAutoUpdate = false;
+            edgeObject.matrix.copy(mesh.matrixWorld);
+            edgeObject.frustumCulled = false;
+            edgeOverlayGroup.add(edgeObject);
+            segmentCount += Math.floor(positions.count / 2);
+          }
+          if (edgeOverlayGroup.children.length === 0) material.dispose();
+        } else if (edgeMode === 'unified' || edgeMode === 'visible') {
+          const geometry = buildUnifiedEdgeGeometry(meshes);
+          const positions = geometry.getAttribute('position');
+          segmentCount = positions ? Math.floor(positions.count / 2) : 0;
+          if (segmentCount > 0) {
+            const edgeObject = new THREE.LineSegments(geometry, makeEdgeMaterial(depthTest));
+            edgeObject.frustumCulled = false;
+            edgeOverlayGroup.add(edgeObject);
+          } else {
+            geometry.dispose();
+          }
+        }
+
+        edgeModeSelect.value = edgeMode;
+        canvas.dataset.edgeMode = edgeMode;
+        canvas.dataset.edgeSourceMeshCount = String(meshes.length);
+        canvas.dataset.edgeOverlaySegmentCount = String(segmentCount);
+        canvas.dataset.edgeLegacySuppressedCount = String(suppressedLegacyLines);
+        canvas.dataset.edgeSemanticLineCount = String(semanticLines);
+        canvas.dataset.edgeDepthTest = String(depthTest);
+      };
+
       const hasLocusLayerAncestor = (object: any) => {
         let current = object;
         while (current && current !== fullModelScene?.parent) {
@@ -1771,6 +2077,7 @@ const title = 'Private 3D viewer';
         const roofMaterialOpacity = roofLayerMaterialBaseline.keys().next().value?.opacity;
         roofLayerOpacityValue.dataset.materialOpacity =
           typeof roofMaterialOpacity === 'number' ? String(roofMaterialOpacity) : '';
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
       };
 
       const initializeRoofLayer = () => {
@@ -2287,6 +2594,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.dPlanVisibleRenderableCount = String(matchedRenderables);
         canvas.dataset.dPlanHiddenOtherFloorCount = String(hiddenOtherFloorRenderables);
         applyDReviewStyling(floor);
+        refreshEdgeRendering(dInteriorScene);
         return matchedRenderables;
       };
 
@@ -3926,6 +4234,12 @@ const title = 'Private 3D viewer';
       });
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
       closeLayersButton.addEventListener('click', () => setLayersPanelOpen(false));
+      edgeModeSelect.addEventListener('change', () => {
+        const requestedMode = edgeModeSelect.value as EdgeMode;
+        if (!['none', 'object', 'unified', 'visible'].includes(requestedMode)) return;
+        edgeMode = requestedMode;
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+      });
       profileButton.addEventListener('click', () => setProfilePanelOpen(profilePanel.hidden));
       closeProfileButton.addEventListener('click', () => setProfilePanelOpen(false));
       profileRouteSelect.addEventListener('change', renderSelectedInfraProfile);
