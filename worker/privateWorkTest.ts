@@ -134,6 +134,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_913_540,
     expectedSha256: '67581d3d4f4a444c182a89c56c09235a22e6055e7f9edd7d0d28a6960329b043',
   },
+  // P156K viewer integration: exact P156I 2017 KVV presentation-only candidate.
+  {
+    id: 'p156i-2017-kvv-main-presentation',
+    label: 'P156I 2017 KVV mainCandidate presentation - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p156i-2017-kvv-main-presentation.glb`,
+    objectKey: 'work-test/p156i-2017-kvv-main-presentation.glb',
+    expectedSize: 1_848_532,
+    expectedSha256: '072890e75cd693c05dc705d6a5581e999b9124d37d99aa914336c0a1d9b3ef3f',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {

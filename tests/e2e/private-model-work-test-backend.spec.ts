@@ -36,12 +36,13 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test/p145b-1974-iv-section-worktargets.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p155cb-d-storage-roof.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p151c-whole-building-carrier.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/p156i-2017-kvv-main-presentation.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-testing')).toBe(false);
   expect(isPrivateWorkTestPath('/private-model/model.glb')).toBe(false);
 });
 
-test('private WORK_TEST candidate allowlist exposes the named review routes including P145B, P155C-B and P151C', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(14);
+test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C and P156I', () => {
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(15);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -155,6 +156,14 @@ test('private WORK_TEST candidate allowlist exposes the named review routes incl
     '67581d3d4f4a444c182a89c56c09235a22e6055e7f9edd7d0d28a6960329b043',
   );
 
+  const p156i = getPrivateWorkTestCandidateById('p156i-2017-kvv-main-presentation');
+  expect(p156i).toMatchObject({
+    id: 'p156i-2017-kvv-main-presentation',
+    objectKey: 'work-test/p156i-2017-kvv-main-presentation.glb',
+    expectedSize: 1_848_532,
+    expectedSha256: '072890e75cd693c05dc705d6a5581e999b9124d37d99aa914336c0a1d9b3ef3f',
+  });
+
   for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
     expect(getPrivateWorkTestCandidate(candidate.path)?.id).toBe(candidate.id);
     expect(getPrivateWorkTestCandidateById(candidate.id)?.path).toBe(candidate.path);
@@ -170,6 +179,8 @@ test('private WORK_TEST candidate allowlist exposes the named review routes incl
   expect(getPrivateWorkTestUploadCandidate(p155cbUploadPath)?.id).toBe('p155cb-d-storage-roof');
   const p151cUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p151c-whole-building-carrier.glb`;
   expect(getPrivateWorkTestUploadCandidate(p151cUploadPath)?.id).toBe('p151c-whole-building-carrier');
+  const p156iUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p156i-2017-kvv-main-presentation.glb`;
+  expect(getPrivateWorkTestUploadCandidate(p156iUploadPath)?.id).toBe('p156i-2017-kvv-main-presentation');
   expect(getPrivateWorkTestUploadCandidate(`${p143hUploadPath}/extra`)).toBeNull();
   expect(getPrivateWorkTestUploadCandidate(`${PRIVATE_WORK_TEST_UPLOAD_PREFIX}../model.glb`)).toBeNull();
   expect(getPrivateWorkTestUploadCandidate(`${PRIVATE_WORK_TEST_UPLOAD_PREFIX}not-allowlisted.glb`)).toBeNull();
