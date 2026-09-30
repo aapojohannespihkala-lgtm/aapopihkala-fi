@@ -200,6 +200,24 @@ export const isTrustedPrivateWorkTestSourceUrl = (value: string) => {
   }
 };
 
+export const isTrustedPrivateWorkTestResolvedSourceUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === 'https:' &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      url.hostname.endsWith('.oaiusercontent.com') &&
+      url.pathname.startsWith('/files/') &&
+      url.pathname.endsWith('/raw') &&
+      !url.hash
+    );
+  } catch {
+    return false;
+  }
+};
+
 const sha256Hex = async (value: ArrayBuffer) => {
   const digest = await crypto.subtle.digest('SHA-256', value);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -338,7 +356,7 @@ const handlePrivateWorkTestImport = async (
   if (
     !sourceResponse.ok ||
     !sourceResponse.url ||
-    !isTrustedPrivateWorkTestSourceUrl(sourceResponse.url)
+    !isTrustedPrivateWorkTestResolvedSourceUrl(sourceResponse.url)
   ) {
     return privateJsonResponse(request, { error: 'source-fetch-denied' }, 502);
   }
