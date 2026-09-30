@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 import {
   handlePrivateModelRequest,
@@ -903,6 +903,29 @@ const makeLocusLayerGlb = () => {
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
+const openToolbarMenu = async (page: Page, selector: '#view-menu' | '#model-menu' | '#more-menu') => {
+  const menu = page.locator(selector);
+  if ((await menu.getAttribute('open')) === null) {
+    await menu.locator(':scope > summary').click();
+  }
+};
+
+const clickViewAction = async (page: Page, name: string) => {
+  await openToolbarMenu(page, '#view-menu');
+  await page.getByRole('button', { name, exact: true }).click();
+};
+
+const clickModelAction = async (page: Page, name: string) => {
+  await openToolbarMenu(page, '#model-menu');
+  await page.getByRole('button', { name, exact: true }).click();
+};
+
+const clickMoreAction = async (page: Page, name: string) => {
+  await openToolbarMenu(page, '#more-menu');
+  await page.getByRole('button', { name, exact: true }).click();
+};
+
+
 test('private model route matching is bounded to its own prefix', () => {
   expect(isPrivateModelPath('/private-model')).toBe(true);
   expect(isPrivateModelPath('/private-model/')).toBe(true);
@@ -978,8 +1001,10 @@ test('private viewer resolves the source D scene even when Three runtime names a
   await page.goto('/private-model/');
 
   await expect(page.getByRole('button', { name: 'D 1F' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'D 2F' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Fit / Reset' })).toBeVisible();
+  await expect(page.locator('#view-menu > summary')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
+  await expect(page.locator('#model-source-badge')).toBeVisible();
+  await expect(page.locator('#more-menu > summary')).toBeVisible();
   await expect(page.getByRole('status')).toHaveText('Malli ladattu - D-pohjat käytettävissä');
 });
 
@@ -1136,7 +1161,7 @@ test('private viewer exposes G3 LOCUS SITE as an opt-in WORK_TEST layer with sub
 
   await locusToggle.check();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'true');
-  await page.getByRole('button', { name: 'Fit / Reset' }).click();
+  await clickMoreAction(page, 'Sovita näkymään');
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeVisible();
   await expect(page.locator('#selection-mesh')).toContainText('LOCUS_');
@@ -1208,7 +1233,7 @@ test('private viewer uses a true orthographic isometric preset without resetting
   await opacity.dispatchEvent('input');
   await expect(page.locator('#roof-layer-opacity-value')).toHaveText('40 %');
 
-  await page.getByRole('button', { name: 'Iso' }).click();
+  await clickViewAction(page, 'Isometrinen');
   await expect(page.locator('#viewer-status')).toHaveText('Isometrinen - ortografinen 3/4-näkymä');
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-view-preset', 'isometric');
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-camera-projection', 'orthographic');
@@ -1309,7 +1334,7 @@ test('private viewer makes ARCH_BASE opaque and uses absolute roof opacity', asy
   await opacity.dispatchEvent('input');
   await expect(output).toHaveAttribute('data-material-opacity', '1');
 
-  await page.getByRole('button', { name: 'Iso' }).click();
+  await clickViewAction(page, 'Isometrinen');
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-camera-projection', 'orthographic');
   await expect(output).toHaveAttribute('data-material-opacity', '1');
 });
@@ -1334,20 +1359,20 @@ test('private viewer full-model fit includes visible line geometry and excludes 
   expect(visibleFitCenter).toBeGreaterThan(10);
   expect(visibleFitRadius).toBeGreaterThan(12);
 
-  await page.getByRole('button', { name: 'Iso' }).click();
+  await clickViewAction(page, 'Isometrinen');
   const visibleIsoCenter = Number(await canvas.getAttribute('data-iso-fit-center-x'));
   expect(visibleIsoCenter).toBeGreaterThan(10);
 
   await page.getByRole('button', { name: 'Layerit' }).click();
   await page.locator('#roof-layer-visible').uncheck();
-  await page.getByRole('button', { name: 'Fit / Reset' }).click();
+  await clickMoreAction(page, 'Sovita näkymään');
 
   const hiddenFitCenter = Number(await canvas.getAttribute('data-fit-center-x'));
   const hiddenFitRadius = Number(await canvas.getAttribute('data-fit-radius'));
   expect(Math.abs(hiddenFitCenter)).toBeLessThan(0.01);
   expect(hiddenFitRadius).toBeLessThan(2);
 
-  await page.getByRole('button', { name: 'Iso' }).click();
+  await clickViewAction(page, 'Isometrinen');
   const hiddenIsoCenter = Number(await canvas.getAttribute('data-iso-fit-center-x'));
   expect(Math.abs(hiddenIsoCenter)).toBeLessThan(0.01);
 });
@@ -1398,13 +1423,13 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await page.goto('/private-model/');
   await expect(page.locator('#work-test-select')).toBeEnabled();
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
-  await page.getByRole('button', { name: 'Avaa WORK_TEST' }).click();
+  await clickModelAction(page, 'Avaa WORK_TEST');
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-d-review-prepared', 'true');
   await expect(canvas).toHaveAttribute('data-d-review-door-marker-prepared-count', '11');
 
-  await page.getByRole('button', { name: 'D 1F' }).click();
+  await clickViewAction(page, 'D 1F');
   await expect(page.getByRole('status')).toHaveText(
     'D 1F - tarkastusnäkymä, tarkastusgeometria korostettu',
   );
@@ -1506,7 +1531,7 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
     .poll(async () => Number(await canvas.getAttribute('data-review-pointer-y')))
     .toBeGreaterThan(centerY);
 
-  await page.getByRole('button', { name: 'D 2F' }).click();
+  await clickViewAction(page, 'D 2F');
   await expect(page.getByRole('status')).toHaveText(
     'D 2F - tarkastusnäkymä, sisäseinät korostettu; rajaavat seinät kontekstina',
   );
@@ -1524,7 +1549,7 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(coordinatePanel).toBeVisible();
   await expect(canvas).toHaveAttribute('data-review-grid-visible', 'true');
 
-  await page.getByRole('button', { name: 'Orbit' }).click();
+  await clickViewAction(page, 'Vapaa 3D');
   await expect(coordinatePanel).toBeHidden();
   await expect(canvas).toHaveAttribute('data-review-grid-visible', 'false');
   await expect(canvas).toHaveAttribute('data-d1-known-door-labels-visible', 'false');
@@ -1578,13 +1603,13 @@ test('private viewer makes p137J user-current D1F doors visible as A/B review ma
 
   await page.goto('/private-model/');
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
-  await page.getByRole('button', { name: 'Avaa WORK_TEST' }).click();
+  await clickModelAction(page, 'Avaa WORK_TEST');
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-d-review-door-marker-prepared-count', '13');
   await expect(canvas).toHaveAttribute('data-d1-user-door-label-count', '2');
 
-  await page.getByRole('button', { name: 'D 1F' }).click();
+  await clickViewAction(page, 'D 1F');
   await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '9');
   await expect(canvas).toHaveAttribute('data-d1-known-door-label-count', '7');
   await expect(canvas).toHaveAttribute('data-d1-user-door-label-count', '2');
@@ -1609,12 +1634,12 @@ test('private viewer makes p137J user-current D1F doors visible as A/B review ma
     'D1F_USER_CURRENT_DOOR_B',
   );
 
-  await page.getByRole('button', { name: 'D 2F' }).click();
+  await clickViewAction(page, 'D 2F');
   await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '4');
   await expect(canvas).toHaveAttribute('data-d1-user-door-labels-visible', 'false');
   await expect(userDoorSection).toBeHidden();
 
-  await page.getByRole('button', { name: 'Orbit' }).click();
+  await clickViewAction(page, 'Vapaa 3D');
   await expect(canvas).toHaveAttribute('data-d1-user-door-labels-visible', 'false');
   await expect(userDoorSection).toBeHidden();
 });
@@ -1683,16 +1708,17 @@ test('private viewer loads an allowlisted WORK_TEST candidate from the protected
   await expect(page.getByRole('button', { name: 'Avaa WORK_TEST' })).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeHidden();
 
-  await page.getByRole('button', { name: 'Avaa WORK_TEST' }).click();
+  await clickModelAction(page, 'Avaa WORK_TEST');
 
   await expect(page.getByRole('status')).toHaveText('WORK_TEST-malli ladattu - D-pohjat käytettävissä');
   await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-model-source', 'work-test');
+  await openToolbarMenu(page, '#model-menu');
   await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeVisible();
   expect(currentLoads).toBe(1);
   expect(candidateLoads).toBe(1);
 
-  await page.getByRole('button', { name: 'Palaa CURRENTiin' }).click();
+  await clickModelAction(page, 'Palaa CURRENTiin');
 
   await expect(page.getByRole('status')).toHaveText('Malli ladattu - D-pohjat käytettävissä');
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
@@ -1777,7 +1803,7 @@ test('private viewer opens p139N in the guarded SITE_PLAN_OVERLAY scene with rou
 
   await page.goto('/private-model/');
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
-  await page.getByRole('button', { name: 'Avaa WORK_TEST' }).click();
+  await clickModelAction(page, 'Avaa WORK_TEST');
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'site-plan-only');
@@ -1837,7 +1863,7 @@ test('private viewer opens p139AB as a Z-only orthographic wastewater review', a
 
   await page.goto('/private-model/');
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
-  await page.getByRole('button', { name: 'Avaa WORK_TEST' }).click();
+  await clickModelAction(page, 'Avaa WORK_TEST');
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'z-credibility-only');
@@ -2312,7 +2338,7 @@ test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra fo
     'SCALGO NYKYMAASTO + LOCUS WORK-Z - 4 reittiä - työoffset 21,750 m / ei as-built',
   );
 
-  await page.getByRole('button', { name: 'Julk -Y' }).click();
+  await clickViewAction(page, 'Julk -Y');
   await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
   await expect(canvas).toHaveAttribute('data-elevation-direction', 'neg-y');
   await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
@@ -2321,7 +2347,7 @@ test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra fo
   await expect(page.locator('#height-scale')).toBeVisible();
 
   await expect(page.getByRole('button', { name: 'Pituusleikkaus' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Pituusleikkaus' }).click();
+  await clickMoreAction(page, 'Pituusleikkaus');
   await expect(page.locator('#profile-panel')).toBeVisible();
   await expect(page.locator('#profile-route-select')).toHaveValue(
     'P139AD_LOCUS_WASTEWATER_PARCEL_WORK_Z',
@@ -2448,7 +2474,7 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
     'LOCUS WORK-Z - 4 reittiä oletuskoroilla - max +18,15 < maanpintaraja +18,30 - ei as-built',
   );
 
-  await page.getByRole('button', { name: 'Julk +Y' }).click();
+  await clickViewAction(page, 'Julk +Y');
   await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
   await expect(canvas).toHaveAttribute('data-elevation-direction', 'pos-y');
   await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
@@ -2460,11 +2486,11 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
     'Ortografinen julkisivu +Y - YLIS-G1-LOCAL Z-asteikko',
   );
 
-  await page.getByRole('button', { name: 'Julk +X' }).click();
+  await clickViewAction(page, 'Julk +X');
   await expect(canvas).toHaveAttribute('data-elevation-direction', 'pos-x');
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
 
-  await page.getByRole('button', { name: 'Iso' }).click();
+  await clickViewAction(page, 'Isometrinen');
   await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'false');
 
@@ -2655,6 +2681,42 @@ test('private viewer falls back to an authenticated local GLB upload when protec
   await expect(uploadButton).toBeHidden();
   expect(uploadRequests).toBe(1);
 });
+
+test('private viewer keeps the primary toolbar compact and exposes legacy actions through menus', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.goto('/private-model/');
+
+  await expect(page.getByText('Ylisrinne 3D', { exact: true })).toBeVisible();
+  await expect(page.locator('#view-menu > summary')).toHaveText('Näkymä');
+  await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
+  await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
+  await expect(page.locator('#more-menu > summary')).toHaveAttribute('aria-label', 'Lisää toimintoja');
+  await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeHidden();
+
+  await openToolbarMenu(page, '#view-menu');
+  await expect(page.getByRole('button', { name: 'Vapaa 3D' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Isometrinen' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'D 1F' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'D 2F' })).toBeVisible();
+
+  await openToolbarMenu(page, '#more-menu');
+  await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pituusleikkaus' })).toBeDisabled();
+});
+
 
 test('private viewer fails safe when the protected WORK_TEST catalog is unavailable', async ({ page }) => {
   const currentModel = makeMinimalGlb({
