@@ -92,6 +92,14 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSha256: '768972c522f63de0629020874f690b796b54f7c6d70125248d51f39b8d682c56',
   },
   {
+    id: 'p143j-scalgo-label-flow',
+    label: 'p143J SCALGO building-bypass label flow - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p143j-scalgo-label-flow.glb`,
+    objectKey: 'work-test/p143j-scalgo-label-flow.glb',
+    expectedSize: 1_684_500,
+    expectedSha256: '4c2cea0eccff70754952750b12be7c24d150545feac0e17b3f86ebbb24c28578',
+  },
+  {
     id: 'p144c-g3-1974-iv-on-p143h',
     label: 'P144C G3 1974 IV anchors + p143H cartography - WORK_TEST',
     path: `${PRIVATE_WORK_TEST_PREFIX}/p144c-g3-1974-iv-on-p143h.glb`,
