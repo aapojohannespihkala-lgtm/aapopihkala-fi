@@ -103,6 +103,109 @@ const makeTriangleGlb = (
 };
 
 
+const makeP139abReviewGlb = () => {
+  const architecturePositions = Buffer.alloc(36);
+  [-1, 0, -1, 1, 0, -1, 0, 2, 1].forEach((value, index) => {
+    architecturePositions.writeFloatLE(value, index * 4);
+  });
+
+  const routePositions = Buffer.alloc(24);
+  [-1, -0.5, 0, 1, -0.5, 0].forEach((value, index) => {
+    routePositions.writeFloatLE(value, index * 4);
+  });
+
+  const binary = Buffer.concat([architecturePositions, routePositions]);
+  const json = {
+    asset: { version: '2.0' },
+    scene: 1,
+    scenes: [
+      {
+        name: 'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP',
+        nodes: [0],
+      },
+      {
+        name: 'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT',
+        nodes: [2],
+      },
+    ],
+    nodes: [
+      { name: 'P139E_TEST_ROOT', children: [1] },
+      {
+        name: 'P139AB_TEST_ARCH_BUILDING',
+        mesh: 0,
+        extras: { presentationGroup: 'ARCH_BASE' },
+      },
+      { name: 'P139AB_TEST_ROOT', children: [1, 3] },
+      {
+        name: 'P139AB_TEST_Z_ROUTE_GROUP',
+        children: [4],
+        extras: { presentationLayer: 'Z_CREDIBLE_WASTEWATER_REVIEW' },
+      },
+      { name: 'P139AB_TEST_Z_ROUTE', mesh: 1 },
+    ],
+    meshes: [
+      {
+        name: 'P139AB_TEST_ARCH_MESH',
+        primitives: [{ attributes: { POSITION: 0 } }],
+      },
+      {
+        name: 'P139AB_TEST_Z_ROUTE_MESH',
+        primitives: [{ attributes: { POSITION: 1 }, mode: 3 }],
+      },
+    ],
+    buffers: [{ byteLength: binary.length }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: architecturePositions.length, target: 34962 },
+      {
+        buffer: 0,
+        byteOffset: architecturePositions.length,
+        byteLength: routePositions.length,
+        target: 34962,
+      },
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 3,
+        type: 'VEC3',
+        min: [-1, 0, -1],
+        max: [1, 2, 1],
+      },
+      {
+        bufferView: 1,
+        componentType: 5126,
+        count: 2,
+        type: 'VEC3',
+        min: [-1, -0.5, 0],
+        max: [1, -0.5, 0],
+      },
+    ],
+  };
+
+  const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
+  const jsonPadding = (4 - (jsonBuffer.length % 4)) % 4;
+  const jsonChunk = Buffer.concat([jsonBuffer, Buffer.alloc(jsonPadding, 0x20)]);
+  const binPadding = (4 - (binary.length % 4)) % 4;
+  const binChunk = Buffer.concat([binary, Buffer.alloc(binPadding)]);
+
+  const header = Buffer.alloc(12);
+  header.write('glTF', 0, 'ascii');
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + jsonChunk.length + 8 + binChunk.length, 8);
+
+  const jsonHeader = Buffer.alloc(8);
+  jsonHeader.writeUInt32LE(jsonChunk.length, 0);
+  jsonHeader.writeUInt32LE(0x4e4f534a, 4);
+
+  const binHeader = Buffer.alloc(8);
+  binHeader.writeUInt32LE(binChunk.length, 0);
+  binHeader.writeUInt32LE(0x004e4942, 4);
+
+  return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
+};
+
+
 const makeDReviewGlb = (options: { includeUserCurrentDoors?: boolean } = {}) => {
   const { includeUserCurrentDoors = false } = options;
   const wallPositions = Buffer.alloc(36);
@@ -1559,21 +1662,7 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
     scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
     nodes: [],
   });
-  const candidateModel = makeMinimalGlb({
-    asset: { version: '2.0' },
-    scene: 0,
-    scenes: [
-      {
-        name: 'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP',
-        nodes: [],
-      },
-      {
-        name: 'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT',
-        nodes: [],
-      },
-    ],
-    nodes: [],
-  });
+  const candidateModel = makeP139abReviewGlb();
   const candidateId = 'p139ab-z-credible-wastewater-review';
   const candidateLabel = 'p139AB Z-uskottavuus - jätevesi';
   const candidatePath = '/private-model/work-test/p139ab-z-credible-wastewater-review.glb';
@@ -1602,6 +1691,8 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'locus-work-z-review');
   await expect(canvas).toHaveAttribute('data-locus-work-z-route-count', '4');
   await expect(canvas).toHaveAttribute('data-locus-work-z-max-elevation', '18.150');
+  await expect(canvas).toHaveAttribute('data-p139ab-building-renderable-count', '1');
+  await expect(canvas).toHaveAttribute('data-p139ab-source-z-renderable-count', '1');
   await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
   await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
   await expect(page.getByRole('status')).toHaveText(
