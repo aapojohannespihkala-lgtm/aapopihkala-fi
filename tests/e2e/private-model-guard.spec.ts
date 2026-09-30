@@ -1096,6 +1096,62 @@ test('private viewer can isolate, hide, and restore a selected object without ch
 });
 
 
+test('private viewer can enable, adjust, and disable the presentation-only horizontal clipping plane', async ({ page }) => {
+  const model = makeTriangleGlb();
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const toggle = page.locator('#clip-plane-enabled');
+  const height = page.locator('#clip-plane-height');
+  const value = page.locator('#clip-plane-value');
+
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(canvas).toHaveAttribute('data-horizontal-clip', 'inactive');
+
+  await page.locator('#more-menu > summary').click();
+  await expect(toggle).toBeEnabled();
+  await expect(height).toBeDisabled();
+
+  const min = Number(await height.getAttribute('min'));
+  const max = Number(await height.getAttribute('max'));
+  expect(Number.isFinite(min)).toBe(true);
+  expect(Number.isFinite(max)).toBe(true);
+  expect(max).toBeGreaterThan(min);
+
+  await toggle.check();
+  await expect(height).toBeEnabled();
+  await expect(canvas).toHaveAttribute('data-horizontal-clip', 'active');
+  await expect(canvas).toHaveAttribute('data-horizontal-clip-side', 'above');
+
+  const requested = min + (max - min) * 0.5;
+  await height.evaluate((element, nextValue) => {
+    const input = element as HTMLInputElement;
+    input.value = String(nextValue);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }, requested);
+
+  const applied = Number(await canvas.getAttribute('data-horizontal-clip-height-m'));
+  expect(Math.abs(applied - requested)).toBeLessThan(0.01);
+  await expect(value).toContainText('m');
+
+  await toggle.uncheck();
+  await expect(height).toBeDisabled();
+  await expect(canvas).toHaveAttribute('data-horizontal-clip', 'inactive');
+  await expect(canvas).not.toHaveAttribute('data-horizontal-clip-height-m', /.+/);
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+});
+
+
 test('private viewer derives four edge modes from mesh geometry and preserves semantic lines', async ({ page }) => {
   const model = makeAdjacentTrianglesWithLinesGlb();
 
