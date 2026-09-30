@@ -796,15 +796,21 @@ const title = 'Private 3D viewer';
         <details id="view-menu" class="toolbar-menu">
           <summary>Näkymä</summary>
           <div class="toolbar-menu-panel" aria-label="Vakioidut näkymät">
-            <div class="toolbar-menu-label">3D</div>
+            <div class="toolbar-menu-label">Vakionäkymät</div>
+            <button id="whole-building-preset-button" type="button">Koko rakennus</button>
+            <button id="d-overview-preset-button" type="button">D-asunto</button>
             <button id="orbit-button" type="button">Vapaa 3D</button>
             <button id="iso-button" type="button">Isometrinen</button>
             <button id="top-button" type="button">Ylhäältä</button>
             <button id="bottom-button" type="button">Alhaalta</button>
             <div class="toolbar-menu-separator"></div>
-            <div class="toolbar-menu-label">D-asunto</div>
+            <div class="toolbar-menu-label">D-asunto / kerros</div>
             <button id="d1-plan-button" type="button">D 1F</button>
             <button id="d2-plan-button" type="button">D 2F</button>
+            <div class="toolbar-menu-separator"></div>
+            <div class="toolbar-menu-label">Alue</div>
+            <button id="site-preset-button" type="button">Tontti</button>
+            <button id="infra-preset-button" type="button">Infra</button>
             <div class="toolbar-menu-separator"></div>
             <div class="toolbar-menu-label">Julkisivut</div>
             <button id="elev-pos-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
@@ -994,6 +1000,10 @@ const title = 'Private 3D viewer';
       const elevNegXButton = document.querySelector<HTMLButtonElement>('#elev-neg-x-button');
       const d1PlanButton = document.querySelector<HTMLButtonElement>('#d1-plan-button');
       const d2PlanButton = document.querySelector<HTMLButtonElement>('#d2-plan-button');
+      const wholeBuildingPresetButton = document.querySelector<HTMLButtonElement>('#whole-building-preset-button');
+      const dOverviewPresetButton = document.querySelector<HTMLButtonElement>('#d-overview-preset-button');
+      const sitePresetButton = document.querySelector<HTMLButtonElement>('#site-preset-button');
+      const infraPresetButton = document.querySelector<HTMLButtonElement>('#infra-preset-button');
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
       const profileButton = document.querySelector<HTMLButtonElement>('#profile-button');
       const workTestSelect = document.querySelector<HTMLSelectElement>('#work-test-select');
@@ -1051,6 +1061,10 @@ const title = 'Private 3D viewer';
         !elevNegXButton ||
         !d1PlanButton ||
         !d2PlanButton ||
+        !wholeBuildingPresetButton ||
+        !dOverviewPresetButton ||
+        !sitePresetButton ||
+        !infraPresetButton ||
         !layersButton ||
         !profileButton ||
         !workTestSelect ||
@@ -1166,6 +1180,12 @@ const title = 'Private 3D viewer';
       let roofLayerVisible = true;
       let roofLayerOpacity = 1;
       type EdgeMode = 'none' | 'object' | 'unified' | 'visible';
+      type ViewerLayerState = {
+        roofVisible: boolean;
+        roofOpacity: number;
+        locusVisible: boolean;
+        edgeMode: EdgeMode;
+      };
       let edgeMode: EdgeMode = 'visible';
       const edgeOverlayGroup = new THREE.Group();
       edgeOverlayGroup.name = 'P146A_VIEWER_DERIVED_EDGES';
@@ -2271,6 +2291,33 @@ const title = 'Private 3D viewer';
         if (selectedObject && !isEffectivelyVisible(selectedObject)) clearSelection();
       };
 
+      const applyViewerLayerState = (
+        next: Partial<ViewerLayerState>,
+        source: 'manual' | `preset:${string}` = 'manual',
+      ) => {
+        if (typeof next.roofVisible === 'boolean') roofLayerVisible = next.roofVisible;
+        if (typeof next.roofOpacity === 'number') {
+          roofLayerOpacity = Math.max(0, Math.min(1, next.roofOpacity));
+        }
+        if (typeof next.locusVisible === 'boolean') locusLayerVisible = next.locusVisible;
+        if (next.edgeMode) edgeMode = next.edgeMode;
+
+        roofLayerVisibleInput.checked = roofLayerVisible;
+        roofLayerOpacityInput.value = String(Math.round(roofLayerOpacity * 100));
+        locusLayerVisibleInput.checked = locusLayerVisible;
+        edgeModeSelect.value = edgeMode;
+
+        applyRoofLayerState();
+        applyLocusLayerState();
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+
+        canvas.dataset.layerStateSource = source;
+        canvas.dataset.layerRoofVisible = roofLayerVisible ? 'true' : 'false';
+        canvas.dataset.layerRoofOpacity = String(roofLayerOpacity);
+        canvas.dataset.layerLocusVisible = locusLayerVisible ? 'true' : 'false';
+        canvas.dataset.layerEdgeMode = edgeMode;
+      };
+
       const initializeLocusLayer = () => {
         locusLayerMembers.clear();
         locusLayerObjects.clear();
@@ -2612,10 +2659,10 @@ const title = 'Private 3D viewer';
         status.textContent = `Ortografinen julkisivu ${label} - YLIS-G1-LOCAL Z-asteikko`;
       };
 
-      const fitIsometricCamera = () => {
-        if (!fullModelScene) return;
+      const fitIsometricCamera = (sceneRoot: any = fullModelScene) => {
+        if (!sceneRoot) return;
 
-        const box = computeVisibleBounds(fullModelScene, true);
+        const box = computeVisibleBounds(sceneRoot, true);
         if (!box) return;
 
         const center = new THREE.Vector3();
@@ -2906,6 +2953,75 @@ const title = 'Private 3D viewer';
         }
 
         syncViewState('top');
+      };
+
+      const activateDOverview = () => {
+        if (!dInteriorScene) {
+          status.textContent = 'D-asunnon yhdistettyä näkymää ei löydy tästä mallista';
+          return false;
+        }
+
+        deactivateElevationView();
+        clearSelection();
+        restoreDVisibility();
+        activePlanFloor = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        controls.enabled = false;
+        planControls.enabled = false;
+        isoControls.enabled = true;
+        activeCamera = isoCamera;
+        setModelScene(dInteriorScene);
+        fitIsometricCamera(dInteriorScene);
+        refreshEdgeRendering(dInteriorScene);
+        syncViewState('isometric');
+        status.textContent = 'D-asunto - molemmat kerrokset, ortografinen 3/4-näkymä';
+        return true;
+      };
+
+      type StandardViewPreset =
+        | 'whole-building'
+        | 'd-apartment'
+        | 'd-1f'
+        | 'd-2f'
+        | 'top'
+        | 'site'
+        | 'infra'
+        | 'elev-pos-y'
+        | 'elev-neg-y'
+        | 'elev-pos-x'
+        | 'elev-neg-x';
+
+      const standardViewLayerDefaults: Record<StandardViewPreset, Partial<ViewerLayerState>> = {
+        'whole-building': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
+        'd-apartment': { roofVisible: false, locusVisible: false, edgeMode: 'visible' },
+        'd-1f': { roofVisible: false, locusVisible: false, edgeMode: 'visible' },
+        'd-2f': { roofVisible: false, locusVisible: false, edgeMode: 'visible' },
+        top: { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
+        site: { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
+        infra: { roofVisible: false, locusVisible: true, edgeMode: 'visible' },
+        'elev-pos-y': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
+        'elev-neg-y': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
+        'elev-pos-x': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
+        'elev-neg-x': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
+      };
+
+      const applyStandardViewPreset = (preset: StandardViewPreset) => {
+        canvas.dataset.standardViewPreset = preset;
+        applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);
+
+        if (preset === 'whole-building') activateIsometric();
+        else if (preset === 'd-apartment') activateDOverview();
+        else if (preset === 'd-1f') activateDPlan('1F');
+        else if (preset === 'd-2f') activateDPlan('2F');
+        else if (preset === 'top') axisView('top');
+        else if (preset === 'site' || preset === 'infra') activateSitePlanOnly();
+        else if (preset === 'elev-pos-y') activateElevationView('pos-y');
+        else if (preset === 'elev-neg-y') activateElevationView('neg-y');
+        else if (preset === 'elev-pos-x') activateElevationView('pos-x');
+        else activateElevationView('neg-x');
+
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
       };
 
       type ModelSourceKind = 'current' | 'work-test';
@@ -4536,16 +4652,20 @@ const title = 'Private 3D viewer';
 
       layersButton.addEventListener('click', () => closeToolbarMenus());
       fitButton.addEventListener('click', fitModel);
+      wholeBuildingPresetButton.addEventListener('click', () => applyStandardViewPreset('whole-building'));
+      dOverviewPresetButton.addEventListener('click', () => applyStandardViewPreset('d-apartment'));
+      sitePresetButton.addEventListener('click', () => applyStandardViewPreset('site'));
+      infraPresetButton.addEventListener('click', () => applyStandardViewPreset('infra'));
       orbitButton.addEventListener('click', fitModel);
-      topButton.addEventListener('click', () => axisView('top'));
+      topButton.addEventListener('click', () => applyStandardViewPreset('top'));
       bottomButton.addEventListener('click', () => axisView('bottom'));
       isoButton.addEventListener('click', activateIsometric);
-      elevPosYButton.addEventListener('click', () => activateElevationView('pos-y'));
-      elevNegYButton.addEventListener('click', () => activateElevationView('neg-y'));
-      elevPosXButton.addEventListener('click', () => activateElevationView('pos-x'));
-      elevNegXButton.addEventListener('click', () => activateElevationView('neg-x'));
-      d1PlanButton.addEventListener('click', () => activateDPlan('1F'));
-      d2PlanButton.addEventListener('click', () => activateDPlan('2F'));
+      elevPosYButton.addEventListener('click', () => applyStandardViewPreset('elev-pos-y'));
+      elevNegYButton.addEventListener('click', () => applyStandardViewPreset('elev-neg-y'));
+      elevPosXButton.addEventListener('click', () => applyStandardViewPreset('elev-pos-x'));
+      elevNegXButton.addEventListener('click', () => applyStandardViewPreset('elev-neg-x'));
+      d1PlanButton.addEventListener('click', () => applyStandardViewPreset('d-1f'));
+      d2PlanButton.addEventListener('click', () => applyStandardViewPreset('d-2f'));
       workTestSelect.addEventListener('change', () => {
         workTestButton.disabled = !workTestCandidates.has(workTestSelect.value);
       });
@@ -4574,25 +4694,27 @@ const title = 'Private 3D viewer';
       edgeModeSelect.addEventListener('change', () => {
         const requestedMode = edgeModeSelect.value as EdgeMode;
         if (!['none', 'object', 'unified', 'visible'].includes(requestedMode)) return;
-        edgeMode = requestedMode;
-        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        applyViewerLayerState({ edgeMode: requestedMode }, 'manual');
       });
       profileButton.addEventListener('click', () => setProfilePanelOpen(profilePanel.hidden));
       closeProfileButton.addEventListener('click', () => setProfilePanelOpen(false));
       profileRouteSelect.addEventListener('change', renderSelectedInfraProfile);
       roofLayerVisibleInput.addEventListener('change', () => {
-        roofLayerVisible = roofLayerVisibleInput.checked;
-        applyRoofLayerState();
+        applyViewerLayerState({ roofVisible: roofLayerVisibleInput.checked }, 'manual');
         if (selectedObject && !isEffectivelyVisible(selectedObject)) clearSelection();
       });
       roofLayerOpacityInput.addEventListener('input', () => {
-        roofLayerOpacity = Math.max(0, Math.min(1, Number(roofLayerOpacityInput.value) / 100));
-        if (selectedObject && roofLayerMeshes.has(selectedObject) && roofLayerOpacity <= 0.01) clearSelection();
-        applyRoofLayerState();
+        const requestedOpacity = Math.max(
+          0,
+          Math.min(1, Number(roofLayerOpacityInput.value) / 100),
+        );
+        applyViewerLayerState({ roofOpacity: requestedOpacity }, 'manual');
+        if (selectedObject && roofLayerMeshes.has(selectedObject) && roofLayerOpacity <= 0.01) {
+          clearSelection();
+        }
       });
       locusLayerVisibleInput.addEventListener('change', () => {
-        locusLayerVisible = locusLayerVisibleInput.checked;
-        applyLocusLayerState();
+        applyViewerLayerState({ locusVisible: locusLayerVisibleInput.checked }, 'manual');
       });
       clearSelectionButton.addEventListener('click', clearSelection);
 
