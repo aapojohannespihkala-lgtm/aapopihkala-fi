@@ -2998,6 +2998,8 @@ const title = 'Private 3D viewer';
       const p143jReviewId = 'p143j-scalgo-label-flow-review';
       const p144cCandidateId = 'p144c-g3-1974-iv-on-p143h';
       const p144cReviewId = 'p144c-g3-1974-iv-review';
+      const p145bCandidateId = 'p145b-1974-iv-section-worktargets';
+      const p145bReviewId = 'p145b-1974-iv-section-worktargets-review';
       const p139abZSceneName =
         'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
       const p139abBuildingSceneName =
@@ -3692,10 +3694,15 @@ const title = 'Private 3D viewer';
       const isP144cG31974IvReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p144cReviewId;
 
+      const isP145b1974IvSectionWorkTargetsReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p145bReviewId;
+
       const getRequestedReviewCandidateId = () =>
-        isP144cG31974IvReviewRequested()
-          ? p144cCandidateId
-          : isP143jScalgoLabelFlowReviewRequested()
+        isP145b1974IvSectionWorkTargetsReviewRequested()
+          ? p145bCandidateId
+          : isP144cG31974IvReviewRequested()
+            ? p144cCandidateId
+            : isP143jScalgoLabelFlowReviewRequested()
             ? p143jCandidateId
             : isP143hScalgoLabelAxisReviewRequested()
               ? p143hCandidateId
@@ -3993,6 +4000,8 @@ const title = 'Private 3D viewer';
             candidate.id === p143jCandidateId && isP143jScalgoLabelFlowReviewRequested();
           const isP144cG31974IvReview =
             candidate.id === p144cCandidateId && isP144cG31974IvReviewRequested();
+          const isP145b1974IvSectionWorkTargetsReview =
+            candidate.id === p145bCandidateId && isP145b1974IvSectionWorkTargetsReviewRequested();
           const isP139nReview = candidate.id === p139nCandidateId;
           const isP139abZReview = candidate.id === p139abCandidateId;
           const isP139acGroundInfraReview =
@@ -4023,13 +4032,22 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.g3SectionAnchorCountExcluded;
           delete canvas.dataset.g3PhysicalZClaim;
           delete canvas.dataset.g3DisplayZRule;
+          delete canvas.dataset.g3PresentationOnly;
+          delete canvas.dataset.g3WorkAssumption;
+          delete canvas.dataset.g3SectionWorkTargetCount;
+          delete canvas.dataset.g3SectionStationStatus;
+          delete canvas.dataset.g3SectionPlaneOrientationStatus;
+          delete canvas.dataset.g3TopologyLinkClaim;
+          delete canvas.dataset.g3PenetrationClaim;
           delete canvas.dataset.scalgoLabelFlowCorridorCount;
           delete canvas.dataset.scalgoLabelMinimumSameCorridorSpacingM;
           delete canvas.dataset.scalgoLabelBuildingExclusion;
           delete canvas.dataset.scalgoLabelCorridorSemanticBoundary;
-          locusLayerLabel.textContent = isP144cG31974IvReview
-            ? 'P143H SCALGO kartografia + 1974 IV plan-ankkurit (WORK_TEST)'
-            : isP143jScalgoLabelFlowReview
+          locusLayerLabel.textContent = isP145b1974IvSectionWorkTargetsReview
+            ? '1974 IV section work-targetit (WORK_TEST / presentation-only / workAssumption)'
+            : isP144cG31974IvReview
+              ? 'P143H SCALGO kartografia + 1974 IV plan-ankkurit (WORK_TEST)'
+              : isP143jScalgoLabelFlowReview
               ? 'SCALGO kartografia + talon ohi sijoitetut korkoluvut + paired valumaväkäset (WORK_TEST)'
               : isP143hScalgoLabelAxisReview
                 ? 'SCALGO kartografia + technical korkoluvut + akseloidut valumaväkäset (WORK_TEST)'
@@ -4051,7 +4069,38 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP143jScalgoLabelFlowReview) {
+          if (isP145b1974IvSectionWorkTargetsReview) {
+            canvas.dataset.workTestReviewMode = 'p145b-1974-iv-section-worktargets-review';
+            canvas.dataset.scalgoContourMajorIntervalM = '1.0';
+            canvas.dataset.scalgoContourHalfIntervalM = '0.5';
+            canvas.dataset.scalgoContourMinorIntervalM = '0.1';
+            canvas.dataset.scalgoContourSourceGridResolutionM = '1.0';
+            canvas.dataset.scalgoContourSmoothingSigmaPx = '0.8';
+            canvas.dataset.scalgoContourLabelPlacement = 'high-side';
+            canvas.dataset.scalgoContourFlowBarbs = 'downhill-paired';
+            canvas.dataset.scalgoLabelFontStyle = 'technical-single-line-sans-v1';
+            canvas.dataset.scalgoMajorLabelHeightM = '0.36';
+            canvas.dataset.scalgoHalfLabelHeightM = '0.27';
+            canvas.dataset.scalgoLabelBarbAxis = 'shared-local-gradient-axis';
+            canvas.dataset.scalgoPairedBarbCount = '14';
+            canvas.dataset.g3SourcePhase = '1974';
+            canvas.dataset.g3OverlayPrimitive = 'SECTION_WORK_TARGETS';
+            canvas.dataset.g3PresentationOnly = 'true';
+            canvas.dataset.g3WorkAssumption = 'true';
+            canvas.dataset.g3SectionWorkTargetCount = '12';
+            canvas.dataset.g3SectionStationStatus = 'WORK_ASSUMPTION_UNRESOLVED';
+            canvas.dataset.g3SectionPlaneOrientationStatus = 'WORK_ASSUMPTION_UNRESOLVED';
+            canvas.dataset.g3PhysicalZClaim = 'false';
+            canvas.dataset.g3TopologyLinkClaim = 'false';
+            canvas.dataset.g3PenetrationClaim = 'false';
+            canvas.dataset.terrainVerticalBridgeStatus = 'WORK_OFFSET_UNVERIFIED';
+            delete canvas.dataset.locusWorkZRouteCount;
+            delete canvas.dataset.locusWorkZMaxElevation;
+            delete canvas.dataset.scalgoTerrainBaseRenderableCount;
+            activateIsometric();
+            status.textContent =
+              'G3 1974 IV - 12 section work-targetia - WORK_TEST / presentation-only / workAssumption - station/orientation unresolved - ei fyysinen Z/penetration';
+          } else if (isP143jScalgoLabelFlowReview) {
             canvas.dataset.workTestReviewMode = 'scalgo-label-flow-review';
             canvas.dataset.scalgoContourMajorIntervalM = '1.0';
             canvas.dataset.scalgoContourHalfIntervalM = '0.5';

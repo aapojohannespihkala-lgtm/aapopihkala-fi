@@ -2285,6 +2285,84 @@ test('private viewer autoloads P144C G3 1974 IV anchors on the exact p143H carto
   );
 });
 
+test('private viewer autoloads the exact P145B 1974 IV section work-target review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P145B 1974 IV SECTION WORK TARGETS ON P144C - BABYLON Y-UP',
+        nodes: [],
+      },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p145b-1974-iv-section-worktargets';
+  const candidateLabel = 'P145B 1974 IV section work-targets - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p145b-1974-iv-section-worktargets.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [
+          {
+            id: 'p144c-g3-1974-iv-on-p143h',
+            label: 'P144C G3 1974 IV anchors + p143H cartography - WORK_TEST',
+            path: '/private-model/work-test/p144c-g3-1974-iv-on-p143h.glb',
+          },
+          { id: candidateId, label: candidateLabel, path: candidatePath },
+        ],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p145b-1974-iv-section-worktargets-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p145b-1974-iv-section-worktargets-review',
+  );
+  await expect(canvas).toHaveAttribute('data-g3-source-phase', '1974');
+  await expect(canvas).toHaveAttribute('data-g3-overlay-primitive', 'SECTION_WORK_TARGETS');
+  await expect(canvas).toHaveAttribute('data-g3-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-g3-work-assumption', 'true');
+  await expect(canvas).toHaveAttribute('data-g3-section-work-target-count', '12');
+  await expect(canvas).toHaveAttribute(
+    'data-g3-section-station-status',
+    'WORK_ASSUMPTION_UNRESOLVED',
+  );
+  await expect(canvas).toHaveAttribute(
+    'data-g3-section-plane-orientation-status',
+    'WORK_ASSUMPTION_UNRESOLVED',
+  );
+  await expect(canvas).toHaveAttribute('data-g3-physical-z-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-g3-topology-link-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-g3-penetration-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'G3 1974 IV - 12 section work-targetia - WORK_TEST / presentation-only / workAssumption - station/orientation unresolved - ei fyysinen Z/penetration',
+  );
+});
+
 test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra for depth review', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
