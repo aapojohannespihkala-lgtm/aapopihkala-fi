@@ -1882,6 +1882,76 @@ test('private viewer autoloads the exact p143G SCALGO cartography review candida
   );
 });
 
+test('private viewer autoloads the exact p143H SCALGO technical label-axis review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P143H SCALGO TECH LABELS + PAIRED GRADIENT BARBS + SMOOTHED CARTOGRAPHY + P142A ARCHITECTURE - BABYLON Y-UP',
+        nodes: [],
+      },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p143h-scalgo-label-axis';
+  const candidateLabel = 'p143H SCALGO technical labels + paired barbs - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p143h-scalgo-label-axis.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [
+          {
+            id: 'p143g-scalgo-cartography',
+            label: 'p143G SCALGO smoothed cartography - WORK_TEST',
+            path: '/private-model/work-test/p143g-scalgo-cartography.glb',
+          },
+          { id: candidateId, label: candidateLabel, path: candidatePath },
+        ],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p143h-scalgo-label-axis-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'scalgo-label-axis-review');
+  await expect(canvas).toHaveAttribute('data-scalgo-contour-major-interval-m', '1.0');
+  await expect(canvas).toHaveAttribute('data-scalgo-contour-half-interval-m', '0.5');
+  await expect(canvas).toHaveAttribute('data-scalgo-contour-minor-interval-m', '0.1');
+  await expect(canvas).toHaveAttribute('data-scalgo-contour-source-grid-resolution-m', '1.0');
+  await expect(canvas).toHaveAttribute('data-scalgo-contour-smoothing-sigma-px', '0.8');
+  await expect(canvas).toHaveAttribute('data-scalgo-label-font-style', 'technical-single-line-sans-v1');
+  await expect(canvas).toHaveAttribute('data-scalgo-major-label-height-m', '0.36');
+  await expect(canvas).toHaveAttribute('data-scalgo-half-label-height-m', '0.27');
+  await expect(canvas).toHaveAttribute('data-scalgo-label-barb-axis', 'shared-local-gradient-axis');
+  await expect(canvas).toHaveAttribute('data-scalgo-paired-barb-count', '14');
+  await expect(canvas).toHaveAttribute('data-terrain-vertical-bridge-status', 'WORK_OFFSET_UNVERIFIED');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'SCALGO KARTOGRAFIA - pienemmät technical korkoluvut - numero ja valumaväkänen samalla gradienttiakselilla',
+  );
+});
+
 test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra for depth review', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
