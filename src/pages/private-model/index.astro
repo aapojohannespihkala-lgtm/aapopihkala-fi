@@ -2376,6 +2376,7 @@ const title = 'Private 3D viewer';
       const p139abCandidateId = 'p139ab-z-credible-wastewater-review';
       const p143aCandidateId = 'p143a-scalgo-terrain';
       const p143aReviewId = 'p143a-scalgo-terrain-review';
+      const p143dReviewId = 'p143d-scalgo-infra-review';
       const p139abZSceneName =
         'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
       const p139abBuildingSceneName =
@@ -2528,11 +2529,12 @@ const title = 'Private 3D viewer';
         }
 
         workTestSelect.disabled = false;
-        const reviewCandidateId = isP143aScalgoTerrainReviewRequested()
-          ? p143aCandidateId
-          : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
-            ? p139abCandidateId
-            : null;
+        const reviewCandidateId =
+          isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
+            ? p143aCandidateId
+            : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
+              ? p139abCandidateId
+              : null;
         const reviewCandidate = reviewCandidateId
           ? workTestCandidates.get(reviewCandidateId)
           : null;
@@ -2692,6 +2694,9 @@ const title = 'Private 3D viewer';
 
       const isP143aScalgoTerrainReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p143aReviewId;
+
+      const isP143dScalgoInfraReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p143dReviewId;
 
       const isP139acGroundInfraReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p139acReviewId;
@@ -2857,6 +2862,106 @@ const title = 'Private 3D viewer';
         return composite;
       };
 
+      const buildP143dScalgoInfraReviewScene = (gltf: any) => {
+        const composite = gltf?.scene;
+        if (!composite) throw new Error('p143D SCALGO terrain carrier scene missing');
+
+        let baseRenderableCount = 0;
+        composite.traverse((object: any) => {
+          if (object.isMesh || object.isLine || object.isLineSegments || object.isPoints) {
+            baseRenderableCount += 1;
+          }
+        });
+        const sourceHasMeshes =
+          Array.isArray(gltf?.parser?.json?.meshes) && gltf.parser.json.meshes.length > 0;
+        if (sourceHasMeshes && baseRenderableCount === 0) {
+          throw new Error('p143D SCALGO terrain carrier has no runtime renderables');
+        }
+
+        const workZGroup = new THREE.Group();
+        workZGroup.name = 'P143D_LOCUS_WORK_Z_ON_SCALGO_CURRENT_TERRAIN';
+
+        for (const route of p139adLocusWorkZRoutes) {
+          const elevations = route.points.map((point) => point[2]);
+          const maxElevationM = Math.max(...elevations);
+          if (maxElevationM >= p139adGroundHardCeilingM) {
+            throw new Error(`p143D route exceeds inherited underground hard ceiling: ${route.name}`);
+          }
+
+          const positions = route.points.flatMap(([x, y, elevation]) => [
+            x,
+            elevation - p139acVerticalReferenceM,
+            -y,
+          ]);
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+          const material = new THREE.LineBasicMaterial({
+            color: route.system === 'WATER' ? 0x1f7fc9 : 0xb2672d,
+            transparent: true,
+            opacity: 0.98,
+            depthTest: false,
+          });
+          const line = new THREE.Line(geometry, material);
+          line.name = `P143D_${route.name}`;
+          line.renderOrder = 8;
+          line.userData = {
+            Canonical: false,
+            ModelStage: 'WORK_TEST_VIEW',
+            presentationOnly: true,
+            presentationLayer: 'P143D_LOCUS_WORK_Z_ON_SCALGO',
+            presentationSubgroup: route.system,
+            sourceObject: route.sourceObject,
+            sourceXYState: 'PRESERVED_EXACT_FROM_G3_LOCUS_SITE_P02',
+            sourceZPreservedAsProvenance: true,
+            workZAssumption: true,
+            refinable: true,
+            workZBasis: route.workZBasis,
+            sourceZNote: route.sourceZNote,
+            minimumWorkElevationM: Math.min(...elevations),
+            maximumWorkElevationM: maxElevationM,
+            verticalReferenceElevationM: p139acVerticalReferenceM,
+            physicalZClaim: false,
+            samePipeClaim: false,
+            topologyLinkClaim: false,
+            currentClaim: false,
+            asBuiltClaim: false,
+            verticalDatumStatus: 'OPEN_UNVERIFIED',
+          };
+          workZGroup.add(line);
+        }
+
+        workZGroup.userData = {
+          Canonical: false,
+          ModelStage: 'WORK_TEST_VIEW',
+          presentationOnly: true,
+          reviewScope: 'SCALGO_CURRENT_TERRAIN_PLUS_LOCUS_WORK_Z',
+          routeCount: p139adLocusWorkZRoutes.length,
+          verticalReferenceElevationM: p139acVerticalReferenceM,
+          terrainVerticalBridgeStatus: 'WORK_OFFSET_UNVERIFIED',
+          sourceXYMutation: false,
+          sourceZMutation: false,
+          physicalZClaim: false,
+          currentClaim: false,
+          asBuiltClaim: false,
+        };
+
+        composite.add(workZGroup);
+        composite.userData = {
+          ...composite.userData,
+          reviewScope: 'SCALGO_CURRENT_TERRAIN_PLUS_LOCUS_WORK_Z',
+          scalgoTerrainBaseRenderableCount: baseRenderableCount,
+          locusWorkZRouteCount: p139adLocusWorkZRoutes.length,
+          locusWorkZMaxElevationM: Math.max(
+            ...p139adLocusWorkZRoutes.flatMap((route) => route.points.map((point) => point[2])),
+          ),
+          verticalReferenceElevationM: p139acVerticalReferenceM,
+          terrainVerticalBridgeStatus: 'WORK_OFFSET_UNVERIFIED',
+          locusWorkZAssumptionsRefinable: true,
+        };
+        return composite;
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         const loader = new GLTFLoader();
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
@@ -2865,6 +2970,8 @@ const title = 'Private 3D viewer';
           const gltf = await loader.loadAsync(candidate.path);
           const isP143aScalgoTerrainReview =
             candidate.id === p143aCandidateId && isP143aScalgoTerrainReviewRequested();
+          const isP143dScalgoInfraReview =
+            candidate.id === p143aCandidateId && isP143dScalgoInfraReviewRequested();
           const isP139nReview = candidate.id === p139nCandidateId;
           const isP139abZReview = candidate.id === p139abCandidateId;
           const isP139acGroundInfraReview =
@@ -2872,7 +2979,9 @@ const title = 'Private 3D viewer';
           const isP139adLocusWorkZReview =
             isP139abZReview && isP139adLocusWorkZReviewRequested();
 
-          if (isP139nReview) {
+          if (isP143dScalgoInfraReview) {
+            gltf.scene = buildP143dScalgoInfraReviewScene(gltf);
+          } else if (isP139nReview) {
             const planScene = findSourceNamedScene(gltf, p139nPlanSceneName);
             if (!planScene) throw new Error('p139N SITE_PLAN_OVERLAY scene missing');
             gltf.scene = planScene;
@@ -2887,8 +2996,10 @@ const title = 'Private 3D viewer';
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
-          locusLayerLabel.textContent = isP143aScalgoTerrainReview
-            ? 'SCALGO maasto + rakennus (WORK_TEST)'
+          locusLayerLabel.textContent = isP143dScalgoInfraReview
+            ? 'SCALGO nykymaasto + Locus work-Z infra (WORK_TEST)'
+            : isP143aScalgoTerrainReview
+              ? 'SCALGO maasto + rakennus (WORK_TEST)'
             : isP139nReview
               ? 'Kunnallistekniikka / KVV-reitit (WORK_TEST)'
               : isP139adLocusWorkZReview
@@ -2899,8 +3010,23 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP143aScalgoTerrainReview) {
+          if (isP143dScalgoInfraReview) {
+            canvas.dataset.workTestReviewMode = 'scalgo-terrain-infra-review';
+            canvas.dataset.locusWorkZRouteCount = String(p139adLocusWorkZRoutes.length);
+            canvas.dataset.locusWorkZMaxElevation = '18.150';
+            canvas.dataset.scalgoTerrainBaseRenderableCount = String(
+              gltf.scene?.userData?.scalgoTerrainBaseRenderableCount ?? 0,
+            );
+            canvas.dataset.terrainVerticalBridgeStatus = 'WORK_OFFSET_UNVERIFIED';
+            activateIsometric();
+            status.textContent =
+              'SCALGO NYKYMAASTO + LOCUS WORK-Z - 4 reittiä - työoffset 21,750 m / ei as-built';
+          } else if (isP143aScalgoTerrainReview) {
             canvas.dataset.workTestReviewMode = 'scalgo-terrain-review';
+            delete canvas.dataset.locusWorkZRouteCount;
+            delete canvas.dataset.locusWorkZMaxElevation;
+            delete canvas.dataset.scalgoTerrainBaseRenderableCount;
+            delete canvas.dataset.terrainVerticalBridgeStatus;
             activateIsometric();
             status.textContent =
               'SCALGO MAASTO + RAKENNUS - WORK_TEST - pystykorkosilta oletus / ei as-built';
@@ -2939,6 +3065,8 @@ const title = 'Private 3D viewer';
             delete canvas.dataset.locusWorkZMaxElevation;
             delete canvas.dataset.p139abBuildingRenderableCount;
             delete canvas.dataset.p139abSourceZRenderableCount;
+            delete canvas.dataset.scalgoTerrainBaseRenderableCount;
+            delete canvas.dataset.terrainVerticalBridgeStatus;
           }
         } catch (error) {
           console.error(error);
@@ -3112,11 +3240,12 @@ const title = 'Private 3D viewer';
         if (imported) return;
 
         await loadWorkTestCatalog();
-        const reviewCandidateId = isP143aScalgoTerrainReviewRequested()
-          ? p143aCandidateId
-          : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
-            ? p139abCandidateId
-            : null;
+        const reviewCandidateId =
+          isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
+            ? p143aCandidateId
+            : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
+              ? p139abCandidateId
+              : null;
         const reviewCandidate = reviewCandidateId
           ? workTestCandidates.get(reviewCandidateId)
           : null;

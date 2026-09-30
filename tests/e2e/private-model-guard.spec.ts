@@ -1646,6 +1646,70 @@ test('private viewer autoloads the exact p143A SCALGO terrain review candidate',
   );
 });
 
+test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra for depth review', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeTriangleGlb();
+  const candidateId = 'p143a-scalgo-terrain';
+  const candidateLabel = 'p143A SCALGO terrain + architecture - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p143a-scalgo-terrain.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [
+          {
+            id: 'p136b-d-current-wall-corrected',
+            label: 'p136B - D current wall corrected',
+            path: '/private-model/work-test/p136b-d-current-wall-corrected.glb',
+          },
+          { id: candidateId, label: candidateLabel, path: candidatePath },
+        ],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p143d-scalgo-infra-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'scalgo-terrain-infra-review');
+  await expect(canvas).toHaveAttribute('data-locus-work-z-route-count', '4');
+  await expect(canvas).toHaveAttribute('data-locus-work-z-max-elevation', '18.150');
+  await expect(canvas).toHaveAttribute('data-scalgo-terrain-base-renderable-count', '1');
+  await expect(canvas).toHaveAttribute('data-terrain-vertical-bridge-status', 'WORK_OFFSET_UNVERIFIED');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'SCALGO NYKYMAASTO + LOCUS WORK-Z - 4 reittiä - työoffset 21,750 m / ei as-built',
+  );
+
+  await page.getByRole('button', { name: 'Julk -Y' }).click();
+  await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
+  await expect(canvas).toHaveAttribute('data-elevation-direction', 'neg-y');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
+  await expect(page.locator('#height-scale')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  await expect(page.getByText('SCALGO nykymaasto + Locus work-Z infra (WORK_TEST)')).toBeVisible();
+});
+
 test('private viewer composes p139AC ground and Z-backed underground infra review on p139AB', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
