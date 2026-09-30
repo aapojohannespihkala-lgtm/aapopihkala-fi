@@ -4117,6 +4117,27 @@ const title = 'Private 3D viewer';
         return composite;
       };
 
+      const applyP156iReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p156i-2017-kvv-main-review',
+          p156SourceFamily: 'KVV_MAIN_2017_WORK_ASSUMPTION',
+          p156TimeRole: '2017_PROJECT_PLAN_DERIVED',
+          p156PresentationOnly: 'true',
+          p156DisplayZAssumption: 'true',
+          p156WorkDatumStatus: 'PRESENTATION_ONLY_REFINABLE',
+          p156VerticalDatumStatus: 'OPEN_UNVERIFIED',
+          p156PhysicalZClaim: 'false',
+          p156CurrentClaim: 'false',
+          p156AsBuiltClaim: 'false',
+          p156TopologyLinkClaim: 'false',
+          p156SamePipeClaim: 'false',
+          p156PenetrationClaim: 'false',
+        });
+        activateIsometric();
+        status.textContent =
+          'P156I 2017 KVV mainCandidate - WORK_TEST / presentation-only +8,700 m - ei fyysinen putkikorko';
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         const loader = new GLTFLoader();
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
