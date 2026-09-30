@@ -3761,8 +3761,9 @@ const title = 'Private 3D viewer';
         if (imported) return;
 
         await loadWorkTestCatalog();
-        const reviewCandidateId =
-          isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
+        const reviewCandidateId = isP143fScalgoContourReviewRequested()
+          ? p143fCandidateId
+          : isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
             ? p143aCandidateId
             : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
               ? p139abCandidateId
