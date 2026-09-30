@@ -1590,6 +1590,62 @@ test('private viewer opens p139AB as a Z-only orthographic wastewater review', a
   await expect(page.locator('#locus-layer-visible')).toBeDisabled();
 });
 
+test('private viewer autoloads the exact p143A SCALGO terrain review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P143A SCALGO CURRENT TERRAIN + P142A ARCHITECTURE - BABYLON Y-UP', nodes: [] },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p143a-scalgo-terrain';
+  const candidateLabel = 'p143A SCALGO terrain + architecture - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p143a-scalgo-terrain.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [
+          {
+            id: 'p136b-d-current-wall-corrected',
+            label: 'p136B - D current wall corrected',
+            path: '/private-model/work-test/p136b-d-current-wall-corrected.glb',
+          },
+          { id: candidateId, label: candidateLabel, path: candidatePath },
+        ],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p143a-scalgo-terrain-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'scalgo-terrain-review');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'SCALGO MAASTO + RAKENNUS - WORK_TEST - pystykorkosilta oletus / ei as-built',
+  );
+});
+
 test('private viewer composes p139AC ground and Z-backed underground infra review on p139AB', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
