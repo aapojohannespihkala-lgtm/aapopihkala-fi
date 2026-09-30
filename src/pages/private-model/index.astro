@@ -3122,6 +3122,8 @@ const title = 'Private 3D viewer';
       const p151cReviewId = 'p151c-whole-building-review';
       const p156iCandidateId = 'p156i-2017-kvv-main-presentation';
       const p156iReviewId = 'p156i-2017-kvv-main-review';
+      const p154cCandidateId = 'p154c-d-wall-cutouts';
+      const p154cReviewId = 'p154c-d-wall-cutouts-review';
       const p139abZSceneName =
         'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
       const p139abBuildingSceneName =
@@ -3828,9 +3830,14 @@ const title = 'Private 3D viewer';
       const isP156i2017KvvMainReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p156iReviewId;
 
+      const isP154cDWallCutoutsReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p154cReviewId;
+
       const getRequestedReviewCandidateId = () =>
-        isP156i2017KvvMainReviewRequested()
-          ? p156iCandidateId
+        isP154cDWallCutoutsReviewRequested()
+          ? p154cCandidateId
+          : isP156i2017KvvMainReviewRequested()
+            ? p156iCandidateId
           : isP151cWholeBuildingReviewRequested()
             ? p151cCandidateId
             : isP155cbDStorageRoofReviewRequested()
@@ -4138,6 +4145,35 @@ const title = 'Private 3D viewer';
           'P156I 2017 KVV mainCandidate - WORK_TEST / presentation-only +8,700 m - ei fyysinen putkikorko';
       };
 
+      const applyP154cReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p154c-d-wall-cutouts-review',
+          p154ResultWallPieceCount: '126',
+          p154CutoutIdentityCount: '18',
+          p154DoorCutoutCount: '11',
+          p154WindowCutoutCount: '7',
+          p154ExcludedUnmappedUserOpeningCount: '2',
+          p154ExcludedUnmappedUserOpeningIds:
+            'D1F_USER_CURRENT_DOOR_A,D1F_USER_CURRENT_DOOR_B',
+          p154OpeningTreatment: 'P154C_WORK_TEST_CUTOUT_APPLIED',
+          p154DoorVerticalBasis: 'REFINABLE_WORK_ASSUMPTION_2_100M',
+          p154WindowVerticalBasis: 'SOURCE_REFERENCE_OPENING',
+          p154NormalExtentRole: 'HOST_SOLID_INTERSECTION_ONLY',
+          p154SourcePrimitiveMutation: 'false',
+          p154PhysicalDoorHeightClaim: 'false',
+          p154PhysicalOpeningClaim: 'false',
+          p154CurrentClaim: 'false',
+          p154AsBuiltClaim: 'false',
+          p154Canonical: 'false',
+          p154HumanReview: 'NOT_RUN',
+          standardViewPreset: 'd-apartment',
+        });
+        applyViewerLayerState(standardViewLayerDefaults['d-apartment'], 'preset:d-apartment');
+        activateIsometric();
+        status.textContent =
+          'P154C D-seinäsolidit + aukot - WORK_TEST / 18 cutoutia - ovikorkeus 2,100 m refinable - ei CURRENT/as-built';
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         const loader = new GLTFLoader();
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
@@ -4166,6 +4202,8 @@ const title = 'Private 3D viewer';
             candidate.id === p151cCandidateId && isP151cWholeBuildingReviewRequested();
           const isP156i2017KvvMainReview =
             candidate.id === p156iCandidateId && isP156i2017KvvMainReviewRequested();
+          const isP154cDWallCutoutsReview =
+            candidate.id === p154cCandidateId && isP154cDWallCutoutsReviewRequested();
           const isP139nReview = candidate.id === p139nCandidateId;
           const isP139abZReview = candidate.id === p139abCandidateId;
           const isP139acGroundInfraReview =
@@ -4259,7 +4297,9 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP156i2017KvvMainReview) {
+          if (isP154cDWallCutoutsReview) {
+            applyP154cReviewState();
+          } else if (isP156i2017KvvMainReview) {
             applyP156iReviewState();
           } else if (isP151cWholeBuildingReview) {
             canvas.dataset.workTestReviewMode = 'p151c-whole-building-review';
