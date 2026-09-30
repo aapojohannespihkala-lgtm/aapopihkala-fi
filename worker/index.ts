@@ -28,6 +28,7 @@ const LIIGA_SCHEDULE_PATH = '/api/current/liiga-schedule';
 const SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS = 4_000;
 
 const WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS = 24 * 60 * 60;
+const WIDGET_LIVE_WAIT_MS = 4_000;
 const PORTFOLIO_LAST_KNOWN_GOOD_TTL_SECONDS = 24 * 60 * 60;
 const PORTFOLIO_PERIODS = [
   'today',
@@ -98,15 +99,58 @@ const widgetCacheKeys = (request: Request) => {
   ];
 };
 
+const widgetFallbackResponse = async (
+  keys: Request[],
+  cache: ResponseCache,
+): Promise<Response | null> => {
+  for (const key of keys) {
+    try {
+      const fallback = await cache.match(key);
+      if (!fallback) continue;
+      const headers = new Headers(fallback.headers);
+      headers.set('Cache-Control', 'private, no-store');
+      headers.set('X-Widget-Fallback', 'last-known-good');
+      return new Response(fallback.body, {
+        status: 200,
+        statusText: 'OK',
+        headers,
+      });
+    } catch {
+      // Try the other compatible Widget cache alias before giving up.
+    }
+  }
+
+  return null;
+};
+
 export const serveWidgetWithLastKnownGood = async (
   request: Request,
   load: () => Promise<Response>,
   cache: ResponseCache | undefined = defaultResponseCache(),
+  liveWaitMs = WIDGET_LIVE_WAIT_MS,
 ) => {
-  const response = await load();
-  if (!cache) return response;
+  const loadPromise = load();
+  if (!cache) return loadPromise;
 
+  // A slow live refresh must not make the widget wait indefinitely when a
+  // usable last-known-good payload is already available at the edge.
+  void loadPromise.catch(() => undefined);
   const keys = widgetCacheKeys(request);
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const response = await Promise.race<Response | null>([
+    loadPromise,
+    new Promise<null>((resolve) => {
+      timeout = setTimeout(() => resolve(null), liveWaitMs);
+    }),
+  ]);
+  if (timeout !== undefined) clearTimeout(timeout);
+
+  if (response === null) {
+    const fallback = await widgetFallbackResponse(keys, cache);
+    if (fallback) return fallback;
+    return loadPromise;
+  }
+
   if (response.ok) {
     const headers = new Headers(response.headers);
     headers.set('Cache-Control', `public, max-age=${WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS}`);
@@ -127,24 +171,7 @@ export const serveWidgetWithLastKnownGood = async (
 
   if (response.status !== 503) return response;
 
-  for (const key of keys) {
-    try {
-      const fallback = await cache.match(key);
-      if (!fallback) continue;
-      const headers = new Headers(fallback.headers);
-      headers.set('Cache-Control', 'private, no-store');
-      headers.set('X-Widget-Fallback', 'last-known-good');
-      return new Response(fallback.body, {
-        status: 200,
-        statusText: 'OK',
-        headers,
-      });
-    } catch {
-      // Try the other compatible Widget cache alias before returning the live failure.
-    }
-  }
-
-  return response;
+  return (await widgetFallbackResponse(keys, cache)) ?? response;
 };
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
