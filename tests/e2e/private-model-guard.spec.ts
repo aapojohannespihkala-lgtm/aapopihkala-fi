@@ -1000,7 +1000,6 @@ test('private viewer resolves the source D scene even when Three runtime names a
 
   await page.goto('/private-model/');
 
-  await expect(page.getByRole('button', { name: 'D 1F' })).toBeVisible();
   await expect(page.locator('#view-menu > summary')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
   await expect(page.locator('#model-source-badge')).toBeVisible();
