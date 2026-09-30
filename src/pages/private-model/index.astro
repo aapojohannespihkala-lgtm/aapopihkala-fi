@@ -3124,6 +3124,8 @@ const title = 'Private 3D viewer';
       const p156iReviewId = 'p156i-2017-kvv-main-review';
       const p154cCandidateId = 'p154c-d-wall-cutouts';
       const p154cReviewId = 'p154c-d-wall-cutouts-review';
+      const p153cCandidateId = 'p153c-d-stair-guard-lowwall';
+      const p153cReviewId = 'p153c-d-stair-review';
       const p139abZSceneName =
         'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
       const p139abBuildingSceneName =
@@ -3833,9 +3835,14 @@ const title = 'Private 3D viewer';
       const isP154cDWallCutoutsReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p154cReviewId;
 
+      const isP153cDStairReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p153cReviewId;
+
       const getRequestedReviewCandidateId = () =>
-        isP154cDWallCutoutsReviewRequested()
-          ? p154cCandidateId
+        isP153cDStairReviewRequested()
+          ? p153cCandidateId
+          : isP154cDWallCutoutsReviewRequested()
+            ? p154cCandidateId
           : isP156i2017KvvMainReviewRequested()
             ? p156iCandidateId
           : isP151cWholeBuildingReviewRequested()
@@ -4174,6 +4181,31 @@ const title = 'Private 3D viewer';
           'P154C D-seinäsolidit + aukot - WORK_TEST / 18 cutoutia - ovikorkeus 2,100 m refinable - ei CURRENT/as-built';
       };
 
+      const applyP153cReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p153c-d-stair-review',
+          p153WorkTopology: 'TWO_FLIGHT_SWITCHBACK_WITH_TURN_LANDING',
+          p153WorkRiserCount: '16',
+          p153TotalRiseM: '2.760',
+          p153WorkAssumption: 'true',
+          p153PhysicalStairClaim: 'false',
+          p153PhysicalOpeningClaim: 'false',
+          p153FloorShellCutApplied: 'false',
+          p153PhysicalGuardClaim: 'false',
+          p153PhysicalLowWallClaim: 'false',
+          p153GuardLowWallJunctionStatus: 'RELATIONAL_ONLY_EXACT_JUNCTION_UNRESOLVED',
+          p153PillarGeometryCreated: 'false',
+          p153ExactGuardGeometryStatus: 'DEFERRED',
+          p153ExactLowWallHeightStatus: 'DEFERRED',
+          p153HumanReview: 'NOT_RUN',
+          standardViewPreset: 'd-apartment',
+        });
+        applyViewerLayerState(standardViewLayerDefaults['d-apartment'], 'preset:d-apartment');
+        activateIsometric();
+        status.textContent =
+          'P153C D-portaat - WORK_TEST / portaat + opening-frame + guard/lowWall - mitat refinable, pilarijakso DEFERRED';
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         const loader = new GLTFLoader();
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
@@ -4204,6 +4236,8 @@ const title = 'Private 3D viewer';
             candidate.id === p156iCandidateId && isP156i2017KvvMainReviewRequested();
           const isP154cDWallCutoutsReview =
             candidate.id === p154cCandidateId && isP154cDWallCutoutsReviewRequested();
+          const isP153cDStairReview =
+            candidate.id === p153cCandidateId && isP153cDStairReviewRequested();
           const isP139nReview = candidate.id === p139nCandidateId;
           const isP139abZReview = candidate.id === p139abCandidateId;
           const isP139acGroundInfraReview =
@@ -4297,7 +4331,9 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP154cDWallCutoutsReview) {
+          if (isP153cDStairReview) {
+            applyP153cReviewState();
+          } else if (isP154cDWallCutoutsReview) {
             applyP154cReviewState();
           } else if (isP156i2017KvvMainReview) {
             applyP156iReviewState();
