@@ -1828,8 +1828,12 @@ test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra fo
   const profileTerrainHitCount = Number(await canvas.getAttribute('data-profile-terrain-hit-count'));
   expect(profileSampleCount).toBeGreaterThan(2);
   expect(profileTerrainHitCount).toBe(profileSampleCount);
-  await expect(page.locator('#profile-svg [data-series="terrain"]')).toBeVisible();
-  await expect(page.locator('#profile-svg [data-series="pipe"]')).toBeVisible();
+  const terrainProfilePath = page.locator('#profile-svg [data-series="terrain"]');
+  const pipeProfilePath = page.locator('#profile-svg [data-series="pipe"]');
+  await expect(terrainProfilePath).toHaveCount(1);
+  await expect(pipeProfilePath).toHaveCount(1);
+  expect(await terrainProfilePath.getAttribute('d')).toContain('M');
+  expect(await pipeProfilePath.getAttribute('d')).toContain('M');
   await expect(page.locator('#profile-summary')).toContainText('peitto min 3,60 m');
   await page.locator('#close-profile-button').click();
 
