@@ -90,6 +90,14 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_673_484,
     expectedSha256: '768972c522f63de0629020874f690b796b54f7c6d70125248d51f39b8d682c56',
   },
+  {
+    id: 'p144c-g3-1974-iv-on-p143h',
+    label: 'P144C G3 1974 IV anchors + p143H cartography - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p144c-g3-1974-iv-on-p143h.glb`,
+    objectKey: 'work-test/p144c-g3-1974-iv-on-p143h.glb',
+    expectedSize: 1_720_068,
+    expectedSha256: '739e5cfed61edae7464af4edf77dfdf4c34354def6f88c993c2ca62f2c29ece1',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
