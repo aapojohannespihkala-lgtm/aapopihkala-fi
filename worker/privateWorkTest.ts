@@ -107,6 +107,14 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_720_068,
     expectedSha256: '739e5cfed61edae7464af4edf77dfdf4c34354def6f88c993c2ca62f2c29ece1',
   },
+  {
+    id: 'p145b-1974-iv-section-worktargets',
+    label: 'P145B 1974 IV section work-targets - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p145b-1974-iv-section-worktargets.glb`,
+    objectKey: 'work-test/p145b-1974-iv-section-worktargets.glb',
+    expectedSize: 1_732_508,
+    expectedSha256: '0d6754bde828bba9b7e78806c5ab8eac0a11a5077f43b8f3a5410f74e16c40e9',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
