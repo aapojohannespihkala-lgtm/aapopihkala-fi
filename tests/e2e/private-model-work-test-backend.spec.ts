@@ -156,6 +156,14 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     '67581d3d4f4a444c182a89c56c09235a22e6055e7f9edd7d0d28a6960329b043',
   );
 
+  const p156i = getPrivateWorkTestCandidateById('p156i-2017-kvv-main-presentation');
+  expect(p156i).toMatchObject({
+    id: 'p156i-2017-kvv-main-presentation',
+    objectKey: 'work-test/p156i-2017-kvv-main-presentation.glb',
+    expectedSize: 1_848_532,
+    expectedSha256: '072890e75cd693c05dc705d6a5581e999b9124d37d99aa914336c0a1d9b3ef3f',
+  });
+
   for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
     expect(getPrivateWorkTestCandidate(candidate.path)?.id).toBe(candidate.id);
     expect(getPrivateWorkTestCandidateById(candidate.id)?.path).toBe(candidate.path);
