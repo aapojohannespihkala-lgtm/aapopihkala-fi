@@ -3008,9 +3008,25 @@ const title = 'Private 3D viewer';
         );
       };
 
+      const setWorkTestUploadFallback = (candidateId: string | null) => {
+        if (candidateId) {
+          workTestUploadButton.hidden = false;
+          workTestUploadButton.disabled = false;
+          workTestUploadButton.dataset.candidateId = candidateId;
+          canvas.dataset.workTestUploadCandidate = candidateId;
+          return;
+        }
+
+        workTestUploadButton.hidden = true;
+        workTestUploadButton.disabled = true;
+        delete workTestUploadButton.dataset.candidateId;
+        delete canvas.dataset.workTestUploadCandidate;
+      };
+
       const setWorkTestCatalog = (candidates: WorkTestCandidate[]) => {
         workTestCandidates = new Map(candidates.map((candidate) => [candidate.id, candidate]));
         workTestSelect.replaceChildren();
+        const reviewCandidateId = getRequestedReviewCandidateId();
 
         if (candidates.length === 0) {
           const option = document.createElement('option');
@@ -3019,6 +3035,7 @@ const title = 'Private 3D viewer';
           workTestSelect.append(option);
           workTestSelect.disabled = true;
           workTestButton.disabled = true;
+          setWorkTestUploadFallback(reviewCandidateId);
           canvas.dataset.workTestCatalog = 'empty';
           return;
         }
@@ -3031,7 +3048,6 @@ const title = 'Private 3D viewer';
         }
 
         workTestSelect.disabled = false;
-        const reviewCandidateId = getRequestedReviewCandidateId();
         const reviewCandidate = reviewCandidateId
           ? workTestCandidates.get(reviewCandidateId)
           : null;
@@ -3040,8 +3056,10 @@ const title = 'Private 3D viewer';
         canvas.dataset.workTestCatalog = 'ready';
         if (reviewCandidate) {
           canvas.dataset.workTestReviewCandidate = reviewCandidate.id;
+          setWorkTestUploadFallback(null);
         } else {
           delete canvas.dataset.workTestReviewCandidate;
+          setWorkTestUploadFallback(reviewCandidateId);
         }
       };
 
@@ -3756,6 +3774,67 @@ const title = 'Private 3D viewer';
         );
       };
 
+      const uploadWorkTestCandidateFile = async (file: File) => {
+        const candidateId =
+          workTestUploadButton.dataset.candidateId ?? getRequestedReviewCandidateId();
+        if (!candidateId || !/^[a-z0-9-]+$/.test(candidateId)) {
+          status.textContent = 'WORK_TEST-kandidaattia ei tunnistettu';
+          return false;
+        }
+
+        workTestUploadButton.disabled = true;
+        canvas.dataset.workTestUpload = 'loading';
+        status.textContent = 'Tarkistetaan ja tallennetaan WORK_TEST-tiedostoa...';
+
+        try {
+          const response = await fetch(
+            `${workTestUploadPrefix}${encodeURIComponent(candidateId)}.glb`,
+            {
+              method: 'PUT',
+              headers: {
+                Accept: 'application/json',
+                'Content-Type': 'model/gltf-binary',
+              },
+              cache: 'no-store',
+              body: file,
+            },
+          );
+          if (!response.ok) throw new Error(`WORK_TEST upload HTTP ${response.status}`);
+
+          const payload = (await response.json()) as {
+            candidate?: unknown;
+            ready?: unknown;
+          };
+          if (!isWorkTestCandidate(payload.candidate) || payload.ready !== true) {
+            throw new Error('WORK_TEST upload response invalid');
+          }
+          if (payload.candidate.id !== candidateId) {
+            throw new Error('WORK_TEST upload candidate mismatch');
+          }
+
+          await loadWorkTestCatalog();
+          const candidate = workTestCandidates.get(candidateId);
+          if (!candidate) throw new Error('WORK_TEST candidate missing after upload');
+
+          workTestSelect.value = candidate.id;
+          workTestButton.disabled = false;
+          setWorkTestUploadFallback(null);
+          canvas.dataset.workTestUpload = 'ready';
+          await loadWorkTestCandidate(candidate);
+          return true;
+        } catch (error) {
+          console.error(error);
+          canvas.dataset.workTestUpload = 'failed';
+          setWorkTestUploadFallback(candidateId);
+          status.textContent =
+            'Tiedosto ei kelvannut tähän WORK_TEST-kandidaattiin tai tallennus epäonnistui';
+          return false;
+        } finally {
+          workTestUploadInput.value = '';
+          if (!workTestUploadButton.hidden) workTestUploadButton.disabled = false;
+        }
+      };
+
       const importWorkTestCandidateFromFragment = async () => {
         const intent = readWorkTestImportIntent();
         if (!intent) return false;
@@ -3799,8 +3878,12 @@ const title = 'Private 3D viewer';
         } catch (error) {
           console.error(error);
           canvas.dataset.workTestImport = 'failed';
-          status.textContent = 'WORK_TEST-kandidaatin valmistelu epäonnistui';
           await loadWorkTestCatalog();
+          if (!workTestCandidates.has(intent.candidateId)) {
+            setWorkTestUploadFallback(intent.candidateId);
+            status.textContent =
+              'WORK_TEST-lähteen nouto epäonnistui - tuo sama tarkistettu .glb paikallisena';
+          }
           return false;
         }
       };
@@ -3826,6 +3909,15 @@ const title = 'Private 3D viewer';
           return;
         }
         void loadWorkTestCandidate(candidate);
+      });
+      workTestUploadButton.addEventListener('click', () => {
+        workTestUploadInput.value = '';
+        workTestUploadInput.click();
+      });
+      workTestUploadInput.addEventListener('change', () => {
+        const file = workTestUploadInput.files?.[0];
+        if (!file) return;
+        void uploadWorkTestCandidateFile(file);
       });
       currentModelButton.addEventListener('click', () => {
         void loadCurrentModel();
@@ -3909,6 +4001,11 @@ const title = 'Private 3D viewer';
           canvas.dataset.workTestReviewAutoload = 'true';
         } else {
           delete canvas.dataset.workTestReviewAutoload;
+          if (reviewCandidateId) {
+            setWorkTestUploadFallback(reviewCandidateId);
+            status.textContent =
+              'WORK_TEST ei ole palvelimella - tuo tarkistettu .glb paikallisena';
+          }
         }
       })();
     </script>
