@@ -36,6 +36,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test/p145b-1974-iv-section-worktargets.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p155cb-d-storage-roof.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p151c-whole-building-carrier.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/p150fr-whole-building-substructure.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p156i-2017-kvv-main-presentation.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p154c-d-wall-cutouts.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p153c-d-stair-guard-lowwall.glb')).toBe(true);
@@ -43,8 +44,8 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/model.glb')).toBe(false);
 });
 
-test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(17);
+test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R and P156I', () => {
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(18);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -158,6 +159,14 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     '67581d3d4f4a444c182a89c56c09235a22e6055e7f9edd7d0d28a6960329b043',
   );
 
+  const p150fr = getPrivateWorkTestCandidateById('p150fr-whole-building-substructure');
+  expect(p150fr).toMatchObject({
+    id: 'p150fr-whole-building-substructure',
+    objectKey: 'work-test/p150fr-whole-building-substructure.glb',
+    expectedSize: 1_919_860,
+    expectedSha256: '13ca8995e873982a91d7fe1bd82eff97a3a09f9688507b2fa488244cca1b0e03',
+  });
+
   const p156i = getPrivateWorkTestCandidateById('p156i-2017-kvv-main-presentation');
   expect(p156i).toMatchObject({
     id: 'p156i-2017-kvv-main-presentation',
@@ -197,6 +206,8 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestUploadCandidate(p155cbUploadPath)?.id).toBe('p155cb-d-storage-roof');
   const p151cUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p151c-whole-building-carrier.glb`;
   expect(getPrivateWorkTestUploadCandidate(p151cUploadPath)?.id).toBe('p151c-whole-building-carrier');
+  const p150frUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p150fr-whole-building-substructure.glb`;
+  expect(getPrivateWorkTestUploadCandidate(p150frUploadPath)?.id).toBe('p150fr-whole-building-substructure');
   const p156iUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p156i-2017-kvv-main-presentation.glb`;
   expect(getPrivateWorkTestUploadCandidate(p156iUploadPath)?.id).toBe('p156i-2017-kvv-main-presentation');
   const p154cUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p154c-d-wall-cutouts.glb`;
