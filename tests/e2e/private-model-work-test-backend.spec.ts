@@ -4,12 +4,15 @@ import {
   PRIVATE_WORK_TEST_CANDIDATES,
   PRIVATE_WORK_TEST_CATALOG_PATH,
   PRIVATE_WORK_TEST_IMPORT_PATH,
+  PRIVATE_WORK_TEST_UPLOAD_PREFIX,
   getPrivateWorkTestCandidate,
   getPrivateWorkTestCandidateById,
+  getPrivateWorkTestUploadCandidate,
   handlePrivateWorkTestRequest,
   isPrivateWorkTestObjectValid,
   isPrivateWorkTestPath,
   isTrustedPrivateWorkTestSourceUrl,
+  validatePrivateWorkTestUploadBytes,
 } from '../../worker/privateWorkTest';
 import type { PrivateModelEnv } from '../../worker/privateModel';
 
@@ -17,6 +20,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/catalog.json')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/import.json')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/upload/p143h-scalgo-label-axis.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p136b-d-current-wall-corrected.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p137j-d1f-user-current-doors.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/g3-locus-site-p06-axis-corrected.glb')).toBe(true);
@@ -119,6 +123,11 @@ test('private WORK_TEST candidate allowlist exposes the named review routes incl
     expect(getPrivateWorkTestCandidateById(candidate.id)?.path).toBe(candidate.path);
   }
   expect(getPrivateWorkTestCandidateById('not-allowlisted')).toBeNull();
+  const p143hUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p143h-scalgo-label-axis.glb`;
+  expect(getPrivateWorkTestUploadCandidate(p143hUploadPath)?.id).toBe('p143h-scalgo-label-axis');
+  expect(getPrivateWorkTestUploadCandidate(`${p143hUploadPath}/extra`)).toBeNull();
+  expect(getPrivateWorkTestUploadCandidate(`${PRIVATE_WORK_TEST_UPLOAD_PREFIX}../model.glb`)).toBeNull();
+  expect(getPrivateWorkTestUploadCandidate(`${PRIVATE_WORK_TEST_UPLOAD_PREFIX}not-allowlisted.glb`)).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/model.glb')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/../model.glb')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/p136b-d-current-wall-corrected.glb/extra')).toBeNull();
@@ -158,6 +167,22 @@ test('private WORK_TEST candidates require exact R2 size and SHA metadata before
 
     expect(isPrivateWorkTestObjectValid({ size: candidate.expectedSize }, candidate)).toBe(false);
   }
+});
+
+test('private WORK_TEST direct upload validation requires exact size and SHA-256', async () => {
+  const abc = new Uint8Array([0x61, 0x62, 0x63]).buffer;
+  const expected = {
+    expectedSize: 3,
+    expectedSha256: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+  };
+
+  await expect(validatePrivateWorkTestUploadBytes(abc, expected)).resolves.toBeNull();
+  await expect(
+    validatePrivateWorkTestUploadBytes(abc, { ...expected, expectedSize: 4 }),
+  ).resolves.toBe('upload-size-mismatch');
+  await expect(
+    validatePrivateWorkTestUploadBytes(abc, { ...expected, expectedSha256: '00'.repeat(32) }),
+  ).resolves.toBe('upload-sha256-mismatch');
 });
 
 test('private WORK_TEST ingest accepts only signed oaiusercontent raw-file URLs', () => {
@@ -216,6 +241,48 @@ test('private WORK_TEST ingest fails closed before R2 access without Access conf
           'https://sdmntprdenmarkeast.oaiusercontent.com/files/abc123/raw?se=x&sig=y',
       }),
     }),
+    env,
+  );
+
+  expect(response.status).toBe(404);
+  expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+  expect(bucketReads).toBe(0);
+  expect(bucketWrites).toBe(0);
+});
+
+test('private WORK_TEST direct upload fails closed before R2 access without Access configuration', async () => {
+  let bucketReads = 0;
+  let bucketWrites = 0;
+  const env = {
+    ASSETS: {
+      fetch: async () => new Response('unused'),
+    },
+    PRIVATE_MODEL_BUCKET: {
+      get: async () => {
+        bucketReads += 1;
+        return null;
+      },
+      put: async () => {
+        bucketWrites += 1;
+        throw new Error('must not write');
+      },
+    },
+  } as unknown as PrivateModelEnv;
+
+  const candidate = PRIVATE_WORK_TEST_CANDIDATES.find(
+    (entry) => entry.id === 'p143h-scalgo-label-axis',
+  );
+  expect(candidate).toBeTruthy();
+
+  const response = await handlePrivateWorkTestRequest(
+    new Request(
+      `https://example.test${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p143h-scalgo-label-axis.glb`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'model/gltf-binary' },
+        body: new Uint8Array([1, 2, 3]),
+      },
+    ),
     env,
   );
 

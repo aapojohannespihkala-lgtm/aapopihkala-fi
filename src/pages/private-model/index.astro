@@ -681,6 +681,8 @@ const title = 'Private 3D viewer';
           <option value="">WORK_TEST ei saatavilla</option>
         </select>
         <button id="work-test-button" type="button" disabled>Avaa WORK_TEST</button>
+        <button id="work-test-upload-button" type="button" hidden>Tuo WORK_TEST .glb</button>
+        <input id="work-test-upload-input" type="file" accept=".glb,model/gltf-binary,application/octet-stream" hidden />
         <button id="current-model-button" type="button" hidden>Palaa CURRENTiin</button>
         <div id="viewer-status" class="status" role="status">Ladataan suojattua mallia...</div>
       </div>
@@ -810,6 +812,8 @@ const title = 'Private 3D viewer';
       const profileButton = document.querySelector<HTMLButtonElement>('#profile-button');
       const workTestSelect = document.querySelector<HTMLSelectElement>('#work-test-select');
       const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
+      const workTestUploadButton = document.querySelector<HTMLButtonElement>('#work-test-upload-button');
+      const workTestUploadInput = document.querySelector<HTMLInputElement>('#work-test-upload-input');
       const currentModelButton = document.querySelector<HTMLButtonElement>('#current-model-button');
       const modelSourceBadge = document.querySelector<HTMLElement>('#model-source-badge');
       const layersPanel = document.querySelector<HTMLElement>('#layers-panel');
@@ -864,6 +868,8 @@ const title = 'Private 3D viewer';
         !profileButton ||
         !workTestSelect ||
         !workTestButton ||
+        !workTestUploadButton ||
+        !workTestUploadInput ||
         !currentModelButton ||
         !modelSourceBadge ||
         !layersPanel ||
@@ -2986,6 +2992,7 @@ const title = 'Private 3D viewer';
 
       const workTestCatalogPath = '/private-model/work-test/catalog.json';
       const workTestImportPath = '/private-model/work-test/import.json';
+      const workTestUploadPrefix = '/private-model/work-test/upload/';
       const workTestImportFragmentKey = 'workTestImport';
       const workTestCandidateFragmentKey = 'workTestCandidate';
       let workTestCandidates = new Map<string, WorkTestCandidate>();
@@ -3003,9 +3010,25 @@ const title = 'Private 3D viewer';
         );
       };
 
+      const setWorkTestUploadFallback = (candidateId: string | null) => {
+        if (candidateId) {
+          workTestUploadButton.hidden = false;
+          workTestUploadButton.disabled = false;
+          workTestUploadButton.dataset.candidateId = candidateId;
+          canvas.dataset.workTestUploadCandidate = candidateId;
+          return;
+        }
+
+        workTestUploadButton.hidden = true;
+        workTestUploadButton.disabled = true;
+        delete workTestUploadButton.dataset.candidateId;
+        delete canvas.dataset.workTestUploadCandidate;
+      };
+
       const setWorkTestCatalog = (candidates: WorkTestCandidate[]) => {
         workTestCandidates = new Map(candidates.map((candidate) => [candidate.id, candidate]));
         workTestSelect.replaceChildren();
+        const reviewCandidateId = getRequestedReviewCandidateId();
 
         if (candidates.length === 0) {
           const option = document.createElement('option');
@@ -3014,6 +3037,7 @@ const title = 'Private 3D viewer';
           workTestSelect.append(option);
           workTestSelect.disabled = true;
           workTestButton.disabled = true;
+          setWorkTestUploadFallback(reviewCandidateId);
           canvas.dataset.workTestCatalog = 'empty';
           return;
         }
@@ -3026,19 +3050,6 @@ const title = 'Private 3D viewer';
         }
 
         workTestSelect.disabled = false;
-        const reviewCandidateId = isP144cG31974IvReviewRequested()
-          ? p144cCandidateId
-          : isP143hScalgoLabelAxisReviewRequested()
-            ? p143hCandidateId
-            : isP143gScalgoCartographyReviewRequested()
-            ? p143gCandidateId
-            : isP143fScalgoContourReviewRequested()
-              ? p143fCandidateId
-              : isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
-                ? p143aCandidateId
-                : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
-                  ? p139abCandidateId
-                  : null;
         const reviewCandidate = reviewCandidateId
           ? workTestCandidates.get(reviewCandidateId)
           : null;
@@ -3047,8 +3058,10 @@ const title = 'Private 3D viewer';
         canvas.dataset.workTestCatalog = 'ready';
         if (reviewCandidate) {
           canvas.dataset.workTestReviewCandidate = reviewCandidate.id;
+          setWorkTestUploadFallback(null);
         } else {
           delete canvas.dataset.workTestReviewCandidate;
+          setWorkTestUploadFallback(reviewCandidateId);
         }
       };
 
@@ -3213,6 +3226,21 @@ const title = 'Private 3D viewer';
 
       const isP144cG31974IvReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p144cReviewId;
+
+      const getRequestedReviewCandidateId = () =>
+        isP144cG31974IvReviewRequested()
+          ? p144cCandidateId
+          : isP143hScalgoLabelAxisReviewRequested()
+            ? p143hCandidateId
+            : isP143gScalgoCartographyReviewRequested()
+              ? p143gCandidateId
+              : isP143fScalgoContourReviewRequested()
+                ? p143fCandidateId
+                : isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
+                  ? p143aCandidateId
+                  : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
+                    ? p139abCandidateId
+                    : null;
 
       const isP139acGroundInfraReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p139acReviewId;
@@ -3748,6 +3776,67 @@ const title = 'Private 3D viewer';
         );
       };
 
+      const uploadWorkTestCandidateFile = async (file: File) => {
+        const candidateId =
+          workTestUploadButton.dataset.candidateId ?? getRequestedReviewCandidateId();
+        if (!candidateId || !/^[a-z0-9-]+$/.test(candidateId)) {
+          status.textContent = 'WORK_TEST-kandidaattia ei tunnistettu';
+          return false;
+        }
+
+        workTestUploadButton.disabled = true;
+        canvas.dataset.workTestUpload = 'loading';
+        status.textContent = 'Tarkistetaan ja tallennetaan WORK_TEST-tiedostoa...';
+
+        try {
+          const response = await fetch(
+            `${workTestUploadPrefix}${encodeURIComponent(candidateId)}.glb`,
+            {
+              method: 'PUT',
+              headers: {
+                Accept: 'application/json',
+                'Content-Type': 'model/gltf-binary',
+              },
+              cache: 'no-store',
+              body: file,
+            },
+          );
+          if (!response.ok) throw new Error(`WORK_TEST upload HTTP ${response.status}`);
+
+          const payload = (await response.json()) as {
+            candidate?: unknown;
+            ready?: unknown;
+          };
+          if (!isWorkTestCandidate(payload.candidate) || payload.ready !== true) {
+            throw new Error('WORK_TEST upload response invalid');
+          }
+          if (payload.candidate.id !== candidateId) {
+            throw new Error('WORK_TEST upload candidate mismatch');
+          }
+
+          await loadWorkTestCatalog();
+          const candidate = workTestCandidates.get(candidateId);
+          if (!candidate) throw new Error('WORK_TEST candidate missing after upload');
+
+          workTestSelect.value = candidate.id;
+          workTestButton.disabled = false;
+          setWorkTestUploadFallback(null);
+          canvas.dataset.workTestUpload = 'ready';
+          await loadWorkTestCandidate(candidate);
+          return true;
+        } catch (error) {
+          console.error(error);
+          canvas.dataset.workTestUpload = 'failed';
+          setWorkTestUploadFallback(candidateId);
+          status.textContent =
+            'Tiedosto ei kelvannut tähän WORK_TEST-kandidaattiin tai tallennus epäonnistui';
+          return false;
+        } finally {
+          workTestUploadInput.value = '';
+          if (!workTestUploadButton.hidden) workTestUploadButton.disabled = false;
+        }
+      };
+
       const importWorkTestCandidateFromFragment = async () => {
         const intent = readWorkTestImportIntent();
         if (!intent) return false;
@@ -3791,8 +3880,12 @@ const title = 'Private 3D viewer';
         } catch (error) {
           console.error(error);
           canvas.dataset.workTestImport = 'failed';
-          status.textContent = 'WORK_TEST-kandidaatin valmistelu epäonnistui';
           await loadWorkTestCatalog();
+          if (!workTestCandidates.has(intent.candidateId)) {
+            setWorkTestUploadFallback(intent.candidateId);
+            status.textContent =
+              'WORK_TEST-lähteen nouto epäonnistui - tuo sama tarkistettu .glb paikallisena';
+          }
           return false;
         }
       };
@@ -3818,6 +3911,15 @@ const title = 'Private 3D viewer';
           return;
         }
         void loadWorkTestCandidate(candidate);
+      });
+      workTestUploadButton.addEventListener('click', () => {
+        workTestUploadInput.value = '';
+        workTestUploadInput.click();
+      });
+      workTestUploadInput.addEventListener('change', () => {
+        const file = workTestUploadInput.files?.[0];
+        if (!file) return;
+        void uploadWorkTestCandidateFile(file);
       });
       currentModelButton.addEventListener('click', () => {
         void loadCurrentModel();
@@ -3892,19 +3994,7 @@ const title = 'Private 3D viewer';
         if (imported) return;
 
         await loadWorkTestCatalog();
-        const reviewCandidateId = isP144cG31974IvReviewRequested()
-          ? p144cCandidateId
-          : isP143hScalgoLabelAxisReviewRequested()
-            ? p143hCandidateId
-            : isP143gScalgoCartographyReviewRequested()
-            ? p143gCandidateId
-            : isP143fScalgoContourReviewRequested()
-              ? p143fCandidateId
-              : isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
-                ? p143aCandidateId
-                : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
-                  ? p139abCandidateId
-                  : null;
+        const reviewCandidateId = getRequestedReviewCandidateId();
         const reviewCandidate = reviewCandidateId
           ? workTestCandidates.get(reviewCandidateId)
           : null;
@@ -3913,6 +4003,11 @@ const title = 'Private 3D viewer';
           canvas.dataset.workTestReviewAutoload = 'true';
         } else {
           delete canvas.dataset.workTestReviewAutoload;
+          if (reviewCandidateId) {
+            setWorkTestUploadFallback(reviewCandidateId);
+            status.textContent =
+              'WORK_TEST ei ole palvelimella - tuo tarkistettu .glb paikallisena';
+          }
         }
       })();
     </script>
