@@ -25,12 +25,13 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test/p143a-scalgo-terrain.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p143f-scalgo-contours.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p143g-scalgo-cartography.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/p143h-scalgo-label-axis.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-testing')).toBe(false);
   expect(isPrivateWorkTestPath('/private-model/model.glb')).toBe(false);
 });
 
-test('private WORK_TEST candidate allowlist exposes the named review routes including p139N, p139AB, p143A, p143F and p143G', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(8);
+test('private WORK_TEST candidate allowlist exposes the named review routes including p139N, p139AB, p143A, p143F, p143G and p143H', () => {
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(9);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -94,6 +95,14 @@ test('private WORK_TEST candidate allowlist exposes the named review routes incl
   expect(p143g.expectedSize).toBe(1_661_536);
   expect(p143g.expectedSha256).toBe(
     'fdde532b713249178111a9e830ebe6b52cf8a600b9f206fdc049abb072d55e02',
+  );
+
+  const p143h = PRIVATE_WORK_TEST_CANDIDATES[8];
+  expect(p143h.id).toBe('p143h-scalgo-label-axis');
+  expect(p143h.objectKey).toBe('work-test/p143h-scalgo-label-axis.glb');
+  expect(p143h.expectedSize).toBe(1_673_484);
+  expect(p143h.expectedSha256).toBe(
+    '768972c522f63de0629020874f690b796b54f7c6d70125248d51f39b8d682c56',
   );
 
   for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
