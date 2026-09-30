@@ -77,6 +77,110 @@ const title = 'Private 3D viewer';
         white-space: nowrap;
       }
 
+      .toolbar-menu {
+        position: relative;
+        flex: 0 0 auto;
+      }
+
+      .toolbar-menu > summary {
+        display: inline-flex;
+        min-height: 34px;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #b9bbb5;
+        border-radius: 7px;
+        padding: 8px 11px;
+        background: #fff;
+        color: #20211f;
+        font: inherit;
+        line-height: 1;
+        cursor: pointer;
+        list-style: none;
+        user-select: none;
+      }
+
+      .toolbar-menu > summary::-webkit-details-marker { display: none; }
+      .toolbar-menu > summary:hover { border-color: #8f928c; }
+      .toolbar-menu > summary:focus-visible {
+        outline: 3px solid rgba(61, 95, 114, 0.24);
+        outline-offset: 1px;
+      }
+
+      .toolbar-menu[open] > summary {
+        border-color: #8f928c;
+        background: #f7f7f4;
+      }
+
+      .toolbar-menu-panel {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 20;
+        display: grid;
+        min-width: 220px;
+        max-width: min(360px, calc(100vw - 32px));
+        gap: 6px;
+        padding: 8px;
+        border: 1px solid #d7d7d2;
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 10px 30px rgba(25, 28, 25, 0.16);
+      }
+
+      .toolbar-menu-panel.right {
+        right: 0;
+        left: auto;
+      }
+
+      .toolbar-menu-panel button,
+      .toolbar-menu-panel select {
+        width: 100%;
+      }
+
+      .toolbar-menu-panel button {
+        text-align: left;
+      }
+
+      .toolbar-menu-label {
+        padding: 5px 6px 2px;
+        color: #777a75;
+        font-size: 10px;
+        font-weight: 750;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .toolbar-menu-separator {
+        height: 1px;
+        margin: 3px 0;
+        background: #e2e3de;
+      }
+
+      .source-menu > summary {
+        min-height: 28px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+      }
+
+      .source-menu[open] > summary {
+        border: 0;
+        background: transparent;
+      }
+
+      .source-menu .toolbar-menu-panel {
+        min-width: 280px;
+      }
+
+      .more-menu > summary {
+        min-width: 36px;
+        justify-content: center;
+        padding-inline: 9px;
+        font-size: 18px;
+        font-weight: 700;
+      }
+
       button {
         border: 1px solid #b9bbb5;
         border-radius: 7px;
@@ -685,29 +789,56 @@ const title = 'Private 3D viewer';
   </head>
   <body>
     <main class="viewer-shell">
+      <!-- P149A compact primary toolbar: advanced actions stay available through menus. -->
       <div class="toolbar" aria-label="3D-katselun ohjaimet">
-        <div class="title">Private 3D viewer</div>
-        <span id="model-source-badge" class="model-source-badge" data-kind="current">CURRENT</span>
-        <button id="fit-button" type="button">Fit / Reset</button>
-        <button id="orbit-button" type="button">Orbit</button>
-        <button id="top-button" type="button">Ylhäältä</button>
-        <button id="bottom-button" type="button">Alhaalta</button>
-        <button id="iso-button" type="button">Iso</button>
-        <button id="elev-pos-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
-        <button id="elev-neg-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -Y suunnasta">Julk -Y</button>
-        <button id="elev-pos-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +X suunnasta">Julk +X</button>
-        <button id="elev-neg-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -X suunnasta">Julk -X</button>
-        <button id="d1-plan-button" type="button">D 1F</button>
-        <button id="d2-plan-button" type="button">D 2F</button>
+        <div class="title">Ylisrinne 3D</div>
+
+        <details id="view-menu" class="toolbar-menu">
+          <summary>Näkymä</summary>
+          <div class="toolbar-menu-panel" aria-label="Vakioidut näkymät">
+            <div class="toolbar-menu-label">3D</div>
+            <button id="orbit-button" type="button">Vapaa 3D</button>
+            <button id="iso-button" type="button">Isometrinen</button>
+            <button id="top-button" type="button">Ylhäältä</button>
+            <button id="bottom-button" type="button">Alhaalta</button>
+            <div class="toolbar-menu-separator"></div>
+            <div class="toolbar-menu-label">D-asunto</div>
+            <button id="d1-plan-button" type="button">D 1F</button>
+            <button id="d2-plan-button" type="button">D 2F</button>
+            <div class="toolbar-menu-separator"></div>
+            <div class="toolbar-menu-label">Julkisivut</div>
+            <button id="elev-pos-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
+            <button id="elev-neg-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -Y suunnasta">Julk -Y</button>
+            <button id="elev-pos-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +X suunnasta">Julk +X</button>
+            <button id="elev-neg-x-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL -X suunnasta">Julk -X</button>
+          </div>
+        </details>
+
         <button id="layers-button" type="button" aria-expanded="false" aria-controls="layers-panel">Layerit</button>
-        <button id="profile-button" type="button" aria-expanded="false" aria-controls="profile-panel" disabled>Pituusleikkaus</button>
-        <select id="work-test-select" aria-label="WORK_TEST-kandidaatti" disabled>
-          <option value="">WORK_TEST ei saatavilla</option>
-        </select>
-        <button id="work-test-button" type="button" disabled>Avaa WORK_TEST</button>
-        <button id="work-test-upload-button" type="button" hidden>Tuo WORK_TEST .glb</button>
-        <input id="work-test-upload-input" type="file" accept=".glb,model/gltf-binary,application/octet-stream" hidden />
-        <button id="current-model-button" type="button" hidden>Palaa CURRENTiin</button>
+
+        <details id="model-menu" class="toolbar-menu source-menu">
+          <summary aria-label="Malliversio">
+            <span id="model-source-badge" class="model-source-badge" data-kind="current">CURRENT</span>
+          </summary>
+          <div class="toolbar-menu-panel" aria-label="Malliversion valinta">
+            <select id="work-test-select" aria-label="WORK_TEST-kandidaatti" disabled>
+              <option value="">WORK_TEST ei saatavilla</option>
+            </select>
+            <button id="work-test-button" type="button" disabled>Avaa WORK_TEST</button>
+            <button id="work-test-upload-button" type="button" hidden>Tuo WORK_TEST .glb</button>
+            <input id="work-test-upload-input" type="file" accept=".glb,model/gltf-binary,application/octet-stream" hidden />
+            <button id="current-model-button" type="button" hidden>Palaa CURRENTiin</button>
+          </div>
+        </details>
+
+        <details id="more-menu" class="toolbar-menu more-menu">
+          <summary aria-label="Lisää toimintoja">⋯</summary>
+          <div class="toolbar-menu-panel right">
+            <button id="fit-button" type="button">Sovita näkymään</button>
+            <button id="profile-button" type="button" aria-expanded="false" aria-controls="profile-panel" disabled>Pituusleikkaus</button>
+          </div>
+        </details>
+
         <div id="viewer-status" class="status" role="status">Ladataan suojattua mallia...</div>
       </div>
 
@@ -833,6 +964,25 @@ const title = 'Private 3D viewer';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       const status = document.querySelector<HTMLElement>('#viewer-status');
+      const toolbarMenus = Array.from(document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu'));
+
+      const closeToolbarMenus = (except: HTMLDetailsElement | null = null) => {
+        toolbarMenus.forEach((menu) => {
+          if (menu !== except) menu.open = false;
+        });
+      };
+
+      toolbarMenus.forEach((menu) => {
+        menu.addEventListener('toggle', () => {
+          if (menu.open) closeToolbarMenus(menu);
+        });
+        menu.addEventListener('click', (event) => {
+          const target = event.target;
+          if (target instanceof Element && target.closest('button')) {
+            menu.open = false;
+          }
+        });
+      });
       const fitButton = document.querySelector<HTMLButtonElement>('#fit-button');
       const orbitButton = document.querySelector<HTMLButtonElement>('#orbit-button');
       const topButton = document.querySelector<HTMLButtonElement>('#top-button');
@@ -4335,6 +4485,7 @@ const title = 'Private 3D viewer';
         }
       };
 
+      layersButton.addEventListener('click', () => closeToolbarMenus());
       fitButton.addEventListener('click', fitModel);
       orbitButton.addEventListener('click', fitModel);
       topButton.addEventListener('click', () => axisView('top'));
