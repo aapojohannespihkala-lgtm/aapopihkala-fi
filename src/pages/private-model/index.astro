@@ -2297,22 +2297,67 @@ const title = 'Private 3D viewer';
         return false;
       };
 
-      const buildP139abVisibleReviewScene = (gltf: any, zScene: any) => {
-        const buildingScene = findSourceNamedScene(gltf, p139abBuildingSceneName);
-        if (!buildingScene) throw new Error('p139AB building context scene missing');
+      const cloneP139SourceNodeFromParser = async (
+        gltf: any,
+        nodeIndex: number,
+      ): Promise<THREE.Object3D> => {
+        const parser = gltf?.parser;
+        const sourceNode = await parser?.getDependency?.('node', nodeIndex);
+        if (!sourceNode) throw new Error(`p139 source node missing: ${nodeIndex}`);
+
+        const nodeDef = parser?.json?.nodes?.[nodeIndex] ?? {};
+        const rawChildIndices = Array.isArray(nodeDef.children) ? nodeDef.children : [];
+        const rawChildSources = await Promise.all(
+          rawChildIndices.map((childIndex: number) => parser.getDependency('node', childIndex)),
+        );
+
+        const clone = sourceNode.clone(true);
+        const rawChildSet = new Set(rawChildSources);
+        const sourceChildren = [...sourceNode.children];
+        sourceChildren.forEach((child: THREE.Object3D, index: number) => {
+          if (rawChildSet.has(child) && clone.children[index]) {
+            clone.remove(clone.children[index]);
+          }
+        });
+
+        for (const childIndex of rawChildIndices) {
+          clone.add(await cloneP139SourceNodeFromParser(gltf, childIndex));
+        }
+        return clone;
+      };
+
+      const cloneP139SourceNamedSceneFromParser = async (gltf: any, sceneName: string) => {
+        const parser = gltf?.parser;
+        const sceneDefs = Array.isArray(parser?.json?.scenes) ? parser.json.scenes : [];
+        const sceneDef = sceneDefs.find((scene: any) => scene?.name === sceneName);
+        if (!sceneDef) {
+          const runtimeScene = findSourceNamedScene(gltf, sceneName);
+          return runtimeScene ? runtimeScene.clone(true) : null;
+        }
+
+        const clone = new THREE.Group();
+        clone.name = sceneName;
+        for (const nodeIndex of Array.isArray(sceneDef.nodes) ? sceneDef.nodes : []) {
+          clone.add(await cloneP139SourceNodeFromParser(gltf, nodeIndex));
+        }
+        return clone;
+      };
+
+      const buildP139abVisibleReviewScene = async (gltf: any, zScene: any) => {
+        const buildingClone = await cloneP139SourceNamedSceneFromParser(
+          gltf,
+          p139abBuildingSceneName,
+        );
+        if (!buildingClone) throw new Error('p139AB building context scene missing');
+
+        const zRouteClone = await cloneP139SourceNamedSceneFromParser(gltf, p139abZSceneName);
+        if (!zRouteClone) throw new Error('p139AB Z credibility scene missing');
 
         const composite = new THREE.Group();
         composite.name = 'P139AB VISIBLE BUILDING + Z ROUTES REVIEW';
 
-        // Render from the p139AB carrier itself. The GLB intentionally reuses architecture
-        // nodes across multiple review roots, and GLTFLoader may clone/re-parent those refs
-        // differently between scenes. Using the active p139AB scene keeps the architecture
-        // and its source-Z routes in one runtime hierarchy instead of recombining two scenes.
-        const reviewClone = zScene.clone(true);
         let buildingRenderableCount = 0;
-        let sourceZRenderableCount = 0;
-
-        reviewClone.traverse((object: any) => {
+        buildingClone.traverse((object: any) => {
           const name = String(object?.name ?? '').toUpperCase();
           if (
             name.includes('P139C_WATER_CONNECTION_ZONE_REVIEW_HELPER') ||
@@ -2324,28 +2369,43 @@ const title = 'Private 3D viewer';
 
           const renderable =
             object.isMesh || object.isLine || object.isLineSegments || object.isPoints;
-          if (!renderable) return;
+          if (renderable && !hasP139abZRouteAncestor(object) && object.visible !== false) {
+            buildingRenderableCount += 1;
+          }
+        });
 
-          if (hasP139abZRouteAncestor(object)) sourceZRenderableCount += 1;
-          else buildingRenderableCount += 1;
+        let sourceZRenderableCount = 0;
+        zRouteClone.traverse((object: any) => {
+          const renderable =
+            object.isMesh || object.isLine || object.isLineSegments || object.isPoints;
+          if (!renderable) return;
+          if (hasP139abZRouteAncestor(object)) {
+            sourceZRenderableCount += 1;
+          } else {
+            object.visible = false;
+          }
         });
 
         const sourceHasMeshes =
           Array.isArray(gltf?.parser?.json?.meshes) && gltf.parser.json.meshes.length > 0;
         if (sourceHasMeshes && buildingRenderableCount === 0) {
-          throw new Error('p139AB building context has no runtime renderables');
+          throw new Error('p139AB building context has no reconstructed renderables');
+        }
+        if (sourceZRenderableCount === 0) {
+          throw new Error('p139AB source-Z review has no reconstructed renderables');
         }
 
-        composite.add(reviewClone);
+        composite.add(buildingClone, zRouteClone);
         composite.userData = {
           ...composite.userData,
           reviewScope: 'Z_CREDIBILITY_ONLY',
           buildingContext: true,
           sourceBuildingScene: p139abBuildingSceneName,
           sourceZScene: p139abZSceneName,
-          runtimeCarrierScene: p139abZSceneName,
+          runtimeCarrierScene: 'PARSER_RECONSTRUCTED_BUILDING_PLUS_Z',
           buildingRenderableCount,
           sourceZRenderableCount,
+          rawSceneReconstruction: true,
         };
         return composite;
       };
@@ -2353,8 +2413,8 @@ const title = 'Private 3D viewer';
       const isP139acGroundInfraReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p139acReviewId;
 
-      const buildP139acGroundInfraReviewScene = (gltf: any, zScene: any) => {
-        const composite = buildP139abVisibleReviewScene(gltf, zScene);
+      const buildP139acGroundInfraReviewScene = async (gltf: any, zScene: any) => {
+        const composite = await buildP139abVisibleReviewScene(gltf, zScene);
         composite.name = 'P139AC GROUND + Z-BACKED UNDERGROUND INFRA REVIEW';
 
         const groundGroup = new THREE.Group();
@@ -2434,8 +2494,8 @@ const title = 'Private 3D viewer';
       const isP139adLocusWorkZReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p139adReviewId;
 
-      const buildP139adLocusWorkZReviewScene = (gltf: any, zScene: any) => {
-        const composite = buildP139acGroundInfraReviewScene(gltf, zScene);
+      const buildP139adLocusWorkZReviewScene = async (gltf: any, zScene: any) => {
+        const composite = await buildP139acGroundInfraReviewScene(gltf, zScene);
         composite.name = 'P139AD LOCUS WORK Z + GROUND REVIEW';
 
         const workZGroup = new THREE.Group();
@@ -2535,10 +2595,10 @@ const title = 'Private 3D viewer';
             const zScene = findSourceNamedScene(gltf, p139abZSceneName);
             if (!zScene) throw new Error('p139AB Z credibility scene missing');
             gltf.scene = isP139adLocusWorkZReview
-              ? buildP139adLocusWorkZReviewScene(gltf, zScene)
+              ? await buildP139adLocusWorkZReviewScene(gltf, zScene)
               : isP139acGroundInfraReview
-                ? buildP139acGroundInfraReviewScene(gltf, zScene)
-                : buildP139abVisibleReviewScene(gltf, zScene);
+                ? await buildP139acGroundInfraReviewScene(gltf, zScene)
+                : await buildP139abVisibleReviewScene(gltf, zScene);
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);

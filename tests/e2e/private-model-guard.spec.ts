@@ -117,15 +117,19 @@ const makeP139abReviewGlb = () => {
   const binary = Buffer.concat([architecturePositions, routePositions]);
   const json = {
     asset: { version: '2.0' },
-    scene: 1,
+    scene: 2,
     scenes: [
       {
         name: 'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP',
         nodes: [0],
       },
       {
-        name: 'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT',
+        name: 'P139H TEST SHARED ARCHITECTURE OWNER - BABYLON Y-UP',
         nodes: [2],
+      },
+      {
+        name: 'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT',
+        nodes: [3],
       },
     ],
     nodes: [
@@ -135,13 +139,17 @@ const makeP139abReviewGlb = () => {
         mesh: 0,
         extras: { presentationGroup: 'ARCH_BASE' },
       },
-      { name: 'P139AB_TEST_ROOT', children: [1, 3] },
+      { name: 'P139H_TEST_ROOT', children: [1] },
       {
-        name: 'P139AB_TEST_Z_ROUTE_GROUP',
+        name: 'P139AB_TEST_ROOT',
         children: [4],
+        extras: { reviewScope: 'Z_CREDIBILITY_ONLY', buildingContext: true },
+      },
+      {
+        name: 'P139AB_TEST_Z_ROUTE',
+        mesh: 1,
         extras: { presentationLayer: 'Z_CREDIBLE_WASTEWATER_REVIEW' },
       },
-      { name: 'P139AB_TEST_Z_ROUTE', mesh: 1 },
     ],
     meshes: [
       {
@@ -1536,21 +1544,7 @@ test('private viewer opens p139AB as a Z-only orthographic wastewater review', a
     scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
     nodes: [],
   });
-  const candidateModel = makeMinimalGlb({
-    asset: { version: '2.0' },
-    scene: 0,
-    scenes: [
-      {
-        name: 'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP',
-        nodes: [],
-      },
-      {
-        name: 'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT',
-        nodes: [],
-      },
-    ],
-    nodes: [],
-  });
+  const candidateModel = makeP139abReviewGlb();
   const candidateId = 'p139ab-z-credible-wastewater-review';
   const candidateLabel = 'p139AB Z-uskottavuus - jätevesi';
   const candidatePath = '/private-model/work-test/p139ab-z-credible-wastewater-review.glb';
@@ -1603,21 +1597,7 @@ test('private viewer composes p139AC ground and Z-backed underground infra revie
     scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
     nodes: [],
   });
-  const candidateModel = makeMinimalGlb({
-    asset: { version: '2.0' },
-    scene: 0,
-    scenes: [
-      {
-        name: 'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP',
-        nodes: [],
-      },
-      {
-        name: 'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT',
-        nodes: [],
-      },
-    ],
-    nodes: [],
-  });
+  const candidateModel = makeP139abReviewGlb();
   const candidateId = 'p139ab-z-credible-wastewater-review';
   const candidateLabel = 'p139AB Z-uskottavuus - jätevesi';
   const candidatePath = '/private-model/work-test/p139ab-z-credible-wastewater-review.glb';
