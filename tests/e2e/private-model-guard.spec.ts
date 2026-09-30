@@ -2412,6 +2412,59 @@ test('private viewer autoloads the exact P155C-B D storage-roof review candidate
   );
 });
 
+test('private viewer autoloads the exact P151C whole-building review carrier', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P151C WHOLE BUILDING MINIMUM REVIEW CARRIER - BABYLON Y-UP', nodes: [] }],
+    nodes: [],
+  });
+  const candidateId = 'p151c-whole-building-carrier';
+  const candidateLabel = 'P151C whole-building minimum review carrier - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p151c-whole-building-carrier.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p151c-whole-building-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p151c-whole-building-review');
+  await expect(canvas).toHaveAttribute('data-p151-target-coverage-count', '14');
+  await expect(canvas).toHaveAttribute('data-p151-carrier-role', 'WHOLE_BUILDING_MINIMUM_REVIEW_CARRIER');
+  await expect(canvas).toHaveAttribute(
+    'data-p151-excluded-branches',
+    'P158B,P153,P154C,NEW_G3_COMMON,P150_FOUNDATION',
+  );
+  await expect(canvas).toHaveAttribute('data-p151-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'P151C koko rakennus - WORK_TEST minimum review carrier - 14/14 locked scope - ei CURRENT/as-built',
+  );
+});
+
 test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra for depth review', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },

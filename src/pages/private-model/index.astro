@@ -3118,6 +3118,8 @@ const title = 'Private 3D viewer';
       const p145bReviewId = 'p145b-1974-iv-section-worktargets-review';
       const p155cbCandidateId = 'p155cb-d-storage-roof';
       const p155cbReviewId = 'p155cb-d-storage-roof-review';
+      const p151cCandidateId = 'p151c-whole-building-carrier';
+      const p151cReviewId = 'p151c-whole-building-review';
       const p139abZSceneName =
         'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
       const p139abBuildingSceneName =
@@ -3818,10 +3820,15 @@ const title = 'Private 3D viewer';
       const isP155cbDStorageRoofReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p155cbReviewId;
 
+      const isP151cWholeBuildingReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p151cReviewId;
+
       const getRequestedReviewCandidateId = () =>
-        isP155cbDStorageRoofReviewRequested()
-          ? p155cbCandidateId
-          : isP145b1974IvSectionWorkTargetsReviewRequested()
+        isP151cWholeBuildingReviewRequested()
+          ? p151cCandidateId
+          : isP155cbDStorageRoofReviewRequested()
+            ? p155cbCandidateId
+            : isP145b1974IvSectionWorkTargetsReviewRequested()
           ? p145bCandidateId
           : isP144cG31974IvReviewRequested()
             ? p144cCandidateId
@@ -4127,6 +4134,8 @@ const title = 'Private 3D viewer';
             candidate.id === p145bCandidateId && isP145b1974IvSectionWorkTargetsReviewRequested();
           const isP155cbDStorageRoofReview =
             candidate.id === p155cbCandidateId && isP155cbDStorageRoofReviewRequested();
+          const isP151cWholeBuildingReview =
+            candidate.id === p151cCandidateId && isP151cWholeBuildingReviewRequested();
           const isP139nReview = candidate.id === p139nCandidateId;
           const isP139abZReview = candidate.id === p139abCandidateId;
           const isP139acGroundInfraReview =
@@ -4168,13 +4177,19 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p155CurrentRelativeLevel;
           delete canvas.dataset.p155AbsoluteTopZClaim;
           delete canvas.dataset.p155PhysicalRoofThicknessClaim;
+          delete canvas.dataset.p151TargetCoverageCount;
+          delete canvas.dataset.p151CarrierRole;
+          delete canvas.dataset.p151ExcludedBranches;
+          delete canvas.dataset.p151HumanReview;
           delete canvas.dataset.scalgoLabelFlowCorridorCount;
           delete canvas.dataset.scalgoLabelMinimumSameCorridorSpacingM;
           delete canvas.dataset.scalgoLabelBuildingExclusion;
           delete canvas.dataset.scalgoLabelCorridorSemanticBoundary;
-          locusLayerLabel.textContent = isP155cbDStorageRoofReview
-            ? 'D varaston kattoreferenssi (WORK_TEST / presentation-only)'
-            : isP145b1974IvSectionWorkTargetsReview
+          locusLayerLabel.textContent = isP151cWholeBuildingReview
+            ? 'Koko rakennus (WORK_TEST / minimum review carrier)'
+            : isP155cbDStorageRoofReview
+              ? 'D varaston kattoreferenssi (WORK_TEST / presentation-only)'
+              : isP145b1974IvSectionWorkTargetsReview
             ? '1974 IV section work-targetit (WORK_TEST / presentation-only / workAssumption)'
             : isP144cG31974IvReview
               ? 'P143H SCALGO kartografia + 1974 IV plan-ankkurit (WORK_TEST)'
@@ -4200,7 +4215,16 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP155cbDStorageRoofReview) {
+          if (isP151cWholeBuildingReview) {
+            canvas.dataset.workTestReviewMode = 'p151c-whole-building-review';
+            canvas.dataset.p151TargetCoverageCount = '14';
+            canvas.dataset.p151CarrierRole = 'WHOLE_BUILDING_MINIMUM_REVIEW_CARRIER';
+            canvas.dataset.p151ExcludedBranches = 'P158B,P153,P154C,NEW_G3_COMMON,P150_FOUNDATION';
+            canvas.dataset.p151HumanReview = 'NOT_RUN';
+            applyStandardViewPreset('whole-building');
+            status.textContent =
+              'P151C koko rakennus - WORK_TEST minimum review carrier - 14/14 locked scope - ei CURRENT/as-built';
+          } else if (isP155cbDStorageRoofReview) {
             canvas.dataset.workTestReviewMode = 'p155cb-d-storage-roof-review';
             canvas.dataset.p155PresentationOnly = 'true';
             canvas.dataset.p155CurrentRelativeLevel = 'MATCH_1F_ROOF_ZONE';

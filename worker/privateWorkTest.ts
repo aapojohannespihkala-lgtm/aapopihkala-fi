@@ -125,6 +125,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_187_956,
     expectedSha256: '9adf08632a89b8a76540addd611e7d5b6a9be59b76b3e4e871621b6f624f7c82',
   },
+  // P151D viewer integration: exact P151C whole-building minimum review carrier.
+  {
+    id: 'p151c-whole-building-carrier',
+    label: 'P151C whole-building minimum review carrier - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p151c-whole-building-carrier.glb`,
+    objectKey: 'work-test/p151c-whole-building-carrier.glb',
+    expectedSize: 1_913_540,
+    expectedSha256: '67581d3d4f4a444c182a89c56c09235a22e6055e7f9edd7d0d28a6960329b043',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
