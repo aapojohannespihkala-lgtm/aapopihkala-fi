@@ -1544,21 +1544,7 @@ test('private viewer opens p139AB as a Z-only orthographic wastewater review', a
     scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
     nodes: [],
   });
-  const candidateModel = makeMinimalGlb({
-    asset: { version: '2.0' },
-    scene: 0,
-    scenes: [
-      {
-        name: 'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP',
-        nodes: [],
-      },
-      {
-        name: 'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT',
-        nodes: [],
-      },
-    ],
-    nodes: [],
-  });
+  const candidateModel = makeP139abReviewGlb();
   const candidateId = 'p139ab-z-credible-wastewater-review';
   const candidateLabel = 'p139AB Z-uskottavuus - jätevesi';
   const candidatePath = '/private-model/work-test/p139ab-z-credible-wastewater-review.glb';
@@ -1611,21 +1597,7 @@ test('private viewer composes p139AC ground and Z-backed underground infra revie
     scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
     nodes: [],
   });
-  const candidateModel = makeMinimalGlb({
-    asset: { version: '2.0' },
-    scene: 0,
-    scenes: [
-      {
-        name: 'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP',
-        nodes: [],
-      },
-      {
-        name: 'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT',
-        nodes: [],
-      },
-    ],
-    nodes: [],
-  });
+  const candidateModel = makeP139abReviewGlb();
   const candidateId = 'p139ab-z-credible-wastewater-review';
   const candidateLabel = 'p139AB Z-uskottavuus - jätevesi';
   const candidatePath = '/private-model/work-test/p139ab-z-credible-wastewater-review.glb';
