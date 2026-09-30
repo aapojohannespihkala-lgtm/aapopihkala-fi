@@ -2524,6 +2524,8 @@ const title = 'Private 3D viewer';
       const p143aCandidateId = 'p143a-scalgo-terrain';
       const p143aReviewId = 'p143a-scalgo-terrain-review';
       const p143dReviewId = 'p143d-scalgo-infra-review';
+      const p143fCandidateId = 'p143f-scalgo-contours';
+      const p143fReviewId = 'p143f-scalgo-contours-review';
       const p139abZSceneName =
         'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
       const p139abBuildingSceneName =
@@ -3018,8 +3020,9 @@ const title = 'Private 3D viewer';
         }
 
         workTestSelect.disabled = false;
-        const reviewCandidateId =
-          isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
+        const reviewCandidateId = isP143fScalgoContourReviewRequested()
+          ? p143fCandidateId
+          : isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
             ? p143aCandidateId
             : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
               ? p139abCandidateId
@@ -3186,6 +3189,9 @@ const title = 'Private 3D viewer';
 
       const isP143dScalgoInfraReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p143dReviewId;
+
+      const isP143fScalgoContourReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p143fReviewId;
 
       const isP139acGroundInfraReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p139acReviewId;
@@ -3461,6 +3467,8 @@ const title = 'Private 3D viewer';
             candidate.id === p143aCandidateId && isP143aScalgoTerrainReviewRequested();
           const isP143dScalgoInfraReview =
             candidate.id === p143aCandidateId && isP143dScalgoInfraReviewRequested();
+          const isP143fScalgoContourReview =
+            candidate.id === p143fCandidateId && isP143fScalgoContourReviewRequested();
           const isP139nReview = candidate.id === p139nCandidateId;
           const isP139abZReview = candidate.id === p139abCandidateId;
           const isP139acGroundInfraReview =
@@ -3485,10 +3493,12 @@ const title = 'Private 3D viewer';
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
-          locusLayerLabel.textContent = isP143dScalgoInfraReview
-            ? 'SCALGO nykymaasto + Locus work-Z infra (WORK_TEST)'
-            : isP143aScalgoTerrainReview
-              ? 'SCALGO maasto + rakennus (WORK_TEST)'
+          locusLayerLabel.textContent = isP143fScalgoContourReview
+            ? 'SCALGO maasto + 1 m / 0,10 m korkeuskäyrät (WORK_TEST)'
+            : isP143dScalgoInfraReview
+              ? 'SCALGO nykymaasto + Locus work-Z infra (WORK_TEST)'
+              : isP143aScalgoTerrainReview
+                ? 'SCALGO maasto + rakennus (WORK_TEST)'
             : isP139nReview
               ? 'Kunnallistekniikka / KVV-reitit (WORK_TEST)'
               : isP139adLocusWorkZReview
@@ -3499,7 +3509,19 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP143dScalgoInfraReview) {
+          if (isP143fScalgoContourReview) {
+            canvas.dataset.workTestReviewMode = 'scalgo-contour-review';
+            canvas.dataset.scalgoContourMajorIntervalM = '1.0';
+            canvas.dataset.scalgoContourMinorIntervalM = '0.1';
+            canvas.dataset.scalgoContourSourceGridResolutionM = '1.0';
+            delete canvas.dataset.locusWorkZRouteCount;
+            delete canvas.dataset.locusWorkZMaxElevation;
+            delete canvas.dataset.scalgoTerrainBaseRenderableCount;
+            canvas.dataset.terrainVerticalBridgeStatus = 'WORK_OFFSET_UNVERIFIED';
+            activateIsometric();
+            status.textContent =
+              'SCALGO MAASTO + KORKEUSKÄYRÄT - 1 m pää / 0,10 m väli - välikäyrät interpoloitu 1 m rasterista';
+          } else if (isP143dScalgoInfraReview) {
             canvas.dataset.workTestReviewMode = 'scalgo-terrain-infra-review';
             canvas.dataset.locusWorkZRouteCount = String(p139adLocusWorkZRoutes.length);
             canvas.dataset.locusWorkZMaxElevation = '18.150';
@@ -3514,6 +3536,9 @@ const title = 'Private 3D viewer';
               'SCALGO NYKYMAASTO + LOCUS WORK-Z - 4 reittiä - työoffset 21,750 m / ei as-built';
           } else if (isP143aScalgoTerrainReview) {
             canvas.dataset.workTestReviewMode = 'scalgo-terrain-review';
+            delete canvas.dataset.scalgoContourMajorIntervalM;
+            delete canvas.dataset.scalgoContourMinorIntervalM;
+            delete canvas.dataset.scalgoContourSourceGridResolutionM;
             delete canvas.dataset.locusWorkZRouteCount;
             delete canvas.dataset.locusWorkZMaxElevation;
             delete canvas.dataset.scalgoTerrainBaseRenderableCount;
@@ -3736,8 +3761,9 @@ const title = 'Private 3D viewer';
         if (imported) return;
 
         await loadWorkTestCatalog();
-        const reviewCandidateId =
-          isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
+        const reviewCandidateId = isP143fScalgoContourReviewRequested()
+          ? p143fCandidateId
+          : isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
             ? p143aCandidateId
             : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
               ? p139abCandidateId
