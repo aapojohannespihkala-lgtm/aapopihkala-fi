@@ -58,6 +58,14 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_199_352,
     expectedSha256: '6470e7c529546231725856e94c11203d86b1e66f0e6645bb36ce01aec2275159',
   },
+  {
+    id: 'p143a-scalgo-terrain',
+    label: 'p143A SCALGO terrain + architecture - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p143a-scalgo-terrain.glb`,
+    objectKey: 'work-test/p143a-scalgo-terrain.glb',
+    expectedSize: 1_352_620,
+    expectedSha256: '383e26a1ebbae28afa3caf3bbf614368574a5eca93db422b451369edac95961e',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
