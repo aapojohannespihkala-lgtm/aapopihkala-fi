@@ -7,6 +7,7 @@ import {
 const PRIVATE_WORK_TEST_PREFIX = `${PRIVATE_MODEL_PREFIX}/work-test`;
 export const PRIVATE_WORK_TEST_CATALOG_PATH = `${PRIVATE_WORK_TEST_PREFIX}/catalog.json`;
 export const PRIVATE_WORK_TEST_IMPORT_PATH = `${PRIVATE_WORK_TEST_PREFIX}/import.json`;
+export const PRIVATE_WORK_TEST_UPLOAD_PREFIX = `${PRIVATE_WORK_TEST_PREFIX}/upload/`;
 
 export type PrivateWorkTestCandidate = {
   id: string;
@@ -164,6 +165,13 @@ export const getPrivateWorkTestCandidate = (pathname: string) =>
 export const getPrivateWorkTestCandidateById = (id: string) =>
   PRIVATE_WORK_TEST_CANDIDATES.find((candidate) => candidate.id === id) ?? null;
 
+export const getPrivateWorkTestUploadCandidate = (pathname: string) => {
+  if (!pathname.startsWith(PRIVATE_WORK_TEST_UPLOAD_PREFIX) || !pathname.endsWith('.glb')) return null;
+  const candidateId = pathname.slice(PRIVATE_WORK_TEST_UPLOAD_PREFIX.length, -'.glb'.length);
+  if (!/^[a-z0-9-]+$/.test(candidateId)) return null;
+  return getPrivateWorkTestCandidateById(candidateId);
+};
+
 export const isTrustedPrivateWorkTestSourceUrl = (value: string) => {
   try {
     const url = new URL(value);
@@ -195,6 +203,69 @@ export const isPrivateWorkTestObjectValid = (
 ) =>
   object.size === candidate.expectedSize &&
   object.customMetadata?.sha256?.trim().toLowerCase() === candidate.expectedSha256;
+
+const handlePrivateWorkTestUpload = async (
+  request: Request,
+  env: PrivateModelEnv,
+  candidate: PrivateWorkTestCandidate,
+): Promise<Response> => {
+  if (!(await verifyPrivateModelAccess(request, env))) return notFound();
+  if (request.method !== 'PUT') return methodNotAllowed('PUT');
+
+  const bucket = env.PRIVATE_MODEL_BUCKET as unknown as PrivateWorkTestBucket | undefined;
+  if (!bucket) {
+    console.info('private-model work-test upload deny: bucket-binding');
+    return notFound();
+  }
+
+  const contentType = request.headers.get('Content-Type')?.split(';', 1)[0]?.trim().toLowerCase();
+  if (contentType !== 'model/gltf-binary' && contentType !== 'application/octet-stream') {
+    return privateJsonResponse(request, { error: 'upload-content-type' }, 415);
+  }
+
+  const declaredLength = request.headers.get('Content-Length');
+  if (
+    declaredLength &&
+    Number.isFinite(Number(declaredLength)) &&
+    Number(declaredLength) !== candidate.expectedSize
+  ) {
+    return privateJsonResponse(request, { error: 'upload-size-mismatch' }, 422);
+  }
+
+  const bytes = await request.arrayBuffer();
+  if (bytes.byteLength !== candidate.expectedSize) {
+    return privateJsonResponse(request, { error: 'upload-size-mismatch' }, 422);
+  }
+
+  const sha256 = await sha256Hex(bytes);
+  if (sha256 !== candidate.expectedSha256) {
+    return privateJsonResponse(request, { error: 'upload-sha256-mismatch' }, 422);
+  }
+
+  await bucket.put(candidate.objectKey, bytes, {
+    httpMetadata: {
+      contentType: 'model/gltf-binary',
+      contentDisposition: 'inline',
+      cacheControl: 'private, no-store',
+    },
+    customMetadata: {
+      sha256: candidate.expectedSha256,
+    },
+  });
+
+  const written = await bucket.get(candidate.objectKey);
+  if (!written || !isPrivateWorkTestObjectValid(written, candidate)) {
+    console.info('private-model work-test upload deny: r2-readback');
+    return privateJsonResponse(request, { error: 'r2-readback-failed' }, 500);
+  }
+
+  return privateJsonResponse(request, {
+    candidate: { id: candidate.id, label: candidate.label, path: candidate.path },
+    ready: true,
+    seeded: true,
+    uploaded: true,
+  });
+};
 
 const handlePrivateWorkTestImport = async (
   request: Request,
@@ -309,6 +380,11 @@ export const handlePrivateWorkTestRequest = async (
 
   if (pathname === PRIVATE_WORK_TEST_IMPORT_PATH) {
     return handlePrivateWorkTestImport(request, env);
+  }
+
+  const uploadCandidate = getPrivateWorkTestUploadCandidate(pathname);
+  if (uploadCandidate) {
+    return handlePrivateWorkTestUpload(request, env, uploadCandidate);
   }
 
   if (request.method !== 'GET' && request.method !== 'HEAD') return methodNotAllowed();
