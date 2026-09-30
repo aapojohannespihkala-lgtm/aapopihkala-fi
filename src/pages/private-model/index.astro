@@ -1786,13 +1786,13 @@ const title = 'Private 3D viewer';
         return true;
       };
 
-      const hasVisibleMaterial = (object: any) => {
+      const hasVisibleEdgeMaterial = (object: any) => {
         const materials = Array.isArray(object?.material) ? object.material : [object?.material];
         return materials.some((material: any) => material && (material.opacity ?? 1) > 0.01);
       };
 
       const isEdgeMeshCandidate = (object: any) => {
-        if (!object?.isMesh || !object.geometry || !isTreeVisible(object) || !hasVisibleMaterial(object)) {
+        if (!object?.isMesh || !object.geometry || !isTreeVisible(object) || !hasVisibleEdgeMaterial(object)) {
           return false;
         }
 
