@@ -103,6 +103,112 @@ const makeTriangleGlb = (
 };
 
 
+const makeP143dTerrainGlb = () => {
+  const positions = Buffer.alloc(48);
+  [
+    0, 0, -80,
+    80, 0, -80,
+    0, 0, 80,
+    80, 0, 80,
+  ].forEach((value, index) => {
+    positions.writeFloatLE(value, index * 4);
+  });
+
+  const indices = Buffer.alloc(12);
+  [0, 2, 1, 1, 2, 3].forEach((value, index) => {
+    indices.writeUInt16LE(value, index * 2);
+  });
+
+  const binary = Buffer.concat([positions, indices]);
+  const json = {
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P143A SCALGO CURRENT TERRAIN + P142A ARCHITECTURE - BABYLON Y-UP',
+        nodes: [0],
+      },
+    ],
+    nodes: [
+      {
+        name: 'P143A_SCALGO_CURRENT_TERRAIN_WORKTEST_NODE',
+        mesh: 0,
+        extras: {
+          PresentationOnly: true,
+          Canonical: false,
+          ModelStage: 'WORK_TEST_VIEW',
+          Pass: '143A',
+          geometryType: 'terrainReferenceSurface',
+          representationKind: 'currentTerrainReference',
+          workVerticalOffsetM: 21.75,
+          verticalBridgeStatus: 'WORK_OFFSET_UNVERIFIED',
+        },
+      },
+    ],
+    meshes: [
+      {
+        name: 'P143A_TEST_TERRAIN_MESH',
+        primitives: [
+          {
+            attributes: { POSITION: 0 },
+            indices: 1,
+          },
+        ],
+      },
+    ],
+    buffers: [{ byteLength: binary.length }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: positions.length, target: 34962 },
+      {
+        buffer: 0,
+        byteOffset: positions.length,
+        byteLength: indices.length,
+        target: 34963,
+      },
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 4,
+        type: 'VEC3',
+        min: [0, 0, -80],
+        max: [80, 0, 80],
+      },
+      {
+        bufferView: 1,
+        componentType: 5123,
+        count: 6,
+        type: 'SCALAR',
+        min: [0],
+        max: [3],
+      },
+    ],
+  };
+
+  const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
+  const jsonPadding = (4 - (jsonBuffer.length % 4)) % 4;
+  const jsonChunk = Buffer.concat([jsonBuffer, Buffer.alloc(jsonPadding, 0x20)]);
+  const binPadding = (4 - (binary.length % 4)) % 4;
+  const binChunk = Buffer.concat([binary, Buffer.alloc(binPadding)]);
+
+  const header = Buffer.alloc(12);
+  header.write('glTF', 0, 'ascii');
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + jsonChunk.length + 8 + binChunk.length, 8);
+
+  const jsonHeader = Buffer.alloc(8);
+  jsonHeader.writeUInt32LE(jsonChunk.length, 0);
+  jsonHeader.writeUInt32LE(0x4e4f534a, 4);
+
+  const binHeader = Buffer.alloc(8);
+  binHeader.writeUInt32LE(binChunk.length, 0);
+  binHeader.writeUInt32LE(0x004e4942, 4);
+
+  return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
+};
+
+
 const makeP139abReviewGlb = () => {
   const architecturePositions = Buffer.alloc(36);
   [-1, 0, -1, 1, 0, -1, 0, 2, 1].forEach((value, index) => {
@@ -1653,7 +1759,7 @@ test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra fo
     scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
     nodes: [],
   });
-  const candidateModel = makeTriangleGlb();
+  const candidateModel = makeP143dTerrainGlb();
   const candidateId = 'p143a-scalgo-terrain';
   const candidateLabel = 'p143A SCALGO terrain + architecture - WORK_TEST';
   const candidatePath = '/private-model/work-test/p143a-scalgo-terrain.glb';
@@ -1705,6 +1811,27 @@ test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra fo
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
   await expect(page.locator('#height-scale')).toBeVisible();
+
+  await expect(page.getByRole('button', { name: 'Pituusleikkaus' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Pituusleikkaus' }).click();
+  await expect(page.locator('#profile-panel')).toBeVisible();
+  await expect(page.locator('#profile-route-select')).toHaveValue(
+    'P139AD_LOCUS_WASTEWATER_PARCEL_WORK_Z',
+  );
+  await expect(canvas).toHaveAttribute(
+    'data-profile-route',
+    'P139AD_LOCUS_WASTEWATER_PARCEL_WORK_Z',
+  );
+  await expect(canvas).toHaveAttribute('data-profile-min-cover-m', '3.600');
+  await expect(canvas).toHaveAttribute('data-profile-max-cover-m', '3.850');
+  const profileSampleCount = Number(await canvas.getAttribute('data-profile-sample-count'));
+  const profileTerrainHitCount = Number(await canvas.getAttribute('data-profile-terrain-hit-count'));
+  expect(profileSampleCount).toBeGreaterThan(2);
+  expect(profileTerrainHitCount).toBe(profileSampleCount);
+  await expect(page.locator('#profile-svg [data-series="terrain"]')).toBeVisible();
+  await expect(page.locator('#profile-svg [data-series="pipe"]')).toBeVisible();
+  await expect(page.locator('#profile-summary')).toContainText('peitto min 3,60 m');
+  await page.getByRole('button', { name: 'Sulje' }).filter({ has: page.locator('xpath=ancestor::aside[@id="profile-panel"]') }).click();
 
   await page.getByRole('button', { name: 'Layerit' }).click();
   await expect(page.getByText('SCALGO nykymaasto + Locus work-Z infra (WORK_TEST)')).toBeVisible();
