@@ -3354,6 +3354,8 @@ const title = 'Private 3D viewer';
       const p155cbReviewId = 'p155cb-d-storage-roof-review';
       const p151cCandidateId = 'p151c-whole-building-carrier';
       const p151cReviewId = 'p151c-whole-building-review';
+      const p150frCandidateId = 'p150fr-whole-building-substructure';
+      const p150frReviewId = 'p150fr-whole-building-substructure-review';
       const p156iCandidateId = 'p156i-2017-kvv-main-presentation';
       const p156iReviewId = 'p156i-2017-kvv-main-review';
       const p154cCandidateId = 'p154c-d-wall-cutouts';
@@ -4063,6 +4065,9 @@ const title = 'Private 3D viewer';
       const isP151cWholeBuildingReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p151cReviewId;
 
+      const isP150frWholeBuildingSubstructureReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p150frReviewId;
+
       const isP156i2017KvvMainReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p156iReviewId;
 
@@ -4079,6 +4084,8 @@ const title = 'Private 3D viewer';
             ? p154cCandidateId
           : isP156i2017KvvMainReviewRequested()
             ? p156iCandidateId
+          : isP150frWholeBuildingSubstructureReviewRequested()
+            ? p150frCandidateId
           : isP151cWholeBuildingReviewRequested()
             ? p151cCandidateId
             : isP155cbDStorageRoofReviewRequested()
@@ -4466,6 +4473,8 @@ const title = 'Private 3D viewer';
             candidate.id === p155cbCandidateId && isP155cbDStorageRoofReviewRequested();
           const isP151cWholeBuildingReview =
             candidate.id === p151cCandidateId && isP151cWholeBuildingReviewRequested();
+          const isP150frWholeBuildingSubstructureReview =
+            candidate.id === p150frCandidateId && isP150frWholeBuildingSubstructureReviewRequested();
           const isP156i2017KvvMainReview =
             candidate.id === p156iCandidateId && isP156i2017KvvMainReviewRequested();
           const isP154cDWallCutoutsReview =
@@ -4517,6 +4526,23 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p151CarrierRole;
           delete canvas.dataset.p151ExcludedBranches;
           delete canvas.dataset.p151HumanReview;
+          delete canvas.dataset.p150frPredecessorCandidate;
+          delete canvas.dataset.p150frInheritedTargetCoverageCount;
+          delete canvas.dataset.p150frSubstructureTargetCount;
+          delete canvas.dataset.p150frSubstructureDeltaPass;
+          delete canvas.dataset.p150frSubstructureTargetIds;
+          delete canvas.dataset.p150frScope;
+          delete canvas.dataset.p150frExcludedBranches;
+          delete canvas.dataset.p150frWorkDepthM;
+          delete canvas.dataset.p150frDepthStatus;
+          delete canvas.dataset.p150frPhysicalFoundationClaim;
+          delete canvas.dataset.p150frPhysicalFoundationDepthClaim;
+          delete canvas.dataset.p150frCurrentClaim;
+          delete canvas.dataset.p150frAsBuiltClaim;
+          delete canvas.dataset.p150frCanonical;
+          delete canvas.dataset.p150frHumanReview;
+          delete canvas.dataset.p150frMetadataRepairOfPass;
+          delete canvas.dataset.p150frPresentationTruthfulness;
           delete canvas.dataset.p156SourceFamily;
           delete canvas.dataset.p156TimeRole;
           delete canvas.dataset.p156PresentationOnly;
@@ -4533,8 +4559,10 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.scalgoLabelMinimumSameCorridorSpacingM;
           delete canvas.dataset.scalgoLabelBuildingExclusion;
           delete canvas.dataset.scalgoLabelCorridorSemanticBoundary;
-          locusLayerLabel.textContent = isP156i2017KvvMainReview
-            ? '2017 KVV mainCandidate (WORK_TEST / presentation-only +8,700 m)'
+          locusLayerLabel.textContent = isP150frWholeBuildingSubstructureReview
+            ? 'Koko rakennus + alusrakennekuoret (WORK_TEST)'
+            : isP156i2017KvvMainReview
+              ? '2017 KVV mainCandidate (WORK_TEST / presentation-only +8,700 m)'
             : isP151cWholeBuildingReview
               ? 'Koko rakennus (WORK_TEST / minimum review carrier)'
               : isP155cbDStorageRoofReview
@@ -4571,6 +4599,32 @@ const title = 'Private 3D viewer';
             applyP154cReviewState();
           } else if (isP156i2017KvvMainReview) {
             applyP156iReviewState();
+          } else if (isP150frWholeBuildingSubstructureReview) {
+            Object.assign(canvas.dataset, {
+              workTestReviewMode: 'p150fr-whole-building-substructure-review',
+              p150frPredecessorCandidate: 'p151c-whole-building-carrier',
+              p150frInheritedTargetCoverageCount: '14',
+              p150frSubstructureTargetCount: '2',
+              p150frSubstructureDeltaPass: 'P150D',
+              p150frSubstructureTargetIds:
+                'G2_SUBSTRUCTURE_CD_STORAGE_WORK_001,G2_SUBSTRUCTURE_AB_WORK_001',
+              p150frScope:
+                'P133H owner + P147D/P148D roof/guard delta + P150A cut-terrain + P150D substructure WORK_TEST envelopes',
+              p150frExcludedBranches: 'P158B,P153,P154C,NEW_G3_COMMON',
+              p150frWorkDepthM: '0.600',
+              p150frDepthStatus: 'REFINABLE_WORK_ASSUMPTION',
+              p150frPhysicalFoundationClaim: 'false',
+              p150frPhysicalFoundationDepthClaim: 'false',
+              p150frCurrentClaim: 'false',
+              p150frAsBuiltClaim: 'false',
+              p150frCanonical: 'false',
+              p150frHumanReview: 'NOT_RUN',
+              p150frMetadataRepairOfPass: 'P150F',
+              p150frPresentationTruthfulness: 'PASS',
+            });
+            applyStandardViewPreset('whole-building');
+            status.textContent =
+              'P150F-R koko rakennus + alusrakennekuoret - WORK_TEST / 14/14 base + P150D targetit 2/2 - syvyys 0,600 m refinable - ei CURRENT/as-built';
           } else if (isP151cWholeBuildingReview) {
             canvas.dataset.workTestReviewMode = 'p151c-whole-building-review';
             canvas.dataset.p151TargetCoverageCount = '14';

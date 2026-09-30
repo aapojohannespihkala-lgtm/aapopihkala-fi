@@ -134,6 +134,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_913_540,
     expectedSha256: '67581d3d4f4a444c182a89c56c09235a22e6055e7f9edd7d0d28a6960329b043',
   },
+  // P150F-R viewer integration: metadata-corrected whole-building + substructure successor.
+  {
+    id: 'p150fr-whole-building-substructure',
+    label: 'P150F-R whole-building + substructure successor - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p150fr-whole-building-substructure.glb`,
+    objectKey: 'work-test/p150fr-whole-building-substructure.glb',
+    expectedSize: 1_919_860,
+    expectedSha256: '13ca8995e873982a91d7fe1bd82eff97a3a09f9688507b2fa488244cca1b0e03',
+  },
   // P156K viewer integration: exact P156I 2017 KVV presentation-only candidate.
   {
     id: 'p156i-2017-kvv-main-presentation',
