@@ -1762,6 +1762,7 @@ const title = 'Private 3D viewer';
         const presentationLayer = String(data.presentationLayer ?? '').toUpperCase();
         if (presentationLayer) return true;
         if (data.presentationSubgroup) return true;
+        if (data.markerType) return true;
 
         const semantic = [
           object?.name,
