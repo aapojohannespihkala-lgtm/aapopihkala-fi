@@ -82,6 +82,14 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_661_536,
     expectedSha256: 'fdde532b713249178111a9e830ebe6b52cf8a600b9f206fdc049abb072d55e02',
   },
+  {
+    id: 'p143h-scalgo-label-axis',
+    label: 'p143H SCALGO technical labels + paired barbs - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p143h-scalgo-label-axis.glb`,
+    objectKey: 'work-test/p143h-scalgo-label-axis.glb',
+    expectedSize: 1_673_484,
+    expectedSha256: '768972c522f63de0629020874f690b796b54f7c6d70125248d51f39b8d682c56',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
