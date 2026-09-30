@@ -3120,6 +3120,8 @@ const title = 'Private 3D viewer';
       const p155cbReviewId = 'p155cb-d-storage-roof-review';
       const p151cCandidateId = 'p151c-whole-building-carrier';
       const p151cReviewId = 'p151c-whole-building-review';
+      const p156iCandidateId = 'p156i-2017-kvv-main-presentation';
+      const p156iReviewId = 'p156i-2017-kvv-main-review';
       const p139abZSceneName =
         'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
       const p139abBuildingSceneName =
@@ -3823,10 +3825,15 @@ const title = 'Private 3D viewer';
       const isP151cWholeBuildingReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p151cReviewId;
 
+      const isP156i2017KvvMainReviewRequested = () =>
+        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p156iReviewId;
+
       const getRequestedReviewCandidateId = () =>
-        isP151cWholeBuildingReviewRequested()
-          ? p151cCandidateId
-          : isP155cbDStorageRoofReviewRequested()
+        isP156i2017KvvMainReviewRequested()
+          ? p156iCandidateId
+          : isP151cWholeBuildingReviewRequested()
+            ? p151cCandidateId
+            : isP155cbDStorageRoofReviewRequested()
             ? p155cbCandidateId
             : isP145b1974IvSectionWorkTargetsReviewRequested()
           ? p145bCandidateId
