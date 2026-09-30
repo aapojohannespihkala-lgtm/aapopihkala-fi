@@ -1045,11 +1045,11 @@ test('private viewer selects a visible mesh, shows bounded identity, metadata, a
   await expect(page.locator('#selection-kind')).toHaveText('Mesh');
   await expect(page.locator('#selection-metadata-list')).toContainText('Pass');
   await expect(page.locator('#selection-metadata-list')).toContainText('149E_TEST');
-  await expect(page.locator('#selection-metadata-list')).toContainText('Representation kind');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Representation Kind');
   await expect(page.locator('#selection-metadata-list')).toContainText('wallSolid');
   await expect(page.locator('#selection-metadata-list')).toContainText('Canonical');
   await expect(page.locator('#selection-metadata-list')).toContainText('false');
-  await expect(page.locator('#selection-metadata-list')).toContainText('Human review');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Human Review');
   await expect(page.locator('#selection-metadata-list')).toContainText('NOT_RUN');
   await expect(page.locator('#selection-metadata-list')).not.toContainText('shouldNotRender');
   await expect(canvas).toHaveAttribute('data-selection-metadata-count', '4');
