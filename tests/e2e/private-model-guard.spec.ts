@@ -1831,7 +1831,7 @@ test('private viewer composes p143D SCALGO terrain and p139AD assumed-Z infra fo
   await expect(page.locator('#profile-svg [data-series="terrain"]')).toBeVisible();
   await expect(page.locator('#profile-svg [data-series="pipe"]')).toBeVisible();
   await expect(page.locator('#profile-summary')).toContainText('peitto min 3,60 m');
-  await page.getByRole('button', { name: 'Sulje' }).filter({ has: page.locator('xpath=ancestor::aside[@id="profile-panel"]') }).click();
+  await page.locator('#close-profile-button').click();
 
   await page.getByRole('button', { name: 'Layerit' }).click();
   await expect(page.getByText('SCALGO nykymaasto + Locus work-Z infra (WORK_TEST)')).toBeVisible();
