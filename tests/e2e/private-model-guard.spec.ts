@@ -2320,6 +2320,110 @@ test('private viewer imports an exact WORK_TEST candidate from a protected fragm
   expect(candidateLoads).toBe(1);
 });
 
+test('private viewer falls back to an authenticated local GLB upload when protected source fetch fails', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P143H SCALGO TECH LABELS + PAIRED GRADIENT BARBS + SMOOTHED CARTOGRAPHY + P142A ARCHITECTURE - BABYLON Y-UP',
+        nodes: [],
+      },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p143h-scalgo-label-axis';
+  const candidateLabel = 'p143H SCALGO technical labels + paired barbs - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p143h-scalgo-label-axis.glb';
+  const sourceUrl =
+    'https://sdmntprdenmarkeast.oaiusercontent.com/files/fallback/raw?se=2026-09-30T20%3A00%3A00Z&sig=signature';
+  let uploaded = false;
+  let uploadRequests = 0;
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/import.json', async (route) => {
+    await route.fulfill({
+      status: 502,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'source-fetch-denied' }),
+    });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    if (!uploaded) {
+      await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
+  });
+  await page.route(
+    `**/private-model/work-test/upload/${candidateId}.glb`,
+    async (route) => {
+      uploadRequests += 1;
+      expect(route.request().method()).toBe('PUT');
+      expect(route.request().headers()['content-type']).toContain('model/gltf-binary');
+      expect(route.request().postDataBuffer()?.byteLength).toBe(candidateModel.byteLength);
+      uploaded = true;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          candidate: { id: candidateId, label: candidateLabel, path: candidatePath },
+          ready: true,
+          seeded: true,
+          uploaded: true,
+        }),
+      });
+    },
+  );
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: candidateModel,
+    });
+  });
+
+  const fragment = new URLSearchParams({
+    workTestCandidate: candidateId,
+    workTestImport: sourceUrl,
+  }).toString();
+  await page.goto(`/private-model/?review=p143h-scalgo-label-axis-review#${fragment}`);
+
+  const uploadButton = page.getByRole('button', { name: 'Tuo WORK_TEST .glb' });
+  await expect(uploadButton).toBeVisible();
+  await expect(page.getByRole('status')).toHaveText(
+    'WORK_TEST ei ole palvelimella - tuo tarkistettu .glb paikallisena',
+  );
+
+  await page.locator('#work-test-upload-input').setInputFiles({
+    name: 'Ylisrinne_p143H.glb',
+    mimeType: 'model/gltf-binary',
+    buffer: candidateModel,
+  });
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-upload', 'ready');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'scalgo-label-axis-review');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(uploadButton).toBeHidden();
+  expect(uploadRequests).toBe(1);
+});
+
 test('private viewer fails safe when the protected WORK_TEST catalog is unavailable', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
