@@ -2568,6 +2568,85 @@ test('private viewer autoloads the exact P151C whole-building review carrier', a
   );
 });
 
+
+
+test('private viewer autoloads the exact P150F-R whole-building substructure review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P150F WHOLE-BUILDING MINIMUM REVIEW CARRIER + SUBSTRUCTURE WORK ENVELOPES - BABYLON Y-UP',
+        nodes: [],
+      },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p150fr-whole-building-substructure';
+  const candidateLabel = 'P150F-R whole-building + substructure successor - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p150fr-whole-building-substructure.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p150fr-whole-building-substructure-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p150fr-whole-building-substructure-review',
+  );
+  await expect(canvas).toHaveAttribute('data-p150fr-predecessor-candidate', 'p151c-whole-building-carrier');
+  await expect(canvas).toHaveAttribute('data-p150fr-inherited-target-coverage-count', '14');
+  await expect(canvas).toHaveAttribute('data-p150fr-substructure-target-count', '2');
+  await expect(canvas).toHaveAttribute('data-p150fr-substructure-delta-pass', 'P150D');
+  await expect(canvas).toHaveAttribute(
+    'data-p150fr-substructure-target-ids',
+    'G2_SUBSTRUCTURE_CD_STORAGE_WORK_001,G2_SUBSTRUCTURE_AB_WORK_001',
+  );
+  await expect(canvas).toHaveAttribute(
+    'data-p150fr-scope',
+    'P133H owner + P147D/P148D roof/guard delta + P150A cut-terrain + P150D substructure WORK_TEST envelopes',
+  );
+  await expect(canvas).toHaveAttribute('data-p150fr-excluded-branches', 'P158B,P153,P154C,NEW_G3_COMMON');
+  await expect(canvas).toHaveAttribute('data-p150fr-work-depth-m', '0.600');
+  await expect(canvas).toHaveAttribute('data-p150fr-depth-status', 'REFINABLE_WORK_ASSUMPTION');
+  await expect(canvas).toHaveAttribute('data-p150fr-physical-foundation-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p150fr-physical-foundation-depth-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p150fr-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p150fr-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p150fr-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p150fr-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-p150fr-metadata-repair-of-pass', 'P150F');
+  await expect(canvas).toHaveAttribute('data-p150fr-presentation-truthfulness', 'PASS');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'P150F-R koko rakennus + alusrakennekuoret - WORK_TEST / 14/14 base + P150D targetit 2/2 - syvyys 0,600 m refinable - ei CURRENT/as-built',
+  );
+});
+
 test('private viewer autoloads the exact P156I 2017 KVV main presentation review candidate', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
