@@ -681,6 +681,8 @@ const title = 'Private 3D viewer';
           <option value="">WORK_TEST ei saatavilla</option>
         </select>
         <button id="work-test-button" type="button" disabled>Avaa WORK_TEST</button>
+        <button id="work-test-upload-button" type="button" hidden>Tuo WORK_TEST .glb</button>
+        <input id="work-test-upload-input" type="file" accept=".glb,model/gltf-binary,application/octet-stream" hidden />
         <button id="current-model-button" type="button" hidden>Palaa CURRENTiin</button>
         <div id="viewer-status" class="status" role="status">Ladataan suojattua mallia...</div>
       </div>
@@ -810,6 +812,8 @@ const title = 'Private 3D viewer';
       const profileButton = document.querySelector<HTMLButtonElement>('#profile-button');
       const workTestSelect = document.querySelector<HTMLSelectElement>('#work-test-select');
       const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
+      const workTestUploadButton = document.querySelector<HTMLButtonElement>('#work-test-upload-button');
+      const workTestUploadInput = document.querySelector<HTMLInputElement>('#work-test-upload-input');
       const currentModelButton = document.querySelector<HTMLButtonElement>('#current-model-button');
       const modelSourceBadge = document.querySelector<HTMLElement>('#model-source-badge');
       const layersPanel = document.querySelector<HTMLElement>('#layers-panel');
@@ -2986,6 +2990,7 @@ const title = 'Private 3D viewer';
 
       const workTestCatalogPath = '/private-model/work-test/catalog.json';
       const workTestImportPath = '/private-model/work-test/import.json';
+      const workTestUploadPrefix = '/private-model/work-test/upload/';
       const workTestImportFragmentKey = 'workTestImport';
       const workTestCandidateFragmentKey = 'workTestCandidate';
       let workTestCandidates = new Map<string, WorkTestCandidate>();
@@ -3026,19 +3031,7 @@ const title = 'Private 3D viewer';
         }
 
         workTestSelect.disabled = false;
-        const reviewCandidateId = isP144cG31974IvReviewRequested()
-          ? p144cCandidateId
-          : isP143hScalgoLabelAxisReviewRequested()
-            ? p143hCandidateId
-            : isP143gScalgoCartographyReviewRequested()
-            ? p143gCandidateId
-            : isP143fScalgoContourReviewRequested()
-              ? p143fCandidateId
-              : isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
-                ? p143aCandidateId
-                : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
-                  ? p139abCandidateId
-                  : null;
+        const reviewCandidateId = getRequestedReviewCandidateId();
         const reviewCandidate = reviewCandidateId
           ? workTestCandidates.get(reviewCandidateId)
           : null;
@@ -3213,6 +3206,21 @@ const title = 'Private 3D viewer';
 
       const isP144cG31974IvReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p144cReviewId;
+
+      const getRequestedReviewCandidateId = () =>
+        isP144cG31974IvReviewRequested()
+          ? p144cCandidateId
+          : isP143hScalgoLabelAxisReviewRequested()
+            ? p143hCandidateId
+            : isP143gScalgoCartographyReviewRequested()
+              ? p143gCandidateId
+              : isP143fScalgoContourReviewRequested()
+                ? p143fCandidateId
+                : isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
+                  ? p143aCandidateId
+                  : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
+                    ? p139abCandidateId
+                    : null;
 
       const isP139acGroundInfraReviewRequested = () =>
         new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p139acReviewId;
@@ -3892,19 +3900,7 @@ const title = 'Private 3D viewer';
         if (imported) return;
 
         await loadWorkTestCatalog();
-        const reviewCandidateId = isP144cG31974IvReviewRequested()
-          ? p144cCandidateId
-          : isP143hScalgoLabelAxisReviewRequested()
-            ? p143hCandidateId
-            : isP143gScalgoCartographyReviewRequested()
-            ? p143gCandidateId
-            : isP143fScalgoContourReviewRequested()
-              ? p143fCandidateId
-              : isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
-                ? p143aCandidateId
-                : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
-                  ? p139abCandidateId
-                  : null;
+        const reviewCandidateId = getRequestedReviewCandidateId();
         const reviewCandidate = reviewCandidateId
           ? workTestCandidates.get(reviewCandidateId)
           : null;
