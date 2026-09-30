@@ -2526,9 +2526,21 @@ const title = 'Private 3D viewer';
         }
 
         workTestSelect.disabled = false;
-        workTestSelect.value = candidates[0].id;
+        const reviewCandidateId =
+          isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
+            ? p139abCandidateId
+            : null;
+        const reviewCandidate = reviewCandidateId
+          ? workTestCandidates.get(reviewCandidateId)
+          : null;
+        workTestSelect.value = reviewCandidate?.id ?? candidates[0].id;
         workTestButton.disabled = false;
         canvas.dataset.workTestCatalog = 'ready';
+        if (reviewCandidate) {
+          canvas.dataset.workTestReviewCandidate = reviewCandidate.id;
+        } else {
+          delete canvas.dataset.workTestReviewCandidate;
+        }
       };
 
       const loadWorkTestCatalog = async () => {
@@ -3082,7 +3094,22 @@ const title = 'Private 3D viewer';
       void (async () => {
         await loadCurrentModel();
         const imported = await importWorkTestCandidateFromFragment();
-        if (!imported) await loadWorkTestCatalog();
+        if (imported) return;
+
+        await loadWorkTestCatalog();
+        const reviewCandidateId =
+          isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
+            ? p139abCandidateId
+            : null;
+        const reviewCandidate = reviewCandidateId
+          ? workTestCandidates.get(reviewCandidateId)
+          : null;
+        if (reviewCandidate) {
+          await loadWorkTestCandidate(reviewCandidate);
+          canvas.dataset.workTestReviewAutoload = 'true';
+        } else {
+          delete canvas.dataset.workTestReviewAutoload;
+        }
       })();
     </script>
   </body>
