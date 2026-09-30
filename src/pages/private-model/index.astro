@@ -784,6 +784,49 @@ const title = 'Private 3D viewer';
         overflow-wrap: anywhere;
       }
 
+      .selection-metadata {
+        display: grid;
+        gap: 6px;
+        margin-top: 11px;
+        padding-top: 10px;
+        border-top: 1px solid #e2e3de;
+      }
+
+      .selection-metadata > summary {
+        color: #555853;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 750;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .selection-metadata-list {
+        display: grid;
+        grid-template-columns: minmax(92px, auto) minmax(0, 1fr);
+        gap: 5px 10px;
+        margin: 0;
+        font-size: 12px;
+      }
+
+      .selection-metadata-list dt {
+        color: #6c6e69;
+        overflow-wrap: anywhere;
+      }
+
+      .selection-metadata-list dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .selection-metadata-empty {
+        color: #777a75;
+        font-size: 11px;
+      }
+
+      .selection-metadata-empty[hidden] { display: none; }
+
       .selection-actions {
         display: flex;
         flex-wrap: wrap;
@@ -1024,7 +1067,14 @@ const title = 'Private 3D viewer';
             <dd id="selection-scene">-</dd>
             <dt>Kerros</dt>
             <dd id="selection-floor">-</dd>
+            <dt>Tyyppi</dt>
+            <dd id="selection-kind">-</dd>
           </dl>
+          <details class="selection-metadata">
+            <summary>Metadata</summary>
+            <dl id="selection-metadata-list" class="selection-metadata-list"></dl>
+            <div id="selection-metadata-empty" class="selection-metadata-empty">Ei lisämetadataa</div>
+          </details>
           <div class="selection-actions" aria-label="Valitun kohteen näkyvyys">
             <button id="isolate-selection-button" type="button">Isoloi</button>
             <button id="hide-selection-button" type="button">Piilota</button>
@@ -1113,6 +1163,9 @@ const title = 'Private 3D viewer';
       const selectionGroup = document.querySelector<HTMLElement>('#selection-group');
       const selectionScene = document.querySelector<HTMLElement>('#selection-scene');
       const selectionFloor = document.querySelector<HTMLElement>('#selection-floor');
+      const selectionKind = document.querySelector<HTMLElement>('#selection-kind');
+      const selectionMetadataList = document.querySelector<HTMLElement>('#selection-metadata-list');
+      const selectionMetadataEmpty = document.querySelector<HTMLElement>('#selection-metadata-empty');
       const clearSelectionButton = document.querySelector<HTMLButtonElement>('#clear-selection-button');
       const isolateSelectionButton = document.querySelector<HTMLButtonElement>('#isolate-selection-button');
       const hideSelectionButton = document.querySelector<HTMLButtonElement>('#hide-selection-button');
@@ -1180,6 +1233,9 @@ const title = 'Private 3D viewer';
         !selectionGroup ||
         !selectionScene ||
         !selectionFloor ||
+        !selectionKind ||
+        !selectionMetadataList ||
+        !selectionMetadataEmpty ||
         !clearSelectionButton ||
         !isolateSelectionButton ||
         !hideSelectionButton ||
@@ -2542,6 +2598,92 @@ const title = 'Private 3D viewer';
         canvas.dataset.objectVisibilityFilter = 'active';
       };
 
+      const selectionKindLabel = (object: any) => {
+        if (object?.isMesh === true) return 'Mesh';
+        if (object?.isLineSegments === true) return 'LineSegments';
+        if (object?.isLine === true) return 'Line';
+        return object?.type ? String(object.type) : '-';
+      };
+
+      const selectionMetadataPriority = [
+        'Pass',
+        'pass',
+        'representationKind',
+        'geometryType',
+        'sourceRole',
+        'sourceFamily',
+        'sourceContract',
+        'ModelStage',
+        'modelStage',
+        'storey',
+        'floor',
+        'PresentationOnly',
+        'presentationOnly',
+        'Canonical',
+        'canonical',
+        'current',
+        'asBuiltClaim',
+        'humanReview',
+      ];
+
+      const formatSelectionMetadataKey = (key: string) =>
+        key
+          .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+          .replace(/[_-]+/g, ' ')
+          .replace(/^./, (character) => character.toUpperCase());
+
+      const scalarSelectionMetadataValue = (value: unknown) => {
+        if (typeof value === 'boolean') return value ? 'true' : 'false';
+        if (typeof value === 'number') return Number.isFinite(value) ? String(value) : null;
+        if (typeof value === 'string') {
+          const trimmed = value.trim();
+          if (!trimmed || trimmed.length > 180) return null;
+          return trimmed;
+        }
+        return null;
+      };
+
+      const selectionMetadataEntries = (object: any) => {
+        const values = new Map<string, string>();
+        let current = object;
+        let depth = 0;
+
+        while (current && current !== modelRoot && depth < 8 && values.size < 24) {
+          for (const [key, rawValue] of Object.entries(current.userData ?? {})) {
+            if (values.has(key)) continue;
+            const value = scalarSelectionMetadataValue(rawValue);
+            if (value !== null) values.set(key, value);
+          }
+          current = current.parent;
+          depth += 1;
+        }
+
+        const priority = new Map(selectionMetadataPriority.map((key, index) => [key, index]));
+        return [...values.entries()]
+          .sort(([keyA], [keyB]) => {
+            const rankA = priority.get(keyA) ?? Number.MAX_SAFE_INTEGER;
+            const rankB = priority.get(keyB) ?? Number.MAX_SAFE_INTEGER;
+            return rankA - rankB || keyA.localeCompare(keyB, 'fi');
+          })
+          .slice(0, 12);
+      };
+
+      const renderSelectionMetadata = (object: any) => {
+        selectionMetadataList.replaceChildren();
+        const entries = selectionMetadataEntries(object);
+        selectionMetadataEmpty.hidden = entries.length > 0;
+        canvas.dataset.selectionMetadataCount = String(entries.length);
+        canvas.dataset.selectionMetadataSource = entries.length > 0 ? 'userData' : 'none';
+
+        for (const [key, value] of entries) {
+          const label = document.createElement('dt');
+          label.textContent = formatSelectionMetadataKey(key);
+          const content = document.createElement('dd');
+          content.textContent = value;
+          selectionMetadataList.append(label, content);
+        }
+      };
+
       const clearSelection = () => {
         if (selectionHelper) {
           scene.remove(selectionHelper);
@@ -2556,6 +2698,11 @@ const title = 'Private 3D viewer';
         selectionGroup.textContent = '-';
         selectionScene.textContent = '-';
         selectionFloor.textContent = '-';
+        selectionKind.textContent = '-';
+        selectionMetadataList.replaceChildren();
+        selectionMetadataEmpty.hidden = false;
+        delete canvas.dataset.selectionMetadataCount;
+        delete canvas.dataset.selectionMetadataSource;
       };
 
       const selectObject = (object: any) => {
@@ -2566,6 +2713,8 @@ const title = 'Private 3D viewer';
         selectionGroup.textContent = nearestNamedAncestor(object) || '-';
         selectionScene.textContent = sceneNameForObject(object) || '-';
         selectionFloor.textContent = explicitFloorToken(object);
+        selectionKind.textContent = selectionKindLabel(object);
+        renderSelectionMetadata(object);
         selectionPanel.hidden = false;
 
         selectionHelper = new THREE.BoxHelper(object, 0x356a8a);
