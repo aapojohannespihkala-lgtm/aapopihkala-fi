@@ -3111,3 +3111,68 @@ test('private viewer autoloads the exact P154C D wall cutout review candidate', 
   );
 });
 
+test('private viewer autoloads the exact P153C D stair review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P153C D STAIR GUARD + LOWWALL + P153B STAIR WORK_TEST - BABYLON Y-UP', nodes: [] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [] },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p153c-d-stair-guard-lowwall';
+  const candidateLabel = 'P153C D stair + guard/lowWall - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p153c-d-stair-guard-lowwall.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p153c-d-stair-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p153c-d-stair-review');
+  await expect(canvas).toHaveAttribute('data-p153-work-topology', 'TWO_FLIGHT_SWITCHBACK_WITH_TURN_LANDING');
+  await expect(canvas).toHaveAttribute('data-p153-work-riser-count', '16');
+  await expect(canvas).toHaveAttribute('data-p153-total-rise-m', '2.760');
+  await expect(canvas).toHaveAttribute('data-p153-work-assumption', 'true');
+  await expect(canvas).toHaveAttribute('data-p153-physical-stair-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p153-physical-opening-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p153-floor-shell-cut-applied', 'false');
+  await expect(canvas).toHaveAttribute('data-p153-physical-guard-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p153-physical-low-wall-claim', 'false');
+  await expect(
+    canvas,
+  ).toHaveAttribute('data-p153-guard-low-wall-junction-status', 'RELATIONAL_ONLY_EXACT_JUNCTION_UNRESOLVED');
+  await expect(canvas).toHaveAttribute('data-p153-pillar-geometry-created', 'false');
+  await expect(canvas).toHaveAttribute('data-p153-exact-guard-geometry-status', 'DEFERRED');
+  await expect(canvas).toHaveAttribute('data-p153-exact-low-wall-height-status', 'DEFERRED');
+  await expect(canvas).toHaveAttribute('data-p153-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'P153C D-portaat - WORK_TEST / portaat + opening-frame + guard/lowWall - mitat refinable, pilarijakso DEFERRED',
+  );
+});
+
