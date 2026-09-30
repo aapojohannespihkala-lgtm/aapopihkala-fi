@@ -143,6 +143,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_848_532,
     expectedSha256: '072890e75cd693c05dc705d6a5581e999b9124d37d99aa914336c0a1d9b3ef3f',
   },
+  // P154E-B viewer integration: exact P154C D wall-solid + cutout candidate.
+  {
+    id: 'p154c-d-wall-cutouts',
+    label: 'P154C D wall solids + door/window cutouts - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p154c-d-wall-cutouts.glb`,
+    objectKey: 'work-test/p154c-d-wall-cutouts.glb',
+    expectedSize: 1_535_172,
+    expectedSha256: '0653be4435879acb479ca272dc8fd4a3c7299c863c0082797236d4c5c20167c0',
+  },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestStoredObject = {
