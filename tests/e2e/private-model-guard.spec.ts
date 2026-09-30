@@ -1620,9 +1620,10 @@ test('private viewer composes p139AC ground and Z-backed underground infra revie
 
   await page.goto('/private-model/?review=p139ac-ground-infra-review');
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
-  await page.getByRole('button', { name: 'Avaa WORK_TEST' }).click();
 
   const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'ground-infra-review');
   await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
   await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
@@ -1655,7 +1656,14 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+        candidates: [
+          {
+            id: 'p136b-d-current-wall-corrected',
+            label: 'p136B - D current wall corrected',
+            path: '/private-model/work-test/p136b-d-current-wall-corrected.glb',
+          },
+          { id: candidateId, label: candidateLabel, path: candidatePath },
+        ],
       }),
     });
   });
@@ -1665,9 +1673,11 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
 
   await page.goto('/private-model/?review=p139ad-locus-work-z-review');
   await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
-  await page.getByRole('button', { name: 'Avaa WORK_TEST' }).click();
 
   const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'locus-work-z-review');
   await expect(canvas).toHaveAttribute('data-locus-work-z-route-count', '4');
   await expect(canvas).toHaveAttribute('data-locus-work-z-max-elevation', '18.150');
