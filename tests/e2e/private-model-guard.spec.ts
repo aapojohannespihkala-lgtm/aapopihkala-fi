@@ -2759,6 +2759,53 @@ test('private viewer automatically relays the protected source in-browser when s
   expect(uploadRequests).toBe(1);
 });
 
+test('private viewer standard presets apply recommended layer start state and keep manual layer overrides available', async ({ page }) => {
+  const model = makeLocusLayerGlb();
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: model });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.goto('/private-model/');
+  const canvas = page.locator('#private-model-canvas');
+
+  await clickViewAction(page, 'Koko rakennus');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'preset:whole-building');
+  await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'visible');
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  const edgeMode = page.locator('#edge-mode-select');
+  await edgeMode.selectOption('none');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+
+  await clickViewAction(page, 'Infra');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'infra');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'preset:infra');
+  await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'visible');
+
+  const locusToggle = page.locator('#locus-layer-visible');
+  await locusToggle.uncheck();
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+  await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'infra');
+
+  await clickViewAction(page, 'Tontti');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'site');
+  await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'true');
+});
+
 test('private viewer keeps the primary toolbar compact and exposes legacy actions through menus', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
@@ -2784,10 +2831,14 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeHidden();
 
   await openToolbarMenu(page, '#view-menu');
+  await expect(page.getByRole('button', { name: 'Koko rakennus' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'D-asunto' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Vapaa 3D' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Isometrinen' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D 1F' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D 2F' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tontti' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Infra' })).toBeVisible();
 
   await openToolbarMenu(page, '#more-menu');
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeVisible();
