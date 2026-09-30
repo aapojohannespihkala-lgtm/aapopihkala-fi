@@ -251,8 +251,8 @@ const title = 'Private 3D viewer';
         top: 12px;
         right: 12px;
         bottom: 12px;
+        left: 12px;
         z-index: 1;
-        width: 88px;
         pointer-events: none;
         color: #343733;
         font-size: 11px;
@@ -281,20 +281,32 @@ const title = 'Private 3D viewer';
         border-right: 1px solid rgba(52, 55, 51, 0.6);
       }
 
-      .height-scale-tick {
+      :global(.height-scale-guide) {
+        position: absolute;
+        right: 0;
+        left: 0;
+        border-top: 1px solid rgba(52, 55, 51, 0.13);
+      }
+
+      :global(.height-scale-guide.zero) {
+        border-top-color: rgba(32, 33, 31, 0.32);
+        border-top-width: 2px;
+      }
+
+      :global(.height-scale-tick) {
         position: absolute;
         right: 0;
         width: 9px;
         border-top: 1px solid rgba(52, 55, 51, 0.55);
       }
 
-      .height-scale-tick.zero {
+      :global(.height-scale-tick.zero) {
         width: 15px;
         border-top-width: 2px;
         border-top-color: rgba(32, 33, 31, 0.85);
       }
 
-      .height-scale-label {
+      :global(.height-scale-label) {
         position: absolute;
         right: 13px;
         transform: translateY(-50%);
@@ -1876,19 +1888,29 @@ const title = 'Private 3D viewer';
           const normalized = (maxZ - value) / spanZ;
           const topPct = Math.max(0, Math.min(100, normalized * 100));
 
+          const isZero = Math.abs(value) < 1e-8;
+
+          const guide = document.createElement('div');
+          guide.className = 'height-scale-guide';
+          guide.dataset.heightM = value.toFixed(3);
+          if (isZero) guide.classList.add('zero');
+          guide.style.top = `${topPct}%`;
+
           const tick = document.createElement('div');
           tick.className = 'height-scale-tick';
-          if (Math.abs(value) < 1e-8) tick.classList.add('zero');
+          tick.dataset.heightM = value.toFixed(3);
+          if (isZero) tick.classList.add('zero');
           tick.style.top = `${topPct}%`;
 
           const label = document.createElement('div');
           label.className = 'height-scale-label';
+          label.dataset.heightM = value.toFixed(3);
           label.style.top = `${topPct}%`;
           const normalizedValue = Math.abs(value) < 0.0005 ? 0 : value;
           const prefix = normalizedValue > 0 ? '+' : '';
           label.textContent = `${prefix}${normalizedValue.toFixed(1).replace('.', ',')} m`;
 
-          heightScaleTicks.append(tick, label);
+          heightScaleTicks.append(guide, tick, label);
         }
 
         canvas.dataset.heightScaleMinZ = minZ.toFixed(3);
