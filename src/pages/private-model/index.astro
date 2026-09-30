@@ -2304,31 +2304,48 @@ const title = 'Private 3D viewer';
         const composite = new THREE.Group();
         composite.name = 'P139AB VISIBLE BUILDING + Z ROUTES REVIEW';
 
-        const buildingClone = buildingScene.clone(true);
-        buildingClone.traverse((object: any) => {
+        // Render from the p139AB carrier itself. The GLB intentionally reuses architecture
+        // nodes across multiple review roots, and GLTFLoader may clone/re-parent those refs
+        // differently between scenes. Using the active p139AB scene keeps the architecture
+        // and its source-Z routes in one runtime hierarchy instead of recombining two scenes.
+        const reviewClone = zScene.clone(true);
+        let buildingRenderableCount = 0;
+        let sourceZRenderableCount = 0;
+
+        reviewClone.traverse((object: any) => {
           const name = String(object?.name ?? '').toUpperCase();
           if (
             name.includes('P139C_WATER_CONNECTION_ZONE_REVIEW_HELPER') ||
             name.includes('P139E_WASTEWATER_CONNECTION_ZONE_REVIEW_HELPER')
           ) {
             object.visible = false;
+            return;
           }
-        });
 
-        const zRouteClone = zScene.clone(true);
-        zRouteClone.traverse((object: any) => {
           const renderable =
             object.isMesh || object.isLine || object.isLineSegments || object.isPoints;
-          if (renderable && !hasP139abZRouteAncestor(object)) object.visible = false;
+          if (!renderable) return;
+
+          if (hasP139abZRouteAncestor(object)) sourceZRenderableCount += 1;
+          else buildingRenderableCount += 1;
         });
 
-        composite.add(buildingClone, zRouteClone);
+        const sourceHasMeshes =
+          Array.isArray(gltf?.parser?.json?.meshes) && gltf.parser.json.meshes.length > 0;
+        if (sourceHasMeshes && buildingRenderableCount === 0) {
+          throw new Error('p139AB building context has no runtime renderables');
+        }
+
+        composite.add(reviewClone);
         composite.userData = {
           ...composite.userData,
           reviewScope: 'Z_CREDIBILITY_ONLY',
           buildingContext: true,
           sourceBuildingScene: p139abBuildingSceneName,
           sourceZScene: p139abZSceneName,
+          runtimeCarrierScene: p139abZSceneName,
+          buildingRenderableCount,
+          sourceZRenderableCount,
         };
         return composite;
       };
@@ -2545,6 +2562,12 @@ const title = 'Private 3D viewer';
               : isP139acGroundInfraReview
                 ? 'ground-infra-review'
                 : 'z-credibility-only';
+            canvas.dataset.p139abBuildingRenderableCount = String(
+              gltf.scene?.userData?.buildingRenderableCount ?? 0,
+            );
+            canvas.dataset.p139abSourceZRenderableCount = String(
+              gltf.scene?.userData?.sourceZRenderableCount ?? 0,
+            );
             if (isP139adLocusWorkZReview) {
               canvas.dataset.locusWorkZRouteCount = String(p139adLocusWorkZRoutes.length);
               canvas.dataset.locusWorkZMaxElevation = '18.150';
@@ -2562,6 +2585,8 @@ const title = 'Private 3D viewer';
             delete canvas.dataset.workTestReviewMode;
             delete canvas.dataset.locusWorkZRouteCount;
             delete canvas.dataset.locusWorkZMaxElevation;
+            delete canvas.dataset.p139abBuildingRenderableCount;
+            delete canvas.dataset.p139abSourceZRenderableCount;
           }
         } catch (error) {
           console.error(error);
