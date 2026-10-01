@@ -5157,7 +5157,10 @@ const title = 'Private 3D viewer';
         if (!isTrustedWorkTestBrowserSourceUrl(intent.sourceUrl)) return false;
 
         canvas.dataset.workTestRelay = 'loading';
+        delete canvas.dataset.workTestRelayError;
         status.textContent = 'Valmistellaan WORK_TEST-kandidaattia automaattisesti...';
+        let relayPhase: 'source' | 'upload' | 'catalog' = 'source';
+        let relayErrorCode: string | null = null;
 
         try {
           const sourceResponse = await fetchWorkTestWithTimeout(
@@ -5177,9 +5180,11 @@ const title = 'Private 3D viewer';
             !sourceResponse.url ||
             !isTrustedWorkTestBrowserSourceUrl(sourceResponse.url, false)
           ) {
+            relayErrorCode = `relay-source-http-${sourceResponse.status}`;
             throw new Error(`WORK_TEST browser source HTTP ${sourceResponse.status}`);
           }
 
+          relayPhase = 'upload';
           const bytes = await sourceResponse.arrayBuffer();
           const uploadResponse = await fetchWorkTestWithTimeout(
             `${workTestUploadPrefix}${encodeURIComponent(intent.candidateId)}.glb`,
@@ -5195,6 +5200,7 @@ const title = 'Private 3D viewer';
             workTestRelayUploadTimeoutMs,
           );
           if (!uploadResponse.ok) {
+            relayErrorCode = `relay-upload-http-${uploadResponse.status}`;
             throw new Error(`WORK_TEST relay upload HTTP ${uploadResponse.status}`);
           }
 
@@ -5203,26 +5209,39 @@ const title = 'Private 3D viewer';
             ready?: unknown;
           };
           if (!isWorkTestCandidate(payload.candidate) || payload.ready !== true) {
+            relayErrorCode = 'relay-upload-response-invalid';
             throw new Error('WORK_TEST relay upload response invalid');
           }
           if (payload.candidate.id !== intent.candidateId) {
+            relayErrorCode = 'relay-upload-candidate-mismatch';
             throw new Error('WORK_TEST relay upload candidate mismatch');
           }
 
+          relayPhase = 'catalog';
           await loadWorkTestCatalog();
           const candidate = workTestCandidates.get(intent.candidateId);
-          if (!candidate) throw new Error('WORK_TEST candidate missing after browser relay');
+          if (!candidate) {
+            relayErrorCode = 'relay-catalog-missing';
+            throw new Error('WORK_TEST candidate missing after browser relay');
+          }
 
           workTestSelect.value = candidate.id;
           workTestButton.disabled = false;
           setWorkTestUploadFallback(null);
           canvas.dataset.workTestRelay = 'ready';
+          delete canvas.dataset.workTestRelayError;
           canvas.dataset.workTestImport = 'ready';
           await loadWorkTestCandidate(candidate);
           return true;
         } catch (error) {
           console.error(error);
+          const timeoutCode =
+            error instanceof Error && error.name === 'TimeoutError'
+              ? `relay-${relayPhase}-timeout`
+              : null;
           canvas.dataset.workTestRelay = 'failed';
+          canvas.dataset.workTestRelayError =
+            relayErrorCode ?? timeoutCode ?? `relay-${relayPhase}-failed`;
           return false;
         }
       };
@@ -5358,6 +5377,12 @@ const title = 'Private 3D viewer';
           return true;
         } catch (error) {
           console.error(error);
+          if (!canvas.dataset.workTestImportError) {
+            canvas.dataset.workTestImportError =
+              error instanceof Error && error.name === 'TimeoutError'
+                ? 'client-import-timeout'
+                : 'client-import-failed';
+          }
           const relayed = await relayWorkTestCandidateFromSource(intent);
           if (relayed) return true;
 
@@ -5366,9 +5391,10 @@ const title = 'Private 3D viewer';
           if (!workTestCandidates.has(intent.candidateId)) {
             setWorkTestUploadFallback(intent.candidateId);
             const importError = canvas.dataset.workTestImportError;
-            status.textContent = importError
-              ? `WORK_TEST-julkaisu epäonnistui palvelimella (${importError})`
-              : 'WORK_TEST-kandidaatin automaattinen valmistelu epäonnistui - tekninen julkaisu on kesken';
+            const relayError = canvas.dataset.workTestRelayError;
+            status.textContent = relayError
+              ? `WORK_TEST-julkaisu epäonnistui (server: ${importError}; relay: ${relayError})`
+              : `WORK_TEST-julkaisu epäonnistui palvelimella (${importError})`;
           }
           return false;
         }
@@ -5548,8 +5574,10 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.workTestReviewAutoload;
           if (reviewCandidateId) {
             setWorkTestUploadFallback(reviewCandidateId);
-            status.textContent =
-              'WORK_TEST ei ole palvelinpuolen katalogissa - tekninen julkaisu on kesken';
+            if (canvas.dataset.workTestImport !== 'failed') {
+              status.textContent =
+                'WORK_TEST ei ole palvelinpuolen katalogissa - tekninen julkaisu on kesken';
+            }
           }
         }
       })();
