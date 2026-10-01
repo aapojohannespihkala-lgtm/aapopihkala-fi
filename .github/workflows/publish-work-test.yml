@@ -17,6 +17,7 @@ on:
           - p164b-d-corrected-stair
           - p166f-lightwell-proxies
           - p167f-whole-building-precise-stair
+          - p168a-whole-building-roof-eave-correction
 
 permissions:
   contents: read
@@ -89,6 +90,11 @@ jobs:
               drive_file_id="1h65Ap5BGINTqv-zEUnFmFa0wT25SMUfT"
               expected_size="2070576"
               expected_sha256="66e8589ec8b904cde6fee3b80ba7c0e01db0f1d66ed88455a6d5ddf9f9442bd8"
+              ;;
+            p168a-whole-building-roof-eave-correction)
+              drive_file_id="1hkI-8ExAq5Loit7YLU6cWsklEAzpi7fD"
+              expected_size="2076876"
+              expected_sha256="a9d0672283f15f2ab8cbd527242cb8982b1dab81e86e86b7dad1bfe42dbd1590"
               ;;
             *)
               echo "Unsupported WORK_TEST candidate" >&2
