@@ -205,6 +205,27 @@ type PrivateWorkTestBucket = {
   ): Promise<PrivateWorkTestStoredObject>;
 };
 
+export type PrivateWorkTestExecutionContext = {
+  waitUntil(promise: Promise<unknown>): void;
+};
+
+type PrivateWorkTestSeedResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error:
+        | 'source-fetch-failed'
+        | 'source-fetch-timeout'
+        | 'source-fetch-denied'
+        | 'source-size-mismatch'
+        | 'source-sha256-mismatch'
+        | 'r2-write-failed'
+        | 'r2-readback-failed';
+      status: number;
+    };
+
+const PRIVATE_WORK_TEST_SOURCE_TIMEOUT_MS = 25_000;
+
 const privateHeaders = () =>
   new Headers({
     'Cache-Control': 'private, no-store',
@@ -295,6 +316,117 @@ const sha256Hex = async (value: ArrayBuffer) => {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 };
 
+const privateWorkTestSourceBytes = async (
+  candidate: PrivateWorkTestCandidate,
+  sourceUrl: string,
+  fetchImpl: typeof fetch,
+  timeoutMs: number,
+): Promise<
+  | { ok: true; bytes: ArrayBuffer }
+  | Exclude<PrivateWorkTestSeedResult, { ok: true }>
+> => {
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const sourcePromise = (async () => {
+    let sourceResponse: Response;
+    try {
+      sourceResponse = await fetchImpl(sourceUrl, {
+        headers: { Accept: 'model/gltf-binary, application/octet-stream;q=0.9, */*;q=0.1' },
+        redirect: 'follow',
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+    } catch {
+      return { ok: false, error: 'source-fetch-failed', status: 502 } as const;
+    }
+
+    if (
+      !sourceResponse.ok ||
+      !sourceResponse.url ||
+      !isTrustedPrivateWorkTestResolvedSourceUrl(sourceResponse.url)
+    ) {
+      return { ok: false, error: 'source-fetch-denied', status: 502 } as const;
+    }
+
+    const declaredLength = sourceResponse.headers.get('Content-Length');
+    if (
+      declaredLength &&
+      Number.isFinite(Number(declaredLength)) &&
+      Number(declaredLength) !== candidate.expectedSize
+    ) {
+      return { ok: false, error: 'source-size-mismatch', status: 422 } as const;
+    }
+
+    const bytes = await sourceResponse.arrayBuffer();
+    if (bytes.byteLength !== candidate.expectedSize) {
+      return { ok: false, error: 'source-size-mismatch', status: 422 } as const;
+    }
+
+    const sha256 = await sha256Hex(bytes);
+    if (sha256 !== candidate.expectedSha256) {
+      return { ok: false, error: 'source-sha256-mismatch', status: 422 } as const;
+    }
+
+    return { ok: true, bytes } as const;
+  })();
+
+  void sourcePromise.catch(() => undefined);
+  const timeoutPromise = new Promise<
+    Exclude<PrivateWorkTestSeedResult, { ok: true }>
+  >((resolve) => {
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      resolve({ ok: false, error: 'source-fetch-timeout', status: 504 });
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([sourcePromise, timeoutPromise]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
+};
+
+export const seedPrivateWorkTestCandidateFromSource = async (
+  candidate: PrivateWorkTestCandidate,
+  sourceUrl: string,
+  bucket: PrivateWorkTestBucket,
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs = PRIVATE_WORK_TEST_SOURCE_TIMEOUT_MS,
+): Promise<PrivateWorkTestSeedResult> => {
+  const source = await privateWorkTestSourceBytes(
+    candidate,
+    sourceUrl,
+    fetchImpl,
+    timeoutMs,
+  );
+  if (!source.ok) return source;
+
+  try {
+    await bucket.put(candidate.objectKey, source.bytes, {
+      httpMetadata: {
+        contentType: 'model/gltf-binary',
+        contentDisposition: 'inline',
+        cacheControl: 'private, no-store',
+      },
+      customMetadata: {
+        sha256: candidate.expectedSha256,
+      },
+    });
+  } catch {
+    return { ok: false, error: 'r2-write-failed', status: 500 };
+  }
+
+  const written = await bucket.get(candidate.objectKey);
+  if (!written || !isPrivateWorkTestObjectValid(written, candidate)) {
+    console.info('private-model work-test import deny: r2-readback');
+    return { ok: false, error: 'r2-readback-failed', status: 500 };
+  }
+
+  return { ok: true };
+};
+
 export const validatePrivateWorkTestUploadBytes = async (
   bytes: ArrayBuffer,
   expected: Pick<PrivateWorkTestCandidate, 'expectedSize' | 'expectedSha256'>,
@@ -374,6 +506,7 @@ const handlePrivateWorkTestUpload = async (
 const handlePrivateWorkTestImport = async (
   request: Request,
   env: PrivateModelEnv,
+  executionContext?: PrivateWorkTestExecutionContext,
 ): Promise<Response> => {
   if (!(await verifyPrivateModelAccess(request, env))) return notFound();
   if (request.method !== 'POST') return methodNotAllowed('POST');
@@ -414,59 +547,34 @@ const handlePrivateWorkTestImport = async (
     });
   }
 
-  let sourceResponse: Response;
-  try {
-    sourceResponse = await fetch(payload.sourceUrl, {
-      headers: { Accept: 'model/gltf-binary, application/octet-stream;q=0.9, */*;q=0.1' },
-      redirect: 'follow',
-      cache: 'no-store',
-    });
-  } catch {
-    return privateJsonResponse(request, { error: 'source-fetch-failed' }, 502);
+  const seedTask = seedPrivateWorkTestCandidateFromSource(
+    candidate,
+    payload.sourceUrl,
+    bucket,
+  );
+
+  if (executionContext) {
+    executionContext.waitUntil(
+      seedTask.then((result) => {
+        if (!result.ok) {
+          console.info(`private-model work-test background seed failed: ${result.error}`);
+        }
+      }),
+    );
+    return privateJsonResponse(
+      request,
+      {
+        candidate: { id: candidate.id, label: candidate.label, path: candidate.path },
+        ready: false,
+        pending: true,
+      },
+      202,
+    );
   }
 
-  if (
-    !sourceResponse.ok ||
-    !sourceResponse.url ||
-    !isTrustedPrivateWorkTestResolvedSourceUrl(sourceResponse.url)
-  ) {
-    return privateJsonResponse(request, { error: 'source-fetch-denied' }, 502);
-  }
-
-  const declaredLength = sourceResponse.headers.get('Content-Length');
-  if (
-    declaredLength &&
-    Number.isFinite(Number(declaredLength)) &&
-    Number(declaredLength) !== candidate.expectedSize
-  ) {
-    return privateJsonResponse(request, { error: 'source-size-mismatch' }, 422);
-  }
-
-  const bytes = await sourceResponse.arrayBuffer();
-  if (bytes.byteLength !== candidate.expectedSize) {
-    return privateJsonResponse(request, { error: 'source-size-mismatch' }, 422);
-  }
-
-  const sha256 = await sha256Hex(bytes);
-  if (sha256 !== candidate.expectedSha256) {
-    return privateJsonResponse(request, { error: 'source-sha256-mismatch' }, 422);
-  }
-
-  await bucket.put(candidate.objectKey, bytes, {
-    httpMetadata: {
-      contentType: 'model/gltf-binary',
-      contentDisposition: 'inline',
-      cacheControl: 'private, no-store',
-    },
-    customMetadata: {
-      sha256: candidate.expectedSha256,
-    },
-  });
-
-  const written = await bucket.get(candidate.objectKey);
-  if (!written || !isPrivateWorkTestObjectValid(written, candidate)) {
-    console.info('private-model work-test import deny: r2-readback');
-    return privateJsonResponse(request, { error: 'r2-readback-failed' }, 500);
+  const seeded = await seedTask;
+  if (!seeded.ok) {
+    return privateJsonResponse(request, { error: seeded.error }, seeded.status);
   }
 
   return privateJsonResponse(request, {
@@ -479,11 +587,12 @@ const handlePrivateWorkTestImport = async (
 export const handlePrivateWorkTestRequest = async (
   request: Request,
   env: PrivateModelEnv,
+  executionContext?: PrivateWorkTestExecutionContext,
 ): Promise<Response> => {
   const pathname = new URL(request.url).pathname;
 
   if (pathname === PRIVATE_WORK_TEST_IMPORT_PATH) {
-    return handlePrivateWorkTestImport(request, env);
+    return handlePrivateWorkTestImport(request, env, executionContext);
   }
 
   const uploadCandidate = getPrivateWorkTestUploadCandidate(pathname);

@@ -3966,6 +3966,9 @@ const title = 'Private 3D viewer';
       const workTestImportFragmentKey = 'workTestImport';
       const workTestCandidateFragmentKey = 'workTestCandidate';
       const workTestServerImportTimeoutMs = 6_000;
+      const workTestCatalogTimeoutMs = 6_000;
+      const workTestPendingPollIntervalMs = 1_000;
+      const workTestPendingWaitMs = 30_000;
       const workTestRelaySourceTimeoutMs = 25_000;
       const workTestRelayUploadTimeoutMs = 25_000;
       const fetchWorkTestWithTimeout = async (
@@ -4067,10 +4070,14 @@ const title = 'Private 3D viewer';
 
       const loadWorkTestCatalog = async () => {
         try {
-          const response = await fetch(workTestCatalogPath, {
-            headers: { Accept: 'application/json' },
-            cache: 'no-store',
-          });
+          const response = await fetchWorkTestWithTimeout(
+            workTestCatalogPath,
+            {
+              headers: { Accept: 'application/json' },
+              cache: 'no-store',
+            },
+            workTestCatalogTimeoutMs,
+          );
           if (!response.ok) throw new Error(`WORK_TEST catalog HTTP ${response.status}`);
 
           const payload = (await response.json()) as { candidates?: unknown };
@@ -4078,11 +4085,25 @@ const title = 'Private 3D viewer';
             ? payload.candidates.filter(isWorkTestCandidate)
             : [];
           setWorkTestCatalog(candidates);
+          delete canvas.dataset.workTestCatalog;
         } catch (error) {
           console.error(error);
           setWorkTestCatalog([]);
           canvas.dataset.workTestCatalog = 'unavailable';
         }
+      };
+
+      const waitForWorkTestCandidate = async (candidateId: string) => {
+        const deadline = Date.now() + workTestPendingWaitMs;
+        while (Date.now() < deadline) {
+          await loadWorkTestCatalog();
+          const candidate = workTestCandidates.get(candidateId);
+          if (candidate) return candidate;
+          await new Promise<void>((resolve) => {
+            window.setTimeout(resolve, workTestPendingPollIntervalMs);
+          });
+        }
+        return null;
       };
 
       const hasP139abZRouteAncestor = (object: any) => {
@@ -5295,16 +5316,27 @@ const title = 'Private 3D viewer';
           const payload = (await response.json()) as {
             candidate?: unknown;
             ready?: unknown;
+            pending?: unknown;
           };
-          if (!isWorkTestCandidate(payload.candidate) || payload.ready !== true) {
+          if (!isWorkTestCandidate(payload.candidate)) {
             throw new Error('WORK_TEST import response invalid');
           }
           if (payload.candidate.id !== intent.candidateId) {
             throw new Error('WORK_TEST import candidate mismatch');
           }
 
-          await loadWorkTestCatalog();
-          const candidate = workTestCandidates.get(intent.candidateId);
+          let candidate: WorkTestCandidate | null = null;
+          if (payload.ready === true) {
+            await loadWorkTestCatalog();
+            candidate = workTestCandidates.get(intent.candidateId) ?? null;
+          } else if (payload.pending === true) {
+            canvas.dataset.workTestImport = 'pending';
+            status.textContent = 'Valmistellaan WORK_TEST-kandidaattia palvelimella...';
+            candidate = await waitForWorkTestCandidate(intent.candidateId);
+          } else {
+            throw new Error('WORK_TEST import response invalid');
+          }
+
           if (!candidate) throw new Error('WORK_TEST candidate missing after import');
 
           workTestSelect.value = candidate.id;

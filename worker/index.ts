@@ -12,6 +12,9 @@ import { handlePrivateModelRequest, isPrivateModelPath, type PrivateModelEnv } f
 import { handlePrivateWorkTestRequest, isPrivateWorkTestPath } from './privateWorkTest';
 
 type WorkerEnv = PrivateModelEnv & { DIGITRANSIT_API_KEY?: string };
+type WorkerExecutionContext = {
+  waitUntil(promise: Promise<unknown>): void;
+};
 type ResponseCache = {
   match(request: Request): Promise<Response | undefined>;
   put(request: Request, response: Response): Promise<void>;
@@ -368,10 +371,16 @@ const publicLiigaResponse = async (response: Response, error: string) => {
 };
 
 const worker = {
-  async fetch(request: Request, env: WorkerEnv): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: WorkerEnv,
+    executionContext?: WorkerExecutionContext,
+  ): Promise<Response> {
     const url = new URL(request.url);
     const snapshotRequest = isSnapshotRequest(request);
-    if (isPrivateWorkTestPath(url.pathname)) return handlePrivateWorkTestRequest(request, env);
+    if (isPrivateWorkTestPath(url.pathname)) {
+      return handlePrivateWorkTestRequest(request, env, executionContext);
+    }
     if (isPrivateModelPath(url.pathname)) return handlePrivateModelRequest(request, env);
     if (url.pathname === ELECTRICITY_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityPriceResponse(); }
     if (url.pathname === ELECTRICITY_MONTH_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityMonthResponse(); }
