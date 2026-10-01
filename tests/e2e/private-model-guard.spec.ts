@@ -5,6 +5,53 @@ import {
   isPrivateModelPath,
   type PrivateModelEnv,
 } from '../../worker/privateModel';
+import {
+  getRequestedReviewCandidateId,
+  isWorkTestCandidate,
+} from '../../src/scripts/privateModelWorkTest';
+
+test('private viewer WORK_TEST routing module preserves review aliases and candidate validation', () => {
+  const expectedRoutes = {
+    'p153c-d-stair-review': 'p153c-d-stair-guard-lowwall',
+    'p154c-d-wall-cutouts-review': 'p154c-d-wall-cutouts',
+    'p156i-2017-kvv-main-review': 'p156i-2017-kvv-main-presentation',
+    'p150fr-whole-building-substructure-review': 'p150fr-whole-building-substructure',
+    'p151c-whole-building-review': 'p151c-whole-building-carrier',
+    'p155cb-d-storage-roof-review': 'p155cb-d-storage-roof',
+    'p145b-1974-iv-section-worktargets-review': 'p145b-1974-iv-section-worktargets',
+    'p144c-g3-1974-iv-review': 'p144c-g3-1974-iv-on-p143h',
+    'p143j-scalgo-label-flow-review': 'p143j-scalgo-label-flow',
+    'p143h-scalgo-label-axis-review': 'p143h-scalgo-label-axis',
+    'p143g-scalgo-cartography-review': 'p143g-scalgo-cartography',
+    'p143f-scalgo-contours-review': 'p143f-scalgo-contours',
+    'p143a-scalgo-terrain-review': 'p143a-scalgo-terrain',
+    'p143d-scalgo-infra-review': 'p143a-scalgo-terrain',
+    'p139ac-ground-infra-review': 'p139ab-z-credible-wastewater-review',
+    'p139ad-locus-work-z-review': 'p139ab-z-credible-wastewater-review',
+  } as const;
+
+  for (const [reviewId, candidateId] of Object.entries(expectedRoutes)) {
+    expect(getRequestedReviewCandidateId(`?review=${reviewId}`)).toBe(candidateId);
+  }
+
+  expect(getRequestedReviewCandidateId('?review=unknown-review')).toBeNull();
+  expect(getRequestedReviewCandidateId('')).toBeNull();
+
+  expect(
+    isWorkTestCandidate({
+      id: 'p149g-valid-candidate',
+      label: 'P149G valid candidate',
+      path: '/private-model/work-test/p149g-valid-candidate.glb',
+    }),
+  ).toBe(true);
+  expect(
+    isWorkTestCandidate({
+      id: 'p149g-valid-candidate',
+      label: 'P149G invalid path',
+      path: '/private-model/model.glb',
+    }),
+  ).toBe(false);
+});
 
 const makeMinimalGlb = (json: Record<string, unknown>) => {
   const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
