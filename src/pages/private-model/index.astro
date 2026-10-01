@@ -3974,11 +3974,23 @@ const title = 'Private 3D viewer';
         timeoutMs: number,
       ) => {
         const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+        let timeoutId = 0;
+        const timeout = new Promise<never>((_, reject) => {
+          timeoutId = window.setTimeout(() => {
+            controller.abort();
+            const error = new Error('WORK_TEST fetch timeout');
+            error.name = 'TimeoutError';
+            reject(error);
+          }, timeoutMs);
+        });
         try {
-          return await fetch(input, { ...init, signal: controller.signal });
+          return await Promise.race([
+            fetch(input, { ...init, signal: controller.signal }),
+            timeout,
+          ]);
         } finally {
           window.clearTimeout(timeoutId);
+          controller.abort();
         }
       };
       let workTestCandidates = new Map<string, WorkTestCandidate>();
