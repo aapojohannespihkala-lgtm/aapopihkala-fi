@@ -354,7 +354,13 @@ const privateWorkTestSourceBytes = async (
       return { ok: false, error: 'source-size-mismatch', status: 422 } as const;
     }
 
-    const bytes = await sourceResponse.arrayBuffer();
+    let bytes: ArrayBuffer;
+    try {
+      bytes = await sourceResponse.arrayBuffer();
+    } catch {
+      return { ok: false, error: 'source-fetch-failed', status: 502 } as const;
+    }
+
     if (bytes.byteLength !== candidate.expectedSize) {
       return { ok: false, error: 'source-size-mismatch', status: 422 } as const;
     }
@@ -414,7 +420,14 @@ export const seedPrivateWorkTestCandidateFromSource = async (
     return { ok: false, error: 'r2-write-failed', status: 500 };
   }
 
-  const written = await bucket.get(candidate.objectKey);
+  let written: PrivateWorkTestStoredObject | null;
+  try {
+    written = await bucket.get(candidate.objectKey);
+  } catch {
+    console.info('private-model work-test import deny: r2-readback');
+    return { ok: false, error: 'r2-readback-failed', status: 500 };
+  }
+
   if (!written || !isPrivateWorkTestObjectValid(written, candidate)) {
     console.info('private-model work-test import deny: r2-readback');
     return { ok: false, error: 'r2-readback-failed', status: 500 };
