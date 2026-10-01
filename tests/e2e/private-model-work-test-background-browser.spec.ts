@@ -113,3 +113,56 @@ test('private viewer waits beyond the old 6 s limit for bounded server P150G see
   expect(sourceRequests).toBe(0);
   expect(uploadRequests).toBe(0);
 });
+
+
+test('private viewer preserves exact server and relay failure codes after startup catalog fallback', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateId = 'p150g-whole-building-end-plinth';
+  const sourceUrl = 'https://unit.oaiusercontent.com/files/p150g/raw?se=x&sig=y';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/import.json', async (route) => {
+    await route.fulfill({
+      status: 504,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'source-fetch-timeout' }),
+    });
+  });
+  await page.route('https://unit.oaiusercontent.com/**', async (route) => {
+    await route.fulfill({ status: 403, contentType: 'text/plain', body: 'denied' });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [] }),
+    });
+  });
+
+  const fragment = new URLSearchParams({
+    workTestCandidate: candidateId,
+    workTestImport: sourceUrl,
+  }).toString();
+  await page.goto(
+    `/private-model/?review=p150g-whole-building-end-plinth-review#${fragment}`,
+  );
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-import', 'failed');
+  await expect(canvas).toHaveAttribute('data-work-test-import-error', 'source-fetch-timeout');
+  await expect(canvas).toHaveAttribute('data-work-test-relay', 'failed');
+  await expect(canvas).toHaveAttribute('data-work-test-relay-error', 'relay-source-http-403');
+  await expect(page.locator('#viewer-status')).toHaveText(
+    'WORK_TEST-julkaisu epäonnistui (server: source-fetch-timeout; relay: relay-source-http-403)',
+  );
+  await expect(page.locator('#viewer-status')).not.toContainText(
+    'WORK_TEST ei ole palvelinpuolen katalogissa',
+  );
+});
