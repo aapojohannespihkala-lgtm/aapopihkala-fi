@@ -50,6 +50,7 @@ const isPreview = mode === 'preview';
       let retryTimer = null;
       const WIDGET_CACHE_KEY = 'current-widget-v2-prod:last-good';
       const RETRY_DELAY_MS = 60_000;
+      const REQUEST_TIMEOUT_MS = 12_000;
 
       const isUsablePayload = (value) =>
         value &&
@@ -549,6 +550,7 @@ const isPreview = mode === 'preview';
           const response = await fetch(`/api/current/widget-v2?channel=${channel}`, {
             headers: { Accept: 'application/json' },
             cache: 'no-store',
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const serverFallback = response.headers.get('x-widget-fallback') === 'last-known-good';
