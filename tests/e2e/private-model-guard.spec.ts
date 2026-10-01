@@ -3115,6 +3115,8 @@ test('private viewer autoloads the exact P161 multisource systems review candida
   await expect(canvas).toHaveAttribute('data-p161-iv-plan-layer-count', '32');
   await expect(canvas).toHaveAttribute('data-p161-section-sidecar-layer-count', '6');
 
+  await page.locator('#layers-button').click();
+  await expect(page.locator('#layers-panel')).toBeVisible();
   await systemsLayer.uncheck();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
   await systemsLayer.check();
