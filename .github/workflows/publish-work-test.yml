@@ -18,8 +18,8 @@ env:
   EXPECTED_SHA256: a17fdc1cbc29c4ecfcab3e94554b5ea5860c9a19db33e21f24c324acf70d6d89
   EXPECTED_PATH: /private-model/work-test/p150g-whole-building-end-plinth.glb
   PUBLISH_URL: https://aapopihkala.fi/private-model/work-test/publish/p150g-whole-building-end-plinth.glb
-  CATALOG_URL: https://aapopihkala.fi/private-model/work-test/catalog.json
-  GLB_URL: https://aapopihkala.fi/private-model/work-test/p150g-whole-building-end-plinth.glb
+  CATALOG_URL: https://aapopihkala.fi/private-model/work-test/verify/catalog.json
+  GLB_URL: https://aapopihkala.fi/private-model/work-test/verify/p150g-whole-building-end-plinth.glb
 
 jobs:
   publish:
