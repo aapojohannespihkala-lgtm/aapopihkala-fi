@@ -2,6 +2,7 @@ import {
   PRIVATE_MODEL_PREFIX,
   verifyPrivateModelAccess,
   verifyPrivateModelPublisherAccess,
+  verifyPrivateModelReadbackAccess,
   type PrivateModelEnv,
 } from './privateModel';
 
@@ -10,6 +11,9 @@ export const PRIVATE_WORK_TEST_CATALOG_PATH = `${PRIVATE_WORK_TEST_PREFIX}/catal
 export const PRIVATE_WORK_TEST_IMPORT_PATH = `${PRIVATE_WORK_TEST_PREFIX}/import.json`;
 export const PRIVATE_WORK_TEST_UPLOAD_PREFIX = `${PRIVATE_WORK_TEST_PREFIX}/upload/`;
 export const PRIVATE_WORK_TEST_PUBLISH_PREFIX = `${PRIVATE_WORK_TEST_PREFIX}/publish/`;
+export const PRIVATE_WORK_TEST_VERIFY_PREFIX = `${PRIVATE_WORK_TEST_PREFIX}/verify`;
+export const PRIVATE_WORK_TEST_VERIFY_CATALOG_PATH = `${PRIVATE_WORK_TEST_VERIFY_PREFIX}/catalog.json`;
+export const PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX = `${PRIVATE_WORK_TEST_VERIFY_PREFIX}/`;
 
 export type PrivateWorkTestCandidate = {
   id: string;
@@ -274,6 +278,15 @@ export const getPrivateWorkTestUploadCandidate = (pathname: string) => {
 export const getPrivateWorkTestPublishCandidate = (pathname: string) => {
   if (!pathname.startsWith(PRIVATE_WORK_TEST_PUBLISH_PREFIX) || !pathname.endsWith('.glb')) return null;
   const candidateId = pathname.slice(PRIVATE_WORK_TEST_PUBLISH_PREFIX.length, -'.glb'.length);
+  if (!/^[a-z0-9-]+$/.test(candidateId)) return null;
+  return getPrivateWorkTestCandidateById(candidateId);
+};
+
+export const getPrivateWorkTestVerifyCandidate = (pathname: string) => {
+  if (!pathname.startsWith(PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX) || !pathname.endsWith('.glb')) {
+    return null;
+  }
+  const candidateId = pathname.slice(PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX.length, -'.glb'.length);
   if (!/^[a-z0-9-]+$/.test(candidateId)) return null;
   return getPrivateWorkTestCandidateById(candidateId);
 };
@@ -579,7 +592,7 @@ const handlePrivateWorkTestUpload = async (
   return binaryWriteResponse(request, candidate, result, 'upload');
 };
 
-const handlePrivateWorkTestPublish = async (
+export const handlePrivateWorkTestPublish = async (
   request: Request,
   env: PrivateModelEnv,
   candidate: PrivateWorkTestCandidate,
@@ -595,6 +608,69 @@ const handlePrivateWorkTestPublish = async (
 
   const result = await writePrivateWorkTestCandidateFromRequest(request, bucket, candidate);
   return binaryWriteResponse(request, candidate, result, 'publish');
+};
+
+const privateWorkTestCatalogResponse = async (
+  request: Request,
+  bucket: PrivateWorkTestBucket,
+): Promise<Response> => {
+  const candidates = [];
+
+  for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
+    const object = await bucket.get(candidate.objectKey);
+    if (!object || !isPrivateWorkTestObjectValid(object, candidate)) continue;
+
+    candidates.push({
+      id: candidate.id,
+      label: candidate.label,
+      path: candidate.path,
+    });
+  }
+
+  return privateJsonResponse(request, { candidates });
+};
+
+const privateWorkTestCandidateResponse = async (
+  request: Request,
+  bucket: PrivateWorkTestBucket,
+  candidate: PrivateWorkTestCandidate,
+): Promise<Response> => {
+  const object = await bucket.get(candidate.objectKey);
+
+  if (!object || !isPrivateWorkTestObjectValid(object, candidate)) {
+    console.info('private-model work-test deny: candidate-not-ready');
+    return notFound();
+  }
+
+  const headers = privateHeaders();
+  object.writeHttpMetadata?.(headers);
+  headers.set('Content-Type', 'model/gltf-binary');
+  headers.set('Content-Disposition', 'inline');
+  headers.set('Content-Length', String(candidate.expectedSize));
+  if (object.etag) headers.set('ETag', object.etag);
+
+  return new Response(request.method === 'HEAD' ? null : object.body, {
+    status: 200,
+    headers,
+  });
+};
+
+const handlePrivateWorkTestMachineReadback = async (
+  request: Request,
+  env: PrivateModelEnv,
+  candidate: PrivateWorkTestCandidate | null,
+): Promise<Response> => {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return methodNotAllowed();
+  if (!(await verifyPrivateModelReadbackAccess(request, env))) return notFound();
+
+  const bucket = env.PRIVATE_MODEL_BUCKET as unknown as PrivateWorkTestBucket | undefined;
+  if (!bucket) {
+    console.info('private-model work-test verify deny: bucket-binding');
+    return notFound();
+  }
+
+  if (!candidate) return privateWorkTestCatalogResponse(request, bucket);
+  return privateWorkTestCandidateResponse(request, bucket, candidate);
 };
 
 const handlePrivateWorkTestImport = async (
@@ -676,6 +752,15 @@ export const handlePrivateWorkTestRequest = async (
     return handlePrivateWorkTestUpload(request, env, uploadCandidate);
   }
 
+  if (pathname === PRIVATE_WORK_TEST_VERIFY_CATALOG_PATH) {
+    return handlePrivateWorkTestMachineReadback(request, env, null);
+  }
+
+  const verifyCandidate = getPrivateWorkTestVerifyCandidate(pathname);
+  if (verifyCandidate) {
+    return handlePrivateWorkTestMachineReadback(request, env, verifyCandidate);
+  }
+
   if (request.method !== 'GET' && request.method !== 'HEAD') return methodNotAllowed();
   if (!(await verifyPrivateModelAccess(request, env))) return notFound();
 
@@ -686,41 +771,11 @@ export const handlePrivateWorkTestRequest = async (
   }
 
   if (pathname === PRIVATE_WORK_TEST_CATALOG_PATH) {
-    const candidates = [];
-
-    for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
-      const object = await bucket.get(candidate.objectKey);
-      if (!object || !isPrivateWorkTestObjectValid(object, candidate)) continue;
-
-      candidates.push({
-        id: candidate.id,
-        label: candidate.label,
-        path: candidate.path,
-      });
-    }
-
-    return privateJsonResponse(request, { candidates });
+    return privateWorkTestCatalogResponse(request, bucket);
   }
 
   const candidate = getPrivateWorkTestCandidate(pathname);
   if (!candidate) return notFound();
 
-  const object = await bucket.get(candidate.objectKey);
-
-  if (!object || !isPrivateWorkTestObjectValid(object, candidate)) {
-    console.info('private-model work-test deny: candidate-not-ready');
-    return notFound();
-  }
-
-  const headers = privateHeaders();
-  object.writeHttpMetadata?.(headers);
-  headers.set('Content-Type', 'model/gltf-binary');
-  headers.set('Content-Disposition', 'inline');
-  headers.set('Content-Length', String(candidate.expectedSize));
-  if (object.etag) headers.set('ETag', object.etag);
-
-  return new Response(request.method === 'HEAD' ? null : object.body, {
-    status: 200,
-    headers,
-  });
+  return privateWorkTestCandidateResponse(request, bucket, candidate);
 };

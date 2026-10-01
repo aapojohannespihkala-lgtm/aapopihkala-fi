@@ -17,8 +17,8 @@ required = {
     "exact size": 'EXPECTED_SIZE: "1986004"',
     "exact sha": "a17fdc1cbc29c4ecfcab3e94554b5ea5860c9a19db33e21f24c324acf70d6d89",
     "machine publish path": "/private-model/work-test/publish/p150g-whole-building-end-plinth.glb",
-    "catalog readback": "/private-model/work-test/catalog.json",
-    "full GLB readback": "/private-model/work-test/p150g-whole-building-end-plinth.glb",
+    "machine catalog readback": "/private-model/work-test/verify/catalog.json",
+    "machine full GLB readback": "/private-model/work-test/verify/p150g-whole-building-end-plinth.glb",
     "binary PUT": '--data-binary "@$model"',
     "size verification": "stat -c '%s'",
     "sha verification": "sha256sum",
@@ -43,6 +43,8 @@ for forbidden in (
     "actions/cache",
     "oaiusercontent.com",
     "workTestImport",
+    "CATALOG_URL: https://aapopihkala.fi/private-model/work-test/catalog.json",
+    "GLB_URL: https://aapopihkala.fi/private-model/work-test/p150g-whole-building-end-plinth.glb",
 ):
     if forbidden in text:
         raise SystemExit(f"publish-work-test contains forbidden contract element: {forbidden}")
