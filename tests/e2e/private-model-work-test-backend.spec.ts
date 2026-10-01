@@ -6,10 +6,14 @@ import {
   PRIVATE_WORK_TEST_IMPORT_PATH,
   PRIVATE_WORK_TEST_UPLOAD_PREFIX,
   PRIVATE_WORK_TEST_PUBLISH_PREFIX,
+  PRIVATE_WORK_TEST_VERIFY_CATALOG_PATH,
+  PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX,
   getPrivateWorkTestCandidate,
   getPrivateWorkTestCandidateById,
   getPrivateWorkTestUploadCandidate,
   getPrivateWorkTestPublishCandidate,
+  getPrivateWorkTestVerifyCandidate,
+  handlePrivateWorkTestPublish,
   handlePrivateWorkTestRequest,
   isPrivateWorkTestObjectValid,
   isPrivateWorkTestPath,
@@ -20,7 +24,9 @@ import {
 } from '../../worker/privateWorkTest';
 import {
   privateModelPublisherClaimError,
+  privateModelReadbackClaimError,
   verifyPrivateModelPublisherAccess,
+  verifyPrivateModelReadbackAccess,
   type PrivateModelEnv,
 } from '../../worker/privateModel';
 
@@ -30,6 +36,8 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test/import.json')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/upload/p143h-scalgo-label-axis.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/publish/p150g-whole-building-end-plinth.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/verify/catalog.json')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/verify/p150g-whole-building-end-plinth.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p136b-d-current-wall-corrected.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p137j-d1f-user-current-doors.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/g3-locus-site-p06-axis-corrected.glb')).toBe(true);
@@ -243,6 +251,14 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     'p150g-whole-building-end-plinth',
   );
   expect(getPrivateWorkTestPublishCandidate(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}not-allowlisted.glb`)).toBeNull();
+  expect(
+    getPrivateWorkTestVerifyCandidate(
+      `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p150g-whole-building-end-plinth.glb`,
+    )?.id,
+  ).toBe('p150g-whole-building-end-plinth');
+  expect(
+    getPrivateWorkTestVerifyCandidate(`${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}not-allowlisted.glb`),
+  ).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/model.glb')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/../model.glb')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/p136b-d-current-wall-corrected.glb/extra')).toBeNull();
@@ -669,15 +685,19 @@ test('machine publisher binary writer validates bytes, handles R2 failures and i
     writePrivateWorkTestCandidateFromRequest(request(), writeFailBucket, candidate),
   ).resolves.toMatchObject({ ok: false, error: 'r2-write-failed', status: 500 });
 
+  let readbackGetCount = 0;
   const readbackFailBucket = {
     get: async () => {
-      throw new Error('read failed');
+      readbackGetCount += 1;
+      if (readbackGetCount === 1) return null;
+      throw new Error('post-write readback failed');
     },
     put: async () => stored,
   };
   await expect(
     writePrivateWorkTestCandidateFromRequest(request(), readbackFailBucket, candidate),
   ).resolves.toMatchObject({ ok: false, error: 'r2-readback-failed', status: 500 });
+  expect(readbackGetCount).toBe(2);
 });
 
 test('machine publish route fails closed without publisher Access configuration', async () => {
@@ -714,4 +734,257 @@ test('machine publish route fails closed without publisher Access configuration'
   expect(response.status).toBe(404);
   expect(bucketReads).toBe(0);
   expect(bucketWrites).toBe(0);
+});
+
+
+test('machine publisher route combines valid publisher JWT auth with binary validation and R2 write', async () => {
+  const originalFetch = globalThis.fetch;
+  const teamOrigin = 'https://publisher-route-unit.cloudflareaccess.com';
+  const signer = await createAccessJwtSigner(teamOrigin, 'publisher-route-unit-key');
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    expect(String(input)).toBe(`${teamOrigin}/cdn-cgi/access/certs`);
+    return Response.json({ keys: [signer.jwk] });
+  }) as typeof fetch;
+
+  const candidate = {
+    id: 'unit-candidate',
+    label: 'Unit candidate',
+    path: '/private-model/work-test/unit-candidate.glb',
+    objectKey: 'work-test/unit-candidate.glb',
+    expectedSize: 3,
+    expectedSha256: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+  };
+  const stored = {
+    body: new ReadableStream<Uint8Array>(),
+    size: candidate.expectedSize,
+    customMetadata: { sha256: candidate.expectedSha256 },
+  };
+  let object: typeof stored | null = null;
+  let writes = 0;
+  const env = {
+    ASSETS: { fetch: async () => new Response('unused') },
+    PRIVATE_MODEL_BUCKET: {
+      get: async () => object,
+      put: async () => {
+        writes += 1;
+        object = stored;
+        return stored;
+      },
+    },
+    CF_ACCESS_TEAM_DOMAIN: teamOrigin,
+    CF_ACCESS_AUD: 'viewer-aud',
+    CF_ACCESS_PUBLISHER_AUD: 'publisher-aud',
+    CF_ACCESS_PUBLISHER_COMMON_NAME: 'publisher-client.access',
+  } as unknown as PrivateModelEnv;
+  const now = Math.floor(Date.now() / 1000);
+  const token = await signer.sign({
+    type: 'app',
+    aud: ['publisher-aud'],
+    exp: now + 300,
+    sub: '',
+    common_name: 'publisher-client.access',
+  });
+
+  try {
+    const response = await handlePrivateWorkTestPublish(
+      new Request('https://example.test/private-model/work-test/publish/unit-candidate.glb', {
+        method: 'PUT',
+        headers: {
+          'cf-access-jwt-assertion': token,
+          'Content-Type': 'model/gltf-binary',
+          'Content-Length': '3',
+        },
+        body: new Uint8Array([0x61, 0x62, 0x63]),
+      }),
+      env,
+      candidate,
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ready: true,
+      published: true,
+      candidate: { id: 'unit-candidate' },
+    });
+    expect(writes).toBe(1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('machine readback claims require a distinct service-token application identity', () => {
+  const expected = 'readback-client.access';
+  expect(
+    privateModelReadbackClaimError(
+      { type: 'app', sub: '', common_name: expected },
+      expected,
+    ),
+  ).toBeNull();
+  expect(
+    privateModelReadbackClaimError(
+      { type: 'app', sub: '', common_name: 'publisher-client.access' },
+      expected,
+    ),
+  ).toBe('readback-common-name');
+});
+
+test('machine readback endpoints accept only readback JWT and expose only catalog plus allowlisted GLB', async () => {
+  const originalFetch = globalThis.fetch;
+  const teamOrigin = 'https://readback-route-unit.cloudflareaccess.com';
+  const signer = await createAccessJwtSigner(teamOrigin, 'readback-route-unit-key');
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    expect(String(input)).toBe(`${teamOrigin}/cdn-cgi/access/certs`);
+    return Response.json({ keys: [signer.jwk] });
+  }) as typeof fetch;
+
+  const p150g = getPrivateWorkTestCandidateById('p150g-whole-building-end-plinth');
+  expect(p150g).toBeTruthy();
+  const body = new TextEncoder().encode('unit-readback');
+  const stored = {
+    body: new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(body);
+        controller.close();
+      },
+    }),
+    size: p150g!.expectedSize,
+    customMetadata: { sha256: p150g!.expectedSha256 },
+  };
+  const env = {
+    ASSETS: { fetch: async () => new Response('unused') },
+    PRIVATE_MODEL_BUCKET: {
+      get: async (key: string) => (key === p150g!.objectKey ? stored : null),
+    },
+    CF_ACCESS_TEAM_DOMAIN: teamOrigin,
+    CF_ACCESS_AUD: 'viewer-aud',
+    CF_ACCESS_PUBLISHER_AUD: 'publisher-aud',
+    CF_ACCESS_PUBLISHER_COMMON_NAME: 'publisher-client.access',
+    CF_ACCESS_READBACK_AUD: 'readback-aud',
+    CF_ACCESS_READBACK_COMMON_NAME: 'readback-client.access',
+  } as unknown as PrivateModelEnv;
+  const now = Math.floor(Date.now() / 1000);
+  const readbackToken = await signer.sign({
+    type: 'app',
+    aud: ['readback-aud'],
+    exp: now + 300,
+    sub: '',
+    common_name: 'readback-client.access',
+  });
+  const publisherToken = await signer.sign({
+    type: 'app',
+    aud: ['publisher-aud'],
+    exp: now + 300,
+    sub: '',
+    common_name: 'publisher-client.access',
+  });
+  const viewerToken = await signer.sign({
+    aud: ['viewer-aud'],
+    exp: now + 300,
+    sub: 'human-user',
+  });
+
+  try {
+    const catalog = await handlePrivateWorkTestRequest(
+      new Request(`https://example.test${PRIVATE_WORK_TEST_VERIFY_CATALOG_PATH}`, {
+        headers: { 'cf-access-jwt-assertion': readbackToken },
+      }),
+      env,
+    );
+    expect(catalog.status).toBe(200);
+    await expect(catalog.json()).resolves.toMatchObject({
+      candidates: [
+        {
+          id: 'p150g-whole-building-end-plinth',
+          path: '/private-model/work-test/p150g-whole-building-end-plinth.glb',
+        },
+      ],
+    });
+
+    const verifyPath =
+      `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p150g-whole-building-end-plinth.glb`;
+    const head = await handlePrivateWorkTestRequest(
+      new Request(`https://example.test${verifyPath}`, {
+        method: 'HEAD',
+        headers: { 'cf-access-jwt-assertion': readbackToken },
+      }),
+      env,
+    );
+    expect(head.status).toBe(200);
+    expect(head.headers.get('Content-Length')).toBe(String(p150g!.expectedSize));
+
+    for (const token of [publisherToken, viewerToken]) {
+      const denied = await handlePrivateWorkTestRequest(
+        new Request(`https://example.test${verifyPath}`, {
+          headers: { 'cf-access-jwt-assertion': token },
+        }),
+        env,
+      );
+      expect(denied.status).toBe(404);
+    }
+
+    const writeDenied = await handlePrivateWorkTestRequest(
+      new Request(`https://example.test${verifyPath}`, {
+        method: 'PUT',
+        headers: { 'cf-access-jwt-assertion': readbackToken },
+      }),
+      env,
+    );
+    expect(writeDenied.status).toBe(405);
+    expect(writeDenied.headers.get('Allow')).toBe('GET, HEAD');
+
+    const notAllowlisted = await handlePrivateWorkTestRequest(
+      new Request(
+        'https://example.test/private-model/work-test/verify/not-allowlisted.glb',
+        { headers: { 'cf-access-jwt-assertion': readbackToken } },
+      ),
+      env,
+    );
+    expect(notAllowlisted.status).toBe(404);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('readback Access JWT requires readback audience and exact service-token client id', async () => {
+  const originalFetch = globalThis.fetch;
+  const teamOrigin = 'https://readback-auth-unit.cloudflareaccess.com';
+  const signer = await createAccessJwtSigner(teamOrigin, 'readback-auth-unit-key');
+  globalThis.fetch = (async () => Response.json({ keys: [signer.jwk] })) as typeof fetch;
+  const env = {
+    ASSETS: { fetch: async () => new Response('unused') },
+    CF_ACCESS_TEAM_DOMAIN: teamOrigin,
+    CF_ACCESS_READBACK_AUD: 'readback-aud',
+    CF_ACCESS_READBACK_COMMON_NAME: 'readback-client.access',
+  } as unknown as PrivateModelEnv;
+  const now = Math.floor(Date.now() / 1000);
+
+  const verify = async (payload: Record<string, unknown>) => {
+    const token = await signer.sign({ exp: now + 300, ...payload });
+    return verifyPrivateModelReadbackAccess(
+      new Request('https://example.test/private-model/work-test/verify/catalog.json', {
+        headers: { 'cf-access-jwt-assertion': token },
+      }),
+      env,
+    );
+  };
+
+  try {
+    await expect(
+      verify({
+        type: 'app',
+        aud: ['readback-aud'],
+        sub: '',
+        common_name: 'readback-client.access',
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      verify({
+        type: 'app',
+        aud: ['publisher-aud'],
+        sub: '',
+        common_name: 'publisher-client.access',
+      }),
+    ).resolves.toBe(false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
