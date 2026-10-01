@@ -71,7 +71,8 @@ test('private viewer height scale places higher Z above lower Z and draws full-w
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
 
-  await page.getByRole('button', { name: 'Julk +Y' }).click();
+  await page.locator('#view-menu > summary').click();
+  await page.getByRole('button', { name: 'Julk +Y', exact: true }).click();
   await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
   await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
