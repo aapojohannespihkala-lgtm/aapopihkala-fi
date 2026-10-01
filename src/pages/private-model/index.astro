@@ -2132,6 +2132,31 @@ const title = 'Private 3D viewer';
       const isLocusLayerMember = (object: any) =>
         routePresentationLayers.has(String(object?.userData?.presentationLayer ?? ''));
 
+      type P161SystemLayerFamily = 'KVV_2017' | 'IV_1974_PLAN' | 'IV_1974_SECTION';
+
+      const p161SystemLayerFamily = (object: any): P161SystemLayerFamily | null => {
+        const data = object?.userData ?? {};
+        if (
+          data.Pass === 'P156I' &&
+          data.Purpose === 'mainCandidate2017PresentationSuccessor'
+        ) {
+          return 'KVV_2017';
+        }
+        if (
+          data.Pass === 'P144C' &&
+          data.Purpose === 'presentationOnlyFederatedOverlay'
+        ) {
+          return 'IV_1974_PLAN';
+        }
+        if (data.Purpose === 'presentationOnlySectionSidecarRoot') {
+          return 'IV_1974_SECTION';
+        }
+        return null;
+      };
+
+      const isP161SystemsLayerReviewRequested = () =>
+        new URLSearchParams(window.location.search).get('review') === p161ReviewId;
+
       const edgeSemanticTokens = [
         'ANNOTATION',
         'ANCHOR',
@@ -2543,10 +2568,49 @@ const title = 'Private 3D viewer';
         locusWaterObjects.clear();
         locusWastewaterObjects.clear();
         locusLayerVisibilityBaseline.clear();
-        locusLayerVisible = false;
+
+        const p161SystemsReview = isP161SystemsLayerReviewRequested();
+        locusLayerVisible = p161SystemsReview;
+
+        let p161Kvv2017Count = 0;
+        let p161Iv1974PlanCount = 0;
+        let p161Iv1974SectionCount = 0;
 
         if (fullModelScene) {
           fullModelScene.traverse((object: any) => {
+            if (p161SystemsReview) {
+              const family = p161SystemLayerFamily(object);
+              if (family) {
+                locusLayerMembers.add(object);
+                locusLayerVisibilityBaseline.set(object, object.visible);
+              }
+
+              const data = object?.userData ?? {};
+              if (
+                data.sourceFamily === 'KVV_MAIN_2017_WORK_ASSUMPTION' &&
+                Number.isFinite(Number(data.sourcePrimitiveCount))
+              ) {
+                p161Kvv2017Count = Math.max(
+                  p161Kvv2017Count,
+                  Number(data.sourcePrimitiveCount),
+                );
+              }
+              if (
+                data.systemDomain === 'IV' &&
+                String(data.phase) === '1974' &&
+                data.sourceGeometryDimension === '2D_XY_PLAN'
+              ) {
+                p161Iv1974PlanCount += 1;
+              }
+              if (
+                data.placementMode === 'PRESENTATION_SIDECAR' &&
+                (typeof data.G3Id === 'string' || typeof data.g3Id === 'string')
+              ) {
+                p161Iv1974SectionCount += 1;
+              }
+              return;
+            }
+
             if (isLocusLayerMember(object)) {
               locusLayerMembers.add(object);
               locusLayerVisibilityBaseline.set(object, object.visible);
@@ -2562,13 +2626,32 @@ const title = 'Private 3D viewer';
           });
         }
 
-        const objectCount = locusLayerObjects.size || locusLayerMembers.size;
-        locusLayerCount.textContent = `${objectCount} kohdetta`;
-        locusWaterCount.textContent = `Vesi ${locusWaterObjects.size}`;
-        locusWastewaterCount.textContent = `Jätevesi ${locusWastewaterObjects.size}`;
-        canvas.dataset.locusLayerCount = String(objectCount);
-        canvas.dataset.locusWaterCount = String(locusWaterObjects.size);
-        canvas.dataset.locusWastewaterCount = String(locusWastewaterObjects.size);
+        if (p161SystemsReview) {
+          const p161TotalCount =
+            p161Kvv2017Count + p161Iv1974PlanCount + p161Iv1974SectionCount;
+          const p161IvTotalCount = p161Iv1974PlanCount + p161Iv1974SectionCount;
+          locusLayerCount.textContent = `${p161TotalCount} lähdekohdetta`;
+          locusWaterCount.textContent = `KVV 2017: ${p161Kvv2017Count}`;
+          locusWastewaterCount.textContent =
+            `IV 1974: ${p161IvTotalCount} (${p161Iv1974PlanCount} suunnitelma + ${p161Iv1974SectionCount} leikkaus)`;
+          canvas.dataset.locusLayerCount = String(p161TotalCount);
+          canvas.dataset.locusWaterCount = String(p161Kvv2017Count);
+          canvas.dataset.locusWastewaterCount = String(p161IvTotalCount);
+          canvas.dataset.p161KvvLayerCount = String(p161Kvv2017Count);
+          canvas.dataset.p161IvPlanLayerCount = String(p161Iv1974PlanCount);
+          canvas.dataset.p161SectionSidecarLayerCount = String(p161Iv1974SectionCount);
+        } else {
+          const objectCount = locusLayerObjects.size || locusLayerMembers.size;
+          locusLayerCount.textContent = `${objectCount} kohdetta`;
+          locusWaterCount.textContent = `Vesi ${locusWaterObjects.size}`;
+          locusWastewaterCount.textContent = `Jätevesi ${locusWastewaterObjects.size}`;
+          canvas.dataset.locusLayerCount = String(objectCount);
+          canvas.dataset.locusWaterCount = String(locusWaterObjects.size);
+          canvas.dataset.locusWastewaterCount = String(locusWastewaterObjects.size);
+          delete canvas.dataset.p161KvvLayerCount;
+          delete canvas.dataset.p161IvPlanLayerCount;
+          delete canvas.dataset.p161SectionSidecarLayerCount;
+        }
         applyLocusLayerState();
       };
 
@@ -4934,7 +5017,7 @@ const title = 'Private 3D viewer';
             : isP159WholeBuildingStorageContextReview
               ? 'Koko rakennus + storage referenceFootprints (WORK_TEST / presentation-only)'
             : isP161MultisourceSystemsReview
-              ? 'P161 multisource systems (WORK_TEST / source families separate)'
+              ? 'P161 tekniset järjestelmät (WORK_TEST)'
             : isP156i2017KvvMainReview
               ? '2017 KVV mainCandidate (WORK_TEST / presentation-only +8,700 m)'
             : isP160DCompositeReview
