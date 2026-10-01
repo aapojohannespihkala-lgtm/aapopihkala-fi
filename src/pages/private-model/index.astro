@@ -1086,6 +1086,43 @@ const title = 'Private 3D viewer';
 
     <script>
       import { THREE, OrbitControls, GLTFLoader } from '../../scripts/threeRuntime';
+      import {
+        getRequestedReviewCandidateId as getRequestedReviewCandidateIdFromSearch,
+        isPrivateModelReviewRequested,
+        isWorkTestCandidate,
+        p139nCandidateId,
+        p139abCandidateId,
+        p139acReviewId,
+        p139adReviewId,
+        p143aCandidateId,
+        p143aReviewId,
+        p143dReviewId,
+        p143fCandidateId,
+        p143fReviewId,
+        p143gCandidateId,
+        p143gReviewId,
+        p143hCandidateId,
+        p143hReviewId,
+        p143jCandidateId,
+        p143jReviewId,
+        p144cCandidateId,
+        p144cReviewId,
+        p145bCandidateId,
+        p145bReviewId,
+        p150frCandidateId,
+        p150frReviewId,
+        p151cCandidateId,
+        p151cReviewId,
+        p153cCandidateId,
+        p153cReviewId,
+        p154cCandidateId,
+        p154cReviewId,
+        p155cbCandidateId,
+        p155cbReviewId,
+        p156iCandidateId,
+        p156iReviewId,
+        type WorkTestCandidate,
+      } from '../../scripts/privateModelWorkTest';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       const status = document.querySelector<HTMLElement>('#viewer-status');
@@ -3548,50 +3585,13 @@ const title = 'Private 3D viewer';
         }
       };
 
-      type WorkTestCandidate = {
-        id: string;
-        label: string;
-        path: string;
-      };
-
-      const p139nCandidateId = 'p139n-federated-kvv-review';
       const p139nPlanSceneName =
         'P139N SITE_PLAN_OVERLAY - Z UNKNOWN - PLAN ONLY - NOT AS-BUILT';
-      const p139abCandidateId = 'p139ab-z-credible-wastewater-review';
-      const p143aCandidateId = 'p143a-scalgo-terrain';
-      const p143aReviewId = 'p143a-scalgo-terrain-review';
-      const p143dReviewId = 'p143d-scalgo-infra-review';
-      const p143fCandidateId = 'p143f-scalgo-contours';
-      const p143fReviewId = 'p143f-scalgo-contours-review';
-      const p143gCandidateId = 'p143g-scalgo-cartography';
-      const p143gReviewId = 'p143g-scalgo-cartography-review';
-      const p143hCandidateId = 'p143h-scalgo-label-axis';
-      const p143hReviewId = 'p143h-scalgo-label-axis-review';
-      const p143jCandidateId = 'p143j-scalgo-label-flow';
-      const p143jReviewId = 'p143j-scalgo-label-flow-review';
-      const p144cCandidateId = 'p144c-g3-1974-iv-on-p143h';
-      const p144cReviewId = 'p144c-g3-1974-iv-review';
-      const p145bCandidateId = 'p145b-1974-iv-section-worktargets';
-      const p145bReviewId = 'p145b-1974-iv-section-worktargets-review';
-      const p155cbCandidateId = 'p155cb-d-storage-roof';
-      const p155cbReviewId = 'p155cb-d-storage-roof-review';
-      const p151cCandidateId = 'p151c-whole-building-carrier';
-      const p151cReviewId = 'p151c-whole-building-review';
-      const p150frCandidateId = 'p150fr-whole-building-substructure';
-      const p150frReviewId = 'p150fr-whole-building-substructure-review';
-      const p156iCandidateId = 'p156i-2017-kvv-main-presentation';
-      const p156iReviewId = 'p156i-2017-kvv-main-review';
-      const p154cCandidateId = 'p154c-d-wall-cutouts';
-      const p154cReviewId = 'p154c-d-wall-cutouts-review';
-      const p153cCandidateId = 'p153c-d-stair-guard-lowwall';
-      const p153cReviewId = 'p153c-d-stair-review';
       const p139abZSceneName =
         'P139AB Z CREDIBILITY REVIEW - SOURCE Z / DATUM UNVERIFIED - NOT AS-BUILT';
       const p139abBuildingSceneName =
         'P139E WATER + WASTEWATER CONNECTION ZONE REVIEW ON P139C - BABYLON Y-UP';
       const p139abZPresentationLayer = 'Z_CREDIBLE_WASTEWATER_REVIEW';
-      const p139acReviewId = 'p139ac-ground-infra-review';
-      const p139acReviewQueryKey = 'review';
       const p139acVerticalReferenceM = 21.75;
       const p139acGroundControls = [
         [-6.92, 15.811, 23.0],
@@ -3628,7 +3628,6 @@ const title = 'Private 3D viewer';
         [16, 13, 15], [11, 13, 14], [12, 11, 14],
       ] as const;
 
-      const p139adReviewId = 'p139ad-locus-work-z-review';
       const p139adGroundHardCeilingM = 18.3;
       const p139adLocusWorkZRoutes = [
         {
@@ -4060,19 +4059,6 @@ const title = 'Private 3D viewer';
         updateModelComparisonControls();
       };
 
-      const isWorkTestCandidate = (value: unknown): value is WorkTestCandidate => {
-        if (!value || typeof value !== 'object') return false;
-        const candidate = value as Record<string, unknown>;
-        return (
-          typeof candidate.id === 'string' &&
-          /^[a-z0-9-]+$/.test(candidate.id) &&
-          typeof candidate.label === 'string' &&
-          candidate.label.trim().length > 0 &&
-          typeof candidate.path === 'string' &&
-          /^\/private-model\/work-test\/[a-z0-9-]+\.glb$/.test(candidate.path)
-        );
-      };
-
       const setWorkTestUploadFallback = (candidateId: string | null) => {
         if (candidateId && manualWorkTestUploadDebug) {
           workTestUploadButton.hidden = false;
@@ -4275,80 +4261,52 @@ const title = 'Private 3D viewer';
       };
 
       const isP143aScalgoTerrainReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p143aReviewId;
+        isPrivateModelReviewRequested(window.location.search, p143aReviewId);
 
       const isP143dScalgoInfraReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p143dReviewId;
+        isPrivateModelReviewRequested(window.location.search, p143dReviewId);
 
       const isP143fScalgoContourReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p143fReviewId;
+        isPrivateModelReviewRequested(window.location.search, p143fReviewId);
 
       const isP143gScalgoCartographyReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p143gReviewId;
+        isPrivateModelReviewRequested(window.location.search, p143gReviewId);
 
       const isP143hScalgoLabelAxisReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p143hReviewId;
+        isPrivateModelReviewRequested(window.location.search, p143hReviewId);
 
       const isP143jScalgoLabelFlowReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p143jReviewId;
+        isPrivateModelReviewRequested(window.location.search, p143jReviewId);
 
       const isP144cG31974IvReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p144cReviewId;
+        isPrivateModelReviewRequested(window.location.search, p144cReviewId);
 
       const isP145b1974IvSectionWorkTargetsReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p145bReviewId;
+        isPrivateModelReviewRequested(window.location.search, p145bReviewId);
 
       const isP155cbDStorageRoofReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p155cbReviewId;
+        isPrivateModelReviewRequested(window.location.search, p155cbReviewId);
 
       const isP151cWholeBuildingReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p151cReviewId;
+        isPrivateModelReviewRequested(window.location.search, p151cReviewId);
 
       const isP150frWholeBuildingSubstructureReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p150frReviewId;
+        isPrivateModelReviewRequested(window.location.search, p150frReviewId);
 
       const isP156i2017KvvMainReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p156iReviewId;
+        isPrivateModelReviewRequested(window.location.search, p156iReviewId);
 
       const isP154cDWallCutoutsReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p154cReviewId;
+        isPrivateModelReviewRequested(window.location.search, p154cReviewId);
 
       const isP153cDStairReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p153cReviewId;
+        isPrivateModelReviewRequested(window.location.search, p153cReviewId);
 
       const getRequestedReviewCandidateId = () =>
-        isP153cDStairReviewRequested()
-          ? p153cCandidateId
-          : isP154cDWallCutoutsReviewRequested()
-            ? p154cCandidateId
-          : isP156i2017KvvMainReviewRequested()
-            ? p156iCandidateId
-          : isP150frWholeBuildingSubstructureReviewRequested()
-            ? p150frCandidateId
-          : isP151cWholeBuildingReviewRequested()
-            ? p151cCandidateId
-            : isP155cbDStorageRoofReviewRequested()
-            ? p155cbCandidateId
-            : isP145b1974IvSectionWorkTargetsReviewRequested()
-          ? p145bCandidateId
-          : isP144cG31974IvReviewRequested()
-            ? p144cCandidateId
-            : isP143jScalgoLabelFlowReviewRequested()
-            ? p143jCandidateId
-            : isP143hScalgoLabelAxisReviewRequested()
-              ? p143hCandidateId
-              : isP143gScalgoCartographyReviewRequested()
-                ? p143gCandidateId
-              : isP143fScalgoContourReviewRequested()
-                ? p143fCandidateId
-                : isP143aScalgoTerrainReviewRequested() || isP143dScalgoInfraReviewRequested()
-                  ? p143aCandidateId
-                  : isP139adLocusWorkZReviewRequested() || isP139acGroundInfraReviewRequested()
-                    ? p139abCandidateId
-                    : null;
+        getRequestedReviewCandidateIdFromSearch(window.location.search);
 
       const isP139acGroundInfraReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p139acReviewId;
+        isPrivateModelReviewRequested(window.location.search, p139acReviewId);
 
       const buildP139acGroundInfraReviewScene = async (gltf: any, zScene: any) => {
         const composite = await buildP139abVisibleReviewScene(gltf, zScene);
@@ -4429,7 +4387,7 @@ const title = 'Private 3D viewer';
       };
 
       const isP139adLocusWorkZReviewRequested = () =>
-        new URLSearchParams(window.location.search).get(p139acReviewQueryKey) === p139adReviewId;
+        isPrivateModelReviewRequested(window.location.search, p139adReviewId);
 
       const buildP139adLocusWorkZReviewScene = async (gltf: any, zScene: any) => {
         const composite = await buildP139acGroundInfraReviewScene(gltf, zScene);
