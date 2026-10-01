@@ -1427,6 +1427,7 @@ const title = 'Private 3D viewer';
       const locusWastewaterObjects = new Set<any>();
       const locusLayerVisibilityBaseline = new Map<any, boolean>();
       let locusLayerVisible = false;
+      // Preset layer defaults initialize once per real model load; later view changes preserve user state.
       let standardViewLayerDefaultsInitialized = false;
       let archBaseMaterialCloneCount = 0;
       let activeModelSourceKind: 'current' | 'work-test' = 'current';
