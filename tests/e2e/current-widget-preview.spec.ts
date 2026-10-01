@@ -300,6 +300,28 @@ test('standalone web widget keeps the last good payload when production temporar
   await expect(page.locator('.android-footer')).toContainText('STALE 12:30');
 });
 
+test('standalone web widget falls back instead of staying LOADING when Widget v2 stalls', async ({ page }) => {
+  test.setTimeout(20_000);
+
+  await page.addInitScript((cachedPayload) => {
+    window.localStorage.setItem('current-widget-v2-prod:last-good', JSON.stringify(cachedPayload));
+  }, payload('prod'));
+
+  await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async () => {
+    await new Promise(() => {});
+  });
+
+  await page.goto('/current/widget/');
+
+  await expect(page.locator('[data-widget-root]')).toHaveAttribute('data-load-state', 'stale', {
+    timeout: 15_000,
+  });
+  await expect(page.locator('[data-widget]')).not.toContainText('UNAVAILABLE');
+  await expect(page.locator('[data-widget]')).not.toContainText('LOADING');
+  await expect(page.locator('[data-section="weather"]')).toContainText('16.2');
+  await expect(page.locator('.android-footer')).toContainText('STALE 12:30');
+});
+
 test('standalone large widget keeps the Android information hierarchy on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const mobilePayload = payload('prod');
