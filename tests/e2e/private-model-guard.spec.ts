@@ -1203,6 +1203,18 @@ test('private viewer resolves the source D scene even when Three runtime names a
   await expect(page.locator('#model-source-badge')).toBeVisible();
   await expect(page.locator('#more-menu > summary')).toBeVisible();
   await expect(page.getByRole('status')).toHaveText('Malli ladattu - D-pohjat käytettävissä');
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'perspective');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'enabled');
+
+  await clickViewAction(page, 'D-asunto');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'perspective');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'enabled');
+  await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
 });
 
 
@@ -1560,6 +1572,7 @@ test('private viewer uses a true orthographic isometric preset without resetting
   await expect(page.locator('#viewer-status')).toHaveText('Isometrinen - ortografinen 3/4-näkymä');
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-view-preset', 'isometric');
   await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(page.locator('#private-model-canvas')).toHaveAttribute('data-camera-rotation', 'enabled');
   await expect(opacity).toHaveValue('40');
   await expect(page.locator('#roof-layer-visible')).toBeChecked();
 
@@ -2783,7 +2796,7 @@ test('private viewer autoloads the exact P151C whole-building review carrier', a
   );
   await expect(canvas).toHaveAttribute('data-p151-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(page.getByRole('status')).toHaveText(
     'P151C koko rakennus - WORK_TEST minimum review carrier - 14/14 locked scope - ei CURRENT/as-built',
   );
@@ -2862,7 +2875,7 @@ test('private viewer autoloads the exact P150F-R whole-building substructure rev
   await expect(canvas).toHaveAttribute('data-p150fr-metadata-repair-of-pass', 'P150F');
   await expect(canvas).toHaveAttribute('data-p150fr-presentation-truthfulness', 'PASS');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(page.getByRole('status')).toHaveText(
     'P150F-R koko rakennus + alusrakennekuoret - WORK_TEST / 14/14 base + P150D targetit 2/2 - syvyys 0,600 m refinable - ei CURRENT/as-built',
   );
@@ -2954,7 +2967,7 @@ test('private viewer autoloads the exact P150G whole-building end-plinth review 
   await expect(canvas).toHaveAttribute('data-p150g-active-ground-contact-root-node-index', '919');
   await expect(canvas).toHaveAttribute('data-p150g-correction-root-node-index', '922');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(page.locator('#locus-layer-label')).toHaveText(
     'Koko rakennus + korjattu päätysokkeli (WORK_TEST)',
   );
@@ -3235,7 +3248,7 @@ test('private viewer autoloads the exact P164B D corrected stair review candidat
   await expect(canvas).toHaveAttribute('data-p164-publish-to-current', 'false');
   await expect(canvas).toHaveAttribute('data-p164-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(page.locator('#locus-layer-label')).toHaveText('D corrected stair (WORK_TEST / 6+4+6 levels)');
   await expect(page.getByRole('status')).toHaveText(
     'P164B D corrected stair - WORK_TEST / 6+4+6 levels / E_TO_W + S_TO_N + W_TO_E - refinable - HUMAN_REVIEW NOT_RUN',
@@ -3312,7 +3325,7 @@ test('private viewer autoloads the exact P167F whole-building precise stair revi
   await expect(canvas).toHaveAttribute('data-p167-publish-to-current', 'false');
   await expect(canvas).toHaveAttribute('data-p167-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(page.locator('#locus-layer-label')).toHaveText('P167F precise stair (WORK_TEST / 14 askelta)');
   await expect(page.getByRole('status')).toHaveText(
     'P167F whole-building precise stair - WORK_TEST / 14 askelta / E_TO_W + S_TO_N + W_TO_E / presentation shell clearance - HUMAN_REVIEW NOT_RUN',
@@ -3905,7 +3918,7 @@ test('private viewer standard presets apply recommended layer start state and ke
 
   await clickViewAction(page, 'Koko rakennus');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(canvas).toHaveAttribute('data-layer-state-source', 'preset:whole-building');
   await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'false');
   await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'visible');
@@ -4107,7 +4120,7 @@ test('private viewer autoloads the exact P159 whole-building storage context rev
   await expect(canvas).toHaveAttribute('data-p159-canonical', 'false');
   await expect(canvas).toHaveAttribute('data-p159-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(page.getByRole('status')).toHaveText('P159 whole-building storage context - WORK_TEST / P150G owner + 3 P158B storage referenceFootprints presentation-only - HUMAN_REVIEW NOT_RUN');
 });
 
@@ -4171,7 +4184,7 @@ test('private viewer autoloads the exact P160 D composite architecture review ca
   await expect(canvas).toHaveAttribute('data-p160-canonical', 'false');
   await expect(canvas).toHaveAttribute('data-p160-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(page.getByRole('status')).toHaveText(
     'P160 D composite architecture - WORK_TEST / P154C walls+18 cutouts + P153 stair/guard/lowWall + P155C-B storage roof presentation - ei CURRENT/as-built',
   );
@@ -4240,7 +4253,7 @@ test('private viewer autoloads the exact P154C D wall cutout review candidate', 
   await expect(canvas).toHaveAttribute('data-p154-canonical', 'false');
   await expect(canvas).toHaveAttribute('data-p154-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(page.getByRole('status')).toHaveText(
     'P154C D-seinäsolidit + aukot - WORK_TEST / 18 cutoutia - ovikorkeus 2,100 m refinable - ei CURRENT/as-built',
   );
@@ -4305,7 +4318,7 @@ test('private viewer autoloads the exact P153C D stair review candidate', async 
   await expect(canvas).toHaveAttribute('data-p153-exact-low-wall-height-status', 'DEFERRED');
   await expect(canvas).toHaveAttribute('data-p153-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
-  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(page.getByRole('status')).toHaveText(
     'P153C D-portaat - WORK_TEST / portaat + opening-frame + guard/lowWall - mitat refinable, pilarijakso DEFERRED',
   );
