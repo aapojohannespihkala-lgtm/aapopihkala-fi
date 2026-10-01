@@ -187,16 +187,20 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
   },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
-type PrivateWorkTestStoredObject = {
-  body: ReadableStream<Uint8Array> | null;
+type PrivateWorkTestObjectMetadata = {
   size?: number;
   etag?: string;
   customMetadata?: Record<string, string>;
   writeHttpMetadata?: (headers: Headers) => void;
 };
 
+type PrivateWorkTestStoredObject = PrivateWorkTestObjectMetadata & {
+  body: ReadableStream<Uint8Array> | null;
+};
+
 type PrivateWorkTestBucket = {
   get(key: string): Promise<PrivateWorkTestStoredObject | null>;
+  head?(key: string): Promise<PrivateWorkTestObjectMetadata | null>;
   put(
     key: string,
     value: ArrayBuffer,
@@ -610,6 +614,23 @@ export const handlePrivateWorkTestPublish = async (
   return binaryWriteResponse(request, candidate, result, 'publish');
 };
 
+const privateWorkTestCatalogObject = async (
+  bucket: PrivateWorkTestBucket,
+  objectKey: string,
+): Promise<PrivateWorkTestObjectMetadata | null> => {
+  if (bucket.head) return bucket.head(objectKey);
+
+  const object = await bucket.get(objectKey);
+  if (object?.body) {
+    try {
+      await object.body.cancel();
+    } catch {
+      // Metadata is already available; cancellation is best-effort for legacy test/fallback buckets.
+    }
+  }
+  return object;
+};
+
 const privateWorkTestCatalogResponse = async (
   request: Request,
   bucket: PrivateWorkTestBucket,
@@ -617,7 +638,7 @@ const privateWorkTestCatalogResponse = async (
   const candidates = [];
 
   for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
-    const object = await bucket.get(candidate.objectKey);
+    const object = await privateWorkTestCatalogObject(bucket, candidate.objectKey);
     if (!object || !isPrivateWorkTestObjectValid(object, candidate)) continue;
 
     candidates.push({
