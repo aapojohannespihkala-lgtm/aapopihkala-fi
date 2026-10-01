@@ -1087,6 +1087,10 @@ const title = 'Private 3D viewer';
     <script>
       import { THREE, OrbitControls, GLTFLoader } from '../../scripts/threeRuntime';
       import {
+        formatSelectionMetadataKey,
+        selectionMetadataEntries as collectSelectionMetadataEntries,
+      } from '../../scripts/privateModelSelectionMetadata';
+      import {
         getRequestedReviewCandidateId as getRequestedReviewCandidateIdFromSearch,
         isPrivateModelReviewRequested,
         isWorkTestCandidate,
@@ -2647,72 +2651,9 @@ const title = 'Private 3D viewer';
         return object?.type ? String(object.type) : '-';
       };
 
-      const selectionMetadataPriority = [
-        'Pass',
-        'pass',
-        'representationKind',
-        'geometryType',
-        'sourceRole',
-        'sourceFamily',
-        'sourceContract',
-        'ModelStage',
-        'modelStage',
-        'storey',
-        'floor',
-        'PresentationOnly',
-        'presentationOnly',
-        'Canonical',
-        'canonical',
-        'current',
-        'asBuiltClaim',
-        'humanReview',
-      ];
-
-      const formatSelectionMetadataKey = (key: string) =>
-        key
-          .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-          .replace(/[_-]+/g, ' ')
-          .replace(/^./, (character) => character.toUpperCase());
-
-      const scalarSelectionMetadataValue = (value: unknown) => {
-        if (typeof value === 'boolean') return value ? 'true' : 'false';
-        if (typeof value === 'number') return Number.isFinite(value) ? String(value) : null;
-        if (typeof value === 'string') {
-          const trimmed = value.trim();
-          if (!trimmed || trimmed.length > 180) return null;
-          return trimmed;
-        }
-        return null;
-      };
-
-      const selectionMetadataEntries = (object: any) => {
-        const values = new Map<string, string>();
-        let current = object;
-        let depth = 0;
-
-        while (current && current !== modelRoot && depth < 8 && values.size < 24) {
-          for (const [key, rawValue] of Object.entries(current.userData ?? {})) {
-            if (values.has(key)) continue;
-            const value = scalarSelectionMetadataValue(rawValue);
-            if (value !== null) values.set(key, value);
-          }
-          current = current.parent;
-          depth += 1;
-        }
-
-        const priority = new Map(selectionMetadataPriority.map((key, index) => [key, index]));
-        return [...values.entries()]
-          .sort(([keyA], [keyB]) => {
-            const rankA = priority.get(keyA) ?? Number.MAX_SAFE_INTEGER;
-            const rankB = priority.get(keyB) ?? Number.MAX_SAFE_INTEGER;
-            return rankA - rankB || keyA.localeCompare(keyB, 'fi');
-          })
-          .slice(0, 12);
-      };
-
       const renderSelectionMetadata = (object: any) => {
         selectionMetadataList.replaceChildren();
-        const entries = selectionMetadataEntries(object);
+        const entries = collectSelectionMetadataEntries(object, modelRoot);
         selectionMetadataEmpty.hidden = entries.length > 0;
         canvas.dataset.selectionMetadataCount = String(entries.length);
         canvas.dataset.selectionMetadataSource = entries.length > 0 ? 'userData' : 'none';
