@@ -1101,6 +1101,12 @@ const title = 'Private 3D viewer';
         selectionKindLabel,
       } from '../../scripts/privateModelSelectionIdentity';
       import {
+        standardViewLayerDefaults,
+        type EdgeMode,
+        type StandardViewPreset,
+        type ViewerLayerState,
+      } from '../../scripts/privateModelViewPresets';
+      import {
         getRequestedReviewCandidateId as getRequestedReviewCandidateIdFromSearch,
         isPrivateModelReviewRequested,
         isWorkTestCandidate,
@@ -1402,13 +1408,6 @@ const title = 'Private 3D viewer';
       const roofLayerMaterialBaseline = new Map<any, { opacity: number; transparent: boolean }>();
       let roofLayerVisible = true;
       let roofLayerOpacity = 1;
-      type EdgeMode = 'none' | 'object' | 'unified' | 'visible';
-      type ViewerLayerState = {
-        roofVisible: boolean;
-        roofOpacity: number;
-        locusVisible: boolean;
-        edgeMode: EdgeMode;
-      };
       let edgeMode: EdgeMode = 'visible';
       const edgeOverlayGroup = new THREE.Group();
       edgeOverlayGroup.name = 'P146A_VIEWER_DERIVED_EDGES';
@@ -3481,33 +3480,6 @@ const title = 'Private 3D viewer';
         syncViewState('isometric');
         status.textContent = 'D-asunto - molemmat kerrokset, ortografinen 3/4-näkymä';
         return true;
-      };
-
-      type StandardViewPreset =
-        | 'whole-building'
-        | 'd-apartment'
-        | 'd-1f'
-        | 'd-2f'
-        | 'top'
-        | 'site'
-        | 'infra'
-        | 'elev-pos-y'
-        | 'elev-neg-y'
-        | 'elev-pos-x'
-        | 'elev-neg-x';
-
-      const standardViewLayerDefaults: Record<StandardViewPreset, Partial<ViewerLayerState>> = {
-        'whole-building': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
-        'd-apartment': { roofVisible: false, locusVisible: false, edgeMode: 'visible' },
-        'd-1f': { roofVisible: false, locusVisible: false, edgeMode: 'visible' },
-        'd-2f': { roofVisible: false, locusVisible: false, edgeMode: 'visible' },
-        top: { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
-        site: { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
-        infra: { roofVisible: false, locusVisible: true, edgeMode: 'visible' },
-        'elev-pos-y': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
-        'elev-neg-y': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
-        'elev-pos-x': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
-        'elev-neg-x': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
       };
 
       const applyStandardViewPreset = (preset: StandardViewPreset) => {
