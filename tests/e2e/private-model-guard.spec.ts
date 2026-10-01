@@ -25,6 +25,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
   const expectedRoutes = {
     'p153c-d-stair-review': 'p153c-d-stair-guard-lowwall',
     'p154c-d-wall-cutouts-review': 'p154c-d-wall-cutouts',
+    'p161-multisource-systems-review': 'p161-multisource-systems-carrier',
     'p159-whole-building-storage-context-review': 'p159-whole-building-storage-context',
     'p160-d-composite-architecture-review': 'p160-d-composite-architecture',
     'p156i-2017-kvv-main-review': 'p156i-2017-kvv-main-presentation',
@@ -2957,6 +2958,68 @@ test('private viewer autoloads the exact P150G whole-building end-plinth review 
   );
   await expect(page.getByRole('status')).toHaveText(
     'P150G koko rakennus + korjattu päätysokkeli - WORK_TEST / P150D targetit 2/2 + P150G korjaustargetit 2/2 / zone4/4 - syvyys 0,600 m refinable - ei CURRENT/as-built',
+  );
+});
+
+test('private viewer autoloads the exact P161 multisource systems review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P161 MULTISOURCE SYSTEMS REVIEW CARRIER - BABYLON Y-UP', nodes: [] }],
+    nodes: [],
+  });
+  const candidateId = 'p161-multisource-systems-carrier';
+  const candidateLabel = 'P161 multisource systems review carrier - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p161-multisource-systems-carrier.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p161-multisource-systems-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p161-multisource-systems-review');
+  await expect(canvas).toHaveAttribute('data-p161-owner-candidate', 'p156i-2017-kvv-main-presentation');
+  await expect(canvas).toHaveAttribute('data-p161-kvv2017-primitive-count', '82');
+  await expect(canvas).toHaveAttribute('data-p161-iv1974-plan-anchor-count', '32');
+  await expect(canvas).toHaveAttribute('data-p161-iv1974-plan-unique-count', '32');
+  await expect(canvas).toHaveAttribute('data-p161-section-sidecar-anchor-count', '6');
+  await expect(canvas).toHaveAttribute('data-p161-source-families-separate', 'true');
+  await expect(canvas).toHaveAttribute('data-p161-physical-z-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-topology-link-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-same-pipe-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-penetration-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-section-station-status', 'UNRESOLVED_SOURCE');
+  await expect(canvas).toHaveAttribute('data-p161-section-vertical-datum-status', 'LOCAL_SECTION_ONLY');
+  await expect(canvas).toHaveAttribute('data-p161-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'P161 multisource systems - WORK_TEST / P156I 2017 KVV + 1974 IV plan 32 + section sidecar 6 / lähdeperheet erillään - ei CURRENT/as-built',
   );
 });
 

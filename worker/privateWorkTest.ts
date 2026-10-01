@@ -167,6 +167,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_848_532,
     expectedSha256: '072890e75cd693c05dc705d6a5581e999b9124d37d99aa914336c0a1d9b3ef3f',
   },
+  // P161 viewer integration: exact multisource systems review carrier.
+  {
+    id: 'p161-multisource-systems-carrier',
+    label: 'P161 multisource systems review carrier - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p161-multisource-systems-carrier.glb`,
+    objectKey: 'work-test/p161-multisource-systems-carrier.glb',
+    expectedSize: 1_858_948,
+    expectedSha256: '7413fa57b423260cfff9554fae96a8167fba48d03a7c570806a509e58e3ca65d',
+  },
   // P159 viewer integration: exact whole-building storage context successor.
   {
     id: 'p159-whole-building-storage-context',
