@@ -27,6 +27,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p154c-d-wall-cutouts-review': 'p154c-d-wall-cutouts',
     'p161-multisource-systems-review': 'p161-multisource-systems-carrier',
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
+    'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
     'p159-whole-building-storage-context-review': 'p159-whole-building-storage-context',
     'p160-d-composite-architecture-review': 'p160-d-composite-architecture',
     'p156i-2017-kvv-main-review': 'p156i-2017-kvv-main-presentation',
@@ -3238,6 +3239,83 @@ test('private viewer autoloads the exact P164B D corrected stair review candidat
   await expect(page.locator('#locus-layer-label')).toHaveText('D corrected stair (WORK_TEST / 6+4+6 levels)');
   await expect(page.getByRole('status')).toHaveText(
     'P164B D corrected stair - WORK_TEST / 6+4+6 levels / E_TO_W + S_TO_N + W_TO_E - refinable - HUMAN_REVIEW NOT_RUN',
+  );
+});
+
+test('private viewer autoloads the exact P167F whole-building precise stair review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P167F WHOLE BUILDING PRECISE STAIR WORK_TEST - BABYLON Y-UP', nodes: [] }],
+    nodes: [],
+  });
+  const candidateId = 'p167f-whole-building-precise-stair';
+  const candidateLabel = 'P167F whole-building precise stair successor - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p167f-whole-building-precise-stair.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p167f-whole-building-precise-stair-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p167f-whole-building-precise-stair-review');
+  await expect(canvas).toHaveAttribute('data-p167-parent-pass', 'P166F');
+  await expect(canvas).toHaveAttribute('data-p167-geometry-pass', 'P167F');
+  await expect(canvas).toHaveAttribute('data-p167-step-count', '14');
+  await expect(canvas).toHaveAttribute('data-p167-overall-x-span-m', '2.250');
+  await expect(canvas).toHaveAttribute('data-p167-overall-y-span-m', '2.100');
+  await expect(canvas).toHaveAttribute('data-p167-flight-width-m', '0.950');
+  await expect(canvas).toHaveAttribute('data-p167-center-gap-m', '0.200');
+  await expect(canvas).toHaveAttribute('data-p167-run-m', '0.250');
+  await expect(canvas).toHaveAttribute('data-p167-rise-m', '0.184');
+  await expect(canvas).toHaveAttribute('data-p167-terminal2-f-level-z', '2.760');
+  await expect(canvas).toHaveAttribute('data-p167-direction', 'E_TO_W__S_TO_N__W_TO_E');
+  await expect(canvas).toHaveAttribute('data-p167-host-south-y', '5.122');
+  await expect(canvas).toHaveAttribute('data-p167-host-north-y', '7.222');
+  await expect(canvas).toHaveAttribute('data-p167-wall-contact-gap-m', '0');
+  await expect(canvas).toHaveAttribute('data-p167-source-exact-stair-metrics', 'true');
+  await expect(canvas).toHaveAttribute('data-p167-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-p167-presentation-work-shell-cut-applied', 'true');
+  await expect(canvas).toHaveAttribute('data-p167-source-primitive-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p167-physical-stair-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p167-physical-opening-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p167-physical-floor-shell-cut-applied', 'false');
+  await expect(canvas).toHaveAttribute(
+    'data-p167-plausibility-gate',
+    'WARN_WORK_TEST_SOURCE_EXACT_STAIR_WITH_PRESENTATION_SHELL_CLEARANCE_AND_DEFERRED_PHYSICAL_DETAIL',
+  );
+  await expect(canvas).toHaveAttribute('data-p167-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p167-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p167-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p167-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p167-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.locator('#locus-layer-label')).toHaveText('P167F precise stair (WORK_TEST / 14 askelta)');
+  await expect(page.getByRole('status')).toHaveText(
+    'P167F whole-building precise stair - WORK_TEST / 14 askelta / E_TO_W + S_TO_N + W_TO_E / presentation shell clearance - HUMAN_REVIEW NOT_RUN',
   );
 });
 
