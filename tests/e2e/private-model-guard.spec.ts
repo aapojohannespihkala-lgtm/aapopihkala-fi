@@ -3210,6 +3210,67 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
 });
 
 
+test('private viewer compares CURRENT and WORK_TEST in the same preserved view', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'WORK TEST ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateId = 'p149f-compare-candidate';
+  const candidateLabel = 'P149F comparison candidate - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p149f-compare-candidate.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/');
+  const canvas = page.locator('#private-model-canvas');
+  const compareButton = page.getByRole('button', { name: 'Vertaa WORK_TESTiin' });
+
+  await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
+  await expect(compareButton).toBeEnabled();
+  await clickViewAction(page, 'Koko rakennus');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+
+  await compareButton.click();
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-model-comparison', 'active');
+  await expect(canvas).toHaveAttribute('data-model-comparison-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-model-comparison-view', 'preserved');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(page.getByRole('button', { name: 'Vertaa CURRENTiin' })).toBeEnabled();
+  await expect(page.getByRole('status')).toHaveText(`A/B-vertailu: WORK_TEST - ${candidateLabel}`);
+
+  await page.getByRole('button', { name: 'Vertaa CURRENTiin' }).click();
+  await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
+  await expect(canvas).toHaveAttribute('data-model-comparison', 'active');
+  await expect(canvas).toHaveAttribute('data-model-comparison-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-model-comparison-view', 'preserved');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(page.getByRole('button', { name: 'Vertaa WORK_TESTiin' })).toBeEnabled();
+  await expect(page.getByRole('status')).toHaveText('A/B-vertailu: CURRENT');
+});
+
 test('private viewer fails safe when the protected WORK_TEST catalog is unavailable', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
