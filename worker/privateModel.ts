@@ -18,6 +18,8 @@ export type PrivateModelEnv = {
   CF_ACCESS_AUD?: string;
   CF_ACCESS_PUBLISHER_AUD?: string;
   CF_ACCESS_PUBLISHER_COMMON_NAME?: string;
+  CF_ACCESS_READBACK_AUD?: string;
+  CF_ACCESS_READBACK_COMMON_NAME?: string;
 };
 
 export const PRIVATE_MODEL_PREFIX = '/private-model';
@@ -189,15 +191,26 @@ export const verifyPrivateModelAccess = async (
     env.CF_ACCESS_AUD,
   );
 
+const privateModelServiceTokenClaimError = (
+  payload: Pick<JwtPayload, 'type' | 'sub' | 'common_name'>,
+  expectedCommonName: string,
+  role: 'publisher' | 'readback',
+) => {
+  if (payload.type !== 'app') return `${role}-token-type`;
+  if (payload.sub !== '') return `${role}-token-sub`;
+  if (payload.common_name !== expectedCommonName) return `${role}-common-name`;
+  return null;
+};
+
 export const privateModelPublisherClaimError = (
   payload: Pick<JwtPayload, 'type' | 'sub' | 'common_name'>,
   expectedCommonName: string,
-) => {
-  if (payload.type !== 'app') return 'publisher-token-type';
-  if (payload.sub !== '') return 'publisher-token-sub';
-  if (payload.common_name !== expectedCommonName) return 'publisher-common-name';
-  return null;
-};
+) => privateModelServiceTokenClaimError(payload, expectedCommonName, 'publisher');
+
+export const privateModelReadbackClaimError = (
+  payload: Pick<JwtPayload, 'type' | 'sub' | 'common_name'>,
+  expectedCommonName: string,
+) => privateModelServiceTokenClaimError(payload, expectedCommonName, 'readback');
 
 export const verifyPrivateModelPublisherAccess = async (
   request: Request,
@@ -216,6 +229,26 @@ export const verifyPrivateModelPublisherAccess = async (
     env.CF_ACCESS_TEAM_DOMAIN,
     publisherAudience,
     (payload) => privateModelPublisherClaimError(payload, publisherCommonName),
+  );
+};
+
+export const verifyPrivateModelReadbackAccess = async (
+  request: Request,
+  env: Pick<
+    PrivateModelEnv,
+    'CF_ACCESS_TEAM_DOMAIN' | 'CF_ACCESS_READBACK_AUD' | 'CF_ACCESS_READBACK_COMMON_NAME'
+  >,
+) => {
+  const readbackAudience = env.CF_ACCESS_READBACK_AUD?.trim();
+  const readbackCommonName = env.CF_ACCESS_READBACK_COMMON_NAME?.trim();
+  if (!readbackAudience) return denyAccess('readback-audience-config');
+  if (!readbackCommonName) return denyAccess('readback-common-name-config');
+
+  return verifyPrivateModelAccessToken(
+    request,
+    env.CF_ACCESS_TEAM_DOMAIN,
+    readbackAudience,
+    (payload) => privateModelReadbackClaimError(payload, readbackCommonName),
   );
 };
 
