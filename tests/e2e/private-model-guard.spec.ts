@@ -14,6 +14,12 @@ import {
   scalarSelectionMetadataValue,
   selectionMetadataEntries,
 } from '../../src/scripts/privateModelSelectionMetadata';
+import {
+  isObjectVisibilityRenderable,
+  nearestNamedAncestor,
+  sceneNameForObject,
+  selectionKindLabel,
+} from '../../src/scripts/privateModelSelectionIdentity';
 
 test('private viewer WORK_TEST routing module preserves review aliases and candidate validation', () => {
   const expectedRoutes = {
@@ -57,6 +63,45 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
       path: '/private-model/model.glb',
     }),
   ).toBe(false);
+});
+
+test('private viewer selection identity helper preserves object and scene semantics', () => {
+  const root: any = { name: 'MODEL_ROOT', parent: null };
+  const fallback: any = { name: 'FALLBACK_SCENE', isScene: true, parent: root };
+  const scene: any = { name: 'VISIBLE_SCENE_NAME', isScene: true, parent: root };
+  const group: any = { name: 'GROUP_A', parent: scene };
+  const mesh: any = { name: 'MESH_A', isMesh: true, type: 'Mesh', parent: group };
+  const unnamedGroup: any = { name: '', parent: scene };
+  const line: any = { isLine: true, type: 'Line', parent: unnamedGroup };
+  const segments: any = { isLineSegments: true, type: 'LineSegments', parent: root };
+  const custom: any = { type: 'Points', parent: root };
+
+  const names = new WeakMap<object, string>();
+  names.set(scene, 'SOURCE_SCENE_NAME');
+  names.set(fallback, 'SOURCE_FALLBACK_NAME');
+
+  expect(nearestNamedAncestor(mesh, root)).toBe('GROUP_A');
+  expect(nearestNamedAncestor(line, root)).toBe('VISIBLE_SCENE_NAME');
+  expect(nearestNamedAncestor({ parent: root }, root)).toBe('');
+
+  expect(sceneNameForObject(mesh, root, names, fallback)).toBe('SOURCE_SCENE_NAME');
+  expect(sceneNameForObject(custom, root, names, fallback)).toBe('SOURCE_FALLBACK_NAME');
+  expect(sceneNameForObject(custom, root, new WeakMap<object, string>(), fallback)).toBe(
+    'FALLBACK_SCENE',
+  );
+  expect(sceneNameForObject(custom, root, names, null)).toBe('');
+
+  expect(selectionKindLabel(mesh)).toBe('Mesh');
+  expect(selectionKindLabel(segments)).toBe('LineSegments');
+  expect(selectionKindLabel(line)).toBe('Line');
+  expect(selectionKindLabel(custom)).toBe('Points');
+  expect(selectionKindLabel({})).toBe('-');
+
+  expect(isObjectVisibilityRenderable(mesh)).toBe(true);
+  expect(isObjectVisibilityRenderable(line)).toBe(true);
+  expect(isObjectVisibilityRenderable(segments)).toBe(true);
+  expect(isObjectVisibilityRenderable(custom)).toBe(false);
+  expect(isObjectVisibilityRenderable(null)).toBe(false);
 });
 
 test('private viewer selection metadata helper preserves bounded scalar priority semantics', () => {
