@@ -16,6 +16,7 @@ on:
           - p161-multisource-systems-carrier
           - p164b-d-corrected-stair
           - p166f-lightwell-proxies
+          - p167f-whole-building-precise-stair
 
 permissions:
   contents: read
@@ -83,6 +84,11 @@ jobs:
               drive_file_id="1dDxcJFkLIn7JU_6msVgQVQYOurqv_L4c"
               expected_size="2030604"
               expected_sha256="3b1e2158408937be1f11a27b16eae605204d5aa2184c7d513f6883d92a430f0a"
+              ;;
+            p167f-whole-building-precise-stair)
+              drive_file_id="1h65Ap5BGINTqv-zEUnFmFa0wT25SMUfT"
+              expected_size="2070576"
+              expected_sha256="66e8589ec8b904cde6fee3b80ba7c0e01db0f1d66ed88455a6d5ddf9f9442bd8"
               ;;
             *)
               echo "Unsupported WORK_TEST candidate" >&2
