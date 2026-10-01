@@ -2,24 +2,26 @@ name: Publish WORK_TEST
 
 on:
   workflow_dispatch:
+    inputs:
+      candidate:
+        description: Allowlisted WORK_TEST candidate
+        required: true
+        default: p150g-whole-building-end-plinth
+        type: choice
+        options:
+          - p150g-whole-building-end-plinth
+          - p154c-d-wall-cutouts
 
 permissions:
   contents: read
   id-token: write
 
 concurrency:
-  group: publish-work-test-p150g
+  group: publish-work-test
   cancel-in-progress: false
 
 env:
-  DRIVE_FILE_ID: 1A2qXM12S7Fx0H9UPUM6lWuAXFB0YqEB6
-  CANDIDATE_ID: p150g-whole-building-end-plinth
-  EXPECTED_SIZE: "1986004"
-  EXPECTED_SHA256: a17fdc1cbc29c4ecfcab3e94554b5ea5860c9a19db33e21f24c324acf70d6d89
-  EXPECTED_PATH: /private-model/work-test/p150g-whole-building-end-plinth.glb
-  PUBLISH_URL: https://aapopihkala.fi/private-model/work-test/publish/p150g-whole-building-end-plinth.glb
   CATALOG_URL: https://aapopihkala.fi/private-model/work-test/verify/catalog.json
-  GLB_URL: https://aapopihkala.fi/private-model/work-test/verify/p150g-whole-building-end-plinth.glb
 
 jobs:
   publish:
@@ -33,6 +35,40 @@ jobs:
           [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]
           [[ "$GITHUB_REF" == "refs/heads/main" ]]
           [[ "$GITHUB_REPOSITORY" == "aapojohannespihkala-lgtm/aapopihkala-fi" ]]
+
+      - name: Resolve allowlisted candidate
+        shell: bash
+        env:
+          REQUESTED_CANDIDATE: ${{ inputs.candidate }}
+        run: |
+          set -euo pipefail
+
+          case "$REQUESTED_CANDIDATE" in
+            p150g-whole-building-end-plinth)
+              drive_file_id="1A2qXM12S7Fx0H9UPUM6lWuAXFB0YqEB6"
+              expected_size="1986004"
+              expected_sha256="a17fdc1cbc29c4ecfcab3e94554b5ea5860c9a19db33e21f24c324acf70d6d89"
+              ;;
+            p154c-d-wall-cutouts)
+              drive_file_id="13s4JHivX9Be154vVeo8_q_cgElryXF5u"
+              expected_size="1535172"
+              expected_sha256="0653be4435879acb479ca272dc8fd4a3c7299c863c0082797236d4c5c20167c0"
+              ;;
+            *)
+              echo "Unsupported WORK_TEST candidate" >&2
+              exit 1
+              ;;
+          esac
+
+          {
+            echo "DRIVE_FILE_ID=$drive_file_id"
+            echo "CANDIDATE_ID=$REQUESTED_CANDIDATE"
+            echo "EXPECTED_SIZE=$expected_size"
+            echo "EXPECTED_SHA256=$expected_sha256"
+            echo "EXPECTED_PATH=/private-model/work-test/$REQUESTED_CANDIDATE.glb"
+            echo "PUBLISH_URL=https://aapopihkala.fi/private-model/work-test/publish/$REQUESTED_CANDIDATE.glb"
+            echo "GLB_URL=https://aapopihkala.fi/private-model/work-test/verify/$REQUESTED_CANDIDATE.glb"
+          } >> "$GITHUB_ENV"
 
       - name: Require machine-auth configuration
         shell: bash
@@ -69,7 +105,7 @@ jobs:
           GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
         run: |
           set -euo pipefail
-          model="$RUNNER_TEMP/p150g-work-test.glb"
+          model="$RUNNER_TEMP/work-test-source.glb"
           curl --silent --show-error --fail --location             --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN"             --output "$model"             "https://www.googleapis.com/drive/v3/files/$DRIVE_FILE_ID?alt=media&supportsAllDrives=true"
 
           actual_size="$(stat -c '%s' "$model")"
@@ -86,7 +122,7 @@ jobs:
           CF_ACCESS_PUBLISHER_CLIENT_SECRET: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_SECRET }}
         run: |
           set -euo pipefail
-          model="$RUNNER_TEMP/p150g-work-test.glb"
+          model="$RUNNER_TEMP/work-test-source.glb"
           response="$RUNNER_TEMP/publish-response.json"
 
           curl --silent --show-error --fail             --request PUT             --header "CF-Access-Client-Id: $CF_ACCESS_PUBLISHER_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_PUBLISHER_CLIENT_SECRET"             --header "Content-Type: model/gltf-binary"             --header "Content-Length: $EXPECTED_SIZE"             --data-binary "@$model"             --output "$response"             "$PUBLISH_URL"
@@ -147,7 +183,7 @@ jobs:
           CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
         run: |
           set -euo pipefail
-          readback="$RUNNER_TEMP/p150g-production-readback.glb"
+          readback="$RUNNER_TEMP/work-test-production-readback.glb"
 
           curl --silent --show-error --fail             --connect-timeout 10             --max-time 60             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --output "$readback"             "$GLB_URL"
 
@@ -161,4 +197,4 @@ jobs:
         if: always()
         shell: bash
         run: |
-          rm -f             "$RUNNER_TEMP/p150g-work-test.glb"             "$RUNNER_TEMP/p150g-production-readback.glb"             "$RUNNER_TEMP/publish-response.json"             "$RUNNER_TEMP/catalog.json"
+          rm -f             "$RUNNER_TEMP/work-test-source.glb"             "$RUNNER_TEMP/work-test-production-readback.glb"             "$RUNNER_TEMP/publish-response.json"             "$RUNNER_TEMP/catalog.json"
