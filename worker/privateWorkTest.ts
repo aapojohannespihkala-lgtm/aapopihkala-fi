@@ -1,6 +1,7 @@
 import {
   PRIVATE_MODEL_PREFIX,
   verifyPrivateModelAccess,
+  verifyPrivateModelPublisherAccess,
   type PrivateModelEnv,
 } from './privateModel';
 
@@ -8,6 +9,7 @@ const PRIVATE_WORK_TEST_PREFIX = `${PRIVATE_MODEL_PREFIX}/work-test`;
 export const PRIVATE_WORK_TEST_CATALOG_PATH = `${PRIVATE_WORK_TEST_PREFIX}/catalog.json`;
 export const PRIVATE_WORK_TEST_IMPORT_PATH = `${PRIVATE_WORK_TEST_PREFIX}/import.json`;
 export const PRIVATE_WORK_TEST_UPLOAD_PREFIX = `${PRIVATE_WORK_TEST_PREFIX}/upload/`;
+export const PRIVATE_WORK_TEST_PUBLISH_PREFIX = `${PRIVATE_WORK_TEST_PREFIX}/publish/`;
 
 export type PrivateWorkTestCandidate = {
   id: string;
@@ -269,6 +271,13 @@ export const getPrivateWorkTestUploadCandidate = (pathname: string) => {
   return getPrivateWorkTestCandidateById(candidateId);
 };
 
+export const getPrivateWorkTestPublishCandidate = (pathname: string) => {
+  if (!pathname.startsWith(PRIVATE_WORK_TEST_PUBLISH_PREFIX) || !pathname.endsWith('.glb')) return null;
+  const candidateId = pathname.slice(PRIVATE_WORK_TEST_PUBLISH_PREFIX.length, -'.glb'.length);
+  if (!/^[a-z0-9-]+$/.test(candidateId)) return null;
+  return getPrivateWorkTestCandidateById(candidateId);
+};
+
 export const isTrustedPrivateWorkTestSourceUrl = (value: string) => {
   try {
     const url = new URL(value);
@@ -453,6 +462,105 @@ export const isPrivateWorkTestObjectValid = (
   object.size === candidate.expectedSize &&
   object.customMetadata?.sha256?.trim().toLowerCase() === candidate.expectedSha256;
 
+type PrivateWorkTestBinaryWriteResult =
+  | { ok: true; alreadyReady: boolean }
+  | {
+      ok: false;
+      error:
+        | 'upload-content-type'
+        | 'upload-size-mismatch'
+        | 'upload-sha256-mismatch'
+        | 'upload-body-read-failed'
+        | 'r2-write-failed'
+        | 'r2-readback-failed';
+      status: number;
+    };
+
+export const writePrivateWorkTestCandidateFromRequest = async (
+  request: Request,
+  bucket: PrivateWorkTestBucket,
+  candidate: PrivateWorkTestCandidate,
+): Promise<PrivateWorkTestBinaryWriteResult> => {
+  const contentType = request.headers.get('Content-Type')?.split(';', 1)[0]?.trim().toLowerCase();
+  if (contentType !== 'model/gltf-binary' && contentType !== 'application/octet-stream') {
+    return { ok: false, error: 'upload-content-type', status: 415 };
+  }
+
+  const declaredLength = request.headers.get('Content-Length');
+  if (
+    declaredLength &&
+    Number.isFinite(Number(declaredLength)) &&
+    Number(declaredLength) !== candidate.expectedSize
+  ) {
+    return { ok: false, error: 'upload-size-mismatch', status: 422 };
+  }
+
+  let bytes: ArrayBuffer;
+  try {
+    bytes = await request.arrayBuffer();
+  } catch {
+    return { ok: false, error: 'upload-body-read-failed', status: 400 };
+  }
+
+  const validationError = await validatePrivateWorkTestUploadBytes(bytes, candidate);
+  if (validationError) return { ok: false, error: validationError, status: 422 };
+
+  let existing: PrivateWorkTestStoredObject | null;
+  try {
+    existing = await bucket.get(candidate.objectKey);
+  } catch {
+    return { ok: false, error: 'r2-readback-failed', status: 500 };
+  }
+  if (existing && isPrivateWorkTestObjectValid(existing, candidate)) {
+    return { ok: true, alreadyReady: true };
+  }
+
+  try {
+    await bucket.put(candidate.objectKey, bytes, {
+      httpMetadata: {
+        contentType: 'model/gltf-binary',
+        contentDisposition: 'inline',
+        cacheControl: 'private, no-store',
+      },
+      customMetadata: {
+        sha256: candidate.expectedSha256,
+      },
+    });
+  } catch {
+    return { ok: false, error: 'r2-write-failed', status: 500 };
+  }
+
+  let written: PrivateWorkTestStoredObject | null;
+  try {
+    written = await bucket.get(candidate.objectKey);
+  } catch {
+    return { ok: false, error: 'r2-readback-failed', status: 500 };
+  }
+  if (!written || !isPrivateWorkTestObjectValid(written, candidate)) {
+    return { ok: false, error: 'r2-readback-failed', status: 500 };
+  }
+
+  return { ok: true, alreadyReady: false };
+};
+
+const binaryWriteResponse = (
+  request: Request,
+  candidate: PrivateWorkTestCandidate,
+  result: PrivateWorkTestBinaryWriteResult,
+  mode: 'upload' | 'publish',
+) => {
+  if (!result.ok) return privateJsonResponse(request, { error: result.error }, result.status);
+  return privateJsonResponse(request, {
+    candidate: { id: candidate.id, label: candidate.label, path: candidate.path },
+    ready: true,
+    seeded: !result.alreadyReady,
+    alreadyReady: result.alreadyReady,
+    ...(mode === 'upload'
+      ? { uploaded: !result.alreadyReady }
+      : { published: !result.alreadyReady }),
+  });
+};
+
 const handlePrivateWorkTestUpload = async (
   request: Request,
   env: PrivateModelEnv,
@@ -467,49 +575,26 @@ const handlePrivateWorkTestUpload = async (
     return notFound();
   }
 
-  const contentType = request.headers.get('Content-Type')?.split(';', 1)[0]?.trim().toLowerCase();
-  if (contentType !== 'model/gltf-binary' && contentType !== 'application/octet-stream') {
-    return privateJsonResponse(request, { error: 'upload-content-type' }, 415);
+  const result = await writePrivateWorkTestCandidateFromRequest(request, bucket, candidate);
+  return binaryWriteResponse(request, candidate, result, 'upload');
+};
+
+const handlePrivateWorkTestPublish = async (
+  request: Request,
+  env: PrivateModelEnv,
+  candidate: PrivateWorkTestCandidate,
+): Promise<Response> => {
+  if (!(await verifyPrivateModelPublisherAccess(request, env))) return notFound();
+  if (request.method !== 'PUT') return methodNotAllowed('PUT');
+
+  const bucket = env.PRIVATE_MODEL_BUCKET as unknown as PrivateWorkTestBucket | undefined;
+  if (!bucket) {
+    console.info('private-model work-test publish deny: bucket-binding');
+    return notFound();
   }
 
-  const declaredLength = request.headers.get('Content-Length');
-  if (
-    declaredLength &&
-    Number.isFinite(Number(declaredLength)) &&
-    Number(declaredLength) !== candidate.expectedSize
-  ) {
-    return privateJsonResponse(request, { error: 'upload-size-mismatch' }, 422);
-  }
-
-  const bytes = await request.arrayBuffer();
-  const validationError = await validatePrivateWorkTestUploadBytes(bytes, candidate);
-  if (validationError) {
-    return privateJsonResponse(request, { error: validationError }, 422);
-  }
-
-  await bucket.put(candidate.objectKey, bytes, {
-    httpMetadata: {
-      contentType: 'model/gltf-binary',
-      contentDisposition: 'inline',
-      cacheControl: 'private, no-store',
-    },
-    customMetadata: {
-      sha256: candidate.expectedSha256,
-    },
-  });
-
-  const written = await bucket.get(candidate.objectKey);
-  if (!written || !isPrivateWorkTestObjectValid(written, candidate)) {
-    console.info('private-model work-test upload deny: r2-readback');
-    return privateJsonResponse(request, { error: 'r2-readback-failed' }, 500);
-  }
-
-  return privateJsonResponse(request, {
-    candidate: { id: candidate.id, label: candidate.label, path: candidate.path },
-    ready: true,
-    seeded: true,
-    uploaded: true,
-  });
+  const result = await writePrivateWorkTestCandidateFromRequest(request, bucket, candidate);
+  return binaryWriteResponse(request, candidate, result, 'publish');
 };
 
 const handlePrivateWorkTestImport = async (
@@ -579,6 +664,11 @@ export const handlePrivateWorkTestRequest = async (
 
   if (pathname === PRIVATE_WORK_TEST_IMPORT_PATH) {
     return handlePrivateWorkTestImport(request, env);
+  }
+
+  const publishCandidate = getPrivateWorkTestPublishCandidate(pathname);
+  if (publishCandidate) {
+    return handlePrivateWorkTestPublish(request, env, publishCandidate);
   }
 
   const uploadCandidate = getPrivateWorkTestUploadCandidate(pathname);
