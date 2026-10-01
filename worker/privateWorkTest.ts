@@ -205,10 +205,6 @@ type PrivateWorkTestBucket = {
   ): Promise<PrivateWorkTestStoredObject>;
 };
 
-export type PrivateWorkTestExecutionContext = {
-  waitUntil(promise: Promise<unknown>): void;
-};
-
 type PrivateWorkTestSeedResult =
   | { ok: true }
   | {
@@ -506,7 +502,6 @@ const handlePrivateWorkTestUpload = async (
 const handlePrivateWorkTestImport = async (
   request: Request,
   env: PrivateModelEnv,
-  executionContext?: PrivateWorkTestExecutionContext,
 ): Promise<Response> => {
   if (!(await verifyPrivateModelAccess(request, env))) return notFound();
   if (request.method !== 'POST') return methodNotAllowed('POST');
@@ -547,32 +542,11 @@ const handlePrivateWorkTestImport = async (
     });
   }
 
-  const seedTask = seedPrivateWorkTestCandidateFromSource(
+  const seeded = await seedPrivateWorkTestCandidateFromSource(
     candidate,
     payload.sourceUrl,
     bucket,
   );
-
-  if (executionContext) {
-    executionContext.waitUntil(
-      seedTask.then((result) => {
-        if (!result.ok) {
-          console.info(`private-model work-test background seed failed: ${result.error}`);
-        }
-      }),
-    );
-    return privateJsonResponse(
-      request,
-      {
-        candidate: { id: candidate.id, label: candidate.label, path: candidate.path },
-        ready: false,
-        pending: true,
-      },
-      202,
-    );
-  }
-
-  const seeded = await seedTask;
   if (!seeded.ok) {
     return privateJsonResponse(request, { error: seeded.error }, seeded.status);
   }
@@ -587,12 +561,11 @@ const handlePrivateWorkTestImport = async (
 export const handlePrivateWorkTestRequest = async (
   request: Request,
   env: PrivateModelEnv,
-  executionContext?: PrivateWorkTestExecutionContext,
 ): Promise<Response> => {
   const pathname = new URL(request.url).pathname;
 
   if (pathname === PRIVATE_WORK_TEST_IMPORT_PATH) {
-    return handlePrivateWorkTestImport(request, env, executionContext);
+    return handlePrivateWorkTestImport(request, env);
   }
 
   const uploadCandidate = getPrivateWorkTestUploadCandidate(pathname);
