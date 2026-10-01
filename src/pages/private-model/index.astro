@@ -1137,6 +1137,8 @@ const title = 'Private 3D viewer';
         p155cbReviewId,
         p156iCandidateId,
         p156iReviewId,
+        p160CandidateId,
+        p160ReviewId,
         type WorkTestCandidate,
       } from '../../scripts/privateModelWorkTest';
 
@@ -4290,6 +4292,9 @@ const title = 'Private 3D viewer';
       const isP156i2017KvvMainReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p156iReviewId);
 
+      const isP160DCompositeReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p160ReviewId);
+
       const isP154cDWallCutoutsReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p154cReviewId);
 
@@ -4584,6 +4589,34 @@ const title = 'Private 3D viewer';
           'P156I 2017 KVV mainCandidate - WORK_TEST / presentation-only +8,700 m - ei fyysinen putkikorko';
       };
 
+      const applyP160ReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p160-d-composite-architecture-review',
+          p160OwnerCandidate: 'p154c-d-wall-cutouts',
+          p160WallPieceCount: '126',
+          p160CutoutIdentityCount: '18',
+          p160StairGuardLowWallDelta: 'P153C',
+          p160StorageRoofDelta: 'P155C-B',
+          p160StorageRoofPresentationOnly: 'true',
+          p160PhysicalStairClaim: 'false',
+          p160PhysicalOpeningClaim: 'false',
+          p160PhysicalGuardClaim: 'false',
+          p160PhysicalLowWallClaim: 'false',
+          p160PhysicalRoofClaim: 'false',
+          p160FloorShellCutApplied: 'false',
+          p160PillarGeometryCreated: 'false',
+          p160CurrentClaim: 'false',
+          p160AsBuiltClaim: 'false',
+          p160Canonical: 'false',
+          p160HumanReview: 'NOT_RUN',
+          standardViewPreset: 'd-apartment',
+        });
+        applyViewerLayerState(standardViewLayerDefaults['d-apartment'], 'preset:d-apartment');
+        activateIsometric();
+        status.textContent =
+          'P160 D composite architecture - WORK_TEST / P154C walls+18 cutouts + P153 stair/guard/lowWall + P155C-B storage roof presentation - ei CURRENT/as-built';
+      };
+
       const applyP154cReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p154c-d-wall-cutouts-review',
@@ -4670,6 +4703,8 @@ const title = 'Private 3D viewer';
             candidate.id === p150gCandidateId && isP150gWholeBuildingEndPlinthReviewRequested();
           const isP156i2017KvvMainReview =
             candidate.id === p156iCandidateId && isP156i2017KvvMainReviewRequested();
+          const isP160DCompositeReview =
+            candidate.id === p160CandidateId && isP160DCompositeReviewRequested();
           const isP154cDWallCutoutsReview =
             candidate.id === p154cCandidateId && isP154cDWallCutoutsReviewRequested();
           const isP153cDStairReview =
@@ -4771,6 +4806,23 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p156TopologyLinkClaim;
           delete canvas.dataset.p156SamePipeClaim;
           delete canvas.dataset.p156PenetrationClaim;
+          delete canvas.dataset.p160OwnerCandidate;
+          delete canvas.dataset.p160WallPieceCount;
+          delete canvas.dataset.p160CutoutIdentityCount;
+          delete canvas.dataset.p160StairGuardLowWallDelta;
+          delete canvas.dataset.p160StorageRoofDelta;
+          delete canvas.dataset.p160StorageRoofPresentationOnly;
+          delete canvas.dataset.p160PhysicalStairClaim;
+          delete canvas.dataset.p160PhysicalOpeningClaim;
+          delete canvas.dataset.p160PhysicalGuardClaim;
+          delete canvas.dataset.p160PhysicalLowWallClaim;
+          delete canvas.dataset.p160PhysicalRoofClaim;
+          delete canvas.dataset.p160FloorShellCutApplied;
+          delete canvas.dataset.p160PillarGeometryCreated;
+          delete canvas.dataset.p160CurrentClaim;
+          delete canvas.dataset.p160AsBuiltClaim;
+          delete canvas.dataset.p160Canonical;
+          delete canvas.dataset.p160HumanReview;
           delete canvas.dataset.scalgoLabelFlowCorridorCount;
           delete canvas.dataset.scalgoLabelMinimumSameCorridorSpacingM;
           delete canvas.dataset.scalgoLabelBuildingExclusion;
@@ -4781,6 +4833,8 @@ const title = 'Private 3D viewer';
               ? 'Koko rakennus + alusrakennekuoret (WORK_TEST)'
             : isP156i2017KvvMainReview
               ? '2017 KVV mainCandidate (WORK_TEST / presentation-only +8,700 m)'
+            : isP160DCompositeReview
+              ? 'D composite architecture (WORK_TEST)'
             : isP151cWholeBuildingReview
               ? 'Koko rakennus (WORK_TEST / minimum review carrier)'
               : isP155cbDStorageRoofReview
@@ -4811,7 +4865,9 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP153cDStairReview) {
+          if (isP160DCompositeReview) {
+            applyP160ReviewState();
+          } else if (isP153cDStairReview) {
             applyP153cReviewState();
           } else if (isP154cDWallCutoutsReview) {
             applyP154cReviewState();
