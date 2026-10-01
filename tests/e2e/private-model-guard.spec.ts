@@ -2977,13 +2977,17 @@ test('private viewer autoloads the exact P161 multisource systems review candida
       presentationOnly: true,
     },
   }));
+  const p161StandalonePositions = Buffer.alloc(36);
+  [-0.5, -0.5, 0, 0.5, -0.5, 0, 0, 0.5, 0].forEach((value, index) => {
+    p161StandalonePositions.writeFloatLE(value, index * 4);
+  });
   const candidateModel = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
     scenes: [
       {
         name: 'P161 MULTISOURCE SYSTEMS REVIEW CARRIER - BABYLON Y-UP',
-        nodes: [0, 33, 35],
+        nodes: [0, 33, 35, 44],
       },
     ],
     nodes: [
@@ -3050,6 +3054,38 @@ test('private viewer autoloads the exact P161 multisource systems review candida
           placementMode: 'PRESENTATION_SIDECAR',
         },
       })),
+      {
+        name: 'P161_KVV_STANDALONE_DISPLAY',
+        mesh: 0,
+        extras: {
+          sourceFamily: 'KVV_MAIN_2017_WORK_ASSUMPTION',
+          systemDomain: 'KVV/käyttövesi',
+          presentationOnly: true,
+        },
+      },
+    ],
+    buffers: [
+      {
+        byteLength: p161StandalonePositions.length,
+        uri: `data:application/octet-stream;base64,${p161StandalonePositions.toString('base64')}`,
+      },
+    ],
+    bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: p161StandalonePositions.length }],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 3,
+        type: 'VEC3',
+        min: [-0.5, -0.5, 0],
+        max: [0.5, 0.5, 0],
+      },
+    ],
+    meshes: [
+      {
+        name: 'P161_STANDALONE_DISPLAY_TRIANGLE',
+        primitives: [{ attributes: { POSITION: 0 } }],
+      },
     ],
   });
   const candidateId = 'p161-multisource-systems-carrier';
@@ -3114,13 +3150,17 @@ test('private viewer autoloads the exact P161 multisource systems review candida
   await expect(canvas).toHaveAttribute('data-p161-kvv-layer-count', '82');
   await expect(canvas).toHaveAttribute('data-p161-iv-plan-layer-count', '32');
   await expect(canvas).toHaveAttribute('data-p161-section-sidecar-layer-count', '6');
+  await expect(canvas).toHaveAttribute('data-p161-system-layer-renderable-count', '1');
+  await expect(canvas).toHaveAttribute('data-p161-visible-system-layer-renderable-count', '1');
 
   await page.locator('#layers-button').click();
   await expect(page.locator('#layers-panel')).toBeVisible();
   await systemsLayer.uncheck();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-visible-system-layer-renderable-count', '0');
   await systemsLayer.check();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-p161-visible-system-layer-renderable-count', '1');
 });
 
 test('private viewer autoloads the exact P156I 2017 KVV main presentation review candidate', async ({ page }) => {
