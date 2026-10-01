@@ -926,6 +926,7 @@ const title = 'Private 3D viewer';
               <option value="">WORK_TEST ei saatavilla</option>
             </select>
             <button id="work-test-button" type="button" disabled>Avaa WORK_TEST</button>
+            <button id="compare-model-button" type="button" disabled>Vertaa WORK_TESTiin</button>
             <button id="work-test-upload-button" type="button" hidden>Tuo WORK_TEST .glb</button>
             <input id="work-test-upload-input" type="file" accept=".glb,model/gltf-binary,application/octet-stream" hidden />
             <button id="current-model-button" type="button" hidden>Palaa CURRENTiin</button>
@@ -1126,6 +1127,7 @@ const title = 'Private 3D viewer';
       const profileButton = document.querySelector<HTMLButtonElement>('#profile-button');
       const workTestSelect = document.querySelector<HTMLSelectElement>('#work-test-select');
       const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
+      const compareModelButton = document.querySelector<HTMLButtonElement>('#compare-model-button');
       const workTestUploadButton = document.querySelector<HTMLButtonElement>('#work-test-upload-button');
       const workTestUploadInput = document.querySelector<HTMLInputElement>('#work-test-upload-input');
       const currentModelButton = document.querySelector<HTMLButtonElement>('#current-model-button');
@@ -1196,6 +1198,7 @@ const title = 'Private 3D viewer';
         !profileButton ||
         !workTestSelect ||
         !workTestButton ||
+        !compareModelButton ||
         !workTestUploadButton ||
         !workTestUploadInput ||
         !currentModelButton ||
@@ -3404,6 +3407,77 @@ const title = 'Private 3D viewer';
         refreshEdgeRendering(modelRoot.children[0] ?? null);
       };
 
+      type ComparisonCameraKind = 'perspective' | 'plan' | 'isometric';
+      type ComparisonViewSnapshot = {
+        cameraKind: ComparisonCameraKind;
+        position: THREE.Vector3;
+        quaternion: THREE.Quaternion;
+        zoom: number;
+        target: THREE.Vector3;
+        standardViewPreset: StandardViewPreset | null;
+        layerState: ViewerLayerState;
+      };
+
+      const captureComparisonView = (): ComparisonViewSnapshot => {
+        const cameraKind: ComparisonCameraKind =
+          activeCamera === planCamera ? 'plan' : activeCamera === isoCamera ? 'isometric' : 'perspective';
+        const activeControls =
+          cameraKind === 'plan' ? planControls : cameraKind === 'isometric' ? isoControls : controls;
+        const preset = canvas.dataset.standardViewPreset;
+        const standardViewPreset =
+          preset && Object.prototype.hasOwnProperty.call(standardViewLayerDefaults, preset)
+            ? (preset as StandardViewPreset)
+            : null;
+
+        return {
+          cameraKind,
+          position: activeCamera.position.clone(),
+          quaternion: activeCamera.quaternion.clone(),
+          zoom: activeCamera.zoom,
+          target: activeControls.target.clone(),
+          standardViewPreset,
+          layerState: {
+            roofVisible: roofLayerVisible,
+            roofOpacity: roofLayerOpacity,
+            locusVisible: locusLayerVisible,
+            edgeMode,
+          },
+        };
+      };
+
+      const restoreComparisonView = (snapshot: ComparisonViewSnapshot) => {
+        if (snapshot.standardViewPreset) {
+          applyStandardViewPreset(snapshot.standardViewPreset);
+        }
+
+        controls.enabled = snapshot.cameraKind === 'perspective';
+        planControls.enabled = snapshot.cameraKind === 'plan';
+        isoControls.enabled = snapshot.cameraKind === 'isometric';
+        activeCamera =
+          snapshot.cameraKind === 'plan'
+            ? planCamera
+            : snapshot.cameraKind === 'isometric'
+              ? isoCamera
+              : camera;
+
+        activeCamera.position.copy(snapshot.position);
+        activeCamera.quaternion.copy(snapshot.quaternion);
+        activeCamera.zoom = snapshot.zoom;
+        activeCamera.updateProjectionMatrix();
+
+        const activeControls =
+          snapshot.cameraKind === 'plan'
+            ? planControls
+            : snapshot.cameraKind === 'isometric'
+              ? isoControls
+              : controls;
+        activeControls.target.copy(snapshot.target);
+        activeControls.update();
+
+        applyViewerLayerState(snapshot.layerState, 'manual');
+        canvas.dataset.modelComparisonView = 'preserved';
+      };
+
       type ModelSourceKind = 'current' | 'work-test';
 
       const applyLoadedModel = (
@@ -3972,6 +4046,20 @@ const title = 'Private 3D viewer';
       const workTestCandidateFragmentKey = 'workTestCandidate';
       let workTestCandidates = new Map<string, WorkTestCandidate>();
 
+      const updateModelComparisonControls = () => {
+        const candidate = workTestCandidates.get(workTestSelect.value);
+        compareModelButton.disabled = !candidate;
+        compareModelButton.textContent =
+          activeModelSourceKind === 'work-test' ? 'Vertaa CURRENTiin' : 'Vertaa WORK_TESTiin';
+      };
+
+      const clearModelComparisonState = () => {
+        canvas.dataset.modelComparison = 'inactive';
+        delete canvas.dataset.modelComparisonCandidate;
+        delete canvas.dataset.modelComparisonView;
+        updateModelComparisonControls();
+      };
+
       const isWorkTestCandidate = (value: unknown): value is WorkTestCandidate => {
         if (!value || typeof value !== 'object') return false;
         const candidate = value as Record<string, unknown>;
@@ -4012,6 +4100,7 @@ const title = 'Private 3D viewer';
           workTestSelect.append(option);
           workTestSelect.disabled = true;
           workTestButton.disabled = true;
+          compareModelButton.disabled = true;
           setWorkTestUploadFallback(reviewCandidateId);
           canvas.dataset.workTestCatalog = 'empty';
           return;
@@ -4030,6 +4119,7 @@ const title = 'Private 3D viewer';
           : null;
         workTestSelect.value = reviewCandidate?.id ?? candidates[0].id;
         workTestButton.disabled = false;
+        updateModelComparisonControls();
         canvas.dataset.workTestCatalog = 'ready';
         if (reviewCandidate) {
           canvas.dataset.workTestReviewCandidate = reviewCandidate.id;
@@ -5257,6 +5347,41 @@ const title = 'Private 3D viewer';
         }
       };
 
+      const toggleModelComparison = async () => {
+        const candidate = workTestCandidates.get(workTestSelect.value);
+        if (!candidate) {
+          status.textContent = 'Valitse WORK_TEST-kandidaatti vertailua varten';
+          return;
+        }
+
+        const snapshot = captureComparisonView();
+        const targetKind: ModelSourceKind =
+          activeModelSourceKind === 'work-test' ? 'current' : 'work-test';
+
+        canvas.dataset.modelComparison = 'switching';
+        canvas.dataset.modelComparisonCandidate = candidate.id;
+
+        if (targetKind === 'current') {
+          await loadCurrentModel();
+        } else {
+          await loadWorkTestCandidate(candidate);
+        }
+
+        if (activeModelSourceKind !== targetKind) {
+          clearModelComparisonState();
+          return;
+        }
+
+        restoreComparisonView(snapshot);
+        canvas.dataset.modelComparison = 'active';
+        canvas.dataset.modelComparisonCandidate = candidate.id;
+        updateModelComparisonControls();
+        status.textContent =
+          targetKind === 'work-test'
+            ? `A/B-vertailu: WORK_TEST - ${candidate.label}`
+            : 'A/B-vertailu: CURRENT';
+      };
+
       layersButton.addEventListener('click', () => closeToolbarMenus());
       fitButton.addEventListener('click', fitModel);
       wholeBuildingPresetButton.addEventListener('click', () => applyStandardViewPreset('whole-building'));
@@ -5275,6 +5400,7 @@ const title = 'Private 3D viewer';
       d2PlanButton.addEventListener('click', () => applyStandardViewPreset('d-2f'));
       workTestSelect.addEventListener('change', () => {
         workTestButton.disabled = !workTestCandidates.has(workTestSelect.value);
+        clearModelComparisonState();
       });
       workTestButton.addEventListener('click', () => {
         const candidate = workTestCandidates.get(workTestSelect.value);
@@ -5282,7 +5408,11 @@ const title = 'Private 3D viewer';
           status.textContent = 'Valitse WORK_TEST-kandidaatti';
           return;
         }
+        clearModelComparisonState();
         void loadWorkTestCandidate(candidate);
+      });
+      compareModelButton.addEventListener('click', () => {
+        void toggleModelComparison();
       });
       workTestUploadButton.addEventListener('click', () => {
         workTestUploadInput.value = '';
@@ -5294,6 +5424,7 @@ const title = 'Private 3D viewer';
         void uploadWorkTestCandidateFile(file);
       });
       currentModelButton.addEventListener('click', () => {
+        clearModelComparisonState();
         void loadCurrentModel();
       });
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
