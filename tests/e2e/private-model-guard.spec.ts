@@ -2968,11 +2968,89 @@ test('private viewer autoloads the exact P161 multisource systems review candida
     scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
     nodes: [],
   });
+  const p161IvPlanNodes = Array.from({ length: 32 }, (_, index) => ({
+    name: `G3_IV_1974_PLAN_ANCHOR_${String(index + 1).padStart(3, '0')}__DISPLAY`,
+    extras: {
+      systemDomain: 'IV',
+      phase: '1974',
+      sourceGeometryDimension: '2D_XY_PLAN',
+      presentationOnly: true,
+    },
+  }));
   const candidateModel = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
-    scenes: [{ name: 'P161 MULTISOURCE SYSTEMS REVIEW CARRIER - BABYLON Y-UP', nodes: [] }],
-    nodes: [],
+    scenes: [
+      {
+        name: 'P161 MULTISOURCE SYSTEMS REVIEW CARRIER - BABYLON Y-UP',
+        nodes: [0, 33, 35],
+      },
+    ],
+    nodes: [
+      {
+        name: 'P144C_G3_1974_IV_P04_PRESENTATION_OVERLAY_ROOT_BABYLON_Y_UP',
+        children: Array.from({ length: 32 }, (_, index) => index + 1),
+        extras: {
+          Pass: 'P144C',
+          Purpose: 'presentationOnlyFederatedOverlay',
+          sourceObjectCount: 32,
+          sourcePrimitiveCount: 32,
+        },
+      },
+      ...p161IvPlanNodes,
+      {
+        name: 'P156I_2017_KVV_MAIN_WORK_ASSUMPTION_PRESENTATION_ROOT_BABYLON_Y_UP',
+        children: [34],
+        extras: {
+          Pass: 'P156I',
+          Purpose: 'mainCandidate2017PresentationSuccessor',
+          sourcePrimitiveCount: 82,
+        },
+      },
+      {
+        name: 'G3_KVV_2017_1F_WATER_MAIN_WORK_CANDIDATE_001__P156I_DISPLAY',
+        extras: {
+          Pass: 'P156I',
+          sourceFamily: 'KVV_MAIN_2017_WORK_ASSUMPTION',
+          systemDomain: 'KVV/käyttövesi',
+          sourcePrimitiveCount: 82,
+          presentationOnly: true,
+        },
+      },
+      {
+        name: 'P144E G3 1974 IV SECTION SIDECAR - BABYLON Y-UP',
+        children: [36, 40],
+        extras: {
+          Purpose: 'presentationOnlySectionSidecarRoot',
+          sectionStationStatus: 'UNRESOLVED_SOURCE',
+          physicalZClaim: false,
+        },
+      },
+      {
+        name: 'P144E_SECTION_AA_PRESENTATION_SIDECAR',
+        children: [37, 38, 39],
+        extras: { placementMode: 'PRESENTATION_SIDECAR' },
+      },
+      ...Array.from({ length: 3 }, (_, index) => ({
+        name: `P144E_SECTION_AA_ANCHOR_${index + 1}`,
+        extras: {
+          G3Id: `P144E_AA_${index + 1}`,
+          placementMode: 'PRESENTATION_SIDECAR',
+        },
+      })),
+      {
+        name: 'P144E_SECTION_BB_PRESENTATION_SIDECAR',
+        children: [41, 42, 43],
+        extras: { placementMode: 'PRESENTATION_SIDECAR' },
+      },
+      ...Array.from({ length: 3 }, (_, index) => ({
+        name: `P144E_SECTION_BB_ANCHOR_${index + 1}`,
+        extras: {
+          G3Id: `P144E_BB_${index + 1}`,
+          placementMode: 'PRESENTATION_SIDECAR',
+        },
+      })),
+    ],
   });
   const candidateId = 'p161-multisource-systems-carrier';
   const candidateLabel = 'P161 multisource systems review carrier - WORK_TEST';
@@ -3021,6 +3099,26 @@ test('private viewer autoloads the exact P161 multisource systems review candida
   await expect(page.getByRole('status')).toHaveText(
     'P161 multisource systems - WORK_TEST / P156I 2017 KVV + 1974 IV plan 32 + section sidecar 6 / lähdeperheet erillään - ei CURRENT/as-built',
   );
+
+  const systemsLayer = page.locator('#locus-layer-visible');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P161 tekniset järjestelmät (WORK_TEST)',
+  );
+  await expect(systemsLayer).toBeEnabled();
+  await expect(systemsLayer).toBeChecked();
+  await expect(page.locator('#locus-layer-count')).toHaveText('120 lähdekohdetta');
+  await expect(page.locator('#locus-water-count')).toHaveText('KVV 2017: 82');
+  await expect(page.locator('#locus-wastewater-count')).toHaveText(
+    'IV 1974: 38 (32 suunnitelma + 6 leikkaus)',
+  );
+  await expect(canvas).toHaveAttribute('data-p161-kvv-layer-count', '82');
+  await expect(canvas).toHaveAttribute('data-p161-iv-plan-layer-count', '32');
+  await expect(canvas).toHaveAttribute('data-p161-section-sidecar-layer-count', '6');
+
+  await systemsLayer.uncheck();
+  await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
+  await systemsLayer.check();
+  await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'true');
 });
 
 test('private viewer autoloads the exact P156I 2017 KVV main presentation review candidate', async ({ page }) => {
