@@ -13,7 +13,9 @@ test('private WORK_TEST background seed validates exact source bytes and R2 read
   };
   const sourceUrl =
     'https://unit.oaiusercontent.com/files/unit/raw?se=x&sig=y';
-  let stored: { size: number; customMetadata: Record<string, string> } | null = null;
+  let stored:
+    | { body: ReadableStream<Uint8Array> | null; size: number; customMetadata: Record<string, string> }
+    | null = null;
   let writes = 0;
 
   const bucket = {
@@ -25,10 +27,11 @@ test('private WORK_TEST background seed validates exact source bytes and R2 read
     ) => {
       writes += 1;
       stored = {
+        body: null,
         size: value.byteLength,
         customMetadata: options.customMetadata,
       };
-      return { body: null, ...stored };
+      return stored;
     },
   };
   const fetchImpl = (async () => {
@@ -54,6 +57,7 @@ test('private WORK_TEST background seed validates exact source bytes and R2 read
   expect(result).toEqual({ ok: true });
   expect(writes).toBe(1);
   expect(stored).toEqual({
+    body: null,
     size: 3,
     customMetadata: { sha256: candidate.expectedSha256 },
   });
