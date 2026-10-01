@@ -143,6 +143,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_919_860,
     expectedSha256: '13ca8995e873982a91d7fe1bd82eff97a3a09f9688507b2fa488244cca1b0e03',
   },
+  // P150G viewer integration: whole-building end-plinth human-review correction successor.
+  {
+    id: 'p150g-whole-building-end-plinth',
+    label: 'P150G whole-building end-plinth correction - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p150g-whole-building-end-plinth.glb`,
+    objectKey: 'work-test/p150g-whole-building-end-plinth.glb',
+    expectedSize: 1_986_004,
+    expectedSha256: 'a17fdc1cbc29c4ecfcab3e94554b5ea5860c9a19db33e21f24c324acf70d6d89',
+  },
   // P156K viewer integration: exact P156I 2017 KVV presentation-only candidate.
   {
     id: 'p156i-2017-kvv-main-presentation',

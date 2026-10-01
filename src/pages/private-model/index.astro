@@ -1111,6 +1111,8 @@ const title = 'Private 3D viewer';
         p145bReviewId,
         p150frCandidateId,
         p150frReviewId,
+        p150gCandidateId,
+        p150gReviewId,
         p151cCandidateId,
         p151cReviewId,
         p153cCandidateId,
@@ -4293,6 +4295,9 @@ const title = 'Private 3D viewer';
       const isP150frWholeBuildingSubstructureReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p150frReviewId);
 
+      const isP150gWholeBuildingEndPlinthReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p150gReviewId);
+
       const isP156i2017KvvMainReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p156iReviewId);
 
@@ -4672,6 +4677,8 @@ const title = 'Private 3D viewer';
             candidate.id === p151cCandidateId && isP151cWholeBuildingReviewRequested();
           const isP150frWholeBuildingSubstructureReview =
             candidate.id === p150frCandidateId && isP150frWholeBuildingSubstructureReviewRequested();
+          const isP150gWholeBuildingEndPlinthReview =
+            candidate.id === p150gCandidateId && isP150gWholeBuildingEndPlinthReviewRequested();
           const isP156i2017KvvMainReview =
             candidate.id === p156iCandidateId && isP156i2017KvvMainReviewRequested();
           const isP154cDWallCutoutsReview =
@@ -4740,6 +4747,29 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p150frHumanReview;
           delete canvas.dataset.p150frMetadataRepairOfPass;
           delete canvas.dataset.p150frPresentationTruthfulness;
+          delete canvas.dataset.p150gPredecessorCandidate;
+          delete canvas.dataset.p150gInheritedTargetCoverageCount;
+          delete canvas.dataset.p150gP150dTargetCount;
+          delete canvas.dataset.p150gP150dTargetIds;
+          delete canvas.dataset.p150gCorrectionTargetCount;
+          delete canvas.dataset.p150gCorrectionTargetIds;
+          delete canvas.dataset.p150gCorrectionZoneCount;
+          delete canvas.dataset.p150gCorrectionBasis;
+          delete canvas.dataset.p150gScope;
+          delete canvas.dataset.p150gExcludedBranches;
+          delete canvas.dataset.p150gWorkDepthM;
+          delete canvas.dataset.p150gDepthStatus;
+          delete canvas.dataset.p150gPresentationOnly;
+          delete canvas.dataset.p150gPhysicalFoundationClaim;
+          delete canvas.dataset.p150gPhysicalFoundationDepthClaim;
+          delete canvas.dataset.p150gPhysicalGroundSurfaceClaim;
+          delete canvas.dataset.p150gCurrentClaim;
+          delete canvas.dataset.p150gAsBuiltClaim;
+          delete canvas.dataset.p150gCanonical;
+          delete canvas.dataset.p150gHumanReview;
+          delete canvas.dataset.p150gPredecessorHumanReviewFeedback;
+          delete canvas.dataset.p150gActiveGroundContactRootNodeIndex;
+          delete canvas.dataset.p150gCorrectionRootNodeIndex;
           delete canvas.dataset.p156SourceFamily;
           delete canvas.dataset.p156TimeRole;
           delete canvas.dataset.p156PresentationOnly;
@@ -4756,8 +4786,10 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.scalgoLabelMinimumSameCorridorSpacingM;
           delete canvas.dataset.scalgoLabelBuildingExclusion;
           delete canvas.dataset.scalgoLabelCorridorSemanticBoundary;
-          locusLayerLabel.textContent = isP150frWholeBuildingSubstructureReview
-            ? 'Koko rakennus + alusrakennekuoret (WORK_TEST)'
+          locusLayerLabel.textContent = isP150gWholeBuildingEndPlinthReview
+            ? 'Koko rakennus + korjattu päätysokkeli (WORK_TEST)'
+            : isP150frWholeBuildingSubstructureReview
+              ? 'Koko rakennus + alusrakennekuoret (WORK_TEST)'
             : isP156i2017KvvMainReview
               ? '2017 KVV mainCandidate (WORK_TEST / presentation-only +8,700 m)'
             : isP151cWholeBuildingReview
@@ -4796,6 +4828,41 @@ const title = 'Private 3D viewer';
             applyP154cReviewState();
           } else if (isP156i2017KvvMainReview) {
             applyP156iReviewState();
+          } else if (isP150gWholeBuildingEndPlinthReview) {
+            Object.assign(canvas.dataset, {
+              workTestReviewMode: 'p150g-whole-building-end-plinth-review',
+              p150gPredecessorCandidate: 'p150fr-whole-building-substructure',
+              p150gInheritedTargetCoverageCount: '14',
+              p150gP150dTargetCount: '2',
+              p150gP150dTargetIds:
+                'G2_SUBSTRUCTURE_CD_STORAGE_WORK_001,G2_SUBSTRUCTURE_AB_WORK_001',
+              p150gCorrectionTargetCount: '2',
+              p150gCorrectionTargetIds:
+                'G2_SUBSTRUCTURE_WEST_GABLE_WING_WORK_001,G2_SUBSTRUCTURE_EAST_GABLE_WING_WORK_001',
+              p150gCorrectionZoneCount: '4',
+              p150gCorrectionBasis:
+                'USER_HUMAN_REVIEW_RELATION_PLUS_EXISTING_GABLE_GEOMETRY',
+              p150gScope:
+                'P133H owner + P147D/P148D roof/guard delta + P150G cut-terrain refinement + P150D substructure WORK_TEST envelopes + P150G end-plinth correction',
+              p150gExcludedBranches: 'P158B,P153,P154C,NEW_G3_COMMON',
+              p150gWorkDepthM: '0.600',
+              p150gDepthStatus: 'REFINABLE_WORK_ASSUMPTION',
+              p150gPresentationOnly: 'true',
+              p150gPhysicalFoundationClaim: 'false',
+              p150gPhysicalFoundationDepthClaim: 'false',
+              p150gPhysicalGroundSurfaceClaim: 'false',
+              p150gCurrentClaim: 'false',
+              p150gAsBuiltClaim: 'false',
+              p150gCanonical: 'false',
+              p150gHumanReview: 'NOT_RUN',
+              p150gPredecessorHumanReviewFeedback:
+                'P150F-R_FEEDBACK_CAPTURED_CORRECTION_REQUIRED',
+              p150gActiveGroundContactRootNodeIndex: '919',
+              p150gCorrectionRootNodeIndex: '922',
+            });
+            applyStandardViewPreset('whole-building');
+            status.textContent =
+              'P150G koko rakennus + korjattu päätysokkeli - WORK_TEST / P150D targetit 2/2 + P150G korjaustargetit 2/2 / zone4/4 - syvyys 0,600 m refinable - ei CURRENT/as-built';
           } else if (isP150frWholeBuildingSubstructureReview) {
             Object.assign(canvas.dataset, {
               workTestReviewMode: 'p150fr-whole-building-substructure-review',

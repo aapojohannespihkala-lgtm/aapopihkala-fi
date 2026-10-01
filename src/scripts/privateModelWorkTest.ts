@@ -38,6 +38,9 @@ export const p151cReviewId = 'p151c-whole-building-review';
 export const p150frCandidateId = 'p150fr-whole-building-substructure';
 export const p150frReviewId = 'p150fr-whole-building-substructure-review';
 
+export const p150gCandidateId = 'p150g-whole-building-end-plinth';
+export const p150gReviewId = 'p150g-whole-building-end-plinth-review';
+
 export const p156iCandidateId = 'p156i-2017-kvv-main-presentation';
 export const p156iReviewId = 'p156i-2017-kvv-main-review';
 
@@ -56,6 +59,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p153cReviewId]: p153cCandidateId,
   [p154cReviewId]: p154cCandidateId,
   [p156iReviewId]: p156iCandidateId,
+  [p150gReviewId]: p150gCandidateId,
   [p150frReviewId]: p150frCandidateId,
   [p151cReviewId]: p151cCandidateId,
   [p155cbReviewId]: p155cbCandidateId,
