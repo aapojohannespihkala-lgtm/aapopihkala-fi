@@ -3452,6 +3452,65 @@ const title = 'Private 3D viewer';
         syncViewState('top');
       };
 
+      const p167fDOverviewWorkShellRootName =
+        'P167F_FLOOR_INTERFLOOR_WORKSHELL_WITH_PRECISE_STAIR_CLEARANCE_ROOT_BABYLON_Y_UP';
+      const p167fDOverviewIntegrationRootName =
+        'P167F_D_PRECISE_STAIR_REBASE_INTEGRATION_ROOT_WORK_TEST';
+      const p167fDOverviewPreciseStairRootName =
+        'P167D_D_PRECISE_STAIR_SOURCE_PLAN_ROOT_BABYLON_Y_UP';
+
+      const buildP167fDOverviewScene = () => {
+        delete canvas.dataset.p167DOverviewComposite;
+        delete canvas.dataset.p167DOverviewSupplementCount;
+        delete canvas.dataset.p167DOverviewPreciseStairPresent;
+
+        if (
+          activeModelSourceKind !== 'work-test' ||
+          !isP167fPreciseStairReviewRequested()
+        ) {
+          return dInteriorScene;
+        }
+        if (!fullModelScene || !dInteriorScene) return null;
+
+        const workShellRoot = fullModelScene.getObjectByName(
+          p167fDOverviewWorkShellRootName,
+        );
+        const integrationRoot = fullModelScene.getObjectByName(
+          p167fDOverviewIntegrationRootName,
+        );
+        const preciseStairRoot = integrationRoot?.getObjectByName(
+          p167fDOverviewPreciseStairRootName,
+        );
+
+        if (!workShellRoot || !integrationRoot || !preciseStairRoot) {
+          canvas.dataset.p167DOverviewComposite = 'missing-required-root';
+          canvas.dataset.p167DOverviewSupplementCount = '0';
+          canvas.dataset.p167DOverviewPreciseStairPresent = 'false';
+          return null;
+        }
+
+        const composite = new THREE.Group();
+        composite.name = 'P167F_D_OVERVIEW_COMPOSITE_VIEWER_ONLY';
+        composite.userData = {
+          PresentationOnly: true,
+          Canonical: false,
+          viewerDerived: true,
+          sourceContract:
+            'P167F_D_CURRENT_INTERIOR_PLUS_PRECISE_STAIR_AND_WORKSHELL_REVIEW',
+        };
+
+        composite.add(dInteriorScene);
+        composite.add(workShellRoot.clone(true));
+        composite.add(integrationRoot.clone(true));
+
+        canvas.dataset.p167DOverviewComposite = 'true';
+        canvas.dataset.p167DOverviewSupplementCount = '2';
+        canvas.dataset.p167DOverviewPreciseStairPresent =
+          composite.getObjectByName(p167fDOverviewPreciseStairRootName) ? 'true' : 'false';
+
+        return composite;
+      };
+
       const activateDOverview = () => {
         if (!dInteriorScene) {
           status.textContent = 'D-asunnon yhdistettyä näkymää ei löydy tästä mallista';
@@ -3469,9 +3528,16 @@ const title = 'Private 3D viewer';
         controls.enableRotate = true;
         controls.enabled = true;
         activeCamera = camera;
-        setModelScene(dInteriorScene);
 
-        const box = computeVisibleBounds(dInteriorScene, true);
+        const dOverviewScene = buildP167fDOverviewScene();
+        if (!dOverviewScene) {
+          status.textContent =
+            'P167F D-asunto - precise stair -reviewjuuria ei löydy tästä mallista';
+          return false;
+        }
+        setModelScene(dOverviewScene);
+
+        const box = computeVisibleBounds(dOverviewScene, true);
         if (box) {
           const center = new THREE.Vector3();
           const sphere = new THREE.Sphere();
@@ -3494,7 +3560,7 @@ const title = 'Private 3D viewer';
           controls.update();
         }
 
-        refreshEdgeRendering(dInteriorScene);
+        refreshEdgeRendering(dOverviewScene);
         syncViewState('orbit');
         status.textContent = 'D-asunto - molemmat kerrokset, vapaa 3D';
         return true;
