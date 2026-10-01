@@ -16,7 +16,7 @@ const makeMinimalGlb = (json: Record<string, unknown>) => {
   return Buffer.concat([header, chunkHeader, jsonChunk]);
 };
 
-test('private viewer polls catalog until background P150G seed is ready', async ({ page }) => {
+test('private viewer waits beyond the old 6 s limit for bounded server P150G seed', async ({ page }) => {
   test.setTimeout(20_000);
 
   const currentModel = makeMinimalGlb({
@@ -41,6 +41,7 @@ test('private viewer polls catalog until background P150G seed is ready', async 
   const candidatePath = '/private-model/work-test/p150g-whole-building-end-plinth.glb';
   const sourceUrl = 'https://unit.oaiusercontent.com/files/p150g/raw?se=x&sig=y';
   let catalogRequests = 0;
+  let importRequests = 0;
   let sourceRequests = 0;
   let uploadRequests = 0;
 
@@ -48,13 +49,15 @@ test('private viewer polls catalog until background P150G seed is ready', async 
     await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
   });
   await page.route('**/private-model/work-test/import.json', async (route) => {
+    importRequests += 1;
+    await new Promise((resolve) => setTimeout(resolve, 6_500));
     await route.fulfill({
-      status: 202,
+      status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         candidate: { id: candidateId, label: candidateLabel, path: candidatePath },
-        ready: false,
-        pending: true,
+        ready: true,
+        seeded: true,
       }),
     });
   });
@@ -64,10 +67,7 @@ test('private viewer polls catalog until background P150G seed is ready', async 
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        candidates:
-          catalogRequests >= 3
-            ? [{ id: candidateId, label: candidateLabel, path: candidatePath }]
-            : [],
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
       }),
     });
   });
@@ -100,7 +100,7 @@ test('private viewer polls catalog until background P150G seed is ready', async 
   );
 
   const canvas = page.locator('#private-model-canvas');
-  await expect(canvas).toHaveAttribute('data-work-test-import', 'ready', { timeout: 10_000 });
+  await expect(canvas).toHaveAttribute('data-work-test-import', 'ready', { timeout: 12_000 });
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
   await expect(canvas).toHaveAttribute(
     'data-work-test-review-mode',
@@ -108,7 +108,8 @@ test('private viewer polls catalog until background P150G seed is ready', async 
   );
   await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
   await expect(page).not.toHaveURL(/workTestImport=/);
-  expect(catalogRequests).toBeGreaterThanOrEqual(3);
+  expect(importRequests).toBe(1);
+  expect(catalogRequests).toBeGreaterThanOrEqual(1);
   expect(sourceRequests).toBe(0);
   expect(uploadRequests).toBe(0);
 });
