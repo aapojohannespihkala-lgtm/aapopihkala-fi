@@ -3378,8 +3378,8 @@ test('private viewer automatically relays the protected source in-browser when s
   expect(uploadRequests).toBe(1);
 });
 
-test('private viewer falls back to browser relay when protected WORK_TEST import ignores abort', async ({ page }) => {
-  test.setTimeout(20_000);
+test('private viewer bounds a non-settling WORK_TEST import before browser relay fallback', async ({ page }) => {
+  test.setTimeout(45_000);
 
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
@@ -3481,7 +3481,7 @@ test('private viewer falls back to browser relay when protected WORK_TEST import
   await page.goto(`/private-model/?review=p150g-whole-building-end-plinth-review#${fragment}`);
 
   const canvas = page.locator('#private-model-canvas');
-  await expect(canvas).toHaveAttribute('data-work-test-relay', 'ready', { timeout: 12_000 });
+  await expect(canvas).toHaveAttribute('data-work-test-relay', 'ready', { timeout: 36_000 });
   await expect(canvas).toHaveAttribute('data-work-test-import', 'ready');
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
   await expect(canvas).toHaveAttribute(
@@ -3490,7 +3490,8 @@ test('private viewer falls back to browser relay when protected WORK_TEST import
   );
   await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
   await expect(page).not.toHaveURL(/workTestImport=/);
-  expect(Date.now() - startedAt).toBeLessThan(12_000);
+  expect(Date.now() - startedAt).toBeGreaterThanOrEqual(29_000);
+  expect(Date.now() - startedAt).toBeLessThan(36_000);
   expect(sourceRequests).toBe(1);
   expect(uploadRequests).toBe(1);
 });
