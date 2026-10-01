@@ -57,6 +57,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test/p156i-2017-kvv-main-presentation.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p161-multisource-systems-carrier.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p164b-d-corrected-stair.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/p167f-whole-building-precise-stair.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p159-whole-building-storage-context.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p160-d-composite-architecture.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p154c-d-wall-cutouts.glb')).toBe(true);
@@ -66,7 +67,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(23);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(24);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -226,6 +227,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     expectedSha256: 'db35b42575f1e287905d97d89483982b9354e60b1a8fe806ab29fb26d6103ca9',
   });
 
+  const p167f = getPrivateWorkTestCandidateById('p167f-whole-building-precise-stair');
+  expect(p167f).toMatchObject({
+    id: 'p167f-whole-building-precise-stair',
+    label: 'P167F whole-building precise stair successor - WORK_TEST',
+    path: '/private-model/work-test/p167f-whole-building-precise-stair.glb',
+    objectKey: 'work-test/p167f-whole-building-precise-stair.glb',
+    expectedSize: 2_070_576,
+    expectedSha256: '66e8589ec8b904cde6fee3b80ba7c0e01db0f1d66ed88455a6d5ddf9f9442bd8',
+  });
+
   const p159 = getPrivateWorkTestCandidateById('p159-whole-building-storage-context');
   expect(p159).toMatchObject({
     id: 'p159-whole-building-storage-context',
@@ -287,6 +298,8 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestUploadCandidate(p161UploadPath)?.id).toBe('p161-multisource-systems-carrier');
   const p164bUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p164b-d-corrected-stair.glb`;
   expect(getPrivateWorkTestUploadCandidate(p164bUploadPath)?.id).toBe('p164b-d-corrected-stair');
+  const p167fUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p167f-whole-building-precise-stair.glb`;
+  expect(getPrivateWorkTestUploadCandidate(p167fUploadPath)?.id).toBe('p167f-whole-building-precise-stair');
   const p159UploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p159-whole-building-storage-context.glb`;
   expect(getPrivateWorkTestUploadCandidate(p159UploadPath)?.id).toBe('p159-whole-building-storage-context');
   const p160UploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p160-d-composite-architecture.glb`;
