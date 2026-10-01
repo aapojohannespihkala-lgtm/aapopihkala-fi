@@ -38,6 +38,10 @@ required = {
     "P164B exact candidate": "p164b-d-corrected-stair",
     "P164B exact size": 'expected_size="1583912"',
     "P164B exact sha": 'expected_sha256="db35b42575f1e287905d97d89483982b9354e60b1a8fe806ab29fb26d6103ca9"',
+    "P166F exact Drive file": 'drive_file_id="1dDxcJFkLIn7JU_6msVgQVQYOurqv_L4c"',
+    "P166F exact candidate": "p166f-lightwell-proxies",
+    "P166F exact size": 'expected_size="2030604"',
+    "P166F exact sha": 'expected_sha256="3b1e2158408937be1f11a27b16eae605204d5aa2184c7d513f6883d92a430f0a"',
     "derived candidate id": 'echo "CANDIDATE_ID=$REQUESTED_CANDIDATE"',
     "derived expected path": 'echo "EXPECTED_PATH=/private-model/work-test/$REQUESTED_CANDIDATE.glb"',
     "derived publish URL": 'echo "PUBLISH_URL=https://aapopihkala.fi/private-model/work-test/publish/$REQUESTED_CANDIDATE.glb"',
@@ -92,7 +96,7 @@ if input_names != {"candidate"}:
     raise SystemExit(f"publish-work-test inputs must be candidate-only, got: {sorted(input_names)}")
 
 option_lines = re.findall(
-    r"^\s{10}- (p150g-whole-building-end-plinth|p154c-d-wall-cutouts|p160-d-composite-architecture|p159-whole-building-storage-context|p161-multisource-systems-carrier|p164b-d-corrected-stair)\s*$",
+    r"^\s{10}- (p150g-whole-building-end-plinth|p154c-d-wall-cutouts|p160-d-composite-architecture|p159-whole-building-storage-context|p161-multisource-systems-carrier|p164b-d-corrected-stair|p166f-lightwell-proxies)\s*$",
     text,
     re.MULTILINE,
 )
@@ -103,8 +107,9 @@ if option_lines != [
     "p159-whole-building-storage-context",
     "p161-multisource-systems-carrier",
     "p164b-d-corrected-stair",
+    "p166f-lightwell-proxies",
 ]:
-    raise SystemExit("publish-work-test candidate choices must be exactly P150G + P154C + P160 + P159 + P161 + P164B")
+    raise SystemExit("publish-work-test candidate choices must be exactly P150G + P154C + P160 + P159 + P161 + P164B + P166F")
 
 secret_echo = re.compile(
     r"echo[^\n]*(?:GDRIVE_ACCESS_TOKEN|CLIENT_SECRET|CF_ACCESS_[A-Z_]*CLIENT_ID)",
