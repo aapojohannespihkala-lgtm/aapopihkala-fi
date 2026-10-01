@@ -22,6 +22,10 @@ required = {
     "P154C exact candidate": "p154c-d-wall-cutouts",
     "P154C exact size": 'expected_size="1535172"',
     "P154C exact sha": 'expected_sha256="0653be4435879acb479ca272dc8fd4a3c7299c863c0082797236d4c5c20167c0"',
+    "P160 exact Drive file": 'drive_file_id="18W_u9Le8oaL_jujXK7Gocot6t53vDMcM"',
+    "P160 exact candidate": "p160-d-composite-architecture",
+    "P160 exact size": 'expected_size="1559168"',
+    "P160 exact sha": 'expected_sha256="773b64f6413237111c9abf6420ccdf52ee5f61f90717618a1fe855f85000f3d7"',
     "derived candidate id": 'echo "CANDIDATE_ID=$REQUESTED_CANDIDATE"',
     "derived expected path": 'echo "EXPECTED_PATH=/private-model/work-test/$REQUESTED_CANDIDATE.glb"',
     "derived publish URL": 'echo "PUBLISH_URL=https://aapopihkala.fi/private-model/work-test/publish/$REQUESTED_CANDIDATE.glb"',
@@ -76,15 +80,16 @@ if input_names != {"candidate"}:
     raise SystemExit(f"publish-work-test inputs must be candidate-only, got: {sorted(input_names)}")
 
 option_lines = re.findall(
-    r"^\s{10}- (p150g-whole-building-end-plinth|p154c-d-wall-cutouts)\s*$",
+    r"^\s{10}- (p150g-whole-building-end-plinth|p154c-d-wall-cutouts|p160-d-composite-architecture)\s*$",
     text,
     re.MULTILINE,
 )
 if option_lines != [
     "p150g-whole-building-end-plinth",
     "p154c-d-wall-cutouts",
+    "p160-d-composite-architecture",
 ]:
-    raise SystemExit("publish-work-test candidate choices must be exactly P150G + P154C")
+    raise SystemExit("publish-work-test candidate choices must be exactly P150G + P154C + P160")
 
 secret_echo = re.compile(
     r"echo[^\n]*(?:GDRIVE_ACCESS_TOKEN|CLIENT_SECRET|CF_ACCESS_[A-Z_]*CLIENT_ID)",

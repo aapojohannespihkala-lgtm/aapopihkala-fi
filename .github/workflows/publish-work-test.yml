@@ -11,6 +11,7 @@ on:
         options:
           - p150g-whole-building-end-plinth
           - p154c-d-wall-cutouts
+          - p160-d-composite-architecture
 
 permissions:
   contents: read
@@ -53,6 +54,11 @@ jobs:
               drive_file_id="13s4JHivX9Be154vVeo8_q_cgElryXF5u"
               expected_size="1535172"
               expected_sha256="0653be4435879acb479ca272dc8fd4a3c7299c863c0082797236d4c5c20167c0"
+              ;;
+            p160-d-composite-architecture)
+              drive_file_id="18W_u9Le8oaL_jujXK7Gocot6t53vDMcM"
+              expected_size="1559168"
+              expected_sha256="773b64f6413237111c9abf6420ccdf52ee5f61f90717618a1fe855f85000f3d7"
               ;;
             *)
               echo "Unsupported WORK_TEST candidate" >&2
