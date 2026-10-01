@@ -1107,6 +1107,11 @@ const title = 'Private 3D viewer';
         type ViewerLayerState,
       } from '../../scripts/privateModelViewPresets';
       import {
+        coordinateSteps,
+        formatReviewCoordinate,
+        heightScaleStepForSpan,
+      } from '../../scripts/privateModelReviewMath';
+      import {
         getRequestedReviewCandidateId as getRequestedReviewCandidateIdFromSearch,
         isPrivateModelReviewRequested,
         isWorkTestCandidate,
@@ -1570,15 +1575,6 @@ const title = 'Private 3D viewer';
         dCoordinateGridFloor = null;
       };
 
-      const coordinateSteps = (max: number, step: number) => {
-        const values: number[] = [];
-        for (let value = 0; value < max - 1e-6; value += step) {
-          values.push(Number(value.toFixed(6)));
-        }
-        if (!values.some((value) => Math.abs(value - max) < 1e-6)) values.push(max);
-        return values;
-      };
-
       const prepareDCoordinateGrid = (floor: '1F' | '2F') => {
         if (dCoordinateGridFloor === floor && dCoordinateGridGroup.children.length > 0) return;
 
@@ -1668,9 +1664,6 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.reviewAnchorX;
         delete canvas.dataset.reviewAnchorY;
       };
-
-      const formatReviewCoordinate = (value: number) =>
-        value.toFixed(3).replace('.', ',');
 
       const dReviewCoordinateAtClientPoint = (clientX: number, clientY: number) => {
         if (!activePlanFloor || activeCamera !== planCamera) return null;
@@ -3017,13 +3010,6 @@ const title = 'Private 3D viewer';
         activeElevationDirection = null;
         delete canvas.dataset.elevationDirection;
         setHeightScaleVisible(false);
-      };
-
-      const heightScaleStepForSpan = (spanM: number) => {
-        if (spanM <= 14) return 1;
-        if (spanM <= 28) return 2;
-        if (spanM <= 70) return 5;
-        return 10;
       };
 
       const updateHeightScale = () => {
