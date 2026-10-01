@@ -3378,7 +3378,7 @@ test('private viewer automatically relays the protected source in-browser when s
   expect(uploadRequests).toBe(1);
 });
 
-test('private viewer falls back to browser relay when protected WORK_TEST import stalls', async ({ page }) => {
+test('private viewer falls back to browser relay when protected WORK_TEST import ignores abort', async ({ page }) => {
   test.setTimeout(20_000);
 
   const currentModel = makeMinimalGlb({
@@ -3410,17 +3410,22 @@ test('private viewer falls back to browser relay when protected WORK_TEST import
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
   });
-  await page.route('**/private-model/work-test/import.json', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 7_000));
-    try {
-      await route.fulfill({
-        status: 504,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'source-fetch-timeout' }),
-      });
-    } catch {
-      // The browser is expected to abort this stalled request before the mocked response arrives.
-    }
+  await page.addInitScript(() => {
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof Request
+            ? input.url
+            : String(input);
+      if (url.includes('/private-model/work-test/import.json')) {
+        return new Promise<Response>(() => {
+          // Deliberately never settle and ignore AbortSignal to prove the hard timeout wins.
+        });
+      }
+      return nativeFetch(input, init);
+    }) as typeof window.fetch;
   });
   await page.route('https://sdmntprdenmarkeast.oaiusercontent.com/**', async (route) => {
     sourceRequests += 1;
