@@ -374,7 +374,7 @@ const worker = {
   async fetch(
     request: Request,
     env: WorkerEnv,
-    executionContext: WorkerExecutionContext,
+    executionContext?: WorkerExecutionContext,
   ): Promise<Response> {
     const url = new URL(request.url);
     const snapshotRequest = isSnapshotRequest(request);
