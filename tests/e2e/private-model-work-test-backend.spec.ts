@@ -849,10 +849,24 @@ test('machine readback endpoints accept only readback JWT and expose only catalo
     size: p150g!.expectedSize,
     customMetadata: { sha256: p150g!.expectedSha256 },
   };
+  let catalogHeadReads = 0;
+  let bodyReads = 0;
   const env = {
     ASSETS: { fetch: async () => new Response('unused') },
     PRIVATE_MODEL_BUCKET: {
-      get: async (key: string) => (key === p150g!.objectKey ? stored : null),
+      head: async (key: string) => {
+        catalogHeadReads += 1;
+        return key === p150g!.objectKey
+          ? {
+              size: p150g!.expectedSize,
+              customMetadata: { sha256: p150g!.expectedSha256 },
+            }
+          : null;
+      },
+      get: async (key: string) => {
+        bodyReads += 1;
+        return key === p150g!.objectKey ? stored : null;
+      },
     },
     CF_ACCESS_TEAM_DOMAIN: teamOrigin,
     CF_ACCESS_AUD: 'viewer-aud',
@@ -898,6 +912,8 @@ test('machine readback endpoints accept only readback JWT and expose only catalo
         },
       ],
     });
+    expect(catalogHeadReads).toBe(PRIVATE_WORK_TEST_CANDIDATES.length);
+    expect(bodyReads).toBe(0);
 
     const verifyPath =
       `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p150g-whole-building-end-plinth.glb`;
@@ -910,6 +926,7 @@ test('machine readback endpoints accept only readback JWT and expose only catalo
     );
     expect(head.status).toBe(200);
     expect(head.headers.get('Content-Length')).toBe(String(p150g!.expectedSize));
+    expect(bodyReads).toBe(1);
 
     for (const token of [publisherToken, viewerToken]) {
       const denied = await handlePrivateWorkTestRequest(
