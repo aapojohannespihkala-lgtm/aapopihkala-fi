@@ -118,7 +118,7 @@ jobs:
           set -euo pipefail
           catalog="$RUNNER_TEMP/catalog.json"
 
-          curl --silent --show-error --fail             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --output "$catalog"             "$CATALOG_URL"
+          curl --silent --show-error --fail             --connect-timeout 10             --max-time 30             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --output "$catalog"             "$CATALOG_URL"
 
           python3 - "$catalog" "$CANDIDATE_ID" "$EXPECTED_PATH" <<'PY'
           import json
@@ -149,7 +149,7 @@ jobs:
           set -euo pipefail
           readback="$RUNNER_TEMP/p150g-production-readback.glb"
 
-          curl --silent --show-error --fail             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --output "$readback"             "$GLB_URL"
+          curl --silent --show-error --fail             --connect-timeout 10             --max-time 60             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --output "$readback"             "$GLB_URL"
 
           readback_size="$(stat -c '%s' "$readback")"
           readback_sha="$(sha256sum "$readback" | awk '{print $1}')"
