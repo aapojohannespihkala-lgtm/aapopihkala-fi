@@ -3265,8 +3265,31 @@ test('private viewer autoloads the exact P167F whole-building precise stair revi
   const candidateModel = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
-    scenes: [{ name: 'P167F WHOLE BUILDING PRECISE STAIR WORK_TEST - BABYLON Y-UP', nodes: [] }],
-    nodes: [],
+    scenes: [
+      {
+        name: 'P167F WHOLE BUILDING PRECISE STAIR WORK_TEST - BABYLON Y-UP',
+        nodes: [0, 1],
+      },
+      {
+        name: 'D CURRENT INTERIOR - BABYLON Y-UP',
+        nodes: [3],
+      },
+    ],
+    nodes: [
+      {
+        name: 'P167F_FLOOR_INTERFLOOR_WORKSHELL_WITH_PRECISE_STAIR_CLEARANCE_ROOT_BABYLON_Y_UP',
+      },
+      {
+        name: 'P167F_D_PRECISE_STAIR_REBASE_INTEGRATION_ROOT_WORK_TEST',
+        children: [2],
+      },
+      {
+        name: 'P167D_D_PRECISE_STAIR_SOURCE_PLAN_ROOT_BABYLON_Y_UP',
+      },
+      {
+        name: 'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP',
+      },
+    ],
   });
   const candidateId = 'p167f-whole-building-precise-stair';
   const candidateLabel = 'P167F whole-building precise stair successor - WORK_TEST';
@@ -3329,6 +3352,18 @@ test('private viewer autoloads the exact P167F whole-building precise stair revi
   await expect(page.locator('#locus-layer-label')).toHaveText('P167F precise stair (WORK_TEST / 14 askelta)');
   await expect(page.getByRole('status')).toHaveText(
     'P167F whole-building precise stair - WORK_TEST / 14 askelta / E_TO_W + S_TO_N + W_TO_E / presentation shell clearance - HUMAN_REVIEW NOT_RUN',
+  );
+
+  await clickViewAction(page, 'D-asunto');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'perspective');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'enabled');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-composite', 'true');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-supplement-count', '2');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
+  await expect(page.getByRole('status')).toHaveText(
+    'D-asunto - molemmat kerrokset, vapaa 3D',
   );
 });
 
