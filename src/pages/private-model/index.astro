@@ -1091,6 +1091,12 @@ const title = 'Private 3D viewer';
         selectionMetadataEntries as collectSelectionMetadataEntries,
       } from '../../scripts/privateModelSelectionMetadata';
       import {
+        isObjectVisibilityRenderable,
+        nearestNamedAncestor,
+        sceneNameForObject,
+        selectionKindLabel,
+      } from '../../scripts/privateModelSelectionIdentity';
+      import {
         getRequestedReviewCandidateId as getRequestedReviewCandidateIdFromSearch,
         isPrivateModelReviewRequested,
         isWorkTestCandidate,
@@ -2587,29 +2593,6 @@ const title = 'Private 3D viewer';
         return materials.some((material: any) => !material || material.opacity === undefined || material.opacity > 0.01);
       };
 
-      const nearestNamedAncestor = (object: any) => {
-        let current = object.parent;
-        while (current && current !== modelRoot) {
-          if (current.name) return String(current.name);
-          current = current.parent;
-        }
-        return '';
-      };
-
-      const sceneNameForObject = (object: any) => {
-        let current = object;
-        while (current && current !== modelRoot) {
-          if (current.isScene) {
-            return sourceSceneNames.get(current) || (current.name ? String(current.name) : '');
-          }
-          current = current.parent;
-        }
-
-        const fallback = activePlanFloor ? dInteriorScene : fullModelScene;
-        if (!fallback) return '';
-        return sourceSceneNames.get(fallback) || (fallback.name ? String(fallback.name) : '');
-      };
-
       const explicitFloorToken = (object: any) => {
         const has1F = hasFloorToken(object, '1F');
         const has2F = hasFloorToken(object, '2F');
@@ -2618,9 +2601,6 @@ const title = 'Private 3D viewer';
         if (has2F) return '2F';
         return '-';
       };
-
-      const isObjectVisibilityRenderable = (object: any) =>
-        object?.isMesh === true || object?.isLine === true || object?.isLineSegments === true;
 
       const resetObjectVisibilityFilterState = () => {
         objectVisibilityBaseline.clear();
@@ -2642,13 +2622,6 @@ const title = 'Private 3D viewer';
         objectVisibilityFilterActive = true;
         showAllObjectsButton.disabled = false;
         canvas.dataset.objectVisibilityFilter = 'active';
-      };
-
-      const selectionKindLabel = (object: any) => {
-        if (object?.isMesh === true) return 'Mesh';
-        if (object?.isLineSegments === true) return 'LineSegments';
-        if (object?.isLine === true) return 'Line';
-        return object?.type ? String(object.type) : '-';
       };
 
       const renderSelectionMetadata = (object: any) => {
@@ -2693,8 +2666,14 @@ const title = 'Private 3D viewer';
 
         selectedObject = object;
         selectionMesh.textContent = object.name ? String(object.name) : '(nimetön kohde)';
-        selectionGroup.textContent = nearestNamedAncestor(object) || '-';
-        selectionScene.textContent = sceneNameForObject(object) || '-';
+        selectionGroup.textContent = nearestNamedAncestor(object, modelRoot) || '-';
+        selectionScene.textContent =
+          sceneNameForObject(
+            object,
+            modelRoot,
+            sourceSceneNames,
+            activePlanFloor ? dInteriorScene : fullModelScene,
+          ) || '-';
         selectionFloor.textContent = explicitFloorToken(object);
         selectionKind.textContent = selectionKindLabel(object);
         renderSelectionMetadata(object);
