@@ -29,6 +29,8 @@ required = {
     "WIF provider variable": "vars.GDRIVE_WIF_PROVIDER",
     "service account variable": "vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT",
     "cleanup": "rm -f",
+    "catalog readback timeout": "--max-time 30",
+    "full GLB readback timeout": "--max-time 60",
 }
 
 missing = [label for label, needle in required.items() if needle not in text]
@@ -63,6 +65,9 @@ for match in secret_echo.finditer(text):
 
 if "export_environment_variables: false" not in text:
     raise SystemExit("Google auth must not export credentials globally")
+
+if text.count("--connect-timeout 10") < 2:
+    raise SystemExit("production readback calls must use bounded connection timeouts")
 
 if "create_credentials_file: false" not in text:
     raise SystemExit("Google auth must not persist a credentials file")
