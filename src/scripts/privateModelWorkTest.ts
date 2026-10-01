@@ -44,6 +44,9 @@ export const p150gReviewId = 'p150g-whole-building-end-plinth-review';
 export const p156iCandidateId = 'p156i-2017-kvv-main-presentation';
 export const p156iReviewId = 'p156i-2017-kvv-main-review';
 
+export const p159CandidateId = 'p159-whole-building-storage-context';
+export const p159ReviewId = 'p159-whole-building-storage-context-review';
+
 export const p160CandidateId = 'p160-d-composite-architecture';
 export const p160ReviewId = 'p160-d-composite-architecture-review';
 
@@ -61,6 +64,7 @@ const reviewQueryKey = 'review';
 const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p153cReviewId]: p153cCandidateId,
   [p154cReviewId]: p154cCandidateId,
+  [p159ReviewId]: p159CandidateId,
   [p160ReviewId]: p160CandidateId,
   [p156iReviewId]: p156iCandidateId,
   [p150gReviewId]: p150gCandidateId,

@@ -167,6 +167,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_848_532,
     expectedSha256: '072890e75cd693c05dc705d6a5581e999b9124d37d99aa914336c0a1d9b3ef3f',
   },
+  // P159 viewer integration: exact whole-building storage context successor.
+  {
+    id: 'p159-whole-building-storage-context',
+    label: 'P159 whole-building storage context successor - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p159-whole-building-storage-context.glb`,
+    objectKey: 'work-test/p159-whole-building-storage-context.glb',
+    expectedSize: 1_992_656,
+    expectedSha256: '085877147e8ee50b69d8fa932bdb6d25bece04be187ec5453e9f73de50d1a5d0',
+  },
   // P160 viewer integration: exact D composite architecture carrier.
   {
     id: 'p160-d-composite-architecture',
