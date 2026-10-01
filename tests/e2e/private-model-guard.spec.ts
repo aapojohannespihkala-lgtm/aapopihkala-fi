@@ -28,6 +28,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p161-multisource-systems-review': 'p161-multisource-systems-carrier',
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
     'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
+    'p168a-whole-building-roof-eave-correction-review': 'p168a-whole-building-roof-eave-correction',
     'p159-whole-building-storage-context-review': 'p159-whole-building-storage-context',
     'p160-d-composite-architecture-review': 'p160-d-composite-architecture',
     'p156i-2017-kvv-main-review': 'p156i-2017-kvv-main-presentation',
@@ -3365,6 +3366,98 @@ test('private viewer autoloads the exact P167F whole-building precise stair revi
   await expect(page.getByRole('status')).toHaveText(
     'D-asunto - molemmat kerrokset, vapaa 3D',
   );
+});
+
+test('private viewer autoloads the exact P168A whole-building roof/eave correction review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P168A WHOLE BUILDING ROOF EAVE CORRECTION WORK_TEST - BABYLON Y-UP', nodes: [0, 1] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [3] },
+    ],
+    nodes: [
+      { name: 'P167F_FLOOR_INTERFLOOR_WORKSHELL_WITH_PRECISE_STAIR_CLEARANCE_ROOT_BABYLON_Y_UP' },
+      { name: 'P167F_D_PRECISE_STAIR_REBASE_INTEGRATION_ROOT_WORK_TEST', children: [2] },
+      { name: 'P167D_D_PRECISE_STAIR_SOURCE_PLAN_ROOT_BABYLON_Y_UP' },
+      { name: 'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP' },
+    ],
+  });
+  const candidateId = 'p168a-whole-building-roof-eave-correction';
+  const candidateLabel = 'P168A whole-building roof/eave correction - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p168a-whole-building-roof-eave-correction.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p168a-whole-building-roof-eave-correction-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p168a-whole-building-roof-eave-correction-review');
+  await expect(canvas).toHaveAttribute('data-p168-parent-pass', 'P167F');
+  await expect(canvas).toHaveAttribute('data-p168-geometry-pass', 'P168A');
+  await expect(canvas).toHaveAttribute('data-p168-qa-pass', 'P168B');
+  await expect(canvas).toHaveAttribute('data-p168-correction-scope', 'CD_ROOF_EAVE_PRESENTATION_FACE_REACHABILITY');
+  await expect(canvas).toHaveAttribute('data-p168-split-reference-x', '12.700');
+  await expect(canvas).toHaveAttribute('data-p168-visible-roof-end-x', '13.250');
+  await expect(canvas).toHaveAttribute('data-p168-roof-thickness-m', '0.200');
+  await expect(canvas).toHaveAttribute('data-p168-eave-projection-m', '0.550');
+  await expect(canvas).toHaveAttribute('data-p168-metric-status', 'HUMAN_REVIEW_APPROX_WORK_TEST');
+  await expect(canvas).toHaveAttribute('data-p168-active-presentation-face-node', '754');
+  await expect(canvas).toHaveAttribute('data-p168-superseded-presentation-face-node', '930');
+  await expect(canvas).toHaveAttribute('data-p168-thin-roof-shell-node', '932');
+  await expect(canvas).toHaveAttribute('data-p168-binary-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p168-source-primitive-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p168-correction-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-p168-physical-roof-claim', 'false');
+  await expect(canvas).toHaveAttribute(
+    'data-p168-plausibility-gate',
+    'WARN_HUMAN_REVIEW_APPROX_WORK_TEST_ROOF_THICKNESS_AND_EAVE_PROJECTION',
+  );
+  await expect(canvas).toHaveAttribute('data-p168-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p168-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p168-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p168-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p168-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P168A roof/eave correction (WORK_TEST / approx 0,20 m + 0,55 m)',
+  );
+  await expect(page.getByRole('status')).toHaveText(
+    'P168A whole-building roof/eave correction - WORK_TEST / approx kattopaksuus 0,20 m / approx ulotus 0,55 m - HUMAN_REVIEW NOT_RUN',
+  );
+
+  await clickViewAction(page, 'D-asunto');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'perspective');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'enabled');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-composite', 'true');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-supplement-count', '2');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
+  await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
 });
 
 test('private viewer autoloads the exact P156I 2017 KVV main presentation review candidate', async ({ page }) => {

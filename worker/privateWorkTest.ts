@@ -194,6 +194,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_070_576,
     expectedSha256: '66e8589ec8b904cde6fee3b80ba7c0e01db0f1d66ed88455a6d5ddf9f9442bd8',
   },
+  // P168C viewer integration: exact P168A whole-building roof/eave correction successor.
+  {
+    id: 'p168a-whole-building-roof-eave-correction',
+    label: 'P168A whole-building roof/eave correction - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p168a-whole-building-roof-eave-correction.glb`,
+    objectKey: 'work-test/p168a-whole-building-roof-eave-correction.glb',
+    expectedSize: 2_076_876,
+    expectedSha256: 'a9d0672283f15f2ab8cbd527242cb8982b1dab81e86e86b7dad1bfe42dbd1590',
+  },
   // P159 viewer integration: exact whole-building storage context successor.
   {
     id: 'p159-whole-building-storage-context',

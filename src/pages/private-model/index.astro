@@ -1154,6 +1154,8 @@ const title = 'Private 3D viewer';
         p164bReviewId,
         p167fCandidateId,
         p167fReviewId,
+        p168aCandidateId,
+        p168aReviewId,
         p159CandidateId,
         p159ReviewId,
         p160CandidateId,
@@ -3466,7 +3468,7 @@ const title = 'Private 3D viewer';
 
         if (
           activeModelSourceKind !== 'work-test' ||
-          !isP167fPreciseStairReviewRequested()
+          !(isP167fPreciseStairReviewRequested() || isP168aRoofEaveReviewRequested())
         ) {
           return dInteriorScene;
         }
@@ -3532,7 +3534,7 @@ const title = 'Private 3D viewer';
         const dOverviewScene = buildP167fDOverviewScene();
         if (!dOverviewScene) {
           status.textContent =
-            'P167F D-asunto - precise stair -reviewjuuria ei löydy tästä mallista';
+            'D-asunto - precise stair -reviewjuuria ei löydy tästä WORK_TEST-mallista';
           return false;
         }
         setModelScene(dOverviewScene);
@@ -4495,6 +4497,9 @@ const title = 'Private 3D viewer';
       const isP167fPreciseStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p167fReviewId);
 
+      const isP168aRoofEaveReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p168aReviewId);
+
       const isP159WholeBuildingStorageContextReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p159ReviewId);
 
@@ -4892,6 +4897,38 @@ const title = 'Private 3D viewer';
           'P167F whole-building precise stair - WORK_TEST / 14 askelta / E_TO_W + S_TO_N + W_TO_E / presentation shell clearance - HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP168aReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p168a-whole-building-roof-eave-correction-review',
+          p168ParentPass: 'P167F',
+          p168GeometryPass: 'P168A',
+          p168QaPass: 'P168B',
+          p168CorrectionScope: 'CD_ROOF_EAVE_PRESENTATION_FACE_REACHABILITY',
+          p168SplitReferenceX: '12.700',
+          p168VisibleRoofEndX: '13.250',
+          p168RoofThicknessM: '0.200',
+          p168EaveProjectionM: '0.550',
+          p168MetricStatus: 'HUMAN_REVIEW_APPROX_WORK_TEST',
+          p168ActivePresentationFaceNode: '754',
+          p168SupersededPresentationFaceNode: '930',
+          p168ThinRoofShellNode: '932',
+          p168BinaryMutation: 'false',
+          p168SourcePrimitiveMutation: 'false',
+          p168CorrectionPresentationOnly: 'true',
+          p168PhysicalRoofClaim: 'false',
+          p168PlausibilityGate: 'WARN_HUMAN_REVIEW_APPROX_WORK_TEST_ROOF_THICKNESS_AND_EAVE_PROJECTION',
+          p168CurrentClaim: 'false',
+          p168AsBuiltClaim: 'false',
+          p168Canonical: 'false',
+          p168PublishToCurrent: 'false',
+          p168HumanReview: 'NOT_RUN',
+          standardViewPreset: 'whole-building',
+        });
+        applyStandardViewPreset('whole-building');
+        status.textContent =
+          'P168A whole-building roof/eave correction - WORK_TEST / approx kattopaksuus 0,20 m / approx ulotus 0,55 m - HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP159ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p159-whole-building-storage-context-review',
@@ -5035,6 +5072,8 @@ const title = 'Private 3D viewer';
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP167fPreciseStairReview =
             candidate.id === p167fCandidateId && isP167fPreciseStairReviewRequested();
+          const isP168aRoofEaveReview =
+            candidate.id === p168aCandidateId && isP168aRoofEaveReviewRequested();
           const isP159WholeBuildingStorageContextReview =
             candidate.id === p159CandidateId && isP159WholeBuildingStorageContextReviewRequested();
           const isP160DCompositeReview =
@@ -5208,6 +5247,28 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p167Canonical;
           delete canvas.dataset.p167PublishToCurrent;
           delete canvas.dataset.p167HumanReview;
+          delete canvas.dataset.p168ParentPass;
+          delete canvas.dataset.p168GeometryPass;
+          delete canvas.dataset.p168QaPass;
+          delete canvas.dataset.p168CorrectionScope;
+          delete canvas.dataset.p168SplitReferenceX;
+          delete canvas.dataset.p168VisibleRoofEndX;
+          delete canvas.dataset.p168RoofThicknessM;
+          delete canvas.dataset.p168EaveProjectionM;
+          delete canvas.dataset.p168MetricStatus;
+          delete canvas.dataset.p168ActivePresentationFaceNode;
+          delete canvas.dataset.p168SupersededPresentationFaceNode;
+          delete canvas.dataset.p168ThinRoofShellNode;
+          delete canvas.dataset.p168BinaryMutation;
+          delete canvas.dataset.p168SourcePrimitiveMutation;
+          delete canvas.dataset.p168CorrectionPresentationOnly;
+          delete canvas.dataset.p168PhysicalRoofClaim;
+          delete canvas.dataset.p168PlausibilityGate;
+          delete canvas.dataset.p168CurrentClaim;
+          delete canvas.dataset.p168AsBuiltClaim;
+          delete canvas.dataset.p168Canonical;
+          delete canvas.dataset.p168PublishToCurrent;
+          delete canvas.dataset.p168HumanReview;
           delete canvas.dataset.p159OwnerCandidate;
           delete canvas.dataset.p159InheritedHumanReviewScope;
           delete canvas.dataset.p159StorageReferenceFootprintCount;
@@ -5253,6 +5314,8 @@ const title = 'Private 3D viewer';
               ? 'Koko rakennus + storage referenceFootprints (WORK_TEST / presentation-only)'
             : isP161MultisourceSystemsReview
               ? 'P161 tekniset järjestelmät (WORK_TEST)'
+            : isP168aRoofEaveReview
+              ? 'P168A roof/eave correction (WORK_TEST / approx 0,20 m + 0,55 m)'
             : isP167fPreciseStairReview
               ? 'P167F precise stair (WORK_TEST / 14 askelta)'
             : isP164bCorrectedStairReview
@@ -5291,7 +5354,9 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP167fPreciseStairReview) {
+          if (isP168aRoofEaveReview) {
+            applyP168aReviewState();
+          } else if (isP167fPreciseStairReview) {
             applyP167fReviewState();
           } else if (isP164bCorrectedStairReview) {
             applyP164bReviewState();
