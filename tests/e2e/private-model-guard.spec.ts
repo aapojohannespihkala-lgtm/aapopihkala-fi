@@ -3378,6 +3378,118 @@ test('private viewer automatically relays the protected source in-browser when s
   expect(uploadRequests).toBe(1);
 });
 
+test('private viewer falls back to browser relay when protected WORK_TEST import stalls', async ({ page }) => {
+  test.setTimeout(20_000);
+
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P150G WHOLE-BUILDING + END-PLINTH HUMAN-REVIEW CORRECTION - BABYLON Y-UP',
+        nodes: [],
+      },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p150g-whole-building-end-plinth';
+  const candidateLabel = 'P150G whole-building end-plinth correction - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p150g-whole-building-end-plinth.glb';
+  const sourceUrl =
+    'https://sdmntprdenmarkeast.oaiusercontent.com/files/stalled/raw?se=2026-10-01T12%3A00%3A00Z&sig=signature';
+  let uploaded = false;
+  let sourceRequests = 0;
+  let uploadRequests = 0;
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/import.json', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 7_000));
+    try {
+      await route.fulfill({
+        status: 504,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'source-fetch-timeout' }),
+      });
+    } catch {
+      // The browser is expected to abort this stalled request before the mocked response arrives.
+    }
+  });
+  await page.route('https://sdmntprdenmarkeast.oaiusercontent.com/**', async (route) => {
+    sourceRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: candidateModel,
+    });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    if (!uploaded) {
+      await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
+  });
+  await page.route(
+    `**/private-model/work-test/upload/${candidateId}.glb`,
+    async (route) => {
+      uploadRequests += 1;
+      uploaded = true;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          candidate: { id: candidateId, label: candidateLabel, path: candidatePath },
+          ready: true,
+          seeded: true,
+          uploaded: true,
+        }),
+      });
+    },
+  );
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: candidateModel,
+    });
+  });
+
+  const fragment = new URLSearchParams({
+    workTestCandidate: candidateId,
+    workTestImport: sourceUrl,
+  }).toString();
+  const startedAt = Date.now();
+  await page.goto(`/private-model/?review=p150g-whole-building-end-plinth-review#${fragment}`);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-relay', 'ready', { timeout: 12_000 });
+  await expect(canvas).toHaveAttribute('data-work-test-import', 'ready');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p150g-whole-building-end-plinth-review',
+  );
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(page).not.toHaveURL(/workTestImport=/);
+  expect(Date.now() - startedAt).toBeLessThan(12_000);
+  expect(sourceRequests).toBe(1);
+  expect(uploadRequests).toBe(1);
+});
+
 test('private viewer standard presets apply recommended layer start state and keep manual layer overrides available', async ({ page }) => {
   const model = makeLocusLayerGlb();
 
