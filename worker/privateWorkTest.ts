@@ -167,6 +167,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_848_532,
     expectedSha256: '072890e75cd693c05dc705d6a5581e999b9124d37d99aa914336c0a1d9b3ef3f',
   },
+  // P160 viewer integration: exact D composite architecture carrier.
+  {
+    id: 'p160-d-composite-architecture',
+    label: 'P160 D composite architecture carrier - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p160-d-composite-architecture.glb`,
+    objectKey: 'work-test/p160-d-composite-architecture.glb',
+    expectedSize: 1_559_168,
+    expectedSha256: '773b64f6413237111c9abf6420ccdf52ee5f61f90717618a1fe855f85000f3d7',
+  },
   // P154E-B viewer integration: exact P154C D wall-solid + cutout candidate.
   {
     id: 'p154c-d-wall-cutouts',
