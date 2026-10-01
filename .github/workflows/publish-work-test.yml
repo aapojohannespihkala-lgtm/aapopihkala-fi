@@ -15,6 +15,7 @@ on:
           - p159-whole-building-storage-context
           - p161-multisource-systems-carrier
           - p164b-d-corrected-stair
+          - p166f-lightwell-proxies
 
 permissions:
   contents: read
@@ -77,6 +78,11 @@ jobs:
               drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"
               expected_size="1583912"
               expected_sha256="db35b42575f1e287905d97d89483982b9354e60b1a8fe806ab29fb26d6103ca9"
+              ;;
+            p166f-lightwell-proxies)
+              drive_file_id="1dDxcJFkLIn7JU_6msVgQVQYOurqv_L4c"
+              expected_size="2030604"
+              expected_sha256="3b1e2158408937be1f11a27b16eae605204d5aa2184c7d513f6883d92a430f0a"
               ;;
             *)
               echo "Unsupported WORK_TEST candidate" >&2
