@@ -1137,6 +1137,39 @@ test('private model handler rejects unsupported methods before auth or assets', 
   expect(assetFetches).toBe(0);
 });
 
+test('private viewer view menu stays inside a short viewport and keeps every preset reachable', async ({ page }) => {
+  const model = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+
+  await page.setViewportSize({ width: 1536, height: 768 });
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await openToolbarMenu(page, '#view-menu');
+
+  const panel = page.locator('#view-menu > .toolbar-menu-panel');
+  await expect(panel).toBeVisible();
+  const box = await panel.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+  expect(box.y + box.height).toBeLessThanOrEqual(758);
+
+  const finalPreset = page.getByRole('button', { name: 'Julk -X', exact: true });
+  await finalPreset.scrollIntoViewIfNeeded();
+  await expect(finalPreset).toBeVisible();
+});
+
+
 test('private viewer resolves the source D scene even when Three runtime names are sanitized', async ({
   page,
 }) => {

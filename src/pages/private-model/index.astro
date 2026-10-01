@@ -119,6 +119,10 @@ const title = 'Private 3D viewer';
         display: grid;
         min-width: 220px;
         max-width: min(360px, calc(100vw - 32px));
+        max-height: calc(100dvh - 24px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
         gap: 6px;
         padding: 8px;
         border: 1px solid #d7d7d2;
@@ -1146,15 +1150,33 @@ const title = 'Private 3D viewer';
         });
       };
 
+      const fitToolbarMenuToViewport = (menu: HTMLDetailsElement) => {
+        const panel = menu.querySelector<HTMLElement>(':scope > .toolbar-menu-panel');
+        if (!panel) return;
+
+        panel.style.maxHeight = '';
+        const panelTop = panel.getBoundingClientRect().top;
+        const availableHeight = Math.max(160, Math.floor(window.innerHeight - panelTop - 10));
+        panel.style.maxHeight = `${availableHeight}px`;
+      };
+
       toolbarMenus.forEach((menu) => {
         menu.addEventListener('toggle', () => {
-          if (menu.open) closeToolbarMenus(menu);
+          if (menu.open) {
+            closeToolbarMenus(menu);
+            requestAnimationFrame(() => fitToolbarMenuToViewport(menu));
+          }
         });
         menu.addEventListener('click', (event) => {
           const target = event.target;
           if (target instanceof Element && target.closest('button')) {
             menu.open = false;
           }
+        });
+      });
+      window.addEventListener('resize', () => {
+        toolbarMenus.forEach((menu) => {
+          if (menu.open) fitToolbarMenuToViewport(menu);
         });
       });
       const fitButton = document.querySelector<HTMLButtonElement>('#fit-button');
