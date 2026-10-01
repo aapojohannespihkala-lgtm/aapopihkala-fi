@@ -78,6 +78,9 @@ jobs:
       - name: Verify browser test selection
         run: python3 .github/scripts/test-select-browser-tests.py
 
+      - name: Verify WORK_TEST publisher contract
+        run: python3 .github/scripts/test-publish-work-test-workflow.py
+
       - name: Documentation-only fast path
         if: steps.changes.outputs.docs_only == 'true'
         run: echo "Documentation-only change; executable project validation skipped."
