@@ -26,6 +26,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p153c-d-stair-review': 'p153c-d-stair-guard-lowwall',
     'p154c-d-wall-cutouts-review': 'p154c-d-wall-cutouts',
     'p161-multisource-systems-review': 'p161-multisource-systems-carrier',
+    'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
     'p159-whole-building-storage-context-review': 'p159-whole-building-storage-context',
     'p160-d-composite-architecture-review': 'p160-d-composite-architecture',
     'p156i-2017-kvv-main-review': 'p156i-2017-kvv-main-presentation',
@@ -3161,6 +3162,83 @@ test('private viewer autoloads the exact P161 multisource systems review candida
   await systemsLayer.check();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'true');
   await expect(canvas).toHaveAttribute('data-p161-visible-system-layer-renderable-count', '1');
+});
+
+test('private viewer autoloads the exact P164B D corrected stair review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P164B D CORRECTED STAIR WORK_TEST - BABYLON Y-UP', nodes: [] }],
+    nodes: [],
+  });
+  const candidateId = 'p164b-d-corrected-stair';
+  const candidateLabel = 'P164B D corrected stair topology - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p164b-d-corrected-stair.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p164b-d-corrected-stair-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p164b-d-corrected-stair-review');
+  await expect(canvas).toHaveAttribute('data-p164-parent-pass', 'P163B');
+  await expect(canvas).toHaveAttribute(
+    'data-p164-topology',
+    'TWO_FLIGHT_SWITCHBACK_WITH_FOUR_LEVEL_STEPPED_TURN_ZONE',
+  );
+  await expect(canvas).toHaveAttribute('data-p164-lower-flight-levels', '6');
+  await expect(canvas).toHaveAttribute('data-p164-stepped-turn-levels', '4');
+  await expect(canvas).toHaveAttribute('data-p164-upper-flight-levels', '6');
+  await expect(canvas).toHaveAttribute('data-p164-lower-flight-ascent', 'E_TO_W');
+  await expect(canvas).toHaveAttribute('data-p164-stepped-turn-progression', 'S_TO_N');
+  await expect(canvas).toHaveAttribute('data-p164-upper-flight-ascent', 'W_TO_E');
+  await expect(canvas).toHaveAttribute('data-p164-work-riser-count', '16');
+  await expect(canvas).toHaveAttribute('data-p164-work-rise-m', '0.1725');
+  await expect(canvas).toHaveAttribute('data-p164-work-run-m', '0.200');
+  await expect(canvas).toHaveAttribute('data-p164-work-flight-width-m', '0.800');
+  await expect(canvas).toHaveAttribute('data-p164-work-assumption', 'true');
+  await expect(canvas).toHaveAttribute(
+    'data-p164-plausibility-gate',
+    'WARN_WORK_TEST_REFINABLE_AND_DEFERRED_PHYSICAL_DETAIL',
+  );
+  await expect(canvas).toHaveAttribute('data-p164-physical-stair-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p164-physical-opening-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p164-physical-guard-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p164-physical-low-wall-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p164-floor-shell-cut-applied', 'false');
+  await expect(canvas).toHaveAttribute('data-p164-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p164-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p164-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p164-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p164-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.locator('#locus-layer-label')).toHaveText('D corrected stair (WORK_TEST / 6+4+6 levels)');
+  await expect(page.getByRole('status')).toHaveText(
+    'P164B D corrected stair - WORK_TEST / 6+4+6 levels / E_TO_W + S_TO_N + W_TO_E - refinable - HUMAN_REVIEW NOT_RUN',
+  );
 });
 
 test('private viewer autoloads the exact P156I 2017 KVV main presentation review candidate', async ({ page }) => {

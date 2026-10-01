@@ -1139,6 +1139,8 @@ const title = 'Private 3D viewer';
         p156iReviewId,
         p161CandidateId,
         p161ReviewId,
+        p164bCandidateId,
+        p164bReviewId,
         p159CandidateId,
         p159ReviewId,
         p160CandidateId,
@@ -4429,6 +4431,9 @@ const title = 'Private 3D viewer';
       const isP161MultisourceSystemsReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p161ReviewId);
 
+      const isP164bCorrectedStairReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p164bReviewId);
+
       const isP159WholeBuildingStorageContextReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p159ReviewId);
 
@@ -4755,6 +4760,41 @@ const title = 'Private 3D viewer';
           'P161 multisource systems - WORK_TEST / P156I 2017 KVV + 1974 IV plan 32 + section sidecar 6 / lähdeperheet erillään - ei CURRENT/as-built';
       };
 
+      const applyP164bReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p164b-d-corrected-stair-review',
+          p164ParentPass: 'P163B',
+          p164Topology: 'TWO_FLIGHT_SWITCHBACK_WITH_FOUR_LEVEL_STEPPED_TURN_ZONE',
+          p164LowerFlightLevels: '6',
+          p164SteppedTurnLevels: '4',
+          p164UpperFlightLevels: '6',
+          p164LowerFlightAscent: 'E_TO_W',
+          p164SteppedTurnProgression: 'S_TO_N',
+          p164UpperFlightAscent: 'W_TO_E',
+          p164WorkRiserCount: '16',
+          p164WorkRiseM: '0.1725',
+          p164WorkRunM: '0.200',
+          p164WorkFlightWidthM: '0.800',
+          p164WorkAssumption: 'true',
+          p164PlausibilityGate: 'WARN_WORK_TEST_REFINABLE_AND_DEFERRED_PHYSICAL_DETAIL',
+          p164PhysicalStairClaim: 'false',
+          p164PhysicalOpeningClaim: 'false',
+          p164PhysicalGuardClaim: 'false',
+          p164PhysicalLowWallClaim: 'false',
+          p164FloorShellCutApplied: 'false',
+          p164CurrentClaim: 'false',
+          p164AsBuiltClaim: 'false',
+          p164Canonical: 'false',
+          p164PublishToCurrent: 'false',
+          p164HumanReview: 'NOT_RUN',
+          standardViewPreset: 'd-apartment',
+        });
+        applyViewerLayerState(standardViewLayerDefaults['d-apartment'], 'preset:d-apartment');
+        activateIsometric();
+        status.textContent =
+          'P164B D corrected stair - WORK_TEST / 6+4+6 levels / E_TO_W + S_TO_N + W_TO_E - refinable - HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP159ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p159-whole-building-storage-context-review',
@@ -4898,6 +4938,8 @@ const title = 'Private 3D viewer';
             candidate.id === p156iCandidateId && isP156i2017KvvMainReviewRequested();
           const isP161MultisourceSystemsReview =
             candidate.id === p161CandidateId && isP161MultisourceSystemsReviewRequested();
+          const isP164bCorrectedStairReview =
+            candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP159WholeBuildingStorageContextReview =
             candidate.id === p159CandidateId && isP159WholeBuildingStorageContextReviewRequested();
           const isP160DCompositeReview =
@@ -5020,6 +5062,30 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p161SectionStationStatus;
           delete canvas.dataset.p161SectionVerticalDatumStatus;
           delete canvas.dataset.p161HumanReview;
+          delete canvas.dataset.p164ParentPass;
+          delete canvas.dataset.p164Topology;
+          delete canvas.dataset.p164LowerFlightLevels;
+          delete canvas.dataset.p164SteppedTurnLevels;
+          delete canvas.dataset.p164UpperFlightLevels;
+          delete canvas.dataset.p164LowerFlightAscent;
+          delete canvas.dataset.p164SteppedTurnProgression;
+          delete canvas.dataset.p164UpperFlightAscent;
+          delete canvas.dataset.p164WorkRiserCount;
+          delete canvas.dataset.p164WorkRiseM;
+          delete canvas.dataset.p164WorkRunM;
+          delete canvas.dataset.p164WorkFlightWidthM;
+          delete canvas.dataset.p164WorkAssumption;
+          delete canvas.dataset.p164PlausibilityGate;
+          delete canvas.dataset.p164PhysicalStairClaim;
+          delete canvas.dataset.p164PhysicalOpeningClaim;
+          delete canvas.dataset.p164PhysicalGuardClaim;
+          delete canvas.dataset.p164PhysicalLowWallClaim;
+          delete canvas.dataset.p164FloorShellCutApplied;
+          delete canvas.dataset.p164CurrentClaim;
+          delete canvas.dataset.p164AsBuiltClaim;
+          delete canvas.dataset.p164Canonical;
+          delete canvas.dataset.p164PublishToCurrent;
+          delete canvas.dataset.p164HumanReview;
           delete canvas.dataset.p159OwnerCandidate;
           delete canvas.dataset.p159InheritedHumanReviewScope;
           delete canvas.dataset.p159StorageReferenceFootprintCount;
@@ -5065,6 +5131,8 @@ const title = 'Private 3D viewer';
               ? 'Koko rakennus + storage referenceFootprints (WORK_TEST / presentation-only)'
             : isP161MultisourceSystemsReview
               ? 'P161 tekniset järjestelmät (WORK_TEST)'
+            : isP164bCorrectedStairReview
+              ? 'D corrected stair (WORK_TEST / 6+4+6 levels)'
             : isP156i2017KvvMainReview
               ? '2017 KVV mainCandidate (WORK_TEST / presentation-only +8,700 m)'
             : isP160DCompositeReview
@@ -5099,7 +5167,9 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP161MultisourceSystemsReview) {
+          if (isP164bCorrectedStairReview) {
+            applyP164bReviewState();
+          } else if (isP161MultisourceSystemsReview) {
             applyP161ReviewState();
           } else if (isP159WholeBuildingStorageContextReview) {
             applyP159ReviewState();

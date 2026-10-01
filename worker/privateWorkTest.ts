@@ -176,6 +176,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_858_948,
     expectedSha256: '7413fa57b423260cfff9554fae96a8167fba48d03a7c570806a509e58e3ca65d',
   },
+  // P164D-V viewer integration: exact P164B corrected-stair successor.
+  {
+    id: 'p164b-d-corrected-stair',
+    label: 'P164B D corrected stair topology - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p164b-d-corrected-stair.glb`,
+    objectKey: 'work-test/p164b-d-corrected-stair.glb',
+    expectedSize: 1_583_912,
+    expectedSha256: 'db35b42575f1e287905d97d89483982b9354e60b1a8fe806ab29fb26d6103ca9',
+  },
   // P159 viewer integration: exact whole-building storage context successor.
   {
     id: 'p159-whole-building-storage-context',
