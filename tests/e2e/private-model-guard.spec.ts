@@ -25,6 +25,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
   const expectedRoutes = {
     'p153c-d-stair-review': 'p153c-d-stair-guard-lowwall',
     'p154c-d-wall-cutouts-review': 'p154c-d-wall-cutouts',
+    'p159-whole-building-storage-context-review': 'p159-whole-building-storage-context',
     'p160-d-composite-architecture-review': 'p160-d-composite-architecture',
     'p156i-2017-kvv-main-review': 'p156i-2017-kvv-main-presentation',
     'p150fr-whole-building-substructure-review': 'p150fr-whole-building-substructure',
@@ -3710,6 +3711,45 @@ test('private viewer fails safe when the protected WORK_TEST catalog is unavaila
   await expect(page.locator('#work-test-select')).toBeDisabled();
   await expect(page.locator('#work-test-select')).toContainText('Ei WORK_TEST-kandidaatteja');
   await expect(page.locator('#work-test-button')).toBeDisabled();
+});
+
+test('private viewer autoloads the exact P159 whole-building storage context review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({ asset: { version: '2.0' }, scene: 0, scenes: [{ name: 'CURRENT ROOT', nodes: [] }], nodes: [] });
+  const candidateModel = makeMinimalGlb({ asset: { version: '2.0' }, scene: 0, scenes: [{ name: 'WHOLE BUILDING STORAGE CONTEXT WORK_TEST P159 - BABYLON Y-UP', nodes: [] }], nodes: [] });
+  const candidateId = 'p159-whole-building-storage-context';
+  const candidateLabel = 'P159 whole-building storage context successor - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p159-whole-building-storage-context.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel }));
+  await page.route('**/private-model/work-test/catalog.json', async (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }) }));
+  await page.route(`**${candidatePath}`, async (route) => route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel }));
+
+  await page.goto('/private-model/?review=p159-whole-building-storage-context-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p159-whole-building-storage-context-review');
+  await expect(canvas).toHaveAttribute('data-p159-owner-candidate', 'p150g-whole-building-end-plinth');
+  await expect(canvas).toHaveAttribute('data-p159-inherited-human-review-scope', 'END_PLINTH_SCOPE_ONLY');
+  await expect(canvas).toHaveAttribute('data-p159-storage-reference-footprint-count', '3');
+  await expect(canvas).toHaveAttribute('data-p159-storage-context-source', 'P158B');
+  await expect(canvas).toHaveAttribute('data-p159-storage-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-p159-storage-physical-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p159-ground-contact-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p159-terrain-cut-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p159-wall-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p159-roof-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p159-foundation-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p159-physical-metric-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p159-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p159-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p159-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p159-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText('P159 whole-building storage context - WORK_TEST / P150G owner + 3 P158B storage referenceFootprints presentation-only - HUMAN_REVIEW NOT_RUN');
 });
 
 test('private viewer autoloads the exact P160 D composite architecture review candidate', async ({ page }) => {
