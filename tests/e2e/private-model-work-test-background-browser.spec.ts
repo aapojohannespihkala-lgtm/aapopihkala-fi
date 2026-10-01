@@ -159,10 +159,10 @@ test('private viewer preserves exact server and relay failure codes after startu
   await expect(canvas).toHaveAttribute('data-work-test-import-error', 'source-fetch-timeout');
   await expect(canvas).toHaveAttribute('data-work-test-relay', 'failed');
   await expect(canvas).toHaveAttribute('data-work-test-relay-error', 'relay-source-http-403');
-  await expect(page.locator('#private-model-status')).toHaveText(
+  await expect(page.locator('#viewer-status')).toHaveText(
     'WORK_TEST-julkaisu epäonnistui (server: source-fetch-timeout; relay: relay-source-http-403)',
   );
-  await expect(page.locator('#private-model-status')).not.toContainText(
+  await expect(page.locator('#viewer-status')).not.toContainText(
     'WORK_TEST ei ole palvelinpuolen katalogissa',
   );
 });
