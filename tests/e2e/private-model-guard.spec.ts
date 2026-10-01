@@ -9,6 +9,11 @@ import {
   getRequestedReviewCandidateId,
   isWorkTestCandidate,
 } from '../../src/scripts/privateModelWorkTest';
+import {
+  formatSelectionMetadataKey,
+  scalarSelectionMetadataValue,
+  selectionMetadataEntries,
+} from '../../src/scripts/privateModelSelectionMetadata';
 
 test('private viewer WORK_TEST routing module preserves review aliases and candidate validation', () => {
   const expectedRoutes = {
@@ -52,6 +57,68 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
       path: '/private-model/model.glb',
     }),
   ).toBe(false);
+});
+
+test('private viewer selection metadata helper preserves bounded scalar priority semantics', () => {
+  const stopAt = { userData: { shouldNotRender: 'stop-root' }, parent: null };
+  const parent = {
+    userData: {
+      Pass: 'PARENT_PASS',
+      representationKind: 'wallSolid',
+      Canonical: false,
+      humanReview: 'NOT_RUN',
+      inherited: ' parent value ',
+      nested: { ignored: true },
+      longValue: 'x'.repeat(181),
+    },
+    parent: stopAt,
+  };
+  const child = {
+    userData: {
+      Pass: 'CHILD_PASS',
+      geometryType: 'mesh',
+      PresentationOnly: true,
+      current: false,
+      finite: 2.5,
+      notFinite: Number.POSITIVE_INFINITY,
+      blank: '   ',
+    },
+    parent,
+  };
+
+  expect(selectionMetadataEntries(child, stopAt)).toEqual([
+    ['Pass', 'CHILD_PASS'],
+    ['representationKind', 'wallSolid'],
+    ['geometryType', 'mesh'],
+    ['PresentationOnly', 'true'],
+    ['Canonical', 'false'],
+    ['current', 'false'],
+    ['humanReview', 'NOT_RUN'],
+    ['finite', '2.5'],
+    ['inherited', 'parent value'],
+  ]);
+  expect(formatSelectionMetadataKey('representationKind')).toBe('Representation Kind');
+  expect(formatSelectionMetadataKey('source_role-test')).toBe('Source role test');
+  expect(scalarSelectionMetadataValue(false)).toBe('false');
+  expect(scalarSelectionMetadataValue({ nested: true })).toBeNull();
+  expect(scalarSelectionMetadataValue('x'.repeat(181))).toBeNull();
+
+  let chain: any = { userData: { depth0: 'value0' }, parent: stopAt };
+  for (let index = 1; index < 10; index += 1) {
+    chain = { userData: { [`depth${index}`]: `value${index}` }, parent: chain };
+  }
+  const bounded = selectionMetadataEntries(chain, stopAt);
+  expect(bounded).toHaveLength(8);
+  expect(bounded.some(([key]) => key === 'depth1')).toBe(false);
+  expect(bounded.some(([key]) => key === 'depth2')).toBe(true);
+
+  const many = {
+    userData: Object.fromEntries(
+      Array.from({ length: 24 }, (_, index) => [`field${String(index).padStart(2, '0')}`, index]),
+    ),
+    parent: stopAt,
+  };
+  expect(selectionMetadataEntries(many, stopAt)).toHaveLength(12);
 });
 
 const makeMinimalGlb = (json: Record<string, unknown>) => {
