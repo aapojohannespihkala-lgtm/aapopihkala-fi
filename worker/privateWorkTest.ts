@@ -185,6 +185,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_583_912,
     expectedSha256: 'db35b42575f1e287905d97d89483982b9354e60b1a8fe806ab29fb26d6103ca9',
   },
+  // P167H viewer integration: exact P167F whole-building precise-stair successor.
+  {
+    id: 'p167f-whole-building-precise-stair',
+    label: 'P167F whole-building precise stair successor - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p167f-whole-building-precise-stair.glb`,
+    objectKey: 'work-test/p167f-whole-building-precise-stair.glb',
+    expectedSize: 2_070_576,
+    expectedSha256: '66e8589ec8b904cde6fee3b80ba7c0e01db0f1d66ed88455a6d5ddf9f9442bd8',
+  },
   // P159 viewer integration: exact whole-building storage context successor.
   {
     id: 'p159-whole-building-storage-context',
