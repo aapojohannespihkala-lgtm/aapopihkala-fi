@@ -1141,6 +1141,8 @@ const title = 'Private 3D viewer';
         p161ReviewId,
         p164bCandidateId,
         p164bReviewId,
+        p167fCandidateId,
+        p167fReviewId,
         p159CandidateId,
         p159ReviewId,
         p160CandidateId,
@@ -4434,6 +4436,9 @@ const title = 'Private 3D viewer';
       const isP164bCorrectedStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p164bReviewId);
 
+      const isP167fPreciseStairReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p167fReviewId);
+
       const isP159WholeBuildingStorageContextReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p159ReviewId);
 
@@ -4795,6 +4800,44 @@ const title = 'Private 3D viewer';
           'P164B D corrected stair - WORK_TEST / 6+4+6 levels / E_TO_W + S_TO_N + W_TO_E - refinable - HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP167fReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p167f-whole-building-precise-stair-review',
+          p167ParentPass: 'P166F',
+          p167GeometryPass: 'P167F',
+          p167StepCount: '14',
+          p167OverallXSpanM: '2.250',
+          p167OverallYSpanM: '2.100',
+          p167FlightWidthM: '0.950',
+          p167CenterGapM: '0.200',
+          p167RunM: '0.250',
+          p167RiseM: '0.184',
+          p167Terminal2FLevelZ: '2.760',
+          p167Direction: 'E_TO_W__S_TO_N__W_TO_E',
+          p167HostSouthY: '5.122',
+          p167HostNorthY: '7.222',
+          p167WallContactGapM: '0',
+          p167SourceExactStairMetrics: 'true',
+          p167PresentationOnly: 'true',
+          p167PresentationWorkShellCutApplied: 'true',
+          p167SourcePrimitiveMutation: 'false',
+          p167PhysicalStairClaim: 'false',
+          p167PhysicalOpeningClaim: 'false',
+          p167PhysicalFloorShellCutApplied: 'false',
+          p167PlausibilityGate: 'WARN_WORK_TEST_SOURCE_EXACT_STAIR_WITH_PRESENTATION_SHELL_CLEARANCE_AND_DEFERRED_PHYSICAL_DETAIL',
+          p167CurrentClaim: 'false',
+          p167AsBuiltClaim: 'false',
+          p167Canonical: 'false',
+          p167PublishToCurrent: 'false',
+          p167HumanReview: 'NOT_RUN',
+          standardViewPreset: 'whole-building',
+        });
+        applyViewerLayerState(standardViewLayerDefaults['whole-building'], 'preset:whole-building');
+        activateIsometric();
+        status.textContent =
+          'P167F whole-building precise stair - WORK_TEST / 14 askelta / E_TO_W + S_TO_N + W_TO_E / presentation shell clearance - HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP159ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p159-whole-building-storage-context-review',
@@ -4940,6 +4983,8 @@ const title = 'Private 3D viewer';
             candidate.id === p161CandidateId && isP161MultisourceSystemsReviewRequested();
           const isP164bCorrectedStairReview =
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
+          const isP167fPreciseStairReview =
+            candidate.id === p167fCandidateId && isP167fPreciseStairReviewRequested();
           const isP159WholeBuildingStorageContextReview =
             candidate.id === p159CandidateId && isP159WholeBuildingStorageContextReviewRequested();
           const isP160DCompositeReview =
@@ -5086,6 +5131,33 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p164Canonical;
           delete canvas.dataset.p164PublishToCurrent;
           delete canvas.dataset.p164HumanReview;
+          delete canvas.dataset.p167ParentPass;
+          delete canvas.dataset.p167GeometryPass;
+          delete canvas.dataset.p167StepCount;
+          delete canvas.dataset.p167OverallXSpanM;
+          delete canvas.dataset.p167OverallYSpanM;
+          delete canvas.dataset.p167FlightWidthM;
+          delete canvas.dataset.p167CenterGapM;
+          delete canvas.dataset.p167RunM;
+          delete canvas.dataset.p167RiseM;
+          delete canvas.dataset.p167Terminal2FLevelZ;
+          delete canvas.dataset.p167Direction;
+          delete canvas.dataset.p167HostSouthY;
+          delete canvas.dataset.p167HostNorthY;
+          delete canvas.dataset.p167WallContactGapM;
+          delete canvas.dataset.p167SourceExactStairMetrics;
+          delete canvas.dataset.p167PresentationOnly;
+          delete canvas.dataset.p167PresentationWorkShellCutApplied;
+          delete canvas.dataset.p167SourcePrimitiveMutation;
+          delete canvas.dataset.p167PhysicalStairClaim;
+          delete canvas.dataset.p167PhysicalOpeningClaim;
+          delete canvas.dataset.p167PhysicalFloorShellCutApplied;
+          delete canvas.dataset.p167PlausibilityGate;
+          delete canvas.dataset.p167CurrentClaim;
+          delete canvas.dataset.p167AsBuiltClaim;
+          delete canvas.dataset.p167Canonical;
+          delete canvas.dataset.p167PublishToCurrent;
+          delete canvas.dataset.p167HumanReview;
           delete canvas.dataset.p159OwnerCandidate;
           delete canvas.dataset.p159InheritedHumanReviewScope;
           delete canvas.dataset.p159StorageReferenceFootprintCount;
@@ -5131,6 +5203,8 @@ const title = 'Private 3D viewer';
               ? 'Koko rakennus + storage referenceFootprints (WORK_TEST / presentation-only)'
             : isP161MultisourceSystemsReview
               ? 'P161 tekniset järjestelmät (WORK_TEST)'
+            : isP167fPreciseStairReview
+              ? 'P167F precise stair (WORK_TEST / 14 askelta)'
             : isP164bCorrectedStairReview
               ? 'D corrected stair (WORK_TEST / 6+4+6 levels)'
             : isP156i2017KvvMainReview
@@ -5167,7 +5241,9 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP164bCorrectedStairReview) {
+          if (isP167fPreciseStairReview) {
+            applyP167fReviewState();
+          } else if (isP164bCorrectedStairReview) {
             applyP164bReviewState();
           } else if (isP161MultisourceSystemsReview) {
             applyP161ReviewState();
