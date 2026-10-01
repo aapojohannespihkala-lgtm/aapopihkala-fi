@@ -3965,7 +3965,7 @@ const title = 'Private 3D viewer';
         new URLSearchParams(window.location.search).get('manualWorkTestUpload') === '1';
       const workTestImportFragmentKey = 'workTestImport';
       const workTestCandidateFragmentKey = 'workTestCandidate';
-      const workTestServerImportTimeoutMs = 6_000;
+      const workTestServerImportTimeoutMs = 30_000;
       const workTestCatalogTimeoutMs = 6_000;
       const workTestPendingPollIntervalMs = 1_000;
       const workTestPendingWaitMs = 30_000;
@@ -5310,8 +5310,21 @@ const title = 'Private 3D viewer';
             },
             workTestServerImportTimeoutMs,
           );
-          if (!response.ok) throw new Error(`WORK_TEST import HTTP ${response.status}`);
+          if (!response.ok) {
+            let importError = `http-${response.status}`;
+            try {
+              const errorPayload = (await response.json()) as { error?: unknown };
+              if (typeof errorPayload.error === 'string' && errorPayload.error) {
+                importError = errorPayload.error;
+              }
+            } catch {
+              // Keep the HTTP fallback code when the private response body is unavailable.
+            }
+            canvas.dataset.workTestImportError = importError;
+            throw new Error(`WORK_TEST import ${importError}`);
+          }
 
+          delete canvas.dataset.workTestImportError;
           const payload = (await response.json()) as {
             candidate?: unknown;
             ready?: unknown;
@@ -5352,8 +5365,10 @@ const title = 'Private 3D viewer';
           await loadWorkTestCatalog();
           if (!workTestCandidates.has(intent.candidateId)) {
             setWorkTestUploadFallback(intent.candidateId);
-            status.textContent =
-              'WORK_TEST-kandidaatin automaattinen valmistelu epäonnistui - tekninen julkaisu on kesken';
+            const importError = canvas.dataset.workTestImportError;
+            status.textContent = importError
+              ? `WORK_TEST-julkaisu epäonnistui palvelimella (${importError})`
+              : 'WORK_TEST-kandidaatin automaattinen valmistelu epäonnistui - tekninen julkaisu on kesken';
           }
           return false;
         }
