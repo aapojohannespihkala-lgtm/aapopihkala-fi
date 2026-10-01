@@ -5,23 +5,31 @@ import {
   PRIVATE_WORK_TEST_CATALOG_PATH,
   PRIVATE_WORK_TEST_IMPORT_PATH,
   PRIVATE_WORK_TEST_UPLOAD_PREFIX,
+  PRIVATE_WORK_TEST_PUBLISH_PREFIX,
   getPrivateWorkTestCandidate,
   getPrivateWorkTestCandidateById,
   getPrivateWorkTestUploadCandidate,
+  getPrivateWorkTestPublishCandidate,
   handlePrivateWorkTestRequest,
   isPrivateWorkTestObjectValid,
   isPrivateWorkTestPath,
   isTrustedPrivateWorkTestResolvedSourceUrl,
   isTrustedPrivateWorkTestSourceUrl,
   validatePrivateWorkTestUploadBytes,
+  writePrivateWorkTestCandidateFromRequest,
 } from '../../worker/privateWorkTest';
-import type { PrivateModelEnv } from '../../worker/privateModel';
+import {
+  privateModelPublisherClaimError,
+  verifyPrivateModelPublisherAccess,
+  type PrivateModelEnv,
+} from '../../worker/privateModel';
 
 test('private WORK_TEST route matching is bounded to the dedicated prefix', () => {
   expect(isPrivateWorkTestPath('/private-model/work-test')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/catalog.json')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/import.json')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/upload/p143h-scalgo-label-axis.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/publish/p150g-whole-building-end-plinth.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p136b-d-current-wall-corrected.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p137j-d1f-user-current-doors.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/g3-locus-site-p06-axis-corrected.glb')).toBe(true);
@@ -230,6 +238,11 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestUploadCandidate(`${p143hUploadPath}/extra`)).toBeNull();
   expect(getPrivateWorkTestUploadCandidate(`${PRIVATE_WORK_TEST_UPLOAD_PREFIX}../model.glb`)).toBeNull();
   expect(getPrivateWorkTestUploadCandidate(`${PRIVATE_WORK_TEST_UPLOAD_PREFIX}not-allowlisted.glb`)).toBeNull();
+  const p150gPublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p150g-whole-building-end-plinth.glb`;
+  expect(getPrivateWorkTestPublishCandidate(p150gPublishPath)?.id).toBe(
+    'p150g-whole-building-end-plinth',
+  );
+  expect(getPrivateWorkTestPublishCandidate(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}not-allowlisted.glb`)).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/model.glb')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/../model.glb')).toBeNull();
   expect(getPrivateWorkTestCandidate('/private-model/work-test/p136b-d-current-wall-corrected.glb/extra')).toBeNull();
@@ -454,4 +467,251 @@ test('private WORK_TEST backend rejects writes before auth or R2 access', async 
   expect(response.status).toBe(405);
   expect(response.headers.get('Allow')).toBe('GET, HEAD');
   expect(bucketReads).toBe(0);
+});
+
+
+const createAccessJwtSigner = async (teamOrigin: string, kid: string) => {
+  const keyPair = await crypto.subtle.generateKey(
+    {
+      name: 'RSASSA-PKCS1-v1_5',
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: 'SHA-256',
+    },
+    true,
+    ['sign', 'verify'],
+  );
+  const jwk = (await crypto.subtle.exportKey('jwk', keyPair.publicKey)) as JsonWebKey & {
+    kid?: string;
+  };
+  jwk.kid = kid;
+
+  const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const sign = async (payload: Record<string, unknown>) => {
+    const header = encode({ alg: 'RS256', kid });
+    const body = encode({ iss: teamOrigin, ...payload });
+    const signed = `${header}.${body}`;
+    const signature = await crypto.subtle.sign(
+      'RSASSA-PKCS1-v1_5',
+      keyPair.privateKey,
+      new TextEncoder().encode(signed),
+    );
+    return `${signed}.${Buffer.from(signature).toString('base64url')}`;
+  };
+
+  return { jwk, sign };
+};
+
+test('private publisher claims require an Access service-token application identity', () => {
+  const expected = 'publisher-client.access';
+  expect(
+    privateModelPublisherClaimError(
+      { type: 'app', sub: '', common_name: expected },
+      expected,
+    ),
+  ).toBeNull();
+  expect(
+    privateModelPublisherClaimError(
+      { type: 'org', sub: '', common_name: expected },
+      expected,
+    ),
+  ).toBe('publisher-token-type');
+  expect(
+    privateModelPublisherClaimError(
+      { type: 'app', sub: 'human-user', common_name: expected },
+      expected,
+    ),
+  ).toBe('publisher-token-sub');
+  expect(
+    privateModelPublisherClaimError(
+      { type: 'app', sub: '', common_name: 'other-client.access' },
+      expected,
+    ),
+  ).toBe('publisher-common-name');
+});
+
+test('private publisher Access JWT requires publisher audience and exact service-token client id', async () => {
+  const originalFetch = globalThis.fetch;
+  const teamOrigin = 'https://publisher-unit.cloudflareaccess.com';
+  const signer = await createAccessJwtSigner(teamOrigin, 'publisher-unit-key');
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    expect(String(input)).toBe(`${teamOrigin}/cdn-cgi/access/certs`);
+    return Response.json({ keys: [signer.jwk] });
+  }) as typeof fetch;
+
+  const env = {
+    ASSETS: { fetch: async () => new Response('unused') },
+    CF_ACCESS_TEAM_DOMAIN: teamOrigin,
+    CF_ACCESS_AUD: 'viewer-aud',
+    CF_ACCESS_PUBLISHER_AUD: 'publisher-aud',
+    CF_ACCESS_PUBLISHER_COMMON_NAME: 'publisher-client.access',
+  } satisfies PrivateModelEnv;
+  const now = Math.floor(Date.now() / 1000);
+
+  const verify = async (payload: Record<string, unknown>) => {
+    const token = await signer.sign({ exp: now + 300, ...payload });
+    return verifyPrivateModelPublisherAccess(
+      new Request('https://example.test/private-model/work-test/publish/example.glb', {
+        headers: { 'cf-access-jwt-assertion': token },
+      }),
+      env,
+    );
+  };
+
+  try {
+    await expect(
+      verify({
+        type: 'app',
+        aud: ['publisher-aud'],
+        sub: '',
+        common_name: 'publisher-client.access',
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      verify({
+        type: 'app',
+        aud: ['viewer-aud'],
+        sub: '',
+        common_name: 'publisher-client.access',
+      }),
+    ).resolves.toBe(false);
+    await expect(
+      verify({
+        type: 'app',
+        aud: ['publisher-aud'],
+        sub: '',
+        common_name: 'other-client.access',
+      }),
+    ).resolves.toBe(false);
+    await expect(
+      verify({
+        type: 'app',
+        aud: ['publisher-aud'],
+        sub: 'human-user',
+        common_name: 'publisher-client.access',
+      }),
+    ).resolves.toBe(false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('machine publisher binary writer validates bytes, handles R2 failures and is idempotent', async () => {
+  const bytes = new Uint8Array([0x61, 0x62, 0x63]);
+  const candidate = {
+    id: 'unit-candidate',
+    label: 'Unit candidate',
+    path: '/private-model/work-test/unit-candidate.glb',
+    objectKey: 'work-test/unit-candidate.glb',
+    expectedSize: 3,
+    expectedSha256: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+  };
+  const stored = {
+    body: new ReadableStream<Uint8Array>(),
+    size: candidate.expectedSize,
+    customMetadata: { sha256: candidate.expectedSha256 },
+  };
+  let object: typeof stored | null = null;
+  let writes = 0;
+  const bucket = {
+    get: async () => object,
+    put: async () => {
+      writes += 1;
+      object = stored;
+      return stored;
+    },
+  };
+
+  const request = () =>
+    new Request('https://example.test/private-model/work-test/publish/unit-candidate.glb', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'model/gltf-binary',
+        'Content-Length': '3',
+      },
+      body: bytes,
+    });
+
+  await expect(
+    writePrivateWorkTestCandidateFromRequest(request(), bucket, candidate),
+  ).resolves.toEqual({ ok: true, alreadyReady: false });
+  expect(writes).toBe(1);
+
+  await expect(
+    writePrivateWorkTestCandidateFromRequest(request(), bucket, candidate),
+  ).resolves.toEqual({ ok: true, alreadyReady: true });
+  expect(writes).toBe(1);
+
+  await expect(
+    writePrivateWorkTestCandidateFromRequest(
+      new Request('https://example.test/private-model/work-test/publish/unit-candidate.glb', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'model/gltf-binary' },
+        body: new Uint8Array([0x61, 0x62]),
+      }),
+      bucket,
+      candidate,
+    ),
+  ).resolves.toMatchObject({ ok: false, error: 'upload-size-mismatch', status: 422 });
+
+  const wrongShaCandidate = { ...candidate, expectedSha256: '00'.repeat(32) };
+  await expect(
+    writePrivateWorkTestCandidateFromRequest(request(), bucket, wrongShaCandidate),
+  ).resolves.toMatchObject({ ok: false, error: 'upload-sha256-mismatch', status: 422 });
+
+  const writeFailBucket = {
+    get: async () => null,
+    put: async () => {
+      throw new Error('write failed');
+    },
+  };
+  await expect(
+    writePrivateWorkTestCandidateFromRequest(request(), writeFailBucket, candidate),
+  ).resolves.toMatchObject({ ok: false, error: 'r2-write-failed', status: 500 });
+
+  const readbackFailBucket = {
+    get: async () => {
+      throw new Error('read failed');
+    },
+    put: async () => stored,
+  };
+  await expect(
+    writePrivateWorkTestCandidateFromRequest(request(), readbackFailBucket, candidate),
+  ).resolves.toMatchObject({ ok: false, error: 'r2-readback-failed', status: 500 });
+});
+
+test('machine publish route fails closed without publisher Access configuration', async () => {
+  let bucketReads = 0;
+  let bucketWrites = 0;
+  const env = {
+    ASSETS: { fetch: async () => new Response('unused') },
+    PRIVATE_MODEL_BUCKET: {
+      get: async () => {
+        bucketReads += 1;
+        return null;
+      },
+      put: async () => {
+        bucketWrites += 1;
+        throw new Error('must not write');
+      },
+    },
+    CF_ACCESS_TEAM_DOMAIN: 'https://publisher-unit.cloudflareaccess.com',
+    CF_ACCESS_AUD: 'viewer-aud',
+  } as unknown as PrivateModelEnv;
+
+  const response = await handlePrivateWorkTestRequest(
+    new Request(
+      `https://example.test${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p150g-whole-building-end-plinth.glb`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'model/gltf-binary' },
+        body: new Uint8Array([1, 2, 3]),
+      },
+    ),
+    env,
+  );
+
+  expect(response.status).toBe(404);
+  expect(bucketReads).toBe(0);
+  expect(bucketWrites).toBe(0);
 });
