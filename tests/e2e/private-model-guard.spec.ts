@@ -16,6 +16,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p154c-d-wall-cutouts-review': 'p154c-d-wall-cutouts',
     'p156i-2017-kvv-main-review': 'p156i-2017-kvv-main-presentation',
     'p150fr-whole-building-substructure-review': 'p150fr-whole-building-substructure',
+    'p150g-whole-building-end-plinth-review': 'p150g-whole-building-end-plinth',
     'p151c-whole-building-review': 'p151c-whole-building-carrier',
     'p155cb-d-storage-roof-review': 'p155cb-d-storage-roof',
     'p145b-1974-iv-section-worktargets-review': 'p145b-1974-iv-section-worktargets',
@@ -2714,6 +2715,101 @@ test('private viewer autoloads the exact P150F-R whole-building substructure rev
   await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
   await expect(page.getByRole('status')).toHaveText(
     'P150F-R koko rakennus + alusrakennekuoret - WORK_TEST / 14/14 base + P150D targetit 2/2 - syvyys 0,600 m refinable - ei CURRENT/as-built',
+  );
+});
+
+test('private viewer autoloads the exact P150G whole-building end-plinth review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P150G WHOLE-BUILDING + END-PLINTH HUMAN-REVIEW CORRECTION - BABYLON Y-UP',
+        nodes: [],
+      },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p150g-whole-building-end-plinth';
+  const candidateLabel = 'P150G whole-building end-plinth correction - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p150g-whole-building-end-plinth.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p150g-whole-building-end-plinth-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p150g-whole-building-end-plinth-review',
+  );
+  await expect(canvas).toHaveAttribute('data-p150g-predecessor-candidate', 'p150fr-whole-building-substructure');
+  await expect(canvas).toHaveAttribute('data-p150g-inherited-target-coverage-count', '14');
+  await expect(canvas).toHaveAttribute('data-p150g-p150d-target-count', '2');
+  await expect(canvas).toHaveAttribute(
+    'data-p150g-p150d-target-ids',
+    'G2_SUBSTRUCTURE_CD_STORAGE_WORK_001,G2_SUBSTRUCTURE_AB_WORK_001',
+  );
+  await expect(canvas).toHaveAttribute('data-p150g-correction-target-count', '2');
+  await expect(canvas).toHaveAttribute(
+    'data-p150g-correction-target-ids',
+    'G2_SUBSTRUCTURE_WEST_GABLE_WING_WORK_001,G2_SUBSTRUCTURE_EAST_GABLE_WING_WORK_001',
+  );
+  await expect(canvas).toHaveAttribute('data-p150g-correction-zone-count', '4');
+  await expect(canvas).toHaveAttribute(
+    'data-p150g-correction-basis',
+    'USER_HUMAN_REVIEW_RELATION_PLUS_EXISTING_GABLE_GEOMETRY',
+  );
+  await expect(canvas).toHaveAttribute(
+    'data-p150g-scope',
+    'P133H owner + P147D/P148D roof/guard delta + P150G cut-terrain refinement + P150D substructure WORK_TEST envelopes + P150G end-plinth correction',
+  );
+  await expect(canvas).toHaveAttribute('data-p150g-excluded-branches', 'P158B,P153,P154C,NEW_G3_COMMON');
+  await expect(canvas).toHaveAttribute('data-p150g-work-depth-m', '0.600');
+  await expect(canvas).toHaveAttribute('data-p150g-depth-status', 'REFINABLE_WORK_ASSUMPTION');
+  await expect(canvas).toHaveAttribute('data-p150g-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-p150g-physical-foundation-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p150g-physical-foundation-depth-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p150g-physical-ground-surface-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p150g-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p150g-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p150g-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p150g-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute(
+    'data-p150g-predecessor-human-review-feedback',
+    'P150F-R_FEEDBACK_CAPTURED_CORRECTION_REQUIRED',
+  );
+  await expect(canvas).toHaveAttribute('data-p150g-active-ground-contact-root-node-index', '919');
+  await expect(canvas).toHaveAttribute('data-p150g-correction-root-node-index', '922');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'Koko rakennus + korjattu päätysokkeli (WORK_TEST)',
+  );
+  await expect(page.getByRole('status')).toHaveText(
+    'P150G koko rakennus + korjattu päätysokkeli - WORK_TEST / P150D targetit 2/2 + P150G korjaustargetit 2/2 / zone4/4 - syvyys 0,600 m refinable - ei CURRENT/as-built',
   );
 });
 
