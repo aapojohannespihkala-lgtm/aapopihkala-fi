@@ -1,0 +1,164 @@
+name: Publish WORK_TEST
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-work-test-p150g
+  cancel-in-progress: false
+
+env:
+  DRIVE_FILE_ID: 1A2qXM12S7Fx0H9UPUM6lWuAXFB0YqEB6
+  CANDIDATE_ID: p150g-whole-building-end-plinth
+  EXPECTED_SIZE: "1986004"
+  EXPECTED_SHA256: a17fdc1cbc29c4ecfcab3e94554b5ea5860c9a19db33e21f24c324acf70d6d89
+  EXPECTED_PATH: /private-model/work-test/p150g-whole-building-end-plinth.glb
+  PUBLISH_URL: https://aapopihkala.fi/private-model/work-test/publish/p150g-whole-building-end-plinth.glb
+  CATALOG_URL: https://aapopihkala.fi/private-model/work-test/catalog.json
+  GLB_URL: https://aapopihkala.fi/private-model/work-test/p150g-whole-building-end-plinth.glb
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require trusted main dispatch
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$GITHUB_REPOSITORY" == "aapojohannespihkala-lgtm/aapopihkala-fi" ]]
+
+      - name: Require machine-auth configuration
+        shell: bash
+        env:
+          GDRIVE_WIF_PROVIDER: ${{ vars.GDRIVE_WIF_PROVIDER }}
+          GDRIVE_PUBLISHER_SERVICE_ACCOUNT: ${{ vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT }}
+          CF_ACCESS_PUBLISHER_CLIENT_ID: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_ID }}
+          CF_ACCESS_PUBLISHER_CLIENT_SECRET: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_SECRET }}
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$GDRIVE_WIF_PROVIDER" ]] || { echo "Missing GDRIVE_WIF_PROVIDER repository variable" >&2; exit 1; }
+          [[ -n "$GDRIVE_PUBLISHER_SERVICE_ACCOUNT" ]] || { echo "Missing GDRIVE_PUBLISHER_SERVICE_ACCOUNT repository variable" >&2; exit 1; }
+          [[ -n "$CF_ACCESS_PUBLISHER_CLIENT_ID" ]] || { echo "Missing CF_ACCESS_PUBLISHER_CLIENT_ID secret" >&2; exit 1; }
+          [[ -n "$CF_ACCESS_PUBLISHER_CLIENT_SECRET" ]] || { echo "Missing CF_ACCESS_PUBLISHER_CLIENT_SECRET secret" >&2; exit 1; }
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" ]] || { echo "Missing CF_ACCESS_READBACK_CLIENT_ID secret" >&2; exit 1; }
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]] || { echo "Missing CF_ACCESS_READBACK_CLIENT_SECRET secret" >&2; exit 1; }
+
+      - name: Authenticate to Google Drive
+        id: google-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GDRIVE_WIF_PROVIDER }}
+          service_account: ${{ vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/drive.readonly
+          create_credentials_file: false
+          export_environment_variables: false
+
+      - name: Download and verify exact private Drive GLB
+        shell: bash
+        env:
+          GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          model="$RUNNER_TEMP/p150g-work-test.glb"
+          curl --silent --show-error --fail --location             --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN"             --output "$model"             "https://www.googleapis.com/drive/v3/files/$DRIVE_FILE_ID?alt=media&supportsAllDrives=true"
+
+          actual_size="$(stat -c '%s' "$model")"
+          actual_sha="$(sha256sum "$model" | awk '{print $1}')"
+          [[ "$actual_size" == "$EXPECTED_SIZE" ]] || { echo "Drive size mismatch" >&2; exit 1; }
+          [[ "$actual_sha" == "$EXPECTED_SHA256" ]] || { echo "Drive SHA-256 mismatch" >&2; exit 1; }
+          chmod 600 "$model"
+          echo "Exact Drive source identity verified."
+
+      - name: Publish exact bytes through machine-only endpoint
+        shell: bash
+        env:
+          CF_ACCESS_PUBLISHER_CLIENT_ID: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_ID }}
+          CF_ACCESS_PUBLISHER_CLIENT_SECRET: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          model="$RUNNER_TEMP/p150g-work-test.glb"
+          response="$RUNNER_TEMP/publish-response.json"
+
+          curl --silent --show-error --fail             --request PUT             --header "CF-Access-Client-Id: $CF_ACCESS_PUBLISHER_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_PUBLISHER_CLIENT_SECRET"             --header "Content-Type: model/gltf-binary"             --header "Content-Length: $EXPECTED_SIZE"             --data-binary "@$model"             --output "$response"             "$PUBLISH_URL"
+
+          python3 - "$response" "$CANDIDATE_ID" "$EXPECTED_PATH" <<'PY'
+          import json
+          import sys
+
+          path, candidate_id, expected_path = sys.argv[1:]
+          with open(path, "r", encoding="utf-8") as handle:
+              payload = json.load(handle)
+
+          candidate = payload.get("candidate") or {}
+          if payload.get("ready") is not True:
+              raise SystemExit("machine publish response is not ready")
+          if candidate.get("id") != candidate_id:
+              raise SystemExit("machine publish candidate mismatch")
+          if candidate.get("path") != expected_path:
+              raise SystemExit("machine publish path mismatch")
+          PY
+          echo "Machine publish response verified."
+
+      - name: Read production catalog back
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          catalog="$RUNNER_TEMP/catalog.json"
+
+          curl --silent --show-error --fail             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --output "$catalog"             "$CATALOG_URL"
+
+          python3 - "$catalog" "$CANDIDATE_ID" "$EXPECTED_PATH" <<'PY'
+          import json
+          import sys
+
+          path, candidate_id, expected_path = sys.argv[1:]
+          with open(path, "r", encoding="utf-8") as handle:
+              payload = json.load(handle)
+
+          matches = [
+              candidate
+              for candidate in payload.get("candidates", [])
+              if candidate.get("id") == candidate_id
+          ]
+          if len(matches) != 1:
+              raise SystemExit("production catalog candidate missing or duplicated")
+          if matches[0].get("path") != expected_path:
+              raise SystemExit("production catalog path mismatch")
+          PY
+          echo "Production catalog readback verified."
+
+      - name: Read full production GLB back and verify bytes
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          readback="$RUNNER_TEMP/p150g-production-readback.glb"
+
+          curl --silent --show-error --fail             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --output "$readback"             "$GLB_URL"
+
+          readback_size="$(stat -c '%s' "$readback")"
+          readback_sha="$(sha256sum "$readback" | awk '{print $1}')"
+          [[ "$readback_size" == "$EXPECTED_SIZE" ]] || { echo "Production GLB size mismatch" >&2; exit 1; }
+          [[ "$readback_sha" == "$EXPECTED_SHA256" ]] || { echo "Production GLB SHA-256 mismatch" >&2; exit 1; }
+          echo "Production byte-for-byte readback verified."
+
+      - name: Remove private temporary files
+        if: always()
+        shell: bash
+        run: |
+          rm -f             "$RUNNER_TEMP/p150g-work-test.glb"             "$RUNNER_TEMP/p150g-production-readback.glb"             "$RUNNER_TEMP/publish-response.json"             "$RUNNER_TEMP/catalog.json"
