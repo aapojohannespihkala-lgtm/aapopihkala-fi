@@ -4085,7 +4085,6 @@ const title = 'Private 3D viewer';
             ? payload.candidates.filter(isWorkTestCandidate)
             : [];
           setWorkTestCatalog(candidates);
-          delete canvas.dataset.workTestCatalog;
         } catch (error) {
           console.error(error);
           setWorkTestCatalog([]);
