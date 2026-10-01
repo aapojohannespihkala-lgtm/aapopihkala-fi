@@ -25,6 +25,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
   const expectedRoutes = {
     'p153c-d-stair-review': 'p153c-d-stair-guard-lowwall',
     'p154c-d-wall-cutouts-review': 'p154c-d-wall-cutouts',
+    'p160-d-composite-architecture-review': 'p160-d-composite-architecture',
     'p156i-2017-kvv-main-review': 'p156i-2017-kvv-main-presentation',
     'p150fr-whole-building-substructure-review': 'p150fr-whole-building-substructure',
     'p150g-whole-building-end-plinth-review': 'p150g-whole-building-end-plinth',
@@ -3709,6 +3710,72 @@ test('private viewer fails safe when the protected WORK_TEST catalog is unavaila
   await expect(page.locator('#work-test-select')).toBeDisabled();
   await expect(page.locator('#work-test-select')).toContainText('Ei WORK_TEST-kandidaatteja');
   await expect(page.locator('#work-test-button')).toBeDisabled();
+});
+
+test('private viewer autoloads the exact P160 D composite architecture review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'D COMPOSITE ARCHITECTURE WORK_TEST P160 - BABYLON Y-UP', nodes: [] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [] },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p160-d-composite-architecture';
+  const candidateLabel = 'P160 D composite architecture carrier - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p160-d-composite-architecture.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p160-d-composite-architecture-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p160-d-composite-architecture-review');
+  await expect(canvas).toHaveAttribute('data-p160-owner-candidate', 'p154c-d-wall-cutouts');
+  await expect(canvas).toHaveAttribute('data-p160-wall-piece-count', '126');
+  await expect(canvas).toHaveAttribute('data-p160-cutout-identity-count', '18');
+  await expect(canvas).toHaveAttribute('data-p160-stair-guard-low-wall-delta', 'P153C');
+  await expect(canvas).toHaveAttribute('data-p160-storage-roof-delta', 'P155C-B');
+  await expect(canvas).toHaveAttribute('data-p160-storage-roof-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-p160-physical-stair-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p160-physical-opening-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p160-physical-guard-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p160-physical-low-wall-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p160-physical-roof-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p160-floor-shell-cut-applied', 'false');
+  await expect(canvas).toHaveAttribute('data-p160-pillar-geometry-created', 'false');
+  await expect(canvas).toHaveAttribute('data-p160-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p160-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p160-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p160-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(page.getByRole('status')).toHaveText(
+    'P160 D composite architecture - WORK_TEST / P154C walls+18 cutouts + P153 stair/guard/lowWall + P155C-B storage roof presentation - ei CURRENT/as-built',
+  );
 });
 
 test('private viewer autoloads the exact P154C D wall cutout review candidate', async ({ page }) => {
