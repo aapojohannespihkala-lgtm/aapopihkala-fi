@@ -2154,6 +2154,27 @@ const title = 'Private 3D viewer';
         return null;
       };
 
+      const isP161SystemLayerMember = (object: any) => {
+        if (p161SystemLayerFamily(object)) return true;
+
+        const data = object?.userData ?? {};
+        if (data.sourceFamily === 'KVV_MAIN_2017_WORK_ASSUMPTION') return true;
+        if (
+          data.systemDomain === 'IV' &&
+          String(data.phase) === '1974' &&
+          data.sourceGeometryDimension === '2D_XY_PLAN'
+        ) {
+          return true;
+        }
+        if (
+          data.placementMode === 'PRESENTATION_SIDECAR' &&
+          (typeof data.G3Id === 'string' || typeof data.g3Id === 'string')
+        ) {
+          return true;
+        }
+        return false;
+      };
+
       const isP161SystemsLayerReviewRequested = () =>
         new URLSearchParams(window.location.search).get('review') === p161ReviewId;
 
@@ -2532,6 +2553,30 @@ const title = 'Private 3D viewer';
         locusLayerVisibleInput.disabled = locusLayerMembers.size === 0;
         canvas.dataset.locusLayerVisible = locusLayerVisible ? 'true' : 'false';
 
+        if (isP161SystemsLayerReviewRequested()) {
+          const renderables = new Set<any>();
+          for (const member of locusLayerMembers) {
+            member.traverse?.((object: any) => {
+              if (
+                object?.isMesh ||
+                object?.isLine ||
+                object?.isLineSegments ||
+                object?.isPoints
+              ) {
+                renderables.add(object);
+              }
+            });
+          }
+          const visibleRenderables = [...renderables].filter((object) => isTreeVisible(object));
+          canvas.dataset.p161SystemLayerRenderableCount = String(renderables.size);
+          canvas.dataset.p161VisibleSystemLayerRenderableCount = String(
+            visibleRenderables.length,
+          );
+        } else {
+          delete canvas.dataset.p161SystemLayerRenderableCount;
+          delete canvas.dataset.p161VisibleSystemLayerRenderableCount;
+        }
+
         if (selectedObject && !isEffectivelyVisible(selectedObject)) clearSelection();
       };
 
@@ -2579,10 +2624,12 @@ const title = 'Private 3D viewer';
         if (fullModelScene) {
           fullModelScene.traverse((object: any) => {
             if (p161SystemsReview) {
-              const family = p161SystemLayerFamily(object);
-              if (family) {
-                locusLayerMembers.add(object);
-                locusLayerVisibilityBaseline.set(object, object.visible);
+              if (isP161SystemLayerMember(object)) {
+                object.traverse?.((member: any) => {
+                  if (locusLayerMembers.has(member)) return;
+                  locusLayerMembers.add(member);
+                  locusLayerVisibilityBaseline.set(member, member.visible);
+                });
               }
 
               const data = object?.userData ?? {};
