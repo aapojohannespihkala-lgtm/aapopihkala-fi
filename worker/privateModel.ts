@@ -16,6 +16,8 @@ export type PrivateModelEnv = {
   PRIVATE_MODEL_BUCKET?: PrivateModelBucket;
   CF_ACCESS_TEAM_DOMAIN?: string;
   CF_ACCESS_AUD?: string;
+  CF_ACCESS_PUBLISHER_AUD?: string;
+  CF_ACCESS_PUBLISHER_COMMON_NAME?: string;
 };
 
 export const PRIVATE_MODEL_PREFIX = '/private-model';
@@ -26,10 +28,13 @@ const JWKS_TTL_MS = 5 * 60 * 1000;
 
 type JwtHeader = { alg?: string; kid?: string };
 type JwtPayload = {
+  type?: string;
   aud?: string | string[];
   exp?: number;
   nbf?: number;
   iss?: string;
+  sub?: string;
+  common_name?: string;
 };
 
 type CachedJwks = {
@@ -113,12 +118,14 @@ const denyAccess = (reason: string) => {
   return false;
 };
 
-export const verifyPrivateModelAccess = async (
+const verifyPrivateModelAccessToken = async (
   request: Request,
-  env: Pick<PrivateModelEnv, 'CF_ACCESS_TEAM_DOMAIN' | 'CF_ACCESS_AUD'>,
+  teamDomain: string | undefined,
+  audienceValue: string | undefined,
+  payloadGuard?: (payload: JwtPayload) => string | null,
 ) => {
-  const teamOrigin = normalizeTeamDomain(env.CF_ACCESS_TEAM_DOMAIN);
-  const audience = env.CF_ACCESS_AUD?.trim();
+  const teamOrigin = normalizeTeamDomain(teamDomain);
+  const audience = audienceValue?.trim();
   const token = request.headers.get(ACCESS_HEADER);
 
   if (!teamOrigin) return denyAccess('team-domain-config');
@@ -163,11 +170,53 @@ export const verifyPrivateModelAccess = async (
       signature,
       signedData,
     );
+    if (!verified) return denyAccess('jwt-signature');
 
-    return verified || denyAccess('jwt-signature');
+    const payloadError = payloadGuard?.(payload);
+    return payloadError ? denyAccess(payloadError) : true;
   } catch {
     return denyAccess('jwt-exception');
   }
+};
+
+export const verifyPrivateModelAccess = async (
+  request: Request,
+  env: Pick<PrivateModelEnv, 'CF_ACCESS_TEAM_DOMAIN' | 'CF_ACCESS_AUD'>,
+) =>
+  verifyPrivateModelAccessToken(
+    request,
+    env.CF_ACCESS_TEAM_DOMAIN,
+    env.CF_ACCESS_AUD,
+  );
+
+export const privateModelPublisherClaimError = (
+  payload: Pick<JwtPayload, 'type' | 'sub' | 'common_name'>,
+  expectedCommonName: string,
+) => {
+  if (payload.type !== 'app') return 'publisher-token-type';
+  if (payload.sub !== '') return 'publisher-token-sub';
+  if (payload.common_name !== expectedCommonName) return 'publisher-common-name';
+  return null;
+};
+
+export const verifyPrivateModelPublisherAccess = async (
+  request: Request,
+  env: Pick<
+    PrivateModelEnv,
+    'CF_ACCESS_TEAM_DOMAIN' | 'CF_ACCESS_PUBLISHER_AUD' | 'CF_ACCESS_PUBLISHER_COMMON_NAME'
+  >,
+) => {
+  const publisherAudience = env.CF_ACCESS_PUBLISHER_AUD?.trim();
+  const publisherCommonName = env.CF_ACCESS_PUBLISHER_COMMON_NAME?.trim();
+  if (!publisherAudience) return denyAccess('publisher-audience-config');
+  if (!publisherCommonName) return denyAccess('publisher-common-name-config');
+
+  return verifyPrivateModelAccessToken(
+    request,
+    env.CF_ACCESS_TEAM_DOMAIN,
+    publisherAudience,
+    (payload) => privateModelPublisherClaimError(payload, publisherCommonName),
+  );
 };
 
 export const isPrivateModelPath = (pathname: string) =>
