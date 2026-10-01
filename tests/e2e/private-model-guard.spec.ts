@@ -3245,29 +3245,26 @@ test('private viewer compares CURRENT and WORK_TEST in the same preserved view',
 
   await page.goto('/private-model/');
   const canvas = page.locator('#private-model-canvas');
-  const compareButton = page.getByRole('button', { name: 'Vertaa WORK_TESTiin' });
-
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
-  await expect(compareButton).toBeEnabled();
   await clickViewAction(page, 'Koko rakennus');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
 
-  await compareButton.click();
+  await openToolbarMenu(page, '#model-menu');
+  await page.getByRole('button', { name: 'Vertaa WORK_TESTiin' }).click();
   await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
   await expect(canvas).toHaveAttribute('data-model-comparison', 'active');
   await expect(canvas).toHaveAttribute('data-model-comparison-candidate', candidateId);
   await expect(canvas).toHaveAttribute('data-model-comparison-view', 'preserved');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-  await expect(page.getByRole('button', { name: 'Vertaa CURRENTiin' })).toBeEnabled();
   await expect(page.getByRole('status')).toHaveText(`A/B-vertailu: WORK_TEST - ${candidateLabel}`);
 
+  await openToolbarMenu(page, '#model-menu');
   await page.getByRole('button', { name: 'Vertaa CURRENTiin' }).click();
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
   await expect(canvas).toHaveAttribute('data-model-comparison', 'active');
   await expect(canvas).toHaveAttribute('data-model-comparison-candidate', candidateId);
   await expect(canvas).toHaveAttribute('data-model-comparison-view', 'preserved');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-  await expect(page.getByRole('button', { name: 'Vertaa WORK_TESTiin' })).toBeEnabled();
   await expect(page.getByRole('status')).toHaveText('A/B-vertailu: CURRENT');
 });
 
