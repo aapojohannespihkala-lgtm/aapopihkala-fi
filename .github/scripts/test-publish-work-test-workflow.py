@@ -28,7 +28,7 @@ required = {
     "readback client secret": "secrets.CF_ACCESS_READBACK_CLIENT_SECRET",
     "WIF provider variable": "vars.GDRIVE_WIF_PROVIDER",
     "service account variable": "vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT",
-    "cleanup": 'rm -f \\',
+    "cleanup": "rm -f",
 }
 
 missing = [label for label, needle in required.items() if needle not in text]
