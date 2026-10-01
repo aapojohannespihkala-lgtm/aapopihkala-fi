@@ -1137,6 +1137,8 @@ const title = 'Private 3D viewer';
         p155cbReviewId,
         p156iCandidateId,
         p156iReviewId,
+        p159CandidateId,
+        p159ReviewId,
         p160CandidateId,
         p160ReviewId,
         type WorkTestCandidate,
@@ -4292,6 +4294,9 @@ const title = 'Private 3D viewer';
       const isP156i2017KvvMainReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p156iReviewId);
 
+      const isP159WholeBuildingStorageContextReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p159ReviewId);
+
       const isP160DCompositeReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p160ReviewId);
 
@@ -4589,6 +4594,33 @@ const title = 'Private 3D viewer';
           'P156I 2017 KVV mainCandidate - WORK_TEST / presentation-only +8,700 m - ei fyysinen putkikorko';
       };
 
+      const applyP159ReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p159-whole-building-storage-context-review',
+          p159OwnerCandidate: 'p150g-whole-building-end-plinth',
+          p159InheritedHumanReviewScope: 'END_PLINTH_SCOPE_ONLY',
+          p159StorageReferenceFootprintCount: '3',
+          p159StorageContextSource: 'P158B',
+          p159StoragePresentationOnly: 'true',
+          p159StoragePhysicalClaim: 'false',
+          p159GroundContactClaim: 'false',
+          p159TerrainCutClaim: 'false',
+          p159WallClaim: 'false',
+          p159RoofClaim: 'false',
+          p159FoundationClaim: 'false',
+          p159PhysicalMetricClaim: 'false',
+          p159CurrentClaim: 'false',
+          p159AsBuiltClaim: 'false',
+          p159Canonical: 'false',
+          p159HumanReview: 'NOT_RUN',
+          standardViewPreset: 'whole-building',
+        });
+        applyViewerLayerState(standardViewLayerDefaults['whole-building'], 'preset:whole-building');
+        activateIsometric();
+        status.textContent =
+          'P159 whole-building storage context - WORK_TEST / P150G owner + 3 P158B storage referenceFootprints presentation-only - HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP160ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p160-d-composite-architecture-review',
@@ -4703,6 +4735,8 @@ const title = 'Private 3D viewer';
             candidate.id === p150gCandidateId && isP150gWholeBuildingEndPlinthReviewRequested();
           const isP156i2017KvvMainReview =
             candidate.id === p156iCandidateId && isP156i2017KvvMainReviewRequested();
+          const isP159WholeBuildingStorageContextReview =
+            candidate.id === p159CandidateId && isP159WholeBuildingStorageContextReviewRequested();
           const isP160DCompositeReview =
             candidate.id === p160CandidateId && isP160DCompositeReviewRequested();
           const isP154cDWallCutoutsReview =
@@ -4806,6 +4840,22 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p156TopologyLinkClaim;
           delete canvas.dataset.p156SamePipeClaim;
           delete canvas.dataset.p156PenetrationClaim;
+          delete canvas.dataset.p159OwnerCandidate;
+          delete canvas.dataset.p159InheritedHumanReviewScope;
+          delete canvas.dataset.p159StorageReferenceFootprintCount;
+          delete canvas.dataset.p159StorageContextSource;
+          delete canvas.dataset.p159StoragePresentationOnly;
+          delete canvas.dataset.p159StoragePhysicalClaim;
+          delete canvas.dataset.p159GroundContactClaim;
+          delete canvas.dataset.p159TerrainCutClaim;
+          delete canvas.dataset.p159WallClaim;
+          delete canvas.dataset.p159RoofClaim;
+          delete canvas.dataset.p159FoundationClaim;
+          delete canvas.dataset.p159PhysicalMetricClaim;
+          delete canvas.dataset.p159CurrentClaim;
+          delete canvas.dataset.p159AsBuiltClaim;
+          delete canvas.dataset.p159Canonical;
+          delete canvas.dataset.p159HumanReview;
           delete canvas.dataset.p160OwnerCandidate;
           delete canvas.dataset.p160WallPieceCount;
           delete canvas.dataset.p160CutoutIdentityCount;
@@ -4831,6 +4881,8 @@ const title = 'Private 3D viewer';
             ? 'Koko rakennus + korjattu päätysokkeli (WORK_TEST)'
             : isP150frWholeBuildingSubstructureReview
               ? 'Koko rakennus + alusrakennekuoret (WORK_TEST)'
+            : isP159WholeBuildingStorageContextReview
+              ? 'Koko rakennus + storage referenceFootprints (WORK_TEST / presentation-only)'
             : isP156i2017KvvMainReview
               ? '2017 KVV mainCandidate (WORK_TEST / presentation-only +8,700 m)'
             : isP160DCompositeReview
@@ -4865,7 +4917,9 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP160DCompositeReview) {
+          if (isP159WholeBuildingStorageContextReview) {
+            applyP159ReviewState();
+          } else if (isP160DCompositeReview) {
             applyP160ReviewState();
           } else if (isP153cDStairReview) {
             applyP153cReviewState();
