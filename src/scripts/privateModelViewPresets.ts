@@ -1,11 +1,6 @@
-export type EdgeMode = 'none' | 'object' | 'unified' | 'visible';
+import type { ViewerLayerState } from './privateModelLayerState';
 
-export type ViewerLayerState = {
-  roofVisible: boolean;
-  roofOpacity: number;
-  locusVisible: boolean;
-  edgeMode: EdgeMode;
-};
+export type { EdgeMode, ViewerLayerState } from './privateModelLayerState';
 
 export type StandardViewPreset =
   | 'whole-building'

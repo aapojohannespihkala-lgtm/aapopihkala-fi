@@ -21,6 +21,41 @@ import {
   selectionKindLabel,
 } from '../../src/scripts/privateModelSelectionIdentity';
 
+import {
+  clampViewerLayerOpacity,
+  mergeViewerLayerState,
+  type ViewerLayerState,
+} from '../../src/scripts/privateModelLayerState';
+
+test('private viewer layer-state helper preserves partial updates and clamps opacity', () => {
+  const baseline: ViewerLayerState = {
+    roofVisible: true,
+    roofOpacity: 0.4,
+    locusVisible: false,
+    edgeMode: 'visible',
+  };
+
+  expect(mergeViewerLayerState(baseline, { roofVisible: false })).toEqual({
+    roofVisible: false,
+    roofOpacity: 0.4,
+    locusVisible: false,
+    edgeMode: 'visible',
+  });
+  expect(mergeViewerLayerState(baseline, { roofOpacity: 1.25, edgeMode: 'none' })).toEqual({
+    roofVisible: true,
+    roofOpacity: 1,
+    locusVisible: false,
+    edgeMode: 'none',
+  });
+  expect(mergeViewerLayerState(baseline, { roofOpacity: -0.25, locusVisible: true })).toEqual({
+    roofVisible: true,
+    roofOpacity: 0,
+    locusVisible: true,
+    edgeMode: 'visible',
+  });
+  expect(clampViewerLayerOpacity(0.65)).toBe(0.65);
+});
+
 test('private viewer WORK_TEST routing module preserves review aliases and candidate validation', () => {
   const expectedRoutes = {
     'p153c-d-stair-review': 'p153c-d-stair-guard-lowwall',

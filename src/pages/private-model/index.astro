@@ -1101,10 +1101,14 @@ const title = 'Private 3D viewer';
         selectionKindLabel,
       } from '../../scripts/privateModelSelectionIdentity';
       import {
-        standardViewLayerDefaults,
+        mergeViewerLayerState,
         type EdgeMode,
-        type StandardViewPreset,
         type ViewerLayerState,
+        type ViewerLayerStateSource,
+      } from '../../scripts/privateModelLayerState';
+      import {
+        standardViewLayerDefaults,
+        type StandardViewPreset,
       } from '../../scripts/privateModelViewPresets';
       import {
         coordinateSteps,
@@ -2580,14 +2584,21 @@ const title = 'Private 3D viewer';
 
       const applyViewerLayerState = (
         next: Partial<ViewerLayerState>,
-        source: 'manual' | `preset:${string}` = 'manual',
+        source: ViewerLayerStateSource = 'manual',
       ) => {
-        if (typeof next.roofVisible === 'boolean') roofLayerVisible = next.roofVisible;
-        if (typeof next.roofOpacity === 'number') {
-          roofLayerOpacity = Math.max(0, Math.min(1, next.roofOpacity));
-        }
-        if (typeof next.locusVisible === 'boolean') locusLayerVisible = next.locusVisible;
-        if (next.edgeMode) edgeMode = next.edgeMode;
+        const merged = mergeViewerLayerState(
+          {
+            roofVisible: roofLayerVisible,
+            roofOpacity: roofLayerOpacity,
+            locusVisible: locusLayerVisible,
+            edgeMode,
+          },
+          next,
+        );
+        roofLayerVisible = merged.roofVisible;
+        roofLayerOpacity = merged.roofOpacity;
+        locusLayerVisible = merged.locusVisible;
+        edgeMode = merged.edgeMode;
 
         roofLayerVisibleInput.checked = roofLayerVisible;
         roofLayerOpacityInput.value = String(Math.round(roofLayerOpacity * 100));
