@@ -4115,6 +4115,9 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
   await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
+  await expect(canvas).toHaveAttribute('data-height-scale-min-z', /-?\d+\.\d{3}/);
+  await expect(canvas).toHaveAttribute('data-height-scale-max-z', /-?\d+\.\d{3}/);
+  await expect(canvas).toHaveAttribute('data-height-scale-step-m', /.+/);
   await expect(page.locator('#height-scale')).toBeVisible();
   await expect(page.locator('#height-scale .height-scale-label').first()).toBeVisible();
   await expect(page.getByRole('status')).toHaveText(
@@ -4128,6 +4131,9 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
   await clickViewAction(page, 'Isometrinen');
   await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'false');
+  await expect(canvas).not.toHaveAttribute('data-height-scale-min-z', /.+/);
+  await expect(canvas).not.toHaveAttribute('data-height-scale-max-z', /.+/);
+  await expect(canvas).not.toHaveAttribute('data-height-scale-step-m', /.+/);
 
   await page.getByRole('button', { name: 'Layerit' }).click();
   await expect(page.getByText('Locus work-Z + maanpinta + source-Z referenssi')).toBeVisible();
