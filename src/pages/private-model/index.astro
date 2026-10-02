@@ -1144,9 +1144,9 @@ const title = 'Private 3D viewer';
       import { THREE, OrbitControls, GLTFLoader } from '../../scripts/threeRuntime';
       import { setupPrivateModelToolbarMenus } from '../../scripts/privateModelToolbarMenus';
       import {
-        formatSelectionMetadataKey,
         selectionMetadataEntries as collectSelectionMetadataEntries,
       } from '../../scripts/privateModelSelectionMetadata';
+      import { createSelectionPanelController } from '../../scripts/privateModelSelectionPanel';
       import {
         nearestNamedAncestor,
         sceneNameForObject,
@@ -1410,6 +1410,18 @@ const title = 'Private 3D viewer';
       ) {
         throw new Error('Private viewer controls are missing');
       }
+
+      const selectionPanelController = createSelectionPanelController({
+        canvas,
+        panel: selectionPanel,
+        mesh: selectionMesh,
+        group: selectionGroup,
+        scene: selectionScene,
+        floor: selectionFloor,
+        kind: selectionKind,
+        metadataList: selectionMetadataList,
+        metadataEmpty: selectionMetadataEmpty,
+      });
 
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -2943,22 +2955,6 @@ const title = 'Private 3D viewer';
         canvas.dataset.objectVisibilityFilter = 'active';
       };
 
-      const renderSelectionMetadata = (object: any) => {
-        selectionMetadataList.replaceChildren();
-        const entries = collectSelectionMetadataEntries(object, modelRoot);
-        selectionMetadataEmpty.hidden = entries.length > 0;
-        canvas.dataset.selectionMetadataCount = String(entries.length);
-        canvas.dataset.selectionMetadataSource = entries.length > 0 ? 'userData' : 'none';
-
-        for (const [key, value] of entries) {
-          const label = document.createElement('dt');
-          label.textContent = formatSelectionMetadataKey(key);
-          const content = document.createElement('dd');
-          content.textContent = value;
-          selectionMetadataList.append(label, content);
-        }
-      };
-
       const clearSelection = () => {
         if (selectionHelper) {
           scene.remove(selectionHelper);
@@ -2967,36 +2963,28 @@ const title = 'Private 3D viewer';
           selectionHelper = null;
         }
 
-        selectionPanel.hidden = true;
         selectedObject = null;
-        selectionMesh.textContent = '-';
-        selectionGroup.textContent = '-';
-        selectionScene.textContent = '-';
-        selectionFloor.textContent = '-';
-        selectionKind.textContent = '-';
-        selectionMetadataList.replaceChildren();
-        selectionMetadataEmpty.hidden = false;
-        delete canvas.dataset.selectionMetadataCount;
-        delete canvas.dataset.selectionMetadataSource;
+        selectionPanelController.clear();
       };
 
       const selectObject = (object: any) => {
         clearSelection();
 
         selectedObject = object;
-        selectionMesh.textContent = object.name ? String(object.name) : '(nimetön kohde)';
-        selectionGroup.textContent = nearestNamedAncestor(object, modelRoot) || '-';
-        selectionScene.textContent =
-          sceneNameForObject(
-            object,
-            modelRoot,
-            sourceSceneNames,
-            activePlanFloor ? dInteriorScene : fullModelScene,
-          ) || '-';
-        selectionFloor.textContent = explicitFloorToken(object);
-        selectionKind.textContent = selectionKindLabel(object);
-        renderSelectionMetadata(object);
-        selectionPanel.hidden = false;
+        selectionPanelController.render({
+          mesh: object.name ? String(object.name) : '(nimetön kohde)',
+          group: nearestNamedAncestor(object, modelRoot) || '-',
+          scene:
+            sceneNameForObject(
+              object,
+              modelRoot,
+              sourceSceneNames,
+              activePlanFloor ? dInteriorScene : fullModelScene,
+            ) || '-',
+          floor: explicitFloorToken(object),
+          kind: selectionKindLabel(object),
+          metadataEntries: collectSelectionMetadataEntries(object, modelRoot),
+        });
 
         selectionHelper = new THREE.BoxHelper(object, 0x356a8a);
         scene.add(selectionHelper);

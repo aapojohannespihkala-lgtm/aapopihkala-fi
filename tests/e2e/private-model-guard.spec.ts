@@ -1310,6 +1310,13 @@ test('private viewer selects a visible mesh, shows bounded identity, metadata, a
 
   await page.getByRole('button', { name: 'Tyhjennä' }).click();
   await expect(panel).toBeHidden();
+  await expect(page.locator('#selection-mesh')).toHaveText('-');
+  await expect(page.locator('#selection-group')).toHaveText('-');
+  await expect(page.locator('#selection-scene')).toHaveText('-');
+  await expect(page.locator('#selection-floor')).toHaveText('-');
+  await expect(page.locator('#selection-kind')).toHaveText('-');
+  await expect(canvas).not.toHaveAttribute('data-selection-metadata-count', /.+/);
+  await expect(canvas).not.toHaveAttribute('data-selection-metadata-source', /.+/);
 
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
