@@ -189,6 +189,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p154c-d-wall-cutouts-review': 'p154c-d-wall-cutouts',
     'p161-multisource-systems-review': 'p161-multisource-systems-carrier',
     'p170a-p161-review-visibility-review': 'p170a-p161-review-visibility',
+    'p170d-p161-review-visibility-correction-review': 'p170d-p161-review-visibility-correction',
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
     'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
     'p168a-whole-building-roof-eave-correction-review': 'p168a-whole-building-roof-eave-correction',
@@ -3849,6 +3850,133 @@ test('private viewer autoloads exact P170A review visibility successor with P161
   await expect(page.locator('#p161-system-layer-children')).toBeVisible();
   await expect(page.locator('#viewer-status')).toHaveText(
     'P170A P161 review visibility - WORK_TEST / KVV 82 + IV plan 32 + IV section 6 / presentation-only visibility aids - HUMAN_REVIEW NOT_RUN',
+  );
+});
+
+test('private viewer autoloads exact P170D-R2 corrected spatial visibility successor', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const ivPlanNodes = Array.from({ length: 32 }, (_, index) => ({
+    name: `P144C_IV_PLAN_SOURCE_${index + 1}`,
+    extras: {
+      systemDomain: 'IV',
+      phase: '1974',
+      sourceGeometryDimension: '2D_XY_PLAN',
+      presentationOnly: true,
+    },
+  }));
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P170D-R2 P161 SPATIAL REVIEW VISIBILITY CORRECTED - BABYLON Y-UP',
+        nodes: Array.from({ length: 35 }, (_, index) => index),
+      },
+    ],
+    nodes: [
+      {
+        name: 'P170D_R2_KVV_2017_CORRECTED_VISIBILITY_AID_BABYLON_Y_UP',
+        extras: {
+          Pass: 'P170D-R2',
+          presentationVisibilityAid: true,
+          familyRef: 'KVV_2017',
+          presentationOnly: true,
+          physicalGeometryClaim: false,
+          physicalZClaim: false,
+        },
+      },
+      {
+        name: 'P156I_SOURCE_COUNT',
+        extras: {
+          Pass: 'P156I',
+          sourceFamily: 'KVV_MAIN_2017_WORK_ASSUMPTION',
+          sourcePrimitiveCount: 82,
+          presentationOnly: true,
+        },
+      },
+      {
+        name: 'P170D_R2_IV_1974_PLAN_CORRECTED_VISIBILITY_AID_BABYLON_Y_UP',
+        extras: {
+          Pass: 'P170D-R2',
+          presentationVisibilityAid: true,
+          familyRef: 'IV_1974_PLAN',
+          presentationOnly: true,
+          physicalGeometryClaim: false,
+          physicalZClaim: false,
+        },
+      },
+      ...ivPlanNodes,
+      {
+        name: 'P170A_IV_1974_SECTION_REVIEW_VISIBILITY_AIDS_BABYLON_Y_UP',
+        extras: {
+          Pass: 'P170A',
+          presentationVisibilityAid: true,
+          familyRef: 'IV_1974_SECTION',
+          placementMode: 'PRESENTATION_SIDECAR',
+          G3Id: 'DETACHED_SECTION_SENTINEL',
+          presentationOnly: true,
+        },
+      },
+    ],
+  });
+  const candidateId = 'p170d-p161-review-visibility-correction';
+  const candidateLabel = 'P170D-R2 P161 review visibility placement correction - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p170d-p161-review-visibility-correction.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p170d-p161-review-visibility-correction-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p170d-p161-review-visibility-correction-review',
+  );
+  await expect(canvas).toHaveAttribute('data-p170-parent-pass', 'P170A');
+  await expect(canvas).toHaveAttribute('data-p170-geometry-pass', 'P170D-R2');
+  await expect(canvas).toHaveAttribute(
+    'data-p170-review-visibility-aid-families',
+    'KVV_2017,IV_1974_PLAN',
+  );
+  await expect(canvas).toHaveAttribute('data-p170-correction-scope', 'SPATIAL_REVIEW_VISIBILITY_PLACEMENT');
+  await expect(canvas).toHaveAttribute('data-p170-kvv-review-z-by-host', 'A-B:-0.940,C-D:+0.060');
+  await expect(canvas).toHaveAttribute('data-p170-iv-plan-source-display-anchor-z-reused', 'true');
+  await expect(canvas).toHaveAttribute('data-p170-iv-section-in-default-review', 'false');
+  await expect(canvas).toHaveAttribute('data-p170-excluded-detached-roots', '903,905,914,921,922');
+  await expect(canvas).toHaveAttribute(
+    'data-p170-plausibility-gate',
+    'PASS_WITH_EXPLICIT_WORK_TEST_VERTICAL_ASSUMPTION',
+  );
+  await expect(canvas).toHaveAttribute('data-p170-physical-geometry-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p170-physical-z-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p170-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-p161-section-sidecar-layer-count', '0');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P170D-R2 tekniset järjestelmät (WORK_TEST / corrected spatial visibility)',
+  );
+  await expect(page.locator('#locus-layer-count')).toHaveText('114 lähdekohdetta');
+  await page.locator('#layers-button').click();
+  await expect(page.locator('#p161-system-layer-children')).toBeVisible();
+  await expect(page.locator('#p161-iv-section-visible')).toBeDisabled();
+  await expect(page.locator('#viewer-status')).toHaveText(
+    'P170D-R2 P161 visibility correction - WORK_TEST / KVV 82 host-level review Z + IV plan 32 source-display anchors / detached section + stacked review excluded - HUMAN_REVIEW NOT_RUN',
   );
 });
 
