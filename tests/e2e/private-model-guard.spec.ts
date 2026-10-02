@@ -3369,7 +3369,7 @@ test('private viewer autoloads exact P170A review visibility successor with P161
   const candidateModel = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
-    scenes: [{ name: 'P170A P161 SYSTEMS REVIEW VISIBILITY AIDS + EXACT P161 SOURCE GEOMETRY - BABYLON Y-UP', nodes: [0, 2, 35, 42] }],
+    scenes: [{ name: 'P170A P161 SYSTEMS REVIEW VISIBILITY AIDS + EXACT P161 SOURCE GEOMETRY - BABYLON Y-UP', nodes: Array.from({ length: 43 }, (_, index) => index) }],
     nodes: [
       {
         name: 'P170A_KVV_2017_REVIEW_VISIBILITY_AID_BABYLON_Y_UP',
