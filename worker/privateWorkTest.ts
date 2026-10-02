@@ -185,6 +185,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_877_872,
     expectedSha256: '447e587b9903ec36056df2fa414620086a601bbfb5f3fcdd89a9cb9928e86368',
   },
+  // P170D-R2 viewer/release integration: corrected spatial review visibility successor.
+  {
+    id: 'p170d-p161-review-visibility-correction',
+    label: 'P170D-R2 P161 review visibility placement correction - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p170d-p161-review-visibility-correction.glb`,
+    objectKey: 'work-test/p170d-p161-review-visibility-correction.glb',
+    expectedSize: 1_887_248,
+    expectedSha256: '7f2bb6a65617e81f05c58b4d732e3c96c781f890ea5c3364e28cdaa996c6520e',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',

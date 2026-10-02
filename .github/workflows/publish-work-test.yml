@@ -15,6 +15,7 @@ on:
           - p159-whole-building-storage-context
           - p161-multisource-systems-carrier
           - p170a-p161-review-visibility
+          - p170d-p161-review-visibility-correction
           - p164b-d-corrected-stair
           - p166f-lightwell-proxies
           - p167f-whole-building-precise-stair
@@ -83,6 +84,11 @@ jobs:
               drive_file_id="17kAhyGrN7qFGtdtcyEU18VO1dQbGzlPY"
               expected_size="1877872"
               expected_sha256="447e587b9903ec36056df2fa414620086a601bbfb5f3fcdd89a9cb9928e86368"
+              ;;
+            p170d-p161-review-visibility-correction)
+              drive_file_id="1Hojb8wbz_qvXGwdyHzNfK1WuzIKL5H3D"
+              expected_size="1887248"
+              expected_sha256="7f2bb6a65617e81f05c58b4d732e3c96c781f890ea5c3364e28cdaa996c6520e"
               ;;
             p164b-d-corrected-stair)
               drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"

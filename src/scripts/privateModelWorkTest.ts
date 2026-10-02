@@ -50,6 +50,9 @@ export const p161ReviewId = 'p161-multisource-systems-review';
 export const p170aCandidateId = 'p170a-p161-review-visibility';
 export const p170aReviewId = 'p170a-p161-review-visibility-review';
 
+export const p170dCandidateId = 'p170d-p161-review-visibility-correction';
+export const p170dReviewId = 'p170d-p161-review-visibility-correction-review';
+
 export const p164bCandidateId = 'p164b-d-corrected-stair';
 export const p164bReviewId = 'p164b-d-corrected-stair-review';
 
@@ -87,6 +90,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p154cReviewId]: p154cCandidateId,
   [p161ReviewId]: p161CandidateId,
   [p170aReviewId]: p170aCandidateId,
+  [p170dReviewId]: p170dCandidateId,
   [p164bReviewId]: p164bCandidateId,
   [p167fReviewId]: p167fCandidateId,
   [p168aReviewId]: p168aCandidateId,
