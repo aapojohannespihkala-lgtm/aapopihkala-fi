@@ -17,6 +17,12 @@ import {
 import { createSelectionHighlightController } from '../../src/scripts/privateModelSelectionHighlight';
 import { pickSelectableObjectAtClientPoint } from '../../src/scripts/privateModelSelectionPicking';
 import {
+  hasVisibleEdgeMaterial,
+  isEdgeMeshCandidate,
+  isSemanticViewerLine,
+  isTreeVisible,
+} from '../../src/scripts/privateModelEdgeVisibility';
+import {
   isObjectVisibilityRenderable,
   nearestNamedAncestor,
   sceneNameForObject,
@@ -109,6 +115,86 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
       path: '/private-model/model.glb',
     }),
   ).toBe(false);
+});
+
+test('private viewer edge visibility helper preserves semantic line and mesh filtering', () => {
+  const root: any = { visible: true, parent: null };
+  const visibleParent: any = { visible: true, parent: root };
+  const hiddenParent: any = { visible: false, parent: root };
+  const visibleMaterial = { opacity: 1, userData: {} };
+  const routePresentationLayers = new Set(['G3_LOCUS_SITE']);
+  const isRoofLayerMember = (object: any) => object?.userData?.presentationLayer === 'REFERENCE_ROOF';
+  const isArchBaseMaterial = (material: any) =>
+    material?.userData?.presentationGroup === 'ARCH_BASE';
+  const candidateOptions = {
+    modelRoot: root,
+    routePresentationLayers,
+    isRoofLayerMember,
+    isArchBaseMaterial,
+  };
+
+  expect(isSemanticViewerLine({ name: 'utility marker', userData: {} })).toBe(true);
+  expect(isSemanticViewerLine({ name: 'wall face', userData: {} })).toBe(false);
+  expect(isSemanticViewerLine({ userData: { presentationLayer: 'REFERENCE_ROOF' } })).toBe(true);
+
+  expect(isTreeVisible({ visible: true, parent: visibleParent }, root)).toBe(true);
+  expect(isTreeVisible({ visible: true, parent: hiddenParent }, root)).toBe(false);
+  expect(hasVisibleEdgeMaterial({ material: visibleMaterial })).toBe(true);
+  expect(hasVisibleEdgeMaterial({ material: { opacity: 0 } })).toBe(false);
+
+  const architecturalMesh = {
+    name: 'ARCH_WALL',
+    isMesh: true,
+    geometry: {},
+    visible: true,
+    parent: visibleParent,
+    material: visibleMaterial,
+    userData: {},
+  };
+  expect(isEdgeMeshCandidate(architecturalMesh, candidateOptions)).toBe(true);
+  expect(
+    isEdgeMeshCandidate({ ...architecturalMesh, parent: hiddenParent }, candidateOptions),
+  ).toBe(false);
+  expect(
+    isEdgeMeshCandidate(
+      { ...architecturalMesh, userData: { presentationLayer: 'G3_LOCUS_SITE' } },
+      candidateOptions,
+    ),
+  ).toBe(false);
+  expect(
+    isEdgeMeshCandidate(
+      { ...architecturalMesh, userData: { presentationSubgroup: 'WATER' } },
+      candidateOptions,
+    ),
+  ).toBe(false);
+  expect(
+    isEdgeMeshCandidate({ ...architecturalMesh, name: 'TERRAIN_SURFACE' }, candidateOptions),
+  ).toBe(false);
+  expect(
+    isEdgeMeshCandidate(
+      { ...architecturalMesh, userData: { presentationOnly: true } },
+      candidateOptions,
+    ),
+  ).toBe(false);
+  expect(
+    isEdgeMeshCandidate(
+      {
+        ...architecturalMesh,
+        userData: { presentationOnly: true, presentationLayer: 'REFERENCE_ROOF' },
+      },
+      candidateOptions,
+    ),
+  ).toBe(true);
+  expect(
+    isEdgeMeshCandidate(
+      {
+        ...architecturalMesh,
+        userData: { presentationOnly: true },
+        material: { opacity: 1, userData: { presentationGroup: 'ARCH_BASE' } },
+      },
+      candidateOptions,
+    ),
+  ).toBe(true);
 });
 
 test('private viewer selection identity helper preserves object and scene semantics', () => {
