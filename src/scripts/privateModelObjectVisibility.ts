@@ -10,6 +10,35 @@ export type ObjectVisibilityNode = {
   isLineSegments?: boolean;
 };
 
+type VisibilityMaterial = {
+  opacity?: number;
+};
+
+export const isEffectivelyVisible = (
+  object: ObjectVisibilityNode | null | undefined,
+  modelRoot: ObjectVisibilityNode,
+) => {
+  let current = object;
+  while (current && current !== modelRoot.parent) {
+    if (!current.visible) return false;
+    if (current === modelRoot) return true;
+    current = current.parent;
+  }
+  return false;
+};
+
+export const hasVisibleMaterial = (
+  object:
+    | { material?: VisibilityMaterial | VisibilityMaterial[] | null }
+    | null
+    | undefined,
+) => {
+  const materials = Array.isArray(object?.material) ? object.material : [object?.material];
+  return materials.some(
+    (material) => !material || material.opacity === undefined || material.opacity > 0.01,
+  );
+};
+
 export const createObjectVisibilityFilter = () => {
   const baseline = new Map<ObjectVisibilityNode, boolean>();
   let active = false;

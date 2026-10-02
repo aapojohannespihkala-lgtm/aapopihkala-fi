@@ -1152,7 +1152,11 @@ const title = 'Private 3D viewer';
         sceneNameForObject,
         selectionKindLabel,
       } from '../../scripts/privateModelSelectionIdentity';
-      import { createObjectVisibilityFilter } from '../../scripts/privateModelObjectVisibility';
+      import {
+        createObjectVisibilityFilter,
+        hasVisibleMaterial,
+        isEffectivelyVisible,
+      } from '../../scripts/privateModelObjectVisibility';
       import {
         mergeViewerLayerState,
         type EdgeMode,
@@ -2706,7 +2710,7 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p161VisibleSystemLayerRenderableCount;
         }
 
-        if (selectedObject && !isEffectivelyVisible(selectedObject)) clearSelection();
+        if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
       };
 
       const applyViewerLayerState = (
@@ -2910,20 +2914,7 @@ const title = 'Private 3D viewer';
         return found ? bounds : null;
       };
 
-      const isEffectivelyVisible = (object: any) => {
-        let current = object;
-        while (current && current !== modelRoot.parent) {
-          if (!current.visible) return false;
-          if (current === modelRoot) return true;
-          current = current.parent;
-        }
-        return false;
-      };
 
-      const hasVisibleMaterial = (object: any) => {
-        const materials = Array.isArray(object?.material) ? object.material : [object?.material];
-        return materials.some((material: any) => !material || material.opacity === undefined || material.opacity > 0.01);
-      };
 
 
       const resetObjectVisibilityFilterState = () => {
@@ -3121,7 +3112,7 @@ const title = 'Private 3D viewer';
           .find(
             (candidate: any) =>
               (candidate.object?.isMesh || candidate.object?.isLine || candidate.object?.isLineSegments) &&
-              isEffectivelyVisible(candidate.object) &&
+              isEffectivelyVisible(candidate.object, modelRoot) &&
               hasVisibleMaterial(candidate.object),
           );
 
@@ -6396,7 +6387,7 @@ const title = 'Private 3D viewer';
       profileRouteSelect.addEventListener('change', renderSelectedInfraProfile);
       roofLayerVisibleInput.addEventListener('change', () => {
         applyViewerLayerState({ roofVisible: roofLayerVisibleInput.checked }, 'manual');
-        if (selectedObject && !isEffectivelyVisible(selectedObject)) clearSelection();
+        if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
       });
       roofLayerOpacityInput.addEventListener('input', () => {
         const requestedOpacity = Math.max(
