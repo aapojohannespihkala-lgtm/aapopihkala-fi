@@ -1172,6 +1172,7 @@ const title = 'Private 3D viewer';
         coordinateSteps,
         heightScaleStepForSpan,
       } from '../../scripts/privateModelReviewMath';
+      import { createHeightScaleController } from '../../scripts/privateModelHeightScale';
       import {
         activateReviewCoordinatePanel,
         clearReviewAnchorState,
@@ -1459,7 +1460,11 @@ const title = 'Private 3D viewer';
       let activeCamera: typeof camera | typeof planCamera | typeof isoCamera = camera;
       type ElevationDirection = 'pos-y' | 'neg-y' | 'pos-x' | 'neg-x';
       let activeElevationDirection: ElevationDirection | null = null;
-      let heightScaleSignature = '';
+      const heightScaleController = createHeightScaleController({
+        canvas,
+        scale: heightScale,
+        ticks: heightScaleTicks,
+      });
       let fullModelScene: any = null;
       let dInteriorScene: any = null;
       let activePlanFloor: '1F' | '2F' | null = null;
@@ -3078,15 +3083,7 @@ const title = 'Private 3D viewer';
       };
 
       const setHeightScaleVisible = (visible: boolean) => {
-        heightScale.hidden = !visible;
-        canvas.dataset.heightScaleVisible = visible ? 'true' : 'false';
-        if (!visible) {
-          heightScaleTicks.replaceChildren();
-          heightScaleSignature = '';
-          delete canvas.dataset.heightScaleMinZ;
-          delete canvas.dataset.heightScaleMaxZ;
-          delete canvas.dataset.heightScaleStepM;
-        }
+        heightScaleController.setVisible(visible);
       };
 
       const deactivateElevationView = () => {
@@ -3107,47 +3104,12 @@ const title = 'Private 3D viewer';
         const maxZ = centerZ + halfHeight;
         const spanZ = Math.max(maxZ - minZ, 0.001);
         const stepM = heightScaleStepForSpan(spanZ);
-        const signature = [minZ, maxZ, stepM, canvas.clientHeight]
-          .map((value) => Number(value).toFixed(3))
-          .join('|');
-        if (signature === heightScaleSignature) return;
-        heightScaleSignature = signature;
-
-        heightScaleTicks.replaceChildren();
-        const first = Math.ceil((minZ - 1e-9) / stepM) * stepM;
-        for (let value = first; value <= maxZ + 1e-9; value += stepM) {
-          const normalized = (maxZ - value) / spanZ;
-          const topPct = Math.max(0, Math.min(100, normalized * 100));
-
-          const isZero = Math.abs(value) < 1e-8;
-
-          const guide = document.createElement('div');
-          guide.className = 'height-scale-guide';
-          guide.dataset.heightM = value.toFixed(3);
-          if (isZero) guide.classList.add('zero');
-          guide.style.top = `${topPct}%`;
-
-          const tick = document.createElement('div');
-          tick.className = 'height-scale-tick';
-          tick.dataset.heightM = value.toFixed(3);
-          if (isZero) tick.classList.add('zero');
-          tick.style.top = `${topPct}%`;
-
-          const label = document.createElement('div');
-          label.className = 'height-scale-label';
-          label.dataset.heightM = value.toFixed(3);
-          label.style.top = `${topPct}%`;
-          const normalizedValue = Math.abs(value) < 0.0005 ? 0 : value;
-          const prefix = normalizedValue > 0 ? '+' : '';
-          label.textContent = `${prefix}${normalizedValue.toFixed(1).replace('.', ',')} m`;
-
-          heightScaleTicks.append(guide, tick, label);
-        }
-
-        canvas.dataset.heightScaleMinZ = minZ.toFixed(3);
-        canvas.dataset.heightScaleMaxZ = maxZ.toFixed(3);
-        canvas.dataset.heightScaleStepM = String(stepM);
-        canvas.dataset.heightScaleFrame = 'YLIS-G1-LOCAL';
+        heightScaleController.render({
+          minZ,
+          maxZ,
+          stepM,
+          viewportHeight: canvas.clientHeight,
+        });
       };
 
       const fitElevationCamera = (direction: ElevationDirection) => {
@@ -3193,7 +3155,7 @@ const title = 'Private 3D viewer';
 
         isoControls.target.copy(center);
         isoControls.update();
-        heightScaleSignature = '';
+        heightScaleController.invalidate();
         updateHeightScale();
         return true;
       };
