@@ -14,6 +14,7 @@ import {
   scalarSelectionMetadataValue,
   selectionMetadataEntries,
 } from '../../src/scripts/privateModelSelectionMetadata';
+import { createSelectionHighlightController } from '../../src/scripts/privateModelSelectionHighlight';
 import {
   isObjectVisibilityRenderable,
   nearestNamedAncestor,
@@ -207,6 +208,58 @@ test('private viewer selection metadata helper preserves bounded scalar priority
     parent: stopAt,
   };
   expect(selectionMetadataEntries(many, stopAt)).toHaveLength(12);
+});
+
+test('private viewer selection highlight controller replaces and disposes helper lifecycle', () => {
+  const events: string[] = [];
+
+  class FakeBoxHelper {
+    geometry = { dispose: () => events.push(`geometry:dispose:${this.object.id}`) };
+    material = { dispose: () => events.push(`material:dispose:${this.object.id}`) };
+
+    constructor(
+      readonly object: { id: string },
+      readonly color?: number,
+    ) {
+      events.push(`construct:${object.id}:${color?.toString(16)}`);
+    }
+
+    update() {
+      events.push(`update:${this.object.id}`);
+    }
+  }
+
+  const scene = {
+    add: (helper: FakeBoxHelper) => events.push(`scene:add:${helper.object.id}`),
+    remove: (helper: FakeBoxHelper) => events.push(`scene:remove:${helper.object.id}`),
+  };
+  const controller = createSelectionHighlightController({
+    scene,
+    BoxHelper: FakeBoxHelper,
+  });
+
+  controller.select({ id: 'first' });
+  controller.update();
+  controller.select({ id: 'second' });
+  controller.clear();
+  controller.clear();
+  controller.update();
+
+  expect(events).toEqual([
+    'construct:first:356a8a',
+    'scene:add:first',
+    'update:first',
+    'update:first',
+    'scene:remove:first',
+    'geometry:dispose:first',
+    'material:dispose:first',
+    'construct:second:356a8a',
+    'scene:add:second',
+    'update:second',
+    'scene:remove:second',
+    'geometry:dispose:second',
+    'material:dispose:second',
+  ]);
 });
 
 const makeMinimalGlb = (json: Record<string, unknown>) => {
