@@ -64,6 +64,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
     'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
     'p168a-whole-building-roof-eave-correction-review': 'p168a-whole-building-roof-eave-correction',
+    'p169a-whole-building-ac-storage-visible-review': 'p169a-whole-building-ac-storage-visible',
     'p159-whole-building-storage-context-review': 'p159-whole-building-storage-context',
     'p160-d-composite-architecture-review': 'p160-d-composite-architecture',
     'p156i-2017-kvv-main-review': 'p156i-2017-kvv-main-presentation',
@@ -3533,6 +3534,94 @@ test('private viewer autoloads the exact P168A whole-building roof/eave correcti
   await expect(canvas).toHaveAttribute('data-camera-rotation', 'enabled');
   await expect(canvas).toHaveAttribute('data-p167-d-overview-composite', 'true');
   await expect(canvas).toHaveAttribute('data-p167-d-overview-supplement-count', '2');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
+  await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
+});
+
+
+test('private viewer autoloads the exact P169A whole-building A-C storage visible review candidate', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P169A WHOLE BUILDING A-C STORAGE VISIBLE WORK_TEST - BABYLON Y-UP', nodes: [0, 1] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [3] },
+    ],
+    nodes: [
+      { name: 'P167F_FLOOR_INTERFLOOR_WORKSHELL_WITH_PRECISE_STAIR_CLEARANCE_ROOT_BABYLON_Y_UP' },
+      { name: 'P167F_D_PRECISE_STAIR_REBASE_INTEGRATION_ROOT_WORK_TEST', children: [2] },
+      { name: 'P167D_D_PRECISE_STAIR_SOURCE_PLAN_ROOT_BABYLON_Y_UP' },
+      { name: 'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP' },
+    ],
+  });
+  const candidateId = 'p169a-whole-building-ac-storage-visible';
+  const candidateLabel = 'P169A whole-building A-C storage visible envelope - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p169a-whole-building-ac-storage-visible.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p169a-whole-building-ac-storage-visible-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p169a-whole-building-ac-storage-visible-review');
+  await expect(canvas).toHaveAttribute('data-p168-geometry-pass', 'P168A');
+  await expect(canvas).toHaveAttribute('data-p169-parent-pass', 'P168A');
+  await expect(canvas).toHaveAttribute('data-p169-geometry-pass', 'P169A');
+  await expect(canvas).toHaveAttribute('data-p169-qa-pass', 'P169B');
+  await expect(canvas).toHaveAttribute('data-p169-target-surface-count', '12');
+  await expect(canvas).toHaveAttribute('data-p169-apartment-group-count', '3');
+  await expect(canvas).toHaveAttribute('data-p169-repeated-geometry-authority', 'USER_CURRENT_RELATION_PLUS_D_R_REFERENCE');
+  await expect(canvas).toHaveAttribute('data-p169-split-level-parity-m', '1.000');
+  await expect(canvas).toHaveAttribute('data-p169-inherited-p168-review-context', 'true');
+  await expect(canvas).toHaveAttribute('data-p169-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-p169-work-assumption', 'true');
+  await expect(canvas).toHaveAttribute('data-p169-opening-geometry-created', 'false');
+  await expect(canvas).toHaveAttribute('data-p169-foundation-geometry-created', 'false');
+  await expect(canvas).toHaveAttribute('data-p169-ground-contact-geometry-created', 'false');
+  await expect(canvas).toHaveAttribute('data-p169-source-primitive-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p169-binary-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p169-physical-metric-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p169-plausibility-gate', 'WARN_WORK_TEST_PROPAGATED_PRESENTATION_ENVELOPE');
+  await expect(canvas).toHaveAttribute('data-p169-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p169-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p169-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p169-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p169-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P169A A-C storage envelope (WORK_TEST / 12 presentation surfaces)',
+  );
+  await expect(page.getByRole('status')).toHaveText(
+    'P169A whole-building A-C storage visible envelope - WORK_TEST / 12 presentation surface targetia / inherited P168A roof/eave context - HUMAN_REVIEW NOT_RUN',
+  );
+
+  await clickViewAction(page, 'D-asunto');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-composite', 'true');
   await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
   await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
 });

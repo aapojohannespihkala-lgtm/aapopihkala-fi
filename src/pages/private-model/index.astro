@@ -1197,6 +1197,8 @@ const title = 'Private 3D viewer';
         p167fReviewId,
         p168aCandidateId,
         p168aReviewId,
+        p169aCandidateId,
+        p169aReviewId,
         p159CandidateId,
         p159ReviewId,
         p160CandidateId,
@@ -3583,7 +3585,11 @@ const title = 'Private 3D viewer';
 
         if (
           activeModelSourceKind !== 'work-test' ||
-          !(isP167fPreciseStairReviewRequested() || isP168aRoofEaveReviewRequested())
+          !(
+            isP167fPreciseStairReviewRequested() ||
+            isP168aRoofEaveReviewRequested() ||
+            isP169aStorageVisibleReviewRequested()
+          )
         ) {
           return dInteriorScene;
         }
@@ -4619,6 +4625,9 @@ const title = 'Private 3D viewer';
       const isP168aRoofEaveReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p168aReviewId);
 
+      const isP169aStorageVisibleReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p169aReviewId);
+
       const isP159WholeBuildingStorageContextReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p159ReviewId);
 
@@ -5048,6 +5057,38 @@ const title = 'Private 3D viewer';
           'P168A whole-building roof/eave correction - WORK_TEST / approx kattopaksuus 0,20 m / approx ulotus 0,55 m - HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP169aReviewState = () => {
+        applyP168aReviewState();
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p169a-whole-building-ac-storage-visible-review',
+          p169ParentPass: 'P168A',
+          p169GeometryPass: 'P169A',
+          p169QaPass: 'P169B',
+          p169TargetSurfaceCount: '12',
+          p169ApartmentGroupCount: '3',
+          p169RepeatedGeometryAuthority: 'USER_CURRENT_RELATION_PLUS_D_R_REFERENCE',
+          p169SplitLevelParityM: '1.000',
+          p169InheritedP168ReviewContext: 'true',
+          p169PresentationOnly: 'true',
+          p169WorkAssumption: 'true',
+          p169OpeningGeometryCreated: 'false',
+          p169FoundationGeometryCreated: 'false',
+          p169GroundContactGeometryCreated: 'false',
+          p169SourcePrimitiveMutation: 'false',
+          p169BinaryMutation: 'false',
+          p169PhysicalMetricClaim: 'false',
+          p169PlausibilityGate: 'WARN_WORK_TEST_PROPAGATED_PRESENTATION_ENVELOPE',
+          p169CurrentClaim: 'false',
+          p169AsBuiltClaim: 'false',
+          p169Canonical: 'false',
+          p169PublishToCurrent: 'false',
+          p169HumanReview: 'NOT_RUN',
+          standardViewPreset: 'whole-building',
+        });
+        status.textContent =
+          'P169A whole-building A-C storage visible envelope - WORK_TEST / 12 presentation surface targetia / inherited P168A roof/eave context - HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP159ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p159-whole-building-storage-context-review',
@@ -5193,6 +5234,8 @@ const title = 'Private 3D viewer';
             candidate.id === p167fCandidateId && isP167fPreciseStairReviewRequested();
           const isP168aRoofEaveReview =
             candidate.id === p168aCandidateId && isP168aRoofEaveReviewRequested();
+          const isP169aStorageVisibleReview =
+            candidate.id === p169aCandidateId && isP169aStorageVisibleReviewRequested();
           const isP159WholeBuildingStorageContextReview =
             candidate.id === p159CandidateId && isP159WholeBuildingStorageContextReviewRequested();
           const isP160DCompositeReview =
@@ -5388,6 +5431,28 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p168Canonical;
           delete canvas.dataset.p168PublishToCurrent;
           delete canvas.dataset.p168HumanReview;
+          delete canvas.dataset.p169ParentPass;
+          delete canvas.dataset.p169GeometryPass;
+          delete canvas.dataset.p169QaPass;
+          delete canvas.dataset.p169TargetSurfaceCount;
+          delete canvas.dataset.p169ApartmentGroupCount;
+          delete canvas.dataset.p169RepeatedGeometryAuthority;
+          delete canvas.dataset.p169SplitLevelParityM;
+          delete canvas.dataset.p169InheritedP168ReviewContext;
+          delete canvas.dataset.p169PresentationOnly;
+          delete canvas.dataset.p169WorkAssumption;
+          delete canvas.dataset.p169OpeningGeometryCreated;
+          delete canvas.dataset.p169FoundationGeometryCreated;
+          delete canvas.dataset.p169GroundContactGeometryCreated;
+          delete canvas.dataset.p169SourcePrimitiveMutation;
+          delete canvas.dataset.p169BinaryMutation;
+          delete canvas.dataset.p169PhysicalMetricClaim;
+          delete canvas.dataset.p169PlausibilityGate;
+          delete canvas.dataset.p169CurrentClaim;
+          delete canvas.dataset.p169AsBuiltClaim;
+          delete canvas.dataset.p169Canonical;
+          delete canvas.dataset.p169PublishToCurrent;
+          delete canvas.dataset.p169HumanReview;
           delete canvas.dataset.p159OwnerCandidate;
           delete canvas.dataset.p159InheritedHumanReviewScope;
           delete canvas.dataset.p159StorageReferenceFootprintCount;
@@ -5433,6 +5498,8 @@ const title = 'Private 3D viewer';
               ? 'Koko rakennus + storage referenceFootprints (WORK_TEST / presentation-only)'
             : isP161MultisourceSystemsReview
               ? 'P161 tekniset järjestelmät (WORK_TEST)'
+            : isP169aStorageVisibleReview
+              ? 'P169A A-C storage envelope (WORK_TEST / 12 presentation surfaces)'
             : isP168aRoofEaveReview
               ? 'P168A roof/eave correction (WORK_TEST / approx 0,20 m + 0,55 m)'
             : isP167fPreciseStairReview
@@ -5473,7 +5540,9 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP168aRoofEaveReview) {
+          if (isP169aStorageVisibleReview) {
+            applyP169aReviewState();
+          } else if (isP168aRoofEaveReview) {
             applyP168aReviewState();
           } else if (isP167fPreciseStairReview) {
             applyP167fReviewState();
