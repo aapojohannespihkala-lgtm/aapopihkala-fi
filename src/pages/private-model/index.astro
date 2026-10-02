@@ -1431,6 +1431,8 @@ const title = 'Private 3D viewer';
       const locusWastewaterObjects = new Set<any>();
       const locusLayerVisibilityBaseline = new Map<any, boolean>();
       let locusLayerVisible = false;
+      // Preset layer defaults initialize once per real model load; later view changes preserve user state.
+      let standardViewLayerDefaultsInitialized = false;
       let archBaseMaterialCloneCount = 0;
       let activeModelSourceKind: 'current' | 'work-test' = 'current';
       const dReviewEmphasisMeshes = new Set<any>();
@@ -2614,6 +2616,10 @@ const title = 'Private 3D viewer';
         canvas.dataset.layerRoofOpacity = String(roofLayerOpacity);
         canvas.dataset.layerLocusVisible = locusLayerVisible ? 'true' : 'false';
         canvas.dataset.layerEdgeMode = edgeMode;
+
+        if (source === 'manual') {
+          standardViewLayerDefaultsInitialized = true;
+        }
       };
 
       const initializeLocusLayer = () => {
@@ -3581,7 +3587,10 @@ const title = 'Private 3D viewer';
 
       const applyStandardViewPreset = (preset: StandardViewPreset) => {
         canvas.dataset.standardViewPreset = preset;
-        applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);
+        if (!standardViewLayerDefaultsInitialized) {
+          applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);
+          standardViewLayerDefaultsInitialized = true;
+        }
 
         if (preset === 'whole-building') fitModel();
         else if (preset === 'd-apartment') activateDOverview();
@@ -3691,6 +3700,7 @@ const title = 'Private 3D viewer';
         fullModelScene = gltf.scene;
         dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
         activeModelSourceKind = sourceKind;
+        standardViewLayerDefaultsInitialized = false;
         setInfraProfileAvailable(false);
 
         initializeFullModelArchBase();

@@ -4066,7 +4066,7 @@ test('private viewer bounds a non-settling WORK_TEST import before browser relay
   expect(uploadRequests).toBe(1);
 });
 
-test('private viewer standard presets apply recommended layer start state and keep manual layer overrides available', async ({ page }) => {
+test('private viewer initializes preset layer defaults once and preserves manual overrides across view modes', async ({ page }) => {
   const model = makeLocusLayerGlb();
 
   await page.route('**/private-model/model.glb', async (route) => {
@@ -4078,39 +4078,53 @@ test('private viewer standard presets apply recommended layer start state and ke
 
   await page.goto('/private-model/');
   const canvas = page.locator('#private-model-canvas');
+  const modelBadge = page.locator('#model-source-badge');
+
+  // View presets must stay inside the currently loaded model; only explicit model actions may swap identity.
+  await expect(modelBadge).toHaveText('CURRENT');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
 
   await clickViewAction(page, 'Koko rakennus');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
   await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(canvas).toHaveAttribute('data-layer-state-source', 'preset:whole-building');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'true');
   await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'false');
   await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'visible');
 
   await page.getByRole('button', { name: 'Layerit' }).click();
+  const roofToggle = page.locator('#roof-layer-visible');
+  const locusToggle = page.locator('#locus-layer-visible');
   const edgeMode = page.locator('#edge-mode-select');
+  await expect(locusToggle).toBeEnabled();
+
+  await roofToggle.uncheck();
+  await locusToggle.check();
   await edgeMode.selectOption('none');
   await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'true');
   await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
-  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+
+  await clickViewAction(page, 'Tontti');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'site');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
+  await expect(modelBadge).toHaveText('CURRENT');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
 
   await clickViewAction(page, 'Infra');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'infra');
   await expect(canvas).toHaveAttribute('data-view-preset', 'top');
-  await expect(canvas).toHaveAttribute('data-layer-state-source', 'preset:infra');
-  await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'true');
-  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
-  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'visible');
-
-  const locusToggle = page.locator('#locus-layer-visible');
-  await locusToggle.uncheck();
   await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
-  await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'false');
-  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'infra');
-
-  await clickViewAction(page, 'Tontti');
-  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'site');
-  await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'false');
-  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-locus-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
+  await expect(modelBadge).toHaveText('CURRENT');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
 });
 
 test('private viewer keeps the primary toolbar compact and exposes legacy actions through menus', async ({ page }) => {
