@@ -24,7 +24,7 @@ test('private-model route delegates toolbar menu runtime to the module', async (
   expect(source).toContain(
     "import { setupPrivateModelToolbarMenus } from '../../scripts/privateModelToolbarMenus';",
   );
-  expect(source).toContain('setupPrivateModelToolbarMenus(toolbarMenus);');
+  expect(source).toContain('const { closeToolbarMenus } = setupPrivateModelToolbarMenus(toolbarMenus);');
   expect(source).not.toContain('const closeToolbarMenus =');
   expect(source).not.toContain('const fitToolbarMenuToViewport =');
 });
