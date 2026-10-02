@@ -4219,7 +4219,17 @@ test('private viewer autoloads the exact P169A whole-building A-C storage visibl
   await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
   await expect(canvas).toHaveAttribute('data-p172b-d-overview-presentation', 'true');
   await expect(canvas).toHaveAttribute('data-p172b-d-overview-floor-opacity', '0.45');
+  await expect(canvas).toHaveAttribute('data-research-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-content-scene', 'd-overview');
   await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
+
+  await clickViewAction(page, 'Isometrinen');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-research-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-content-scene', 'd-overview');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
+  await expect(canvas).toHaveAttribute('data-p172b-d-overview-presentation', 'true');
+  await expect(canvas).toHaveAttribute('data-p172b-d-overview-floor-opacity', '0.45');
 });
 
 
