@@ -1608,7 +1608,7 @@ test('private viewer restores active preset camera and semantic layer defaults o
   const locusToggle = page.locator('#locus-layer-visible');
   const waterToggle = page.locator('#locus-water-visible');
   const wastewaterToggle = page.locator('#locus-wastewater-visible');
-  const edgeMode = page.locator('#edge-mode');
+  const edgeMode = page.locator('#edge-mode-select');
 
   await locusToggle.check();
   await waterToggle.uncheck();
