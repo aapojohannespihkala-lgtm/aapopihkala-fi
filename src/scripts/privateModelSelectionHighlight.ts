@@ -43,5 +43,9 @@ export const createSelectionHighlightController = ({
     helper.update();
   };
 
-  return { clear, select };
+  const update = () => {
+    helper?.update();
+  };
+
+  return { clear, select, update };
 };
