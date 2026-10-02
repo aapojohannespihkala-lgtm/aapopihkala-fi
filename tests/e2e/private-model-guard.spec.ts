@@ -61,6 +61,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p153c-d-stair-review': 'p153c-d-stair-guard-lowwall',
     'p154c-d-wall-cutouts-review': 'p154c-d-wall-cutouts',
     'p161-multisource-systems-review': 'p161-multisource-systems-carrier',
+    'p170a-p161-review-visibility-review': 'p170a-p161-review-visibility',
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
     'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
     'p168a-whole-building-roof-eave-correction-review': 'p168a-whole-building-roof-eave-correction',
@@ -3340,6 +3341,99 @@ test('private viewer autoloads the exact P161 multisource systems review candida
   await expect(ivPlanLayer).toBeEnabled();
   await expect(ivSectionLayer).toBeEnabled();
 });
+
+test('private viewer autoloads exact P170A review visibility successor with P161 hierarchy', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const ivPlanNodes = Array.from({ length: 32 }, (_, index) => ({
+    name: `P170A_IV_PLAN_SOURCE_${index + 1}`,
+    extras: {
+      systemDomain: 'IV',
+      phase: '1974',
+      sourceGeometryDimension: '2D_XY_PLAN',
+      presentationOnly: true,
+    },
+  }));
+  const sectionNodes = Array.from({ length: 6 }, (_, index) => ({
+    name: `P170A_IV_SECTION_SOURCE_${index + 1}`,
+    extras: {
+      placementMode: 'PRESENTATION_SIDECAR',
+      G3Id: `P170A_SECTION_${index + 1}`,
+      presentationOnly: true,
+    },
+  }));
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P170A P161 SYSTEMS REVIEW VISIBILITY AIDS + EXACT P161 SOURCE GEOMETRY - BABYLON Y-UP', nodes: [0, 2, 35, 42] }],
+    nodes: [
+      {
+        name: 'P170A_KVV_2017_REVIEW_VISIBILITY_AID_BABYLON_Y_UP',
+        extras: { Pass: 'P170A', presentationVisibilityAid: true, familyRef: 'KVV_2017', presentationOnly: true },
+      },
+      {
+        name: 'P156I_SOURCE_COUNT',
+        extras: { Pass: 'P156I', sourceFamily: 'KVV_MAIN_2017_WORK_ASSUMPTION', sourcePrimitiveCount: 82, presentationOnly: true },
+      },
+      {
+        name: 'P170A_IV_1974_PLAN_REVIEW_VISIBILITY_AID_BABYLON_Y_UP',
+        extras: { Pass: 'P170A', presentationVisibilityAid: true, familyRef: 'IV_1974_PLAN', presentationOnly: true },
+      },
+      ...ivPlanNodes,
+      {
+        name: 'P170A_IV_1974_SECTION_REVIEW_VISIBILITY_AIDS_BABYLON_Y_UP',
+        extras: { Pass: 'P170A', presentationVisibilityAid: true, familyRef: 'IV_1974_SECTION', presentationOnly: true },
+      },
+      ...sectionNodes,
+      {
+        name: 'P170A_SOURCE_COUNT_SENTINEL',
+        extras: { sourceFamily: 'KVV_MAIN_2017_WORK_ASSUMPTION', sourcePrimitiveCount: 82, presentationOnly: true },
+      },
+    ],
+  });
+  const candidateId = 'p170a-p161-review-visibility';
+  const candidateLabel = 'P170A P161 review visibility presentation successor - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p170a-p161-review-visibility.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p170a-p161-review-visibility-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p170a-p161-review-visibility-review');
+  await expect(canvas).toHaveAttribute('data-p170-geometry-pass', 'P170A');
+  await expect(canvas).toHaveAttribute('data-p170-review-visibility-aid', 'true');
+  await expect(canvas).toHaveAttribute('data-p170-visibility-scale-exaggerated', 'true');
+  await expect(canvas).toHaveAttribute('data-p170-physical-geometry-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p170-physical-z-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p170-human-review', 'NOT_RUN');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P170A tekniset järjestelmät (WORK_TEST / review visibility aids)',
+  );
+  await expect(page.locator('#locus-layer-count')).toHaveText('120 lähdekohdetta');
+  await page.locator('#layers-button').click();
+  await expect(page.locator('#p161-system-layer-children')).toBeVisible();
+  await expect(page.getByRole('status')).toHaveText(
+    'P170A P161 review visibility - WORK_TEST / KVV 82 + IV plan 32 + IV section 6 / presentation-only visibility aids - HUMAN_REVIEW NOT_RUN',
+  );
+});
+
 test('private viewer autoloads the exact P164B D corrected stair review candidate', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
