@@ -1237,6 +1237,8 @@ const title = 'Private 3D viewer';
         p168aReviewId,
         p169aCandidateId,
         p169aReviewId,
+        p169fCandidateId,
+        p169fReviewId,
         p159CandidateId,
         p159ReviewId,
         p160CandidateId,
@@ -3498,7 +3500,8 @@ const title = 'Private 3D viewer';
           !(
             isP167fPreciseStairReviewRequested() ||
             isP168aRoofEaveReviewRequested() ||
-            isP169aStorageVisibleReviewRequested()
+            isP169aStorageVisibleReviewRequested() ||
+            isP169fStorageDoorReviewRequested()
           )
         ) {
           return dInteriorScene;
@@ -4597,6 +4600,9 @@ const title = 'Private 3D viewer';
       const isP169aStorageVisibleReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p169aReviewId);
 
+      const isP169fStorageDoorReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p169fReviewId);
+
       const isP159WholeBuildingStorageContextReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p159ReviewId);
 
@@ -5085,6 +5091,45 @@ const title = 'Private 3D viewer';
           'P169A whole-building A-C storage visible envelope - WORK_TEST / 12 presentation surface targetia / inherited P168A roof/eave context - HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP169fReviewState = () => {
+        applyP169aReviewState();
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p169f-whole-building-ac-storage-doors-review',
+          p169HumanReview: 'SCOPED_PASS_STORAGE_ENVELOPE_ONLY',
+          p169fParentPass: 'P169A',
+          p169fGeometryPass: 'P169F',
+          p169fQaPass: 'P169G',
+          p169fTargetDoorCount: '3',
+          p169fOpeningAnchorCount: '3',
+          p169fProxyCount: '3',
+          p169fDoorAuthority: 'USER_REVIEW_PROPAGATE_D_RELATIVE_LOCATION',
+          p169fInheritedP169aEnvelope: 'true',
+          p169fParentHumanReview: 'SCOPED_PASS_STORAGE_ENVELOPE_ONLY',
+          p169fPresentationOnly: 'true',
+          p169fWorkAssumption: 'true',
+          p169fPhysicalOpeningClaim: 'false',
+          p169fOpeningGeometryCreated: 'false',
+          p169fPhysicalMetricClaim: 'false',
+          p169fDoorWidthClaim: 'false',
+          p169fDoorHeightClaim: 'false',
+          p169fDoorHandingClaim: 'false',
+          p169fFoundationGeometryCreated: 'false',
+          p169fGroundContactGeometryCreated: 'false',
+          p169fSourcePrimitiveMutation: 'false',
+          p169fBinaryMutation: 'false',
+          p169fHostRoleNamingDiscrepancy: 'true',
+          p169fPlausibilityGate: 'PASS_WITH_SOURCE_HOST_LABEL_WARN',
+          p169fCurrentClaim: 'false',
+          p169fAsBuiltClaim: 'false',
+          p169fCanonical: 'false',
+          p169fPublishToCurrent: 'false',
+          p169fHumanReview: 'NOT_RUN',
+          standardViewPreset: 'whole-building',
+        });
+        status.textContent =
+          'P169F A-C storage doors - WORK_TEST / 3 presentation-only doors / no physical opening or metric claim - HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP159ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p159-whole-building-storage-context-review',
@@ -5234,6 +5279,8 @@ const title = 'Private 3D viewer';
             candidate.id === p168aCandidateId && isP168aRoofEaveReviewRequested();
           const isP169aStorageVisibleReview =
             candidate.id === p169aCandidateId && isP169aStorageVisibleReviewRequested();
+          const isP169fStorageDoorReview =
+            candidate.id === p169fCandidateId && isP169fStorageDoorReviewRequested();
           const isP159WholeBuildingStorageContextReview =
             candidate.id === p159CandidateId && isP159WholeBuildingStorageContextReviewRequested();
           const isP160DCompositeReview =
@@ -5469,6 +5516,34 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p169Canonical;
           delete canvas.dataset.p169PublishToCurrent;
           delete canvas.dataset.p169HumanReview;
+          delete canvas.dataset.p169fParentPass;
+          delete canvas.dataset.p169fGeometryPass;
+          delete canvas.dataset.p169fQaPass;
+          delete canvas.dataset.p169fTargetDoorCount;
+          delete canvas.dataset.p169fOpeningAnchorCount;
+          delete canvas.dataset.p169fProxyCount;
+          delete canvas.dataset.p169fDoorAuthority;
+          delete canvas.dataset.p169fInheritedP169aEnvelope;
+          delete canvas.dataset.p169fParentHumanReview;
+          delete canvas.dataset.p169fPresentationOnly;
+          delete canvas.dataset.p169fWorkAssumption;
+          delete canvas.dataset.p169fPhysicalOpeningClaim;
+          delete canvas.dataset.p169fOpeningGeometryCreated;
+          delete canvas.dataset.p169fPhysicalMetricClaim;
+          delete canvas.dataset.p169fDoorWidthClaim;
+          delete canvas.dataset.p169fDoorHeightClaim;
+          delete canvas.dataset.p169fDoorHandingClaim;
+          delete canvas.dataset.p169fFoundationGeometryCreated;
+          delete canvas.dataset.p169fGroundContactGeometryCreated;
+          delete canvas.dataset.p169fSourcePrimitiveMutation;
+          delete canvas.dataset.p169fBinaryMutation;
+          delete canvas.dataset.p169fHostRoleNamingDiscrepancy;
+          delete canvas.dataset.p169fPlausibilityGate;
+          delete canvas.dataset.p169fCurrentClaim;
+          delete canvas.dataset.p169fAsBuiltClaim;
+          delete canvas.dataset.p169fCanonical;
+          delete canvas.dataset.p169fPublishToCurrent;
+          delete canvas.dataset.p169fHumanReview;
           delete canvas.dataset.p159OwnerCandidate;
           delete canvas.dataset.p159InheritedHumanReviewScope;
           delete canvas.dataset.p159StorageReferenceFootprintCount;
@@ -5516,6 +5591,8 @@ const title = 'Private 3D viewer';
               ? 'P170A tekniset järjestelmät (WORK_TEST / review visibility aids)'
             : isP161MultisourceSystemsReview
               ? 'P161 tekniset järjestelmät (WORK_TEST)'
+            : isP169fStorageDoorReview
+              ? 'P169F A-C storage doors (WORK_TEST / 3 presentation-only doors)'
             : isP169aStorageVisibleReview
               ? 'P169A A-C storage envelope (WORK_TEST / 12 presentation surfaces)'
             : isP168aRoofEaveReview
@@ -5558,7 +5635,9 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP169aStorageVisibleReview) {
+          if (isP169fStorageDoorReview) {
+            applyP169fReviewState();
+          } else if (isP169aStorageVisibleReview) {
             applyP169aReviewState();
           } else if (isP168aRoofEaveReview) {
             applyP168aReviewState();
