@@ -15,6 +15,7 @@ import {
   selectionMetadataEntries,
 } from '../../src/scripts/privateModelSelectionMetadata';
 import { createSelectionHighlightController } from '../../src/scripts/privateModelSelectionHighlight';
+import { pickSelectableObjectAtClientPoint } from '../../src/scripts/privateModelSelectionPicking';
 import {
   isObjectVisibilityRenderable,
   nearestNamedAncestor,
@@ -209,6 +210,75 @@ test('private viewer selection metadata helper preserves bounded scalar priority
     parent: stopAt,
   };
   expect(selectionMetadataEntries(many, stopAt)).toHaveLength(12);
+});
+
+test('private viewer selection picking helper preserves hit filtering and pointer normalization', () => {
+  const pointer = { x: 0, y: 0 };
+  const camera = { id: 'camera' };
+  const modelRoot = { children: [{ id: 'root-child' }] };
+  const visibleMesh = { id: 'visible', isMesh: true };
+  const hiddenMesh = { id: 'hidden', isMesh: true };
+  const materialHiddenLine = { id: 'material-hidden', isLine: true };
+  const unsupported = { id: 'unsupported', type: 'Points' };
+  const setFromCameraCalls: Array<{ x: number; y: number; camera: any }> = [];
+  const intersectCalls: Array<{ objects: any[]; recursive: boolean }> = [];
+
+  const raycaster = {
+    setFromCamera: (nextPointer: { x: number; y: number }, nextCamera: any) => {
+      setFromCameraCalls.push({ x: nextPointer.x, y: nextPointer.y, camera: nextCamera });
+    },
+    intersectObjects: (objects: any[], recursive: boolean) => {
+      intersectCalls.push({ objects, recursive });
+      return [
+        { object: unsupported },
+        { object: hiddenMesh },
+        { object: materialHiddenLine },
+        { object: visibleMesh },
+      ];
+    },
+  };
+
+  const picked = pickSelectableObjectAtClientPoint({
+    canvas: {
+      getBoundingClientRect: () => ({ left: 10, top: 20, width: 200, height: 100 }),
+    },
+    camera,
+    modelRoot,
+    raycaster,
+    pointer,
+    clientX: 160,
+    clientY: 45,
+    isEffectivelyVisible: (object) => object !== hiddenMesh,
+    hasVisibleMaterial: (object) => object !== materialHiddenLine,
+  });
+
+  expect(picked).toBe(visibleMesh);
+  expect(pointer).toEqual({ x: 0.5, y: 0.5 });
+  expect(setFromCameraCalls).toEqual([{ x: 0.5, y: 0.5, camera }]);
+  expect(intersectCalls).toEqual([{ objects: modelRoot.children, recursive: true }]);
+
+  let zeroRectRaycast = false;
+  expect(
+    pickSelectableObjectAtClientPoint({
+      canvas: {
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 0, height: 100 }),
+      },
+      camera,
+      modelRoot,
+      raycaster: {
+        setFromCamera: () => {
+          zeroRectRaycast = true;
+        },
+        intersectObjects: () => [],
+      },
+      pointer,
+      clientX: 0,
+      clientY: 0,
+      isEffectivelyVisible: () => true,
+      hasVisibleMaterial: () => true,
+    }),
+  ).toBeNull();
+  expect(zeroRectRaycast).toBe(false);
 });
 
 test('private viewer selection highlight controller replaces and disposes helper lifecycle', () => {
