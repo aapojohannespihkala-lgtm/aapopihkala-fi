@@ -1,3 +1,5 @@
+import { installPrivateModelLayerPanelUi } from './privateModelLayerPanelUi';
+
 export const toolbarMenuAvailableHeight = (
   viewportHeight: number,
   panelTop: number,
@@ -33,6 +35,8 @@ export const setupPrivateModelToolbarMenus = (toolbarMenus: HTMLDetailsElement[]
       }
     });
   });
+
+  queueMicrotask(installPrivateModelLayerPanelUi);
 
   window.addEventListener('resize', () => {
     toolbarMenus.forEach((menu) => {
