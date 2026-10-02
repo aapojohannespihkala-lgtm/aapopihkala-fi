@@ -1205,6 +1205,8 @@ const title = 'Private 3D viewer';
         p156iReviewId,
         p161CandidateId,
         p161ReviewId,
+        p170aCandidateId,
+        p170aReviewId,
         p164bCandidateId,
         p164bReviewId,
         p167fCandidateId,
@@ -2221,6 +2223,12 @@ const title = 'Private 3D viewer';
 
       const p161SystemLayerFamily = (object: any): P161SystemLayerFamily | null => {
         const data = object?.userData ?? {};
+        if (data.Pass === 'P170A' && data.presentationVisibilityAid === true) {
+          const familyRef = String(data.familyRef ?? '');
+          if (familyRef === 'KVV_2017') return 'KVV_2017';
+          if (familyRef === 'IV_1974_PLAN') return 'IV_1974_PLAN';
+          if (familyRef.startsWith('IV_1974_SECTION')) return 'IV_1974_SECTION';
+        }
         if (
           (data.Pass === 'P156I' &&
             data.Purpose === 'mainCandidate2017PresentationSuccessor') ||
@@ -2254,8 +2262,10 @@ const title = 'Private 3D viewer';
       const isP161SystemLayerMember = (object: any) =>
         p161SystemLayerFamily(object) !== null;
 
-      const isP161SystemsLayerReviewRequested = () =>
-        new URLSearchParams(window.location.search).get('review') === p161ReviewId;
+      const isP161SystemsLayerReviewRequested = () => {
+        const review = new URLSearchParams(window.location.search).get('review');
+        return review === p161ReviewId || review === p170aReviewId;
+      };
 
       const edgeSemanticTokens = [
         'ANNOTATION',
@@ -4740,6 +4750,9 @@ const title = 'Private 3D viewer';
       const isP161MultisourceSystemsReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p161ReviewId);
 
+      const isP170aReviewVisibilityReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p170aReviewId);
+
       const isP164bCorrectedStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p164bReviewId);
 
@@ -5078,6 +5091,33 @@ const title = 'Private 3D viewer';
           'P161 multisource systems - WORK_TEST / P156I 2017 KVV + 1974 IV plan 32 + section sidecar 6 / lähdeperheet erillään - ei CURRENT/as-built';
       };
 
+      const applyP170aReviewState = () => {
+        applyP161ReviewState();
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p170a-p161-review-visibility-review',
+          p170ParentPass: 'P161',
+          p170GeometryPass: 'P170A',
+          p170ReviewVisibilityAid: 'true',
+          p170ReviewVisibilityAidFamilies: 'KVV_2017,IV_1974_PLAN,IV_1974_SECTION',
+          p170KvvReviewRibbonWidthM: '0.300',
+          p170KvvReviewLiftM: '0.060',
+          p170IvPlanMarkerSizeM: '0.550',
+          p170IvPlanReviewCapZ: '8.350',
+          p170IvSectionMarkerSizeM: '0.340',
+          p170VisibilityScaleExaggerated: 'true',
+          p170PhysicalGeometryClaim: 'false',
+          p170PhysicalZClaim: 'false',
+          p170CurrentClaim: 'false',
+          p170AsBuiltClaim: 'false',
+          p170Canonical: 'false',
+          p170PublishToCurrent: 'false',
+          p170HumanReview: 'NOT_RUN',
+          p170PlausibilityGate: 'WARN_WORK_TEST_EXAGGERATED_REVIEW_VISIBILITY_PRESENTATION',
+        });
+        status.textContent =
+          'P170A P161 review visibility - WORK_TEST / KVV 82 + IV plan 32 + IV section 6 / presentation-only visibility aids - HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP164bReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p164b-d-corrected-stair-review',
@@ -5352,6 +5392,8 @@ const title = 'Private 3D viewer';
             candidate.id === p156iCandidateId && isP156i2017KvvMainReviewRequested();
           const isP161MultisourceSystemsReview =
             candidate.id === p161CandidateId && isP161MultisourceSystemsReviewRequested();
+          const isP170aReviewVisibilityReview =
+            candidate.id === p170aCandidateId && isP170aReviewVisibilityReviewRequested();
           const isP164bCorrectedStairReview =
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP167fPreciseStairReview =
@@ -5482,6 +5524,24 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p161SectionStationStatus;
           delete canvas.dataset.p161SectionVerticalDatumStatus;
           delete canvas.dataset.p161HumanReview;
+          delete canvas.dataset.p170ParentPass;
+          delete canvas.dataset.p170GeometryPass;
+          delete canvas.dataset.p170ReviewVisibilityAid;
+          delete canvas.dataset.p170ReviewVisibilityAidFamilies;
+          delete canvas.dataset.p170KvvReviewRibbonWidthM;
+          delete canvas.dataset.p170KvvReviewLiftM;
+          delete canvas.dataset.p170IvPlanMarkerSizeM;
+          delete canvas.dataset.p170IvPlanReviewCapZ;
+          delete canvas.dataset.p170IvSectionMarkerSizeM;
+          delete canvas.dataset.p170VisibilityScaleExaggerated;
+          delete canvas.dataset.p170PhysicalGeometryClaim;
+          delete canvas.dataset.p170PhysicalZClaim;
+          delete canvas.dataset.p170CurrentClaim;
+          delete canvas.dataset.p170AsBuiltClaim;
+          delete canvas.dataset.p170Canonical;
+          delete canvas.dataset.p170PublishToCurrent;
+          delete canvas.dataset.p170HumanReview;
+          delete canvas.dataset.p170PlausibilityGate;
           delete canvas.dataset.p164ParentPass;
           delete canvas.dataset.p164Topology;
           delete canvas.dataset.p164LowerFlightLevels;
@@ -5620,6 +5680,8 @@ const title = 'Private 3D viewer';
               ? 'Koko rakennus + alusrakennekuoret (WORK_TEST)'
             : isP159WholeBuildingStorageContextReview
               ? 'Koko rakennus + storage referenceFootprints (WORK_TEST / presentation-only)'
+            : isP170aReviewVisibilityReview
+              ? 'P170A tekniset järjestelmät (WORK_TEST / review visibility aids)'
             : isP161MultisourceSystemsReview
               ? 'P161 tekniset järjestelmät (WORK_TEST)'
             : isP169aStorageVisibleReview
@@ -5672,6 +5734,8 @@ const title = 'Private 3D viewer';
             applyP167fReviewState();
           } else if (isP164bCorrectedStairReview) {
             applyP164bReviewState();
+          } else if (isP170aReviewVisibilityReview) {
+            applyP170aReviewState();
           } else if (isP161MultisourceSystemsReview) {
             applyP161ReviewState();
           } else if (isP159WholeBuildingStorageContextReview) {

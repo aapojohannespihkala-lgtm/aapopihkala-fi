@@ -14,6 +14,7 @@ on:
           - p160-d-composite-architecture
           - p159-whole-building-storage-context
           - p161-multisource-systems-carrier
+          - p170a-p161-review-visibility
           - p164b-d-corrected-stair
           - p166f-lightwell-proxies
           - p167f-whole-building-precise-stair
@@ -76,6 +77,11 @@ jobs:
               drive_file_id="1tnLYRipsRBLfgNMLKN4NIBPO2IzCENdV"
               expected_size="1858948"
               expected_sha256="7413fa57b423260cfff9554fae96a8167fba48d03a7c570806a509e58e3ca65d"
+              ;;
+            p170a-p161-review-visibility)
+              drive_file_id="17kAhyGrN7qFGtdtcyEU18VO1dQbGzlPY"
+              expected_size="1877872"
+              expected_sha256="447e587b9903ec36056df2fa414620086a601bbfb5f3fcdd89a9cb9928e86368"
               ;;
             p164b-d-corrected-stair)
               drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"
