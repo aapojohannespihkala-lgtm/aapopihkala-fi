@@ -203,6 +203,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_076_876,
     expectedSha256: 'a9d0672283f15f2ab8cbd527242cb8982b1dab81e86e86b7dad1bfe42dbd1590',
   },
+  // P169C viewer integration: exact P169A whole-building A-C storage visible envelope.
+  {
+    id: 'p169a-whole-building-ac-storage-visible',
+    label: 'P169A whole-building A-C storage visible envelope - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p169a-whole-building-ac-storage-visible.glb`,
+    objectKey: 'work-test/p169a-whole-building-ac-storage-visible.glb',
+    expectedSize: 2_093_060,
+    expectedSha256: '12036d1c70e8568a37246d3fe4fe76917095c37ad3f0155e488a8b039c8cfe7b',
+  },
   // P159 viewer integration: exact whole-building storage context successor.
   {
     id: 'p159-whole-building-storage-context',
