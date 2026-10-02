@@ -42,6 +42,10 @@ required = {
     "P170D-R2 exact candidate": "p170d-p161-review-visibility-correction",
     "P170D-R2 exact size": 'expected_size="1887248"',
     "P170D-R2 exact sha": 'expected_sha256="7f2bb6a65617e81f05c58b4d732e3c96c781f890ea5c3364e28cdaa996c6520e"',
+    "P171C exact Drive file": 'drive_file_id="1gpe5tQS7vAlXM9J46VP6bxNLMIz7-EKe"',
+    "P171C exact candidate": "p171c-d-stair-opening-guard-lowwall-junction",
+    "P171C exact size": 'expected_size="2110432"',
+    "P171C exact sha": 'expected_sha256="ccacc928d7913886755dba7bb04d3dd3cc9f84e5a03dbd63170c29622b64e706"',
     "P164B exact Drive file": 'drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"',
     "P164B exact candidate": "p164b-d-corrected-stair",
     "P164B exact size": 'expected_size="1583912"',
@@ -104,7 +108,7 @@ if input_names != {"candidate"}:
     raise SystemExit(f"publish-work-test inputs must be candidate-only, got: {sorted(input_names)}")
 
 option_lines = re.findall(
-    r"^\s{10}- (p150g-whole-building-end-plinth|p154c-d-wall-cutouts|p160-d-composite-architecture|p159-whole-building-storage-context|p161-multisource-systems-carrier|p170a-p161-review-visibility|p170d-p161-review-visibility-correction|p164b-d-corrected-stair|p166f-lightwell-proxies|p167f-whole-building-precise-stair|p168a-whole-building-roof-eave-correction|p169a-whole-building-ac-storage-visible|p169f-whole-building-ac-storage-doors)\s*$",
+    r"^\s{10}- (p150g-whole-building-end-plinth|p154c-d-wall-cutouts|p160-d-composite-architecture|p159-whole-building-storage-context|p161-multisource-systems-carrier|p170a-p161-review-visibility|p170d-p161-review-visibility-correction|p171c-d-stair-opening-guard-lowwall-junction|p164b-d-corrected-stair|p166f-lightwell-proxies|p167f-whole-building-precise-stair|p168a-whole-building-roof-eave-correction|p169a-whole-building-ac-storage-visible|p169f-whole-building-ac-storage-doors)\s*$",
     text,
     re.MULTILINE,
 )
@@ -116,6 +120,7 @@ if option_lines != [
     "p161-multisource-systems-carrier",
     "p170a-p161-review-visibility",
     "p170d-p161-review-visibility-correction",
+    "p171c-d-stair-opening-guard-lowwall-junction",
     "p164b-d-corrected-stair",
     "p166f-lightwell-proxies",
     "p167f-whole-building-precise-stair",
