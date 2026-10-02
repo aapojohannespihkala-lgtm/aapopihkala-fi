@@ -1496,7 +1496,7 @@ test('private viewer selects visible LineSegments and clears hidden line selecti
   await expect(panel).toBeHidden();
 });
 
-test('private viewer exposes G3 LOCUS SITE as an opt-in WORK_TEST layer with subgroup legend', async ({ page }) => {
+test('private viewer exposes Locus as a semantic parent layer with WATER and WASTEWATER child layers', async ({ page }) => {
   const model = makeLocusLayerGlb();
 
   await page.route('**/private-model/model.glb', async (route) => {
@@ -1515,34 +1515,76 @@ test('private viewer exposes G3 LOCUS SITE as an opt-in WORK_TEST layer with sub
   await page.getByRole('button', { name: 'Layerit' }).click();
 
   const locusToggle = page.locator('#locus-layer-visible');
+  const waterToggle = page.locator('#locus-water-visible');
+  const wastewaterToggle = page.locator('#locus-wastewater-visible');
+
   await expect(page.getByText('Locus kunnallistekniikka (WORK_TEST)')).toBeVisible();
+  await expect(page.locator('#locus-layer-children')).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-locus-layer-hierarchy', 'presentationSubgroup');
   await expect(locusToggle).toBeEnabled();
   await expect(locusToggle).not.toBeChecked();
+  await expect(waterToggle).toBeChecked();
+  await expect(wastewaterToggle).toBeChecked();
+  await expect(waterToggle).toBeDisabled();
+  await expect(wastewaterToggle).toBeDisabled();
   await expect(page.locator('#locus-layer-count')).toHaveText('2 kohdetta');
   await expect(page.locator('#locus-water-count')).toHaveText('Vesi 1');
   await expect(page.locator('#locus-wastewater-count')).toHaveText('Jätevesi 1');
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'off');
 
+  await locusToggle.check();
+  await expect(waterToggle).toBeEnabled();
+  await expect(wastewaterToggle).toBeEnabled();
+  await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'all');
+  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
+
+  await waterToggle.uncheck();
+  await expect(locusToggle).toBeChecked();
+  await expect(locusToggle).toHaveJSProperty('indeterminate', true);
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
+  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
+
+  await clickMoreAction(page, 'Sovita näkymään');
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   if (!box) return;
 
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
-  await expect(panel).toBeHidden();
-
-  await locusToggle.check();
-  await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'true');
-  await clickMoreAction(page, 'Sovita näkymään');
-  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeVisible();
-  await expect(page.locator('#selection-mesh')).toContainText('LOCUS_');
+  await expect(page.locator('#selection-mesh')).toContainText('WASTEWATER');
+
+  await clickViewAction(page, 'Tontti');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'site');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
+  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
+
+  await clickViewAction(page, 'Infra');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'infra');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
+  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
 
   await locusToggle.uncheck();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'false');
+  await expect(waterToggle).toBeDisabled();
+  await expect(wastewaterToggle).toBeDisabled();
   await expect(panel).toBeHidden();
 
-  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
-  await expect(panel).toBeHidden();
+  await locusToggle.check();
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'all');
+  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
+  await expect(waterToggle).toBeEnabled();
+  await expect(wastewaterToggle).toBeEnabled();
 });
 
 test('private viewer fits inside the browser viewport without document scrolling', async ({ page }) => {
