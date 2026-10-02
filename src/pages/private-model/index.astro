@@ -1147,6 +1147,7 @@ const title = 'Private 3D viewer';
         selectionMetadataEntries as collectSelectionMetadataEntries,
       } from '../../scripts/privateModelSelectionMetadata';
       import { createSelectionPanelController } from '../../scripts/privateModelSelectionPanel';
+      import { createSelectionHighlightController } from '../../scripts/privateModelSelectionHighlight';
       import {
         nearestNamedAncestor,
         sceneNameForObject,
@@ -1429,6 +1430,10 @@ const title = 'Private 3D viewer';
       renderer.setClearColor(0xecece8, 1);
 
       const scene = new THREE.Scene();
+      const selectionHighlightController = createSelectionHighlightController({
+        scene,
+        BoxHelper: THREE.BoxHelper,
+      });
       const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 5000);
       camera.up.set(0, 1, 0);
 
@@ -1485,7 +1490,6 @@ const title = 'Private 3D viewer';
       const raycaster = new THREE.Raycaster();
       raycaster.params.Line.threshold = 0.08;
       const pointer = new THREE.Vector2();
-      let selectionHelper: any = null;
       let selectedObject: any = null;
       const objectVisibilityFilter = createObjectVisibilityFilter();
       const horizontalClipping = createHorizontalClippingController({
@@ -2956,13 +2960,7 @@ const title = 'Private 3D viewer';
       };
 
       const clearSelection = () => {
-        if (selectionHelper) {
-          scene.remove(selectionHelper);
-          selectionHelper.geometry?.dispose?.();
-          selectionHelper.material?.dispose?.();
-          selectionHelper = null;
-        }
-
+        selectionHighlightController.clear();
         selectedObject = null;
         selectionPanelController.clear();
       };
@@ -2986,9 +2984,7 @@ const title = 'Private 3D viewer';
           metadataEntries: collectSelectionMetadataEntries(object, modelRoot),
         });
 
-        selectionHelper = new THREE.BoxHelper(object, 0x356a8a);
-        scene.add(selectionHelper);
-        selectionHelper.update();
+        selectionHighlightController.select(object);
       };
 
       const isolateSelectedObject = () => {
@@ -3001,7 +2997,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.objectVisibilityMode = 'isolate';
         canvas.dataset.objectVisibilityTarget = target.name ? String(target.name) : '(unnamed)';
         refreshEdgeRendering(modelRoot.children[0] ?? null);
-        selectionHelper?.update?.();
+        selectionHighlightController.update();
         status.textContent = target.name
           ? `Eristetty kohde: ${String(target.name)}`
           : 'Eristetty valittu kohde';
@@ -6397,7 +6393,7 @@ const title = 'Private 3D viewer';
         controls.update();
         planControls.update();
         isoControls.update();
-        selectionHelper?.update?.();
+        selectionHighlightController.update();
         updateD1KnownDoorReviewLabelPositions();
         updateHeightScale();
         renderer.render(scene, activeCamera);
