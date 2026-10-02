@@ -3314,9 +3314,9 @@ test('private viewer autoloads the exact P161 multisource systems review candida
 
   await ivSectionLayer.uncheck();
   await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'false');
-  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'all');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
   await expect(systemsLayer).toBeChecked();
-  await expect(systemsLayer).not.toHaveJSProperty('indeterminate', true);
+  await expect(systemsLayer).toHaveJSProperty('indeterminate', true);
 
   await systemsLayer.uncheck();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
