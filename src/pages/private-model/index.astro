@@ -1142,6 +1142,7 @@ const title = 'Private 3D viewer';
 
     <script>
       import { THREE, OrbitControls, GLTFLoader } from '../../scripts/threeRuntime';
+      import { setupPrivateModelToolbarMenus } from '../../scripts/privateModelToolbarMenus';
       import {
         formatSelectionMetadataKey,
         selectionMetadataEntries as collectSelectionMetadataEntries,
@@ -1226,42 +1227,7 @@ const title = 'Private 3D viewer';
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       const status = document.querySelector<HTMLElement>('#viewer-status');
       const toolbarMenus = Array.from(document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu'));
-
-      const closeToolbarMenus = (except: HTMLDetailsElement | null = null) => {
-        toolbarMenus.forEach((menu) => {
-          if (menu !== except) menu.open = false;
-        });
-      };
-
-      const fitToolbarMenuToViewport = (menu: HTMLDetailsElement) => {
-        const panel = menu.querySelector<HTMLElement>(':scope > .toolbar-menu-panel');
-        if (!panel) return;
-
-        panel.style.maxHeight = '';
-        const panelTop = panel.getBoundingClientRect().top;
-        const availableHeight = Math.max(160, Math.floor(window.innerHeight - panelTop - 10));
-        panel.style.maxHeight = `${availableHeight}px`;
-      };
-
-      toolbarMenus.forEach((menu) => {
-        menu.addEventListener('toggle', () => {
-          if (menu.open) {
-            closeToolbarMenus(menu);
-            requestAnimationFrame(() => fitToolbarMenuToViewport(menu));
-          }
-        });
-        menu.addEventListener('click', (event) => {
-          const target = event.target;
-          if (target instanceof Element && target.closest('button')) {
-            menu.open = false;
-          }
-        });
-      });
-      window.addEventListener('resize', () => {
-        toolbarMenus.forEach((menu) => {
-          if (menu.open) fitToolbarMenuToViewport(menu);
-        });
-      });
+      const { closeToolbarMenus } = setupPrivateModelToolbarMenus(toolbarMenus);
       const fitButton = document.querySelector<HTMLButtonElement>('#fit-button');
       const resetViewDefaultsButton = document.querySelector<HTMLButtonElement>('#reset-view-defaults-button');
       const orbitButton = document.querySelector<HTMLButtonElement>('#orbit-button');
