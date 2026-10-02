@@ -3272,7 +3272,7 @@ test('private viewer autoloads the exact P161 multisource systems review candida
   if (!box) return;
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(page.locator('#selection-panel')).toBeVisible();
-  await expect(page.locator('#selection-mesh')).toContainText('P161_STANDALONE');
+  await expect(page.locator('#selection-mesh')).toContainText('P161_KVV_STANDALONE_DISPLAY');
 
   await kvvLayer.uncheck();
   await expect(systemsLayer).toBeChecked();
