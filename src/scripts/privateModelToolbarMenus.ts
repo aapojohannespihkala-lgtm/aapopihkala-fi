@@ -39,4 +39,6 @@ export const setupPrivateModelToolbarMenus = (toolbarMenus: HTMLDetailsElement[]
       if (menu.open) fitToolbarMenuToViewport(menu);
     });
   });
+
+  return { closeToolbarMenus };
 };
