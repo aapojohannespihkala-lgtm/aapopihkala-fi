@@ -22,6 +22,8 @@ import {
   isSemanticViewerLine,
   isTreeVisible,
 } from '../../src/scripts/privateModelEdgeVisibility';
+import { computeVisibleBounds } from '../../src/scripts/privateModelVisibleBounds';
+import { THREE } from '../../src/scripts/threeRuntime';
 import {
   isObjectVisibilityRenderable,
   nearestNamedAncestor,
@@ -34,6 +36,48 @@ import {
   mergeViewerLayerState,
   type ViewerLayerState,
 } from '../../src/scripts/privateModelLayerState';
+
+test('private viewer visible bounds helper preserves mesh filtering and optional non-mesh geometry', () => {
+  const root = new THREE.Group();
+
+  const visibleMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 4, 6));
+  visibleMesh.position.set(5, 0, 0);
+  root.add(visibleMesh);
+
+  const hiddenParent = new THREE.Group();
+  hiddenParent.visible = false;
+  const hiddenMesh = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 20));
+  hiddenMesh.position.set(100, 0, 0);
+  hiddenParent.add(hiddenMesh);
+  root.add(hiddenParent);
+
+  const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-10, 1, 0),
+    new THREE.Vector3(-8, 1, 0),
+  ]);
+  const line = new THREE.Line(lineGeometry);
+  root.add(line);
+
+  const meshBounds = computeVisibleBounds(root);
+  expect(meshBounds).not.toBeNull();
+  expect(meshBounds!.min.x).toBeCloseTo(4);
+  expect(meshBounds!.max.x).toBeCloseTo(6);
+  expect(meshBounds!.min.y).toBeCloseTo(-2);
+  expect(meshBounds!.max.y).toBeCloseTo(2);
+  expect(meshBounds!.min.z).toBeCloseTo(-3);
+  expect(meshBounds!.max.z).toBeCloseTo(3);
+
+  const geometryBounds = computeVisibleBounds(root, true);
+  expect(geometryBounds).not.toBeNull();
+  expect(geometryBounds!.min.x).toBeCloseTo(-10);
+  expect(geometryBounds!.max.x).toBeCloseTo(6);
+
+  const hiddenOnlyRoot = new THREE.Group();
+  const hiddenOnlyMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1));
+  hiddenOnlyMesh.visible = false;
+  hiddenOnlyRoot.add(hiddenOnlyMesh);
+  expect(computeVisibleBounds(hiddenOnlyRoot)).toBeNull();
+});
 
 test('private viewer layer-state helper preserves partial updates and clamps opacity', () => {
   const baseline: ViewerLayerState = {
