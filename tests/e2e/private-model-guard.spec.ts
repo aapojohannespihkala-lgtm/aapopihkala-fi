@@ -3249,14 +3249,97 @@ test('private viewer autoloads the exact P161 multisource systems review candida
 
   await page.locator('#layers-button').click();
   await expect(page.locator('#layers-panel')).toBeVisible();
+  await expect(page.locator('#p161-system-layer-children')).toBeVisible();
+  await expect(page.locator('#locus-layer-children')).toBeHidden();
+  await expect(canvas).toHaveAttribute('data-locus-layer-hierarchy', 'p161SystemFamily');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'all');
+
+  const kvvLayer = page.locator('#p161-kvv-visible');
+  const ivPlanLayer = page.locator('#p161-iv-plan-visible');
+  const ivSectionLayer = page.locator('#p161-iv-section-visible');
+  await expect(kvvLayer).toBeEnabled();
+  await expect(ivPlanLayer).toBeEnabled();
+  await expect(ivSectionLayer).toBeEnabled();
+  await expect(kvvLayer).toBeChecked();
+  await expect(ivPlanLayer).toBeChecked();
+  await expect(ivSectionLayer).toBeChecked();
+  await expect(page.locator('#p161-kvv-count')).toHaveText('KVV 2017: 82');
+  await expect(page.locator('#p161-iv-plan-count')).toHaveText('IV 1974 suunnitelma: 32');
+  await expect(page.locator('#p161-iv-section-count')).toHaveText('IV 1974 leikkaus: 6');
+
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(page.locator('#selection-panel')).toBeVisible();
+  await expect(page.locator('#selection-mesh')).toContainText('P161_STANDALONE');
+
+  await kvvLayer.uncheck();
+  await expect(systemsLayer).toBeChecked();
+  await expect(systemsLayer).toHaveJSProperty('indeterminate', true);
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
+  await expect(canvas).toHaveAttribute('data-p161-kvv-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-iv-plan-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-p161-visible-system-layer-renderable-count', '0');
+  await expect(page.locator('#selection-panel')).toBeHidden();
+
+  await ivPlanLayer.uncheck();
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
+  await expect(canvas).toHaveAttribute('data-p161-iv-plan-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'true');
+
+  await kvvLayer.check();
+  await expect(canvas).toHaveAttribute('data-p161-kvv-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-p161-iv-plan-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-p161-visible-system-layer-renderable-count', '1');
+
+  const modelBadge = page.locator('#model-source-badge');
+  const badgeText = `WORK_TEST: ${candidateLabel}`;
+  await expect(modelBadge).toHaveText(badgeText);
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await clickViewAction(page, 'Tontti');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'site');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(modelBadge).toHaveText(badgeText);
+  await expect(canvas).toHaveAttribute('data-p161-kvv-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-p161-iv-plan-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'true');
+  await clickViewAction(page, 'Infra');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'infra');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(modelBadge).toHaveText(badgeText);
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
+
+  await ivSectionLayer.uncheck();
+  await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'all');
+  await expect(systemsLayer).toBeChecked();
+  await expect(systemsLayer).not.toHaveJSProperty('indeterminate', true);
+
   await systemsLayer.uncheck();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'off');
+  await expect(canvas).toHaveAttribute('data-p161-kvv-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-iv-plan-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'false');
   await expect(canvas).toHaveAttribute('data-p161-visible-system-layer-renderable-count', '0');
+  await expect(kvvLayer).toBeDisabled();
+  await expect(ivPlanLayer).toBeDisabled();
+  await expect(ivSectionLayer).toBeDisabled();
+
   await systemsLayer.check();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'all');
+  await expect(canvas).toHaveAttribute('data-p161-kvv-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-p161-iv-plan-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'true');
   await expect(canvas).toHaveAttribute('data-p161-visible-system-layer-renderable-count', '1');
+  await expect(kvvLayer).toBeEnabled();
+  await expect(ivPlanLayer).toBeEnabled();
+  await expect(ivSectionLayer).toBeEnabled();
 });
-
 test('private viewer autoloads the exact P164B D corrected stair review candidate', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
