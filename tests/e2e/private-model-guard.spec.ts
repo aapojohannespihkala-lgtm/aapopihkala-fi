@@ -1934,7 +1934,9 @@ test('private viewer exposes Locus as a semantic parent layer with WATER and WAS
   await locusToggle.uncheck();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
   await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
-  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'false');
+  await expect(waterToggle).not.toBeChecked();
+  await expect(wastewaterToggle).toBeChecked();
   await expect(waterToggle).toBeDisabled();
   await expect(wastewaterToggle).toBeDisabled();
   await expect(panel).toBeHidden();
