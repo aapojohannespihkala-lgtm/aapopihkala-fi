@@ -4080,6 +4080,7 @@ test('private viewer initializes preset layer defaults once and preserves manual
   const canvas = page.locator('#private-model-canvas');
   const modelBadge = page.locator('#model-source-badge');
 
+  // View presets must stay inside the currently loaded model; only explicit model actions may swap identity.
   await expect(modelBadge).toHaveText('CURRENT');
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
 
