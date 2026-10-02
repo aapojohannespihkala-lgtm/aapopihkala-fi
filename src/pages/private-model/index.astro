@@ -1245,6 +1245,8 @@ const title = 'Private 3D viewer';
         p170dReviewId,
         p171cCandidateId,
         p171cReviewId,
+        p173dCandidateId,
+        p173dReviewId,
         p164bCandidateId,
         p164bReviewId,
         p167fCandidateId,
@@ -4601,6 +4603,9 @@ const title = 'Private 3D viewer';
       const isP171cStairJunctionReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p171cReviewId);
 
+      const isP173dWallHr67RebaseReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p173dReviewId);
+
       const isP164bCorrectedStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p164bReviewId);
 
@@ -5039,6 +5044,45 @@ const title = 'Private 3D viewer';
           'P171C D stair opening + guard/lowWall junction - WORK_TEST / bounded opening + relational junction / deferred physical detail - HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP173dReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p173d-whole-building-d-wall-hr67-rebase-review',
+          p173ParentPass: 'P171C',
+          p173GeometryPass: 'P173D',
+          p173QaPass: 'P173E',
+          p173CorrectionScope: 'P160_HR6_HR7_D_WALL_JUNCTION_REBASE',
+          p173SemanticRebaseStrategy: 'SEMANTIC_DEEP_COPY_INDEX_REMAP_NO_BINARY_PREFIX_FUSION',
+          p173TargetCoverage: '4/4',
+          p173NewGeometryTargetCount: '3',
+          p173ExistingEquivalentTargetCount: '1',
+          p173StorageNorthOuterHostY: '10.810',
+          p173StorageNorthWorkInnerFaceY: '10.590',
+          p173StorageNorthSourceReferenceY: '10.544',
+          p173JunctionRule: 'CONTINUOUS_NO_GAP_AND_ORTHOGONAL_90_DEGREE',
+          p173SourceDetailedOpeningIdentityCount: '18',
+          p173PreciseStairPreserved: 'true',
+          p173OpeningFloorShellBindingPreserved: 'true',
+          p173GuardLowWallJunctionPreserved: 'true',
+          p173AcStorageDoorRootPreserved: 'true',
+          p173PhysicalWallThicknessClaim: 'false',
+          p173ExactPhysicalFaceClaim: 'false',
+          p173SourcePrimitiveMutation: 'false',
+          p173BinaryMutation: 'false',
+          p173ParentResourceMutation: 'false',
+          p173CurrentClaim: 'false',
+          p173AsBuiltClaim: 'false',
+          p173Canonical: 'false',
+          p173PublishToCurrent: 'false',
+          p173HumanReview: 'PARTIAL_P160_FINDINGS_NOT_FULL_PASS',
+          p173PlausibilityGate:
+            'PASS_FOR_WORK_TEST_SEMANTIC_REBASE_WITH_REFINABLE_STORAGE_NORTH_WALL_PLACEMENT',
+          standardViewPreset: 'd-apartment',
+        });
+        applyStandardViewPreset('d-apartment');
+        status.textContent =
+          'P173D D wall HR-6/HR-7 rebase - WORK_TEST / storage north + 90-degree junction correction / refinable physical detail - HUMAN_REVIEW PARTIAL';
+      };
+
       const applyP164bReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p164b-d-corrected-stair-review',
@@ -5358,6 +5402,8 @@ const title = 'Private 3D viewer';
             candidate.id === p170dCandidateId && isP170dReviewVisibilityCorrectionRequested();
           const isP171cStairJunctionReview =
             candidate.id === p171cCandidateId && isP171cStairJunctionReviewRequested();
+          const isP173dWallHr67RebaseReview =
+            candidate.id === p173dCandidateId && isP173dWallHr67RebaseReviewRequested();
           const isP164bCorrectedStairReview =
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP167fPreciseStairReview =
@@ -5544,6 +5590,34 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p171PublishToCurrent;
           delete canvas.dataset.p171HumanReview;
           delete canvas.dataset.p171PlausibilityGate;
+          delete canvas.dataset.p173ParentPass;
+          delete canvas.dataset.p173GeometryPass;
+          delete canvas.dataset.p173QaPass;
+          delete canvas.dataset.p173CorrectionScope;
+          delete canvas.dataset.p173SemanticRebaseStrategy;
+          delete canvas.dataset.p173TargetCoverage;
+          delete canvas.dataset.p173NewGeometryTargetCount;
+          delete canvas.dataset.p173ExistingEquivalentTargetCount;
+          delete canvas.dataset.p173StorageNorthOuterHostY;
+          delete canvas.dataset.p173StorageNorthWorkInnerFaceY;
+          delete canvas.dataset.p173StorageNorthSourceReferenceY;
+          delete canvas.dataset.p173JunctionRule;
+          delete canvas.dataset.p173SourceDetailedOpeningIdentityCount;
+          delete canvas.dataset.p173PreciseStairPreserved;
+          delete canvas.dataset.p173OpeningFloorShellBindingPreserved;
+          delete canvas.dataset.p173GuardLowWallJunctionPreserved;
+          delete canvas.dataset.p173AcStorageDoorRootPreserved;
+          delete canvas.dataset.p173PhysicalWallThicknessClaim;
+          delete canvas.dataset.p173ExactPhysicalFaceClaim;
+          delete canvas.dataset.p173SourcePrimitiveMutation;
+          delete canvas.dataset.p173BinaryMutation;
+          delete canvas.dataset.p173ParentResourceMutation;
+          delete canvas.dataset.p173CurrentClaim;
+          delete canvas.dataset.p173AsBuiltClaim;
+          delete canvas.dataset.p173Canonical;
+          delete canvas.dataset.p173PublishToCurrent;
+          delete canvas.dataset.p173HumanReview;
+          delete canvas.dataset.p173PlausibilityGate;
           delete canvas.dataset.p164ParentPass;
           delete canvas.dataset.p164Topology;
           delete canvas.dataset.p164LowerFlightLevels;
@@ -5710,6 +5784,8 @@ const title = 'Private 3D viewer';
               ? 'Koko rakennus + alusrakennekuoret (WORK_TEST)'
             : isP159WholeBuildingStorageContextReview
               ? 'Koko rakennus + storage referenceFootprints (WORK_TEST / presentation-only)'
+            : isP173dWallHr67RebaseReview
+              ? 'P173D D wall HR-6/HR-7 rebase (WORK_TEST)'
             : isP171cStairJunctionReview
               ? 'P171C D stair opening + guard/lowWall junction (WORK_TEST)'
             : isP170dReviewVisibilityCorrection
@@ -5772,6 +5848,8 @@ const title = 'Private 3D viewer';
             applyP167fReviewState();
           } else if (isP164bCorrectedStairReview) {
             applyP164bReviewState();
+          } else if (isP173dWallHr67RebaseReview) {
+            applyP173dReviewState();
           } else if (isP171cStairJunctionReview) {
             applyP171cReviewState();
           } else if (isP170dReviewVisibilityCorrection) {
