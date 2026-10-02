@@ -191,6 +191,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p170a-p161-review-visibility-review': 'p170a-p161-review-visibility',
     'p170d-p161-review-visibility-correction-review': 'p170d-p161-review-visibility-correction',
     'p171c-d-stair-opening-guard-lowwall-junction-review': 'p171c-d-stair-opening-guard-lowwall-junction',
+    'p173d-whole-building-d-wall-hr67-rebase-review': 'p173d-whole-building-d-wall-hr67-rebase',
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
     'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
     'p168a-whole-building-roof-eave-correction-review': 'p168a-whole-building-roof-eave-correction',
@@ -4128,6 +4129,102 @@ test('private viewer autoloads exact P171C D stair opening + guard/lowWall junct
   );
   await expect(page.getByRole('status')).toHaveText(
     'P171C D stair opening + guard/lowWall junction - WORK_TEST / bounded opening + relational junction / deferred physical detail - HUMAN_REVIEW NOT_RUN',
+  );
+});
+
+test('private viewer autoloads exact P173D D wall HR-6/HR-7 rebase successor', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P173D WHOLE BUILDING D WALL HR67 REBASE - WORK_TEST',
+        nodes: [],
+        extras: {
+          Pass: 'P173D',
+          successorOfPass: 'P171C',
+          currentClaim: false,
+          asBuiltClaim: false,
+          Canonical: false,
+          publishToCURRENT: false,
+          humanReview: 'PARTIAL_P160_FINDINGS_NOT_FULL_PASS',
+        },
+      },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p173d-whole-building-d-wall-hr67-rebase';
+  const candidateLabel = 'P173D whole-building D wall HR-6/HR-7 rebase - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p173d-whole-building-d-wall-hr67-rebase.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p173d-whole-building-d-wall-hr67-rebase-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p173d-whole-building-d-wall-hr67-rebase-review',
+  );
+  await expect(canvas).toHaveAttribute('data-p173-parent-pass', 'P171C');
+  await expect(canvas).toHaveAttribute('data-p173-geometry-pass', 'P173D');
+  await expect(canvas).toHaveAttribute('data-p173-qa-pass', 'P173E');
+  await expect(canvas).toHaveAttribute('data-p173-target-coverage', '4/4');
+  await expect(canvas).toHaveAttribute('data-p173-new-geometry-target-count', '3');
+  await expect(canvas).toHaveAttribute('data-p173-existing-equivalent-target-count', '1');
+  await expect(canvas).toHaveAttribute('data-p173-storage-north-outer-host-y', '10.810');
+  await expect(canvas).toHaveAttribute('data-p173-storage-north-work-inner-face-y', '10.590');
+  await expect(canvas).toHaveAttribute('data-p173-storage-north-source-reference-y', '10.544');
+  await expect(canvas).toHaveAttribute(
+    'data-p173-junction-rule',
+    'CONTINUOUS_NO_GAP_AND_ORTHOGONAL_90_DEGREE',
+  );
+  await expect(canvas).toHaveAttribute('data-p173-source-detailed-opening-identity-count', '18');
+  await expect(canvas).toHaveAttribute('data-p173-precise-stair-preserved', 'true');
+  await expect(canvas).toHaveAttribute('data-p173-opening-floor-shell-binding-preserved', 'true');
+  await expect(canvas).toHaveAttribute('data-p173-guard-low-wall-junction-preserved', 'true');
+  await expect(canvas).toHaveAttribute('data-p173-ac-storage-door-root-preserved', 'true');
+  await expect(canvas).toHaveAttribute('data-p173-physical-wall-thickness-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p173-exact-physical-face-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p173-source-primitive-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p173-binary-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p173-parent-resource-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p173-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p173-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p173-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p173-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p173-human-review', 'PARTIAL_P160_FINDINGS_NOT_FULL_PASS');
+  await expect(canvas).toHaveAttribute(
+    'data-p173-plausibility-gate',
+    'PASS_FOR_WORK_TEST_SEMANTIC_REBASE_WITH_REFINABLE_STORAGE_NORTH_WALL_PLACEMENT',
+  );
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P173D D wall HR-6/HR-7 rebase (WORK_TEST)',
+  );
+  await expect(page.getByRole('status')).toHaveText(
+    'P173D D wall HR-6/HR-7 rebase - WORK_TEST / storage north + 90-degree junction correction / refinable physical detail - HUMAN_REVIEW PARTIAL',
   );
 });
 
