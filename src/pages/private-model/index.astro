@@ -1180,6 +1180,7 @@ const title = 'Private 3D viewer';
         standardViewLayerDefaults,
         type StandardViewPreset,
       } from '../../scripts/privateModelViewPresets';
+      import type { ViewerResearchPreset } from '../../scripts/privateModelViewerState';
       import {
         coordinateSteps,
         heightScaleStepForSpan,
@@ -1497,6 +1498,8 @@ const title = 'Private 3D viewer';
       });
       let fullModelScene: any = null;
       let dInteriorScene: any = null;
+      let activeResearchPreset: ViewerResearchPreset = 'whole-building';
+      let activeDContentFloor: '1F' | '2F' | null = null;
       let activePlanFloor: '1F' | '2F' | null = null;
       const dVisibilityBaseline = new Map<any, boolean>();
       let sourceSceneNames = new WeakMap<any, string>();
@@ -2957,6 +2960,25 @@ const title = 'Private 3D viewer';
         canvas.dataset.cameraRotation = activeControls.enableRotate ? 'enabled' : 'disabled';
       };
 
+      const researchPresetForStandardView = (
+        preset: StandardViewPreset,
+      ): ViewerResearchPreset | null =>
+        preset === 'whole-building' ||
+        preset === 'd-apartment' ||
+        preset === 'd-1f' ||
+        preset === 'd-2f' ||
+        preset === 'site' ||
+        preset === 'infra'
+          ? preset
+          : null;
+
+      const setActiveResearchPreset = (preset: ViewerResearchPreset) => {
+        activeResearchPreset = preset;
+        activeDContentFloor =
+          preset === 'd-1f' ? '1F' : preset === 'd-2f' ? '2F' : null;
+        canvas.dataset.researchPreset = preset;
+      };
+
       const setHeightScaleVisible = (visible: boolean) => {
         heightScaleController.setVisible(visible);
       };
@@ -2987,9 +3009,12 @@ const title = 'Private 3D viewer';
         });
       };
 
-      const fitElevationCamera = (direction: ElevationDirection) => {
-        if (!fullModelScene) return false;
-        const box = computeVisibleBounds(fullModelScene, true);
+      const fitElevationCamera = (
+        direction: ElevationDirection,
+        sceneRoot: any = fullModelScene,
+      ) => {
+        if (!sceneRoot) return false;
+        const box = computeVisibleBounds(sceneRoot, true);
         if (!box) return false;
 
         const center = new THREE.Vector3();
@@ -3036,10 +3061,10 @@ const title = 'Private 3D viewer';
       };
 
       const activateElevationView = (direction: ElevationDirection) => {
-        if (!fullModelScene) return;
+        const contentScene = resolveActiveResearchContentScene();
+        if (!contentScene) return;
 
         clearSelection();
-        restoreDVisibility();
         activePlanFloor = null;
         deactivateDCoordinateReview();
         setD1KnownDoorReviewLabelsVisible(false);
@@ -3048,14 +3073,14 @@ const title = 'Private 3D viewer';
         isoControls.enableRotate = false;
         isoControls.enabled = true;
         activeCamera = isoCamera;
-        setModelScene(fullModelScene);
+        setModelScene(contentScene);
         applyRoofLayerState();
         applyLocusLayerState();
 
         activeElevationDirection = direction;
         canvas.dataset.elevationDirection = direction;
         setHeightScaleVisible(true);
-        if (!fitElevationCamera(direction)) {
+        if (!fitElevationCamera(direction, contentScene)) {
           deactivateElevationView();
           return;
         }
@@ -3113,11 +3138,11 @@ const title = 'Private 3D viewer';
       };
 
       const activateIsometric = () => {
-        if (!fullModelScene) return;
+        const contentScene = resolveActiveResearchContentScene();
+        if (!contentScene) return;
 
         deactivateElevationView();
         clearSelection();
-        restoreDVisibility();
         activePlanFloor = null;
         deactivateDCoordinateReview();
         setD1KnownDoorReviewLabelsVisible(false);
@@ -3126,9 +3151,10 @@ const title = 'Private 3D viewer';
         isoControls.enableRotate = true;
         isoControls.enabled = true;
         activeCamera = isoCamera;
-        setModelScene(fullModelScene);
+        setModelScene(contentScene);
         applyRoofLayerState();
-        fitIsometricCamera();
+        applyLocusLayerState();
+        fitIsometricCamera(contentScene);
         syncViewState('isometric');
         status.textContent = 'Isometrinen - ortografinen 3/4-näkymä';
       };
@@ -3213,15 +3239,20 @@ const title = 'Private 3D viewer';
       const activateDPlan = (floor: '1F' | '2F') => {
         deactivateElevationView();
         clearSelection();
+        activeDContentFloor = floor;
         if (!dInteriorScene) {
           status.textContent = 'D-asunnon pohjanäkymää ei löydy tästä mallista';
           return;
         }
 
         setModelScene(dInteriorScene);
+        canvas.dataset.contentScene = 'd-interior';
+        canvas.dataset.contentFloor = floor;
         const matchedMeshes = applyDPlanVisibility(floor);
         if (matchedMeshes === 0) {
           restoreDVisibility();
+          setActiveResearchPreset('whole-building');
+          delete canvas.dataset.contentFloor;
           activateFullModel();
           status.textContent = `D ${floor} - kerrostunnistetta ei löytynyt`;
           return;
@@ -3265,10 +3296,10 @@ const title = 'Private 3D viewer';
         }
       };
 
-      const refreshFullModelFitMetrics = () => {
-        if (!fullModelScene) return false;
+      const refreshFullModelFitMetrics = (sceneRoot: any = fullModelScene) => {
+        if (!sceneRoot) return false;
 
-        const box = computeVisibleBounds(fullModelScene, true);
+        const box = computeVisibleBounds(sceneRoot, true);
         if (!box) return false;
 
         box.getCenter(modelCenter);
@@ -3283,9 +3314,25 @@ const title = 'Private 3D viewer';
       };
 
       const fitModel = () => {
-        if (!fullModelScene) return;
-        activateFullModel();
-        if (!refreshFullModelFitMetrics()) return;
+        const contentScene = resolveActiveResearchContentScene();
+        if (!contentScene) return;
+
+        deactivateElevationView();
+        clearSelection();
+        activePlanFloor = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        planControls.enabled = false;
+        isoControls.enabled = false;
+        controls.enableRotate = true;
+        controls.enabled = true;
+        activeCamera = camera;
+        setModelScene(contentScene);
+        applyRoofLayerState();
+        applyLocusLayerState();
+        syncViewState('orbit');
+
+        if (!refreshFullModelFitMetrics(contentScene)) return;
 
         controls.target.copy(modelCenter);
         camera.up.set(0, 1, 0);
@@ -3299,11 +3346,25 @@ const title = 'Private 3D viewer';
       };
 
       const axisView = (direction: 'top' | 'bottom') => {
-        if (!fullModelScene) return;
-        activateFullModel();
-        if (!refreshFullModelFitMetrics()) return;
-        controls.target.copy(modelCenter);
+        const contentScene = resolveActiveResearchContentScene();
+        if (!contentScene) return;
+
+        deactivateElevationView();
+        clearSelection();
+        activePlanFloor = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        planControls.enabled = false;
+        isoControls.enabled = false;
         controls.enableRotate = false;
+        controls.enabled = true;
+        activeCamera = camera;
+        setModelScene(contentScene);
+        applyRoofLayerState();
+        applyLocusLayerState();
+
+        if (!refreshFullModelFitMetrics(contentScene)) return;
+        controls.target.copy(modelCenter);
 
         if (direction === 'top') {
           camera.position.copy(modelCenter).add(new THREE.Vector3(0, fitDistance, 0));
@@ -3458,6 +3519,34 @@ const title = 'Private 3D viewer';
         return composite;
       };
 
+      const resolveActiveResearchContentScene = () => {
+        if (activeResearchPreset === 'd-apartment') {
+          activeDContentFloor = null;
+          delete canvas.dataset.contentFloor;
+          restoreDVisibility();
+          const overviewScene = buildP167fDOverviewScene();
+          canvas.dataset.contentScene = 'd-overview';
+          return overviewScene;
+        }
+
+        if (activeResearchPreset === 'd-1f' || activeResearchPreset === 'd-2f') {
+          const floor = activeResearchPreset === 'd-1f' ? '1F' : '2F';
+          activeDContentFloor = floor;
+          if (!dInteriorScene) return null;
+          const matchedMeshes = applyDPlanVisibility(floor);
+          if (matchedMeshes === 0) return null;
+          canvas.dataset.contentScene = 'd-interior';
+          canvas.dataset.contentFloor = floor;
+          return dInteriorScene;
+        }
+
+        activeDContentFloor = null;
+        delete canvas.dataset.contentFloor;
+        restoreDVisibility();
+        canvas.dataset.contentScene = 'full-model';
+        return fullModelScene;
+      };
+
       const activateDOverview = () => {
         if (!dInteriorScene) {
           status.textContent = 'D-asunnon yhdistettyä näkymää ei löydy tästä mallista';
@@ -3467,6 +3556,8 @@ const title = 'Private 3D viewer';
         deactivateElevationView();
         clearSelection();
         restoreDVisibility();
+        activeDContentFloor = null;
+        delete canvas.dataset.contentFloor;
         activePlanFloor = null;
         deactivateDCoordinateReview();
         setD1KnownDoorReviewLabelsVisible(false);
@@ -3483,6 +3574,7 @@ const title = 'Private 3D viewer';
           return false;
         }
         setModelScene(dOverviewScene);
+        canvas.dataset.contentScene = 'd-overview';
 
         const box = computeVisibleBounds(dOverviewScene, true);
         if (box) {
@@ -3527,6 +3619,8 @@ const title = 'Private 3D viewer';
       };
 
       const applyStandardViewPreset = (preset: StandardViewPreset) => {
+        const researchPreset = researchPresetForStandardView(preset);
+        if (researchPreset) setActiveResearchPreset(researchPreset);
         canvas.dataset.standardViewPreset = preset;
         if (!standardViewLayerDefaultsInitialized) {
           applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);
@@ -3683,6 +3777,9 @@ const title = 'Private 3D viewer';
         clearD2FBoundaryReviewContext();
         fullModelScene = gltf.scene;
         dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
+        setActiveResearchPreset('whole-building');
+        canvas.dataset.contentScene = 'full-model';
+        delete canvas.dataset.contentFloor;
         activeModelSourceKind = sourceKind;
         standardViewLayerDefaultsInitialized = false;
         setInfraProfileAvailable(false);
