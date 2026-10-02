@@ -67,6 +67,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
     'p168a-whole-building-roof-eave-correction-review': 'p168a-whole-building-roof-eave-correction',
     'p169a-whole-building-ac-storage-visible-review': 'p169a-whole-building-ac-storage-visible',
+    'p169f-whole-building-ac-storage-doors-review': 'p169f-whole-building-ac-storage-doors',
     'p159-whole-building-storage-context-review': 'p159-whole-building-storage-context',
     'p160-d-composite-architecture-review': 'p160-d-composite-architecture',
     'p156i-2017-kvv-main-review': 'p156i-2017-kvv-main-presentation',
@@ -3913,6 +3914,98 @@ test('private viewer autoloads the exact P169A whole-building A-C storage visibl
   );
   await expect(page.getByRole('status')).toHaveText(
     'P169A whole-building A-C storage visible envelope - WORK_TEST / 12 presentation surface targetia / inherited P168A roof/eave context - HUMAN_REVIEW NOT_RUN',
+  );
+
+  await clickViewAction(page, 'D-asunto');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-composite', 'true');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
+  await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
+});
+
+
+test('private viewer autoloads the exact P169F A-C storage-door review candidate without inheriting door approval', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      { name: 'P169F A-C STORAGE DOORS WORK_TEST - BABYLON Y-UP', nodes: [0, 1] },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [3] },
+    ],
+    nodes: [
+      { name: 'P167F_FLOOR_INTERFLOOR_WORKSHELL_WITH_PRECISE_STAIR_CLEARANCE_ROOT_BABYLON_Y_UP' },
+      { name: 'P167F_D_PRECISE_STAIR_REBASE_INTEGRATION_ROOT_WORK_TEST', children: [2] },
+      { name: 'P167D_D_PRECISE_STAIR_SOURCE_PLAN_ROOT_BABYLON_Y_UP' },
+      { name: 'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP' },
+    ],
+  });
+  const candidateId = 'p169f-whole-building-ac-storage-doors';
+  const candidateLabel = 'P169F A-C storage doors - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p169f-whole-building-ac-storage-doors.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p169f-whole-building-ac-storage-doors-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p169f-whole-building-ac-storage-doors-review');
+  await expect(canvas).toHaveAttribute('data-p169-human-review', 'SCOPED_PASS_STORAGE_ENVELOPE_ONLY');
+  await expect(canvas).toHaveAttribute('data-p169f-parent-pass', 'P169A');
+  await expect(canvas).toHaveAttribute('data-p169f-geometry-pass', 'P169F');
+  await expect(canvas).toHaveAttribute('data-p169f-qa-pass', 'P169G');
+  await expect(canvas).toHaveAttribute('data-p169f-target-door-count', '3');
+  await expect(canvas).toHaveAttribute('data-p169f-opening-anchor-count', '3');
+  await expect(canvas).toHaveAttribute('data-p169f-proxy-count', '3');
+  await expect(canvas).toHaveAttribute('data-p169f-inherited-p169a-envelope', 'true');
+  await expect(canvas).toHaveAttribute('data-p169f-parent-human-review', 'SCOPED_PASS_STORAGE_ENVELOPE_ONLY');
+  await expect(canvas).toHaveAttribute('data-p169f-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-p169f-physical-opening-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-opening-geometry-created', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-physical-metric-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-door-width-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-door-height-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-door-handing-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-foundation-geometry-created', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-ground-contact-geometry-created', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-source-primitive-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-binary-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-host-role-naming-discrepancy', 'true');
+  await expect(canvas).toHaveAttribute('data-p169f-plausibility-gate', 'PASS_WITH_SOURCE_HOST_LABEL_WARN');
+  await expect(canvas).toHaveAttribute('data-p169f-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p169f-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P169F A-C storage doors (WORK_TEST / 3 presentation-only doors)',
+  );
+  await expect(page.getByRole('status')).toHaveText(
+    'P169F A-C storage doors - WORK_TEST / 3 presentation-only doors / no physical opening or metric claim - HUMAN_REVIEW NOT_RUN',
   );
 
   await clickViewAction(page, 'D-asunto');
