@@ -16,6 +16,7 @@ on:
           - p161-multisource-systems-carrier
           - p170a-p161-review-visibility
           - p170d-p161-review-visibility-correction
+          - p171c-d-stair-opening-guard-lowwall-junction
           - p164b-d-corrected-stair
           - p166f-lightwell-proxies
           - p167f-whole-building-precise-stair
@@ -89,6 +90,11 @@ jobs:
               drive_file_id="1Hojb8wbz_qvXGwdyHzNfK1WuzIKL5H3D"
               expected_size="1887248"
               expected_sha256="7f2bb6a65617e81f05c58b4d732e3c96c781f890ea5c3364e28cdaa996c6520e"
+              ;;
+            p171c-d-stair-opening-guard-lowwall-junction)
+              drive_file_id="1gpe5tQS7vAlXM9J46VP6bxNLMIz7-EKe"
+              expected_size="2110432"
+              expected_sha256="ccacc928d7913886755dba7bb04d3dd3cc9f84e5a03dbd63170c29622b64e706"
               ;;
             p164b-d-corrected-stair)
               drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"
