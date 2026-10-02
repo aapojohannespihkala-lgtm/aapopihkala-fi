@@ -34,6 +34,14 @@ required = {
     "P161 exact candidate": "p161-multisource-systems-carrier",
     "P161 exact size": 'expected_size="1858948"',
     "P161 exact sha": 'expected_sha256="7413fa57b423260cfff9554fae96a8167fba48d03a7c570806a509e58e3ca65d"',
+    "P170A exact Drive file": 'drive_file_id="17kAhyGrN7qFGtdtcyEU18VO1dQbGzlPY"',
+    "P170A exact candidate": "p170a-p161-review-visibility",
+    "P170A exact size": 'expected_size="1877872"',
+    "P170A exact sha": 'expected_sha256="447e587b9903ec36056df2fa414620086a601bbfb5f3fcdd89a9cb9928e86368"',
+    "P170D-R2 exact Drive file": 'drive_file_id="1Hojb8wbz_qvXGwdyHzNfK1WuzIKL5H3D"',
+    "P170D-R2 exact candidate": "p170d-p161-review-visibility-correction",
+    "P170D-R2 exact size": 'expected_size="1887248"',
+    "P170D-R2 exact sha": 'expected_sha256="7f2bb6a65617e81f05c58b4d732e3c96c781f890ea5c3364e28cdaa996c6520e"',
     "P164B exact Drive file": 'drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"',
     "P164B exact candidate": "p164b-d-corrected-stair",
     "P164B exact size": 'expected_size="1583912"',
@@ -96,7 +104,7 @@ if input_names != {"candidate"}:
     raise SystemExit(f"publish-work-test inputs must be candidate-only, got: {sorted(input_names)}")
 
 option_lines = re.findall(
-    r"^\s{10}- (p150g-whole-building-end-plinth|p154c-d-wall-cutouts|p160-d-composite-architecture|p159-whole-building-storage-context|p161-multisource-systems-carrier|p164b-d-corrected-stair|p166f-lightwell-proxies)\s*$",
+    r"^\s{10}- (p150g-whole-building-end-plinth|p154c-d-wall-cutouts|p160-d-composite-architecture|p159-whole-building-storage-context|p161-multisource-systems-carrier|p170a-p161-review-visibility|p170d-p161-review-visibility-correction|p164b-d-corrected-stair|p166f-lightwell-proxies|p167f-whole-building-precise-stair|p168a-whole-building-roof-eave-correction|p169a-whole-building-ac-storage-visible|p169f-whole-building-ac-storage-doors)\s*$",
     text,
     re.MULTILINE,
 )
@@ -106,10 +114,16 @@ if option_lines != [
     "p160-d-composite-architecture",
     "p159-whole-building-storage-context",
     "p161-multisource-systems-carrier",
+    "p170a-p161-review-visibility",
+    "p170d-p161-review-visibility-correction",
     "p164b-d-corrected-stair",
     "p166f-lightwell-proxies",
+    "p167f-whole-building-precise-stair",
+    "p168a-whole-building-roof-eave-correction",
+    "p169a-whole-building-ac-storage-visible",
+    "p169f-whole-building-ac-storage-doors",
 ]:
-    raise SystemExit("publish-work-test candidate choices must be exactly P150G + P154C + P160 + P159 + P161 + P164B + P166F")
+    raise SystemExit("publish-work-test candidate choices must match the exact bounded WORK_TEST allowlist")
 
 secret_echo = re.compile(
     r"echo[^\n]*(?:GDRIVE_ACCESS_TOKEN|CLIENT_SECRET|CF_ACCESS_[A-Z_]*CLIENT_ID)",
