@@ -1421,6 +1421,9 @@ test('private viewer can enable, adjust, and disable the presentation-only horiz
   await expect(height).toBeDisabled();
   await expect(canvas).toHaveAttribute('data-horizontal-clip', 'inactive');
   await expect(canvas).not.toHaveAttribute('data-horizontal-clip-height-m', /.+/);
+  await expect(canvas).not.toHaveAttribute('data-horizontal-clip-side', /.+/);
+  await expect(canvas).toHaveAttribute('data-horizontal-clip-min-y', /-?\d+\.\d{3}/);
+  await expect(canvas).toHaveAttribute('data-horizontal-clip-max-y', /-?\d+\.\d{3}/);
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
 });
 
