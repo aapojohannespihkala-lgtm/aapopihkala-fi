@@ -2362,15 +2362,36 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(coordinatePanel).toBeVisible();
   await expect(canvas).toHaveAttribute('data-review-grid-visible', 'true');
 
+  await expect(canvas).toHaveAttribute('data-research-preset', 'd-2f');
+  await expect(canvas).toHaveAttribute('data-content-scene', 'd-interior');
+  await expect(canvas).toHaveAttribute('data-content-floor', '2F');
+
+  // Camera changes must preserve the active D content scope instead of restoring the full model.
+  await clickViewAction(page, 'Isometrinen');
+  await expect(coordinatePanel).toBeHidden();
+  await expect(canvas).toHaveAttribute('data-review-grid-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-research-preset', 'd-2f');
+  await expect(canvas).toHaveAttribute('data-content-scene', 'd-interior');
+  await expect(canvas).toHaveAttribute('data-content-floor', '2F');
+  await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '7');
+  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '9');
+  await expect(canvas).toHaveAttribute('data-d-review-active', 'true');
+
   await clickViewAction(page, 'Vapaa 3D');
   await expect(coordinatePanel).toBeHidden();
   await expect(canvas).toHaveAttribute('data-review-grid-visible', 'false');
   await expect(canvas).toHaveAttribute('data-d1-known-door-labels-visible', 'false');
   await expect(knownDoorLegend).toBeHidden();
-  await expect(canvas).toHaveAttribute('data-d-review-active', 'false');
-  await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '0');
-  await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '0');
-  await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '0');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'perspective');
+  await expect(canvas).toHaveAttribute('data-research-preset', 'd-2f');
+  await expect(canvas).toHaveAttribute('data-content-scene', 'd-interior');
+  await expect(canvas).toHaveAttribute('data-content-floor', '2F');
+  await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '7');
+  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '9');
+  await expect(canvas).toHaveAttribute('data-d-review-active', 'true');
 });
 
 
@@ -4199,7 +4220,17 @@ test('private viewer autoloads the exact P169A whole-building A-C storage visibl
   await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
   await expect(canvas).toHaveAttribute('data-p172b-d-overview-presentation', 'true');
   await expect(canvas).toHaveAttribute('data-p172b-d-overview-floor-opacity', '0.45');
+  await expect(canvas).toHaveAttribute('data-research-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-content-scene', 'd-overview');
   await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
+
+  await clickViewAction(page, 'Isometrinen');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-research-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-content-scene', 'd-overview');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
+  await expect(canvas).toHaveAttribute('data-p172b-d-overview-presentation', 'true');
+  await expect(canvas).toHaveAttribute('data-p172b-d-overview-floor-opacity', '0.45');
 });
 
 
