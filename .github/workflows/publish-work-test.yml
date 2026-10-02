@@ -20,6 +20,7 @@ on:
           - p167f-whole-building-precise-stair
           - p168a-whole-building-roof-eave-correction
           - p169a-whole-building-ac-storage-visible
+          - p169f-whole-building-ac-storage-doors
 
 permissions:
   contents: read
@@ -107,6 +108,11 @@ jobs:
               drive_file_id="1h62pgONu56UOhh5oZyaI51ABs8q_GFsB"
               expected_size="2093060"
               expected_sha256="12036d1c70e8568a37246d3fe4fe76917095c37ad3f0155e488a8b039c8cfe7b"
+              ;;
+            p169f-whole-building-ac-storage-doors)
+              drive_file_id="14zmRdG315ZPPtNS-_oDI2ALpYxHMEa4R"
+              expected_size="2104452"
+              expected_sha256="36d4e73eb32ea5d629d4a755cbcdbdc65fbd9f7dd38a8e871f7e40d8ef687e15"
               ;;
             *)
               echo "Unsupported WORK_TEST candidate" >&2
