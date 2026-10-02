@@ -1157,6 +1157,7 @@ const title = 'Private 3D viewer';
         hasVisibleMaterial,
         isEffectivelyVisible,
       } from '../../scripts/privateModelObjectVisibility';
+      import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
       import {
         mergeViewerLayerState,
         type EdgeMode,
@@ -1470,7 +1471,13 @@ const title = 'Private 3D viewer';
       let selectionHelper: any = null;
       let selectedObject: any = null;
       const objectVisibilityFilter = createObjectVisibilityFilter();
-      const horizontalClipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+      const horizontalClipping = createHorizontalClippingController({
+        canvas,
+        renderer,
+        enabledInput: clipPlaneEnabledInput,
+        heightInput: clipPlaneHeightInput,
+        valueOutput: clipPlaneValue,
+      });
       let pointerDown: { pointerId: number; x: number; y: number } | null = null;
       const pickDragThresholdPx = 6;
       const roofLayerMembers = new Set<any>();
@@ -3030,73 +3037,11 @@ const title = 'Private 3D viewer';
         status.textContent = 'Objektisuodatus poistettu - aiempi näkyvyystila palautettu';
       };
 
-      const setHorizontalClippingState = () => {
-        const requestedHeight = Number(clipPlaneHeightInput.value);
-        const enabled =
-          clipPlaneEnabledInput.checked &&
-          !clipPlaneEnabledInput.disabled &&
-          Number.isFinite(requestedHeight);
-
-        clipPlaneHeightInput.disabled = !enabled;
-        clipPlaneValue.textContent = Number.isFinite(requestedHeight)
-          ? `${requestedHeight.toFixed(2)} m`
-          : '-';
-
-        if (enabled) {
-          horizontalClipPlane.normal.set(0, -1, 0);
-          horizontalClipPlane.constant = requestedHeight;
-          renderer.clippingPlanes = [horizontalClipPlane];
-          canvas.dataset.horizontalClip = 'active';
-          canvas.dataset.horizontalClipHeightM = requestedHeight.toFixed(3);
-          canvas.dataset.horizontalClipSide = 'above';
-        } else {
-          renderer.clippingPlanes = [];
-          canvas.dataset.horizontalClip = 'inactive';
-          delete canvas.dataset.horizontalClipHeightM;
-          delete canvas.dataset.horizontalClipSide;
-        }
-      };
-
-      const resetHorizontalClipping = () => {
-        renderer.clippingPlanes = [];
-        clipPlaneEnabledInput.checked = false;
-        clipPlaneEnabledInput.disabled = true;
-        clipPlaneHeightInput.disabled = true;
-        clipPlaneHeightInput.min = '0';
-        clipPlaneHeightInput.max = '1';
-        clipPlaneHeightInput.step = '0.05';
-        clipPlaneHeightInput.value = '1';
-        clipPlaneValue.textContent = '-';
-        canvas.dataset.horizontalClip = 'inactive';
-        delete canvas.dataset.horizontalClipHeightM;
-        delete canvas.dataset.horizontalClipMinY;
-        delete canvas.dataset.horizontalClipMaxY;
-        delete canvas.dataset.horizontalClipSide;
-      };
-
+      const setHorizontalClippingState = () => horizontalClipping.apply();
+      const resetHorizontalClipping = () => horizontalClipping.reset();
       const configureHorizontalClippingRange = () => {
         if (!fullModelScene) return;
-        fullModelScene.updateMatrixWorld(true);
-        const bounds = new THREE.Box3().setFromObject(fullModelScene);
-        if (
-          bounds.isEmpty() ||
-          !Number.isFinite(bounds.min.y) ||
-          !Number.isFinite(bounds.max.y)
-        ) {
-          return;
-        }
-
-        const minY = bounds.min.y;
-        const maxY = Math.max(bounds.max.y, minY + 0.01);
-        const step = Math.max((maxY - minY) / 200, 0.01);
-        clipPlaneHeightInput.min = String(minY);
-        clipPlaneHeightInput.max = String(maxY);
-        clipPlaneHeightInput.step = String(step);
-        clipPlaneHeightInput.value = String(maxY);
-        clipPlaneValue.textContent = `${maxY.toFixed(2)} m`;
-        clipPlaneEnabledInput.disabled = false;
-        canvas.dataset.horizontalClipMinY = minY.toFixed(3);
-        canvas.dataset.horizontalClipMaxY = maxY.toFixed(3);
+        horizontalClipping.configureRange(fullModelScene);
       };
 
       const selectAtClientPoint = (clientX: number, clientY: number) => {
