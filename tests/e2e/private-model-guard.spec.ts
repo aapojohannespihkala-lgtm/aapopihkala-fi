@@ -3429,7 +3429,7 @@ test('private viewer autoloads exact P170A review visibility successor with P161
   await expect(page.locator('#locus-layer-count')).toHaveText('120 lähdekohdetta');
   await page.locator('#layers-button').click();
   await expect(page.locator('#p161-system-layer-children')).toBeVisible();
-  await expect(page.getByRole('status')).toHaveText(
+  await expect(page.locator('#viewer-status')).toHaveText(
     'P170A P161 review visibility - WORK_TEST / KVV 82 + IV plan 32 + IV section 6 / presentation-only visibility aids - HUMAN_REVIEW NOT_RUN',
   );
 });
