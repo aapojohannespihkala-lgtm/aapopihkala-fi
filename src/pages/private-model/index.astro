@@ -332,6 +332,38 @@ const title = 'Private 3D viewer';
         border-top: 1px solid #e2e3de;
       }
 
+      .layer-tree-parent {
+        display: grid;
+        gap: 2px;
+      }
+
+      .layer-tree-parent .layer-count {
+        margin: 2px 0 0 24px;
+      }
+
+      .layer-tree-children {
+        display: grid;
+        gap: 7px;
+        margin: 9px 0 0 8px;
+        padding: 2px 0 2px 15px;
+        border-left: 1px solid #d7d7d2;
+      }
+
+      .layer-tree-children[hidden] { display: none; }
+
+      .layer-tree-child {
+        min-height: 22px;
+      }
+
+      .layer-tree-child input:disabled + .legend-swatch,
+      .layer-tree-child input:disabled ~ span {
+        opacity: 0.56;
+      }
+
+      .layer-tree-child .legend-swatch {
+        margin-left: 1px;
+      }
+
       .layer-legend {
         display: grid;
         gap: 5px;
@@ -1023,22 +1055,27 @@ const title = 'Private 3D viewer';
             </label>
             <div class="layer-note">Johdetaan näkymässä mallipinnoista - ei erillistä reunageometriaa malliin.</div>
           </div>
-          <div class="layer-section">
-            <label class="layer-row">
-              <input id="locus-layer-visible" type="checkbox" disabled />
-              <span id="locus-layer-label">Locus kunnallistekniikka (WORK_TEST)</span>
-            </label>
-            <div id="locus-layer-count" class="layer-count">0 kohdetta</div>
-            <div class="layer-legend" aria-label="Locus kunnallistekniikan selite">
-              <span class="legend-item">
+          <div id="locus-layer-group" class="layer-section">
+            <div class="layer-tree-parent">
+              <label class="layer-row">
+                <input id="locus-layer-visible" type="checkbox" disabled />
+                <span id="locus-layer-label">Locus kunnallistekniikka (WORK_TEST)</span>
+              </label>
+              <div id="locus-layer-count" class="layer-count">0 kohdetta</div>
+            </div>
+            <div id="locus-layer-children" class="layer-tree-children" aria-label="Locus alaryhmät" hidden>
+              <label class="layer-row layer-tree-child">
+                <input id="locus-water-visible" type="checkbox" checked disabled />
                 <span class="legend-swatch water" aria-hidden="true"></span>
                 <span id="locus-water-count">Vesi 0</span>
-              </span>
-              <span class="legend-item">
+              </label>
+              <label class="layer-row layer-tree-child">
+                <input id="locus-wastewater-visible" type="checkbox" checked disabled />
                 <span class="legend-swatch wastewater" aria-hidden="true"></span>
                 <span id="locus-wastewater-count">Jätevesi 0</span>
-              </span>
+              </label>
             </div>
+            <div class="layer-note">Alaryhmät näytetään vain, kun mallin presentationSubgroup-metadata tunnistaa ne.</div>
           </div>
         </aside>
         <aside id="profile-panel" class="profile-panel" aria-live="polite" hidden>
@@ -1240,6 +1277,9 @@ const title = 'Private 3D viewer';
       const locusLayerVisibleInput = document.querySelector<HTMLInputElement>('#locus-layer-visible');
       const locusLayerLabel = document.querySelector<HTMLElement>('#locus-layer-label');
       const locusLayerCount = document.querySelector<HTMLElement>('#locus-layer-count');
+      const locusLayerChildren = document.querySelector<HTMLElement>('#locus-layer-children');
+      const locusWaterVisibleInput = document.querySelector<HTMLInputElement>('#locus-water-visible');
+      const locusWastewaterVisibleInput = document.querySelector<HTMLInputElement>('#locus-wastewater-visible');
       const locusWaterCount = document.querySelector<HTMLElement>('#locus-water-count');
       const locusWastewaterCount = document.querySelector<HTMLElement>('#locus-wastewater-count');
       const d1KnownDoorLabelLayer = document.querySelector<HTMLElement>('#d1-known-door-label-layer');
@@ -1311,6 +1351,9 @@ const title = 'Private 3D viewer';
         !locusLayerVisibleInput ||
         !locusLayerLabel ||
         !locusLayerCount ||
+        !locusLayerChildren ||
+        !locusWaterVisibleInput ||
+        !locusWastewaterVisibleInput ||
         !locusWaterCount ||
         !locusWastewaterCount ||
         !d1KnownDoorLabelLayer ||
@@ -1431,6 +1474,8 @@ const title = 'Private 3D viewer';
       const locusWastewaterObjects = new Set<any>();
       const locusLayerVisibilityBaseline = new Map<any, boolean>();
       let locusLayerVisible = false;
+      let locusWaterVisible = true;
+      let locusWastewaterVisible = true;
       // Preset layer defaults initialize once per real model load; later view changes preserve user state.
       let standardViewLayerDefaultsInitialized = false;
       let archBaseMaterialCloneCount = 0;
@@ -2547,14 +2592,63 @@ const title = 'Private 3D viewer';
         applyRoofLayerState();
       };
 
+      const syncLocusLayerHierarchyControls = () => {
+        const hasWater = locusWaterObjects.size > 0;
+        const hasWastewater = locusWastewaterObjects.size > 0;
+        const hasHierarchy = hasWater || hasWastewater;
+
+        locusLayerChildren.hidden = !hasHierarchy;
+        locusWaterVisibleInput.checked = locusWaterVisible;
+        locusWastewaterVisibleInput.checked = locusWastewaterVisible;
+        locusWaterVisibleInput.disabled = !hasWater || !locusLayerVisible;
+        locusWastewaterVisibleInput.disabled = !hasWastewater || !locusLayerVisible;
+
+        locusLayerVisibleInput.checked = locusLayerVisible;
+        locusLayerVisibleInput.disabled = locusLayerMembers.size === 0;
+
+        if (hasHierarchy && locusLayerVisible) {
+          const availableStates = [
+            ...(hasWater ? [locusWaterVisible] : []),
+            ...(hasWastewater ? [locusWastewaterVisible] : []),
+          ];
+          const visibleCount = availableStates.filter(Boolean).length;
+          locusLayerVisibleInput.indeterminate =
+            visibleCount > 0 && visibleCount < availableStates.length;
+          canvas.dataset.locusLayerParentState =
+            visibleCount === 0
+              ? 'none'
+              : visibleCount === availableStates.length
+                ? 'all'
+                : 'mixed';
+        } else {
+          locusLayerVisibleInput.indeterminate = false;
+          canvas.dataset.locusLayerParentState = locusLayerVisible ? 'all' : 'off';
+        }
+
+        canvas.dataset.locusLayerHierarchy = hasHierarchy
+          ? 'presentationSubgroup'
+          : 'flat';
+        canvas.dataset.locusWaterVisible = locusWaterVisible ? 'true' : 'false';
+        canvas.dataset.locusWastewaterVisible = locusWastewaterVisible ? 'true' : 'false';
+      };
+
       const applyLocusLayerState = () => {
         for (const member of locusLayerMembers) {
           const baseline = locusLayerVisibilityBaseline.get(member) ?? true;
           member.visible = baseline && locusLayerVisible;
         }
 
-        locusLayerVisibleInput.checked = locusLayerVisible;
-        locusLayerVisibleInput.disabled = locusLayerMembers.size === 0;
+        for (const object of locusWaterObjects) {
+          const baseline = locusLayerVisibilityBaseline.get(object) ?? true;
+          object.visible = baseline && locusLayerVisible && locusWaterVisible;
+        }
+
+        for (const object of locusWastewaterObjects) {
+          const baseline = locusLayerVisibilityBaseline.get(object) ?? true;
+          object.visible = baseline && locusLayerVisible && locusWastewaterVisible;
+        }
+
+        syncLocusLayerHierarchyControls();
         canvas.dataset.locusLayerVisible = locusLayerVisible ? 'true' : 'false';
 
         if (isP161SystemsLayerReviewRequested()) {
@@ -2604,7 +2698,6 @@ const title = 'Private 3D viewer';
 
         roofLayerVisibleInput.checked = roofLayerVisible;
         roofLayerOpacityInput.value = String(Math.round(roofLayerOpacity * 100));
-        locusLayerVisibleInput.checked = locusLayerVisible;
         edgeModeSelect.value = edgeMode;
 
         applyRoofLayerState();
@@ -2631,6 +2724,8 @@ const title = 'Private 3D viewer';
 
         const p161SystemsReview = isP161SystemsLayerReviewRequested();
         locusLayerVisible = p161SystemsReview;
+        locusWaterVisible = true;
+        locusWastewaterVisible = true;
 
         let p161Kvv2017Count = 0;
         let p161Iv1974PlanCount = 0;
@@ -2683,6 +2778,9 @@ const title = 'Private 3D viewer';
             if (subgroup !== 'WATER' && subgroup !== 'WASTEWATER') return;
 
             locusLayerObjects.add(object);
+            if (!locusLayerVisibilityBaseline.has(object)) {
+              locusLayerVisibilityBaseline.set(object, object.visible);
+            }
             if (subgroup === 'WATER') locusWaterObjects.add(object);
             if (subgroup === 'WASTEWATER') locusWastewaterObjects.add(object);
           });
@@ -6103,7 +6201,32 @@ const title = 'Private 3D viewer';
         }
       });
       locusLayerVisibleInput.addEventListener('change', () => {
-        applyViewerLayerState({ locusVisible: locusLayerVisibleInput.checked }, 'manual');
+        const requestedVisible = locusLayerVisibleInput.checked;
+        if (locusWaterObjects.size > 0) locusWaterVisible = requestedVisible;
+        if (locusWastewaterObjects.size > 0) locusWastewaterVisible = requestedVisible;
+        applyViewerLayerState({ locusVisible: requestedVisible }, 'manual');
+      });
+      locusWaterVisibleInput.addEventListener('change', () => {
+        locusWaterVisible = locusWaterVisibleInput.checked;
+        locusLayerVisible =
+          locusWaterVisible ||
+          (locusWastewaterObjects.size > 0 && locusWastewaterVisible);
+        applyLocusLayerState();
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        canvas.dataset.layerStateSource = 'manual';
+        canvas.dataset.layerLocusVisible = locusLayerVisible ? 'true' : 'false';
+        standardViewLayerDefaultsInitialized = true;
+      });
+      locusWastewaterVisibleInput.addEventListener('change', () => {
+        locusWastewaterVisible = locusWastewaterVisibleInput.checked;
+        locusLayerVisible =
+          locusWastewaterVisible ||
+          (locusWaterObjects.size > 0 && locusWaterVisible);
+        applyLocusLayerState();
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        canvas.dataset.layerStateSource = 'manual';
+        canvas.dataset.layerLocusVisible = locusLayerVisible ? 'true' : 'false';
+        standardViewLayerDefaultsInitialized = true;
       });
       clearSelectionButton.addEventListener('click', clearSelection);
       isolateSelectionButton.addEventListener('click', isolateSelectedObject);
