@@ -221,6 +221,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_093_060,
     expectedSha256: '12036d1c70e8568a37246d3fe4fe76917095c37ad3f0155e488a8b039c8cfe7b',
   },
+  // P169G viewer integration: exact P169F A-C storage-door presentation successor.
+  {
+    id: 'p169f-whole-building-ac-storage-doors',
+    label: 'P169F A-C storage doors - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p169f-whole-building-ac-storage-doors.glb`,
+    objectKey: 'work-test/p169f-whole-building-ac-storage-doors.glb',
+    expectedSize: 2_104_452,
+    expectedSha256: '36d4e73eb32ea5d629d4a755cbcdbdc65fbd9f7dd38a8e871f7e40d8ef687e15',
+  },
   // P159 viewer integration: exact whole-building storage context successor.
   {
     id: 'p159-whole-building-storage-context',
