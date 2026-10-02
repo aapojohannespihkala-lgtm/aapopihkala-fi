@@ -1802,8 +1802,9 @@ test('private viewer derives four edge modes from mesh geometry and preserves se
   await expect(canvas).toHaveAttribute('data-edge-semantic-line-count', '1');
   await expect(canvas).toHaveAttribute('data-edge-depth-test', 'true');
 
-  await page.getByRole('button', { name: 'Layerit' }).click();
-  const edgeMode = page.locator('#edge-mode-select');
+  await openToolbarMenu(page, '#view-menu');
+  const edgeMode = page.locator('#edge-presentation-select');
+  await expect(edgeMode).toBeVisible();
 
   await edgeMode.selectOption('object');
   await expect(canvas).toHaveAttribute('data-edge-mode', 'object');
@@ -1933,14 +1934,14 @@ test('private viewer exposes Locus as a semantic parent layer with WATER and WAS
   await locusToggle.uncheck();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
   await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
-  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
   await expect(waterToggle).toBeDisabled();
   await expect(wastewaterToggle).toBeDisabled();
   await expect(panel).toBeHidden();
 
   await locusToggle.check();
-  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'all');
-  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
+  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
   await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
   await expect(waterToggle).toBeEnabled();
   await expect(wastewaterToggle).toBeEnabled();
@@ -1965,10 +1966,11 @@ test('private viewer restores active preset camera and semantic layer defaults o
   const locusToggle = page.locator('#locus-layer-visible');
   const waterToggle = page.locator('#locus-water-visible');
   const wastewaterToggle = page.locator('#locus-wastewater-visible');
-  const edgeMode = page.locator('#edge-mode-select');
 
   await locusToggle.check();
   await waterToggle.uncheck();
+  await openToolbarMenu(page, '#view-menu');
+  const edgeMode = page.locator('#edge-presentation-select');
   await edgeMode.selectOption('none');
   await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
   await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
@@ -2098,7 +2100,7 @@ test('private viewer roof test layer toggles explicit roof metadata and exposes 
   const opacity = page.locator('#roof-layer-opacity');
 
   await expect(layerPanel).toBeVisible();
-  await expect(page.getByText('Katto (testi)')).toBeVisible();
+  await expect(page.getByText('Katto', { exact: true })).toBeVisible();
   await expect(page.locator('#roof-layer-count')).toHaveText('1 kohdetta');
   await expect(roofToggle).toBeChecked();
   await expect(opacity).toHaveValue('100');
@@ -5000,6 +5002,18 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
   await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit');
   await expect(page.locator('#view-menu > summary')).toHaveText('Näkymä');
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  const layerPanel = page.locator('#layers-panel');
+  const layerPanelBox = await layerPanel.boundingBox();
+  expect(layerPanelBox).not.toBeNull();
+  if (layerPanelBox) {
+    expect(layerPanelBox.x + layerPanelBox.width).toBeLessThanOrEqual(1526);
+    expect(layerPanelBox.y + layerPanelBox.height).toBeLessThanOrEqual(758);
+  }
+  await expect(page.getByText('Katto', { exact: true })).toBeVisible();
+  await page.locator('#roof-layer-visible').focus();
+  await expect(page.locator('#roof-layer-visible')).toBeFocused();
+  await page.getByRole('button', { name: 'Sulje' }).click();
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
   await expect(page.locator('#more-menu > summary')).toHaveAttribute('aria-label', 'Lisää toimintoja');
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeHidden();
