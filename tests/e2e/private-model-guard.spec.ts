@@ -4997,21 +4997,26 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
   await page.goto('/private-model/');
 
   await expect(page.getByText('Ylisrinne 3D', { exact: true })).toBeVisible();
+  await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit');
   await expect(page.locator('#view-menu > summary')).toHaveText('Näkymä');
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
   await expect(page.locator('#more-menu > summary')).toHaveAttribute('aria-label', 'Lisää toimintoja');
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeHidden();
 
-  await openToolbarMenu(page, '#view-menu');
+  await openToolbarMenu(page, '#preset-menu');
   await expect(page.getByRole('button', { name: 'Koko rakennus' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D-asunto' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Vapaa 3D' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Isometrinen' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D 1F' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D 2F' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Tontti' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Infra' })).toBeVisible();
+  await page.locator('#preset-menu > summary').click();
+
+  await openToolbarMenu(page, '#view-menu');
+  await expect(page.getByRole('button', { name: 'Vapaa 3D' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Isometrinen' })).toBeVisible();
+  await page.locator('#view-menu > summary').click();
 
   await openToolbarMenu(page, '#more-menu');
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeVisible();
