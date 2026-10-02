@@ -23,6 +23,11 @@ import {
   isTreeVisible,
 } from '../../src/scripts/privateModelEdgeVisibility';
 import { computeVisibleBounds } from '../../src/scripts/privateModelVisibleBounds';
+import {
+  p172bDOverviewFloorOpacity,
+  p172bDOverviewNeutralWallHex,
+  prepareP172bDOverviewPresentation,
+} from '../../src/scripts/privateModelDOverviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
 import {
   isObjectVisibilityRenderable,
@@ -77,6 +82,76 @@ test('private viewer visible bounds helper preserves mesh filtering and optional
   hiddenOnlyMesh.visible = false;
   hiddenOnlyRoot.add(hiddenOnlyMesh);
   expect(computeVisibleBounds(hiddenOnlyRoot)).toBeNull();
+});
+
+test('private viewer P172B D-overview presentation clone does not mutate source geometry or materials', () => {
+  const interior = new THREE.Group();
+  interior.name = 'D CURRENT INTERIOR - BABYLON Y-UP';
+
+  const referenceMaterial = new THREE.MeshBasicMaterial({ color: 0x44aa44, transparent: true, opacity: 0.16 });
+  const reference = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), referenceMaterial);
+  reference.name = 'P123C_CONTEXT_REFERENCE';
+  reference.userData = { representationKind: 'referenceFootprint', presentationOnly: true };
+  interior.add(reference);
+
+  const lowWallMaterial = new THREE.MeshBasicMaterial({ color: 0xccaa33, transparent: true, opacity: 0.58 });
+  const lowWall = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), lowWallMaterial);
+  lowWall.name = 'P123C_LOWWALL_HELPER';
+  lowWall.userData = { PresentationOnly: true, Pass: '123C', sourceLowWallNode: 420 };
+  interior.add(lowWall);
+
+  const wallMaterialA = new THREE.MeshBasicMaterial({ color: 0x00ff2e, transparent: true, opacity: 0.38 });
+  const wallA = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), wallMaterialA);
+  wallA.name = 'P123C_WALL_HELPER_A';
+  wallA.userData = { PresentationOnly: true, Pass: '123C', sourceP122BNode: 432 };
+  interior.add(wallA);
+
+  const wallMaterialB = new THREE.MeshBasicMaterial({ color: 0x3399ff, transparent: true, opacity: 0.24 });
+  const wallB = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), wallMaterialB);
+  wallB.name = 'P123C_WALL_HELPER_B';
+  wallB.userData = { PresentationOnly: true, Pass: '123C', sourceP123BNode: 436 };
+  interior.add(wallB);
+
+  const workShell = new THREE.Group();
+  const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x949ea8, transparent: true, opacity: 0.22 });
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 2), floorMaterial);
+  floor.name = 'P167F_CD_2F_WORKSHELL_CLEARANCE_TEST';
+  floor.userData = { representationKind: 'presentationFloorWorkShellWithPreciseStairClearance' };
+  workShell.add(floor);
+
+  const presentation = prepareP172bDOverviewPresentation(interior, workShell);
+  const clonedReference = presentation.interiorClone.getObjectByName(reference.name) as any;
+  const clonedLowWall = presentation.interiorClone.getObjectByName(lowWall.name) as any;
+  const clonedWallA = presentation.interiorClone.getObjectByName(wallA.name) as any;
+  const clonedWallB = presentation.interiorClone.getObjectByName(wallB.name) as any;
+  const clonedFloor = presentation.workShellClone.getObjectByName(floor.name) as any;
+
+  expect(presentation.interiorClone).not.toBe(interior);
+  expect(presentation.workShellClone).not.toBe(workShell);
+  expect(presentation.hiddenContextHelperCount).toBe(2);
+  expect(presentation.neutralWallMeshCount).toBe(2);
+  expect(presentation.floorMeshCount).toBe(1);
+  expect(clonedReference.visible).toBe(false);
+  expect(clonedLowWall.visible).toBe(false);
+
+  expect(clonedWallA.material).not.toBe(wallMaterialA);
+  expect(clonedWallB.material).not.toBe(wallMaterialB);
+  expect(clonedWallA.material.opacity).toBe(1);
+  expect(clonedWallA.material.transparent).toBe(false);
+  expect(clonedWallA.material.color.getHex()).toBe(p172bDOverviewNeutralWallHex);
+  expect(clonedWallB.material.color.getHex()).toBe(p172bDOverviewNeutralWallHex);
+  expect(wallMaterialA.opacity).toBeCloseTo(0.38);
+  expect(wallMaterialA.transparent).toBe(true);
+  expect(wallMaterialA.color.getHex()).toBe(0x00ff2e);
+  expect(wallMaterialB.opacity).toBeCloseTo(0.24);
+  expect(wallMaterialB.color.getHex()).toBe(0x3399ff);
+
+  expect(clonedFloor.material).not.toBe(floorMaterial);
+  expect(clonedFloor.material.opacity).toBe(p172bDOverviewFloorOpacity);
+  expect(clonedFloor.material.transparent).toBe(true);
+  expect(floorMaterial.opacity).toBeCloseTo(0.22);
+  expect(reference.visible).toBe(true);
+  expect(lowWall.visible).toBe(true);
 });
 
 test('private viewer layer-state helper preserves partial updates and clamps opacity', () => {
@@ -4122,6 +4197,8 @@ test('private viewer autoloads the exact P169A whole-building A-C storage visibl
   await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
   await expect(canvas).toHaveAttribute('data-p167-d-overview-composite', 'true');
   await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
+  await expect(canvas).toHaveAttribute('data-p172b-d-overview-presentation', 'true');
+  await expect(canvas).toHaveAttribute('data-p172b-d-overview-floor-opacity', '0.45');
   await expect(page.getByRole('status')).toHaveText('D-asunto - molemmat kerrokset, vapaa 3D');
 });
 
