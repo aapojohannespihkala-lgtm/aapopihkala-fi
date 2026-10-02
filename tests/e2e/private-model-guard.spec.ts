@@ -3770,14 +3770,17 @@ test('private viewer autoloads the exact P161 multisource systems review candida
 
   await systemsLayer.check();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'true');
-  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'all');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
   await expect(canvas).toHaveAttribute('data-p161-kvv-visible', 'true');
-  await expect(canvas).toHaveAttribute('data-p161-iv-plan-visible', 'true');
-  await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-p161-iv-plan-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'false');
   await expect(canvas).toHaveAttribute('data-p161-visible-system-layer-renderable-count', '1');
   await expect(kvvLayer).toBeEnabled();
   await expect(ivPlanLayer).toBeEnabled();
   await expect(ivSectionLayer).toBeEnabled();
+  await expect(kvvLayer).toBeChecked();
+  await expect(ivPlanLayer).not.toBeChecked();
+  await expect(ivSectionLayer).not.toBeChecked();
 });
 
 test('private viewer autoloads exact P170A review visibility successor with P161 hierarchy', async ({ page }) => {
