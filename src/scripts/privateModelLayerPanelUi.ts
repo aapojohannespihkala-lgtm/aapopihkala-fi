@@ -131,62 +131,75 @@ export const installPrivateModelLayerPanelUi = () => {
     state = setViewerLayerNodeVisible(state, id, visible);
   };
 
-  const render = (restoreLegacyChildren: boolean) => {
-    const children = activeChildBindings();
+  const childPreference = (id: ViewerLocusChildNodeId) =>
+    id === 'locus-water'
+      ? state.locusWaterVisible
+      : id === 'locus-wastewater'
+        ? state.locusWastewaterVisible
+        : id === 'p161-kvv-2017'
+          ? state.p161KvvVisible
+          : id === 'p161-iv-1974-plan'
+            ? state.p161IvPlanVisible
+            : state.p161IvSectionVisible;
 
-    if (restoreLegacyChildren && state.locusVisible) {
-      for (const binding of children) {
-        const desired =
-          binding.id === 'locus-water'
-            ? state.locusWaterVisible
-            : binding.id === 'locus-wastewater'
-              ? state.locusWastewaterVisible
-              : binding.id === 'p161-kvv-2017'
-                ? state.p161KvvVisible
-                : binding.id === 'p161-iv-1974-plan'
-                  ? state.p161IvPlanVisible
-                  : state.p161IvSectionVisible;
-        if (binding.input.checked !== desired) {
-          binding.input.checked = desired;
-          binding.input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      }
+  const syncChildAvailability = () => {
+    const bindings: Array<{
+      id: ViewerLocusChildNodeId;
+      selector: string;
+      count: string;
+      container: string;
+    }> = [
+      {
+        id: 'locus-water',
+        selector: '#locus-water-visible',
+        count: '#locus-water-count',
+        container: '#locus-layer-children',
+      },
+      {
+        id: 'locus-wastewater',
+        selector: '#locus-wastewater-visible',
+        count: '#locus-wastewater-count',
+        container: '#locus-layer-children',
+      },
+      {
+        id: 'p161-kvv-2017',
+        selector: '#p161-kvv-visible',
+        count: '#p161-kvv-count',
+        container: '#p161-system-layer-children',
+      },
+      {
+        id: 'p161-iv-1974-plan',
+        selector: '#p161-iv-plan-visible',
+        count: '#p161-iv-plan-count',
+        container: '#p161-system-layer-children',
+      },
+      {
+        id: 'p161-iv-1974-section',
+        selector: '#p161-iv-section-visible',
+        count: '#p161-iv-section-count',
+        container: '#p161-system-layer-children',
+      },
+    ];
+
+    for (const binding of bindings) {
+      const input = asInput(binding.selector);
+      const container = document.querySelector<HTMLElement>(binding.container);
+      if (!input || !container) continue;
+      const available = !container.hidden && countIsPositive(binding.count);
+      input.checked = childPreference(binding.id);
+      input.disabled = !state.locusVisible || !available;
     }
+  };
 
+  const render = () => {
+    const children = activeChildBindings();
     parentInput.checked = state.locusVisible;
     const activeIds = children.map((binding) => binding.id);
     const parentState = viewerLocusParentVisibilityState(state, activeIds);
     parentInput.indeterminate = parentState === 'mixed';
     canvas.dataset.locusLayerParentState = parentState;
-    canvas.dataset.locusLayerVisible = state.locusVisible ? 'true' : 'false';
-    canvas.dataset.layerLocusVisible = state.locusVisible ? 'true' : 'false';
     canvas.dataset.layerHierarchyController = 'vux-e3b';
-
-    for (const binding of children) {
-      const desired =
-        binding.id === 'locus-water'
-          ? state.locusWaterVisible
-          : binding.id === 'locus-wastewater'
-            ? state.locusWastewaterVisible
-            : binding.id === 'p161-kvv-2017'
-              ? state.p161KvvVisible
-              : binding.id === 'p161-iv-1974-plan'
-                ? state.p161IvPlanVisible
-                : state.p161IvSectionVisible;
-      binding.input.checked = desired;
-      binding.input.disabled = !state.locusVisible;
-      if (binding.id === 'locus-water') {
-        canvas.dataset.locusWaterVisible = desired ? 'true' : 'false';
-      } else if (binding.id === 'locus-wastewater') {
-        canvas.dataset.locusWastewaterVisible = desired ? 'true' : 'false';
-      } else if (binding.id === 'p161-kvv-2017') {
-        canvas.dataset.p161KvvVisible = desired ? 'true' : 'false';
-      } else if (binding.id === 'p161-iv-1974-plan') {
-        canvas.dataset.p161IvPlanVisible = desired ? 'true' : 'false';
-      } else {
-        canvas.dataset.p161IvSectionVisible = desired ? 'true' : 'false';
-      }
-    }
+    syncChildAvailability();
   };
 
   const bindChild = (selector: string, id: ViewerLocusChildNodeId) => {
@@ -195,17 +208,37 @@ export const installPrivateModelLayerPanelUi = () => {
       'change',
       () => {
         state = childStatePatch(state, id, input.checked);
-        queueMicrotask(() => render(false));
+        queueMicrotask(render);
       },
       { capture: true },
     );
   };
 
+  let replayingLegacyParent = false;
   parentInput.addEventListener(
     'change',
-    () => {
+    (event) => {
+      if (replayingLegacyParent) return;
+
+      event.stopImmediatePropagation();
       setNode('locus', parentInput.checked);
-      queueMicrotask(() => render(state.locusVisible));
+      const desiredParentVisible = state.locusVisible;
+
+      replayingLegacyParent = true;
+      parentInput.checked = desiredParentVisible;
+      parentInput.dispatchEvent(new Event('change', { bubbles: true }));
+      replayingLegacyParent = false;
+
+      if (desiredParentVisible) {
+        for (const binding of activeChildBindings()) {
+          const desired = childPreference(binding.id);
+          if (binding.input.checked === desired) continue;
+          binding.input.checked = desired;
+          binding.input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+
+      queueMicrotask(render);
     },
     { capture: true },
   );
@@ -239,7 +272,7 @@ export const installPrivateModelLayerPanelUi = () => {
         roofOpacity: 1,
         locusVisible: parentInput.checked,
       });
-      queueMicrotask(() => render(false));
+      queueMicrotask(render);
     },
     { capture: true },
   );
@@ -251,9 +284,9 @@ export const installPrivateModelLayerPanelUi = () => {
       roofOpacity: Number(roofOpacity.value) / 100,
       locusVisible: parentInput.checked,
     });
-    queueMicrotask(() => render(false));
+    queueMicrotask(render);
   });
   modelObserver.observe(canvas, { attributes: true, attributeFilter: ['data-model-source'] });
 
-  queueMicrotask(() => render(false));
+  queueMicrotask(render);
 };
