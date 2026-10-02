@@ -1361,6 +1361,8 @@ test('private viewer can isolate, hide, and restore a selected object without ch
   await showAll.click();
   await expect(canvas).toHaveAttribute('data-object-visibility-filter', 'inactive');
   await expect(showAll).toBeDisabled();
+  expect(await canvas.getAttribute('data-object-visibility-mode')).toBeNull();
+  expect(await canvas.getAttribute('data-object-visibility-target')).toBeNull();
 
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeVisible();

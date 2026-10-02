@@ -1148,11 +1148,11 @@ const title = 'Private 3D viewer';
         selectionMetadataEntries as collectSelectionMetadataEntries,
       } from '../../scripts/privateModelSelectionMetadata';
       import {
-        isObjectVisibilityRenderable,
         nearestNamedAncestor,
         sceneNameForObject,
         selectionKindLabel,
       } from '../../scripts/privateModelSelectionIdentity';
+      import { createObjectVisibilityFilter } from '../../scripts/privateModelObjectVisibility';
       import {
         mergeViewerLayerState,
         type EdgeMode,
@@ -1465,8 +1465,7 @@ const title = 'Private 3D viewer';
       const pointer = new THREE.Vector2();
       let selectionHelper: any = null;
       let selectedObject: any = null;
-      const objectVisibilityBaseline = new Map<any, boolean>();
-      let objectVisibilityFilterActive = false;
+      const objectVisibilityFilter = createObjectVisibilityFilter();
       const horizontalClipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
       let pointerDown: { pointerId: number; x: number; y: number } | null = null;
       const pickDragThresholdPx = 6;
@@ -2928,23 +2927,15 @@ const title = 'Private 3D viewer';
 
 
       const resetObjectVisibilityFilterState = () => {
-        objectVisibilityBaseline.clear();
-        objectVisibilityFilterActive = false;
+        objectVisibilityFilter.reset();
         showAllObjectsButton.disabled = true;
         delete canvas.dataset.objectVisibilityMode;
         delete canvas.dataset.objectVisibilityTarget;
         canvas.dataset.objectVisibilityFilter = 'inactive';
       };
 
-      const captureObjectVisibilityBaseline = () => {
-        if (objectVisibilityFilterActive) return;
-        objectVisibilityBaseline.clear();
-        modelRoot.traverse((object: any) => {
-          if (isObjectVisibilityRenderable(object)) {
-            objectVisibilityBaseline.set(object, object.visible);
-          }
-        });
-        objectVisibilityFilterActive = true;
+      const activateObjectVisibilityFilter = () => {
+        objectVisibilityFilter.capture(modelRoot);
         showAllObjectsButton.disabled = false;
         canvas.dataset.objectVisibilityFilter = 'active';
       };
@@ -3013,20 +3004,8 @@ const title = 'Private 3D viewer';
         const target = selectedObject;
         if (!target) return;
 
-        captureObjectVisibilityBaseline();
-        const keepVisible = new Set<any>();
-        let current = target;
-        while (current && current !== modelRoot) {
-          keepVisible.add(current);
-          current = current.parent;
-        }
-        target.traverse((object: any) => keepVisible.add(object));
-
-        modelRoot.traverse((object: any) => {
-          if (!isObjectVisibilityRenderable(object)) return;
-          const baselineVisible = objectVisibilityBaseline.get(object) ?? object.visible;
-          object.visible = baselineVisible && keepVisible.has(object);
-        });
+        activateObjectVisibilityFilter();
+        objectVisibilityFilter.isolate(modelRoot, target);
 
         canvas.dataset.objectVisibilityMode = 'isolate';
         canvas.dataset.objectVisibilityTarget = target.name ? String(target.name) : '(unnamed)';
@@ -3041,8 +3020,8 @@ const title = 'Private 3D viewer';
         const target = selectedObject;
         if (!target) return;
 
-        captureObjectVisibilityBaseline();
-        target.visible = false;
+        activateObjectVisibilityFilter();
+        objectVisibilityFilter.hide(modelRoot, target);
         canvas.dataset.objectVisibilityMode = 'hide';
         canvas.dataset.objectVisibilityTarget = target.name ? String(target.name) : '(unnamed)';
         clearSelection();
@@ -3053,10 +3032,7 @@ const title = 'Private 3D viewer';
       };
 
       const restoreObjectVisibility = () => {
-        if (!objectVisibilityFilterActive) return;
-        for (const [object, visible] of objectVisibilityBaseline.entries()) {
-          object.visible = visible;
-        }
+        if (!objectVisibilityFilter.restore()) return;
         resetObjectVisibilityFilterState();
         clearSelection();
         refreshEdgeRendering(modelRoot.children[0] ?? null);
