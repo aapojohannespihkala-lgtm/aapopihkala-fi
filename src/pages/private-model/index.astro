@@ -1158,6 +1158,7 @@ const title = 'Private 3D viewer';
         hasVisibleMaterial,
         isEffectivelyVisible,
       } from '../../scripts/privateModelObjectVisibility';
+      import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
       import {
         mergeViewerLayerState,
@@ -3036,28 +3037,24 @@ const title = 'Private 3D viewer';
       };
 
       const selectAtClientPoint = (clientX: number, clientY: number) => {
-        const rect = canvas.getBoundingClientRect();
-        if (rect.width <= 0 || rect.height <= 0) return;
+        const object = pickSelectableObjectAtClientPoint({
+          canvas,
+          camera: activeCamera,
+          modelRoot,
+          raycaster,
+          pointer,
+          clientX,
+          clientY,
+          isEffectivelyVisible,
+          hasVisibleMaterial,
+        });
 
-        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-        raycaster.setFromCamera(pointer, activeCamera);
-
-        const hit = raycaster
-          .intersectObjects(modelRoot.children, true)
-          .find(
-            (candidate: any) =>
-              (candidate.object?.isMesh || candidate.object?.isLine || candidate.object?.isLineSegments) &&
-              isEffectivelyVisible(candidate.object, modelRoot) &&
-              hasVisibleMaterial(candidate.object),
-          );
-
-        if (!hit) {
+        if (!object) {
           clearSelection();
           return;
         }
 
-        selectObject(hit.object);
+        selectObject(object);
       };
 
       const syncViewState = (preset: 'orbit' | 'top' | 'bottom' | 'isometric' | 'd-plan' | 'elevation') => {
