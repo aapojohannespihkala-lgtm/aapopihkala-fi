@@ -973,6 +973,7 @@ const title = 'Private 3D viewer';
           <summary aria-label="Lisää toimintoja">⋯</summary>
           <div class="toolbar-menu-panel right">
             <button id="fit-button" type="button">Sovita näkymään</button>
+            <button id="reset-view-defaults-button" type="button">Palauta näkymän oletukset</button>
             <button id="show-all-objects-button" type="button" disabled>Näytä kaikki</button>
             <div class="clip-control" aria-label="Leikkaustaso">
               <label class="clip-toggle" for="clip-plane-enabled">
@@ -1262,6 +1263,7 @@ const title = 'Private 3D viewer';
         });
       });
       const fitButton = document.querySelector<HTMLButtonElement>('#fit-button');
+      const resetViewDefaultsButton = document.querySelector<HTMLButtonElement>('#reset-view-defaults-button');
       const orbitButton = document.querySelector<HTMLButtonElement>('#orbit-button');
       const topButton = document.querySelector<HTMLButtonElement>('#top-button');
       const bottomButton = document.querySelector<HTMLButtonElement>('#bottom-button');
@@ -1343,6 +1345,7 @@ const title = 'Private 3D viewer';
         !canvas ||
         !status ||
         !fitButton ||
+        !resetViewDefaultsButton ||
         !orbitButton ||
         !topButton ||
         !bottomButton ||
@@ -3823,13 +3826,7 @@ const title = 'Private 3D viewer';
         return true;
       };
 
-      const applyStandardViewPreset = (preset: StandardViewPreset) => {
-        canvas.dataset.standardViewPreset = preset;
-        if (!standardViewLayerDefaultsInitialized) {
-          applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);
-          standardViewLayerDefaultsInitialized = true;
-        }
-
+      const activateStandardViewCamera = (preset: StandardViewPreset) => {
         if (preset === 'whole-building') fitModel();
         else if (preset === 'd-apartment') activateDOverview();
         else if (preset === 'd-1f') activateDPlan('1F');
@@ -3840,6 +3837,68 @@ const title = 'Private 3D viewer';
         else if (preset === 'elev-neg-y') activateElevationView('neg-y');
         else if (preset === 'elev-pos-x') activateElevationView('pos-x');
         else activateElevationView('neg-x');
+      };
+
+      const applyStandardViewPreset = (preset: StandardViewPreset) => {
+        canvas.dataset.standardViewPreset = preset;
+        if (!standardViewLayerDefaultsInitialized) {
+          applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);
+          standardViewLayerDefaultsInitialized = true;
+        }
+
+        activateStandardViewCamera(preset);
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+      };
+
+      const activeStandardViewPreset = (): StandardViewPreset | null => {
+        const preset = canvas.dataset.standardViewPreset;
+        return preset && Object.prototype.hasOwnProperty.call(standardViewLayerDefaults, preset)
+          ? (preset as StandardViewPreset)
+          : null;
+      };
+
+      const resetLayerHierarchyDefaults = () => {
+        locusWaterVisible = true;
+        locusWastewaterVisible = true;
+        p161KvvVisible = true;
+        p161IvPlanVisible = true;
+        p161IvSectionVisible = true;
+      };
+
+      const resetActiveViewDefaults = () => {
+        const preset = activeStandardViewPreset();
+        resetLayerHierarchyDefaults();
+
+        if (preset) {
+          applyViewerLayerState(
+            { roofOpacity: 1, ...standardViewLayerDefaults[preset] },
+            `reset:${preset}`,
+          );
+          standardViewLayerDefaultsInitialized = true;
+          activateStandardViewCamera(preset);
+          refreshEdgeRendering(modelRoot.children[0] ?? null);
+          return;
+        }
+
+        const viewPreset = canvas.dataset.viewPreset ?? 'orbit';
+        applyViewerLayerState(
+          {
+            roofVisible: true,
+            roofOpacity: 1,
+            locusVisible: isP161SystemsLayerReviewRequested(),
+            edgeMode: 'visible',
+          },
+          `reset:${viewPreset}`,
+        );
+        standardViewLayerDefaultsInitialized = true;
+
+        if (viewPreset === 'isometric') activateIsometric();
+        else if (viewPreset === 'top') axisView('top');
+        else if (viewPreset === 'bottom') axisView('bottom');
+        else if (viewPreset === 'd-plan' && activePlanFloor) activateDPlan(activePlanFloor);
+        else if (viewPreset === 'elevation' && activeElevationDirection) {
+          activateElevationView(activeElevationDirection);
+        } else fitModel();
 
         refreshEdgeRendering(modelRoot.children[0] ?? null);
       };
@@ -6390,6 +6449,7 @@ const title = 'Private 3D viewer';
 
       layersButton.addEventListener('click', () => closeToolbarMenus());
       fitButton.addEventListener('click', fitModel);
+      resetViewDefaultsButton.addEventListener('click', resetActiveViewDefaults);
       wholeBuildingPresetButton.addEventListener('click', () => applyStandardViewPreset('whole-building'));
       dOverviewPresetButton.addEventListener('click', () => applyStandardViewPreset('d-apartment'));
       sitePresetButton.addEventListener('click', () => applyStandardViewPreset('site'));

@@ -1589,6 +1589,60 @@ test('private viewer exposes Locus as a semantic parent layer with WATER and WAS
   await expect(wastewaterToggle).toBeEnabled();
 });
 
+test('private viewer restores active preset camera and semantic layer defaults only on explicit reset', async ({ page }) => {
+  const model = makeLocusLayerGlb();
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  const locusToggle = page.locator('#locus-layer-visible');
+  const waterToggle = page.locator('#locus-water-visible');
+  const wastewaterToggle = page.locator('#locus-wastewater-visible');
+  const edgeMode = page.locator('#edge-mode');
+
+  await locusToggle.check();
+  await waterToggle.uncheck();
+  await edgeMode.selectOption('none');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
+  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
+
+  await clickViewAction(page, 'Infra');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'infra');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
+  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
+
+  await clickViewAction(page, 'Vapaa 3D');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
+
+  await clickMoreAction(page, 'Palauta näkymän oletukset');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'infra');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'disabled');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'reset:infra');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'all');
+  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'visible');
+  await expect(waterToggle).toBeChecked();
+  await expect(wastewaterToggle).toBeChecked();
+});
+
 test('private viewer fits inside the browser viewport without document scrolling', async ({ page }) => {
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({
