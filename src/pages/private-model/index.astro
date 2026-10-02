@@ -1499,7 +1499,6 @@ const title = 'Private 3D viewer';
       let fullModelScene: any = null;
       let dInteriorScene: any = null;
       let activeResearchPreset: ViewerResearchPreset = 'whole-building';
-      let activeDContentFloor: '1F' | '2F' | null = null;
       let activePlanFloor: '1F' | '2F' | null = null;
       const dVisibilityBaseline = new Map<any, boolean>();
       let sourceSceneNames = new WeakMap<any, string>();
@@ -2974,8 +2973,6 @@ const title = 'Private 3D viewer';
 
       const setActiveResearchPreset = (preset: ViewerResearchPreset) => {
         activeResearchPreset = preset;
-        activeDContentFloor =
-          preset === 'd-1f' ? '1F' : preset === 'd-2f' ? '2F' : null;
         canvas.dataset.researchPreset = preset;
       };
 
@@ -3239,7 +3236,6 @@ const title = 'Private 3D viewer';
       const activateDPlan = (floor: '1F' | '2F') => {
         deactivateElevationView();
         clearSelection();
-        activeDContentFloor = floor;
         if (!dInteriorScene) {
           status.textContent = 'D-asunnon pohjanäkymää ei löydy tästä mallista';
           return;
@@ -3521,7 +3517,6 @@ const title = 'Private 3D viewer';
 
       const resolveActiveResearchContentScene = () => {
         if (activeResearchPreset === 'd-apartment') {
-          activeDContentFloor = null;
           delete canvas.dataset.contentFloor;
           restoreDVisibility();
           const overviewScene = buildP167fDOverviewScene();
@@ -3531,8 +3526,7 @@ const title = 'Private 3D viewer';
 
         if (activeResearchPreset === 'd-1f' || activeResearchPreset === 'd-2f') {
           const floor = activeResearchPreset === 'd-1f' ? '1F' : '2F';
-          activeDContentFloor = floor;
-          if (!dInteriorScene) return null;
+            if (!dInteriorScene) return null;
           const matchedMeshes = applyDPlanVisibility(floor);
           if (matchedMeshes === 0) return null;
           canvas.dataset.contentScene = 'd-interior';
@@ -3540,7 +3534,6 @@ const title = 'Private 3D viewer';
           return dInteriorScene;
         }
 
-        activeDContentFloor = null;
         delete canvas.dataset.contentFloor;
         restoreDVisibility();
         canvas.dataset.contentScene = 'full-model';
@@ -3556,7 +3549,6 @@ const title = 'Private 3D viewer';
         deactivateElevationView();
         clearSelection();
         restoreDVisibility();
-        activeDContentFloor = null;
         delete canvas.dataset.contentFloor;
         activePlanFloor = null;
         deactivateDCoordinateReview();
