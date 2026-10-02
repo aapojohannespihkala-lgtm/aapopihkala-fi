@@ -1227,7 +1227,7 @@ const title = 'Private 3D viewer';
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       const status = document.querySelector<HTMLElement>('#viewer-status');
       const toolbarMenus = Array.from(document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu'));
-      setupPrivateModelToolbarMenus(toolbarMenus);
+      const { closeToolbarMenus } = setupPrivateModelToolbarMenus(toolbarMenus);
       const fitButton = document.querySelector<HTMLButtonElement>('#fit-button');
       const resetViewDefaultsButton = document.querySelector<HTMLButtonElement>('#reset-view-defaults-button');
       const orbitButton = document.querySelector<HTMLButtonElement>('#orbit-button');
