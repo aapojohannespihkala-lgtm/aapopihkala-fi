@@ -1075,7 +1075,21 @@ const title = 'Private 3D viewer';
                 <span id="locus-wastewater-count">Jätevesi 0</span>
               </label>
             </div>
-            <div class="layer-note">Alaryhmät näytetään vain, kun mallin presentationSubgroup-metadata tunnistaa ne.</div>
+            <div id="p161-system-layer-children" class="layer-tree-children" aria-label="P161 järjestelmäperheet" hidden>
+              <label class="layer-row layer-tree-child">
+                <input id="p161-kvv-visible" type="checkbox" checked disabled />
+                <span id="p161-kvv-count">KVV 2017: 0</span>
+              </label>
+              <label class="layer-row layer-tree-child">
+                <input id="p161-iv-plan-visible" type="checkbox" checked disabled />
+                <span id="p161-iv-plan-count">IV 1974 suunnitelma: 0</span>
+              </label>
+              <label class="layer-row layer-tree-child">
+                <input id="p161-iv-section-visible" type="checkbox" checked disabled />
+                <span id="p161-iv-section-count">IV 1974 leikkaus: 0</span>
+              </label>
+            </div>
+            <div class="layer-note">Alaryhmät näytetään vain, kun mallin metadata tunnistaa ne eksplisiittisesti.</div>
           </div>
         </aside>
         <aside id="profile-panel" class="profile-panel" aria-live="polite" hidden>
@@ -1284,6 +1298,13 @@ const title = 'Private 3D viewer';
       const locusWastewaterVisibleInput = document.querySelector<HTMLInputElement>('#locus-wastewater-visible');
       const locusWaterCount = document.querySelector<HTMLElement>('#locus-water-count');
       const locusWastewaterCount = document.querySelector<HTMLElement>('#locus-wastewater-count');
+      const p161SystemLayerChildren = document.querySelector<HTMLElement>('#p161-system-layer-children');
+      const p161KvvVisibleInput = document.querySelector<HTMLInputElement>('#p161-kvv-visible');
+      const p161IvPlanVisibleInput = document.querySelector<HTMLInputElement>('#p161-iv-plan-visible');
+      const p161IvSectionVisibleInput = document.querySelector<HTMLInputElement>('#p161-iv-section-visible');
+      const p161KvvCount = document.querySelector<HTMLElement>('#p161-kvv-count');
+      const p161IvPlanCount = document.querySelector<HTMLElement>('#p161-iv-plan-count');
+      const p161IvSectionCount = document.querySelector<HTMLElement>('#p161-iv-section-count');
       const d1KnownDoorLabelLayer = document.querySelector<HTMLElement>('#d1-known-door-label-layer');
       const d1KnownDoorLegend = document.querySelector<HTMLElement>('#d1-known-door-legend');
       const d1KnownDoorLegendList = document.querySelector<HTMLOListElement>('#d1-known-door-legend-list');
@@ -1358,6 +1379,13 @@ const title = 'Private 3D viewer';
         !locusWastewaterVisibleInput ||
         !locusWaterCount ||
         !locusWastewaterCount ||
+        !p161SystemLayerChildren ||
+        !p161KvvVisibleInput ||
+        !p161IvPlanVisibleInput ||
+        !p161IvSectionVisibleInput ||
+        !p161KvvCount ||
+        !p161IvPlanCount ||
+        !p161IvSectionCount ||
         !d1KnownDoorLabelLayer ||
         !d1KnownDoorLegend ||
         !d1KnownDoorLegendList ||
@@ -1474,10 +1502,16 @@ const title = 'Private 3D viewer';
       const locusLayerObjects = new Set<any>();
       const locusWaterObjects = new Set<any>();
       const locusWastewaterObjects = new Set<any>();
+      const p161KvvObjects = new Set<any>();
+      const p161IvPlanObjects = new Set<any>();
+      const p161IvSectionObjects = new Set<any>();
       const locusLayerVisibilityBaseline = new Map<any, boolean>();
       let locusLayerVisible = false;
       let locusWaterVisible = true;
       let locusWastewaterVisible = true;
+      let p161KvvVisible = true;
+      let p161IvPlanVisible = true;
+      let p161IvSectionVisible = true;
       // Preset layer defaults initialize once per real model load; later view changes preserve user state.
       let standardViewLayerDefaultsInitialized = false;
       let archBaseMaterialCloneCount = 0;
@@ -2188,43 +2222,37 @@ const title = 'Private 3D viewer';
       const p161SystemLayerFamily = (object: any): P161SystemLayerFamily | null => {
         const data = object?.userData ?? {};
         if (
-          data.Pass === 'P156I' &&
-          data.Purpose === 'mainCandidate2017PresentationSuccessor'
+          (data.Pass === 'P156I' &&
+            data.Purpose === 'mainCandidate2017PresentationSuccessor') ||
+          data.sourceFamily === 'KVV_MAIN_2017_WORK_ASSUMPTION'
         ) {
           return 'KVV_2017';
         }
         if (
-          data.Pass === 'P144C' &&
-          data.Purpose === 'presentationOnlyFederatedOverlay'
+          (data.Pass === 'P144C' &&
+            data.Purpose === 'presentationOnlyFederatedOverlay') ||
+          (
+            data.systemDomain === 'IV' &&
+            String(data.phase) === '1974' &&
+            data.sourceGeometryDimension === '2D_XY_PLAN'
+          )
         ) {
           return 'IV_1974_PLAN';
         }
-        if (data.Purpose === 'presentationOnlySectionSidecarRoot') {
+        if (
+          data.Purpose === 'presentationOnlySectionSidecarRoot' ||
+          (
+            data.placementMode === 'PRESENTATION_SIDECAR' &&
+            (typeof data.G3Id === 'string' || typeof data.g3Id === 'string')
+          )
+        ) {
           return 'IV_1974_SECTION';
         }
         return null;
       };
 
-      const isP161SystemLayerMember = (object: any) => {
-        if (p161SystemLayerFamily(object)) return true;
-
-        const data = object?.userData ?? {};
-        if (data.sourceFamily === 'KVV_MAIN_2017_WORK_ASSUMPTION') return true;
-        if (
-          data.systemDomain === 'IV' &&
-          String(data.phase) === '1974' &&
-          data.sourceGeometryDimension === '2D_XY_PLAN'
-        ) {
-          return true;
-        }
-        if (
-          data.placementMode === 'PRESENTATION_SIDECAR' &&
-          (typeof data.G3Id === 'string' || typeof data.g3Id === 'string')
-        ) {
-          return true;
-        }
-        return false;
-      };
+      const isP161SystemLayerMember = (object: any) =>
+        p161SystemLayerFamily(object) !== null;
 
       const isP161SystemsLayerReviewRequested = () =>
         new URLSearchParams(window.location.search).get('review') === p161ReviewId;
@@ -2595,6 +2623,55 @@ const title = 'Private 3D viewer';
       };
 
       const syncLocusLayerHierarchyControls = () => {
+        const p161SystemsReview = isP161SystemsLayerReviewRequested();
+        locusLayerVisibleInput.checked = locusLayerVisible;
+        locusLayerVisibleInput.disabled = locusLayerMembers.size === 0;
+
+        if (p161SystemsReview) {
+          const hasKvv = p161KvvObjects.size > 0;
+          const hasIvPlan = p161IvPlanObjects.size > 0;
+          const hasIvSection = p161IvSectionObjects.size > 0;
+          const hasHierarchy = hasKvv || hasIvPlan || hasIvSection;
+
+          locusLayerChildren.hidden = true;
+          p161SystemLayerChildren.hidden = !hasHierarchy;
+          p161KvvVisibleInput.checked = p161KvvVisible;
+          p161IvPlanVisibleInput.checked = p161IvPlanVisible;
+          p161IvSectionVisibleInput.checked = p161IvSectionVisible;
+          p161KvvVisibleInput.disabled = !hasKvv || !locusLayerVisible;
+          p161IvPlanVisibleInput.disabled = !hasIvPlan || !locusLayerVisible;
+          p161IvSectionVisibleInput.disabled = !hasIvSection || !locusLayerVisible;
+
+          const availableStates = [
+            ...(hasKvv ? [p161KvvVisible] : []),
+            ...(hasIvPlan ? [p161IvPlanVisible] : []),
+            ...(hasIvSection ? [p161IvSectionVisible] : []),
+          ];
+          if (hasHierarchy && locusLayerVisible) {
+            const visibleCount = availableStates.filter(Boolean).length;
+            locusLayerVisibleInput.indeterminate =
+              visibleCount > 0 && visibleCount < availableStates.length;
+            canvas.dataset.locusLayerParentState =
+              visibleCount === 0
+                ? 'none'
+                : visibleCount === availableStates.length
+                  ? 'all'
+                  : 'mixed';
+          } else {
+            locusLayerVisibleInput.indeterminate = false;
+            canvas.dataset.locusLayerParentState = locusLayerVisible ? 'all' : 'off';
+          }
+
+          canvas.dataset.locusLayerHierarchy = hasHierarchy ? 'p161SystemFamily' : 'flat';
+          canvas.dataset.p161KvvVisible = p161KvvVisible ? 'true' : 'false';
+          canvas.dataset.p161IvPlanVisible = p161IvPlanVisible ? 'true' : 'false';
+          canvas.dataset.p161IvSectionVisible = p161IvSectionVisible ? 'true' : 'false';
+          delete canvas.dataset.locusWaterVisible;
+          delete canvas.dataset.locusWastewaterVisible;
+          return;
+        }
+
+        p161SystemLayerChildren.hidden = true;
         const hasWater = locusWaterObjects.size > 0;
         const hasWastewater = locusWastewaterObjects.size > 0;
         const hasHierarchy = hasWater || hasWastewater;
@@ -2604,9 +2681,6 @@ const title = 'Private 3D viewer';
         locusWastewaterVisibleInput.checked = locusWastewaterVisible;
         locusWaterVisibleInput.disabled = !hasWater || !locusLayerVisible;
         locusWastewaterVisibleInput.disabled = !hasWastewater || !locusLayerVisible;
-
-        locusLayerVisibleInput.checked = locusLayerVisible;
-        locusLayerVisibleInput.disabled = locusLayerMembers.size === 0;
 
         if (hasHierarchy && locusLayerVisible) {
           const availableStates = [
@@ -2632,28 +2706,48 @@ const title = 'Private 3D viewer';
           : 'flat';
         canvas.dataset.locusWaterVisible = locusWaterVisible ? 'true' : 'false';
         canvas.dataset.locusWastewaterVisible = locusWastewaterVisible ? 'true' : 'false';
+        delete canvas.dataset.p161KvvVisible;
+        delete canvas.dataset.p161IvPlanVisible;
+        delete canvas.dataset.p161IvSectionVisible;
       };
 
       const applyLocusLayerState = () => {
+        const p161SystemsReview = isP161SystemsLayerReviewRequested();
+
         for (const member of locusLayerMembers) {
           const baseline = locusLayerVisibilityBaseline.get(member) ?? true;
           member.visible = baseline && locusLayerVisible;
         }
 
-        for (const object of locusWaterObjects) {
-          const baseline = locusLayerVisibilityBaseline.get(object) ?? true;
-          object.visible = baseline && locusLayerVisible && locusWaterVisible;
-        }
+        if (p161SystemsReview) {
+          for (const object of p161KvvObjects) {
+            const baseline = locusLayerVisibilityBaseline.get(object) ?? true;
+            object.visible = baseline && locusLayerVisible && p161KvvVisible;
+          }
+          for (const object of p161IvPlanObjects) {
+            const baseline = locusLayerVisibilityBaseline.get(object) ?? true;
+            object.visible = baseline && locusLayerVisible && p161IvPlanVisible;
+          }
+          for (const object of p161IvSectionObjects) {
+            const baseline = locusLayerVisibilityBaseline.get(object) ?? true;
+            object.visible = baseline && locusLayerVisible && p161IvSectionVisible;
+          }
+        } else {
+          for (const object of locusWaterObjects) {
+            const baseline = locusLayerVisibilityBaseline.get(object) ?? true;
+            object.visible = baseline && locusLayerVisible && locusWaterVisible;
+          }
 
-        for (const object of locusWastewaterObjects) {
-          const baseline = locusLayerVisibilityBaseline.get(object) ?? true;
-          object.visible = baseline && locusLayerVisible && locusWastewaterVisible;
+          for (const object of locusWastewaterObjects) {
+            const baseline = locusLayerVisibilityBaseline.get(object) ?? true;
+            object.visible = baseline && locusLayerVisible && locusWastewaterVisible;
+          }
         }
 
         syncLocusLayerHierarchyControls();
         canvas.dataset.locusLayerVisible = locusLayerVisible ? 'true' : 'false';
 
-        if (isP161SystemsLayerReviewRequested()) {
+        if (p161SystemsReview) {
           const renderables = new Set<any>();
           for (const member of locusLayerMembers) {
             member.traverse?.((object: any) => {
@@ -2722,27 +2816,48 @@ const title = 'Private 3D viewer';
         locusLayerObjects.clear();
         locusWaterObjects.clear();
         locusWastewaterObjects.clear();
+        p161KvvObjects.clear();
+        p161IvPlanObjects.clear();
+        p161IvSectionObjects.clear();
         locusLayerVisibilityBaseline.clear();
 
         const p161SystemsReview = isP161SystemsLayerReviewRequested();
         locusLayerVisible = p161SystemsReview;
         locusWaterVisible = true;
         locusWastewaterVisible = true;
+        p161KvvVisible = true;
+        p161IvPlanVisible = true;
+        p161IvSectionVisible = true;
 
         let p161Kvv2017Count = 0;
         let p161Iv1974PlanCount = 0;
         let p161Iv1974SectionCount = 0;
 
+        const registerP161FamilyTree = (
+          object: any,
+          family: P161SystemLayerFamily,
+        ) => {
+          const target =
+            family === 'KVV_2017'
+              ? p161KvvObjects
+              : family === 'IV_1974_PLAN'
+                ? p161IvPlanObjects
+                : p161IvSectionObjects;
+
+          object.traverse?.((member: any) => {
+            locusLayerMembers.add(member);
+            target.add(member);
+            if (!locusLayerVisibilityBaseline.has(member)) {
+              locusLayerVisibilityBaseline.set(member, member.visible);
+            }
+          });
+        };
+
         if (fullModelScene) {
           fullModelScene.traverse((object: any) => {
             if (p161SystemsReview) {
-              if (isP161SystemLayerMember(object)) {
-                object.traverse?.((member: any) => {
-                  if (locusLayerMembers.has(member)) return;
-                  locusLayerMembers.add(member);
-                  locusLayerVisibilityBaseline.set(member, member.visible);
-                });
-              }
+              const family = p161SystemLayerFamily(object);
+              if (family) registerP161FamilyTree(object, family);
 
               const data = object?.userData ?? {};
               if (
@@ -2796,12 +2911,18 @@ const title = 'Private 3D viewer';
           locusWaterCount.textContent = `KVV 2017: ${p161Kvv2017Count}`;
           locusWastewaterCount.textContent =
             `IV 1974: ${p161IvTotalCount} (${p161Iv1974PlanCount} suunnitelma + ${p161Iv1974SectionCount} leikkaus)`;
+          p161KvvCount.textContent = `KVV 2017: ${p161Kvv2017Count}`;
+          p161IvPlanCount.textContent = `IV 1974 suunnitelma: ${p161Iv1974PlanCount}`;
+          p161IvSectionCount.textContent = `IV 1974 leikkaus: ${p161Iv1974SectionCount}`;
           canvas.dataset.locusLayerCount = String(p161TotalCount);
           canvas.dataset.locusWaterCount = String(p161Kvv2017Count);
           canvas.dataset.locusWastewaterCount = String(p161IvTotalCount);
           canvas.dataset.p161KvvLayerCount = String(p161Kvv2017Count);
           canvas.dataset.p161IvPlanLayerCount = String(p161Iv1974PlanCount);
           canvas.dataset.p161SectionSidecarLayerCount = String(p161Iv1974SectionCount);
+          canvas.dataset.p161KvvFamilyObjectCount = String(p161KvvObjects.size);
+          canvas.dataset.p161IvPlanFamilyObjectCount = String(p161IvPlanObjects.size);
+          canvas.dataset.p161IvSectionFamilyObjectCount = String(p161IvSectionObjects.size);
         } else {
           const objectCount = locusLayerObjects.size || locusLayerMembers.size;
           locusLayerCount.textContent = `${objectCount} kohdetta`;
@@ -2813,6 +2934,9 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p161KvvLayerCount;
           delete canvas.dataset.p161IvPlanLayerCount;
           delete canvas.dataset.p161SectionSidecarLayerCount;
+          delete canvas.dataset.p161KvvFamilyObjectCount;
+          delete canvas.dataset.p161IvPlanFamilyObjectCount;
+          delete canvas.dataset.p161IvSectionFamilyObjectCount;
         }
         applyLocusLayerState();
       };
@@ -6271,8 +6395,14 @@ const title = 'Private 3D viewer';
       });
       locusLayerVisibleInput.addEventListener('change', () => {
         const requestedVisible = locusLayerVisibleInput.checked;
-        if (locusWaterObjects.size > 0) locusWaterVisible = requestedVisible;
-        if (locusWastewaterObjects.size > 0) locusWastewaterVisible = requestedVisible;
+        if (isP161SystemsLayerReviewRequested()) {
+          if (p161KvvObjects.size > 0) p161KvvVisible = requestedVisible;
+          if (p161IvPlanObjects.size > 0) p161IvPlanVisible = requestedVisible;
+          if (p161IvSectionObjects.size > 0) p161IvSectionVisible = requestedVisible;
+        } else {
+          if (locusWaterObjects.size > 0) locusWaterVisible = requestedVisible;
+          if (locusWastewaterObjects.size > 0) locusWastewaterVisible = requestedVisible;
+        }
         applyViewerLayerState({ locusVisible: requestedVisible }, 'manual');
       });
       locusWaterVisibleInput.addEventListener('change', () => {
@@ -6296,6 +6426,31 @@ const title = 'Private 3D viewer';
         canvas.dataset.layerStateSource = 'manual';
         canvas.dataset.layerLocusVisible = locusLayerVisible ? 'true' : 'false';
         standardViewLayerDefaultsInitialized = true;
+      });
+
+      const applyP161ChildLayerChange = () => {
+        locusLayerVisible =
+          (p161KvvObjects.size > 0 && p161KvvVisible) ||
+          (p161IvPlanObjects.size > 0 && p161IvPlanVisible) ||
+          (p161IvSectionObjects.size > 0 && p161IvSectionVisible);
+        applyLocusLayerState();
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        canvas.dataset.layerStateSource = 'manual';
+        canvas.dataset.layerLocusVisible = locusLayerVisible ? 'true' : 'false';
+        standardViewLayerDefaultsInitialized = true;
+      };
+
+      p161KvvVisibleInput.addEventListener('change', () => {
+        p161KvvVisible = p161KvvVisibleInput.checked;
+        applyP161ChildLayerChange();
+      });
+      p161IvPlanVisibleInput.addEventListener('change', () => {
+        p161IvPlanVisible = p161IvPlanVisibleInput.checked;
+        applyP161ChildLayerChange();
+      });
+      p161IvSectionVisibleInput.addEventListener('change', () => {
+        p161IvSectionVisible = p161IvSectionVisibleInput.checked;
+        applyP161ChildLayerChange();
       });
       clearSelectionButton.addEventListener('click', clearSelection);
       isolateSelectionButton.addEventListener('click', isolateSelectedObject);
