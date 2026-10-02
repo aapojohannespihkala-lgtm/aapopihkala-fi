@@ -190,6 +190,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p161-multisource-systems-review': 'p161-multisource-systems-carrier',
     'p170a-p161-review-visibility-review': 'p170a-p161-review-visibility',
     'p170d-p161-review-visibility-correction-review': 'p170d-p161-review-visibility-correction',
+    'p171c-d-stair-opening-guard-lowwall-junction-review': 'p171c-d-stair-opening-guard-lowwall-junction',
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
     'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
     'p168a-whole-building-roof-eave-correction-review': 'p168a-whole-building-roof-eave-correction',
@@ -3977,6 +3978,156 @@ test('private viewer autoloads exact P170D-R2 corrected spatial visibility succe
   await expect(page.locator('#p161-iv-section-visible')).toBeDisabled();
   await expect(page.locator('#viewer-status')).toHaveText(
     'P170D-R2 P161 visibility correction - WORK_TEST / KVV 82 host-level review Z + IV plan 32 source-display anchors / detached section + stacked review excluded - HUMAN_REVIEW NOT_RUN',
+  );
+});
+
+test('private viewer autoloads exact P171C D stair opening + guard/lowWall junction successor', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P171C D STAIR GUARD + LOWWALL JUNCTION - WORK_TEST',
+        nodes: [0, 1, 2, 3],
+        extras: {
+          Pass: 'P171C',
+          successorOfPass: 'P171B-R2',
+          representationKind: 'guardLowWallJunctionWorkTestSuccessor',
+          presentationOnly: true,
+          workAssumption: true,
+          junctionBindingNodeIndex: 2,
+          junctionBindingRootNodeIndex: 3,
+          physicalGuardClaim: false,
+          physicalLowWallClaim: false,
+          physicalJunctionClaim: false,
+          Canonical: false,
+          currentClaim: false,
+          asBuiltClaim: false,
+          publishToCURRENT: false,
+          humanReview: 'NOT_RUN',
+        },
+      },
+    ],
+    nodes: [
+      {
+        name: 'P171B_R2_D_STAIR_OPENING_WORKTEST_ENVELOPE',
+        extras: {
+          Pass: 'P171B-R2',
+          representationKind: 'stairOpeningWorkEnvelope',
+          metadataOnly: true,
+          visibleGeometryCreated: false,
+          physicalOpeningClaim: false,
+          physicalFloorShellCutApplied: false,
+        },
+      },
+      {
+        name: 'P167F_PRECISE_STAIR_PRESERVED',
+        extras: { Pass: 'P167F', presentationOnly: true },
+      },
+      {
+        name: 'P171C_D_STAIR_GUARD_LOWWALL_JUNCTION_WORKTEST_BINDING',
+        extras: {
+          Pass: 'P171C',
+          representationKind: 'guardLowWallJunctionWorkTestBinding',
+          metadataOnly: true,
+          visibleGeometryCreated: false,
+          lowWallReviewIds: ['R209', 'R210'],
+          hostZ: 2.76,
+          heightApproxM: 1.0,
+          heightStatus: 'APPROXIMATE_USER_ESTIMATE_PROPAGATED_AS_WORK_TEST',
+          exactJunctionStatus: 'DEFERRED',
+          pillarGeometryStatus: 'DEFERRED',
+          physicalGuardClaim: false,
+          physicalLowWallClaim: false,
+          physicalJunctionClaim: false,
+        },
+      },
+      {
+        name: 'P171C_D_STAIR_GUARD_LOWWALL_JUNCTION_BINDING_ROOT_BABYLON_Y_UP',
+        extras: {
+          Pass: 'P171C',
+          representationKind: 'guardLowWallJunctionWorkTestBindingRoot',
+          sourcePrimitiveMutation: false,
+        },
+      },
+    ],
+  });
+  const candidateId = 'p171c-d-stair-opening-guard-lowwall-junction';
+  const candidateLabel = 'P171C D stair opening + guard/lowWall junction - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p171c-d-stair-opening-guard-lowwall-junction.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p171c-d-stair-opening-guard-lowwall-junction-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p171c-d-stair-opening-guard-lowwall-junction-review',
+  );
+  await expect(canvas).toHaveAttribute('data-p171-parent-pass', 'P171B-R2');
+  await expect(canvas).toHaveAttribute('data-p171-geometry-pass', 'P171C');
+  await expect(canvas).toHaveAttribute('data-p171-qa-pass', 'P171D');
+  await expect(canvas).toHaveAttribute('data-p171-opening-envelope-x-min-m', '0.230');
+  await expect(canvas).toHaveAttribute('data-p171-opening-envelope-x-max-m', '2.480');
+  await expect(canvas).toHaveAttribute('data-p171-opening-envelope-y-min-m', '5.122');
+  await expect(canvas).toHaveAttribute('data-p171-opening-envelope-y-max-m', '7.222');
+  await expect(canvas).toHaveAttribute('data-p171-opening-host-z-min-m', '0.000');
+  await expect(canvas).toHaveAttribute('data-p171-opening-host-z-max-m', '2.760');
+  await expect(canvas).toHaveAttribute('data-p171-presentation-work-shell-cut-applied', 'true');
+  await expect(canvas).toHaveAttribute('data-p171-guard-low-wall-review-ids', 'R209,R210');
+  await expect(canvas).toHaveAttribute('data-p171-guard-low-wall-host-z', '2.760');
+  await expect(canvas).toHaveAttribute(
+    'data-p171-height-status',
+    'APPROXIMATE_USER_ESTIMATE_PROPAGATED_AS_WORK_TEST',
+  );
+  await expect(canvas).toHaveAttribute('data-p171-exact-junction-status', 'DEFERRED');
+  await expect(canvas).toHaveAttribute('data-p171-pillar-geometry-status', 'DEFERRED');
+  await expect(canvas).toHaveAttribute('data-p171-binding-delta-visible-geometry-created', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-physical-stair-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-physical-opening-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-physical-floor-shell-cut-applied', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-physical-guard-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-physical-low-wall-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-physical-junction-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-physical-pillar-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-source-primitive-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p171-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute(
+    'data-p171-plausibility-gate',
+    'PASS_WITH_EXPLICIT_WORK_TEST_RELATIONAL_JUNCTION_AND_DEFERRED_PHYSICAL_DETAIL',
+  );
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P171C D stair opening + guard/lowWall junction (WORK_TEST)',
+  );
+  await expect(page.getByRole('status')).toHaveText(
+    'P171C D stair opening + guard/lowWall junction - WORK_TEST / bounded opening + relational junction / deferred physical detail - HUMAN_REVIEW NOT_RUN',
   );
 });
 

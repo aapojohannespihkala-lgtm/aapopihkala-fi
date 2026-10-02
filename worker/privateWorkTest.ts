@@ -194,6 +194,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_887_248,
     expectedSha256: '7f2bb6a65617e81f05c58b4d732e3c96c781f890ea5c3364e28cdaa996c6520e',
   },
+  // P171E viewer/release integration: exact P171C D stair opening + guard/lowWall junction successor.
+  {
+    id: 'p171c-d-stair-opening-guard-lowwall-junction',
+    label: 'P171C D stair opening + guard/lowWall junction - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p171c-d-stair-opening-guard-lowwall-junction.glb`,
+    objectKey: 'work-test/p171c-d-stair-opening-guard-lowwall-junction.glb',
+    expectedSize: 2_110_432,
+    expectedSha256: 'ccacc928d7913886755dba7bb04d3dd3cc9f84e5a03dbd63170c29622b64e706',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
