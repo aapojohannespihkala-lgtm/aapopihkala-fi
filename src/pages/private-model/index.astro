@@ -1165,6 +1165,10 @@ const title = 'Private 3D viewer';
         isTreeVisible,
       } from '../../scripts/privateModelEdgeVisibility';
       import { computeVisibleBounds } from '../../scripts/privateModelVisibleBounds';
+      import {
+        p172bDOverviewFloorOpacity,
+        prepareP172bDOverviewPresentation,
+      } from '../../scripts/privateModelDOverviewPresentation';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
       import {
         mergeViewerLayerState,
@@ -3379,6 +3383,11 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p167DOverviewComposite;
         delete canvas.dataset.p167DOverviewSupplementCount;
         delete canvas.dataset.p167DOverviewPreciseStairPresent;
+        delete canvas.dataset.p172bDOverviewPresentation;
+        delete canvas.dataset.p172bDOverviewHiddenContextCount;
+        delete canvas.dataset.p172bDOverviewNeutralWallCount;
+        delete canvas.dataset.p172bDOverviewFloorCount;
+        delete canvas.dataset.p172bDOverviewFloorOpacity;
 
         if (
           activeModelSourceKind !== 'work-test' ||
@@ -3420,8 +3429,25 @@ const title = 'Private 3D viewer';
             'P167F_D_CURRENT_INTERIOR_PLUS_PRECISE_STAIR_AND_WORKSHELL_REVIEW',
         };
 
-        composite.add(dInteriorScene);
-        composite.add(workShellRoot.clone(true));
+        const useP172bPresentation =
+          isP169aStorageVisibleReviewRequested() || isP169fStorageDoorReviewRequested();
+        if (useP172bPresentation) {
+          const presentation = prepareP172bDOverviewPresentation(dInteriorScene, workShellRoot);
+          composite.add(presentation.interiorClone);
+          composite.add(presentation.workShellClone);
+          canvas.dataset.p172bDOverviewPresentation = 'true';
+          canvas.dataset.p172bDOverviewHiddenContextCount = String(
+            presentation.hiddenContextHelperCount,
+          );
+          canvas.dataset.p172bDOverviewNeutralWallCount = String(
+            presentation.neutralWallMeshCount,
+          );
+          canvas.dataset.p172bDOverviewFloorCount = String(presentation.floorMeshCount);
+          canvas.dataset.p172bDOverviewFloorOpacity = String(p172bDOverviewFloorOpacity);
+        } else {
+          composite.add(dInteriorScene);
+          composite.add(workShellRoot.clone(true));
+        }
         composite.add(integrationRoot.clone(true));
 
         canvas.dataset.p167DOverviewComposite = 'true';
