@@ -13,8 +13,9 @@ const asInput = (selector: string) =>
 
 const countIsPositive = (selector: string) => {
   const text = document.querySelector<HTMLElement>(selector)?.textContent ?? '';
-  const match = text.match(/\d+/);
-  return match ? Number(match[0]) > 0 : false;
+  const matches = text.match(/\d+/g);
+  if (!matches?.length) return false;
+  return Number(matches[matches.length - 1]) > 0;
 };
 
 const activeChildBindings = (): Array<{
