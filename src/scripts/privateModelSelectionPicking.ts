@@ -19,7 +19,7 @@ type SelectionPickingIntersection = {
 };
 
 type SelectionPickingRaycaster = {
-  setFromCamera: (pointer: SelectionPickingPointer, camera: any) => void;
+  setFromCamera: (pointer: any, camera: any) => void;
   intersectObjects: (objects: any[], recursive: boolean) => SelectionPickingIntersection[];
 };
 
