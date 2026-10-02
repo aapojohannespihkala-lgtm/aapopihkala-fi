@@ -18,6 +18,7 @@ on:
           - p166f-lightwell-proxies
           - p167f-whole-building-precise-stair
           - p168a-whole-building-roof-eave-correction
+          - p169a-whole-building-ac-storage-visible
 
 permissions:
   contents: read
@@ -95,6 +96,11 @@ jobs:
               drive_file_id="1hkI-8ExAq5Loit7YLU6cWsklEAzpi7fD"
               expected_size="2076876"
               expected_sha256="a9d0672283f15f2ab8cbd527242cb8982b1dab81e86e86b7dad1bfe42dbd1590"
+              ;;
+            p169a-whole-building-ac-storage-visible)
+              drive_file_id="1h62pgONu56UOhh5oZyaI51ABs8q_GFsB"
+              expected_size="2093060"
+              expected_sha256="12036d1c70e8568a37246d3fe4fe76917095c37ad3f0155e488a8b039c8cfe7b"
               ;;
             *)
               echo "Unsupported WORK_TEST candidate" >&2
