@@ -60,5 +60,8 @@ test('private-model route delegates effective visibility predicates to the helpe
   expect(source).not.toContain('const isEffectivelyVisible =');
   expect(source).not.toContain('const hasVisibleMaterial =');
   expect(source).toContain('isEffectivelyVisible(selectedObject, modelRoot)');
-  expect(source).toContain('isEffectivelyVisible(candidate.object, modelRoot)');
+  expect(source).toContain("from '../../scripts/privateModelSelectionPicking';");
+  expect(source).toMatch(
+    /pickSelectableObjectAtClientPoint\(\{[\s\S]*?isEffectivelyVisible,[\s\S]*?hasVisibleMaterial,[\s\S]*?\}\);/,
+  );
 });
