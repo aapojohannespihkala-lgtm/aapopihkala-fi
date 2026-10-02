@@ -2366,6 +2366,7 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-content-scene', 'd-interior');
   await expect(canvas).toHaveAttribute('data-content-floor', '2F');
 
+  // Camera changes must preserve the active D content scope instead of restoring the full model.
   await clickViewAction(page, 'Isometrinen');
   await expect(coordinatePanel).toBeHidden();
   await expect(canvas).toHaveAttribute('data-review-grid-visible', 'false');
