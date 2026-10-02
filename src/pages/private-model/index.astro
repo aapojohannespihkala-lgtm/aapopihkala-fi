@@ -1175,6 +1175,13 @@ const title = 'Private 3D viewer';
         setReviewPointerState,
       } from '../../scripts/privateModelReviewCoordinates';
       import {
+        explicitFloorToken,
+        findSourceNamedScene,
+        hasFloorToken,
+        normalizeSceneName,
+        semanticName,
+      } from '../../scripts/privateModelSceneSemantics';
+      import {
         getRequestedReviewCandidateId as getRequestedReviewCandidateIdFromSearch,
         isPrivateModelReviewRequested,
         isWorkTestCandidate,
@@ -2111,51 +2118,9 @@ const title = 'Private 3D viewer';
         canvas.dataset.dReviewDoorMarkerVisibleCount = String(doorMarkersVisible);
       };
 
-      const semanticName = (object: any) => {
-        const names: string[] = [];
-        let current = object;
-        let depth = 0;
-
-        while (current && depth < 12) {
-          if (current.name) names.push(String(current.name));
-          current = current.parent;
-          depth += 1;
-        }
-
-        return names.join(' | ').toUpperCase();
-      };
-
-      const normalizeSceneName = (name: unknown) =>
-        String(name ?? '')
-          .toUpperCase()
-          .replace(/[^A-Z0-9]+/g, ' ')
-          .trim();
-
-      const findSourceNamedScene = (gltf: any, sourceName: string) => {
-        const sourceScenes = gltf?.parser?.json?.scenes;
-        if (Array.isArray(sourceScenes)) {
-          const sourceIndex = sourceScenes.findIndex((candidate: any) => candidate?.name === sourceName);
-          if (sourceIndex >= 0 && gltf.scenes?.[sourceIndex]) {
-            return gltf.scenes[sourceIndex];
-          }
-        }
-
-        const target = normalizeSceneName(sourceName);
-        return (
-          gltf.scenes?.find((candidate: any) => normalizeSceneName(candidate?.name) === target) ?? null
-        );
-      };
-
       const isDPlanRenderable = (object: any) =>
         object.isMesh || object.isLine || object.isLineSegments || object.isPoints;
 
-      const hasFloorToken = (object: any, floor: '1F' | '2F') => {
-        const explicitStorey = String(object?.userData?.storey ?? '').toUpperCase();
-        if (explicitStorey === floor) return true;
-
-        const name = semanticName(object);
-        return new RegExp('(^|[_\\s-])(?:D[_\\s-]?)?' + floor + '([_\\s-]|$)').test(name);
-      };
 
       const isRoofLayerMember = (object: any) => {
         const data = object?.userData ?? {};
@@ -2961,14 +2926,6 @@ const title = 'Private 3D viewer';
         return materials.some((material: any) => !material || material.opacity === undefined || material.opacity > 0.01);
       };
 
-      const explicitFloorToken = (object: any) => {
-        const has1F = hasFloorToken(object, '1F');
-        const has2F = hasFloorToken(object, '2F');
-        if (has1F && has2F) return '1F / 2F';
-        if (has1F) return '1F';
-        if (has2F) return '2F';
-        return '-';
-      };
 
       const resetObjectVisibilityFilterState = () => {
         objectVisibilityBaseline.clear();
