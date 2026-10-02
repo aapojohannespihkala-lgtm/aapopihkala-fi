@@ -203,6 +203,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_110_432,
     expectedSha256: 'ccacc928d7913886755dba7bb04d3dd3cc9f84e5a03dbd63170c29622b64e706',
   },
+  // P173F viewer/review integration: exact P173D whole-building D wall HR-6/HR-7 semantic rebase successor.
+  {
+    id: 'p173d-whole-building-d-wall-hr67-rebase',
+    label: 'P173D whole-building D wall HR-6/HR-7 rebase - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p173d-whole-building-d-wall-hr67-rebase.glb`,
+    objectKey: 'work-test/p173d-whole-building-d-wall-hr67-rebase.glb',
+    expectedSize: 2_119_784,
+    expectedSha256: '3d7144b0ea1841be6b9ef790e02ad807287d22c1b2a1e45fafae0f193c61ed7f',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
