@@ -4982,6 +4982,8 @@ test('private viewer initializes preset layer defaults once and preserves manual
 });
 
 test('private viewer keeps the primary toolbar compact and exposes legacy actions through menus', async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 768 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
@@ -5004,15 +5006,31 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
   await page.getByRole('button', { name: 'Layerit' }).click();
   const layerPanel = page.locator('#layers-panel');
-  const layerPanelBox = await layerPanel.boundingBox();
-  expect(layerPanelBox).not.toBeNull();
-  if (layerPanelBox) {
-    expect(layerPanelBox.x + layerPanelBox.width).toBeLessThanOrEqual(1526);
-    expect(layerPanelBox.y + layerPanelBox.height).toBeLessThanOrEqual(758);
-  }
+  const assertLayerPanelFits = async (width: number, height: number) => {
+    const box = await layerPanel.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) return;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(height);
+    const metrics = await layerPanel.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth);
+  };
+  await assertLayerPanelFits(1536, 768);
   await expect(page.getByText('Katto', { exact: true })).toBeVisible();
   await page.locator('#roof-layer-visible').focus();
   await expect(page.locator('#roof-layer-visible')).toBeFocused();
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await assertLayerPanelFits(1024, 768);
+  await page.setViewportSize({ width: 390, height: 700 });
+  await assertLayerPanelFits(390, 700);
+  await page.setViewportSize({ width: 1536, height: 768 });
+
   await page.getByRole('button', { name: 'Sulje' }).click();
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
   await expect(page.locator('#more-menu > summary')).toHaveAttribute('aria-label', 'Lisää toimintoja');
