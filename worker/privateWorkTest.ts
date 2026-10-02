@@ -176,6 +176,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 1_858_948,
     expectedSha256: '7413fa57b423260cfff9554fae96a8167fba48d03a7c570806a509e58e3ca65d',
   },
+  // P170B viewer integration: exact P170A P161 review-visibility successor.
+  {
+    id: 'p170a-p161-review-visibility',
+    label: 'P170A P161 review visibility presentation successor - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p170a-p161-review-visibility.glb`,
+    objectKey: 'work-test/p170a-p161-review-visibility.glb',
+    expectedSize: 1_877_872,
+    expectedSha256: '447e587b9903ec36056df2fa414620086a601bbfb5f3fcdd89a9cb9928e86368',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
