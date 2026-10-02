@@ -1976,6 +1976,8 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   );
   await expect(canvas).toHaveAttribute('data-review-pointer-x', /-?\d+\.\d{3}/);
   await expect(canvas).toHaveAttribute('data-review-pointer-y', /-?\d+\.\d{3}/);
+  await expect(page.locator('#coordinate-pointer')).toContainText('X ');
+  await expect(page.locator('#coordinate-pointer')).toContainText('Y ');
   const centerX = Number(await canvas.getAttribute('data-review-pointer-x'));
   const centerY = Number(await canvas.getAttribute('data-review-pointer-y'));
 

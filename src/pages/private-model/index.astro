@@ -1165,9 +1165,15 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelViewPresets';
       import {
         coordinateSteps,
-        formatReviewCoordinate,
         heightScaleStepForSpan,
       } from '../../scripts/privateModelReviewMath';
+      import {
+        activateReviewCoordinatePanel,
+        clearReviewAnchorState,
+        deactivateReviewCoordinatePanel,
+        setReviewAnchorState,
+        setReviewPointerState,
+      } from '../../scripts/privateModelReviewCoordinates';
       import {
         getRequestedReviewCandidateId as getRequestedReviewCandidateIdFromSearch,
         isPrivateModelReviewRequested,
@@ -1720,9 +1726,7 @@ const title = 'Private 3D viewer';
           disposeCoordinateObject(dCoordinateAnchorMarker);
           dCoordinateAnchorMarker = null;
         }
-        coordinateAnchor.textContent = 'X - / Y -';
-        delete canvas.dataset.reviewAnchorX;
-        delete canvas.dataset.reviewAnchorY;
+        clearReviewAnchorState(canvas, coordinateAnchor);
       };
 
       const dReviewCoordinateAtClientPoint = (clientX: number, clientY: number) => {
@@ -1745,10 +1749,7 @@ const title = 'Private 3D viewer';
       const updateDCoordinatePointer = (clientX: number, clientY: number) => {
         const coordinate = dReviewCoordinateAtClientPoint(clientX, clientY);
         if (!coordinate) return;
-        coordinatePointer.textContent =
-          `X ${formatReviewCoordinate(coordinate.xM)} m / Y ${formatReviewCoordinate(coordinate.yM)} m`;
-        canvas.dataset.reviewPointerX = coordinate.xM.toFixed(3);
-        canvas.dataset.reviewPointerY = coordinate.yM.toFixed(3);
+        setReviewPointerState(canvas, coordinatePointer, coordinate);
       };
 
       const setDCoordinateAnchor = (clientX: number, clientY: number) => {
@@ -1785,36 +1786,27 @@ const title = 'Private 3D viewer';
         scene.add(marker);
         dCoordinateAnchorMarker = marker;
 
-        coordinateAnchor.textContent =
-          `X ${formatReviewCoordinate(coordinate.xM)} m / Y ${formatReviewCoordinate(coordinate.yM)} m`;
-        canvas.dataset.reviewAnchorX = coordinate.xM.toFixed(3);
-        canvas.dataset.reviewAnchorY = coordinate.yM.toFixed(3);
+        setReviewAnchorState(canvas, coordinateAnchor, coordinate);
       };
 
       const activateDCoordinateReview = (floor: '1F' | '2F') => {
         const floorChanged = dCoordinateGridFloor !== floor;
         prepareDCoordinateGrid(floor);
         dCoordinateGridGroup.visible = true;
-        coordinatePanel.hidden = false;
-        coordinateFloor.textContent = `D ${floor}`;
-        coordinatePointer.textContent = 'X - / Y -';
-        delete canvas.dataset.reviewPointerX;
-        delete canvas.dataset.reviewPointerY;
+        activateReviewCoordinatePanel({
+          canvas,
+          coordinatePanel,
+          coordinateFloor,
+          coordinatePointer,
+          floor,
+        });
         if (floorChanged) clearDCoordinateAnchor();
-        canvas.dataset.reviewCoordinateFrame = 'YLIS-G1-LOCAL';
-        canvas.dataset.reviewGridVisible = 'true';
-        canvas.dataset.reviewGridMajorStepM = '1';
-        canvas.dataset.reviewGridMinorStepM = '0.5';
       };
 
       const deactivateDCoordinateReview = () => {
         dCoordinateGridGroup.visible = false;
-        coordinatePanel.hidden = true;
-        coordinatePointer.textContent = 'X - / Y -';
-        delete canvas.dataset.reviewPointerX;
-        delete canvas.dataset.reviewPointerY;
+        deactivateReviewCoordinatePanel({ canvas, coordinatePanel, coordinatePointer });
         clearDCoordinateAnchor();
-        canvas.dataset.reviewGridVisible = 'false';
       };
 
       const isP136BReviewEmphasis = (object: any) => {
