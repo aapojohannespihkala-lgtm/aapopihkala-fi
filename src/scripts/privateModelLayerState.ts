@@ -7,7 +7,7 @@ export type ViewerLayerState = {
   edgeMode: EdgeMode;
 };
 
-export type ViewerLayerStateSource = 'manual' | `preset:${string}`;
+export type ViewerLayerStateSource = 'manual' | `preset:${string}` | `reset:${string}`;
 
 export const clampViewerLayerOpacity = (value: number) => Math.max(0, Math.min(1, value));
 
