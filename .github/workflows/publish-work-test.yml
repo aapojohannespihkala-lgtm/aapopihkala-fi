@@ -17,6 +17,7 @@ on:
           - p170a-p161-review-visibility
           - p170d-p161-review-visibility-correction
           - p171c-d-stair-opening-guard-lowwall-junction
+          - p173d-whole-building-d-wall-hr67-rebase
           - p164b-d-corrected-stair
           - p166f-lightwell-proxies
           - p167f-whole-building-precise-stair
@@ -95,6 +96,11 @@ jobs:
               drive_file_id="1gpe5tQS7vAlXM9J46VP6bxNLMIz7-EKe"
               expected_size="2110432"
               expected_sha256="ccacc928d7913886755dba7bb04d3dd3cc9f84e5a03dbd63170c29622b64e706"
+              ;;
+            p173d-whole-building-d-wall-hr67-rebase)
+              drive_file_id="1msAIG-GsO4Z-e4RD2I_1BObyTUb-H4tL"
+              expected_size="2119784"
+              expected_sha256="3d7144b0ea1841be6b9ef790e02ad807287d22c1b2a1e45fafae0f193c61ed7f"
               ;;
             p164b-d-corrected-stair)
               drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"
