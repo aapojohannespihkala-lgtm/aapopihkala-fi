@@ -428,6 +428,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
       'p176a-hr6-full-visible-west-gable-termination-correction',
     'p177b-hr6-direct-d-storage-north-wall-line-corrected-review':
       'p177b-hr6-direct-d-storage-north-wall-line-corrected',
+    'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase-review': 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase',
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
     'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
     'p168a-whole-building-roof-eave-correction-review': 'p168a-whole-building-roof-eave-correction',
@@ -5019,6 +5020,86 @@ test('private viewer autoloads exact P178B stair guard/lowWall junction closure'
   );
   await expect(page.getByRole('status')).toHaveText(
     'P178B D stair guard/lowWall junction closure - WORK_TEST / visible gap 0.000 m / touch-only non-overlapping work envelopes / HUMAN_REVIEW NOT_RUN',
+  );
+});
+
+test('private viewer autoloads exact P181B-R1 A-C storage ground-contact/substructure terrain rebase', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{
+      name: 'P181B-R1 A-C STORAGE GROUND-CONTACT / SUBSTRUCTURE + TERRAIN REBASE WORK_TEST',
+      nodes: [],
+      extras: {
+        Pass: 'P181B-R1',
+        storageContactCoverage: '3/3',
+        workDepthM: 0.6,
+        currentClaim: false,
+        asBuiltClaim: false,
+        Canonical: false,
+        publishToCURRENT: false,
+        humanReview: 'NOT_RUN',
+      },
+    }],
+    nodes: [],
+  });
+  const candidateId = 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase';
+  const candidateLabel = 'P181B-R1 A-C storage ground-contact/substructure + terrain rebase - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase-review');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-p181-parent-pass', 'P178B');
+  await expect(canvas).toHaveAttribute('data-p181-geometry-pass', 'P181B-R1');
+  await expect(canvas).toHaveAttribute('data-p181-qa-pass', 'P181C');
+  await expect(canvas).toHaveAttribute('data-p181-terrain-source-pass', 'P175B-R3');
+  await expect(canvas).toHaveAttribute('data-p181-storage-contact-coverage', '3/3');
+  await expect(canvas).toHaveAttribute('data-p181-work-depth-m', '0.600');
+  await expect(canvas).toHaveAttribute('data-p181-depth-status', 'PROPAGATED_REFINABLE_WORK_ASSUMPTION_FROM_P150D');
+  await expect(canvas).toHaveAttribute('data-p181-work-assumption', 'true');
+  await expect(canvas).toHaveAttribute('data-p181-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-p181-physical-foundation-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p181-physical-foundation-depth-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p181-physical-ground-contact-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p181-physical-ground-surface-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p181-footing-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p181-structural-bearing-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p181-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p181-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p181-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p181-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p181-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P181B-R1 A-C storage ground-contact/substructure + terrain rebase (WORK_TEST / 3/3)',
+  );
+  await expect(page.getByRole('status')).toHaveText(
+    'P181B-R1 A-C storage ground-contact/substructure + terrain rebase - WORK_TEST / 3/3 storage contact coverage / 0.600 m refinable depth assumption / HUMAN_REVIEW NOT_RUN',
   );
 });
 

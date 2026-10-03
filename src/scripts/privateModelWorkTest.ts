@@ -74,6 +74,9 @@ export const p177bReviewId = 'p177b-hr6-direct-d-storage-north-wall-line-correct
 export const p178bCandidateId = 'p178b-d-stair-guard-lowwall-junction-closure';
 export const p178bReviewId = 'p178b-d-stair-guard-lowwall-junction-closure-review';
 
+export const p181bR1CandidateId = 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase';
+export const p181bR1ReviewId = 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase-review';
+
 export const p164bCandidateId = 'p164b-d-corrected-stair';
 export const p164bReviewId = 'p164b-d-corrected-stair-review';
 
@@ -119,6 +122,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p176aReviewId]: p176aCandidateId,
   [p177bReviewId]: p177bCandidateId,
   [p178bReviewId]: p178bCandidateId,
+  [p181bR1ReviewId]: p181bR1CandidateId,
   [p164bReviewId]: p164bCandidateId,
   [p167fReviewId]: p167fCandidateId,
   [p168aReviewId]: p168aCandidateId,
