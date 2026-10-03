@@ -62,6 +62,10 @@ required = {
     "P176A exact candidate": "p176a-hr6-full-visible-west-gable-termination-correction",
     "P176A exact size": 'expected_size="2143792"',
     "P176A exact sha": 'expected_sha256="bf8172b6661205906f588d7db3e1b1f416045ffef4d26208f12cef02df221dc5"',
+    "P177B exact Drive file": 'drive_file_id="1NBEUeLKRf8yp4iSuUG9tPOZ4ewtxro1U"',
+    "P177B exact candidate": "p177b-hr6-direct-d-storage-north-wall-line-corrected",
+    "P177B exact size": 'expected_size="2155224"',
+    "P177B exact sha": 'expected_sha256="37317206852db2adc95af4726e028a7297f6f42cd1552794e067093ba6fa2ca1"',
     "P164B exact Drive file": 'drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"',
     "P164B exact candidate": "p164b-d-corrected-stair",
     "P164B exact size": 'expected_size="1583912"',
@@ -124,7 +128,7 @@ if input_names != {"candidate"}:
     raise SystemExit(f"publish-work-test inputs must be candidate-only, got: {sorted(input_names)}")
 
 option_lines = re.findall(
-    r"^\s{10}- (p150g-whole-building-end-plinth|p154c-d-wall-cutouts|p160-d-composite-architecture|p159-whole-building-storage-context|p161-multisource-systems-carrier|p170a-p161-review-visibility|p170d-p161-review-visibility-correction|p171c-d-stair-opening-guard-lowwall-junction|p173d-whole-building-d-wall-hr67-rebase|p174a-r2-west-gable-termination-correction|p175b-r3-near-building-flatter-terrain|p176a-hr6-full-visible-west-gable-termination-correction|p164b-d-corrected-stair|p166f-lightwell-proxies|p167f-whole-building-precise-stair|p168a-whole-building-roof-eave-correction|p169a-whole-building-ac-storage-visible|p169f-whole-building-ac-storage-doors)\s*$",
+    r"^\s{10}- (p150g-whole-building-end-plinth|p154c-d-wall-cutouts|p160-d-composite-architecture|p159-whole-building-storage-context|p161-multisource-systems-carrier|p170a-p161-review-visibility|p170d-p161-review-visibility-correction|p171c-d-stair-opening-guard-lowwall-junction|p173d-whole-building-d-wall-hr67-rebase|p174a-r2-west-gable-termination-correction|p175b-r3-near-building-flatter-terrain|p176a-hr6-full-visible-west-gable-termination-correction|p177b-hr6-direct-d-storage-north-wall-line-corrected|p164b-d-corrected-stair|p166f-lightwell-proxies|p167f-whole-building-precise-stair|p168a-whole-building-roof-eave-correction|p169a-whole-building-ac-storage-visible|p169f-whole-building-ac-storage-doors)\s*$",
     text,
     re.MULTILINE,
 )
@@ -141,6 +145,7 @@ if option_lines != [
     "p174a-r2-west-gable-termination-correction",
     "p175b-r3-near-building-flatter-terrain",
     "p176a-hr6-full-visible-west-gable-termination-correction",
+    "p177b-hr6-direct-d-storage-north-wall-line-corrected",
     "p164b-d-corrected-stair",
     "p166f-lightwell-proxies",
     "p167f-whole-building-precise-stair",

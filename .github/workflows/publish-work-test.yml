@@ -21,6 +21,7 @@ on:
           - p174a-r2-west-gable-termination-correction
           - p175b-r3-near-building-flatter-terrain
           - p176a-hr6-full-visible-west-gable-termination-correction
+          - p177b-hr6-direct-d-storage-north-wall-line-corrected
           - p164b-d-corrected-stair
           - p166f-lightwell-proxies
           - p167f-whole-building-precise-stair
@@ -119,6 +120,11 @@ jobs:
               drive_file_id="1ZGuklJlPV-RN-2sRgDdceMrjeAyYe2pd"
               expected_size="2143792"
               expected_sha256="bf8172b6661205906f588d7db3e1b1f416045ffef4d26208f12cef02df221dc5"
+              ;;
+            p177b-hr6-direct-d-storage-north-wall-line-corrected)
+              drive_file_id="1NBEUeLKRf8yp4iSuUG9tPOZ4ewtxro1U"
+              expected_size="2155224"
+              expected_sha256="37317206852db2adc95af4726e028a7297f6f42cd1552794e067093ba6fa2ca1"
               ;;
             p164b-d-corrected-stair)
               drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"
