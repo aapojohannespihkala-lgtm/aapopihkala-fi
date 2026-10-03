@@ -1256,6 +1256,8 @@ const title = 'Private 3D viewer';
         p176aReviewId,
         p177bCandidateId,
         p177bReviewId,
+        p178bCandidateId,
+        p178bReviewId,
         p164bCandidateId,
         p164bReviewId,
         p167fCandidateId,
@@ -4722,6 +4724,9 @@ const title = 'Private 3D viewer';
       const isP177bDirectNorthWallReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p177bReviewId);
 
+      const isP178bJunctionClosureReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p178bReviewId);
+
       const isP164bCorrectedStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p164bReviewId);
 
@@ -5334,6 +5339,58 @@ const title = 'Private 3D viewer';
           'P177B HR-6 direct D-storage north wall-line correction - WORK_TEST / lower + upper north line 10.810 m / HUMAN_REVIEW CORRECTION_REQUIRED';
       };
 
+      const applyP178bReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p178b-d-stair-guard-lowwall-junction-closure-review',
+          p178ParentPass: 'P177B',
+          p178ContractPass: 'P178A',
+          p178GeometryPass: 'P178B',
+          p178QaPass: 'P178C',
+          p178Purpose: 'D_STAIR_GUARD_LOWWALL_VISIBLE_JUNCTION_CLOSURE',
+          p178MaterializationStrategy: 'APPEND_ONLY_NODE_SUPERSESSION_REUSE_EXISTING_UNIT_BOX_MESHES',
+          p178ReplacementVisibleNodes: '1022,1023,1024,1025,1026,1027',
+          p178BindingNode: '1028',
+          p178ReplacementGuardLowWallRoot: '1029',
+          p178ReplacementPreciseStairContextRoot: '1030',
+          p178SupersededGuardLowWallRoot: '945',
+          p178SupersededVisibleNodes: '946,947,948,949',
+          p178OpeningFloorShellBindingRoot: '1002',
+          p178P171cJunctionBindingRoot: '1004',
+          p178P177bStorageCorrectionNode: '1019',
+          p178PreciseStairRoot: '951',
+          p178FloorShellClearanceRoot: '972',
+          p178VisibleGapBeforeM: '0.100',
+          p178VisibleGapAfterM: '0.000',
+          p178VisibleGapToleranceM: '0.005',
+          p178HostZM: '2.760',
+          p178WorkTopZM: '3.760',
+          p178WorkTopZStatus: 'DERIVED_FROM_APPROXIMATE_WORK_ASSUMPTION',
+          p178LowWallWorkWidthM: '0.080',
+          p178GuardWorkThicknessM: '0.040',
+          p178PillarZoneStatus: 'UNRESOLVED_NO_SOLID',
+          p178PillarGeometryCreated: 'false',
+          p178SourceAnchorsPreserved: 'true',
+          p178P171Q1ContextPreserved: 'true',
+          p178P177bHr6CorrectionPreserved: 'true',
+          p178PhysicalGuardClaim: 'false',
+          p178PhysicalLowWallClaim: 'false',
+          p178PhysicalJunctionClaim: 'false',
+          p178PhysicalPillarClaim: 'false',
+          p178SourcePrimitiveMutation: 'false',
+          p178CurrentClaim: 'false',
+          p178AsBuiltClaim: 'false',
+          p178Canonical: 'false',
+          p178PublishToCurrent: 'false',
+          p178HumanReview: 'NOT_RUN',
+          p178HumanReviewInherited: 'false',
+          p178QaGate: 'PASS_INDEPENDENT_EXACT_BIT_JUNCTION_PLAUSIBILITY_QA',
+          standardViewPreset: 'd-apartment',
+        });
+        applyStandardViewPreset('d-apartment');
+        status.textContent =
+          'P178B D stair guard/lowWall junction closure - WORK_TEST / visible gap 0.000 m / touch-only non-overlapping work envelopes / HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP164bReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p164b-d-corrected-stair-review',
@@ -5663,6 +5720,8 @@ const title = 'Private 3D viewer';
             candidate.id === p176aCandidateId && isP176aFullVisibleWestGableReviewRequested();
           const isP177bDirectNorthWallReview =
             candidate.id === p177bCandidateId && isP177bDirectNorthWallReviewRequested();
+          const isP178bJunctionClosureReview =
+            candidate.id === p178bCandidateId && isP178bJunctionClosureReviewRequested();
           const isP164bCorrectedStairReview =
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP167fPreciseStairReview =
@@ -5980,6 +6039,48 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p177PublishToCurrent;
           delete canvas.dataset.p177HumanReview;
           delete canvas.dataset.p177QaGate;
+          delete canvas.dataset.p178ParentPass;
+          delete canvas.dataset.p178ContractPass;
+          delete canvas.dataset.p178GeometryPass;
+          delete canvas.dataset.p178QaPass;
+          delete canvas.dataset.p178Purpose;
+          delete canvas.dataset.p178MaterializationStrategy;
+          delete canvas.dataset.p178ReplacementVisibleNodes;
+          delete canvas.dataset.p178BindingNode;
+          delete canvas.dataset.p178ReplacementGuardLowWallRoot;
+          delete canvas.dataset.p178ReplacementPreciseStairContextRoot;
+          delete canvas.dataset.p178SupersededGuardLowWallRoot;
+          delete canvas.dataset.p178SupersededVisibleNodes;
+          delete canvas.dataset.p178OpeningFloorShellBindingRoot;
+          delete canvas.dataset.p178P171cJunctionBindingRoot;
+          delete canvas.dataset.p178P177bStorageCorrectionNode;
+          delete canvas.dataset.p178PreciseStairRoot;
+          delete canvas.dataset.p178FloorShellClearanceRoot;
+          delete canvas.dataset.p178VisibleGapBeforeM;
+          delete canvas.dataset.p178VisibleGapAfterM;
+          delete canvas.dataset.p178VisibleGapToleranceM;
+          delete canvas.dataset.p178HostZM;
+          delete canvas.dataset.p178WorkTopZM;
+          delete canvas.dataset.p178WorkTopZStatus;
+          delete canvas.dataset.p178LowWallWorkWidthM;
+          delete canvas.dataset.p178GuardWorkThicknessM;
+          delete canvas.dataset.p178PillarZoneStatus;
+          delete canvas.dataset.p178PillarGeometryCreated;
+          delete canvas.dataset.p178SourceAnchorsPreserved;
+          delete canvas.dataset.p178P171Q1ContextPreserved;
+          delete canvas.dataset.p178P177bHr6CorrectionPreserved;
+          delete canvas.dataset.p178PhysicalGuardClaim;
+          delete canvas.dataset.p178PhysicalLowWallClaim;
+          delete canvas.dataset.p178PhysicalJunctionClaim;
+          delete canvas.dataset.p178PhysicalPillarClaim;
+          delete canvas.dataset.p178SourcePrimitiveMutation;
+          delete canvas.dataset.p178CurrentClaim;
+          delete canvas.dataset.p178AsBuiltClaim;
+          delete canvas.dataset.p178Canonical;
+          delete canvas.dataset.p178PublishToCurrent;
+          delete canvas.dataset.p178HumanReview;
+          delete canvas.dataset.p178HumanReviewInherited;
+          delete canvas.dataset.p178QaGate;
           delete canvas.dataset.p164ParentPass;
           delete canvas.dataset.p164Topology;
           delete canvas.dataset.p164LowerFlightLevels;
@@ -6152,6 +6253,8 @@ const title = 'Private 3D viewer';
               ? 'P176A HR-6 full visible west-gable termination correction (WORK_TEST)'
             : isP177bDirectNorthWallReview
               ? 'P177B HR-6 direct D-storage north wall-line correction (WORK_TEST)'
+            : isP178bJunctionClosureReview
+              ? 'P178B D stair guard/lowWall junction closure (WORK_TEST / visible gap 0,000 m)'
             : isP174aR2WestGableTerminationReview
               ? 'P174A-R2 HR-6 west-gable termination correction (WORK_TEST)'
             : isP173dWallHr67RebaseReview
@@ -6224,6 +6327,8 @@ const title = 'Private 3D viewer';
             applyP176aReviewState();
           } else if (isP177bDirectNorthWallReview) {
             applyP177bReviewState();
+          } else if (isP178bJunctionClosureReview) {
+            applyP178bReviewState();
           } else if (isP174aR2WestGableTerminationReview) {
             applyP174aR2ReviewState();
           } else if (isP173dWallHr67RebaseReview) {

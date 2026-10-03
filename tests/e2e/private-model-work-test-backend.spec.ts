@@ -64,6 +64,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test/p175b-r3-near-building-flatter-terrain.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p176a-hr6-full-visible-west-gable-termination-correction.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p177b-hr6-direct-d-storage-north-wall-line-corrected.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/p178b-d-stair-guard-lowwall-junction-closure.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p164b-d-corrected-stair.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p167f-whole-building-precise-stair.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p168a-whole-building-roof-eave-correction.glb')).toBe(true);
@@ -78,7 +79,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(35);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(36);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -308,6 +309,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     expectedSha256: '37317206852db2adc95af4726e028a7297f6f42cd1552794e067093ba6fa2ca1',
   });
 
+  const p178b = getPrivateWorkTestCandidateById('p178b-d-stair-guard-lowwall-junction-closure');
+  expect(p178b).toMatchObject({
+    id: 'p178b-d-stair-guard-lowwall-junction-closure',
+    label: 'P178B D stair guard/lowWall visible junction closure - WORK_TEST',
+    path: '/private-model/work-test/p178b-d-stair-guard-lowwall-junction-closure.glb',
+    objectKey: 'work-test/p178b-d-stair-guard-lowwall-junction-closure.glb',
+    expectedSize: 2_165_344,
+    expectedSha256: 'a60111c6f0bc25d56e00c446cf2088b96e96f4f87051233abd8c2f23a248ef9b',
+  });
+
   const p164b = getPrivateWorkTestCandidateById('p164b-d-corrected-stair');
   expect(p164b).toMatchObject({
     id: 'p164b-d-corrected-stair',
@@ -447,6 +458,11 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestUploadCandidate(p177bUploadPath)?.id).toBe(
     'p177b-hr6-direct-d-storage-north-wall-line-corrected',
   );
+  const p178bUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p178b-d-stair-guard-lowwall-junction-closure.glb`;
+  expect(getPrivateWorkTestUploadCandidate(p178bUploadPath)?.id).toBe(
+    'p178b-d-stair-guard-lowwall-junction-closure',
+  );
+
   const p164bUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p164b-d-corrected-stair.glb`;
   expect(getPrivateWorkTestUploadCandidate(p164bUploadPath)?.id).toBe('p164b-d-corrected-stair');
   const p167fUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p167f-whole-building-precise-stair.glb`;
