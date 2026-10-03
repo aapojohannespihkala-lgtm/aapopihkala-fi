@@ -174,3 +174,50 @@ if "create_credentials_file: false" not in text:
     raise SystemExit("Google auth must not persist a credentials file")
 
 print("publish-work-test workflow contract: PASS")
+
+
+trigger_path = Path(".github/workflows/trigger-work-test-publish.yml")
+trigger = trigger_path.read_text(encoding="utf-8")
+
+trigger_required = {
+    "dedicated request branch": "- ops/machine-publish",
+    "request file path filter": "- .github/work-test-publish-request.json",
+    "read-only contents permission": "contents: read",
+    "actions dispatch permission": "actions: write",
+    "push event guard": '[[ "$EVENT_NAME" == "push" ]]',
+    "trusted repository guard": '[[ "$REPOSITORY" == "aapojohannespihkala-lgtm/aapopihkala-fi" ]]',
+    "dedicated ref guard": '[[ "$REF_FULL" == "refs/heads/ops/machine-publish" ]]',
+    "trusted actor guard": '[[ "$ACTOR" == "aapojohannespihkala-lgtm" ]]',
+    "trusted actor id guard": '[[ "$ACTOR_ID" == "322566438" ]]',
+    "request-only diff guard": '.github/work-test-publish-request.json',
+    "bounded request keys": 'set(payload) != {"candidate", "requestId"}',
+    "canonical publisher endpoint": "actions/workflows/publish-work-test.yml/dispatches",
+    "hard-coded main dispatch": '{"ref": "main", "inputs": {"candidate": candidate}}',
+}
+
+trigger_missing = [
+    label for label, needle in trigger_required.items() if needle not in trigger
+]
+if trigger_missing:
+    raise SystemExit(
+        "trigger-work-test-publish contract missing: " + ", ".join(trigger_missing)
+    )
+
+for forbidden in (
+    "workflow_dispatch:",
+    "pull_request:",
+    "schedule:",
+    "id-token: write",
+    "drive_file_id=",
+    "expected_size=",
+    "expected_sha256=",
+):
+    if forbidden in trigger:
+        raise SystemExit(
+            f"trigger-work-test-publish contains forbidden contract element: {forbidden}"
+        )
+
+if trigger.count("actions/workflows/publish-work-test.yml/dispatches") != 1:
+    raise SystemExit("trigger must dispatch the canonical publisher exactly once")
+
+print("trigger-work-test-publish workflow contract: PASS")
