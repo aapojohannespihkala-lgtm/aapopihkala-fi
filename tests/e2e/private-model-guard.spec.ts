@@ -91,51 +91,51 @@ test('private viewer visible bounds helper preserves mesh filtering and optional
   expect(computeVisibleBounds(hiddenOnlyRoot)).toBeNull();
 });
 
-test('private viewer P160 review presentation makes floor surfaces 80% and all other geometry 20%', () => {
+test('private viewer P160 review hides auxiliary footprints and renders exactly two unified warm floors', () => {
   const interior = new THREE.Group();
   interior.name = 'D CURRENT INTERIOR - BABYLON Y-UP';
 
-  const floor1FMaterial = new THREE.MeshBasicMaterial({
+  const helperMaterial1F = new THREE.MeshBasicMaterial({
     color: 0x2e9a63,
     transparent: true,
     opacity: 0.12,
   });
-  const floor1F = new THREE.Mesh(new THREE.BoxGeometry(2, 0.02, 2), floor1FMaterial);
-  floor1F.name = 'P117D_REVIEW_FLOOR_1F';
-  floor1F.userData = {
+  const helper1F = new THREE.Mesh(new THREE.BoxGeometry(2, 0.02, 2), helperMaterial1F);
+  helper1F.name = 'P117D_REVIEW_FLOOR_1F';
+  helper1F.userData = {
     representationKind: 'referenceFootprint',
     G2Id: 'G2_D15_SPACE_HUONE2_1F_SRC',
   };
-  interior.add(floor1F);
+  interior.add(helper1F);
 
-  const floor2FMaterial = new THREE.MeshBasicMaterial({
+  const helperMaterial2F = new THREE.MeshBasicMaterial({
     color: 0x2e9a63,
     transparent: true,
     opacity: 0.16,
   });
-  const floor2F = new THREE.Mesh(new THREE.BoxGeometry(2, 0.02, 2), floor2FMaterial);
-  floor2F.name = 'P123C_CONTEXT_STAIR_2F';
-  floor2F.userData = {
+  const helper2F = new THREE.Mesh(new THREE.BoxGeometry(2, 0.02, 2), helperMaterial2F);
+  helper2F.name = 'P123C_CONTEXT_STAIR_2F';
+  helper2F.userData = {
     representationKind: 'stairHostFootprint',
     G2Id: 'G2_STAIR_D_2F_HOST_R_POLY',
   };
-  interior.add(floor2F);
+  interior.add(helper2F);
 
-  const storageFloorMaterial = new THREE.MeshBasicMaterial({
+  const storageHelperMaterial = new THREE.MeshBasicMaterial({
     color: 0x2e9a63,
     transparent: true,
     opacity: 0.12,
   });
-  const storageFloor = new THREE.Mesh(
+  const storageHelper = new THREE.Mesh(
     new THREE.BoxGeometry(2, 0.02, 2),
-    storageFloorMaterial,
+    storageHelperMaterial,
   );
-  storageFloor.name = 'P117D_REVIEW_STORAGE_1F';
-  storageFloor.userData = {
+  storageHelper.name = 'P117D_REVIEW_STORAGE_1F';
+  storageHelper.userData = {
     representationKind: 'referenceFootprint',
     G2Id: 'G2_D15_SPACE_VARASTO_1F_SRC',
   };
-  interior.add(storageFloor);
+  interior.add(storageHelper);
 
   const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xaaaaaa, opacity: 0.8 });
   const wall = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.1), wallMaterial);
@@ -144,51 +144,88 @@ test('private viewer P160 review presentation makes floor surfaces 80% and all o
   interior.add(wall);
 
   const presentation = prepareP160WarmFloorReviewPresentation(interior);
-  const clonedFloor1F = presentation.interiorClone.getObjectByName(floor1F.name) as any;
-  const clonedFloor2F = presentation.interiorClone.getObjectByName(floor2F.name) as any;
-  const clonedStorageFloor = presentation.interiorClone.getObjectByName(storageFloor.name) as any;
+  const clonedHelper1F = presentation.interiorClone.getObjectByName(helper1F.name) as any;
+  const clonedHelper2F = presentation.interiorClone.getObjectByName(helper2F.name) as any;
+  const clonedStorageHelper = presentation.interiorClone.getObjectByName(storageHelper.name) as any;
   const clonedWall = presentation.interiorClone.getObjectByName(wall.name) as any;
+  const floor1F = presentation.interiorClone.getObjectByName(
+    'P160_UNIFIED_WARM_FLOOR_1F_VIEWER_ONLY',
+  ) as any;
+  const floor2F = presentation.interiorClone.getObjectByName(
+    'P160_UNIFIED_WARM_FLOOR_2F_VIEWER_ONLY',
+  ) as any;
 
   expect(presentation.interiorClone).not.toBe(interior);
-  expect(presentation.floorSurfaceCount).toBe(3);
-  expect(presentation.floorEdgeCount).toBe(3);
+  expect(presentation.floorSurfaceCount).toBe(2);
+  expect(presentation.floorEdgeCount).toBe(2);
+  expect(presentation.hiddenHelperSurfaceCount).toBe(3);
   expect(presentation.contextRenderableCount).toBe(1);
-  expect(clonedFloor1F.material).not.toBe(floor1FMaterial);
-  expect(clonedFloor2F.material).not.toBe(floor2FMaterial);
-  expect(clonedStorageFloor.material).not.toBe(storageFloorMaterial);
-  expect(clonedFloor1F.material.opacity).toBe(p160WarmFloorReviewOpacity);
-  expect(clonedFloor2F.material.opacity).toBe(p160WarmFloorReviewOpacity);
-  expect(clonedStorageFloor.material.opacity).toBe(p160WarmFloorReviewOpacity);
-  expect(clonedFloor1F.material.transparent).toBe(true);
-  expect(clonedFloor1F.material.depthWrite).toBe(true);
-  expect(clonedFloor1F.material.color.getHex()).toBe(p160WarmFloorReviewHex);
-  expect(clonedFloor1F.material.polygonOffset).toBe(true);
-  expect(clonedFloor1F.material.polygonOffsetFactor).toBe(-1);
-  expect(clonedFloor1F.material.polygonOffsetUnits).toBe(-1);
-  expect(clonedFloor1F.renderOrder).toBe(20);
-  expect(clonedFloor1F.userData.p160WarmFloorReviewSurface).toBe(true);
-  expect(clonedFloor2F.userData.p160WarmFloorReviewSurface).toBe(true);
-  expect(clonedStorageFloor.userData.p160WarmFloorReviewSurface).toBe(true);
-  const floor1FEdge = clonedFloor1F.getObjectByName(
-    `${floor1F.name}__P160_FLOOR_EDGE`,
+
+  expect(clonedHelper1F.visible).toBe(false);
+  expect(clonedHelper2F.visible).toBe(false);
+  expect(clonedStorageHelper.visible).toBe(false);
+  expect(clonedHelper1F.userData.p160WarmFloorAuxiliaryHidden).toBe(true);
+  expect(clonedHelper2F.userData.p160WarmFloorAuxiliaryHidden).toBe(true);
+  expect(clonedStorageHelper.userData.p160WarmFloorAuxiliaryHidden).toBe(true);
+
+  expect(floor1F).toBeTruthy();
+  expect(floor2F).toBeTruthy();
+  expect(floor1F.userData.p160UnifiedWarmFloor).toBe(true);
+  expect(floor2F.userData.p160UnifiedWarmFloor).toBe(true);
+  expect(floor1F.userData.p160FloorStorey).toBe('1F');
+  expect(floor2F.userData.p160FloorStorey).toBe('2F');
+  expect(floor1F.userData.p160StairOpeningPreserved).toBe(false);
+  expect(floor2F.userData.p160StairOpeningPreserved).toBe(true);
+  expect(floor1F.material.opacity).toBe(p160WarmFloorReviewOpacity);
+  expect(floor2F.material.opacity).toBe(p160WarmFloorReviewOpacity);
+  expect(floor1F.material.color.getHex()).toBe(p160WarmFloorReviewHex);
+  expect(floor1F.material.polygonOffset).toBe(true);
+  expect(floor1F.renderOrder).toBe(20);
+
+  presentation.interiorClone.updateMatrixWorld(true);
+  const floor1FBounds = new THREE.Box3().setFromObject(floor1F);
+  expect(floor1FBounds.min.x).toBeCloseTo(0.22, 5);
+  expect(floor1FBounds.max.x).toBeCloseTo(6.25, 5);
+  expect(floor1FBounds.min.y).toBeCloseTo(0, 5);
+  expect(floor1FBounds.max.y).toBeCloseTo(0, 5);
+  expect(floor1FBounds.min.z).toBeCloseTo(-8.724, 5);
+  expect(floor1FBounds.max.z).toBeCloseTo(-0.249, 5);
+
+  const floor2FBounds = new THREE.Box3().setFromObject(floor2F);
+  expect(floor2FBounds.min.x).toBeCloseTo(0.22, 5);
+  expect(floor2FBounds.max.x).toBeCloseTo(6.25, 5);
+  expect(floor2FBounds.min.y).toBeCloseTo(2.76, 5);
+  expect(floor2FBounds.max.y).toBeCloseTo(2.76, 5);
+  expect(floor2FBounds.min.z).toBeCloseTo(-10.59, 5);
+  expect(floor2FBounds.max.z).toBeCloseTo(-0.25, 5);
+
+  const down = new THREE.Vector3(0, -1, 0);
+  const stairVoidRay = new THREE.Raycaster(new THREE.Vector3(1, 3.5, -6), down);
+  expect(stairVoidRay.intersectObject(floor2F, false)).toHaveLength(0);
+  const warmFloorRay = new THREE.Raycaster(new THREE.Vector3(4, 3.5, -6), down);
+  expect(warmFloorRay.intersectObject(floor2F, false).length).toBeGreaterThan(0);
+
+  const floor1FEdge = floor1F.getObjectByName(
+    'P160_UNIFIED_WARM_FLOOR_1F_VIEWER_ONLY__EDGE',
+  ) as any;
+  const floor2FEdge = floor2F.getObjectByName(
+    'P160_UNIFIED_WARM_FLOOR_2F_VIEWER_ONLY__EDGE',
   ) as any;
   expect(floor1FEdge).toBeTruthy();
-  expect(floor1FEdge.isLineSegments).toBe(true);
+  expect(floor2FEdge).toBeTruthy();
   expect(floor1FEdge.material.color.getHex()).toBe(p160WarmFloorReviewEdgeHex);
   expect(floor1FEdge.material.opacity).toBe(p160WarmFloorReviewEdgeOpacity);
-  expect(floor1FEdge.material.depthWrite).toBe(false);
   expect(floor1FEdge.renderOrder).toBe(21);
-  expect(floor1FEdge.userData.p160WarmFloorReviewEdge).toBe(true);
+
   expect(clonedWall.material).not.toBe(wallMaterial);
   expect(clonedWall.material.opacity).toBe(p160WarmFloorContextOpacity);
   expect(clonedWall.material.transparent).toBe(true);
   expect(clonedWall.material.depthWrite).toBe(false);
-  expect(clonedWall.renderOrder).toBe(0);
   expect(clonedWall.userData.p160WarmFloorReviewContext).toBe(true);
-  expect(floor1FMaterial.opacity).toBeCloseTo(0.12);
-  expect(floor1FMaterial.color.getHex()).toBe(0x2e9a63);
-  expect(floor2FMaterial.opacity).toBeCloseTo(0.16);
-  expect(storageFloorMaterial.opacity).toBeCloseTo(0.12);
+
+  expect(helperMaterial1F.opacity).toBeCloseTo(0.12);
+  expect(helperMaterial2F.opacity).toBeCloseTo(0.16);
+  expect(storageHelperMaterial.opacity).toBeCloseTo(0.12);
   expect(wallMaterial.opacity).toBeCloseTo(0.8);
 });
 
@@ -6329,6 +6366,9 @@ test('private viewer autoloads the exact P160 D composite architecture review ca
   await expect(canvas).toHaveAttribute('data-p160-as-built-claim', 'false');
   await expect(canvas).toHaveAttribute('data-p160-canonical', 'false');
   await expect(canvas).toHaveAttribute('data-p160-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-p160-warm-floor-review-presentation', 'true');
+  await expect(canvas).toHaveAttribute('data-p160-warm-floor-review-surface-count', '2');
+  await expect(canvas).toHaveAttribute('data-p160-warm-floor-review-geometry', 'TWO_UNIFIED_HEATED_FLOORS_WITH_2F_STAIR_VOID');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
   await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(page.getByRole('status')).toHaveText(
