@@ -68,6 +68,9 @@ export const p175bR3ReviewId = 'p175b-r3-near-building-flatter-terrain-review';
 export const p176aCandidateId = 'p176a-hr6-full-visible-west-gable-termination-correction';
 export const p176aReviewId = 'p176a-hr6-full-visible-west-gable-termination-correction-review';
 
+export const p177bCandidateId = 'p177b-hr6-direct-d-storage-north-wall-line-corrected';
+export const p177bReviewId = 'p177b-hr6-direct-d-storage-north-wall-line-corrected-review';
+
 export const p164bCandidateId = 'p164b-d-corrected-stair';
 export const p164bReviewId = 'p164b-d-corrected-stair-review';
 
@@ -111,6 +114,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p174aR2ReviewId]: p174aR2CandidateId,
   [p175bR3ReviewId]: p175bR3CandidateId,
   [p176aReviewId]: p176aCandidateId,
+  [p177bReviewId]: p177bCandidateId,
   [p164bReviewId]: p164bCandidateId,
   [p167fReviewId]: p167fCandidateId,
   [p168aReviewId]: p168aCandidateId,
