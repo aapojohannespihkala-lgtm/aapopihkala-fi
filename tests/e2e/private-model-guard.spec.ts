@@ -155,35 +155,79 @@ test('private viewer P172B D-overview presentation clone does not mutate source 
   expect(lowWall.visible).toBe(true);
 });
 
-test('private viewer P171 Q1 work-shell seam suppression clone does not mutate source semantics', () => {
+test('private viewer P171 Q1 replaces translucent floor volumes with one top-surface-only presentation mesh', () => {
   const workShell = new THREE.Group();
-  const floor = new THREE.Mesh(
-    new THREE.BoxGeometry(2, 0.1, 2),
-    new THREE.MeshBasicMaterial({ color: 0x949ea8 }),
-  );
-  floor.name = 'P167F_CD_2F_WORKSHELL_CLEARANCE_TEST';
-  floor.userData = {
-    representationKind: 'presentationFloorWorkShellWithPreciseStairClearance',
-  };
+  const floorMaterial = new THREE.MeshBasicMaterial({
+    color: 0x949ea8,
+    transparent: true,
+    opacity: 0.22,
+  });
+  const floorParts = [
+    { name: 'WEST', position: [-1.5, 0, 0], scale: [1, 0.1, 4] },
+    { name: 'EAST', position: [1.5, 0, 0], scale: [1, 0.1, 4] },
+    { name: 'SOUTH', position: [0, 0, -1.5], scale: [2, 0.1, 1] },
+    { name: 'NORTH', position: [0, 0, 1.5], scale: [2, 0.1, 1] },
+  ].map(({ name, position, scale }) => {
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), floorMaterial);
+    floor.name = `P167F_CD_2F_WORKSHELL_CLEARANCE_${name}`;
+    floor.position.set(...(position as [number, number, number]));
+    floor.scale.set(...(scale as [number, number, number]));
+    floor.userData = {
+      representationKind: 'presentationFloorWorkShellWithPreciseStairClearance',
+      clearancePartRole: name,
+    };
+    workShell.add(floor);
+    return floor;
+  });
+
   const wall = new THREE.Mesh(
     new THREE.BoxGeometry(1, 1, 1),
     new THREE.MeshBasicMaterial({ color: 0xaeb4b8 }),
   );
   wall.name = 'P167F_WALL_CONTEXT_TEST';
   wall.userData = { representationKind: 'presentationWallContext' };
-  workShell.add(floor, wall);
+  workShell.add(wall);
 
   const presentation = prepareP171Q1WorkShellPresentation(workShell);
-  const clonedFloor = presentation.workShellClone.getObjectByName(floor.name) as any;
   const clonedWall = presentation.workShellClone.getObjectByName(wall.name) as any;
+  const surface = presentation.floorSurface as any;
+  const surfaceBounds = surface.geometry.boundingBox as any;
 
   expect(presentation.workShellClone).not.toBe(workShell);
-  expect(presentation.suppressedFloorMeshCount).toBe(1);
-  expect(clonedFloor.userData.viewerSuppressEdgeOverlay).toBe(true);
-  expect(clonedFloor.userData.p171Q1InternalSeamSuppression).toBe(true);
+  expect(presentation.suppressedFloorMeshCount).toBe(4);
+  expect(presentation.hiddenFloorVolumeMeshCount).toBe(4);
+  expect(presentation.floorSurfaceMeshCount).toBe(1);
+  expect(surface.name).toBe('P171_Q1_FLOOR_SHELL_TOP_SURFACE_VIEWER_ONLY');
+  expect(surface.userData.viewerSuppressEdgeOverlay).toBe(true);
+  expect(surface.userData.p171Q1InternalSeamSuppression).toBe(true);
+  expect(surface.userData.representationKind).toBe(
+    'presentationFloorWorkShellTopSurfaceReview',
+  );
+  expect(surface.userData.sourcePartCount).toBe(4);
+  expect(surface.geometry.getAttribute('position').count).toBe(16);
+  expect(surface.geometry.getIndex()?.count).toBe(24);
+  expect(surfaceBounds.min.x).toBeCloseTo(-2);
+  expect(surfaceBounds.max.x).toBeCloseTo(2);
+  expect(surfaceBounds.min.y).toBeCloseTo(0.05);
+  expect(surfaceBounds.max.y).toBeCloseTo(0.05);
+  expect(surfaceBounds.min.z).toBeCloseTo(-2);
+  expect(surfaceBounds.max.z).toBeCloseTo(2);
+  expect(surface.material.opacity).toBeCloseTo(0.22);
+  expect(surface.material.transparent).toBe(true);
+  expect(surface.material.depthWrite).toBe(false);
+  expect(surface.material.polygonOffset).toBe(true);
   expect(clonedWall.userData.viewerSuppressEdgeOverlay).toBeUndefined();
-  expect(floor.userData.viewerSuppressEdgeOverlay).toBeUndefined();
-  expect(floor.userData.p171Q1InternalSeamSuppression).toBeUndefined();
+
+  for (const floor of floorParts) {
+    const clonedFloor = presentation.workShellClone.getObjectByName(floor.name) as any;
+    expect(clonedFloor.visible).toBe(false);
+    expect(clonedFloor.userData.viewerSuppressEdgeOverlay).toBe(true);
+    expect(clonedFloor.userData.p171Q1ReplacedByTopSurfaceOnly).toBe(true);
+    expect(floor.visible).toBe(true);
+    expect(floor.userData.viewerSuppressEdgeOverlay).toBeUndefined();
+    expect(floor.userData.p171Q1ReplacedByTopSurfaceOnly).toBeUndefined();
+  }
+  expect(floorMaterial.opacity).toBeCloseTo(0.22);
 });
 
 test('private viewer layer-state helper preserves partial updates and clamps opacity', () => {
@@ -4195,8 +4239,14 @@ test('private viewer autoloads exact P171C D stair opening + guard/lowWall junct
   );
   await expect(canvas).toHaveAttribute(
     'data-p171-q1-floor-shell-internal-seams',
-    'SUPPRESSED_VIEWER_EDGE_OVERLAY',
+    'EDGE_OVERLAY_SUPPRESSED_SOURCE_VOLUME_FALLBACK',
   );
+  await expect(canvas).toHaveAttribute(
+    'data-p171-q1-floor-shell-presentation',
+    'SOURCE_VOLUME_FALLBACK',
+  );
+  await expect(canvas).toHaveAttribute('data-p171-q1-floor-shell-hidden-volume-count', '0');
+  await expect(canvas).toHaveAttribute('data-p171-q1-floor-shell-surface-mesh-count', '0');
   await expect(canvas).toHaveAttribute(
     'data-p171-q1-opening-boundary-context',
     'P171B_R2_PRESENTATION_OPENING_ENVELOPE',
@@ -4208,7 +4258,7 @@ test('private viewer autoloads exact P171C D stair opening + guard/lowWall junct
     'P171C D stair opening + guard/lowWall junction (WORK_TEST)',
   );
   await expect(page.getByRole('status')).toHaveText(
-    'P171C D stair opening + guard/lowWall junction - WORK_TEST / floor-shell sisäsauma vaimennettu + aukon reuna korostettu / vapaa 3D - HUMAN_REVIEW NOT_RUN',
+    'P171C D stair opening + guard/lowWall junction - WORK_TEST / floor-shell top-surface-only + aukon reuna korostettu / vapaa 3D - HUMAN_REVIEW NOT_RUN',
   );
 });
 
