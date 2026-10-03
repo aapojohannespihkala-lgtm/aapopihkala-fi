@@ -4809,6 +4809,75 @@ test('P177B +X support regression loads geometry-bearing aligned north lines', a
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
 });
 
+test('private viewer autoloads exact P178B stair guard/lowWall junction closure', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'P178B D STAIR GUARD LOWWALL VISIBLE JUNCTION CLOSURE - WORK_TEST', nodes: [] }],
+    nodes: [],
+  });
+  const candidateId = 'p178b-d-stair-guard-lowwall-junction-closure';
+  const candidateLabel = 'P178B D stair guard/lowWall visible junction closure - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p178b-d-stair-guard-lowwall-junction-closure.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p178b-d-stair-guard-lowwall-junction-closure-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p178b-d-stair-guard-lowwall-junction-closure-review',
+  );
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute('data-p178-parent-pass', 'P177B');
+  await expect(canvas).toHaveAttribute('data-p178-contract-pass', 'P178A');
+  await expect(canvas).toHaveAttribute('data-p178-geometry-pass', 'P178B');
+  await expect(canvas).toHaveAttribute('data-p178-qa-pass', 'P178C');
+  await expect(canvas).toHaveAttribute('data-p178-visible-gap-before-m', '0.100');
+  await expect(canvas).toHaveAttribute('data-p178-visible-gap-after-m', '0.000');
+  await expect(canvas).toHaveAttribute('data-p178-visible-gap-tolerance-m', '0.005');
+  await expect(canvas).toHaveAttribute('data-p178-pillar-zone-status', 'UNRESOLVED_NO_SOLID');
+  await expect(canvas).toHaveAttribute('data-p178-pillar-geometry-created', 'false');
+  await expect(canvas).toHaveAttribute('data-p178-physical-guard-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p178-physical-low-wall-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p178-physical-junction-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p178-physical-pillar-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p178-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p178-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p178-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p178-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p178-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-p178-human-review-inherited', 'false');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P178B D stair guard/lowWall junction closure (WORK_TEST / visible gap 0,000 m)',
+  );
+  await expect(page.getByRole('status')).toHaveText(
+    'P178B D stair guard/lowWall junction closure - WORK_TEST / visible gap 0.000 m / touch-only non-overlapping work envelopes / HUMAN_REVIEW NOT_RUN',
+  );
+});
+
 test('private viewer autoloads the exact P164B D corrected stair review candidate', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
