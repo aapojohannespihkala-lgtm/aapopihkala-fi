@@ -257,6 +257,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_165_344,
     expectedSha256: 'a60111c6f0bc25d56e00c446cf2088b96e96f4f87051233abd8c2f23a248ef9b',
   },
+  // P181 V4 viewer/review integration: exact persisted P181B-R1 A-C storage ground-contact/substructure + terrain rebase successor.
+  {
+    id: 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase',
+    label: 'P181B-R1 A-C storage ground-contact/substructure + terrain rebase - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase.glb`,
+    objectKey: 'work-test/p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase.glb',
+    expectedSize: 2_861_664,
+    expectedSha256: '3cddee192ae2af0d85bb650482aaa1596dfd883e5f0b3d25c42c4b451b3e6239',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
