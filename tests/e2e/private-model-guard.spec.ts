@@ -114,6 +114,7 @@ test('private viewer P172B D-overview presentation clone does not mutate source 
   interior.add(wallB);
 
   const workShell = new THREE.Group();
+  workShell.quaternion.set(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
   const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x949ea8, transparent: true, opacity: 0.22 });
   const floor = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 2), floorMaterial);
   floor.name = 'P167F_CD_2F_WORKSHELL_CLEARANCE_TEST';
@@ -163,10 +164,10 @@ test('private viewer P171 Q1 replaces translucent floor volumes with one top-sur
     opacity: 0.22,
   });
   const floorParts = [
-    { name: 'WEST', position: [-1.5, 0, 0], scale: [1, 0.1, 4] },
-    { name: 'EAST', position: [1.5, 0, 0], scale: [1, 0.1, 4] },
-    { name: 'SOUTH', position: [0, 0, -1.5], scale: [2, 0.1, 1] },
-    { name: 'NORTH', position: [0, 0, 1.5], scale: [2, 0.1, 1] },
+    { name: 'WEST', position: [-1.5, 0, 0], scale: [1, 4, 0.1] },
+    { name: 'EAST', position: [1.5, 0, 0], scale: [1, 4, 0.1] },
+    { name: 'SOUTH', position: [0, -1.5, 0], scale: [2, 1, 0.1] },
+    { name: 'NORTH', position: [0, 1.5, 0], scale: [2, 1, 0.1] },
   ].map(({ name, position, scale }) => {
     const floor = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), floorMaterial);
     floor.name = `P167F_CD_2F_WORKSHELL_CLEARANCE_${name}`;
@@ -192,6 +193,8 @@ test('private viewer P171 Q1 replaces translucent floor volumes with one top-sur
   const clonedWall = presentation.workShellClone.getObjectByName(wall.name) as any;
   const surface = presentation.floorSurface as any;
   const surfaceBounds = surface.geometry.boundingBox as any;
+  presentation.workShellClone.updateMatrixWorld(true);
+  const worldSurfaceBounds = new THREE.Box3().setFromObject(surface);
 
   expect(presentation.workShellClone).not.toBe(workShell);
   expect(presentation.suppressedFloorMeshCount).toBe(4);
@@ -208,10 +211,16 @@ test('private viewer P171 Q1 replaces translucent floor volumes with one top-sur
   expect(surface.geometry.getIndex()?.count).toBe(24);
   expect(surfaceBounds.min.x).toBeCloseTo(-2);
   expect(surfaceBounds.max.x).toBeCloseTo(2);
-  expect(surfaceBounds.min.y).toBeCloseTo(0.05);
-  expect(surfaceBounds.max.y).toBeCloseTo(0.05);
-  expect(surfaceBounds.min.z).toBeCloseTo(-2);
-  expect(surfaceBounds.max.z).toBeCloseTo(2);
+  expect(surfaceBounds.min.y).toBeCloseTo(-2);
+  expect(surfaceBounds.max.y).toBeCloseTo(2);
+  expect(surfaceBounds.min.z).toBeCloseTo(0.05);
+  expect(surfaceBounds.max.z).toBeCloseTo(0.05);
+  expect(worldSurfaceBounds.min.x).toBeCloseTo(-2);
+  expect(worldSurfaceBounds.max.x).toBeCloseTo(2);
+  expect(worldSurfaceBounds.min.y).toBeCloseTo(0.05);
+  expect(worldSurfaceBounds.max.y).toBeCloseTo(0.05);
+  expect(worldSurfaceBounds.min.z).toBeCloseTo(-2);
+  expect(worldSurfaceBounds.max.z).toBeCloseTo(2);
   expect(surface.material.opacity).toBeCloseTo(0.22);
   expect(surface.material.transparent).toBe(true);
   expect(surface.material.depthWrite).toBe(false);
