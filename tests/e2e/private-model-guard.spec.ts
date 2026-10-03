@@ -1779,15 +1779,20 @@ const makeLocusLayerGlb = () => {
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
-const openToolbarMenu = async (page: Page, selector: '#view-menu' | '#model-menu' | '#more-menu') => {
+const openToolbarMenu = async (
+  page: Page,
+  selector: '#preset-menu' | '#view-menu' | '#model-menu' | '#more-menu',
+) => {
   const menu = page.locator(selector);
   if ((await menu.getAttribute('open')) === null) {
     await menu.locator(':scope > summary').click();
   }
 };
 
+const presetActions = new Set(['Koko rakennus', 'D-asunto', 'D 1F', 'D 2F', 'Tontti', 'Infra']);
+
 const clickViewAction = async (page: Page, name: string) => {
-  await openToolbarMenu(page, '#view-menu');
+  await openToolbarMenu(page, presetActions.has(name) ? '#preset-menu' : '#view-menu');
   await page.getByRole('button', { name, exact: true }).click();
 };
 
@@ -1853,7 +1858,7 @@ test('private model handler rejects unsupported methods before auth or assets', 
   expect(assetFetches).toBe(0);
 });
 
-test('private viewer view menu stays inside a short viewport and keeps every preset reachable', async ({ page }) => {
+test('private viewer preset and view menus stay inside a short viewport and keep their actions reachable', async ({ page }) => {
   const model = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
@@ -1871,18 +1876,28 @@ test('private viewer view menu stays inside a short viewport and keeps every pre
   });
 
   await page.goto('/private-model/');
+
+  await openToolbarMenu(page, '#preset-menu');
+  const presetPanel = page.locator('#preset-menu > .toolbar-menu-panel');
+  await expect(presetPanel).toBeVisible();
+  const presetBox = await presetPanel.boundingBox();
+  expect(presetBox).not.toBeNull();
+  if (!presetBox) return;
+  expect(presetBox.y + presetBox.height).toBeLessThanOrEqual(758);
+  await expect(page.getByRole('button', { name: 'Infra', exact: true })).toBeVisible();
+  await page.locator('#preset-menu > summary').click();
+
   await openToolbarMenu(page, '#view-menu');
+  const viewPanel = page.locator('#view-menu > .toolbar-menu-panel');
+  await expect(viewPanel).toBeVisible();
+  const viewBox = await viewPanel.boundingBox();
+  expect(viewBox).not.toBeNull();
+  if (!viewBox) return;
+  expect(viewBox.y + viewBox.height).toBeLessThanOrEqual(758);
 
-  const panel = page.locator('#view-menu > .toolbar-menu-panel');
-  await expect(panel).toBeVisible();
-  const box = await panel.boundingBox();
-  expect(box).not.toBeNull();
-  if (!box) return;
-  expect(box.y + box.height).toBeLessThanOrEqual(758);
-
-  const finalPreset = page.getByRole('button', { name: 'Julk -X', exact: true });
-  await finalPreset.scrollIntoViewIfNeeded();
-  await expect(finalPreset).toBeVisible();
+  const finalView = page.getByRole('button', { name: 'Julk -X', exact: true });
+  await finalView.scrollIntoViewIfNeeded();
+  await expect(finalView).toBeVisible();
 });
 
 
@@ -1909,7 +1924,8 @@ test('private viewer resolves the source D scene even when Three runtime names a
 
   await page.goto('/private-model/');
 
-  await expect(page.locator('#view-menu > summary')).toBeVisible();
+  await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit');
+  await expect(page.locator('#view-menu > summary')).toHaveText('Näkymä');
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
   await expect(page.locator('#model-source-badge')).toBeVisible();
   await expect(page.locator('#more-menu > summary')).toBeVisible();
@@ -2130,8 +2146,9 @@ test('private viewer derives four edge modes from mesh geometry and preserves se
   await expect(canvas).toHaveAttribute('data-edge-semantic-line-count', '1');
   await expect(canvas).toHaveAttribute('data-edge-depth-test', 'true');
 
-  await page.getByRole('button', { name: 'Layerit' }).click();
-  const edgeMode = page.locator('#edge-mode-select');
+  await openToolbarMenu(page, '#view-menu');
+  const edgeMode = page.locator('#edge-presentation-select');
+  await expect(edgeMode).toBeVisible();
 
   await edgeMode.selectOption('object');
   await expect(canvas).toHaveAttribute('data-edge-mode', 'object');
@@ -2262,13 +2279,15 @@ test('private viewer exposes Locus as a semantic parent layer with WATER and WAS
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'false');
   await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
   await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'false');
+  await expect(waterToggle).not.toBeChecked();
+  await expect(wastewaterToggle).toBeChecked();
   await expect(waterToggle).toBeDisabled();
   await expect(wastewaterToggle).toBeDisabled();
   await expect(panel).toBeHidden();
 
   await locusToggle.check();
-  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'all');
-  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
+  await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
   await expect(canvas).toHaveAttribute('data-locus-wastewater-visible', 'true');
   await expect(waterToggle).toBeEnabled();
   await expect(wastewaterToggle).toBeEnabled();
@@ -2293,10 +2312,11 @@ test('private viewer restores active preset camera and semantic layer defaults o
   const locusToggle = page.locator('#locus-layer-visible');
   const waterToggle = page.locator('#locus-water-visible');
   const wastewaterToggle = page.locator('#locus-wastewater-visible');
-  const edgeMode = page.locator('#edge-mode-select');
 
   await locusToggle.check();
   await waterToggle.uncheck();
+  await openToolbarMenu(page, '#view-menu');
+  const edgeMode = page.locator('#edge-presentation-select');
   await edgeMode.selectOption('none');
   await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
   await expect(canvas).toHaveAttribute('data-locus-water-visible', 'false');
@@ -2426,7 +2446,7 @@ test('private viewer roof test layer toggles explicit roof metadata and exposes 
   const opacity = page.locator('#roof-layer-opacity');
 
   await expect(layerPanel).toBeVisible();
-  await expect(page.getByText('Katto (testi)')).toBeVisible();
+  await expect(page.getByText('Katto', { exact: true })).toBeVisible();
   await expect(page.locator('#roof-layer-count')).toHaveText('1 kohdetta');
   await expect(roofToggle).toBeChecked();
   await expect(opacity).toHaveValue('100');
@@ -4094,14 +4114,17 @@ test('private viewer autoloads the exact P161 multisource systems review candida
 
   await systemsLayer.check();
   await expect(canvas).toHaveAttribute('data-locus-layer-visible', 'true');
-  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'all');
+  await expect(canvas).toHaveAttribute('data-locus-layer-parent-state', 'mixed');
   await expect(canvas).toHaveAttribute('data-p161-kvv-visible', 'true');
-  await expect(canvas).toHaveAttribute('data-p161-iv-plan-visible', 'true');
-  await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-p161-iv-plan-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-p161-iv-section-visible', 'false');
   await expect(canvas).toHaveAttribute('data-p161-visible-system-layer-renderable-count', '1');
   await expect(kvvLayer).toBeEnabled();
   await expect(ivPlanLayer).toBeEnabled();
   await expect(ivSectionLayer).toBeEnabled();
+  await expect(kvvLayer).toBeChecked();
+  await expect(ivPlanLayer).not.toBeChecked();
+  await expect(ivSectionLayer).not.toBeChecked();
 });
 
 test('private viewer autoloads exact P170A review visibility successor with P161 hierarchy', async ({ page }) => {
@@ -6215,6 +6238,8 @@ test('private viewer initializes preset layer defaults once and preserves manual
 });
 
 test('private viewer keeps the primary toolbar compact and exposes legacy actions through menus', async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 768 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
@@ -6232,21 +6257,54 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
   await page.goto('/private-model/');
 
   await expect(page.getByText('Ylisrinne 3D', { exact: true })).toBeVisible();
+  await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit');
   await expect(page.locator('#view-menu > summary')).toHaveText('Näkymä');
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  const layerPanel = page.locator('#layers-panel');
+  const assertLayerPanelFits = async (width: number, height: number) => {
+    const box = await layerPanel.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) return;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(height);
+    const metrics = await layerPanel.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth);
+  };
+  await assertLayerPanelFits(1536, 768);
+  await expect(page.getByText('Katto', { exact: true })).toBeVisible();
+  await page.locator('#roof-layer-visible').focus();
+  await expect(page.locator('#roof-layer-visible')).toBeFocused();
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await assertLayerPanelFits(1024, 768);
+  await page.setViewportSize({ width: 390, height: 700 });
+  await assertLayerPanelFits(390, 700);
+  await page.setViewportSize({ width: 1536, height: 768 });
+
+  await page.getByRole('button', { name: 'Sulje' }).click();
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
   await expect(page.locator('#more-menu > summary')).toHaveAttribute('aria-label', 'Lisää toimintoja');
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeHidden();
 
-  await openToolbarMenu(page, '#view-menu');
+  await openToolbarMenu(page, '#preset-menu');
   await expect(page.getByRole('button', { name: 'Koko rakennus' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D-asunto' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Vapaa 3D' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Isometrinen' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D 1F' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D 2F' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Tontti' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Infra' })).toBeVisible();
+  await page.locator('#preset-menu > summary').click();
+
+  await openToolbarMenu(page, '#view-menu');
+  await expect(page.getByRole('button', { name: 'Vapaa 3D' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Isometrinen' })).toBeVisible();
+  await page.locator('#view-menu > summary').click();
 
   await openToolbarMenu(page, '#more-menu');
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeVisible();

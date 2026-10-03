@@ -924,24 +924,29 @@ const title = 'Private 3D viewer';
       <div class="toolbar" aria-label="3D-katselun ohjaimet">
         <div class="title">Ylisrinne 3D</div>
 
-        <details id="view-menu" class="toolbar-menu">
-          <summary>Näkymä</summary>
-          <div class="toolbar-menu-panel" aria-label="Vakioidut näkymät">
-            <div class="toolbar-menu-label">Vakionäkymät</div>
+        <details id="preset-menu" class="toolbar-menu">
+          <summary>Presetit</summary>
+          <div class="toolbar-menu-panel" aria-label="Tutkimuspresetit">
+            <div class="toolbar-menu-label">Rakennus</div>
             <button id="whole-building-preset-button" type="button">Koko rakennus</button>
             <button id="d-overview-preset-button" type="button">D-asunto</button>
+            <button id="d1-plan-button" type="button">D 1F</button>
+            <button id="d2-plan-button" type="button">D 2F</button>
+            <div class="toolbar-menu-separator"></div>
+            <div class="toolbar-menu-label">Alue ja järjestelmät</div>
+            <button id="site-preset-button" type="button">Tontti</button>
+            <button id="infra-preset-button" type="button">Infra</button>
+          </div>
+        </details>
+
+        <details id="view-menu" class="toolbar-menu">
+          <summary>Näkymä</summary>
+          <div class="toolbar-menu-panel" aria-label="Kamera ja esitystapa">
+            <div class="toolbar-menu-label">Kamera</div>
             <button id="orbit-button" type="button">Vapaa 3D</button>
             <button id="iso-button" type="button">Isometrinen</button>
             <button id="top-button" type="button">Ylhäältä</button>
             <button id="bottom-button" type="button">Alhaalta</button>
-            <div class="toolbar-menu-separator"></div>
-            <div class="toolbar-menu-label">D-asunto / kerros</div>
-            <button id="d1-plan-button" type="button">D 1F</button>
-            <button id="d2-plan-button" type="button">D 2F</button>
-            <div class="toolbar-menu-separator"></div>
-            <div class="toolbar-menu-label">Alue</div>
-            <button id="site-preset-button" type="button">Tontti</button>
-            <button id="infra-preset-button" type="button">Infra</button>
             <div class="toolbar-menu-separator"></div>
             <div class="toolbar-menu-label">Julkisivut</div>
             <button id="elev-pos-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
