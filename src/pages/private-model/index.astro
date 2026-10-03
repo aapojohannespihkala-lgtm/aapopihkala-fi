@@ -3514,6 +3514,9 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p171Q1OpeningEdgeContext;
         delete canvas.dataset.p171Q1FloorShellInternalSeams;
         delete canvas.dataset.p171Q1FloorShellSeamSuppressedMeshCount;
+        delete canvas.dataset.p171Q1FloorShellPresentation;
+        delete canvas.dataset.p171Q1FloorShellHiddenVolumeCount;
+        delete canvas.dataset.p171Q1FloorShellSurfaceMeshCount;
         delete canvas.dataset.p171Q1OpeningBoundaryContext;
 
         if (
@@ -3577,9 +3580,22 @@ const title = 'Private 3D viewer';
           composite.add(dInteriorScene);
           composite.add(presentation.workShellClone);
           composite.add(createP171Q1OpeningBoundaryContext());
-          canvas.dataset.p171Q1FloorShellInternalSeams = 'SUPPRESSED_VIEWER_EDGE_OVERLAY';
+          canvas.dataset.p171Q1FloorShellInternalSeams =
+            presentation.floorSurfaceMeshCount > 0
+              ? 'SUPPRESSED_BY_TOP_SURFACE_ONLY_VIEWER_PRESENTATION'
+              : 'EDGE_OVERLAY_SUPPRESSED_SOURCE_VOLUME_FALLBACK';
           canvas.dataset.p171Q1FloorShellSeamSuppressedMeshCount = String(
             presentation.suppressedFloorMeshCount,
+          );
+          canvas.dataset.p171Q1FloorShellPresentation =
+            presentation.floorSurfaceMeshCount > 0
+              ? 'TOP_SURFACE_ONLY_VIEWER_DERIVED'
+              : 'SOURCE_VOLUME_FALLBACK';
+          canvas.dataset.p171Q1FloorShellHiddenVolumeCount = String(
+            presentation.hiddenFloorVolumeMeshCount,
+          );
+          canvas.dataset.p171Q1FloorShellSurfaceMeshCount = String(
+            presentation.floorSurfaceMeshCount,
           );
           canvas.dataset.p171Q1OpeningBoundaryContext =
             'P171B_R2_PRESENTATION_OPENING_ENVELOPE';
@@ -5121,7 +5137,7 @@ const title = 'Private 3D viewer';
         });
         applyStandardViewPreset('d-apartment');
         status.textContent =
-          'P171C D stair opening + guard/lowWall junction - WORK_TEST / floor-shell sisäsauma vaimennettu + aukon reuna korostettu / vapaa 3D - HUMAN_REVIEW NOT_RUN';
+          'P171C D stair opening + guard/lowWall junction - WORK_TEST / floor-shell top-surface-only + aukon reuna korostettu / vapaa 3D - HUMAN_REVIEW NOT_RUN';
       };
 
       const applyP173dReviewState = () => {
@@ -5676,6 +5692,9 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p171Q1OpeningEdgeContext;
           delete canvas.dataset.p171Q1FloorShellInternalSeams;
           delete canvas.dataset.p171Q1FloorShellSeamSuppressedMeshCount;
+          delete canvas.dataset.p171Q1FloorShellPresentation;
+          delete canvas.dataset.p171Q1FloorShellHiddenVolumeCount;
+          delete canvas.dataset.p171Q1FloorShellSurfaceMeshCount;
           delete canvas.dataset.p171Q1OpeningBoundaryContext;
           delete canvas.dataset.p173ParentPass;
           delete canvas.dataset.p173GeometryPass;
