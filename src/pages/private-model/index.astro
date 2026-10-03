@@ -1261,6 +1261,8 @@ const title = 'Private 3D viewer';
         p177bReviewId,
         p178bCandidateId,
         p178bReviewId,
+        p181bR1CandidateId,
+        p181bR1ReviewId,
         p164bCandidateId,
         p164bReviewId,
         p167fCandidateId,
@@ -4760,6 +4762,9 @@ const title = 'Private 3D viewer';
       const isP178bJunctionClosureReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p178bReviewId);
 
+      const isP181bR1StorageGroundReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p181bR1ReviewId);
+
       const isP164bCorrectedStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p164bReviewId);
 
@@ -5424,6 +5429,43 @@ const title = 'Private 3D viewer';
           'P178B D stair guard/lowWall junction closure - WORK_TEST / visible gap 0.000 m / touch-only non-overlapping work envelopes / HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP181bR1ReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase-review',
+          p181ParentPass: 'P178B',
+          p181GeometryPass: 'P181B-R1',
+          p181QaPass: 'P181C',
+          p181Purpose: 'A_C_STORAGE_GROUND_CONTACT_SUBSTRUCTURE_TERRAIN_REBASE',
+          p181TerrainSourcePass: 'P175B-R3',
+          p181TerrainContactCutNode: '1031',
+          p181TerrainRoot: '1032',
+          p181StorageSubstructureNodes: '1033,1034,1035',
+          p181StorageSubstructureRoot: '1036',
+          p181SupersededTerrainRoot: '919',
+          p181StorageContactCoverage: '3/3',
+          p181WorkDepthM: '0.600',
+          p181DepthStatus: 'PROPAGATED_REFINABLE_WORK_ASSUMPTION_FROM_P150D',
+          p181WorkAssumption: 'true',
+          p181PresentationOnly: 'true',
+          p181PhysicalFoundationClaim: 'false',
+          p181PhysicalFoundationDepthClaim: 'false',
+          p181PhysicalGroundContactClaim: 'false',
+          p181PhysicalGroundSurfaceClaim: 'false',
+          p181FootingClaim: 'false',
+          p181StructuralBearingClaim: 'false',
+          p181CurrentClaim: 'false',
+          p181AsBuiltClaim: 'false',
+          p181Canonical: 'false',
+          p181PublishToCurrent: 'false',
+          p181HumanReview: 'NOT_RUN',
+          p181QaGate: 'PASS_INDEPENDENT_EXACT_BIT_PLAUSIBILITY_QA',
+          standardViewPreset: 'whole-building',
+        });
+        applyStandardViewPreset('whole-building');
+        status.textContent =
+          'P181B-R1 A-C storage ground-contact/substructure + terrain rebase - WORK_TEST / 3/3 storage contact coverage / 0.600 m refinable depth assumption / HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP164bReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p164b-d-corrected-stair-review',
@@ -5755,6 +5797,8 @@ const title = 'Private 3D viewer';
             candidate.id === p177bCandidateId && isP177bDirectNorthWallReviewRequested();
           const isP178bJunctionClosureReview =
             candidate.id === p178bCandidateId && isP178bJunctionClosureReviewRequested();
+          const isP181bR1StorageGroundReview =
+            candidate.id === p181bR1CandidateId && isP181bR1StorageGroundReviewRequested();
           const isP164bCorrectedStairReview =
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP167fPreciseStairReview =
@@ -6114,6 +6158,33 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p178HumanReview;
           delete canvas.dataset.p178HumanReviewInherited;
           delete canvas.dataset.p178QaGate;
+          delete canvas.dataset.p181ParentPass;
+          delete canvas.dataset.p181GeometryPass;
+          delete canvas.dataset.p181QaPass;
+          delete canvas.dataset.p181Purpose;
+          delete canvas.dataset.p181TerrainSourcePass;
+          delete canvas.dataset.p181TerrainContactCutNode;
+          delete canvas.dataset.p181TerrainRoot;
+          delete canvas.dataset.p181StorageSubstructureNodes;
+          delete canvas.dataset.p181StorageSubstructureRoot;
+          delete canvas.dataset.p181SupersededTerrainRoot;
+          delete canvas.dataset.p181StorageContactCoverage;
+          delete canvas.dataset.p181WorkDepthM;
+          delete canvas.dataset.p181DepthStatus;
+          delete canvas.dataset.p181WorkAssumption;
+          delete canvas.dataset.p181PresentationOnly;
+          delete canvas.dataset.p181PhysicalFoundationClaim;
+          delete canvas.dataset.p181PhysicalFoundationDepthClaim;
+          delete canvas.dataset.p181PhysicalGroundContactClaim;
+          delete canvas.dataset.p181PhysicalGroundSurfaceClaim;
+          delete canvas.dataset.p181FootingClaim;
+          delete canvas.dataset.p181StructuralBearingClaim;
+          delete canvas.dataset.p181CurrentClaim;
+          delete canvas.dataset.p181AsBuiltClaim;
+          delete canvas.dataset.p181Canonical;
+          delete canvas.dataset.p181PublishToCurrent;
+          delete canvas.dataset.p181HumanReview;
+          delete canvas.dataset.p181QaGate;
           delete canvas.dataset.p164ParentPass;
           delete canvas.dataset.p164Topology;
           delete canvas.dataset.p164LowerFlightLevels;
@@ -6288,6 +6359,8 @@ const title = 'Private 3D viewer';
               ? 'P177B HR-6 direct D-storage north wall-line correction (WORK_TEST)'
             : isP178bJunctionClosureReview
               ? 'P178B D stair guard/lowWall junction closure (WORK_TEST / visible gap 0,000 m)'
+            : isP181bR1StorageGroundReview
+              ? 'P181B-R1 A-C storage ground-contact/substructure + terrain rebase (WORK_TEST / 3/3)'
             : isP174aR2WestGableTerminationReview
               ? 'P174A-R2 HR-6 west-gable termination correction (WORK_TEST)'
             : isP173dWallHr67RebaseReview
@@ -6362,6 +6435,8 @@ const title = 'Private 3D viewer';
             applyP177bReviewState();
           } else if (isP178bJunctionClosureReview) {
             applyP178bReviewState();
+          } else if (isP181bR1StorageGroundReview) {
+            applyP181bR1ReviewState();
           } else if (isP174aR2WestGableTerminationReview) {
             applyP174aR2ReviewState();
           } else if (isP173dWallHr67RebaseReview) {
