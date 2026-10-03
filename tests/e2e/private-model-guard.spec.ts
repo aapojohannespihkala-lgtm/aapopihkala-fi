@@ -737,11 +737,19 @@ const makeTriangleGlb = (
 
 
 const makeP177bAlignmentGlb = () => {
-  const positions = Buffer.alloc(48);
+  const positions = Buffer.alloc(144);
   [
     0, 10.81, 0,
+    0.12, 10.81, 0,
+    0.12, 10.81, 2,
+    0, 10.81, 0,
+    0.12, 10.81, 2,
     0, 10.81, 2,
     0, 10.81, 3,
+    0.12, 10.81, 3,
+    0.12, 10.81, 5,
+    0, 10.81, 3,
+    0.12, 10.81, 5,
     0, 10.81, 5,
   ].forEach((value, index) => positions.writeFloatLE(value, index * 4));
 
@@ -781,30 +789,30 @@ const makeP177bAlignmentGlb = () => {
       },
     ],
     meshes: [
-      { name: 'P177B_LOWER_LINE_MESH', primitives: [{ attributes: { POSITION: 0 }, mode: 1 }] },
-      { name: 'P177B_UPPER_LINE_MESH', primitives: [{ attributes: { POSITION: 1 }, mode: 1 }] },
+      { name: 'P177B_LOWER_ALIGNMENT_SURFACE', primitives: [{ attributes: { POSITION: 0 } }] },
+      { name: 'P177B_UPPER_ALIGNMENT_SURFACE', primitives: [{ attributes: { POSITION: 1 } }] },
     ],
     buffers: [{ byteLength: positions.length }],
     bufferViews: [
-      { buffer: 0, byteOffset: 0, byteLength: 24, target: 34962 },
-      { buffer: 0, byteOffset: 24, byteLength: 24, target: 34962 },
+      { buffer: 0, byteOffset: 0, byteLength: 72, target: 34962 },
+      { buffer: 0, byteOffset: 72, byteLength: 72, target: 34962 },
     ],
     accessors: [
       {
         bufferView: 0,
         componentType: 5126,
-        count: 2,
+        count: 6,
         type: 'VEC3',
         min: [0, 10.81, 0],
-        max: [0, 10.81, 2],
+        max: [0.12, 10.81, 2],
       },
       {
         bufferView: 1,
         componentType: 5126,
-        count: 2,
+        count: 6,
         type: 'VEC3',
         min: [0, 10.81, 3],
-        max: [0, 10.81, 5],
+        max: [0.12, 10.81, 5],
       },
     ],
   };
