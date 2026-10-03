@@ -4964,8 +4964,31 @@ test('private viewer autoloads exact P178B stair guard/lowWall junction closure'
   const candidateModel = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
-    scenes: [{ name: 'P178B D STAIR GUARD LOWWALL VISIBLE JUNCTION CLOSURE - WORK_TEST', nodes: [] }],
-    nodes: [],
+    scenes: [
+      {
+        name: 'P178B D STAIR GUARD LOWWALL VISIBLE JUNCTION CLOSURE - WORK_TEST',
+        nodes: [0, 1],
+      },
+      {
+        name: 'D CURRENT INTERIOR - BABYLON Y-UP',
+        nodes: [3],
+      },
+    ],
+    nodes: [
+      {
+        name: 'P167F_FLOOR_INTERFLOOR_WORKSHELL_WITH_PRECISE_STAIR_CLEARANCE_ROOT_BABYLON_Y_UP',
+      },
+      {
+        name: 'P167F_D_PRECISE_STAIR_REBASE_INTEGRATION_ROOT_WORK_TEST',
+        children: [2],
+      },
+      {
+        name: 'P167D_D_PRECISE_STAIR_SOURCE_PLAN_ROOT_BABYLON_Y_UP',
+      },
+      {
+        name: 'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP',
+      },
+    ],
   });
   const candidateId = 'p178b-d-stair-guard-lowwall-junction-closure';
   const candidateLabel = 'P178B D stair guard/lowWall visible junction closure - WORK_TEST';
@@ -5015,6 +5038,10 @@ test('private viewer autoloads exact P178B stair guard/lowWall junction closure'
   await expect(canvas).toHaveAttribute('data-p178-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-p178-human-review-inherited', 'false');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-composite', 'true');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-supplement-count', '2');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
   await expect(page.locator('#locus-layer-label')).toHaveText(
     'P178B D stair guard/lowWall junction closure (WORK_TEST / visible gap 0,000 m)',
   );
