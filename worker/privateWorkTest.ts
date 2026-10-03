@@ -221,6 +221,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_130_116,
     expectedSha256: '7a44320e649ac0d6611a3124ba62fce5e4848c0266d4ad10da4220cd06ac7e20',
   },
+  // P176C viewer/review integration: exact P176A full-visible west-gable carrier correction successor.
+  {
+    id: 'p176a-hr6-full-visible-west-gable-termination-correction',
+    label: 'P176A HR-6 full visible west-gable termination correction - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p176a-hr6-full-visible-west-gable-termination-correction.glb`,
+    objectKey: 'work-test/p176a-hr6-full-visible-west-gable-termination-correction.glb',
+    expectedSize: 2_143_792,
+    expectedSha256: 'bf8172b6661205906f588d7db3e1b1f416045ffef4d26208f12cef02df221dc5',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
