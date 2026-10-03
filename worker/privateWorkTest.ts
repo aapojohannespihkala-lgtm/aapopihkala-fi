@@ -212,6 +212,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_119_784,
     expectedSha256: '3d7144b0ea1841be6b9ef790e02ad807287d22c1b2a1e45fafae0f193c61ed7f',
   },
+  // P174C viewer/review integration: exact P174A-R2 HR-6 west-gable north-termination successor.
+  {
+    id: 'p174a-r2-west-gable-termination-correction',
+    label: 'P174A-R2 HR-6 west-gable termination correction - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p174a-r2-west-gable-termination-correction.glb`,
+    objectKey: 'work-test/p174a-r2-west-gable-termination-correction.glb',
+    expectedSize: 2_130_116,
+    expectedSha256: '7a44320e649ac0d6611a3124ba62fce5e4848c0266d4ad10da4220cd06ac7e20',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',

@@ -59,6 +59,9 @@ export const p171cReviewId = 'p171c-d-stair-opening-guard-lowwall-junction-revie
 export const p173dCandidateId = 'p173d-whole-building-d-wall-hr67-rebase';
 export const p173dReviewId = 'p173d-whole-building-d-wall-hr67-rebase-review';
 
+export const p174aR2CandidateId = 'p174a-r2-west-gable-termination-correction';
+export const p174aR2ReviewId = 'p174a-r2-west-gable-termination-correction-review';
+
 export const p164bCandidateId = 'p164b-d-corrected-stair';
 export const p164bReviewId = 'p164b-d-corrected-stair-review';
 
@@ -99,6 +102,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p170dReviewId]: p170dCandidateId,
   [p171cReviewId]: p171cCandidateId,
   [p173dReviewId]: p173dCandidateId,
+  [p174aR2ReviewId]: p174aR2CandidateId,
   [p164bReviewId]: p164bCandidateId,
   [p167fReviewId]: p167fCandidateId,
   [p168aReviewId]: p168aCandidateId,
