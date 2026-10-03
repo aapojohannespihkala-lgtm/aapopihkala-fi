@@ -277,6 +277,7 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p170d-p161-review-visibility-correction-review': 'p170d-p161-review-visibility-correction',
     'p171c-d-stair-opening-guard-lowwall-junction-review': 'p171c-d-stair-opening-guard-lowwall-junction',
     'p173d-whole-building-d-wall-hr67-rebase-review': 'p173d-whole-building-d-wall-hr67-rebase',
+    'p174a-r2-west-gable-termination-correction-review': 'p174a-r2-west-gable-termination-correction',
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
     'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
     'p168a-whole-building-roof-eave-correction-review': 'p168a-whole-building-roof-eave-correction',
@@ -4364,6 +4365,101 @@ test('private viewer autoloads exact P173D D wall HR-6/HR-7 rebase successor', a
   );
   await expect(page.getByRole('status')).toHaveText(
     'P173D D wall HR-6/HR-7 rebase - WORK_TEST / storage north + 90-degree junction correction / refinable physical detail - HUMAN_REVIEW PARTIAL',
+  );
+});
+
+test('private viewer autoloads exact P174A-R2 HR-6 west-gable termination correction', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P174A-R2 HR-6 WEST GABLE TERMINATION CORRECTION - WORK_TEST',
+        nodes: [],
+        extras: {
+          Pass: 'P174A-R2',
+          successorOfPass: 'P173D',
+          currentClaim: false,
+          asBuiltClaim: false,
+          Canonical: false,
+          publishToCURRENT: false,
+          humanReview: 'NOT_RUN',
+        },
+      },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p174a-r2-west-gable-termination-correction';
+  const candidateLabel = 'P174A-R2 HR-6 west-gable termination correction - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p174a-r2-west-gable-termination-correction.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p174a-r2-west-gable-termination-correction-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p174a-r2-west-gable-termination-correction-review',
+  );
+  await expect(canvas).toHaveAttribute('data-p174-parent-pass', 'P173D');
+  await expect(canvas).toHaveAttribute('data-p174-geometry-pass', 'P174A-R2');
+  await expect(canvas).toHaveAttribute('data-p174-qa-pass', 'P174B');
+  await expect(canvas).toHaveAttribute(
+    'data-p174-materialization-strategy',
+    'APPEND_ONLY_SCENE_ROOT_REPLACEMENT_REUSING_PARENT_WEST_GABLE_MESH',
+  );
+  await expect(canvas).toHaveAttribute('data-p174-parent-west-gable-node', '764');
+  await expect(canvas).toHaveAttribute('data-p174-replacement-west-gable-node', '1010');
+  await expect(canvas).toHaveAttribute('data-p174-replacement-root', '1011');
+  await expect(canvas).toHaveAttribute('data-p174-correction-binding', '1012');
+  await expect(canvas).toHaveAttribute('data-p174-west-gable-x-min-m', '0.000');
+  await expect(canvas).toHaveAttribute('data-p174-west-gable-x-max-m', '0.220');
+  await expect(canvas).toHaveAttribute('data-p174-west-gable-y-min-m', '-1.750');
+  await expect(canvas).toHaveAttribute('data-p174-west-gable-y-max-m', '10.810');
+  await expect(canvas).toHaveAttribute('data-p174-west-gable-z-min-m', '0.000');
+  await expect(canvas).toHaveAttribute('data-p174-west-gable-z-max-m', '6.150');
+  await expect(canvas).toHaveAttribute('data-p174-parent-north-termination-y', '10.910');
+  await expect(canvas).toHaveAttribute('data-p174-corrected-north-termination-y', '10.810');
+  await expect(canvas).toHaveAttribute('data-p174-termination-correction-m', '-0.100');
+  await expect(canvas).toHaveAttribute('data-p174-thickness-m', '0.220');
+  await expect(canvas).toHaveAttribute('data-p174-binary-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p174-parent-resource-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p174-source-primitive-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p174-physical-facade-boundary-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p174-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p174-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p174-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p174-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p174-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-p174-plausibility-gate', 'PASS_FOR_BOUNDED_WORK_TEST_CORRECTION');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P174A-R2 HR-6 west-gable termination correction (WORK_TEST)',
+  );
+  await expect(page.getByRole('status')).toHaveText(
+    'P174A-R2 HR-6 west-gable termination correction - WORK_TEST / north termination 10.810 m / bounded parent-subset correction - HUMAN_REVIEW NOT_RUN',
   );
 });
 
