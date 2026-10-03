@@ -4,6 +4,9 @@ export const p172bDOverviewFloorOpacity = 0.45;
 export const p172bDOverviewNeutralWallHex = 0xaeb4b8;
 export const p160WarmFloorReviewOpacity = 0.8;
 export const p160WarmFloorContextOpacity = 0.2;
+export const p160WarmFloorReviewHex = 0xd6a84f;
+export const p160WarmFloorReviewEdgeHex = 0x5a4318;
+export const p160WarmFloorReviewEdgeOpacity = 0.95;
 
 const hasOwn = (value: unknown, key: string) =>
   Boolean(value && Object.prototype.hasOwnProperty.call(value, key));
@@ -34,6 +37,7 @@ const isP160WarmFloorReviewRenderable = (object: any) =>
 
 export const prepareP160WarmFloorReviewPresentation = (interiorSource: any) => {
   const interiorClone = interiorSource.clone(true);
+  const floorMeshes: any[] = [];
   let floorSurfaceCount = 0;
   let contextRenderableCount = 0;
 
@@ -48,6 +52,15 @@ export const prepareP160WarmFloorReviewPresentation = (interiorSource: any) => {
       material.opacity = opacity;
       material.transparent = true;
       material.depthWrite = floorSurface;
+      if (floorSurface) {
+        material.color?.setHex?.(p160WarmFloorReviewHex);
+        material.emissive?.setHex?.(p160WarmFloorReviewHex);
+        if ('emissiveIntensity' in material) material.emissiveIntensity = 0.2;
+        material.side = THREE.DoubleSide;
+        material.polygonOffset = true;
+        material.polygonOffsetFactor = -1;
+        material.polygonOffsetUnits = -1;
+      }
       material.userData = {
         ...(material.userData ?? {}),
         p160WarmFloorViewerPresentation: true,
@@ -58,6 +71,7 @@ export const prepareP160WarmFloorReviewPresentation = (interiorSource: any) => {
       material.needsUpdate = true;
     });
 
+    object.renderOrder = floorSurface ? 20 : 0;
     object.userData = {
       ...(object.userData ?? {}),
       viewerDerived: true,
@@ -72,13 +86,48 @@ export const prepareP160WarmFloorReviewPresentation = (interiorSource: any) => {
           }),
     };
 
-    if (floorSurface) floorSurfaceCount += 1;
-    else contextRenderableCount += 1;
+    if (floorSurface) {
+      floorSurfaceCount += 1;
+      floorMeshes.push(object);
+    } else contextRenderableCount += 1;
   });
+
+  let floorEdgeCount = 0;
+  for (const floorMesh of floorMeshes) {
+    if (!floorMesh.geometry) continue;
+    const edgeMaterial = new THREE.LineBasicMaterial({
+      color: p160WarmFloorReviewEdgeHex,
+      transparent: true,
+      opacity: p160WarmFloorReviewEdgeOpacity,
+      depthTest: true,
+      depthWrite: false,
+    });
+    edgeMaterial.userData = {
+      ...(edgeMaterial.userData ?? {}),
+      p160WarmFloorViewerPresentation: true,
+      p160PresentationRole: 'FLOOR_REVIEW_EDGE',
+    };
+    const edgeOverlay = new THREE.LineSegments(
+      new THREE.EdgesGeometry(floorMesh.geometry),
+      edgeMaterial,
+    );
+    edgeOverlay.name = `${floorMesh.name}__P160_FLOOR_EDGE`;
+    edgeOverlay.renderOrder = 21;
+    edgeOverlay.userData = {
+      viewerDerived: true,
+      presentationOnly: true,
+      p160WarmFloorReviewEdge: true,
+      physicalFloorClaim: false,
+      asBuiltClaim: false,
+    };
+    floorMesh.add(edgeOverlay);
+    floorEdgeCount += 1;
+  }
 
   return {
     interiorClone,
     floorSurfaceCount,
+    floorEdgeCount,
     contextRenderableCount,
   };
 };

@@ -25,6 +25,9 @@ import {
 import { computeVisibleBounds } from '../../src/scripts/privateModelVisibleBounds';
 import {
   p160WarmFloorContextOpacity,
+  p160WarmFloorReviewEdgeHex,
+  p160WarmFloorReviewEdgeOpacity,
+  p160WarmFloorReviewHex,
   p160WarmFloorReviewOpacity,
   p172bDOverviewFloorOpacity,
   p172bDOverviewNeutralWallHex,
@@ -148,6 +151,7 @@ test('private viewer P160 review presentation makes floor surfaces 80% and all o
 
   expect(presentation.interiorClone).not.toBe(interior);
   expect(presentation.floorSurfaceCount).toBe(3);
+  expect(presentation.floorEdgeCount).toBe(3);
   expect(presentation.contextRenderableCount).toBe(1);
   expect(clonedFloor1F.material).not.toBe(floor1FMaterial);
   expect(clonedFloor2F.material).not.toBe(floor2FMaterial);
@@ -157,15 +161,32 @@ test('private viewer P160 review presentation makes floor surfaces 80% and all o
   expect(clonedStorageFloor.material.opacity).toBe(p160WarmFloorReviewOpacity);
   expect(clonedFloor1F.material.transparent).toBe(true);
   expect(clonedFloor1F.material.depthWrite).toBe(true);
+  expect(clonedFloor1F.material.color.getHex()).toBe(p160WarmFloorReviewHex);
+  expect(clonedFloor1F.material.polygonOffset).toBe(true);
+  expect(clonedFloor1F.material.polygonOffsetFactor).toBe(-1);
+  expect(clonedFloor1F.material.polygonOffsetUnits).toBe(-1);
+  expect(clonedFloor1F.renderOrder).toBe(20);
   expect(clonedFloor1F.userData.p160WarmFloorReviewSurface).toBe(true);
   expect(clonedFloor2F.userData.p160WarmFloorReviewSurface).toBe(true);
   expect(clonedStorageFloor.userData.p160WarmFloorReviewSurface).toBe(true);
+  const floor1FEdge = clonedFloor1F.getObjectByName(
+    `${floor1F.name}__P160_FLOOR_EDGE`,
+  ) as any;
+  expect(floor1FEdge).toBeTruthy();
+  expect(floor1FEdge.isLineSegments).toBe(true);
+  expect(floor1FEdge.material.color.getHex()).toBe(p160WarmFloorReviewEdgeHex);
+  expect(floor1FEdge.material.opacity).toBe(p160WarmFloorReviewEdgeOpacity);
+  expect(floor1FEdge.material.depthWrite).toBe(false);
+  expect(floor1FEdge.renderOrder).toBe(21);
+  expect(floor1FEdge.userData.p160WarmFloorReviewEdge).toBe(true);
   expect(clonedWall.material).not.toBe(wallMaterial);
   expect(clonedWall.material.opacity).toBe(p160WarmFloorContextOpacity);
   expect(clonedWall.material.transparent).toBe(true);
   expect(clonedWall.material.depthWrite).toBe(false);
+  expect(clonedWall.renderOrder).toBe(0);
   expect(clonedWall.userData.p160WarmFloorReviewContext).toBe(true);
   expect(floor1FMaterial.opacity).toBeCloseTo(0.12);
+  expect(floor1FMaterial.color.getHex()).toBe(0x2e9a63);
   expect(floor2FMaterial.opacity).toBeCloseTo(0.16);
   expect(storageFloorMaterial.opacity).toBeCloseTo(0.12);
   expect(wallMaterial.opacity).toBeCloseTo(0.8);
