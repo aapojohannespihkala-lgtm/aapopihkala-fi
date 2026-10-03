@@ -3995,15 +3995,15 @@ test('private viewer autoloads exact P171C D stair opening + guard/lowWall junct
     scenes: [
       {
         name: 'P171C D STAIR GUARD + LOWWALL JUNCTION - WORK_TEST',
-        nodes: [0, 1, 2, 3],
+        nodes: [1, 2, 4, 5, 6, 7],
         extras: {
           Pass: 'P171C',
           successorOfPass: 'P171B-R2',
           representationKind: 'guardLowWallJunctionWorkTestSuccessor',
           presentationOnly: true,
           workAssumption: true,
-          junctionBindingNodeIndex: 2,
-          junctionBindingRootNodeIndex: 3,
+          junctionBindingNodeIndex: 6,
+          junctionBindingRootNodeIndex: 7,
           physicalGuardClaim: false,
           physicalLowWallClaim: false,
           physicalJunctionClaim: false,
@@ -4014,8 +4014,25 @@ test('private viewer autoloads exact P171C D stair opening + guard/lowWall junct
           humanReview: 'NOT_RUN',
         },
       },
+      {
+        name: 'D CURRENT INTERIOR - BABYLON Y-UP',
+        nodes: [0],
+      },
     ],
     nodes: [
+      {
+        name: 'D_CURRENT_INTERIOR_REVIEW_PLACEHOLDER',
+      },
+      {
+        name: 'P167F_FLOOR_INTERFLOOR_WORKSHELL_WITH_PRECISE_STAIR_CLEARANCE_ROOT_BABYLON_Y_UP',
+      },
+      {
+        name: 'P167F_D_PRECISE_STAIR_REBASE_INTEGRATION_ROOT_WORK_TEST',
+        children: [3],
+      },
+      {
+        name: 'P167D_D_PRECISE_STAIR_SOURCE_PLAN_ROOT_BABYLON_Y_UP',
+      },
       {
         name: 'P171B_R2_D_STAIR_OPENING_WORKTEST_ENVELOPE',
         extras: {
@@ -4124,11 +4141,28 @@ test('private viewer autoloads exact P171C D stair opening + guard/lowWall junct
     'PASS_WITH_EXPLICIT_WORK_TEST_RELATIONAL_JUNCTION_AND_DEFERRED_PHYSICAL_DETAIL',
   );
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-composite', 'true');
+  await expect(canvas).toHaveAttribute(
+    'data-p171-q1-review-visibility',
+    'P167F_WORKSHELL_CLEARANCE_COMPOSITE',
+  );
+  await expect(canvas).toHaveAttribute('data-p171-q1-review-view', 'FREE_3D_ORBIT');
+  await expect(canvas).toHaveAttribute(
+    'data-p171-q1-floor-shell-context',
+    'P167F_PRESENTATION_WORKSHELL_CLEARANCE',
+  );
+  await expect(canvas).toHaveAttribute(
+    'data-p171-q1-opening-edge-context',
+    'STAIR_ENVELOPE_VOID',
+  );
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'perspective');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'enabled');
   await expect(page.locator('#locus-layer-label')).toHaveText(
     'P171C D stair opening + guard/lowWall junction (WORK_TEST)',
   );
   await expect(page.getByRole('status')).toHaveText(
-    'P171C D stair opening + guard/lowWall junction - WORK_TEST / bounded opening + relational junction / deferred physical detail - HUMAN_REVIEW NOT_RUN',
+    'P171C D stair opening + guard/lowWall junction - WORK_TEST / floor-shell + aukon reuna näkyvyyskorjattu / vapaa 3D - HUMAN_REVIEW NOT_RUN',
   );
 });
 

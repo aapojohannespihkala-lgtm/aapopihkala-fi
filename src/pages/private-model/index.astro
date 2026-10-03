@@ -3454,6 +3454,10 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p172bDOverviewNeutralWallCount;
         delete canvas.dataset.p172bDOverviewFloorCount;
         delete canvas.dataset.p172bDOverviewFloorOpacity;
+        delete canvas.dataset.p171Q1ReviewVisibility;
+        delete canvas.dataset.p171Q1ReviewView;
+        delete canvas.dataset.p171Q1FloorShellContext;
+        delete canvas.dataset.p171Q1OpeningEdgeContext;
 
         if (
           activeModelSourceKind !== 'work-test' ||
@@ -3461,7 +3465,8 @@ const title = 'Private 3D viewer';
             isP167fPreciseStairReviewRequested() ||
             isP168aRoofEaveReviewRequested() ||
             isP169aStorageVisibleReviewRequested() ||
-            isP169fStorageDoorReviewRequested()
+            isP169fStorageDoorReviewRequested() ||
+            isP171cStairJunctionReviewRequested()
           )
         ) {
           return dInteriorScene;
@@ -3520,6 +3525,13 @@ const title = 'Private 3D viewer';
         canvas.dataset.p167DOverviewSupplementCount = '2';
         canvas.dataset.p167DOverviewPreciseStairPresent =
           composite.getObjectByName(p167fDOverviewPreciseStairRootName) ? 'true' : 'false';
+
+        if (isP171cStairJunctionReviewRequested()) {
+          canvas.dataset.p171Q1ReviewVisibility = 'P167F_WORKSHELL_CLEARANCE_COMPOSITE';
+          canvas.dataset.p171Q1ReviewView = 'FREE_3D_ORBIT';
+          canvas.dataset.p171Q1FloorShellContext = 'P167F_PRESENTATION_WORKSHELL_CLEARANCE';
+          canvas.dataset.p171Q1OpeningEdgeContext = 'STAIR_ENVELOPE_VOID';
+        }
 
         return composite;
       };
@@ -5041,7 +5053,7 @@ const title = 'Private 3D viewer';
         });
         applyStandardViewPreset('d-apartment');
         status.textContent =
-          'P171C D stair opening + guard/lowWall junction - WORK_TEST / bounded opening + relational junction / deferred physical detail - HUMAN_REVIEW NOT_RUN';
+          'P171C D stair opening + guard/lowWall junction - WORK_TEST / floor-shell + aukon reuna näkyvyyskorjattu / vapaa 3D - HUMAN_REVIEW NOT_RUN';
       };
 
       const applyP173dReviewState = () => {
@@ -5590,6 +5602,10 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p171PublishToCurrent;
           delete canvas.dataset.p171HumanReview;
           delete canvas.dataset.p171PlausibilityGate;
+          delete canvas.dataset.p171Q1ReviewVisibility;
+          delete canvas.dataset.p171Q1ReviewView;
+          delete canvas.dataset.p171Q1FloorShellContext;
+          delete canvas.dataset.p171Q1OpeningEdgeContext;
           delete canvas.dataset.p173ParentPass;
           delete canvas.dataset.p173GeometryPass;
           delete canvas.dataset.p173QaPass;
