@@ -23,6 +23,7 @@ on:
           - p176a-hr6-full-visible-west-gable-termination-correction
           - p177b-hr6-direct-d-storage-north-wall-line-corrected
           - p178b-d-stair-guard-lowwall-junction-closure
+          - p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase
           - p164b-d-corrected-stair
           - p166f-lightwell-proxies
           - p167f-whole-building-precise-stair
@@ -131,6 +132,11 @@ jobs:
               drive_file_id="1cBxB58k4ajIU4pLLvtuUwPFQvxGozLWY"
               expected_size="2165344"
               expected_sha256="a60111c6f0bc25d56e00c446cf2088b96e96f4f87051233abd8c2f23a248ef9b"
+              ;;
+            p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase)
+              drive_file_id="1o4cjuyIDn7ZfMg5tUJ3YcFKPLDyJRfHp"
+              expected_size="2861664"
+              expected_sha256="3cddee192ae2af0d85bb650482aaa1596dfd883e5f0b3d25c42c4b451b3e6239"
               ;;
             p164b-d-corrected-stair)
               drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"
