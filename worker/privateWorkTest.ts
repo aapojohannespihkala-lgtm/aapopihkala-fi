@@ -239,6 +239,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_143_792,
     expectedSha256: 'bf8172b6661205906f588d7db3e1b1f416045ffef4d26208f12cef02df221dc5',
   },
+  // P177D viewer/review integration: exact P177B direct D-storage north wall-line correction successor.
+  {
+    id: 'p177b-hr6-direct-d-storage-north-wall-line-corrected',
+    label: 'P177B HR-6 direct D-storage north wall-line correction - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p177b-hr6-direct-d-storage-north-wall-line-corrected.glb`,
+    objectKey: 'work-test/p177b-hr6-direct-d-storage-north-wall-line-corrected.glb',
+    expectedSize: 2_155_224,
+    expectedSha256: '37317206852db2adc95af4726e028a7297f6f42cd1552794e067093ba6fa2ca1',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
