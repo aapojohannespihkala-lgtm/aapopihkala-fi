@@ -230,7 +230,7 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_307_636,
     expectedSha256: 'a70dfac3b0f21011f042d0112d9d5283c450e863bd2dbdb8776bfec902c92b60',
   },
-    // P176C viewer/review integration: exact P176A full-visible west-gable carrier correction successor.
+  // P176C viewer/review integration: exact P176A full-visible west-gable carrier correction successor.
   {
     id: 'p176a-hr6-full-visible-west-gable-termination-correction',
     label: 'P176A HR-6 full visible west-gable termination correction - WORK_TEST',
