@@ -1779,15 +1779,20 @@ const makeLocusLayerGlb = () => {
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
-const openToolbarMenu = async (page: Page, selector: '#view-menu' | '#model-menu' | '#more-menu') => {
+const openToolbarMenu = async (
+  page: Page,
+  selector: '#preset-menu' | '#view-menu' | '#model-menu' | '#more-menu',
+) => {
   const menu = page.locator(selector);
   if ((await menu.getAttribute('open')) === null) {
     await menu.locator(':scope > summary').click();
   }
 };
 
+const presetActions = new Set(['Koko rakennus', 'D-asunto', 'D 1F', 'D 2F', 'Tontti', 'Infra']);
+
 const clickViewAction = async (page: Page, name: string) => {
-  await openToolbarMenu(page, '#view-menu');
+  await openToolbarMenu(page, presetActions.has(name) ? '#preset-menu' : '#view-menu');
   await page.getByRole('button', { name, exact: true }).click();
 };
 
@@ -1853,7 +1858,7 @@ test('private model handler rejects unsupported methods before auth or assets', 
   expect(assetFetches).toBe(0);
 });
 
-test('private viewer view menu stays inside a short viewport and keeps every preset reachable', async ({ page }) => {
+test('private viewer preset and view menus stay inside a short viewport and keep their actions reachable', async ({ page }) => {
   const model = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
@@ -1871,18 +1876,28 @@ test('private viewer view menu stays inside a short viewport and keeps every pre
   });
 
   await page.goto('/private-model/');
+
+  await openToolbarMenu(page, '#preset-menu');
+  const presetPanel = page.locator('#preset-menu > .toolbar-menu-panel');
+  await expect(presetPanel).toBeVisible();
+  const presetBox = await presetPanel.boundingBox();
+  expect(presetBox).not.toBeNull();
+  if (!presetBox) return;
+  expect(presetBox.y + presetBox.height).toBeLessThanOrEqual(758);
+  await expect(page.getByRole('button', { name: 'Infra', exact: true })).toBeVisible();
+  await page.locator('#preset-menu > summary').click();
+
   await openToolbarMenu(page, '#view-menu');
+  const viewPanel = page.locator('#view-menu > .toolbar-menu-panel');
+  await expect(viewPanel).toBeVisible();
+  const viewBox = await viewPanel.boundingBox();
+  expect(viewBox).not.toBeNull();
+  if (!viewBox) return;
+  expect(viewBox.y + viewBox.height).toBeLessThanOrEqual(758);
 
-  const panel = page.locator('#view-menu > .toolbar-menu-panel');
-  await expect(panel).toBeVisible();
-  const box = await panel.boundingBox();
-  expect(box).not.toBeNull();
-  if (!box) return;
-  expect(box.y + box.height).toBeLessThanOrEqual(758);
-
-  const finalPreset = page.getByRole('button', { name: 'Julk -X', exact: true });
-  await finalPreset.scrollIntoViewIfNeeded();
-  await expect(finalPreset).toBeVisible();
+  const finalView = page.getByRole('button', { name: 'Julk -X', exact: true });
+  await finalView.scrollIntoViewIfNeeded();
+  await expect(finalView).toBeVisible();
 });
 
 
@@ -1909,7 +1924,8 @@ test('private viewer resolves the source D scene even when Three runtime names a
 
   await page.goto('/private-model/');
 
-  await expect(page.locator('#view-menu > summary')).toBeVisible();
+  await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit');
+  await expect(page.locator('#view-menu > summary')).toHaveText('Näkymä');
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
   await expect(page.locator('#model-source-badge')).toBeVisible();
   await expect(page.locator('#more-menu > summary')).toBeVisible();
@@ -6232,21 +6248,26 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
   await page.goto('/private-model/');
 
   await expect(page.getByText('Ylisrinne 3D', { exact: true })).toBeVisible();
+  await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit');
   await expect(page.locator('#view-menu > summary')).toHaveText('Näkymä');
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
   await expect(page.locator('#model-source-badge')).toHaveText('CURRENT');
   await expect(page.locator('#more-menu > summary')).toHaveAttribute('aria-label', 'Lisää toimintoja');
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeHidden();
 
-  await openToolbarMenu(page, '#view-menu');
+  await openToolbarMenu(page, '#preset-menu');
   await expect(page.getByRole('button', { name: 'Koko rakennus' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D-asunto' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Vapaa 3D' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Isometrinen' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D 1F' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'D 2F' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Tontti' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Infra' })).toBeVisible();
+  await page.locator('#preset-menu > summary').click();
+
+  await openToolbarMenu(page, '#view-menu');
+  await expect(page.getByRole('button', { name: 'Vapaa 3D' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Isometrinen' })).toBeVisible();
+  await page.locator('#view-menu > summary').click();
 
   await openToolbarMenu(page, '#more-menu');
   await expect(page.getByRole('button', { name: 'Sovita näkymään' })).toBeVisible();
