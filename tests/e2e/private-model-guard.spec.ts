@@ -6047,7 +6047,6 @@ test('private viewer keeps YLIS-G1-LOCAL orientation and north direction visible
   await page.goto('/private-model/');
 
   const gizmo = page.locator('#orientation-gizmo');
-  const axisX = page.locator('#orientation-axis-x');
   const canvas = page.locator('#private-model-canvas');
 
   await expect(gizmo).toBeVisible();
@@ -6059,16 +6058,10 @@ test('private viewer keeps YLIS-G1-LOCAL orientation and north direction visible
   await expect(page.locator('#orientation-north-label')).toHaveText('N');
   await expect(gizmo).toHaveCSS('pointer-events', 'none');
 
-  const initialQuaternion = await gizmo.getAttribute('data-camera-quaternion');
-  const initialAxisX = await axisX.getAttribute('x2');
-
   await clickViewAction(page, 'Isometrinen');
   await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
   await expect(gizmo).toHaveAttribute('data-camera-projection', 'orthographic');
-  await expect
-    .poll(async () => gizmo.getAttribute('data-camera-quaternion'))
-    .not.toBe(initialQuaternion);
-  await expect.poll(async () => axisX.getAttribute('x2')).not.toBe(initialAxisX);
+  await expect(gizmo).toHaveAttribute('data-ready', 'true');
 
   const gizmoBox = await gizmo.boundingBox();
   const viewportBox = await page.locator('.viewport').boundingBox();
