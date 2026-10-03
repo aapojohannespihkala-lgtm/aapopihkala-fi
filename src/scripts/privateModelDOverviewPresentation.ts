@@ -92,15 +92,15 @@ const rectangularPath = (
 ) => {
   const path = new THREE.Path();
   if (clockwise) {
-    path.moveTo(xMinM, -yMaxM);
-    path.lineTo(xMinM, -yMinM);
-    path.lineTo(xMaxM, -yMinM);
-    path.lineTo(xMaxM, -yMaxM);
+    path.moveTo(xMinM, yMaxM);
+    path.lineTo(xMinM, yMinM);
+    path.lineTo(xMaxM, yMinM);
+    path.lineTo(xMaxM, yMaxM);
   } else {
-    path.moveTo(xMinM, -yMaxM);
-    path.lineTo(xMaxM, -yMaxM);
-    path.lineTo(xMaxM, -yMinM);
-    path.lineTo(xMinM, -yMinM);
+    path.moveTo(xMinM, yMaxM);
+    path.lineTo(xMaxM, yMaxM);
+    path.lineTo(xMaxM, yMinM);
+    path.lineTo(xMinM, yMinM);
   }
   path.closePath();
   return path;
