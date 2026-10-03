@@ -1173,6 +1173,11 @@ const title = 'Private 3D viewer';
         prepareP171Q1WorkShellPresentation,
         prepareP172bDOverviewPresentation,
       } from '../../scripts/privateModelDOverviewPresentation';
+      import {
+        p181GroundContactReviewContextOpacity,
+        p181GroundContactReviewTargetOpacity,
+        prepareP181GroundContactReviewPresentation,
+      } from '../../scripts/privateModelP181ReviewPresentation';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
       import {
         mergeViewerLayerState,
@@ -3366,6 +3371,49 @@ const title = 'Private 3D viewer';
         controls.update();
       };
 
+      const focusP181GroundContactReviewCamera = (targetBounds: any) => {
+        if (!targetBounds || targetBounds.isEmpty?.()) return false;
+
+        deactivateElevationView();
+        clearSelection();
+        activePlanFloor = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        planControls.enabled = false;
+        isoControls.enabled = false;
+        controls.enableRotate = true;
+        controls.enabled = true;
+        activeCamera = camera;
+        setModelScene(fullModelScene);
+        syncViewState('orbit');
+
+        const targetCenter = targetBounds.getCenter(new THREE.Vector3());
+        const targetSphere = targetBounds.getBoundingSphere(new THREE.Sphere());
+        const halfFov = THREE.MathUtils.degToRad(camera.fov * 0.5);
+        const targetDistance = Math.max(
+          (targetSphere.radius / Math.tan(halfFov)) * 1.65,
+          4,
+        );
+
+        controls.target.copy(targetCenter);
+        camera.up.set(0, 1, 0);
+        camera.position.copy(targetCenter).add(
+          new THREE.Vector3(
+            targetDistance * 0.78,
+            targetDistance * 0.58,
+            targetDistance * 0.92,
+          ),
+        );
+        camera.near = Math.max(targetDistance / 10000, 0.001);
+        camera.far = Math.max(targetDistance * 50, 1000);
+        camera.lookAt(targetCenter);
+        camera.updateProjectionMatrix();
+        controls.update();
+
+        canvas.dataset.p181ReviewFocusRadius = targetSphere.radius.toFixed(3);
+        return true;
+      };
+
       const axisView = (direction: 'top' | 'bottom') => {
         const contentScene = resolveActiveResearchContentScene();
         if (!contentScene) return;
@@ -5463,6 +5511,21 @@ const title = 'Private 3D viewer';
           standardViewPreset: 'whole-building',
         });
         applyStandardViewPreset('whole-building');
+        const presentation = prepareP181GroundContactReviewPresentation(fullModelScene);
+        const cameraFocusApplied = focusP181GroundContactReviewCamera(presentation.targetBounds);
+        Object.assign(canvas.dataset, {
+          p181ReviewQuestion: 'A_C_STORAGE_GROUND_CONTACT_SUBSTRUCTURE_TERRAIN_RELATION',
+          p181ReviewTargetOpacity: p181GroundContactReviewTargetOpacity.toFixed(2),
+          p181ReviewContextOpacity: p181GroundContactReviewContextOpacity.toFixed(2),
+          p181ReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+          p181ReviewContextRenderableCount: String(presentation.contextRenderableCount),
+          p181ReviewTerrainContextRenderableCount: String(
+            presentation.terrainContextRenderableCount,
+          ),
+          p181ReviewCameraFocusApplied: String(cameraFocusApplied),
+          p181ReviewCameraMode: 'PERSPECTIVE_FREE_ORBIT',
+          p181ReviewPhysicalDepthClaim: 'false',
+        });
         status.textContent =
           'P181B-R1 A-C storage ground-contact/substructure + terrain rebase - WORK_TEST / 3/3 storage contact coverage / 0.600 m refinable depth assumption / HUMAN_REVIEW NOT_RUN';
       };
@@ -6186,6 +6249,16 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p181PublishToCurrent;
           delete canvas.dataset.p181HumanReview;
           delete canvas.dataset.p181QaGate;
+          delete canvas.dataset.p181ReviewQuestion;
+          delete canvas.dataset.p181ReviewTargetOpacity;
+          delete canvas.dataset.p181ReviewContextOpacity;
+          delete canvas.dataset.p181ReviewTargetRenderableCount;
+          delete canvas.dataset.p181ReviewContextRenderableCount;
+          delete canvas.dataset.p181ReviewTerrainContextRenderableCount;
+          delete canvas.dataset.p181ReviewCameraFocusApplied;
+          delete canvas.dataset.p181ReviewCameraMode;
+          delete canvas.dataset.p181ReviewFocusRadius;
+          delete canvas.dataset.p181ReviewPhysicalDepthClaim;
           delete canvas.dataset.p164ParentPass;
           delete canvas.dataset.p164Topology;
           delete canvas.dataset.p164LowerFlightLevels;
