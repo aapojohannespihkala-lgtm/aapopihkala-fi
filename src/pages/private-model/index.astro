@@ -1167,6 +1167,7 @@ const title = 'Private 3D viewer';
       import { computeVisibleBounds } from '../../scripts/privateModelVisibleBounds';
       import {
         p172bDOverviewFloorOpacity,
+        prepareP171Q1WorkShellPresentation,
         prepareP172bDOverviewPresentation,
       } from '../../scripts/privateModelDOverviewPresentation';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
@@ -3444,6 +3445,59 @@ const title = 'Private 3D viewer';
         'P167F_D_PRECISE_STAIR_REBASE_INTEGRATION_ROOT_WORK_TEST';
       const p167fDOverviewPreciseStairRootName =
         'P167D_D_PRECISE_STAIR_SOURCE_PLAN_ROOT_BABYLON_Y_UP';
+      const p171Q1OpeningEnvelope = {
+        xMinM: 0.23,
+        xMaxM: 2.48,
+        yMinM: 5.122,
+        yMaxM: 7.222,
+        hostZM: 2.76,
+        presentationLiftM: 0.06,
+      };
+
+      const createP171Q1OpeningBoundaryContext = () => {
+        const viewY = p171Q1OpeningEnvelope.hostZM + p171Q1OpeningEnvelope.presentationLiftM;
+        const nearZ = -p171Q1OpeningEnvelope.yMinM;
+        const farZ = -p171Q1OpeningEnvelope.yMaxM;
+        const points = [
+          new THREE.Vector3(p171Q1OpeningEnvelope.xMinM, viewY, nearZ),
+          new THREE.Vector3(p171Q1OpeningEnvelope.xMaxM, viewY, nearZ),
+          new THREE.Vector3(p171Q1OpeningEnvelope.xMaxM, viewY, nearZ),
+          new THREE.Vector3(p171Q1OpeningEnvelope.xMaxM, viewY, farZ),
+          new THREE.Vector3(p171Q1OpeningEnvelope.xMaxM, viewY, farZ),
+          new THREE.Vector3(p171Q1OpeningEnvelope.xMinM, viewY, farZ),
+          new THREE.Vector3(p171Q1OpeningEnvelope.xMinM, viewY, farZ),
+          new THREE.Vector3(p171Q1OpeningEnvelope.xMinM, viewY, nearZ),
+        ];
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({
+          color: 0x6d716e,
+          transparent: true,
+          opacity: 0.9,
+          depthTest: false,
+          depthWrite: false,
+        });
+        const context = new THREE.LineSegments(geometry, material);
+        context.name = 'P171_Q1_OPENING_EDGE_REVIEW_CONTEXT';
+        context.renderOrder = 100;
+        context.userData = {
+          PresentationOnly: true,
+          Canonical: false,
+          viewerDerived: true,
+          representationKind: 'reviewBoundaryContext',
+          reviewScope: 'P171_Q1_OPENING_EDGE',
+          sourceContract: 'P171B_R2_PRESENTATION_OPENING_ENVELOPE',
+          sourceEnvelopeYLISG1Local: {
+            xM: [p171Q1OpeningEnvelope.xMinM, p171Q1OpeningEnvelope.xMaxM],
+            yM: [p171Q1OpeningEnvelope.yMinM, p171Q1OpeningEnvelope.yMaxM],
+            hostZ_M: p171Q1OpeningEnvelope.hostZM,
+          },
+          presentationLiftM: p171Q1OpeningEnvelope.presentationLiftM,
+          physicalOpeningClaim: false,
+          asBuiltClaim: false,
+          humanReview: 'NOT_RUN',
+        };
+        return context;
+      };
 
       const buildP167fDOverviewScene = () => {
         delete canvas.dataset.p167DOverviewComposite;
@@ -3458,6 +3512,9 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p171Q1ReviewView;
         delete canvas.dataset.p171Q1FloorShellContext;
         delete canvas.dataset.p171Q1OpeningEdgeContext;
+        delete canvas.dataset.p171Q1FloorShellInternalSeams;
+        delete canvas.dataset.p171Q1FloorShellSeamSuppressedMeshCount;
+        delete canvas.dataset.p171Q1OpeningBoundaryContext;
 
         if (
           activeModelSourceKind !== 'work-test' ||
@@ -3515,6 +3572,17 @@ const title = 'Private 3D viewer';
           );
           canvas.dataset.p172bDOverviewFloorCount = String(presentation.floorMeshCount);
           canvas.dataset.p172bDOverviewFloorOpacity = String(p172bDOverviewFloorOpacity);
+        } else if (isP171cStairJunctionReviewRequested()) {
+          const presentation = prepareP171Q1WorkShellPresentation(workShellRoot);
+          composite.add(dInteriorScene);
+          composite.add(presentation.workShellClone);
+          composite.add(createP171Q1OpeningBoundaryContext());
+          canvas.dataset.p171Q1FloorShellInternalSeams = 'SUPPRESSED_VIEWER_EDGE_OVERLAY';
+          canvas.dataset.p171Q1FloorShellSeamSuppressedMeshCount = String(
+            presentation.suppressedFloorMeshCount,
+          );
+          canvas.dataset.p171Q1OpeningBoundaryContext =
+            'P171B_R2_PRESENTATION_OPENING_ENVELOPE';
         } else {
           composite.add(dInteriorScene);
           composite.add(workShellRoot.clone(true));
@@ -5053,7 +5121,7 @@ const title = 'Private 3D viewer';
         });
         applyStandardViewPreset('d-apartment');
         status.textContent =
-          'P171C D stair opening + guard/lowWall junction - WORK_TEST / floor-shell + aukon reuna näkyvyyskorjattu / vapaa 3D - HUMAN_REVIEW NOT_RUN';
+          'P171C D stair opening + guard/lowWall junction - WORK_TEST / floor-shell sisäsauma vaimennettu + aukon reuna korostettu / vapaa 3D - HUMAN_REVIEW NOT_RUN';
       };
 
       const applyP173dReviewState = () => {
@@ -5606,6 +5674,9 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p171Q1ReviewView;
           delete canvas.dataset.p171Q1FloorShellContext;
           delete canvas.dataset.p171Q1OpeningEdgeContext;
+          delete canvas.dataset.p171Q1FloorShellInternalSeams;
+          delete canvas.dataset.p171Q1FloorShellSeamSuppressedMeshCount;
+          delete canvas.dataset.p171Q1OpeningBoundaryContext;
           delete canvas.dataset.p173ParentPass;
           delete canvas.dataset.p173GeometryPass;
           delete canvas.dataset.p173QaPass;

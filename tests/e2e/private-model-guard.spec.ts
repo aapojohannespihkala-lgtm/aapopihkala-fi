@@ -26,6 +26,7 @@ import { computeVisibleBounds } from '../../src/scripts/privateModelVisibleBound
 import {
   p172bDOverviewFloorOpacity,
   p172bDOverviewNeutralWallHex,
+  prepareP171Q1WorkShellPresentation,
   prepareP172bDOverviewPresentation,
 } from '../../src/scripts/privateModelDOverviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
@@ -154,6 +155,37 @@ test('private viewer P172B D-overview presentation clone does not mutate source 
   expect(lowWall.visible).toBe(true);
 });
 
+test('private viewer P171 Q1 work-shell seam suppression clone does not mutate source semantics', () => {
+  const workShell = new THREE.Group();
+  const floor = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 0.1, 2),
+    new THREE.MeshBasicMaterial({ color: 0x949ea8 }),
+  );
+  floor.name = 'P167F_CD_2F_WORKSHELL_CLEARANCE_TEST';
+  floor.userData = {
+    representationKind: 'presentationFloorWorkShellWithPreciseStairClearance',
+  };
+  const wall = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshBasicMaterial({ color: 0xaeb4b8 }),
+  );
+  wall.name = 'P167F_WALL_CONTEXT_TEST';
+  wall.userData = { representationKind: 'presentationWallContext' };
+  workShell.add(floor, wall);
+
+  const presentation = prepareP171Q1WorkShellPresentation(workShell);
+  const clonedFloor = presentation.workShellClone.getObjectByName(floor.name) as any;
+  const clonedWall = presentation.workShellClone.getObjectByName(wall.name) as any;
+
+  expect(presentation.workShellClone).not.toBe(workShell);
+  expect(presentation.suppressedFloorMeshCount).toBe(1);
+  expect(clonedFloor.userData.viewerSuppressEdgeOverlay).toBe(true);
+  expect(clonedFloor.userData.p171Q1InternalSeamSuppression).toBe(true);
+  expect(clonedWall.userData.viewerSuppressEdgeOverlay).toBeUndefined();
+  expect(floor.userData.viewerSuppressEdgeOverlay).toBeUndefined();
+  expect(floor.userData.p171Q1InternalSeamSuppression).toBeUndefined();
+});
+
 test('private viewer layer-state helper preserves partial updates and clamps opacity', () => {
   const baseline: ViewerLayerState = {
     roofVisible: true,
@@ -274,6 +306,12 @@ test('private viewer edge visibility helper preserves semantic line and mesh fil
     userData: {},
   };
   expect(isEdgeMeshCandidate(architecturalMesh, candidateOptions)).toBe(true);
+  expect(
+    isEdgeMeshCandidate(
+      { ...architecturalMesh, userData: { viewerSuppressEdgeOverlay: true } },
+      candidateOptions,
+    ),
+  ).toBe(false);
   expect(
     isEdgeMeshCandidate({ ...architecturalMesh, parent: hiddenParent }, candidateOptions),
   ).toBe(false);
@@ -4155,6 +4193,14 @@ test('private viewer autoloads exact P171C D stair opening + guard/lowWall junct
     'data-p171-q1-opening-edge-context',
     'STAIR_ENVELOPE_VOID',
   );
+  await expect(canvas).toHaveAttribute(
+    'data-p171-q1-floor-shell-internal-seams',
+    'SUPPRESSED_VIEWER_EDGE_OVERLAY',
+  );
+  await expect(canvas).toHaveAttribute(
+    'data-p171-q1-opening-boundary-context',
+    'P171B_R2_PRESENTATION_OPENING_ENVELOPE',
+  );
   await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(canvas).toHaveAttribute('data-camera-projection', 'perspective');
   await expect(canvas).toHaveAttribute('data-camera-rotation', 'enabled');
@@ -4162,7 +4208,7 @@ test('private viewer autoloads exact P171C D stair opening + guard/lowWall junct
     'P171C D stair opening + guard/lowWall junction (WORK_TEST)',
   );
   await expect(page.getByRole('status')).toHaveText(
-    'P171C D stair opening + guard/lowWall junction - WORK_TEST / floor-shell + aukon reuna näkyvyyskorjattu / vapaa 3D - HUMAN_REVIEW NOT_RUN',
+    'P171C D stair opening + guard/lowWall junction - WORK_TEST / floor-shell sisäsauma vaimennettu + aukon reuna korostettu / vapaa 3D - HUMAN_REVIEW NOT_RUN',
   );
 });
 
