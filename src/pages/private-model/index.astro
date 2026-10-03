@@ -1166,7 +1166,9 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelEdgeVisibility';
       import { computeVisibleBounds } from '../../scripts/privateModelVisibleBounds';
       import {
+        p160WarmFloorReviewOpacity,
         p172bDOverviewFloorOpacity,
+        prepareP160WarmFloorReviewPresentation,
         prepareP171Q1WorkShellPresentation,
         prepareP172bDOverviewPresentation,
       } from '../../scripts/privateModelDOverviewPresentation';
@@ -3518,6 +3520,10 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p172bDOverviewNeutralWallCount;
         delete canvas.dataset.p172bDOverviewFloorCount;
         delete canvas.dataset.p172bDOverviewFloorOpacity;
+        delete canvas.dataset.p160WarmFloorReviewPresentation;
+        delete canvas.dataset.p160WarmFloorReviewSurfaceCount;
+        delete canvas.dataset.p160WarmFloorReviewExcludedContextCount;
+        delete canvas.dataset.p160WarmFloorReviewOpacity;
         delete canvas.dataset.p171Q1ReviewVisibility;
         delete canvas.dataset.p171Q1ReviewView;
         delete canvas.dataset.p171Q1FloorShellContext;
@@ -3528,6 +3534,21 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p171Q1FloorShellHiddenVolumeCount;
         delete canvas.dataset.p171Q1FloorShellSurfaceMeshCount;
         delete canvas.dataset.p171Q1OpeningBoundaryContext;
+
+        if (
+          activeModelSourceKind === 'work-test' &&
+          dInteriorScene &&
+          isP160DCompositeReviewRequested()
+        ) {
+          const presentation = prepareP160WarmFloorReviewPresentation(dInteriorScene);
+          canvas.dataset.p160WarmFloorReviewPresentation = 'true';
+          canvas.dataset.p160WarmFloorReviewSurfaceCount = String(presentation.floorSurfaceCount);
+          canvas.dataset.p160WarmFloorReviewExcludedContextCount = String(
+            presentation.excludedContextCount,
+          );
+          canvas.dataset.p160WarmFloorReviewOpacity = String(p160WarmFloorReviewOpacity);
+          return presentation.interiorClone;
+        }
 
         if (
           activeModelSourceKind !== 'work-test' ||
