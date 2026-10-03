@@ -3524,6 +3524,8 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p160WarmFloorReviewPresentation;
         delete canvas.dataset.p160WarmFloorReviewSurfaceCount;
         delete canvas.dataset.p160WarmFloorReviewContextRenderableCount;
+        delete canvas.dataset.p160WarmFloorReviewHiddenHelperCount;
+        delete canvas.dataset.p160WarmFloorReviewGeometry;
         delete canvas.dataset.p160WarmFloorReviewOpacity;
         delete canvas.dataset.p160WarmFloorReviewContextOpacity;
         delete canvas.dataset.p171Q1ReviewVisibility;
@@ -3548,6 +3550,11 @@ const title = 'Private 3D viewer';
           canvas.dataset.p160WarmFloorReviewContextRenderableCount = String(
             presentation.contextRenderableCount,
           );
+          canvas.dataset.p160WarmFloorReviewHiddenHelperCount = String(
+            presentation.hiddenHelperSurfaceCount,
+          );
+          canvas.dataset.p160WarmFloorReviewGeometry =
+            'TWO_UNIFIED_HEATED_FLOORS_WITH_2F_STAIR_VOID';
           canvas.dataset.p160WarmFloorReviewOpacity = String(p160WarmFloorReviewOpacity);
           canvas.dataset.p160WarmFloorReviewContextOpacity = String(
             p160WarmFloorContextOpacity,
