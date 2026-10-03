@@ -97,3 +97,23 @@ export const prepareP172bDOverviewPresentation = (interiorSource: any, workShell
     floorMeshCount,
   };
 };
+
+export const prepareP171Q1WorkShellPresentation = (workShellSource: any) => {
+  const workShellClone = workShellSource.clone(true);
+  let suppressedFloorMeshCount = 0;
+
+  workShellClone.traverse((object: any) => {
+    if (!isFloorWorkShell(object)) return;
+    object.userData = {
+      ...(object.userData ?? {}),
+      viewerSuppressEdgeOverlay: true,
+      p171Q1InternalSeamSuppression: true,
+    };
+    suppressedFloorMeshCount += 1;
+  });
+
+  return {
+    workShellClone,
+    suppressedFloorMeshCount,
+  };
+};
