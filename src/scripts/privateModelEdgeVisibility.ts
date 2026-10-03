@@ -87,6 +87,8 @@ export const isEdgeMeshCandidate = (
   }
 
   const data = object.userData ?? {};
+  if (data.viewerSuppressEdgeOverlay === true) return false;
+
   const presentationLayer = String(data.presentationLayer ?? '').toUpperCase();
   if (routePresentationLayers.has(presentationLayer)) return false;
   if (data.presentationSubgroup === 'WATER' || data.presentationSubgroup === 'WASTEWATER') {
