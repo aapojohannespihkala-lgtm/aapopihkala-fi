@@ -246,24 +246,37 @@ export const prepareP171Q1WorkShellPresentation = (workShellSource: any) => {
   const floorMeshes: any[] = [];
 
   workShellClone.traverse((object: any) => {
-    if (!isFloorWorkShell(object)) return;
-    object.visible = false;
-    object.userData = {
-      ...(object.userData ?? {}),
-      viewerSuppressEdgeOverlay: true,
-      p171Q1InternalSeamSuppression: true,
-      p171Q1ReplacedByTopSurfaceOnly: true,
-    };
-    floorMeshes.push(object);
+    if (isFloorWorkShell(object)) floorMeshes.push(object);
   });
 
   const floorSurface = buildP171Q1TopSurface(floorMeshes, workShellClone);
-  if (floorSurface) workShellClone.add(floorSurface);
+  let hiddenFloorVolumeMeshCount = 0;
+  if (floorSurface) {
+    for (const object of floorMeshes) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerSuppressEdgeOverlay: true,
+        p171Q1InternalSeamSuppression: true,
+        p171Q1ReplacedByTopSurfaceOnly: true,
+      };
+      hiddenFloorVolumeMeshCount += 1;
+    }
+    workShellClone.add(floorSurface);
+  } else {
+    for (const object of floorMeshes) {
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerSuppressEdgeOverlay: true,
+        p171Q1InternalSeamSuppression: true,
+      };
+    }
+  }
 
   return {
     workShellClone,
     suppressedFloorMeshCount: floorMeshes.length,
-    hiddenFloorVolumeMeshCount: floorMeshes.length,
+    hiddenFloorVolumeMeshCount,
     floorSurfaceMeshCount: floorSurface ? 1 : 0,
     floorSurface,
   };
