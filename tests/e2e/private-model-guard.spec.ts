@@ -278,6 +278,8 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p171c-d-stair-opening-guard-lowwall-junction-review': 'p171c-d-stair-opening-guard-lowwall-junction',
     'p173d-whole-building-d-wall-hr67-rebase-review': 'p173d-whole-building-d-wall-hr67-rebase',
     'p174a-r2-west-gable-termination-correction-review': 'p174a-r2-west-gable-termination-correction',
+    'p176a-hr6-full-visible-west-gable-termination-correction-review':
+      'p176a-hr6-full-visible-west-gable-termination-correction',
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
     'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
     'p168a-whole-building-roof-eave-correction-review': 'p168a-whole-building-roof-eave-correction',
@@ -4460,6 +4462,103 @@ test('private viewer autoloads exact P174A-R2 HR-6 west-gable termination correc
   );
   await expect(page.getByRole('status')).toHaveText(
     'P174A-R2 HR-6 west-gable termination correction - WORK_TEST / north termination 10.810 m / bounded parent-subset correction - HUMAN_REVIEW NOT_RUN',
+  );
+});
+
+test('private viewer autoloads exact P176A HR-6 full visible west-gable termination correction', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P176A HR-6 FULL VISIBLE WEST GABLE TERMINATION CORRECTION - WORK_TEST',
+        nodes: [],
+        extras: {
+          Pass: 'P176A',
+          successorOfPass: 'P174A-R2',
+          currentClaim: false,
+          asBuiltClaim: false,
+          Canonical: false,
+          publishToCURRENT: false,
+          humanReview: 'CORRECTION_REQUIRED_NOT_PASS',
+        },
+      },
+    ],
+    nodes: [],
+  });
+  const candidateId = 'p176a-hr6-full-visible-west-gable-termination-correction';
+  const candidateLabel = 'P176A HR-6 full visible west-gable termination correction - WORK_TEST';
+  const candidatePath =
+    '/private-model/work-test/p176a-hr6-full-visible-west-gable-termination-correction.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto(
+    '/private-model/?review=p176a-hr6-full-visible-west-gable-termination-correction-review',
+  );
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p176a-hr6-full-visible-west-gable-termination-correction-review',
+  );
+  await expect(canvas).toHaveAttribute('data-p176-parent-pass', 'P174A-R2');
+  await expect(canvas).toHaveAttribute('data-p176-geometry-pass', 'P176A');
+  await expect(canvas).toHaveAttribute('data-p176-qa-pass', 'P176B');
+  await expect(canvas).toHaveAttribute(
+    'data-p176-materialization-strategy',
+    'APPEND_ONLY_SCENE_ROOT_REPLACEMENT_REUSING_PARENT_CARRIER_MESHES',
+  );
+  await expect(canvas).toHaveAttribute('data-p176-parent-carrier-nodes', '685,688,690,766');
+  await expect(canvas).toHaveAttribute(
+    'data-p176-replacement-carrier-nodes',
+    '1013,1014,1015,1016',
+  );
+  await expect(canvas).toHaveAttribute('data-p176-replacement-root', '1017');
+  await expect(canvas).toHaveAttribute('data-p176-correction-binding', '1018');
+  await expect(canvas).toHaveAttribute('data-p176-preserved-p174-replacement-node', '1010');
+  await expect(canvas).toHaveAttribute('data-p176-preserved-below-grade-node', '920');
+  await expect(canvas).toHaveAttribute('data-p176-corrected-north-termination-y', '10.810');
+  await expect(canvas).toHaveAttribute('data-p176-carrier-count', '4');
+  await expect(canvas).toHaveAttribute('data-p176-binary-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p176-parent-resource-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p176-source-primitive-mutation', 'false');
+  await expect(canvas).toHaveAttribute('data-p176-physical-facade-boundary-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p176-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p176-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p176-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p176-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p176-human-review', 'CORRECTION_REQUIRED_NOT_PASS');
+  await expect(canvas).toHaveAttribute('data-p176-qa-gate', 'PASS_INDEPENDENT_EXACT_BIT_QA');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P176A HR-6 full visible west-gable termination correction (WORK_TEST)',
+  );
+  await expect(page.getByRole('status')).toHaveText(
+    'P176A HR-6 full visible west-gable termination correction - WORK_TEST / 4 visible carriers to north termination 10.810 m / HUMAN_REVIEW CORRECTION_REQUIRED',
   );
 });
 
