@@ -23,7 +23,32 @@ const cloneObjectMaterials = (object: any, update: (material: any) => void) => {
   else if (object.material) object.material = cloneOne(object.material);
 };
 
-const isP160WarmFloorReviewSurface = (object: any) => {
+export const p160WarmFloorReviewContract = {
+  floor1F: {
+    storey: '1F',
+    xMinM: 0.22,
+    xMaxM: 6.25,
+    yMinM: 0.249,
+    yMaxM: 8.724,
+    hostZM: 0,
+  },
+  floor2F: {
+    storey: '2F',
+    xMinM: 0.22,
+    xMaxM: 6.25,
+    yMinM: 0.25,
+    yMaxM: 10.59,
+    hostZM: 2.76,
+    stairOpening: {
+      xMinM: 0.23,
+      xMaxM: 2.48,
+      yMinM: 5.122,
+      yMaxM: 7.222,
+    },
+  },
+} as const;
+
+const isP160WarmFloorAuxiliarySurface = (object: any) => {
   if (!object?.isMesh) return false;
   const representationKind = String(object?.userData?.representationKind ?? '');
   return representationKind === 'referenceFootprint' || representationKind === 'stairHostFootprint';
@@ -35,100 +60,186 @@ const isP160WarmFloorReviewRenderable = (object: any) =>
       (object?.isMesh || object?.isLine || object?.isLineSegments || object?.isPoints),
   );
 
+const makeP160UnifiedWarmFloorMaterial = () => {
+  const material = new THREE.MeshStandardMaterial({
+    color: p160WarmFloorReviewHex,
+    emissive: p160WarmFloorReviewHex,
+    emissiveIntensity: 0.2,
+    transparent: true,
+    opacity: p160WarmFloorReviewOpacity,
+    depthTest: true,
+    depthWrite: true,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  });
+  material.userData = {
+    p160WarmFloorViewerPresentation: true,
+    p160PresentationRole: 'UNIFIED_WARM_FLOOR_REVIEW_SURFACE',
+  };
+  return material;
+};
+
+type P160FloorContract = typeof p160WarmFloorReviewContract.floor1F | typeof p160WarmFloorReviewContract.floor2F;
+
+const rectangularPath = (
+  xMinM: number,
+  xMaxM: number,
+  yMinM: number,
+  yMaxM: number,
+  clockwise = false,
+) => {
+  const path = new THREE.Path();
+  if (clockwise) {
+    path.moveTo(xMinM, -yMaxM);
+    path.lineTo(xMinM, -yMinM);
+    path.lineTo(xMaxM, -yMinM);
+    path.lineTo(xMaxM, -yMaxM);
+  } else {
+    path.moveTo(xMinM, -yMaxM);
+    path.lineTo(xMaxM, -yMaxM);
+    path.lineTo(xMaxM, -yMinM);
+    path.lineTo(xMinM, -yMinM);
+  }
+  path.closePath();
+  return path;
+};
+
+const buildP160UnifiedWarmFloor = (contract: P160FloorContract) => {
+  const shape = new THREE.Shape();
+  const outer = rectangularPath(
+    contract.xMinM,
+    contract.xMaxM,
+    contract.yMinM,
+    contract.yMaxM,
+  );
+  shape.curves = outer.curves;
+
+  const stairOpening = 'stairOpening' in contract ? contract.stairOpening : null;
+  if (stairOpening) {
+    shape.holes.push(
+      rectangularPath(
+        stairOpening.xMinM,
+        stairOpening.xMaxM,
+        stairOpening.yMinM,
+        stairOpening.yMaxM,
+        true,
+      ),
+    );
+  }
+
+  const geometry = new THREE.ShapeGeometry(shape);
+  geometry.rotateX(-Math.PI / 2);
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+
+  const floor = new THREE.Mesh(geometry, makeP160UnifiedWarmFloorMaterial());
+  floor.name = `P160_UNIFIED_WARM_FLOOR_${contract.storey}_VIEWER_ONLY`;
+  floor.position.y = contract.hostZM;
+  floor.renderOrder = 20;
+  floor.userData = {
+    PresentationOnly: true,
+    Canonical: false,
+    viewerDerived: true,
+    p160WarmFloorReviewSurface: true,
+    p160UnifiedWarmFloor: true,
+    p160FloorStorey: contract.storey,
+    representationKind: 'presentationUnifiedWarmFloorReview',
+    sourceContract: 'G2_P160_HR1_HR3_WARM_FLOOR_REFINEMENT',
+    ylisG1LocalBoundsM: {
+      xMinM: contract.xMinM,
+      xMaxM: contract.xMaxM,
+      yMinM: contract.yMinM,
+      yMaxM: contract.yMaxM,
+      hostZM: contract.hostZM,
+    },
+    p160StairOpeningPreserved: Boolean(stairOpening),
+    physicalFloorClaim: false,
+    physicalFloorBuildUpClaim: false,
+    sourcePrimitiveMutation: false,
+    asBuiltClaim: false,
+  };
+
+  const edgeMaterial = new THREE.LineBasicMaterial({
+    color: p160WarmFloorReviewEdgeHex,
+    transparent: true,
+    opacity: p160WarmFloorReviewEdgeOpacity,
+    depthTest: true,
+    depthWrite: false,
+  });
+  edgeMaterial.userData = {
+    p160WarmFloorViewerPresentation: true,
+    p160PresentationRole: 'UNIFIED_WARM_FLOOR_REVIEW_EDGE',
+  };
+  const edgeOverlay = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgeMaterial);
+  edgeOverlay.name = `${floor.name}__EDGE`;
+  edgeOverlay.renderOrder = 21;
+  edgeOverlay.userData = {
+    viewerDerived: true,
+    presentationOnly: true,
+    p160WarmFloorReviewEdge: true,
+    physicalFloorClaim: false,
+    asBuiltClaim: false,
+  };
+  floor.add(edgeOverlay);
+
+  return floor;
+};
+
 export const prepareP160WarmFloorReviewPresentation = (interiorSource: any) => {
   const interiorClone = interiorSource.clone(true);
-  const floorMeshes: any[] = [];
-  let floorSurfaceCount = 0;
+  let hiddenHelperSurfaceCount = 0;
   let contextRenderableCount = 0;
 
   interiorClone.traverse((object: any) => {
     if (!isP160WarmFloorReviewRenderable(object)) return;
-    const floorSurface = isP160WarmFloorReviewSurface(object);
-    const opacity = floorSurface
-      ? p160WarmFloorReviewOpacity
-      : p160WarmFloorContextOpacity;
+
+    if (isP160WarmFloorAuxiliarySurface(object)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p160WarmFloorAuxiliaryHidden: true,
+        p160WarmFloorReviewSurface: false,
+      };
+      hiddenHelperSurfaceCount += 1;
+      return;
+    }
 
     cloneObjectMaterials(object, (material) => {
-      material.opacity = opacity;
+      material.opacity = p160WarmFloorContextOpacity;
       material.transparent = true;
-      material.depthWrite = floorSurface;
-      if (floorSurface) {
-        material.color?.setHex?.(p160WarmFloorReviewHex);
-        material.emissive?.setHex?.(p160WarmFloorReviewHex);
-        if ('emissiveIntensity' in material) material.emissiveIntensity = 0.2;
-        material.side = THREE.DoubleSide;
-        material.polygonOffset = true;
-        material.polygonOffsetFactor = -1;
-        material.polygonOffsetUnits = -1;
-      }
+      material.depthWrite = false;
       material.userData = {
         ...(material.userData ?? {}),
         p160WarmFloorViewerPresentation: true,
-        p160PresentationRole: floorSurface
-          ? 'FLOOR_REVIEW_SURFACE_80'
-          : 'CONTEXT_REVIEW_GEOMETRY_20',
+        p160PresentationRole: 'CONTEXT_REVIEW_GEOMETRY_20',
       };
       material.needsUpdate = true;
     });
-
-    object.renderOrder = floorSurface ? 20 : 0;
+    object.renderOrder = 0;
     object.userData = {
       ...(object.userData ?? {}),
       viewerDerived: true,
-      ...(floorSurface
-        ? {
-            p160WarmFloorReviewSurface: true,
-            physicalFloorClaim: false,
-            asBuiltClaim: false,
-          }
-        : {
-            p160WarmFloorReviewContext: true,
-          }),
+      p160WarmFloorReviewContext: true,
     };
-
-    if (floorSurface) {
-      floorSurfaceCount += 1;
-      floorMeshes.push(object);
-    } else contextRenderableCount += 1;
+    contextRenderableCount += 1;
   });
 
-  let floorEdgeCount = 0;
-  for (const floorMesh of floorMeshes) {
-    if (!floorMesh.geometry) continue;
-    const edgeMaterial = new THREE.LineBasicMaterial({
-      color: p160WarmFloorReviewEdgeHex,
-      transparent: true,
-      opacity: p160WarmFloorReviewEdgeOpacity,
-      depthTest: true,
-      depthWrite: false,
-    });
-    edgeMaterial.userData = {
-      ...(edgeMaterial.userData ?? {}),
-      p160WarmFloorViewerPresentation: true,
-      p160PresentationRole: 'FLOOR_REVIEW_EDGE',
-    };
-    const edgeOverlay = new THREE.LineSegments(
-      new THREE.EdgesGeometry(floorMesh.geometry),
-      edgeMaterial,
-    );
-    edgeOverlay.name = `${floorMesh.name}__P160_FLOOR_EDGE`;
-    edgeOverlay.renderOrder = 21;
-    edgeOverlay.userData = {
-      viewerDerived: true,
-      presentationOnly: true,
-      p160WarmFloorReviewEdge: true,
-      physicalFloorClaim: false,
-      asBuiltClaim: false,
-    };
-    floorMesh.add(edgeOverlay);
-    floorEdgeCount += 1;
-  }
+  const floorMeshes = [
+    buildP160UnifiedWarmFloor(p160WarmFloorReviewContract.floor1F),
+    buildP160UnifiedWarmFloor(p160WarmFloorReviewContract.floor2F),
+  ];
+  for (const floor of floorMeshes) interiorClone.add(floor);
 
   return {
     interiorClone,
-    floorSurfaceCount,
-    floorEdgeCount,
+    floorSurfaceCount: floorMeshes.length,
+    floorEdgeCount: floorMeshes.length,
+    hiddenHelperSurfaceCount,
     contextRenderableCount,
+    floorMeshes,
   };
 };
 
