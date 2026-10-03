@@ -65,6 +65,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test/p176a-hr6-full-visible-west-gable-termination-correction.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p177b-hr6-direct-d-storage-north-wall-line-corrected.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p178b-d-stair-guard-lowwall-junction-closure.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p164b-d-corrected-stair.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p167f-whole-building-precise-stair.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p168a-whole-building-roof-eave-correction.glb')).toBe(true);
@@ -79,7 +80,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(36);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(37);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -319,6 +320,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     expectedSha256: 'a60111c6f0bc25d56e00c446cf2088b96e96f4f87051233abd8c2f23a248ef9b',
   });
 
+  const p181bR1 = getPrivateWorkTestCandidateById('p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase');
+  expect(p181bR1).toMatchObject({
+    id: 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase',
+    label: 'P181B-R1 A-C storage ground-contact/substructure + terrain rebase - WORK_TEST',
+    path: '/private-model/work-test/p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase.glb',
+    objectKey: 'work-test/p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase.glb',
+    expectedSize: 2_861_664,
+    expectedSha256: '3cddee192ae2af0d85bb650482aaa1596dfd883e5f0b3d25c42c4b451b3e6239',
+  });
+
   const p164b = getPrivateWorkTestCandidateById('p164b-d-corrected-stair');
   expect(p164b).toMatchObject({
     id: 'p164b-d-corrected-stair',
@@ -462,6 +473,8 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestUploadCandidate(p178bUploadPath)?.id).toBe(
     'p178b-d-stair-guard-lowwall-junction-closure',
   );
+  const p181bR1UploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase.glb`;
+  expect(getPrivateWorkTestUploadCandidate(p181bR1UploadPath)?.id).toBe('p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase');
 
   const p164bUploadPath = `${PRIVATE_WORK_TEST_UPLOAD_PREFIX}p164b-d-corrected-stair.glb`;
   expect(getPrivateWorkTestUploadCandidate(p164bUploadPath)?.id).toBe('p164b-d-corrected-stair');
