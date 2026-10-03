@@ -1250,6 +1250,8 @@ const title = 'Private 3D viewer';
         p173dReviewId,
         p174aR2CandidateId,
         p174aR2ReviewId,
+        p176aCandidateId,
+        p176aReviewId,
         p164bCandidateId,
         p164bReviewId,
         p167fCandidateId,
@@ -4707,6 +4709,9 @@ const title = 'Private 3D viewer';
       const isP174aR2WestGableTerminationReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p174aR2ReviewId);
 
+      const isP176aFullVisibleWestGableReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p176aReviewId);
+
       const isP164bCorrectedStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p164bReviewId);
 
@@ -5225,6 +5230,40 @@ const title = 'Private 3D viewer';
           'P174A-R2 HR-6 west-gable termination correction - WORK_TEST / north termination 10.810 m / bounded parent-subset correction - HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP176aReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p176a-hr6-full-visible-west-gable-termination-correction-review',
+          p176ParentPass: 'P174A-R2',
+          p176GeometryPass: 'P176A',
+          p176QaPass: 'P176B',
+          p176CorrectionScope: 'P160_HR6_FULL_VISIBLE_WEST_GABLE_CARRIERS',
+          p176MaterializationStrategy:
+            'APPEND_ONLY_SCENE_ROOT_REPLACEMENT_REUSING_PARENT_CARRIER_MESHES',
+          p176ParentCarrierNodes: '685,688,690,766',
+          p176ReplacementCarrierNodes: '1013,1014,1015,1016',
+          p176ReplacementRoot: '1017',
+          p176CorrectionBinding: '1018',
+          p176PreservedP174ReplacementNode: '1010',
+          p176PreservedBelowGradeNode: '920',
+          p176CorrectedNorthTerminationY: '10.810',
+          p176CarrierCount: '4',
+          p176BinaryMutation: 'false',
+          p176ParentResourceMutation: 'false',
+          p176SourcePrimitiveMutation: 'false',
+          p176PhysicalFacadeBoundaryClaim: 'false',
+          p176CurrentClaim: 'false',
+          p176AsBuiltClaim: 'false',
+          p176Canonical: 'false',
+          p176PublishToCurrent: 'false',
+          p176HumanReview: 'CORRECTION_REQUIRED_NOT_PASS',
+          p176QaGate: 'PASS_INDEPENDENT_EXACT_BIT_QA',
+          standardViewPreset: 'd-apartment',
+        });
+        applyStandardViewPreset('d-apartment');
+        status.textContent =
+          'P176A HR-6 full visible west-gable termination correction - WORK_TEST / 4 visible carriers to north termination 10.810 m / HUMAN_REVIEW CORRECTION_REQUIRED';
+      };
+
       const applyP164bReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p164b-d-corrected-stair-review',
@@ -5548,6 +5587,8 @@ const title = 'Private 3D viewer';
             candidate.id === p173dCandidateId && isP173dWallHr67RebaseReviewRequested();
           const isP174aR2WestGableTerminationReview =
             candidate.id === p174aR2CandidateId && isP174aR2WestGableTerminationReviewRequested();
+          const isP176aFullVisibleWestGableReview =
+            candidate.id === p176aCandidateId && isP176aFullVisibleWestGableReviewRequested();
           const isP164bCorrectedStairReview =
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP167fPreciseStairReview =
@@ -5802,6 +5843,29 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p174PublishToCurrent;
           delete canvas.dataset.p174HumanReview;
           delete canvas.dataset.p174PlausibilityGate;
+          delete canvas.dataset.p176ParentPass;
+          delete canvas.dataset.p176GeometryPass;
+          delete canvas.dataset.p176QaPass;
+          delete canvas.dataset.p176CorrectionScope;
+          delete canvas.dataset.p176MaterializationStrategy;
+          delete canvas.dataset.p176ParentCarrierNodes;
+          delete canvas.dataset.p176ReplacementCarrierNodes;
+          delete canvas.dataset.p176ReplacementRoot;
+          delete canvas.dataset.p176CorrectionBinding;
+          delete canvas.dataset.p176PreservedP174ReplacementNode;
+          delete canvas.dataset.p176PreservedBelowGradeNode;
+          delete canvas.dataset.p176CorrectedNorthTerminationY;
+          delete canvas.dataset.p176CarrierCount;
+          delete canvas.dataset.p176BinaryMutation;
+          delete canvas.dataset.p176ParentResourceMutation;
+          delete canvas.dataset.p176SourcePrimitiveMutation;
+          delete canvas.dataset.p176PhysicalFacadeBoundaryClaim;
+          delete canvas.dataset.p176CurrentClaim;
+          delete canvas.dataset.p176AsBuiltClaim;
+          delete canvas.dataset.p176Canonical;
+          delete canvas.dataset.p176PublishToCurrent;
+          delete canvas.dataset.p176HumanReview;
+          delete canvas.dataset.p176QaGate;
           delete canvas.dataset.p164ParentPass;
           delete canvas.dataset.p164Topology;
           delete canvas.dataset.p164LowerFlightLevels;
@@ -5968,6 +6032,8 @@ const title = 'Private 3D viewer';
               ? 'Koko rakennus + alusrakennekuoret (WORK_TEST)'
             : isP159WholeBuildingStorageContextReview
               ? 'Koko rakennus + storage referenceFootprints (WORK_TEST / presentation-only)'
+            : isP176aFullVisibleWestGableReview
+              ? 'P176A HR-6 full visible west-gable termination correction (WORK_TEST)'
             : isP174aR2WestGableTerminationReview
               ? 'P174A-R2 HR-6 west-gable termination correction (WORK_TEST)'
             : isP173dWallHr67RebaseReview
@@ -6034,6 +6100,8 @@ const title = 'Private 3D viewer';
             applyP167fReviewState();
           } else if (isP164bCorrectedStairReview) {
             applyP164bReviewState();
+          } else if (isP176aFullVisibleWestGableReview) {
+            applyP176aReviewState();
           } else if (isP174aR2WestGableTerminationReview) {
             applyP174aR2ReviewState();
           } else if (isP173dWallHr67RebaseReview) {
