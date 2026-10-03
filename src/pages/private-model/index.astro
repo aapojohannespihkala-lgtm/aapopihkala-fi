@@ -1250,6 +1250,8 @@ const title = 'Private 3D viewer';
         p173dReviewId,
         p174aR2CandidateId,
         p174aR2ReviewId,
+        p175bR3CandidateId,
+        p175bR3ReviewId,
         p176aCandidateId,
         p176aReviewId,
         p164bCandidateId,
@@ -4709,6 +4711,9 @@ const title = 'Private 3D viewer';
       const isP174aR2WestGableTerminationReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p174aR2ReviewId);
 
+      const isP175bR3NearBuildingTerrainReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p175bR3ReviewId);
+
       const isP176aFullVisibleWestGableReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p176aReviewId);
 
@@ -5230,6 +5235,37 @@ const title = 'Private 3D viewer';
           'P174A-R2 HR-6 west-gable termination correction - WORK_TEST / north termination 10.810 m / bounded parent-subset correction - HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP175bR3ReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: 'p175b-r3-near-building-flatter-terrain-review',
+          p175ParentPass: 'P174A-R2',
+          p175ContractPass: 'P175A',
+          p175GeometryPass: 'P175B-R3',
+          p175QaPass: 'P175C',
+          p175RepresentationKind: 'presentationNearBuildingWalkwayTerrainRefinement',
+          p175WorkBandWidthM: '1.000',
+          p175BandWidthStatus: 'REFINABLE_WORK_ASSUMPTION',
+          p175VerticalBasis: 'PARENT_TERRAIN_DERIVED',
+          p175VerticalBridgeStatus: 'WORK_OFFSET_UNVERIFIED',
+          p175OldTerrainRoot: '919',
+          p175NewTerrainRoot: '1014',
+          p175NewTerrainMesh: '524',
+          p175PresentationOnly: 'true',
+          p175PhysicalWalkwayClaim: 'false',
+          p175PhysicalGroundSurfaceClaim: 'false',
+          p175CurrentClaim: 'false',
+          p175AsBuiltClaim: 'false',
+          p175Canonical: 'false',
+          p175PublishToCurrent: 'false',
+          p175HumanReview: 'NOT_RUN',
+          p175QaGate: 'PASS_PERSISTED_EXACT_INDEPENDENT_QA',
+          standardViewPreset: 'whole-building',
+        });
+        applyStandardViewPreset('whole-building');
+        status.textContent =
+          'P175B-R3 near-building flatter terrain - WORK_TEST / 1.000 m refinable work-assumption band / HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP176aReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p176a-hr6-full-visible-west-gable-termination-correction-review',
@@ -5587,6 +5623,8 @@ const title = 'Private 3D viewer';
             candidate.id === p173dCandidateId && isP173dWallHr67RebaseReviewRequested();
           const isP174aR2WestGableTerminationReview =
             candidate.id === p174aR2CandidateId && isP174aR2WestGableTerminationReviewRequested();
+          const isP175bR3NearBuildingTerrainReview =
+            candidate.id === p175bR3CandidateId && isP175bR3NearBuildingTerrainReviewRequested();
           const isP176aFullVisibleWestGableReview =
             candidate.id === p176aCandidateId && isP176aFullVisibleWestGableReviewRequested();
           const isP164bCorrectedStairReview =
@@ -5843,6 +5881,27 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p174PublishToCurrent;
           delete canvas.dataset.p174HumanReview;
           delete canvas.dataset.p174PlausibilityGate;
+          delete canvas.dataset.p175ParentPass;
+          delete canvas.dataset.p175ContractPass;
+          delete canvas.dataset.p175GeometryPass;
+          delete canvas.dataset.p175QaPass;
+          delete canvas.dataset.p175RepresentationKind;
+          delete canvas.dataset.p175WorkBandWidthM;
+          delete canvas.dataset.p175BandWidthStatus;
+          delete canvas.dataset.p175VerticalBasis;
+          delete canvas.dataset.p175VerticalBridgeStatus;
+          delete canvas.dataset.p175OldTerrainRoot;
+          delete canvas.dataset.p175NewTerrainRoot;
+          delete canvas.dataset.p175NewTerrainMesh;
+          delete canvas.dataset.p175PresentationOnly;
+          delete canvas.dataset.p175PhysicalWalkwayClaim;
+          delete canvas.dataset.p175PhysicalGroundSurfaceClaim;
+          delete canvas.dataset.p175CurrentClaim;
+          delete canvas.dataset.p175AsBuiltClaim;
+          delete canvas.dataset.p175Canonical;
+          delete canvas.dataset.p175PublishToCurrent;
+          delete canvas.dataset.p175HumanReview;
+          delete canvas.dataset.p175QaGate;
           delete canvas.dataset.p176ParentPass;
           delete canvas.dataset.p176GeometryPass;
           delete canvas.dataset.p176QaPass;
@@ -6032,6 +6091,8 @@ const title = 'Private 3D viewer';
               ? 'Koko rakennus + alusrakennekuoret (WORK_TEST)'
             : isP159WholeBuildingStorageContextReview
               ? 'Koko rakennus + storage referenceFootprints (WORK_TEST / presentation-only)'
+            : isP175bR3NearBuildingTerrainReview
+              ? 'P175B-R3 near-building flatter terrain (WORK_TEST / 1,000 m work assumption)'
             : isP176aFullVisibleWestGableReview
               ? 'P176A HR-6 full visible west-gable termination correction (WORK_TEST)'
             : isP174aR2WestGableTerminationReview
@@ -6100,6 +6161,8 @@ const title = 'Private 3D viewer';
             applyP167fReviewState();
           } else if (isP164bCorrectedStairReview) {
             applyP164bReviewState();
+          } else if (isP175bR3NearBuildingTerrainReview) {
+            applyP175bR3ReviewState();
           } else if (isP176aFullVisibleWestGableReview) {
             applyP176aReviewState();
           } else if (isP174aR2WestGableTerminationReview) {

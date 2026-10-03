@@ -278,6 +278,8 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     'p171c-d-stair-opening-guard-lowwall-junction-review': 'p171c-d-stair-opening-guard-lowwall-junction',
     'p173d-whole-building-d-wall-hr67-rebase-review': 'p173d-whole-building-d-wall-hr67-rebase',
     'p174a-r2-west-gable-termination-correction-review': 'p174a-r2-west-gable-termination-correction',
+    'p175b-r3-near-building-flatter-terrain-review':
+      'p175b-r3-near-building-flatter-terrain',
     'p176a-hr6-full-visible-west-gable-termination-correction-review':
       'p176a-hr6-full-visible-west-gable-termination-correction',
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
@@ -4462,6 +4464,87 @@ test('private viewer autoloads exact P174A-R2 HR-6 west-gable termination correc
   );
   await expect(page.getByRole('status')).toHaveText(
     'P174A-R2 HR-6 west-gable termination correction - WORK_TEST / north termination 10.810 m / bounded parent-subset correction - HUMAN_REVIEW NOT_RUN',
+  );
+});
+
+test('private viewer autoloads exact P175B-R3 near-building terrain refinement', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{
+      name: 'P175B-R3 NEAR-BUILDING FLATTER TERRAIN - WORK_TEST',
+      nodes: [],
+      extras: {
+        Pass: 'P175B-R3',
+        currentClaim: false,
+        asBuiltClaim: false,
+        Canonical: false,
+        publishToCURRENT: false,
+        humanReview: 'NOT_RUN',
+      },
+    }],
+    nodes: [],
+  });
+  const candidateId = 'p175b-r3-near-building-flatter-terrain';
+  const candidateLabel = 'P175B-R3 near-building flatter terrain - WORK_TEST';
+  const candidatePath = '/private-model/work-test/p175b-r3-near-building-flatter-terrain.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }] }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/?review=p175b-r3-near-building-flatter-terrain-review');
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p175b-r3-near-building-flatter-terrain-review',
+  );
+  await expect(canvas).toHaveAttribute('data-p175-parent-pass', 'P174A-R2');
+  await expect(canvas).toHaveAttribute('data-p175-contract-pass', 'P175A');
+  await expect(canvas).toHaveAttribute('data-p175-geometry-pass', 'P175B-R3');
+  await expect(canvas).toHaveAttribute('data-p175-qa-pass', 'P175C');
+  await expect(canvas).toHaveAttribute('data-p175-work-band-width-m', '1.000');
+  await expect(canvas).toHaveAttribute('data-p175-band-width-status', 'REFINABLE_WORK_ASSUMPTION');
+  await expect(canvas).toHaveAttribute('data-p175-vertical-basis', 'PARENT_TERRAIN_DERIVED');
+  await expect(canvas).toHaveAttribute('data-p175-vertical-bridge-status', 'WORK_OFFSET_UNVERIFIED');
+  await expect(canvas).toHaveAttribute('data-p175-old-terrain-root', '919');
+  await expect(canvas).toHaveAttribute('data-p175-new-terrain-root', '1014');
+  await expect(canvas).toHaveAttribute('data-p175-new-terrain-mesh', '524');
+  await expect(canvas).toHaveAttribute('data-p175-presentation-only', 'true');
+  await expect(canvas).toHaveAttribute('data-p175-physical-walkway-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p175-physical-ground-surface-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p175-current-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p175-as-built-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-p175-canonical', 'false');
+  await expect(canvas).toHaveAttribute('data-p175-publish-to-current', 'false');
+  await expect(canvas).toHaveAttribute('data-p175-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-p175-qa-gate', 'PASS_PERSISTED_EXACT_INDEPENDENT_QA');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(page.locator('#locus-layer-label')).toHaveText(
+    'P175B-R3 near-building flatter terrain (WORK_TEST / 1,000 m work assumption)',
+  );
+  await expect(page.getByRole('status')).toHaveText(
+    'P175B-R3 near-building flatter terrain - WORK_TEST / 1.000 m refinable work-assumption band / HUMAN_REVIEW NOT_RUN',
   );
 });
 
