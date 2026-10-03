@@ -2,6 +2,7 @@ import { THREE } from './threeRuntime';
 
 export const p172bDOverviewFloorOpacity = 0.45;
 export const p172bDOverviewNeutralWallHex = 0xaeb4b8;
+export const p160WarmFloorReviewOpacity = 0.72;
 
 const hasOwn = (value: unknown, key: string) =>
   Boolean(value && Object.prototype.hasOwnProperty.call(value, key));
@@ -16,6 +17,66 @@ const cloneObjectMaterials = (object: any, update: (material: any) => void) => {
 
   if (Array.isArray(object.material)) object.material = object.material.map(cloneOne);
   else if (object.material) object.material = cloneOne(object.material);
+};
+
+const p160WarmFloorExcludedG2Ids = new Set([
+  'G2_D15_SPACE_VARASTO_1F_SRC',
+]);
+
+const isP160WarmFloorReviewSurface = (object: any) => {
+  if (!object?.isMesh) return false;
+  const data = object.userData ?? {};
+  const representationKind = String(data.representationKind ?? '');
+  const g2Id = String(data.G2Id ?? '');
+  if (p160WarmFloorExcludedG2Ids.has(g2Id)) return false;
+  return representationKind === 'referenceFootprint' || representationKind === 'stairHostFootprint';
+};
+
+export const prepareP160WarmFloorReviewPresentation = (interiorSource: any) => {
+  const interiorClone = interiorSource.clone(true);
+  let floorSurfaceCount = 0;
+  let excludedContextCount = 0;
+
+  interiorClone.traverse((object: any) => {
+    if (!object?.isMesh) return;
+    const data = object.userData ?? {};
+    const representationKind = String(data.representationKind ?? '');
+    const g2Id = String(data.G2Id ?? '');
+    const isFloorContext =
+      representationKind === 'referenceFootprint' || representationKind === 'stairHostFootprint';
+
+    if (isFloorContext && p160WarmFloorExcludedG2Ids.has(g2Id)) {
+      excludedContextCount += 1;
+      return;
+    }
+    if (!isP160WarmFloorReviewSurface(object)) return;
+
+    cloneObjectMaterials(object, (material) => {
+      material.opacity = p160WarmFloorReviewOpacity;
+      material.transparent = true;
+      material.depthWrite = true;
+      material.userData = {
+        ...(material.userData ?? {}),
+        p160WarmFloorViewerPresentation: true,
+        p160PresentationRole: 'WARM_FLOOR_REVIEW_SURFACE',
+      };
+      material.needsUpdate = true;
+    });
+    object.userData = {
+      ...(object.userData ?? {}),
+      viewerDerived: true,
+      p160WarmFloorReviewSurface: true,
+      physicalFloorClaim: false,
+      asBuiltClaim: false,
+    };
+    floorSurfaceCount += 1;
+  });
+
+  return {
+    interiorClone,
+    floorSurfaceCount,
+    excludedContextCount,
+  };
 };
 
 const isRedundantOverviewContext = (object: any) => {
