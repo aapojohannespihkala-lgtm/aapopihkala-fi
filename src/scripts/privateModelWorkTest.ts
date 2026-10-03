@@ -62,6 +62,9 @@ export const p173dReviewId = 'p173d-whole-building-d-wall-hr67-rebase-review';
 export const p174aR2CandidateId = 'p174a-r2-west-gable-termination-correction';
 export const p174aR2ReviewId = 'p174a-r2-west-gable-termination-correction-review';
 
+export const p176aCandidateId = 'p176a-hr6-full-visible-west-gable-termination-correction';
+export const p176aReviewId = 'p176a-hr6-full-visible-west-gable-termination-correction-review';
+
 export const p164bCandidateId = 'p164b-d-corrected-stair';
 export const p164bReviewId = 'p164b-d-corrected-stair-review';
 
@@ -103,6 +106,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p171cReviewId]: p171cCandidateId,
   [p173dReviewId]: p173dCandidateId,
   [p174aR2ReviewId]: p174aR2CandidateId,
+  [p176aReviewId]: p176aCandidateId,
   [p164bReviewId]: p164bCandidateId,
   [p167fReviewId]: p167fCandidateId,
   [p168aReviewId]: p168aCandidateId,
