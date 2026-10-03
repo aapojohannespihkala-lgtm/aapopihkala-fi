@@ -24,8 +24,10 @@ import {
 } from '../../src/scripts/privateModelEdgeVisibility';
 import { computeVisibleBounds } from '../../src/scripts/privateModelVisibleBounds';
 import {
+  p160WarmFloorReviewOpacity,
   p172bDOverviewFloorOpacity,
   p172bDOverviewNeutralWallHex,
+  prepareP160WarmFloorReviewPresentation,
   prepareP171Q1WorkShellPresentation,
   prepareP172bDOverviewPresentation,
 } from '../../src/scripts/privateModelDOverviewPresentation';
@@ -83,6 +85,81 @@ test('private viewer visible bounds helper preserves mesh filtering and optional
   hiddenOnlyMesh.visible = false;
   hiddenOnlyRoot.add(hiddenOnlyMesh);
   expect(computeVisibleBounds(hiddenOnlyRoot)).toBeNull();
+});
+
+test('private viewer P160 warm-floor review presentation increases only heated floor context opacity', () => {
+  const interior = new THREE.Group();
+  interior.name = 'D CURRENT INTERIOR - BABYLON Y-UP';
+
+  const warm1FMaterial = new THREE.MeshBasicMaterial({
+    color: 0x2e9a63,
+    transparent: true,
+    opacity: 0.12,
+  });
+  const warm1F = new THREE.Mesh(new THREE.BoxGeometry(2, 0.02, 2), warm1FMaterial);
+  warm1F.name = 'P117D_REVIEW_WARM_1F';
+  warm1F.userData = {
+    representationKind: 'referenceFootprint',
+    G2Id: 'G2_D15_SPACE_HUONE2_1F_SRC',
+  };
+  interior.add(warm1F);
+
+  const warm2FMaterial = new THREE.MeshBasicMaterial({
+    color: 0x2e9a63,
+    transparent: true,
+    opacity: 0.16,
+  });
+  const warm2F = new THREE.Mesh(new THREE.BoxGeometry(2, 0.02, 2), warm2FMaterial);
+  warm2F.name = 'P123C_CONTEXT_STAIR_2F';
+  warm2F.userData = {
+    representationKind: 'stairHostFootprint',
+    G2Id: 'G2_STAIR_D_2F_HOST_R_POLY',
+  };
+  interior.add(warm2F);
+
+  const storageMaterial = new THREE.MeshBasicMaterial({
+    color: 0x2e9a63,
+    transparent: true,
+    opacity: 0.12,
+  });
+  const storage = new THREE.Mesh(new THREE.BoxGeometry(2, 0.02, 2), storageMaterial);
+  storage.name = 'P117D_REVIEW_STORAGE_1F';
+  storage.userData = {
+    representationKind: 'referenceFootprint',
+    G2Id: 'G2_D15_SPACE_VARASTO_1F_SRC',
+  };
+  interior.add(storage);
+
+  const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xaaaaaa, opacity: 0.8 });
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.1), wallMaterial);
+  wall.name = 'P154C_WALL_CONTEXT';
+  wall.userData = { representationKind: 'wallContext' };
+  interior.add(wall);
+
+  const presentation = prepareP160WarmFloorReviewPresentation(interior);
+  const clonedWarm1F = presentation.interiorClone.getObjectByName(warm1F.name) as any;
+  const clonedWarm2F = presentation.interiorClone.getObjectByName(warm2F.name) as any;
+  const clonedStorage = presentation.interiorClone.getObjectByName(storage.name) as any;
+  const clonedWall = presentation.interiorClone.getObjectByName(wall.name) as any;
+
+  expect(presentation.interiorClone).not.toBe(interior);
+  expect(presentation.floorSurfaceCount).toBe(2);
+  expect(presentation.excludedContextCount).toBe(1);
+  expect(clonedWarm1F.material).not.toBe(warm1FMaterial);
+  expect(clonedWarm2F.material).not.toBe(warm2FMaterial);
+  expect(clonedWarm1F.material.opacity).toBe(p160WarmFloorReviewOpacity);
+  expect(clonedWarm2F.material.opacity).toBe(p160WarmFloorReviewOpacity);
+  expect(clonedWarm1F.material.transparent).toBe(true);
+  expect(clonedWarm1F.material.depthWrite).toBe(true);
+  expect(clonedWarm1F.userData.p160WarmFloorReviewSurface).toBe(true);
+  expect(clonedWarm2F.userData.p160WarmFloorReviewSurface).toBe(true);
+  expect(clonedStorage.material.opacity).toBeCloseTo(0.12);
+  expect(clonedStorage.userData.p160WarmFloorReviewSurface).toBeUndefined();
+  expect(clonedWall.material.opacity).toBeCloseTo(0.8);
+  expect(warm1FMaterial.opacity).toBeCloseTo(0.12);
+  expect(warm2FMaterial.opacity).toBeCloseTo(0.16);
+  expect(storageMaterial.opacity).toBeCloseTo(0.12);
+  expect(wallMaterial.opacity).toBeCloseTo(0.8);
 });
 
 test('private viewer P172B D-overview presentation clone does not mutate source geometry or materials', () => {
