@@ -114,7 +114,6 @@ test('private viewer P172B D-overview presentation clone does not mutate source 
   interior.add(wallB);
 
   const workShell = new THREE.Group();
-  workShell.quaternion.set(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
   const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x949ea8, transparent: true, opacity: 0.22 });
   const floor = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 2), floorMaterial);
   floor.name = 'P167F_CD_2F_WORKSHELL_CLEARANCE_TEST';
@@ -158,6 +157,7 @@ test('private viewer P172B D-overview presentation clone does not mutate source 
 
 test('private viewer P171 Q1 replaces translucent floor volumes with one top-surface-only presentation mesh', () => {
   const workShell = new THREE.Group();
+  workShell.quaternion.set(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
   const floorMaterial = new THREE.MeshBasicMaterial({
     color: 0x949ea8,
     transparent: true,
