@@ -1,5 +1,6 @@
 import { THREE } from './threeRuntime';
 
+// Shared minimum opacity for D review floor surfaces.
 export const dReviewFloorOpacity = 0.45;
 export const p172bDOverviewFloorOpacity = dReviewFloorOpacity;
 export const p172bDOverviewNeutralWallHex = 0xaeb4b8;
