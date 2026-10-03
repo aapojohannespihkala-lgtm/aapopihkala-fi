@@ -487,6 +487,15 @@ const title = 'Private 3D viewer';
       .orientation-axis-y { stroke: #397657; fill: #397657; }
       .orientation-axis-z { stroke: #356a8a; fill: #356a8a; }
 
+      .orientation-axis-tip[data-depth='away-from-view'] {
+        fill: rgba(255, 255, 255, 0.92);
+        stroke-width: 1.8;
+      }
+
+      .orientation-axis-tip[data-end-on='true'] {
+        stroke-width: 2.2;
+      }
+
       .orientation-axis-label,
       .orientation-north-label {
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -1093,18 +1102,18 @@ const title = 'Private 3D viewer';
             <circle class="orientation-origin" cx="46" cy="46" r="2.4"></circle>
             <g>
               <line id="orientation-axis-x" class="orientation-axis orientation-axis-x" x1="46" y1="46" x2="67" y2="46"></line>
-              <circle id="orientation-axis-x-tip" class="orientation-axis-x" cx="67" cy="46" r="2.2"></circle>
+              <circle id="orientation-axis-x-tip" class="orientation-axis-tip orientation-axis-x" cx="67" cy="46" r="2.2"></circle>
               <text id="orientation-axis-x-label" class="orientation-axis-label orientation-axis-label-x" x="76" y="46">X</text>
             </g>
             <g>
               <line id="orientation-axis-y" class="orientation-axis orientation-axis-y" x1="46" y1="46" x2="46" y2="25"></line>
-              <circle id="orientation-axis-y-tip" class="orientation-axis-y" cx="46" cy="25" r="2.2"></circle>
+              <circle id="orientation-axis-y-tip" class="orientation-axis-tip orientation-axis-y" cx="46" cy="25" r="2.2"></circle>
               <text id="orientation-axis-y-label" class="orientation-axis-label orientation-axis-label-y" x="46" y="16">Y</text>
               <text id="orientation-north-label" class="orientation-north-label" x="55" y="16">N</text>
             </g>
             <g>
               <line id="orientation-axis-z" class="orientation-axis orientation-axis-z" x1="46" y1="46" x2="31" y2="61"></line>
-              <circle id="orientation-axis-z-tip" class="orientation-axis-z" cx="31" cy="61" r="2.2"></circle>
+              <circle id="orientation-axis-z-tip" class="orientation-axis-tip orientation-axis-z" cx="31" cy="61" r="2.2"></circle>
               <text id="orientation-axis-z-label" class="orientation-axis-label orientation-axis-label-z" x="24" y="68">Z</text>
             </g>
           </svg>
