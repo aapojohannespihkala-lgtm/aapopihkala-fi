@@ -282,6 +282,8 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
       'p175b-r3-near-building-flatter-terrain',
     'p176a-hr6-full-visible-west-gable-termination-correction-review':
       'p176a-hr6-full-visible-west-gable-termination-correction',
+    'p177b-hr6-direct-d-storage-north-wall-line-corrected-review':
+      'p177b-hr6-direct-d-storage-north-wall-line-corrected',
     'p164b-d-corrected-stair-review': 'p164b-d-corrected-stair',
     'p167f-whole-building-precise-stair-review': 'p167f-whole-building-precise-stair',
     'p168a-whole-building-roof-eave-correction-review': 'p168a-whole-building-roof-eave-correction',
@@ -733,6 +735,96 @@ const makeTriangleGlb = (
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
+
+const makeP177bAlignmentGlb = () => {
+  const positions = Buffer.alloc(48);
+  [
+    0, 10.81, 0,
+    0, 10.81, 2,
+    0, 10.81, 3,
+    0, 10.81, 5,
+  ].forEach((value, index) => positions.writeFloatLE(value, index * 4));
+
+  const json = {
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'P177B HR-6 DIRECT D-STORAGE NORTH WALL LINE CORRECTED - WORK_TEST',
+        nodes: [2],
+        extras: {
+          Pass: 'P177B',
+          successorOfPass: 'P176A',
+          currentClaim: false,
+          asBuiltClaim: false,
+          Canonical: false,
+          publishToCURRENT: false,
+          humanReview: 'CORRECTION_REQUIRED_NOT_PASS',
+        },
+      },
+    ],
+    nodes: [
+      {
+        name: 'P177B_LOWER_D_STORAGE_NORTH_TERMINATION_LINE',
+        mesh: 0,
+        extras: { reviewRole: 'LOWER_D_STORAGE_NORTH_TERMINATION', targetNorthY: 10.81 },
+      },
+      {
+        name: 'P177B_UPPER_2F_NORTH_REFERENCE_LINE',
+        mesh: 1,
+        extras: { reviewRole: 'UPPER_2F_NORTH_REFERENCE', targetNorthY: 10.81 },
+      },
+      {
+        name: 'P177B_YLIS_G1_LOCAL_ROOT',
+        children: [0, 1],
+        rotation: [-0.7071067811865476, 0, 0, 0.7071067811865476],
+      },
+    ],
+    meshes: [
+      { name: 'P177B_LOWER_LINE_MESH', primitives: [{ attributes: { POSITION: 0 }, mode: 1 }] },
+      { name: 'P177B_UPPER_LINE_MESH', primitives: [{ attributes: { POSITION: 1 }, mode: 1 }] },
+    ],
+    buffers: [{ byteLength: positions.length }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: 24, target: 34962 },
+      { buffer: 0, byteOffset: 24, byteLength: 24, target: 34962 },
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 2,
+        type: 'VEC3',
+        min: [0, 10.81, 0],
+        max: [0, 10.81, 2],
+      },
+      {
+        bufferView: 1,
+        componentType: 5126,
+        count: 2,
+        type: 'VEC3',
+        min: [0, 10.81, 3],
+        max: [0, 10.81, 5],
+      },
+    ],
+  };
+
+  const jsonBuffer = Buffer.from(JSON.stringify(json), 'utf8');
+  const jsonPadding = (4 - (jsonBuffer.length % 4)) % 4;
+  const jsonChunk = Buffer.concat([jsonBuffer, Buffer.alloc(jsonPadding, 0x20)]);
+  const binChunk = positions;
+  const header = Buffer.alloc(12);
+  header.write('glTF', 0, 'ascii');
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + jsonChunk.length + 8 + binChunk.length, 8);
+  const jsonHeader = Buffer.alloc(8);
+  jsonHeader.writeUInt32LE(jsonChunk.length, 0);
+  jsonHeader.writeUInt32LE(0x4e4f534a, 4);
+  const binHeader = Buffer.alloc(8);
+  binHeader.writeUInt32LE(binChunk.length, 0);
+  binHeader.writeUInt32LE(0x004e4942, 4);
+  return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
+};
 
 const makeP143dTerrainGlb = () => {
   const positions = Buffer.alloc(48);
@@ -4643,6 +4735,70 @@ test('private viewer autoloads exact P176A HR-6 full visible west-gable terminat
   await expect(page.getByRole('status')).toHaveText(
     'P176A HR-6 full visible west-gable termination correction - WORK_TEST / 4 visible carriers to north termination 10.810 m / HUMAN_REVIEW CORRECTION_REQUIRED',
   );
+});
+
+test('P177B +X support regression loads geometry-bearing aligned north lines', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+  const candidateModel = makeP177bAlignmentGlb();
+  const jsonChunkLength = candidateModel.readUInt32LE(12);
+  const binStart = 20 + jsonChunkLength + 8;
+  const fixtureNorthYs = [1, 4, 7, 10].map((floatIndex) =>
+    candidateModel.readFloatLE(binStart + floatIndex * 4),
+  );
+  for (const northY of fixtureNorthYs) {
+    expect(Math.abs(northY - 10.81)).toBeLessThanOrEqual(0.00001);
+  }
+
+  const candidateId = 'p177b-hr6-direct-d-storage-north-wall-line-corrected';
+  const candidateLabel = 'P177B HR-6 direct D-storage north wall-line correction - WORK_TEST';
+  const candidatePath =
+    '/private-model/work-test/p177b-hr6-direct-d-storage-north-wall-line-corrected.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto(
+    '/private-model/?review=p177b-hr6-direct-d-storage-north-wall-line-corrected-review',
+  );
+  await expect(page.locator('#work-test-select')).toHaveValue(candidateId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-candidate', candidateId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(canvas).toHaveAttribute(
+    'data-work-test-review-mode',
+    'p177b-hr6-direct-d-storage-north-wall-line-corrected-review',
+  );
+  await expect(canvas).toHaveAttribute('data-p177-source-reference-north-y', '10.544');
+  await expect(canvas).toHaveAttribute('data-p177-target-north-y', '10.810');
+  await expect(canvas).toHaveAttribute('data-p177-upper-reference-node', '682');
+  await expect(page.locator('#model-source-badge')).toHaveText(`WORK_TEST: ${candidateLabel}`);
+  await expect(page.getByRole('status')).toHaveText(
+    'P177B HR-6 direct D-storage north wall-line correction - WORK_TEST / lower + upper north line 10.810 m / HUMAN_REVIEW CORRECTION_REQUIRED',
+  );
+
+  await clickViewAction(page, 'Julk +X');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
+  await expect(canvas).toHaveAttribute('data-elevation-direction', 'pos-x');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
 });
 
 test('private viewer autoloads the exact P164B D corrected stair review candidate', async ({ page }) => {
