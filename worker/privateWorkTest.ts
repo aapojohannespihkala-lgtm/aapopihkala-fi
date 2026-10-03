@@ -248,6 +248,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_155_224,
     expectedSha256: '37317206852db2adc95af4726e028a7297f6f42cd1552794e067093ba6fa2ca1',
   },
+  // P178D viewer/review integration: exact P178B D stair guard/lowWall visible junction closure successor.
+  {
+    id: 'p178b-d-stair-guard-lowwall-junction-closure',
+    label: 'P178B D stair guard/lowWall visible junction closure - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p178b-d-stair-guard-lowwall-junction-closure.glb`,
+    objectKey: 'work-test/p178b-d-stair-guard-lowwall-junction-closure.glb',
+    expectedSize: 2_165_344,
+    expectedSha256: 'a60111c6f0bc25d56e00c446cf2088b96e96f4f87051233abd8c2f23a248ef9b',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
