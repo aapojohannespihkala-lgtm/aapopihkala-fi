@@ -1166,6 +1166,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelEdgeVisibility';
       import { computeVisibleBounds } from '../../scripts/privateModelVisibleBounds';
       import {
+        p160WarmFloorContextOpacity,
         p160WarmFloorReviewOpacity,
         p172bDOverviewFloorOpacity,
         prepareP160WarmFloorReviewPresentation,
@@ -3522,8 +3523,9 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p172bDOverviewFloorOpacity;
         delete canvas.dataset.p160WarmFloorReviewPresentation;
         delete canvas.dataset.p160WarmFloorReviewSurfaceCount;
-        delete canvas.dataset.p160WarmFloorReviewExcludedContextCount;
+        delete canvas.dataset.p160WarmFloorReviewContextRenderableCount;
         delete canvas.dataset.p160WarmFloorReviewOpacity;
+        delete canvas.dataset.p160WarmFloorReviewContextOpacity;
         delete canvas.dataset.p171Q1ReviewVisibility;
         delete canvas.dataset.p171Q1ReviewView;
         delete canvas.dataset.p171Q1FloorShellContext;
@@ -3543,10 +3545,13 @@ const title = 'Private 3D viewer';
           const presentation = prepareP160WarmFloorReviewPresentation(dInteriorScene);
           canvas.dataset.p160WarmFloorReviewPresentation = 'true';
           canvas.dataset.p160WarmFloorReviewSurfaceCount = String(presentation.floorSurfaceCount);
-          canvas.dataset.p160WarmFloorReviewExcludedContextCount = String(
-            presentation.excludedContextCount,
+          canvas.dataset.p160WarmFloorReviewContextRenderableCount = String(
+            presentation.contextRenderableCount,
           );
           canvas.dataset.p160WarmFloorReviewOpacity = String(p160WarmFloorReviewOpacity);
+          canvas.dataset.p160WarmFloorReviewContextOpacity = String(
+            p160WarmFloorContextOpacity,
+          );
           return presentation.interiorClone;
         }
 

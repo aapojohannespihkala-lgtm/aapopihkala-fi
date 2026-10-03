@@ -2,7 +2,8 @@ import { THREE } from './threeRuntime';
 
 export const p172bDOverviewFloorOpacity = 0.45;
 export const p172bDOverviewNeutralWallHex = 0xaeb4b8;
-export const p160WarmFloorReviewOpacity = 0.72;
+export const p160WarmFloorReviewOpacity = 0.8;
+export const p160WarmFloorContextOpacity = 0.2;
 
 const hasOwn = (value: unknown, key: string) =>
   Boolean(value && Object.prototype.hasOwnProperty.call(value, key));
@@ -19,63 +20,66 @@ const cloneObjectMaterials = (object: any, update: (material: any) => void) => {
   else if (object.material) object.material = cloneOne(object.material);
 };
 
-const p160WarmFloorExcludedG2Ids = new Set([
-  'G2_D15_SPACE_VARASTO_1F_SRC',
-]);
-
 const isP160WarmFloorReviewSurface = (object: any) => {
   if (!object?.isMesh) return false;
-  const data = object.userData ?? {};
-  const representationKind = String(data.representationKind ?? '');
-  const g2Id = String(data.G2Id ?? '');
-  if (p160WarmFloorExcludedG2Ids.has(g2Id)) return false;
+  const representationKind = String(object?.userData?.representationKind ?? '');
   return representationKind === 'referenceFootprint' || representationKind === 'stairHostFootprint';
 };
+
+const isP160WarmFloorReviewRenderable = (object: any) =>
+  Boolean(
+    object?.material &&
+      (object?.isMesh || object?.isLine || object?.isLineSegments || object?.isPoints),
+  );
 
 export const prepareP160WarmFloorReviewPresentation = (interiorSource: any) => {
   const interiorClone = interiorSource.clone(true);
   let floorSurfaceCount = 0;
-  let excludedContextCount = 0;
+  let contextRenderableCount = 0;
 
   interiorClone.traverse((object: any) => {
-    if (!object?.isMesh) return;
-    const data = object.userData ?? {};
-    const representationKind = String(data.representationKind ?? '');
-    const g2Id = String(data.G2Id ?? '');
-    const isFloorContext =
-      representationKind === 'referenceFootprint' || representationKind === 'stairHostFootprint';
-
-    if (isFloorContext && p160WarmFloorExcludedG2Ids.has(g2Id)) {
-      excludedContextCount += 1;
-      return;
-    }
-    if (!isP160WarmFloorReviewSurface(object)) return;
+    if (!isP160WarmFloorReviewRenderable(object)) return;
+    const floorSurface = isP160WarmFloorReviewSurface(object);
+    const opacity = floorSurface
+      ? p160WarmFloorReviewOpacity
+      : p160WarmFloorContextOpacity;
 
     cloneObjectMaterials(object, (material) => {
-      material.opacity = p160WarmFloorReviewOpacity;
+      material.opacity = opacity;
       material.transparent = true;
-      material.depthWrite = true;
+      material.depthWrite = floorSurface;
       material.userData = {
         ...(material.userData ?? {}),
         p160WarmFloorViewerPresentation: true,
-        p160PresentationRole: 'WARM_FLOOR_REVIEW_SURFACE',
+        p160PresentationRole: floorSurface
+          ? 'FLOOR_REVIEW_SURFACE_80'
+          : 'CONTEXT_REVIEW_GEOMETRY_20',
       };
       material.needsUpdate = true;
     });
+
     object.userData = {
       ...(object.userData ?? {}),
       viewerDerived: true,
-      p160WarmFloorReviewSurface: true,
-      physicalFloorClaim: false,
-      asBuiltClaim: false,
+      ...(floorSurface
+        ? {
+            p160WarmFloorReviewSurface: true,
+            physicalFloorClaim: false,
+            asBuiltClaim: false,
+          }
+        : {
+            p160WarmFloorReviewContext: true,
+          }),
     };
-    floorSurfaceCount += 1;
+
+    if (floorSurface) floorSurfaceCount += 1;
+    else contextRenderableCount += 1;
   });
 
   return {
     interiorClone,
     floorSurfaceCount,
-    excludedContextCount,
+    contextRenderableCount,
   };
 };
 
