@@ -221,7 +221,16 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_130_116,
     expectedSha256: '7a44320e649ac0d6611a3124ba62fce5e4848c0266d4ad10da4220cd06ac7e20',
   },
-  // P176C viewer/review integration: exact P176A full-visible west-gable carrier correction successor.
+  // P175D viewer/review integration: exact persisted P175B-R3 near-building terrain refinement successor.
+  {
+    id: 'p175b-r3-near-building-flatter-terrain',
+    label: 'P175B-R3 near-building flatter terrain - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p175b-r3-near-building-flatter-terrain.glb`,
+    objectKey: 'work-test/p175b-r3-near-building-flatter-terrain.glb',
+    expectedSize: 2_307_636,
+    expectedSha256: 'a70dfac3b0f21011f042d0112d9d5283c450e863bd2dbdb8776bfec902c92b60',
+  },
+    // P176C viewer/review integration: exact P176A full-visible west-gable carrier correction successor.
   {
     id: 'p176a-hr6-full-visible-west-gable-termination-correction',
     label: 'P176A HR-6 full visible west-gable termination correction - WORK_TEST',
