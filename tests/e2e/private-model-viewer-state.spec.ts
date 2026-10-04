@@ -4,6 +4,9 @@ import {
   isViewerLayerNodeEffectivelyVisible,
   setViewerLayerNodeVisible,
   setViewerRoofOpacity,
+  viewerArchitecturalParentVisibilityState,
+  viewerArchitecturalRootChildNodeIds,
+  viewerArchitecturalWallChildNodeIds,
   viewerLayerNodeCapabilities,
   viewerLocusParentVisibilityState,
   viewerLocusRouteChildNodeIds,
@@ -23,6 +26,15 @@ const expectedDefaultChildren = {
   p161KvvVisible: true,
   p161IvPlanVisible: true,
   p161IvSectionVisible: true,
+  architectureVisible: true,
+  architectureWallsVisible: true,
+  architectureExteriorWallsVisible: true,
+  architecturePartyWallsVisible: true,
+  architectureInteriorWallsVisible: true,
+  architectureDoorsVisible: true,
+  architectureWindowsVisible: true,
+  architectureReviewHelpersVisible: true,
+  architectureOtherVisible: true,
 };
 
 test('VUX-E1A research presets install curated starting state', () => {
@@ -151,12 +163,29 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
     'p161-kvv-2017',
     'p161-iv-1974-plan',
     'p161-iv-1974-section',
+    'architecture',
+    'architecture-walls',
+    'architecture-walls-exterior',
+    'architecture-walls-party',
+    'architecture-walls-interior',
+    'architecture-doors',
+    'architecture-windows',
+    'architecture-review-helpers',
+    'architecture-other',
   ]);
   expect(viewerLayerNodeCapabilities.roof).toEqual({
     parent: null,
     visibility: true,
     opacity: true,
   });
+  expect(viewerLayerNodeCapabilities['architecture-walls']).toEqual({
+    parent: 'architecture',
+    visibility: true,
+    opacity: false,
+  });
+  expect(viewerLayerNodeCapabilities['architecture-walls-exterior'].parent).toBe(
+    'architecture-walls',
+  );
   for (const nodeId of [
     'locus',
     'locus-water',
@@ -164,6 +193,15 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
     'p161-kvv-2017',
     'p161-iv-1974-plan',
     'p161-iv-1974-section',
+    'architecture',
+    'architecture-walls',
+    'architecture-walls-exterior',
+    'architecture-walls-party',
+    'architecture-walls-interior',
+    'architecture-doors',
+    'architecture-windows',
+    'architecture-review-helpers',
+    'architecture-other',
   ] as const) {
     expect(viewerLayerNodeCapabilities[nodeId].opacity).toBe(false);
   }
@@ -199,6 +237,78 @@ test('VUX-E3B parent visibility suppresses children without destroying child pre
   expect(isViewerLayerNodeEffectivelyVisible(parentOn, 'locus-wastewater')).toBe(true);
   expect(isViewerLayerNodeEffectivelyVisible(parentOn, 'p161-iv-1974-plan')).toBe(false);
   expect(isViewerLayerNodeEffectivelyVisible(parentOn, 'p161-kvv-2017')).toBe(true);
+});
+
+test('VUX architectural hierarchy preserves parent gating and child preferences', () => {
+  let layers = createViewerInteractionState('whole-building').layers;
+
+  layers = setViewerLayerNodeVisible(layers, 'architecture-walls-party', false);
+  layers = setViewerLayerNodeVisible(layers, 'architecture-review-helpers', false);
+
+  expect(
+    viewerArchitecturalParentVisibilityState(
+      layers,
+      'architecture-walls',
+      viewerArchitecturalWallChildNodeIds,
+    ),
+  ).toBe('mixed');
+  expect(
+    viewerArchitecturalParentVisibilityState(
+      layers,
+      'architecture',
+      viewerArchitecturalRootChildNodeIds,
+    ),
+  ).toBe('mixed');
+  expect(
+    isViewerLayerNodeEffectivelyVisible(layers, 'architecture-walls-exterior'),
+  ).toBe(true);
+  expect(
+    isViewerLayerNodeEffectivelyVisible(layers, 'architecture-walls-party'),
+  ).toBe(false);
+
+  const wallsOff = setViewerLayerNodeVisible(layers, 'architecture-walls', false);
+  expect(
+    viewerArchitecturalParentVisibilityState(
+      wallsOff,
+      'architecture-walls',
+      viewerArchitecturalWallChildNodeIds,
+    ),
+  ).toBe('off');
+  expect(
+    isViewerLayerNodeEffectivelyVisible(wallsOff, 'architecture-walls-exterior'),
+  ).toBe(false);
+  expect(wallsOff.architectureExteriorWallsVisible).toBe(true);
+  expect(wallsOff.architecturePartyWallsVisible).toBe(false);
+
+  const wallsOn = setViewerLayerNodeVisible(
+    wallsOff,
+    'architecture-walls',
+    true,
+  );
+  expect(
+    isViewerLayerNodeEffectivelyVisible(wallsOn, 'architecture-walls-exterior'),
+  ).toBe(true);
+  expect(
+    isViewerLayerNodeEffectivelyVisible(wallsOn, 'architecture-walls-party'),
+  ).toBe(false);
+
+  const architectureOff = setViewerLayerNodeVisible(
+    wallsOn,
+    'architecture',
+    false,
+  );
+  expect(
+    viewerArchitecturalParentVisibilityState(
+      architectureOff,
+      'architecture',
+      viewerArchitecturalRootChildNodeIds,
+    ),
+  ).toBe('off');
+  expect(
+    isViewerLayerNodeEffectivelyVisible(architectureOff, 'architecture-doors'),
+  ).toBe(false);
+  expect(architectureOff.architectureDoorsVisible).toBe(true);
+  expect(architectureOff.architectureReviewHelpersVisible).toBe(false);
 });
 
 test('VUX-E3B camera changes preserve manual hierarchy and opacity state', () => {
