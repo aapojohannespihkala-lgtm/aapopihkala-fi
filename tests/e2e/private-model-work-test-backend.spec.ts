@@ -66,6 +66,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
   expect(isPrivateWorkTestPath('/private-model/work-test/p177b-hr6-direct-d-storage-north-wall-line-corrected.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p178b-d-stair-guard-lowwall-junction-closure.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase.glb')).toBe(true);
+  expect(isPrivateWorkTestPath('/private-model/work-test/p184d-whole-building-survivor-island-x-source-chain.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p164b-d-corrected-stair.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p167f-whole-building-precise-stair.glb')).toBe(true);
   expect(isPrivateWorkTestPath('/private-model/work-test/p168a-whole-building-roof-eave-correction.glb')).toBe(true);
@@ -80,7 +81,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(37);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(38);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -328,6 +329,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     objectKey: 'work-test/p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase.glb',
     expectedSize: 2_861_664,
     expectedSha256: '3cddee192ae2af0d85bb650482aaa1596dfd883e5f0b3d25c42c4b451b3e6239',
+  });
+
+  const p184d = getPrivateWorkTestCandidateById('p184d-whole-building-survivor-island-x-source-chain');
+  expect(p184d).toMatchObject({
+    id: 'p184d-whole-building-survivor-island-x-source-chain',
+    label: 'P184D whole-building survivor island source-chain-X correction - WORK_TEST',
+    path: '/private-model/work-test/p184d-whole-building-survivor-island-x-source-chain.glb',
+    objectKey: 'work-test/p184d-whole-building-survivor-island-x-source-chain.glb',
+    expectedSize: 2_878_416,
+    expectedSha256: '3544b069f1cc059af1e4fa219e8aefb909153515efd00cd9ce589178d4a07522',
   });
 
   const p164b = getPrivateWorkTestCandidateById('p164b-d-corrected-stair');
