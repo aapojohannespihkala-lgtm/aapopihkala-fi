@@ -360,9 +360,21 @@ type PrivateWorkTestStoredObject = PrivateWorkTestObjectMetadata & {
   body: ReadableStream<Uint8Array> | null;
 };
 
+type PrivateWorkTestListResult = {
+  objects: Array<PrivateWorkTestObjectMetadata & { key: string }>;
+  truncated: boolean;
+  cursor?: string;
+};
+
 type PrivateWorkTestBucket = {
   get(key: string): Promise<PrivateWorkTestStoredObject | null>;
   head?(key: string): Promise<PrivateWorkTestObjectMetadata | null>;
+  list?(options?: {
+    prefix?: string;
+    cursor?: string;
+    limit?: number;
+    include?: string[];
+  }): Promise<PrivateWorkTestListResult>;
   put(
     key: string,
     value: ArrayBuffer,
@@ -793,14 +805,42 @@ const privateWorkTestCatalogObject = async (
   return object;
 };
 
+const privateWorkTestCatalogListedObjects = async (
+  bucket: PrivateWorkTestBucket,
+): Promise<Map<string, PrivateWorkTestObjectMetadata> | null> => {
+  if (!bucket.list) return null;
+
+  const objects = new Map<string, PrivateWorkTestObjectMetadata>();
+  let cursor: string | undefined;
+
+  while (true) {
+    const page = await bucket.list({
+      prefix: 'work-test/',
+      limit: 1000,
+      include: ['customMetadata'],
+      ...(cursor ? { cursor } : {}),
+    });
+
+    for (const object of page.objects) objects.set(object.key, object);
+
+    if (!page.truncated || !page.cursor) break;
+    cursor = page.cursor;
+  }
+
+  return objects;
+};
+
 const privateWorkTestCatalogResponse = async (
   request: Request,
   bucket: PrivateWorkTestBucket,
 ): Promise<Response> => {
   const candidates = [];
+  const listedObjects = await privateWorkTestCatalogListedObjects(bucket);
 
   for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
-    const object = await privateWorkTestCatalogObject(bucket, candidate.objectKey);
+    const object = listedObjects
+      ? listedObjects.get(candidate.objectKey) ?? null
+      : await privateWorkTestCatalogObject(bucket, candidate.objectKey);
     if (!object || !isPrivateWorkTestObjectValid(object, candidate)) continue;
 
     candidates.push({
