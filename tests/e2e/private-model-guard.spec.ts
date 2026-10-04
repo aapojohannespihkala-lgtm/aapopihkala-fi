@@ -6408,6 +6408,55 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
 });
 
 
+test('private viewer keeps dark YLIS-G1-LOCAL orientation and north direction visible across camera modes', async ({ page }) => {
+  const currentModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
+    nodes: [],
+  });
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.goto('/private-model/');
+
+  const gizmo = page.locator('#orientation-gizmo');
+  const canvas = page.locator('#private-model-canvas');
+
+  await expect(gizmo).toBeVisible();
+  await expect(gizmo).toHaveAttribute('data-frame', 'YLIS-G1-LOCAL');
+  await expect(gizmo).toHaveAttribute('data-north-axis', '+Y');
+  await expect(gizmo).toHaveAttribute('data-ready', 'true');
+  await expect(gizmo).toHaveAttribute('data-camera-projection', 'perspective');
+  await expect(gizmo).toContainText('X itä · Y pohjoinen · Z ylös');
+  await expect(page.locator('#orientation-north-label')).toHaveText('N');
+  await expect(gizmo).toHaveCSS('pointer-events', 'none');
+  await expect(gizmo).toHaveCSS('background-color', 'rgba(27, 36, 45, 0.92)');
+  await expect(gizmo).toHaveCSS('box-shadow', 'none');
+
+  await clickViewAction(page, 'Isometrinen');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(gizmo).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(gizmo).toHaveAttribute('data-ready', 'true');
+
+  const gizmoBox = await gizmo.boundingBox();
+  const viewportBox = await page.locator('.viewport').boundingBox();
+  expect(gizmoBox).not.toBeNull();
+  expect(viewportBox).not.toBeNull();
+  if (gizmoBox && viewportBox) {
+    expect(gizmoBox.x).toBeGreaterThanOrEqual(viewportBox.x);
+    expect(gizmoBox.y).toBeGreaterThanOrEqual(viewportBox.y);
+    expect(gizmoBox.x + gizmoBox.width).toBeLessThanOrEqual(viewportBox.x + viewportBox.width + 1);
+    expect(gizmoBox.y + gizmoBox.height).toBeLessThanOrEqual(viewportBox.y + viewportBox.height + 1);
+  }
+});
+
+
 test('private viewer compares CURRENT and WORK_TEST in the same preserved view', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },
