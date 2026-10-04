@@ -7,6 +7,7 @@ type SelectionPickingRect = {
 
 type SelectionPickingCanvas = {
   getBoundingClientRect: () => SelectionPickingRect;
+  dataset?: DOMStringMap;
 };
 
 type SelectionPickingPointer = {
@@ -46,6 +47,8 @@ export const pickSelectableObjectAtClientPoint = ({
   isEffectivelyVisible,
   hasVisibleMaterial,
 }: PickSelectableObjectOptions) => {
+  if (canvas.dataset?.interactionMode !== 'select') return null;
+
   const rect = canvas.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return null;
 
