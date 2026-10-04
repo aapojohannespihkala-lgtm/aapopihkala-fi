@@ -916,6 +916,164 @@ const title = 'Private 3D viewer';
           text-align: left;
         }
       }
+
+      /* VUX-C1 branch-only dark surface foundation. Keep interaction semantics unchanged. */
+      :root {
+        color-scheme: dark;
+        --viewer-page: #202a34;
+        --viewer-bar: #1b242d;
+        --viewer-ink: #f1f4f5;
+        --viewer-ink-soft: #e1e7ea;
+        --viewer-stone: #c4cdd2;
+        --viewer-stone-light: #9eabb2;
+        --viewer-moss: #c4d0d5;
+        --viewer-moss-deep: #edf2f4;
+        --viewer-line: #64727c;
+        --viewer-line-soft: #46535d;
+        background: var(--viewer-page);
+        color: var(--viewer-ink);
+      }
+
+      html,
+      body {
+        background: var(--viewer-page);
+        color: var(--viewer-ink);
+      }
+
+      .toolbar {
+        background: var(--viewer-bar);
+        border-color: var(--viewer-line-soft);
+        box-shadow: none;
+      }
+
+      .title {
+        color: var(--viewer-ink);
+        font-family: Georgia, "Times New Roman", serif;
+      }
+
+      .model-source-badge,
+      .toolbar-menu > summary,
+      button,
+      .layer-select select,
+      .profile-controls select {
+        border-color: var(--viewer-line);
+        background: var(--viewer-bar);
+        color: var(--viewer-ink);
+      }
+
+      .model-source-badge,
+      .status,
+      .layer-count,
+      .coordinate-panel,
+      .coordinate-line > span:last-child {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      .model-source-badge,
+      .status {
+        color: var(--viewer-ink-soft);
+      }
+
+      button:hover,
+      .toolbar-menu > summary:hover {
+        border-color: var(--viewer-stone-light);
+      }
+
+      .toolbar-menu > summary:focus-visible {
+        outline-color: rgba(196, 205, 210, 0.48);
+      }
+
+      .toolbar-menu[open] > summary,
+      .toolbar-menu-panel,
+      .layers-panel,
+      .coordinate-panel,
+      .d1-known-door-legend,
+      .profile-panel,
+      .selection-panel {
+        border-color: var(--viewer-line-soft);
+        background: rgba(27, 36, 45, 0.97);
+        color: var(--viewer-ink);
+        box-shadow: none;
+      }
+
+      .toolbar-menu-label,
+      .layer-opacity,
+      .layer-count,
+      .layer-select,
+      .layer-note,
+      .layer-legend,
+      .coordinate-floor,
+      .coordinate-line span,
+      .coordinate-note,
+      .profile-controls label,
+      .profile-note,
+      .selection-grid dt,
+      .selection-metadata > summary,
+      .selection-metadata-list dt {
+        color: var(--viewer-stone-light);
+      }
+
+      .coordinate-line > span:last-child,
+      .profile-summary,
+      .selection-grid dd {
+        color: var(--viewer-ink);
+      }
+
+      .toolbar-menu-separator,
+      .clip-control,
+      .layer-section,
+      .layer-tree-children,
+      .d1-user-door-legend-section,
+      .selection-metadata {
+        border-color: var(--viewer-line-soft);
+      }
+
+      .profile-chart {
+        border-color: var(--viewer-line-soft);
+        background: var(--viewer-page);
+      }
+
+      :global(.profile-grid-line) {
+        stroke: rgba(196, 205, 210, 0.16);
+      }
+
+      :global(.profile-axis-line) {
+        stroke: rgba(225, 231, 234, 0.62);
+      }
+
+      :global(.profile-axis-label),
+      :global(.profile-legend-text) {
+        fill: var(--viewer-ink-soft);
+      }
+
+      .height-scale {
+        color: var(--viewer-ink-soft);
+      }
+
+      .height-scale-title,
+      :global(.height-scale-label) {
+        background: rgba(27, 36, 45, 0.9);
+        color: var(--viewer-ink-soft);
+      }
+
+      :global(.height-scale-guide) {
+        border-top-color: rgba(196, 205, 210, 0.13);
+      }
+
+      :global(.height-scale-guide.zero),
+      :global(.height-scale-tick.zero) {
+        border-top-color: rgba(241, 244, 245, 0.5);
+      }
+
+      :global(.height-scale-tick) {
+        border-top-color: rgba(196, 205, 210, 0.48);
+      }
+
+      .viewport {
+        border-color: var(--viewer-line-soft);
+        background: var(--viewer-page);
+        box-shadow: none;
+      }
     </style>
   </head>
   <body>
@@ -1468,7 +1626,7 @@ const title = 'Private 3D viewer';
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.setClearColor(0xecece8, 1);
+      renderer.setClearColor(0x202a34, 1);
 
       const scene = new THREE.Scene();
       const selectionHighlightController = createSelectionHighlightController({
