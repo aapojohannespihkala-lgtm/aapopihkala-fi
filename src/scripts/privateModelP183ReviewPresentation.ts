@@ -3,6 +3,16 @@ import { THREE } from './threeRuntime';
 export const p183P160ClosureTargetOpacity = 0.8;
 export const p183P160ClosureContextOpacity = 0.2;
 
+export const p183P178bIntegrationRootName =
+  'P178B_D_PRECISE_STAIR_CONTEXT_WITH_GUARD_LOWWALL_CLOSURE_WORK_TEST';
+export const p183LegacyIntegrationRootName =
+  'P167F_D_PRECISE_STAIR_REBASE_INTEGRATION_ROOT_WORK_TEST';
+
+export const resolveP183P160ClosureIntegrationRoot = (fullSceneSource: any) =>
+  fullSceneSource?.getObjectByName?.(p183P178bIntegrationRootName) ??
+  fullSceneSource?.getObjectByName?.(p183LegacyIntegrationRootName) ??
+  null;
+
 const isRenderable = (object: any) =>
   Boolean(
     object?.material &&
