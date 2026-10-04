@@ -2,6 +2,9 @@ import { THREE } from './threeRuntime';
 
 export const p183P160ClosureTargetOpacity = 0.8;
 export const p183P160ClosureContextOpacity = 0.2;
+export const p183ContextRenderOrderBase = 100_000;
+export const p183TargetSupportRenderOrderBase = 1_000_000;
+export const p183TargetPrimaryRenderOrderBase = 2_000_000;
 
 export const p183P178bIntegrationRootName =
   'P178B_D_PRECISE_STAIR_CONTEXT_WITH_GUARD_LOWWALL_CLOSURE_WORK_TEST';
@@ -36,6 +39,12 @@ const renderableIdentity = (object: any) => {
   return name || null;
 };
 
+const topLevelChildUnder = (object: any, root: any) => {
+  let current = object;
+  while (current?.parent && current.parent !== root) current = current.parent;
+  return current?.parent === root ? current : null;
+};
+
 export const prepareP183P160ClosureReviewPresentation = (
   fullSceneSource: any,
   dArchitectureSource: any,
@@ -53,6 +62,10 @@ export const prepareP183P160ClosureReviewPresentation = (
   }
 
   const targetIdentities = new Set<string>();
+  const structuredTargetChildren = targetScene.children.filter((child: any) => !isRenderable(child));
+  const primaryTargetRoot = structuredTargetChildren[0] ?? targetScene;
+  let targetPrimaryRenderOrderIndex = 0;
+  let targetSupportRenderOrderIndex = 0;
   let targetRenderableCount = 0;
   targetScene.traverse((object: any) => {
     if (!isRenderable(object)) return;
@@ -71,17 +84,26 @@ export const prepareP183P160ClosureReviewPresentation = (
       };
       material.needsUpdate = true;
     });
-    object.renderOrder = Math.max(Number(object.renderOrder) || 0, 20);
+    const topLevelTargetChild = topLevelChildUnder(object, targetScene);
+    const isPrimaryDInterior =
+      primaryTargetRoot === targetScene || topLevelTargetChild === primaryTargetRoot;
+    const stableRenderOrder = isPrimaryDInterior
+      ? p183TargetPrimaryRenderOrderBase + targetPrimaryRenderOrderIndex++
+      : p183TargetSupportRenderOrderBase + targetSupportRenderOrderIndex++;
+    object.renderOrder = stableRenderOrder;
     object.userData = {
       ...(object.userData ?? {}),
       viewerDerived: true,
       p183P160ClosurePresentation: true,
       p183ReviewRole: 'D_ARCHITECTURE_TARGET_80',
+      p183RenderBand: isPrimaryDInterior ? 'D_INTERIOR_PRIMARY' : 'TARGET_SUPPORT',
+      p183StableRenderOrder: stableRenderOrder,
     };
     targetRenderableCount += 1;
   });
 
   let contextRenderableCount = 0;
+  let contextRenderOrderIndex = 0;
   let suppressedDuplicateContextCount = 0;
   contextScene.traverse((object: any) => {
     if (!isRenderable(object)) return;
@@ -109,12 +131,15 @@ export const prepareP183P160ClosureReviewPresentation = (
       };
       material.needsUpdate = true;
     });
-    object.renderOrder = 0;
+    const stableRenderOrder = p183ContextRenderOrderBase + contextRenderOrderIndex++;
+    object.renderOrder = stableRenderOrder;
     object.userData = {
       ...(object.userData ?? {}),
       viewerDerived: true,
       p183P160ClosurePresentation: true,
       p183ReviewRole: 'BUILDING_TERRAIN_CONTEXT_20',
+      p183RenderBand: 'BUILDING_TERRAIN_CONTEXT',
+      p183StableRenderOrder: stableRenderOrder,
     };
     contextRenderableCount += 1;
   });
