@@ -10,6 +10,7 @@ import {
   p183LegacyIntegrationRootName,
   p183P160ClosureContextOpacity,
   p183PhysicalWallRenderOrder,
+  isP183WallOcclusionSurface,
   p183P160ClosureTargetOpacity,
   p183TargetPrimaryRenderOrderBase,
   p183TargetSupportRenderOrderBase,
@@ -100,106 +101,99 @@ test('P183 P160 closure review presents D architecture at 80 percent and unique 
 });
 
 
-test('P183 semantic walls keep review opacity without forcing wall classes into render-order bands', () => {
+test('P183 wall occlusion uses explicit metadata and never color or raw mesh names', () => {
   const fullScene = new THREE.Group();
   const dScene = new THREE.Group();
 
-  const makeWall = (
+  const makeMesh = (
     name: string,
-    g2Id: string,
     color: number,
-    x: number,
+    userData: Record<string, unknown>,
   ) => {
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(1, 2, 0.2),
       new THREE.MeshBasicMaterial({ color }),
     );
     mesh.name = name;
-    mesh.position.x = x;
-    mesh.userData = { G2Id: g2Id };
+    mesh.userData = userData;
     return mesh;
   };
 
-  const exteriorContext = makeWall(
-    'BLUE_SHELL_CONTEXT',
-    'G2_WALL_EXT_W_1F2F_001',
-    0x2277aa,
-    0,
-  );
-  exteriorContext.position.z = -2;
-  fullScene.add(exteriorContext);
+  const blueShell = makeMesh('BLUE_SHELL_CONTEXT', 0x2277aa, {
+    wallClass: 'gableEnvelope',
+    representationKind: 'wallThicknessSolid',
+    physicalThicknessClaim: true,
+  });
+  blueShell.position.z = -2;
+  fullScene.add(blueShell);
+
+  const greenHelper = makeMesh('GREEN_TRANSPARENT_HELPER', 0x00aa44, {
+    PresentationOnly: true,
+    Pass: '123C',
+    sourceP122BNode: 432,
+  });
+  greenHelper.position.z = 1;
+  fullScene.add(greenHelper);
+
+  const unknownGreen = makeMesh('G2_WALL_INT_NAME_ONLY', 0x00ff2e, {});
+  unknownGreen.position.z = 3;
+  fullScene.add(unknownGreen);
 
   const primaryRoot = new THREE.Group();
   primaryRoot.name = 'D_INTERIOR_PRIMARY_ROOT';
   const supportRoot = new THREE.Group();
   supportRoot.name = 'P183_SUPPORT_ROOT';
 
-  const interiorWall = makeWall(
-    'GREEN_INTERIOR_WALL',
-    'G2_WALL_INT_D_1F_TEST_001',
-    0x00aa44,
-    0,
-  );
-  interiorWall.position.z = 2;
-  const partyWall = makeWall(
-    'BLUE_PARTY_WALL',
-    'G2_WALL_PART_CD_1F_TEST_001',
-    0x2277aa,
-    0,
-  );
-  const stairSupport = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshBasicMaterial({ color: 0xccaa22 }),
-  );
-  stairSupport.name = 'STAIR_SUPPORT';
+  const hostWall = makeMesh('D1F_HOST_WORK_ENVELOPE', 0x8855aa, {
+    coveringHostIds: ['I04'],
+    openingTreatment: 'P154C_WORK_TEST_CUTOUT_APPLIED',
+  });
+  const semanticLowWall = makeMesh('R210_LOWWALL', 0xccaa33, {
+    G2Id: 'G2_WALL_INT_D_2F_TEST_001',
+  });
+  const stairSupport = makeMesh('STAIR_SUPPORT', 0xccaa22, {
+    representationKind: 'guardWorkEnvelopeClosure',
+  });
 
-  primaryRoot.add(interiorWall);
-  supportRoot.add(partyWall, stairSupport);
+  primaryRoot.add(hostWall);
+  supportRoot.add(semanticLowWall, stairSupport);
   dScene.add(primaryRoot, supportRoot);
 
   const presentation = prepareP183P160ClosureReviewPresentation(fullScene, dScene);
-  const contextClone = presentation.composite!.children[0].getObjectByName(
-    'BLUE_SHELL_CONTEXT',
-  ) as any;
+  const contextCloneRoot = presentation.composite!.children[0];
   const targetCloneRoot = presentation.composite!.children[1];
-  const interiorClone = targetCloneRoot.getObjectByName('GREEN_INTERIOR_WALL') as any;
-  const partyClone = targetCloneRoot.getObjectByName('BLUE_PARTY_WALL') as any;
+  const blueShellClone = contextCloneRoot.getObjectByName('BLUE_SHELL_CONTEXT') as any;
+  const greenHelperClone = contextCloneRoot.getObjectByName('GREEN_TRANSPARENT_HELPER') as any;
+  const unknownGreenClone = contextCloneRoot.getObjectByName('G2_WALL_INT_NAME_ONLY') as any;
+  const hostWallClone = targetCloneRoot.getObjectByName('D1F_HOST_WORK_ENVELOPE') as any;
+  const semanticLowWallClone = targetCloneRoot.getObjectByName('R210_LOWWALL') as any;
   const stairClone = targetCloneRoot.getObjectByName('STAIR_SUPPORT') as any;
 
-  expect(resolveP183WallSemanticClass(interiorClone)).toBe('INTERIOR');
-  expect(resolveP183WallSemanticClass(partyClone)).toBe('PARTY');
-  expect(resolveP183WallSemanticClass(contextClone)).toBe('EXTERIOR');
+  expect(resolveP183WallSemanticClass(semanticLowWallClone)).toBe('INTERIOR');
+  expect(resolveP183WallSemanticClass(unknownGreenClone)).toBeNull();
 
-  for (const wall of [interiorClone, partyClone, contextClone]) {
+  for (const wall of [blueShellClone, greenHelperClone, hostWallClone, semanticLowWallClone]) {
+    expect(isP183WallOcclusionSurface(wall)).toBe(true);
     expect(wall.renderOrder).toBe(p183PhysicalWallRenderOrder);
     expect(wall.userData.p183PhysicalOcclusionSort).toBe(true);
     expect(wall.material.depthTest).toBe(true);
     expect(wall.material.depthWrite).toBe(false);
   }
 
-  expect(interiorClone.material.opacity).toBe(p183P160ClosureTargetOpacity);
-  expect(partyClone.material.opacity).toBe(p183P160ClosureTargetOpacity);
-  expect(contextClone.material.opacity).toBe(p183P160ClosureContextOpacity);
+  expect(hostWallClone.material.opacity).toBe(p183P160ClosureTargetOpacity);
+  expect(semanticLowWallClone.material.opacity).toBe(p183P160ClosureTargetOpacity);
+  expect(blueShellClone.material.opacity).toBe(p183P160ClosureContextOpacity);
+  expect(greenHelperClone.material.opacity).toBe(p183P160ClosureContextOpacity);
 
+  expect(isP183WallOcclusionSurface(unknownGreenClone)).toBe(false);
+  expect(unknownGreenClone.userData.p183WallSemanticClass).toBeUndefined();
+  expect(unknownGreenClone.renderOrder).toBeGreaterThanOrEqual(p183ContextRenderOrderBase);
   expect(stairClone.userData.p183WallSemanticClass).toBeUndefined();
   expect(stairClone.renderOrder).toBeGreaterThanOrEqual(p183TargetSupportRenderOrderBase);
-  expect(stairClone.renderOrder).not.toBe(p183PhysicalWallRenderOrder);
 
-  const semanticOrdersBeforeCameraChange = [
-    contextClone.renderOrder,
-    partyClone.renderOrder,
-    interiorClone.renderOrder,
-  ];
-  targetCloneRoot.rotation.y = Math.PI * 0.75;
-  targetCloneRoot.updateMatrixWorld(true);
-  expect([
-    contextClone.renderOrder,
-    partyClone.renderOrder,
-    interiorClone.renderOrder,
-  ]).toEqual(semanticOrdersBeforeCameraChange);
-
-  expect(resolveP183WallSemanticClass({ name: 'G2_WALL_EXT_N_2F_TEST' })).toBe('EXTERIOR');
-  expect(resolveP183WallSemanticClass({ name: 'GREEN_INTERIOR_WALL' })).toBeNull();
+  expect(blueShellClone.material.color.getHex()).toBe(0x2277aa);
+  expect(greenHelperClone.material.color.getHex()).toBe(0x00aa44);
+  expect(unknownGreenClone.material.color.getHex()).toBe(0x00ff2e);
 });
 
 
