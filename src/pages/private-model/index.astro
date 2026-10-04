@@ -1517,6 +1517,7 @@ const title = 'Private 3D viewer';
         hasVisibleMaterial,
         isEffectivelyVisible,
       } from '../../scripts/privateModelObjectVisibility';
+      import { installArchitecturalLayerRuntime } from '../../scripts/privateModelArchitecturalLayersRuntime';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
       import {
         isEdgeMeshCandidate,
@@ -1911,6 +1912,7 @@ const title = 'Private 3D viewer';
 
       const modelRoot = new THREE.Group();
       scene.add(modelRoot);
+      installArchitecturalLayerRuntime(resolveArchitecturalSemanticDescriptor);
 
       const modelCenter = new THREE.Vector3();
       let fitDistance = 10;
