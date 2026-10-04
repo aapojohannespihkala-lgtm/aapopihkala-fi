@@ -51,7 +51,9 @@ export const prepareP183P160ClosureReviewPresentation = (
     cloneObjectMaterials(object, (material) => {
       material.opacity = p183P160ClosureTargetOpacity;
       material.transparent = true;
-      material.depthWrite = true;
+      material.depthTest = true;
+      material.depthWrite = false;
+      if ('side' in material) material.side = THREE.DoubleSide;
       material.userData = {
         ...(material.userData ?? {}),
         p183P160ClosurePresentation: true,

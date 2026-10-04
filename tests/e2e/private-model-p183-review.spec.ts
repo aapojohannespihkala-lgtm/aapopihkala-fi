@@ -54,6 +54,8 @@ test('P183 P160 closure review presents D architecture at 80 percent and unique 
   const targetMaterial = (targetClone as any).material;
   expect(targetMaterial).not.toBe(sourceTargetMaterial);
   expect(targetMaterial.opacity).toBe(p183P160ClosureTargetOpacity);
+  expect(targetMaterial.depthWrite).toBe(false);
+  expect(targetMaterial.side).toBe(THREE.DoubleSide);
   expect(targetMaterial.userData.p183PresentationRole).toBe('D_ARCHITECTURE_TARGET_80');
 
   const contextClone = presentation.composite!.children[0]?.getObjectByName(
