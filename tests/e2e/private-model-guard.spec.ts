@@ -756,6 +756,7 @@ test('private viewer selection picking helper preserves hit filtering and pointe
 
   const picked = pickSelectableObjectAtClientPoint({
     canvas: {
+      dataset: { interactionMode: 'select' },
       getBoundingClientRect: () => ({ left: 10, top: 20, width: 200, height: 100 }),
     },
     camera,
