@@ -47,6 +47,27 @@ const isP183AuxiliaryReviewLine = (object: any) => {
   return isFootprintOutline || isFloorReferenceMarker;
 };
 
+const isP183AuxiliaryPreciseStairClearanceWorkShell = (object: any) => {
+  if (!object?.isMesh) return false;
+  const metadata = object?.userData ?? {};
+  const clearancePartRole = String(metadata.clearancePartRole ?? '').trim().toUpperCase();
+  return (
+    String(metadata.representationKind ?? '') ===
+      'presentationFloorWorkShellWithPreciseStairClearance' &&
+    (clearancePartRole === 'SOUTH' || clearancePartRole === 'NORTH') &&
+    metadata.ModelStage === 'WORK_TEST_GEOMETRY' &&
+    metadata.presentationWorkShellCutApplied === true &&
+    metadata.physicalOpeningClaim === false &&
+    metadata.physicalFloorShellCutApplied === false &&
+    metadata.physicalSlabThicknessClaim === false &&
+    metadata.physicalFloorBuildUpClaim === false &&
+    metadata.Canonical === false &&
+    metadata.publishToCURRENT === false &&
+    metadata.currentClaim === false &&
+    metadata.asBuiltClaim === false
+  );
+};
+
 const p183P178bStairLowWallG2Id = 'G2_WALL_LOW_D_2F_STAIR_001';
 
 const isP183AuxiliaryGuardLowWallClosureSurface = (object: any) => {
@@ -192,6 +213,18 @@ export const prepareP183P160ClosureReviewPresentation = (
         p183AuxiliaryReviewLineHidden: true,
       };
       hiddenAuxiliaryReviewLineCount += 1;
+      return;
+    }
+    if (isP183AuxiliaryPreciseStairClearanceWorkShell(object)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p183P160ClosurePresentation: true,
+        p183ReviewRole: 'AUXILIARY_STAIR_CLEARANCE_WORKSHELL_SUPPRESSED',
+        p183AuxiliaryPreciseStairClearanceWorkShellHidden: true,
+      };
+      hiddenAuxiliaryTargetCount += 1;
       return;
     }
     if (isP183AuxiliaryGuardLowWallClosureSurface(object)) {
