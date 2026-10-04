@@ -29,6 +29,20 @@ const isP183AuxiliaryFloorSurface = (object: any) => {
   return representationKind === 'referenceFootprint' || representationKind === 'stairHostFootprint';
 };
 
+const isP183AuxiliaryReviewLine = (object: any) => {
+  if (!(object?.isLine || object?.isLineSegments)) return false;
+  const metadata = object?.userData ?? {};
+  const isFootprintOutline =
+    metadata.presentationOnly === true &&
+    metadata.presentationLayer === 'CURRENT_D_OUTLINE' &&
+    metadata.physicalWallClaim === false;
+  const isFloorReferenceMarker =
+    metadata.PresentationOnly === true &&
+    metadata.markerType === 'HORIZONTAL_ONLY_REFERENCE_AT_HOST_FLOOR' &&
+    metadata.physicalDoorVoid === false;
+  return isFootprintOutline || isFloorReferenceMarker;
+};
+
 export type P183WallSemanticClass = 'EXTERIOR' | 'PARTY' | 'INTERIOR';
 
 const p183WallSemanticClassFromG2Identity = (
@@ -109,6 +123,7 @@ export const prepareP183P160ClosureReviewPresentation = (
       contextRenderableCount: 0,
       suppressedDuplicateContextCount: 0,
       hiddenAuxiliaryTargetCount: 0,
+      hiddenAuxiliaryReviewLineCount: 0,
       targetBounds: null,
     };
   }
@@ -120,6 +135,7 @@ export const prepareP183P160ClosureReviewPresentation = (
   let targetSupportRenderOrderIndex = 0;
   let targetRenderableCount = 0;
   let hiddenAuxiliaryTargetCount = 0;
+  let hiddenAuxiliaryReviewLineCount = 0;
   targetScene.traverse((object: any) => {
     if (!isRenderable(object)) return;
     const identity = renderableIdentity(object);
@@ -134,6 +150,18 @@ export const prepareP183P160ClosureReviewPresentation = (
         p183AuxiliaryFloorSurfaceHidden: true,
       };
       hiddenAuxiliaryTargetCount += 1;
+      return;
+    }
+    if (isP183AuxiliaryReviewLine(object)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p183P160ClosurePresentation: true,
+        p183ReviewRole: 'AUXILIARY_REVIEW_LINE_SUPPRESSED',
+        p183AuxiliaryReviewLineHidden: true,
+      };
+      hiddenAuxiliaryReviewLineCount += 1;
       return;
     }
     cloneObjectMaterials(object, (material) => {
@@ -244,6 +272,7 @@ export const prepareP183P160ClosureReviewPresentation = (
     contextRenderableCount,
     suppressedDuplicateContextCount,
     hiddenAuxiliaryTargetCount,
+    hiddenAuxiliaryReviewLineCount,
     targetBounds: hasTargetBounds ? targetBounds : null,
   };
 };
