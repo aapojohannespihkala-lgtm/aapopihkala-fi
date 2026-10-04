@@ -1092,6 +1092,10 @@ const title = 'Private 3D viewer';
         text-overflow: ellipsis;
       }
 
+      .toolbar-menu-panel {
+        max-height: calc(100dvh - 96px);
+      }
+
       button:focus-visible,
       select:focus-visible {
         outline: 3px solid rgba(196, 205, 210, 0.48);
@@ -1109,6 +1113,7 @@ const title = 'Private 3D viewer';
 
         .toolbar-menu-panel {
           max-width: calc(100vw - 24px);
+          max-height: calc(100dvh - 132px);
         }
       }
 
