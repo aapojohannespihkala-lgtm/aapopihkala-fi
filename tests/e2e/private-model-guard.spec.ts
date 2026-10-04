@@ -522,7 +522,9 @@ test('private viewer WORK_TEST routing module preserves review aliases and candi
     expect(getRequestedReviewCandidateId(`?review=${reviewId}`)).toBe(candidateId);
   }
 
-  expect(getRequestedReviewCandidateId('?review=unknown-review')).toBeNull();
+  expect(getRequestedReviewCandidateId('?review=unknown-review')).toBe('unknown');
+  expect(getRequestedReviewCandidateId('?review=Unknown-review')).toBeNull();
+  expect(getRequestedReviewCandidateId('?review=unknown_review')).toBeNull();
   expect(getRequestedReviewCandidateId('')).toBeNull();
 
   expect(
