@@ -19,7 +19,10 @@ import {
   resolveP183P160ClosureIntegrationRoot,
   resolveP183WallSemanticClass,
 } from '../../src/scripts/privateModelP183ReviewPresentation';
-import { isEdgeMeshCandidate } from '../../src/scripts/privateModelEdgeVisibility';
+import {
+  isEdgeMeshCandidate,
+  isSemanticViewerLine,
+} from '../../src/scripts/privateModelEdgeVisibility';
 import { THREE } from '../../src/scripts/threeRuntime';
 
 test('P183 review alias resolves to the exact P178B survivor', () => {
@@ -391,4 +394,93 @@ test('P183 hides only metadata-confirmed residual helper lines', () => {
   expect(target.getObjectByName('OPENING_REFERENCE')!.visible).toBe(true);
   expect(outline.visible).toBe(true);
   expect(marker.visible).toBe(true);
+});
+
+
+test('P183 edge classification keeps metadata-confirmed 0.1 m cartography lines semantic without name heuristics', () => {
+  const makeLine = (userData: Record<string, unknown>) => {
+    const geometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(1, 0, 0),
+    ]);
+    const line = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial());
+    line.name = 'P143G_CARTO_MINOR_0P1M_LINES';
+    line.userData = userData;
+    return line;
+  };
+
+  const minorContour = makeLine({
+    cartographyClass: 'minor',
+    intervalM: 0.1,
+  });
+  const incompleteCartography = makeLine({
+    cartographyClass: 'minor',
+  });
+
+  expect(isSemanticViewerLine(minorContour)).toBe(true);
+  expect(isSemanticViewerLine(incompleteCartography)).toBe(false);
+});
+
+test('P183 normal review suppresses non-physical P178B guard and stair lowWall closure helpers only', () => {
+  const fullScene = new THREE.Group();
+  const dScene = new THREE.Group();
+
+  const makeMesh = (name: string, userData: Record<string, unknown>) => {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial({ color: 0xbba56c }),
+    );
+    mesh.name = name;
+    mesh.userData = userData;
+    return mesh;
+  };
+
+  const guardMetadata = {
+    representationKind: 'guardWorkEnvelopeClosure',
+    workAssumption: true,
+    physicalGuardClaim: false,
+    physicalJunctionClaim: false,
+    Canonical: false,
+    publishToCURRENT: false,
+  };
+  const lowWallMetadata = {
+    G2Id: 'G2_WALL_LOW_D_2F_STAIR_001',
+    physicalWallClaim: false,
+    physicalLowWallClaim: false,
+    physicalJunctionClaim: false,
+    Canonical: false,
+    publishToCURRENT: false,
+  };
+
+  const guard = makeMesh('P178B_GUARD_CLOSURE_TEST', guardMetadata);
+  const lowWall = makeMesh('P178B_LOWWALL_CLOSURE_TEST', lowWallMetadata);
+  const physicalLowWall = makeMesh('P178B_LOWWALL_PHYSICAL_CONTEXT', {
+    G2Id: 'G2_WALL_LOW_D_2F_STAIR_001',
+    physicalWallClaim: true,
+    physicalLowWallClaim: true,
+    physicalJunctionClaim: true,
+  });
+  dScene.add(guard, lowWall, physicalLowWall);
+
+  fullScene.add(
+    makeMesh('P178B_GUARD_CLOSURE_TEST', guardMetadata),
+    makeMesh('P178B_LOWWALL_CLOSURE_TEST', lowWallMetadata),
+  );
+
+  const presentation = prepareP183P160ClosureReviewPresentation(fullScene, dScene);
+  const context = presentation.composite!.children[0];
+  const target = presentation.composite!.children[1];
+
+  expect(presentation.hiddenAuxiliaryGuardLowWallCount).toBe(2);
+  expect(target.getObjectByName('P178B_GUARD_CLOSURE_TEST')!.visible).toBe(false);
+  expect(target.getObjectByName('P178B_GUARD_CLOSURE_TEST')!.userData.p183ReviewRole).toBe(
+    'AUXILIARY_GUARD_LOWWALL_CLOSURE_SUPPRESSED',
+  );
+  expect(target.getObjectByName('P178B_LOWWALL_CLOSURE_TEST')!.visible).toBe(false);
+  expect(target.getObjectByName('P178B_LOWWALL_PHYSICAL_CONTEXT')!.visible).toBe(true);
+  expect(context.getObjectByName('P178B_GUARD_CLOSURE_TEST')!.visible).toBe(false);
+  expect(context.getObjectByName('P178B_LOWWALL_CLOSURE_TEST')!.visible).toBe(false);
+
+  expect(guard.visible).toBe(true);
+  expect(lowWall.visible).toBe(true);
 });
