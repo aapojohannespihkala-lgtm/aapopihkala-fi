@@ -22,6 +22,12 @@ const isRenderable = (object: any) =>
       (object?.isMesh || object?.isLine || object?.isLineSegments || object?.isPoints),
   );
 
+const isP183AuxiliaryFloorSurface = (object: any) => {
+  if (!object?.isMesh) return false;
+  const representationKind = String(object?.userData?.representationKind ?? '');
+  return representationKind === 'referenceFootprint' || representationKind === 'stairHostFootprint';
+};
+
 const cloneObjectMaterials = (object: any, update: (material: any) => void) => {
   const cloneOne = (material: any) => {
     if (!material?.clone) return material;
@@ -57,6 +63,7 @@ export const prepareP183P160ClosureReviewPresentation = (
       targetRenderableCount: 0,
       contextRenderableCount: 0,
       suppressedDuplicateContextCount: 0,
+      hiddenAuxiliaryTargetCount: 0,
       targetBounds: null,
     };
   }
@@ -67,10 +74,23 @@ export const prepareP183P160ClosureReviewPresentation = (
   let targetPrimaryRenderOrderIndex = 0;
   let targetSupportRenderOrderIndex = 0;
   let targetRenderableCount = 0;
+  let hiddenAuxiliaryTargetCount = 0;
   targetScene.traverse((object: any) => {
     if (!isRenderable(object)) return;
     const identity = renderableIdentity(object);
     if (identity) targetIdentities.add(identity);
+    if (isP183AuxiliaryFloorSurface(object)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p183P160ClosurePresentation: true,
+        p183ReviewRole: 'AUXILIARY_FLOOR_SURFACE_SUPPRESSED',
+        p183AuxiliaryFloorSurfaceHidden: true,
+      };
+      hiddenAuxiliaryTargetCount += 1;
+      return;
+    }
     cloneObjectMaterials(object, (material) => {
       material.opacity = p183P160ClosureTargetOpacity;
       material.transparent = true;
@@ -166,6 +186,7 @@ export const prepareP183P160ClosureReviewPresentation = (
     targetRenderableCount,
     contextRenderableCount,
     suppressedDuplicateContextCount,
+    hiddenAuxiliaryTargetCount,
     targetBounds: hasTargetBounds ? targetBounds : null,
   };
 };
