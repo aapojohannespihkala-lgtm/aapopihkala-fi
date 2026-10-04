@@ -1,3 +1,5 @@
+import { installArchitecturalLayerRuntime } from './privateModelArchitecturalLayersRuntime';
+
 export type PrivateModelFloor = '1F' | '2F';
 
 export const semanticName = (object: any) => {
@@ -379,3 +381,5 @@ export const resolveArchitecturalSemanticDescriptor = (
     storey: object ? explicitFloorToken(object) : '-',
   };
 };
+
+installArchitecturalLayerRuntime(resolveArchitecturalSemanticDescriptor);
