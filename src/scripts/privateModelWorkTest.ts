@@ -153,9 +153,18 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
 export const isPrivateModelReviewRequested = (search: string, reviewId: string) =>
   new URLSearchParams(search).get(reviewQueryKey) === reviewId;
 
+const conventionalReviewSuffix = '-review';
+
+const getConventionalReviewCandidateId = (reviewId: string) => {
+  if (!/^[a-z0-9][a-z0-9-]*-review$/.test(reviewId)) return null;
+  const candidateId = reviewId.slice(0, -conventionalReviewSuffix.length);
+  return candidateId.length > 0 ? candidateId : null;
+};
+
 export const getRequestedReviewCandidateId = (search: string) => {
   const reviewId = new URLSearchParams(search).get(reviewQueryKey);
-  return reviewId ? (reviewCandidateById[reviewId] ?? null) : null;
+  if (!reviewId) return null;
+  return reviewCandidateById[reviewId] ?? getConventionalReviewCandidateId(reviewId);
 };
 
 export const isWorkTestCandidate = (value: unknown): value is WorkTestCandidate => {

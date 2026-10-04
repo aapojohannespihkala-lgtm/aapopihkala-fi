@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "candidates": {
+    "p150g-whole-building-end-plinth": {
+      "driveFileId": "1A2qXM12S7Fx0H9UPUM6lWuAXFB0YqEB6"
+    },
+    "p154c-d-wall-cutouts": {
+      "driveFileId": "13s4JHivX9Be154vVeo8_q_cgElryXF5u"
+    },
+    "p160-d-composite-architecture": {
+      "driveFileId": "18W_u9Le8oaL_jujXK7Gocot6t53vDMcM"
+    },
+    "p159-whole-building-storage-context": {
+      "driveFileId": "1XDasCVRBx-hzXOx0fjJ7qLhtbSR0zcXQ"
+    },
+    "p161-multisource-systems-carrier": {
+      "driveFileId": "1tnLYRipsRBLfgNMLKN4NIBPO2IzCENdV"
+    },
+    "p170a-p161-review-visibility": {
+      "driveFileId": "17kAhyGrN7qFGtdtcyEU18VO1dQbGzlPY"
+    },
+    "p170d-p161-review-visibility-correction": {
+      "driveFileId": "1Hojb8wbz_qvXGwdyHzNfK1WuzIKL5H3D"
+    },
+    "p171c-d-stair-opening-guard-lowwall-junction": {
+      "driveFileId": "1gpe5tQS7vAlXM9J46VP6bxNLMIz7-EKe"
+    },
+    "p173d-whole-building-d-wall-hr67-rebase": {
+      "driveFileId": "1msAIG-GsO4Z-e4RD2I_1BObyTUb-H4tL"
+    },
+    "p174a-r2-west-gable-termination-correction": {
+      "driveFileId": "1IFnFxuW5i6nfyNIAl9DnusKT6rBv3Pnb"
+    },
+    "p175b-r3-near-building-flatter-terrain": {
+      "driveFileId": "1bme7kvoka8YFaUh4dAfqmXSiIUQ6Upz8"
+    },
+    "p176a-hr6-full-visible-west-gable-termination-correction": {
+      "driveFileId": "1ZGuklJlPV-RN-2sRgDdceMrjeAyYe2pd"
+    },
+    "p177b-hr6-direct-d-storage-north-wall-line-corrected": {
+      "driveFileId": "1NBEUeLKRf8yp4iSuUG9tPOZ4ewtxro1U"
+    },
+    "p178b-d-stair-guard-lowwall-junction-closure": {
+      "driveFileId": "1cBxB58k4ajIU4pLLvtuUwPFQvxGozLWY"
+    },
+    "p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase": {
+      "driveFileId": "1o4cjuyIDn7ZfMg5tUJ3YcFKPLDyJRfHp"
+    },
+    "p164b-d-corrected-stair": {
+      "driveFileId": "1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"
+    },
+    "p166f-lightwell-proxies": {
+      "driveFileId": "1dDxcJFkLIn7JU_6msVgQVQYOurqv_L4c"
+    },
+    "p167f-whole-building-precise-stair": {
+      "driveFileId": "1h65Ap5BGINTqv-zEUnFmFa0wT25SMUfT"
+    },
+    "p168a-whole-building-roof-eave-correction": {
+      "driveFileId": "1hkI-8ExAq5Loit7YLU6cWsklEAzpi7fD"
+    },
+    "p169a-whole-building-ac-storage-visible": {
+      "driveFileId": "1h62pgONu56UOhh5oZyaI51ABs8q_GFsB"
+    },
+    "p169f-whole-building-ac-storage-doors": {
+      "driveFileId": "14zmRdG315ZPPtNS-_oDI2ALpYxHMEa4R"
+    }
+  }
+}

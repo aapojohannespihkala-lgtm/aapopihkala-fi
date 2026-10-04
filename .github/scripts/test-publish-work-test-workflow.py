@@ -1,97 +1,43 @@
 from pathlib import Path
+import json
 import re
 
 workflow_path = Path(".github/workflows/publish-work-test.yml")
+registry_path = Path(".github/work-test-candidates.json")
+trigger_path = Path(".github/workflows/trigger-work-test-publish.yml")
+routing_path = Path("src/scripts/privateModelWorkTest.ts")
+
 text = workflow_path.read_text(encoding="utf-8")
+registry = json.loads(registry_path.read_text(encoding="utf-8"))
+trigger = trigger_path.read_text(encoding="utf-8")
+routing = routing_path.read_text(encoding="utf-8")
 
 required = {
     "manual dispatch": "workflow_dispatch:",
-    "candidate choice input": "type: choice",
+    "candidate string input": "type: string",
     "candidate input binding": "REQUESTED_CANDIDATE: ${{ inputs.candidate }}",
+    "release registry checkout": "uses: actions/checkout@v7",
+    "release registry path": '.github/work-test-candidates.json',
     "read-only repository permission": "contents: read",
     "GitHub OIDC permission": "id-token: write",
     "trusted main guard": '[[ "$GITHUB_REF" == "refs/heads/main" ]]',
     "trusted repository guard": '[[ "$GITHUB_REPOSITORY" == "aapojohannespihkala-lgtm/aapopihkala-fi" ]]',
-    "bounded candidate resolver": 'case "$REQUESTED_CANDIDATE" in',
-    "unsupported candidate deny": 'echo "Unsupported WORK_TEST candidate" >&2',
-    "P150G exact Drive file": 'drive_file_id="1A2qXM12S7Fx0H9UPUM6lWuAXFB0YqEB6"',
-    "P150G exact candidate": "p150g-whole-building-end-plinth",
-    "P150G exact size": 'expected_size="1986004"',
-    "P150G exact sha": 'expected_sha256="a17fdc1cbc29c4ecfcab3e94554b5ea5860c9a19db33e21f24c324acf70d6d89"',
-    "P154C exact Drive file": 'drive_file_id="13s4JHivX9Be154vVeo8_q_cgElryXF5u"',
-    "P154C exact candidate": "p154c-d-wall-cutouts",
-    "P154C exact size": 'expected_size="1535172"',
-    "P154C exact sha": 'expected_sha256="0653be4435879acb479ca272dc8fd4a3c7299c863c0082797236d4c5c20167c0"',
-    "P160 exact Drive file": 'drive_file_id="18W_u9Le8oaL_jujXK7Gocot6t53vDMcM"',
-    "P160 exact candidate": "p160-d-composite-architecture",
-    "P160 exact size": 'expected_size="1559168"',
-    "P160 exact sha": 'expected_sha256="773b64f6413237111c9abf6420ccdf52ee5f61f90717618a1fe855f85000f3d7"',
-    "P159 exact Drive file": 'drive_file_id="1XDasCVRBx-hzXOx0fjJ7qLhtbSR0zcXQ"',
-    "P159 exact candidate": "p159-whole-building-storage-context",
-    "P159 exact size": 'expected_size="1992656"',
-    "P159 exact sha": 'expected_sha256="085877147e8ee50b69d8fa932bdb6d25bece04be187ec5453e9f73de50d1a5d0"',
-    "P161 exact Drive file": 'drive_file_id="1tnLYRipsRBLfgNMLKN4NIBPO2IzCENdV"',
-    "P161 exact candidate": "p161-multisource-systems-carrier",
-    "P161 exact size": 'expected_size="1858948"',
-    "P161 exact sha": 'expected_sha256="7413fa57b423260cfff9554fae96a8167fba48d03a7c570806a509e58e3ca65d"',
-    "P170A exact Drive file": 'drive_file_id="17kAhyGrN7qFGtdtcyEU18VO1dQbGzlPY"',
-    "P170A exact candidate": "p170a-p161-review-visibility",
-    "P170A exact size": 'expected_size="1877872"',
-    "P170A exact sha": 'expected_sha256="447e587b9903ec36056df2fa414620086a601bbfb5f3fcdd89a9cb9928e86368"',
-    "P170D-R2 exact Drive file": 'drive_file_id="1Hojb8wbz_qvXGwdyHzNfK1WuzIKL5H3D"',
-    "P170D-R2 exact candidate": "p170d-p161-review-visibility-correction",
-    "P170D-R2 exact size": 'expected_size="1887248"',
-    "P170D-R2 exact sha": 'expected_sha256="7f2bb6a65617e81f05c58b4d732e3c96c781f890ea5c3364e28cdaa996c6520e"',
-    "P171C exact Drive file": 'drive_file_id="1gpe5tQS7vAlXM9J46VP6bxNLMIz7-EKe"',
-    "P171C exact candidate": "p171c-d-stair-opening-guard-lowwall-junction",
-    "P171C exact size": 'expected_size="2110432"',
-    "P171C exact sha": 'expected_sha256="ccacc928d7913886755dba7bb04d3dd3cc9f84e5a03dbd63170c29622b64e706"',
-    "P173D exact Drive file": 'drive_file_id="1msAIG-GsO4Z-e4RD2I_1BObyTUb-H4tL"',
-    "P173D exact candidate": "p173d-whole-building-d-wall-hr67-rebase",
-    "P173D exact size": 'expected_size="2119784"',
-    "P173D exact sha": 'expected_sha256="3d7144b0ea1841be6b9ef790e02ad807287d22c1b2a1e45fafae0f193c61ed7f"',
-    "P174A-R2 exact Drive file": 'drive_file_id="1IFnFxuW5i6nfyNIAl9DnusKT6rBv3Pnb"',
-    "P174A-R2 exact candidate": "p174a-r2-west-gable-termination-correction",
-    "P174A-R2 exact size": 'expected_size="2130116"',
-    "P174A-R2 exact sha": 'expected_sha256="7a44320e649ac0d6611a3124ba62fce5e4848c0266d4ad10da4220cd06ac7e20"',
-    "P175B-R3 exact Drive file": 'drive_file_id="1bme7kvoka8YFaUh4dAfqmXSiIUQ6Upz8"',
-    "P175B-R3 exact candidate": "p175b-r3-near-building-flatter-terrain",
-    "P175B-R3 exact size": 'expected_size="2307636"',
-    "P175B-R3 exact sha": 'expected_sha256="a70dfac3b0f21011f042d0112d9d5283c450e863bd2dbdb8776bfec902c92b60"',
-    "P176A exact Drive file": 'drive_file_id="1ZGuklJlPV-RN-2sRgDdceMrjeAyYe2pd"',
-    "P176A exact candidate": "p176a-hr6-full-visible-west-gable-termination-correction",
-    "P176A exact size": 'expected_size="2143792"',
-    "P176A exact sha": 'expected_sha256="bf8172b6661205906f588d7db3e1b1f416045ffef4d26208f12cef02df221dc5"',
-    "P177B exact Drive file": 'drive_file_id="1NBEUeLKRf8yp4iSuUG9tPOZ4ewtxro1U"',
-    "P177B exact candidate": "p177b-hr6-direct-d-storage-north-wall-line-corrected",
-    "P177B exact size": 'expected_size="2155224"',
-    "P177B exact sha": 'expected_sha256="37317206852db2adc95af4726e028a7297f6f42cd1552794e067093ba6fa2ca1"',
-    "P178B exact Drive file": 'drive_file_id="1cBxB58k4ajIU4pLLvtuUwPFQvxGozLWY"',
-    "P178B exact candidate": "p178b-d-stair-guard-lowwall-junction-closure",
-    "P178B exact size": 'expected_size="2165344"',
-    "P178B exact sha": 'expected_sha256="a60111c6f0bc25d56e00c446cf2088b96e96f4f87051233abd8c2f23a248ef9b"',
-    "P181B-R1 exact Drive file": 'drive_file_id="1o4cjuyIDn7ZfMg5tUJ3YcFKPLDyJRfHp"',
-    "P181B-R1 exact candidate": "p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase",
-    "P181B-R1 exact size": 'expected_size="2861664"',
-    "P181B-R1 exact sha": 'expected_sha256="3cddee192ae2af0d85bb650482aaa1596dfd883e5f0b3d25c42c4b451b3e6239"',
-    "P164B exact Drive file": 'drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"',
-    "P164B exact candidate": "p164b-d-corrected-stair",
-    "P164B exact size": 'expected_size="1583912"',
-    "P164B exact sha": 'expected_sha256="db35b42575f1e287905d97d89483982b9354e60b1a8fe806ab29fb26d6103ca9"',
-    "P166F exact Drive file": 'drive_file_id="1dDxcJFkLIn7JU_6msVgQVQYOurqv_L4c"',
-    "P166F exact candidate": "p166f-lightwell-proxies",
-    "P166F exact size": 'expected_size="2030604"',
-    "P166F exact sha": 'expected_sha256="3b1e2158408937be1f11a27b16eae605204d5aa2184c7d513f6883d92a430f0a"',
-    "derived candidate id": 'echo "CANDIDATE_ID=$REQUESTED_CANDIDATE"',
-    "derived expected path": 'echo "EXPECTED_PATH=/private-model/work-test/$REQUESTED_CANDIDATE.glb"',
-    "derived publish URL": 'echo "PUBLISH_URL=https://aapopihkala.fi/private-model/work-test/publish/$REQUESTED_CANDIDATE.glb"',
+    "registry envelope guard": 'set(payload) != {"version", "candidates"}',
+    "registry entry guard": 'set(entry) != {"driveFileId"}',
+    "unsupported candidate deny": 'raise SystemExit("Unsupported WORK_TEST candidate")',
+    "derived candidate id": '"CANDIDATE_ID": candidate_id',
+    "derived expected path": '"EXPECTED_PATH": f"/private-model/work-test/{candidate_id}.glb"',
+    "derived publish URL": '"PUBLISH_URL": f"https://aapopihkala.fi/private-model/work-test/publish/{candidate_id}.glb"',
     "machine catalog readback": "/private-model/work-test/verify/catalog.json",
-    "derived machine full GLB readback": 'echo "GLB_URL=https://aapopihkala.fi/private-model/work-test/verify/$REQUESTED_CANDIDATE.glb"',
+    "derived machine full GLB readback": '"GLB_URL": f"https://aapopihkala.fi/private-model/work-test/verify/{candidate_id}.glb"',
     "Google auth v3": "google-github-actions/auth@v3",
     "Drive readonly scope": "https://www.googleapis.com/auth/drive.readonly",
+    "raw size derivation": 'actual_size="$(stat -c \'%s\' "$model")"',
+    "raw sha derivation": 'actual_sha="$(sha256sum "$model" | awk \'{print $1}\')"',
+    "GLB magic guard": '[[ "$(head -c 4 "$model")" == "glTF" ]]',
+    "derived expected size": 'echo "EXPECTED_SIZE=$actual_size"',
+    "derived expected sha": 'echo "EXPECTED_SHA256=$actual_sha"',
     "binary PUT": '--data-binary "@$model"',
-    "size verification": "stat -c '%s'",
-    "sha verification": "sha256sum",
     "publisher client ID secret": "secrets.CF_ACCESS_PUBLISHER_CLIENT_ID",
     "publisher client secret": "secrets.CF_ACCESS_PUBLISHER_CLIENT_SECRET",
     "readback client ID secret": "secrets.CF_ACCESS_READBACK_CLIENT_ID",
@@ -112,6 +58,10 @@ for forbidden in (
     "pull_request:",
     "push:",
     "schedule:",
+    "type: choice",
+    'case "$REQUESTED_CANDIDATE" in',
+    'expected_size="',
+    'expected_sha256="',
     "actions/upload-artifact",
     "actions/cache",
     "oaiusercontent.com",
@@ -135,35 +85,42 @@ input_names = set(re.findall(r"\$\{\{\s*inputs\.([A-Za-z0-9_-]+)\s*\}\}", text))
 if input_names != {"candidate"}:
     raise SystemExit(f"publish-work-test inputs must be candidate-only, got: {sorted(input_names)}")
 
-option_lines = re.findall(
-    r"^\s{10}- (p150g-whole-building-end-plinth|p154c-d-wall-cutouts|p160-d-composite-architecture|p159-whole-building-storage-context|p161-multisource-systems-carrier|p170a-p161-review-visibility|p170d-p161-review-visibility-correction|p171c-d-stair-opening-guard-lowwall-junction|p173d-whole-building-d-wall-hr67-rebase|p174a-r2-west-gable-termination-correction|p175b-r3-near-building-flatter-terrain|p176a-hr6-full-visible-west-gable-termination-correction|p177b-hr6-direct-d-storage-north-wall-line-corrected|p178b-d-stair-guard-lowwall-junction-closure|p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase|p164b-d-corrected-stair|p166f-lightwell-proxies|p167f-whole-building-precise-stair|p168a-whole-building-roof-eave-correction|p169a-whole-building-ac-storage-visible|p169f-whole-building-ac-storage-doors)\s*$",
-    text,
-    re.MULTILINE,
-)
-if option_lines != [
+if set(registry) != {"version", "candidates"} or registry.get("version") != 1:
+    raise SystemExit("WORK_TEST candidate registry envelope must be exact version 1")
+
+candidates = registry.get("candidates")
+if not isinstance(candidates, dict) or len(candidates) < 21:
+    raise SystemExit("WORK_TEST candidate registry lost migrated candidates")
+
+sentinels = {
     "p150g-whole-building-end-plinth",
-    "p154c-d-wall-cutouts",
-    "p160-d-composite-architecture",
-    "p159-whole-building-storage-context",
-    "p161-multisource-systems-carrier",
-    "p170a-p161-review-visibility",
-    "p170d-p161-review-visibility-correction",
-    "p171c-d-stair-opening-guard-lowwall-junction",
-    "p173d-whole-building-d-wall-hr67-rebase",
-    "p174a-r2-west-gable-termination-correction",
-    "p175b-r3-near-building-flatter-terrain",
-    "p176a-hr6-full-visible-west-gable-termination-correction",
-    "p177b-hr6-direct-d-storage-north-wall-line-corrected",
-    "p178b-d-stair-guard-lowwall-junction-closure",
-    "p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase",
-    "p164b-d-corrected-stair",
-    "p166f-lightwell-proxies",
-    "p167f-whole-building-precise-stair",
-    "p168a-whole-building-roof-eave-correction",
-    "p169a-whole-building-ac-storage-visible",
     "p169f-whole-building-ac-storage-doors",
-]:
-    raise SystemExit("publish-work-test candidate choices must match the exact bounded WORK_TEST allowlist")
+    "p178b-d-stair-guard-lowwall-junction-closure",
+}
+if not sentinels.issubset(candidates):
+    raise SystemExit("WORK_TEST candidate registry lost required migration sentinels")
+
+drive_ids = []
+for candidate_id, entry in candidates.items():
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,127}", candidate_id):
+        raise SystemExit(f"invalid candidate id in registry: {candidate_id!r}")
+    if not isinstance(entry, dict) or set(entry) != {"driveFileId"}:
+        raise SystemExit(f"candidate registry entry must contain only driveFileId: {candidate_id}")
+    drive_file_id = entry.get("driveFileId")
+    if not isinstance(drive_file_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{10,128}", drive_file_id):
+        raise SystemExit(f"invalid Drive file id in registry: {candidate_id}")
+    drive_ids.append(drive_file_id)
+
+if len(drive_ids) != len(set(drive_ids)):
+    raise SystemExit("WORK_TEST candidate registry contains duplicate Drive file ids")
+
+registry_text = registry_path.read_text(encoding="utf-8").lower()
+for forbidden_identity_field in ("sha256", '"sha"', '"size"', "expected_size", "expected_sha"):
+    if forbidden_identity_field in registry_text:
+        raise SystemExit(
+            "WORK_TEST registry must not duplicate raw-byte size/SHA identity: "
+            + forbidden_identity_field
+        )
 
 secret_echo = re.compile(
     r"echo[^\n]*(?:GDRIVE_ACCESS_TOKEN|CLIENT_SECRET|CF_ACCESS_[A-Z_]*CLIENT_ID)",
@@ -176,18 +133,10 @@ for match in secret_echo.finditer(text):
 
 if "export_environment_variables: false" not in text:
     raise SystemExit("Google auth must not export credentials globally")
-
-if text.count("--connect-timeout 10") < 2:
-    raise SystemExit("production readback calls must use bounded connection timeouts")
-
 if "create_credentials_file: false" not in text:
     raise SystemExit("Google auth must not persist a credentials file")
-
-print("publish-work-test workflow contract: PASS")
-
-
-trigger_path = Path(".github/workflows/trigger-work-test-publish.yml")
-trigger = trigger_path.read_text(encoding="utf-8")
+if text.count("--connect-timeout 10") < 2:
+    raise SystemExit("production readback calls must use bounded connection timeouts")
 
 trigger_required = {
     "dedicated request branch": "- ops/machine-publish",
@@ -204,14 +153,9 @@ trigger_required = {
     "canonical publisher endpoint": "actions/workflows/publish-work-test.yml/dispatches",
     "hard-coded main dispatch": '{"ref": "main", "inputs": {"candidate": candidate}}',
 }
-
-trigger_missing = [
-    label for label, needle in trigger_required.items() if needle not in trigger
-]
+trigger_missing = [label for label, needle in trigger_required.items() if needle not in trigger]
 if trigger_missing:
-    raise SystemExit(
-        "trigger-work-test-publish contract missing: " + ", ".join(trigger_missing)
-    )
+    raise SystemExit("trigger-work-test-publish contract missing: " + ", ".join(trigger_missing))
 
 for forbidden in (
     "workflow_dispatch:",
@@ -223,11 +167,25 @@ for forbidden in (
     "expected_sha256=",
 ):
     if forbidden in trigger:
-        raise SystemExit(
-            f"trigger-work-test-publish contains forbidden contract element: {forbidden}"
-        )
+        raise SystemExit(f"trigger-work-test-publish contains forbidden contract element: {forbidden}")
 
 if trigger.count("actions/workflows/publish-work-test.yml/dispatches") != 1:
     raise SystemExit("trigger must dispatch the canonical publisher exactly once")
 
+routing_required = {
+    "conventional suffix": "const conventionalReviewSuffix = '-review';",
+    "conventional id guard": "/^[a-z0-9][a-z0-9-]*-review$/",
+    "legacy-first fallback": "reviewCandidateById[reviewId] ?? getConventionalReviewCandidateId(reviewId)",
+    "legacy P183 alias": "[p183P160ClosureReviewId]: p178bCandidateId",
+    "legacy P143D alias": "[p143dReviewId]: p143aCandidateId",
+}
+routing_missing = [label for label, needle in routing_required.items() if needle not in routing]
+if routing_missing:
+    raise SystemExit("private model review routing contract missing: " + ", ".join(routing_missing))
+
+print(
+    "publish-work-test workflow contract: PASS "
+    f"({len(candidates)} registry candidates; raw size/SHA derived at publish time)"
+)
 print("trigger-work-test-publish workflow contract: PASS")
+print("private model conventional review routing contract: PASS")
