@@ -24,6 +24,7 @@ import {
 } from '../../src/scripts/privateModelEdgeVisibility';
 import { computeVisibleBounds } from '../../src/scripts/privateModelVisibleBounds';
 import {
+  dReviewFloorOpacity,
   p160WarmFloorContextOpacity,
   p160WarmFloorReviewEdgeHex,
   p160WarmFloorReviewEdgeOpacity,
@@ -429,7 +430,7 @@ test('private viewer P171 Q1 replaces translucent floor volumes with one top-sur
   expect(worldSurfaceBounds.max.y).toBeCloseTo(0.05);
   expect(worldSurfaceBounds.min.z).toBeCloseTo(-2);
   expect(worldSurfaceBounds.max.z).toBeCloseTo(2);
-  expect(surface.material.opacity).toBeCloseTo(0.22);
+  expect(surface.material.opacity).toBe(dReviewFloorOpacity);
   expect(surface.material.transparent).toBe(true);
   expect(surface.material.depthWrite).toBe(false);
   expect(surface.material.polygonOffset).toBe(true);
