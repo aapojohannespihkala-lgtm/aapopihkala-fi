@@ -756,6 +756,7 @@ test('private viewer selection picking helper preserves hit filtering and pointe
 
   const picked = pickSelectableObjectAtClientPoint({
     canvas: {
+      dataset: { interactionMode: 'select' },
       getBoundingClientRect: () => ({ left: 10, top: 20, width: 200, height: 100 }),
     },
     camera,
@@ -2039,16 +2040,33 @@ test('private viewer selects a visible mesh, shows bounded identity, metadata, a
   expect(box).not.toBeNull();
   if (!box) return;
 
+  const selectionTool = page.locator('#selection-tool-button');
+  await expect(selectionTool).toHaveAttribute('aria-pressed', 'false');
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'navigate');
+
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(panel).toBeHidden();
+
+  await selectionTool.click();
+  await expect(selectionTool).toHaveAttribute('aria-pressed', 'true');
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'select');
+
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeVisible();
-  await expect(page.locator('#selection-mesh')).not.toHaveText('-');
+  await expect(page.locator('#selection-mesh')).toHaveText('Seinä (luokittelematon esitys)');
+  await expect(page.locator('#selection-group')).toHaveText('Seinä / luokittelematon');
   await expect(page.locator('#selection-floor')).toHaveText('1F');
-  await expect(page.locator('#selection-scene')).toHaveText('P133D REVIEW ROOT - BABYLON Y-UP');
-  await expect(page.locator('#selection-kind')).toHaveText('Mesh');
+  await expect(page.locator('#selection-scene')).toHaveText('Ei ratkaistu');
+  await expect(page.locator('#selection-kind')).toHaveText('Ei ihmiskatselmoitu');
+  await expect(page.locator('#selection-physical-claim')).toHaveText('Ei ratkaistu');
   const metadataDetails = page.locator('#selection-panel details.selection-metadata');
   await expect(metadataDetails).not.toHaveAttribute('open', '');
   await metadataDetails.locator('summary').click();
   await expect(metadataDetails).toHaveAttribute('open', '');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Tekninen scene');
+  await expect(page.locator('#selection-metadata-list')).toContainText('P133D REVIEW ROOT - BABYLON Y-UP');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Renderöintityyppi');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Mesh');
   await expect(page.locator('#selection-metadata-list')).toContainText('Pass');
   await expect(page.locator('#selection-metadata-list')).toContainText('149E_TEST');
   await expect(page.locator('#selection-metadata-list')).toContainText('Representation Kind');
@@ -2069,6 +2087,7 @@ test('private viewer selects a visible mesh, shows bounded identity, metadata, a
   await expect(page.locator('#selection-scene')).toHaveText('-');
   await expect(page.locator('#selection-floor')).toHaveText('-');
   await expect(page.locator('#selection-kind')).toHaveText('-');
+  await expect(page.locator('#selection-physical-claim')).toHaveText('-');
   await expect(canvas).not.toHaveAttribute('data-selection-metadata-count', /.+/);
   await expect(canvas).not.toHaveAttribute('data-selection-metadata-source', /.+/);
 
@@ -2105,6 +2124,7 @@ test('private viewer can isolate, hide, and restore a selected object without ch
   expect(box).not.toBeNull();
   if (!box) return;
 
+  await page.locator('#selection-tool-button').click();
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeVisible();
 
@@ -2253,9 +2273,12 @@ test('private viewer selects visible LineSegments and clears hidden line selecti
   expect(box).not.toBeNull();
   if (!box) return;
 
+  await page.locator('#selection-tool-button').click();
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeVisible();
-  await expect(page.locator('#selection-mesh')).toContainText('SITE_LINE');
+  await expect(page.locator('#selection-mesh')).not.toHaveText('-');
+  await panel.locator('details.selection-metadata > summary').click();
+  await expect(page.locator('#selection-metadata-list')).toContainText('SITE_LINE');
 
   await page.getByRole('button', { name: 'Layerit' }).click();
   await page.locator('#roof-layer-visible').uncheck();
@@ -2263,6 +2286,68 @@ test('private viewer selects visible LineSegments and clears hidden line selecti
 
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeHidden();
+});
+
+test('private viewer binds architectural Layerit visibility to the shared semantic descriptor', async ({ page }) => {
+  const model = makeTriangleGlb({
+    G2Id: 'G2_WALL_EXT_TEST_001',
+    physicalWallClaim: true,
+    ModelStage: 'WORK_TEST',
+  });
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  await page.getByRole('button', { name: 'Layerit' }).click();
+
+  const architecture = page.locator('#architecture-layer-visible');
+  const walls = page.locator('#architecture-walls-visible');
+  const exterior = page.locator('#architecture-exterior-walls-visible');
+  await expect(architecture).toBeEnabled();
+  await expect(architecture).toBeChecked();
+  await expect(walls).toBeChecked();
+  await expect(exterior).toBeEnabled();
+  await expect(exterior).toBeChecked();
+  await expect(page.locator('#architecture-layer-count')).toHaveText('1 kohdetta');
+  await expect(page.locator('#architecture-walls-count')).toHaveText('1 kohdetta');
+  await expect(page.locator('#architecture-exterior-walls-visible + span')).toHaveText('Ulkoseinät 1');
+
+  await exterior.uncheck();
+  await expect(canvas).toHaveAttribute('data-architecture-exterior-walls-visible', 'false');
+
+  const selectionTool = page.locator('#selection-tool-button');
+  await selectionTool.click();
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(page.locator('#selection-panel')).toBeHidden();
+
+  await exterior.check();
+  await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(page.locator('#selection-panel')).toBeVisible();
+  await expect(page.locator('#selection-mesh')).toHaveText('Ulkoseinä');
+
+  await page.getByRole('button', { name: 'Isoloi' }).click();
+  await expect(canvas).toHaveAttribute('data-object-visibility-filter', 'active');
+  await expect(exterior).toBeDisabled();
+  await expect(canvas).toHaveAttribute('data-architecture-layer-object-filter-lock', 'true');
+
+  await page.locator('#more-menu > summary').click();
+  await page.locator('#show-all-objects-button').click();
+  await expect(canvas).toHaveAttribute('data-object-visibility-filter', 'inactive');
+  await expect(exterior).toBeEnabled();
+  await expect(exterior).toBeChecked();
+  await expect(canvas).toHaveAttribute('data-architecture-exterior-walls-visible', 'true');
 });
 
 test('private viewer exposes Locus as a semantic parent layer with WATER and WASTEWATER child layers', async ({ page }) => {
@@ -2322,9 +2407,12 @@ test('private viewer exposes Locus as a semantic parent layer with WATER and WAS
   expect(box).not.toBeNull();
   if (!box) return;
 
+  await page.locator('#selection-tool-button').click();
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeVisible();
-  await expect(page.locator('#selection-mesh')).toContainText('WASTEWATER');
+  await expect(page.locator('#selection-mesh')).not.toHaveText('-');
+  await panel.locator('details.selection-metadata > summary').click();
+  await expect(page.locator('#selection-metadata-list')).toContainText('WASTEWATER');
 
   await clickViewAction(page, 'Tontti');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'site');
@@ -2485,6 +2573,7 @@ test('private viewer uses a true orthographic isometric preset without resetting
   expect(box).not.toBeNull();
   if (!box) return;
 
+  await page.locator('#selection-tool-button').click();
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(page.locator('#selection-panel')).toBeVisible();
 });
@@ -2526,6 +2615,7 @@ test('private viewer roof test layer toggles explicit roof metadata and exposes 
   if (!box) return;
 
   await roofToggle.uncheck();
+  await page.locator('#selection-tool-button').click();
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(page.locator('#selection-panel')).toBeHidden();
 
@@ -4118,9 +4208,12 @@ test('private viewer autoloads the exact P161 multisource systems review candida
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   if (!box) return;
+  await page.locator('#selection-tool-button').click();
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(page.locator('#selection-panel')).toBeVisible();
-  await expect(page.locator('#selection-mesh')).toContainText('P161_KVV_STANDALONE_DISPLAY');
+  await expect(page.locator('#selection-mesh')).not.toHaveText('-');
+  await page.locator('#selection-panel details.selection-metadata > summary').click();
+  await expect(page.locator('#selection-metadata-list')).toContainText('P161_KVV_STANDALONE_DISPLAY');
 
   await kvvLayer.uncheck();
   await expect(systemsLayer).toBeChecked();
@@ -5944,6 +6037,11 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
   await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
   await expect(canvas).toHaveAttribute('data-elevation-direction', 'pos-y');
   await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'yaw-only');
+  await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
+  await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
+  await expect(canvas).toHaveAttribute('data-camera-pitch', 'locked');
+  await expect(canvas).toHaveAttribute('data-camera-roll', 'locked');
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
   await expect(canvas).toHaveAttribute('data-height-scale-min-z', /-?\d+\.\d{3}/);
@@ -5961,6 +6059,9 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
 
   await clickViewAction(page, 'Isometrinen');
   await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'enabled');
+  await expect(canvas).not.toHaveAttribute('data-camera-pitch', /.+/);
+  await expect(canvas).not.toHaveAttribute('data-camera-roll', /.+/);
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'false');
   await expect(canvas).not.toHaveAttribute('data-height-scale-min-z', /.+/);
   await expect(canvas).not.toHaveAttribute('data-height-scale-max-z', /.+/);
@@ -6439,10 +6540,22 @@ test('private viewer keeps dark YLIS-G1-LOCAL orientation and north direction vi
   await expect(gizmo).toHaveCSS('background-color', 'rgba(27, 36, 45, 0.92)');
   await expect(gizmo).toHaveCSS('box-shadow', 'none');
 
+  const aiNavigator = page.locator('#ai-navigator-readout');
+  await expect(aiNavigator).toBeVisible();
+  await expect(aiNavigator).toHaveAttribute('data-frame', 'YLIS-G1-LOCAL');
+  await expect(aiNavigator).toHaveAttribute('data-ready', 'true');
+  await expect(aiNavigator).toHaveAttribute('data-model', 'CURRENT');
+  await expect(aiNavigator).toHaveAttribute('data-view', /ORBIT · PERSP/);
+  await expect(aiNavigator).toHaveAttribute('data-look', /X[+-]\d+\.\d{2} Y[+-]\d+\.\d{2} Z[+-]\d+\.\d{2}/);
+  await expect(aiNavigator).toHaveAttribute('data-center', /X[+-]\d+\.\d{2} Y[+-]\d+\.\d{2} Z[+-]\d+\.\d{2}/);
+  await expect(aiNavigator).toHaveAttribute('data-visible-bounds', /X -?\d+\.\d\.\.-?\d+\.\d/);
+  await expect(aiNavigator).toHaveAttribute('data-bounds-basis', 'camera-target-plane');
+
   await clickViewAction(page, 'Isometrinen');
   await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
   await expect(gizmo).toHaveAttribute('data-camera-projection', 'orthographic');
   await expect(gizmo).toHaveAttribute('data-ready', 'true');
+  await expect(aiNavigator).toHaveAttribute('data-view', /ISOMETRIC · ORTHO/);
 
   const gizmoBox = await gizmo.boundingBox();
   const viewportBox = await page.locator('.viewport').boundingBox();

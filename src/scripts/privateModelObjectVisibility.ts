@@ -8,6 +8,7 @@ export type ObjectVisibilityNode = {
   isMesh?: boolean;
   isLine?: boolean;
   isLineSegments?: boolean;
+  isPoints?: boolean;
 };
 
 type VisibilityMaterial = {
@@ -42,10 +43,16 @@ export const hasVisibleMaterial = (
 export const createObjectVisibilityFilter = () => {
   const baseline = new Map<ObjectVisibilityNode, boolean>();
   let active = false;
+  let mode: 'none' | 'isolate' | 'hide' = 'none';
+  let target: ObjectVisibilityNode | null = null;
+  let isolateKeepVisible = new Set<ObjectVisibilityNode>();
 
   const reset = () => {
     baseline.clear();
     active = false;
+    mode = 'none';
+    target = null;
+    isolateKeepVisible = new Set<ObjectVisibilityNode>();
   };
 
   const capture = (root: ObjectVisibilityNode) => {
@@ -55,37 +62,81 @@ export const createObjectVisibilityFilter = () => {
       if (isObjectVisibilityRenderable(object)) baseline.set(object, object.visible);
     });
     active = true;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('ylis-object-visibility-filter', { detail: { active: true } }),
+      );
+    }
     return true;
   };
 
-  const isolate = (root: ObjectVisibilityNode, target: ObjectVisibilityNode) => {
-    capture(root);
-    const keepVisible = new Set<ObjectVisibilityNode>();
-    let current: ObjectVisibilityNode | null | undefined = target;
-    while (current && current !== root) {
-      keepVisible.add(current);
-      current = current.parent;
-    }
-    target.traverse((object) => keepVisible.add(object));
-
-    root.traverse((object) => {
-      if (!isObjectVisibilityRenderable(object)) return;
-      const baselineVisible = baseline.get(object) ?? object.visible;
-      object.visible = baselineVisible && keepVisible.has(object);
-    });
+  const overlayAllows = (object: ObjectVisibilityNode) => {
+    if (mode === 'isolate') return isolateKeepVisible.has(object);
+    if (mode === 'hide') return object !== target;
+    return true;
   };
 
-  const hide = (root: ObjectVisibilityNode, target: ObjectVisibilityNode) => {
+  const reapply = (root: ObjectVisibilityNode) => {
+    if (!active) return false;
+    root.traverse((object) => {
+      if (!isObjectVisibilityRenderable(object)) return;
+      const baseVisible = baseline.get(object) ?? object.visible;
+      object.visible = baseVisible && overlayAllows(object);
+    });
+    return true;
+  };
+
+  const setBaselineVisibility = (
+    object: ObjectVisibilityNode,
+    visible: boolean,
+  ) => {
+    if (!active || !baseline.has(object)) return false;
+    baseline.set(object, visible);
+    return true;
+  };
+
+  const isolate = (root: ObjectVisibilityNode, nextTarget: ObjectVisibilityNode) => {
     capture(root);
-    target.visible = false;
+    mode = 'isolate';
+    target = nextTarget;
+    isolateKeepVisible = new Set<ObjectVisibilityNode>();
+
+    let current: ObjectVisibilityNode | null | undefined = nextTarget;
+    while (current && current !== root) {
+      isolateKeepVisible.add(current);
+      current = current.parent;
+    }
+    nextTarget.traverse((object) => isolateKeepVisible.add(object));
+    reapply(root);
+  };
+
+  const hide = (root: ObjectVisibilityNode, nextTarget: ObjectVisibilityNode) => {
+    capture(root);
+    mode = 'hide';
+    target = nextTarget;
+    reapply(root);
   };
 
   const restore = () => {
     if (!active) return false;
     for (const [object, visible] of baseline.entries()) object.visible = visible;
     reset();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('ylis-object-visibility-filter', { detail: { active: false } }),
+      );
+    }
     return true;
   };
 
-  return { capture, hide, isolate, reset, restore };
+  return {
+    capture,
+    hide,
+    isolate,
+    isActive: () => active,
+    reapply,
+    reset,
+    restore,
+    setBaselineVisibility,
+  };
 };

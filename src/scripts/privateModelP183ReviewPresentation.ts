@@ -29,6 +29,10 @@ const isP183AuxiliaryFloorSurface = (object: any) => {
   return representationKind === 'referenceFootprint' || representationKind === 'stairHostFootprint';
 };
 
+const isP183AuxiliaryContextFloorSurface = (object: any) =>
+  isP183AuxiliaryFloorSurface(object) &&
+  String(object?.userData?.presentationLayer ?? '').toUpperCase() === 'REFERENCE_OTHER';
+
 const isP183AuxiliaryReviewLine = (object: any) => {
   if (!(object?.isLine || object?.isLineSegments)) return false;
   const metadata = object?.userData ?? {};
@@ -41,6 +45,50 @@ const isP183AuxiliaryReviewLine = (object: any) => {
     metadata.markerType === 'HORIZONTAL_ONLY_REFERENCE_AT_HOST_FLOOR' &&
     metadata.physicalDoorVoid === false;
   return isFootprintOutline || isFloorReferenceMarker;
+};
+
+const isP183AuxiliaryPreciseStairClearanceWorkShell = (object: any) => {
+  if (!object?.isMesh) return false;
+  const metadata = object?.userData ?? {};
+  const clearancePartRole = String(metadata.clearancePartRole ?? '').trim().toUpperCase();
+  return (
+    String(metadata.representationKind ?? '') ===
+      'presentationFloorWorkShellWithPreciseStairClearance' &&
+    (clearancePartRole === 'SOUTH' || clearancePartRole === 'NORTH') &&
+    metadata.ModelStage === 'WORK_TEST_GEOMETRY' &&
+    metadata.presentationWorkShellCutApplied === true &&
+    metadata.physicalOpeningClaim === false &&
+    metadata.physicalFloorShellCutApplied === false &&
+    metadata.physicalSlabThicknessClaim === false &&
+    metadata.physicalFloorBuildUpClaim === false &&
+    metadata.Canonical === false &&
+    metadata.publishToCURRENT === false &&
+    metadata.currentClaim === false &&
+    metadata.asBuiltClaim === false
+  );
+};
+
+const p183P178bStairLowWallG2Id = 'G2_WALL_LOW_D_2F_STAIR_001';
+
+const isP183AuxiliaryGuardLowWallClosureSurface = (object: any) => {
+  if (!object?.isMesh) return false;
+  const metadata = object?.userData ?? {};
+  const representationKind = String(metadata.representationKind ?? '');
+  const nonPhysicalJunction = metadata.physicalJunctionClaim === false;
+
+  const guardClosure =
+    representationKind === 'guardWorkEnvelopeClosure' &&
+    metadata.workAssumption === true &&
+    metadata.physicalGuardClaim === false &&
+    nonPhysicalJunction;
+
+  const lowWallClosure =
+    String(metadata.G2Id ?? '').trim().toUpperCase() === p183P178bStairLowWallG2Id &&
+    metadata.physicalWallClaim === false &&
+    metadata.physicalLowWallClaim === false &&
+    nonPhysicalJunction;
+
+  return guardClosure || lowWallClosure;
 };
 
 export type P183WallSemanticClass = 'EXTERIOR' | 'PARTY' | 'INTERIOR';
@@ -124,6 +172,8 @@ export const prepareP183P160ClosureReviewPresentation = (
       suppressedDuplicateContextCount: 0,
       hiddenAuxiliaryTargetCount: 0,
       hiddenAuxiliaryReviewLineCount: 0,
+      hiddenAuxiliaryGuardLowWallCount: 0,
+      hiddenAuxiliaryContextCount: 0,
       targetBounds: null,
     };
   }
@@ -136,6 +186,7 @@ export const prepareP183P160ClosureReviewPresentation = (
   let targetRenderableCount = 0;
   let hiddenAuxiliaryTargetCount = 0;
   let hiddenAuxiliaryReviewLineCount = 0;
+  let hiddenAuxiliaryGuardLowWallCount = 0;
   targetScene.traverse((object: any) => {
     if (!isRenderable(object)) return;
     const identity = renderableIdentity(object);
@@ -162,6 +213,30 @@ export const prepareP183P160ClosureReviewPresentation = (
         p183AuxiliaryReviewLineHidden: true,
       };
       hiddenAuxiliaryReviewLineCount += 1;
+      return;
+    }
+    if (isP183AuxiliaryPreciseStairClearanceWorkShell(object)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p183P160ClosurePresentation: true,
+        p183ReviewRole: 'AUXILIARY_STAIR_CLEARANCE_WORKSHELL_SUPPRESSED',
+        p183AuxiliaryPreciseStairClearanceWorkShellHidden: true,
+      };
+      hiddenAuxiliaryTargetCount += 1;
+      return;
+    }
+    if (isP183AuxiliaryGuardLowWallClosureSurface(object)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p183P160ClosurePresentation: true,
+        p183ReviewRole: 'AUXILIARY_GUARD_LOWWALL_CLOSURE_SUPPRESSED',
+        p183AuxiliaryGuardLowWallClosureHidden: true,
+      };
+      hiddenAuxiliaryGuardLowWallCount += 1;
       return;
     }
     cloneObjectMaterials(object, (material) => {
@@ -204,6 +279,7 @@ export const prepareP183P160ClosureReviewPresentation = (
   let contextRenderableCount = 0;
   let contextRenderOrderIndex = 0;
   let suppressedDuplicateContextCount = 0;
+  let hiddenAuxiliaryContextCount = 0;
   contextScene.traverse((object: any) => {
     if (!isRenderable(object)) return;
     const identity = renderableIdentity(object);
@@ -216,6 +292,20 @@ export const prepareP183P160ClosureReviewPresentation = (
         p183ReviewRole: 'DUPLICATE_TARGET_SUPPRESSED',
       };
       suppressedDuplicateContextCount += 1;
+      return;
+    }
+
+    if (isP183AuxiliaryContextFloorSurface(object)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        viewerSuppressEdgeOverlay: true,
+        p183P160ClosurePresentation: true,
+        p183ReviewRole: 'AUXILIARY_CONTEXT_FLOOR_SURFACE_SUPPRESSED',
+        p183AuxiliaryContextFloorSurfaceHidden: true,
+      };
+      hiddenAuxiliaryContextCount += 1;
       return;
     }
 
@@ -273,6 +363,8 @@ export const prepareP183P160ClosureReviewPresentation = (
     suppressedDuplicateContextCount,
     hiddenAuxiliaryTargetCount,
     hiddenAuxiliaryReviewLineCount,
+    hiddenAuxiliaryGuardLowWallCount,
+    hiddenAuxiliaryContextCount,
     targetBounds: hasTargetBounds ? targetBounds : null,
   };
 };

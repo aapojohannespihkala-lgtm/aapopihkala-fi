@@ -11,6 +11,7 @@ type SelectionPanelElements = {
   scene: HTMLElement;
   floor: HTMLElement;
   kind: HTMLElement;
+  physicalClaim: HTMLElement;
   metadataList: HTMLElement;
   metadataEmpty: HTMLElement;
 };
@@ -21,7 +22,67 @@ export type SelectionPanelContent = {
   scene: string;
   floor: string;
   kind: string;
+  physicalClaim: string;
   metadataEntries: SelectionMetadataEntry[];
+};
+
+const ensureSelectionTool = (canvas: HTMLElement) => {
+  const existing = document.querySelector<HTMLButtonElement>('#selection-tool-button');
+  if (existing) return existing;
+
+  const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
+  const toolbar = layersButton?.parentElement;
+  if (!layersButton || !toolbar) return null;
+
+  const button = document.createElement('button');
+  button.id = 'selection-tool-button';
+  button.type = 'button';
+  button.setAttribute('aria-label', 'Objektin valinta');
+  button.setAttribute('aria-pressed', 'false');
+  button.title = 'Valitse objekteja';
+
+  const icon = document.createElement('span');
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = '⌖';
+  button.append(icon, document.createTextNode(' Valitse'));
+  layersButton.insertAdjacentElement('afterend', button);
+
+  const setActive = (active: boolean) => {
+    canvas.dataset.interactionMode = active ? 'select' : 'navigate';
+    button.setAttribute('aria-pressed', String(active));
+    button.title = active ? 'Poista objektin valinta käytöstä' : 'Valitse objekteja';
+    button.style.fontWeight = active ? '750' : '';
+    button.style.boxShadow = active ? 'inset 0 -2px 0 currentColor' : '';
+    canvas.style.cursor = active ? 'crosshair' : '';
+  };
+
+  setActive(false);
+  button.addEventListener('click', () => {
+    setActive(button.getAttribute('aria-pressed') !== 'true');
+  });
+
+  window.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key === 'Escape' && button.getAttribute('aria-pressed') === 'true') {
+        setActive(false);
+      }
+    },
+    { capture: true },
+  );
+
+  const badge = document.querySelector<HTMLElement>('#model-source-badge');
+  if (badge) {
+    new MutationObserver(() => setActive(false)).observe(badge, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-kind'],
+    });
+  }
+
+  return button;
 };
 
 export const createSelectionPanelController = ({
@@ -32,9 +93,12 @@ export const createSelectionPanelController = ({
   scene,
   floor,
   kind,
+  physicalClaim,
   metadataList,
   metadataEmpty,
 }: SelectionPanelElements) => {
+  ensureSelectionTool(canvas);
+
   const clearMetadata = () => {
     metadataList.replaceChildren();
     metadataEmpty.hidden = false;
@@ -49,6 +113,7 @@ export const createSelectionPanelController = ({
     scene.textContent = '-';
     floor.textContent = '-';
     kind.textContent = '-';
+    physicalClaim.textContent = '-';
     clearMetadata();
   };
 
@@ -58,6 +123,7 @@ export const createSelectionPanelController = ({
     scene: sceneText,
     floor: floorText,
     kind: kindText,
+    physicalClaim: physicalClaimText,
     metadataEntries,
   }: SelectionPanelContent) => {
     mesh.textContent = meshText;
@@ -65,6 +131,7 @@ export const createSelectionPanelController = ({
     scene.textContent = sceneText;
     floor.textContent = floorText;
     kind.textContent = kindText;
+    physicalClaim.textContent = physicalClaimText;
 
     metadataList.replaceChildren();
     metadataEmpty.hidden = metadataEntries.length > 0;

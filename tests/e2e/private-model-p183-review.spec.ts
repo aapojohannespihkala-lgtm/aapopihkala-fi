@@ -19,6 +19,10 @@ import {
   resolveP183P160ClosureIntegrationRoot,
   resolveP183WallSemanticClass,
 } from '../../src/scripts/privateModelP183ReviewPresentation';
+import {
+  isEdgeMeshCandidate,
+  isSemanticViewerLine,
+} from '../../src/scripts/privateModelEdgeVisibility';
 import { THREE } from '../../src/scripts/threeRuntime';
 
 test('P183 review alias resolves to the exact P178B survivor', () => {
@@ -71,6 +75,7 @@ test('P183 P160 closure review presents D architecture at 80 percent and unique 
   expect(presentation.targetRenderableCount).toBe(2);
   expect(presentation.contextRenderableCount).toBe(1);
   expect(presentation.suppressedDuplicateContextCount).toBe(1);
+  expect(presentation.hiddenAuxiliaryContextCount).toBe(0);
   expect(presentation.targetBounds).not.toBeNull();
 
   const targetClone = presentation.composite!.children[1]?.getObjectByName('D_WALL_TARGET');
@@ -253,6 +258,96 @@ test('P183 suppresses legacy D floor helper footprints without changing real tar
 });
 
 
+test('P183 suppresses REFERENCE_OTHER floor helpers from context and edge overlay', () => {
+  const fullScene = new THREE.Group();
+  const dScene = new THREE.Group();
+
+  const makeContextMesh = (
+    name: string,
+    userData: Record<string, unknown>,
+  ) => {
+    const material = new THREE.MeshBasicMaterial({ color: 0xd0d3d4, opacity: 0.58 });
+    material.userData = { presentationGroup: 'ARCH_BASE' };
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+    mesh.name = name;
+    mesh.userData = userData;
+    return mesh;
+  };
+
+  const referenceFootprint = makeContextMesh('A_REFERENCE_FOOTPRINT', {
+    presentationOnly: true,
+    presentationLayer: 'REFERENCE_OTHER',
+    representationKind: 'referenceFootprint',
+  });
+  const stairHostFootprint = makeContextMesh('B_STAIR_HOST_FOOTPRINT', {
+    presentationOnly: true,
+    presentationLayer: 'REFERENCE_OTHER',
+    representationKind: 'stairHostFootprint',
+  });
+  const physicalContext = makeContextMesh('C_PHYSICAL_CONTEXT', {
+    presentationOnly: true,
+    presentationLayer: 'REFERENCE_OTHER',
+    representationKind: 'wallThicknessSolid',
+    physicalThicknessClaim: true,
+  });
+  fullScene.add(referenceFootprint, stairHostFootprint, physicalContext);
+
+  const targetWall = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshBasicMaterial({ color: 0x88aa99 }),
+  );
+  targetWall.name = 'D_TARGET_WALL';
+  dScene.add(targetWall);
+
+  const presentation = prepareP183P160ClosureReviewPresentation(fullScene, dScene);
+  const context = presentation.composite!.children[0];
+  const referenceClone = context.getObjectByName('A_REFERENCE_FOOTPRINT') as any;
+  const stairClone = context.getObjectByName('B_STAIR_HOST_FOOTPRINT') as any;
+  const physicalClone = context.getObjectByName('C_PHYSICAL_CONTEXT') as any;
+
+  expect(presentation.hiddenAuxiliaryContextCount).toBe(2);
+  for (const helper of [referenceClone, stairClone]) {
+    expect(helper.visible).toBe(false);
+    expect(helper.userData.p183AuxiliaryContextFloorSurfaceHidden).toBe(true);
+    expect(helper.userData.viewerSuppressEdgeOverlay).toBe(true);
+    expect(helper.userData.p183ReviewRole).toBe(
+      'AUXILIARY_CONTEXT_FLOOR_SURFACE_SUPPRESSED',
+    );
+  }
+
+  expect(physicalClone.visible).toBe(true);
+  expect(physicalClone.material.opacity).toBe(p183P160ClosureContextOpacity);
+  expect(physicalClone.userData.viewerSuppressEdgeOverlay).toBeUndefined();
+
+  referenceClone.visible = true;
+  expect(
+    isEdgeMeshCandidate(referenceClone, {
+      modelRoot: presentation.composite!,
+      routePresentationLayers: new Set<string>(),
+      isRoofLayerMember: () => false,
+      isArchBaseMaterial: (material) =>
+        material?.userData?.presentationGroup === 'ARCH_BASE',
+    }),
+  ).toBe(false);
+  referenceClone.visible = false;
+
+  expect(
+    isEdgeMeshCandidate(physicalClone, {
+      modelRoot: presentation.composite!,
+      routePresentationLayers: new Set<string>(),
+      isRoofLayerMember: () => false,
+      isArchBaseMaterial: (material) =>
+        material?.userData?.presentationGroup === 'ARCH_BASE',
+    }),
+  ).toBe(true);
+
+  expect(referenceFootprint.visible).toBe(true);
+  expect(referenceFootprint.userData.viewerSuppressEdgeOverlay).toBeUndefined();
+  expect(stairHostFootprint.visible).toBe(true);
+  expect(stairHostFootprint.userData.viewerSuppressEdgeOverlay).toBeUndefined();
+});
+
+
 test('P183 hides only metadata-confirmed residual helper lines', () => {
   const fullScene = new THREE.Group();
   const dScene = new THREE.Group();
@@ -299,4 +394,148 @@ test('P183 hides only metadata-confirmed residual helper lines', () => {
   expect(target.getObjectByName('OPENING_REFERENCE')!.visible).toBe(true);
   expect(outline.visible).toBe(true);
   expect(marker.visible).toBe(true);
+});
+
+
+test('P183 edge classification keeps metadata-confirmed 0.1 m cartography lines semantic without name heuristics', () => {
+  const makeLine = (userData: Record<string, unknown>) => {
+    const geometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(1, 0, 0),
+    ]);
+    const line = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial());
+    line.name = 'P143G_CARTO_MINOR_0P1M_LINES';
+    line.userData = userData;
+    return line;
+  };
+
+  const minorContour = makeLine({
+    cartographyClass: 'minor',
+    intervalM: 0.1,
+  });
+  const incompleteCartography = makeLine({
+    cartographyClass: 'minor',
+  });
+
+  expect(isSemanticViewerLine(minorContour)).toBe(true);
+  expect(isSemanticViewerLine(incompleteCartography)).toBe(false);
+});
+
+test('P183 normal review suppresses non-physical P178B guard and stair lowWall closure helpers only', () => {
+  const fullScene = new THREE.Group();
+  const dScene = new THREE.Group();
+
+  const makeMesh = (name: string, userData: Record<string, unknown>) => {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial({ color: 0xbba56c }),
+    );
+    mesh.name = name;
+    mesh.userData = userData;
+    return mesh;
+  };
+
+  const guardMetadata = {
+    representationKind: 'guardWorkEnvelopeClosure',
+    workAssumption: true,
+    physicalGuardClaim: false,
+    physicalJunctionClaim: false,
+    Canonical: false,
+    publishToCURRENT: false,
+  };
+  const lowWallMetadata = {
+    G2Id: 'G2_WALL_LOW_D_2F_STAIR_001',
+    physicalWallClaim: false,
+    physicalLowWallClaim: false,
+    physicalJunctionClaim: false,
+    Canonical: false,
+    publishToCURRENT: false,
+  };
+
+  const guard = makeMesh('P178B_GUARD_CLOSURE_TEST', guardMetadata);
+  const lowWall = makeMesh('P178B_LOWWALL_CLOSURE_TEST', lowWallMetadata);
+  const physicalLowWall = makeMesh('P178B_LOWWALL_PHYSICAL_CONTEXT', {
+    G2Id: 'G2_WALL_LOW_D_2F_STAIR_001',
+    physicalWallClaim: true,
+    physicalLowWallClaim: true,
+    physicalJunctionClaim: true,
+  });
+  dScene.add(guard, lowWall, physicalLowWall);
+
+  fullScene.add(
+    makeMesh('P178B_GUARD_CLOSURE_TEST', guardMetadata),
+    makeMesh('P178B_LOWWALL_CLOSURE_TEST', lowWallMetadata),
+  );
+
+  const presentation = prepareP183P160ClosureReviewPresentation(fullScene, dScene);
+  const context = presentation.composite!.children[0];
+  const target = presentation.composite!.children[1];
+
+  expect(presentation.hiddenAuxiliaryGuardLowWallCount).toBe(2);
+  expect(target.getObjectByName('P178B_GUARD_CLOSURE_TEST')!.visible).toBe(false);
+  expect(target.getObjectByName('P178B_GUARD_CLOSURE_TEST')!.userData.p183ReviewRole).toBe(
+    'AUXILIARY_GUARD_LOWWALL_CLOSURE_SUPPRESSED',
+  );
+  expect(target.getObjectByName('P178B_LOWWALL_CLOSURE_TEST')!.visible).toBe(false);
+  expect(target.getObjectByName('P178B_LOWWALL_PHYSICAL_CONTEXT')!.visible).toBe(true);
+  expect(context.getObjectByName('P178B_GUARD_CLOSURE_TEST')!.visible).toBe(false);
+  expect(context.getObjectByName('P178B_LOWWALL_CLOSURE_TEST')!.visible).toBe(false);
+
+  expect(guard.visible).toBe(true);
+  expect(lowWall.visible).toBe(true);
+});
+
+test('P183 normal review suppresses only non-physical south and north precise stair clearance workshells', () => {
+  const fullScene = new THREE.Group();
+  const dScene = new THREE.Group();
+
+  const makeMesh = (name: string, userData: Record<string, unknown>) => {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial({ color: 0xbba56c }),
+    );
+    mesh.name = name;
+    mesh.userData = userData;
+    return mesh;
+  };
+
+  const baseMetadata = {
+    Pass: 'P167F',
+    ModelStage: 'WORK_TEST_GEOMETRY',
+    Canonical: false,
+    publishToCURRENT: false,
+    representationKind: 'presentationFloorWorkShellWithPreciseStairClearance',
+    presentationWorkShellCutApplied: true,
+    physicalOpeningClaim: false,
+    physicalFloorShellCutApplied: false,
+    physicalSlabThicknessClaim: false,
+    physicalFloorBuildUpClaim: false,
+    currentClaim: false,
+    asBuiltClaim: false,
+  };
+
+  const south = makeMesh('SOUTH_TEST', { ...baseMetadata, clearancePartRole: 'SOUTH' });
+  const north = makeMesh('NORTH_TEST', { ...baseMetadata, clearancePartRole: 'NORTH' });
+  const west = makeMesh('WEST_TEST', { ...baseMetadata, clearancePartRole: 'WEST' });
+  const east = makeMesh('EAST_TEST', { ...baseMetadata, clearancePartRole: 'EAST' });
+  const sourceSouth = south;
+  const sourceNorth = north;
+  dScene.add(south, north, west, east);
+
+  const presentation = prepareP183P160ClosureReviewPresentation(fullScene, dScene);
+  const target = presentation.composite!.children[1];
+
+  expect(presentation.hiddenAuxiliaryTargetCount).toBe(2);
+  expect(target.getObjectByName('SOUTH_TEST')!.visible).toBe(false);
+  expect(target.getObjectByName('NORTH_TEST')!.visible).toBe(false);
+  expect(target.getObjectByName('SOUTH_TEST')!.userData.p183ReviewRole).toBe(
+    'AUXILIARY_STAIR_CLEARANCE_WORKSHELL_SUPPRESSED',
+  );
+  expect(target.getObjectByName('NORTH_TEST')!.userData.p183ReviewRole).toBe(
+    'AUXILIARY_STAIR_CLEARANCE_WORKSHELL_SUPPRESSED',
+  );
+  expect(target.getObjectByName('WEST_TEST')!.visible).toBe(true);
+  expect(target.getObjectByName('EAST_TEST')!.visible).toBe(true);
+  expect(sourceSouth.visible).toBe(true);
+  expect(sourceNorth.visible).toBe(true);
 });
