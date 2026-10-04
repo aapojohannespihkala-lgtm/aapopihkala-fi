@@ -114,3 +114,26 @@ test('toolbar menus dismiss with Escape and outside pointer interaction', async 
   await page.locator('.title').click();
   await expect(presetMenu).not.toHaveAttribute('open', '');
 });
+
+test('Layerit panel dismisses with Escape and close button while returning focus', async ({ page }) => {
+  await stubViewerData(page);
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto('/private-model/');
+
+  const layersButton = page.locator('#layers-button');
+  const layersPanel = page.locator('#layers-panel');
+  const closeLayersButton = page.locator('#close-layers-button');
+
+  await layersButton.click();
+  await expect(layersPanel).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(layersPanel).toBeHidden();
+  await expect(layersButton).toBeFocused();
+
+  await layersButton.click();
+  await expect(layersPanel).toBeVisible();
+  await closeLayersButton.click();
+  await expect(layersPanel).toBeHidden();
+  await expect(layersButton).toBeFocused();
+});
+
