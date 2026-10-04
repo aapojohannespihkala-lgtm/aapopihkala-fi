@@ -176,3 +176,59 @@ test('P183 P160 closure review keeps transparent D interior above support with d
     expect(object.material.depthWrite).toBe(false);
   });
 });
+
+
+test('P183 suppresses legacy D floor helper footprints without changing real target styling', () => {
+  const fullScene = new THREE.Group();
+  const dScene = new THREE.Group();
+
+  const helper = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    new THREE.MeshBasicMaterial({
+      color: 0x2eae6b,
+      transparent: true,
+      opacity: 0.12,
+    }),
+  );
+  helper.name = 'D_LEGACY_REFERENCE_FLOOR';
+  helper.userData = { representationKind: 'referenceFootprint' };
+
+  const stairHelper = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    new THREE.MeshBasicMaterial({
+      color: 0x2eae6b,
+      transparent: true,
+      opacity: 0.16,
+    }),
+  );
+  stairHelper.name = 'D_STAIR_HOST_FOOTPRINT';
+  stairHelper.userData = { representationKind: 'stairHostFootprint' };
+
+  const wall = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshBasicMaterial({ color: 0x00aa44, opacity: 1 }),
+  );
+  wall.name = 'D_WALL_TARGET';
+  dScene.add(helper, stairHelper, wall);
+
+  const presentation = prepareP183P160ClosureReviewPresentation(fullScene, dScene);
+  const targetCloneRoot = presentation.composite!.children[1];
+  const helperClone = targetCloneRoot.getObjectByName('D_LEGACY_REFERENCE_FLOOR') as any;
+  const stairHelperClone = targetCloneRoot.getObjectByName('D_STAIR_HOST_FOOTPRINT') as any;
+  const wallClone = targetCloneRoot.getObjectByName('D_WALL_TARGET') as any;
+
+  expect(presentation.hiddenAuxiliaryTargetCount).toBe(2);
+  expect(presentation.targetRenderableCount).toBe(1);
+  expect(helperClone.visible).toBe(false);
+  expect(helperClone.userData.p183AuxiliaryFloorSurfaceHidden).toBe(true);
+  expect(helperClone.userData.p183ReviewRole).toBe('AUXILIARY_FLOOR_SURFACE_SUPPRESSED');
+  expect(stairHelperClone.visible).toBe(false);
+  expect(stairHelperClone.userData.p183AuxiliaryFloorSurfaceHidden).toBe(true);
+  expect(wallClone.visible).toBe(true);
+  expect(wallClone.material.opacity).toBe(p183P160ClosureTargetOpacity);
+
+  expect(helper.visible).toBe(true);
+  expect((helper.material as any).opacity).toBe(0.12);
+  expect(stairHelper.visible).toBe(true);
+  expect((stairHelper.material as any).opacity).toBe(0.16);
+});
