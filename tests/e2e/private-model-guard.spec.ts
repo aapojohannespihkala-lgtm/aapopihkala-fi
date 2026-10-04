@@ -35,6 +35,11 @@ import {
   prepareP171Q1WorkShellPresentation,
   prepareP172bDOverviewPresentation,
 } from '../../src/scripts/privateModelDOverviewPresentation';
+import {
+  p181GroundContactReviewContextOpacity,
+  p181GroundContactReviewTargetOpacity,
+  prepareP181GroundContactReviewPresentation,
+} from '../../src/scripts/privateModelP181ReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
 import {
   isObjectVisibilityRenderable,
@@ -89,6 +94,65 @@ test('private viewer visible bounds helper preserves mesh filtering and optional
   hiddenOnlyMesh.visible = false;
   hiddenOnlyRoot.add(hiddenOnlyMesh);
   expect(computeVisibleBounds(hiddenOnlyRoot)).toBeNull();
+});
+
+test('private viewer P181 review presents three storage substructure targets at 80 percent with 20 percent context', () => {
+  const root = new THREE.Group();
+  const originalMaterials: any[] = [];
+
+  const addMesh = (name: string, x: number, userData: Record<string, unknown>) => {
+    const material = new THREE.MeshBasicMaterial({ color: 0x8f989e, opacity: 1 });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
+    mesh.name = name;
+    mesh.position.x = x;
+    mesh.userData = userData;
+    root.add(mesh);
+    originalMaterials.push(material);
+    return mesh;
+  };
+
+  const targets = [
+    addMesh('P181_C_TARGET', 0, {
+      Pass: 'P181B-R1',
+      representationKind: 'acStorageSubstructurePositiveVolumeWorkEnvelope',
+      unit: 'C',
+    }),
+    addMesh('P181_B_TARGET', 4, {
+      Pass: 'P181B-R1',
+      representationKind: 'acStorageSubstructurePositiveVolumeWorkEnvelope',
+      unit: 'B',
+    }),
+    addMesh('P181_A_TARGET', 8, {
+      Pass: 'P181B-R1',
+      representationKind: 'acStorageSubstructurePositiveVolumeWorkEnvelope',
+      unit: 'A',
+    }),
+  ];
+  const terrain = addMesh('P181_TERRAIN_CONTEXT', 4, {
+    Pass: 'P181B-R1',
+    representationKind: 'presentationNearBuildingTerrainWithACStorageContactCuts',
+  });
+  const building = addMesh('P178_BUILDING_CONTEXT', 4, { Pass: 'P178B' });
+
+  const presentation = prepareP181GroundContactReviewPresentation(root);
+
+  expect(presentation.targetRenderableCount).toBe(3);
+  expect(presentation.contextRenderableCount).toBe(2);
+  expect(presentation.terrainContextRenderableCount).toBe(1);
+  expect(presentation.targetBounds).not.toBeNull();
+  expect(presentation.targetBounds!.min.x).toBeCloseTo(-0.5);
+  expect(presentation.targetBounds!.max.x).toBeCloseTo(8.5);
+
+  for (const target of targets) {
+    expect(target.material).not.toBe(originalMaterials.shift());
+    expect((target.material as any).opacity).toBe(p181GroundContactReviewTargetOpacity);
+    expect((target.material as any).userData.p181PresentationRole).toBe('QUESTION_TARGET_80');
+    expect(target.userData.p181ReviewRole).toBe('QUESTION_TARGET_80');
+  }
+  expect((terrain.material as any).opacity).toBe(p181GroundContactReviewContextOpacity);
+  expect((building.material as any).opacity).toBe(p181GroundContactReviewContextOpacity);
+  expect((terrain.material as any).userData.p181PresentationRole).toBe('QUESTION_CONTEXT_20');
+  expect((building.material as any).userData.p181PresentationRole).toBe('QUESTION_CONTEXT_20');
 });
 
 test('private viewer P160 review hides auxiliary footprints and renders exactly two unified warm floors', () => {
@@ -4987,8 +5051,31 @@ test('private viewer autoloads exact P178B stair guard/lowWall junction closure'
   const candidateModel = makeMinimalGlb({
     asset: { version: '2.0' },
     scene: 0,
-    scenes: [{ name: 'P178B D STAIR GUARD LOWWALL VISIBLE JUNCTION CLOSURE - WORK_TEST', nodes: [] }],
-    nodes: [],
+    scenes: [
+      {
+        name: 'P178B D STAIR GUARD LOWWALL VISIBLE JUNCTION CLOSURE - WORK_TEST',
+        nodes: [0, 1],
+      },
+      {
+        name: 'D CURRENT INTERIOR - BABYLON Y-UP',
+        nodes: [3],
+      },
+    ],
+    nodes: [
+      {
+        name: 'P167F_FLOOR_INTERFLOOR_WORKSHELL_WITH_PRECISE_STAIR_CLEARANCE_ROOT_BABYLON_Y_UP',
+      },
+      {
+        name: 'P167F_D_PRECISE_STAIR_REBASE_INTEGRATION_ROOT_WORK_TEST',
+        children: [2],
+      },
+      {
+        name: 'P167D_D_PRECISE_STAIR_SOURCE_PLAN_ROOT_BABYLON_Y_UP',
+      },
+      {
+        name: 'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP',
+      },
+    ],
   });
   const candidateId = 'p178b-d-stair-guard-lowwall-junction-closure';
   const candidateLabel = 'P178B D stair guard/lowWall visible junction closure - WORK_TEST';
@@ -5038,6 +5125,10 @@ test('private viewer autoloads exact P178B stair guard/lowWall junction closure'
   await expect(canvas).toHaveAttribute('data-p178-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-p178-human-review-inherited', 'false');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-composite', 'true');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-supplement-count', '2');
+  await expect(canvas).toHaveAttribute('data-p167-d-overview-precise-stair-present', 'true');
   await expect(page.locator('#locus-layer-label')).toHaveText(
     'P178B D stair guard/lowWall junction closure (WORK_TEST / visible gap 0,000 m)',
   );
@@ -5053,25 +5144,18 @@ test('private viewer autoloads exact P181B-R1 A-C storage ground-contact/substru
     scenes: [{ name: 'CURRENT ROOT', nodes: [] }],
     nodes: [],
   });
-  const candidateModel = makeMinimalGlb({
-    asset: { version: '2.0' },
-    scene: 0,
-    scenes: [{
-      name: 'P181B-R1 A-C STORAGE GROUND-CONTACT / SUBSTRUCTURE + TERRAIN REBASE WORK_TEST',
-      nodes: [],
-      extras: {
-        Pass: 'P181B-R1',
-        storageContactCoverage: '3/3',
-        workDepthM: 0.6,
-        currentClaim: false,
-        asBuiltClaim: false,
-        Canonical: false,
-        publishToCURRENT: false,
-        humanReview: 'NOT_RUN',
-      },
-    }],
-    nodes: [],
-  });
+  const candidateModel = makeTriangleGlb(
+    {
+      Pass: 'P181B-R1',
+      representationKind: 'acStorageSubstructurePositiveVolumeWorkEnvelope',
+      unit: 'C',
+      workDepthM: 0.6,
+      depthStatus: 'PROPAGATED_REFINABLE_WORK_ASSUMPTION_FROM_P150D',
+      physicalFoundationClaim: false,
+      physicalGroundContactClaim: false,
+    },
+    { presentationGroup: 'ARCH_BASE' },
+  );
   const candidateId = 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase';
   const candidateLabel = 'P181B-R1 A-C storage ground-contact/substructure + terrain rebase - WORK_TEST';
   const candidatePath = '/private-model/work-test/p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase.glb';
@@ -5117,6 +5201,17 @@ test('private viewer autoloads exact P181B-R1 A-C storage ground-contact/substru
   await expect(canvas).toHaveAttribute('data-p181-canonical', 'false');
   await expect(canvas).toHaveAttribute('data-p181-publish-to-current', 'false');
   await expect(canvas).toHaveAttribute('data-p181-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute(
+    'data-p181-review-question',
+    'A_C_STORAGE_GROUND_CONTACT_SUBSTRUCTURE_TERRAIN_RELATION',
+  );
+  await expect(canvas).toHaveAttribute('data-p181-review-target-opacity', '0.80');
+  await expect(canvas).toHaveAttribute('data-p181-review-context-opacity', '0.20');
+  await expect(canvas).toHaveAttribute('data-p181-review-target-renderable-count', '1');
+  await expect(canvas).toHaveAttribute('data-p181-review-camera-focus-applied', 'true');
+  await expect(canvas).toHaveAttribute('data-p181-review-camera-mode', 'PERSPECTIVE_FREE_ORBIT');
+  await expect(canvas).toHaveAttribute('data-p181-review-physical-depth-claim', 'false');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'orbit');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
   await expect(page.locator('#locus-layer-label')).toHaveText(
     'P181B-R1 A-C storage ground-contact/substructure + terrain rebase (WORK_TEST / 3/3)',
