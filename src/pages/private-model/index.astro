@@ -1473,16 +1473,18 @@ const title = 'Private 3D viewer';
             <button id="clear-selection-button" type="button">Tyhjennä</button>
           </div>
           <dl class="selection-grid">
-            <dt>Kohde</dt>
+            <dt>Rakennusosa / esitys</dt>
             <dd id="selection-mesh">-</dd>
-            <dt>Ryhmä</dt>
+            <dt>Luokka</dt>
             <dd id="selection-group">-</dd>
-            <dt>Scene</dt>
+            <dt>Esitystapa</dt>
             <dd id="selection-scene">-</dd>
             <dt>Kerros</dt>
             <dd id="selection-floor">-</dd>
-            <dt>Tyyppi</dt>
+            <dt>Tila</dt>
             <dd id="selection-kind">-</dd>
+            <dt>Fyysinen väite</dt>
+            <dd id="selection-physical-claim">-</dd>
           </dl>
           <details class="selection-metadata">
             <summary>Metadata</summary>
@@ -1569,6 +1571,7 @@ const title = 'Private 3D viewer';
       import {
         explicitFloorToken,
         findSourceNamedScene,
+        resolveArchitecturalSemanticDescriptor,
         hasFloorToken,
         normalizeSceneName,
         semanticName,
@@ -1734,6 +1737,7 @@ const title = 'Private 3D viewer';
       const selectionScene = document.querySelector<HTMLElement>('#selection-scene');
       const selectionFloor = document.querySelector<HTMLElement>('#selection-floor');
       const selectionKind = document.querySelector<HTMLElement>('#selection-kind');
+      const selectionPhysicalClaim = document.querySelector<HTMLElement>('#selection-physical-claim');
       const selectionMetadataList = document.querySelector<HTMLElement>('#selection-metadata-list');
       const selectionMetadataEmpty = document.querySelector<HTMLElement>('#selection-metadata-empty');
       const clearSelectionButton = document.querySelector<HTMLButtonElement>('#clear-selection-button');
@@ -1827,6 +1831,7 @@ const title = 'Private 3D viewer';
         !selectionScene ||
         !selectionFloor ||
         !selectionKind ||
+        !selectionPhysicalClaim ||
         !selectionMetadataList ||
         !selectionMetadataEmpty ||
         !clearSelectionButton ||
@@ -1848,6 +1853,7 @@ const title = 'Private 3D viewer';
         scene: selectionScene,
         floor: selectionFloor,
         kind: selectionKind,
+        physicalClaim: selectionPhysicalClaim,
         metadataList: selectionMetadataList,
         metadataEmpty: selectionMetadataEmpty,
       });
@@ -3305,20 +3311,34 @@ const title = 'Private 3D viewer';
       const selectObject = (object: any) => {
         clearSelection();
 
+        const groupName = nearestNamedAncestor(object, modelRoot) || '-';
+        const sceneName =
+          sceneNameForObject(
+            object,
+            modelRoot,
+            sourceSceneNames,
+            activePlanFloor ? dInteriorScene : fullModelScene,
+          ) || '-';
+        const renderKind = selectionKindLabel(object);
+        const semantics = resolveArchitecturalSemanticDescriptor(object, modelRoot);
+        const technicalMetadata: Array<readonly [string, string]> = [];
+        if (object.name) technicalMetadata.push(['Tekninen kohde', String(object.name)]);
+        if (groupName !== '-') technicalMetadata.push(['Tekninen ryhmä', groupName]);
+        if (sceneName !== '-') technicalMetadata.push(['Tekninen scene', sceneName]);
+        if (renderKind !== '-') technicalMetadata.push(['Renderöintityyppi', renderKind]);
+
         selectedObject = object;
         selectionPanelController.render({
-          mesh: object.name ? String(object.name) : '(nimetön kohde)',
-          group: nearestNamedAncestor(object, modelRoot) || '-',
-          scene:
-            sceneNameForObject(
-              object,
-              modelRoot,
-              sourceSceneNames,
-              activePlanFloor ? dInteriorScene : fullModelScene,
-            ) || '-',
-          floor: explicitFloorToken(object),
-          kind: selectionKindLabel(object),
-          metadataEntries: collectSelectionMetadataEntries(object, modelRoot),
+          mesh: semantics.labelFi,
+          group: semantics.classLabelFi,
+          scene: semantics.representationLabelFi,
+          floor: semantics.storey,
+          kind: semantics.statusLabelFi,
+          physicalClaim: semantics.physicalClaimLabelFi,
+          metadataEntries: [
+            ...technicalMetadata,
+            ...collectSelectionMetadataEntries(object, modelRoot),
+          ],
         });
 
         selectionHighlightController.select(object);

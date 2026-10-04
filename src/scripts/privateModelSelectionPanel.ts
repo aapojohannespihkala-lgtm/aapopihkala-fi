@@ -11,6 +11,7 @@ type SelectionPanelElements = {
   scene: HTMLElement;
   floor: HTMLElement;
   kind: HTMLElement;
+  physicalClaim: HTMLElement;
   metadataList: HTMLElement;
   metadataEmpty: HTMLElement;
 };
@@ -21,6 +22,7 @@ export type SelectionPanelContent = {
   scene: string;
   floor: string;
   kind: string;
+  physicalClaim: string;
   metadataEntries: SelectionMetadataEntry[];
 };
 
@@ -32,6 +34,7 @@ export const createSelectionPanelController = ({
   scene,
   floor,
   kind,
+  physicalClaim,
   metadataList,
   metadataEmpty,
 }: SelectionPanelElements) => {
@@ -49,6 +52,7 @@ export const createSelectionPanelController = ({
     scene.textContent = '-';
     floor.textContent = '-';
     kind.textContent = '-';
+    physicalClaim.textContent = '-';
     clearMetadata();
   };
 
@@ -58,6 +62,7 @@ export const createSelectionPanelController = ({
     scene: sceneText,
     floor: floorText,
     kind: kindText,
+    physicalClaim: physicalClaimText,
     metadataEntries,
   }: SelectionPanelContent) => {
     mesh.textContent = meshText;
@@ -65,6 +70,7 @@ export const createSelectionPanelController = ({
     scene.textContent = sceneText;
     floor.textContent = floorText;
     kind.textContent = kindText;
+    physicalClaim.textContent = physicalClaimText;
 
     metadataList.replaceChildren();
     metadataEmpty.hidden = metadataEntries.length > 0;
