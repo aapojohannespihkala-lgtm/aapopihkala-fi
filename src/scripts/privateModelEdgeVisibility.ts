@@ -32,6 +32,16 @@ export const isSemanticViewerLine = (object: any) => {
   if (data.presentationSubgroup) return true;
   if (data.markerType) return true;
 
+  const cartographyClass = String(data.cartographyClass ?? '').trim().toUpperCase();
+  const intervalM = Number(data.intervalM);
+  if (
+    ['MAJOR', 'HALF', 'MINOR'].includes(cartographyClass) &&
+    Number.isFinite(intervalM) &&
+    intervalM > 0
+  ) {
+    return true;
+  }
+
   const semantic = [
     object?.name,
     data.representationKind,
