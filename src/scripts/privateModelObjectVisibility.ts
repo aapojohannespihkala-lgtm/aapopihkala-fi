@@ -15,6 +15,14 @@ type VisibilityMaterial = {
   opacity?: number;
 };
 
+type VisibilitySnapshot = {
+  hidden: Set<ObjectVisibilityNode>;
+  isolateKeepVisible: Set<ObjectVisibilityNode> | null;
+  isolateReturnHidden: Set<ObjectVisibilityNode> | null;
+};
+
+const VISIBILITY_HISTORY_LIMIT = 32;
+
 export const isEffectivelyVisible = (
   object: ObjectVisibilityNode | null | undefined,
   modelRoot: ObjectVisibilityNode,
@@ -42,17 +50,52 @@ export const hasVisibleMaterial = (
 
 export const createObjectVisibilityFilter = () => {
   const baseline = new Map<ObjectVisibilityNode, boolean>();
+  const history: VisibilitySnapshot[] = [];
   let active = false;
-  let mode: 'none' | 'isolate' | 'hide' = 'none';
-  let target: ObjectVisibilityNode | null = null;
-  let isolateKeepVisible = new Set<ObjectVisibilityNode>();
+  let capturedRoot: ObjectVisibilityNode | null = null;
+  let hidden = new Set<ObjectVisibilityNode>();
+  let isolateKeepVisible: Set<ObjectVisibilityNode> | null = null;
+  let isolateReturnHidden: Set<ObjectVisibilityNode> | null = null;
 
-  const reset = () => {
-    baseline.clear();
-    active = false;
-    mode = 'none';
-    target = null;
-    isolateKeepVisible = new Set<ObjectVisibilityNode>();
+  const snapshot = (): VisibilitySnapshot => ({
+    hidden: new Set(hidden),
+    isolateKeepVisible: isolateKeepVisible ? new Set(isolateKeepVisible) : null,
+    isolateReturnHidden: isolateReturnHidden ? new Set(isolateReturnHidden) : null,
+  });
+
+  const dispatchState = () => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(
+      new CustomEvent('ylis-object-visibility-filter', {
+        detail: {
+          active,
+          hiddenCount: hidden.size,
+          isolating: isolateKeepVisible !== null,
+          canUndo: history.length > 0,
+        },
+      }),
+    );
+  };
+
+  const pushHistory = () => {
+    history.push(snapshot());
+    if (history.length > VISIBILITY_HISTORY_LIMIT) history.shift();
+  };
+
+  const overlayAllows = (object: ObjectVisibilityNode) => {
+    if (hidden.has(object)) return false;
+    if (isolateKeepVisible) return isolateKeepVisible.has(object);
+    return true;
+  };
+
+  const reapply = (root: ObjectVisibilityNode = capturedRoot as ObjectVisibilityNode) => {
+    if (!active || !root) return false;
+    root.traverse((object) => {
+      if (!isObjectVisibilityRenderable(object)) return;
+      const baseVisible = baseline.get(object) ?? object.visible;
+      object.visible = baseVisible && overlayAllows(object);
+    });
+    return true;
   };
 
   const capture = (root: ObjectVisibilityNode) => {
@@ -62,28 +105,21 @@ export const createObjectVisibilityFilter = () => {
       if (isObjectVisibilityRenderable(object)) baseline.set(object, object.visible);
     });
     active = true;
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('ylis-object-visibility-filter', { detail: { active: true } }),
-      );
-    }
+    capturedRoot = root;
+    dispatchState();
     return true;
   };
 
-  const overlayAllows = (object: ObjectVisibilityNode) => {
-    if (mode === 'isolate') return isolateKeepVisible.has(object);
-    if (mode === 'hide') return object !== target;
-    return true;
-  };
-
-  const reapply = (root: ObjectVisibilityNode) => {
-    if (!active) return false;
-    root.traverse((object) => {
-      if (!isObjectVisibilityRenderable(object)) return;
-      const baseVisible = baseline.get(object) ?? object.visible;
-      object.visible = baseVisible && overlayAllows(object);
-    });
-    return true;
+  const reset = () => {
+    const wasActive = active;
+    baseline.clear();
+    history.length = 0;
+    hidden.clear();
+    isolateKeepVisible = null;
+    isolateReturnHidden = null;
+    capturedRoot = null;
+    active = false;
+    if (wasActive) dispatchState();
   };
 
   const setBaselineVisibility = (
@@ -92,13 +128,33 @@ export const createObjectVisibilityFilter = () => {
   ) => {
     if (!active || !baseline.has(object)) return false;
     baseline.set(object, visible);
+    if (capturedRoot) reapply(capturedRoot);
+    return true;
+  };
+
+  const hide = (root: ObjectVisibilityNode, nextTarget: ObjectVisibilityNode) => {
+    capture(root);
+    if (hidden.has(nextTarget)) return false;
+    pushHistory();
+    hidden.add(nextTarget);
+    reapply(root);
+    dispatchState();
+    return true;
+  };
+
+  const show = (root: ObjectVisibilityNode, nextTarget: ObjectVisibilityNode) => {
+    if (!active || !hidden.has(nextTarget)) return false;
+    pushHistory();
+    hidden.delete(nextTarget);
+    reapply(root);
+    dispatchState();
     return true;
   };
 
   const isolate = (root: ObjectVisibilityNode, nextTarget: ObjectVisibilityNode) => {
     capture(root);
-    mode = 'isolate';
-    target = nextTarget;
+    pushHistory();
+    isolateReturnHidden = new Set(hidden);
     isolateKeepVisible = new Set<ObjectVisibilityNode>();
 
     let current: ObjectVisibilityNode | null | undefined = nextTarget;
@@ -106,37 +162,68 @@ export const createObjectVisibilityFilter = () => {
       isolateKeepVisible.add(current);
       current = current.parent;
     }
-    nextTarget.traverse((object) => isolateKeepVisible.add(object));
+    nextTarget.traverse((object) => isolateKeepVisible?.add(object));
     reapply(root);
-  };
-
-  const hide = (root: ObjectVisibilityNode, nextTarget: ObjectVisibilityNode) => {
-    capture(root);
-    mode = 'hide';
-    target = nextTarget;
-    reapply(root);
-  };
-
-  const restore = () => {
-    if (!active) return false;
-    for (const [object, visible] of baseline.entries()) object.visible = visible;
-    reset();
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('ylis-object-visibility-filter', { detail: { active: false } }),
-      );
-    }
+    dispatchState();
     return true;
   };
 
+  const endIsolate = (root: ObjectVisibilityNode = capturedRoot as ObjectVisibilityNode) => {
+    if (!active || !root || !isolateKeepVisible) return false;
+    pushHistory();
+    hidden = new Set(isolateReturnHidden ?? hidden);
+    isolateKeepVisible = null;
+    isolateReturnHidden = null;
+    reapply(root);
+    dispatchState();
+    return true;
+  };
+
+  const showAll = (root: ObjectVisibilityNode = capturedRoot as ObjectVisibilityNode) => {
+    if (!active || !root || (hidden.size === 0 && !isolateKeepVisible)) return false;
+    pushHistory();
+    hidden.clear();
+    isolateKeepVisible = null;
+    isolateReturnHidden = null;
+    reapply(root);
+    dispatchState();
+    return true;
+  };
+
+  const undo = (root: ObjectVisibilityNode = capturedRoot as ObjectVisibilityNode) => {
+    if (!active || !root || history.length === 0) return false;
+    const previous = history.pop();
+    if (!previous) return false;
+    hidden = new Set(previous.hidden);
+    isolateKeepVisible = previous.isolateKeepVisible
+      ? new Set(previous.isolateKeepVisible)
+      : null;
+    isolateReturnHidden = previous.isolateReturnHidden
+      ? new Set(previous.isolateReturnHidden)
+      : null;
+    reapply(root);
+    dispatchState();
+    return true;
+  };
+
+  const restore = () => showAll();
+
   return {
     capture,
+    canUndo: () => history.length > 0,
+    endIsolate,
+    getHiddenCount: () => hidden.size,
+    getHiddenObjects: () => [...hidden],
     hide,
     isolate,
     isActive: () => active,
+    isIsolating: () => isolateKeepVisible !== null,
     reapply,
     reset,
     restore,
     setBaselineVisibility,
+    show,
+    showAll,
+    undo,
   };
 };
