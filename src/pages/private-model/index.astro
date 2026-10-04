@@ -1410,14 +1410,6 @@ const title = 'Private 3D viewer';
             </g>
           </svg>
           <div class="orientation-gizmo-note">X itä · Y pohjoinen · Z ylös</div>
-          <div id="ai-navigator-readout" class="ai-navigator-readout" aria-label="AI-katselukonteksti">
-            <div class="ai-navigator-row"><span class="ai-navigator-key">FRAME</span><span id="ai-nav-frame" class="ai-navigator-value">YLIS-G1-LOCAL</span></div>
-            <div class="ai-navigator-row"><span class="ai-navigator-key">MODEL</span><span id="ai-nav-model" class="ai-navigator-value">CURRENT</span></div>
-            <div class="ai-navigator-row"><span class="ai-navigator-key">VIEW</span><span id="ai-nav-view" class="ai-navigator-value">-</span></div>
-            <div class="ai-navigator-row"><span class="ai-navigator-key">LOOK</span><span id="ai-nav-look" class="ai-navigator-value">-</span></div>
-            <div class="ai-navigator-row"><span class="ai-navigator-key">CENTER</span><span id="ai-nav-center" class="ai-navigator-value">-</span></div>
-            <div class="ai-navigator-row"><span class="ai-navigator-key">BOUNDS</span><span id="ai-nav-bounds" class="ai-navigator-value">-</span></div>
-          </div>
         </aside>
         <div id="d1-known-door-label-layer" class="d1-known-door-label-layer" aria-hidden="true" hidden></div>
         <aside id="d1-known-door-legend" class="d1-known-door-legend" aria-label="D 1F -ovien tarkastusselite" hidden>
@@ -1592,12 +1584,6 @@ const title = 'Private 3D viewer';
         isTreeVisible,
       } from '../../scripts/privateModelEdgeVisibility';
       import { computeVisibleBounds } from '../../scripts/privateModelVisibleBounds';
-      import {
-        formatYlisBounds,
-        formatYlisVector,
-        viewerBoundsToYlis,
-        viewerWorldToYlis,
-      } from '../../scripts/privateModelAiNavigator';
       import {
         p160WarmFloorContextOpacity,
         p160WarmFloorReviewOpacity,
@@ -1800,12 +1786,6 @@ const title = 'Private 3D viewer';
       const orientationAxisZTip = document.querySelector<SVGCircleElement>('#orientation-axis-z-tip');
       const orientationAxisZLabel = document.querySelector<SVGTextElement>('#orientation-axis-z-label');
       const orientationNorthLabel = document.querySelector<SVGTextElement>('#orientation-north-label');
-      const aiNavigatorFrame = document.querySelector<HTMLElement>('#ai-nav-frame');
-      const aiNavigatorModel = document.querySelector<HTMLElement>('#ai-nav-model');
-      const aiNavigatorView = document.querySelector<HTMLElement>('#ai-nav-view');
-      const aiNavigatorLook = document.querySelector<HTMLElement>('#ai-nav-look');
-      const aiNavigatorCenter = document.querySelector<HTMLElement>('#ai-nav-center');
-      const aiNavigatorBounds = document.querySelector<HTMLElement>('#ai-nav-bounds');
       const heightScale = document.querySelector<HTMLElement>('#height-scale');
       const heightScaleTicks = document.querySelector<HTMLElement>('#height-scale-ticks');
       const profilePanel = document.querySelector<HTMLElement>('#profile-panel');
@@ -1902,12 +1882,6 @@ const title = 'Private 3D viewer';
         !orientationAxisZTip ||
         !orientationAxisZLabel ||
         !orientationNorthLabel ||
-        !aiNavigatorFrame ||
-        !aiNavigatorModel ||
-        !aiNavigatorView ||
-        !aiNavigatorLook ||
-        !aiNavigatorCenter ||
-        !aiNavigatorBounds ||
         !heightScale ||
         !heightScaleTicks ||
         !profilePanel ||
@@ -3542,36 +3516,6 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.cameraPitch;
           delete canvas.dataset.cameraRoll;
         }
-      };
-
-      const aiNavigatorDirection = new THREE.Vector3();
-      const updateAiNavigatorReadout = () => {
-        aiNavigatorFrame.textContent = 'YLIS-G1-LOCAL';
-        aiNavigatorModel.textContent =
-          modelSourceBadge.textContent?.trim() ||
-          (activeModelSourceKind === 'work-test' ? 'WORK_TEST' : 'CURRENT');
-
-        const projection =
-          canvas.dataset.cameraProjection ||
-          ((activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective');
-        const view = canvas.dataset.viewPreset || activeResearchPreset;
-        aiNavigatorView.textContent = `${view} / ${projection}`;
-
-        activeCamera.getWorldDirection(aiNavigatorDirection);
-        aiNavigatorLook.textContent = formatYlisVector(
-          viewerWorldToYlis(aiNavigatorDirection),
-        );
-
-        const activeControls =
-          activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls;
-        aiNavigatorCenter.textContent = formatYlisVector(
-          viewerWorldToYlis(activeControls.target),
-        );
-
-        const bounds = computeVisibleBounds(modelRoot, true);
-        aiNavigatorBounds.textContent = bounds
-          ? formatYlisBounds(viewerBoundsToYlis(bounds.min, bounds.max))
-          : '-';
       };
 
       const researchPresetForStandardView = (
@@ -8019,7 +7963,6 @@ const title = 'Private 3D viewer';
       const resizeObserver = new ResizeObserver(updateSize);
       resizeObserver.observe(canvas.parentElement ?? canvas);
 
-      let aiNavigatorFrameCounter = 0;
       renderer.setAnimationLoop(() => {
         updateSize();
         controls.update();
@@ -8028,8 +7971,6 @@ const title = 'Private 3D viewer';
         selectionHighlightController.update();
         updateD1KnownDoorReviewLabelPositions();
         updateHeightScale();
-        aiNavigatorFrameCounter = (aiNavigatorFrameCounter + 1) % 12;
-        if (aiNavigatorFrameCounter === 0) updateAiNavigatorReadout();
         orientationGizmoController.render({
           quaternion: activeCamera.quaternion,
           projection: (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective',
