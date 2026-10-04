@@ -33,26 +33,43 @@ const isP184DIslandTarget = (object: any) => {
   );
 };
 
+const isP184DImmediateD2FContext = (object: any) => {
+  const data = object?.userData ?? {};
+  const g2Id = String(data.G2Id ?? '');
+  const name = String(object?.name ?? '');
+  const presentationLayer = String(data.presentationLayer ?? '');
+  const representationKind = String(data.representationKind ?? '');
+  const apartment = String(data.apartment ?? '');
+  const storey = String(data.storey ?? '');
+
+  const currentD2FReference =
+    presentationLayer === 'CURRENT_D' && (g2Id.includes('_2F_') || name.includes('_D_2F_'));
+  const explicitD2FArchitecture = g2Id.includes('_D_2F_');
+  const explicitApartmentStorey = apartment === 'D' && storey === '2F';
+  const d2fFloorShell =
+    representationKind === 'presentationFloorWorkShellWithPreciseStairClearance' &&
+    name.includes('CD_2F_WORKSHELL');
+
+  return (
+    currentD2FReference ||
+    explicitD2FArchitecture ||
+    explicitApartmentStorey ||
+    d2fFloorShell
+  );
+};
+
 export const prepareP184DReviewPresentation = (sceneRoot: any) => {
+  const renderableObjects: any[] = [];
   const targetObjects: any[] = [];
-  let targetRenderableCount = 0;
-  let hiddenNonTargetRenderableCount = 0;
 
   sceneRoot?.traverse?.((object: any) => {
     if (!isRenderable(object)) return;
+    renderableObjects.push(object);
+    if (isP184DIslandTarget(object)) targetObjects.push(object);
+  });
 
-    if (!isP184DIslandTarget(object)) {
-      object.visible = false;
-      object.userData = {
-        ...(object.userData ?? {}),
-        viewerDerived: true,
-        p184DReviewPresentation: true,
-        p184DReviewRole: 'NON_QUESTION_CONTEXT_SUPPRESSED',
-      };
-      hiddenNonTargetRenderableCount += 1;
-      return;
-    }
-
+  let targetRenderableCount = 0;
+  for (const object of targetObjects) {
     cloneObjectMaterials(object, (material) => {
       material.opacity = p184DReviewTargetOpacity;
       material.transparent = true;
@@ -65,6 +82,7 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
       material.needsUpdate = true;
     });
 
+    object.visible = true;
     object.renderOrder = 20;
     object.userData = {
       ...(object.userData ?? {}),
@@ -72,9 +90,8 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
       p184DReviewPresentation: true,
       p184DReviewRole: 'ISLAND_TARGET_80',
     };
-    targetObjects.push(object);
     targetRenderableCount += 1;
-  });
+  }
 
   sceneRoot?.updateMatrixWorld?.(true);
 
@@ -89,6 +106,46 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
     } else {
       targetBounds.union(objectBounds);
     }
+  }
+
+  let contextRenderableCount = 0;
+  let hiddenNonTargetRenderableCount = 0;
+
+  for (const object of renderableObjects) {
+    if (isP184DIslandTarget(object)) continue;
+
+    if (isP184DImmediateD2FContext(object)) {
+      object.visible = true;
+      cloneObjectMaterials(object, (material) => {
+        material.opacity = p184DReviewContextOpacity;
+        material.transparent = true;
+        material.depthWrite = false;
+        material.userData = {
+          ...(material.userData ?? {}),
+          p184DReviewPresentation: true,
+          p184DPresentationRole: 'D_2F_ARCH_CONTEXT_20',
+        };
+        material.needsUpdate = true;
+      });
+      object.renderOrder = 5;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p184DReviewPresentation: true,
+        p184DReviewRole: 'D_2F_ARCH_CONTEXT_20',
+      };
+      contextRenderableCount += 1;
+      continue;
+    }
+
+    object.visible = false;
+    object.userData = {
+      ...(object.userData ?? {}),
+      viewerDerived: true,
+      p184DReviewPresentation: true,
+      p184DReviewRole: 'NON_QUESTION_CONTEXT_SUPPRESSED',
+    };
+    hiddenNonTargetRenderableCount += 1;
   }
 
   let cabinetFrontReferenceRenderableCount = 0;
@@ -150,6 +207,7 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
 
   return {
     targetRenderableCount,
+    contextRenderableCount,
     hiddenNonTargetRenderableCount,
     cabinetFrontReferenceRenderableCount,
     sourceChainCabinetFrontXM,
