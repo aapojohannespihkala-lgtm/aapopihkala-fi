@@ -447,6 +447,102 @@ const title = 'Private 3D viewer';
         font-size: 10px;
       }
 
+      .orientation-gizmo {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        z-index: 6;
+        width: 118px;
+        padding: 7px 8px 6px;
+        border: 1px solid var(--viewer-line-soft);
+        border-radius: 9px;
+        background: rgba(27, 36, 45, 0.92);
+        box-shadow: none;
+        color: var(--viewer-ink);
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .orientation-gizmo-title {
+        margin-bottom: 1px;
+        color: var(--viewer-ink);
+        font-size: 9px;
+        font-weight: 750;
+        letter-spacing: 0.04em;
+        text-align: center;
+      }
+
+      .orientation-gizmo svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+
+      .orientation-axis {
+        stroke-width: 2;
+        stroke-linecap: round;
+      }
+
+      .orientation-axis-x { stroke: #a34a4a; fill: #a34a4a; }
+      .orientation-axis-y { stroke: #397657; fill: #397657; }
+      .orientation-axis-z { stroke: #356a8a; fill: #356a8a; }
+
+      .orientation-axis-tip[data-depth='away-from-view'] {
+        fill: var(--viewer-bar);
+        stroke-width: 1.8;
+      }
+
+      .orientation-axis-tip[data-end-on='true'] {
+        stroke-width: 2.2;
+      }
+
+      .orientation-axis-label,
+      .orientation-north-label {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 10px;
+        font-weight: 800;
+        dominant-baseline: middle;
+        text-anchor: middle;
+      }
+
+      .orientation-axis-label-x { fill: #c98282; }
+      .orientation-axis-label-y,
+      .orientation-north-label { fill: #78b596; }
+      .orientation-axis-label-z { fill: #74a8c7; }
+
+      .orientation-origin { fill: var(--viewer-ink); }
+
+      .orientation-north-label {
+        font-size: 9px;
+      }
+
+      .orientation-gizmo-note {
+        margin-top: -2px;
+        color: var(--viewer-stone-light);
+        font-size: 8px;
+        line-height: 1.25;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 760px) {
+        .orientation-gizmo {
+          right: 8px;
+          bottom: 8px;
+          width: 104px;
+          padding: 5px 6px 4px;
+        }
+
+        .viewport:has(.coordinate-panel:not([hidden])) .orientation-gizmo {
+          bottom: 126px;
+        }
+
+        .orientation-gizmo-note {
+          font-size: 7px;
+        }
+      }
+
       .height-scale {
         position: absolute;
         top: 12px;
@@ -1227,6 +1323,35 @@ const title = 'Private 3D viewer';
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
+        <aside
+          id="orientation-gizmo"
+          class="orientation-gizmo"
+          aria-label="YLIS-G1-LOCAL suuntailmaisin: X itään, Y pohjoiseen, Z ylös"
+          data-frame="YLIS-G1-LOCAL"
+          data-north-axis="+Y"
+        >
+          <div class="orientation-gizmo-title">YLIS-G1-LOCAL</div>
+          <svg viewBox="0 0 92 92" aria-hidden="true">
+            <circle class="orientation-origin" cx="46" cy="46" r="2.4"></circle>
+            <g>
+              <line id="orientation-axis-x" class="orientation-axis orientation-axis-x" x1="46" y1="46" x2="67" y2="46"></line>
+              <circle id="orientation-axis-x-tip" class="orientation-axis-tip orientation-axis-x" cx="67" cy="46" r="2.2"></circle>
+              <text id="orientation-axis-x-label" class="orientation-axis-label orientation-axis-label-x" x="76" y="46">X</text>
+            </g>
+            <g>
+              <line id="orientation-axis-y" class="orientation-axis orientation-axis-y" x1="46" y1="46" x2="46" y2="25"></line>
+              <circle id="orientation-axis-y-tip" class="orientation-axis-tip orientation-axis-y" cx="46" cy="25" r="2.2"></circle>
+              <text id="orientation-axis-y-label" class="orientation-axis-label orientation-axis-label-y" x="46" y="16">Y</text>
+              <text id="orientation-north-label" class="orientation-north-label" x="55" y="16">N</text>
+            </g>
+            <g>
+              <line id="orientation-axis-z" class="orientation-axis orientation-axis-z" x1="46" y1="46" x2="31" y2="61"></line>
+              <circle id="orientation-axis-z-tip" class="orientation-axis-tip orientation-axis-z" cx="31" cy="61" r="2.2"></circle>
+              <text id="orientation-axis-z-label" class="orientation-axis-label orientation-axis-label-z" x="24" y="68">Z</text>
+            </g>
+          </svg>
+          <div class="orientation-gizmo-note">X itä · Y pohjoinen · Z ylös</div>
+        </aside>
         <div id="d1-known-door-label-layer" class="d1-known-door-label-layer" aria-hidden="true" hidden></div>
         <aside id="d1-known-door-legend" class="d1-known-door-legend" aria-label="D 1F -ovien tarkastusselite" hidden>
           <h2>Lähteistetyt D 1F -ovet 7/7</h2>
@@ -1432,6 +1557,7 @@ const title = 'Private 3D viewer';
         heightScaleStepForSpan,
       } from '../../scripts/privateModelReviewMath';
       import { createHeightScaleController } from '../../scripts/privateModelHeightScale';
+      import { createOrientationGizmoController } from '../../scripts/privateModelOrientationGizmo';
       import {
         activateReviewCoordinatePanel,
         clearReviewAnchorState,
@@ -1583,6 +1709,17 @@ const title = 'Private 3D viewer';
       const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
       const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
       const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
+      const orientationGizmo = document.querySelector<HTMLElement>('#orientation-gizmo');
+      const orientationAxisX = document.querySelector<SVGLineElement>('#orientation-axis-x');
+      const orientationAxisXTip = document.querySelector<SVGCircleElement>('#orientation-axis-x-tip');
+      const orientationAxisXLabel = document.querySelector<SVGTextElement>('#orientation-axis-x-label');
+      const orientationAxisY = document.querySelector<SVGLineElement>('#orientation-axis-y');
+      const orientationAxisYTip = document.querySelector<SVGCircleElement>('#orientation-axis-y-tip');
+      const orientationAxisYLabel = document.querySelector<SVGTextElement>('#orientation-axis-y-label');
+      const orientationAxisZ = document.querySelector<SVGLineElement>('#orientation-axis-z');
+      const orientationAxisZTip = document.querySelector<SVGCircleElement>('#orientation-axis-z-tip');
+      const orientationAxisZLabel = document.querySelector<SVGTextElement>('#orientation-axis-z-label');
+      const orientationNorthLabel = document.querySelector<SVGTextElement>('#orientation-north-label');
       const heightScale = document.querySelector<HTMLElement>('#height-scale');
       const heightScaleTicks = document.querySelector<HTMLElement>('#height-scale-ticks');
       const profilePanel = document.querySelector<HTMLElement>('#profile-panel');
@@ -1665,6 +1802,17 @@ const title = 'Private 3D viewer';
         !coordinateFloor ||
         !coordinatePointer ||
         !coordinateAnchor ||
+        !orientationGizmo ||
+        !orientationAxisX ||
+        !orientationAxisXTip ||
+        !orientationAxisXLabel ||
+        !orientationAxisY ||
+        !orientationAxisYTip ||
+        !orientationAxisYLabel ||
+        !orientationAxisZ ||
+        !orientationAxisZTip ||
+        !orientationAxisZLabel ||
+        !orientationNorthLabel ||
         !heightScale ||
         !heightScaleTicks ||
         !profilePanel ||
@@ -1754,6 +1902,28 @@ const title = 'Private 3D viewer';
       const modelCenter = new THREE.Vector3();
       let fitDistance = 10;
       let activeCamera: typeof camera | typeof planCamera | typeof isoCamera = camera;
+      const orientationGizmoController = createOrientationGizmoController({
+        root: orientationGizmo,
+        axisX: {
+          line: orientationAxisX,
+          tip: orientationAxisXTip,
+          label: orientationAxisXLabel,
+          world: { x: 1, y: 0, z: 0 },
+        },
+        axisY: {
+          line: orientationAxisY,
+          tip: orientationAxisYTip,
+          label: orientationAxisYLabel,
+          world: { x: 0, y: 0, z: -1 },
+        },
+        axisZ: {
+          line: orientationAxisZ,
+          tip: orientationAxisZTip,
+          label: orientationAxisZLabel,
+          world: { x: 0, y: 1, z: 0 },
+        },
+        northLabel: orientationNorthLabel,
+      });
       type ElevationDirection = 'pos-y' | 'neg-y' | 'pos-x' | 'neg-x';
       let activeElevationDirection: ElevationDirection | null = null;
       const heightScaleController = createHeightScaleController({
@@ -7673,6 +7843,10 @@ const title = 'Private 3D viewer';
         selectionHighlightController.update();
         updateD1KnownDoorReviewLabelPositions();
         updateHeightScale();
+        orientationGizmoController.render({
+          quaternion: activeCamera.quaternion,
+          projection: (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective',
+        });
         renderer.render(scene, activeCamera);
       });
 
