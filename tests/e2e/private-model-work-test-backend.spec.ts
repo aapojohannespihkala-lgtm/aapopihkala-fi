@@ -1100,11 +1100,30 @@ test('machine readback endpoints accept only readback JWT and expose only catalo
     size: p150g!.expectedSize,
     customMetadata: { sha256: p150g!.expectedSha256 },
   };
+  let catalogListReads = 0;
   let catalogHeadReads = 0;
   let bodyReads = 0;
   const env = {
     ASSETS: { fetch: async () => new Response('unused') },
     PRIVATE_MODEL_BUCKET: {
+      list: async (options?: { prefix?: string; limit?: number; include?: string[] }) => {
+        catalogListReads += 1;
+        expect(options).toMatchObject({
+          prefix: 'work-test/',
+          limit: 1000,
+          include: ['customMetadata'],
+        });
+        return {
+          objects: [
+            {
+              key: p150g!.objectKey,
+              size: p150g!.expectedSize,
+              customMetadata: { sha256: p150g!.expectedSha256 },
+            },
+          ],
+          truncated: false,
+        };
+      },
       head: async (key: string) => {
         catalogHeadReads += 1;
         return key === p150g!.objectKey
@@ -1163,8 +1182,27 @@ test('machine readback endpoints accept only readback JWT and expose only catalo
         },
       ],
     });
-    expect(catalogHeadReads).toBe(PRIVATE_WORK_TEST_CANDIDATES.length);
+    expect(catalogListReads).toBe(1);
+    expect(catalogHeadReads).toBe(0);
     expect(bodyReads).toBe(0);
+
+    const viewerCatalog = await handlePrivateWorkTestRequest(
+      new Request(`https://example.test${PRIVATE_WORK_TEST_CATALOG_PATH}`, {
+        headers: { 'cf-access-jwt-assertion': viewerToken },
+      }),
+      env,
+    );
+    expect(viewerCatalog.status).toBe(200);
+    await expect(viewerCatalog.json()).resolves.toMatchObject({
+      candidates: [
+        {
+          id: 'p150g-whole-building-end-plinth',
+          path: '/private-model/work-test/p150g-whole-building-end-plinth.glb',
+        },
+      ],
+    });
+    expect(catalogListReads).toBe(2);
+    expect(catalogHeadReads).toBe(0);
 
     const verifyPath =
       `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p150g-whole-building-end-plinth.glb`;
