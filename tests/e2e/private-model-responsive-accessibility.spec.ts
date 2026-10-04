@@ -93,3 +93,24 @@ test('private viewer exposes keyboard focus and honors reduced motion', async ({
   });
   expect(reducedMotionDuration).not.toBe('10s');
 });
+
+
+test('toolbar menus dismiss with Escape and outside pointer interaction', async ({ page }) => {
+  await stubViewerData(page);
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto('/private-model/');
+
+  const viewMenu = page.locator('#view-menu');
+  const viewSummary = page.locator('#view-menu > summary');
+  await viewSummary.click();
+  await expect(viewMenu).toHaveAttribute('open', '');
+  await page.keyboard.press('Escape');
+  await expect(viewMenu).not.toHaveAttribute('open', '');
+  await expect(viewSummary).toBeFocused();
+
+  const presetMenu = page.locator('#preset-menu');
+  await page.locator('#preset-menu > summary').click();
+  await expect(presetMenu).toHaveAttribute('open', '');
+  await page.locator('.title').click();
+  await expect(presetMenu).not.toHaveAttribute('open', '');
+});
