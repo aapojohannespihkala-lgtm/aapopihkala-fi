@@ -1,3 +1,5 @@
+import { installPrivateModelLayerPanelUi } from './privateModelLayerPanelUi';
+
 export const toolbarMenuAvailableHeight = (
   viewportHeight: number,
   panelTop: number,
@@ -33,6 +35,25 @@ export const setupPrivateModelToolbarMenus = (toolbarMenus: HTMLDetailsElement[]
       }
     });
   });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const openMenu = toolbarMenus.find((menu) => menu.open);
+    if (!openMenu) return;
+
+    event.preventDefault();
+    openMenu.open = false;
+    openMenu.querySelector<HTMLElement>(':scope > summary')?.focus();
+  });
+
+  document.addEventListener('pointerdown', (event) => {
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    if (toolbarMenus.some((menu) => menu.contains(target))) return;
+    closeToolbarMenus();
+  });
+
+  queueMicrotask(installPrivateModelLayerPanelUi);
 
   window.addEventListener('resize', () => {
     toolbarMenus.forEach((menu) => {

@@ -1,12 +1,29 @@
 import { expect, test } from '@playwright/test';
 
 import {
+  isViewerLayerNodeEffectivelyVisible,
+  setViewerLayerNodeVisible,
+  setViewerRoofOpacity,
+  viewerLayerNodeCapabilities,
+  viewerLocusParentVisibilityState,
+  viewerLocusRouteChildNodeIds,
+  viewerP161SystemChildNodeIds,
+} from '../../src/scripts/privateModelLayerHierarchyState';
+import {
   applyViewerResearchPreset,
   createViewerInteractionState,
   patchViewerLayerControls,
   patchViewerPresentationStyle,
   setViewerCameraView,
 } from '../../src/scripts/privateModelViewerState';
+
+const expectedDefaultChildren = {
+  locusWaterVisible: true,
+  locusWastewaterVisible: true,
+  p161KvvVisible: true,
+  p161IvPlanVisible: true,
+  p161IvSectionVisible: true,
+};
 
 test('VUX-E1A research presets install curated starting state', () => {
   const wholeBuilding = createViewerInteractionState('whole-building');
@@ -19,6 +36,7 @@ test('VUX-E1A research presets install curated starting state', () => {
       roofVisible: false,
       roofOpacity: 1,
       locusVisible: false,
+      ...expectedDefaultChildren,
     },
     presentation: {
       edgeMode: 'visible',
@@ -32,6 +50,7 @@ test('VUX-E1A research presets install curated starting state', () => {
     roofVisible: false,
     roofOpacity: 1,
     locusVisible: true,
+    ...expectedDefaultChildren,
   });
 });
 
@@ -39,7 +58,11 @@ test('VUX-E1A camera changes preserve research preset, layers, and presentation'
   const d2 = createViewerInteractionState('d-2f');
   const customized = patchViewerLayerControls(
     patchViewerPresentationStyle(d2, { edgeMode: 'none' }),
-    { roofOpacity: 0.35 },
+    {
+      roofOpacity: 0.35,
+      locusWaterVisible: false,
+      p161IvPlanVisible: false,
+    },
   );
 
   const isometric = setViewerCameraView(customized, 'isometric');
@@ -59,6 +82,7 @@ test('VUX-E1A layer changes preserve camera and presentation lanes', () => {
     roofVisible: true,
     roofOpacity: 1.25,
     locusVisible: true,
+    locusWastewaterVisible: false,
   });
 
   expect(updated.researchPreset).toBe('d-apartment');
@@ -68,6 +92,11 @@ test('VUX-E1A layer changes preserve camera and presentation lanes', () => {
     roofVisible: true,
     roofOpacity: 1,
     locusVisible: true,
+    locusWaterVisible: true,
+    locusWastewaterVisible: false,
+    p161KvvVisible: true,
+    p161IvPlanVisible: true,
+    p161IvSectionVisible: true,
   });
 
   const clampedLow = patchViewerLayerControls(updated, { roofOpacity: -0.2 });
@@ -91,6 +120,8 @@ test('VUX-E1A a new explicit preset intentionally replaces the curated starting 
     roofVisible: true,
     roofOpacity: 0.4,
     locusVisible: true,
+    locusWaterVisible: false,
+    p161KvvVisible: false,
   });
   state = patchViewerPresentationStyle(state, { edgeMode: 'none' });
 
@@ -103,9 +134,87 @@ test('VUX-E1A a new explicit preset intentionally replaces the curated starting 
       roofVisible: true,
       roofOpacity: 1,
       locusVisible: false,
+      ...expectedDefaultChildren,
     },
     presentation: {
       edgeMode: 'visible',
     },
   });
+});
+
+test('VUX-E3B exposes only contract-derived layer capabilities', () => {
+  expect(Object.keys(viewerLayerNodeCapabilities)).toEqual([
+    'roof',
+    'locus',
+    'locus-water',
+    'locus-wastewater',
+    'p161-kvv-2017',
+    'p161-iv-1974-plan',
+    'p161-iv-1974-section',
+  ]);
+  expect(viewerLayerNodeCapabilities.roof).toEqual({
+    parent: null,
+    visibility: true,
+    opacity: true,
+  });
+  for (const nodeId of [
+    'locus',
+    'locus-water',
+    'locus-wastewater',
+    'p161-kvv-2017',
+    'p161-iv-1974-plan',
+    'p161-iv-1974-section',
+  ] as const) {
+    expect(viewerLayerNodeCapabilities[nodeId].opacity).toBe(false);
+  }
+});
+
+test('VUX-E3B parent visibility suppresses children without destroying child preferences', () => {
+  let layers = createViewerInteractionState('infra').layers;
+  layers = setViewerLayerNodeVisible(layers, 'locus-water', false);
+  layers = setViewerLayerNodeVisible(layers, 'p161-iv-1974-plan', false);
+  layers = setViewerRoofOpacity(layers, 0.42);
+
+  expect(viewerLocusParentVisibilityState(layers, viewerLocusRouteChildNodeIds)).toBe(
+    'mixed',
+  );
+  expect(viewerLocusParentVisibilityState(layers, viewerP161SystemChildNodeIds)).toBe(
+    'mixed',
+  );
+  expect(isViewerLayerNodeEffectivelyVisible(layers, 'locus-water')).toBe(false);
+  expect(isViewerLayerNodeEffectivelyVisible(layers, 'locus-wastewater')).toBe(true);
+  expect(layers.roofOpacity).toBeCloseTo(0.42);
+
+  const parentOff = setViewerLayerNodeVisible(layers, 'locus', false);
+  expect(viewerLocusParentVisibilityState(parentOff, viewerLocusRouteChildNodeIds)).toBe(
+    'off',
+  );
+  expect(isViewerLayerNodeEffectivelyVisible(parentOff, 'locus-wastewater')).toBe(false);
+  expect(parentOff.locusWaterVisible).toBe(false);
+  expect(parentOff.locusWastewaterVisible).toBe(true);
+  expect(parentOff.p161IvPlanVisible).toBe(false);
+
+  const parentOn = setViewerLayerNodeVisible(parentOff, 'locus', true);
+  expect(isViewerLayerNodeEffectivelyVisible(parentOn, 'locus-water')).toBe(false);
+  expect(isViewerLayerNodeEffectivelyVisible(parentOn, 'locus-wastewater')).toBe(true);
+  expect(isViewerLayerNodeEffectivelyVisible(parentOn, 'p161-iv-1974-plan')).toBe(false);
+  expect(isViewerLayerNodeEffectivelyVisible(parentOn, 'p161-kvv-2017')).toBe(true);
+});
+
+test('VUX-E3B camera changes preserve manual hierarchy and opacity state', () => {
+  let state = createViewerInteractionState('infra');
+  state = patchViewerLayerControls(state, {
+    roofOpacity: 0.55,
+    locusWaterVisible: false,
+    locusWastewaterVisible: true,
+    p161KvvVisible: false,
+    p161IvPlanVisible: true,
+    p161IvSectionVisible: false,
+  });
+
+  const changedView = setViewerCameraView(state, 'elev-neg-x');
+
+  expect(changedView.layers).toEqual(state.layers);
+  expect(changedView.cameraView).toBe('elev-neg-x');
+  expect(changedView.researchPreset).toBe('infra');
 });

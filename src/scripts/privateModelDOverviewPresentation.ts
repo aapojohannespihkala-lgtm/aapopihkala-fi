@@ -1,6 +1,7 @@
 import { THREE } from './threeRuntime';
 
-export const p172bDOverviewFloorOpacity = 0.45;
+export const dReviewFloorOpacity = 0.45;
+export const p172bDOverviewFloorOpacity = dReviewFloorOpacity;
 export const p172bDOverviewNeutralWallHex = 0xaeb4b8;
 export const p160WarmFloorReviewOpacity = 0.8;
 export const p160WarmFloorContextOpacity = 0.2;
@@ -360,7 +361,8 @@ const rootLocalBounds = (object: any, root: any) => {
 
 const makeP171Q1TopSurfaceMaterial = (sourceMaterial: any) => {
   const source = Array.isArray(sourceMaterial) ? sourceMaterial[0] : sourceMaterial;
-  const opacity = Number.isFinite(source?.opacity) ? source.opacity : 1;
+  const sourceOpacity = Number.isFinite(source?.opacity) ? source.opacity : 1;
+  const opacity = Math.max(sourceOpacity, dReviewFloorOpacity);
   const material = new THREE.MeshBasicMaterial({
     color: source?.color?.clone?.() ?? new THREE.Color(0x949ea8),
     transparent: opacity < 0.999,

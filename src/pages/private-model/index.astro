@@ -447,6 +447,102 @@ const title = 'Private 3D viewer';
         font-size: 10px;
       }
 
+      .orientation-gizmo {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        z-index: 6;
+        width: 118px;
+        padding: 7px 8px 6px;
+        border: 1px solid var(--viewer-line-soft);
+        border-radius: 9px;
+        background: rgba(27, 36, 45, 0.92);
+        box-shadow: none;
+        color: var(--viewer-ink);
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .orientation-gizmo-title {
+        margin-bottom: 1px;
+        color: var(--viewer-ink);
+        font-size: 9px;
+        font-weight: 750;
+        letter-spacing: 0.04em;
+        text-align: center;
+      }
+
+      .orientation-gizmo svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+
+      .orientation-axis {
+        stroke-width: 2;
+        stroke-linecap: round;
+      }
+
+      .orientation-axis-x { stroke: #a34a4a; fill: #a34a4a; }
+      .orientation-axis-y { stroke: #397657; fill: #397657; }
+      .orientation-axis-z { stroke: #356a8a; fill: #356a8a; }
+
+      .orientation-axis-tip[data-depth='away-from-view'] {
+        fill: var(--viewer-bar);
+        stroke-width: 1.8;
+      }
+
+      .orientation-axis-tip[data-end-on='true'] {
+        stroke-width: 2.2;
+      }
+
+      .orientation-axis-label,
+      .orientation-north-label {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 10px;
+        font-weight: 800;
+        dominant-baseline: middle;
+        text-anchor: middle;
+      }
+
+      .orientation-axis-label-x { fill: #c98282; }
+      .orientation-axis-label-y,
+      .orientation-north-label { fill: #78b596; }
+      .orientation-axis-label-z { fill: #74a8c7; }
+
+      .orientation-origin { fill: var(--viewer-ink); }
+
+      .orientation-north-label {
+        font-size: 9px;
+      }
+
+      .orientation-gizmo-note {
+        margin-top: -2px;
+        color: var(--viewer-stone-light);
+        font-size: 8px;
+        line-height: 1.25;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 760px) {
+        .orientation-gizmo {
+          right: 8px;
+          bottom: 8px;
+          width: 104px;
+          padding: 5px 6px 4px;
+        }
+
+        .viewport:has(.coordinate-panel:not([hidden])) .orientation-gizmo {
+          bottom: 126px;
+        }
+
+        .orientation-gizmo-note {
+          font-size: 7px;
+        }
+      }
+
       .height-scale {
         position: absolute;
         top: 12px;
@@ -916,6 +1012,233 @@ const title = 'Private 3D viewer';
           text-align: left;
         }
       }
+
+      /* VUX-C1 branch-only dark surface foundation. Keep interaction semantics unchanged. */
+      :root {
+        color-scheme: dark;
+        --viewer-page: #202a34;
+        --viewer-bar: #1b242d;
+        --viewer-ink: #f1f4f5;
+        --viewer-ink-soft: #e1e7ea;
+        --viewer-stone: #c4cdd2;
+        --viewer-stone-light: #9eabb2;
+        --viewer-moss: #c4d0d5;
+        --viewer-moss-deep: #edf2f4;
+        --viewer-line: #64727c;
+        --viewer-line-soft: #46535d;
+        background: var(--viewer-page);
+        color: var(--viewer-ink);
+      }
+
+      html,
+      body {
+        background: var(--viewer-page);
+        color: var(--viewer-ink);
+      }
+
+      .toolbar {
+        background: var(--viewer-bar);
+        border-color: var(--viewer-line-soft);
+        box-shadow: none;
+      }
+
+      .title {
+        color: var(--viewer-ink);
+        font-family: Georgia, "Times New Roman", serif;
+      }
+
+      .model-source-badge,
+      .toolbar-menu > summary,
+      button,
+      .layer-select select,
+      .profile-controls select {
+        border-color: var(--viewer-line);
+        background: var(--viewer-bar);
+        color: var(--viewer-ink);
+      }
+
+      .model-source-badge,
+      .status,
+      .layer-count,
+      .coordinate-panel,
+      .coordinate-line > span:last-child {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      .model-source-badge,
+      .status {
+        color: var(--viewer-ink-soft);
+      }
+
+      button:hover,
+      .toolbar-menu > summary:hover {
+        border-color: var(--viewer-stone-light);
+      }
+
+      .toolbar-menu > summary:focus-visible {
+        outline-color: rgba(196, 205, 210, 0.48);
+      }
+
+      .toolbar-menu[open] > summary,
+      .toolbar-menu-panel,
+      .layers-panel,
+      .coordinate-panel,
+      .d1-known-door-legend,
+      .profile-panel,
+      .selection-panel {
+        border-color: var(--viewer-line-soft);
+        background: rgba(27, 36, 45, 0.97);
+        color: var(--viewer-ink);
+        box-shadow: none;
+      }
+
+      .toolbar-menu-label,
+      .layer-opacity,
+      .layer-count,
+      .layer-select,
+      .layer-note,
+      .layer-legend,
+      .coordinate-floor,
+      .coordinate-line span,
+      .coordinate-note,
+      .profile-controls label,
+      .profile-note,
+      .selection-grid dt,
+      .selection-metadata > summary,
+      .selection-metadata-list dt {
+        color: var(--viewer-stone-light);
+      }
+
+      .coordinate-line > span:last-child,
+      .profile-summary,
+      .selection-grid dd {
+        color: var(--viewer-ink);
+      }
+
+      .toolbar-menu-separator,
+      .clip-control,
+      .layer-section,
+      .layer-tree-children,
+      .d1-user-door-legend-section,
+      .selection-metadata {
+        border-color: var(--viewer-line-soft);
+      }
+
+      .profile-chart {
+        border-color: var(--viewer-line-soft);
+        background: var(--viewer-page);
+      }
+
+      :global(.profile-grid-line) {
+        stroke: rgba(196, 205, 210, 0.16);
+      }
+
+      :global(.profile-axis-line) {
+        stroke: rgba(225, 231, 234, 0.62);
+      }
+
+      :global(.profile-axis-label),
+      :global(.profile-legend-text) {
+        fill: var(--viewer-ink-soft);
+      }
+
+      .height-scale {
+        color: var(--viewer-ink-soft);
+      }
+
+      .height-scale-title,
+      :global(.height-scale-label) {
+        background: rgba(27, 36, 45, 0.9);
+        color: var(--viewer-ink-soft);
+      }
+
+      :global(.height-scale-guide) {
+        border-top-color: rgba(196, 205, 210, 0.13);
+      }
+
+      :global(.height-scale-guide.zero),
+      :global(.height-scale-tick.zero) {
+        border-top-color: rgba(241, 244, 245, 0.5);
+      }
+
+      :global(.height-scale-tick) {
+        border-top-color: rgba(196, 205, 210, 0.48);
+      }
+
+      .viewport {
+        border-color: var(--viewer-line-soft);
+        background: var(--viewer-page);
+        box-shadow: none;
+      }
+
+      /* VUX-C2 responsive + accessibility guardrails. */
+      .toolbar {
+        min-width: 0;
+      }
+
+      .title,
+      .toolbar-menu,
+      .model-source-badge,
+      .status {
+        max-width: 100%;
+      }
+
+      .toolbar-menu,
+      .model-source-badge,
+      .status {
+        min-width: 0;
+      }
+
+      .source-menu {
+        max-width: min(100%, 72vw);
+      }
+
+      .source-menu > summary {
+        max-width: 100%;
+      }
+
+      .model-source-badge {
+        display: block;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .toolbar-menu-panel {
+        max-height: calc(100dvh - 96px);
+      }
+
+      button:focus-visible,
+      select:focus-visible {
+        outline: 3px solid rgba(196, 205, 210, 0.48);
+        outline-offset: 1px;
+      }
+
+      @media (max-width: 760px) {
+        .title {
+          flex: 1 1 100%;
+        }
+
+        .model-source-badge {
+          max-width: min(100%, 72vw);
+        }
+
+        .toolbar-menu-panel {
+          max-width: calc(100vw - 24px);
+          max-height: calc(100dvh - 132px);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
     </style>
   </head>
   <body>
@@ -924,24 +1247,29 @@ const title = 'Private 3D viewer';
       <div class="toolbar" aria-label="3D-katselun ohjaimet">
         <div class="title">Ylisrinne 3D</div>
 
-        <details id="view-menu" class="toolbar-menu">
-          <summary>Näkymä</summary>
-          <div class="toolbar-menu-panel" aria-label="Vakioidut näkymät">
-            <div class="toolbar-menu-label">Vakionäkymät</div>
+        <details id="preset-menu" class="toolbar-menu">
+          <summary>Presetit</summary>
+          <div class="toolbar-menu-panel" aria-label="Tutkimuspresetit">
+            <div class="toolbar-menu-label">Rakennus</div>
             <button id="whole-building-preset-button" type="button">Koko rakennus</button>
             <button id="d-overview-preset-button" type="button">D-asunto</button>
+            <button id="d1-plan-button" type="button">D 1F</button>
+            <button id="d2-plan-button" type="button">D 2F</button>
+            <div class="toolbar-menu-separator"></div>
+            <div class="toolbar-menu-label">Alue ja järjestelmät</div>
+            <button id="site-preset-button" type="button">Tontti</button>
+            <button id="infra-preset-button" type="button">Infra</button>
+          </div>
+        </details>
+
+        <details id="view-menu" class="toolbar-menu">
+          <summary>Näkymä</summary>
+          <div class="toolbar-menu-panel" aria-label="Kamera ja esitystapa">
+            <div class="toolbar-menu-label">Kamera</div>
             <button id="orbit-button" type="button">Vapaa 3D</button>
             <button id="iso-button" type="button">Isometrinen</button>
             <button id="top-button" type="button">Ylhäältä</button>
             <button id="bottom-button" type="button">Alhaalta</button>
-            <div class="toolbar-menu-separator"></div>
-            <div class="toolbar-menu-label">D-asunto / kerros</div>
-            <button id="d1-plan-button" type="button">D 1F</button>
-            <button id="d2-plan-button" type="button">D 2F</button>
-            <div class="toolbar-menu-separator"></div>
-            <div class="toolbar-menu-label">Alue</div>
-            <button id="site-preset-button" type="button">Tontti</button>
-            <button id="infra-preset-button" type="button">Infra</button>
             <div class="toolbar-menu-separator"></div>
             <div class="toolbar-menu-label">Julkisivut</div>
             <button id="elev-pos-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
@@ -995,6 +1323,35 @@ const title = 'Private 3D viewer';
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
+        <aside
+          id="orientation-gizmo"
+          class="orientation-gizmo"
+          aria-label="YLIS-G1-LOCAL suuntailmaisin: X itään, Y pohjoiseen, Z ylös"
+          data-frame="YLIS-G1-LOCAL"
+          data-north-axis="+Y"
+        >
+          <div class="orientation-gizmo-title">YLIS-G1-LOCAL</div>
+          <svg viewBox="0 0 92 92" aria-hidden="true">
+            <circle class="orientation-origin" cx="46" cy="46" r="2.4"></circle>
+            <g>
+              <line id="orientation-axis-x" class="orientation-axis orientation-axis-x" x1="46" y1="46" x2="67" y2="46"></line>
+              <circle id="orientation-axis-x-tip" class="orientation-axis-tip orientation-axis-x" cx="67" cy="46" r="2.2"></circle>
+              <text id="orientation-axis-x-label" class="orientation-axis-label orientation-axis-label-x" x="76" y="46">X</text>
+            </g>
+            <g>
+              <line id="orientation-axis-y" class="orientation-axis orientation-axis-y" x1="46" y1="46" x2="46" y2="25"></line>
+              <circle id="orientation-axis-y-tip" class="orientation-axis-tip orientation-axis-y" cx="46" cy="25" r="2.2"></circle>
+              <text id="orientation-axis-y-label" class="orientation-axis-label orientation-axis-label-y" x="46" y="16">Y</text>
+              <text id="orientation-north-label" class="orientation-north-label" x="55" y="16">N</text>
+            </g>
+            <g>
+              <line id="orientation-axis-z" class="orientation-axis orientation-axis-z" x1="46" y1="46" x2="31" y2="61"></line>
+              <circle id="orientation-axis-z-tip" class="orientation-axis-tip orientation-axis-z" cx="31" cy="61" r="2.2"></circle>
+              <text id="orientation-axis-z-label" class="orientation-axis-label orientation-axis-label-z" x="24" y="68">Z</text>
+            </g>
+          </svg>
+          <div class="orientation-gizmo-note">X itä · Y pohjoinen · Z ylös</div>
+        </aside>
         <div id="d1-known-door-label-layer" class="d1-known-door-label-layer" aria-hidden="true" hidden></div>
         <aside id="d1-known-door-legend" class="d1-known-door-legend" aria-label="D 1F -ovien tarkastusselite" hidden>
           <h2>Lähteistetyt D 1F -ovet 7/7</h2>
@@ -1201,6 +1558,7 @@ const title = 'Private 3D viewer';
         heightScaleStepForSpan,
       } from '../../scripts/privateModelReviewMath';
       import { createHeightScaleController } from '../../scripts/privateModelHeightScale';
+      import { createOrientationGizmoController } from '../../scripts/privateModelOrientationGizmo';
       import {
         activateReviewCoordinatePanel,
         clearReviewAnchorState,
@@ -1352,6 +1710,17 @@ const title = 'Private 3D viewer';
       const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
       const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
       const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
+      const orientationGizmo = document.querySelector<HTMLElement>('#orientation-gizmo');
+      const orientationAxisX = document.querySelector<SVGLineElement>('#orientation-axis-x');
+      const orientationAxisXTip = document.querySelector<SVGCircleElement>('#orientation-axis-x-tip');
+      const orientationAxisXLabel = document.querySelector<SVGTextElement>('#orientation-axis-x-label');
+      const orientationAxisY = document.querySelector<SVGLineElement>('#orientation-axis-y');
+      const orientationAxisYTip = document.querySelector<SVGCircleElement>('#orientation-axis-y-tip');
+      const orientationAxisYLabel = document.querySelector<SVGTextElement>('#orientation-axis-y-label');
+      const orientationAxisZ = document.querySelector<SVGLineElement>('#orientation-axis-z');
+      const orientationAxisZTip = document.querySelector<SVGCircleElement>('#orientation-axis-z-tip');
+      const orientationAxisZLabel = document.querySelector<SVGTextElement>('#orientation-axis-z-label');
+      const orientationNorthLabel = document.querySelector<SVGTextElement>('#orientation-north-label');
       const heightScale = document.querySelector<HTMLElement>('#height-scale');
       const heightScaleTicks = document.querySelector<HTMLElement>('#height-scale-ticks');
       const profilePanel = document.querySelector<HTMLElement>('#profile-panel');
@@ -1434,6 +1803,17 @@ const title = 'Private 3D viewer';
         !coordinateFloor ||
         !coordinatePointer ||
         !coordinateAnchor ||
+        !orientationGizmo ||
+        !orientationAxisX ||
+        !orientationAxisXTip ||
+        !orientationAxisXLabel ||
+        !orientationAxisY ||
+        !orientationAxisYTip ||
+        !orientationAxisYLabel ||
+        !orientationAxisZ ||
+        !orientationAxisZTip ||
+        !orientationAxisZLabel ||
+        !orientationNorthLabel ||
         !heightScale ||
         !heightScaleTicks ||
         !profilePanel ||
@@ -1475,7 +1855,7 @@ const title = 'Private 3D viewer';
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.setClearColor(0xecece8, 1);
+      renderer.setClearColor(0x202a34, 1);
 
       const scene = new THREE.Scene();
       const selectionHighlightController = createSelectionHighlightController({
@@ -1523,6 +1903,28 @@ const title = 'Private 3D viewer';
       const modelCenter = new THREE.Vector3();
       let fitDistance = 10;
       let activeCamera: typeof camera | typeof planCamera | typeof isoCamera = camera;
+      const orientationGizmoController = createOrientationGizmoController({
+        root: orientationGizmo,
+        axisX: {
+          line: orientationAxisX,
+          tip: orientationAxisXTip,
+          label: orientationAxisXLabel,
+          world: { x: 1, y: 0, z: 0 },
+        },
+        axisY: {
+          line: orientationAxisY,
+          tip: orientationAxisYTip,
+          label: orientationAxisYLabel,
+          world: { x: 0, y: 0, z: -1 },
+        },
+        axisZ: {
+          line: orientationAxisZ,
+          tip: orientationAxisZTip,
+          label: orientationAxisZLabel,
+          world: { x: 0, y: 1, z: 0 },
+        },
+        northLabel: orientationNorthLabel,
+      });
       type ElevationDirection = 'pos-y' | 'neg-y' | 'pos-x' | 'neg-x';
       let activeElevationDirection: ElevationDirection | null = null;
       const heightScaleController = createHeightScaleController({
@@ -2872,9 +3274,10 @@ const title = 'Private 3D viewer';
         applyLocusLayerState();
       };
 
-      const setLayersPanelOpen = (open: boolean) => {
+      const setLayersPanelOpen = (open: boolean, restoreFocus = false) => {
         layersPanel.hidden = !open;
         layersButton.setAttribute('aria-expanded', String(open));
+        if (!open && restoreFocus) layersButton.focus();
       };
 
 
@@ -7313,7 +7716,12 @@ const title = 'Private 3D viewer';
         void loadCurrentModel();
       });
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
-      closeLayersButton.addEventListener('click', () => setLayersPanelOpen(false));
+      closeLayersButton.addEventListener('click', () => setLayersPanelOpen(false, true));
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || event.defaultPrevented || layersPanel.hidden) return;
+        event.preventDefault();
+        setLayersPanelOpen(false, true);
+      });
       edgeModeSelect.addEventListener('change', () => {
         const requestedMode = edgeModeSelect.value as EdgeMode;
         if (!['none', 'object', 'unified', 'visible'].includes(requestedMode)) return;
@@ -7442,6 +7850,10 @@ const title = 'Private 3D viewer';
         selectionHighlightController.update();
         updateD1KnownDoorReviewLabelPositions();
         updateHeightScale();
+        orientationGizmoController.render({
+          quaternion: activeCamera.quaternion,
+          projection: (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective',
+        });
         renderer.render(scene, activeCamera);
       });
 

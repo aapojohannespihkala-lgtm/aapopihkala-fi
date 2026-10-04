@@ -9,12 +9,15 @@ import {
   p183ContextRenderOrderBase,
   p183LegacyIntegrationRootName,
   p183P160ClosureContextOpacity,
+  p183PhysicalWallRenderOrder,
+  isP183WallOcclusionSurface,
   p183P160ClosureTargetOpacity,
   p183TargetPrimaryRenderOrderBase,
   p183TargetSupportRenderOrderBase,
   p183P178bIntegrationRootName,
   prepareP183P160ClosureReviewPresentation,
   resolveP183P160ClosureIntegrationRoot,
+  resolveP183WallSemanticClass,
 } from '../../src/scripts/privateModelP183ReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
 
@@ -98,83 +101,99 @@ test('P183 P160 closure review presents D architecture at 80 percent and unique 
 });
 
 
-test('P183 P160 closure review keeps transparent D interior above support with deterministic camera-independent render order', () => {
+test('P183 wall occlusion uses explicit metadata and never color or raw mesh names', () => {
   const fullScene = new THREE.Group();
-  const contextMaterial = new THREE.MeshBasicMaterial({ color: 0x777777 });
-  const contextMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), contextMaterial);
-  contextMesh.name = 'SITE_CONTEXT';
-  fullScene.add(contextMesh);
+  const dScene = new THREE.Group();
 
-  const targetComposite = new THREE.Group();
-  const dInterior = new THREE.Group();
-  dInterior.name = 'D_INTERIOR_PRIMARY_ROOT';
-  const support = new THREE.Group();
-  support.name = 'P183_SUPPORT_ROOT';
-
-  const makeTarget = (name: string, color: number) => {
+  const makeMesh = (
+    name: string,
+    color: number,
+    userData: Record<string, unknown>,
+  ) => {
     const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.BoxGeometry(1, 2, 0.2),
       new THREE.MeshBasicMaterial({ color }),
     );
     mesh.name = name;
+    mesh.userData = userData;
     return mesh;
   };
 
-  dInterior.add(
-    makeTarget('GREEN_INTERIOR_WALL_A', 0x00aa44),
-    makeTarget('GREEN_INTERIOR_WALL_B', 0x00aa44),
-  );
-  support.add(
-    makeTarget('BLUE_SHELL_SUPPORT', 0x2277aa),
-    makeTarget('STAIR_SUPPORT', 0xccaa22),
-  );
-  targetComposite.add(dInterior, support);
+  const blueShell = makeMesh('BLUE_SHELL_CONTEXT', 0x2277aa, {
+    wallClass: 'gableEnvelope',
+    representationKind: 'wallThicknessSolid',
+    physicalThicknessClaim: true,
+  });
+  blueShell.position.z = -2;
+  fullScene.add(blueShell);
 
-  const presentation = prepareP183P160ClosureReviewPresentation(fullScene, targetComposite);
+  const greenHelper = makeMesh('GREEN_TRANSPARENT_HELPER', 0x00aa44, {
+    PresentationOnly: true,
+    Pass: '123C',
+    sourceP122BNode: 432,
+  });
+  greenHelper.position.z = 1;
+  fullScene.add(greenHelper);
+
+  const unknownGreen = makeMesh('G2_WALL_INT_NAME_ONLY', 0x00ff2e, {});
+  unknownGreen.position.z = 3;
+  fullScene.add(unknownGreen);
+
+  const primaryRoot = new THREE.Group();
+  primaryRoot.name = 'D_INTERIOR_PRIMARY_ROOT';
+  const supportRoot = new THREE.Group();
+  supportRoot.name = 'P183_SUPPORT_ROOT';
+
+  const hostWall = makeMesh('D1F_HOST_WORK_ENVELOPE', 0x8855aa, {
+    coveringHostIds: ['I04'],
+    openingTreatment: 'P154C_WORK_TEST_CUTOUT_APPLIED',
+  });
+  const semanticLowWall = makeMesh('R210_LOWWALL', 0xccaa33, {
+    G2Id: 'G2_WALL_INT_D_2F_TEST_001',
+  });
+  const stairSupport = makeMesh('STAIR_SUPPORT', 0xccaa22, {
+    representationKind: 'guardWorkEnvelopeClosure',
+  });
+
+  primaryRoot.add(hostWall);
+  supportRoot.add(semanticLowWall, stairSupport);
+  dScene.add(primaryRoot, supportRoot);
+
+  const presentation = prepareP183P160ClosureReviewPresentation(fullScene, dScene);
   const contextCloneRoot = presentation.composite!.children[0];
   const targetCloneRoot = presentation.composite!.children[1];
-  const primaryClone = targetCloneRoot.children[0];
-  const supportClone = targetCloneRoot.children[1];
+  const blueShellClone = contextCloneRoot.getObjectByName('BLUE_SHELL_CONTEXT') as any;
+  const greenHelperClone = contextCloneRoot.getObjectByName('GREEN_TRANSPARENT_HELPER') as any;
+  const unknownGreenClone = contextCloneRoot.getObjectByName('G2_WALL_INT_NAME_ONLY') as any;
+  const hostWallClone = targetCloneRoot.getObjectByName('D1F_HOST_WORK_ENVELOPE') as any;
+  const semanticLowWallClone = targetCloneRoot.getObjectByName('R210_LOWWALL') as any;
+  const stairClone = targetCloneRoot.getObjectByName('STAIR_SUPPORT') as any;
 
-  const renderOrders = (root: any) => {
-    const orders: number[] = [];
-    root.traverse((object: any) => {
-      if (object?.material) orders.push(object.renderOrder);
-    });
-    return orders;
-  };
+  expect(resolveP183WallSemanticClass(semanticLowWallClone)).toBe('INTERIOR');
+  expect(resolveP183WallSemanticClass(unknownGreenClone)).toBeNull();
 
-  const primaryOrders = renderOrders(primaryClone);
-  const supportOrders = renderOrders(supportClone);
-  const contextOrders = renderOrders(contextCloneRoot);
-  const allOrders = [...contextOrders, ...supportOrders, ...primaryOrders];
+  for (const wall of [blueShellClone, greenHelperClone, hostWallClone, semanticLowWallClone]) {
+    expect(isP183WallOcclusionSurface(wall)).toBe(true);
+    expect(wall.renderOrder).toBe(p183PhysicalWallRenderOrder);
+    expect(wall.userData.p183PhysicalOcclusionSort).toBe(true);
+    expect(wall.material.depthTest).toBe(true);
+    expect(wall.material.depthWrite).toBe(false);
+  }
 
-  expect(primaryOrders).toHaveLength(2);
-  expect(supportOrders).toHaveLength(2);
-  expect(contextOrders).toHaveLength(1);
-  expect(Math.min(...primaryOrders)).toBeGreaterThanOrEqual(p183TargetPrimaryRenderOrderBase);
-  expect(Math.min(...supportOrders)).toBeGreaterThanOrEqual(p183TargetSupportRenderOrderBase);
-  expect(Math.min(...primaryOrders)).toBeGreaterThan(Math.max(...supportOrders));
-  expect(Math.min(...supportOrders)).toBeGreaterThan(Math.max(...contextOrders));
-  expect(new Set(allOrders).size).toBe(allOrders.length);
+  expect(hostWallClone.material.opacity).toBe(p183P160ClosureTargetOpacity);
+  expect(semanticLowWallClone.material.opacity).toBe(p183P160ClosureTargetOpacity);
+  expect(blueShellClone.material.opacity).toBe(p183P160ClosureContextOpacity);
+  expect(greenHelperClone.material.opacity).toBe(p183P160ClosureContextOpacity);
 
-  const stableBeforeCameraChange = renderOrders(targetCloneRoot);
-  targetCloneRoot.rotation.y = Math.PI * 0.75;
-  targetCloneRoot.updateMatrixWorld(true);
-  expect(renderOrders(targetCloneRoot)).toEqual(stableBeforeCameraChange);
+  expect(isP183WallOcclusionSurface(unknownGreenClone)).toBe(false);
+  expect(unknownGreenClone.userData.p183WallSemanticClass).toBeUndefined();
+  expect(unknownGreenClone.renderOrder).toBeGreaterThanOrEqual(p183ContextRenderOrderBase);
+  expect(stairClone.userData.p183WallSemanticClass).toBeUndefined();
+  expect(stairClone.renderOrder).toBeGreaterThanOrEqual(p183TargetSupportRenderOrderBase);
 
-  primaryClone.traverse((object: any) => {
-    if (!object?.material) return;
-    expect(object.userData.p183RenderBand).toBe('D_INTERIOR_PRIMARY');
-    expect(object.material.opacity).toBe(p183P160ClosureTargetOpacity);
-    expect(object.material.depthWrite).toBe(false);
-  });
-  supportClone.traverse((object: any) => {
-    if (!object?.material) return;
-    expect(object.userData.p183RenderBand).toBe('TARGET_SUPPORT');
-    expect(object.material.opacity).toBe(p183P160ClosureTargetOpacity);
-    expect(object.material.depthWrite).toBe(false);
-  });
+  expect(blueShellClone.material.color.getHex()).toBe(0x2277aa);
+  expect(greenHelperClone.material.color.getHex()).toBe(0x00aa44);
+  expect(unknownGreenClone.material.color.getHex()).toBe(0x00ff2e);
 });
 
 
@@ -231,4 +250,53 @@ test('P183 suppresses legacy D floor helper footprints without changing real tar
   expect((helper.material as any).opacity).toBe(0.12);
   expect(stairHelper.visible).toBe(true);
   expect((stairHelper.material as any).opacity).toBe(0.16);
+});
+
+
+test('P183 hides only metadata-confirmed residual helper lines', () => {
+  const fullScene = new THREE.Group();
+  const dScene = new THREE.Group();
+  const makeLine = (name: string, userData: Record<string, unknown>) => {
+    const geometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(1, 0, 0),
+    ]);
+    const line = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial());
+    line.name = name;
+    line.userData = userData;
+    return line;
+  };
+
+  const outline = makeLine('OUTLINE_HELPER', {
+    presentationOnly: true,
+    presentationLayer: 'CURRENT_D_OUTLINE',
+    physicalWallClaim: false,
+  });
+  const marker = makeLine('FLOOR_MARKER_HELPER', {
+    PresentationOnly: true,
+    markerType: 'HORIZONTAL_ONLY_REFERENCE_AT_HOST_FLOOR',
+    physicalDoorVoid: false,
+  });
+  const physicalEdge = makeLine('PHYSICAL_EDGE', {
+    presentationOnly: true,
+    presentationLayer: 'CURRENT_D_OUTLINE',
+    physicalWallClaim: true,
+  });
+  const openingReference = makeLine('OPENING_REFERENCE', {
+    PresentationOnly: true,
+    representationKind: 'referenceOpening',
+    physicalDoorVoid: false,
+  });
+  dScene.add(outline, marker, physicalEdge, openingReference);
+
+  const presentation = prepareP183P160ClosureReviewPresentation(fullScene, dScene);
+  const target = presentation.composite!.children[1];
+
+  expect(presentation.hiddenAuxiliaryReviewLineCount).toBe(2);
+  expect(target.getObjectByName('OUTLINE_HELPER')!.visible).toBe(false);
+  expect(target.getObjectByName('FLOOR_MARKER_HELPER')!.visible).toBe(false);
+  expect(target.getObjectByName('PHYSICAL_EDGE')!.visible).toBe(true);
+  expect(target.getObjectByName('OPENING_REFERENCE')!.visible).toBe(true);
+  expect(outline.visible).toBe(true);
+  expect(marker.visible).toBe(true);
 });

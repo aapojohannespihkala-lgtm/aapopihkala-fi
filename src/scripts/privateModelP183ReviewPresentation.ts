@@ -5,6 +5,7 @@ export const p183P160ClosureContextOpacity = 0.2;
 export const p183ContextRenderOrderBase = 100_000;
 export const p183TargetSupportRenderOrderBase = 1_000_000;
 export const p183TargetPrimaryRenderOrderBase = 2_000_000;
+export const p183PhysicalWallRenderOrder = 0;
 
 export const p183P178bIntegrationRootName =
   'P178B_D_PRECISE_STAIR_CONTEXT_WITH_GUARD_LOWWALL_CLOSURE_WORK_TEST';
@@ -26,6 +27,64 @@ const isP183AuxiliaryFloorSurface = (object: any) => {
   if (!object?.isMesh) return false;
   const representationKind = String(object?.userData?.representationKind ?? '');
   return representationKind === 'referenceFootprint' || representationKind === 'stairHostFootprint';
+};
+
+const isP183AuxiliaryReviewLine = (object: any) => {
+  if (!(object?.isLine || object?.isLineSegments)) return false;
+  const metadata = object?.userData ?? {};
+  const isFootprintOutline =
+    metadata.presentationOnly === true &&
+    metadata.presentationLayer === 'CURRENT_D_OUTLINE' &&
+    metadata.physicalWallClaim === false;
+  const isFloorReferenceMarker =
+    metadata.PresentationOnly === true &&
+    metadata.markerType === 'HORIZONTAL_ONLY_REFERENCE_AT_HOST_FLOOR' &&
+    metadata.physicalDoorVoid === false;
+  return isFootprintOutline || isFloorReferenceMarker;
+};
+
+export type P183WallSemanticClass = 'EXTERIOR' | 'PARTY' | 'INTERIOR';
+
+const p183WallSemanticClassFromG2Identity = (
+  value: unknown,
+): P183WallSemanticClass | null => {
+  const identity = String(value ?? '').trim().toUpperCase();
+  if (identity.startsWith('G2_WALL_EXT_')) return 'EXTERIOR';
+  if (identity.startsWith('G2_WALL_PART_')) return 'PARTY';
+  if (identity.startsWith('G2_WALL_INT_')) return 'INTERIOR';
+  return null;
+};
+
+export const resolveP183WallSemanticClass = (
+  object: any,
+): P183WallSemanticClass | null =>
+  p183WallSemanticClassFromG2Identity(object?.userData?.G2Id);
+
+const p183WallOcclusionRepresentationKinds = new Set([
+  'wallThicknessSolid',
+  'wallThicknessSolidLowerExtension',
+  'throughWallSeparatorWorkSolid',
+  'localAsymmetricWallHostWorkEnvelope',
+  'storageNorthWallCorrectedWorkEnvelope',
+  'storageEastDoorLintelReemitWorkEnvelope',
+  'storageEastWallNorthContinuationWorkEnvelope',
+]);
+
+export const isP183WallOcclusionSurface = (object: any) => {
+  if (!object?.isMesh) return false;
+  const metadata = object?.userData ?? {};
+  if (resolveP183WallSemanticClass(object)) return true;
+  if (typeof metadata.wallClass === 'string' && metadata.wallClass.trim()) return true;
+  if (typeof metadata.wallHostAuthority === 'string' && metadata.wallHostAuthority.trim()) return true;
+  if (Array.isArray(metadata.coveringHostIds) && metadata.coveringHostIds.length > 0) return true;
+  if (metadata.physicalWallClaim === true) return true;
+  if (metadata.physicalThicknessClaim === true) return true;
+  if (metadata.physicalWallThicknessClaim === true) return true;
+  const representationKind = String(metadata.representationKind ?? '');
+  if (p183WallOcclusionRepresentationKinds.has(representationKind)) return true;
+  const pass = String(metadata.Pass ?? metadata.pass ?? '');
+  return pass === '123C' &&
+    (Number.isInteger(metadata.sourceP122BNode) || Number.isInteger(metadata.sourceP123BNode));
 };
 
 const cloneObjectMaterials = (object: any, update: (material: any) => void) => {
@@ -64,6 +123,7 @@ export const prepareP183P160ClosureReviewPresentation = (
       contextRenderableCount: 0,
       suppressedDuplicateContextCount: 0,
       hiddenAuxiliaryTargetCount: 0,
+      hiddenAuxiliaryReviewLineCount: 0,
       targetBounds: null,
     };
   }
@@ -75,6 +135,7 @@ export const prepareP183P160ClosureReviewPresentation = (
   let targetSupportRenderOrderIndex = 0;
   let targetRenderableCount = 0;
   let hiddenAuxiliaryTargetCount = 0;
+  let hiddenAuxiliaryReviewLineCount = 0;
   targetScene.traverse((object: any) => {
     if (!isRenderable(object)) return;
     const identity = renderableIdentity(object);
@@ -89,6 +150,18 @@ export const prepareP183P160ClosureReviewPresentation = (
         p183AuxiliaryFloorSurfaceHidden: true,
       };
       hiddenAuxiliaryTargetCount += 1;
+      return;
+    }
+    if (isP183AuxiliaryReviewLine(object)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p183P160ClosurePresentation: true,
+        p183ReviewRole: 'AUXILIARY_REVIEW_LINE_SUPPRESSED',
+        p183AuxiliaryReviewLineHidden: true,
+      };
+      hiddenAuxiliaryReviewLineCount += 1;
       return;
     }
     cloneObjectMaterials(object, (material) => {
@@ -107,9 +180,13 @@ export const prepareP183P160ClosureReviewPresentation = (
     const topLevelTargetChild = topLevelChildUnder(object, targetScene);
     const isPrimaryDInterior =
       primaryTargetRoot === targetScene || topLevelTargetChild === primaryTargetRoot;
-    const stableRenderOrder = isPrimaryDInterior
-      ? p183TargetPrimaryRenderOrderBase + targetPrimaryRenderOrderIndex++
-      : p183TargetSupportRenderOrderBase + targetSupportRenderOrderIndex++;
+    const wallSemanticClass = resolveP183WallSemanticClass(object);
+    const wallOcclusionSurface = isP183WallOcclusionSurface(object);
+    const stableRenderOrder = wallOcclusionSurface
+      ? p183PhysicalWallRenderOrder
+      : isPrimaryDInterior
+        ? p183TargetPrimaryRenderOrderBase + targetPrimaryRenderOrderIndex++
+        : p183TargetSupportRenderOrderBase + targetSupportRenderOrderIndex++;
     object.renderOrder = stableRenderOrder;
     object.userData = {
       ...(object.userData ?? {}),
@@ -118,6 +195,8 @@ export const prepareP183P160ClosureReviewPresentation = (
       p183ReviewRole: 'D_ARCHITECTURE_TARGET_80',
       p183RenderBand: isPrimaryDInterior ? 'D_INTERIOR_PRIMARY' : 'TARGET_SUPPORT',
       p183StableRenderOrder: stableRenderOrder,
+      ...(wallSemanticClass ? { p183WallSemanticClass: wallSemanticClass } : {}),
+      ...(wallOcclusionSurface ? { p183PhysicalOcclusionSort: true } : {}),
     };
     targetRenderableCount += 1;
   });
@@ -151,7 +230,11 @@ export const prepareP183P160ClosureReviewPresentation = (
       };
       material.needsUpdate = true;
     });
-    const stableRenderOrder = p183ContextRenderOrderBase + contextRenderOrderIndex++;
+    const wallSemanticClass = resolveP183WallSemanticClass(object);
+    const wallOcclusionSurface = isP183WallOcclusionSurface(object);
+    const stableRenderOrder = wallOcclusionSurface
+      ? p183PhysicalWallRenderOrder
+      : p183ContextRenderOrderBase + contextRenderOrderIndex++;
     object.renderOrder = stableRenderOrder;
     object.userData = {
       ...(object.userData ?? {}),
@@ -160,6 +243,8 @@ export const prepareP183P160ClosureReviewPresentation = (
       p183ReviewRole: 'BUILDING_TERRAIN_CONTEXT_20',
       p183RenderBand: 'BUILDING_TERRAIN_CONTEXT',
       p183StableRenderOrder: stableRenderOrder,
+      ...(wallSemanticClass ? { p183WallSemanticClass: wallSemanticClass } : {}),
+      ...(wallOcclusionSurface ? { p183PhysicalOcclusionSort: true } : {}),
     };
     contextRenderableCount += 1;
   });
@@ -187,6 +272,7 @@ export const prepareP183P160ClosureReviewPresentation = (
     contextRenderableCount,
     suppressedDuplicateContextCount,
     hiddenAuxiliaryTargetCount,
+    hiddenAuxiliaryReviewLineCount,
     targetBounds: hasTargetBounds ? targetBounds : null,
   };
 };
