@@ -6,6 +6,7 @@ export type SelectionIdentityNode = {
   isMesh?: boolean;
   isLine?: boolean;
   isLineSegments?: boolean;
+  isPoints?: boolean;
 };
 
 export type SceneNameLookup = {
@@ -43,11 +44,15 @@ export const sceneNameForObject = (
 };
 
 export const isObjectVisibilityRenderable = (object: SelectionIdentityNode | null | undefined) =>
-  object?.isMesh === true || object?.isLine === true || object?.isLineSegments === true;
+  object?.isMesh === true ||
+  object?.isLine === true ||
+  object?.isLineSegments === true ||
+  object?.isPoints === true;
 
 export const selectionKindLabel = (object: SelectionIdentityNode | null | undefined) => {
   if (object?.isMesh === true) return 'Mesh';
   if (object?.isLineSegments === true) return 'LineSegments';
   if (object?.isLine === true) return 'Line';
+  if (object?.isPoints === true) return 'Points';
   return object?.type ? String(object.type) : '-';
 };
