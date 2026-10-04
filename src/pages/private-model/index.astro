@@ -1087,7 +1087,23 @@ const title = 'Private 3D viewer';
         max-width: 100%;
       }
 
+      .toolbar-menu,
+      .model-source-badge,
+      .status {
+        min-width: 0;
+      }
+
+      .source-menu {
+        max-width: min(100%, 72vw);
+      }
+
+      .source-menu > summary {
+        max-width: 100%;
+      }
+
       .model-source-badge {
+        display: block;
+        width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
       }
