@@ -266,6 +266,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_861_664,
     expectedSha256: '3cddee192ae2af0d85bb650482aaa1596dfd883e5f0b3d25c42c4b451b3e6239',
   },
+  // P184D latest-survivor registration: exact P184D whole-building island source-chain-X successor.
+  {
+    id: 'p184d-whole-building-survivor-island-x-source-chain',
+    label: 'P184D whole-building survivor island source-chain-X correction - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p184d-whole-building-survivor-island-x-source-chain.glb`,
+    objectKey: 'work-test/p184d-whole-building-survivor-island-x-source-chain.glb',
+    expectedSize: 2_878_416,
+    expectedSha256: '3544b069f1cc059af1e4fa219e8aefb909153515efd00cd9ce589178d4a07522',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
