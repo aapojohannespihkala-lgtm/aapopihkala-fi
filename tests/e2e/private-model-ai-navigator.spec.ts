@@ -48,4 +48,14 @@ test('viewer route wires explicit navigation and selection mode plus visible AI 
   expect(source).toContain("canvas.dataset.interactionMode = 'navigate'");
   expect(source).toContain("selectionToolButton.addEventListener('click', () => setViewerToolMode('select'))");
   expect(source).toContain("navigateToolButton.addEventListener('click', () => setViewerToolMode('navigate'))");
+
+  const orientationSource = readFileSync(
+    new URL('../../src/scripts/privateModelOrientationGizmo.ts', import.meta.url),
+    'utf8',
+  );
+
+  expect(source.match(/id="ai-navigator-readout"/g) ?? []).toHaveLength(0);
+  expect(orientationSource.match(/readout\.id = 'ai-navigator-readout'/g) ?? []).toHaveLength(1);
+  expect(orientationSource).toContain("readout.dataset.frame = 'YLIS-G1-LOCAL'");
+  expect(orientationSource).toContain("readout.dataset.visibleBounds = boundsLabel");
 });
