@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const viewports = [
   { width: 1536, height: 768 },
@@ -6,7 +6,7 @@ const viewports = [
   { width: 390, height: 844 },
 ];
 
-async function stubViewerData(page: Parameters<typeof test>[0]['page']) {
+async function stubViewerData(page: Page) {
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
   });
