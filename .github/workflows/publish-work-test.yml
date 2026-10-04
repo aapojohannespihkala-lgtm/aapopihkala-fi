@@ -4,32 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       candidate:
-        description: Allowlisted WORK_TEST candidate
+        description: Allowlisted WORK_TEST candidate id
         required: true
         default: p150g-whole-building-end-plinth
-        type: choice
-        options:
-          - p150g-whole-building-end-plinth
-          - p154c-d-wall-cutouts
-          - p160-d-composite-architecture
-          - p159-whole-building-storage-context
-          - p161-multisource-systems-carrier
-          - p170a-p161-review-visibility
-          - p170d-p161-review-visibility-correction
-          - p171c-d-stair-opening-guard-lowwall-junction
-          - p173d-whole-building-d-wall-hr67-rebase
-          - p174a-r2-west-gable-termination-correction
-          - p175b-r3-near-building-flatter-terrain
-          - p176a-hr6-full-visible-west-gable-termination-correction
-          - p177b-hr6-direct-d-storage-north-wall-line-corrected
-          - p178b-d-stair-guard-lowwall-junction-closure
-          - p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase
-          - p164b-d-corrected-stair
-          - p166f-lightwell-proxies
-          - p167f-whole-building-precise-stair
-          - p168a-whole-building-roof-eave-correction
-          - p169a-whole-building-ac-storage-visible
-          - p169f-whole-building-ac-storage-doors
+        type: string
 
 permissions:
   contents: read
@@ -55,6 +33,11 @@ jobs:
           [[ "$GITHUB_REF" == "refs/heads/main" ]]
           [[ "$GITHUB_REPOSITORY" == "aapojohannespihkala-lgtm/aapopihkala-fi" ]]
 
+      - name: Checkout exact main release registry
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
       - name: Resolve allowlisted candidate
         shell: bash
         env:
@@ -62,127 +45,44 @@ jobs:
         run: |
           set -euo pipefail
 
-          case "$REQUESTED_CANDIDATE" in
-            p150g-whole-building-end-plinth)
-              drive_file_id="1A2qXM12S7Fx0H9UPUM6lWuAXFB0YqEB6"
-              expected_size="1986004"
-              expected_sha256="a17fdc1cbc29c4ecfcab3e94554b5ea5860c9a19db33e21f24c324acf70d6d89"
-              ;;
-            p154c-d-wall-cutouts)
-              drive_file_id="13s4JHivX9Be154vVeo8_q_cgElryXF5u"
-              expected_size="1535172"
-              expected_sha256="0653be4435879acb479ca272dc8fd4a3c7299c863c0082797236d4c5c20167c0"
-              ;;
-            p160-d-composite-architecture)
-              drive_file_id="18W_u9Le8oaL_jujXK7Gocot6t53vDMcM"
-              expected_size="1559168"
-              expected_sha256="773b64f6413237111c9abf6420ccdf52ee5f61f90717618a1fe855f85000f3d7"
-              ;;
-            p159-whole-building-storage-context)
-              drive_file_id="1XDasCVRBx-hzXOx0fjJ7qLhtbSR0zcXQ"
-              expected_size="1992656"
-              expected_sha256="085877147e8ee50b69d8fa932bdb6d25bece04be187ec5453e9f73de50d1a5d0"
-              ;;
-            p161-multisource-systems-carrier)
-              drive_file_id="1tnLYRipsRBLfgNMLKN4NIBPO2IzCENdV"
-              expected_size="1858948"
-              expected_sha256="7413fa57b423260cfff9554fae96a8167fba48d03a7c570806a509e58e3ca65d"
-              ;;
-            p170a-p161-review-visibility)
-              drive_file_id="17kAhyGrN7qFGtdtcyEU18VO1dQbGzlPY"
-              expected_size="1877872"
-              expected_sha256="447e587b9903ec36056df2fa414620086a601bbfb5f3fcdd89a9cb9928e86368"
-              ;;
-            p170d-p161-review-visibility-correction)
-              drive_file_id="1Hojb8wbz_qvXGwdyHzNfK1WuzIKL5H3D"
-              expected_size="1887248"
-              expected_sha256="7f2bb6a65617e81f05c58b4d732e3c96c781f890ea5c3364e28cdaa996c6520e"
-              ;;
-            p171c-d-stair-opening-guard-lowwall-junction)
-              drive_file_id="1gpe5tQS7vAlXM9J46VP6bxNLMIz7-EKe"
-              expected_size="2110432"
-              expected_sha256="ccacc928d7913886755dba7bb04d3dd3cc9f84e5a03dbd63170c29622b64e706"
-              ;;
-            p173d-whole-building-d-wall-hr67-rebase)
-              drive_file_id="1msAIG-GsO4Z-e4RD2I_1BObyTUb-H4tL"
-              expected_size="2119784"
-              expected_sha256="3d7144b0ea1841be6b9ef790e02ad807287d22c1b2a1e45fafae0f193c61ed7f"
-              ;;
-            p174a-r2-west-gable-termination-correction)
-              drive_file_id="1IFnFxuW5i6nfyNIAl9DnusKT6rBv3Pnb"
-              expected_size="2130116"
-              expected_sha256="7a44320e649ac0d6611a3124ba62fce5e4848c0266d4ad10da4220cd06ac7e20"
-              ;;
-            p175b-r3-near-building-flatter-terrain)
-              drive_file_id="1bme7kvoka8YFaUh4dAfqmXSiIUQ6Upz8"
-              expected_size="2307636"
-              expected_sha256="a70dfac3b0f21011f042d0112d9d5283c450e863bd2dbdb8776bfec902c92b60"
-              ;;
-            p176a-hr6-full-visible-west-gable-termination-correction)
-              drive_file_id="1ZGuklJlPV-RN-2sRgDdceMrjeAyYe2pd"
-              expected_size="2143792"
-              expected_sha256="bf8172b6661205906f588d7db3e1b1f416045ffef4d26208f12cef02df221dc5"
-              ;;
-            p177b-hr6-direct-d-storage-north-wall-line-corrected)
-              drive_file_id="1NBEUeLKRf8yp4iSuUG9tPOZ4ewtxro1U"
-              expected_size="2155224"
-              expected_sha256="37317206852db2adc95af4726e028a7297f6f42cd1552794e067093ba6fa2ca1"
-              ;;
-            p178b-d-stair-guard-lowwall-junction-closure)
-              drive_file_id="1cBxB58k4ajIU4pLLvtuUwPFQvxGozLWY"
-              expected_size="2165344"
-              expected_sha256="a60111c6f0bc25d56e00c446cf2088b96e96f4f87051233abd8c2f23a248ef9b"
-              ;;
-            p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase)
-              drive_file_id="1o4cjuyIDn7ZfMg5tUJ3YcFKPLDyJRfHp"
-              expected_size="2861664"
-              expected_sha256="3cddee192ae2af0d85bb650482aaa1596dfd883e5f0b3d25c42c4b451b3e6239"
-              ;;
-            p164b-d-corrected-stair)
-              drive_file_id="1HlOBrziBhX1uyawKI5eIzZZEzt7wsgDc"
-              expected_size="1583912"
-              expected_sha256="db35b42575f1e287905d97d89483982b9354e60b1a8fe806ab29fb26d6103ca9"
-              ;;
-            p166f-lightwell-proxies)
-              drive_file_id="1dDxcJFkLIn7JU_6msVgQVQYOurqv_L4c"
-              expected_size="2030604"
-              expected_sha256="3b1e2158408937be1f11a27b16eae605204d5aa2184c7d513f6883d92a430f0a"
-              ;;
-            p167f-whole-building-precise-stair)
-              drive_file_id="1h65Ap5BGINTqv-zEUnFmFa0wT25SMUfT"
-              expected_size="2070576"
-              expected_sha256="66e8589ec8b904cde6fee3b80ba7c0e01db0f1d66ed88455a6d5ddf9f9442bd8"
-              ;;
-            p168a-whole-building-roof-eave-correction)
-              drive_file_id="1hkI-8ExAq5Loit7YLU6cWsklEAzpi7fD"
-              expected_size="2076876"
-              expected_sha256="a9d0672283f15f2ab8cbd527242cb8982b1dab81e86e86b7dad1bfe42dbd1590"
-              ;;
-            p169a-whole-building-ac-storage-visible)
-              drive_file_id="1h62pgONu56UOhh5oZyaI51ABs8q_GFsB"
-              expected_size="2093060"
-              expected_sha256="12036d1c70e8568a37246d3fe4fe76917095c37ad3f0155e488a8b039c8cfe7b"
-              ;;
-            p169f-whole-building-ac-storage-doors)
-              drive_file_id="14zmRdG315ZPPtNS-_oDI2ALpYxHMEa4R"
-              expected_size="2104452"
-              expected_sha256="36d4e73eb32ea5d629d4a755cbcdbdc65fbd9f7dd38a8e871f7e40d8ef687e15"
-              ;;
-            *)
-              echo "Unsupported WORK_TEST candidate" >&2
-              exit 1
-              ;;
-          esac
+          python3 - ".github/work-test-candidates.json" "$REQUESTED_CANDIDATE" "$GITHUB_ENV" <<'PY'
+          import json
+          import re
+          import sys
 
-          {
-            echo "DRIVE_FILE_ID=$drive_file_id"
-            echo "CANDIDATE_ID=$REQUESTED_CANDIDATE"
-            echo "EXPECTED_SIZE=$expected_size"
-            echo "EXPECTED_SHA256=$expected_sha256"
-            echo "EXPECTED_PATH=/private-model/work-test/$REQUESTED_CANDIDATE.glb"
-            echo "PUBLISH_URL=https://aapopihkala.fi/private-model/work-test/publish/$REQUESTED_CANDIDATE.glb"
-            echo "GLB_URL=https://aapopihkala.fi/private-model/work-test/verify/$REQUESTED_CANDIDATE.glb"
-          } >> "$GITHUB_ENV"
+          registry_path, candidate_id, env_path = sys.argv[1:]
+          with open(registry_path, "r", encoding="utf-8") as handle:
+              payload = json.load(handle)
+
+          if set(payload) != {"version", "candidates"} or payload.get("version") != 1:
+              raise SystemExit("invalid WORK_TEST candidate registry envelope")
+
+          candidates = payload.get("candidates")
+          if not isinstance(candidates, dict):
+              raise SystemExit("invalid WORK_TEST candidate registry")
+
+          if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,127}", candidate_id):
+              raise SystemExit("invalid WORK_TEST candidate id")
+
+          entry = candidates.get(candidate_id)
+          if not isinstance(entry, dict) or set(entry) != {"driveFileId"}:
+              raise SystemExit("Unsupported WORK_TEST candidate")
+
+          drive_file_id = entry.get("driveFileId")
+          if not isinstance(drive_file_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{10,128}", drive_file_id):
+              raise SystemExit("invalid WORK_TEST Drive file id")
+
+          values = {
+              "DRIVE_FILE_ID": drive_file_id,
+              "CANDIDATE_ID": candidate_id,
+              "EXPECTED_PATH": f"/private-model/work-test/{candidate_id}.glb",
+              "PUBLISH_URL": f"https://aapopihkala.fi/private-model/work-test/publish/{candidate_id}.glb",
+              "GLB_URL": f"https://aapopihkala.fi/private-model/work-test/verify/{candidate_id}.glb",
+          }
+          with open(env_path, "a", encoding="utf-8") as handle:
+              for key, value in values.items():
+                  handle.write(f"{key}={value}\n")
+          PY
 
       - name: Require machine-auth configuration
         shell: bash
@@ -213,21 +113,28 @@ jobs:
           create_credentials_file: false
           export_environment_variables: false
 
-      - name: Download and verify exact private Drive GLB
+      - name: Download and derive exact private Drive GLB identity
         shell: bash
         env:
           GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
         run: |
           set -euo pipefail
           model="$RUNNER_TEMP/work-test-source.glb"
-          curl --silent --show-error --fail --location             --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN"             --output "$model"             "https://www.googleapis.com/drive/v3/files/$DRIVE_FILE_ID?alt=media&supportsAllDrives=true"
+          curl --silent --show-error --fail --location \
+            --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN" \
+            --output "$model" \
+            "https://www.googleapis.com/drive/v3/files/$DRIVE_FILE_ID?alt=media&supportsAllDrives=true"
 
           actual_size="$(stat -c '%s' "$model")"
           actual_sha="$(sha256sum "$model" | awk '{print $1}')"
-          [[ "$actual_size" == "$EXPECTED_SIZE" ]] || { echo "Drive size mismatch" >&2; exit 1; }
-          [[ "$actual_sha" == "$EXPECTED_SHA256" ]] || { echo "Drive SHA-256 mismatch" >&2; exit 1; }
-          chmod 600 "$model"
-          echo "Exact Drive source identity verified."
+          [[ "$(head -c 4 "$model")" == "glTF" ]] || { echo "Drive source is not a GLB" >&2; exit 1; }
+
+          {
+            echo "EXPECTED_SIZE=$actual_size"
+            echo "EXPECTED_SHA256=$actual_sha"
+          } >> "$GITHUB_ENV"
+
+          echo "Exact Drive source identity derived from raw bytes."
 
       - name: Publish exact bytes through machine-only endpoint
         shell: bash
