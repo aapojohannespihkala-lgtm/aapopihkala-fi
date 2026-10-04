@@ -11,8 +11,11 @@ type TrackedOrbitControls = ThreeOrbitControls & {
 const trackedOrbitControls = new WeakMap<HTMLElement, Set<TrackedOrbitControls>>();
 
 class OrbitControls extends ThreeOrbitControls {
+  private readonly trackedDomElement: HTMLElement;
+
   constructor(object: THREE.Camera, domElement: HTMLElement) {
     super(object, domElement);
+    this.trackedDomElement = domElement;
     const controls = this as TrackedOrbitControls;
     let controlsForElement = trackedOrbitControls.get(domElement);
     if (!controlsForElement) {
@@ -23,7 +26,7 @@ class OrbitControls extends ThreeOrbitControls {
   }
 
   dispose() {
-    trackedOrbitControls.get(this.domElement)?.delete(this as TrackedOrbitControls);
+    trackedOrbitControls.get(this.trackedDomElement)?.delete(this as TrackedOrbitControls);
     super.dispose();
   }
 }
