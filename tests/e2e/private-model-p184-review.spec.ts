@@ -21,7 +21,7 @@ test('P184D review alias resolves to the exact P184D survivor', () => {
   expect(getRequestedReviewCandidateId(`?review=${p184dReviewId}`)).toBe(p184dCandidateId);
 });
 
-test('P184D review isolates the exact island target and adds only a viewer-derived cabinet-front reference', () => {
+test('P184D review keeps only the exact island plus explicit D 2F architecture context at 80/20', () => {
   const scene = new THREE.Group();
   const axisRoot = new THREE.Group();
   axisRoot.rotation.x = -Math.PI / 2;
@@ -38,23 +38,56 @@ test('P184D review isolates the exact island target and adds only a viewer-deriv
     Pass: 'P184D',
     G2Id: p184DTargetG2Id,
     representationKind: p184DTargetRepresentationKind,
+    presentationLayer: 'D_ARCH_FURNITURE',
+    hostStorey: 'D_2F',
     sourceChainCabinetFrontXM: 0.831,
     exactXYClaim: false,
+  };
+
+  const sourceContextMaterial = new THREE.MeshBasicMaterial({ opacity: 1 });
+  const d2fContext = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 2, 2),
+    sourceContextMaterial,
+  );
+  d2fContext.name = 'P134B_ARCH_BASE_CLONE__P125A_BLUE_P86_VIEW_G2_WINDOW_N_D_2F_001';
+  d2fContext.userData = {
+    G2Id: 'G2_WINDOW_N_D_2F_001',
+    representationKind: 'referenceOpening',
+    presentationLayer: 'CURRENT_D',
+    presentationGroup: 'ARCH_BASE',
   };
 
   const unrelated = new THREE.Mesh(
     new THREE.BoxGeometry(2, 2, 2),
     new THREE.MeshBasicMaterial({ opacity: 1 }),
   );
-  unrelated.name = 'UNRELATED_CONTEXT';
-  axisRoot.add(island, unrelated);
+  unrelated.name = 'P134B_ARCH_BASE_CLONE__P125A_BLUE_P86_VIEW_G2_WINDOW_N_D_1F_001';
+  unrelated.userData = {
+    G2Id: 'G2_WINDOW_N_D_1F_001',
+    representationKind: 'referenceOpening',
+    presentationLayer: 'CURRENT_D',
+    presentationGroup: 'ARCH_BASE',
+  };
+
+  axisRoot.add(island, d2fContext, unrelated);
 
   const presentation = prepareP184DReviewPresentation(scene);
 
   expect(presentation.targetRenderableCount).toBe(1);
+  expect(presentation.contextRenderableCount).toBe(1);
+  expect(presentation.hiddenNonTargetRenderableCount).toBe(1);
   expect(presentation.cabinetFrontReferenceRenderableCount).toBe(1);
   expect(presentation.sourceChainCabinetFrontXM).toBeCloseTo(0.831, 6);
   expect(presentation.targetBounds).not.toBeNull();
+
+  expect(d2fContext.visible).toBe(true);
+  const contextMaterial = d2fContext.material as any;
+  expect(contextMaterial).not.toBe(sourceContextMaterial);
+  expect(contextMaterial.opacity).toBe(p184DReviewContextOpacity);
+  expect(contextMaterial.transparent).toBe(true);
+  expect(contextMaterial.depthWrite).toBe(false);
+  expect(d2fContext.userData.p184DReviewRole).toBe('D_2F_ARCH_CONTEXT_20');
+
   expect(unrelated.visible).toBe(false);
 
   const targetMaterial = island.material as any;
