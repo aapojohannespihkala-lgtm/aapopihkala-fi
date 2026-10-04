@@ -6,9 +6,12 @@ import {
   getRequestedReviewCandidateId,
 } from '../../src/scripts/privateModelWorkTest';
 import {
+  p183LegacyIntegrationRootName,
   p183P160ClosureContextOpacity,
   p183P160ClosureTargetOpacity,
+  p183P178bIntegrationRootName,
   prepareP183P160ClosureReviewPresentation,
+  resolveP183P160ClosureIntegrationRoot,
 } from '../../src/scripts/privateModelP183ReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
 
@@ -16,6 +19,20 @@ test('P183 review alias resolves to the exact P178B survivor', () => {
   expect(getRequestedReviewCandidateId(`?review=${p183P160ClosureReviewId}`)).toBe(
     p178bCandidateId,
   );
+});
+
+test('P183 review root resolver prefers the P178B replacement and falls back to legacy P167F', () => {
+  const fullScene = new THREE.Group();
+  const legacyRoot = new THREE.Group();
+  legacyRoot.name = p183LegacyIntegrationRootName;
+  const p178bRoot = new THREE.Group();
+  p178bRoot.name = p183P178bIntegrationRootName;
+  fullScene.add(legacyRoot, p178bRoot);
+
+  expect(resolveP183P160ClosureIntegrationRoot(fullScene)).toBe(p178bRoot);
+
+  fullScene.remove(p178bRoot);
+  expect(resolveP183P160ClosureIntegrationRoot(fullScene)).toBe(legacyRoot);
 });
 
 test('P183 P160 closure review presents D architecture at 80 percent and unique context at 20 percent', () => {
