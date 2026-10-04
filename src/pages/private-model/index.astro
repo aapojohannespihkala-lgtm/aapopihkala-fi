@@ -1598,6 +1598,11 @@ const title = 'Private 3D viewer';
         prepareP181GroundContactReviewPresentation,
       } from '../../scripts/privateModelP181ReviewPresentation';
       import {
+        p184DReviewContextOpacity,
+        p184DReviewTargetOpacity,
+        prepareP184DReviewPresentation,
+      } from '../../scripts/privateModelP184ReviewPresentation';
+      import {
         p183P160ClosureContextOpacity,
         p183P160ClosureTargetOpacity,
         prepareP183P160ClosureReviewPresentation,
@@ -1696,6 +1701,8 @@ const title = 'Private 3D viewer';
         p183P160ClosureReviewId,
         p181bR1CandidateId,
         p181bR1ReviewId,
+        p184dCandidateId,
+        p184dReviewId,
         p164bCandidateId,
         p164bReviewId,
         p167fCandidateId,
@@ -3900,6 +3907,49 @@ const title = 'Private 3D viewer';
         controls.update();
       };
 
+      const focusP184DReviewCamera = (targetBounds: any) => {
+        if (!targetBounds || targetBounds.isEmpty?.()) return false;
+
+        deactivateElevationView();
+        clearSelection();
+        activePlanFloor = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        planControls.enabled = false;
+        isoControls.enabled = false;
+        controls.enableRotate = true;
+        controls.enabled = true;
+        activeCamera = camera;
+        setModelScene(fullModelScene);
+        syncViewState('orbit');
+
+        const targetCenter = targetBounds.getCenter(new THREE.Vector3());
+        const targetSphere = targetBounds.getBoundingSphere(new THREE.Sphere());
+        const halfFov = THREE.MathUtils.degToRad(camera.fov * 0.5);
+        const targetDistance = Math.max(
+          (targetSphere.radius / Math.tan(halfFov)) * 1.65,
+          4,
+        );
+
+        controls.target.copy(targetCenter);
+        camera.up.set(0, 1, 0);
+        camera.position.copy(targetCenter).add(
+          new THREE.Vector3(
+            targetDistance * 0.78,
+            targetDistance * 0.58,
+            targetDistance * 0.92,
+          ),
+        );
+        camera.near = Math.max(targetDistance / 10000, 0.001);
+        camera.far = Math.max(targetDistance * 50, 1000);
+        camera.lookAt(targetCenter);
+        camera.updateProjectionMatrix();
+        controls.update();
+
+        canvas.dataset.p184ReviewFocusRadius = targetSphere.radius.toFixed(3);
+        return true;
+      };
+
       const focusP181GroundContactReviewCamera = (targetBounds: any) => {
         if (!targetBounds || targetBounds.isEmpty?.()) return false;
 
@@ -5384,6 +5434,9 @@ const title = 'Private 3D viewer';
       const isP181bR1StorageGroundReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p181bR1ReviewId);
 
+      const isP184dIslandXReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p184dReviewId);
+
       const isP164bCorrectedStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p164bReviewId);
 
@@ -6068,6 +6121,53 @@ const title = 'Private 3D viewer';
           'P160 final baseline closure - exact P178B WORK_TEST / D-arkkitehtuuri 80 % / muu konteksti 20 % / HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP184dReviewState = () => {
+        const presentation = prepareP184DReviewPresentation(fullModelScene);
+        if (
+          presentation.targetRenderableCount !== 1 ||
+          presentation.cabinetFrontReferenceRenderableCount !== 1 ||
+          !presentation.targetBounds
+        ) {
+          throw new Error('P184D review target or source-chain cabinet-front reference missing');
+        }
+
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: p184dReviewId,
+          p184ReviewQuestion: 'D_2F_KITCHEN_ISLAND_SOURCE_CHAIN_X_RELATION',
+          p184TargetG2Id: 'G2_FURN_D_2F_KITCHEN_ISLAND_001',
+          p184TargetOpacity: p184DReviewTargetOpacity.toFixed(2),
+          p184ContextOpacity: p184DReviewContextOpacity.toFixed(2),
+          p184SourceChainCabinetFrontXM: String(presentation.sourceChainCabinetFrontXM),
+          p184CabinetFrontReferenceKind: 'SOURCE_CHAIN_CABINET_FRONT_X_REFERENCE',
+          p184CabinetFrontReferenceExtentBasis: 'P184D_TARGET_BOUNDS_ONLY',
+          p184PhysicalCabinetGeometryClaim: 'false',
+          p184PhysicalCabinetFrontClaim: 'false',
+          p184ExactXYClaim: 'false',
+          p184GeometryMutation: 'false',
+          p184CurrentClaim: 'false',
+          p184AsBuiltClaim: 'false',
+          p184Canonical: 'false',
+          p184PublishToCurrent: 'false',
+          p184HumanReview: 'NOT_RUN',
+          standardViewPreset: 'd-apartment',
+        });
+        applyStandardViewPreset('d-apartment');
+        const cameraFocusApplied = focusP184DReviewCamera(presentation.targetBounds);
+        Object.assign(canvas.dataset, {
+          p184ReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+          p184ReviewCabinetFrontReferenceRenderableCount: String(
+            presentation.cabinetFrontReferenceRenderableCount,
+          ),
+          p184ReviewHiddenNonTargetRenderableCount: String(
+            presentation.hiddenNonTargetRenderableCount,
+          ),
+          p184ReviewCameraFocusApplied: String(cameraFocusApplied),
+          p184ReviewCameraMode: 'PERSPECTIVE_FREE_ORBIT',
+        });
+        status.textContent =
+          'P184D D 2F kitchen island source-chain X - WORK_TEST / island 80 % / viewer-only source-derived cabinet-front X reference 20 % / HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP181bR1ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase-review',
@@ -6455,6 +6555,8 @@ const title = 'Private 3D viewer';
             candidate.id === p178bCandidateId && isP183P160ClosureReviewRequested();
           const isP181bR1StorageGroundReview =
             candidate.id === p181bR1CandidateId && isP181bR1StorageGroundReviewRequested();
+          const isP184dIslandXReview =
+            candidate.id === p184dCandidateId && isP184dIslandXReviewRequested();
           const isP164bCorrectedStairReview =
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP167fPreciseStairReview =
@@ -6833,6 +6935,28 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p183ReviewCameraMode;
           delete canvas.dataset.p183ReviewQuestion;
           delete canvas.dataset.p183ReviewExactCandidate;
+          delete canvas.dataset.p184ReviewQuestion;
+          delete canvas.dataset.p184TargetG2Id;
+          delete canvas.dataset.p184TargetOpacity;
+          delete canvas.dataset.p184ContextOpacity;
+          delete canvas.dataset.p184SourceChainCabinetFrontXM;
+          delete canvas.dataset.p184CabinetFrontReferenceKind;
+          delete canvas.dataset.p184CabinetFrontReferenceExtentBasis;
+          delete canvas.dataset.p184PhysicalCabinetGeometryClaim;
+          delete canvas.dataset.p184PhysicalCabinetFrontClaim;
+          delete canvas.dataset.p184ExactXYClaim;
+          delete canvas.dataset.p184GeometryMutation;
+          delete canvas.dataset.p184CurrentClaim;
+          delete canvas.dataset.p184AsBuiltClaim;
+          delete canvas.dataset.p184Canonical;
+          delete canvas.dataset.p184PublishToCurrent;
+          delete canvas.dataset.p184HumanReview;
+          delete canvas.dataset.p184ReviewTargetRenderableCount;
+          delete canvas.dataset.p184ReviewCabinetFrontReferenceRenderableCount;
+          delete canvas.dataset.p184ReviewHiddenNonTargetRenderableCount;
+          delete canvas.dataset.p184ReviewCameraFocusApplied;
+          delete canvas.dataset.p184ReviewCameraMode;
+          delete canvas.dataset.p184ReviewFocusRadius;
           delete canvas.dataset.p181ParentPass;
           delete canvas.dataset.p181GeometryPass;
           delete canvas.dataset.p181QaPass;
@@ -7046,6 +7170,8 @@ const title = 'Private 3D viewer';
               ? 'P160 final baseline closure on exact P178B (WORK_TEST / D architecture 80/20)'
             : isP178bJunctionClosureReview
               ? 'P178B D stair guard/lowWall junction closure (WORK_TEST / visible gap 0,000 m)'
+            : isP184dIslandXReview
+              ? 'P184D D 2F kitchen island X review (WORK_TEST / island 80 % / source-derived cabinet-front reference 20 %)'
             : isP181bR1StorageGroundReview
               ? 'P181B-R1 A-C storage ground-contact/substructure + terrain rebase (WORK_TEST / 3/3)'
             : isP174aR2WestGableTerminationReview
@@ -7124,6 +7250,8 @@ const title = 'Private 3D viewer';
             applyP183P160ClosureReviewState();
           } else if (isP178bJunctionClosureReview) {
             applyP178bReviewState();
+          } else if (isP184dIslandXReview) {
+            applyP184dReviewState();
           } else if (isP181bR1StorageGroundReview) {
             applyP181bR1ReviewState();
           } else if (isP174aR2WestGableTerminationReview) {
