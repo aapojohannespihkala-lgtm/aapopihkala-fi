@@ -9,15 +9,17 @@ export type YlisBounds = {
   max: CartesianLike;
 };
 
+const canonicalZero = (value: number) => (Object.is(value, -0) ? 0 : value);
+
 const normalized = (value: number, digits: number) => {
   const rounded = Number(value.toFixed(digits));
-  return Object.is(rounded, -0) ? 0 : rounded;
+  return canonicalZero(rounded);
 };
 
 export const viewerWorldToYlis = (value: CartesianLike): CartesianLike => ({
-  x: value.x,
-  y: -value.z,
-  z: value.y,
+  x: canonicalZero(value.x),
+  y: canonicalZero(-value.z),
+  z: canonicalZero(value.y),
 });
 
 export const viewerBoundsToYlis = (
@@ -25,14 +27,14 @@ export const viewerBoundsToYlis = (
   max: CartesianLike,
 ): YlisBounds => ({
   min: {
-    x: min.x,
-    y: -max.z,
-    z: min.y,
+    x: canonicalZero(min.x),
+    y: canonicalZero(-max.z),
+    z: canonicalZero(min.y),
   },
   max: {
-    x: max.x,
-    y: -min.z,
-    z: max.y,
+    x: canonicalZero(max.x),
+    y: canonicalZero(-min.z),
+    z: canonicalZero(max.y),
   },
 });
 
