@@ -19,6 +19,7 @@ import {
   resolveP183P160ClosureIntegrationRoot,
   resolveP183WallSemanticClass,
 } from '../../src/scripts/privateModelP183ReviewPresentation';
+import { isEdgeMeshCandidate } from '../../src/scripts/privateModelEdgeVisibility';
 import { THREE } from '../../src/scripts/threeRuntime';
 
 test('P183 review alias resolves to the exact P178B survivor', () => {
@@ -71,6 +72,7 @@ test('P183 P160 closure review presents D architecture at 80 percent and unique 
   expect(presentation.targetRenderableCount).toBe(2);
   expect(presentation.contextRenderableCount).toBe(1);
   expect(presentation.suppressedDuplicateContextCount).toBe(1);
+  expect(presentation.hiddenAuxiliaryContextCount).toBe(0);
   expect(presentation.targetBounds).not.toBeNull();
 
   const targetClone = presentation.composite!.children[1]?.getObjectByName('D_WALL_TARGET');
@@ -250,6 +252,96 @@ test('P183 suppresses legacy D floor helper footprints without changing real tar
   expect((helper.material as any).opacity).toBe(0.12);
   expect(stairHelper.visible).toBe(true);
   expect((stairHelper.material as any).opacity).toBe(0.16);
+});
+
+
+test('P183 suppresses REFERENCE_OTHER floor helpers from context and edge overlay', () => {
+  const fullScene = new THREE.Group();
+  const dScene = new THREE.Group();
+
+  const makeContextMesh = (
+    name: string,
+    userData: Record<string, unknown>,
+  ) => {
+    const material = new THREE.MeshBasicMaterial({ color: 0xd0d3d4, opacity: 0.58 });
+    material.userData = { presentationGroup: 'ARCH_BASE' };
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+    mesh.name = name;
+    mesh.userData = userData;
+    return mesh;
+  };
+
+  const referenceFootprint = makeContextMesh('A_REFERENCE_FOOTPRINT', {
+    presentationOnly: true,
+    presentationLayer: 'REFERENCE_OTHER',
+    representationKind: 'referenceFootprint',
+  });
+  const stairHostFootprint = makeContextMesh('B_STAIR_HOST_FOOTPRINT', {
+    presentationOnly: true,
+    presentationLayer: 'REFERENCE_OTHER',
+    representationKind: 'stairHostFootprint',
+  });
+  const physicalContext = makeContextMesh('C_PHYSICAL_CONTEXT', {
+    presentationOnly: true,
+    presentationLayer: 'REFERENCE_OTHER',
+    representationKind: 'wallThicknessSolid',
+    physicalThicknessClaim: true,
+  });
+  fullScene.add(referenceFootprint, stairHostFootprint, physicalContext);
+
+  const targetWall = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshBasicMaterial({ color: 0x88aa99 }),
+  );
+  targetWall.name = 'D_TARGET_WALL';
+  dScene.add(targetWall);
+
+  const presentation = prepareP183P160ClosureReviewPresentation(fullScene, dScene);
+  const context = presentation.composite!.children[0];
+  const referenceClone = context.getObjectByName('A_REFERENCE_FOOTPRINT') as any;
+  const stairClone = context.getObjectByName('B_STAIR_HOST_FOOTPRINT') as any;
+  const physicalClone = context.getObjectByName('C_PHYSICAL_CONTEXT') as any;
+
+  expect(presentation.hiddenAuxiliaryContextCount).toBe(2);
+  for (const helper of [referenceClone, stairClone]) {
+    expect(helper.visible).toBe(false);
+    expect(helper.userData.p183AuxiliaryContextFloorSurfaceHidden).toBe(true);
+    expect(helper.userData.viewerSuppressEdgeOverlay).toBe(true);
+    expect(helper.userData.p183ReviewRole).toBe(
+      'AUXILIARY_CONTEXT_FLOOR_SURFACE_SUPPRESSED',
+    );
+  }
+
+  expect(physicalClone.visible).toBe(true);
+  expect(physicalClone.material.opacity).toBe(p183P160ClosureContextOpacity);
+  expect(physicalClone.userData.viewerSuppressEdgeOverlay).toBeUndefined();
+
+  referenceClone.visible = true;
+  expect(
+    isEdgeMeshCandidate(referenceClone, {
+      modelRoot: presentation.composite!,
+      routePresentationLayers: new Set<string>(),
+      isRoofLayerMember: () => false,
+      isArchBaseMaterial: (material) =>
+        material?.userData?.presentationGroup === 'ARCH_BASE',
+    }),
+  ).toBe(false);
+  referenceClone.visible = false;
+
+  expect(
+    isEdgeMeshCandidate(physicalClone, {
+      modelRoot: presentation.composite!,
+      routePresentationLayers: new Set<string>(),
+      isRoofLayerMember: () => false,
+      isArchBaseMaterial: (material) =>
+        material?.userData?.presentationGroup === 'ARCH_BASE',
+    }),
+  ).toBe(true);
+
+  expect(referenceFootprint.visible).toBe(true);
+  expect(referenceFootprint.userData.viewerSuppressEdgeOverlay).toBeUndefined();
+  expect(stairHostFootprint.visible).toBe(true);
+  expect(stairHostFootprint.userData.viewerSuppressEdgeOverlay).toBeUndefined();
 });
 
 
