@@ -62,6 +62,11 @@ export const createObjectVisibilityFilter = () => {
       if (isObjectVisibilityRenderable(object)) baseline.set(object, object.visible);
     });
     active = true;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('ylis-object-visibility-filter', { detail: { active: true } }),
+      );
+    }
     return true;
   };
 
@@ -116,6 +121,11 @@ export const createObjectVisibilityFilter = () => {
     if (!active) return false;
     for (const [object, visible] of baseline.entries()) object.visible = visible;
     reset();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('ylis-object-visibility-filter', { detail: { active: false } }),
+      );
+    }
     return true;
   };
 
