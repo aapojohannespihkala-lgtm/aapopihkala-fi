@@ -44,8 +44,34 @@ const p183WallSemanticClassFromG2Identity = (
 export const resolveP183WallSemanticClass = (
   object: any,
 ): P183WallSemanticClass | null =>
-  p183WallSemanticClassFromG2Identity(object?.userData?.G2Id) ??
-  p183WallSemanticClassFromG2Identity(object?.name);
+  p183WallSemanticClassFromG2Identity(object?.userData?.G2Id);
+
+const p183WallOcclusionRepresentationKinds = new Set([
+  'wallThicknessSolid',
+  'wallThicknessSolidLowerExtension',
+  'throughWallSeparatorWorkSolid',
+  'localAsymmetricWallHostWorkEnvelope',
+  'storageNorthWallCorrectedWorkEnvelope',
+  'storageEastDoorLintelReemitWorkEnvelope',
+  'storageEastWallNorthContinuationWorkEnvelope',
+]);
+
+export const isP183WallOcclusionSurface = (object: any) => {
+  if (!object?.isMesh) return false;
+  const metadata = object?.userData ?? {};
+  if (resolveP183WallSemanticClass(object)) return true;
+  if (typeof metadata.wallClass === 'string' && metadata.wallClass.trim()) return true;
+  if (typeof metadata.wallHostAuthority === 'string' && metadata.wallHostAuthority.trim()) return true;
+  if (Array.isArray(metadata.coveringHostIds) && metadata.coveringHostIds.length > 0) return true;
+  if (metadata.physicalWallClaim === true) return true;
+  if (metadata.physicalThicknessClaim === true) return true;
+  if (metadata.physicalWallThicknessClaim === true) return true;
+  const representationKind = String(metadata.representationKind ?? '');
+  if (p183WallOcclusionRepresentationKinds.has(representationKind)) return true;
+  const pass = String(metadata.Pass ?? metadata.pass ?? '');
+  return pass === '123C' &&
+    (Number.isInteger(metadata.sourceP122BNode) || Number.isInteger(metadata.sourceP123BNode));
+};
 
 const cloneObjectMaterials = (object: any, update: (material: any) => void) => {
   const cloneOne = (material: any) => {
@@ -127,7 +153,8 @@ export const prepareP183P160ClosureReviewPresentation = (
     const isPrimaryDInterior =
       primaryTargetRoot === targetScene || topLevelTargetChild === primaryTargetRoot;
     const wallSemanticClass = resolveP183WallSemanticClass(object);
-    const stableRenderOrder = wallSemanticClass
+    const wallOcclusionSurface = isP183WallOcclusionSurface(object);
+    const stableRenderOrder = wallOcclusionSurface
       ? p183PhysicalWallRenderOrder
       : isPrimaryDInterior
         ? p183TargetPrimaryRenderOrderBase + targetPrimaryRenderOrderIndex++
@@ -140,12 +167,8 @@ export const prepareP183P160ClosureReviewPresentation = (
       p183ReviewRole: 'D_ARCHITECTURE_TARGET_80',
       p183RenderBand: isPrimaryDInterior ? 'D_INTERIOR_PRIMARY' : 'TARGET_SUPPORT',
       p183StableRenderOrder: stableRenderOrder,
-      ...(wallSemanticClass
-        ? {
-            p183WallSemanticClass: wallSemanticClass,
-            p183PhysicalOcclusionSort: true,
-          }
-        : {}),
+      ...(wallSemanticClass ? { p183WallSemanticClass: wallSemanticClass } : {}),
+      ...(wallOcclusionSurface ? { p183PhysicalOcclusionSort: true } : {}),
     };
     targetRenderableCount += 1;
   });
@@ -180,7 +203,8 @@ export const prepareP183P160ClosureReviewPresentation = (
       material.needsUpdate = true;
     });
     const wallSemanticClass = resolveP183WallSemanticClass(object);
-    const stableRenderOrder = wallSemanticClass
+    const wallOcclusionSurface = isP183WallOcclusionSurface(object);
+    const stableRenderOrder = wallOcclusionSurface
       ? p183PhysicalWallRenderOrder
       : p183ContextRenderOrderBase + contextRenderOrderIndex++;
     object.renderOrder = stableRenderOrder;
@@ -191,12 +215,8 @@ export const prepareP183P160ClosureReviewPresentation = (
       p183ReviewRole: 'BUILDING_TERRAIN_CONTEXT_20',
       p183RenderBand: 'BUILDING_TERRAIN_CONTEXT',
       p183StableRenderOrder: stableRenderOrder,
-      ...(wallSemanticClass
-        ? {
-            p183WallSemanticClass: wallSemanticClass,
-            p183PhysicalOcclusionSort: true,
-          }
-        : {}),
+      ...(wallSemanticClass ? { p183WallSemanticClass: wallSemanticClass } : {}),
+      ...(wallOcclusionSurface ? { p183PhysicalOcclusionSort: true } : {}),
     };
     contextRenderableCount += 1;
   });
