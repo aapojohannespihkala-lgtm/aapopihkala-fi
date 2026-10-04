@@ -1539,6 +1539,7 @@ const title = 'Private 3D viewer';
         p183P160ClosureContextOpacity,
         p183P160ClosureTargetOpacity,
         prepareP183P160ClosureReviewPresentation,
+        resolveP183P160ClosureIntegrationRoot,
       } from '../../scripts/privateModelP183ReviewPresentation';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
       import {
@@ -4049,9 +4050,9 @@ const title = 'Private 3D viewer';
         const workShellRoot = fullModelScene.getObjectByName(
           p167fDOverviewWorkShellRootName,
         );
-        const integrationRoot = fullModelScene.getObjectByName(
-          p167fDOverviewIntegrationRootName,
-        );
+        const integrationRoot = isP183P160ClosureReviewRequested()
+          ? resolveP183P160ClosureIntegrationRoot(fullModelScene)
+          : fullModelScene.getObjectByName(p167fDOverviewIntegrationRootName);
         const preciseStairRoot = integrationRoot?.getObjectByName(
           p167fDOverviewPreciseStairRootName,
         );
