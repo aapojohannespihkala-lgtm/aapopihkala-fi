@@ -104,11 +104,8 @@ test('VUX-E1A layer changes preserve camera and presentation lanes', () => {
     roofVisible: true,
     roofOpacity: 1,
     locusVisible: true,
-    locusWaterVisible: true,
+    ...expectedDefaultChildren,
     locusWastewaterVisible: false,
-    p161KvvVisible: true,
-    p161IvPlanVisible: true,
-    p161IvSectionVisible: true,
   });
 
   const clampedLow = patchViewerLayerControls(updated, { roofOpacity: -0.2 });
