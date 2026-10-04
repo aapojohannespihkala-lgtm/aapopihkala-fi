@@ -251,3 +251,52 @@ test('P183 suppresses legacy D floor helper footprints without changing real tar
   expect(stairHelper.visible).toBe(true);
   expect((stairHelper.material as any).opacity).toBe(0.16);
 });
+
+
+test('P183 hides only metadata-confirmed residual helper lines', () => {
+  const fullScene = new THREE.Group();
+  const dScene = new THREE.Group();
+  const makeLine = (name: string, userData: Record<string, unknown>) => {
+    const geometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(1, 0, 0),
+    ]);
+    const line = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial());
+    line.name = name;
+    line.userData = userData;
+    return line;
+  };
+
+  const outline = makeLine('OUTLINE_HELPER', {
+    presentationOnly: true,
+    presentationLayer: 'CURRENT_D_OUTLINE',
+    physicalWallClaim: false,
+  });
+  const marker = makeLine('FLOOR_MARKER_HELPER', {
+    PresentationOnly: true,
+    markerType: 'HORIZONTAL_ONLY_REFERENCE_AT_HOST_FLOOR',
+    physicalDoorVoid: false,
+  });
+  const physicalEdge = makeLine('PHYSICAL_EDGE', {
+    presentationOnly: true,
+    presentationLayer: 'CURRENT_D_OUTLINE',
+    physicalWallClaim: true,
+  });
+  const openingReference = makeLine('OPENING_REFERENCE', {
+    PresentationOnly: true,
+    representationKind: 'referenceOpening',
+    physicalDoorVoid: false,
+  });
+  dScene.add(outline, marker, physicalEdge, openingReference);
+
+  const presentation = prepareP183P160ClosureReviewPresentation(fullScene, dScene);
+  const target = presentation.composite!.children[1];
+
+  expect(presentation.hiddenAuxiliaryReviewLineCount).toBe(2);
+  expect(target.getObjectByName('OUTLINE_HELPER')!.visible).toBe(false);
+  expect(target.getObjectByName('FLOOR_MARKER_HELPER')!.visible).toBe(false);
+  expect(target.getObjectByName('PHYSICAL_EDGE')!.visible).toBe(true);
+  expect(target.getObjectByName('OPENING_REFERENCE')!.visible).toBe(true);
+  expect(outline.visible).toBe(true);
+  expect(marker.visible).toBe(true);
+});
