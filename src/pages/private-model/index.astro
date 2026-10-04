@@ -3273,9 +3273,10 @@ const title = 'Private 3D viewer';
         applyLocusLayerState();
       };
 
-      const setLayersPanelOpen = (open: boolean) => {
+      const setLayersPanelOpen = (open: boolean, restoreFocus = false) => {
         layersPanel.hidden = !open;
         layersButton.setAttribute('aria-expanded', String(open));
+        if (!open && restoreFocus) layersButton.focus();
       };
 
 
@@ -7714,7 +7715,12 @@ const title = 'Private 3D viewer';
         void loadCurrentModel();
       });
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
-      closeLayersButton.addEventListener('click', () => setLayersPanelOpen(false));
+      closeLayersButton.addEventListener('click', () => setLayersPanelOpen(false, true));
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || event.defaultPrevented || layersPanel.hidden) return;
+        event.preventDefault();
+        setLayersPanelOpen(false, true);
+      });
       edgeModeSelect.addEventListener('change', () => {
         const requestedMode = edgeModeSelect.value as EdgeMode;
         if (!['none', 'object', 'unified', 'visible'].includes(requestedMode)) return;
