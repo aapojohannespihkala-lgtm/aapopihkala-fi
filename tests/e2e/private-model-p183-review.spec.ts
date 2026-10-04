@@ -484,3 +484,58 @@ test('P183 normal review suppresses non-physical P178B guard and stair lowWall c
   expect(guard.visible).toBe(true);
   expect(lowWall.visible).toBe(true);
 });
+
+test('P183 normal review suppresses only non-physical south and north precise stair clearance workshells', () => {
+  const fullScene = new THREE.Group();
+  const dScene = new THREE.Group();
+
+  const makeMesh = (name: string, userData: Record<string, unknown>) => {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial({ color: 0xbba56c }),
+    );
+    mesh.name = name;
+    mesh.userData = userData;
+    return mesh;
+  };
+
+  const baseMetadata = {
+    Pass: 'P167F',
+    ModelStage: 'WORK_TEST_GEOMETRY',
+    Canonical: false,
+    publishToCURRENT: false,
+    representationKind: 'presentationFloorWorkShellWithPreciseStairClearance',
+    presentationWorkShellCutApplied: true,
+    physicalOpeningClaim: false,
+    physicalFloorShellCutApplied: false,
+    physicalSlabThicknessClaim: false,
+    physicalFloorBuildUpClaim: false,
+    currentClaim: false,
+    asBuiltClaim: false,
+  };
+
+  const south = makeMesh('SOUTH_TEST', { ...baseMetadata, clearancePartRole: 'SOUTH' });
+  const north = makeMesh('NORTH_TEST', { ...baseMetadata, clearancePartRole: 'NORTH' });
+  const west = makeMesh('WEST_TEST', { ...baseMetadata, clearancePartRole: 'WEST' });
+  const east = makeMesh('EAST_TEST', { ...baseMetadata, clearancePartRole: 'EAST' });
+  const sourceSouth = south;
+  const sourceNorth = north;
+  dScene.add(south, north, west, east);
+
+  const presentation = prepareP183P160ClosureReviewPresentation(fullScene, dScene);
+  const target = presentation.composite!.children[1];
+
+  expect(presentation.hiddenAuxiliaryTargetCount).toBe(2);
+  expect(target.getObjectByName('SOUTH_TEST')!.visible).toBe(false);
+  expect(target.getObjectByName('NORTH_TEST')!.visible).toBe(false);
+  expect(target.getObjectByName('SOUTH_TEST')!.userData.p183ReviewRole).toBe(
+    'AUXILIARY_STAIR_CLEARANCE_WORKSHELL_SUPPRESSED',
+  );
+  expect(target.getObjectByName('NORTH_TEST')!.userData.p183ReviewRole).toBe(
+    'AUXILIARY_STAIR_CLEARANCE_WORKSHELL_SUPPRESSED',
+  );
+  expect(target.getObjectByName('WEST_TEST')!.visible).toBe(true);
+  expect(target.getObjectByName('EAST_TEST')!.visible).toBe(true);
+  expect(sourceSouth.visible).toBe(true);
+  expect(sourceNorth.visible).toBe(true);
+});
