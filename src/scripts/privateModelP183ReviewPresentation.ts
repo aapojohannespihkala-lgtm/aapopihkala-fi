@@ -43,6 +43,29 @@ const isP183AuxiliaryReviewLine = (object: any) => {
   return isFootprintOutline || isFloorReferenceMarker;
 };
 
+const p183P178bStairLowWallG2Id = 'G2_WALL_LOW_D_2F_STAIR_001';
+
+const isP183AuxiliaryGuardLowWallClosureSurface = (object: any) => {
+  if (!object?.isMesh) return false;
+  const metadata = object?.userData ?? {};
+  const representationKind = String(metadata.representationKind ?? '');
+  const nonPhysicalJunction = metadata.physicalJunctionClaim === false;
+
+  const guardClosure =
+    representationKind === 'guardWorkEnvelopeClosure' &&
+    metadata.workAssumption === true &&
+    metadata.physicalGuardClaim === false &&
+    nonPhysicalJunction;
+
+  const lowWallClosure =
+    String(metadata.G2Id ?? '').trim().toUpperCase() === p183P178bStairLowWallG2Id &&
+    metadata.physicalWallClaim === false &&
+    metadata.physicalLowWallClaim === false &&
+    nonPhysicalJunction;
+
+  return guardClosure || lowWallClosure;
+};
+
 export type P183WallSemanticClass = 'EXTERIOR' | 'PARTY' | 'INTERIOR';
 
 const p183WallSemanticClassFromG2Identity = (
@@ -124,6 +147,7 @@ export const prepareP183P160ClosureReviewPresentation = (
       suppressedDuplicateContextCount: 0,
       hiddenAuxiliaryTargetCount: 0,
       hiddenAuxiliaryReviewLineCount: 0,
+      hiddenAuxiliaryGuardLowWallCount: 0,
       targetBounds: null,
     };
   }
@@ -136,6 +160,7 @@ export const prepareP183P160ClosureReviewPresentation = (
   let targetRenderableCount = 0;
   let hiddenAuxiliaryTargetCount = 0;
   let hiddenAuxiliaryReviewLineCount = 0;
+  let hiddenAuxiliaryGuardLowWallCount = 0;
   targetScene.traverse((object: any) => {
     if (!isRenderable(object)) return;
     const identity = renderableIdentity(object);
@@ -162,6 +187,18 @@ export const prepareP183P160ClosureReviewPresentation = (
         p183AuxiliaryReviewLineHidden: true,
       };
       hiddenAuxiliaryReviewLineCount += 1;
+      return;
+    }
+    if (isP183AuxiliaryGuardLowWallClosureSurface(object)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p183P160ClosurePresentation: true,
+        p183ReviewRole: 'AUXILIARY_GUARD_LOWWALL_CLOSURE_SUPPRESSED',
+        p183AuxiliaryGuardLowWallClosureHidden: true,
+      };
+      hiddenAuxiliaryGuardLowWallCount += 1;
       return;
     }
     cloneObjectMaterials(object, (material) => {
@@ -273,6 +310,7 @@ export const prepareP183P160ClosureReviewPresentation = (
     suppressedDuplicateContextCount,
     hiddenAuxiliaryTargetCount,
     hiddenAuxiliaryReviewLineCount,
+    hiddenAuxiliaryGuardLowWallCount,
     targetBounds: hasTargetBounds ? targetBounds : null,
   };
 };
