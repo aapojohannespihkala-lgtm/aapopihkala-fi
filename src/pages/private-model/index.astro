@@ -1074,6 +1074,54 @@ const title = 'Private 3D viewer';
         background: var(--viewer-page);
         box-shadow: none;
       }
+
+      /* VUX-C2 responsive + accessibility guardrails. */
+      .toolbar {
+        min-width: 0;
+      }
+
+      .title,
+      .toolbar-menu,
+      .model-source-badge,
+      .status {
+        max-width: 100%;
+      }
+
+      .model-source-badge {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      button:focus-visible,
+      select:focus-visible {
+        outline: 3px solid rgba(196, 205, 210, 0.48);
+        outline-offset: 1px;
+      }
+
+      @media (max-width: 760px) {
+        .title {
+          flex: 1 1 100%;
+        }
+
+        .model-source-badge {
+          max-width: min(100%, 72vw);
+        }
+
+        .toolbar-menu-panel {
+          max-width: calc(100vw - 24px);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
     </style>
   </head>
   <body>
