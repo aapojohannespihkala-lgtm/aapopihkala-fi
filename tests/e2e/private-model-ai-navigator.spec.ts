@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { expect, test } from '@playwright/test';
 
 import {
@@ -32,4 +34,24 @@ test('AI navigator vector formatting normalizes negative zero', () => {
   expect(formatYlisVector({ x: -0.0001, y: 1.234, z: -5.678 })).toBe(
     'X 0.00  Y 1.23  Z -5.68',
   );
+});
+
+
+test('viewer route wires explicit navigation and selection mode plus visible AI context', () => {
+  const source = readFileSync(
+    new URL('../../src/pages/private-model/index.astro', import.meta.url),
+    'utf8',
+  );
+
+  expect(source).toContain('id="navigate-tool-button"');
+  expect(source).toContain('id="selection-tool-button"');
+  expect(source).toContain("canvas.dataset.interactionMode = 'navigate'");
+  expect(source).toContain("selectionToolButton.addEventListener('click', () => setViewerToolMode('select'))");
+  expect(source).toContain("navigateToolButton.addEventListener('click', () => setViewerToolMode('navigate'))");
+  expect(source).toContain('id="ai-nav-frame"');
+  expect(source).toContain('id="ai-nav-model"');
+  expect(source).toContain('id="ai-nav-view"');
+  expect(source).toContain('id="ai-nav-look"');
+  expect(source).toContain('id="ai-nav-center"');
+  expect(source).toContain('id="ai-nav-bounds"');
 });
