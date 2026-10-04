@@ -1178,6 +1178,11 @@ const title = 'Private 3D viewer';
         p181GroundContactReviewTargetOpacity,
         prepareP181GroundContactReviewPresentation,
       } from '../../scripts/privateModelP181ReviewPresentation';
+      import {
+        p183P160ClosureContextOpacity,
+        p183P160ClosureTargetOpacity,
+        prepareP183P160ClosureReviewPresentation,
+      } from '../../scripts/privateModelP183ReviewPresentation';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
       import {
         mergeViewerLayerState,
@@ -1266,6 +1271,7 @@ const title = 'Private 3D viewer';
         p177bReviewId,
         p178bCandidateId,
         p178bReviewId,
+        p183P160ClosureReviewId,
         p181bR1CandidateId,
         p181bR1ReviewId,
         p164bCandidateId,
@@ -3588,6 +3594,15 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p171Q1FloorShellHiddenVolumeCount;
         delete canvas.dataset.p171Q1FloorShellSurfaceMeshCount;
         delete canvas.dataset.p171Q1OpeningBoundaryContext;
+        delete canvas.dataset.p183P160ClosurePresentation;
+        delete canvas.dataset.p183ReviewTargetOpacity;
+        delete canvas.dataset.p183ReviewContextOpacity;
+        delete canvas.dataset.p183ReviewTargetRenderableCount;
+        delete canvas.dataset.p183ReviewContextRenderableCount;
+        delete canvas.dataset.p183ReviewSuppressedDuplicateContextCount;
+        delete canvas.dataset.p183ReviewCameraMode;
+        delete canvas.dataset.p183ReviewQuestion;
+        delete canvas.dataset.p183ReviewExactCandidate;
 
         if (
           activeModelSourceKind === 'work-test' &&
@@ -3620,7 +3635,8 @@ const title = 'Private 3D viewer';
             isP169aStorageVisibleReviewRequested() ||
             isP169fStorageDoorReviewRequested() ||
             isP171cStairJunctionReviewRequested() ||
-            isP178bJunctionClosureReviewRequested()
+            isP178bJunctionClosureReviewRequested() ||
+            isP183P160ClosureReviewRequested()
           )
         ) {
           return dInteriorScene;
@@ -3698,6 +3714,30 @@ const title = 'Private 3D viewer';
           composite.add(workShellRoot.clone(true));
         }
         composite.add(integrationRoot.clone(true));
+
+        if (isP183P160ClosureReviewRequested()) {
+          const presentation = prepareP183P160ClosureReviewPresentation(fullModelScene, composite);
+          if (!presentation.composite) {
+            canvas.dataset.p183P160ClosurePresentation = 'missing-required-scene';
+            return null;
+          }
+          canvas.dataset.p183P160ClosurePresentation = 'true';
+          canvas.dataset.p183ReviewTargetOpacity = p183P160ClosureTargetOpacity.toFixed(2);
+          canvas.dataset.p183ReviewContextOpacity = p183P160ClosureContextOpacity.toFixed(2);
+          canvas.dataset.p183ReviewTargetRenderableCount = String(
+            presentation.targetRenderableCount,
+          );
+          canvas.dataset.p183ReviewContextRenderableCount = String(
+            presentation.contextRenderableCount,
+          );
+          canvas.dataset.p183ReviewSuppressedDuplicateContextCount = String(
+            presentation.suppressedDuplicateContextCount,
+          );
+          canvas.dataset.p183ReviewCameraMode = 'PERSPECTIVE_FREE_ORBIT';
+          canvas.dataset.p183ReviewQuestion = 'P160_ARCHITECTURE_HR7_FINAL_CLOSURE';
+          canvas.dataset.p183ReviewExactCandidate = p178bCandidateId;
+          return presentation.composite;
+        }
 
         canvas.dataset.p167DOverviewComposite = 'true';
         canvas.dataset.p167DOverviewSupplementCount = '2';
@@ -4811,6 +4851,9 @@ const title = 'Private 3D viewer';
       const isP178bJunctionClosureReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p178bReviewId);
 
+      const isP183P160ClosureReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p183P160ClosureReviewId);
+
       const isP181bR1StorageGroundReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p181bR1ReviewId);
 
@@ -5478,6 +5521,26 @@ const title = 'Private 3D viewer';
           'P178B D stair guard/lowWall junction closure - WORK_TEST / visible gap 0.000 m / touch-only non-overlapping work envelopes / HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP183P160ClosureReviewState = () => {
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: p183P160ClosureReviewId,
+          p183ParentCandidate: p178bCandidateId,
+          p183ReviewScope: 'P160_ARCHITECTURE_HR7_FINAL_CLOSURE',
+          p183TargetOpacity: p183P160ClosureTargetOpacity.toFixed(2),
+          p183ContextOpacity: p183P160ClosureContextOpacity.toFixed(2),
+          p183GeometryMutation: 'false',
+          p183CurrentClaim: 'false',
+          p183AsBuiltClaim: 'false',
+          p183Canonical: 'false',
+          p183PublishToCurrent: 'false',
+          p183HumanReview: 'NOT_RUN',
+          standardViewPreset: 'd-apartment',
+        });
+        applyStandardViewPreset('d-apartment');
+        status.textContent =
+          'P160 final baseline closure - exact P178B WORK_TEST / D-arkkitehtuuri 80 % / muu konteksti 20 % / HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP181bR1ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase-review',
@@ -5861,6 +5924,8 @@ const title = 'Private 3D viewer';
             candidate.id === p177bCandidateId && isP177bDirectNorthWallReviewRequested();
           const isP178bJunctionClosureReview =
             candidate.id === p178bCandidateId && isP178bJunctionClosureReviewRequested();
+          const isP183P160ClosureReview =
+            candidate.id === p178bCandidateId && isP183P160ClosureReviewRequested();
           const isP181bR1StorageGroundReview =
             candidate.id === p181bR1CandidateId && isP181bR1StorageGroundReviewRequested();
           const isP164bCorrectedStairReview =
@@ -6222,6 +6287,25 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p178HumanReview;
           delete canvas.dataset.p178HumanReviewInherited;
           delete canvas.dataset.p178QaGate;
+          delete canvas.dataset.p183ParentCandidate;
+          delete canvas.dataset.p183ReviewScope;
+          delete canvas.dataset.p183TargetOpacity;
+          delete canvas.dataset.p183ContextOpacity;
+          delete canvas.dataset.p183GeometryMutation;
+          delete canvas.dataset.p183CurrentClaim;
+          delete canvas.dataset.p183AsBuiltClaim;
+          delete canvas.dataset.p183Canonical;
+          delete canvas.dataset.p183PublishToCurrent;
+          delete canvas.dataset.p183HumanReview;
+          delete canvas.dataset.p183P160ClosurePresentation;
+          delete canvas.dataset.p183ReviewTargetOpacity;
+          delete canvas.dataset.p183ReviewContextOpacity;
+          delete canvas.dataset.p183ReviewTargetRenderableCount;
+          delete canvas.dataset.p183ReviewContextRenderableCount;
+          delete canvas.dataset.p183ReviewSuppressedDuplicateContextCount;
+          delete canvas.dataset.p183ReviewCameraMode;
+          delete canvas.dataset.p183ReviewQuestion;
+          delete canvas.dataset.p183ReviewExactCandidate;
           delete canvas.dataset.p181ParentPass;
           delete canvas.dataset.p181GeometryPass;
           delete canvas.dataset.p181QaPass;
@@ -6431,6 +6515,8 @@ const title = 'Private 3D viewer';
               ? 'P176A HR-6 full visible west-gable termination correction (WORK_TEST)'
             : isP177bDirectNorthWallReview
               ? 'P177B HR-6 direct D-storage north wall-line correction (WORK_TEST)'
+            : isP183P160ClosureReview
+              ? 'P160 final baseline closure on exact P178B (WORK_TEST / D architecture 80/20)'
             : isP178bJunctionClosureReview
               ? 'P178B D stair guard/lowWall junction closure (WORK_TEST / visible gap 0,000 m)'
             : isP181bR1StorageGroundReview
@@ -6507,6 +6593,8 @@ const title = 'Private 3D viewer';
             applyP176aReviewState();
           } else if (isP177bDirectNorthWallReview) {
             applyP177bReviewState();
+          } else if (isP183P160ClosureReview) {
+            applyP183P160ClosureReviewState();
           } else if (isP178bJunctionClosureReview) {
             applyP178bReviewState();
           } else if (isP181bR1StorageGroundReview) {
