@@ -63,7 +63,7 @@ test('private viewer exposes keyboard focus and honors reduced motion', async ({
 
   await page.keyboard.press('Tab');
   const firstFocus = await page.evaluate(() => {
-    const expected = document.querySelector('#view-menu > summary');
+    const expected = document.querySelector('#preset-menu > summary');
     const active = document.activeElement;
     return {
       correct: active === expected,
@@ -72,6 +72,13 @@ test('private viewer exposes keyboard focus and honors reduced motion', async ({
   });
   expect(firstFocus.correct).toBe(true);
   expect(firstFocus.outlineWidth).toBe('3px');
+
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#view-menu > summary')).toBeFocused();
+  const viewMenuOutline = await page.locator('#view-menu > summary').evaluate(
+    (element) => getComputedStyle(element).outlineWidth,
+  );
+  expect(viewMenuOutline).toBe('3px');
 
   await page.keyboard.press('Tab');
   await expect(page.locator('#layers-button')).toBeFocused();
