@@ -5957,6 +5957,11 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
   await expect(canvas).toHaveAttribute('data-view-preset', 'elevation');
   await expect(canvas).toHaveAttribute('data-elevation-direction', 'pos-y');
   await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'yaw-only');
+  await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
+  await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
+  await expect(canvas).toHaveAttribute('data-camera-pitch', 'locked');
+  await expect(canvas).toHaveAttribute('data-camera-roll', 'locked');
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
   await expect(canvas).toHaveAttribute('data-height-scale-min-z', /-?\d+\.\d{3}/);
@@ -5974,6 +5979,9 @@ test('private viewer composes p139AD Locus assumed-Z routes below the ground har
 
   await clickViewAction(page, 'Isometrinen');
   await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'enabled');
+  await expect(canvas).not.toHaveAttribute('data-camera-pitch', /.+/);
+  await expect(canvas).not.toHaveAttribute('data-camera-roll', /.+/);
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'false');
   await expect(canvas).not.toHaveAttribute('data-height-scale-min-z', /.+/);
   await expect(canvas).not.toHaveAttribute('data-height-scale-max-z', /.+/);

@@ -1889,11 +1889,17 @@ const title = 'Private 3D viewer';
       planControls.enableRotate = false;
       planControls.enabled = false;
 
+      type IsoRotationMode = 'disabled' | 'yaw-only' | 'free';
       const isoControls = new OrbitControls(isoCamera, canvas);
       isoControls.enableDamping = true;
       isoControls.dampingFactor = 0.08;
       isoControls.screenSpacePanning = true;
-      isoControls.enableRotate = false;
+      const setIsoRotationMode = (mode: IsoRotationMode) => {
+        isoControls.enableRotate = mode !== 'disabled';
+        isoControls.minPolarAngle = mode === 'yaw-only' ? Math.PI / 2 : 0;
+        isoControls.maxPolarAngle = mode === 'yaw-only' ? Math.PI / 2 : Math.PI;
+      };
+      setIsoRotationMode('disabled');
       isoControls.enabled = false;
 
       const ambient = new THREE.HemisphereLight(0xffffff, 0x777777, 2.2);
@@ -3416,7 +3422,22 @@ const title = 'Private 3D viewer';
         canvas.dataset.cameraProjection = (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective';
         const activeControls =
           activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls;
-        canvas.dataset.cameraRotation = activeControls.enableRotate ? 'enabled' : 'disabled';
+        const elevationYawOnly =
+          preset === 'elevation' && activeCamera === isoCamera && activeElevationDirection !== null;
+        canvas.dataset.cameraRotation = elevationYawOnly
+          ? 'yaw-only'
+          : activeControls.enableRotate
+            ? 'enabled'
+            : 'disabled';
+        canvas.dataset.cameraPan = activeControls.enablePan ? 'enabled' : 'disabled';
+        canvas.dataset.cameraZoom = activeControls.enableZoom ? 'enabled' : 'disabled';
+        if (elevationYawOnly) {
+          canvas.dataset.cameraPitch = 'locked';
+          canvas.dataset.cameraRoll = 'locked';
+        } else {
+          delete canvas.dataset.cameraPitch;
+          delete canvas.dataset.cameraRoll;
+        }
       };
 
       const researchPresetForStandardView = (
@@ -3527,7 +3548,7 @@ const title = 'Private 3D viewer';
         setD1KnownDoorReviewLabelsVisible(false);
         controls.enabled = false;
         planControls.enabled = false;
-        isoControls.enableRotate = false;
+        setIsoRotationMode('yaw-only');
         isoControls.enabled = true;
         activeCamera = isoCamera;
         setModelScene(contentScene);
@@ -3605,7 +3626,7 @@ const title = 'Private 3D viewer';
         setD1KnownDoorReviewLabelsVisible(false);
         controls.enabled = false;
         planControls.enabled = false;
-        isoControls.enableRotate = true;
+        setIsoRotationMode('free');
         isoControls.enabled = true;
         activeCamera = isoCamera;
         setModelScene(contentScene);
@@ -3890,7 +3911,7 @@ const title = 'Private 3D viewer';
         setD1KnownDoorReviewLabelsVisible(false);
         controls.enabled = false;
         planControls.enabled = false;
-        isoControls.enableRotate = false;
+        setIsoRotationMode('disabled');
         isoControls.enabled = true;
         activeCamera = isoCamera;
         setModelScene(fullModelScene);
