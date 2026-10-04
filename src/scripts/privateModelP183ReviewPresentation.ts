@@ -29,6 +29,10 @@ const isP183AuxiliaryFloorSurface = (object: any) => {
   return representationKind === 'referenceFootprint' || representationKind === 'stairHostFootprint';
 };
 
+const isP183AuxiliaryContextFloorSurface = (object: any) =>
+  isP183AuxiliaryFloorSurface(object) &&
+  String(object?.userData?.presentationLayer ?? '').toUpperCase() === 'REFERENCE_OTHER';
+
 const isP183AuxiliaryReviewLine = (object: any) => {
   if (!(object?.isLine || object?.isLineSegments)) return false;
   const metadata = object?.userData ?? {};
@@ -124,6 +128,7 @@ export const prepareP183P160ClosureReviewPresentation = (
       suppressedDuplicateContextCount: 0,
       hiddenAuxiliaryTargetCount: 0,
       hiddenAuxiliaryReviewLineCount: 0,
+      hiddenAuxiliaryContextCount: 0,
       targetBounds: null,
     };
   }
@@ -204,6 +209,7 @@ export const prepareP183P160ClosureReviewPresentation = (
   let contextRenderableCount = 0;
   let contextRenderOrderIndex = 0;
   let suppressedDuplicateContextCount = 0;
+  let hiddenAuxiliaryContextCount = 0;
   contextScene.traverse((object: any) => {
     if (!isRenderable(object)) return;
     const identity = renderableIdentity(object);
@@ -216,6 +222,20 @@ export const prepareP183P160ClosureReviewPresentation = (
         p183ReviewRole: 'DUPLICATE_TARGET_SUPPRESSED',
       };
       suppressedDuplicateContextCount += 1;
+      return;
+    }
+
+    if (isP183AuxiliaryContextFloorSurface(object)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        viewerSuppressEdgeOverlay: true,
+        p183P160ClosurePresentation: true,
+        p183ReviewRole: 'AUXILIARY_CONTEXT_FLOOR_SURFACE_SUPPRESSED',
+        p183AuxiliaryContextFloorSurfaceHidden: true,
+      };
+      hiddenAuxiliaryContextCount += 1;
       return;
     }
 
@@ -273,6 +293,7 @@ export const prepareP183P160ClosureReviewPresentation = (
     suppressedDuplicateContextCount,
     hiddenAuxiliaryTargetCount,
     hiddenAuxiliaryReviewLineCount,
+    hiddenAuxiliaryContextCount,
     targetBounds: hasTargetBounds ? targetBounds : null,
   };
 };
