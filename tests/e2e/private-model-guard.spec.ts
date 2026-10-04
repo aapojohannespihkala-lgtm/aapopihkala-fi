@@ -2041,14 +2041,20 @@ test('private viewer selects a visible mesh, shows bounded identity, metadata, a
 
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeVisible();
-  await expect(page.locator('#selection-mesh')).not.toHaveText('-');
+  await expect(page.locator('#selection-mesh')).toHaveText('Seinä (luokittelematon esitys)');
+  await expect(page.locator('#selection-group')).toHaveText('Seinä / luokittelematon');
   await expect(page.locator('#selection-floor')).toHaveText('1F');
-  await expect(page.locator('#selection-scene')).toHaveText('P133D REVIEW ROOT - BABYLON Y-UP');
-  await expect(page.locator('#selection-kind')).toHaveText('Mesh');
+  await expect(page.locator('#selection-scene')).toHaveText('Ei ratkaistu');
+  await expect(page.locator('#selection-kind')).toHaveText('Ei ihmiskatselmoitu');
+  await expect(page.locator('#selection-physical-claim')).toHaveText('Ei ratkaistu');
   const metadataDetails = page.locator('#selection-panel details.selection-metadata');
   await expect(metadataDetails).not.toHaveAttribute('open', '');
   await metadataDetails.locator('summary').click();
   await expect(metadataDetails).toHaveAttribute('open', '');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Tekninen scene');
+  await expect(page.locator('#selection-metadata-list')).toContainText('P133D REVIEW ROOT - BABYLON Y-UP');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Renderöintityyppi');
+  await expect(page.locator('#selection-metadata-list')).toContainText('Mesh');
   await expect(page.locator('#selection-metadata-list')).toContainText('Pass');
   await expect(page.locator('#selection-metadata-list')).toContainText('149E_TEST');
   await expect(page.locator('#selection-metadata-list')).toContainText('Representation Kind');
@@ -2069,6 +2075,7 @@ test('private viewer selects a visible mesh, shows bounded identity, metadata, a
   await expect(page.locator('#selection-scene')).toHaveText('-');
   await expect(page.locator('#selection-floor')).toHaveText('-');
   await expect(page.locator('#selection-kind')).toHaveText('-');
+  await expect(page.locator('#selection-physical-claim')).toHaveText('-');
   await expect(canvas).not.toHaveAttribute('data-selection-metadata-count', /.+/);
   await expect(canvas).not.toHaveAttribute('data-selection-metadata-source', /.+/);
 
@@ -2255,7 +2262,9 @@ test('private viewer selects visible LineSegments and clears hidden line selecti
 
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeVisible();
-  await expect(page.locator('#selection-mesh')).toContainText('SITE_LINE');
+  await expect(page.locator('#selection-mesh')).not.toHaveText('-');
+  await panel.locator('details.selection-metadata > summary').click();
+  await expect(page.locator('#selection-metadata-list')).toContainText('SITE_LINE');
 
   await page.getByRole('button', { name: 'Layerit' }).click();
   await page.locator('#roof-layer-visible').uncheck();
@@ -2324,7 +2333,9 @@ test('private viewer exposes Locus as a semantic parent layer with WATER and WAS
 
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(panel).toBeVisible();
-  await expect(page.locator('#selection-mesh')).toContainText('WASTEWATER');
+  await expect(page.locator('#selection-mesh')).not.toHaveText('-');
+  await panel.locator('details.selection-metadata > summary').click();
+  await expect(page.locator('#selection-metadata-list')).toContainText('WASTEWATER');
 
   await clickViewAction(page, 'Tontti');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'site');
@@ -4120,7 +4131,9 @@ test('private viewer autoloads the exact P161 multisource systems review candida
   if (!box) return;
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(page.locator('#selection-panel')).toBeVisible();
-  await expect(page.locator('#selection-mesh')).toContainText('P161_KVV_STANDALONE_DISPLAY');
+  await expect(page.locator('#selection-mesh')).not.toHaveText('-');
+  await page.locator('#selection-panel details.selection-metadata > summary').click();
+  await expect(page.locator('#selection-metadata-list')).toContainText('P161_KVV_STANDALONE_DISPLAY');
 
   await kvvLayer.uncheck();
   await expect(systemsLayer).toBeChecked();
