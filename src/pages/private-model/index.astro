@@ -235,6 +235,29 @@ const title = 'Private 3D viewer';
 
       button:hover { border-color: #8f928c; }
 
+      .interaction-tools {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        padding: 2px;
+        border: 1px solid var(--viewer-line-soft);
+        border-radius: 8px;
+        background: rgba(27, 36, 45, 0.06);
+      }
+
+      .interaction-tools button {
+        min-height: 28px;
+        border: 0;
+        padding: 6px 9px;
+        background: transparent;
+        font-size: 12px;
+      }
+
+      .interaction-tools button[aria-pressed='true'] {
+        background: var(--viewer-bar);
+        color: var(--viewer-ink);
+      }
+
       .status {
         margin-left: auto;
         min-width: 220px;
@@ -452,7 +475,7 @@ const title = 'Private 3D viewer';
         right: 12px;
         bottom: 12px;
         z-index: 6;
-        width: 118px;
+        width: 212px;
         padding: 7px 8px 6px;
         border: 1px solid var(--viewer-line-soft);
         border-radius: 9px;
@@ -526,11 +549,42 @@ const title = 'Private 3D viewer';
         white-space: nowrap;
       }
 
+      .ai-navigator-readout {
+        display: grid;
+        gap: 2px;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid var(--viewer-line-soft);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 7.5px;
+        line-height: 1.25;
+      }
+
+      .ai-navigator-row {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .ai-navigator-key {
+        color: var(--viewer-stone-light);
+        font-weight: 750;
+        letter-spacing: 0.03em;
+      }
+
+      .ai-navigator-value {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        color: var(--viewer-ink-soft);
+        font-variant-numeric: tabular-nums;
+      }
+
       @media (max-width: 760px) {
         .orientation-gizmo {
           right: 8px;
           bottom: 8px;
-          width: 104px;
+          width: 184px;
           padding: 5px 6px 4px;
         }
 
@@ -1281,6 +1335,11 @@ const title = 'Private 3D viewer';
 
         <button id="layers-button" type="button" aria-expanded="false" aria-controls="layers-panel">Layerit</button>
 
+        <div class="interaction-tools" role="group" aria-label="Vuorovaikutustila">
+          <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
+          <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
+        </div>
+
         <details id="model-menu" class="toolbar-menu source-menu">
           <summary aria-label="Malliversio">
             <span id="model-source-badge" class="model-source-badge" data-kind="current">CURRENT</span>
@@ -1351,6 +1410,14 @@ const title = 'Private 3D viewer';
             </g>
           </svg>
           <div class="orientation-gizmo-note">X itä · Y pohjoinen · Z ylös</div>
+          <div id="ai-navigator-readout" class="ai-navigator-readout" aria-label="AI-katselukonteksti">
+            <div class="ai-navigator-row"><span class="ai-navigator-key">FRAME</span><span id="ai-nav-frame" class="ai-navigator-value">YLIS-G1-LOCAL</span></div>
+            <div class="ai-navigator-row"><span class="ai-navigator-key">MODEL</span><span id="ai-nav-model" class="ai-navigator-value">CURRENT</span></div>
+            <div class="ai-navigator-row"><span class="ai-navigator-key">VIEW</span><span id="ai-nav-view" class="ai-navigator-value">-</span></div>
+            <div class="ai-navigator-row"><span class="ai-navigator-key">LOOK</span><span id="ai-nav-look" class="ai-navigator-value">-</span></div>
+            <div class="ai-navigator-row"><span class="ai-navigator-key">CENTER</span><span id="ai-nav-center" class="ai-navigator-value">-</span></div>
+            <div class="ai-navigator-row"><span class="ai-navigator-key">BOUNDS</span><span id="ai-nav-bounds" class="ai-navigator-value">-</span></div>
+          </div>
         </aside>
         <div id="d1-known-door-label-layer" class="d1-known-door-label-layer" aria-hidden="true" hidden></div>
         <aside id="d1-known-door-legend" class="d1-known-door-legend" aria-label="D 1F -ovien tarkastusselite" hidden>
@@ -1525,6 +1592,12 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelEdgeVisibility';
       import { computeVisibleBounds } from '../../scripts/privateModelVisibleBounds';
       import {
+        formatYlisBounds,
+        formatYlisVector,
+        viewerBoundsToYlis,
+        viewerWorldToYlis,
+      } from '../../scripts/privateModelAiNavigator';
+      import {
         p160WarmFloorContextOpacity,
         p160WarmFloorReviewOpacity,
         p172bDOverviewFloorOpacity,
@@ -1674,6 +1747,8 @@ const title = 'Private 3D viewer';
       const sitePresetButton = document.querySelector<HTMLButtonElement>('#site-preset-button');
       const infraPresetButton = document.querySelector<HTMLButtonElement>('#infra-preset-button');
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
+      const navigateToolButton = document.querySelector<HTMLButtonElement>('#navigate-tool-button');
+      const selectionToolButton = document.querySelector<HTMLButtonElement>('#selection-tool-button');
       const profileButton = document.querySelector<HTMLButtonElement>('#profile-button');
       const workTestSelect = document.querySelector<HTMLSelectElement>('#work-test-select');
       const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
@@ -1724,6 +1799,12 @@ const title = 'Private 3D viewer';
       const orientationAxisZTip = document.querySelector<SVGCircleElement>('#orientation-axis-z-tip');
       const orientationAxisZLabel = document.querySelector<SVGTextElement>('#orientation-axis-z-label');
       const orientationNorthLabel = document.querySelector<SVGTextElement>('#orientation-north-label');
+      const aiNavigatorFrame = document.querySelector<HTMLElement>('#ai-nav-frame');
+      const aiNavigatorModel = document.querySelector<HTMLElement>('#ai-nav-model');
+      const aiNavigatorView = document.querySelector<HTMLElement>('#ai-nav-view');
+      const aiNavigatorLook = document.querySelector<HTMLElement>('#ai-nav-look');
+      const aiNavigatorCenter = document.querySelector<HTMLElement>('#ai-nav-center');
+      const aiNavigatorBounds = document.querySelector<HTMLElement>('#ai-nav-bounds');
       const heightScale = document.querySelector<HTMLElement>('#height-scale');
       const heightScaleTicks = document.querySelector<HTMLElement>('#height-scale-ticks');
       const profilePanel = document.querySelector<HTMLElement>('#profile-panel');
@@ -1768,6 +1849,8 @@ const title = 'Private 3D viewer';
         !sitePresetButton ||
         !infraPresetButton ||
         !layersButton ||
+        !navigateToolButton ||
+        !selectionToolButton ||
         !profileButton ||
         !workTestSelect ||
         !workTestButton ||
@@ -1818,6 +1901,12 @@ const title = 'Private 3D viewer';
         !orientationAxisZTip ||
         !orientationAxisZLabel ||
         !orientationNorthLabel ||
+        !aiNavigatorFrame ||
+        !aiNavigatorModel ||
+        !aiNavigatorView ||
+        !aiNavigatorLook ||
+        !aiNavigatorCenter ||
+        !aiNavigatorBounds ||
         !heightScale ||
         !heightScaleTicks ||
         !profilePanel ||
@@ -1844,6 +1933,10 @@ const title = 'Private 3D viewer';
       ) {
         throw new Error('Private viewer controls are missing');
       }
+
+      canvas.dataset.interactionMode = 'navigate';
+      navigateToolButton.setAttribute('aria-pressed', 'true');
+      selectionToolButton.setAttribute('aria-pressed', 'false');
 
       const selectionPanelController = createSelectionPanelController({
         canvas,
@@ -3314,6 +3407,15 @@ const title = 'Private 3D viewer';
         selectionPanelController.clear();
       };
 
+      type ViewerToolMode = 'navigate' | 'select';
+      const setViewerToolMode = (mode: ViewerToolMode) => {
+        canvas.dataset.interactionMode = mode;
+        navigateToolButton.setAttribute('aria-pressed', String(mode === 'navigate'));
+        selectionToolButton.setAttribute('aria-pressed', String(mode === 'select'));
+        canvas.style.cursor = mode === 'select' ? 'crosshair' : '';
+        if (mode === 'navigate') clearSelection();
+      };
+
       const selectObject = (object: any) => {
         clearSelection();
 
@@ -3438,6 +3540,36 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.cameraPitch;
           delete canvas.dataset.cameraRoll;
         }
+      };
+
+      const aiNavigatorDirection = new THREE.Vector3();
+      const updateAiNavigatorReadout = () => {
+        aiNavigatorFrame.textContent = 'YLIS-G1-LOCAL';
+        aiNavigatorModel.textContent =
+          modelSourceBadge.textContent?.trim() ||
+          (activeModelSourceKind === 'work-test' ? 'WORK_TEST' : 'CURRENT');
+
+        const projection =
+          canvas.dataset.cameraProjection ||
+          ((activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective');
+        const view = canvas.dataset.viewPreset || activeResearchPreset;
+        aiNavigatorView.textContent = `${view} / ${projection}`;
+
+        activeCamera.getWorldDirection(aiNavigatorDirection);
+        aiNavigatorLook.textContent = formatYlisVector(
+          viewerWorldToYlis(aiNavigatorDirection),
+        );
+
+        const activeControls =
+          activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls;
+        aiNavigatorCenter.textContent = formatYlisVector(
+          viewerWorldToYlis(activeControls.target),
+        );
+
+        const bounds = computeVisibleBounds(modelRoot, true);
+        aiNavigatorBounds.textContent = bounds
+          ? formatYlisBounds(viewerBoundsToYlis(bounds.min, bounds.max))
+          : '-';
       };
 
       const researchPresetForStandardView = (
@@ -7844,6 +7976,8 @@ const title = 'Private 3D viewer';
         p161IvSectionVisible = p161IvSectionVisibleInput.checked;
         applyP161ChildLayerChange();
       });
+      navigateToolButton.addEventListener('click', () => setViewerToolMode('navigate'));
+      selectionToolButton.addEventListener('click', () => setViewerToolMode('select'));
       clearSelectionButton.addEventListener('click', clearSelection);
       isolateSelectionButton.addEventListener('click', isolateSelectedObject);
       hideSelectionButton.addEventListener('click', hideSelectedObject);
@@ -7883,6 +8017,7 @@ const title = 'Private 3D viewer';
       const resizeObserver = new ResizeObserver(updateSize);
       resizeObserver.observe(canvas.parentElement ?? canvas);
 
+      let aiNavigatorFrameCounter = 0;
       renderer.setAnimationLoop(() => {
         updateSize();
         controls.update();
@@ -7891,6 +8026,8 @@ const title = 'Private 3D viewer';
         selectionHighlightController.update();
         updateD1KnownDoorReviewLabelPositions();
         updateHeightScale();
+        aiNavigatorFrameCounter = (aiNavigatorFrameCounter + 1) % 12;
+        if (aiNavigatorFrameCounter === 0) updateAiNavigatorReadout();
         orientationGizmoController.render({
           quaternion: activeCamera.quaternion,
           projection: (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective',
