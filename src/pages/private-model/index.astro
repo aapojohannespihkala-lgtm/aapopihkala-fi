@@ -3716,6 +3716,10 @@ const title = 'Private 3D viewer';
         composite.add(integrationRoot.clone(true));
 
         if (isP183P160ClosureReviewRequested()) {
+          canvas.dataset.p167DOverviewComposite = 'true';
+          canvas.dataset.p167DOverviewSupplementCount = '2';
+          canvas.dataset.p167DOverviewPreciseStairPresent =
+            composite.getObjectByName(p167fDOverviewPreciseStairRootName) ? 'true' : 'false';
           const presentation = prepareP183P160ClosureReviewPresentation(fullModelScene, composite);
           if (!presentation.composite) {
             canvas.dataset.p183P160ClosurePresentation = 'missing-required-scene';
