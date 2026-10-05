@@ -42,7 +42,7 @@ const makeRoute = (id: string, extra: Record<string, unknown> = {}) => {
 test('M5B registry and explicit review aliases resolve exact persisted candidate', () => {
   const registry = JSON.parse(readFileSync('.github/work-test-candidates.json', 'utf8'));
   expect(registry.candidates[m5bCandidateId]).toEqual({
-    driveFileId: '1gbF7fElI5WhgsuAA9V1GKAXPAWrJyo9P',
+    driveFileId: '1alr4S8X6U_vOu9rGqykxm7akCMPD4Zo2',
   });
   expect(getRequestedReviewCandidateId(`?review=${m5bCurrentReviewId}`)).toBe(m5bCandidateId);
   expect(
