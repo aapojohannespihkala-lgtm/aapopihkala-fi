@@ -33,8 +33,8 @@ test('AI status journey renders a non-OPS goal from the published payload', asyn
       version: 'unit-test',
     },
     summary: {
-      activePackages: 2,
-      activeLines: 2,
+      activePackages: 4,
+      activeLines: 3,
       passesToday: 1,
     },
     active: [
@@ -60,10 +60,19 @@ test('AI status journey renders a non-OPS goal from the published payload', asyn
         id: 'status-survivor',
         lane: 'Viewer - integraatio',
         laneCode: 'V4 INTEGRATION_QA',
-        title: 'ai-status-p0-survivor-integration-preflight-r579',
+        title: 'AI status P0 survivor integration preflight r579',
         goal: 'Todista voiko parser-lifecycle + parser-arg-testikorjaus + Matkat kohti valmista yhdistyä yhteen fresh-main survivor-integraatioon ilman tiedostokonfliktia.',
         state: 'ACTIVE',
         updatedAt: '2026-10-05T20:51:00Z',
+      },
+      {
+        id: 'status-terminal-qa',
+        lane: 'Viewer - integraatio',
+        laneCode: 'V4 INTEGRATION_QA',
+        title: 'AI status terminal lifecycle branch QA r581',
+        goal: 'Vie terminal lifecycle -korjaus branch-QA-PASS-porttiin, jotta status-survivor voidaan integroida.',
+        state: 'ACTIVE',
+        updatedAt: '2026-10-05T20:50:00Z',
       },
     ],
     recent: [],
@@ -88,4 +97,5 @@ test('AI status journey renders a non-OPS goal from the published payload', asyn
   await expect(journeys.locator('[aria-current="step"] .journey-step-label')).toHaveText(['3D-malli', 'Integraatio + QA']);
   await expect(journeys).not.toContainText('Tekninen prosessihuolto');
   await expect(journeys).not.toContainText('parser-lifecycle + parser-arg-testikorjaus');
+  await expect(journeys).not.toContainText('terminal lifecycle -korjaus');
 });
