@@ -6,6 +6,8 @@ import {
   getRequestedReviewCandidateId,
   p184dCandidateId,
   p184dReviewId,
+  p184fCandidateId,
+  p184fReviewId,
 } from '../../src/scripts/privateModelWorkTest';
 import {
   p184DCabinetFrontReferenceKind,
@@ -20,6 +22,10 @@ import { THREE } from '../../src/scripts/threeRuntime';
 
 test('P184D review alias resolves to the exact P184D survivor', () => {
   expect(getRequestedReviewCandidateId(`?review=${p184dReviewId}`)).toBe(p184dCandidateId);
+});
+
+test('P184F review alias resolves to the exact semantic self-consistency successor', () => {
+  expect(getRequestedReviewCandidateId(`?review=${p184fReviewId}`)).toBe(p184fCandidateId);
 });
 
 test('P184D review keeps only the exact island plus explicit D 2F architecture context at 80/20', () => {
