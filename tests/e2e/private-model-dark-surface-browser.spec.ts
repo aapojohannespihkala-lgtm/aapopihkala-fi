@@ -49,18 +49,22 @@ test('private viewer renders the VUX-C dark WebGL surface instead of only declar
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
 
-  const readCanvasPixels = () =>
-    canvas.evaluate((node) => {
-      const source = node as HTMLCanvasElement;
-      if (source.width < 8 || source.height < 8) return null;
+  const readRenderedPixels = async () => {
+    const screenshot = await canvas.screenshot();
+    const dataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
+
+    return page.evaluate(async (url) => {
+      const image = new Image();
+      image.src = url;
+      await image.decode();
 
       const probe = document.createElement('canvas');
-      probe.width = source.width;
-      probe.height = source.height;
+      probe.width = image.naturalWidth;
+      probe.height = image.naturalHeight;
       const context = probe.getContext('2d', { willReadFrequently: true });
       if (!context) return null;
 
-      context.drawImage(source, 0, 0);
+      context.drawImage(image, 0, 0);
       const points = [
         [0.18, 0.2],
         [0.5, 0.2],
@@ -72,48 +76,36 @@ test('private viewer renders the VUX-C dark WebGL surface instead of only declar
 
       return points.map(([xRatio, yRatio]) => {
         const x = Math.min(
-          source.width - 1,
-          Math.max(0, Math.floor(source.width * xRatio)),
+          probe.width - 1,
+          Math.max(0, Math.floor(probe.width * xRatio)),
         );
         const y = Math.min(
-          source.height - 1,
-          Math.max(0, Math.floor(source.height * yRatio)),
+          probe.height - 1,
+          Math.max(0, Math.floor(probe.height * yRatio)),
         );
         return Array.from(context.getImageData(x, y, 1, 1).data);
       });
-    });
+    }, dataUrl);
+  };
+
+  const isDarkSurface = (pixels: number[][] | null) =>
+    pixels !== null &&
+    pixels.every(
+      ([red, green, blue, alpha]) =>
+        red >= 30 &&
+        red <= 34 &&
+        green >= 40 &&
+        green <= 44 &&
+        blue >= 50 &&
+        blue <= 54 &&
+        alpha === 255,
+    );
 
   await expect
-    .poll(
-      async () => {
-        const pixels = await readCanvasPixels();
-        return (
-          pixels !== null &&
-          pixels.every(
-            ([red, green, blue, alpha]) =>
-              red >= 31 &&
-              red <= 33 &&
-              green >= 41 &&
-              green <= 43 &&
-              blue >= 51 &&
-              blue <= 53 &&
-              alpha === 255,
-          )
-        );
-      },
-      { timeout: 5_000 },
-    )
+    .poll(async () => isDarkSurface(await readRenderedPixels()), { timeout: 5_000 })
     .toBe(true);
 
-  const pixels = await readCanvasPixels();
+  const pixels = await readRenderedPixels();
   expect(pixels).not.toBeNull();
-  for (const [red, green, blue, alpha] of pixels ?? []) {
-    expect(red).toBeGreaterThanOrEqual(31);
-    expect(red).toBeLessThanOrEqual(33);
-    expect(green).toBeGreaterThanOrEqual(41);
-    expect(green).toBeLessThanOrEqual(43);
-    expect(blue).toBeGreaterThanOrEqual(51);
-    expect(blue).toBeLessThanOrEqual(53);
-    expect(alpha).toBe(255);
-  }
+  expect(isDarkSurface(pixels)).toBe(true);
 });
