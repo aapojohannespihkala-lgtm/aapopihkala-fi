@@ -92,6 +92,7 @@ export const m5bPlannedSok2ComparisonReviewId =
 
 export const p185cCandidateId = 'p185c-d2015-electrical-source-overlay';
 export const p185cReviewId = 'p185c-d2015-electrical-source-overlay-review';
+export const p184hApplianceOnP185cReviewId = 'p184h-appliance-aids-on-p185c-review';
 
 export const p164bCandidateId = 'p164b-d-corrected-stair';
 export const p164bReviewId = 'p164b-d-corrected-stair-review';
@@ -145,6 +146,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [m5bCurrentReviewId]: m5bCandidateId,
   [m5bPlannedSok2ComparisonReviewId]: m5bCandidateId,
   [p185cReviewId]: p185cCandidateId,
+  [p184hApplianceOnP185cReviewId]: p185cCandidateId,
   [p164bReviewId]: p164bCandidateId,
   [p167fReviewId]: p167fCandidateId,
   [p168aReviewId]: p168aCandidateId,
