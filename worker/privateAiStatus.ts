@@ -99,7 +99,7 @@ const jsonError = (error: string, status: number) => {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isBoundedString = (value: unknown, max = 600) =>
+const isBoundedString = (value: unknown, max = 600): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= max;
 
 const isIsoDate = (value: unknown) =>
