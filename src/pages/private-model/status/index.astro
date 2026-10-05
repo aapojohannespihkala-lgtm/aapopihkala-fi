@@ -34,6 +34,76 @@ const title = 'Ylisrinne AI - tilanne';
       }
       .metric { padding: 16px; }
       .metric strong { display: block; font-size: 1.8rem; margin-top: 4px; }
+      .development { margin-bottom: 16px; }
+      .development-note { margin: 0; font-size: .86rem; }
+      .development-flow {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .development-stage {
+        min-width: 0;
+        padding: 11px 12px;
+        border: 1px solid #dfe4ea;
+        border-radius: 8px;
+        background: #f8fafc;
+      }
+      .development-stage.active { border-color: #9fb2cf; background: #f1f5fb; }
+      .development-stage.pass { border-color: #b9d7c1; background: #f3faf5; }
+      .development-stage.human { border-color: #e7c99d; background: #fff8ee; }
+      .stage-kicker {
+        display: block;
+        margin-bottom: 4px;
+        color: #7b8494;
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .08em;
+      }
+      .development-stage strong { display: block; font-size: .9rem; }
+      .stage-state {
+        display: block;
+        margin-top: 6px;
+        color: #657086;
+        font-size: .69rem;
+        font-weight: 700;
+      }
+      .development-tree {
+        margin-top: 14px;
+        border-top: 1px solid #e7ebf0;
+      }
+      .development-tree details { border-bottom: 1px solid #e7ebf0; }
+      .development-tree summary {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 11px 0;
+        cursor: pointer;
+        list-style: none;
+      }
+      .development-tree summary::-webkit-details-marker { display: none; }
+      .development-tree summary::before {
+        content: "+";
+        flex: 0 0 16px;
+        color: #657086;
+        font-weight: 700;
+      }
+      .development-tree details[open] summary::before { content: "-"; }
+      .tree-label { min-width: 0; flex: 1 1 auto; font-weight: 700; }
+      .tree-status {
+        flex: 0 0 auto;
+        color: #657086;
+        font-size: .7rem;
+        font-weight: 700;
+      }
+      .tree-status.active { color: #385d91; }
+      .tree-status.pass { color: #267043; }
+      .tree-status.human { color: #8f4a00; }
+      .tree-branch { padding: 0 0 12px 28px; }
+      .tree-item { padding: 9px 0; border-top: 1px solid #eef1f4; }
+      .tree-item:first-child { border-top: 0; padding-top: 0; }
+      .tree-item strong { font-size: .88rem; }
+      .tree-item p { margin: 3px 0 0; font-size: .82rem; color: #657086; }
       .layout {
         display: grid;
         grid-template-columns: minmax(0, 1.5fr) minmax(280px, .8fr);
@@ -70,6 +140,7 @@ const title = 'Ylisrinne AI - tilanne';
       @media (max-width: 760px) {
         main { width: min(100% - 20px, 1100px); margin-top: 20px; }
         .summary { grid-template-columns: 1fr; }
+        .development-flow { grid-template-columns: 1fr; }
         .layout { grid-template-columns: 1fr; }
       }
     </style>
@@ -86,6 +157,17 @@ const title = 'Ylisrinne AI - tilanne';
         <div class="metric"><span>Aktiivisia työpaketteja</span><strong id="active-packages">-</strong></div>
         <div class="metric"><span>Aktiivisia linjoja</span><strong id="active-lines">-</strong></div>
         <div class="metric"><span>Valmistuneita passeja tänään</span><strong id="passes-today">-</strong></div>
+      </section>
+
+      <section class="panel development" aria-labelledby="development-title">
+        <h2 id="development-title">Kehitysketju</h2>
+        <p class="muted development-note">Johdettu samoista työpaketeista ja tapahtumista. Ei valmistumisprosentti. Vaiheet voivat edetä rinnakkain. PASS tarkoittaa viimeisintä teknistä onnistumista, ei koko vaiheen valmistumista.</p>
+        <div id="development-flow" class="development-flow" role="list" aria-label="Kehityksen vaiheet">
+          <p class="muted">Tilatietoa ei ole vielä ladattu.</p>
+        </div>
+        <div id="development-tree" class="development-tree">
+          <p class="muted">Kehityspuuta ei ole vielä ladattu.</p>
+        </div>
       </section>
 
       <div class="layout">
