@@ -1,0 +1,115 @@
+name: Publish Ylisrinne AI status
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-ylisrinne-ai-status
+  cancel-in-progress: true
+
+env:
+  HANDOFF_FILE_ID: 1MmJdjTZSUXiDS308bLNasdenyPJeXXZe4otwxHX62Go
+  PUBLISH_URL: https://aapopihkala.fi/private-model/work-test/publish/ai-status.json
+  VERIFY_URL: https://aapopihkala.fi/private-model/work-test/verify/ai-status.json
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout status parser
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Require machine-auth configuration
+        shell: bash
+        env:
+          GDRIVE_WIF_PROVIDER: ${{ vars.GDRIVE_WIF_PROVIDER }}
+          GDRIVE_PUBLISHER_SERVICE_ACCOUNT: ${{ vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT }}
+          CF_ACCESS_PUBLISHER_CLIENT_ID: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_ID }}
+          CF_ACCESS_PUBLISHER_CLIENT_SECRET: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_SECRET }}
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$GDRIVE_WIF_PROVIDER" ]]
+          [[ -n "$GDRIVE_PUBLISHER_SERVICE_ACCOUNT" ]]
+          [[ -n "$CF_ACCESS_PUBLISHER_CLIENT_ID" ]]
+          [[ -n "$CF_ACCESS_PUBLISHER_CLIENT_SECRET" ]]
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" ]]
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
+
+      - name: Authenticate to Google Drive
+        id: google-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GDRIVE_WIF_PROVIDER }}
+          service_account: ${{ vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/drive.readonly
+          create_credentials_file: false
+          export_environment_variables: false
+
+      - name: Export live 00 handoff
+        shell: bash
+        env:
+          GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail --location             --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN"             --output "$RUNNER_TEMP/handoff.txt"             "https://www.googleapis.com/drive/v3/files/$HANDOFF_FILE_ID/export?mimeType=text%2Fplain"
+
+          curl --silent --show-error --fail             --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN"             --output "$RUNNER_TEMP/handoff-meta.json"             "https://www.googleapis.com/drive/v3/files/$HANDOFF_FILE_ID?fields=id%2CmodifiedTime%2Cversion"
+
+          python3 - "$RUNNER_TEMP/handoff-meta.json" "$GITHUB_ENV" <<'PY'
+          import json
+          import sys
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              meta = json.load(handle)
+          if meta.get("id") != "1MmJdjTZSUXiDS308bLNasdenyPJeXXZe4otwxHX62Go":
+              raise SystemExit("handoff id mismatch")
+          with open(sys.argv[2], "a", encoding="utf-8") as env:
+              env.write(f"SOURCE_MODIFIED_TIME={meta['modifiedTime']}\n")
+              env.write(f"SOURCE_VERSION={meta['version']}\n")
+          PY
+
+      - name: Derive bounded dashboard status
+        shell: bash
+        run: |
+          set -euo pipefail
+          GENERATED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          python3 .github/build-ai-status.py             "$RUNNER_TEMP/handoff.txt"             "$RUNNER_TEMP/ai-status.json"             "$SOURCE_MODIFIED_TIME"             "$SOURCE_VERSION"             "$GENERATED_AT"
+          python3 -m json.tool "$RUNNER_TEMP/ai-status.json" >/dev/null
+          test "$(stat -c '%s' "$RUNNER_TEMP/ai-status.json")" -le 65536
+
+      - name: Publish status to private R2
+        shell: bash
+        env:
+          CF_ACCESS_PUBLISHER_CLIENT_ID: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_ID }}
+          CF_ACCESS_PUBLISHER_CLIENT_SECRET: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail             --request PUT             --header "CF-Access-Client-Id: $CF_ACCESS_PUBLISHER_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_PUBLISHER_CLIENT_SECRET"             --header "Content-Type: application/json"             --data-binary "@$RUNNER_TEMP/ai-status.json"             --output "$RUNNER_TEMP/publish-response.json"             "$PUBLISH_URL"
+          python3 -m json.tool "$RUNNER_TEMP/publish-response.json" >/dev/null
+
+      - name: Verify production readback
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --output "$RUNNER_TEMP/ai-status-readback.json"             "$VERIFY_URL"
+          cmp "$RUNNER_TEMP/ai-status.json" "$RUNNER_TEMP/ai-status-readback.json"
+
+      - name: Remove private temporary files
+        if: always()
+        shell: bash
+        run: |
+          rm -f             "$RUNNER_TEMP/handoff.txt"             "$RUNNER_TEMP/handoff-meta.json"             "$RUNNER_TEMP/ai-status.json"             "$RUNNER_TEMP/ai-status-readback.json"             "$RUNNER_TEMP/publish-response.json"
