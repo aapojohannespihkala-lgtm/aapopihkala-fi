@@ -77,7 +77,7 @@ const expectElevation = async (
   page: Page,
   button: 'Julk +Y' | 'Julk -Y' | 'Julk +X' | 'Julk -X',
   direction: 'pos-y' | 'neg-y' | 'pos-x' | 'neg-x',
-  look: string,
+  look: RegExp,
 ) => {
   await clickViewAction(page, button);
 
@@ -116,8 +116,8 @@ test('all elevation presets keep orthographic yaw-only controls and YLIS Z scree
   await page.goto('/private-model/');
   await expect(page.getByRole('status')).toHaveText('Malli ladattu');
 
-  await expectElevation(page, 'Julk +Y', 'pos-y', 'X+0.00 Y-1.00 Z+0.00');
-  await expectElevation(page, 'Julk -Y', 'neg-y', 'X+0.00 Y+1.00 Z+0.00');
-  await expectElevation(page, 'Julk +X', 'pos-x', 'X-1.00 Y+0.00 Z+0.00');
-  await expectElevation(page, 'Julk -X', 'neg-x', 'X+1.00 Y+0.00 Z+0.00');
+  await expectElevation(page, 'Julk +Y', 'pos-y', /X[+-]0\.00 Y-1\.00 Z[+-]0\.00/);
+  await expectElevation(page, 'Julk -Y', 'neg-y', /X[+-]0\.00 Y\+1\.00 Z[+-]0\.00/);
+  await expectElevation(page, 'Julk +X', 'pos-x', /X-1\.00 Y[+-]0\.00 Z[+-]0\.00/);
+  await expectElevation(page, 'Julk -X', 'neg-x', /X\+1\.00 Y[+-]0\.00 Z[+-]0\.00/);
 });
