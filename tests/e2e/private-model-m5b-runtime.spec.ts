@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 import {
@@ -102,4 +103,19 @@ test('M5B runtime readiness rejects cross-variant or wrong-scene presentation re
   expect(() =>
     assertM5BReviewPresentationReady('CURRENT', wrongScene),
   ).toThrow(/scene mismatch/);
+});
+
+test('M5B runtime is wired into the private viewer with scene selection, cleanup and no-promotion state', () => {
+  const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
+
+  expect(source).toContain('const isM5BCurrentReview =');
+  expect(source).toContain('const isM5BPlannedSok2ComparisonReview =');
+  expect(source).toContain('const reviewScene = gltf.scenes?.[sceneIndex];');
+  expect(source).toContain('prepareM5BReviewPresentation(reviewScene, variant)');
+  expect(source).toContain(
+    'm5bRuntimeState = createM5BReviewRuntimeState(variant, presentation);',
+  );
+  expect(source).toContain('clearM5BReviewState();');
+  expect(source).toContain('Object.assign(canvas.dataset, m5bRuntimeState.dataset);');
+  expect(source).toContain('applyStandardViewPreset(m5bRuntimeState.standardViewPreset);');
 });
