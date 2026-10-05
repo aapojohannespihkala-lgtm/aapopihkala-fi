@@ -293,6 +293,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_898_064,
     expectedSha256: '0802c082425c9e2f231b1681a6bceec825e3d63e038ca43b02dd86d872f6c08f',
   },
+  // P185C viewer/release registration: exact persisted D2015 electrical source overlay.
+  {
+    id: 'p185c-d2015-electrical-source-overlay',
+    label: 'P185C D2015 electrical source overlay - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p185c-d2015-electrical-source-overlay.glb`,
+    objectKey: 'work-test/p185c-d2015-electrical-source-overlay.glb',
+    expectedSize: 2_934_024,
+    expectedSha256: '9599dec3db6a8cf1961f5db1a91d9722566dadd9a4176861e1e087722a3cea6c',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
