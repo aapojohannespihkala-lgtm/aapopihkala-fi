@@ -56,6 +56,15 @@ test('AI status journey renders a non-OPS goal from the published payload', asyn
         state: 'ACTIVE',
         updatedAt: '2026-10-05T20:52:00Z',
       },
+      {
+        id: 'status-survivor',
+        lane: 'Viewer - integraatio',
+        laneCode: 'V4 INTEGRATION_QA',
+        title: 'ai-status-p0-survivor-integration-preflight-r579',
+        goal: 'Todista voiko parser-lifecycle + parser-arg-testikorjaus + Matkat kohti valmista yhdistyä yhteen fresh-main survivor-integraatioon ilman tiedostokonfliktia.',
+        state: 'ACTIVE',
+        updatedAt: '2026-10-05T20:51:00Z',
+      },
     ],
     recent: [],
     humanAction: null,
@@ -73,8 +82,10 @@ test('AI status journey renders a non-OPS goal from the published payload', asyn
 
   await expect(page.getByRole('heading', { name: 'Matkat kohti valmista' })).toBeVisible();
   const journeys = page.locator('#journey-list');
-  await expect(journeys.locator('.journey-card')).toHaveCount(1);
+  await expect(journeys.locator('.journey-card')).toHaveCount(2);
   await expect(journeys.getByRole('heading', { name: 'Rakennuksen ulkovaippa oikeaksi katselumalliin' })).toBeVisible();
-  await expect(journeys.locator('[aria-current="step"] .journey-step-label')).toHaveText('3D-malli');
+  await expect(journeys.getByRole('heading', { name: 'Tilannesivu valmiiksi ja tuotantoon' })).toBeVisible();
+  await expect(journeys.locator('[aria-current="step"] .journey-step-label')).toHaveText(['3D-malli', 'Integraatio + QA']);
   await expect(journeys).not.toContainText('Tekninen prosessihuolto');
+  await expect(journeys).not.toContainText('parser-lifecycle + parser-arg-testikorjaus');
 });
