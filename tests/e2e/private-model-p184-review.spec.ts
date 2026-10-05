@@ -134,7 +134,7 @@ test('P184 pass-aware review selects the requested successor pass and preserves 
     Pass: 'P184F',
     G2Id: p184DTargetG2Id,
     representationKind: p184DTargetRepresentationKind,
-    sourceChainCabinetFrontXM: 5.722,
+    cabinetFrontX: 5.722,
   };
 
   scene.add(p184dIsland, p184fIsland);
