@@ -290,8 +290,8 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     label: 'M5B roof stormwater current/planned variants - WORK_TEST',
     path: `${PRIVATE_WORK_TEST_PREFIX}/m5b-roof-stormwater-current-planned.glb`,
     objectKey: 'work-test/m5b-roof-stormwater-current-planned.glb',
-    expectedSize: 2_898_064,
-    expectedSha256: '0802c082425c9e2f231b1681a6bceec825e3d63e038ca43b02dd86d872f6c08f',
+    expectedSize: 2_899_988,
+    expectedSha256: '4286e8920c2f5539b909d090f4c0929b896afde61f2f1f070374cad00b581f58',
   },
   // P185C viewer/release registration: exact persisted D2015 electrical source overlay.
   {
@@ -301,6 +301,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     objectKey: 'work-test/p185c-d2015-electrical-source-overlay.glb',
     expectedSize: 2_934_024,
     expectedSha256: '9599dec3db6a8cf1961f5db1a91d9722566dadd9a4176861e1e087722a3cea6c',
+  },
+  // M5A viewer/release registration: exact persisted drainage topology presentation WORK_TEST.
+  {
+    id: 'm5a-drain-topology',
+    label: 'M5A drainage topology presentation - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-drain-topology.glb`,
+    objectKey: 'work-test/m5a-drain-topology.glb',
+    expectedSize: 2_882_760,
+    expectedSha256: '3116b8e6a38b5942f5500754bb5a948d0e8194c7d6afe4cbdb1f4b5ac6a0b640',
   },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
