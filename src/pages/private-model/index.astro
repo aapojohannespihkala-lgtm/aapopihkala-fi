@@ -1607,6 +1607,11 @@ const title = 'Private 3D viewer';
         prepareP184ReviewPresentation,
       } from '../../scripts/privateModelP184ReviewPresentation';
       import {
+        p185ReviewContextOpacity,
+        p185ReviewTargetOpacity,
+        prepareP185ReviewPresentation,
+      } from '../../scripts/privateModelP185ReviewPresentation';
+      import {
         getM5BReviewSceneIndex,
         prepareM5BReviewPresentation,
         type M5BReviewVariant,
@@ -1720,6 +1725,8 @@ const title = 'Private 3D viewer';
         p184dReviewId,
         p184gCandidateId,
         p184gReviewId,
+        p185cCandidateId,
+        p185cReviewId,
         m5bCandidateId,
         m5bCurrentReviewId,
         m5bPlannedSok2ComparisonReviewId,
@@ -5482,6 +5489,9 @@ const title = 'Private 3D viewer';
       const isP184gIslandXReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p184gReviewId);
 
+      const isP185cElectricalSourceReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p185cReviewId);
+
       const isP164bCorrectedStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p164bReviewId);
 
@@ -6260,6 +6270,48 @@ const title = 'Private 3D viewer';
           'P184G D 2F kitchen island source-chain X - WORK_TEST / island 80 % / viewer-only source-derived cabinet-front X reference 20 % / HUMAN_REVIEW NOT_RUN';
       };
 
+
+      const applyP185cReviewState = () => {
+        const presentation = prepareP185ReviewPresentation(fullModelScene);
+        if (
+          presentation.targetRenderableCount !== 2 ||
+          presentation.missingTargetRepresentationKinds.length !== 0 ||
+          presentation.semanticViolationCount !== 0 ||
+          !presentation.targetBounds
+        ) {
+          throw new Error('P185C review targets or no-promotion semantics are not review-ready');
+        }
+
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: p185cReviewId,
+          p185ReviewQuestion: 'D_1F_D2015_ELECTRICAL_SOURCE_OVERLAY_RELATION',
+          p185TargetRepresentationKinds: presentation.foundTargetRepresentationKinds.join(','),
+          p185TargetOpacity: p185ReviewTargetOpacity.toFixed(2),
+          p185ContextOpacity: p185ReviewContextOpacity.toFixed(2),
+          p185ReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+          p185ReviewContextRenderableCount: String(presentation.contextRenderableCount),
+          p185ReviewHiddenNonQuestionRenderableCount: String(
+            presentation.hiddenNonQuestionRenderableCount,
+          ),
+          p185ReviewSemanticViolationCount: String(presentation.semanticViolationCount),
+          p185FloorHeatingCableGeometryClaim: 'false',
+          p185ClosedHeatingZoneClaim: 'false',
+          p185ElectricalPanelGeometryClaim: 'false',
+          p185PhysicalCableRouteClaim: 'false',
+          p185ExactXYClaim: 'false',
+          p185ExactZClaim: 'false',
+          p185CurrentClaim: 'false',
+          p185AsBuiltClaim: 'false',
+          p185Canonical: 'false',
+          p185PublishToCurrent: 'false',
+          p185HumanReview: 'NOT_RUN',
+          p185ReviewCameraMode: 'ORTHOGRAPHIC_D_1F_SUPPORT',
+          standardViewPreset: 'd-1f',
+        });
+        applyStandardViewPreset('d-1f');
+        status.textContent =
+          'P185C D 1F electrical source overlay - WORK_TEST / source overlay + RK 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
+      };
       const applyP181bR1ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase-review',
@@ -6676,6 +6728,8 @@ const title = 'Private 3D viewer';
             candidate.id === p184dCandidateId && isP184dIslandXReviewRequested();
           const isP184gIslandXReview =
             candidate.id === p184gCandidateId && isP184gIslandXReviewRequested();
+          const isP185cElectricalSourceReview =
+            candidate.id === p185cCandidateId && isP185cElectricalSourceReviewRequested();
           const isM5BCurrentReview =
             candidate.id === m5bCandidateId &&
             isPrivateModelReviewRequested(window.location.search, m5bCurrentReviewId);
@@ -7396,6 +7450,8 @@ const title = 'Private 3D viewer';
             applyP183P160ClosureReviewState();
           } else if (isP178bJunctionClosureReview) {
             applyP178bReviewState();
+          } else if (isP185cElectricalSourceReview) {
+            applyP185cReviewState();
           } else if (isP184gIslandXReview) {
             applyP184gReviewState();
           } else if (isP184dIslandXReview) {
