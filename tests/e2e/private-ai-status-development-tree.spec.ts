@@ -22,3 +22,59 @@ test('AI status development tree stays derived and lightweight', () => {
   expect(page).not.toContain('canvas');
   expect(page).not.toContain('svg');
 });
+
+test('AI status journey renders a non-OPS goal from the published payload', async ({ page }) => {
+  const payload = {
+    version: 1,
+    generatedAt: '2026-10-05T20:55:00Z',
+    source: {
+      documentId: '1MmJdjTZSUXiDS308bLNasdenyPJeXXZe4otwxHX62Go',
+      modifiedTime: '2026-10-05T20:54:00Z',
+      version: 'unit-test',
+    },
+    summary: {
+      activePackages: 2,
+      activeLines: 2,
+      passesToday: 1,
+    },
+    active: [
+      {
+        id: 'model-goal',
+        lane: '3D - rakennuksen vaippa',
+        laneCode: 'M1 ENVELOPE',
+        title: 'Ulkovaipan mallinnus',
+        goal: 'Rakennuksen ulkovaippa oikeaksi katselumalliin',
+        state: 'ACTIVE',
+        updatedAt: '2026-10-05T20:53:00Z',
+      },
+      {
+        id: 'ops-work',
+        lane: 'Prosessi - eheys',
+        laneCode: 'OPS8 PROCESS_INTEGRITY',
+        title: 'Tekninen prosessihuolto',
+        goal: 'Pidä sisäinen handoff eheänä',
+        state: 'ACTIVE',
+        updatedAt: '2026-10-05T20:52:00Z',
+      },
+    ],
+    recent: [],
+    humanAction: null,
+  };
+
+  await page.route('**/private-model/status/data.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(payload),
+    });
+  });
+
+  await page.goto('/private-model/status/');
+
+  await expect(page.getByRole('heading', { name: 'Matkat kohti valmista' })).toBeVisible();
+  const journeys = page.locator('#journey-list');
+  await expect(journeys.locator('.journey-card')).toHaveCount(1);
+  await expect(journeys.getByRole('heading', { name: 'Rakennuksen ulkovaippa oikeaksi katselumalliin' })).toBeVisible();
+  await expect(journeys.locator('[aria-current="step"] .journey-step-label')).toHaveText('3D-malli');
+  await expect(journeys).not.toContainText('Tekninen prosessihuolto');
+});
