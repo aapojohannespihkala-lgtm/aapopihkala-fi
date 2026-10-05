@@ -131,8 +131,17 @@ test('Ylisrinne AI status renders published data in the browser', async ({ page 
   await expect(page.getByText('Ylisrinne AI derived status dashboard')).toBeVisible();
   await expect(page.getByText('PASS - M5B PR #831 main integration')).toBeVisible();
   await expect(page.locator('#human-action')).toBeHidden();
-});
 
+  await expect(page.getByRole('heading', { name: 'Kehitysketju' })).toBeVisible();
+  await expect(page.locator('.development-note')).toContainText('Ei valmistumisprosentti');
+  await expect(page.locator('#development-flow [data-stage="qa"]')).toContainText('TYÖN ALLA');
+  await expect(page.locator('#development-tree [data-stage="qa"]')).toContainText(
+    'Ylisrinne AI derived status dashboard',
+  );
+  await expect(page.locator('#development-flow [data-stage="human"]')).toContainText(
+    'EI AKTIIVISTA TEHTÄVÄÄ',
+  );
+});
 
 test('handoff parser derives active work and completed passes without a second registry', () => {
   const directory = mkdtempSync(join(tmpdir(), 'ylisrinne-status-'));
