@@ -1621,7 +1621,11 @@ const title = 'Private 3D viewer';
         standardViewLayerDefaults,
         type StandardViewPreset,
       } from '../../scripts/privateModelViewPresets';
-      import type { ViewerResearchPreset } from '../../scripts/privateModelViewerState';
+      import {
+        createViewerInteractionState,
+        resetViewerInteractionStateToPresetDefaults,
+        type ViewerResearchPreset,
+      } from '../../scripts/privateModelViewerState';
       import {
         coordinateSteps,
         heightScaleStepForSpan,
@@ -4482,49 +4486,38 @@ const title = 'Private 3D viewer';
           : null;
       };
 
-      const resetLayerHierarchyDefaults = () => {
-        locusWaterVisible = true;
-        locusWastewaterVisible = true;
-        p161KvvVisible = true;
-        p161IvPlanVisible = true;
-        p161IvSectionVisible = true;
+      const applyResetLayerHierarchyDefaults = (
+        layers: ReturnType<typeof createViewerInteractionState>['layers'],
+      ) => {
+        locusWaterVisible = layers.locusWaterVisible;
+        locusWastewaterVisible = layers.locusWastewaterVisible;
+        p161KvvVisible = layers.p161KvvVisible;
+        p161IvPlanVisible = layers.p161IvPlanVisible;
+        p161IvSectionVisible = layers.p161IvSectionVisible;
       };
 
       const resetActiveViewDefaults = () => {
-        const preset = activeStandardViewPreset();
-        resetLayerHierarchyDefaults();
-
-        if (preset) {
-          applyViewerLayerState(
-            { roofOpacity: 1, ...standardViewLayerDefaults[preset] },
-            `reset:${preset}`,
-          );
-          standardViewLayerDefaultsInitialized = true;
-          activateStandardViewCamera(preset);
-          refreshEdgeRendering(modelRoot.children[0] ?? null);
-          return;
-        }
-
-        const viewPreset = canvas.dataset.viewPreset ?? 'orbit';
+        const resetState = resetViewerInteractionStateToPresetDefaults(
+          createViewerInteractionState(activeResearchPreset),
+        );
+        applyResetLayerHierarchyDefaults(resetState.layers);
         applyViewerLayerState(
           {
-            roofVisible: true,
-            roofOpacity: 1,
-            locusVisible: isP161SystemsLayerReviewRequested(),
-            edgeMode: 'visible',
+            roofVisible: resetState.layers.roofVisible,
+            roofOpacity: resetState.layers.roofOpacity,
+            locusVisible: resetState.layers.locusVisible,
+            edgeMode: resetState.presentation.edgeMode,
           },
-          `reset:${viewPreset}`,
+          `reset:${activeResearchPreset}`,
+        );
+        window.dispatchEvent(
+          new CustomEvent('ylis-viewer-layer-controls-reset', {
+            detail: { layers: resetState.layers },
+          }),
         );
         standardViewLayerDefaultsInitialized = true;
-
-        if (viewPreset === 'isometric') activateIsometric();
-        else if (viewPreset === 'top') axisView('top');
-        else if (viewPreset === 'bottom') axisView('bottom');
-        else if (viewPreset === 'd-plan' && activePlanFloor) activateDPlan(activePlanFloor);
-        else if (viewPreset === 'elevation' && activeElevationDirection) {
-          activateElevationView(activeElevationDirection);
-        } else fitModel();
-
+        canvas.dataset.standardViewPreset = activeResearchPreset;
+        activateStandardViewCamera(activeResearchPreset);
         refreshEdgeRendering(modelRoot.children[0] ?? null);
       };
 
