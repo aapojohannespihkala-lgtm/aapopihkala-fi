@@ -49,66 +49,65 @@ test('private viewer renders the VUX-C dark WebGL surface instead of only declar
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
 
-  const samples = await expect
+  const readCanvasPixels = () =>
+    canvas.evaluate((node) => {
+      const source = node as HTMLCanvasElement;
+      if (source.width < 8 || source.height < 8) return null;
+
+      const probe = document.createElement('canvas');
+      probe.width = source.width;
+      probe.height = source.height;
+      const context = probe.getContext('2d', { willReadFrequently: true });
+      if (!context) return null;
+
+      context.drawImage(source, 0, 0);
+      const points = [
+        [0.18, 0.2],
+        [0.5, 0.2],
+        [0.82, 0.2],
+        [0.18, 0.8],
+        [0.5, 0.8],
+        [0.82, 0.8],
+      ];
+
+      return points.map(([xRatio, yRatio]) => {
+        const x = Math.min(
+          source.width - 1,
+          Math.max(0, Math.floor(source.width * xRatio)),
+        );
+        const y = Math.min(
+          source.height - 1,
+          Math.max(0, Math.floor(source.height * yRatio)),
+        );
+        return Array.from(context.getImageData(x, y, 1, 1).data);
+      });
+    });
+
+  await expect
     .poll(
-      async () =>
-        canvas.evaluate((node) => {
-          const source = node as HTMLCanvasElement;
-          if (source.width < 8 || source.height < 8) return null;
-
-          const probe = document.createElement('canvas');
-          probe.width = source.width;
-          probe.height = source.height;
-          const context = probe.getContext('2d', { willReadFrequently: true });
-          if (!context) return null;
-
-          context.drawImage(source, 0, 0);
-          const points = [
-            [0.18, 0.2],
-            [0.5, 0.2],
-            [0.82, 0.2],
-            [0.18, 0.8],
-            [0.5, 0.8],
-            [0.82, 0.8],
-          ];
-
-          return points.map(([xRatio, yRatio]) => {
-            const x = Math.min(source.width - 1, Math.max(0, Math.floor(source.width * xRatio)));
-            const y = Math.min(source.height - 1, Math.max(0, Math.floor(source.height * yRatio)));
-            return Array.from(context.getImageData(x, y, 1, 1).data);
-          });
-        }),
+      async () => {
+        const pixels = await readCanvasPixels();
+        return (
+          pixels !== null &&
+          pixels.every(
+            ([red, green, blue, alpha]) =>
+              red >= 31 &&
+              red <= 33 &&
+              green >= 41 &&
+              green <= 43 &&
+              blue >= 51 &&
+              blue <= 53 &&
+              alpha === 255,
+          )
+        );
+      },
       { timeout: 5_000 },
     )
-    .not.toBeNull();
+    .toBe(true);
 
-  const pixels = await canvas.evaluate((node) => {
-    const source = node as HTMLCanvasElement;
-    const probe = document.createElement('canvas');
-    probe.width = source.width;
-    probe.height = source.height;
-    const context = probe.getContext('2d', { willReadFrequently: true });
-    if (!context) throw new Error('2D pixel probe unavailable');
-
-    context.drawImage(source, 0, 0);
-    const points = [
-      [0.18, 0.2],
-      [0.5, 0.2],
-      [0.82, 0.2],
-      [0.18, 0.8],
-      [0.5, 0.8],
-      [0.82, 0.8],
-    ];
-
-    return points.map(([xRatio, yRatio]) => {
-      const x = Math.min(source.width - 1, Math.max(0, Math.floor(source.width * xRatio)));
-      const y = Math.min(source.height - 1, Math.max(0, Math.floor(source.height * yRatio)));
-      return Array.from(context.getImageData(x, y, 1, 1).data);
-    });
-  });
-
-  expect(samples).toBeUndefined();
-  for (const [red, green, blue, alpha] of pixels) {
+  const pixels = await readCanvasPixels();
+  expect(pixels).not.toBeNull();
+  for (const [red, green, blue, alpha] of pixels ?? []) {
     expect(red).toBeGreaterThanOrEqual(31);
     expect(red).toBeLessThanOrEqual(33);
     expect(green).toBeGreaterThanOrEqual(41);
