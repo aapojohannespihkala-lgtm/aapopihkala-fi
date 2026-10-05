@@ -3,13 +3,18 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 import {
+  p184hApplianceOnP185cReviewId,
   p185cCandidateId,
   p185cReviewId,
 } from '../../src/scripts/privateModelWorkTest';
 import {
+  p184hApplianceAidRoles,
+  p184hApplianceReviewContextOpacity,
+  p184hApplianceReviewTargetOpacity,
   p185ReviewContextOpacity,
   p185ReviewTargetOpacity,
   p185TargetRepresentationKinds,
+  prepareP184hApplianceAidReviewPresentation,
   prepareP185ReviewPresentation,
 } from '../../src/scripts/privateModelP185ReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
@@ -48,6 +53,104 @@ const makeTarget = (
   };
   return { object, sourceMaterial };
 };
+
+
+const makeP184hAid = (semanticRole: 'oven' | 'cooktop') => {
+  const sourceMaterial = new THREE.MeshBasicMaterial({ opacity: 1 });
+  const object = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.02, 0.6), sourceMaterial);
+  object.userData = {
+    Pass: 'P184H',
+    ModelStage: 'WORK_TEST_PRESENTATION',
+    Canonical: false,
+    representationKind: 'appliancePlacementPresentationAid',
+    hostG2Id: 'G2_FURN_D_2F_KITCHEN_ISLAND_001',
+    hostStorey: 'D_2F',
+    presentationLayer: 'D_ARCH_FURNITURE_AIDS',
+    sourcePlanDriveId: '1G04Dye0etHSTAMgqabstPOfrEFnuFjWl',
+    presentationAidId:
+      semanticRole === 'oven'
+        ? 'P184H_APPLIANCE_AID_OVEN_001'
+        : 'P184H_APPLIANCE_AID_COOKTOP_001',
+    semanticRole,
+    applianceGeometryClaim: false,
+    physicalApplianceFootprintClaim: false,
+    exactXYClaim: false,
+    exactZClaim: false,
+    current: false,
+    asBuilt: false,
+    publishToCURRENT: false,
+    HUMAN_REVIEW: 'NOT_RUN',
+  };
+  return { object, sourceMaterial };
+};
+
+test('P184H appliance review keeps oven and cooktop at 80 with island and D 2F context at 20', () => {
+  const scene = new THREE.Group();
+  const oven = makeP184hAid('oven');
+  const cooktop = makeP184hAid('cooktop');
+  oven.object.position.set(4.2, 0, 3.2);
+  cooktop.object.position.set(4.2, 0, 3.9);
+
+  const islandMaterial = new THREE.MeshBasicMaterial({ opacity: 1 });
+  const island = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.2, 1.85), islandMaterial);
+  island.userData = {
+    Pass: 'P184G',
+    G2Id: 'G2_FURN_D_2F_KITCHEN_ISLAND_001',
+    representationKind: 'fixedFurnitureWorkSolid',
+    hostStorey: 'D_2F',
+    presentationLayer: 'D_ARCH_FURNITURE',
+  };
+
+  const d2fMaterial = new THREE.MeshBasicMaterial({ opacity: 1 });
+  const d2fContext = new THREE.Mesh(new THREE.BoxGeometry(2, 0.2, 2), d2fMaterial);
+  d2fContext.name = 'P134B_ARCH_BASE_CLONE__G2_WALL_D_2F_001';
+  d2fContext.userData = {
+    G2Id: 'G2_WALL_D_2F_001',
+    presentationLayer: 'CURRENT_D',
+  };
+
+  const unrelated = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 0.2, 2),
+    new THREE.MeshBasicMaterial({ opacity: 1 }),
+  );
+  unrelated.name = 'G2_WALL_D_1F_001';
+  unrelated.userData = {
+    G2Id: 'G2_WALL_D_1F_001',
+    presentationLayer: 'CURRENT_D',
+  };
+
+  scene.add(oven.object, cooktop.object, island, d2fContext, unrelated);
+  const presentation = prepareP184hApplianceAidReviewPresentation(scene);
+
+  expect(presentation.targetRenderableCount).toBe(2);
+  expect(presentation.contextRenderableCount).toBe(2);
+  expect(presentation.islandContextRenderableCount).toBe(1);
+  expect(presentation.hiddenNonQuestionRenderableCount).toBe(1);
+  expect(presentation.semanticViolationCount).toBe(0);
+  expect(presentation.missingTargetSemanticRoles).toEqual([]);
+  expect(new Set(presentation.foundTargetSemanticRoles)).toEqual(new Set(p184hApplianceAidRoles));
+  expect(presentation.targetBounds).not.toBeNull();
+
+  expect((oven.object.material as any).opacity).toBe(p184hApplianceReviewTargetOpacity);
+  expect((cooktop.object.material as any).opacity).toBe(p184hApplianceReviewTargetOpacity);
+  expect((island.material as any).opacity).toBe(p184hApplianceReviewContextOpacity);
+  expect((d2fContext.material as any).opacity).toBe(p184hApplianceReviewContextOpacity);
+  expect(unrelated.visible).toBe(false);
+  expect(oven.object.userData.p184hApplianceReviewRole).toBe('P184H_APPLIANCE_TARGET_80');
+  expect(island.userData.p184hApplianceReviewRole).toBe('D_2F_KITCHEN_CONTEXT_20');
+});
+
+test('P184H appliance presentation reports no-promotion semantic violations', () => {
+  const scene = new THREE.Group();
+  const oven = makeP184hAid('oven');
+  const cooktop = makeP184hAid('cooktop');
+  oven.object.userData.exactXYClaim = true;
+  scene.add(oven.object, cooktop.object);
+
+  const presentation = prepareP184hApplianceAidReviewPresentation(scene);
+  expect(presentation.targetRenderableCount).toBe(2);
+  expect(presentation.semanticViolationCount).toBe(1);
+});
 
 test('P185C question presentation keeps exact electrical targets at 80 and D 1F architecture context at 20', () => {
   const scene = new THREE.Group();
@@ -126,6 +229,12 @@ test('private viewer wires P185C review alias to D 1F 80/20 presentation without
 
   expect(p185cCandidateId).toBe('p185c-d2015-electrical-source-overlay');
   expect(p185cReviewId).toBe('p185c-d2015-electrical-source-overlay-review');
+  expect(p184hApplianceOnP185cReviewId).toBe('p184h-appliance-aids-on-p185c-review');
+  expect(viewerSource).toContain('prepareP184hApplianceAidReviewPresentation');
+  expect(viewerSource).toContain('isP184hApplianceOnP185cReviewRequested');
+  expect(viewerSource).toContain('applyP184hApplianceOnP185cReviewState');
+  expect(viewerSource).toContain("p184hReviewQuestion: 'D_2F_KITCHEN_ISLAND_APPLIANCE_AID_RELATION'");
+  expect(viewerSource).toContain("p184hHumanReview: 'NOT_RUN'");
   expect(viewerSource).toContain('prepareP185ReviewPresentation');
   expect(viewerSource).toContain('isP185cElectricalSourceReviewRequested');
   expect(viewerSource).toContain('applyP185cReviewState');
@@ -373,3 +482,146 @@ test('P185C review autoload renders the bounded 80/20 question state on canvas',
 
   expect(renderedPixelCount).toBeGreaterThan(20);
 });
+
+test('P184H appliance review autoloads the P185C survivor and renders the bounded 80/20 question state', async ({ page }) => {
+  test.setTimeout(20_000);
+
+  const currentModel = makeGlbWithSharedTriangle([]);
+  const candidateId = p185cCandidateId;
+  const candidatePath = '/private-model/work-test/p185c-d2015-electrical-source-overlay.glb';
+  const candidateModel = makeGlbWithSharedTriangle([
+    {
+      name: 'P184H_OVEN_PLACEMENT_AID_PRESENTATION_ONLY',
+      mesh: 0,
+      translation: [0, 0, 0],
+      extras: {
+        Pass: 'P184H',
+        ModelStage: 'WORK_TEST_PRESENTATION',
+        Canonical: false,
+        representationKind: 'appliancePlacementPresentationAid',
+        hostG2Id: 'G2_FURN_D_2F_KITCHEN_ISLAND_001',
+        hostStorey: 'D_2F',
+        presentationLayer: 'D_ARCH_FURNITURE_AIDS',
+        sourcePlanDriveId: '1G04Dye0etHSTAMgqabstPOfrEFnuFjWl',
+        presentationAidId: 'P184H_APPLIANCE_AID_OVEN_001',
+        semanticRole: 'oven',
+        applianceGeometryClaim: false,
+        physicalApplianceFootprintClaim: false,
+        exactXYClaim: false,
+        exactZClaim: false,
+        current: false,
+        asBuilt: false,
+        publishToCURRENT: false,
+        HUMAN_REVIEW: 'NOT_RUN',
+      },
+    },
+    {
+      name: 'P184H_COOKTOP_PLACEMENT_AID_PRESENTATION_ONLY',
+      mesh: 0,
+      translation: [1.0, 0, 0],
+      extras: {
+        Pass: 'P184H',
+        ModelStage: 'WORK_TEST_PRESENTATION',
+        Canonical: false,
+        representationKind: 'appliancePlacementPresentationAid',
+        hostG2Id: 'G2_FURN_D_2F_KITCHEN_ISLAND_001',
+        hostStorey: 'D_2F',
+        presentationLayer: 'D_ARCH_FURNITURE_AIDS',
+        sourcePlanDriveId: '1G04Dye0etHSTAMgqabstPOfrEFnuFjWl',
+        presentationAidId: 'P184H_APPLIANCE_AID_COOKTOP_001',
+        semanticRole: 'cooktop',
+        applianceGeometryClaim: false,
+        physicalApplianceFootprintClaim: false,
+        exactXYClaim: false,
+        exactZClaim: false,
+        current: false,
+        asBuilt: false,
+        publishToCURRENT: false,
+        HUMAN_REVIEW: 'NOT_RUN',
+      },
+    },
+    {
+      name: 'P184G_G2_FURN_D_2F_KITCHEN_ISLAND_001_AXIS_SELFCONSISTENT_WORKTEST',
+      mesh: 0,
+      translation: [0.5, 0, 0.5],
+      extras: {
+        Pass: 'P184G',
+        G2Id: 'G2_FURN_D_2F_KITCHEN_ISLAND_001',
+        representationKind: 'fixedFurnitureWorkSolid',
+        hostStorey: 'D_2F',
+        presentationLayer: 'D_ARCH_FURNITURE',
+      },
+    },
+    {
+      name: 'G2_WALL_D_2F_001',
+      mesh: 0,
+      translation: [2, 0, 2],
+      extras: {
+        G2Id: 'G2_WALL_D_2F_001',
+        presentationLayer: 'CURRENT_D',
+      },
+    },
+    {
+      name: 'G2_WALL_D_1F_001',
+      mesh: 0,
+      translation: [7, 0, 7],
+      extras: {
+        G2Id: 'G2_WALL_D_1F_001',
+        presentationLayer: 'CURRENT_D',
+      },
+    },
+  ]);
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: currentModel,
+    });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [
+          {
+            id: candidateId,
+            label: 'P185C D2015 electrical source overlay - WORK_TEST',
+            path: candidatePath,
+          },
+        ],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: candidateModel,
+    });
+  });
+
+  await page.goto(`/private-model/?review=${p184hApplianceOnP185cReviewId}`);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', p184hApplianceOnP185cReviewId);
+  await expect(canvas).toHaveAttribute(
+    'data-p184h-review-question',
+    'D_2F_KITCHEN_ISLAND_APPLIANCE_AID_RELATION',
+  );
+  await expect(canvas).toHaveAttribute('data-p184h-target-opacity', '0.80');
+  await expect(canvas).toHaveAttribute('data-p184h-context-opacity', '0.20');
+  await expect(canvas).toHaveAttribute('data-p184h-review-target-renderable-count', '2');
+  await expect(canvas).toHaveAttribute('data-p184h-review-context-renderable-count', '2');
+  await expect(canvas).toHaveAttribute('data-p184h-review-island-context-renderable-count', '1');
+  await expect(canvas).toHaveAttribute('data-p184h-review-semantic-violation-count', '0');
+  await expect(canvas).toHaveAttribute('data-p184h-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-apartment');
+  await expect(page.locator('#viewer-status')).toContainText(
+    'oven + cooktop 80 % / island + D 2F context 20 %',
+  );
+});
+
