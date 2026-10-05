@@ -5,6 +5,8 @@ import { expect, test } from '@playwright/test';
 import {
   m5aExpectedTargetRenderableCount,
   m5aReviewContextOpacity,
+  m5aReviewQuestionText,
+  m5aReviewSourceContext,
   m5aReviewTargetOpacity,
 } from '../../src/scripts/privateModelM5AReviewPresentation';
 
@@ -106,6 +108,9 @@ test('M5A review wiring is scoped to conventional review id and no-promotion pre
   expect(viewerSource).toContain("m5aExactXYClaim: 'false'");
   expect(viewerSource).toContain("m5aExactZClaim: 'false'");
   expect(viewerSource).toContain("m5aHumanReview: 'NOT_RUN'");
+  expect(viewerSource).toContain('m5a-source-context');
+  expect(viewerSource).toContain('m5aReviewQuestionText');
+  expect(viewerSource).toContain('m5aReviewSourceContext');
 });
 
 test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20', async ({ page }) => {
@@ -170,9 +175,29 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
   await expect(canvas).toHaveAttribute('data-m5a-review-semantic-violation-count', '0');
   await expect(canvas).toHaveAttribute('data-m5a-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-  await expect(page.locator('#viewer-status')).toContainText(
-    'salaojatopologia 80 % / rakennus- ja maastokonteksti 20 %',
+  await expect(canvas).toHaveAttribute('data-m5a-source-context-ready', 'true');
+  await expect(canvas).toHaveAttribute('data-m5a-review-question-text', m5aReviewQuestionText);
+  await expect(canvas).toHaveAttribute(
+    'data-m5a-source-context-class',
+    m5aReviewSourceContext.sourceClass,
   );
+  await expect(canvas).toHaveAttribute('data-m5a-source-named-well-count', '4');
+  await expect(canvas).toHaveAttribute('data-m5a-source-supported-link-count', '7');
+
+  const sourceContext = page.locator('#m5a-source-context');
+  await expect(sourceContext).toBeVisible();
+  await expect(sourceContext).toContainText(m5aReviewSourceContext.sourceLabel);
+  await expect(sourceContext).toContainText('SOK1, SOK2, SOK3, PVK');
+  await expect(sourceContext).toContainText('7 yhteyttä');
+  await expect(sourceContext).toContainText(m5aReviewSourceContext.drawingLowerMapping);
+  await expect(sourceContext).toContainText(m5aReviewSourceContext.drawingUpperMapping);
+  await expect(sourceContext).toContainText('WORK_ASSUMPTION');
+  await expect(sourceContext).toContainText(m5aReviewQuestionText);
+  await expect(sourceContext).toContainText('ei exact XY/Z');
+  await expect(page.locator('#viewer-status')).toContainText(
+    '4 kaivoa + 7 lähteistettyä yhteyttä',
+  );
+  await expect(page.locator('#viewer-status')).toContainText('lähdekonteksti mukana');
 
   await page.waitForTimeout(250);
   const screenshot = await canvas.screenshot();
