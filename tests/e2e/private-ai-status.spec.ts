@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import {
   PRIVATE_AI_STATUS_DATA_PATH,
@@ -99,4 +103,52 @@ test('Ylisrinne AI status page renders a useful shell without live data', async 
   await expect(page.getByRole('heading', { name: 'Nyt työn alla' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Viimeisimmät tapahtumat' })).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow,noarchive');
+});
+
+
+test('handoff parser derives active work and completed passes without a second registry', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'ylisrinne-status-'));
+  const input = join(directory, 'handoff.txt');
+  const output = join(directory, 'status.json');
+  const fixture = [
+    'DISPATCH-CLAIM - V1 CAMERA_NAV | claim-ID: 2026-10-05T18:18:00+03:00-v1-unit-r1 | scope-key: unit-camera | claim-aika: 2026-10-05T18:18:00+03:00 | tarkoitus: Tee kameratesti | tila: CLAIMED.',
+    'VARAUS - unit camera work | kaista: V1 CAMERA_NAV | ajo-ID: 2026-10-05T18:18:00+03:00-v1-unit-r1 | scope-key: unit-camera | checkpoint-aika: 2026-10-05T18:19:00+03:00 | tila: AKTIIVINEN.',
+    'DISPATCH-CLAIM - M1 ENVELOPE | claim-ID: 2026-10-05T17:50:00+03:00-m1-stale-r2 | scope-key: stale-envelope | claim-aika: 2026-10-05T17:50:00+03:00 | tarkoitus: Vanha claim | tila: CLAIMED.',
+    'VALMIS / VARAUS VAPAUTETTU - unit integration | kaista: V4 INTEGRATION_QA | ajo-ID: 2026-10-05T18:10:00+03:00-v4-unit-r3 | päättyi: 2026-10-05T18:12:00+03:00 | tulos: PASS_UNIT | tila: VALMIS / VARAUS VAPAUTETTU.',
+  ].join('\n');
+
+  try {
+    writeFileSync(input, fixture, 'utf8');
+    execFileSync(
+      'python3',
+      [
+        '.github/build-ai-status.py',
+        input,
+        output,
+        '2026-10-05T15:19:30Z',
+        '1234',
+        '2026-10-05T15:20:00Z',
+      ],
+      { cwd: process.cwd(), stdio: 'pipe' },
+    );
+    const payload = JSON.parse(readFileSync(output, 'utf8'));
+
+    expect(payload.summary).toEqual({
+      activePackages: 1,
+      activeLines: 1,
+      passesToday: 1,
+    });
+    expect(payload.active).toHaveLength(1);
+    expect(payload.active[0]).toMatchObject({
+      lane: 'Viewer - kamera',
+      title: 'unit camera work',
+      goal: 'Tee kameratesti',
+      state: 'ACTIVE',
+    });
+    expect(payload.recent.some((entry: { state: string; title: string }) =>
+      entry.state === 'PASS' && entry.title === 'unit integration'
+    )).toBe(true);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
