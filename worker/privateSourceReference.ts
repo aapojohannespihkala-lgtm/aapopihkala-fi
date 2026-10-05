@@ -218,7 +218,7 @@ export const writePrivateSourceReferenceFromRequest = async (
   return { ok: true, alreadyReady: false };
 };
 
-const sourceReferenceResponse = async (
+export const sourceReferenceResponse = async (
   request: Request,
   bucket: PrivateSourceReferenceBucket,
   reference: PrivateSourceReference,
