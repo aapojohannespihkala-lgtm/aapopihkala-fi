@@ -7,8 +7,14 @@ test('AI status development tree stays derived and lightweight', () => {
 
   expect(script).toContain('const DEVELOPMENT_STAGES = [');
   expect(script).toContain("laneCode || ''");
-  expect(script).toContain('renderDevelopment(data)');
+  expect(script).toContain('renderJourneys(data)');
+  expect(script).toContain('const journeyItems = (data) =>');
   expect(script).toContain("data.humanAction ? 'human' : 'idle'");
+  expect(script).toContain('renderDevelopment(data)');
+  expect(page).toContain('id="journeys-title"');
+  expect(page).toContain('id="journey-list"');
+  expect(page).toContain('Matkat kohti valmista');
+  expect(page).toContain('Tämä ei ole valmistumisprosentti');
   expect(page).toContain('id="development-title"');
   expect(page).toContain('id="development-flow"');
   expect(page).toContain('id="development-tree"');
