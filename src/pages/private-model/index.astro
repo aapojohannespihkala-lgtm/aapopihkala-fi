@@ -1612,6 +1612,12 @@ const title = 'Private 3D viewer';
         prepareP185ReviewPresentation,
       } from '../../scripts/privateModelP185ReviewPresentation';
       import {
+        p186bExpectedSourceLineItemCount,
+        p186bReviewContextOpacity,
+        p186bReviewTargetOpacity,
+        prepareP186BReviewPresentation,
+      } from '../../scripts/privateModelP186BReviewPresentation';
+      import {
         getM5BReviewSceneIndex,
         prepareM5BReviewPresentation,
         type M5BReviewVariant,
@@ -5492,6 +5498,12 @@ const title = 'Private 3D viewer';
       const isP185cElectricalSourceReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p185cReviewId);
 
+      const p186bCandidateId = 'p186b-d2015-d2f-wiring-mainmass-source-overlay';
+      const p186bReviewId = `${p186bCandidateId}-review`;
+
+      const isP186bElectricalSourceReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p186bReviewId);
+
       const isP164bCorrectedStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p164bReviewId);
 
@@ -6330,6 +6342,65 @@ const title = 'Private 3D viewer';
         status.textContent =
           'P185C D 1F electrical source overlay - WORK_TEST / source overlay + RK 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
       };
+      const applyP186bReviewState = () => {
+        // Establish the D 2F support camera first. The preset restores floor visibility,
+        // so the question-specific 80/20 presentation must be applied afterwards.
+        applyStandardViewPreset('d-2f');
+        setModelScene(fullModelScene);
+        canvas.dataset.contentScene = 'full-model';
+        canvas.dataset.contentFloor = '2F';
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+
+        let suppressedDoorMarkerCount = 0;
+        for (const doorMarker of dReviewDoorMarkerLines) {
+          if (doorMarker.visible) suppressedDoorMarkerCount += 1;
+          doorMarker.visible = false;
+        }
+        canvas.dataset.dReviewDoorMarkerVisibleCount = '0';
+
+        const presentation = prepareP186BReviewPresentation(fullModelScene);
+        if (
+          presentation.targetRenderableCount !== 2 ||
+          presentation.missingTargetSelectors.length !== 0 ||
+          presentation.semanticViolationCount !== 0 ||
+          presentation.sourceLineItemCount !== p186bExpectedSourceLineItemCount ||
+          presentation.contextRenderableCount < 1
+        ) {
+          throw new Error('P186B review targets or no-promotion semantics are not review-ready');
+        }
+        refreshEdgeRendering(fullModelScene);
+
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: p186bReviewId,
+          p186bReviewQuestion: 'D_2F_D2015_WIRING_MAINMASS_SOURCE_OVERLAY_RELATION',
+          p186bTargetOpacity: p186bReviewTargetOpacity.toFixed(2),
+          p186bContextOpacity: p186bReviewContextOpacity.toFixed(2),
+          p186bReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+          p186bReviewContextRenderableCount: String(presentation.contextRenderableCount),
+          p186bReviewHiddenNonQuestionRenderableCount: String(
+            presentation.hiddenNonQuestionRenderableCount,
+          ),
+          p186bReviewSemanticViolationCount: String(presentation.semanticViolationCount),
+          p186bSourceLineItemCount: String(presentation.sourceLineItemCount),
+          p186bReviewSuppressedDoorMarkerCount: String(suppressedDoorMarkerCount),
+          p186bReviewScene: 'FULL_MODEL_WITH_D_2F_PLAN_CAMERA',
+          p186bPhysicalCableRouteClaim: 'false',
+          p186bDeviceGeometryClaim: 'false',
+          p186bSymbolSemanticClaim: 'false',
+          p186bExactZClaim: 'false',
+          p186bCurrentClaim: 'false',
+          p186bAsBuiltClaim: 'false',
+          p186bCanonical: 'false',
+          p186bPublishToCurrent: 'false',
+          p186bHumanReview: 'NOT_RUN',
+          p186bReviewCameraMode: 'ORTHOGRAPHIC_D_2F_SUPPORT',
+          standardViewPreset: 'd-2f',
+        });
+        status.textContent =
+          'P186B D 2F wiring main-mass source overlay - WORK_TEST / source lines 80 % / D 2F context 20 % / HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP181bR1ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase-review',
@@ -6748,6 +6819,8 @@ const title = 'Private 3D viewer';
             candidate.id === p184gCandidateId && isP184gIslandXReviewRequested();
           const isP185cElectricalSourceReview =
             candidate.id === p185cCandidateId && isP185cElectricalSourceReviewRequested();
+          const isP186bElectricalSourceReview =
+            candidate.id === p186bCandidateId && isP186bElectricalSourceReviewRequested();
           const isM5BCurrentReview =
             candidate.id === m5bCandidateId &&
             isPrivateModelReviewRequested(window.location.search, m5bCurrentReviewId);
@@ -7470,6 +7543,8 @@ const title = 'Private 3D viewer';
             applyP178bReviewState();
           } else if (isP185cElectricalSourceReview) {
             applyP185cReviewState();
+          } else if (isP186bElectricalSourceReview) {
+            applyP186bReviewState();
           } else if (isP184gIslandXReview) {
             applyP184gReviewState();
           } else if (isP184dIslandXReview) {
