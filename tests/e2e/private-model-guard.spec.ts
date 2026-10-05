@@ -2603,11 +2603,11 @@ test('private viewer top and bottom views are orthographic pan/zoom views withou
   await expect(canvas).toHaveAttribute('data-camera-rotation', 'disabled');
   await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
   await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
-  await expect(aiNavigator).toHaveAttribute('data-look', /Z-1\.00/);
+  await expect(aiNavigator).toHaveAttribute('data-look-vector', /Z-1\.00/);
 
   await page.setViewportSize({ width: 1024, height: 768 });
   await expect(canvas).toHaveAttribute('data-view-preset', 'top');
-  await expect(aiNavigator).toHaveAttribute('data-look', /Z-1\.00/);
+  await expect(aiNavigator).toHaveAttribute('data-look-vector', /Z-1\.00/);
 
   await clickViewAction(page, 'Alhaalta');
   await expect(canvas).toHaveAttribute('data-view-preset', 'bottom');
@@ -2615,7 +2615,7 @@ test('private viewer top and bottom views are orthographic pan/zoom views withou
   await expect(canvas).toHaveAttribute('data-camera-rotation', 'disabled');
   await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
   await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
-  await expect(aiNavigator).toHaveAttribute('data-look', /Z\+1\.00/);
+  await expect(aiNavigator).toHaveAttribute('data-look-vector', /Z\+1\.00/);
 });
 
 test('private viewer roof test layer toggles explicit roof metadata and exposes opacity control', async ({
@@ -6655,17 +6655,17 @@ test('private viewer keeps dark YLIS-G1-LOCAL orientation and north direction vi
   await expect(aiNavigator).toHaveAttribute('data-frame', 'YLIS-G1-LOCAL');
   await expect(aiNavigator).toHaveAttribute('data-ready', 'true');
   await expect(aiNavigator).toHaveAttribute('data-model', 'CURRENT');
-  await expect(aiNavigator).toHaveAttribute('data-view', /ORBIT · PERSP/);
-  await expect(aiNavigator).toHaveAttribute('data-look', /X[+-]\d+\.\d{2} Y[+-]\d+\.\d{2} Z[+-]\d+\.\d{2}/);
+  await expect(aiNavigator).toHaveAttribute('data-view', /^PERSPECTIVE \d+° · ORBIT$/);
+  await expect(aiNavigator).toHaveAttribute('data-look-vector', /X[+-]\d+\.\d{2} Y[+-]\d+\.\d{2} Z[+-]\d+\.\d{2}/);
   await expect(aiNavigator).toHaveAttribute('data-center', /X[+-]\d+\.\d{2} Y[+-]\d+\.\d{2} Z[+-]\d+\.\d{2}/);
-  await expect(aiNavigator).toHaveAttribute('data-visible-bounds', /X -?\d+\.\d\.\.-?\d+\.\d/);
+  await expect(aiNavigator).toHaveAttribute('data-visible-bounds', /X[+-]\d+\.\d\.\.[+-]\d+\.\d/);
   await expect(aiNavigator).toHaveAttribute('data-bounds-basis', 'camera-target-plane');
 
   await clickViewAction(page, 'Isometrinen');
   await expect(canvas).toHaveAttribute('data-view-preset', 'isometric');
   await expect(gizmo).toHaveAttribute('data-camera-projection', 'orthographic');
   await expect(gizmo).toHaveAttribute('data-ready', 'true');
-  await expect(aiNavigator).toHaveAttribute('data-view', /ISOMETRIC · ORTHO/);
+  await expect(aiNavigator).toHaveAttribute('data-view', /^ORTHO .* · ISOMETRIC$/);
 
   const gizmoBox = await gizmo.boundingBox();
   const viewportBox = await page.locator('.viewport').boundingBox();

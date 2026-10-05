@@ -95,7 +95,7 @@ const expectElevation = async (
   await expect(canvas).toHaveAttribute('data-height-scale-visible', 'true');
   await expect(canvas).toHaveAttribute('data-height-scale-frame', 'YLIS-G1-LOCAL');
   await expect(aiNavigator).toHaveAttribute('data-frame', 'YLIS-G1-LOCAL');
-  await expect(aiNavigator).toHaveAttribute('data-look', look);
+  await expect(aiNavigator).toHaveAttribute('data-look-vector', look);
 
   await expectZScreenUp(page);
 };
