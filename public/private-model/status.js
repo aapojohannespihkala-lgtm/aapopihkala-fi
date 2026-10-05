@@ -48,6 +48,23 @@ const stageForActive = (item) => {
   return null;
 };
 
+const journeyGoal = (item) => {
+  const rawGoal = (item.goal || item.title || '').trim();
+  const technicalText = `${item.title || ''} ${rawGoal}`.toLocaleLowerCase('fi-FI');
+
+  if (
+    technicalText.includes('ai-status') ||
+    technicalText.includes('private-ai-status') ||
+    technicalText.includes('status-sivu') ||
+    technicalText.includes('status page') ||
+    technicalText.includes('matkat kohti valmista')
+  ) {
+    return 'Tilannesivu valmiiksi ja tuotantoon';
+  }
+
+  return rawGoal;
+};
+
 const journeyItems = (data) => {
   const unique = new Map();
 
@@ -55,7 +72,7 @@ const journeyItems = (data) => {
     const stage = stageForActive(item);
     if (!stage || /^(?:OPS|Muu\b)/.test(item.laneCode || '')) continue;
 
-    const goal = (item.goal || item.title || '').trim();
+    const goal = journeyGoal(item);
     if (!goal) continue;
 
     const key = goal.toLocaleLowerCase('fi-FI');
