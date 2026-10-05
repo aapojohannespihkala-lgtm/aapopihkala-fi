@@ -2595,6 +2595,7 @@ test('private viewer top and bottom views are orthographic pan/zoom views withou
   await expect(page.getByRole('status')).toHaveText('Malli ladattu');
 
   const canvas = page.locator('#private-model-canvas');
+  const aiNavigator = page.locator('#ai-navigator-readout');
 
   await clickViewAction(page, 'Ylhäältä');
   await expect(canvas).toHaveAttribute('data-view-preset', 'top');
@@ -2602,6 +2603,11 @@ test('private viewer top and bottom views are orthographic pan/zoom views withou
   await expect(canvas).toHaveAttribute('data-camera-rotation', 'disabled');
   await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
   await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
+  await expect(aiNavigator).toHaveAttribute('data-look', /Z-1\.00/);
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  await expect(aiNavigator).toHaveAttribute('data-look', /Z-1\.00/);
 
   await clickViewAction(page, 'Alhaalta');
   await expect(canvas).toHaveAttribute('data-view-preset', 'bottom');
@@ -2609,6 +2615,7 @@ test('private viewer top and bottom views are orthographic pan/zoom views withou
   await expect(canvas).toHaveAttribute('data-camera-rotation', 'disabled');
   await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
   await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
+  await expect(aiNavigator).toHaveAttribute('data-look', /Z\+1\.00/);
 });
 
 test('private viewer roof test layer toggles explicit roof metadata and exposes opacity control', async ({
