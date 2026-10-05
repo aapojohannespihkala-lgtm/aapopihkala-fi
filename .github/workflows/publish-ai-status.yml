@@ -19,8 +19,9 @@ on:
       - completed
     branches:
       - main
+  # Stagger off the exact 5-minute boundaries. Touching the cron also reactivates a deactivated scheduled workflow.
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '2-57/5 * * * *'
   workflow_dispatch:
 
 permissions:
