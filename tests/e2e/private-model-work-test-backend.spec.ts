@@ -81,7 +81,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(38);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(39);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -341,6 +341,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     expectedSha256: '3544b069f1cc059af1e4fa219e8aefb909153515efd00cd9ce589178d4a07522',
   });
 
+  const p184g = getPrivateWorkTestCandidateById('p184g-whole-building-survivor-island-x-axis-selfconsistency');
+  expect(p184g).toMatchObject({
+    id: 'p184g-whole-building-survivor-island-x-axis-selfconsistency',
+    label: 'P184G whole-building survivor island X axis self-consistency - WORK_TEST',
+    path: '/private-model/work-test/p184g-whole-building-survivor-island-x-axis-selfconsistency.glb',
+    objectKey: 'work-test/p184g-whole-building-survivor-island-x-axis-selfconsistency.glb',
+    expectedSize: 2_896_392,
+    expectedSha256: '94fe2edb781530b76c09286aa39b7ab0c22cc35a028627b32ac833df3e24e9e2',
+  });
+
   const p164b = getPrivateWorkTestCandidateById('p164b-d-corrected-stair');
   expect(p164b).toMatchObject({
     id: 'p164b-d-corrected-stair',
@@ -511,6 +521,10 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   const p150gPublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p150g-whole-building-end-plinth.glb`;
   expect(getPrivateWorkTestPublishCandidate(p150gPublishPath)?.id).toBe(
     'p150g-whole-building-end-plinth',
+  );
+  const p184gPublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p184g-whole-building-survivor-island-x-axis-selfconsistency.glb`;
+  expect(getPrivateWorkTestPublishCandidate(p184gPublishPath)?.id).toBe(
+    'p184g-whole-building-survivor-island-x-axis-selfconsistency',
   );
   expect(getPrivateWorkTestPublishCandidate(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}not-allowlisted.glb`)).toBeNull();
   expect(

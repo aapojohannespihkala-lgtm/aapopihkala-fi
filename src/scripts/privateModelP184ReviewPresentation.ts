@@ -5,6 +5,7 @@ export const p184DReviewContextOpacity = 0.2;
 export const p184DTargetG2Id = 'G2_FURN_D_2F_KITCHEN_ISLAND_001';
 export const p184DTargetRepresentationKind = 'fixedFurnitureWorkSolid';
 export const p184DCabinetFrontReferenceKind = 'SOURCE_CHAIN_CABINET_FRONT_X_REFERENCE';
+export type P184ReviewPass = 'P184D' | 'P184G';
 
 const isRenderable = (object: any) =>
   Boolean(
@@ -24,16 +25,22 @@ const cloneObjectMaterials = (object: any, update: (material: any) => void) => {
   else if (object.material) object.material = cloneOne(object.material);
 };
 
-const isP184DIslandTarget = (object: any) => {
+const isP184IslandObject = (object: any) => {
   const data = object?.userData ?? {};
   return (
-    String(data.Pass ?? '') === 'P184D' &&
     String(data.G2Id ?? '') === p184DTargetG2Id &&
     String(data.representationKind ?? '') === p184DTargetRepresentationKind
   );
 };
 
-const isP184DImmediateD2FContext = (object: any) => {
+const isP184IslandTarget = (object: any, targetPass: P184ReviewPass) => {
+  const data = object?.userData ?? {};
+  return isP184IslandObject(object) && String(data.Pass ?? '') === targetPass;
+};
+
+const isP184ImmediateD2FContext = (object: any) => {
+  if (isP184IslandObject(object)) return false;
+
   const data = object?.userData ?? {};
   const g2Id = String(data.G2Id ?? '');
   const name = String(object?.name ?? '');
@@ -58,14 +65,35 @@ const isP184DImmediateD2FContext = (object: any) => {
   );
 };
 
-export const prepareP184DReviewPresentation = (sceneRoot: any) => {
+const p184MaterialReviewMetadata = (targetPass: P184ReviewPass, role: string) => ({
+  p184ReviewPresentation: true,
+  p184ReviewPass: targetPass,
+  p184PresentationRole: role,
+  ...(targetPass === 'P184D'
+    ? { p184DReviewPresentation: true, p184DPresentationRole: role }
+    : {}),
+});
+
+const p184ObjectReviewMetadata = (targetPass: P184ReviewPass, role: string) => ({
+  p184ReviewPresentation: true,
+  p184ReviewPass: targetPass,
+  p184ReviewRole: role,
+  ...(targetPass === 'P184D'
+    ? { p184DReviewPresentation: true, p184DReviewRole: role }
+    : {}),
+});
+
+export const prepareP184ReviewPresentation = (
+  sceneRoot: any,
+  targetPass: P184ReviewPass,
+) => {
   const renderableObjects: any[] = [];
   const targetObjects: any[] = [];
 
   sceneRoot?.traverse?.((object: any) => {
     if (!isRenderable(object)) return;
     renderableObjects.push(object);
-    if (isP184DIslandTarget(object)) targetObjects.push(object);
+    if (isP184IslandTarget(object, targetPass)) targetObjects.push(object);
   });
 
   let targetRenderableCount = 0;
@@ -76,8 +104,7 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
       material.depthWrite = true;
       material.userData = {
         ...(material.userData ?? {}),
-        p184DReviewPresentation: true,
-        p184DPresentationRole: 'ISLAND_TARGET_80',
+        ...p184MaterialReviewMetadata(targetPass, 'ISLAND_TARGET_80'),
       };
       material.needsUpdate = true;
     });
@@ -87,8 +114,7 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
     object.userData = {
       ...(object.userData ?? {}),
       viewerDerived: true,
-      p184DReviewPresentation: true,
-      p184DReviewRole: 'ISLAND_TARGET_80',
+      ...p184ObjectReviewMetadata(targetPass, 'ISLAND_TARGET_80'),
     };
     targetRenderableCount += 1;
   }
@@ -112,9 +138,9 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
   let hiddenNonTargetRenderableCount = 0;
 
   for (const object of renderableObjects) {
-    if (isP184DIslandTarget(object)) continue;
+    if (isP184IslandTarget(object, targetPass)) continue;
 
-    if (isP184DImmediateD2FContext(object)) {
+    if (isP184ImmediateD2FContext(object)) {
       object.visible = true;
       cloneObjectMaterials(object, (material) => {
         material.opacity = p184DReviewContextOpacity;
@@ -122,8 +148,7 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
         material.depthWrite = false;
         material.userData = {
           ...(material.userData ?? {}),
-          p184DReviewPresentation: true,
-          p184DPresentationRole: 'D_2F_ARCH_CONTEXT_20',
+          ...p184MaterialReviewMetadata(targetPass, 'D_2F_ARCH_CONTEXT_20'),
         };
         material.needsUpdate = true;
       });
@@ -131,8 +156,7 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
       object.userData = {
         ...(object.userData ?? {}),
         viewerDerived: true,
-        p184DReviewPresentation: true,
-        p184DReviewRole: 'D_2F_ARCH_CONTEXT_20',
+        ...p184ObjectReviewMetadata(targetPass, 'D_2F_ARCH_CONTEXT_20'),
       };
       contextRenderableCount += 1;
       continue;
@@ -142,8 +166,7 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
     object.userData = {
       ...(object.userData ?? {}),
       viewerDerived: true,
-      p184DReviewPresentation: true,
-      p184DReviewRole: 'NON_QUESTION_CONTEXT_SUPPRESSED',
+      ...p184ObjectReviewMetadata(targetPass, 'NON_QUESTION_CONTEXT_SUPPRESSED'),
     };
     hiddenNonTargetRenderableCount += 1;
   }
@@ -154,7 +177,11 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
 
   const target = targetObjects[0] ?? null;
   if (target && hasTargetBounds) {
-    const cabinetFrontX = Number(target.userData?.sourceChainCabinetFrontXM);
+    const cabinetFrontX = Number(
+      targetPass === 'P184D'
+        ? target.userData?.sourceChainCabinetFrontXM
+        : (target.userData?.cabinetFrontX ?? target.userData?.sourceChainCabinetFrontXM),
+    );
     const targetLocalX = Number(target.position?.x);
 
     if (Number.isFinite(cabinetFrontX) && Number.isFinite(targetLocalX)) {
@@ -174,24 +201,28 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
         side: THREE.DoubleSide,
       });
       material.userData = {
-        p184DReviewPresentation: true,
-        p184DPresentationRole: 'SOURCE_CHAIN_CABINET_FRONT_REFERENCE_20',
+        ...p184MaterialReviewMetadata(
+          targetPass,
+          'SOURCE_CHAIN_CABINET_FRONT_REFERENCE_20',
+        ),
         physicalCabinetGeometryClaim: false,
       };
 
       const reference = new THREE.Mesh(geometry, material);
-      reference.name = 'P184D_SOURCE_CHAIN_CABINET_FRONT_X_REFERENCE_VIEWER_ONLY';
+      reference.name = `${targetPass}_SOURCE_CHAIN_CABINET_FRONT_X_REFERENCE_VIEWER_ONLY`;
       reference.rotation.y = Math.PI / 2;
       reference.position.set(cabinetFrontWorldX, targetCenter.y, targetCenter.z);
       reference.renderOrder = 10;
       reference.userData = {
         PresentationOnly: true,
         viewerDerived: true,
-        p184DReviewPresentation: true,
-        p184DReviewRole: 'SOURCE_CHAIN_CABINET_FRONT_REFERENCE_20',
+        ...p184ObjectReviewMetadata(
+          targetPass,
+          'SOURCE_CHAIN_CABINET_FRONT_REFERENCE_20',
+        ),
         representationKind: p184DCabinetFrontReferenceKind,
         sourceChainCabinetFrontXM: cabinetFrontX,
-        extentBasis: 'P184D_TARGET_BOUNDS_ONLY',
+        extentBasis: `${targetPass}_TARGET_BOUNDS_ONLY`,
         physicalCabinetGeometryClaim: false,
         physicalCabinetFrontClaim: false,
         exactXYClaim: false,
@@ -215,3 +246,6 @@ export const prepareP184DReviewPresentation = (sceneRoot: any) => {
     targetBounds: hasTargetBounds ? targetBounds : null,
   };
 };
+
+export const prepareP184DReviewPresentation = (sceneRoot: any) =>
+  prepareP184ReviewPresentation(sceneRoot, 'P184D');
