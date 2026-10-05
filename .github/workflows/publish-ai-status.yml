@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - '.github/build-ai-status.py'
+      - '.github/test-build-ai-status.py'
       - '.github/workflows/publish-ai-status.yml'
       - 'src/pages/private-model/status/index.astro'
       - 'worker/index.ts'
@@ -34,6 +35,7 @@ concurrency:
 
 env:
   HANDOFF_FILE_ID: 1MmJdjTZSUXiDS308bLNasdenyPJeXXZe4otwxHX62Go
+  AI_PASS_LOG_SPREADSHEET_ID: 1cZ6w43Q7jexs4thsyZcDCbvQH9_CmvaG0FZtHbQbM5E
   PUBLISH_URL: https://aapopihkala.fi/private-model/work-test/publish/ai-status.json
   VERIFY_URL: https://aapopihkala.fi/private-model/work-test/verify/ai-status.json
 
@@ -47,6 +49,12 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 1
+
+      - name: Run status parser regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/test-build-ai-status.py
 
       - name: Require machine-auth configuration
         shell: bash
@@ -66,18 +74,18 @@ jobs:
           [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" ]]
           [[ -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]]
 
-      - name: Authenticate to Google Drive
+      - name: Authenticate to Google Drive and Sheets
         id: google-auth
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.GDRIVE_WIF_PROVIDER }}
           service_account: ${{ vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT }}
           token_format: access_token
-          access_token_scopes: https://www.googleapis.com/auth/drive.readonly
+          access_token_scopes: https://www.googleapis.com/auth/drive.readonly,https://www.googleapis.com/auth/spreadsheets.readonly
           create_credentials_file: false
           export_environment_variables: false
 
-      - name: Export live 00 handoff
+      - name: Export live 00 handoff and AI pass log
         shell: bash
         env:
           GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
@@ -87,14 +95,27 @@ jobs:
 
           curl --silent --show-error --fail             --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN"             --output "$RUNNER_TEMP/handoff-meta.json"             "https://www.googleapis.com/drive/v3/files/$HANDOFF_FILE_ID?fields=id%2CmodifiedTime%2Cversion"
 
-          python3 - "$RUNNER_TEMP/handoff-meta.json" "$GITHUB_ENV" <<'PY'
+          curl --silent --show-error --fail             --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN"             --output "$RUNNER_TEMP/ai-pass-log.json"             "https://sheets.googleapis.com/v4/spreadsheets/$AI_PASS_LOG_SPREADSHEET_ID/values/AI-passiloki!A:U?majorDimension=ROWS&valueRenderOption=FORMATTED_VALUE"
+
+          python3 - "$RUNNER_TEMP/handoff-meta.json" "$RUNNER_TEMP/ai-pass-log.json" "$GITHUB_ENV" <<'PY'
           import json
           import sys
+
           with open(sys.argv[1], encoding="utf-8") as handle:
               meta = json.load(handle)
           if meta.get("id") != "1MmJdjTZSUXiDS308bLNasdenyPJeXXZe4otwxHX62Go":
               raise SystemExit("handoff id mismatch")
-          with open(sys.argv[2], "a", encoding="utf-8") as env:
+
+          with open(sys.argv[2], encoding="utf-8") as handle:
+              pass_log = json.load(handle)
+          values = pass_log.get("values")
+          if not isinstance(values, list) or not any(
+              isinstance(row, list) and "Ajo-ID" in row and "Lopetus" in row and "Tulos" in row
+              for row in values
+          ):
+              raise SystemExit("AI pass log header missing")
+
+          with open(sys.argv[3], "a", encoding="utf-8") as env:
               env.write(f"SOURCE_MODIFIED_TIME={meta['modifiedTime']}\n")
               env.write(f"SOURCE_VERSION={meta['version']}\n")
           PY
@@ -104,7 +125,7 @@ jobs:
         run: |
           set -euo pipefail
           GENERATED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          python3 .github/build-ai-status.py             "$RUNNER_TEMP/handoff.txt"             "$RUNNER_TEMP/ai-status.json"             "$SOURCE_MODIFIED_TIME"             "$SOURCE_VERSION"             "$GENERATED_AT"
+          python3 .github/build-ai-status.py             "$RUNNER_TEMP/handoff.txt"             "$RUNNER_TEMP/ai-status.json"             "$SOURCE_MODIFIED_TIME"             "$SOURCE_VERSION"             "$GENERATED_AT"             "$RUNNER_TEMP/ai-pass-log.json"
           python3 -m json.tool "$RUNNER_TEMP/ai-status.json" >/dev/null
           test "$(stat -c '%s' "$RUNNER_TEMP/ai-status.json")" -le 65536
 
@@ -132,4 +153,4 @@ jobs:
         if: always()
         shell: bash
         run: |
-          rm -f             "$RUNNER_TEMP/handoff.txt"             "$RUNNER_TEMP/handoff-meta.json"             "$RUNNER_TEMP/ai-status.json"             "$RUNNER_TEMP/ai-status-readback.json"             "$RUNNER_TEMP/publish-response.json"
+          rm -f             "$RUNNER_TEMP/handoff.txt"             "$RUNNER_TEMP/handoff-meta.json"             "$RUNNER_TEMP/ai-pass-log.json"             "$RUNNER_TEMP/ai-status.json"             "$RUNNER_TEMP/ai-status-readback.json"             "$RUNNER_TEMP/publish-response.json"
