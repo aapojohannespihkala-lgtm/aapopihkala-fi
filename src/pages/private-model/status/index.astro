@@ -1,0 +1,252 @@
+---
+const title = 'Ylisrinne AI - tilanne';
+---
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <title>{title}</title>
+    <style>
+      :root {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #172033;
+        background: #f5f7fa;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      main { width: min(1100px, calc(100% - 32px)); margin: 32px auto 64px; }
+      h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.7rem); }
+      h2 { margin: 0 0 12px; font-size: 1.15rem; }
+      p { line-height: 1.5; }
+      .muted { color: #657086; }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin: 24px 0;
+      }
+      .metric, .panel, .work {
+        background: #fff;
+        border: 1px solid #dfe4ea;
+        border-radius: 10px;
+      }
+      .metric { padding: 16px; }
+      .metric strong { display: block; font-size: 1.8rem; margin-top: 4px; }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(280px, .8fr);
+        gap: 16px;
+        align-items: start;
+      }
+      .panel { padding: 18px; }
+      .work { padding: 16px; margin-top: 10px; }
+      .work:first-of-type { margin-top: 0; }
+      .work-head { display: flex; gap: 12px; justify-content: space-between; align-items: start; }
+      .work h3 { margin: 2px 0 8px; font-size: 1rem; }
+      .badge {
+        flex: 0 0 auto;
+        display: inline-block;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: .72rem;
+        font-weight: 700;
+        background: #e8eef8;
+      }
+      .badge.pass { background: #e4f4e9; color: #176234; }
+      .badge.action { background: #fff0dc; color: #8f4a00; }
+      .goal { margin: 0; }
+      .meta { margin: 10px 0 0; font-size: .82rem; color: #657086; }
+      .events { list-style: none; margin: 0; padding: 0; }
+      .events li { padding: 10px 0; border-top: 1px solid #eef1f4; }
+      .events li:first-child { border-top: 0; padding-top: 0; }
+      .events time { display: block; font-size: .78rem; color: #657086; margin-bottom: 3px; }
+      .events strong { font-size: .9rem; }
+      .events p { margin: 3px 0 0; font-size: .85rem; color: #657086; }
+      #human-action { margin-bottom: 16px; }
+      #human-action[hidden] { display: none; }
+      .error { color: #8f2600; }
+      @media (max-width: 760px) {
+        main { width: min(100% - 20px, 1100px); margin-top: 20px; }
+        .summary { grid-template-columns: 1fr; }
+        .layout { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Ylisrinne AI - tilanne</h1>
+        <p class="muted">Automaattisesti 00-handoffista johdettu lukunäkymä. Lähdetieto pysyy Drivessä.</p>
+        <p id="freshness" class="muted" aria-live="polite">Haetaan tilatietoa...</p>
+      </header>
+
+      <section class="summary" aria-label="Yhteenveto">
+        <div class="metric"><span>Aktiivisia työpaketteja</span><strong id="active-packages">-</strong></div>
+        <div class="metric"><span>Aktiivisia linjoja</span><strong id="active-lines">-</strong></div>
+        <div class="metric"><span>Valmistuneita passeja tänään</span><strong id="passes-today">-</strong></div>
+      </section>
+
+      <div class="layout">
+        <section class="panel">
+          <h2>Nyt työn alla</h2>
+          <div id="active-list"><p class="muted">Tilatietoa ei ole vielä ladattu.</p></div>
+        </section>
+
+        <aside>
+          <section id="human-action" class="panel" hidden>
+            <span class="badge action">SINULTA TARVITAAN</span>
+            <h2 id="human-title" style="margin-top: 10px;">Ihmisen tehtävä</h2>
+            <p id="human-detail"></p>
+          </section>
+
+          <section class="panel">
+            <h2>Viimeisimmät tapahtumat</h2>
+            <ol id="events" class="events"><li class="muted">Tilatietoa ei ole vielä ladattu.</li></ol>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <script>
+      type ActiveItem = {
+        id: string;
+        lane: string;
+        laneCode: string;
+        title: string;
+        goal: string;
+        state: 'CLAIMED' | 'ACTIVE';
+        updatedAt: string;
+      };
+
+      type RecentItem = {
+        time: string;
+        state: 'PASS' | 'CLAIM' | 'CHECKPOINT';
+        lane: string;
+        title: string;
+        detail: string;
+      };
+
+      type StatusPayload = {
+        generatedAt: string;
+        source: { modifiedTime: string };
+        summary: {
+          activePackages: number;
+          activeLines: number;
+          passesToday: number;
+        };
+        active: ActiveItem[];
+        recent: RecentItem[];
+        humanAction: { title: string; detail: string } | null;
+      };
+
+      const DATA_URL = '/private-model/status/data.json';
+      const POLL_MS = 30_000;
+
+      const $ = (id: string): HTMLElement => {
+        const element = document.getElementById(id);
+        if (!element) throw new Error('Missing dashboard element: ' + id);
+        return element;
+      };
+
+      const formatTime = (value: string): string => {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return new Intl.DateTimeFormat('fi-FI', {
+          dateStyle: 'short',
+          timeStyle: 'medium',
+        }).format(date);
+      };
+
+      const text = (tag: string, value: string, className = ''): HTMLElement => {
+        const node = document.createElement(tag);
+        node.textContent = value;
+        if (className) node.className = className;
+        return node;
+      };
+
+      const renderActive = (items: ActiveItem[]) => {
+        const root = $('active-list');
+        root.replaceChildren();
+        if (!items.length) {
+          root.append(text('p', 'Ei aktiivisia tekoälytyöpaketteja.', 'muted'));
+          return;
+        }
+        for (const item of items) {
+          const card = document.createElement('article');
+          card.className = 'work';
+
+          const head = document.createElement('div');
+          head.className = 'work-head';
+          const heading = text('h3', item.lane);
+          const badge = text('span', item.state === 'ACTIVE' ? 'TYÖN ALLA' : 'VARATTU', 'badge');
+          head.append(heading, badge);
+
+          card.append(
+            head,
+            text('p', item.title),
+            text('p', item.goal, 'goal muted'),
+            text('p', 'Päivitetty ' + formatTime(item.updatedAt), 'meta'),
+          );
+          root.append(card);
+        }
+      };
+
+      const renderEvents = (items: RecentItem[]) => {
+        const root = $('events');
+        root.replaceChildren();
+        if (!items.length) {
+          root.append(text('li', 'Ei viimeaikaisia tapahtumia.', 'muted'));
+          return;
+        }
+        for (const item of items.slice(0, 12)) {
+          const row = document.createElement('li');
+          row.append(
+            text('time', formatTime(item.time)),
+            text('strong', item.state === 'PASS' ? 'PASS - ' + item.title : item.title),
+          );
+          if (item.detail) row.append(text('p', item.detail));
+          root.append(row);
+        }
+      };
+
+      const render = (data: StatusPayload) => {
+        $('freshness').classList.remove('error');
+        $('active-packages').textContent = String(data.summary.activePackages);
+        $('active-lines').textContent = String(data.summary.activeLines);
+        $('passes-today').textContent = String(data.summary.passesToday);
+        $('freshness').textContent =
+          'Tilanne muodostettu ' + formatTime(data.generatedAt) +
+          ' - handoff päivitetty ' + formatTime(data.source.modifiedTime) +
+          ' - automaattinen päivitys noin 5 min välein.';
+
+        renderActive(data.active);
+        renderEvents(data.recent);
+
+        const action = $('human-action');
+        if (data.humanAction) {
+          $('human-title').textContent = data.humanAction.title;
+          $('human-detail').textContent = data.humanAction.detail;
+          action.hidden = false;
+        } else {
+          action.hidden = true;
+        }
+      };
+
+      const load = async () => {
+        try {
+          const response = await fetch(DATA_URL, { cache: 'no-store' });
+          if (!response.ok) throw new Error('status ' + response.status);
+          render((await response.json()) as StatusPayload);
+        } catch {
+          $('freshness').textContent = 'Tilatietoa ei ole vielä julkaistu tai sitä ei saatu ladattua.';
+          $('freshness').classList.add('error');
+        }
+      };
+
+      void load();
+      window.setInterval(() => void load(), POLL_MS);
+    </script>
+  </body>
+</html>

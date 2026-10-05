@@ -9,6 +9,7 @@ import { onRequestGet as getWidgetV2Response } from '../functions/api/current/wi
 import { fetchLiigaResponse, onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
 import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/current/liiga-schedule';
 import { handlePrivateModelRequest, isPrivateModelPath, type PrivateModelEnv } from './privateModel';
+import { handlePrivateAiStatusRequest, isPrivateAiStatusPath } from './privateAiStatus';
 import { handlePrivateWorkTestRequest, isPrivateWorkTestPath } from './privateWorkTest';
 
 type WorkerEnv = PrivateModelEnv & { DIGITRANSIT_API_KEY?: string };
@@ -371,6 +372,9 @@ const worker = {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(request.url);
     const snapshotRequest = isSnapshotRequest(request);
+    if (isPrivateAiStatusPath(url.pathname)) {
+      return handlePrivateAiStatusRequest(request, env);
+    }
     if (isPrivateWorkTestPath(url.pathname)) {
       return handlePrivateWorkTestRequest(request, env);
     }
