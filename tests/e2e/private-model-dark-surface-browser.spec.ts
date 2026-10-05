@@ -69,9 +69,9 @@ test('private viewer renders the VUX-C dark WebGL surface instead of only declar
         [0.18, 0.2],
         [0.5, 0.2],
         [0.82, 0.2],
-        [0.18, 0.8],
-        [0.5, 0.8],
-        [0.82, 0.8],
+        [0.18, 0.55],
+        [0.5, 0.55],
+        [0.82, 0.55],
       ];
 
       return points.map(([xRatio, yRatio]) => {
