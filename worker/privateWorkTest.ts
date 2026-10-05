@@ -275,6 +275,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_878_416,
     expectedSha256: '3544b069f1cc059af1e4fa219e8aefb909153515efd00cd9ce589178d4a07522',
   },
+  // P184G release registration: exact axis-self-consistent whole-building survivor.
+  {
+    id: 'p184g-whole-building-survivor-island-x-axis-selfconsistency',
+    label: 'P184G whole-building survivor island X axis self-consistency - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p184g-whole-building-survivor-island-x-axis-selfconsistency.glb`,
+    objectKey: 'work-test/p184g-whole-building-survivor-island-x-axis-selfconsistency.glb',
+    expectedSize: 2_896_392,
+    expectedSha256: '94fe2edb781530b76c09286aa39b7ab0c22cc35a028627b32ac833df3e24e9e2',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
