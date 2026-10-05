@@ -53,8 +53,7 @@ const journeyGoal = (item) => {
   const technicalText = `${item.title || ''} ${rawGoal}`.toLocaleLowerCase('fi-FI');
 
   if (
-    technicalText.includes('ai-status') ||
-    technicalText.includes('private-ai-status') ||
+    /\bai[- ]status\b/.test(technicalText) ||
     technicalText.includes('status-sivu') ||
     technicalText.includes('status page') ||
     technicalText.includes('matkat kohti valmista')
