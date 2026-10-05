@@ -183,7 +183,7 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
   await expect(canvas).toHaveAttribute('data-m5a-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
   await expect(canvas).toHaveAttribute('data-m5a-source-context-ready', 'true');
-  await expect(canvas).toHaveAttribute('data-m5a-source-preview-ready', 'true');
+  await expect(canvas).toHaveAttribute('data-m5a-source-preview-load-state', 'loaded');
   await expect(canvas).toHaveAttribute(
     'data-m5a-source-drawing-drive-id',
     m5aReviewSourceContext.sourceDrawingDriveId,
