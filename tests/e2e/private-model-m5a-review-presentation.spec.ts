@@ -151,7 +151,12 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
       body: candidateModel,
     });
   });
+  let releaseSourcePreview: (() => void) | undefined;
+  const sourcePreviewGate = new Promise<void>((resolve) => {
+    releaseSourcePreview = resolve;
+  });
   await page.route('**/m5a-drainman.pdf', async (route) => {
+    await sourcePreviewGate;
     await route.fulfill({
       status: 200,
       contentType: 'text/html; charset=utf-8',
@@ -159,9 +164,12 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
     });
   });
 
-  await page.goto(`/private-model/?review=${reviewId}`);
+  await page.goto(`/private-model/?review=${reviewId}`, { waitUntil: 'domcontentloaded' });
 
   const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-m5a-source-preview-load-state', 'requesting');
+  await expect(canvas).toHaveAttribute('data-m5a-source-context-ready', 'false');
+  releaseSourcePreview?.();
   await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId);
