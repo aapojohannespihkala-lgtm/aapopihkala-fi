@@ -13,6 +13,10 @@ import {
   viewerP161SystemChildNodeIds,
 } from '../../src/scripts/privateModelLayerHierarchyState';
 import {
+  createViewerLayerStateForModelLoad,
+  mergeViewerLayerState,
+} from '../../src/scripts/privateModelLayerState';
+import {
   applyViewerResearchPreset,
   createViewerInteractionState,
   patchViewerLayerControls,
@@ -36,6 +40,34 @@ const expectedDefaultChildren = {
   architectureReviewHelpersVisible: true,
   architectureOtherVisible: true,
 };
+
+test('VUX-C model load defaults replace prior manual layer state without losing review locus intent', () => {
+  const priorManual = mergeViewerLayerState(createViewerLayerStateForModelLoad(), {
+    roofVisible: false,
+    roofOpacity: 0.4,
+    locusVisible: true,
+    edgeMode: 'none',
+  });
+
+  expect(priorManual).toEqual({
+    roofVisible: false,
+    roofOpacity: 0.4,
+    locusVisible: true,
+    edgeMode: 'none',
+  });
+  expect(createViewerLayerStateForModelLoad()).toEqual({
+    roofVisible: true,
+    roofOpacity: 1,
+    locusVisible: false,
+    edgeMode: 'visible',
+  });
+  expect(createViewerLayerStateForModelLoad({ locusVisible: true })).toEqual({
+    roofVisible: true,
+    roofOpacity: 1,
+    locusVisible: true,
+    edgeMode: 'visible',
+  });
+});
 
 test('VUX-E1A research presets install curated starting state', () => {
   const wholeBuilding = createViewerInteractionState('whole-building');
