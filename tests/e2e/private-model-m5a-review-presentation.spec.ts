@@ -151,7 +151,7 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
       body: candidateModel,
     });
   });
-  await page.route('**/preview', async (route) => {
+  await page.route('**/m5a-drainman.pdf', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'text/html; charset=utf-8',
