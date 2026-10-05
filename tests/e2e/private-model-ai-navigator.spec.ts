@@ -36,7 +36,6 @@ test('AI navigator vector formatting normalizes negative zero', () => {
   );
 });
 
-
 test('viewer route wires explicit navigation and selection mode plus visible AI context', () => {
   const source = readFileSync(
     new URL('../../src/pages/private-model/index.astro', import.meta.url),
@@ -56,6 +55,17 @@ test('viewer route wires explicit navigation and selection mode plus visible AI 
 
   expect(source.match(/id="ai-navigator-readout"/g) ?? []).toHaveLength(0);
   expect(orientationSource.match(/readout\.id = 'ai-navigator-readout'/g) ?? []).toHaveLength(1);
+  expect(orientationSource).toContain("createReadoutRow('MODEL')");
+  expect(orientationSource).toContain("createReadoutRow('VIEW')");
+  expect(orientationSource).toContain("createReadoutRow('LOOK')");
+  expect(orientationSource).toContain("createReadoutRow('CENTER')");
+  expect(orientationSource).toContain("createReadoutRow('BOUNDS')");
+  expect(orientationSource).toContain("const preset = canvas.dataset.viewPreset ?? 'orbit'");
+  expect(orientationSource).toContain("projection === 'orthographic' ? 'ORTHO' : 'PERSP'");
   expect(orientationSource).toContain("readout.dataset.frame = 'YLIS-G1-LOCAL'");
-  expect(orientationSource).toContain("readout.dataset.visibleBounds = boundsLabel");
+  expect(orientationSource).toContain('readout.dataset.view = viewLabel');
+  expect(orientationSource).toContain('readout.dataset.look = lookLabel');
+  expect(orientationSource).toContain('readout.dataset.center = centerLabel');
+  expect(orientationSource).toContain('readout.dataset.visibleBounds = boundsLabel');
+  expect(orientationSource).toContain("readout.dataset.boundsBasis = 'camera-target-plane'");
 });
