@@ -177,7 +177,11 @@ export const prepareP184ReviewPresentation = (
 
   const target = targetObjects[0] ?? null;
   if (target && hasTargetBounds) {
-    const cabinetFrontX = Number(target.userData?.sourceChainCabinetFrontXM);
+    const cabinetFrontX = Number(
+      targetPass === 'P184D'
+        ? target.userData?.sourceChainCabinetFrontXM
+        : (target.userData?.cabinetFrontX ?? target.userData?.sourceChainCabinetFrontXM),
+    );
     const targetLocalX = Number(target.position?.x);
 
     if (Number.isFinite(cabinetFrontX) && Number.isFinite(targetLocalX)) {
