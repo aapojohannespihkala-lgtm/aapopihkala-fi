@@ -21,6 +21,7 @@ import {
   createViewerInteractionState,
   patchViewerLayerControls,
   patchViewerPresentationStyle,
+  resetViewerInteractionStateToPresetDefaults,
   setViewerCameraView,
 } from '../../src/scripts/privateModelViewerState';
 
@@ -181,6 +182,24 @@ test('VUX-E1A a new explicit preset intentionally replaces the curated starting 
       edgeMode: 'visible',
     },
   });
+});
+
+test('VUX-C explicit reset restores the active research preset defaults', () => {
+  let state = createViewerInteractionState('d-2f');
+  state = setViewerCameraView(state, 'elev-neg-x');
+  state = patchViewerLayerControls(state, {
+    roofVisible: true,
+    roofOpacity: 0.35,
+    locusVisible: true,
+    locusWaterVisible: false,
+    architectureDoorsVisible: false,
+  });
+  state = patchViewerPresentationStyle(state, { edgeMode: 'none' });
+
+  const reset = resetViewerInteractionStateToPresetDefaults(state);
+
+  expect(reset).toEqual(createViewerInteractionState('d-2f'));
+  expect(reset.researchPreset).toBe('d-2f');
 });
 
 test('VUX-E3B exposes only contract-derived layer capabilities', () => {

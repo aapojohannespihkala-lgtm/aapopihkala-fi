@@ -130,6 +130,10 @@ export const applyViewerResearchPreset = (
   preset: ViewerResearchPreset,
 ): ViewerInteractionState => createViewerInteractionState(preset);
 
+export const resetViewerInteractionStateToPresetDefaults = (
+  current: ViewerInteractionState,
+): ViewerInteractionState => createViewerInteractionState(current.researchPreset);
+
 export const setViewerCameraView = (
   current: ViewerInteractionState,
   cameraView: ViewerCameraView,
