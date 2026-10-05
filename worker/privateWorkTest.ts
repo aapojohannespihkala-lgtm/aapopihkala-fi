@@ -284,6 +284,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_896_392,
     expectedSha256: '94fe2edb781530b76c09286aa39b7ab0c22cc35a028627b32ac833df3e24e9e2',
   },
+  // M5B release registration: exact persisted roof-stormwater current/planned WORK_TEST successor.
+  {
+    id: 'm5b-roof-stormwater-current-planned',
+    label: 'M5B roof stormwater current/planned variants - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/m5b-roof-stormwater-current-planned.glb`,
+    objectKey: 'work-test/m5b-roof-stormwater-current-planned.glb',
+    expectedSize: 2_898_064,
+    expectedSha256: '0802c082425c9e2f231b1681a6bceec825e3d63e038ca43b02dd86d872f6c08f',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
