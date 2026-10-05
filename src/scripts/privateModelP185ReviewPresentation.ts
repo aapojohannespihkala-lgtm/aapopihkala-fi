@@ -56,12 +56,9 @@ const isD1FArchitectureContext = (object: any) => {
   const presentationLayer = String(data.presentationLayer ?? '');
   const apartment = String(data.apartment ?? '');
   const storey = String(data.storey ?? '');
-  const hostStorey = String(data.hostStorey ?? '');
-
   return (
     (presentationLayer === 'CURRENT_D' && (g2Id.includes('_D_1F_') || name.includes('_D_1F_'))) ||
     (apartment === 'D' && storey === '1F') ||
-    hostStorey === 'D_1F' ||
     g2Id.includes('_D_1F_')
   );
 };
@@ -85,6 +82,7 @@ const hasNoPromotionSemantics = (object: any) => {
 
   if (kind === 'sourceVectorPlanOverlay') {
     return (
+      String(data.sourcePdfDriveId ?? '') === '1vAyvAHdClqkXIVNgKKUyOjMja-tzrok' &&
       data.floorHeatingCableGeometryClaim === false &&
       data.closedHeatingZoneClaim === false &&
       Number(data.sourceFragmentCount) === 366
@@ -93,6 +91,7 @@ const hasNoPromotionSemantics = (object: any) => {
 
   if (kind === 'electricalPanelSourceLabelAnchorMarker') {
     return (
+      String(data.sourcePdfDriveId ?? '') === '1dzzZsa9FCiyqmv8WholhLxba6Kxobspg' &&
       data.electricalPanelGeometryClaim === false &&
       String(data.sourceText ?? '') === 'RYHMäKESKUS RK'
     );
