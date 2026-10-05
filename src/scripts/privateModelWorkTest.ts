@@ -82,6 +82,9 @@ export const p181bR1ReviewId = 'p181b-r1-ac-storage-ground-contact-substructure-
 export const p184dCandidateId = 'p184d-whole-building-survivor-island-x-source-chain';
 export const p184dReviewId = 'p184d-whole-building-survivor-island-x-source-chain-review';
 
+export const p184fCandidateId = 'p184f-whole-building-survivor-island-x-semantic-selfconsistency';
+export const p184fReviewId = 'p184f-whole-building-survivor-island-x-semantic-selfconsistency-review';
+
 export const p164bCandidateId = 'p164b-d-corrected-stair';
 export const p164bReviewId = 'p164b-d-corrected-stair-review';
 
@@ -130,6 +133,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p183P160ClosureReviewId]: p178bCandidateId,
   [p181bR1ReviewId]: p181bR1CandidateId,
   [p184dReviewId]: p184dCandidateId,
+  [p184fReviewId]: p184fCandidateId,
   [p164bReviewId]: p164bCandidateId,
   [p167fReviewId]: p167fCandidateId,
   [p168aReviewId]: p168aCandidateId,
