@@ -9,6 +9,14 @@ const DEVELOPMENT_STAGES = [
   { id: 'human', label: 'Ihmisen vaihe' },
 ];
 
+const JOURNEY_STAGE_TEXT = {
+  model: '3D-mallia rakennetaan',
+  viewer: 'Katselua valmistellaan',
+  qa: 'Kokonaisuutta tarkistetaan',
+  production: 'Viedään tuotantoon',
+  human: 'Odottaa ihmisen vaihetta',
+};
+
 const $ = (id) => {
   const element = document.getElementById(id);
   if (!element) throw new Error('Missing dashboard element: ' + id);
@@ -38,6 +46,100 @@ const stageForActive = (item) => {
   if (/^V4(?:\s|$)/.test(code) || /^OPS/.test(code)) return 'qa';
   if (/^V5(?:\s|$)/.test(code)) return 'production';
   return null;
+};
+
+const journeyItems = (data) => {
+  const unique = new Map();
+
+  for (const item of data.active) {
+    const stage = stageForActive(item);
+    if (!stage || /^(?:OPS|Muu\b)/.test(item.laneCode || '')) continue;
+
+    const goal = (item.goal || item.title || '').trim();
+    if (!goal) continue;
+
+    const key = goal.toLocaleLowerCase('fi-FI');
+    if (!unique.has(key)) unique.set(key, { ...item, stage, goal });
+  }
+
+  const items = [...unique.values()].slice(0, 6);
+  if (data.humanAction) {
+    items.unshift({
+      id: 'human-action',
+      lane: 'Ihmisen vaihe',
+      laneCode: 'HUMAN',
+      title: data.humanAction.detail,
+      goal: 'Tarvitaan sinun arviointisi',
+      state: 'ACTIVE',
+      updatedAt: data.generatedAt,
+      stage: 'human',
+    });
+  }
+
+  return items.slice(0, 6);
+};
+
+const renderJourneys = (data) => {
+  const root = $('journey-list');
+  root.replaceChildren();
+
+  const items = journeyItems(data);
+  if (!items.length) {
+    root.append(text(
+      'p',
+      'Ei aktiivista rakennus- tai viewer-tavoitetta juuri nyt. Tekniset tapahtumat näkyvät alempana.',
+      'muted',
+    ));
+    return;
+  }
+
+  for (const item of items) {
+    const currentIndex = DEVELOPMENT_STAGES.findIndex((stage) => stage.id === item.stage);
+    const card = document.createElement('article');
+    card.className = 'journey-card' + (item.stage === 'human' ? ' human' : '');
+
+    const head = document.createElement('div');
+    head.className = 'journey-head';
+    head.append(
+      text('h3', item.goal),
+      text('span', item.stage === 'human' ? 'SINULTA TARVITAAN' : 'TYÖN ALLA', 'badge' + (item.stage === 'human' ? ' action' : '')),
+    );
+
+    const track = document.createElement('div');
+    track.className = 'journey-track';
+    track.setAttribute('role', 'list');
+    track.setAttribute('aria-label', 'Matkan vaiheet');
+
+    DEVELOPMENT_STAGES.forEach((stage, index) => {
+      const step = document.createElement('div');
+      const position = index < currentIndex ? 'before' : index === currentIndex ? 'current' : 'after';
+      step.className = 'journey-step ' + position;
+      step.setAttribute('role', 'listitem');
+      if (position === 'current') step.setAttribute('aria-current', 'step');
+      step.append(
+        text('span', String(index + 1).padStart(2, '0'), 'journey-step-number'),
+        text('span', stage.label, 'journey-step-label'),
+      );
+      track.append(step);
+    });
+
+    const remaining = DEVELOPMENT_STAGES.slice(currentIndex + 1).map((stage) => stage.label);
+    const nowText = JOURNEY_STAGE_TEXT[item.stage] || 'Työ etenee';
+    const remainingText = item.stage === 'human'
+      ? 'Vielä puuttuu: käyttäjän tehtävän ratkaisu.'
+      : remaining.length
+        ? 'Vielä edessä tässä kehitysmallissa: ' + remaining.join(' → ') + '.'
+        : 'Tämän kehitysmallin tekniset vaiheet on käyty läpi.';
+
+    card.append(
+      head,
+      track,
+      text('p', 'Nyt: ' + nowText + '.', 'journey-now'),
+      text('p', item.title, 'journey-work muted'),
+      text('p', remainingText, 'journey-remaining'),
+    );
+    root.append(card);
+  }
 };
 
 const stageForEvent = (item) => {
@@ -207,6 +309,7 @@ const render = (data) => {
     ' - handoff päivitetty ' + formatTime(data.source.modifiedTime) +
     ' - automaattinen päivitys noin 5 min välein.';
 
+  renderJourneys(data);
   renderDevelopment(data);
   renderActive(data.active);
   renderEvents(data.recent);
