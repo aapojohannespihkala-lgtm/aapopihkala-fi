@@ -203,6 +203,10 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
   await expect(sourceContext).toContainText('WORK_ASSUMPTION');
   await expect(sourceContext).toContainText(m5aReviewQuestionText);
   await expect(sourceContext).toContainText('ei exact XY/Z');
+  await expect(page.locator('#m5a-source-preview')).toHaveAttribute(
+    'src',
+    m5aReviewSourceContext.sourcePreviewUrl,
+  );
   await expect(page.locator('#viewer-status')).toContainText(
     '4 kaivoa + 7 lähteistettyä yhteyttä',
   );
