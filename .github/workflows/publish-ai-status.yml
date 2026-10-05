@@ -11,6 +11,14 @@ on:
       - 'src/pages/private-model/status/index.astro'
       - 'worker/index.ts'
       - 'worker/privateAiStatus.ts'
+  # Also publish after a successful main Build so a newly merged status pipeline can bootstrap immediately.
+  workflow_run:
+    workflows:
+      - Build check
+    types:
+      - completed
+    branches:
+      - main
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
@@ -30,6 +38,7 @@ env:
 
 jobs:
   publish:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
