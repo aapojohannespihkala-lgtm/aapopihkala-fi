@@ -129,7 +129,7 @@ test('Ylisrinne AI status renders published data in the browser', async ({ page 
   await expect(page.locator('#freshness')).toContainText('Tilanne muodostettu');
   await expect(page.getByRole('heading', { name: 'Tilannepaneeli' })).toBeVisible();
   await expect(page.locator('#active-list').getByText('Ylisrinne AI derived status dashboard')).toBeVisible();
-  await expect(page.getByText('PASS - M5B PR #831 main integration')).toBeVisible();
+  await expect(page.getByText('PASS - M5B PR #831 main integration', { exact: true })).toBeVisible();
   await expect(page.locator('#human-action')).toBeHidden();
 });
 
