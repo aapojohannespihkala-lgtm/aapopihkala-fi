@@ -21,10 +21,9 @@ export const p186bExpectedSourceLineItemCount = p186bTargetSelectors.reduce(
 );
 
 const selectorContract = new Map<string, number>(
-  p186bTargetSelectors.map((target) => [
-    target.sourceSelector,
-    target.sourceLineItemCount,
-  ]),
+  p186bTargetSelectors.map(
+    (target) => [target.sourceSelector, target.sourceLineItemCount] as const,
+  ),
 );
 
 const isRenderable = (object: any) =>
