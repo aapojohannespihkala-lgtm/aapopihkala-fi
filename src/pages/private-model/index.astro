@@ -4706,9 +4706,13 @@ const title = 'Private 3D viewer';
         if (!m5aSourceContextPanel) return;
         m5aSourceContextPanel.hidden = !visible;
         if (!visible) {
-          if (m5aSourcePreview) m5aSourcePreview.removeAttribute('src');
+          if (m5aSourcePreview) {
+            m5aSourcePreview.onload = null;
+            m5aSourcePreview.onerror = null;
+            m5aSourcePreview.removeAttribute('src');
+          }
           delete canvas.dataset.m5aSourceContextReady;
-          delete canvas.dataset.m5aSourcePreviewReady;
+          delete canvas.dataset.m5aSourcePreviewLoadState;
           delete canvas.dataset.m5aReviewQuestionText;
           return;
         }
@@ -4718,6 +4722,13 @@ const title = 'Private 3D viewer';
             `Visuaalinen lähdereferenssi: ${m5aReviewSourceContext.sourceLabel}. Tekninen lähde: ${m5aReviewSourceContext.technicalSourceLabel}.`;
         }
         if (m5aSourcePreview) {
+          canvas.dataset.m5aSourcePreviewLoadState = 'requesting';
+          m5aSourcePreview.onload = () => {
+            canvas.dataset.m5aSourcePreviewLoadState = 'loaded';
+          };
+          m5aSourcePreview.onerror = () => {
+            canvas.dataset.m5aSourcePreviewLoadState = 'error';
+          };
           m5aSourcePreview.src = m5aReviewSourceContext.sourcePreviewUrl;
         }
         if (m5aSourceContextTopology) {
@@ -4736,7 +4747,6 @@ const title = 'Private 3D viewer';
             'Rajaus: ei exact XY/Z-, fyysistä reitti-, purkupaikka-, as-built-, canonical- tai CURRENT-väitettä.';
         }
         canvas.dataset.m5aSourceContextReady = 'true';
-        canvas.dataset.m5aSourcePreviewReady = 'true';
         canvas.dataset.m5aSourceDrawingDriveId = m5aReviewSourceContext.sourceDrawingDriveId;
         canvas.dataset.m5aSourceDrawingByteSize = String(m5aReviewSourceContext.sourceDrawingByteSize);
         canvas.dataset.m5aReviewQuestionText = m5aReviewQuestionText;
