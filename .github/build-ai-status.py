@@ -4,8 +4,10 @@ import re
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 HANDOFF_DOCUMENT_ID = "1MmJdjTZSUXiDS308bLNasdenyPJeXXZe4otwxHX62Go"
+HELSINKI = ZoneInfo("Europe/Helsinki")
 
 LANES = {
     "M1 ENVELOPE": "3D - rakennuksen vaippa",
@@ -145,8 +147,7 @@ def main():
             removed = active.pop(run_id, None) if run_id else None
             lane_code = clean(data.get("kaista", removed.get("laneCode", "") if removed else ""), 120)
             if event_time:
-                prefix_end = line.find(" |")
-                title = clean(line.split(" - ", 1)[1][:prefix_end] if " - " in line and prefix_end > 0 else "Valmistunut passi", 320)
+                title = clean(line.split(" - ", 1)[1].split(" | ", 1)[0] if " - " in line else "Valmistunut passi", 320)
                 events.append({
                     "time": event_time,
                     "state": "PASS",
@@ -175,11 +176,11 @@ def main():
     events.sort(key=lambda item: parse_time(item["time"]), reverse=True)
     recent = events[:30]
 
-    local_today = now.astimezone().date()
+    local_today = now.astimezone(HELSINKI).date()
     passes_today = sum(
         1
         for event in events
-        if event["state"] == "PASS" and parse_time(event["time"]).astimezone().date() == local_today
+        if event["state"] == "PASS" and parse_time(event["time"]).astimezone(HELSINKI).date() == local_today
     )
 
     human_action = None
