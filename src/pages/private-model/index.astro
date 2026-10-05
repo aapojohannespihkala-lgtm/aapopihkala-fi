@@ -1607,8 +1607,11 @@ const title = 'Private 3D viewer';
         prepareP184ReviewPresentation,
       } from '../../scripts/privateModelP184ReviewPresentation';
       import {
+        p184hApplianceReviewContextOpacity,
+        p184hApplianceReviewTargetOpacity,
         p185ReviewContextOpacity,
         p185ReviewTargetOpacity,
+        prepareP184hApplianceAidReviewPresentation,
         prepareP185ReviewPresentation,
       } from '../../scripts/privateModelP185ReviewPresentation';
       import {
@@ -1725,6 +1728,7 @@ const title = 'Private 3D viewer';
         p184dReviewId,
         p184gCandidateId,
         p184gReviewId,
+        p184hApplianceOnP185cReviewId,
         p185cCandidateId,
         p185cReviewId,
         m5bCandidateId,
@@ -5492,6 +5496,9 @@ const title = 'Private 3D viewer';
       const isP185cElectricalSourceReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p185cReviewId);
 
+      const isP184hApplianceOnP185cReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p184hApplianceOnP185cReviewId);
+
       const isP164bCorrectedStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p164bReviewId);
 
@@ -6271,6 +6278,52 @@ const title = 'Private 3D viewer';
       };
 
 
+      const applyP184hApplianceOnP185cReviewState = () => {
+        const presentation = prepareP184hApplianceAidReviewPresentation(fullModelScene);
+        if (
+          presentation.targetRenderableCount !== 2 ||
+          presentation.islandContextRenderableCount !== 1 ||
+          presentation.missingTargetSemanticRoles.length !== 0 ||
+          presentation.semanticViolationCount !== 0 ||
+          !presentation.targetBounds
+        ) {
+          throw new Error('P184H appliance review targets or no-promotion semantics are not review-ready');
+        }
+
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: p184hApplianceOnP185cReviewId,
+          p184hReviewQuestion: 'D_2F_KITCHEN_ISLAND_APPLIANCE_AID_RELATION',
+          p184hTargetSemanticRoles: presentation.foundTargetSemanticRoles.join(','),
+          p184hTargetOpacity: p184hApplianceReviewTargetOpacity.toFixed(2),
+          p184hContextOpacity: p184hApplianceReviewContextOpacity.toFixed(2),
+          p184hReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+          p184hReviewContextRenderableCount: String(presentation.contextRenderableCount),
+          p184hReviewIslandContextRenderableCount: String(
+            presentation.islandContextRenderableCount,
+          ),
+          p184hReviewHiddenNonQuestionRenderableCount: String(
+            presentation.hiddenNonQuestionRenderableCount,
+          ),
+          p184hReviewSemanticViolationCount: String(presentation.semanticViolationCount),
+          p184hApplianceGeometryClaim: 'false',
+          p184hPhysicalApplianceFootprintClaim: 'false',
+          p184hExactXYClaim: 'false',
+          p184hExactZClaim: 'false',
+          p184hCurrentClaim: 'false',
+          p184hAsBuiltClaim: 'false',
+          p184hCanonical: 'false',
+          p184hPublishToCurrent: 'false',
+          p184hHumanReview: 'NOT_RUN',
+          p184hReviewCameraMode: 'PERSPECTIVE_FREE_ORBIT',
+          standardViewPreset: 'd-apartment',
+        });
+        applyStandardViewPreset('d-apartment');
+        const cameraFocusApplied = focusP184DReviewCamera(presentation.targetBounds);
+        canvas.dataset.p184hReviewCameraFocusApplied = String(cameraFocusApplied);
+        status.textContent =
+          'P184H D 2F appliance aids on P185C survivor - WORK_TEST / oven + cooktop 80 % / island + D 2F context 20 % / HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP185cReviewState = () => {
         const presentation = prepareP185ReviewPresentation(fullModelScene);
         if (
@@ -6730,6 +6783,8 @@ const title = 'Private 3D viewer';
             candidate.id === p184gCandidateId && isP184gIslandXReviewRequested();
           const isP185cElectricalSourceReview =
             candidate.id === p185cCandidateId && isP185cElectricalSourceReviewRequested();
+          const isP184hApplianceOnP185cReview =
+            candidate.id === p185cCandidateId && isP184hApplianceOnP185cReviewRequested();
           const isM5BCurrentReview =
             candidate.id === m5bCandidateId &&
             isPrivateModelReviewRequested(window.location.search, m5bCurrentReviewId);
@@ -7450,6 +7505,8 @@ const title = 'Private 3D viewer';
             applyP183P160ClosureReviewState();
           } else if (isP178bJunctionClosureReview) {
             applyP178bReviewState();
+          } else if (isP184hApplianceOnP185cReview) {
+            applyP184hApplianceOnP185cReviewState();
           } else if (isP185cElectricalSourceReview) {
             applyP185cReviewState();
           } else if (isP184gIslandXReview) {
