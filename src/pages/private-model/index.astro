@@ -6272,6 +6272,22 @@ const title = 'Private 3D viewer';
 
 
       const applyP185cReviewState = () => {
+        // Establish the D 1F plan camera first. The preset restores D-plan visibility,
+        // so the question-specific 80/20 presentation must be applied afterwards.
+        applyStandardViewPreset('d-1f');
+        setModelScene(fullModelScene);
+        canvas.dataset.contentScene = 'full-model';
+        canvas.dataset.contentFloor = '1F';
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+
+        let suppressedDoorMarkerCount = 0;
+        for (const doorMarker of dReviewDoorMarkerLines) {
+          if (doorMarker.visible) suppressedDoorMarkerCount += 1;
+          doorMarker.visible = false;
+        }
+        canvas.dataset.dReviewDoorMarkerVisibleCount = '0';
+
         const presentation = prepareP185ReviewPresentation(fullModelScene);
         if (
           presentation.targetRenderableCount !== 2 ||
@@ -6281,6 +6297,7 @@ const title = 'Private 3D viewer';
         ) {
           throw new Error('P185C review targets or no-promotion semantics are not review-ready');
         }
+        refreshEdgeRendering(fullModelScene);
 
         Object.assign(canvas.dataset, {
           workTestReviewMode: p185cReviewId,
@@ -6294,6 +6311,8 @@ const title = 'Private 3D viewer';
             presentation.hiddenNonQuestionRenderableCount,
           ),
           p185ReviewSemanticViolationCount: String(presentation.semanticViolationCount),
+          p185ReviewSuppressedDoorMarkerCount: String(suppressedDoorMarkerCount),
+          p185ReviewScene: 'FULL_MODEL_WITH_D_1F_PLAN_CAMERA',
           p185FloorHeatingCableGeometryClaim: 'false',
           p185ClosedHeatingZoneClaim: 'false',
           p185ElectricalPanelGeometryClaim: 'false',
@@ -6308,7 +6327,6 @@ const title = 'Private 3D viewer';
           p185ReviewCameraMode: 'ORTHOGRAPHIC_D_1F_SUPPORT',
           standardViewPreset: 'd-1f',
         });
-        applyStandardViewPreset('d-1f');
         status.textContent =
           'P185C D 1F electrical source overlay - WORK_TEST / source overlay + RK 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
       };
