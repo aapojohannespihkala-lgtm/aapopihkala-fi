@@ -82,7 +82,7 @@ def main():
         data = fields(line)
         event_time = timestamp(line, data)
 
-        if line.startswith("DISPATCH-CLAIM -") and data.get("tila") == "CLAIMED":
+        if line.startswith("DISPATCH-CLAIM -") and data.get("tila", "").rstrip(".") == "CLAIMED":
             run_id = data.get("claim-ID")
             if not run_id or not event_time:
                 continue
