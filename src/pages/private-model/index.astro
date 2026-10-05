@@ -3853,7 +3853,9 @@ const title = 'Private 3D viewer';
           if (activePlanFloor) fitPlanCamera();
           else if (activeCamera === isoCamera) {
             if (activeElevationDirection) fitElevationCamera(activeElevationDirection);
-            else fitIsometricCamera();
+            else if (canvas.dataset.viewPreset === 'top' || canvas.dataset.viewPreset === 'bottom') {
+              fitAxisCamera(canvas.dataset.viewPreset);
+            } else fitIsometricCamera();
           }
         }
       };
@@ -3993,26 +3995,14 @@ const title = 'Private 3D viewer';
         return true;
       };
 
-      const axisView = (direction: 'top' | 'bottom') => {
-        const contentScene = resolveActiveResearchContentScene();
-        if (!contentScene) return;
+      const fitAxisCamera = (
+        direction: 'top' | 'bottom',
+        sceneRoot: any = resolveActiveResearchContentScene(),
+      ) => {
+        if (!sceneRoot) return false;
 
-        deactivateElevationView();
-        clearSelection();
-        activePlanFloor = null;
-        deactivateDCoordinateReview();
-        setD1KnownDoorReviewLabelsVisible(false);
-        controls.enabled = false;
-        planControls.enabled = false;
-        setIsoRotationMode('disabled');
-        isoControls.enabled = true;
-        activeCamera = isoCamera;
-        setModelScene(contentScene);
-        applyRoofLayerState();
-        applyLocusLayerState();
-
-        const box = computeVisibleBounds(contentScene, true);
-        if (!box) return;
+        const box = computeVisibleBounds(sceneRoot, true);
+        if (!box) return false;
 
         const center = new THREE.Vector3();
         const size = new THREE.Vector3();
@@ -4045,6 +4035,28 @@ const title = 'Private 3D viewer';
 
         isoControls.target.copy(center);
         isoControls.update();
+        return true;
+      };
+
+      const axisView = (direction: 'top' | 'bottom') => {
+        const contentScene = resolveActiveResearchContentScene();
+        if (!contentScene) return;
+
+        deactivateElevationView();
+        clearSelection();
+        activePlanFloor = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        controls.enabled = false;
+        planControls.enabled = false;
+        setIsoRotationMode('disabled');
+        isoControls.enabled = true;
+        activeCamera = isoCamera;
+        setModelScene(contentScene);
+        applyRoofLayerState();
+        applyLocusLayerState();
+
+        if (!fitAxisCamera(direction, contentScene)) return;
         syncViewState(direction);
       };
 
