@@ -1,6 +1,16 @@
 name: Publish Ylisrinne AI status
 
 on:
+  # Bootstrap immediately when the status pipeline itself changes on main.
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/build-ai-status.py'
+      - '.github/workflows/publish-ai-status.yml'
+      - 'src/pages/private-model/status/index.astro'
+      - 'worker/index.ts'
+      - 'worker/privateAiStatus.ts'
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
