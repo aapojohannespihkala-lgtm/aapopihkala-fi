@@ -15,11 +15,15 @@ export const m5aExpectedTargetRenderableCount = Object.values(m5aExpectedTargetC
 );
 
 export const m5aReviewQuestionText =
-  'Näyttävätkö neljän kaivon ja seitsemän lähteistetyn yhteyden suhteellinen topologia sekä yleinen sijoittuminen rakennuksen ympärille uskottavilta?';
+  'Näyttävätkö salaojajärjestelmän suhteellinen topologia ja kaivojen yleinen sijoittuminen rakennuksen ympärille uskottavilta suhteessa viereiseen Drainman-lähdepiirrokseen?';
 
 export const m5aReviewSourceContext = {
-  sourceLabel: 'Drainman - salaojapiirros + 21.7.2026 raportti',
-  sourceClass: 'SOURCE_DERIVED_QUALITATIVE',
+  sourceLabel: 'Salaojapiirros Drainman.pdf',
+  sourceDrawingDriveId: '1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC',
+  sourceDrawingByteSize: 1132069,
+  sourcePreviewUrl: 'https://drive.google.com/file/d/1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC/preview',
+  technicalSourceLabel: 'Drainman 21.7.2026 salaojien seurantatarkastus',
+  sourceClass: 'SOURCE_REFERENCE_PLUS_DERIVED_QUALITATIVE',
   namedWells: ['SOK1', 'SOK2', 'SOK3', 'PVK'],
   supportedLinkCount: 7,
   drawingLowerMapping: '+X / itäpääty',
