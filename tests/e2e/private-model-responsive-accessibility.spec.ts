@@ -34,15 +34,29 @@ test('private viewer dark shell stays inside desktop and narrow viewports', asyn
     );
     expect(noPageOverflow).toBe(true);
 
-    await page.locator('#view-menu > summary').click();
-    const menuInsideViewport = await page.locator('#view-menu .toolbar-menu-panel').evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      return rect.left >= -1 && rect.right <= window.innerWidth + 1 && rect.top >= -1 && rect.bottom <= window.innerHeight + 1;
-    });
-    expect(menuInsideViewport).toBe(true);
-    await page.locator('#view-menu').evaluate((element) => {
-      (element as HTMLDetailsElement).open = false;
-    });
+    const toolbarMenus = ['#preset-menu', '#view-menu', '#model-menu', '#more-menu'];
+
+    for (const menuSelector of toolbarMenus) {
+      await page.locator(`${menuSelector} > summary`).click();
+      const menuInsideViewport = await page
+        .locator(`${menuSelector} .toolbar-menu-panel`)
+        .evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          return (
+            rect.left >= -1 &&
+            rect.right <= window.innerWidth + 1 &&
+            rect.top >= -1 &&
+            rect.bottom <= window.innerHeight + 1
+          );
+        });
+      expect(
+        menuInsideViewport,
+        `${menuSelector} should stay inside ${viewport.width}x${viewport.height}`,
+      ).toBe(true);
+      await page.locator(menuSelector).evaluate((element) => {
+        (element as HTMLDetailsElement).open = false;
+      });
+    }
 
     await page.locator('#layers-button').click();
     await expect(page.locator('#layers-panel')).toBeVisible();
