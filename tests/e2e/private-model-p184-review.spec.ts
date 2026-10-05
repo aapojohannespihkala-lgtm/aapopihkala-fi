@@ -202,13 +202,18 @@ test('P184D review refuses to invent a cabinet-front reference when exact target
   expect(presentation.sourceChainCabinetFrontXM).toBeNull();
 });
 
-test('private viewer wires P184D 80/20 presentation, target camera focus and no-promotion metadata', () => {
+test('private viewer wires P184D and P184G 80/20 presentation, target camera focus and no-promotion metadata', () => {
   const viewerSource = readFileSync(
     new URL('../../src/pages/private-model/index.astro', import.meta.url),
     'utf8',
   );
 
   expect(viewerSource).toContain('prepareP184DReviewPresentation');
+  expect(viewerSource).toContain("prepareP184ReviewPresentation(fullModelScene, 'P184G')");
+  expect(viewerSource).toContain('isP184gIslandXReview');
+  expect(viewerSource).toContain('applyP184gReviewState');
+  expect(viewerSource).toContain('p184gReviewId');
+  expect(viewerSource).toContain("'P184G_TARGET_BOUNDS_ONLY'");
   expect(viewerSource).toContain('focusP184DReviewCamera');
   expect(viewerSource).toContain('p184ReviewCameraMode');
   expect(viewerSource).toContain("'PERSPECTIVE_FREE_ORBIT'");
