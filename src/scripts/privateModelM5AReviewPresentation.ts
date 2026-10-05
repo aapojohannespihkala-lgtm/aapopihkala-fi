@@ -14,6 +14,25 @@ export const m5aExpectedTargetRenderableCount = Object.values(m5aExpectedTargetC
   0,
 );
 
+export const m5aReviewQuestionText =
+  'Näyttävätkö neljän kaivon ja seitsemän lähteistetyn yhteyden suhteellinen topologia sekä yleinen sijoittuminen rakennuksen ympärille uskottavilta?';
+
+export const m5aReviewSourceContext = {
+  sourceLabel: 'Drainman - salaojapiirros + 21.7.2026 raportti',
+  sourceClass: 'SOURCE_DERIVED_QUALITATIVE',
+  namedWells: ['SOK1', 'SOK2', 'SOK3', 'PVK'],
+  supportedLinkCount: 7,
+  drawingLowerMapping: '+X / itäpääty',
+  drawingUpperMapping: '-X / länsipääty',
+  drawingLeftMapping: 'Y-min / WORK_ASSUMPTION',
+  exactXYClaim: false,
+  exactZClaim: false,
+  physicalRouteClaim: false,
+  currentGeometryClaim: false,
+  asBuiltClaim: false,
+  canonical: false,
+} as const;
+
 const targetKinds = new Set<string>(Object.keys(m5aExpectedTargetCounts));
 
 const isRenderable = (object: any) =>
