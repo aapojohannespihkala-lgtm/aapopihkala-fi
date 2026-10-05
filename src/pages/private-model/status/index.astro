@@ -110,11 +110,47 @@ const title = 'Ylisrinne AI - tilanne';
     </main>
 
     <script>
+      type ActiveItem = {
+        id: string;
+        lane: string;
+        laneCode: string;
+        title: string;
+        goal: string;
+        state: 'CLAIMED' | 'ACTIVE';
+        updatedAt: string;
+      };
+
+      type RecentItem = {
+        time: string;
+        state: 'PASS' | 'CLAIM' | 'CHECKPOINT';
+        lane: string;
+        title: string;
+        detail: string;
+      };
+
+      type StatusPayload = {
+        generatedAt: string;
+        source: { modifiedTime: string };
+        summary: {
+          activePackages: number;
+          activeLines: number;
+          passesToday: number;
+        };
+        active: ActiveItem[];
+        recent: RecentItem[];
+        humanAction: { title: string; detail: string } | null;
+      };
+
       const DATA_URL = '/private-model/status/data.json';
       const POLL_MS = 30_000;
 
-      const $ = (id) => document.getElementById(id);
-      const formatTime = (value) => {
+      const $ = (id: string): HTMLElement => {
+        const element = document.getElementById(id);
+        if (!element) throw new Error('Missing dashboard element: ' + id);
+        return element;
+      };
+
+      const formatTime = (value: string): string => {
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return value;
         return new Intl.DateTimeFormat('fi-FI', {
@@ -123,14 +159,14 @@ const title = 'Ylisrinne AI - tilanne';
         }).format(date);
       };
 
-      const text = (tag, value, className) => {
+      const text = (tag: string, value: string, className = ''): HTMLElement => {
         const node = document.createElement(tag);
         node.textContent = value;
         if (className) node.className = className;
         return node;
       };
 
-      const renderActive = (items) => {
+      const renderActive = (items: ActiveItem[]) => {
         const root = $('active-list');
         root.replaceChildren();
         if (!items.length) {
@@ -157,7 +193,7 @@ const title = 'Ylisrinne AI - tilanne';
         }
       };
 
-      const renderEvents = (items) => {
+      const renderEvents = (items: RecentItem[]) => {
         const root = $('events');
         root.replaceChildren();
         if (!items.length) {
@@ -175,7 +211,7 @@ const title = 'Ylisrinne AI - tilanne';
         }
       };
 
-      const render = (data) => {
+      const render = (data: StatusPayload) => {
         $('freshness').classList.remove('error');
         $('active-packages').textContent = String(data.summary.activePackages);
         $('active-lines').textContent = String(data.summary.activeLines);
@@ -202,7 +238,7 @@ const title = 'Ylisrinne AI - tilanne';
         try {
           const response = await fetch(DATA_URL, { cache: 'no-store' });
           if (!response.ok) throw new Error('status ' + response.status);
-          render(await response.json());
+          render((await response.json()) as StatusPayload);
         } catch {
           $('freshness').textContent = 'Tilatietoa ei ole vielä julkaistu tai sitä ei saatu ladattua.';
           $('freshness').classList.add('error');
