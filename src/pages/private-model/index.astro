@@ -4072,6 +4072,88 @@ const title = 'Private 3D viewer';
         return true;
       };
 
+      const focusM5AReviewCamera = (targetBounds: any) => {
+        if (!targetBounds || targetBounds.isEmpty?.()) return false;
+
+        deactivateElevationView();
+        clearSelection();
+        activePlanFloor = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        planControls.enabled = false;
+        isoControls.enabled = false;
+        controls.enableRotate = true;
+        controls.enabled = true;
+        activeCamera = camera;
+        setModelScene(fullModelScene);
+        syncViewState('orbit');
+
+        const targetCenter = targetBounds.getCenter(new THREE.Vector3());
+        const targetSphere = targetBounds.getBoundingSphere(new THREE.Sphere());
+        const verticalHalfFov = THREE.MathUtils.degToRad(camera.fov * 0.5);
+        const aspect = Math.max(
+          camera.aspect || canvas.clientWidth / Math.max(canvas.clientHeight, 1),
+          0.01,
+        );
+        const horizontalHalfFov = Math.atan(Math.tan(verticalHalfFov) * aspect);
+        const limitingHalfFov = Math.min(verticalHalfFov, horizontalHalfFov);
+        const targetDistance = Math.max(
+          (Math.max(targetSphere.radius, 0.25) / Math.tan(limitingHalfFov)) * 1.75,
+          4,
+        );
+
+        controls.target.copy(targetCenter);
+        camera.up.set(0, 1, 0);
+        camera.position.copy(targetCenter).add(
+          new THREE.Vector3(
+            targetDistance * 0.78,
+            targetDistance * 0.58,
+            targetDistance * 0.92,
+          ),
+        );
+        camera.near = Math.max(targetDistance / 10000, 0.001);
+        camera.far = Math.max(targetDistance * 50, 1000);
+        camera.lookAt(targetCenter);
+        camera.updateProjectionMatrix();
+        camera.updateMatrixWorld(true);
+        controls.update();
+
+        const { min, max } = targetBounds;
+        const corners = [
+          new THREE.Vector3(min.x, min.y, min.z),
+          new THREE.Vector3(min.x, min.y, max.z),
+          new THREE.Vector3(min.x, max.y, min.z),
+          new THREE.Vector3(min.x, max.y, max.z),
+          new THREE.Vector3(max.x, min.y, min.z),
+          new THREE.Vector3(max.x, min.y, max.z),
+          new THREE.Vector3(max.x, max.y, min.z),
+          new THREE.Vector3(max.x, max.y, max.z),
+        ];
+        const projected = corners.map((corner) => corner.clone().project(camera));
+        const framingMargin = 0.94;
+        const framingInFrame = projected.every(
+          (point) =>
+            Number.isFinite(point.x) &&
+            Number.isFinite(point.y) &&
+            Number.isFinite(point.z) &&
+            Math.abs(point.x) <= framingMargin &&
+            Math.abs(point.y) <= framingMargin &&
+            point.z >= -1 &&
+            point.z <= 1,
+        );
+        const maxAbsNdc = projected.reduce(
+          (maximum, point) => Math.max(maximum, Math.abs(point.x), Math.abs(point.y)),
+          0,
+        );
+
+        canvas.dataset.m5aReviewFocusRadius = targetSphere.radius.toFixed(3);
+        canvas.dataset.m5aReviewFramingCornerCount = String(corners.length);
+        canvas.dataset.m5aReviewFramingMargin = framingMargin.toFixed(2);
+        canvas.dataset.m5aReviewFramingMaxAbsNdc = maxAbsNdc.toFixed(3);
+        canvas.dataset.m5aReviewFramingInFrame = String(framingInFrame);
+        return framingInFrame;
+      };
+
       const focusP181GroundContactReviewCamera = (targetBounds: any) => {
         if (!targetBounds || targetBounds.isEmpty?.()) return false;
 
@@ -6504,6 +6586,7 @@ const title = 'Private 3D viewer';
           throw new Error('M5A drainage topology targets or no-promotion semantics are not review-ready');
         }
         refreshEdgeRendering(fullModelScene);
+        const cameraFocusApplied = focusM5AReviewCamera(presentation.targetBounds);
 
         Object.assign(canvas.dataset, {
           workTestReviewMode: m5aDrainageReviewId,
@@ -6541,6 +6624,7 @@ const title = 'Private 3D viewer';
           m5aPublishToCurrent: 'false',
           m5aHumanReview: 'NOT_RUN',
           m5aReviewCameraMode: 'PERSPECTIVE_FREE_ORBIT',
+          m5aReviewCameraFocusApplied: String(cameraFocusApplied),
           standardViewPreset: 'whole-building',
         });
         setM5aSourceContextVisible(true);
