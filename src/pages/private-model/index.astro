@@ -1601,6 +1601,7 @@ const title = 'Private 3D viewer';
         p184DReviewContextOpacity,
         p184DReviewTargetOpacity,
         prepareP184DReviewPresentation,
+        prepareP184ReviewPresentation,
       } from '../../scripts/privateModelP184ReviewPresentation';
       import {
         p183P160ClosureContextOpacity,
@@ -1704,6 +1705,8 @@ const title = 'Private 3D viewer';
         p181bR1ReviewId,
         p184dCandidateId,
         p184dReviewId,
+        p184gCandidateId,
+        p184gReviewId,
         p164bCandidateId,
         p164bReviewId,
         p167fCandidateId,
@@ -5475,6 +5478,9 @@ const title = 'Private 3D viewer';
       const isP184dIslandXReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p184dReviewId);
 
+      const isP184gIslandXReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p184gReviewId);
+
       const isP164bCorrectedStairReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p164bReviewId);
 
@@ -6206,6 +6212,53 @@ const title = 'Private 3D viewer';
           'P184D D 2F kitchen island source-chain X - WORK_TEST / island 80 % / viewer-only source-derived cabinet-front X reference 20 % / HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP184gReviewState = () => {
+        const presentation = prepareP184ReviewPresentation(fullModelScene, 'P184G');
+        if (
+          presentation.targetRenderableCount !== 1 ||
+          presentation.cabinetFrontReferenceRenderableCount !== 1 ||
+          !presentation.targetBounds
+        ) {
+          throw new Error('P184G review target or source-chain cabinet-front reference missing');
+        }
+
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: p184gReviewId,
+          p184ReviewQuestion: 'D_2F_KITCHEN_ISLAND_SOURCE_CHAIN_X_RELATION',
+          p184TargetG2Id: 'G2_FURN_D_2F_KITCHEN_ISLAND_001',
+          p184TargetOpacity: p184DReviewTargetOpacity.toFixed(2),
+          p184ContextOpacity: p184DReviewContextOpacity.toFixed(2),
+          p184SourceChainCabinetFrontXM: String(presentation.sourceChainCabinetFrontXM),
+          p184CabinetFrontReferenceKind: 'SOURCE_CHAIN_CABINET_FRONT_X_REFERENCE',
+          p184CabinetFrontReferenceExtentBasis: 'P184G_TARGET_BOUNDS_ONLY',
+          p184PhysicalCabinetGeometryClaim: 'false',
+          p184PhysicalCabinetFrontClaim: 'false',
+          p184ExactXYClaim: 'false',
+          p184GeometryMutation: 'false',
+          p184CurrentClaim: 'false',
+          p184AsBuiltClaim: 'false',
+          p184Canonical: 'false',
+          p184PublishToCurrent: 'false',
+          p184HumanReview: 'NOT_RUN',
+          standardViewPreset: 'd-apartment',
+        });
+        applyStandardViewPreset('d-apartment');
+        const cameraFocusApplied = focusP184DReviewCamera(presentation.targetBounds);
+        Object.assign(canvas.dataset, {
+          p184ReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+          p184ReviewCabinetFrontReferenceRenderableCount: String(
+            presentation.cabinetFrontReferenceRenderableCount,
+          ),
+          p184ReviewHiddenNonTargetRenderableCount: String(
+            presentation.hiddenNonTargetRenderableCount,
+          ),
+          p184ReviewCameraFocusApplied: String(cameraFocusApplied),
+          p184ReviewCameraMode: 'PERSPECTIVE_FREE_ORBIT',
+        });
+        status.textContent =
+          'P184G D 2F kitchen island source-chain X - WORK_TEST / island 80 % / viewer-only source-derived cabinet-front X reference 20 % / HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP181bR1ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase-review',
@@ -6595,6 +6648,8 @@ const title = 'Private 3D viewer';
             candidate.id === p181bR1CandidateId && isP181bR1StorageGroundReviewRequested();
           const isP184dIslandXReview =
             candidate.id === p184dCandidateId && isP184dIslandXReviewRequested();
+          const isP184gIslandXReview =
+            candidate.id === p184gCandidateId && isP184gIslandXReviewRequested();
           const isP164bCorrectedStairReview =
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP167fPreciseStairReview =
@@ -7208,6 +7263,8 @@ const title = 'Private 3D viewer';
               ? 'P160 final baseline closure on exact P178B (WORK_TEST / D architecture 80/20)'
             : isP178bJunctionClosureReview
               ? 'P178B D stair guard/lowWall junction closure (WORK_TEST / visible gap 0,000 m)'
+            : isP184gIslandXReview
+              ? 'P184G D 2F kitchen island X review (WORK_TEST / island 80 % / source-derived cabinet-front reference 20 %)'
             : isP184dIslandXReview
               ? 'P184D D 2F kitchen island X review (WORK_TEST / island 80 % / source-derived cabinet-front reference 20 %)'
             : isP181bR1StorageGroundReview
@@ -7288,6 +7345,8 @@ const title = 'Private 3D viewer';
             applyP183P160ClosureReviewState();
           } else if (isP178bJunctionClosureReview) {
             applyP178bReviewState();
+          } else if (isP184gIslandXReview) {
+            applyP184gReviewState();
           } else if (isP184dIslandXReview) {
             applyP184dReviewState();
           } else if (isP181bR1StorageGroundReview) {
