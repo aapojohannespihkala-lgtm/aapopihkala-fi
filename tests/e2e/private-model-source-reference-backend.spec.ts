@@ -158,6 +158,9 @@ test('private source-reference GET, HEAD and Range fallback expose stable privat
         ? { ...object, body: new Response(bytes).body }
         : null;
     },
+    async put() {
+      throw new Error('read-only HTTP regression must not write');
+    },
   };
 
   const getResponse = await sourceReferenceResponse(
