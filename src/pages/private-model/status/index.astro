@@ -34,6 +34,52 @@ const title = 'Ylisrinne AI - tilanne';
       }
       .metric { padding: 16px; }
       .metric strong { display: block; font-size: 1.8rem; margin-top: 4px; }
+      .journeys { margin: 24px 0 16px; }
+      .journeys-note { margin: 0; font-size: .9rem; }
+      .journey-list { display: grid; gap: 12px; margin-top: 14px; }
+      .journey-card {
+        padding: 16px;
+        border: 1px solid #dfe4ea;
+        border-radius: 10px;
+        background: #fbfcfe;
+      }
+      .journey-card.human { border-color: #e7c99d; background: #fffaf2; }
+      .journey-head {
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+        align-items: start;
+      }
+      .journey-card h3 { margin: 0; font-size: 1.02rem; line-height: 1.35; }
+      .journey-track {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 6px;
+        margin: 14px 0 12px;
+      }
+      .journey-step {
+        min-width: 0;
+        padding: 8px 9px;
+        border: 1px solid #e4e8ee;
+        border-radius: 7px;
+        background: #f7f9fb;
+      }
+      .journey-step.before { opacity: .7; }
+      .journey-step.current { border-color: #9fb2cf; background: #edf3fb; }
+      .journey-step.after { color: #7b8494; background: #fafbfc; }
+      .journey-step-number {
+        display: block;
+        margin-bottom: 3px;
+        color: #7b8494;
+        font-size: .66rem;
+        font-weight: 700;
+        letter-spacing: .07em;
+      }
+      .journey-step-label { display: block; font-size: .76rem; font-weight: 700; }
+      .journey-now, .journey-work, .journey-remaining { margin: 6px 0 0; }
+      .journey-now { font-weight: 700; }
+      .journey-work { font-size: .9rem; }
+      .journey-remaining { font-size: .86rem; color: #4f5b70; }
       .development { margin-bottom: 16px; }
       .development-note { margin: 0; font-size: .86rem; }
       .development-flow {
@@ -140,6 +186,7 @@ const title = 'Ylisrinne AI - tilanne';
       @media (max-width: 760px) {
         main { width: min(100% - 20px, 1100px); margin-top: 20px; }
         .summary { grid-template-columns: 1fr; }
+        .journey-track { grid-template-columns: 1fr; }
         .development-flow { grid-template-columns: 1fr; }
         .layout { grid-template-columns: 1fr; }
       }
@@ -149,11 +196,19 @@ const title = 'Ylisrinne AI - tilanne';
     <main>
       <header>
         <h1>Ylisrinne AI - tilanne</h1>
-        <p class="muted">Automaattisesti 00-handoffista johdettu lukunäkymä. Lähdetieto pysyy Drivessä.</p>
+        <p class="muted">Näet ensin, mitä konkreettisia asioita viedään kohti valmista. Tekniset työpaketit ja passit löytyvät alempaa. Lähdetieto pysyy Drivessä.</p>
         <p id="freshness" class="muted" aria-live="polite">Haetaan tilatietoa...</p>
       </header>
 
-      <section class="summary" aria-label="Yhteenveto">
+      <section class="panel journeys" aria-labelledby="journeys-title">
+        <h2 id="journeys-title">Matkat kohti valmista</h2>
+        <p class="muted journeys-note">Kortit johdetaan samoista aktiivisista työpaketeista. Korostettu vaihe kertoo, missä työ on juuri nyt. Tämä ei ole valmistumisprosentti.</p>
+        <div id="journey-list">
+          <p class="muted">Tavoiteketjuja ei ole vielä ladattu.</p>
+        </div>
+      </section>
+
+      <section class="summary" aria-label="Tekninen yhteenveto">
         <div class="metric"><span>Aktiivisia työpaketteja</span><strong id="active-packages">-</strong></div>
         <div class="metric"><span>Aktiivisia linjoja</span><strong id="active-lines">-</strong></div>
         <div class="metric"><span>Valmistuneita passeja tänään</span><strong id="passes-today">-</strong></div>
