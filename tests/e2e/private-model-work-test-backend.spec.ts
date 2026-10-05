@@ -81,7 +81,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(40);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(41);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -361,6 +361,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     expectedSha256: '0802c082425c9e2f231b1681a6bceec825e3d63e038ca43b02dd86d872f6c08f',
   });
 
+  const p185c = getPrivateWorkTestCandidateById('p185c-d2015-electrical-source-overlay');
+  expect(p185c).toMatchObject({
+    id: 'p185c-d2015-electrical-source-overlay',
+    label: 'P185C D2015 electrical source overlay - WORK_TEST',
+    path: '/private-model/work-test/p185c-d2015-electrical-source-overlay.glb',
+    objectKey: 'work-test/p185c-d2015-electrical-source-overlay.glb',
+    expectedSize: 2_934_024,
+    expectedSha256: '9599dec3db6a8cf1961f5db1a91d9722566dadd9a4176861e1e087722a3cea6c',
+  });
+
   const p164b = getPrivateWorkTestCandidateById('p164b-d-corrected-stair');
   expect(p164b).toMatchObject({
     id: 'p164b-d-corrected-stair',
@@ -540,6 +550,10 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestPublishCandidate(m5bPublishPath)?.id).toBe(
     'm5b-roof-stormwater-current-planned',
   );
+  const p185cPublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p185c-d2015-electrical-source-overlay.glb`;
+  expect(getPrivateWorkTestPublishCandidate(p185cPublishPath)?.id).toBe(
+    'p185c-d2015-electrical-source-overlay',
+  );
   expect(getPrivateWorkTestPublishCandidate(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}not-allowlisted.glb`)).toBeNull();
   expect(
     getPrivateWorkTestVerifyCandidate(
@@ -551,6 +565,11 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
       `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}m5b-roof-stormwater-current-planned.glb`,
     )?.id,
   ).toBe('m5b-roof-stormwater-current-planned');
+  expect(
+    getPrivateWorkTestVerifyCandidate(
+      `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p185c-d2015-electrical-source-overlay.glb`,
+    )?.id,
+  ).toBe('p185c-d2015-electrical-source-overlay');
   expect(
     getPrivateWorkTestVerifyCandidate(`${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}not-allowlisted.glb`),
   ).toBeNull();
