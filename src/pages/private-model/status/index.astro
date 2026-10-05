@@ -176,6 +176,7 @@ const title = 'Ylisrinne AI - tilanne';
       };
 
       const render = (data) => {
+        $('freshness').classList.remove('error');
         $('active-packages').textContent = String(data.summary.activePackages);
         $('active-lines').textContent = String(data.summary.activeLines);
         $('passes-today').textContent = String(data.summary.passesToday);
