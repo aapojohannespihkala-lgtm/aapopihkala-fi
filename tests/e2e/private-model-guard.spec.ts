@@ -6658,7 +6658,7 @@ test('private viewer keeps dark YLIS-G1-LOCAL orientation and north direction vi
   await expect(aiNavigator).toHaveAttribute('data-view', /^PERSPECTIVE \d+° · ORBIT$/);
   await expect(aiNavigator).toHaveAttribute('data-look-vector', /X[+-]\d+\.\d{2} Y[+-]\d+\.\d{2} Z[+-]\d+\.\d{2}/);
   await expect(aiNavigator).toHaveAttribute('data-center', /X[+-]\d+\.\d{2} Y[+-]\d+\.\d{2} Z[+-]\d+\.\d{2}/);
-  await expect(aiNavigator).toHaveAttribute('data-visible-bounds', /X -?\d+\.\d\.\.-?\d+\.\d/);
+  await expect(aiNavigator).toHaveAttribute('data-visible-bounds', /X[+-]\d+\.\d\.\.[+-]\d+\.\d/);
   await expect(aiNavigator).toHaveAttribute('data-bounds-basis', 'camera-target-plane');
 
   await clickViewAction(page, 'Isometrinen');
