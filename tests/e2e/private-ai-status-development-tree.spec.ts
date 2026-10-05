@@ -96,6 +96,8 @@ test('AI status journey renders a non-OPS goal from the published payload', asyn
   await expect(journeys.getByRole('heading', { name: 'Tilannesivu valmiiksi ja tuotantoon' })).toBeVisible();
   await expect(journeys.locator('[aria-current="step"] .journey-step-label')).toHaveText(['3D-malli', 'Integraatio + QA']);
   await expect(journeys).not.toContainText('Tekninen prosessihuolto');
+  await expect(journeys).not.toContainText('AI status P0 survivor integration preflight');
+  await expect(journeys).not.toContainText('AI status terminal lifecycle branch QA');
   await expect(journeys).not.toContainText('parser-lifecycle + parser-arg-testikorjaus');
   await expect(journeys).not.toContainText('terminal lifecycle -korjaus');
 });
