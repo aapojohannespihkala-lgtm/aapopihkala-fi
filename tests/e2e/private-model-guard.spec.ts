@@ -3121,6 +3121,76 @@ test('private viewer loads an allowlisted WORK_TEST candidate from the protected
   expect(candidateLoads).toBe(1);
 });
 
+test('private viewer resets stale manual layer state on direct model activation', async ({ page }) => {
+  const currentModel = makeTriangleGlb({ presentationLayer: 'REFERENCE_ROOF' });
+  const candidateModel = makeTriangleGlb({ presentationLayer: 'REFERENCE_ROOF' });
+  const candidateId = 'p136b-d-current-wall-corrected';
+  const candidateLabel = 'p136B - D current wall corrected';
+  const candidatePath = '/private-model/work-test/p136b-d-current-wall-corrected.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/');
+  const canvas = page.locator('#private-model-canvas');
+
+  await clickViewAction(page, 'Tontti');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'site');
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  const roofToggle = page.locator('#roof-layer-visible');
+  const roofOpacity = page.locator('#roof-layer-opacity');
+  const edgeMode = page.locator('#edge-mode-select');
+  await expect(roofToggle).toBeEnabled();
+
+  await roofToggle.uncheck();
+  await roofOpacity.fill('40');
+  await roofOpacity.dispatchEvent('input');
+  await edgeMode.selectOption('none');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-roof-opacity', '0.4');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
+
+  await clickModelAction(page, 'Avaa WORK_TEST');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'preset:whole-building');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-layer-roof-opacity', '1');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'visible');
+  await expect(roofToggle).toBeChecked();
+  await expect(roofOpacity).toHaveValue('100');
+  await expect(edgeMode).toHaveValue('visible');
+
+  await roofToggle.uncheck();
+  await roofOpacity.fill('35');
+  await roofOpacity.dispatchEvent('input');
+  await edgeMode.selectOption('object');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+
+  await clickModelAction(page, 'Palaa CURRENTiin');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'preset:whole-building');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-layer-roof-opacity', '1');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'visible');
+});
+
 test('private viewer opens p139N in the guarded SITE_PLAN_OVERLAY scene with routes default-off', async ({ page }) => {
   const currentModel = makeMinimalGlb({
     asset: { version: '2.0' },

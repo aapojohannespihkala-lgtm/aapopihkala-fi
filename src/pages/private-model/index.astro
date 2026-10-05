@@ -1610,6 +1610,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelP183ReviewPresentation';
       import { createHorizontalClippingController } from '../../scripts/privateModelHorizontalClipping';
       import {
+        createViewerLayerStateForModelLoad,
         mergeViewerLayerState,
         type EdgeMode,
         type ViewerLayerState,
@@ -4617,7 +4618,11 @@ const title = 'Private 3D viewer';
         clearD2FBoundaryReviewContext();
         fullModelScene = gltf.scene;
         dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
+        const modelLoadLayerState = createViewerLayerStateForModelLoad({
+          locusVisible: isP161SystemsLayerReviewRequested(),
+        });
         setActiveResearchPreset('whole-building');
+        canvas.dataset.standardViewPreset = 'whole-building';
         canvas.dataset.contentScene = 'full-model';
         delete canvas.dataset.contentFloor;
         activeModelSourceKind = sourceKind;
@@ -4643,6 +4648,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.modelSource = sourceKind;
 
         setModelScene(fullModelScene);
+        applyViewerLayerState(modelLoadLayerState, 'preset:whole-building');
         configureHorizontalClippingRange();
         fitModel();
         status.textContent =
