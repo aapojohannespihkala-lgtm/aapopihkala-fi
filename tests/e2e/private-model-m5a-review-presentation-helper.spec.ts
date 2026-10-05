@@ -81,6 +81,13 @@ test('M5A helper presents the exact 4+7+4 drainage topology target set at 80/20'
 test('M5A review source context keeps the human question qualitative and self-contained', () => {
   expect(m5aReviewQuestionText).toContain('suhteellinen topologia');
   expect(m5aReviewQuestionText).toContain('yleinen sijoittuminen');
+  expect(m5aReviewSourceContext.sourceDrawingDriveId).toBe(
+    '1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC',
+  );
+  expect(m5aReviewSourceContext.sourceDrawingByteSize).toBe(1132069);
+  expect(m5aReviewSourceContext.sourcePreviewUrl).toBe(
+    'https://drive.google.com/file/d/1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC/preview',
+  );
   expect(m5aReviewSourceContext.namedWells).toEqual(['SOK1', 'SOK2', 'SOK3', 'PVK']);
   expect(m5aReviewSourceContext.supportedLinkCount).toBe(7);
   expect(m5aReviewSourceContext.drawingLowerMapping).toBe('+X / itäpääty');
