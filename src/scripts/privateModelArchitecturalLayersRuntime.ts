@@ -207,6 +207,15 @@ const createControls = (): LayerControls | null => {
 };
 
 let installed = false;
+let resetRuntimeState:
+  | ((initial: Partial<ViewerLayerControlsState>) => void)
+  | null = null;
+
+export const resetArchitecturalLayerRuntimeState = (
+  initial: Partial<ViewerLayerControlsState> = {},
+) => {
+  resetRuntimeState?.(initial);
+};
 
 export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver) => {
   if (installed || typeof document === 'undefined') return;
@@ -356,6 +365,11 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
       }
     });
     sync();
+  };
+
+  resetRuntimeState = (initial = {}) => {
+    state = createViewerLayerControlsState(initial);
+    apply();
   };
 
   const refreshDerivedEdges = () => {
