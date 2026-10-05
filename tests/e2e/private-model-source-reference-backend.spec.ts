@@ -12,6 +12,7 @@ import {
   getPrivateSourceReferenceVerifyTarget,
   isPrivateSourceReferenceObjectValid,
   isPrivateSourceReferencePath,
+  sourceReferenceResponse,
   validatePrivateSourceReferenceBytes,
   writePrivateSourceReferenceFromRequest,
   type PrivateSourceReference,
@@ -132,6 +133,81 @@ test('private source-reference write stores validated PDF with private inline R2
     contentDisposition: 'inline; filename="unit-source.pdf"',
     cacheControl: 'private, no-store',
   });
+});
+
+test('private source-reference GET, HEAD and Range fallback expose stable private PDF headers', async () => {
+  const bytes = new TextEncoder().encode('%PDF-1.7\\nunit-response\\n');
+  const reference: PrivateSourceReference = {
+    id: 'unit-response',
+    label: 'Unit response.pdf',
+    path: '/private-model/source-reference/unit-response.pdf',
+    objectKey: 'source-reference/unit-response.pdf',
+    expectedSize: bytes.byteLength,
+    expectedSha256: 'f'.repeat(64),
+    contentType: 'application/pdf',
+  };
+  const object = {
+    body: new Response(bytes).body,
+    size: bytes.byteLength,
+    etag: 'unit-etag',
+    customMetadata: { sha256: reference.expectedSha256 },
+  };
+  const bucket = {
+    async get(key: string) {
+      return key === reference.objectKey
+        ? { ...object, body: new Response(bytes).body }
+        : null;
+    },
+  };
+
+  const getResponse = await sourceReferenceResponse(
+    new Request('https://example.test/private-model/source-reference/unit-response.pdf', {
+      method: 'GET',
+    }),
+    bucket,
+    reference,
+  );
+  expect(getResponse.status).toBe(200);
+  expect(getResponse.headers.get('Content-Type')).toBe('application/pdf');
+  expect(getResponse.headers.get('Content-Length')).toBe(String(bytes.byteLength));
+  expect(getResponse.headers.get('Content-Disposition')).toBe(
+    'inline; filename="unit-response.pdf"',
+  );
+  expect(getResponse.headers.get('Cache-Control')).toBe('private, no-store');
+  expect(getResponse.headers.get('Referrer-Policy')).toBe('no-referrer');
+  expect(getResponse.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  expect(getResponse.headers.get('X-Robots-Tag')).toBe('noindex, nofollow, noarchive');
+  expect(getResponse.headers.get('Cross-Origin-Resource-Policy')).toBe('same-origin');
+  expect(new Uint8Array(await getResponse.arrayBuffer())).toEqual(bytes);
+
+  const headResponse = await sourceReferenceResponse(
+    new Request('https://example.test/private-model/source-reference/unit-response.pdf', {
+      method: 'HEAD',
+    }),
+    bucket,
+    reference,
+  );
+  expect(headResponse.status).toBe(200);
+  expect(headResponse.headers.get('Content-Type')).toBe(getResponse.headers.get('Content-Type'));
+  expect(headResponse.headers.get('Content-Length')).toBe(
+    getResponse.headers.get('Content-Length'),
+  );
+  expect(headResponse.headers.get('Content-Disposition')).toBe(
+    getResponse.headers.get('Content-Disposition'),
+  );
+  expect((await headResponse.arrayBuffer()).byteLength).toBe(0);
+
+  const rangeResponse = await sourceReferenceResponse(
+    new Request('https://example.test/private-model/source-reference/unit-response.pdf', {
+      method: 'GET',
+      headers: { Range: 'bytes=0-4' },
+    }),
+    bucket,
+    reference,
+  );
+  expect(rangeResponse.status).toBe(200);
+  expect(rangeResponse.headers.get('Content-Length')).toBe(String(bytes.byteLength));
+  expect(new Uint8Array(await rangeResponse.arrayBuffer())).toEqual(bytes);
 });
 
 test('source-reference registry and publisher workflow bind the exact canonical Drive PDF identity', () => {
