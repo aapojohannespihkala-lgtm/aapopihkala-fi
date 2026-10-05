@@ -81,7 +81,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(41);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(42);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -369,6 +369,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     objectKey: 'work-test/p185c-d2015-electrical-source-overlay.glb',
     expectedSize: 2_934_024,
     expectedSha256: '9599dec3db6a8cf1961f5db1a91d9722566dadd9a4176861e1e087722a3cea6c',
+  });
+
+  const m5a = getPrivateWorkTestCandidateById('m5a-drain-topology');
+  expect(m5a).toMatchObject({
+    id: 'm5a-drain-topology',
+    label: 'M5A drainage topology presentation - WORK_TEST',
+    path: '/private-model/work-test/m5a-drain-topology.glb',
+    objectKey: 'work-test/m5a-drain-topology.glb',
+    expectedSize: 2_882_760,
+    expectedSha256: '3116b8e6a38b5942f5500754bb5a948d0e8194c7d6afe4cbdb1f4b5ac6a0b640',
   });
 
   const p164b = getPrivateWorkTestCandidateById('p164b-d-corrected-stair');
