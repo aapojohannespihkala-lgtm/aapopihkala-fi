@@ -194,7 +194,7 @@ export const writePrivateSourceReferenceFromRequest = async (
     await bucket.put(reference.objectKey, bytes, {
       httpMetadata: {
         contentType: reference.contentType,
-        contentDisposition: 'inline; filename="m5a-drainman.pdf"',
+        contentDisposition: `inline; filename="${reference.id}.pdf"`,
         cacheControl: 'private, no-store',
       },
       customMetadata: {
@@ -229,7 +229,7 @@ const sourceReferenceResponse = async (
   const headers = privateHeaders();
   object.writeHttpMetadata?.(headers);
   headers.set('Content-Type', reference.contentType);
-  headers.set('Content-Disposition', 'inline; filename="m5a-drainman.pdf"');
+  headers.set('Content-Disposition', `inline; filename="${reference.id}.pdf"`);
   headers.set('Content-Length', String(reference.expectedSize));
   if (object.etag) headers.set('ETag', object.etag);
 
