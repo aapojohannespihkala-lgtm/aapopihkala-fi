@@ -81,7 +81,7 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
 
   sceneRoot?.traverse?.((object: any) => {
     if (!isRenderable(object)) return;
-    const g2Id = String(object?.userData?.G2Id ?? '').trim();
+    const g2Id = String(object?.userData?.G2Id ?? object?.userData?.G2IdCandidate ?? '').trim();
 
     if (targetIds.has(g2Id)) {
       object.visible = true;
