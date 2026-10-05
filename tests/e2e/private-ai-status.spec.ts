@@ -97,12 +97,36 @@ test('private AI status data fails closed before R2 access without viewer Access
   expect(reads).toBe(0);
 });
 
-test('Ylisrinne AI status page renders a useful shell without live data', async ({ page }) => {
+test('Ylisrinne AI status keeps its live loader inline', async ({ page }) => {
   await page.goto('/private-model/status/');
   await expect(page.getByRole('heading', { name: 'Ylisrinne AI - tilanne' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Nyt työn alla' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Viimeisimmät tapahtumat' })).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow,noarchive');
+
+  const inlineScripts = await page.locator('script:not([src])').evaluateAll((nodes) =>
+    nodes.map((node) => node.textContent ?? ''),
+  );
+  expect(inlineScripts.some((source) => source.includes('/private-model/status/data.json'))).toBe(true);
+});
+
+test('Ylisrinne AI status renders published data in the browser', async ({ page }) => {
+  await page.route('**/private-model/status/data.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(sample),
+    });
+  });
+
+  await page.goto('/private-model/status/');
+
+  await expect(page.locator('#active-packages')).toHaveText('1');
+  await expect(page.locator('#active-lines')).toHaveText('1');
+  await expect(page.locator('#passes-today')).toHaveText('2');
+  await expect(page.locator('#freshness')).toContainText('Tilanne muodostettu');
+  await expect(page.getByRole('heading', { name: 'Tilannepaneeli' })).toBeVisible();
+  await expect(page.getByText('Ylisrinne AI derived status dashboard')).toBeVisible();
+  await expect(page.getByText('PASS - M5B PR #831 main integration')).toBeVisible();
+  await expect(page.locator('#human-action')).toBeHidden();
 });
 
 
