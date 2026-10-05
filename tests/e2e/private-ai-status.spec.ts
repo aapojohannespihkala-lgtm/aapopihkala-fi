@@ -97,15 +97,19 @@ test('private AI status data fails closed before R2 access without viewer Access
   expect(reads).toBe(0);
 });
 
-test('Ylisrinne AI status keeps its live loader inline', async ({ page }) => {
+test('Ylisrinne AI status loader is compatible with the private-model CSP', async ({ page }) => {
+  const pageSource = readFileSync('src/pages/private-model/status/index.astro', 'utf8');
+  const workerSource = readFileSync('worker/privateModel.ts', 'utf8');
+
+  expect(pageSource).toContain('<script src="/private-model/status.js" defer></script>');
+  expect(pageSource).not.toContain('<script is:inline>');
+  expect(workerSource).toContain("script-src 'self'");
+  expect(workerSource).not.toContain("script-src 'self' 'unsafe-inline'");
+
   await page.goto('/private-model/status/');
   await expect(page.getByRole('heading', { name: 'Ylisrinne AI - tilanne' })).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow,noarchive');
-
-  const inlineScripts = await page.locator('script:not([src])').evaluateAll((nodes) =>
-    nodes.map((node) => node.textContent ?? ''),
-  );
-  expect(inlineScripts.some((source) => source.includes('/private-model/status/data.json'))).toBe(true);
+  await expect(page.locator('script[src="/private-model/status.js"]')).toHaveCount(1);
 });
 
 test('Ylisrinne AI status renders published data in the browser', async ({ page }) => {
