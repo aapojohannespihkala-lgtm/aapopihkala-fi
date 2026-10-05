@@ -90,8 +90,8 @@ test('M5A review source context keeps the human question qualitative and self-co
   );
   expect(m5aReviewSourceContext.namedWells).toEqual(['SOK1', 'SOK2', 'SOK3', 'PVK']);
   expect(m5aReviewSourceContext.supportedLinkCount).toBe(7);
-  expect(m5aReviewSourceContext.drawingLowerMapping).toBe('+X / itäpääty');
-  expect(m5aReviewSourceContext.drawingUpperMapping).toBe('-X / länsipääty');
+  expect(m5aReviewSourceContext.drawingLowerMapping).toBe('+X / itäpääty / WORK_ASSUMPTION');
+  expect(m5aReviewSourceContext.drawingUpperMapping).toBe('-X / länsipääty / WORK_ASSUMPTION');
   expect(m5aReviewSourceContext.drawingLeftMapping).toContain('WORK_ASSUMPTION');
   expect(m5aReviewSourceContext.exactXYClaim).toBe(false);
   expect(m5aReviewSourceContext.exactZClaim).toBe(false);
