@@ -1,6 +1,14 @@
 const DATA_URL = '/private-model/status/data.json';
 const POLL_MS = 30_000;
 
+const DEVELOPMENT_STAGES = [
+  { id: 'model', label: '3D-malli' },
+  { id: 'viewer', label: 'Viewer' },
+  { id: 'qa', label: 'Integraatio + QA' },
+  { id: 'production', label: 'Tuotanto' },
+  { id: 'human', label: 'Ihmisen vaihe' },
+];
+
 const $ = (id) => {
   const element = document.getElementById(id);
   if (!element) throw new Error('Missing dashboard element: ' + id);
@@ -21,6 +29,127 @@ const text = (tag, value, className = '') => {
   node.textContent = value;
   if (className) node.className = className;
   return node;
+};
+
+const stageForActive = (item) => {
+  const code = item.laneCode || '';
+  if (/^M[1-5](?:\s|$)/.test(code)) return 'model';
+  if (/^V[1-3](?:\s|$)/.test(code)) return 'viewer';
+  if (/^V4(?:\s|$)/.test(code) || /^OPS/.test(code)) return 'qa';
+  if (/^V5(?:\s|$)/.test(code)) return 'production';
+  return null;
+};
+
+const stageForEvent = (item) => {
+  const lane = item.lane || '';
+  if (lane.startsWith('3D -')) return 'model';
+  if (lane === 'Viewer - tuotanto') return 'production';
+  if (
+    lane === 'Viewer - integraatio' ||
+    lane.startsWith('Prosessi -') ||
+    lane === 'Tilannepaneeli'
+  ) {
+    return 'qa';
+  }
+  if (lane.startsWith('Viewer -')) return 'viewer';
+  return null;
+};
+
+const stageSnapshot = (data, stage) => {
+  if (stage.id === 'human') {
+    return {
+      mode: data.humanAction ? 'human' : 'idle',
+      label: data.humanAction ? 'SINULTA TARVITAAN' : 'EI AKTIIVISTA TEHTÄVÄÄ',
+      active: [],
+      recent: [],
+      pass: null,
+    };
+  }
+
+  const active = data.active.filter((item) => stageForActive(item) === stage.id);
+  const recent = data.recent.filter((item) => stageForEvent(item) === stage.id).slice(0, 3);
+  const pass = recent.find((item) => item.state === 'PASS') || null;
+
+  if (active.length) return { mode: 'active', label: 'TYÖN ALLA', active, recent, pass };
+  if (pass) return { mode: 'pass', label: 'VIIMEISIN PASS', active, recent, pass };
+  return { mode: 'idle', label: 'EI AKTIIVISTA PAKETTIA', active, recent, pass };
+};
+
+const appendTreeItem = (root, title, detail = '', meta = '') => {
+  const item = document.createElement('div');
+  item.className = 'tree-item';
+  item.append(text('strong', title));
+  if (detail) item.append(text('p', detail));
+  if (meta) item.append(text('p', meta));
+  root.append(item);
+};
+
+const renderDevelopment = (data) => {
+  const flow = $('development-flow');
+  const tree = $('development-tree');
+  flow.replaceChildren();
+  tree.replaceChildren();
+
+  DEVELOPMENT_STAGES.forEach((stage, index) => {
+    const snapshot = stageSnapshot(data, stage);
+
+    const card = document.createElement('article');
+    card.className = 'development-stage ' + snapshot.mode;
+    card.dataset.stage = stage.id;
+    card.setAttribute('role', 'listitem');
+    card.append(
+      text('span', String(index + 1).padStart(2, '0'), 'stage-kicker'),
+      text('strong', stage.label),
+      text('span', snapshot.label, 'stage-state'),
+    );
+    flow.append(card);
+
+    const details = document.createElement('details');
+    details.dataset.stage = stage.id;
+    if (snapshot.mode === 'active' || snapshot.mode === 'human') details.open = true;
+
+    const summary = document.createElement('summary');
+    summary.append(
+      text('span', stage.label, 'tree-label'),
+      text('span', snapshot.label, 'tree-status ' + snapshot.mode),
+    );
+
+    const branch = document.createElement('div');
+    branch.className = 'tree-branch';
+
+    if (stage.id === 'human') {
+      if (data.humanAction) {
+        appendTreeItem(branch, data.humanAction.title, data.humanAction.detail);
+      } else {
+        branch.append(text('p', 'Ei aktiivista ihmisen tehtävää.', 'muted'));
+      }
+    } else {
+      for (const item of snapshot.active) {
+        appendTreeItem(
+          branch,
+          item.title,
+          item.goal,
+          item.lane + ' - päivitetty ' + formatTime(item.updatedAt),
+        );
+      }
+
+      if (snapshot.pass) {
+        appendTreeItem(
+          branch,
+          'Viimeisin PASS - ' + snapshot.pass.title,
+          snapshot.pass.detail,
+          formatTime(snapshot.pass.time),
+        );
+      }
+
+      if (!snapshot.active.length && !snapshot.pass) {
+        branch.append(text('p', 'Ei aktiivista työpakettia tässä vaiheessa.', 'muted'));
+      }
+    }
+
+    details.append(summary, branch);
+    tree.append(details);
+  });
 };
 
 const renderActive = (items) => {
@@ -78,6 +207,7 @@ const render = (data) => {
     ' - handoff päivitetty ' + formatTime(data.source.modifiedTime) +
     ' - automaattinen päivitys noin 5 min välein.';
 
+  renderDevelopment(data);
   renderActive(data.active);
   renderEvents(data.recent);
 
