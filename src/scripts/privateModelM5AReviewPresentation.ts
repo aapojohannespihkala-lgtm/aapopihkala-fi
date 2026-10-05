@@ -21,7 +21,7 @@ export const m5aReviewSourceContext = {
   sourceLabel: 'Salaojapiirros Drainman.pdf',
   sourceDrawingDriveId: '1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC',
   sourceDrawingByteSize: 1132069,
-  sourcePreviewUrl: 'https://drive.google.com/file/d/1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC/preview',
+  sourcePreviewUrl: '/private-model/source-reference/m5a-drainman.pdf',
   technicalSourceLabel: 'Drainman 21.7.2026 salaojien seurantatarkastus',
   sourceClass: 'SOURCE_REFERENCE_PLUS_DERIVED_QUALITATIVE',
   namedWells: ['SOK1', 'SOK2', 'SOK3', 'PVK'],
