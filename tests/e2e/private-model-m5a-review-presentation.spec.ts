@@ -151,6 +151,13 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
       body: candidateModel,
     });
   });
+  await page.route('**/preview', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      body: '<!doctype html><html><body><main>Drainman source reference visible</main></body></html>',
+    });
+  });
 
   await page.goto(`/private-model/?review=${reviewId}`);
 
@@ -206,6 +213,9 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
   await expect(page.locator('#m5a-source-preview')).toHaveAttribute(
     'src',
     m5aReviewSourceContext.sourcePreviewUrl,
+  );
+  await expect(page.frameLocator('#m5a-source-preview').locator('body')).toContainText(
+    'Drainman source reference visible',
   );
   await expect(page.locator('#viewer-status')).toContainText(
     '4 kaivoa + 7 lähteistettyä yhteyttä',
