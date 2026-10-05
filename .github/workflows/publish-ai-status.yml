@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-      - 'chatgpt/ops9-ai-status-dashboard-r437'
     paths:
       - '.github/build-ai-status.py'
       - '.github/workflows/publish-ai-status.yml'
