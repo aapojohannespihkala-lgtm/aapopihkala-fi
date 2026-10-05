@@ -27,12 +27,15 @@ LANES = {
 FIELD_RE = re.compile(r"(?:^|\|\s*)([^|:]+):\s*([^|]+)")
 ISO_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})")
 
+
 def clean(value, limit=600):
     value = re.sub(r"\s+", " ", (value or "").replace("`", "")).strip(" .")
     return value[:limit]
 
+
 def fields(line):
     return {key.strip(): value.strip() for key, value in FIELD_RE.findall(line)}
+
 
 def parse_time(value):
     if not value:
@@ -41,6 +44,7 @@ def parse_time(value):
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         return None
+
 
 def timestamp(line, data):
     for key in ("päättyi", "checkpoint-aika", "claim-aika"):
@@ -51,6 +55,7 @@ def timestamp(line, data):
     match = ISO_RE.search(line)
     return match.group(0) if match else None
 
+
 def lane_name(code):
     if code in LANES:
         return LANES[code]
@@ -60,14 +65,60 @@ def lane_name(code):
         return "Viewer - " + code
     return code or "Muu työlinja"
 
+
 def after_prefix(line, prefix):
     return clean(line[len(prefix):].split(" | ", 1)[0], 320)
 
-def main():
-    if len(sys.argv) != 6:
-        raise SystemExit("usage: build-ai-status.py INPUT OUTPUT SOURCE_MODIFIED SOURCE_VERSION GENERATED_AT")
 
-    input_path, output_path, source_modified, source_version, generated_at = sys.argv[1:]
+def pass_count_from_ai_log(path, local_today):
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit(f"invalid AI pass log payload: {error}") from error
+
+    values = payload.get("values")
+    if not isinstance(values, list):
+        raise SystemExit("AI pass log payload is missing values")
+
+    header_index = None
+    header = None
+    for index, row in enumerate(values):
+        if not isinstance(row, list):
+            continue
+        names = [str(value) for value in row]
+        if all(name in names for name in ("Ajo-ID", "Lopetus", "Tulos")):
+            header_index = index
+            header = names
+            break
+
+    if header_index is None or header is None:
+        raise SystemExit("AI pass log header not found")
+
+    end_index = header.index("Lopetus")
+    result_index = header.index("Tulos")
+    count = 0
+
+    for row in values[header_index + 1:]:
+        if not isinstance(row, list):
+            continue
+        result = str(row[result_index]).strip() if result_index < len(row) else ""
+        end_value = str(row[end_index]).strip() if end_index < len(row) else ""
+        end_time = parse_time(end_value)
+        if result != "PASS" or end_time is None:
+            continue
+        if end_time.astimezone(HELSINKI).date() == local_today:
+            count += 1
+
+    return count
+
+
+def main():
+    if len(sys.argv) != 7:
+        raise SystemExit(
+            "usage: build-ai-status.py INPUT OUTPUT SOURCE_MODIFIED SOURCE_VERSION GENERATED_AT AI_PASS_LOG_JSON"
+        )
+
+    input_path, output_path, source_modified, source_version, generated_at, ai_pass_log_path = sys.argv[1:]
     text = Path(input_path).read_text(encoding="utf-8")
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
@@ -177,19 +228,16 @@ def main():
     recent = events[:30]
 
     local_today = now.astimezone(HELSINKI).date()
-    passes_today = sum(
-        1
-        for event in events
-        if event["state"] == "PASS" and parse_time(event["time"]).astimezone(HELSINKI).date() == local_today
-    )
+    passes_today = pass_count_from_ai_log(ai_pass_log_path, local_today)
 
     human_action = None
+    marker = "TOIMENPIDE IHMISELLE:"
     for line in lines[-250:]:
-        if "EI TOIMIA IHMISELLE" in line:
+        if line == "EI TOIMIA IHMISELLE":
             human_action = None
-        marker = "TOIMENPIDE IHMISELLE:"
-        if marker in line:
-            detail = clean(line.split(marker, 1)[1], 600)
+            continue
+        if line.startswith(marker):
+            detail = clean(line[len(marker):], 600)
             if detail:
                 human_action = {"title": "Sinulta tarvitaan", "detail": detail}
 
@@ -215,6 +263,7 @@ def main():
         json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
+
 
 if __name__ == "__main__":
     main()
