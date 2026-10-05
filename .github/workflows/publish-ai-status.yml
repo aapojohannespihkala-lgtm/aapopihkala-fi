@@ -1,6 +1,7 @@
 name: Publish Ylisrinne AI status
 
 on:
+  # Bootstrap immediately when the status pipeline itself changes on main.
   push:
     branches:
       - main
