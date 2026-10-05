@@ -9,6 +9,15 @@ export type ViewerLayerState = {
 
 export type ViewerLayerStateSource = 'manual' | `preset:${string}` | `reset:${string}`;
 
+export const createViewerLayerStateForModelLoad = (
+  options: { locusVisible?: boolean } = {},
+): ViewerLayerState => ({
+  roofVisible: true,
+  roofOpacity: 1,
+  locusVisible: options.locusVisible ?? false,
+  edgeMode: 'visible',
+});
+
 export const clampViewerLayerOpacity = (value: number) => Math.max(0, Math.min(1, value));
 
 export const mergeViewerLayerState = (
