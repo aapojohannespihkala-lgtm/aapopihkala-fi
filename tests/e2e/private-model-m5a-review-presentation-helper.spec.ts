@@ -1,0 +1,93 @@
+import { expect, test } from '@playwright/test';
+
+import {
+  m5aExpectedTargetCounts,
+  m5aExpectedTargetRenderableCount,
+  m5aReviewContextOpacity,
+  m5aReviewTargetOpacity,
+  prepareM5AReviewPresentation,
+} from '../../src/scripts/privateModelM5AReviewPresentation';
+import { THREE } from '../../src/scripts/threeRuntime';
+
+const makeTarget = (
+  representationKind: keyof typeof m5aExpectedTargetCounts,
+  index: number,
+) => {
+  const object = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.5, 0.5),
+    new THREE.MeshBasicMaterial({ opacity: 1 }),
+  );
+  object.position.set(index * 0.5, 0, index * 0.25);
+  object.userData = {
+    Pass: 'M5A',
+    Canonical: false,
+    representationKind,
+    presentationOnly: true,
+    workAssumption: true,
+    sourceDerivedTopology: true,
+    exactXYClaim: false,
+    exactZClaim: false,
+    physicalElevationClaim: false,
+    currentGeometryClaim: false,
+    asBuiltClaim: false,
+    publishToCURRENT: false,
+    ...(representationKind === 'wellMarkerWork'
+      ? { physicalWellGeometryClaim: false }
+      : { physicalRouteClaim: false }),
+    ...(representationKind === 'unresolvedBoundaryMarker'
+      ? { boundaryStatus: 'UNRESOLVED_BOUNDARY' }
+      : {}),
+  };
+  return object;
+};
+
+test('M5A helper presents the exact 4+7+4 drainage topology target set at 80/20', () => {
+  const scene = new THREE.Group();
+  let index = 0;
+  for (const [kind, count] of Object.entries(m5aExpectedTargetCounts)) {
+    for (let i = 0; i < count; i += 1) {
+      scene.add(makeTarget(kind as keyof typeof m5aExpectedTargetCounts, index));
+      index += 1;
+    }
+  }
+
+  const context = new THREE.Mesh(
+    new THREE.BoxGeometry(3, 1, 3),
+    new THREE.MeshBasicMaterial({ opacity: 1 }),
+  );
+  context.userData = { G2Id: 'G2_BUILDING_CONTEXT_001' };
+  scene.add(context);
+
+  const result = prepareM5AReviewPresentation(scene);
+
+  expect(result.targetRenderableCount).toBe(m5aExpectedTargetRenderableCount);
+  expect(result.targetRenderableCount).toBe(15);
+  expect(result.targetCounts).toEqual(m5aExpectedTargetCounts);
+  expect(result.missingTargetKinds).toEqual([]);
+  expect(result.semanticViolationCount).toBe(0);
+  expect(result.contextRenderableCount).toBe(1);
+  expect(result.targetBounds).not.toBeNull();
+
+  for (const object of scene.children.slice(0, 15)) {
+    expect((object as any).material.opacity).toBe(m5aReviewTargetOpacity);
+    expect((object as any).userData.m5aReviewRole).toBe('QUESTION_TARGET_80');
+  }
+  expect((context.material as any).opacity).toBe(m5aReviewContextOpacity);
+  expect(context.userData.m5aReviewRole).toBe('BUILDING_SITE_CONTEXT_20');
+});
+
+test('M5A helper blocks promotion-like target semantics', () => {
+  const scene = new THREE.Group();
+  let index = 0;
+  for (const [kind, count] of Object.entries(m5aExpectedTargetCounts)) {
+    for (let i = 0; i < count; i += 1) {
+      scene.add(makeTarget(kind as keyof typeof m5aExpectedTargetCounts, index));
+      index += 1;
+    }
+  }
+  scene.children[0].userData.exactXYClaim = true;
+
+  const result = prepareM5AReviewPresentation(scene);
+  expect(result.targetRenderableCount).toBe(15);
+  expect(result.semanticViolationCount).toBe(1);
+});
