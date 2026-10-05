@@ -138,7 +138,23 @@ test('private viewer wires P185C review alias to D 1F 80/20 presentation without
   expect(viewerSource).toContain("p185PhysicalCableRouteClaim: 'false'");
   expect(viewerSource).toContain("p185HumanReview: 'NOT_RUN'");
   expect(viewerSource).toContain("standardViewPreset: 'd-1f'");
-  expect(viewerSource).toContain("applyStandardViewPreset('d-1f')");
+
+  const p185StateStart = viewerSource.indexOf('const applyP185cReviewState');
+  const p185StateEnd = viewerSource.indexOf(
+    'const applyP181bR1ReviewState',
+    p185StateStart,
+  );
+  expect(p185StateStart).toBeGreaterThanOrEqual(0);
+  expect(p185StateEnd).toBeGreaterThan(p185StateStart);
+  const p185StateSource = viewerSource.slice(p185StateStart, p185StateEnd);
+  expect(p185StateSource).toContain("applyStandardViewPreset('d-1f')");
+  expect(p185StateSource).toContain('setModelScene(fullModelScene)');
+  expect(p185StateSource).toContain('deactivateDCoordinateReview()');
+  expect(p185StateSource).toContain('setD1KnownDoorReviewLabelsVisible(false)');
+  expect(p185StateSource).toContain('for (const doorMarker of dReviewDoorMarkerLines)');
+  expect(p185StateSource.indexOf("applyStandardViewPreset('d-1f')")).toBeLessThan(
+    p185StateSource.indexOf('prepareP185ReviewPresentation(fullModelScene)'),
+  );
 });
 
 
@@ -336,6 +352,15 @@ test('P185C review autoload renders the bounded 80/20 question state on canvas',
   await expect(canvas).toHaveAttribute('data-p185-review-semantic-violation-count', '0');
   await expect(canvas).toHaveAttribute('data-p185-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-1f');
+  await expect(canvas).toHaveAttribute(
+    'data-p185-review-scene',
+    'FULL_MODEL_WITH_D_1F_PLAN_CAMERA',
+  );
+  await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '0');
+  await expect(canvas).toHaveAttribute('data-d1-known-door-labels-visible', 'false');
+  await expect(page.locator('#d1-known-door-label-layer')).toBeHidden();
+  await expect(page.locator('#d1-known-door-legend')).toBeHidden();
+  await expect(page.locator('#coordinate-panel')).toBeHidden();
   await expect(page.locator('#viewer-status')).toContainText(
     'source overlay + RK 80 % / D 1F context 20 %',
   );
