@@ -2580,6 +2580,37 @@ test('private viewer uses a true orthographic isometric preset without resetting
   await expect(page.locator('#selection-panel')).toBeVisible();
 });
 
+test('private viewer top and bottom views are orthographic pan/zoom views without rotation', async ({ page }) => {
+  const model = makeTriangleGlb({ presentationLayer: 'REFERENCE_ROOF' });
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+
+  await clickViewAction(page, 'Ylhäältä');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'disabled');
+  await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
+  await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
+
+  await clickViewAction(page, 'Alhaalta');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'bottom');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'disabled');
+  await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
+  await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
+});
+
 test('private viewer roof test layer toggles explicit roof metadata and exposes opacity control', async ({
   page,
 }) => {
