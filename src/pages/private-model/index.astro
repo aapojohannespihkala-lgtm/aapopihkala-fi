@@ -1576,7 +1576,10 @@ const title = 'Private 3D viewer';
         hasVisibleMaterial,
         isEffectivelyVisible,
       } from '../../scripts/privateModelObjectVisibility';
-      import { installArchitecturalLayerRuntime } from '../../scripts/privateModelArchitecturalLayersRuntime';
+      import {
+        installArchitecturalLayerRuntime,
+        resetArchitecturalLayerRuntimeState,
+      } from '../../scripts/privateModelArchitecturalLayersRuntime';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
       import {
         isEdgeMeshCandidate,
@@ -4510,11 +4513,7 @@ const title = 'Private 3D viewer';
           },
           `reset:${activeResearchPreset}`,
         );
-        window.dispatchEvent(
-          new CustomEvent('ylis-viewer-layer-controls-reset', {
-            detail: { layers: resetState.layers },
-          }),
-        );
+        resetArchitecturalLayerRuntimeState(resetState.layers);
         standardViewLayerDefaultsInitialized = true;
         canvas.dataset.standardViewPreset = activeResearchPreset;
         activateStandardViewCamera(activeResearchPreset);
