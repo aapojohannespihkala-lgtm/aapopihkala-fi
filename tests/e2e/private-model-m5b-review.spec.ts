@@ -73,6 +73,28 @@ test('M5B current review uses scene56 and only current SOK1/SOK2 routes as targe
   expect((context.material as any).opacity).toBe(m5bReviewContextOpacity);
 });
 
+test('M5B current review resolves persisted G2IdCandidate target identity', () => {
+  const root = new THREE.Group();
+  const current1 = makeRoute(m5bCurrentTargetIds[0], {
+    G2Id: undefined,
+    G2IdCandidate: m5bCurrentTargetIds[0],
+  });
+  const current2 = makeRoute(m5bCurrentTargetIds[1], {
+    G2Id: undefined,
+    G2IdCandidate: m5bCurrentTargetIds[1],
+  });
+  root.add(current1, current2);
+
+  const result = prepareM5BReviewPresentation(root, 'CURRENT');
+
+  expect(result.targetRenderableCount).toBe(2);
+  expect(result.foundTargetIds).toEqual([...m5bCurrentTargetIds]);
+  expect(result.missingTargetIds).toEqual([]);
+  expect(result.semanticViolationCount).toBe(0);
+  expect((current1.material as any).opacity).toBe(m5bReviewTargetOpacity);
+  expect((current2.material as any).opacity).toBe(m5bReviewTargetOpacity);
+});
+
 test('M5B planned comparison uses scene57, planned SOK2 targets, current SOK1 context and no current SOK2', () => {
   const root = new THREE.Group();
   const current1 = makeRoute(m5bCurrentTargetIds[0]);
