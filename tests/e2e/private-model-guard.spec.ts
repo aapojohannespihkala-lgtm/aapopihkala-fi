@@ -2580,6 +2580,44 @@ test('private viewer uses a true orthographic isometric preset without resetting
   await expect(page.locator('#selection-panel')).toBeVisible();
 });
 
+test('private viewer top and bottom views are orthographic pan/zoom views without rotation', async ({ page }) => {
+  const model = makeTriangleGlb({ presentationLayer: 'REFERENCE_ROOF' });
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const aiNavigator = page.locator('#ai-navigator-readout');
+
+  await clickViewAction(page, 'Ylhäältä');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'disabled');
+  await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
+  await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
+  await expect(aiNavigator).toHaveAttribute('data-look', /Z-1\.00/);
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  await expect(aiNavigator).toHaveAttribute('data-look', /Z-1\.00/);
+
+  await clickViewAction(page, 'Alhaalta');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'bottom');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'disabled');
+  await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
+  await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
+  await expect(aiNavigator).toHaveAttribute('data-look', /Z\+1\.00/);
+});
+
 test('private viewer roof test layer toggles explicit roof metadata and exposes opacity control', async ({
   page,
 }) => {
@@ -3081,6 +3119,76 @@ test('private viewer loads an allowlisted WORK_TEST candidate from the protected
   await expect(page.getByRole('button', { name: 'Palaa CURRENTiin' })).toBeHidden();
   expect(currentLoads).toBe(2);
   expect(candidateLoads).toBe(1);
+});
+
+test('private viewer resets stale manual layer state on direct model activation', async ({ page }) => {
+  const currentModel = makeTriangleGlb({ presentationLayer: 'REFERENCE_ROOF' });
+  const candidateModel = makeTriangleGlb({ presentationLayer: 'REFERENCE_ROOF' });
+  const candidateId = 'p136b-d-current-wall-corrected';
+  const candidateLabel = 'p136B - D current wall corrected';
+  const candidatePath = '/private-model/work-test/p136b-d-current-wall-corrected.glb';
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{ id: candidateId, label: candidateLabel, path: candidatePath }],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto('/private-model/');
+  const canvas = page.locator('#private-model-canvas');
+
+  await clickViewAction(page, 'Tontti');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'site');
+
+  await page.getByRole('button', { name: 'Layerit' }).click();
+  const roofToggle = page.locator('#roof-layer-visible');
+  const roofOpacity = page.locator('#roof-layer-opacity');
+  const edgeMode = page.locator('#edge-mode-select');
+  await expect(roofToggle).toBeEnabled();
+
+  await roofToggle.uncheck();
+  await roofOpacity.fill('40');
+  await roofOpacity.dispatchEvent('input');
+  await edgeMode.selectOption('none');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'false');
+  await expect(canvas).toHaveAttribute('data-layer-roof-opacity', '0.4');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'none');
+
+  await clickModelAction(page, 'Avaa WORK_TEST');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'preset:whole-building');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-layer-roof-opacity', '1');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'visible');
+  await expect(roofToggle).toBeChecked();
+  await expect(roofOpacity).toHaveValue('100');
+  await expect(edgeMode).toHaveValue('visible');
+
+  await roofToggle.uncheck();
+  await roofOpacity.fill('35');
+  await roofOpacity.dispatchEvent('input');
+  await edgeMode.selectOption('object');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'manual');
+
+  await clickModelAction(page, 'Palaa CURRENTiin');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-layer-state-source', 'preset:whole-building');
+  await expect(canvas).toHaveAttribute('data-layer-roof-visible', 'true');
+  await expect(canvas).toHaveAttribute('data-layer-roof-opacity', '1');
+  await expect(canvas).toHaveAttribute('data-layer-edge-mode', 'visible');
 });
 
 test('private viewer opens p139N in the guarded SITE_PLAN_OVERLAY scene with routes default-off', async ({ page }) => {
