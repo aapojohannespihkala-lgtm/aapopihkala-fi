@@ -1,3 +1,11 @@
+import {
+  formatHumanYlisLook,
+  formatNavigatorState,
+  formatSignedYlisBounds,
+  formatSignedYlisVector,
+  formatSignedYlisXY,
+  viewerWorldToYlis,
+} from './privateModelAiNavigator';
 import { THREE, getTrackedOrbitControls } from './threeRuntime';
 
 type QuaternionLike = {
@@ -98,17 +106,17 @@ const setAxisGeometry = (
   return { endX, endY, textX, textY, cameraZ: cameraVector.z };
 };
 
-const toYlis = (vector: THREE.Vector3) =>
-  new THREE.Vector3(vector.x, -vector.z, vector.y);
+const toYlis = (vector: THREE.Vector3) => {
+  const mapped = viewerWorldToYlis(vector);
+  return new THREE.Vector3(mapped.x, mapped.y, mapped.z);
+};
 
-const signed = (value: number, digits = 2) =>
-  `${value >= 0 ? '+' : ''}${value.toFixed(digits)}`;
-
-const createReadoutRow = (key: string) => {
+const createReadoutRow = (key: string, optional = false) => {
   const row = document.createElement('div');
   row.style.display = 'grid';
-  row.style.gridTemplateColumns = '43px minmax(0, 1fr)';
+  row.style.gridTemplateColumns = '46px minmax(0, 1fr)';
   row.style.gap = '5px';
+  if (optional) row.hidden = true;
 
   const label = document.createElement('span');
   label.textContent = key;
@@ -131,6 +139,12 @@ const quaternionDistance = (a: QuaternionLike, b: QuaternionLike) =>
   Math.abs(a.z - b.z) +
   Math.abs(a.w - b.w);
 
+const finiteDatasetNumber = (value: string | undefined) => {
+  if (value == null || value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 export const createOrientationGizmoController = ({
   root,
   axisX,
@@ -143,6 +157,9 @@ export const createOrientationGizmoController = ({
 
   root.dataset.frame = 'YLIS-G1-LOCAL';
   root.dataset.northAxis = '+Y';
+
+  const title = root.querySelector<HTMLElement>('.orientation-gizmo-title');
+  if (title) title.textContent = 'YLIS-G1-LOCAL · m';
 
   const canvas =
     root.closest('.viewport')?.querySelector<HTMLCanvasElement>('canvas') ??
@@ -159,7 +176,7 @@ export const createOrientationGizmoController = ({
     borderTop: '1px solid var(--viewer-line-soft, #46535d)',
     fontFamily:
       'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-    fontSize: '8px',
+    fontSize: '8.2px',
     lineHeight: '1.25',
     fontVariantNumeric: 'tabular-nums',
   });
@@ -167,18 +184,27 @@ export const createOrientationGizmoController = ({
   const modelRow = createReadoutRow('MODEL');
   const viewRow = createReadoutRow('VIEW');
   const lookRow = createReadoutRow('LOOK');
-  const centerRow = createReadoutRow('CENTER');
-  const boundsRow = createReadoutRow('BOUNDS');
+  const cameraRow = createReadoutRow('CAM');
+  const targetRow = createReadoutRow('TARGET');
+  const frameRow = createReadoutRow('FRAME');
+  const stateRow = createReadoutRow('STATE', true);
+  const pinRow = createReadoutRow('PIN', true);
   readout.append(
     modelRow.row,
     viewRow.row,
     lookRow.row,
-    centerRow.row,
-    boundsRow.row,
+    cameraRow.row,
+    targetRow.row,
+    frameRow.row,
+    stateRow.row,
+    pinRow.row,
   );
   root.append(readout);
 
-  const findControls = (quaternion: QuaternionLike, projection: 'perspective' | 'orthographic') => {
+  const findControls = (
+    quaternion: QuaternionLike,
+    projection: 'perspective' | 'orthographic',
+  ) => {
     if (!canvas) return null;
     const candidates = getTrackedOrbitControls(canvas).filter((controls) => {
       const camera = controls.object as any;
@@ -203,14 +229,15 @@ export const createOrientationGizmoController = ({
     quaternion: QuaternionLike,
     projection: 'perspective' | 'orthographic',
   ) => {
-    root.style.width = window.matchMedia('(max-width: 760px)').matches ? '176px' : '208px';
+    const compact = window.matchMedia('(max-width: 760px)').matches;
+    root.style.width = compact ? '196px' : '236px';
     const svg = root.querySelector<SVGElement>('svg');
     if (svg) {
-      svg.style.width = window.matchMedia('(max-width: 760px)').matches ? '56px' : '72px';
+      svg.style.width = compact ? '60px' : '78px';
       svg.style.maxWidth = svg.style.width;
       svg.style.marginInline = 'auto';
     }
-    readout.style.fontSize = window.matchMedia('(max-width: 760px)').matches ? '7px' : '8px';
+    readout.style.fontSize = compact ? '7.3px' : '8.2px';
 
     const controls = findControls(quaternion, projection);
     const camera = controls?.object as any;
@@ -230,37 +257,46 @@ export const createOrientationGizmoController = ({
     const candidateTag = candidateId ? candidateId.split('-')[0]?.toUpperCase() : '';
     const modelLabel =
       sourceKind === 'work-test'
-        ? `WORK_TEST${candidateTag ? ' · ' + candidateTag : ''}`
+        ? candidateTag
+          ? `${candidateTag} · WORK_TEST`
+          : 'WORK_TEST'
         : 'CURRENT';
 
     const preset = canvas.dataset.viewPreset ?? 'orbit';
     const elevationDirection = canvas.dataset.elevationDirection;
-    const viewLabel =
+    const presetLabel =
       preset === 'elevation' && elevationDirection
-        ? `ELEV ${elevationDirection.toUpperCase()} · ${projection === 'orthographic' ? 'ORTHO' : 'PERSP'}`
-        : `${preset.toUpperCase()} · ${projection === 'orthographic' ? 'ORTHO' : 'PERSP'}`;
+        ? `ELEV ${elevationDirection.toUpperCase()}`
+        : preset.toUpperCase();
+
+    const target = controls.target.clone();
+    let halfWidth = 0;
+    let halfHeight = 0;
+    let viewLabel = '';
+    if (camera.isPerspectiveCamera) {
+      const distance = Math.max(camera.position.distanceTo(target), 1e-6);
+      halfHeight = Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * distance;
+      halfWidth = halfHeight * Math.max(camera.aspect || 1, 1e-6);
+      viewLabel = `PERSPECTIVE ${Math.round(camera.fov)}° · ${presetLabel}`;
+    } else if (camera.isOrthographicCamera) {
+      halfWidth = Math.abs(camera.right - camera.left) / (2 * Math.max(camera.zoom, 1e-6));
+      halfHeight = Math.abs(camera.top - camera.bottom) / (2 * Math.max(camera.zoom, 1e-6));
+      viewLabel =
+        `ORTHO ${(halfWidth * 2).toFixed(1)}×${(halfHeight * 2).toFixed(1)} m · ${presetLabel}`;
+    } else {
+      viewLabel = `${projection.toUpperCase()} · ${presetLabel}`;
+    }
 
     const look = new THREE.Vector3(0, 0, -1)
       .applyQuaternion(camera.quaternion)
       .normalize();
     const lookYlis = toYlis(look).normalize();
-    const target = controls.target.clone();
+    const cameraYlis = toYlis(camera.position);
     const targetYlis = toYlis(target);
-    const lookLabel =
-      `X${signed(lookYlis.x)} Y${signed(lookYlis.y)} Z${signed(lookYlis.z)}`;
-    const centerLabel =
-      `X${signed(targetYlis.x)} Y${signed(targetYlis.y)} Z${signed(targetYlis.z)}`;
-
-    let halfWidth = 0;
-    let halfHeight = 0;
-    if (camera.isPerspectiveCamera) {
-      const distance = Math.max(camera.position.distanceTo(target), 1e-6);
-      halfHeight = Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * distance;
-      halfWidth = halfHeight * Math.max(camera.aspect || 1, 1e-6);
-    } else if (camera.isOrthographicCamera) {
-      halfWidth = Math.abs(camera.right - camera.left) / (2 * Math.max(camera.zoom, 1e-6));
-      halfHeight = Math.abs(camera.top - camera.bottom) / (2 * Math.max(camera.zoom, 1e-6));
-    }
+    const lookLabel = formatHumanYlisLook(lookYlis);
+    const lookVectorLabel = formatSignedYlisVector(lookYlis);
+    const cameraLabel = formatSignedYlisVector(cameraYlis);
+    const targetLabel = formatSignedYlisVector(targetYlis);
 
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
     const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
@@ -274,17 +310,54 @@ export const createOrientationGizmoController = ({
         bounds.expandByPoint(toYlis(corner));
       }
     }
-    const boundsLabel =
-      `X ${bounds.min.x.toFixed(1)}..${bounds.max.x.toFixed(1)} · ` +
-      `Y ${bounds.min.y.toFixed(1)}..${bounds.max.y.toFixed(1)} · ` +
-      `Z ${bounds.min.z.toFixed(1)}..${bounds.max.z.toFixed(1)}`;
+    const frameLabel = formatSignedYlisBounds(
+      {
+        min: { x: bounds.min.x, y: bounds.min.y, z: bounds.min.z },
+        max: { x: bounds.max.x, y: bounds.max.y, z: bounds.max.z },
+      },
+      1,
+    );
+
+    const clipZM =
+      canvas.dataset.horizontalClip === 'active'
+        ? finiteDatasetNumber(canvas.dataset.horizontalClipHeightM)
+        : null;
+    const roofVisible =
+      canvas.dataset.layerRoofVisible === 'true'
+        ? true
+        : canvas.dataset.layerRoofVisible === 'false'
+          ? false
+          : null;
+    const stateLabel = formatNavigatorState({
+      clipZM,
+      objectMode:
+        canvas.dataset.objectVisibilityFilter === 'active'
+          ? canvas.dataset.objectVisibilityMode ?? 'filter'
+          : null,
+      roofVisible,
+      roofOpacity: finiteDatasetNumber(canvas.dataset.layerRoofOpacity),
+    });
+
+    const pinX = finiteDatasetNumber(canvas.dataset.reviewAnchorX);
+    const pinY = finiteDatasetNumber(canvas.dataset.reviewAnchorY);
+    const pinZ = finiteDatasetNumber(canvas.dataset.reviewAnchorZ);
+    const pinLabel =
+      pinX != null && pinY != null
+        ? pinZ != null
+          ? formatSignedYlisVector({ x: pinX, y: pinY, z: pinZ })
+          : formatSignedYlisXY({ x: pinX, y: pinY })
+        : '';
 
     const nextNavigatorSignature = [
       modelLabel,
       viewLabel,
       lookLabel,
-      centerLabel,
-      boundsLabel,
+      lookVectorLabel,
+      cameraLabel,
+      targetLabel,
+      frameLabel,
+      stateLabel,
+      pinLabel,
     ].join('|');
     if (navigatorSignature === nextNavigatorSignature) return false;
     navigatorSignature = nextNavigatorSignature;
@@ -292,16 +365,30 @@ export const createOrientationGizmoController = ({
     modelRow.value.textContent = modelLabel;
     viewRow.value.textContent = viewLabel;
     lookRow.value.textContent = lookLabel;
-    centerRow.value.textContent = centerLabel;
-    boundsRow.value.textContent = boundsLabel;
+    cameraRow.value.textContent = cameraLabel;
+    targetRow.value.textContent = targetLabel;
+    frameRow.value.textContent = frameLabel;
+    stateRow.row.hidden = stateLabel.length === 0;
+    stateRow.value.textContent = stateLabel || '-';
+    pinRow.row.hidden = pinLabel.length === 0;
+    pinRow.value.textContent = pinLabel || '-';
 
     readout.dataset.frame = 'YLIS-G1-LOCAL';
     readout.dataset.model = modelLabel;
     readout.dataset.view = viewLabel;
     readout.dataset.look = lookLabel;
-    readout.dataset.center = centerLabel;
-    readout.dataset.visibleBounds = boundsLabel;
+    readout.dataset.lookVector = lookVectorLabel;
+    readout.dataset.camera = cameraLabel;
+    readout.dataset.target = targetLabel;
+    readout.dataset.frameBounds = frameLabel;
+    readout.dataset.frameBasis = 'camera-target-plane';
+    readout.dataset.center = targetLabel;
+    readout.dataset.visibleBounds = frameLabel;
     readout.dataset.boundsBasis = 'camera-target-plane';
+    if (stateLabel) readout.dataset.state = stateLabel;
+    else delete readout.dataset.state;
+    if (pinLabel) readout.dataset.pin = pinLabel;
+    else delete readout.dataset.pin;
     readout.dataset.ready = 'true';
     root.dataset.aiNavigatorReady = 'true';
     canvas.dataset.aiNavigator = 'ready';
