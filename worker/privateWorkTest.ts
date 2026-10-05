@@ -302,6 +302,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_934_024,
     expectedSha256: '9599dec3db6a8cf1961f5db1a91d9722566dadd9a4176861e1e087722a3cea6c',
   },
+  // M5A viewer/release registration: exact persisted drainage topology presentation WORK_TEST.
+  {
+    id: 'm5a-drain-topology',
+    label: 'M5A drainage topology presentation - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-drain-topology.glb`,
+    objectKey: 'work-test/m5a-drain-topology.glb',
+    expectedSize: 2_882_760,
+    expectedSha256: '3116b8e6a38b5942f5500754bb5a948d0e8194c7d6afe4cbdb1f4b5ac6a0b640',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
