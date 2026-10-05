@@ -129,7 +129,7 @@ test('private source-reference write stores validated PDF with private inline R2
   expect(isPrivateSourceReferenceObjectValid(object, reference)).toBe(true);
   expect(object.httpMetadata).toEqual({
     contentType: 'application/pdf',
-    contentDisposition: 'inline; filename="m5a-drainman.pdf"',
+    contentDisposition: 'inline; filename="unit-source.pdf"',
     cacheControl: 'private, no-store',
   });
 });
