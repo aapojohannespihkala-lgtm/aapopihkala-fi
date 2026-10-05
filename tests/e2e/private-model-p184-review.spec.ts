@@ -14,6 +14,7 @@ import {
   p184DTargetG2Id,
   p184DTargetRepresentationKind,
   prepareP184DReviewPresentation,
+  prepareP184ReviewPresentation,
 } from '../../src/scripts/privateModelP184ReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
 
@@ -107,6 +108,72 @@ test('P184D review keeps only the exact island plus explicit D 2F architecture c
   const targetCenter = presentation.targetBounds!.getCenter(new THREE.Vector3());
   expect(reference.position.x).toBeCloseTo(targetCenter.x + (0.831 - 2.481), 6);
   expect(presentation.cabinetFrontWorldX).toBeCloseTo(reference.position.x, 6);
+});
+
+test('P184 pass-aware review selects the requested successor pass and preserves P184D compatibility', () => {
+  const scene = new THREE.Group();
+
+  const p184dIsland = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 1.85, 0.9),
+    new THREE.MeshBasicMaterial({ opacity: 1 }),
+  );
+  p184dIsland.position.set(2.481, 3.9, 3.21);
+  p184dIsland.userData = {
+    Pass: 'P184D',
+    G2Id: p184DTargetG2Id,
+    representationKind: p184DTargetRepresentationKind,
+    sourceChainCabinetFrontXM: 0.831,
+  };
+
+  const p184fIsland = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 1.85, 0.9),
+    new THREE.MeshBasicMaterial({ opacity: 1 }),
+  );
+  p184fIsland.position.set(4.072, 3.9, 3.21);
+  p184fIsland.userData = {
+    Pass: 'P184F',
+    G2Id: p184DTargetG2Id,
+    representationKind: p184DTargetRepresentationKind,
+    sourceChainCabinetFrontXM: 5.722,
+  };
+
+  scene.add(p184dIsland, p184fIsland);
+
+  const presentation = prepareP184ReviewPresentation(scene, 'P184F');
+
+  expect(presentation.targetRenderableCount).toBe(1);
+  expect(presentation.cabinetFrontReferenceRenderableCount).toBe(1);
+  expect(presentation.sourceChainCabinetFrontXM).toBeCloseTo(5.722, 6);
+  expect(p184fIsland.visible).toBe(true);
+  expect(p184fIsland.userData.p184ReviewPass).toBe('P184F');
+  expect(p184fIsland.userData.p184ReviewRole).toBe('ISLAND_TARGET_80');
+  expect(p184fIsland.userData.p184DReviewPresentation).toBeUndefined();
+  expect(p184dIsland.visible).toBe(false);
+
+  const reference = scene.getObjectByName(
+    'P184F_SOURCE_CHAIN_CABINET_FRONT_X_REFERENCE_VIEWER_ONLY',
+  ) as any;
+  expect(reference).toBeTruthy();
+  expect(reference.position.x).toBeCloseTo(5.722, 6);
+  expect(reference.userData.p184ReviewPass).toBe('P184F');
+  expect(reference.userData.extentBasis).toBe('P184F_TARGET_BOUNDS_ONLY');
+
+  const legacyScene = new THREE.Group();
+  const legacyIsland = p184dIsland.clone();
+  legacyIsland.material = new THREE.MeshBasicMaterial({ opacity: 1 });
+  legacyIsland.userData = { ...p184dIsland.userData };
+  legacyIsland.visible = true;
+  legacyScene.add(legacyIsland);
+
+  const legacyPresentation = prepareP184DReviewPresentation(legacyScene);
+  expect(legacyPresentation.targetRenderableCount).toBe(1);
+  expect(legacyIsland.userData.p184DReviewPresentation).toBe(true);
+  expect(legacyIsland.userData.p184DReviewRole).toBe('ISLAND_TARGET_80');
+  expect(
+    legacyScene.getObjectByName(
+      'P184D_SOURCE_CHAIN_CABINET_FRONT_X_REFERENCE_VIEWER_ONLY',
+    ),
+  ).toBeTruthy();
 });
 
 test('P184D review refuses to invent a cabinet-front reference when exact target metadata is absent', () => {
