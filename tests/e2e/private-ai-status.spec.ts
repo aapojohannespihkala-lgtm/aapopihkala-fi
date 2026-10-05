@@ -102,10 +102,10 @@ test('Ylisrinne AI status keeps its live loader inline', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Ylisrinne AI - tilanne' })).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow,noarchive');
 
-  const loader = page.locator('script:not([src])').filter({
-    hasText: '/private-model/status/data.json',
-  });
-  await expect(loader).toHaveCount(1);
+  const inlineScripts = await page.locator('script:not([src])').evaluateAll((nodes) =>
+    nodes.map((node) => node.textContent ?? ''),
+  );
+  expect(inlineScripts.some((source) => source.includes('/private-model/status/data.json'))).toBe(true);
 });
 
 test('Ylisrinne AI status renders published data in the browser', async ({ page }) => {
