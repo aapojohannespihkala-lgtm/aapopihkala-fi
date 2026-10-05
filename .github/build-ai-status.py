@@ -318,19 +318,25 @@ def main():
                 })
             continue
 
-        if line.startswith("VALMIS /"):
+        terminal_prefix = next(
+            (prefix for prefix in ("VALMIS /", "KESKEYTYNYT /", "ESTYNYT /") if line.startswith(prefix)),
+            None,
+        )
+        if terminal_prefix:
             run_id = data.get("ajo-ID") or data.get("alkuperäinen ajo-ID")
             removed = active.pop(run_id, None) if run_id else None
-            lane_code = clean(data.get("kaista", removed.get("laneCode", "") if removed else ""), 120)
-            if event_time:
-                title = clean(line.split(" - ", 1)[1].split(" | ", 1)[0] if " - " in line else "Valmistunut passi", 320)
-                events.append({
-                    "time": event_time,
-                    "state": "PASS",
-                    "lane": lane_name(lane_code),
-                    "title": title,
-                    "detail": clean(data.get("tulos", ""), 600),
-                })
+            if terminal_prefix == "VALMIS /":
+                lane_code = clean(data.get("kaista", removed.get("laneCode", "") if removed else ""), 120)
+                if event_time:
+                    title = clean(line.split(" - ", 1)[1].split(" | ", 1)[0] if " - " in line else "Valmistunut passi", 320)
+                    events.append({
+                        "time": event_time,
+                        "state": "PASS",
+                        "lane": lane_name(lane_code),
+                        "title": title,
+                        "detail": clean(data.get("tulos", ""), 600),
+                    })
+            continue
 
     # Same scope can be reclaimed after an expired lease. Show only its latest live owner.
     latest_by_scope = {}

@@ -129,6 +129,27 @@ def main():
         "detail": "Avaa yksi review-linkki",
     }, action_result
 
+    lifecycle_handoff = "\n".join(
+        [
+            "DISPATCH-CLAIM - V4 INTEGRATION_QA | claim-ID: interrupted-run | scope-key: interrupted | "
+            "claim-aika: 2026-10-05T18:20:00+03:00 | tarkoitus: Keskeytyvä työ | tila: CLAIMED.",
+            "VARAUS - interrupted work | kaista: V4 INTEGRATION_QA | ajo-ID: interrupted-run | "
+            "scope-key: interrupted | checkpoint-aika: 2026-10-05T18:21:00+03:00 | tila: AKTIIVINEN.",
+            "KESKEYTYNYT / VARAUS VAPAUTETTU - interrupted work | kaista: V4 INTEGRATION_QA | "
+            "ajo-ID: interrupted-run | päättyi: 2026-10-05T18:22:00+03:00 | tila: KESKEYTYNYT / VARAUS VAPAUTETTU.",
+            "DISPATCH-CLAIM - OPS8 PROCESS_INTEGRITY | claim-ID: blocked-run | scope-key: blocked | "
+            "claim-aika: 2026-10-05T18:23:00+03:00 | tarkoitus: Estyvä työ | tila: CLAIMED.",
+            "VARAUS - blocked work | kaista: OPS8 PROCESS_INTEGRITY | ajo-ID: blocked-run | "
+            "scope-key: blocked | checkpoint-aika: 2026-10-05T18:24:00+03:00 | tila: AKTIIVINEN.",
+            "ESTYNYT / VARAUS VAPAUTETTU - blocked work | kaista: OPS8 PROCESS_INTEGRITY | "
+            "ajo-ID: blocked-run | päättyi: 2026-10-05T18:25:00+03:00 | tila: ESTYNYT / VARAUS VAPAUTETTU.",
+        ]
+    )
+    lifecycle_result = run_case(lifecycle_handoff, ai_log)
+    assert lifecycle_result["summary"]["activePackages"] == 0, lifecycle_result
+    assert lifecycle_result["summary"]["activeLines"] == 0, lifecycle_result
+    assert not any(entry["state"] == "PASS" for entry in lifecycle_result["recent"]), lifecycle_result
+
     print("PASS: compacted handoff uses JSON/XLSX AI-passiloki count and ignores instruction markers")
 
 
