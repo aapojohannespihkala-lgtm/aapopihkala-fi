@@ -81,7 +81,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(39);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(40);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -351,6 +351,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     expectedSha256: '94fe2edb781530b76c09286aa39b7ab0c22cc35a028627b32ac833df3e24e9e2',
   });
 
+  const m5b = getPrivateWorkTestCandidateById('m5b-roof-stormwater-current-planned');
+  expect(m5b).toMatchObject({
+    id: 'm5b-roof-stormwater-current-planned',
+    label: 'M5B roof stormwater current/planned variants - WORK_TEST',
+    path: '/private-model/work-test/m5b-roof-stormwater-current-planned.glb',
+    objectKey: 'work-test/m5b-roof-stormwater-current-planned.glb',
+    expectedSize: 2_898_064,
+    expectedSha256: '0802c082425c9e2f231b1681a6bceec825e3d63e038ca43b02dd86d872f6c08f',
+  });
+
   const p164b = getPrivateWorkTestCandidateById('p164b-d-corrected-stair');
   expect(p164b).toMatchObject({
     id: 'p164b-d-corrected-stair',
@@ -526,12 +536,21 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestPublishCandidate(p184gPublishPath)?.id).toBe(
     'p184g-whole-building-survivor-island-x-axis-selfconsistency',
   );
+  const m5bPublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}m5b-roof-stormwater-current-planned.glb`;
+  expect(getPrivateWorkTestPublishCandidate(m5bPublishPath)?.id).toBe(
+    'm5b-roof-stormwater-current-planned',
+  );
   expect(getPrivateWorkTestPublishCandidate(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}not-allowlisted.glb`)).toBeNull();
   expect(
     getPrivateWorkTestVerifyCandidate(
       `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p150g-whole-building-end-plinth.glb`,
     )?.id,
   ).toBe('p150g-whole-building-end-plinth');
+  expect(
+    getPrivateWorkTestVerifyCandidate(
+      `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}m5b-roof-stormwater-current-planned.glb`,
+    )?.id,
+  ).toBe('m5b-roof-stormwater-current-planned');
   expect(
     getPrivateWorkTestVerifyCandidate(`${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}not-allowlisted.glb`),
   ).toBeNull();
