@@ -470,6 +470,47 @@ const title = 'Private 3D viewer';
         font-size: 10px;
       }
 
+      .m5a-source-context {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 7;
+        width: min(430px, calc(100% - 24px));
+        max-height: calc(100% - 24px);
+        overflow: auto;
+        padding: 10px 12px;
+        border: 1px solid var(--viewer-line-soft);
+        border-radius: 10px;
+        background: rgba(27, 36, 45, 0.94);
+        color: var(--viewer-ink);
+        box-shadow: none;
+        pointer-events: none;
+      }
+
+      .m5a-source-context[hidden] { display: none; }
+
+      .m5a-source-context h2 {
+        margin: 0 0 6px;
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .m5a-source-context p {
+        margin: 4px 0;
+        color: var(--viewer-ink-soft);
+        font-size: 10px;
+        line-height: 1.35;
+      }
+
+      .m5a-source-context strong { color: var(--viewer-ink); }
+
+      .m5a-source-context .m5a-source-limit {
+        margin-top: 7px;
+        padding-top: 7px;
+        border-top: 1px solid var(--viewer-line-soft);
+        color: var(--viewer-stone-light);
+      }
+
       .orientation-gizmo {
         position: absolute;
         right: 12px;
@@ -1382,6 +1423,14 @@ const title = 'Private 3D viewer';
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
+        <aside id="m5a-source-context" class="m5a-source-context" aria-label="Salaojakatselmuksen lähdekonteksti" hidden>
+          <h2>Salaojien lähdekonteksti</h2>
+          <p id="m5a-source-context-source"></p>
+          <p id="m5a-source-context-topology"></p>
+          <p id="m5a-source-context-orientation"></p>
+          <p id="m5a-source-context-question"></p>
+          <p id="m5a-source-context-limit" class="m5a-source-limit"></p>
+        </aside>
         <aside
           id="orientation-gizmo"
           class="orientation-gizmo"
@@ -1623,6 +1672,8 @@ const title = 'Private 3D viewer';
       import {
         m5aExpectedTargetRenderableCount,
         m5aReviewContextOpacity,
+        m5aReviewQuestionText,
+        m5aReviewSourceContext,
         m5aReviewTargetOpacity,
         prepareM5AReviewPresentation,
       } from '../../scripts/privateModelM5AReviewPresentation';
@@ -1794,6 +1845,12 @@ const title = 'Private 3D viewer';
       const workTestUploadInput = document.querySelector<HTMLInputElement>('#work-test-upload-input');
       const currentModelButton = document.querySelector<HTMLButtonElement>('#current-model-button');
       const modelSourceBadge = document.querySelector<HTMLElement>('#model-source-badge');
+      const m5aSourceContextPanel = document.querySelector<HTMLElement>('#m5a-source-context');
+      const m5aSourceContextSource = document.querySelector<HTMLElement>('#m5a-source-context-source');
+      const m5aSourceContextTopology = document.querySelector<HTMLElement>('#m5a-source-context-topology');
+      const m5aSourceContextOrientation = document.querySelector<HTMLElement>('#m5a-source-context-orientation');
+      const m5aSourceContextQuestion = document.querySelector<HTMLElement>('#m5a-source-context-question');
+      const m5aSourceContextLimit = document.querySelector<HTMLElement>('#m5a-source-context-limit');
       const layersPanel = document.querySelector<HTMLElement>('#layers-panel');
       const closeLayersButton = document.querySelector<HTMLButtonElement>('#close-layers-button');
       const roofLayerVisibleInput = document.querySelector<HTMLInputElement>('#roof-layer-visible');
@@ -4625,11 +4682,44 @@ const title = 'Private 3D viewer';
 
       type ModelSourceKind = 'current' | 'work-test';
 
+      const setM5aSourceContextVisible = (visible: boolean) => {
+        if (!m5aSourceContextPanel) return;
+        m5aSourceContextPanel.hidden = !visible;
+        if (!visible) {
+          delete canvas.dataset.m5aSourceContextReady;
+          delete canvas.dataset.m5aReviewQuestionText;
+          return;
+        }
+
+        if (m5aSourceContextSource) {
+          m5aSourceContextSource.textContent =
+            `Lähdeperusta: ${m5aReviewSourceContext.sourceLabel}. Kvalitatiivinen SOURCE_DERIVED-esitys.`;
+        }
+        if (m5aSourceContextTopology) {
+          m5aSourceContextTopology.textContent =
+            `Lähteistetty topologia: ${m5aReviewSourceContext.namedWells.join(', ')} ja ${m5aReviewSourceContext.supportedLinkCount} yhteyttä.`;
+        }
+        if (m5aSourceContextOrientation) {
+          m5aSourceContextOrientation.textContent =
+            `Piirrossuunta: ala → ${m5aReviewSourceContext.drawingLowerMapping}; ylä → ${m5aReviewSourceContext.drawingUpperMapping}; vasen → ${m5aReviewSourceContext.drawingLeftMapping}.`;
+        }
+        if (m5aSourceContextQuestion) {
+          m5aSourceContextQuestion.textContent = `Arvioi vain: ${m5aReviewQuestionText}`;
+        }
+        if (m5aSourceContextLimit) {
+          m5aSourceContextLimit.textContent =
+            'Rajaus: ei exact XY/Z-, fyysistä reitti-, purkupaikka-, as-built-, canonical- tai CURRENT-väitettä.';
+        }
+        canvas.dataset.m5aSourceContextReady = 'true';
+        canvas.dataset.m5aReviewQuestionText = m5aReviewQuestionText;
+      };
+
       const applyLoadedModel = (
         gltf: any,
         sourceKind: ModelSourceKind,
         sourceLabel: string,
       ) => {
+        setM5aSourceContextVisible(false);
         resetObjectVisibilityFilterState();
         resetHorizontalClipping();
         clearSelection();
@@ -6378,6 +6468,13 @@ const title = 'Private 3D viewer';
         Object.assign(canvas.dataset, {
           workTestReviewMode: m5aDrainageReviewId,
           m5aReviewQuestion: 'DRAINAGE_TOPOLOGY_VISUAL_PLACEMENT_AND_CONNECTIVITY',
+          m5aReviewQuestionText,
+          m5aSourceContextClass: m5aReviewSourceContext.sourceClass,
+          m5aSourceNamedWellCount: String(m5aReviewSourceContext.namedWells.length),
+          m5aSourceSupportedLinkCount: String(m5aReviewSourceContext.supportedLinkCount),
+          m5aDrawingLowerMapping: m5aReviewSourceContext.drawingLowerMapping,
+          m5aDrawingUpperMapping: m5aReviewSourceContext.drawingUpperMapping,
+          m5aDrawingLeftMapping: m5aReviewSourceContext.drawingLeftMapping,
           m5aTargetOpacity: m5aReviewTargetOpacity.toFixed(2),
           m5aContextOpacity: m5aReviewContextOpacity.toFixed(2),
           m5aReviewTargetRenderableCount: String(presentation.targetRenderableCount),
@@ -6404,8 +6501,9 @@ const title = 'Private 3D viewer';
           m5aReviewCameraMode: 'PERSPECTIVE_FREE_ORBIT',
           standardViewPreset: 'whole-building',
         });
+        setM5aSourceContextVisible(true);
         status.textContent =
-          'M5A salaojatopologia - WORK_TEST / salaojatopologia 80 % / rakennus- ja maastokonteksti 20 % / HUMAN_REVIEW NOT_RUN';
+          'M5A salaojatopologia - WORK_TEST / 4 kaivoa + 7 lähteistettyä yhteyttä / target 80 % / konteksti 20 % / lähdekonteksti mukana / HUMAN_REVIEW NOT_RUN';
       };
 
       const applyP185cReviewState = () => {
