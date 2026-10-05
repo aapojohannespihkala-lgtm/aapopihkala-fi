@@ -3853,7 +3853,9 @@ const title = 'Private 3D viewer';
           if (activePlanFloor) fitPlanCamera();
           else if (activeCamera === isoCamera) {
             if (activeElevationDirection) fitElevationCamera(activeElevationDirection);
-            else fitIsometricCamera();
+            else if (canvas.dataset.viewPreset === 'top' || canvas.dataset.viewPreset === 'bottom') {
+              fitAxisCamera(canvas.dataset.viewPreset);
+            } else fitIsometricCamera();
           }
         }
       };
@@ -3993,6 +3995,49 @@ const title = 'Private 3D viewer';
         return true;
       };
 
+      const fitAxisCamera = (
+        direction: 'top' | 'bottom',
+        sceneRoot: any = resolveActiveResearchContentScene(),
+      ) => {
+        if (!sceneRoot) return false;
+
+        const box = computeVisibleBounds(sceneRoot, true);
+        if (!box) return false;
+
+        const center = new THREE.Vector3();
+        const size = new THREE.Vector3();
+        box.getCenter(center);
+        box.getSize(size);
+
+        const aspect = Math.max(canvas.clientWidth / Math.max(canvas.clientHeight, 1), 0.01);
+        let halfWidth = Math.max(size.x * 0.54, 0.25);
+        let halfHeight = Math.max(size.z * 0.54, 0.25);
+        const modelAspect = halfWidth / Math.max(halfHeight, 1e-6);
+        if (aspect > modelAspect) halfWidth = halfHeight * aspect;
+        else halfHeight = halfWidth / aspect;
+
+        const distance = Math.max(size.length() * 1.25, size.y * 4, 4);
+        isoCamera.position.copy(center).add(
+          direction === 'top'
+            ? new THREE.Vector3(0, distance, 0)
+            : new THREE.Vector3(0, -distance, 0),
+        );
+        isoCamera.up.set(0, 0, direction === 'top' ? -1 : 1);
+        isoCamera.lookAt(center);
+        isoCamera.left = -halfWidth;
+        isoCamera.right = halfWidth;
+        isoCamera.top = halfHeight;
+        isoCamera.bottom = -halfHeight;
+        isoCamera.near = Math.max(distance / 10000, 0.001);
+        isoCamera.far = Math.max(distance * 4 + size.y, 1000);
+        isoCamera.zoom = 1;
+        isoCamera.updateProjectionMatrix();
+
+        isoControls.target.copy(center);
+        isoControls.update();
+        return true;
+      };
+
       const axisView = (direction: 'top' | 'bottom') => {
         const contentScene = resolveActiveResearchContentScene();
         if (!contentScene) return;
@@ -4002,29 +4047,16 @@ const title = 'Private 3D viewer';
         activePlanFloor = null;
         deactivateDCoordinateReview();
         setD1KnownDoorReviewLabelsVisible(false);
+        controls.enabled = false;
         planControls.enabled = false;
-        isoControls.enabled = false;
-        controls.enableRotate = false;
-        controls.enabled = true;
-        activeCamera = camera;
+        setIsoRotationMode('disabled');
+        isoControls.enabled = true;
+        activeCamera = isoCamera;
         setModelScene(contentScene);
         applyRoofLayerState();
         applyLocusLayerState();
 
-        if (!refreshFullModelFitMetrics(contentScene)) return;
-        controls.target.copy(modelCenter);
-
-        if (direction === 'top') {
-          camera.position.copy(modelCenter).add(new THREE.Vector3(0, fitDistance, 0));
-          camera.up.set(0, 0, -1);
-        } else {
-          camera.position.copy(modelCenter).add(new THREE.Vector3(0, -fitDistance, 0));
-          camera.up.set(0, 0, 1);
-        }
-
-        camera.lookAt(modelCenter);
-        camera.updateProjectionMatrix();
-        controls.update();
+        if (!fitAxisCamera(direction, contentScene)) return;
         syncViewState(direction);
       };
 

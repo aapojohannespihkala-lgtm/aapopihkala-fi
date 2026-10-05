@@ -2580,6 +2580,44 @@ test('private viewer uses a true orthographic isometric preset without resetting
   await expect(page.locator('#selection-panel')).toBeVisible();
 });
 
+test('private viewer top and bottom views are orthographic pan/zoom views without rotation', async ({ page }) => {
+  const model = makeTriangleGlb({ presentationLayer: 'REFERENCE_ROOF' });
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: model,
+    });
+  });
+
+  await page.goto('/private-model/');
+  await expect(page.getByRole('status')).toHaveText('Malli ladattu');
+
+  const canvas = page.locator('#private-model-canvas');
+  const aiNavigator = page.locator('#ai-navigator-readout');
+
+  await clickViewAction(page, 'Ylhäältä');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'disabled');
+  await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
+  await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
+  await expect(aiNavigator).toHaveAttribute('data-look', /Z-1\.00/);
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await expect(canvas).toHaveAttribute('data-view-preset', 'top');
+  await expect(aiNavigator).toHaveAttribute('data-look', /Z-1\.00/);
+
+  await clickViewAction(page, 'Alhaalta');
+  await expect(canvas).toHaveAttribute('data-view-preset', 'bottom');
+  await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
+  await expect(canvas).toHaveAttribute('data-camera-rotation', 'disabled');
+  await expect(canvas).toHaveAttribute('data-camera-pan', 'enabled');
+  await expect(canvas).toHaveAttribute('data-camera-zoom', 'enabled');
+  await expect(aiNavigator).toHaveAttribute('data-look', /Z\+1\.00/);
+});
+
 test('private viewer roof test layer toggles explicit roof metadata and exposes opacity control', async ({
   page,
 }) => {
