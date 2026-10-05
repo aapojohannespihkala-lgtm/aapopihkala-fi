@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 import json
+import posixpath
 import re
 import sys
+import zipfile
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -70,15 +73,137 @@ def after_prefix(line, prefix):
     return clean(line[len(prefix):].split(" | ", 1)[0], 320)
 
 
-def pass_count_from_ai_log(path, local_today):
+def _xlsx_column_index(cell_ref):
+    letters = "".join(character for character in cell_ref if character.isalpha())
+    if not letters:
+        return 0
+    value = 0
+    for character in letters.upper():
+        value = value * 26 + (ord(character) - ord("A") + 1)
+    return value - 1
+
+
+def _xlsx_sheet_values(path, sheet_name):
+    spreadsheet_ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+    office_rel_ns = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    package_rel_ns = "http://schemas.openxmlformats.org/package/2006/relationships"
+    ns = {"m": spreadsheet_ns, "r": office_rel_ns}
+
+    try:
+        archive = zipfile.ZipFile(path)
+    except (OSError, zipfile.BadZipFile) as error:
+        raise SystemExit(f"invalid AI pass log workbook: {error}") from error
+
+    with archive:
+        try:
+            workbook = ET.fromstring(archive.read("xl/workbook.xml"))
+            relationships = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+        except (KeyError, ET.ParseError) as error:
+            raise SystemExit(f"invalid AI pass log workbook metadata: {error}") from error
+
+        relationship_id = None
+        for sheet in workbook.findall("m:sheets/m:sheet", ns):
+            if sheet.get("name") == sheet_name:
+                relationship_id = sheet.get(f"{{{office_rel_ns}}}id")
+                break
+        if not relationship_id:
+            raise SystemExit(f"AI pass log sheet not found: {sheet_name}")
+
+        target = None
+        for relationship in relationships.findall(f"{{{package_rel_ns}}}Relationship"):
+            if relationship.get("Id") == relationship_id:
+                target = relationship.get("Target")
+                break
+        if not target:
+            raise SystemExit("AI pass log sheet relationship missing")
+
+        if target.startswith("/"):
+            sheet_path = target.lstrip("/")
+        else:
+            sheet_path = posixpath.normpath(posixpath.join("xl", target))
+        try:
+            sheet_xml = ET.fromstring(archive.read(sheet_path))
+        except (KeyError, ET.ParseError) as error:
+            raise SystemExit(f"invalid AI pass log sheet XML: {error}") from error
+
+        shared_strings = []
+        try:
+            shared_xml = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+            for item in shared_xml.findall(f"{{{spreadsheet_ns}}}si"):
+                shared_strings.append(
+                    "".join(
+                        node.text or ""
+                        for node in item.iter(f"{{{spreadsheet_ns}}}t")
+                    )
+                )
+        except KeyError:
+            pass
+        except ET.ParseError as error:
+            raise SystemExit(f"invalid AI pass log shared strings: {error}") from error
+
+        values = []
+        for row in sheet_xml.findall(".//m:sheetData/m:row", ns):
+            output_row = []
+            for cell in row.findall("m:c", ns):
+                cell_ref = cell.get("r", "A1")
+                column_index = _xlsx_column_index(cell_ref)
+                while len(output_row) <= column_index:
+                    output_row.append("")
+
+                cell_type = cell.get("t", "")
+                if cell_type == "inlineStr":
+                    inline = cell.find("m:is", ns)
+                    value = (
+                        "".join(
+                            node.text or ""
+                            for node in inline.iter(f"{{{spreadsheet_ns}}}t")
+                        )
+                        if inline is not None
+                        else ""
+                    )
+                else:
+                    value_node = cell.find("m:v", ns)
+                    raw_value = value_node.text if value_node is not None and value_node.text is not None else ""
+                    if cell_type == "s" and raw_value:
+                        try:
+                            value = shared_strings[int(raw_value)]
+                        except (ValueError, IndexError):
+                            value = raw_value
+                    else:
+                        value = raw_value
+                output_row[column_index] = value
+            values.append(output_row)
+        return values
+
+
+def _ai_pass_values(path):
+    if zipfile.is_zipfile(path):
+        return _xlsx_sheet_values(path, "AI-passiloki")
     try:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise SystemExit(f"invalid AI pass log payload: {error}") from error
-
     values = payload.get("values")
     if not isinstance(values, list):
         raise SystemExit("AI pass log payload is missing values")
+    return values
+
+
+def _parse_log_time(value):
+    parsed = parse_time(value)
+    if parsed is not None:
+        return parsed
+    try:
+        excel_serial = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not 20000 <= excel_serial <= 100000:
+        return None
+    return datetime(1899, 12, 30, tzinfo=HELSINKI) + timedelta(days=excel_serial)
+
+
+def pass_count_from_ai_log(path, local_today):
+    values = _ai_pass_values(path)
 
     header_index = None
     header = None
@@ -103,7 +228,7 @@ def pass_count_from_ai_log(path, local_today):
             continue
         result = str(row[result_index]).strip() if result_index < len(row) else ""
         end_value = str(row[end_index]).strip() if end_index < len(row) else ""
-        end_time = parse_time(end_value)
+        end_time = _parse_log_time(end_value)
         if result != "PASS" or end_time is None:
             continue
         if end_time.astimezone(HELSINKI).date() == local_today:
