@@ -147,11 +147,13 @@ const renderJourneys = (data) => {
         ? 'Vielä edessä tässä kehitysmallissa: ' + remaining.join(' → ') + '.'
         : 'Tämän kehitysmallin tekniset vaiheet on käyty läpi.';
 
+    const workTitle = journeyGoal(item) === 'Tilannesivu valmiiksi ja tuotantoon' ? '' : item.title;
+
     card.append(
       head,
       track,
       text('p', 'Nyt: ' + nowText + '.', 'journey-now'),
-      text('p', item.title, 'journey-work muted'),
+      ...(workTitle ? [text('p', workTitle, 'journey-work muted')] : []),
       text('p', remainingText, 'journey-remaining'),
     );
     root.append(card);
