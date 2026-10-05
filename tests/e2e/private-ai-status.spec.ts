@@ -138,6 +138,7 @@ test('handoff parser derives active work and completed passes without a second r
   const directory = mkdtempSync(join(tmpdir(), 'ylisrinne-status-'));
   const input = join(directory, 'handoff.txt');
   const output = join(directory, 'status.json');
+  const aiPassLog = join(directory, 'ai-pass-log.json');
   const fixture = [
     'DISPATCH-CLAIM - V1 CAMERA_NAV | claim-ID: 2026-10-05T18:18:00+03:00-v1-unit-r1 | scope-key: unit-camera | claim-aika: 2026-10-05T18:18:00+03:00 | tarkoitus: Tee kameratesti | tila: CLAIMED.',
     'VARAUS - unit camera work | kaista: V1 CAMERA_NAV | ajo-ID: 2026-10-05T18:18:00+03:00-v1-unit-r1 | scope-key: unit-camera | checkpoint-aika: 2026-10-05T18:19:00+03:00 | tila: AKTIIVINEN.',
@@ -147,6 +148,16 @@ test('handoff parser derives active work and completed passes without a second r
 
   try {
     writeFileSync(input, fixture, 'utf8');
+    writeFileSync(
+      aiPassLog,
+      JSON.stringify({
+        values: [
+          ['Ajo-ID', 'Lopetus', 'Tulos'],
+          ['unit-pass', '2026-10-05T18:12:00+03:00', 'PASS'],
+        ],
+      }),
+      'utf8',
+    );
     execFileSync(
       'python3',
       [
@@ -156,6 +167,7 @@ test('handoff parser derives active work and completed passes without a second r
         '2026-10-05T15:19:30Z',
         '1234',
         '2026-10-05T15:20:00Z',
+        aiPassLog,
       ],
       { cwd: process.cwd(), stdio: 'pipe' },
     );
