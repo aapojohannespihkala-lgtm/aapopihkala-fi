@@ -1607,6 +1607,12 @@ const title = 'Private 3D viewer';
         prepareP184ReviewPresentation,
       } from '../../scripts/privateModelP184ReviewPresentation';
       import {
+        getM5BReviewSceneIndex,
+        prepareM5BReviewPresentation,
+        type M5BReviewVariant,
+      } from '../../scripts/privateModelM5BReviewPresentation';
+      import { createM5BReviewRuntimeState } from '../../scripts/privateModelM5BReviewRuntime';
+      import {
         p183P160ClosureContextOpacity,
         p183P160ClosureTargetOpacity,
         prepareP183P160ClosureReviewPresentation,
@@ -1714,6 +1720,9 @@ const title = 'Private 3D viewer';
         p184dReviewId,
         p184gCandidateId,
         p184gReviewId,
+        m5bCandidateId,
+        m5bCurrentReviewId,
+        m5bPlannedSok2ComparisonReviewId,
         p164bCandidateId,
         p164bReviewId,
         p167fCandidateId,
@@ -6582,6 +6591,31 @@ const title = 'Private 3D viewer';
           'P153C D-portaat - WORK_TEST / portaat + opening-frame + guard/lowWall - mitat refinable, pilarijakso DEFERRED';
       };
 
+      const m5bReviewDatasetKeys = [
+        'm5bReviewVariant',
+        'm5bReviewQuestion',
+        'm5bSceneIndex',
+        'm5bTargetG2Ids',
+        'm5bReviewTargetOpacity',
+        'm5bReviewContextOpacity',
+        'm5bReviewTargetRenderableCount',
+        'm5bReviewContextRenderableCount',
+        'm5bReviewSuppressedCrossVariantCount',
+        'm5bExactXYClaim',
+        'm5bExactZClaim',
+        'm5bPhysicalRouteClaim',
+        'm5bCurrentGeometryClaim',
+        'm5bAsBuiltClaim',
+        'm5bCanonical',
+        'm5bPublishToCurrent',
+        'm5bHumanReview',
+        'm5bReviewCameraMode',
+      ] as const;
+
+      const clearM5BReviewState = () => {
+        for (const key of m5bReviewDatasetKeys) delete canvas.dataset[key];
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         const loader = new GLTFLoader();
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
@@ -6642,6 +6676,15 @@ const title = 'Private 3D viewer';
             candidate.id === p184dCandidateId && isP184dIslandXReviewRequested();
           const isP184gIslandXReview =
             candidate.id === p184gCandidateId && isP184gIslandXReviewRequested();
+          const isM5BCurrentReview =
+            candidate.id === m5bCandidateId &&
+            isPrivateModelReviewRequested(window.location.search, m5bCurrentReviewId);
+          const isM5BPlannedSok2ComparisonReview =
+            candidate.id === m5bCandidateId &&
+            isPrivateModelReviewRequested(
+              window.location.search,
+              m5bPlannedSok2ComparisonReviewId,
+            );
           const isP164bCorrectedStairReview =
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP167fPreciseStairReview =
@@ -6667,7 +6710,18 @@ const title = 'Private 3D viewer';
           const isP139adLocusWorkZReview =
             isP139abZReview && isP139adLocusWorkZReviewRequested();
 
-          if (isP143dScalgoInfraReview) {
+          let m5bRuntimeState: ReturnType<typeof createM5BReviewRuntimeState> | null = null;
+          if (isM5BCurrentReview || isM5BPlannedSok2ComparisonReview) {
+            const variant: M5BReviewVariant = isM5BCurrentReview
+              ? 'CURRENT'
+              : 'PLANNED_SOK2_COMPARISON';
+            const sceneIndex = getM5BReviewSceneIndex(variant);
+            const reviewScene = gltf.scenes?.[sceneIndex];
+            if (!reviewScene) throw new Error(`M5B review scene ${sceneIndex} missing`);
+            gltf.scene = reviewScene;
+            const presentation = prepareM5BReviewPresentation(reviewScene, variant);
+            m5bRuntimeState = createM5BReviewRuntimeState(variant, presentation);
+          } else if (isP143dScalgoInfraReview) {
             gltf.scene = buildP143dScalgoInfraReviewScene(gltf);
           } else if (isP139nReview) {
             const planScene = findSourceNamedScene(gltf, p139nPlanSceneName);
@@ -6684,6 +6738,7 @@ const title = 'Private 3D viewer';
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
+          clearM5BReviewState();
           delete canvas.dataset.g3SourcePhase;
           delete canvas.dataset.g3OverlayPrimitive;
           delete canvas.dataset.g3OverlayAnchorCount;
@@ -7317,7 +7372,11 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (isP169fStorageDoorReview) {
+          if (m5bRuntimeState) {
+            Object.assign(canvas.dataset, m5bRuntimeState.dataset);
+            applyStandardViewPreset(m5bRuntimeState.standardViewPreset);
+            status.textContent = m5bRuntimeState.statusText;
+          } else if (isP169fStorageDoorReview) {
             applyP169fReviewState();
           } else if (isP169aStorageVisibleReview) {
             applyP169aReviewState();

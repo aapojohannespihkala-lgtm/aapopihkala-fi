@@ -85,6 +85,11 @@ export const p184dReviewId = 'p184d-whole-building-survivor-island-x-source-chai
 export const p184gCandidateId = 'p184g-whole-building-survivor-island-x-axis-selfconsistency';
 export const p184gReviewId = 'p184g-whole-building-survivor-island-x-axis-selfconsistency-review';
 
+export const m5bCandidateId = 'm5b-roof-stormwater-current-planned';
+export const m5bCurrentReviewId = 'm5b-roof-stormwater-current-review';
+export const m5bPlannedSok2ComparisonReviewId =
+  'm5b-roof-stormwater-planned-sok2-comparison-review';
+
 export const p164bCandidateId = 'p164b-d-corrected-stair';
 export const p164bReviewId = 'p164b-d-corrected-stair-review';
 
@@ -134,6 +139,8 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p181bR1ReviewId]: p181bR1CandidateId,
   [p184dReviewId]: p184dCandidateId,
   [p184gReviewId]: p184gCandidateId,
+  [m5bCurrentReviewId]: m5bCandidateId,
+  [m5bPlannedSok2ComparisonReviewId]: m5bCandidateId,
   [p164bReviewId]: p164bCandidateId,
   [p167fReviewId]: p167fCandidateId,
   [p168aReviewId]: p168aCandidateId,
