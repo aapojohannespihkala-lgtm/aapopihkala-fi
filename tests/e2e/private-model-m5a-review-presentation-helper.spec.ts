@@ -86,7 +86,7 @@ test('M5A review source context keeps the human question qualitative and self-co
   );
   expect(m5aReviewSourceContext.sourceDrawingByteSize).toBe(1132069);
   expect(m5aReviewSourceContext.sourcePreviewUrl).toBe(
-    'https://drive.google.com/file/d/1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC/preview',
+    '/private-model/source-reference/m5a-drainman.pdf',
   );
   expect(m5aReviewSourceContext.namedWells).toEqual(['SOK1', 'SOK2', 'SOK3', 'PVK']);
   expect(m5aReviewSourceContext.supportedLinkCount).toBe(7);
