@@ -4786,7 +4786,8 @@ const title = 'Private 3D viewer';
         p161IvSectionVisible = layers.p161IvSectionVisible;
       };
 
-      const applyResearchPreset = (preset: ViewerResearchPreset) => {
+      const applyDrainageResearchPreset = () => {
+        const preset: ViewerResearchPreset = 'drainage';
         const presetState = createViewerInteractionState(preset);
         setActiveResearchPreset(preset);
         applyResetLayerHierarchyDefaults(presetState.layers);
@@ -4797,11 +4798,11 @@ const title = 'Private 3D viewer';
             locusVisible: presetState.layers.locusVisible,
             edgeMode: presetState.presentation.edgeMode,
           },
-          `preset:${preset}`,
+          'preset:drainage',
         );
         resetArchitecturalLayerRuntimeState(presetState.layers);
         setDrainageLayerForResearchPreset(preset);
-        canvas.dataset.layerStateSource = `preset:${preset}`;
+        canvas.dataset.layerStateSource = 'preset:drainage';
         standardViewLayerDefaultsInitialized = true;
         canvas.dataset.standardViewPreset = preset;
         activateStandardViewCamera(preset);
@@ -8757,11 +8758,11 @@ const title = 'Private 3D viewer';
       layersButton.addEventListener('click', () => closeToolbarMenus());
       fitButton.addEventListener('click', fitModel);
       resetViewDefaultsButton.addEventListener('click', resetActiveViewDefaults);
-      wholeBuildingPresetButton.addEventListener('click', () => applyResearchPreset('whole-building'));
-      dOverviewPresetButton.addEventListener('click', () => applyResearchPreset('d-apartment'));
-      sitePresetButton.addEventListener('click', () => applyResearchPreset('site'));
-      infraPresetButton.addEventListener('click', () => applyResearchPreset('infra'));
-      drainagePresetButton.addEventListener('click', () => applyResearchPreset('drainage'));
+      wholeBuildingPresetButton.addEventListener('click', () => applyStandardViewPreset('whole-building'));
+      dOverviewPresetButton.addEventListener('click', () => applyStandardViewPreset('d-apartment'));
+      sitePresetButton.addEventListener('click', () => applyStandardViewPreset('site'));
+      infraPresetButton.addEventListener('click', () => applyStandardViewPreset('infra'));
+      drainagePresetButton.addEventListener('click', applyDrainageResearchPreset);
       orbitButton.addEventListener('click', fitModel);
       topButton.addEventListener('click', () => applyStandardViewPreset('top'));
       bottomButton.addEventListener('click', () => axisView('bottom'));
@@ -8770,8 +8771,8 @@ const title = 'Private 3D viewer';
       elevNegYButton.addEventListener('click', () => applyStandardViewPreset('elev-neg-y'));
       elevPosXButton.addEventListener('click', () => applyStandardViewPreset('elev-pos-x'));
       elevNegXButton.addEventListener('click', () => applyStandardViewPreset('elev-neg-x'));
-      d1PlanButton.addEventListener('click', () => applyResearchPreset('d-1f'));
-      d2PlanButton.addEventListener('click', () => applyResearchPreset('d-2f'));
+      d1PlanButton.addEventListener('click', () => applyStandardViewPreset('d-1f'));
+      d2PlanButton.addEventListener('click', () => applyStandardViewPreset('d-2f'));
       workTestSelect.addEventListener('change', () => {
         workTestButton.disabled = !workTestCandidates.has(workTestSelect.value);
         clearModelComparisonState();
