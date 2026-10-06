@@ -3590,6 +3590,43 @@ const title = 'Private 3D viewer';
         applyLocusLayerState();
       };
 
+      const applyElectricalLayerState = () => {
+        for (const member of electricalLayerMembers) {
+          const baseline = electricalLayerVisibilityBaseline.get(member) ?? true;
+          member.visible = baseline && electricalLayerVisible;
+        }
+        electricalLayerVisibleInput.checked = electricalLayerVisible;
+        electricalLayerVisibleInput.disabled = electricalLayerMembers.size === 0;
+        canvas.dataset.electricalLayerVisible = electricalLayerVisible ? 'true' : 'false';
+        if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
+      };
+
+      const initializeElectricalLayer = () => {
+        electricalLayerMembers.clear();
+        electricalLayerVisibilityBaseline.clear();
+        electricalLayerVisible = true;
+        const renderables = new Set<any>();
+
+        if (fullModelScene) {
+          fullModelScene.traverse((object: any) => {
+            if (!isElectricalLayerMember(object)) return;
+            object.traverse?.((member: any) => {
+              electricalLayerMembers.add(member);
+              if (!electricalLayerVisibilityBaseline.has(member)) {
+                electricalLayerVisibilityBaseline.set(member, member.visible);
+              }
+              if (member?.isMesh || member?.isLine || member?.isLineSegments || member?.isPoints) {
+                renderables.add(member);
+              }
+            });
+          });
+        }
+
+        electricalLayerCount.textContent = String(renderables.size) + ' kohdetta';
+        canvas.dataset.electricalLayerCount = String(renderables.size);
+        applyElectricalLayerState();
+      };
+
       const setLayersPanelOpen = (open: boolean, restoreFocus = false) => {
         layersPanel.hidden = !open;
         layersButton.setAttribute('aria-expanded', String(open));
@@ -5055,6 +5092,7 @@ const title = 'Private 3D viewer';
         initializeFullModelArchBase();
         initializeRoofLayer();
         initializeLocusLayer();
+        initializeElectricalLayer();
         prepareD2FBoundaryReviewContext();
 
         dVisibilityBaseline.clear();
