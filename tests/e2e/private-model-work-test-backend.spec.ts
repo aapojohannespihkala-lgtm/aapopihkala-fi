@@ -377,8 +377,8 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     label: 'M5A drainage topology presentation - WORK_TEST',
     path: '/private-model/work-test/m5a-drain-topology.glb',
     objectKey: 'work-test/m5a-drain-topology.glb',
-    expectedSize: 2_885_188,
-    expectedSha256: 'b04167cf6c19c1d4150dd2bd19fc38506b04a1b3e1ad70f551d9450f624053b1',
+    expectedSize: 2_903_856,
+    expectedSha256: 'e9455f8be8062ce7ebeca3046711896f12d990aad53e03226d87afc416bbb69e',
   });
 
   const p164b = getPrivateWorkTestCandidateById('p164b-d-corrected-stair');
