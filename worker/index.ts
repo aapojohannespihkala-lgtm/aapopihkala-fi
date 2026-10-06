@@ -11,6 +11,7 @@ import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/curre
 import { handlePrivateModelRequest, isPrivateModelPath, type PrivateModelEnv } from './privateModel';
 import { handlePrivateAiStatusRequest, isPrivateAiStatusPath } from './privateAiStatus';
 import { handlePrivateWorkTestRequest, isPrivateWorkTestPath } from './privateWorkTest';
+import { handlePrivateSourceReferenceRequest, isPrivateSourceReferencePath } from './privateSourceReference';
 
 type WorkerEnv = PrivateModelEnv & { DIGITRANSIT_API_KEY?: string };
 type ResponseCache = {
@@ -377,6 +378,9 @@ const worker = {
     }
     if (isPrivateWorkTestPath(url.pathname)) {
       return handlePrivateWorkTestRequest(request, env);
+    }
+    if (isPrivateSourceReferencePath(url.pathname)) {
+      return handlePrivateSourceReferenceRequest(request, env);
     }
     if (isPrivateModelPath(url.pathname)) return handlePrivateModelRequest(request, env);
     if (url.pathname === ELECTRICITY_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityPriceResponse(); }

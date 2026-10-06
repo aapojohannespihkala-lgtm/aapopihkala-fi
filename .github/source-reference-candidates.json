@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "references": {
+    "m5a-drainman": {
+      "driveFileId": "1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC",
+      "expectedSize": 1132069,
+      "expectedSha256": "963bcc1a3a1492a965a7842d8a409d062d8de091d4c8177cf7114c91b359a2c7",
+      "path": "/private-model/source-reference/m5a-drainman.pdf"
+    }
+  }
+}
