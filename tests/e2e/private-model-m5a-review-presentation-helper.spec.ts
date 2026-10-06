@@ -4,6 +4,8 @@ import {
   m5aExpectedTargetCounts,
   m5aExpectedTargetRenderableCount,
   m5aReviewContextOpacity,
+  m5aReviewQuestionText,
+  m5aReviewSourceContext,
   m5aReviewTargetOpacity,
   prepareM5AReviewPresentation,
 } from '../../src/scripts/privateModelM5AReviewPresentation';
@@ -74,6 +76,29 @@ test('M5A helper presents the exact 4+7+4 drainage topology target set at 80/20'
   }
   expect((context.material as any).opacity).toBe(m5aReviewContextOpacity);
   expect(context.userData.m5aReviewRole).toBe('BUILDING_SITE_CONTEXT_20');
+});
+
+test('M5A review source context keeps the human question qualitative and self-contained', () => {
+  expect(m5aReviewQuestionText).toContain('suhteellinen topologia');
+  expect(m5aReviewQuestionText).toContain('yleinen sijoittuminen');
+  expect(m5aReviewSourceContext.sourceDrawingDriveId).toBe(
+    '1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC',
+  );
+  expect(m5aReviewSourceContext.sourceDrawingByteSize).toBe(1132069);
+  expect(m5aReviewSourceContext.sourcePreviewUrl).toBe(
+    '/private-model/source-reference/m5a-drainman.pdf',
+  );
+  expect(m5aReviewSourceContext.namedWells).toEqual(['SOK1', 'SOK2', 'SOK3', 'PVK']);
+  expect(m5aReviewSourceContext.supportedLinkCount).toBe(7);
+  expect(m5aReviewSourceContext.drawingLowerMapping).toBe('+X / itäpääty / WORK_ASSUMPTION');
+  expect(m5aReviewSourceContext.drawingUpperMapping).toBe('-X / länsipääty / WORK_ASSUMPTION');
+  expect(m5aReviewSourceContext.drawingLeftMapping).toContain('WORK_ASSUMPTION');
+  expect(m5aReviewSourceContext.exactXYClaim).toBe(false);
+  expect(m5aReviewSourceContext.exactZClaim).toBe(false);
+  expect(m5aReviewSourceContext.physicalRouteClaim).toBe(false);
+  expect(m5aReviewSourceContext.currentGeometryClaim).toBe(false);
+  expect(m5aReviewSourceContext.asBuiltClaim).toBe(false);
+  expect(m5aReviewSourceContext.canonical).toBe(false);
 });
 
 test('M5A helper blocks promotion-like target semantics', () => {

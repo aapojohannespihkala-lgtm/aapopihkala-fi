@@ -14,6 +14,29 @@ export const m5aExpectedTargetRenderableCount = Object.values(m5aExpectedTargetC
   0,
 );
 
+export const m5aReviewQuestionText =
+  'Näyttävätkö salaojajärjestelmän suhteellinen topologia ja kaivojen yleinen sijoittuminen rakennuksen ympärille uskottavilta suhteessa viereiseen Drainman-lähdepiirrokseen?';
+
+export const m5aReviewSourceContext = {
+  sourceLabel: 'Salaojapiirros Drainman.pdf',
+  sourceDrawingDriveId: '1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC',
+  sourceDrawingByteSize: 1132069,
+  sourcePreviewUrl: '/private-model/source-reference/m5a-drainman.pdf',
+  technicalSourceLabel: 'Drainman 21.7.2026 salaojien seurantatarkastus',
+  sourceClass: 'SOURCE_REFERENCE_PLUS_DERIVED_QUALITATIVE',
+  namedWells: ['SOK1', 'SOK2', 'SOK3', 'PVK'],
+  supportedLinkCount: 7,
+  drawingLowerMapping: '+X / itäpääty / WORK_ASSUMPTION',
+  drawingUpperMapping: '-X / länsipääty / WORK_ASSUMPTION',
+  drawingLeftMapping: 'Y-min / WORK_ASSUMPTION',
+  exactXYClaim: false,
+  exactZClaim: false,
+  physicalRouteClaim: false,
+  currentGeometryClaim: false,
+  asBuiltClaim: false,
+  canonical: false,
+} as const;
+
 const targetKinds = new Set<string>(Object.keys(m5aExpectedTargetCounts));
 
 const isRenderable = (object: any) =>

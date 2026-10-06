@@ -5,6 +5,8 @@ import { expect, test } from '@playwright/test';
 import {
   m5aExpectedTargetRenderableCount,
   m5aReviewContextOpacity,
+  m5aReviewQuestionText,
+  m5aReviewSourceContext,
   m5aReviewTargetOpacity,
 } from '../../src/scripts/privateModelM5AReviewPresentation';
 
@@ -106,6 +108,9 @@ test('M5A review wiring is scoped to conventional review id and no-promotion pre
   expect(viewerSource).toContain("m5aExactXYClaim: 'false'");
   expect(viewerSource).toContain("m5aExactZClaim: 'false'");
   expect(viewerSource).toContain("m5aHumanReview: 'NOT_RUN'");
+  expect(viewerSource).toContain('m5a-source-context');
+  expect(viewerSource).toContain('m5aReviewQuestionText');
+  expect(viewerSource).toContain('m5aReviewSourceContext');
 });
 
 test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20', async ({ page }) => {
@@ -146,10 +151,25 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
       body: candidateModel,
     });
   });
+  let releaseSourcePreview: (() => void) | undefined;
+  const sourcePreviewGate = new Promise<void>((resolve) => {
+    releaseSourcePreview = resolve;
+  });
+  await page.route('**/m5a-drainman.pdf', async (route) => {
+    await sourcePreviewGate;
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      body: '<!doctype html><html><body><main>Drainman source reference visible</main></body></html>',
+    });
+  });
 
-  await page.goto(`/private-model/?review=${reviewId}`);
+  await page.goto(`/private-model/?review=${reviewId}`, { waitUntil: 'domcontentloaded' });
 
   const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-m5a-source-preview-load-state', 'requesting');
+  await expect(canvas).toHaveAttribute('data-m5a-source-context-ready', 'false');
+  releaseSourcePreview?.();
   await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId);
@@ -170,9 +190,55 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
   await expect(canvas).toHaveAttribute('data-m5a-review-semantic-violation-count', '0');
   await expect(canvas).toHaveAttribute('data-m5a-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
-  await expect(page.locator('#viewer-status')).toContainText(
-    'salaojatopologia 80 % / rakennus- ja maastokonteksti 20 %',
+  await expect(canvas).toHaveAttribute('data-m5a-review-camera-focus-applied', 'true');
+  await expect(canvas).toHaveAttribute('data-m5a-review-framing-corner-count', '8');
+  await expect(canvas).toHaveAttribute('data-m5a-review-framing-margin', '0.94');
+  await expect(canvas).toHaveAttribute('data-m5a-review-framing-in-frame', 'true');
+  const reviewFocusRadius = Number(await canvas.getAttribute('data-m5a-review-focus-radius'));
+  expect(Number.isFinite(reviewFocusRadius)).toBe(true);
+  expect(reviewFocusRadius).toBeGreaterThan(0);
+  const framingMaxAbsNdc = Number(await canvas.getAttribute('data-m5a-review-framing-max-abs-ndc'));
+  expect(Number.isFinite(framingMaxAbsNdc)).toBe(true);
+  expect(framingMaxAbsNdc).toBeLessThanOrEqual(0.94);
+  await expect(canvas).toHaveAttribute('data-m5a-source-context-ready', 'true');
+  await expect(canvas).toHaveAttribute('data-m5a-source-preview-load-state', 'loaded');
+  await expect(canvas).toHaveAttribute(
+    'data-m5a-source-drawing-drive-id',
+    m5aReviewSourceContext.sourceDrawingDriveId,
   );
+  await expect(canvas).toHaveAttribute(
+    'data-m5a-source-drawing-byte-size',
+    String(m5aReviewSourceContext.sourceDrawingByteSize),
+  );
+  await expect(canvas).toHaveAttribute('data-m5a-review-question-text', m5aReviewQuestionText);
+  await expect(canvas).toHaveAttribute(
+    'data-m5a-source-context-class',
+    m5aReviewSourceContext.sourceClass,
+  );
+  await expect(canvas).toHaveAttribute('data-m5a-source-named-well-count', '4');
+  await expect(canvas).toHaveAttribute('data-m5a-source-supported-link-count', '7');
+
+  const sourceContext = page.locator('#m5a-source-context');
+  await expect(sourceContext).toBeVisible();
+  await expect(sourceContext).toContainText(m5aReviewSourceContext.sourceLabel);
+  await expect(sourceContext).toContainText('SOK1, SOK2, SOK3, PVK');
+  await expect(sourceContext).toContainText('7 yhteyttä');
+  await expect(sourceContext).toContainText(m5aReviewSourceContext.drawingLowerMapping);
+  await expect(sourceContext).toContainText(m5aReviewSourceContext.drawingUpperMapping);
+  await expect(sourceContext).toContainText('WORK_ASSUMPTION');
+  await expect(sourceContext).toContainText(m5aReviewQuestionText);
+  await expect(sourceContext).toContainText('ei exact XY/Z');
+  await expect(page.locator('#m5a-source-preview')).toHaveAttribute(
+    'src',
+    m5aReviewSourceContext.sourcePreviewUrl,
+  );
+  await expect(page.frameLocator('#m5a-source-preview').locator('body')).toContainText(
+    'Drainman source reference visible',
+  );
+  await expect(page.locator('#viewer-status')).toContainText(
+    '4 kaivoa + 7 lähteistettyä yhteyttä',
+  );
+  await expect(page.locator('#viewer-status')).toContainText('lähdekonteksti mukana');
 
   await page.waitForTimeout(250);
   const screenshot = await canvas.screenshot();
