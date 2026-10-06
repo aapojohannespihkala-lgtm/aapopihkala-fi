@@ -151,7 +151,6 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p184gReviewId]: p184gCandidateId,
   [m5bCurrentReviewId]: m5bCandidateId,
   [m5bPlannedSok2ComparisonReviewId]: m5bCandidateId,
-  [p185cReviewId]: p185cCandidateId,
   [p184hApplianceOnP185cReviewId]: p185cCandidateId,
   [p164bReviewId]: p164bCandidateId,
   [p167fReviewId]: p167fCandidateId,
@@ -188,9 +187,11 @@ const getConventionalReviewCandidateId = (reviewId: string) => {
   return candidateId.length > 0 ? candidateId : null;
 };
 
+const blockedReviewIds = new Set<string>([p185cReviewId]);
+
 export const getRequestedReviewCandidateId = (search: string) => {
   const reviewId = new URLSearchParams(search).get(reviewQueryKey);
-  if (!reviewId) return null;
+  if (!reviewId || blockedReviewIds.has(reviewId)) return null;
   return reviewCandidateById[reviewId] ?? getConventionalReviewCandidateId(reviewId);
 };
 

@@ -360,79 +360,12 @@ const makeGlbWithSharedTriangle = (nodes: Record<string, unknown>[]) => {
   return Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
 };
 
-test('P185C review autoload renders the bounded 80/20 question state on canvas', async ({ page }) => {
+test('P185C orientation-invalid position review alias does not autoload the persisted overlay', async ({ page }) => {
   test.setTimeout(20_000);
 
   const currentModel = makeGlbWithSharedTriangle([]);
-  const candidateId = p185cCandidateId;
   const candidatePath = '/private-model/work-test/p185c-d2015-electrical-source-overlay.glb';
-  const candidateModel = makeGlbWithSharedTriangle([
-    {
-      name: 'P185C_D2015_FLOOR_HEATING_366_SOURCE_VECTOR_OVERLAY_PRESENTATION_ONLY',
-      mesh: 0,
-      translation: [0, 0, 0],
-      extras: {
-        Pass: 'P185C',
-        ModelStage: 'WORK_TEST_PRESENTATION',
-        Canonical: false,
-        representationKind: 'sourceVectorPlanOverlay',
-        hostStorey: 'D_1F',
-        presentationLayer: 'MEP_ELECTRICAL',
-        sourcePdfDriveId: '1vAyvAHdClqkXIVNgKKUyOjMja-tzrok',
-        sourceFragmentCount: 366,
-        floorHeatingCableGeometryClaim: false,
-        closedHeatingZoneClaim: false,
-        exactXYClaim: false,
-        exactZClaim: false,
-        physicalCableRouteClaim: false,
-        current: false,
-        asBuilt: false,
-        publishToCURRENT: false,
-        HUMAN_REVIEW: 'NOT_RUN',
-      },
-    },
-    {
-      name: 'P185C_D2015_RK_SOURCE_LABEL_ANCHOR_PRESENTATION_ONLY',
-      mesh: 0,
-      translation: [3.2, 0, 3.2],
-      extras: {
-        Pass: 'P185C',
-        ModelStage: 'WORK_TEST_PRESENTATION',
-        Canonical: false,
-        representationKind: 'electricalPanelSourceLabelAnchorMarker',
-        hostStorey: 'D_1F',
-        presentationLayer: 'MEP_ELECTRICAL',
-        sourcePdfDriveId: '1dzzZsa9FCiyqmv8WholhLxba6Kxobspg',
-        sourceText: 'RYHMäKESKUS RK',
-        electricalPanelGeometryClaim: false,
-        exactXYClaim: false,
-        exactZClaim: false,
-        physicalCableRouteClaim: false,
-        current: false,
-        asBuilt: false,
-        publishToCURRENT: false,
-        HUMAN_REVIEW: 'NOT_RUN',
-      },
-    },
-    {
-      name: 'G2_WALL_D_1F_001',
-      mesh: 0,
-      translation: [1.5, 0, 1.5],
-      extras: {
-        G2Id: 'G2_WALL_D_1F_001',
-        presentationLayer: 'CURRENT_D',
-      },
-    },
-    {
-      name: 'G2_WALL_D_2F_001',
-      mesh: 0,
-      translation: [7, 0, 7],
-      extras: {
-        G2Id: 'G2_WALL_D_2F_001',
-        presentationLayer: 'CURRENT_D',
-      },
-    },
-  ]);
+  let candidateRequested = false;
 
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({
@@ -448,7 +381,7 @@ test('P185C review autoload renders the bounded 80/20 question state on canvas',
       body: JSON.stringify({
         candidates: [
           {
-            id: candidateId,
+            id: p185cCandidateId,
             label: 'P185C D2015 electrical source overlay - WORK_TEST',
             path: candidatePath,
           },
@@ -457,76 +390,17 @@ test('P185C review autoload renders the bounded 80/20 question state on canvas',
     });
   });
   await page.route(`**${candidatePath}`, async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'model/gltf-binary',
-      body: candidateModel,
-    });
+    candidateRequested = true;
+    await route.abort();
   });
 
   await page.goto(`/private-model/?review=${p185cReviewId}`);
 
   const canvas = page.locator('#private-model-canvas');
-  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
-  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
-  await expect(canvas).toHaveAttribute('data-work-test-review-mode', p185cReviewId);
-  await expect(canvas).toHaveAttribute(
-    'data-p185-review-question',
-    'D_1F_D2015_ELECTRICAL_SOURCE_OVERLAY_RELATION',
-  );
-  await expect(canvas).toHaveAttribute('data-p185-target-opacity', '0.80');
-  await expect(canvas).toHaveAttribute('data-p185-context-opacity', '0.20');
-  await expect(canvas).toHaveAttribute('data-p185-review-target-renderable-count', '2');
-  await expect(canvas).toHaveAttribute('data-p185-review-context-renderable-count', '1');
-  await expect(canvas).toHaveAttribute('data-p185-review-hidden-non-question-renderable-count', '1');
-  await expect(canvas).toHaveAttribute('data-p185-review-semantic-violation-count', '0');
-  await expect(canvas).toHaveAttribute('data-p185-human-review', 'NOT_RUN');
-  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-1f');
-  await expect(canvas).toHaveAttribute(
-    'data-p185-review-scene',
-    'FULL_MODEL_WITH_D_1F_PLAN_CAMERA',
-  );
-  await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '0');
-  await expect(canvas).toHaveAttribute('data-d1-known-door-labels-visible', 'false');
-  await expect(page.locator('#d1-known-door-label-layer')).toBeHidden();
-  await expect(page.locator('#d1-known-door-legend')).toBeHidden();
-  await expect(page.locator('#coordinate-panel')).toBeHidden();
-  await expect(page.locator('#viewer-status')).toContainText(
-    'source overlay + RK 80 % / D 1F context 20 %',
-  );
-
-  await page.waitForTimeout(250);
-  const screenshot = await canvas.screenshot();
-  const dataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
-  const renderedPixelCount = await page.evaluate(async (url) => {
-    const image = new Image();
-    image.src = url;
-    await image.decode();
-    const probe = document.createElement('canvas');
-    probe.width = image.width;
-    probe.height = image.height;
-    const context = probe.getContext('2d');
-    if (!context) return 0;
-    context.drawImage(image, 0, 0);
-    const pixels = context.getImageData(0, 0, image.width, image.height).data;
-    const r0 = pixels[0] ?? 0;
-    const g0 = pixels[1] ?? 0;
-    const b0 = pixels[2] ?? 0;
-    let count = 0;
-    for (let y = 0; y < image.height; y += 4) {
-      for (let x = 0; x < image.width; x += 4) {
-        const index = (y * image.width + x) * 4;
-        const delta =
-          Math.abs((pixels[index] ?? 0) - r0) +
-          Math.abs((pixels[index + 1] ?? 0) - g0) +
-          Math.abs((pixels[index + 2] ?? 0) - b0);
-        if (delta > 45) count += 1;
-      }
-    }
-    return count;
-  }, dataUrl);
-
-  expect(renderedPixelCount).toBeGreaterThan(20);
+  await expect(canvas).not.toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(canvas).not.toHaveAttribute('data-work-test-review-mode', p185cReviewId);
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  expect(candidateRequested).toBe(false);
 });
 
 test('P184H appliance review autoloads the P185C survivor and renders the bounded 80/20 question state', async ({ page }) => {
