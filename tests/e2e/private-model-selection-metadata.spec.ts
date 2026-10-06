@@ -65,5 +65,5 @@ test('selection metadata gives source-backed drainage fields concise Finnish lab
   expect(formatSelectionMetadataKey('sourceConditionClass')).toBe('Kuntoluokka');
   expect(formatSelectionMetadataKey('pipeMaterialSource')).toBe('Putkimateriaali');
   expect(formatSelectionMetadataKey('pipeDiameterMmSource')).toBe('Putken lähdehalkaisija (mm)');
-  expect(formatSelectionMetadataKey('currentGeometryClaim')).toBe('Current Geometry Claim');
+  expect(formatSelectionMetadataKey('currentGeometryClaim')).toBe('Nykygeometria varmennettu');
 });
