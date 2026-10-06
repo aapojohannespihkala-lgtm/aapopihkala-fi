@@ -173,7 +173,10 @@ test('M5A-R2 review source context keeps the human question scoped to the north/
   expect(m5aReviewSourceContext.historicalPlanStatus).toBe(
     'HISTORICAL_PLAN_NOT_CURRENT_AS_BUILT',
   );
-  expect(m5aReviewSourceContext.currentTopologyAuthority).toBe('2026 CURRENT_TECHNICAL');
+  expect(m5aReviewSourceContext.baselineGeometryAuthority).toBe('1974 ORIGINAL_PLAN');
+  expect(m5aReviewSourceContext.newerEvidenceRole).toBe(
+    '2021/2026 LOCAL_CORRECTION_OR_REFINEMENT',
+  );
   expect(m5aReviewSourceContext.reviewGeometryStatus).toContain('WORK_ASSUMPTION');
   expect(m5aReviewSourceContext.namedWells).toEqual(['SOK1', 'SOK2', 'SOK3', 'PVK']);
   expect(m5aReviewSourceContext.supportedLinkCount).toBe(7);
