@@ -123,9 +123,11 @@ test('M5A helper accepts north/west successor M5A-R2 targets without weakening n
   expect(promotionCheck.semanticViolationCount).toBe(1);
 });
 
-test('M5A review source context keeps the human question qualitative and self-contained', () => {
-  expect(m5aReviewQuestionText).toContain('suhteellinen topologia');
-  expect(m5aReviewQuestionText).toContain('yleinen sijoittuminen');
+test('M5A-R2 review source context keeps the human question scoped to the north/west correction delta', () => {
+  expect(m5aReviewQuestionText).toContain('pohjois-');
+  expect(m5aReviewQuestionText).toContain('länsipuolelle');
+  expect(m5aReviewQuestionText).toContain('avoimet päät');
+  expect(m5aReviewQuestionText).not.toContain('kaivojen yleinen sijoittuminen');
   expect(m5aReviewSourceContext.sourceDrawingDriveId).toBe(
     '1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC',
   );
