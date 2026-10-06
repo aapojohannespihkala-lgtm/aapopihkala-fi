@@ -108,10 +108,9 @@ test('M5A review wiring is scoped to conventional review id and no-promotion pre
     'utf8',
   );
   expect(viewerSource).toContain('prepareM5AReviewPresentation');
-  expect(viewerSource).toContain(candidateId);
-  expect(viewerSource).toContain(
-    "m5aReviewQuestion: 'DRAINAGE_TOPOLOGY_VISUAL_PLACEMENT_AND_CONNECTIVITY'",
-  );
+  expect(viewerSource).toContain('m5aDrainageCandidateId');
+  expect(viewerSource).toContain("'DRAINAGE_TOPOLOGY_VISUAL_PLACEMENT_AND_CONNECTIVITY'");
+  expect(viewerSource).toContain('m5aReviewQuestion: reviewQuestion');
   expect(viewerSource).toContain("applyStandardViewPreset('whole-building')");
   expect(viewerSource).toContain("m5aExactXYClaim: 'false'");
   expect(viewerSource).toContain("m5aExactZClaim: 'false'");
