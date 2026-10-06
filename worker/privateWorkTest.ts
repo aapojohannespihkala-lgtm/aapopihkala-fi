@@ -311,6 +311,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_903_856,
     expectedSha256: 'e9455f8be8062ce7ebeca3046711896f12d990aad53e03226d87afc416bbb69e',
   },
+  // M5A-R2 whole-building CURRENT candidate: exact metadata-only successor of reviewed drainage topology.
+  {
+    id: 'm5a-r2-whole-building-current-candidate-r730',
+    label: 'M5A-R2 whole-building CURRENT candidate R730 - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-r2-whole-building-current-candidate-r730.glb`,
+    objectKey: 'work-test/m5a-r2-whole-building-current-candidate-r730.glb',
+    expectedSize: 2_907_116,
+    expectedSha256: 'bc531cecf7f5131ea18ad0d5f16c60526e08c982b9af3c9153a7c7ae5e3d9334',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
