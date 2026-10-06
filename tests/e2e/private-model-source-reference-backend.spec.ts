@@ -4,6 +4,8 @@ import { expect, test } from '@playwright/test';
 
 import {
   PRIVATE_SOURCE_REFERENCES,
+  PRIVATE_SOURCE_REFERENCE_MACHINE_PUBLISH_PREFIX,
+  PRIVATE_SOURCE_REFERENCE_MACHINE_VERIFY_PREFIX,
   PRIVATE_SOURCE_REFERENCE_PUBLISH_PREFIX,
   PRIVATE_SOURCE_REFERENCE_VERIFY_PREFIX,
   getPrivateSourceReference,
@@ -21,6 +23,16 @@ import {
 test('private source-reference routes stay bounded to exact allowlisted PDF paths', () => {
   expect(isPrivateSourceReferencePath('/private-model/source-reference')).toBe(true);
   expect(isPrivateSourceReferencePath('/private-model/source-reference/m5a-drainman.pdf')).toBe(true);
+  expect(
+    isPrivateSourceReferencePath(
+      `${PRIVATE_SOURCE_REFERENCE_MACHINE_PUBLISH_PREFIX}m5a-drainman.pdf`,
+    ),
+  ).toBe(true);
+  expect(
+    isPrivateSourceReferencePath(
+      `${PRIVATE_SOURCE_REFERENCE_MACHINE_VERIFY_PREFIX}m5a-drainman.pdf`,
+    ),
+  ).toBe(true);
   expect(isPrivateSourceReferencePath('/private-model/work-test/m5a-drain-topology.glb')).toBe(false);
 
   const reference = getPrivateSourceReferenceById('m5a-drainman');
@@ -41,8 +53,18 @@ test('private source-reference routes stay bounded to exact allowlisted PDF path
     ),
   ).toEqual(reference);
   expect(
+    getPrivateSourceReferencePublishTarget(
+      `${PRIVATE_SOURCE_REFERENCE_MACHINE_PUBLISH_PREFIX}m5a-drainman.pdf`,
+    ),
+  ).toEqual(reference);
+  expect(
     getPrivateSourceReferenceVerifyTarget(
       `${PRIVATE_SOURCE_REFERENCE_VERIFY_PREFIX}m5a-drainman.pdf`,
+    ),
+  ).toEqual(reference);
+  expect(
+    getPrivateSourceReferenceVerifyTarget(
+      `${PRIVATE_SOURCE_REFERENCE_MACHINE_VERIFY_PREFIX}m5a-drainman.pdf`,
     ),
   ).toEqual(reference);
   expect(
@@ -239,15 +261,18 @@ test('source-reference registry and publisher workflow bind the exact canonical 
   expect(publisher).toContain('google-github-actions/auth@v3');
   expect(publisher).toContain('https://www.googleapis.com/auth/drive.readonly');
   expect(publisher).toContain('Content-Type: application/pdf');
-  expect(publisher).toContain('source-reference/verify');
+  expect(publisher).toContain('/private-model/work-test/publish/source-reference-');
+  expect(publisher).toContain('/private-model/work-test/verify/source-reference-');
   expect(publisher).toContain('Production source-reference byte-for-byte readback verified.');
 });
 
-test('worker routes source-reference requests before generic private-model asset handling', () => {
+test('worker routes source-reference requests before work-test and generic private-model handling', () => {
   const workerSource = readFileSync('worker/index.ts', 'utf8');
   const sourceRoute = workerSource.indexOf('isPrivateSourceReferencePath(url.pathname)');
+  const workTestRoute = workerSource.indexOf('isPrivateWorkTestPath(url.pathname)');
   const genericRoute = workerSource.indexOf('isPrivateModelPath(url.pathname)');
 
   expect(sourceRoute).toBeGreaterThan(-1);
-  expect(genericRoute).toBeGreaterThan(sourceRoute);
+  expect(workTestRoute).toBeGreaterThan(sourceRoute);
+  expect(genericRoute).toBeGreaterThan(workTestRoute);
 });

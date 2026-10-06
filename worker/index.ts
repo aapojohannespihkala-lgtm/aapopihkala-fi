@@ -376,11 +376,11 @@ const worker = {
     if (isPrivateAiStatusPath(url.pathname)) {
       return handlePrivateAiStatusRequest(request, env);
     }
-    if (isPrivateWorkTestPath(url.pathname)) {
-      return handlePrivateWorkTestRequest(request, env);
-    }
     if (isPrivateSourceReferencePath(url.pathname)) {
       return handlePrivateSourceReferenceRequest(request, env);
+    }
+    if (isPrivateWorkTestPath(url.pathname)) {
+      return handlePrivateWorkTestRequest(request, env);
     }
     if (isPrivateModelPath(url.pathname)) return handlePrivateModelRequest(request, env);
     if (url.pathname === ELECTRICITY_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityPriceResponse(); }

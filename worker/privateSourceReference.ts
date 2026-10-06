@@ -9,6 +9,10 @@ import {
 export const PRIVATE_SOURCE_REFERENCE_PREFIX = `${PRIVATE_MODEL_PREFIX}/source-reference`;
 export const PRIVATE_SOURCE_REFERENCE_PUBLISH_PREFIX = `${PRIVATE_SOURCE_REFERENCE_PREFIX}/publish/`;
 export const PRIVATE_SOURCE_REFERENCE_VERIFY_PREFIX = `${PRIVATE_SOURCE_REFERENCE_PREFIX}/verify/`;
+export const PRIVATE_SOURCE_REFERENCE_MACHINE_PUBLISH_PREFIX =
+  `${PRIVATE_MODEL_PREFIX}/work-test/publish/source-reference-`;
+export const PRIVATE_SOURCE_REFERENCE_MACHINE_VERIFY_PREFIX =
+  `${PRIVATE_MODEL_PREFIX}/work-test/verify/source-reference-`;
 
 export type PrivateSourceReference = {
   id: string;
@@ -90,7 +94,9 @@ const privateJsonResponse = (request: Request, payload: unknown, status = 200) =
 
 export const isPrivateSourceReferencePath = (pathname: string) =>
   pathname === PRIVATE_SOURCE_REFERENCE_PREFIX ||
-  pathname.startsWith(`${PRIVATE_SOURCE_REFERENCE_PREFIX}/`);
+  pathname.startsWith(`${PRIVATE_SOURCE_REFERENCE_PREFIX}/`) ||
+  getPrivateSourceReferencePublishTarget(pathname) !== null ||
+  getPrivateSourceReferenceVerifyTarget(pathname) !== null;
 
 export const getPrivateSourceReferenceById = (id: string) =>
   PRIVATE_SOURCE_REFERENCES.find((reference) => reference.id === id) ?? null;
@@ -106,12 +112,16 @@ const referenceIdFromPdfPath = (pathname: string, prefix: string) => {
 };
 
 export const getPrivateSourceReferencePublishTarget = (pathname: string) => {
-  const id = referenceIdFromPdfPath(pathname, PRIVATE_SOURCE_REFERENCE_PUBLISH_PREFIX);
+  const id =
+    referenceIdFromPdfPath(pathname, PRIVATE_SOURCE_REFERENCE_PUBLISH_PREFIX) ??
+    referenceIdFromPdfPath(pathname, PRIVATE_SOURCE_REFERENCE_MACHINE_PUBLISH_PREFIX);
   return id ? getPrivateSourceReferenceById(id) : null;
 };
 
 export const getPrivateSourceReferenceVerifyTarget = (pathname: string) => {
-  const id = referenceIdFromPdfPath(pathname, PRIVATE_SOURCE_REFERENCE_VERIFY_PREFIX);
+  const id =
+    referenceIdFromPdfPath(pathname, PRIVATE_SOURCE_REFERENCE_VERIFY_PREFIX) ??
+    referenceIdFromPdfPath(pathname, PRIVATE_SOURCE_REFERENCE_MACHINE_VERIFY_PREFIX);
   return id ? getPrivateSourceReferenceById(id) : null;
 };
 

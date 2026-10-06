@@ -90,8 +90,8 @@ jobs:
               "EXPECTED_SIZE": str(expected_size),
               "EXPECTED_SHA256": expected_sha256,
               "EXPECTED_PATH": expected_path,
-              "PUBLISH_URL": f"https://aapopihkala.fi/private-model/source-reference/publish/{reference_id}.pdf",
-              "READBACK_URL": f"https://aapopihkala.fi/private-model/source-reference/verify/{reference_id}.pdf",
+              "PUBLISH_URL": f"https://aapopihkala.fi/private-model/work-test/publish/source-reference-{reference_id}.pdf",
+              "READBACK_URL": f"https://aapopihkala.fi/private-model/work-test/verify/source-reference-{reference_id}.pdf",
           }
           with open(env_path, "a", encoding="utf-8") as handle:
               for key, value in values.items():
