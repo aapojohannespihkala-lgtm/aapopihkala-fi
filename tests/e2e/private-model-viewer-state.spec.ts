@@ -107,6 +107,16 @@ test('VUX-E1A research presets install curated starting state', () => {
     locusVisible: false,
     ...expectedDefaultChildren,
   });
+
+  const electrical = applyViewerResearchPreset(drainage, 'electrical');
+  expect(electrical.researchPreset).toBe('electrical');
+  expect(electrical.cameraView).toBe('free-3d');
+  expect(electrical.layers).toEqual({
+    roofVisible: false,
+    roofOpacity: 1,
+    locusVisible: false,
+    ...expectedDefaultChildren,
+  });
 });
 
 test('VUX-E1A camera changes preserve research preset, layers, and presentation', () => {
