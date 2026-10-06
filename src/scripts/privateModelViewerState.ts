@@ -14,7 +14,8 @@ export type ViewerResearchPreset =
   | 'd-2f'
   | 'site'
   | 'infra'
-  | 'drainage';
+  | 'drainage'
+  | 'electrical';
 
 export type ViewerCameraView =
   | 'free-3d'
@@ -105,6 +106,15 @@ export const viewerResearchPresetDefinitions: Record<
     presentation: visibleEdges,
   },
   drainage: {
+    cameraView: 'free-3d',
+    layers: createViewerLayerControlsState({
+      roofVisible: false,
+      roofOpacity: 1,
+      locusVisible: false,
+    }),
+    presentation: visibleEdges,
+  },
+  electrical: {
     cameraView: 'free-3d',
     layers: createViewerLayerControlsState({
       roofVisible: false,

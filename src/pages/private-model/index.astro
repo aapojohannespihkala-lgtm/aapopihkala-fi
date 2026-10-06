@@ -1445,6 +1445,7 @@ const title = 'Private 3D viewer';
             <button id="site-preset-button" type="button">Tontti</button>
             <button id="infra-preset-button" type="button">Infra</button>
             <button id="drainage-preset-button" type="button">Salaojat</button>
+            <button id="electrical-preset-button" type="button">Sähköt</button>
           </div>
         </details>
 
@@ -1656,6 +1657,16 @@ const title = 'Private 3D viewer';
               </label>
             </div>
             <div class="layer-note">Alaryhmät näytetään vain, kun mallin metadata tunnistaa ne eksplisiittisesti.</div>
+          </div>
+          <div id="electrical-layer-group" class="layer-section">
+            <div class="layer-tree-parent">
+              <label class="layer-row">
+                <input id="electrical-layer-visible" type="checkbox" checked disabled />
+                <span>D sähköt (WORK_TEST)</span>
+              </label>
+              <div id="electrical-layer-count" class="layer-count">0 kohdetta</div>
+            </div>
+            <div class="layer-note">Johdetaan vain mallin eksplisiittisestä MEP_ELECTRICAL-metadatasta.</div>
           </div>
         </aside>
         <aside id="profile-panel" class="profile-panel" aria-live="polite" hidden>
@@ -1935,6 +1946,7 @@ const title = 'Private 3D viewer';
       const sitePresetButton = document.querySelector<HTMLButtonElement>('#site-preset-button');
       const infraPresetButton = document.querySelector<HTMLButtonElement>('#infra-preset-button');
       const drainagePresetButton = document.querySelector<HTMLButtonElement>('#drainage-preset-button');
+      const electricalPresetButton = document.querySelector<HTMLButtonElement>('#electrical-preset-button');
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
       const navigateToolButton = document.querySelector<HTMLButtonElement>('#navigate-tool-button');
       const selectionToolButton = document.querySelector<HTMLButtonElement>('#selection-tool-button');
@@ -1977,6 +1989,8 @@ const title = 'Private 3D viewer';
       const p161KvvCount = document.querySelector<HTMLElement>('#p161-kvv-count');
       const p161IvPlanCount = document.querySelector<HTMLElement>('#p161-iv-plan-count');
       const p161IvSectionCount = document.querySelector<HTMLElement>('#p161-iv-section-count');
+      const electricalLayerVisibleInput = document.querySelector<HTMLInputElement>('#electrical-layer-visible');
+      const electricalLayerCount = document.querySelector<HTMLElement>('#electrical-layer-count');
       const d1KnownDoorLabelLayer = document.querySelector<HTMLElement>('#d1-known-door-label-layer');
       const d1KnownDoorLegend = document.querySelector<HTMLElement>('#d1-known-door-legend');
       const d1KnownDoorLegendList = document.querySelector<HTMLOListElement>('#d1-known-door-legend-list');
@@ -2041,6 +2055,7 @@ const title = 'Private 3D viewer';
         !sitePresetButton ||
         !infraPresetButton ||
         !drainagePresetButton ||
+        !electricalPresetButton ||
         !layersButton ||
         !navigateToolButton ||
         !selectionToolButton ||
@@ -2074,6 +2089,8 @@ const title = 'Private 3D viewer';
         !p161KvvCount ||
         !p161IvPlanCount ||
         !p161IvSectionCount ||
+        !electricalLayerVisibleInput ||
+        !electricalLayerCount ||
         !d1KnownDoorLabelLayer ||
         !d1KnownDoorLegend ||
         !d1KnownDoorLegendList ||
@@ -2265,12 +2282,15 @@ const title = 'Private 3D viewer';
       const p161IvPlanObjects = new Set<any>();
       const p161IvSectionObjects = new Set<any>();
       const locusLayerVisibilityBaseline = new Map<any, boolean>();
+      const electricalLayerMembers = new Set<any>();
+      const electricalLayerVisibilityBaseline = new Map<any, boolean>();
       let locusLayerVisible = false;
       let locusWaterVisible = true;
       let locusWastewaterVisible = true;
       let p161KvvVisible = true;
       let p161IvPlanVisible = true;
       let p161IvSectionVisible = true;
+      let electricalLayerVisible = true;
       // Preset layer defaults initialize once per real model load; later view changes preserve user state.
       let standardViewLayerDefaultsInitialized = false;
       let archBaseMaterialCloneCount = 0;
@@ -2920,6 +2940,9 @@ const title = 'Private 3D viewer';
       const isLocusLayerMember = (object: any) =>
         routePresentationLayers.has(String(object?.userData?.presentationLayer ?? ''));
 
+      const isElectricalLayerMember = (object: any) =>
+        String(object?.userData?.presentationLayer ?? '') === 'MEP_ELECTRICAL';
+
       type P161SystemLayerFamily = 'KVV_2017' | 'IV_1974_PLAN' | 'IV_1974_SECTION';
 
       const p161SystemLayerFamily = (object: any): P161SystemLayerFamily | null => {
@@ -3567,6 +3590,43 @@ const title = 'Private 3D viewer';
         applyLocusLayerState();
       };
 
+      const applyElectricalLayerState = () => {
+        for (const member of electricalLayerMembers) {
+          const baseline = electricalLayerVisibilityBaseline.get(member) ?? true;
+          member.visible = baseline && electricalLayerVisible;
+        }
+        electricalLayerVisibleInput.checked = electricalLayerVisible;
+        electricalLayerVisibleInput.disabled = electricalLayerMembers.size === 0;
+        canvas.dataset.electricalLayerVisible = electricalLayerVisible ? 'true' : 'false';
+        if (selectedObject && !isEffectivelyVisible(selectedObject, modelRoot)) clearSelection();
+      };
+
+      const initializeElectricalLayer = () => {
+        electricalLayerMembers.clear();
+        electricalLayerVisibilityBaseline.clear();
+        electricalLayerVisible = true;
+        const renderables = new Set<any>();
+
+        if (fullModelScene) {
+          fullModelScene.traverse((object: any) => {
+            if (!isElectricalLayerMember(object)) return;
+            object.traverse?.((member: any) => {
+              electricalLayerMembers.add(member);
+              if (!electricalLayerVisibilityBaseline.has(member)) {
+                electricalLayerVisibilityBaseline.set(member, member.visible);
+              }
+              if (member?.isMesh || member?.isLine || member?.isLineSegments || member?.isPoints) {
+                renderables.add(member);
+              }
+            });
+          });
+        }
+
+        electricalLayerCount.textContent = String(renderables.size) + ' kohdetta';
+        canvas.dataset.electricalLayerCount = String(renderables.size);
+        applyElectricalLayerState();
+      };
+
       const setLayersPanelOpen = (open: boolean, restoreFocus = false) => {
         layersPanel.hidden = !open;
         layersButton.setAttribute('aria-expanded', String(open));
@@ -3739,7 +3799,8 @@ const title = 'Private 3D viewer';
         preset === 'd-2f' ||
         preset === 'site' ||
         preset === 'infra' ||
-        preset === 'drainage'
+        preset === 'drainage' ||
+        preset === 'electrical'
           ? preset
           : null;
 
@@ -4742,12 +4803,19 @@ const title = 'Private 3D viewer';
         control.dispatchEvent(new Event('change', { bubbles: true }));
       };
 
+      const setElectricalLayerForResearchPreset = (preset: ViewerResearchPreset) => {
+        const nextVisible = preset === 'electrical';
+        if (electricalLayerVisibleInput.checked === nextVisible) return;
+        electricalLayerVisibleInput.checked = nextVisible;
+        electricalLayerVisibleInput.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+
       const activateStandardViewCamera = (preset: StandardViewPreset) => {
         if (preset === 'whole-building') fitModel();
         else if (preset === 'd-apartment') activateDOverview();
         else if (preset === 'd-1f') activateDPlan('1F');
         else if (preset === 'd-2f') activateDPlan('2F');
-        else if (preset === 'drainage') fitModel();
+        else if (preset === 'drainage' || preset === 'electrical') fitModel();
         else if (preset === 'top') axisView('top');
         else if (preset === 'site' || preset === 'infra') activateSitePlanOnly();
         else if (preset === 'elev-pos-y') activateElevationView('pos-y');
@@ -4802,11 +4870,42 @@ const title = 'Private 3D viewer';
         );
         resetArchitecturalLayerRuntimeState(presetState.layers);
         setDrainageLayerForResearchPreset(preset);
+        setElectricalLayerForResearchPreset(preset);
         canvas.dataset.layerStateSource = 'preset:drainage';
         standardViewLayerDefaultsInitialized = true;
         canvas.dataset.standardViewPreset = preset;
         activateStandardViewCamera(preset);
         refreshEdgeRendering(modelRoot.children[0] ?? null);
+      };
+
+      const applyElectricalResearchPreset = () => {
+        const preset: ViewerResearchPreset = 'electrical';
+        const presetState = createViewerInteractionState(preset);
+        setActiveResearchPreset(preset);
+        applyResetLayerHierarchyDefaults(presetState.layers);
+        applyViewerLayerState(
+          {
+            roofVisible: presetState.layers.roofVisible,
+            roofOpacity: presetState.layers.roofOpacity,
+            locusVisible: presetState.layers.locusVisible,
+            edgeMode: presetState.presentation.edgeMode,
+          },
+          'preset:electrical',
+        );
+        resetArchitecturalLayerRuntimeState(presetState.layers);
+        setDrainageLayerForResearchPreset(preset);
+        setElectricalLayerForResearchPreset(preset);
+        canvas.dataset.layerStateSource = 'preset:electrical';
+        standardViewLayerDefaultsInitialized = true;
+        canvas.dataset.standardViewPreset = preset;
+        setModelScene(fullModelScene);
+        canvas.dataset.contentScene = 'full-model';
+        delete canvas.dataset.contentFloor;
+        activateStandardViewCamera(preset);
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        status.textContent = electricalLayerMembers.size > 0
+          ? 'D sähköt - WORK_TEST-lähdegeometria näkyvissä'
+          : 'D sähköt - tässä mallissa ei ole MEP_ELECTRICAL-kohteita';
       };
 
       const resetActiveViewDefaults = () => {
@@ -4825,6 +4924,7 @@ const title = 'Private 3D viewer';
         );
         resetArchitecturalLayerRuntimeState(resetState.layers);
         setDrainageLayerForResearchPreset(activeResearchPreset);
+        setElectricalLayerForResearchPreset(activeResearchPreset);
         canvas.dataset.layerStateSource = `reset:${activeResearchPreset}`;
         standardViewLayerDefaultsInitialized = true;
         canvas.dataset.standardViewPreset = activeResearchPreset;
@@ -5032,6 +5132,7 @@ const title = 'Private 3D viewer';
         initializeFullModelArchBase();
         initializeRoofLayer();
         initializeLocusLayer();
+        initializeElectricalLayer();
         prepareD2FBoundaryReviewContext();
 
         dVisibilityBaseline.clear();
@@ -8763,6 +8864,7 @@ const title = 'Private 3D viewer';
       sitePresetButton.addEventListener('click', () => applyStandardViewPreset('site'));
       infraPresetButton.addEventListener('click', () => applyStandardViewPreset('infra'));
       drainagePresetButton.addEventListener('click', applyDrainageResearchPreset);
+      electricalPresetButton.addEventListener('click', applyElectricalResearchPreset);
       orbitButton.addEventListener('click', fitModel);
       topButton.addEventListener('click', () => applyStandardViewPreset('top'));
       bottomButton.addEventListener('click', () => axisView('bottom'));
@@ -8889,6 +8991,13 @@ const title = 'Private 3D viewer';
       p161IvSectionVisibleInput.addEventListener('change', () => {
         p161IvSectionVisible = p161IvSectionVisibleInput.checked;
         applyP161ChildLayerChange();
+      });
+      electricalLayerVisibleInput.addEventListener('change', () => {
+        electricalLayerVisible = electricalLayerVisibleInput.checked;
+        applyElectricalLayerState();
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        canvas.dataset.layerStateSource = 'manual';
+        standardViewLayerDefaultsInitialized = true;
       });
       navigateToolButton.addEventListener('click', () => setViewerToolMode('navigate'));
       selectionToolButton.addEventListener('click', () => setViewerToolMode('select'));
