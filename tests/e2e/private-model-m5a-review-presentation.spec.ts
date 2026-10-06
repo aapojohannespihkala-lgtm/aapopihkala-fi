@@ -229,6 +229,21 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
   const sourceContext = page.locator('#m5a-source-context');
   await expect(sourceContext).toBeVisible();
   await expect(sourceContext).toContainText(m5aReviewSourceContext.sourceLabel);
+  const sourceLinks = page.locator('#m5a-source-links a');
+  await expect(sourceLinks).toHaveCount(4);
+  await expect(sourceLinks.nth(0)).toContainText('1974 suunnitelma');
+  await expect(sourceLinks.nth(0)).toHaveAttribute('data-source-role', 'HISTORICAL_PLAN');
+  await expect(sourceLinks.nth(0)).toHaveAttribute(
+    'href',
+    m5aReviewSourceContext.sourceLinks[0].href,
+  );
+  await expect(sourceLinks.nth(1)).toHaveAttribute('data-source-role', 'OBSERVED_2021');
+  await expect(sourceLinks.nth(2)).toHaveAttribute('data-source-role', 'CURRENT_TECHNICAL_2026');
+  await expect(sourceLinks.nth(3)).toHaveAttribute('data-source-role', 'VISUAL_REFERENCE_2026');
+  await expect(sourceLinks.nth(3)).toHaveAttribute(
+    'href',
+    m5aReviewSourceContext.sourceLinks[3].href,
+  );
   await expect(sourceContext).toContainText('SOK1, SOK2, SOK3, PVK');
   await expect(sourceContext).toContainText('7 yhteyttä');
   await expect(sourceContext).toContainText(m5aReviewSourceContext.drawingLowerMapping);
