@@ -490,6 +490,20 @@ const title = 'Private 3D viewer';
 
       .m5a-source-context[hidden] { display: none; }
 
+      .viewport.m5a-source-layout {
+        --m5a-source-panel-width: min(620px, 40vw);
+      }
+
+      .viewport.m5a-source-layout canvas {
+        width: calc(100% - var(--m5a-source-panel-width) - 24px);
+        margin-left: calc(var(--m5a-source-panel-width) + 24px);
+      }
+
+      .viewport.m5a-source-layout .m5a-source-context {
+        width: var(--m5a-source-panel-width);
+        max-width: none;
+      }
+
       .m5a-source-preview {
         display: block;
         width: 100%;
@@ -4787,6 +4801,7 @@ const title = 'Private 3D viewer';
       const setM5aSourceContextVisible = (visible: boolean) => {
         if (!m5aSourceContextPanel) return;
         m5aSourceContextPanel.hidden = !visible;
+        m5aSourceContextPanel.closest('.viewport')?.classList.toggle('m5a-source-layout', visible);
         if (!visible) {
           if (m5aSourcePreview) {
             m5aSourcePreview.onload = null;
@@ -6586,6 +6601,8 @@ const title = 'Private 3D viewer';
           throw new Error('M5A drainage topology targets or no-promotion semantics are not review-ready');
         }
         refreshEdgeRendering(fullModelScene);
+        setM5aSourceContextVisible(true);
+        updateSize();
         const cameraFocusApplied = focusM5AReviewCamera(presentation.targetBounds);
 
         Object.assign(canvas.dataset, {
@@ -6627,7 +6644,6 @@ const title = 'Private 3D viewer';
           m5aReviewCameraFocusApplied: String(cameraFocusApplied),
           standardViewPreset: 'whole-building',
         });
-        setM5aSourceContextVisible(true);
         status.textContent =
           'M5A salaojatopologia - WORK_TEST / 4 kaivoa + 7 lähteistettyä yhteyttä / target 80 % / konteksti 20 % / lähdekonteksti mukana / HUMAN_REVIEW NOT_RUN';
       };
