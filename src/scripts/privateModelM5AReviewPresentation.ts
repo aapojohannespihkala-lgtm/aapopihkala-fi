@@ -38,7 +38,7 @@ export const m5aReviewSourceContext = {
 } as const;
 
 const targetKinds = new Set<string>(Object.keys(m5aExpectedTargetCounts));
-const targetPasses = new Set(['M5A', 'M5A-R1']);
+const targetPasses = new Set(['M5A', 'M5A-R1', 'M5A-R2']);
 
 const isRenderable = (object: any) =>
   Boolean(
