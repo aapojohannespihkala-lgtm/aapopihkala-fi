@@ -81,7 +81,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(43);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(44);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -371,6 +371,15 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     expectedSha256: '9599dec3db6a8cf1961f5db1a91d9722566dadd9a4176861e1e087722a3cea6c',
   });
 
+  const p186b = getPrivateWorkTestCandidateById('p186b-d2015-d2f-wiring-mainmass-source-overlay');
+  expect(p186b).toMatchObject({
+    id: 'p186b-d2015-d2f-wiring-mainmass-source-overlay',
+    label: 'P186B D 2F wiring main-mass source overlay - WORK_TEST',
+    path: '/private-model/work-test/p186b-d2015-d2f-wiring-mainmass-source-overlay.glb',
+    objectKey: 'work-test/p186b-d2015-d2f-wiring-mainmass-source-overlay.glb',
+    expectedSize: 3_117_312,
+    expectedSha256: '4b5de6b1f99cd3d85de71f826f4e7b7e481c17c1d5dd5e0d508dd8b500866236',
+  });
   const m5a = getPrivateWorkTestCandidateById('m5a-drain-topology');
   expect(m5a).toMatchObject({
     id: 'm5a-drain-topology',
@@ -574,6 +583,10 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestPublishCandidate(p185cPublishPath)?.id).toBe(
     'p185c-d2015-electrical-source-overlay',
   );
+  const p186bPublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p186b-d2015-d2f-wiring-mainmass-source-overlay.glb`;
+  expect(getPrivateWorkTestPublishCandidate(p186bPublishPath)?.id).toBe(
+    'p186b-d2015-d2f-wiring-mainmass-source-overlay',
+  );
   expect(getPrivateWorkTestPublishCandidate(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}not-allowlisted.glb`)).toBeNull();
   expect(
     getPrivateWorkTestVerifyCandidate(
@@ -590,6 +603,11 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
       `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p185c-d2015-electrical-source-overlay.glb`,
     )?.id,
   ).toBe('p185c-d2015-electrical-source-overlay');
+  expect(
+    getPrivateWorkTestVerifyCandidate(
+      `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p186b-d2015-d2f-wiring-mainmass-source-overlay.glb`,
+    )?.id,
+  ).toBe('p186b-d2015-d2f-wiring-mainmass-source-overlay');
   expect(
     getPrivateWorkTestVerifyCandidate(`${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}not-allowlisted.glb`),
   ).toBeNull();
