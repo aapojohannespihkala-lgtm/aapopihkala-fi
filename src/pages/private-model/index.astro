@@ -8864,6 +8864,7 @@ const title = 'Private 3D viewer';
       sitePresetButton.addEventListener('click', () => applyStandardViewPreset('site'));
       infraPresetButton.addEventListener('click', () => applyStandardViewPreset('infra'));
       drainagePresetButton.addEventListener('click', applyDrainageResearchPreset);
+      electricalPresetButton.addEventListener('click', applyElectricalResearchPreset);
       orbitButton.addEventListener('click', fitModel);
       topButton.addEventListener('click', () => applyStandardViewPreset('top'));
       bottomButton.addEventListener('click', () => axisView('bottom'));
@@ -8990,6 +8991,13 @@ const title = 'Private 3D viewer';
       p161IvSectionVisibleInput.addEventListener('change', () => {
         p161IvSectionVisible = p161IvSectionVisibleInput.checked;
         applyP161ChildLayerChange();
+      });
+      electricalLayerVisibleInput.addEventListener('change', () => {
+        electricalLayerVisible = electricalLayerVisibleInput.checked;
+        applyElectricalLayerState();
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        canvas.dataset.layerStateSource = 'manual';
+        standardViewLayerDefaultsInitialized = true;
       });
       navigateToolButton.addEventListener('click', () => setViewerToolMode('navigate'));
       selectionToolButton.addEventListener('click', () => setViewerToolMode('select'));
