@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import {
   m5aExpectedTargetCounts,
   m5aExpectedTargetRenderableCount,
+  m5aR3ExpectedTargetCounts,
   m5aReviewContextOpacity,
   m5aReviewQuestionText,
   m5aReviewSourceContext,
@@ -121,6 +122,36 @@ test('M5A helper accepts north/west successor M5A-R2 targets without weakening n
   const promotionCheck = prepareM5AReviewPresentation(scene);
   expect(promotionCheck.targetRenderableCount).toBe(m5aExpectedTargetRenderableCount);
   expect(promotionCheck.semanticViolationCount).toBe(1);
+});
+
+test('M5A helper accepts R3 continuity profile with exactly two unresolved boundaries', () => {
+  const scene = new THREE.Group();
+  let index = 0;
+  for (const [kind, count] of Object.entries(m5aR3ExpectedTargetCounts)) {
+    for (let i = 0; i < count; i += 1) {
+      scene.add(makeTarget(kind as keyof typeof m5aExpectedTargetCounts, index, 'M5A-R3'));
+      index += 1;
+    }
+  }
+
+  const context = new THREE.Mesh(
+    new THREE.BoxGeometry(3, 1, 3),
+    new THREE.MeshBasicMaterial({ opacity: 1 }),
+  );
+  context.userData = { G2Id: 'G2_BUILDING_CONTEXT_R3' };
+  scene.add(context);
+
+  const result = prepareM5AReviewPresentation(scene);
+
+  expect(result.targetRenderableCount).toBe(13);
+  expect(result.expectedTargetRenderableCount).toBe(13);
+  expect(result.expectedTargetCounts).toEqual(m5aR3ExpectedTargetCounts);
+  expect(result.reviewProfile).toBe('M5A_R3_CONTINUITY');
+  expect(result.targetCounts).toEqual(m5aR3ExpectedTargetCounts);
+  expect(result.missingTargetKinds).toEqual([]);
+  expect(result.semanticViolationCount).toBe(0);
+  expect(result.contextRenderableCount).toBe(1);
+  expect(result.targetBounds).not.toBeNull();
 });
 
 test('M5A-R2 review source context keeps the human question scoped to the north/west correction delta', () => {
