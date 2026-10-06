@@ -148,6 +148,33 @@ test('M5A-R2 review source context keeps the human question scoped to the north/
   expect(m5aReviewSourceContext.sourceLinks[3]?.href).toContain(
     '1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC',
   );
+  expect(m5aReviewSourceContext.historicalPlanFacts).toEqual([
+    {
+      label: 'Sokkelimitta 1974',
+      value: '25,380 m (sokk.)',
+      role: 'LITERAL_SOURCE_FACT',
+    },
+    {
+      label: 'X-rekisteröintikehys',
+      value: '25,400 m',
+      role: 'SOURCE_SUPPORTED_X_FRAME',
+    },
+    {
+      label: 'Y-lähdeketju',
+      value: '12,610 m (sokk.)',
+      role: 'SOURCE_LOCAL_UNREGISTERED_Y',
+    },
+    {
+      label: 'BP Ø225',
+      value: 'merkitys ratkaisematta',
+      role: 'UNRESOLVED_LITERAL',
+    },
+  ]);
+  expect(m5aReviewSourceContext.historicalPlanStatus).toBe(
+    'HISTORICAL_PLAN_NOT_CURRENT_AS_BUILT',
+  );
+  expect(m5aReviewSourceContext.currentTopologyAuthority).toBe('2026 CURRENT_TECHNICAL');
+  expect(m5aReviewSourceContext.reviewGeometryStatus).toContain('WORK_ASSUMPTION');
   expect(m5aReviewSourceContext.namedWells).toEqual(['SOK1', 'SOK2', 'SOK3', 'PVK']);
   expect(m5aReviewSourceContext.supportedLinkCount).toBe(7);
   expect(m5aReviewSourceContext.drawingLowerMapping).toBe('+X / itäpääty / WORK_ASSUMPTION');

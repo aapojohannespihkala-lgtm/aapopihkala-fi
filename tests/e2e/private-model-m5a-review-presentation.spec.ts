@@ -225,6 +225,11 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
   );
   await expect(canvas).toHaveAttribute('data-m5a-source-named-well-count', '4');
   await expect(canvas).toHaveAttribute('data-m5a-source-supported-link-count', '7');
+  await expect(canvas).toHaveAttribute('data-m5a-historical-source-fact-count', '4');
+  await expect(canvas).toHaveAttribute(
+    'data-m5a-historical-plan-status',
+    m5aReviewSourceContext.historicalPlanStatus,
+  );
 
   const sourceContext = page.locator('#m5a-source-context');
   await expect(sourceContext).toBeVisible();
@@ -244,6 +249,24 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
     'href',
     m5aReviewSourceContext.sourceLinks[3].href,
   );
+  const sourceFacts = page.locator('#m5a-source-facts');
+  await expect(sourceFacts).toContainText('1974 suunnitelmasta varmaa');
+  await expect(sourceFacts).toContainText('25,380 m (sokk.)');
+  await expect(sourceFacts).toContainText('25,400 m');
+  await expect(sourceFacts).toContainText('12,610 m (sokk.)');
+  await expect(sourceFacts).toContainText('BP Ø225');
+  await expect(sourceFacts).toContainText('merkitys ratkaisematta');
+  await expect(sourceFacts).toContainText('2026 topologia on nykytilan auktoriteetti');
+  await expect(sourceFacts).toContainText('WORK_ASSUMPTION');
+  await expect(
+    sourceFacts.locator('dd[data-source-role="SOURCE_SUPPORTED_X_FRAME"]'),
+  ).toContainText('25,400 m');
+  await expect(
+    sourceFacts.locator('dd[data-source-role="SOURCE_LOCAL_UNREGISTERED_Y"]'),
+  ).toContainText('12,610 m');
+  await expect(
+    sourceFacts.locator('dd[data-source-role="UNRESOLVED_LITERAL"]'),
+  ).toContainText('merkitys ratkaisematta');
   await expect(sourceContext).toContainText('SOK1, SOK2, SOK3, PVK');
   await expect(sourceContext).toContainText('7 yhteyttä');
   await expect(sourceContext).toContainText(m5aReviewSourceContext.drawingLowerMapping);

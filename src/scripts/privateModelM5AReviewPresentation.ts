@@ -45,6 +45,31 @@ export const m5aReviewSourceContext = {
       href: 'https://drive.google.com/file/d/1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC/view?usp=drivesdk',
     },
   ],
+  historicalPlanFacts: [
+    {
+      label: 'Sokkelimitta 1974',
+      value: '25,380 m (sokk.)',
+      role: 'LITERAL_SOURCE_FACT',
+    },
+    {
+      label: 'X-rekisteröintikehys',
+      value: '25,400 m',
+      role: 'SOURCE_SUPPORTED_X_FRAME',
+    },
+    {
+      label: 'Y-lähdeketju',
+      value: '12,610 m (sokk.)',
+      role: 'SOURCE_LOCAL_UNREGISTERED_Y',
+    },
+    {
+      label: 'BP Ø225',
+      value: 'merkitys ratkaisematta',
+      role: 'UNRESOLVED_LITERAL',
+    },
+  ],
+  historicalPlanStatus: 'HISTORICAL_PLAN_NOT_CURRENT_AS_BUILT',
+  currentTopologyAuthority: '2026 CURRENT_TECHNICAL',
+  reviewGeometryStatus: 'WORK_ASSUMPTION / NO_EXACT_XY_Z',
   sourceClass: 'SOURCE_REFERENCE_PLUS_DERIVED_QUALITATIVE',
   namedWells: ['SOK1', 'SOK2', 'SOK3', 'PVK'],
   supportedLinkCount: 7,
