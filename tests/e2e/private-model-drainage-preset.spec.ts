@@ -10,4 +10,6 @@ test('Salaojat research preset is wired through Presetit without owning camera-o
   expect(source).toContain("const nextVisible = preset === 'drainage';");
   expect(source).toContain('setDrainageLayerForResearchPreset(researchPreset);');
   expect(source).toContain('setDrainageLayerForResearchPreset(activeResearchPreset);');
+  expect(source).toContain('else if (!standardViewLayerDefaultsInitialized)');
+  expect(source).toContain('applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);');
 });
