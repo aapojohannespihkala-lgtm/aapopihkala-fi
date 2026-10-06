@@ -10,6 +10,7 @@ export type StandardViewPreset =
   | 'top'
   | 'site'
   | 'infra'
+  | 'drainage'
   | 'elev-pos-y'
   | 'elev-neg-y'
   | 'elev-pos-x'
@@ -26,6 +27,7 @@ export const standardViewLayerDefaults: Record<
   top: { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
   site: { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
   infra: { roofVisible: false, locusVisible: true, edgeMode: 'visible' },
+  drainage: { roofVisible: false, locusVisible: false, edgeMode: 'visible' },
   'elev-pos-y': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
   'elev-neg-y': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },
   'elev-pos-x': { roofVisible: true, locusVisible: false, edgeMode: 'visible' },

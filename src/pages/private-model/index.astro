@@ -1444,6 +1444,7 @@ const title = 'Private 3D viewer';
             <div class="toolbar-menu-label">Alue ja järjestelmät</div>
             <button id="site-preset-button" type="button">Tontti</button>
             <button id="infra-preset-button" type="button">Infra</button>
+            <button id="drainage-preset-button" type="button">Salaojat</button>
           </div>
         </details>
 
@@ -1933,6 +1934,7 @@ const title = 'Private 3D viewer';
       const dOverviewPresetButton = document.querySelector<HTMLButtonElement>('#d-overview-preset-button');
       const sitePresetButton = document.querySelector<HTMLButtonElement>('#site-preset-button');
       const infraPresetButton = document.querySelector<HTMLButtonElement>('#infra-preset-button');
+      const drainagePresetButton = document.querySelector<HTMLButtonElement>('#drainage-preset-button');
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
       const navigateToolButton = document.querySelector<HTMLButtonElement>('#navigate-tool-button');
       const selectionToolButton = document.querySelector<HTMLButtonElement>('#selection-tool-button');
@@ -2038,6 +2040,7 @@ const title = 'Private 3D viewer';
         !dOverviewPresetButton ||
         !sitePresetButton ||
         !infraPresetButton ||
+        !drainagePresetButton ||
         !layersButton ||
         !navigateToolButton ||
         !selectionToolButton ||
@@ -3735,7 +3738,8 @@ const title = 'Private 3D viewer';
         preset === 'd-1f' ||
         preset === 'd-2f' ||
         preset === 'site' ||
-        preset === 'infra'
+        preset === 'infra' ||
+        preset === 'drainage'
           ? preset
           : null;
 
@@ -4729,11 +4733,22 @@ const title = 'Private 3D viewer';
         return true;
       };
 
+      const setDrainageLayerForResearchPreset = (preset: ViewerResearchPreset) => {
+        const control = document.querySelector<HTMLInputElement>('#drainage-layer-visible');
+        if (!control) return;
+        const nextVisible = preset === 'drainage';
+        if (control.checked === nextVisible) return;
+        control.checked = nextVisible;
+        control.dispatchEvent(new Event('change', { bubbles: true }));
+        canvas.dataset.layerStateSource = `preset:${preset}`;
+      };
+
       const activateStandardViewCamera = (preset: StandardViewPreset) => {
         if (preset === 'whole-building') fitModel();
         else if (preset === 'd-apartment') activateDOverview();
         else if (preset === 'd-1f') activateDPlan('1F');
         else if (preset === 'd-2f') activateDPlan('2F');
+        else if (preset === 'drainage') fitModel();
         else if (preset === 'top') axisView('top');
         else if (preset === 'site' || preset === 'infra') activateSitePlanOnly();
         else if (preset === 'elev-pos-y') activateElevationView('pos-y');
@@ -4744,12 +4759,16 @@ const title = 'Private 3D viewer';
 
       const applyStandardViewPreset = (preset: StandardViewPreset) => {
         const researchPreset = researchPresetForStandardView(preset);
-        if (researchPreset) setActiveResearchPreset(researchPreset);
-        canvas.dataset.standardViewPreset = preset;
-        if (!standardViewLayerDefaultsInitialized) {
+        if (researchPreset) {
+          setActiveResearchPreset(researchPreset);
+          setDrainageLayerForResearchPreset(researchPreset);
+          applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);
+          standardViewLayerDefaultsInitialized = true;
+        } else if (!standardViewLayerDefaultsInitialized) {
           applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);
           standardViewLayerDefaultsInitialized = true;
         }
+        canvas.dataset.standardViewPreset = preset;
 
         activateStandardViewCamera(preset);
         refreshEdgeRendering(modelRoot.children[0] ?? null);
@@ -4787,6 +4806,7 @@ const title = 'Private 3D viewer';
           `reset:${activeResearchPreset}`,
         );
         resetArchitecturalLayerRuntimeState(resetState.layers);
+        setDrainageLayerForResearchPreset(activeResearchPreset);
         standardViewLayerDefaultsInitialized = true;
         canvas.dataset.standardViewPreset = activeResearchPreset;
         activateStandardViewCamera(activeResearchPreset);
@@ -8723,6 +8743,7 @@ const title = 'Private 3D viewer';
       dOverviewPresetButton.addEventListener('click', () => applyStandardViewPreset('d-apartment'));
       sitePresetButton.addEventListener('click', () => applyStandardViewPreset('site'));
       infraPresetButton.addEventListener('click', () => applyStandardViewPreset('infra'));
+      drainagePresetButton.addEventListener('click', () => applyStandardViewPreset('drainage'));
       orbitButton.addEventListener('click', fitModel);
       topButton.addEventListener('click', () => applyStandardViewPreset('top'));
       bottomButton.addEventListener('click', () => axisView('bottom'));
