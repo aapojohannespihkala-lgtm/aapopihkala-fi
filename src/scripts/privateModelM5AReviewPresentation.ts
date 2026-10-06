@@ -17,6 +17,9 @@ export const m5aExpectedTargetRenderableCount = Object.values(m5aExpectedTargetC
 export const m5aReviewQuestionText =
   'Näyttävätkö rakennuksen pohjois- ja länsipuolelle korjatut salaojaosuudet nyt kulkevan uskottavasti suhteessa viereiseen Drainman-lähdepiirrokseen, kun avoimet päät pidetään edelleen erillisinä eikä niitä oleteta yhdistetyiksi?';
 
+export const m5aCurrentUseReviewQuestionText =
+  'Onko koko salaojajärjestelmän 3D-esitys rakennuksen ympärillä riittävän uskottava ja käyttökelpoinen CURRENT-käyttömallin tekniseksi esitykseksi, kun neljä avointa rajapistettä sekä tarkat XY/Z-, korko- ja kaltevuustiedot jäävät edelleen epävarmoiksi?';
+
 export const m5aReviewSourceContext = {
   sourceLabel: 'Salaojapiirros Drainman.pdf',
   sourceDrawingDriveId: '1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC',
