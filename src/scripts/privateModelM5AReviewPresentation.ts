@@ -9,6 +9,12 @@ export const m5aExpectedTargetCounts = {
   unresolvedBoundaryMarker: 4,
 } as const;
 
+export const m5aR3ExpectedTargetCounts = {
+  wellMarkerWork: 4,
+  referenceRouteWork: 7,
+  unresolvedBoundaryMarker: 2,
+} as const;
+
 export const m5aExpectedTargetRenderableCount = Object.values(m5aExpectedTargetCounts).reduce(
   (sum, count) => sum + count,
   0,
@@ -89,7 +95,7 @@ export const m5aReviewSourceContext = {
 } as const;
 
 const targetKinds = new Set<string>(Object.keys(m5aExpectedTargetCounts));
-const targetPasses = new Set(['M5A', 'M5A-R1', 'M5A-R2']);
+const targetPasses = new Set(['M5A', 'M5A-R1', 'M5A-R2', 'M5A-R3']);
 
 const isRenderable = (object: any) =>
   Boolean(
@@ -229,12 +235,25 @@ export const prepareM5AReviewPresentation = (sceneRoot: any) => {
     contextRenderableCount += 1;
   }
 
-  const missingTargetKinds = Object.entries(m5aExpectedTargetCounts)
+  const isR3Profile = targets.some(
+    (object) => String(object.userData?.Pass ?? '') === 'M5A-R3',
+  );
+  const expectedTargetCounts = isR3Profile
+    ? m5aR3ExpectedTargetCounts
+    : m5aExpectedTargetCounts;
+  const expectedTargetRenderableCount = Object.values(expectedTargetCounts).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+  const missingTargetKinds = Object.entries(expectedTargetCounts)
     .filter(([kind, expected]) => (targetCounts[kind] ?? 0) !== expected)
     .map(([kind]) => kind);
 
   return {
     targetRenderableCount,
+    expectedTargetRenderableCount,
+    expectedTargetCounts,
+    reviewProfile: isR3Profile ? 'M5A_R3_CONTINUITY' : 'M5A_LEGACY_4_BOUNDARIES',
     contextRenderableCount,
     semanticViolationCount,
     targetCounts,
