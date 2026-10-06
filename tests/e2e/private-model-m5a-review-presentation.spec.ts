@@ -194,6 +194,9 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
   await expect(canvas).toHaveAttribute('data-m5a-review-framing-corner-count', '8');
   await expect(canvas).toHaveAttribute('data-m5a-review-framing-margin', '0.94');
   await expect(canvas).toHaveAttribute('data-m5a-review-framing-in-frame', 'true');
+  const reviewFocusRadius = Number(await canvas.getAttribute('data-m5a-review-focus-radius'));
+  expect(Number.isFinite(reviewFocusRadius)).toBe(true);
+  expect(reviewFocusRadius).toBeGreaterThan(0);
   const framingMaxAbsNdc = Number(await canvas.getAttribute('data-m5a-review-framing-max-abs-ndc'));
   expect(Number.isFinite(framingMaxAbsNdc)).toBe(true);
   expect(framingMaxAbsNdc).toBeLessThanOrEqual(0.94);
