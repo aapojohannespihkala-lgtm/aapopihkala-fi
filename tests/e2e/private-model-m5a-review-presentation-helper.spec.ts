@@ -14,6 +14,7 @@ import { THREE } from '../../src/scripts/threeRuntime';
 const makeTarget = (
   representationKind: keyof typeof m5aExpectedTargetCounts,
   index: number,
+  pass = 'M5A',
 ) => {
   const object = new THREE.Mesh(
     new THREE.BoxGeometry(0.5, 0.5, 0.5),
@@ -21,7 +22,7 @@ const makeTarget = (
   );
   object.position.set(index * 0.5, 0, index * 0.25);
   object.userData = {
-    Pass: 'M5A',
+    Pass: pass,
     Canonical: false,
     representationKind,
     presentationOnly: true,
@@ -76,6 +77,28 @@ test('M5A helper presents the exact 4+7+4 drainage topology target set at 80/20'
   }
   expect((context.material as any).opacity).toBe(m5aReviewContextOpacity);
   expect(context.userData.m5aReviewRole).toBe('BUILDING_SITE_CONTEXT_20');
+});
+
+test('M5A helper accepts source-informed M5A-R1 targets without weakening no-promotion semantics', () => {
+  const scene = new THREE.Group();
+  let index = 0;
+  for (const [kind, count] of Object.entries(m5aExpectedTargetCounts)) {
+    for (let i = 0; i < count; i += 1) {
+      scene.add(makeTarget(kind as keyof typeof m5aExpectedTargetCounts, index, 'M5A-R1'));
+      index += 1;
+    }
+  }
+
+  const result = prepareM5AReviewPresentation(scene);
+  expect(result.targetRenderableCount).toBe(m5aExpectedTargetRenderableCount);
+  expect(result.targetCounts).toEqual(m5aExpectedTargetCounts);
+  expect(result.missingTargetKinds).toEqual([]);
+  expect(result.semanticViolationCount).toBe(0);
+
+  scene.children[0].userData.exactXYClaim = true;
+  const promotionCheck = prepareM5AReviewPresentation(scene);
+  expect(promotionCheck.targetRenderableCount).toBe(m5aExpectedTargetRenderableCount);
+  expect(promotionCheck.semanticViolationCount).toBe(1);
 });
 
 test('M5A review source context keeps the human question qualitative and self-contained', () => {
