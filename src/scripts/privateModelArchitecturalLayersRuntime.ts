@@ -64,11 +64,31 @@ const materialIsArchBase = (object: any) => {
   );
 };
 
-const metadataChainHasArchitectureEvidence = (object: any, stopAt: any) => {
+const drainageRepresentationKinds = new Set([
+  'WELLMARKERWORK',
+  'REFERENCEROUTEWORK',
+  'UNRESOLVEDBOUNDARYMARKER',
+]);
+
+const metadataNodeHasDrainageEvidence = (data: Record<string, unknown>) => {
+  const g2Id = String(data.G2Id ?? '').toUpperCase();
+  const parentG2Id = String(data.ParentG2Id ?? '').toUpperCase();
+  const representationKind = String(data.representationKind ?? '').toUpperCase();
+
+  return (
+    g2Id.startsWith('G2_DRAIN_') ||
+    parentG2Id.startsWith('G2_DRAIN_') ||
+    drainageRepresentationKinds.has(representationKind)
+  );
+};
+
+export const metadataChainHasArchitectureEvidence = (object: any, stopAt: any) => {
   let current = object;
   let depth = 0;
   while (current && current !== stopAt && depth < 10) {
     const data = current?.userData ?? {};
+    if (metadataNodeHasDrainageEvidence(data)) return false;
+
     const representationKind = String(data.representationKind ?? '').toUpperCase();
     const presentationLayer = String(data.presentationLayer ?? '').toUpperCase();
     if (
