@@ -9,6 +9,11 @@ const selectionMetadataPriority = [
   'Pass',
   'pass',
   'representationKind',
+  'sourceConnection',
+  'sourceVideoLengthM',
+  'sourceConditionClass',
+  'pipeMaterialSource',
+  'pipeDiameterMmSource',
   'geometryType',
   'sourceRole',
   'sourceFamily',
@@ -26,7 +31,16 @@ const selectionMetadataPriority = [
   'humanReview',
 ] as const;
 
+const selectionMetadataLabels: Record<string, string> = {
+  sourceConnection: 'Lähdeyhteys',
+  sourceVideoLengthM: 'Videokuvauksen pituus (m)',
+  sourceConditionClass: 'Kuntoluokka',
+  pipeMaterialSource: 'Putkimateriaali',
+  pipeDiameterMmSource: 'Putken lähdehalkaisija (mm)',
+};
+
 export const formatSelectionMetadataKey = (key: string) =>
+  selectionMetadataLabels[key] ??
   key
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .replace(/[_-]+/g, ' ')
