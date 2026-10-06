@@ -31,6 +31,7 @@ type LayerControls = {
   windows: HTMLInputElement;
   helpers: HTMLInputElement;
   other: HTMLInputElement;
+  drainage: HTMLInputElement;
   rootCount: HTMLElement;
   wallsCount: HTMLElement;
   exteriorCount: HTMLElement;
@@ -40,6 +41,7 @@ type LayerControls = {
   windowsCount: HTMLElement;
   helpersCount: HTMLElement;
   otherCount: HTMLElement;
+  drainageCount: HTMLElement;
 };
 
 const emptyCounts = (): Record<ViewerArchitecturalLayerNodeId, number> => ({
@@ -82,12 +84,24 @@ const metadataNodeHasDrainageEvidence = (data: Record<string, unknown>) => {
   );
 };
 
+export const metadataChainHasDrainageEvidence = (object: any, stopAt: any) => {
+  let current = object;
+  let depth = 0;
+  while (current && current !== stopAt && depth < 10) {
+    if (metadataNodeHasDrainageEvidence(current?.userData ?? {})) return true;
+    current = current.parent;
+    depth += 1;
+  }
+  return false;
+};
+
 export const metadataChainHasArchitectureEvidence = (object: any, stopAt: any) => {
+  if (metadataChainHasDrainageEvidence(object, stopAt)) return false;
+
   let current = object;
   let depth = 0;
   while (current && current !== stopAt && depth < 10) {
     const data = current?.userData ?? {};
-    if (metadataNodeHasDrainageEvidence(data)) return false;
 
     const representationKind = String(data.representationKind ?? '').toUpperCase();
     const presentationLayer = String(data.presentationLayer ?? '').toUpperCase();
@@ -204,6 +218,25 @@ const createControls = (): LayerControls | null => {
   section.append(rootParent, children, note);
   locusGroup.parentElement.insertBefore(section, locusGroup);
 
+  const drainageSection = document.createElement('div');
+  drainageSection.id = 'drainage-layer-group';
+  drainageSection.className = 'layer-section';
+  const drainageParent = document.createElement('div');
+  drainageParent.className = 'layer-tree-parent';
+  const drainageRow = makeCheckboxRow('drainage-layer-visible', 'Salaojat', false);
+  const drainageCount = document.createElement('div');
+  drainageCount.id = 'drainage-layer-count';
+  drainageCount.className = 'layer-count';
+  drainageCount.textContent = '0 kohdetta';
+  drainageParent.append(drainageRow.label, drainageCount);
+
+  const drainageNote = document.createElement('div');
+  drainageNote.className = 'layer-note';
+  drainageNote.textContent =
+    'Johdetaan mallin G2_DRAIN- ja salaojaesityksen metadatasta ilman erillistä luokitustietoa.';
+  drainageSection.append(drainageParent, drainageNote);
+  locusGroup.parentElement.insertBefore(drainageSection, locusGroup);
+
   return {
     root: rootRow.input,
     walls: wallsRow.input,
@@ -214,6 +247,7 @@ const createControls = (): LayerControls | null => {
     windows: windows.input,
     helpers: helpers.input,
     other: other.input,
+    drainage: drainageRow.input,
     rootCount,
     wallsCount,
     exteriorCount: exterior.text,
@@ -223,6 +257,7 @@ const createControls = (): LayerControls | null => {
     windowsCount: windows.text,
     helpersCount: helpers.text,
     otherCount: other.text,
+    drainageCount,
   };
 };
 
@@ -249,6 +284,8 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
 
   let state: ViewerLayerControlsState = createViewerLayerControlsState();
   let counts = emptyCounts();
+  let drainageCount = 0;
+  let drainageVisible = true;
   let trackedModelRoot: any = null;
   let modelIdentity = '';
   let filterActive = false;
@@ -310,6 +347,7 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
     controls.windows.checked = state.architectureWindowsVisible;
     controls.helpers.checked = state.architectureReviewHelpersVisible;
     controls.other.checked = state.architectureOtherVisible;
+    controls.drainage.checked = drainageVisible;
 
     controls.root.disabled = counts.architecture === 0 || filterActive;
     controls.walls.disabled = counts['architecture-walls'] === 0 || filterActive;
@@ -323,6 +361,7 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
     controls.helpers.disabled =
       counts['architecture-review-helpers'] === 0 || filterActive;
     controls.other.disabled = counts['architecture-other'] === 0 || filterActive;
+    controls.drainage.disabled = drainageCount === 0 || filterActive;
 
     controls.rootCount.textContent = counts.architecture + ' kohdetta';
     controls.wallsCount.textContent = counts['architecture-walls'] + ' kohdetta';
@@ -337,6 +376,7 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
     controls.helpersCount.textContent =
       'Review-apugeometria ' + counts['architecture-review-helpers'];
     controls.otherCount.textContent = 'Muu konteksti ' + counts['architecture-other'];
+    controls.drainageCount.textContent = drainageCount + ' kohdetta';
 
     canvas.dataset.architectureLayerParentState = rootState;
     canvas.dataset.architectureWallsParentState = wallState;
@@ -355,6 +395,8 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
       state.architectureReviewHelpersVisible ? 'true' : 'false';
     canvas.dataset.architectureOtherVisible =
       state.architectureOtherVisible ? 'true' : 'false';
+    canvas.dataset.drainageVisible = drainageVisible ? 'true' : 'false';
+    canvas.dataset.drainageLayerObjectFilterLock = filterActive ? 'true' : 'false';
     canvas.dataset.architectureLayerObjectFilterLock = filterActive ? 'true' : 'false';
   };
 
@@ -366,8 +408,17 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
 
     restoreBaseline();
     counts = emptyCounts();
+    drainageCount = 0;
     const contentRoot = trackedModelRoot.children?.[0];
     contentRoot?.traverse?.((object: any) => {
+      if (!renderable(object)) return;
+      if (metadataChainHasDrainageEvidence(object, trackedModelRoot)) {
+        visibilityBaseline.set(object, object.visible);
+        drainageCount += 1;
+        if (!drainageVisible) object.visible = false;
+        return;
+      }
+
       const nodeId = classify(object);
       if (!nodeId) return;
       visibilityBaseline.set(object, object.visible);
@@ -389,6 +440,7 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
 
   resetRuntimeState = (initial = {}) => {
     state = createViewerLayerControlsState(initial);
+    drainageVisible = true;
     apply();
   };
 
@@ -437,6 +489,17 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
   controls.other.addEventListener('change', () =>
     setNode('architecture-other', controls.other),
   );
+  controls.drainage.addEventListener('change', () => {
+    if (filterActive) {
+      sync();
+      return;
+    }
+    drainageVisible = controls.drainage.checked;
+    apply();
+    document.querySelector<HTMLButtonElement>('#clear-selection-button')?.click();
+    refreshDerivedEdges();
+    canvas.dataset.layerStateSource = 'manual';
+  });
 
   window.addEventListener('ylis-object-visibility-filter', (event: Event) => {
     const custom = event as CustomEvent<{ active?: boolean }>;
@@ -456,6 +519,7 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
     if (nextIdentity && nextIdentity !== modelIdentity) {
       modelIdentity = nextIdentity;
       state = createViewerLayerControlsState();
+      drainageVisible = true;
     }
     filterActive = canvas.dataset.objectVisibilityFilter === 'active';
     apply();
