@@ -38,6 +38,7 @@ export const m5aReviewSourceContext = {
 } as const;
 
 const targetKinds = new Set<string>(Object.keys(m5aExpectedTargetCounts));
+const targetPasses = new Set(['M5A', 'M5A-R1']);
 
 const isRenderable = (object: any) =>
   Boolean(
@@ -69,7 +70,7 @@ const cloneMaterials = (object: any, opacity: number, role: string) => {
 const isM5ATarget = (object: any) => {
   const data = object?.userData ?? {};
   return (
-    String(data.Pass ?? '') === 'M5A' &&
+    targetPasses.has(String(data.Pass ?? '')) &&
     targetKinds.has(String(data.representationKind ?? '')) &&
     data.presentationOnly === true &&
     data.workAssumption === true &&
