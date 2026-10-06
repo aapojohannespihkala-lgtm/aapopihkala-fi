@@ -81,7 +81,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(42);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(43);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -379,6 +379,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     objectKey: 'work-test/m5a-drain-topology.glb',
     expectedSize: 2_903_856,
     expectedSha256: 'e9455f8be8062ce7ebeca3046711896f12d990aad53e03226d87afc416bbb69e',
+  });
+
+  const m5aR730 = getPrivateWorkTestCandidateById('m5a-r2-whole-building-current-candidate-r730');
+  expect(m5aR730).toMatchObject({
+    id: 'm5a-r2-whole-building-current-candidate-r730',
+    label: 'M5A-R2 whole-building CURRENT candidate R730 - WORK_TEST',
+    path: '/private-model/work-test/m5a-r2-whole-building-current-candidate-r730.glb',
+    objectKey: 'work-test/m5a-r2-whole-building-current-candidate-r730.glb',
+    expectedSize: 2_907_116,
+    expectedSha256: 'bc531cecf7f5131ea18ad0d5f16c60526e08c982b9af3c9153a7c7ae5e3d9334',
   });
 
   const p164b = getPrivateWorkTestCandidateById('p164b-d-corrected-stair');
