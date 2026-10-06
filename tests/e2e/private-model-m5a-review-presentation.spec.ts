@@ -318,6 +318,12 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
   }, dataUrl);
 
   expect(renderedPixelCount).toBeGreaterThan(20);
+
+  await page.locator('#current-model-button').evaluate((button: HTMLButtonElement) => button.click());
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(sourceContext).toBeHidden();
+  await expect(canvas).not.toHaveAttribute('data-m5a-historical-source-fact-count', /.+/);
+  await expect(canvas).not.toHaveAttribute('data-m5a-historical-plan-status', /.+/);
 });
 
 test('M5A review rasterizes every one of the 15 drainage targets individually', async ({ browser }) => {
