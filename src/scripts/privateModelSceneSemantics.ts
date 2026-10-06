@@ -114,6 +114,8 @@ const architecturalSemanticMetadataKeys = [
   'doorLeafGeometryClaim',
   'physicalWindowClaim',
   'windowProductGeometryClaim',
+  'physicalWellGeometryClaim',
+  'physicalRouteClaim',
   'physicalClaim',
   'assumption',
   'workAssumption',
@@ -178,18 +180,35 @@ const buildingPartFromIdentity = (value: unknown): ArchitecturalBuildingPartFami
   return null;
 };
 
+type DrainageRepresentationKind = 'WELL' | 'ROUTE' | 'BOUNDARY';
+
+const drainagePartFromRepresentationKind = (
+  value: unknown,
+): DrainageRepresentationKind | null => {
+  const kind = normalizedSemanticString(value).toUpperCase();
+  if (kind === 'WELLMARKERWORK') return 'WELL';
+  if (kind === 'REFERENCEROUTEWORK') return 'ROUTE';
+  if (kind === 'UNRESOLVEDBOUNDARYMARKER') return 'BOUNDARY';
+  return null;
+};
+
 const resolvePhysicalClaimStatus = (
   metadata: Record<string, unknown>,
   family: ArchitecturalBuildingPartFamily,
+  drainagePart: DrainageRepresentationKind | null = null,
 ): ArchitecturalPhysicalClaimStatus => {
   const keys =
-    family === 'WALL'
-      ? ['physicalWallClaim', 'physicalThicknessClaim', 'physicalWallThicknessClaim']
-      : family === 'DOOR'
-        ? ['physicalOpeningClaim', 'physicalDoorVoid', 'doorLeafGeometryAdded', 'doorLeafGeometryClaim']
-        : family === 'WINDOW'
-          ? ['physicalOpeningClaim', 'physicalWindowClaim', 'windowProductGeometryClaim']
-          : ['physicalClaim'];
+    drainagePart === 'WELL'
+      ? ['physicalWellGeometryClaim']
+      : drainagePart === 'ROUTE' || drainagePart === 'BOUNDARY'
+        ? ['physicalRouteClaim']
+        : family === 'WALL'
+          ? ['physicalWallClaim', 'physicalThicknessClaim', 'physicalWallThicknessClaim']
+          : family === 'DOOR'
+            ? ['physicalOpeningClaim', 'physicalDoorVoid', 'doorLeafGeometryAdded', 'doorLeafGeometryClaim']
+            : family === 'WINDOW'
+              ? ['physicalOpeningClaim', 'physicalWindowClaim', 'windowProductGeometryClaim']
+              : ['physicalClaim'];
   const values = keys
     .map((key) => metadata[key])
     .filter((value): value is boolean => typeof value === 'boolean');
@@ -241,6 +260,7 @@ export const resolveArchitecturalSemanticDescriptor = (
   const representationKindUpper = representationKind.toUpperCase();
   const sourceRoleUpper = normalizedSemanticString(metadata.sourceRole).toUpperCase();
   const markerTypeUpper = normalizedSemanticString(metadata.markerType).toUpperCase();
+  const drainagePart = drainagePartFromRepresentationKind(representationKind);
 
   const g2Part = buildingPartFromIdentity(g2Id);
   const parentPart = buildingPartFromIdentity(parentG2Id);
@@ -249,14 +269,16 @@ export const resolveArchitecturalSemanticDescriptor = (
     ['OPENINGANCHOR', 'REFERENCEOPENING', 'REFERENCELINE'].includes(representationKindUpper) ||
     markerTypeUpper === 'HORIZONTAL_ONLY_REFERENCE_AT_HOST_FLOOR';
   const isReviewHelper =
-    ['REFERENCEFOOTPRINT', 'STAIRHOSTFOOTPRINT'].includes(representationKindUpper) ||
+    drainagePart === null &&
+    (['REFERENCEFOOTPRINT', 'STAIRHOSTFOOTPRINT'].includes(representationKindUpper) ||
     normalizedSemanticString(metadata.presentationLayer).toUpperCase() === 'CURRENT_D_OUTLINE' ||
     representationKindUpper.includes('HELPER') ||
     sourceRoleUpper.includes('HELPER') ||
     metadata.presentationOnly === true ||
-    metadata.PresentationOnly === true;
+    metadata.PresentationOnly === true);
 
   let buildingPartFamily =
+    (drainagePart ? 'OTHER' : null) ??
     g2Part ??
     parentPart ??
     (representationKindUpper.includes('WALL') ||
@@ -290,7 +312,11 @@ export const resolveArchitecturalSemanticDescriptor = (
     semanticWallFamily = 'UNRESOLVED_SEMANTIC_CONFLICT';
   }
 
-  const physicalClaimStatus = resolvePhysicalClaimStatus(metadata, buildingPartFamily);
+  const physicalClaimStatus = resolvePhysicalClaimStatus(
+    metadata,
+    buildingPartFamily,
+    drainagePart,
+  );
   const explicitAssumption =
     metadata.assumption === true ||
     metadata.workAssumption === true ||
@@ -308,7 +334,10 @@ export const resolveArchitecturalSemanticDescriptor = (
           : 'UNRESOLVED';
 
   let classLabelFi = 'Muu konteksti';
-  if (representationRole === 'REVIEW_HELPER') classLabelFi = 'Review-apugeometria';
+  if (drainagePart === 'WELL') classLabelFi = 'Salaojakaivo';
+  else if (drainagePart === 'ROUTE') classLabelFi = 'Salaojareitti';
+  else if (drainagePart === 'BOUNDARY') classLabelFi = 'Salaojan avoin rajapiste';
+  else if (representationRole === 'REVIEW_HELPER') classLabelFi = 'Review-apugeometria';
   else if (buildingPartFamily === 'WALL') {
     classLabelFi =
       semanticWallFamily === 'EXTERIOR'
@@ -330,7 +359,22 @@ export const resolveArchitecturalSemanticDescriptor = (
   } else if (buildingPartFamily === 'WINDOW') classLabelFi = 'Ikkuna / ikkuna-aukko';
 
   let labelFi = 'Muu konteksti / Luokittelematon esitys';
-  if (semanticWallFamily === 'UNRESOLVED_SEMANTIC_CONFLICT') {
+  if (drainagePart === 'WELL') {
+    labelFi =
+      representationRole === 'WORK_TEST_ASSUMPTION'
+        ? 'Salaojakaivo (WORK_TEST-oletus)'
+        : 'Salaojakaivo';
+  } else if (drainagePart === 'ROUTE') {
+    labelFi =
+      representationRole === 'WORK_TEST_ASSUMPTION'
+        ? 'Salaojareitti (WORK_TEST-oletus)'
+        : 'Salaojareitti';
+  } else if (drainagePart === 'BOUNDARY') {
+    labelFi =
+      representationRole === 'WORK_TEST_ASSUMPTION'
+        ? 'Salaojan avoin rajapiste (WORK_TEST-oletus)'
+        : 'Salaojan avoin rajapiste';
+  } else if (semanticWallFamily === 'UNRESOLVED_SEMANTIC_CONFLICT') {
     labelFi = 'Semantiikkaristiriita - ei ratkaistu';
   } else if (representationRole === 'REVIEW_HELPER') {
     const helperHint = representationKindUpper + ' ' + sourceRoleUpper;

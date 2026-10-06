@@ -128,3 +128,62 @@ test('architectural classifier labels door, window and helper representations wi
   expect(hostOnly.semanticWallFamily).toBe('UNCLASSIFIED');
   expect(hostOnly.buildingPartFamily).toBe('OTHER');
 });
+
+
+test('drainage classifier distinguishes wells, routes and unresolved boundaries from generic review helpers', () => {
+  const wellParent = {
+    userData: {
+      representationKind: 'wellMarkerWork',
+      presentationOnly: true,
+      workAssumption: true,
+      physicalWellGeometryClaim: false,
+      Canonical: false,
+    },
+    parent: null,
+  };
+  const well = resolveArchitecturalSemanticDescriptor({ userData: {}, parent: wellParent });
+  expect(well.buildingPartFamily).toBe('OTHER');
+  expect(well.representationRole).toBe('WORK_TEST_ASSUMPTION');
+  expect(well.physicalClaimStatus).toBe('NO');
+  expect(well.labelFi).toBe('Salaojakaivo (WORK_TEST-oletus)');
+  expect(well.classLabelFi).toBe('Salaojakaivo');
+
+  const route = resolveArchitecturalSemanticDescriptor({
+    userData: {
+      representationKind: 'referenceRouteWork',
+      presentationOnly: true,
+      workAssumption: true,
+      physicalRouteClaim: false,
+      Canonical: false,
+    },
+  });
+  expect(route.buildingPartFamily).toBe('OTHER');
+  expect(route.representationRole).toBe('WORK_TEST_ASSUMPTION');
+  expect(route.physicalClaimStatus).toBe('NO');
+  expect(route.labelFi).toBe('Salaojareitti (WORK_TEST-oletus)');
+  expect(route.classLabelFi).toBe('Salaojareitti');
+
+  const boundary = resolveArchitecturalSemanticDescriptor({
+    userData: {
+      representationKind: 'unresolvedBoundaryMarker',
+      presentationOnly: true,
+      workAssumption: true,
+      physicalRouteClaim: false,
+      Canonical: false,
+    },
+  });
+  expect(boundary.buildingPartFamily).toBe('OTHER');
+  expect(boundary.representationRole).toBe('WORK_TEST_ASSUMPTION');
+  expect(boundary.physicalClaimStatus).toBe('NO');
+  expect(boundary.labelFi).toBe('Salaojan avoin rajapiste (WORK_TEST-oletus)');
+  expect(boundary.classLabelFi).toBe('Salaojan avoin rajapiste');
+
+  const genericHelper = resolveArchitecturalSemanticDescriptor({
+    userData: {
+      presentationOnly: true,
+      representationKind: 'reviewHelper',
+    },
+  });
+  expect(genericHelper.buildingPartFamily).toBe('REVIEW_HELPER');
+  expect(genericHelper.representationRole).toBe('REVIEW_HELPER');
+});
