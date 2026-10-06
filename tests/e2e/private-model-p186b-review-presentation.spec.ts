@@ -5,7 +5,9 @@ import { expect, test } from '@playwright/test';
 import {
   p186bExpectedSourceLineItemCount,
   p186bReviewContextOpacity,
+  p186bReviewSourceContext,
   p186bReviewTargetOpacity,
+  p186bSourcePdfDriveId,
 } from '../../src/scripts/privateModelP186BReviewPresentation';
 
 const candidateId = 'p186b-d2015-d2f-wiring-mainmass-source-overlay';
@@ -22,6 +24,11 @@ test('P186B final review wiring applies D 2F preset before the 80/20 presentatio
   expect(viewerSource).toContain('prepareP186BReviewPresentation');
   expect(viewerSource).toContain(candidateId);
   expect(viewerSource).toContain("p186bReviewQuestion: 'D_2F_D2015_WIRING_MAINMASS_SOURCE_OVERLAY_RELATION'");
+  expect(viewerSource).toContain('setP186bSourceContextVisible(true)');
+  expect(viewerSource).toContain('p186bReviewSourceContext.sourceHref');
+  expect(p186bReviewSourceContext.sourceHref).toContain(p186bSourcePdfDriveId);
+  expect(p186bReviewSourceContext.limit).toContain('Ei fyysinen kaapelireitti');
+  expect(p186bReviewSourceContext.limit).toContain('as-built');
 
   const stateStart = viewerSource.indexOf('const applyP186bReviewState');
   const stateEnd = viewerSource.indexOf('const applyP181bR1ReviewState', stateStart);
@@ -243,6 +250,25 @@ test('P186B conventional review autoload renders exact 80/20 final state on canv
   await expect(page.locator('#viewer-status')).toContainText(
     'source lines 80 % / D 2F context 20 %',
   );
+
+  const sourceContext = page.locator('#p186b-source-context');
+  await expect(sourceContext).toBeVisible();
+  await expect(sourceContext.locator('#p186b-source-context-source')).toContainText(
+    p186bReviewSourceContext.sourceLabel,
+  );
+  const sourceLink = sourceContext.locator('#p186b-source-links a');
+  await expect(sourceLink).toHaveAttribute('href', p186bReviewSourceContext.sourceHref);
+  await expect(sourceLink).toHaveAttribute('target', '_blank');
+  await expect(sourceContext.locator('#p186b-source-context-limit')).toContainText(
+    'Ei fyysinen kaapelireitti',
+  );
+  await expect(canvas).toHaveAttribute('data-p186b-source-context-ready', 'true');
+  await expect(canvas).toHaveAttribute('data-p186b-source-pdf-drive-id', p186bSourcePdfDriveId);
+  await expect(canvas).toHaveAttribute(
+    'data-p186b-source-role',
+    p186bReviewSourceContext.sourceRole,
+  );
+  await expect(sourceContext.locator('iframe')).toHaveCount(0);
 
   await page.waitForTimeout(250);
   const screenshot = await canvas.screenshot();
