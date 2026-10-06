@@ -9,19 +9,6 @@ const selectionMetadataPriority = [
   'Pass',
   'pass',
   'representationKind',
-  'hostStorey',
-  'presentationLayer',
-  'sourceSelector',
-  'sourceFragmentCount',
-  'sourceLineItemCount',
-  'sourceGraphicOnly',
-  'floorHeatingCableGeometryClaim',
-  'closedHeatingZoneClaim',
-  'electricalPanelGeometryClaim',
-  'physicalCableRouteClaim',
-  'deviceGeometryClaim',
-  'symbolSemanticClaim',
-  'currentGeometryClaim',
   'sourceConnection',
   'sourceVideoLengthM',
   'sourceConditionClass',
@@ -44,6 +31,27 @@ const selectionMetadataPriority = [
   'current',
   'asBuiltClaim',
   'humanReview',
+] as const;
+
+const electricalSelectionMetadataPriority = [
+  'Pass',
+  'pass',
+  'representationKind',
+  'hostStorey',
+  'presentationLayer',
+  'sourceSelector',
+  'sourceFragmentCount',
+  'sourceLineItemCount',
+  'sourceGraphicOnly',
+  'floorHeatingCableGeometryClaim',
+  'closedHeatingZoneClaim',
+  'electricalPanelGeometryClaim',
+  'physicalCableRouteClaim',
+  'deviceGeometryClaim',
+  'symbolSemanticClaim',
+  'currentGeometryClaim',
+  'ModelStage',
+  'modelStage',
 ] as const;
 
 const selectionMetadataLabels: Record<string, string> = {
@@ -119,11 +127,19 @@ export const selectionMetadataEntries = (
     depth += 1;
   }
 
-  const priority = new Map(selectionMetadataPriority.map((key, index) => [key, index]));
+  const priorityKeys: readonly string[] =
+    values.get('presentationLayer') === 'MEP_ELECTRICAL'
+      ? [...electricalSelectionMetadataPriority, ...selectionMetadataPriority]
+      : selectionMetadataPriority;
+  const priority = new Map<string, number>();
+  for (const key of priorityKeys) {
+    if (!priority.has(key)) priority.set(key, priority.size);
+  }
+
   return [...values.entries()]
     .sort(([keyA], [keyB]) => {
-      const rankA = priority.get(keyA as (typeof selectionMetadataPriority)[number]) ?? Number.MAX_SAFE_INTEGER;
-      const rankB = priority.get(keyB as (typeof selectionMetadataPriority)[number]) ?? Number.MAX_SAFE_INTEGER;
+      const rankA = priority.get(keyA) ?? Number.MAX_SAFE_INTEGER;
+      const rankB = priority.get(keyB) ?? Number.MAX_SAFE_INTEGER;
       return rankA - rankB || keyA.localeCompare(keyB, 'fi');
     })
     .slice(0, 12);
