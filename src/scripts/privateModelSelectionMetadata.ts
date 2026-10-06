@@ -14,6 +14,8 @@ const selectionMetadataPriority = [
   'sourceConditionClass',
   'pipeMaterialSource',
   'pipeDiameterMmSource',
+  'wellMaterialSource',
+  'wellDiameterMmSource',
   'geometryType',
   'sourceRole',
   'sourceFamily',
@@ -37,6 +39,8 @@ const selectionMetadataLabels: Record<string, string> = {
   sourceConditionClass: 'Kuntoluokka',
   pipeMaterialSource: 'Putkimateriaali',
   pipeDiameterMmSource: 'Putken lähdehalkaisija (mm)',
+  wellMaterialSource: 'Raportin kaivomateriaalit (järjestelmätaso)',
+  wellDiameterMmSource: 'Raportin kaivokoot (mm, järjestelmätaso)',
 };
 
 export const formatSelectionMetadataKey = (key: string) =>
@@ -57,6 +61,20 @@ export const scalarSelectionMetadataValue = (value: unknown) => {
   return null;
 };
 
+const selectionMetadataValue = (key: string, value: unknown) => {
+  const scalar = scalarSelectionMetadataValue(value);
+  if (scalar !== null) return scalar;
+
+  if (key !== 'wellDiameterMmSource' || !Array.isArray(value) || value.length < 1 || value.length > 8) {
+    return null;
+  }
+
+  const diameters = value.map((item) =>
+    typeof item === 'number' && Number.isFinite(item) ? String(item) : null,
+  );
+  return diameters.every((item): item is string => item !== null) ? diameters.join(', ') : null;
+};
+
 export const selectionMetadataEntries = (
   object: SelectionMetadataNode | null | undefined,
   stopAt: SelectionMetadataNode | null | undefined,
@@ -68,7 +86,7 @@ export const selectionMetadataEntries = (
   while (current && current !== stopAt && depth < 8 && values.size < 24) {
     for (const [key, rawValue] of Object.entries(current.userData ?? {})) {
       if (values.has(key)) continue;
-      const value = scalarSelectionMetadataValue(rawValue);
+      const value = selectionMetadataValue(key, rawValue);
       if (value !== null) values.set(key, value);
     }
     current = current.parent;
