@@ -146,6 +146,7 @@ test('drainage classifier distinguishes wells, routes and unresolved boundaries 
   expect(well.representationRole).toBe('WORK_TEST_ASSUMPTION');
   expect(well.physicalClaimStatus).toBe('NO');
   expect(well.labelFi).toBe('Salaojakaivo (WORK_TEST-oletus)');
+  expect(well.classLabelFi).toBe('Salaojakaivo');
 
   const route = resolveArchitecturalSemanticDescriptor({
     userData: {
@@ -160,6 +161,7 @@ test('drainage classifier distinguishes wells, routes and unresolved boundaries 
   expect(route.representationRole).toBe('WORK_TEST_ASSUMPTION');
   expect(route.physicalClaimStatus).toBe('NO');
   expect(route.labelFi).toBe('Salaojareitti (WORK_TEST-oletus)');
+  expect(route.classLabelFi).toBe('Salaojareitti');
 
   const boundary = resolveArchitecturalSemanticDescriptor({
     userData: {
@@ -174,6 +176,7 @@ test('drainage classifier distinguishes wells, routes and unresolved boundaries 
   expect(boundary.representationRole).toBe('WORK_TEST_ASSUMPTION');
   expect(boundary.physicalClaimStatus).toBe('NO');
   expect(boundary.labelFi).toBe('Salaojan avoin rajapiste (WORK_TEST-oletus)');
+  expect(boundary.classLabelFi).toBe('Salaojan avoin rajapiste');
 
   const genericHelper = resolveArchitecturalSemanticDescriptor({
     userData: {
