@@ -16,5 +16,5 @@ test('Salaojat research preset initializes its technical layers without changing
   expect(source).toContain("wholeBuildingPresetButton.addEventListener('click', () => applyStandardViewPreset('whole-building'))");
   expect(source).toContain("sitePresetButton.addEventListener('click', () => applyStandardViewPreset('site'))");
   expect(source).toContain("infraPresetButton.addEventListener('click', () => applyStandardViewPreset('infra'))");
-  expect(source).toContain("else if (preset === 'drainage') fitModel();");
+  expect(source).toContain("else if (preset === 'drainage' || preset === 'electrical') fitModel();");
 });
