@@ -4762,12 +4762,13 @@ const title = 'Private 3D viewer';
         if (researchPreset) {
           setActiveResearchPreset(researchPreset);
           setDrainageLayerForResearchPreset(researchPreset);
-        }
-        canvas.dataset.standardViewPreset = preset;
-        if (!standardViewLayerDefaultsInitialized) {
+          applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);
+          standardViewLayerDefaultsInitialized = true;
+        } else if (!standardViewLayerDefaultsInitialized) {
           applyViewerLayerState(standardViewLayerDefaults[preset], `preset:${preset}`);
           standardViewLayerDefaultsInitialized = true;
         }
+        canvas.dataset.standardViewPreset = preset;
 
         activateStandardViewCamera(preset);
         refreshEdgeRendering(modelRoot.children[0] ?? null);
