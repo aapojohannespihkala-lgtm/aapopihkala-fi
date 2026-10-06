@@ -470,6 +470,59 @@ const title = 'Private 3D viewer';
         font-size: 10px;
       }
 
+      .m5a-source-context {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 7;
+        width: min(620px, 46vw);
+        max-width: calc(100% - 24px);
+        max-height: calc(100% - 24px);
+        overflow: auto;
+        padding: 10px 12px;
+        border: 1px solid var(--viewer-line-soft);
+        border-radius: 10px;
+        background: rgba(27, 36, 45, 0.94);
+        color: var(--viewer-ink);
+        box-shadow: none;
+        pointer-events: auto;
+      }
+
+      .m5a-source-context[hidden] { display: none; }
+
+      .m5a-source-preview {
+        display: block;
+        width: 100%;
+        height: min(48vh, 520px);
+        min-height: 300px;
+        margin: 7px 0;
+        border: 1px solid var(--viewer-line-soft);
+        border-radius: 7px;
+        background: #fff;
+      }
+
+      .m5a-source-context h2 {
+        margin: 0 0 6px;
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .m5a-source-context p {
+        margin: 4px 0;
+        color: var(--viewer-ink-soft);
+        font-size: 10px;
+        line-height: 1.35;
+      }
+
+      .m5a-source-context strong { color: var(--viewer-ink); }
+
+      .m5a-source-context .m5a-source-limit {
+        margin-top: 7px;
+        padding-top: 7px;
+        border-top: 1px solid var(--viewer-line-soft);
+        color: var(--viewer-stone-light);
+      }
+
       .orientation-gizmo {
         position: absolute;
         right: 12px;
@@ -1382,6 +1435,21 @@ const title = 'Private 3D viewer';
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
+        <aside id="m5a-source-context" class="m5a-source-context" aria-label="Salaojakatselmuksen lähdekonteksti" hidden>
+          <h2>Salaojien lähdekonteksti</h2>
+          <p id="m5a-source-context-source"></p>
+          <iframe
+            id="m5a-source-preview"
+            class="m5a-source-preview"
+            title="Salaojapiirros Drainman - lähdereferenssi"
+            loading="eager"
+            referrerpolicy="no-referrer"
+          ></iframe>
+          <p id="m5a-source-context-topology"></p>
+          <p id="m5a-source-context-orientation"></p>
+          <p id="m5a-source-context-question"></p>
+          <p id="m5a-source-context-limit" class="m5a-source-limit"></p>
+        </aside>
         <aside
           id="orientation-gizmo"
           class="orientation-gizmo"
@@ -1623,6 +1691,8 @@ const title = 'Private 3D viewer';
       import {
         m5aExpectedTargetRenderableCount,
         m5aReviewContextOpacity,
+        m5aReviewQuestionText,
+        m5aReviewSourceContext,
         m5aReviewTargetOpacity,
         prepareM5AReviewPresentation,
       } from '../../scripts/privateModelM5AReviewPresentation';
@@ -1794,6 +1864,13 @@ const title = 'Private 3D viewer';
       const workTestUploadInput = document.querySelector<HTMLInputElement>('#work-test-upload-input');
       const currentModelButton = document.querySelector<HTMLButtonElement>('#current-model-button');
       const modelSourceBadge = document.querySelector<HTMLElement>('#model-source-badge');
+      const m5aSourceContextPanel = document.querySelector<HTMLElement>('#m5a-source-context');
+      const m5aSourceContextSource = document.querySelector<HTMLElement>('#m5a-source-context-source');
+      const m5aSourcePreview = document.querySelector<HTMLIFrameElement>('#m5a-source-preview');
+      const m5aSourceContextTopology = document.querySelector<HTMLElement>('#m5a-source-context-topology');
+      const m5aSourceContextOrientation = document.querySelector<HTMLElement>('#m5a-source-context-orientation');
+      const m5aSourceContextQuestion = document.querySelector<HTMLElement>('#m5a-source-context-question');
+      const m5aSourceContextLimit = document.querySelector<HTMLElement>('#m5a-source-context-limit');
       const layersPanel = document.querySelector<HTMLElement>('#layers-panel');
       const closeLayersButton = document.querySelector<HTMLButtonElement>('#close-layers-button');
       const roofLayerVisibleInput = document.querySelector<HTMLInputElement>('#roof-layer-visible');
@@ -3995,6 +4072,88 @@ const title = 'Private 3D viewer';
         return true;
       };
 
+      const focusM5AReviewCamera = (targetBounds: any) => {
+        if (!targetBounds || targetBounds.isEmpty?.()) return false;
+
+        deactivateElevationView();
+        clearSelection();
+        activePlanFloor = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        planControls.enabled = false;
+        isoControls.enabled = false;
+        controls.enableRotate = true;
+        controls.enabled = true;
+        activeCamera = camera;
+        setModelScene(fullModelScene);
+        syncViewState('orbit');
+
+        const targetCenter = targetBounds.getCenter(new THREE.Vector3());
+        const targetSphere = targetBounds.getBoundingSphere(new THREE.Sphere());
+        const verticalHalfFov = THREE.MathUtils.degToRad(camera.fov * 0.5);
+        const aspect = Math.max(
+          camera.aspect || canvas.clientWidth / Math.max(canvas.clientHeight, 1),
+          0.01,
+        );
+        const horizontalHalfFov = Math.atan(Math.tan(verticalHalfFov) * aspect);
+        const limitingHalfFov = Math.min(verticalHalfFov, horizontalHalfFov);
+        const targetDistance = Math.max(
+          (Math.max(targetSphere.radius, 0.25) / Math.tan(limitingHalfFov)) * 1.75,
+          4,
+        );
+
+        controls.target.copy(targetCenter);
+        camera.up.set(0, 1, 0);
+        camera.position.copy(targetCenter).add(
+          new THREE.Vector3(
+            targetDistance * 0.78,
+            targetDistance * 0.58,
+            targetDistance * 0.92,
+          ),
+        );
+        camera.near = Math.max(targetDistance / 10000, 0.001);
+        camera.far = Math.max(targetDistance * 50, 1000);
+        camera.lookAt(targetCenter);
+        camera.updateProjectionMatrix();
+        camera.updateMatrixWorld(true);
+        controls.update();
+
+        const { min, max } = targetBounds;
+        const corners = [
+          new THREE.Vector3(min.x, min.y, min.z),
+          new THREE.Vector3(min.x, min.y, max.z),
+          new THREE.Vector3(min.x, max.y, min.z),
+          new THREE.Vector3(min.x, max.y, max.z),
+          new THREE.Vector3(max.x, min.y, min.z),
+          new THREE.Vector3(max.x, min.y, max.z),
+          new THREE.Vector3(max.x, max.y, min.z),
+          new THREE.Vector3(max.x, max.y, max.z),
+        ];
+        const projected = corners.map((corner) => corner.clone().project(camera));
+        const framingMargin = 0.94;
+        const framingInFrame = projected.every(
+          (point) =>
+            Number.isFinite(point.x) &&
+            Number.isFinite(point.y) &&
+            Number.isFinite(point.z) &&
+            Math.abs(point.x) <= framingMargin &&
+            Math.abs(point.y) <= framingMargin &&
+            point.z >= -1 &&
+            point.z <= 1,
+        );
+        const maxAbsNdc = projected.reduce(
+          (maximum, point) => Math.max(maximum, Math.abs(point.x), Math.abs(point.y)),
+          0,
+        );
+
+        canvas.dataset.m5aReviewFocusRadius = targetSphere.radius.toFixed(3);
+        canvas.dataset.m5aReviewFramingCornerCount = String(corners.length);
+        canvas.dataset.m5aReviewFramingMargin = framingMargin.toFixed(2);
+        canvas.dataset.m5aReviewFramingMaxAbsNdc = maxAbsNdc.toFixed(3);
+        canvas.dataset.m5aReviewFramingInFrame = String(framingInFrame);
+        return framingInFrame;
+      };
+
       const focusP181GroundContactReviewCamera = (targetBounds: any) => {
         if (!targetBounds || targetBounds.isEmpty?.()) return false;
 
@@ -4625,11 +4784,64 @@ const title = 'Private 3D viewer';
 
       type ModelSourceKind = 'current' | 'work-test';
 
+      const setM5aSourceContextVisible = (visible: boolean) => {
+        if (!m5aSourceContextPanel) return;
+        m5aSourceContextPanel.hidden = !visible;
+        if (!visible) {
+          if (m5aSourcePreview) {
+            m5aSourcePreview.onload = null;
+            m5aSourcePreview.onerror = null;
+            m5aSourcePreview.removeAttribute('src');
+          }
+          delete canvas.dataset.m5aSourceContextReady;
+          delete canvas.dataset.m5aSourcePreviewLoadState;
+          delete canvas.dataset.m5aReviewQuestionText;
+          return;
+        }
+
+        if (m5aSourceContextSource) {
+          m5aSourceContextSource.textContent =
+            `Visuaalinen lähdereferenssi: ${m5aReviewSourceContext.sourceLabel}. Tekninen lähde: ${m5aReviewSourceContext.technicalSourceLabel}.`;
+        }
+        canvas.dataset.m5aSourceContextReady = 'false';
+        if (m5aSourcePreview) {
+          canvas.dataset.m5aSourcePreviewLoadState = 'requesting';
+          m5aSourcePreview.onload = () => {
+            canvas.dataset.m5aSourcePreviewLoadState = 'loaded';
+            canvas.dataset.m5aSourceContextReady = 'true';
+          };
+          m5aSourcePreview.onerror = () => {
+            canvas.dataset.m5aSourcePreviewLoadState = 'error';
+            canvas.dataset.m5aSourceContextReady = 'false';
+          };
+          m5aSourcePreview.src = m5aReviewSourceContext.sourcePreviewUrl;
+        }
+        if (m5aSourceContextTopology) {
+          m5aSourceContextTopology.textContent =
+            `Lähteistetty topologia: ${m5aReviewSourceContext.namedWells.join(', ')} ja ${m5aReviewSourceContext.supportedLinkCount} yhteyttä.`;
+        }
+        if (m5aSourceContextOrientation) {
+          m5aSourceContextOrientation.textContent =
+            `Piirrossuunta: ala → ${m5aReviewSourceContext.drawingLowerMapping}; ylä → ${m5aReviewSourceContext.drawingUpperMapping}; vasen → ${m5aReviewSourceContext.drawingLeftMapping}.`;
+        }
+        if (m5aSourceContextQuestion) {
+          m5aSourceContextQuestion.textContent = `Arvioi vain: ${m5aReviewQuestionText}`;
+        }
+        if (m5aSourceContextLimit) {
+          m5aSourceContextLimit.textContent =
+            'Rajaus: ei exact XY/Z-, fyysistä reitti-, purkupaikka-, as-built-, canonical- tai CURRENT-väitettä.';
+        }
+        canvas.dataset.m5aSourceDrawingDriveId = m5aReviewSourceContext.sourceDrawingDriveId;
+        canvas.dataset.m5aSourceDrawingByteSize = String(m5aReviewSourceContext.sourceDrawingByteSize);
+        canvas.dataset.m5aReviewQuestionText = m5aReviewQuestionText;
+      };
+
       const applyLoadedModel = (
         gltf: any,
         sourceKind: ModelSourceKind,
         sourceLabel: string,
       ) => {
+        setM5aSourceContextVisible(false);
         resetObjectVisibilityFilterState();
         resetHorizontalClipping();
         clearSelection();
@@ -6374,10 +6586,20 @@ const title = 'Private 3D viewer';
           throw new Error('M5A drainage topology targets or no-promotion semantics are not review-ready');
         }
         refreshEdgeRendering(fullModelScene);
+        const cameraFocusApplied = focusM5AReviewCamera(presentation.targetBounds);
 
         Object.assign(canvas.dataset, {
           workTestReviewMode: m5aDrainageReviewId,
           m5aReviewQuestion: 'DRAINAGE_TOPOLOGY_VISUAL_PLACEMENT_AND_CONNECTIVITY',
+          m5aReviewQuestionText,
+          m5aSourceContextClass: m5aReviewSourceContext.sourceClass,
+          m5aSourceDrawingDriveId: m5aReviewSourceContext.sourceDrawingDriveId,
+          m5aSourceDrawingByteSize: String(m5aReviewSourceContext.sourceDrawingByteSize),
+          m5aSourceNamedWellCount: String(m5aReviewSourceContext.namedWells.length),
+          m5aSourceSupportedLinkCount: String(m5aReviewSourceContext.supportedLinkCount),
+          m5aDrawingLowerMapping: m5aReviewSourceContext.drawingLowerMapping,
+          m5aDrawingUpperMapping: m5aReviewSourceContext.drawingUpperMapping,
+          m5aDrawingLeftMapping: m5aReviewSourceContext.drawingLeftMapping,
           m5aTargetOpacity: m5aReviewTargetOpacity.toFixed(2),
           m5aContextOpacity: m5aReviewContextOpacity.toFixed(2),
           m5aReviewTargetRenderableCount: String(presentation.targetRenderableCount),
@@ -6402,10 +6624,12 @@ const title = 'Private 3D viewer';
           m5aPublishToCurrent: 'false',
           m5aHumanReview: 'NOT_RUN',
           m5aReviewCameraMode: 'PERSPECTIVE_FREE_ORBIT',
+          m5aReviewCameraFocusApplied: String(cameraFocusApplied),
           standardViewPreset: 'whole-building',
         });
+        setM5aSourceContextVisible(true);
         status.textContent =
-          'M5A salaojatopologia - WORK_TEST / salaojatopologia 80 % / rakennus- ja maastokonteksti 20 % / HUMAN_REVIEW NOT_RUN';
+          'M5A salaojatopologia - WORK_TEST / 4 kaivoa + 7 lähteistettyä yhteyttä / target 80 % / konteksti 20 % / lähdekonteksti mukana / HUMAN_REVIEW NOT_RUN';
       };
 
       const applyP185cReviewState = () => {
