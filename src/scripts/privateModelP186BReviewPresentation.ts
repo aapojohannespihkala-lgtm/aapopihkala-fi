@@ -4,6 +4,14 @@ export const p186bReviewContextOpacity = 0.2;
 export const p186bTargetRepresentationKind = 'sourceVectorPlanLineOverlay' as const;
 export const p186bSourcePdfDriveId = '1dzzZsa9FCiyqmv8WholhLxba6Kxobspg';
 
+export const p186bReviewSourceContext = {
+  sourceLabel: 'Johdotus.me_design.pdf',
+  sourceHref: `https://drive.google.com/file/d/${p186bSourcePdfDriveId}/view`,
+  sourceRole: 'HISTORICAL_2015_SOURCE_GRAPHIC',
+  limit:
+    'Vuoden 2015 piirroksesta johdettu source-graphic WORK_TEST. Ei fyysinen kaapelireitti eikä nykytila-, as-built-, laitegeometria- tai exact Z -väite.',
+} as const;
+
 export const p186bTargetSelectors = [
   {
     sourceSelector: 'BLACK_LINE_PATH_STROKE_WIDTH_0.84PT',
