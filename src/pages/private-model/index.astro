@@ -553,6 +553,45 @@ const title = 'Private 3D viewer';
         border-color: var(--viewer-line);
       }
 
+      .m5a-source-facts {
+        margin: 7px 0;
+        padding: 7px 8px;
+        border: 1px solid var(--viewer-line-soft);
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.035);
+      }
+
+      .m5a-source-facts h3 {
+        margin: 0 0 5px;
+        font-size: 10px;
+        font-weight: 750;
+        color: var(--viewer-ink);
+      }
+
+      .m5a-source-facts dl {
+        display: grid;
+        grid-template-columns: minmax(110px, 0.8fr) minmax(0, 1.2fr);
+        gap: 3px 8px;
+        margin: 0;
+        font-size: 9px;
+        line-height: 1.35;
+      }
+
+      .m5a-source-facts dt {
+        color: var(--viewer-stone-light);
+      }
+
+      .m5a-source-facts dd {
+        margin: 0;
+        color: var(--viewer-ink-soft);
+      }
+
+      .m5a-source-facts .m5a-source-facts-note {
+        margin-top: 6px;
+        color: var(--viewer-stone-light);
+        font-size: 9px;
+      }
+
       .m5a-source-context strong { color: var(--viewer-ink); }
 
       .m5a-source-context .m5a-source-limit {
@@ -1478,6 +1517,7 @@ const title = 'Private 3D viewer';
           <h2>Salaojien lähdekonteksti</h2>
           <p id="m5a-source-context-source"></p>
           <nav id="m5a-source-links" class="m5a-source-links" aria-label="Salaojien lähdelinkit"></nav>
+          <div id="m5a-source-facts" class="m5a-source-facts" aria-label="Vuoden 1974 suunnitelman varmennetut lähdefaktat"></div>
           <iframe
             id="m5a-source-preview"
             class="m5a-source-preview"
@@ -1907,6 +1947,7 @@ const title = 'Private 3D viewer';
       const m5aSourceContextPanel = document.querySelector<HTMLElement>('#m5a-source-context');
       const m5aSourceContextSource = document.querySelector<HTMLElement>('#m5a-source-context-source');
       const m5aSourceLinks = document.querySelector<HTMLElement>('#m5a-source-links');
+      const m5aSourceFacts = document.querySelector<HTMLElement>('#m5a-source-facts');
       const m5aSourcePreview = document.querySelector<HTMLIFrameElement>('#m5a-source-preview');
       const m5aSourceContextTopology = document.querySelector<HTMLElement>('#m5a-source-context-topology');
       const m5aSourceContextOrientation = document.querySelector<HTMLElement>('#m5a-source-context-orientation');
@@ -4835,6 +4876,7 @@ const title = 'Private 3D viewer';
             m5aSourcePreview.onerror = null;
             m5aSourcePreview.removeAttribute('src');
           }
+          m5aSourceFacts?.replaceChildren();
           delete canvas.dataset.m5aSourceContextReady;
           delete canvas.dataset.m5aSourcePreviewLoadState;
           delete canvas.dataset.m5aReviewQuestionText;
@@ -4856,6 +4898,30 @@ const title = 'Private 3D viewer';
             link.textContent = source.label;
             m5aSourceLinks.append(link);
           }
+        }
+        if (m5aSourceFacts) {
+          m5aSourceFacts.replaceChildren();
+          const title = document.createElement('h3');
+          title.textContent = '1974 suunnitelmasta varmaa';
+          const facts = document.createElement('dl');
+          for (const fact of m5aReviewSourceContext.historicalPlanFacts) {
+            const term = document.createElement('dt');
+            term.textContent = fact.label;
+            term.dataset.sourceRole = fact.role;
+            const value = document.createElement('dd');
+            value.textContent = fact.value;
+            value.dataset.sourceRole = fact.role;
+            facts.append(term, value);
+          }
+          const note = document.createElement('p');
+          note.className = 'm5a-source-facts-note';
+          note.textContent =
+            '1974 = historical plan. 2026 topologia on nykytilan auktoriteetti; R2-geometria on WORK_ASSUMPTION eikä exact current/as-built.';
+          m5aSourceFacts.append(title, facts, note);
+          canvas.dataset.m5aHistoricalSourceFactCount = String(
+            m5aReviewSourceContext.historicalPlanFacts.length,
+          );
+          canvas.dataset.m5aHistoricalPlanStatus = m5aReviewSourceContext.historicalPlanStatus;
         }
         canvas.dataset.m5aSourceContextReady = 'false';
         if (m5aSourcePreview) {
