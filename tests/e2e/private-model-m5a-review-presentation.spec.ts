@@ -302,6 +302,8 @@ test('M5A review rasterizes every one of the 15 drainage targets individually', 
   ];
   const currentModel = makeGlb([]);
   let highlightedTargetIndex = -1;
+  const probedCandidatePath = () =>
+    `${candidatePath}?renderProbe=${highlightedTargetIndex}`;
 
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
@@ -311,14 +313,19 @@ test('M5A review rasterizes every one of the 15 drainage targets individually', 
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        candidates: [{ id: candidateId, label: 'M5A drainage topology - WORK_TEST', path: candidatePath }],
+        candidates: [{
+          id: candidateId,
+          label: 'M5A drainage topology - WORK_TEST',
+          path: probedCandidatePath(),
+        }],
       }),
     });
   });
-  await page.route(`**${candidatePath}`, async (route) => {
+  await page.route(`**${candidatePath}*`, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'model/gltf-binary',
+      headers: { 'cache-control': 'no-store' },
       body: makeGlb(candidateNodes, highlightedTargetIndex),
     });
   });
