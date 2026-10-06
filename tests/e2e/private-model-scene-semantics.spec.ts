@@ -128,3 +128,59 @@ test('architectural classifier labels door, window and helper representations wi
   expect(hostOnly.semanticWallFamily).toBe('UNCLASSIFIED');
   expect(hostOnly.buildingPartFamily).toBe('OTHER');
 });
+
+
+test('drainage classifier distinguishes wells, routes and unresolved boundaries from generic review helpers', () => {
+  const wellParent = {
+    userData: {
+      representationKind: 'wellMarkerWork',
+      presentationOnly: true,
+      workAssumption: true,
+      physicalWellGeometryClaim: false,
+      Canonical: false,
+    },
+    parent: null,
+  };
+  const well = resolveArchitecturalSemanticDescriptor({ userData: {}, parent: wellParent });
+  expect(well.buildingPartFamily).toBe('DRAINAGE_WELL');
+  expect(well.representationRole).toBe('WORK_TEST_ASSUMPTION');
+  expect(well.physicalClaimStatus).toBe('NO');
+  expect(well.labelFi).toBe('Salaojakaivo (WORK_TEST-oletus)');
+
+  const route = resolveArchitecturalSemanticDescriptor({
+    userData: {
+      representationKind: 'referenceRouteWork',
+      presentationOnly: true,
+      workAssumption: true,
+      physicalRouteClaim: false,
+      Canonical: false,
+    },
+  });
+  expect(route.buildingPartFamily).toBe('DRAINAGE_ROUTE');
+  expect(route.representationRole).toBe('WORK_TEST_ASSUMPTION');
+  expect(route.physicalClaimStatus).toBe('NO');
+  expect(route.labelFi).toBe('Salaojareitti (WORK_TEST-oletus)');
+
+  const boundary = resolveArchitecturalSemanticDescriptor({
+    userData: {
+      representationKind: 'unresolvedBoundaryMarker',
+      presentationOnly: true,
+      workAssumption: true,
+      physicalRouteClaim: false,
+      Canonical: false,
+    },
+  });
+  expect(boundary.buildingPartFamily).toBe('DRAINAGE_BOUNDARY');
+  expect(boundary.representationRole).toBe('WORK_TEST_ASSUMPTION');
+  expect(boundary.physicalClaimStatus).toBe('NO');
+  expect(boundary.labelFi).toBe('Salaojan avoin rajapiste (WORK_TEST-oletus)');
+
+  const genericHelper = resolveArchitecturalSemanticDescriptor({
+    userData: {
+      presentationOnly: true,
+      representationKind: 'reviewHelper',
+    },
+  });
+  expect(genericHelper.buildingPartFamily).toBe('REVIEW_HELPER');
+  expect(genericHelper.representationRole).toBe('REVIEW_HELPER');
+});
