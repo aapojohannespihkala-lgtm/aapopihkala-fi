@@ -152,8 +152,7 @@ jobs:
         run: |
           set -euo pipefail
           source_pdf="$RUNNER_TEMP/source-reference.pdf"
-          response="$RUNNER_TEMP/source-reference-publish-response.json" \
-            "$RUNNER_TEMP/source-reference-publish-headers.txt"
+          response="$RUNNER_TEMP/source-reference-publish-response.json"
 
           headers="$RUNNER_TEMP/source-reference-publish-headers.txt"
           http_code="$(curl --silent --show-error \
@@ -236,4 +235,4 @@ jobs:
         if: always()
         shell: bash
         run: |
-          rm -f             "$RUNNER_TEMP/source-reference.pdf"             "$RUNNER_TEMP/source-reference-production-readback.pdf"             "$RUNNER_TEMP/source-reference-publish-response.json"
+          rm -f             "$RUNNER_TEMP/source-reference.pdf"             "$RUNNER_TEMP/source-reference-production-readback.pdf"             "$RUNNER_TEMP/source-reference-publish-response.json"             "$RUNNER_TEMP/source-reference-publish-headers.txt"
