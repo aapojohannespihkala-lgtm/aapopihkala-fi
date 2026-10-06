@@ -1790,7 +1790,6 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelP186BReviewPresentation';
       import {
         m5aCurrentUseReviewQuestionText,
-        m5aExpectedTargetRenderableCount,
         m5aReviewContextOpacity,
         m5aReviewQuestionText,
         m5aReviewSourceContext,
@@ -6908,7 +6907,7 @@ const title = 'Private 3D viewer';
 
         const presentation = prepareM5AReviewPresentation(fullModelScene);
         if (
-          presentation.targetRenderableCount !== m5aExpectedTargetRenderableCount ||
+          presentation.targetRenderableCount !== presentation.expectedTargetRenderableCount ||
           presentation.missingTargetKinds.length !== 0 ||
           presentation.semanticViolationCount !== 0 ||
           presentation.contextRenderableCount < 1 ||
@@ -6937,6 +6936,10 @@ const title = 'Private 3D viewer';
           m5aTargetOpacity: m5aReviewTargetOpacity.toFixed(2),
           m5aContextOpacity: m5aReviewContextOpacity.toFixed(2),
           m5aReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+          m5aReviewExpectedTargetRenderableCount: String(
+            presentation.expectedTargetRenderableCount,
+          ),
+          m5aReviewProfile: presentation.reviewProfile,
           m5aReviewContextRenderableCount: String(presentation.contextRenderableCount),
           m5aReviewSemanticViolationCount: String(presentation.semanticViolationCount),
           m5aReviewWellMarkerCount: String(presentation.targetCounts.wellMarkerWork ?? 0),
