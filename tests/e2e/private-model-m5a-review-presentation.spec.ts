@@ -282,9 +282,8 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
   expect(renderedPixelCount).toBeGreaterThan(20);
 });
 
-
-test('M5A review rasterizes every one of the 15 drainage targets individually', async ({ page }) => {
-  test.setTimeout(60_000);
+test('M5A review rasterizes every one of the 15 drainage targets individually', async ({ browser }) => {
+  test.setTimeout(90_000);
 
   const targets = [
     ...Array.from({ length: 4 }, (_, i) => makeTarget('wellMarkerWork', i)),
@@ -301,46 +300,45 @@ test('M5A review rasterizes every one of the 15 drainage targets individually', 
     },
   ];
   const currentModel = makeGlb([]);
-  let highlightedTargetIndex = -1;
-  const probedCandidatePath = () =>
-    `${candidatePath}?renderProbe=${highlightedTargetIndex}`;
 
-  await page.route('**/private-model/model.glb', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
-  });
-  await page.route('**/private-model/work-test/catalog.json', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        candidates: [{
-          id: candidateId,
-          label: 'M5A drainage topology - WORK_TEST',
-          path: probedCandidatePath(),
-        }],
-      }),
-    });
-  });
-  await page.route(`**${candidatePath}*`, async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'model/gltf-binary',
-      headers: { 'cache-control': 'no-store' },
-      body: makeGlb(candidateNodes, highlightedTargetIndex),
-    });
-  });
-  await page.route('**/m5a-drainman.pdf', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'text/html; charset=utf-8',
-      body: '<!doctype html><html><body><main>Drainman source reference visible</main></body></html>',
-    });
-  });
+  const renderReview = async (highlightedTargetIndex: number) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
 
-  const canvas = page.locator('#private-model-canvas');
+    await page.route('**/private-model/model.glb', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+    });
+    await page.route('**/private-model/work-test/catalog.json', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          candidates: [{
+            id: candidateId,
+            label: 'M5A drainage topology - WORK_TEST',
+            path: candidatePath,
+          }],
+        }),
+      });
+    });
+    await page.route(\`**\${candidatePath}\`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'model/gltf-binary',
+        headers: { 'cache-control': 'no-store' },
+        body: makeGlb(candidateNodes, highlightedTargetIndex),
+      });
+    });
+    await page.route('**/m5a-drainman.pdf', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html; charset=utf-8',
+        body: '<!doctype html><html><body><main>Drainman source reference visible</main></body></html>',
+      });
+    });
 
-  const openReview = async () => {
-    await page.goto(`/private-model/?review=${reviewId}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(\`/private-model/?review=\${reviewId}\`, { waitUntil: 'domcontentloaded' });
+    const canvas = page.locator('#private-model-canvas');
     await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
     await expect(canvas).toHaveAttribute(
       'data-m5a-review-target-renderable-count',
@@ -350,12 +348,18 @@ test('M5A review rasterizes every one of the 15 drainage targets individually', 
     await expect(canvas).toHaveAttribute('data-m5a-review-framing-in-frame', 'true');
     await expect(canvas).toHaveAttribute('data-m5a-source-preview-load-state', 'loaded');
     await page.waitForTimeout(120);
+
+    const screenshot = await canvas.screenshot();
+    await context.close();
+    return screenshot;
   };
 
   const countChangedPixels = async (baseline: Buffer, highlighted: Buffer) => {
-    const baselineUrl = `data:image/png;base64,${baseline.toString('base64')}`;
-    const highlightedUrl = `data:image/png;base64,${highlighted.toString('base64')}`;
-    return page.evaluate(async ({ baselineUrl, highlightedUrl }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const baselineUrl = \`data:image/png;base64,\${baseline.toString('base64')}\`;
+    const highlightedUrl = \`data:image/png;base64,\${highlighted.toString('base64')}\`;
+    const changed = await page.evaluate(async ({ baselineUrl, highlightedUrl }) => {
       const load = async (url: string) => {
         const image = new Image();
         image.src = url;
@@ -363,13 +367,13 @@ test('M5A review rasterizes every one of the 15 drainage targets individually', 
         const probe = document.createElement('canvas');
         probe.width = image.width;
         probe.height = image.height;
-        const context = probe.getContext('2d');
-        if (!context) throw new Error('2d context unavailable');
-        context.drawImage(image, 0, 0);
+        const context2d = probe.getContext('2d');
+        if (!context2d) throw new Error('2d context unavailable');
+        context2d.drawImage(image, 0, 0);
         return {
           width: image.width,
           height: image.height,
-          pixels: context.getImageData(0, 0, image.width, image.height).data,
+          pixels: context2d.getImageData(0, 0, image.width, image.height).data,
         };
       };
 
@@ -377,7 +381,7 @@ test('M5A review rasterizes every one of the 15 drainage targets individually', 
       const probe = await load(highlightedUrl);
       if (base.width !== probe.width || base.height !== probe.height) return -1;
 
-      let changed = 0;
+      let count = 0;
       for (let y = 0; y < base.height; y += 2) {
         for (let x = 0; x < base.width; x += 2) {
           const index = (y * base.width + x) * 4;
@@ -385,26 +389,25 @@ test('M5A review rasterizes every one of the 15 drainage targets individually', 
             Math.abs((base.pixels[index] ?? 0) - (probe.pixels[index] ?? 0)) +
             Math.abs((base.pixels[index + 1] ?? 0) - (probe.pixels[index + 1] ?? 0)) +
             Math.abs((base.pixels[index + 2] ?? 0) - (probe.pixels[index + 2] ?? 0));
-          if (delta > 120) changed += 1;
+          if (delta > 120) count += 1;
         }
       }
-      return changed;
+      return count;
     }, { baselineUrl, highlightedUrl });
+    await context.close();
+    return changed;
   };
 
-  await openReview();
-  const baseline = await canvas.screenshot();
-
+  const baseline = await renderReview(-1);
   const targetPixelEvidence: number[] = [];
+
   for (let targetIndex = 0; targetIndex < m5aExpectedTargetRenderableCount; targetIndex += 1) {
-    highlightedTargetIndex = targetIndex;
-    await openReview();
-    const highlighted = await canvas.screenshot();
+    const highlighted = await renderReview(targetIndex);
     const changedPixels = await countChangedPixels(baseline, highlighted);
     targetPixelEvidence.push(changedPixels);
     expect(
       changedPixels,
-      `M5A target ${targetIndex + 1}/${m5aExpectedTargetRenderableCount} must contribute raster pixels`,
+      \`M5A target \${targetIndex + 1}/\${m5aExpectedTargetRenderableCount} must contribute raster pixels\`,
     ).toBeGreaterThan(8);
   }
 
