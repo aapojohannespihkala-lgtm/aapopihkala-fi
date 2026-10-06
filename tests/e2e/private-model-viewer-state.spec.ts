@@ -97,6 +97,16 @@ test('VUX-E1A research presets install curated starting state', () => {
     locusVisible: true,
     ...expectedDefaultChildren,
   });
+
+  const drainage = applyViewerResearchPreset(infra, 'drainage');
+  expect(drainage.researchPreset).toBe('drainage');
+  expect(drainage.cameraView).toBe('free-3d');
+  expect(drainage.layers).toEqual({
+    roofVisible: false,
+    roofOpacity: 1,
+    locusVisible: false,
+    ...expectedDefaultChildren,
+  });
 });
 
 test('VUX-E1A camera changes preserve research preset, layers, and presentation', () => {
