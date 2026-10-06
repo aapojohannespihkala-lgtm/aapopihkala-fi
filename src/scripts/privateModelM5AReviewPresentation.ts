@@ -23,6 +23,28 @@ export const m5aReviewSourceContext = {
   sourceDrawingByteSize: 1132069,
   sourcePreviewUrl: '/private-model/source-reference/m5a-drainman.pdf',
   technicalSourceLabel: 'Drainman 21.7.2026 salaojien seurantatarkastus',
+  sourceLinks: [
+    {
+      label: '1974 suunnitelma - 74087-2',
+      role: 'HISTORICAL_PLAN',
+      href: 'https://drive.google.com/file/d/1bwpgeIPlH5ehpkYOBihbZQmo5_2dnTL-/view?usp=drivesdk',
+    },
+    {
+      label: '2021 toteumahavainto - kuntotarkastus',
+      role: 'OBSERVED_2021',
+      href: 'https://drive.google.com/file/d/1mP9u9jROfvGzFMKStzbJ5oxCx9YvV0UO/view?usp=drivesdk',
+    },
+    {
+      label: '2026 nykytilaraportti - seurantatarkastus',
+      role: 'CURRENT_TECHNICAL_2026',
+      href: 'https://drive.google.com/file/d/18BOhBpkWza7uUkqicmZKUrcs2ewyLq1x/view?usp=drivesdk',
+    },
+    {
+      label: '2026 salaojapiirros - visuaalinen lähde',
+      role: 'VISUAL_REFERENCE_2026',
+      href: 'https://drive.google.com/file/d/1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC/view?usp=drivesdk',
+    },
+  ],
   sourceClass: 'SOURCE_REFERENCE_PLUS_DERIVED_QUALITATIVE',
   namedWells: ['SOK1', 'SOK2', 'SOK3', 'PVK'],
   supportedLinkCount: 7,
