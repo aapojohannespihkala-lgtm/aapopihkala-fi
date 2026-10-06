@@ -255,7 +255,12 @@ test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20
   await expect(sourceFacts).toContainText('12,610 m (sokk.)');
   await expect(sourceFacts).toContainText('BP Ø225');
   await expect(sourceFacts).toContainText('merkitys ratkaisematta');
-  await expect(sourceFacts).toContainText('2026 topologia on nykytilan auktoriteetti');
+  await expect(sourceFacts).toContainText(
+    '1974 suunnitelma on perusgeometrian ja reittijatkuvuuden baseline',
+  );
+  await expect(sourceFacts).toContainText(
+    '2021/2026 evidenssi tarkentaa tai korjaa sitä vain paikallisesti',
+  );
   await expect(sourceFacts).toContainText('WORK_ASSUMPTION');
   await expect(
     sourceFacts.locator('dd[data-source-role="SOURCE_SUPPORTED_X_FRAME"]'),
