@@ -321,7 +321,7 @@ test('M5A review rasterizes every one of the 15 drainage targets individually', 
         }),
       });
     });
-    await page.route(\`**\${candidatePath}\`, async (route) => {
+    await page.route(`**${candidatePath}`, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'model/gltf-binary',
@@ -337,7 +337,7 @@ test('M5A review rasterizes every one of the 15 drainage targets individually', 
       });
     });
 
-    await page.goto(\`/private-model/?review=\${reviewId}\`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`/private-model/?review=${reviewId}`, { waitUntil: 'domcontentloaded' });
     const canvas = page.locator('#private-model-canvas');
     await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
     await expect(canvas).toHaveAttribute(
@@ -357,8 +357,8 @@ test('M5A review rasterizes every one of the 15 drainage targets individually', 
   const countChangedPixels = async (baseline: Buffer, highlighted: Buffer) => {
     const context = await browser.newContext();
     const page = await context.newPage();
-    const baselineUrl = \`data:image/png;base64,\${baseline.toString('base64')}\`;
-    const highlightedUrl = \`data:image/png;base64,\${highlighted.toString('base64')}\`;
+    const baselineUrl = `data:image/png;base64,${baseline.toString('base64')}`;
+    const highlightedUrl = `data:image/png;base64,${highlighted.toString('base64')}`;
     const changed = await page.evaluate(async ({ baselineUrl, highlightedUrl }) => {
       const load = async (url: string) => {
         const image = new Image();
@@ -407,7 +407,7 @@ test('M5A review rasterizes every one of the 15 drainage targets individually', 
     targetPixelEvidence.push(changedPixels);
     expect(
       changedPixels,
-      \`M5A target \${targetIndex + 1}/\${m5aExpectedTargetRenderableCount} must contribute raster pixels\`,
+      `M5A target ${targetIndex + 1}/${m5aExpectedTargetRenderableCount} must contribute raster pixels`,
     ).toBeGreaterThan(8);
   }
 
