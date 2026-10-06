@@ -1445,6 +1445,7 @@ const title = 'Private 3D viewer';
             <button id="site-preset-button" type="button">Tontti</button>
             <button id="infra-preset-button" type="button">Infra</button>
             <button id="drainage-preset-button" type="button">Salaojat</button>
+            <button id="electrical-preset-button" type="button">Sähköt</button>
           </div>
         </details>
 
@@ -1656,6 +1657,16 @@ const title = 'Private 3D viewer';
               </label>
             </div>
             <div class="layer-note">Alaryhmät näytetään vain, kun mallin metadata tunnistaa ne eksplisiittisesti.</div>
+          </div>
+          <div id="electrical-layer-group" class="layer-section">
+            <div class="layer-tree-parent">
+              <label class="layer-row">
+                <input id="electrical-layer-visible" type="checkbox" checked disabled />
+                <span>D sähköt (WORK_TEST)</span>
+              </label>
+              <div id="electrical-layer-count" class="layer-count">0 kohdetta</div>
+            </div>
+            <div class="layer-note">Johdetaan vain mallin eksplisiittisestä MEP_ELECTRICAL-metadatasta.</div>
           </div>
         </aside>
         <aside id="profile-panel" class="profile-panel" aria-live="polite" hidden>
@@ -1935,6 +1946,7 @@ const title = 'Private 3D viewer';
       const sitePresetButton = document.querySelector<HTMLButtonElement>('#site-preset-button');
       const infraPresetButton = document.querySelector<HTMLButtonElement>('#infra-preset-button');
       const drainagePresetButton = document.querySelector<HTMLButtonElement>('#drainage-preset-button');
+      const electricalPresetButton = document.querySelector<HTMLButtonElement>('#electrical-preset-button');
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
       const navigateToolButton = document.querySelector<HTMLButtonElement>('#navigate-tool-button');
       const selectionToolButton = document.querySelector<HTMLButtonElement>('#selection-tool-button');
@@ -1977,6 +1989,8 @@ const title = 'Private 3D viewer';
       const p161KvvCount = document.querySelector<HTMLElement>('#p161-kvv-count');
       const p161IvPlanCount = document.querySelector<HTMLElement>('#p161-iv-plan-count');
       const p161IvSectionCount = document.querySelector<HTMLElement>('#p161-iv-section-count');
+      const electricalLayerVisibleInput = document.querySelector<HTMLInputElement>('#electrical-layer-visible');
+      const electricalLayerCount = document.querySelector<HTMLElement>('#electrical-layer-count');
       const d1KnownDoorLabelLayer = document.querySelector<HTMLElement>('#d1-known-door-label-layer');
       const d1KnownDoorLegend = document.querySelector<HTMLElement>('#d1-known-door-legend');
       const d1KnownDoorLegendList = document.querySelector<HTMLOListElement>('#d1-known-door-legend-list');
@@ -2041,6 +2055,7 @@ const title = 'Private 3D viewer';
         !sitePresetButton ||
         !infraPresetButton ||
         !drainagePresetButton ||
+        !electricalPresetButton ||
         !layersButton ||
         !navigateToolButton ||
         !selectionToolButton ||
@@ -2074,6 +2089,8 @@ const title = 'Private 3D viewer';
         !p161KvvCount ||
         !p161IvPlanCount ||
         !p161IvSectionCount ||
+        !electricalLayerVisibleInput ||
+        !electricalLayerCount ||
         !d1KnownDoorLabelLayer ||
         !d1KnownDoorLegend ||
         !d1KnownDoorLegendList ||
@@ -2265,12 +2282,15 @@ const title = 'Private 3D viewer';
       const p161IvPlanObjects = new Set<any>();
       const p161IvSectionObjects = new Set<any>();
       const locusLayerVisibilityBaseline = new Map<any, boolean>();
+      const electricalLayerMembers = new Set<any>();
+      const electricalLayerVisibilityBaseline = new Map<any, boolean>();
       let locusLayerVisible = false;
       let locusWaterVisible = true;
       let locusWastewaterVisible = true;
       let p161KvvVisible = true;
       let p161IvPlanVisible = true;
       let p161IvSectionVisible = true;
+      let electricalLayerVisible = true;
       // Preset layer defaults initialize once per real model load; later view changes preserve user state.
       let standardViewLayerDefaultsInitialized = false;
       let archBaseMaterialCloneCount = 0;
@@ -2919,6 +2939,9 @@ const title = 'Private 3D viewer';
 
       const isLocusLayerMember = (object: any) =>
         routePresentationLayers.has(String(object?.userData?.presentationLayer ?? ''));
+
+      const isElectricalLayerMember = (object: any) =>
+        String(object?.userData?.presentationLayer ?? '') === 'MEP_ELECTRICAL';
 
       type P161SystemLayerFamily = 'KVV_2017' | 'IV_1974_PLAN' | 'IV_1974_SECTION';
 
