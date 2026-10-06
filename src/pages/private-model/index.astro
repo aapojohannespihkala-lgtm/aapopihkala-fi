@@ -1781,6 +1781,7 @@ const title = 'Private 3D viewer';
         prepareP186BReviewPresentation,
       } from '../../scripts/privateModelP186BReviewPresentation';
       import {
+        m5aCurrentUseReviewQuestionText,
         m5aExpectedTargetRenderableCount,
         m5aReviewContextOpacity,
         m5aReviewQuestionText,
@@ -1905,6 +1906,10 @@ const title = 'Private 3D viewer';
         p184hApplianceOnP185cReviewId,
         p185cCandidateId,
         p185cReviewId,
+        m5aDrainageCandidateId,
+        m5aDrainageReviewId,
+        m5aR730CandidateId,
+        m5aR730ReviewId,
         m5bCandidateId,
         m5bCurrentReviewId,
         m5bPlannedSok2ComparisonReviewId,
@@ -5005,7 +5010,10 @@ const title = 'Private 3D viewer';
 
       type ModelSourceKind = 'current' | 'work-test';
 
-      const setM5aSourceContextVisible = (visible: boolean) => {
+      const setM5aSourceContextVisible = (
+        visible: boolean,
+        reviewQuestionText = m5aReviewQuestionText,
+      ) => {
         if (!m5aSourceContextPanel) return;
         m5aSourceContextPanel.hidden = !visible;
         m5aSourceContextPanel.closest('.viewport')?.classList.toggle('m5a-source-layout', visible);
@@ -5086,7 +5094,7 @@ const title = 'Private 3D viewer';
             `Piirrossuunta: ala → ${m5aReviewSourceContext.drawingLowerMapping}; ylä → ${m5aReviewSourceContext.drawingUpperMapping}; vasen → ${m5aReviewSourceContext.drawingLeftMapping}.`;
         }
         if (m5aSourceContextQuestion) {
-          m5aSourceContextQuestion.textContent = `Arvioi vain: ${m5aReviewQuestionText}`;
+          m5aSourceContextQuestion.textContent = `Arvioi vain: ${reviewQuestionText}`;
         }
         if (m5aSourceContextLimit) {
           m5aSourceContextLimit.textContent =
@@ -5094,7 +5102,7 @@ const title = 'Private 3D viewer';
         }
         canvas.dataset.m5aSourceDrawingDriveId = m5aReviewSourceContext.sourceDrawingDriveId;
         canvas.dataset.m5aSourceDrawingByteSize = String(m5aReviewSourceContext.sourceDrawingByteSize);
-        canvas.dataset.m5aReviewQuestionText = m5aReviewQuestionText;
+        canvas.dataset.m5aReviewQuestionText = reviewQuestionText;
       };
 
       const applyLoadedModel = (
@@ -5982,11 +5990,11 @@ const title = 'Private 3D viewer';
       const isP185cElectricalSourceReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p185cReviewId);
 
-      const m5aDrainageCandidateId = 'm5a-drain-topology';
-      const m5aDrainageReviewId = `${m5aDrainageCandidateId}-review`;
-
       const isM5aDrainageReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, m5aDrainageReviewId);
+
+      const isM5aR730SystemReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, m5aR730ReviewId);
 
       const p186bCandidateId = 'p186b-d2015-d2f-wiring-mainmass-source-overlay';
       const p186bReviewId = `${p186bCandidateId}-review`;
@@ -6829,7 +6837,21 @@ const title = 'Private 3D viewer';
           'P184H D 2F appliance aids on P185C survivor - WORK_TEST / oven + cooktop 80 % / island + D 2F context 20 % / HUMAN_REVIEW NOT_RUN';
       };
 
-      const applyM5aDrainageReviewState = () => {
+      type M5aDrainageReviewMode = 'TOPOLOGY_CORRECTION' | 'CURRENT_USE_SYSTEM';
+
+      const applyM5aDrainageReviewState = (mode: M5aDrainageReviewMode) => {
+        const isCurrentUseReview = mode === 'CURRENT_USE_SYSTEM';
+        const reviewId = isCurrentUseReview ? m5aR730ReviewId : m5aDrainageReviewId;
+        const reviewQuestion = isCurrentUseReview
+          ? 'DRAINAGE_SYSTEM_CURRENT_MODEL_USABILITY_WITH_UNCERTAINTY'
+          : 'DRAINAGE_TOPOLOGY_VISUAL_PLACEMENT_AND_CONNECTIVITY';
+        const reviewQuestionText = isCurrentUseReview
+          ? m5aCurrentUseReviewQuestionText
+          : m5aReviewQuestionText;
+        const reviewStatusLabel = isCurrentUseReview
+          ? 'M5A-R2 koko rakennuksen salaojajärjestelmä'
+          : 'M5A salaojatopologia';
+
         applyStandardViewPreset('whole-building');
         setModelScene(fullModelScene);
         canvas.dataset.contentScene = 'full-model';
@@ -6848,14 +6870,15 @@ const title = 'Private 3D viewer';
           throw new Error('M5A drainage topology targets or no-promotion semantics are not review-ready');
         }
         refreshEdgeRendering(fullModelScene);
-        setM5aSourceContextVisible(true);
+        setM5aSourceContextVisible(true, reviewQuestionText);
         updateSize();
         const cameraFocusApplied = focusM5AReviewCamera(presentation.targetBounds);
 
         Object.assign(canvas.dataset, {
-          workTestReviewMode: m5aDrainageReviewId,
-          m5aReviewQuestion: 'DRAINAGE_TOPOLOGY_VISUAL_PLACEMENT_AND_CONNECTIVITY',
-          m5aReviewQuestionText,
+          workTestReviewMode: reviewId,
+          m5aReviewScope: mode,
+          m5aReviewQuestion: reviewQuestion,
+          m5aReviewQuestionText: reviewQuestionText,
           m5aSourceContextClass: m5aReviewSourceContext.sourceClass,
           m5aSourceDrawingDriveId: m5aReviewSourceContext.sourceDrawingDriveId,
           m5aSourceDrawingByteSize: String(m5aReviewSourceContext.sourceDrawingByteSize),
@@ -6892,7 +6915,7 @@ const title = 'Private 3D viewer';
           standardViewPreset: 'whole-building',
         });
         status.textContent =
-          'M5A salaojatopologia - WORK_TEST / 4 kaivoa + 7 lähteistettyä yhteyttä / target 80 % / konteksti 20 % / lähdekonteksti mukana / HUMAN_REVIEW NOT_RUN';
+          `${reviewStatusLabel} - WORK_TEST / 4 kaivoa + 7 lähteistettyä yhteyttä / target 80 % / konteksti 20 % / lähdekonteksti mukana / HUMAN_REVIEW NOT_RUN`;
       };
 
       const applyP185cReviewState = () => {
@@ -7435,8 +7458,12 @@ const title = 'Private 3D viewer';
             candidate.id === p186bCandidateId && isP186bElectricalSourceReviewRequested();
           const isP184hApplianceOnP185cReview =
             candidate.id === p185cCandidateId && isP184hApplianceOnP185cReviewRequested();
-          const isM5aDrainageReview =
-            candidate.id === m5aDrainageCandidateId && isM5aDrainageReviewRequested();
+          const m5aDrainageReviewMode: M5aDrainageReviewMode | null =
+            candidate.id === m5aDrainageCandidateId && isM5aDrainageReviewRequested()
+              ? 'TOPOLOGY_CORRECTION'
+              : candidate.id === m5aR730CandidateId && isM5aR730SystemReviewRequested()
+                ? 'CURRENT_USE_SYSTEM'
+                : null;
           const isM5BCurrentReview =
             candidate.id === m5bCandidateId &&
             isPrivateModelReviewRequested(window.location.search, m5bCurrentReviewId);
@@ -8160,8 +8187,8 @@ const title = 'Private 3D viewer';
             Object.assign(canvas.dataset, m5bRuntimeState.dataset);
             applyStandardViewPreset(m5bRuntimeState.standardViewPreset);
             status.textContent = m5bRuntimeState.statusText;
-          } else if (isM5aDrainageReview) {
-            applyM5aDrainageReviewState();
+          } else if (m5aDrainageReviewMode) {
+            applyM5aDrainageReviewState(m5aDrainageReviewMode);
           } else if (isP169fStorageDoorReview) {
             applyP169fReviewState();
           } else if (isP169aStorageVisibleReview) {
