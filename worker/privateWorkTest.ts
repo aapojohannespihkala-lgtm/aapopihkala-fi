@@ -302,6 +302,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_934_024,
     expectedSha256: '9599dec3db6a8cf1961f5db1a91d9722566dadd9a4176861e1e087722a3cea6c',
   },
+  // P186B viewer/release registration: exact persisted D2015 D 2F wiring source overlay.
+  {
+    id: 'p186b-d2015-d2f-wiring-mainmass-source-overlay',
+    label: 'P186B D 2F wiring main-mass source overlay - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p186b-d2015-d2f-wiring-mainmass-source-overlay.glb`,
+    objectKey: 'work-test/p186b-d2015-d2f-wiring-mainmass-source-overlay.glb',
+    expectedSize: 3_117_312,
+    expectedSha256: '4b5de6b1f99cd3d85de71f826f4e7b7e481c17c1d5dd5e0d508dd8b500866236',
+  },
   // M5A viewer/release registration: exact persisted drainage topology presentation WORK_TEST.
   {
     id: 'm5a-drain-topology',
