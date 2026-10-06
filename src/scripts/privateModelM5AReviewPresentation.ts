@@ -15,7 +15,7 @@ export const m5aExpectedTargetRenderableCount = Object.values(m5aExpectedTargetC
 );
 
 export const m5aReviewQuestionText =
-  'Näyttävätkö salaojajärjestelmän suhteellinen topologia ja kaivojen yleinen sijoittuminen rakennuksen ympärille uskottavilta suhteessa viereiseen Drainman-lähdepiirrokseen?';
+  'Näyttävätkö rakennuksen pohjois- ja länsipuolelle korjatut salaojaosuudet nyt kulkevan uskottavasti suhteessa viereiseen Drainman-lähdepiirrokseen, kun avoimet päät pidetään edelleen erillisinä eikä niitä oleteta yhdistetyiksi?';
 
 export const m5aReviewSourceContext = {
   sourceLabel: 'Salaojapiirros Drainman.pdf',
