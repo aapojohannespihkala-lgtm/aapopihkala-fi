@@ -135,6 +135,19 @@ test('M5A-R2 review source context keeps the human question scoped to the north/
   expect(m5aReviewSourceContext.sourcePreviewUrl).toBe(
     '/private-model/source-reference/m5a-drainman.pdf',
   );
+  expect(m5aReviewSourceContext.sourceLinks).toHaveLength(4);
+  expect(m5aReviewSourceContext.sourceLinks.map((source) => source.role)).toEqual([
+    'HISTORICAL_PLAN',
+    'OBSERVED_2021',
+    'CURRENT_TECHNICAL_2026',
+    'VISUAL_REFERENCE_2026',
+  ]);
+  expect(m5aReviewSourceContext.sourceLinks[0]?.href).toContain(
+    '1bwpgeIPlH5ehpkYOBihbZQmo5_2dnTL-',
+  );
+  expect(m5aReviewSourceContext.sourceLinks[3]?.href).toContain(
+    '1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC',
+  );
   expect(m5aReviewSourceContext.namedWells).toEqual(['SOK1', 'SOK2', 'SOK3', 'PVK']);
   expect(m5aReviewSourceContext.supportedLinkCount).toBe(7);
   expect(m5aReviewSourceContext.drawingLowerMapping).toBe('+X / itäpääty / WORK_ASSUMPTION');
