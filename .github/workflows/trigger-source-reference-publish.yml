@@ -1,0 +1,109 @@
+name: Trigger source-reference publish
+
+on:
+  push:
+    branches:
+      - ops/machine-publish
+    paths:
+      - .github/source-reference-publish-request.json
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: trigger-source-reference-publish
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Require trusted request push
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          REF_FULL: ${{ github.ref }}
+          ACTOR: ${{ github.actor }}
+          ACTOR_ID: ${{ github.actor_id }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$EVENT_NAME" == "push" ]]
+          [[ "$REPOSITORY" == "aapojohannespihkala-lgtm/aapopihkala-fi" ]]
+          [[ "$REF_FULL" == "refs/heads/ops/machine-publish" ]]
+          [[ "$ACTOR" == "aapojohannespihkala-lgtm" ]]
+          [[ "$ACTOR_ID" == "322566438" ]]
+          [[ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]
+          [[ -n "$AFTER_SHA" ]]
+
+      - name: Checkout exact request commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Require request-only commit scope
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed_files < <(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA")
+          [[ ${#changed_files[@]} -eq 1 ]]
+          [[ "${changed_files[0]}" == ".github/source-reference-publish-request.json" ]]
+
+      - name: Validate source-reference publish request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - ".github/source-reference-publish-request.json" "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import re
+          import sys
+
+          request_path, output_path = sys.argv[1:]
+          with open(request_path, "r", encoding="utf-8") as handle:
+              payload = json.load(handle)
+
+          if set(payload) != {"reference", "requestId"}:
+              raise SystemExit("source-reference publish request must contain exactly reference and requestId")
+
+          reference = payload.get("reference")
+          request_id = payload.get("requestId")
+          if not isinstance(reference, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,127}", reference):
+              raise SystemExit("invalid source-reference format")
+          if not isinstance(request_id, str) or not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", request_id):
+              raise SystemExit("invalid requestId format")
+
+          with open(output_path, "a", encoding="utf-8") as handle:
+              handle.write(f"reference={reference}\n")
+              handle.write(f"request_id={request_id}\n")
+          PY
+
+      - name: Dispatch canonical source-reference publisher on main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REFERENCE: ${{ steps.request.outputs.reference }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          payload="$RUNNER_TEMP/source-reference-dispatch.json"
+          python3 - "$REFERENCE" "$payload" <<'PY'
+          import json
+          import sys
+
+          reference, path = sys.argv[1:]
+          with open(path, "w", encoding="utf-8") as handle:
+              json.dump({"ref": "main", "inputs": {"reference": reference}}, handle)
+          PY
+
+          gh api --method POST             "/repos/${GITHUB_REPOSITORY}/actions/workflows/publish-source-reference.yml/dispatches"             --input "$payload"
+
+          rm -f "$payload"
+          echo "Dispatched canonical source-reference publish request $REQUEST_ID for $REFERENCE on main."
