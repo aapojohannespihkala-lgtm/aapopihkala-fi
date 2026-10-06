@@ -81,7 +81,7 @@ const makeTarget = (
   mesh: 0,
   translation: [(index % 5) * 2.2, 0, Math.floor(index / 5) * 2.2],
   extras: {
-    Pass: 'M5A-R1',
+    Pass: 'M5A-R2',
     Canonical: false,
     representationKind,
     presentationOnly: true,

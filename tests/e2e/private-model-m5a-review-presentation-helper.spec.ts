@@ -101,6 +101,28 @@ test('M5A helper accepts source-informed M5A-R1 targets without weakening no-pro
   expect(promotionCheck.semanticViolationCount).toBe(1);
 });
 
+test('M5A helper accepts north/west successor M5A-R2 targets without weakening no-promotion semantics', () => {
+  const scene = new THREE.Group();
+  let index = 0;
+  for (const [kind, count] of Object.entries(m5aExpectedTargetCounts)) {
+    for (let i = 0; i < count; i += 1) {
+      scene.add(makeTarget(kind as keyof typeof m5aExpectedTargetCounts, index, 'M5A-R2'));
+      index += 1;
+    }
+  }
+
+  const result = prepareM5AReviewPresentation(scene);
+  expect(result.targetRenderableCount).toBe(m5aExpectedTargetRenderableCount);
+  expect(result.targetCounts).toEqual(m5aExpectedTargetCounts);
+  expect(result.missingTargetKinds).toEqual([]);
+  expect(result.semanticViolationCount).toBe(0);
+
+  scene.children[0].userData.exactXYClaim = true;
+  const promotionCheck = prepareM5AReviewPresentation(scene);
+  expect(promotionCheck.targetRenderableCount).toBe(m5aExpectedTargetRenderableCount);
+  expect(promotionCheck.semanticViolationCount).toBe(1);
+});
+
 test('M5A review source context keeps the human question qualitative and self-contained', () => {
   expect(m5aReviewQuestionText).toContain('suhteellinen topologia');
   expect(m5aReviewQuestionText).toContain('yleinen sijoittuminen');
