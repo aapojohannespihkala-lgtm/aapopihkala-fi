@@ -154,7 +154,46 @@ jobs:
           source_pdf="$RUNNER_TEMP/source-reference.pdf"
           response="$RUNNER_TEMP/source-reference-publish-response.json"
 
-          curl --silent --show-error --fail             --request PUT             --header "CF-Access-Client-Id: $CF_ACCESS_PUBLISHER_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_PUBLISHER_CLIENT_SECRET"             --header "Content-Type: application/pdf"             --header "Content-Length: $EXPECTED_SIZE"             --data-binary "@$source_pdf"             --output "$response"             "$PUBLISH_URL"
+          headers="$RUNNER_TEMP/source-reference-publish-headers.txt"
+          http_code="$(curl --silent --show-error \
+            --request PUT \
+            --header "CF-Access-Client-Id: $CF_ACCESS_PUBLISHER_CLIENT_ID" \
+            --header "CF-Access-Client-Secret: $CF_ACCESS_PUBLISHER_CLIENT_SECRET" \
+            --header "Content-Type: application/pdf" \
+            --header "Content-Length: $EXPECTED_SIZE" \
+            --data-binary "@$source_pdf" \
+            --dump-header "$headers" \
+            --output "$response" \
+            --write-out "%{http_code}" \
+            "$PUBLISH_URL")"
+
+          python3 - "$http_code" "$headers" <<'PY'
+          import sys
+          from urllib.parse import urlsplit, urlunsplit
+
+          status, header_path = sys.argv[1:]
+          content_type = ""
+          location = ""
+          with open(header_path, "r", encoding="iso-8859-1") as handle:
+              for raw in handle:
+                  line = raw.rstrip("\r\n")
+                  lower = line.lower()
+                  if lower.startswith("content-type:"):
+                      content_type = line.split(":", 1)[1].strip()
+                  elif lower.startswith("location:"):
+                      value = line.split(":", 1)[1].strip()
+                      parts = urlsplit(value)
+                      location = urlunsplit((parts.scheme, parts.netloc, parts.path, "", "")) if parts.scheme else value.split("?", 1)[0]
+
+          print(f"Source-reference publish HTTP status={status}")
+          print(f"Source-reference publish Content-Type={content_type or '<none>'}")
+          print(f"Source-reference publish Location={location or '<none>'}")
+
+          if not status.startswith("2"):
+              raise SystemExit("source-reference publish returned non-2xx status")
+          if not content_type.lower().startswith("application/json"):
+              raise SystemExit("source-reference publish returned non-JSON content type")
+          PY
 
           python3 - "$response" "$REFERENCE_ID" "$EXPECTED_PATH" <<'PY'
           import json
@@ -196,4 +235,4 @@ jobs:
         if: always()
         shell: bash
         run: |
-          rm -f             "$RUNNER_TEMP/source-reference.pdf"             "$RUNNER_TEMP/source-reference-production-readback.pdf"             "$RUNNER_TEMP/source-reference-publish-response.json"
+          rm -f             "$RUNNER_TEMP/source-reference.pdf"             "$RUNNER_TEMP/source-reference-production-readback.pdf"             "$RUNNER_TEMP/source-reference-publish-response.json"             "$RUNNER_TEMP/source-reference-publish-headers.txt"
