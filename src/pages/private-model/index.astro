@@ -528,6 +528,31 @@ const title = 'Private 3D viewer';
         line-height: 1.35;
       }
 
+      .m5a-source-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin: 7px 0;
+      }
+
+      .m5a-source-links a {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 6px;
+        border: 1px solid var(--viewer-line-soft);
+        border-radius: 6px;
+        color: var(--viewer-ink-soft);
+        font-size: 10px;
+        line-height: 1.2;
+        text-decoration: none;
+      }
+
+      .m5a-source-links a:hover,
+      .m5a-source-links a:focus-visible {
+        color: var(--viewer-ink);
+        border-color: var(--viewer-line);
+      }
+
       .m5a-source-context strong { color: var(--viewer-ink); }
 
       .m5a-source-context .m5a-source-limit {
@@ -1452,6 +1477,7 @@ const title = 'Private 3D viewer';
         <aside id="m5a-source-context" class="m5a-source-context" aria-label="Salaojakatselmuksen lähdekonteksti" hidden>
           <h2>Salaojien lähdekonteksti</h2>
           <p id="m5a-source-context-source"></p>
+          <nav id="m5a-source-links" class="m5a-source-links" aria-label="Salaojien lähdelinkit"></nav>
           <iframe
             id="m5a-source-preview"
             class="m5a-source-preview"
@@ -1880,6 +1906,7 @@ const title = 'Private 3D viewer';
       const modelSourceBadge = document.querySelector<HTMLElement>('#model-source-badge');
       const m5aSourceContextPanel = document.querySelector<HTMLElement>('#m5a-source-context');
       const m5aSourceContextSource = document.querySelector<HTMLElement>('#m5a-source-context-source');
+      const m5aSourceLinks = document.querySelector<HTMLElement>('#m5a-source-links');
       const m5aSourcePreview = document.querySelector<HTMLIFrameElement>('#m5a-source-preview');
       const m5aSourceContextTopology = document.querySelector<HTMLElement>('#m5a-source-context-topology');
       const m5aSourceContextOrientation = document.querySelector<HTMLElement>('#m5a-source-context-orientation');
@@ -4817,6 +4844,18 @@ const title = 'Private 3D viewer';
         if (m5aSourceContextSource) {
           m5aSourceContextSource.textContent =
             `Visuaalinen lähdereferenssi: ${m5aReviewSourceContext.sourceLabel}. Tekninen lähde: ${m5aReviewSourceContext.technicalSourceLabel}.`;
+        }
+        if (m5aSourceLinks) {
+          m5aSourceLinks.replaceChildren();
+          for (const source of m5aReviewSourceContext.sourceLinks) {
+            const link = document.createElement('a');
+            link.href = source.href;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.dataset.sourceRole = source.role;
+            link.textContent = source.label;
+            m5aSourceLinks.append(link);
+          }
         }
         canvas.dataset.m5aSourceContextReady = 'false';
         if (m5aSourcePreview) {
