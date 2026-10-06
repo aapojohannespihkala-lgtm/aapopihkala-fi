@@ -3799,7 +3799,8 @@ const title = 'Private 3D viewer';
         preset === 'd-2f' ||
         preset === 'site' ||
         preset === 'infra' ||
-        preset === 'drainage'
+        preset === 'drainage' ||
+        preset === 'electrical'
           ? preset
           : null;
 
@@ -4802,12 +4803,19 @@ const title = 'Private 3D viewer';
         control.dispatchEvent(new Event('change', { bubbles: true }));
       };
 
+      const setElectricalLayerForResearchPreset = (preset: ViewerResearchPreset) => {
+        const nextVisible = preset === 'electrical';
+        if (electricalLayerVisibleInput.checked === nextVisible) return;
+        electricalLayerVisibleInput.checked = nextVisible;
+        electricalLayerVisibleInput.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+
       const activateStandardViewCamera = (preset: StandardViewPreset) => {
         if (preset === 'whole-building') fitModel();
         else if (preset === 'd-apartment') activateDOverview();
         else if (preset === 'd-1f') activateDPlan('1F');
         else if (preset === 'd-2f') activateDPlan('2F');
-        else if (preset === 'drainage') fitModel();
+        else if (preset === 'drainage' || preset === 'electrical') fitModel();
         else if (preset === 'top') axisView('top');
         else if (preset === 'site' || preset === 'infra') activateSitePlanOnly();
         else if (preset === 'elev-pos-y') activateElevationView('pos-y');
@@ -4862,11 +4870,42 @@ const title = 'Private 3D viewer';
         );
         resetArchitecturalLayerRuntimeState(presetState.layers);
         setDrainageLayerForResearchPreset(preset);
+        setElectricalLayerForResearchPreset(preset);
         canvas.dataset.layerStateSource = 'preset:drainage';
         standardViewLayerDefaultsInitialized = true;
         canvas.dataset.standardViewPreset = preset;
         activateStandardViewCamera(preset);
         refreshEdgeRendering(modelRoot.children[0] ?? null);
+      };
+
+      const applyElectricalResearchPreset = () => {
+        const preset: ViewerResearchPreset = 'electrical';
+        const presetState = createViewerInteractionState(preset);
+        setActiveResearchPreset(preset);
+        applyResetLayerHierarchyDefaults(presetState.layers);
+        applyViewerLayerState(
+          {
+            roofVisible: presetState.layers.roofVisible,
+            roofOpacity: presetState.layers.roofOpacity,
+            locusVisible: presetState.layers.locusVisible,
+            edgeMode: presetState.presentation.edgeMode,
+          },
+          'preset:electrical',
+        );
+        resetArchitecturalLayerRuntimeState(presetState.layers);
+        setDrainageLayerForResearchPreset(preset);
+        setElectricalLayerForResearchPreset(preset);
+        canvas.dataset.layerStateSource = 'preset:electrical';
+        standardViewLayerDefaultsInitialized = true;
+        canvas.dataset.standardViewPreset = preset;
+        setModelScene(fullModelScene);
+        canvas.dataset.contentScene = 'full-model';
+        delete canvas.dataset.contentFloor;
+        activateStandardViewCamera(preset);
+        refreshEdgeRendering(modelRoot.children[0] ?? null);
+        status.textContent = electricalLayerMembers.size > 0
+          ? 'D sähköt - WORK_TEST-lähdegeometria näkyvissä'
+          : 'D sähköt - tässä mallissa ei ole MEP_ELECTRICAL-kohteita';
       };
 
       const resetActiveViewDefaults = () => {
@@ -4885,6 +4924,7 @@ const title = 'Private 3D viewer';
         );
         resetArchitecturalLayerRuntimeState(resetState.layers);
         setDrainageLayerForResearchPreset(activeResearchPreset);
+        setElectricalLayerForResearchPreset(activeResearchPreset);
         canvas.dataset.layerStateSource = `reset:${activeResearchPreset}`;
         standardViewLayerDefaultsInitialized = true;
         canvas.dataset.standardViewPreset = activeResearchPreset;
