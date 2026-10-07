@@ -98,7 +98,8 @@ export const m5aReviewSourceContext = {
 } as const;
 
 const targetKinds = new Set<string>(Object.keys(m5aExpectedTargetCounts));
-const targetPasses = new Set(['M5A', 'M5A-R1', 'M5A-R2', 'M5A-R3']);
+const r3TargetPasses = new Set(['M5A-R3', 'M5A-R3-Z1C']);
+const targetPasses = new Set(['M5A', 'M5A-R1', 'M5A-R2', ...r3TargetPasses]);
 
 const isRenderable = (object: any) =>
   Boolean(
@@ -238,8 +239,8 @@ export const prepareM5AReviewPresentation = (sceneRoot: any) => {
     contextRenderableCount += 1;
   }
 
-  const isR3Profile = targets.some(
-    (object) => String(object.userData?.Pass ?? '') === 'M5A-R3',
+  const isR3Profile = targets.some((object) =>
+    r3TargetPasses.has(String(object.userData?.Pass ?? '')),
   );
   const expectedTargetCounts = isR3Profile
     ? m5aR3ExpectedTargetCounts
