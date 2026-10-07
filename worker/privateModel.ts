@@ -10,7 +10,7 @@ type PrivateModelObject = {
 
 type PrivateModelBucket = {
   get(key: string): Promise<PrivateModelObject | null>;
-  put(
+  put?(
     key: string,
     value: ArrayBuffer,
     options: {
@@ -364,6 +364,7 @@ const writePrivateCurrentModelFromRequest = async (
 
   const validation = await validatePrivateCurrentModelCandidateBytes(bytes);
   if (!validation.ok) return { ok: false, error: validation.error, status: 422 };
+  if (!bucket.put) return { ok: false, error: 'current-r2-write-unavailable', status: 500 };
 
   try {
     await bucket.put(PRIVATE_MODEL_OBJECT_KEY, bytes, {
