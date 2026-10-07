@@ -2268,6 +2268,7 @@ const title = 'Private 3D viewer';
       let dInteriorScene: any = null;
       let activeResearchPreset: ViewerResearchPreset = 'whole-building';
       let activePlanFloor: '1F' | '2F' | null = null;
+      let activePlanFocusBounds: any = null;
       const dVisibilityBaseline = new Map<any, boolean>();
       let sourceSceneNames = new WeakMap<any, string>();
       const raycaster = new THREE.Raycaster();
@@ -4031,7 +4032,7 @@ const title = 'Private 3D viewer';
       const fitPlanCamera = () => {
         if (!dInteriorScene || !activePlanFloor) return;
 
-        const box = computeVisibleBounds(dInteriorScene, true);
+        const box = activePlanFocusBounds ?? computeVisibleBounds(dInteriorScene, true);
         if (!box) return;
 
         const center = new THREE.Vector3();
@@ -4096,6 +4097,7 @@ const title = 'Private 3D viewer';
           return;
         }
 
+        activePlanFocusBounds = null;
         setModelScene(dInteriorScene);
         canvas.dataset.contentScene = 'd-interior';
         canvas.dataset.contentFloor = floor;
@@ -7079,6 +7081,8 @@ const title = 'Private 3D viewer';
         ) {
           throw new Error('P185C-X2 review targets or no-promotion semantics are not review-ready');
         }
+        activePlanFocusBounds = presentation.targetBounds.clone();
+        fitPlanCamera();
         refreshEdgeRendering(fullModelScene);
 
         Object.assign(canvas.dataset, {
@@ -7106,7 +7110,14 @@ const title = 'Private 3D viewer';
           p185Canonical: 'false',
           p185PublishToCurrent: 'false',
           p185HumanReview: 'NOT_RUN',
-          p185ReviewCameraMode: 'ORTHOGRAPHIC_D_1F_SUPPORT',
+          p185ReviewCameraMode: 'ORTHOGRAPHIC_D_1F_TARGET_BOUNDS_FOCUS',
+          p185ReviewCameraFocusApplied: 'true',
+          p185ReviewCameraFocusSpanX: (
+            presentation.targetBounds.max.x - presentation.targetBounds.min.x
+          ).toFixed(3),
+          p185ReviewCameraFocusSpanZ: (
+            presentation.targetBounds.max.z - presentation.targetBounds.min.z
+          ).toFixed(3),
           standardViewPreset: 'd-1f',
         });
         status.textContent =
