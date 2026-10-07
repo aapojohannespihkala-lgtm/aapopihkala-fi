@@ -1826,6 +1826,13 @@ const title = 'Private 3D viewer';
         prepareM5ASok1Sok2RelativeZReviewPresentation,
       } from '../../scripts/privateModelM5ARelativeZReviewPresentation';
       import {
+        m5aZ2AbsoluteZBasis,
+        m5aZ2AbsoluteZContract,
+        m5aZ2ReviewContextOpacity,
+        m5aZ2ReviewTargetOpacity,
+        prepareM5AZ2SystemReviewPresentation,
+      } from '../../scripts/privateModelM5AZ2ReviewPresentation';
+      import {
         getM5BReviewSceneIndex,
         prepareM5BReviewPresentation,
         type M5BReviewVariant,
@@ -6132,6 +6139,12 @@ const title = 'Private 3D viewer';
           m5aR3Z1cSok1Sok2RelativeZReviewId,
         );
 
+      const m5aZ2CandidateId = 'm5a-z2-absolute-z-host-floor-datum';
+      const m5aZ2ReviewId = `${m5aZ2CandidateId}-review`;
+
+      const isM5aZ2SystemReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, m5aZ2ReviewId);
+
       const p186bCandidateId = 'p186b-d2015-d2f-wiring-mainmass-source-overlay';
       const p186bReviewId = `${p186bCandidateId}-review`;
 
@@ -6983,9 +6996,84 @@ const title = 'Private 3D viewer';
         | 'TOPOLOGY_CORRECTION'
         | 'CURRENT_USE_SYSTEM'
         | 'R3_Z1C_SYSTEM'
-        | 'R3_Z1C_SOK1_SOK2_RELATIVE_Z';
+        | 'R3_Z1C_SOK1_SOK2_RELATIVE_Z'
+        | 'Z2_ABSOLUTE_Z_SYSTEM';
 
       const applyM5aDrainageReviewState = (mode: M5aDrainageReviewMode) => {
+        if (mode === 'Z2_ABSOLUTE_Z_SYSTEM') {
+          applyStandardViewPreset('whole-building');
+          setModelScene(fullModelScene);
+          canvas.dataset.contentScene = 'full-model';
+          canvas.dataset.contentFloor = 'ALL';
+          deactivateDCoordinateReview();
+          setD1KnownDoorReviewLabelsVisible(false);
+
+          const presentation = prepareM5AZ2SystemReviewPresentation(fullModelScene);
+          if (
+            presentation.targetRenderableCount !== presentation.expectedTargetRenderableCount ||
+            presentation.missingTargetKeys.length !== 0 ||
+            presentation.duplicateTargetKeys.length !== 0 ||
+            presentation.semanticViolationCount !== 0 ||
+            presentation.kindCounts.wellMarkerWork !== 4 ||
+            presentation.kindCounts.referenceRouteWork !== 7 ||
+            presentation.kindCounts.unresolvedBoundaryMarker !== 2 ||
+            presentation.contextRenderableCount < 1 ||
+            !presentation.targetBounds
+          ) {
+            throw new Error(
+              'M5A-Z2 drainage targets or no-promotion semantics are not review-ready',
+            );
+          }
+
+          refreshEdgeRendering(fullModelScene);
+          setM5aSourceContextVisible(true, presentation.reviewQuestionText);
+          updateSize();
+          const cameraFocusApplied = focusM5AReviewCamera(presentation.targetBounds);
+
+          Object.assign(canvas.dataset, {
+            workTestReviewMode: m5aZ2ReviewId,
+            m5aReviewScope: mode,
+            m5aReviewQuestion: 'DRAINAGE_Z2_ABSOLUTE_Z_HOST_FLOOR_DATUM_SYSTEM_USABILITY',
+            m5aReviewQuestionText: presentation.reviewQuestionText,
+            m5aTargetOpacity: m5aZ2ReviewTargetOpacity.toFixed(2),
+            m5aContextOpacity: m5aZ2ReviewContextOpacity.toFixed(2),
+            m5aReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+            m5aReviewExpectedTargetRenderableCount: String(
+              presentation.expectedTargetRenderableCount,
+            ),
+            m5aReviewProfile: 'M5A_Z2_ABSOLUTE_Z_HOST_FLOOR_DATUM',
+            m5aReviewContextRenderableCount: String(presentation.contextRenderableCount),
+            m5aReviewSemanticViolationCount: String(presentation.semanticViolationCount),
+            m5aReviewWellMarkerCount: String(presentation.kindCounts.wellMarkerWork),
+            m5aReviewRouteCount: String(presentation.kindCounts.referenceRouteWork),
+            m5aReviewUnresolvedBoundaryCount: String(
+              presentation.kindCounts.unresolvedBoundaryMarker,
+            ),
+            m5aZ2AbsoluteZBasis,
+            m5aZ2AbsoluteZContract,
+            m5aZ2SourceClassification: presentation.sourceClassification,
+            m5aPresentationOnly: 'true',
+            m5aWorkAssumption: 'true',
+            m5aSourceDerivedTopology: 'true',
+            m5aPhysicalWellGeometryClaim: 'false',
+            m5aPhysicalRouteClaim: 'false',
+            m5aExactXYClaim: 'false',
+            m5aExactZClaim: 'false',
+            m5aPhysicalElevationClaim: 'false',
+            m5aCurrentClaim: 'false',
+            m5aAsBuiltClaim: 'false',
+            m5aCanonical: 'false',
+            m5aPublishToCurrent: 'false',
+            m5aHumanReview: 'NOT_RUN',
+            m5aReviewCameraMode: 'PERSPECTIVE_FREE_ORBIT_TARGET_BOUNDS',
+            m5aReviewCameraFocusApplied: String(cameraFocusApplied),
+            standardViewPreset: 'whole-building',
+          });
+          status.textContent =
+            'M5A-Z2 salaojajärjestelmä - WORK_TEST / 4 kaivoa + 7 reittiä + 2 unresolved-rajaa / target 80 % / konteksti 20 % / host-floor-datum työ-Z / HUMAN_REVIEW NOT_RUN';
+          return;
+        }
+
         if (mode === 'R3_Z1C_SOK1_SOK2_RELATIVE_Z') {
           setModelScene(fullModelScene);
           canvas.dataset.contentScene = 'full-model';
@@ -7868,8 +7956,10 @@ const title = 'Private 3D viewer';
           const isP184hApplianceOnP185cReview =
             candidate.id === p185cCandidateId && isP184hApplianceOnP185cReviewRequested();
           const m5aDrainageReviewMode: M5aDrainageReviewMode | null =
-            candidate.id === m5aDrainageCandidateId && isM5aDrainageReviewRequested()
-              ? 'TOPOLOGY_CORRECTION'
+            candidate.id === m5aZ2CandidateId && isM5aZ2SystemReviewRequested()
+              ? 'Z2_ABSOLUTE_Z_SYSTEM'
+              : candidate.id === m5aDrainageCandidateId && isM5aDrainageReviewRequested()
+                ? 'TOPOLOGY_CORRECTION'
               : candidate.id === m5aR730CandidateId && isM5aR730SystemReviewRequested()
                 ? 'CURRENT_USE_SYSTEM'
                 : candidate.id === m5aR3Z1cCandidateId &&
