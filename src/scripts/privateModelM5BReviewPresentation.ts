@@ -1,8 +1,8 @@
 import { THREE } from './threeRuntime';
 
-export const m5bCurrentSceneIndex = 56;
-export const m5bPlannedSok2ComparisonSceneIndex = 57;
-export const m5bPlannedSok2ComparisonSceneName = 'PLANNED_SOK2_COMPARISON';
+export const m5bCurrentSceneIndex = 60;
+export const m5bPlannedSok2ComparisonSceneIndex = 61;
+export const m5bPlannedSok2ComparisonSceneName = 'PLANNED_SOK2_COMPARISON_Z2R';
 
 export const m5bCurrentTargetIds = [
   'G2_STORM_CURRENT_ROUTE_SOK1_001',
