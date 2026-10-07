@@ -11,7 +11,8 @@ import {
   p185cX2ReviewId,
 } from '../../src/scripts/privateModelWorkTest';
 import {
-  p185ReviewSourceOverlayScreenLineAidName,
+  p185ReviewSourceOverlayVisibilityAidName,
+  p185ReviewSourceOverlayVisibilityAidWidthM,
   p185ReviewTargetOpacity,
   prepareP185X2ReviewPresentation,
 } from '../../src/scripts/privateModelP185ReviewPresentation';
@@ -84,7 +85,7 @@ test('P185C-X2 review presentation keeps high-contrast target materials', () => 
 });
 
 
-test('P185C-X2 derives one-pixel-safe source centerlines from indexed strip quads', () => {
+test('P185C-X2 derives review-only visibility ribbons from indexed strip quads', () => {
   const scene = new THREE.Group();
 
   const positions = new Float32Array([
@@ -151,30 +152,35 @@ test('P185C-X2 derives one-pixel-safe source centerlines from indexed strip quad
 
   expect(presentation.semanticViolationCount).toBe(0);
   expect(presentation.targetRenderableCount).toBe(2);
-  expect(presentation.sourceOverlayScreenLineAidCount).toBe(1);
-  expect(presentation.sourceOverlayScreenLineCount).toBe(2);
+  expect(presentation.sourceOverlayVisibilityAidCount).toBe(1);
+  expect(presentation.sourceOverlayVisibilityRibbonCount).toBe(2);
 
   const aid = overlay.children.find(
-    (child) => child.name === p185ReviewSourceOverlayScreenLineAidName,
+    (child) => child.name === p185ReviewSourceOverlayVisibilityAidName,
   ) as any;
   expect(aid).toBeTruthy();
-  expect(aid.isLineSegments).toBe(true);
-  expect(aid.geometry.getAttribute('position').count).toBe(4);
+  expect(aid.isMesh).toBe(true);
+  expect(aid.geometry.getAttribute('position').count).toBe(8);
+  expect(aid.geometry.index.count).toBe(12);
   expect(aid.material.opacity).toBe(p185ReviewTargetOpacity);
   expect(aid.material.depthTest).toBe(false);
   expect(aid.material.depthWrite).toBe(false);
-  expect(aid.userData.p185ReviewRole).toBe('QUESTION_TARGET_80_SCREEN_LINE_AID');
+  expect(aid.userData.p185ReviewRole).toBe('QUESTION_TARGET_80_VISIBILITY_RIBBON_AID');
+  expect(aid.userData.viewerSuppressEdgeOverlay).toBe(true);
+  expect(aid.userData.presentationWidthOnly).toBe(true);
+  expect(aid.userData.presentationAidWidthM).toBe(p185ReviewSourceOverlayVisibilityAidWidthM);
+  expect(aid.userData.physicalCableWidthClaim).toBe(false);
 
   const first = new THREE.Vector3().fromBufferAttribute(aid.geometry.getAttribute('position'), 0);
   const second = new THREE.Vector3().fromBufferAttribute(aid.geometry.getAttribute('position'), 1);
-  expect(first.x).toBeCloseTo(0.006, 6);
-  expect(second.x).toBeCloseTo(0.006, 6);
-  expect(first.y).toBeCloseTo(0.0, 6);
-  expect(second.y).toBeCloseTo(0.08, 6);
+  const firstMidpoint = first.clone().add(second).multiplyScalar(0.5);
+  expect(first.distanceTo(second)).toBeCloseTo(p185ReviewSourceOverlayVisibilityAidWidthM, 6);
+  expect(firstMidpoint.x).toBeCloseTo(0.006, 6);
+  expect(firstMidpoint.y).toBeCloseTo(0.0, 6);
 
   const repeated = prepareP185X2ReviewPresentation(scene);
-  expect(repeated.sourceOverlayScreenLineAidCount).toBe(1);
+  expect(repeated.sourceOverlayVisibilityAidCount).toBe(1);
   expect(
-    overlay.children.filter((child) => child.name === p185ReviewSourceOverlayScreenLineAidName),
+    overlay.children.filter((child) => child.name === p185ReviewSourceOverlayVisibilityAidName),
   ).toHaveLength(1);
 });
