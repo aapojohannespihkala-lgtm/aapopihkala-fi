@@ -19,6 +19,7 @@ import {
 import {
   applyViewerResearchPreset,
   createViewerInteractionState,
+  formatViewerResearchPresetLabel,
   patchViewerLayerControls,
   patchViewerPresentationStyle,
   resetViewerInteractionStateToPresetDefaults,
@@ -68,6 +69,13 @@ test('VUX-C model load defaults replace prior manual layer state without losing 
     locusVisible: true,
     edgeMode: 'visible',
   });
+});
+
+test('VUX-E1A research preset labels retain the original context after customization', () => {
+  expect(formatViewerResearchPresetLabel('whole-building')).toBe('Koko rakennus');
+  expect(formatViewerResearchPresetLabel('drainage')).toBe('Salaojat');
+  expect(formatViewerResearchPresetLabel('drainage', true)).toBe('Salaojat · mukautettu');
+  expect(formatViewerResearchPresetLabel('electrical', true)).toBe('Sähköt · mukautettu');
 });
 
 test('VUX-E1A research presets install curated starting state', () => {
