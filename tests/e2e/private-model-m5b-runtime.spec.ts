@@ -13,7 +13,7 @@ import {
 
 const currentPresentation = (): M5BReviewPresentationResult => ({
   variant: 'CURRENT',
-  sceneIndex: 56,
+  sceneIndex: 60,
   targetRenderableCount: 2,
   contextRenderableCount: 11,
   suppressedCrossVariantCount: 2,
@@ -24,7 +24,7 @@ const currentPresentation = (): M5BReviewPresentationResult => ({
 
 const plannedPresentation = (): M5BReviewPresentationResult => ({
   variant: 'PLANNED_SOK2_COMPARISON',
-  sceneIndex: 57,
+  sceneIndex: 61,
   targetRenderableCount: 2,
   contextRenderableCount: 12,
   suppressedCrossVariantCount: 1,
@@ -33,7 +33,7 @@ const plannedPresentation = (): M5BReviewPresentationResult => ({
   missingTargetIds: [],
 });
 
-test('M5B CURRENT runtime state binds scene56, exact targets, 80/20 and no-promotion metadata', () => {
+test('M5B CURRENT runtime state binds scene60, exact targets, 80/20 and no-promotion metadata', () => {
   const state = createM5BReviewRuntimeState('CURRENT', currentPresentation());
 
   expect(state.standardViewPreset).toBe('whole-building');
@@ -43,7 +43,7 @@ test('M5B CURRENT runtime state binds scene56, exact targets, 80/20 and no-promo
   expect(state.dataset.m5bReviewQuestion).toBe(
     'ROOF_STORMWATER_CURRENT_ROUTE_RELATION',
   );
-  expect(state.dataset.m5bSceneIndex).toBe('56');
+  expect(state.dataset.m5bSceneIndex).toBe('60');
   expect(state.dataset.m5bTargetG2Ids).toBe(m5bCurrentTargetIds.join(','));
   expect(state.dataset.m5bReviewTargetOpacity).toBe('0.80');
   expect(state.dataset.m5bReviewContextOpacity).toBe('0.20');
@@ -58,7 +58,7 @@ test('M5B CURRENT runtime state binds scene56, exact targets, 80/20 and no-promo
   expect(state.dataset.m5bReviewCameraMode).toBe('PERSPECTIVE_FREE_ORBIT');
 });
 
-test('M5B PLANNED runtime state binds scene57 and only planned SOK2 targets', () => {
+test('M5B PLANNED runtime state binds scene61 and only planned SOK2 targets', () => {
   const state = createM5BReviewRuntimeState(
     'PLANNED_SOK2_COMPARISON',
     plannedPresentation(),
@@ -70,10 +70,10 @@ test('M5B PLANNED runtime state binds scene57 and only planned SOK2 targets', ()
   expect(state.dataset.m5bReviewQuestion).toBe(
     'ROOF_STORMWATER_PLANNED_SOK2_COMPARISON_RELATION',
   );
-  expect(state.dataset.m5bSceneIndex).toBe('57');
+  expect(state.dataset.m5bSceneIndex).toBe('61');
   expect(state.dataset.m5bTargetG2Ids).toBe(m5bPlannedSok2TargetIds.join(','));
   expect(state.dataset.m5bReviewSuppressedCrossVariantCount).toBe('1');
-  expect(state.statusText).toContain('scene 57');
+  expect(state.statusText).toContain('scene 61');
 });
 
 test('M5B runtime readiness rejects missing targets and semantic promotion violations', () => {
@@ -99,7 +99,7 @@ test('M5B runtime readiness rejects cross-variant or wrong-scene presentation re
   ).toThrow(/variant mismatch/);
 
   const wrongScene = currentPresentation();
-  wrongScene.sceneIndex = 57;
+  wrongScene.sceneIndex = 61;
   expect(() =>
     assertM5BReviewPresentationReady('CURRENT', wrongScene),
   ).toThrow(/scene mismatch/);
