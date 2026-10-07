@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test';
 
 import {
   m5aExpectedTargetRenderableCount,
+  m5aR3Z1bReviewQuestionText,
   m5aReviewContextOpacity,
   m5aReviewQuestionText,
   m5aReviewSourceContext,
@@ -13,6 +14,9 @@ import {
 const candidateId = 'm5a-drain-topology';
 const reviewId = `${candidateId}-review`;
 const candidatePath = '/private-model/work-test/m5a-drain-topology.glb';
+const r3Z1bCandidateId = 'm5a-r3-z1b-relative-z-functional-nw-continuity';
+const r3Z1bReviewId = `${r3Z1bCandidateId}-review`;
+const r3Z1bCandidatePath = `/private-model/work-test/${r3Z1bCandidateId}.glb`;
 
 const makeGlb = (nodes: Record<string, unknown>[], highlightedTargetIndex = -1) => {
   const positions = Buffer.alloc(36);
@@ -76,12 +80,13 @@ const makeGlb = (nodes: Record<string, unknown>[], highlightedTargetIndex = -1) 
 const makeTarget = (
   representationKind: 'wellMarkerWork' | 'referenceRouteWork' | 'unresolvedBoundaryMarker',
   index: number,
+  pass = 'M5A-R2',
 ) => ({
   name: `M5A_${representationKind}_${index}`,
   mesh: 0,
   translation: [(index % 5) * 2.2, 0, Math.floor(index / 5) * 2.2],
   extras: {
-    Pass: 'M5A-R2',
+    Pass: pass,
     Canonical: false,
     representationKind,
     presentationOnly: true,
@@ -118,6 +123,83 @@ test('M5A review wiring is scoped to conventional review id and no-promotion pre
   expect(viewerSource).toContain('m5a-source-context');
   expect(viewerSource).toContain('m5aReviewQuestionText');
   expect(viewerSource).toContain('m5aReviewSourceContext');
+});
+
+test('M5A R3 Z1B conventional review routes 4+7+2 targets through the R3 review state', async ({ page }) => {
+  test.setTimeout(20_000);
+
+  const targets = [
+    ...Array.from({ length: 4 }, (_, i) => makeTarget('wellMarkerWork', i, 'M5A-R3')),
+    ...Array.from({ length: 7 }, (_, i) => makeTarget('referenceRouteWork', i + 4, 'M5A-R3')),
+    ...Array.from({ length: 2 }, (_, i) =>
+      makeTarget('unresolvedBoundaryMarker', i + 11, 'M5A-R3'),
+    ),
+  ];
+  const candidateModel = makeGlb([
+    ...targets,
+    {
+      name: 'BUILDING_SITE_CONTEXT_R3',
+      mesh: 0,
+      translation: [4, 0, 3],
+      extras: { G2Id: 'G2_BUILDING_CONTEXT_R3' },
+    },
+  ]);
+  const currentModel = makeGlb([]);
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [{
+          id: r3Z1bCandidateId,
+          label: 'M5A-R3 Z1B drainage continuity - WORK_TEST',
+          path: r3Z1bCandidatePath,
+        }],
+      }),
+    });
+  });
+  await page.route(`**${r3Z1bCandidatePath}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: candidateModel,
+    });
+  });
+  await page.route('**/m5a-drainman.pdf', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      body: '<!doctype html><html><body><main>Drainman source reference visible</main></body></html>',
+    });
+  });
+
+  await page.goto(`/private-model/?review=${r3Z1bReviewId}`, {
+    waitUntil: 'domcontentloaded',
+  });
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', r3Z1bReviewId);
+  await expect(canvas).toHaveAttribute(
+    'data-m5a-review-question',
+    'DRAINAGE_R3_Z_AWARE_CONTINUITY_USABILITY',
+  );
+  await expect(canvas).toHaveAttribute('data-m5a-review-scope', 'R3_Z1B_SYSTEM');
+  await expect(canvas).toHaveAttribute('data-m5a-review-profile', 'M5A_R3_CONTINUITY');
+  await expect(canvas).toHaveAttribute('data-m5a-review-target-renderable-count', '13');
+  await expect(canvas).toHaveAttribute('data-m5a-review-expected-target-renderable-count', '13');
+  await expect(canvas).toHaveAttribute('data-m5a-review-well-marker-count', '4');
+  await expect(canvas).toHaveAttribute('data-m5a-review-route-count', '7');
+  await expect(canvas).toHaveAttribute('data-m5a-review-unresolved-boundary-count', '2');
+  await expect(canvas).toHaveAttribute('data-m5a-review-semantic-violation-count', '0');
+  await expect(canvas).toHaveAttribute('data-m5a-review-question-text', m5aR3Z1bReviewQuestionText);
+  await expect(canvas).toHaveAttribute('data-m5a-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
 });
 
 test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20', async ({ page }) => {
