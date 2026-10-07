@@ -91,6 +91,9 @@ export const m5aDrainageReviewId = `${m5aDrainageCandidateId}-review`;
 export const m5aR730CandidateId = 'm5a-r2-whole-building-current-candidate-r730';
 export const m5aR730ReviewId = `${m5aR730CandidateId}-review`;
 
+export const m5aR3Z1bCandidateId = 'm5a-r3-z1b-relative-z-functional-nw-continuity';
+export const m5aR3Z1bReviewId = `${m5aR3Z1bCandidateId}-review`;
+
 export const m5bCandidateId = 'm5b-roof-stormwater-current-planned';
 export const m5bCurrentReviewId = 'm5b-roof-stormwater-current-review';
 export const m5bPlannedSok2ComparisonReviewId =
@@ -149,6 +152,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p181bR1ReviewId]: p181bR1CandidateId,
   [p184dReviewId]: p184dCandidateId,
   [p184gReviewId]: p184gCandidateId,
+  [m5aR3Z1bReviewId]: m5aR3Z1bCandidateId,
   [m5bCurrentReviewId]: m5bCandidateId,
   [m5bPlannedSok2ComparisonReviewId]: m5bCandidateId,
   [p184hApplianceOnP185cReviewId]: p185cCandidateId,
