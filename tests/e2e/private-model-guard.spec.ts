@@ -3,6 +3,9 @@ import { expect, test, type Page } from '@playwright/test';
 import {
   handlePrivateModelRequest,
   isPrivateModelPath,
+  PRIVATE_MODEL_PUBLISH_PATH,
+  PRIVATE_MODEL_VERIFY_PATH,
+  validatePrivateCurrentModelCandidateBytes,
   type PrivateModelEnv,
 } from '../../worker/privateModel';
 import {
@@ -1879,8 +1882,65 @@ test('private model route matching is bounded to its own prefix', () => {
   expect(isPrivateModelPath('/private-model')).toBe(true);
   expect(isPrivateModelPath('/private-model/')).toBe(true);
   expect(isPrivateModelPath('/private-model/model.glb')).toBe(true);
+  expect(isPrivateModelPath(PRIVATE_MODEL_PUBLISH_PATH)).toBe(true);
+  expect(isPrivateModelPath(PRIVATE_MODEL_VERIFY_PATH)).toBe(true);
   expect(isPrivateModelPath('/private-modelish')).toBe(false);
   expect(isPrivateModelPath('/current/private-model')).toBe(false);
+});
+
+test('CURRENT machine publisher accepts only bounded no-promotion CURRENT_CANDIDATE GLB bytes', async () => {
+  const model = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'CURRENT CANDIDATE',
+        nodes: [],
+        extras: {
+          ModelStage: 'CURRENT_CANDIDATE',
+          currentCandidate: true,
+          currentDistribution: false,
+          Canonical: false,
+          asBuiltClaim: false,
+          publishToCURRENT: false,
+          objectLevelNoPromotionPreserved: true,
+          normalOpeningMode: 'WHOLE_BUILDING_FREE_ORBIT',
+        },
+      },
+    ],
+    nodes: [],
+  });
+  const validBytes = Uint8Array.from(model).buffer;
+  const valid = await validatePrivateCurrentModelCandidateBytes(validBytes);
+  expect(valid.ok).toBe(true);
+  if (valid.ok) {
+    expect(valid.size).toBe(model.byteLength);
+    expect(valid.sha256).toMatch(/^[0-9a-f]{64}$/);
+  }
+
+  const unsafeModel = makeMinimalGlb({
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [
+      {
+        name: 'UNSAFE CURRENT',
+        nodes: [],
+        extras: {
+          ModelStage: 'CURRENT_CANDIDATE',
+          currentCandidate: true,
+          currentDistribution: true,
+          Canonical: false,
+          asBuiltClaim: false,
+          publishToCURRENT: false,
+          objectLevelNoPromotionPreserved: true,
+          normalOpeningMode: 'WHOLE_BUILDING_FREE_ORBIT',
+        },
+      },
+    ],
+    nodes: [],
+  });
+  const unsafe = await validatePrivateCurrentModelCandidateBytes(Uint8Array.from(unsafeModel).buffer);
+  expect(unsafe).toEqual({ ok: false, error: 'current-candidate-currentDistribution' });
 });
 
 test('private model handler fails closed before static assets without Access configuration', async () => {
