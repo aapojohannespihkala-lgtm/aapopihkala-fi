@@ -94,7 +94,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
   // P185C-X2, P186D-X1 and P186E-X1 add exact p28-corrected electrical candidates.
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(51);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(52);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -430,6 +430,15 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     expectedSize: 3_217_892,
     expectedSha256: 'a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5',
   });
+  const p186f = getPrivateWorkTestCandidateById('p186f-x1-d-themo-room-presentation');
+  expect(p186f).toMatchObject({
+    id: 'p186f-x1-d-themo-room-presentation',
+    label: 'P186F-X1 D Themo room presentation - WORK_TEST',
+    path: '/private-model/work-test/p186f-x1-d-themo-room-presentation.glb',
+    objectKey: 'work-test/p186f-x1-d-themo-room-presentation.glb',
+    expectedSize: 3_199_332,
+    expectedSha256: '4459d528ddd821958f04b0f4d1be800bdc8aaef9290a792ba72bab95209d83db',
+  });
   const m5a = getPrivateWorkTestCandidateById('m5a-drain-topology');
   expect(m5a).toMatchObject({
     id: 'm5a-drain-topology',
@@ -673,6 +682,10 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestPublishCandidate(p186ePublishPath)?.id).toBe(
     'p186e-x1-d2015-electrical-source-label-anchors-p28-corrected',
   );
+  const p186fPublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p186f-x1-d-themo-room-presentation.glb`;
+  expect(getPrivateWorkTestPublishCandidate(p186fPublishPath)?.id).toBe(
+    'p186f-x1-d-themo-room-presentation',
+  );
   const m5aZ2PublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}m5a-z2-absolute-z-host-floor-datum.glb`;
   expect(getPrivateWorkTestPublishCandidate(m5aZ2PublishPath)?.id).toBe(
     'm5a-z2-absolute-z-host-floor-datum',
@@ -713,6 +726,11 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
       `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p186c-x2r-d2015-floor-heating-work-routes-p28-corrected.glb`,
     )?.id,
   ).toBe('p186c-x2r-d2015-floor-heating-work-routes-p28-corrected');
+  expect(
+    getPrivateWorkTestVerifyCandidate(
+      `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p186f-x1-d-themo-room-presentation.glb`,
+    )?.id,
+  ).toBe('p186f-x1-d-themo-room-presentation');
   expect(
     getPrivateWorkTestVerifyCandidate(
       `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}m5a-z2-absolute-z-host-floor-datum.glb`,
