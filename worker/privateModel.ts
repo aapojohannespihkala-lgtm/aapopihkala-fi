@@ -39,6 +39,10 @@ export const PRIVATE_MODEL_PREFIX = '/private-model';
 const PRIVATE_MODEL_PATH = `${PRIVATE_MODEL_PREFIX}/model.glb`;
 export const PRIVATE_MODEL_PUBLISH_PATH = `${PRIVATE_MODEL_PREFIX}/publish/model.glb`;
 export const PRIVATE_MODEL_VERIFY_PATH = `${PRIVATE_MODEL_PREFIX}/verify/model.glb`;
+export const PRIVATE_MODEL_MACHINE_PUBLISH_PATH =
+  `${PRIVATE_MODEL_PREFIX}/work-test/publish/current-model.glb`;
+export const PRIVATE_MODEL_MACHINE_VERIFY_PATH =
+  `${PRIVATE_MODEL_PREFIX}/work-test/verify/current-model.glb`;
 const PRIVATE_MODEL_OBJECT_KEY = 'model.glb';
 const ACCESS_HEADER = 'cf-access-jwt-assertion';
 const JWKS_TTL_MS = 5 * 60 * 1000;
@@ -275,6 +279,9 @@ export const verifyPrivateModelReadbackAccess = async (
   );
 };
 
+export const isPrivateCurrentModelMachinePath = (pathname: string) =>
+  pathname === PRIVATE_MODEL_MACHINE_PUBLISH_PATH || pathname === PRIVATE_MODEL_MACHINE_VERIFY_PATH;
+
 export const isPrivateModelPath = (pathname: string) =>
   pathname === PRIVATE_MODEL_PREFIX || pathname.startsWith(`${PRIVATE_MODEL_PREFIX}/`);
 
@@ -480,10 +487,10 @@ export const handlePrivateModelRequest = async (
   env: PrivateModelEnv,
 ): Promise<Response> => {
   const pathname = new URL(request.url).pathname;
-  if (pathname === PRIVATE_MODEL_PUBLISH_PATH) {
+  if (pathname === PRIVATE_MODEL_PUBLISH_PATH || pathname === PRIVATE_MODEL_MACHINE_PUBLISH_PATH) {
     return handlePrivateCurrentModelPublish(request, env);
   }
-  if (pathname === PRIVATE_MODEL_VERIFY_PATH) {
+  if (pathname === PRIVATE_MODEL_VERIFY_PATH || pathname === PRIVATE_MODEL_MACHINE_VERIFY_PATH) {
     return handlePrivateCurrentModelMachineReadback(request, env);
   }
 
