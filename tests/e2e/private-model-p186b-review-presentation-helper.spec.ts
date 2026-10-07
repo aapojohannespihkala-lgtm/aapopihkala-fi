@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import {
   p186bExpectedSourceLineItemCount,
+  p186bReviewContextColorHex,
   p186bReviewContextOpacity,
   p186bReviewTargetOpacity,
   p186bTargetSelectors,
@@ -73,6 +74,9 @@ test('P186B helper applies exact 80/20 review hierarchy to the persisted two-sel
   expect((a.object.material as any).opacity).toBe(p186bReviewTargetOpacity);
   expect((b.object.material as any).opacity).toBe(p186bReviewTargetOpacity);
   expect((context.material as any).opacity).toBe(p186bReviewContextOpacity);
+  expect((context.material as any).color.getHex()).toBe(p186bReviewContextColorHex);
+  expect((context.material as any).depthWrite).toBe(false);
+  expect((context.material as any).toneMapped).toBe(false);
   expect(unrelated.visible).toBe(false);
 });
 
