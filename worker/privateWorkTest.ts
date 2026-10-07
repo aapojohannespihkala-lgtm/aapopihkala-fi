@@ -293,6 +293,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_899_988,
     expectedSha256: '4286e8920c2f5539b909d090f4c0929b896afde61f2f1f070374cad00b581f58',
   },
+  // M5B-Z2R: exact M5A-Z2-parented structural rebuild; planned variant is WORK_TEST, not CURRENT.
+  {
+    id: 'm5b-z2r-roof-stormwater-structural-rebuilt',
+    label: 'M5B-Z2R roof stormwater structural rebuilt - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/m5b-z2r-roof-stormwater-structural-rebuilt.glb`,
+    objectKey: 'work-test/m5b-z2r-roof-stormwater-structural-rebuilt.glb',
+    expectedSize: 2_976_824,
+    expectedSha256: '4f2fc0738907fb2a35722739ea8f1f108aeab78c1e63dc09777e55be6604a1d2',
+  },
   // P185C viewer/release registration: exact persisted D2015 electrical source overlay.
   {
     id: 'p185c-d2015-electrical-source-overlay',
