@@ -356,6 +356,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_930_908,
     expectedSha256: '26b459e66f0bd1749d273de54f120836a76f6a4ada9f66f185651452010505b6',
   },
+  // M5A-Z2 release registration: exact persisted host-floor-datum absolute-Z WORK_TEST successor.
+  {
+    id: 'm5a-z2-absolute-z-host-floor-datum',
+    label: 'M5A-Z2 drainage absolute-Z host-floor datum - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-z2-absolute-z-host-floor-datum.glb`,
+    objectKey: 'work-test/m5a-z2-absolute-z-host-floor-datum.glb',
+    expectedSize: 2_958_672,
+    expectedSha256: 'e15e265ee4267bb26214eaaab338b786388afb2d3a5b9dc37ecdb92e0815d4cb',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
