@@ -572,6 +572,39 @@ test('P185C-X2 corrected review autoloads exact candidate and renders bounded D 
   await expect(canvas).toHaveAttribute('data-p185-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-1f');
   await expect(page.locator('#viewer-status')).toContainText('P185C-X2 corrected D 1F electrical source overlay');
+
+  await page.waitForTimeout(250);
+  const screenshot = await canvas.screenshot();
+  const dataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
+  const renderedPixelCount = await page.evaluate(async (url) => {
+    const image = new Image();
+    image.src = url;
+    await image.decode();
+    const probe = document.createElement('canvas');
+    probe.width = image.width;
+    probe.height = image.height;
+    const context = probe.getContext('2d');
+    if (!context) return 0;
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, image.width, image.height).data;
+    const r0 = pixels[0] ?? 0;
+    const g0 = pixels[1] ?? 0;
+    const b0 = pixels[2] ?? 0;
+    let count = 0;
+    for (let y = 0; y < image.height; y += 4) {
+      for (let x = 0; x < image.width; x += 4) {
+        const index = (y * image.width + x) * 4;
+        const delta =
+          Math.abs((pixels[index] ?? 0) - r0) +
+          Math.abs((pixels[index + 1] ?? 0) - g0) +
+          Math.abs((pixels[index + 2] ?? 0) - b0);
+        if (delta > 45) count += 1;
+      }
+    }
+    return count;
+  }, dataUrl);
+
+  expect(renderedPixelCount).toBeGreaterThan(20);
 });
 
 test('P184H appliance review autoloads the P185C survivor and renders the bounded 80/20 question state', async ({ page }) => {
