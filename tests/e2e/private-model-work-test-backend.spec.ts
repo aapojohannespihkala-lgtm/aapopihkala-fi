@@ -23,12 +23,24 @@ import {
   writePrivateWorkTestCandidateFromRequest,
 } from '../../worker/privateWorkTest';
 import {
+  PRIVATE_MODEL_MACHINE_PUBLISH_PATH,
+  PRIVATE_MODEL_MACHINE_VERIFY_PATH,
+  isPrivateCurrentModelMachinePath,
   privateModelPublisherClaimError,
   privateModelReadbackClaimError,
   verifyPrivateModelPublisherAccess,
   verifyPrivateModelReadbackAccess,
   type PrivateModelEnv,
 } from '../../worker/privateModel';
+
+test('CURRENT machine aliases reuse the bounded WORK_TEST Access envelope', () => {
+  expect(PRIVATE_MODEL_MACHINE_PUBLISH_PATH).toBe('/private-model/work-test/publish/current-model.glb');
+  expect(PRIVATE_MODEL_MACHINE_VERIFY_PATH).toBe('/private-model/work-test/verify/current-model.glb');
+  expect(isPrivateCurrentModelMachinePath(PRIVATE_MODEL_MACHINE_PUBLISH_PATH)).toBe(true);
+  expect(isPrivateCurrentModelMachinePath(PRIVATE_MODEL_MACHINE_VERIFY_PATH)).toBe(true);
+  expect(isPrivateCurrentModelMachinePath('/private-model/work-test/publish/p169f-whole-building-ac-storage-doors.glb')).toBe(false);
+  expect(isPrivateCurrentModelMachinePath('/private-model/model.glb')).toBe(false);
+});
 
 test('private WORK_TEST route matching is bounded to the dedicated prefix', () => {
   expect(isPrivateWorkTestPath('/private-model/work-test')).toBe(true);

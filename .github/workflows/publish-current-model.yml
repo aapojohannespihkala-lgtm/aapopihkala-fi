@@ -17,8 +17,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PUBLISH_URL: https://aapopihkala.fi/private-model/publish/model.glb
-  VERIFY_URL: https://aapopihkala.fi/private-model/verify/model.glb
+  PUBLISH_URL: https://aapopihkala.fi/private-model/work-test/publish/current-model.glb
+  VERIFY_URL: https://aapopihkala.fi/private-model/work-test/verify/current-model.glb
 
 jobs:
   publish:
@@ -140,15 +140,46 @@ jobs:
           model="$RUNNER_TEMP/current-source.glb"
           response="$RUNNER_TEMP/current-publish-response.json"
 
-          curl --silent --show-error --fail \
+          headers="$RUNNER_TEMP/current-publish-headers.txt"
+          http_code="$(curl --silent --show-error \
             --request PUT \
             --header "CF-Access-Client-Id: $CF_ACCESS_PUBLISHER_CLIENT_ID" \
             --header "CF-Access-Client-Secret: $CF_ACCESS_PUBLISHER_CLIENT_SECRET" \
             --header "Content-Type: model/gltf-binary" \
             --header "Content-Length: $EXPECTED_SIZE" \
             --data-binary "@$model" \
+            --dump-header "$headers" \
             --output "$response" \
-            "$PUBLISH_URL"
+            --write-out "%{http_code}" \
+            "$PUBLISH_URL")"
+
+          python3 - "$http_code" "$headers" <<'PY'
+          import sys
+          from urllib.parse import urlsplit, urlunsplit
+
+          status, header_path = sys.argv[1:]
+          content_type = ""
+          location = ""
+          with open(header_path, "r", encoding="iso-8859-1") as handle:
+              for raw in handle:
+                  line = raw.rstrip("\r\n")
+                  lower = line.lower()
+                  if lower.startswith("content-type:"):
+                      content_type = line.split(":", 1)[1].strip()
+                  elif lower.startswith("location:"):
+                      value = line.split(":", 1)[1].strip()
+                      parts = urlsplit(value)
+                      location = urlunsplit((parts.scheme, parts.netloc, parts.path, "", "")) if parts.scheme else value.split("?", 1)[0]
+
+          print(f"CURRENT publish HTTP status={status}")
+          print(f"CURRENT publish Content-Type={content_type or '<none>'}")
+          print(f"CURRENT publish Location={location or '<none>'}")
+
+          if not status.startswith("2"):
+              raise SystemExit("CURRENT publish returned non-2xx status")
+          if not content_type.lower().startswith("application/json"):
+              raise SystemExit("CURRENT publish returned non-JSON content type")
+          PY
 
           python3 - "$response" "$EXPECTED_SIZE" "$EXPECTED_SHA256" <<'PY'
           import json
@@ -197,4 +228,5 @@ jobs:
           rm -f \
             "$RUNNER_TEMP/current-source.glb" \
             "$RUNNER_TEMP/current-production-readback.glb" \
-            "$RUNNER_TEMP/current-publish-response.json"
+            "$RUNNER_TEMP/current-publish-response.json" \
+            "$RUNNER_TEMP/current-publish-headers.txt"

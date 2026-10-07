@@ -8,7 +8,12 @@ import { onRequestGet as getWidgetResponse } from '../functions/api/current/widg
 import { onRequestGet as getWidgetV2Response } from '../functions/api/current/widget-v2';
 import { fetchLiigaResponse, onRequestGet as getLiigaResponse } from '../functions/api/current/liiga';
 import { onRequestGet as getLiigaScheduleResponse } from '../functions/api/current/liiga-schedule';
-import { handlePrivateModelRequest, isPrivateModelPath, type PrivateModelEnv } from './privateModel';
+import {
+  handlePrivateModelRequest,
+  isPrivateCurrentModelMachinePath,
+  isPrivateModelPath,
+  type PrivateModelEnv,
+} from './privateModel';
 import { handlePrivateAiStatusRequest, isPrivateAiStatusPath } from './privateAiStatus';
 import { handlePrivateWorkTestRequest, isPrivateWorkTestPath } from './privateWorkTest';
 import { handlePrivateSourceReferenceRequest, isPrivateSourceReferencePath } from './privateSourceReference';
@@ -378,6 +383,9 @@ const worker = {
     }
     if (isPrivateSourceReferencePath(url.pathname)) {
       return handlePrivateSourceReferenceRequest(request, env);
+    }
+    if (isPrivateCurrentModelMachinePath(url.pathname)) {
+      return handlePrivateModelRequest(request, env);
     }
     if (isPrivateWorkTestPath(url.pathname)) {
       return handlePrivateWorkTestRequest(request, env);
