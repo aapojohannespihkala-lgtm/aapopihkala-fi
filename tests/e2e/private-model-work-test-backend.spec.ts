@@ -81,7 +81,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(44);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(45);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -398,6 +398,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     objectKey: 'work-test/m5a-r2-whole-building-current-candidate-r730.glb',
     expectedSize: 2_907_116,
     expectedSha256: 'bc531cecf7f5131ea18ad0d5f16c60526e08c982b9af3c9153a7c7ae5e3d9334',
+  });
+
+  const m5aZ1c = getPrivateWorkTestCandidateById('m5a-r3-z1c-relative-z-functional-nw-continuity');
+  expect(m5aZ1c).toMatchObject({
+    id: 'm5a-r3-z1c-relative-z-functional-nw-continuity',
+    label: 'M5A-R3 Z1C relative-Z functional NW continuity - WORK_TEST',
+    path: '/private-model/work-test/m5a-r3-z1c-relative-z-functional-nw-continuity.glb',
+    objectKey: 'work-test/m5a-r3-z1c-relative-z-functional-nw-continuity.glb',
+    expectedSize: 2_930_908,
+    expectedSha256: '26b459e66f0bd1749d273de54f120836a76f6a4ada9f66f185651452010505b6',
   });
 
   const p164b = getPrivateWorkTestCandidateById('p164b-d-corrected-stair');
