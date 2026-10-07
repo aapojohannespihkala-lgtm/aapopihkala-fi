@@ -81,7 +81,8 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(45);
+  // P185C-X2 adds one exact p28-corrected electrical candidate.
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(46);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -593,6 +594,10 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestPublishCandidate(p185cPublishPath)?.id).toBe(
     'p185c-d2015-electrical-source-overlay',
   );
+  const p185cX2PublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p185c-x2-d2015-electrical-source-overlay-p28-corrected.glb`;
+  expect(getPrivateWorkTestPublishCandidate(p185cX2PublishPath)?.id).toBe(
+    'p185c-x2-d2015-electrical-source-overlay-p28-corrected',
+  );
   const p186bPublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p186b-d2015-d2f-wiring-mainmass-source-overlay.glb`;
   expect(getPrivateWorkTestPublishCandidate(p186bPublishPath)?.id).toBe(
     'p186b-d2015-d2f-wiring-mainmass-source-overlay',
@@ -613,6 +618,11 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
       `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p185c-d2015-electrical-source-overlay.glb`,
     )?.id,
   ).toBe('p185c-d2015-electrical-source-overlay');
+  expect(
+    getPrivateWorkTestVerifyCandidate(
+      `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p185c-x2-d2015-electrical-source-overlay-p28-corrected.glb`,
+    )?.id,
+  ).toBe('p185c-x2-d2015-electrical-source-overlay-p28-corrected');
   expect(
     getPrivateWorkTestVerifyCandidate(
       `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p186b-d2015-d2f-wiring-mainmass-source-overlay.glb`,
