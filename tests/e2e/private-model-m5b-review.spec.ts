@@ -42,7 +42,7 @@ const makeRoute = (id: string, extra: Record<string, unknown> = {}) => {
 test('M5B registry and explicit review aliases resolve exact persisted candidate', () => {
   const registry = JSON.parse(readFileSync('.github/work-test-candidates.json', 'utf8'));
   expect(registry.candidates[m5bCandidateId]).toEqual({
-    driveFileId: '1alr4S8X6U_vOu9rGqykxm7akCMPD4Zo2',
+    driveFileId: '1U2qEo0vP5VdRRwdJmugH-XOq5h-4TUBI',
   });
   expect(getRequestedReviewCandidateId(`?review=${m5bCurrentReviewId}`)).toBe(m5bCandidateId);
   expect(
@@ -50,7 +50,7 @@ test('M5B registry and explicit review aliases resolve exact persisted candidate
   ).toBe(m5bCandidateId);
 });
 
-test('M5B current review uses scene56 and only current SOK1/SOK2 routes as targets', () => {
+test('M5B current review uses scene60 and only current SOK1/SOK2 routes as targets', () => {
   const root = new THREE.Group();
   const current1 = makeRoute(m5bCurrentTargetIds[0]);
   const current2 = makeRoute(m5bCurrentTargetIds[1]);
@@ -63,7 +63,7 @@ test('M5B current review uses scene56 and only current SOK1/SOK2 routes as targe
 
   const result = prepareM5BReviewPresentation(root, 'CURRENT');
 
-  expect(getM5BReviewSceneIndex('CURRENT')).toBe(56);
+  expect(getM5BReviewSceneIndex('CURRENT')).toBe(60);
   expect(result.targetRenderableCount).toBe(2);
   expect(result.missingTargetIds).toEqual([]);
   expect(result.semanticViolationCount).toBe(0);
@@ -95,7 +95,7 @@ test('M5B current review resolves persisted G2IdCandidate target identity', () =
   expect((current2.material as any).opacity).toBe(m5bReviewTargetOpacity);
 });
 
-test('M5B planned comparison uses scene57, planned SOK2 targets, current SOK1 context and no current SOK2', () => {
+test('M5B planned comparison uses scene61, planned SOK2 targets, current SOK1 context and no current SOK2', () => {
   const root = new THREE.Group();
   const current1 = makeRoute(m5bCurrentTargetIds[0]);
   const current2 = makeRoute(m5bCurrentTargetIds[1]);
@@ -111,7 +111,7 @@ test('M5B planned comparison uses scene57, planned SOK2 targets, current SOK1 co
 
   const result = prepareM5BReviewPresentation(root, 'PLANNED_SOK2_COMPARISON');
 
-  expect(getM5BReviewSceneIndex('PLANNED_SOK2_COMPARISON')).toBe(57);
+  expect(getM5BReviewSceneIndex('PLANNED_SOK2_COMPARISON')).toBe(61);
   expect(result.targetRenderableCount).toBe(2);
   expect(result.missingTargetIds).toEqual([]);
   expect(result.semanticViolationCount).toBe(0);
