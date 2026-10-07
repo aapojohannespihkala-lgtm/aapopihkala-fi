@@ -2298,6 +2298,7 @@ const title = 'Private 3D viewer';
       });
       let fullModelScene: any = null;
       let dInteriorScene: any = null;
+      let p186dReviewRoomContextGroup: THREE.Group | null = null;
       let activeResearchPreset: ViewerResearchPreset = 'whole-building';
       let activePlanFloor: '1F' | '2F' | null = null;
       let activePlanFocusBounds: any = null;
@@ -5191,11 +5192,81 @@ const title = 'Private 3D viewer';
         canvas.dataset.p186bSourceRole = p186bReviewSourceContext.sourceRole;
       };
 
+      const clearP186dReviewRoomContextBridge = () => {
+        if (!p186dReviewRoomContextGroup) return;
+
+        p186dReviewRoomContextGroup.traverse((object: any) => {
+          if (!object?.isMesh || !object.userData?.p186dReviewRoomContextBridge) return;
+          const materials = Array.isArray(object.material) ? object.material : [object.material];
+          for (const material of materials) material?.dispose?.();
+        });
+        p186dReviewRoomContextGroup.parent?.remove(p186dReviewRoomContextGroup);
+        p186dReviewRoomContextGroup = null;
+        delete canvas.dataset.p186dReviewRoomContextBridgeCount;
+      };
+
+      const prepareP186dD1fRoomContextBridge = () => {
+        clearP186dReviewRoomContextBridge();
+        if (!dInteriorScene || !fullModelScene) return 0;
+
+        dInteriorScene.updateMatrixWorld?.(true);
+        fullModelScene.updateMatrixWorld?.(true);
+
+        const fullModelWorldInverse = new THREE.Matrix4().copy(fullModelScene.matrixWorld).invert();
+        const bridgeGroup = new THREE.Group();
+        bridgeGroup.name = 'P186D_D1F_REVIEW_ROOM_CONTEXT_BRIDGE';
+        bridgeGroup.userData = {
+          viewerDerived: true,
+          presentationOnly: true,
+          p186dReviewRoomContextBridge: true,
+          sourceScene: 'D CURRENT INTERIOR - BABYLON Y-UP',
+        };
+
+        let bridgeCount = 0;
+        dInteriorScene.traverse?.((object: any) => {
+          if (!object?.isMesh || !object.material || !object.geometry) return;
+          const data = object.userData ?? {};
+          const g2Id = String(data.G2Id ?? data.G2IdCandidate ?? '');
+          const name = String(object.name ?? '');
+          const isD1fReviewRoomFootprint =
+            String(data.presentationLayer ?? '') === 'CURRENT_D' &&
+            String(data.representationKind ?? '') === 'referenceFootprint' &&
+            g2Id.startsWith('G2_D15_SPACE_') &&
+            g2Id.includes('_1F_SRC') &&
+            name.startsWith('P117D_REVIEW_');
+          if (!isD1fReviewRoomFootprint) return;
+
+          const clone = object.clone(false);
+          clone.name = `${name}__P186D_REVIEW_BRIDGE`;
+          clone.geometry = object.geometry;
+          clone.material = object.material;
+          clone.matrixAutoUpdate = false;
+          clone.matrix.copy(fullModelWorldInverse).multiply(object.matrixWorld);
+          clone.userData = {
+            ...data,
+            viewerDerived: true,
+            presentationOnly: true,
+            p186dReviewRoomContextBridge: true,
+            p186dReviewRoomContextSourceName: name,
+          };
+          bridgeGroup.add(clone);
+          bridgeCount += 1;
+        });
+
+        if (bridgeCount === 0) return 0;
+        fullModelScene.add(bridgeGroup);
+        fullModelScene.updateMatrixWorld?.(true);
+        p186dReviewRoomContextGroup = bridgeGroup;
+        canvas.dataset.p186dReviewRoomContextBridgeCount = String(bridgeCount);
+        return bridgeCount;
+      };
+
       const setP186dSourceContextVisible = (visible: boolean) => {
         if (!p186dSourceContextPanel) return;
         p186dSourceContextPanel.hidden = !visible;
         p186dSourceContextPanel.closest('.viewport')?.classList.toggle('m5a-source-layout', visible);
         if (!visible) {
+          clearP186dReviewRoomContextBridge();
           p186dSourceLinks?.replaceChildren();
           delete canvas.dataset.p186dSourceContextReady;
           delete canvas.dataset.p186dPositionSourcePdfDriveId;
@@ -7362,6 +7433,7 @@ const title = 'Private 3D viewer';
           : p186dExpectedD1fPosCounts;
 
         if (isD2f) {
+          clearP186dReviewRoomContextBridge();
           applyStandardViewPreset('d-2f');
         } else {
           applyStandardViewPreset('d-1f');
@@ -7378,6 +7450,13 @@ const title = 'Private 3D viewer';
           doorMarker.visible = false;
         }
         canvas.dataset.dReviewDoorMarkerVisibleCount = '0';
+
+        const bridgedRoomContextCount = isD2f ? 0 : prepareP186dD1fRoomContextBridge();
+        if (!isD2f && bridgedRoomContextCount !== 7) {
+          throw new Error(
+            `P186D-X1 D1F review room-context bridge expected 7 room footprints, got ${bridgedRoomContextCount}`,
+          );
+        }
 
         const presentation = prepareP186DReviewPresentation(fullModelScene, p186dReviewVariant);
         if (
@@ -7413,6 +7492,7 @@ const title = 'Private 3D viewer';
           p186dContextOpacity: p186dReviewContextOpacity.toFixed(2),
           p186dReviewTargetRenderableCount: String(presentation.targetRenderableCount),
           p186dReviewContextRenderableCount: String(presentation.contextRenderableCount),
+          p186dReviewRoomContextBridgeCount: String(bridgedRoomContextCount),
           p186dReviewHiddenNonQuestionRenderableCount: String(
             presentation.hiddenNonQuestionRenderableCount,
           ),
