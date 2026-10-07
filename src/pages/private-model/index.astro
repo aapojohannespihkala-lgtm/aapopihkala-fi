@@ -1779,6 +1779,7 @@ const title = 'Private 3D viewer';
         p185ReviewTargetOpacity,
         prepareP184hApplianceAidReviewPresentation,
         prepareP185ReviewPresentation,
+        prepareP185X2ReviewPresentation,
       } from '../../scripts/privateModelP185ReviewPresentation';
       import {
         p186bExpectedSourceLineItemCount,
@@ -1914,6 +1915,8 @@ const title = 'Private 3D viewer';
         p184hApplianceOnP185cReviewId,
         p185cCandidateId,
         p185cReviewId,
+        p185cX2CandidateId,
+        p185cX2ReviewId,
         m5aDrainageCandidateId,
         m5aDrainageReviewId,
         m5aR730CandidateId,
@@ -6039,6 +6042,9 @@ const title = 'Private 3D viewer';
       const isP185cElectricalSourceReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p185cReviewId);
 
+      const isP185cX2ElectricalSourceReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p185cX2ReviewId);
+
       const isM5aDrainageReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, m5aDrainageReviewId);
 
@@ -7047,6 +7053,65 @@ const title = 'Private 3D viewer';
         status.textContent =
           'P185C D 1F electrical source overlay - WORK_TEST / source overlay + RK 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
       };
+      const applyP185cX2ReviewState = () => {
+        // Establish the D 1F plan camera first. The preset restores D-plan visibility,
+        // so the question-specific 80/20 presentation must be applied afterwards.
+        applyStandardViewPreset('d-1f');
+        setModelScene(fullModelScene);
+        canvas.dataset.contentScene = 'full-model';
+        canvas.dataset.contentFloor = '1F';
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+
+        let suppressedDoorMarkerCount = 0;
+        for (const doorMarker of dReviewDoorMarkerLines) {
+          if (doorMarker.visible) suppressedDoorMarkerCount += 1;
+          doorMarker.visible = false;
+        }
+        canvas.dataset.dReviewDoorMarkerVisibleCount = '0';
+
+        const presentation = prepareP185X2ReviewPresentation(fullModelScene);
+        if (
+          presentation.targetRenderableCount !== 2 ||
+          presentation.missingTargetRepresentationKinds.length !== 0 ||
+          presentation.semanticViolationCount !== 0 ||
+          !presentation.targetBounds
+        ) {
+          throw new Error('P185C-X2 review targets or no-promotion semantics are not review-ready');
+        }
+        refreshEdgeRendering(fullModelScene);
+
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: p185cX2ReviewId,
+          p185ReviewQuestion: 'D_1F_D2015_ELECTRICAL_SOURCE_OVERLAY_RELATION',
+          p185TargetRepresentationKinds: presentation.foundTargetRepresentationKinds.join(','),
+          p185TargetOpacity: p185ReviewTargetOpacity.toFixed(2),
+          p185ContextOpacity: p185ReviewContextOpacity.toFixed(2),
+          p185ReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+          p185ReviewContextRenderableCount: String(presentation.contextRenderableCount),
+          p185ReviewHiddenNonQuestionRenderableCount: String(
+            presentation.hiddenNonQuestionRenderableCount,
+          ),
+          p185ReviewSemanticViolationCount: String(presentation.semanticViolationCount),
+          p185ReviewSuppressedDoorMarkerCount: String(suppressedDoorMarkerCount),
+          p185ReviewScene: 'FULL_MODEL_WITH_D_1F_PLAN_CAMERA',
+          p185FloorHeatingCableGeometryClaim: 'false',
+          p185ClosedHeatingZoneClaim: 'false',
+          p185ElectricalPanelGeometryClaim: 'false',
+          p185PhysicalCableRouteClaim: 'false',
+          p185ExactXYClaim: 'false',
+          p185ExactZClaim: 'false',
+          p185CurrentClaim: 'false',
+          p185AsBuiltClaim: 'false',
+          p185Canonical: 'false',
+          p185PublishToCurrent: 'false',
+          p185HumanReview: 'NOT_RUN',
+          p185ReviewCameraMode: 'ORTHOGRAPHIC_D_1F_SUPPORT',
+          standardViewPreset: 'd-1f',
+        });
+        status.textContent =
+          'P185C-X2 corrected D 1F electrical source overlay - WORK_TEST / source overlay + RK 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
+      };
       const applyP186bReviewState = () => {
         // Establish the D 2F support camera first. The preset restores floor visibility,
         // so the question-specific 80/20 presentation must be applied afterwards.
@@ -7525,6 +7590,8 @@ const title = 'Private 3D viewer';
             candidate.id === p184gCandidateId && isP184gIslandXReviewRequested();
           const isP185cElectricalSourceReview =
             candidate.id === p185cCandidateId && isP185cElectricalSourceReviewRequested();
+          const isP185cX2ElectricalSourceReview =
+            candidate.id === p185cX2CandidateId && isP185cX2ElectricalSourceReviewRequested();
           const isP186bElectricalSourceReview =
             candidate.id === p186bCandidateId && isP186bElectricalSourceReviewRequested();
           const isP184hApplianceOnP185cReview =
@@ -8284,6 +8351,8 @@ const title = 'Private 3D viewer';
             applyP178bReviewState();
           } else if (isP184hApplianceOnP185cReview) {
             applyP184hApplianceOnP185cReviewState();
+          } else if (isP185cX2ElectricalSourceReview) {
+            applyP185cX2ReviewState();
           } else if (isP185cElectricalSourceReview) {
             applyP185cReviewState();
           } else if (isP186bElectricalSourceReview) {
