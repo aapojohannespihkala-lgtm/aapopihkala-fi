@@ -5,6 +5,8 @@ import { expect, test } from '@playwright/test';
 import {
   p186dExpectedD1fPosCounts,
   p186dExpectedD1fTargetCount,
+  p186dExpectedD2fPosCounts,
+  p186dExpectedD2fTargetCount,
   p186dPositionSourcePdfDriveId,
   p186dReviewContextOpacity,
   p186dReviewSourceContexts,
@@ -34,6 +36,10 @@ test('P186D-X1 D1F review route is bounded to 22 lighting source anchors with 80
   expect(viewerSource).toContain('p186dReviewSourceContexts');
   expect(p186dExpectedD1fTargetCount).toBe(22);
   expect(p186dExpectedD1fPosCounts).toEqual({ 1: 13, 2: 6, 4: 3 });
+  expect(p186dExpectedD2fTargetCount).toBe(12);
+  expect(p186dExpectedD2fPosCounts).toEqual({ 2: 1, 3: 10, 5: 1 });
+  expect(viewerSource).toContain("get('floor') === 'd2f'");
+  expect(viewerSource).toContain("'D_2F_D2015_LIGHTING_SOURCE_MARKER_POSITION_TYPE_RELATION'");
   expect(p186dReviewSourceContexts).toHaveLength(2);
   expect(p186dReviewSourceContexts[0].sourceHref).toContain(p186dPositionSourcePdfDriveId);
   expect(p186dReviewSourceContexts[1].sourceHref).toContain(p186dSchedulePdfDriveId);
@@ -124,21 +130,32 @@ const scheduleByPos = {
     sourceScheduleType: 'Helmi Lasikuutio 8W',
     sourceSchedulePlannedQty: 7,
   },
+  3: {
+    sourceScheduleSnro: '4142045',
+    sourceScheduleType: 'Iiris 8W',
+    sourceSchedulePlannedQty: 10,
+  },
   4: {
     sourceScheduleSnro: '4159104',
     sourceScheduleType: 'ELIFE LED LIMPPU IP44 TUTKA',
     sourceSchedulePlannedQty: 3,
   },
+  5: {
+    sourceScheduleSnro: '4141966',
+    sourceScheduleType: 'Lilja 16W',
+    sourceSchedulePlannedQty: 1,
+  },
 } as const;
 
 const makeP186DTargetNode = (
-  sourcePos: 1 | 2 | 4,
+  sourcePos: 1 | 2 | 3 | 4 | 5,
   ordinal: number,
   translation: [number, number, number],
+  hostStorey: 'D_1F' | 'D_2F' = 'D_1F',
 ) => {
   const schedule = scheduleByPos[sourcePos];
   return {
-    name: `P186D_X1_D2015_LIGHTING_D_1F_POS${sourcePos}_${String(ordinal).padStart(2, '0')}_SOURCE_ANCHOR`,
+    name: `P186D_X1_D2015_LIGHTING_${hostStorey}_POS${sourcePos}_${String(ordinal).padStart(2, '0')}_SOURCE_ANCHOR`,
     mesh: 0,
     translation,
     extras: {
@@ -149,7 +166,7 @@ const makeP186DTargetNode = (
       representationKind: 'luminaireSourceSymbolAnchorMarker',
       presentationLayer: 'MEP_ELECTRICAL',
       coordinateSystem: 'YLIS-G1-LOCAL',
-      hostStorey: 'D_1F',
+      hostStorey,
       sourcePos,
       sourcePosOrdinal: ordinal,
       ...schedule,
@@ -190,6 +207,31 @@ const makeP186DTargets = () => {
           0.035,
           -(0.8 + row * 1.1),
         ]),
+      );
+      globalOrdinal += 1;
+    }
+  }
+  return nodes;
+};
+
+const makeP186DD2fTargets = () => {
+  const nodes: Record<string, unknown>[] = [];
+  let globalOrdinal = 0;
+  for (const [pos, count] of [
+    [2, 1],
+    [3, 10],
+    [5, 1],
+  ] as const) {
+    for (let ordinal = 1; ordinal <= count; ordinal += 1) {
+      const column = globalOrdinal % 6;
+      const row = Math.floor(globalOrdinal / 6);
+      nodes.push(
+        makeP186DTargetNode(
+          pos,
+          ordinal,
+          [0.8 + column * 0.9, 2.795, -(0.8 + row * 1.1)],
+          'D_2F',
+        ),
       );
       globalOrdinal += 1;
     }
@@ -356,3 +398,102 @@ test('P186D-X1 conventional review autoload renders bounded D1F lighting state o
 
   expect(renderedPixelCount).toBeGreaterThan(20);
 });
+
+test('P186D-X1 D2F floor parameter renders the separate 12-anchor bounded review contract', async ({
+  page,
+}) => {
+  test.setTimeout(20_000);
+
+  const currentModel = makeGlbWithSharedTriangle([]);
+  const candidateModel = makeGlbWithSharedTriangle([
+    ...makeP186DD2fTargets(),
+    {
+      name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_2F_001',
+      mesh: 0,
+      translation: [3.1, 2.76, -3.2],
+      extras: {
+        G2Id: 'G2_WALL_D_2F_001',
+        presentationLayer: 'CURRENT_D',
+      },
+    },
+    {
+      name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_1F_001',
+      mesh: 0,
+      translation: [7, 0, -7],
+      extras: {
+        G2Id: 'G2_WALL_D_1F_001',
+        presentationLayer: 'CURRENT_D',
+      },
+    },
+  ]);
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: currentModel,
+    });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [
+          {
+            id: candidateId,
+            label: 'P186D-X1 D2015 lighting source markers p28-corrected - WORK_TEST',
+            path: candidatePath,
+          },
+        ],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'model/gltf-binary',
+      body: candidateModel,
+    });
+  });
+
+  await page.goto(`/private-model/?review=${reviewId}&floor=d2f`);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId);
+  await expect(canvas).toHaveAttribute('data-p186d-review-variant', 'D2F');
+  await expect(canvas).toHaveAttribute(
+    'data-p186d-review-question',
+    'D_2F_D2015_LIGHTING_SOURCE_MARKER_POSITION_TYPE_RELATION',
+  );
+  await expect(canvas).toHaveAttribute('data-p186d-review-target-renderable-count', '12');
+  await expect(canvas).toHaveAttribute('data-p186d-review-context-renderable-count', '1');
+  await expect(canvas).toHaveAttribute('data-p186d-review-hidden-non-question-renderable-count', '1');
+  await expect(canvas).toHaveAttribute('data-p186d-review-semantic-violation-count', '0');
+  await expect(canvas).toHaveAttribute('data-p186d-d2f-pos-counts', '2:1,3:10,5:1');
+  await expect(canvas).toHaveAttribute('data-p186d-pos-counts', '2:1,3:10,5:1');
+  await expect(canvas).toHaveAttribute('data-p186d-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-2f');
+  await expect(canvas).toHaveAttribute(
+    'data-p186d-review-scene',
+    'FULL_MODEL_WITH_D_2F_PLAN_CAMERA',
+  );
+  await expect(canvas).toHaveAttribute('data-p186d-review-camera-mode', 'ORTHOGRAPHIC_D_2F_SUPPORT');
+  await expect(page.locator('#d1-known-door-label-layer')).toBeHidden();
+  await expect(page.locator('#d1-known-door-legend')).toBeHidden();
+  await expect(page.locator('#coordinate-panel')).toBeHidden();
+  await expect(page.locator('#viewer-status')).toContainText(
+    '12 source anchors 80 % / D 2F context 20 %',
+  );
+
+  const sourceContext = page.locator('#p186d-source-context');
+  await expect(sourceContext).toBeVisible();
+  await expect(sourceContext.locator('#p186d-source-links a')).toHaveCount(2);
+  await expect(sourceContext.locator('#p186d-source-context-limit')).toContainText(
+    'Ei fyysinen nykyvalaisimen sijainti',
+  );
+  await expect(canvas).toHaveAttribute('data-p186d-source-context-ready', 'true');
+});
+
