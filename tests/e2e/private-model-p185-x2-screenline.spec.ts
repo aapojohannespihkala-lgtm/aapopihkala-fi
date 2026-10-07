@@ -155,7 +155,10 @@ const makeP185X2ThinOverlayGlb = () => {
       asset: { version: '2.0' },
       extensionsUsed: ['KHR_materials_unlit'],
       scene: 0,
-      scenes: [{ nodes: [0, 1, 2] }],
+      scenes: [
+        { nodes: [0, 1, 2] },
+        { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [3] },
+      ],
       nodes: [
         {
           name: 'P185C_X2_D2015_SOURCE_VECTOR_OVERLAY_SCREENLINE_TEST',
@@ -204,6 +207,14 @@ const makeP185X2ThinOverlayGlb = () => {
         },
         {
           name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_1F_001',
+          mesh: 2,
+          extras: {
+            G2Id: 'G2_WALL_D_1F_001',
+            presentationLayer: 'CURRENT_D',
+          },
+        },
+        {
+          name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_1F_001__INTERIOR_SCENE',
           mesh: 2,
           extras: {
             G2Id: 'G2_WALL_D_1F_001',
