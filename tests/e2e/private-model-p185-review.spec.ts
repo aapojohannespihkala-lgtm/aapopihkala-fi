@@ -10,6 +10,13 @@ import {
   p185cX2CandidateId,
   p185cX2ReviewId,
 } from '../../src/scripts/privateModelWorkTest';
+import {
+  p185ReviewSourceOverlayVisibilityAidName,
+  p185ReviewSourceOverlayVisibilityAidWidthM,
+  p185ReviewTargetOpacity,
+  prepareP185X2ReviewPresentation,
+} from '../../src/scripts/privateModelP185ReviewPresentation';
+import { THREE } from '../../src/scripts/threeRuntime';
 
 test('P185C persisted overlay stays registered but its orientation-invalid position review alias is blocked', () => {
   const registry = JSON.parse(readFileSync('.github/work-test-candidates.json', 'utf8'));
@@ -75,4 +82,105 @@ test('P185C-X2 review presentation keeps high-contrast target materials', () => 
   expect(presentationSource).toContain('clone.depthWrite = false');
   expect(presentationSource).toContain('clone.toneMapped = false');
   expect(presentationSource).toContain("electricalPanelSourceLabelAnchorMarker");
+});
+
+
+test('P185C-X2 derives review-only visibility ribbons from indexed strip quads', () => {
+  const scene = new THREE.Group();
+
+  const positions = new Float32Array([
+    0.0, 0.0, 0.018,
+    0.012, 0.0, 0.018,
+    0.012, 0.08, 0.018,
+    0.0, 0.08, 0.018,
+    0.20, 0.10, 0.018,
+    0.212, 0.10, 0.018,
+    0.212, 0.18, 0.018,
+    0.20, 0.18, 0.018,
+  ]);
+  const overlayGeometry = new THREE.BufferGeometry();
+  overlayGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  overlayGeometry.setIndex([0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]);
+
+  const overlay = new THREE.Mesh(
+    overlayGeometry,
+    new THREE.MeshBasicMaterial({ color: 0xf05c19, transparent: true, opacity: 0.78 }),
+  );
+  overlay.userData = {
+    Pass: 'P185C-X2',
+    hostStorey: 'D_1F',
+    presentationLayer: 'MEP_ELECTRICAL',
+    representationKind: 'sourceVectorPlanOverlay',
+    sourcePdfDriveId: '1vAyvAHdClqkXKIVNgKKUyOjMja-tzrok',
+    sourceFragmentCount: 366,
+    floorHeatingCableGeometryClaim: false,
+    closedHeatingZoneClaim: false,
+    Canonical: false,
+    exactXYClaim: false,
+    exactZClaim: false,
+    physicalCableRouteClaim: false,
+    current: false,
+    asBuilt: false,
+    publishToCURRENT: false,
+    HUMAN_REVIEW: 'NOT_RUN',
+  };
+
+  const rk = new THREE.Mesh(
+    new THREE.BoxGeometry(0.2, 0.2, 0.01),
+    new THREE.MeshBasicMaterial({ color: 0x2255ee }),
+  );
+  rk.userData = {
+    Pass: 'P185C-X2',
+    hostStorey: 'D_1F',
+    presentationLayer: 'MEP_ELECTRICAL',
+    representationKind: 'electricalPanelSourceLabelAnchorMarker',
+    sourcePdfDriveId: '1dzzZsa9FCiyqmv8WholhLxba6Kxobspg',
+    sourceText: 'RYHMäKESKUS RK',
+    electricalPanelGeometryClaim: false,
+    Canonical: false,
+    exactXYClaim: false,
+    exactZClaim: false,
+    physicalCableRouteClaim: false,
+    current: false,
+    asBuilt: false,
+    publishToCURRENT: false,
+    HUMAN_REVIEW: 'NOT_RUN',
+  };
+
+  scene.add(overlay, rk);
+  const presentation = prepareP185X2ReviewPresentation(scene);
+
+  expect(presentation.semanticViolationCount).toBe(0);
+  expect(presentation.targetRenderableCount).toBe(2);
+  expect(presentation.sourceOverlayVisibilityAidCount).toBe(1);
+  expect(presentation.sourceOverlayVisibilityRibbonCount).toBe(2);
+
+  const aid = overlay.children.find(
+    (child) => child.name === p185ReviewSourceOverlayVisibilityAidName,
+  ) as any;
+  expect(aid).toBeTruthy();
+  expect(aid.isMesh).toBe(true);
+  expect(aid.geometry.getAttribute('position').count).toBe(8);
+  expect(aid.geometry.index.count).toBe(12);
+  expect(aid.material.opacity).toBe(p185ReviewTargetOpacity);
+  expect(aid.material.depthTest).toBe(false);
+  expect(aid.material.depthWrite).toBe(false);
+  expect(aid.userData.p185ReviewRole).toBe('QUESTION_TARGET_80_VISIBILITY_RIBBON_AID');
+  expect(aid.userData.viewerSuppressEdgeOverlay).toBe(true);
+  expect(aid.userData.presentationWidthOnly).toBe(true);
+  expect(aid.userData.presentationAidWidthM).toBe(p185ReviewSourceOverlayVisibilityAidWidthM);
+  expect(aid.userData.physicalCableWidthClaim).toBe(false);
+
+  const first = new THREE.Vector3().fromBufferAttribute(aid.geometry.getAttribute('position'), 0);
+  const second = new THREE.Vector3().fromBufferAttribute(aid.geometry.getAttribute('position'), 1);
+  const firstMidpoint = first.clone().add(second).multiplyScalar(0.5);
+  expect(first.distanceTo(second)).toBeCloseTo(p185ReviewSourceOverlayVisibilityAidWidthM, 6);
+  expect(firstMidpoint.x).toBeCloseTo(0.006, 6);
+  expect(firstMidpoint.y).toBeCloseTo(0.0, 6);
+
+  const repeated = prepareP185X2ReviewPresentation(scene);
+  expect(repeated.sourceOverlayVisibilityAidCount).toBe(1);
+  expect(
+    overlay.children.filter((child) => child.name === p185ReviewSourceOverlayVisibilityAidName),
+  ).toHaveLength(1);
 });

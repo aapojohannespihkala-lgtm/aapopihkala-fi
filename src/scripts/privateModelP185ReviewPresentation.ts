@@ -4,6 +4,181 @@ export const p185ReviewTargetOpacity = 0.8;
 export const p185ReviewContextOpacity = 0.2;
 export const p185ReviewSourceOverlayColorHex = 0x7dd3fc;
 export const p185ReviewPanelMarkerColorHex = 0xfacc15;
+export const p185ReviewSourceOverlayVisibilityAidName =
+  'P185_REVIEW_SOURCE_OVERLAY_VISIBILITY_RIBBON_AID';
+export const p185ReviewSourceOverlayVisibilityAidWidthM = 0.04;
+
+const disposeObjectMaterial = (material: any) => {
+  if (Array.isArray(material)) {
+    for (const item of material) item?.dispose?.();
+    return;
+  }
+  material?.dispose?.();
+};
+
+const removeP185SourceOverlayVisibilityAids = (sceneRoot: any) => {
+  const staleAids: any[] = [];
+  sceneRoot?.traverse?.((object: any) => {
+    if (object?.userData?.p185SourceOverlayVisibilityAid === true) {
+      staleAids.push(object);
+    }
+  });
+  for (const aid of staleAids) {
+    aid.parent?.remove?.(aid);
+    aid.geometry?.dispose?.();
+    disposeObjectMaterial(aid.material);
+  }
+};
+
+const buildP185SourceOverlayVisibilityRibbonGeometry = (object: any) => {
+  const geometry = object?.geometry;
+  const index = geometry?.index;
+  const position = geometry?.getAttribute?.('position');
+  if (!index || !position || index.count < 6 || index.count % 6 !== 0) return null;
+
+  const outputPositions: number[] = [];
+  const outputIndices: number[] = [];
+  const readPoint = (vertexIndex: number) =>
+    new THREE.Vector3(
+      Number(position.getX(vertexIndex)),
+      Number(position.getY(vertexIndex)),
+      Number(position.getZ(vertexIndex)),
+    );
+  const edgeKey = (a: number, b: number) => (a < b ? `${a}:${b}` : `${b}:${a}`);
+
+  for (let offset = 0; offset < index.count; offset += 6) {
+    const quadIndices = Array.from({ length: 6 }, (_, localIndex) =>
+      Number(index.getX(offset + localIndex)),
+    );
+    const edgeCounts = new Map<string, { a: number; b: number; count: number }>();
+
+    for (let triangleOffset = 0; triangleOffset < 6; triangleOffset += 3) {
+      const triangle = quadIndices.slice(triangleOffset, triangleOffset + 3);
+      const triangleEdges = [
+        [triangle[0], triangle[1]],
+        [triangle[1], triangle[2]],
+        [triangle[2], triangle[0]],
+      ] as const;
+      for (const [a, b] of triangleEdges) {
+        const key = edgeKey(a, b);
+        const existing = edgeCounts.get(key);
+        if (existing) existing.count += 1;
+        else edgeCounts.set(key, { a, b, count: 1 });
+      }
+    }
+
+    const boundaryEdges = [...edgeCounts.values()]
+      .filter((edge) => edge.count === 1)
+      .map((edge) => {
+        const aPoint = readPoint(edge.a);
+        const bPoint = readPoint(edge.b);
+        return {
+          ...edge,
+          aPoint,
+          bPoint,
+          lengthSq: aPoint.distanceToSquared(bPoint),
+          midpoint: aPoint.clone().add(bPoint).multiplyScalar(0.5),
+        };
+      })
+      .sort((a, b) => a.lengthSq - b.lengthSq);
+
+    if (boundaryEdges.length !== 4) continue;
+    const firstEnd = boundaryEdges[0];
+    const secondEnd = boundaryEdges[1];
+    if (
+      firstEnd.a === secondEnd.a ||
+      firstEnd.a === secondEnd.b ||
+      firstEnd.b === secondEnd.a ||
+      firstEnd.b === secondEnd.b
+    ) {
+      continue;
+    }
+
+    const widthDirection = new THREE.Vector3().subVectors(
+      firstEnd.bPoint,
+      firstEnd.aPoint,
+    );
+    if (widthDirection.lengthSq() < 1e-12) continue;
+    widthDirection.normalize().multiplyScalar(p185ReviewSourceOverlayVisibilityAidWidthM / 2);
+
+    const startA = firstEnd.midpoint.clone().add(widthDirection);
+    const startB = firstEnd.midpoint.clone().sub(widthDirection);
+    const endA = secondEnd.midpoint.clone().add(widthDirection);
+    const endB = secondEnd.midpoint.clone().sub(widthDirection);
+    const vertexBase = outputPositions.length / 3;
+
+    outputPositions.push(
+      startA.x, startA.y, startA.z,
+      startB.x, startB.y, startB.z,
+      endB.x, endB.y, endB.z,
+      endA.x, endA.y, endA.z,
+    );
+    outputIndices.push(
+      vertexBase,
+      vertexBase + 1,
+      vertexBase + 2,
+      vertexBase,
+      vertexBase + 2,
+      vertexBase + 3,
+    );
+  }
+
+  if (outputIndices.length === 0) return null;
+  const ribbonGeometry = new THREE.BufferGeometry();
+  ribbonGeometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(outputPositions, 3),
+  );
+  ribbonGeometry.setIndex(outputIndices);
+  ribbonGeometry.computeBoundingBox();
+  ribbonGeometry.computeBoundingSphere();
+  return {
+    geometry: ribbonGeometry,
+    ribbonCount: outputIndices.length / 6,
+  };
+};
+
+const attachP185SourceOverlayVisibilityAid = (object: any) => {
+  const derived = buildP185SourceOverlayVisibilityRibbonGeometry(object);
+  if (!derived) return null;
+
+  const material = new THREE.MeshBasicMaterial({
+    color: p185ReviewSourceOverlayColorHex,
+    transparent: true,
+    opacity: p185ReviewTargetOpacity,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+    side: THREE.DoubleSide,
+  });
+  const aid = new THREE.Mesh(derived.geometry, material);
+  aid.name = p185ReviewSourceOverlayVisibilityAidName;
+  aid.renderOrder = 22;
+  aid.frustumCulled = false;
+  aid.userData = {
+    viewerDerived: true,
+    viewerSuppressEdgeOverlay: true,
+    p185ReviewPresentation: true,
+    p185ReviewRole: 'QUESTION_TARGET_80_VISIBILITY_RIBBON_AID',
+    p185SourceOverlayVisibilityAid: true,
+    p185SourceOverlayVisibilityRibbonCount: derived.ribbonCount,
+    presentationLayer: 'MEP_ELECTRICAL',
+    sourceRepresentationKind: 'sourceVectorPlanOverlay',
+    presentationWidthOnly: true,
+    presentationAidWidthM: p185ReviewSourceOverlayVisibilityAidWidthM,
+    physicalCableWidthClaim: false,
+    Canonical: false,
+    exactXYClaim: false,
+    exactZClaim: false,
+    physicalCableRouteClaim: false,
+    current: false,
+    asBuilt: false,
+    publishToCURRENT: false,
+    HUMAN_REVIEW: 'NOT_RUN',
+  };
+  object.add(aid);
+  return aid;
+};
 
 export const p185TargetRepresentationKinds = [
   'sourceVectorPlanOverlay',
@@ -148,6 +323,8 @@ const prepareP185ReviewPresentationForContract = (
   sceneRoot: any,
   contract: P185ReviewTargetContract,
 ) => {
+  removeP185SourceOverlayVisibilityAids(sceneRoot);
+
   const renderables: any[] = [];
   const targets: any[] = [];
   const foundKinds = new Set<string>();
@@ -167,6 +344,8 @@ const prepareP185ReviewPresentationForContract = (
   let targetRenderableCount = 0;
   let contextRenderableCount = 0;
   let hiddenNonQuestionRenderableCount = 0;
+  let sourceOverlayVisibilityAidCount = 0;
+  let sourceOverlayVisibilityRibbonCount = 0;
 
   for (const object of targets) {
     object.visible = true;
@@ -193,6 +372,19 @@ const prepareP185ReviewPresentationForContract = (
         hasTargetBounds = true;
       } else {
         targetBounds.union(objectBounds);
+      }
+    }
+
+    if (
+      contract.pass === 'P185C-X2' &&
+      String(object.userData?.representationKind ?? '') === 'sourceVectorPlanOverlay'
+    ) {
+      const aid = attachP185SourceOverlayVisibilityAid(object);
+      if (aid) {
+        sourceOverlayVisibilityAidCount += 1;
+        sourceOverlayVisibilityRibbonCount += Number(
+          aid.userData?.p185SourceOverlayVisibilityRibbonCount ?? 0,
+        );
       }
     }
   }
@@ -229,6 +421,8 @@ const prepareP185ReviewPresentationForContract = (
     contextRenderableCount,
     hiddenNonQuestionRenderableCount,
     semanticViolationCount,
+    sourceOverlayVisibilityAidCount,
+    sourceOverlayVisibilityRibbonCount,
     foundTargetRepresentationKinds: [...foundKinds],
     missingTargetRepresentationKinds: p185TargetRepresentationKinds.filter(
       (kind) => !foundKinds.has(kind),
