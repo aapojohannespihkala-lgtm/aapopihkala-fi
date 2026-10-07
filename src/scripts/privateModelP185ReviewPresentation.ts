@@ -2,6 +2,8 @@ import { THREE } from './threeRuntime';
 
 export const p185ReviewTargetOpacity = 0.8;
 export const p185ReviewContextOpacity = 0.2;
+export const p185ReviewSourceOverlayColorHex = 0x7dd3fc;
+export const p185ReviewPanelMarkerColorHex = 0xfacc15;
 
 export const p185TargetRepresentationKinds = [
   'sourceVectorPlanOverlay',
@@ -31,13 +33,31 @@ const isRenderable = (object: any) =>
       (object?.isMesh || object?.isLine || object?.isLineSegments || object?.isPoints),
   );
 
-const cloneObjectMaterials = (object: any, opacity: number, role: string) => {
+const cloneObjectMaterials = (
+  object: any,
+  opacity: number,
+  role: string,
+  representationKind = '',
+) => {
   const cloneOne = (material: any) => {
     if (!material?.clone) return material;
     const clone = material.clone();
     clone.opacity = opacity;
     clone.transparent = true;
-    clone.depthWrite = role === 'QUESTION_TARGET_80';
+    clone.depthWrite = false;
+    if (role === 'QUESTION_TARGET_80') {
+      const colorHex =
+        representationKind === 'electricalPanelSourceLabelAnchorMarker'
+          ? p185ReviewPanelMarkerColorHex
+          : p185ReviewSourceOverlayColorHex;
+      clone.color?.setHex?.(colorHex);
+      if (clone.emissive?.setHex) {
+        clone.emissive.setHex(colorHex);
+        clone.emissiveIntensity = 1;
+      }
+      clone.depthTest = false;
+      clone.toneMapped = false;
+    }
     clone.userData = {
       ...(clone.userData ?? {}),
       p185ReviewPresentation: true,
@@ -150,7 +170,12 @@ const prepareP185ReviewPresentationForContract = (
 
   for (const object of targets) {
     object.visible = true;
-    cloneObjectMaterials(object, p185ReviewTargetOpacity, 'QUESTION_TARGET_80');
+    cloneObjectMaterials(
+      object,
+      p185ReviewTargetOpacity,
+      'QUESTION_TARGET_80',
+      String(object.userData?.representationKind ?? ''),
+    );
     object.renderOrder = 20;
     object.userData = {
       ...(object.userData ?? {}),

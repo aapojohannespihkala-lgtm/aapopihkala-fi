@@ -61,3 +61,18 @@ test('P185C-X2 review focuses the plan camera on exact electrical target bounds'
   );
   expect(x2State).toContain("p185ReviewCameraFocusApplied: 'true'");
 });
+
+
+test('P185C-X2 review presentation keeps high-contrast target materials', () => {
+  const presentationSource = readFileSync(
+    new URL('../../src/scripts/privateModelP185ReviewPresentation.ts', import.meta.url),
+    'utf8',
+  );
+
+  expect(presentationSource).toContain('p185ReviewSourceOverlayColorHex = 0x7dd3fc');
+  expect(presentationSource).toContain('p185ReviewPanelMarkerColorHex = 0xfacc15');
+  expect(presentationSource).toContain('clone.depthTest = false');
+  expect(presentationSource).toContain('clone.depthWrite = false');
+  expect(presentationSource).toContain('clone.toneMapped = false');
+  expect(presentationSource).toContain("electricalPanelSourceLabelAnchorMarker");
+});
