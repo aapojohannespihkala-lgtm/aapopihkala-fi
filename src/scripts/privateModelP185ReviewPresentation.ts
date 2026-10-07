@@ -4,6 +4,148 @@ export const p185ReviewTargetOpacity = 0.8;
 export const p185ReviewContextOpacity = 0.2;
 export const p185ReviewSourceOverlayColorHex = 0x7dd3fc;
 export const p185ReviewPanelMarkerColorHex = 0xfacc15;
+export const p185ReviewSourceOverlayScreenLineAidName =
+  'P185_REVIEW_SOURCE_OVERLAY_SCREEN_LINE_AID';
+
+const disposeObjectMaterial = (material: any) => {
+  if (Array.isArray(material)) {
+    for (const item of material) item?.dispose?.();
+    return;
+  }
+  material?.dispose?.();
+};
+
+const removeP185SourceOverlayScreenLineAids = (sceneRoot: any) => {
+  const staleAids: any[] = [];
+  sceneRoot?.traverse?.((object: any) => {
+    if (object?.userData?.p185SourceOverlayScreenLineAid === true) {
+      staleAids.push(object);
+    }
+  });
+  for (const aid of staleAids) {
+    aid.parent?.remove?.(aid);
+    aid.geometry?.dispose?.();
+    disposeObjectMaterial(aid.material);
+  }
+};
+
+const buildP185SourceOverlayCenterlineGeometry = (object: any) => {
+  const geometry = object?.geometry;
+  const index = geometry?.index;
+  const position = geometry?.getAttribute?.('position');
+  if (!index || !position || index.count < 6 || index.count % 6 !== 0) return null;
+
+  const output: number[] = [];
+  const readPoint = (vertexIndex: number) =>
+    new THREE.Vector3(
+      Number(position.getX(vertexIndex)),
+      Number(position.getY(vertexIndex)),
+      Number(position.getZ(vertexIndex)),
+    );
+  const edgeKey = (a: number, b: number) => (a < b ? `${a}:${b}` : `${b}:${a}`);
+
+  for (let offset = 0; offset < index.count; offset += 6) {
+    const quadIndices = Array.from({ length: 6 }, (_, localIndex) =>
+      Number(index.getX(offset + localIndex)),
+    );
+    const edgeCounts = new Map<string, { a: number; b: number; count: number }>();
+
+    for (let triangleOffset = 0; triangleOffset < 6; triangleOffset += 3) {
+      const triangle = quadIndices.slice(triangleOffset, triangleOffset + 3);
+      const triangleEdges = [
+        [triangle[0], triangle[1]],
+        [triangle[1], triangle[2]],
+        [triangle[2], triangle[0]],
+      ] as const;
+      for (const [a, b] of triangleEdges) {
+        const key = edgeKey(a, b);
+        const existing = edgeCounts.get(key);
+        if (existing) existing.count += 1;
+        else edgeCounts.set(key, { a, b, count: 1 });
+      }
+    }
+
+    const boundaryEdges = [...edgeCounts.values()]
+      .filter((edge) => edge.count === 1)
+      .map((edge) => {
+        const a = readPoint(edge.a);
+        const b = readPoint(edge.b);
+        return {
+          ...edge,
+          lengthSq: a.distanceToSquared(b),
+          midpoint: a.add(b).multiplyScalar(0.5),
+        };
+      })
+      .sort((a, b) => a.lengthSq - b.lengthSq);
+
+    if (boundaryEdges.length !== 4) continue;
+    const firstEnd = boundaryEdges[0];
+    const secondEnd = boundaryEdges[1];
+    if (
+      firstEnd.a === secondEnd.a ||
+      firstEnd.a === secondEnd.b ||
+      firstEnd.b === secondEnd.a ||
+      firstEnd.b === secondEnd.b
+    ) {
+      continue;
+    }
+
+    output.push(
+      firstEnd.midpoint.x,
+      firstEnd.midpoint.y,
+      firstEnd.midpoint.z,
+      secondEnd.midpoint.x,
+      secondEnd.midpoint.y,
+      secondEnd.midpoint.z,
+    );
+  }
+
+  if (output.length === 0) return null;
+  const centerlineGeometry = new THREE.BufferGeometry();
+  centerlineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(output, 3));
+  centerlineGeometry.computeBoundingBox();
+  centerlineGeometry.computeBoundingSphere();
+  return {
+    geometry: centerlineGeometry,
+    lineCount: output.length / 6,
+  };
+};
+
+const attachP185SourceOverlayScreenLineAid = (object: any) => {
+  const derived = buildP185SourceOverlayCenterlineGeometry(object);
+  if (!derived) return null;
+
+  const material = new THREE.LineBasicMaterial({
+    color: p185ReviewSourceOverlayColorHex,
+    transparent: true,
+    opacity: p185ReviewTargetOpacity,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const aid = new THREE.LineSegments(derived.geometry, material);
+  aid.name = p185ReviewSourceOverlayScreenLineAidName;
+  aid.renderOrder = 21;
+  aid.frustumCulled = object.frustumCulled;
+  aid.userData = {
+    viewerDerived: true,
+    p185ReviewPresentation: true,
+    p185ReviewRole: 'QUESTION_TARGET_80_SCREEN_LINE_AID',
+    p185SourceOverlayScreenLineAid: true,
+    p185SourceOverlayScreenLineCount: derived.lineCount,
+    sourceRepresentationKind: 'sourceVectorPlanOverlay',
+    Canonical: false,
+    exactXYClaim: false,
+    exactZClaim: false,
+    physicalCableRouteClaim: false,
+    current: false,
+    asBuilt: false,
+    publishToCURRENT: false,
+    HUMAN_REVIEW: 'NOT_RUN',
+  };
+  object.add(aid);
+  return aid;
+};
 
 export const p185TargetRepresentationKinds = [
   'sourceVectorPlanOverlay',
@@ -148,6 +290,8 @@ const prepareP185ReviewPresentationForContract = (
   sceneRoot: any,
   contract: P185ReviewTargetContract,
 ) => {
+  removeP185SourceOverlayScreenLineAids(sceneRoot);
+
   const renderables: any[] = [];
   const targets: any[] = [];
   const foundKinds = new Set<string>();
@@ -167,6 +311,8 @@ const prepareP185ReviewPresentationForContract = (
   let targetRenderableCount = 0;
   let contextRenderableCount = 0;
   let hiddenNonQuestionRenderableCount = 0;
+  let sourceOverlayScreenLineAidCount = 0;
+  let sourceOverlayScreenLineCount = 0;
 
   for (const object of targets) {
     object.visible = true;
@@ -184,6 +330,17 @@ const prepareP185ReviewPresentationForContract = (
       p185ReviewRole: 'QUESTION_TARGET_80',
     };
     targetRenderableCount += 1;
+
+    if (
+      contract.pass === 'P185C-X2' &&
+      String(object.userData?.representationKind ?? '') === 'sourceVectorPlanOverlay'
+    ) {
+      const aid = attachP185SourceOverlayScreenLineAid(object);
+      if (aid) {
+        sourceOverlayScreenLineAidCount += 1;
+        sourceOverlayScreenLineCount += Number(aid.userData?.p185SourceOverlayScreenLineCount ?? 0);
+      }
+    }
 
     sceneRoot?.updateMatrixWorld?.(true);
     const objectBounds = new THREE.Box3().setFromObject(object);
@@ -229,6 +386,8 @@ const prepareP185ReviewPresentationForContract = (
     contextRenderableCount,
     hiddenNonQuestionRenderableCount,
     semanticViolationCount,
+    sourceOverlayScreenLineAidCount,
+    sourceOverlayScreenLineCount,
     foundTargetRepresentationKinds: [...foundKinds],
     missingTargetRepresentationKinds: p185TargetRepresentationKinds.filter(
       (kind) => !foundKinds.has(kind),
