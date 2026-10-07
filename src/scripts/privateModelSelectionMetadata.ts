@@ -54,6 +54,22 @@ const electricalSelectionMetadataPriority = [
   'modelStage',
 ] as const;
 
+const luminaireSelectionMetadataPriority = [
+  'Pass',
+  'pass',
+  'representationKind',
+  'hostStorey',
+  'sourcePos',
+  'sourceScheduleType',
+  'sourceScheduleSnro',
+  'positionTypeBinding',
+  'physicalLuminaireGeometryClaim',
+  'exactCurrentXYClaim',
+  'exactZClaim',
+  'currentGeometryClaim',
+  'publishToCURRENT',
+] as const;
+
 const selectionMetadataLabels: Record<string, string> = {
   hostStorey: 'Kohdekerros',
   presentationLayer: 'Esityskerros',
@@ -68,6 +84,14 @@ const selectionMetadataLabels: Record<string, string> = {
   deviceGeometryClaim: 'Laitesijaintigeometria varmennettu',
   symbolSemanticClaim: 'Sähkösymbolien merkitys varmennettu',
   currentGeometryClaim: 'Nykygeometria varmennettu',
+  sourcePos: 'Valaisinluettelon Pos',
+  sourceScheduleType: 'Valaisintyyppi',
+  sourceScheduleSnro: 'Sähkönumero',
+  positionTypeBinding: 'Pos-tyyppisidonnan varmuus',
+  physicalLuminaireGeometryClaim: 'Fyysinen valaisingeometria varmennettu',
+  exactCurrentXYClaim: 'Nykyinen XY-sijainti täsmällinen',
+  exactZClaim: 'Z-korko täsmällinen',
+  publishToCURRENT: 'Julkaistaan CURRENTiin',
   sourceConnection: 'Lähdeyhteys',
   sourceVideoLengthM: 'Videokuvauksen pituus (m)',
   sourceConditionClass: 'Kuntoluokka',
@@ -128,9 +152,15 @@ export const selectionMetadataEntries = (
   }
 
   const priorityKeys: readonly string[] =
-    values.get('presentationLayer') === 'MEP_ELECTRICAL'
-      ? [...electricalSelectionMetadataPriority, ...selectionMetadataPriority]
-      : selectionMetadataPriority;
+    values.get('representationKind') === 'luminaireSourceSymbolAnchorMarker'
+      ? [
+          ...luminaireSelectionMetadataPriority,
+          ...electricalSelectionMetadataPriority,
+          ...selectionMetadataPriority,
+        ]
+      : values.get('presentationLayer') === 'MEP_ELECTRICAL'
+        ? [...electricalSelectionMetadataPriority, ...selectionMetadataPriority]
+        : selectionMetadataPriority;
   const priority = new Map<string, number>();
   for (const key of priorityKeys) {
     if (!priority.has(key)) priority.set(key, priority.size);
