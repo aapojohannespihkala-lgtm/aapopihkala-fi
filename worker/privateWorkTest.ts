@@ -302,6 +302,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_934_024,
     expectedSha256: '9599dec3db6a8cf1961f5db1a91d9722566dadd9a4176861e1e087722a3cea6c',
   },
+  // P185C-X2 release registration: exact persisted p28-corrected D2015 D 1F electrical source overlay.
+  {
+    id: 'p185c-x2-d2015-electrical-source-overlay-p28-corrected',
+    label: 'P185C-X2 D2015 electrical source overlay p28-corrected - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p185c-x2-d2015-electrical-source-overlay-p28-corrected.glb`,
+    objectKey: 'work-test/p185c-x2-d2015-electrical-source-overlay-p28-corrected.glb',
+    expectedSize: 2_935_172,
+    expectedSha256: '6bcfc10f9b04323229e10b8b3d7f72d2d96458b9dd4170d19a1effd986564b32',
+  },
   // P186B viewer/release registration: exact persisted D2015 D 2F wiring source overlay.
   {
     id: 'p186b-d2015-d2f-wiring-mainmass-source-overlay',
