@@ -93,8 +93,8 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  // P185C-X2 adds one exact p28-corrected electrical candidate.
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(46);
+  // P185C-X2 and P186D-X1 add exact p28-corrected electrical candidates.
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(47);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -393,6 +393,15 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     expectedSize: 3_117_312,
     expectedSha256: '4b5de6b1f99cd3d85de71f826f4e7b7e481c17c1d5dd5e0d508dd8b500866236',
   });
+  const p186d = getPrivateWorkTestCandidateById('p186d-x1-d2015-lighting-source-markers-p28-corrected');
+  expect(p186d).toMatchObject({
+    id: 'p186d-x1-d2015-lighting-source-markers-p28-corrected',
+    label: 'P186D-X1 D2015 lighting source markers p28-corrected - WORK_TEST',
+    path: '/private-model/work-test/p186d-x1-d2015-lighting-source-markers-p28-corrected.glb',
+    objectKey: 'work-test/p186d-x1-d2015-lighting-source-markers-p28-corrected.glb',
+    expectedSize: 3_166_100,
+    expectedSha256: '3283b5938b8aeeb3e627d8ae1b31d0912ce7c7b6239829161dcae6ce991ca868',
+  });
   const m5a = getPrivateWorkTestCandidateById('m5a-drain-topology');
   expect(m5a).toMatchObject({
     id: 'm5a-drain-topology',
@@ -614,6 +623,10 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestPublishCandidate(p186bPublishPath)?.id).toBe(
     'p186b-d2015-d2f-wiring-mainmass-source-overlay',
   );
+  const p186dPublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p186d-x1-d2015-lighting-source-markers-p28-corrected.glb`;
+  expect(getPrivateWorkTestPublishCandidate(p186dPublishPath)?.id).toBe(
+    'p186d-x1-d2015-lighting-source-markers-p28-corrected',
+  );
   expect(getPrivateWorkTestPublishCandidate(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}not-allowlisted.glb`)).toBeNull();
   expect(
     getPrivateWorkTestVerifyCandidate(
@@ -640,6 +653,11 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
       `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p186b-d2015-d2f-wiring-mainmass-source-overlay.glb`,
     )?.id,
   ).toBe('p186b-d2015-d2f-wiring-mainmass-source-overlay');
+  expect(
+    getPrivateWorkTestVerifyCandidate(
+      `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p186d-x1-d2015-lighting-source-markers-p28-corrected.glb`,
+    )?.id,
+  ).toBe('p186d-x1-d2015-lighting-source-markers-p28-corrected');
   expect(
     getPrivateWorkTestVerifyCandidate(`${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}not-allowlisted.glb`),
   ).toBeNull();

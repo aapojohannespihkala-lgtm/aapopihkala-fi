@@ -320,6 +320,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 3_117_312,
     expectedSha256: '4b5de6b1f99cd3d85de71f826f4e7b7e481c17c1d5dd5e0d508dd8b500866236',
   },
+  // P186D-X1 viewer/release registration: exact persisted p28-corrected D2015 lighting source markers.
+  {
+    id: 'p186d-x1-d2015-lighting-source-markers-p28-corrected',
+    label: 'P186D-X1 D2015 lighting source markers p28-corrected - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p186d-x1-d2015-lighting-source-markers-p28-corrected.glb`,
+    objectKey: 'work-test/p186d-x1-d2015-lighting-source-markers-p28-corrected.glb',
+    expectedSize: 3_166_100,
+    expectedSha256: '3283b5938b8aeeb3e627d8ae1b31d0912ce7c7b6239829161dcae6ce991ca868',
+  },
   // M5A viewer/release registration: exact persisted drainage topology presentation WORK_TEST.
   {
     id: 'm5a-drain-topology',
