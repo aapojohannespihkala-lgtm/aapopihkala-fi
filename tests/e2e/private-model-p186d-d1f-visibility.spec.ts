@@ -18,11 +18,11 @@ const targetPositions = [
 
 const contextPositions = [
   0, 0, 0,
-  5.5, 0, 0,
-  0, 0, -4.8,
-  5.5, 0, 0,
-  5.5, 0, -4.8,
-  0, 0, -4.8,
+  1, 0, 0,
+  0, 0, -1,
+  1, 0, 0,
+  1, 0, -1,
+  0, 0, -1,
 ];
 
 const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
@@ -76,7 +76,7 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
       },
       {
         pbrMetallicRoughness: {
-          baseColorFactor: [0.05, 0.8, 1, 1],
+          baseColorFactor: [0.12, 0.12, 0.14, 1],
           metallicFactor: 0,
           roughnessFactor: 1,
         },
@@ -228,6 +228,30 @@ const makeTargets = () => {
   return nodes;
 };
 
+const makeD1fRoomContextNodes = () => {
+  const rooms = [
+    ['SAUNA', [4.0, 0.0, -0.5], [2.2, 1, 1.6]],
+    ['PESUHUONE', [4.0, 0.0, -2.4], [2.2, 1, 1.5]],
+    ['WC', [4.4, 0.0, -4.2], [1.7, 1, 0.8]],
+    ['VH_WEST', [0.4, 0.0, -3.2], [2.0, 1, 1.5]],
+    ['VH_NORTH', [0.4, 0.0, -7.1], [1.8, 1, 1.3]],
+    ['HUONE2', [0.4, 0.0, -0.5], [3.2, 1, 2.5]],
+    ['VARASTO', [0.4, 0.0, -8.8], [1.8, 1, 1.4]],
+  ] as const;
+
+  return rooms.map(([room, translation, scale]) => ({
+    name: `P117D_REVIEW_P87_VIEW_G2_D15_SPACE_${room}_1F_SRC`,
+    mesh: 1,
+    translation,
+    scale,
+    extras: {
+      G2Id: `G2_D15_SPACE_${room}_1F_SRC`,
+      presentationLayer: 'CURRENT_D',
+      representationKind: 'referenceFootprint',
+    },
+  }));
+};
+
 test('P186D-X1 D1F review visibly separates 22 lighting targets from architecture context at wide viewport', async ({
   page,
 }) => {
@@ -237,10 +261,12 @@ test('P186D-X1 D1F review visibly separates 22 lighting targets from architectur
   const currentModel = makeVisibilityGlb([]);
   const candidateModel = makeVisibilityGlb([
     ...makeTargets(),
+    ...makeD1fRoomContextNodes(),
     {
       name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_1F_VISIBILITY_CONTEXT',
       mesh: 1,
-      translation: [0.35, 0, -0.35],
+      translation: [2.7, 0, -5.2],
+      scale: [0.8, 1, 0.8],
       extras: {
         G2Id: 'G2_WALL_D_1F_VISIBILITY_CONTEXT',
         presentationLayer: 'CURRENT_D',
@@ -286,7 +312,7 @@ test('P186D-X1 D1F review visibly separates 22 lighting targets from architectur
   await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
   await expect(canvas).toHaveAttribute('data-p186d-review-target-renderable-count', '22');
-  await expect(canvas).toHaveAttribute('data-p186d-review-context-renderable-count', '1');
+  await expect(canvas).toHaveAttribute('data-p186d-review-context-renderable-count', '8');
   await expect(canvas).toHaveAttribute('data-p186d-review-semantic-violation-count', '0');
   await expect(canvas).toHaveAttribute('data-p186d-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-1f');
@@ -304,13 +330,13 @@ test('P186D-X1 D1F review visibly separates 22 lighting targets from architectur
     probe.width = image.width;
     probe.height = image.height;
     const context = probe.getContext('2d');
-    if (!context) return { amberTargetPixels: 0, cyanContextPixels: 0 };
+    if (!context) return { amberTargetPixels: 0, lightContextPixels: 0 };
 
     context.drawImage(image, 0, 0);
     const pixels = context.getImageData(0, 0, image.width, image.height).data;
 
     let amberTargetPixels = 0;
-    let cyanContextPixels = 0;
+    let lightContextPixels = 0;
 
     for (let index = 0; index < pixels.length; index += 4) {
       const red = pixels[index] ?? 0;
@@ -327,18 +353,20 @@ test('P186D-X1 D1F review visibly separates 22 lighting targets from architectur
       }
 
       if (
+        red > 35 &&
         green > 40 &&
         blue > 45 &&
-        green > red + 10 &&
-        blue > red + 12
+        blue >= red &&
+        Math.abs(red - green) < 32 &&
+        Math.abs(green - blue) < 32
       ) {
-        cyanContextPixels += 1;
+        lightContextPixels += 1;
       }
     }
 
-    return { amberTargetPixels, cyanContextPixels };
+    return { amberTargetPixels, lightContextPixels };
   }, dataUrl);
 
   expect(visibilityPixels.amberTargetPixels).toBeGreaterThan(100);
-  expect(visibilityPixels.cyanContextPixels).toBeGreaterThan(500);
+  expect(visibilityPixels.lightContextPixels).toBeGreaterThan(500);
 });
