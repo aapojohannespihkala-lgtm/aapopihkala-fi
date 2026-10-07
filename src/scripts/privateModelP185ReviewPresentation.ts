@@ -133,6 +133,7 @@ const attachP185SourceOverlayScreenLineAid = (object: any) => {
     p185ReviewRole: 'QUESTION_TARGET_80_SCREEN_LINE_AID',
     p185SourceOverlayScreenLineAid: true,
     p185SourceOverlayScreenLineCount: derived.lineCount,
+    presentationLayer: 'MEP_ELECTRICAL',
     sourceRepresentationKind: 'sourceVectorPlanOverlay',
     Canonical: false,
     exactXYClaim: false,
