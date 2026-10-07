@@ -6,6 +6,8 @@ import {
   p184hApplianceOnP185cReviewId,
   p185cCandidateId,
   p185cReviewId,
+  p185cX2CandidateId,
+  p185cX2ReviewId,
 } from '../../src/scripts/privateModelWorkTest';
 import {
   p184hApplianceAidRoles,
@@ -16,6 +18,7 @@ import {
   p185TargetRepresentationKinds,
   prepareP184hApplianceAidReviewPresentation,
   prepareP185ReviewPresentation,
+  prepareP185X2ReviewPresentation,
 } from '../../src/scripts/privateModelP185ReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
 
@@ -52,6 +55,18 @@ const makeTarget = (
         }),
   };
   return { object, sourceMaterial };
+};
+
+const makeX2Target = (
+  representationKind: 'sourceVectorPlanOverlay' | 'electricalPanelSourceLabelAnchorMarker',
+) => {
+  const target = makeTarget(representationKind);
+  target.object.userData.Pass = 'P185C-X2';
+  target.object.userData.sourceOrientation = 'P28_REVERSE_X_CORRECTED';
+  if (representationKind === 'sourceVectorPlanOverlay') {
+    target.object.userData.sourcePdfDriveId = '1vAyvAHdClqkXKIVNgKKUyOjMja-tzrok';
+  }
+  return target;
 };
 
 
@@ -221,6 +236,37 @@ test('P185C presentation reports no-promotion semantic violations instead of sil
   expect(presentation.semanticViolationCount).toBe(1);
 });
 
+
+test('P185C-X2 presentation targets only corrected pass objects and requires the live floor-heating source identity', () => {
+  const scene = new THREE.Group();
+  const overlay = makeX2Target('sourceVectorPlanOverlay');
+  const rk = makeX2Target('electricalPanelSourceLabelAnchorMarker');
+  const historicalOverlay = makeTarget('sourceVectorPlanOverlay');
+
+  const d1fContext = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 0.2, 2),
+    new THREE.MeshBasicMaterial({ opacity: 1 }),
+  );
+  d1fContext.name = 'P134B_ARCH_BASE_CLONE__G2_WALL_D_1F_001';
+  d1fContext.userData = { G2Id: 'G2_WALL_D_1F_001', presentationLayer: 'CURRENT_D' };
+
+  scene.add(overlay.object, rk.object, historicalOverlay.object, d1fContext);
+  const presentation = prepareP185X2ReviewPresentation(scene);
+
+  expect(presentation.targetRenderableCount).toBe(2);
+  expect(presentation.contextRenderableCount).toBe(1);
+  expect(presentation.hiddenNonQuestionRenderableCount).toBe(1);
+  expect(presentation.semanticViolationCount).toBe(0);
+  expect(presentation.missingTargetRepresentationKinds).toEqual([]);
+  expect(historicalOverlay.object.visible).toBe(false);
+
+  overlay.object.userData.sourcePdfDriveId = '1vAyvAHdClqkXIVNgKKUyOjMja-tzrok';
+  const invalidScene = new THREE.Group();
+  invalidScene.add(overlay.object, makeX2Target('electricalPanelSourceLabelAnchorMarker').object);
+  const invalidPresentation = prepareP185X2ReviewPresentation(invalidScene);
+  expect(invalidPresentation.semanticViolationCount).toBe(1);
+});
+
 test('private viewer wires P185C review alias to D 1F 80/20 presentation without HUMAN_REVIEW promotion', () => {
   const viewerSource = readFileSync(
     new URL('../../src/pages/private-model/index.astro', import.meta.url),
@@ -264,6 +310,24 @@ test('private viewer wires P185C review alias to D 1F 80/20 presentation without
   expect(p185StateSource.indexOf("applyStandardViewPreset('d-1f')")).toBeLessThan(
     p185StateSource.indexOf('prepareP185ReviewPresentation(fullModelScene)'),
   );
+});
+
+
+test('private viewer wires P185C-X2 corrected review to its own strict presentation helper', () => {
+  const viewerSource = readFileSync(
+    new URL('../../src/pages/private-model/index.astro', import.meta.url),
+    'utf8',
+  );
+
+  expect(p185cX2CandidateId).toBe('p185c-x2-d2015-electrical-source-overlay-p28-corrected');
+  expect(p185cX2ReviewId).toBe('p185c-x2-d2015-electrical-source-overlay-p28-corrected-review');
+  expect(viewerSource).toContain('prepareP185X2ReviewPresentation');
+  expect(viewerSource).toContain('isP185cX2ElectricalSourceReviewRequested');
+  expect(viewerSource).toContain('candidate.id === p185cX2CandidateId');
+  expect(viewerSource).toContain('applyP185cX2ReviewState');
+  expect(viewerSource).toContain('workTestReviewMode: p185cX2ReviewId');
+  expect(viewerSource).toContain('prepareP185X2ReviewPresentation(fullModelScene)');
+  expect(viewerSource).toContain('P185C-X2 corrected D 1F electrical source overlay');
 });
 
 
@@ -401,6 +465,113 @@ test('P185C orientation-invalid position review alias does not autoload the pers
   await expect(canvas).not.toHaveAttribute('data-work-test-review-mode', p185cReviewId);
   await expect(canvas).toHaveAttribute('data-model-source', 'current');
   expect(candidateRequested).toBe(false);
+});
+
+test('P185C-X2 corrected review autoloads exact candidate and renders bounded D 1F 80/20 state', async ({ page }) => {
+  test.setTimeout(20_000);
+
+  const currentModel = makeGlbWithSharedTriangle([]);
+  const candidateId = p185cX2CandidateId;
+  const candidatePath = '/private-model/work-test/p185c-x2-d2015-electrical-source-overlay-p28-corrected.glb';
+  const candidateModel = makeGlbWithSharedTriangle([
+    {
+      name: 'P185C_X2_D2015_FLOOR_HEATING_366_SOURCE_VECTOR_OVERLAY_P28_CORRECTED_PRESENTATION_ONLY',
+      mesh: 0,
+      translation: [0, 0, 0],
+      extras: {
+        Pass: 'P185C-X2',
+        ModelStage: 'WORK_TEST_PRESENTATION',
+        Canonical: false,
+        representationKind: 'sourceVectorPlanOverlay',
+        hostStorey: 'D_1F',
+        presentationLayer: 'MEP_ELECTRICAL',
+        sourcePdfDriveId: '1vAyvAHdClqkXKIVNgKKUyOjMja-tzrok',
+        sourceFragmentCount: 366,
+        floorHeatingCableGeometryClaim: false,
+        closedHeatingZoneClaim: false,
+        exactXYClaim: false,
+        exactZClaim: false,
+        physicalCableRouteClaim: false,
+        current: false,
+        asBuilt: false,
+        publishToCURRENT: false,
+        HUMAN_REVIEW: 'NOT_RUN',
+      },
+    },
+    {
+      name: 'P185C_X2_D2015_RK_SOURCE_LABEL_ANCHOR_P28_CORRECTED_PRESENTATION_ONLY',
+      mesh: 0,
+      translation: [2, 0, 0],
+      extras: {
+        Pass: 'P185C-X2',
+        ModelStage: 'WORK_TEST_PRESENTATION',
+        Canonical: false,
+        representationKind: 'electricalPanelSourceLabelAnchorMarker',
+        hostStorey: 'D_1F',
+        presentationLayer: 'MEP_ELECTRICAL',
+        sourcePdfDriveId: '1dzzZsa9FCiyqmv8WholhLxba6Kxobspg',
+        sourceText: 'RYHMäKESKUS RK',
+        electricalPanelGeometryClaim: false,
+        exactXYClaim: false,
+        exactZClaim: false,
+        physicalCableRouteClaim: false,
+        current: false,
+        asBuilt: false,
+        publishToCURRENT: false,
+        HUMAN_REVIEW: 'NOT_RUN',
+      },
+    },
+    {
+      name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_1F_001',
+      mesh: 0,
+      translation: [4, 0, 0],
+      extras: {
+        G2Id: 'G2_WALL_D_1F_001',
+        presentationLayer: 'CURRENT_D',
+      },
+    },
+  ]);
+
+  await page.route('**/private-model/model.glb', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: currentModel });
+  });
+  await page.route('**/private-model/work-test/catalog.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        candidates: [
+          {
+            id: candidateId,
+            label: 'P185C-X2 D2015 electrical source overlay p28-corrected - WORK_TEST',
+            path: candidatePath,
+          },
+        ],
+      }),
+    });
+  });
+  await page.route(`**${candidatePath}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: candidateModel });
+  });
+
+  await page.goto(`/private-model/?review=${p185cX2ReviewId}`);
+
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', p185cX2ReviewId);
+  await expect(canvas).toHaveAttribute(
+    'data-p185-review-question',
+    'D_1F_D2015_ELECTRICAL_SOURCE_OVERLAY_RELATION',
+  );
+  await expect(canvas).toHaveAttribute('data-p185-target-opacity', '0.80');
+  await expect(canvas).toHaveAttribute('data-p185-context-opacity', '0.20');
+  await expect(canvas).toHaveAttribute('data-p185-review-target-renderable-count', '2');
+  await expect(canvas).toHaveAttribute('data-p185-review-context-renderable-count', '1');
+  await expect(canvas).toHaveAttribute('data-p185-review-semantic-violation-count', '0');
+  await expect(canvas).toHaveAttribute('data-p185-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-1f');
+  await expect(page.locator('#viewer-status')).toContainText('P185C-X2 corrected D 1F electrical source overlay');
 });
 
 test('P184H appliance review autoloads the P185C survivor and renders the bounded 80/20 question state', async ({ page }) => {
