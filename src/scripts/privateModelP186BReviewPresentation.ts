@@ -1,5 +1,6 @@
 export const p186bReviewTargetOpacity = 0.8;
 export const p186bReviewContextOpacity = 0.2;
+export const p186bReviewContextColorHex = 0xe2e8f0;
 
 export const p186bTargetRepresentationKind = 'sourceVectorPlanLineOverlay' as const;
 export const p186bSourcePdfDriveId = '1dzzZsa9FCiyqmv8WholhLxba6Kxobspg';
@@ -47,6 +48,14 @@ const cloneObjectMaterials = (object: any, opacity: number, role: string) => {
     clone.opacity = opacity;
     clone.transparent = true;
     clone.depthWrite = role === 'QUESTION_TARGET_80';
+    if (role === 'D_2F_ARCH_CONTEXT_20') {
+      clone.color?.setHex?.(p186bReviewContextColorHex);
+      if (clone.emissive?.setHex) {
+        clone.emissive.setHex(p186bReviewContextColorHex);
+        clone.emissiveIntensity = 0.45;
+      }
+      clone.toneMapped = false;
+    }
     clone.userData = {
       ...(clone.userData ?? {}),
       p186bReviewPresentation: true,
