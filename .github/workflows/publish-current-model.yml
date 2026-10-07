@@ -1,0 +1,200 @@
+name: Publish CURRENT model
+
+on:
+  workflow_dispatch:
+    inputs:
+      drive_file_id:
+        description: Exact Google Drive GLB file id for the approved CURRENT_CANDIDATE
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-current-model
+  cancel-in-progress: false
+
+env:
+  PUBLISH_URL: https://aapopihkala.fi/private-model/publish/model.glb
+  VERIFY_URL: https://aapopihkala.fi/private-model/verify/model.glb
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require trusted main dispatch
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$GITHUB_REPOSITORY" == "aapojohannespihkala-lgtm/aapopihkala-fi" ]]
+
+      - name: Validate Drive file id
+        shell: bash
+        env:
+          DRIVE_FILE_ID: ${{ inputs.drive_file_id }}
+        run: |
+          set -euo pipefail
+          [[ "$DRIVE_FILE_ID" =~ ^[A-Za-z0-9_-]{10,128}$ ]] || {
+            echo "Invalid Drive file id" >&2
+            exit 1
+          }
+          echo "DRIVE_FILE_ID=$DRIVE_FILE_ID" >> "$GITHUB_ENV"
+
+      - name: Require machine-auth configuration
+        shell: bash
+        env:
+          GDRIVE_WIF_PROVIDER: ${{ vars.GDRIVE_WIF_PROVIDER }}
+          GDRIVE_PUBLISHER_SERVICE_ACCOUNT: ${{ vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT }}
+          CF_ACCESS_PUBLISHER_CLIENT_ID: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_ID }}
+          CF_ACCESS_PUBLISHER_CLIENT_SECRET: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_SECRET }}
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          [[ -n "$GDRIVE_WIF_PROVIDER" ]] || { echo "Missing GDRIVE_WIF_PROVIDER repository variable" >&2; exit 1; }
+          [[ -n "$GDRIVE_PUBLISHER_SERVICE_ACCOUNT" ]] || { echo "Missing GDRIVE_PUBLISHER_SERVICE_ACCOUNT repository variable" >&2; exit 1; }
+          [[ -n "$CF_ACCESS_PUBLISHER_CLIENT_ID" ]] || { echo "Missing CF_ACCESS_PUBLISHER_CLIENT_ID secret" >&2; exit 1; }
+          [[ -n "$CF_ACCESS_PUBLISHER_CLIENT_SECRET" ]] || { echo "Missing CF_ACCESS_PUBLISHER_CLIENT_SECRET secret" >&2; exit 1; }
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" ]] || { echo "Missing CF_ACCESS_READBACK_CLIENT_ID secret" >&2; exit 1; }
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]] || { echo "Missing CF_ACCESS_READBACK_CLIENT_SECRET secret" >&2; exit 1; }
+
+      - name: Authenticate to Google Drive
+        id: google-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GDRIVE_WIF_PROVIDER }}
+          service_account: ${{ vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/drive.readonly
+          create_credentials_file: false
+          export_environment_variables: false
+
+      - name: Download and validate exact CURRENT_CANDIDATE
+        shell: bash
+        env:
+          GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          model="$RUNNER_TEMP/current-source.glb"
+          curl --silent --show-error --fail --location \
+            --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN" \
+            --output "$model" \
+            "https://www.googleapis.com/drive/v3/files/$DRIVE_FILE_ID?alt=media&supportsAllDrives=true"
+
+          python3 - "$model" "$GITHUB_ENV" <<'PY'
+          import hashlib
+          import json
+          import struct
+          import sys
+
+          path, env_path = sys.argv[1:]
+          data = open(path, "rb").read()
+          if len(data) < 20:
+              raise SystemExit("CURRENT source GLB is too small")
+          magic, version, total_length = struct.unpack_from("<4sII", data, 0)
+          if magic != b"glTF" or version != 2 or total_length != len(data):
+              raise SystemExit("CURRENT source is not a valid GLB v2")
+          json_length, json_type = struct.unpack_from("<II", data, 12)
+          if json_type != 0x4E4F534A or 20 + json_length > len(data):
+              raise SystemExit("CURRENT source JSON chunk is invalid")
+          payload = json.loads(data[20:20 + json_length].rstrip(b"\x00 ").decode("utf-8"))
+          scene_index = payload.get("scene")
+          scenes = payload.get("scenes")
+          if not isinstance(scene_index, int) or not isinstance(scenes, list) or not (0 <= scene_index < len(scenes)):
+              raise SystemExit("CURRENT source default scene is invalid")
+          extras = scenes[scene_index].get("extras") or {}
+          required = {
+              "ModelStage": "CURRENT_CANDIDATE",
+              "currentCandidate": True,
+              "currentDistribution": False,
+              "Canonical": False,
+              "asBuiltClaim": False,
+              "publishToCURRENT": False,
+              "objectLevelNoPromotionPreserved": True,
+              "normalOpeningMode": "WHOLE_BUILDING_FREE_ORBIT",
+          }
+          for key, expected in required.items():
+              if extras.get(key) != expected:
+                  raise SystemExit(f"CURRENT candidate contract mismatch: {key}")
+
+          actual_size = len(data)
+          actual_sha = hashlib.sha256(data).hexdigest()
+          with open(env_path, "a", encoding="utf-8") as handle:
+              handle.write(f"EXPECTED_SIZE={actual_size}\n")
+              handle.write(f"EXPECTED_SHA256={actual_sha}\n")
+          print("Exact Drive CURRENT_CANDIDATE identity derived and contract verified.")
+          PY
+
+      - name: Publish exact bytes through machine-only CURRENT endpoint
+        shell: bash
+        env:
+          CF_ACCESS_PUBLISHER_CLIENT_ID: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_ID }}
+          CF_ACCESS_PUBLISHER_CLIENT_SECRET: ${{ secrets.CF_ACCESS_PUBLISHER_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          model="$RUNNER_TEMP/current-source.glb"
+          response="$RUNNER_TEMP/current-publish-response.json"
+
+          curl --silent --show-error --fail \
+            --request PUT \
+            --header "CF-Access-Client-Id: $CF_ACCESS_PUBLISHER_CLIENT_ID" \
+            --header "CF-Access-Client-Secret: $CF_ACCESS_PUBLISHER_CLIENT_SECRET" \
+            --header "Content-Type: model/gltf-binary" \
+            --header "Content-Length: $EXPECTED_SIZE" \
+            --data-binary "@$model" \
+            --output "$response" \
+            "$PUBLISH_URL"
+
+          python3 - "$response" "$EXPECTED_SIZE" "$EXPECTED_SHA256" <<'PY'
+          import json
+          import sys
+
+          path, expected_size, expected_sha = sys.argv[1:]
+          payload = json.load(open(path, "r", encoding="utf-8"))
+          model = payload.get("model") or {}
+          if payload.get("ready") is not True:
+              raise SystemExit("CURRENT machine publish response is not ready")
+          if model.get("path") != "/private-model/model.glb":
+              raise SystemExit("CURRENT machine publish path mismatch")
+          if model.get("size") != int(expected_size):
+              raise SystemExit("CURRENT machine publish size mismatch")
+          if model.get("sha256") != expected_sha:
+              raise SystemExit("CURRENT machine publish SHA-256 mismatch")
+          PY
+
+      - name: Read full production CURRENT GLB back and verify bytes
+        shell: bash
+        env:
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          readback="$RUNNER_TEMP/current-production-readback.glb"
+
+          curl --silent --show-error --fail \
+            --connect-timeout 10 \
+            --max-time 60 \
+            --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$readback" \
+            "$VERIFY_URL"
+
+          readback_size="$(stat -c '%s' "$readback")"
+          readback_sha="$(sha256sum "$readback" | awk '{print $1}')"
+          [[ "$readback_size" == "$EXPECTED_SIZE" ]] || { echo "Production CURRENT size mismatch" >&2; exit 1; }
+          [[ "$readback_sha" == "$EXPECTED_SHA256" ]] || { echo "Production CURRENT SHA-256 mismatch" >&2; exit 1; }
+          echo "Production CURRENT byte-for-byte readback verified."
+
+      - name: Remove private temporary files
+        if: always()
+        shell: bash
+        run: |
+          rm -f \
+            "$RUNNER_TEMP/current-source.glb" \
+            "$RUNNER_TEMP/current-production-readback.glb" \
+            "$RUNNER_TEMP/current-publish-response.json"
