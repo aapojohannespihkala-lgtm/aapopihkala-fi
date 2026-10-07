@@ -25,7 +25,10 @@ const contextPositions = [
   0, 0, -1,
 ];
 
-const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
+const makeVisibilityGlb = (
+  defaultNodes: Record<string, unknown>[],
+  dInteriorNodes: Record<string, unknown>[] = [],
+) => {
   const targetBytes = Buffer.alloc(targetPositions.length * 4);
   targetPositions.forEach((value, index) => targetBytes.writeFloatLE(value, index * 4));
 
@@ -36,13 +39,21 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
   const contextOffset = targetBytes.length;
   const binPayload = Buffer.concat([targetBytes, contextBytes]);
 
+  const nodes = [...defaultNodes, ...dInteriorNodes];
+  const defaultNodeIndices = defaultNodes.map((_, index) => index);
+  const dInteriorNodeIndices = dInteriorNodes.map((_, index) => defaultNodes.length + index);
+
   const json = {
     asset: { version: '2.0' },
     scene: 0,
     scenes: [
       {
+        name: 'P186D-X1 WHOLE BUILDING SURVIVOR TEST',
+        nodes: defaultNodeIndices,
+      },
+      {
         name: 'D CURRENT INTERIOR - BABYLON Y-UP',
-        nodes: nodes.map((_, index) => index),
+        nodes: dInteriorNodeIndices,
       },
     ],
     nodes,
@@ -252,27 +263,29 @@ const makeD1fRoomContextNodes = () => {
   }));
 };
 
-test('P186D-X1 D1F review visibly separates 22 lighting targets from architecture context at wide viewport', async ({
+test('P186D-X1 D1F review bridges secondary-scene room context and visibly separates 22 lighting targets', async ({
   page,
 }) => {
   test.setTimeout(20_000);
   await page.setViewportSize({ width: 1536, height: 768 });
 
   const currentModel = makeVisibilityGlb([]);
-  const candidateModel = makeVisibilityGlb([
-    ...makeTargets(),
-    ...makeD1fRoomContextNodes(),
-    {
-      name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_1F_VISIBILITY_CONTEXT',
-      mesh: 1,
-      translation: [2.7, 0, -5.2],
-      scale: [0.8, 1, 0.8],
-      extras: {
-        G2Id: 'G2_WALL_D_1F_VISIBILITY_CONTEXT',
-        presentationLayer: 'CURRENT_D',
+  const candidateModel = makeVisibilityGlb(
+    [
+      ...makeTargets(),
+      {
+        name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_1F_VISIBILITY_CONTEXT',
+        mesh: 1,
+        translation: [2.7, 0, -5.2],
+        scale: [0.8, 1, 0.8],
+        extras: {
+          G2Id: 'G2_WALL_D_1F_VISIBILITY_CONTEXT',
+          presentationLayer: 'CURRENT_D',
+        },
       },
-    },
-  ]);
+    ],
+    makeD1fRoomContextNodes(),
+  );
 
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({
@@ -313,6 +326,7 @@ test('P186D-X1 D1F review visibly separates 22 lighting targets from architectur
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
   await expect(canvas).toHaveAttribute('data-p186d-review-target-renderable-count', '22');
   await expect(canvas).toHaveAttribute('data-p186d-review-context-renderable-count', '8');
+  await expect(canvas).toHaveAttribute('data-p186d-review-room-context-bridge-count', '7');
   await expect(canvas).toHaveAttribute('data-p186d-review-semantic-violation-count', '0');
   await expect(canvas).toHaveAttribute('data-p186d-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-1f');
