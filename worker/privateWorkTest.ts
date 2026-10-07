@@ -338,6 +338,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 3_190_212,
     expectedSha256: '47ab3668fe2b722570216b4b749611b2a6f5f8bd9b157fc91d88ae73bdf34272',
   },
+  // P186E-X1 release registration: exact persisted p28-corrected D2015 electrical source-label anchors.
+  {
+    id: 'p186e-x1-d2015-electrical-source-label-anchors-p28-corrected',
+    label: 'P186E-X1 D2015 electrical source label anchors p28-corrected - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p186e-x1-d2015-electrical-source-label-anchors-p28-corrected.glb`,
+    objectKey: 'work-test/p186e-x1-d2015-electrical-source-label-anchors-p28-corrected.glb',
+    expectedSize: 3_217_892,
+    expectedSha256: 'a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5',
+  },
   // M5A viewer/release registration: exact persisted drainage topology presentation WORK_TEST.
   {
     id: 'm5a-drain-topology',
