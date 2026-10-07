@@ -1,5 +1,6 @@
 export const p186dReviewTargetOpacity = 0.8;
 export const p186dReviewContextOpacity = 0.2;
+export const p186dReviewContextColorHex = 0xe2e8f0;
 
 export const p186dTargetRepresentationKind = 'luminaireSourceSymbolAnchorMarker' as const;
 export const p186dPositionSourcePdfDriveId = '1dzzZsa9FCiyqmv8WholhLxba6Kxobspg';
@@ -13,6 +14,15 @@ export const p186dExpectedD1fPosCounts = {
   2: 6,
   4: 3,
 } as const;
+
+export const p186dExpectedD2fTargetCount = 12;
+export const p186dExpectedD2fPosCounts = {
+  2: 1,
+  3: 10,
+  5: 1,
+} as const;
+
+export type P186DReviewVariant = 'D1F' | 'D2F';
 
 export const p186dReviewSourceContexts = [
   {
@@ -37,7 +47,9 @@ const scheduleContract = new Map<number, {
 }>([
   [1, { sourceScheduleSnro: '4142068', sourceScheduleType: 'Lilja 6W', sourceSchedulePlannedQty: 13 }],
   [2, { sourceScheduleSnro: '4141926', sourceScheduleType: 'Helmi Lasikuutio 8W', sourceSchedulePlannedQty: 7 }],
+  [3, { sourceScheduleSnro: '4142045', sourceScheduleType: 'Iiris 8W', sourceSchedulePlannedQty: 10 }],
   [4, { sourceScheduleSnro: '4159104', sourceScheduleType: 'ELIFE LED LIMPPU IP44 TUTKA', sourceSchedulePlannedQty: 3 }],
+  [5, { sourceScheduleSnro: '4141966', sourceScheduleType: 'Lilja 16W', sourceSchedulePlannedQty: 1 }],
 ]);
 
 const isRenderable = (object: any) =>
@@ -62,6 +74,18 @@ const cloneObjectMaterials = (object: any, opacity: number, role: string) => {
         p186dReviewHighlight: 'HIGH_CONTRAST_AMBER',
       };
     }
+    if (role.endsWith('_ARCH_CONTEXT_20')) {
+      clone.color?.setHex?.(p186dReviewContextColorHex);
+      if (clone.emissive?.setHex) {
+        clone.emissive.setHex(p186dReviewContextColorHex);
+        clone.emissiveIntensity = 0.45;
+      }
+      clone.toneMapped = false;
+      clone.userData = {
+        ...(clone.userData ?? {}),
+        p186dReviewContextHighlight: 'HIGH_CONTRAST_LIGHT',
+      };
+    }
     clone.userData = {
       ...(clone.userData ?? {}),
       p186dReviewPresentation: true,
@@ -76,31 +100,61 @@ const cloneObjectMaterials = (object: any, opacity: number, role: string) => {
     : cloneOne(object.material);
 };
 
-const isP186DD1fTarget = (object: any) => {
+const storeyContract = {
+  D1F: {
+    hostStorey: 'D_1F',
+    floorToken: '_D_1F_',
+    apartmentStorey: '1F',
+    sourceFloorToken: '_1F_SRC',
+    preferredRoomContextPrefix: 'P117D_REVIEW_',
+    contextRole: 'D_1F_ARCH_CONTEXT_20',
+  },
+  D2F: {
+    hostStorey: 'D_2F',
+    floorToken: '_D_2F_',
+    apartmentStorey: '2F',
+    sourceFloorToken: '_2F_SRC',
+    preferredRoomContextPrefix: 'P123C_CONTEXT_',
+    contextRole: 'D_2F_ARCH_CONTEXT_20',
+  },
+} as const;
+
+const isP186DTarget = (object: any, variant: P186DReviewVariant) => {
   const data = object?.userData ?? {};
+  const contract = storeyContract[variant];
   return (
     String(data.Pass ?? '') === 'P186D-X1' &&
-    String(data.hostStorey ?? '') === 'D_1F' &&
+    String(data.hostStorey ?? '') === contract.hostStorey &&
     String(data.presentationLayer ?? '') === 'MEP_ELECTRICAL' &&
     String(data.representationKind ?? '') === p186dTargetRepresentationKind
   );
 };
 
-const isD1FArchitectureContext = (object: any) => {
-  if (isP186DD1fTarget(object)) return false;
+const isDArchitectureContext = (object: any, variant: P186DReviewVariant) => {
+  if (isP186DTarget(object, variant)) return false;
 
+  const contract = storeyContract[variant];
   const data = object?.userData ?? {};
   const g2Id = String(data.G2Id ?? data.G2IdCandidate ?? '');
   const name = String(object?.name ?? '');
   const presentationLayer = String(data.presentationLayer ?? '');
   const apartment = String(data.apartment ?? '');
   const storey = String(data.storey ?? '');
+  const representationKind = String(data.representationKind ?? '');
+
+  const isPreferredReviewRoomFootprint =
+    presentationLayer === 'CURRENT_D' &&
+    representationKind === 'referenceFootprint' &&
+    g2Id.startsWith('G2_D15_SPACE_') &&
+    g2Id.includes(contract.sourceFloorToken) &&
+    name.startsWith(contract.preferredRoomContextPrefix);
 
   return (
+    isPreferredReviewRoomFootprint ||
     (presentationLayer === 'CURRENT_D' &&
-      (g2Id.includes('_D_1F_') || name.includes('_D_1F_'))) ||
-    (apartment === 'D' && storey === '1F') ||
-    g2Id.includes('_D_1F_')
+      (g2Id.includes(contract.floorToken) || name.includes(contract.floorToken))) ||
+    (apartment === 'D' && storey === contract.apartmentStorey) ||
+    g2Id.includes(contract.floorToken)
   );
 };
 
@@ -134,16 +188,23 @@ const hasNoPromotionAndSourceSemantics = (object: any) => {
   );
 };
 
-export const prepareP186DReviewPresentation = (sceneRoot: any) => {
+export const prepareP186DReviewPresentation = (
+  sceneRoot: any,
+  variant: P186DReviewVariant = 'D1F',
+) => {
   const renderables: any[] = [];
   const targets: any[] = [];
   const foundPosCounts = new Map<number, number>();
   let semanticViolationCount = 0;
 
+  const expectedPosCounts =
+    variant === 'D2F' ? p186dExpectedD2fPosCounts : p186dExpectedD1fPosCounts;
+  const contextRole = storeyContract[variant].contextRole;
+
   sceneRoot?.traverse?.((object: any) => {
     if (!isRenderable(object)) return;
     renderables.push(object);
-    if (!isP186DD1fTarget(object)) return;
+    if (!isP186DTarget(object, variant)) return;
 
     targets.push(object);
     const sourcePos = Number(object.userData?.sourcePos);
@@ -163,23 +224,25 @@ export const prepareP186DReviewPresentation = (sceneRoot: any) => {
       ...(object.userData ?? {}),
       viewerDerived: true,
       p186dReviewPresentation: true,
+      p186dReviewVariant: variant,
       p186dReviewRole: 'QUESTION_TARGET_80',
     };
     targetRenderableCount += 1;
   }
 
   for (const object of renderables) {
-    if (isP186DD1fTarget(object)) continue;
+    if (isP186DTarget(object, variant)) continue;
 
-    if (isD1FArchitectureContext(object)) {
+    if (isDArchitectureContext(object, variant)) {
       object.visible = true;
-      cloneObjectMaterials(object, p186dReviewContextOpacity, 'D_1F_ARCH_CONTEXT_20');
+      cloneObjectMaterials(object, p186dReviewContextOpacity, contextRole);
       object.renderOrder = 5;
       object.userData = {
         ...(object.userData ?? {}),
         viewerDerived: true,
         p186dReviewPresentation: true,
-        p186dReviewRole: 'D_1F_ARCH_CONTEXT_20',
+        p186dReviewVariant: variant,
+        p186dReviewRole: contextRole,
       };
       contextRenderableCount += 1;
       continue;
@@ -190,16 +253,18 @@ export const prepareP186DReviewPresentation = (sceneRoot: any) => {
       ...(object.userData ?? {}),
       viewerDerived: true,
       p186dReviewPresentation: true,
+      p186dReviewVariant: variant,
       p186dReviewRole: 'NON_QUESTION_CONTEXT_SUPPRESSED',
     };
     hiddenNonQuestionRenderableCount += 1;
   }
 
-  const missingTargetPos = Object.entries(p186dExpectedD1fPosCounts)
+  const missingTargetPos = Object.entries(expectedPosCounts)
     .filter(([pos, count]) => foundPosCounts.get(Number(pos)) !== count)
     .map(([pos]) => Number(pos));
 
   return {
+    variant,
     targetRenderableCount,
     contextRenderableCount,
     hiddenNonQuestionRenderableCount,
