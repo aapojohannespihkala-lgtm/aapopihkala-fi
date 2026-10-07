@@ -1538,6 +1538,12 @@ const title = 'Private 3D viewer';
           <nav id="p186b-source-links" class="m5a-source-links" aria-label="D 2F sähköjen lähdelinkit"></nav>
           <p id="p186b-source-context-limit" class="m5a-source-limit"></p>
         </aside>
+        <aside id="p186d-source-context" class="m5a-source-context" aria-label="D 1F valaisinkatselmuksen lähdekonteksti" hidden>
+          <h2>D 1F valaisimien lähdekonteksti</h2>
+          <p id="p186d-source-context-source"></p>
+          <nav id="p186d-source-links" class="m5a-source-links" aria-label="D 1F valaisimien lähdelinkit"></nav>
+          <p id="p186d-source-context-limit" class="m5a-source-limit"></p>
+        </aside>
         <aside
           id="orientation-gizmo"
           class="orientation-gizmo"
@@ -1790,6 +1796,17 @@ const title = 'Private 3D viewer';
         prepareP186BReviewPresentation,
       } from '../../scripts/privateModelP186BReviewPresentation';
       import {
+        p186dExpectedD1fTargetCount,
+        p186dExpectedD1fPosCounts,
+        p186dPositionSourcePdfDriveId,
+        p186dReviewContextOpacity,
+        p186dReviewSourceContexts,
+        p186dReviewSourceLimit,
+        p186dReviewTargetOpacity,
+        p186dSchedulePdfDriveId,
+        prepareP186DReviewPresentation,
+      } from '../../scripts/privateModelP186DReviewPresentation';
+      import {
         m5aCurrentUseReviewQuestionText,
         m5aR3Z1cReviewQuestionText,
         m5aReviewContextOpacity,
@@ -1989,6 +2006,10 @@ const title = 'Private 3D viewer';
       const p186bSourceContextSource = document.querySelector<HTMLElement>('#p186b-source-context-source');
       const p186bSourceLinks = document.querySelector<HTMLElement>('#p186b-source-links');
       const p186bSourceContextLimit = document.querySelector<HTMLElement>('#p186b-source-context-limit');
+      const p186dSourceContextPanel = document.querySelector<HTMLElement>('#p186d-source-context');
+      const p186dSourceContextSource = document.querySelector<HTMLElement>('#p186d-source-context-source');
+      const p186dSourceLinks = document.querySelector<HTMLElement>('#p186d-source-links');
+      const p186dSourceContextLimit = document.querySelector<HTMLElement>('#p186d-source-context-limit');
       const layersPanel = document.querySelector<HTMLElement>('#layers-panel');
       const closeLayersButton = document.querySelector<HTMLButtonElement>('#close-layers-button');
       const roofLayerVisibleInput = document.querySelector<HTMLInputElement>('#roof-layer-visible');
@@ -5158,6 +5179,42 @@ const title = 'Private 3D viewer';
         canvas.dataset.p186bSourceRole = p186bReviewSourceContext.sourceRole;
       };
 
+      const setP186dSourceContextVisible = (visible: boolean) => {
+        if (!p186dSourceContextPanel) return;
+        p186dSourceContextPanel.hidden = !visible;
+        p186dSourceContextPanel.closest('.viewport')?.classList.toggle('m5a-source-layout', visible);
+        if (!visible) {
+          p186dSourceLinks?.replaceChildren();
+          delete canvas.dataset.p186dSourceContextReady;
+          delete canvas.dataset.p186dPositionSourcePdfDriveId;
+          delete canvas.dataset.p186dSchedulePdfDriveId;
+          return;
+        }
+
+        if (p186dSourceContextSource) {
+          p186dSourceContextSource.textContent =
+            'Alkuperäislähteet: vuoden 2015 johdotuspiirros sijoitukselle ja valaisinluettelo Pos-tyypeille. Linkit avataan vain käyttäjän pyynnöstä.';
+        }
+        if (p186dSourceLinks) {
+          p186dSourceLinks.replaceChildren();
+          for (const source of p186dReviewSourceContexts) {
+            const link = document.createElement('a');
+            link.href = source.sourceHref;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.dataset.sourceRole = source.sourceRole;
+            link.textContent = `Avaa ${source.sourceLabel}`;
+            p186dSourceLinks.append(link);
+          }
+        }
+        if (p186dSourceContextLimit) {
+          p186dSourceContextLimit.textContent = p186dReviewSourceLimit;
+        }
+        canvas.dataset.p186dSourceContextReady = 'true';
+        canvas.dataset.p186dPositionSourcePdfDriveId = p186dPositionSourcePdfDriveId;
+        canvas.dataset.p186dSchedulePdfDriveId = p186dSchedulePdfDriveId;
+      };
+
       const applyLoadedModel = (
         gltf: any,
         sourceKind: ModelSourceKind,
@@ -5165,6 +5222,7 @@ const title = 'Private 3D viewer';
       ) => {
         setM5aSourceContextVisible(false);
         setP186bSourceContextVisible(false);
+        setP186dSourceContextVisible(false);
         resetObjectVisibilityFilterState();
         resetHorizontalClipping();
         clearSelection();
@@ -6061,6 +6119,12 @@ const title = 'Private 3D viewer';
 
       const isP186bElectricalSourceReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p186bReviewId);
+
+      const p186dCandidateId = 'p186d-x1-d2015-lighting-source-markers-p28-corrected';
+      const p186dReviewId = `${p186dCandidateId}-review`;
+
+      const isP186dLightingReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p186dReviewId);
 
       const isP184hApplianceOnP185cReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p184hApplianceOnP185cReviewId);
@@ -7183,6 +7247,69 @@ const title = 'Private 3D viewer';
           'P186B D 2F wiring main-mass source overlay - WORK_TEST / source lines 80 % / D 2F context 20 % / HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP186dReviewState = () => {
+        // The first P186D review is intentionally bounded to D 1F.
+        // Establish the D 1F plan camera first, then apply the 80/20 question presentation.
+        applyStandardViewPreset('d-1f');
+        setModelScene(fullModelScene);
+        canvas.dataset.contentScene = 'full-model';
+        canvas.dataset.contentFloor = '1F';
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+
+        let suppressedDoorMarkerCount = 0;
+        for (const doorMarker of dReviewDoorMarkerLines) {
+          if (doorMarker.visible) suppressedDoorMarkerCount += 1;
+          doorMarker.visible = false;
+        }
+        canvas.dataset.dReviewDoorMarkerVisibleCount = '0';
+
+        const presentation = prepareP186DReviewPresentation(fullModelScene);
+        if (
+          presentation.targetRenderableCount !== p186dExpectedD1fTargetCount ||
+          presentation.missingTargetPos.length !== 0 ||
+          presentation.semanticViolationCount !== 0 ||
+          presentation.contextRenderableCount < 1
+        ) {
+          throw new Error('P186D-X1 D1F lighting review targets or no-promotion semantics are not review-ready');
+        }
+        refreshEdgeRendering(fullModelScene);
+        setP186dSourceContextVisible(true);
+
+        const posCounts = Object.entries(p186dExpectedD1fPosCounts)
+          .map(([pos, count]) => `${pos}:${count}`)
+          .join(',');
+
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: p186dReviewId,
+          p186dReviewQuestion: 'D_1F_D2015_LIGHTING_SOURCE_MARKER_POSITION_TYPE_RELATION',
+          p186dTargetOpacity: p186dReviewTargetOpacity.toFixed(2),
+          p186dContextOpacity: p186dReviewContextOpacity.toFixed(2),
+          p186dReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+          p186dReviewContextRenderableCount: String(presentation.contextRenderableCount),
+          p186dReviewHiddenNonQuestionRenderableCount: String(
+            presentation.hiddenNonQuestionRenderableCount,
+          ),
+          p186dReviewSemanticViolationCount: String(presentation.semanticViolationCount),
+          p186dD1fPosCounts: posCounts,
+          p186dReviewSuppressedDoorMarkerCount: String(suppressedDoorMarkerCount),
+          p186dReviewScene: 'FULL_MODEL_WITH_D_1F_PLAN_CAMERA',
+          p186dPresentationOnly: 'true',
+          p186dPhysicalLuminaireGeometryClaim: 'false',
+          p186dExactCurrentXYClaim: 'false',
+          p186dExactZClaim: 'false',
+          p186dCurrentClaim: 'false',
+          p186dAsBuiltClaim: 'false',
+          p186dCanonical: 'false',
+          p186dPublishToCurrent: 'false',
+          p186dHumanReview: 'NOT_RUN',
+          p186dReviewCameraMode: 'ORTHOGRAPHIC_D_1F_SUPPORT',
+          standardViewPreset: 'd-1f',
+        });
+        status.textContent =
+          'P186D-X1 D 1F lighting source markers - WORK_TEST / 22 source anchors 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP181bR1ReviewState = () => {
         Object.assign(canvas.dataset, {
           workTestReviewMode: 'p181b-r1-ac-storage-ground-contact-substructure-terrain-rebase-review',
@@ -7605,6 +7732,8 @@ const title = 'Private 3D viewer';
             candidate.id === p185cX2CandidateId && isP185cX2ElectricalSourceReviewRequested();
           const isP186bElectricalSourceReview =
             candidate.id === p186bCandidateId && isP186bElectricalSourceReviewRequested();
+          const isP186dLightingReview =
+            candidate.id === p186dCandidateId && isP186dLightingReviewRequested();
           const isP184hApplianceOnP185cReview =
             candidate.id === p185cCandidateId && isP184hApplianceOnP185cReviewRequested();
           const m5aDrainageReviewMode: M5aDrainageReviewMode | null =
@@ -8368,6 +8497,8 @@ const title = 'Private 3D viewer';
             applyP185cReviewState();
           } else if (isP186bElectricalSourceReview) {
             applyP186bReviewState();
+          } else if (isP186dLightingReview) {
+            applyP186dReviewState();
           } else if (isP184gIslandXReview) {
             applyP184gReviewState();
           } else if (isP184dIslandXReview) {
