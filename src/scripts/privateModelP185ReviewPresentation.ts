@@ -10,6 +10,21 @@ export const p185TargetRepresentationKinds = [
 
 const targetKindSet = new Set<string>(p185TargetRepresentationKinds);
 
+type P185ReviewTargetContract = {
+  pass: 'P185C' | 'P185C-X2';
+  floorHeatingSourcePdfDriveId: string;
+};
+
+const legacyP185ReviewTargetContract: P185ReviewTargetContract = {
+  pass: 'P185C',
+  floorHeatingSourcePdfDriveId: '1vAyvAHdClqkXIVNgKKUyOjMja-tzrok',
+};
+
+const p185X2ReviewTargetContract: P185ReviewTargetContract = {
+  pass: 'P185C-X2',
+  floorHeatingSourcePdfDriveId: '1vAyvAHdClqkXKIVNgKKUyOjMja-tzrok',
+};
+
 const isRenderable = (object: any) =>
   Boolean(
     object?.material &&
@@ -37,18 +52,24 @@ const cloneObjectMaterials = (object: any, opacity: number, role: string) => {
     : cloneOne(object.material);
 };
 
-const isP185Target = (object: any) => {
+const isP185Target = (
+  object: any,
+  contract: P185ReviewTargetContract = legacyP185ReviewTargetContract,
+) => {
   const data = object?.userData ?? {};
   return (
-    String(data.Pass ?? '') === 'P185C' &&
+    String(data.Pass ?? '') === contract.pass &&
     String(data.hostStorey ?? '') === 'D_1F' &&
     String(data.presentationLayer ?? '') === 'MEP_ELECTRICAL' &&
     targetKindSet.has(String(data.representationKind ?? ''))
   );
 };
 
-const isD1FArchitectureContext = (object: any) => {
-  if (isP185Target(object)) return false;
+const isD1FArchitectureContext = (
+  object: any,
+  contract: P185ReviewTargetContract = legacyP185ReviewTargetContract,
+) => {
+  if (isP185Target(object, contract)) return false;
 
   const data = object?.userData ?? {};
   const g2Id = String(data.G2Id ?? '');
@@ -63,7 +84,10 @@ const isD1FArchitectureContext = (object: any) => {
   );
 };
 
-const hasNoPromotionSemantics = (object: any) => {
+const hasNoPromotionSemantics = (
+  object: any,
+  contract: P185ReviewTargetContract = legacyP185ReviewTargetContract,
+) => {
   const data = object?.userData ?? {};
   const kind = String(data.representationKind ?? '');
 
@@ -82,7 +106,7 @@ const hasNoPromotionSemantics = (object: any) => {
 
   if (kind === 'sourceVectorPlanOverlay') {
     return (
-      String(data.sourcePdfDriveId ?? '') === '1vAyvAHdClqkXIVNgKKUyOjMja-tzrok' &&
+      String(data.sourcePdfDriveId ?? '') === contract.floorHeatingSourcePdfDriveId &&
       data.floorHeatingCableGeometryClaim === false &&
       data.closedHeatingZoneClaim === false &&
       Number(data.sourceFragmentCount) === 366
@@ -100,7 +124,10 @@ const hasNoPromotionSemantics = (object: any) => {
   return false;
 };
 
-export const prepareP185ReviewPresentation = (sceneRoot: any) => {
+const prepareP185ReviewPresentationForContract = (
+  sceneRoot: any,
+  contract: P185ReviewTargetContract,
+) => {
   const renderables: any[] = [];
   const targets: any[] = [];
   const foundKinds = new Set<string>();
@@ -109,10 +136,10 @@ export const prepareP185ReviewPresentation = (sceneRoot: any) => {
   sceneRoot?.traverse?.((object: any) => {
     if (!isRenderable(object)) return;
     renderables.push(object);
-    if (!isP185Target(object)) return;
+    if (!isP185Target(object, contract)) return;
     targets.push(object);
     foundKinds.add(String(object.userData?.representationKind ?? ''));
-    if (!hasNoPromotionSemantics(object)) semanticViolationCount += 1;
+    if (!hasNoPromotionSemantics(object, contract)) semanticViolationCount += 1;
   });
 
   const targetBounds = new THREE.Box3();
@@ -146,9 +173,9 @@ export const prepareP185ReviewPresentation = (sceneRoot: any) => {
   }
 
   for (const object of renderables) {
-    if (isP185Target(object)) continue;
+    if (isP185Target(object, contract)) continue;
 
-    if (isD1FArchitectureContext(object)) {
+    if (isD1FArchitectureContext(object, contract)) {
       object.visible = true;
       cloneObjectMaterials(object, p185ReviewContextOpacity, 'D_1F_ARCH_CONTEXT_20');
       object.renderOrder = 5;
@@ -184,6 +211,12 @@ export const prepareP185ReviewPresentation = (sceneRoot: any) => {
     targetBounds: hasTargetBounds ? targetBounds : null,
   };
 };
+
+export const prepareP185ReviewPresentation = (sceneRoot: any) =>
+  prepareP185ReviewPresentationForContract(sceneRoot, legacyP185ReviewTargetContract);
+
+export const prepareP185X2ReviewPresentation = (sceneRoot: any) =>
+  prepareP185ReviewPresentationForContract(sceneRoot, p185X2ReviewTargetContract);
 
 export const p184hApplianceReviewTargetOpacity = 0.8;
 export const p184hApplianceReviewContextOpacity = 0.2;
