@@ -129,10 +129,10 @@ test('M5A R3 Z1C conventional review routes 4+7+2 targets through the R3 review 
   test.setTimeout(20_000);
 
   const targets = [
-    ...Array.from({ length: 4 }, (_, i) => makeTarget('wellMarkerWork', i, 'M5A-R3')),
-    ...Array.from({ length: 7 }, (_, i) => makeTarget('referenceRouteWork', i + 4, 'M5A-R3')),
+    ...Array.from({ length: 4 }, (_, i) => makeTarget('wellMarkerWork', i, 'M5A-R3-Z1C')),
+    ...Array.from({ length: 7 }, (_, i) => makeTarget('referenceRouteWork', i + 4, 'M5A-R3-Z1C')),
     ...Array.from({ length: 2 }, (_, i) =>
-      makeTarget('unresolvedBoundaryMarker', i + 11, 'M5A-R3'),
+      makeTarget('unresolvedBoundaryMarker', i + 11, 'M5A-R3-Z1C'),
     ),
   ];
   const candidateModel = makeGlb([
