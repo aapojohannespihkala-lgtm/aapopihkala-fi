@@ -96,7 +96,7 @@ export const m5aR3Z1cReviewId = `${m5aR3Z1cCandidateId}-review`;
 export const m5aR3Z1cSok1Sok2RelativeZReviewId =
   'm5a-r3-z1c-sok1-sok2-relative-z-review';
 
-export const m5bCandidateId = 'm5b-roof-stormwater-current-planned';
+export const m5bCandidateId = 'm5b-z2r-roof-stormwater-structural-rebuilt';
 export const m5bCurrentReviewId = 'm5b-roof-stormwater-current-review';
 export const m5bPlannedSok2ComparisonReviewId =
   'm5b-roof-stormwater-planned-sok2-comparison-review';
