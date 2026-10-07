@@ -26,6 +26,9 @@ export const m5aReviewQuestionText =
 export const m5aCurrentUseReviewQuestionText =
   'Onko koko salaojajärjestelmän 3D-esitys rakennuksen ympärillä riittävän uskottava ja käyttökelpoinen CURRENT-käyttömallin tekniseksi esitykseksi, kun neljä avointa rajapistettä sekä tarkat XY/Z-, korko- ja kaltevuustiedot jäävät edelleen epävarmoiksi?';
 
+export const m5aR3Z1bReviewQuestionText =
+  'Onko salaojajärjestelmän Z-aware WORK_TEST -esitys rakennuksen ympärillä käyttökelpoinen jatkokatseluun, kun luoteiskulman yhteys on nyt jatkuva ja vain PVK_DISCHARGE sekä PVK_PARKING jäävät avoimiksi, eikä tarkkoja XY/Z-, fyysisiä korko- tai kaltevuustietoja väitetä varmistetuiksi?';
+
 export const m5aReviewSourceContext = {
   sourceLabel: 'Salaojapiirros Drainman.pdf',
   sourceDrawingDriveId: '1KZhDDXnI5MsO4wNWzRwYCaGNQuOo0TCC',
