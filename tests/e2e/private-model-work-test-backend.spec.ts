@@ -94,7 +94,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
   // P185C-X2, P186D-X1 and P186E-X1 add exact p28-corrected electrical candidates.
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(50);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(51);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -372,6 +372,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     objectKey: 'work-test/m5b-roof-stormwater-current-planned.glb',
     expectedSize: 2_899_988,
     expectedSha256: '4286e8920c2f5539b909d090f4c0929b896afde61f2f1f070374cad00b581f58',
+  });
+
+  const m5bZ2r = getPrivateWorkTestCandidateById('m5b-z2r-roof-stormwater-structural-rebuilt');
+  expect(m5bZ2r).toMatchObject({
+    id: 'm5b-z2r-roof-stormwater-structural-rebuilt',
+    label: 'M5B-Z2R roof stormwater structural rebuilt - WORK_TEST',
+    path: '/private-model/work-test/m5b-z2r-roof-stormwater-structural-rebuilt.glb',
+    objectKey: 'work-test/m5b-z2r-roof-stormwater-structural-rebuilt.glb',
+    expectedSize: 2_976_824,
+    expectedSha256: '4f2fc0738907fb2a35722739ea8f1f108aeab78c1e63dc09777e55be6604a1d2',
   });
 
   const p185c = getPrivateWorkTestCandidateById('p185c-d2015-electrical-source-overlay');
