@@ -125,12 +125,12 @@ test('M5A helper accepts north/west successor M5A-R2 targets without weakening n
   expect(promotionCheck.semanticViolationCount).toBe(1);
 });
 
-test('M5A helper accepts R3 continuity profile with exactly two unresolved boundaries', () => {
+test('M5A helper accepts exact Z1C R3 continuity pass with exactly two unresolved boundaries', () => {
   const scene = new THREE.Group();
   let index = 0;
   for (const [kind, count] of Object.entries(m5aR3ExpectedTargetCounts)) {
     for (let i = 0; i < count; i += 1) {
-      scene.add(makeTarget(kind as keyof typeof m5aExpectedTargetCounts, index, 'M5A-R3'));
+      scene.add(makeTarget(kind as keyof typeof m5aExpectedTargetCounts, index, 'M5A-R3-Z1C'));
       index += 1;
     }
   }
