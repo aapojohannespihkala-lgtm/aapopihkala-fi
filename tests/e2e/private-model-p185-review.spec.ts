@@ -38,3 +38,26 @@ test('P185C-X2 corrected overlay owns a distinct review route while historical P
   expect(getRequestedReviewCandidateId(`?review=${p185cX2ReviewId}`)).toBe(p185cX2CandidateId);
   expect(getRequestedReviewCandidateId(`?review=${p185cReviewId}`)).toBeNull();
 });
+
+
+test('P185C-X2 review focuses the plan camera on exact electrical target bounds', () => {
+  const viewerSource = readFileSync('src/pages/private-model/index.astro', 'utf8');
+
+  expect(viewerSource).toContain('let activePlanFocusBounds: any = null;');
+  expect(viewerSource).toContain(
+    'const box = activePlanFocusBounds ?? computeVisibleBounds(dInteriorScene, true);',
+  );
+
+  const x2StateStart = viewerSource.indexOf('const applyP185cX2ReviewState = () => {');
+  const x2StateEnd = viewerSource.indexOf('const applyP186bReviewState = () => {', x2StateStart);
+  expect(x2StateStart).toBeGreaterThan(-1);
+  expect(x2StateEnd).toBeGreaterThan(x2StateStart);
+
+  const x2State = viewerSource.slice(x2StateStart, x2StateEnd);
+  expect(x2State).toContain('activePlanFocusBounds = presentation.targetBounds.clone();');
+  expect(x2State).toContain('fitPlanCamera();');
+  expect(x2State).toContain(
+    "p185ReviewCameraMode: 'ORTHOGRAPHIC_D_1F_TARGET_BOUNDS_FOCUS'",
+  );
+  expect(x2State).toContain("p185ReviewCameraFocusApplied: 'true'");
+});
