@@ -4,6 +4,7 @@ import {
   m5aExpectedTargetCounts,
   m5aExpectedTargetRenderableCount,
   m5aR3ExpectedTargetCounts,
+  m5aR3Z1cReviewQuestionText,
   m5aReviewContextOpacity,
   m5aReviewQuestionText,
   m5aReviewSourceContext,
@@ -152,6 +153,14 @@ test('M5A helper accepts R3 continuity profile with exactly two unresolved bound
   expect(result.semanticViolationCount).toBe(0);
   expect(result.contextRenderableCount).toBe(1);
   expect(result.targetBounds).not.toBeNull();
+});
+
+test('M5A-R3 Z1C review question matches the connected NW and two-boundary contract', () => {
+  expect(m5aR3Z1cReviewQuestionText).toContain('luoteiskulman yhteys on nyt jatkuva');
+  expect(m5aR3Z1cReviewQuestionText).toContain('PVK_DISCHARGE');
+  expect(m5aR3Z1cReviewQuestionText).toContain('PVK_PARKING');
+  expect(m5aR3Z1cReviewQuestionText).toContain('XY/Z');
+  expect(m5aR3Z1cReviewQuestionText).not.toContain('neljä avointa');
 });
 
 test('M5A-R2 review source context keeps the human question scoped to the north/west correction delta', () => {

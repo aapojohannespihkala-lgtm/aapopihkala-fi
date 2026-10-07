@@ -1790,6 +1790,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelP186BReviewPresentation';
       import {
         m5aCurrentUseReviewQuestionText,
+        m5aR3Z1cReviewQuestionText,
         m5aReviewContextOpacity,
         m5aReviewQuestionText,
         m5aReviewSourceContext,
@@ -1917,6 +1918,8 @@ const title = 'Private 3D viewer';
         m5aDrainageReviewId,
         m5aR730CandidateId,
         m5aR730ReviewId,
+        m5aR3Z1cCandidateId,
+        m5aR3Z1cReviewId,
         m5bCandidateId,
         m5bCurrentReviewId,
         m5bPlannedSok2ComparisonReviewId,
@@ -6042,6 +6045,9 @@ const title = 'Private 3D viewer';
       const isM5aR730SystemReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, m5aR730ReviewId);
 
+      const isM5aR3Z1cSystemReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, m5aR3Z1cReviewId);
+
       const p186bCandidateId = 'p186b-d2015-d2f-wiring-mainmass-source-overlay';
       const p186bReviewId = `${p186bCandidateId}-review`;
 
@@ -6883,20 +6889,34 @@ const title = 'Private 3D viewer';
           'P184H D 2F appliance aids on P185C survivor - WORK_TEST / oven + cooktop 80 % / island + D 2F context 20 % / HUMAN_REVIEW NOT_RUN';
       };
 
-      type M5aDrainageReviewMode = 'TOPOLOGY_CORRECTION' | 'CURRENT_USE_SYSTEM';
+      type M5aDrainageReviewMode =
+        | 'TOPOLOGY_CORRECTION'
+        | 'CURRENT_USE_SYSTEM'
+        | 'R3_Z1C_SYSTEM';
 
       const applyM5aDrainageReviewState = (mode: M5aDrainageReviewMode) => {
         const isCurrentUseReview = mode === 'CURRENT_USE_SYSTEM';
-        const reviewId = isCurrentUseReview ? m5aR730ReviewId : m5aDrainageReviewId;
-        const reviewQuestion = isCurrentUseReview
-          ? 'DRAINAGE_SYSTEM_CURRENT_MODEL_USABILITY_WITH_UNCERTAINTY'
-          : 'DRAINAGE_TOPOLOGY_VISUAL_PLACEMENT_AND_CONNECTIVITY';
-        const reviewQuestionText = isCurrentUseReview
-          ? m5aCurrentUseReviewQuestionText
-          : m5aReviewQuestionText;
-        const reviewStatusLabel = isCurrentUseReview
-          ? 'M5A-R2 koko rakennuksen salaojajärjestelmä'
-          : 'M5A salaojatopologia';
+        const isR3Z1cReview = mode === 'R3_Z1C_SYSTEM';
+        const reviewId = isR3Z1cReview
+          ? m5aR3Z1cReviewId
+          : isCurrentUseReview
+            ? m5aR730ReviewId
+            : m5aDrainageReviewId;
+        const reviewQuestion = isR3Z1cReview
+          ? 'DRAINAGE_R3_Z_AWARE_CONTINUITY_USABILITY'
+          : isCurrentUseReview
+            ? 'DRAINAGE_SYSTEM_CURRENT_MODEL_USABILITY_WITH_UNCERTAINTY'
+            : 'DRAINAGE_TOPOLOGY_VISUAL_PLACEMENT_AND_CONNECTIVITY';
+        const reviewQuestionText = isR3Z1cReview
+          ? m5aR3Z1cReviewQuestionText
+          : isCurrentUseReview
+            ? m5aCurrentUseReviewQuestionText
+            : m5aReviewQuestionText;
+        const reviewStatusLabel = isR3Z1cReview
+          ? 'M5A-R3 Z1C salaojajärjestelmä'
+          : isCurrentUseReview
+            ? 'M5A-R2 koko rakennuksen salaojajärjestelmä'
+            : 'M5A salaojatopologia';
 
         applyStandardViewPreset('whole-building');
         setModelScene(fullModelScene);
@@ -7514,7 +7534,9 @@ const title = 'Private 3D viewer';
               ? 'TOPOLOGY_CORRECTION'
               : candidate.id === m5aR730CandidateId && isM5aR730SystemReviewRequested()
                 ? 'CURRENT_USE_SYSTEM'
-                : null;
+                : candidate.id === m5aR3Z1cCandidateId && isM5aR3Z1cSystemReviewRequested()
+                  ? 'R3_Z1C_SYSTEM'
+                  : null;
           const isM5BCurrentReview =
             candidate.id === m5bCandidateId &&
             isPrivateModelReviewRequested(window.location.search, m5bCurrentReviewId);
