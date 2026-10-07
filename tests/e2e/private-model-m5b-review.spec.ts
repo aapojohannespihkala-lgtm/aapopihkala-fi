@@ -95,6 +95,49 @@ test('M5B current review resolves persisted G2IdCandidate target identity', () =
   expect((current2.material as any).opacity).toBe(m5bReviewTargetOpacity);
 });
 
+test('M5B Z2R raw scene61 source-bound SOK1 context receives specific 20-percent role', () => {
+  // GLB scene61 node 1101 uses presentationRole + sourceG2IdCandidate,
+  // not G2Id/G2IdCandidate. This is context, not an additional current target.
+  const root = new THREE.Group();
+  const planned1 = makeRoute(m5bPlannedSok2TargetIds[0], {
+    planned: true, ordered: false, implemented: false, current: false,
+    presentationOnlyComparison: true,
+  });
+  const planned2 = makeRoute(m5bPlannedSok2TargetIds[1], {
+    planned: true, ordered: false, implemented: false, current: false,
+    presentationOnlyComparison: true,
+  });
+  const sok1Context = makeRoute('SOK1_CONTEXT_SOURCE_BOUND', {
+    G2Id: undefined,
+    G2IdCandidate: undefined,
+    sourceG2IdCandidate: m5bCurrentTargetIds[0],
+    presentationRole: 'CURRENT_SOK1_COMPARISON_CONTEXT',
+    presentationOnlyComparison: true,
+    currentStateEvidence: false,
+  });
+  const unrelatedContext = makeRoute('UNRELATED_BUILDING_CONTEXT', {
+    G2Id: undefined,
+    G2IdCandidate: undefined,
+    sourceG2IdCandidate: m5bCurrentTargetIds[0],
+    presentationOnlyComparison: true,
+  });
+  root.add(planned1, planned2, sok1Context, unrelatedContext);
+
+  const result = prepareM5BReviewPresentation(root, 'PLANNED_SOK2_COMPARISON');
+
+  expect(result.targetRenderableCount).toBe(2);
+  expect(result.missingTargetIds).toEqual([]);
+  expect(result.semanticViolationCount).toBe(0);
+  expect(result.contextRenderableCount).toBe(2);
+  expect(sok1Context.userData.m5bReviewRole).toBe('CURRENT_SOK1_COMPARISON_CONTEXT_20');
+  expect((sok1Context.material as any).opacity).toBe(m5bReviewContextOpacity);
+  expect(sok1Context.visible).toBe(true);
+  expect(unrelatedContext.userData.m5bReviewRole).toBe('BUILDING_CONTEXT_20');
+  expect((unrelatedContext.material as any).opacity).toBe(m5bReviewContextOpacity);
+  expect((planned1.material as any).opacity).toBe(m5bReviewTargetOpacity);
+  expect((planned2.material as any).opacity).toBe(m5bReviewTargetOpacity);
+});
+
 test('M5B planned comparison uses scene61, planned SOK2 targets, current SOK1 context and no current SOK2', () => {
   const root = new THREE.Group();
   const current1 = makeRoute(m5bCurrentTargetIds[0]);
