@@ -223,8 +223,17 @@ const makeD1fRoomContextNodes = () => {
   }));
 };
 
+const makeCurrentD1fSourceFootprints = () =>
+  makeD1fRoomContextNodes().slice(0, 6).map((node) => ({
+    ...node,
+    name: node.name.replace('P117D_REVIEW_', 'P117D_SOURCE_'),
+  }));
+
 const makeCandidateModel = () =>
-  makeVisibilityGlb(makeTargetNodes(), makeD1fRoomContextNodes());
+  makeVisibilityGlb(
+    [...makeTargetNodes(), ...makeCurrentD1fSourceFootprints()],
+    makeD1fRoomContextNodes(),
+  );
 
 const installRoutes = async (page: any) => {
   const currentModel = makeVisibilityGlb([]);
@@ -318,6 +327,7 @@ test('P186F-X1 Themo review renders 3 room-level anchors at 80 percent against D
     'data-p186f-review-room-context-bridge-count',
     String(p186fExpectedRoomContextCount),
   );
+  await expect(canvas).toHaveAttribute('data-p186f-review-hidden-non-question-renderable-count', '6');
   await expect(canvas).toHaveAttribute('data-p186f-review-semantic-violation-count', '0');
   await expect(canvas).toHaveAttribute('data-p186f-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-p186f-source-context-ready', 'true');

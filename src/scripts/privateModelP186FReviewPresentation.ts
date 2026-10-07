@@ -118,6 +118,7 @@ const isP186fTarget = (object: any) => {
 const isD1fRoomContext = (object: any) => {
   if (isP186fTarget(object)) return false;
   const data = object?.userData ?? {};
+  if (data.p186dReviewRoomContextBridge !== true) return false;
   const g2Id = String(data.G2Id ?? data.G2IdCandidate ?? '');
   return (
     String(data.presentationLayer ?? '') === 'CURRENT_D' &&
