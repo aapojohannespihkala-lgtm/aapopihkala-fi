@@ -1544,6 +1544,12 @@ const title = 'Private 3D viewer';
           <nav id="p186b-source-links" class="m5a-source-links" aria-label="D 2F sähköjen lähdelinkit"></nav>
           <p id="p186b-source-context-limit" class="m5a-source-limit"></p>
         </aside>
+        <aside id="p186e-source-context" class="m5a-source-context" aria-label="D sähkölabel-katselmuksen lähdekonteksti" hidden>
+          <h2>D sähkölabelien lähdekonteksti</h2>
+          <p id="p186e-source-context-source"></p>
+          <nav id="p186e-source-links" class="m5a-source-links" aria-label="D sähkölabelien lähdelinkit"></nav>
+          <p id="p186e-source-context-limit" class="m5a-source-limit"></p>
+        </aside>
         <aside id="p186d-source-context" class="m5a-source-context" aria-label="D valaisinkatselmuksen lähdekonteksti" hidden>
           <h2>D valaisimien lähdekonteksti</h2>
           <p id="p186d-source-context-source"></p>
@@ -1811,6 +1817,17 @@ const title = 'Private 3D viewer';
         prepareP186BReviewPresentation,
       } from '../../scripts/privateModelP186BReviewPresentation';
       import {
+        p186eExpectedCounts,
+        p186ePositionSourcePdfDriveId,
+        p186eReviewContextOpacity,
+        p186eReviewSourceContexts,
+        p186eReviewSourceLimit,
+        p186eReviewTargetOpacity,
+        p186eSchedulePdfDriveId,
+        prepareP186EReviewPresentation,
+        type P186EReviewVariant,
+      } from '../../scripts/privateModelP186EReviewPresentation';
+      import {
         p186dExpectedD1fTargetCount,
         p186dExpectedD1fPosCounts,
         p186dExpectedD2fTargetCount,
@@ -2043,6 +2060,10 @@ const title = 'Private 3D viewer';
       const p186bSourceContextSource = document.querySelector<HTMLElement>('#p186b-source-context-source');
       const p186bSourceLinks = document.querySelector<HTMLElement>('#p186b-source-links');
       const p186bSourceContextLimit = document.querySelector<HTMLElement>('#p186b-source-context-limit');
+      const p186eSourceContextPanel = document.querySelector<HTMLElement>('#p186e-source-context');
+      const p186eSourceContextSource = document.querySelector<HTMLElement>('#p186e-source-context-source');
+      const p186eSourceLinks = document.querySelector<HTMLElement>('#p186e-source-links');
+      const p186eSourceContextLimit = document.querySelector<HTMLElement>('#p186e-source-context-limit');
       const p186dSourceContextPanel = document.querySelector<HTMLElement>('#p186d-source-context');
       const p186dSourceContextSource = document.querySelector<HTMLElement>('#p186d-source-context-source');
       const p186dSourceLinks = document.querySelector<HTMLElement>('#p186d-source-links');
@@ -5323,6 +5344,43 @@ const title = 'Private 3D viewer';
         return bridgeCount;
       };
 
+      const setP186eSourceContextVisible = (visible: boolean) => {
+        if (!p186eSourceContextPanel) return;
+        p186eSourceContextPanel.hidden = !visible;
+        p186eSourceContextPanel.closest('.viewport')?.classList.toggle('m5a-source-layout', visible);
+        if (!visible) {
+          clearP186dReviewRoomContextBridge();
+          p186eSourceLinks?.replaceChildren();
+          delete canvas.dataset.p186eSourceContextReady;
+          delete canvas.dataset.p186ePositionSourcePdfDriveId;
+          delete canvas.dataset.p186eSchedulePdfDriveId;
+          return;
+        }
+
+        if (p186eSourceContextSource) {
+          p186eSourceContextSource.textContent =
+            'Alkuperäislähteet: vuoden 2015 johdotuspiirros source-label-paikoille ja sähköryhmäluettelo ryhmäkontekstille. Linkit avataan vain käyttäjän pyynnöstä.';
+        }
+        if (p186eSourceLinks) {
+          p186eSourceLinks.replaceChildren();
+          for (const source of p186eReviewSourceContexts) {
+            const link = document.createElement('a');
+            link.href = source.sourceHref;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.dataset.sourceRole = source.sourceRole;
+            link.textContent = `Avaa ${source.sourceLabel}`;
+            p186eSourceLinks.append(link);
+          }
+        }
+        if (p186eSourceContextLimit) {
+          p186eSourceContextLimit.textContent = p186eReviewSourceLimit;
+        }
+        canvas.dataset.p186eSourceContextReady = 'true';
+        canvas.dataset.p186ePositionSourcePdfDriveId = p186ePositionSourcePdfDriveId;
+        canvas.dataset.p186eSchedulePdfDriveId = p186eSchedulePdfDriveId;
+      };
+
       const setP186dSourceContextVisible = (visible: boolean) => {
         if (!p186dSourceContextPanel) return;
         p186dSourceContextPanel.hidden = !visible;
@@ -5368,6 +5426,7 @@ const title = 'Private 3D viewer';
         setM5aSourceContextVisible(false);
         setP186cX2rSourceContextVisible(false);
         setP186bSourceContextVisible(false);
+        setP186eSourceContextVisible(false);
         setP186dSourceContextVisible(false);
         resetObjectVisibilityFilterState();
         resetHorizontalClipping();
@@ -6283,6 +6342,12 @@ const title = 'Private 3D viewer';
 
       const isP186bElectricalSourceReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p186bReviewId);
+
+      const p186eCandidateId = 'p186e-x1-d2015-electrical-source-label-anchors-p28-corrected';
+      const p186eReviewId = `${p186eCandidateId}-review`;
+
+      const isP186eElectricalLabelReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p186eReviewId);
 
       const p186dCandidateId = 'p186d-x1-d2015-lighting-source-markers-p28-corrected';
       const p186dReviewId = `${p186dCandidateId}-review`;
@@ -7635,6 +7700,99 @@ const title = 'Private 3D viewer';
           'P186B D 2F wiring main-mass source overlay - WORK_TEST / source lines 80 % / D 2F context 20 % / HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP186eReviewState = () => {
+        const p186eReviewVariant: P186EReviewVariant =
+          new URLSearchParams(window.location.search).get('floor') === 'd2f' ? 'D2F' : 'D1F';
+        const isD2f = p186eReviewVariant === 'D2F';
+        const viewPreset: StandardViewPreset = isD2f ? 'd-2f' : 'd-1f';
+        const expected = p186eExpectedCounts[p186eReviewVariant];
+
+        if (isD2f) {
+          clearP186dReviewRoomContextBridge();
+          applyStandardViewPreset('d-2f');
+        } else {
+          applyStandardViewPreset('d-1f');
+        }
+        setModelScene(fullModelScene);
+        canvas.dataset.contentScene = 'full-model';
+        canvas.dataset.contentFloor = isD2f ? '2F' : '1F';
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+
+        let suppressedDoorMarkerCount = 0;
+        for (const doorMarker of dReviewDoorMarkerLines) {
+          if (doorMarker.visible) suppressedDoorMarkerCount += 1;
+          doorMarker.visible = false;
+        }
+        canvas.dataset.dReviewDoorMarkerVisibleCount = '0';
+
+        const bridgedRoomContextCount = isD2f ? 0 : prepareP186dD1fRoomContextBridge();
+        if (!isD2f && bridgedRoomContextCount !== 7) {
+          throw new Error(
+            `P186E-X1 D1F review room-context bridge expected 7 room footprints, got ${bridgedRoomContextCount}`,
+          );
+        }
+
+        const presentation = prepareP186EReviewPresentation(fullModelScene, p186eReviewVariant);
+        if (
+          presentation.targetRenderableCount !== expected.total ||
+          presentation.groupTargetCount !== expected.group ||
+          presentation.specialTargetCount !== expected.special ||
+          presentation.semanticViolationCount !== 0 ||
+          presentation.contextRenderableCount < 1
+        ) {
+          throw new Error(
+            `P186E-X1 ${p186eReviewVariant} source-label targets or no-promotion semantics are not review-ready`,
+          );
+        }
+
+        refreshEdgeRendering(fullModelScene);
+        setP186eSourceContextVisible(true);
+
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: p186eReviewId,
+          p186eReviewVariant,
+          p186eReviewQuestion: isD2f
+            ? 'D_2F_D2015_ELECTRICAL_SOURCE_LABEL_POSITION_RELATION'
+            : 'D_1F_D2015_ELECTRICAL_SOURCE_LABEL_POSITION_RELATION',
+          p186eTargetOpacity: p186eReviewTargetOpacity.toFixed(2),
+          p186eContextOpacity: p186eReviewContextOpacity.toFixed(2),
+          p186eReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+          p186eReviewGroupTargetCount: String(presentation.groupTargetCount),
+          p186eReviewSpecialTargetCount: String(presentation.specialTargetCount),
+          p186eReviewContextRenderableCount: String(presentation.contextRenderableCount),
+          p186eReviewRoomContextBridgeCount: String(bridgedRoomContextCount),
+          p186eReviewHiddenNonQuestionRenderableCount: String(
+            presentation.hiddenNonQuestionRenderableCount,
+          ),
+          p186eReviewSemanticViolationCount: String(presentation.semanticViolationCount),
+          p186eReviewSuppressedDoorMarkerCount: String(suppressedDoorMarkerCount),
+          p186eReviewScene: isD2f
+            ? 'FULL_MODEL_WITH_D_2F_PLAN_CAMERA'
+            : 'FULL_MODEL_WITH_D_1F_PLAN_CAMERA',
+          p186ePresentationOnly: 'true',
+          p186eDeviceGeometryClaim: 'false',
+          p186eSocketGeometryClaim: 'false',
+          p186eSwitchOrFixtureClaim: 'false',
+          p186ePhysicalCableRouteClaim: 'false',
+          p186eConnectionTopologyClaim: 'false',
+          p186eExactCurrentXYClaim: 'false',
+          p186eExactZClaim: 'false',
+          p186eCurrentClaim: 'false',
+          p186eAsBuiltClaim: 'false',
+          p186eCanonical: 'false',
+          p186ePublishToCurrent: 'false',
+          p186eHumanReview: 'NOT_RUN',
+          p186eReviewCameraMode: isD2f
+            ? 'ORTHOGRAPHIC_D_2F_SUPPORT'
+            : 'ORTHOGRAPHIC_D_1F_SUPPORT',
+          standardViewPreset: viewPreset,
+        });
+        status.textContent = isD2f
+          ? 'P186E-X1 D 2F electrical source labels - WORK_TEST / 16 label anchors 80 % / D 2F context 20 % / HUMAN_REVIEW NOT_RUN'
+          : 'P186E-X1 D 1F electrical source labels - WORK_TEST / 18 label anchors 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
+      };
+
       const applyP186dReviewState = () => {
         const p186dReviewVariant: P186DReviewVariant =
           new URLSearchParams(window.location.search).get('floor') === 'd2f' ? 'D2F' : 'D1F';
@@ -8163,6 +8321,8 @@ const title = 'Private 3D viewer';
             candidate.id === p186cX2rCandidateId && isP186cX2rFloorHeatingReviewRequested();
           const isP186bElectricalSourceReview =
             candidate.id === p186bCandidateId && isP186bElectricalSourceReviewRequested();
+          const isP186eElectricalLabelReview =
+            candidate.id === p186eCandidateId && isP186eElectricalLabelReviewRequested();
           const isP186dLightingReview =
             candidate.id === p186dCandidateId && isP186dLightingReviewRequested();
           const isP184hApplianceOnP185cReview =
@@ -8935,6 +9095,8 @@ const title = 'Private 3D viewer';
             applyP186cX2rReviewState();
           } else if (isP186bElectricalSourceReview) {
             applyP186bReviewState();
+          } else if (isP186eElectricalLabelReview) {
+            applyP186eReviewState();
           } else if (isP186dLightingReview) {
             applyP186dReviewState();
           } else if (isP184gIslandXReview) {
