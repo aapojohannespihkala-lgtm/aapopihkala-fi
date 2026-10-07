@@ -4,11 +4,24 @@ type PrivateModelObject = {
   body: ReadableStream<Uint8Array> | null;
   size?: number;
   etag?: string;
+  customMetadata?: Record<string, string>;
   writeHttpMetadata?: (headers: Headers) => void;
 };
 
 type PrivateModelBucket = {
   get(key: string): Promise<PrivateModelObject | null>;
+  put?(
+    key: string,
+    value: ArrayBuffer,
+    options: {
+      httpMetadata: {
+        contentType: string;
+        contentDisposition: string;
+        cacheControl: string;
+      };
+      customMetadata: Record<string, string>;
+    },
+  ): Promise<PrivateModelObject>;
 };
 
 export type PrivateModelEnv = {
@@ -24,6 +37,8 @@ export type PrivateModelEnv = {
 
 export const PRIVATE_MODEL_PREFIX = '/private-model';
 const PRIVATE_MODEL_PATH = `${PRIVATE_MODEL_PREFIX}/model.glb`;
+export const PRIVATE_MODEL_PUBLISH_PATH = `${PRIVATE_MODEL_PREFIX}/publish/model.glb`;
+export const PRIVATE_MODEL_VERIFY_PATH = `${PRIVATE_MODEL_PREFIX}/verify/model.glb`;
 const PRIVATE_MODEL_OBJECT_KEY = 'model.glb';
 const ACCESS_HEADER = 'cf-access-jwt-assertion';
 const JWKS_TTL_MS = 5 * 60 * 1000;
@@ -61,10 +76,18 @@ const notFound = () =>
     headers: privateHeaders(),
   });
 
-const methodNotAllowed = () => {
+const methodNotAllowed = (allow = 'GET, HEAD') => {
   const headers = privateHeaders();
-  headers.set('Allow', 'GET, HEAD');
+  headers.set('Allow', allow);
   return new Response('Method not allowed', { status: 405, headers });
+};
+
+const privateJsonResponse = (payload: unknown, status = 200) => {
+  const body = JSON.stringify(payload);
+  const headers = privateHeaders();
+  headers.set('Content-Type', 'application/json; charset=utf-8');
+  headers.set('Content-Length', String(new TextEncoder().encode(body).byteLength));
+  return new Response(body, { status, headers });
 };
 
 const decodeBase64Url = (value: string) => {
@@ -255,6 +278,182 @@ export const verifyPrivateModelReadbackAccess = async (
 export const isPrivateModelPath = (pathname: string) =>
   pathname === PRIVATE_MODEL_PREFIX || pathname.startsWith(`${PRIVATE_MODEL_PREFIX}/`);
 
+const sha256Hex = async (value: ArrayBuffer) => {
+  const digest = await crypto.subtle.digest('SHA-256', value);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
+type PrivateCurrentModelValidation =
+  | { ok: true; size: number; sha256: string }
+  | { ok: false; error: string };
+
+export const validatePrivateCurrentModelCandidateBytes = async (
+  bytes: ArrayBuffer,
+): Promise<PrivateCurrentModelValidation> => {
+  if (bytes.byteLength < 20) return { ok: false, error: 'current-glb-too-small' };
+
+  const view = new DataView(bytes);
+  const magic = new TextDecoder().decode(new Uint8Array(bytes, 0, 4));
+  if (magic !== 'glTF') return { ok: false, error: 'current-glb-magic' };
+  if (view.getUint32(4, true) !== 2) return { ok: false, error: 'current-glb-version' };
+  if (view.getUint32(8, true) !== bytes.byteLength) {
+    return { ok: false, error: 'current-glb-length' };
+  }
+
+  const jsonLength = view.getUint32(12, true);
+  const jsonType = view.getUint32(16, true);
+  if (jsonType !== 0x4e4f534a || 20 + jsonLength > bytes.byteLength) {
+    return { ok: false, error: 'current-glb-json-chunk' };
+  }
+
+  let payload: {
+    scene?: number;
+    scenes?: Array<{ extras?: Record<string, unknown> }>;
+  };
+  try {
+    const jsonText = new TextDecoder()
+      .decode(new Uint8Array(bytes, 20, jsonLength))
+      .replace(/[\u0000 ]+$/g, '');
+    payload = JSON.parse(jsonText) as typeof payload;
+  } catch {
+    return { ok: false, error: 'current-glb-json-parse' };
+  }
+
+  if (!Number.isInteger(payload.scene) || !Array.isArray(payload.scenes)) {
+    return { ok: false, error: 'current-glb-default-scene' };
+  }
+  const scene = payload.scenes[payload.scene as number];
+  const extras = scene?.extras;
+  if (!extras) return { ok: false, error: 'current-candidate-extras' };
+
+  const required = {
+    ModelStage: 'CURRENT_CANDIDATE',
+    currentCandidate: true,
+    currentDistribution: false,
+    Canonical: false,
+    asBuiltClaim: false,
+    publishToCURRENT: false,
+    objectLevelNoPromotionPreserved: true,
+    normalOpeningMode: 'WHOLE_BUILDING_FREE_ORBIT',
+  } as const;
+  for (const [key, expected] of Object.entries(required)) {
+    if (extras[key] !== expected) return { ok: false, error: `current-candidate-${key}` };
+  }
+
+  return {
+    ok: true,
+    size: bytes.byteLength,
+    sha256: await sha256Hex(bytes),
+  };
+};
+
+type PrivateCurrentModelWriteResult =
+  | { ok: true; size: number; sha256: string }
+  | { ok: false; error: string; status: number };
+
+const writePrivateCurrentModelFromRequest = async (
+  request: Request,
+  bucket: PrivateModelBucket,
+): Promise<PrivateCurrentModelWriteResult> => {
+  let bytes: ArrayBuffer;
+  try {
+    bytes = await request.arrayBuffer();
+  } catch {
+    return { ok: false, error: 'current-body-read-failed', status: 400 };
+  }
+
+  const validation = await validatePrivateCurrentModelCandidateBytes(bytes);
+  if (!validation.ok) return { ok: false, error: validation.error, status: 422 };
+  if (!bucket.put) return { ok: false, error: 'current-r2-write-unavailable', status: 500 };
+
+  try {
+    await bucket.put(PRIVATE_MODEL_OBJECT_KEY, bytes, {
+      httpMetadata: {
+        contentType: 'model/gltf-binary',
+        contentDisposition: 'inline',
+        cacheControl: 'private, no-store',
+      },
+      customMetadata: {
+        sha256: validation.sha256,
+        modelStage: 'CURRENT_CANDIDATE',
+      },
+    });
+  } catch {
+    return { ok: false, error: 'current-r2-write-failed', status: 500 };
+  }
+
+  let written: PrivateModelObject | null;
+  try {
+    written = await bucket.get(PRIVATE_MODEL_OBJECT_KEY);
+  } catch {
+    return { ok: false, error: 'current-r2-readback-failed', status: 500 };
+  }
+  if (
+    !written ||
+    written.size !== validation.size ||
+    written.customMetadata?.sha256 !== validation.sha256
+  ) {
+    return { ok: false, error: 'current-r2-readback-failed', status: 500 };
+  }
+
+  return { ok: true, size: validation.size, sha256: validation.sha256 };
+};
+
+const handlePrivateCurrentModelPublish = async (
+  request: Request,
+  env: PrivateModelEnv,
+): Promise<Response> => {
+  if (!(await verifyPrivateModelPublisherAccess(request, env))) return notFound();
+  if (request.method !== 'PUT') return methodNotAllowed('PUT');
+  if (!env.PRIVATE_MODEL_BUCKET) {
+    console.info('private-model current publish deny: bucket-binding');
+    return notFound();
+  }
+
+  const result = await writePrivateCurrentModelFromRequest(request, env.PRIVATE_MODEL_BUCKET);
+  if (!result.ok) return privateJsonResponse({ error: result.error }, result.status);
+  return privateJsonResponse({
+    ready: true,
+    model: {
+      path: PRIVATE_MODEL_PATH,
+      size: result.size,
+      sha256: result.sha256,
+    },
+  });
+};
+
+const handlePrivateCurrentModelMachineReadback = async (
+  request: Request,
+  env: PrivateModelEnv,
+): Promise<Response> => {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return methodNotAllowed();
+  if (!(await verifyPrivateModelReadbackAccess(request, env))) return notFound();
+  if (!env.PRIVATE_MODEL_BUCKET) {
+    console.info('private-model current verify deny: bucket-binding');
+    return notFound();
+  }
+
+  const object = await env.PRIVATE_MODEL_BUCKET.get(PRIVATE_MODEL_OBJECT_KEY);
+  const sha256 = object?.customMetadata?.sha256;
+  if (!object || typeof object.size !== 'number' || !sha256) {
+    console.info('private-model current verify deny: object-not-ready');
+    return notFound();
+  }
+
+  const headers = privateHeaders();
+  object.writeHttpMetadata?.(headers);
+  headers.set('Content-Type', 'model/gltf-binary');
+  headers.set('Content-Disposition', 'inline');
+  headers.set('Content-Length', String(object.size));
+  headers.set('X-Content-SHA256', sha256);
+  if (object.etag) headers.set('ETag', object.etag);
+
+  return new Response(request.method === 'HEAD' ? null : object.body, {
+    status: 200,
+    headers,
+  });
+};
+
 const secureAssetResponse = (response: Response) => {
   const headers = new Headers(response.headers);
   headers.set('Cache-Control', 'private, no-store');
@@ -280,10 +479,17 @@ export const handlePrivateModelRequest = async (
   request: Request,
   env: PrivateModelEnv,
 ): Promise<Response> => {
+  const pathname = new URL(request.url).pathname;
+  if (pathname === PRIVATE_MODEL_PUBLISH_PATH) {
+    return handlePrivateCurrentModelPublish(request, env);
+  }
+  if (pathname === PRIVATE_MODEL_VERIFY_PATH) {
+    return handlePrivateCurrentModelMachineReadback(request, env);
+  }
+
   if (request.method !== 'GET' && request.method !== 'HEAD') return methodNotAllowed();
   if (!(await verifyPrivateModelAccess(request, env))) return notFound();
 
-  const pathname = new URL(request.url).pathname;
   if (pathname === PRIVATE_MODEL_PATH) {
     if (!env.PRIVATE_MODEL_BUCKET) {
       console.info('private-model r2 deny: bucket-binding');

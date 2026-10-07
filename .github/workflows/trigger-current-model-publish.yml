@@ -1,0 +1,109 @@
+name: Trigger CURRENT model publish
+
+on:
+  push:
+    branches:
+      - ops/current-publish
+    paths:
+      - .github/current-model-publish-request.json
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: trigger-current-model-publish
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Require trusted request push
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          REF_FULL: ${{ github.ref }}
+          ACTOR: ${{ github.actor }}
+          ACTOR_ID: ${{ github.actor_id }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$EVENT_NAME" == "push" ]]
+          [[ "$REPOSITORY" == "aapojohannespihkala-lgtm/aapopihkala-fi" ]]
+          [[ "$REF_FULL" == "refs/heads/ops/current-publish" ]]
+          [[ "$ACTOR" == "aapojohannespihkala-lgtm" ]]
+          [[ "$ACTOR_ID" == "322566438" ]]
+          [[ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]
+          [[ -n "$AFTER_SHA" ]]
+
+      - name: Checkout exact request commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Require request-only commit scope
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed_files < <(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA")
+          [[ ${#changed_files[@]} -eq 1 ]]
+          [[ "${changed_files[0]}" == ".github/current-model-publish-request.json" ]]
+
+      - name: Validate publish request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - ".github/current-model-publish-request.json" "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import re
+          import sys
+
+          request_path, output_path = sys.argv[1:]
+          payload = json.load(open(request_path, "r", encoding="utf-8"))
+          if set(payload) != {"driveFileId", "requestId"}:
+              raise SystemExit("CURRENT publish request must contain exactly driveFileId and requestId")
+
+          drive_file_id = payload.get("driveFileId")
+          request_id = payload.get("requestId")
+          if not isinstance(drive_file_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{10,128}", drive_file_id):
+              raise SystemExit("invalid driveFileId")
+          if not isinstance(request_id, str) or not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", request_id):
+              raise SystemExit("invalid requestId")
+
+          with open(output_path, "a", encoding="utf-8") as handle:
+              handle.write(f"drive_file_id={drive_file_id}\n")
+              handle.write(f"request_id={request_id}\n")
+          PY
+
+      - name: Dispatch canonical CURRENT publisher on main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRIVE_FILE_ID: ${{ steps.request.outputs.drive_file_id }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          payload="$RUNNER_TEMP/publish-current-model-dispatch.json"
+          python3 - "$DRIVE_FILE_ID" "$payload" <<'PY'
+          import json
+          import sys
+
+          drive_file_id, path = sys.argv[1:]
+          with open(path, "w", encoding="utf-8") as handle:
+              json.dump({"ref": "main", "inputs": {"drive_file_id": drive_file_id}}, handle)
+          PY
+
+          gh api --method POST \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/publish-current-model.yml/dispatches" \
+            --input "$payload"
+
+          rm -f "$payload"
+          echo "Dispatched canonical Publish CURRENT model request $REQUEST_ID from Drive $DRIVE_FILE_ID on main."
