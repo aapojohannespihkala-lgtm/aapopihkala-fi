@@ -117,10 +117,17 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
     }
 
     if (object.visible === false) return;
-    const role =
-      variant === 'PLANNED_SOK2_COMPARISON' && g2Id === 'G2_STORM_CURRENT_ROUTE_SOK1_001'
-        ? 'CURRENT_SOK1_COMPARISON_CONTEXT_20'
-        : 'BUILDING_CONTEXT_20';
+    // The rebuilt Z2R scene61 stores the SOK1 context as source-bound comparison
+    // geometry, not as a second G2Id/G2IdCandidate target.
+    const isSok1ComparisonContext =
+      variant === 'PLANNED_SOK2_COMPARISON' &&
+      (g2Id === 'G2_STORM_CURRENT_ROUTE_SOK1_001' ||
+        (object?.userData?.presentationRole === 'CURRENT_SOK1_COMPARISON_CONTEXT' &&
+          object?.userData?.sourceG2IdCandidate === 'G2_STORM_CURRENT_ROUTE_SOK1_001' &&
+          object?.userData?.presentationOnlyComparison === true));
+    const role = isSok1ComparisonContext
+      ? 'CURRENT_SOK1_COMPARISON_CONTEXT_20'
+      : 'BUILDING_CONTEXT_20';
     cloneMaterials(object, m5bReviewContextOpacity, role, variant);
     object.userData = {
       ...(object.userData ?? {}),
