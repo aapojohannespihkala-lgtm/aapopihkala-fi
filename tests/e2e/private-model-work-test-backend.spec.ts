@@ -94,7 +94,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
   // P185C-X2 and P186D-X1 add exact p28-corrected electrical candidates.
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(47);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(48);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -432,6 +432,16 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     expectedSha256: '26b459e66f0bd1749d273de54f120836a76f6a4ada9f66f185651452010505b6',
   });
 
+  const m5aZ2 = getPrivateWorkTestCandidateById('m5a-z2-absolute-z-host-floor-datum');
+  expect(m5aZ2).toMatchObject({
+    id: 'm5a-z2-absolute-z-host-floor-datum',
+    label: 'M5A-Z2 drainage absolute-Z host-floor datum - WORK_TEST',
+    path: '/private-model/work-test/m5a-z2-absolute-z-host-floor-datum.glb',
+    objectKey: 'work-test/m5a-z2-absolute-z-host-floor-datum.glb',
+    expectedSize: 2_958_672,
+    expectedSha256: 'e15e265ee4267bb26214eaaab338b786388afb2d3a5b9dc37ecdb92e0815d4cb',
+  });
+
   const p164b = getPrivateWorkTestCandidateById('p164b-d-corrected-stair');
   expect(p164b).toMatchObject({
     id: 'p164b-d-corrected-stair',
@@ -627,6 +637,10 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   expect(getPrivateWorkTestPublishCandidate(p186dPublishPath)?.id).toBe(
     'p186d-x1-d2015-lighting-source-markers-p28-corrected',
   );
+  const m5aZ2PublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}m5a-z2-absolute-z-host-floor-datum.glb`;
+  expect(getPrivateWorkTestPublishCandidate(m5aZ2PublishPath)?.id).toBe(
+    'm5a-z2-absolute-z-host-floor-datum',
+  );
   expect(getPrivateWorkTestPublishCandidate(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}not-allowlisted.glb`)).toBeNull();
   expect(
     getPrivateWorkTestVerifyCandidate(
@@ -658,6 +672,11 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
       `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}p186d-x1-d2015-lighting-source-markers-p28-corrected.glb`,
     )?.id,
   ).toBe('p186d-x1-d2015-lighting-source-markers-p28-corrected');
+  expect(
+    getPrivateWorkTestVerifyCandidate(
+      `${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}m5a-z2-absolute-z-host-floor-datum.glb`,
+    )?.id,
+  ).toBe('m5a-z2-absolute-z-host-floor-datum');
   expect(
     getPrivateWorkTestVerifyCandidate(`${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}not-allowlisted.glb`),
   ).toBeNull();
