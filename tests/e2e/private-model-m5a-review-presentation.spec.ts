@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 
 import {
   m5aExpectedTargetRenderableCount,
-  m5aR3Z1bReviewQuestionText,
+  m5aR3Z1cReviewQuestionText,
   m5aReviewContextOpacity,
   m5aReviewQuestionText,
   m5aReviewSourceContext,
@@ -14,9 +14,9 @@ import {
 const candidateId = 'm5a-drain-topology';
 const reviewId = `${candidateId}-review`;
 const candidatePath = '/private-model/work-test/m5a-drain-topology.glb';
-const r3Z1bCandidateId = 'm5a-r3-z1b-relative-z-functional-nw-continuity';
-const r3Z1bReviewId = `${r3Z1bCandidateId}-review`;
-const r3Z1bCandidatePath = `/private-model/work-test/${r3Z1bCandidateId}.glb`;
+const r3Z1cCandidateId = 'm5a-r3-z1c-relative-z-functional-nw-continuity';
+const r3Z1cReviewId = `${r3Z1cCandidateId}-review`;
+const r3Z1cCandidatePath = `/private-model/work-test/${r3Z1cCandidateId}.glb`;
 
 const makeGlb = (nodes: Record<string, unknown>[], highlightedTargetIndex = -1) => {
   const positions = Buffer.alloc(36);
@@ -125,7 +125,7 @@ test('M5A review wiring is scoped to conventional review id and no-promotion pre
   expect(viewerSource).toContain('m5aReviewSourceContext');
 });
 
-test('M5A R3 Z1B conventional review routes 4+7+2 targets through the R3 review state', async ({ page }) => {
+test('M5A R3 Z1C conventional review routes 4+7+2 targets through the R3 review state', async ({ page }) => {
   test.setTimeout(20_000);
 
   const targets = [
@@ -155,14 +155,14 @@ test('M5A R3 Z1B conventional review routes 4+7+2 targets through the R3 review 
       contentType: 'application/json',
       body: JSON.stringify({
         candidates: [{
-          id: r3Z1bCandidateId,
-          label: 'M5A-R3 Z1B drainage continuity - WORK_TEST',
-          path: r3Z1bCandidatePath,
+          id: r3Z1cCandidateId,
+          label: 'M5A-R3 Z1C drainage continuity - WORK_TEST',
+          path: r3Z1cCandidatePath,
         }],
       }),
     });
   });
-  await page.route(`**${r3Z1bCandidatePath}`, async (route) => {
+  await page.route(`**${r3Z1cCandidatePath}`, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'model/gltf-binary',
@@ -177,19 +177,19 @@ test('M5A R3 Z1B conventional review routes 4+7+2 targets through the R3 review 
     });
   });
 
-  await page.goto(`/private-model/?review=${r3Z1bReviewId}`, {
+  await page.goto(`/private-model/?review=${r3Z1cReviewId}`, {
     waitUntil: 'domcontentloaded',
   });
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
-  await expect(canvas).toHaveAttribute('data-work-test-review-mode', r3Z1bReviewId);
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', r3Z1cReviewId);
   await expect(canvas).toHaveAttribute(
     'data-m5a-review-question',
     'DRAINAGE_R3_Z_AWARE_CONTINUITY_USABILITY',
   );
-  await expect(canvas).toHaveAttribute('data-m5a-review-scope', 'R3_Z1B_SYSTEM');
+  await expect(canvas).toHaveAttribute('data-m5a-review-scope', 'R3_Z1C_SYSTEM');
   await expect(canvas).toHaveAttribute('data-m5a-review-profile', 'M5A_R3_CONTINUITY');
   await expect(canvas).toHaveAttribute('data-m5a-review-target-renderable-count', '13');
   await expect(canvas).toHaveAttribute('data-m5a-review-expected-target-renderable-count', '13');
@@ -197,7 +197,7 @@ test('M5A R3 Z1B conventional review routes 4+7+2 targets through the R3 review 
   await expect(canvas).toHaveAttribute('data-m5a-review-route-count', '7');
   await expect(canvas).toHaveAttribute('data-m5a-review-unresolved-boundary-count', '2');
   await expect(canvas).toHaveAttribute('data-m5a-review-semantic-violation-count', '0');
-  await expect(canvas).toHaveAttribute('data-m5a-review-question-text', m5aR3Z1bReviewQuestionText);
+  await expect(canvas).toHaveAttribute('data-m5a-review-question-text', m5aR3Z1cReviewQuestionText);
   await expect(canvas).toHaveAttribute('data-m5a-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
 });
