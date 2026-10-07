@@ -329,6 +329,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 2_907_116,
     expectedSha256: 'bc531cecf7f5131ea18ad0d5f16c60526e08c982b9af3c9153a7c7ae5e3d9334',
   },
+  // M5A-R3 Z1C release registration: exact persisted relative-Z functional NW-continuity successor.
+  {
+    id: 'm5a-r3-z1c-relative-z-functional-nw-continuity',
+    label: 'M5A-R3 Z1C relative-Z functional NW continuity - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-r3-z1c-relative-z-functional-nw-continuity.glb`,
+    objectKey: 'work-test/m5a-r3-z1c-relative-z-functional-nw-continuity.glb',
+    expectedSize: 2_930_908,
+    expectedSha256: '26b459e66f0bd1749d273de54f120836a76f6a4ada9f66f185651452010505b6',
+  },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
     id: 'p164b-d-corrected-stair',
