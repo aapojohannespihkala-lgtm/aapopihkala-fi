@@ -329,6 +329,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 3_166_100,
     expectedSha256: '3283b5938b8aeeb3e627d8ae1b31d0912ce7c7b6239829161dcae6ce991ca868',
   },
+  // P186C-X2R release registration: exact persisted p28-corrected D2015 D 1F floor-heating work-route successor.
+  {
+    id: 'p186c-x2r-d2015-floor-heating-work-routes-p28-corrected',
+    label: 'P186C-X2R D2015 floor-heating work routes p28-corrected - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p186c-x2r-d2015-floor-heating-work-routes-p28-corrected.glb`,
+    objectKey: 'work-test/p186c-x2r-d2015-floor-heating-work-routes-p28-corrected.glb',
+    expectedSize: 3_190_212,
+    expectedSha256: '47ab3668fe2b722570216b4b749611b2a6f5f8bd9b157fc91d88ae73bdf34272',
+  },
   // M5A viewer/release registration: exact persisted drainage topology presentation WORK_TEST.
   {
     id: 'm5a-drain-topology',
@@ -355,6 +364,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     objectKey: 'work-test/m5a-r3-z1c-relative-z-functional-nw-continuity.glb',
     expectedSize: 2_930_908,
     expectedSha256: '26b459e66f0bd1749d273de54f120836a76f6a4ada9f66f185651452010505b6',
+  },
+  // M5A-Z2 release registration: exact persisted host-floor-datum absolute-Z WORK_TEST successor.
+  {
+    id: 'm5a-z2-absolute-z-host-floor-datum',
+    label: 'M5A-Z2 drainage absolute-Z host-floor datum - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-z2-absolute-z-host-floor-datum.glb`,
+    objectKey: 'work-test/m5a-z2-absolute-z-host-floor-datum.glb',
+    expectedSize: 2_958_672,
+    expectedSha256: 'e15e265ee4267bb26214eaaab338b786388afb2d3a5b9dc37ecdb92e0815d4cb',
   },
   // P164D-V viewer integration: exact P164B corrected-stair successor.
   {
