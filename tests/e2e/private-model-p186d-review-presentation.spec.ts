@@ -49,7 +49,10 @@ test('P186D-X1 D1F review route is bounded to 22 lighting source anchors with 80
   expect(p186dReviewSourceLimit).toContain('as-built');
 });
 
-const makeGlbWithSharedTriangle = (nodes: Record<string, unknown>[]) => {
+const makeGlbWithSharedTriangle = (
+  defaultNodes: Record<string, unknown>[],
+  dInteriorNodes: Record<string, unknown>[] = [],
+) => {
   const positions = Buffer.alloc(36);
   const values = [
     0, 0, 0,
@@ -58,10 +61,17 @@ const makeGlbWithSharedTriangle = (nodes: Record<string, unknown>[]) => {
   ];
   values.forEach((value, index) => positions.writeFloatLE(value, index * 4));
 
+  const nodes = [...defaultNodes, ...dInteriorNodes];
+  const defaultNodeIndices = defaultNodes.map((_, index) => index);
+  const dInteriorNodeIndices = dInteriorNodes.map((_, index) => defaultNodes.length + index);
+
   const json = {
     asset: { version: '2.0' },
     scene: 0,
-    scenes: [{ name: 'P186D-X1 D1F REVIEW TEST', nodes: nodes.map((_, index) => index) }],
+    scenes: [
+      { name: 'P186D-X1 D1F REVIEW TEST', nodes: defaultNodeIndices },
+      { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: dInteriorNodeIndices },
+    ],
     nodes,
     meshes: [
       {
@@ -270,28 +280,30 @@ test('P186D-X1 conventional review autoload renders bounded D1F lighting state o
   test.setTimeout(20_000);
 
   const currentModel = makeGlbWithSharedTriangle([]);
-  const candidateModel = makeGlbWithSharedTriangle([
-    ...makeP186DTargets(),
-    ...makeP186DD1fRoomContexts(),
-    {
-      name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_1F_001',
-      mesh: 0,
-      translation: [3.1, 0, -3.2],
-      extras: {
-        G2Id: 'G2_WALL_D_1F_001',
-        presentationLayer: 'CURRENT_D',
+  const candidateModel = makeGlbWithSharedTriangle(
+    [
+      ...makeP186DTargets(),
+      {
+        name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_1F_001',
+        mesh: 0,
+        translation: [3.1, 0, -3.2],
+        extras: {
+          G2Id: 'G2_WALL_D_1F_001',
+          presentationLayer: 'CURRENT_D',
+        },
       },
-    },
-    {
-      name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_2F_001',
-      mesh: 0,
-      translation: [7, 2.76, -7],
-      extras: {
-        G2Id: 'G2_WALL_D_2F_001',
-        presentationLayer: 'CURRENT_D',
+      {
+        name: 'P134B_ARCH_BASE_CLONE__G2_WALL_D_2F_001',
+        mesh: 0,
+        translation: [7, 2.76, -7],
+        extras: {
+          G2Id: 'G2_WALL_D_2F_001',
+          presentationLayer: 'CURRENT_D',
+        },
       },
-    },
-  ]);
+    ],
+    makeP186DD1fRoomContexts(),
+  );
 
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({
