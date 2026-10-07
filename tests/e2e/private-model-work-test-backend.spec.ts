@@ -93,8 +93,8 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 });
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
-  // P185C-X2 and P186D-X1 add exact p28-corrected electrical candidates.
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(49);
+  // P185C-X2, P186D-X1 and P186E-X1 add exact p28-corrected electrical candidates.
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(50);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');
@@ -411,6 +411,15 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
     expectedSize: 3_190_212,
     expectedSha256: '47ab3668fe2b722570216b4b749611b2a6f5f8bd9b157fc91d88ae73bdf34272',
   });
+  const p186e = getPrivateWorkTestCandidateById('p186e-x1-d2015-electrical-source-label-anchors-p28-corrected');
+  expect(p186e).toMatchObject({
+    id: 'p186e-x1-d2015-electrical-source-label-anchors-p28-corrected',
+    label: 'P186E-X1 D2015 electrical source label anchors p28-corrected - WORK_TEST',
+    path: '/private-model/work-test/p186e-x1-d2015-electrical-source-label-anchors-p28-corrected.glb',
+    objectKey: 'work-test/p186e-x1-d2015-electrical-source-label-anchors-p28-corrected.glb',
+    expectedSize: 3_217_892,
+    expectedSha256: 'a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5',
+  });
   const m5a = getPrivateWorkTestCandidateById('m5a-drain-topology');
   expect(m5a).toMatchObject({
     id: 'm5a-drain-topology',
@@ -649,6 +658,10 @@ test('private WORK_TEST candidate allowlist exposes named review routes includin
   const p186cX2rPublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p186c-x2r-d2015-floor-heating-work-routes-p28-corrected.glb`;
   expect(getPrivateWorkTestPublishCandidate(p186cX2rPublishPath)?.id).toBe(
     'p186c-x2r-d2015-floor-heating-work-routes-p28-corrected',
+  );
+  const p186ePublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}p186e-x1-d2015-electrical-source-label-anchors-p28-corrected.glb`;
+  expect(getPrivateWorkTestPublishCandidate(p186ePublishPath)?.id).toBe(
+    'p186e-x1-d2015-electrical-source-label-anchors-p28-corrected',
   );
   const m5aZ2PublishPath = `${PRIVATE_WORK_TEST_PUBLISH_PREFIX}m5a-z2-absolute-z-host-floor-datum.glb`;
   expect(getPrivateWorkTestPublishCandidate(m5aZ2PublishPath)?.id).toBe(
