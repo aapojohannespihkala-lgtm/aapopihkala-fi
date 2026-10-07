@@ -356,6 +356,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 3_217_892,
     expectedSha256: 'a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5',
   },
+  // P186F-X1 release registration: exact persisted D Themo room-level presentation anchors.
+  {
+    id: 'p186f-x1-d-themo-room-presentation',
+    label: 'P186F-X1 D Themo room presentation - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p186f-x1-d-themo-room-presentation.glb`,
+    objectKey: 'work-test/p186f-x1-d-themo-room-presentation.glb',
+    expectedSize: 3_199_332,
+    expectedSha256: '4459d528ddd821958f04b0f4d1be800bdc8aaef9290a792ba72bab95209d83db',
+  },
   // M5A viewer/release registration: exact persisted drainage topology presentation WORK_TEST.
   {
     id: 'm5a-drain-topology',
