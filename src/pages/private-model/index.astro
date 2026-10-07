@@ -1819,6 +1819,13 @@ const title = 'Private 3D viewer';
         prepareM5AReviewPresentation,
       } from '../../scripts/privateModelM5AReviewPresentation';
       import {
+        m5aRelativeZReviewContextOpacity,
+        m5aRelativeZReviewTargetOpacity,
+        m5aSok1Sok2ExpectedVerticalDeltaM,
+        m5aSok1Sok2ReviewCamera,
+        prepareM5ASok1Sok2RelativeZReviewPresentation,
+      } from '../../scripts/privateModelM5ARelativeZReviewPresentation';
+      import {
         getM5BReviewSceneIndex,
         prepareM5BReviewPresentation,
         type M5BReviewVariant,
@@ -1943,6 +1950,7 @@ const title = 'Private 3D viewer';
         m5aR730ReviewId,
         m5aR3Z1cCandidateId,
         m5aR3Z1cReviewId,
+        m5aR3Z1cSok1Sok2RelativeZReviewId,
         m5bCandidateId,
         m5bCurrentReviewId,
         m5bPlannedSok2ComparisonReviewId,
@@ -3889,9 +3897,10 @@ const title = 'Private 3D viewer';
       const fitElevationCamera = (
         direction: ElevationDirection,
         sceneRoot: any = fullModelScene,
+        boundsOverride: any = null,
       ) => {
         if (!sceneRoot) return false;
-        const box = computeVisibleBounds(sceneRoot, true);
+        const box = boundsOverride?.clone?.() ?? computeVisibleBounds(sceneRoot, true);
         if (!box) return false;
 
         const center = new THREE.Vector3();
@@ -6117,6 +6126,12 @@ const title = 'Private 3D viewer';
       const isM5aR3Z1cSystemReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, m5aR3Z1cReviewId);
 
+      const isM5aR3Z1cSok1Sok2RelativeZReviewRequested = () =>
+        isPrivateModelReviewRequested(
+          window.location.search,
+          m5aR3Z1cSok1Sok2RelativeZReviewId,
+        );
+
       const p186bCandidateId = 'p186b-d2015-d2f-wiring-mainmass-source-overlay';
       const p186bReviewId = `${p186bCandidateId}-review`;
 
@@ -6967,9 +6982,90 @@ const title = 'Private 3D viewer';
       type M5aDrainageReviewMode =
         | 'TOPOLOGY_CORRECTION'
         | 'CURRENT_USE_SYSTEM'
-        | 'R3_Z1C_SYSTEM';
+        | 'R3_Z1C_SYSTEM'
+        | 'R3_Z1C_SOK1_SOK2_RELATIVE_Z';
 
       const applyM5aDrainageReviewState = (mode: M5aDrainageReviewMode) => {
+        if (mode === 'R3_Z1C_SOK1_SOK2_RELATIVE_Z') {
+          setModelScene(fullModelScene);
+          canvas.dataset.contentScene = 'full-model';
+          canvas.dataset.contentFloor = 'ALL';
+          deactivateDCoordinateReview();
+          setD1KnownDoorReviewLabelsVisible(false);
+          applyStandardViewPreset(m5aSok1Sok2ReviewCamera.standardViewPreset);
+
+          const presentation = prepareM5ASok1Sok2RelativeZReviewPresentation(fullModelScene);
+          if (
+            presentation.targetRenderableCount !== presentation.expectedTargetRenderableCount ||
+            presentation.missingTargetIds.length !== 0 ||
+            presentation.semanticViolationCount !== 0 ||
+            presentation.contextRenderableCount < 1 ||
+            !presentation.targetBounds ||
+            presentation.worldVerticalDeltaM === null ||
+            !Number.isFinite(presentation.worldVerticalDeltaM) ||
+            !Number.isFinite(presentation.routeMetadataDeltaM) ||
+            !presentation.verticalDeltaParity
+          ) {
+            throw new Error(
+              'M5A SOK1-SOK2 relative-Z targets, parity or no-promotion semantics are not review-ready',
+            );
+          }
+
+          refreshEdgeRendering(fullModelScene);
+          setM5aSourceContextVisible(true, presentation.reviewQuestionText);
+          updateSize();
+          const cameraFocusApplied = fitElevationCamera(
+            'pos-y',
+            fullModelScene,
+            presentation.targetBounds,
+          );
+
+          Object.assign(canvas.dataset, {
+            workTestReviewMode: m5aR3Z1cSok1Sok2RelativeZReviewId,
+            m5aReviewScope: mode,
+            m5aReviewQuestion: 'DRAINAGE_R3_Z1C_SOK1_SOK2_RELATIVE_Z_USABILITY',
+            m5aReviewQuestionText: presentation.reviewQuestionText,
+            m5aSourceContextClass: m5aReviewSourceContext.sourceClass,
+            m5aSourceDrawingDriveId: m5aReviewSourceContext.sourceDrawingDriveId,
+            m5aSourceDrawingByteSize: String(m5aReviewSourceContext.sourceDrawingByteSize),
+            m5aTargetOpacity: m5aRelativeZReviewTargetOpacity.toFixed(2),
+            m5aContextOpacity: m5aRelativeZReviewContextOpacity.toFixed(2),
+            m5aReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+            m5aReviewExpectedTargetRenderableCount: String(
+              presentation.expectedTargetRenderableCount,
+            ),
+            m5aReviewProfile: 'M5A_R3_Z1C_SOK1_SOK2_RELATIVE_Z',
+            m5aReviewContextRenderableCount: String(presentation.contextRenderableCount),
+            m5aReviewSemanticViolationCount: String(presentation.semanticViolationCount),
+            m5aRelativeZExpectedDeltaM: m5aSok1Sok2ExpectedVerticalDeltaM.toFixed(3),
+            m5aRelativeZWorldDeltaM: presentation.worldVerticalDeltaM.toFixed(3),
+            m5aRelativeZRouteMetadataDeltaM: presentation.routeMetadataDeltaM.toFixed(3),
+            m5aRelativeZParity: String(presentation.verticalDeltaParity),
+            m5aRelativeZSourceClassification: presentation.sourceClassification,
+            m5aPresentationOnly: 'true',
+            m5aWorkAssumption: 'true',
+            m5aSourceDerivedTopology: 'true',
+            m5aPhysicalWellGeometryClaim: 'false',
+            m5aPhysicalRouteClaim: 'false',
+            m5aExactXYClaim: 'false',
+            m5aExactZClaim: 'false',
+            m5aPhysicalElevationClaim: 'false',
+            m5aCurrentClaim: 'false',
+            m5aAsBuiltClaim: 'false',
+            m5aCanonical: 'false',
+            m5aPublishToCurrent: 'false',
+            m5aHumanReview: 'NOT_RUN',
+            m5aReviewCameraMode: 'ORTHOGRAPHIC_ELEV_POS_Y_TARGET_BOUNDS',
+            m5aReviewCameraFocusApplied: String(cameraFocusApplied),
+            m5aReviewCameraHorizontalAxis: m5aSok1Sok2ReviewCamera.horizontalAxis,
+            m5aReviewCameraVerticalAxis: m5aSok1Sok2ReviewCamera.verticalAxis,
+            m5aReviewCameraViewAxis: m5aSok1Sok2ReviewCamera.viewAxis,
+            standardViewPreset: m5aSok1Sok2ReviewCamera.standardViewPreset,
+          });
+          status.textContent =
+            'M5A-R3 Z1C SOK1-SOK2 korkoero - WORK_TEST / 3 kohdetta 80 % / konteksti 20 % / +1,140 m HIGH_CONFIDENCE_DERIVED / HUMAN_REVIEW NOT_RUN';
+          return;
+        }
         const isCurrentUseReview = mode === 'CURRENT_USE_SYSTEM';
         const isR3Z1cReview = mode === 'R3_Z1C_SYSTEM';
         const reviewId = isR3Z1cReview
@@ -7776,9 +7872,12 @@ const title = 'Private 3D viewer';
               ? 'TOPOLOGY_CORRECTION'
               : candidate.id === m5aR730CandidateId && isM5aR730SystemReviewRequested()
                 ? 'CURRENT_USE_SYSTEM'
-                : candidate.id === m5aR3Z1cCandidateId && isM5aR3Z1cSystemReviewRequested()
-                  ? 'R3_Z1C_SYSTEM'
-                  : null;
+                : candidate.id === m5aR3Z1cCandidateId &&
+                    isM5aR3Z1cSok1Sok2RelativeZReviewRequested()
+                  ? 'R3_Z1C_SOK1_SOK2_RELATIVE_Z'
+                  : candidate.id === m5aR3Z1cCandidateId && isM5aR3Z1cSystemReviewRequested()
+                    ? 'R3_Z1C_SYSTEM'
+                    : null;
           const isM5BCurrentReview =
             candidate.id === m5bCandidateId &&
             isPrivateModelReviewRequested(window.location.search, m5bCurrentReviewId);
