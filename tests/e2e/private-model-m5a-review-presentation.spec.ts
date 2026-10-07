@@ -200,6 +200,49 @@ test('M5A R3 Z1C conventional review routes 4+7+2 targets through the R3 review 
   await expect(canvas).toHaveAttribute('data-m5a-review-question-text', m5aR3Z1cReviewQuestionText);
   await expect(canvas).toHaveAttribute('data-m5a-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
+  await expect(canvas).toHaveAttribute('data-m5a-target-opacity', m5aReviewTargetOpacity.toFixed(2));
+  await expect(canvas).toHaveAttribute('data-m5a-context-opacity', m5aReviewContextOpacity.toFixed(2));
+  await expect(canvas).toHaveAttribute('data-m5a-review-context-renderable-count', '1');
+  await expect(canvas).toHaveAttribute('data-m5a-review-camera-focus-applied', 'true');
+  await expect(canvas).toHaveAttribute('data-m5a-review-framing-corner-count', '8');
+  await expect(canvas).toHaveAttribute('data-m5a-review-framing-margin', '0.94');
+  await expect(canvas).toHaveAttribute('data-m5a-review-framing-in-frame', 'true');
+  await expect(canvas).toHaveAttribute('data-m5a-source-preview-load-state', 'loaded');
+
+  const framingMaxAbsNdc = Number(await canvas.getAttribute('data-m5a-review-framing-max-abs-ndc'));
+  expect(Number.isFinite(framingMaxAbsNdc)).toBe(true);
+  expect(framingMaxAbsNdc).toBeLessThanOrEqual(0.94);
+
+  await page.waitForTimeout(150);
+  const screenshot = await canvas.screenshot();
+  const renderedPixelCount = await page.evaluate(async (dataUrl) => {
+    const image = new Image();
+    image.src = dataUrl;
+    await image.decode();
+    const probe = document.createElement('canvas');
+    probe.width = image.width;
+    probe.height = image.height;
+    const context = probe.getContext('2d');
+    if (!context) return 0;
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, image.width, image.height).data;
+    const r0 = pixels[0] ?? 0;
+    const g0 = pixels[1] ?? 0;
+    const b0 = pixels[2] ?? 0;
+    let count = 0;
+    for (let y = 0; y < image.height; y += 4) {
+      for (let x = 0; x < image.width; x += 4) {
+        const index = (y * image.width + x) * 4;
+        const delta =
+          Math.abs((pixels[index] ?? 0) - r0) +
+          Math.abs((pixels[index + 1] ?? 0) - g0) +
+          Math.abs((pixels[index + 2] ?? 0) - b0);
+        if (delta > 45) count += 1;
+      }
+    }
+    return count;
+  }, `data:image/png;base64,${screenshot.toString('base64')}`);
+  expect(renderedPixelCount).toBeGreaterThan(20);
 });
 
 test('M5A conventional review autoload renders the exact 4+7+4 topology at 80/20', async ({ page }) => {
