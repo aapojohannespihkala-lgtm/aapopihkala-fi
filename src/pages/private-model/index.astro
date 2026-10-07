@@ -7255,6 +7255,9 @@ const title = 'Private 3D viewer';
           new URLSearchParams(window.location.search).get('floor') === 'd2f' ? 'D2F' : 'D1F';
         const isD2f = p186dReviewVariant === 'D2F';
         const viewPreset: StandardViewPreset = isD2f ? 'd-2f' : 'd-1f';
+        const reviewQuestionDataset = isD2f
+          ? { p186dReviewQuestion: 'D_2F_D2015_LIGHTING_SOURCE_MARKER_POSITION_TYPE_RELATION' }
+          : { p186dReviewQuestion: 'D_1F_D2015_LIGHTING_SOURCE_MARKER_POSITION_TYPE_RELATION' };
         const expectedTargetCount = isD2f
           ? p186dExpectedD2fTargetCount
           : p186dExpectedD1fTargetCount;
@@ -7262,7 +7265,11 @@ const title = 'Private 3D viewer';
           ? p186dExpectedD2fPosCounts
           : p186dExpectedD1fPosCounts;
 
-        applyStandardViewPreset(viewPreset);
+        if (isD2f) {
+          applyStandardViewPreset('d-2f');
+        } else {
+          applyStandardViewPreset('d-1f');
+        }
         setModelScene(fullModelScene);
         canvas.dataset.contentScene = 'full-model';
         canvas.dataset.contentFloor = isD2f ? '2F' : '1F';
@@ -7305,9 +7312,7 @@ const title = 'Private 3D viewer';
         Object.assign(canvas.dataset, {
           workTestReviewMode: p186dReviewId,
           p186dReviewVariant,
-          p186dReviewQuestion: isD2f
-            ? 'D_2F_D2015_LIGHTING_SOURCE_MARKER_POSITION_TYPE_RELATION'
-            : 'D_1F_D2015_LIGHTING_SOURCE_MARKER_POSITION_TYPE_RELATION',
+          ...reviewQuestionDataset,
           p186dTargetOpacity: p186dReviewTargetOpacity.toFixed(2),
           p186dContextOpacity: p186dReviewContextOpacity.toFixed(2),
           p186dReviewTargetRenderableCount: String(presentation.targetRenderableCount),
