@@ -1,4 +1,5 @@
 name: Publish WORK_TEST
+run-name: "Publish WORK_TEST - ${{ inputs.candidate }}"
 
 on:
   workflow_dispatch:
@@ -146,7 +147,15 @@ jobs:
           model="$RUNNER_TEMP/work-test-source.glb"
           response="$RUNNER_TEMP/publish-response.json"
 
-          curl --silent --show-error --fail             --request PUT             --header "CF-Access-Client-Id: $CF_ACCESS_PUBLISHER_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_PUBLISHER_CLIENT_SECRET"             --header "Content-Type: model/gltf-binary"             --header "Content-Length: $EXPECTED_SIZE"             --data-binary "@$model"             --output "$response"             "$PUBLISH_URL"
+          curl --silent --show-error --fail \
+            --request PUT \
+            --header "CF-Access-Client-Id: $CF_ACCESS_PUBLISHER_CLIENT_ID" \
+            --header "CF-Access-Client-Secret: $CF_ACCESS_PUBLISHER_CLIENT_SECRET" \
+            --header "Content-Type: model/gltf-binary" \
+            --header "Content-Length: $EXPECTED_SIZE" \
+            --data-binary "@$model" \
+            --output "$response" \
+            "$PUBLISH_URL"
 
           python3 - "$response" "$CANDIDATE_ID" "$EXPECTED_PATH" <<'PY'
           import json
@@ -175,7 +184,13 @@ jobs:
           set -euo pipefail
           catalog="$RUNNER_TEMP/catalog.json"
 
-          curl --silent --show-error --fail             --connect-timeout 10             --max-time 30             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --output "$catalog"             "$CATALOG_URL"
+          curl --silent --show-error --fail \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$catalog" \
+            "$CATALOG_URL"
 
           python3 - "$catalog" "$CANDIDATE_ID" "$EXPECTED_PATH" <<'PY'
           import json
@@ -206,7 +221,13 @@ jobs:
           set -euo pipefail
           readback="$RUNNER_TEMP/work-test-production-readback.glb"
 
-          curl --silent --show-error --fail             --connect-timeout 10             --max-time 60             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --output "$readback"             "$GLB_URL"
+          curl --silent --show-error --fail \
+            --connect-timeout 10 \
+            --max-time 60 \
+            --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$readback" \
+            "$GLB_URL"
 
           readback_size="$(stat -c '%s' "$readback")"
           readback_sha="$(sha256sum "$readback" | awk '{print $1}')"
@@ -218,4 +239,8 @@ jobs:
         if: always()
         shell: bash
         run: |
-          rm -f             "$RUNNER_TEMP/work-test-source.glb"             "$RUNNER_TEMP/work-test-production-readback.glb"             "$RUNNER_TEMP/publish-response.json"             "$RUNNER_TEMP/catalog.json"
+          rm -f \
+            "$RUNNER_TEMP/work-test-source.glb" \
+            "$RUNNER_TEMP/work-test-production-readback.glb" \
+            "$RUNNER_TEMP/publish-response.json" \
+            "$RUNNER_TEMP/catalog.json"
