@@ -1,5 +1,22 @@
 import { THREE } from './threeRuntime';
 
+export const m5aZ2CandidateId = 'm5a-z2d-r1090-well-top-ground-surface';
+export const m5aZ2ReviewId = `${m5aZ2CandidateId}-review`;
+
+export const isM5aZ2SystemReviewRequested = (search = window.location.search) =>
+  new URLSearchParams(search).get('review') === m5aZ2ReviewId;
+
+const m5aZ2ReviewGlobals = globalThis as typeof globalThis & {
+  m5aZ2CandidateId?: string;
+  m5aZ2ReviewId?: string;
+  isM5aZ2SystemReviewRequested?: () => boolean;
+};
+
+m5aZ2ReviewGlobals.m5aZ2CandidateId = m5aZ2CandidateId;
+m5aZ2ReviewGlobals.m5aZ2ReviewId = m5aZ2ReviewId;
+m5aZ2ReviewGlobals.isM5aZ2SystemReviewRequested = () =>
+  isM5aZ2SystemReviewRequested(window.location.search);
+
 export const m5aZ2ReviewTargetOpacity = 0.8;
 export const m5aZ2ReviewContextOpacity = 0.2;
 export const m5aZ2AbsoluteZBasis = 'HIGH_CONFIDENCE_DERIVED_HOST_FLOOR_DATUM_BRIDGE';
