@@ -21,6 +21,7 @@ import {
   m5bPlannedSok2TargetMeaningById,
   m5bReviewContextOpacity,
   m5bReviewTargetOpacity,
+  m5bVerticalDownspoutProxyWallOffset,
   prepareM5BReviewPresentation,
 } from '../../src/scripts/privateModelM5BReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
@@ -56,6 +57,19 @@ const makeBuildingContext = () => {
   mesh.position.set(0, 2, 0);
   mesh.userData = {
     role: 'building-context',
+  };
+  return mesh;
+};
+
+const makeLargeReviewFootprintContext = () => {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(60, 3, 60),
+    new THREE.MeshBasicMaterial({ color: 0x999999 }),
+  );
+  mesh.name = 'M5B_REVIEW_FOOTPRINT_CONTEXT_HELPER';
+  mesh.position.set(40, 1.5, 40);
+  mesh.userData = {
+    role: 'review-footprint-helper',
   };
   return mesh;
 };
@@ -117,6 +131,36 @@ test('M5B current review uses scene60 and five vertical downspout proxies as tar
   expect(planned.visible).toBe(false);
   expect((building.material as any).opacity).toBe(m5bReviewContextOpacity);
   expect(building.userData.m5bReviewContentStatus).toBe('CLARITY_CONTEXT_20');
+});
+
+test('M5B current review anchors downspout proxies to building context, not broad review footprints', () => {
+  const root = new THREE.Group();
+  const current1 = makeRoute(m5bCurrentRouteStubIds[0]);
+  const current2 = makeRoute(m5bCurrentRouteStubIds[1]);
+  const building = makeBuildingContext();
+  const broadFootprint = makeLargeReviewFootprintContext();
+  root.add(current1, current2, building, broadFootprint);
+
+  const result = prepareM5BReviewPresentation(root, 'CURRENT');
+  const proxies = root.children.filter(
+    (child: any) => child.userData?.m5bReviewRole === 'VERTICAL_DOWNSPOUT_PROXY_80',
+  );
+  const maxAllowedX = 5 + m5bVerticalDownspoutProxyWallOffset + 0.001;
+  const maxAllowedZ = 4 + m5bVerticalDownspoutProxyWallOffset + 0.001;
+
+  expect(result.targetRenderableCount).toBe(5);
+  expect(result.verticalDownspoutProxyCount).toBe(5);
+  expect(result.buildingBoundsContributorCount).toBe(1);
+  expect(proxies).toHaveLength(5);
+  for (const proxy of proxies) {
+    expect(Math.abs(proxy.position.x)).toBeLessThanOrEqual(maxAllowedX);
+    expect(Math.abs(proxy.position.z)).toBeLessThanOrEqual(maxAllowedZ);
+    expect((proxy as any).userData.m5bReviewWallBoundsFix).toBe(
+      'R1077_FILTERED_BUILDING_WALL_BOUNDS',
+    );
+  }
+  expect((broadFootprint.material as any).opacity).toBe(m5bReviewContextOpacity);
+  expect(broadFootprint.userData.m5bReviewContentStatus).toBe('CLARITY_CONTEXT_20');
 });
 
 test('M5B current review suppresses persisted route-stub G2IdCandidate targets in vertical-location review', () => {
