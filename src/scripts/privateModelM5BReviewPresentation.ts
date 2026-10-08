@@ -28,9 +28,9 @@ export const m5bPlannedSok2ReviewQuestionScope =
 
 export const m5bCurrentTargetMeaningById: Record<(typeof m5bCurrentTargetIds)[number], string> = {
   G2_STORM_CURRENT_ROUTE_SOK1_001:
-    'Sininen lyhyt stubi: nykyhavaintoon sidottu WORK_TEST-stubi SOK1-puolen kattosadevesi-/sadevesireitin suunnasta, ei todistettu koko putkilinja.',
+    'Sininen lyhyt stubi: nykyhavaintoon sidottu WORK_TEST-stubi SOK1-puolen kattosadevesi-/sadevesireitin suunnasta, ei koko todistettu putkilinja.',
   G2_STORM_CURRENT_ROUTE_SOK2_001:
-    'Sininen lyhyt stubi: nykyhavaintoon sidottu WORK_TEST-stubi SOK2-puolen kattosadevesi-/sadevesireitin suunnasta, ei todistettu koko putkilinja.',
+    'Sininen lyhyt stubi: nykyhavaintoon sidottu WORK_TEST-stubi SOK2-puolen kattosadevesi-/sadevesireitin suunnasta, ei koko todistettu putkilinja.',
 };
 
 export const m5bPlannedSok2TargetMeaningById: Record<(typeof m5bPlannedSok2TargetIds)[number], string> = {
