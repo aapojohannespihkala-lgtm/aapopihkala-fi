@@ -91,12 +91,18 @@ const cloneObjectMaterials = (object: any, opacity: number, role: string) => {
       clone.color?.setHex?.(p186eReviewContextColorHex);
       if (clone.emissive?.setHex) {
         clone.emissive.setHex(p186eReviewContextColorHex);
-        clone.emissiveIntensity = 0.45;
+        clone.emissiveIntensity = Math.max(Number(clone.emissiveIntensity ?? 0), 0.85);
       }
       clone.toneMapped = false;
+      clone.polygonOffset = true;
+      clone.polygonOffsetFactor = -1;
+      clone.polygonOffsetUnits = -1;
+      clone.linewidth = Math.max(Number(clone.linewidth ?? 1), 2);
       clone.userData = {
         ...(clone.userData ?? {}),
         p186eReviewContextHighlight: 'HIGH_CONTRAST_LIGHT',
+        p186eReviewContextVisibilityFix:
+          'R1082_ANCESTOR_ROOT_AND_HIGH_CONTRAST_CONTEXT',
       };
     }
     clone.userData = {
@@ -150,7 +156,7 @@ const isP186ETarget = (object: any, variant: P186EReviewVariant) => {
   );
 };
 
-const p186eContextText = (object: any) => {
+const p186eContextValues = (object: any) => {
   const data = object?.userData ?? {};
   return [
     object?.name,
@@ -163,7 +169,21 @@ const p186eContextText = (object: any) => {
     data.semanticRole,
     data.contextRole,
     data.sourceScene,
-  ]
+  ];
+};
+
+const p186eContextText = (object: any) => {
+  const values: unknown[] = [];
+  let current = object;
+  let depth = 0;
+
+  while (current && depth < 8) {
+    values.push(...p186eContextValues(current));
+    current = current.parent;
+    depth += 1;
+  }
+
+  return values
     .map((value) => String(value ?? ''))
     .join(' ')
     .toLowerCase();
