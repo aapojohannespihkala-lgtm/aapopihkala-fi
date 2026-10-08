@@ -32,6 +32,8 @@ That workflow should read the candidate from `.github/work-test-candidates.json`
 
 The current ChatGPT GitHub connector tool set can read workflow runs and re-run existing jobs, but it does not expose a new `workflow_dispatch` start action for `Publish WORK_TEST`. Do not repeat a capability check for this same gate unless the available GitHub connector tool set changes or a workflow run already exists to read back.
 
+This R1120 handoff is intentionally documentation-only: it records the exact dispatch and required readback evidence so later work can continue directly at the publish gate instead of repeating the same connector-capability check.
+
 The exact dispatch, when a dispatch-capable route exists, is:
 
 ```text
