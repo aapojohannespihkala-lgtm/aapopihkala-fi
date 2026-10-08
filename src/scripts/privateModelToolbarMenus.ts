@@ -17,8 +17,14 @@ export const setupPrivateModelToolbarMenus = (toolbarMenus: HTMLDetailsElement[]
     if (!panel) return;
 
     panel.style.maxHeight = '';
-    const panelTop = panel.getBoundingClientRect().top;
-    panel.style.maxHeight = `${toolbarMenuAvailableHeight(window.innerHeight, panelTop)}px`;
+    panel.style.translate = '';
+    const rect = panel.getBoundingClientRect();
+    panel.style.maxHeight = `${toolbarMenuAvailableHeight(window.innerHeight, rect.top)}px`;
+    const horizontalOffset = Math.max(
+      10 - rect.left,
+      Math.min(0, window.innerWidth - 10 - rect.right),
+    );
+    panel.style.translate = `${horizontalOffset}px 0`;
   };
 
   toolbarMenus.forEach((menu) => {

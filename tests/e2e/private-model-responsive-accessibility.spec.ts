@@ -36,26 +36,34 @@ test('private viewer dark shell stays inside desktop and narrow viewports', asyn
 
     const toolbarMenus = ['#preset-menu', '#view-menu', '#model-menu', '#more-menu'];
 
-    for (const menuSelector of toolbarMenus) {
-      await page.locator(`${menuSelector} > summary`).click();
-      const menuInsideViewport = await page
-        .locator(`${menuSelector} .toolbar-menu-panel`)
-        .evaluate((element) => {
-          const rect = element.getBoundingClientRect();
-          return (
-            rect.left >= -1 &&
-            rect.right <= window.innerWidth + 1 &&
-            rect.top >= -1 &&
-            rect.bottom <= window.innerHeight + 1
-          );
+    for (const presetLabel of [
+      'Koko rakennus',
+      'Salaojat · mukautettu',
+      'Koko rakennus · mukautettu',
+    ]) {
+      await page.locator('#preset-context-status').evaluate((element, label) => {
+        element.textContent = label;
+      }, presetLabel);
+
+      for (const menuSelector of toolbarMenus) {
+        await page.locator(`${menuSelector} > summary`).click();
+        await expect.poll(async () => page
+          .locator(`${menuSelector} .toolbar-menu-panel`)
+          .evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            return (
+              rect.left >= -1 &&
+              rect.right <= window.innerWidth + 1 &&
+              rect.top >= -1 &&
+              rect.bottom <= window.innerHeight + 1
+            );
+          }), {
+          message: `${menuSelector} should stay inside ${viewport.width}x${viewport.height} with ${presetLabel}`,
+        }).toBe(true);
+        await page.locator(menuSelector).evaluate((element) => {
+          (element as HTMLDetailsElement).open = false;
         });
-      expect(
-        menuInsideViewport,
-        `${menuSelector} should stay inside ${viewport.width}x${viewport.height}`,
-      ).toBe(true);
-      await page.locator(menuSelector).evaluate((element) => {
-        (element as HTMLDetailsElement).open = false;
-      });
+      }
     }
 
     await page.locator('#layers-button').click();

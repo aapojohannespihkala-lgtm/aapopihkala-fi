@@ -2052,7 +2052,8 @@ test('private viewer resolves the source D scene even when Three runtime names a
 
   await page.goto('/private-model/');
 
-  await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit');
+  await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit · Koko rakennus');
+  await expect(page.locator('#preset-context-status')).toHaveText('Koko rakennus');
   await expect(page.locator('#view-menu > summary')).toHaveText('Näkymä');
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
   await expect(page.locator('#model-source-badge')).toBeVisible();
@@ -6624,7 +6625,8 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
   await page.goto('/private-model/');
 
   await expect(page.getByText('Ylisrinne 3D', { exact: true })).toBeVisible();
-  await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit');
+  await expect(page.locator('#preset-menu > summary')).toHaveText('Presetit · Koko rakennus');
+  await expect(page.locator('#preset-context-status')).toHaveText('Koko rakennus');
   await expect(page.locator('#view-menu > summary')).toHaveText('Näkymä');
   await expect(page.getByRole('button', { name: 'Layerit' })).toBeVisible();
   await page.getByRole('button', { name: 'Layerit' }).click();
