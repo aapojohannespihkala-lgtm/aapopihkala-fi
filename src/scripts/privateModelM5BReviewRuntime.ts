@@ -4,7 +4,9 @@ import {
 } from './privateModelWorkTest';
 import {
   getM5BReviewSceneIndex,
+  m5bCurrentRouteStubIds,
   m5bCurrentTargetIds,
+  m5bCurrentVerticalDownspoutReviewScope,
   m5bPlannedSok2TargetIds,
   m5bReviewContextOpacity,
   m5bReviewTargetOpacity,
@@ -17,12 +19,18 @@ export type M5BReviewPresentationResult = {
   targetRenderableCount: number;
   contextRenderableCount: number;
   suppressedCrossVariantCount: number;
+  suppressedNonQuestionRouteCount: number;
   semanticViolationCount: number;
+  buildingBoundsContributorCount: number;
   foundTargetIds: string[];
   missingTargetIds: readonly string[];
   questionScope: string;
   downspoutContext: string;
   targetMeanings: string[];
+  verticalDownspoutProxyCount: number;
+  verticalDownspoutProxyIds: string[];
+  verticalDownspoutReviewScope: string;
+  sourceRouteStubIds: string[];
 };
 
 export type M5BReviewRuntimeState = {
@@ -34,16 +42,18 @@ export type M5BReviewRuntimeState = {
 const configByVariant = {
   CURRENT: {
     reviewId: m5bCurrentReviewId,
-    question: 'ROOF_STORMWATER_CURRENT_ROUTE_RELATION',
+    question: 'ROOF_STORMWATER_VERTICAL_DOWNSPOUT_LOCATION',
     targetIds: m5bCurrentTargetIds,
-    statusLabel: 'M5B roof stormwater current route',
+    sourceRouteStubIds: m5bCurrentRouteStubIds,
+    statusLabel: 'M5B roof stormwater vertical downspout locations',
     clarityLabel:
-      '5 syöksyränniä: 4 nurkkaa + eteläjulkisivu C-B; sininen = rajattu WORK_TEST-stubi, ei koko todistettu putkilinja',
+      '5 pystysuuntaista syöksyränni-proxyä: 4 nurkkaa + eteläjulkisivu C-B; arvioi vain pystysijaintia, ei räystäs- tai alapääliitosta',
   },
   PLANNED_SOK2_COMPARISON: {
     reviewId: m5bPlannedSok2ComparisonReviewId,
     question: 'ROOF_STORMWATER_PLANNED_SOK2_COMPARISON_RELATION',
     targetIds: m5bPlannedSok2TargetIds,
+    sourceRouteStubIds: [] as readonly string[],
     statusLabel: 'M5B roof stormwater planned SOK2 comparison',
     clarityLabel:
       'planned SOK2 on vertailuesitys; nykyhavaintokonteksti on 5 syöksyränniä, ei toteuma-/tilausväite',
@@ -103,6 +113,23 @@ export const assertM5BReviewPresentationReady = (
       `M5B review target meaning count mismatch: expected ${expectedTargetIds.length}, got ${presentation.targetMeanings.length}`,
     );
   }
+
+  if (variant === 'CURRENT') {
+    if (presentation.verticalDownspoutProxyCount !== m5bCurrentTargetIds.length) {
+      throw new Error(
+        `M5B review vertical downspout proxy count mismatch: expected ${m5bCurrentTargetIds.length}, got ${presentation.verticalDownspoutProxyCount}`,
+      );
+    }
+    if (!targetIdsEqual(m5bCurrentTargetIds, presentation.verticalDownspoutProxyIds)) {
+      throw new Error('M5B review vertical downspout proxy identity mismatch');
+    }
+    if (presentation.verticalDownspoutReviewScope !== m5bCurrentVerticalDownspoutReviewScope) {
+      throw new Error('M5B review vertical downspout scope mismatch');
+    }
+    if (presentation.buildingBoundsContributorCount <= 0) {
+      throw new Error('M5B review building context bounds missing for vertical downspout proxies');
+    }
+  }
 };
 
 export const createM5BReviewRuntimeState = (
@@ -126,7 +153,15 @@ export const createM5BReviewRuntimeState = (
       m5bReviewTargetMeanings: presentation.targetMeanings.join(' | '),
       m5bReviewClarityLabel: config.clarityLabel,
       m5bSceneIndex: String(sceneIndex),
+      m5bReviewTargetIds: targetIds.join(','),
       m5bTargetG2Ids: targetIds.join(','),
+      m5bSourceRouteStubG2Ids: config.sourceRouteStubIds.join(','),
+      m5bVerticalDownspoutProxyCount: String(presentation.verticalDownspoutProxyCount),
+      m5bVerticalDownspoutProxyIds: presentation.verticalDownspoutProxyIds.join(','),
+      m5bVerticalDownspoutReviewScope: presentation.verticalDownspoutReviewScope,
+      m5bSuppressedNonQuestionRouteCount: String(
+        presentation.suppressedNonQuestionRouteCount,
+      ),
       m5bReviewTargetOpacity: m5bReviewTargetOpacity.toFixed(2),
       m5bReviewContextOpacity: m5bReviewContextOpacity.toFixed(2),
       m5bReviewTargetRenderableCount: String(

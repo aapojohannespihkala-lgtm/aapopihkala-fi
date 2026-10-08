@@ -11,8 +11,11 @@ import {
   getM5BReviewSceneIndex,
   m5bCurrentDownspoutContext,
   m5bCurrentReviewQuestionScope,
+  m5bCurrentRouteStubIds,
   m5bCurrentTargetIds,
-  m5bCurrentTargetMeaningById,
+  m5bCurrentVerticalDownspoutProxyIds,
+  m5bCurrentVerticalDownspoutProxyMeaningById,
+  m5bCurrentVerticalDownspoutReviewScope,
   m5bPlannedSok2ReviewQuestionScope,
   m5bPlannedSok2TargetIds,
   m5bPlannedSok2TargetMeaningById,
@@ -44,6 +47,24 @@ const makeRoute = (id: string, extra: Record<string, unknown> = {}) => {
   return mesh;
 };
 
+const makeBuildingContext = () => {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(10, 4, 8),
+    new THREE.MeshBasicMaterial({ color: 0xcccccc }),
+  );
+  mesh.name = 'M5B_BUILDING_WALL_CONTEXT';
+  mesh.position.set(0, 2, 0);
+  mesh.userData = {
+    role: 'building-context',
+  };
+  return mesh;
+};
+
+const currentProxyMeanings = () =>
+  m5bCurrentVerticalDownspoutProxyIds.map(
+    (id) => m5bCurrentVerticalDownspoutProxyMeaningById[id],
+  );
+
 test('M5B registry and explicit review aliases resolve exact persisted candidate', () => {
   const registry = JSON.parse(readFileSync('.github/work-test-candidates.json', 'utf8'));
   expect(registry.candidates[m5bCandidateId]).toEqual({
@@ -55,66 +76,74 @@ test('M5B registry and explicit review aliases resolve exact persisted candidate
   ).toBe(m5bCandidateId);
 });
 
-test('M5B current review uses scene60 and only current SOK1/SOK2 routes as targets', () => {
+test('M5B current review uses scene60 and five vertical downspout proxies as targets', () => {
   const root = new THREE.Group();
-  const current1 = makeRoute(m5bCurrentTargetIds[0]);
-  const current2 = makeRoute(m5bCurrentTargetIds[1]);
+  const current1 = makeRoute(m5bCurrentRouteStubIds[0]);
+  const current2 = makeRoute(m5bCurrentRouteStubIds[1]);
   const planned = makeRoute(m5bPlannedSok2TargetIds[0], {
     planned: true, ordered: false, implemented: false, current: false,
     presentationOnlyComparison: true,
   });
-  const context = makeRoute('BUILDING_CONTEXT');
-  root.add(current1, current2, planned, context);
+  const building = makeBuildingContext();
+  root.add(current1, current2, planned, building);
 
   const result = prepareM5BReviewPresentation(root, 'CURRENT');
+  const proxies = root.children.filter(
+    (child: any) => child.userData?.m5bReviewRole === 'VERTICAL_DOWNSPOUT_PROXY_80',
+  );
 
   expect(getM5BReviewSceneIndex('CURRENT')).toBe(60);
-  expect(result.targetRenderableCount).toBe(2);
+  expect(result.targetRenderableCount).toBe(5);
+  expect(result.verticalDownspoutProxyCount).toBe(5);
+  expect(result.verticalDownspoutProxyIds).toEqual([...m5bCurrentTargetIds]);
+  expect(result.foundTargetIds).toEqual([...m5bCurrentTargetIds]);
   expect(result.missingTargetIds).toEqual([]);
   expect(result.semanticViolationCount).toBe(0);
+  expect(result.buildingBoundsContributorCount).toBeGreaterThan(0);
   expect(result.questionScope).toBe(m5bCurrentReviewQuestionScope);
+  expect(result.verticalDownspoutReviewScope).toBe(m5bCurrentVerticalDownspoutReviewScope);
   expect(result.downspoutContext).toBe(m5bCurrentDownspoutContext);
-  expect(result.targetMeanings).toEqual([
-    m5bCurrentTargetMeaningById[m5bCurrentTargetIds[0]],
-    m5bCurrentTargetMeaningById[m5bCurrentTargetIds[1]],
-  ]);
-  expect((current1.material as any).opacity).toBe(m5bReviewTargetOpacity);
-  expect((current2.material as any).opacity).toBe(m5bReviewTargetOpacity);
-  expect(current1.userData.m5bReviewMeaning).toBe(
-    m5bCurrentTargetMeaningById[m5bCurrentTargetIds[0]],
-  );
-  expect(current1.userData.m5bDownspoutContext).toContain('5');
-  expect(current1.userData.m5bReviewQuestionScope).toBe(m5bCurrentReviewQuestionScope);
+  expect(result.targetMeanings).toEqual(currentProxyMeanings());
+  expect(proxies).toHaveLength(5);
+  expect((proxies[0] as any).material.opacity).toBe(m5bReviewTargetOpacity);
+  expect((proxies[0] as any).userData.m5bReviewMeaning).toContain('Pystysuuntainen syöksyränni-proxy');
+  expect((proxies[0] as any).userData.exactXYClaim).toBe(false);
+  expect((proxies[0] as any).userData.exactZClaim).toBe(false);
+  expect((proxies[0] as any).userData.currentGeometryClaim).toBe(false);
+  expect(current1.visible).toBe(false);
+  expect(current1.userData.m5bReviewRole).toBe('OLD_ROUTE_STUB_SUPPRESSED_FOR_VERTICAL_DOWNSPOUT_REVIEW');
+  expect(current2.visible).toBe(false);
+  expect(result.suppressedNonQuestionRouteCount).toBe(2);
   expect(planned.visible).toBe(false);
-  expect((context.material as any).opacity).toBe(m5bReviewContextOpacity);
-  expect(context.userData.m5bReviewContentStatus).toBe('CLARITY_CONTEXT_20');
+  expect((building.material as any).opacity).toBe(m5bReviewContextOpacity);
+  expect(building.userData.m5bReviewContentStatus).toBe('CLARITY_CONTEXT_20');
 });
 
-test('M5B current review resolves persisted G2IdCandidate target identity', () => {
+test('M5B current review suppresses persisted route-stub G2IdCandidate targets in vertical-location review', () => {
   const root = new THREE.Group();
-  const current1 = makeRoute(m5bCurrentTargetIds[0], {
+  const current1 = makeRoute('RAW_ROUTE_STUB_1', {
     G2Id: undefined,
-    G2IdCandidate: m5bCurrentTargetIds[0],
+    G2IdCandidate: m5bCurrentRouteStubIds[0],
   });
-  const current2 = makeRoute(m5bCurrentTargetIds[1], {
+  const current2 = makeRoute('RAW_ROUTE_STUB_2', {
     G2Id: undefined,
-    G2IdCandidate: m5bCurrentTargetIds[1],
+    G2IdCandidate: m5bCurrentRouteStubIds[1],
   });
-  root.add(current1, current2);
+  const building = makeBuildingContext();
+  root.add(current1, current2, building);
 
   const result = prepareM5BReviewPresentation(root, 'CURRENT');
 
-  expect(result.targetRenderableCount).toBe(2);
+  expect(result.targetRenderableCount).toBe(5);
   expect(result.foundTargetIds).toEqual([...m5bCurrentTargetIds]);
   expect(result.missingTargetIds).toEqual([]);
   expect(result.semanticViolationCount).toBe(0);
   expect(result.downspoutContext).toBe(m5bCurrentDownspoutContext);
-  expect(result.targetMeanings).toEqual([
-    m5bCurrentTargetMeaningById[m5bCurrentTargetIds[0]],
-    m5bCurrentTargetMeaningById[m5bCurrentTargetIds[1]],
-  ]);
-  expect((current1.material as any).opacity).toBe(m5bReviewTargetOpacity);
-  expect((current2.material as any).opacity).toBe(m5bReviewTargetOpacity);
+  expect(result.targetMeanings).toEqual(currentProxyMeanings());
+  expect(result.sourceRouteStubIds).toEqual([...m5bCurrentRouteStubIds]);
+  expect(current1.visible).toBe(false);
+  expect(current2.visible).toBe(false);
+  expect(result.suppressedNonQuestionRouteCount).toBe(2);
 });
 
 test('M5B Z2R raw scene61 source-bound SOK1 context receives specific 20-percent role', () => {
@@ -132,7 +161,7 @@ test('M5B Z2R raw scene61 source-bound SOK1 context receives specific 20-percent
   const sok1Context = makeRoute('SOK1_CONTEXT_SOURCE_BOUND', {
     G2Id: undefined,
     G2IdCandidate: undefined,
-    sourceG2IdCandidate: m5bCurrentTargetIds[0],
+    sourceG2IdCandidate: m5bCurrentRouteStubIds[0],
     presentationRole: 'CURRENT_SOK1_COMPARISON_CONTEXT',
     presentationOnlyComparison: true,
     currentStateEvidence: false,
@@ -140,7 +169,7 @@ test('M5B Z2R raw scene61 source-bound SOK1 context receives specific 20-percent
   const unrelatedContext = makeRoute('UNRELATED_BUILDING_CONTEXT', {
     G2Id: undefined,
     G2IdCandidate: undefined,
-    sourceG2IdCandidate: m5bCurrentTargetIds[0],
+    sourceG2IdCandidate: m5bCurrentRouteStubIds[0],
     presentationOnlyComparison: true,
   });
   root.add(planned1, planned2, sok1Context, unrelatedContext);
@@ -168,8 +197,8 @@ test('M5B Z2R raw scene61 source-bound SOK1 context receives specific 20-percent
 
 test('M5B planned comparison uses scene61, planned SOK2 targets, current SOK1 context and no current SOK2', () => {
   const root = new THREE.Group();
-  const current1 = makeRoute(m5bCurrentTargetIds[0]);
-  const current2 = makeRoute(m5bCurrentTargetIds[1]);
+  const current1 = makeRoute(m5bCurrentRouteStubIds[0]);
+  const current2 = makeRoute(m5bCurrentRouteStubIds[1]);
   const planned1 = makeRoute(m5bPlannedSok2TargetIds[0], {
     planned: true, ordered: false, implemented: false, current: false,
     presentationOnlyComparison: true,

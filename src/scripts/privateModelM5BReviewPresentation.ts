@@ -4,10 +4,20 @@ export const m5bCurrentSceneIndex = 60;
 export const m5bPlannedSok2ComparisonSceneIndex = 61;
 export const m5bPlannedSok2ComparisonSceneName = 'PLANNED_SOK2_COMPARISON_Z2R';
 
-export const m5bCurrentTargetIds = [
+export const m5bCurrentRouteStubIds = [
   'G2_STORM_CURRENT_ROUTE_SOK1_001',
   'G2_STORM_CURRENT_ROUTE_SOK2_001',
 ] as const;
+
+export const m5bCurrentVerticalDownspoutProxyIds = [
+  'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_1',
+  'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_2',
+  'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_3',
+  'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_4',
+  'M5B_VERTICAL_DOWNSPOUT_PROXY_SOUTH_FACADE_C_B',
+] as const;
+
+export const m5bCurrentTargetIds = m5bCurrentVerticalDownspoutProxyIds;
 
 export const m5bPlannedSok2TargetIds = [
   'G2_STORM_PLANNED_GULLY_SOK2_001',
@@ -17,20 +27,30 @@ export const m5bPlannedSok2TargetIds = [
 export const m5bReviewTargetOpacity = 0.8;
 export const m5bReviewContextOpacity = 0.2;
 
+export type M5BVerticalDownspoutProxyId = (typeof m5bCurrentVerticalDownspoutProxyIds)[number];
+
 export const m5bCurrentDownspoutContext =
   'Käyttäjän 2026-10-08 vahvistama nykyhavainto: 5 syöksyränniä yhteensä; neljä rakennuksen nurkilla ja yksi eteläjulkisivulla C- ja B-rakennusten välissä.';
 
-export const m5bCurrentReviewQuestionScope =
-  'Katselussa arvioidaan vain sinisten kattosadevesi-/sadevesireitin WORK_TEST-stubien ymmärrettävyyttä ja rajattua suhdetta viiden syöksyrännin nykyhavaintoon. Tämä ei ole exact XY/Z-, fyysinen purkupiste-, reitti-, as-built-, CURRENT- tai canonical-väite.';
+export const m5bCurrentVerticalDownspoutReviewScope =
+  'Katselussa arvioidaan vain viiden syöksyrännin pystysuuntaisten osuuksien sijaintia rakennuksen seinillä. Tämä esitys ei vielä ratkaise räystäskouru-, kattoreuna-, alapää-, purkupiste- tai koko putkilinjaliitoksia eikä ole exact XY/Z-, as-built-, CURRENT- tai canonical-väite.';
+
+export const m5bCurrentReviewQuestionScope = m5bCurrentVerticalDownspoutReviewScope;
 
 export const m5bPlannedSok2ReviewQuestionScope =
   'Katselussa arvioidaan vain suunnitelmapohjaisen SOK2-vertailuesityksen ymmärrettävyyttä suhteessa nykyisen M5B-kattosadevesikontekstin rajattuun WORK_TEST-esitykseen. Tämä ei ole tilaus-, toteuma-, CURRENT- tai as-built-väite.';
 
-export const m5bCurrentTargetMeaningById: Record<(typeof m5bCurrentTargetIds)[number], string> = {
-  G2_STORM_CURRENT_ROUTE_SOK1_001:
-    'Sininen lyhyt stubi: nykyhavaintoon sidottu WORK_TEST-stubi SOK1-puolen kattosadevesi-/sadevesireitin suunnasta, ei koko todistettu putkilinja.',
-  G2_STORM_CURRENT_ROUTE_SOK2_001:
-    'Sininen lyhyt stubi: nykyhavaintoon sidottu WORK_TEST-stubi SOK2-puolen kattosadevesi-/sadevesireitin suunnasta, ei koko todistettu putkilinja.',
+export const m5bCurrentVerticalDownspoutProxyMeaningById: Record<M5BVerticalDownspoutProxyId, string> = {
+  M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_1:
+    'Pystysuuntainen syöksyränni-proxy rakennuksen nurkassa 1/4. Arvioi vain pystysuoran seinäosuuden sijaintia.',
+  M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_2:
+    'Pystysuuntainen syöksyränni-proxy rakennuksen nurkassa 2/4. Arvioi vain pystysuoran seinäosuuden sijaintia.',
+  M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_3:
+    'Pystysuuntainen syöksyränni-proxy rakennuksen nurkassa 3/4. Arvioi vain pystysuoran seinäosuuden sijaintia.',
+  M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_4:
+    'Pystysuuntainen syöksyränni-proxy rakennuksen nurkassa 4/4. Arvioi vain pystysuoran seinäosuuden sijaintia.',
+  M5B_VERTICAL_DOWNSPOUT_PROXY_SOUTH_FACADE_C_B:
+    'Pystysuuntainen syöksyränni-proxy eteläjulkisivulla C- ja B-rakennusten välissä. Arvioi vain pystysuoran seinäosuuden sijaintia.',
 };
 
 export const m5bPlannedSok2TargetMeaningById: Record<(typeof m5bPlannedSok2TargetIds)[number], string> = {
@@ -100,19 +120,180 @@ const getDownspoutContext = (variant: M5BReviewVariant) =>
     ? m5bCurrentDownspoutContext
     : `${m5bCurrentDownspoutContext} PLANNED_SOK2_COMPARISON on erillinen suunnitelma-/vertailuesitys.`;
 
-const getTargetMeaning = (variant: M5BReviewVariant, g2Id: string) => {
+const getTargetMeaning = (variant: M5BReviewVariant, targetId: string) => {
   if (variant === 'CURRENT') {
-    return m5bCurrentTargetMeaningById[g2Id as (typeof m5bCurrentTargetIds)[number]] ?? '';
+    return m5bCurrentVerticalDownspoutProxyMeaningById[targetId as M5BVerticalDownspoutProxyId] ?? '';
   }
-  return m5bPlannedSok2TargetMeaningById[g2Id as (typeof m5bPlannedSok2TargetIds)[number]] ?? '';
+  return m5bPlannedSok2TargetMeaningById[targetId as (typeof m5bPlannedSok2TargetIds)[number]] ?? '';
 };
 
 export const getM5BReviewSceneIndex = (variant: M5BReviewVariant) =>
   variant === 'CURRENT' ? m5bCurrentSceneIndex : m5bPlannedSok2ComparisonSceneIndex;
 
+const getObjectFingerprint = (object: any) => {
+  const userData = object?.userData ?? {};
+  return [
+    object?.name,
+    userData.G2Id,
+    userData.G2IdCandidate,
+    userData.sourceG2IdCandidate,
+    userData.presentationRole,
+    userData.layer,
+    userData.system,
+    userData.kind,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+};
+
+const getRenderableWorldBox = (object: any) => {
+  try {
+    const box = new THREE.Box3().setFromObject(object);
+    if (
+      !Number.isFinite(box.min.x) ||
+      !Number.isFinite(box.min.y) ||
+      !Number.isFinite(box.min.z) ||
+      !Number.isFinite(box.max.x) ||
+      !Number.isFinite(box.max.y) ||
+      !Number.isFinite(box.max.z)
+    ) {
+      return null;
+    }
+    const size = box.getSize(new THREE.Vector3());
+    if (size.x <= 0.001 && size.y <= 0.001 && size.z <= 0.001) return null;
+    return { box, size };
+  } catch {
+    return null;
+  }
+};
+
+const canContributeToBuildingBounds = (object: any, g2Id: string, targetIds: Set<string>) => {
+  if (object.visible === false || targetIds.has(g2Id)) return false;
+  const fingerprint = getObjectFingerprint(object);
+  if (
+    /terrain|maasto|contour|käyr|ground|storm|sadeves|route|gully|stub|downspout|ränni|kaivo|pipe|putki|drain/.test(
+      fingerprint,
+    )
+  ) {
+    return false;
+  }
+  const worldBox = getRenderableWorldBox(object);
+  if (!worldBox) return false;
+  const { size } = worldBox;
+  if (size.y < 1 || size.x > 80 || size.z > 80) return false;
+  return true;
+};
+
+const createCurrentVerticalDownspoutProxy = (
+  id: M5BVerticalDownspoutProxyId,
+  position: { x: number; z: number },
+  yBottom: number,
+  yTop: number,
+  questionScope: string,
+  downspoutContext: string,
+) => {
+  const material = new THREE.LineBasicMaterial({
+    color: 0x2fa8ff,
+    opacity: m5bReviewTargetOpacity,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+  });
+  material.userData = {
+    ...(material.userData ?? {}),
+    m5bReviewPresentation: true,
+    m5bReviewVariant: 'CURRENT',
+    m5bPresentationRole: 'VERTICAL_DOWNSPOUT_PROXY_80',
+  };
+  const geometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(position.x, yBottom, position.z),
+    new THREE.Vector3(position.x, yTop, position.z),
+  ]);
+  const line = new THREE.Line(geometry, material);
+  line.name = id;
+  line.renderOrder = 1000;
+  line.userData = {
+    G2Id: id,
+    presentationOnly: true,
+    workAssumption: true,
+    viewerDerived: true,
+    exactXYClaim: false,
+    exactZClaim: false,
+    physicalRouteClaim: false,
+    currentGeometryClaim: false,
+    asBuiltClaim: false,
+    Canonical: false,
+    publishToCURRENT: false,
+    m5bReviewPresentation: true,
+    m5bReviewVariant: 'CURRENT',
+    m5bReviewRole: 'VERTICAL_DOWNSPOUT_PROXY_80',
+    m5bReviewMeaning: m5bCurrentVerticalDownspoutProxyMeaningById[id],
+    m5bReviewQuestionScope: questionScope,
+    m5bVerticalDownspoutReviewScope: m5bCurrentVerticalDownspoutReviewScope,
+    m5bDownspoutContext: downspoutContext,
+    m5bReviewContentStatus: 'VERTICAL_DOWNSPOUT_LOCATION_PROXY_ONLY',
+    m5bProxyPlacementBasis:
+      'viewer-derived building-bounds presentation proxy; user review requested for vertical-location plausibility only',
+  };
+  return line;
+};
+
+const addCurrentVerticalDownspoutProxies = (
+  sceneRoot: any,
+  buildingBounds: any,
+  questionScope: string,
+  downspoutContext: string,
+) => {
+  if (!buildingBounds || buildingBounds.isEmpty?.()) {
+    return { ids: [] as string[], meanings: [] as string[], semanticViolations: 0 };
+  }
+  const size = buildingBounds.getSize(new THREE.Vector3());
+  if (size.x <= 0.001 || size.y <= 0.001 || size.z <= 0.001) {
+    return { ids: [] as string[], meanings: [] as string[], semanticViolations: 0 };
+  }
+
+  const offset = 0.18;
+  const xMin = buildingBounds.min.x;
+  const xMax = buildingBounds.max.x;
+  const zMin = buildingBounds.min.z;
+  const zMax = buildingBounds.max.z;
+  const yBottom = buildingBounds.min.y;
+  const yTop = buildingBounds.max.y;
+  const xMid = (xMin + xMax) / 2;
+
+  const proxyPositions: Array<{ id: M5BVerticalDownspoutProxyId; x: number; z: number }> = [
+    { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_1', x: xMin - offset, z: zMin - offset },
+    { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_2', x: xMax + offset, z: zMin - offset },
+    { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_3', x: xMax + offset, z: zMax + offset },
+    { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_4', x: xMin - offset, z: zMax + offset },
+    { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_SOUTH_FACADE_C_B', x: xMid, z: zMin - offset },
+  ];
+
+  const created: string[] = [];
+  const meanings: string[] = [];
+  let semanticViolations = 0;
+  for (const proxy of proxyPositions) {
+    const line = createCurrentVerticalDownspoutProxy(
+      proxy.id,
+      { x: proxy.x, z: proxy.z },
+      yBottom,
+      yTop,
+      questionScope,
+      downspoutContext,
+    );
+    sceneRoot?.add?.(line);
+    created.push(proxy.id);
+    meanings.push(m5bCurrentVerticalDownspoutProxyMeaningById[proxy.id]);
+    if (!hasNoPromotionSemantics(line, 'CURRENT')) semanticViolations += 1;
+  }
+  return { ids: created, meanings, semanticViolations };
+};
+
 export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewVariant) => {
   const targets = variant === 'CURRENT' ? m5bCurrentTargetIds : m5bPlannedSok2TargetIds;
   const targetIds = new Set<string>(targets);
+  const currentRouteStubIds = new Set<string>(m5bCurrentRouteStubIds);
   const found = new Set<string>();
   const targetMeanings: string[] = [];
   const questionScope = getQuestionScope(variant);
@@ -120,11 +301,30 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
   let targetRenderableCount = 0;
   let contextRenderableCount = 0;
   let suppressedCrossVariantCount = 0;
+  let suppressedNonQuestionRouteCount = 0;
   let semanticViolationCount = 0;
+  const buildingBounds = new THREE.Box3();
+  let buildingBoundsContributorCount = 0;
 
   sceneRoot?.traverse?.((object: any) => {
     if (!isRenderable(object)) return;
     const g2Id = String(object?.userData?.G2Id ?? object?.userData?.G2IdCandidate ?? '').trim();
+
+    if (variant === 'CURRENT' && currentRouteStubIds.has(g2Id)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        m5bReviewPresentation: true,
+        m5bReviewVariant: variant,
+        m5bReviewRole: 'OLD_ROUTE_STUB_SUPPRESSED_FOR_VERTICAL_DOWNSPOUT_REVIEW',
+        m5bReviewQuestionScope: questionScope,
+        m5bDownspoutContext: downspoutContext,
+        m5bReviewContentStatus: 'SUPPRESSED_NOT_CURRENT_QUESTION_TARGET',
+      };
+      suppressedNonQuestionRouteCount += 1;
+      return;
+    }
 
     if (targetIds.has(g2Id)) {
       const targetMeaning = getTargetMeaning(variant, g2Id);
@@ -150,7 +350,7 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
 
     const suppress =
       (variant === 'CURRENT' && m5bPlannedSok2TargetIds.includes(g2Id as any)) ||
-      (variant === 'PLANNED_SOK2_COMPARISON' && g2Id === 'G2_STORM_CURRENT_ROUTE_SOK2_001');
+      (variant === 'PLANNED_SOK2_COMPARISON' && g2Id === m5bCurrentRouteStubIds[1]);
 
     if (suppress) {
       object.visible = false;
@@ -168,13 +368,20 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
     }
 
     if (object.visible === false) return;
+    if (canContributeToBuildingBounds(object, g2Id, targetIds)) {
+      const worldBox = getRenderableWorldBox(object);
+      if (worldBox) {
+        buildingBounds.union(worldBox.box);
+        buildingBoundsContributorCount += 1;
+      }
+    }
     // The rebuilt Z2R scene61 stores the SOK1 context as source-bound comparison
     // geometry, not as a second G2Id/G2IdCandidate target.
     const isSok1ComparisonContext =
       variant === 'PLANNED_SOK2_COMPARISON' &&
-      (g2Id === 'G2_STORM_CURRENT_ROUTE_SOK1_001' ||
+      (g2Id === m5bCurrentRouteStubIds[0] ||
         (object?.userData?.presentationRole === 'CURRENT_SOK1_COMPARISON_CONTEXT' &&
-          object?.userData?.sourceG2IdCandidate === 'G2_STORM_CURRENT_ROUTE_SOK1_001' &&
+          object?.userData?.sourceG2IdCandidate === m5bCurrentRouteStubIds[0] &&
           object?.userData?.presentationOnlyComparison === true));
     const role = isSok1ComparisonContext
       ? 'CURRENT_SOK1_COMPARISON_CONTEXT_20'
@@ -193,17 +400,42 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
     contextRenderableCount += 1;
   });
 
+  let verticalDownspoutProxyIds: string[] = [];
+  let verticalDownspoutProxyMeanings: string[] = [];
+  if (variant === 'CURRENT') {
+    const proxyResult = addCurrentVerticalDownspoutProxies(
+      sceneRoot,
+      buildingBounds,
+      questionScope,
+      downspoutContext,
+    );
+    verticalDownspoutProxyIds = proxyResult.ids;
+    verticalDownspoutProxyMeanings = proxyResult.meanings;
+    semanticViolationCount += proxyResult.semanticViolations;
+    targetRenderableCount = verticalDownspoutProxyIds.length;
+    found.clear();
+    for (const id of verticalDownspoutProxyIds) found.add(id);
+    targetMeanings.splice(0, targetMeanings.length, ...verticalDownspoutProxyMeanings);
+  }
+
   return {
     variant,
     sceneIndex: getM5BReviewSceneIndex(variant),
     targetRenderableCount,
     contextRenderableCount,
     suppressedCrossVariantCount,
+    suppressedNonQuestionRouteCount,
     semanticViolationCount,
+    buildingBoundsContributorCount,
     foundTargetIds: [...found],
     missingTargetIds: targets.filter((id) => !found.has(id)),
     questionScope,
     downspoutContext,
     targetMeanings,
+    verticalDownspoutProxyCount: verticalDownspoutProxyIds.length,
+    verticalDownspoutProxyIds,
+    verticalDownspoutReviewScope:
+      variant === 'CURRENT' ? m5bCurrentVerticalDownspoutReviewScope : '',
+    sourceRouteStubIds: variant === 'CURRENT' ? [...m5bCurrentRouteStubIds] : [],
   };
 };

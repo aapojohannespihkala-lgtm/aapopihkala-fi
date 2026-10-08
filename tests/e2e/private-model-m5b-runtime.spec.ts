@@ -9,27 +9,36 @@ import {
 import {
   m5bCurrentDownspoutContext,
   m5bCurrentReviewQuestionScope,
+  m5bCurrentRouteStubIds,
   m5bCurrentTargetIds,
-  m5bCurrentTargetMeaningById,
+  m5bCurrentVerticalDownspoutProxyMeaningById,
+  m5bCurrentVerticalDownspoutReviewScope,
   m5bPlannedSok2ReviewQuestionScope,
   m5bPlannedSok2TargetIds,
   m5bPlannedSok2TargetMeaningById,
 } from '../../src/scripts/privateModelM5BReviewPresentation';
 
+const currentMeanings = () =>
+  m5bCurrentTargetIds.map((id) => m5bCurrentVerticalDownspoutProxyMeaningById[id]);
+
 const currentPresentation = (): M5BReviewPresentationResult => ({
   variant: 'CURRENT',
   sceneIndex: 60,
-  targetRenderableCount: 2,
+  targetRenderableCount: 5,
   contextRenderableCount: 11,
   suppressedCrossVariantCount: 2,
+  suppressedNonQuestionRouteCount: 2,
   semanticViolationCount: 0,
+  buildingBoundsContributorCount: 1,
   foundTargetIds: [...m5bCurrentTargetIds],
   missingTargetIds: [],
   questionScope: m5bCurrentReviewQuestionScope,
   downspoutContext: m5bCurrentDownspoutContext,
-  targetMeanings: m5bCurrentTargetIds.map(
-    (id) => m5bCurrentTargetMeaningById[id],
-  ),
+  targetMeanings: currentMeanings(),
+  verticalDownspoutProxyCount: 5,
+  verticalDownspoutProxyIds: [...m5bCurrentTargetIds],
+  verticalDownspoutReviewScope: m5bCurrentVerticalDownspoutReviewScope,
+  sourceRouteStubIds: [...m5bCurrentRouteStubIds],
 });
 
 const plannedPresentation = (): M5BReviewPresentationResult => ({
@@ -38,7 +47,9 @@ const plannedPresentation = (): M5BReviewPresentationResult => ({
   targetRenderableCount: 2,
   contextRenderableCount: 12,
   suppressedCrossVariantCount: 1,
+  suppressedNonQuestionRouteCount: 0,
   semanticViolationCount: 0,
+  buildingBoundsContributorCount: 0,
   foundTargetIds: [...m5bPlannedSok2TargetIds],
   missingTargetIds: [],
   questionScope: m5bPlannedSok2ReviewQuestionScope,
@@ -47,9 +58,13 @@ const plannedPresentation = (): M5BReviewPresentationResult => ({
   targetMeanings: m5bPlannedSok2TargetIds.map(
     (id) => m5bPlannedSok2TargetMeaningById[id],
   ),
+  verticalDownspoutProxyCount: 0,
+  verticalDownspoutProxyIds: [],
+  verticalDownspoutReviewScope: '',
+  sourceRouteStubIds: [],
 });
 
-test('M5B CURRENT runtime state binds scene60, exact targets, 80/20 and no-promotion metadata', () => {
+test('M5B CURRENT runtime state binds scene60, five vertical downspout targets, 80/20 and no-promotion metadata', () => {
   const state = createM5BReviewRuntimeState('CURRENT', currentPresentation());
 
   expect(state.standardViewPreset).toBe('whole-building');
@@ -57,15 +72,21 @@ test('M5B CURRENT runtime state binds scene60, exact targets, 80/20 and no-promo
     'm5b-roof-stormwater-current-review',
   );
   expect(state.dataset.m5bReviewQuestion).toBe(
-    'ROOF_STORMWATER_CURRENT_ROUTE_RELATION',
+    'ROOF_STORMWATER_VERTICAL_DOWNSPOUT_LOCATION',
   );
   expect(state.dataset.m5bReviewQuestionScope).toBe(m5bCurrentReviewQuestionScope);
   expect(state.dataset.m5bDownspoutContext).toBe(m5bCurrentDownspoutContext);
-  expect(state.dataset.m5bReviewTargetMeanings).toContain('WORK_TEST-stubi');
-  expect(state.dataset.m5bReviewClarityLabel).toContain('5 syöksyränniä');
-  expect(state.statusText).toContain('5 syöksyränniä');
-  expect(state.statusText).toContain('ei koko todistettu putkilinja');
+  expect(state.dataset.m5bReviewTargetMeanings).toContain('Pystysuuntainen syöksyränni-proxy');
+  expect(state.dataset.m5bReviewClarityLabel).toContain('5 pystysuuntaista syöksyränni-proxyä');
+  expect(state.dataset.m5bVerticalDownspoutProxyCount).toBe('5');
+  expect(state.dataset.m5bVerticalDownspoutProxyIds).toBe(m5bCurrentTargetIds.join(','));
+  expect(state.dataset.m5bVerticalDownspoutReviewScope).toBe(m5bCurrentVerticalDownspoutReviewScope);
+  expect(state.dataset.m5bSourceRouteStubG2Ids).toBe(m5bCurrentRouteStubIds.join(','));
+  expect(state.dataset.m5bSuppressedNonQuestionRouteCount).toBe('2');
+  expect(state.statusText).toContain('5 pystysuuntaista syöksyränni-proxyä');
+  expect(state.statusText).toContain('pystysijaintia');
   expect(state.dataset.m5bSceneIndex).toBe('60');
+  expect(state.dataset.m5bReviewTargetIds).toBe(m5bCurrentTargetIds.join(','));
   expect(state.dataset.m5bTargetG2Ids).toBe(m5bCurrentTargetIds.join(','));
   expect(state.dataset.m5bReviewTargetOpacity).toBe('0.80');
   expect(state.dataset.m5bReviewContextOpacity).toBe('0.20');
@@ -96,16 +117,16 @@ test('M5B PLANNED runtime state binds scene61 and only planned SOK2 targets', ()
   expect(state.dataset.m5bDownspoutContext).toContain('5 syöksyränniä');
   expect(state.dataset.m5bReviewTargetMeanings).toContain('SOK2-puolen suunniteltu');
   expect(state.dataset.m5bSceneIndex).toBe('61');
-  expect(state.dataset.m5bTargetG2Ids).toBe(m5bPlannedSok2TargetIds.join(','));
+  expect(state.dataset.m5bReviewTargetIds).toBe(m5bPlannedSok2TargetIds.join(','));
   expect(state.dataset.m5bReviewSuppressedCrossVariantCount).toBe('1');
   expect(state.statusText).toContain('scene 61');
 });
 
 test('M5B runtime readiness rejects missing targets and semantic promotion violations', () => {
   const missing = currentPresentation();
-  missing.targetRenderableCount = 1;
-  missing.foundTargetIds = [m5bCurrentTargetIds[0]];
-  missing.missingTargetIds = [m5bCurrentTargetIds[1]];
+  missing.targetRenderableCount = 4;
+  missing.foundTargetIds = m5bCurrentTargetIds.slice(0, 4);
+  missing.missingTargetIds = [m5bCurrentTargetIds[4]];
 
   expect(() => assertM5BReviewPresentationReady('CURRENT', missing)).toThrow(
     /target count mismatch/,
@@ -135,6 +156,26 @@ test('M5B runtime readiness rejects missing clarity metadata', () => {
   noMeanings.targetMeanings = [];
   expect(() => assertM5BReviewPresentationReady('CURRENT', noMeanings)).toThrow(
     /target meaning count mismatch/,
+  );
+});
+
+test('M5B runtime readiness rejects incomplete vertical downspout proxy contract', () => {
+  const incomplete = currentPresentation();
+  incomplete.verticalDownspoutProxyCount = 4;
+  expect(() => assertM5BReviewPresentationReady('CURRENT', incomplete)).toThrow(
+    /vertical downspout proxy count mismatch/,
+  );
+
+  const noScope = currentPresentation();
+  noScope.verticalDownspoutReviewScope = '';
+  expect(() => assertM5BReviewPresentationReady('CURRENT', noScope)).toThrow(
+    /vertical downspout scope mismatch/,
+  );
+
+  const noBounds = currentPresentation();
+  noBounds.buildingBoundsContributorCount = 0;
+  expect(() => assertM5BReviewPresentationReady('CURRENT', noBounds)).toThrow(
+    /building context bounds missing/,
   );
 });
 
