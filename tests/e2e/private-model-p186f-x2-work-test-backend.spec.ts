@@ -20,12 +20,15 @@ test('P186F-X2 backend work-test runtime allowlist exposes the exact successor',
 });
 
 test('P186F-X2 one-link review id autoload maps to the published WORK_TEST candidate', () => {
-  expect(getRequestedReviewCandidateId(`?review=${p186fX2ReviewId}`)).toBe(p186fX2CandidateId);
+  const directResolvedCandidateId = getRequestedReviewCandidateId(`?review=${p186fX2ReviewId}`);
+  expect(directResolvedCandidateId).toBe(p186fX2CandidateId);
   expect(getRequestedReviewCandidateId(`?foo=bar&review=${p186fX2ReviewId}`)).toBe(p186fX2CandidateId);
 
-  const candidate = getPrivateWorkTestCandidateById(
-    getRequestedReviewCandidateId(`?review=${p186fX2ReviewId}`),
-  );
+  if (directResolvedCandidateId === null) {
+    throw new Error('P186F-X2 review id did not resolve to a WORK_TEST candidate');
+  }
+
+  const candidate = getPrivateWorkTestCandidateById(directResolvedCandidateId);
 
   expect(candidate).toMatchObject({
     id: p186fX2CandidateId,
