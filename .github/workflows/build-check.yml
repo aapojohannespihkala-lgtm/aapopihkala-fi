@@ -212,7 +212,7 @@ jobs:
             fi
           fi
 
-          for attempt in 1 2 3; do
+          for attempt in $(seq 1 15); do
             if merged="$(gh api --method PUT \
               "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/merge" \
               --raw-field merge_method=squash \
@@ -257,10 +257,11 @@ jobs:
               fi
             fi
 
-            if [[ "$attempt" -lt 3 ]]; then
-              sleep 3
+            if [[ "$attempt" -lt 15 ]]; then
+              echo "Merge attempt ${attempt} did not pass repository rule propagation yet; retrying in 10 seconds."
+              sleep 10
             fi
           done
 
-          echo "Automatic merge failed after required CI passed." >&2
+          echo "Automatic merge failed after required CI passed and status-propagation retries." >&2
           exit 1
