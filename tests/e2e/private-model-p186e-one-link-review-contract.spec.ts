@@ -21,6 +21,16 @@ const forbiddenTransportParams = [
   'upload',
 ];
 
+const forbiddenPromotionParams = [
+  'as-built',
+  'asBuilt',
+  'canonical',
+  'current',
+  'humanReview',
+  'publishToCURRENT',
+  'readyForHumanReview',
+];
+
 test('P186E electrical review URL is a canonical production one-link entrypoint', () => {
   expect(canonicalReviewUrl.origin).toBe('https://aapopihkala.fi');
   expect(canonicalReviewUrl.pathname).toBe('/private-model/');
@@ -45,6 +55,16 @@ test('P186E review URLs do not depend on manual GLB transport', () => {
     }
     expect(url.href).not.toContain('.glb');
     expect(url.href).not.toContain('/work-test/');
+  }
+});
+
+test('P186E review URLs do not smuggle promotion or completed-review state', () => {
+  for (const url of [canonicalReviewUrl, d2fReviewUrl]) {
+    for (const paramName of forbiddenPromotionParams) {
+      expect(url.searchParams.has(paramName)).toBe(false);
+    }
+    expect(url.href).not.toContain('READY_FOR_HUMAN_REVIEW');
+    expect(url.href).not.toContain('HUMAN_REVIEW');
   }
 });
 
