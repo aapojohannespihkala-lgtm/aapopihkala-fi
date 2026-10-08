@@ -20,6 +20,9 @@ export type M5BReviewPresentationResult = {
   semanticViolationCount: number;
   foundTargetIds: string[];
   missingTargetIds: readonly string[];
+  questionScope: string;
+  downspoutContext: string;
+  targetMeanings: string[];
 };
 
 export type M5BReviewRuntimeState = {
@@ -34,12 +37,16 @@ const configByVariant = {
     question: 'ROOF_STORMWATER_CURRENT_ROUTE_RELATION',
     targetIds: m5bCurrentTargetIds,
     statusLabel: 'M5B roof stormwater current route',
+    clarityLabel:
+      '5 syöksyränniä: 4 nurkkaa + eteläjulkisivu C-B; sininen = rajattu WORK_TEST-stubi, ei koko todistettu putkilinja',
   },
   PLANNED_SOK2_COMPARISON: {
     reviewId: m5bPlannedSok2ComparisonReviewId,
     question: 'ROOF_STORMWATER_PLANNED_SOK2_COMPARISON_RELATION',
     targetIds: m5bPlannedSok2TargetIds,
     statusLabel: 'M5B roof stormwater planned SOK2 comparison',
+    clarityLabel:
+      'planned SOK2 on vertailuesitys; nykyhavaintokonteksti on 5 syöksyränniä, ei toteuma-/tilausväite',
   },
 } as const;
 
@@ -85,6 +92,17 @@ export const assertM5BReviewPresentationReady = (
       `M5B review no-promotion semantic violations: ${presentation.semanticViolationCount}`,
     );
   }
+  if (!presentation.questionScope?.trim()) {
+    throw new Error('M5B review question scope missing');
+  }
+  if (!presentation.downspoutContext?.includes('5 syöksyränniä')) {
+    throw new Error('M5B review five-downspout context missing');
+  }
+  if (presentation.targetMeanings.length !== expectedTargetIds.length) {
+    throw new Error(
+      `M5B review target meaning count mismatch: expected ${expectedTargetIds.length}, got ${presentation.targetMeanings.length}`,
+    );
+  }
 };
 
 export const createM5BReviewRuntimeState = (
@@ -103,6 +121,10 @@ export const createM5BReviewRuntimeState = (
       workTestReviewMode: config.reviewId,
       m5bReviewVariant: variant,
       m5bReviewQuestion: config.question,
+      m5bReviewQuestionScope: presentation.questionScope,
+      m5bDownspoutContext: presentation.downspoutContext,
+      m5bReviewTargetMeanings: presentation.targetMeanings.join(' | '),
+      m5bReviewClarityLabel: config.clarityLabel,
       m5bSceneIndex: String(sceneIndex),
       m5bTargetG2Ids: targetIds.join(','),
       m5bReviewTargetOpacity: m5bReviewTargetOpacity.toFixed(2),
@@ -128,6 +150,6 @@ export const createM5BReviewRuntimeState = (
       standardViewPreset: 'whole-building',
     },
     statusText:
-      `${config.statusLabel} - WORK_TEST / targets 80 % / context 20 % / scene ${sceneIndex} / HUMAN_REVIEW NOT_RUN`,
+      `${config.statusLabel} - WORK_TEST / targets 80 % / context 20 % / scene ${sceneIndex} / ${config.clarityLabel} / HUMAN_REVIEW NOT_RUN`,
   };
 };
