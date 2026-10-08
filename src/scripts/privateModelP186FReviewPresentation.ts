@@ -231,7 +231,10 @@ const hasP186fNoPromotionSemantics = (object: any) => {
   );
 };
 
-export const prepareP186fReviewPresentation = (sceneRoot: any) => {
+export const prepareP186fReviewPresentation = (
+  sceneRoot: any,
+  options: { preferRealArchitectureContext?: boolean } = {},
+) => {
   const renderables: any[] = [];
   const targets: any[] = [];
   const roomCounts = new Map<string, number>();
@@ -258,7 +261,10 @@ export const prepareP186fReviewPresentation = (sceneRoot: any) => {
   const realArchitectureContextRequired = targets.some(
     (object) => String(object.userData?.Pass ?? '') === 'P186F-X2',
   );
+  // Opt-in until the viewer runtime accepts variable solid-wall context counts.
+  // The legacy X1/X2 seven-footprint contract remains unchanged by default.
   const useRealArchitectureContext =
+    options.preferRealArchitectureContext === true &&
     realArchitectureContextRequired &&
     renderables.some(isP186fD1fArchitectureSolid);
 
