@@ -10,9 +10,12 @@ const privateModelIndexSource = readFileSync(
 const r1090CandidateId = 'm5a-z2d-r1090-well-top-ground-surface';
 const r1090ReviewId = `${r1090CandidateId}-review`;
 
-test('R1090 review URL is wired to the M5A-Z2 presentation runtime state', () => {
+test('R1090 review URL is wired to the shared M5A-Z2 presentation runtime state', () => {
   expect(privateModelIndexSource).toContain(r1090CandidateId);
   expect(privateModelIndexSource).toContain(r1090ReviewId);
+  expect(privateModelIndexSource).toContain('m5aZ2R1090CandidateId');
+  expect(privateModelIndexSource).toContain('m5aZ2R1090ReviewId');
+  expect(privateModelIndexSource).not.toContain('isM5aZ2R1090SystemReviewRequested');
 
   const r1090ReviewPredicate = new RegExp(
     [
