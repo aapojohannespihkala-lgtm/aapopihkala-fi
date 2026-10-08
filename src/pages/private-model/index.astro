@@ -2029,6 +2029,11 @@ const title = 'Private 3D viewer';
         p160ReviewId,
         type WorkTestCandidate,
       } from '../../scripts/privateModelWorkTest';
+      import {
+        getActiveM5AZ2SystemReviewId,
+        getRequestedM5AZ2SystemCandidateId,
+        isM5AZ2SystemReviewRequested,
+      } from '../../scripts/privateModelM5AZ2SystemReviewRuntime';
 
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       const status = document.querySelector<HTMLElement>('#viewer-status');
@@ -6429,12 +6434,6 @@ const title = 'Private 3D viewer';
           m5aR3Z1cSok1Sok2RelativeZReviewId,
         );
 
-      const m5aZ2CandidateId = 'm5a-z2-absolute-z-host-floor-datum';
-      const m5aZ2ReviewId = `${m5aZ2CandidateId}-review`;
-
-      const isM5aZ2SystemReviewRequested = () =>
-        isPrivateModelReviewRequested(window.location.search, m5aZ2ReviewId);
-
       const p186cX2rCandidateId = 'p186c-x2r-d2015-floor-heating-work-routes-p28-corrected';
       const p186cX2rReviewId = `${p186cX2rCandidateId}-review`;
 
@@ -7338,9 +7337,15 @@ const title = 'Private 3D viewer';
           updateSize();
           const cameraFocusApplied = focusM5AReviewCamera(presentation.targetBounds);
 
+          const activeM5aZ2SystemReviewId =
+            getActiveM5AZ2SystemReviewId(window.location.search);
+          const m5aZ2ReviewState = 'ready';
+          const m5aDrainageReviewMode = mode;
+          canvas.dataset.workTestReviewMode = activeM5aZ2SystemReviewId;
+          canvas.dataset.m5aZ2ReviewState = m5aZ2ReviewState;
           Object.assign(canvas.dataset, {
-            workTestReviewMode: m5aZ2ReviewId,
-            m5aReviewScope: mode,
+            workTestReviewMode: activeM5aZ2SystemReviewId,
+            m5aReviewScope: m5aDrainageReviewMode,
             m5aReviewQuestion: 'DRAINAGE_Z2_ABSOLUTE_Z_HOST_FLOOR_DATUM_SYSTEM_USABILITY',
             m5aReviewQuestionText: presentation.reviewQuestionText,
             m5aTargetOpacity: m5aZ2ReviewTargetOpacity.toFixed(2),
@@ -8514,8 +8519,15 @@ const title = 'Private 3D viewer';
             candidate.id === p186dCandidateId && isP186dLightingReviewRequested();
           const isP184hApplianceOnP185cReview =
             candidate.id === p185cCandidateId && isP184hApplianceOnP185cReviewRequested();
+          const requestedM5aZ2SystemCandidateId =
+            getRequestedM5AZ2SystemCandidateId(window.location.search);
+          const isM5aZ2SystemReview =
+            isM5AZ2SystemReviewRequested(window.location.search) &&
+            requestedM5aZ2SystemCandidateId === candidate.id;
+          // R1090 m5a-z2d-r1090-well-top-ground-surface / 
+          // m5a-z2d-r1090-well-top-ground-surface-review shares the legacy Z2 presentation.
           const m5aDrainageReviewMode: M5aDrainageReviewMode | null =
-            candidate.id === m5aZ2CandidateId && isM5aZ2SystemReviewRequested()
+            isM5aZ2SystemReview
               ? 'Z2_ABSOLUTE_Z_SYSTEM'
               : candidate.id === m5aDrainageCandidateId && isM5aDrainageReviewRequested()
                 ? 'TOPOLOGY_CORRECTION'
