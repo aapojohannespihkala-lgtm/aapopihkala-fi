@@ -33,4 +33,6 @@ test('M5A-Z2D R1090 runtime allowlist exposes the exact well-top ground-surface 
   expect(getPrivateWorkTestVerifyCandidate(`${PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX}${id}.glb`)).toBe(
     candidate,
   );
+
+  expect(getPrivateWorkTestCandidateById('m5a-z2d-d100-d300-diameter')).toBeDefined();
 });
