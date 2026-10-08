@@ -48,6 +48,12 @@ test('M5A-Z2D R1090 handoff keeps the next gate at authenticated render visibili
   expect(docsContent).toContain('not `READY_FOR_HUMAN_REVIEW`');
 });
 
+test('M5A-Z2D R1090 handoff keeps no-promotion boundaries explicit', () => {
+  expect(docsContent).toContain('This mapping note does not change GLB bytes');
+  expect(docsContent).toContain('publishToCURRENT');
+  expect(docsContent).toContain('HUMAN_REVIEW');
+});
+
 test('M5A-Z2D R1090 handoff no longer treats implementation or one-link wiring as the next patch', () => {
   expect(docsContent).not.toContain('Required next code patch');
   expect(docsContent).not.toContain('continue with the actual runtime allowlist patch');
