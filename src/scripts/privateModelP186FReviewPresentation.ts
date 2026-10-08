@@ -9,8 +9,11 @@ export const p186fMaintenanceDocumentId = '1W6iUJoqfkM0efZpmcneXeD8bqYlLUk0tQwWe
 export const p186fFloorHeatingSourcePdfDriveId = '1vAyvAHdClqkXKIVNgKKUyOjMja-tzrok';
 export const p186fSchedulePdfDriveId = '1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP';
 
+export const p186fBedroomWalkInContextNote =
+  'Bedroom-ankkuri tarkoittaa Bedroom/vaatehuone-kontekstia: käyttäjän vahvistuksen mukaan Themo ohjaa makuuhuoneen lattialämmitystä, vaikka fyysinen termostaatti sijaitsee samassa huonekokonaisuudessa vaatehuoneen ja kulkumaisen tilarakenteen kautta.';
+
 export const p186fReviewQuestionText =
-  'Sijoittuvatko Bathroom-, Bedroom- ja Lobby-Themojen room-level WORK_TEST -ankkurit käyttökelpoisesti oikeiden huoneiden yhteyteen, ymmärtäen etteivät markerit ole fyysisten termostaattien exact-sijainteja?';
+  'Sijoittuvatko Bathroom-, Bedroom/vaatehuone- ja Lobby-Themojen room-level WORK_TEST -ankkurit käyttökelpoisesti oikeiden huoneiden tai käyttökontekstien yhteyteen, ymmärtäen etteivät markerit ole fyysisten termostaattien exact-sijainteja?';
 
 export const p186fReviewSourceContexts = [
   {
@@ -31,7 +34,7 @@ export const p186fReviewSourceContexts = [
 ] as const;
 
 export const p186fReviewSourceLimit =
-  'Themojen asennus ja Bathroom/Bedroom/Lobby-huonesidonnat ovat käyttäjän vahvistamaa nykytilaevidenssiä. Markerien XY/Z on vain room-level WORK_ASSUMPTION -esitystä, ja vuoden 2015 ryhmät 10.2/10.3/10.1 ovat historiallista kontekstia, eivät nykyinen as-built-syöttökytkentä.';
+  `Themojen asennus ja Bathroom/Bedroom/vaatehuone/Lobby-huonesidonnat ovat käyttäjän vahvistamaa nykytilaevidenssiä. ${p186fBedroomWalkInContextNote} Markerien XY/Z on vain room-level WORK_ASSUMPTION -esitystä, ja vuoden 2015 ryhmät 10.2/10.3/10.1 ovat historiallista kontekstia, eivät nykyinen as-built-syöttökytkentä, wall-host-väite tai sensor suite -väite.`;
 
 export const p186fExpectedRooms = {
   Bedroom: {
