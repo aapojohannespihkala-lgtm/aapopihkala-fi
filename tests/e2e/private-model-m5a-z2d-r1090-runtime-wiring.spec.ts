@@ -24,6 +24,7 @@ test('R1090 work-test contract keeps the shared M5A-Z2 system review predicate i
   expect(source).toContain('m5aZ2R1090ReviewId,');
   expect(source).toContain('export const isM5AZ2SystemReviewCandidateId = (candidateId: string) =>');
   expect(source).toContain('export const isM5AZ2SystemReviewId = (reviewId: string | null) =>');
+  expect(source).toContain('[m5aZ2LegacyReviewId]: m5aZ2LegacyCandidateId,');
   expect(source).toContain('[m5aZ2R1090ReviewId]: m5aZ2R1090CandidateId,');
 });
 
