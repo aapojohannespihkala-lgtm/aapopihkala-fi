@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-import { getRequestedReviewCandidateId } from '../../src/scripts/privateModelWorkTest';
+import {
+  getRequestedReviewCandidateId,
+  isPrivateModelReviewRequested,
+} from '../../src/scripts/privateModelWorkTest';
 
 const candidateId = 'p186e-x1-d2015-electrical-source-label-anchors-p28-corrected';
 const reviewId = `${candidateId}-review`;
@@ -73,6 +76,17 @@ test('P186E review URLs do not duplicate control parameters', () => {
   expect(canonicalReviewUrl.searchParams.getAll('floor')).toEqual([]);
   expect(d2fReviewUrl.searchParams.getAll('review')).toEqual([reviewId]);
   expect(d2fReviewUrl.searchParams.getAll('floor')).toEqual(['d2f']);
+});
+
+test('P186E review URLs request the exact D electrical review id', () => {
+  expect(isPrivateModelReviewRequested(canonicalReviewUrl.search, reviewId)).toBe(true);
+  expect(isPrivateModelReviewRequested(d2fReviewUrl.search, reviewId)).toBe(true);
+  expect(
+    isPrivateModelReviewRequested(
+      canonicalReviewUrl.search,
+      `${candidateId}-different-review`,
+    ),
+  ).toBe(false);
 });
 
 test('P186E review parameter resolves the exact D electrical WORK_TEST candidate', () => {
