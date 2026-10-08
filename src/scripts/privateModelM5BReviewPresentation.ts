@@ -29,9 +29,10 @@ export const m5bReviewContextOpacity = 0.2;
 export const m5bVerticalDownspoutProxyRadius = 0.08;
 export const m5bVerticalDownspoutProxyWallOffset = 0.45;
 export const m5bVerticalDownspoutWallAttachmentOffset = 0;
+export const m5bVerticalDownspoutWallSkinInsetMinM = m5bVerticalDownspoutProxyRadius * 1.5;
 export const m5bVerticalDownspoutShortFacadeLateralInsetRatio = 0.18;
 export const m5bVerticalDownspoutShortFacadeLateralFix = 'R1081_SHORT_FACADE_LATERAL_INSET';
-export const m5bVerticalDownspoutWallAttachmentFix = 'R1088_SHORT_FACADE_WALL_ATTACHMENT';
+export const m5bVerticalDownspoutWallAttachmentFix = 'R1094_TRUE_SHORT_FACADE_EAVE_WALL_ANCHOR';
 export const m5bVerticalDownspoutProxyRenderableForm = 'THICK_VISIBLE_TUBE_PROXY';
 
 export type M5BVerticalDownspoutProxyId = (typeof m5bCurrentVerticalDownspoutProxyIds)[number];
@@ -68,6 +69,16 @@ export const m5bPlannedSok2TargetMeaningById: Record<(typeof m5bPlannedSok2Targe
 };
 
 export type M5BReviewVariant = 'CURRENT' | 'PLANNED_SOK2_COMPARISON';
+
+type BoundsReadiness = {
+  ids: string[];
+  meanings: string[];
+  semanticViolations: number;
+  shortFacadeLateralInsetM: number;
+  wallSkinInsetM: number;
+  wallTopY: number;
+  wallAttachedCount: number;
+};
 
 const isRenderable = (object: any) =>
   Boolean(object?.material && (object?.isMesh || object?.isLine || object?.isLineSegments || object?.isPoints));
@@ -138,24 +149,29 @@ export const getM5BReviewSceneIndex = (variant: M5BReviewVariant) =>
   variant === 'CURRENT' ? m5bCurrentSceneIndex : m5bPlannedSok2ComparisonSceneIndex;
 
 const getObjectFingerprint = (object: any) => {
-  const userData = object?.userData ?? {};
-  return [
-    object?.name,
-    userData.G2Id,
-    userData.G2IdCandidate,
-    userData.sourceG2IdCandidate,
-    userData.presentationRole,
-    userData.layer,
-    userData.system,
-    userData.kind,
-    userData.role,
-    userData.objectRole,
-    userData.semanticRole,
-    userData.category,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+  const values: string[] = [];
+  let current = object;
+  let depth = 0;
+  while (current && depth < 8) {
+    const userData = current?.userData ?? {};
+    values.push(
+      current?.name,
+      userData.G2Id,
+      userData.G2IdCandidate,
+      userData.sourceG2IdCandidate,
+      userData.presentationRole,
+      userData.layer,
+      userData.system,
+      userData.kind,
+      userData.role,
+      userData.objectRole,
+      userData.semanticRole,
+      userData.category,
+    );
+    current = current.parent;
+    depth += 1;
+  }
+  return values.filter(Boolean).join(' ').toLowerCase();
 };
 
 const getRenderableWorldBox = (object: any) => {
@@ -182,17 +198,29 @@ const getRenderableWorldBox = (object: any) => {
 const m5bBuildingBoundsIncludeFingerprint =
   /building|rakenn|wall|seinä|facade|julkisivu|envelope|storage|varasto|sokkel|foundation|perustus|roof|katto|architecture|arkkitehtuuri|structure|rakenne/;
 
+const m5bWallEnvelopeIncludeFingerprint =
+  /wall|seinä|facade|julkisivu|envelope|storage|varasto|sokkel|foundation|perustus|building|rakenn|architecture|arkkitehtuuri|structure|rakenne/;
+
+const m5bWallEnvelopeExcludeFingerprint =
+  /terrain|maasto|contour|käyr|ground|storm|sadeves|route|gully|stub|downspout|ränni|kaivo|pipe|putki|drain|footprint|helper|reference|locus|source-label|label-anchor|grid|axis|camera|roof|katto|eave|räyst/;
+
 const m5bBuildingBoundsExcludeFingerprint =
   /terrain|maasto|contour|käyr|ground|storm|sadeves|route|gully|stub|downspout|ränni|kaivo|pipe|putki|drain|footprint|helper|reference|locus|source-label|label-anchor|grid|axis|camera/;
 
 const m5bBuildingBoundsMaxHorizontalExtentM = 45;
 
-const canContributeToBuildingBounds = (object: any, g2Id: string, targetIds: Set<string>) => {
+const canContributeToBounds = (
+  object: any,
+  g2Id: string,
+  targetIds: Set<string>,
+  includePattern: RegExp,
+  excludePattern: RegExp,
+) => {
   if (object.visible === false || targetIds.has(g2Id)) return false;
   const fingerprint = getObjectFingerprint(object);
   if (!fingerprint) return false;
-  if (m5bBuildingBoundsExcludeFingerprint.test(fingerprint)) return false;
-  if (!m5bBuildingBoundsIncludeFingerprint.test(fingerprint)) return false;
+  if (excludePattern.test(fingerprint)) return false;
+  if (!includePattern.test(fingerprint)) return false;
   const worldBox = getRenderableWorldBox(object);
   if (!worldBox) return false;
   const { size } = worldBox;
@@ -209,6 +237,7 @@ const createCurrentVerticalDownspoutProxy = (
   questionScope: string,
   downspoutContext: string,
   shortFacadeLateralInsetM: number,
+  wallSkinInsetM: number,
 ) => {
   const height = Math.max(0.5, Math.abs(yTop - yBottom));
   const yCenter = (yBottom + yTop) / 2;
@@ -262,13 +291,16 @@ const createCurrentVerticalDownspoutProxy = (
     m5bReviewWallBoundsFix: 'R1077_FILTERED_BUILDING_WALL_BOUNDS',
     m5bReviewShortFacadeLateralFix: m5bVerticalDownspoutShortFacadeLateralFix,
     m5bReviewWallAttachmentFix: m5bVerticalDownspoutWallAttachmentFix,
+    m5bReviewTrueWallAnchorFix: m5bVerticalDownspoutWallAttachmentFix,
     m5bVerticalProxyRadiusM: m5bVerticalDownspoutProxyRadius,
     m5bVerticalProxyWallOffsetM: m5bVerticalDownspoutProxyWallOffset,
     m5bVerticalProxyWallAttachmentOffsetM: m5bVerticalDownspoutWallAttachmentOffset,
+    m5bVerticalProxyWallSkinInsetM: wallSkinInsetM,
     m5bVerticalProxyShortFacadeLateralInsetM: shortFacadeLateralInsetM,
     m5bVerticalProxyWallAttached: true,
+    m5bVerticalProxyEaveUnderRoof: true,
     m5bProxyPlacementBasis:
-      'viewer-derived filtered wall/building/roof bounds with short-facade lateral inset; four short-facade proxies are wall-envelope attached at the facade edge under the roof; presentation proxy only',
+      'viewer-derived wall-skin/eave-under-roof anchor: four short-facade proxies are moved inward into the wall skin from the facade plane and stop below the roof/eave; presentation proxy only',
   };
   return mesh;
 };
@@ -276,38 +308,44 @@ const createCurrentVerticalDownspoutProxy = (
 const getShortFacadeLateralInset = (size: any) =>
   Math.min(size.x, size.z) * m5bVerticalDownspoutShortFacadeLateralInsetRatio;
 
+const getWallSkinInset = (size: any) =>
+  Math.max(
+    m5bVerticalDownspoutWallSkinInsetMinM,
+    Math.min(size.x, size.z) * 0.015,
+  );
+
+const getEaveUnderRoofTopY = (bounds: any, size: any) =>
+  bounds.max.y - Math.min(0.65, Math.max(0.25, size.y * 0.1));
+
+const emptyProxyResult = (): BoundsReadiness => ({
+  ids: [],
+  meanings: [],
+  semanticViolations: 0,
+  shortFacadeLateralInsetM: 0,
+  wallSkinInsetM: 0,
+  wallTopY: 0,
+  wallAttachedCount: 0,
+});
+
 const addCurrentVerticalDownspoutProxies = (
   sceneRoot: any,
-  buildingBounds: any,
+  wallEnvelopeBounds: any,
   questionScope: string,
   downspoutContext: string,
-) => {
-  if (!buildingBounds || buildingBounds.isEmpty?.()) {
-    return {
-      ids: [] as string[],
-      meanings: [] as string[],
-      semanticViolations: 0,
-      shortFacadeLateralInsetM: 0,
-    };
-  }
-  const size = buildingBounds.getSize(new THREE.Vector3());
-  if (size.x <= 0.001 || size.y <= 0.001 || size.z <= 0.001) {
-    return {
-      ids: [] as string[],
-      meanings: [] as string[],
-      semanticViolations: 0,
-      shortFacadeLateralInsetM: 0,
-    };
-  }
+): BoundsReadiness => {
+  if (!wallEnvelopeBounds || wallEnvelopeBounds.isEmpty?.()) return emptyProxyResult();
+  const size = wallEnvelopeBounds.getSize(new THREE.Vector3());
+  if (size.x <= 0.001 || size.y <= 0.001 || size.z <= 0.001) return emptyProxyResult();
 
   const offset = m5bVerticalDownspoutProxyWallOffset;
   const shortFacadeInset = getShortFacadeLateralInset(size);
-  const xMin = buildingBounds.min.x;
-  const xMax = buildingBounds.max.x;
-  const zMin = buildingBounds.min.z;
-  const zMax = buildingBounds.max.z;
-  const yBottom = buildingBounds.min.y;
-  const yTop = buildingBounds.max.y;
+  const wallSkinInset = getWallSkinInset(size);
+  const xMin = wallEnvelopeBounds.min.x;
+  const xMax = wallEnvelopeBounds.max.x;
+  const zMin = wallEnvelopeBounds.min.z;
+  const zMax = wallEnvelopeBounds.max.z;
+  const yBottom = wallEnvelopeBounds.min.y;
+  const yTop = Math.max(yBottom + 0.5, getEaveUnderRoofTopY(wallEnvelopeBounds, size));
   const xMid = (xMin + xMax) / 2;
   const zMid = (zMin + zMax) / 2;
   const longAxis = size.x >= size.z ? 'X' : 'Z';
@@ -319,23 +357,24 @@ const addCurrentVerticalDownspoutProxies = (
     shortFacadeLateralInsetM: number;
   }> = longAxis === 'X'
     ? [
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_1', x: xMin, z: zMin + shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_2', x: xMax, z: zMin + shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_3', x: xMax, z: zMax - shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_4', x: xMin, z: zMax - shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_1', x: xMin + wallSkinInset, z: zMin + shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_2', x: xMax - wallSkinInset, z: zMin + shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_3', x: xMax - wallSkinInset, z: zMax - shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_4', x: xMin + wallSkinInset, z: zMax - shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
         { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_SOUTH_FACADE_C_B', x: xMid, z: zMin - offset, shortFacadeLateralInsetM: 0 },
       ]
     : [
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_1', x: xMin + shortFacadeInset, z: zMin, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_2', x: xMax - shortFacadeInset, z: zMin, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_3', x: xMax - shortFacadeInset, z: zMax, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_4', x: xMin + shortFacadeInset, z: zMax, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_SOUTH_FACADE_C_B', x: xMin + shortFacadeInset, z: zMid, shortFacadeLateralInsetM: 0 },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_1', x: xMin + shortFacadeInset, z: zMin + wallSkinInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_2', x: xMax - shortFacadeInset, z: zMin + wallSkinInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_3', x: xMax - shortFacadeInset, z: zMax - wallSkinInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_4', x: xMin + shortFacadeInset, z: zMax - wallSkinInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_SOUTH_FACADE_C_B', x: xMin - offset, z: zMid, shortFacadeLateralInsetM: 0 },
       ];
 
   const created: string[] = [];
   const meanings: string[] = [];
   let semanticViolations = 0;
+  let wallAttachedCount = 0;
   for (const proxy of proxyPositions) {
     const line = createCurrentVerticalDownspoutProxy(
       proxy.id,
@@ -345,13 +384,23 @@ const addCurrentVerticalDownspoutProxies = (
       questionScope,
       downspoutContext,
       proxy.shortFacadeLateralInsetM,
+      proxy.id.includes('_CORNER_') ? wallSkinInset : 0,
     );
     sceneRoot?.add?.(line);
     created.push(proxy.id);
     meanings.push(m5bCurrentVerticalDownspoutProxyMeaningById[proxy.id]);
+    if (proxy.id.includes('_CORNER_')) wallAttachedCount += 1;
     if (!hasNoPromotionSemantics(line, 'CURRENT')) semanticViolations += 1;
   }
-  return { ids: created, meanings, semanticViolations, shortFacadeLateralInsetM: shortFacadeInset };
+  return {
+    ids: created,
+    meanings,
+    semanticViolations,
+    shortFacadeLateralInsetM: shortFacadeInset,
+    wallSkinInsetM: wallSkinInset,
+    wallTopY: yTop,
+    wallAttachedCount,
+  };
 };
 
 export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewVariant) => {
@@ -368,7 +417,9 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
   let suppressedNonQuestionRouteCount = 0;
   let semanticViolationCount = 0;
   const buildingBounds = new THREE.Box3();
+  const wallEnvelopeBounds = new THREE.Box3();
   let buildingBoundsContributorCount = 0;
+  let wallEnvelopeContributorCount = 0;
 
   sceneRoot?.traverse?.((object: any) => {
     if (!isRenderable(object)) return;
@@ -432,15 +483,28 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
     }
 
     if (object.visible === false) return;
-    if (canContributeToBuildingBounds(object, g2Id, targetIds)) {
-      const worldBox = getRenderableWorldBox(object);
-      if (worldBox) {
-        buildingBounds.union(worldBox.box);
-        buildingBoundsContributorCount += 1;
-      }
+    const worldBox = getRenderableWorldBox(object);
+    if (worldBox && canContributeToBounds(
+      object,
+      g2Id,
+      targetIds,
+      m5bBuildingBoundsIncludeFingerprint,
+      m5bBuildingBoundsExcludeFingerprint,
+    )) {
+      buildingBounds.union(worldBox.box);
+      buildingBoundsContributorCount += 1;
     }
-    // The rebuilt Z2R scene61 stores the SOK1 context as source-bound comparison
-    // geometry, not as a second G2Id/G2IdCandidate target.
+    if (worldBox && canContributeToBounds(
+      object,
+      g2Id,
+      targetIds,
+      m5bWallEnvelopeIncludeFingerprint,
+      m5bWallEnvelopeExcludeFingerprint,
+    )) {
+      wallEnvelopeBounds.union(worldBox.box);
+      wallEnvelopeContributorCount += 1;
+    }
+
     const isSok1ComparisonContext =
       variant === 'PLANNED_SOK2_COMPARISON' &&
       (g2Id === m5bCurrentRouteStubIds[0] ||
@@ -464,19 +528,29 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
     contextRenderableCount += 1;
   });
 
+  const placementBounds = !wallEnvelopeBounds.isEmpty?.()
+    ? wallEnvelopeBounds
+    : buildingBounds;
+
   let verticalDownspoutProxyIds: string[] = [];
   let verticalDownspoutProxyMeanings: string[] = [];
   let shortFacadeLateralInsetM = 0;
+  let wallSkinInsetM = 0;
+  let wallTopY = 0;
+  let wallAttachedCount = 0;
   if (variant === 'CURRENT') {
     const proxyResult = addCurrentVerticalDownspoutProxies(
       sceneRoot,
-      buildingBounds,
+      placementBounds,
       questionScope,
       downspoutContext,
     );
     verticalDownspoutProxyIds = proxyResult.ids;
     verticalDownspoutProxyMeanings = proxyResult.meanings;
     shortFacadeLateralInsetM = proxyResult.shortFacadeLateralInsetM;
+    wallSkinInsetM = proxyResult.wallSkinInsetM;
+    wallTopY = proxyResult.wallTopY;
+    wallAttachedCount = proxyResult.wallAttachedCount;
     semanticViolationCount += proxyResult.semanticViolations;
     targetRenderableCount = verticalDownspoutProxyIds.length;
     found.clear();
@@ -493,10 +567,16 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
     suppressedNonQuestionRouteCount,
     semanticViolationCount,
     buildingBoundsContributorCount,
+    wallEnvelopeContributorCount,
     buildingBoundsPlacementBasis:
-      variant === 'CURRENT' ? 'FILTERED_WALL_BUILDING_ROOF_CONTEXT_BOUNDS_WITH_SHORT_FACADE_LATERAL_INSET_AND_WALL_ATTACHMENT' : '',
+      variant === 'CURRENT'
+        ? 'WALL_SKIN_OR_FALLBACK_BUILDING_CONTEXT_BOUNDS_WITH_SHORT_FACADE_LATERAL_INSET_AND_EAVE_UNDER_ROOF_ANCHOR'
+        : '',
     buildingBoundsMaxHorizontalExtentM: m5bBuildingBoundsMaxHorizontalExtentM,
     shortFacadeLateralInsetM,
+    wallSkinInsetM,
+    wallTopY,
+    wallAttachedCount,
     shortFacadeLateralFix: variant === 'CURRENT' ? m5bVerticalDownspoutShortFacadeLateralFix : '',
     wallAttachmentFix: variant === 'CURRENT' ? m5bVerticalDownspoutWallAttachmentFix : '',
     foundTargetIds: [...found],
