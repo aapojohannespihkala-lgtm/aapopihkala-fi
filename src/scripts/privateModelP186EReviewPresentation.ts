@@ -34,6 +34,29 @@ export const p186eReviewSourceContexts = [
 export const p186eReviewSourceLimit =
   'Vuoden 2015 suunnitelmasta johdetut ryhmänumero- ja erikoistekstien source-label-ankkurit. Auttaa lähdepaikannuksessa; ei fyysisen laitteen, pistorasian, kytkimen tai kaapelireitin sijainti, eikä exact-, current-, as-built- tai canonical-väite.';
 
+export const p186eReviewSuppressedContextFragments = [
+  'referencefootprint',
+  'roomfootprint',
+  'room-footprint',
+  'stairhostfootprint',
+  'helper',
+  'p117d_review_',
+  'p123c_context_',
+] as const;
+
+export const p186eReviewRealContextFragments = [
+  'wall',
+  'building',
+  'architect',
+  'door',
+  'window',
+  'opening',
+  'stair',
+  'floor',
+  'slab',
+  'partition',
+] as const;
+
 const isRenderable = (object: any) =>
   Boolean(
     object?.material &&
@@ -119,8 +142,41 @@ const isP186ETarget = (object: any, variant: P186EReviewVariant) => {
   );
 };
 
+const p186eContextText = (object: any) => {
+  const data = object?.userData ?? {};
+  return [
+    object?.name,
+    data.G2Id,
+    data.G2IdCandidate,
+    data.presentationLayer,
+    data.representationKind,
+    data.presentationRole,
+    data.role,
+    data.semanticRole,
+    data.contextRole,
+    data.sourceScene,
+  ]
+    .map((value) => String(value ?? ''))
+    .join(' ')
+    .toLowerCase();
+};
+
+export const isP186ESuppressedReviewContext = (object: any) => {
+  if (!isRenderable(object)) return false;
+  const text = p186eContextText(object);
+  return p186eReviewSuppressedContextFragments.some((fragment) => text.includes(fragment));
+};
+
+const isP186ERealWallContextCandidate = (object: any) => {
+  if (!isRenderable(object)) return false;
+  const text = p186eContextText(object);
+  return p186eReviewRealContextFragments.some((fragment) => text.includes(fragment));
+};
+
 const isDArchitectureContext = (object: any, variant: P186EReviewVariant) => {
   if (isP186ETarget(object, variant)) return false;
+  if (isP186ESuppressedReviewContext(object)) return false;
+  if (!isP186ERealWallContextCandidate(object)) return false;
 
   const contract = storeyContract[variant];
   const data = object?.userData ?? {};
@@ -129,21 +185,16 @@ const isDArchitectureContext = (object: any, variant: P186EReviewVariant) => {
   const presentationLayer = String(data.presentationLayer ?? '');
   const apartment = String(data.apartment ?? '');
   const storey = String(data.storey ?? '');
-  const representationKind = String(data.representationKind ?? '');
-
-  const isPreferredReviewRoomFootprint =
-    presentationLayer === 'CURRENT_D' &&
-    representationKind === 'referenceFootprint' &&
-    g2Id.startsWith('G2_D15_SPACE_') &&
-    g2Id.includes(contract.sourceFloorToken) &&
-    name.startsWith(contract.preferredRoomContextPrefix);
 
   return (
-    isPreferredReviewRoomFootprint ||
     (presentationLayer === 'CURRENT_D' &&
-      (g2Id.includes(contract.floorToken) || name.includes(contract.floorToken))) ||
+      (g2Id.includes(contract.floorToken) ||
+        name.includes(contract.floorToken) ||
+        g2Id.includes(contract.sourceFloorToken) ||
+        name.includes(contract.sourceFloorToken))) ||
     (apartment === 'D' && storey === contract.apartmentStorey) ||
-    g2Id.includes(contract.floorToken)
+    g2Id.includes(contract.floorToken) ||
+    name.includes(contract.floorToken)
   );
 };
 
@@ -221,6 +272,8 @@ export const prepareP186EReviewPresentation = (
   let targetRenderableCount = 0;
   let contextRenderableCount = 0;
   let hiddenNonQuestionRenderableCount = 0;
+  let realWallContextRenderableCount = 0;
+  let suppressedHelperContextCount = 0;
   const contextRole = storeyContract[variant].contextRole;
 
   for (const object of targets) {
@@ -240,6 +293,20 @@ export const prepareP186EReviewPresentation = (
   for (const object of renderables) {
     if (isP186ETarget(object, variant)) continue;
 
+    if (isP186ESuppressedReviewContext(object)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p186eReviewPresentation: true,
+        p186eReviewVariant: variant,
+        p186eReviewRole: 'P186E_HELPER_CONTEXT_SUPPRESSED',
+      };
+      suppressedHelperContextCount += 1;
+      hiddenNonQuestionRenderableCount += 1;
+      continue;
+    }
+
     if (isDArchitectureContext(object, variant)) {
       object.visible = true;
       cloneObjectMaterials(object, p186eReviewContextOpacity, contextRole);
@@ -252,6 +319,7 @@ export const prepareP186EReviewPresentation = (
         p186eReviewRole: contextRole,
       };
       contextRenderableCount += 1;
+      realWallContextRenderableCount += 1;
       continue;
     }
 
@@ -272,6 +340,8 @@ export const prepareP186EReviewPresentation = (
     groupTargetCount,
     specialTargetCount,
     contextRenderableCount,
+    realWallContextRenderableCount,
+    suppressedHelperContextCount,
     hiddenNonQuestionRenderableCount,
     semanticViolationCount,
   };

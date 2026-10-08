@@ -233,6 +233,37 @@ const buildFloorTargets = (
   return nodes;
 };
 
+const makeRealWallContextNode = (
+  floor: 'D_1F' | 'D_2F',
+  ordinal: number,
+  translation: [number, number, number],
+  scale: [number, number, number],
+  storey: '1F' | '2F',
+) => ({
+  name: `P186E_REAL_WALL_CONTEXT_${floor}_WALL_${ordinal}`,
+  mesh: 1,
+  translation,
+  scale,
+  extras: {
+    G2Id: `G2_${floor}_WALL_CONTEXT_${ordinal}`,
+    presentationLayer: 'CURRENT_D',
+    representationKind: 'wallSurface',
+    apartment: 'D',
+    storey,
+  },
+});
+
+const makeD1fRealWallContextNodes = () => [
+  makeRealWallContextNode('D_1F', 1, [2.5, 0.0, -0.6], [5.2, 1, 0.12], '1F'),
+  makeRealWallContextNode('D_1F', 2, [0.3, 0.0, -3.2], [0.12, 1, 5.4], '1F'),
+  makeRealWallContextNode('D_1F', 3, [4.9, 0.0, -3.2], [0.12, 1, 5.4], '1F'),
+];
+
+const makeD2fRealWallContextNodes = () => [
+  makeRealWallContextNode('D_2F', 1, [2.8, 2.76, -0.8], [5.2, 1, 0.12], '2F'),
+  makeRealWallContextNode('D_2F', 2, [0.4, 2.76, -2.8], [0.12, 1, 4.0], '2F'),
+];
+
 const makeD1fRoomContextNodes = () => {
   const rooms = [
     ['SAUNA', [4.0, 0.0, -0.5], [2.2, 1, 1.6]],
@@ -257,7 +288,7 @@ const makeD1fRoomContextNodes = () => {
   }));
 };
 
-const makeD2fContextNodes = () => [
+const makeD2fHelperContextNodes = () => [
   {
     name: 'P123C_CONTEXT_G2_D15_SPACE_UPPER_HALL_2F_SRC',
     mesh: 1,
@@ -276,7 +307,9 @@ const makeCandidateModel = () =>
     [
       ...buildFloorTargets('D_1F', p186eExpectedCounts.D1F.group, p186eExpectedCounts.D1F.special, 0.055),
       ...buildFloorTargets('D_2F', p186eExpectedCounts.D2F.group, p186eExpectedCounts.D2F.special, 2.815),
-      ...makeD2fContextNodes(),
+      ...makeD1fRealWallContextNodes(),
+      ...makeD2fRealWallContextNodes(),
+      ...makeD2fHelperContextNodes(),
     ],
     makeD1fRoomContextNodes(),
   );
@@ -350,7 +383,7 @@ const expectVisiblePixels = async (page: any) => {
   expect(pixels.lightContextPixels).toBeGreaterThan(300);
 };
 
-test('P186E-X1 D1F review renders 14 group + 4 special source-label anchors against D1F context', async ({
+test('P186E-X1 D1F review renders 14 group + 4 special source-label anchors against real D1F wall context', async ({
   page,
 }) => {
   test.setTimeout(20_000);
@@ -365,6 +398,7 @@ test('P186E-X1 D1F review renders 14 group + 4 special source-label anchors agai
   await expect(canvas).toHaveAttribute('data-p186e-review-target-renderable-count', '18');
   await expect(canvas).toHaveAttribute('data-p186e-review-group-target-count', '14');
   await expect(canvas).toHaveAttribute('data-p186e-review-special-target-count', '4');
+  await expect(canvas).toHaveAttribute('data-p186e-review-context-renderable-count', '3');
   await expect(canvas).toHaveAttribute('data-p186e-review-room-context-bridge-count', '7');
   await expect(canvas).toHaveAttribute('data-p186e-review-semantic-violation-count', '0');
   await expect(canvas).toHaveAttribute('data-p186e-human-review', 'NOT_RUN');
@@ -373,7 +407,7 @@ test('P186E-X1 D1F review renders 14 group + 4 special source-label anchors agai
   await expectVisiblePixels(page);
 });
 
-test('P186E-X1 D2F review renders 15 group + 1 special source-label anchors against D2F context', async ({
+test('P186E-X1 D2F review renders 15 group + 1 special source-label anchors against real D2F wall context', async ({
   page,
 }) => {
   test.setTimeout(20_000);
@@ -388,6 +422,7 @@ test('P186E-X1 D2F review renders 15 group + 1 special source-label anchors agai
   await expect(canvas).toHaveAttribute('data-p186e-review-target-renderable-count', '16');
   await expect(canvas).toHaveAttribute('data-p186e-review-group-target-count', '15');
   await expect(canvas).toHaveAttribute('data-p186e-review-special-target-count', '1');
+  await expect(canvas).toHaveAttribute('data-p186e-review-context-renderable-count', '2');
   await expect(canvas).toHaveAttribute('data-p186e-review-room-context-bridge-count', '0');
   await expect(canvas).toHaveAttribute('data-p186e-review-semantic-violation-count', '0');
   await expect(canvas).toHaveAttribute('data-p186e-human-review', 'NOT_RUN');
