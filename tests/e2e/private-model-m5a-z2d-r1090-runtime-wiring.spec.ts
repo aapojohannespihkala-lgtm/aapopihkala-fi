@@ -8,6 +8,7 @@ const legacyM5aZ2CandidateId = 'm5a-z2-absolute-z-host-floor-datum';
 const legacyM5aZ2ReviewId = `${legacyM5aZ2CandidateId}-review`;
 const runtimeFile = resolve(process.cwd(), 'src/pages/private-model/index.astro');
 const workTestFile = resolve(process.cwd(), 'src/scripts/privateModelWorkTest.ts');
+const runtimeHelperFile = resolve(process.cwd(), 'src/scripts/privateModelM5AZ2SystemReviewRuntime.ts');
 
 test('R1090 work-test contract keeps the shared M5A-Z2 system review predicate inputs centralized', () => {
   const source = readFileSync(workTestFile, 'utf8');
@@ -26,6 +27,24 @@ test('R1090 work-test contract keeps the shared M5A-Z2 system review predicate i
   expect(source).toContain('export const isM5AZ2SystemReviewId = (reviewId: string | null) =>');
   expect(source).toContain('[m5aZ2LegacyReviewId]: m5aZ2LegacyCandidateId,');
   expect(source).toContain('[m5aZ2R1090ReviewId]: m5aZ2R1090CandidateId,');
+});
+
+test('R1090 runtime helper resolves the shared M5A-Z2 system review request from the URL', () => {
+  const source = readFileSync(runtimeHelperFile, 'utf8');
+
+  expect(source).toContain("from './privateModelWorkTest';");
+  expect(source).toContain('isM5AZ2SystemReviewId,');
+  expect(source).toContain('m5aZ2LegacyReviewId,');
+  expect(source).toContain('m5aZ2R1090ReviewId,');
+  expect(source).toContain('export const m5aZ2SystemReviewRuntimeReviewIds = Object.freeze([');
+  expect(source).toContain('m5aZ2LegacyReviewId,');
+  expect(source).toContain('m5aZ2R1090ReviewId,');
+  expect(source).toContain("const reviewQueryKey = 'review';");
+  expect(source).toContain('export const getRequestedM5AZ2SystemReviewId = (search: string) =>');
+  expect(source).toContain('return isM5AZ2SystemReviewId(reviewId) ? reviewId : null;');
+  expect(source).toContain('export const getActiveM5AZ2SystemReviewId = (search: string) =>');
+  expect(source).toContain('getRequestedM5AZ2SystemReviewId(search) ?? m5aZ2LegacyReviewId;');
+  expect(source).toContain('export const isM5AZ2SystemReviewRequested = (search: string) =>');
 });
 
 test('R1090 reviewer entrypoint remains a short one-link review URL', () => {
@@ -48,6 +67,14 @@ test('R1090 review activates the existing M5A-Z2 absolute-Z presentation runtime
   expect(source).toContain(legacyM5aZ2ReviewId);
   expect(source).toContain(candidateId);
   expect(source).toContain(reviewId);
+
+  const usesSharedSystemReviewHelpers =
+    source.includes('privateModelM5AZ2SystemReviewRuntime') ||
+    (source.includes('isM5AZ2SystemReviewCandidateId') && source.includes('isM5AZ2SystemReviewId'));
+
+  expect(usesSharedSystemReviewHelpers).toBe(true);
+  expect(source).not.toContain('const m5aZ2ReviewId = `${m5aZ2CandidateId}-review`;');
+  expect(source).not.toContain('candidate.id === m5aZ2CandidateId && isM5aZ2SystemReviewRequested()');
 
   const candidateIndex = source.indexOf(candidateId);
   const reviewIndex = source.indexOf(reviewId);
