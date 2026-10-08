@@ -57,6 +57,12 @@ export const p186eReviewRealContextFragments = [
   'partition',
 ] as const;
 
+export const p186eReviewKnownDArchitectureRootFragments = [
+  'p173d_d_wall',
+  'p177b_whole_building',
+  'p154c',
+] as const;
+
 const isRenderable = (object: any) =>
   Boolean(
     object?.material &&
@@ -80,6 +86,8 @@ const cloneObjectMaterials = (object: any, opacity: number, role: string) => {
       };
     }
     if (role.endsWith('_ARCH_CONTEXT_20')) {
+      clone.depthTest = false;
+      clone.depthWrite = false;
       clone.color?.setHex?.(p186eReviewContextColorHex);
       if (clone.emissive?.setHex) {
         clone.emissive.setHex(p186eReviewContextColorHex);
@@ -173,10 +181,18 @@ const isP186ERealWallContextCandidate = (object: any) => {
   return p186eReviewRealContextFragments.some((fragment) => text.includes(fragment));
 };
 
+const isP186EKnownDArchitectureRoot = (object: any) => {
+  if (!isRenderable(object)) return false;
+  const text = p186eContextText(object);
+  return p186eReviewKnownDArchitectureRootFragments.some((fragment) => text.includes(fragment));
+};
+
 const isDArchitectureContext = (object: any, variant: P186EReviewVariant) => {
   if (isP186ETarget(object, variant)) return false;
   if (isP186ESuppressedReviewContext(object)) return false;
-  if (!isP186ERealWallContextCandidate(object)) return false;
+
+  const knownDArchitectureRoot = isP186EKnownDArchitectureRoot(object);
+  if (!knownDArchitectureRoot && !isP186ERealWallContextCandidate(object)) return false;
 
   const contract = storeyContract[variant];
   const data = object?.userData ?? {};
@@ -187,6 +203,7 @@ const isDArchitectureContext = (object: any, variant: P186EReviewVariant) => {
   const storey = String(data.storey ?? '');
 
   return (
+    knownDArchitectureRoot ||
     (presentationLayer === 'CURRENT_D' &&
       (g2Id.includes(contract.floorToken) ||
         name.includes(contract.floorToken) ||
@@ -308,15 +325,19 @@ export const prepareP186EReviewPresentation = (
     }
 
     if (isDArchitectureContext(object, variant)) {
+      const knownDArchitectureRoot = isP186EKnownDArchitectureRoot(object);
       object.visible = true;
       cloneObjectMaterials(object, p186eReviewContextOpacity, contextRole);
-      object.renderOrder = 5;
+      object.renderOrder = 20;
       object.userData = {
         ...(object.userData ?? {}),
         viewerDerived: true,
         p186eReviewPresentation: true,
         p186eReviewVariant: variant,
         p186eReviewRole: contextRole,
+        p186eReviewContextSource: knownDArchitectureRoot
+          ? 'KNOWN_D_ARCHITECTURE_ROOT'
+          : 'EXPLICIT_D_STOREY_CONTEXT',
       };
       contextRenderableCount += 1;
       realWallContextRenderableCount += 1;
