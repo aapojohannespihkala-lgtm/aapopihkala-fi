@@ -152,6 +152,9 @@ test('P186F-X2 room-adjacent Themo anchors are accepted as review targets withou
   expect(presentation.missingTargetRooms).toEqual([]);
   expect(presentation.unexpectedTargetRooms).toEqual([]);
   expect(presentation.hiddenNonQuestionRenderableCount).toBe(1);
+  expect(presentation.realArchitectureContextRequired).toBe(true);
+  expect(presentation.realArchitectureContextReady).toBe(false);
+  expect(presentation.realArchitectureContextRenderableCount).toBe(0);
   expect(presentation.targetBounds).not.toBeNull();
 
   const targetMaterials = scene.children
@@ -165,4 +168,45 @@ test('P186F-X2 room-adjacent Themo anchors are accepted as review targets withou
     .map((child: any) => child.material);
   expect(contextMaterials).toHaveLength(p186fExpectedRoomContextCount);
   for (const material of contextMaterials) expect(material.opacity).toBe(p186fReviewContextOpacity);
+});
+
+test('P186F-X2 shows real D1F wall meshes instead of diagnostic room footprints when available', () => {
+  const scene = new THREE.Group();
+  for (const target of targetRooms.map(makeP186fX2Target)) scene.add(target);
+  const footprints = ['SAUNA', 'PESUHUONE', 'WC', 'VH_WEST', 'VH_NORTH', 'HUONE2', 'VARASTO']
+    .map((room, index) => makeRoomContext(room, index));
+  footprints.forEach((node) => scene.add(node));
+
+  const wallRoot = new THREE.Group();
+  wallRoot.name = 'P173D_D_WALL_HR67_SEMANTIC_REBASE_ROOT_BABYLON_Y_UP';
+  const wallMesh = makeRenderableMesh('SOLID_ARCH_MESH_CHILD_WITHOUT_SOURCE_ID');
+  wallMesh.scale.set(16, 24, 3);
+  wallRoot.add(wallMesh);
+  scene.add(wallRoot);
+  const unrelatedSiteWall = makeRenderableMesh('SITE_WALL_NOT_D_ARCHITECTURE');
+  unrelatedSiteWall.userData.presentationLayer = 'SITE_GROUND';
+  scene.add(unrelatedSiteWall);
+
+  const presentation = prepareP186fReviewPresentation(scene, {
+    preferRealArchitectureContext: true,
+  });
+
+  expect(presentation.targetRenderableCount).toBe(3);
+  expect(presentation.semanticViolationCount).toBe(0);
+  expect(presentation.realArchitectureContextRequired).toBe(true);
+  expect(presentation.realArchitectureContextReady).toBe(true);
+  expect(presentation.realArchitectureContextRenderableCount).toBe(1);
+  expect(presentation.contextRenderableCount).toBe(1);
+  expect(presentation.hiddenNonQuestionRenderableCount).toBe(8);
+
+  expect(wallMesh.visible).toBe(true);
+  expect(wallMesh.userData.p186fReviewRole).toBe('D_1F_ARCH_CONTEXT_20');
+  expect((wallMesh.material as any).opacity).toBe(0.2);
+  expect((wallMesh.material as any).depthTest).toBe(false);
+  expect((wallMesh.material as any).polygonOffset).toBe(true);
+  for (const footprint of footprints) {
+    expect(footprint.visible).toBe(false);
+    expect(footprint.userData.p186fReviewRole).toBe('NON_QUESTION_CONTEXT_SUPPRESSED');
+  }
+  expect(unrelatedSiteWall.visible).toBe(false);
 });
