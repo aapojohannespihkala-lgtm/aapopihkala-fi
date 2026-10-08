@@ -26,6 +26,9 @@ export const m5bPlannedSok2TargetIds = [
 
 export const m5bReviewTargetOpacity = 0.8;
 export const m5bReviewContextOpacity = 0.2;
+export const m5bVerticalDownspoutProxyRadius = 0.08;
+export const m5bVerticalDownspoutProxyWallOffset = 0.45;
+export const m5bVerticalDownspoutProxyRenderableForm = 'THICK_VISIBLE_TUBE_PROXY';
 
 export type M5BVerticalDownspoutProxyId = (typeof m5bCurrentVerticalDownspoutProxyIds)[number];
 
@@ -193,7 +196,9 @@ const createCurrentVerticalDownspoutProxy = (
   questionScope: string,
   downspoutContext: string,
 ) => {
-  const material = new THREE.LineBasicMaterial({
+  const height = Math.max(0.5, Math.abs(yTop - yBottom));
+  const yCenter = (yBottom + yTop) / 2;
+  const material = new THREE.MeshBasicMaterial({
     color: 0x2fa8ff,
     opacity: m5bReviewTargetOpacity,
     transparent: true,
@@ -205,15 +210,20 @@ const createCurrentVerticalDownspoutProxy = (
     m5bReviewPresentation: true,
     m5bReviewVariant: 'CURRENT',
     m5bPresentationRole: 'VERTICAL_DOWNSPOUT_PROXY_80',
+    m5bReviewRenderableForm: m5bVerticalDownspoutProxyRenderableForm,
   };
-  const geometry = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(position.x, yBottom, position.z),
-    new THREE.Vector3(position.x, yTop, position.z),
-  ]);
-  const line = new THREE.Line(geometry, material);
-  line.name = id;
-  line.renderOrder = 1000;
-  line.userData = {
+  const geometry = new THREE.CylinderGeometry(
+    m5bVerticalDownspoutProxyRadius,
+    m5bVerticalDownspoutProxyRadius,
+    height,
+    16,
+  );
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = id;
+  mesh.position.set(position.x, yCenter, position.z);
+  mesh.renderOrder = 2000;
+  mesh.frustumCulled = false;
+  mesh.userData = {
     G2Id: id,
     presentationOnly: true,
     workAssumption: true,
@@ -233,10 +243,14 @@ const createCurrentVerticalDownspoutProxy = (
     m5bVerticalDownspoutReviewScope: m5bCurrentVerticalDownspoutReviewScope,
     m5bDownspoutContext: downspoutContext,
     m5bReviewContentStatus: 'VERTICAL_DOWNSPOUT_LOCATION_PROXY_ONLY',
+    m5bReviewRenderableForm: m5bVerticalDownspoutProxyRenderableForm,
+    m5bReviewVisibilityFix: 'R1074_DEPTH_TEST_OFF_THICK_MESH_PROXY',
+    m5bVerticalProxyRadiusM: m5bVerticalDownspoutProxyRadius,
+    m5bVerticalProxyWallOffsetM: m5bVerticalDownspoutProxyWallOffset,
     m5bProxyPlacementBasis:
       'viewer-derived building-bounds presentation proxy; user review requested for vertical-location plausibility only',
   };
-  return line;
+  return mesh;
 };
 
 const addCurrentVerticalDownspoutProxies = (
@@ -253,7 +267,7 @@ const addCurrentVerticalDownspoutProxies = (
     return { ids: [] as string[], meanings: [] as string[], semanticViolations: 0 };
   }
 
-  const offset = 0.18;
+  const offset = m5bVerticalDownspoutProxyWallOffset;
   const xMin = buildingBounds.min.x;
   const xMax = buildingBounds.max.x;
   const zMin = buildingBounds.min.z;
