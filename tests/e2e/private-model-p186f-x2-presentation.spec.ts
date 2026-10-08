@@ -2,10 +2,17 @@ import { expect, test } from '@playwright/test';
 
 import { THREE } from '../../src/scripts/threeRuntime';
 import {
+  p186fBedroomWalkInContextNote,
   p186fExpectedRoomContextCount,
   p186fExpectedTargetCount,
+  p186fFloorHeatingSourcePdfDriveId,
+  p186fMaintenanceDocumentId,
   p186fReviewContextOpacity,
+  p186fReviewQuestionText,
+  p186fReviewSourceContexts,
+  p186fReviewSourceLimit,
   p186fReviewTargetOpacity,
+  p186fSchedulePdfDriveId,
   p186fX2PlacementBasis,
   prepareP186fReviewPresentation,
 } from '../../src/scripts/privateModelP186FReviewPresentation';
@@ -33,6 +40,41 @@ const targetRooms = [
     placementXYM: [4.05, 3.02],
   },
 ] as const;
+
+test('P186F-X2 review question preserves user-confirmed source context and no-promotion limits', () => {
+  expect(p186fReviewQuestionText).toContain('Bathroom');
+  expect(p186fReviewQuestionText).toContain('Bedroom/vaatehuone');
+  expect(p186fReviewQuestionText).toContain('Lobby');
+  expect(p186fReviewQuestionText).toContain('room/wall-adjacent WORK_TEST');
+  expect(p186fReviewQuestionText).toContain('eivät markerit ole fyysisten termostaattien exact-sijainteja');
+
+  expect(p186fBedroomWalkInContextNote).toContain('Themo ohjaa makuuhuoneen lattialämmitystä');
+  expect(p186fBedroomWalkInContextNote).toContain('vaatehuoneen ja kulkumaisen tilarakenteen kautta');
+
+  expect(p186fReviewSourceContexts).toEqual([
+    {
+      sourceLabel: 'Ylisrinne - huollon ja ylläpidon seuranta',
+      sourceHref: `https://docs.google.com/document/d/${p186fMaintenanceDocumentId}/edit`,
+      sourceRole: 'CURRENT_USER_CONFIRMED_INSTALLATION_AND_ROOM_ASSIGNMENT',
+    },
+    {
+      sourceLabel: 'Lattialämmitys.me_design.pdf',
+      sourceHref: `https://drive.google.com/file/d/${p186fFloorHeatingSourcePdfDriveId}/view`,
+      sourceRole: 'HISTORICAL_2015_ROOM_LEVEL_PLACEMENT_CONTEXT_SUPERSEDED_FOR_XY',
+    },
+    {
+      sourceLabel: 'Keskuskaavio.pdf',
+      sourceHref: `https://drive.google.com/file/d/${p186fSchedulePdfDriveId}/view`,
+      sourceRole: 'HISTORICAL_2015_GROUP_CONTEXT_ONLY',
+    },
+  ]);
+
+  expect(p186fReviewSourceLimit).toContain(p186fBedroomWalkInContextNote);
+  expect(p186fReviewSourceLimit).toContain('käyttäjän vahvistamaa nykytilaevidenssiä');
+  expect(p186fReviewSourceLimit).toContain('room/wall-adjacent WORK_ASSUMPTION');
+  expect(p186fReviewSourceLimit).toContain('eivät nykyinen as-built-syöttökytkentä');
+  expect(p186fReviewSourceLimit).toContain('sensor suite -väite');
+});
 
 const makeRenderableMesh = (name: string) => {
   const geometry = new THREE.BoxGeometry(0.12, 0.12, 0.12);
