@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-import { getRequestedReviewCandidateId } from '../../src/scripts/privateModelWorkTest';
+import {
+  getRequestedReviewCandidateId,
+  isPrivateModelReviewRequested,
+} from '../../src/scripts/privateModelWorkTest';
 import { getPrivateWorkTestCandidateById } from '../../worker/privateWorkTest';
 
 const candidateId = 'm5a-z2d-r1090-well-top-ground-surface';
@@ -20,5 +23,6 @@ test('M5A-Z2D R1090 review route resolves to the exact runtime WORK_TEST candida
     expectedSha256: 'e8934e546f2a89a2cc070c44ef9f4d6f6df8f5dd2bb30c1c7379b7f821d85605',
   });
 
+  expect(isPrivateModelReviewRequested(search, reviewId)).toBe(true);
   expect(getRequestedReviewCandidateId(search)).toBe(candidateId);
 });
