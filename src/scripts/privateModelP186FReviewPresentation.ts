@@ -80,7 +80,7 @@ const isRenderable = (object: any) =>
 const cloneObjectMaterials = (
   object: any,
   opacity: number,
-  role: 'QUESTION_TARGET_80' | 'D_1F_ROOM_CONTEXT_20',
+  role: 'QUESTION_TARGET_80' | 'D_1F_ROOM_CONTEXT_20' | 'D_1F_ARCH_CONTEXT_20',
 ) => {
   const cloneOne = (material: any) => {
     if (!material?.clone) return material;
