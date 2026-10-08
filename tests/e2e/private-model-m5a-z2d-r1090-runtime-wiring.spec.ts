@@ -1,0 +1,36 @@
+import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const candidateId = 'm5a-z2d-r1090-well-top-ground-surface';
+const reviewId = `${candidateId}-review`;
+const legacyM5aZ2CandidateId = 'm5a-z2-absolute-z-host-floor-datum';
+const runtimeFile = resolve(process.cwd(), 'src/pages/private-model/index.astro');
+
+test('R1090 review activates the existing M5A-Z2 absolute-Z presentation runtime branch', () => {
+  const source = readFileSync(runtimeFile, 'utf8');
+
+  expect(source).toContain("prepareM5AZ2SystemReviewPresentation(fullModelScene)");
+  expect(source).toContain("'Z2_ABSOLUTE_Z_SYSTEM'");
+  expect(source).toContain(legacyM5aZ2CandidateId);
+  expect(source).toContain(candidateId);
+  expect(source).toContain(reviewId);
+
+  const candidateIndex = source.indexOf(candidateId);
+  const reviewIndex = source.indexOf(reviewId);
+  const presentationIndex = source.indexOf("'Z2_ABSOLUTE_Z_SYSTEM'");
+
+  expect(candidateIndex, 'R1090 candidate id must be wired before the presentation branch is selected').toBeGreaterThanOrEqual(0);
+  expect(reviewIndex, 'R1090 review id must be wired before the presentation branch is selected').toBeGreaterThanOrEqual(0);
+  expect(presentationIndex).toBeGreaterThanOrEqual(0);
+
+  const wiringWindow = source.slice(
+    Math.max(0, Math.min(candidateIndex, reviewIndex, presentationIndex) - 900),
+    Math.min(source.length, Math.max(candidateIndex, reviewIndex, presentationIndex) + 900),
+  );
+
+  expect(wiringWindow).toContain(candidateId);
+  expect(wiringWindow).toContain(reviewId);
+  expect(wiringWindow).toContain("'Z2_ABSOLUTE_Z_SYSTEM'");
+  expect(wiringWindow).toContain('m5aDrainageReviewMode');
+});
