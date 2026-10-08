@@ -68,7 +68,7 @@ test('R1090 review activates the existing M5A-Z2 absolute-Z presentation runtime
   expect(wiringWindow).toContain('m5aDrainageReviewMode');
 });
 
-test('R1090 review exposes the active matched review id on the canvas', () => {
+test('R1090 review exposes the active matched review id and ready state on the canvas', () => {
   const source = readFileSync(runtimeFile, 'utf8');
 
   expect(source).toContain('private-model-canvas');
@@ -85,6 +85,8 @@ test('R1090 review exposes the active matched review id on the canvas', () => {
   expect(reviewModeWindow).toContain('m5aDrainageReviewMode');
   expect(reviewModeWindow).not.toContain('dataset.workTestReviewMode = m5aZ2ReviewId');
   expect(reviewModeWindow).toMatch(
-    /dataset\.workTestReviewMode\s*=\s*(matchedM5aZ2SystemReviewId|activeM5aZ2SystemReviewId|activeReviewId|reviewId|m5aZ2R1090ReviewId)/,
+    /dataset\.workTestReviewMode\s*=\s*(matchedM5aZ2SystemReviewId|activeM5aZ2SystemReviewId|requestedM5aZ2SystemReviewId|activeReviewId|reviewId|m5aZ2R1090ReviewId)/,
   );
+  expect(reviewModeWindow).toContain('m5aZ2ReviewState');
+  expect(reviewModeWindow).toContain("'ready'");
 });
