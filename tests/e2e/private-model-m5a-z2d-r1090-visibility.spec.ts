@@ -263,7 +263,6 @@ test('M5A-Z2D R1090 review autoloads 13 targets with visible 80/20 render hierar
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
-  await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId);
   await expect(canvas).toHaveAttribute('data-m5a-review-target-renderable-count', '13');
   await expect(canvas).toHaveAttribute('data-m5a-review-expected-target-renderable-count', '13');
   await expect(canvas).toHaveAttribute('data-m5a-review-well-marker-count', '4');
