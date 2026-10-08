@@ -9,8 +9,13 @@ import {
 } from '../../src/scripts/privateModelWorkTest';
 import {
   getM5BReviewSceneIndex,
+  m5bCurrentDownspoutContext,
+  m5bCurrentReviewQuestionScope,
   m5bCurrentTargetIds,
+  m5bCurrentTargetMeaningById,
+  m5bPlannedSok2ReviewQuestionScope,
   m5bPlannedSok2TargetIds,
+  m5bPlannedSok2TargetMeaningById,
   m5bReviewContextOpacity,
   m5bReviewTargetOpacity,
   prepareM5BReviewPresentation,
@@ -67,10 +72,22 @@ test('M5B current review uses scene60 and only current SOK1/SOK2 routes as targe
   expect(result.targetRenderableCount).toBe(2);
   expect(result.missingTargetIds).toEqual([]);
   expect(result.semanticViolationCount).toBe(0);
+  expect(result.questionScope).toBe(m5bCurrentReviewQuestionScope);
+  expect(result.downspoutContext).toBe(m5bCurrentDownspoutContext);
+  expect(result.targetMeanings).toEqual([
+    m5bCurrentTargetMeaningById[m5bCurrentTargetIds[0]],
+    m5bCurrentTargetMeaningById[m5bCurrentTargetIds[1]],
+  ]);
   expect((current1.material as any).opacity).toBe(m5bReviewTargetOpacity);
   expect((current2.material as any).opacity).toBe(m5bReviewTargetOpacity);
+  expect(current1.userData.m5bReviewMeaning).toBe(
+    m5bCurrentTargetMeaningById[m5bCurrentTargetIds[0]],
+  );
+  expect(current1.userData.m5bDownspoutContext).toContain('5');
+  expect(current1.userData.m5bReviewQuestionScope).toBe(m5bCurrentReviewQuestionScope);
   expect(planned.visible).toBe(false);
   expect((context.material as any).opacity).toBe(m5bReviewContextOpacity);
+  expect(context.userData.m5bReviewContentStatus).toBe('CLARITY_CONTEXT_20');
 });
 
 test('M5B current review resolves persisted G2IdCandidate target identity', () => {
@@ -91,6 +108,11 @@ test('M5B current review resolves persisted G2IdCandidate target identity', () =
   expect(result.foundTargetIds).toEqual([...m5bCurrentTargetIds]);
   expect(result.missingTargetIds).toEqual([]);
   expect(result.semanticViolationCount).toBe(0);
+  expect(result.downspoutContext).toBe(m5bCurrentDownspoutContext);
+  expect(result.targetMeanings).toEqual([
+    m5bCurrentTargetMeaningById[m5bCurrentTargetIds[0]],
+    m5bCurrentTargetMeaningById[m5bCurrentTargetIds[1]],
+  ]);
   expect((current1.material as any).opacity).toBe(m5bReviewTargetOpacity);
   expect((current2.material as any).opacity).toBe(m5bReviewTargetOpacity);
 });
@@ -128,6 +150,12 @@ test('M5B Z2R raw scene61 source-bound SOK1 context receives specific 20-percent
   expect(result.targetRenderableCount).toBe(2);
   expect(result.missingTargetIds).toEqual([]);
   expect(result.semanticViolationCount).toBe(0);
+  expect(result.questionScope).toBe(m5bPlannedSok2ReviewQuestionScope);
+  expect(result.downspoutContext).toContain('5 syöksyränniä');
+  expect(result.targetMeanings).toEqual([
+    m5bPlannedSok2TargetMeaningById[m5bPlannedSok2TargetIds[0]],
+    m5bPlannedSok2TargetMeaningById[m5bPlannedSok2TargetIds[1]],
+  ]);
   expect(result.contextRenderableCount).toBe(2);
   expect(sok1Context.userData.m5bReviewRole).toBe('CURRENT_SOK1_COMPARISON_CONTEXT_20');
   expect((sok1Context.material as any).opacity).toBe(m5bReviewContextOpacity);
@@ -158,6 +186,8 @@ test('M5B planned comparison uses scene61, planned SOK2 targets, current SOK1 co
   expect(result.targetRenderableCount).toBe(2);
   expect(result.missingTargetIds).toEqual([]);
   expect(result.semanticViolationCount).toBe(0);
+  expect(result.downspoutContext).toContain('5 syöksyränniä');
+  expect(result.targetMeanings).toHaveLength(2);
   expect((planned1.material as any).opacity).toBe(m5bReviewTargetOpacity);
   expect((planned2.material as any).opacity).toBe(m5bReviewTargetOpacity);
   expect((current1.material as any).opacity).toBe(m5bReviewContextOpacity);
