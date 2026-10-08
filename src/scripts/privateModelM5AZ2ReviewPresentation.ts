@@ -58,8 +58,52 @@ const isRenderable = (object: any) =>
       (object?.isMesh || object?.isLine || object?.isLineSegments || object?.isPoints),
   );
 
+const reviewDataKeys = new Set([
+  'Pass',
+  'G2IdCandidate',
+  'Canonical',
+  'presentationOnly',
+  'workAssumption',
+  'sourceDerivedTopology',
+  'exactXYClaim',
+  'exactZClaim',
+  'physicalElevationClaim',
+  'currentGeometryClaim',
+  'asBuiltClaim',
+  'publishToCURRENT',
+  'absoluteZContract',
+  'representationKind',
+  'physicalWellGeometryClaim',
+  'physicalRouteClaim',
+  'exactSlopeClaim',
+  'absoluteZBasis',
+  'boundaryStatus',
+  'boundaryRole',
+  'externalNetworkConnectionClaim',
+]);
+
+const getReviewData = (object: any) => {
+  const lineage: any[] = [];
+  let cursor = object;
+  while (cursor) {
+    lineage.unshift(cursor);
+    cursor = cursor.parent;
+  }
+
+  const data: Record<string, unknown> = {};
+  for (const node of lineage) {
+    const nodeData = node?.userData ?? {};
+    for (const key of reviewDataKeys) {
+      if (Object.prototype.hasOwnProperty.call(nodeData, key)) {
+        data[key] = nodeData[key];
+      }
+    }
+  }
+  return data;
+};
+
 const getTargetKey = (object: any) => {
-  const data = object?.userData ?? {};
+  const data = getReviewData(object);
   const id = String(data.G2IdCandidate ?? '');
   if (id) return id;
   if (String(data.representationKind ?? '') === 'unresolvedBoundaryMarker') {
@@ -90,7 +134,7 @@ const cloneMaterials = (object: any, opacity: number, role: string) => {
 };
 
 const isTarget = (object: any) => {
-  const data = object?.userData ?? {};
+  const data = getReviewData(object);
   const key = getTargetKey(object);
   return (
     String(data.Pass ?? '') === requiredPass &&
@@ -112,7 +156,7 @@ const hasCommonNoPromotionSemantics = (data: any) =>
   data.publishToCURRENT === false;
 
 const hasNoPromotionSemantics = (object: any) => {
-  const data = object?.userData ?? {};
+  const data = getReviewData(object);
   const kind = String(data.representationKind ?? '');
 
   if (!hasCommonNoPromotionSemantics(data)) return false;
@@ -168,7 +212,8 @@ export const prepareM5AZ2SystemReviewPresentation = (sceneRoot: any) => {
     targetKeys.set(key, object);
     targets.push(object);
 
-    const kind = String(object.userData?.representationKind ?? '');
+    const data = getReviewData(object);
+    const kind = String(data.representationKind ?? '');
     if (kind in kindCounts) {
       kindCounts[kind as keyof typeof kindCounts] += 1;
     }
@@ -185,6 +230,7 @@ export const prepareM5AZ2SystemReviewPresentation = (sceneRoot: any) => {
     cloneMaterials(object, m5aZ2ReviewTargetOpacity, 'QUESTION_TARGET_80');
     object.renderOrder = 30;
     object.userData = {
+      ...getReviewData(object),
       ...(object.userData ?? {}),
       viewerDerived: true,
       m5aZ2ReviewPresentation: true,
