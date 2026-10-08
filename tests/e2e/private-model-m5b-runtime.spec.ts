@@ -7,8 +7,13 @@ import {
   type M5BReviewPresentationResult,
 } from '../../src/scripts/privateModelM5BReviewRuntime';
 import {
+  m5bCurrentDownspoutContext,
+  m5bCurrentReviewQuestionScope,
   m5bCurrentTargetIds,
+  m5bCurrentTargetMeaningById,
+  m5bPlannedSok2ReviewQuestionScope,
   m5bPlannedSok2TargetIds,
+  m5bPlannedSok2TargetMeaningById,
 } from '../../src/scripts/privateModelM5BReviewPresentation';
 
 const currentPresentation = (): M5BReviewPresentationResult => ({
@@ -20,6 +25,11 @@ const currentPresentation = (): M5BReviewPresentationResult => ({
   semanticViolationCount: 0,
   foundTargetIds: [...m5bCurrentTargetIds],
   missingTargetIds: [],
+  questionScope: m5bCurrentReviewQuestionScope,
+  downspoutContext: m5bCurrentDownspoutContext,
+  targetMeanings: m5bCurrentTargetIds.map(
+    (id) => m5bCurrentTargetMeaningById[id],
+  ),
 });
 
 const plannedPresentation = (): M5BReviewPresentationResult => ({
@@ -31,6 +41,12 @@ const plannedPresentation = (): M5BReviewPresentationResult => ({
   semanticViolationCount: 0,
   foundTargetIds: [...m5bPlannedSok2TargetIds],
   missingTargetIds: [],
+  questionScope: m5bPlannedSok2ReviewQuestionScope,
+  downspoutContext:
+    `${m5bCurrentDownspoutContext} PLANNED_SOK2_COMPARISON on erillinen suunnitelma-/vertailuesitys.`,
+  targetMeanings: m5bPlannedSok2TargetIds.map(
+    (id) => m5bPlannedSok2TargetMeaningById[id],
+  ),
 });
 
 test('M5B CURRENT runtime state binds scene60, exact targets, 80/20 and no-promotion metadata', () => {
@@ -43,6 +59,12 @@ test('M5B CURRENT runtime state binds scene60, exact targets, 80/20 and no-promo
   expect(state.dataset.m5bReviewQuestion).toBe(
     'ROOF_STORMWATER_CURRENT_ROUTE_RELATION',
   );
+  expect(state.dataset.m5bReviewQuestionScope).toBe(m5bCurrentReviewQuestionScope);
+  expect(state.dataset.m5bDownspoutContext).toBe(m5bCurrentDownspoutContext);
+  expect(state.dataset.m5bReviewTargetMeanings).toContain('WORK_TEST-stubi');
+  expect(state.dataset.m5bReviewClarityLabel).toContain('5 syöksyränniä');
+  expect(state.statusText).toContain('5 syöksyränniä');
+  expect(state.statusText).toContain('ei koko todistettu putkilinja');
   expect(state.dataset.m5bSceneIndex).toBe('60');
   expect(state.dataset.m5bTargetG2Ids).toBe(m5bCurrentTargetIds.join(','));
   expect(state.dataset.m5bReviewTargetOpacity).toBe('0.80');
@@ -70,6 +92,9 @@ test('M5B PLANNED runtime state binds scene61 and only planned SOK2 targets', ()
   expect(state.dataset.m5bReviewQuestion).toBe(
     'ROOF_STORMWATER_PLANNED_SOK2_COMPARISON_RELATION',
   );
+  expect(state.dataset.m5bReviewQuestionScope).toBe(m5bPlannedSok2ReviewQuestionScope);
+  expect(state.dataset.m5bDownspoutContext).toContain('5 syöksyränniä');
+  expect(state.dataset.m5bReviewTargetMeanings).toContain('SOK2-puolen suunniteltu');
   expect(state.dataset.m5bSceneIndex).toBe('61');
   expect(state.dataset.m5bTargetG2Ids).toBe(m5bPlannedSok2TargetIds.join(','));
   expect(state.dataset.m5bReviewSuppressedCrossVariantCount).toBe('1');
@@ -91,6 +116,26 @@ test('M5B runtime readiness rejects missing targets and semantic promotion viola
   expect(() =>
     assertM5BReviewPresentationReady('PLANNED_SOK2_COMPARISON', promoted),
   ).toThrow(/no-promotion semantic violations/);
+});
+
+test('M5B runtime readiness rejects missing clarity metadata', () => {
+  const noScope = currentPresentation();
+  noScope.questionScope = '';
+  expect(() => assertM5BReviewPresentationReady('CURRENT', noScope)).toThrow(
+    /question scope missing/,
+  );
+
+  const noDownspouts = currentPresentation();
+  noDownspouts.downspoutContext = '4 nurkkaränniä';
+  expect(() => assertM5BReviewPresentationReady('CURRENT', noDownspouts)).toThrow(
+    /five-downspout context missing/,
+  );
+
+  const noMeanings = currentPresentation();
+  noMeanings.targetMeanings = [];
+  expect(() => assertM5BReviewPresentationReady('CURRENT', noMeanings)).toThrow(
+    /target meaning count mismatch/,
+  );
 });
 
 test('M5B runtime readiness rejects cross-variant or wrong-scene presentation results', () => {
