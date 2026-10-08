@@ -484,6 +484,20 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
   },
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
+const M5A_Z2D_D100_D300_DIAMETER_CANDIDATE = {
+  id: 'm5a-z2d-d100-d300-diameter',
+  label: 'M5A-Z2D D100 pipes + D300/D315 wells - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-z2d-d100-d300-diameter.glb`,
+  objectKey: 'work-test/m5a-z2d-d100-d300-diameter.glb',
+  expectedSize: 3_085_140,
+  expectedSha256: '15047af6e2f7db2080f554d241d66625a6797f5e24ae737b19627ae1f4aa87fd',
+} as const satisfies PrivateWorkTestCandidate;
+
+const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
+  ...PRIVATE_WORK_TEST_CANDIDATES,
+  M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
+] as const satisfies readonly PrivateWorkTestCandidate[];
+
 type PrivateWorkTestObjectMetadata = {
   size?: number;
   etag?: string;
@@ -576,10 +590,10 @@ export const isPrivateWorkTestPath = (pathname: string) =>
   pathname === PRIVATE_WORK_TEST_PREFIX || pathname.startsWith(`${PRIVATE_WORK_TEST_PREFIX}/`);
 
 export const getPrivateWorkTestCandidate = (pathname: string) =>
-  PRIVATE_WORK_TEST_CANDIDATES.find((candidate) => candidate.path === pathname) ?? null;
+  PRIVATE_WORK_TEST_RUNTIME_CANDIDATES.find((candidate) => candidate.path === pathname) ?? null;
 
 export const getPrivateWorkTestCandidateById = (id: string) =>
-  PRIVATE_WORK_TEST_CANDIDATES.find((candidate) => candidate.id === id) ?? null;
+  PRIVATE_WORK_TEST_RUNTIME_CANDIDATES.find((candidate) => candidate.id === id) ?? null;
 
 export const getPrivateWorkTestUploadCandidate = (pathname: string) => {
   if (!pathname.startsWith(PRIVATE_WORK_TEST_UPLOAD_PREFIX) || !pathname.endsWith('.glb')) return null;
@@ -972,7 +986,7 @@ const privateWorkTestCatalogResponse = async (
   const candidates = [];
   const listedObjects = await privateWorkTestCatalogListedObjects(bucket);
 
-  for (const candidate of PRIVATE_WORK_TEST_CANDIDATES) {
+  for (const candidate of PRIVATE_WORK_TEST_RUNTIME_CANDIDATES) {
     const object = listedObjects
       ? listedObjects.get(candidate.objectKey) ?? null
       : await privateWorkTestCatalogObject(bucket, candidate.objectKey);
