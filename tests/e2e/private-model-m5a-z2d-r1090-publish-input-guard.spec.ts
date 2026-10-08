@@ -30,6 +30,15 @@ const forbiddenPromotionParams = [
   'readyForHumanReview',
 ];
 
+const forbiddenReadyClaims = [
+  'READY_FOR_HUMAN_REVIEW / PASS',
+  'READY_FOR_HUMAN_REVIEW: PASS',
+  'READY_FOR_HUMAN_REVIEW=PASS',
+  'HUMAN_REVIEW / PASS',
+  'HUMAN_REVIEW: PASS',
+  'HUMAN_REVIEW=PASS',
+];
+
 const docsPath = path.join(
   process.cwd(),
   'docs',
@@ -95,6 +104,10 @@ test('M5A-Z2D R1090 handoff keeps no-promotion boundaries explicit', () => {
   expect(docsContent).toContain('This mapping note does not change GLB bytes');
   expect(docsContent).toContain('publishToCURRENT');
   expect(docsContent).toContain('HUMAN_REVIEW');
+
+  for (const claim of forbiddenReadyClaims) {
+    expect(docsContent).not.toContain(claim);
+  }
 });
 
 test('M5A-Z2D R1090 handoff no longer treats implementation or one-link wiring as the next patch', () => {
