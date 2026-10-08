@@ -5,7 +5,27 @@ import { resolve } from 'node:path';
 const candidateId = 'm5a-z2d-r1090-well-top-ground-surface';
 const reviewId = `${candidateId}-review`;
 const legacyM5aZ2CandidateId = 'm5a-z2-absolute-z-host-floor-datum';
+const legacyM5aZ2ReviewId = `${legacyM5aZ2CandidateId}-review`;
 const runtimeFile = resolve(process.cwd(), 'src/pages/private-model/index.astro');
+const workTestFile = resolve(process.cwd(), 'src/scripts/privateModelWorkTest.ts');
+
+test('R1090 work-test contract keeps the shared M5A-Z2 system review predicate inputs centralized', () => {
+  const source = readFileSync(workTestFile, 'utf8');
+
+  expect(source).toContain(`export const m5aZ2R1090CandidateId = '${candidateId}'`);
+  expect(source).toContain('export const m5aZ2R1090ReviewId = `${m5aZ2R1090CandidateId}-review`;');
+  expect(source).toContain(`export const m5aZ2LegacyCandidateId = '${legacyM5aZ2CandidateId}'`);
+  expect(source).toContain('export const m5aZ2LegacyReviewId = `${m5aZ2LegacyCandidateId}-review`;');
+  expect(source).toContain('export const m5aZ2SystemCandidateIds = new Set<string>([');
+  expect(source).toContain('m5aZ2LegacyCandidateId,');
+  expect(source).toContain('m5aZ2R1090CandidateId,');
+  expect(source).toContain('export const m5aZ2SystemReviewIds = new Set<string>([');
+  expect(source).toContain('m5aZ2LegacyReviewId,');
+  expect(source).toContain('m5aZ2R1090ReviewId,');
+  expect(source).toContain('export const isM5AZ2SystemReviewCandidateId = (candidateId: string) =>');
+  expect(source).toContain('export const isM5AZ2SystemReviewId = (reviewId: string | null) =>');
+  expect(source).toContain('[m5aZ2R1090ReviewId]: m5aZ2R1090CandidateId,');
+});
 
 test('R1090 review activates the existing M5A-Z2 absolute-Z presentation runtime branch', () => {
   const source = readFileSync(runtimeFile, 'utf8');
@@ -13,6 +33,7 @@ test('R1090 review activates the existing M5A-Z2 absolute-Z presentation runtime
   expect(source).toContain("prepareM5AZ2SystemReviewPresentation(fullModelScene)");
   expect(source).toContain("'Z2_ABSOLUTE_Z_SYSTEM'");
   expect(source).toContain(legacyM5aZ2CandidateId);
+  expect(source).toContain(legacyM5aZ2ReviewId);
   expect(source).toContain(candidateId);
   expect(source).toContain(reviewId);
 
