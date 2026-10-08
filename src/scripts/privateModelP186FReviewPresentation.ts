@@ -12,8 +12,14 @@ export const p186fSchedulePdfDriveId = '1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP';
 export const p186fBedroomWalkInContextNote =
   'Bedroom-ankkuri tarkoittaa Bedroom/vaatehuone-kontekstia: käyttäjän vahvistuksen mukaan Themo ohjaa makuuhuoneen lattialämmitystä, vaikka fyysinen termostaatti sijaitsee samassa huonekokonaisuudessa vaatehuoneen ja kulkumaisen tilarakenteen kautta.';
 
+export const p186fX2PlacementBasis =
+  'USER_CONFIRMED_ROOM_ASSIGNMENT_AND_D1F_FOOTPRINT_DERIVED_WALL_ADJACENT_WORK_ASSUMPTION';
+
+export const p186fLegacyX1PlacementBasis =
+  'CENTROID_OF_INHERITED_2015_FLOOR_HEATING_WORK_ROUTE_PROXY_FOR_ROOM_LEVEL_PRESENTATION_ONLY';
+
 export const p186fReviewQuestionText =
-  'Sijoittuvatko Bathroom-, Bedroom/vaatehuone- ja Lobby-Themojen room-level WORK_TEST -ankkurit käyttökelpoisesti oikeiden huoneiden tai käyttökontekstien yhteyteen, ymmärtäen etteivät markerit ole fyysisten termostaattien exact-sijainteja?';
+  'Sijoittuvatko Bathroom-, Bedroom/vaatehuone- ja Lobby-Themojen room/wall-adjacent WORK_TEST -ankkurit käyttökelpoisesti oikeiden huoneiden tai käyttökontekstien yhteyteen, ymmärtäen etteivät markerit ole fyysisten termostaattien exact-sijainteja?';
 
 export const p186fReviewSourceContexts = [
   {
@@ -24,7 +30,7 @@ export const p186fReviewSourceContexts = [
   {
     sourceLabel: 'Lattialämmitys.me_design.pdf',
     sourceHref: `https://drive.google.com/file/d/${p186fFloorHeatingSourcePdfDriveId}/view`,
-    sourceRole: 'HISTORICAL_2015_ROOM_LEVEL_PLACEMENT_PROXY_BASIS',
+    sourceRole: 'HISTORICAL_2015_ROOM_LEVEL_PLACEMENT_CONTEXT_SUPERSEDED_FOR_XY',
   },
   {
     sourceLabel: 'Keskuskaavio.pdf',
@@ -34,7 +40,7 @@ export const p186fReviewSourceContexts = [
 ] as const;
 
 export const p186fReviewSourceLimit =
-  `Themojen asennus ja Bathroom/Bedroom/vaatehuone/Lobby-huonesidonnat ovat käyttäjän vahvistamaa nykytilaevidenssiä. ${p186fBedroomWalkInContextNote} Markerien XY/Z on vain room-level WORK_ASSUMPTION -esitystä, ja vuoden 2015 ryhmät 10.2/10.3/10.1 ovat historiallista kontekstia, eivät nykyinen as-built-syöttökytkentä, wall-host-väite tai sensor suite -väite.`;
+  `Themojen asennus ja Bathroom/Bedroom/vaatehuone/Lobby-huonesidonnat ovat käyttäjän vahvistamaa nykytilaevidenssiä. ${p186fBedroomWalkInContextNote} Markerien XY/Z on vain room/wall-adjacent WORK_ASSUMPTION -esitystä, ja vuoden 2015 ryhmät 10.2/10.3/10.1 ovat historiallista kontekstia, eivät nykyinen as-built-syöttökytkentä, wall-host-väite tai sensor suite -väite.`;
 
 export const p186fExpectedRooms = {
   Bedroom: {
@@ -59,6 +65,11 @@ export const p186fExpectedRoomContextCount = 7;
 
 const expectedRoomEntries = Object.entries(p186fExpectedRooms);
 const expectedRoomNames = new Set(expectedRoomEntries.map(([room]) => room));
+const supportedP186fPasses = new Set(['P186F-X1', 'P186F-X2']);
+const supportedP186fPlacementBases = new Set([
+  p186fLegacyX1PlacementBasis,
+  p186fX2PlacementBasis,
+]);
 
 const isRenderable = (object: any) =>
   Boolean(
@@ -112,7 +123,7 @@ const cloneObjectMaterials = (
 const isP186fTarget = (object: any) => {
   const data = object?.userData ?? {};
   return (
-    String(data.Pass ?? '') === 'P186F-X1' &&
+    supportedP186fPasses.has(String(data.Pass ?? '')) &&
     String(data.presentationLayer ?? '') === 'MEP_ELECTRICAL' &&
     String(data.representationKind ?? '') === 'thermostatRoomPresentationAnchor'
   );
@@ -141,6 +152,7 @@ const hasP186fNoPromotionSemantics = (object: any) => {
   if (!expected || !expectedRoomNames.has(room)) return false;
 
   return (
+    supportedP186fPasses.has(String(data.Pass ?? '')) &&
     String(data.logicalDeviceId ?? '') === expected.logicalDeviceId &&
     String(data.roomAssignmentEvidence ?? '') === 'USER_CONFIRMED' &&
     String(data.currentDeviceRoomAssignmentEvidence ?? '') === 'USER_CONFIRMED_2026-10-08' &&
@@ -150,8 +162,7 @@ const hasP186fNoPromotionSemantics = (object: any) => {
     Number(historical.sourceYear) === 2015 &&
     String(historical.bindingAuthority ?? '') ===
       'HIGH_CONFIDENCE_DERIVED / CROSS_SOURCE_PLAN_PARITY' &&
-    String(data.placementBasis ?? '') ===
-      'CENTROID_OF_INHERITED_2015_FLOOR_HEATING_WORK_ROUTE_PROXY_FOR_ROOM_LEVEL_PRESENTATION_ONLY' &&
+    supportedP186fPlacementBases.has(String(data.placementBasis ?? '')) &&
     placement.length === 2 &&
     placement.every(Number.isFinite) &&
     data.roomLevelPlacement === true &&
