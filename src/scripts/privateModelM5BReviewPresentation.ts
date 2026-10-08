@@ -28,8 +28,10 @@ export const m5bReviewTargetOpacity = 0.8;
 export const m5bReviewContextOpacity = 0.2;
 export const m5bVerticalDownspoutProxyRadius = 0.08;
 export const m5bVerticalDownspoutProxyWallOffset = 0.45;
+export const m5bVerticalDownspoutWallAttachmentOffset = 0;
 export const m5bVerticalDownspoutShortFacadeLateralInsetRatio = 0.18;
 export const m5bVerticalDownspoutShortFacadeLateralFix = 'R1081_SHORT_FACADE_LATERAL_INSET';
+export const m5bVerticalDownspoutWallAttachmentFix = 'R1088_SHORT_FACADE_WALL_ATTACHMENT';
 export const m5bVerticalDownspoutProxyRenderableForm = 'THICK_VISIBLE_TUBE_PROXY';
 
 export type M5BVerticalDownspoutProxyId = (typeof m5bCurrentVerticalDownspoutProxyIds)[number];
@@ -259,11 +261,14 @@ const createCurrentVerticalDownspoutProxy = (
     m5bReviewVisibilityFix: 'R1074_DEPTH_TEST_OFF_THICK_MESH_PROXY',
     m5bReviewWallBoundsFix: 'R1077_FILTERED_BUILDING_WALL_BOUNDS',
     m5bReviewShortFacadeLateralFix: m5bVerticalDownspoutShortFacadeLateralFix,
+    m5bReviewWallAttachmentFix: m5bVerticalDownspoutWallAttachmentFix,
     m5bVerticalProxyRadiusM: m5bVerticalDownspoutProxyRadius,
     m5bVerticalProxyWallOffsetM: m5bVerticalDownspoutProxyWallOffset,
+    m5bVerticalProxyWallAttachmentOffsetM: m5bVerticalDownspoutWallAttachmentOffset,
     m5bVerticalProxyShortFacadeLateralInsetM: shortFacadeLateralInsetM,
+    m5bVerticalProxyWallAttached: true,
     m5bProxyPlacementBasis:
-      'viewer-derived filtered wall/building/roof bounds with qualitative short-facade lateral inset from user-marked review feedback; presentation proxy only',
+      'viewer-derived filtered wall/building/roof bounds with short-facade lateral inset; four short-facade proxies are wall-envelope attached at the facade edge under the roof; presentation proxy only',
   };
   return mesh;
 };
@@ -314,17 +319,17 @@ const addCurrentVerticalDownspoutProxies = (
     shortFacadeLateralInsetM: number;
   }> = longAxis === 'X'
     ? [
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_1', x: xMin - offset, z: zMin + shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_2', x: xMax + offset, z: zMin + shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_3', x: xMax + offset, z: zMax - shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_4', x: xMin - offset, z: zMax - shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_1', x: xMin, z: zMin + shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_2', x: xMax, z: zMin + shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_3', x: xMax, z: zMax - shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_4', x: xMin, z: zMax - shortFacadeInset, shortFacadeLateralInsetM: shortFacadeInset },
         { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_SOUTH_FACADE_C_B', x: xMid, z: zMin - offset, shortFacadeLateralInsetM: 0 },
       ]
     : [
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_1', x: xMin + shortFacadeInset, z: zMin - offset, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_2', x: xMax - shortFacadeInset, z: zMin - offset, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_3', x: xMax - shortFacadeInset, z: zMax + offset, shortFacadeLateralInsetM: shortFacadeInset },
-        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_4', x: xMin + shortFacadeInset, z: zMax + offset, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_1', x: xMin + shortFacadeInset, z: zMin, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_2', x: xMax - shortFacadeInset, z: zMin, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_3', x: xMax - shortFacadeInset, z: zMax, shortFacadeLateralInsetM: shortFacadeInset },
+        { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_CORNER_4', x: xMin + shortFacadeInset, z: zMax, shortFacadeLateralInsetM: shortFacadeInset },
         { id: 'M5B_VERTICAL_DOWNSPOUT_PROXY_SOUTH_FACADE_C_B', x: xMin + shortFacadeInset, z: zMid, shortFacadeLateralInsetM: 0 },
       ];
 
@@ -489,10 +494,11 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
     semanticViolationCount,
     buildingBoundsContributorCount,
     buildingBoundsPlacementBasis:
-      variant === 'CURRENT' ? 'FILTERED_WALL_BUILDING_ROOF_CONTEXT_BOUNDS_WITH_SHORT_FACADE_LATERAL_INSET' : '',
+      variant === 'CURRENT' ? 'FILTERED_WALL_BUILDING_ROOF_CONTEXT_BOUNDS_WITH_SHORT_FACADE_LATERAL_INSET_AND_WALL_ATTACHMENT' : '',
     buildingBoundsMaxHorizontalExtentM: m5bBuildingBoundsMaxHorizontalExtentM,
     shortFacadeLateralInsetM,
     shortFacadeLateralFix: variant === 'CURRENT' ? m5bVerticalDownspoutShortFacadeLateralFix : '',
+    wallAttachmentFix: variant === 'CURRENT' ? m5bVerticalDownspoutWallAttachmentFix : '',
     foundTargetIds: [...found],
     missingTargetIds: targets.filter((id) => !found.has(id)),
     questionScope,
