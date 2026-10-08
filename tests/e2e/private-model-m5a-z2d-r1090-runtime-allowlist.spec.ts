@@ -2,10 +2,12 @@ import { expect, test } from '@playwright/test';
 
 import {
   PRIVATE_WORK_TEST_PUBLISH_PREFIX,
+  PRIVATE_WORK_TEST_UPLOAD_PREFIX,
   PRIVATE_WORK_TEST_VERIFY_GLB_PREFIX,
   getPrivateWorkTestCandidate,
   getPrivateWorkTestCandidateById,
   getPrivateWorkTestPublishCandidate,
+  getPrivateWorkTestUploadCandidate,
   getPrivateWorkTestVerifyCandidate,
 } from '../../worker/privateWorkTest';
 
@@ -27,6 +29,9 @@ test('M5A-Z2D R1090 runtime allowlist exposes the exact well-top ground-surface 
   });
 
   expect(getPrivateWorkTestCandidate(path)).toBe(candidate);
+  expect(getPrivateWorkTestUploadCandidate(`${PRIVATE_WORK_TEST_UPLOAD_PREFIX}${id}.glb`)).toBe(
+    candidate,
+  );
   expect(getPrivateWorkTestPublishCandidate(`${PRIVATE_WORK_TEST_PUBLISH_PREFIX}${id}.glb`)).toBe(
     candidate,
   );
