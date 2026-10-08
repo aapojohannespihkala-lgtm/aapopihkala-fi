@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+
 import { expect, test } from '@playwright/test';
 
 import {
@@ -76,6 +78,20 @@ test('VUX-E1A research preset labels retain the original context after customiza
   expect(formatViewerResearchPresetLabel('drainage')).toBe('Salaojat');
   expect(formatViewerResearchPresetLabel('drainage', true)).toBe('Salaojat · mukautettu');
   expect(formatViewerResearchPresetLabel('electrical', true)).toBe('Sähköt · mukautettu');
+});
+
+test('VUX-E1A private-model route visibly preserves preset context when layers are customized', async () => {
+  const source = await readFile(
+    new URL('../../src/pages/private-model/index.astro', import.meta.url),
+    'utf8',
+  );
+
+  expect(source).toContain('id="preset-context-status"');
+  expect(source).toContain('formatViewerResearchPresetLabel(');
+  expect(source).toContain("layersPanel.addEventListener('change', markResearchPresetCustomized);");
+  expect(source).toContain("layersPanel.addEventListener('input', markResearchPresetCustomized);");
+  expect(source).toContain('resetResearchPresetCustomization();');
+  expect(source).toContain('suppressPresetCustomization = true;');
 });
 
 test('VUX-E1A research presets install curated starting state', () => {
