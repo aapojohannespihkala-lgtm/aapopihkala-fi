@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This note pins the next code-gate patch for the M5A-Z2D R1090 well-top ground-surface WORK_TEST successor after PR #1003 registered the machine-publish source map.
+This note pins the current post-runtime state for the M5A-Z2D R1090 well-top ground-surface WORK_TEST successor. PR #1008 superseded the earlier runtime-patch plan by adding the exact runtime allowlist candidate and focused regression on `main`.
 
 ## Exact candidate
 
@@ -12,16 +12,21 @@ This note pins the next code-gate patch for the M5A-Z2D R1090 well-top ground-su
 - Expected size: `3_089_152`
 - Expected SHA-256: `e8934e546f2a89a2cc070c44ef9f4d6f6df8f5dd2bb30c1c7379b7f821d85605`
 
-## Required next code patch
+## Current main runtime state
 
-The next implementation PR should update `worker/privateWorkTest.ts` by adding a `PrivateWorkTestCandidate` for `m5a-z2d-r1090-well-top-ground-surface` and include that candidate in `PRIVATE_WORK_TEST_RUNTIME_CANDIDATES`.
+`worker/privateWorkTest.ts` on `main` now exposes `M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE` with the exact id, label, path, object key, size, and SHA-256 above. `PRIVATE_WORK_TEST_RUNTIME_CANDIDATES` includes it after the legacy `M5A_Z2D_D100_D300_DIAMETER_CANDIDATE`, so the older D100/D300 candidate remains available.
 
-A focused backend regression should prove that:
+The focused regression `tests/e2e/private-model-m5a-z2d-r1090-runtime-allowlist.spec.ts` proves that the R1090 candidate resolves by id, by private-model path, by upload path, by publish path, and by verify GLB path.
 
-1. `getPrivateWorkTestCandidateById('m5a-z2d-r1090-well-top-ground-surface')` resolves the candidate.
-2. The candidate path is `${PRIVATE_MODEL_PREFIX}/work-test/m5a-z2d-r1090-well-top-ground-surface.glb`.
-3. The object key, expected size, and SHA-256 match the exact candidate above.
-4. The older `m5a-z2d-d100-d300-diameter` runtime candidate remains available.
+## V5 publish gate
+
+The next constructive gate is a WORK_TEST machine publish/readback from `main` using workflow `Publish WORK_TEST` with this exact input:
+
+```text
+m5a-z2d-r1090-well-top-ground-surface
+```
+
+That workflow should read the candidate from `.github/work-test-candidates.json`, download the raw Drive GLB, derive exact byte identity, publish to the machine-only endpoint, and read the production catalog plus full production GLB back byte-for-byte.
 
 ## Boundaries
 
@@ -29,4 +34,4 @@ This mapping note does not change GLB bytes, G1/G2/G3, datacube fact layer, sour
 
 ## Follow-up
 
-After this map is merged or superseded by an implementation PR, continue with the actual runtime allowlist patch, review-route/autoload wiring if needed, then machine publish/readback and authenticated render before any human content review question.
+After V5 machine publish/readback passes, continue with review-route/autoload wiring if needed, authenticated render visibility, and only then a narrowly scoped human content review question. Do not promote this WORK_TEST successor to CURRENT, canonical, as-built, or publishToCURRENT from this note.
