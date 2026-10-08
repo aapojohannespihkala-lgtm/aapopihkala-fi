@@ -56,3 +56,24 @@ test('R1090 review activates the existing M5A-Z2 absolute-Z presentation runtime
   expect(wiringWindow).toContain("'Z2_ABSOLUTE_Z_SYSTEM'");
   expect(wiringWindow).toContain('m5aDrainageReviewMode');
 });
+
+test('R1090 review exposes the active matched review id on the canvas', () => {
+  const source = readFileSync(runtimeFile, 'utf8');
+
+  expect(source).toContain('private-model-canvas');
+  expect(source).toContain('dataset.workTestReviewMode');
+
+  const reviewModeIndex = source.indexOf('dataset.workTestReviewMode');
+  expect(reviewModeIndex).toBeGreaterThanOrEqual(0);
+
+  const reviewModeWindow = source.slice(
+    Math.max(0, reviewModeIndex - 900),
+    Math.min(source.length, reviewModeIndex + 900),
+  );
+
+  expect(reviewModeWindow).toContain('m5aDrainageReviewMode');
+  expect(reviewModeWindow).not.toContain('dataset.workTestReviewMode = m5aZ2ReviewId');
+  expect(reviewModeWindow).toMatch(
+    /dataset\.workTestReviewMode\s*=\s*(matchedM5aZ2SystemReviewId|activeM5aZ2SystemReviewId|activeReviewId|reviewId|m5aZ2R1090ReviewId)/,
+  );
+});
