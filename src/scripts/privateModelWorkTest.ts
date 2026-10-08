@@ -175,6 +175,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [p184gReviewId]: p184gCandidateId,
   [m5aR3Z1cReviewId]: m5aR3Z1cCandidateId,
   [m5aR3Z1cSok1Sok2RelativeZReviewId]: m5aR3Z1cCandidateId,
+  [m5aZ2LegacyReviewId]: m5aZ2LegacyCandidateId,
   [m5aZ2R1090ReviewId]: m5aZ2R1090CandidateId,
   [m5bCurrentReviewId]: m5bCandidateId,
   [m5bPlannedSok2ComparisonReviewId]: m5bCandidateId,
