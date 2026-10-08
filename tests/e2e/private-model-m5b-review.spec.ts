@@ -24,6 +24,8 @@ import {
   m5bVerticalDownspoutProxyWallOffset,
   m5bVerticalDownspoutShortFacadeLateralFix,
   m5bVerticalDownspoutShortFacadeLateralInsetRatio,
+  m5bVerticalDownspoutWallAttachmentFix,
+  m5bVerticalDownspoutWallAttachmentOffset,
   prepareM5BReviewPresentation,
 } from '../../src/scripts/privateModelM5BReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
@@ -117,6 +119,7 @@ test('M5B current review uses scene60 and five vertical downspout proxies as tar
   expect(result.semanticViolationCount).toBe(0);
   expect(result.buildingBoundsContributorCount).toBeGreaterThan(0);
   expect(result.shortFacadeLateralFix).toBe(m5bVerticalDownspoutShortFacadeLateralFix);
+  expect(result.wallAttachmentFix).toBe(m5bVerticalDownspoutWallAttachmentFix);
   expect(result.questionScope).toBe(m5bCurrentReviewQuestionScope);
   expect(result.verticalDownspoutReviewScope).toBe(m5bCurrentVerticalDownspoutReviewScope);
   expect(result.downspoutContext).toBe(m5bCurrentDownspoutContext);
@@ -126,6 +129,9 @@ test('M5B current review uses scene60 and five vertical downspout proxies as tar
   expect((proxies[0] as any).userData.m5bReviewMeaning).toContain('Pystysuuntainen syöksyränni-proxy');
   expect((proxies[0] as any).userData.m5bReviewShortFacadeLateralFix).toBe(
     m5bVerticalDownspoutShortFacadeLateralFix,
+  );
+  expect((proxies[0] as any).userData.m5bReviewWallAttachmentFix).toBe(
+    m5bVerticalDownspoutWallAttachmentFix,
   );
   expect((proxies[0] as any).userData.exactXYClaim).toBe(false);
   expect((proxies[0] as any).userData.exactZClaim).toBe(false);
@@ -169,7 +175,7 @@ test('M5B current review anchors downspout proxies to building context, not broa
   expect(broadFootprint.userData.m5bReviewContentStatus).toBe('CLARITY_CONTEXT_20');
 });
 
-test('M5B current review applies qualitative short-facade lateral inset instead of bounds-corner placement', () => {
+test('M5B current review applies qualitative short-facade lateral inset and wall-attaches corner proxies', () => {
   const root = new THREE.Group();
   const current1 = makeRoute(m5bCurrentRouteStubIds[0]);
   const current2 = makeRoute(m5bCurrentRouteStubIds[1]);
@@ -189,15 +195,23 @@ test('M5B current review applies qualitative short-facade lateral inset instead 
   const expectedInset = 8 * m5bVerticalDownspoutShortFacadeLateralInsetRatio;
 
   expect(result.shortFacadeLateralFix).toBe(m5bVerticalDownspoutShortFacadeLateralFix);
+  expect(result.wallAttachmentFix).toBe(m5bVerticalDownspoutWallAttachmentFix);
   expect(result.shortFacadeLateralInsetM).toBeCloseTo(expectedInset, 6);
   expect(cornerProxies).toHaveLength(4);
   for (const proxy of cornerProxies) {
-    expect(Math.abs(proxy.position.x)).toBeCloseTo(5 + m5bVerticalDownspoutProxyWallOffset, 6);
+    expect(Math.abs(proxy.position.x)).toBeCloseTo(5 + m5bVerticalDownspoutWallAttachmentOffset, 6);
     expect(Math.abs(proxy.position.z)).toBeCloseTo(4 - expectedInset, 6);
     expect(Math.abs(proxy.position.z)).toBeLessThan(4);
     expect((proxy as any).userData.m5bReviewShortFacadeLateralFix).toBe(
       m5bVerticalDownspoutShortFacadeLateralFix,
     );
+    expect((proxy as any).userData.m5bReviewWallAttachmentFix).toBe(
+      m5bVerticalDownspoutWallAttachmentFix,
+    );
+    expect((proxy as any).userData.m5bVerticalProxyWallAttachmentOffsetM).toBe(
+      m5bVerticalDownspoutWallAttachmentOffset,
+    );
+    expect((proxy as any).userData.m5bVerticalProxyWallAttached).toBe(true);
     expect((proxy as any).userData.m5bVerticalProxyShortFacadeLateralInsetM).toBeCloseTo(
       expectedInset,
       6,
