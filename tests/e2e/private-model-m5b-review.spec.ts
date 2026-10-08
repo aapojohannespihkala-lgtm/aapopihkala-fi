@@ -21,6 +21,7 @@ import {
   m5bPlannedSok2TargetMeaningById,
   m5bReviewContextOpacity,
   m5bReviewTargetOpacity,
+  m5bVerticalDownspoutProxyRadius,
   prepareM5BReviewPresentation,
 } from '../../src/scripts/privateModelM5BReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
@@ -76,7 +77,7 @@ test('M5B registry and explicit review aliases resolve exact persisted candidate
   ).toBe(m5bCandidateId);
 });
 
-test('M5B current review uses scene60 and five vertical downspout proxies as targets', () => {
+test('M5B current review uses scene60 and five visible vertical downspout proxies as targets', () => {
   const root = new THREE.Group();
   const current1 = makeRoute(m5bCurrentRouteStubIds[0]);
   const current2 = makeRoute(m5bCurrentRouteStubIds[1]);
@@ -105,7 +106,15 @@ test('M5B current review uses scene60 and five vertical downspout proxies as tar
   expect(result.downspoutContext).toBe(m5bCurrentDownspoutContext);
   expect(result.targetMeanings).toEqual(currentProxyMeanings());
   expect(proxies).toHaveLength(5);
+  expect((proxies[0] as any).isMesh).toBe(true);
+  expect((proxies[0] as any).isLine).not.toBe(true);
+  expect((proxies[0] as any).geometry?.type).toBe('CylinderGeometry');
   expect((proxies[0] as any).material.opacity).toBe(m5bReviewTargetOpacity);
+  expect((proxies[0] as any).material.depthTest).toBe(false);
+  expect((proxies[0] as any).renderOrder).toBeGreaterThanOrEqual(2000);
+  expect((proxies[0] as any).userData.m5bReviewRenderableForm).toBe('VISIBLE_CYLINDER_PROXY');
+  expect((proxies[0] as any).userData.m5bReviewDepthTestDisabled).toBe(true);
+  expect((proxies[0] as any).userData.m5bReviewProxyRadiusMeters).toBe(m5bVerticalDownspoutProxyRadius);
   expect((proxies[0] as any).userData.m5bReviewMeaning).toContain('Pystysuuntainen syöksyränni-proxy');
   expect((proxies[0] as any).userData.exactXYClaim).toBe(false);
   expect((proxies[0] as any).userData.exactZClaim).toBe(false);
