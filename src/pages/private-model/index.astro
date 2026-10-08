@@ -1433,7 +1433,7 @@ const title = 'Private 3D viewer';
         <div class="title">Ylisrinne 3D</div>
 
         <details id="preset-menu" class="toolbar-menu">
-          <summary>Presetit</summary>
+          <summary>Presetit · <span id="preset-context-status" aria-live="polite" aria-atomic="true">Koko rakennus</span></summary>
           <div class="toolbar-menu-panel" aria-label="Tutkimuspresetit">
             <div class="toolbar-menu-label">Rakennus</div>
             <button id="whole-building-preset-button" type="button">Koko rakennus</button>
@@ -1909,6 +1909,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelViewPresets';
       import {
         createViewerInteractionState,
+        formatViewerResearchPresetLabel,
         resetViewerInteractionStateToPresetDefaults,
         type ViewerResearchPreset,
       } from '../../scripts/privateModelViewerState';
@@ -2045,6 +2046,7 @@ const title = 'Private 3D viewer';
       const elevNegXButton = document.querySelector<HTMLButtonElement>('#elev-neg-x-button');
       const d1PlanButton = document.querySelector<HTMLButtonElement>('#d1-plan-button');
       const d2PlanButton = document.querySelector<HTMLButtonElement>('#d2-plan-button');
+      const presetContextStatus = document.querySelector<HTMLElement>('#preset-context-status');
       const wholeBuildingPresetButton = document.querySelector<HTMLButtonElement>('#whole-building-preset-button');
       const dOverviewPresetButton = document.querySelector<HTMLButtonElement>('#d-overview-preset-button');
       const sitePresetButton = document.querySelector<HTMLButtonElement>('#site-preset-button');
@@ -2174,6 +2176,7 @@ const title = 'Private 3D viewer';
         !elevNegXButton ||
         !d1PlanButton ||
         !d2PlanButton ||
+        !presetContextStatus ||
         !wholeBuildingPresetButton ||
         !dOverviewPresetButton ||
         !sitePresetButton ||
@@ -2370,6 +2373,8 @@ const title = 'Private 3D viewer';
       let dInteriorScene: any = null;
       let p186dReviewRoomContextGroup: THREE.Group | null = null;
       let activeResearchPreset: ViewerResearchPreset = 'whole-building';
+      let activeResearchPresetCustomized = false;
+      let suppressPresetCustomization = false;
       let activePlanFloor: '1F' | '2F' | null = null;
       let activePlanFocusBounds: any = null;
       const dVisibilityBaseline = new Map<any, boolean>();
@@ -3930,9 +3935,29 @@ const title = 'Private 3D viewer';
           ? preset
           : null;
 
+      const renderResearchPresetContext = () => {
+        presetContextStatus.textContent = formatViewerResearchPresetLabel(
+          activeResearchPreset,
+          activeResearchPresetCustomized,
+        );
+        canvas.dataset.researchPresetCustomized = activeResearchPresetCustomized ? 'true' : 'false';
+      };
+
+      const resetResearchPresetCustomization = () => {
+        activeResearchPresetCustomized = false;
+        renderResearchPresetContext();
+      };
+
+      const markResearchPresetCustomized = () => {
+        if (suppressPresetCustomization || activeResearchPresetCustomized) return;
+        activeResearchPresetCustomized = true;
+        renderResearchPresetContext();
+      };
+
       const setActiveResearchPreset = (preset: ViewerResearchPreset) => {
         activeResearchPreset = preset;
         canvas.dataset.researchPreset = preset;
+        resetResearchPresetCustomization();
       };
 
       const setHeightScaleVisible = (visible: boolean) => {
@@ -4997,8 +5022,13 @@ const title = 'Private 3D viewer';
           'preset:drainage',
         );
         resetArchitecturalLayerRuntimeState(presetState.layers);
-        setDrainageLayerForResearchPreset(preset);
-        setElectricalLayerForResearchPreset(preset);
+        suppressPresetCustomization = true;
+        try {
+          setDrainageLayerForResearchPreset(preset);
+          setElectricalLayerForResearchPreset(preset);
+        } finally {
+          suppressPresetCustomization = false;
+        }
         canvas.dataset.layerStateSource = 'preset:drainage';
         standardViewLayerDefaultsInitialized = true;
         canvas.dataset.standardViewPreset = preset;
@@ -5021,8 +5051,13 @@ const title = 'Private 3D viewer';
           'preset:electrical',
         );
         resetArchitecturalLayerRuntimeState(presetState.layers);
-        setDrainageLayerForResearchPreset(preset);
-        setElectricalLayerForResearchPreset(preset);
+        suppressPresetCustomization = true;
+        try {
+          setDrainageLayerForResearchPreset(preset);
+          setElectricalLayerForResearchPreset(preset);
+        } finally {
+          suppressPresetCustomization = false;
+        }
         canvas.dataset.layerStateSource = 'preset:electrical';
         standardViewLayerDefaultsInitialized = true;
         canvas.dataset.standardViewPreset = preset;
@@ -5051,8 +5086,14 @@ const title = 'Private 3D viewer';
           `reset:${activeResearchPreset}`,
         );
         resetArchitecturalLayerRuntimeState(resetState.layers);
-        setDrainageLayerForResearchPreset(activeResearchPreset);
-        setElectricalLayerForResearchPreset(activeResearchPreset);
+        resetResearchPresetCustomization();
+        suppressPresetCustomization = true;
+        try {
+          setDrainageLayerForResearchPreset(activeResearchPreset);
+          setElectricalLayerForResearchPreset(activeResearchPreset);
+        } finally {
+          suppressPresetCustomization = false;
+        }
         canvas.dataset.layerStateSource = `reset:${activeResearchPreset}`;
         standardViewLayerDefaultsInitialized = true;
         canvas.dataset.standardViewPreset = activeResearchPreset;
@@ -10058,6 +10099,8 @@ const title = 'Private 3D viewer';
         canvas.dataset.layerStateSource = 'manual';
         standardViewLayerDefaultsInitialized = true;
       });
+      layersPanel.addEventListener('change', markResearchPresetCustomized);
+      layersPanel.addEventListener('input', markResearchPresetCustomized);
       navigateToolButton.addEventListener('click', () => setViewerToolMode('navigate'));
       selectionToolButton.addEventListener('click', () => setViewerToolMode('select'));
       clearSelectionButton.addEventListener('click', clearSelection);

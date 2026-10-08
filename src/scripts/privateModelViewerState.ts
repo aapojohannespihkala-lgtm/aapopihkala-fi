@@ -17,6 +17,22 @@ export type ViewerResearchPreset =
   | 'drainage'
   | 'electrical';
 
+export const viewerResearchPresetLabels: Record<ViewerResearchPreset, string> = {
+  'whole-building': 'Koko rakennus',
+  'd-apartment': 'D-asunto',
+  'd-1f': 'D 1F',
+  'd-2f': 'D 2F',
+  site: 'Tontti',
+  infra: 'Infra',
+  drainage: 'Salaojat',
+  electrical: 'Sähköt',
+};
+
+export const formatViewerResearchPresetLabel = (
+  preset: ViewerResearchPreset,
+  customized = false,
+) => `${viewerResearchPresetLabels[preset]}${customized ? ' · mukautettu' : ''}`;
+
 export type ViewerCameraView =
   | 'free-3d'
   | 'isometric'
