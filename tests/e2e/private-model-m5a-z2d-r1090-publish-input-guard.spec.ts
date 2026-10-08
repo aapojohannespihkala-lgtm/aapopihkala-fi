@@ -4,6 +4,66 @@ import path from 'node:path';
 
 const candidateId = 'm5a-z2d-r1090-well-top-ground-surface';
 const expectedDriveFileId = '1GhIyPFE2dqfrZpH257U-2Wp8c_d2wfD_';
+const expectedReviewUrl =
+  'https://aapopihkala.fi/private-model/?review=m5a-z2d-r1090-well-top-ground-surface-review';
+const expectedReview = new URL(expectedReviewUrl);
+
+const forbiddenTransportParams = [
+  'bootstrap',
+  'file',
+  'glb',
+  'import',
+  'model',
+  'path',
+  'source',
+  'src',
+  'upload',
+];
+
+const forbiddenPromotionParams = [
+  'as-built',
+  'asBuilt',
+  'canonical',
+  'current',
+  'humanReview',
+  'publishToCURRENT',
+  'readyForHumanReview',
+];
+
+const forbiddenReadyClaims = [
+  'READY_FOR_HUMAN_REVIEW / PASS',
+  'READY_FOR_HUMAN_REVIEW: PASS',
+  'READY_FOR_HUMAN_REVIEW=PASS',
+  'HUMAN_REVIEW / PASS',
+  'HUMAN_REVIEW: PASS',
+  'HUMAN_REVIEW=PASS',
+];
+
+const forbiddenLiveReadinessPassClaims = [
+  'AUTHENTICATED_AUTOLOAD / PASS',
+  'AUTHENTICATED_AUTOLOAD: PASS',
+  'AUTHENTICATED_AUTOLOAD=PASS',
+  'RENDER_VISIBILITY / PASS',
+  'RENDER_VISIBILITY: PASS',
+  'RENDER_VISIBILITY=PASS',
+  'VISIBILITY_PROBE_REQUIRED / PASS',
+  'USER_LIVE_RETRY_REQUIRED / PASS',
+];
+
+const forbiddenMergeCompletionClaims = [
+  'MAIN_MERGE / PASS',
+  'MAIN_MERGE: PASS',
+  'MAIN_MERGE=PASS',
+  'MERGE_COMPLETE / PASS',
+  'MERGE_COMPLETE: PASS',
+  'MERGE_COMPLETE=PASS',
+  'PR_CLOSED / PASS',
+  'PR_CLOSED: PASS',
+  'PR_CLOSED=PASS',
+  'PR_MERGED / PASS',
+  'PR_MERGED: PASS',
+  'PR_MERGED=PASS',
+];
 
 const docsPath = path.join(
   process.cwd(),
@@ -18,21 +78,74 @@ const workTestMap = JSON.parse(readFileSync(candidateMapPath, 'utf8')) as {
   candidates?: Record<string, { driveFileId?: string }>;
 };
 
-test('M5A-Z2D R1090 publish handoff names the exact WORK_TEST candidate id', () => {
-  expect(docsContent).toContain('## V5 publish gate');
-  expect(docsContent).toContain('Publish WORK_TEST');
-  expect(docsContent).toContain(candidateId);
-});
-
-test('M5A-Z2D R1090 publish handoff stays aligned with the source-map Drive entry', () => {
+test('M5A-Z2D R1090 handoff stays aligned with the exact WORK_TEST source identity', () => {
   expect(workTestMap.candidates?.[candidateId]).toEqual({
     driveFileId: expectedDriveFileId,
   });
 
+  expect(docsContent).toContain(candidateId);
   expect(docsContent).toContain(expectedDriveFileId);
+  expect(docsContent).toContain(
+    'e8934e546f2a89a2cc070c44ef9f4d6f6df8f5dd2bb30c1c7379b7f821d85605',
+  );
 });
 
-test('M5A-Z2D R1090 publish handoff no longer describes runtime implementation as the next code patch', () => {
+test('M5A-Z2D R1090 handoff records the completed machine publish/readback gate', () => {
+  expect(docsContent).toContain('## V5 publish/readback status');
+  expect(docsContent).toContain('Publish WORK_TEST - m5a-z2d-r1090-well-top-ground-surface');
+  expect(docsContent).toContain('Run `37835730136` completed successfully from `main`.');
+  expect(docsContent).toContain('full production GLB byte-for-byte readback');
+});
+
+test('M5A-Z2D R1090 handoff keeps the next gate at authenticated render visibility', () => {
+  expect(docsContent).toContain('## Review/autoload gate');
+  expect(docsContent).toContain(expectedReviewUrl);
+  expect(docsContent).toContain('authenticated one-link live behavior');
+  expect(docsContent).toContain('render the relevant R1090 well-top ground-surface correction');
+  expect(docsContent).toContain('VISIBILITY_PROBE_REQUIRED');
+  expect(docsContent).toContain('not `READY_FOR_HUMAN_REVIEW`');
+});
+
+test('M5A-Z2D R1090 review URL stays a one-link entrypoint without transport or promotion state', () => {
+  expect(expectedReview.origin).toBe('https://aapopihkala.fi');
+  expect(expectedReview.pathname).toBe('/private-model/');
+  expect([...expectedReview.searchParams.keys()]).toEqual(['review']);
+  expect(expectedReview.searchParams.get('review')).toBe(`${candidateId}-review`);
+
+  for (const paramName of forbiddenTransportParams) {
+    expect(expectedReview.searchParams.has(paramName)).toBe(false);
+  }
+
+  for (const paramName of forbiddenPromotionParams) {
+    expect(expectedReview.searchParams.has(paramName)).toBe(false);
+  }
+
+  expect(expectedReview.href).not.toContain('.glb');
+  expect(expectedReview.href).not.toContain('/work-test/');
+  expect(expectedReview.href).not.toContain('READY_FOR_HUMAN_REVIEW');
+  expect(expectedReview.href).not.toContain('HUMAN_REVIEW');
+});
+
+test('M5A-Z2D R1090 handoff keeps no-promotion boundaries explicit', () => {
+  expect(docsContent).toContain('This mapping note does not change GLB bytes');
+  expect(docsContent).toContain('publishToCURRENT');
+  expect(docsContent).toContain('HUMAN_REVIEW');
+
+  for (const claim of forbiddenReadyClaims) {
+    expect(docsContent).not.toContain(claim);
+  }
+
+  for (const claim of forbiddenLiveReadinessPassClaims) {
+    expect(docsContent).not.toContain(claim);
+  }
+
+  for (const claim of forbiddenMergeCompletionClaims) {
+    expect(docsContent).not.toContain(claim);
+  }
+});
+
+test('M5A-Z2D R1090 handoff no longer treats implementation or one-link wiring as the next patch', () => {
   expect(docsContent).not.toContain('Required next code patch');
   expect(docsContent).not.toContain('continue with the actual runtime allowlist patch');
+  expect(docsContent).not.toContain('Build check run `37837733136` on vielä `in_progress`');
 });
