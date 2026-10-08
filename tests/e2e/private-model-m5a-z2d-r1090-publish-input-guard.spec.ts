@@ -39,6 +39,17 @@ const forbiddenReadyClaims = [
   'HUMAN_REVIEW=PASS',
 ];
 
+const forbiddenLiveReadinessPassClaims = [
+  'AUTHENTICATED_AUTOLOAD / PASS',
+  'AUTHENTICATED_AUTOLOAD: PASS',
+  'AUTHENTICATED_AUTOLOAD=PASS',
+  'RENDER_VISIBILITY / PASS',
+  'RENDER_VISIBILITY: PASS',
+  'RENDER_VISIBILITY=PASS',
+  'VISIBILITY_PROBE_REQUIRED / PASS',
+  'USER_LIVE_RETRY_REQUIRED / PASS',
+];
+
 const docsPath = path.join(
   process.cwd(),
   'docs',
@@ -106,6 +117,10 @@ test('M5A-Z2D R1090 handoff keeps no-promotion boundaries explicit', () => {
   expect(docsContent).toContain('HUMAN_REVIEW');
 
   for (const claim of forbiddenReadyClaims) {
+    expect(docsContent).not.toContain(claim);
+  }
+
+  for (const claim of forbiddenLiveReadinessPassClaims) {
     expect(docsContent).not.toContain(claim);
   }
 });
