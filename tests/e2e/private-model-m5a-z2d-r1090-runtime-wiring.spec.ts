@@ -28,6 +28,17 @@ test('R1090 work-test contract keeps the shared M5A-Z2 system review predicate i
   expect(source).toContain('[m5aZ2R1090ReviewId]: m5aZ2R1090CandidateId,');
 });
 
+test('R1090 reviewer entrypoint remains a short one-link review URL', () => {
+  const url = new URL(`/private-model/?review=${reviewId}`, 'https://aapopihkala.fi');
+
+  expect(url.href).toBe('https://aapopihkala.fi/private-model/?review=m5a-z2d-r1090-well-top-ground-surface-review');
+  expect(url.origin).toBe('https://aapopihkala.fi');
+  expect(url.pathname).toBe('/private-model/');
+  expect(Array.from(url.searchParams.keys())).toEqual(['review']);
+  expect(url.searchParams.get('review')).toBe(reviewId);
+  expect(url.hash).toBe('');
+});
+
 test('R1090 review activates the existing M5A-Z2 absolute-Z presentation runtime branch', () => {
   const source = readFileSync(runtimeFile, 'utf8');
 
