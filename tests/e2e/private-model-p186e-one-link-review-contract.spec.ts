@@ -68,6 +68,13 @@ test('P186E review URLs do not smuggle promotion or completed-review state', () 
   }
 });
 
+test('P186E review URLs do not duplicate control parameters', () => {
+  expect(canonicalReviewUrl.searchParams.getAll('review')).toEqual([reviewId]);
+  expect(canonicalReviewUrl.searchParams.getAll('floor')).toEqual([]);
+  expect(d2fReviewUrl.searchParams.getAll('review')).toEqual([reviewId]);
+  expect(d2fReviewUrl.searchParams.getAll('floor')).toEqual(['d2f']);
+});
+
 test('P186E review parameter resolves the exact D electrical WORK_TEST candidate', () => {
   expect(getRequestedReviewCandidateId(canonicalReviewUrl.search)).toBe(candidateId);
   expect(getRequestedReviewCandidateId(d2fReviewUrl.search)).toBe(candidateId);
