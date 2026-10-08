@@ -21,11 +21,13 @@ import {
   m5bPlannedSok2TargetMeaningById,
   m5bReviewContextOpacity,
   m5bReviewTargetOpacity,
+  m5bVerticalDownspoutProxyRadius,
   m5bVerticalDownspoutProxyWallOffset,
   m5bVerticalDownspoutShortFacadeLateralFix,
   m5bVerticalDownspoutShortFacadeLateralInsetRatio,
   m5bVerticalDownspoutWallAttachmentFix,
   m5bVerticalDownspoutWallAttachmentOffset,
+  m5bVerticalDownspoutWallSkinInsetMinM,
   prepareM5BReviewPresentation,
 } from '../../src/scripts/privateModelM5BReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
@@ -59,9 +61,18 @@ const makeBuildingContext = () => {
   );
   mesh.name = 'M5B_BUILDING_WALL_CONTEXT';
   mesh.position.set(0, 2, 0);
-  mesh.userData = {
-    role: 'building-context',
-  };
+  mesh.userData = { role: 'building-wall-context' };
+  return mesh;
+};
+
+const makeRoofOverhangContext = () => {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(12, 1, 10),
+    new THREE.MeshBasicMaterial({ color: 0xbbbbbb }),
+  );
+  mesh.name = 'M5B_ROOF_EAVE_CONTEXT';
+  mesh.position.set(0, 4.5, 0);
+  mesh.userData = { role: 'roof-eave-context' };
   return mesh;
 };
 
@@ -72,9 +83,7 @@ const makeLargeReviewFootprintContext = () => {
   );
   mesh.name = 'M5B_REVIEW_FOOTPRINT_CONTEXT_HELPER';
   mesh.position.set(40, 1.5, 40);
-  mesh.userData = {
-    role: 'review-footprint-helper',
-  };
+  mesh.userData = { role: 'review-footprint-helper' };
   return mesh;
 };
 
@@ -118,6 +127,7 @@ test('M5B current review uses scene60 and five vertical downspout proxies as tar
   expect(result.missingTargetIds).toEqual([]);
   expect(result.semanticViolationCount).toBe(0);
   expect(result.buildingBoundsContributorCount).toBeGreaterThan(0);
+  expect(result.wallEnvelopeContributorCount).toBeGreaterThan(0);
   expect(result.shortFacadeLateralFix).toBe(m5bVerticalDownspoutShortFacadeLateralFix);
   expect(result.wallAttachmentFix).toBe(m5bVerticalDownspoutWallAttachmentFix);
   expect(result.questionScope).toBe(m5bCurrentReviewQuestionScope);
@@ -162,7 +172,7 @@ test('M5B current review anchors downspout proxies to building context, not broa
 
   expect(result.targetRenderableCount).toBe(5);
   expect(result.verticalDownspoutProxyCount).toBe(5);
-  expect(result.buildingBoundsContributorCount).toBe(1);
+  expect(result.wallEnvelopeContributorCount).toBe(1);
   expect(proxies).toHaveLength(5);
   for (const proxy of proxies) {
     expect(Math.abs(proxy.position.x)).toBeLessThanOrEqual(maxAllowedX);
@@ -175,12 +185,13 @@ test('M5B current review anchors downspout proxies to building context, not broa
   expect(broadFootprint.userData.m5bReviewContentStatus).toBe('CLARITY_CONTEXT_20');
 });
 
-test('M5B current review applies qualitative short-facade lateral inset and wall-attaches corner proxies', () => {
+test('M5B current review puts short-facade corner proxies inside wall skin and under the roof/eave', () => {
   const root = new THREE.Group();
   const current1 = makeRoute(m5bCurrentRouteStubIds[0]);
   const current2 = makeRoute(m5bCurrentRouteStubIds[1]);
   const building = makeBuildingContext();
-  root.add(current1, current2, building);
+  const roofOverhang = makeRoofOverhangContext();
+  root.add(current1, current2, building, roofOverhang);
 
   const result = prepareM5BReviewPresentation(root, 'CURRENT');
   const proxies = root.children.filter(
@@ -193,15 +204,23 @@ test('M5B current review applies qualitative short-facade lateral inset and wall
     (proxy: any) => proxy.userData?.G2Id === 'M5B_VERTICAL_DOWNSPOUT_PROXY_SOUTH_FACADE_C_B',
   );
   const expectedInset = 8 * m5bVerticalDownspoutShortFacadeLateralInsetRatio;
+  const expectedWallSkinInset = Math.max(m5bVerticalDownspoutWallSkinInsetMinM, 8 * 0.015);
 
   expect(result.shortFacadeLateralFix).toBe(m5bVerticalDownspoutShortFacadeLateralFix);
   expect(result.wallAttachmentFix).toBe(m5bVerticalDownspoutWallAttachmentFix);
   expect(result.shortFacadeLateralInsetM).toBeCloseTo(expectedInset, 6);
+  expect(result.wallSkinInsetM).toBeCloseTo(expectedWallSkinInset, 6);
+  expect(result.wallAttachedCount).toBe(4);
+  expect(result.wallEnvelopeContributorCount).toBe(1);
+  expect(result.buildingBoundsContributorCount).toBe(2);
   expect(cornerProxies).toHaveLength(4);
   for (const proxy of cornerProxies) {
-    expect(Math.abs(proxy.position.x)).toBeCloseTo(5 + m5bVerticalDownspoutWallAttachmentOffset, 6);
+    const halfHeight = ((proxy as any).geometry.parameters.height ?? 0) / 2;
+    expect(Math.abs(proxy.position.x)).toBeCloseTo(5 - expectedWallSkinInset, 6);
+    expect(Math.abs(proxy.position.x)).toBeLessThan(5);
     expect(Math.abs(proxy.position.z)).toBeCloseTo(4 - expectedInset, 6);
     expect(Math.abs(proxy.position.z)).toBeLessThan(4);
+    expect(proxy.position.y + halfHeight).toBeLessThan(4);
     expect((proxy as any).userData.m5bReviewShortFacadeLateralFix).toBe(
       m5bVerticalDownspoutShortFacadeLateralFix,
     );
@@ -211,7 +230,12 @@ test('M5B current review applies qualitative short-facade lateral inset and wall
     expect((proxy as any).userData.m5bVerticalProxyWallAttachmentOffsetM).toBe(
       m5bVerticalDownspoutWallAttachmentOffset,
     );
+    expect((proxy as any).userData.m5bVerticalProxyWallSkinInsetM).toBeCloseTo(
+      expectedWallSkinInset,
+      6,
+    );
     expect((proxy as any).userData.m5bVerticalProxyWallAttached).toBe(true);
+    expect((proxy as any).userData.m5bVerticalProxyEaveUnderRoof).toBe(true);
     expect((proxy as any).userData.m5bVerticalProxyShortFacadeLateralInsetM).toBeCloseTo(
       expectedInset,
       6,
@@ -219,6 +243,7 @@ test('M5B current review applies qualitative short-facade lateral inset and wall
   }
   expect(southFacadeProxy?.position.z).toBeCloseTo(-4 - m5bVerticalDownspoutProxyWallOffset, 6);
   expect((southFacadeProxy as any).userData.m5bVerticalProxyShortFacadeLateralInsetM).toBe(0);
+  expect((roofOverhang.material as any).opacity).toBe(m5bReviewContextOpacity);
 });
 
 test('M5B current review suppresses persisted route-stub G2IdCandidate targets in vertical-location review', () => {
@@ -249,8 +274,6 @@ test('M5B current review suppresses persisted route-stub G2IdCandidate targets i
 });
 
 test('M5B Z2R raw scene61 source-bound SOK1 context receives specific 20-percent role', () => {
-  // GLB scene61 node 1101 uses presentationRole + sourceG2IdCandidate,
-  // not G2Id/G2IdCandidate. This is context, not an additional current target.
   const root = new THREE.Group();
   const planned1 = makeRoute(m5bPlannedSok2TargetIds[0], {
     planned: true, ordered: false, implemented: false, current: false,
