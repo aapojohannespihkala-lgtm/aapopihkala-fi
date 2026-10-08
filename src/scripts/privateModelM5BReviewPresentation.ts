@@ -26,6 +26,8 @@ export const m5bPlannedSok2TargetIds = [
 
 export const m5bReviewTargetOpacity = 0.8;
 export const m5bReviewContextOpacity = 0.2;
+export const m5bVerticalDownspoutProxyRadius = 0.11;
+export const m5bVerticalDownspoutWallOffset = 0.42;
 
 export type M5BVerticalDownspoutProxyId = (typeof m5bCurrentVerticalDownspoutProxyIds)[number];
 
@@ -193,7 +195,8 @@ const createCurrentVerticalDownspoutProxy = (
   questionScope: string,
   downspoutContext: string,
 ) => {
-  const material = new THREE.LineBasicMaterial({
+  const height = Math.max(0.25, yTop - yBottom);
+  const material = new THREE.MeshBasicMaterial({
     color: 0x2fa8ff,
     opacity: m5bReviewTargetOpacity,
     transparent: true,
@@ -205,15 +208,19 @@ const createCurrentVerticalDownspoutProxy = (
     m5bReviewPresentation: true,
     m5bReviewVariant: 'CURRENT',
     m5bPresentationRole: 'VERTICAL_DOWNSPOUT_PROXY_80',
+    m5bReviewRenderableForm: 'VISIBLE_CYLINDER_PROXY',
   };
-  const geometry = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(position.x, yBottom, position.z),
-    new THREE.Vector3(position.x, yTop, position.z),
-  ]);
-  const line = new THREE.Line(geometry, material);
-  line.name = id;
-  line.renderOrder = 1000;
-  line.userData = {
+  const geometry = new THREE.CylinderGeometry(
+    m5bVerticalDownspoutProxyRadius,
+    m5bVerticalDownspoutProxyRadius,
+    height,
+    16,
+  );
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = id;
+  mesh.position.set(position.x, yBottom + height / 2, position.z);
+  mesh.renderOrder = 2000;
+  mesh.userData = {
     G2Id: id,
     presentationOnly: true,
     workAssumption: true,
@@ -228,15 +235,18 @@ const createCurrentVerticalDownspoutProxy = (
     m5bReviewPresentation: true,
     m5bReviewVariant: 'CURRENT',
     m5bReviewRole: 'VERTICAL_DOWNSPOUT_PROXY_80',
+    m5bReviewRenderableForm: 'VISIBLE_CYLINDER_PROXY',
+    m5bReviewProxyRadiusMeters: m5bVerticalDownspoutProxyRadius,
+    m5bReviewDepthTestDisabled: true,
     m5bReviewMeaning: m5bCurrentVerticalDownspoutProxyMeaningById[id],
     m5bReviewQuestionScope: questionScope,
     m5bVerticalDownspoutReviewScope: m5bCurrentVerticalDownspoutReviewScope,
     m5bDownspoutContext: downspoutContext,
     m5bReviewContentStatus: 'VERTICAL_DOWNSPOUT_LOCATION_PROXY_ONLY',
     m5bProxyPlacementBasis:
-      'viewer-derived building-bounds presentation proxy; user review requested for vertical-location plausibility only',
+      'viewer-derived building-bounds visible cylinder proxy; user review requested for vertical-location plausibility only',
   };
-  return line;
+  return mesh;
 };
 
 const addCurrentVerticalDownspoutProxies = (
@@ -253,7 +263,7 @@ const addCurrentVerticalDownspoutProxies = (
     return { ids: [] as string[], meanings: [] as string[], semanticViolations: 0 };
   }
 
-  const offset = 0.18;
+  const offset = m5bVerticalDownspoutWallOffset;
   const xMin = buildingBounds.min.x;
   const xMax = buildingBounds.max.x;
   const zMin = buildingBounds.min.z;
@@ -274,7 +284,7 @@ const addCurrentVerticalDownspoutProxies = (
   const meanings: string[] = [];
   let semanticViolations = 0;
   for (const proxy of proxyPositions) {
-    const line = createCurrentVerticalDownspoutProxy(
+    const mesh = createCurrentVerticalDownspoutProxy(
       proxy.id,
       { x: proxy.x, z: proxy.z },
       yBottom,
@@ -282,10 +292,10 @@ const addCurrentVerticalDownspoutProxies = (
       questionScope,
       downspoutContext,
     );
-    sceneRoot?.add?.(line);
+    sceneRoot?.add?.(mesh);
     created.push(proxy.id);
     meanings.push(m5bCurrentVerticalDownspoutProxyMeaningById[proxy.id]);
-    if (!hasNoPromotionSemantics(line, 'CURRENT')) semanticViolations += 1;
+    if (!hasNoPromotionSemantics(mesh, 'CURRENT')) semanticViolations += 1;
   }
   return { ids: created, meanings, semanticViolations };
 };
@@ -375,8 +385,6 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
         buildingBoundsContributorCount += 1;
       }
     }
-    // The rebuilt Z2R scene61 stores the SOK1 context as source-bound comparison
-    // geometry, not as a second G2Id/G2IdCandidate target.
     const isSok1ComparisonContext =
       variant === 'PLANNED_SOK2_COMPARISON' &&
       (g2Id === m5bCurrentRouteStubIds[0] ||
