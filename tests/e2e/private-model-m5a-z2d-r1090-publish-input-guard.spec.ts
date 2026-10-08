@@ -50,6 +50,21 @@ const forbiddenLiveReadinessPassClaims = [
   'USER_LIVE_RETRY_REQUIRED / PASS',
 ];
 
+const forbiddenMergeCompletionClaims = [
+  'MAIN_MERGE / PASS',
+  'MAIN_MERGE: PASS',
+  'MAIN_MERGE=PASS',
+  'MERGE_COMPLETE / PASS',
+  'MERGE_COMPLETE: PASS',
+  'MERGE_COMPLETE=PASS',
+  'PR_CLOSED / PASS',
+  'PR_CLOSED: PASS',
+  'PR_CLOSED=PASS',
+  'PR_MERGED / PASS',
+  'PR_MERGED: PASS',
+  'PR_MERGED=PASS',
+];
+
 const docsPath = path.join(
   process.cwd(),
   'docs',
@@ -121,6 +136,10 @@ test('M5A-Z2D R1090 handoff keeps no-promotion boundaries explicit', () => {
   }
 
   for (const claim of forbiddenLiveReadinessPassClaims) {
+    expect(docsContent).not.toContain(claim);
+  }
+
+  for (const claim of forbiddenMergeCompletionClaims) {
     expect(docsContent).not.toContain(claim);
   }
 });
