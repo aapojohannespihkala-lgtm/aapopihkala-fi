@@ -45,7 +45,7 @@ const makeRoute = (id: string, extra: Record<string, unknown> = {}) => {
   return mesh;
 };
 
-const findDerivedDownspoutMarkers = (root: THREE.Object3D) =>
+const findDerivedDownspoutMarkers = (root: any) =>
   root.children.filter(
     (child: any) => child?.userData?.m5bVerticalDownspoutMarkerDerived === true,
   );
