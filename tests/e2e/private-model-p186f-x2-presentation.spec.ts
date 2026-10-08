@@ -187,7 +187,9 @@ test('P186F-X2 shows real D1F wall meshes instead of diagnostic room footprints 
   unrelatedSiteWall.userData.presentationLayer = 'SITE_GROUND';
   scene.add(unrelatedSiteWall);
 
-  const presentation = prepareP186fReviewPresentation(scene);
+  const presentation = prepareP186fReviewPresentation(scene, {
+    preferRealArchitectureContext: true,
+  });
 
   expect(presentation.targetRenderableCount).toBe(3);
   expect(presentation.semanticViolationCount).toBe(0);
