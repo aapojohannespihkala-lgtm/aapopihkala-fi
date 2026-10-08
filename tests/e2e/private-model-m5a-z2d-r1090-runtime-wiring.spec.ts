@@ -63,36 +63,20 @@ test('R1090 review activates the existing M5A-Z2 absolute-Z presentation runtime
 
   expect(source).toContain("prepareM5AZ2SystemReviewPresentation(fullModelScene)");
   expect(source).toContain("'Z2_ABSOLUTE_Z_SYSTEM'");
-  expect(source).toContain(legacyM5aZ2CandidateId);
-  expect(source).toContain(legacyM5aZ2ReviewId);
-  expect(source).toContain(candidateId);
-  expect(source).toContain(reviewId);
+  const helperSource = readFileSync(runtimeHelperFile, 'utf8');
+  expect(helperSource).toContain('m5aZ2LegacyCandidateId,');
+  expect(helperSource).toContain('m5aZ2R1090CandidateId,');
+  expect(helperSource).toContain('m5aZ2LegacyReviewId,');
+  expect(helperSource).toContain('m5aZ2R1090ReviewId,');
+  expect(source).toContain('privateModelM5AZ2SystemReviewRuntime');
+  expect(source).toContain('getRequestedM5AZ2SystemCandidateId(window.location.search)');
+  expect(source).toContain('isM5AZ2SystemReviewRequested(window.location.search)');
+  expect(source).toContain('requestedM5aZ2SystemCandidateId === candidate.id');
+  expect(source).toContain('getActiveM5AZ2SystemReviewId(window.location.search)');
+  const routing = source.slice(source.indexOf('const requestedM5aZ2SystemCandidateId ='), source.indexOf('const isM5BCurrentReview ='));
+  expect(routing).toContain('m5aDrainageReviewMode');
+  expect(routing).toMatch(/isM5aZ2SystemReview\s*\?\s*'Z2_ABSOLUTE_Z_SYSTEM'/);
 
-  const usesSharedSystemReviewHelpers =
-    source.includes('privateModelM5AZ2SystemReviewRuntime') ||
-    (source.includes('isM5AZ2SystemReviewCandidateId') && source.includes('isM5AZ2SystemReviewId'));
-
-  expect(usesSharedSystemReviewHelpers).toBe(true);
-  expect(source).not.toContain('const m5aZ2ReviewId = `${m5aZ2CandidateId}-review`;');
-  expect(source).not.toContain('candidate.id === m5aZ2CandidateId && isM5aZ2SystemReviewRequested()');
-
-  const candidateIndex = source.indexOf(candidateId);
-  const reviewIndex = source.indexOf(reviewId);
-  const presentationIndex = source.indexOf("'Z2_ABSOLUTE_Z_SYSTEM'");
-
-  expect(candidateIndex, 'R1090 candidate id must be wired before the presentation branch is selected').toBeGreaterThanOrEqual(0);
-  expect(reviewIndex, 'R1090 review id must be wired before the presentation branch is selected').toBeGreaterThanOrEqual(0);
-  expect(presentationIndex).toBeGreaterThanOrEqual(0);
-
-  const wiringWindow = source.slice(
-    Math.max(0, Math.min(candidateIndex, reviewIndex, presentationIndex) - 900),
-    Math.min(source.length, Math.max(candidateIndex, reviewIndex, presentationIndex) + 900),
-  );
-
-  expect(wiringWindow).toContain(candidateId);
-  expect(wiringWindow).toContain(reviewId);
-  expect(wiringWindow).toContain("'Z2_ABSOLUTE_Z_SYSTEM'");
-  expect(wiringWindow).toContain('m5aDrainageReviewMode');
 });
 
 test('R1090 review exposes the active matched review id and ready state on the canvas', () => {
