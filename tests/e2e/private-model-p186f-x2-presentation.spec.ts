@@ -221,7 +221,7 @@ test('P186F-X2 refuses upper-floor and empty D-wall meshes as real D1F context',
     const wallRoot = new THREE.Group();
     wallRoot.name = 'P173D_D_WALL_HR67_SEMANTIC_REBASE_ROOT_BABYLON_Y_UP';
     const wall = makeRenderableMesh(meshName);
-    if (meshName === 'EMPTY_D1F_WALL') wall.geometry = new THREE.BufferGeometry();
+    if (meshName === 'EMPTY_D1F_WALL') wall.geometry.deleteAttribute('position');
     wallRoot.add(wall);
     scene.add(wallRoot);
     const result = prepareP186fReviewPresentation(scene, { preferRealArchitectureContext: true });
