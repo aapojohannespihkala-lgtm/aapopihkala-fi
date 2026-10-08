@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import workTestCandidates from '../../.github/work-test-candidates.json';
+import workTestCandidates from '../../.github/work-test-candidates.json' with { type: 'json' };
 
 test('P186F-X2 exact Themo candidate is registered in the machine publish source map', () => {
   expect(workTestCandidates.candidates['p186f-x2-d-themo-room-adjacent-work-assumption']).toEqual({
