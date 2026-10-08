@@ -365,6 +365,15 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 3_199_332,
     expectedSha256: '4459d528ddd821958f04b0f4d1be800bdc8aaef9290a792ba72bab95209d83db',
   },
+  // P186F-X2 release registration: exact persisted D Themo room-adjacent WORK_TEST successor.
+  {
+    id: 'p186f-x2-d-themo-room-adjacent-work-assumption',
+    label: 'P186F-X2 D Themo room-adjacent work assumption - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p186f-x2-d-themo-room-adjacent-work-assumption.glb`,
+    objectKey: 'work-test/p186f-x2-d-themo-room-adjacent-work-assumption.glb',
+    expectedSize: 3_201_932,
+    expectedSha256: '59fad8cfab19ad6981f53c7969b2d9bd6f33161fe33de0fc23152e6ec38c029f',
+  },
   // M5A viewer/release registration: exact persisted drainage topology presentation WORK_TEST.
   {
     id: 'm5a-drain-topology',
