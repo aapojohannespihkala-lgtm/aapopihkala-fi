@@ -34,11 +34,11 @@ export type M5BReviewRuntimeState = {
 const configByVariant = {
   CURRENT: {
     reviewId: m5bCurrentReviewId,
-    question: 'ROOF_STORMWATER_CURRENT_ROUTE_RELATION',
+    question: 'ROOF_STORMWATER_VERTICAL_DOWNSPOUT_LOCATION',
     targetIds: m5bCurrentTargetIds,
-    statusLabel: 'M5B roof stormwater current route',
+    statusLabel: 'M5B vertical downspout locations',
     clarityLabel:
-      '5 syöksyränniä: 4 nurkkaa + eteläjulkisivu C-B; sininen = rajattu WORK_TEST-stubi, ei koko todistettu putkilinja',
+      '5 syöksyränniä pystysuorina WORK_TEST-sijaintiviivoina: 4 nurkkaa + eteläjulkisivu C-B; ei kattoräystäsliitoksia eikä purkureittejä',
   },
   PLANNED_SOK2_COMPARISON: {
     reviewId: m5bPlannedSok2ComparisonReviewId,

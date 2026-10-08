@@ -19,7 +19,7 @@ import {
 const currentPresentation = (): M5BReviewPresentationResult => ({
   variant: 'CURRENT',
   sceneIndex: 60,
-  targetRenderableCount: 2,
+  targetRenderableCount: 5,
   contextRenderableCount: 11,
   suppressedCrossVariantCount: 2,
   semanticViolationCount: 0,
@@ -57,14 +57,15 @@ test('M5B CURRENT runtime state binds scene60, exact targets, 80/20 and no-promo
     'm5b-roof-stormwater-current-review',
   );
   expect(state.dataset.m5bReviewQuestion).toBe(
-    'ROOF_STORMWATER_CURRENT_ROUTE_RELATION',
+    'ROOF_STORMWATER_VERTICAL_DOWNSPOUT_LOCATION',
   );
   expect(state.dataset.m5bReviewQuestionScope).toBe(m5bCurrentReviewQuestionScope);
   expect(state.dataset.m5bDownspoutContext).toBe(m5bCurrentDownspoutContext);
-  expect(state.dataset.m5bReviewTargetMeanings).toContain('WORK_TEST-stubi');
+  expect(state.dataset.m5bReviewTargetMeanings).toContain('Pystysuora WORK_TEST-sijaintiviiva');
   expect(state.dataset.m5bReviewClarityLabel).toContain('5 syöksyränniä');
+  expect(state.dataset.m5bReviewClarityLabel).toContain('pystysuorina WORK_TEST-sijaintiviivoina');
   expect(state.statusText).toContain('5 syöksyränniä');
-  expect(state.statusText).toContain('ei koko todistettu putkilinja');
+  expect(state.statusText).toContain('ei kattoräystäsliitoksia');
   expect(state.dataset.m5bSceneIndex).toBe('60');
   expect(state.dataset.m5bTargetG2Ids).toBe(m5bCurrentTargetIds.join(','));
   expect(state.dataset.m5bReviewTargetOpacity).toBe('0.80');
