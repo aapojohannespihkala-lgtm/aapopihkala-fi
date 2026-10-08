@@ -98,6 +98,20 @@ export const m5aR3Z1cSok1Sok2RelativeZReviewId =
 
 export const m5aZ2R1090CandidateId = 'm5a-z2d-r1090-well-top-ground-surface';
 export const m5aZ2R1090ReviewId = `${m5aZ2R1090CandidateId}-review`;
+export const m5aZ2LegacyCandidateId = 'm5a-z2-absolute-z-host-floor-datum';
+export const m5aZ2LegacyReviewId = `${m5aZ2LegacyCandidateId}-review`;
+export const m5aZ2SystemCandidateIds = new Set<string>([
+  m5aZ2LegacyCandidateId,
+  m5aZ2R1090CandidateId,
+]);
+export const m5aZ2SystemReviewIds = new Set<string>([
+  m5aZ2LegacyReviewId,
+  m5aZ2R1090ReviewId,
+]);
+export const isM5AZ2SystemReviewCandidateId = (candidateId: string) =>
+  m5aZ2SystemCandidateIds.has(candidateId);
+export const isM5AZ2SystemReviewId = (reviewId: string | null) =>
+  reviewId !== null && m5aZ2SystemReviewIds.has(reviewId);
 
 export const m5bCandidateId = 'm5b-z2r-roof-stormwater-structural-rebuilt';
 export const m5bCurrentReviewId = 'm5b-roof-stormwater-current-review';
