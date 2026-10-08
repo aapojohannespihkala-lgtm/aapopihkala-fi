@@ -17,6 +17,29 @@ export const m5bPlannedSok2TargetIds = [
 export const m5bReviewTargetOpacity = 0.8;
 export const m5bReviewContextOpacity = 0.2;
 
+export const m5bCurrentDownspoutContext =
+  'Käyttäjän 2026-10-08 vahvistama nykyhavainto: syöksyrännejä on yhteensä 5; neljä rakennuksen nurkilla ja yksi eteläjulkisivulla C- ja B-rakennusten välissä.';
+
+export const m5bCurrentReviewQuestionScope =
+  'Katselussa arvioidaan vain sinisten kattosadevesi-/sadevesireitin WORK_TEST-stubien ymmärrettävyyttä ja rajattua suhdetta viiden syöksyrännin nykyhavaintoon. Tämä ei ole exact XY/Z-, fyysinen purkupiste-, reitti-, as-built-, CURRENT- tai canonical-väite.';
+
+export const m5bPlannedSok2ReviewQuestionScope =
+  'Katselussa arvioidaan vain suunnitelmapohjaisen SOK2-vertailuesityksen ymmärrettävyyttä suhteessa nykyisen M5B-kattosadevesikontekstin rajattuun WORK_TEST-esitykseen. Tämä ei ole tilaus-, toteuma-, CURRENT- tai as-built-väite.';
+
+export const m5bCurrentTargetMeaningById: Record<(typeof m5bCurrentTargetIds)[number], string> = {
+  G2_STORM_CURRENT_ROUTE_SOK1_001:
+    'Sininen lyhyt stubi: nykyhavaintoon sidottu WORK_TEST-esitys SOK1-puolen kattosadevesi-/sadevesireitin suunnasta, ei todistettu koko putkilinja.',
+  G2_STORM_CURRENT_ROUTE_SOK2_001:
+    'Sininen lyhyt stubi: nykyhavaintoon sidottu WORK_TEST-esitys SOK2-puolen kattosadevesi-/sadevesireitin suunnasta, ei todistettu koko putkilinja.',
+};
+
+export const m5bPlannedSok2TargetMeaningById: Record<(typeof m5bPlannedSok2TargetIds)[number], string> = {
+  G2_STORM_PLANNED_GULLY_SOK2_001:
+    'Suunnitelma-/vertailukohde: SOK2-puolen suunniteltu rännikaivovertailu, ei nykytilan toteumaväite.',
+  G2_STORM_PLANNED_ROUTE_SOK2_001:
+    'Suunnitelma-/vertailukohde: SOK2-puolen suunniteltu sadevesireittivertailu, ei nykytilan toteumaväite.',
+};
+
 export type M5BReviewVariant = 'CURRENT' | 'PLANNED_SOK2_COMPARISON';
 
 const isRenderable = (object: any) =>
@@ -67,6 +90,23 @@ const hasNoPromotionSemantics = (object: any, variant: M5BReviewVariant) => {
   return true;
 };
 
+const getQuestionScope = (variant: M5BReviewVariant) =>
+  variant === 'CURRENT'
+    ? m5bCurrentReviewQuestionScope
+    : m5bPlannedSok2ReviewQuestionScope;
+
+const getDownspoutContext = (variant: M5BReviewVariant) =>
+  variant === 'CURRENT'
+    ? m5bCurrentDownspoutContext
+    : `${m5bCurrentDownspoutContext} PLANNED_SOK2_COMPARISON on erillinen suunnitelma-/vertailuesitys.`;
+
+const getTargetMeaning = (variant: M5BReviewVariant, g2Id: string) => {
+  if (variant === 'CURRENT') {
+    return m5bCurrentTargetMeaningById[g2Id as (typeof m5bCurrentTargetIds)[number]] ?? '';
+  }
+  return m5bPlannedSok2TargetMeaningById[g2Id as (typeof m5bPlannedSok2TargetIds)[number]] ?? '';
+};
+
 export const getM5BReviewSceneIndex = (variant: M5BReviewVariant) =>
   variant === 'CURRENT' ? m5bCurrentSceneIndex : m5bPlannedSok2ComparisonSceneIndex;
 
@@ -74,6 +114,9 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
   const targets = variant === 'CURRENT' ? m5bCurrentTargetIds : m5bPlannedSok2TargetIds;
   const targetIds = new Set<string>(targets);
   const found = new Set<string>();
+  const targetMeanings: string[] = [];
+  const questionScope = getQuestionScope(variant);
+  const downspoutContext = getDownspoutContext(variant);
   let targetRenderableCount = 0;
   let contextRenderableCount = 0;
   let suppressedCrossVariantCount = 0;
@@ -84,6 +127,7 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
     const g2Id = String(object?.userData?.G2Id ?? object?.userData?.G2IdCandidate ?? '').trim();
 
     if (targetIds.has(g2Id)) {
+      const targetMeaning = getTargetMeaning(variant, g2Id);
       object.visible = true;
       cloneMaterials(object, m5bReviewTargetOpacity, 'QUESTION_TARGET_80', variant);
       object.userData = {
@@ -92,8 +136,13 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
         m5bReviewPresentation: true,
         m5bReviewVariant: variant,
         m5bReviewRole: 'QUESTION_TARGET_80',
+        m5bReviewMeaning: targetMeaning,
+        m5bReviewQuestionScope: questionScope,
+        m5bDownspoutContext: downspoutContext,
+        m5bReviewContentStatus: 'CLARITY_CORRECTION_PRESENTATION_ONLY',
       };
       found.add(g2Id);
+      if (targetMeaning) targetMeanings.push(targetMeaning);
       targetRenderableCount += 1;
       if (!hasNoPromotionSemantics(object, variant)) semanticViolationCount += 1;
       return;
@@ -111,6 +160,8 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
         m5bReviewPresentation: true,
         m5bReviewVariant: variant,
         m5bReviewRole: 'CROSS_VARIANT_SUPPRESSED',
+        m5bReviewQuestionScope: questionScope,
+        m5bDownspoutContext: downspoutContext,
       };
       suppressedCrossVariantCount += 1;
       return;
@@ -135,6 +186,9 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
       m5bReviewPresentation: true,
       m5bReviewVariant: variant,
       m5bReviewRole: role,
+      m5bReviewQuestionScope: questionScope,
+      m5bDownspoutContext: downspoutContext,
+      m5bReviewContentStatus: 'CLARITY_CONTEXT_20',
     };
     contextRenderableCount += 1;
   });
@@ -148,5 +202,8 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
     semanticViolationCount,
     foundTargetIds: [...found],
     missingTargetIds: targets.filter((id) => !found.has(id)),
+    questionScope,
+    downspoutContext,
+    targetMeanings,
   };
 };
