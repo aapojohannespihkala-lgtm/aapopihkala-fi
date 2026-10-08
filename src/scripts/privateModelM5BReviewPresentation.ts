@@ -18,7 +18,7 @@ export const m5bReviewTargetOpacity = 0.8;
 export const m5bReviewContextOpacity = 0.2;
 
 export const m5bCurrentDownspoutContext =
-  'Käyttäjän 2026-10-08 vahvistama nykyhavainto: syöksyrännejä on yhteensä 5; neljä rakennuksen nurkilla ja yksi eteläjulkisivulla C- ja B-rakennusten välissä.';
+  'Käyttäjän 2026-10-08 vahvistama nykyhavainto: 5 syöksyränniä yhteensä; neljä rakennuksen nurkilla ja yksi eteläjulkisivulla C- ja B-rakennusten välissä.';
 
 export const m5bCurrentReviewQuestionScope =
   'Katselussa arvioidaan vain sinisten kattosadevesi-/sadevesireitin WORK_TEST-stubien ymmärrettävyyttä ja rajattua suhdetta viiden syöksyrännin nykyhavaintoon. Tämä ei ole exact XY/Z-, fyysinen purkupiste-, reitti-, as-built-, CURRENT- tai canonical-väite.';
