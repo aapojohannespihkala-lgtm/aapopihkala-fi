@@ -502,9 +502,19 @@ const M5A_Z2D_D100_D300_DIAMETER_CANDIDATE = {
   expectedSha256: '15047af6e2f7db2080f554d241d66625a6797f5e24ae737b19627ae1f4aa87fd',
 } as const satisfies PrivateWorkTestCandidate;
 
+const M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE = {
+  id: 'm5a-z2d-r1090-well-top-ground-surface',
+  label: 'M5A-Z2D R1090 well-top ground-surface correction - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-z2d-r1090-well-top-ground-surface.glb`,
+  objectKey: 'work-test/m5a-z2d-r1090-well-top-ground-surface.glb',
+  expectedSize: 3_089_152,
+  expectedSha256: 'e8934e546f2a89a2cc070c44ef9f4d6f6df8f5dd2bb30c1c7379b7f821d85605',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
+  M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
@@ -517,7 +527,6 @@ type PrivateWorkTestObjectMetadata = {
 type PrivateWorkTestStoredObject = PrivateWorkTestObjectMetadata & {
   body: ReadableStream<Uint8Array> | null;
 };
-
 type PrivateWorkTestListResult = {
   objects: Array<PrivateWorkTestObjectMetadata & { key: string }>;
   truncated: boolean;
