@@ -28,6 +28,20 @@ m5a-z2d-r1090-well-top-ground-surface
 
 That workflow should read the candidate from `.github/work-test-candidates.json`, download the raw Drive GLB, derive exact byte identity, publish to the machine-only endpoint, and read the production catalog plus full production GLB back byte-for-byte.
 
+## Dispatch tool boundary
+
+The current ChatGPT GitHub connector tool set can read workflow runs and re-run existing jobs, but it does not expose a new `workflow_dispatch` start action for `Publish WORK_TEST`. Do not repeat a capability check for this same gate unless the available GitHub connector tool set changes or a workflow run already exists to read back.
+
+The exact dispatch, when a dispatch-capable route exists, is:
+
+```text
+workflow: Publish WORK_TEST
+ref: main
+candidate: m5a-z2d-r1090-well-top-ground-surface
+```
+
+A successful pass must verify both the production catalog entry and the full production GLB byte identity before any review-route/autoload, authenticated render, HUMAN_REVIEW, CURRENT, canonical, as-built, or publishToCURRENT claim is made.
+
 ## Boundaries
 
 This mapping note does not change GLB bytes, G1/G2/G3, datacube fact layer, source-map contents, runtime allowlist, review alias/autoload wiring, production, CURRENT/canonical/as-built state, publishToCURRENT, or HUMAN_REVIEW.
