@@ -144,6 +144,10 @@ const getObjectFingerprint = (object: any) => {
     userData.layer,
     userData.system,
     userData.kind,
+    userData.role,
+    userData.objectRole,
+    userData.semanticRole,
+    userData.category,
   ]
     .filter(Boolean)
     .join(' ')
@@ -171,20 +175,25 @@ const getRenderableWorldBox = (object: any) => {
   }
 };
 
+const m5bBuildingBoundsIncludeFingerprint =
+  /building|rakenn|wall|seinä|facade|julkisivu|envelope|storage|varasto|sokkel|foundation|perustus|roof|katto|architecture|arkkitehtuuri|structure|rakenne/;
+
+const m5bBuildingBoundsExcludeFingerprint =
+  /terrain|maasto|contour|käyr|ground|storm|sadeves|route|gully|stub|downspout|ränni|kaivo|pipe|putki|drain|footprint|helper|reference|locus|source-label|label-anchor|grid|axis|camera/;
+
+const m5bBuildingBoundsMaxHorizontalExtentM = 45;
+
 const canContributeToBuildingBounds = (object: any, g2Id: string, targetIds: Set<string>) => {
   if (object.visible === false || targetIds.has(g2Id)) return false;
   const fingerprint = getObjectFingerprint(object);
-  if (
-    /terrain|maasto|contour|käyr|ground|storm|sadeves|route|gully|stub|downspout|ränni|kaivo|pipe|putki|drain/.test(
-      fingerprint,
-    )
-  ) {
-    return false;
-  }
+  if (!fingerprint) return false;
+  if (m5bBuildingBoundsExcludeFingerprint.test(fingerprint)) return false;
+  if (!m5bBuildingBoundsIncludeFingerprint.test(fingerprint)) return false;
   const worldBox = getRenderableWorldBox(object);
   if (!worldBox) return false;
   const { size } = worldBox;
-  if (size.y < 1 || size.x > 80 || size.z > 80) return false;
+  const maxHorizontalExtent = Math.max(size.x, size.z);
+  if (size.y < 1 || maxHorizontalExtent > m5bBuildingBoundsMaxHorizontalExtentM) return false;
   return true;
 };
 
@@ -245,10 +254,11 @@ const createCurrentVerticalDownspoutProxy = (
     m5bReviewContentStatus: 'VERTICAL_DOWNSPOUT_LOCATION_PROXY_ONLY',
     m5bReviewRenderableForm: m5bVerticalDownspoutProxyRenderableForm,
     m5bReviewVisibilityFix: 'R1074_DEPTH_TEST_OFF_THICK_MESH_PROXY',
+    m5bReviewWallBoundsFix: 'R1077_FILTERED_BUILDING_WALL_BOUNDS',
     m5bVerticalProxyRadiusM: m5bVerticalDownspoutProxyRadius,
     m5bVerticalProxyWallOffsetM: m5bVerticalDownspoutProxyWallOffset,
     m5bProxyPlacementBasis:
-      'viewer-derived building-bounds presentation proxy; user review requested for vertical-location plausibility only',
+      'viewer-derived filtered wall/building/roof bounds presentation proxy; user review requested for vertical-location plausibility only',
   };
   return mesh;
 };
@@ -441,6 +451,9 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
     suppressedNonQuestionRouteCount,
     semanticViolationCount,
     buildingBoundsContributorCount,
+    buildingBoundsPlacementBasis:
+      variant === 'CURRENT' ? 'FILTERED_WALL_BUILDING_ROOF_CONTEXT_BOUNDS' : '',
+    buildingBoundsMaxHorizontalExtentM: m5bBuildingBoundsMaxHorizontalExtentM,
     foundTargetIds: [...found],
     missingTargetIds: targets.filter((id) => !found.has(id)),
     questionScope,
