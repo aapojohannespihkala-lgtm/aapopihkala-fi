@@ -9,6 +9,20 @@ const privateModelIndexSource = readFileSync(
 
 const r1090CandidateId = 'm5a-z2d-r1090-well-top-ground-surface';
 const r1090ReviewId = `${r1090CandidateId}-review`;
+const r1090ReviewUrl = `https://aapopihkala.fi/private-model/?review=${r1090ReviewId}`;
+
+test('R1090 reviewer entrypoint remains a short one-link review URL', () => {
+  const url = new URL(r1090ReviewUrl);
+
+  expect(r1090ReviewUrl).toBe(
+    'https://aapopihkala.fi/private-model/?review=m5a-z2d-r1090-well-top-ground-surface-review',
+  );
+  expect(url.origin).toBe('https://aapopihkala.fi');
+  expect(url.pathname).toBe('/private-model/');
+  expect(url.searchParams.get('review')).toBe(r1090ReviewId);
+  expect([...url.searchParams.keys()]).toEqual(['review']);
+  expect(url.hash).toBe('');
+});
 
 test('R1090 review URL is wired to the shared M5A-Z2 presentation runtime state', () => {
   expect(privateModelIndexSource).toContain(r1090CandidateId);
