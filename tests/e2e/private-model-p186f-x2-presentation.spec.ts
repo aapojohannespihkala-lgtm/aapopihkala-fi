@@ -210,3 +210,23 @@ test('P186F-X2 shows real D1F wall meshes instead of diagnostic room footprints 
   }
   expect(unrelatedSiteWall.visible).toBe(false);
 });
+
+test('P186F-X2 refuses upper-floor and empty D-wall meshes as real D1F context', () => {
+  for (const meshName of ['D_WALL_2F_SRC', 'EMPTY_D1F_WALL']) {
+    const scene = new THREE.Group();
+    for (const target of targetRooms.map(makeP186fX2Target)) scene.add(target);
+    for (const [i, room] of ['SAUNA', 'PESUHUONE', 'WC', 'VH_WEST', 'VH_NORTH', 'HUONE2', 'VARASTO'].entries()) {
+      scene.add(makeRoomContext(room, i));
+    }
+    const wallRoot = new THREE.Group();
+    wallRoot.name = 'P173D_D_WALL_HR67_SEMANTIC_REBASE_ROOT_BABYLON_Y_UP';
+    const wall = makeRenderableMesh(meshName);
+    if (meshName === 'EMPTY_D1F_WALL') wall.geometry = new THREE.BufferGeometry();
+    wallRoot.add(wall);
+    scene.add(wallRoot);
+    const result = prepareP186fReviewPresentation(scene, { preferRealArchitectureContext: true });
+    expect(result.realArchitectureContextReady).toBe(false);
+    expect(result.contextRenderableCount).toBe(p186fExpectedRoomContextCount);
+    expect(wall.visible).toBe(false);
+  }
+});

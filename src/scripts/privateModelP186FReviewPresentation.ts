@@ -175,6 +175,8 @@ const isP186fD1fArchitectureSolid = (object: any) => {
     depth += 1;
   }
   const context = parts.join(' ').toLowerCase();
+  if (/(^|[_ -])2f([_ -]|$)/.test(context)) return false;
+  if (!object.geometry?.attributes?.position?.count) return false;
   if (
     ['referencefootprint', 'roomfootprint', 'room-footprint', 'helper',
       'p117d_review_', 'p123c_context_'].some((tag) => context.includes(tag))
