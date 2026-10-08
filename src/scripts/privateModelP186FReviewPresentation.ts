@@ -80,7 +80,7 @@ const isRenderable = (object: any) =>
 const cloneObjectMaterials = (
   object: any,
   opacity: number,
-  role: 'QUESTION_TARGET_80' | 'D_1F_ROOM_CONTEXT_20',
+  role: 'QUESTION_TARGET_80' | 'D_1F_ROOM_CONTEXT_20' | 'D_1F_ARCH_CONTEXT_20',
 ) => {
   const cloneOne = (material: any) => {
     if (!material?.clone) return material;
@@ -104,6 +104,19 @@ const cloneObjectMaterials = (
         clone.emissiveIntensity = 0.35;
       }
       clone.toneMapped = false;
+    }
+
+    if (role === 'D_1F_ARCH_CONTEXT_20') {
+      clone.depthTest = false;
+      clone.color?.setHex?.(p186fReviewContextColorHex);
+      if (clone.emissive?.setHex) {
+        clone.emissive.setHex(p186fReviewContextColorHex);
+        clone.emissiveIntensity = Math.max(Number(clone.emissiveIntensity ?? 0), 0.85);
+      }
+      clone.toneMapped = false;
+      clone.polygonOffset = true;
+      clone.polygonOffsetFactor = -1;
+      clone.polygonOffsetUnits = -1;
     }
 
     clone.userData = {
@@ -140,6 +153,40 @@ const isD1fRoomContext = (object: any) => {
     g2Id.startsWith('G2_D15_SPACE_') &&
     g2Id.includes('_1F_SRC')
   );
+};
+
+// Prefer renderable architectural solids to room-footprint helpers for X2.
+// An ancestor can own the D-wall source identity while its child mesh has no source tag.
+const isP186fD1fArchitectureSolid = (object: any) => {
+  if (object?.isMesh !== true || isP186fTarget(object)) return false;
+  const parts: string[] = [];
+  let parent = object;
+  let depth = 0;
+  while (parent && depth < 8) {
+    const data = parent.userData ?? {};
+    parts.push(
+      String(parent.name ?? ''),
+      String(data.G2Id ?? ''),
+      String(data.G2IdCandidate ?? ''),
+      String(data.representationKind ?? ''),
+      String(data.presentationLayer ?? ''),
+    );
+    parent = parent.parent;
+    depth += 1;
+  }
+  const context = parts.join(' ').toLowerCase();
+  if (
+    ['referencefootprint', 'roomfootprint', 'room-footprint', 'helper',
+      'p117d_review_', 'p123c_context_'].some((tag) => context.includes(tag))
+  ) return false;
+
+  const knownDWallRoot = context.includes('p173d_d_wall');
+  const explicitD1fStructure =
+    (context.includes('d_1f') || context.includes('_1f_src')) &&
+    ['wall', 'architect', 'partition', 'door', 'window', 'opening'].some((tag) =>
+      context.includes(tag)
+    );
+  return knownDWallRoot || explicitD1fStructure;
 };
 
 const hasP186fNoPromotionSemantics = (object: any) => {
@@ -184,7 +231,10 @@ const hasP186fNoPromotionSemantics = (object: any) => {
   );
 };
 
-export const prepareP186fReviewPresentation = (sceneRoot: any) => {
+export const prepareP186fReviewPresentation = (
+  sceneRoot: any,
+  options: { preferRealArchitectureContext?: boolean } = {},
+) => {
   const renderables: any[] = [];
   const targets: any[] = [];
   const roomCounts = new Map<string, number>();
@@ -207,6 +257,16 @@ export const prepareP186fReviewPresentation = (sceneRoot: any) => {
   let targetRenderableCount = 0;
   let contextRenderableCount = 0;
   let hiddenNonQuestionRenderableCount = 0;
+  let realArchitectureContextRenderableCount = 0;
+  const realArchitectureContextRequired = targets.some(
+    (object) => String(object.userData?.Pass ?? '') === 'P186F-X2',
+  );
+  // Opt-in until the viewer runtime accepts variable solid-wall context counts.
+  // The legacy X1/X2 seven-footprint contract remains unchanged by default.
+  const useRealArchitectureContext =
+    options.preferRealArchitectureContext === true &&
+    realArchitectureContextRequired &&
+    renderables.some(isP186fD1fArchitectureSolid);
 
   for (const object of targets) {
     object.visible = true;
@@ -235,7 +295,22 @@ export const prepareP186fReviewPresentation = (sceneRoot: any) => {
   for (const object of renderables) {
     if (isP186fTarget(object)) continue;
 
-    if (isD1fRoomContext(object)) {
+    if (useRealArchitectureContext && isP186fD1fArchitectureSolid(object)) {
+      object.visible = true;
+      cloneObjectMaterials(object, p186fReviewContextOpacity, 'D_1F_ARCH_CONTEXT_20');
+      object.renderOrder = 20;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p186fReviewPresentation: true,
+        p186fReviewRole: 'D_1F_ARCH_CONTEXT_20',
+      };
+      realArchitectureContextRenderableCount += 1;
+      contextRenderableCount += 1;
+      continue;
+    }
+
+    if (!useRealArchitectureContext && isD1fRoomContext(object)) {
       object.visible = true;
       cloneObjectMaterials(object, p186fReviewContextOpacity, 'D_1F_ROOM_CONTEXT_20');
       object.renderOrder = 5;
@@ -270,7 +345,12 @@ export const prepareP186fReviewPresentation = (sceneRoot: any) => {
     targetRenderableCount,
     expectedTargetRenderableCount: p186fExpectedTargetCount,
     contextRenderableCount,
-    expectedContextRenderableCount: p186fExpectedRoomContextCount,
+    expectedContextRenderableCount: useRealArchitectureContext
+      ? realArchitectureContextRenderableCount
+      : p186fExpectedRoomContextCount,
+    realArchitectureContextRequired,
+    realArchitectureContextReady: realArchitectureContextRequired && realArchitectureContextRenderableCount > 0,
+    realArchitectureContextRenderableCount,
     hiddenNonQuestionRenderableCount,
     semanticViolationCount,
     missingTargetRooms,
