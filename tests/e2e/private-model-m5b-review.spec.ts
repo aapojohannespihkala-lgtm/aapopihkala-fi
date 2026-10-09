@@ -483,7 +483,7 @@ test('M5B R1109 scene63 review fails closed on duplicate identity or promotion s
 test('M5B R1109 runtime state locks exact scene63 review identity and no-promotion dataset', () => {
   const root = new THREE.Group();
   const zones = m5bR1109PersistedTargetIds.map((id) => makeR1109PresenceZone(id));
-  root.add(...zones, makeBuilding());
+  root.add(...zones, makeBuildingContext());
 
   const presentation = prepareM5BR1109PersistedZonePresentation(root);
   const runtime = createM5BR1109ReviewRuntimeState(presentation);
