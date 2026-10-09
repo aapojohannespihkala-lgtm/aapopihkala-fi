@@ -12,7 +12,7 @@ This R1131 refresh records that the one-link review URL contract guard has now l
 
 This R1132 refresh records the post-#1052 authenticated user retry failure: after PR #1052 was merged, production-built, and verify-closed, the same one-link review URL still showed `WORK_TEST-kandidaattia ei voitu avata`. The R1090 user review loop is therefore retired until a machine-observable technical change proves a different autoload/render result.
 
-The 9.10.2026 R1091 refresh keeps the stable candidate/review id and production object path, while the raw Drive source is now the R1091 PVK-snap successor. Publish run `37965098816` derived that new raw identity successfully and then failed with HTTP 422 because the Worker runtime still validated the old R1090 size/SHA. The active gate is therefore runtime identity parity.
+The 9.10.2026 R1091 refresh keeps the stable candidate/review id and production object path, while the raw Drive source is now the R1091 PVK-snap successor. Publish run `37965098816` derived that new raw identity successfully and then failed with HTTP 422 because the Worker runtime still validated the old R1090 size/SHA. The active gate is raw-source identity parity: PR #1078 merged an alternative R1091 size/SHA tuple which does not match the exact Drive bytes. PR #1080 is the unmerged source-consistent correction.
 
 ## Exact candidate
 
@@ -20,12 +20,12 @@ The 9.10.2026 R1091 refresh keeps the stable candidate/review id and production 
 - Drive file ID: `13eciLeS58jwGLzy-TUhePIF7h7177zHj`
 - Object key: `work-test/m5a-z2d-r1090-well-top-ground-surface.glb`
 - Production path: `/private-model/work-test/m5a-z2d-r1090-well-top-ground-surface.glb`
-- Expected size: `3_103_036`
-- Expected SHA-256: `3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a`
+- Expected size: `2_637_904`
+- Expected SHA-256: `ca1816a8f0ae13c717d33296413acdc57240632b0ed732cffb0444616a24b444`
 
 ## Current main runtime state
 
-`worker/privateWorkTest.ts` on `main` exposes `M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE` with the exact id, label, path, object key, size, and SHA-256 above. `PRIVATE_WORK_TEST_RUNTIME_CANDIDATES` includes it after the legacy `M5A_Z2D_D100_D300_DIAMETER_CANDIDATE`, so the older D100/D300 candidate remains available.
+`worker/privateWorkTest.ts` on `main` exposes `M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE` with the stable id, label, path, and object key, but the merged Worker identity still contains the incorrect alternative size `3_103_036` and SHA-256 `3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a`. PR #1080 changes those fields to match the verified raw Drive identity above; the correction is not yet on `main`. `PRIVATE_WORK_TEST_RUNTIME_CANDIDATES` includes it after the legacy `M5A_Z2D_D100_D300_DIAMETER_CANDIDATE`, so the older D100/D300 candidate remains available.
 
 The focused regression `tests/e2e/private-model-m5a-z2d-r1090-runtime-allowlist.spec.ts` proves that the R1090 candidate resolves by id, by private-model path, by upload path, by publish path, and by verify GLB path.
 
@@ -47,15 +47,15 @@ The current raw identity is:
 candidate: m5a-z2d-r1090-well-top-ground-surface
 Drive file: 13eciLeS58jwGLzy-TUhePIF7h7177zHj
 path: /private-model/work-test/m5a-z2d-r1090-well-top-ground-surface.glb
-size: 3103036
-sha256: 3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a
+size: 2637904
+sha256: ca1816a8f0ae13c717d33296413acdc57240632b0ed732cffb0444616a24b444
 ```
 
 Publish WORK_TEST - m5a-z2d-r1090-well-top-ground-surface
 
-Run `37965098816` failed at the machine publish PUT with HTTP 422 after trusted dispatch, candidate resolution, machine authentication, Drive authentication, raw GLB download, and raw byte identity derivation had passed. The failure is a runtime identity mismatch: the source map already points to the R1091 Drive artifact, while the Worker runtime still expected the previous R1090 size and SHA.
+Run `37965098816` failed at the machine publish PUT with HTTP 422 after trusted dispatch, candidate resolution, machine authentication, Drive authentication, raw GLB download, and raw byte identity derivation had passed. The failure is a runtime identity mismatch: the source map points to the R1091 Drive artifact (2,637,904 bytes / ca1816a8...), but the current merged Worker runtime expects a different, incorrect R1091 tuple (3,103,036 bytes / 3adf908a...).
 
-This patch aligns the Worker runtime allowlist, regression tests, and this wiring note to the R1091 raw identity. Do not claim machine publish/readback PASS yet. The safe release gate is to retry only after this runtime identity patch is merged and deployed. That retry must then prove machine publish, production catalog readback, and full production GLB size/SHA parity.
+PR #1080 proposes source-consistent corrections to the Worker runtime allowlist, focused regression tests, and this wiring note using the exact R1091 raw Drive identity. Do not claim machine publish/readback PASS yet. The safe release gate is to retry only after fresh-main CI, guarded PR integration, and confirmed production Worker deployment. That retry must then prove machine publish, production catalog readback, and full production GLB size/SHA parity.
 
 ## Review/autoload gate
 
@@ -90,4 +90,4 @@ This mapping note does not change GLB bytes, G1/G2/G3, datacube fact layer, sour
 
 ## Follow-up
 
-Continue by merging and deploying the R1091 runtime identity parity patch, then retry the exact machine publish once. Only after publish/catalog/full-GLB identity and exact candidate autoload/render visibility pass may the work proceed to a narrowly scoped human content review question. Do not promote this WORK_TEST successor to CURRENT, canonical, as-built, or publishToCURRENT from this note.
+Continue by verifying PR #1080's source-consistent branch and focused CI, reconciling fresh-main changes, guarded merge and production deploy, then retry the exact machine publish once. Only after publish/catalog/full-GLB identity and exact candidate autoload/render visibility pass may the work proceed to a narrowly scoped human content review question. Do not promote this WORK_TEST successor to CURRENT, canonical, as-built, or publishToCURRENT from this note.
