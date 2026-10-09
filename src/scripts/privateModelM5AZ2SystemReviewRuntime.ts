@@ -41,9 +41,11 @@ export const getActiveM5AZ2SystemCandidateId = (search: string) =>
 export const isM5AZ2SystemReviewRequested = (search: string) =>
   getRequestedM5AZ2SystemReviewId(search) !== null;
 
+const drawableM5AZ2Passes = new Set(['M5A-Z2', 'M5A-Z2D-R1036', 'M5A-Z2D-R1090']);
 const drawableM5AZ2Kinds = new Set([
   'wellMarkerWork',
   'referenceRouteWork',
+  'pipeDiameterPresentationWork',
   'unresolvedBoundaryMarker',
 ]);
 const drawableM5AZ2Keys = new Set<string>(m5aZ2ExpectedTargetKeys);
@@ -56,7 +58,7 @@ export const getUndrawableM5AZ2TargetKeys = (sceneRoot: any): string[] => {
   sceneRoot?.traverse?.((object: any) => {
     const data = object.userData ?? {};
     const kind = String(data.representationKind ?? '');
-    if (data.Pass !== 'M5A-Z2' || !drawableM5AZ2Kinds.has(kind)) return;
+    if (!drawableM5AZ2Passes.has(String(data.Pass ?? '')) || !drawableM5AZ2Kinds.has(kind)) return;
     const key = String(data.G2IdCandidate ?? '') ||
       (kind === 'unresolvedBoundaryMarker' ? 'boundary:' + String(data.boundaryRole ?? '') : '');
     if (!drawableM5AZ2Keys.has(key)) return;
