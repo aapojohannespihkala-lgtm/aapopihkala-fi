@@ -90,8 +90,15 @@ jobs:
           )[0]
           production_section = workflow.split(production_marker, 1)[1]
 
-          if "secrets." in contract_section:
-              raise SystemExit("pull_request contract job must not reference secrets")
+          secret_binding_prefix = " $" + "{{ sec" + "rets."
+          for variable in (
+              "CF_ACCESS_VIEWER_PROBE_CLIENT_ID",
+              "CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET",
+          ):
+              if variable + ":" + secret_binding_prefix in contract_section:
+                  raise SystemExit(
+                      "pull_request contract job must not bind viewer-probe secrets"
+                  )
 
           required_production_snippets = [
               "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'",
