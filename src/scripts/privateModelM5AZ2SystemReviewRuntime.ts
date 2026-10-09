@@ -44,6 +44,7 @@ export const isM5AZ2SystemReviewRequested = (search: string) =>
 const drawableM5AZ2Passes = new Set(['M5A-Z2', 'M5A-Z2D-R1036', 'M5A-Z2D-R1090']);
 const drawableM5AZ2Kinds = new Set([
   'wellMarkerWork',
+  'wellDiameterPresentationWork',
   'referenceRouteWork',
   'pipeDiameterPresentationWork',
   'unresolvedBoundaryMarker',

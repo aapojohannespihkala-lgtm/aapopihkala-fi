@@ -35,6 +35,7 @@ const targetKeySet = new Set<string>(m5aZ2ExpectedTargetKeys);
 const targetPasses = new Set(['M5A-Z2', 'M5A-Z2D-R1036', 'M5A-Z2D-R1090']);
 const targetKinds = new Set([
   'wellMarkerWork',
+  'wellDiameterPresentationWork',
   'referenceRouteWork',
   'pipeDiameterPresentationWork',
   'unresolvedBoundaryMarker',
@@ -115,7 +116,7 @@ const hasNoPromotionSemantics = (object: any) => {
   if (!hasCommonNoPromotionSemantics(data)) return false;
   if (String(data.absoluteZContract ?? '') !== m5aZ2AbsoluteZContract) return false;
 
-  if (kind === 'wellMarkerWork') {
+  if (kind === 'wellMarkerWork' || kind === 'wellDiameterPresentationWork') {
     return (
       data.physicalWellGeometryClaim === false &&
       String(data.absoluteZBasis ?? '') === m5aZ2AbsoluteZBasis
@@ -166,7 +167,11 @@ export const prepareM5AZ2SystemReviewPresentation = (sceneRoot: any) => {
     targets.push(object);
 
     const kind = String(object.userData?.representationKind ?? '');
-    const countedKind = kind === 'pipeDiameterPresentationWork' ? 'referenceRouteWork' : kind;
+    const countedKind = kind === 'pipeDiameterPresentationWork'
+      ? 'referenceRouteWork'
+      : kind === 'wellDiameterPresentationWork'
+        ? 'wellMarkerWork'
+        : kind;
     if (countedKind in kindCounts) {
       kindCounts[countedKind as keyof typeof kindCounts] += 1;
     }

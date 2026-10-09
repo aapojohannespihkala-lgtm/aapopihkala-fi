@@ -145,7 +145,6 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
 };
 
 const commonTarget = {
-  Pass: 'M5A-Z2',
   Canonical: false,
   presentationOnly: true,
   workAssumption: true,
@@ -182,6 +181,7 @@ const makeTargetNode = (key: string, index: number) => {
   const extras = boundary
     ? {
         ...commonTarget,
+        Pass: 'M5A-Z2D-R1036',
         representationKind: 'unresolvedBoundaryMarker',
         boundaryStatus: 'UNRESOLVED_BOUNDARY',
         boundaryRole: key.slice('boundary:'.length),
@@ -190,8 +190,9 @@ const makeTargetNode = (key: string, index: number) => {
       }
     : {
         ...commonTarget,
+        Pass: well ? 'M5A-Z2D-R1090' : 'M5A-Z2D-R1036',
         G2IdCandidate: key,
-        representationKind: well ? 'wellMarkerWork' : 'referenceRouteWork',
+        representationKind: well ? 'wellDiameterPresentationWork' : 'pipeDiameterPresentationWork',
         physicalWellGeometryClaim: well ? false : undefined,
         physicalRouteClaim: well ? undefined : false,
         exactSlopeClaim: well ? undefined : false,
@@ -207,7 +208,7 @@ const makeTargetNode = (key: string, index: number) => {
   };
 };
 
-test('M5A-Z2D R1090 system review autoloads 13 targets with visible 80/20 render hierarchy', async ({
+test('M5A-Z2D R1090 scene62 source-accurate review autoloads 13 targets with visible 80/20 render hierarchy', async ({
   page,
 }) => {
   test.setTimeout(20_000);
