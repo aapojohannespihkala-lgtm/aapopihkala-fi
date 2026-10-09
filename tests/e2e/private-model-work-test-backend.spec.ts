@@ -94,7 +94,7 @@ test('private WORK_TEST route matching is bounded to the dedicated prefix', () =
 
 test('private WORK_TEST candidate allowlist exposes named review routes including P145B, P155C-B, P151C, P150F-R, P150G and P156I', () => {
   // P185C-X2, P186D-X1 and P186E-X1 add exact p28-corrected electrical candidates.
-  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(52);
+  expect(PRIVATE_WORK_TEST_CANDIDATES).toHaveLength(53);
 
   const p136b = PRIVATE_WORK_TEST_CANDIDATES[0];
   expect(p136b.id).toBe('p136b-d-current-wall-corrected');

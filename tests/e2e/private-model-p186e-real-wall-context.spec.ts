@@ -148,3 +148,55 @@ test('P186E review keeps renderable children of known architecture roots visible
     'NON_QUESTION_CONTEXT_SUPPRESSED',
   );
 });
+
+test('P186E review suppresses explicit opposite-floor wall meshes before known-root fallback', () => {
+  const target = makeRenderable('P186E_X1_D_1F_GROUP_LABEL_03', {
+    Pass: 'P186E-X1',
+    hostStorey: 'D_1F',
+    presentationLayer: 'MEP_ELECTRICAL',
+    representationKind: 'electricalGroupSourceLabelAnchor',
+  });
+  const nonRenderableWallRoot = makeNonRenderableRoot(
+    'P173D_D_WALL_HR67_SEMANTIC_REBASE_ROOT_BABYLON_Y_UP',
+    {
+      G2Id: 'P173D_D_WALL_HR67_SEMANTIC_REBASE_ROOT_BABYLON_Y_UP',
+      presentationLayer: 'CURRENT_D',
+    },
+  );
+  const d1fWallMesh = makeRenderable('P173D_D_WALL_EXPLICIT_D_1F_CONTEXT_MESH', {
+    G2Id: 'P173D_D_WALL_EXPLICIT_D_1F_CONTEXT_MESH',
+    presentationLayer: 'CURRENT_D',
+    representationKind: 'wallSurfaceMesh',
+    apartment: 'D',
+    storey: '1F',
+  });
+  (d1fWallMesh as any).parent = nonRenderableWallRoot;
+
+  const d2fWallMesh = makeRenderable('P173D_D_WALL_EXPLICIT_D_2F_CONTEXT_MESH', {
+    G2Id: 'P173D_D_WALL_EXPLICIT_D_2F_CONTEXT_MESH',
+    presentationLayer: 'CURRENT_D',
+    representationKind: 'wallSurfaceMesh',
+    hostStorey: 'D_2F',
+    apartment: 'D',
+    storey: '2F',
+  });
+  (d2fWallMesh as any).parent = nonRenderableWallRoot;
+
+  const objects = [target, nonRenderableWallRoot, d1fWallMesh, d2fWallMesh];
+  const sceneRoot = {
+    traverse: (visitor: (object: unknown) => void) => {
+      for (const object of objects) visitor(object);
+    },
+  };
+
+  const result = prepareP186EReviewPresentation(sceneRoot, 'D1F');
+
+  expect(result.targetRenderableCount).toBe(1);
+  expect(result.contextRenderableCount).toBe(1);
+  expect(result.realWallContextRenderableCount).toBe(1);
+
+  expect(d1fWallMesh.visible).toBe(true);
+  expect(d1fWallMesh.userData.p186eReviewRole).toBe('D_1F_ARCH_CONTEXT_20');
+  expect(d2fWallMesh.visible).toBe(false);
+  expect(d2fWallMesh.userData.p186eReviewRole).toBe('NON_QUESTION_CONTEXT_SUPPRESSED');
+});
