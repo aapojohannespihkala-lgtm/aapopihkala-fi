@@ -19,7 +19,7 @@ export const p186fLegacyX1PlacementBasis =
   'CENTROID_OF_INHERITED_2015_FLOOR_HEATING_WORK_ROUTE_PROXY_FOR_ROOM_LEVEL_PRESENTATION_ONLY';
 
 export const p186fReviewQuestionText =
-  'Sijoittuvatko Bathroom-, Bedroom/vaatehuone- ja Lobby-Themojen room/wall-adjacent WORK_TEST -ankkurit käyttökelpoisesti oikeiden huoneiden tai käyttökontekstien yhteyteen, ymmärtäen etteivät markerit ole fyysisten termostaattien exact-sijainteja?';
+  'Tekninen WORK_TEST-katselu: Bathroom-, Bedroom/vaatehuone- ja Lobby-Themojen room/wall-adjacent WORK_TEST -ankkurit ovat huonekontekstin esityksiä. Älä hyväksy vielä termostaattien sijoittelua: Lobby-Themon huippuimurin säätimen linja ei ole tälle kandidaatti-esitykselle lähdevarmennettu, eivätkä markerit ole fyysisten termostaattien exact-sijainteja.';
 
 export const p186fReviewSourceContexts = [
   {
@@ -40,7 +40,7 @@ export const p186fReviewSourceContexts = [
 ] as const;
 
 export const p186fReviewSourceLimit =
-  `Themojen asennus ja Bathroom/Bedroom/vaatehuone/Lobby-huonesidonnat ovat käyttäjän vahvistamaa nykytilaevidenssiä. ${p186fBedroomWalkInContextNote} Markerien XY/Z on vain room/wall-adjacent WORK_ASSUMPTION -esitystä, ja vuoden 2015 ryhmät 10.2/10.3/10.1 ovat historiallista kontekstia, eivät nykyinen as-built-syöttökytkentä, wall-host-väite tai sensor suite -väite.`;
+  `Themojen asennus ja Bathroom/Bedroom/vaatehuone/Lobby-huonesidonnat ovat käyttäjän vahvistamaa nykytilaevidenssiä. ${p186fBedroomWalkInContextNote} Markerien XY/Z on vain room/wall-adjacent WORK_ASSUMPTION -esitystä, ja vuoden 2015 ryhmät 10.2/10.3/10.1 ovat historiallista kontekstia, eivät nykyinen as-built-syöttökytkentä, wall-host-väite tai sensor suite -väite. P186F-X2:n tekninen katselu ei ole Lobby-sijainnin sisältöhyväksyntä: G2 R1059/R1087 edellyttää huippuimurin säätimen linjan eksplisiittistä sourceBasis-/QA-varmennusta ennen sisältö-HUMAN_REVIEW-porttia.`;
 
 export const p186fExpectedRooms = {
   Bedroom: {

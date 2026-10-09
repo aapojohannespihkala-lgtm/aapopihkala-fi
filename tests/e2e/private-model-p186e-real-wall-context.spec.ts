@@ -193,6 +193,69 @@ test('P186E review suppresses explicit opposite-floor wall meshes before known-r
   expect(d2fWallMesh.userData.p186eReviewRole).toBe('NON_QUESTION_CONTEXT_SUPPRESSED');
 });
 
+test('P186E review rejects compact and generic opposite-floor source names under known architecture roots', () => {
+  const cases = [
+    {
+      variant: 'D1F' as const,
+      targetFloor: 'D_1F',
+      sameFloorName: 'P177B_CONTEXT_D1F_WALL',
+      oppositeCompactName: 'P177B_CONTEXT_D2F_WALL',
+      oppositeGenericName: 'P134B_ARCH_BASE_CLONE__R2I2_VIEW_P86_VIEW_G1_CD_2F_ATTIC_BASE',
+    },
+    {
+      variant: 'D2F' as const,
+      targetFloor: 'D_2F',
+      sameFloorName: 'P177B_CONTEXT_D2F_WALL',
+      oppositeCompactName: 'P173D_REBASE_D1F_STORAGE_NORTH_WALL_CORRECTED_NODE',
+      oppositeGenericName: 'P134B_ARCH_BASE_CLONE__R2I2_VIEW_P86_VIEW_G1_CD_1F',
+    },
+  ];
+
+  for (const item of cases) {
+    const target = makeRenderable('P186E_SOURCE_LABEL_' + item.targetFloor, {
+      Pass: 'P186E-X1',
+      hostStorey: item.targetFloor,
+      presentationLayer: 'MEP_ELECTRICAL',
+      representationKind: 'electricalGroupSourceLabelAnchor',
+    });
+    const root = makeNonRenderableRoot(
+      'P177B_WHOLE_BUILDING_ROOT_HR6_DIRECT_D_STORAGE_NORTH_LINE_CORRECTED_BABYLON_Y_UP',
+      { presentationLayer: 'CURRENT_D' },
+    );
+    const sameFloor = makeRenderable(item.sameFloorName, {
+      presentationLayer: 'CURRENT_D',
+      representationKind: 'wallSurfaceMesh',
+    });
+    const oppositeCompact = makeRenderable(item.oppositeCompactName, {
+      presentationLayer: 'CURRENT_D',
+      representationKind: 'wallSurfaceMesh',
+    });
+    const oppositeGeneric = makeRenderable(item.oppositeGenericName, {
+      presentationLayer: 'CURRENT_D',
+      representationKind: 'contextMass',
+    });
+    root.add(sameFloor, oppositeCompact, oppositeGeneric);
+
+    const sceneRoot = {
+      updateMatrixWorld: () => root.updateMatrixWorld(true),
+      traverse: (visit: (object: unknown) => void) => {
+        visit(target);
+        root.traverse(visit);
+      },
+    };
+
+    const result = prepareP186EReviewPresentation(sceneRoot, item.variant);
+    expect(result.targetRenderableCount).toBe(1);
+    expect(result.realWallContextRenderableCount).toBe(1);
+    expect(result.contextRenderableCount).toBe(1);
+    expect(sameFloor.visible).toBe(true);
+    expect(oppositeCompact.visible).toBe(false);
+    expect(oppositeGeneric.visible).toBe(false);
+    expect(oppositeCompact.userData.p186eReviewRole).toBe('NON_QUESTION_CONTEXT_SUPPRESSED');
+    expect(oppositeGeneric.userData.p186eReviewRole).toBe('NON_QUESTION_CONTEXT_SUPPRESSED');
+  }
+});
+
 test('P186E real wall readiness requires drawable triangle meshes on both D floors', () => {
   for (const variant of ['D1F', 'D2F'] as const) {
     const floor = variant === 'D1F' ? 'D_1F' : 'D_2F';

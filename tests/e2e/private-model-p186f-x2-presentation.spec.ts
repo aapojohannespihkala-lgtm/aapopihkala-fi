@@ -46,7 +46,9 @@ test('P186F-X2 review question preserves user-confirmed source context and no-pr
   expect(p186fReviewQuestionText).toContain('Bedroom/vaatehuone');
   expect(p186fReviewQuestionText).toContain('Lobby');
   expect(p186fReviewQuestionText).toContain('room/wall-adjacent WORK_TEST');
-  expect(p186fReviewQuestionText).toContain('eivät markerit ole fyysisten termostaattien exact-sijainteja');
+  expect(p186fReviewQuestionText).toContain('Älä hyväksy vielä termostaattien sijoittelua');
+  expect(p186fReviewQuestionText).toContain('Lobby-Themon huippuimurin säätimen linja ei ole');
+  expect(p186fReviewQuestionText).toContain('eivätkä markerit ole fyysisten termostaattien exact-sijainteja');
 
   expect(p186fBedroomWalkInContextNote).toContain('Themo ohjaa makuuhuoneen lattialämmitystä');
   expect(p186fBedroomWalkInContextNote).toContain('vaatehuoneen ja kulkumaisen tilarakenteen kautta');
@@ -74,6 +76,8 @@ test('P186F-X2 review question preserves user-confirmed source context and no-pr
   expect(p186fReviewSourceLimit).toContain('room/wall-adjacent WORK_ASSUMPTION');
   expect(p186fReviewSourceLimit).toContain('eivät nykyinen as-built-syöttökytkentä');
   expect(p186fReviewSourceLimit).toContain('sensor suite -väite');
+  expect(p186fReviewSourceLimit).toContain('P186F-X2:n tekninen katselu ei ole Lobby-sijainnin sisältöhyväksyntä');
+  expect(p186fReviewSourceLimit).toContain('sourceBasis-/QA-varmennusta ennen sisältö-HUMAN_REVIEW-porttia');
 });
 
 const makeRenderableMesh = (name: string) => {
