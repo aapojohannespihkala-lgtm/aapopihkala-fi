@@ -1,0 +1,281 @@
+name: Private model production review smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/private-model-production-review-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: private-model-production-review-smoke
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      REVIEW_URL: https://aapopihkala.fi/private-model/?review=m5a-z2d-r1090-well-top-ground-surface-review
+      REVIEW_ID: m5a-z2d-r1090-well-top-ground-surface-review
+      CANDIDATE_ID: m5a-z2d-r1090-well-top-ground-surface
+      CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+      CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required service-token secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" ]] || { echo "Missing CF_ACCESS_READBACK_CLIENT_ID secret" >&2; exit 1; }
+          [[ -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]] || { echo "Missing CF_ACCESS_READBACK_CLIENT_SECRET secret" >&2; exit 1; }
+
+      - name: Verify authenticated production review HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p playwright-artifacts
+          curl             --silent             --show-error             --fail             --location             --connect-timeout 10             --max-time 45             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --dump-header playwright-artifacts/review-response-headers.txt             --output playwright-artifacts/review-page.html             "$REVIEW_URL"
+          grep -q 'id="private-model-canvas"' playwright-artifacts/review-page.html
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify authenticated production autoload and rendered canvas
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { chromium } from '@playwright/test';
+
+          const reviewUrl = process.env.REVIEW_URL;
+          const reviewId = process.env.REVIEW_ID;
+          const candidateId = process.env.CANDIDATE_ID;
+          const clientId = process.env.CF_ACCESS_READBACK_CLIENT_ID;
+          const clientSecret = process.env.CF_ACCESS_READBACK_CLIENT_SECRET;
+
+          if (!reviewUrl || !reviewId || !candidateId || !clientId || !clientSecret) {
+            throw new Error('Required production review inputs are missing');
+          }
+
+          fs.mkdirSync('playwright-artifacts', { recursive: true });
+
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({
+            viewport: { width: 1536, height: 900 },
+          });
+
+          await context.route('https://aapopihkala.fi/**', async (route) => {
+            const headers = {
+              ...route.request().headers(),
+              'cf-access-client-id': clientId,
+              'cf-access-client-secret': clientSecret,
+            };
+            await route.continue({ headers });
+          });
+
+          const page = await context.newPage();
+
+          try {
+            const response = await page.goto(reviewUrl, {
+              waitUntil: 'domcontentloaded',
+              timeout: 45_000,
+            });
+
+            if (!response || response.status() !== 200) {
+              throw new Error(`Production review navigation returned ${response?.status() ?? 'no response'}`);
+            }
+
+            if (!page.url().startsWith('https://aapopihkala.fi/private-model/')) {
+              throw new Error(`Production review redirected away from viewer: ${page.url()}`);
+            }
+
+            await page.waitForSelector('#private-model-canvas', { timeout: 20_000 });
+
+            await page.waitForFunction(
+              ({ expectedReviewId, expectedCandidateId }) => {
+                const canvas = document.querySelector('#private-model-canvas');
+                if (!(canvas instanceof HTMLCanvasElement)) return false;
+                return (
+                  canvas.dataset.workTestReviewAutoload === 'true' &&
+                  canvas.dataset.modelSource === 'work-test' &&
+                  canvas.dataset.workTestReviewMode === expectedReviewId &&
+                  canvas.dataset.workTestReviewCandidate === expectedCandidateId &&
+                  canvas.dataset.m5aZ2ReviewState === 'ready' &&
+                  canvas.dataset.m5aReviewTargetRenderableCount === '13' &&
+                  canvas.dataset.m5aReviewExpectedTargetRenderableCount === '13' &&
+                  canvas.dataset.m5aReviewWellMarkerCount === '4' &&
+                  canvas.dataset.m5aReviewRouteCount === '7' &&
+                  canvas.dataset.m5aReviewUnresolvedBoundaryCount === '2' &&
+                  canvas.dataset.m5aReviewSemanticViolationCount === '0' &&
+                  canvas.dataset.m5aReviewCameraFocusApplied === 'true'
+                );
+              },
+              {
+                expectedReviewId: reviewId,
+                expectedCandidateId: candidateId,
+              },
+              { timeout: 35_000 },
+            );
+
+            const canvas = page.locator('#private-model-canvas');
+            await page.waitForTimeout(1000);
+
+            const before = await canvas.screenshot({
+              path: 'playwright-artifacts/r1090-production-before.png',
+            });
+
+            const box = await canvas.boundingBox();
+            if (!box) throw new Error('Production canvas has no bounding box');
+
+            const startX = box.x + box.width * 0.55;
+            const startY = box.y + box.height * 0.48;
+            await page.mouse.move(startX, startY);
+            await page.mouse.down();
+            await page.mouse.move(startX + Math.min(120, box.width * 0.12), startY + 40, {
+              steps: 12,
+            });
+            await page.mouse.up();
+            await page.waitForTimeout(500);
+
+            const after = await canvas.screenshot({
+              path: 'playwright-artifacts/r1090-production-after-orbit.png',
+            });
+
+            const pixelEvidence = await page.evaluate(
+              async ({ beforeUrl, afterUrl }) => {
+                const load = async (url) => {
+                  const image = new Image();
+                  image.src = url;
+                  await image.decode();
+                  const probe = document.createElement('canvas');
+                  probe.width = image.width;
+                  probe.height = image.height;
+                  const ctx = probe.getContext('2d');
+                  if (!ctx) throw new Error('2D canvas unavailable for pixel probe');
+                  ctx.drawImage(image, 0, 0);
+                  return {
+                    width: image.width,
+                    height: image.height,
+                    data: ctx.getImageData(0, 0, image.width, image.height).data,
+                  };
+                };
+
+                const first = await load(beforeUrl);
+                const second = await load(afterUrl);
+                if (first.width !== second.width || first.height !== second.height) {
+                  throw new Error('Canvas screenshots differ in dimensions');
+                }
+
+                const buckets = new Map();
+                for (let i = 0; i < first.data.length; i += 4) {
+                  const r = first.data[i] ?? 0;
+                  const g = first.data[i + 1] ?? 0;
+                  const b = first.data[i + 2] ?? 0;
+                  const key = `${r >> 3},${g >> 3},${b >> 3}`;
+                  buckets.set(key, (buckets.get(key) ?? 0) + 1);
+                }
+
+                let modalKey = '';
+                let modalCount = 0;
+                for (const [key, count] of buckets.entries()) {
+                  if (count > modalCount) {
+                    modalKey = key;
+                    modalCount = count;
+                  }
+                }
+
+                const [mr, mg, mb] = modalKey.split(',').map((v) => Number(v) << 3);
+                let nonBackgroundPixels = 0;
+                let changedPixels = 0;
+
+                for (let i = 0; i < first.data.length; i += 4) {
+                  const r1 = first.data[i] ?? 0;
+                  const g1 = first.data[i + 1] ?? 0;
+                  const b1 = first.data[i + 2] ?? 0;
+                  const r2 = second.data[i] ?? 0;
+                  const g2 = second.data[i + 1] ?? 0;
+                  const b2 = second.data[i + 2] ?? 0;
+
+                  const backgroundDistance =
+                    Math.abs(r1 - mr) + Math.abs(g1 - mg) + Math.abs(b1 - mb);
+                  if (backgroundDistance > 36) nonBackgroundPixels += 1;
+
+                  const frameDifference =
+                    Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+                  if (frameDifference > 36) changedPixels += 1;
+                }
+
+                return {
+                  width: first.width,
+                  height: first.height,
+                  modalCount,
+                  nonBackgroundPixels,
+                  changedPixels,
+                };
+              },
+              {
+                beforeUrl: `data:image/png;base64,${before.toString('base64')}`,
+                afterUrl: `data:image/png;base64,${after.toString('base64')}`,
+              },
+            );
+
+            if (pixelEvidence.nonBackgroundPixels < 1500) {
+              throw new Error(
+                `Production canvas lacks rendered-scene pixel evidence: ${JSON.stringify(pixelEvidence)}`,
+              );
+            }
+
+            if (pixelEvidence.changedPixels < 750) {
+              throw new Error(
+                `Production canvas lacks orbit-responsive pixel evidence: ${JSON.stringify(pixelEvidence)}`,
+              );
+            }
+
+            const dataset = await canvas.evaluate((element) => ({ ...element.dataset }));
+            fs.writeFileSync(
+              'playwright-artifacts/r1090-production-evidence.json',
+              JSON.stringify({ dataset, pixelEvidence, finalUrl: page.url() }, null, 2),
+            );
+
+            console.log(
+              JSON.stringify({
+                reviewId: dataset.workTestReviewMode,
+                candidateId: dataset.workTestReviewCandidate,
+                autoload: dataset.workTestReviewAutoload,
+                modelSource: dataset.modelSource,
+                targetCount: dataset.m5aReviewTargetRenderableCount,
+                wellCount: dataset.m5aReviewWellMarkerCount,
+                routeCount: dataset.m5aReviewRouteCount,
+                boundaryCount: dataset.m5aReviewUnresolvedBoundaryCount,
+                cameraFocusApplied: dataset.m5aReviewCameraFocusApplied,
+                pixelEvidence,
+              }),
+            );
+          } finally {
+            await browser.close();
+          }
+          NODE
+
+      - name: Upload production render evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-model-r1090-production-review-smoke
+          path: playwright-artifacts
+          if-no-files-found: ignore
+          retention-days: 7
