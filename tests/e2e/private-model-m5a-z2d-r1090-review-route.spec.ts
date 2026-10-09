@@ -23,7 +23,7 @@ test('M5A-Z2D R1090 one-link review id resolves to the published WORK_TEST candi
     label: 'M5A-Z2D R1090 well-top ground-surface correction - WORK_TEST',
     path: '/private-model/work-test/m5a-z2d-r1090-well-top-ground-surface.glb',
     objectKey: 'work-test/m5a-z2d-r1090-well-top-ground-surface.glb',
-    expectedSize: 3_089_152,
-    expectedSha256: 'e8934e546f2a89a2cc070c44ef9f4d6f6df8f5dd2bb30c1c7379b7f821d85605',
+    expectedSize: 3_103_036,
+    expectedSha256: '3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a',
   });
 });
