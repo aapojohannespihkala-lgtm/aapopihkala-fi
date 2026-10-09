@@ -23,8 +23,8 @@ jobs:
       REVIEW_URL: https://aapopihkala.fi/private-model/?review=m5a-z2d-r1090-well-top-ground-surface-review
       REVIEW_ID: m5a-z2d-r1090-well-top-ground-surface-review
       CANDIDATE_ID: m5a-z2d-r1090-well-top-ground-surface
-      CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
-      CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
@@ -33,15 +33,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ -n "$CF_ACCESS_READBACK_CLIENT_ID" ]] || { echo "Missing CF_ACCESS_READBACK_CLIENT_ID secret" >&2; exit 1; }
-          [[ -n "$CF_ACCESS_READBACK_CLIENT_SECRET" ]] || { echo "Missing CF_ACCESS_READBACK_CLIENT_SECRET secret" >&2; exit 1; }
+          [[ -n "$CF_ACCESS_VIEWER_PROBE_CLIENT_ID" ]] || { echo "Missing CF_ACCESS_VIEWER_PROBE_CLIENT_ID secret" >&2; exit 1; }
+          [[ -n "$CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET" ]] || { echo "Missing CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET secret" >&2; exit 1; }
 
       - name: Classify authenticated production review response
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p playwright-artifacts
-          curl             --silent             --show-error             --connect-timeout 10             --max-time 45             --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET"             --dump-header playwright-artifacts/review-response-headers.txt             --output playwright-artifacts/review-page.html             --write-out '%{http_code}\n%{content_type}\n%{redirect_url}\n'             "$REVIEW_URL" > playwright-artifacts/review-response-meta.txt
+          curl             --silent             --show-error             --connect-timeout 10             --max-time 45             --header "CF-Access-Client-Id: $CF_ACCESS_VIEWER_PROBE_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET"             --dump-header playwright-artifacts/review-response-headers.txt             --output playwright-artifacts/review-page.html             --write-out '%{http_code}\n%{content_type}\n%{redirect_url}\n'             "$REVIEW_URL" > playwright-artifacts/review-response-meta.txt
 
           python3 - <<'PY'
           from pathlib import Path
@@ -146,8 +146,8 @@ jobs:
           const reviewUrl = process.env.REVIEW_URL;
           const reviewId = process.env.REVIEW_ID;
           const candidateId = process.env.CANDIDATE_ID;
-          const clientId = process.env.CF_ACCESS_READBACK_CLIENT_ID;
-          const clientSecret = process.env.CF_ACCESS_READBACK_CLIENT_SECRET;
+          const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
+          const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
 
           if (!reviewUrl || !reviewId || !candidateId || !clientId || !clientSecret) {
             throw new Error('Required production review inputs are missing');
