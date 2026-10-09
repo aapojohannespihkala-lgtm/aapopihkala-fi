@@ -10,6 +10,8 @@ This R1130 refresh records that the V5 machine publish/readback gate has now pas
 
 This R1131 refresh records that the one-link review URL contract guard has now landed on `main` in PR #1027. The next gate is no longer one-link URL shape or review-id resolution; it is authenticated one-link autoload and question-specific render visibility for the exact R1090 candidate.
 
+This R1132 refresh records the post-#1052 authenticated user retry failure: after PR #1052 was merged, production-built, and verify-closed, the same one-link review URL still showed `WORK_TEST-kandidaattia ei voitu avata`. The R1090 user review loop is therefore retired until a machine-observable technical change proves a different autoload/render result.
+
 ## Exact candidate
 
 - Candidate id: `m5a-z2d-r1090-well-top-ground-surface`
@@ -28,6 +30,8 @@ The focused regression `tests/e2e/private-model-m5a-z2d-r1090-runtime-allowlist.
 The focused route/source-map regression `tests/e2e/private-model-m5a-z2d-r1090-routing-source-map-parity.spec.ts` proves that the conventional review query `m5a-z2d-r1090-well-top-ground-surface-review` resolves to `m5a-z2d-r1090-well-top-ground-surface` and that `.github/work-test-candidates.json` maps the candidate to Drive file `1GhIyPFE2dqfrZpH257U-2Wp8c_d2wfD_`.
 
 The focused one-link contract regression `tests/e2e/private-model-m5a-z2d-r1090-one-link-review-contract.spec.ts` pins the canonical production review URL to `https://aapopihkala.fi/private-model/?review=m5a-z2d-r1090-well-top-ground-surface-review`, proves that it uses only the `review` query parameter, proves that it does not depend on GLB/file/source/upload/path transport parameters, and proves that the review query resolves to `m5a-z2d-r1090-well-top-ground-surface`.
+
+PR #1052 landed the first post-auth-failure code fix on `main`: it accepts the R1090/R1036 successor pass tokens and `pipeDiameterPresentationWork` route targets in the M5A-Z2 presentation/runtime guards. Because the authenticated retry still failed after that merge, the remaining active blocker is no longer the known successor-token / route-kind guard gap fixed by #1052.
 
 ## V5 publish/readback status
 
@@ -68,9 +72,22 @@ https://aapopihkala.fi/private-model/?review=m5a-z2d-r1090-well-top-ground-surfa
 
 Do not repeat the static one-link URL contract guard for this same candidate unless the URL, query parameter, review resolver, or route/source-map contract changes.
 
+Do not ask the user to retry this same R1090 review link again while the only visible outcome remains `WORK_TEST-kandidaattia ei voitu avata`. The next work is AI-owned code/runtime diagnostics.
+
 Before any HUMAN_REVIEW content question, the next pass must verify authenticated one-link live behavior: the URL must autoload the exact `m5a-z2d-r1090-well-top-ground-surface` WORK_TEST candidate without user file transfer and render the relevant R1090 well-top ground-surface correction in a question-specific viewable presentation state.
 
 If no authenticated live render probe is available, the state is `VISIBILITY_PROBE_REQUIRED`, not `READY_FOR_HUMAN_REVIEW`. In that case the next user-facing step may only be a technical visibility probe, not a content approval question.
+
+## Post-#1052 failure boundary
+
+The production-visible error string is currently not specific enough to distinguish these cases:
+
+- catalog/autoload failed before a candidate object was selected
+- the GLB path failed to load
+- the GLB loaded, but `applyM5aDrainageReviewState('Z2_ABSOLUTE_Z_SYSTEM')` threw inside the presentation guard
+- the GLB loaded, but a later viewer/runtime step threw before the review dataset reached the canvas
+
+The next useful code pass should not re-run publish/readback or ask for another human retry. It should make the R1090 autoload failure machine-observable by splitting `loadWorkTestCandidate` failure reporting into phase-specific state such as `catalog-missing`, `gltf-load-failed`, `m5a-z2-presentation-guard-failed`, and `review-runtime-failed`, while preserving the existing no-promotion boundaries. After that, a machine probe can identify the remaining root cause without another user-facing faulty review loop.
 
 ## Boundaries
 
@@ -78,4 +95,4 @@ This mapping note does not change GLB bytes, G1/G2/G3, datacube fact layer, sour
 
 ## Follow-up
 
-Continue at authenticated one-link autoload and render visibility. Only after exact candidate autoload and render visibility pass may the work proceed to a narrowly scoped human content review question. Do not promote this WORK_TEST successor to CURRENT, canonical, as-built, or publishToCURRENT from this note.
+Continue at post-#1052 autoload diagnostics and phase-specific error reporting. Only after exact candidate autoload and render visibility pass may the work proceed to a narrowly scoped human content review question. Do not promote this WORK_TEST successor to CURRENT, canonical, as-built, or publishToCURRENT from this note.
