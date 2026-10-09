@@ -207,9 +207,35 @@ const isP186EKnownDArchitectureRoot = (object: any) => {
   return p186eReviewKnownDArchitectureRootFragments.some((fragment) => text.includes(fragment));
 };
 
+const isP186EExplicitOppositeFloorContext = (
+  object: any,
+  variant: P186EReviewVariant,
+) => {
+  const oppositeContract = variant === 'D1F' ? storeyContract.D2F : storeyContract.D1F;
+  const data = object?.userData ?? {};
+  const hostStorey = String(data.hostStorey ?? '');
+  const apartment = String(data.apartment ?? '');
+  const storey = String(data.storey ?? '');
+  const g2Id = String(data.G2Id ?? data.G2IdCandidate ?? '');
+  const name = String(object?.name ?? '');
+  const sourceScene = String(data.sourceScene ?? '');
+
+  return (
+    hostStorey === oppositeContract.hostStorey ||
+    (apartment === 'D' && storey === oppositeContract.apartmentStorey) ||
+    g2Id.includes(oppositeContract.floorToken) ||
+    name.includes(oppositeContract.floorToken) ||
+    sourceScene.includes(oppositeContract.floorToken) ||
+    g2Id.includes(oppositeContract.sourceFloorToken) ||
+    name.includes(oppositeContract.sourceFloorToken) ||
+    sourceScene.includes(oppositeContract.sourceFloorToken)
+  );
+};
+
 const isDArchitectureContext = (object: any, variant: P186EReviewVariant) => {
   if (isP186ETarget(object, variant)) return false;
   if (isP186ESuppressedReviewContext(object)) return false;
+  if (isP186EExplicitOppositeFloorContext(object, variant)) return false;
 
   const knownDArchitectureRoot = isP186EKnownDArchitectureRoot(object);
   if (!knownDArchitectureRoot && !isP186ERealWallContextCandidate(object)) return false;
