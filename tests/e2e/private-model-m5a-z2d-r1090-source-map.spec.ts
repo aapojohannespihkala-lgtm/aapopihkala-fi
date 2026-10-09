@@ -9,7 +9,7 @@ const workTestMap = JSON.parse(readFileSync(mapPath, 'utf8')) as {
 
 test('M5A-Z2D R1090 publish source map points to the exact Drive artifact', () => {
   expect(workTestMap.candidates?.['m5a-z2d-r1090-well-top-ground-surface']).toEqual({
-    driveFileId: '1GhIyPFE2dqfrZpH257U-2Wp8c_d2wfD_',
+    driveFileId: '13eciLeS58jwGLzy-TUhePIF7h7177zHj',
   });
 });
 
