@@ -93,6 +93,36 @@ test('R1090 accepts successor pass tokens and pipe presentation routes in the re
   expect(getUndrawableM5AZ2TargetKeys(scene)).toEqual([]);
 });
 
+test('R1090 ignores superseded reference-route targets when pipe presentation targets exist', () => {
+  const scene = makeScene({
+    pass: 'M5A-Z2D-R1090',
+    routeKind: 'pipeDiameterPresentationWork',
+  });
+  const routeKeys = m5aZ2ExpectedTargetKeys.filter((key) =>
+    key.startsWith('G2_DRAIN_LINK_'),
+  );
+  for (const key of routeKeys) {
+    const supersededReferenceRoute = makeTarget(key, {
+      pass: 'M5A-Z2D-R1090',
+      routeKind: 'referenceRouteWork',
+    });
+    (supersededReferenceRoute as THREE.Mesh).geometry.setDrawRange(0, 0);
+    scene.add(supersededReferenceRoute);
+  }
+
+  const presentation = prepareM5AZ2SystemReviewPresentation(scene);
+  expect(presentation.targetRenderableCount).toBe(13);
+  expect(presentation.missingTargetKeys).toEqual([]);
+  expect(presentation.duplicateTargetKeys).toEqual([]);
+  expect(presentation.semanticViolationCount).toBe(0);
+  expect(presentation.kindCounts).toEqual({
+    wellMarkerWork: 4,
+    referenceRouteWork: 7,
+    unresolvedBoundaryMarker: 2,
+  });
+  expect(getUndrawableM5AZ2TargetKeys(scene)).toEqual([]);
+});
+
 test('R1090 refuses a well with no triangle draw range while retaining the other 12', () => {
   const scene = makeScene();
   (scene.children[0] as THREE.Mesh).geometry.setDrawRange(0, 0);
