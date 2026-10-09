@@ -145,6 +145,8 @@ const storeyContract = {
   D1F: {
     hostStorey: 'D_1F',
     floorToken: '_D_1F_',
+    compactFloorToken: 'D1F',
+    genericFloorToken: '_1F_',
     apartmentStorey: '1F',
     sourceFloorToken: '_1F_SRC',
     preferredRoomContextPrefix: 'P117D_REVIEW_',
@@ -153,6 +155,8 @@ const storeyContract = {
   D2F: {
     hostStorey: 'D_2F',
     floorToken: '_D_2F_',
+    compactFloorToken: 'D2F',
+    genericFloorToken: '_2F_',
     apartmentStorey: '2F',
     sourceFloorToken: '_2F_SRC',
     preferredRoomContextPrefix: 'P123C_CONTEXT_',
@@ -248,6 +252,12 @@ const isP186EExplicitOppositeFloorContext = (
     g2Id.includes(oppositeContract.floorToken) ||
     name.includes(oppositeContract.floorToken) ||
     sourceScene.includes(oppositeContract.floorToken) ||
+    g2Id.includes(oppositeContract.compactFloorToken) ||
+    name.includes(oppositeContract.compactFloorToken) ||
+    sourceScene.includes(oppositeContract.compactFloorToken) ||
+    g2Id.includes(oppositeContract.genericFloorToken) ||
+    name.includes(oppositeContract.genericFloorToken) ||
+    sourceScene.includes(oppositeContract.genericFloorToken) ||
     g2Id.includes(oppositeContract.sourceFloorToken) ||
     name.includes(oppositeContract.sourceFloorToken) ||
     sourceScene.includes(oppositeContract.sourceFloorToken)
