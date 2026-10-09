@@ -86,8 +86,9 @@ test('M5A-Z2D R1090 handoff stays aligned with the exact WORK_TEST source identi
   expect(docsContent).toContain(candidateId);
   expect(docsContent).toContain(expectedDriveFileId);
   expect(docsContent).toContain(
-    '3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a',
+    'ca1816a8f0ae13c717d33296413acdc57240632b0ed732cffb0444616a24b444',
   );
+  expect(docsContent).toContain('size: 2637904');
 });
 
 test('M5A-Z2D R1090/R1091 handoff records the current R1091 publish gate without false success', () => {
