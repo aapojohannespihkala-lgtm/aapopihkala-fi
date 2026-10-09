@@ -2031,6 +2031,7 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelWorkTest';
       import {
         getActiveM5AZ2SystemReviewId,
+        getUndrawableM5AZ2TargetKeys,
         getRequestedM5AZ2SystemCandidateId,
         isM5AZ2SystemReviewRequested,
       } from '../../scripts/privateModelM5AZ2SystemReviewRuntime';
@@ -7321,7 +7322,9 @@ const title = 'Private 3D viewer';
           setD1KnownDoorReviewLabelsVisible(false);
 
           const presentation = prepareM5AZ2SystemReviewPresentation(fullModelScene);
+          const undrawableTargetKeys = getUndrawableM5AZ2TargetKeys(fullModelScene);
           if (
+            undrawableTargetKeys.length !== 0 ||
             presentation.targetRenderableCount !== presentation.expectedTargetRenderableCount ||
             presentation.missingTargetKeys.length !== 0 ||
             presentation.duplicateTargetKeys.length !== 0 ||
