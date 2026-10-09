@@ -511,10 +511,20 @@ const M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE = {
   expectedSha256: 'e8934e546f2a89a2cc070c44ef9f4d6f6df8f5dd2bb30c1c7379b7f821d85605',
 } as const satisfies PrivateWorkTestCandidate;
 
+const M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE = {
+  id: 'm5b-r1109-five-downspout-presence-zones',
+  label: 'M5B R1109 five downspout presence zones - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/m5b-r1109-five-downspout-presence-zones.glb`,
+  objectKey: 'work-test/m5b-r1109-five-downspout-presence-zones.glb',
+  expectedSize: 3_102_172,
+  expectedSha256: '92275bb2ecf61054c0bb015d69800b85a899d11f9170a485ccbf62238373fc10',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
   M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE,
+  M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
