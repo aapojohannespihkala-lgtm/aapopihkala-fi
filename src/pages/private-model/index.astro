@@ -2036,6 +2036,12 @@ const title = 'Private 3D viewer';
         isM5AZ2SystemReviewRequested,
       } from '../../scripts/privateModelM5AZ2SystemReviewRuntime';
 
+      import {
+        createWorkTestLoadFailureDataset,
+        workTestLoadFailureStatusText,
+        type WorkTestLoadFailurePhase,
+      } from '../../scripts/privateModelWorkTestLoadDiagnostics';
+
       const canvas = document.querySelector<HTMLCanvasElement>('#private-model-canvas');
       const status = document.querySelector<HTMLElement>('#viewer-status');
       const toolbarMenus = Array.from(document.querySelectorAll<HTMLDetailsElement>('.toolbar-menu'));
@@ -8460,11 +8466,17 @@ const title = 'Private 3D viewer';
       };
 
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
+        let loadFailurePhase: WorkTestLoadFailurePhase = 'gltf-load-failed';
+        delete canvas.dataset.workTestLoadState;
+        delete canvas.dataset.workTestLoadFailurePhase;
+        delete canvas.dataset.workTestLoadCandidate;
+        delete canvas.dataset.workTestLoadError;
         const loader = new GLTFLoader();
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
 
         try {
           const gltf = await loader.loadAsync(candidate.path);
+          loadFailurePhase = 'review-runtime-failed';
           const isP143aScalgoTerrainReview =
             candidate.id === p143aCandidateId && isP143aScalgoTerrainReviewRequested();
           const isP143dScalgoInfraReview =
@@ -9281,7 +9293,9 @@ const title = 'Private 3D viewer';
             applyStandardViewPreset(m5bRuntimeState.standardViewPreset);
             status.textContent = m5bRuntimeState.statusText;
           } else if (m5aDrainageReviewMode) {
+            loadFailurePhase = 'm5a-z2-presentation-guard-failed';
             applyM5aDrainageReviewState(m5aDrainageReviewMode);
+            loadFailurePhase = 'review-runtime-failed';
           } else if (isP169fStorageDoorReview) {
             applyP169fReviewState();
           } else if (isP169aStorageVisibleReview) {
@@ -9651,7 +9665,15 @@ const title = 'Private 3D viewer';
         } catch (error) {
           console.error(error);
           delete canvas.dataset.workTestReviewMode;
-          status.textContent = 'WORK_TEST-kandidaattia ei voitu avata';
+          if (
+            isM5AZ2SystemReviewRequested(window.location.search) &&
+            getRequestedM5AZ2SystemCandidateId(window.location.search) === candidate.id
+          ) {
+            Object.assign(canvas.dataset, createWorkTestLoadFailureDataset(loadFailurePhase, candidate.id, error));
+            status.textContent = workTestLoadFailureStatusText[loadFailurePhase];
+          } else {
+            status.textContent = 'WORK_TEST-kandidaattia ei voitu avata';
+          }
         }
       };
 
