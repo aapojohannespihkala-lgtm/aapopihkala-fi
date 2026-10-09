@@ -140,6 +140,9 @@ const cloneObjectMaterials = (
         clone.emissiveIntensity = Math.max(Number(clone.emissiveIntensity ?? 0), 0.85);
       }
       clone.toneMapped = false;
+      clone.polygonOffset = true;
+      clone.polygonOffsetFactor = -1;
+      clone.polygonOffsetUnits = -1;
     }
 
     clone.userData = {
