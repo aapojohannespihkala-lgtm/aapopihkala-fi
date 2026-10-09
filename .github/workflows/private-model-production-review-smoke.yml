@@ -144,15 +144,15 @@ jobs:
     timeout-minutes: 12
     env:
       REVIEW_BASE_URL: https://aapopihkala.fi/private-model/
-      REVIEW_ID: \${{ inputs.review_id }}
-      CANDIDATE_ID: \${{ inputs.candidate_id }}
-      EXPECTED_DATASET_JSON: \${{ inputs.expected_dataset_json }}
-      REQUESTED_MIN_NON_BACKGROUND_PIXELS: \${{ inputs.min_non_background_pixels }}
-      REQUESTED_MIN_CHANGED_PIXELS: \${{ inputs.min_changed_pixels }}
+      REVIEW_ID: ${{ inputs.review_id }}
+      CANDIDATE_ID: ${{ inputs.candidate_id }}
+      EXPECTED_DATASET_JSON: ${{ inputs.expected_dataset_json }}
+      REQUESTED_MIN_NON_BACKGROUND_PIXELS: ${{ inputs.min_non_background_pixels }}
+      REQUESTED_MIN_CHANGED_PIXELS: ${{ inputs.min_changed_pixels }}
       MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR: '1500'
       MIN_CHANGED_PIXELS_HARD_FLOOR: '750'
-      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: \${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
-      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: \${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
