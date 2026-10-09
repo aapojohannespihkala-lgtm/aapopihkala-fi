@@ -77,6 +77,32 @@ const isRenderable = (object: any) =>
       (object?.isMesh || object?.isLine || object?.isLineSegments || object?.isPoints),
   );
 
+const hasDrawableMeshTriangles = (object: any) => {
+  const geometry = object?.geometry;
+  const positionCount = Number(geometry?.attributes?.position?.count ?? 0);
+  const indexCount = geometry?.index ? Number(geometry.index.count ?? 0) : positionCount;
+  const drawRangeCount = Number(geometry?.drawRange?.count ?? Infinity);
+
+  if (!Number.isFinite(positionCount) || positionCount < 3) return false;
+  if (!Number.isFinite(indexCount) || indexCount < 3) return false;
+  if (drawRangeCount <= 0) return false;
+  if (Number.isFinite(drawRangeCount) && drawRangeCount < 3) return false;
+  return true;
+};
+
+const hasFiniteRenderableBounds = (object: any) => {
+  const bounds = new THREE.Box3().setFromObject(object);
+  if (bounds.isEmpty()) return false;
+  return [
+    bounds.min.x,
+    bounds.min.y,
+    bounds.min.z,
+    bounds.max.x,
+    bounds.max.y,
+    bounds.max.z,
+  ].every(Number.isFinite);
+};
+
 const cloneObjectMaterials = (
   object: any,
   opacity: number,
@@ -176,7 +202,8 @@ const isP186fD1fArchitectureSolid = (object: any) => {
   }
   const context = parts.join(' ').toLowerCase();
   if (/(^|[_ -])2f([_ -]|$)/.test(context)) return false;
-  if (!object.geometry?.attributes?.position?.count) return false;
+  if (!hasDrawableMeshTriangles(object)) return false;
+  if (!hasFiniteRenderableBounds(object)) return false;
   if (
     ['referencefootprint', 'roomfootprint', 'room-footprint', 'helper',
       'p117d_review_', 'p123c_context_'].some((tag) => context.includes(tag))
