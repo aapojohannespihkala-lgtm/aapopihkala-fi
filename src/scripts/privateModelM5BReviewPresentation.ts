@@ -24,6 +24,33 @@ export const m5bPlannedSok2TargetIds = [
   'G2_STORM_PLANNED_ROUTE_SOK2_001',
 ] as const;
 
+export const m5bR1109SceneIndex = 63;
+export const m5bR1109PersistedTargetIds = [
+  'G2_STORM_DOWNSPOUT_PRESENCE_CORNER_ZONE_01_001',
+  'G2_STORM_DOWNSPOUT_PRESENCE_CORNER_ZONE_02_001',
+  'G2_STORM_DOWNSPOUT_PRESENCE_CORNER_ZONE_03_001',
+  'G2_STORM_DOWNSPOUT_PRESENCE_CORNER_ZONE_04_001',
+  'G2_STORM_DOWNSPOUT_PRESENCE_SOUTH_CB_ZONE_001',
+] as const;
+
+export type M5BR1109PersistedTargetId = (typeof m5bR1109PersistedTargetIds)[number];
+
+export const m5bR1109ReviewQuestionScope =
+  'Katselussa arvioidaan vain viiden lähteellä vahvistetun syöksytorven source-presence-vyöhykkeen ymmärrettävyyttä: neljä rakennuksen nurkkavyöhykettä ja yksi eteläjulkisivun C-B-vyöhyke. Markkerit ovat WORK_TEST-esityksiä, eivät fyysisiä putki-, halkaisija-, exact XY/Z-, reitti-, CURRENT-, canonical- tai as-built-väitteitä.';
+
+export const m5bR1109TargetMeaningById: Record<M5BR1109PersistedTargetId, string> = {
+  G2_STORM_DOWNSPOUT_PRESENCE_CORNER_ZONE_01_001:
+    'Source-presence WORK_TEST -vyöhyke rakennuksen nurkassa 1/4.',
+  G2_STORM_DOWNSPOUT_PRESENCE_CORNER_ZONE_02_001:
+    'Source-presence WORK_TEST -vyöhyke rakennuksen nurkassa 2/4.',
+  G2_STORM_DOWNSPOUT_PRESENCE_CORNER_ZONE_03_001:
+    'Source-presence WORK_TEST -vyöhyke rakennuksen nurkassa 3/4.',
+  G2_STORM_DOWNSPOUT_PRESENCE_CORNER_ZONE_04_001:
+    'Source-presence WORK_TEST -vyöhyke rakennuksen nurkassa 4/4.',
+  G2_STORM_DOWNSPOUT_PRESENCE_SOUTH_CB_ZONE_001:
+    'Source-presence WORK_TEST -vyöhyke eteläjulkisivulla C- ja B-rakennusten välissä.',
+};
+
 export const m5bReviewTargetOpacity = 0.8;
 export const m5bReviewContextOpacity = 0.2;
 export const m5bVerticalDownspoutProxyRadius = 0.08;
@@ -69,6 +96,7 @@ export const m5bPlannedSok2TargetMeaningById: Record<(typeof m5bPlannedSok2Targe
 };
 
 export type M5BReviewVariant = 'CURRENT' | 'PLANNED_SOK2_COMPARISON';
+type M5BPresentationVariant = M5BReviewVariant | 'R1109_PERSISTED_ZONES';
 
 type BoundsReadiness = {
   ids: string[];
@@ -83,7 +111,7 @@ type BoundsReadiness = {
 const isRenderable = (object: any) =>
   Boolean(object?.material && (object?.isMesh || object?.isLine || object?.isLineSegments || object?.isPoints));
 
-const cloneMaterials = (object: any, opacity: number, role: string, variant: M5BReviewVariant) => {
+const cloneMaterials = (object: any, opacity: number, role: string, variant: M5BPresentationVariant) => {
   const update = (material: any) => {
     if (!material?.clone) return material;
     const clone = material.clone();
@@ -591,3 +619,175 @@ export const prepareM5BReviewPresentation = (sceneRoot: any, variant: M5BReviewV
     sourceRouteStubIds: variant === 'CURRENT' ? [...m5bCurrentRouteStubIds] : [],
   };
 };
+
+const hasR1109PersistedZoneSemantics = (object: any) => {
+  const data = object?.userData ?? {};
+  return (
+    data.representationKind === 'downspoutPresenceZoneWork' &&
+    data.sourcePresenceConfirmed === true &&
+    data.presentationOnly === true &&
+    data.workAssumption === true &&
+    data.reviewTarget === true &&
+    data.proxyDimensionsStatus === 'WORK_ASSUMPTION_NOT_SOURCE_DIMENSION' &&
+    data.physicalDownspoutHostClaim === false &&
+    data.exactXYClaim === false &&
+    data.exactZClaim === false &&
+    data.physicalRouteClaim === false &&
+    data.physicalDiameterClaim === false &&
+    data.physicalElevationClaim === false &&
+    data.currentGeometryClaim === false &&
+    data.asBuiltClaim === false &&
+    data.Canonical === false &&
+    data.canonical === false &&
+    data.publishToCURRENT === false &&
+    data.hydraulicConnectionToM5A === false &&
+    data.downspoutPresenceToCurrentRouteLinkCount === 0 &&
+    data.sourceBoundaryContract === 'G2_R1108' &&
+    data.HUMAN_REVIEW === 'NOT_RUN'
+  );
+};
+
+const makeR1109TargetReviewVisible = (object: any, id: M5BR1109PersistedTargetId) => {
+  object.visible = true;
+  object.renderOrder = Math.max(Number(object.renderOrder ?? 0), 2000);
+  object.frustumCulled = false;
+  cloneMaterials(object, m5bReviewTargetOpacity, 'R1109_DOWNSPOUT_PRESENCE_ZONE_80', 'R1109_PERSISTED_ZONES');
+  const materials = Array.isArray(object.material) ? object.material : [object.material];
+  for (const material of materials) {
+    if (!material) continue;
+    material.depthTest = false;
+    material.depthWrite = false;
+    material.needsUpdate = true;
+  }
+  object.userData = {
+    ...(object.userData ?? {}),
+    viewerDerived: true,
+    m5bReviewPresentation: true,
+    m5bReviewVariant: 'R1109_PERSISTED_ZONES',
+    m5bReviewRole: 'R1109_DOWNSPOUT_PRESENCE_ZONE_80',
+    m5bReviewMeaning: m5bR1109TargetMeaningById[id],
+    m5bReviewQuestionScope: m5bR1109ReviewQuestionScope,
+    m5bDownspoutContext: m5bCurrentDownspoutContext,
+    m5bReviewContentStatus: 'PERSISTED_SOURCE_PRESENCE_ZONE_WORK_TEST',
+    m5bReviewRenderableForm: 'PERSISTED_RECTANGULAR_ZONE_BAR_NOT_PIPE',
+    m5bReviewSourceSceneIndex: m5bR1109SceneIndex,
+  };
+};
+
+export const prepareM5BR1109PersistedZonePresentation = (sceneRoot: any) => {
+  const targetSet = new Set<string>(m5bR1109PersistedTargetIds);
+  const suppressSet = new Set<string>([
+    ...m5bCurrentRouteStubIds,
+    ...m5bPlannedSok2TargetIds,
+  ]);
+  const foundById = new Map<string, any[]>(
+    m5bR1109PersistedTargetIds.map((id) => [id, []]),
+  );
+  const targetRenderables: any[] = [];
+  let contextRenderableCount = 0;
+  let suppressedLegacyStormwaterCount = 0;
+
+  sceneRoot?.traverse?.((object: any) => {
+    if (!isRenderable(object)) return;
+    const g2Id = String(object?.userData?.G2Id ?? object?.userData?.G2IdCandidate ?? '').trim();
+
+    if (targetSet.has(g2Id)) {
+      foundById.get(g2Id)?.push(object);
+      targetRenderables.push(object);
+      return;
+    }
+
+    if (suppressSet.has(g2Id)) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        m5bReviewPresentation: true,
+        m5bReviewVariant: 'R1109_PERSISTED_ZONES',
+        m5bReviewRole: 'R1109_NON_QUESTION_STORMWATER_SUPPRESSED',
+        m5bReviewQuestionScope: m5bR1109ReviewQuestionScope,
+      };
+      suppressedLegacyStormwaterCount += 1;
+      return;
+    }
+
+    if (object.visible === false) return;
+    cloneMaterials(object, m5bReviewContextOpacity, 'R1109_BUILDING_CONTEXT_20', 'R1109_PERSISTED_ZONES');
+    object.userData = {
+      ...(object.userData ?? {}),
+      viewerDerived: true,
+      m5bReviewPresentation: true,
+      m5bReviewVariant: 'R1109_PERSISTED_ZONES',
+      m5bReviewRole: 'R1109_BUILDING_CONTEXT_20',
+      m5bReviewQuestionScope: m5bR1109ReviewQuestionScope,
+      m5bDownspoutContext: m5bCurrentDownspoutContext,
+      m5bReviewContentStatus: 'CLARITY_CONTEXT_20',
+    };
+    contextRenderableCount += 1;
+  });
+
+  const foundTargetIds: M5BR1109PersistedTargetId[] = [];
+  const missingTargetIds: M5BR1109PersistedTargetId[] = [];
+  const duplicateTargetIds: M5BR1109PersistedTargetId[] = [];
+  const semanticViolationTargetIds: M5BR1109PersistedTargetId[] = [];
+
+  for (const id of m5bR1109PersistedTargetIds) {
+    const objects = foundById.get(id) ?? [];
+    if (objects.length === 0) {
+      missingTargetIds.push(id);
+      continue;
+    }
+    foundTargetIds.push(id);
+    if (objects.length > 1) duplicateTargetIds.push(id);
+    if (objects.some((object) => !hasR1109PersistedZoneSemantics(object))) {
+      semanticViolationTargetIds.push(id);
+    }
+  }
+
+  const ready =
+    foundTargetIds.length === m5bR1109PersistedTargetIds.length &&
+    missingTargetIds.length === 0 &&
+    duplicateTargetIds.length === 0 &&
+    semanticViolationTargetIds.length === 0;
+
+  if (ready) {
+    for (const id of m5bR1109PersistedTargetIds) {
+      const object = (foundById.get(id) ?? [])[0];
+      if (object) makeR1109TargetReviewVisible(object, id);
+    }
+  } else {
+    for (const object of targetRenderables) {
+      object.visible = false;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        m5bReviewPresentation: true,
+        m5bReviewVariant: 'R1109_PERSISTED_ZONES',
+        m5bReviewRole: 'R1109_TARGET_FAIL_CLOSED',
+        m5bReviewQuestionScope: m5bR1109ReviewQuestionScope,
+        m5bReviewContentStatus: 'FAIL_CLOSED_SOURCE_CONTRACT_MISMATCH',
+      };
+    }
+  }
+
+  return {
+    variant: 'R1109_PERSISTED_ZONES' as const,
+    sceneIndex: m5bR1109SceneIndex,
+    ready,
+    targetRenderableCount: ready ? targetRenderables.length : 0,
+    sourceTargetRenderableCount: targetRenderables.length,
+    contextRenderableCount,
+    suppressedLegacyStormwaterCount,
+    foundTargetIds,
+    missingTargetIds,
+    duplicateTargetIds,
+    semanticViolationTargetIds,
+    semanticViolationCount: semanticViolationTargetIds.length,
+    targetMeanings: foundTargetIds.map((id) => m5bR1109TargetMeaningById[id]),
+    questionScope: m5bR1109ReviewQuestionScope,
+    downspoutContext: m5bCurrentDownspoutContext,
+    createdProxyCount: 0,
+    usesPersistedSourceTargets: true,
+  };
+};
+
