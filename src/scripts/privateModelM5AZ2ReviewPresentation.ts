@@ -36,7 +36,7 @@ const targetPasses = new Set(['M5A-Z2', 'M5A-Z2D-R1036', 'M5A-Z2D-R1090']);
 const targetKinds = new Set([
   'wellMarkerWork',
   'wellDiameterPresentationWork',
-  'referenceRouteWork', 
+  'referenceRouteWork',
   'pipeDiameterPresentationWork',
   'unresolvedBoundaryMarker',
 ]);
@@ -55,6 +55,14 @@ const getTargetKey = (object: any) => {
     return 'boundary:' + String(data.boundaryRole ?? '');
   }
   return '';
+};
+
+const isSupersededR1090ReferenceRoute = (object: any) => {
+  const data = object?.userData ?? {};
+  return (
+    String(data.Pass ?? '') === 'M5A-Z2D-R1090' &&
+    String(data.representationKind ?? '') === 'referenceRouteWork'
+  );
 };
 
 const cloneMaterials = (object: any, opacity: number, role: string) => {
@@ -82,6 +90,7 @@ const isTarget = (object: any) => {
   const data = object?.userData ?? {};
   const key = getTargetKey(object);
   return (
+    !isSupersededR1090ReferenceRoute(object) &&
     targetPasses.has(String(data.Pass ?? '')) &&
     targetKinds.has(String(data.representationKind ?? '')) &&
     targetKeySet.has(key)
@@ -158,7 +167,11 @@ export const prepareM5AZ2SystemReviewPresentation = (sceneRoot: any) => {
     targets.push(object);
 
     const kind = String(object.userData?.representationKind ?? '');
-    const countedKind = kind === 'pipeDiameterPresentationWork' ? 'referenceRouteWork' : kind === 'wellDiameterPresentationWork' ? 'wellMarkerWork' : kind;
+    const countedKind = kind === 'pipeDiameterPresentationWork'
+      ? 'referenceRouteWork'
+      : kind === 'wellDiameterPresentationWork'
+        ? 'wellMarkerWork'
+        : kind;
     if (countedKind in kindCounts) {
       kindCounts[countedKind as keyof typeof kindCounts] += 1;
     }
