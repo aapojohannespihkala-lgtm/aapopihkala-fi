@@ -137,6 +137,37 @@ jobs:
 
           echo "Exact Drive source identity derived from raw bytes."
 
+      - name: Check checked-out Worker identity against downloaded Drive GLB before PUT
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "worker/privateWorkTest.ts" "$CANDIDATE_ID" "$EXPECTED_SIZE" "$EXPECTED_SHA256" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          source_path, candidate_id, actual_size, actual_sha = sys.argv[1:]
+          source = Path(source_path).read_text(encoding="utf-8")
+          candidate_pattern = re.compile(
+              r"(?m)^\s*id:\s*'(?P<id>[a-z0-9-]+)',\s*\n"
+              r"\s*label:[^\n]+\n"
+              r"\s*path:[^\n]+\n"
+              r"\s*objectKey:[^\n]+\n"
+              r"\s*expectedSize:\s*(?P<size>[0-9_]+),\s*\n"
+              r"\s*expectedSha256:\s*'(?P<sha>[0-9a-f]{64})',"
+          )
+          matches = [match for match in candidate_pattern.finditer(source) if match.group("id") == candidate_id]
+          if len(matches) != 1:
+              raise SystemExit("Worker runtime candidate missing, duplicated, or unparseable: refuse PUT")
+
+          expected_size = int(matches[0].group("size").replace("_", ""))
+          expected_sha = matches[0].group("sha")
+          if expected_size != int(actual_size) or expected_sha != actual_sha:
+              raise SystemExit("Worker source identity differs from raw Drive GLB: refuse PUT")
+
+          print("Checked-out Worker candidate size/SHA matches raw Drive bytes; production deploy parity is a separate gate.")
+          PY
+
       - name: Publish exact bytes through machine-only endpoint
         shell: bash
         env:
