@@ -507,8 +507,8 @@ const M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE = {
   label: 'M5A-Z2D R1090 well-top ground-surface correction - WORK_TEST',
   path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-z2d-r1090-well-top-ground-surface.glb`,
   objectKey: 'work-test/m5a-z2d-r1090-well-top-ground-surface.glb',
-  expectedSize: 3_103_036,
-  expectedSha256: '3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a',
+  expectedSize: 2_637_904,
+  expectedSha256: 'ca1816a8f0ae13c717d33296413acdc57240632b0ed732cffb0444616a24b444',
 } as const satisfies PrivateWorkTestCandidate;
 
 const M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE = {
