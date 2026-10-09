@@ -86,8 +86,9 @@ test('M5A-Z2D R1090 handoff stays aligned with the exact WORK_TEST source identi
   expect(docsContent).toContain(candidateId);
   expect(docsContent).toContain(expectedDriveFileId);
   expect(docsContent).toContain(
-    '3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a',
+    'ca1816a8f0ae13c717d33296413acdc57240632b0ed732cffb0444616a24b444',
   );
+  expect(docsContent).toContain('size: 2637904');
 });
 
 test('M5A-Z2D R1090/R1091 handoff records the current R1091 publish gate without false success', () => {
@@ -95,7 +96,7 @@ test('M5A-Z2D R1090/R1091 handoff records the current R1091 publish gate without
   expect(docsContent).toContain('Publish WORK_TEST - m5a-z2d-r1090-well-top-ground-surface');
   expect(docsContent).toContain('Run `37965098816` failed at the machine publish PUT with HTTP 422');
   expect(docsContent).toContain('runtime identity mismatch');
-  expect(docsContent).toContain('retry only after the runtime identity patch and this contract-expectation refresh are merged and deployed');
+  expect(docsContent).toContain('The safe release gate is to retry only after fresh-main CI, guarded PR integration, and confirmed production Worker deployment.');
 });
 
 test('M5A-Z2D R1090 handoff keeps the next gate at authenticated render visibility', () => {
