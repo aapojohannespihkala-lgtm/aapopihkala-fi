@@ -6,6 +6,29 @@ on:
     paths:
       - .github/workflows/private-model-production-review-smoke.yml
   workflow_dispatch:
+    inputs:
+      review_id:
+        description: Exact private-model review ID
+        required: true
+        type: string
+      candidate_id:
+        description: Exact WORK_TEST candidate ID expected to autoload
+        required: true
+        type: string
+      expected_dataset_json:
+        description: JSON object of additional canvas dataset keys and exact expected string values for the review state
+        required: true
+        type: string
+      min_non_background_pixels:
+        description: Minimum rendered-scene pixel count
+        required: true
+        default: "1500"
+        type: string
+      min_changed_pixels:
+        description: Minimum orbit-responsive pixel count
+        required: true
+        default: "750"
+        type: string
 
 permissions:
   contents: read
@@ -15,33 +38,243 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+  contract-regression:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 2
     env:
-      REVIEW_URL: https://aapopihkala.fi/private-model/?review=m5a-z2d-r1090-well-top-ground-surface-review
-      REVIEW_ID: m5a-z2d-r1090-well-top-ground-surface-review
-      CANDIDATE_ID: m5a-z2d-r1090-well-top-ground-surface
-      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
-      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+      R1090_REVIEW_ID: m5a-z2d-r1090-well-top-ground-surface-review
+      R1090_CANDIDATE_ID: m5a-z2d-r1090-well-top-ground-surface
+      R1090_EXPECTED_DATASET_JSON: '{"m5aZ2ReviewState":"ready","m5aReviewTargetRenderableCount":"13","m5aReviewExpectedTargetRenderableCount":"13","m5aReviewWellMarkerCount":"4","m5aReviewRouteCount":"7","m5aReviewUnresolvedBoundaryCount":"2","m5aReviewSemanticViolationCount":"0","m5aReviewCameraFocusApplied":"true"}'
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify required service-token secrets
+      - name: Verify secretless R1090 baseline and workflow safety contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          baseline = json.loads(os.environ["R1090_EXPECTED_DATASET_JSON"])
+          if not isinstance(baseline, dict) or not baseline:
+              raise SystemExit("R1090 baseline dataset contract must be a non-empty object")
+
+          required_r1090 = {
+              "m5aZ2ReviewState": "ready",
+              "m5aReviewTargetRenderableCount": "13",
+              "m5aReviewExpectedTargetRenderableCount": "13",
+              "m5aReviewWellMarkerCount": "4",
+              "m5aReviewRouteCount": "7",
+              "m5aReviewUnresolvedBoundaryCount": "2",
+              "m5aReviewSemanticViolationCount": "0",
+              "m5aReviewCameraFocusApplied": "true",
+          }
+          if baseline != required_r1090:
+              raise SystemExit("R1090 regression baseline changed unexpectedly")
+
+          workflow = Path(
+              ".github/workflows/private-model-production-review-smoke.yml"
+          ).read_text(encoding="utf-8")
+
+          contract_marker = "  contract-regression:\n"
+          production_marker = "  verify-production:\n"
+          if contract_marker not in workflow or production_marker not in workflow:
+              raise SystemExit("Expected workflow jobs are missing")
+
+          contract_section = workflow.split(contract_marker, 1)[1].split(
+              production_marker, 1
+          )[0]
+          production_section = workflow.split(production_marker, 1)[1]
+
+          secret_binding_prefix = " $" + "{{ sec" + "rets."
+          for variable in (
+              "CF_ACCESS_VIEWER_PROBE_CLIENT_ID",
+              "CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET",
+          ):
+              if variable + ":" + secret_binding_prefix in contract_section:
+                  raise SystemExit(
+                      "pull_request contract job must not bind viewer-probe secrets"
+                  )
+
+          required_production_snippets = [
+              "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'",
+              "CF_ACCESS_VIEWER_PROBE_CLIENT_ID",
+              "CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET",
+              "https://aapopihkala.fi/private-model/",
+              "MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR: '1500'",
+              "MIN_CHANGED_PIXELS_HARD_FLOOR: '750'",
+              "workTestReviewAutoload === 'true'",
+              "modelSource === 'work-test'",
+              "workTestReviewMode === expectedReviewId",
+              "workTestReviewCandidate === expectedCandidateId",
+          ]
+          missing = [
+              snippet
+              for snippet in required_production_snippets
+              if snippet not in production_section
+          ]
+          if missing:
+              raise SystemExit(
+                  "Production safety contract missing: " + ", ".join(missing)
+              )
+
+          print(
+              json.dumps(
+                  {
+                      "reviewId": os.environ["R1090_REVIEW_ID"],
+                      "candidateId": os.environ["R1090_CANDIDATE_ID"],
+                      "datasetKeys": sorted(baseline),
+                      "pullRequestSecrets": False,
+                      "hardFloors": {
+                          "nonBackgroundPixels": 1500,
+                          "changedPixels": 750,
+                      },
+                  }
+              )
+          )
+          PY
+
+  verify-production:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      REVIEW_BASE_URL: https://aapopihkala.fi/private-model/
+      REVIEW_ID: \${{ inputs.review_id }}
+      CANDIDATE_ID: \${{ inputs.candidate_id }}
+      EXPECTED_DATASET_JSON: \${{ inputs.expected_dataset_json }}
+      REQUESTED_MIN_NON_BACKGROUND_PIXELS: \${{ inputs.min_non_background_pixels }}
+      REQUESTED_MIN_CHANGED_PIXELS: \${{ inputs.min_changed_pixels }}
+      MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR: '1500'
+      MIN_CHANGED_PIXELS_HARD_FLOOR: '750'
+      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: \${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: \${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate generic production review inputs and hard floors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+
+          review_id = os.environ["REVIEW_ID"]
+          candidate_id = os.environ["CANDIDATE_ID"]
+          base_url = os.environ["REVIEW_BASE_URL"]
+
+          if base_url != "https://aapopihkala.fi/private-model/":
+              raise SystemExit("Production viewer host/path must remain fixed")
+
+          id_pattern = re.compile(r"^[A-Za-z0-9._-]+$")
+          if not review_id or not id_pattern.fullmatch(review_id):
+              raise SystemExit("review_id is empty or contains unsupported characters")
+          if not candidate_id or not id_pattern.fullmatch(candidate_id):
+              raise SystemExit("candidate_id is empty or contains unsupported characters")
+
+          try:
+              expected_dataset = json.loads(os.environ["EXPECTED_DATASET_JSON"])
+          except json.JSONDecodeError as exc:
+              raise SystemExit("expected_dataset_json is invalid JSON") from exc
+
+          if not isinstance(expected_dataset, dict) or not expected_dataset:
+              raise SystemExit(
+                  "expected_dataset_json must be a non-empty JSON object"
+              )
+
+          reserved_base_keys = {
+              "workTestReviewAutoload",
+              "modelSource",
+              "workTestReviewMode",
+              "workTestReviewCandidate",
+          }
+          overlap = reserved_base_keys.intersection(expected_dataset)
+          if overlap:
+              raise SystemExit(
+                  "expected_dataset_json may only add candidate-specific requirements; "
+                  "reserved base keys: " + ", ".join(sorted(overlap))
+              )
+
+          for key, value in expected_dataset.items():
+              if not isinstance(key, str) or not key:
+                  raise SystemExit("expected_dataset_json keys must be non-empty strings")
+              if not isinstance(value, (str, int, float, bool)):
+                  raise SystemExit(
+                      "expected_dataset_json values must be scalar exact-match values"
+                  )
+
+          requested_non_background = int(
+              os.environ["REQUESTED_MIN_NON_BACKGROUND_PIXELS"]
+          )
+          requested_changed = int(os.environ["REQUESTED_MIN_CHANGED_PIXELS"])
+          floor_non_background = int(
+              os.environ["MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR"]
+          )
+          floor_changed = int(os.environ["MIN_CHANGED_PIXELS_HARD_FLOOR"])
+
+          if requested_non_background < floor_non_background:
+              raise SystemExit(
+                  "min_non_background_pixels cannot be lower than hard floor "
+                  + str(floor_non_background)
+              )
+          if requested_changed < floor_changed:
+              raise SystemExit(
+                  "min_changed_pixels cannot be lower than hard floor "
+                  + str(floor_changed)
+              )
+
+          print(
+              json.dumps(
+                  {
+                      "reviewId": review_id,
+                      "candidateId": candidate_id,
+                      "datasetKeys": sorted(expected_dataset),
+                      "pixelThresholds": {
+                          "nonBackgroundPixels": requested_non_background,
+                          "changedPixels": requested_changed,
+                      },
+                      "hardFloors": {
+                          "nonBackgroundPixels": floor_non_background,
+                          "changedPixels": floor_changed,
+                      },
+                  }
+              )
+          )
+          PY
+
+      - name: Verify required viewer-probe service-token secrets
         shell: bash
         run: |
           set -euo pipefail
           [[ -n "$CF_ACCESS_VIEWER_PROBE_CLIENT_ID" ]] || { echo "Missing CF_ACCESS_VIEWER_PROBE_CLIENT_ID secret" >&2; exit 1; }
           [[ -n "$CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET" ]] || { echo "Missing CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET secret" >&2; exit 1; }
 
-      - name: Classify authenticated production review response
+      - name: Classify authenticated production viewer response
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p playwright-artifacts
-          curl             --silent             --show-error             --connect-timeout 10             --max-time 45             --header "CF-Access-Client-Id: $CF_ACCESS_VIEWER_PROBE_CLIENT_ID"             --header "CF-Access-Client-Secret: $CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET"             --dump-header playwright-artifacts/review-response-headers.txt             --output playwright-artifacts/review-page.html             --write-out '%{http_code}\n%{content_type}\n%{redirect_url}\n'             "$REVIEW_URL" > playwright-artifacts/review-response-meta.txt
+
+          curl \
+            --silent \
+            --show-error \
+            --connect-timeout 10 \
+            --max-time 45 \
+            --get \
+            --data-urlencode "review=$REVIEW_ID" \
+            --header "CF-Access-Client-Id: $CF_ACCESS_VIEWER_PROBE_CLIENT_ID" \
+            --header "CF-Access-Client-Secret: $CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET" \
+            --dump-header playwright-artifacts/review-response-headers.txt \
+            --output playwright-artifacts/review-page.html \
+            --write-out '%{http_code}\n%{content_type}\n%{redirect_url}\n' \
+            "$REVIEW_BASE_URL" > playwright-artifacts/review-response-meta.txt
 
           python3 - <<'PY'
           from pathlib import Path
@@ -80,7 +313,7 @@ jobs:
               or "cf-access" in body_lower
           )
 
-          if has_canvas:
+          if status == 200 and has_canvas:
               classification = "VIEWER_HTML"
           elif (
               300 <= status < 400
@@ -94,6 +327,8 @@ jobs:
               classification = "ACCESS_BODY"
           elif status == 200:
               classification = "NON_VIEWER_200_BODY"
+          elif has_canvas:
+              classification = "NON_200_VIEWER_BODY"
           else:
               classification = "UNCLASSIFIED_RESPONSE"
 
@@ -135,7 +370,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Verify authenticated production autoload and rendered canvas
+      - name: Verify exact autoload and rendered production canvas
         shell: bash
         run: |
           set -euo pipefail
@@ -143,15 +378,53 @@ jobs:
           import fs from 'node:fs';
           import { chromium } from '@playwright/test';
 
-          const reviewUrl = process.env.REVIEW_URL;
+          const reviewBaseUrl = process.env.REVIEW_BASE_URL;
           const reviewId = process.env.REVIEW_ID;
           const candidateId = process.env.CANDIDATE_ID;
           const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
           const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
+          const expectedDatasetJson = process.env.EXPECTED_DATASET_JSON;
+          const minNonBackgroundPixels = Number(
+            process.env.REQUESTED_MIN_NON_BACKGROUND_PIXELS,
+          );
+          const minChangedPixels = Number(process.env.REQUESTED_MIN_CHANGED_PIXELS);
+          const hardFloorNonBackground = Number(
+            process.env.MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR,
+          );
+          const hardFloorChanged = Number(
+            process.env.MIN_CHANGED_PIXELS_HARD_FLOOR,
+          );
 
-          if (!reviewUrl || !reviewId || !candidateId || !clientId || !clientSecret) {
+          if (
+            reviewBaseUrl !== 'https://aapopihkala.fi/private-model/' ||
+            !reviewId ||
+            !candidateId ||
+            !clientId ||
+            !clientSecret ||
+            !expectedDatasetJson
+          ) {
             throw new Error('Required production review inputs are missing');
           }
+
+          const expectedDataset = JSON.parse(expectedDatasetJson);
+          if (
+            typeof expectedDataset !== 'object' ||
+            expectedDataset === null ||
+            Array.isArray(expectedDataset) ||
+            Object.keys(expectedDataset).length === 0
+          ) {
+            throw new Error('Expected dataset contract must be a non-empty object');
+          }
+
+          if (
+            minNonBackgroundPixels < hardFloorNonBackground ||
+            minChangedPixels < hardFloorChanged
+          ) {
+            throw new Error('Pixel thresholds cannot weaken hard floors');
+          }
+
+          const reviewUrl =
+            reviewBaseUrl + '?review=' + encodeURIComponent(reviewId);
 
           fs.mkdirSync('playwright-artifacts', { recursive: true });
 
@@ -178,37 +451,50 @@ jobs:
             });
 
             if (!response || response.status() !== 200) {
-              throw new Error(`Production review navigation returned ${response?.status() ?? 'no response'}`);
+              throw new Error(
+                'Production review navigation returned ' +
+                  (response?.status() ?? 'no response'),
+              );
             }
 
-            if (!page.url().startsWith('https://aapopihkala.fi/private-model/')) {
-              throw new Error(`Production review redirected away from viewer: ${page.url()}`);
+            const finalUrl = new URL(page.url());
+            if (
+              finalUrl.origin !== 'https://aapopihkala.fi' ||
+              finalUrl.pathname !== '/private-model/' ||
+              finalUrl.searchParams.get('review') !== reviewId
+            ) {
+              throw new Error(
+                'Production review left fixed viewer route or changed review identity: ' +
+                  page.url(),
+              );
             }
 
-            await page.waitForSelector('#private-model-canvas', { timeout: 20_000 });
+            await page.waitForSelector('#private-model-canvas', {
+              timeout: 20_000,
+            });
 
             await page.waitForFunction(
-              ({ expectedReviewId, expectedCandidateId }) => {
+              ({ expectedReviewId, expectedCandidateId, expectedDataset }) => {
                 const canvas = document.querySelector('#private-model-canvas');
                 if (!(canvas instanceof HTMLCanvasElement)) return false;
-                return (
+
+                const baseReady =
                   canvas.dataset.workTestReviewAutoload === 'true' &&
                   canvas.dataset.modelSource === 'work-test' &&
                   canvas.dataset.workTestReviewMode === expectedReviewId &&
-                  canvas.dataset.workTestReviewCandidate === expectedCandidateId &&
-                  canvas.dataset.m5aZ2ReviewState === 'ready' &&
-                  canvas.dataset.m5aReviewTargetRenderableCount === '13' &&
-                  canvas.dataset.m5aReviewExpectedTargetRenderableCount === '13' &&
-                  canvas.dataset.m5aReviewWellMarkerCount === '4' &&
-                  canvas.dataset.m5aReviewRouteCount === '7' &&
-                  canvas.dataset.m5aReviewUnresolvedBoundaryCount === '2' &&
-                  canvas.dataset.m5aReviewSemanticViolationCount === '0' &&
-                  canvas.dataset.m5aReviewCameraFocusApplied === 'true'
+                  canvas.dataset.workTestReviewCandidate === expectedCandidateId;
+
+                if (!baseReady) return false;
+
+                return Object.entries(expectedDataset).every(
+                  ([key, expectedValue]) =>
+                    canvas.dataset[key] === String(expectedValue),
                 );
               },
               {
                 expectedReviewId: reviewId,
                 expectedCandidateId: candidateId,
+                expectedDataset,
               },
               { timeout: 35_000 },
             );
@@ -217,7 +503,7 @@ jobs:
             await page.waitForTimeout(1000);
 
             const before = await canvas.screenshot({
-              path: 'playwright-artifacts/r1090-production-before.png',
+              path: 'playwright-artifacts/production-review-before.png',
             });
 
             const box = await canvas.boundingBox();
@@ -227,14 +513,16 @@ jobs:
             const startY = box.y + box.height * 0.48;
             await page.mouse.move(startX, startY);
             await page.mouse.down();
-            await page.mouse.move(startX + Math.min(120, box.width * 0.12), startY + 40, {
-              steps: 12,
-            });
+            await page.mouse.move(
+              startX + Math.min(120, box.width * 0.12),
+              startY + 40,
+              { steps: 12 },
+            );
             await page.mouse.up();
             await page.waitForTimeout(500);
 
             const after = await canvas.screenshot({
-              path: 'playwright-artifacts/r1090-production-after-orbit.png',
+              path: 'playwright-artifacts/production-review-after-orbit.png',
             });
 
             const pixelEvidence = await page.evaluate(
@@ -267,7 +555,7 @@ jobs:
                   const r = first.data[i] ?? 0;
                   const g = first.data[i + 1] ?? 0;
                   const b = first.data[i + 2] ?? 0;
-                  const key = `${r >> 3},${g >> 3},${b >> 3}`;
+                  const key = (r >> 3) + ',' + (g >> 3) + ',' + (b >> 3);
                   buckets.set(key, (buckets.get(key) ?? 0) + 1);
                 }
 
@@ -280,7 +568,9 @@ jobs:
                   }
                 }
 
-                const [mr, mg, mb] = modalKey.split(',').map((v) => Number(v) << 3);
+                const [mr, mg, mb] = modalKey
+                  .split(',')
+                  .map((value) => Number(value) << 3);
                 let nonBackgroundPixels = 0;
                 let changedPixels = 0;
 
@@ -293,11 +583,15 @@ jobs:
                   const b2 = second.data[i + 2] ?? 0;
 
                   const backgroundDistance =
-                    Math.abs(r1 - mr) + Math.abs(g1 - mg) + Math.abs(b1 - mb);
+                    Math.abs(r1 - mr) +
+                    Math.abs(g1 - mg) +
+                    Math.abs(b1 - mb);
                   if (backgroundDistance > 36) nonBackgroundPixels += 1;
 
                   const frameDifference =
-                    Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+                    Math.abs(r1 - r2) +
+                    Math.abs(g1 - g2) +
+                    Math.abs(b1 - b2);
                   if (frameDifference > 36) changedPixels += 1;
                 }
 
@@ -310,27 +604,55 @@ jobs:
                 };
               },
               {
-                beforeUrl: `data:image/png;base64,${before.toString('base64')}`,
-                afterUrl: `data:image/png;base64,${after.toString('base64')}`,
+                beforeUrl: 'data:image/png;base64,' + before.toString('base64'),
+                afterUrl: 'data:image/png;base64,' + after.toString('base64'),
               },
             );
 
-            if (pixelEvidence.nonBackgroundPixels < 1500) {
+            if (pixelEvidence.nonBackgroundPixels < minNonBackgroundPixels) {
               throw new Error(
-                `Production canvas lacks rendered-scene pixel evidence: ${JSON.stringify(pixelEvidence)}`,
+                'Production canvas lacks rendered-scene pixel evidence: ' +
+                  JSON.stringify(pixelEvidence),
               );
             }
 
-            if (pixelEvidence.changedPixels < 750) {
+            if (pixelEvidence.changedPixels < minChangedPixels) {
               throw new Error(
-                `Production canvas lacks orbit-responsive pixel evidence: ${JSON.stringify(pixelEvidence)}`,
+                'Production canvas lacks orbit-responsive pixel evidence: ' +
+                  JSON.stringify(pixelEvidence),
               );
             }
 
-            const dataset = await canvas.evaluate((element) => ({ ...element.dataset }));
+            const dataset = await canvas.evaluate((element) => ({
+              ...element.dataset,
+            }));
             fs.writeFileSync(
-              'playwright-artifacts/r1090-production-evidence.json',
-              JSON.stringify({ dataset, pixelEvidence, finalUrl: page.url() }, null, 2),
+              'playwright-artifacts/production-review-evidence.json',
+              JSON.stringify(
+                {
+                  reviewId,
+                  candidateId,
+                  expectedDataset,
+                  baseContract: {
+                    modelSource: dataset.modelSource,
+                    workTestReviewAutoload: dataset.workTestReviewAutoload,
+                    workTestReviewMode: dataset.workTestReviewMode,
+                    workTestReviewCandidate:
+                      dataset.workTestReviewCandidate,
+                  },
+                  dataset,
+                  pixelEvidence,
+                  thresholds: {
+                    minNonBackgroundPixels,
+                    minChangedPixels,
+                    hardFloorNonBackground,
+                    hardFloorChanged,
+                  },
+                  finalUrl: page.url(),
+                },
+                null,
+                2,
+              ),
             );
 
             console.log(
@@ -339,12 +661,14 @@ jobs:
                 candidateId: dataset.workTestReviewCandidate,
                 autoload: dataset.workTestReviewAutoload,
                 modelSource: dataset.modelSource,
-                targetCount: dataset.m5aReviewTargetRenderableCount,
-                wellCount: dataset.m5aReviewWellMarkerCount,
-                routeCount: dataset.m5aReviewRouteCount,
-                boundaryCount: dataset.m5aReviewUnresolvedBoundaryCount,
-                cameraFocusApplied: dataset.m5aReviewCameraFocusApplied,
+                expectedDataset,
                 pixelEvidence,
+                thresholds: {
+                  minNonBackgroundPixels,
+                  minChangedPixels,
+                  hardFloorNonBackground,
+                  hardFloorChanged,
+                },
               }),
             );
           } finally {
@@ -356,7 +680,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: private-model-r1090-production-review-smoke
+          name: private-model-production-review-smoke
           path: playwright-artifacts
           if-no-files-found: ignore
           retention-days: 7
