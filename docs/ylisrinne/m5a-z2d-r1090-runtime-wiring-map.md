@@ -1,4 +1,4 @@
-# M5A-Z2D R1090 runtime wiring map
+# M5A-Z2D R1090/R1091 runtime wiring map
 
 ## Purpose
 
@@ -12,14 +12,16 @@ This R1131 refresh records that the one-link review URL contract guard has now l
 
 This R1132 refresh records the post-#1052 authenticated user retry failure: after PR #1052 was merged, production-built, and verify-closed, the same one-link review URL still showed `WORK_TEST-kandidaattia ei voitu avata`. The R1090 user review loop is therefore retired until a machine-observable technical change proves a different autoload/render result.
 
+The 9.10.2026 R1091 refresh keeps the stable candidate/review id and production object path, while the raw Drive source is now the R1091 PVK-snap successor. Publish run `37965098816` derived that new raw identity successfully and then failed with HTTP 422 because the Worker runtime still validated the old R1090 size/SHA. The active gate is therefore runtime identity parity.
+
 ## Exact candidate
 
 - Candidate id: `m5a-z2d-r1090-well-top-ground-surface`
-- Drive file ID: `1GhIyPFE2dqfrZpH257U-2Wp8c_d2wfD_`
+- Drive file ID: `13eciLeS58jwGLzy-TUhePIF7h7177zHj`
 - Object key: `work-test/m5a-z2d-r1090-well-top-ground-surface.glb`
 - Production path: `/private-model/work-test/m5a-z2d-r1090-well-top-ground-surface.glb`
-- Expected size: `3_089_152`
-- Expected SHA-256: `e8934e546f2a89a2cc070c44ef9f4d6f6df8f5dd2bb30c1c7379b7f821d85605`
+- Expected size: `3_103_036`
+- Expected SHA-256: `3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a`
 
 ## Current main runtime state
 
@@ -27,40 +29,33 @@ This R1132 refresh records the post-#1052 authenticated user retry failure: afte
 
 The focused regression `tests/e2e/private-model-m5a-z2d-r1090-runtime-allowlist.spec.ts` proves that the R1090 candidate resolves by id, by private-model path, by upload path, by publish path, and by verify GLB path.
 
-The focused route/source-map regression `tests/e2e/private-model-m5a-z2d-r1090-routing-source-map-parity.spec.ts` proves that the conventional review query `m5a-z2d-r1090-well-top-ground-surface-review` resolves to `m5a-z2d-r1090-well-top-ground-surface` and that `.github/work-test-candidates.json` maps the candidate to Drive file `1GhIyPFE2dqfrZpH257U-2Wp8c_d2wfD_`.
+The focused route/source-map regression `tests/e2e/private-model-m5a-z2d-r1090-routing-source-map-parity.spec.ts` proves that the conventional review query `m5a-z2d-r1090-well-top-ground-surface-review` resolves to `m5a-z2d-r1090-well-top-ground-surface` and that `.github/work-test-candidates.json` maps the stable candidate id to the R1091 Drive file `13eciLeS58jwGLzy-TUhePIF7h7177zHj`.
 
 The focused one-link contract regression `tests/e2e/private-model-m5a-z2d-r1090-one-link-review-contract.spec.ts` pins the canonical production review URL to `https://aapopihkala.fi/private-model/?review=m5a-z2d-r1090-well-top-ground-surface-review`, proves that it uses only the `review` query parameter, proves that it does not depend on GLB/file/source/upload/path transport parameters, and proves that the review query resolves to `m5a-z2d-r1090-well-top-ground-surface`.
 
 PR #1052 landed the first post-auth-failure code fix on `main`: it accepts the R1090/R1036 successor pass tokens and `pipeDiameterPresentationWork` route targets in the M5A-Z2 presentation/runtime guards. Because the authenticated retry still failed after that merge, the remaining active blocker is no longer the known successor-token / route-kind guard gap fixed by #1052.
 
-## V5 publish/readback status
+## Historical R1090 V5 publish/readback status
 
-The WORK_TEST machine publish/readback gate passed with GitHub Actions run:
+Run `37835730136` successfully published and read back the earlier R1090 raw artifact. That PASS is historical evidence for the old raw identity only and is not proof for the R1091 successor now mapped to the stable candidate id.
 
-```text
-Publish WORK_TEST - m5a-z2d-r1090-well-top-ground-surface
-```
+## R1091 V5 publish/readback status
 
-Run `37835730136` completed successfully from `main`. The `publish` job completed successfully and its logs verified all required publish/readback steps:
-
-- trusted `workflow_dispatch` from `main`
-- exact allowlisted candidate resolution
-- raw Drive GLB download and byte identity derivation
-- machine-only publish endpoint response
-- production catalog readback
-- full production GLB byte-for-byte readback
-
-The derived and production-readback exact identity was:
+The current raw identity is:
 
 ```text
 candidate: m5a-z2d-r1090-well-top-ground-surface
-Drive file: 1GhIyPFE2dqfrZpH257U-2Wp8c_d2wfD_
+Drive file: 13eciLeS58jwGLzy-TUhePIF7h7177zHj
 path: /private-model/work-test/m5a-z2d-r1090-well-top-ground-surface.glb
-size: 3089152
-sha256: e8934e546f2a89a2cc070c44ef9f4d6f6df8f5dd2bb30c1c7379b7f821d85605
+size: 3103036
+sha256: 3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a
 ```
 
-Do not repeat the machine publish/readback gate for this same candidate unless the raw Drive source, runtime/source-map contract, production catalog, GLB object, workflow, Worker, or Access/readback contract changes.
+Publish WORK_TEST - m5a-z2d-r1090-well-top-ground-surface
+
+Run `37965098816` failed at the machine publish PUT with HTTP 422 after trusted dispatch, candidate resolution, machine authentication, Drive authentication, raw GLB download, and raw byte identity derivation had passed. The failure is a runtime identity mismatch: the source map already points to the R1091 Drive artifact, while the Worker runtime still expected the previous R1090 size and SHA.
+
+This patch aligns the Worker runtime allowlist, regression tests, and this wiring note to the R1091 raw identity. Do not claim machine publish/readback PASS yet. The safe release gate is to retry only after this runtime identity patch is merged and deployed. That retry must then prove machine publish, production catalog readback, and full production GLB size/SHA parity.
 
 ## Review/autoload gate
 
@@ -70,7 +65,7 @@ The review route uses this one-link URL:
 https://aapopihkala.fi/private-model/?review=m5a-z2d-r1090-well-top-ground-surface-review
 ```
 
-Do not repeat the static one-link URL contract guard for this same candidate unless the URL, query parameter, review resolver, or route/source-map contract changes.
+Do not repeat the static one-link URL contract guard for this same candidate unless the URL, query parameter, review resolver, or route/source-map contract changes. The current blocker is upstream at the R1091 machine-publish identity gate.
 
 Do not ask the user to retry this same R1090 review link again while the only visible outcome remains `WORK_TEST-kandidaattia ei voitu avata`. The next work is AI-owned code/runtime diagnostics.
 
@@ -95,4 +90,4 @@ This mapping note does not change GLB bytes, G1/G2/G3, datacube fact layer, sour
 
 ## Follow-up
 
-Continue at post-#1052 autoload diagnostics and phase-specific error reporting. Only after exact candidate autoload and render visibility pass may the work proceed to a narrowly scoped human content review question. Do not promote this WORK_TEST successor to CURRENT, canonical, as-built, or publishToCURRENT from this note.
+Continue by merging and deploying the R1091 runtime identity parity patch, then retry the exact machine publish once. Only after publish/catalog/full-GLB identity and exact candidate autoload/render visibility pass may the work proceed to a narrowly scoped human content review question. Do not promote this WORK_TEST successor to CURRENT, canonical, as-built, or publishToCURRENT from this note.
