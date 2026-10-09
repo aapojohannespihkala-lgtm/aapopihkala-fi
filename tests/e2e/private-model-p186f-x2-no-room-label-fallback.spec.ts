@@ -42,7 +42,7 @@ const makeMesh = (name: string) => {
 
 test('P186F-X2 preserves seven room references when inherited wall solids have no source room labels', () => {
   const scene = new THREE.Group();
-  const anchors: THREE.Mesh[] = [];
+  const anchors: ReturnType<typeof makeMesh>[] = [];
 
   for (const { room, xy } of theMoTargets) {
     const source = p186fExpectedRooms[room];
@@ -133,14 +133,14 @@ test('P186F-X2 preserves seven room references when inherited wall solids have n
   for (const target of anchors) {
     expect(target.visible).toBe(true);
     expect(target.userData.p186fReviewRole).toBe('QUESTION_TARGET_80');
-    expect((target.material as THREE.Material & { opacity: number }).opacity).toBe(
+    expect(target.material.opacity).toBe(
       p186fReviewTargetOpacity,
     );
   }
   for (const footprint of footprints) {
     expect(footprint.visible).toBe(true);
     expect(footprint.userData.p186fReviewRole).toBe('D_1F_ROOM_CONTEXT_20');
-    expect((footprint.material as THREE.Material & { opacity: number }).opacity).toBe(
+    expect(footprint.material.opacity).toBe(
       p186fReviewContextOpacity,
     );
   }
