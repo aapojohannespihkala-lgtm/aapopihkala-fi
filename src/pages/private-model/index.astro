@@ -10246,6 +10246,18 @@ const title = 'Private 3D viewer';
           if (reviewCandidateId) {
             setWorkTestUploadFallback(reviewCandidateId);
             if (canvas.dataset.workTestImport !== 'failed') {
+              Object.assign(
+                canvas.dataset,
+                createWorkTestLoadFailureDataset(
+                  'catalog-missing',
+                  reviewCandidateId,
+                  new Error(
+                    canvas.dataset.workTestCatalog === 'unavailable'
+                      ? 'WORK_TEST catalog request unavailable'
+                      : 'Requested WORK_TEST candidate absent from catalog',
+                  ),
+                ),
+              );
               status.textContent =
                 'WORK_TEST ei ole palvelinpuolen katalogissa - tekninen julkaisu on kesken';
             }
