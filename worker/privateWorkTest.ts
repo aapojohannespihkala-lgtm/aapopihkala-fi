@@ -511,6 +511,17 @@ const M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE = {
   expectedSha256: '3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Presentation-only planned SOK2/SOK3 raise markers; the source quote names neither
+// well nor raise heights, and this candidate never represents an as-built extension.
+const M5A_R1115_SOK23_PLANNED_RAISE_PRESENCE_CANDIDATE = {
+  id: 'm5a-r1115-sok23-planned-raise-presence',
+  label: 'M5A R1115 planned SOK2/SOK3 well raise presence - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-r1115-sok23-planned-raise-presence.glb`,
+  objectKey: 'work-test/m5a-r1115-sok23-planned-raise-presence.glb',
+  expectedSize: 3_108_436,
+  expectedSha256: '5dd97f9d6b1bd7c2c4c6e39920b5d8899178f01f6857effb05b7b38686cb534b',
+} as const satisfies PrivateWorkTestCandidate;
+
 const M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE = {
   id: 'm5b-r1109-five-downspout-presence-zones',
   label: 'M5B R1109 five downspout presence zones - WORK_TEST',
@@ -525,6 +536,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
   M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE,
   M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE,
+  M5A_R1115_SOK23_PLANNED_RAISE_PRESENCE_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
