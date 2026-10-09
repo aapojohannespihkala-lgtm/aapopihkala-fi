@@ -1,32 +1,24 @@
 import { expect, test } from '@playwright/test';
 
 import { prepareP186EReviewPresentation } from '../../src/scripts/privateModelP186EReviewPresentation';
+import { THREE } from '../../src/scripts/threeRuntime';
 
-const makeMaterial = () => ({
-  clone: () => ({
-    color: { setHex: () => undefined },
-    emissive: { setHex: () => undefined },
-    userData: {},
-  }),
-  color: { setHex: () => undefined },
-  emissive: { setHex: () => undefined },
-  userData: {},
-});
+const makeRenderable = (name: string, userData: Record<string, unknown>) => {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial(),
+  );
+  mesh.name = name;
+  mesh.userData = { ...userData };
+  return mesh;
+};
 
-const makeRenderable = (name: string, userData: Record<string, unknown>) => ({
-  name,
-  isMesh: true,
-  material: makeMaterial(),
-  userData: { ...userData },
-  visible: true,
-  renderOrder: 0,
-});
-
-const makeNonRenderableRoot = (name: string, userData: Record<string, unknown>) => ({
-  name,
-  userData: { ...userData },
-  visible: true,
-});
+const makeNonRenderableRoot = (name: string, userData: Record<string, unknown>) => {
+  const root = new THREE.Group();
+  root.name = name;
+  root.userData = { ...userData };
+  return root;
+};
 
 test('P186E review uses real wall context roots and suppresses helper footprints', () => {
   const target = makeRenderable('P186E_X1_D_1F_GROUP_LABEL_01', {
@@ -111,7 +103,7 @@ test('P186E review keeps renderable children of known architecture roots visible
     presentationLayer: 'CURRENT_D',
     representationKind: 'wallSurfaceMesh',
   });
-  (wallChildMesh as any).parent = nonRenderableWallRoot;
+  nonRenderableWallRoot.add(wallChildMesh);
 
   const unrelatedWallLike = makeRenderable('SITE_WALL_LIKE_NOT_D_ARCH', {
     G2Id: 'SITE_WALL_LIKE_NOT_D_ARCH',
@@ -170,7 +162,7 @@ test('P186E review suppresses explicit opposite-floor wall meshes before known-r
     apartment: 'D',
     storey: '1F',
   });
-  (d1fWallMesh as any).parent = nonRenderableWallRoot;
+  nonRenderableWallRoot.add(d1fWallMesh);
 
   const d2fWallMesh = makeRenderable('P173D_D_WALL_EXPLICIT_D_2F_CONTEXT_MESH', {
     G2Id: 'P173D_D_WALL_EXPLICIT_D_2F_CONTEXT_MESH',
@@ -180,7 +172,7 @@ test('P186E review suppresses explicit opposite-floor wall meshes before known-r
     apartment: 'D',
     storey: '2F',
   });
-  (d2fWallMesh as any).parent = nonRenderableWallRoot;
+  nonRenderableWallRoot.add(d2fWallMesh);
 
   const objects = [target, nonRenderableWallRoot, d1fWallMesh, d2fWallMesh];
   const sceneRoot = {
@@ -199,4 +191,60 @@ test('P186E review suppresses explicit opposite-floor wall meshes before known-r
   expect(d1fWallMesh.userData.p186eReviewRole).toBe('D_1F_ARCH_CONTEXT_20');
   expect(d2fWallMesh.visible).toBe(false);
   expect(d2fWallMesh.userData.p186eReviewRole).toBe('NON_QUESTION_CONTEXT_SUPPRESSED');
+});
+
+test('P186E real wall readiness requires drawable triangle meshes on both D floors', () => {
+  for (const variant of ['D1F', 'D2F'] as const) {
+    const floor = variant === 'D1F' ? 'D_1F' : 'D_2F';
+    const target = makeRenderable('P186E_SOURCE_LABEL_' + floor, {
+      Pass: 'P186E-X1',
+      hostStorey: floor,
+      presentationLayer: 'MEP_ELECTRICAL',
+      representationKind: 'electricalGroupSourceLabelAnchor',
+    });
+    const root = makeNonRenderableRoot('P173D_D_WALL_ARCH_ROOT', {
+      presentationLayer: 'CURRENT_D',
+    });
+    const realWall = makeRenderable('P173D_D_WALL_SOLID_' + floor, {
+      presentationLayer: 'CURRENT_D',
+      representationKind: 'wallSurfaceMesh',
+      hostStorey: floor,
+    });
+    const lineWall = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(1, 1, 0),
+      ]),
+      new THREE.LineBasicMaterial(),
+    );
+    lineWall.name = 'P173D_D_WALL_LINE_' + floor;
+    lineWall.userData = { presentationLayer: 'CURRENT_D', hostStorey: floor };
+
+    const emptyWall = new THREE.Mesh(
+      new THREE.BufferGeometry(),
+      new THREE.MeshStandardMaterial(),
+    );
+    emptyWall.name = 'P173D_D_WALL_EMPTY_' + floor;
+    emptyWall.userData = { presentationLayer: 'CURRENT_D', hostStorey: floor };
+
+    root.add(realWall, lineWall, emptyWall);
+    const sceneRoot = {
+      updateMatrixWorld: () => root.updateMatrixWorld(true),
+      traverse: (visit: (object: unknown) => void) => {
+        visit(target);
+        root.traverse(visit);
+      },
+    };
+
+    const result = prepareP186EReviewPresentation(sceneRoot, variant);
+    expect(result.targetRenderableCount).toBe(1);
+    expect(result.realWallContextRenderableCount).toBe(1);
+    expect(result.contextRenderableCount).toBe(1);
+    expect(realWall.visible).toBe(true);
+    expect(realWall.userData.p186eReviewRole).toBe(floor + '_ARCH_CONTEXT_20');
+    expect(lineWall.visible).toBe(false);
+    expect(emptyWall.visible).toBe(false);
+    expect(lineWall.userData.p186eReviewRole).toBe('NON_QUESTION_CONTEXT_SUPPRESSED');
+    expect(emptyWall.userData.p186eReviewRole).toBe('NON_QUESTION_CONTEXT_SUPPRESSED');
+  }
 });
