@@ -118,6 +118,9 @@ export const m5bCurrentReviewId = 'm5b-roof-stormwater-current-review';
 export const m5bPlannedSok2ComparisonReviewId =
   'm5b-roof-stormwater-planned-sok2-comparison-review';
 
+export const m5bR1109CandidateId = 'm5b-r1109-five-downspout-presence-zones';
+export const m5bR1109ReviewId = `${m5bR1109CandidateId}-review`;
+
 export const p185cCandidateId = 'p185c-d2015-electrical-source-overlay';
 export const p185cReviewId = 'p185c-d2015-electrical-source-overlay-review';
 export const p185cX2CandidateId = 'p185c-x2-d2015-electrical-source-overlay-p28-corrected';
@@ -179,6 +182,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [m5aZ2R1090ReviewId]: m5aZ2R1090CandidateId,
   [m5bCurrentReviewId]: m5bCandidateId,
   [m5bPlannedSok2ComparisonReviewId]: m5bCandidateId,
+  [m5bR1109ReviewId]: m5bR1109CandidateId,
   [p184hApplianceOnP185cReviewId]: p185cCandidateId,
   [p185cX2ReviewId]: p185cX2CandidateId,
   [p164bReviewId]: p164bCandidateId,
