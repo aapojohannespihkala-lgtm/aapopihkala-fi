@@ -32,8 +32,13 @@ export const m5aZ2ExpectedTargetKeys = [
 ] as const;
 
 const targetKeySet = new Set<string>(m5aZ2ExpectedTargetKeys);
-const targetKinds = new Set(['wellMarkerWork', 'referenceRouteWork', 'unresolvedBoundaryMarker']);
-const requiredPass = 'M5A-Z2';
+const targetPasses = new Set(['M5A-Z2', 'M5A-Z2D-R1036', 'M5A-Z2D-R1090']);
+const targetKinds = new Set([
+  'wellMarkerWork',
+  'referenceRouteWork',
+  'pipeDiameterPresentationWork',
+  'unresolvedBoundaryMarker',
+]);
 
 const isRenderable = (object: any) =>
   Boolean(
@@ -76,7 +81,7 @@ const isTarget = (object: any) => {
   const data = object?.userData ?? {};
   const key = getTargetKey(object);
   return (
-    String(data.Pass ?? '') === requiredPass &&
+    targetPasses.has(String(data.Pass ?? '')) &&
     targetKinds.has(String(data.representationKind ?? '')) &&
     targetKeySet.has(key)
   );
@@ -108,7 +113,7 @@ const hasNoPromotionSemantics = (object: any) => {
     );
   }
 
-  if (kind === 'referenceRouteWork') {
+  if (kind === 'referenceRouteWork' || kind === 'pipeDiameterPresentationWork') {
     return (
       data.physicalRouteClaim === false &&
       data.exactSlopeClaim === false &&
@@ -152,8 +157,9 @@ export const prepareM5AZ2SystemReviewPresentation = (sceneRoot: any) => {
     targets.push(object);
 
     const kind = String(object.userData?.representationKind ?? '');
-    if (kind in kindCounts) {
-      kindCounts[kind as keyof typeof kindCounts] += 1;
+    const countedKind = kind === 'pipeDiameterPresentationWork' ? 'referenceRouteWork' : kind;
+    if (countedKind in kindCounts) {
+      kindCounts[countedKind as keyof typeof kindCounts] += 1;
     }
 
     if (!hasNoPromotionSemantics(object)) semanticViolationCount += 1;
