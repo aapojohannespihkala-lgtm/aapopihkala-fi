@@ -6,6 +6,8 @@ import {
   m5bCandidateId,
   m5bCurrentReviewId,
   m5bPlannedSok2ComparisonReviewId,
+  m5bR1109CandidateId,
+  m5bR1109ReviewId,
 } from '../../src/scripts/privateModelWorkTest';
 import {
   getM5BReviewSceneIndex,
@@ -34,6 +36,7 @@ import {
   prepareM5BR1109PersistedZonePresentation,
   prepareM5BReviewPresentation,
 } from '../../src/scripts/privateModelM5BReviewPresentation';
+import { createM5BR1109ReviewRuntimeState } from '../../src/scripts/privateModelM5BReviewRuntime';
 import { THREE } from '../../src/scripts/threeRuntime';
 
 const makeRoute = (id: string, extra: Record<string, unknown> = {}) => {
@@ -145,6 +148,12 @@ test('M5B registry and explicit review aliases resolve exact persisted candidate
   expect(
     getRequestedReviewCandidateId(`?review=${m5bPlannedSok2ComparisonReviewId}`),
   ).toBe(m5bCandidateId);
+  expect(registry.candidates[m5bR1109CandidateId]).toEqual({
+    driveFileId: '1DKfV84-Jg786fHSBP4cyZC_B6hsdsaww',
+  });
+  expect(getRequestedReviewCandidateId(`?review=${m5bR1109ReviewId}`)).toBe(
+    m5bR1109CandidateId,
+  );
 });
 
 test('M5B current review uses scene60 and five vertical downspout proxies as targets', () => {
@@ -469,3 +478,42 @@ test('M5B R1109 scene63 review fails closed on duplicate identity or promotion s
   expect([...zones, duplicate].every((zone) => zone.visible === false)).toBe(true);
 });
 
+
+
+test('M5B R1109 runtime state locks exact scene63 review identity and no-promotion dataset', () => {
+  const root = new THREE.Group();
+  const zones = m5bR1109PersistedTargetIds.map((id) => makeR1109PresenceZone(id));
+  root.add(...zones, makeBuildingContext());
+
+  const presentation = prepareM5BR1109PersistedZonePresentation(root);
+  const runtime = createM5BR1109ReviewRuntimeState(presentation);
+
+  expect(runtime.standardViewPreset).toBe('whole-building');
+  expect(runtime.dataset.workTestReviewMode).toBe(m5bR1109ReviewId);
+  expect(runtime.dataset.m5bReviewVariant).toBe('R1109_PERSISTED_ZONES');
+  expect(runtime.dataset.m5bSceneIndex).toBe(String(m5bR1109SceneIndex));
+  expect(runtime.dataset.m5bTargetG2Ids).toBe(m5bR1109PersistedTargetIds.join(','));
+  expect(runtime.dataset.m5bReviewTargetRenderableCount).toBe('5');
+  expect(runtime.dataset.m5bVerticalDownspoutProxyCount).toBe('0');
+  expect(runtime.dataset.m5bExactXYClaim).toBe('false');
+  expect(runtime.dataset.m5bPhysicalRouteClaim).toBe('false');
+  expect(runtime.dataset.m5bCurrentGeometryClaim).toBe('false');
+  expect(runtime.dataset.m5bAsBuiltClaim).toBe('false');
+  expect(runtime.dataset.m5bCanonical).toBe('false');
+  expect(runtime.dataset.m5bPublishToCurrent).toBe('false');
+  expect(runtime.dataset.m5bHumanReview).toBe('NOT_RUN');
+  expect(runtime.statusText).toContain('R1109 persisted downspout presence zones');
+  expect(runtime.statusText).toContain('HUMAN_REVIEW NOT_RUN');
+});
+
+test('private-model entry point wires exact R1109 review to scene63 persisted-zone runtime', () => {
+  const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
+
+  expect(source).toContain('m5bR1109CandidateId');
+  expect(source).toContain('m5bR1109ReviewId');
+  expect(source).toContain('m5bR1109SceneIndex');
+  expect(source).toContain('prepareM5BR1109PersistedZonePresentation');
+  expect(source).toContain('createM5BR1109ReviewRuntimeState');
+  expect(source).toContain('const isM5BR1109Review =');
+  expect(source).toContain('if (isM5BR1109Review) {');
+});
