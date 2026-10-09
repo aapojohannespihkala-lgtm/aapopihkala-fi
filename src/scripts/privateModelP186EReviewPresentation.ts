@@ -1,3 +1,5 @@
+import { THREE } from './threeRuntime';
+
 export const p186eReviewTargetOpacity = 0.8;
 export const p186eReviewContextOpacity = 0.2;
 export const p186eReviewContextColorHex = 0xe2e8f0;
@@ -68,6 +70,26 @@ const isRenderable = (object: any) =>
     object?.material &&
       (object?.isMesh || object?.isLine || object?.isLineSegments || object?.isPoints),
   );
+
+// A recognizable wall/root name alone is not evidence of a drawable solid.
+// Keep review walls restricted to actual triangle meshes with finite bounds;
+// line, point and empty proxy objects must not satisfy wall readiness.
+const hasDrawableSolidWall = (object: any) => {
+  if (object?.isMesh !== true || !object?.geometry) return false;
+  const geometry = object.geometry;
+  const positionCount = Number(geometry.attributes?.position?.count ?? 0);
+  const indexCount = geometry.index ? Number(geometry.index.count ?? 0) : positionCount;
+  const drawRangeCount = Number(geometry.drawRange?.count ?? Infinity);
+  if (!Number.isFinite(positionCount) || positionCount < 3) return false;
+  if (!Number.isFinite(indexCount) || indexCount < 3) return false;
+  if (drawRangeCount <= 0 || (Number.isFinite(drawRangeCount) && drawRangeCount < 3)) return false;
+
+  const bounds = new THREE.Box3().setFromObject(object);
+  return !bounds.isEmpty() && [
+    bounds.min.x, bounds.min.y, bounds.min.z,
+    bounds.max.x, bounds.max.y, bounds.max.z,
+  ].every(Number.isFinite);
+};
 
 const cloneObjectMaterials = (object: any, opacity: number, role: string) => {
   const cloneOne = (material: any) => {
@@ -233,6 +255,7 @@ const isP186EExplicitOppositeFloorContext = (
 };
 
 const isDArchitectureContext = (object: any, variant: P186EReviewVariant) => {
+  if (!hasDrawableSolidWall(object)) return false;
   if (isP186ETarget(object, variant)) return false;
   if (isP186ESuppressedReviewContext(object)) return false;
   if (isP186EExplicitOppositeFloorContext(object, variant)) return false;
@@ -320,6 +343,7 @@ export const prepareP186EReviewPresentation = (
   let groupTargetCount = 0;
   let specialTargetCount = 0;
 
+  sceneRoot?.updateMatrixWorld?.(true);
   sceneRoot?.traverse?.((object: any) => {
     if (!isRenderable(object)) return;
     renderables.push(object);
