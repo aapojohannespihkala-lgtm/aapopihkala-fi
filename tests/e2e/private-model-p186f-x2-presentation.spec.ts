@@ -170,7 +170,7 @@ test('P186F-X2 room-adjacent Themo anchors are accepted as review targets withou
   for (const material of contextMaterials) expect(material.opacity).toBe(p186fReviewContextOpacity);
 });
 
-test('P186F-X2 shows real D1F wall meshes instead of diagnostic room footprints when available', () => {
+test('P186F-X2 shows sourced room-wall solids for all three Themo rooms before hiding the footprint helpers', () => {
   const scene = new THREE.Group();
   for (const target of targetRooms.map(makeP186fX2Target)) scene.add(target);
   const footprints = ['SAUNA', 'PESUHUONE', 'WC', 'VH_WEST', 'VH_NORTH', 'HUONE2', 'VARASTO']
@@ -179,9 +179,18 @@ test('P186F-X2 shows real D1F wall meshes instead of diagnostic room footprints 
 
   const wallRoot = new THREE.Group();
   wallRoot.name = 'P173D_D_WALL_HR67_SEMANTIC_REBASE_ROOT_BABYLON_Y_UP';
-  const wallMesh = makeRenderableMesh('SOLID_ARCH_MESH_CHILD_WITHOUT_SOURCE_ID');
-  wallMesh.scale.set(16, 24, 3);
-  wallRoot.add(wallMesh);
+  const walls = targetRooms.map(({ room }, index) => {
+    const wall = makeRenderableMesh(`P173D_D1F_${room.toUpperCase()}_WALL_WORK_ENVELOPE`);
+    wall.position.set(index * 0.2, 0, 0);
+    wall.scale.set(16, 24, 3);
+    wall.userData = {
+      Pass: 'P173D',
+      representationKind: 'd1fRoomWallWorkEnvelope',
+      roomContext: room,
+    };
+    wallRoot.add(wall);
+    return wall;
+  });
   scene.add(wallRoot);
   const unrelatedSiteWall = makeRenderableMesh('SITE_WALL_NOT_D_ARCHITECTURE');
   unrelatedSiteWall.userData.presentationLayer = 'SITE_GROUND';
@@ -195,20 +204,59 @@ test('P186F-X2 shows real D1F wall meshes instead of diagnostic room footprints 
   expect(presentation.semanticViolationCount).toBe(0);
   expect(presentation.realArchitectureContextRequired).toBe(true);
   expect(presentation.realArchitectureContextReady).toBe(true);
-  expect(presentation.realArchitectureContextRenderableCount).toBe(1);
-  expect(presentation.contextRenderableCount).toBe(1);
+  expect(presentation.realArchitectureContextRenderableCount).toBe(3);
+  expect(presentation.contextRenderableCount).toBe(3);
   expect(presentation.hiddenNonQuestionRenderableCount).toBe(8);
 
-  expect(wallMesh.visible).toBe(true);
-  expect(wallMesh.userData.p186fReviewRole).toBe('D_1F_ARCH_CONTEXT_20');
-  expect((wallMesh.material as any).opacity).toBe(0.2);
-  expect((wallMesh.material as any).depthTest).toBe(false);
-  expect((wallMesh.material as any).polygonOffset).toBe(true);
+  for (const wall of walls) {
+    expect(wall.visible).toBe(true);
+    expect(wall.userData.p186fReviewRole).toBe('D_1F_ARCH_CONTEXT_20');
+    expect((wall.material as any).opacity).toBe(0.2);
+    expect((wall.material as any).depthTest).toBe(false);
+    expect((wall.material as any).polygonOffset).toBe(true);
+  }
   for (const footprint of footprints) {
     expect(footprint.visible).toBe(false);
     expect(footprint.userData.p186fReviewRole).toBe('NON_QUESTION_CONTEXT_SUPPRESSED');
   }
   expect(unrelatedSiteWall.visible).toBe(false);
+});
+
+test('P186F-X2 does not accept doors, windows, line references, storage walls or one room alone as three-room wall proof', () => {
+  const kinds = [
+    'referenceOpening',
+    'referenceLine',
+    'storageNorthWallCorrectedWorkEnvelope',
+    'd1fRoomWallWorkEnvelope',
+  ] as const;
+  for (const kind of kinds) {
+    const scene = new THREE.Group();
+    for (const target of targetRooms.map(makeP186fX2Target)) scene.add(target);
+    const footprints = ['SAUNA', 'PESUHUONE', 'WC', 'VH_WEST', 'VH_NORTH', 'HUONE2', 'VARASTO']
+      .map((room, index) => makeRoomContext(room, index));
+    footprints.forEach((node) => scene.add(node));
+
+    const wallRoot = new THREE.Group();
+    wallRoot.name = 'P173D_D_WALL_HR67_SEMANTIC_REBASE_ROOT_BABYLON_Y_UP';
+    const suspect = makeRenderableMesh('P173D_D1F_BEDROOM_DOOR_WINDOW_STORAGE_WALL_SOURCE');
+    suspect.userData = {
+      Pass: 'P173D',
+      roomContext: 'Bedroom',
+      representationKind: kind,
+    };
+    wallRoot.add(suspect);
+    scene.add(wallRoot);
+
+    const presentation = prepareP186fReviewPresentation(scene, {
+      preferRealArchitectureContext: true,
+    });
+    expect(presentation.realArchitectureContextRequired).toBe(true);
+    expect(presentation.realArchitectureContextReady).toBe(false);
+    expect(presentation.realArchitectureContextRenderableCount).toBe(0);
+    expect(presentation.contextRenderableCount).toBe(p186fExpectedRoomContextCount);
+    expect(suspect.visible).toBe(false);
+    for (const footprint of footprints) expect(footprint.visible).toBe(true);
+  }
 });
 
 test('P186F-X2 refuses upper-floor, empty, non-drawn, and non-finite D-wall meshes as real D1F context', () => {

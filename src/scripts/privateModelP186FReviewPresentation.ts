@@ -218,6 +218,23 @@ const isP186fD1fArchitectureSolid = (object: any) => {
   return knownDWallRoot || explicitD1fStructure;
 };
 
+// A recognizable D-wall ancestor alone cannot establish that a wall belongs to
+// Bedroom, Lobby or Bathroom. The source must explicitly identify the room and
+// a D1F WORK_TEST architectural wall envelope; doors, windows, line references,
+// fixtures and storage-only walls do not provide this room-wall evidence.
+const getP186fD1fSourceWallRoom = (object: any): string | null => {
+  if (!isP186fD1fArchitectureSolid(object)) return null;
+  const data = object?.userData ?? {};
+  const room = String(data.roomContext ?? '');
+  const kind = String(data.representationKind ?? '');
+  if (
+    !expectedRoomNames.has(room) ||
+    String(data.Pass ?? '') !== 'P173D' ||
+    !['d1fRoomWallWorkEnvelope', 'd1fInteriorWallWorkEnvelope'].includes(kind)
+  ) return null;
+  return room;
+};
+
 const hasP186fNoPromotionSemantics = (object: any) => {
   const data = object?.userData ?? {};
   const room = String(data.roomAssignment ?? '');
@@ -290,12 +307,16 @@ export const prepareP186fReviewPresentation = (
   const realArchitectureContextRequired = targets.some(
     (object) => String(object.userData?.Pass ?? '') === 'P186F-X2',
   );
-  // Opt-in until the viewer runtime accepts variable solid-wall context counts.
-  // The legacy X1/X2 seven-footprint contract remains unchanged by default.
+  // Fail closed until *every* Themo room has its own source-labelled D1F
+  // wall solid; a window/door or the storage-only P173D root is insufficient.
+  // Otherwise keep the seven diagnostic room footprints visible.
+  const sourceWallRooms = new Set(
+    renderables.map(getP186fD1fSourceWallRoom).filter((room): room is string => room !== null),
+  );
   const useRealArchitectureContext =
     options.preferRealArchitectureContext === true &&
     realArchitectureContextRequired &&
-    renderables.some(isP186fD1fArchitectureSolid);
+    [...expectedRoomNames].every((room) => sourceWallRooms.has(room));
 
   for (const object of targets) {
     object.visible = true;
@@ -324,7 +345,7 @@ export const prepareP186fReviewPresentation = (
   for (const object of renderables) {
     if (isP186fTarget(object)) continue;
 
-    if (useRealArchitectureContext && isP186fD1fArchitectureSolid(object)) {
+    if (useRealArchitectureContext && getP186fD1fSourceWallRoom(object) !== null) {
       object.visible = true;
       cloneObjectMaterials(object, p186fReviewContextOpacity, 'D_1F_ARCH_CONTEXT_20');
       object.renderOrder = 20;
@@ -378,7 +399,7 @@ export const prepareP186fReviewPresentation = (
       ? realArchitectureContextRenderableCount
       : p186fExpectedRoomContextCount,
     realArchitectureContextRequired,
-    realArchitectureContextReady: realArchitectureContextRequired && realArchitectureContextRenderableCount > 0,
+    realArchitectureContextReady: useRealArchitectureContext && realArchitectureContextRenderableCount >= p186fExpectedTargetCount,
     realArchitectureContextRenderableCount,
     hiddenNonQuestionRenderableCount,
     semanticViolationCount,
