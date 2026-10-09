@@ -56,6 +56,14 @@ const getTargetKey = (object: any) => {
   return '';
 };
 
+const isSupersededR1090ReferenceRoute = (object: any) => {
+  const data = object?.userData ?? {};
+  return (
+    String(data.Pass ?? '') === 'M5A-Z2D-R1090' &&
+    String(data.representationKind ?? '') === 'referenceRouteWork'
+  );
+};
+
 const cloneMaterials = (object: any, opacity: number, role: string) => {
   const cloneOne = (material: any) => {
     if (!material?.clone) return material;
@@ -81,6 +89,7 @@ const isTarget = (object: any) => {
   const data = object?.userData ?? {};
   const key = getTargetKey(object);
   return (
+    !isSupersededR1090ReferenceRoute(object) &&
     targetPasses.has(String(data.Pass ?? '')) &&
     targetKinds.has(String(data.representationKind ?? '')) &&
     targetKeySet.has(key)
