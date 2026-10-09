@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const candidateId = 'm5a-z2d-r1090-well-top-ground-surface';
-const expectedDriveFileId = '1GhIyPFE2dqfrZpH257U-2Wp8c_d2wfD_';
+const expectedDriveFileId = '13eciLeS58jwGLzy-TUhePIF7h7177zHj';
 const expectedReviewUrl =
   'https://aapopihkala.fi/private-model/?review=m5a-z2d-r1090-well-top-ground-surface-review';
 const expectedReview = new URL(expectedReviewUrl);
@@ -86,15 +86,16 @@ test('M5A-Z2D R1090 handoff stays aligned with the exact WORK_TEST source identi
   expect(docsContent).toContain(candidateId);
   expect(docsContent).toContain(expectedDriveFileId);
   expect(docsContent).toContain(
-    'e8934e546f2a89a2cc070c44ef9f4d6f6df8f5dd2bb30c1c7379b7f821d85605',
+    '3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a',
   );
 });
 
-test('M5A-Z2D R1090 handoff records the completed machine publish/readback gate', () => {
-  expect(docsContent).toContain('## V5 publish/readback status');
+test('M5A-Z2D R1090/R1091 handoff records the current R1091 publish gate without false success', () => {
+  expect(docsContent).toContain('## R1091 V5 publish/readback status');
   expect(docsContent).toContain('Publish WORK_TEST - m5a-z2d-r1090-well-top-ground-surface');
-  expect(docsContent).toContain('Run `37835730136` completed successfully from `main`.');
-  expect(docsContent).toContain('full production GLB byte-for-byte readback');
+  expect(docsContent).toContain('Run `37965098816` failed at the machine publish PUT with HTTP 422');
+  expect(docsContent).toContain('runtime identity mismatch');
+  expect(docsContent).toContain('retry only after this runtime identity patch is merged and deployed');
 });
 
 test('M5A-Z2D R1090 handoff keeps the next gate at authenticated render visibility', () => {
