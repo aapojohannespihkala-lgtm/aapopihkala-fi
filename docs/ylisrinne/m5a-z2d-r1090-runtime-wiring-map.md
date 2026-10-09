@@ -53,9 +53,9 @@ sha256: 3adf908ae64ff75a235823223f32b1cf36de16fb03321e75c8816dd16212739a
 
 Publish WORK_TEST - m5a-z2d-r1090-well-top-ground-surface
 
-Run `37965098816` failed at the machine publish PUT with HTTP 422 after trusted dispatch, candidate resolution, machine authentication, Drive authentication, raw GLB download, and raw byte identity derivation had passed. The failure is a runtime identity mismatch: the source map already points to the R1091 Drive artifact, while the Worker runtime still expected the previous R1090 size and SHA.
+Run `37965098816` failed at the machine publish PUT with HTTP 422 after trusted dispatch, candidate resolution, machine authentication, Drive authentication, raw GLB download, and raw byte identity derivation had passed. The failure was a runtime identity mismatch: the source map already pointed to the R1091 Drive artifact while the Worker runtime still expected the previous R1090 size and SHA.
 
-This patch aligns the Worker runtime allowlist, regression tests, and this wiring note to the R1091 raw identity. Do not claim machine publish/readback PASS yet. The safe release gate is to retry only after this runtime identity patch is merged and deployed. That retry must then prove machine publish, production catalog readback, and full production GLB size/SHA parity.
+PR #1078 aligned the Worker runtime allowlist, regression tests, and this wiring note to the R1091 raw identity. Do not claim machine publish/readback PASS yet. The safe release gate is to retry only after the runtime identity patch and this contract-expectation refresh are merged and deployed. That retry must then prove machine publish, production catalog readback, and full production GLB size/SHA parity.
 
 ## Review/autoload gate
 
@@ -90,4 +90,4 @@ This mapping note does not change GLB bytes, G1/G2/G3, datacube fact layer, sour
 
 ## Follow-up
 
-Continue by merging and deploying the R1091 runtime identity parity patch, then retry the exact machine publish once. Only after publish/catalog/full-GLB identity and exact candidate autoload/render visibility pass may the work proceed to a narrowly scoped human content review question. Do not promote this WORK_TEST successor to CURRENT, canonical, as-built, or publishToCURRENT from this note.
+Continue by finishing the R1091 contract-expectation refresh, merging it to `main`, verifying the production deploy, and retrying the exact machine publish once. Only after publish/catalog/full-GLB identity and exact candidate autoload/render visibility pass may the work proceed to a narrowly scoped human content review question. Do not promote this WORK_TEST successor to CURRENT, canonical, as-built, or publishToCURRENT from this note.
