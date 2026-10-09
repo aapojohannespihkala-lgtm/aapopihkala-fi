@@ -145,6 +145,8 @@ const storeyContract = {
   D1F: {
     hostStorey: 'D_1F',
     floorToken: '_D_1F_',
+    compactFloorToken: 'D1F',
+    genericFloorToken: '1F',
     apartmentStorey: '1F',
     sourceFloorToken: '_1F_SRC',
     preferredRoomContextPrefix: 'P117D_REVIEW_',
@@ -153,12 +155,16 @@ const storeyContract = {
   D2F: {
     hostStorey: 'D_2F',
     floorToken: '_D_2F_',
+    compactFloorToken: 'D2F',
+    genericFloorToken: '2F',
     apartmentStorey: '2F',
     sourceFloorToken: '_2F_SRC',
     preferredRoomContextPrefix: 'P123C_CONTEXT_',
     contextRole: 'D_2F_ARCH_CONTEXT_20',
   },
 } as const;
+
+type StoreyContract = (typeof storeyContract)[P186EReviewVariant];
 
 const targetKind = (object: any): 'group' | 'special' | null => {
   const kind = String(object?.userData?.representationKind ?? '');
@@ -229,6 +235,22 @@ const isP186EKnownDArchitectureRoot = (object: any) => {
   return p186eReviewKnownDArchitectureRootFragments.some((fragment) => text.includes(fragment));
 };
 
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const hasSegmentToken = (value: string, token: string) => {
+  if (!token) return false;
+  return new RegExp(`(^|[^A-Z0-9])${escapeRegex(token)}([^A-Z0-9]|$)`, 'i').test(value);
+};
+
+const hasStoreySourceIdentity = (value: string, contract: StoreyContract) =>
+  value.includes(contract.floorToken) ||
+  value.includes(contract.sourceFloorToken) ||
+  hasSegmentToken(value, contract.compactFloorToken) ||
+  hasSegmentToken(value, contract.genericFloorToken);
+
+const hasAnyStoreySourceIdentity = (contract: StoreyContract, values: string[]) =>
+  values.some((value) => hasStoreySourceIdentity(value, contract));
+
 const isP186EExplicitOppositeFloorContext = (
   object: any,
   variant: P186EReviewVariant,
@@ -245,12 +267,7 @@ const isP186EExplicitOppositeFloorContext = (
   return (
     hostStorey === oppositeContract.hostStorey ||
     (apartment === 'D' && storey === oppositeContract.apartmentStorey) ||
-    g2Id.includes(oppositeContract.floorToken) ||
-    name.includes(oppositeContract.floorToken) ||
-    sourceScene.includes(oppositeContract.floorToken) ||
-    g2Id.includes(oppositeContract.sourceFloorToken) ||
-    name.includes(oppositeContract.sourceFloorToken) ||
-    sourceScene.includes(oppositeContract.sourceFloorToken)
+    hasAnyStoreySourceIdentity(oppositeContract, [g2Id, name, sourceScene])
   );
 };
 
@@ -267,6 +284,7 @@ const isDArchitectureContext = (object: any, variant: P186EReviewVariant) => {
   const data = object?.userData ?? {};
   const g2Id = String(data.G2Id ?? data.G2IdCandidate ?? '');
   const name = String(object?.name ?? '');
+  const sourceScene = String(data.sourceScene ?? '');
   const presentationLayer = String(data.presentationLayer ?? '');
   const apartment = String(data.apartment ?? '');
   const storey = String(data.storey ?? '');
@@ -274,13 +292,9 @@ const isDArchitectureContext = (object: any, variant: P186EReviewVariant) => {
   return (
     knownDArchitectureRoot ||
     (presentationLayer === 'CURRENT_D' &&
-      (g2Id.includes(contract.floorToken) ||
-        name.includes(contract.floorToken) ||
-        g2Id.includes(contract.sourceFloorToken) ||
-        name.includes(contract.sourceFloorToken))) ||
+      hasAnyStoreySourceIdentity(contract, [g2Id, name, sourceScene])) ||
     (apartment === 'D' && storey === contract.apartmentStorey) ||
-    g2Id.includes(contract.floorToken) ||
-    name.includes(contract.floorToken)
+    hasAnyStoreySourceIdentity(contract, [g2Id, name, sourceScene])
   );
 };
 
