@@ -1,6 +1,7 @@
 import {
   m5bCurrentReviewId,
   m5bPlannedSok2ComparisonReviewId,
+  m5bR1109ReviewId,
 } from './privateModelWorkTest';
 import {
   getM5BReviewSceneIndex,
@@ -8,6 +9,9 @@ import {
   m5bCurrentTargetIds,
   m5bCurrentVerticalDownspoutReviewScope,
   m5bPlannedSok2TargetIds,
+  m5bR1109PersistedTargetIds,
+  m5bR1109ReviewQuestionScope,
+  m5bR1109SceneIndex,
   m5bReviewContextOpacity,
   m5bReviewTargetOpacity,
   type M5BReviewVariant,
@@ -31,6 +35,26 @@ export type M5BReviewPresentationResult = {
   verticalDownspoutProxyIds: string[];
   verticalDownspoutReviewScope: string;
   sourceRouteStubIds: string[];
+};
+
+export type M5BR1109PersistedZonePresentationResult = {
+  variant: 'R1109_PERSISTED_ZONES';
+  sceneIndex: number;
+  ready: boolean;
+  targetRenderableCount: number;
+  sourceTargetRenderableCount: number;
+  contextRenderableCount: number;
+  suppressedLegacyStormwaterCount: number;
+  foundTargetIds: string[];
+  missingTargetIds: readonly string[];
+  duplicateTargetIds: readonly string[];
+  semanticViolationTargetIds: readonly string[];
+  semanticViolationCount: number;
+  targetMeanings: string[];
+  questionScope: string;
+  downspoutContext: string;
+  createdProxyCount: number;
+  usesPersistedSourceTargets: boolean;
 };
 
 export type M5BReviewRuntimeState = {
@@ -186,5 +210,85 @@ export const createM5BReviewRuntimeState = (
     },
     statusText:
       `${config.statusLabel} - WORK_TEST / targets 80 % / context 20 % / scene ${sceneIndex} / ${config.clarityLabel} / HUMAN_REVIEW NOT_RUN`,
+  };
+};
+
+
+export const createM5BR1109ReviewRuntimeState = (
+  presentation: M5BR1109PersistedZonePresentationResult,
+): M5BReviewRuntimeState => {
+  if (!presentation.ready) {
+    throw new Error(
+      `M5B R1109 review source contract not ready: missing=${presentation.missingTargetIds.join(',')} duplicate=${presentation.duplicateTargetIds.join(',')} semantic=${presentation.semanticViolationTargetIds.join(',')}`,
+    );
+  }
+  if (presentation.variant !== 'R1109_PERSISTED_ZONES') {
+    throw new Error(`M5B R1109 review variant mismatch: ${presentation.variant}`);
+  }
+  if (presentation.sceneIndex !== m5bR1109SceneIndex) {
+    throw new Error(
+      `M5B R1109 review scene mismatch: expected ${m5bR1109SceneIndex}, got ${presentation.sceneIndex}`,
+    );
+  }
+  if (
+    presentation.targetRenderableCount !== m5bR1109PersistedTargetIds.length ||
+    presentation.sourceTargetRenderableCount !== m5bR1109PersistedTargetIds.length ||
+    !targetIdsEqual(m5bR1109PersistedTargetIds, presentation.foundTargetIds)
+  ) {
+    throw new Error('M5B R1109 persisted target identity/count mismatch');
+  }
+  if (presentation.semanticViolationCount !== 0) {
+    throw new Error(
+      `M5B R1109 no-promotion semantic violations: ${presentation.semanticViolationCount}`,
+    );
+  }
+  if (presentation.createdProxyCount !== 0 || presentation.usesPersistedSourceTargets !== true) {
+    throw new Error('M5B R1109 review must use persisted source targets without generated proxies');
+  }
+  if (presentation.questionScope !== m5bR1109ReviewQuestionScope) {
+    throw new Error('M5B R1109 review question scope mismatch');
+  }
+
+  return {
+    standardViewPreset: 'whole-building',
+    dataset: {
+      workTestReviewMode: m5bR1109ReviewId,
+      m5bReviewVariant: 'R1109_PERSISTED_ZONES',
+      m5bReviewQuestion: 'ROOF_STORMWATER_PERSISTED_DOWNSPOUT_PRESENCE_ZONES',
+      m5bReviewQuestionScope: presentation.questionScope,
+      m5bDownspoutContext: presentation.downspoutContext,
+      m5bReviewTargetMeanings: presentation.targetMeanings.join(' | '),
+      m5bReviewClarityLabel:
+        '5 persisted source-presence WORK_TEST -vyöhykettä: 4 nurkkaa + eteläjulkisivu C-B; ei putki-, halkaisija-, exact XY/Z-, reitti- tai as-built-väite',
+      m5bSceneIndex: String(m5bR1109SceneIndex),
+      m5bReviewTargetIds: m5bR1109PersistedTargetIds.join(','),
+      m5bTargetG2Ids: m5bR1109PersistedTargetIds.join(','),
+      m5bSourceRouteStubG2Ids: '',
+      m5bVerticalDownspoutProxyCount: '0',
+      m5bVerticalDownspoutProxyIds: '',
+      m5bVerticalDownspoutReviewScope: '',
+      m5bSuppressedNonQuestionRouteCount: String(
+        presentation.suppressedLegacyStormwaterCount,
+      ),
+      m5bReviewTargetOpacity: m5bReviewTargetOpacity.toFixed(2),
+      m5bReviewContextOpacity: m5bReviewContextOpacity.toFixed(2),
+      m5bReviewTargetRenderableCount: String(presentation.targetRenderableCount),
+      m5bReviewContextRenderableCount: String(presentation.contextRenderableCount),
+      m5bReviewSuppressedCrossVariantCount: String(
+        presentation.suppressedLegacyStormwaterCount,
+      ),
+      m5bExactXYClaim: 'false',
+      m5bExactZClaim: 'false',
+      m5bPhysicalRouteClaim: 'false',
+      m5bCurrentGeometryClaim: 'false',
+      m5bAsBuiltClaim: 'false',
+      m5bCanonical: 'false',
+      m5bPublishToCurrent: 'false',
+      m5bHumanReview: 'NOT_RUN',
+      m5bReviewCameraMode: 'PERSPECTIVE_FREE_ORBIT',
+      standardViewPreset: 'whole-building',
+    },
+    statusText:
+      `M5B R1109 persisted downspout presence zones - WORK_TEST / 5 source targets / targets 80 % / context 20 % / scene ${m5bR1109SceneIndex} / HUMAN_REVIEW NOT_RUN`,
   };
 };

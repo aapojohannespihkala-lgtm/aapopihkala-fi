@@ -1885,10 +1885,15 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelM5AZ2ReviewPresentation';
       import {
         getM5BReviewSceneIndex,
+        m5bR1109SceneIndex,
+        prepareM5BR1109PersistedZonePresentation,
         prepareM5BReviewPresentation,
         type M5BReviewVariant,
       } from '../../scripts/privateModelM5BReviewPresentation';
-      import { createM5BReviewRuntimeState } from '../../scripts/privateModelM5BReviewRuntime';
+      import {
+        createM5BR1109ReviewRuntimeState,
+        createM5BReviewRuntimeState,
+      } from '../../scripts/privateModelM5BReviewRuntime';
       import {
         p183P160ClosureContextOpacity,
         p183P160ClosureTargetOpacity,
@@ -2013,6 +2018,8 @@ const title = 'Private 3D viewer';
         m5bCandidateId,
         m5bCurrentReviewId,
         m5bPlannedSok2ComparisonReviewId,
+        m5bR1109CandidateId,
+        m5bR1109ReviewId,
         p164bCandidateId,
         p164bReviewId,
         p167fCandidateId,
@@ -8578,6 +8585,9 @@ const title = 'Private 3D viewer';
               window.location.search,
               m5bPlannedSok2ComparisonReviewId,
             );
+          const isM5BR1109Review =
+            candidate.id === m5bR1109CandidateId &&
+            isPrivateModelReviewRequested(window.location.search, m5bR1109ReviewId);
           const isP164bCorrectedStairReview =
             candidate.id === p164bCandidateId && isP164bCorrectedStairReviewRequested();
           const isP167fPreciseStairReview =
@@ -8603,8 +8613,17 @@ const title = 'Private 3D viewer';
           const isP139adLocusWorkZReview =
             isP139abZReview && isP139adLocusWorkZReviewRequested();
 
-          let m5bRuntimeState: ReturnType<typeof createM5BReviewRuntimeState> | null = null;
-          if (isM5BCurrentReview || isM5BPlannedSok2ComparisonReview) {
+          let m5bRuntimeState:
+            | ReturnType<typeof createM5BReviewRuntimeState>
+            | ReturnType<typeof createM5BR1109ReviewRuntimeState>
+            | null = null;
+          if (isM5BR1109Review) {
+            const reviewScene = gltf.scenes?.[m5bR1109SceneIndex];
+            if (!reviewScene) throw new Error(`M5B R1109 review scene ${m5bR1109SceneIndex} missing`);
+            gltf.scene = reviewScene;
+            const presentation = prepareM5BR1109PersistedZonePresentation(reviewScene);
+            m5bRuntimeState = createM5BR1109ReviewRuntimeState(presentation);
+          } else if (isM5BCurrentReview || isM5BPlannedSok2ComparisonReview) {
             const variant: M5BReviewVariant = isM5BCurrentReview
               ? 'CURRENT'
               : 'PLANNED_SOK2_COMPARISON';
