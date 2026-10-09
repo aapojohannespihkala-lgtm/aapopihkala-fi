@@ -51,6 +51,10 @@ const drawableM5AZ2Kinds = new Set([
 ]);
 const drawableM5AZ2Keys = new Set<string>(m5aZ2ExpectedTargetKeys);
 
+const isSupersededR1090ReferenceRoute = (data: any) =>
+  String(data.Pass ?? '') === 'M5A-Z2D-R1090' &&
+  String(data.representationKind ?? '') === 'referenceRouteWork';
+
 // This complements, but does not replace, the source/no-promotion checks in the
 // presentation helper. A keyed material-bearing object is not proof of pixels.
 export const getUndrawableM5AZ2TargetKeys = (sceneRoot: any): string[] => {
@@ -58,6 +62,7 @@ export const getUndrawableM5AZ2TargetKeys = (sceneRoot: any): string[] => {
   sceneRoot?.updateMatrixWorld?.(true);
   sceneRoot?.traverse?.((object: any) => {
     const data = object.userData ?? {};
+    if (isSupersededR1090ReferenceRoute(data)) return;
     const kind = String(data.representationKind ?? '');
     if (!drawableM5AZ2Passes.has(String(data.Pass ?? '')) || !drawableM5AZ2Kinds.has(kind)) return;
     const key = String(data.G2IdCandidate ?? '') ||
