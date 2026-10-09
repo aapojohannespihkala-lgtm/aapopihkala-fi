@@ -19,6 +19,9 @@ import {
   m5bPlannedSok2ReviewQuestionScope,
   m5bPlannedSok2TargetIds,
   m5bPlannedSok2TargetMeaningById,
+  m5bR1109PersistedTargetIds,
+  m5bR1109ReviewQuestionScope,
+  m5bR1109SceneIndex,
   m5bReviewContextOpacity,
   m5bReviewTargetOpacity,
   m5bVerticalDownspoutProxyRadius,
@@ -28,6 +31,7 @@ import {
   m5bVerticalDownspoutWallAttachmentFix,
   m5bVerticalDownspoutWallAttachmentOffset,
   m5bVerticalDownspoutWallSkinInsetMinM,
+  prepareM5BR1109PersistedZonePresentation,
   prepareM5BReviewPresentation,
 } from '../../src/scripts/privateModelM5BReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
@@ -49,6 +53,46 @@ const makeRoute = (id: string, extra: Record<string, unknown> = {}) => {
     asBuiltClaim: false,
     Canonical: false,
     publishToCURRENT: false,
+    ...extra,
+  };
+  return mesh;
+};
+
+const makeR1109PresenceZone = (
+  id: (typeof m5bR1109PersistedTargetIds)[number],
+  extra: Record<string, unknown> = {},
+) => {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.22, 0.22, 7.5),
+    new THREE.MeshBasicMaterial({ color: 0x156bd9 }),
+  );
+  mesh.name = `M5B-R1109_${id}_ZONE_PROXY`;
+  mesh.userData = {
+    G2IdCandidate: id,
+    Pass: 'M5B-R1109',
+    ModelStage: 'WORK_TEST_VIEW',
+    Canonical: false,
+    canonical: false,
+    representationKind: 'downspoutPresenceZoneWork',
+    sourcePresenceConfirmed: true,
+    presentationOnly: true,
+    workAssumption: true,
+    reviewTarget: true,
+    proxyDimensionsStatus: 'WORK_ASSUMPTION_NOT_SOURCE_DIMENSION',
+    physicalDownspoutHostClaim: false,
+    exactXYClaim: false,
+    exactZClaim: false,
+    physicalRouteClaim: false,
+    physicalDiameterClaim: false,
+    physicalElevationClaim: false,
+    currentGeometryClaim: false,
+    asBuiltClaim: false,
+    publishToCURRENT: false,
+    hydraulicConnectionToM5A: false,
+    downspoutPresenceToCurrentRouteLinkCount: 0,
+    sourceBoundaryContract: 'G2_R1108',
+    humanReview: 'NOT_RUN',
+    HUMAN_REVIEW: 'NOT_RUN',
     ...extra,
   };
   return mesh;
@@ -353,3 +397,75 @@ test('M5B planned comparison uses scene61, planned SOK2 targets, current SOK1 co
   expect(planned1.userData.current).toBe(false);
   expect(planned1.userData.presentationOnlyComparison).toBe(true);
 });
+
+test('M5B R1109 scene63 review uses the five persisted source-presence zones without new proxies', () => {
+  const root = new THREE.Group();
+  const zones = m5bR1109PersistedTargetIds.map((id) => makeR1109PresenceZone(id));
+  const building = makeBuildingContext();
+  const legacyRoute = makeRoute(m5bCurrentRouteStubIds[0]);
+  root.add(building, legacyRoute, ...zones);
+  const childCountBefore = root.children.length;
+
+  const result = prepareM5BR1109PersistedZonePresentation(root);
+
+  expect(result.sceneIndex).toBe(m5bR1109SceneIndex);
+  expect(result.ready).toBe(true);
+  expect(result.foundTargetIds).toEqual([...m5bR1109PersistedTargetIds]);
+  expect(result.missingTargetIds).toEqual([]);
+  expect(result.duplicateTargetIds).toEqual([]);
+  expect(result.semanticViolationTargetIds).toEqual([]);
+  expect(result.targetRenderableCount).toBe(5);
+  expect(result.sourceTargetRenderableCount).toBe(5);
+  expect(result.createdProxyCount).toBe(0);
+  expect(result.usesPersistedSourceTargets).toBe(true);
+  expect(result.questionScope).toBe(m5bR1109ReviewQuestionScope);
+  expect(root.children).toHaveLength(childCountBefore);
+  expect(legacyRoute.visible).toBe(false);
+  expect((building.material as any).opacity).toBe(m5bReviewContextOpacity);
+
+  for (const zone of zones) {
+    expect(zone.visible).toBe(true);
+    expect((zone.material as any).opacity).toBe(m5bReviewTargetOpacity);
+    expect((zone.material as any).depthTest).toBe(false);
+    expect((zone.material as any).depthWrite).toBe(false);
+    expect(zone.userData.m5bReviewRole).toBe('R1109_DOWNSPOUT_PRESENCE_ZONE_80');
+    expect(zone.userData.m5bReviewRenderableForm).toBe('PERSISTED_RECTANGULAR_ZONE_BAR_NOT_PIPE');
+    expect(zone.userData.m5bReviewSourceSceneIndex).toBe(63);
+  }
+});
+
+test('M5B R1109 scene63 review fails closed when any persisted target is missing', () => {
+  const root = new THREE.Group();
+  const zones = m5bR1109PersistedTargetIds
+    .slice(0, 4)
+    .map((id) => makeR1109PresenceZone(id));
+  root.add(...zones);
+
+  const result = prepareM5BR1109PersistedZonePresentation(root);
+
+  expect(result.ready).toBe(false);
+  expect(result.targetRenderableCount).toBe(0);
+  expect(result.sourceTargetRenderableCount).toBe(4);
+  expect(result.missingTargetIds).toEqual([m5bR1109PersistedTargetIds[4]]);
+  expect(result.createdProxyCount).toBe(0);
+  expect(zones.every((zone) => zone.visible === false)).toBe(true);
+});
+
+test('M5B R1109 scene63 review fails closed on duplicate identity or promotion semantics', () => {
+  const root = new THREE.Group();
+  const zones = m5bR1109PersistedTargetIds.map((id) => makeR1109PresenceZone(id));
+  zones[1].userData.physicalDiameterClaim = true;
+  const duplicate = makeR1109PresenceZone(m5bR1109PersistedTargetIds[0]);
+  root.add(...zones, duplicate);
+
+  const result = prepareM5BR1109PersistedZonePresentation(root);
+
+  expect(result.ready).toBe(false);
+  expect(result.duplicateTargetIds).toEqual([m5bR1109PersistedTargetIds[0]]);
+  expect(result.semanticViolationTargetIds).toEqual([m5bR1109PersistedTargetIds[1]]);
+  expect(result.semanticViolationCount).toBe(1);
+  expect(result.sourceTargetRenderableCount).toBe(6);
+  expect(result.targetRenderableCount).toBe(0);
+  expect([...zones, duplicate].every((zone) => zone.visible === false)).toBe(true);
+});
+
