@@ -95,7 +95,7 @@ test('M5A-Z2D R1090/R1091 handoff records the current R1091 publish gate without
   expect(docsContent).toContain('Publish WORK_TEST - m5a-z2d-r1090-well-top-ground-surface');
   expect(docsContent).toContain('Run `37965098816` failed at the machine publish PUT with HTTP 422');
   expect(docsContent).toContain('runtime identity mismatch');
-  expect(docsContent).toContain('retry only after this runtime identity patch is merged and deployed');
+  expect(docsContent).toContain('retry only after the runtime identity patch and this contract-expectation refresh are merged and deployed');
 });
 
 test('M5A-Z2D R1090 handoff keeps the next gate at authenticated render visibility', () => {
