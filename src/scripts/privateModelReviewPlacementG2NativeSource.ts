@@ -55,9 +55,6 @@ const sectionBetween = (paragraphs: string[], heading: RegExp): string[] | null 
   return paragraphs.slice(start, end);
 };
 
-const hasSingleParagraph = (section: string[], pattern: RegExp) =>
-  section.filter((text) => pattern.test(text)).length === 1;
-
 const currentDoor = (reviewTargetId: string): G2PlacementReviewTarget => ({
   reviewTargetId,
   sourceRecordId: reviewTargetId,
@@ -84,10 +81,11 @@ export const projectNativeG2CurrentDoorReadback = (
     typeof source.revisionId !== 'string' ||
     source.revisionId.trim().length === 0
   ) return null;
-  const paragraphs = [
-    ...getParagraphsFromBody(source.body),
-    ...(Array.isArray(source.tabs) ? getParagraphsFromTabs(source.tabs) : []),
-  ];
+  // Docs can expose legacy body and tab content together; consume only one
+  // source surface so the same G2 paragraph cannot become a false duplicate.
+  const paragraphs = Array.isArray(source.tabs) && source.tabs.length
+    ? getParagraphsFromTabs(source.tabs)
+    : getParagraphsFromBody(source.body);
   const review = sectionBetween(paragraphs,
     /^3D-D\/G2 p137J - D 1F kaksi käyttäjävahvistettua nykytilan ovea WORK_TEST-geometriaksi/);
   const reconciliation = sectionBetween(paragraphs,
