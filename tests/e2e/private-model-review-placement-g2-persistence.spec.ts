@@ -235,8 +235,7 @@ test('P137E requires the whole live door and R989 Themo evidence chain for any c
   const state = makeAdapter();
   const source = initialDocument();
   source.tabs[0].documentTab!.body!.content =
-    source.tabs[0].documentTab!.body!.content!.filter((item) =>
-      !item.paragraph?.elements?.[0]?.textRun?.content?.includes('R989 - D current Themo'));
+    lines.filter((line) => !line.includes('R989 - D current Themo')).map(single);
   state.setDocument(source);
   await expect(state.adapter.persist(draft()))
     .rejects.toThrow('G2_TARGET_EVIDENCE_NOT_VERIFIED');
@@ -244,8 +243,7 @@ test('P137E requires the whole live door and R989 Themo evidence chain for any c
 
   const noDoors = initialDocument();
   noDoors.tabs[0].documentTab!.body!.content =
-    noDoors.tabs[0].documentTab!.body!.content!.filter((item) =>
-      !item.paragraph?.elements?.[0]?.textRun?.content?.includes('3D-D/G2 p137N -'));
+    lines.filter((line) => !line.includes('3D-D/G2 p137N -')).map(single);
   state.setDocument(noDoors);
   await expect(state.adapter.persist(draft('D_THEMO_CURRENT_BATHROOM_01')))
     .rejects.toThrow('G2_TARGET_EVIDENCE_NOT_VERIFIED');
