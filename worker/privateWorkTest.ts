@@ -374,6 +374,16 @@ export const PRIVATE_WORK_TEST_CANDIDATES = [
     expectedSize: 3_201_932,
     expectedSha256: '59fad8cfab19ad6981f53c7969b2d9bd6f33161fe33de0fc23152e6ec38c029f',
   },
+  // P186F-X4 exact persisted successor: scene66 carries the corrected three-Themo WORK_TEST presentation.
+  // Physical Themo XY, wall host and current door clearance remain explicitly unverified.
+  {
+    id: 'p186f-x4-d-themo-door-plan-clear-work-assumption',
+    label: 'P186F-X4 D Themo door-plan-clear work assumption - WORK_TEST',
+    path: `${PRIVATE_WORK_TEST_PREFIX}/p186f-x4-d-themo-door-plan-clear-work-assumption.glb`,
+    objectKey: 'work-test/p186f-x4-d-themo-door-plan-clear-work-assumption.glb',
+    expectedSize: 3_228_624,
+    expectedSha256: '3089d0f58c23044aa5606d6e8a3306e8dcacaddbcc38961fa22a240e345fbb9f',
+  },
   // M5A viewer/release registration: exact persisted drainage topology presentation WORK_TEST.
   {
     id: 'm5a-drain-topology',
