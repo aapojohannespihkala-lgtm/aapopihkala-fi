@@ -192,8 +192,12 @@ test('P137E rejects readback mutation to original notes, height and no-promotion
   } } })).toBe(false);
   expect(verify({ ...expected, currentGeometry: true as false })).toBe(false);
   expect(verify({ ...expected, humanReview: 'PASS' as 'NOT_RUN' })).toBe(false);
-  expect(verify({ ...expected, resolution: { ...expected.resolution,
-    status: 'UNMAPPED' as typeof expected.resolution.status,
+  if (expected.resolution.status !== 'HOST_PROPOSED_WORK_TEST') {
+    throw new Error('Expected a usable wall-host proposal');
+  }
+  expect(verify({ ...expected, resolution: {
+    ...expected.resolution,
+    proposal: { ...expected.resolution.proposal, xM: 42 },
   } })).toBe(false);
 });
 
@@ -203,7 +207,7 @@ test('P137E readback normalizes object key order without relaxing exact values',
   const saved = JSON.parse(JSON.stringify(expected)) as typeof expected;
   const reversed = Object.fromEntries(
     Object.entries(saved).reverse(),
-  ) as typeof expected;
+  ) as unknown as typeof expected;
   expect(verifyPlacementReviewPersistenceReadback({
     expected, receipt, readback: { recordId: receipt.recordId, payload: reversed },
   })).toBe(true);
