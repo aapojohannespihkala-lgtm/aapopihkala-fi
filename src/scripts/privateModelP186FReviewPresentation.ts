@@ -324,6 +324,8 @@ export const prepareP186fReviewPresentation = (
 
   sceneRoot?.updateMatrixWorld?.(true);
   sceneRoot?.traverse?.((object: any) => {
+    // Repeated presentation passes must not reclassify viewer-only X4 halos as source objects.
+    if (object?.userData?.p186fX4VisibilityProxy === true) return;
     if (!isRenderable(object)) return;
     renderables.push(object);
     if (!isP186fTarget(object)) return;
@@ -340,6 +342,15 @@ export const prepareP186fReviewPresentation = (
   let contextRenderableCount = 0;
   let hiddenNonQuestionRenderableCount = 0;
   let realArchitectureContextRenderableCount = 0;
+  let x4VisibilityProxyCount = 0;
+  // Only the exact mixed X3/X4 three-room source scene gets a visual overlay.
+  // These halos do not represent measured device size, wall mounting, or as-built XY.
+  const isX4RoomSourceScene =
+    targets.length === p186fExpectedTargetCount &&
+    semanticViolationCount === 0 &&
+    [...expectedRoomNames].every((room) => roomCounts.get(room) === 1) &&
+    targets.filter((object) => object.userData?.Pass === p186fX4ReviewPass).length === 1 &&
+    targets.filter((object) => object.userData?.Pass === p186fX3PreservedPass).length === 2;
   const realArchitectureContextRequired = targets.some((object) =>
     p186fRealArchitecturePreferredPasses.has(String(object.userData?.Pass ?? '')),
   );
@@ -365,6 +376,53 @@ export const prepareP186fReviewPresentation = (
       p186fReviewRole: 'QUESTION_TARGET_80',
     };
     targetRenderableCount += 1;
+
+    if (isX4RoomSourceScene) {
+      // glTF LINES render at about one screen pixel in WebGL; add a small
+      // screen-legible, nonphysical proxy centered on the original source geometry.
+      let proxy = object.children?.find(
+        (child: any) => child.userData?.p186fX4VisibilityProxy === true,
+      );
+      if (!proxy) {
+        object.geometry?.computeBoundingBox?.();
+        const sourceBounds = object.geometry?.boundingBox;
+        if (!sourceBounds || sourceBounds.isEmpty()) {
+          throw new Error('P186F-X4 source target has no drawable bounds');
+        }
+        const sourceCenter = sourceBounds.getCenter(new THREE.Vector3());
+        if (![sourceCenter.x, sourceCenter.y, sourceCenter.z].every(Number.isFinite)) {
+          throw new Error('P186F-X4 source target center is invalid');
+        }
+        proxy = new THREE.Mesh(
+          new THREE.SphereGeometry(0.075, 12, 8),
+          new THREE.MeshBasicMaterial({
+            color: p186fReviewTargetColorHex,
+            transparent: true,
+            opacity: p186fReviewTargetOpacity,
+            depthTest: false,
+            depthWrite: false,
+            toneMapped: false,
+          }),
+        );
+        proxy.name = `P186F_X4_${String(object.userData?.roomAssignment).toUpperCase()}_VIEWER_ONLY_HALO`;
+        proxy.position.copy(sourceCenter);
+        proxy.renderOrder = 80;
+        proxy.userData = {
+          p186fX4VisibilityProxy: true,
+          presentationOnly: true,
+          workAssumption: true,
+          physicalThermostatGeometryClaim: false,
+          current: false,
+          Canonical: false,
+          asBuilt: false,
+          publishToCURRENT: false,
+          HUMAN_REVIEW: 'NOT_RUN',
+        };
+        object.add(proxy);
+      }
+      proxy.visible = true;
+      x4VisibilityProxyCount += 1;
+    }
 
     sceneRoot?.updateMatrixWorld?.(true);
     const objectBounds = new THREE.Box3().setFromObject(object);
@@ -429,6 +487,7 @@ export const prepareP186fReviewPresentation = (
 
   return {
     targetRenderableCount,
+    x4VisibilityProxyCount,
     expectedTargetRenderableCount: p186fExpectedTargetCount,
     contextRenderableCount,
     expectedContextRenderableCount: useRealArchitectureContext
