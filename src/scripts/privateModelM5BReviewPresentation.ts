@@ -674,7 +674,77 @@ const makeR1109TargetReviewVisible = (object: any, id: M5BR1109PersistedTargetId
   };
 };
 
+// Purely viewer-side locator. The persisted source-zone mesh and its G2 identity remain unchanged.
+const r1109CueFlag = 'm5bR1109SourceVisibilityCue';
+
+const removeR1109SourceVisibilityCues = (sceneRoot: any) => {
+  const cues: any[] = [];
+  sceneRoot?.traverse?.((object: any) => {
+    if (object?.userData?.[r1109CueFlag] === true) cues.push(object);
+  });
+  for (const cue of cues) {
+    cue.parent?.remove(cue);
+    cue.geometry?.dispose?.();
+    cue.material?.dispose?.();
+  }
+};
+
+const addR1109SourceVisibilityCues = (
+  sceneRoot: any,
+  targets: ReadonlyArray<{ id: M5BR1109PersistedTargetId; object: any }>,
+): number => {
+  sceneRoot?.updateMatrixWorld?.(true);
+  const anchors = targets.map(({ id, object }) => {
+    const box = new THREE.Box3().setFromObject(object);
+    const center = box.getCenter(new THREE.Vector3());
+    const world = new THREE.Vector3(center.x, box.max.y + 0.22, center.z);
+    return { id, world, valid: !box.isEmpty() && [world.x, world.y, world.z].every(Number.isFinite) };
+  });
+  // Never display a partial set of location cues.
+  if (anchors.length !== m5bR1109PersistedTargetIds.length || anchors.some(({ valid }) => !valid)) {
+    return 0;
+  }
+  for (const { id, world } of anchors) {
+    const cue = new THREE.Mesh(
+      new THREE.SphereGeometry(0.34, 14, 10),
+      new THREE.MeshBasicMaterial({
+        color: 0x00eaff,
+        transparent: true,
+        opacity: 0.95,
+        depthTest: false,
+        depthWrite: false,
+      }),
+    );
+    cue.name = `M5B_R1109_VIEWER_LOCATOR_${id}`;
+    cue.position.copy(sceneRoot.worldToLocal(world));
+    cue.renderOrder = 2300;
+    cue.frustumCulled = false;
+    cue.userData = {
+      [r1109CueFlag]: true,
+      viewerDerived: true,
+      presentationOnly: true,
+      workAssumption: true,
+      sourceG2IdCandidate: id,
+      m5bReviewVariant: 'R1109_PERSISTED_ZONES',
+      m5bReviewRole: 'R1109_VIEWER_ONLY_SOURCE_LOCATOR',
+      physicalDownspoutHostClaim: false,
+      exactXYClaim: false,
+      exactZClaim: false,
+      physicalRouteClaim: false,
+      physicalDiameterClaim: false,
+      currentGeometryClaim: false,
+      asBuiltClaim: false,
+      Canonical: false,
+      publishToCURRENT: false,
+      HUMAN_REVIEW: 'NOT_RUN',
+    };
+    sceneRoot.add(cue);
+  }
+  return anchors.length;
+};
+
 export const prepareM5BR1109PersistedZonePresentation = (sceneRoot: any) => {
+  removeR1109SourceVisibilityCues(sceneRoot);
   const targetSet = new Set<string>(m5bR1109PersistedTargetIds);
   const suppressSet = new Set<string>([
     ...m5bCurrentRouteStubIds,
@@ -688,7 +758,7 @@ export const prepareM5BR1109PersistedZonePresentation = (sceneRoot: any) => {
   let suppressedLegacyStormwaterCount = 0;
 
   sceneRoot?.traverse?.((object: any) => {
-    if (!isRenderable(object)) return;
+    if (!isRenderable(object) || object?.userData?.[r1109CueFlag] === true) return;
     const g2Id = String(object?.userData?.G2Id ?? object?.userData?.G2IdCandidate ?? '').trim();
 
     if (targetSet.has(g2Id)) {
@@ -750,11 +820,13 @@ export const prepareM5BR1109PersistedZonePresentation = (sceneRoot: any) => {
     duplicateTargetIds.length === 0 &&
     semanticViolationTargetIds.length === 0;
 
+  let viewerOnlyVisibilityCueCount = 0;
   if (ready) {
-    for (const id of m5bR1109PersistedTargetIds) {
-      const object = (foundById.get(id) ?? [])[0];
+    const sources = m5bR1109PersistedTargetIds.map((id) => ({ id, object: (foundById.get(id) ?? [])[0] }));
+    for (const { id, object } of sources) {
       if (object) makeR1109TargetReviewVisible(object, id);
     }
+    viewerOnlyVisibilityCueCount = addR1109SourceVisibilityCues(sceneRoot, sources);
   } else {
     for (const object of targetRenderables) {
       object.visible = false;
@@ -787,6 +859,7 @@ export const prepareM5BR1109PersistedZonePresentation = (sceneRoot: any) => {
     questionScope: m5bR1109ReviewQuestionScope,
     downspoutContext: m5bCurrentDownspoutContext,
     createdProxyCount: 0,
+    viewerOnlyVisibilityCueCount,
     usesPersistedSourceTargets: true,
   };
 };
