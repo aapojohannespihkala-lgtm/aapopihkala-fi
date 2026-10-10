@@ -152,7 +152,7 @@ const fakePointerCanvas = () => {
       isPrimary: options.isPrimary ?? true,
       stopImmediatePropagation: () => effects.push('stop'),
       preventDefault: () => effects.push('prevent'),
-    } as PointerEvent;
+    } as unknown as PointerEvent;
     handlers.get(type)?.(event);
     return effects;
   };
