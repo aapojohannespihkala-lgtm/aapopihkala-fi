@@ -9,7 +9,7 @@ import {
   placementG2DocumentId,
   resolvePlacementG2Context,
 } from './privateModelReviewPlacementG2Context';
-import { projectNativeG2CurrentDoorReadback } from './privateModelReviewPlacementG2NativeSource';
+import { readNativeG2CurrentPlacementTargets } from './privateModelReviewPlacementG2CurrentCombined';
 
 /**
  * SERVER-ONLY native Google Docs adapter for the EXISTING G2 document.
@@ -18,7 +18,8 @@ import { projectNativeG2CurrentDoorReadback } from './privateModelReviewPlacemen
  * until its independently authorised review gate has been implemented.
  *
  * This adapter does not add a second registry, G2 geometry or approval.
- * It appends one noncanonical WORK_TEST observation to the existing G2 doc,
+ * It validates the same-revision R989 Themos + p137J/p137N doors before
+ * appending one noncanonical WORK_TEST observation to the existing G2 doc,
  * guarded by the document revision and then verified by a separate read.
  */
 export type NativePlacementG2Document = {
@@ -129,7 +130,7 @@ const verifyTargetFromNativeSource = async (
     payload.asBuilt !== false
   ) return false;
 
-  const source = projectNativeG2CurrentDoorReadback(document);
+  const source = await readNativeG2CurrentPlacementTargets(async () => document);
   if (!source) return false;
   const selected = await resolvePlacementG2Context({
     targetId: payload.anchor?.targetId,
@@ -164,7 +165,7 @@ export const createNativeG2PlacementPersistenceAdapter = ({
   const readback = async (recordId: string): Promise<PersistedPlacementReviewRecord | null> => {
     if (!recordIdPattern.test(recordId)) return null;
     const document = await getDocument();
-    if (!document || !projectNativeG2CurrentDoorReadback(document)) return null;
+    if (!document || !(await readNativeG2CurrentPlacementTargets(async () => document))) return null;
     const record = readRecord(document, recordId);
     if (!record || !(await verifyTargetFromNativeSource(document, record.payload))) return null;
     return { recordId, payload: record.payload };
@@ -217,7 +218,7 @@ export const createNativeG2PlacementPersistenceAdapter = ({
     if (
       !after ||
       after.revisionId === before.revisionId ||
-      !projectNativeG2CurrentDoorReadback(after) ||
+      !(await readNativeG2CurrentPlacementTargets(async () => after)) ||
       !sameReview(payload, recordId, readRecord(after, recordId))
     ) throw new Error('G2_DURABLE_READBACK_MISMATCH');
 
