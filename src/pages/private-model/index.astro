@@ -2022,6 +2022,8 @@ const title = 'Private 3D viewer';
         m5aR3Z1cCandidateId,
         m5aR3Z1cReviewId,
         m5aR3Z1cSok1Sok2RelativeZReviewId,
+        m5aR1115CandidateId,
+        m5aR1115ReviewId,
         m5bCandidateId,
         m5bCurrentReviewId,
         m5bPlannedSok2ComparisonReviewId,
@@ -2048,6 +2050,7 @@ const title = 'Private 3D viewer';
         getUndrawableM5AZ2TargetKeys,
         getRequestedM5AZ2SystemCandidateId,
         isM5AZ2SystemReviewRequested,
+        selectM5AR1115ReviewScene,
       } from '../../scripts/privateModelM5AZ2SystemReviewRuntime';
 
       import {
@@ -8596,6 +8599,9 @@ const title = 'Private 3D viewer';
             candidate.id === p186dCandidateId && isP186dLightingReviewRequested();
           const isP184hApplianceOnP185cReview =
             candidate.id === p185cCandidateId && isP184hApplianceOnP185cReviewRequested();
+          const isM5AR1115Review =
+            candidate.id === m5aR1115CandidateId &&
+            isPrivateModelReviewRequested(window.location.search, m5aR1115ReviewId);
           const requestedM5aZ2SystemCandidateId =
             getRequestedM5AZ2SystemCandidateId(window.location.search);
           const isM5aZ2SystemReview =
@@ -8653,11 +8659,18 @@ const title = 'Private 3D viewer';
           const isP139adLocusWorkZReview =
             isP139abZReview && isP139adLocusWorkZReviewRequested();
 
+          let m5aR1115RuntimeState:
+            | ReturnType<typeof selectM5AR1115ReviewScene>['runtimeState']
+            | null = null;
           let m5bRuntimeState:
             | ReturnType<typeof createM5BReviewRuntimeState>
             | ReturnType<typeof createM5BR1109ReviewRuntimeState>
             | null = null;
-          if (isP186fX4ThemoRoomReview) {
+          if (isM5AR1115Review) {
+            const selectedReview = selectM5AR1115ReviewScene(gltf);
+            gltf.scene = selectedReview.scene;
+            m5aR1115RuntimeState = selectedReview.runtimeState;
+          } else if (isP186fX4ThemoRoomReview) {
             const reviewScene = gltf.scenes?.[p186fX4ReviewSceneIndex];
             const sourceScene = gltf?.parser?.json?.scenes?.[p186fX4ReviewSceneIndex];
             if (!reviewScene) {
@@ -9361,7 +9374,18 @@ const title = 'Private 3D viewer';
                     ? 'Z-review: vain Z-lähteistetty jätevesi'
                     : 'Locus kunnallistekniikka (WORK_TEST)';
 
-          if (m5bRuntimeState) {
+          if (m5aR1115RuntimeState) {
+            Object.assign(canvas.dataset, m5aR1115RuntimeState.dataset);
+            applyStandardViewPreset(m5aR1115RuntimeState.standardViewPreset);
+            refreshEdgeRendering(fullModelScene);
+            updateSize();
+            const cameraFocusApplied = focusM5AReviewCamera(m5aR1115RuntimeState.targetBounds);
+            canvas.dataset.m5aR1115ReviewCameraFocusApplied = String(cameraFocusApplied);
+            if (!cameraFocusApplied) {
+              throw new Error('M5A R1115 review target-bounds camera focus failed');
+            }
+            status.textContent = m5aR1115RuntimeState.statusText;
+          } else if (m5bRuntimeState) {
             Object.assign(canvas.dataset, m5bRuntimeState.dataset);
             applyStandardViewPreset(m5bRuntimeState.standardViewPreset);
             status.textContent = m5bRuntimeState.statusText;
