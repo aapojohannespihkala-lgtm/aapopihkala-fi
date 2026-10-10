@@ -118,6 +118,11 @@ export const m5bCurrentReviewId = 'm5b-roof-stormwater-current-review';
 export const m5bPlannedSok2ComparisonReviewId =
   'm5b-roof-stormwater-planned-sok2-comparison-review';
 
+// Technical one-link identity for a source-bound noncanonical planned annotation.
+// HUMAN_REVIEW remains NOT_RUN until a separate authenticated rendered gate.
+export const m5aR1115CandidateId = 'm5a-r1115-sok23-planned-raise-presence';
+export const m5aR1115ReviewId = `${m5aR1115CandidateId}-review`;
+
 export const m5bR1109CandidateId = 'm5b-r1109-five-downspout-presence-zones';
 export const m5bR1109ReviewId = `${m5bR1109CandidateId}-review`;
 
@@ -182,6 +187,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [m5aZ2R1090ReviewId]: m5aZ2R1090CandidateId,
   [m5bCurrentReviewId]: m5bCandidateId,
   [m5bPlannedSok2ComparisonReviewId]: m5bCandidateId,
+  [m5aR1115ReviewId]: m5aR1115CandidateId,
   [m5bR1109ReviewId]: m5bR1109CandidateId,
   [p184hApplianceOnP185cReviewId]: p185cCandidateId,
   [p185cX2ReviewId]: p185cX2CandidateId,
