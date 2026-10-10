@@ -59,7 +59,17 @@ const makeMesh = (name: string) => {
 };
 
 const makeTarget = (contract: (typeof roomContracts)[number]) => {
-  const mesh = makeMesh(`P186F_X4_${contract.room.toUpperCase()}_ANCHOR`);
+  // Match the original scene66 GL_LINES cross, not a solid object.
+  const mesh = new THREE.LineSegments(
+    new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-0.09, 0, 0),
+      new THREE.Vector3(0.09, 0, 0),
+      new THREE.Vector3(0, -0.09, 0),
+      new THREE.Vector3(0, 0.09, 0),
+    ]),
+    new THREE.LineBasicMaterial({ color: 0xffffff }),
+  );
+  mesh.name = `P186F_X4_${contract.room.toUpperCase()}_ANCHOR`;
   mesh.userData = {
     Pass: contract.pass,
     Canonical: false,
@@ -131,6 +141,55 @@ test('P186F-X4 scene66 mixed X3/X4 targets satisfy no-promotion presentation sem
   expect(presentation.realArchitectureContextRequired).toBe(true);
   expect(presentation.realArchitectureContextReady).toBe(false);
   expect(presentation.targetBounds).not.toBeNull();
+  expect(presentation.x4VisibilityProxyCount).toBe(3);
+  const targets = scene.children.filter((object) =>
+    object.userData?.representationKind === 'thermostatRoomPresentationAnchor',
+  );
+  expect(targets).toHaveLength(3);
+  for (const target of targets) {
+    const proxies = target.children.filter((child) =>
+      child.userData?.p186fX4VisibilityProxy === true,
+    );
+    expect(proxies).toHaveLength(1);
+    expect(proxies[0].visible).toBe(true);
+    expect(proxies[0].renderOrder).toBeGreaterThan(30);
+    expect(proxies[0].material.depthTest).toBe(false);
+    expect(proxies[0].material.depthWrite).toBe(false);
+    expect(proxies[0].material.opacity).toBe(0.8);
+    expect(proxies[0].userData.Canonical).toBe(false);
+    expect(proxies[0].userData.asBuilt).toBe(false);
+    expect(proxies[0].userData.publishToCURRENT).toBe(false);
+    expect(proxies[0].userData.HUMAN_REVIEW).toBe('NOT_RUN');
+  }
+  // Re-entering a review must not duplicate or hide the viewer-only proxies.
+  const again = prepareP186fReviewPresentation(scene, {
+    preferRealArchitectureContext: true,
+  });
+  expect(again.targetRenderableCount).toBe(3);
+  expect(again.x4VisibilityProxyCount).toBe(3);
+  for (const target of targets) {
+    expect(target.children.filter((child) => child.userData?.p186fX4VisibilityProxy)).toHaveLength(1);
+    expect(target.children[0]?.visible).toBe(true);
+  }
+});
+
+test('X4 visibility halos fail closed for incomplete scenes and legacy X2', () => {
+  const incomplete = new THREE.Group();
+  roomContracts.slice(0, 2).map(makeTarget).forEach((target) => incomplete.add(target));
+  const incompleteReview = prepareP186fReviewPresentation(incomplete);
+  expect(incompleteReview.x4VisibilityProxyCount).toBe(0);
+
+  const legacy = new THREE.Group();
+  roomContracts.map((contract) => {
+    const target = makeTarget(contract);
+    target.userData.Pass = 'P186F-X2';
+    target.userData.placementBasis = p186fX2PlacementBasis;
+    return target;
+  }).forEach((target) => legacy.add(target));
+  const legacyReview = prepareP186fReviewPresentation(legacy);
+  expect(legacyReview.targetRenderableCount).toBe(3);
+  expect(legacyReview.x4VisibilityProxyCount).toBe(0);
+  expect(legacy.children.every((object) => object.children.length === 0)).toBe(true);
 });
 
 test('P186F-X4 runtime fails closed on exact scene66 identity before applying the X4 review state', () => {
