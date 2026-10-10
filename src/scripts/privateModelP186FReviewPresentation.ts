@@ -8,6 +8,7 @@ export const p186fReviewContextColorHex = 0xe2e8f0;
 export const p186fMaintenanceDocumentId = '1W6iUJoqfkM0efZpmcneXeD8bqYlLUk0tQwWebmcHKcI';
 export const p186fFloorHeatingSourcePdfDriveId = '1vAyvAHdClqkXKIVNgKKUyOjMja-tzrok';
 export const p186fSchedulePdfDriveId = '1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP';
+export const p186fX4ControllerPlanPdfDriveId = '1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X';
 
 export const p186fBedroomWalkInContextNote =
   'Bedroom-ankkuri tarkoittaa Bedroom/vaatehuone-kontekstia: käyttäjän vahvistuksen mukaan Themo ohjaa makuuhuoneen lattialämmitystä, vaikka fyysinen termostaatti sijaitsee samassa huonekokonaisuudessa vaatehuoneen ja kulkumaisen tilarakenteen kautta.';
@@ -45,6 +46,15 @@ export const p186fReviewSourceContexts = [
     sourceLabel: 'Keskuskaavio.pdf',
     sourceHref: `https://drive.google.com/file/d/${p186fSchedulePdfDriveId}/view`,
     sourceRole: 'HISTORICAL_2015_GROUP_CONTEXT_ONLY',
+  },
+] as const;
+
+export const p186fX4ReviewSourceContexts = [
+  ...p186fReviewSourceContexts,
+  {
+    sourceLabel: 'P186F-X4 controller-plan source',
+    sourceHref: `https://drive.google.com/file/d/${p186fX4ControllerPlanPdfDriveId}/view`,
+    sourceRole: 'HISTORICAL_2015_CONTROLLER_PLAN_SYMBOL_XY_SOURCE_FOR_X4_WORK_ASSUMPTION',
   },
 ] as const;
 
