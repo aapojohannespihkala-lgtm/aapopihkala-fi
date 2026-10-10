@@ -427,6 +427,35 @@ const title = 'Private 3D viewer';
 
       .coordinate-panel[hidden] { display: none; }
 
+      .p137e-placement-panel {
+        position: absolute;
+        bottom: 118px;
+        left: 12px;
+        z-index: 4;
+        width: min(340px, calc(100% - 24px));
+        max-height: min(60vh, 440px);
+        overflow: auto;
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #c9cbc5;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 8px 28px rgba(25, 28, 25, 0.16);
+      }
+
+      .p137e-placement-panel[hidden],
+      .p137e-placement-panel section[hidden] { display: none; }
+
+      .p137e-placement-panel textarea {
+        display: block;
+        box-sizing: border-box;
+        width: 100%;
+        margin: 7px 0;
+        min-height: 72px;
+        resize: vertical;
+      }
+
+      .p137e-placement-panel button { margin: 5px 6px 4px 0; }
+
       .coordinate-title-row {
         display: flex;
         align-items: baseline;
@@ -1471,6 +1500,8 @@ const title = 'Private 3D viewer';
         <div class="interaction-tools" role="group" aria-label="Vuorovaikutustila">
           <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
           <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
+          <!-- P137E: disabled until Themo + drainage and G2 review release gates pass. -->
+          <button id="p137e-place-tool-button" type="button" aria-pressed="false" hidden disabled>Sijoita kohde</button>
         </div>
 
         <details id="model-menu" class="toolbar-menu source-menu">
@@ -1621,6 +1652,7 @@ const title = 'Private 3D viewer';
           </div>
           <div class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä</div>
         </aside>
+        <aside id="p137e-placement-panel-mount" class="p137e-placement-panel" aria-label="Sijoitushavainnon luonnos" hidden></aside>
         <aside id="height-scale" class="height-scale" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
           <div class="height-scale-title">YLIS-G1-LOCAL Z</div>
           <div id="height-scale-ticks" class="height-scale-ticks"></div>
@@ -1939,6 +1971,14 @@ const title = 'Private 3D viewer';
         setReviewPointerState,
       } from '../../scripts/privateModelReviewCoordinates';
       import {
+        createPlacementReviewPanel,
+        type PlacementReviewContext,
+      } from '../../scripts/privateModelReviewPlacementDraft';
+      import {
+        createPlacementReviewCoordinateBridge,
+        bindPlacementPlanPointerEvents,
+      } from '../../scripts/privateModelReviewPlacementBridge';
+      import {
         explicitFloorToken,
         findSourceNamedScene,
         resolveArchitecturalSemanticDescriptor,
@@ -2085,6 +2125,8 @@ const title = 'Private 3D viewer';
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
       const navigateToolButton = document.querySelector<HTMLButtonElement>('#navigate-tool-button');
       const selectionToolButton = document.querySelector<HTMLButtonElement>('#selection-tool-button');
+      const p137ePlacementButton = document.querySelector<HTMLButtonElement>('#p137e-place-tool-button');
+      const p137ePlacementMount = document.querySelector<HTMLElement>('#p137e-placement-panel-mount');
       const profileButton = document.querySelector<HTMLButtonElement>('#profile-button');
       const workTestSelect = document.querySelector<HTMLSelectElement>('#work-test-select');
       const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
@@ -2215,6 +2257,8 @@ const title = 'Private 3D viewer';
         !layersButton ||
         !navigateToolButton ||
         !selectionToolButton ||
+        !p137ePlacementButton ||
+        !p137ePlacementMount ||
         !profileButton ||
         !workTestSelect ||
         !workTestButton ||
@@ -2405,6 +2449,7 @@ const title = 'Private 3D viewer';
       let activeResearchPresetCustomized = false;
       let suppressPresetCustomization = false;
       let activePlanFloor: '1F' | '2F' | null = null;
+      let p137ePlacementBridge: ReturnType<typeof createPlacementReviewCoordinateBridge> | null = null;
       let activePlanFocusBounds: any = null;
       const dVisibilityBaseline = new Map<any, boolean>();
       let sourceSceneNames = new WeakMap<any, string>();
@@ -2763,12 +2808,14 @@ const title = 'Private 3D viewer';
           floor,
         });
         if (floorChanged) clearDCoordinateAnchor();
+        p137ePlacementBridge?.onViewerStateChange();
       };
 
       const deactivateDCoordinateReview = () => {
         dCoordinateGridGroup.visible = false;
         deactivateReviewCoordinatePanel({ canvas, coordinatePanel, coordinatePointer });
         clearDCoordinateAnchor();
+        p137ePlacementBridge?.onViewerStateChange();
       };
 
       const isP136BReviewEmphasis = (object: any) => {
@@ -3815,14 +3862,47 @@ const title = 'Private 3D viewer';
         selectionPanelController.clear();
       };
 
-      type ViewerToolMode = 'navigate' | 'select';
+      type ViewerToolMode = 'navigate' | 'select' | 'place';
       const setViewerToolMode = (mode: ViewerToolMode) => {
+        if (mode === 'place' && !p137ePlacementReleaseGate()) return;
         canvas.dataset.interactionMode = mode;
         navigateToolButton.setAttribute('aria-pressed', String(mode === 'navigate'));
         selectionToolButton.setAttribute('aria-pressed', String(mode === 'select'));
-        canvas.style.cursor = mode === 'select' ? 'crosshair' : '';
-        if (mode === 'navigate') clearSelection();
+        p137ePlacementButton.setAttribute('aria-pressed', String(mode === 'place'));
+        canvas.style.cursor = mode === 'select' || mode === 'place' ? 'crosshair' : '';
+        if (mode === 'navigate' || mode === 'place') clearSelection();
+        p137ePlacementBridge?.onViewerStateChange();
       };
+
+      // The Themo/drainage production activation gate has NOT been approved.
+      // Never enable this through query parameters, localStorage, or a guessed target ID.
+      const p137ePlacementReleaseGate = (): boolean => false;
+      let p137eTrustedReviewContext: PlacementReviewContext | null = null;
+      const p137ePanel = createPlacementReviewPanel({
+        mount: p137ePlacementMount,
+        // There is NO live G2 persistence adapter yet: hard fail, never return fake success.
+        persist: async () => { throw new Error('P137E_G2_WRITE_NOT_CONNECTED'); },
+        readback: async () => { throw new Error('P137E_G2_READBACK_NOT_CONNECTED'); },
+      });
+      p137ePlacementBridge = createPlacementReviewCoordinateBridge({
+        panel: p137ePanel,
+        viewer: {
+          canActivatePlacement: p137ePlacementReleaseGate,
+          getActivePlanFloor: () => activePlanFloor,
+          isPlanCameraActive: () => activeCamera === planCamera,
+          getInteractionMode: () => canvas.dataset.interactionMode as ViewerToolMode,
+          readPlanCoordinateAtClientPoint: (clientX, clientY) => {
+            const xy = dReviewCoordinateAtClientPoint(clientX, clientY);
+            return xy ? { xM: xy.xM, yM: xy.yM } : null;
+          },
+          renderReviewCrosshair: (clientX, clientY) => setDCoordinateAnchor(clientX, clientY),
+        },
+      });
+      // Captures only explicit placement-mode clicks; existing navigation/selection remains.
+      bindPlacementPlanPointerEvents({ canvas, bridge: p137ePlacementBridge });
+      p137ePlacementButton.hidden = true;
+      p137ePlacementButton.disabled = true;
+      p137ePlacementMount.hidden = true;
 
       const selectObject = (object: any) => {
         clearSelection();
@@ -10254,6 +10334,15 @@ const title = 'Private 3D viewer';
       layersPanel.addEventListener('input', markResearchPresetCustomized);
       navigateToolButton.addEventListener('click', () => setViewerToolMode('navigate'));
       selectionToolButton.addEventListener('click', () => setViewerToolMode('select'));
+      p137ePlacementButton.addEventListener('click', () => {
+        if (!p137ePlacementReleaseGate() || !p137eTrustedReviewContext || !activePlanFloor) return;
+        setViewerToolMode('place');
+        if (p137ePlacementBridge?.begin(p137eTrustedReviewContext) !== 'ACCEPTED') {
+          setViewerToolMode('navigate');
+          return;
+        }
+        p137ePlacementMount.hidden = false;
+      });
       clearSelectionButton.addEventListener('click', clearSelection);
       isolateSelectionButton.addEventListener('click', isolateSelectedObject);
       hideSelectionButton.addEventListener('click', hideSelectedObject);
