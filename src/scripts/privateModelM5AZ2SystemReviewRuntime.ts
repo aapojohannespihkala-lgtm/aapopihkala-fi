@@ -12,6 +12,8 @@ import {
   isM5AZ2SystemReviewId,
   m5aR1115CandidateId,
   m5aR1115ReviewId,
+  m5aZ2D1036CandidateId,
+  m5aZ2D1036ReviewId,
   m5aZ2LegacyCandidateId,
   m5aZ2LegacyReviewId,
   m5aZ2R1090CandidateId,
@@ -22,11 +24,13 @@ const reviewQueryKey = 'review';
 
 export const m5aZ2SystemReviewRuntimeCandidateIds = Object.freeze([
   m5aZ2LegacyCandidateId,
+  m5aZ2D1036CandidateId,
   m5aZ2R1090CandidateId,
 ]);
 
 export const m5aZ2SystemReviewRuntimeReviewIds = Object.freeze([
   m5aZ2LegacyReviewId,
+  m5aZ2D1036ReviewId,
   m5aZ2R1090ReviewId,
 ]);
 
