@@ -141,3 +141,51 @@ test('P137E rejects incorrect G2 document, malformed revision and untrusted reco
   expect(await state.adapter.readback('P137E_G2_bad')).toBeNull();
   expect(state.writes).toHaveLength(0);
 });
+
+test('P137E accepts the real G2 connector flattened tabId/body readback and verifies persisted bytes', async () => {
+  // The live G2 get_document connector presents {tabId, body}, whereas raw
+  // Google Docs REST presents {tabProperties, documentTab}. Both are one tab.
+  let document: NativePlacementG2Document = {
+    documentId: placementG2DocumentId,
+    revisionId: 'LIVE_FLATTENED_REV_1',
+    tabs: [{ tabId: 't.0', body: { content: lines.map(single) } }],
+  };
+  const writes: unknown[] = [];
+  const adapter = createNativeG2PlacementPersistenceAdapter({
+    getDocument: async () => document,
+    batchUpdateDocument: async (args) => {
+      writes.push(args);
+      expect(args.documentId).toBe(placementG2DocumentId);
+      expect(args.writeControl.requiredRevisionId).toBe('LIVE_FLATTENED_REV_1');
+      expect(args.requests[0].insertText.endOfSegmentLocation.tabId).toBe('t.0');
+      document.tabs[0].body?.content?.push(single(args.requests[0].insertText.text.trim()));
+      document = { ...document, revisionId: 'LIVE_FLATTENED_REV_2' };
+      return {};
+    },
+    nextRecordId: () => recordId,
+  });
+  const payload = draft();
+  expect(await adapter.persist(payload)).toEqual({ status: 'PERSISTED_TO_EXISTING_G2', recordId });
+  expect(writes).toHaveLength(1);
+  expect(await adapter.readback(recordId)).toEqual({ recordId, payload });
+});
+
+test('P137E rejects inconsistent and missing G2 tab identities without writing', async () => {
+  const state = makeAdapter();
+  const source = initialDocument();
+  state.setDocument({
+    ...source,
+    tabs: [{
+      tabId: 't.1',
+      tabProperties: { tabId: 't.0' },
+      documentTab: source.tabs[0].documentTab,
+    }],
+  });
+  await expect(state.adapter.persist(draft())).rejects.toThrow('G2_TARGET_EVIDENCE_NOT_VERIFIED');
+  state.setDocument({
+    ...source,
+    tabs: [{ documentTab: source.tabs[0].documentTab }],
+  });
+  await expect(state.adapter.persist(draft())).rejects.toThrow('G2_TARGET_EVIDENCE_NOT_VERIFIED');
+  expect(state.writes).toHaveLength(0);
+});
