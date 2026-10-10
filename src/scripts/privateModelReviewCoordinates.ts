@@ -97,6 +97,8 @@ export type TargetBoundReviewAnchor = {
   xM: number;
   yM: number;
   representationKind: 'HUMAN_REVIEW_ANCHOR';
+  /** The click denotes the object's centre, unless the free note explicitly says otherwise. */
+  targetPoint: 'OBJECT_CENTER';
   approximate: true;
   humanReview: 'NOT_RUN';
   exactXY: false;
@@ -144,6 +146,8 @@ export type ReviewPlacementResolution =
         xM: number;
         yM: number;
         perpendicularResidualM: number;
+        /** Hint from clicked side of approved wall centreline; not a verified room or face. */
+        wallSideHint: 'X_NEGATIVE' | 'X_POSITIVE' | 'Y_NEGATIVE' | 'Y_POSITIVE' | null;
         coordinateFrame: 'YLIS-G1-LOCAL';
         exactXY: false;
         currentGeometry: false;
@@ -175,6 +179,7 @@ export const createTargetBoundReviewAnchor = ({
     xM: coordinate.xM,
     yM: coordinate.yM,
     representationKind: 'HUMAN_REVIEW_ANCHOR',
+    targetPoint: 'OBJECT_CENTER',
     approximate: true,
     humanReview: 'NOT_RUN',
     exactXY: false,
@@ -252,6 +257,14 @@ export const resolveTargetBoundReviewAnchor = (
   }
   const nearest = nearWall[0];
   const { host } = nearest;
+  const across = host.axis === 'X_FIXED' ? anchor.xM : anchor.yM;
+  const signedOffset = across - host.fixedM;
+  // Do not guess the side if the click lies on the wall centreline within 5 mm.
+  const wallSideHint = Math.abs(signedOffset) <= 0.005
+    ? null
+    : host.axis === 'X_FIXED'
+      ? (signedOffset > 0 ? 'X_POSITIVE' : 'X_NEGATIVE')
+      : (signedOffset > 0 ? 'Y_POSITIVE' : 'Y_NEGATIVE');
   return {
     status: 'HOST_PROPOSED_WORK_TEST',
     reason: null,
@@ -262,11 +275,95 @@ export const resolveTargetBoundReviewAnchor = (
       xM: host.axis === 'X_FIXED' ? host.fixedM : anchor.xM,
       yM: host.axis === 'Y_FIXED' ? host.fixedM : anchor.yM,
       perpendicularResidualM: nearest.residualM,
+      wallSideHint,
       coordinateFrame: 'YLIS-G1-LOCAL',
       exactXY: false,
       currentGeometry: false,
       canonical: false,
       asBuilt: false,
     },
+  };
+};
+
+
+/**
+ * Minimal free-text review observation. Keep the user's original words alongside
+ * any conservative numeric interpretation. No floor datum => no physical Z.
+ */
+export type ReviewFreeNoteHeight =
+  | { status: 'NOT_SPECIFIED' | 'AMBIGUOUS'; aboveFinishedFloorM: null; zM: null }
+  | { status: 'FLOOR_RELATIVE_PARSED'; aboveFinishedFloorM: number; zM: null };
+
+export type TargetBoundReviewObservation = {
+  anchor: TargetBoundReviewAnchor;
+  noteRaw: string;
+  height: ReviewFreeNoteHeight;
+  targetPoint: 'OBJECT_CENTER';
+  interpretation: 'WORK_TEST_ONLY';
+  verifiedWallSide: false;
+  exactZ: false;
+};
+
+const noteHeightAmount = String.raw`(-?\d+(?:[.,]\d+)?)\s*(cm|m)\b`;
+const heightWithLabel = new RegExp(
+  String.raw`\b(?:korkeus|keskipisteen\s+korkeus)\s*(?:on\s+|[:=]\s*)?` + noteHeightAmount,
+  'gi',
+);
+const anyQuantity = new RegExp(noteHeightAmount, 'gi');
+
+const toFloorHeight = (amount: string, unit: string): number | null => {
+  const value = Number(amount.replace(',', '.')) * (unit.toLowerCase() === 'cm' ? 0.01 : 1);
+  // Limit to a conservative indoor review range. This is not a floor/ceiling fact.
+  return Number.isFinite(value) && value >= 0 && value <= 10 ? value : null;
+};
+
+/**
+ * Explicitly labelled height wins over unrelated dimensions. A single '120 cm'
+ * shorthand is a floor-relative centre height for D interior objects.
+ * Ambiguous/multiple candidate heights and underground/depth contexts fail closed.
+ */
+export const parseReviewFreeNoteHeight = (noteRaw: string): ReviewFreeNoteHeight => {
+  const unresolved = (status: 'NOT_SPECIFIED' | 'AMBIGUOUS'): ReviewFreeNoteHeight =>
+    ({ status, aboveFinishedFloorM: null, zM: null });
+  if (typeof noteRaw !== 'string' || noteRaw.length > 2000) return unresolved('AMBIGUOUS');
+  const undergroundOrDepth = /\b(?:maanpinnan|syvyys|syvyyttä|halkaisija|putken\s+syvyys)\b/i.test(noteRaw);
+  if (undergroundOrDepth) return unresolved('NOT_SPECIFIED');
+
+  const labelled = [...noteRaw.matchAll(heightWithLabel)];
+  const quantities = [...noteRaw.matchAll(anyQuantity)];
+  if (labelled.length > 1) return unresolved('AMBIGUOUS');
+
+  let chosen: RegExpMatchArray | undefined;
+  if (labelled.length === 1) {
+    chosen = labelled[0];
+  } else if (quantities.length === 1) {
+    const clearlyFloorHeight = /\b(?:lattiasta|lattiapinnasta|valmiista\s+lattiasta|lattian\s+pinnasta)\b/i.test(noteRaw);
+    const loneHeight = /^\s*(?:noin\s+|n\.\s*)?-?\d+(?:[.,]\d+)?\s*(?:cm|m)\b/i.test(noteRaw);
+    const horizontalDimension = /\b(?:vasemmalle|oikealle|leveys|pituus|etäisyys|seinää\s+pitkin)\b/i.test(noteRaw);
+    if ((clearlyFloorHeight || loneHeight) && !horizontalDimension) chosen = quantities[0];
+  } else if (quantities.length > 1) {
+    return unresolved('AMBIGUOUS');
+  }
+  if (!chosen) return unresolved('NOT_SPECIFIED');
+  const amount = labelled.length === 1 ? chosen[1] : chosen[1];
+  const unit = chosen[2];
+  const aboveFinishedFloorM = toFloorHeight(amount, unit);
+  if (aboveFinishedFloorM === null) return unresolved('AMBIGUOUS');
+  return { status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM, zM: null };
+};
+
+export const createTargetBoundReviewObservation = (
+  anchor: TargetBoundReviewAnchor,
+  noteRaw: string,
+): TargetBoundReviewObservation | null => {
+  if (typeof noteRaw !== 'string' || noteRaw.length > 2000) return null;
+  return {
+    anchor,
+    noteRaw,
+    height: parseReviewFreeNoteHeight(noteRaw),
+    targetPoint: 'OBJECT_CENTER',
+    interpretation: 'WORK_TEST_ONLY',
+    verifiedWallSide: false,
+    exactZ: false,
   };
 };
