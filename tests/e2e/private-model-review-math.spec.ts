@@ -74,12 +74,12 @@ test('P137E target anchor preserves clicked D1F XY and remains non-current and n
     hostApprovalEvidenceId: approvedHost.approvalEvidenceId,
     xM: 3.235,
     yM: 5.072,
-    perpendicularResidualM: 0.009,
     exactXY: false,
     currentGeometry: false,
     canonical: false,
     asBuilt: false,
   });
+  expect(resolved.proposal?.perpendicularResidualM).toBeCloseTo(0.009, 6);
   expect(resolved.anchor.yM).toBe(5.063);
 });
 
@@ -161,7 +161,7 @@ test('P137E never snaps to an opening, distant wall, or ambiguous intersecting h
     g2Id: 'G2_CROSSING',
     approvalEvidenceId: 'OTHER_APPROVAL',
     axis: 'X_FIXED',
-    fixedM: 3.235,
+    fixedM: 3.244,
     startM: 4.9,
     endM: 5.4,
     openings: [],
