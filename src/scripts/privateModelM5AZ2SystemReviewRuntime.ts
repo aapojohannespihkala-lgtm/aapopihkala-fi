@@ -195,3 +195,19 @@ export const createM5AR1115ReviewRuntimeState = (
       `SOK2/SOK3 korotustarve - WORK_TEST / persisted markers 2/2 / targets 80 % / context 20 % / viewer scale ${presentation.viewerMarkerScale.toFixed(2)}x / scene ${m5aR1115SceneIndex} / HUMAN_REVIEW NOT_RUN`,
   };
 };
+
+
+export const m5aR1115ExpectedSceneName =
+  'M5A R1115 TWO SOK PLANNED WELL RAISE PRESENCE (UNKNOWN HEIGHT) WORK_TEST';
+
+export const selectM5AR1115ReviewScene = (gltf: any) => {
+  const scene = gltf?.scenes?.[m5aR1115SceneIndex];
+  if (!scene) throw new Error('M5A R1115 review scene 64 missing');
+  if (String(scene.name ?? '') !== m5aR1115ExpectedSceneName) {
+    throw new Error('M5A R1115 review scene identity mismatch');
+  }
+
+  const presentation = prepareM5AR1115PlannedRaiseReviewPresentation(scene);
+  const runtimeState = createM5AR1115ReviewRuntimeState(presentation);
+  return { scene, presentation, runtimeState };
+};
