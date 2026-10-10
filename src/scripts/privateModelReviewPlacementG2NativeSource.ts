@@ -50,7 +50,7 @@ const sectionBetween = (paragraphs: string[], heading: RegExp): string[] | null 
   const start = positions[0];
   let end = paragraphs.length;
   for (let i = start + 1; i < paragraphs.length; i++) {
-    if (/^3D-D\/G2\s+p\d+/i.test(paragraphs[i])) { end = i; break; }
+    if (/^(?:3D-D\/G2\s+p\d+|(?:G2\s+)?R\d+\s+-\s+)/i.test(paragraphs[i])) { end = i; break; }
   }
   return paragraphs.slice(start, end);
 };
