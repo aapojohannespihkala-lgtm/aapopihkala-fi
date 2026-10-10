@@ -84,6 +84,7 @@ const validatedHosts = (
       !Array.isArray(h.openings)
     ) continue;
     if (seen.has(h.g2Id)) continue;
+    if (h.openings.some((o) => !o || typeof o.startM !== 'number' || typeof o.endM !== 'number' || !Number.isFinite(o.startM) || !Number.isFinite(o.endM))) continue;
     const openings = [...h.openings].sort((a, b) => a.startM - b.startM);
     if (openings.some((o, i) =>
       !o || !Number.isFinite(o.startM) || !Number.isFinite(o.endM) ||
