@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
   buildPlacementReviewDraft,
+  verifyPlacementReviewPersistenceReadback,
   type PlacementReviewContext,
 } from '../../src/scripts/privateModelReviewPlacementDraft';
 
@@ -130,4 +131,80 @@ test('P137E refuses oversized free notes rather than truncating review evidence 
     noteRaw: 'a'.repeat(2001),
   });
   expect(result).toEqual({ status: 'INVALID_INPUT', payload: null });
+});
+
+
+const expectedReviewHandoff = () => {
+  const result = buildPlacementReviewDraft({
+    context: d1f,
+    coordinate: { xM: 3.235, yM: 5.063 },
+    noteRaw: '120 cm lattiasta. Bedroomin puolella seinää.',
+  });
+  if (!result.payload) throw new Error('Expected valid placement draft');
+  return result.payload;
+};
+
+test('P137E G2 save requires matching durable readback, not just an optimistic receipt', () => {
+  const expected = expectedReviewHandoff();
+  const receipt = { status: 'PERSISTED_TO_EXISTING_G2' as const, recordId: 'G2_REVIEW_001' };
+  expect(verifyPlacementReviewPersistenceReadback({
+    expected,
+    receipt,
+    readback: { recordId: 'G2_REVIEW_001', payload: expected },
+  })).toBe(true);
+  expect(verifyPlacementReviewPersistenceReadback({ expected, receipt, readback: null }))
+    .toBe(false);
+  expect(verifyPlacementReviewPersistenceReadback({
+    expected, receipt,
+    readback: { recordId: 'G2_OTHER', payload: expected },
+  })).toBe(false);
+  expect(verifyPlacementReviewPersistenceReadback({
+    expected,
+    receipt: { ...receipt, recordId: ' ' },
+    readback: { recordId: ' ', payload: expected },
+  })).toBe(false);
+});
+
+test('P137E rejects readback changes to clicked XY and target/floor identity', () => {
+  const expected = expectedReviewHandoff();
+  const receipt = { status: 'PERSISTED_TO_EXISTING_G2' as const, recordId: 'G2_REVIEW_001' };
+  const verify = (payload: typeof expected) => verifyPlacementReviewPersistenceReadback({
+    expected, receipt, readback: { recordId: receipt.recordId, payload },
+  });
+  expect(verify({ ...expected, anchor: { ...expected.anchor, xM: 3.236 } })).toBe(false);
+  expect(verify({ ...expected, anchor: { ...expected.anchor, targetId: 'OTHER' } })).toBe(false);
+  expect(verify({ ...expected, anchor: { ...expected.anchor, floor: '2F' } })).toBe(false);
+  expect(verify({ ...expected, observation: {
+    ...expected.observation, anchor: { ...expected.observation.anchor, yM: 5.072 },
+  } })).toBe(false);
+});
+
+test('P137E rejects readback mutation to original notes, height and no-promotion flags', () => {
+  const expected = expectedReviewHandoff();
+  const receipt = { status: 'PERSISTED_TO_EXISTING_G2' as const, recordId: 'G2_REVIEW_002' };
+  const verify = (payload: typeof expected) => verifyPlacementReviewPersistenceReadback({
+    expected, receipt, readback: { recordId: receipt.recordId, payload },
+  });
+  expect(verify({ ...expected, observation: { ...expected.observation, noteRaw: '90 cm' } }))
+    .toBe(false);
+  expect(verify({ ...expected, observation: { ...expected.observation, height: {
+    status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM: 0.9, zM: null,
+  } } })).toBe(false);
+  expect(verify({ ...expected, currentGeometry: true as false })).toBe(false);
+  expect(verify({ ...expected, humanReview: 'PASS' as 'NOT_RUN' })).toBe(false);
+  expect(verify({ ...expected, resolution: { ...expected.resolution,
+    status: 'UNMAPPED' as typeof expected.resolution.status,
+  } })).toBe(false);
+});
+
+test('P137E readback normalizes object key order without relaxing exact values', () => {
+  const expected = expectedReviewHandoff();
+  const receipt = { status: 'PERSISTED_TO_EXISTING_G2' as const, recordId: 'G2_REVIEW_003' };
+  const saved = JSON.parse(JSON.stringify(expected)) as typeof expected;
+  const reversed = Object.fromEntries(
+    Object.entries(saved).reverse(),
+  ) as typeof expected;
+  expect(verifyPlacementReviewPersistenceReadback({
+    expected, receipt, readback: { recordId: receipt.recordId, payload: reversed },
+  })).toBe(true);
 });
