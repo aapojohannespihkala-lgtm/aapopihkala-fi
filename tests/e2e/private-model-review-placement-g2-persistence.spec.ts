@@ -13,6 +13,13 @@ const lines = [
   '3D-D/G2 p137N - D 1F A/B historical/source-ID reconciliation 2026-09-29',
   'Tila: PASS_NEGATIVE_SOURCE_ID_RECONCILIATION / KEEP_USER_CURRENT_IDENTITIES / HUMAN_REVIEW_IN_PROGRESS.',
   'Johtopäätös p137I-C0:n mukaan: Historiallista G2_DOOR-ID:tä ei luoda eikä 7/7 source-ID-joukkoa muuteta. P137J:n pysyvät `D1F_USER_CURRENT_DOOR_A/B` reviewDoorId:t säilyvät current-only identiteetteinä.',
+  'R989 - D current Themo room/group provenance - 8.10.2026',
+  'Tila: PASS_CURRENT_INSTALLATION_ROOM_BINDING / HISTORICAL_GROUP_CONTEXT_BOUND / NO_GEOMETRY_MUTATION / NO_PROMOTION.',
+  'Current installation evidence: `Ylisrinne - huollon ja ylläpidon seuranta` vahvistaa käyttäjän ilmoituksella, että kaikki 3 x Themo-lattialämmitystermostaatti asennettiin 7.10.2026. Käyttäjä vahvisti 8.10.2026 myös laitteiden huonenimien olevan oikein: Bathroom, Bedroom ja Lobby.',
+  'Loogiset nykylaite-identiteetit tulevaa tietomallikulutusta varten: `D_THEMO_CURRENT_BATHROOM_01` = Themo / Bathroom; `D_THEMO_CURRENT_BEDROOM_01` = Themo / Bedroom; `D_THEMO_CURRENT_LOBBY_01` = Themo / Lobby. Näillä identiteeteillä on `currentInstallationEvidence=true` ja `roomAssignmentEvidence=USER_CONFIRMED`, mutta ei fyysistä pistekoordinaattia eikä 3D-laitegeometriaa.',
+  'Historiallinen ryhmäkonteksti peritään muuttamatta G2 r791/r886 -evidenssistä: Bathroom -> source component C -> `sourceGroupKey=10.2`; Bedroom -> A -> `sourceGroupKey=10.3`; Lobby -> B -> `sourceGroupKey=10.1`.',
+  'No-promotion / materialisointiraja: `exactCurrentXYClaim=false`, `exactZClaim=false`, `deviceGeometryClaim=false`, `physicalCableRouteClaim=false`, `continuousCableTopologyClaim=false`, `currentGeometryClaim=false`, `asBuilt=false`, `canonical=false`, `publishToCURRENT=false` ja `HUMAN_REVIEW=NOT_RUN`.',
+  'R999 - M5B-Z2R persisted registration / independent raw QA',
 ];
 const single = (content: string) => ({ paragraph: { elements: [{ textRun: { content: content + '\n' } }] } });
 const initialDocument = (): NativePlacementG2Document => ({
@@ -187,5 +194,60 @@ test('P137E rejects inconsistent and missing G2 tab identities without writing',
     tabs: [{ documentTab: source.tabs[0].documentTab }],
   });
   await expect(state.adapter.persist(draft())).rejects.toThrow('G2_TARGET_EVIDENCE_NOT_VERIFIED');
+  expect(state.writes).toHaveLength(0);
+});
+
+test('P137E native adapter persists all three source-backed CURRENT Themo observations with exact independent readback', async () => {
+  for (const targetId of [
+    'D_THEMO_CURRENT_BATHROOM_01',
+    'D_THEMO_CURRENT_BEDROOM_01',
+    'D_THEMO_CURRENT_LOBBY_01',
+  ]) {
+    const state = makeAdapter();
+    const payload = draft(targetId);
+    expect(await state.adapter.persist(payload)).toEqual({
+      status: 'PERSISTED_TO_EXISTING_G2', recordId,
+    });
+    expect(state.writes).toHaveLength(1);
+    expect(await state.adapter.readback(recordId)).toEqual({ recordId, payload });
+    expect(payload.anchor.targetId).toBe(targetId);
+    expect(payload.currentGeometry).toBe(false);
+    expect(payload.canonical).toBe(false);
+    expect(payload.asBuilt).toBe(false);
+  }
+});
+
+test('P137E rejects superseded Themo marker IDs and historical circuit IDs without G2 write', async () => {
+  const state = makeAdapter();
+  for (const obsolete of [
+    'D_THEMO_BATHROOM_CURRENT_01',
+    'D_THEMO_BEDROOM_CURRENT_01',
+    'D_THEMO_LOBBY_CURRENT_01',
+    'G2_ELECTRIC_GROUP_10_2',
+  ]) {
+    await expect(state.adapter.persist(draft(obsolete)))
+      .rejects.toThrow('G2_TARGET_EVIDENCE_NOT_VERIFIED');
+  }
+  expect(state.writes).toHaveLength(0);
+});
+
+test('P137E requires the whole live door and R989 Themo evidence chain for any current placement', async () => {
+  const state = makeAdapter();
+  const source = initialDocument();
+  source.tabs[0].documentTab!.body!.content =
+    source.tabs[0].documentTab!.body!.content!.filter((item) =>
+      !item.paragraph?.elements?.[0]?.textRun?.content?.includes('R989 - D current Themo'));
+  state.setDocument(source);
+  await expect(state.adapter.persist(draft()))
+    .rejects.toThrow('G2_TARGET_EVIDENCE_NOT_VERIFIED');
+  expect(state.writes).toHaveLength(0);
+
+  const noDoors = initialDocument();
+  noDoors.tabs[0].documentTab!.body!.content =
+    noDoors.tabs[0].documentTab!.body!.content!.filter((item) =>
+      !item.paragraph?.elements?.[0]?.textRun?.content?.includes('3D-D/G2 p137N -'));
+  state.setDocument(noDoors);
+  await expect(state.adapter.persist(draft('D_THEMO_CURRENT_BATHROOM_01')))
+    .rejects.toThrow('G2_TARGET_EVIDENCE_NOT_VERIFIED');
   expect(state.writes).toHaveLength(0);
 });
