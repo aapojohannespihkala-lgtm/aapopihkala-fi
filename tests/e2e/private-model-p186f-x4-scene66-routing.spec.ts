@@ -153,9 +153,10 @@ test('P186F-X4 scene66 mixed X3/X4 targets satisfy no-promotion presentation sem
     expect(proxies).toHaveLength(1);
     expect(proxies[0].visible).toBe(true);
     expect(proxies[0].renderOrder).toBeGreaterThan(30);
-    expect(proxies[0].material.depthTest).toBe(false);
-    expect(proxies[0].material.depthWrite).toBe(false);
-    expect(proxies[0].material.opacity).toBe(0.8);
+    const proxyMaterial = (proxies[0] as any).material;
+    expect(proxyMaterial.depthTest).toBe(false);
+    expect(proxyMaterial.depthWrite).toBe(false);
+    expect(proxyMaterial.opacity).toBe(0.8);
     expect(proxies[0].userData.Canonical).toBe(false);
     expect(proxies[0].userData.asBuilt).toBe(false);
     expect(proxies[0].userData.publishToCURRENT).toBe(false);
