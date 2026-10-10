@@ -144,7 +144,7 @@ test('P186F-X4 runtime fails closed on exact scene66 identity before applying th
   expect(runtime).toContain('Number(reviewScene.userData?.workTestSceneIndex) !== p186fX4ReviewSceneIndex');
   expect(runtime).toContain("throw new Error('P186F-X4 scene66 identity mismatch')");
   expect(runtime).toContain('gltf.scene = reviewScene;');
-  expect(runtime).toContain("isP186fX4ThemoRoomReview ? 'X4'");
+  expect(runtime).toContain("applyP186fReviewState('X4')");
   expect(runtime).toContain("p186fHumanReview: 'NOT_RUN'");
   expect(p186fX4ControllerPlanPdfDriveId).toBe('1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X');
   expect(runtime).toContain('p186fX4ControllerPlanPdfDriveId = p186fX4ControllerPlanPdfDriveId');
