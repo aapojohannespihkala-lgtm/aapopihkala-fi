@@ -25,6 +25,8 @@ export type NativePlacementG2Document = {
   documentId: string;
   revisionId: string;
   tabs: Array<{
+    /** Raw Google Docs tabs use tabProperties.tabId; connected readback can flatten it. */
+    tabId?: string;
     tabProperties?: { tabId?: string };
     documentTab?: { body?: { content?: Array<{ paragraph?: { elements?: Array<{ textRun?: { content?: unknown } }> } }> } };
     body?: { content?: Array<{ paragraph?: { elements?: Array<{ textRun?: { content?: unknown } }> } }> };
@@ -54,7 +56,11 @@ const paragraphsInTab = (doc: NativePlacementG2Document | null): {
   // No unverified tab or scope guessing: single source tab as in current G2.
   if (!Array.isArray(doc.tabs) || doc.tabs.length !== 1) return null;
   const tab = doc.tabs[0];
-  const tabId = tab.tabProperties?.tabId;
+  const nativeId = tab.tabProperties?.tabId;
+  const flattenedId = tab.tabId;
+  // Fail closed if two differently identified tabs were accidentally joined.
+  if (nativeId !== undefined && flattenedId !== undefined && nativeId !== flattenedId) return null;
+  const tabId = nativeId ?? flattenedId;
   if (typeof tabId !== 'string' || !tabId.trim()) return null;
   const body = tab.documentTab?.body ?? tab.body;
   if (!Array.isArray(body?.content)) return null;
