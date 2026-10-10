@@ -8,6 +8,7 @@ import {
   p186fExpectedTargetCount,
   p186fX2PlacementBasis,
   p186fX3PreservedPass,
+  p186fX4ControllerPlanPdfDriveId,
   p186fX4PlacementBasis,
   p186fX4ReviewPass,
   p186fX4ReviewSceneIndex,
@@ -145,6 +146,8 @@ test('P186F-X4 runtime fails closed on exact scene66 identity before applying th
   expect(runtime).toContain('gltf.scene = reviewScene;');
   expect(runtime).toContain("isP186fX4ThemoRoomReview ? 'X4'");
   expect(runtime).toContain("p186fHumanReview: 'NOT_RUN'");
+  expect(p186fX4ControllerPlanPdfDriveId).toBe('1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X');
+  expect(runtime).toContain('p186fX4ControllerPlanPdfDriveId = p186fX4ControllerPlanPdfDriveId');
   expect(runtime).toContain("p186fCanonical: 'false'");
   expect(runtime).toContain("p186fPublishToCurrent: 'false'");
 });
