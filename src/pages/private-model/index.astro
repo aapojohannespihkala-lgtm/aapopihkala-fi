@@ -1844,10 +1844,12 @@ const title = 'Private 3D viewer';
         p186fReviewSourceLimit,
         p186fReviewTargetOpacity,
         p186fSchedulePdfDriveId,
+        p186fX4ControllerPlanPdfDriveId,
         p186fX4ReviewPass,
         p186fX4ReviewQuestionText,
         p186fX4ReviewSceneIndex,
         p186fX4ReviewSceneName,
+        p186fX4ReviewSourceContexts,
         p186fX4ReviewSourceLimit,
         prepareP186fReviewPresentation,
       } from '../../scripts/privateModelP186FReviewPresentation';
@@ -5472,6 +5474,11 @@ const title = 'Private 3D viewer';
       const setP186fSourceContextVisible = (
         visible: boolean,
         sourceLimit: string = p186fReviewSourceLimit,
+        sourceContexts: readonly {
+          sourceLabel: string;
+          sourceHref: string;
+          sourceRole: string;
+        }[] = p186fReviewSourceContexts,
       ) => {
         if (!p186fSourceContextPanel) return;
         p186fSourceContextPanel.hidden = !visible;
@@ -5483,6 +5490,7 @@ const title = 'Private 3D viewer';
           delete canvas.dataset.p186fMaintenanceDocumentId;
           delete canvas.dataset.p186fFloorHeatingSourcePdfDriveId;
           delete canvas.dataset.p186fSchedulePdfDriveId;
+          delete canvas.dataset.p186fX4ControllerPlanPdfDriveId;
           return;
         }
 
@@ -5492,7 +5500,7 @@ const title = 'Private 3D viewer';
         }
         if (p186fSourceLinks) {
           p186fSourceLinks.replaceChildren();
-          for (const source of p186fReviewSourceContexts) {
+          for (const source of sourceContexts) {
             const link = document.createElement('a');
             link.href = source.sourceHref;
             link.target = '_blank';
@@ -5509,6 +5517,11 @@ const title = 'Private 3D viewer';
         canvas.dataset.p186fMaintenanceDocumentId = p186fMaintenanceDocumentId;
         canvas.dataset.p186fFloorHeatingSourcePdfDriveId = p186fFloorHeatingSourcePdfDriveId;
         canvas.dataset.p186fSchedulePdfDriveId = p186fSchedulePdfDriveId;
+        if (sourceContexts === p186fX4ReviewSourceContexts) {
+          canvas.dataset.p186fX4ControllerPlanPdfDriveId = p186fX4ControllerPlanPdfDriveId;
+        } else {
+          delete canvas.dataset.p186fX4ControllerPlanPdfDriveId;
+        }
       };
 
       const setP186dSourceContextVisible = (visible: boolean) => {
@@ -7988,6 +8001,7 @@ const title = 'Private 3D viewer';
         setP186fSourceContextVisible(
           true,
           isX4 ? p186fX4ReviewSourceLimit : p186fReviewSourceLimit,
+          isX4 ? p186fX4ReviewSourceContexts : p186fReviewSourceContexts,
         );
 
         Object.assign(canvas.dataset, {
