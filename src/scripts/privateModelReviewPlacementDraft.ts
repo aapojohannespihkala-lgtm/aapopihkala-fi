@@ -95,13 +95,62 @@ export type PersistPlacementReview = (
   payload: PlacementReviewHandoff,
 ) => Promise<PersistedPlacementReviewAck>;
 
+/**
+ * The trusted G2 adapter must read the persisted record back from its durable
+ * source by record ID, not merely echo the submitted payload from memory.
+ * The actual G2 connector/backend implementation is intentionally NOT supplied
+ * by this detached UI module.
+ */
+export type PersistedPlacementReviewRecord = {
+  recordId: string;
+  payload: PlacementReviewHandoff;
+};
+export type ReadbackPlacementReview = (
+  recordId: string,
+) => Promise<PersistedPlacementReviewRecord | null>;
+
+const sortedReviewJson = (value: unknown): string => JSON.stringify(value, (_key, current) => {
+  if (current === null || typeof current !== 'object' || Array.isArray(current)) return current;
+  return Object.fromEntries(
+    Object.keys(current as Record<string, unknown>).sort().map((key) => [
+      key, (current as Record<string, unknown>)[key],
+    ]),
+  );
+});
+
+/** Compare *all* fields, including original XY, raw note and no-promotion flags. */
+export const verifyPlacementReviewPersistenceReadback = ({
+  expected,
+  receipt,
+  readback,
+}: {
+  expected: PlacementReviewHandoff;
+  receipt: PersistedPlacementReviewAck | null;
+  readback: PersistedPlacementReviewRecord | null;
+}): boolean => {
+  if (
+    receipt?.status !== 'PERSISTED_TO_EXISTING_G2' ||
+    typeof receipt.recordId !== 'string' ||
+    receipt.recordId.trim().length === 0 ||
+    readback?.recordId !== receipt.recordId ||
+    !readback.payload
+  ) return false;
+
+  return sortedReviewJson(expected) === sortedReviewJson(readback.payload);
+};
+
 export const createPlacementReviewPanel = ({
   mount,
   persist,
+  readback,
 }: {
   mount: HTMLElement;
   persist: PersistPlacementReview;
+  readback: ReadbackPlacementReview;
 }) => {
+  if (typeof readback !== 'function') {
+    throw new Error('A real G2 readback adapter is required before placement can be saved');
+  }
   const panel = document.createElement('section');
   panel.hidden = true;
   panel.setAttribute('aria-label', 'Sijoita kohde');
@@ -147,8 +196,11 @@ export const createPlacementReviewPanel = ({
   let currentContext: PlacementReviewContext | null = null;
   let clicked: ReviewCoordinateValue | null = null;
   let busy = false;
+  let session = 0;
 
   const reset = () => {
+    // A late response from an old save must not claim success in a new review.
+    session += 1;
     currentContext = null;
     clicked = null;
     busy = false;
@@ -171,7 +223,12 @@ export const createPlacementReviewPanel = ({
   };
 
   const setClickedCoordinate = (coordinate: ReviewCoordinateValue, floor: ReviewPlacementFloor) => {
-    if (!currentContext || busy || floor !== currentContext.floor) return false;
+    if (
+      !currentContext ||
+      busy ||
+      panel.dataset.reviewPlacementStatus === 'persisted' ||
+      floor !== currentContext.floor
+    ) return false;
     if (!Number.isFinite(coordinate.xM) || !Number.isFinite(coordinate.yM)) return false;
     clicked = { xM: coordinate.xM, yM: coordinate.yM };
     locationLabel.textContent = `D ${floor} / YLIS-G1-LOCAL / ${formatReviewCoordinateText(clicked)}`;
@@ -198,22 +255,36 @@ export const createPlacementReviewPanel = ({
     }
 
     busy = true;
+    const submittingSession = session;
     save.disabled = true;
     panel.dataset.reviewPlacementStatus = 'persisting';
-    status.textContent = 'Tallennusta tarkistetaan...';
+    status.textContent = 'Tallennusta ja takaisinlukua tarkistetaan...';
     try {
       const receipt = await persist(result.payload);
+      if (submittingSession !== session) return;
       if (receipt?.status !== 'PERSISTED_TO_EXISTING_G2' || !receipt.recordId?.trim()) {
-        throw new Error('G2 persistence readback not confirmed');
+        throw new Error('G2 persistence receipt was not valid');
       }
-      status.textContent = 'Havainto tallennettu G2:een.';
+      const savedRecord = await readback(receipt.recordId);
+      if (submittingSession !== session) return;
+      if (!verifyPlacementReviewPersistenceReadback({
+        expected: result.payload,
+        receipt,
+        readback: savedRecord,
+      })) {
+        throw new Error('G2 readback differs from the submitted review observation');
+      }
+      status.textContent = 'Havainto tallennettu ja varmennettu G2:sta.';
       panel.dataset.reviewPlacementStatus = 'persisted';
     } catch {
-      status.textContent = 'Tallennus ei varmistunut. Havainto säilyy tässä lomakkeessa.';
+      if (submittingSession !== session) return;
+      status.textContent = 'Tallennus ei varmistunut. Tarkista tila ennen uutta yritystä.';
       panel.dataset.reviewPlacementStatus = 'draft';
     } finally {
-      busy = false;
-      if (panel.dataset.reviewPlacementStatus !== 'persisted') save.disabled = false;
+      if (submittingSession === session) {
+        busy = false;
+        if (panel.dataset.reviewPlacementStatus !== 'persisted') save.disabled = false;
+      }
     }
   });
 
