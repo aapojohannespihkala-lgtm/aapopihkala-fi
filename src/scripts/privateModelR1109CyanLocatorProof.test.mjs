@@ -39,7 +39,7 @@ test('missing or merged source cue cannot pass the five-component gate', () => {
   const touching = image();
   for (let i = 0; i < 4; i += 1) rectangle(touching, 6 + i * 21, 12);
   rectangle(touching, 90, 12);
-  rectangle(touching, 85, 12);
+  rectangle(touching, 74, 12, 17, 5);
   assert.equal(detect(touching.rgba, touching.width, touching.height).componentCount, 4);
 });
 
