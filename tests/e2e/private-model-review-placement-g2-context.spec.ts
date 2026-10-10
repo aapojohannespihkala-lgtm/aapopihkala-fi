@@ -82,3 +82,9 @@ test('P137E permits exact G2 source review identities but not mismatched source 
   expect((await request({ ...known, sourceG2Id: 'OTHER' })).status)
     .toBe('TARGET_SOURCE_CONFLICT');
 });
+
+test('P137E invalid opening items cannot create approved wall', async () => {
+  const invalid = { g2Id: 'G2_WALL_TEST', floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL', approvalEvidenceId: 'EVIDENCE_TEST', approved: true, axis: 'Y_FIXED', fixedM: 5, startM: 2, endM: 6, openingsComplete: true, openings: [null] };
+  const result = await check([{ ...target, wallHosts: [invalid as unknown as G2PlacementReviewTarget['wallHosts'][number]] }]);
+  expect(result).toMatchObject({ status: 'REVIEW_CONTEXT_READY', context: { approvedWallHosts: [] } });
+});
