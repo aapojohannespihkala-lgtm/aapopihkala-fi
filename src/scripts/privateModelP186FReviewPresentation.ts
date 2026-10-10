@@ -8,12 +8,22 @@ export const p186fReviewContextColorHex = 0xe2e8f0;
 export const p186fMaintenanceDocumentId = '1W6iUJoqfkM0efZpmcneXeD8bqYlLUk0tQwWebmcHKcI';
 export const p186fFloorHeatingSourcePdfDriveId = '1vAyvAHdClqkXKIVNgKKUyOjMja-tzrok';
 export const p186fSchedulePdfDriveId = '1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP';
+export const p186fX4ControllerPlanPdfDriveId = '1cbo8g7mcs9zAWgUE9w2EOm_t9R1vIl1X';
 
 export const p186fBedroomWalkInContextNote =
   'Bedroom-ankkuri tarkoittaa Bedroom/vaatehuone-kontekstia: käyttäjän vahvistuksen mukaan Themo ohjaa makuuhuoneen lattialämmitystä, vaikka fyysinen termostaatti sijaitsee samassa huonekokonaisuudessa vaatehuoneen ja kulkumaisen tilarakenteen kautta.';
 
 export const p186fX2PlacementBasis =
   'USER_CONFIRMED_ROOM_ASSIGNMENT_AND_D1F_FOOTPRINT_DERIVED_WALL_ADJACENT_WORK_ASSUMPTION';
+
+export const p186fX4PlacementBasis =
+  'CONTROLLER_2015_PLAN_MARK_PLUS_0_55M_Y_WORK_ASSUMPTION_TO_AVOID_P141A_2015_PLAN_OPENING_PROJECTION';
+
+export const p186fX4ReviewSceneIndex = 66;
+export const p186fX4ReviewSceneName =
+  'P186F-X4 R1117 D THEMO DOOR-PLAN-CLEAR WORK_TEST BABYLON Y-UP';
+export const p186fX4ReviewPass = 'P186F-X4-R1117';
+export const p186fX3PreservedPass = 'P186F-X3-R1114';
 
 export const p186fLegacyX1PlacementBasis =
   'CENTROID_OF_INHERITED_2015_FLOOR_HEATING_WORK_ROUTE_PROXY_FOR_ROOM_LEVEL_PRESENTATION_ONLY';
@@ -39,8 +49,23 @@ export const p186fReviewSourceContexts = [
   },
 ] as const;
 
+export const p186fX4ReviewSourceContexts = [
+  ...p186fReviewSourceContexts,
+  {
+    sourceLabel: 'P186F-X4 controller-plan source',
+    sourceHref: `https://drive.google.com/file/d/${p186fX4ControllerPlanPdfDriveId}/view`,
+    sourceRole: 'HISTORICAL_2015_CONTROLLER_PLAN_SYMBOL_XY_SOURCE_FOR_X4_WORK_ASSUMPTION',
+  },
+] as const;
+
 export const p186fReviewSourceLimit =
   `Themojen asennus ja Bathroom/Bedroom/vaatehuone/Lobby-huonesidonnat ovat käyttäjän vahvistamaa nykytilaevidenssiä. ${p186fBedroomWalkInContextNote} Markerien XY/Z on vain room/wall-adjacent WORK_ASSUMPTION -esitystä, ja vuoden 2015 ryhmät 10.2/10.3/10.1 ovat historiallista kontekstia, eivät nykyinen as-built-syöttökytkentä, wall-host-väite tai sensor suite -väite. P186F-X2:n tekninen katselu ei ole Lobby-sijainnin sisältöhyväksyntä: G2 R1059/R1087 edellyttää huippuimurin säätimen linjan eksplisiittistä sourceBasis-/QA-varmennusta ennen sisältö-HUMAN_REVIEW-porttia.`;
+
+export const p186fX4ReviewQuestionText =
+  'Tekninen WORK_TEST-katselu: scene66 näyttää Bedroom-, Lobby- ja Bathroom-Themojen kolme esitysankkuria. Lobby-ankkuri on vuoden 2015 controller-plan-symbolista +0,55 m Y -suuntaan tehty WORK_ASSUMPTION vain 2015 oviaukkoprojektion välttämiseksi. Älä tulkitse sitä fyysiseksi termostaatti-XY:ksi, wall-hostiksi tai nykyisen oven clearance-todisteeksi.';
+
+export const p186fX4ReviewSourceLimit =
+  `P186F-X4 säilyttää Bedroom- ja Bathroom-ankkurit P186F-X3:sta ja korvaa vain Lobby-esitysankkurin source-plan-projektiolta erotetulla WORK_ASSUMPTION-sijainnilla. 2015 source-plan opening -projektion vähimmäisväli on noin 0,101 m, mutta fyysinen seinähosti, nykyinen oviaukko ja termostaatin exact XY/Z ovat edelleen varmistamatta. ${p186fBedroomWalkInContextNote} HUMAN_REVIEW pysyy NOT_RUN.`;
 
 export const p186fExpectedRooms = {
   Bedroom: {
@@ -65,10 +90,21 @@ export const p186fExpectedRoomContextCount = 7;
 
 const expectedRoomEntries = Object.entries(p186fExpectedRooms);
 const expectedRoomNames = new Set(expectedRoomEntries.map(([room]) => room));
-const supportedP186fPasses = new Set(['P186F-X1', 'P186F-X2']);
+const supportedP186fPasses = new Set([
+  'P186F-X1',
+  'P186F-X2',
+  p186fX3PreservedPass,
+  p186fX4ReviewPass,
+]);
+const p186fRealArchitecturePreferredPasses = new Set([
+  'P186F-X2',
+  p186fX3PreservedPass,
+  p186fX4ReviewPass,
+]);
 const supportedP186fPlacementBases = new Set([
   p186fLegacyX1PlacementBasis,
   p186fX2PlacementBasis,
+  p186fX4PlacementBasis,
 ]);
 
 const isRenderable = (object: any) =>
@@ -304,8 +340,8 @@ export const prepareP186fReviewPresentation = (
   let contextRenderableCount = 0;
   let hiddenNonQuestionRenderableCount = 0;
   let realArchitectureContextRenderableCount = 0;
-  const realArchitectureContextRequired = targets.some(
-    (object) => String(object.userData?.Pass ?? '') === 'P186F-X2',
+  const realArchitectureContextRequired = targets.some((object) =>
+    p186fRealArchitecturePreferredPasses.has(String(object.userData?.Pass ?? '')),
   );
   // Fail closed until *every* Themo room has its own source-labelled D1F
   // wall solid; a window/door or the storage-only P173D root is insufficient.
