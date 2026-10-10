@@ -1844,6 +1844,11 @@ const title = 'Private 3D viewer';
         p186fReviewSourceLimit,
         p186fReviewTargetOpacity,
         p186fSchedulePdfDriveId,
+        p186fX4ReviewPass,
+        p186fX4ReviewQuestionText,
+        p186fX4ReviewSceneIndex,
+        p186fX4ReviewSceneName,
+        p186fX4ReviewSourceLimit,
         prepareP186fReviewPresentation,
       } from '../../scripts/privateModelP186FReviewPresentation';
       import {
@@ -5464,7 +5469,10 @@ const title = 'Private 3D viewer';
         canvas.dataset.p186eSchedulePdfDriveId = p186eSchedulePdfDriveId;
       };
 
-      const setP186fSourceContextVisible = (visible: boolean) => {
+      const setP186fSourceContextVisible = (
+        visible: boolean,
+        sourceLimit: string = p186fReviewSourceLimit,
+      ) => {
         if (!p186fSourceContextPanel) return;
         p186fSourceContextPanel.hidden = !visible;
         p186fSourceContextPanel.closest('.viewport')?.classList.toggle('m5a-source-layout', visible);
@@ -5495,7 +5503,7 @@ const title = 'Private 3D viewer';
           }
         }
         if (p186fSourceContextLimit) {
-          p186fSourceContextLimit.textContent = p186fReviewSourceLimit;
+          p186fSourceContextLimit.textContent = sourceLimit;
         }
         canvas.dataset.p186fSourceContextReady = 'true';
         canvas.dataset.p186fMaintenanceDocumentId = p186fMaintenanceDocumentId;
@@ -6476,6 +6484,10 @@ const title = 'Private 3D viewer';
       const p186fX2ReviewId = `${p186fX2CandidateId}-review`;
       const isP186fX2ThemoRoomReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p186fX2ReviewId);
+      const p186fX4CandidateId = 'p186f-x4-d-themo-door-plan-clear-work-assumption';
+      const p186fX4ReviewId = `${p186fX4CandidateId}-review`;
+      const isP186fX4ThemoRoomReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p186fX4ReviewId);
 
       const p186dCandidateId = 'p186d-x1-d2015-lighting-source-markers-p28-corrected';
       const p186dReviewId = `${p186dCandidateId}-review`;
@@ -7929,8 +7941,10 @@ const title = 'Private 3D viewer';
           : 'P186E-X1 D 1F electrical source labels - WORK_TEST / 18 label anchors 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
       };
 
-      const applyP186fReviewState = (variant: 'X1' | 'X2' = 'X1') => {
+      const applyP186fReviewState = (variant: 'X1' | 'X2' | 'X4' = 'X1') => {
         const isX2 = variant === 'X2';
+        const isX4 = variant === 'X4';
+        const isSuccessor = isX2 || isX4;
         applyStandardViewPreset('d-1f');
         setModelScene(fullModelScene);
         canvas.dataset.contentScene = 'full-model';
@@ -7953,7 +7967,7 @@ const title = 'Private 3D viewer';
         }
 
         const presentation = prepareP186fReviewPresentation(fullModelScene, {
-          preferRealArchitectureContext: isX2,
+          preferRealArchitectureContext: isSuccessor,
         });
         if (
           presentation.targetRenderableCount !== p186fExpectedTargetCount ||
@@ -7971,16 +7985,23 @@ const title = 'Private 3D viewer';
         activePlanFocusBounds = presentation.targetBounds.clone();
         fitPlanCamera();
         refreshEdgeRendering(fullModelScene);
-        setP186fSourceContextVisible(true);
+        setP186fSourceContextVisible(
+          true,
+          isX4 ? p186fX4ReviewSourceLimit : p186fReviewSourceLimit,
+        );
 
         Object.assign(canvas.dataset, {
-          workTestReviewMode: isX2 ? p186fX2ReviewId : p186fReviewId,
+          workTestReviewMode: isX4 ? p186fX4ReviewId : isX2 ? p186fX2ReviewId : p186fReviewId,
           p186fReviewVariant: variant,
+          p186fReviewSceneIndex: isX4 ? String(p186fX4ReviewSceneIndex) : 'default',
+          p186fReviewSceneName: isX4 ? p186fX4ReviewSceneName : 'default',
           p186fRealWallContextRequired: String(presentation.realArchitectureContextRequired),
           p186fRealWallContextReady: String(presentation.realArchitectureContextReady),
           p186fRealWallContextRenderableCount: String(presentation.realArchitectureContextRenderableCount),
-          p186fReviewQuestion: 'D_1F_THEMO_ROOM_LEVEL_PRESENTATION_PLACEMENT',
-          p186fReviewQuestionText,
+          p186fReviewQuestion: isX4
+            ? 'D_1F_THEMO_SCENE66_SOURCE_PLAN_DOOR_PROJECTION_CLEAR_WORK_ASSUMPTION'
+            : 'D_1F_THEMO_ROOM_LEVEL_PRESENTATION_PLACEMENT',
+          p186fReviewQuestionText: isX4 ? p186fX4ReviewQuestionText : p186fReviewQuestionText,
           p186fTargetOpacity: p186fReviewTargetOpacity.toFixed(2),
           p186fContextOpacity: p186fReviewContextOpacity.toFixed(2),
           p186fReviewTargetRenderableCount: String(presentation.targetRenderableCount),
@@ -8007,9 +8028,11 @@ const title = 'Private 3D viewer';
           p186fReviewCameraMode: 'ORTHOGRAPHIC_D_1F_TARGET_BOUNDS_FOCUS',
           standardViewPreset: 'd-1f',
         });
-        status.textContent = isX2
-          ? `P186F-X2 D Themo WORK_TEST - Bathroom/Bedroom/Lobby anchors 80 % / ${presentation.realArchitectureContextReady ? 'D 1F real-wall' : 'fallback room'} context 20 % / HUMAN_REVIEW NOT_RUN`
-          : 'P186F-X1 D Themo room-level WORK_TEST - Bathroom/Bedroom/Lobby anchors 80 % / D 1F room context 20 % / HUMAN_REVIEW NOT_RUN';
+        status.textContent = isX4
+          ? `P186F-X4 scene66 D Themo WORK_TEST - Bathroom/Bedroom/Lobby anchors 80 % / ${presentation.realArchitectureContextReady ? 'D 1F real-wall' : 'fallback room'} context 20 % / physical XY and wall host unverified / HUMAN_REVIEW NOT_RUN`
+          : isX2
+            ? `P186F-X2 D Themo WORK_TEST - Bathroom/Bedroom/Lobby anchors 80 % / ${presentation.realArchitectureContextReady ? 'D 1F real-wall' : 'fallback room'} context 20 % / HUMAN_REVIEW NOT_RUN`
+            : 'P186F-X1 D Themo room-level WORK_TEST - Bathroom/Bedroom/Lobby anchors 80 % / D 1F room context 20 % / HUMAN_REVIEW NOT_RUN';
       };
 
       const applyP186dReviewState = () => {
@@ -8552,6 +8575,8 @@ const title = 'Private 3D viewer';
             candidate.id === p186fCandidateId && isP186fThemoRoomReviewRequested();
           const isP186fX2ThemoRoomReview =
             candidate.id === p186fX2CandidateId && isP186fX2ThemoRoomReviewRequested();
+          const isP186fX4ThemoRoomReview =
+            candidate.id === p186fX4CandidateId && isP186fX4ThemoRoomReviewRequested();
           const isP186dLightingReview =
             candidate.id === p186dCandidateId && isP186dLightingReviewRequested();
           const isP184hApplianceOnP185cReview =
@@ -8617,7 +8642,21 @@ const title = 'Private 3D viewer';
             | ReturnType<typeof createM5BReviewRuntimeState>
             | ReturnType<typeof createM5BR1109ReviewRuntimeState>
             | null = null;
-          if (isM5BR1109Review) {
+          if (isP186fX4ThemoRoomReview) {
+            const reviewScene = gltf.scenes?.[p186fX4ReviewSceneIndex];
+            const sourceScene = gltf?.parser?.json?.scenes?.[p186fX4ReviewSceneIndex];
+            if (!reviewScene) {
+              throw new Error(`P186F-X4 review scene ${p186fX4ReviewSceneIndex} missing`);
+            }
+            if (
+              String(sourceScene?.name ?? '') !== p186fX4ReviewSceneName ||
+              String(reviewScene.userData?.Pass ?? '') !== p186fX4ReviewPass ||
+              Number(reviewScene.userData?.workTestSceneIndex) !== p186fX4ReviewSceneIndex
+            ) {
+              throw new Error('P186F-X4 scene66 identity mismatch');
+            }
+            gltf.scene = reviewScene;
+          } else if (isM5BR1109Review) {
             const reviewScene = gltf.scenes?.[m5bR1109SceneIndex];
             if (!reviewScene) throw new Error(`M5B R1109 review scene ${m5bR1109SceneIndex} missing`);
             gltf.scene = reviewScene;
@@ -9347,8 +9386,14 @@ const title = 'Private 3D viewer';
             applyP186bReviewState();
           } else if (isP186eElectricalLabelReview) {
             applyP186eReviewState();
-          } else if (isP186fThemoRoomReview || isP186fX2ThemoRoomReview) {
-            applyP186fReviewState(isP186fX2ThemoRoomReview ? 'X2' : 'X1');
+          } else if (
+            isP186fThemoRoomReview ||
+            isP186fX2ThemoRoomReview ||
+            isP186fX4ThemoRoomReview
+          ) {
+            applyP186fReviewState(
+              isP186fX4ThemoRoomReview ? 'X4' : isP186fX2ThemoRoomReview ? 'X2' : 'X1',
+            );
           } else if (isP186dLightingReview) {
             applyP186dReviewState();
           } else if (isP184gIslandXReview) {
