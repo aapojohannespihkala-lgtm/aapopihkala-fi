@@ -123,3 +123,64 @@ export const createPlacementReviewCoordinateBridge = ({
     hasActiveTarget: () => context !== null,
   };
 };
+
+
+/**
+ * Plug-in event adapter for the existing plan canvas. Its callers decide when
+ * to mount it; this module DOES NOT activate the feature or modify index.astro.
+ * A placement click is consumed before the regular select/anchor click handler,
+ * so a single click cannot accidentally select an unrelated object.
+ */
+export const bindPlacementPlanPointerEvents = ({
+  canvas,
+  bridge,
+  maxClickDistancePx = 6,
+}: {
+  canvas: HTMLElement;
+  bridge: Pick<
+    ReturnType<typeof createPlacementReviewCoordinateBridge>,
+    'hasActiveTarget' | 'onPlanCanvasClick'
+  >;
+  maxClickDistancePx?: number;
+}) => {
+  if (!Number.isFinite(maxClickDistancePx) || maxClickDistancePx < 0 || maxClickDistancePx > 32) {
+    throw new Error('Invalid placement drag threshold');
+  }
+
+  let pointerDown: { id: number; x: number; y: number } | null = null;
+
+  const onDown = (event: PointerEvent) => {
+    pointerDown = null;
+    if (!bridge.hasActiveTarget() || event.button !== 0 || !event.isPrimary) return;
+    pointerDown = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  };
+
+  const onUp = (event: PointerEvent) => {
+    const started = pointerDown;
+    pointerDown = null;
+    if (!started || started.id !== event.pointerId || !bridge.hasActiveTarget()) return;
+    const dragDistancePx = Math.hypot(event.clientX - started.x, event.clientY - started.y);
+    if (dragDistancePx > maxClickDistancePx) return;
+
+    // The bridge fail-closes an invalid floor/view/mode and leaves no accepted
+    // crosshair. Consume the placement attempt regardless of outcome so the
+    // legacy selection route cannot interpret it as a regular object click.
+    bridge.onPlanCanvasClick(event.clientX, event.clientY);
+    event.stopImmediatePropagation();
+    event.preventDefault();
+  };
+
+  const onCancel = () => { pointerDown = null; };
+  canvas.addEventListener('pointerdown', onDown, true);
+  canvas.addEventListener('pointerup', onUp, true);
+  canvas.addEventListener('pointercancel', onCancel, true);
+
+  return {
+    dispose: () => {
+      pointerDown = null;
+      canvas.removeEventListener('pointerdown', onDown, true);
+      canvas.removeEventListener('pointerup', onUp, true);
+      canvas.removeEventListener('pointercancel', onCancel, true);
+    },
+  };
+};
