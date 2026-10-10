@@ -30,6 +30,8 @@ test('heightScaleStepForSpan preserves the exact review-scale thresholds', () =>
 import {
   createTargetBoundReviewAnchor,
   resolveTargetBoundReviewAnchor,
+  parseReviewFreeNoteHeight,
+  createTargetBoundReviewObservation,
   type ApprovedReviewWallHost,
 } from '../../src/scripts/privateModelReviewCoordinates';
 
@@ -168,4 +170,81 @@ test('P137E never snaps to an opening, distant wall, or ambiguous intersecting h
   };
   expect(resolveTargetBoundReviewAnchor(near, [approvedHost, crossingHost]))
     .toMatchObject({ status: 'UNMAPPED', reason: 'AMBIGUOUS_HOST' });
+});
+
+
+test('P137E anchor click defaults to OBJECT_CENTER and notes retain exact user words', () => {
+  const anchor = createTargetBoundReviewAnchor({
+    targetId: 'D_BEDROOM_THEMO',
+    floor: '1F',
+    coordinate: { xM: 3.235, yM: 5.063 },
+  })!;
+  expect(anchor.targetPoint).toBe('OBJECT_CENTER');
+  const note = '120 cm lattiasta. Bedroomin puolella seinää.';
+  const observation = createTargetBoundReviewObservation(anchor, note)!;
+  expect(observation).toMatchObject({
+    anchor,
+    noteRaw: note,
+    targetPoint: 'OBJECT_CENTER',
+    interpretation: 'WORK_TEST_ONLY',
+    verifiedWallSide: false,
+    exactZ: false,
+    height: { status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM: 1.2, zM: null },
+  });
+});
+
+test('P137E infers a side hint only from a safe approved wall centreline offset', () => {
+  const anchor = createTargetBoundReviewAnchor({
+    targetId: 'D_BEDROOM_THEMO',
+    floor: '1F',
+    coordinate: { xM: 3.235, yM: 5.063 },
+  })!;
+  const west = resolveTargetBoundReviewAnchor(anchor, [approvedHost]);
+  expect(west.proposal?.wallSideHint).toBe('Y_NEGATIVE');
+  expect(west.anchor.yM).toBe(5.063);
+
+  const opposite = createTargetBoundReviewAnchor({
+    targetId: 'D_BEDROOM_THEMO',
+    floor: '1F',
+    coordinate: { xM: 3.235, yM: 5.085 },
+  })!;
+  expect(resolveTargetBoundReviewAnchor(opposite, [approvedHost]).proposal?.wallSideHint)
+    .toBe('Y_POSITIVE');
+
+  const onCentreline = createTargetBoundReviewAnchor({
+    targetId: 'D_BEDROOM_THEMO',
+    floor: '1F',
+    coordinate: { xM: 3.235, yM: 5.072 },
+  })!;
+  expect(resolveTargetBoundReviewAnchor(onCentreline, [approvedHost]).proposal?.wallSideHint)
+    .toBeNull();
+  expect(resolveTargetBoundReviewAnchor(anchor, []).status).toBe('UNMAPPED');
+});
+
+test('P137E extracts plain Finnish centre-height shorthand and explicit height, no fabricated Z', () => {
+  expect(parseReviewFreeNoteHeight('120 cm'))
+    .toEqual({ status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM: 1.2, zM: null });
+  expect(parseReviewFreeNoteHeight('1,2 m valmiista lattiasta.'))
+    .toEqual({ status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM: 1.2, zM: null });
+  expect(parseReviewFreeNoteHeight('Korkeus 120 cm; leveys 90 cm.'))
+    .toEqual({ status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM: 1.2, zM: null });
+  expect(parseReviewFreeNoteHeight('2026 Themo, keskipisteen korkeus 1.25 m'))
+    .toEqual({ status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM: 1.25, zM: null });
+  expect(parseReviewFreeNoteHeight('0 cm'))
+    .toEqual({ status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM: 0, zM: null });
+});
+
+test('P137E never guesses floor-height from underground depths, unrelated dimensions or conflicts', () => {
+  expect(parseReviewFreeNoteHeight('Termostaatti seinällä'))
+    .toMatchObject({ status: 'NOT_SPECIFIED', zM: null });
+  expect(parseReviewFreeNoteHeight('50 cm oikealle'))
+    .toMatchObject({ status: 'NOT_SPECIFIED', zM: null });
+  expect(parseReviewFreeNoteHeight('Salaojaputken syvyys 120 cm maanpinnasta'))
+    .toMatchObject({ status: 'NOT_SPECIFIED', zM: null });
+  expect(parseReviewFreeNoteHeight('120 cm ja 150 cm lattiasta'))
+    .toMatchObject({ status: 'AMBIGUOUS', zM: null });
+  expect(parseReviewFreeNoteHeight('korkeus 120 cm, korkeus 130 cm'))
+    .toMatchObject({ status: 'AMBIGUOUS', zM: null });
+  expect(parseReviewFreeNoteHeight('-120 cm'))
+    .toMatchObject({ status: 'AMBIGUOUS', zM: null });
 });
