@@ -428,7 +428,8 @@ test('M5B R1109 scene63 review uses the five persisted source-presence zones wit
   expect(result.createdProxyCount).toBe(0);
   expect(result.usesPersistedSourceTargets).toBe(true);
   expect(result.questionScope).toBe(m5bR1109ReviewQuestionScope);
-  expect(root.children).toHaveLength(childCountBefore);
+  expect(root.children).toHaveLength(childCountBefore + 5);
+  expect(result.viewerOnlyVisibilityCueCount).toBe(5);
   expect(legacyRoute.visible).toBe(false);
   expect((building.material as any).opacity).toBe(m5bReviewContextOpacity);
 
@@ -441,6 +442,66 @@ test('M5B R1109 scene63 review uses the five persisted source-presence zones wit
     expect(zone.userData.m5bReviewRenderableForm).toBe('PERSISTED_RECTANGULAR_ZONE_BAR_NOT_PIPE');
     expect(zone.userData.m5bReviewSourceSceneIndex).toBe(63);
   }
+});
+
+test('M5B R1109 viewer-only source locators are idempotent, world-source-linked and fail closed', () => {
+  const root = new THREE.Group();
+  root.position.set(4, 0.5, -3);
+  const zones = m5bR1109PersistedTargetIds.map((id, index) => {
+    const zone = makeR1109PresenceZone(id);
+    zone.position.set(index * 2, 0, index % 2);
+    return zone;
+  });
+  root.add(...zones, makeBuildingContext());
+  const geometries = zones.map((zone) => zone.geometry);
+  const originalLocalCoordinates = zones.map((zone) => zone.position.clone());
+
+  const inspectCues = () => root.children.filter(
+    (item: any) => item.userData?.m5bR1109SourceVisibilityCue === true,
+  );
+  const first = prepareM5BR1109PersistedZonePresentation(root);
+  expect(first.ready).toBe(true);
+  expect(first.targetRenderableCount).toBe(5);
+  expect(first.createdProxyCount).toBe(0);
+  expect(first.viewerOnlyVisibilityCueCount).toBe(5);
+  expect(inspectCues()).toHaveLength(5);
+  for (let index = 0; index < zones.length; index += 1) {
+    const cue: any = inspectCues()[index];
+    const zone: any = zones[index];
+    expect(cue.userData.sourceG2IdCandidate).toBe(m5bR1109PersistedTargetIds[index]);
+    expect(cue.userData.G2IdCandidate).toBeUndefined();
+    expect(cue.userData.m5bReviewRole).toBe('R1109_VIEWER_ONLY_SOURCE_LOCATOR');
+    expect(cue.userData.exactXYClaim).toBe(false);
+    expect(cue.userData.currentGeometryClaim).toBe(false);
+    expect(cue.userData.Canonical).toBe(false);
+    expect(cue.userData.HUMAN_REVIEW).toBe('NOT_RUN');
+    expect(cue.material.depthTest).toBe(false);
+    expect(cue.material.depthWrite).toBe(false);
+    expect(cue.geometry.type).toBe('SphereGeometry');
+    expect(zone.geometry).toBe(geometries[index]);
+    expect(zone.position).toEqual(originalLocalCoordinates[index]);
+    root.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(zone);
+    const worldCue = cue.getWorldPosition(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    expect(worldCue.x).toBeCloseTo(center.x, 5);
+    expect(worldCue.z).toBeCloseTo(center.z, 5);
+    expect(worldCue.y).toBeCloseTo(box.max.y + 0.22, 5);
+  }
+
+  const second = prepareM5BR1109PersistedZonePresentation(root);
+  expect(second.ready).toBe(true);
+  expect(second.sourceTargetRenderableCount).toBe(5);
+  expect(second.contextRenderableCount).toBe(first.contextRenderableCount);
+  expect(second.viewerOnlyVisibilityCueCount).toBe(5);
+  expect(inspectCues()).toHaveLength(5);
+
+  root.remove(zones[0]);
+  const missing = prepareM5BR1109PersistedZonePresentation(root);
+  expect(missing.ready).toBe(false);
+  expect(missing.targetRenderableCount).toBe(0);
+  expect(missing.viewerOnlyVisibilityCueCount).toBe(0);
+  expect(inspectCues()).toHaveLength(0);
 });
 
 test('M5B R1109 scene63 review fails closed when any persisted target is missing', () => {
