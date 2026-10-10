@@ -7957,7 +7957,6 @@ const title = 'Private 3D viewer';
       const applyP186fReviewState = (variant: 'X1' | 'X2' | 'X4' = 'X1') => {
         const isX2 = variant === 'X2';
         const isX4 = variant === 'X4';
-        const isSuccessor = isX2 || isX4;
         applyStandardViewPreset('d-1f');
         setModelScene(fullModelScene);
         canvas.dataset.contentScene = 'full-model';
@@ -7980,7 +7979,7 @@ const title = 'Private 3D viewer';
         }
 
         const presentation = prepareP186fReviewPresentation(fullModelScene, {
-          preferRealArchitectureContext: isSuccessor,
+          preferRealArchitectureContext: isX2 || isX4,
         });
         if (
           presentation.targetRenderableCount !== p186fExpectedTargetCount ||
@@ -8005,7 +8004,7 @@ const title = 'Private 3D viewer';
         );
 
         Object.assign(canvas.dataset, {
-          workTestReviewMode: isX4 ? p186fX4ReviewId : isX2 ? p186fX2ReviewId : p186fReviewId,
+          workTestReviewMode: isX2 ? p186fX2ReviewId : p186fReviewId,
           p186fReviewVariant: variant,
           p186fReviewSceneIndex: isX4 ? String(p186fX4ReviewSceneIndex) : 'default',
           p186fReviewSceneName: isX4 ? p186fX4ReviewSceneName : 'default',
@@ -8042,6 +8041,8 @@ const title = 'Private 3D viewer';
           p186fReviewCameraMode: 'ORTHOGRAPHIC_D_1F_TARGET_BOUNDS_FOCUS',
           standardViewPreset: 'd-1f',
         });
+        if (isX4) canvas.dataset.workTestReviewMode = p186fX4ReviewId;
+
         status.textContent = isX4
           ? `P186F-X4 scene66 D Themo WORK_TEST - Bathroom/Bedroom/Lobby anchors 80 % / ${presentation.realArchitectureContextReady ? 'D 1F real-wall' : 'fallback room'} context 20 % / physical XY and wall host unverified / HUMAN_REVIEW NOT_RUN`
           : isX2
@@ -9400,14 +9401,10 @@ const title = 'Private 3D viewer';
             applyP186bReviewState();
           } else if (isP186eElectricalLabelReview) {
             applyP186eReviewState();
-          } else if (
-            isP186fThemoRoomReview ||
-            isP186fX2ThemoRoomReview ||
-            isP186fX4ThemoRoomReview
-          ) {
-            applyP186fReviewState(
-              isP186fX4ThemoRoomReview ? 'X4' : isP186fX2ThemoRoomReview ? 'X2' : 'X1',
-            );
+          } else if (isP186fX4ThemoRoomReview) {
+            applyP186fReviewState('X4');
+          } else if (isP186fThemoRoomReview || isP186fX2ThemoRoomReview) {
+            applyP186fReviewState(isP186fX2ThemoRoomReview ? 'X2' : 'X1');
           } else if (isP186dLightingReview) {
             applyP186dReviewState();
           } else if (isP184gIslandXReview) {
