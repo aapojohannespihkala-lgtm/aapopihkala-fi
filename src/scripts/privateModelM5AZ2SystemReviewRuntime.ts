@@ -1,9 +1,17 @@
 import { THREE } from './threeRuntime';
-import { m5aZ2ExpectedTargetKeys } from './privateModelM5AZ2ReviewPresentation';
+import {
+  m5aR1115ReviewQuestionScope,
+  m5aR1115ReviewTargetIds,
+  m5aR1115SceneIndex,
+  prepareM5AR1115PlannedRaiseReviewPresentation,
+  m5aZ2ExpectedTargetKeys,
+} from './privateModelM5AZ2ReviewPresentation';
 import {
   getRequestedReviewCandidateId,
   isM5AZ2SystemReviewCandidateId,
   isM5AZ2SystemReviewId,
+  m5aR1115CandidateId,
+  m5aR1115ReviewId,
   m5aZ2LegacyCandidateId,
   m5aZ2LegacyReviewId,
   m5aZ2R1090CandidateId,
@@ -103,4 +111,87 @@ export const getUndrawableM5AZ2TargetKeys = (sceneRoot: any): string[] => {
     if (!valid) undrawable.push(key);
   });
   return undrawable;
+};
+
+
+export type M5AR1115ReviewRuntimeState = {
+  standardViewPreset: 'drainage';
+  targetBounds: any;
+  dataset: Record<string, string>;
+  statusText: string;
+};
+
+export const createM5AR1115ReviewRuntimeState = (
+  presentation: ReturnType<typeof prepareM5AR1115PlannedRaiseReviewPresentation>,
+): M5AR1115ReviewRuntimeState => {
+  if (!presentation.ready) {
+    throw new Error(
+      `M5A R1115 review source contract not ready: missing=${presentation.missingTargetIds.join(',')} duplicate=${presentation.duplicateTargetIds.join(',')} semantic=${presentation.semanticViolationTargetIds.join(',')}`,
+    );
+  }
+  if (presentation.sceneIndex !== m5aR1115SceneIndex) {
+    throw new Error(
+      `M5A R1115 review scene mismatch: expected ${m5aR1115SceneIndex}, got ${presentation.sceneIndex}`,
+    );
+  }
+  if (
+    presentation.targetRenderableCount !== m5aR1115ReviewTargetIds.length ||
+    presentation.expectedTargetRenderableCount !== m5aR1115ReviewTargetIds.length ||
+    presentation.foundTargetIds.join(',') !== m5aR1115ReviewTargetIds.join(',')
+  ) {
+    throw new Error('M5A R1115 persisted target identity/count mismatch');
+  }
+  if (presentation.semanticViolationCount !== 0) {
+    throw new Error(
+      `M5A R1115 no-promotion semantic violations: ${presentation.semanticViolationCount}`,
+    );
+  }
+  if (presentation.createdProxyCount !== 0 || presentation.usesPersistedSourceTargets !== true) {
+    throw new Error('M5A R1115 review must use persisted source targets without generated proxies');
+  }
+  if (presentation.reviewQuestionScope !== m5aR1115ReviewQuestionScope) {
+    throw new Error('M5A R1115 review question scope mismatch');
+  }
+  if (!presentation.targetBounds || presentation.targetBounds.isEmpty?.()) {
+    throw new Error('M5A R1115 review target bounds missing');
+  }
+  if (presentation.humanReview !== 'NOT_RUN') {
+    throw new Error('M5A R1115 HUMAN_REVIEW must remain NOT_RUN before production render proof');
+  }
+
+  return {
+    standardViewPreset: 'drainage',
+    targetBounds: presentation.targetBounds,
+    dataset: {
+      workTestReviewMode: m5aR1115ReviewId,
+      m5aR1115CandidateId,
+      m5aR1115ReviewVariant: 'PLANNED_WELL_RAISE_PRESENCE',
+      m5aR1115SceneIndex: String(m5aR1115SceneIndex),
+      m5aR1115TargetIds: m5aR1115ReviewTargetIds.join(','),
+      m5aR1115TargetRenderableCount: String(presentation.targetRenderableCount),
+      m5aR1115ContextRenderableCount: String(presentation.contextRenderableCount),
+      m5aR1115TargetOpacity: presentation.targetOpacity.toFixed(2),
+      m5aR1115ContextOpacity: presentation.contextOpacity.toFixed(2),
+      m5aR1115ViewerMarkerScale: presentation.viewerMarkerScale.toFixed(2),
+      m5aR1115ViewerScalePhysicalClaim: 'false',
+      m5aR1115Planned: 'true',
+      m5aR1115Ordered: 'false',
+      m5aR1115Implemented: 'false',
+      m5aR1115PlannedRaiseHeightKnown: 'false',
+      m5aR1115PhysicalWellDiameterClaim: 'false',
+      m5aR1115PhysicalWellHeightClaim: 'false',
+      m5aR1115PhysicalRaiseHeightClaim: 'false',
+      m5aR1115ExactXYClaim: 'false',
+      m5aR1115ExactZClaim: 'false',
+      m5aR1115CurrentGeometryClaim: 'false',
+      m5aR1115AsBuiltClaim: 'false',
+      m5aR1115Canonical: 'false',
+      m5aR1115PublishToCurrent: 'false',
+      m5aR1115HumanReview: 'NOT_RUN',
+      m5aR1115ReviewCameraMode: 'PERSPECTIVE_FREE_ORBIT_TARGET_BOUNDS',
+      standardViewPreset: 'drainage',
+    },
+    statusText:
+      `SOK2/SOK3 korotustarve - WORK_TEST / persisted markers 2/2 / targets 80 % / context 20 % / viewer scale ${presentation.viewerMarkerScale.toFixed(2)}x / scene ${m5aR1115SceneIndex} / HUMAN_REVIEW NOT_RUN`,
+  };
 };
