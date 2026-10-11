@@ -85,3 +85,36 @@ export function detectP186FX4CyanTargetComponents(rgba, width, height) {
 // separately gated production smoke. No production smoke is run here.
 globalThis.detectP186FX4CyanTargetComponents =
   detectP186FX4CyanTargetComponents;
+
+
+/**
+ * Build a browser-evaluated, invoked async expression for the exact X4 PNG probe.
+ * Playwright page.evaluate(string) evaluates an expression; passing a bare async
+ * function string plus a separate argument returns an un-serializable function
+ * (undefined), rather than executing the detector.
+ *
+ * The result deliberately reuses the source-color-bound detector verbatim.
+ * It accepts only screenshot data URLs, not untrusted arbitrary expressions.
+ */
+export function buildP186FX4BrowserScreenshotProofExpression(screenshotDataUrl) {
+  if (
+    typeof screenshotDataUrl !== 'string' ||
+    !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(screenshotDataUrl)
+  ) {
+    throw new Error('P186F-X4 browser pixel proof requires PNG screenshot data URL');
+  }
+  const detectorSource = detectP186FX4CyanTargetComponents.toString();
+  return (
+    '(async (sourceUrl) => {' +
+    ' const image = new Image(); image.src = sourceUrl; await image.decode();' +
+    ' const probe = document.createElement("canvas");' +
+    ' probe.width = image.width; probe.height = image.height;' +
+    ' const context = probe.getContext("2d");' +
+    ' if (!context) throw new Error("X4 screenshot canvas unavailable");' +
+    ' context.drawImage(image, 0, 0);' +
+    ' const rgba = context.getImageData(0, 0, image.width, image.height).data;' +
+    ' const detect = ' + detectorSource + ';' +
+    ' return detect(rgba, image.width, image.height);' +
+    '})(' + JSON.stringify(screenshotDataUrl) + ')'
+  );
+}
