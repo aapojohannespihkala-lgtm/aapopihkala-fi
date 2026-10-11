@@ -85,6 +85,13 @@ export const p186fExpectedRooms = {
   },
 } as const;
 
+// Room names are grounded in the user-confirmed G2 R989 room bindings, not measured wall positions.
+export const p186fX4ReadableRoomLabels = {
+  Bedroom: 'Makuuhuone / VH',
+  Lobby: 'Aula',
+  Bathroom: 'Kylpyhuone',
+} as const;
+
 export const p186fExpectedTargetCount = Object.keys(p186fExpectedRooms).length;
 export const p186fExpectedRoomContextCount = 7;
 
@@ -313,6 +320,61 @@ const hasP186fNoPromotionSemantics = (object: any) => {
   );
 };
 
+// Browser-only, source-bound screen-legible label. A billboard follows the original
+// marker through pan/orbit without introducing a new physical geometry or XY claim.
+const createP186fX4RoomLabel = (
+  room: keyof typeof p186fExpectedRooms,
+  sourceCenter: THREE.Vector3,
+) => {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 96;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('P186F-X4 cannot draw source-bound room labels');
+  context.fillStyle = 'rgba(27,36,45,0.96)';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = '#f1f4f5';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.font = 'bold 38px system-ui, sans-serif';
+  context.fillText(p186fX4ReadableRoomLabels[room], 256, 48);
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  }));
+  sprite.name = `P186F_X4_${room.toUpperCase()}_VIEWER_ONLY_ROOM_LABEL`;
+  // The Lobby marker starts near the upper edge of the X4 plan; the other
+  // two near the lower edge. Keep all labels within the view without changing XY.
+  sprite.position.set(
+    sourceCenter.x,
+    sourceCenter.y,
+    sourceCenter.z + (room === 'Lobby' ? 0.19 : -0.19),
+  );
+  sprite.scale.set(0.72, 0.135, 1);
+  sprite.renderOrder = 85;
+  sprite.userData = {
+    p186fX4ReadableRoomLabel: true,
+    sourceRoomAssignment: room,
+    sourceLogicalDeviceId: p186fExpectedRooms[room].logicalDeviceId,
+    presentationOnly: true,
+    workAssumption: true,
+    physicalThermostatGeometryClaim: false,
+    physicalThermostatXYClaim: false,
+    current: false,
+    Canonical: false,
+    asBuilt: false,
+    publishToCURRENT: false,
+    HUMAN_REVIEW: 'NOT_RUN',
+  };
+  return sprite;
+};
+
 export const prepareP186fReviewPresentation = (
   sceneRoot: any,
   options: { preferRealArchitectureContext?: boolean } = {},
@@ -343,6 +405,7 @@ export const prepareP186fReviewPresentation = (
   let hiddenNonQuestionRenderableCount = 0;
   let realArchitectureContextRenderableCount = 0;
   let x4VisibilityProxyCount = 0;
+  let x4ReadableRoomLabelCount = 0;
   // Only the exact mixed X3/X4 three-room source scene gets a visual overlay.
   // These halos do not represent measured device size, wall mounting, or as-built XY.
   const isX4RoomSourceScene =
@@ -434,6 +497,27 @@ export const prepareP186fReviewPresentation = (
         targetBounds.union(objectBounds);
       }
     }
+
+    if (isX4RoomSourceScene) {
+      const room = String(object.userData?.roomAssignment ?? '') as keyof typeof p186fExpectedRooms;
+      let label = object.children?.find((child: any) =>
+        child.userData?.p186fX4ReadableRoomLabel === true,
+      );
+      if (!label) {
+        object.geometry?.computeBoundingBox?.();
+        const geometryBounds = object.geometry?.boundingBox;
+        if (!geometryBounds || geometryBounds.isEmpty()) {
+          throw new Error('P186F-X4 cannot anchor room label to source geometry');
+        }
+        const center = geometryBounds.getCenter(new THREE.Vector3());
+        label = createP186fX4RoomLabel(room, center);
+        if (label) object.add(label);
+      }
+      if (label) {
+        label.visible = true;
+        x4ReadableRoomLabelCount += 1;
+      }
+    }
   }
 
   for (const object of renderables) {
@@ -488,6 +572,7 @@ export const prepareP186fReviewPresentation = (
   return {
     targetRenderableCount,
     x4VisibilityProxyCount,
+    x4ReadableRoomLabelCount,
     expectedTargetRenderableCount: p186fExpectedTargetCount,
     contextRenderableCount,
     expectedContextRenderableCount: useRealArchitectureContext
