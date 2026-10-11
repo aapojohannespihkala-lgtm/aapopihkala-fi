@@ -218,5 +218,5 @@ test('actual D1F browser ruler measures along Y and never invents a diagonal', a
   await expect(canvas).toHaveAttribute('data-axis-measure-mm', lockedMm!);
   await page.mouse.click(outside.x, outside.y);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
-  await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\\d/);
+  await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\d/);
 });
