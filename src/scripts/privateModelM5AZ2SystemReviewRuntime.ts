@@ -18,6 +18,8 @@ import {
   m5aZ2LegacyReviewId,
   m5aZ2R1090CandidateId,
   m5aZ2R1090ReviewId,
+  m5aZ2R1125CandidateId,
+  m5aZ2R1125ReviewId,
 } from './privateModelWorkTest';
 
 const reviewQueryKey = 'review';
@@ -26,12 +28,14 @@ export const m5aZ2SystemReviewRuntimeCandidateIds = Object.freeze([
   m5aZ2LegacyCandidateId,
   m5aZ2D1036CandidateId,
   m5aZ2R1090CandidateId,
+  m5aZ2R1125CandidateId,
 ]);
 
 export const m5aZ2SystemReviewRuntimeReviewIds = Object.freeze([
   m5aZ2LegacyReviewId,
   m5aZ2D1036ReviewId,
   m5aZ2R1090ReviewId,
+  m5aZ2R1125ReviewId,
 ]);
 
 export const getRequestedM5AZ2SystemReviewId = (search: string) => {
@@ -214,4 +218,138 @@ export const selectM5AR1115ReviewScene = (gltf: any) => {
   const presentation = prepareM5AR1115PlannedRaiseReviewPresentation(scene);
   const runtimeState = createM5AR1115ReviewRuntimeState(presentation);
   return { scene, presentation, runtimeState };
+};
+
+
+/**
+ * Exact R1125 source guard for the immutable G2 R1125/R1126 WORK_TEST GLB.
+ * It is not a physical pipe measurement, a publish gate, or a pixel proof.
+ */
+export const m5aR1125SourceSceneIndex = 63;
+export const m5aR1125SourceSceneName =
+  'M5A-R1125 FIVE SALAOJA D100 + TWO UNKNOWN PVK DIAMETERS WORK_TEST - BABYLON Y-UP';
+export const m5aR1125SourceDriveId = '13qxYc9PF7Z6eo_OXs1RrYCyo5CbTIAKs';
+export const m5aR1125SourceSha256 =
+  'c465417fc101e7de495d0a04bb4feb2bee61b80cd5efccf876f6eb76326f9a48';
+
+const m5aR1125FiveSalAOjaIds = new Set([
+  'G2_DRAIN_LINK_PVK_SOK1_001',
+  'G2_DRAIN_LINK_PVK_SOK3_001',
+  'G2_DRAIN_LINK_SOK1_SOK2_001',
+  'G2_DRAIN_LINK_SOK3_BUILDING_END_001',
+  'G2_DRAIN_LINK_SOK2_BUILDING_END_001',
+]);
+const m5aR1125UnknownPvkIds = new Set([
+  'G2_DRAIN_LINK_PVK_DISCHARGE_001',
+  'G2_DRAIN_LINK_PVK_PARKING_001',
+]);
+
+export const selectM5AR1125SourceBoundReviewScene = (gltf: any) => {
+  const scene = gltf?.scenes?.[m5aR1125SourceSceneIndex];
+  const sourceScene = gltf?.parser?.json?.scenes?.[m5aR1125SourceSceneIndex];
+  if (!scene || String(sourceScene?.name ?? '') !== m5aR1125SourceSceneName) {
+    throw new Error('M5A R1125 exact scene63 source identity mismatch');
+  }
+  const sourceSceneExtras = scene.userData ?? {};
+  if (
+    sourceSceneExtras.sourceDiameterCorrectionContract !== 'G2_R1125' ||
+    sourceSceneExtras.sourceDiameterClassBreakdown !==
+      '5_SALAOJA_AGGREGATE_NOMINAL_100MM__2_PVK_UNKNOWN' ||
+    sourceSceneExtras.physicalRouteDiameterMeasuredClaim !== false ||
+    sourceSceneExtras.currentGeometryClaim !== false ||
+    sourceSceneExtras.asBuiltClaim !== false ||
+    sourceSceneExtras.publishToCURRENT !== false
+  ) {
+    throw new Error('M5A R1125 scene63 source classification or promotion gate failed');
+  }
+  const found = new Set<string>();
+  let salaojaNominalSystemCount = 0;
+  let pvkUnknownCount = 0;
+  let sourceRootCount = 0;
+  scene.traverse?.((object: any) => {
+    const data = object?.userData ?? {};
+    if (object === scene) return; // scene63 contract checked separately above
+    if (data.sourceDiameterCorrectionContract !== 'G2_R1125') return;
+    const id = String(data.G2IdCandidate ?? '');
+    if (!id && data.representationKind === 'drainageTopologyWorkRoot') {
+      if (
+        data.diameterSourceBreakdown !==
+          '5_SALAOJA_SYSTEM_NOMINAL_D100_PLUS_2_PVK_DIAMETER_UNKNOWN' ||
+        data.sourceMetadataOnlySuccessor !== true ||
+        data.originalGeometryByteMutation !== false ||
+        data.currentGeometryClaim !== false ||
+        data.asBuiltClaim !== false ||
+        data.publishToCURRENT !== false ||
+        data.Canonical !== false ||
+        data.humanReview !== 'NOT_RUN'
+      ) {
+        throw new Error('M5A R1125 source group root integrity gate failed');
+      }
+      sourceRootCount++;
+      return;
+    }
+    if (
+      String(data.representationKind ?? '') !== 'pipeDiameterPresentationWork' ||
+      (!m5aR1125FiveSalAOjaIds.has(id) && !m5aR1125UnknownPvkIds.has(id)) ||
+      found.has(id)
+    ) {
+      throw new Error('M5A R1125 duplicate or unexpected diameter-source route');
+    }
+    found.add(id);
+    if (
+      data.presentationDiameterMm !== 100 ||
+      data.presentationDiameterRole !== 'WORK_TEST_VISUAL_PROXY' ||
+      data.physicalDiameterPerRouteSourceVerified !== false ||
+      data.diameterIsPhysicalAsBuiltClaim !== false ||
+      data.physicalRouteClaim !== false ||
+      data.exactXYClaim !== false ||
+      data.exactZClaim !== false ||
+      data.currentGeometryClaim !== false ||
+      data.asBuiltClaim !== false ||
+      data.Canonical !== false ||
+      data.publishToCURRENT !== false
+    ) {
+      throw new Error('M5A R1125 source size or no-promotion guard failed');
+    }
+    if (m5aR1125FiveSalAOjaIds.has(id)) {
+      if (
+        data.pipeDiameterMmSource !== 100 ||
+        data.pipeDiameterMmNominalSource !== 100 ||
+        data.pipeDiameterMmSourceScope !== 'AGGREGATE_SALAOJA_SYSTEM_NOT_INDIVIDUAL_ROUTE' ||
+        data.physicalNominalDiameterStatus !==
+          'GENERAL_SALAOJA_SYSTEM_NOMINAL_CLASS_NOT_PER_BRANCH_MEASUREMENT'
+      ) {
+        throw new Error('M5A R1125 salaoja nominal-class source contract failed');
+      }
+      salaojaNominalSystemCount++;
+    } else {
+      if (
+        data.pipeDiameterMmSource != null ||
+        data.pipeDiameterMmNominalSource != null ||
+        data.physicalNominalDiameterStatus !== 'UNKNOWN' ||
+        data.pipeDiameterSourceRole !== 'PVK_SOURCE_DIAMETER_UNKNOWN_PRESENTATION_D100'
+      ) {
+        throw new Error('M5A R1125 PVK physical diameter must remain UNKNOWN');
+      }
+      pvkUnknownCount++;
+    }
+  });
+  if (
+    salaojaNominalSystemCount !== m5aR1125FiveSalAOjaIds.size ||
+    pvkUnknownCount !== m5aR1125UnknownPvkIds.size ||
+    found.size !== 7 ||
+    sourceRootCount !== 1
+  ) {
+    throw new Error('M5A R1125 must have exactly five salaoja nominal classes and two unknown PVK routes');
+  }
+  return {
+    scene,
+    sourceDriveId: m5aR1125SourceDriveId,
+    sourceSha256: m5aR1125SourceSha256,
+    sourceContract: 'G2_R1125',
+    salaojaNominalSystemCount,
+    pvkUnknownCount,
+    physicalMeasurementsVerified: false,
+    humanReview: 'NOT_RUN',
+  };
 };
