@@ -258,6 +258,21 @@ const title = 'Private 3D viewer';
         color: var(--viewer-ink);
       }
 
+      .axis-measure-label {
+        position: absolute;
+        z-index: 5;
+        padding: 4px 7px;
+        border-radius: 5px;
+        background: rgba(18, 69, 102, 0.93);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+        pointer-events: none;
+        transform: translate(-50%, -135%);
+      }
+      .axis-measure-label[hidden] { display: none; }
+
       .status {
         margin-left: auto;
         min-width: 220px;
@@ -1483,6 +1498,7 @@ const title = 'Private 3D viewer';
         <div class="interaction-tools" role="group" aria-label="Vuorovaikutustila">
           <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
           <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
+          <button id="axis-measure-tool-button" type="button" aria-pressed="false" title="Mittaa X- tai Y-suunnassa; kolmas klikkaus tyhjentää">Mittaa</button>
         </div>
 
         <details id="model-menu" class="toolbar-menu source-menu">
@@ -1527,6 +1543,7 @@ const title = 'Private 3D viewer';
 
       <section class="viewport" aria-label="Suojattu 3D-katseluportti">
         <canvas id="private-model-canvas" tabindex="0"></canvas>
+        <div id="axis-measure-label" class="axis-measure-label" hidden aria-hidden="true"></div>
         <aside id="m5a-source-context" class="m5a-source-context" aria-label="Salaojakatselmuksen lähdekonteksti" hidden>
           <h2>Salaojien lähdekonteksti</h2>
           <p id="m5a-source-context-source"></p>
@@ -1631,7 +1648,11 @@ const title = 'Private 3D viewer';
             <span>Klikattu</span>
             <span id="coordinate-anchor">X - / Y -</span>
           </div>
-          <div class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä</div>
+          <div class="coordinate-line" id="axis-measure-row" hidden>
+            <span>Mittaus</span>
+            <span id="axis-measure-output">Klikkaa ensimmäinen piste</span>
+          </div>
+          <div class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.</div>
         </aside>
         <aside id="height-scale" class="height-scale" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
           <div class="height-scale-title">YLIS-G1-LOCAL Z</div>
@@ -1952,6 +1973,11 @@ const title = 'Private 3D viewer';
         setReviewPointerState,
       } from '../../scripts/privateModelReviewCoordinates';
       import {
+        advanceAxisMeasure,
+        axisMeasureDisplay,
+        emptyAxisMeasureState,
+      } from '../../scripts/privateModelP137EAxisMeasurement';
+      import {
         explicitFloorToken,
         findSourceNamedScene,
         resolveArchitecturalSemanticDescriptor,
@@ -2101,6 +2127,10 @@ const title = 'Private 3D viewer';
       const layersButton = document.querySelector<HTMLButtonElement>('#layers-button');
       const navigateToolButton = document.querySelector<HTMLButtonElement>('#navigate-tool-button');
       const selectionToolButton = document.querySelector<HTMLButtonElement>('#selection-tool-button');
+      const axisMeasureToolButton = document.querySelector<HTMLButtonElement>('#axis-measure-tool-button');
+      const axisMeasureLabel = document.querySelector<HTMLElement>('#axis-measure-label');
+      const axisMeasureRow = document.querySelector<HTMLElement>('#axis-measure-row');
+      const axisMeasureOutput = document.querySelector<HTMLElement>('#axis-measure-output');
       const profileButton = document.querySelector<HTMLButtonElement>('#profile-button');
       const workTestSelect = document.querySelector<HTMLSelectElement>('#work-test-select');
       const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
@@ -2272,6 +2302,10 @@ const title = 'Private 3D viewer';
         !coordinateFloor ||
         !coordinatePointer ||
         !coordinateAnchor ||
+        !axisMeasureToolButton ||
+        !axisMeasureLabel ||
+        !axisMeasureRow ||
+        !axisMeasureOutput ||
         !orientationGizmo ||
         !orientationAxisX ||
         !orientationAxisXTip ||
@@ -2510,6 +2544,8 @@ const title = 'Private 3D viewer';
       };
       let dCoordinateGridFloor: '1F' | '2F' | null = null;
       let dCoordinateAnchorMarker: any = null;
+      let dAxisMeasureState = emptyAxisMeasureState();
+      let dAxisMeasureMarker: any = null;
 
       const setModelScene = (root: any) => {
         modelRoot.clear();
@@ -2767,6 +2803,115 @@ const title = 'Private 3D viewer';
         setReviewAnchorState(canvas, coordinateAnchor, coordinate);
       };
 
+
+      // Measurement has its own temporary THREE overlay and never mutates the
+      // source geometry, Themo placement anchor or the G2 persistence path.
+      const clearDAxisMeasurement = () => {
+        if (dAxisMeasureMarker) {
+          scene.remove(dAxisMeasureMarker);
+          disposeCoordinateObject(dAxisMeasureMarker);
+          dAxisMeasureMarker = null;
+        }
+        dAxisMeasureState = emptyAxisMeasureState();
+        axisMeasureLabel.hidden = true;
+        axisMeasureOutput.textContent = axisMeasureDisplay(dAxisMeasureState);
+        canvas.dataset.axisMeasurePhase = 'EMPTY';
+        delete canvas.dataset.axisMeasureMm;
+        delete canvas.dataset.axisMeasureAxis;
+      };
+
+      const renderDAxisMeasurement = () => {
+        if (dAxisMeasureMarker) {
+          scene.remove(dAxisMeasureMarker);
+          disposeCoordinateObject(dAxisMeasureMarker);
+          dAxisMeasureMarker = null;
+        }
+        axisMeasureLabel.hidden = true;
+        axisMeasureOutput.textContent = axisMeasureDisplay(dAxisMeasureState);
+        canvas.dataset.axisMeasurePhase = dAxisMeasureState.phase;
+        delete canvas.dataset.axisMeasureMm;
+        delete canvas.dataset.axisMeasureAxis;
+        if (dAxisMeasureState.phase === 'EMPTY' || !activePlanFloor) return;
+
+        const elevation = dReviewPlaneY[activePlanFloor] + 0.035;
+        const crossRadius = 0.095;
+        const segmentPoints: any[] = [];
+        const addCross = (point: { xM: number; yM: number }) => {
+          const px = point.xM;
+          const pz = -point.yM;
+          segmentPoints.push(
+            new THREE.Vector3(px - crossRadius, elevation, pz - crossRadius),
+            new THREE.Vector3(px + crossRadius, elevation, pz + crossRadius),
+            new THREE.Vector3(px - crossRadius, elevation, pz + crossRadius),
+            new THREE.Vector3(px + crossRadius, elevation, pz - crossRadius),
+          );
+        };
+        addCross(dAxisMeasureState.first);
+        if (dAxisMeasureState.phase === 'MEASURED') {
+          addCross(dAxisMeasureState.second);
+          segmentPoints.push(
+            new THREE.Vector3(dAxisMeasureState.first.xM, elevation, -dAxisMeasureState.first.yM),
+            new THREE.Vector3(dAxisMeasureState.second.xM, elevation, -dAxisMeasureState.second.yM),
+          );
+          canvas.dataset.axisMeasureMm = String(dAxisMeasureState.millimetres);
+          canvas.dataset.axisMeasureAxis = dAxisMeasureState.axis;
+          axisMeasureLabel.textContent = axisMeasureDisplay(dAxisMeasureState);
+          axisMeasureLabel.hidden = false;
+        }
+        const geometry = new THREE.BufferGeometry().setFromPoints(segmentPoints);
+        const material = new THREE.LineBasicMaterial({
+          color: 0x146892, depthTest: false, depthWrite: false,
+        });
+        const marker = new THREE.LineSegments(geometry, material);
+        marker.name = 'P137E_AXIS_MM_TEMPORARY_RULER';
+        marker.renderOrder = 120;
+        marker.userData = {
+          PresentationOnly: true, Canonical: false, Pass: '137E',
+          representationKind: 'axisAlignedTemporaryMeasurement',
+          coordinateFrame: 'YLIS-G1-LOCAL', approx: true,
+          persisted: false, currentGeometry: false, asBuilt: false,
+        };
+        scene.add(marker);
+        dAxisMeasureMarker = marker;
+      };
+
+      const clickDAxisMeasurement = (clientX: number, clientY: number) => {
+        const coordinate = dReviewCoordinateAtClientPoint(clientX, clientY);
+        if (!coordinate || !activePlanFloor) return;
+        const withinEnvelope =
+          coordinate.xM >= dCoordinateEnvelope.xMin &&
+          coordinate.xM <= dCoordinateEnvelope.xMax &&
+          coordinate.yM >= dCoordinateEnvelope.yMin &&
+          coordinate.yM <= dCoordinateEnvelope.yMax;
+        if (!withinEnvelope) return;
+        dAxisMeasureState = advanceAxisMeasure(dAxisMeasureState, coordinate);
+        renderDAxisMeasurement();
+      };
+
+      const updateDAxisMeasurementLabel = () => {
+        if (dAxisMeasureState.phase !== 'MEASURED' ||
+            !activePlanFloor || activeCamera !== planCamera) {
+          axisMeasureLabel.hidden = true;
+          return;
+        }
+        const first = dAxisMeasureState.first;
+        const second = dAxisMeasureState.second;
+        const midpoint = new THREE.Vector3(
+          (first.xM + second.xM) / 2,
+          dReviewPlaneY[activePlanFloor] + 0.05,
+          -(first.yM + second.yM) / 2,
+        );
+        midpoint.project(activeCamera);
+        if (!Number.isFinite(midpoint.x) || !Number.isFinite(midpoint.y) ||
+            Math.abs(midpoint.x) > 1 || Math.abs(midpoint.y) > 1) {
+          axisMeasureLabel.hidden = true;
+          return;
+        }
+        axisMeasureLabel.hidden = false;
+        axisMeasureLabel.style.left = ((midpoint.x + 1) * 0.5 * canvas.clientWidth).toFixed(1) + 'px';
+        axisMeasureLabel.style.top = ((1 - midpoint.y) * 0.5 * canvas.clientHeight).toFixed(1) + 'px';
+      };
+
       const activateDCoordinateReview = (floor: '1F' | '2F') => {
         const floorChanged = dCoordinateGridFloor !== floor;
         prepareDCoordinateGrid(floor);
@@ -2778,13 +2923,17 @@ const title = 'Private 3D viewer';
           coordinatePointer,
           floor,
         });
-        if (floorChanged) clearDCoordinateAnchor();
+        if (floorChanged) {
+          clearDCoordinateAnchor();
+          clearDAxisMeasurement();
+        }
       };
 
       const deactivateDCoordinateReview = () => {
         dCoordinateGridGroup.visible = false;
         deactivateReviewCoordinatePanel({ canvas, coordinatePanel, coordinatePointer });
         clearDCoordinateAnchor();
+        clearDAxisMeasurement();
       };
 
       const isP136BReviewEmphasis = (object: any) => {
@@ -3831,13 +3980,16 @@ const title = 'Private 3D viewer';
         selectionPanelController.clear();
       };
 
-      type ViewerToolMode = 'navigate' | 'select';
+      type ViewerToolMode = 'navigate' | 'select' | 'measure';
       const setViewerToolMode = (mode: ViewerToolMode) => {
         canvas.dataset.interactionMode = mode;
         navigateToolButton.setAttribute('aria-pressed', String(mode === 'navigate'));
         selectionToolButton.setAttribute('aria-pressed', String(mode === 'select'));
-        canvas.style.cursor = mode === 'select' ? 'crosshair' : '';
-        if (mode === 'navigate') clearSelection();
+        axisMeasureToolButton.setAttribute('aria-pressed', String(mode === 'measure'));
+        axisMeasureRow.hidden = mode !== 'measure';
+        if (mode !== 'measure') clearDAxisMeasurement();
+        canvas.style.cursor = mode === 'select' || mode === 'measure' ? 'crosshair' : '';
+        if (mode !== 'select') clearSelection();
       };
 
       const selectObject = (object: any) => {
@@ -10318,6 +10470,10 @@ const title = 'Private 3D viewer';
       layersPanel.addEventListener('input', markResearchPresetCustomized);
       navigateToolButton.addEventListener('click', () => setViewerToolMode('navigate'));
       selectionToolButton.addEventListener('click', () => setViewerToolMode('select'));
+      axisMeasureToolButton.addEventListener('click', () => {
+        setViewerToolMode('measure');
+        clearDAxisMeasurement();
+      });
       clearSelectionButton.addEventListener('click', clearSelection);
       isolateSelectionButton.addEventListener('click', isolateSelectedObject);
       hideSelectionButton.addEventListener('click', hideSelectedObject);
@@ -10339,8 +10495,12 @@ const title = 'Private 3D viewer';
         const distance = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
         pointerDown = null;
         if (distance <= pickDragThresholdPx) {
-          if (activePlanFloor) setDCoordinateAnchor(event.clientX, event.clientY);
-          selectAtClientPoint(event.clientX, event.clientY);
+          if (canvas.dataset.interactionMode === 'measure') {
+            clickDAxisMeasurement(event.clientX, event.clientY);
+          } else {
+            if (activePlanFloor) setDCoordinateAnchor(event.clientX, event.clientY);
+            selectAtClientPoint(event.clientX, event.clientY);
+          }
         }
       });
 
@@ -10365,6 +10525,7 @@ const title = 'Private 3D viewer';
         selectionHighlightController.update();
         updateD1KnownDoorReviewLabelPositions();
         updateHeightScale();
+        updateDAxisMeasurementLabel();
         orientationGizmoController.render({
           quaternion: activeCamera.quaternion,
           projection: (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective',
