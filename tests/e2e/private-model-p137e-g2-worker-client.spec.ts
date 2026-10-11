@@ -86,6 +86,38 @@ test('promoted geometry and incomplete WORK_TEST payloads fail before network', 
   expect(calls).toHaveLength(0);
 });
 
+test('nested WORK_TEST promotion flags fail before any G2 POST', async () => {
+  const calls: Array<{url: string; options: any}> = [];
+  const c = client(json({}), calls);
+  const mutations = [
+    { anchor: { ...payload.anchor, host: { canonical: true } } },
+    { anchor: { ...payload.anchor, height: { exactZClaim: true } } },
+    { observation: { ...payload.observation, metadata: { asBuilt: true } } },
+    { observation: { ...payload.observation, metadata: { humanReview: 'PASS' } } },
+    { resolution: { ...payload.resolution, props: { publishToCURRENT: true } } },
+    { resolution: { ...payload.resolution, props: { stage: 'CURRENT' } } },
+    { resolution: { ...payload.resolution, props: { exactXY: true } } },
+    { resolution: { ...payload.resolution, nested: { provenance: { surveyGeometryClaim: true } } } },
+  ];
+  for (const mutation of mutations) {
+    await expect(c.persist({ ...payload, ...mutation }))
+      .rejects.toThrow('PROMOTION_REJECTED');
+  }
+  expect(calls).toHaveLength(0);
+});
+
+test('nested promoted durable POST response and GET response fail closed', async () => {
+  const promoted = {
+    ...payload, observation: { ...payload.observation, context: { asBuiltClaim: true } },
+  };
+  const post = { receipt: { status: 'PERSISTED_TO_EXISTING_G2', recordId },
+    readback: { recordId, payload: promoted } };
+  await expect(client(json(post)).persist(payload))
+    .rejects.toThrow('DURABLE_READBACK_INVALID');
+  await expect(client(json({ recordId, payload: promoted })).readback(recordId))
+    .rejects.toThrow('DURABLE_READBACK_INVALID');
+});
+
 test('record readback rejects path injection and validates record identity', async () => {
   const calls: Array<{url: string; options: any}> = [];
   const c = client(json({ recordId, payload }), calls);
