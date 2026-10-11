@@ -356,7 +356,7 @@ export const getP186ESourceViewerCaption = (source: any): string | null => {
     : kind === 'special'
       ? String(data.sourceText ?? '')
       : '';
-  const normalized = raw.trim().replace(/\\s+/g, ' ');
+  const normalized = raw.trim().replace(/\s+/g, ' ');
   if (!normalized) return null;
   const excerpt = normalized.length > 30 ? normalized.slice(0, 29) + '…' : normalized;
   return kind === 'group' ? 'Ryhmä ' + excerpt : excerpt;
@@ -405,7 +405,7 @@ const addP186ESourceCaption = (source: any): boolean => {
   sprite.frustumCulled = false;
   sprite.userData = {
     p186eViewerSourceCaption: true, viewerDerived: true, sourceAttached: true,
-    sourceCaptionFullText: caption,
+    sourceCaptionDisplayText: caption,
     presentationOnly: true, physicalPlacementClaim: false,
     exactCurrentXYClaim: false, currentGeometryClaim: false,
     asBuiltClaim: false, canonical: false, publishToCURRENT: false,
