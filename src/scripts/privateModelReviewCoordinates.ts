@@ -265,7 +265,7 @@ export const resolveTargetBoundReviewAnchor = (
     const residualM = Math.abs(acrossM - host.fixedM);
     if (residualM > maxResidualM) return [];
     const openingOverlap = host.openings.some(
-      (opening) => alongM >= opening.startM && alongM <= opening.endM,
+      (opening: { startM: number; endM: number }) => alongM >= opening.startM && alongM <= opening.endM,
     );
     return [{ host, residualM, openingOverlap }];
   });
