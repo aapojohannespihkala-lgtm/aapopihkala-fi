@@ -553,10 +553,15 @@ jobs:
                 ' const detect = ' + detectorFunctionSource + ';' +
                 ' return detect(rgba, image.width, image.height);' +
                 '})';
+              const x4ScreenshotDataUrl = 'data:image/png;base64,' + before.toString('base64');
+              // Playwright evaluates a string expression, not the bare async function.
+              // Invoke it with the exact PNG argument and fail closed on no result.
               cyanTargetEvidence = await page.evaluate(
-                browserProof,
-                'data:image/png;base64,' + before.toString('base64'),
+                browserProof + '(' + JSON.stringify(x4ScreenshotDataUrl) + ')',
               );
+              if (!cyanTargetEvidence || typeof cyanTargetEvidence !== 'object') {
+                throw new Error('X4 screenshot detector returned no pixel result');
+              }
               fs.writeFileSync(
                 'playwright-artifacts/x4-three-cyan-components.json',
                 JSON.stringify(cyanTargetEvidence, null, 2),
