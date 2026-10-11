@@ -28,7 +28,7 @@ const fixture = () => {
 
   const targets = new Map<string, THREE.Object3D>();
   keys.forEach((key, i) => {
-    const kind = m5aR1125SourcePixelKinds[key] as string;
+    const kind = (m5aR1125SourcePixelKinds as Readonly<Record<string, string>>)[key];
     const geometry = kind === 'wellGray'
       ? new THREE.BoxGeometry(0.35, 0.35, 0.35)
       : new THREE.BufferGeometry().setFromPoints([
@@ -130,7 +130,7 @@ test('R1125 hidden and transparent target pixels cannot be treated as visible', 
   expect(() => derive(hidden)).toThrow(/invisible or unsafe/);
 
   const transparent = fixture();
-  const material = transparent.targets.get(keys[5]!)!.material as THREE.Material;
+  const material = (transparent.targets.get(keys[5]!)! as THREE.LineSegments).material as THREE.Material;
   material.opacity = 0;
   expect(() => derive(transparent)).toThrow(/invisible or unsafe/);
 });
