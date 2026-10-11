@@ -1,6 +1,8 @@
 import {
   placementG2DocumentId,
 } from './privateModelReviewPlacementG2Context';
+import { readNativeG2CurrentPlacementTargets } from './privateModelReviewPlacementG2CurrentCombined';
+
 import type {
   NativePlacementG2Document,
   TrustedNativeG2WritePorts,
@@ -188,4 +190,16 @@ export const createNativeG2GoogleDocsPorts = (
   const nextRecordId = () => 'P137E_G2_' + crypto.randomUUID().replace(/-/g, '');
 
   return { getDocument, batchUpdateDocument, nextRecordId };
+};
+
+/**
+ * Server-only, read-only facade for five source-bound D1F current review identities.
+ * It obtains the same native G2 revision once through the authenticated transport.
+ * No write method or HTTP endpoint is exposed; null means nothing is selectable.
+ */
+export const createNativeG2CurrentReadOnlyAdapter = (options: NativeG2GoogleDocsOptions) => {
+  const { getDocument } = createNativeG2GoogleDocsPorts(options);
+  return {
+    readCurrentTargets: () => readNativeG2CurrentPlacementTargets(getDocument),
+  };
 };
