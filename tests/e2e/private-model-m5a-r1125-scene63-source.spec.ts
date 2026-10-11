@@ -496,7 +496,7 @@ test('M5A R1125 overlays only exact 13/13 source targets over 20% terrain withou
 
   const { root, targets, terrain } = makeSourceReview();
   const originalVertices = targets.map((node) =>
-    [...(node.geometry.getAttribute('position').array as ArrayLike<number>)],
+    Array.from(node.geometry.getAttribute('position').array as ArrayLike<number>),
   );
   const result = prepareM5AZ2SystemReviewPresentation(root, {
     r1125TerrainResistantOverlay: true,
@@ -519,7 +519,7 @@ test('M5A R1125 overlays only exact 13/13 source targets over 20% terrain withou
     expect(material.depthWrite).toBe(false);
     expect(node.renderOrder).toBe(2200);
     expect(node.userData.m5aZ2ReviewRole).toBe('QUESTION_TARGET_80');
-    expect([...(node.geometry.getAttribute('position').array as ArrayLike<number>)])
+    expect(Array.from(node.geometry.getAttribute('position').array as ArrayLike<number>))
       .toEqual(originalVertices[index]);
   });
   const terrainMaterial = terrain.material as THREE.MeshBasicMaterial;
