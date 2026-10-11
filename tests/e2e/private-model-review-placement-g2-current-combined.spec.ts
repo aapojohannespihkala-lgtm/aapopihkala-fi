@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { placementG2DocumentId, resolvePlacementG2Context } from '../../src/scripts/privateModelReviewPlacementG2Context';
 import { readNativeG2CurrentPlacementTargets } from '../../src/scripts/privateModelReviewPlacementG2CurrentCombined';
+import { createNativeG2CurrentReadOnlyAdapter } from '../../src/scripts/privateModelReviewPlacementG2GoogleDocs';
 
 const Q = String.fromCharCode(96);
 const sourceLines = [
@@ -124,4 +125,69 @@ test('unavailable trusted native G2 port never returns partial or synthetic targ
   expect(await readNativeG2CurrentPlacementTargets(async () => { throw new Error('read denied'); })).toBeNull();
   expect(await readNativeG2CurrentPlacementTargets(async () => null)).toBeNull();
   expect(await readNativeG2CurrentPlacementTargets(null as never)).toBeNull();
+});
+
+
+const createTestServiceAccount = async () => {
+  const keys = await crypto.subtle.generateKey({
+    name: 'RSASSA-PKCS1-v1_5',
+    modulusLength: 2048,
+    publicExponent: new Uint8Array([1, 0, 1]),
+    hash: 'SHA-256',
+  }, true, ['sign', 'verify']) as CryptoKeyPair;
+  const bytes = new Uint8Array(await crypto.subtle.exportKey('pkcs8', keys.privateKey));
+  return {
+    clientEmail: 'g2-five-target-test@example-project.iam.gserviceaccount.com',
+    privateKeyPem: '-----BEGIN PRIVATE KEY-----\n' +
+      btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')) +
+      '\n-----END PRIVATE KEY-----\n',
+  };
+};
+
+test('authenticated Docs adapter reads exactly five source-bound current identities without exposing a write port', async () => {
+  const credentials = await createTestServiceAccount();
+  const requested: string[] = [];
+  const facade = createNativeG2CurrentReadOnlyAdapter({
+    credentials,
+    fetcher: async (input, init) => {
+      requested.push(String(input));
+      if (String(input) === 'https://oauth2.googleapis.com/token') {
+        expect(init?.method).toBe('POST');
+        return Response.json({ access_token: 'g2-read-only-test', token_type: 'Bearer' });
+      }
+      expect(init?.method).toBe('GET');
+      expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer g2-read-only-test');
+      return Response.json({
+        ...native(),
+        tabs: [{ tabProperties: { tabId: 't.0' }, documentTab: { body: body(sourceLines) } }],
+      });
+    },
+  });
+  expect(Object.keys(facade)).toEqual(['readCurrentTargets']);
+  const result = await facade.readCurrentTargets();
+  expect(result?.targets.map((t) => t.reviewTargetId)).toEqual(expected);
+  expect(result?.targets.every((t) => t.sourceG2Id === null && t.wallHosts.length === 0)).toBe(true);
+  expect(requested).toEqual([
+    'https://oauth2.googleapis.com/token',
+    'https://docs.googleapis.com/v1/documents/' + placementG2DocumentId + '?includeTabsContent=true',
+  ]);
+});
+
+test('authenticated Docs adapter rejects incomplete current sources and denied reads as all-or-nothing', async () => {
+  const credentials = await createTestServiceAccount();
+  const partial = createNativeG2CurrentReadOnlyAdapter({
+    credentials,
+    fetcher: async (input) => String(input).endsWith('/token')
+      ? Response.json({ access_token: 'fake', token_type: 'Bearer' })
+      : Response.json({
+        ...native(),
+        tabs: [{ tabProperties: { tabId: 't.0' }, documentTab: { body: body(sourceLines.slice(0, 6)) } }],
+      }),
+  });
+  expect(await partial.readCurrentTargets()).toBeNull();
+  const denied = createNativeG2CurrentReadOnlyAdapter({
+    credentials,
+    fetcher: async () => Response.json({ error: 'denied' }, { status: 403 }),
+  });
+  expect(await denied.readCurrentTargets()).toBeNull();
 });
