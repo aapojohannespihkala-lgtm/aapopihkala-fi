@@ -6,6 +6,7 @@ import {
   type NativeG2ServiceAccount,
 } from '../../src/scripts/privateModelReviewPlacementG2GoogleDocs';
 
+// Normal Google-exported PKCS8 PEM has a final line ending; exercise it everywhere.
 const makeAccount = async (): Promise<NativeG2ServiceAccount> => {
   const pair = await crypto.subtle.generateKey({
     name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048,
@@ -16,7 +17,7 @@ const makeAccount = async (): Promise<NativeG2ServiceAccount> => {
     clientEmail: 'g2-private-test@example-project.iam.gserviceaccount.com',
     privateKeyPem: '-----BEGIN PRIVATE KEY-----\n' +
       btoa(Array.from(key, (byte) => String.fromCharCode(byte)).join('')) +
-      '\n-----END PRIVATE KEY-----',
+      '\n-----END PRIVATE KEY-----\n',
   };
 };
 
