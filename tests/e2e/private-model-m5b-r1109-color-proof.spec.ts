@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 // This is an independent pure-JS pixel detector; it runs without browser credentials.
 // @ts-ignore - the mjs file is a JavaScript module without a TypeScript declaration
@@ -61,6 +62,17 @@ test('R1109 tolerates antialiasing and refuses invalid pixel dimensions', () => 
   expect(() => detect(null, frame.width, frame.height)).toThrow(/exact RGBA/);
 });
 
+test('R1109 production smoke checks five source-linked screenshot markers, not metadata alone', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  expect(workflow).toContain('detectM5BR1109CyanLocatorComponents.toString()');
+  expect(workflow).toContain("d.m5bSceneIndex !== '63'");
+  expect(workflow).toContain("d.m5bReviewTargetRenderableCount !== '5'");
+  expect(workflow).toContain("d.m5bCanonical !== 'false'");
+  expect(workflow).toContain('m5bPixelEvidence.componentCount !== 5');
+  expect(workflow).toContain('m5b-r1109-five-pixels.json');
+  expect(workflow).toContain('m5bPixelEvidence,');
+  expect(workflow).toContain('X4 requires exactly 3 separately rendered cyan targets');
+});
 
 test('R1109 exact PNG expression executes in real Chromium and rejects a missing locator', async ({ page }) => {
   for (const visibleMarkers of [5, 4]) {
