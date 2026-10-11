@@ -1,4 +1,7 @@
-import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { Buffer } from 'node:buffer';
+import { runInNewContext } from 'node:vm';
+import { expect, test, type Page } from '@playwright/test';
 // Source-color-bound, synthetic pixel-only guard. This is NOT production render evidence.
 // @ts-ignore - pure .mjs module has no TypeScript declaration
 import { buildP186FX4BrowserScreenshotProofExpression, detectP186FX4CyanTargetComponents as detect } from '../../src/scripts/privateModelP186FX4CyanPixelProof.mjs';
@@ -97,4 +100,84 @@ test('P186F-X4 screenshot proof executes in Chromium for 3 and 2 markers', async
     expect(result?.componentCount).toBe(markerCount);
     expect(result?.qualifyingColorPixels).toBe(markerCount * 30);
   }
+});
+
+
+// The exact authenticated-production workflow code must execute in Chromium,
+// not merely contain a static text marker. This rejects the former
+// page.evaluate('(async (url) => {...})', png) => undefined regression.
+const productionWorkflowPath = '.github/workflows/private-model-production-review-smoke.yml';
+const productionX4Begin = 'const detectorFunctionSource =';
+const productionX4End = "fs.writeFileSync(\n                'playwright-artifacts/x4-three-cyan-components.json'";
+
+function getExactProductionX4Source() {
+  const workflow = readFileSync(productionWorkflowPath, 'utf8');
+  const begin = workflow.indexOf(productionX4Begin);
+  const end = workflow.indexOf(productionX4End, begin);
+  if (begin < 0 || end <= begin || workflow.indexOf(productionX4Begin, begin + productionX4Begin.length) !== -1) {
+    throw new Error('Cannot uniquely extract real production X4 browser-evaluation code');
+  }
+  return workflow.slice(begin, end);
+}
+
+async function makeProductionRegressionPng(page: Page, count: number) {
+  const data = await page.evaluate((visibleCount) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 120;
+    canvas.height = 60;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('X4 browser regression canvas unavailable');
+    ctx.fillStyle = '#f2f5f9';
+    ctx.fillRect(0, 0, 120, 60);
+    ctx.fillStyle = '#22d3ee';
+    for (const x of [10, 50, 90].slice(0, visibleCount)) {
+      ctx.fillRect(x, 15, 6, 5);
+    }
+    return canvas.toDataURL('image/png').split(',')[1];
+  }, count);
+  return Buffer.from(data, 'base64');
+}
+
+type ExactProductionX4Pixels = {
+  requiredCount: number;
+  componentCount: number;
+  qualifyingColorPixels: number;
+};
+
+function runExactProductionX4Call(page: Page, before: Buffer, source: string) {
+  // Source is a uniquely selected fragment of checked-in workflow code.
+  // The real Playwright page instance handles its own browser evaluation.
+  const executable = '(async () => { let cyanTargetEvidence = null;\n' +
+    source + '\nreturn cyanTargetEvidence; })()';
+  return runInNewContext(executable, {
+    page,
+    before,
+    detectP186FX4CyanTargetComponents: detect,
+    Buffer,
+  }) as Promise<ExactProductionX4Pixels>;
+}
+
+test('exact production X4 screenshot invocation returns three real Chromium cyan components', async ({ page }) => {
+  const result = await runExactProductionX4Call(page, await makeProductionRegressionPng(page, 3), getExactProductionX4Source());
+  expect(result).toBeDefined();
+  expect(result.requiredCount).toBe(3);
+  expect(result.componentCount).toBe(3);
+  expect(result.qualifyingColorPixels).toBe(90);
+});
+
+test('exact production X4 screenshot invocation detects a missing third component', async ({ page }) => {
+  const result = await runExactProductionX4Call(page, await makeProductionRegressionPng(page, 2), getExactProductionX4Source());
+  expect(result.requiredCount).toBe(3);
+  expect(result.componentCount).toBe(2);
+  expect(result.qualifyingColorPixels).toBe(60);
+});
+
+test('original uninvoked production X4 expression must fail closed in Chromium', async ({ page }) => {
+  const source = getExactProductionX4Source();
+  const invocation = "browserProof + '(' + JSON.stringify(x4ScreenshotDataUrl) + ')'";
+  expect(source).toContain(invocation);
+  const broken = source.replace(invocation, 'browserProof');
+  expect(broken).not.toBe(source);
+  await expect(runExactProductionX4Call(page, await makeProductionRegressionPng(page, 3), broken))
+    .rejects.toThrow(/X4 screenshot detector returned no pixel result/);
 });
