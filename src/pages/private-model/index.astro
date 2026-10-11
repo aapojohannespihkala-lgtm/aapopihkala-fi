@@ -1861,6 +1861,7 @@ const title = 'Private 3D viewer';
         p186fX4ReviewSourceLimit,
         prepareP186fReviewPresentation,
       } from '../../scripts/privateModelP186FReviewPresentation';
+      import { prepareP186FX4FloorPlanGuide } from '../../scripts/privateModelP186FX4PlanContext';
       import {
         p186dExpectedD1fTargetCount,
         p186dExpectedD1fPosCounts,
@@ -8017,7 +8018,12 @@ const title = 'Private 3D viewer';
           );
         }
 
-        activePlanFocusBounds = presentation.targetBounds.clone();
+        // Full D1F source-derived green plan context, never just the three tight
+        // Themo target bounds; preserve unapproved wall-host semantics.
+        const x4FloorPlan = isX4
+          ? prepareP186FX4FloorPlanGuide(fullModelScene, presentation.targetBounds)
+          : null;
+        activePlanFocusBounds = x4FloorPlan?.floorPlanBounds ?? presentation.targetBounds.clone();
         fitPlanCamera();
         refreshEdgeRendering(fullModelScene);
         setP186fSourceContextVisible(
@@ -8061,7 +8067,17 @@ const title = 'Private 3D viewer';
           p186fCanonical: 'false',
           p186fPublishToCurrent: 'false',
           p186fHumanReview: 'NOT_RUN',
-          p186fReviewCameraMode: 'ORTHOGRAPHIC_D_1F_TARGET_BOUNDS_FOCUS',
+          p186fReviewCameraMode: isX4
+            ? 'ORTHOGRAPHIC_D_1F_FULL_GREEN_SOURCE_PLAN_FOCUS'
+            : 'ORTHOGRAPHIC_D_1F_TARGET_BOUNDS_FOCUS',
+          ...(isX4 ? {
+            p186fX4GreenPlanContextVisible: String((x4FloorPlan?.visualContextCount ?? 0) > 0),
+            p186fX4PlanContextRenderableCount: String(x4FloorPlan?.visualContextCount ?? 0),
+            p186fX4PlanRoomFootprintCount: String(x4FloorPlan?.roomFootprintCount ?? 0),
+            p186fX4PlanSourceWallGuideCount: String(x4FloorPlan?.sourceWallGuideCount ?? 0),
+            p186fX4PlacementWallHostApproved: 'false',
+            p186fX4PhysicalPlacementConfirmed: 'false',
+          } : {}),
           standardViewPreset: 'd-1f',
         });
         if (isX4) canvas.dataset.workTestReviewMode = p186fX4ReviewId;
