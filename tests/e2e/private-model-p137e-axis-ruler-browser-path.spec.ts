@@ -157,7 +157,7 @@ test('actual viewer ruler stays temporary on leaving D plan and changing tools',
   await page.locator('#axis-measure-tool-button').click();
   await page.mouse.click(box!.x + box!.width * 0.47, box!.y + box!.height * 0.45);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'FIRST');
-  await page.locator('#preset-menu summary').click();
+  // The preset details menu is still open after the D1F button click.
   await page.locator('#whole-building-preset-button').click();
   await expect(canvas).toHaveAttribute('data-view-preset', 'whole-building');
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
