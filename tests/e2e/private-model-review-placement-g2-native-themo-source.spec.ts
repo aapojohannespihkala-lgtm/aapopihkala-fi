@@ -93,6 +93,20 @@ test('unknown G2 document, no revision, changed promotion statuses fail closed',
   expect(projectNativeG2CurrentThemoReadback(doc(canonical))).toBeNull();
 });
 
+test('R989 rejects a missing or promoted cable-topology source limitation', () => {
+  const token = '`continuousCableTopologyClaim=false`';
+  const missing = [...lines];
+  missing[5] = missing[5].replace(token + ', ', '');
+  expect(projectNativeG2CurrentThemoReadback(doc(missing))).toBeNull();
+
+  const promoted = [...lines];
+  promoted[5] = promoted[5].replace(token, '`continuousCableTopologyClaim=true`');
+  expect(projectNativeG2CurrentThemoReadback(doc(promoted))).toBeNull();
+
+  // The original source-bound current-only interpretation remains allowed.
+  expect(projectNativeG2CurrentThemoReadback(doc(lines))?.targets).toHaveLength(3);
+});
+
 test('old Themo WORK_TEST presentation-anchor IDs are not promoted into current device IDs', async () => {
   const readback = projectNativeG2CurrentThemoReadback(doc());
   expect(readback?.targets.some((t) => t.reviewTargetId === 'D_THEMO_LOBBY_CURRENT_01')).toBe(false);
