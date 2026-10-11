@@ -111,6 +111,9 @@ jobs:
               "modelSource === 'work-test'",
               "workTestReviewMode === expectedReviewId",
               "workTestReviewCandidate === expectedCandidateId",
+              "detectP186FX4CyanTargetComponents",
+              "X4 requires exactly 3 separately rendered cyan targets",
+              "pointerButton = isX4Themo ? 'right' : 'left'",
           ]
           missing = [
               snippet
@@ -377,6 +380,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import { chromium } from '@playwright/test';
+          import { detectP186FX4CyanTargetComponents } from './src/scripts/privateModelP186FX4CyanPixelProof.mjs';
 
           const reviewBaseUrl = process.env.REVIEW_BASE_URL;
           const reviewId = process.env.REVIEW_ID;
@@ -506,19 +510,74 @@ jobs:
               path: 'playwright-artifacts/production-review-before.png',
             });
 
+
+            // Scene66 uses a no-rotation orthographic plan camera. The existing
+            // source-color-bound detector must prove all three individual Themo
+            // halos in the actual authenticated BEFORE screenshot, not metadata.
+            const isX4Themo =
+              reviewId === 'p186f-x4-d-themo-door-plan-clear-work-assumption-review' &&
+              candidateId === 'p186f-x4-d-themo-door-plan-clear-work-assumption';
+            let cyanTargetEvidence = null;
+            if (isX4Themo) {
+              const cameraState = await canvas.evaluate((element) => ({
+                preset: element.dataset.viewPreset,
+                projection: element.dataset.cameraProjection,
+                rotation: element.dataset.cameraRotation,
+              }));
+              if (
+                cameraState.preset !== 'd-plan' ||
+                cameraState.projection !== 'orthographic' ||
+                cameraState.rotation !== 'disabled'
+              ) {
+                throw new Error('X4 scene66 unexpectedly left its D1F no-rotation plan camera');
+              }
+
+              // Serialize the already-tested helper into the browser evaluation
+              // rather than introducing an alternate, weaker color predicate.
+              const detectorFunctionSource =
+                detectP186FX4CyanTargetComponents.toString();
+              const browserProof =
+                'async function(sourceUrl) {' +
+                ' const image = new Image(); image.src = sourceUrl; await image.decode();' +
+                ' const probe = document.createElement("canvas");' +
+                ' probe.width = image.width; probe.height = image.height;' +
+                ' const context = probe.getContext("2d");' +
+                ' if (!context) throw new Error("X4 screenshot canvas unavailable");' +
+                ' context.drawImage(image, 0, 0);' +
+                ' const rgba = context.getImageData(0, 0, image.width, image.height).data;' +
+                ' const detect = ' + detectorFunctionSource + ';' +
+                ' return detect(rgba, image.width, image.height);' +
+                '}';
+              cyanTargetEvidence = await page.evaluate(
+                browserProof,
+                'data:image/png;base64,' + before.toString('base64'),
+              );
+              fs.writeFileSync(
+                'playwright-artifacts/x4-three-cyan-components.json',
+                JSON.stringify(cyanTargetEvidence, null, 2),
+              );
+              if (cyanTargetEvidence.componentCount !== 3) {
+                throw new Error(
+                  'X4 requires exactly 3 separately rendered cyan targets: ' +
+                    JSON.stringify(cyanTargetEvidence),
+                );
+              }
+            }
+
             const box = await canvas.boundingBox();
             if (!box) throw new Error('Production canvas has no bounding box');
 
             const startX = box.x + box.width * 0.55;
             const startY = box.y + box.height * 0.48;
             await page.mouse.move(startX, startY);
-            await page.mouse.down();
+            const pointerButton = isX4Themo ? 'right' : 'left';
+            await page.mouse.down({ button: pointerButton });
             await page.mouse.move(
               startX + Math.min(120, box.width * 0.12),
               startY + 40,
               { steps: 12 },
             );
-            await page.mouse.up();
+            await page.mouse.up({ button: pointerButton });
             await page.waitForTimeout(500);
 
             const after = await canvas.screenshot({
@@ -642,6 +701,7 @@ jobs:
                   },
                   dataset,
                   pixelEvidence,
+                  cyanTargetEvidence,
                   thresholds: {
                     minNonBackgroundPixels,
                     minChangedPixels,
@@ -663,6 +723,7 @@ jobs:
                 modelSource: dataset.modelSource,
                 expectedDataset,
                 pixelEvidence,
+                cyanTargetEvidence,
                 thresholds: {
                   minNonBackgroundPixels,
                   minChangedPixels,
