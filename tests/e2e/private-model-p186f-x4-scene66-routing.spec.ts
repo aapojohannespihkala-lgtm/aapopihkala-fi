@@ -211,3 +211,48 @@ test('P186F-X4 runtime fails closed on exact scene66 identity before applying th
   expect(runtime).toContain("p186fCanonical: 'false'");
   expect(runtime).toContain("p186fPublishToCurrent: 'false'");
 });
+
+test('X4-only browser viewport keeps orientation HUD away from three Themo positions', async ({ page }) => {
+  // CSS layout regression; NOT authenticated production-render evidence.
+  // In production screenshot 38145250042 the lower-right HUD covered Bathroom.
+  const runtime = readFileSync(runtimeFile, 'utf8');
+  const selector = '.viewport:has(#private-model-canvas[data-p186f-review-variant="X4"]) .orientation-gizmo {';
+  const ruleStart = runtime.indexOf(selector);
+  expect(ruleStart).toBeGreaterThan(0);
+  const cssRule = runtime.slice(ruleStart, runtime.indexOf('}', ruleStart) + 1);
+
+  await page.setViewportSize({ width: 1024, height: 820 });
+  await page.setContent(
+    '<!doctype html><style>body{margin:0}.viewport{width:876px;height:789px;position:relative}' +
+      '#private-model-canvas{position:absolute;inset:0}' +
+      '.orientation-gizmo{position:absolute;right:12px;bottom:12px;width:212px;height:230px}' +
+      cssRule + '</style><div class="viewport">' +
+      '<canvas id="private-model-canvas" data-p186f-review-variant="X4"></canvas>' +
+      '<aside class="orientation-gizmo"></aside></div>',
+  );
+  const hud = page.locator('.orientation-gizmo');
+  const intersects = (rect: { x: number; y: number; width: number; height: number }, x: number, y: number) =>
+    x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
+
+  // Source-derived XY projections in the exact 876x789 failure screenshot.
+  const sourceFrameTargets = [
+    { room: 'Lobby', x: 178, y: 68 },
+    { room: 'Bedroom', x: 490, y: 722 },
+    { room: 'Bathroom', x: 695, y: 722 },
+  ];
+  const x4Hud = await hud.boundingBox();
+  expect(x4Hud).not.toBeNull();
+  expect(x4Hud!.y).toBe(12);
+  for (const target of sourceFrameTargets) {
+    expect(intersects(x4Hud!, target.x, target.y), target.room).toBe(false);
+  }
+
+  // Ordinary (non-X4) reviews retain their pre-existing bottom-right HUD.
+  await page.locator('#private-model-canvas').evaluate((canvas) => {
+    canvas.removeAttribute('data-p186f-review-variant');
+  });
+  const normalHud = await hud.boundingBox();
+  expect(normalHud).not.toBeNull();
+  expect(normalHud!.y).toBe(789 - 12 - 230);
+  expect(intersects(normalHud!, 695, 722)).toBe(true);
+});
