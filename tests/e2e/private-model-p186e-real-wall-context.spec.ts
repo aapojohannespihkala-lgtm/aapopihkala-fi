@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-import { prepareP186EReviewPresentation } from '../../src/scripts/privateModelP186EReviewPresentation';
+import {
+  prepareP186EReviewPresentation,
+  p186eExpectedCounts,
+  p186ePositionSourcePdfDriveId,
+  p186eSchedulePdfDriveId,
+  p186eGroupAnchorListSha256,
+  p186eSpecialAnchorListSha256,
+} from '../../src/scripts/privateModelP186EReviewPresentation';
 import { THREE } from '../../src/scripts/threeRuntime';
 
 const makeRenderable = (name: string, userData: Record<string, unknown>) => {
@@ -310,4 +317,113 @@ test('P186E real wall readiness requires drawable triangle meshes on both D floo
     expect(lineWall.userData.p186eReviewRole).toBe('NON_QUESTION_CONTEXT_SUPPRESSED');
     expect(emptyWall.userData.p186eReviewRole).toBe('NON_QUESTION_CONTEXT_SUPPRESSED');
   }
+});
+
+const makeP186ESourceCueFixture = (variant: 'D1F' | 'D2F') => {
+  const floor = variant === 'D1F' ? '1F' : '2F';
+  const root = new THREE.Group();
+  root.add(makeRenderable('P173D_D_WALL_' + floor + '_SOLID', {
+    G2Id: 'P173D_D_WALL_' + floor + '_SOLID',
+    presentationLayer: 'CURRENT_D', representationKind: 'wallSurfaceMesh',
+    apartment: 'D', storey: floor,
+  }));
+
+  const targets: THREE.LineSegments[] = [];
+  const counts = p186eExpectedCounts[variant];
+  for (let i = 0; i < counts.total; i++) {
+    const isGroup = i < counts.group;
+    const line = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-0.12, 0, 0), new THREE.Vector3(0.12, 0, 0),
+      ]),
+      new THREE.LineBasicMaterial({ color: 0xffffff }),
+    );
+    line.name = 'P186E_SOURCE_' + variant + '_' + i;
+    line.position.set((i % 6) * 0.65, 0.02, Math.floor(i / 6) * 0.65);
+    line.userData = {
+      Pass: 'P186E-X1', hostStorey: 'D_' + floor,
+      presentationLayer: 'MEP_ELECTRICAL',
+      representationKind: isGroup
+        ? 'electricalGroupSourceLabelAnchor' : 'electricalSpecialSourceLabelAnchor',
+      Canonical: false, canonical: false, current: false,
+      sourcePdfDriveId: p186ePositionSourcePdfDriveId,
+      presentationOnly: true, sourceDerived: true, sourceLabelAnchor: true,
+      deviceGeometryClaim: false, socketGeometryClaim: false,
+      switchOrFixtureClaim: false, physicalCableRouteClaim: false,
+      connectionTopologyClaim: false, exactCurrentXYClaim: false,
+      exactZClaim: false, currentGeometryClaim: false, asBuilt: false,
+      publishToCURRENT: false, HUMAN_REVIEW: 'NOT_RUN',
+      ...(isGroup ? {
+        schedulePdfDriveId: p186eSchedulePdfDriveId,
+        sourceAnchorListSha256: p186eGroupAnchorListSha256,
+        sourceBindingClass: 'SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN',
+        annotationStableKey: 'source-group-' + i,
+        sourceGroupKey: String(i + 1), sourceScheduleName: 'historical-source-' + i,
+      } : {
+        sourceBindingListSha256: p186eSpecialAnchorListSha256,
+        sourceLabelId: 'special-' + i, sourceText: '2015-src-' + i,
+        sourceSemantic: 'HISTORICAL_LABEL_ONLY',
+      }),
+    };
+    root.add(line);
+    targets.push(line);
+  }
+  return { root, targets, counts };
+};
+
+test('P186E source-only D-floor cue coverage is exact 18/18 and 16/16, viewer-only and idempotent', () => {
+  for (const variant of ['D1F', 'D2F'] as const) {
+    const { root, targets, counts } = makeP186ESourceCueFixture(variant);
+    const sourcePoints = targets.map((target) => Array.from(target.geometry.attributes.position.array));
+    const first = prepareP186EReviewPresentation(root, variant);
+    expect(first.targetRenderableCount).toBe(counts.total);
+    expect(first.groupTargetCount).toBe(counts.group);
+    expect(first.specialTargetCount).toBe(counts.special);
+    expect(first.realWallContextRenderableCount).toBe(1);
+    expect(first.semanticViolationCount).toBe(0);
+    expect(first.viewerCueCount).toBe(counts.total);
+
+    for (const [i, target] of targets.entries()) {
+      const cues = target.children.filter((child) => child.userData.p186eViewOnlyCue === true);
+      expect(cues).toHaveLength(1);
+      const cue = cues[0] as THREE.Points;
+      expect(cue.isPoints).toBe(true);
+      expect(cue.visible).toBe(true);
+      expect(cue.renderOrder).toBe(35);
+      expect((cue.material as THREE.PointsMaterial).sizeAttenuation).toBe(false);
+      expect((cue.material as THREE.PointsMaterial).depthTest).toBe(false);
+      expect(cue.userData).toMatchObject({
+        sourceAttached: true, physicalPlacementClaim: false,
+        currentGeometryClaim: false, asBuiltClaim: false,
+        canonical: false, humanReview: 'NOT_RUN',
+      });
+      expect(Array.from(target.geometry.attributes.position.array)).toEqual(sourcePoints[i]);
+    }
+
+    const second = prepareP186EReviewPresentation(root, variant);
+    expect(second.targetRenderableCount).toBe(counts.total);
+    expect(second.viewerCueCount).toBe(counts.total);
+    expect(targets.every((target) =>
+      target.children.filter((child) => child.userData.p186eViewOnlyCue === true).length === 1,
+    )).toBe(true);
+  }
+});
+
+test('P186E cue generation fails closed if source target missing or historical semantics changed', () => {
+  const missing = makeP186ESourceCueFixture('D1F');
+  missing.root.remove(missing.targets[0]);
+  const short = prepareP186EReviewPresentation(missing.root, 'D1F');
+  expect(short.targetRenderableCount).toBe(17);
+  expect(short.viewerCueCount).toBe(0);
+  expect(missing.targets.slice(1).every((x) => x.children.length === 0)).toBe(true);
+
+  const invalid = makeP186ESourceCueFixture('D2F');
+  expect(prepareP186EReviewPresentation(invalid.root, 'D2F').viewerCueCount).toBe(16);
+  invalid.targets[0].userData.exactCurrentXYClaim = true;
+  const altered = prepareP186EReviewPresentation(invalid.root, 'D2F');
+  expect(altered.semanticViolationCount).toBe(1);
+  expect(altered.viewerCueCount).toBe(0);
+  expect(invalid.targets.every((x) =>
+    x.children.every((child) => child.userData.p186eViewOnlyCue !== true || child.visible === false),
+  )).toBe(true);
 });

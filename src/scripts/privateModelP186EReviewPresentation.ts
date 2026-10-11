@@ -347,6 +347,44 @@ const hasNoPromotionAndSourceSemantics = (object: any) => {
   return false;
 };
 
+const p186eSourceCueName = 'P186E_VIEW_ONLY_SOURCE_LABEL_DOT';
+
+const addP186ESourceCue = (source: any): boolean => {
+  const existing = source.children?.find((child: any) => child.name === p186eSourceCueName);
+  if (existing) {
+    existing.visible = true;
+    return true;
+  }
+  const geometry = source.geometry;
+  if (!geometry?.attributes?.position) return false;
+  geometry.computeBoundingBox?.();
+  if (!geometry.boundingBox || geometry.boundingBox.isEmpty()) return false;
+  const localCenter = geometry.boundingBox.getCenter(new THREE.Vector3());
+  if (![localCenter.x, localCenter.y, localCenter.z].every(Number.isFinite)) return false;
+  const cue = new THREE.Points(
+    new THREE.BufferGeometry().setFromPoints([localCenter]),
+    new THREE.PointsMaterial({
+      color: 0xffd34d, size: 13, sizeAttenuation: false,
+      depthTest: false, depthWrite: false, transparent: true, opacity: 1,
+    }),
+  );
+  cue.name = p186eSourceCueName;
+  cue.renderOrder = 35;
+  cue.frustumCulled = false;
+  cue.userData = {
+    p186eViewOnlyCue: true,
+    sourceAttached: true,
+    physicalPlacementClaim: false,
+    exactCurrentXYClaim: false,
+    currentGeometryClaim: false,
+    asBuiltClaim: false,
+    canonical: false,
+    humanReview: 'NOT_RUN',
+  };
+  source.add(cue);
+  return true;
+};
+
 export const prepareP186EReviewPresentation = (
   sceneRoot: any,
   variant: P186EReviewVariant = 'D1F',
@@ -359,6 +397,7 @@ export const prepareP186EReviewPresentation = (
 
   sceneRoot?.updateMatrixWorld?.(true);
   sceneRoot?.traverse?.((object: any) => {
+    if (object?.userData?.p186eViewOnlyCue === true) return;
     if (!isRenderable(object)) return;
     renderables.push(object);
     if (!isP186ETarget(object, variant)) return;
@@ -439,7 +478,24 @@ export const prepareP186EReviewPresentation = (
     hiddenNonQuestionRenderableCount += 1;
   }
 
+  // Cue geometry is attached only to the verified historical source labels.
+  // It does not replace those source GL_LINES, measure a device or prove pixels.
+  const counts = p186eExpectedCounts[variant];
+  const sourceReady =
+    targetRenderableCount === counts.total &&
+    groupTargetCount === counts.group &&
+    specialTargetCount === counts.special &&
+    semanticViolationCount === 0 &&
+    realWallContextRenderableCount > 0;
+  let viewerCueCount = 0;
+  for (const target of targets) {
+    const existing = target.children?.find((child: any) => child.name === p186eSourceCueName);
+    if (existing) existing.visible = false;
+    if (sourceReady && addP186ESourceCue(target)) viewerCueCount += 1;
+  }
+
   return {
+    viewerCueCount,
     variant,
     targetRenderableCount,
     groupTargetCount,
