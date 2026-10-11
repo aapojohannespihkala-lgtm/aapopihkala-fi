@@ -1499,7 +1499,7 @@ const title = 'Private 3D viewer';
         <div class="interaction-tools" role="group" aria-label="Vuorovaikutustila">
           <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
           <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
-          <button id="axis-measure-tool-button" type="button" aria-pressed="false" title="Mittaa: 1 rasti, 2 liikkuva mitta, 3 lukitus, 4 nollaus">Mittaa</button>
+          <button id="axis-measure-tool-button" type="button" aria-pressed="false" disabled title="Mittaa käytettävissä vain D 1F/2F -pohjanäkymässä: 1 rasti, 2 liikkuva mitta, 3 lukitus, 4 nollaus">Mittaa</button>
         </div>
 
         <details id="model-menu" class="toolbar-menu source-menu">
@@ -1977,6 +1977,7 @@ const title = 'Private 3D viewer';
         advanceAxisMeasure,
         axisMeasureDisplay,
         emptyAxisMeasureState,
+        isAxisMeasureAvailable,
         updateAxisMeasurePointer,
       } from '../../scripts/privateModelP137EAxisMeasurement';
       import {
@@ -2943,6 +2944,7 @@ const title = 'Private 3D viewer';
           clearDCoordinateAnchor();
           clearDAxisMeasurement();
         }
+        axisMeasureToolButton.disabled = !isAxisMeasureAvailable(floor, activeCamera === planCamera);
       };
 
       const deactivateDCoordinateReview = () => {
@@ -2950,6 +2952,8 @@ const title = 'Private 3D viewer';
         deactivateReviewCoordinatePanel({ canvas, coordinatePanel, coordinatePointer });
         clearDCoordinateAnchor();
         clearDAxisMeasurement();
+        axisMeasureToolButton.disabled = true;
+        if (canvas.dataset.interactionMode === 'measure') setViewerToolMode('navigate');
       };
 
       const isP136BReviewEmphasis = (object: any) => {
@@ -3998,6 +4002,7 @@ const title = 'Private 3D viewer';
 
       type ViewerToolMode = 'navigate' | 'select' | 'measure';
       const setViewerToolMode = (mode: ViewerToolMode) => {
+        if (mode === 'measure' && !isAxisMeasureAvailable(activePlanFloor, activeCamera === planCamera)) return;
         canvas.dataset.interactionMode = mode;
         navigateToolButton.setAttribute('aria-pressed', String(mode === 'navigate'));
         selectionToolButton.setAttribute('aria-pressed', String(mode === 'select'));
