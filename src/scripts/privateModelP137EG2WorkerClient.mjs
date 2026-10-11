@@ -8,12 +8,36 @@ const RECORD_ID = /^P137E_G2_[A-Za-z0-9_-]{12,64}$/;
 const REQUEST_LIMIT = 16000;
 const RESPONSE_LIMIT = 32768;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+// Reject promotion tokens at any depth, not just in the top-level envelope.
+// Target identity/current-installation provenance is not a geometry promotion.
+const noPromotionBooleanKeys = new Set([
+  'currentGeometry', 'currentGeometryClaim', 'canonical', 'Canonical',
+  'asBuilt', 'asBuiltClaim', 'publishToCURRENT', 'exactXY', 'exactXYClaim',
+  'exactZClaim', 'physicalElevationClaim', 'exactSlopeClaim',
+  'surveyGeometryClaim', 'surveyExactClaim',
+]);
+const noNestedPromotion = (value, seen = new WeakSet(), depth = 0) => {
+  if (depth > 24) return false;
+  if (value === null || typeof value !== 'object') return true;
+  if (seen.has(value)) return false;
+  seen.add(value);
+  for (const [key, child] of Object.entries(value)) {
+    if (noPromotionBooleanKeys.has(key) && child !== false) return false;
+    if ((key === 'humanReview' || key === 'humanReviewStatus') &&
+        child !== 'NOT_RUN') return false;
+    if (key === 'stage' && child !== 'WORK_TEST_ONLY') return false;
+    if (!noNestedPromotion(child, seen, depth + 1)) return false;
+  }
+  seen.delete(value);
+  return true;
+};
 const isWorkTest = p => object(p) &&
   p.kind === 'P137E_G2_REVIEW_OBSERVATION' &&
   p.stage === 'WORK_TEST_ONLY' && object(p.anchor) &&
   object(p.observation) && object(p.resolution) &&
   p.persisted === false && p.humanReview === 'NOT_RUN' &&
-  p.currentGeometry === false && p.canonical === false && p.asBuilt === false;
+  p.currentGeometry === false && p.canonical === false && p.asBuilt === false &&
+  noNestedPromotion(p);
 const ordered = value => Array.isArray(value) ? value.map(ordered) :
   object(value) ? Object.fromEntries(Object.keys(value).sort()
     .map(k => [k, ordered(value[k])])) : value;
