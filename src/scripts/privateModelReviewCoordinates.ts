@@ -273,10 +273,10 @@ export const resolveTargetBoundReviewAnchor = (
   if (nearWall.length === 0) return fail('OUTSIDE_TOLERANCE');
   if (nearWall.some((item) => item.openingOverlap)) return fail('OPENING_OVERLAP');
 
-  nearWall.sort((a, b) => a.residualM - b.residualM);
-  if (nearWall.length > 1 && nearWall[1].residualM - nearWall[0].residualM <= 0.001) {
-    return fail('AMBIGUOUS_HOST');
-  }
+  // A smaller perpendicular residual does not identify the intended host.
+  // Different APPROVED G2 wall identities inside the accepted click tolerance
+  // remain ambiguous even if their distance difference exceeds 1 mm.
+  if (nearWall.length > 1) return fail('AMBIGUOUS_HOST');
   const nearest = nearWall[0];
   const { host } = nearest;
   const across = host.axis === 'X_FIXED' ? anchor.xM : anchor.yM;
