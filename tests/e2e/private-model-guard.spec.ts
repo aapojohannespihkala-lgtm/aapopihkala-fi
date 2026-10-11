@@ -2868,9 +2868,10 @@ test('private viewer turns p136B D floor views into isolated review views', asyn
   await expect(canvas).toHaveAttribute('data-camera-projection', 'orthographic');
   await expect(canvas).toHaveAttribute('data-d-review-active', 'true');
   await expect(canvas).toHaveAttribute('data-d-review-emphasis-count', '1');
-  await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '1');
-  await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '9');
-  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '7');
+  // The old P117D referenceFootprint is no longer shown as D1F context.
+  await expect(canvas).toHaveAttribute('data-d-review-context-hidden-count', '0');
+  await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', '8');
+  await expect(canvas).toHaveAttribute('data-d-plan-hidden-other-floor-count', '8');
   await expect(canvas).toHaveAttribute('data-d-review-door-marker-visible-count', '7');
   await expect(canvas).toHaveAttribute('data-d1-known-door-label-count', '7');
   await expect(canvas).toHaveAttribute('data-d1-known-door-labels-visible', 'true');
