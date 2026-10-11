@@ -389,6 +389,7 @@ jobs:
           import { chromium } from '@playwright/test';
           import { detectM5BR1109CyanLocatorComponents } from './src/scripts/privateModelR1109CyanLocatorProof.mjs';
           import { detectP186FX4CyanTargetComponents, detectP186FX4OriginalGreenWallPixels } from './src/scripts/privateModelP186FX4CyanPixelProof.mjs';
+          import { buildM5AR1125BrowserScreenshotProofExpression } from './src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs';
 
           const reviewBaseUrl = process.env.REVIEW_BASE_URL;
           const reviewId = process.env.REVIEW_ID;
@@ -521,9 +522,12 @@ jobs:
             const isX4Themo =
               reviewId === 'p186f-x4-d-themo-door-plan-clear-work-assumption-review' &&
               candidateId === 'p186f-x4-d-themo-door-plan-clear-work-assumption';
+            const isR1125SourceReview =
+              reviewId === 'm5a-r1125-pvk-diameter-source-split-review' &&
+              candidateId === 'm5a-r1125-pvk-diameter-source-split';
             const box = await canvas.boundingBox();
             if (!box) throw new Error('Production canvas has no bounding box');
-            const before = isX4Themo
+            const before = (isX4Themo || isR1125SourceReview)
               ? await page.screenshot({
                   clip: box, animations: 'disabled',
                   path: 'playwright-artifacts/production-review-before.png',
@@ -646,6 +650,72 @@ jobs:
               }
             }
 
+            // Source-bound R1125 must be proven from the 13 original GLTF
+            // scene63 source projections in the SAME authenticated PNG. The
+            // viewer must supply these projections from its actual runtime
+            // scene and camera; absent/mismatched evidence fails closed.
+            // This workflow alone does NOT enable R1125 review or assert raw
+            // GLB byte authenticity. No guessed centers or generic 13-count.
+            let m5aR1125PixelEvidence = null;
+            if (isR1125SourceReview) {
+              const d = await canvas.evaluate((el) => ({ ...el.dataset }));
+              if (d.m5aR1125SourceDriveId !== '13qxYc9PF7Z6eo_OXs1RrYCyo5CbTIAKs' ||
+                  d.m5aR1125SourceContract !== 'G2_R1125' ||
+                  d.m5aR1125SceneIndex !== '63' ||
+                  d.m5aReviewTargetRenderableCount !== '13' ||
+                  d.m5aReviewSemanticViolationCount !== '0' ||
+                  d.m5aZ2ReviewState !== 'ready' ||
+                  d.m5aR1125HumanReview !== 'NOT_RUN' ||
+                  d.m5aPublishToCurrent !== 'false') {
+                throw new Error('R1125 original scene63 source identity or no-promotion dataset missing');
+              }
+              let projection;
+              try {
+                projection = JSON.parse(d.m5aR1125SourceCameraCenters ?? '');
+              } catch {
+                throw new Error('R1125 original source-camera projections missing from actual viewer');
+              }
+              if (projection.sourceSceneIndex !== 63 ||
+                  projection.sourceTargetCount !== 13 ||
+                  projection.humanReview !== 'NOT_RUN' ||
+                  projection.originalGlbDigestAuthenticated !== false ||
+                  projection.productionScreenshotVerified !== false ||
+                  !Array.isArray(projection.centers) || projection.centers.length !== 13) {
+                throw new Error('R1125 viewer source-camera projection contract failed');
+              }
+              // This is the exact PNG clip used by all existing pixel checks.
+              const pngWidth = before.readUInt32BE(16);
+              const pngHeight = before.readUInt32BE(20);
+              const radius = Math.max(12, Math.round(Math.min(pngWidth, pngHeight) * 0.035));
+              if (projection.radiusPx !== radius) {
+                throw new Error('R1125 projected ROI radius/screenshot pixel geometry mismatch');
+              }
+              const screenshotDataUrl = 'data:image/png;base64,' + before.toString('base64');
+              m5aR1125PixelEvidence = await page.evaluate(
+                buildM5AR1125BrowserScreenshotProofExpression(
+                  screenshotDataUrl, projection.centers),
+              );
+              if (!m5aR1125PixelEvidence ||
+                  m5aR1125PixelEvidence.allSourceTargetsVisible !== true ||
+                  m5aR1125PixelEvidence.sourceRoiPixels?.length !== 13 ||
+                  m5aR1125PixelEvidence.missingKeys?.length !== 0 ||
+                  m5aR1125PixelEvidence.ambiguousSourceKeys?.length !== 0 ||
+                  m5aR1125PixelEvidence.productionProvenanceVerified !== false ||
+                  m5aR1125PixelEvidence.humanReview !== 'NOT_RUN') {
+                throw new Error('R1125 requires 13 distinct rendered source target ROIs: ' +
+                  JSON.stringify(m5aR1125PixelEvidence));
+              }
+              fs.writeFileSync('playwright-artifacts/m5a-r1125-source-13-pixels.json',
+                JSON.stringify({
+                  exactSourceScene: 63,
+                  requiredSourceTargets: 13,
+                  sourceCameraProjection: projection,
+                  screenshotPixelEvidence: m5aR1125PixelEvidence,
+                  exactRawGlbByteReadbackVerified: false,
+                  humanReview: 'NOT_RUN',
+                }, null, 2));
+            }
+
             const m5bR1109 = reviewId === 'm5b-r1109-five-downspout-presence-zones-review' &&
               candidateId === 'm5b-r1109-five-downspout-presence-zones';
             let m5bPixelEvidence = null;
@@ -697,7 +767,7 @@ jobs:
             await page.mouse.up({ button: pointerButton });
             await page.waitForTimeout(500);
 
-            const after = isX4Themo
+            const after = (isX4Themo || isR1125SourceReview)
               ? await page.screenshot({
                   clip: box, animations: 'disabled',
                   path: 'playwright-artifacts/production-review-after-orbit.png',
@@ -825,6 +895,7 @@ jobs:
                   pixelEvidence,
                   cyanTargetEvidence,
                   m5bPixelEvidence,
+                  m5aR1125PixelEvidence,
                   thresholds: {
                     minNonBackgroundPixels,
                     minChangedPixels,
@@ -848,6 +919,7 @@ jobs:
                 pixelEvidence,
                 cyanTargetEvidence,
                 m5bPixelEvidence,
+                m5aR1125PixelEvidence,
                 thresholds: {
                   minNonBackgroundPixels,
                   minChangedPixels,
