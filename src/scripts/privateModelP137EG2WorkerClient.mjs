@@ -130,6 +130,16 @@ export function createP137EG2WorkerClient({
           !sameJson(reply.readback.payload, payload)) {
         throw new Error('P137E_G2_DURABLE_READBACK_INVALID');
       }
+      // The POST's embedded readback is only an echo from the same response.
+      // Prove durability using a separate authenticated GET on the exact record.
+      const persisted = await request(
+        '/observations/' + encodeURIComponent(reply.receipt.recordId),
+      );
+      if (persisted?.recordId !== reply.receipt.recordId ||
+          !isWorkTest(persisted.payload) ||
+          !sameJson(persisted.payload, payload)) {
+        throw new Error('P137E_G2_DURABLE_READBACK_INVALID');
+      }
       return reply.receipt;
     },
     async readback(recordId) {
