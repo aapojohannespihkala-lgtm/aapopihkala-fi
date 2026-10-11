@@ -178,6 +178,12 @@ test('original uninvoked production X4 expression must fail closed in Chromium',
   expect(source).toContain(invocation);
   const broken = source.replace(invocation, 'browserProof');
   expect(broken).not.toBe(source);
-  await expect(runExactProductionX4Call(page, await makeProductionRegressionPng(page, 3), broken))
-    .rejects.toThrow(/X4 screenshot detector returned no pixel result/);
+  let caught: unknown;
+  try {
+    await runExactProductionX4Call(page, await makeProductionRegressionPng(page, 3), broken);
+  } catch (error) {
+    caught = error;
+  }
+  expect(caught).toBeDefined();
+  expect(String(caught)).toContain('X4 screenshot detector returned no pixel result');
 });
