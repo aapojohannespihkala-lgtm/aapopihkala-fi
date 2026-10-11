@@ -65,6 +65,40 @@ const isConfigured = (env: PrivatePlacementReviewEnv) =>
   typeof env.P137E_G2_SERVICE_ACCOUNT_PRIVATE_KEY_PEM === 'string' &&
   env.P137E_G2_SERVICE_ACCOUNT_PRIVATE_KEY_PEM.length > 0;
 
+/** Read no more than the existing 16 kB POST budget, including chunked requests
+ * with no Content-Length. Never buffer an unbounded request before validating size.
+ */
+export const readBoundedPlacementRequest = async (
+  request: Request,
+  maxBytes = 16000,
+): Promise<string | null> => {
+  if (!request.body || maxBytes !== 16000) return null;
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  const chunks: string[] = [];
+  let size = 0;
+  let completed = false;
+  try {
+    while (true) {
+      const next = await reader.read();
+      if (next.done) {
+        completed = true;
+        chunks.push(decoder.decode());
+        return chunks.join('');
+      }
+      if (!(next.value instanceof Uint8Array)) return null;
+      size += next.value.byteLength;
+      if (size > maxBytes) return null;
+      chunks.push(decoder.decode(next.value, { stream: true }));
+    }
+  } catch {
+    return null;
+  } finally {
+    if (!completed) await reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
+};
+
 /**
  * This cannot be enabled by URL, an uploaded JSON record or localStorage.
  * No Google OAuth credential is returned to the browser, even on failure.
@@ -137,8 +171,8 @@ export const handlePrivatePlacementReviewRequest = async (
       return reply({ recordId: record.recordId, payload: record.payload });
     }
 
-    const text = await request.text();
-    if (new TextEncoder().encode(text).byteLength > 16000) return hidden();
+    const text = await readBoundedPlacementRequest(request);
+    if (text === null) return hidden();
     let submitted: unknown;
     try {
       submitted = JSON.parse(text);
