@@ -78,6 +78,23 @@ export function detectM5AR1125SourceProjectedPixels(rgba, width, height, project
     };
   });
 
+  // A single visible color patch must not prove two nearby source identities.
+  // Same-palette projected ROIs that overlap are ambiguous, even when their
+  // nearest-center pixel counts each exceed the acceptance threshold.
+  const ambiguousKeys = new Set();
+  const minimumSeparationSquared = (radius * 2) ** 2;
+  for (let i = 0; i < targets.length; i += 1) {
+    for (let j = i + 1; j < targets.length; j += 1) {
+      const a = targets[i], b = targets[j];
+      if (a.kind !== b.kind) continue;
+      const dx = a.x - b.x, dy = a.y - b.y;
+      if (dx * dx + dy * dy <= minimumSeparationSquared) {
+        ambiguousKeys.add(a.key);
+        ambiguousKeys.add(b.key);
+      }
+    }
+  }
+
   const classPixelCounts = { wellGray: 0, routeCyan: 0, boundaryYellow: 0 };
   for (let i = 0; i < width * height; i += 1) {
     const off = i * 4;
@@ -118,13 +135,17 @@ export function detectM5AR1125SourceProjectedPixels(rgba, width, height, project
   const missingKeys = sourceRoiPixels
     .filter((item) => item.classPixels < item.minimumPixels)
     .map((item) => item.key);
+  const ambiguousSourceKeys = sourceRoiPixels
+    .filter((item) => ambiguousKeys.has(item.key))
+    .map((item) => item.key);
   return {
     requiredCounts: { wellGray: 4, routeCyan: 7, boundaryYellow: 2 },
     radiusPx: radius,
     classPixelCounts,
     sourceRoiPixels,
     missingKeys,
-    allSourceTargetsVisible: missingKeys.length === 0,
+    ambiguousSourceKeys,
+    allSourceTargetsVisible: missingKeys.length === 0 && ambiguousSourceKeys.length === 0,
     // Pixel-only: source authenticity and physical validity remain separate.
     productionProvenanceVerified: false,
     humanReview: 'NOT_RUN',
