@@ -87,7 +87,11 @@ test('P186F-X4 screenshot proof executes in Chromium for 3 and 2 markers', async
       return surface.toDataURL('image/png');
     }, markerCount);
     const expression = buildP186FX4BrowserScreenshotProofExpression(png);
-    const result = await page.evaluate(expression);
+    const result = (await page.evaluate(expression)) as {
+      requiredCount: number;
+      componentCount: number;
+      qualifyingColorPixels: number;
+    } | undefined;
     expect(result).toBeDefined();
     expect(result?.requiredCount).toBe(3);
     expect(result?.componentCount).toBe(markerCount);
