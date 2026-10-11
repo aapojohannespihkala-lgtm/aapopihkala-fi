@@ -50,6 +50,8 @@ internal data class WidgetFetchDiagnostics(
     fun failureLabel(): String = "${v2Label()} · L $legacyStatus"
 
     fun legacyFallbackLabel(): String = "LEGACY · ${v2Label()}"
+
+    fun cachedFallbackLabel(): String = "CACHED · ${v2Label()}"
 }
 
 private const val LOADING_STATUS_MAX_AGE_MS = 2 * 60_000L
@@ -109,6 +111,27 @@ internal fun widgetCacheJsonAfterFetch(
     previousCacheJson: String?,
     payload: WidgetPayload?,
 ): String? = payload?.let(WidgetPayloadCodec::encode) ?: previousCacheJson
+
+private const val RECENT_RICH_CACHE_MAX_AGE_MS = 60 * 60_000L
+
+// A transient v2 outage must not replace recent rich presentation with a
+// four-section legacy payload. Old/invalid rich caches still yield to live legacy.
+internal fun preferRecentRichCache(
+    fetched: WidgetPayload?,
+    cached: WidgetPayload?,
+    v2Status: String,
+    nowMs: Long,
+): WidgetPayload? {
+    if (fetched?.channel != "legacy" ||
+        !shouldRetryV2Status(v2Status) ||
+        cached?.channel != "prod" ||
+        !cached.isCompatible() ||
+        cached.sections.isEmpty()
+    ) return fetched
+    val cachedAt = parseWidgetGeneratedAtMs(cached.generatedAt) ?: return fetched
+    if (cachedAt > nowMs || nowMs - cachedAt > RECENT_RICH_CACHE_MAX_AGE_MS) return fetched
+    return cached
+}
 
 internal fun mergeMissingExpectedSections(
     presentation: WidgetPayload,
@@ -175,21 +198,22 @@ class WidgetRepository(context: Context) {
             fetchV2 = { timeoutMs -> fetchPresentation(timeoutMs) },
             fetchLegacy = { fetchLegacyPayload() },
         )
-        var payload = outcome.payload
-        if (
-            payload != null &&
-            payload.channel != "legacy" &&
-            weatherNeedsLegacyEnrichment(payload)
-        ) {
-            payload = mergeLegacyWeather(payload, fetchLegacyPayload().payload)
-        }
-        if (payload != null && payload.channel != "legacy") {
-            val previousPayload = previousCacheJson
-                ?.let(WidgetPayloadCodec::parse)
-                ?.takeIf { it.isCompatible() }
+        val previousPayload = previousCacheJson
+            ?.let(WidgetPayloadCodec::parse)
+            ?.takeIf { it.isCompatible() }
+        var payload = preferRecentRichCache(
+            outcome.payload, previousPayload, outcome.v2Status, System.currentTimeMillis()
+        )
+        val usingRichCache = payload != null && payload === previousPayload &&
+            outcome.payload?.channel == "legacy"
+        if (!usingRichCache && payload != null && payload.channel != "legacy") {
+            if (weatherNeedsLegacyEnrichment(payload)) {
+                payload = mergeLegacyWeather(payload, fetchLegacyPayload().payload)
+            }
             payload = mergeMissingExpectedSections(payload, previousPayload)
         }
-        val cacheJson = widgetCacheJsonAfterFetch(previousCacheJson, payload)
+        val cacheJson = if (usingRichCache) previousCacheJson
+            else widgetCacheJsonAfterFetch(previousCacheJson, payload)
 
         val editor = prefs.edit()
             .putString(KEY_V2_STATUS, outcome.v2Status)
@@ -198,9 +222,16 @@ class WidgetRepository(context: Context) {
             .putLong(KEY_LAST_ATTEMPT_MS, System.currentTimeMillis())
 
         cacheJson?.let { editor.putString(KEY_CACHE, it) }
-        editor.putString(KEY_STATUS, if (payload != null) STATUS_OK else STATUS_ERROR)
+        editor.putString(
+            KEY_STATUS,
+            if (usingRichCache || payload == null) STATUS_ERROR else STATUS_OK,
+        )
         editor.apply()
-        SnapshotTemporalRefreshScheduler.schedule(appContext, payload ?: loadCached())
+        SnapshotTemporalRefreshScheduler.schedule(
+            appContext,
+            if (usingRichCache) payload?.resolveTemporalSections(System.currentTimeMillis())
+            else payload ?: loadCached(),
+        )
         payload
     }
 
