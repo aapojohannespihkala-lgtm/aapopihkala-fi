@@ -38,6 +38,16 @@ const paragraphsOfTabs = (tabs: Tab[]): string[] =>
     ...(Array.isArray(tab.childTabs) ? paragraphsOfTabs(tab.childTabs) : []),
   ]);
 
+// R989 current device identities inherit ONLY historical 2015 group labels.
+// Source names and the explicit 2015-vs-2026 boundary are required together.
+const r989HistoricalGroupContext = [
+  "Historiallinen ryhmäkonteksti peritään muuttamatta G2 r791/r886 -evidenssistä: Bathroom -> source component C -> `sourceGroupKey=10.2` / `sourceScheduleName=pesuhuone/sauna`;",
+  "Bedroom -> A -> `sourceGroupKey=10.3` / `sourceScheduleName=makuuhuone`;",
+  "Lobby -> B -> `sourceGroupKey=10.1` / `sourceScheduleName=eteinen`.",
+  "Ryhmäsidonnan luokka on `HIGH_CONFIDENCE_DERIVED / CROSS_SOURCE_PLAN_PARITY`.",
+  "Se on vuoden 2015 sähköaineistosta johdettu historiallinen group-context, ei vuoden 2026 current/as-built-kytkentävahvistus.",
+].join(' ');
+
 const logicalTargets = [
   ['D_THEMO_CURRENT_BATHROOM_01', 'Bathroom'],
   ['D_THEMO_CURRENT_BEDROOM_01', 'Bedroom'],
@@ -121,7 +131,7 @@ export const projectNativeG2CurrentThemoReadback = (
     // Require the complete R989 room-to-source-group statement so a changed
     // or duplicate association cannot silently inherit a trusted target ID.
     !historicalGroups ||
-    !/^Historiallinen ryhmäkonteksti peritään muuttamatta G2 r791\/r886 -evidenssistä:\s*Bathroom -> source component C -> `sourceGroupKey=10\.2`;\s*Bedroom -> A -> `sourceGroupKey=10\.3`;\s*Lobby -> B -> `sourceGroupKey=10\.1`\.$/.test(historicalGroups) ||
+    historicalGroups !== r989HistoricalGroupContext ||
     !noPromotion
   ) return null;
 
