@@ -23,11 +23,14 @@ export type NativeG2GoogleDocsOptions = {
   credentials: NativeG2ServiceAccount;
   fetcher?: typeof fetch;
   now?: () => number;
+  /** Restrict the reader to Docs GET scope, including when write ports exist in the factory. */
+  readOnly?: boolean;
 };
 
 const documentUrl = 'https://docs.googleapis.com/v1/documents/' + encodeURIComponent(placementG2DocumentId);
 const oauthUrl = 'https://oauth2.googleapis.com/token';
 const docsScope = 'https://www.googleapis.com/auth/documents';
+const docsReadOnlyScope = 'https://www.googleapis.com/auth/documents.readonly';
 const serviceAccountPattern = /^[^\s@]+@[^\s@]+\.iam\.gserviceaccount\.com$/;
 
 const toBase64Url = (bytes: Uint8Array): string =>
@@ -63,7 +66,7 @@ const validateServiceAccount = (value: NativeG2ServiceAccount | null | undefined
 };
 
 export const createNativeG2GoogleDocsPorts = (
-  { credentials, fetcher = fetch, now = Date.now }: NativeG2GoogleDocsOptions,
+  { credentials, fetcher = fetch, now = Date.now, readOnly = false }: NativeG2GoogleDocsOptions,
 ): TrustedNativeG2WritePorts => {
   const accessToken = async (): Promise<string> => {
     const account = validateServiceAccount(credentials);
@@ -75,7 +78,7 @@ export const createNativeG2GoogleDocsPorts = (
     const header = encodeJson({ alg: 'RS256', typ: 'JWT' });
     const claims = encodeJson({
       iss: account.clientEmail,
-      scope: docsScope,
+      scope: readOnly ? docsReadOnlyScope : docsScope,
       aud: oauthUrl,
       iat: seconds,
       exp: seconds + 600,
@@ -156,6 +159,8 @@ export const createNativeG2GoogleDocsPorts = (
   };
 
   const batchUpdateDocument: TrustedNativeG2WritePorts['batchUpdateDocument'] = async (request) => {
+    // No write JWT or HTTP request may be issued by a read-only transport.
+    if (readOnly) throw new Error('G2_NATIVE_WRITE_SCOPE_DENIED');
     const [item] = request.requests ?? [];
     const text = item?.insertText?.text;
     if (
@@ -197,8 +202,8 @@ export const createNativeG2GoogleDocsPorts = (
  * It obtains the same native G2 revision once through the authenticated transport.
  * No write method or HTTP endpoint is exposed; null means nothing is selectable.
  */
-export const createNativeG2CurrentReadOnlyAdapter = (options: NativeG2GoogleDocsOptions) => {
-  const { getDocument } = createNativeG2GoogleDocsPorts(options);
+export const createNativeG2CurrentReadOnlyAdapter = (options: Omit<NativeG2GoogleDocsOptions, 'readOnly'>) => {
+  const { getDocument } = createNativeG2GoogleDocsPorts({ ...options, readOnly: true });
   return {
     readCurrentTargets: () => readNativeG2CurrentPlacementTargets(getDocument),
   };
