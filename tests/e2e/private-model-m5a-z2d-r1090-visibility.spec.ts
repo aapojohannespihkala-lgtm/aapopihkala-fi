@@ -291,12 +291,16 @@ test('M5A-Z2D R1090 scene62 source-accurate review autoloads 13 targets with vis
     probe.width = image.width;
     probe.height = image.height;
     const context = probe.getContext('2d');
-    if (!context) return { warmTargetPixels: 0, blueContextPixels: 0 };
+    if (!context) return { warmTargetPixels: 0, blueContextPixels: 0, warmMarkerComponents: 0 };
 
     context.drawImage(image, 0, 0);
     const pixels = context.getImageData(0, 0, image.width, image.height).data;
     let warmTargetPixels = 0;
     let blueContextPixels = 0;
+    // Count independently drawn target islands, not only aggregate colored pixels.
+    // This is LOCAL browser-render evidence on the source-shaped WORK_TEST fixture,
+    // NOT authenticated production or HUMAN_REVIEW evidence.
+    const warmMask = new Uint8Array(image.width * image.height);
 
     for (let index = 0; index < pixels.length; index += 4) {
       const red = pixels[index] ?? 0;
@@ -305,6 +309,7 @@ test('M5A-Z2D R1090 scene62 source-accurate review autoloads 13 targets with vis
 
       if (red > 105 && red > green * 1.25 && red > blue * 1.35) {
         warmTargetPixels += 1;
+        warmMask[index / 4] = 1;
       }
 
       if (blue > 90 && blue > red * 1.08 && blue > green * 1.04) {
@@ -312,9 +317,44 @@ test('M5A-Z2D R1090 scene62 source-accurate review autoloads 13 targets with vis
       }
     }
 
-    return { warmTargetPixels, blueContextPixels };
+    // 8-connected components account for antialiased diagonal triangle edges.
+    // Reject tiny isolated warm-color noise; every one of the 13 source targets
+    // must contribute its own visible, coherent island of at least 12 pixels.
+    const seen = new Uint8Array(warmMask.length);
+    const queue = new Int32Array(warmMask.length);
+    let warmMarkerComponents = 0;
+    for (let seed = 0; seed < warmMask.length; seed++) {
+      if (!warmMask[seed] || seen[seed]) continue;
+      let head = 0;
+      let tail = 1;
+      let islandPixels = 0;
+      seen[seed] = 1;
+      queue[0] = seed;
+      while (head < tail) {
+        const at = queue[head++]!;
+        const x = at % image.width;
+        const y = Math.floor(at / image.width);
+        islandPixels++;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= image.width || ny >= image.height) continue;
+            const next = ny * image.width + nx;
+            if (!warmMask[next] || seen[next]) continue;
+            seen[next] = 1;
+            queue[tail++] = next;
+          }
+        }
+      }
+      if (islandPixels >= 12) warmMarkerComponents++;
+    }
+
+    return { warmTargetPixels, blueContextPixels, warmMarkerComponents };
   }, dataUrl);
 
   expect(visibilityPixels.warmTargetPixels).toBeGreaterThan(80);
   expect(visibilityPixels.blueContextPixels).toBeGreaterThan(250);
+  expect(visibilityPixels.warmMarkerComponents).toBe(13);
 });
