@@ -57,6 +57,10 @@ const contextPositions = [
   0, 0.5, -6,
 ];
 
+// Source-class fixture only: original R1125 scene63 uses four gray well meshes,
+// seven cyan route meshes, and two yellow glTF LINES (not 13 orange triangles).
+const boundaryPositions = [0, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, -0.2];
+
 const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
   const targetBytes = Buffer.alloc(targetPositions.length * 4);
   targetPositions.forEach((value, index) => targetBytes.writeFloatLE(value, index * 4));
@@ -64,9 +68,12 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
   const contextBytes = Buffer.alloc(contextPositions.length * 4);
   contextPositions.forEach((value, index) => contextBytes.writeFloatLE(value, index * 4));
 
+  const boundaryBytes = Buffer.alloc(boundaryPositions.length * 4);
+  boundaryPositions.forEach((v, i) => boundaryBytes.writeFloatLE(v, i * 4));
   const targetOffset = 0;
   const contextOffset = targetBytes.length;
-  const binPayload = Buffer.concat([targetBytes, contextBytes]);
+  const boundaryOffset = contextOffset + contextBytes.length;
+  const binPayload = Buffer.concat([targetBytes, contextBytes, boundaryBytes]);
 
   const json = {
     asset: { version: '2.0' },
@@ -97,12 +104,14 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
           },
         ],
       },
+      { primitives: [{ attributes: { POSITION: 0 }, material: 2 }] },
+      { primitives: [{ attributes: { POSITION: 2 }, material: 3, mode: 1 }] },
     ],
     materials: [
       {
-        emissiveFactor: [1, 0.18, 0.02],
+        emissiveFactor: [0.62, 0.67, 0.72],
         pbrMetallicRoughness: {
-          baseColorFactor: [1, 0.22, 0.03, 1],
+          baseColorFactor: [0.62, 0.67, 0.72, 1],
           metallicFactor: 0,
           roughnessFactor: 1,
         },
@@ -113,6 +122,26 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
         emissiveFactor: [0.02, 0.08, 1],
         pbrMetallicRoughness: {
           baseColorFactor: [0.03, 0.12, 1, 1],
+          metallicFactor: 0,
+          roughnessFactor: 1,
+        },
+        alphaMode: 'BLEND',
+        doubleSided: true,
+      },
+      {
+        emissiveFactor: [0.09, 0.65, 0.82],
+        pbrMetallicRoughness: {
+          baseColorFactor: [0.09, 0.65, 0.82, 1],
+          metallicFactor: 0,
+          roughnessFactor: 1,
+        },
+        alphaMode: 'BLEND',
+        doubleSided: true,
+      },
+      {
+        emissiveFactor: [0.92, 0.72, 0.16],
+        pbrMetallicRoughness: {
+          baseColorFactor: [0.92, 0.72, 0.16, 1],
           metallicFactor: 0,
           roughnessFactor: 1,
         },
@@ -137,6 +166,14 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
         min: [0, 0.5, -6],
         max: [10, 0.5, 0],
       },
+      {
+        bufferView: 2,
+        componentType: 5126,
+        count: 4,
+        type: 'VEC3',
+        min: [0, 0, -0.2],
+        max: [0.5, 0, 0],
+      },
     ],
     bufferViews: [
       {
@@ -149,6 +186,12 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
         buffer: 0,
         byteOffset: contextOffset,
         byteLength: contextBytes.length,
+        target: 34962,
+      },
+      {
+        buffer: 0,
+        byteOffset: boundaryOffset,
+        byteLength: boundaryBytes.length,
         target: 34962,
       },
     ],
@@ -253,9 +296,9 @@ const makeTargetNode = (key: string, index: number) => {
 
   return {
     name: `M5A_R1125_REVIEW_TARGET_${String(index + 1).padStart(2, '0')}`,
-    mesh: 0,
+    mesh: boundary ? 3 : well ? 0 : 2,
     translation: targetLocations[index],
-    scale: [1.8, 1, 1.8],
+    scale: boundary ? [3, 1, 3] : [1.8, 1, 1.8],
     extras,
   };
 };
@@ -354,72 +397,70 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
     probe.width = image.width;
     probe.height = image.height;
     const context = probe.getContext('2d');
-    if (!context) return { warmTargetPixels: 0, blueContextPixels: 0, warmMarkerComponents: 0 };
-
+    if (!context) throw new Error('R1125 Chromium image lacks 2D canvas');
     context.drawImage(image, 0, 0);
     const pixels = context.getImageData(0, 0, image.width, image.height).data;
-    let warmTargetPixels = 0;
+    const masks = [0, 1, 2].map(() => new Uint8Array(image.width * image.height));
+    const classPixelCounts = [0, 0, 0];
     let blueContextPixels = 0;
-    // Count independently drawn target islands, not only aggregate colored pixels.
-    // This is LOCAL browser-render evidence on the source-shaped WORK_TEST fixture,
-    // NOT authenticated production or HUMAN_REVIEW evidence.
-    const warmMask = new Uint8Array(image.width * image.height);
-
     for (let index = 0; index < pixels.length; index += 4) {
-      const red = pixels[index] ?? 0;
-      const green = pixels[index + 1] ?? 0;
-      const blue = pixels[index + 2] ?? 0;
-
-      if (red > 105 && red > green * 1.25 && red > blue * 1.35 && green > blue * 1.3) {
-        warmTargetPixels += 1;
-        warmMask[index / 4] = 1;
+      const r = pixels[index] ?? 0;
+      const g = pixels[index + 1] ?? 0;
+      const b = pixels[index + 2] ?? 0;
+      // Palette follows original R1125 source class identities, not dummy orange.
+      const grayWell = r > 75 && g > 80 && b > 85 &&
+        Math.abs(r - g) < 42 && Math.abs(g - b) < 44;
+      const cyanPipe = g > 92 && b > 110 && r < g * 0.62 &&
+        b > g * 1.04 && b < g * 1.9;
+      const yellowBoundary = r > 120 && g > 78 && r > g * 1.07 &&
+        b < g * 0.73 && r < g * 1.9;
+      const kind = cyanPipe ? 1 : yellowBoundary ? 2 : grayWell ? 0 : -1;
+      if (kind >= 0) {
+        masks[kind]![index / 4] = 1;
+        classPixelCounts[kind]!++;
       }
-
-      if (blue > 90 && blue > red * 1.08 && blue > green * 1.04) {
-        blueContextPixels += 1;
-      }
+      if (b > 90 && b > r * 1.08 && b > g * 1.04) blueContextPixels++;
     }
-
-    // 8-connected components account for antialiased diagonal triangle edges.
-    // Reject tiny isolated warm-color noise; every one of the 13 source targets
-    // must contribute its own visible, coherent island of at least 12 pixels.
-    const seen = new Uint8Array(warmMask.length);
-    const queue = new Int32Array(warmMask.length);
-    let warmMarkerComponents = 0;
-    for (let seed = 0; seed < warmMask.length; seed++) {
-      if (!warmMask[seed] || seen[seed]) continue;
-      let head = 0;
-      let tail = 1;
-      let islandPixels = 0;
-      seen[seed] = 1;
-      queue[0] = seed;
-      while (head < tail) {
-        const at = queue[head++]!;
-        const x = at % image.width;
-        const y = Math.floor(at / image.width);
-        islandPixels++;
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            if (dx === 0 && dy === 0) continue;
-            const nx = x + dx;
-            const ny = y + dy;
+    const components = masks.map((mask, kind) => {
+      const seen = new Uint8Array(mask.length);
+      const queue = new Int32Array(mask.length);
+      const minimumPixels = kind === 2 ? 2 : 12;
+      let count = 0;
+      for (let seed = 0; seed < mask.length; seed++) {
+        if (!mask[seed] || seen[seed]) continue;
+        let head = 0;
+        let tail = 1;
+        let area = 0;
+        seen[seed] = 1;
+        queue[0] = seed;
+        while (head < tail) {
+          const at = queue[head++]!;
+          const x = at % image.width, y = Math.floor(at / image.width);
+          area++;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            if (!dx && !dy) continue;
+            const nx = x + dx, ny = y + dy;
             if (nx < 0 || ny < 0 || nx >= image.width || ny >= image.height) continue;
             const next = ny * image.width + nx;
-            if (!warmMask[next] || seen[next]) continue;
+            if (!mask[next] || seen[next]) continue;
             seen[next] = 1;
             queue[tail++] = next;
           }
         }
+        if (area >= minimumPixels) count++;
       }
-      if (islandPixels >= 12) warmMarkerComponents++;
-    }
-
-    return { warmTargetPixels, blueContextPixels, warmMarkerComponents };
+      return count;
+    });
+    return { classPixelCounts, components, blueContextPixels };
   }, dataUrl);
 
-  expect(visibilityPixels.warmTargetPixels).toBeGreaterThan(80);
+  // Separate Chromium image evidence for original source roles: 4 wells,
+  // 7 routes and 2 unresolved boundaries. This remains a synthetic fixture.
+  expect(visibilityPixels.classPixelCounts[0]).toBeGreaterThan(48);
+  expect(visibilityPixels.classPixelCounts[1]).toBeGreaterThan(84);
+  expect(visibilityPixels.classPixelCounts[2]).toBeGreaterThan(3);
+  expect(visibilityPixels.components).toEqual([4, 7, 2]);
   expect(visibilityPixels.blueContextPixels).toBeGreaterThan(250);
-  expect(visibilityPixels.warmMarkerComponents).toBe(13);
 });
 
 
