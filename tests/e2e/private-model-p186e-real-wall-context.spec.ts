@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import {
   prepareP186EReviewPresentation,
+  getP186ESourceViewerCaption,
   p186eExpectedCounts,
   p186ePositionSourcePdfDriveId,
   p186eSchedulePdfDriveId,
@@ -427,3 +428,91 @@ test('P186E cue generation fails closed if source target missing or historical s
     x.children.every((child) => child.userData.p186eViewOnlyCue !== true || child.visible === false),
   )).toBe(true);
 });
+
+test('P186E source caption text is strictly derived from 2015 source fields', () => {
+  expect(getP186ESourceViewerCaption({
+    userData: { representationKind: 'electricalGroupSourceLabelAnchor', sourceGroupKey: '10.2' },
+  })).toBe('Ryhmä 10.2');
+  expect(getP186ESourceViewerCaption({
+    userData: { representationKind: 'electricalSpecialSourceLabelAnchor', sourceText: '  Lähde    erikoisteksti  ' },
+  })).toBe('Lähde erikoisteksti');
+  expect(getP186ESourceViewerCaption({
+    userData: { representationKind: 'electricalGroupSourceLabelAnchor' },
+  })).toBeNull();
+  expect(getP186ESourceViewerCaption({
+    userData: { representationKind: 'thermostatRoomPresentationAnchor', sourceText: 'Wrong type' },
+  })).toBeNull();
+});
+
+test('P186E source captions attach to all 18/16 verified cues, do not duplicate or survive failed source gate', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: {
+      createElement: (tag: string) => {
+        expect(tag).toBe('canvas');
+        return {
+          width: 0, height: 0,
+          getContext: () => ({
+            fillRect: () => undefined,
+            fillText: () => undefined,
+            fillStyle: '',
+            textAlign: 'center',
+            textBaseline: 'middle',
+            font: '',
+          }),
+        };
+      },
+    },
+  });
+  try {
+    for (const variant of ['D1F', 'D2F'] as const) {
+      const { root, targets, counts } = makeP186ESourceCueFixture(variant);
+      const before = targets.map((target) =>
+        Array.from(target.geometry.attributes.position.array));
+      const result = prepareP186EReviewPresentation(root, variant);
+      expect(result.viewerCueCount).toBe(counts.total);
+      expect(result.viewerCaptionCount).toBe(counts.total);
+      targets.forEach((target, index) => {
+        const labels = target.children.filter((o) =>
+          o.userData?.p186eViewerSourceCaption === true);
+        expect(labels).toHaveLength(1);
+        const label = labels[0] as THREE.Sprite;
+        expect(label.isSprite).toBe(true);
+        expect(label.visible).toBe(true);
+        expect((label.material as THREE.SpriteMaterial).depthTest).toBe(false);
+        expect(label.userData).toMatchObject({
+          sourceAttached: true,
+          presentationOnly: true,
+          physicalPlacementClaim: false,
+          exactCurrentXYClaim: false,
+          currentGeometryClaim: false,
+          asBuiltClaim: false,
+          canonical: false,
+          HUMAN_REVIEW: 'NOT_RUN',
+        });
+        expect(label.userData.sourceCaptionDisplayText).toBe(
+          getP186ESourceViewerCaption(target));
+        expect(Array.from(target.geometry.attributes.position.array)).toEqual(before[index]);
+      });
+      const again = prepareP186EReviewPresentation(root, variant);
+      expect(again.viewerCaptionCount).toBe(counts.total);
+      expect(targets.every((target) =>
+        target.children.filter((o) => o.userData?.p186eViewerSourceCaption === true).length === 1,
+      )).toBe(true);
+
+      targets[0].userData.exactCurrentXYClaim = true;
+      const invalid = prepareP186EReviewPresentation(root, variant);
+      expect(invalid.viewerCueCount).toBe(0);
+      expect(invalid.viewerCaptionCount).toBe(0);
+      expect(targets.every((target) =>
+        target.children.filter((o) => o.userData?.p186eViewerSourceCaption === true)
+          .every((o) => o.visible === false),
+      )).toBe(true);
+    }
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'document', original);
+    else delete (globalThis as { document?: unknown }).document;
+  }
+});
+
