@@ -347,6 +347,74 @@ const hasNoPromotionAndSourceSemantics = (object: any) => {
   return false;
 };
 
+// A label is an excerpt of the exact 2015 source mark, never a device name or XY measurement.
+export const getP186ESourceViewerCaption = (source: any): string | null => {
+  const data = source?.userData ?? {};
+  const kind = targetKind(source);
+  const raw = kind === 'group'
+    ? String(data.sourceGroupKey ?? '')
+    : kind === 'special'
+      ? String(data.sourceText ?? '')
+      : '';
+  const normalized = raw.trim().replace(/\\s+/g, ' ');
+  if (!normalized) return null;
+  const excerpt = normalized.length > 30 ? normalized.slice(0, 29) + '…' : normalized;
+  return kind === 'group' ? 'Ryhmä ' + excerpt : excerpt;
+};
+
+const p186eSourceCaptionName = 'P186E_VIEW_ONLY_SOURCE_CAPTION';
+
+const addP186ESourceCaption = (source: any): boolean => {
+  if (typeof document === 'undefined') return false;
+  const caption = getP186ESourceViewerCaption(source);
+  if (!caption) return false;
+  const existing = source.children?.find((child: any) =>
+    child.name === p186eSourceCaptionName && child.userData?.p186eViewerSourceCaption === true,
+  );
+  if (existing) {
+    existing.visible = true;
+    return true;
+  }
+  const geometry = source.geometry;
+  if (!geometry?.attributes?.position) return false;
+  geometry.computeBoundingBox?.();
+  if (!geometry.boundingBox || geometry.boundingBox.isEmpty()) return false;
+  const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+  if (![center.x, center.y, center.z].every(Number.isFinite)) return false;
+  const canvas = document.createElement('canvas');
+  canvas.width = 640;
+  canvas.height = 96;
+  const context = canvas.getContext('2d');
+  if (!context) return false;
+  context.fillStyle = 'rgba(24,32,43,0.96)';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = '#ffe4a3';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.font = 'bold 34px system-ui, sans-serif';
+  context.fillText(caption, canvas.width / 2, canvas.height / 2, canvas.width - 28);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: texture, transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
+  }));
+  sprite.name = p186eSourceCaptionName;
+  sprite.position.copy(center).add(new THREE.Vector3(0, 0.17, 0));
+  sprite.scale.set(1.06, 0.16, 1);
+  sprite.renderOrder = 36;
+  sprite.frustumCulled = false;
+  sprite.userData = {
+    p186eViewerSourceCaption: true, viewerDerived: true, sourceAttached: true,
+    sourceCaptionFullText: caption,
+    presentationOnly: true, physicalPlacementClaim: false,
+    exactCurrentXYClaim: false, currentGeometryClaim: false,
+    asBuiltClaim: false, canonical: false, publishToCURRENT: false,
+    HUMAN_REVIEW: 'NOT_RUN',
+  };
+  source.add(sprite);
+  return true;
+};
+
 const p186eSourceCueName = 'P186E_VIEW_ONLY_SOURCE_LABEL_DOT';
 
 const addP186ESourceCue = (source: any): boolean => {
@@ -413,6 +481,7 @@ export const prepareP186EReviewPresentation = (
   let contextRenderableCount = 0;
   let hiddenNonQuestionRenderableCount = 0;
   let realWallContextRenderableCount = 0;
+  let viewerCaptionCount = 0;
   let suppressedHelperContextCount = 0;
   const contextRole = storeyContract[variant].contextRole;
 
@@ -491,11 +560,19 @@ export const prepareP186EReviewPresentation = (
   for (const target of targets) {
     const existing = target.children?.find((child: any) => child.name === p186eSourceCueName);
     if (existing) existing.visible = false;
-    if (sourceReady && addP186ESourceCue(target)) viewerCueCount += 1;
+    const existingCaption = target.children?.find((child: any) =>
+      child.name === p186eSourceCaptionName && child.userData?.p186eViewerSourceCaption === true,
+    );
+    if (existingCaption) existingCaption.visible = false;
+    if (sourceReady && addP186ESourceCue(target)) {
+      viewerCueCount += 1;
+      if (addP186ESourceCaption(target)) viewerCaptionCount += 1;
+    }
   }
 
   return {
     viewerCueCount,
+    viewerCaptionCount,
     variant,
     targetRenderableCount,
     groupTargetCount,
