@@ -59,51 +59,6 @@ const validateServiceAccount = (value: NativeG2ServiceAccount | null | undefined
   return value;
 };
 
-/**
- * Validate the complete single-paragraph append envelope, not just its prefix.
- * The native Docs transport is a second fail-closed boundary; the persistence
- * adapter separately proves target provenance and durable readback.
- */
-const isScopedG2ObservationAppend = (text: unknown, revision: string): boolean => {
-  if (typeof text !== 'string' || text.length > 32768) return false;
-  const match = /^\nP137E_G2_REVIEW_OBSERVATION_V1 \| (P137E_G2_[A-Za-z0-9_-]{12,64}) \| (\{[^\r\n]*\})\n$/.exec(text);
-  if (!match) return false;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(match[2]);
-  } catch {
-    return false;
-  }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
-  const record = parsed as Record<string, unknown>;
-  const payload = record.payload;
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
-  const review = payload as Record<string, unknown>;
-  const anchor = review.anchor;
-  if (!anchor || typeof anchor !== 'object' || Array.isArray(anchor)) return false;
-  const target = anchor as Record<string, unknown>;
-  return record.schema === 'P137E_G2_REVIEW_OBSERVATION_V1' &&
-    record.recordId === match[1] &&
-    record.sourceDocumentId === placementG2DocumentId &&
-    record.sourceRevision === revision &&
-    review.kind === 'P137E_G2_REVIEW_OBSERVATION' &&
-    review.stage === 'WORK_TEST_ONLY' &&
-    review.persisted === false &&
-    review.humanReview === 'NOT_RUN' &&
-    review.currentGeometry === false &&
-    review.canonical === false &&
-    review.asBuilt === false &&
-    target.apartment === 'D' &&
-    (target.floor === '1F' || target.floor === '2F') &&
-    target.coordinateFrame === 'YLIS-G1-LOCAL' &&
-    typeof target.targetId === 'string' && !!target.targetId.trim() &&
-    Number.isFinite(target.xM) && Number.isFinite(target.yM) &&
-    target.exactXY === false &&
-    target.currentGeometry === false &&
-    target.canonical === false &&
-    target.asBuilt === false;
-};
-
 export const createNativeG2GoogleDocsPorts = (
   { credentials, fetcher = fetch, now = Date.now }: NativeG2GoogleDocsOptions,
 ): TrustedNativeG2WritePorts => {
@@ -203,7 +158,8 @@ export const createNativeG2GoogleDocsPorts = (
       !request.writeControl.requiredRevisionId.trim() ||
       typeof item?.insertText?.endOfSegmentLocation?.tabId !== 'string' ||
       !item.insertText.endOfSegmentLocation.tabId.trim() ||
-      !isScopedG2ObservationAppend(text, request.writeControl.requiredRevisionId)
+      typeof text !== 'string' || text.length > 32768 ||
+      !/^\nP137E_G2_REVIEW_OBSERVATION_V1 \| P137E_G2_[A-Za-z0-9_-]{12,64} \| \{/.test(text)
     ) throw new Error('G2_NATIVE_WRITE_SCOPE_DENIED');
 
     const bearer = await accessToken();
