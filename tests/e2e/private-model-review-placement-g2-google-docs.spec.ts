@@ -3,6 +3,7 @@ import { placementG2DocumentId } from '../../src/scripts/privateModelReviewPlace
 import type { TrustedNativeG2WritePorts } from '../../src/scripts/privateModelReviewPlacementG2Persistence';
 import {
   createNativeG2GoogleDocsPorts,
+  createNativeG2CurrentReadOnlyAdapter,
   type NativeG2ServiceAccount,
 } from '../../src/scripts/privateModelReviewPlacementG2GoogleDocs';
 
@@ -161,4 +162,46 @@ test('missing tab, non-Bearer OAuth token, and failed guarded Docs write never c
     } }],
     writeControl: { requiredRevisionId: 'STALEREV' },
   })).rejects.toThrow('G2_NATIVE_WRITE_FAILED');
+});
+
+// The five-target facade must never request the write-capable Docs OAuth scope.
+test('G2 current-only facade uses readonly OAuth and has no usable write path', async () => {
+  const account = await makeAccount();
+  const urls: string[] = [];
+  const options = {
+    credentials: account,
+    now: () => 1_800_000_000_000,
+    fetcher: async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      urls.push(String(input));
+      if (String(input) === 'https://oauth2.googleapis.com/token') {
+        const assertion = new URLSearchParams(init?.body as string).get('assertion');
+        expect(assertion).toBeTruthy();
+        const claims = JSON.parse(atob(assertion!.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        expect(claims.scope).toBe('https://www.googleapis.com/auth/documents.readonly');
+        expect(claims.scope).not.toBe('https://www.googleapis.com/auth/documents');
+        return Response.json({ access_token: 'readonly-test-token', token_type: 'Bearer' });
+      }
+      expect(init?.method).toBe('GET');
+      expect(String(input)).toBe('https://docs.googleapis.com/v1/documents/' +
+        placementG2DocumentId + '?includeTabsContent=true');
+      return Response.json(rawDocument());
+    },
+  };
+  const facade = createNativeG2CurrentReadOnlyAdapter(options);
+  expect(Object.keys(facade)).toEqual(['readCurrentTargets']);
+  // This mocked G2 lacks the exact five source paragraphs, so fail closed.
+  expect(await facade.readCurrentTargets()).toBeNull();
+  expect(urls).toHaveLength(2);
+
+  const restrictedPorts = createNativeG2GoogleDocsPorts({ ...options, readOnly: true });
+  await expect(restrictedPorts.batchUpdateDocument({
+    documentId: placementG2DocumentId,
+    requests: [{ insertText: {
+      endOfSegmentLocation: { tabId: 't.0' },
+      text: '\nP137E_G2_REVIEW_OBSERVATION_V1 | P137E_G2_TESTRECORD_0001 | {"schema":"test"}\n',
+    } }],
+    writeControl: { requiredRevisionId: 'REV_G2_1' },
+  })).rejects.toThrow('G2_NATIVE_WRITE_SCOPE_DENIED');
+  // A rejected write must not obtain any OAuth token or POST to Docs.
+  expect(urls).toHaveLength(2);
 });
