@@ -96,13 +96,25 @@ export const projectNativeG2CurrentThemoReadback = (
   const logical = unique('Loogiset nykylaite-identiteetit');
   const historicalGroups = unique('Historiallinen ryhmäkonteksti');
   const noPromotion = unique('No-promotion / materialisointiraja:');
+  // Substring checks alone accept conflicting current evidence, e.g.
+  // "currentInstallationEvidence=true, currentInstallationEvidence=false".
+  // A trusted current-only review ID needs exactly one unambiguous value.
+  const hasUniqueLogicalEvidence = (key: string, expected: string): boolean => {
+    if (!logical) return false;
+    const matcher = new RegExp(
+      '(?:^|[^A-Za-z0-9_])' + key + '\\s*=\\s*([A-Za-z0-9_]+)(?=$|[^A-Za-z0-9_])',
+      'g',
+    );
+    const values = [...logical.matchAll(matcher)].map((match) => match[1]);
+    return values.length === 1 && values[0] === expected;
+  };
   if (
     !status?.includes('PASS_CURRENT_INSTALLATION_ROOM_BINDING') ||
     !status.includes('NO_PROMOTION') ||
     !installation?.includes('kaikki 3 x Themo-lattialämmitystermostaatti asennettiin 7.10.2026') ||
     !installation.includes('Bathroom, Bedroom ja Lobby') ||
-    !logical?.includes('currentInstallationEvidence=true') ||
-    !logical.includes('roomAssignmentEvidence=USER_CONFIRMED') ||
+    !hasUniqueLogicalEvidence('currentInstallationEvidence', 'true') ||
+    !hasUniqueLogicalEvidence('roomAssignmentEvidence', 'USER_CONFIRMED') ||
     !logical.includes('ei fyysistä pistekoordinaattia eikä 3D-laitegeometriaa') ||
     // Historical electrical group links are provenance only, never room XY.
     // Require the complete R989 room-to-source-group statement so a changed
