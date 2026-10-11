@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 // Source-color-bound, synthetic pixel-only guard. This is NOT production render evidence.
 // @ts-ignore - pure .mjs module has no TypeScript declaration
-import { detectP186FX4CyanTargetComponents as detect } from '../../src/scripts/privateModelP186FX4CyanPixelProof.mjs';
+import { buildP186FX4BrowserScreenshotProofExpression, detectP186FX4CyanTargetComponents as detect } from '../../src/scripts/privateModelP186FX4CyanPixelProof.mjs';
 
 const image = (width = 120, height = 60) => {
   const rgba = new Uint8ClampedArray(width * height * 4);
@@ -68,4 +68,29 @@ test('P186F-X4 accepts anti-aliased target color and rejects invalid RGBA frames
   expect(() => detect(frame.rgba, frame.width - 1, frame.height)).toThrow(/exact RGBA/);
   expect(() => detect(frame.rgba, frame.width + 0.5, frame.height)).toThrow(/exact RGBA/);
   expect(() => detect(null, frame.width, frame.height)).toThrow(/exact RGBA/);
+});
+
+// An actual Chromium evaluation guard: previous production smoke returned undefined
+// because its string was a bare, non-invoked asynchronous function.
+test('P186F-X4 screenshot proof executes in Chromium for 3 and 2 markers', async ({ page }) => {
+  for (const markerCount of [3, 2]) {
+    const png = await page.evaluate((count) => {
+      const surface = document.createElement('canvas');
+      surface.width = 120;
+      surface.height = 60;
+      const ctx = surface.getContext('2d');
+      if (!ctx) throw new Error('canvas unavailable');
+      ctx.fillStyle = '#f2f5f9';
+      ctx.fillRect(0, 0, 120, 60);
+      ctx.fillStyle = '#22d3ee';
+      for (const x of [10, 50, 90].slice(0, count)) ctx.fillRect(x, 15, 6, 5);
+      return surface.toDataURL('image/png');
+    }, markerCount);
+    const expression = buildP186FX4BrowserScreenshotProofExpression(png);
+    const result = await page.evaluate(expression);
+    expect(result).toBeDefined();
+    expect(result?.requiredCount).toBe(3);
+    expect(result?.componentCount).toBe(markerCount);
+    expect(result?.qualifyingColorPixels).toBe(markerCount * 30);
+  }
 });
