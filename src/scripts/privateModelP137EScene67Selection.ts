@@ -47,7 +47,7 @@ const assert = (pass: boolean, reason: string): void => {
   if (!pass) throw new Error('P137E scene67 focused source mismatch: ' + reason);
 };
 const isNoPromotion = (record: any): boolean =>
-  record?.current === false &&
+  record?.current !== true &&
   record?.Canonical === false &&
   record?.asBuilt === false &&
   record?.publishToCURRENT === false &&
