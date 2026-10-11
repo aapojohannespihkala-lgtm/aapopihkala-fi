@@ -266,8 +266,14 @@ test('X4 actual viewer D1F camera pans with right mouse while rotation stays dis
     const line = [-0.1,0,0, 0.1,0,0, 0,0,-0.1, 0,0,0.1];
     const surface = [-0.15,0,-0.15, 0.15,0,-0.15, 0.15,0,0.15,
       -0.15,0,-0.15, 0.15,0,0.15, -0.15,0,0.15];
-    const data = Buffer.alloc((line.length + surface.length) * 4);
-    [...line,...surface].forEach((n,i) => data.writeFloatLE(n,i*4));
+    // The X4 review now requires the EXACT existing P123C D1F wall source.
+    // The fixture supplies its identity and 176-position geometry without
+    // claiming that these synthetic coordinates reproduce the real building.
+    const originalWallPositions = Array.from({length:176}, (_,i) => [
+      i % 2 ? 6.4 : 0, i % 3 ? 2.8 : 0, i % 4 ? 10.5 : 0,
+    ]).flat();
+    const data = Buffer.alloc((line.length + surface.length + originalWallPositions.length) * 4);
+    [...line,...surface,...originalWallPositions].forEach((n,i) => data.writeFloatLE(n,i*4));
     const contexts = rooms.map((room,i) => ({
       name: 'P117D_REVIEW_G2_D15_SPACE_' + room + '_1F_SRC',
       mesh: 1, translation: [1.5+(i%4)*0.7, 0, 3+Math.floor(i/4)*0.7],
@@ -301,31 +307,46 @@ test('X4 actual viewer D1F camera pans with right mouse while rotation stays dis
         roomLevelPlacement: true, sensorSuiteClaim: false, workAssumption: true,
       },
     }));
+    const originalWall = {
+      name: 'P123C_D1F_WINDOW_TRANSPARENT_WALL_HELPER',
+      mesh: 2,
+      extras: {
+        Pass: '123C', sourceP123BNode: 434,
+        windowOpeningCount: 3, doorCutoutCount: 0,
+        presentationOnly: true, currentGeometryClaim: false,
+      },
+    };
     const scenes = Array.from({length:67}, (_,i) => ({
       name: i===0 ? 'D CURRENT INTERIOR - BABYLON Y-UP' :
         i===66 ? p186fX4ReviewSceneName : 'INHERITED_SCENE_' + i,
-      nodes: candidate && i===0 ? contexts.map((_,j)=>j) :
+      nodes: candidate && i===0
+        ? [...contexts.map((_,j)=>j), contexts.length + markers.length] :
         candidate && i===66 ? markers.map((_,j)=>j+contexts.length) : [],
       ...(candidate && i===66 ? {extras:{Pass:p186fX4ReviewPass,workTestSceneIndex:66}} : {}),
     }));
     const json = {
       asset:{version:'2.0'}, scene:candidate?66:0, scenes,
-      nodes:candidate?[...contexts,...markers]:[],
+      nodes:candidate?[...contexts,...markers,originalWall]:[],
       meshes:[
         {primitives:[{attributes:{POSITION:0},material:0,mode:1}]},
         {primitives:[{attributes:{POSITION:1},material:1,mode:4}]},
+        {primitives:[{attributes:{POSITION:2},material:2,mode:4}]},
       ],
       materials:[
         {doubleSided:true,pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],metallicFactor:0,roughnessFactor:1}},
         {doubleSided:true,pbrMetallicRoughness:{baseColorFactor:[0.7,0.8,1,1],metallicFactor:0,roughnessFactor:1}},
+        {name:'P123C_D_REVIEW_WALL_TRANSPARENT',doubleSided:true,alphaMode:'BLEND',
+         pbrMetallicRoughness:{baseColorFactor:[0.08,1,0.18,0.38],metallicFactor:0,roughnessFactor:1}},
       ],
       accessors:[
         {bufferView:0,componentType:5126,count:4,type:'VEC3',min:[-0.1,0,-0.1],max:[0.1,0,0.1]},
         {bufferView:1,componentType:5126,count:6,type:'VEC3',min:[-0.15,0,-0.15],max:[0.15,0,0.15]},
+        {bufferView:2,componentType:5126,count:176,type:'VEC3',min:[0,0,0],max:[6.4,2.8,10.5]},
       ],
       bufferViews:[
         {buffer:0,byteOffset:0,byteLength:line.length*4,target:34962},
         {buffer:0,byteOffset:line.length*4,byteLength:surface.length*4,target:34962},
+        {buffer:0,byteOffset:(line.length+surface.length)*4,byteLength:originalWallPositions.length*4,target:34962},
       ],
       buffers:[{byteLength:data.length}],
     };
@@ -352,6 +373,9 @@ test('X4 actual viewer D1F camera pans with right mouse while rotation stays dis
   await expect(canvas).toHaveAttribute('data-work-test-review-autoload','true');
   await expect(canvas).toHaveAttribute('data-p186f-review-variant','X4');
   await expect(canvas).toHaveAttribute('data-p186f-review-target-renderable-count','3');
+  await expect(canvas).toHaveAttribute('data-p186f-x4-original-green-wall-source-node','798');
+  await expect(canvas).toHaveAttribute('data-p186f-x4-suppressed-room-footprint-count','7');
+  await expect(canvas).toHaveAttribute('data-p186f-x4-plan-room-footprint-count','0');
   await expect(canvas).toHaveAttribute('data-view-preset','d-plan');
   await expect(canvas).toHaveAttribute('data-camera-projection','orthographic');
   await expect(canvas).toHaveAttribute('data-camera-rotation','disabled');
