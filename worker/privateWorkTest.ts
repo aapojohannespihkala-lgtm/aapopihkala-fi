@@ -512,6 +512,18 @@ const M5A_Z2D_D100_D300_DIAMETER_CANDIDATE = {
   expectedSha256: '15047af6e2f7db2080f554d241d66625a6797f5e24ae737b19627ae1f4aa87fd',
 } as const satisfies PrivateWorkTestCandidate;
 
+// R1125 is the exact, immutable source-metadata successor of the G2b drainage WORK_TEST.
+// Five route diameters have a general salaoja nominal Ø100 class; PVK discharge
+// and parking physical diameters remain UNKNOWN. Never publish to CURRENT.
+const M5A_R1125_PVK_DIAMETER_SOURCE_SPLIT_CANDIDATE = {
+  id: 'm5a-r1125-pvk-diameter-source-split',
+  label: 'M5A R1125 5 salaoja nominal D100 + 2 PVK diameter UNKNOWN - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-r1125-pvk-diameter-source-split.glb`,
+  objectKey: 'work-test/m5a-r1125-pvk-diameter-source-split.glb',
+  expectedSize: 3_112_432,
+  expectedSha256: 'c465417fc101e7de495d0a04bb4feb2bee61b80cd5efccf876f6eb76326f9a48',
+} as const satisfies PrivateWorkTestCandidate;
+
 const M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE = {
   id: 'm5a-z2d-r1090-well-top-ground-surface',
   label: 'M5A-Z2D R1090 well-top ground-surface correction - WORK_TEST',
@@ -545,6 +557,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
   M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE,
+  M5A_R1125_PVK_DIAMETER_SOURCE_SPLIT_CANDIDATE,
   M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE,
   M5A_R1115_SOK23_PLANNED_RAISE_PRESENCE_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
