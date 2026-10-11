@@ -78,13 +78,16 @@ const isSupersededR1090ReferenceRoute = (object: any) => {
   );
 };
 
-const cloneMaterials = (object: any, opacity: number, role: string) => {
+const cloneMaterials = (object: any, opacity: number, role: string, r1125Overlay = false) => {
   const cloneOne = (material: any) => {
     if (!material?.clone) return material;
     const clone = material.clone();
     clone.opacity = opacity;
     clone.transparent = true;
-    clone.depthWrite = role === 'QUESTION_TARGET_80';
+    clone.depthWrite = r1125Overlay ? false : role === 'QUESTION_TARGET_80';
+    // R1125-only WORK_TEST review overlays source targets over translucent terrain;
+    // this changes neither source geometry nor normal/other-review depth semantics.
+    if (r1125Overlay) clone.depthTest = false;
     clone.userData = {
       ...(clone.userData ?? {}),
       m5aZ2ReviewPresentation: true,
@@ -155,7 +158,11 @@ const hasNoPromotionSemantics = (object: any) => {
   return false;
 };
 
-export const prepareM5AZ2SystemReviewPresentation = (sceneRoot: any) => {
+export const prepareM5AZ2SystemReviewPresentation = (
+  sceneRoot: any,
+  options: { r1125TerrainResistantOverlay?: boolean } = {},
+) => {
+  const r1125Overlay = options.r1125TerrainResistantOverlay === true;
   const renderables: any[] = [];
   const targets: any[] = [];
   const targetKeys = new Map<string, any>();
@@ -193,13 +200,35 @@ export const prepareM5AZ2SystemReviewPresentation = (sceneRoot: any) => {
   });
 
   const missingTargetKeys = m5aZ2ExpectedTargetKeys.filter((key) => !targetKeys.has(key));
+  if (r1125Overlay) {
+    const source = sceneRoot?.userData ?? {};
+    const contextCount = renderables.filter((object) => !isTarget(object) && object.visible !== false).length;
+    if (
+      source.sourceDiameterCorrectionContract !== 'G2_R1125' ||
+      source.sourceDiameterClassBreakdown !==
+        '5_SALAOJA_AGGREGATE_NOMINAL_100MM__2_PVK_UNKNOWN' ||
+      source.currentGeometryClaim !== false ||
+      source.asBuiltClaim !== false ||
+      source.publishToCURRENT !== false ||
+      targets.length !== m5aZ2ExpectedTargetKeys.length ||
+      missingTargetKeys.length !== 0 ||
+      duplicateTargetKeys.length !== 0 ||
+      semanticViolationCount !== 0 ||
+      kindCounts.wellMarkerWork !== 4 ||
+      kindCounts.referenceRouteWork !== 7 ||
+      kindCounts.unresolvedBoundaryMarker !== 2 ||
+      contextCount < 1
+    ) {
+      throw new Error('M5A R1125 depth overlay requires exact scene63 13/13 source-only review');
+    }
+  }
   const targetBounds = new THREE.Box3();
   let hasTargetBounds = false;
 
   for (const object of targets) {
     object.visible = true;
-    cloneMaterials(object, m5aZ2ReviewTargetOpacity, 'QUESTION_TARGET_80');
-    object.renderOrder = 30;
+    cloneMaterials(object, m5aZ2ReviewTargetOpacity, 'QUESTION_TARGET_80', r1125Overlay);
+    object.renderOrder = r1125Overlay ? 2200 : 30;
     object.userData = {
       ...(object.userData ?? {}),
       viewerDerived: true,
@@ -244,6 +273,7 @@ export const prepareM5AZ2SystemReviewPresentation = (sceneRoot: any) => {
     reviewCamera: m5aZ2ReviewCamera,
     reviewQuestionText: m5aZ2ReviewQuestionText,
     sourceClassification: m5aZ2AbsoluteZBasis + ' / WORK_TEST / NOT_EXACT_Z / NOT_AS_BUILT',
+    r1125TerrainResistantOverlayApplied: r1125Overlay,
   };
 };
 
