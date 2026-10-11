@@ -36,11 +36,12 @@ const encodeJson = (data: unknown): string =>
   toBase64Url(new TextEncoder().encode(JSON.stringify(data)));
 
 const privateKeyBytes = (pem: string): Uint8Array => {
+  const normalizedPem = pem.trim();
   if (
-    !pem.startsWith('-----BEGIN PRIVATE KEY-----') ||
-    !pem.endsWith('-----END PRIVATE KEY-----')
+    !normalizedPem.startsWith('-----BEGIN PRIVATE KEY-----') ||
+    !normalizedPem.endsWith('-----END PRIVATE KEY-----')
   ) throw new Error('G2_OAUTH_CREDENTIALS_MISSING');
-  const base64 = pem.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
+  const base64 = normalizedPem.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
   try {
     return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
   } catch {
