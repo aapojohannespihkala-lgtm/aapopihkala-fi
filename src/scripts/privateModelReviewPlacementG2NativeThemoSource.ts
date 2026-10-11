@@ -110,19 +110,37 @@ export const projectNativeG2CurrentThemoReadback = (
     const pattern = new RegExp('`' + id + '`\\s*=\\s*Themo\\s*\\/\\s*' + room + '(?=\\s*[;.]|$)');
     if (!pattern.test(logical)) return null;
   }
-  const requiredNoPromotion = [
-    'exactCurrentXYClaim=false',
-    'exactZClaim=false',
-    'deviceGeometryClaim=false',
-    'physicalCableRouteClaim=false',
-    'continuousCableTopologyClaim=false',
-    'currentGeometryClaim=false',
-    'asBuilt=false',
-    'canonical=false',
-    'publishToCURRENT=false',
-    'HUMAN_REVIEW=NOT_RUN',
+  // Reject contradictory source flags: a substring match alone could accept
+  // "canonical=false, canonical=true" and incorrectly release a review target.
+  const requiredFalseFlags = [
+    'exactCurrentXYClaim',
+    'exactZClaim',
+    'deviceGeometryClaim',
+    'physicalCableRouteClaim',
+    'continuousCableTopologyClaim',
+    'currentGeometryClaim',
+    'asBuilt',
+    'canonical',
+    'publishToCURRENT',
   ];
-  if (!requiredNoPromotion.every((token) => noPromotion.includes(token))) return null;
+  const isUniqueFalseFlag = (key: string) => {
+    const matcher = new RegExp(
+      '(?:^|[^A-Za-z0-9_])' + key + '\\s*=\\s*(true|false)(?=$|[^A-Za-z0-9_])',
+      'g',
+    );
+    const matches = [...noPromotion.matchAll(matcher)];
+    return matches.length === 1 && matches[0][1] === 'false';
+  };
+  const humanReviewFlags = [
+    ...noPromotion.matchAll(
+      /(?:^|[^A-Za-z0-9_])HUMAN_REVIEW\s*=\s*([A-Z_]+)(?=$|[^A-Za-z0-9_])/g,
+    ),
+  ];
+  if (
+    !requiredFalseFlags.every(isUniqueFalseFlag) ||
+    humanReviewFlags.length !== 1 ||
+    humanReviewFlags[0][1] !== 'NOT_RUN'
+  ) return null;
 
   return {
     documentId: placementG2DocumentId,
