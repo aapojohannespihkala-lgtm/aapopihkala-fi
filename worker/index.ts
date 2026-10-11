@@ -17,6 +17,7 @@ import {
 import { handlePrivateAiStatusRequest, isPrivateAiStatusPath } from './privateAiStatus';
 import { handlePrivateWorkTestRequest, isPrivateWorkTestPath } from './privateWorkTest';
 import { handlePrivateSourceReferenceRequest, isPrivateSourceReferencePath } from './privateSourceReference';
+import { handlePrivatePlacementReviewRequest, isPrivatePlacementReviewPath } from './privateReviewPlacement';
 
 type WorkerEnv = PrivateModelEnv & { DIGITRANSIT_API_KEY?: string };
 type ResponseCache = {
@@ -378,6 +379,9 @@ const worker = {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(request.url);
     const snapshotRequest = isSnapshotRequest(request);
+    if (isPrivatePlacementReviewPath(url.pathname)) {
+      return handlePrivatePlacementReviewRequest(request, env);
+    }
     if (isPrivateAiStatusPath(url.pathname)) {
       return handlePrivateAiStatusRequest(request, env);
     }
