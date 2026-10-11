@@ -109,8 +109,14 @@ const readRecord = (
   }
 };
 
-const sameReview = (expected: PlacementReviewHandoff, recordId: string, actual: StoredG2ReviewLine | null) =>
-  !!actual && verifyPlacementReviewPersistenceReadback({
+const sameReview = (
+  expected: PlacementReviewHandoff,
+  recordId: string,
+  actual: StoredG2ReviewLine | null,
+  expectedSourceRevision: string,
+) =>
+  !!actual && actual.sourceRevision === expectedSourceRevision &&
+  verifyPlacementReviewPersistenceReadback({
     expected,
     receipt: { status: 'PERSISTED_TO_EXISTING_G2', recordId },
     readback: { recordId, payload: actual.payload },
@@ -219,7 +225,7 @@ export const createNativeG2PlacementPersistenceAdapter = ({
       !after ||
       after.revisionId === before.revisionId ||
       !(await readNativeG2CurrentPlacementTargets(async () => after)) ||
-      !sameReview(payload, recordId, readRecord(after, recordId))
+      !sameReview(payload, recordId, readRecord(after, recordId), before.revisionId)
     ) throw new Error('G2_DURABLE_READBACK_MISMATCH');
 
     return { status: 'PERSISTED_TO_EXISTING_G2', recordId };
