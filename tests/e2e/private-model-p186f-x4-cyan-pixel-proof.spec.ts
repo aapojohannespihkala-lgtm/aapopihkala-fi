@@ -103,3 +103,35 @@ test('X4 original green wall pixel proof fails closed for invalid screenshots', 
   expect(() => detectWall(frame.rgba, frame.width - 1, frame.height)).toThrow(/exact RGBA/);
   expect(() => detectWall(null, frame.width, frame.height)).toThrow(/exact RGBA/);
 });
+
+
+test('X4 green wall proof rejects dispersed green patches that pass aggregate area and bounds', () => {
+  const frame = image();
+  // These two unconnected green areas both look wall-colored. Their aggregate
+  // has enough rows, columns, pixels and XY spread, but NEITHER individual
+  // connected component spans the required source-wall width.
+  rectangle(frame, 8, 10, 32, 24, [159, 249, 172, 255]);
+  rectangle(frame, 76, 10, 32, 24, [159, 249, 172, 255]);
+  const proof = detectWall(frame.rgba, frame.width, frame.height);
+  expect(proof.qualifyingGreenPixels).toBe(2 * 32 * 24);
+  expect(proof.spreadX).toBe(100);
+  expect(proof.spreadY).toBe(24);
+  expect(proof.qualifyingRows).toBe(24);
+  expect(proof.qualifyingColumns).toBe(64);
+  expect(proof.componentCount).toBe(2);
+  expect(proof.largestConnectedGreenPixels).toBe(32 * 24);
+  expect(proof.largestConnectedSpreadX).toBe(32);
+  expect(proof.passed).toBe(false);
+});
+
+test('X4 green wall proof passes one substantial connected green surface with detached noise', () => {
+  const frame = image();
+  rectangle(frame, 21, 9, 76, 34, [159, 249, 172, 255]);
+  rectangle(frame, 3, 48, 5, 5, [65, 204, 78, 255]);
+  const proof = detectWall(frame.rgba, frame.width, frame.height);
+  expect(proof.componentCount).toBe(2);
+  expect(proof.largestConnectedGreenPixels).toBe(76 * 34);
+  expect(proof.largestConnectedSpreadX).toBe(76);
+  expect(proof.largestConnectedSpreadY).toBe(34);
+  expect(proof.passed).toBe(true);
+});
