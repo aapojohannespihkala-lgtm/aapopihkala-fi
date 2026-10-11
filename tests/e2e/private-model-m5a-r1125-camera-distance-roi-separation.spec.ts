@@ -8,7 +8,7 @@ import { m5aR1125SourcePixelKinds } from '../../src/scripts/privateModelM5AR1125
 // Synthetic geometry verifies a camera-choice precondition ONLY. It is not
 // authenticated original GLB, a real screenshot, or HUMAN_REVIEW evidence.
 const width = 1000, height = 700;
-const keys = Object.keys(m5aR1125SourcePixelKinds);
+const keys = Object.keys(m5aR1125SourcePixelKinds) as Array<keyof typeof m5aR1125SourcePixelKinds>;
 const makeScene = () => {
   const root = new THREE.Group();
   root.userData = {
