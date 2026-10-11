@@ -114,6 +114,9 @@ jobs:
               "workTestReviewCandidate === expectedCandidateId",
               "detectP186FX4CyanTargetComponents",
               "X4 requires exactly 3 separately rendered cyan targets",
+              "detectM5BR1109CyanLocatorComponents",
+              "M5B R1109 requires 5 rendered cyan locators",
+              "M5B R1109 screenshot detector returned no pixel result",
               "pointerButton = isX4Themo ? 'right' : 'left'",
           ]
           missing = [
@@ -381,6 +384,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import { chromium } from '@playwright/test';
+          import { detectM5BR1109CyanLocatorComponents } from './src/scripts/privateModelR1109CyanLocatorProof.mjs';
           import { detectP186FX4CyanTargetComponents } from './src/scripts/privateModelP186FX4CyanPixelProof.mjs';
 
           const reviewBaseUrl = process.env.REVIEW_BASE_URL;
@@ -549,10 +553,15 @@ jobs:
                 ' const detect = ' + detectorFunctionSource + ';' +
                 ' return detect(rgba, image.width, image.height);' +
                 '})';
+              const x4ScreenshotDataUrl = 'data:image/png;base64,' + before.toString('base64');
+              // Playwright evaluates a string expression, not the bare async function.
+              // Invoke it with the exact PNG argument and fail closed on no result.
               cyanTargetEvidence = await page.evaluate(
-                browserProof,
-                'data:image/png;base64,' + before.toString('base64'),
+                browserProof + '(' + JSON.stringify(x4ScreenshotDataUrl) + ')',
               );
+              if (!cyanTargetEvidence || typeof cyanTargetEvidence !== 'object') {
+                throw new Error('X4 screenshot detector returned no pixel result');
+              }
               fs.writeFileSync(
                 'playwright-artifacts/x4-three-cyan-components.json',
                 JSON.stringify(cyanTargetEvidence, null, 2),
@@ -562,6 +571,43 @@ jobs:
                   'X4 requires exactly 3 separately rendered cyan targets: ' +
                     JSON.stringify(cyanTargetEvidence),
                 );
+              }
+            }
+
+            const m5bR1109 = reviewId === 'm5b-r1109-five-downspout-presence-zones-review' &&
+              candidateId === 'm5b-r1109-five-downspout-presence-zones';
+            let m5bPixelEvidence = null;
+            if (m5bR1109) {
+              const d = await canvas.evaluate((el) => ({ ...el.dataset }));
+              if (d.m5bReviewVariant !== 'R1109_PERSISTED_ZONES' ||
+                  d.m5bSceneIndex !== '63' ||
+                  d.m5bReviewTargetRenderableCount !== '5' ||
+                  d.m5bVerticalDownspoutProxyCount !== '0' ||
+                  d.m5bCanonical !== 'false' ||
+                  d.m5bCurrentGeometryClaim !== 'false') {
+                throw new Error('M5B R1109 scene63 source semantics failed: ' + JSON.stringify(d));
+              }
+              const fn = detectM5BR1109CyanLocatorComponents.toString();
+              const script = '(async (url) => {' +
+                'const img=new Image();img.src=url;await img.decode();' +
+                'const c=document.createElement("canvas");c.width=img.width;c.height=img.height;' +
+                'const ctx=c.getContext("2d");if(!ctx)throw Error("M5B no 2D context");' +
+                'ctx.drawImage(img,0,0);const pixels=ctx.getImageData(0,0,c.width,c.height).data;' +
+                'return (' + fn + ')(pixels,c.width,c.height);})';
+              const screenshotDataUrl = 'data:image/png;base64,' + before.toString('base64');
+              // page.evaluate(string) evaluates the expression; it does not call a bare function.
+              // Invoke the exact existing source detector with JSON-escaped PNG data.
+              m5bPixelEvidence = await page.evaluate(
+                script + '(' + JSON.stringify(screenshotDataUrl) + ')',
+              );
+              if (!m5bPixelEvidence || typeof m5bPixelEvidence !== 'object') {
+                throw new Error('M5B R1109 screenshot detector returned no pixel result');
+              }
+              fs.writeFileSync('playwright-artifacts/m5b-r1109-five-pixels.json',
+                JSON.stringify(m5bPixelEvidence, null, 2));
+              if (m5bPixelEvidence.requiredCount !== 5 || m5bPixelEvidence.componentCount !== 5) {
+                throw new Error('M5B R1109 requires 5 rendered cyan locators: ' +
+                  JSON.stringify(m5bPixelEvidence));
               }
             }
 
@@ -703,6 +749,7 @@ jobs:
                   dataset,
                   pixelEvidence,
                   cyanTargetEvidence,
+                  m5bPixelEvidence,
                   thresholds: {
                     minNonBackgroundPixels,
                     minChangedPixels,
@@ -725,6 +772,7 @@ jobs:
                 expectedDataset,
                 pixelEvidence,
                 cyanTargetEvidence,
+                m5bPixelEvidence,
                 thresholds: {
                   minNonBackgroundPixels,
                   minChangedPixels,
