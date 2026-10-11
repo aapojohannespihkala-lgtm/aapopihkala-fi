@@ -1,10 +1,12 @@
 
 import { expect, test } from '@playwright/test';
+import { THREE } from '../../src/scripts/threeRuntime';
 
 import {
   m5aZ2AbsoluteZBasis,
   m5aZ2AbsoluteZContract,
   m5aZ2ExpectedTargetKeys,
+  prepareM5AZ2SystemReviewPresentation,
 } from '../../src/scripts/privateModelM5AZ2ReviewPresentation';
 import {
   m5aR1125SourceSceneName,
@@ -43,14 +45,21 @@ const targetPositions = [
   0.04, 0, -0.24,
 ];
 
+// Deliberately place the simulated full-size terrain in FRONT of the
+// 13 source targets (at y=0.06), so the screenshot proves depth-independent
+// target overlays rather than only markers that were unobstructed already.
 const contextPositions = [
-  0, 0, 0,
-  10, 0, 0,
-  0, 0, -6,
-  10, 0, 0,
-  10, 0, -6,
-  0, 0, -6,
+  0, 0.5, 0,
+  10, 0.5, 0,
+  0, 0.5, -6,
+  10, 0.5, 0,
+  10, 0.5, -6,
+  0, 0.5, -6,
 ];
+
+// Source-class fixture only: original R1125 scene63 uses four gray well meshes,
+// seven cyan route meshes, and two yellow glTF LINES (not 13 orange triangles).
+const boundaryPositions = [0, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, -0.2];
 
 const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
   const targetBytes = Buffer.alloc(targetPositions.length * 4);
@@ -59,9 +68,12 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
   const contextBytes = Buffer.alloc(contextPositions.length * 4);
   contextPositions.forEach((value, index) => contextBytes.writeFloatLE(value, index * 4));
 
+  const boundaryBytes = Buffer.alloc(boundaryPositions.length * 4);
+  boundaryPositions.forEach((v, i) => boundaryBytes.writeFloatLE(v, i * 4));
   const targetOffset = 0;
   const contextOffset = targetBytes.length;
-  const binPayload = Buffer.concat([targetBytes, contextBytes]);
+  const boundaryOffset = contextOffset + contextBytes.length;
+  const binPayload = Buffer.concat([targetBytes, contextBytes, boundaryBytes]);
 
   const json = {
     asset: { version: '2.0' },
@@ -92,12 +104,14 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
           },
         ],
       },
+      { primitives: [{ attributes: { POSITION: 0 }, material: 2 }] },
+      { primitives: [{ attributes: { POSITION: 2 }, material: 3, mode: 1 }] },
     ],
     materials: [
       {
-        emissiveFactor: [1, 0.18, 0.02],
+        emissiveFactor: [0.62, 0.67, 0.72],
         pbrMetallicRoughness: {
-          baseColorFactor: [1, 0.22, 0.03, 1],
+          baseColorFactor: [0.62, 0.67, 0.72, 1],
           metallicFactor: 0,
           roughnessFactor: 1,
         },
@@ -108,6 +122,26 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
         emissiveFactor: [0.02, 0.08, 1],
         pbrMetallicRoughness: {
           baseColorFactor: [0.03, 0.12, 1, 1],
+          metallicFactor: 0,
+          roughnessFactor: 1,
+        },
+        alphaMode: 'BLEND',
+        doubleSided: true,
+      },
+      {
+        emissiveFactor: [0.09, 0.65, 0.82],
+        pbrMetallicRoughness: {
+          baseColorFactor: [0.09, 0.65, 0.82, 1],
+          metallicFactor: 0,
+          roughnessFactor: 1,
+        },
+        alphaMode: 'BLEND',
+        doubleSided: true,
+      },
+      {
+        emissiveFactor: [0.92, 0.72, 0.16],
+        pbrMetallicRoughness: {
+          baseColorFactor: [0.92, 0.72, 0.16, 1],
           metallicFactor: 0,
           roughnessFactor: 1,
         },
@@ -129,8 +163,16 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
         componentType: 5126,
         count: 6,
         type: 'VEC3',
-        min: [0, 0, -6],
-        max: [10, 0, 0],
+        min: [0, 0.5, -6],
+        max: [10, 0.5, 0],
+      },
+      {
+        bufferView: 2,
+        componentType: 5126,
+        count: 4,
+        type: 'VEC3',
+        min: [0, 0, -0.2],
+        max: [0.5, 0, 0],
       },
     ],
     bufferViews: [
@@ -144,6 +186,12 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
         buffer: 0,
         byteOffset: contextOffset,
         byteLength: contextBytes.length,
+        target: 34962,
+      },
+      {
+        buffer: 0,
+        byteOffset: boundaryOffset,
+        byteLength: boundaryBytes.length,
         target: 34962,
       },
     ],
@@ -248,9 +296,9 @@ const makeTargetNode = (key: string, index: number) => {
 
   return {
     name: `M5A_R1125_REVIEW_TARGET_${String(index + 1).padStart(2, '0')}`,
-    mesh: 0,
+    mesh: boundary ? 3 : well ? 0 : 2,
     translation: targetLocations[index],
-    scale: [1.8, 1, 1.8],
+    scale: boundary ? [3, 1, 3] : [1.8, 1, 1.8],
     extras,
   };
 };
@@ -318,6 +366,7 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId);
   await expect(canvas).toHaveAttribute('data-m5a-review-target-renderable-count', '13');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-source-contract', 'G2_R1125');
+  await expect(canvas).toHaveAttribute('data-m5a-r1125-terrain-resistant-overlay', 'true');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-scene-index', '63');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-salaoja-general-nominal-d100-count', '5');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-pvk-unknown-physical-diameter-count', '2');
@@ -335,11 +384,62 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
   await expect(canvas).toHaveAttribute('data-m5a-review-camera-mode', 'PERSPECTIVE_FREE_ORBIT_TARGET_BOUNDS');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
 
+  // Reconstruct this fixture's source geometry bounds and the viewer's
+  // exact M5A perspective-camera contract. This is synthetic browser proof,
+  // not surveyed source XY/Z or authenticated production evidence.
+  const sourceWorldBounds = m5aZ2ExpectedTargetKeys.map((key, index) => {
+    const node = makeTargetNode(key, index);
+    const positions = key.startsWith('boundary:') ? boundaryPositions : targetPositions;
+    const points = [];
+    for (let offset = 0; offset < positions.length; offset += 3) {
+      points.push(new THREE.Vector3(
+        positions[offset]!, positions[offset + 1]!, positions[offset + 2]!,
+      ));
+    }
+    const modelMatrix = new THREE.Matrix4().makeScale(...(node.scale as [number, number, number]));
+    modelMatrix.setPosition(...(node.translation as [number, number, number]));
+    return new THREE.Box3().setFromPoints(points).applyMatrix4(modelMatrix);
+  });
+  const fixtureSourceBounds = new THREE.Box3();
+  sourceWorldBounds.forEach((bounds) => fixtureSourceBounds.union(bounds));
+  const sourceSphere = fixtureSourceBounds.getBoundingSphere(new THREE.Sphere());
+  const sourceCenter = fixtureSourceBounds.getCenter(new THREE.Vector3());
+  const viewSize = await canvas.evaluate((element) => ({
+    width: element.clientWidth,
+    height: element.clientHeight,
+  }));
+  const syntheticCamera = new THREE.PerspectiveCamera(
+    38, viewSize.width / viewSize.height, 0.001, 5000,
+  );
+  const verticalHalfFov = THREE.MathUtils.degToRad(syntheticCamera.fov / 2);
+  const horizontalHalfFov = Math.atan(Math.tan(verticalHalfFov) * syntheticCamera.aspect);
+  const limitingHalfFov = Math.min(verticalHalfFov, horizontalHalfFov);
+  const cameraDistance = Math.max(
+    (Math.max(sourceSphere.radius, 0.25) / Math.tan(limitingHalfFov)) * 1.75,
+    4,
+  );
+  syntheticCamera.position.copy(sourceCenter).add(new THREE.Vector3(
+    cameraDistance * 0.78, cameraDistance * 0.58, cameraDistance * 0.92,
+  ));
+  syntheticCamera.lookAt(sourceCenter);
+  syntheticCamera.updateProjectionMatrix();
+  syntheticCamera.updateMatrixWorld(true);
+  const sourceProjections = sourceWorldBounds.map((bounds, index) => {
+    const projected = bounds.getCenter(new THREE.Vector3()).project(syntheticCamera);
+    const key = m5aZ2ExpectedTargetKeys[index]!;
+    return {
+      key,
+      kind: key.startsWith('boundary:') ? 2 : key.startsWith('G2_DRAIN_WELL_') ? 0 : 1,
+      u: (projected.x + 1) / 2,
+      v: (1 - projected.y) / 2,
+    };
+  });
+
   await page.waitForTimeout(300);
   const screenshot = await canvas.screenshot();
   const dataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
 
-  const visibilityPixels = await page.evaluate(async (url) => {
+  const visibilityPixels = await page.evaluate(async ({ url, sourceProjections }) => {
     const image = new Image();
     image.src = url;
     await image.decode();
@@ -348,72 +448,69 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
     probe.width = image.width;
     probe.height = image.height;
     const context = probe.getContext('2d');
-    if (!context) return { warmTargetPixels: 0, blueContextPixels: 0, warmMarkerComponents: 0 };
-
+    if (!context) throw new Error('R1125 Chromium image lacks 2D canvas');
     context.drawImage(image, 0, 0);
     const pixels = context.getImageData(0, 0, image.width, image.height).data;
-    let warmTargetPixels = 0;
+    const masks = [0, 1, 2].map(() => new Uint8Array(image.width * image.height));
+    const classPixelCounts = [0, 0, 0];
     let blueContextPixels = 0;
-    // Count independently drawn target islands, not only aggregate colored pixels.
-    // This is LOCAL browser-render evidence on the source-shaped WORK_TEST fixture,
-    // NOT authenticated production or HUMAN_REVIEW evidence.
-    const warmMask = new Uint8Array(image.width * image.height);
-
     for (let index = 0; index < pixels.length; index += 4) {
-      const red = pixels[index] ?? 0;
-      const green = pixels[index + 1] ?? 0;
-      const blue = pixels[index + 2] ?? 0;
-
-      if (red > 105 && red > green * 1.25 && red > blue * 1.35 && green > blue * 1.3) {
-        warmTargetPixels += 1;
-        warmMask[index / 4] = 1;
+      const r = pixels[index] ?? 0;
+      const g = pixels[index + 1] ?? 0;
+      const b = pixels[index + 2] ?? 0;
+      // Palette follows original R1125 source class identities, not dummy orange.
+      const grayWell = r > 75 && g > 80 && b > 85 &&
+        Math.abs(r - g) < 42 && Math.abs(g - b) < 44;
+      const cyanPipe = g > 92 && b > 110 && r < g * 0.62 &&
+        b > g * 1.04 && b < g * 1.9;
+      const yellowBoundary = r > 120 && g > 78 && r > g * 1.07 &&
+        b < g * 0.73 && r < g * 1.9;
+      const kind = cyanPipe ? 1 : yellowBoundary ? 2 : grayWell ? 0 : -1;
+      if (kind >= 0) {
+        masks[kind]![index / 4] = 1;
+        classPixelCounts[kind]!++;
       }
-
-      if (blue > 90 && blue > red * 1.08 && blue > green * 1.04) {
-        blueContextPixels += 1;
-      }
+      if (b > 90 && b > r * 1.08 && b > g * 1.04) blueContextPixels++;
     }
-
-    // 8-connected components account for antialiased diagonal triangle edges.
-    // Reject tiny isolated warm-color noise; every one of the 13 source targets
-    // must contribute its own visible, coherent island of at least 12 pixels.
-    const seen = new Uint8Array(warmMask.length);
-    const queue = new Int32Array(warmMask.length);
-    let warmMarkerComponents = 0;
-    for (let seed = 0; seed < warmMask.length; seed++) {
-      if (!warmMask[seed] || seen[seed]) continue;
-      let head = 0;
-      let tail = 1;
-      let islandPixels = 0;
-      seen[seed] = 1;
-      queue[0] = seed;
-      while (head < tail) {
-        const at = queue[head++]!;
-        const x = at % image.width;
-        const y = Math.floor(at / image.width);
-        islandPixels++;
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            if (dx === 0 && dy === 0) continue;
-            const nx = x + dx;
-            const ny = y + dy;
-            if (nx < 0 || ny < 0 || nx >= image.width || ny >= image.height) continue;
-            const next = ny * image.width + nx;
-            if (!warmMask[next] || seen[next]) continue;
-            seen[next] = 1;
-            queue[tail++] = next;
-          }
+    // Pixel components are not object identities: WebGL antialiasing breaks
+    // one gray source surface into many fragments and joins neighboring cyan
+    // routes. Probe each original fixture object's *projected source bounds*
+    // instead of asserting the global number of connected color islands.
+    const radius = Math.max(12, Math.round(Math.min(image.width, image.height) * 0.035));
+    const sourceRoiPixels = sourceProjections.map(({ key, kind, u, v }) => {
+      const cx = Math.round(u * image.width);
+      const cy = Math.round(v * image.height);
+      let classPixels = 0;
+      for (let y = Math.max(0, cy - radius); y <= Math.min(image.height - 1, cy + radius); y++) {
+        for (let x = Math.max(0, cx - radius); x <= Math.min(image.width - 1, cx + radius); x++) {
+          const dx = x - cx, dy = y - cy;
+          if (dx * dx + dy * dy > radius * radius) continue;
+          if (masks[kind]![y * image.width + x]) classPixels++;
         }
       }
-      if (islandPixels >= 12) warmMarkerComponents++;
-    }
+      return { key, kind, classPixels, inFrame: u > 0 && u < 1 && v > 0 && v < 1 };
+    });
+    return { classPixelCounts, sourceRoiPixels, blueContextPixels };
+  }, { url: dataUrl, sourceProjections });
 
-    return { warmTargetPixels, blueContextPixels, warmMarkerComponents };
-  }, dataUrl);
-
-  expect(visibilityPixels.warmTargetPixels).toBeGreaterThan(80);
+  // Separate Chromium image evidence for original source roles: 4 wells,
+  // 7 routes and 2 unresolved boundaries. This remains a synthetic fixture.
+  expect(visibilityPixels.classPixelCounts[0]).toBeGreaterThan(48);
+  expect(visibilityPixels.classPixelCounts[1]).toBeGreaterThan(84);
+  expect(visibilityPixels.classPixelCounts[2]).toBeGreaterThan(3);
+  // Source-identity ROI checks stay per object, even if screenshot components
+  // split or merge. 4 gray wells, 7 cyan routes and 2 yellow glTF LINES.
+  expect(visibilityPixels.sourceRoiPixels).toHaveLength(13);
+  expect(visibilityPixels.sourceRoiPixels.map(({ kind }) => kind).sort()).toEqual([
+    0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2,
+  ]);
+  for (const source of visibilityPixels.sourceRoiPixels) {
+    expect(source.inFrame, `out-of-frame: ${source.key}`).toBe(true);
+    expect(source.classPixels, `unreadable source ROI: ${source.key}`).toBeGreaterThan(
+      source.kind === 2 ? 1 : 7,
+    );
+  }
   expect(visibilityPixels.blueContextPixels).toBeGreaterThan(250);
-  expect(visibilityPixels.warmMarkerComponents).toBe(13);
 });
 
 
@@ -464,4 +561,100 @@ test('M5A R1125 rejects a fabricated PVK physical diameter and duplicated source
     .toThrow(/PVK physical diameter must remain UNKNOWN/);
   expect(() => selectM5AR1125SourceBoundReviewScene(buildFixture([...nodeData, nodeData[0]])))
     .toThrow(/duplicate or unexpected diameter-source route/);
+});
+
+test('M5A R1125 overlays only exact 13/13 source targets over 20% terrain without editing geometry', () => {
+  const makeSourceReview = () => {
+    const root = new THREE.Group();
+    root.userData = { ...m5aR1125SceneExtras };
+    const targets = m5aZ2ExpectedTargetKeys.map((key, index) => {
+      // The source GLB uses glTF mode=1 LINES for the two unresolved boundaries.
+      // Keep this compatibility fixture faithful to that primitive type.
+      const node = index >= 11
+        ? new THREE.LineSegments(
+            new THREE.BufferGeometry().setFromPoints([
+              new THREE.Vector3(-0.3, 0, 0),
+              new THREE.Vector3(0.3, 0, 0),
+            ]),
+            new THREE.LineBasicMaterial({ color: 0xffd84a }),
+          )
+        : new THREE.Mesh(
+            new THREE.BoxGeometry(0.25, 0.25, 0.25),
+            new THREE.MeshBasicMaterial({ color: 0xff8a11 }),
+          );
+      node.name = String(makeTargetNode(key, index).name);
+      node.userData = { ...makeTargetNode(key, index).extras };
+      node.position.set(index, 0, 0);
+      root.add(node);
+      return node;
+    });
+    const terrain = new THREE.Mesh(
+      new THREE.BoxGeometry(20, 1, 20),
+      new THREE.MeshBasicMaterial({ color: 0x2266ff }),
+    );
+    terrain.position.set(6, 0, 0);
+    terrain.name = 'EXISTING_BUILDING_TERRAIN_CONTEXT';
+    root.add(terrain);
+    return { root, targets, terrain };
+  };
+
+  const { root, targets, terrain } = makeSourceReview();
+  const originalVertices = targets.map((node) =>
+    Array.from(node.geometry.getAttribute('position').array as ArrayLike<number>),
+  );
+  const result = prepareM5AZ2SystemReviewPresentation(root, {
+    r1125TerrainResistantOverlay: true,
+  });
+  expect(result.targetRenderableCount).toBe(13);
+  expect(result.contextRenderableCount).toBe(1);
+  expect(result.r1125TerrainResistantOverlayApplied).toBe(true);
+  expect(result.missingTargetKeys).toEqual([]);
+  expect(result.duplicateTargetKeys).toEqual([]);
+  expect(result.semanticViolationCount).toBe(0);
+  expect(result.kindCounts).toEqual({
+    wellMarkerWork: 4,
+    referenceRouteWork: 7,
+    unresolvedBoundaryMarker: 2,
+  });
+  targets.forEach((node, index) => {
+    const material = node.material as THREE.MeshBasicMaterial;
+    expect(material.opacity).toBe(0.8);
+    expect(material.depthTest).toBe(false);
+    expect(material.depthWrite).toBe(false);
+    expect(node.renderOrder).toBe(2200);
+    expect(node.userData.m5aZ2ReviewRole).toBe('QUESTION_TARGET_80');
+    expect(Array.from(node.geometry.getAttribute('position').array as ArrayLike<number>))
+      .toEqual(originalVertices[index]);
+  });
+  const terrainMaterial = terrain.material as THREE.MeshBasicMaterial;
+  expect(terrainMaterial.opacity).toBe(0.2);
+  expect(terrainMaterial.depthTest).toBe(true);
+  expect(terrainMaterial.depthWrite).toBe(false);
+  expect(terrain.renderOrder).toBe(5);
+  expect(terrain.visible).toBe(true);
+  expect(terrain.userData.m5aZ2ReviewRole).toBe('BUILDING_DRAINAGE_CONTEXT_20');
+
+  const legacy = makeSourceReview();
+  const legacyResult = prepareM5AZ2SystemReviewPresentation(legacy.root);
+  expect(legacyResult.r1125TerrainResistantOverlayApplied).toBe(false);
+  legacy.targets.forEach((node) => {
+    const material = node.material as THREE.MeshBasicMaterial;
+    expect(material.depthTest).toBe(true);
+    expect(material.depthWrite).toBe(true);
+    expect(node.renderOrder).toBe(30);
+  });
+
+  const wrongScene = makeSourceReview();
+  wrongScene.root.userData.sourceDiameterCorrectionContract = 'G2_R1090';
+  expect(() => prepareM5AZ2SystemReviewPresentation(wrongScene.root, {
+    r1125TerrainResistantOverlay: true,
+  })).toThrow(/exact scene63 13\/13 source-only review/);
+  expect((wrongScene.targets[0]?.material as THREE.MeshBasicMaterial).depthTest).toBe(true);
+
+  const incomplete = makeSourceReview();
+  incomplete.root.remove(incomplete.targets[12]!);
+  expect(() => prepareM5AZ2SystemReviewPresentation(incomplete.root, {
+    r1125TerrainResistantOverlay: true,
+  })).toThrow(/exact scene63 13\/13 source-only review/);
+  expect((incomplete.targets[0]?.material as THREE.MeshBasicMaterial).depthTest).toBe(true);
 });

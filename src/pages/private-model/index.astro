@@ -7364,7 +7364,10 @@ const title = 'Private 3D viewer';
         | 'R3_Z1C_SOK1_SOK2_RELATIVE_Z'
         | 'Z2_ABSOLUTE_Z_SYSTEM';
 
-      const applyM5aDrainageReviewState = (mode: M5aDrainageReviewMode) => {
+      const applyM5aDrainageReviewState = (
+        mode: M5aDrainageReviewMode,
+        r1125SourceReview = false,
+      ) => {
         if (mode === 'Z2_ABSOLUTE_Z_SYSTEM') {
           applyStandardViewPreset('whole-building');
           setModelScene(fullModelScene);
@@ -7373,7 +7376,9 @@ const title = 'Private 3D viewer';
           deactivateDCoordinateReview();
           setD1KnownDoorReviewLabelsVisible(false);
 
-          const presentation = prepareM5AZ2SystemReviewPresentation(fullModelScene);
+          const presentation = prepareM5AZ2SystemReviewPresentation(fullModelScene, {
+            r1125TerrainResistantOverlay: r1125SourceReview,
+          });
           const undrawableTargetKeys = getUndrawableM5AZ2TargetKeys(fullModelScene);
           if (
             undrawableTargetKeys.length !== 0 ||
@@ -7400,6 +7405,10 @@ const title = 'Private 3D viewer';
           const activeM5aZ2SystemReviewId =
             getActiveM5AZ2SystemReviewId(window.location.search);
           const m5aZ2ReviewState = 'ready';
+          if (r1125SourceReview) {
+            canvas.dataset.m5aR1125TerrainResistantOverlay =
+              String(presentation.r1125TerrainResistantOverlayApplied);
+          }
           const m5aDrainageReviewMode = mode;
           canvas.dataset.workTestReviewMode = activeM5aZ2SystemReviewId;
           canvas.dataset.m5aZ2ReviewState = m5aZ2ReviewState;
@@ -9408,7 +9417,7 @@ const title = 'Private 3D viewer';
             status.textContent = m5bRuntimeState.statusText;
           } else if (m5aDrainageReviewMode) {
             loadFailurePhase = 'm5a-z2-presentation-guard-failed';
-            applyM5aDrainageReviewState(m5aDrainageReviewMode);
+            applyM5aDrainageReviewState(m5aDrainageReviewMode, isM5AR1125SourceReview);
             if (isM5AR1125SourceReview) {
               Object.assign(canvas.dataset, {
                 m5aR1125SourceDriveId: '13qxYc9PF7Z6eo_OXs1RrYCyo5CbTIAKs',
