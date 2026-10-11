@@ -537,7 +537,7 @@ jobs:
               const detectorFunctionSource =
                 detectP186FX4CyanTargetComponents.toString();
               const browserProof =
-                'async function(sourceUrl) {' +
+                '(async (sourceUrl) => {' +
                 ' const image = new Image(); image.src = sourceUrl; await image.decode();' +
                 ' const probe = document.createElement("canvas");' +
                 ' probe.width = image.width; probe.height = image.height;' +
@@ -547,7 +547,7 @@ jobs:
                 ' const rgba = context.getImageData(0, 0, image.width, image.height).data;' +
                 ' const detect = ' + detectorFunctionSource + ';' +
                 ' return detect(rgba, image.width, image.height);' +
-                '}';
+                '})';
               cyanTargetEvidence = await page.evaluate(
                 browserProof,
                 'data:image/png;base64,' + before.toString('base64'),
