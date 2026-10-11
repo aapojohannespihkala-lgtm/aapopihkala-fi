@@ -52,16 +52,55 @@ test('targets must remain source-bound, unapproved and same-origin', async () =>
   expect(calls[0].options.cache).toBe('no-store');
 });
 
-test('POST accepts only unchanged durable G2 record returned by server', async () => {
+test('POST receipt requires a separate unchanged durable GET from G2', async () => {
   const calls: Array<{url: string; options: any}> = [];
   const reply = { receipt: { status: 'PERSISTED_TO_EXISTING_G2', recordId },
     readback: { recordId, payload } };
-  const receipt = await client(json(reply), calls).persist(payload);
+  const c = createP137EG2WorkerClient({
+    origin, canReview: () => true,
+    fetcher: async (url: string, options: any) => {
+      calls.push({ url, options });
+      return options.method === 'POST' ? json(reply) : json({ recordId, payload });
+    },
+  });
+  const receipt = await c.persist(payload);
   expect(receipt.recordId).toBe(recordId);
-  expect(calls).toHaveLength(1);
-  expect(calls[0].options.method).toBe('POST');
+  expect(calls).toHaveLength(2);
+  expect(calls.map(call => call.options.method)).toEqual(['POST', 'GET']);
   expect(calls[0].url).toBe(origin + '/private-model/review-placement/g2/observations');
+  expect(calls[1].url).toBe(origin + '/private-model/review-placement/g2/observations/' + recordId);
   expect(JSON.parse(calls[0].options.body)).toEqual({ payload });
+  expect(calls[1].options.credentials).toBe('same-origin');
+  expect(calls[1].options.redirect).toBe('error');
+  expect(calls[1].options.cache).toBe('no-store');
+});
+
+test('POST echo cannot fake durability when independent G2 GET differs or fails', async () => {
+  const reply = { receipt: { status: 'PERSISTED_TO_EXISTING_G2', recordId },
+    readback: { recordId, payload } };
+  const cases = [
+    { get: { recordId, payload: { ...payload, anchor: { ...payload.anchor, xM: 100 } } },
+      reason: 'DURABLE_READBACK_INVALID' },
+    { get: { recordId: 'P137E_G2_different1234', payload },
+      reason: 'DURABLE_READBACK_INVALID' },
+    { get: { recordId, payload: { ...payload, observation: { canonical: true } } },
+      reason: 'DURABLE_READBACK_INVALID' },
+    { get: { error: 'not-found' }, status: 404, reason: 'UNAVAILABLE' },
+  ];
+  for (const scenario of cases) {
+    const methods: string[] = [];
+    const c = createP137EG2WorkerClient({
+      origin, canReview: () => true,
+      fetcher: async (_url: string, options: any) => {
+        methods.push(options.method);
+        return options.method === 'POST'
+          ? json(reply)
+          : json(scenario.get, scenario.status ?? 200);
+      },
+    });
+    await expect(c.persist(payload)).rejects.toThrow(scenario.reason);
+    expect(methods).toEqual(['POST', 'GET']);
+  }
 });
 
 test('POST rejects modified coordinates and invented acknowledgement', async () => {
