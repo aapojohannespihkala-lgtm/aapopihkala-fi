@@ -13,6 +13,7 @@ import {
   p186fX4ReviewPass,
   p186fX4ReviewSceneIndex,
   p186fX4ReviewSceneName,
+  p186fX4ReadableRoomLabels,
   prepareP186fReviewPresentation,
 } from '../../src/scripts/privateModelP186FReviewPresentation';
 
@@ -141,6 +142,13 @@ test('P186F-X4 scene66 mixed X3/X4 targets satisfy no-promotion presentation sem
   expect(presentation.realArchitectureContextRequired).toBe(true);
   expect(presentation.realArchitectureContextReady).toBe(false);
   expect(presentation.targetBounds).not.toBeNull();
+  expect(p186fX4ReadableRoomLabels).toEqual({
+    Bedroom: 'Makuuhuone / VH',
+    Lobby: 'Aula',
+    Bathroom: 'Kylpyhuone',
+  });
+  // Node-side presentation intentionally cannot create browser canvas labels.
+  expect(presentation.x4ReadableRoomLabelCount).toBe(0);
   expect(presentation.x4VisibilityProxyCount).toBe(3);
   const targets = scene.children.filter((object) =>
     object.userData?.representationKind === 'thermostatRoomPresentationAnchor',
@@ -359,6 +367,26 @@ test('X4 actual viewer D1F camera pans with right mouse while rotation stays dis
   await expect(canvas).toHaveAttribute('data-p186f-human-review','NOT_RUN');
   await page.waitForTimeout(550);
   const before=await canvas.screenshot();
+  // The source-bound room names are bright neutral text painted into the
+  // WebGL canvas, not DOM HUD text; without the labels this scene has only
+  // cyan halos and low-opacity room outlines. This is synthetic browser QA.
+  const readableTextPixels=await page.evaluate(async (url) => {
+    const image=new Image();image.src=url;await image.decode();
+    const surface=document.createElement('canvas');
+    surface.width=image.width;surface.height=image.height;
+    const ctx=surface.getContext('2d');
+    if(!ctx)throw new Error('X4 label pixel canvas missing');
+    ctx.drawImage(image,0,0);
+    const data=ctx.getImageData(0,0,image.width,image.height).data;
+    let brightNeutral=0;
+    for(let i=0;i<data.length;i+=4) {
+      if(data[i]>=205 && data[i+1]>=205 && data[i+2]>=205 &&
+        Math.max(data[i],data[i+1],data[i+2])-
+          Math.min(data[i],data[i+1],data[i+2])<=18)brightNeutral++;
+    }
+    return brightNeutral;
+  },'data:image/png;base64,'+before.toString('base64'));
+  expect(readableTextPixels).toBeGreaterThan(45);
   const rect=await canvas.boundingBox();
   expect(rect).not.toBeNull();
   const x=rect!.x+rect!.width*0.5,y=rect!.y+rect!.height*0.48;
