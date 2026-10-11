@@ -115,6 +115,7 @@ export const projectNativeG2CurrentThemoReadback = (
     'exactZClaim=false',
     'deviceGeometryClaim=false',
     'physicalCableRouteClaim=false',
+    'continuousCableTopologyClaim=false',
     'currentGeometryClaim=false',
     'asBuilt=false',
     'canonical=false',
