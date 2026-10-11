@@ -152,3 +152,28 @@ test('old Themo WORK_TEST presentation-anchor IDs are not promoted into current 
   });
   expect(wrongFloor.status).toBe('TARGET_SOURCE_CONFLICT');
 });
+
+test('R989 rejects duplicate or contradictory current-device binding flags', () => {
+  const installContradiction = [...lines];
+  installContradiction[3] = installContradiction[3].replace(
+    'currentInstallationEvidence=true',
+    'currentInstallationEvidence=true; currentInstallationEvidence=false',
+  );
+  expect(projectNativeG2CurrentThemoReadback(doc(installContradiction))).toBeNull();
+
+  const roomContradiction = [...lines];
+  roomContradiction[3] = roomContradiction[3].replace(
+    'roomAssignmentEvidence=USER_CONFIRMED',
+    'roomAssignmentEvidence=USER_CONFIRMED; roomAssignmentEvidence=NOT_CONFIRMED',
+  );
+  expect(projectNativeG2CurrentThemoReadback(doc(roomContradiction))).toBeNull();
+
+  const missingInstallation = [...lines];
+  missingInstallation[3] = missingInstallation[3].replace(
+    'currentInstallationEvidence=true', 'currentInstallationEvidence=false',
+  );
+  expect(projectNativeG2CurrentThemoReadback(doc(missingInstallation))).toBeNull();
+
+  expect(projectNativeG2CurrentThemoReadback(doc())?.targets).toHaveLength(3);
+});
+
