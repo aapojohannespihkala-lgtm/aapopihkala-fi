@@ -1,3 +1,4 @@
+
 import { expect, test } from '@playwright/test';
 
 import {
@@ -307,7 +308,7 @@ test('M5A-Z2D R1090 scene62 source-accurate review autoloads 13 targets with vis
       const green = pixels[index + 1] ?? 0;
       const blue = pixels[index + 2] ?? 0;
 
-      if (red > 105 && red > green * 1.25 && red > blue * 1.35) {
+      if (red > 105 && red > green * 1.25 && red > blue * 1.35 && green > blue * 1.3) {
         warmTargetPixels += 1;
         warmMask[index / 4] = 1;
       }
