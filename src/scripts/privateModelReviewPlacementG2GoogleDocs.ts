@@ -98,6 +98,8 @@ export const createNativeG2GoogleDocsPorts = (
     const assertion = unsigned + '.' + toBase64Url(new Uint8Array(signature));
     const response = await fetcher(oauthUrl, {
       method: 'POST',
+      redirect: 'error',
+      credentials: 'omit',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
       body: new URLSearchParams({
         grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -125,6 +127,8 @@ export const createNativeG2GoogleDocsPorts = (
     const bearer = await accessToken();
     const response = await fetcher(documentUrl + '?includeTabsContent=true', {
       method: 'GET',
+      redirect: 'error',
+      credentials: 'omit',
       headers: { Authorization: 'Bearer ' + bearer, Accept: 'application/json', 'Cache-Control': 'no-store' },
     });
     if (!response.ok) throw new Error('G2_NATIVE_READ_FAILED');
@@ -165,6 +169,8 @@ export const createNativeG2GoogleDocsPorts = (
     const bearer = await accessToken();
     const response = await fetcher(documentUrl + ':batchUpdate', {
       method: 'POST',
+      redirect: 'error',
+      credentials: 'omit',
       headers: {
         Authorization: 'Bearer ' + bearer,
         Accept: 'application/json',
