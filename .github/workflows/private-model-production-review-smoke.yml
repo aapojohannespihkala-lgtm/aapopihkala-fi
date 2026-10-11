@@ -514,17 +514,27 @@ jobs:
             const canvas = page.locator('#private-model-canvas');
             await page.waitForTimeout(1000);
 
-            const before = await canvas.screenshot({
-              path: 'playwright-artifacts/production-review-before.png',
-            });
-
+            // The X4 wall + three Themo scene continuously repaints WebGL.
+            // A locator screenshot waits for element stability and can time out
+            // despite a correct, visible scene. Capture the SAME fixed canvas
+            // area before and after panning without weakening pixel evidence.
+            const isX4Themo =
+              reviewId === 'p186f-x4-d-themo-door-plan-clear-work-assumption-review' &&
+              candidateId === 'p186f-x4-d-themo-door-plan-clear-work-assumption';
+            const box = await canvas.boundingBox();
+            if (!box) throw new Error('Production canvas has no bounding box');
+            const before = isX4Themo
+              ? await page.screenshot({
+                  clip: box, animations: 'disabled',
+                  path: 'playwright-artifacts/production-review-before.png',
+                })
+              : await canvas.screenshot({
+                  path: 'playwright-artifacts/production-review-before.png',
+                });
 
             // Scene66 uses a no-rotation orthographic plan camera. The existing
             // source-color-bound detector must prove all three individual Themo
             // halos in the actual authenticated BEFORE screenshot, not metadata.
-            const isX4Themo =
-              reviewId === 'p186f-x4-d-themo-door-plan-clear-work-assumption-review' &&
-              candidateId === 'p186f-x4-d-themo-door-plan-clear-work-assumption';
             let cyanTargetEvidence = null;
             if (isX4Themo) {
               const cameraState = await canvas.evaluate((element) => ({
@@ -673,9 +683,7 @@ jobs:
               }
             }
 
-            const box = await canvas.boundingBox();
-            if (!box) throw new Error('Production canvas has no bounding box');
-
+            // Keep the pre-pan X4 clip for identical pixel dimensions.
             const startX = box.x + box.width * 0.55;
             const startY = box.y + box.height * 0.48;
             await page.mouse.move(startX, startY);
@@ -689,9 +697,14 @@ jobs:
             await page.mouse.up({ button: pointerButton });
             await page.waitForTimeout(500);
 
-            const after = await canvas.screenshot({
-              path: 'playwright-artifacts/production-review-after-orbit.png',
-            });
+            const after = isX4Themo
+              ? await page.screenshot({
+                  clip: box, animations: 'disabled',
+                  path: 'playwright-artifacts/production-review-after-orbit.png',
+                })
+              : await canvas.screenshot({
+                  path: 'playwright-artifacts/production-review-after-orbit.png',
+                });
 
             const pixelEvidence = await page.evaluate(
               async ({ beforeUrl, afterUrl }) => {
