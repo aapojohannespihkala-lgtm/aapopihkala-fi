@@ -148,9 +148,13 @@ export const bindPlacementPlanPointerEvents = ({
   }
 
   let pointerDown: { id: number; x: number; y: number } | null = null;
+  // pointerup and click are separate DOM events. Consuming pointerup does NOT
+  // prevent a later native click from reaching the viewer's select handler.
+  let suppressNextClick = false;
 
   const onDown = (event: PointerEvent) => {
     pointerDown = null;
+    suppressNextClick = false;
     if (!bridge.hasActiveTarget() || event.button !== 0 || !event.isPrimary) return;
     pointerDown = { id: event.pointerId, x: event.clientX, y: event.clientY };
   };
@@ -162,25 +166,37 @@ export const bindPlacementPlanPointerEvents = ({
     const dragDistancePx = Math.hypot(event.clientX - started.x, event.clientY - started.y);
     if (dragDistancePx > maxClickDistancePx) return;
 
-    // The bridge fail-closes an invalid floor/view/mode and leaves no accepted
-    // crosshair. Consume the placement attempt regardless of outcome so the
-    // legacy selection route cannot interpret it as a regular object click.
+    // Also consume the subsequent native click even if this attempt invalidates
+    // its review context: the legacy selector must never see the same click.
+    suppressNextClick = true;
     bridge.onPlanCanvasClick(event.clientX, event.clientY);
     event.stopImmediatePropagation();
     event.preventDefault();
   };
 
-  const onCancel = () => { pointerDown = null; };
+  const onClick = (event: MouseEvent) => {
+    if (!suppressNextClick) return;
+    suppressNextClick = false;
+    event.stopImmediatePropagation();
+    event.preventDefault();
+  };
+  const onCancel = () => {
+    pointerDown = null;
+    suppressNextClick = false;
+  };
   canvas.addEventListener('pointerdown', onDown, true);
   canvas.addEventListener('pointerup', onUp, true);
   canvas.addEventListener('pointercancel', onCancel, true);
+  canvas.addEventListener('click', onClick, true);
 
   return {
     dispose: () => {
       pointerDown = null;
+      suppressNextClick = false;
       canvas.removeEventListener('pointerdown', onDown, true);
       canvas.removeEventListener('pointerup', onUp, true);
       canvas.removeEventListener('pointercancel', onCancel, true);
+      canvas.removeEventListener('click', onClick, true);
     },
   };
 };
