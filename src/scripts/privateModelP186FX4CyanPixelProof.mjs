@@ -85,3 +85,64 @@ export function detectP186FX4CyanTargetComponents(rgba, width, height) {
 // separately gated production smoke. No production smoke is run here.
 globalThis.detectP186FX4CyanTargetComponents =
   detectP186FX4CyanTargetComponents;
+
+
+// Separate visual proof for the original P123C green D1F wall.
+// The original material is green and semi-transparent; the screenshot is
+// already composited, so the predicate uses green-vs-red/blue separation
+// rather than an exact source-material RGB value. The caller must ALSO prove
+// the exact source node, suppressed P117D footprints and three Themo targets.
+// This does not certify geometry identity or HUMAN_REVIEW by itself.
+export function detectP186FX4OriginalGreenWallPixels(rgba, width, height) {
+  if (
+    !Number.isInteger(width) || width <= 0 ||
+    !Number.isInteger(height) || height <= 0 ||
+    rgba?.length !== width * height * 4
+  ) {
+    throw new Error('P186F-X4 wall proof requires an exact RGBA image');
+  }
+  const rows = new Uint32Array(height);
+  const columns = new Uint32Array(width);
+  let qualifyingGreenPixels = 0;
+  let minX = width, minY = height, maxX = -1, maxY = -1;
+
+  for (let i = 0; i < width * height; i += 1) {
+    const pixel = i * 4;
+    const r = rgba[pixel], g = rgba[pixel + 1], b = rgba[pixel + 2], a = rgba[pixel + 3];
+    // Cyan Themo halos have B >= G and cannot satisfy this source-green test.
+    // Dark UI, gray surfaces, and almost-white antialiasing are also excluded.
+    if (a < 220 || g < 90 || g - r < 24 || g - b < 22) continue;
+    const x = i % width;
+    const y = Math.floor(i / width);
+    qualifyingGreenPixels++;
+    rows[y]++;
+    columns[x]++;
+    minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+  }
+  const spreadX = maxX >= minX ? maxX - minX + 1 : 0;
+  const spreadY = maxY >= minY ? maxY - minY + 1 : 0;
+  const qualifyingRows = rows.reduce((sum, count) => sum + Number(count >= 5), 0);
+  const qualifyingColumns = columns.reduce((sum, count) => sum + Number(count >= 5), 0);
+  const hardFloorPixels = 160;
+  const hardFloorSpreadX = 40;
+  const hardFloorSpreadY = 15;
+  const passed =
+    qualifyingGreenPixels >= hardFloorPixels &&
+    spreadX >= hardFloorSpreadX &&
+    spreadY >= hardFloorSpreadY &&
+    qualifyingRows >= 12 &&
+    qualifyingColumns >= 30;
+  return {
+    passed,
+    qualifyingGreenPixels,
+    qualifyingRows,
+    qualifyingColumns,
+    spreadX,
+    spreadY,
+    bounds: qualifyingGreenPixels ? { minX, minY, maxX, maxY } : null,
+    hardFloorPixels,
+    hardFloorSpreadX,
+    hardFloorSpreadY,
+  };
+}
