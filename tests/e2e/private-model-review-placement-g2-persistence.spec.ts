@@ -47,6 +47,7 @@ const makeAdapter = () => {
   const writes: unknown[] = [];
   let applyWrite = true;
   let tamperReadback = false;
+  let tamperSourceRevision = false;
   const getDocument = async () => document;
   const batchUpdateDocument = async (args: {
     documentId: typeof placementG2DocumentId;
@@ -61,6 +62,10 @@ const makeAdapter = () => {
     expect(args.requests[0].insertText.endOfSegmentLocation.tabId).toBe('t.0');
     let line = args.requests[0].insertText.text.trim();
     if (tamperReadback) line = line.replace('120 cm lattiasta.', '90 cm lattiasta.');
+    if (tamperSourceRevision) line = line.replace(
+      '"sourceRevision":"G2_AUTH_SOURCE_REV_1"',
+      '"sourceRevision":"FORGED_SOURCE_REVISION"',
+    );
     document.tabs[0].documentTab?.body?.content?.push(single(line));
     document = { ...document, revisionId: 'G2_AUTH_SOURCE_REV_2' };
     return {};
@@ -72,6 +77,7 @@ const makeAdapter = () => {
     adapter, writes,
     getDocument, setApplyWrite: (v: boolean) => { applyWrite = v; },
     setTamper: (v: boolean) => { tamperReadback = v; },
+    setTamperSourceRevision: (v: boolean) => { tamperSourceRevision = v; },
     setDocument: (v: NativePlacementG2Document) => { document = v; },
     duplicate: () => {
       const body = document.tabs[0].documentTab?.body?.content;
@@ -126,6 +132,19 @@ test('P137E rejects changed user note on independent native Docs readback', asyn
   await expect(state.adapter.persist(draft()))
     .rejects.toThrow('G2_DURABLE_READBACK_MISMATCH');
   expect(await state.adapter.readback(recordId)).toBeNull();
+});
+
+test('P137E rejects a forged stored source revision before acknowledging a real G2 write', async () => {
+  const state = makeAdapter();
+  state.setTamperSourceRevision(true);
+  await expect(state.adapter.persist(draft()))
+    .rejects.toThrow('G2_DURABLE_READBACK_MISMATCH');
+  expect(state.writes).toHaveLength(1);
+  const document = await state.getDocument();
+  expect(document.revisionId).toBe('G2_AUTH_SOURCE_REV_2');
+  const recordLine = document.tabs[0].documentTab?.body?.content?.at(-1)
+    ?.paragraph?.elements?.[0]?.textRun?.content;
+  expect(recordLine).toContain('"sourceRevision":"FORGED_SOURCE_REVISION"');
 });
 
 test('P137E rejects duplicate record IDs even when the prior entry is malformed', async () => {
