@@ -212,3 +212,48 @@ test('P137E readback normalizes object key order without relaxing exact values',
     expected, receipt, readback: { recordId: receipt.recordId, payload: reversed },
   })).toBe(true);
 });
+
+test('P137E direct wall review rejects a complete-opening claim with overlapping source intervals', () => {
+  const wall = d1f.approvedWallHosts[0]!;
+  const result = buildPlacementReviewDraft({
+    context: {
+      ...d1f,
+      approvedWallHosts: [{
+        ...wall,
+        openings: [{ startM: 1.1, endM: 2.2 }, { startM: 1.9, endM: 3 }],
+      }],
+    },
+    // Deliberately outside the conflicting openings: the entire source wall
+    // becomes untrusted, not merely the overlap pixels.
+    coordinate: { xM: 4.5, yM: 5.063 },
+    noteRaw: 'Keskipiste 120 cm valmiista lattiasta.',
+  });
+  expect(result).toMatchObject({
+    status: 'READY_FOR_G2_HANDOFF',
+    payload: {
+      stage: 'WORK_TEST_ONLY', humanReview: 'NOT_RUN',
+      resolution: { status: 'UNMAPPED', reason: 'NO_APPROVED_HOST', proposal: null },
+    },
+  });
+});
+
+test('P137E direct wall review does not select the first of two contradictory G2 wall IDs', () => {
+  const wall = d1f.approvedWallHosts[0]!;
+  for (const second of [
+    { ...wall, fixedM: 9.25 },
+    { ...wall, approved: false as true },
+  ]) {
+    const result = buildPlacementReviewDraft({
+      context: { ...d1f, approvedWallHosts: [wall, second] },
+      coordinate: { xM: 3.235, yM: 5.063 },
+      noteRaw: 'Themo Bedroom 120 cm lattiasta',
+    });
+    expect(result).toMatchObject({
+      status: 'READY_FOR_G2_HANDOFF',
+      payload: {
+        humanReview: 'NOT_RUN',
+        resolution: { status: 'UNMAPPED', reason: 'NO_APPROVED_HOST', proposal: null },
+      },
+    });
+  }
+});
