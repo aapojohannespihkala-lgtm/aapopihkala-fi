@@ -62,6 +62,7 @@ test('R1090 review activates the existing M5A-Z2 absolute-Z presentation runtime
   const source = readFileSync(runtimeFile, 'utf8');
 
   expect(source).toContain("prepareM5AZ2SystemReviewPresentation(fullModelScene, {");
+  expect(source).toContain("r1125TerrainResistantOverlay: r1125SourceReview,");
   expect(source).toContain("'Z2_ABSOLUTE_Z_SYSTEM'");
   const helperSource = readFileSync(runtimeHelperFile, 'utf8');
   expect(helperSource).toContain('m5aZ2LegacyCandidateId,');
