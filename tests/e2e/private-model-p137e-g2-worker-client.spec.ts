@@ -157,6 +157,27 @@ test('nested promoted durable POST response and GET response fail closed', async
     .rejects.toThrow('DURABLE_READBACK_INVALID');
 });
 
+test('nested approval or publication status cannot be POSTed as WORK_TEST', async () => {
+  const calls: Array<{url: string; options: any}> = [];
+  const c = client(json({}), calls);
+  for (const status of ['CURRENT', 'CANONICAL', 'AS_BUILT', 'PUBLISHED',
+    'PRODUCTION', 'APPROVED', 'HUMAN_REVIEW_PASS',
+    'HUMAN_REVIEW_PASS_SCOPED', 'READY_FOR_HUMAN_REVIEW']) {
+    await expect(c.persist({ ...payload, resolution: { status } }))
+      .rejects.toThrow('PROMOTION_REJECTED');
+  }
+  await expect(c.persist({ ...payload, observation: {
+    ...payload.observation, metadata: { reviewStatus: 'APPROVED' },
+  } })).rejects.toThrow('PROMOTION_REJECTED');
+  expect(calls).toHaveLength(0);
+});
+
+test('nested promoted status in independent server GET readback is rejected', async () => {
+  const promoted = { ...payload, resolution: { status: 'HUMAN_REVIEW_PASS' } };
+  await expect(client(json({ recordId, payload: promoted })).readback(recordId))
+    .rejects.toThrow('DURABLE_READBACK_INVALID');
+});
+
 test('record readback rejects path injection and validates record identity', async () => {
   const calls: Array<{url: string; options: any}> = [];
   const c = client(json({ recordId, payload }), calls);
