@@ -65,6 +65,13 @@ const validatedHosts = (
   floor: ReviewPlacementFloor,
 ): ReadonlyArray<ApprovedReviewWallHost> => {
   if (!Array.isArray(hosts)) return [];
+  // A duplicated wall identity is ambiguous even if one record is unapproved.
+  // Never select the first approval or silently discard a conflicting twin.
+  const identityCounts = new Map<string, number>();
+  for (const host of hosts) {
+    const id = host && typeof host === 'object' ? (host as { g2Id?: unknown }).g2Id : null;
+    if (isId(id)) identityCounts.set(id, (identityCounts.get(id) ?? 0) + 1);
+  }
   const seen = new Set<string>();
   const accepted: ApprovedReviewWallHost[] = [];
   for (const host of hosts) {
@@ -83,7 +90,7 @@ const validatedHosts = (
       h.openingsComplete !== true ||
       !Array.isArray(h.openings)
     ) continue;
-    if (seen.has(h.g2Id)) continue;
+    if ((identityCounts.get(h.g2Id) ?? 0) !== 1 || seen.has(h.g2Id)) continue;
     if (h.openings.some((o) => !o || typeof o.startM !== 'number' || typeof o.endM !== 'number' || !Number.isFinite(o.startM) || !Number.isFinite(o.endM))) continue;
     const openings = [...h.openings].sort((a, b) => a.startM - b.startM);
     if (openings.some((o, i) =>
