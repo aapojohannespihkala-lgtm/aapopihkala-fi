@@ -568,10 +568,20 @@ test('M5A R1125 overlays only exact 13/13 source targets over 20% terrain withou
     const root = new THREE.Group();
     root.userData = { ...m5aR1125SceneExtras };
     const targets = m5aZ2ExpectedTargetKeys.map((key, index) => {
-      const node = new THREE.Mesh(
-        new THREE.BoxGeometry(0.25, 0.25, 0.25),
-        new THREE.MeshBasicMaterial({ color: 0xff8a11 }),
-      );
+      // The source GLB uses glTF mode=1 LINES for the two unresolved boundaries.
+      // Keep this compatibility fixture faithful to that primitive type.
+      const node = index >= 11
+        ? new THREE.LineSegments(
+            new THREE.BufferGeometry().setFromPoints([
+              new THREE.Vector3(-0.3, 0, 0),
+              new THREE.Vector3(0.3, 0, 0),
+            ]),
+            new THREE.LineBasicMaterial({ color: 0xffd84a }),
+          )
+        : new THREE.Mesh(
+            new THREE.BoxGeometry(0.25, 0.25, 0.25),
+            new THREE.MeshBasicMaterial({ color: 0xff8a11 }),
+          );
       node.name = String(makeTargetNode(key, index).name);
       node.userData = { ...makeTargetNode(key, index).extras };
       node.position.set(index, 0, 0);
