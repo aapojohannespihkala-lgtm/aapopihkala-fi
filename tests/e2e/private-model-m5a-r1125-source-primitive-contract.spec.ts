@@ -124,6 +124,28 @@ test('R1125 preserves source-like 4/7 TRIANGLES and two glTF LINES under 80/20 p
   expect(result.targetRenderableCount).toBe(13);
   expect(result.contextRenderableCount).toBe(1);
   expect(result.r1125TerrainResistantOverlayApplied).toBe(true);
+  expect(result.r1125BoundaryTraceCount).toBe(2);
+  const accents = root.children.filter((o: any) =>
+    o.userData?.m5aR1125UnresolvedBoundaryViewerTrace === true);
+  expect(accents).toHaveLength(2);
+  expect(accents.map((o: any) => o.userData.sourceBoundaryTargetKey).sort()).toEqual(
+    ['boundary:PVK_DISCHARGE', 'boundary:PVK_PARKING'],
+  );
+  accents.forEach((accent: any) => {
+    expect(accent.isMesh).toBe(true);
+    expect(accent.geometry.type).toBe('CylinderGeometry');
+    expect(accent.material.depthTest).toBe(false);
+    expect(accent.material.depthWrite).toBe(false);
+    expect(accent.renderOrder).toBe(2300);
+    expect(accent.userData.viewerDerived).toBe(true);
+    expect(accent.userData.exactXYClaim).toBe(false);
+    expect(accent.userData.exactZClaim).toBe(false);
+    expect(accent.userData.physicalRouteClaim).toBe(false);
+    expect(accent.userData.physicalDiameterClaim).toBe(false);
+    expect(accent.userData.currentGeometryClaim).toBe(false);
+    expect(accent.userData.Canonical).toBe(false);
+    expect(accent.userData.HUMAN_REVIEW).toBe('NOT_RUN');
+  });
   expect(result.kindCounts).toEqual({
     wellMarkerWork: 4,
     referenceRouteWork: 7,
@@ -175,4 +197,29 @@ test('R1125 refuses to turn a yellow unresolved line into a confirmed physical c
   expect(() => prepareM5AZ2SystemReviewPresentation(root, {
     r1125TerrainResistantOverlay: true,
   })).toThrow(/requires exact scene63 13\/13 source-only review/);
+});
+
+test('R1125 viewer-only yellow traces are idempotent and fail closed on invalid source line geometry', () => {
+  const { root, nodes } = buildSourcePaletteScene();
+  const inspect = () => root.children.filter((o: any) =>
+    o.userData?.m5aR1125UnresolvedBoundaryViewerTrace === true);
+  const first = prepareM5AZ2SystemReviewPresentation(root, {
+    r1125TerrainResistantOverlay: true,
+  });
+  expect(first.r1125BoundaryTraceCount).toBe(2);
+  expect(inspect()).toHaveLength(2);
+  const second = prepareM5AZ2SystemReviewPresentation(root, {
+    r1125TerrainResistantOverlay: true,
+  });
+  expect(second.r1125BoundaryTraceCount).toBe(2);
+  expect(inspect()).toHaveLength(2);
+
+  const positions = nodes[12]!.geometry.getAttribute('position');
+  positions.setXYZ(1, positions.getX(0), positions.getY(0), positions.getZ(0));
+  positions.needsUpdate = true;
+  expect(() => prepareM5AZ2SystemReviewPresentation(root, {
+    r1125TerrainResistantOverlay: true,
+  })).toThrow(/unresolved boundary line geometry is not drawable/);
+  expect(inspect()).toHaveLength(0);
+  expect(nodes.every((o) => o.userData.Canonical === false)).toBe(true);
 });
