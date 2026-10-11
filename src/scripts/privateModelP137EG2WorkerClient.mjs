@@ -1,0 +1,122 @@
+/**
+ * Unreleased P137E WORK_TEST client for the EXISTING native G2 Worker route.
+ * Not wired into the viewer: the client gate defaults to false, and independent
+ * server release/Cloudflare Access/G2 credentials gates remain mandatory.
+ */
+const BASE = '/private-model/review-placement/g2';
+const RECORD_ID = /^P137E_G2_[A-Za-z0-9_-]{12,64}$/;
+const REQUEST_LIMIT = 16000;
+const RESPONSE_LIMIT = 32768;
+const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const isWorkTest = p => object(p) &&
+  p.kind === 'P137E_G2_REVIEW_OBSERVATION' &&
+  p.stage === 'WORK_TEST_ONLY' && object(p.anchor) &&
+  object(p.observation) && object(p.resolution) &&
+  p.persisted === false && p.humanReview === 'NOT_RUN' &&
+  p.currentGeometry === false && p.canonical === false && p.asBuilt === false;
+const ordered = value => Array.isArray(value) ? value.map(ordered) :
+  object(value) ? Object.fromEntries(Object.keys(value).sort()
+    .map(k => [k, ordered(value[k])])) : value;
+const sameJson = (a, b) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
+
+async function boundedJson(response) {
+  if (!response?.ok) throw new Error('P137E_G2_UNAVAILABLE');
+  if (response.redirected) throw new Error('P137E_G2_REDIRECT_REJECTED');
+  const mime = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+  if (mime !== 'application/json') throw new Error('P137E_G2_RESPONSE_TYPE_INVALID');
+  const len = response.headers.get('content-length');
+  if (len !== null && (!/^\d+$/.test(len) || Number(len) > RESPONSE_LIMIT)) {
+    throw new Error('P137E_G2_RESPONSE_TOO_LARGE');
+  }
+  if (!response.body) throw new Error('P137E_G2_RESPONSE_EMPTY');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  const chunks = [];
+  let bytes = 0, completed = false;
+  try {
+    for (;;) {
+      const next = await reader.read();
+      if (next.done) {
+        chunks.push(decoder.decode());
+        completed = true;
+        break;
+      }
+      if (!(next.value instanceof Uint8Array)) throw new Error('P137E_G2_RESPONSE_INVALID');
+      bytes += next.value.byteLength;
+      if (bytes > RESPONSE_LIMIT) throw new Error('P137E_G2_RESPONSE_TOO_LARGE');
+      chunks.push(decoder.decode(next.value, { stream: true }));
+    }
+  } finally {
+    if (!completed) await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+  try { return JSON.parse(chunks.join('')); }
+  catch { throw new Error('P137E_G2_RESPONSE_INVALID'); }
+}
+
+/** User-interface releases must never substitute for the server's own gates. */
+export function createP137EG2WorkerClient({
+  origin, canReview = () => false, fetcher = globalThis.fetch,
+} = {}) {
+  if (typeof origin !== 'string' || typeof canReview !== 'function' ||
+      typeof fetcher !== 'function') throw new Error('P137E_G2_CLIENT_CONFIG_INVALID');
+  const base = new URL(origin);
+  if (base.protocol !== 'https:' || base.pathname !== '/' || base.search ||
+      base.hash || base.username || base.password || base.origin !== origin ||
+      (typeof globalThis.location?.origin === 'string' && globalThis.location.origin !== origin)) {
+    throw new Error('P137E_G2_CLIENT_ORIGIN_INVALID');
+  }
+  const request = async (suffix, method = 'GET', payload) => {
+    if (canReview() !== true) throw new Error('P137E_G2_REVIEW_NOT_RELEASED');
+    const url = new URL(BASE + suffix, base);
+    if (url.origin !== base.origin) throw new Error('P137E_G2_CROSS_ORIGIN');
+    const body = payload === undefined ? undefined : JSON.stringify({ payload });
+    if (body !== undefined && new TextEncoder().encode(body).byteLength > REQUEST_LIMIT) {
+      throw new Error('P137E_G2_REQUEST_TOO_LARGE');
+    }
+    const response = await fetcher(url.toString(), {
+      method, credentials: 'same-origin', mode: 'same-origin',
+      cache: 'no-store', redirect: 'error',
+      ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body }),
+    });
+    return boundedJson(response);
+  };
+  return Object.freeze({
+    async targets() {
+      const reply = await request('/targets');
+      if (reply?.status !== 'WORK_TEST_TARGETS_ONLY' ||
+          typeof reply.documentRevision !== 'string' || !reply.documentRevision ||
+          !Array.isArray(reply.targets) || !reply.targets.every(t =>
+            object(t) && typeof t.targetId === 'string' && t.targetId.length > 0 &&
+            Array.isArray(t.approvedWallHosts) && t.approvedWallHosts.length === 0 &&
+            t.currentGeometry === false && t.canonical === false &&
+            t.asBuilt === false && t.exactXY === false)) {
+        throw new Error('P137E_G2_TARGET_EVIDENCE_INVALID');
+      }
+      return reply;
+    },
+    async persist(payload) {
+      if (!isWorkTest(payload)) throw new Error('P137E_G2_PROMOTION_REJECTED');
+      const reply = await request('/observations', 'POST', payload);
+      if (reply?.receipt?.status !== 'PERSISTED_TO_EXISTING_G2' ||
+          typeof reply.receipt.recordId !== 'string' ||
+          !RECORD_ID.test(reply.receipt.recordId) ||
+          reply.readback?.recordId !== reply.receipt.recordId ||
+          !isWorkTest(reply.readback.payload) ||
+          !sameJson(reply.readback.payload, payload)) {
+        throw new Error('P137E_G2_DURABLE_READBACK_INVALID');
+      }
+      return reply.receipt;
+    },
+    async readback(recordId) {
+      if (typeof recordId !== 'string' || !RECORD_ID.test(recordId)) {
+        throw new Error('P137E_G2_RECORD_ID_INVALID');
+      }
+      const reply = await request('/observations/' + encodeURIComponent(recordId));
+      if (reply?.recordId !== recordId || !isWorkTest(reply.payload)) {
+        throw new Error('P137E_G2_DURABLE_READBACK_INVALID');
+      }
+      return reply;
+    },
+  });
+}
