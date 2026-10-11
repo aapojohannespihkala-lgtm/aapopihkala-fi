@@ -163,3 +163,60 @@ test('actual viewer ruler stays temporary on leaving D plan and changing tools',
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
   await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\d/);
 });
+
+
+test('actual D1F browser ruler measures along Y and never invents a diagonal', async ({ page }) => {
+  const glb = buildSyntheticD1FCurrentGlb();
+  await page.setViewportSize({ width: 1536, height: 900 });
+  await page.route('**/private-model/model.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
+  await page.route('**/private-model/work-test/catalog.json', (route) =>
+    route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ candidates: [] }),
+    }));
+  await page.goto('/private-model/');
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await page.locator('#preset-menu summary').click();
+  await page.locator('#d1-plan-button').click();
+  await expect(canvas).toHaveAttribute('data-view-preset', 'd-plan');
+  await page.locator('#axis-measure-tool-button').click();
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'measure');
+
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  const point = (u: number, v: number) => ({
+    x: bounds!.x + bounds!.width * u,
+    y: bounds!.y + bounds!.height * v,
+  });
+
+  const first = point(0.48, 0.43);
+  const second = point(0.48, 0.52);
+  await page.mouse.click(first.x, first.y);
+  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'FIRST');
+  await page.mouse.click(second.x, second.y);
+  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'DYNAMIC');
+  await expect(canvas).toHaveAttribute('data-axis-measure-axis', 'Y');
+  const initialMm = Number(await canvas.getAttribute('data-axis-measure-mm'));
+  expect(initialMm).toBeGreaterThan(0);
+
+  // A small horizontal pointer offset must not become a diagonal length.
+  const pointer = point(0.49, 0.60);
+  await page.mouse.move(pointer.x, pointer.y, { steps: 6 });
+  await expect(canvas).toHaveAttribute('data-axis-measure-axis', 'Y');
+  const movedMm = Number(await canvas.getAttribute('data-axis-measure-mm'));
+  expect(movedMm).toBeGreaterThan(initialMm);
+  await expect(page.locator('#axis-measure-output')).toContainText('Y');
+
+  await page.mouse.click(pointer.x, pointer.y);
+  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'LOCKED');
+  const lockedMm = await canvas.getAttribute('data-axis-measure-mm');
+  const outside = point(0.62, 0.39);
+  await page.mouse.move(outside.x, outside.y, { steps: 5 });
+  await expect(canvas).toHaveAttribute('data-axis-measure-axis', 'Y');
+  await expect(canvas).toHaveAttribute('data-axis-measure-mm', lockedMm!);
+  await page.mouse.click(outside.x, outside.y);
+  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
+  await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\\d/);
+});
