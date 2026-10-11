@@ -384,11 +384,62 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
   await expect(canvas).toHaveAttribute('data-m5a-review-camera-mode', 'PERSPECTIVE_FREE_ORBIT_TARGET_BOUNDS');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
 
+  // Reconstruct this fixture's source geometry bounds and the viewer's
+  // exact M5A perspective-camera contract. This is synthetic browser proof,
+  // not surveyed source XY/Z or authenticated production evidence.
+  const sourceWorldBounds = m5aZ2ExpectedTargetKeys.map((key, index) => {
+    const node = makeTargetNode(key, index);
+    const positions = key.startsWith('boundary:') ? boundaryPositions : targetPositions;
+    const points = [];
+    for (let offset = 0; offset < positions.length; offset += 3) {
+      points.push(new THREE.Vector3(
+        positions[offset]!, positions[offset + 1]!, positions[offset + 2]!,
+      ));
+    }
+    const modelMatrix = new THREE.Matrix4().makeScale(...(node.scale as [number, number, number]));
+    modelMatrix.setPosition(...(node.translation as [number, number, number]));
+    return new THREE.Box3().setFromPoints(points).applyMatrix4(modelMatrix);
+  });
+  const fixtureSourceBounds = new THREE.Box3();
+  sourceWorldBounds.forEach((bounds) => fixtureSourceBounds.union(bounds));
+  const sourceSphere = fixtureSourceBounds.getBoundingSphere(new THREE.Sphere());
+  const sourceCenter = fixtureSourceBounds.getCenter(new THREE.Vector3());
+  const viewSize = await canvas.evaluate((element) => ({
+    width: element.clientWidth,
+    height: element.clientHeight,
+  }));
+  const syntheticCamera = new THREE.PerspectiveCamera(
+    38, viewSize.width / viewSize.height, 0.001, 5000,
+  );
+  const verticalHalfFov = THREE.MathUtils.degToRad(syntheticCamera.fov / 2);
+  const horizontalHalfFov = Math.atan(Math.tan(verticalHalfFov) * syntheticCamera.aspect);
+  const limitingHalfFov = Math.min(verticalHalfFov, horizontalHalfFov);
+  const cameraDistance = Math.max(
+    (Math.max(sourceSphere.radius, 0.25) / Math.tan(limitingHalfFov)) * 1.75,
+    4,
+  );
+  syntheticCamera.position.copy(sourceCenter).add(new THREE.Vector3(
+    cameraDistance * 0.78, cameraDistance * 0.58, cameraDistance * 0.92,
+  ));
+  syntheticCamera.lookAt(sourceCenter);
+  syntheticCamera.updateProjectionMatrix();
+  syntheticCamera.updateMatrixWorld(true);
+  const sourceProjections = sourceWorldBounds.map((bounds, index) => {
+    const projected = bounds.getCenter(new THREE.Vector3()).project(syntheticCamera);
+    const key = m5aZ2ExpectedTargetKeys[index]!;
+    return {
+      key,
+      kind: key.startsWith('boundary:') ? 2 : key.startsWith('G2_DRAIN_WELL_') ? 0 : 1,
+      u: (projected.x + 1) / 2,
+      v: (1 - projected.y) / 2,
+    };
+  });
+
   await page.waitForTimeout(300);
   const screenshot = await canvas.screenshot();
   const dataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
 
-  const visibilityPixels = await page.evaluate(async (url) => {
+  const visibilityPixels = await page.evaluate(async ({ url, sourceProjections }) => {
     const image = new Image();
     image.src = url;
     await image.decode();
@@ -421,45 +472,44 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
       }
       if (b > 90 && b > r * 1.08 && b > g * 1.04) blueContextPixels++;
     }
-    const components = masks.map((mask, kind) => {
-      const seen = new Uint8Array(mask.length);
-      const queue = new Int32Array(mask.length);
-      const minimumPixels = kind === 2 ? 2 : 12;
-      let count = 0;
-      for (let seed = 0; seed < mask.length; seed++) {
-        if (!mask[seed] || seen[seed]) continue;
-        let head = 0;
-        let tail = 1;
-        let area = 0;
-        seen[seed] = 1;
-        queue[0] = seed;
-        while (head < tail) {
-          const at = queue[head++]!;
-          const x = at % image.width, y = Math.floor(at / image.width);
-          area++;
-          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-            if (!dx && !dy) continue;
-            const nx = x + dx, ny = y + dy;
-            if (nx < 0 || ny < 0 || nx >= image.width || ny >= image.height) continue;
-            const next = ny * image.width + nx;
-            if (!mask[next] || seen[next]) continue;
-            seen[next] = 1;
-            queue[tail++] = next;
-          }
+    // Pixel components are not object identities: WebGL antialiasing breaks
+    // one gray source surface into many fragments and joins neighboring cyan
+    // routes. Probe each original fixture object's *projected source bounds*
+    // instead of asserting the global number of connected color islands.
+    const radius = Math.max(12, Math.round(Math.min(image.width, image.height) * 0.035));
+    const sourceRoiPixels = sourceProjections.map(({ key, kind, u, v }) => {
+      const cx = Math.round(u * image.width);
+      const cy = Math.round(v * image.height);
+      let classPixels = 0;
+      for (let y = Math.max(0, cy - radius); y <= Math.min(image.height - 1, cy + radius); y++) {
+        for (let x = Math.max(0, cx - radius); x <= Math.min(image.width - 1, cx + radius); x++) {
+          const dx = x - cx, dy = y - cy;
+          if (dx * dx + dy * dy > radius * radius) continue;
+          if (masks[kind]![y * image.width + x]) classPixels++;
         }
-        if (area >= minimumPixels) count++;
       }
-      return count;
+      return { key, kind, classPixels, inFrame: u > 0 && u < 1 && v > 0 && v < 1 };
     });
-    return { classPixelCounts, components, blueContextPixels };
-  }, dataUrl);
+    return { classPixelCounts, sourceRoiPixels, blueContextPixels };
+  }, { url: dataUrl, sourceProjections });
 
   // Separate Chromium image evidence for original source roles: 4 wells,
   // 7 routes and 2 unresolved boundaries. This remains a synthetic fixture.
   expect(visibilityPixels.classPixelCounts[0]).toBeGreaterThan(48);
   expect(visibilityPixels.classPixelCounts[1]).toBeGreaterThan(84);
   expect(visibilityPixels.classPixelCounts[2]).toBeGreaterThan(3);
-  expect(visibilityPixels.components).toEqual([4, 7, 2]);
+  // Source-identity ROI checks stay per object, even if screenshot components
+  // split or merge. 4 gray wells, 7 cyan routes and 2 yellow glTF LINES.
+  expect(visibilityPixels.sourceRoiPixels).toHaveLength(13);
+  expect(visibilityPixels.sourceRoiPixels.map(({ kind }) => kind).sort()).toEqual([
+    0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2,
+  ]);
+  for (const source of visibilityPixels.sourceRoiPixels) {
+    expect(source.inFrame, `out-of-frame: ${source.key}`).toBe(true);
+    expect(source.classPixels, `unreadable source ROI: ${source.key}`).toBeGreaterThan(
+      source.kind === 2 ? 1 : 7,
+    );
+  }
   expect(visibilityPixels.blueContextPixels).toBeGreaterThan(250);
 });
 
