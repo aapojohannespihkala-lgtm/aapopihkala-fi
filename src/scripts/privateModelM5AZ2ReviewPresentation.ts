@@ -158,11 +158,82 @@ const hasNoPromotionSemantics = (object: any) => {
   return false;
 };
 
+// Viewer-only, source-derived tube accents for the two unresolved R1125 glTF LINES.
+// Do not alter the GLB primitive, infer an outlet connection, or claim pipe diameter.
+const r1125BoundaryTraceFlag = 'm5aR1125UnresolvedBoundaryViewerTrace';
+
+const clearR1125BoundaryTraces = (root: any) => {
+  const old: any[] = [];
+  root?.traverse?.((o: any) => {
+    if (o?.userData?.[r1125BoundaryTraceFlag] === true) old.push(o);
+  });
+  for (const o of old) {
+    o.parent?.remove(o);
+    o.geometry?.dispose?.();
+    o.material?.dispose?.();
+  }
+};
+
+const createR1125BoundaryTraces = (root: any, boundaries: any[]): number => {
+  if (boundaries.length !== 2 || boundaries.some((o) => !o?.isLineSegments)) return 0;
+  root?.updateMatrixWorld?.(true);
+  const segments: Array<{ start: any; end: any; key: string }> = [];
+  for (const object of boundaries) {
+    const position = object.geometry?.getAttribute?.('position');
+    const indices = object.geometry?.getIndex?.();
+    const count = indices ? indices.count : position?.count;
+    if (!position || !Number.isInteger(count) || count < 2 || count % 2 !== 0 || count > 128) return 0;
+    const key = getTargetKey(object);
+    if (key !== 'boundary:PVK_DISCHARGE' && key !== 'boundary:PVK_PARKING') return 0;
+    for (let i = 0; i < count; i += 2) {
+      const at = (j: number) => {
+        const n = indices ? indices.getX(j) : j;
+        return new THREE.Vector3(position.getX(n), position.getY(n), position.getZ(n))
+          .applyMatrix4(object.matrixWorld);
+      };
+      const start = root.worldToLocal(at(i));
+      const end = root.worldToLocal(at(i + 1));
+      const length = start.distanceTo(end);
+      if (![start.x, start.y, start.z, end.x, end.y, end.z, length].every(Number.isFinite) ||
+          length <= 0.00001) return 0;
+      segments.push({ start, end, key });
+    }
+  }
+  if (segments.length < 2) return 0;
+  for (const { start, end, key } of segments) {
+    const offset = new THREE.Vector3().subVectors(end, start);
+    const cue = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.045, 0.045, offset.length(), 8),
+      new THREE.MeshBasicMaterial({
+        color: 0xffd84a, opacity: 0.98, transparent: true,
+        depthTest: false, depthWrite: false,
+      }),
+    );
+    cue.name = 'M5A_R1125_VIEWER_ONLY_UNRESOLVED_TRACE_' + key;
+    cue.position.copy(new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5));
+    cue.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), offset.normalize());
+    cue.renderOrder = 2300;
+    cue.frustumCulled = false;
+    cue.userData = {
+      [r1125BoundaryTraceFlag]: true, viewerDerived: true,
+      presentationOnly: true, workAssumption: true,
+      sourceBoundaryTargetKey: key, m5aZ2ReviewRole: 'R1125_VIEWER_ONLY_UNRESOLVED_TRACE',
+      exactXYClaim: false, exactZClaim: false, physicalRouteClaim: false,
+      physicalDiameterClaim: false, currentGeometryClaim: false,
+      asBuiltClaim: false, Canonical: false, publishToCURRENT: false,
+      HUMAN_REVIEW: 'NOT_RUN',
+    };
+    root.add(cue);
+  }
+  return segments.length;
+};
+
 export const prepareM5AZ2SystemReviewPresentation = (
   sceneRoot: any,
   options: { r1125TerrainResistantOverlay?: boolean } = {},
 ) => {
   const r1125Overlay = options.r1125TerrainResistantOverlay === true;
+  clearR1125BoundaryTraces(sceneRoot);
   const renderables: any[] = [];
   const targets: any[] = [];
   const targetKeys = new Map<string, any>();
@@ -261,6 +332,16 @@ export const prepareM5AZ2SystemReviewPresentation = (
     contextRenderableCount += 1;
   }
 
+  // Only exact source-backed 13/13 can create viewer-only yellow accents.
+  const r1125BoundaryTraceCount = r1125Overlay
+    ? createR1125BoundaryTraces(sceneRoot,
+        targets.filter((o) => String(o.userData?.representationKind ?? '') === 'unresolvedBoundaryMarker'))
+    : 0;
+  if (r1125Overlay && r1125BoundaryTraceCount < 2) {
+    clearR1125BoundaryTraces(sceneRoot);
+    throw new Error('M5A R1125 unresolved boundary line geometry is not drawable');
+  }
+
   return {
     targetRenderableCount: targets.length,
     expectedTargetRenderableCount: m5aZ2ExpectedTargetKeys.length,
@@ -274,6 +355,7 @@ export const prepareM5AZ2SystemReviewPresentation = (
     reviewQuestionText: m5aZ2ReviewQuestionText,
     sourceClassification: m5aZ2AbsoluteZBasis + ' / WORK_TEST / NOT_EXACT_Z / NOT_AS_BUILT',
     r1125TerrainResistantOverlayApplied: r1125Overlay,
+    r1125BoundaryTraceCount,
   };
 };
 
