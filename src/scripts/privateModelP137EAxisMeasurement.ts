@@ -9,6 +9,12 @@ export type AxisMeasureState =
   | Readonly<{ phase: 'FIRST'; first: AxisMeasurePoint; second: null; axis: null; millimetres: null }>
   | Readonly<{ phase: 'DYNAMIC' | 'LOCKED'; first: AxisMeasurePoint; second: AxisMeasurePoint; axis: 'X' | 'Y'; millimetres: number }>;
 
+/** Ruler is usable only in the same D floor plan used for source-local XY. */
+export const isAxisMeasureAvailable = (
+  floor: '1F' | '2F' | null,
+  isPlanCameraActive: boolean,
+): boolean => (floor === '1F' || floor === '2F') && isPlanCameraActive;
+
 export const emptyAxisMeasureState = (): AxisMeasureState => ({
   phase: 'EMPTY', first: null, second: null, axis: null, millimetres: null,
 });
