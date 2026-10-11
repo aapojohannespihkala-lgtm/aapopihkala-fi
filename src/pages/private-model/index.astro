@@ -2032,6 +2032,8 @@ const title = 'Private 3D viewer';
         m5aR3Z1cSok1Sok2RelativeZReviewId,
         m5aR1115CandidateId,
         m5aR1115ReviewId,
+        m5aZ2R1125CandidateId,
+        m5aZ2R1125ReviewId,
         m5bCandidateId,
         m5bCurrentReviewId,
         m5bPlannedSok2ComparisonReviewId,
@@ -2059,6 +2061,7 @@ const title = 'Private 3D viewer';
         getRequestedM5AZ2SystemCandidateId,
         isM5AZ2SystemReviewRequested,
         selectM5AR1115ReviewScene,
+        selectM5AR1125SourceBoundReviewScene,
       } from '../../scripts/privateModelM5AZ2SystemReviewRuntime';
 
       import {
@@ -8615,6 +8618,9 @@ const title = 'Private 3D viewer';
           const isM5aZ2SystemReview =
             isM5AZ2SystemReviewRequested(window.location.search) &&
             requestedM5aZ2SystemCandidateId === candidate.id;
+          const isM5AR1125SourceReview =
+            candidate.id === m5aZ2R1125CandidateId &&
+            isPrivateModelReviewRequested(window.location.search, m5aZ2R1125ReviewId);
           // R1090 m5a-z2d-r1090-well-top-ground-surface / 
           // m5a-z2d-r1090-well-top-ground-surface-review shares the legacy Z2 presentation.
           const m5aDrainageReviewMode: M5aDrainageReviewMode | null =
@@ -8674,7 +8680,10 @@ const title = 'Private 3D viewer';
             | ReturnType<typeof createM5BReviewRuntimeState>
             | ReturnType<typeof createM5BR1109ReviewRuntimeState>
             | null = null;
-          if (isM5AR1115Review) {
+          if (isM5AR1125SourceReview) {
+            const selected = selectM5AR1125SourceBoundReviewScene(gltf);
+            gltf.scene = selected.scene;
+          } else if (isM5AR1115Review) {
             const selectedReview = selectM5AR1115ReviewScene(gltf);
             gltf.scene = selectedReview.scene;
             m5aR1115RuntimeState = selectedReview.runtimeState;
@@ -9400,6 +9409,18 @@ const title = 'Private 3D viewer';
           } else if (m5aDrainageReviewMode) {
             loadFailurePhase = 'm5a-z2-presentation-guard-failed';
             applyM5aDrainageReviewState(m5aDrainageReviewMode);
+            if (isM5AR1125SourceReview) {
+              Object.assign(canvas.dataset, {
+                m5aR1125SourceDriveId: '13qxYc9PF7Z6eo_OXs1RrYCyo5CbTIAKs',
+                m5aR1125SourceContract: 'G2_R1125',
+                m5aR1125SceneIndex: '63',
+                m5aR1125SalaojaGeneralNominalD100Count: '5',
+                m5aR1125PvkUnknownPhysicalDiameterCount: '2',
+                m5aR1125PhysicalDiameterMeasurementClaim: 'false',
+                m5aR1125HumanReview: 'NOT_RUN',
+              });
+              status.textContent = 'R1125 salaojat - WORK_TEST / 5 yleistä nimelliskokoluokkaa Ø100 + 2 tuntematonta PVK-halkaisijaa / 13 lähdekohdetta / HUMAN_REVIEW NOT_RUN';
+            }
             loadFailurePhase = 'review-runtime-failed';
           } else if (isP169fStorageDoorReview) {
             applyP169fReviewState();

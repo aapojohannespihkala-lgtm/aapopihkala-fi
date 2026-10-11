@@ -100,17 +100,22 @@ export const m5aZ2D1036CandidateId = 'm5a-z2d-d100-d300-diameter';
 export const m5aZ2D1036ReviewId = `${m5aZ2D1036CandidateId}-review`;
 export const m5aZ2R1090CandidateId = 'm5a-z2d-r1090-well-top-ground-surface';
 export const m5aZ2R1090ReviewId = `${m5aZ2R1090CandidateId}-review`;
+// Separate persisted R1125 source-diameter review, never an R1090/CURRENT alias.
+export const m5aZ2R1125CandidateId = 'm5a-r1125-pvk-diameter-source-split';
+export const m5aZ2R1125ReviewId = `${m5aZ2R1125CandidateId}-review`;
 export const m5aZ2LegacyCandidateId = 'm5a-z2-absolute-z-host-floor-datum';
 export const m5aZ2LegacyReviewId = `${m5aZ2LegacyCandidateId}-review`;
 export const m5aZ2SystemCandidateIds = new Set<string>([
   m5aZ2LegacyCandidateId,
   m5aZ2D1036CandidateId,
   m5aZ2R1090CandidateId,
+  m5aZ2R1125CandidateId,
 ]);
 export const m5aZ2SystemReviewIds = new Set<string>([
   m5aZ2LegacyReviewId,
   m5aZ2D1036ReviewId,
   m5aZ2R1090ReviewId,
+  m5aZ2R1125ReviewId,
 ]);
 export const isM5AZ2SystemReviewCandidateId = (candidateId: string) =>
   m5aZ2SystemCandidateIds.has(candidateId);
@@ -190,6 +195,7 @@ const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
   [m5aZ2LegacyReviewId]: m5aZ2LegacyCandidateId,
   [m5aZ2D1036ReviewId]: m5aZ2D1036CandidateId,
   [m5aZ2R1090ReviewId]: m5aZ2R1090CandidateId,
+  [m5aZ2R1125ReviewId]: m5aZ2R1125CandidateId,
   [m5bCurrentReviewId]: m5bCandidateId,
   [m5bPlannedSok2ComparisonReviewId]: m5bCandidateId,
   [m5aR1115ReviewId]: m5aR1115CandidateId,
