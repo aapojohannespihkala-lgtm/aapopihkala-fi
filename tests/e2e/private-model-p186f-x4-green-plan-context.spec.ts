@@ -4,7 +4,9 @@ import { prepareP186FX4FloorPlanGuide } from '../../src/scripts/privateModelP186
 
 test('source D1F P123C wall is reused and seven P117D footprints hidden', () => {
   const interior = new THREE.Group();
-  interior.name = 'D CURRENT INTERIOR - BABYLON Y-UP';
+  // Mirrors the sanitized display name GLTFLoader can assign to the actual
+  // D CURRENT INTERIOR source scene; exact P123C mesh identity is still checked.
+  interior.name = 'D_CURRENT_INTERIOR_-_BABYLON_Y-UP';
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(
     Array.from({ length: 528 }, (_value, i) => i % 3 === 0 ? 6 : i % 3 === 1 ? 1 : 10), 3,
@@ -47,6 +49,15 @@ test('missing source wall never falls back to room areas', () => {
   const targets = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1, 1, 1));
   expect(() => prepareP186FX4FloorPlanGuide(review, interior, targets))
     .toThrow('original D1F wall missing/duplicated');
+});
+
+test('wrong source scene fails closed even if its display name contains D1F', () => {
+  const interior = new THREE.Group();
+  interior.name = 'D_2F_CURRENT_INTERIOR_-_BABYLON_Y-UP';
+  const review = new THREE.Group();
+  const targets = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1, 1, 1));
+  expect(() => prepareP186FX4FloorPlanGuide(review, interior, targets))
+    .toThrow('exact D1F green-wall source unavailable');
 });
 
 test('original P123C D1F wall preserves its exact world transform in the X4 plan', () => {

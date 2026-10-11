@@ -1,4 +1,5 @@
 import { THREE } from './threeRuntime';
+import { normalizeSceneName } from './privateModelSceneSemantics';
 
 // Existing X4 GLB, source scene 5, node 798. Not a room-footprint proxy.
 export const p186fX4D1fGreenWallName = 'P123C_D1F_WINDOW_TRANSPARENT_WALL_HELPER';
@@ -9,7 +10,11 @@ export const prepareP186FX4FloorPlanGuide = (
   dInteriorSourceScene: any,
   targetBounds: any,
 ) => {
-  if (dInteriorSourceScene?.name !== 'D CURRENT INTERIOR - BABYLON Y-UP' ||
+  // GLTFLoader may sanitize a scene's display name; its source scene is
+  // already resolved against gltf.parser.json.scenes by findSourceNamedScene.
+  // Keep the exact original wall mesh/material/metadata guards below.
+  if (normalizeSceneName(dInteriorSourceScene?.name) !==
+        normalizeSceneName('D CURRENT INTERIOR - BABYLON Y-UP') ||
       !sceneRoot || !targetBounds || targetBounds.isEmpty()) {
     throw new Error('P186F-X4 exact D1F green-wall source unavailable');
   }
