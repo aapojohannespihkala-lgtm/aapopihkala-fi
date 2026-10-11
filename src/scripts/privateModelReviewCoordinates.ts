@@ -202,11 +202,20 @@ const isUsableApprovedWallHost = (host: ApprovedReviewWallHost, floor: ReviewPla
   Array.isArray(host.openings) &&
   host.openings.every(
     (opening) =>
+      opening != null &&
       isFiniteNumber(opening.startM) &&
       isFiniteNumber(opening.endM) &&
       opening.startM < opening.endM &&
       opening.startM >= host.startM &&
       opening.endM <= host.endM,
+  ) &&
+  // A source cannot call overlapping opening spans a complete, trusted wall.
+  !host.openings.some((opening, i) =>
+    host.openings.some((other, j) =>
+      i !== j &&
+      opening.startM < other.endM &&
+      other.startM < opening.endM,
+    ),
   );
 
 /**
@@ -233,7 +242,20 @@ export const resolveTargetBoundReviewAnchor = (
     maxResidualM > 0.25
   ) return fail('NO_APPROVED_HOST');
 
-  const usable = hosts.filter((host) => isUsableApprovedWallHost(host, anchor.floor));
+  if (!Array.isArray(hosts)) return fail('NO_APPROVED_HOST');
+  // Direct callers must not bypass the identity-conflict guard in the G2
+  // source projector. One ambiguous wall ID invalidates all its records.
+  const wallIdentityCounts = new Map<string, number>();
+  for (const host of hosts) {
+    if (host && isNonEmptyIdentity(host.g2Id)) {
+      wallIdentityCounts.set(host.g2Id, (wallIdentityCounts.get(host.g2Id) ?? 0) + 1);
+    }
+  }
+  const usable = hosts.filter((host) =>
+    host &&
+    isUsableApprovedWallHost(host, anchor.floor) &&
+    wallIdentityCounts.get(host.g2Id) === 1,
+  );
   if (usable.length === 0) return fail('NO_APPROVED_HOST');
 
   const nearWall = usable.flatMap((host) => {
