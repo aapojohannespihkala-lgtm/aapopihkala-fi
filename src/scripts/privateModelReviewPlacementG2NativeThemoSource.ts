@@ -94,6 +94,7 @@ export const projectNativeG2CurrentThemoReadback = (
   const status = unique('Tila:');
   const installation = unique('Current installation evidence:');
   const logical = unique('Loogiset nykylaite-identiteetit');
+  const historicalGroups = unique('Historiallinen ryhmäkonteksti');
   const noPromotion = unique('No-promotion / materialisointiraja:');
   if (
     !status?.includes('PASS_CURRENT_INSTALLATION_ROOM_BINDING') ||
@@ -103,6 +104,11 @@ export const projectNativeG2CurrentThemoReadback = (
     !logical?.includes('currentInstallationEvidence=true') ||
     !logical.includes('roomAssignmentEvidence=USER_CONFIRMED') ||
     !logical.includes('ei fyysistä pistekoordinaattia eikä 3D-laitegeometriaa') ||
+    // Historical electrical group links are provenance only, never room XY.
+    // Require the complete R989 room-to-source-group statement so a changed
+    // or duplicate association cannot silently inherit a trusted target ID.
+    !historicalGroups ||
+    !/^Historiallinen ryhmäkonteksti peritään muuttamatta G2 r791\/r886 -evidenssistä:\s*Bathroom -> source component C -> `sourceGroupKey=10\.2`;\s*Bedroom -> A -> `sourceGroupKey=10\.3`;\s*Lobby -> B -> `sourceGroupKey=10\.1`\.$/.test(historicalGroups) ||
     !noPromotion
   ) return null;
 
