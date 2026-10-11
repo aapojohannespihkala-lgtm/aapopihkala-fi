@@ -264,7 +264,7 @@ private fun Footer(
     val statusText = when {
         status == WidgetRepository.STATUS_LOADING -> "UPDATING"
         status == WidgetRepository.STATUS_ERROR && payloadTime != null ->
-            "${diagnostics.failureLabel()} · LAST $payloadTime"
+            "${if (payload?.channel == "prod") diagnostics.cachedFallbackLabel() else diagnostics.failureLabel()} · LAST $payloadTime"
         status == WidgetRepository.STATUS_ERROR -> diagnostics.failureLabel()
         payload?.channel == "legacy" && payloadTime != null ->
             "${diagnostics.legacyFallbackLabel()} · UPDATED $payloadTime"

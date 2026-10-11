@@ -58,6 +58,7 @@ class WidgetNetworkingTest {
 
         assertEquals("V2 TIMEOUT/R · L DNS", diagnostics.failureLabel())
         assertEquals("LEGACY · V2 TIMEOUT/R", diagnostics.legacyFallbackLabel())
+        assertEquals("CACHED · V2 TIMEOUT/R", diagnostics.cachedFallbackLabel())
     }
 
     @Test
@@ -191,6 +192,49 @@ class WidgetNetworkingTest {
         assertEquals("CONNECT", outcome.legacyStatus)
         assertTrue(outcome.v2Retried)
         assertEquals("previous-cache", widgetCacheJsonAfterFetch("previous-cache", outcome.payload))
+    }
+
+
+    @Test
+    fun transient503KeepsRecentRichV2InsteadOfReplacingItWithLegacy() {
+        val rich = payload("prod").copy(
+            generatedAt = "2026-10-11T12:00:00Z",
+            sections = listOf(
+                WidgetSection(
+                    id = "weather", index = "01", label = "WEATHER", primary = "8.0°C",
+                    fetchedAt = "2026-10-11T12:00:00Z",
+                ),
+            ),
+        )
+        val legacy = payload("legacy").copy(generatedAt = "2026-10-11T12:40:00Z")
+        val nowMs = parseWidgetGeneratedAtMs("2026-10-11T12:45:00Z")!!
+
+        val chosen = preferRecentRichCache(legacy, rich, "HTTP503", nowMs)
+        assertSame(rich, chosen)
+        assertEquals("WEATHER / STALE", chosen!!.withSafeCachedFreshness(nowMs).sections.single().label)
+        assertSame(rich, preferRecentRichCache(legacy, rich, "TIMEOUT", nowMs))
+    }
+
+    @Test
+    fun expiredOrInvalidRichCacheDefersToWorkingLegacyEndpoint() {
+        val legacy = payload("legacy")
+        val rich = payload("prod").copy(generatedAt = "2026-10-11T11:00:00Z")
+        val nowMs = parseWidgetGeneratedAtMs("2026-10-11T12:45:00Z")!!
+
+        assertSame(legacy, preferRecentRichCache(legacy, rich, "HTTP503", nowMs))
+        assertSame(legacy, preferRecentRichCache(legacy, null, "HTTP503", nowMs))
+        assertSame(legacy, preferRecentRichCache(
+            legacy, rich.copy(generatedAt = "not-a-date"), "HTTP503", nowMs,
+        ))
+        assertSame(legacy, preferRecentRichCache(legacy, rich, "PARSE", nowMs))
+    }
+
+    @Test
+    fun healthyV2NeverGetsReplacedByPreviouslyCachedData() {
+        val fresh = payload("prod")
+        val previous = payload("prod").copy(generatedAt = "2026-10-11T12:00:00Z")
+        val nowMs = parseWidgetGeneratedAtMs("2026-10-11T12:45:00Z")!!
+        assertSame(fresh, preferRecentRichCache(fresh, previous, "OK", nowMs))
     }
 
     @Test

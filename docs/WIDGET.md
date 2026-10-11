@@ -328,7 +328,7 @@ The rich v2 request gets one controlled retry only for reasonably transient fail
 
 The retry uses a shorter timeout. Semantic/permanent failures such as `PARSE`, `COMPAT`, `EMPTY`, `SECURITY` and ordinary 4xx are not blindly retried.
 
-If v2 still fails, Android tries the legacy endpoint. If both fail, the previous compatible cache remains visible.
+If v2 still fails, Android tries the legacy endpoint. When the v2 failure is transient and a compatible rich v2 response from the past hour exists locally, Android keeps that richer payload instead of overwriting it with the reduced legacy response. Cached data is explicitly labeled in the footer and subject to per-section stale guards. Otherwise legacy is used; if both fail, the previous compatible cache remains visible.
 
 ## Cache and diagnostics
 
@@ -337,7 +337,7 @@ The widget keeps the latest compatible payload in SharedPreferences.
 - v2 success -> cache rich payload and schedule HSL source-freshness, HSL guard/rollover and Electricity quarter boundary alarms
 - v2 transient failure -> retry once
 - v2 still fails -> try legacy
-- legacy success -> cache legacy payload and identify fallback in footer
+- legacy success -> retain a recent compatible rich v2 cache for transient v2 failures, otherwise cache legacy and identify fallback in footer
 - v2 + legacy failure -> preserve previous cache and keep/reschedule usable local temporal targets
 - optional section failure inside valid v2 -> omit only that section; HSL freshness scheduling still retries later
 
