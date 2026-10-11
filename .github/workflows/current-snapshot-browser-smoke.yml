@@ -108,7 +108,17 @@ jobs:
 
             for (let attempt = 1; attempt <= 6; attempt += 1) {
               await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-              await page.waitForTimeout(2_000);
+              try {
+                await page.waitForFunction(
+                  () => ['ready', 'stale', 'error'].includes(
+                    document.querySelector('[data-widget-root]')?.getAttribute('data-load-state'),
+                  ),
+                  null,
+                  { timeout: 20_000 },
+                );
+              } catch {
+                // Capture diagnostics for stalled loads and retry below.
+              }
 
               diagnostics = await page.evaluate(() => {
                 const root = document.querySelector('[data-widget-root]');
