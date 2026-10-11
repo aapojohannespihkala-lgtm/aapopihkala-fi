@@ -617,6 +617,14 @@ const title = 'Private 3D viewer';
         user-select: none;
       }
 
+      /* Scene66 Themo review: the Bathroom halo is behind the lower-right HUD
+         at the exact source work position. Keep the HUD visible but move it
+         into the unoccupied upper-right corner for X4 ONLY. No XY changes. */
+      .viewport:has(#private-model-canvas[data-p186f-review-variant="X4"]) .orientation-gizmo {
+        top: 12px;
+        bottom: auto;
+      }
+
       .orientation-gizmo-title {
         margin-bottom: 1px;
         color: var(--viewer-ink);
