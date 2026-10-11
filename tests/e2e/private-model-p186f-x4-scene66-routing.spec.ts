@@ -256,3 +256,135 @@ test('X4-only browser viewport keeps orientation HUD away from three Themo posit
   expect(normalHud!.y).toBe(789 - 12 - 230);
   expect(intersects(normalHud!, 695, 722)).toBe(true);
 });
+
+
+// LOCAL scene-shaped fixture. This does not certify authenticated production rendering.
+test('X4 actual viewer D1F camera pans with right mouse while rotation stays disabled', async ({ page }) => {
+  test.setTimeout(55_000);
+  const rooms = ['SAUNA','PESUHUONE','WC','VH_WEST','VH_NORTH','HUONE2','VARASTO'];
+  const encodeModel = (candidate: boolean) => {
+    const line = [-0.1,0,0, 0.1,0,0, 0,0,-0.1, 0,0,0.1];
+    const surface = [-0.15,0,-0.15, 0.15,0,-0.15, 0.15,0,0.15,
+      -0.15,0,-0.15, 0.15,0,0.15, -0.15,0,0.15];
+    const data = Buffer.alloc((line.length + surface.length) * 4);
+    [...line,...surface].forEach((n,i) => data.writeFloatLE(n,i*4));
+    const contexts = rooms.map((room,i) => ({
+      name: 'P117D_REVIEW_G2_D15_SPACE_' + room + '_1F_SRC',
+      mesh: 1, translation: [1.5+(i%4)*0.7, 0, 3+Math.floor(i/4)*0.7],
+      extras: {
+        G2Id: 'G2_D15_SPACE_' + room + '_1F_SRC',
+        storey: '1F', presentationLayer: 'CURRENT_D',
+        representationKind: 'referenceFootprint',
+      },
+    }));
+    const markers = roomContracts.map(contract => ({
+      name: 'P186F_X4_' + contract.room.toUpperCase() + '_ANCHOR',
+      mesh: 0, translation: [contract.placementXYM[0], 0.09, contract.placementXYM[1]],
+      extras: {
+        Pass: contract.pass, Canonical: false, HUMAN_REVIEW: 'NOT_RUN',
+        asBuilt: false, current: false, currentCircuitAsBuilt: false,
+        currentDeviceRoomAssignmentEvidence: 'USER_CONFIRMED_2026-10-08',
+        currentGeometryClaim: false,
+        currentInstallationEvidence: 'USER_CONFIRMED_2026-10-07',
+        exactXYClaim: false, exactZClaim: false,
+        historicalGroupContext: {
+          bindingAuthority: 'HIGH_CONFIDENCE_DERIVED / CROSS_SOURCE_PLAN_PARITY',
+          sourceGroupKey: contract.groupKey, sourceGroupName: contract.groupName, sourceYear: 2015,
+        },
+        logicalDeviceId: contract.logicalDeviceId,
+        physicalCableRouteClaim: false, physicalThermostatGeometryClaim: false,
+        physicalThermostatXYClaim: false,
+        placementBasis: contract.placementBasis, placementXYM: contract.placementXYM,
+        presentationLayer: 'MEP_ELECTRICAL', presentationOnly: true,
+        publishToCURRENT: false, representationKind: 'thermostatRoomPresentationAnchor',
+        roomAssignment: contract.room, roomAssignmentEvidence: 'USER_CONFIRMED',
+        roomLevelPlacement: true, sensorSuiteClaim: false, workAssumption: true,
+      },
+    }));
+    const scenes = Array.from({length:67}, (_,i) => ({
+      name: i===0 ? 'D CURRENT INTERIOR - BABYLON Y-UP' :
+        i===66 ? p186fX4ReviewSceneName : 'INHERITED_SCENE_' + i,
+      nodes: candidate && i===0 ? contexts.map((_,j)=>j) :
+        candidate && i===66 ? markers.map((_,j)=>j+contexts.length) : [],
+      ...(candidate && i===66 ? {extras:{Pass:p186fX4ReviewPass,workTestSceneIndex:66}} : {}),
+    }));
+    const json = {
+      asset:{version:'2.0'}, scene:candidate?66:0, scenes,
+      nodes:candidate?[...contexts,...markers]:[],
+      meshes:[
+        {primitives:[{attributes:{POSITION:0},material:0,mode:1}]},
+        {primitives:[{attributes:{POSITION:1},material:1,mode:4}]},
+      ],
+      materials:[
+        {doubleSided:true,pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],metallicFactor:0,roughnessFactor:1}},
+        {doubleSided:true,pbrMetallicRoughness:{baseColorFactor:[0.7,0.8,1,1],metallicFactor:0,roughnessFactor:1}},
+      ],
+      accessors:[
+        {bufferView:0,componentType:5126,count:4,type:'VEC3',min:[-0.1,0,-0.1],max:[0.1,0,0.1]},
+        {bufferView:1,componentType:5126,count:6,type:'VEC3',min:[-0.15,0,-0.15],max:[0.15,0,0.15]},
+      ],
+      bufferViews:[
+        {buffer:0,byteOffset:0,byteLength:line.length*4,target:34962},
+        {buffer:0,byteOffset:line.length*4,byteLength:surface.length*4,target:34962},
+      ],
+      buffers:[{byteLength:data.length}],
+    };
+    const j=Buffer.from(JSON.stringify(json),'utf8');
+    const j4=Buffer.concat([j,Buffer.alloc((4-j.length%4)%4,0x20)]);
+    const b4=Buffer.concat([data,Buffer.alloc((4-data.length%4)%4)]);
+    const h=Buffer.alloc(12); h.write('glTF');h.writeUInt32LE(2,4);
+    h.writeUInt32LE(28+j4.length+b4.length,8);
+    const jh=Buffer.alloc(8);jh.writeUInt32LE(j4.length,0);jh.writeUInt32LE(0x4e4f534a,4);
+    const bh=Buffer.alloc(8);bh.writeUInt32LE(b4.length,0);bh.writeUInt32LE(0x004e4942,4);
+    return Buffer.concat([h,jh,j4,bh,b4]);
+  };
+  const candidatePath = '/private-model/work-test/' + candidateId + '.glb';
+  await page.setViewportSize({width:1536,height:900});
+  await page.route('**/private-model/model.glb', route => route.fulfill({
+    status:200,contentType:'model/gltf-binary',body:encodeModel(false)}));
+  await page.route('**/private-model/work-test/catalog.json', route => route.fulfill({
+    status:200,contentType:'application/json',
+    body:JSON.stringify({candidates:[{id:candidateId,path:candidatePath,label:'Synthetic X4 review'}]})}));
+  await page.route('**' + candidatePath, route => route.fulfill({
+    status:200,contentType:'model/gltf-binary',body:encodeModel(true)}));
+  await page.goto('/private-model/?review=' + candidateId + '-review');
+  const canvas=page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-autoload','true');
+  await expect(canvas).toHaveAttribute('data-p186f-review-variant','X4');
+  await expect(canvas).toHaveAttribute('data-p186f-review-target-renderable-count','3');
+  await expect(canvas).toHaveAttribute('data-view-preset','d-plan');
+  await expect(canvas).toHaveAttribute('data-camera-projection','orthographic');
+  await expect(canvas).toHaveAttribute('data-camera-rotation','disabled');
+  await expect(canvas).toHaveAttribute('data-camera-pan','enabled');
+  await expect(canvas).toHaveAttribute('data-p186f-human-review','NOT_RUN');
+  await page.waitForTimeout(550);
+  const before=await canvas.screenshot();
+  const rect=await canvas.boundingBox();
+  expect(rect).not.toBeNull();
+  const x=rect!.x+rect!.width*0.5,y=rect!.y+rect!.height*0.48;
+  await page.mouse.move(x,y);
+  await page.mouse.down({button:'right'});
+  await page.mouse.move(x+130,y+52,{steps:16});
+  await page.mouse.up({button:'right'});
+  await page.waitForTimeout(650);
+  const after=await canvas.screenshot();
+  const changed=await page.evaluate(async (frames) => {
+    const pixels=async (url:string) => {
+      const img=new Image();img.src=url;await img.decode();
+      const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+      const ctx=c.getContext('2d');if(!ctx)throw new Error('No canvas');
+      ctx.drawImage(img,0,0);
+      return ctx.getImageData(0,0,img.width,img.height).data;
+    };
+    const a=await pixels(frames[0]),b=await pixels(frames[1]);
+    if(a.length!==b.length)throw new Error('Screenshot size changed');
+    let changed=0;
+    for(let i=0;i<a.length;i+=4) {
+      const diff=Math.abs(a[i]-b[i])+Math.abs(a[i+1]-b[i+1])+Math.abs(a[i+2]-b[i+2]);
+      if(diff>36)changed++;
+    }
+    return changed;
+  },['data:image/png;base64,'+before.toString('base64'),'data:image/png;base64,'+after.toString('base64')] as [string,string]);
+  expect(changed).toBeGreaterThanOrEqual(750);
+  await expect(canvas).toHaveAttribute('data-camera-rotation','disabled');
+});
