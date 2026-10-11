@@ -113,6 +113,6 @@ test('R1125 fails closed on unsorted distances and viewport/source contract mism
 
 test('R1125 does not accept screenshot ROI margins that cross the canvas border', () => {
   const scene = makeScene();
-  expect(() => choose(scene, [cameraTrial(75)], { edgePaddingPx: 64 }))
+  expect(() => choose(scene, [cameraTrial(75, 18)], { edgePaddingPx: 64 }))
     .toThrow('no source-verified 13/13');
 });
