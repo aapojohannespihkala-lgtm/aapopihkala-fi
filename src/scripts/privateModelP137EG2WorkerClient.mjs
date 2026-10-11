@@ -26,6 +26,13 @@ const noNestedPromotion = (value, seen = new WeakSet(), depth = 0) => {
     if ((key === 'humanReview' || key === 'humanReviewStatus') &&
         child !== 'NOT_RUN') return false;
     if (key === 'stage' && child !== 'WORK_TEST_ONLY') return false;
+    // A string status must not smuggle approval or publication into a
+    // WORK_TEST observation, even when all top-level flags are false.
+    if ((key === 'status' || key === 'reviewStatus' ||
+         key === 'approvalStatus') && typeof child === 'string' &&
+        /^(?:CURRENT|CANONICAL|AS[_-]?BUILT|PUBLISHED|PRODUCTION|APPROVED|HUMAN_REVIEW_PASS(?:_SCOPED)?|READY_FOR_HUMAN_REVIEW)$/i.test(child)) {
+      return false;
+    }
     if (!noNestedPromotion(child, seen, depth + 1)) return false;
   }
   seen.delete(value);
