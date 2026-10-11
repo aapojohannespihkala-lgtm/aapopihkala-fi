@@ -382,16 +382,22 @@ test('X4 actual viewer D1F camera pans with right mouse while rotation stays dis
   await expect(canvas).toHaveAttribute('data-camera-pan','enabled');
   await expect(canvas).toHaveAttribute('data-p186f-human-review','NOT_RUN');
   await page.waitForTimeout(550);
-  const before=await canvas.screenshot();
   const rect=await canvas.boundingBox();
   expect(rect).not.toBeNull();
+  // The canvas is continuously rendered by Three.js; locator.screenshot()
+  // waits for element stability and can hit the browser-guard timeout even
+  // after the exact source-wall and three-target checks have passed.
+  // Capture the SAME bounded viewport rectangle through page.screenshot()
+  // to avoid that unrelated stability wait without weakening pixel proof.
+  const clip = { x: rect!.x, y: rect!.y, width: rect!.width, height: rect!.height };
+  const before=await page.screenshot({ clip, animations: 'disabled' });
   const x=rect!.x+rect!.width*0.5,y=rect!.y+rect!.height*0.48;
   await page.mouse.move(x,y);
   await page.mouse.down({button:'right'});
   await page.mouse.move(x+130,y+52,{steps:16});
   await page.mouse.up({button:'right'});
   await page.waitForTimeout(650);
-  const after=await canvas.screenshot();
+  const after=await page.screenshot({ clip, animations: 'disabled' });
   const changed=await page.evaluate(async (frames) => {
     const pixels=async (url:string) => {
       const img=new Image();img.src=url;await img.decode();
