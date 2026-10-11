@@ -71,6 +71,35 @@ test('duplicate or missing Themo source section fails closed', () => {
     !line.startsWith('Loogiset nykylaite-identiteetit'))))).toBeNull();
 });
 
+test('R989 historical room-to-source-group provenance must be complete and unambiguous', () => {
+  const changedGroup = [...lines];
+  changedGroup[4] = changedGroup[4].replace('sourceGroupKey=10.2', 'sourceGroupKey=10.3');
+  expect(projectNativeG2CurrentThemoReadback(doc(changedGroup))).toBeNull();
+
+  const changedComponent = [...lines];
+  changedComponent[4] = changedComponent[4].replace(
+    'Bathroom -> source component C',
+    'Bathroom -> source component A',
+  );
+  expect(projectNativeG2CurrentThemoReadback(doc(changedComponent))).toBeNull();
+
+  const missingGroup = lines.filter((line) => !line.startsWith('Historiallinen ryhmäkonteksti'));
+  expect(projectNativeG2CurrentThemoReadback(doc(missingGroup))).toBeNull();
+
+  const duplicateGroup = [...lines.slice(0, 5), lines[4], ...lines.slice(5)];
+  expect(projectNativeG2CurrentThemoReadback(doc(duplicateGroup))).toBeNull();
+
+  // These 2015 source-group links are context only: no physical XY or host.
+  const valid = projectNativeG2CurrentThemoReadback(doc());
+  expect(valid?.targets).toHaveLength(3);
+  for (const target of valid?.targets ?? []) {
+    expect(target.sourceG2Id).toBeNull();
+    expect(target.wallHosts).toEqual([]);
+    expect(target).not.toHaveProperty('xM');
+    expect(target).not.toHaveProperty('yM');
+  }
+});
+
 test('a different device ID, missing installation evidence or room reassignment is not accepted', () => {
   const replaced = [...lines];
   replaced[3] = replaced[3].replace('D_THEMO_CURRENT_LOBBY_01', 'D_THEMO_LOBBY_CURRENT_01');
