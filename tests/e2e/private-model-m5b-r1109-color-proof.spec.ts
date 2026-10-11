@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 // This is an independent pure-JS pixel detector; it runs without browser credentials.
 // @ts-ignore - the mjs file is a JavaScript module without a TypeScript declaration
-import { detectM5BR1109CyanLocatorComponents as detect } from '../../src/scripts/privateModelR1109CyanLocatorProof.mjs';
+import { buildM5BR1109BrowserScreenshotProofExpression, detectM5BR1109CyanLocatorComponents as detect } from '../../src/scripts/privateModelR1109CyanLocatorProof.mjs';
 
 const image = (width = 120, height = 60) => {
   const rgba = new Uint8ClampedArray(width * height * 4);
@@ -59,4 +59,42 @@ test('R1109 tolerates antialiasing and refuses invalid pixel dimensions', () => 
   expect(detect(frame.rgba, frame.width, frame.height).componentCount).toBe(5);
   expect(() => detect(frame.rgba, frame.width - 1, frame.height)).toThrow(/exact RGBA/);
   expect(() => detect(null, frame.width, frame.height)).toThrow(/exact RGBA/);
+});
+
+
+test('R1109 exact PNG expression executes in real Chromium and rejects a missing locator', async ({ page }) => {
+  for (const visibleMarkers of [5, 4]) {
+    const png = await page.evaluate((count) => {
+      const surface = document.createElement('canvas');
+      surface.width = 120;
+      surface.height = 60;
+      const context = surface.getContext('2d');
+      if (!context) throw new Error('PNG canvas not available');
+      context.fillStyle = '#f1f3f7';
+      context.fillRect(0, 0, 120, 60);
+      context.fillStyle = '#00eaff';
+      for (let index = 0; index < count; index += 1) {
+        context.fillRect(6 + index * 21, 12, 5, 5);
+      }
+      return surface.toDataURL('image/png');
+    }, visibleMarkers);
+    const expression = buildM5BR1109BrowserScreenshotProofExpression(png);
+    const result = await page.evaluate(expression) as {
+      requiredCount: number;
+      componentCount: number;
+      qualifyingColorPixels: number;
+    };
+    expect(result).toBeDefined();
+    expect(result.requiredCount).toBe(5);
+    expect(result.componentCount).toBe(visibleMarkers);
+    expect(result.qualifyingColorPixels).toBe(visibleMarkers * 25);
+  }
+});
+
+test('R1109 PNG browser expression rejects non-PNG and executable input', () => {
+  expect(() => buildM5BR1109BrowserScreenshotProofExpression('https://example.invalid/a.png'))
+    .toThrow(/requires PNG data URL/);
+  expect(() => buildM5BR1109BrowserScreenshotProofExpression(
+    'data:image/png;base64,AAAA");throw Error("injected")//',
+  )).toThrow(/requires PNG data URL/);
 });
