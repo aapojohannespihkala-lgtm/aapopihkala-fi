@@ -84,6 +84,12 @@ test('original uninvoked browser function can never pass the production regressi
   expect(real).toContain(invoked);
   const broken = real.replace(invoked, 'script');
   expect(broken).not.toBe(real);
-  await expect(executeExactProductionCode(page, await actualScreenshot(page, 5), broken))
-    .rejects.toThrow(/M5B R1109 screenshot detector returned no pixel result/);
+  let caught: unknown;
+  try {
+    await executeExactProductionCode(page, await actualScreenshot(page, 5), broken);
+  } catch (error) {
+    caught = error;
+  }
+  expect(caught).toBeDefined();
+  expect(String(caught)).toContain('M5B R1109 screenshot detector returned no pixel result');
 });
