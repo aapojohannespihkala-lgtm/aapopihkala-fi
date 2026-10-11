@@ -45,13 +45,16 @@ const targetPositions = [
   0.04, 0, -0.24,
 ];
 
+// Deliberately place the simulated full-size terrain in FRONT of the
+// 13 source targets (at y=0.06), so the screenshot proves depth-independent
+// target overlays rather than only markers that were unobstructed already.
 const contextPositions = [
-  0, 0, 0,
-  10, 0, 0,
-  0, 0, -6,
-  10, 0, 0,
-  10, 0, -6,
-  0, 0, -6,
+  0, 0.5, 0,
+  10, 0.5, 0,
+  0, 0.5, -6,
+  10, 0.5, 0,
+  10, 0.5, -6,
+  0, 0.5, -6,
 ];
 
 const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
@@ -131,8 +134,8 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
         componentType: 5126,
         count: 6,
         type: 'VEC3',
-        min: [0, 0, -6],
-        max: [10, 0, 0],
+        min: [0, 0.5, -6],
+        max: [10, 0.5, 0],
       },
     ],
     bufferViews: [
