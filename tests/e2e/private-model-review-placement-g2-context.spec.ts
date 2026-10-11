@@ -66,6 +66,18 @@ test('P137E refuses unapproved walls and unknown opening coverage', async () => 
     context: { approvedWallHosts: [{ g2Id: 'G2_WALL_TEST', openings: [{ startM: 3, endM: 4 }] }] },
     evidence: { verifiedWallCount: 1 },
   });
+  // Same G2 wall ID with contradictory geometry cannot be treated as approved.
+  expect(await check([{ ...target, wallHosts: [wall, { ...wall, fixedM: 8 }] }])).toMatchObject({
+    status: 'REVIEW_CONTEXT_READY',
+    context: { approvedWallHosts: [] },
+    evidence: { verifiedWallCount: 0 },
+  });
+  // Even an unapproved twin must invalidate the identity, not leave a first-wins approval.
+  expect(await check([{ ...target, wallHosts: [wall, { ...wall, approved: false as true }] }])).toMatchObject({
+    status: 'REVIEW_CONTEXT_READY',
+    context: { approvedWallHosts: [] },
+    evidence: { verifiedWallCount: 0 },
+  });
 });
 
 test('P137E permits exact G2 source review identities but not mismatched source IDs', async () => {
