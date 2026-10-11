@@ -1,10 +1,12 @@
 
 import { expect, test } from '@playwright/test';
+import { THREE } from '../../src/scripts/threeRuntime';
 
 import {
   m5aZ2AbsoluteZBasis,
   m5aZ2AbsoluteZContract,
   m5aZ2ExpectedTargetKeys,
+  prepareM5AZ2SystemReviewPresentation,
 } from '../../src/scripts/privateModelM5AZ2ReviewPresentation';
 import {
   m5aR1125SourceSceneName,
@@ -318,6 +320,7 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
   await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId);
   await expect(canvas).toHaveAttribute('data-m5a-review-target-renderable-count', '13');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-source-contract', 'G2_R1125');
+  await expect(canvas).toHaveAttribute('data-m5a-r1125-terrain-resistant-overlay', 'true');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-scene-index', '63');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-salaoja-general-nominal-d100-count', '5');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-pvk-unknown-physical-diameter-count', '2');
@@ -464,4 +467,90 @@ test('M5A R1125 rejects a fabricated PVK physical diameter and duplicated source
     .toThrow(/PVK physical diameter must remain UNKNOWN/);
   expect(() => selectM5AR1125SourceBoundReviewScene(buildFixture([...nodeData, nodeData[0]])))
     .toThrow(/duplicate or unexpected diameter-source route/);
+});
+
+test('M5A R1125 overlays only exact 13/13 source targets over 20% terrain without editing geometry', () => {
+  const makeSourceReview = () => {
+    const root = new THREE.Group();
+    root.userData = { ...m5aR1125SceneExtras };
+    const targets = m5aZ2ExpectedTargetKeys.map((key, index) => {
+      const node = new THREE.Mesh(
+        new THREE.BoxGeometry(0.25, 0.25, 0.25),
+        new THREE.MeshBasicMaterial({ color: 0xff8a11 }),
+      );
+      node.name = String(makeTargetNode(key, index).name);
+      node.userData = { ...makeTargetNode(key, index).extras };
+      node.position.set(index, 0, 0);
+      root.add(node);
+      return node;
+    });
+    const terrain = new THREE.Mesh(
+      new THREE.BoxGeometry(20, 1, 20),
+      new THREE.MeshBasicMaterial({ color: 0x2266ff }),
+    );
+    terrain.position.set(6, 0, 0);
+    terrain.name = 'EXISTING_BUILDING_TERRAIN_CONTEXT';
+    root.add(terrain);
+    return { root, targets, terrain };
+  };
+
+  const { root, targets, terrain } = makeSourceReview();
+  const originalVertices = targets.map((node) =>
+    [...(node.geometry.getAttribute('position').array as ArrayLike<number>)],
+  );
+  const result = prepareM5AZ2SystemReviewPresentation(root, {
+    r1125TerrainResistantOverlay: true,
+  });
+  expect(result.targetRenderableCount).toBe(13);
+  expect(result.contextRenderableCount).toBe(1);
+  expect(result.r1125TerrainResistantOverlayApplied).toBe(true);
+  expect(result.missingTargetKeys).toEqual([]);
+  expect(result.duplicateTargetKeys).toEqual([]);
+  expect(result.semanticViolationCount).toBe(0);
+  expect(result.kindCounts).toEqual({
+    wellMarkerWork: 4,
+    referenceRouteWork: 7,
+    unresolvedBoundaryMarker: 2,
+  });
+  targets.forEach((node, index) => {
+    const material = node.material as THREE.MeshBasicMaterial;
+    expect(material.opacity).toBe(0.8);
+    expect(material.depthTest).toBe(false);
+    expect(material.depthWrite).toBe(false);
+    expect(node.renderOrder).toBe(2200);
+    expect(node.userData.m5aZ2ReviewRole).toBe('QUESTION_TARGET_80');
+    expect([...(node.geometry.getAttribute('position').array as ArrayLike<number>)])
+      .toEqual(originalVertices[index]);
+  });
+  const terrainMaterial = terrain.material as THREE.MeshBasicMaterial;
+  expect(terrainMaterial.opacity).toBe(0.2);
+  expect(terrainMaterial.depthTest).toBe(true);
+  expect(terrainMaterial.depthWrite).toBe(false);
+  expect(terrain.renderOrder).toBe(5);
+  expect(terrain.visible).toBe(true);
+  expect(terrain.userData.m5aZ2ReviewRole).toBe('BUILDING_DRAINAGE_CONTEXT_20');
+
+  const legacy = makeSourceReview();
+  const legacyResult = prepareM5AZ2SystemReviewPresentation(legacy.root);
+  expect(legacyResult.r1125TerrainResistantOverlayApplied).toBe(false);
+  legacy.targets.forEach((node) => {
+    const material = node.material as THREE.MeshBasicMaterial;
+    expect(material.depthTest).toBe(true);
+    expect(material.depthWrite).toBe(true);
+    expect(node.renderOrder).toBe(30);
+  });
+
+  const wrongScene = makeSourceReview();
+  wrongScene.root.userData.sourceDiameterCorrectionContract = 'G2_R1090';
+  expect(() => prepareM5AZ2SystemReviewPresentation(wrongScene.root, {
+    r1125TerrainResistantOverlay: true,
+  })).toThrow(/exact scene63 13\/13 source-only review/);
+  expect((wrongScene.targets[0]?.material as THREE.MeshBasicMaterial).depthTest).toBe(true);
+
+  const incomplete = makeSourceReview();
+  incomplete.root.remove(incomplete.targets[12]!);
+  expect(() => prepareM5AZ2SystemReviewPresentation(incomplete.root, {
+    r1125TerrainResistantOverlay: true,
+  })).toThrow(/exact scene63 13\/13 source-only review/);
+  expect((incomplete.targets[0]?.material as THREE.MeshBasicMaterial).depthTest).toBe(true);
 });
