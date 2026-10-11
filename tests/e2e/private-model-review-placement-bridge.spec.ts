@@ -167,7 +167,7 @@ test('P137E bound pointer events do nothing until explicitly opened in place mod
   const effects = pointer.dispatch('pointerup', 3, 10, 10);
   expect(effects).toEqual([]);
   expect(s.calls).not.toContain('marker');
-  expect(pointer.registrations).toEqual(['pointerdown', 'pointerup', 'pointercancel']);
+  expect(pointer.registrations).toEqual(['pointerdown', 'pointerup', 'pointercancel', 'click']);
 });
 
 test('P137E accepts a small primary click, renders one marker, and suppresses normal selection', () => {
@@ -179,6 +179,10 @@ test('P137E accepts a small primary click, renders one marker, and suppresses no
   pointer.dispatch('pointerdown', 3, 10, 10);
   expect(pointer.dispatch('pointerup', 3, 13, 14)).toEqual(['stop', 'prevent']);
   expect(s.calls.slice(-2)).toEqual(['xy:3.235:5.063:1F', 'marker']);
+  // pointerup's stopImmediatePropagation cannot suppress the later DOM click.
+  // The capture click must consume exactly that placement's native click.
+  expect(pointer.dispatch('click', 3, 13, 14)).toEqual(['stop', 'prevent']);
+  expect(pointer.dispatch('click', 3, 13, 14)).toEqual([]);
 });
 
 test('P137E never consumes a drag or non-primary click as a placement', () => {
@@ -194,6 +198,8 @@ test('P137E never consumes a drag or non-primary click as a placement', () => {
   pointer.dispatch('pointerdown', 3, 10, 10, { isPrimary: false });
   expect(pointer.dispatch('pointerup', 3, 10, 10)).toEqual([]);
   expect(s.calls).not.toContain('marker');
+  // A drag, right-click or non-primary gesture never leaves a click suppression armed.
+  expect(pointer.dispatch('click', 3, 10, 10)).toEqual([]);
 });
 
 test('P137E canceled pointer and different pointer id cannot place a target', () => {
@@ -221,6 +227,8 @@ test('P137E floor switch consumes placement attempt but never routes to normal s
   expect(pointer.dispatch('pointerup', 3, 10, 10)).toEqual(['stop', 'prevent']);
   expect(s.bridge.hasActiveTarget()).toBe(false);
   expect(s.calls).not.toContain('marker');
+  // Even a rejected floor switch may generate a click; it must never reach selection.
+  expect(pointer.dispatch('click', 3, 10, 10)).toEqual(['stop', 'prevent']);
 });
 
 test('P137E placement canvas event listeners are disposable and thresholds validate', () => {
@@ -232,7 +240,7 @@ test('P137E placement canvas event listeners are disposable and thresholds valid
     maxClickDistancePx: -1,
   })).toThrow('Invalid placement drag threshold');
   const binding = bindPlacementPlanPointerEvents({ canvas: pointer.canvas, bridge: s.bridge });
-  expect(pointer.handlers.size).toBe(3);
+  expect(pointer.handlers.size).toBe(4);
   binding.dispose();
   expect(pointer.handlers.size).toBe(0);
 });
