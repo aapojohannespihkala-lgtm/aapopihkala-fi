@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { placementG2DocumentId } from '../../src/scripts/privateModelReviewPlacementG2Context';
+import type { TrustedNativeG2WritePorts } from '../../src/scripts/privateModelReviewPlacementG2Persistence';
 import {
   createNativeG2GoogleDocsPorts,
   type NativeG2ServiceAccount,
@@ -71,7 +72,7 @@ test('server-only OAuth RS256 requests exact Docs scope, pinned identity and nat
 test('native batchUpdate is exact G2-only, revision guarded and not a persisted ack', async () => {
   const account = await makeAccount();
   const calls: string[] = [];
-  const request = {
+  const request: Parameters<TrustedNativeG2WritePorts['batchUpdateDocument']>[0] = {
     documentId: placementG2DocumentId,
     requests: [{
       insertText: { endOfSegmentLocation: { tabId: 't.0' },
