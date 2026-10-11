@@ -115,6 +115,7 @@ export const projectNativeG2CurrentThemoReadback = (
     !installation.includes('Bathroom, Bedroom ja Lobby') ||
     !hasUniqueLogicalEvidence('currentInstallationEvidence', 'true') ||
     !hasUniqueLogicalEvidence('roomAssignmentEvidence', 'USER_CONFIRMED') ||
+    !logical ||
     !logical.includes('ei fyysistä pistekoordinaattia eikä 3D-laitegeometriaa') ||
     // Historical electrical group links are provenance only, never room XY.
     // Require the complete R989 room-to-source-group statement so a changed
