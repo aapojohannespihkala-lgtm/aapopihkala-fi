@@ -257,3 +257,64 @@ test('P137E direct wall review does not select the first of two contradictory G2
     });
   }
 });
+
+
+test('P137E refuses two distinct approved wall hosts inside tolerance even with a 7mm distance gap', () => {
+  const wall = d1f.approvedWallHosts[0]!;
+  const other = {
+    ...wall,
+    g2Id: 'D_WALL_I05',
+    approvalEvidenceId: 'APPROVED_D1F_WALL_I05',
+    fixedM: 5.085,
+  };
+  const click = { xM: 3.235, yM: 5.075 };
+  const ambiguous = buildPlacementReviewDraft({
+    context: { ...d1f, approvedWallHosts: [wall, other] },
+    coordinate: click,
+    noteRaw: 'Themo on nakyvan seinarajan kohdalla',
+  });
+  expect(ambiguous).toMatchObject({
+    status: 'READY_FOR_G2_HANDOFF',
+    payload: {
+      stage: 'WORK_TEST_ONLY',
+      humanReview: 'NOT_RUN',
+      currentGeometry: false,
+      canonical: false,
+      asBuilt: false,
+      anchor: { ...click, exactXY: false },
+      resolution: { status: 'UNMAPPED', reason: 'AMBIGUOUS_HOST', proposal: null },
+    },
+  });
+
+  // One eligible distinct G2 ID still yields only a WORK_TEST proposal.
+  const outside = buildPlacementReviewDraft({
+    context: { ...d1f, approvedWallHosts: [wall, { ...other, fixedM: 5.2 }] },
+    coordinate: click,
+    noteRaw: '',
+  });
+  expect(outside).toMatchObject({
+    status: 'READY_FOR_G2_HANDOFF',
+    payload: {
+      resolution: {
+        status: 'HOST_PROPOSED_WORK_TEST',
+        proposal: { hostG2Id: wall.g2Id, currentGeometry: false, canonical: false },
+      },
+    },
+  });
+
+  // An opening across either near wall continues to block the proposal first.
+  const opening = buildPlacementReviewDraft({
+    context: {
+      ...d1f,
+      approvedWallHosts: [wall, {
+        ...other, openings: [{ startM: 3.2, endM: 3.3 }],
+      }],
+    },
+    coordinate: click,
+    noteRaw: '',
+  });
+  expect(opening).toMatchObject({
+    status: 'READY_FOR_G2_HANDOFF',
+    payload: { resolution: { status: 'UNMAPPED', reason: 'OPENING_OVERLAP', proposal: null } },
+  });
+});
