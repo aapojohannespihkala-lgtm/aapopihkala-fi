@@ -130,6 +130,6 @@ test('R1125 validates every camera before returning an earlier safe projection',
     firstSafe, { ...cameraTrial(150), distanceLocalUnits: Number.NaN },
   ])).toThrow('finite perspective distances');
   expect(() => choose(scene, [
-    firstSafe, { ...cameraTrial(150), camera: { isPerspectiveCamera: false } },
+    firstSafe, { ...cameraTrial(150), camera: { isPerspectiveCamera: false } as unknown as THREE.PerspectiveCamera },
   ])).toThrow('finite perspective distances');
 });
