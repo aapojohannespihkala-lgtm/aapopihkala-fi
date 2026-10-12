@@ -73,3 +73,47 @@ test('original wall is selectively translucent on SOUTH and fully restored on NO
   expect(viewer).toContain('for (const cloned of item.temporary) cloned.dispose?.()');
   expect(viewer).not.toContain('original[0].geometry.dispose()');
 });
+
+test('real scene67 provides source-bound return to original top plan for temporary placement and ruler', () => {
+  expect(viewer).toContain('id="p137e-plan-face-button" type="button" hidden');
+  expect(viewer).toContain('p137ePlanFaceButton.hidden = false');
+  expect(viewer).toContain('p137ePlanFaceButton.hidden = true');
+  const a = viewer.indexOf('const applyP137EScene67TopPlan = () => {');
+  const b = viewer.indexOf('const applyP137EScene67ReviewState = () => {', a);
+  expect(a).toBeGreaterThan(0);
+  expect(b).toBeGreaterThan(a);
+  const plan = viewer.slice(a, b);
+  expect(plan).toContain("activeModelSourceKind !== 'work-test'");
+  expect(plan).toContain('!isP137EScene67ReviewRequested()');
+  expect(plan).toContain('canvas.dataset.p137eLoadedCandidateId !== p137eScene67CandidateId');
+  expect(plan).toContain("fullModelScene.children.length !== 4");
+  expect(plan).toContain('modelRoot.children[0] !== fullModelScene');
+  expect(plan).toContain('restoreP137EWallPresentation()');
+  expect(plan).toContain("activePlanFloor = '1F'");
+  expect(plan).toContain('activeCamera = planCamera');
+  expect(plan).toContain('setModelScene(fullModelScene)');
+  expect(plan).toContain("canvas.dataset.contentScene = 'full-model'");
+  expect(plan).toContain("activateDCoordinateReview('1F')");
+  expect(plan).toContain("syncViewState('d-plan')");
+  expect(plan).toContain('p137eScene67TopPlanToolsReady');
+  expect(plan).not.toContain('setModelScene(dInteriorScene)');
+  expect(plan).not.toContain('prepareP186dD1fRoomContextBridge');
+  expect(plan).not.toContain('prepareP186FX4FloorPlanGuide');
+  expect(viewer).toContain("try { applyP137EScene67TopPlan(); }");
+});
+
+test('ordinary D1F control returns to source-only scene67 plan but not in any other candidate', () => {
+  const start = viewer.indexOf("d1PlanButton.addEventListener('click', () => {");
+  expect(start).toBeGreaterThan(0);
+  const guard = viewer.slice(start, start + 450);
+  expect(guard).toContain('canvas.dataset.workTestReviewMode === p137eScene67ReviewId');
+  expect(guard).toContain('applyP137EScene67TopPlan()');
+  expect(guard).toContain("applyStandardViewPreset('d-1f')");
+  const side = viewer.slice(viewer.indexOf('const applyP137EScene67SourceFace ='), viewer.indexOf('const applyP137EScene67TopPlan ='));
+  expect(side).toContain('deactivateDCoordinateReview()');
+  expect(side).toContain('activeCamera = isoCamera');
+  // Side cameras still disable placement; returning to top plan enables it
+  // only after exact original source and selected-candidate checks.
+  expect(viewer).toContain("p137eNorthFaceButton?.addEventListener('click'");
+  expect(viewer).toContain("p137eSouthFaceButton?.addEventListener('click'");
+});
