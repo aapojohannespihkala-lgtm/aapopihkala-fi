@@ -25,6 +25,8 @@ export type NativeG2GoogleDocsOptions = {
   now?: () => number;
   /** Restrict the reader to Docs GET scope, including when write ports exist in the factory. */
   readOnly?: boolean;
+  /** Total time for each OAuth/Docs response, including its JSON body. */
+  requestTimeoutMs?: number;
 };
 
 const documentUrl = 'https://docs.googleapis.com/v1/documents/' + encodeURIComponent(placementG2DocumentId);
@@ -66,8 +68,50 @@ const validateServiceAccount = (value: NativeG2ServiceAccount | null | undefined
 };
 
 export const createNativeG2GoogleDocsPorts = (
-  { credentials, fetcher = fetch, now = Date.now, readOnly = false }: NativeG2GoogleDocsOptions,
+  { credentials, fetcher = fetch, now = Date.now, readOnly = false, requestTimeoutMs = 15000 }: NativeG2GoogleDocsOptions,
 ): TrustedNativeG2WritePorts => {
+  if (
+    !Number.isSafeInteger(requestTimeoutMs) ||
+    requestTimeoutMs <= 0 || requestTimeoutMs > 15000
+  ) throw new Error('G2_NATIVE_TIMEOUT_INVALID');
+
+  // The deadline covers headers AND body. Never retry a timed-out write: the
+  // independent revision/readback contract must decide whether it persisted.
+  const requestResponse = async (
+    input: string,
+    init: RequestInit,
+    failed: string,
+    invalid?: string,
+  ): Promise<unknown> => {
+    const controller = new AbortController();
+    let response: Response | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const operation = (async () => {
+      response = await fetcher(input, { ...init, signal: controller.signal });
+      if (controller.signal.aborted) throw new Error('G2_NATIVE_REQUEST_TIMEOUT');
+      if (!response.ok) throw new Error(failed);
+      if (invalid === undefined) return undefined;
+      try { return await response.json(); }
+      catch { throw new Error(invalid); }
+    })();
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error('G2_NATIVE_REQUEST_TIMEOUT'));
+        controller.abort();
+      }, requestTimeoutMs);
+    });
+    try { return await Promise.race([operation, deadline]); }
+    finally {
+      clearTimeout(timer);
+      controller.abort();
+      // A body cancelled by the native fetch signal may already be locked.
+      // Best-effort cleanup must not extend the request's deadline.
+      if (response?.body && !response.body.locked) {
+        void response.body.cancel().catch(() => undefined);
+      }
+    }
+  };
+
   const accessToken = async (): Promise<string> => {
     const account = validateServiceAccount(credentials);
     const seconds = Math.floor(now() / 1000);
@@ -102,7 +146,7 @@ export const createNativeG2GoogleDocsPorts = (
     }
 
     const assertion = unsigned + '.' + toBase64Url(new Uint8Array(signature));
-    const response = await fetcher(oauthUrl, {
+    const tokenResponse = await requestResponse(oauthUrl, {
       method: 'POST',
       redirect: 'error',
       credentials: 'omit',
@@ -111,15 +155,7 @@ export const createNativeG2GoogleDocsPorts = (
         grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
         assertion,
       }),
-    });
-    if (!response.ok) throw new Error('G2_OAUTH_TOKEN_FAILED');
-
-    let tokenResponse: unknown;
-    try {
-      tokenResponse = await response.json();
-    } catch {
-      throw new Error('G2_OAUTH_TOKEN_INVALID');
-    }
+    }, 'G2_OAUTH_TOKEN_FAILED', 'G2_OAUTH_TOKEN_INVALID');
     const token = tokenResponse as { access_token?: unknown; token_type?: unknown };
     if (
       typeof token?.access_token !== 'string' ||
@@ -131,20 +167,12 @@ export const createNativeG2GoogleDocsPorts = (
 
   const getDocument: TrustedNativeG2WritePorts['getDocument'] = async () => {
     const bearer = await accessToken();
-    const response = await fetcher(documentUrl + '?includeTabsContent=true', {
+    const document = await requestResponse(documentUrl + '?includeTabsContent=true', {
       method: 'GET',
       redirect: 'error',
       credentials: 'omit',
       headers: { Authorization: 'Bearer ' + bearer, Accept: 'application/json', 'Cache-Control': 'no-store' },
-    });
-    if (!response.ok) throw new Error('G2_NATIVE_READ_FAILED');
-
-    let document: unknown;
-    try {
-      document = await response.json();
-    } catch {
-      throw new Error('G2_NATIVE_READ_INVALID');
-    }
+    }, 'G2_NATIVE_READ_FAILED', 'G2_NATIVE_READ_INVALID');
     const source = document as NativePlacementG2Document | null;
     const tab = source?.tabs?.[0];
     if (
@@ -175,7 +203,7 @@ export const createNativeG2GoogleDocsPorts = (
     ) throw new Error('G2_NATIVE_WRITE_SCOPE_DENIED');
 
     const bearer = await accessToken();
-    const response = await fetcher(documentUrl + ':batchUpdate', {
+    await requestResponse(documentUrl + ':batchUpdate', {
       method: 'POST',
       redirect: 'error',
       credentials: 'omit',
@@ -186,8 +214,7 @@ export const createNativeG2GoogleDocsPorts = (
         'Cache-Control': 'no-store',
       },
       body: JSON.stringify(request),
-    });
-    if (!response.ok) throw new Error('G2_NATIVE_WRITE_FAILED');
+    }, 'G2_NATIVE_WRITE_FAILED');
     // Only the separate getDocument/readRecord comparison can prove persistence.
     return undefined;
   };
