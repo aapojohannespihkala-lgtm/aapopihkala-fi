@@ -1823,6 +1823,11 @@ const title = 'Private 3D viewer';
 
     <script>
       import { THREE, OrbitControls, GLTFLoader } from '../../scripts/threeRuntime';
+      // @ts-ignore - focused source-only ESM helper covered by browser tests.
+      import {
+        fetchP137EScene67VerifiedGlb,
+        P137E_SCENE67_EXACT_ASSET_PATH,
+      } from '../../scripts/privateModelP137EScene67VerifiedGlbFetch.mjs';
       import { setupPrivateModelToolbarMenus } from '../../scripts/privateModelToolbarMenus';
       import {
         selectionMetadataEntries as collectSelectionMetadataEntries,
@@ -9321,7 +9326,20 @@ const title = 'Private 3D viewer';
         status.textContent = 'Avataan WORK_TEST-kandidaattia...';
 
         try {
-          const gltf = await loader.loadAsync(candidate.path);
+          // Exact P137E scene67 is not CURRENT. Its original immutable source
+          // bytes must finish an authenticated same-origin fetch and pass their
+          // fixed SHA-256/byte-length contract before GLTFLoader may parse them.
+          // This bounds a stalled loader request without accepting independent
+          // diagnostic bytes as evidence of rendered Themo pixels.
+          const isExactP137EScene67Load =
+            candidate.id === p137eScene67CandidateId &&
+            isP137EScene67ReviewRequested();
+          const gltf = isExactP137EScene67Load
+            ? await loader.parseAsync(
+                await fetchP137EScene67VerifiedGlb(candidate.path),
+                P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
+              )
+            : await loader.loadAsync(candidate.path);
           loadFailurePhase = 'review-runtime-failed';
           const isP143aScalgoTerrainReview =
             candidate.id === p143aCandidateId && isP143aScalgoTerrainReviewRequested();
