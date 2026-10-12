@@ -188,6 +188,31 @@ test('M5B current review uses scene60 and five vertical downspout proxies as tar
   expect(result.downspoutContext).toBe(m5bCurrentDownspoutContext);
   expect(result.targetMeanings).toEqual(currentProxyMeanings());
   expect(proxies).toHaveLength(5);
+  // Regression for the observed invisible downspout problem: verify all five
+  // existing scene objects, not just the target count or review metadata.
+  for (const object of proxies) {
+    const proxy = object as any;
+    expect(proxy.visible).toBe(true);
+    expect(proxy.isMesh).toBe(true);
+    expect(proxy.geometry.type).toBe('CylinderGeometry');
+    expect(proxy.geometry.parameters.radiusTop).toBeCloseTo(m5bVerticalDownspoutProxyRadius, 6);
+    expect(proxy.geometry.parameters.radiusBottom).toBeCloseTo(m5bVerticalDownspoutProxyRadius, 6);
+    expect(proxy.frustumCulled).toBe(false);
+    expect(proxy.renderOrder).toBe(2000);
+    expect(proxy.material.transparent).toBe(true);
+    expect(proxy.material.depthTest).toBe(false);
+    expect(proxy.material.depthWrite).toBe(false);
+    expect(proxy.userData.m5bReviewRenderableForm).toBe('THICK_VISIBLE_TUBE_PROXY');
+    expect(proxy.userData.m5bReviewVisibilityFix).toBe('R1074_DEPTH_TEST_OFF_THICK_MESH_PROXY');
+    expect(proxy.userData.presentationOnly).toBe(true);
+    expect(proxy.userData.workAssumption).toBe(true);
+    for (const flag of [
+      'exactXYClaim', 'exactZClaim', 'physicalRouteClaim',
+      'currentGeometryClaim', 'asBuiltClaim', 'Canonical', 'publishToCURRENT',
+    ]) {
+      expect(proxy.userData[flag]).toBe(false);
+    }
+  }
   expect((proxies[0] as any).material.opacity).toBe(m5bReviewTargetOpacity);
   expect((proxies[0] as any).userData.m5bReviewMeaning).toContain('Pystysuuntainen syöksyränni-proxy');
   expect((proxies[0] as any).userData.m5bReviewShortFacadeLateralFix).toBe(

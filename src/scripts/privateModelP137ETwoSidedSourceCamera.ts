@@ -1,4 +1,4 @@
-import { Box3, Vector3 } from 'three';
+import { Box3, OrthographicCamera, Vector3 } from 'three';
 import {
   p137eFocusedRootName,
   p137eFocusedSourceWallMeshIndex,
@@ -53,7 +53,7 @@ export function deriveP137ETwoFaceSourceCameras(
   humanReview: 'NOT_RUN';
   productionRenderVerified: false;
 }> {
-  fail(Number.isFinite(aspect) && aspect >= 0.5 && aspect <= 4,
+  fail(Number.isFinite(aspect) && aspect >= 0.4 && aspect <= 4,
     'camera viewport aspect');
   fail(focusedRoot?.name === p137eFocusedRootName &&
     focusedRoot?.userData?.Pass === 'P137E' &&
@@ -130,7 +130,12 @@ export function deriveP137ETwoFaceSourceCameras(
       normalNorth, face === 'NORTH' ? 0.65 : -0.65,
     );
     // Include the full two-device horizontal span, not the entire building.
-    const halfHeight = Math.max(0.36, size.y * 0.85,
+    // A narrow portrait viewport otherwise makes the original 94-mm Lobby
+    // housing exceed the max 96-pixel proof ROI, despite unchanged geometry.
+    // Expand the source-only orthographic frustum inversely with aspect;
+    // desktop framing and every source wall/device identity stay untouched.
+    const portraitHousingFloor = 0.36 / Math.min(aspect, 1);
+    const halfHeight = Math.max(0.36, portraitHousingFloor, size.y * 0.85,
       (size.x * 0.7) / aspect);
     fail(halfHeight <= 5 && [eye.x, eye.y, eye.z].every(Number.isFinite),
       'bounded source face camera');
@@ -153,5 +158,108 @@ export function deriveP137ETwoFaceSourceCameras(
     south: build('SOUTH'),
     humanReview: 'NOT_RUN' as const,
     productionRenderVerified: false as const,
+  });
+}
+
+
+/**
+ * Source-bound pixel ROIs for the actual three glTF device meshes, projected
+ * through the exact two-sided orthographic source camera descriptors.
+ * These are intended for FUTURE independently captured per-device
+ * before/hidden screenshots. No screenshot pixels are examined here.
+ */
+export function deriveP137ETwoFaceSourcePixelRegions(
+  focusedRoot: any,
+  width: number,
+  height: number,
+) {
+  fail(Number.isSafeInteger(width) && Number.isSafeInteger(height) &&
+    width >= 256 && height >= 256 && width <= 4096 && height <= 4096,
+  'bounded screenshot viewport');
+  const aspect = width / height;
+  const descriptors = deriveP137ETwoFaceSourceCameras(focusedRoot, aspect);
+  focusedRoot.updateMatrixWorld(true);
+  const devices = new Map<string, any>();
+  for (const child of focusedRoot.children) {
+    const id = child.userData?.logicalDeviceId;
+    if (typeof id === 'string') {
+      fail(!devices.has(id), 'unique actual source device geometry');
+      devices.set(id, child);
+    }
+  }
+
+  const projectFace = (face: 'NORTH' | 'SOUTH') => {
+    const view = face === 'NORTH' ? descriptors.north : descriptors.south;
+    const halfWidth = view.orthoHalfHeight * aspect;
+    const camera = new OrthographicCamera(
+      -halfWidth, halfWidth, view.orthoHalfHeight, -view.orthoHalfHeight,
+      0.01, 10,
+    );
+    camera.position.set(...view.eye);
+    camera.up.set(...view.up);
+    camera.lookAt(new Vector3(...view.target));
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld(true);
+    const project = (position: Vector3) => {
+      const ndc = position.clone().project(camera);
+      fail([ndc.x, ndc.y, ndc.z].every(Number.isFinite) &&
+        Math.abs(ndc.x) < 1 && Math.abs(ndc.y) < 1 &&
+        ndc.z >= -1 && ndc.z <= 1, 'source device outside real camera frame');
+      return { x: (ndc.x + 1) * (width - 1) / 2,
+        y: (1 - ndc.y) * (height - 1) / 2 };
+    };
+    const regions = view.sourceIds.map((logicalDeviceId) => {
+      const mesh = devices.get(logicalDeviceId);
+      fail(!!mesh, 'original scene67 source device mesh missing');
+      const box = new Box3().setFromObject(mesh);
+      fail(!box.isEmpty(), 'source device has no geometric bounds');
+      const center = project(box.getCenter(new Vector3()));
+      let furthestDistance = 0;
+      for (const x of [box.min.x, box.max.x]) {
+        for (const y of [box.min.y, box.max.y]) {
+          for (const z of [box.min.z, box.max.z]) {
+            const vertex = project(new Vector3(x, y, z));
+            furthestDistance = Math.max(furthestDistance,
+              Math.hypot(vertex.x - center.x, vertex.y - center.y));
+          }
+        }
+      }
+      const radius = Math.ceil(furthestDistance + 4);
+      const px = Math.round(center.x);
+      const py = Math.round(center.y);
+      fail(radius >= 4 && radius <= 96 &&
+        px - radius >= 0 && py - radius >= 0 &&
+        px + radius < width && py + radius < height,
+      'source mesh pixel ROI clipped or implausibly large');
+      return Object.freeze({ logicalDeviceId, x: px, y: py, radius });
+    });
+    for (let i = 0; i < regions.length; i++) {
+      for (let j = i + 1; j < regions.length; j++) {
+        const a = regions[i]!;
+        const b = regions[j]!;
+        fail((a.x - b.x) ** 2 + (a.y - b.y) ** 2 >
+          (a.radius + b.radius) ** 2,
+        'same-side source housing ROIs overlap');
+      }
+    }
+    return Object.freeze({
+      side: face,
+      cameraKey: 'P137E_SCENE67_P123C_' + face,
+      width,
+      height,
+      projectedTargets: Object.freeze(regions),
+      sourceOnly: true as const,
+      individualRenderedPixelsVerified: false as const,
+    });
+  };
+
+  return Object.freeze({
+    north: projectFace('NORTH'),
+    south: projectFace('SOUTH'),
+    sourceSceneIndex: 67 as const,
+    originalWallMesh: 406 as const,
+    expectedHousingCount: 3 as const,
+    actualProductionScreenshotVerified: false as const,
+    humanReview: 'NOT_RUN' as const,
   });
 }

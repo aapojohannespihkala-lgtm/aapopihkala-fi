@@ -329,22 +329,128 @@ const hasNoPromotionAndSourceSemantics = (object: any) => {
       String(data.sourceAnchorListSha256 ?? '') === p186eGroupAnchorListSha256 &&
       String(data.sourceBindingClass ?? '') ===
         'SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN' &&
-      String(data.annotationStableKey ?? '').length > 0 &&
-      String(data.sourceGroupKey ?? '').length > 0 &&
-      String(data.sourceScheduleName ?? '').length > 0
+      String(data.annotationStableKey ?? '').trim().length > 0 &&
+      String(data.sourceGroupKey ?? '').trim().length > 0 &&
+      String(data.sourceScheduleName ?? '').trim().length > 0
     );
   }
 
   if (kind === 'special') {
     return (
       String(data.sourceBindingListSha256 ?? '') === p186eSpecialAnchorListSha256 &&
-      String(data.sourceLabelId ?? '').length > 0 &&
-      String(data.sourceText ?? '').length > 0 &&
-      String(data.sourceSemantic ?? '').length > 0
+      String(data.sourceLabelId ?? '').trim().length > 0 &&
+      String(data.sourceText ?? '').trim().length > 0 &&
+      String(data.sourceSemantic ?? '').trim().length > 0
     );
   }
 
   return false;
+};
+
+// A label is an excerpt of the exact 2015 source mark, never a device name or XY measurement.
+export const getP186ESourceViewerCaption = (source: any): string | null => {
+  const data = source?.userData ?? {};
+  const kind = targetKind(source);
+  const raw = kind === 'group'
+    ? String(data.sourceGroupKey ?? '')
+    : kind === 'special'
+      ? String(data.sourceText ?? '')
+      : '';
+  const normalized = raw.trim().replace(/\s+/g, ' ');
+  if (!normalized) return null;
+  const excerpt = normalized.length > 30 ? normalized.slice(0, 29) + '…' : normalized;
+  return kind === 'group' ? 'Ryhmä ' + excerpt : excerpt;
+};
+
+const p186eSourceCaptionName = 'P186E_VIEW_ONLY_SOURCE_CAPTION';
+
+const addP186ESourceCaption = (source: any): boolean => {
+  if (typeof document === 'undefined') return false;
+  const caption = getP186ESourceViewerCaption(source);
+  if (!caption) return false;
+  const existing = source.children?.find((child: any) =>
+    child.name === p186eSourceCaptionName && child.userData?.p186eViewerSourceCaption === true,
+  );
+  if (existing) {
+    existing.visible = true;
+    return true;
+  }
+  const geometry = source.geometry;
+  if (!geometry?.attributes?.position) return false;
+  geometry.computeBoundingBox?.();
+  if (!geometry.boundingBox || geometry.boundingBox.isEmpty()) return false;
+  const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+  if (![center.x, center.y, center.z].every(Number.isFinite)) return false;
+  const canvas = document.createElement('canvas');
+  canvas.width = 640;
+  canvas.height = 96;
+  const context = canvas.getContext('2d');
+  if (!context) return false;
+  context.fillStyle = 'rgba(24,32,43,0.96)';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = '#ffe4a3';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.font = 'bold 34px system-ui, sans-serif';
+  context.fillText(caption, canvas.width / 2, canvas.height / 2, canvas.width - 28);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: texture, transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
+  }));
+  sprite.name = p186eSourceCaptionName;
+  sprite.position.copy(center).add(new THREE.Vector3(0, 0.17, 0));
+  sprite.scale.set(1.06, 0.16, 1);
+  sprite.renderOrder = 36;
+  sprite.frustumCulled = false;
+  sprite.userData = {
+    p186eViewerSourceCaption: true, viewerDerived: true, sourceAttached: true,
+    sourceCaptionDisplayText: caption,
+    presentationOnly: true, physicalPlacementClaim: false,
+    exactCurrentXYClaim: false, currentGeometryClaim: false,
+    asBuiltClaim: false, canonical: false, publishToCURRENT: false,
+    HUMAN_REVIEW: 'NOT_RUN',
+  };
+  source.add(sprite);
+  return true;
+};
+
+const p186eSourceCueName = 'P186E_VIEW_ONLY_SOURCE_LABEL_DOT';
+
+const addP186ESourceCue = (source: any): boolean => {
+  const existing = source.children?.find((child: any) => child.name === p186eSourceCueName);
+  if (existing) {
+    existing.visible = true;
+    return true;
+  }
+  const geometry = source.geometry;
+  if (!geometry?.attributes?.position) return false;
+  geometry.computeBoundingBox?.();
+  if (!geometry.boundingBox || geometry.boundingBox.isEmpty()) return false;
+  const localCenter = geometry.boundingBox.getCenter(new THREE.Vector3());
+  if (![localCenter.x, localCenter.y, localCenter.z].every(Number.isFinite)) return false;
+  const cue = new THREE.Points(
+    new THREE.BufferGeometry().setFromPoints([localCenter]),
+    new THREE.PointsMaterial({
+      color: 0xffd34d, size: 13, sizeAttenuation: false,
+      depthTest: false, depthWrite: false, transparent: true, opacity: 1,
+    }),
+  );
+  cue.name = p186eSourceCueName;
+  cue.renderOrder = 35;
+  cue.frustumCulled = false;
+  cue.userData = {
+    p186eViewOnlyCue: true,
+    sourceAttached: true,
+    physicalPlacementClaim: false,
+    exactCurrentXYClaim: false,
+    currentGeometryClaim: false,
+    asBuiltClaim: false,
+    canonical: false,
+    humanReview: 'NOT_RUN',
+  };
+  source.add(cue);
+  return true;
 };
 
 export const prepareP186EReviewPresentation = (
@@ -356,9 +462,12 @@ export const prepareP186EReviewPresentation = (
   let semanticViolationCount = 0;
   let groupTargetCount = 0;
   let specialTargetCount = 0;
+  const groupSourceKeys = new Set<string>();
+  const specialSourceKeys = new Set<string>();
 
   sceneRoot?.updateMatrixWorld?.(true);
   sceneRoot?.traverse?.((object: any) => {
+    if (object?.userData?.p186eViewOnlyCue === true) return;
     if (!isRenderable(object)) return;
     renderables.push(object);
     if (!isP186ETarget(object, variant)) return;
@@ -367,6 +476,19 @@ export const prepareP186EReviewPresentation = (
     const kind = targetKind(object);
     if (kind === 'group') groupTargetCount += 1;
     if (kind === 'special') specialTargetCount += 1;
+    // Historical label identity must be injective within the selected D floor.
+    // Counts alone can pass when one source label is duplicated and another is
+    // silently substituted. Never publish viewer cues for ambiguous source IDs.
+    if (kind === 'group' || kind === 'special') {
+      const sourceIdentity = String(kind === 'group'
+        ? object.userData?.annotationStableKey ?? ''
+        : object.userData?.sourceLabelId ?? '').trim();
+      const seen = kind === 'group' ? groupSourceKeys : specialSourceKeys;
+      if (sourceIdentity) {
+        if (seen.has(sourceIdentity)) semanticViolationCount += 1;
+        else seen.add(sourceIdentity);
+      }
+    }
     if (!hasNoPromotionAndSourceSemantics(object)) semanticViolationCount += 1;
   });
 
@@ -374,6 +496,7 @@ export const prepareP186EReviewPresentation = (
   let contextRenderableCount = 0;
   let hiddenNonQuestionRenderableCount = 0;
   let realWallContextRenderableCount = 0;
+  let viewerCaptionCount = 0;
   let suppressedHelperContextCount = 0;
   const contextRole = storeyContract[variant].contextRole;
 
@@ -439,7 +562,32 @@ export const prepareP186EReviewPresentation = (
     hiddenNonQuestionRenderableCount += 1;
   }
 
+  // Cue geometry is attached only to the verified historical source labels.
+  // It does not replace those source GL_LINES, measure a device or prove pixels.
+  const counts = p186eExpectedCounts[variant];
+  const sourceReady =
+    targetRenderableCount === counts.total &&
+    groupTargetCount === counts.group &&
+    specialTargetCount === counts.special &&
+    semanticViolationCount === 0 &&
+    realWallContextRenderableCount > 0;
+  let viewerCueCount = 0;
+  for (const target of targets) {
+    const existing = target.children?.find((child: any) => child.name === p186eSourceCueName);
+    if (existing) existing.visible = false;
+    const existingCaption = target.children?.find((child: any) =>
+      child.name === p186eSourceCaptionName && child.userData?.p186eViewerSourceCaption === true,
+    );
+    if (existingCaption) existingCaption.visible = false;
+    if (sourceReady && addP186ESourceCue(target)) {
+      viewerCueCount += 1;
+      if (addP186ESourceCaption(target)) viewerCaptionCount += 1;
+    }
+  }
+
   return {
+    viewerCueCount,
+    viewerCaptionCount,
     variant,
     targetRenderableCount,
     groupTargetCount,

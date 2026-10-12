@@ -51,6 +51,36 @@ const fixture = (): any => {
       currentGeometryClaim: false,
       asBuiltClaim: false,
       publishToCURRENT: false,
+      ...(kind === 'routeCyan' ? {
+        sourceDiameterCorrectionContract: 'G2_R1125',
+        pipeDiameterMmSource: key === 'G2_DRAIN_LINK_PVK_DISCHARGE_001' ||
+          key === 'G2_DRAIN_LINK_PVK_PARKING_001' ? null : 100,
+        pipeDiameterMmNominalSource: key === 'G2_DRAIN_LINK_PVK_DISCHARGE_001' ||
+          key === 'G2_DRAIN_LINK_PVK_PARKING_001' ? null : 100,
+        pipeMaterialSource: key === 'G2_DRAIN_LINK_PVK_DISCHARGE_001' ||
+          key === 'G2_DRAIN_LINK_PVK_PARKING_001' ? null : 'muovi',
+        ...(key === 'G2_DRAIN_LINK_PVK_DISCHARGE_001' ||
+            key === 'G2_DRAIN_LINK_PVK_PARKING_001'
+          ? {}
+          : { pipeDiameterMmSourceScope: 'AGGREGATE_SALAOJA_SYSTEM_NOT_INDIVIDUAL_ROUTE' }),
+        presentationDiameterMm: 100,
+        presentationDiameterRole: 'WORK_TEST_VISUAL_PROXY',
+        physicalDiameterPerRouteSourceVerified: false,
+        physicalDiameterAsBuiltClaim: false,
+        diameterIsPhysicalAsBuiltClaim: false,
+        physicalNominalDiameterStatus: key === 'G2_DRAIN_LINK_PVK_DISCHARGE_001' ||
+          key === 'G2_DRAIN_LINK_PVK_PARKING_001'
+          ? 'UNKNOWN'
+          : 'GENERAL_SALAOJA_SYSTEM_NOMINAL_CLASS_NOT_PER_BRANCH_MEASUREMENT',
+        pipeDiameterSourceRole: key === 'G2_DRAIN_LINK_PVK_DISCHARGE_001' ||
+          key === 'G2_DRAIN_LINK_PVK_PARKING_001'
+          ? 'PVK_SOURCE_DIAMETER_UNKNOWN_PRESENTATION_D100'
+          : 'SALAOJA_SYSTEM_NOMINAL_D100_NOT_INDIVIDUALLY_MEASURED',
+        pipeDiameterEvidence: key === 'G2_DRAIN_LINK_PVK_DISCHARGE_001' ||
+          key === 'G2_DRAIN_LINK_PVK_PARKING_001'
+          ? 'UNRESOLVED_PVK_BRANCH_DIAMETER_NOT_INDIVIDUALLY_SUPPORTED'
+          : '2026_REPORT_SALAOJA_SYSTEM_NOMINAL_D100_NOT_PER_ROUTE_AS_BUILT',
+      } : {}),
     };
     gltf.nodes.push({ name: 'SOURCE_' + index, mesh: index, extras });
     gltf.meshes.push({ primitives: [{
@@ -142,4 +172,59 @@ test('source ID cannot be relabeled as foreign or exact Z evidence', () => {
   const exactZ = fixture();
   exactZ.nodes[0].extras.exactZClaim = true;
   expect(() => inspectM5AR1125Scene63Source(exactZ)).toThrow(/unsafe source/);
+});
+
+test('all seven exact route IDs keep five nominal Ø100 and two unknown PVK source classes', () => {
+  const gltf = fixture();
+  const source = inspectM5AR1125Scene63Source(gltf);
+  expect(source.requiredCounts.routeCyan).toBe(7);
+  const routes = gltf.scenes[63].nodes.map((i: number) => gltf.nodes[i].extras)
+    .filter((x: { representationKind: string }) =>
+      x.representationKind === 'pipeDiameterPresentationWork');
+  expect(routes).toHaveLength(7);
+  expect(routes.filter((x: { pipeDiameterMmNominalSource: number | null }) =>
+    x.pipeDiameterMmNominalSource === 100)).toHaveLength(5);
+  expect(routes.filter((x: { physicalNominalDiameterStatus: string }) =>
+    x.physicalNominalDiameterStatus === 'UNKNOWN')).toHaveLength(2);
+  expect(routes.every((x: { presentationDiameterRole: string;
+    physicalDiameterPerRouteSourceVerified: boolean }) =>
+    x.presentationDiameterRole === 'WORK_TEST_VISUAL_PROXY' &&
+    x.physicalDiameterPerRouteSourceVerified === false)).toBe(true);
+});
+
+test('PVK source diameter cannot silently change from unknown to measured Ø100', () => {
+  for (const key of ['G2_DRAIN_LINK_PVK_DISCHARGE_001',
+    'G2_DRAIN_LINK_PVK_PARKING_001']) {
+    for (const mutation of [
+      { pipeDiameterMmSource: 100 },
+      { pipeDiameterMmNominalSource: 100 },
+      { physicalNominalDiameterStatus: 'GENERAL_SALAOJA_SYSTEM_NOMINAL_CLASS_NOT_PER_BRANCH_MEASUREMENT' },
+      { pipeDiameterSourceRole: 'SALAOJA_SYSTEM_NOMINAL_D100_NOT_INDIVIDUALLY_MEASURED' },
+      { pipeMaterialSource: 'muovi' },
+    ]) {
+      const gltf = fixture();
+      Object.assign(gltf.nodes[sourceKeys.indexOf(key)].extras, mutation);
+      expect(() => inspectM5AR1125Scene63Source(gltf))
+        .toThrow(/source diameter class\/proxy mismatch/);
+    }
+  }
+});
+
+test('five drainage route class values never become route measurements or as-built', () => {
+  const key = 'G2_DRAIN_LINK_PVK_SOK1_001';
+  for (const mutation of [
+    { physicalDiameterPerRouteSourceVerified: true },
+    { physicalDiameterAsBuiltClaim: true },
+    { diameterIsPhysicalAsBuiltClaim: true },
+    { pipeDiameterMmSource: null },
+    { pipeDiameterMmNominalSource: null },
+    { pipeDiameterMmSourceScope: 'INDIVIDUAL_SURVEYED_ROUTE' },
+    { presentationDiameterRole: 'MEASURED_PHYSICAL_DIAMETER' },
+    { presentationDiameterMm: 315 },
+  ]) {
+    const gltf = fixture();
+    Object.assign(gltf.nodes[sourceKeys.indexOf(key)].extras, mutation);
+    expect(() => inspectM5AR1125Scene63Source(gltf))
+      .toThrow(/source diameter class\/proxy mismatch/);
+  }
 });

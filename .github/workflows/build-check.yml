@@ -172,6 +172,13 @@ jobs:
           state="$(gh api "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.mergeable_state')"
 
           if [[ "$state" == "behind" ]]; then
+            # GitHub Actions GITHUB_TOKEN cannot refresh a stale PR that edits workflow files.
+            # Keep the gate closed and require an authorized GitHub branch update instead.
+            changed_pr_paths="$(gh api --paginate "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename')"
+            if grep -Eq '^\.github/workflows/' <<< "$changed_pr_paths"; then
+              echo "::error::This PR edits GitHub Actions workflows and is behind main. GITHUB_TOKEN cannot update workflow-file branches (403). Use the GitHub Update branch action with an authorized identity; then CI will re-run." >&2
+              exit 1
+            fi
             gh api --method PUT \
               "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/update-branch" \
               --raw-field expected_head_sha="$HEAD_SHA"

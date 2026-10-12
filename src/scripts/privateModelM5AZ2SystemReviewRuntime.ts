@@ -342,6 +342,33 @@ export const selectM5AR1125SourceBoundReviewScene = (gltf: any) => {
   ) {
     throw new Error('M5A R1125 must have exactly five salaoja nominal classes and two unknown PVK routes');
   }
+  // Human-readable viewer metadata ONLY after every original source route has
+  // passed the exact 5+2 diameter classification gate above. A 100 mm cylinder
+  // is a WORK_TEST visual proxy, never a physical per-route measurement.
+  const diameterReviewLabels = [
+    ...Array.from(m5aR1125FiveSalAOjaIds, (sourceId) => ({
+      sourceId,
+      label: 'Salaojaputkiston yleinen nimelliskokoluokka Ø100 mm; reittiä ei mitattu erikseen',
+      sourceClass: 'GENERAL_SALAOJA_NOMINAL_NOT_PER_ROUTE_MEASURED',
+      generalSystemNominalMm: 100,
+      physicalDiameterMm: null,
+      presentationDiameterMm: 100,
+      presentationRole: 'WORK_TEST_VISUAL_PROXY',
+      physicalMeasurementVerified: false,
+      asBuiltClaim: false,
+    })),
+    ...Array.from(m5aR1125UnknownPvkIds, (sourceId) => ({
+      sourceId,
+      label: 'PVK-haaran todellinen halkaisija tuntematon; Ø100 mm vain 3D-työesityksessä',
+      sourceClass: 'PVK_SOURCE_DIAMETER_UNKNOWN',
+      generalSystemNominalMm: null,
+      physicalDiameterMm: null,
+      presentationDiameterMm: 100,
+      presentationRole: 'WORK_TEST_VISUAL_PROXY',
+      physicalMeasurementVerified: false,
+      asBuiltClaim: false,
+    })),
+  ];
   return {
     scene,
     sourceDriveId: m5aR1125SourceDriveId,
@@ -349,6 +376,7 @@ export const selectM5AR1125SourceBoundReviewScene = (gltf: any) => {
     sourceContract: 'G2_R1125',
     salaojaNominalSystemCount,
     pvkUnknownCount,
+    diameterReviewLabels,
     physicalMeasurementsVerified: false,
     humanReview: 'NOT_RUN',
   };
