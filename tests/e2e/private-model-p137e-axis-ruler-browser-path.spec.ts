@@ -142,9 +142,12 @@ test('actual viewer ruler stays temporary on leaving D plan and changing tools',
     }));
   await page.goto('/private-model/');
   const canvas = page.locator('#private-model-canvas');
+  const measureButton = page.locator('#axis-measure-tool-button');
+  await expect(measureButton).toBeDisabled();
   await page.locator('#preset-menu summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(canvas).toHaveAttribute('data-view-preset', 'd-plan');
+  await expect(measureButton).toBeEnabled();
   await page.locator('#axis-measure-tool-button').click();
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
@@ -166,6 +169,9 @@ test('actual viewer ruler stays temporary on leaving D plan and changing tools',
   await wholeBuildingButton.click();
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'whole-building');
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'navigate');
+  await expect(measureButton).toBeDisabled();
+  await expect(measureButton).toHaveAttribute('aria-pressed', 'false');
   await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\d/);
 });
 
