@@ -226,7 +226,7 @@ test('authenticated two-face screenshot artifacts require source-bound 1N + 2S r
   expect(workflow).toContain("const southSourceRois = validateProjectedSourceRois(south, 'SOUTH', [");
   expect(workflow).toContain("projectedSourceHousingRois: { north:northSourceRois, south:southSourceRois }");
   expect(workflow).toContain("projectedRoisAreNotIndividualPixelProof:true");
-  expect(workflow).toContain("threeIndividualThemoHousingPixelsVerified:false");
+  expect(workflow).toContain('p137eThreeHousingPixelEvidence.threeDistinctSourceHousingsVerifiedInThisProductionExecution');
   expect(workflow).toContain("actualProductionTwoFaceScreenshotsCaptured:true");
   expect(workflow).toContain("humanReview:'NOT_RUN',publishToCURRENT:false");
 });
@@ -252,4 +252,53 @@ test('production P137E opens the real closed View menu for each two-face button,
   expect(toNorth).toBeGreaterThan(secondOpen);
   expect(workflow).toContain("const viewMenu = page.locator('#view-menu');");
   expect(workflow).toContain("if (!await viewMenu.evaluate((menu) => menu.open))");
+});
+
+test('actual production screenshot isolates each of three original Themo housings from the same auth-bound GLB', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const loaded = workflow.indexOf('const viewerNetworkAsset = inspectP137EScene67PublishedGlb(');
+  const sourceRois = workflow.indexOf('const northSourceRois = validateProjectedSourceRois(');
+  const probe = workflow.indexOf('const captureSourceHousingPixels = async (side, baselinePng, sourceRois) => {');
+  const north = workflow.indexOf("const northHousingPixels = await captureSourceHousingPixels(");
+  const toSouth = workflow.indexOf('await southButton.click();', north);
+  const southCapture = workflow.indexOf("path: 'playwright-artifacts/p137e-scene67-south.png'", toSouth);
+  const south = workflow.indexOf("const southHousingPixels = await captureSourceHousingPixels(", southCapture);
+  const toNorth = workflow.indexOf('await northButton.click();', south);
+  expect(loaded).toBeGreaterThan(-1);
+  expect(sourceRois).toBeGreaterThan(loaded);
+  expect(probe).toBeGreaterThan(sourceRois);
+  expect(north).toBeGreaterThan(probe);
+  expect(toSouth).toBeGreaterThan(north);
+  expect(southCapture).toBeGreaterThan(toSouth);
+  expect(south).toBeGreaterThan(southCapture);
+  expect(toNorth).toBeGreaterThan(south);
+  expect(workflow).toContain("window.dispatchEvent(new CustomEvent('p137e-scene67-housing-probe'");
+  expect(workflow).toContain('sourceRois.projectedTargets.find(');
+  expect(workflow).toContain("state.state !== 'SOURCE_ONLY_UNVERIFIED_PIXELS'");
+  expect(workflow).toContain('state.hiddenId !== id');
+  expect(workflow).toContain('pixels.inside < 48 || pixels.outside !== 0');
+  expect(workflow).toContain('pixels.total !== 0');
+  expect(workflow).toContain('restoredDiff.total !== 0');
+  expect(workflow).toContain('if ((a.x-b.x)**2 + (a.y-b.y)**2 <= (a.radius+b.radius)**2)');
+});
+
+test('per-device production PNGs require decoded real RGBA changes, zero ghost pixels and no approval promotion', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const start = workflow.indexOf('const compareHousingPngRgba = async');
+  const end = workflow.indexOf('// SOUTH click closed <details>', start);
+  expect(start).toBeGreaterThan(-1);
+  expect(end).toBeGreaterThan(start);
+  const block = workflow.slice(start, end);
+  expect(block).toContain("img.src = url; await img.decode()");
+  expect(block).toContain("ctx.getImageData(0, 0, surface.width, surface.height).data");
+  expect(block).toContain("Math.abs(a.rgba[k + c] - b.rgba[k + c]) >= 20");
+  expect(block).toContain('region.radius ** 2');
+  expect(block).toContain('for (const id of allHousingIds)');
+  expect(block).toContain('const restoredPng = await page.screenshot({');
+  expect(block).toContain('threeDistinctSourceHousingsVerifiedInThisProductionExecution: true');
+  expect(block).toContain('syntheticFixture: false');
+  expect(block).toContain("humanReview: 'NOT_RUN'");
+  expect(block).toContain('publishToCURRENT: false');
+  expect(block).toContain('p137e-scene67-three-housing-rgba.json');
+  expect(workflow).not.toContain('HUMAN_REVIEW: PASS');
 });
