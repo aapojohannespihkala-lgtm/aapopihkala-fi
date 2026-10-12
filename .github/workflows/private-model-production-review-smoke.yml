@@ -390,7 +390,7 @@ jobs:
           import { detectM5BR1109CyanLocatorComponents } from './src/scripts/privateModelR1109CyanLocatorProof.mjs';
           import { detectP186FX4CyanTargetComponents, detectP186FX4OriginalGreenWallPixels } from './src/scripts/privateModelP186FX4CyanPixelProof.mjs';
           import { buildM5AR1125BrowserScreenshotProofExpression } from './src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs';
-          import { inspectP137EScene67ProductionSmoke } from './src/scripts/privateModelP137EScene67ProductionSmokeGuard.mjs';
+          import { inspectP137EScene67ProductionSmoke, inspectP137EScene67PublishedGlb, P137E_SCENE67_PRODUCTION_GLB_URL } from './src/scripts/privateModelP137EScene67ProductionSmokeGuard.mjs';
 
           const reviewBaseUrl = process.env.REVIEW_BASE_URL;
           const reviewId = process.env.REVIEW_ID;
@@ -527,6 +527,38 @@ jobs:
               fs.writeFileSync(
                 'playwright-artifacts/p137e-scene67-source-metadata.json',
                 JSON.stringify(p137eScene67SourceEvidence, null, 2),
+              );
+            }
+
+            // In the SAME authenticated browser context as the canvas, request
+            // the fixed original scene67 WORK_TEST asset again without cache.
+            // Only exact HTTP 200 + full bytes + cryptographic digest can pass.
+            // This still does not prove three individually rendered housings.
+            let p137eScene67AssetEvidence = null;
+            if (p137eScene67SourceEvidence) {
+              const assetResponse = await page.evaluate(async (assetUrl) => {
+                const response = await fetch(assetUrl, {
+                  cache: 'no-store',
+                  credentials: 'same-origin',
+                });
+                const buffer = await response.arrayBuffer();
+                const shaBytes = new Uint8Array(
+                  await crypto.subtle.digest('SHA-256', buffer),
+                );
+                return {
+                  url: response.url,
+                  status: response.status,
+                  byteLength: buffer.byteLength,
+                  sha256: Array.from(shaBytes, (b) =>
+                    b.toString(16).padStart(2, '0')).join(''),
+                };
+              }, P137E_SCENE67_PRODUCTION_GLB_URL);
+              p137eScene67AssetEvidence = inspectP137EScene67PublishedGlb(
+                reviewId, candidateId, assetResponse,
+              );
+              fs.writeFileSync(
+                'playwright-artifacts/p137e-scene67-exact-production-glb.json',
+                JSON.stringify(p137eScene67AssetEvidence, null, 2),
               );
             }
 
@@ -912,6 +944,7 @@ jobs:
                   m5bPixelEvidence,
                   m5aR1125PixelEvidence,
                   p137eScene67SourceEvidence,
+                  p137eScene67AssetEvidence,
                   thresholds: {
                     minNonBackgroundPixels,
                     minChangedPixels,
@@ -937,6 +970,7 @@ jobs:
                 m5bPixelEvidence,
                 m5aR1125PixelEvidence,
                 p137eScene67SourceEvidence,
+                p137eScene67AssetEvidence,
                 thresholds: {
                   minNonBackgroundPixels,
                   minChangedPixels,
