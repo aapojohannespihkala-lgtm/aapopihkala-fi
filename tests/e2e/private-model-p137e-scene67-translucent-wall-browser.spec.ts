@@ -1,4 +1,5 @@
 import {expect,test} from '@playwright/test';
+import { installScene67SyntheticDigest, padScene67SyntheticGlb, routeScene67SyntheticHttpsAssets, SYNTHETIC_SCENE67_ORIGIN } from './p137eScene67SyntheticBrowserHarness';
 // Synthetic reuse of verified source identities; NOT the original GLB.
 const candidateId = 'p137e-d1f-three-wall-mounted-themos';
 const reviewId = candidateId + '-review';
@@ -164,12 +165,14 @@ const makeScene67Glb = () => {
 test('synthetic transparent source wall preserves three independent THREE housing pixel deltas', async ({page}) => {
   test.setTimeout(60_000);
   await page.setViewportSize({width:1536,height:768});
-  const glb=makeScene67Glb();
+  const glb=padScene67SyntheticGlb(makeScene67Glb());
+  await installScene67SyntheticDigest(page);
+  await routeScene67SyntheticHttpsAssets(page);
   await page.route('**/private-model/model.glb',r=>r.fulfill({status:200,contentType:'model/gltf-binary',body:glb}));
   await page.route('**/private-model/work-test/catalog.json',r=>r.fulfill({status:200,contentType:'application/json',
     body:JSON.stringify({candidates:[{id:candidateId,path:candidatePath,label:'synthetic alpha 0.38 wall'}]})}));
   await page.route('**'+candidatePath,r=>r.fulfill({status:200,contentType:'model/gltf-binary',body:glb}));
-  await page.goto('/private-model/?review='+reviewId);
+  await page.goto(SYNTHETIC_SCENE67_ORIGIN + '/private-model/?review='+reviewId);
   const canvas=page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-work-test-review-mode',reviewId,{timeout:20000});
   await expect(canvas).toHaveAttribute('data-p137e-wall-mounted-themo-count','3');
