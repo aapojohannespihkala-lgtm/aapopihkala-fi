@@ -170,7 +170,7 @@ test('production workflow captures the original GLB during viewer autoload befor
   const capture = workflow.indexOf("page.on('response', (response) => {");
   const navigation = workflow.indexOf("await page.goto(reviewUrl, {");
   const snap = workflow.indexOf('const duringViewerAutoload = [...p137eViewerAutoloadResponses]');
-  const refetch = workflow.indexOf('const assetResponse = await page.evaluate(async (assetUrl) => {');
+  const refetch = workflow.indexOf('const assetResponse = await withGlbDeadline(page.evaluate(async (assetUrl) => {');
   expect(capture).toBeGreaterThan(-1);
   expect(navigation).toBeGreaterThan(capture);
   expect(snap).toBeGreaterThan(navigation);
@@ -179,6 +179,31 @@ test('production workflow captures the original GLB during viewer autoload befor
   expect(workflow).toContain("response.url() === P137E_SCENE67_PRODUCTION_GLB_URL");
   expect(workflow).toContain('viewerResponse.finished()');
   expect(workflow).toContain('viewerResponse.body()');
+});
+
+test('unfinished production GLB autoload leaves safe stages and fail-closed separate diagnostic', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const responseStart = workflow.indexOf('const viewerResponse = duringViewerAutoload[0]');
+  const byteGate = workflow.indexOf('const viewerGlbBytes = await withGlbDeadline(', responseStart);
+  expect(responseStart).toBeGreaterThan(-1);
+  expect(byteGate).toBeGreaterThan(responseStart);
+  const stages = workflow.slice(responseStart, byteGate);
+  expect(stages).toContain("recordGlbResponseStage('HEADERS_RECEIVED')");
+  expect(stages).toContain("recordGlbResponseStage('AUTOLOAD_INCOMPLETE', diagnostic)");
+  expect(stages).toContain('viewerResponse.finished()');
+  expect(stages).toContain("withGlbDeadline(page.evaluate(async (assetUrl) => {");
+  expect(stages).toContain('}, P137E_SCENE67_PRODUCTION_GLB_URL)');
+  expect(stages).toContain("const timer = setTimeout(() => controller.abort(), 10_000)");
+  expect(stages).toContain("exactAssetUrlMatched: viewerResponse.url() === P137E_SCENE67_PRODUCTION_GLB_URL");
+  expect(stages).toContain("contentType: glbHeaders['content-type'] ?? null");
+  expect(stages).toContain("contentLength: glbHeaders['content-length'] ?? null");
+  expect(stages).toContain('viewerAutoloadNetworkResponseVerified: false');
+  expect(stages).toContain('individualDevicePixelsVerified: false');
+  expect(stages).toContain("humanReview: 'NOT_RUN'");
+  expect(stages).toContain('publishToCURRENT: false');
+  expect(stages).toContain('throw error;');
+  expect(stages).not.toContain("glbHeaders['set-cookie']");
+  expect(stages).not.toContain("glbHeaders['authorization']");
 });
 
 test('viewer autoload evidence requires exact sha and never asserts device pixels or canvas byte equality', () => {
@@ -495,4 +520,38 @@ test('prefilled dispatch cannot reduce either production pixel hard floor', () =
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('cannot be lower than hard floor');
   }
+});
+
+
+test('manual production dispatch cannot be preempted by secretless pull-request checks', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const scheduling = workflow.split('\nconcurrency:\n')[1]?.split('\njobs:\n')[0];
+  expect(scheduling).toBeDefined();
+  expect(scheduling).toContain(
+    "group: private-model-production-review-smoke-${{ github.event_name }}-${{ github.ref }}");
+  expect(scheduling).toContain(
+    "cancel-in-progress: ${{ github.event_name == 'pull_request' }}");
+  expect(scheduling).not.toMatch(/^  group: private-model-production-review-smoke$/m);
+  expect(workflow).toContain("if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'");
+  expect(workflow).toContain("if: github.event_name == 'pull_request'");
+});
+
+test('production scene67 original GLB proof fails closed on stalled network/body instead of job timeout', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const source = workflow.split('      - name: Verify exact autoload and rendered production canvas')[1];
+  expect(source).toBeDefined();
+  expect(source).toContain('const withGlbDeadline = async (promise, stage) =>');
+  expect(source).toContain("viewerResponse.finished(), 'autoload response completion'");
+  expect(source).toContain("viewerResponse.body(), 'autoload response bytes'");
+  expect(source).toContain("45_000");
+  expect(source).toContain('signal: controller.signal,');
+  expect(source).toContain("controller.abort()");
+  expect(source).toContain("'independent no-cache fetch'");
+  expect(source).toContain("inspectP137EScene67PublishedGlb(");
+  expect(source).toContain("p137e-scene67-exact-production-glb.json");
+  expect(source).toContain("p137e-scene67-viewer-autoload-glb.json");
+  expect(source).toContain("individualDevicePixelsVerified: false");
+  expect(workflow).toContain("MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR: '1500'");
+  expect(workflow).toContain("MIN_CHANGED_PIXELS_HARD_FLOOR: '750'");
+  expect(workflow).not.toContain('HUMAN_REVIEW: PASS');
 });
