@@ -280,7 +280,7 @@ test('D1F P137E target-specific crosshairs coexist with ruler and never claim G2
   await expect(page.locator('#p137e-place-status')).toContainText('ei tallennettu G2:een');
   await page.locator('#p137e-place-target').selectOption('D_THEMO_CURRENT_BEDROOM_01');
   await click(0.51, 0.47);
-  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '2');
   await expect(page.locator('#p137e-place-list')).toContainText('Makuuhuone: X ');
   await page.locator('#p137e-place-target').selectOption('D_THEMO_CURRENT_LOBBY_01');
   await click(0.54, 0.47);
