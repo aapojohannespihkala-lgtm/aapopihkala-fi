@@ -3076,6 +3076,11 @@ const title = 'Private 3D viewer';
           clearDCoordinateAnchor();
           clearDAxisMeasurement();
         }
+        // A D1F position must not stay active or visible after changing floors.
+        if (floor !== '1F' || floorChanged) {
+          clearP137EPlaceDraft();
+          if (canvas.dataset.interactionMode === 'place') setViewerToolMode('navigate');
+        }
         axisMeasureToolButton.disabled = !isAxisMeasureAvailable(floor, activeCamera === planCamera);
         p137ePlaceToolButton.disabled = !canStartP137EPlaceDraft();
       };
@@ -5973,6 +5978,7 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p137eLoadedCandidateId;
         p137ePlaceToolButton.disabled = true;
         clearP137EPlaceDraft();
+        if (canvas.dataset.interactionMode === 'place') setViewerToolMode('navigate');
         const loader = new GLTFLoader();
         status.textContent = 'Ladataan suojattua mallia...';
 
@@ -8933,6 +8939,7 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p137eLoadedCandidateId;
         p137ePlaceToolButton.disabled = true;
         clearP137EPlaceDraft();
+        if (canvas.dataset.interactionMode === 'place') setViewerToolMode('navigate');
         let loadFailurePhase: WorkTestLoadFailurePhase = 'gltf-load-failed';
         delete canvas.dataset.workTestLoadState;
         delete canvas.dataset.workTestLoadFailurePhase;
