@@ -87,3 +87,19 @@ test('P137E route does not alter older X4 or salaoja scene routing', () => {
   expect(runtime).toContain('selectM5AR1125SourceBoundReviewScene(gltf)');
   expect(runtime).toContain("p186fHumanReview: 'NOT_RUN'");
 });
+
+test('source-bound scene67 top plan shares the same viewer as wall-side review without synthetic footprint', () => {
+  const a = runtime.indexOf('const applyP137EScene67TopPlan = () => {');
+  const b = runtime.indexOf('const applyP137EScene67ReviewState = () => {', a);
+  expect(a).toBeGreaterThan(0);
+  expect(b).toBeGreaterThan(a);
+  const plan = runtime.slice(a, b);
+  expect(plan).toContain('modelRoot.children[0] !== fullModelScene');
+  expect(plan).toContain('setModelScene(fullModelScene)');
+  expect(plan).toContain('fitPlanCamera()');
+  expect(plan).toContain("activateDCoordinateReview('1F')");
+  expect(plan).toContain("p137eReviewCameraMode = 'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP'");
+  expect(plan).not.toContain('referenceFootprint');
+  expect(plan).not.toContain('currentGeometry: true');
+  expect(runtime).toContain("p137eLoadedCandidateId !== p137eScene67CandidateId");
+});
