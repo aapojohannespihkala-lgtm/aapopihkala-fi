@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Route } from '@playwright/test';
+import type { PlacementReviewHandoff } from '../../src/scripts/privateModelReviewPlacementDraft';
 
 // Synthetic glTF fixture, never an original 3D survey or production pixel proof.
 // Its node identities and no-promotion metadata match the scene67 source contract.
@@ -354,7 +355,7 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
 });
 
 
-test('simulated HTTPS viewer performs native-G2-shaped POST and two separate readbacks without promotion', async ({ page }) => {
+test('simulated HTTPS viewer saves all three Themos with distinct records and two readbacks each', async ({ page }) => {
   // This is an end-to-end browser interaction against an entirely mocked
   // HTTPS origin. It is NOT a production release, real Access identity,
   // Google Docs write, original scene67 pixel proof or HUMAN_REVIEW approval.
@@ -364,9 +365,8 @@ test('simulated HTTPS viewer performs native-G2-shaped POST and two separate rea
   const origin = 'https://p137e-review.test';
   const source = 'http://127.0.0.1:4321';
   const glb = makeScene67Glb();
-  const recordId = 'P137E_G2_browser_simulation_20261012';
   const calls: string[] = [];
-  let durablePayload: unknown = null;
+  const records = new Map<string, PlacementReviewHandoff>();
 
   // Serve the actual built viewer from the local Playwright webServer while
   // giving its browser document an HTTPS origin. Nothing reaches a real
@@ -398,6 +398,7 @@ test('simulated HTTPS viewer performs native-G2-shaped POST and two separate rea
     'D_THEMO_CURRENT_BEDROOM_01',
     'D_THEMO_CURRENT_BATHROOM_01',
   ];
+  const themoIds = targetIds.slice(2);
   const api = origin + '/private-model/review-placement/g2';
   await page.route(api + '/targets', route => {
     calls.push('TARGETS');
@@ -414,17 +415,23 @@ test('simulated HTTPS viewer performs native-G2-shaped POST and two separate rea
     });
   });
   await page.route(api + '/observations', async route => {
-    calls.push('POST');
     expect(route.request().method()).toBe('POST');
-    const requestBody = route.request().postDataJSON();
-    durablePayload = requestBody.payload;
+    const durablePayload = route.request().postDataJSON().payload as PlacementReviewHandoff;
+    const targetId = themoIds[records.size];
+    const recordId = 'P137E_G2_browser_simulation_' + (records.size + 1) + '_20261012';
+    calls.push('POST:' + targetId);
     expect(durablePayload).toMatchObject({
       kind: 'P137E_G2_REVIEW_OBSERVATION',
       stage: 'WORK_TEST_ONLY',
       persisted: false, humanReview: 'NOT_RUN',
       currentGeometry: false, canonical: false, asBuilt: false,
-      anchor: { targetId: 'D_THEMO_CURRENT_BATHROOM_01', floor: '1F' },
+      anchor: { targetId, floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL', exactXY: false },
+      observation: { noteRaw: 'Testihavainto ' + targetId + ', vain WORK_TEST.' },
+      resolution: { status: 'UNMAPPED', proposal: null },
     });
+    expect(Number.isFinite(durablePayload.anchor.xM)).toBe(true);
+    expect(Number.isFinite(durablePayload.anchor.yM)).toBe(true);
+    records.set(recordId, durablePayload);
     return route.fulfill({
       status: 200, contentType: 'application/json',
       body: JSON.stringify({
@@ -433,10 +440,12 @@ test('simulated HTTPS viewer performs native-G2-shaped POST and two separate rea
       }),
     });
   });
-  await page.route(api + '/observations/' + recordId, route => {
-    calls.push('GET');
+  await page.route(api + '/observations/*', route => {
+    const recordId = new URL(route.request().url()).pathname.split('/').pop()!;
+    calls.push('GET:' + recordId);
     expect(route.request().method()).toBe('GET');
-    expect(durablePayload).not.toBeNull();
+    expect(records.has(recordId)).toBe(true);
+    const durablePayload = records.get(recordId);
     return route.fulfill({
       status: 200, contentType: 'application/json',
       body: JSON.stringify({ recordId, payload: durablePayload }),
@@ -452,11 +461,14 @@ test('simulated HTTPS viewer performs native-G2-shaped POST and two separate rea
   await page.locator('#p137e-plan-face-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-scene67-top-plan-tools-ready', 'true');
   await page.locator('#p137e-place-tool-button').click();
-  await page.locator('#p137e-place-target').selectOption('D_THEMO_CURRENT_BATHROOM_01');
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
-  await page.mouse.click(box!.x + box!.width * 0.65, box!.y + box!.height * 0.49);
-  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '1');
+  for (const [i, targetId] of themoIds.entries()) {
+    await page.locator('#p137e-place-target').selectOption(targetId);
+    await page.mouse.click(box!.x + box!.width * (0.55 + i * 0.05),
+      box!.y + box!.height * 0.49);
+    await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', String(i + 1));
+  }
 
   await page.locator('#p137e-g2-check').click();
   await expect(page.locator('#p137e-g2-status')).toContainText(
@@ -464,18 +476,141 @@ test('simulated HTTPS viewer performs native-G2-shaped POST and two separate rea
   );
   const note = page.locator('#p137e-review-placement-note');
   await expect(note).toBeVisible();
-  await note.fill('Testihavainto: Bathroom, vain WORK_TEST. Ei mitattu seinähost.');
-  await page.getByRole('button', { name: 'Tallenna havainto' }).click();
-  await expect(page.locator('[data-review-placement-status="persisted"]')).toBeVisible();
-  await expect(page.locator('[data-review-placement-status="persisted"]')).toContainText(
-    'Havainto tallennettu ja varmennettu G2:sta.',
-  );
+  for (const targetId of themoIds) {
+    await page.locator('#p137e-place-target').selectOption(targetId);
+    await expect(page.locator('[data-review-placement-status="draft"]'))
+      .toContainText('Kohde: ' + targetId);
+    await expect(note).toHaveValue('');
+    await note.fill('Testihavainto ' + targetId + ', vain WORK_TEST.');
+    await page.getByRole('button', { name: 'Tallenna havainto' }).click();
+    await expect(page.locator('[data-review-placement-status="persisted"]')).toBeVisible();
+    await expect(page.locator('[data-review-placement-status="persisted"]')).toContainText(
+      'Havainto tallennettu ja varmennettu G2:sta.',
+    );
+    await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
+  }
 
   // Client-side persistence cannot pass on a POST echo: real browser code
   // must make one independent GET, and the UI adapter makes a second one.
-  expect(calls).toEqual(['TARGETS', 'POST', 'GET', 'GET']);
+  expect(records.size).toBe(3);
+  expect(calls).toEqual(['TARGETS', ...themoIds.flatMap((targetId, i) => {
+    const recordId = 'P137E_G2_browser_simulation_' + (i + 1) + '_20261012';
+    return ['POST:' + targetId, 'GET:' + recordId, 'GET:' + recordId];
+  })]);
+  const payloads = [...records.values()];
+  expect(payloads.map(payload => payload.anchor.targetId)).toEqual(themoIds);
+  expect(new Set(payloads.map(payload => payload.anchor.xM + ',' + payload.anchor.yM)).size)
+    .toBe(3);
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
+  await expect(canvas).toHaveAttribute('data-p137e-human-review', 'NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-p137e-current-claim', 'false');
+  expect(payloads.every(payload => payload.persisted === false &&
+    payload.humanReview === 'NOT_RUN' && !payload.currentGeometry &&
+    !payload.canonical && !payload.asBuilt)).toBe(true);
+});
+
+
+test('simulated HTTPS viewer recovers a stalled independent G2 readback without claiming persistence', async ({ page }) => {
+  // Use the actual built viewer and its default 30-second client deadline.
+  // All HTTPS APIs and geometry are synthetic. No native G2 is contacted.
+  test.setTimeout(75_000);
+  await page.setViewportSize({ width: 1536, height: 768 });
+  const origin = 'https://p137e-timeout.test';
+  const source = 'http://127.0.0.1:4321';
+  const glb = makeScene67Glb();
+  const recordId = 'P137E_G2_browser_timeout_20261012';
+  const targetId = 'D_THEMO_CURRENT_LOBBY_01';
+  const noteText = 'Aulan testihuomio säilyy, kun takaisinluku katkeaa.';
+  const calls: string[] = [];
+  let postedPayload: PlacementReviewHandoff | undefined;
+  let stalledReadback: Route | undefined;
+  let readbackAborted = false;
+  const api = origin + '/private-model/review-placement/g2';
+
+  await page.route(origin + '/**', async route => {
+    const u = new URL(route.request().url());
+    const response = await route.fetch({ url: source + u.pathname + u.search });
+    await route.fulfill({ response });
+  });
+  await page.route(origin + '/private-model/model.glb', route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
+  await page.route(origin + '/private-model/work-test/catalog.json', route =>
+    route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId,
+        label: 'P137E synthetic timeout fixture', path: candidatePath }] }) }));
+  await page.route(origin + candidatePath, route =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
+  await page.route(api + '/targets', route => {
+    calls.push('TARGETS');
+    return route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ status: 'WORK_TEST_TARGETS_ONLY',
+        documentRevision: 'SIMULATED_TIMEOUT_NOT_NATIVE_G2',
+        targets: ['D1F_USER_CURRENT_DOOR_A', 'D1F_USER_CURRENT_DOOR_B',
+          'D_THEMO_CURRENT_LOBBY_01', 'D_THEMO_CURRENT_BEDROOM_01',
+          'D_THEMO_CURRENT_BATHROOM_01'].map(id => ({
+          targetId: id, approvedWallHosts: [], currentGeometry: false,
+          canonical: false, asBuilt: false, exactXY: false,
+        })) }) });
+  });
+  await page.route(api + '/observations', route => {
+    calls.push('POST');
+    expect(route.request().method()).toBe('POST');
+    postedPayload = route.request().postDataJSON().payload as PlacementReviewHandoff;
+    expect(postedPayload).toMatchObject({
+      anchor: { targetId, floor: '1F' }, observation: { noteRaw: noteText },
+      persisted: false, humanReview: 'NOT_RUN', currentGeometry: false,
+      canonical: false, asBuilt: false,
+    });
+    return route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ receipt: { status: 'PERSISTED_TO_EXISTING_G2', recordId },
+        readback: { recordId, payload: postedPayload } }) });
+  });
+  await page.route(api + '/observations/' + recordId, route => {
+    calls.push('GET');
+    expect(route.request().method()).toBe('GET');
+    stalledReadback = route;
+    // Deliberately leave the request unanswered. The browser's real client
+    // must abort it and release the UI without a POST retry or fake success.
+  });
+  page.on('requestfailed', request => {
+    if (request.url() === api + '/observations/' + recordId) readbackAborted = true;
+  });
+
+  await page.goto(origin + '/private-model/?review=' + reviewId);
+  const canvas = page.locator('#private-model-canvas');
+  await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId, { timeout: 20_000 });
+  await page.locator('#view-menu > summary').click();
+  await page.locator('#p137e-plan-face-button').click();
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-top-plan-tools-ready', 'true');
+  await page.locator('#p137e-place-tool-button').click();
+  await page.locator('#p137e-place-target').selectOption(targetId);
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.click(box!.x + box!.width * 0.55, box!.y + box!.height * 0.49);
+  await page.locator('#p137e-g2-check').click();
+  await expect(page.locator('#p137e-g2-status')).toContainText('G2:n kolme nykylaiteidentiteettiä');
+  const note = page.locator('#p137e-review-placement-note');
+  await note.fill(noteText);
+  const save = page.getByRole('button', { name: 'Tallenna havainto' });
+  await save.click();
+  await expect(page.locator('[data-review-placement-status="persisting"]')).toBeVisible();
+  await expect(save).toBeDisabled();
+  await expect.poll(() => calls).toEqual(['TARGETS', 'POST', 'GET']);
+
+  await expect(page.locator('[data-review-placement-status="draft"]')).toContainText(
+    'Tallennus ei varmistunut. Tarkista tila ennen uutta yritystä.', { timeout: 35_000 },
+  );
+  await expect.poll(() => readbackAborted).toBe(true);
+  await expect(save).toBeEnabled();
+  await expect(note).toHaveValue(noteText);
+  await expect(page.locator('[data-review-placement-status="draft"]')).toContainText('Kohde: ' + targetId);
+  await expect(page.locator('[data-review-placement-status="persisted"]')).toHaveCount(0);
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '1');
   await expect(canvas).toHaveAttribute('data-p137e-human-review', 'NOT_RUN');
   await expect(canvas).toHaveAttribute('data-p137e-current-claim', 'false');
-  expect((durablePayload as { persisted?: boolean }).persisted).toBe(false);
+  expect(postedPayload?.persisted).toBe(false);
+  expect(calls).toEqual(['TARGETS', 'POST', 'GET']);
+  expect(stalledReadback).toBeDefined();
+  // Release the synthetic route after the real browser abort, if still held.
+  await stalledReadback?.abort().catch(() => {});
 });
