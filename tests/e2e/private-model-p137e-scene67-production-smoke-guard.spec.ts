@@ -302,3 +302,59 @@ test('per-device production PNGs require decoded real RGBA changes, zero ghost p
   expect(block).toContain('p137e-scene67-three-housing-rgba.json');
   expect(workflow).not.toContain('HUMAN_REVIEW: PASS');
 });
+
+
+test('production original P123C top plan executes three real source Themo crosses and four-click MITTAA', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const original = workflow.indexOf(
+    "const viewerNetworkAsset = inspectP137EScene67PublishedGlb(");
+  const threeHousing = workflow.indexOf(
+    'const p137eThreeHousingPixelEvidence = {');
+  const northRestore = workflow.indexOf(
+    "await northButton.click();", threeHousing);
+  const plan = workflow.indexOf(
+    "const planButton = page.locator('#p137e-plan-face-button');", northRestore);
+  const screenshot = workflow.indexOf(
+    "path: 'playwright-artifacts/p137e-scene67-original-top-plan.png'", plan);
+  const wallPixels = workflow.indexOf(
+    "if (!planGreen?.passed)", screenshot);
+  const place = workflow.indexOf(
+    "await placeButton.click();", wallPixels);
+  const separateCrosses = workflow.indexOf(
+    "for (const [index, id] of targetIds.entries())", place);
+  const measure = workflow.indexOf(
+    "await measureButton.click();", separateCrosses);
+  const mm = workflow.indexOf(
+    "const mm = Number(await canvas.getAttribute('data-axis-measure-mm'));", measure);
+  const measured = workflow.indexOf(
+    "path: 'playwright-artifacts/p137e-scene67-source-plan-ruler-mm.png'", mm);
+  const handoff = workflow.indexOf(
+    "fs.writeFileSync('playwright-artifacts/p137e-scene67-plan-tools.json'", measured);
+  for (const [earlier, later] of [
+    [original, threeHousing], [threeHousing, northRestore],
+    [northRestore, plan], [plan, screenshot], [screenshot, wallPixels],
+    [wallPixels, place], [place, separateCrosses], [separateCrosses, measure],
+    [measure, mm], [mm, measured], [measured, handoff],
+  ]) {
+    expect(earlier).toBeGreaterThan(-1);
+    expect(later).toBeGreaterThan(earlier);
+  }
+  const body = workflow.slice(plan, handoff + 100);
+  expect(body).toContain("canvas?.dataset.p137eScene67TopPlanToolsReady === 'true'");
+  expect(body).toContain("planDataset.current !== 'false'");
+  expect(body).toContain("planDataset.humanReview !== 'NOT_RUN'");
+  expect(body).toContain("await targetSelector.selectOption(id);");
+  expect(body).toContain("String(index + 1)");
+  expect(body).toContain("!placementState.includes('ei tallennettu G2:een')");
+  expect(body).toContain("await clickPlanFraction(0.56, 0.49)");
+  expect(body).toContain("await clickPlanFraction(0.64, 0.49)");
+  expect(body).toContain("await clickPlanFraction(0.66, 0.49)");
+  expect(body).toContain("await clickPlanFraction(0.60, 0.49)");
+  expect(body).toContain("!rulerText.includes('mm (mallista)')");
+  expect(body).toContain("persistedG2ByThisGate: false");
+  expect(body).toContain("actualNativeG2Readback: 'NOT_RUN'");
+  expect(body).toContain("humanReview: 'NOT_RUN'");
+  expect(body).toContain("publishToCURRENT: false");
+  expect(body).not.toContain("p137eG2Client.persist(");
+  expect(body).not.toContain("HUMAN_REVIEW: 'PASS'");
+});
