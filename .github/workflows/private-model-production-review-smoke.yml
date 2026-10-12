@@ -548,6 +548,24 @@ jobs:
               );
             }
 
+            // A server stall after initial metadata must become a diagnosed
+            // FAIL, not a 12-minute job cancellation without GLB evidence.
+            const withGlbDeadline = async (promise, stage) => {
+              let timer;
+              try {
+                return await Promise.race([
+                  promise,
+                  new Promise((_, reject) => {
+                    timer = setTimeout(() => reject(new Error(
+                      'P137E production GLB ' + stage + ' deadline exceeded (45s)'
+                    )), 45_000);
+                  }),
+                ]);
+              } finally {
+                clearTimeout(timer);
+              }
+            };
+
             // Distinguish what the viewer requested while autoloading from the
             // independent source fetch below. This is real network response
             // evidence, not yet proof of three visibly rendered device pixels.
@@ -560,23 +578,6 @@ jobs:
                 );
               }
               const viewerResponse = duringViewerAutoload[0];
-              // A server stall after initial metadata must become a diagnosed
-              // FAIL, not a 12-minute job cancellation without GLB evidence.
-              const withGlbDeadline = async (promise, stage) => {
-                let timer;
-                try {
-                  return await Promise.race([
-                    promise,
-                    new Promise((_, reject) => {
-                      timer = setTimeout(() => reject(new Error(
-                        'P137E production GLB ' + stage + ' deadline exceeded (45s)'
-                      )), 45_000);
-                    }),
-                  ]);
-                } finally {
-                  clearTimeout(timer);
-                }
-              };
               const networkError = await withGlbDeadline(
                 viewerResponse.finished(), 'autoload response completion');
               if (networkError) throw new Error('P137E viewer autoload GLB network failed');
