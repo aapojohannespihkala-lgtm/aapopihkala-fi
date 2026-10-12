@@ -230,3 +230,26 @@ test('authenticated two-face screenshot artifacts require source-bound 1N + 2S r
   expect(workflow).toContain("actualProductionTwoFaceScreenshotsCaptured:true");
   expect(workflow).toContain("humanReview:'NOT_RUN',publishToCURRENT:false");
 });
+
+test('production P137E opens the real closed View menu for each two-face button, not during screenshots', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const captureNorth = workflow.indexOf("path: 'playwright-artifacts/production-review-before.png'");
+  const buttons = workflow.indexOf("const southButton = page.locator('#p137e-south-face-button');");
+  const openStatement = "await viewMenu.locator(':scope > summary').click();";
+  const firstOpen = workflow.indexOf(openStatement, buttons);
+  const northCheck = workflow.indexOf('!await northButton.isVisible() || !await southButton.isVisible()', firstOpen);
+  const toSouth = workflow.indexOf('await southButton.click();', northCheck);
+  const captureSouth = workflow.indexOf("path: 'playwright-artifacts/p137e-scene67-south.png'", toSouth);
+  const secondOpen = workflow.indexOf(openStatement, captureSouth);
+  const toNorth = workflow.indexOf('await northButton.click();', secondOpen);
+  expect(captureNorth).toBeGreaterThan(-1);
+  expect(buttons).toBeGreaterThan(captureNorth);
+  expect(firstOpen).toBeGreaterThan(buttons);
+  expect(northCheck).toBeGreaterThan(firstOpen);
+  expect(toSouth).toBeGreaterThan(northCheck);
+  expect(captureSouth).toBeGreaterThan(toSouth);
+  expect(secondOpen).toBeGreaterThan(captureSouth);
+  expect(toNorth).toBeGreaterThan(secondOpen);
+  expect(workflow).toContain("const viewMenu = page.locator('#view-menu');");
+  expect(workflow).toContain("if (!await viewMenu.evaluate((menu) => menu.open))");
+});
