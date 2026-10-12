@@ -29,6 +29,11 @@ const m5aR1125WorkRootExtras = {
 const m5aR1125SceneExtras = {
   sourceDiameterCorrectionContract: 'G2_R1125',
   sourceDiameterClassBreakdown: '5_SALAOJA_AGGREGATE_NOMINAL_100MM__2_PVK_UNKNOWN',
+  // Original scene63 root is source-only, matching the merged camera provenance guard.
+  Canonical: false,
+  presentationOnly: true,
+  workAssumption: true,
+  humanReview: 'NOT_RUN',
   physicalRouteDiameterMeasuredClaim: false,
   currentGeometryClaim: false,
   asBuiltClaim: false,
