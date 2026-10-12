@@ -1108,9 +1108,12 @@ jobs:
                 'D_THEMO_CURRENT_BEDROOM_01',
                 'D_THEMO_CURRENT_BATHROOM_01',
               ];
+              // Run #67: 0.65 missed the original scene67 D1F plan footprint.
+              // Use three distinct unsaved crosses in the already-hit 0.55..0.60 strip.
+              const sourcePlanCrossFractions = [0.55, 0.575, 0.60];
               for (const [index, id] of targetIds.entries()) {
                 await targetSelector.selectOption(id);
-                await clickPlanFraction(0.55 + index * 0.05, 0.49);
+                await clickPlanFraction(sourcePlanCrossFractions[index], 0.49);
                 if ((await canvas.getAttribute('data-p137e-place-draft-count')) !==
                     String(index + 1)) {
                   throw new Error('P137E actual source-plan crosshair draft missing: ' + id);
@@ -1131,11 +1134,11 @@ jobs:
               if ((await canvas.getAttribute('data-interaction-mode')) !== 'measure') {
                 throw new Error('P137E source-plan MITTAA mode not selectable');
               }
-              await clickPlanFraction(0.56, 0.49);
+              await clickPlanFraction(0.55, 0.49);
               if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'FIRST') {
                 throw new Error('P137E MITTAA first source-plan click failed');
               }
-              await clickPlanFraction(0.64, 0.49);
+              await clickPlanFraction(0.575, 0.49);
               if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'DYNAMIC') {
                 throw new Error('P137E MITTAA second source-plan click failed');
               }
@@ -1145,7 +1148,7 @@ jobs:
                   !rulerText.includes('mm (mallista)')) {
                 throw new Error('P137E MITTAA X/Y millimetre model measurement unavailable');
               }
-              await clickPlanFraction(0.66, 0.49);
+              await clickPlanFraction(0.60, 0.49);
               if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'LOCKED') {
                 throw new Error('P137E MITTAA third source-plan lock failed');
               }
@@ -1153,7 +1156,7 @@ jobs:
                 clip: box, animations: 'disabled',
                 path: 'playwright-artifacts/p137e-scene67-source-plan-ruler-mm.png',
               });
-              await clickPlanFraction(0.60, 0.49);
+              await clickPlanFraction(0.56, 0.49);
               if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'EMPTY' ||
                   (await canvas.getAttribute('data-p137e-place-draft-count')) !== '3') {
                 throw new Error('P137E MITTAA fourth click reset disturbed three crosses');
