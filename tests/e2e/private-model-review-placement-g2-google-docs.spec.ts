@@ -205,3 +205,100 @@ test('G2 current-only facade uses readonly OAuth and has no usable write path', 
   // A rejected write must not obtain any OAuth token or POST to Docs.
   expect(urls).toHaveLength(2);
 });
+
+
+test('G2 OAuth timeout aborts even an upstream fetcher that ignores abort and never calls Docs', async () => {
+  const account = await makeAccount();
+  const urls: string[] = [];
+  let signal: AbortSignal | null | undefined;
+  const ports = createNativeG2GoogleDocsPorts({
+    credentials: account, requestTimeoutMs: 25,
+    fetcher: async (input, init) => {
+      urls.push(String(input));
+      signal = init?.signal;
+      return new Promise<Response>(() => {});
+    },
+  });
+  await expect(ports.getDocument()).rejects.toThrow('G2_NATIVE_REQUEST_TIMEOUT');
+  expect(urls).toEqual(['https://oauth2.googleapis.com/token']);
+  expect(signal?.aborted).toBe(true);
+});
+
+test('G2 Docs GET timeout aborts its own call after valid OAuth without retry', async () => {
+  const account = await makeAccount();
+  const urls: string[] = [];
+  let signal: AbortSignal | null | undefined;
+  const ports = createNativeG2GoogleDocsPorts({
+    credentials: account, requestTimeoutMs: 25,
+    fetcher: async (input, init) => {
+      urls.push(String(input));
+      if (String(input).endsWith('/token')) {
+        return Response.json({ access_token: 'test-only', token_type: 'Bearer' });
+      }
+      signal = init?.signal;
+      return new Promise<Response>(() => {});
+    },
+  });
+  await expect(ports.getDocument()).rejects.toThrow('G2_NATIVE_REQUEST_TIMEOUT');
+  expect(urls).toHaveLength(2);
+  expect(urls[1]).toContain('?includeTabsContent=true');
+  expect(signal?.aborted).toBe(true);
+});
+
+test('G2 timeout includes a response body stalled after its headers', async () => {
+  const account = await makeAccount();
+  let calls = 0;
+  let signal: AbortSignal | null | undefined;
+  const ports = createNativeG2GoogleDocsPorts({
+    credentials: account, requestTimeoutMs: 25,
+    fetcher: async (_input, init) => {
+      calls += 1;
+      signal = init?.signal;
+      return new Response(new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('{"access_token":"partial"'));
+        },
+      }), { headers: { 'Content-Type': 'application/json' } });
+    },
+  });
+  await expect(ports.getDocument()).rejects.toThrow('G2_NATIVE_REQUEST_TIMEOUT');
+  expect(calls).toBe(1);
+  expect(signal?.aborted).toBe(true);
+});
+
+test('G2 timed-out guarded write never returns success or repeats the POST', async () => {
+  const account = await makeAccount();
+  const urls: string[] = [];
+  let signal: AbortSignal | null | undefined;
+  const ports = createNativeG2GoogleDocsPorts({
+    credentials: account, requestTimeoutMs: 25,
+    fetcher: async (input, init) => {
+      urls.push(String(input));
+      if (String(input).endsWith('/token')) {
+        return Response.json({ access_token: 'test-only', token_type: 'Bearer' });
+      }
+      signal = init?.signal;
+      return new Promise<Response>(() => {});
+    },
+  });
+  await expect(ports.batchUpdateDocument({
+    documentId: placementG2DocumentId,
+    requests: [{ insertText: {
+      endOfSegmentLocation: { tabId: 't.0' },
+      text: '\nP137E_G2_REVIEW_OBSERVATION_V1 | P137E_G2_TESTRECORD_0001 | {"schema":"test"}\n',
+    } }],
+    writeControl: { requiredRevisionId: 'REV_G2_1' },
+  })).rejects.toThrow('G2_NATIVE_REQUEST_TIMEOUT');
+  expect(urls).toHaveLength(2);
+  expect(urls[1]).toContain(':batchUpdate');
+  expect(signal?.aborted).toBe(true);
+});
+
+test('G2 transport never accepts a disabled or enlarged timeout budget', async () => {
+  const account = await makeAccount();
+  for (const requestTimeoutMs of [0, -1, 15001, Number.NaN, 1.5]) {
+    expect(() => createNativeG2GoogleDocsPorts({
+      credentials: account, requestTimeoutMs,
+    })).toThrow('G2_NATIVE_TIMEOUT_INVALID');
+  }
+});
