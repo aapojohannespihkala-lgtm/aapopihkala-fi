@@ -607,6 +607,97 @@ jobs:
               );
             }
 
+            // Actual same-link, authenticated scene67 viewer must render BOTH
+            // source-wall camera sides. These are real screenshots, not proof
+            // of three separate housing pixels or HUMAN_REVIEW acceptance.
+            let p137eTwoFaceEvidence = null;
+            if (p137eScene67SourceEvidence) {
+              const faceContracts = [
+                {
+                  face: 'NORTH',
+                  button: '#p137e-north-face-button',
+                  sourceIds: 'D_THEMO_CURRENT_LOBBY_01',
+                  wallPresentation: 'NORTH_SOURCE_WALL_OPAQUE',
+                },
+                {
+                  face: 'SOUTH',
+                  button: '#p137e-south-face-button',
+                  sourceIds: 'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01',
+                  wallPresentation: 'SOUTH_SOURCE_WALL_ALPHA_0_38',
+                },
+              ];
+              const captures = [];
+              for (const expected of faceContracts) {
+                const faceButton = page.locator(expected.button);
+                if (!await faceButton.isVisible()) {
+                  throw new Error('P137E actual source-face control not visible: ' + expected.face);
+                }
+                await faceButton.click();
+                await page.waitForFunction(
+                  ({ face, sourceIds, wallPresentation, reviewId, candidateId }) => {
+                    const activeCanvas = document.querySelector('#private-model-canvas');
+                    if (!(activeCanvas instanceof HTMLCanvasElement)) return false;
+                    const d = activeCanvas.dataset;
+                    return d.workTestReviewAutoload === 'true' &&
+                      d.modelSource === 'work-test' &&
+                      d.workTestReviewMode === reviewId &&
+                      d.workTestReviewCandidate === candidateId &&
+                      d.p137eScene67CameraFace === face &&
+                      d.p137eScene67CameraSourceIds === sourceIds &&
+                      d.p137eScene67WallPresentation === wallPresentation &&
+                      d.p137eScene67CameraSourceOnly === 'true' &&
+                      d.p137eScene67ProductionRenderVerified === 'false' &&
+                      d.p137eHumanReview === 'NOT_RUN';
+                  },
+                  { ...expected, reviewId, candidateId },
+                  { timeout: 15_000 },
+                );
+                await page.waitForTimeout(350);
+                const bounds = await canvas.boundingBox();
+                if (!bounds || bounds.width < 100 || bounds.height < 100) {
+                  throw new Error('P137E source-camera canvas bounds invalid: ' + expected.face);
+                }
+                const screenshot = await page.screenshot({
+                  clip: bounds,
+                  animations: 'disabled',
+                  path: 'playwright-artifacts/p137e-scene67-' +
+                    expected.face.toLowerCase() + '-camera.png',
+                });
+                captures.push({
+                  face: expected.face,
+                  sourceIds: expected.sourceIds,
+                  wallPresentation: expected.wallPresentation,
+                  screenshotSha256: createHash('sha256').update(screenshot).digest('hex'),
+                  screenshotBytes: screenshot.length,
+                });
+              }
+              if (captures.length !== 2 ||
+                  captures[0].screenshotSha256 === captures[1].screenshotSha256) {
+                throw new Error('P137E distinct NORTH/SOUTH source-camera image evidence missing');
+              }
+              p137eTwoFaceEvidence = {
+                sourceSceneIndex: 67,
+                originalWallNode: 798,
+                originalWallMesh: 406,
+                authenticatedOriginalGlbAutoloadRequired: true,
+                twoSourceFaceScreenshotsCaptured: true,
+                captures,
+                individualDevicePixelsVerified: false,
+                humanReview: 'NOT_RUN',
+                publishToCURRENT: false,
+              };
+              fs.writeFileSync(
+                'playwright-artifacts/p137e-scene67-two-face-cameras.json',
+                JSON.stringify(p137eTwoFaceEvidence, null, 2),
+              );
+              // Leave the review in the original NORTH baseline for subsequent
+              // canvas/orbit checks, avoiding silent source-face carryover.
+              await page.locator('#p137e-north-face-button').click();
+              await page.waitForFunction(() =>
+                document.querySelector('#private-model-canvas')?.dataset?.p137eScene67CameraFace === 'NORTH',
+                null, { timeout: 15_000 });
+            }
+
             // The X4 wall + three Themo scene continuously repaints WebGL.
             // A locator screenshot waits for element stability and can time out
             // despite a correct, visible scene. Capture the SAME fixed canvas
@@ -990,6 +1081,7 @@ jobs:
                   m5aR1125PixelEvidence,
                   p137eScene67SourceEvidence,
                   p137eScene67AssetEvidence,
+                  p137eTwoFaceEvidence,
                   thresholds: {
                     minNonBackgroundPixels,
                     minChangedPixels,
@@ -1016,6 +1108,7 @@ jobs:
                 m5aR1125PixelEvidence,
                 p137eScene67SourceEvidence,
                 p137eScene67AssetEvidence,
+                p137eTwoFaceEvidence,
                 thresholds: {
                   minNonBackgroundPixels,
                   minChangedPixels,
