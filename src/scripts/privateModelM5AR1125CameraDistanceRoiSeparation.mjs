@@ -20,18 +20,25 @@ export function chooseM5AR1125SeparatedCameraFraming({
       !Number.isInteger(edgePaddingPx) || edgePaddingPx < 0 || edgePaddingPx > 64) {
     throw new Error('R1125 requires scene63, bounded viewport and 1..24 camera trials');
   }
+  // Validate the ENTIRE camera search space before projecting any source
+  // or returning an accepted frame. An invalid later trial must never be
+  // hidden by an earlier valid 13/13 source projection.
   let previousDistance = 0;
-  const attempts = [];
+  const trialIds = new Set();
   for (const item of candidates) {
     if (!item || !allowedId.test(String(item.id ?? '')) ||
+        trialIds.has(item.id) ||
         !Number.isFinite(item.distanceLocalUnits) ||
         item.distanceLocalUnits <= previousDistance ||
         item.distanceLocalUnits > 10_000 ||
         item.camera?.isPerspectiveCamera !== true) {
-      throw new Error('R1125 camera trials must use strictly increasing finite perspective distances');
+      throw new Error('R1125 camera trials require unique IDs and strictly increasing finite perspective distances');
     }
+    trialIds.add(item.id);
     previousDistance = item.distanceLocalUnits;
-
+  }
+  const attempts = [];
+  for (const item of candidates) {
     let sourceProof;
     try {
       sourceProof = deriveM5AR1125SourceCameraCenters({
