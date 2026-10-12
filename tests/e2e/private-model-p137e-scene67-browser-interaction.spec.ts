@@ -205,6 +205,24 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(page.locator('#axis-measure-tool-button')).toBeDisabled();
   await expect(page.locator('#p137e-place-tool-button')).toBeDisabled();
 
+  // Actual Chromium event exercises temporary housing visibility on the
+  // synthetic scene67 fixture. This is NOT original production pixel QA.
+  const housingProbe = (id: string | null) => page.evaluate((hiddenLogicalDeviceId) => {
+    window.dispatchEvent(new CustomEvent('p137e-scene67-housing-probe', {
+      detail: { hiddenLogicalDeviceId },
+    }));
+  }, id);
+  await housingProbe('D_THEMO_CURRENT_LOBBY_01');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-housing-probe-hidden-id',
+    'D_THEMO_CURRENT_LOBBY_01');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-housing-probe-state',
+    'SOURCE_ONLY_UNVERIFIED_PIXELS');
+  await housingProbe('NOT_A_THEMO_SOURCE_ID');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-housing-probe-state', 'REJECTED');
+  await expect(canvas).not.toHaveAttribute('data-p137e-scene67-housing-probe-hidden-id', /./);
+  await housingProbe(null);
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-housing-probe-hidden-id', 'NONE');
+
   await page.locator('#view-menu > summary').click();
   await page.locator('#p137e-south-face-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-scene67-camera-face', 'SOUTH');
@@ -227,6 +245,19 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
       'D_THEMO_CURRENT_BEDROOM_01',
       'D_THEMO_CURRENT_BATHROOM_01',
     ]);
+  await housingProbe('D_THEMO_CURRENT_BEDROOM_01');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-housing-probe-hidden-id',
+    'D_THEMO_CURRENT_BEDROOM_01');
+  await housingProbe('D_THEMO_CURRENT_BATHROOM_01');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-housing-probe-hidden-id',
+    'D_THEMO_CURRENT_BATHROOM_01');
+  // Wrong-face NORTH ID is already hidden by the trusted SOUTH face mask.
+  await housingProbe('D_THEMO_CURRENT_LOBBY_01');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-housing-probe-state',
+    'SOURCE_ONLY_UNVERIFIED_PIXELS');
+  await housingProbe(null);
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-housing-probe-hidden-id', 'NONE');
+
   const [bedroom, bathroom] = southRegions.projectedTargets;
   expect(Math.hypot(bedroom.x - bathroom.x, bedroom.y - bathroom.y))
     .toBeGreaterThan(bedroom.radius + bathroom.radius);
@@ -243,6 +274,9 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(canvas).not.toHaveAttribute('data-p137e-scene67-visible-device-ids', /./);
   await expect(canvas).not.toHaveAttribute('data-p137e-scene67-hidden-device-ids', /./);
   await expect(canvas).not.toHaveAttribute('data-p137e-scene67-device-face-mask', /./);
+  await expect(canvas).not.toHaveAttribute('data-p137e-scene67-housing-probe-hidden-id', /./);
+  await housingProbe('D_THEMO_CURRENT_LOBBY_01');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-housing-probe-state', 'REJECTED');
   await expect(canvas).toHaveAttribute('data-p137e-review-camera-mode',
     'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP');
   await expect(page.locator('#axis-measure-tool-button')).toBeEnabled();

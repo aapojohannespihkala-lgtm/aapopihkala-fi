@@ -2500,6 +2500,8 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p137eScene67VisibleDeviceIds;
         delete canvas.dataset.p137eScene67HiddenDeviceIds;
         delete canvas.dataset.p137eScene67DeviceFaceMask;
+        delete canvas.dataset.p137eScene67HousingProbeHiddenId;
+        delete canvas.dataset.p137eScene67HousingProbeState;
       };
 
       const ambient = new THREE.HemisphereLight(0xffffff, 0x777777, 2.2);
@@ -8404,6 +8406,66 @@ const title = 'Private 3D viewer';
           p137eScene67DeviceFaceMask: face + '_SOURCE_ONLY_RESTOREABLE',
         });
       };
+
+      // Independent browser RGBA capture input, not production pixel proof.
+      // This changes only the selected WORK_TEST device's temporary visible
+      // flag; original scene67 mesh/material, G2 and CURRENT stay unchanged.
+      const applyP137EScene67HousingProbe = (hiddenLogicalDeviceId: string | null) => {
+        const northIds = ['D_THEMO_CURRENT_LOBBY_01'];
+        const southIds = ['D_THEMO_CURRENT_BEDROOM_01', 'D_THEMO_CURRENT_BATHROOM_01'];
+        const allIds = [...northIds, ...southIds];
+        const face = canvas.dataset.p137eScene67CameraFace;
+        const visible = face === 'NORTH' ? northIds : face === 'SOUTH' ? southIds : null;
+        if (
+          activeModelSourceKind !== 'work-test' ||
+          !isP137EScene67ReviewRequested() ||
+          canvas.dataset.workTestReviewMode !== p137eScene67ReviewId ||
+          canvas.dataset.p137eLoadedCandidateId !== p137eScene67CandidateId ||
+          fullModelScene?.name !== 'P137E_D_THEMOS_REAL_WALL_FACE_WORK_TEST_ROOT_BABYLON_Y_UP' ||
+          fullModelScene.children.length !== 4 ||
+          modelRoot.children[0] !== fullModelScene ||
+          !visible ||
+          canvas.dataset.p137eScene67CameraSourceOnly !== 'true' ||
+          canvas.dataset.p137eScene67ProductionRenderVerified !== 'false' ||
+          canvas.dataset.p137eHumanReview !== 'NOT_RUN' ||
+          canvas.dataset.p137eScene67VisibleDeviceIds !== visible.join(',') ||
+          canvas.dataset.p137eScene67SourceHousingRoiStatus !== 'SOURCE_ONLY_PROJECTED' ||
+          p137eDevicePresentationOriginals.length !== 3 ||
+          (hiddenLogicalDeviceId !== null && !allIds.includes(hiddenLogicalDeviceId))
+        ) throw new Error('P137E housing probe requires exact live source face');
+        const originals = p137eDevicePresentationOriginals;
+        const ids = originals.map((entry) => entry.object?.userData?.logicalDeviceId);
+        if (
+          new Set(ids).size !== 3 ||
+          allIds.some((id) => !ids.includes(id)) ||
+          originals.some((entry) =>
+            entry.object?.parent !== fullModelScene ||
+            entry.visible !== true ||
+            entry.object.userData?.presentationOnly !== true ||
+            entry.object.userData?.HUMAN_REVIEW !== 'NOT_RUN')
+        ) throw new Error('P137E housing probe source identities changed');
+        // All checks above finish BEFORE mutating any visible state.
+        for (const entry of originals) {
+          const id = entry.object.userData.logicalDeviceId;
+          entry.object.visible = visible.includes(id) && id !== hiddenLogicalDeviceId;
+        }
+        canvas.dataset.p137eScene67HousingProbeHiddenId = hiddenLogicalDeviceId ?? 'NONE';
+        canvas.dataset.p137eScene67HousingProbeState = 'SOURCE_ONLY_UNVERIFIED_PIXELS';
+      };
+      // Tests may dispatch this narrow event only after the exact original GLB
+      // was authenticated and loaded; a dataset flag is never screenshot proof.
+      window.addEventListener('p137e-scene67-housing-probe', (event: Event) => {
+        if (!(event instanceof CustomEvent)) return;
+        const detail = event.detail;
+        if (!detail || typeof detail !== 'object' ||
+            !Object.prototype.hasOwnProperty.call(detail, 'hiddenLogicalDeviceId')) return;
+        try {
+          applyP137EScene67HousingProbe(detail.hiddenLogicalDeviceId);
+        } catch {
+          canvas.dataset.p137eScene67HousingProbeState = 'REJECTED';
+          delete canvas.dataset.p137eScene67HousingProbeHiddenId;
+        }
+      });
 
       const applyP137EScene67SourceFace = (face: 'NORTH' | 'SOUTH') => {
         if (
