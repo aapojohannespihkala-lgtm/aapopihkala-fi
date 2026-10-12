@@ -37,9 +37,11 @@ on:
 permissions:
   contents: read
 
+# PR contract checks must never cancel an authenticated main-only production run.
+# A second manual run queues rather than cancelling the first incomplete proof.
 concurrency:
-  group: private-model-production-review-smoke
-  cancel-in-progress: true
+  group: private-model-production-review-smoke-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   contract-regression:
@@ -558,9 +560,28 @@ jobs:
                 );
               }
               const viewerResponse = duringViewerAutoload[0];
-              const networkError = await viewerResponse.finished();
+              // A server stall after initial metadata must become a diagnosed
+              // FAIL, not a 12-minute job cancellation without GLB evidence.
+              const withGlbDeadline = async (promise, stage) => {
+                let timer;
+                try {
+                  return await Promise.race([
+                    promise,
+                    new Promise((_, reject) => {
+                      timer = setTimeout(() => reject(new Error(
+                        'P137E production GLB ' + stage + ' deadline exceeded (45s)'
+                      )), 45_000);
+                    }),
+                  ]);
+                } finally {
+                  clearTimeout(timer);
+                }
+              };
+              const networkError = await withGlbDeadline(
+                viewerResponse.finished(), 'autoload response completion');
               if (networkError) throw new Error('P137E viewer autoload GLB network failed');
-              const viewerGlbBytes = await viewerResponse.body();
+              const viewerGlbBytes = await withGlbDeadline(
+                viewerResponse.body(), 'autoload response bytes');
               const viewerNetworkAsset = inspectP137EScene67PublishedGlb(
                 reviewId, candidateId, {
                   url: viewerResponse.url(),
@@ -587,23 +608,37 @@ jobs:
             // This still does not prove three individually rendered housings.
             let p137eScene67AssetEvidence = null;
             if (p137eScene67SourceEvidence) {
-              const assetResponse = await page.evaluate(async (assetUrl) => {
-                const response = await fetch(assetUrl, {
-                  cache: 'no-store',
-                  credentials: 'same-origin',
-                });
-                const buffer = await response.arrayBuffer();
-                const shaBytes = new Uint8Array(
-                  await crypto.subtle.digest('SHA-256', buffer),
-                );
-                return {
-                  url: response.url,
-                  status: response.status,
-                  byteLength: buffer.byteLength,
-                  sha256: Array.from(shaBytes, (b) =>
-                    b.toString(16).padStart(2, '0')).join(''),
-                };
-              }, P137E_SCENE67_PRODUCTION_GLB_URL);
+              const assetResponse = await withGlbDeadline(page.evaluate(async (assetUrl) => {
+                // Apply the bound inside the real authenticated browser request
+                // as well, so stalled fetch/body streams are actually aborted.
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 45_000);
+                try {
+                  const response = await fetch(assetUrl, {
+                    cache: 'no-store',
+                    credentials: 'same-origin',
+                    signal: controller.signal,
+                  });
+                  const buffer = await response.arrayBuffer();
+                  const shaBytes = new Uint8Array(
+                    await crypto.subtle.digest('SHA-256', buffer),
+                  );
+                  return {
+                    url: response.url,
+                    status: response.status,
+                    byteLength: buffer.byteLength,
+                    sha256: Array.from(shaBytes, (b) =>
+                      b.toString(16).padStart(2, '0')).join(''),
+                  };
+                } catch (error) {
+                  if (controller.signal.aborted) {
+                    throw new Error('P137E production GLB independent fetch/body deadline exceeded (45s)');
+                  }
+                  throw error;
+                } finally {
+                  clearTimeout(timer);
+                }
+              }, P137E_SCENE67_PRODUCTION_GLB_URL), 'independent no-cache fetch');
               p137eScene67AssetEvidence = inspectP137EScene67PublishedGlb(
                 reviewId, candidateId, assetResponse,
               );
