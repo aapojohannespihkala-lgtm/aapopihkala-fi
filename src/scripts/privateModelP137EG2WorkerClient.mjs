@@ -121,7 +121,10 @@ export function createP137EG2WorkerClient({
             object(t) && typeof t.targetId === 'string' && t.targetId.length > 0 &&
             Array.isArray(t.approvedWallHosts) && t.approvedWallHosts.length === 0 &&
             t.currentGeometry === false && t.canonical === false &&
-            t.asBuilt === false && t.exactXY === false)) {
+            t.asBuilt === false && t.exactXY === false) ||
+          // One row per native-G2 source identity: duplicate review targets
+          // must never become ambiguous selectable options in the viewer.
+          new Set(reply.targets.map(t => t.targetId)).size !== reply.targets.length) {
         throw new Error('P137E_G2_TARGET_EVIDENCE_INVALID');
       }
       return reply;
