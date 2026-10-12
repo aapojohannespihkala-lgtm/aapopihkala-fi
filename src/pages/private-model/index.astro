@@ -2924,7 +2924,14 @@ const title = 'Private 3D viewer';
       // Source-authorised G2 observations are optional until the real Worker
       // route and native Google Docs credentials are independently released.
       // The viewer NEVER asserts a save from a local draft or a POST echo.
-      const p137eG2ExactTargets = Object.keys(p137eTargetLabels).sort();
+      // The existing revision-coherent native G2 endpoint exposes FIVE
+      // targets: 2 current-only doors + all 3 R989 current-only Themos.
+      // Validate the entire source set but offer only Themos in this panel.
+      const p137eG2ThemoIds = Object.keys(p137eTargetLabels).sort();
+      const p137eG2ExpectedSourceIds = [
+        'D1F_USER_CURRENT_DOOR_A', 'D1F_USER_CURRENT_DOOR_B',
+        ...p137eG2ThemoIds,
+      ].sort();
       let p137eG2VerifiedTargets = false;
       let p137eG2Session = 0;
       const p137eG2Allowed = () =>
@@ -2952,7 +2959,7 @@ const title = 'Private 3D viewer';
         mount: p137ePlacePanel,
         persist: (payload) => {
           if (!p137eG2VerifiedTargets || !p137eG2Allowed() ||
-              !p137eG2ExactTargets.includes(payload?.anchor?.targetId)) {
+              !p137eG2ThemoIds.includes(payload?.anchor?.targetId)) {
             throw new Error('P137E_G2_REVIEW_NOT_RELEASED');
           }
           return getP137EG2Client().persist(payload);
@@ -2964,7 +2971,7 @@ const title = 'Private 3D viewer';
         if (!p137eG2VerifiedTargets || !p137eG2Allowed()) return;
         const id = p137ePlaceTarget.value;
         const anchor = p137ePlaceAnchors.get(id);
-        if (!anchor || !p137eG2ExactTargets.includes(id)) return;
+        if (!anchor || !p137eG2ThemoIds.includes(id)) return;
         p137eG2Panel.open({ targetId: id, floor: '1F', approvedWallHosts: [] });
         p137eG2Panel.setClickedCoordinate({ xM: anchor.xM, yM: anchor.yM }, '1F');
       };
@@ -11155,8 +11162,8 @@ const title = 'Private 3D viewer';
           const result = await getP137EG2Client().targets();
           const ids = result.targets.map((target) => target.targetId).sort();
           if (session !== p137eG2Session || !p137eG2Allowed() ||
-              ids.length !== p137eG2ExactTargets.length ||
-              ids.some((id, i) => id !== p137eG2ExactTargets[i])) {
+              ids.length !== p137eG2ExpectedSourceIds.length ||
+              ids.some((id, i) => id !== p137eG2ExpectedSourceIds[i])) {
             throw new Error('P137E_G2_TARGET_MISMATCH');
           }
           p137eG2VerifiedTargets = true;
