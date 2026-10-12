@@ -1,13 +1,14 @@
 import { expect, test } from '@playwright/test';
 import {
   verifyP186E34SourcePixelEvidence as verify,
+  p186ePixelCandidateId as exactCandidateId,
   p186ePixelExpected as counts,
   p186ePixelSourcePdfDriveId as graphic,
   p186ePixelSchedulePdfDriveId as schedule,
   p186ePixelRepresentationKinds as kinds,
 } from '../../src/scripts/privateModelP186E34PixelEvidence.mjs';
 
-const sourceCandidateId = 'p186e-x1-historical-source-work-test';
+const sourceCandidateId = exactCandidateId;
 const W = 160, H = 112;
 type Floor = 'D1F' | 'D2F';
 const paint = (frame: Uint8Array, x: number, y: number, rgba: number[]) =>
@@ -147,4 +148,22 @@ test('outside-ROI pixel alterations are rejected even if target is isolated', ()
   paint(item.floors[0].hiddenFrames[target].pixels, W - 2, H - 2,
     [255, 0, 255, 255]);
   expect(() => check(item)).toThrow('outside-ROI');
+});
+
+
+test('rejects a forged or historically aliased WORK_TEST candidate even with 34 valid RGBA deltas', () => {
+  const forged = fixture();
+  forged.sourceCandidateId = 'p186e-x1-historical-source-work-test';
+  for (const floor of forged.floors) {
+    floor.baseline.sourceCandidateId = forged.sourceCandidateId;
+    for (const hidden of Object.values(floor.hiddenFrames))
+      hidden.sourceCandidateId = forged.sourceCandidateId;
+  }
+  expect(() => check(forged)).toThrow('source or proof configuration');
+  const unrelated = fixture();
+  unrelated.sourceCandidateId = 'p137e-d1f-three-wall-mounted-themos';
+  expect(() => check(unrelated)).toThrow('source or proof configuration');
+  const valid = check(fixture());
+  expect(valid.sourceAuthenticated).toBe(false);
+  expect(valid.productionScreenshotVerified).toBe(false);
 });
