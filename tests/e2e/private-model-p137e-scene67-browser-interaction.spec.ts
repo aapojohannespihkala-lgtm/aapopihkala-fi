@@ -509,11 +509,26 @@ test('simulated HTTPS viewer resaves edited Themo notes with exact snapshots and
       await expect(page.locator('[data-review-placement-status="persisting"]')).toBeVisible();
       await expect(note).toBeDisabled();
       await expect(save).toBeDisabled();
+      // G2 selected target remains locked during independent GET. A disabled
+      // native select alone is insufficient: reject a dispatched change too.
+      const liveTarget = page.locator('#p137e-place-target');
+      const clearDrafts = page.locator('#p137e-place-clear');
+      await expect(liveTarget).toBeDisabled();
+      await expect(clearDrafts).toBeDisabled();
+      await expect(liveTarget).toHaveValue(targetId);
+      await liveTarget.evaluate((node, attemptedId) => {
+        (node as HTMLSelectElement).value = attemptedId;
+        node.dispatchEvent(new Event('change', { bubbles: true }));
+      }, themoIds[1]);
+      await expect(liveTarget).toHaveValue(targetId);
+      await expect(page.locator('[data-review-placement-status="persisting"]')).toBeVisible();
       await delayedReadback.route!.fulfill({ status: 200, contentType: 'application/json',
         body: JSON.stringify({ recordId: delayedReadback.recordId,
           payload: records.get(delayedReadback.recordId!) }) });
     }
     await expect(page.locator('[data-review-placement-status="persisted"]')).toBeVisible();
+    await expect(page.locator('#p137e-place-target')).toBeEnabled();
+    await expect(page.locator('#p137e-place-clear')).toBeEnabled();
     await expect(note).toBeEnabled();
     await expect(save).toBeDisabled();
 
