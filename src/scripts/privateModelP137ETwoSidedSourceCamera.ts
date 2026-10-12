@@ -53,7 +53,7 @@ export function deriveP137ETwoFaceSourceCameras(
   humanReview: 'NOT_RUN';
   productionRenderVerified: false;
 }> {
-  fail(Number.isFinite(aspect) && aspect >= 0.5 && aspect <= 4,
+  fail(Number.isFinite(aspect) && aspect >= 0.4 && aspect <= 4,
     'camera viewport aspect');
   fail(focusedRoot?.name === p137eFocusedRootName &&
     focusedRoot?.userData?.Pass === 'P137E' &&
