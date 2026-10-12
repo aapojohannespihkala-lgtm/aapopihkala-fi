@@ -322,12 +322,16 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(page.locator('#p137e-place-list')).toContainText('Kylpyhuone: X ');
   await expect(page.locator('#p137e-place-status')).toContainText('ei tallennettu G2:een');
 
-  // This browser fixture is HTTP, not the authenticated HTTPS G2 release.
-  // Even with all three source-bound draft markers, preview must fail closed.
-  const g2Requests: string[] = [];
-  const onG2Request = (request: { url: () => string }) => {
+  // This isolated HTTPS fixture is not Cloudflare-authenticated G2.
+  // One read-only target discovery is allowed; any POST or observations
+  // read/write would falsely imply G2 access and must fail this test.
+  const g2Requests: Array<{ method: string; path: string }> = [];
+  const onG2Request = (request: { url: () => string; method: () => string }) => {
     if (request.url().includes('/private-model/review-placement/g2/')) {
-      g2Requests.push(request.url());
+      g2Requests.push({
+        method: request.method(),
+        path: new URL(request.url()).pathname,
+      });
     }
   };
   page.on('request', onG2Request);
@@ -335,7 +339,10 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(page.locator('#p137e-g2-status')).toContainText(
     /G2 ei ole käytettävissä|G2-tallennuspalvelua tai lähdevastausta ei varmennettu/,
   );
-  expect(g2Requests).toEqual([]);
+  expect(g2Requests).toEqual([{
+    method: 'GET',
+    path: '/private-model/review-placement/g2/targets',
+  }]);
   page.off('request', onG2Request);
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
   await expect(page.locator('#p137e-place-status')).toContainText('ei tallennettu G2:een');
