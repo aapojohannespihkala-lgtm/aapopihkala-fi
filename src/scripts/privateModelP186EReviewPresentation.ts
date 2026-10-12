@@ -462,6 +462,8 @@ export const prepareP186EReviewPresentation = (
   let semanticViolationCount = 0;
   let groupTargetCount = 0;
   let specialTargetCount = 0;
+  const groupSourceKeys = new Set<string>();
+  const specialSourceKeys = new Set<string>();
 
   sceneRoot?.updateMatrixWorld?.(true);
   sceneRoot?.traverse?.((object: any) => {
@@ -474,6 +476,19 @@ export const prepareP186EReviewPresentation = (
     const kind = targetKind(object);
     if (kind === 'group') groupTargetCount += 1;
     if (kind === 'special') specialTargetCount += 1;
+    // Historical label identity must be injective within the selected D floor.
+    // Counts alone can pass when one source label is duplicated and another is
+    // silently substituted. Never publish viewer cues for ambiguous source IDs.
+    if (kind === 'group' || kind === 'special') {
+      const sourceIdentity = String(kind === 'group'
+        ? object.userData?.annotationStableKey ?? ''
+        : object.userData?.sourceLabelId ?? '').trim();
+      const seen = kind === 'group' ? groupSourceKeys : specialSourceKeys;
+      if (sourceIdentity) {
+        if (seen.has(sourceIdentity)) semanticViolationCount += 1;
+        else seen.add(sourceIdentity);
+      }
+    }
     if (!hasNoPromotionAndSourceSemantics(object)) semanticViolationCount += 1;
   });
 
