@@ -2474,8 +2474,8 @@ const title = 'Private 3D viewer';
       setIsoRotationMode('disabled');
       isoControls.enabled = false;
 
-      // WORK_TEST presentation only. Never mutate/dispose the original GLB
-      // wall's geometry or source material. SOUTH translucency is reversible.
+      // WORK_TEST presentation only. Original P123C source wall is already
+      // glTF alphaMode BLEND and opacity 0.38. Preserve source material.
       const p137eWallPresentationOriginals: Array<{
         mesh: any; material: any; temporary: any[];
       }> = [];
@@ -2486,6 +2486,20 @@ const title = 'Private 3D viewer';
         }
         p137eWallPresentationOriginals.length = 0;
         delete canvas.dataset.p137eScene67WallPresentation;
+      };
+
+      // Reversible per-face device visibility; never write this to the GLB/G2.
+      const p137eDevicePresentationOriginals: Array<{
+        object: any; visible: boolean;
+      }> = [];
+      const restoreP137EDevicePresentation = () => {
+        for (const entry of p137eDevicePresentationOriginals) {
+          entry.object.visible = entry.visible;
+        }
+        p137eDevicePresentationOriginals.length = 0;
+        delete canvas.dataset.p137eScene67VisibleDeviceIds;
+        delete canvas.dataset.p137eScene67HiddenDeviceIds;
+        delete canvas.dataset.p137eScene67DeviceFaceMask;
       };
 
       const ambient = new THREE.HemisphereLight(0xffffff, 0x777777, 2.2);
@@ -4288,6 +4302,7 @@ const title = 'Private 3D viewer';
         canvas.dataset.viewPreset = preset;
         // Any generic preset ends the exact source-bound face review camera.
         restoreP137EWallPresentation();
+        restoreP137EDevicePresentation();
         delete canvas.dataset.p137eScene67CameraFace;
         delete canvas.dataset.p137eScene67SourceHousingRois;
         delete canvas.dataset.p137eScene67SourceHousingRoiStatus;
@@ -5941,6 +5956,7 @@ const title = 'Private 3D viewer';
       ) => {
         // Never leak source-camera coordinates across different WORK_TEST candidates.
         restoreP137EWallPresentation();
+        restoreP137EDevicePresentation();
         if (p137ePlanFaceButton) p137ePlanFaceButton.hidden = true;
         if (p137eNorthFaceButton) p137eNorthFaceButton.hidden = true;
         if (p137eSouthFaceButton) p137eSouthFaceButton.hidden = true;
@@ -8355,39 +8371,38 @@ const title = 'Private 3D viewer';
 
       // The production viewer must invoke the merged scene67 source-camera
       // verifier on the exact selected GLB root, not on a synthetic fixture.
-      const applyP137EScene67SouthWallPresentation = () => {
-        // The source material is opaque double-sided. G2 local visual check
-        // showed Bathroom hidden behind the original wall from SOUTH, while
-        // source wall alpha 0.38 revealed it. Do NOT ghost Lobby on NORTH.
-        const original = fullModelScene?.children?.filter((child: any) =>
-          child?.name === 'P137E_ORIGINAL_P123C_D1F_NODE798_MESH406_PRESENTATION_INSTANCE' &&
-          child?.userData?.sourceNodeIndex === 798 &&
-          child?.userData?.sourceMeshIndex === 406 &&
-          child?.userData?.originalSourceGeometryUnmodified === true &&
-          child?.userData?.presentationOnly === true);
-        if (original?.length !== 1) {
-          throw new Error('P137E scene67 source wall not unique for SOUTH transparency');
+      const applyP137EScene67DeviceFaceMask = (
+        face: 'NORTH' | 'SOUTH',
+        visibleSourceIds: readonly string[],
+        allSourceIds: readonly string[],
+      ) => {
+        if (fullModelScene?.children?.length !== 4 ||
+            visibleSourceIds.length !== (face === 'NORTH' ? 1 : 2) ||
+            allSourceIds.length !== 3 ||
+            new Set(allSourceIds).size !== 3 ||
+            visibleSourceIds.some(id => !allSourceIds.includes(id)) ||
+            p137eDevicePresentationOriginals.length !== 0) {
+          throw new Error('P137E scene67 source device visibility contract mismatch');
         }
-        const meshes: any[] = [];
-        original[0].traverse((obj: any) => {
-          if (obj?.isMesh && obj.material) meshes.push(obj);
+        const devices = fullModelScene.children.filter((child: any) =>
+          allSourceIds.includes(child?.userData?.logicalDeviceId));
+        if (devices.length !== 3 ||
+            devices.some((child: any) => child.visible !== true ||
+              child.userData?.presentationOnly !== true ||
+              child.userData?.HUMAN_REVIEW !== 'NOT_RUN') ||
+            new Set(devices.map((child: any) => child.userData.logicalDeviceId)).size !== 3) {
+          throw new Error('P137E scene67 device source identity or baseline visibility mismatch');
+        }
+        for (const child of devices) {
+          p137eDevicePresentationOriginals.push({ object: child, visible: child.visible });
+          child.visible = visibleSourceIds.includes(child.userData.logicalDeviceId);
+        }
+        const hidden = allSourceIds.filter(id => !visibleSourceIds.includes(id));
+        Object.assign(canvas.dataset, {
+          p137eScene67VisibleDeviceIds: visibleSourceIds.join(','),
+          p137eScene67HiddenDeviceIds: hidden.join(','),
+          p137eScene67DeviceFaceMask: face + '_SOURCE_ONLY_RESTOREABLE',
         });
-        if (!meshes.length) throw new Error('P137E scene67 original wall mesh unavailable');
-        for (const mesh of meshes) {
-          const sourceMaterial = mesh.material;
-          const sourceMaterials = Array.isArray(sourceMaterial) ? sourceMaterial : [sourceMaterial];
-          const temporary = sourceMaterials.map((material: any) => {
-            const clone = material.clone();
-            clone.opacity = 0.38;
-            clone.transparent = true;
-            clone.depthWrite = false;
-            clone.needsUpdate = true;
-            return clone;
-          });
-          mesh.material = Array.isArray(sourceMaterial) ? temporary : temporary[0];
-          p137eWallPresentationOriginals.push({ mesh, material: sourceMaterial, temporary });
-        }
-        canvas.dataset.p137eScene67WallPresentation = 'SOUTH_SOURCE_WALL_ALPHA_0_38';
       };
 
       const applyP137EScene67SourceFace = (face: 'NORTH' | 'SOUTH') => {
@@ -8401,6 +8416,8 @@ const title = 'Private 3D viewer';
         ) {
           throw new Error('P137E scene67 source camera cannot open outside the exact focused review');
         }
+        // Source camera verification requires all three unmasked source devices.
+        restoreP137EDevicePresentation();
         const aspect = canvas.clientWidth / Math.max(canvas.clientHeight, 1);
         const source = deriveP137ETwoFaceSourceCameras(fullModelScene, aspect);
         const selection = face === 'NORTH' ? source.north : source.south;
@@ -8465,8 +8482,12 @@ const title = 'Private 3D viewer';
         isoControls.target.copy(target);
         isoControls.update();
         syncViewState('isometric');
-        if (face === 'SOUTH') applyP137EScene67SouthWallPresentation();
-        else canvas.dataset.p137eScene67WallPresentation = 'NORTH_SOURCE_WALL_OPAQUE';
+        // Original P123C wall alpha 0.38 is unchanged on both sides.
+        applyP137EScene67DeviceFaceMask(
+          face, selection.sourceIds, [...source.north.sourceIds, ...source.south.sourceIds],
+        );
+        canvas.dataset.p137eScene67WallPresentation =
+          'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED';
         Object.assign(canvas.dataset, {
           p137eScene67CameraFace: face,
           p137eScene67CameraSourceIds: selection.sourceIds.join(','),
@@ -8483,7 +8504,7 @@ const title = 'Private 3D viewer';
         }
         status.textContent = face === 'NORTH'
           ? 'P137E WORK_TEST - aula (pohjoinen seinäpuoli), 1 Themo, katselu varmentamatta'
-          : 'P137E WORK_TEST - makuuhuone ja kylpyhuone, 2 Themoa; alkuperäinen seinä läpinäkyvänä vain katselua varten; renderöinti varmentamatta';
+          : 'P137E WORK_TEST - makuuhuone ja kylpyhuone, 2 Themoa; alkuperäinen läpikuultava seinä ja vastapuolen laite piilotettu vain katselussa';
       };
 
       // Return to the EXACT source-bound scene67 four-child root after a
@@ -8507,6 +8528,7 @@ const title = 'Private 3D viewer';
         deactivateElevationView();
         clearSelection();
         restoreP137EWallPresentation();
+        restoreP137EDevicePresentation();
         controls.enabled = false;
         isoControls.enabled = false;
         planControls.enabled = true;
