@@ -120,13 +120,13 @@ test('rejects viewport/camera mismatch and changed other-device pixels', () => {
   paint(other, 81, 26, background);
   expect(() => inspect(changedOther)).toThrow(/delta/);
   const offscreen = fixture();
-  offscreen.views[1].projectedTargets[0].x = 2;
+  Reflect.set(offscreen.views[1].projectedTargets[0], 'x', 2);
   expect(() => inspect(offscreen)).toThrow(/clipped/);
 });
 
 test('rejects colliding source ROIs and false positive from elsewhere in frame', () => {
   const collisions = fixture();
-  collisions.views[1].projectedTargets[1].x = 34;
+  Reflect.set(collisions.views[1].projectedTargets[1], 'x', 34);
   expect(() => inspect(collisions)).toThrow(/overlap/);
   const unrelated = fixture();
   const frame = unrelated.views[0].hiddenFrames.D_THEMO_CURRENT_LOBBY_01.rgba;
