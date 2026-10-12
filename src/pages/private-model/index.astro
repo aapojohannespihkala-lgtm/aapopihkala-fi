@@ -1500,6 +1500,7 @@ const title = 'Private 3D viewer';
           <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
           <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
           <button id="axis-measure-tool-button" type="button" aria-pressed="false" disabled title="Mittaa käytettävissä vain D 1F/2F -pohjanäkymässä: 1 rasti, 2 liikkuva mitta, 3 lukitus, 4 nollaus">Mittaa</button>
+          <button id="p137e-placement-tool-button" type="button" aria-pressed="false" disabled title="Alustava Themo-rasti vain P137E scene67 WORK_TESTissä, ei tallennusta">Sijoita</button>
         </div>
 
         <details id="model-menu" class="toolbar-menu source-menu">
@@ -1653,6 +1654,15 @@ const title = 'Private 3D viewer';
             <span>Mittaus</span>
             <span id="axis-measure-output">Klikkaa ensimmäinen piste</span>
           </div>
+          <div class="coordinate-line" id="p137e-placement-target-row" hidden>
+            <label for="p137e-placement-target">Themo</label>
+            <select id="p137e-placement-target" aria-label="Alustavan rastin Themo-kohde">
+              <option value="D_THEMO_CURRENT_LOBBY_01">Aula</option>
+              <option value="D_THEMO_CURRENT_BEDROOM_01">Makuuhuone</option>
+              <option value="D_THEMO_CURRENT_BATHROOM_01">Kylpyhuone</option>
+            </select>
+          </div>
+          <div class="coordinate-note" id="p137e-placement-status" hidden>Valitse Themo ja Sijoita. Rasti on väliaikainen eikä tallennu.</div>
           <div class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.</div>
         </aside>
         <aside id="height-scale" class="height-scale" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
@@ -1972,6 +1982,7 @@ const title = 'Private 3D viewer';
       import { createHeightScaleController } from '../../scripts/privateModelHeightScale';
       import { createOrientationGizmoController } from '../../scripts/privateModelOrientationGizmo';
       import {
+        createTargetBoundReviewAnchor,
         activateReviewCoordinatePanel,
         clearReviewAnchorState,
         deactivateReviewCoordinatePanel,
@@ -2139,6 +2150,7 @@ const title = 'Private 3D viewer';
       const navigateToolButton = document.querySelector<HTMLButtonElement>('#navigate-tool-button');
       const selectionToolButton = document.querySelector<HTMLButtonElement>('#selection-tool-button');
       const axisMeasureToolButton = document.querySelector<HTMLButtonElement>('#axis-measure-tool-button');
+      const p137ePlacementToolButton = document.querySelector<HTMLButtonElement>('#p137e-placement-tool-button');
       const axisMeasureLabel = document.querySelector<HTMLElement>('#axis-measure-label');
       const axisMeasureRow = document.querySelector<HTMLElement>('#axis-measure-row');
       const axisMeasureOutput = document.querySelector<HTMLElement>('#axis-measure-output');
@@ -2212,6 +2224,9 @@ const title = 'Private 3D viewer';
       const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
       const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
       const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
+      const p137ePlacementTargetRow = document.querySelector<HTMLElement>('#p137e-placement-target-row');
+      const p137ePlacementTarget = document.querySelector<HTMLSelectElement>('#p137e-placement-target');
+      const p137ePlacementStatus = document.querySelector<HTMLElement>('#p137e-placement-status');
       const orientationGizmo = document.querySelector<HTMLElement>('#orientation-gizmo');
       const orientationAxisX = document.querySelector<SVGLineElement>('#orientation-axis-x');
       const orientationAxisXTip = document.querySelector<SVGCircleElement>('#orientation-axis-x-tip');
@@ -2314,6 +2329,10 @@ const title = 'Private 3D viewer';
         !coordinatePointer ||
         !coordinateAnchor ||
         !axisMeasureToolButton ||
+        !p137ePlacementToolButton ||
+        !p137ePlacementTargetRow ||
+        !p137ePlacementTarget ||
+        !p137ePlacementStatus ||
         !axisMeasureLabel ||
         !axisMeasureRow ||
         !axisMeasureOutput ||
@@ -2519,6 +2538,22 @@ const title = 'Private 3D viewer';
       const dReviewEmphasisMeshes = new Set<any>();
       const dReviewContextMeshes = new Set<any>();
       const dReviewDoorMarkerLines = new Set<any>();
+      const p137ePlacementTargetIds = new Set([
+        'D_THEMO_CURRENT_LOBBY_01',
+        'D_THEMO_CURRENT_BEDROOM_01',
+        'D_THEMO_CURRENT_BATHROOM_01',
+      ]);
+      const isP137EPlacementReady = () =>
+        activeModelSourceKind === 'work-test' &&
+        activePlanFloor === '1F' &&
+        activeCamera === planCamera &&
+        canvas.dataset.workTestReviewMode === p137eScene67ReviewId &&
+        canvas.dataset.p137eOriginalSourceWallNode === '798' &&
+        canvas.dataset.p137eOriginalSourceWallMesh === '406' &&
+        canvas.dataset.p137eWallMountedThemoCount === '3' &&
+        canvas.dataset.p137eWorkTestOnly === 'true' &&
+        canvas.dataset.p137eCurrentClaim === 'false';
+
       const d1KnownDoorReviewItems = [
         { number: 1, id: 'G2_DOOR_EXT_D_1F_S_001', name: 'Etelä - ulko-ovi' },
         { number: 2, id: 'G2_DOOR_EXT_D_1F_N_001', name: 'Pohjoinen - ulko-ovi' },
@@ -2771,6 +2806,15 @@ const title = 'Private 3D viewer';
         return { world, xM: world.x, yM: -world.z };
       };
 
+      const clearP137ETargetPlacement = () => {
+        delete canvas.dataset.p137ePlacementTargetId;
+        delete canvas.dataset.p137ePlacementX;
+        delete canvas.dataset.p137ePlacementY;
+        delete canvas.dataset.p137ePlacementState;
+        p137ePlacementStatus.textContent =
+          'Valitse Themo ja Sijoita. Rasti on väliaikainen eikä tallennu.';
+      };
+
       const updateDCoordinatePointer = (clientX: number, clientY: number) => {
         const coordinate = dReviewCoordinateAtClientPoint(clientX, clientY);
         if (!coordinate) return;
@@ -2814,6 +2858,28 @@ const title = 'Private 3D viewer';
         setReviewAnchorState(canvas, coordinateAnchor, coordinate);
       };
 
+
+      const clickP137ETargetPlacement = (clientX: number, clientY: number) => {
+        if (!isP137EPlacementReady()) return;
+        const targetId = p137ePlacementTarget.value;
+        if (!p137ePlacementTargetIds.has(targetId)) return;
+        const coordinate = dReviewCoordinateAtClientPoint(clientX, clientY);
+        if (!coordinate || coordinate.xM < dCoordinateEnvelope.xMin ||
+            coordinate.xM > dCoordinateEnvelope.xMax ||
+            coordinate.yM < dCoordinateEnvelope.yMin ||
+            coordinate.yM > dCoordinateEnvelope.yMax) return;
+        const anchor = createTargetBoundReviewAnchor({ targetId, floor: '1F', coordinate });
+        if (!anchor || anchor.currentGeometry !== false ||
+            anchor.canonical !== false || anchor.asBuilt !== false) return;
+        setDCoordinateAnchor(clientX, clientY);
+        canvas.dataset.p137ePlacementTargetId = anchor.targetId;
+        canvas.dataset.p137ePlacementX = anchor.xM.toFixed(3);
+        canvas.dataset.p137ePlacementY = anchor.yM.toFixed(3);
+        canvas.dataset.p137ePlacementState = 'WORK_TEST_UNMAPPED_NOT_SAVED';
+        p137ePlacementStatus.textContent =
+          'Alustava rasti: ' + p137ePlacementTarget.selectedOptions[0]?.textContent +
+          '. X/Y mallista, ei tallennettu. Seinäpuoli, korkeus ja toteuma varmistamatta.';
+      };
 
       // Measurement has its own temporary THREE overlay and never mutates the
       // source geometry, Themo placement anchor or the G2 persistence path.
@@ -2961,7 +3027,12 @@ const title = 'Private 3D viewer';
         clearDCoordinateAnchor();
         clearDAxisMeasurement();
         axisMeasureToolButton.disabled = true;
-        if (canvas.dataset.interactionMode === 'measure') setViewerToolMode('navigate');
+        p137ePlacementToolButton.disabled = true;
+        p137ePlacementTargetRow.hidden = true;
+        p137ePlacementStatus.hidden = true;
+        clearP137ETargetPlacement();
+        if (canvas.dataset.interactionMode === 'measure' ||
+            canvas.dataset.interactionMode === 'place') setViewerToolMode('navigate');
       };
 
       const isP136BReviewEmphasis = (object: any) => {
@@ -4008,16 +4079,18 @@ const title = 'Private 3D viewer';
         selectionPanelController.clear();
       };
 
-      type ViewerToolMode = 'navigate' | 'select' | 'measure';
+      type ViewerToolMode = 'navigate' | 'select' | 'measure' | 'place';
       const setViewerToolMode = (mode: ViewerToolMode) => {
         if (mode === 'measure' && !isAxisMeasureAvailable(activePlanFloor, activeCamera === planCamera)) return;
+        if (mode === 'place' && !isP137EPlacementReady()) return;
         canvas.dataset.interactionMode = mode;
         navigateToolButton.setAttribute('aria-pressed', String(mode === 'navigate'));
         selectionToolButton.setAttribute('aria-pressed', String(mode === 'select'));
         axisMeasureToolButton.setAttribute('aria-pressed', String(mode === 'measure'));
+        p137ePlacementToolButton.setAttribute('aria-pressed', String(mode === 'place'));
         axisMeasureRow.hidden = mode !== 'measure';
         if (mode !== 'measure') clearDAxisMeasurement();
-        canvas.style.cursor = mode === 'select' || mode === 'measure' ? 'crosshair' : '';
+        canvas.style.cursor = mode === 'select' || mode === 'measure' || mode === 'place' ? 'crosshair' : '';
         if (mode !== 'select') clearSelection();
       };
 
@@ -8221,6 +8294,10 @@ const title = 'Private 3D viewer';
           p137eReviewCameraMode: 'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP',
           standardViewPreset: 'd-1f',
         });
+        clearP137ETargetPlacement();
+        p137ePlacementTargetRow.hidden = false;
+        p137ePlacementStatus.hidden = false;
+        p137ePlacementToolButton.disabled = !isP137EPlacementReady();
         status.textContent =
           'P137E D 1F WORK_TEST – alkuperäinen P123C-seinä + kolme Themoa; as-built ja tarkat sijainnit vahvistamatta';
       };
@@ -10594,6 +10671,11 @@ const title = 'Private 3D viewer';
         setViewerToolMode('measure');
         clearDAxisMeasurement();
       });
+      p137ePlacementToolButton.addEventListener('click', () => setViewerToolMode('place'));
+      p137ePlacementTarget.addEventListener('change', () => {
+        clearDCoordinateAnchor();
+        clearP137ETargetPlacement();
+      });
       clearSelectionButton.addEventListener('click', clearSelection);
       isolateSelectionButton.addEventListener('click', isolateSelectedObject);
       hideSelectionButton.addEventListener('click', hideSelectedObject);
@@ -10618,6 +10700,8 @@ const title = 'Private 3D viewer';
         if (distance <= pickDragThresholdPx) {
           if (canvas.dataset.interactionMode === 'measure') {
             clickDAxisMeasurement(event.clientX, event.clientY);
+          } else if (canvas.dataset.interactionMode === 'place') {
+            clickP137ETargetPlacement(event.clientX, event.clientY);
           } else {
             if (activePlanFloor) setDCoordinateAnchor(event.clientX, event.clientY);
             selectAtClientPoint(event.clientX, event.clientY);
