@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { expect, test } from '@playwright/test';
+import { routeScene67SyntheticHttpsAssets, SYNTHETIC_SCENE67_ORIGIN } from './p137eScene67SyntheticBrowserHarness';
 import {
   getRequestedReviewCandidateId,
   isPrivateModelReviewRequested,
@@ -110,6 +111,7 @@ test('exact Themo one-link review loads WORK_TEST directly without a redundant C
   const currentRequests: string[] = [];
   const reviewGlbRequests: string[] = [];
   const candidatePath = '/private-model/work-test/' + candidateId + '.glb';
+  await routeScene67SyntheticHttpsAssets(page);
   await page.route('**/private-model/model.glb', route => {
     currentRequests.push(route.request().url());
     return route.abort();
@@ -126,7 +128,7 @@ test('exact Themo one-link review loads WORK_TEST directly without a redundant C
     return route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: 'not-a-glb' });
   });
 
-  await page.goto('/private-model/?review=' + reviewId);
+  await page.goto(SYNTHETIC_SCENE67_ORIGIN + '/private-model/?review=' + reviewId);
   await expect.poll(() => reviewGlbRequests.length, { timeout: 15_000 }).toBe(1);
   expect(currentRequests).toEqual([]);
   expect(reviewGlbRequests[0]).toContain(candidatePath);

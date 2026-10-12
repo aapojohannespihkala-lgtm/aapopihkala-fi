@@ -1,5 +1,6 @@
 import { expect, test, type Route } from '@playwright/test';
 import type { PlacementReviewHandoff } from '../../src/scripts/privateModelReviewPlacementDraft';
+import { installScene67SyntheticDigest, padScene67SyntheticGlb, routeScene67SyntheticHttpsAssets, SYNTHETIC_SCENE67_ORIGIN } from './p137eScene67SyntheticBrowserHarness';
 // @ts-ignore - same ESM gate as the authenticated production workflow.
 import { inspectP137EScene67ProductionSmoke } from '../../src/scripts/privateModelP137EScene67ProductionSmokeGuard.mjs';
 
@@ -164,7 +165,9 @@ const sourcePlanCrossFractions = [0.55, 0.575, 0.60] as const;
 test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTAA tools', async ({ page }) => {
   test.setTimeout(45_000);
   await page.setViewportSize({ width: 1536, height: 768 });
-  const glb = makeScene67Glb();
+  const glb = padScene67SyntheticGlb(makeScene67Glb());
+  await installScene67SyntheticDigest(page);
+  await routeScene67SyntheticHttpsAssets(page);
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb });
   });
@@ -179,7 +182,7 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await page.route('**' + candidatePath, async (route) => {
     await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb });
   });
-  await page.goto('/private-model/?review=' + reviewId);
+  await page.goto(SYNTHETIC_SCENE67_ORIGIN + '/private-model/?review=' + reviewId);
 
   const canvas = page.locator('#private-model-canvas');
   await expect.poll(async () => {
@@ -319,12 +322,16 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(page.locator('#p137e-place-list')).toContainText('Kylpyhuone: X ');
   await expect(page.locator('#p137e-place-status')).toContainText('ei tallennettu G2:een');
 
-  // This browser fixture is HTTP, not the authenticated HTTPS G2 release.
-  // Even with all three source-bound draft markers, preview must fail closed.
-  const g2Requests: string[] = [];
-  const onG2Request = (request: { url: () => string }) => {
+  // This isolated HTTPS fixture is not Cloudflare-authenticated G2.
+  // One read-only target discovery is allowed; any POST or observations
+  // read/write would falsely imply G2 access and must fail this test.
+  const g2Requests: Array<{ method: string; path: string }> = [];
+  const onG2Request = (request: { url: () => string; method: () => string }) => {
     if (request.url().includes('/private-model/review-placement/g2/')) {
-      g2Requests.push(request.url());
+      g2Requests.push({
+        method: request.method(),
+        path: new URL(request.url()).pathname,
+      });
     }
   };
   page.on('request', onG2Request);
@@ -332,7 +339,10 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(page.locator('#p137e-g2-status')).toContainText(
     /G2 ei ole käytettävissä|G2-tallennuspalvelua tai lähdevastausta ei varmennettu/,
   );
-  expect(g2Requests).toEqual([]);
+  expect(g2Requests).toEqual([{
+    method: 'GET',
+    path: '/private-model/review-placement/g2/targets',
+  }]);
   page.off('request', onG2Request);
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
   await expect(page.locator('#p137e-place-status')).toContainText('ei tallennettu G2:een');
@@ -376,7 +386,8 @@ test('simulated HTTPS viewer resaves edited Themo notes with exact snapshots and
 
   const origin = 'https://p137e-review.test';
   const source = 'http://127.0.0.1:4321';
-  const glb = makeScene67Glb();
+  const glb = padScene67SyntheticGlb(makeScene67Glb());
+  await installScene67SyntheticDigest(page);
   const calls: string[] = [];
   const records = new Map<string, PlacementReviewHandoff>();
   const delayedReadback: { route?: Route; recordId?: string } = {};
@@ -577,7 +588,8 @@ test('simulated HTTPS viewer recovers a stalled independent G2 readback without 
   await page.setViewportSize({ width: 1536, height: 768 });
   const origin = 'https://p137e-timeout.test';
   const source = 'http://127.0.0.1:4321';
-  const glb = makeScene67Glb();
+  const glb = padScene67SyntheticGlb(makeScene67Glb());
+  await installScene67SyntheticDigest(page);
   const recordId = 'P137E_G2_browser_timeout_20261012';
   const targetId = 'D_THEMO_CURRENT_LOBBY_01';
   const noteText = 'Aulan testihuomio säilyy, kun takaisinluku katkeaa.';
@@ -682,8 +694,10 @@ for (const [phoneWidth, phoneHeight] of [[390, 844], [320, 740]]) {
   test(`real Chromium scene67 narrow phone ${phoneWidth}x${phoneHeight} keeps three source-only Themo ROIs`, async ({ page }) => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width: phoneWidth, height: phoneHeight });
-    const glb = makeScene67Glb();
-    await page.route('**/private-model/model.glb', route =>
+    const glb = padScene67SyntheticGlb(makeScene67Glb());
+  await installScene67SyntheticDigest(page);
+    await routeScene67SyntheticHttpsAssets(page);
+  await page.route('**/private-model/model.glb', route =>
       route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
     await page.route('**/private-model/work-test/catalog.json', route =>
       route.fulfill({ status: 200, contentType: 'application/json',
@@ -691,7 +705,7 @@ for (const [phoneWidth, phoneHeight] of [[390, 844], [320, 740]]) {
           path: candidatePath }] }) }));
     await page.route('**' + candidatePath, route =>
       route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
-    await page.goto('/private-model/?review=' + reviewId);
+    await page.goto(SYNTHETIC_SCENE67_ORIGIN + '/private-model/?review=' + reviewId);
     const canvas = page.locator('#private-model-canvas');
     await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId, { timeout: 20_000 });
 
