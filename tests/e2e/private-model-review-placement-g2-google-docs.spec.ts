@@ -30,6 +30,45 @@ const rawDocument = (revisionId = 'REV_G2_1') => ({
   } } }],
 });
 
+test('OAuth, native read and revision-guarded write omit browser-only Request.credentials', async () => {
+  const account = await makeAccount();
+  const calls: string[] = [];
+  const ports = createNativeG2GoogleDocsPorts({
+    credentials: account,
+    fetcher: async (input, init) => {
+      // Older workerd runtimes reject this browser-only field before I/O.
+      // Model that boundary rather than relying on Node's tolerant fetch.
+      if (init && Object.prototype.hasOwnProperty.call(init, 'credentials')) {
+        throw new Error("The 'credentials' field on 'RequestInitializerDict' is not implemented.");
+      }
+      calls.push(String(input));
+      expect(init?.redirect).toBe('error');
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
+      expect(new Headers(init?.headers).get('Cookie')).toBeNull();
+      if (String(input) === 'https://oauth2.googleapis.com/token') {
+        return Response.json({ access_token: 'fixture-only-bearer', token_type: 'Bearer' });
+      }
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer fixture-only-bearer');
+      return String(input).endsWith(':batchUpdate')
+        ? Response.json({ documentId: placementG2DocumentId, replies: [{}] })
+        : Response.json(rawDocument());
+    },
+  });
+  expect(await ports.getDocument()).toEqual(rawDocument());
+  await ports.batchUpdateDocument({
+    documentId: placementG2DocumentId,
+    writeControl: { requiredRevisionId: 'REV_G2_1' },
+    requests: [{ insertText: { endOfSegmentLocation: { tabId: 't.0' },
+      text: '\nP137E_G2_REVIEW_OBSERVATION_V1 | P137E_G2_TESTRECORD_0001 | {"schema":"test"}\n' } }],
+  });
+  expect(calls).toEqual([
+    'https://oauth2.googleapis.com/token',
+    'https://docs.googleapis.com/v1/documents/' + placementG2DocumentId + '?includeTabsContent=true',
+    'https://oauth2.googleapis.com/token',
+    'https://docs.googleapis.com/v1/documents/' + placementG2DocumentId + ':batchUpdate',
+  ]);
+});
+
 test('server-only OAuth RS256 requests exact Docs scope, pinned identity and native one-tab G2', async () => {
   const account = await makeAccount();
   let calls = 0;
