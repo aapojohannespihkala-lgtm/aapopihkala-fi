@@ -553,6 +553,18 @@ const M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE = {
   expectedSha256: '92275bb2ecf61054c0bb015d69800b85a899d11f9170a485ccbf62238373fc10',
 } as const satisfies PrivateWorkTestCandidate;
 
+// P137E source-bound D1F scene67: original P123C wall + three wall-mounted Themos.
+// Exact raw Drive file 17FqR79AIjJhScxdydK0HG1RX0P53e0wf was authenticated
+// by the machine publisher; this is WORK_TEST, not CURRENT or as-built.
+const P137E_D1F_THREE_WALL_MOUNTED_THEMOS_CANDIDATE = {
+  id: 'p137e-d1f-three-wall-mounted-themos',
+  label: 'P137E D1F P123C original wall + three Themos - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/p137e-d1f-three-wall-mounted-themos.glb`,
+  objectKey: 'work-test/p137e-d1f-three-wall-mounted-themos.glb',
+  expectedSize: 3_258_268,
+  expectedSha256: '07331f15ca223a5db8e0e8ea8955d7707f880cef23ca80b09dc6611730ae0b7d',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -560,6 +572,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   M5A_R1125_PVK_DIAMETER_SOURCE_SPLIT_CANDIDATE,
   M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE,
   M5A_R1115_SOK23_PLANNED_RAISE_PRESENCE_CANDIDATE,
+  P137E_D1F_THREE_WALL_MOUNTED_THEMOS_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
