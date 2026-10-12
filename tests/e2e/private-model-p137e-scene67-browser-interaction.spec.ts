@@ -157,6 +157,10 @@ const makeScene67Glb = () => {
   return Buffer.concat([header, jsonHeader, paddedJson, binaryHeader, paddedBinary]);
 };
 
+// Run #67 hit source-plan at x=0.55/0.60, but x=0.65 fell outside.
+// Keep Chromium's two placement paths aligned with the real workflow.
+const sourcePlanCrossFractions = [0.55, 0.575, 0.60] as const;
+
 test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTAA tools', async ({ page }) => {
   test.setTimeout(45_000);
   await page.setViewportSize({ width: 1536, height: 768 });
@@ -307,7 +311,7 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
     'D_THEMO_CURRENT_BATHROOM_01',
   ].entries()) {
     await page.locator('#p137e-place-target').selectOption(targetId);
-    await clickPlan(0.55 + i * 0.05, 0.49);
+    await clickPlan(sourcePlanCrossFractions[i], 0.49);
     await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', String(i + 1));
   }
   await expect(page.locator('#p137e-place-list')).toContainText('Aula: X ');
@@ -336,16 +340,16 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await page.locator('#axis-measure-tool-button').click();
   await expect(canvas).toHaveAttribute('data-interaction-mode', 'measure');
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
-  await clickPlan(0.56, 0.49);
+  await clickPlan(0.55, 0.49);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'FIRST');
-  await clickPlan(0.64, 0.49);
+  await clickPlan(0.575, 0.49);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'DYNAMIC');
   const measuredMm = Number(await canvas.getAttribute('data-axis-measure-mm'));
   expect(measuredMm).toBeGreaterThan(0);
   await expect(page.locator('#axis-measure-output')).toContainText('mm (mallista)');
-  await clickPlan(0.66, 0.49);
-  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'LOCKED');
   await clickPlan(0.60, 0.49);
+  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'LOCKED');
+  await clickPlan(0.56, 0.49);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
 
@@ -481,7 +485,7 @@ test('simulated HTTPS viewer resaves edited Themo notes with exact snapshots and
   expect(box).not.toBeNull();
   for (const [i, targetId] of themoIds.entries()) {
     await page.locator('#p137e-place-target').selectOption(targetId);
-    await page.mouse.click(box!.x + box!.width * (0.55 + i * 0.05),
+    await page.mouse.click(box!.x + box!.width * sourcePlanCrossFractions[i],
       box!.y + box!.height * 0.49);
     await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', String(i + 1));
   }
