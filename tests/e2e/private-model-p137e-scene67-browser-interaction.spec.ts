@@ -20,7 +20,9 @@ const noPromotion = {
 
 const makeScene67Glb = () => {
   const wallPositions = [-2, 0, 0, 2, 0, 0, -2, 0, 2];
-  const devicePositions = [-0.08, 0, 0, 0.08, 0, 0, 0, 0, 0.18];
+  // Themo housing mesh ~94 mm: source-projected housing ROI must fit
+  // the actual 2D camera viewport, not an oversized synthetic square.
+  const devicePositions = [-0.047, 0, 0, 0.047, 0, 0, 0, 0, 0.094];
   const floats = [...wallPositions, ...devicePositions];
   const binary = Buffer.alloc(floats.length * 4);
   floats.forEach((value, index) => binary.writeFloatLE(value, index * 4));
@@ -127,7 +129,7 @@ const makeScene67Glb = () => {
       { bufferView: 0, componentType: 5126, count: 3, type: 'VEC3',
         min: [-2, 0, 0], max: [2, 0, 2] },
       { bufferView: 1, componentType: 5126, count: 3, type: 'VEC3',
-        min: [-0.08, 0, 0], max: [0.08, 0, 0.18] },
+        min: [-0.047, 0, 0], max: [0.047, 0, 0.094] },
     ],
     bufferViews: [
       { buffer: 0, byteOffset: 0, byteLength: wallPositions.length * 4, target: 34962 },
@@ -183,6 +185,15 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
 
   await expect(canvas).toHaveAttribute('data-p137e-scene67-camera-face', 'NORTH');
   await expect(canvas).toHaveAttribute('data-p137e-wall-mounted-themo-count', '3');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-source-housing-roi-status',
+    'SOURCE_ONLY_PROJECTED');
+  const northRegions = JSON.parse(
+    (await canvas.getAttribute('data-p137e-scene67-source-housing-rois')) ?? 'null',
+  );
+  expect(northRegions.side).toBe('NORTH');
+  expect(northRegions.projectedTargets.map((r: { logicalDeviceId: string }) =>
+    r.logicalDeviceId)).toEqual(['D_THEMO_CURRENT_LOBBY_01']);
+  expect(northRegions.individualRenderedPixelsVerified).toBe(false);
   await expect(page.locator('#axis-measure-tool-button')).toBeDisabled();
   await expect(page.locator('#p137e-place-tool-button')).toBeDisabled();
 
@@ -191,6 +202,21 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(canvas).toHaveAttribute('data-p137e-scene67-camera-face', 'SOUTH');
   await expect(canvas).toHaveAttribute('data-p137e-scene67-wall-presentation',
     'SOUTH_SOURCE_WALL_ALPHA_0_38');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-source-housing-roi-status',
+    'SOURCE_ONLY_PROJECTED');
+  const southRegions = JSON.parse(
+    (await canvas.getAttribute('data-p137e-scene67-source-housing-rois')) ?? 'null',
+  );
+  expect(southRegions.side).toBe('SOUTH');
+  expect(southRegions.projectedTargets.map((r: { logicalDeviceId: string }) =>
+    r.logicalDeviceId)).toEqual([
+      'D_THEMO_CURRENT_BEDROOM_01',
+      'D_THEMO_CURRENT_BATHROOM_01',
+    ]);
+  const [bedroom, bathroom] = southRegions.projectedTargets;
+  expect(Math.hypot(bedroom.x - bathroom.x, bedroom.y - bathroom.y))
+    .toBeGreaterThan(bedroom.radius + bathroom.radius);
+  expect(southRegions.individualRenderedPixelsVerified).toBe(false);
 
   // The real toolbar closes its <details> after each button click.
   // Reopen the visible menu as a person would before selecting the plan.
@@ -199,6 +225,7 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(page.locator('#p137e-plan-face-button')).toBeVisible();
   await page.locator('#p137e-plan-face-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-scene67-top-plan-tools-ready', 'true');
+  await expect(canvas).not.toHaveAttribute('data-p137e-scene67-source-housing-rois', /./);
   await expect(canvas).toHaveAttribute('data-p137e-review-camera-mode',
     'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP');
   await expect(page.locator('#axis-measure-tool-button')).toBeEnabled();
