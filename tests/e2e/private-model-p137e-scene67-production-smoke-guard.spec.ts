@@ -473,22 +473,24 @@ test('prefilled Themo dispatch passes the actual production input step and exact
 });
 
 test('actual prefilled production input step still rejects wrong host and invalid or reserved datasets', () => {
-  for (const override of [
+  const cases: Array<Record<string, string>> = [
     { REVIEW_BASE_URL: 'https://evil.example/private-model/' },
     { EXPECTED_DATASET_JSON: '{broken' },
     { EXPECTED_DATASET_JSON: '{}' },
     { EXPECTED_DATASET_JSON: '{"modelSource":"current"}' },
-  ]) {
+  ];
+  for (const override of cases) {
     expect(runActualProductionInputValidator(override).status).not.toBe(0);
   }
 });
 
 test('prefilled dispatch cannot reduce either production pixel hard floor', () => {
   const defaults = productionInputEnvironment();
-  for (const override of [
+  const cases: Array<Record<string, string>> = [
     { REQUESTED_MIN_NON_BACKGROUND_PIXELS: String(Number(defaults.MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR) - 1) },
     { REQUESTED_MIN_CHANGED_PIXELS: String(Number(defaults.MIN_CHANGED_PIXELS_HARD_FLOOR) - 1) },
-  ]) {
+  ];
+  for (const override of cases) {
     const result = runActualProductionInputValidator(override);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('cannot be lower than hard floor');
