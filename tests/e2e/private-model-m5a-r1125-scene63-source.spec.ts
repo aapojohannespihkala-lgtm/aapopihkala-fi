@@ -29,6 +29,11 @@ const m5aR1125WorkRootExtras = {
 const m5aR1125SceneExtras = {
   sourceDiameterCorrectionContract: 'G2_R1125',
   sourceDiameterClassBreakdown: '5_SALAOJA_AGGREGATE_NOMINAL_100MM__2_PVK_UNKNOWN',
+  // Original scene63 root is source-only, matching the merged camera provenance guard.
+  Canonical: false,
+  presentationOnly: true,
+  workAssumption: true,
+  humanReview: 'NOT_RUN',
   physicalRouteDiameterMeasuredClaim: false,
   currentGeometryClaim: false,
   asBuiltClaim: false,
@@ -240,13 +245,17 @@ const targetLocations: [number, number, number][] = [
   [8.3, 0.06, -1.0],
   [8.3, 0.06, -5.0],
   [1.0, 0.06, -5.0],
-  [2.0, 0.06, -4.8],
-  [6.8, 0.06, -4.8],
-  [4.3, 0.06, -1.0],
-  [8.7, 0.06, -3.7],
-  [8.7, 0.06, -2.3],
-  [0.6, 0.06, -3.8],
-  [0.6, 0.06, -2.2],
+  // Synthetic ROUTE fixtures are spaced apart in the real focused
+  // perspective projection, so seven distinct same-palette ROIs remain
+  // independently verifiable at the 1536x768/sidebar viewport.
+  // This does not change a source GLB route or loosen overlap rejection.
+  [5.566, 0.06, -0.253],
+  [9.0, 0.06, -5.669],
+  [6.330, 0.06, -4.917],
+  [8.945, 0.06, -0.246],
+  [0.300, 0.06, -3.819],
+  [0.300, 0.06, -0.244],
+  [2.522, 0.06, -5.666],
   [0.25, 0.06, -4.8],
   [9.15, 0.06, -4.8],
 ];
@@ -298,7 +307,12 @@ const makeTargetNode = (key: string, index: number) => {
     name: `M5A_R1125_REVIEW_TARGET_${String(index + 1).padStart(2, '0')}`,
     mesh: boundary ? 3 : well ? 0 : 2,
     translation: targetLocations[index],
-    scale: boundary ? [3, 1, 3] : [1.8, 1, 1.8],
+    // Seven equally sized cyan fixture routes need enough visible pixels in
+    // the actual sidebar perspective. This is not physical pipe geometry.
+    // Preserve original IDs and the unchanged per-source pixel threshold.
+    scale: boundary ? [3, 1, 3]
+      : well ? [1.8, 1, 1.8]
+      : [2.8, 1, 2.8],
     extras,
   };
 };
@@ -363,7 +377,17 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
-  await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId);
+  // Keep the exact autoload requirement and expose the viewer's own failure
+  // phase/error if the WORK_TEST review never becomes active.
+  await expect.poll(async () => {
+    const activeReview = await canvas.getAttribute('data-work-test-review-mode');
+    if (activeReview === reviewId) return activeReview;
+    const failurePhase = await canvas.getAttribute('data-work-test-load-failure-phase');
+    const failureError = await canvas.getAttribute('data-work-test-load-error');
+    return failurePhase
+      ? `WORK_TEST_LOAD_FAILURE[${failurePhase}]: ${failureError ?? 'unknown'}`
+      : activeReview ?? '';
+  }, { timeout: 15_000 }).toBe(reviewId);
   await expect(canvas).toHaveAttribute('data-m5a-review-target-renderable-count', '13');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-source-contract', 'G2_R1125');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-terrain-resistant-overlay', 'true');
@@ -372,6 +396,24 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
   await expect(canvas).toHaveAttribute('data-m5a-r1125-pvk-unknown-physical-diameter-count', '2');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-physical-diameter-measurement-claim', 'false');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-human-review', 'NOT_RUN');
+  // Assert the REAL focused perspective projection survived sidebar canvas
+  // resize; this is not an invented pixel/production or geometry PASS.
+  const projectedSource = JSON.parse(
+    (await canvas.getAttribute('data-m5a-r1125-source-camera-centers')) ?? '{}',
+  );
+  expect(projectedSource.sourceSceneIndex).toBe(63);
+  expect(projectedSource.sourceTargetCount).toBe(13);
+  expect(projectedSource.centers).toHaveLength(13);
+  expect(new Set(projectedSource.centers.map((row: {key: string}) => row.key)))
+    .toEqual(new Set(m5aZ2ExpectedTargetKeys));
+  for (const row of projectedSource.centers as {u: number; v: number}[]) {
+    expect(row.u).toBeGreaterThan(0);
+    expect(row.u).toBeLessThan(1);
+    expect(row.v).toBeGreaterThan(0);
+    expect(row.v).toBeLessThan(1);
+  }
+  expect(projectedSource.productionScreenshotVerified).toBe(false);
+  expect(projectedSource.humanReview).toBe('NOT_RUN');
   await expect(canvas).toHaveAttribute('data-m5a-review-expected-target-renderable-count', '13');
   await expect(canvas).toHaveAttribute('data-m5a-review-well-marker-count', '4');
   await expect(canvas).toHaveAttribute('data-m5a-review-route-count', '7');
@@ -546,6 +588,27 @@ test('M5A R1125 rejects a fabricated PVK physical diameter and duplicated source
   const good = selectM5AR1125SourceBoundReviewScene(original);
   expect(good.salaojaNominalSystemCount).toBe(5);
   expect(good.pvkUnknownCount).toBe(2);
+  // All seven route labels are keyed by authenticated G2 source IDs; no
+  // individual measured 100 mm diameter is inferred from the drawn cylinder.
+  expect(good.diameterReviewLabels).toHaveLength(7);
+  expect(new Set(good.diameterReviewLabels.map((row) => row.sourceId))).toEqual(
+    new Set(m5aZ2ExpectedTargetKeys.filter((key) => key.startsWith('G2_DRAIN_LINK_'))),
+  );
+  const general = good.diameterReviewLabels.filter((row) =>
+    row.sourceClass === 'GENERAL_SALAOJA_NOMINAL_NOT_PER_ROUTE_MEASURED');
+  const unknown = good.diameterReviewLabels.filter((row) =>
+    row.sourceClass === 'PVK_SOURCE_DIAMETER_UNKNOWN');
+  expect(general).toHaveLength(5);
+  expect(unknown).toHaveLength(2);
+  expect(general.every((row) => row.generalSystemNominalMm === 100 &&
+    row.label.includes('yleinen nimelliskokoluokka'))).toBe(true);
+  expect(unknown.every((row) => row.generalSystemNominalMm === null &&
+    row.label.includes('todellinen halkaisija tuntematon'))).toBe(true);
+  expect(good.diameterReviewLabels.every((row) =>
+    row.physicalDiameterMm === null && row.presentationDiameterMm === 100 &&
+    row.presentationRole === 'WORK_TEST_VISUAL_PROXY' &&
+    row.physicalMeasurementVerified === false && row.asBuiltClaim === false,
+  )).toBe(true);
   expect(good.humanReview).toBe('NOT_RUN');
   expect(() => selectM5AR1125SourceBoundReviewScene(
     buildFixture(nodeData, { scene: { ...m5aR1125SceneExtras, physicalRouteDiameterMeasuredClaim: true } }),
