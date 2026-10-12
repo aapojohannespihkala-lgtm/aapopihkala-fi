@@ -111,6 +111,18 @@ test('rejects a swapped hidden-device frame and missing housing delta', () => {
   expect(() => inspect(unchanged)).toThrow(/delta/);
 });
 
+test('rejects same camera identity masquerading as two opposite source-wall faces', () => {
+  const evidence = fixture();
+  const northKey = evidence.views[0].cameraKey;
+  const south = evidence.views[1];
+  // Every local frame agrees with the forged camera: single-view validators
+  // alone must not accept this as independent NORTH + SOUTH render evidence.
+  south.cameraKey = northKey;
+  south.baseline.cameraKey = northKey;
+  for (const frame of Object.values(south.hiddenFrames)) frame.cameraKey = northKey;
+  expect(() => inspect(evidence)).toThrow(/distinct cameras/);
+});
+
 test('rejects viewport/camera mismatch and changed other-device pixels', () => {
   const camera = fixture();
   camera.views[0].hiddenFrames.D_THEMO_CURRENT_LOBBY_01.cameraKey = 'other-camera';
