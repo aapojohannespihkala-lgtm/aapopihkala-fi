@@ -546,6 +546,27 @@ test('M5A R1125 rejects a fabricated PVK physical diameter and duplicated source
   const good = selectM5AR1125SourceBoundReviewScene(original);
   expect(good.salaojaNominalSystemCount).toBe(5);
   expect(good.pvkUnknownCount).toBe(2);
+  // All seven route labels are keyed by authenticated G2 source IDs; no
+  // individual measured 100 mm diameter is inferred from the drawn cylinder.
+  expect(good.diameterReviewLabels).toHaveLength(7);
+  expect(new Set(good.diameterReviewLabels.map((row) => row.sourceId))).toEqual(
+    new Set(m5aZ2ExpectedTargetKeys.filter((key) => key.startsWith('G2_DRAIN_LINK_'))),
+  );
+  const general = good.diameterReviewLabels.filter((row) =>
+    row.sourceClass === 'GENERAL_SALAOJA_NOMINAL_NOT_PER_ROUTE_MEASURED');
+  const unknown = good.diameterReviewLabels.filter((row) =>
+    row.sourceClass === 'PVK_SOURCE_DIAMETER_UNKNOWN');
+  expect(general).toHaveLength(5);
+  expect(unknown).toHaveLength(2);
+  expect(general.every((row) => row.generalSystemNominalMm === 100 &&
+    row.label.includes('yleinen nimelliskokoluokka'))).toBe(true);
+  expect(unknown.every((row) => row.generalSystemNominalMm === null &&
+    row.label.includes('todellinen halkaisija tuntematon'))).toBe(true);
+  expect(good.diameterReviewLabels.every((row) =>
+    row.physicalDiameterMm === null && row.presentationDiameterMm === 100 &&
+    row.presentationRole === 'WORK_TEST_VISUAL_PROXY' &&
+    row.physicalMeasurementVerified === false && row.asBuiltClaim === false,
+  )).toBe(true);
   expect(good.humanReview).toBe('NOT_RUN');
   expect(() => selectM5AR1125SourceBoundReviewScene(
     buildFixture(nodeData, { scene: { ...m5aR1125SceneExtras, physicalRouteDiameterMeasuredClaim: true } }),
