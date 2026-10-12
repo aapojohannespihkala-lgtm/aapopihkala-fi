@@ -2500,6 +2500,7 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p137eScene67VisibleDeviceIds;
         delete canvas.dataset.p137eScene67HiddenDeviceIds;
         delete canvas.dataset.p137eScene67DeviceFaceMask;
+        delete canvas.dataset.p137eScene67HousingProbe;
       };
 
       const ambient = new THREE.HemisphereLight(0xffffff, 0x777777, 2.2);
@@ -8404,6 +8405,67 @@ const title = 'Private 3D viewer';
           p137eScene67DeviceFaceMask: face + '_SOURCE_ONLY_RESTOREABLE',
         });
       };
+
+      // WORK_TEST-only frame isolation for authenticated screenshot tooling.
+      // The handler touches only existing THREE child.visible presentation
+      // state; never updates source geometry, GLB, G2 or review approval.
+      // Every request is bound to the exact loaded focused review and face.
+      canvas.addEventListener('p137e-housing-pixel-probe', (rawEvent: Event) => {
+        const request = (rawEvent as CustomEvent<{
+          face: string; logicalDeviceId: string; hidden: boolean;
+        }>).detail;
+        const face = canvas.dataset.p137eScene67CameraFace;
+        const expectedIds = face === 'NORTH'
+          ? ['D_THEMO_CURRENT_LOBBY_01']
+          : face === 'SOUTH'
+            ? ['D_THEMO_CURRENT_BEDROOM_01', 'D_THEMO_CURRENT_BATHROOM_01']
+            : [];
+        const allIds = [
+          'D_THEMO_CURRENT_LOBBY_01',
+          'D_THEMO_CURRENT_BEDROOM_01',
+          'D_THEMO_CURRENT_BATHROOM_01',
+        ];
+        if (!request || (face !== 'NORTH' && face !== 'SOUTH') ||
+            request.face !== face || typeof request.hidden !== 'boolean' ||
+            !allIds.includes(request.logicalDeviceId) ||
+            activeModelSourceKind !== 'work-test' ||
+            !isP137EScene67ReviewRequested() ||
+            canvas.dataset.workTestReviewMode !== p137eScene67ReviewId ||
+            canvas.dataset.p137eLoadedCandidateId !== p137eScene67CandidateId ||
+            canvas.dataset.p137eScene67DeviceFaceMask !==
+              face + '_SOURCE_ONLY_RESTOREABLE' ||
+            canvas.dataset.p137eScene67CameraSourceOnly !== 'true' ||
+            canvas.dataset.p137eHumanReview !== 'NOT_RUN' ||
+            modelRoot.children[0] !== fullModelScene ||
+            fullModelScene?.name !==
+              'P137E_D_THEMOS_REAL_WALL_FACE_WORK_TEST_ROOT_BABYLON_Y_UP' ||
+            fullModelScene.children.length !== 4 ||
+            fullModelScene.children[0]?.userData?.sourceNodeIndex !== 798 ||
+            fullModelScene.children[0]?.userData?.sourceMeshIndex !== 406 ||
+            p137eDevicePresentationOriginals.length !== 3 ||
+            canvas.dataset.p137eScene67VisibleDeviceIds !== expectedIds.join(',')) {
+          throw new Error('P137E pixel probe rejected: wrong source, face or promotion');
+        }
+        const entries = p137eDevicePresentationOriginals;
+        const target = entries.find(entry =>
+          entry.object?.userData?.logicalDeviceId === request.logicalDeviceId);
+        if (!target || entries.some(entry =>
+          entry.visible !== true ||
+          entry.object?.userData?.presentationOnly !== true ||
+          entry.object?.userData?.HUMAN_REVIEW !== 'NOT_RUN' ||
+          !allIds.includes(entry.object.userData.logicalDeviceId) ||
+          (entry !== target && entry.object.visible !==
+            expectedIds.includes(entry.object.userData.logicalDeviceId)))) {
+          throw new Error('P137E pixel probe rejected: device baseline identity');
+        }
+        // A hidden wrong-face source child stays hidden: a required negative
+        // control. A shown child may only be temporarily hidden/restored.
+        target.object.visible = !request.hidden &&
+          expectedIds.includes(request.logicalDeviceId);
+        canvas.dataset.p137eScene67HousingProbe =
+          face + ':' + request.logicalDeviceId +
+          (request.hidden ? ':HIDDEN' : ':BASELINE');
+      });
 
       const applyP137EScene67SourceFace = (face: 'NORTH' | 'SOUTH') => {
         if (
