@@ -11244,7 +11244,12 @@ const title = 'Private 3D viewer';
       });
 
       void (async () => {
-        await loadCurrentModel();
+        // The exact P137E scene67 one-link review already targets a separate
+        // WORK_TEST GLB; loading CURRENT first delays that model unnecessarily.
+        // Keep the CURRENT-first path intact for all other routes and reviews.
+        if (!isP137EScene67ReviewRequested()) {
+          await loadCurrentModel();
+        }
         const imported = await importWorkTestCandidateFromFragment();
         if (imported) return;
 
