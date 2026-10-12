@@ -52,6 +52,24 @@ test('targets must remain source-bound, unapproved and same-origin', async () =>
   expect(calls[0].options.cache).toBe('no-store');
 });
 
+test('targets fail closed when native G2 repeats a source target identity', async () => {
+  const calls: Array<{url: string; options: any}> = [];
+  const target = {
+    targetId: 'D_THEMO_CURRENT_LOBBY_01', approvedWallHosts: [],
+    exactXY: false, currentGeometry: false, canonical: false, asBuilt: false,
+  };
+  const base = { status: 'WORK_TEST_TARGETS_ONLY', documentRevision: 'G2_REV_TEST' };
+  await expect(client(json({ ...base, targets: [target, { ...target }] }), calls)
+    .targets()).rejects.toThrow('TARGET_EVIDENCE_INVALID');
+  expect(calls).toHaveLength(1);
+  await expect(client(json({
+    ...base, targets: [target, { ...target, targetId: 'D_THEMO_CURRENT_BATHROOM_01' }],
+  })).targets()).resolves.toMatchObject({ targets: [
+    { targetId: 'D_THEMO_CURRENT_LOBBY_01' },
+    { targetId: 'D_THEMO_CURRENT_BATHROOM_01' },
+  ] });
+});
+
 test('POST receipt requires a separate unchanged durable GET from G2', async () => {
   const calls: Array<{url: string; options: any}> = [];
   const reply = { receipt: { status: 'PERSISTED_TO_EXISTING_G2', recordId },
