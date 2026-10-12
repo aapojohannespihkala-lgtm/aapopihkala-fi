@@ -358,3 +358,39 @@ test('production original P123C top plan executes three real source Themo crosse
   expect(body).not.toContain("p137eG2Client.persist(");
   expect(body).not.toContain("HUMAN_REVIEW: 'PASS'");
 });
+
+
+test('P137E motion proof compares the SAME real NORTH source before and after permitted right pan', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const originalNorth = workflow.indexOf("const northHousingPixels = await captureSourceHousingPixels(");
+  const south = workflow.indexOf("const southHousingPixels = await captureSourceHousingPixels(");
+  const topPlan = workflow.indexOf("path: 'playwright-artifacts/p137e-scene67-original-top-plan.png'");
+  const ruler = workflow.indexOf("path: 'playwright-artifacts/p137e-scene67-source-plan-ruler-mm.png'");
+  const planTools = workflow.indexOf("fs.writeFileSync('playwright-artifacts/p137e-scene67-plan-tools.json'");
+  const backToNorth = workflow.indexOf("const restoredFace = await readFace();", planTools);
+  const northBeforePan = workflow.indexOf("path: 'playwright-artifacts/p137e-scene67-north-before-pan.png'", backToNorth);
+  const rightPan = workflow.indexOf("const motionButton = p137eScene67SourceEvidence ? 'right' : pointerButton;", northBeforePan);
+  const afterPan = workflow.indexOf("path: 'playwright-artifacts/production-review-after-orbit.png'", rightPan);
+  const pixelReference = workflow.indexOf("(p137eScene67SameCameraPanBefore ?? before).toString('base64')", afterPan);
+  for (const [earlier, later] of [
+    [originalNorth, south], [south, topPlan], [topPlan, ruler],
+    [ruler, planTools], [planTools, backToNorth],
+    [backToNorth, northBeforePan], [northBeforePan, rightPan],
+    [rightPan, afterPan], [afterPan, pixelReference],
+  ]) {
+    expect(earlier).toBeGreaterThan(-1);
+    expect(later).toBeGreaterThan(earlier);
+  }
+  const src = workflow.slice(planTools, pixelReference + 120);
+  expect(src).toContain("restoredFace.face !== 'NORTH'");
+  expect(src).toContain("restoredFace.ids !== 'D_THEMO_CURRENT_LOBBY_01'");
+  expect(src).toContain("restoredFace.sourceOnly !== 'true'");
+  expect(src).toContain("restoredFace.render !== 'false'");
+  expect(src).toContain("restoredFace.humanReview !== 'NOT_RUN'");
+  expect(src).toContain("await page.mouse.down({ button: motionButton });");
+  expect(src).toContain("await page.mouse.up({ button: motionButton });");
+  expect(workflow).toContain("const pointerButton = isX4Themo ? 'right' : 'left'");
+  expect(workflow).toContain('pixelEvidence.changedPixels < minChangedPixels');
+  expect(workflow).toContain('pixelEvidence.nonBackgroundPixels < minNonBackgroundPixels');
+  expect(workflow).not.toContain('HUMAN_REVIEW: PASS');
+});

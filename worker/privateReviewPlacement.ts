@@ -66,21 +66,37 @@ const isConfigured = (env: PrivatePlacementReviewEnv) =>
   env.P137E_G2_SERVICE_ACCOUNT_PRIVATE_KEY_PEM.length > 0;
 
 /** Read no more than the existing 16 kB POST budget, including chunked requests
- * with no Content-Length. Never buffer an unbounded request before validating size.
+ * with no Content-Length. Bound both bytes and read time, including stalled streams.
  */
 export const readBoundedPlacementRequest = async (
   request: Request,
   maxBytes = 16000,
+  timeoutMs = 5000,
 ): Promise<string | null> => {
-  if (!request.body || maxBytes !== 16000) return null;
+  if (
+    !request.body || maxBytes !== 16000 ||
+    !Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 5000
+  ) return null;
   const reader = request.body.getReader();
   const decoder = new TextDecoder('utf-8', { fatal: true });
   const chunks: string[] = [];
   let size = 0;
   let completed = false;
+  const deadlineAt = Date.now() + timeoutMs;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     while (true) {
-      const next = await reader.read();
+      // Also check elapsed time when empty chunks keep the microtask queue busy.
+      const remainingMs = deadlineAt - Date.now();
+      if (remainingMs <= 0) return null;
+      const next = await Promise.race([
+        reader.read(),
+        new Promise<null>((resolve) => {
+          timer = setTimeout(() => resolve(null), remainingMs);
+        }),
+      ]);
+      clearTimeout(timer);
+      if (next === null) return null;
       if (next.done) {
         completed = true;
         chunks.push(decoder.decode());
@@ -94,7 +110,9 @@ export const readBoundedPlacementRequest = async (
   } catch {
     return null;
   } finally {
-    if (!completed) await reader.cancel().catch(() => undefined);
+    clearTimeout(timer);
+    // Cancellation is best effort: an untrusted source may never acknowledge it.
+    if (!completed) void reader.cancel().catch(() => undefined);
     reader.releaseLock();
   }
 };
