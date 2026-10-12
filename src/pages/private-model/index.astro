@@ -9971,15 +9971,32 @@ const title = 'Private 3D viewer';
                   canvas.dataset.m5aReviewCameraFocusApplied !== 'true') {
                 throw new Error('R1125 source-camera projection requires focused perspective review');
               }
+              // The side panel can change the real canvas viewport without
+              // changing its drawing-buffer dimensions. Synchronize the actual
+              // perspective projection to the exact screenshot viewport before
+              // deriving source-bound ROIs; never relax the source aspect gate.
+              updateSize();
               const frame = canvas.getBoundingClientRect();
               const screenshotScale = window.devicePixelRatio || 1;
+              const imageWidth = Math.round(frame.width * screenshotScale);
+              const imageHeight = Math.round(frame.height * screenshotScale);
+              if (!Number.isFinite(frame.width) || !Number.isFinite(frame.height) ||
+                  !Number.isFinite(screenshotScale) || screenshotScale <= 0 ||
+                  imageWidth < 128 || imageHeight < 128) {
+                throw new Error('R1125 actual screenshot viewport is invalid');
+              }
+              const screenshotAspect = imageWidth / imageHeight;
+              if (Math.abs(camera.aspect - screenshotAspect) > 1e-8) {
+                camera.aspect = screenshotAspect;
+                camera.updateProjectionMatrix();
+              }
               const sourceCameraProjection = deriveM5AR1125SourceCameraCenters({
                 sceneRoot: fullModelScene,
                 camera: activeCamera,
                 THREE,
                 sceneIndex: 63,
-                imageWidth: Math.round(frame.width * screenshotScale),
-                imageHeight: Math.round(frame.height * screenshotScale),
+                imageWidth,
+                imageHeight,
               });
               if (sourceCameraProjection.sourceTargetCount !== 13 ||
                   sourceCameraProjection.centers.length !== 13 ||
