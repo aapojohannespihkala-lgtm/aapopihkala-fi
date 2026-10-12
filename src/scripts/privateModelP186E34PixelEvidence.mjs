@@ -14,6 +14,9 @@ export const p186ePixelExpected = Object.freeze({
   D1F: Object.freeze({ total: 18, group: 14, special: 4 }),
   D2F: Object.freeze({ total: 16, group: 15, special: 1 }),
 });
+// Exact viewer WORK_TEST identity, not an arbitrary caller-selected source alias.
+export const p186ePixelCandidateId =
+  'p186e-x1-d2015-electrical-source-label-anchors-p28-corrected';
 export const p186ePixelSourcePdfDriveId = '1dzzZsa9FCiyqmv8WholhLxba6Kxobspg';
 export const p186ePixelSchedulePdfDriveId = '1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP';
 export const p186ePixelRepresentationKinds = Object.freeze({
@@ -54,8 +57,7 @@ const pixelChanged = (a, b, offset) =>
 export function verifyP186E34SourcePixelEvidence({
   sourceCandidateId, floors, minLostPixels = 4, maxOutsidePixelChanges = 0,
 } = {}) {
-  if (typeof sourceCandidateId !== 'string' ||
-      !identifier.test(sourceCandidateId) ||
+  if (sourceCandidateId !== p186ePixelCandidateId ||
       !Array.isArray(floors) || floors.length !== 2 ||
       !integer(minLostPixels) || minLostPixels < 1 ||
       !integer(maxOutsidePixelChanges) || maxOutsidePixelChanges < 0) {
