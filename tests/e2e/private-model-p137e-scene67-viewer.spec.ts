@@ -103,3 +103,42 @@ test('source-bound scene67 top plan shares the same viewer as wall-side review w
   expect(plan).not.toContain('currentGeometry: true');
   expect(runtime).toContain("p137eLoadedCandidateId !== p137eScene67CandidateId");
 });
+
+
+test('exact Themo one-link review loads WORK_TEST directly without a redundant CURRENT GLB request', async ({ page }) => {
+  test.setTimeout(45_000);
+  const currentRequests: string[] = [];
+  const reviewGlbRequests: string[] = [];
+  const candidatePath = '/private-model/work-test/' + candidateId + '.glb';
+  await page.route('**/private-model/model.glb', route => {
+    currentRequests.push(route.request().url());
+    return route.abort();
+  });
+  await page.route('**/private-model/work-test/catalog.json', route =>
+    route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: 'P137E WORK_TEST fixture', path: candidatePath }] }),
+    }));
+  await page.route('**' + candidatePath, route => {
+    reviewGlbRequests.push(route.request().url());
+    // Deliberately invalid bytes: this test proves the *request ordering*,
+    // not scene67 geometry, authenticated GLB identity or rendered pixels.
+    return route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: 'not-a-glb' });
+  });
+
+  await page.goto('/private-model/?review=' + reviewId);
+  await expect.poll(() => reviewGlbRequests.length, { timeout: 15_000 }).toBe(1);
+  expect(currentRequests).toEqual([]);
+  expect(reviewGlbRequests[0]).toContain(candidatePath);
+  await expect(page.locator('#private-model-canvas')).not.toHaveAttribute('data-p137e-human-review', 'PASS');
+});
+
+test('other viewer routes retain the original CURRENT-first model loader', async ({ page }) => {
+  const currentRequests: string[] = [];
+  await page.route('**/private-model/model.glb', route => {
+    currentRequests.push(route.request().url());
+    return route.abort();
+  });
+  await page.goto('/private-model/');
+  await expect.poll(() => currentRequests.length, { timeout: 15_000 }).toBe(1);
+});
