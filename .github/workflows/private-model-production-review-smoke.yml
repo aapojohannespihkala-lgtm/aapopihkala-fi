@@ -701,6 +701,145 @@ jobs:
               };
               const northSourceRois = validateProjectedSourceRois(
                 north, 'NORTH', ['D_THEMO_CURRENT_LOBBY_01']);
+
+              // Compare actual authenticated WebGL PNG bytes. Source-projected
+              // regions alone are NOT evidence; independently hide each source
+              // housing, then measure exact canvas RGBA deltas per wall side.
+              const allHousingIds = [
+                'D_THEMO_CURRENT_LOBBY_01',
+                'D_THEMO_CURRENT_BEDROOM_01',
+                'D_THEMO_CURRENT_BATHROOM_01',
+              ];
+              const compareHousingPngRgba = async (baselinePng, variantPng, region) => {
+                const urls = [baselinePng, variantPng].map(
+                  (png) => 'data:image/png;base64,' + png.toString('base64'));
+                return page.evaluate(async ({ urls, region }) => {
+                  const decode = async (url) => {
+                    const img = new Image(); img.src = url; await img.decode();
+                    const surface = document.createElement('canvas');
+                    surface.width = img.width; surface.height = img.height;
+                    const ctx = surface.getContext('2d');
+                    if (!ctx) throw Error('P137E housing PNG decode unavailable');
+                    ctx.drawImage(img, 0, 0);
+                    return {
+                      width: surface.width, height: surface.height,
+                      rgba: ctx.getImageData(0, 0, surface.width, surface.height).data,
+                    };
+                  };
+                  const a = await decode(urls[0]), b = await decode(urls[1]);
+                  if (a.width !== b.width || a.height !== b.height ||
+                      a.width < 256 || a.height < 256 ||
+                      a.width > 4096 || a.height > 4096) {
+                    throw Error('P137E source housing PNG dimensions mismatch');
+                  }
+                  let inside = 0, outside = 0;
+                  for (let y = 0; y < a.height; y++) {
+                    for (let x = 0; x < a.width; x++) {
+                      const k = (y * a.width + x) * 4;
+                      let changed = false;
+                      for (let c = 0; c < 4; c++) {
+                        if (Math.abs(a.rgba[k + c] - b.rgba[k + c]) >= 20) {
+                          changed = true; break;
+                        }
+                      }
+                      if (!changed) continue;
+                      if (region && (x - region.x) ** 2 + (y - region.y) ** 2 <=
+                          region.radius ** 2) inside++;
+                      else outside++;
+                    }
+                  }
+                  return { inside, outside, total: inside + outside,
+                    width: a.width, height: a.height };
+                }, { urls, region });
+              };
+              const captureSourceHousingPixels = async (side, baselinePng, sourceRois) => {
+                const selectedIds = side === 'NORTH'
+                  ? allHousingIds.slice(0, 1) : allHousingIds.slice(1);
+                if (sourceRois.side !== side ||
+                    sourceRois.projectedTargets.length !== selectedIds.length ||
+                    sourceRois.projectedTargets.some((roi, i) =>
+                      roi.logicalDeviceId !== selectedIds[i])) {
+                  throw new Error('P137E three-housing source ROI/face mismatch ' + side);
+                }
+                if (sourceRois.projectedTargets.length === 2) {
+                  const [a, b] = sourceRois.projectedTargets;
+                  if ((a.x-b.x)**2 + (a.y-b.y)**2 <= (a.radius+b.radius)**2) {
+                    throw new Error('P137E overlapping real source housing ROIs');
+                  }
+                }
+                const variants = [];
+                for (const id of allHousingIds) {
+                  const state = await page.evaluate((hiddenLogicalDeviceId) => {
+                    window.dispatchEvent(new CustomEvent('p137e-scene67-housing-probe', {
+                      detail: { hiddenLogicalDeviceId },
+                    }));
+                    const data = document.querySelector('#private-model-canvas')?.dataset;
+                    return {
+                      state: data?.p137eScene67HousingProbeState,
+                      hiddenId: data?.p137eScene67HousingProbeHiddenId,
+                    };
+                  }, id);
+                  if (state.state !== 'SOURCE_ONLY_UNVERIFIED_PIXELS' ||
+                      state.hiddenId !== id) {
+                    throw new Error('P137E actual three-housing source probe rejected: '+side+'/'+id);
+                  }
+                  await page.waitForTimeout(180);
+                  const shot = await page.screenshot({
+                    clip: box, animations: 'disabled',
+                    path: 'playwright-artifacts/p137e-scene67-' +
+                      side.toLowerCase() + '-' + id.toLowerCase() + '-hidden.png',
+                  });
+                  const roi = sourceRois.projectedTargets.find(
+                    (candidate) => candidate.logicalDeviceId === id) ?? null;
+                  const pixels = await compareHousingPngRgba(baselinePng, shot, roi);
+                  if (roi ? (pixels.inside < 48 || pixels.outside !== 0) :
+                    pixels.total !== 0) {
+                    throw new Error('P137E three-housing RGBA isolation FAIL: ' +
+                      side + '/' + id + '/' + JSON.stringify(pixels));
+                  }
+                  variants.push({
+                    hiddenLogicalDeviceId: id, visibleOnFace: !!roi,
+                    changedPixels: pixels, screenshotSha256:
+                      createHash('sha256').update(shot).digest('hex'),
+                  });
+                }
+                const restored = await page.evaluate(() => {
+                  window.dispatchEvent(new CustomEvent('p137e-scene67-housing-probe', {
+                    detail: { hiddenLogicalDeviceId: null },
+                  }));
+                  const d = document.querySelector('#private-model-canvas')?.dataset;
+                  return {state:d?.p137eScene67HousingProbeState,
+                    hiddenId:d?.p137eScene67HousingProbeHiddenId};
+                });
+                if (restored.state !== 'SOURCE_ONLY_UNVERIFIED_PIXELS' ||
+                    restored.hiddenId !== 'NONE') {
+                  throw new Error('P137E three-housing original face restoration rejected');
+                }
+                await page.waitForTimeout(180);
+                const restoredPng = await page.screenshot({
+                  clip: box, animations: 'disabled',
+                });
+                const restoredDiff = await compareHousingPngRgba(
+                  baselinePng, restoredPng, null);
+                if (restoredDiff.total !== 0) {
+                  throw new Error('P137E three-housing face did not restore original RGBA');
+                }
+                return {side, sourceCameraKey: 'P137E_SCENE67_P123C_' + side,
+                  variants, restoredPixels: restoredDiff,
+                  individualHousingRgbaVerifiedInThisExecution: true};
+              };
+              // The menu opened for NORTH/SOUTH controls must not cover the
+              // canvas during per-housing screenshots; reopen before SOUTH.
+              await viewMenu.locator(':scope > summary').click();
+              if (await viewMenu.evaluate((menu) => menu.open)) {
+                throw new Error('P137E housing NORTH capture left View menu open');
+              }
+              const northHousingPixels = await captureSourceHousingPixels(
+                'NORTH', before, northSourceRois);
+              await viewMenu.locator(':scope > summary').click();
+              if (!await viewMenu.evaluate((menu) => menu.open)) {
+                throw new Error('P137E SOUTH switch View menu unavailable');
+              }
               const firstUrl = 'data:image/png;base64,' + before.toString('base64');
               const decode = '(async (url) => {' +
                 'const i=new Image();i.src=url;await i.decode();' +
@@ -769,6 +908,22 @@ jobs:
                 throw new Error('P137E two source-wall faces have no independent pixels: ' +
                   JSON.stringify(comparison));
               }
+              const southHousingPixels = await captureSourceHousingPixels(
+                'SOUTH', southPng, southSourceRois);
+              const p137eThreeHousingPixelEvidence = {
+                sourceSceneIndex: 67,
+                sourceWallNode: 798,
+                sourceWallMesh: 406,
+                sourceGlbSha256: p137eScene67AssetEvidence?.sha256 ?? null,
+                north: northHousingPixels, south: southHousingPixels,
+                threeDistinctSourceHousingsVerifiedInThisProductionExecution: true,
+                syntheticFixture: false, humanReview: 'NOT_RUN',
+                publishToCURRENT: false,
+              };
+              fs.writeFileSync(
+                'playwright-artifacts/p137e-scene67-three-housing-rgba.json',
+                JSON.stringify(p137eThreeHousingPixelEvidence, null, 2),
+              );
               // SOUTH click closed <details>; reopen for the final NORTH restoration.
               await viewMenu.locator(':scope > summary').click();
               await northButton.click();
@@ -781,7 +936,9 @@ jobs:
                 projectedSourceHousingRois: { north:northSourceRois, south:southSourceRois },
                 projectedRoisAreNotIndividualPixelProof:true,
                 actualProductionTwoFaceScreenshotsCaptured:true,
-                threeIndividualThemoHousingPixelsVerified:false,
+                threeIndividualThemoHousingPixelsVerified:
+                  p137eThreeHousingPixelEvidence.threeDistinctSourceHousingsVerifiedInThisProductionExecution,
+                p137eThreeHousingPixelEvidence,
                 humanReview:'NOT_RUN',publishToCURRENT:false,
               };
               fs.writeFileSync('playwright-artifacts/p137e-scene67-two-face-pixels.json',
