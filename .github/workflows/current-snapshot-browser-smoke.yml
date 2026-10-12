@@ -28,6 +28,8 @@ jobs:
         run: npm ci
 
       - name: Verify production Widget v2 endpoint
+        id: widget_api
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -242,3 +244,14 @@ jobs:
             await browser.close();
           }
           NODE
+
+      - name: Fail if Widget v2 API verification failed
+        if: always()
+        shell: bash
+        env:
+          WIDGET_API_OUTCOME: ${{ steps.widget_api.outcome }}
+        run: |
+          if [[ "$WIDGET_API_OUTCOME" != "success" ]]; then
+            echo "::error::Widget v2 API verification failed; browser checks were independent."
+            exit 1
+          fi
