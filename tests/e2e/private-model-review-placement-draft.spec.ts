@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import {
   buildPlacementReviewDraft,
+  createPlacementReviewPanel,
   verifyPlacementReviewPersistenceReadback,
   type PlacementReviewContext,
+  type PlacementReviewHandoff,
 } from '../../src/scripts/privateModelReviewPlacementDraft';
 
 const d1f: PlacementReviewContext = {
@@ -317,4 +319,80 @@ test('P137E refuses two distinct approved wall hosts inside tolerance even with 
     status: 'READY_FOR_G2_HANDOFF',
     payload: { resolution: { status: 'UNMAPPED', reason: 'OPENING_OVERLAP', proposal: null } },
   });
+});
+
+
+test('G2 in-flight save cannot be falsely cancelled or switched to another Themo', async () => {
+  class FakeNode {
+    tag: string;
+    children: FakeNode[] = [];
+    dataset: Record<string, string> = {};
+    handlers: Record<string, (event?: any) => unknown> = {};
+    textContent = '';
+    hidden = false;
+    disabled = false;
+    value = '';
+    constructor(tag: string) { this.tag = tag; }
+    append(...children: FakeNode[]) { this.children.push(...children); }
+    setAttribute(_name: string, _value: string) {}
+    addEventListener(event: string, cb: (event?: any) => unknown) {
+      this.handlers[event] = cb;
+    }
+    emit(event: string, argument?: any) {
+      return this.handlers[event]?.(argument);
+    }
+    remove() {}
+  }
+  const elements: FakeNode[] = [];
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: {
+      createElement: (tag: string) => {
+        const node = new FakeNode(tag);
+        elements.push(node);
+        return node;
+      },
+    },
+  });
+  try {
+    let finishPersist!: (ack: { status: 'PERSISTED_TO_EXISTING_G2'; recordId: string }) => void;
+    let sent: PlacementReviewHandoff | null = null;
+    const panel = createPlacementReviewPanel({
+      mount: new FakeNode('main') as unknown as HTMLElement,
+      persist: async (payload) => {
+        sent = payload;
+        return new Promise((resolve) => { finishPersist = resolve; });
+      },
+      readback: async (recordId) => ({
+        recordId,
+        payload: sent!,
+      }),
+    });
+    panel.open({ ...d1f, approvedWallHosts: [] });
+    expect(panel.setClickedCoordinate({ xM: 3.235, yM: 5.063 }, '1F')).toBe(true);
+    const note = elements.find((node) => node.tag === 'textarea')!;
+    const form = elements.find((node) => node.tag === 'form')!;
+    const cancel = elements.find((node) => node.textContent === 'Peruuta')!;
+    note.value = 'Themo käytävässä, 120 cm lattiasta.';
+    const pending = form.emit('submit', { preventDefault() {} }) as Promise<void>;
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('persisting');
+    expect(cancel.disabled).toBe(true);
+    expect(panel.cancel()).toBe(false);
+    panel.open({ ...d1f, targetId: 'D_THEMO_CURRENT_BATHROOM_01', approvedWallHosts: [] });
+    cancel.emit('click');
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('persisting');
+    expect(panel.element.hidden).toBe(false);
+    expect(note.value).toBe('Themo käytävässä, 120 cm lattiasta.');
+    finishPersist({ status: 'PERSISTED_TO_EXISTING_G2', recordId: 'P137E_G2_123456789abc' });
+    await pending;
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('persisted');
+    expect(cancel.disabled).toBe(false);
+    expect(panel.cancel()).toBe(true);
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('inactive');
+    expect(panel.element.hidden).toBe(true);
+  } finally {
+    if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
+    else delete (globalThis as { document?: unknown }).document;
+  }
 });
