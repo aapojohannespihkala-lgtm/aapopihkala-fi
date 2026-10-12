@@ -16,6 +16,21 @@ const cliPath = fileURLToPath(new URL(
 const fakeFile = { isFile: () => true, size: R1125_ORIGINAL_GLB.bytes };
 const zeroBytes = new Uint8Array(R1125_ORIGINAL_GLB.bytes);
 
+// The CLI uses only Stats.isFile/size and raw bytes. Keep test doubles
+// deliberately minimal; cast the injected port, not the production function,
+// because node:fs/promises has unrelated stat/readFile overloads.
+const fakeFs = (
+  stats: { isFile: () => boolean; size: number },
+  bytes: Uint8Array,
+  onRead?: () => void,
+) => ({
+  statFile: async () => stats,
+  readBytes: async () => { onRead?.(); return bytes; },
+}) as unknown as {
+  statFile: typeof import('node:fs/promises').stat;
+  readBytes: typeof import('node:fs/promises').readFile;
+};
+
 test('R1125 original source gate only accepts one bounded real file path', async () => {
   for (const path of ['', ' ', 'x\0y', 'x'.repeat(4097), null]) {
     await expect(verifyM5AR1125OriginalGlbFile(path as string))
@@ -27,30 +42,26 @@ test('R1125 file must have exact 3,112,432 raw bytes before read', async () => {
   let readCount = 0;
   const wrongStat = { isFile: () => true, size: 120 };
   await expect(verifyM5AR1125OriginalGlbFile('wrong.glb', {
-    statFile: async () => wrongStat,
-    readBytes: async () => { readCount += 1; return zeroBytes; },
+    ...fakeFs(wrongStat, zeroBytes, () => { readCount += 1; }),
   })).rejects.toThrow(/file size mismatch/);
   expect(readCount).toBe(0);
 });
 
 test('R1125 directory masquerading as a source file is rejected', async () => {
   await expect(verifyM5AR1125OriginalGlbFile('directory.glb', {
-    statFile: async () => ({ isFile: () => false, size: R1125_ORIGINAL_GLB.bytes }),
-    readBytes: async () => zeroBytes,
+    ...fakeFs({ isFile: () => false, size: R1125_ORIGINAL_GLB.bytes }, zeroBytes),
   })).rejects.toThrow(/file size mismatch/);
 });
 
 test('R1125 exact-size but changed SHA cannot authenticate', async () => {
   await expect(verifyM5AR1125OriginalGlbFile('forged.glb', {
-    statFile: async () => fakeFile,
-    readBytes: async () => zeroBytes,
+    ...fakeFs(fakeFile, zeroBytes),
   })).rejects.toThrow(/original digest mismatch/);
 });
 
 test('R1125 short read after correct stat still fails raw byte gate', async () => {
   await expect(verifyM5AR1125OriginalGlbFile('changed.glb', {
-    statFile: async () => fakeFile,
-    readBytes: async () => new Uint8Array(32),
+    ...fakeFs(fakeFile, new Uint8Array(32)),
   })).rejects.toThrow(/raw byte length mismatch/);
 });
 
