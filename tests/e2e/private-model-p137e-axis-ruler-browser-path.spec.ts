@@ -77,11 +77,13 @@ test('actual viewer D1F ruler: first anchor, live X mm, lock, clear', async ({ p
   await page.goto('/private-model/');
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-model-source', /current/i);
+  await expect(page.locator('#p137e-placement-tool-button')).toBeDisabled();
   await page.locator('#preset-menu summary').click();
   await page.locator('#d1-plan-button').click();
   await expect(canvas).toHaveAttribute('data-view-preset', 'd-plan');
   await expect(canvas).toHaveAttribute('data-content-floor', '1F');
   await expect(canvas).toHaveAttribute('data-d-plan-visible-renderable-count', /[1-9]/);
+  await expect(page.locator('#p137e-placement-target-row')).toBeHidden();
 
   await page.locator('#axis-measure-tool-button').click();
   await expect(canvas).toHaveAttribute('data-interaction-mode', 'measure');
@@ -129,6 +131,7 @@ test('actual viewer D1F ruler: first anchor, live X mm, lock, clear', async ({ p
   await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\d/);
   await expect(page.locator('#axis-measure-label')).toBeHidden();
   await expect(canvas).toHaveAttribute('data-model-source', /current/i);
+  await expect(page.locator('#p137e-placement-tool-button')).toBeDisabled();
 });
 
 test('actual viewer ruler stays temporary on leaving D plan and changing tools', async ({ page }) => {
@@ -253,4 +256,15 @@ test('focused scene67 keeps temporary D1F ruler without physical placement promo
   expect(focused).toContain("p137eExactXYClaim: 'false'");
   expect(focused).toContain("p137eCurrentClaim: 'false'");
   expect(focused).toContain("p137eHumanReview: 'NOT_RUN'");
+  expect(focused).toContain('p137ePlacementTargetRow.hidden = false');
+  expect(focused).toContain('p137ePlacementToolButton.disabled = !isP137EPlacementReady()');
+  expect(source).toContain("canvas.dataset.p137ePlacementState = 'WORK_TEST_UNMAPPED_NOT_SAVED'");
+  expect(source).toContain('if (!isP137EPlacementReady()) return');
+  expect(source).toContain("createTargetBoundReviewAnchor({ targetId, floor: '1F', coordinate })");
+  for (const exactId of [
+    'D_THEMO_CURRENT_LOBBY_01',
+    'D_THEMO_CURRENT_BEDROOM_01',
+    'D_THEMO_CURRENT_BATHROOM_01',
+  ]) expect(source).toContain('<option value="' + exactId + '">');
+  expect(source).not.toContain('persistP137ETargetPlacement(');
 });
