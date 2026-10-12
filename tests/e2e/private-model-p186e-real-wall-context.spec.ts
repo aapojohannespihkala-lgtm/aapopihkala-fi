@@ -516,3 +516,27 @@ test('P186E source captions attach to all 18/16 verified cues, do not duplicate 
   }
 });
 
+test('P186E refuses duplicate source identities even when D1F/D2F target counts match', () => {
+  const duplicateGroup = makeP186ESourceCueFixture('D1F');
+  duplicateGroup.targets[1].userData.annotationStableKey =
+    duplicateGroup.targets[0].userData.annotationStableKey;
+  const groupResult = prepareP186EReviewPresentation(duplicateGroup.root, 'D1F');
+  expect(groupResult.targetRenderableCount).toBe(18);
+  expect(groupResult.semanticViolationCount).toBe(1);
+  expect(groupResult.viewerCueCount).toBe(0);
+  expect(duplicateGroup.targets.every((t) =>
+    t.children.every((child) => child.userData.p186eViewOnlyCue !== true),
+  )).toBe(true);
+
+  const duplicateSpecial = makeP186ESourceCueFixture('D2F');
+  const firstSpecialIndex = duplicateSpecial.counts.group;
+  duplicateSpecial.targets[firstSpecialIndex + 1].userData.sourceLabelId =
+    duplicateSpecial.targets[firstSpecialIndex].userData.sourceLabelId;
+  const specialResult = prepareP186EReviewPresentation(duplicateSpecial.root, 'D2F');
+  expect(specialResult.targetRenderableCount).toBe(16);
+  expect(specialResult.semanticViolationCount).toBe(1);
+  expect(specialResult.viewerCueCount).toBe(0);
+  expect(duplicateSpecial.targets.every((t) =>
+    t.children.every((child) => child.userData.p186eViewOnlyCue !== true),
+  )).toBe(true);
+});
