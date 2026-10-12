@@ -578,8 +578,68 @@ jobs:
                 );
               }
               const viewerResponse = duringViewerAutoload[0];
-              const networkError = await withGlbDeadline(
-                viewerResponse.finished(), 'autoload response completion');
+              // Retain safe headers-only evidence even when the full response
+              // never finishes. Do not log any Access/cookie headers.
+              const glbHeaders = viewerResponse.headers();
+              const recordGlbResponseStage = (stage, diagnostic = null) => {
+                fs.writeFileSync('playwright-artifacts/p137e-scene67-glb-response-stage.json',
+                  JSON.stringify({
+                    stage,
+                    exactAssetUrlMatched: viewerResponse.url() === P137E_SCENE67_PRODUCTION_GLB_URL,
+                    responseStatus: viewerResponse.status(),
+                    contentType: glbHeaders['content-type'] ?? null,
+                    contentLength: glbHeaders['content-length'] ?? null,
+                    diagnostic,
+                    viewerAutoloadNetworkResponseVerified: false,
+                    individualDevicePixelsVerified: false,
+                    humanReview: 'NOT_RUN',
+                    publishToCURRENT: false,
+                  }, null, 2));
+              };
+              recordGlbResponseStage('HEADERS_RECEIVED');
+              let networkError;
+              try {
+                networkError = await withGlbDeadline(
+                  viewerResponse.finished(), 'autoload response completion');
+              } catch (error) {
+                // Probe the SAME fixed asset once, independently, solely to
+                // distinguish a stalled viewer request from asset delivery.
+                // Never use this optional diagnostic as the autoload proof.
+                let diagnostic = { outcome: 'PROBE_UNAVAILABLE' };
+                try {
+                  diagnostic = await withGlbDeadline(page.evaluate(async (assetUrl) => {
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), 10_000);
+                    try {
+                      const response = await fetch(assetUrl, {
+                        credentials: 'same-origin', cache: 'no-store',
+                        signal: controller.signal,
+                      });
+                      const bytes = await response.arrayBuffer();
+                      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+                      return {
+                        outcome: 'FETCH_COMPLETED',
+                        status: response.status,
+                        contentType: response.headers.get('content-type'),
+                        byteLength: bytes.byteLength,
+                        sha256: Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join(''),
+                      };
+                    } catch (error) {
+                      return {
+                        outcome: 'FETCH_FAILED',
+                        aborted: controller.signal.aborted,
+                        errorName: error instanceof Error ? error.name : 'NON_ERROR',
+                      };
+                    } finally {
+                      clearTimeout(timer);
+                    }
+                  }, P137E_SCENE67_PRODUCTION_GLB_URL), 'diagnostic independent fetch');
+                } catch {
+                  diagnostic = { outcome: 'PROBE_UNAVAILABLE' };
+                }
+                recordGlbResponseStage('AUTOLOAD_INCOMPLETE', diagnostic);
+                throw error;
+              }
               if (networkError) throw new Error('P137E viewer autoload GLB network failed');
               const viewerGlbBytes = await withGlbDeadline(
                 viewerResponse.body(), 'autoload response bytes');

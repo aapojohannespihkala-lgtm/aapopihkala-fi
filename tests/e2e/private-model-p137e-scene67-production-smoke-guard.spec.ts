@@ -181,6 +181,31 @@ test('production workflow captures the original GLB during viewer autoload befor
   expect(workflow).toContain('viewerResponse.body()');
 });
 
+test('unfinished production GLB autoload leaves safe stages and fail-closed separate diagnostic', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const responseStart = workflow.indexOf('const viewerResponse = duringViewerAutoload[0]');
+  const byteGate = workflow.indexOf('const viewerGlbBytes = await withGlbDeadline(', responseStart);
+  expect(responseStart).toBeGreaterThan(-1);
+  expect(byteGate).toBeGreaterThan(responseStart);
+  const stages = workflow.slice(responseStart, byteGate);
+  expect(stages).toContain("recordGlbResponseStage('HEADERS_RECEIVED')");
+  expect(stages).toContain("recordGlbResponseStage('AUTOLOAD_INCOMPLETE', diagnostic)");
+  expect(stages).toContain('viewerResponse.finished()');
+  expect(stages).toContain("withGlbDeadline(page.evaluate(async (assetUrl) => {");
+  expect(stages).toContain('}, P137E_SCENE67_PRODUCTION_GLB_URL)');
+  expect(stages).toContain("const timer = setTimeout(() => controller.abort(), 10_000)");
+  expect(stages).toContain("exactAssetUrlMatched: viewerResponse.url() === P137E_SCENE67_PRODUCTION_GLB_URL");
+  expect(stages).toContain("contentType: glbHeaders['content-type'] ?? null");
+  expect(stages).toContain("contentLength: glbHeaders['content-length'] ?? null");
+  expect(stages).toContain('viewerAutoloadNetworkResponseVerified: false');
+  expect(stages).toContain('individualDevicePixelsVerified: false');
+  expect(stages).toContain("humanReview: 'NOT_RUN'");
+  expect(stages).toContain('publishToCURRENT: false');
+  expect(stages).toContain('throw error;');
+  expect(stages).not.toContain("glbHeaders['set-cookie']");
+  expect(stages).not.toContain("glbHeaders['authorization']");
+});
+
 test('viewer autoload evidence requires exact sha and never asserts device pixels or canvas byte equality', () => {
   const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
   const start = workflow.indexOf('const duringViewerAutoload = [...p137eViewerAutoloadResponses]');
