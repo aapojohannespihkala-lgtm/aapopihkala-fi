@@ -207,6 +207,7 @@ export const createPlacementReviewPanel = ({
     busy = false;
     verifiedNote = null;
     note.disabled = false;
+    cancel.disabled = false;
     note.value = '';
     status.textContent = '';
     locationLabel.textContent = '';
@@ -217,6 +218,8 @@ export const createPlacementReviewPanel = ({
   };
 
   const open = (context: PlacementReviewContext) => {
+    // A target switch cannot undo an in-flight durable G2 write.
+    if (busy) return;
     reset();
     currentContext = context;
     panel.hidden = false;
@@ -253,7 +256,13 @@ export const createPlacementReviewPanel = ({
       : 'Huomio muuttui. Muutosta ei ole tallennettu G2:een.';
   });
 
-  cancel.addEventListener('click', reset);
+  const cancelIfIdle = () => {
+    // Do not claim cancellation once the irreversible POST has begun.
+    if (busy) return false;
+    reset();
+    return true;
+  };
+  cancel.addEventListener('click', cancelIfIdle);
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -272,6 +281,7 @@ export const createPlacementReviewPanel = ({
     busy = true;
     verifiedNote = null;
     note.disabled = true;
+    cancel.disabled = true;
     const submittingSession = session;
     save.disabled = true;
     panel.dataset.reviewPlacementStatus = 'persisting';
@@ -302,6 +312,7 @@ export const createPlacementReviewPanel = ({
       if (submittingSession === session) {
         busy = false;
         note.disabled = false;
+        cancel.disabled = false;
         if (panel.dataset.reviewPlacementStatus !== 'persisted') save.disabled = false;
       }
     }
@@ -311,7 +322,7 @@ export const createPlacementReviewPanel = ({
     element: panel,
     open,
     setClickedCoordinate,
-    cancel: reset,
+    cancel: cancelIfIdle,
     destroy: () => { reset(); panel.remove(); },
   };
 };
