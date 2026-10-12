@@ -196,3 +196,49 @@ test('viewer autoload evidence requires exact sha and never asserts device pixel
   expect(guard).toContain('individualDevicePixelsVerified: false');
   expect(guard).toContain("humanReview: 'NOT_RUN'");
 });
+
+
+test('production smoke switches real NORTH and SOUTH viewer buttons after exact scene67 autoload', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const authenticated = workflow.indexOf('const viewerNetworkAsset = inspectP137EScene67PublishedGlb(');
+  const cameraGate = workflow.indexOf('const faceContracts = [');
+  const screenshot = workflow.indexOf('const screenshot = await page.screenshot({', cameraGate);
+  const genericOrbit = workflow.indexOf('const startX = box.x + box.width * 0.55;');
+  expect(authenticated).toBeGreaterThan(0);
+  expect(cameraGate).toBeGreaterThan(authenticated);
+  expect(screenshot).toBeGreaterThan(cameraGate);
+  expect(genericOrbit).toBeGreaterThan(screenshot);
+  expect(workflow).toContain("button: '#p137e-north-face-button'");
+  expect(workflow).toContain("button: '#p137e-south-face-button'");
+  expect(workflow).toContain("sourceIds: 'D_THEMO_CURRENT_LOBBY_01'");
+  expect(workflow).toContain("sourceIds: 'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01'");
+  expect(workflow).toContain("wallPresentation: 'NORTH_SOURCE_WALL_OPAQUE'");
+  expect(workflow).toContain("wallPresentation: 'SOUTH_SOURCE_WALL_ALPHA_0_38'");
+});
+
+test('real two-face image gate fails shut on forged source identity and never promotes screenshot pixels', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const gateStart = workflow.indexOf('const faceContracts = [');
+  const gateEnd = workflow.indexOf('// The X4 wall + three Themo scene', gateStart);
+  expect(gateStart).toBeGreaterThan(0);
+  expect(gateEnd).toBeGreaterThan(gateStart);
+  const gate = workflow.slice(gateStart, gateEnd);
+  for (const guard of [
+    "d.workTestReviewAutoload === 'true'",
+    "d.modelSource === 'work-test'",
+    'd.workTestReviewMode === reviewId',
+    'd.workTestReviewCandidate === candidateId',
+    'd.p137eScene67CameraFace === face',
+    'd.p137eScene67CameraSourceIds === sourceIds',
+    'd.p137eScene67WallPresentation === wallPresentation',
+    "d.p137eScene67ProductionRenderVerified === 'false'",
+    "d.p137eHumanReview === 'NOT_RUN'",
+    'captures[0].screenshotSha256 === captures[1].screenshotSha256',
+    'individualDevicePixelsVerified: false',
+    "humanReview: 'NOT_RUN'",
+    'publishToCURRENT: false',
+  ]) expect(gate).toContain(guard);
+  expect(gate).toContain("await page.locator('#p137e-north-face-button').click()");
+  expect(gate).toContain('p137e-scene67-two-face-cameras.json');
+  expect(workflow).toContain('p137eTwoFaceEvidence,');
+});
