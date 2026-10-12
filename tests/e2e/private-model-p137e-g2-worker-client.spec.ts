@@ -270,3 +270,123 @@ test('streamed 32-kB reply cap cancels large response', async () => {
   await expect(client(response).targets()).rejects.toThrow('RESPONSE_TOO_LARGE');
   expect(canceled).toBe(true);
 });
+
+
+test('browser request timeout is positive, bounded and configured before network', () => {
+  for (const requestTimeoutMs of [0, -1, 0.5, NaN, Infinity, 30001]) {
+    expect(() => createP137EG2WorkerClient({ origin, requestTimeoutMs }))
+      .toThrow('CLIENT_CONFIG_INVALID');
+  }
+});
+
+test('stalled headers time out even if fetch ignores AbortSignal', async () => {
+  let signal: AbortSignal | undefined;
+  const c = createP137EG2WorkerClient({
+    origin, canReview: () => true, requestTimeoutMs: 25,
+    fetcher: async (_url: string, options: RequestInit) => {
+      signal = options.signal ?? undefined;
+      return new Promise<Response>(() => {});
+    },
+  });
+  await expect(c.targets()).rejects.toThrow('REQUEST_TIMEOUT');
+  expect(signal?.aborted).toBe(true);
+});
+
+test('abort-aware fetch keeps the stable request timeout error', async () => {
+  const c = createP137EG2WorkerClient({
+    origin, canReview: () => true, requestTimeoutMs: 25,
+    fetcher: async (_url: string, options: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      options.signal?.addEventListener('abort', () => reject(new Error('fetch aborted')), { once: true });
+    }),
+  });
+  await expect(c.targets()).rejects.toThrow('REQUEST_TIMEOUT');
+});
+
+test('stalled JSON body times out without waiting for cancellation', async () => {
+  let canceled = false;
+  let signal: AbortSignal | undefined;
+  const response = new Response(new ReadableStream<Uint8Array>({
+    cancel() { canceled = true; return new Promise<void>(() => {}); },
+  }), { headers: { 'content-type': 'application/json' } });
+  const c = createP137EG2WorkerClient({
+    origin, canReview: () => true, requestTimeoutMs: 25,
+    fetcher: async (_url: string, options: RequestInit) => {
+      signal = options.signal ?? undefined;
+      return response;
+    },
+  });
+  await expect(c.targets()).rejects.toThrow('REQUEST_TIMEOUT');
+  expect(canceled).toBe(true);
+  expect(signal?.aborted).toBe(true);
+  expect(response.body?.locked).toBe(false);
+});
+
+test('header and body delays share one total request deadline', async () => {
+  let bodyTimer: ReturnType<typeof setTimeout>;
+  const response = new Response(new ReadableStream<Uint8Array>({
+    start(controller) {
+      bodyTimer = setTimeout(() => {
+        controller.enqueue(new TextEncoder().encode('{}'));
+        controller.close();
+      }, 90);
+    },
+    cancel() { clearTimeout(bodyTimer); },
+  }), { headers: { 'content-type': 'application/json' } });
+  const c = createP137EG2WorkerClient({
+    origin, canReview: () => true, requestTimeoutMs: 60,
+    fetcher: async () => {
+      await new Promise(resolve => setTimeout(resolve, 40));
+      return response;
+    },
+  });
+  await expect(c.targets()).rejects.toThrow('REQUEST_TIMEOUT');
+});
+
+test('empty response chunks cannot starve the total deadline', async () => {
+  let canceled = false;
+  const response = new Response(new ReadableStream<Uint8Array>({
+    pull(controller) { controller.enqueue(new Uint8Array(0)); },
+    cancel() { canceled = true; },
+  }), { headers: { 'content-type': 'application/json' } });
+  const c = createP137EG2WorkerClient({
+    origin, canReview: () => true, requestTimeoutMs: 25,
+    fetcher: async () => response,
+  });
+  await expect(c.targets()).rejects.toThrow('REQUEST_TIMEOUT');
+  expect(canceled).toBe(true);
+  expect(response.body?.locked).toBe(false);
+});
+
+test('timed out POST is not retried and timed out independent GET cannot confirm persistence', async () => {
+  const reply = { receipt: { status: 'PERSISTED_TO_EXISTING_G2', recordId },
+    readback: { recordId, payload } };
+  for (const stalledMethod of ['POST', 'GET']) {
+    const methods: string[] = [];
+    const c = createP137EG2WorkerClient({
+      origin, canReview: () => true, requestTimeoutMs: 25,
+      fetcher: async (_url: string, options: RequestInit) => {
+        methods.push(options.method!);
+        return options.method === stalledMethod
+          ? new Promise<Response>(() => {})
+          : json(reply);
+      },
+    });
+    await expect(c.persist(payload)).rejects.toThrow('REQUEST_TIMEOUT');
+    expect(methods).toEqual(stalledMethod === 'POST' ? ['POST'] : ['POST', 'GET']);
+  }
+});
+
+test('oversized reply failure does not await a stuck stream cancellation', async () => {
+  let canceled = false;
+  const response = new Response(new ReadableStream<Uint8Array>({
+    start(controller) { controller.enqueue(new Uint8Array(35000)); },
+    cancel() { canceled = true; return new Promise<void>(() => {}); },
+  }), { headers: { 'content-type': 'application/json' } });
+  const c = createP137EG2WorkerClient({
+    origin, canReview: () => true, requestTimeoutMs: 1000,
+    fetcher: async () => response,
+  });
+  await expect(c.targets()).rejects.toThrow('RESPONSE_TOO_LARGE');
+  expect(canceled).toBe(true);
+  expect(response.body?.locked).toBe(false);
+});
