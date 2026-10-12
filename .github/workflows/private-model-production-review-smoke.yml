@@ -1666,6 +1666,7 @@ jobs:
           node --input-type=module <<'NODE'
           import { mkdirSync, writeFileSync } from 'node:fs';
           import { createP137EG2WorkerClient } from './src/scripts/privateModelP137EG2WorkerClient.mjs';
+          import { p137EG2ReadinessFailureCodes } from './src/scripts/privateModelP137EG2WorkerClient.mjs';
           
           // A readiness GET cannot author a placement or prove persistence.
           const origin = 'https://aapopihkala.fi';
@@ -1733,6 +1734,9 @@ jobs:
             ]);
             evidence.failure = allowedCodes.has(error?.message)
               ? error.message : 'P137E_G2_READINESS_FAILED';
+            if (p137EG2ReadinessFailureCodes.includes(error?.g2FailureCode)) {
+              evidence.failureCode = error.g2FailureCode;
+            }
           }
           mkdirSync('playwright-artifacts', { recursive: true });
           writeFileSync('playwright-artifacts/p137e-native-g2-readiness.json',
