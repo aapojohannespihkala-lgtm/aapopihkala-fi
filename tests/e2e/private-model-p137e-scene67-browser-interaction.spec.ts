@@ -664,3 +664,74 @@ test('simulated HTTPS viewer recovers a stalled independent G2 readback without 
   // Release the synthetic route after the real browser abort, if still held.
   await stalledReadback?.abort().catch(() => {});
 });
+
+
+for (const [phoneWidth, phoneHeight] of [[390, 844], [320, 740]]) {
+  test(`real Chromium scene67 narrow phone ${phoneWidth}x${phoneHeight} keeps three source-only Themo ROIs`, async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width: phoneWidth, height: phoneHeight });
+    const glb = makeScene67Glb();
+    await page.route('**/private-model/model.glb', route =>
+      route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
+    await page.route('**/private-model/work-test/catalog.json', route =>
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ candidates: [{ id: candidateId, label: 'Themo source WORK_TEST',
+          path: candidatePath }] }) }));
+    await page.route('**' + candidatePath, route =>
+      route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
+    await page.goto('/private-model/?review=' + reviewId);
+    const canvas = page.locator('#private-model-canvas');
+    await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId, { timeout: 20_000 });
+
+    // The source camera reads the actual canvas CSS aspect. Force a bounded
+    // phone-shaped viewer canvas to exercise the formerly rejected <0.5 case
+    // even if a responsive parent otherwise supplies a wider aspect.
+    await canvas.evaluate((node, dimensions) => {
+      const element = node as HTMLCanvasElement;
+      element.style.width = dimensions.width + 'px';
+      element.style.height = dimensions.height + 'px';
+    }, { width: phoneWidth - 24, height: phoneHeight - 28 });
+    await expect.poll(async () => canvas.evaluate(element =>
+      element.clientWidth / Math.max(element.clientHeight, 1))).toBeLessThan(0.5);
+    const assertFace = async (
+      face: 'NORTH' | 'SOUTH',
+      expectedIds: string[],
+    ) => {
+      await expect(canvas).toHaveAttribute('data-p137e-scene67-camera-face', face);
+      await expect(canvas).toHaveAttribute('data-p137e-scene67-source-housing-roi-status',
+        'SOURCE_ONLY_PROJECTED');
+      await expect(canvas).toHaveAttribute('data-p137e-scene67-wall-presentation',
+        'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED');
+      await expect(canvas).toHaveAttribute('data-p137e-scene67-visible-device-ids',
+        expectedIds.join(','));
+      const sourceRois = JSON.parse((await canvas.getAttribute(
+        'data-p137e-scene67-source-housing-rois')) ?? 'null');
+      expect(sourceRois.side).toBe(face);
+      expect(sourceRois.individualRenderedPixelsVerified).toBe(false);
+      expect(sourceRois.projectedTargets.map((r: { logicalDeviceId: string }) =>
+        r.logicalDeviceId)).toEqual(expectedIds);
+      for (const roi of sourceRois.projectedTargets) {
+        expect(roi.radius).toBeGreaterThanOrEqual(4);
+        expect(roi.radius).toBeLessThanOrEqual(96);
+        expect(roi.x - roi.radius).toBeGreaterThanOrEqual(0);
+        expect(roi.x + roi.radius).toBeLessThan(sourceRois.width);
+        expect(roi.y - roi.radius).toBeGreaterThanOrEqual(0);
+        expect(roi.y + roi.radius).toBeLessThan(sourceRois.height);
+      }
+      if (face === 'SOUTH') {
+        const [bedroom, bathroom] = sourceRois.projectedTargets;
+        expect((bedroom.x - bathroom.x) ** 2 + (bedroom.y - bathroom.y) ** 2)
+          .toBeGreaterThan((bedroom.radius + bathroom.radius) ** 2);
+      }
+    };
+    await assertFace('NORTH', ['D_THEMO_CURRENT_LOBBY_01']);
+    await page.locator('#view-menu > summary').click();
+    await page.locator('#p137e-south-face-button').click();
+    await assertFace('SOUTH', [
+      'D_THEMO_CURRENT_BEDROOM_01', 'D_THEMO_CURRENT_BATHROOM_01',
+    ]);
+    await expect(canvas).toHaveAttribute('data-p137e-human-review', 'NOT_RUN');
+    await expect(canvas).toHaveAttribute('data-p137e-current-claim', 'false');
+    // Synthetic GLB + local browser ROI is not authenticated production proof.
+  });
+}
