@@ -17,6 +17,7 @@ import {
 import { handlePrivateAiStatusRequest, isPrivateAiStatusPath } from './privateAiStatus';
 import { handlePrivateWorkTestRequest, isPrivateWorkTestPath } from './privateWorkTest';
 import { handlePrivateSourceReferenceRequest, isPrivateSourceReferencePath } from './privateSourceReference';
+import { handlePrivatePlacementReviewRequest, isPrivatePlacementReviewPath } from './privateReviewPlacement';
 
 type WorkerEnv = PrivateModelEnv & { DIGITRANSIT_API_KEY?: string };
 type ResponseCache = {
@@ -389,6 +390,9 @@ const worker = {
     }
     if (isPrivateWorkTestPath(url.pathname)) {
       return handlePrivateWorkTestRequest(request, env);
+    }
+    if (isPrivatePlacementReviewPath(url.pathname)) {
+      return handlePrivatePlacementReviewRequest(request, env);
     }
     if (isPrivateModelPath(url.pathname)) return handlePrivateModelRequest(request, env);
     if (url.pathname === ELECTRICITY_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return getElectricityPriceResponse(); }
