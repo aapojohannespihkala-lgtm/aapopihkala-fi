@@ -8,7 +8,7 @@ import {
   p137eScene67CurrentReviewIds,
 } from '../../src/scripts/privateModelP137ER989Scene67CrossBinding';
 
-const source = () => ({
+const source = (): { documentId: string; revisionId: string; targets: Array<Record<string, unknown>> } => ({
   documentId: p137eR989G2DocumentId,
   revisionId: 'G2_R989_FRESH_TRUSTED_REVISION',
   targets: [
