@@ -73,6 +73,34 @@ jobs:
           if not isinstance(drive_file_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{10,128}", drive_file_id):
               raise SystemExit("invalid WORK_TEST Drive file id")
 
+          # A manifest-only candidate would otherwise hit an unknown Worker PUT path
+          # and return HTTP 405. This static source check is NOT live-deploy proof.
+          from pathlib import Path
+          worker = Path("worker/privateWorkTest.ts").read_text(encoding="utf-8")
+          base_marker = "export const PRIVATE_WORK_TEST_CANDIDATES = ["
+          runtime_marker = "const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = ["
+          end_marker = "] as const satisfies readonly PrivateWorkTestCandidate[]"
+          if base_marker not in worker or runtime_marker not in worker:
+              raise SystemExit("WORK_TEST Worker runtime registry missing")
+          inline_base = worker.split(base_marker, 1)[1].split(end_marker, 1)[0]
+          runtime_names = worker.split(runtime_marker, 1)[1].split(end_marker, 1)[0]
+          literal_id = f"id: '{candidate_id}'"
+          declared_inline = (
+              literal_id in inline_base
+              and "...PRIVATE_WORK_TEST_CANDIDATES" in runtime_names
+          )
+          symbol_match = re.search(
+              r"const ([A-Z][A-Z0-9_]*) = \{\s*id: '" + re.escape(candidate_id) + "'",
+              worker,
+          )
+          declared_symbol = (
+              symbol_match is not None
+              and re.search(r"\b" + re.escape(symbol_match.group(1)) + r"\b", runtime_names)
+              is not None
+          )
+          if not (declared_inline or declared_symbol):
+              raise SystemExit("WORK_TEST candidate missing from Worker runtime allowlist: " + candidate_id)
+
           values = {
               "DRIVE_FILE_ID": drive_file_id,
               "CANDIDATE_ID": candidate_id,
