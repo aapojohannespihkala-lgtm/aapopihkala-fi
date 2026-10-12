@@ -7,6 +7,7 @@ const BASE = '/private-model/review-placement/g2';
 const RECORD_ID = /^P137E_G2_[A-Za-z0-9_-]{12,64}$/;
 const REQUEST_LIMIT = 16000;
 const RESPONSE_LIMIT = 32768;
+const REQUEST_TIMEOUT_MS = 30000;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 // Reject promotion tokens at any depth, not just in the top-level envelope.
 // Target identity/current-installation provenance is not a geometry promotion.
@@ -50,7 +51,36 @@ const ordered = value => Array.isArray(value) ? value.map(ordered) :
     .map(k => [k, ordered(value[k])])) : value;
 const sameJson = (a, b) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
 
-async function boundedJson(response) {
+// One absolute deadline covers headers and every body chunk. Checking elapsed
+// time also bounds empty-chunk streams that otherwise starve timer callbacks.
+async function beforeDeadline(operation, deadline) {
+  const remaining = deadline.at - Date.now();
+  if (remaining <= 0) {
+    deadline.controller.abort(deadline.error);
+    throw deadline.error;
+  }
+  let timer;
+  try {
+    const result = await Promise.race([
+      Promise.resolve().then(operation),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          reject(deadline.error);
+          deadline.controller.abort(deadline.error);
+        }, remaining);
+      }),
+    ]);
+    if (Date.now() >= deadline.at) {
+      deadline.controller.abort(deadline.error);
+      throw deadline.error;
+    }
+    return result;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function boundedJson(response, deadline) {
   if (!response?.ok) throw new Error('P137E_G2_UNAVAILABLE');
   if (response.redirected) throw new Error('P137E_G2_REDIRECT_REJECTED');
   const mime = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
@@ -66,7 +96,7 @@ async function boundedJson(response) {
   let bytes = 0, completed = false;
   try {
     for (;;) {
-      const next = await reader.read();
+      const next = await beforeDeadline(() => reader.read(), deadline);
       if (next.done) {
         chunks.push(decoder.decode());
         completed = true;
@@ -75,10 +105,11 @@ async function boundedJson(response) {
       if (!(next.value instanceof Uint8Array)) throw new Error('P137E_G2_RESPONSE_INVALID');
       bytes += next.value.byteLength;
       if (bytes > RESPONSE_LIMIT) throw new Error('P137E_G2_RESPONSE_TOO_LARGE');
-      chunks.push(decoder.decode(next.value, { stream: true }));
+      if (next.value.byteLength > 0) chunks.push(decoder.decode(next.value, { stream: true }));
     }
   } finally {
-    if (!completed) await reader.cancel().catch(() => {});
+    // Cancellation must not hold the caller open after a timeout/size failure.
+    if (!completed) void reader.cancel().catch(() => {});
     reader.releaseLock();
   }
   try { return JSON.parse(chunks.join('')); }
@@ -91,14 +122,19 @@ async function boundedJson(response) {
  * @param {{
  *   origin?: string,
  *   canReview?: () => boolean,
+ *   requestTimeoutMs?: number,
  *   fetcher?: (url: string, options: RequestInit) => Promise<Response>
  * }} [config]
  */
 export function createP137EG2WorkerClient({
   origin, canReview = () => false, fetcher = globalThis.fetch,
+  requestTimeoutMs = REQUEST_TIMEOUT_MS,
 } = {}) {
   if (typeof origin !== 'string' || typeof canReview !== 'function' ||
-      typeof fetcher !== 'function') throw new Error('P137E_G2_CLIENT_CONFIG_INVALID');
+      typeof fetcher !== 'function' || !Number.isInteger(requestTimeoutMs) ||
+      requestTimeoutMs <= 0 || requestTimeoutMs > REQUEST_TIMEOUT_MS) {
+    throw new Error('P137E_G2_CLIENT_CONFIG_INVALID');
+  }
   const base = new URL(origin);
   if (base.protocol !== 'https:' || base.pathname !== '/' || base.search ||
       base.hash || base.username || base.password || base.origin !== origin ||
@@ -113,12 +149,22 @@ export function createP137EG2WorkerClient({
     if (body !== undefined && new TextEncoder().encode(body).byteLength > REQUEST_LIMIT) {
       throw new Error('P137E_G2_REQUEST_TOO_LARGE');
     }
-    const response = await fetcher(url.toString(), {
-      method, credentials: 'same-origin', mode: 'same-origin',
-      cache: 'no-store', redirect: 'error',
-      ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body }),
-    });
-    return boundedJson(response);
+    const controller = new AbortController();
+    const deadline = {
+      at: Date.now() + requestTimeoutMs, controller,
+      error: new Error('P137E_G2_REQUEST_TIMEOUT'),
+    };
+    try {
+      const response = await beforeDeadline(() => fetcher(url.toString(), {
+        method, credentials: 'same-origin', mode: 'same-origin',
+        cache: 'no-store', redirect: 'error', signal: controller.signal,
+        ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body }),
+      }), deadline);
+      return await boundedJson(response, deadline);
+    } catch (error) {
+      controller.abort(error);
+      throw error;
+    }
   };
   return Object.freeze({
     async targets() {
