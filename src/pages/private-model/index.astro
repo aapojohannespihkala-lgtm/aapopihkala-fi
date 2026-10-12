@@ -1690,7 +1690,9 @@ const title = 'Private 3D viewer';
           <p id="p137e-place-status" role="status">Valitse laite ja osoita sijainti pohjasta.</p>
           <ul id="p137e-place-list" aria-label="Tallentamattomat sijainnit"></ul>
           <button id="p137e-place-clear" type="button">Tyhjennä rastiluonnokset</button>
-          <p>Ei tallennettu G2:een. Ei fyysinen tarkemittaus.</p>
+          <button id="p137e-g2-check" type="button">Tarkista G2-tallennusyhteys</button>
+          <p id="p137e-g2-status" role="status">G2-yhteys varmentamatta; rastit ovat tallentamattomia.</p>
+          <p>Ei fyysinen tarkemittaus eikä CURRENT/as-built-geometria.</p>
         </aside>
         <aside id="height-scale" class="height-scale" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
           <div class="height-scale-title">YLIS-G1-LOCAL Z</div>
@@ -1934,6 +1936,9 @@ const title = 'Private 3D viewer';
         deriveP137ETwoFaceSourceCameras,
         deriveP137ETwoFaceSourcePixelRegions,
       } from '../../scripts/privateModelP137ETwoSidedSourceCamera';
+      import { createPlacementReviewPanel } from '../../scripts/privateModelReviewPlacementDraft';
+      // @ts-ignore - same strictly validated ESM browser client as its focused contract tests.
+      import { createP137EG2WorkerClient } from '../../scripts/privateModelP137EG2WorkerClient.mjs';
       import {
         p186dExpectedD1fTargetCount,
         p186dExpectedD1fPosCounts,
@@ -2264,6 +2269,8 @@ const title = 'Private 3D viewer';
       const p137ePlaceStatus = document.querySelector<HTMLElement>('#p137e-place-status');
       const p137ePlaceList = document.querySelector<HTMLUListElement>('#p137e-place-list');
       const p137ePlaceClear = document.querySelector<HTMLButtonElement>('#p137e-place-clear');
+      const p137eG2Check = document.querySelector<HTMLButtonElement>('#p137e-g2-check');
+      const p137eG2Status = document.querySelector<HTMLElement>('#p137e-g2-status');
       const orientationGizmo = document.querySelector<HTMLElement>('#orientation-gizmo');
       const orientationAxisX = document.querySelector<SVGLineElement>('#orientation-axis-x');
       const orientationAxisXTip = document.querySelector<SVGCircleElement>('#orientation-axis-x-tip');
@@ -2330,6 +2337,8 @@ const title = 'Private 3D viewer';
         !p137ePlaceStatus ||
         !p137ePlaceList ||
         !p137ePlaceClear ||
+        !p137eG2Check ||
+        !p137eG2Status ||
         !profileButton ||
         !workTestSelect ||
         !workTestButton ||
@@ -2912,6 +2921,44 @@ const title = 'Private 3D viewer';
       };
       const p137ePlaceAnchors = new Map<string, TargetBoundReviewAnchor>();
       const p137ePlaceMarkers = new Map<string, any>();
+      // Source-authorised G2 observations are optional until the real Worker
+      // route and native Google Docs credentials are independently released.
+      // The viewer NEVER asserts a save from a local draft or a POST echo.
+      const p137eG2ExactTargets = Object.keys(p137eTargetLabels).sort();
+      let p137eG2VerifiedTargets = false;
+      let p137eG2Session = 0;
+      const p137eG2Allowed = () =>
+        canStartP137EPlaceDraft() &&
+        canvas.dataset.workTestReviewMode === p137eScene67ReviewId &&
+        canvas.dataset.p137eHumanReview === 'NOT_RUN' &&
+        canvas.dataset.p137eWorkTestOnly === 'true' &&
+        fullModelScene?.name === 'P137E_D_THEMOS_REAL_WALL_FACE_WORK_TEST_ROOT_BABYLON_Y_UP' &&
+        fullModelScene.children.length === 4 &&
+        modelRoot.children[0] === fullModelScene;
+      const p137eG2Client = createP137EG2WorkerClient({
+        origin: window.location.origin,
+        canReview: () => p137eG2Allowed(),
+      });
+      const p137eG2Panel = createPlacementReviewPanel({
+        mount: p137ePlacePanel,
+        persist: (payload) => {
+          if (!p137eG2VerifiedTargets || !p137eG2Allowed() ||
+              !p137eG2ExactTargets.includes(payload?.anchor?.targetId)) {
+            throw new Error('P137E_G2_REVIEW_NOT_RELEASED');
+          }
+          return p137eG2Client.persist(payload);
+        },
+        readback: (recordId) => p137eG2Client.readback(recordId),
+      });
+      const syncP137EG2Draft = () => {
+        p137eG2Panel.cancel();
+        if (!p137eG2VerifiedTargets || !p137eG2Allowed()) return;
+        const id = p137ePlaceTarget.value;
+        const anchor = p137ePlaceAnchors.get(id);
+        if (!anchor || !p137eG2ExactTargets.includes(id)) return;
+        p137eG2Panel.open({ targetId: id, floor: '1F', approvedWallHosts: [] });
+        p137eG2Panel.setClickedCoordinate({ xM: anchor.xM, yM: anchor.yM }, '1F');
+      };
       const canStartP137EPlaceDraft = () =>
         activePlanFloor === '1F' && activeCamera === planCamera &&
         canvas.dataset.modelSource === 'work-test' &&
@@ -2929,6 +2976,10 @@ const title = 'Private 3D viewer';
         canvas.dataset.p137ePlaceDraftCount = String(p137ePlaceAnchors.size);
       };
       const clearP137EPlaceDraft = () => {
+        p137eG2Session += 1;
+        p137eG2VerifiedTargets = false;
+        p137eG2Panel.cancel();
+        p137eG2Status.textContent = 'G2-yhteys varmentamatta; rastit ovat tallentamattomia.';
         for (const marker of p137ePlaceMarkers.values()) {
           scene.remove(marker);
           disposeCoordinateObject(marker);
@@ -2974,8 +3025,9 @@ const title = 'Private 3D viewer';
         scene.add(marker);
         p137ePlaceMarkers.set(id, marker);
         p137ePlaceAnchors.set(id, anchor);
-        p137ePlaceStatus.textContent = `${p137eTargetLabels[id]}: rasti asetettu, ei tallennettu G2:een.`;
+        p137ePlaceStatus.textContent = `${p137eTargetLabels[id]}: rasti asetettu; G2-tallennus vaatii erillisen vahvistuksen.`;
         updateP137EPlaceDraftList();
+        syncP137EG2Draft();
       };
       updateP137EPlaceDraftList();
 
@@ -11078,6 +11130,41 @@ const title = 'Private 3D viewer';
       });
       p137ePlaceToolButton.addEventListener('click', () => setViewerToolMode('place'));
       p137ePlaceClear.addEventListener('click', clearP137EPlaceDraft);
+      p137ePlaceTarget.addEventListener('change', syncP137EG2Draft);
+      p137eG2Check.addEventListener('click', async () => {
+        const session = ++p137eG2Session;
+        p137eG2VerifiedTargets = false;
+        p137eG2Panel.cancel();
+        if (!p137eG2Allowed()) {
+          p137eG2Status.textContent = 'G2 ei ole käytettävissä tässä katselutilassa.';
+          return;
+        }
+        p137eG2Check.disabled = true;
+        p137eG2Status.textContent = 'Tarkistetaan G2:n alkuperäiset kolme Themo-tunnistetta...';
+        try {
+          // No guessed wall host or historical 2015 group position is accepted.
+          const result = await p137eG2Client.targets();
+          const ids = result.targets.map((target) => target.targetId).sort();
+          if (session !== p137eG2Session || !p137eG2Allowed() ||
+              ids.length !== p137eG2ExactTargets.length ||
+              ids.some((id, i) => id !== p137eG2ExactTargets[i])) {
+            throw new Error('P137E_G2_TARGET_MISMATCH');
+          }
+          p137eG2VerifiedTargets = true;
+          p137eG2Status.textContent =
+            'G2:n kolme nykylaiteidentiteettiä varmennettu. Tallennus varmistuu vasta erillisellä takaisinluvulla.';
+          syncP137EG2Draft();
+        } catch {
+          if (session === p137eG2Session) {
+            p137eG2VerifiedTargets = false;
+            p137eG2Panel.cancel();
+            p137eG2Status.textContent =
+              'G2-tallennuspalvelua tai lähdevastausta ei varmennettu. Rastit pysyvät tallentamattomina.';
+          }
+        } finally {
+          p137eG2Check.disabled = false;
+        }
+      });
       clearSelectionButton.addEventListener('click', clearSelection);
       isolateSelectionButton.addEventListener('click', isolateSelectedObject);
       hideSelectionButton.addEventListener('click', hideSelectedObject);
