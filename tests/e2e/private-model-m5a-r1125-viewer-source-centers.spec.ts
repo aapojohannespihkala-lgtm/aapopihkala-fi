@@ -27,8 +27,9 @@ test('R1125 projected centers come from selected scene63 AFTER real viewer focus
   expect(block.slice(project, publish)).toContain('sceneRoot: fullModelScene');
   expect(block.slice(project, publish)).toContain('camera: activeCamera');
   expect(block.slice(project, publish)).toContain('sceneIndex: 63');
-  expect(block.slice(project, publish)).toContain('canvas.getBoundingClientRect()');
-  expect(block.slice(project, publish)).toContain('window.devicePixelRatio || 1');
+  // Viewport bounds and DPR are acquired after focus, before source projection.
+  expect(block.slice(focus, project)).toContain('const frame = canvas.getBoundingClientRect();');
+  expect(block.slice(focus, project)).toContain('window.devicePixelRatio || 1');
 });
 
 test('R1125 exact 13, no-promotion and missing-camera values fail closed', () => {
