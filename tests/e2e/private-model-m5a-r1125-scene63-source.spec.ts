@@ -368,7 +368,17 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
   await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
-  await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId);
+  // Keep the exact autoload requirement and expose the viewer's own failure
+  // phase/error if the WORK_TEST review never becomes active.
+  await expect.poll(async () => {
+    const activeReview = await canvas.getAttribute('data-work-test-review-mode');
+    if (activeReview === reviewId) return activeReview;
+    const failurePhase = await canvas.getAttribute('data-work-test-load-failure-phase');
+    const failureError = await canvas.getAttribute('data-work-test-load-error');
+    return failurePhase
+      ? `WORK_TEST_LOAD_FAILURE[${failurePhase}]: ${failureError ?? 'unknown'}`
+      : activeReview ?? '';
+  }, { timeout: 15_000 }).toBe(reviewId);
   await expect(canvas).toHaveAttribute('data-m5a-review-target-renderable-count', '13');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-source-contract', 'G2_R1125');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-terrain-resistant-overlay', 'true');
