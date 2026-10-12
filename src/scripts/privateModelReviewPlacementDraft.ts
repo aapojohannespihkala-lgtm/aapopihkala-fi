@@ -197,6 +197,7 @@ export const createPlacementReviewPanel = ({
   let clicked: ReviewCoordinateValue | null = null;
   let busy = false;
   let session = 0;
+  let verifiedNote: string | null = null;
 
   const reset = () => {
     // A late response from an old save must not claim success in a new review.
@@ -204,6 +205,8 @@ export const createPlacementReviewPanel = ({
     currentContext = null;
     clicked = null;
     busy = false;
+    verifiedNote = null;
+    note.disabled = false;
     note.value = '';
     status.textContent = '';
     locationLabel.textContent = '';
@@ -231,12 +234,24 @@ export const createPlacementReviewPanel = ({
     ) return false;
     if (!Number.isFinite(coordinate.xM) || !Number.isFinite(coordinate.yM)) return false;
     clicked = { xM: coordinate.xM, yM: coordinate.yM };
+    verifiedNote = null;
     locationLabel.textContent = `D ${floor} / YLIS-G1-LOCAL / ${formatReviewCoordinateText(clicked)}`;
     save.disabled = false;
     panel.dataset.reviewPlacementStatus = 'draft';
     status.textContent = '';
     return true;
   };
+
+  note.addEventListener('input', () => {
+    if (!currentContext || !clicked || busy || verifiedNote === null) return;
+    // A receipt proves the submitted note, not later edits in the textarea.
+    const unchanged = note.value === verifiedNote;
+    panel.dataset.reviewPlacementStatus = unchanged ? 'persisted' : 'draft';
+    save.disabled = unchanged;
+    status.textContent = unchanged
+      ? 'Havainto tallennettu ja varmennettu G2:sta.'
+      : 'Huomio muuttui. Muutosta ei ole tallennettu G2:een.';
+  });
 
   cancel.addEventListener('click', reset);
 
@@ -255,6 +270,8 @@ export const createPlacementReviewPanel = ({
     }
 
     busy = true;
+    verifiedNote = null;
+    note.disabled = true;
     const submittingSession = session;
     save.disabled = true;
     panel.dataset.reviewPlacementStatus = 'persisting';
@@ -274,6 +291,7 @@ export const createPlacementReviewPanel = ({
       })) {
         throw new Error('G2 readback differs from the submitted review observation');
       }
+      verifiedNote = result.payload.observation.noteRaw;
       status.textContent = 'Havainto tallennettu ja varmennettu G2:sta.';
       panel.dataset.reviewPlacementStatus = 'persisted';
     } catch {
@@ -283,6 +301,7 @@ export const createPlacementReviewPanel = ({
     } finally {
       if (submittingSession === session) {
         busy = false;
+        note.disabled = false;
         if (panel.dataset.reviewPlacementStatus !== 'persisted') save.disabled = false;
       }
     }

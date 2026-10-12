@@ -355,7 +355,7 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
 });
 
 
-test('simulated HTTPS viewer saves all three Themos with distinct records and two readbacks each', async ({ page }) => {
+test('simulated HTTPS viewer resaves edited Themo notes with exact snapshots and independent readbacks', async ({ page }) => {
   // This is an end-to-end browser interaction against an entirely mocked
   // HTTPS origin. It is NOT a production release, real Access identity,
   // Google Docs write, original scene67 pixel proof or HUMAN_REVIEW approval.
@@ -367,6 +367,7 @@ test('simulated HTTPS viewer saves all three Themos with distinct records and tw
   const glb = makeScene67Glb();
   const calls: string[] = [];
   const records = new Map<string, PlacementReviewHandoff>();
+  const delayedReadback: { route?: Route; recordId?: string } = {};
 
   // Serve the actual built viewer from the local Playwright webServer while
   // giving its browser document an HTTPS origin. Nothing reaches a real
@@ -417,7 +418,8 @@ test('simulated HTTPS viewer saves all three Themos with distinct records and tw
   await page.route(api + '/observations', async route => {
     expect(route.request().method()).toBe('POST');
     const durablePayload = route.request().postDataJSON().payload as PlacementReviewHandoff;
-    const targetId = themoIds[records.size];
+    const targetId = themoIds[Math.floor(records.size / 2)];
+    const edited = records.size % 2 === 1;
     const recordId = 'P137E_G2_browser_simulation_' + (records.size + 1) + '_20261012';
     calls.push('POST:' + targetId);
     expect(durablePayload).toMatchObject({
@@ -426,7 +428,8 @@ test('simulated HTTPS viewer saves all three Themos with distinct records and tw
       persisted: false, humanReview: 'NOT_RUN',
       currentGeometry: false, canonical: false, asBuilt: false,
       anchor: { targetId, floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL', exactXY: false },
-      observation: { noteRaw: 'Testihavainto ' + targetId + ', vain WORK_TEST.' },
+      observation: { noteRaw: (edited ? 'Korjattu testihavainto ' : 'Testihavainto ') +
+        targetId + ', vain WORK_TEST.' },
       resolution: { status: 'UNMAPPED', proposal: null },
     });
     expect(Number.isFinite(durablePayload.anchor.xM)).toBe(true);
@@ -446,6 +449,11 @@ test('simulated HTTPS viewer saves all three Themos with distinct records and tw
     expect(route.request().method()).toBe('GET');
     expect(records.has(recordId)).toBe(true);
     const durablePayload = records.get(recordId);
+    if (recordId === 'P137E_G2_browser_simulation_1_20261012' && !delayedReadback.route) {
+      delayedReadback.route = route;
+      delayedReadback.recordId = recordId;
+      return;
+    }
     return route.fulfill({
       status: 200, contentType: 'application/json',
       body: JSON.stringify({ recordId, payload: durablePayload }),
@@ -476,29 +484,69 @@ test('simulated HTTPS viewer saves all three Themos with distinct records and tw
   );
   const note = page.locator('#p137e-review-placement-note');
   await expect(note).toBeVisible();
-  for (const targetId of themoIds) {
+  const save = page.getByRole('button', { name: 'Tallenna havainto' });
+  for (const [i, targetId] of themoIds.entries()) {
     await page.locator('#p137e-place-target').selectOption(targetId);
     await expect(page.locator('[data-review-placement-status="draft"]'))
       .toContainText('Kohde: ' + targetId);
     await expect(note).toHaveValue('');
-    await note.fill('Testihavainto ' + targetId + ', vain WORK_TEST.');
-    await page.getByRole('button', { name: 'Tallenna havainto' }).click();
+    const originalNote = 'Testihavainto ' + targetId + ', vain WORK_TEST.';
+    const editedNote = 'Korjattu testihavainto ' + targetId + ', vain WORK_TEST.';
+    await note.fill(originalNote);
+    await save.click();
+    if (i === 0) {
+      // Hold the real client's first independent GET so pending-state checks
+      // cannot pass or fail merely because a mocked response was too fast.
+      await expect.poll(() => Boolean(delayedReadback.route)).toBe(true);
+      await expect(page.locator('[data-review-placement-status="persisting"]')).toBeVisible();
+      await expect(note).toBeDisabled();
+      await expect(save).toBeDisabled();
+      await delayedReadback.route!.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ recordId: delayedReadback.recordId,
+          payload: records.get(delayedReadback.recordId!) }) });
+    }
     await expect(page.locator('[data-review-placement-status="persisted"]')).toBeVisible();
+    await expect(note).toBeEnabled();
+    await expect(save).toBeDisabled();
+
+    await note.fill(editedNote);
+    await expect(page.locator('[data-review-placement-status="draft"]')).toContainText(
+      'Huomio muuttui. Muutosta ei ole tallennettu G2:een.',
+    );
+    await expect(save).toBeEnabled();
+    expect(records.size).toBe(i * 2 + 1);
+    // Returning to the already verified snapshot needs no extra POST or GET.
+    await note.fill(originalNote);
+    await expect(page.locator('[data-review-placement-status="persisted"]')).toBeVisible();
+    await expect(save).toBeDisabled();
+    expect(records.size).toBe(i * 2 + 1);
+    await note.fill(editedNote);
+    await expect(save).toBeEnabled();
+    await save.click();
     await expect(page.locator('[data-review-placement-status="persisted"]')).toContainText(
       'Havainto tallennettu ja varmennettu G2:sta.',
     );
+    await expect(note).toHaveValue(editedNote);
+    await expect(note).toBeEnabled();
     await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
   }
 
   // Client-side persistence cannot pass on a POST echo: real browser code
   // must make one independent GET, and the UI adapter makes a second one.
-  expect(records.size).toBe(3);
-  expect(calls).toEqual(['TARGETS', ...themoIds.flatMap((targetId, i) => {
-    const recordId = 'P137E_G2_browser_simulation_' + (i + 1) + '_20261012';
-    return ['POST:' + targetId, 'GET:' + recordId, 'GET:' + recordId];
-  })]);
+  expect(records.size).toBe(6);
+  expect(calls).toEqual(['TARGETS', ...themoIds.flatMap((targetId, i) =>
+    [0, 1].flatMap(version => {
+      const recordId = 'P137E_G2_browser_simulation_' + (i * 2 + version + 1) + '_20261012';
+      return ['POST:' + targetId, 'GET:' + recordId, 'GET:' + recordId];
+    }),
+  )]);
   const payloads = [...records.values()];
-  expect(payloads.map(payload => payload.anchor.targetId)).toEqual(themoIds);
+  expect(payloads.map(payload => payload.anchor.targetId)).toEqual(themoIds.flatMap(id => [id, id]));
+  for (let i = 0; i < 3; i++) {
+    expect(payloads[i * 2 + 1].anchor).toEqual(payloads[i * 2].anchor);
+    expect(payloads[i * 2].observation.noteRaw).toBe('Testihavainto ' + themoIds[i] + ', vain WORK_TEST.');
+    expect(payloads[i * 2 + 1].observation.noteRaw).toBe('Korjattu testihavainto ' + themoIds[i] + ', vain WORK_TEST.');
+  }
   expect(new Set(payloads.map(payload => payload.anchor.xM + ',' + payload.anchor.yM)).size)
     .toBe(3);
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
@@ -595,6 +643,7 @@ test('simulated HTTPS viewer recovers a stalled independent G2 readback without 
   await save.click();
   await expect(page.locator('[data-review-placement-status="persisting"]')).toBeVisible();
   await expect(save).toBeDisabled();
+  await expect(note).toBeDisabled();
   await expect.poll(() => calls).toEqual(['TARGETS', 'POST', 'GET']);
 
   await expect(page.locator('[data-review-placement-status="draft"]')).toContainText(
@@ -602,6 +651,7 @@ test('simulated HTTPS viewer recovers a stalled independent G2 readback without 
   );
   await expect.poll(() => readbackAborted).toBe(true);
   await expect(save).toBeEnabled();
+  await expect(note).toBeEnabled();
   await expect(note).toHaveValue(noteText);
   await expect(page.locator('[data-review-placement-status="draft"]')).toContainText('Kohde: ' + targetId);
   await expect(page.locator('[data-review-placement-status="persisted"]')).toHaveCount(0);
