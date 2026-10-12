@@ -64,3 +64,43 @@ export function inspectP137EScene67ProductionSmoke(reviewId, candidateId, datase
     publishToCURRENT: false,
   });
 }
+
+
+// Exact immutable G2b source bytes, independently verified on the machine
+// publishing path. This is a separately fetched production asset check, not
+// evidence that all three housings rendered as independently visible pixels.
+export const P137E_SCENE67_EXPECTED_GLB_BYTES = 3_258_268;
+export const P137E_SCENE67_EXPECTED_GLB_SHA256 =
+  '07331f15ca223a5db8e0e8ea8955d7707f880cef23ca80b09dc6611730ae0b7d';
+export const P137E_SCENE67_PRODUCTION_GLB_URL =
+  'https://aapopihkala.fi/private-model/work-test/p137e-d1f-three-wall-mounted-themos.glb';
+
+export function inspectP137EScene67PublishedGlb(reviewId, candidateId, response) {
+  const referenced =
+    String(reviewId ?? '').startsWith(P137E_SCENE67_PRODUCTION_SMOKE_ID) ||
+    String(candidateId ?? '').startsWith(P137E_SCENE67_PRODUCTION_SMOKE_ID);
+  if (!referenced) return null;
+  if (reviewId !== P137E_SCENE67_PRODUCTION_SMOKE_REVIEW_ID ||
+      candidateId !== P137E_SCENE67_PRODUCTION_SMOKE_ID) {
+    fail('published GLB review/candidate identity mismatch');
+  }
+  if (!response || typeof response !== 'object' || Array.isArray(response) ||
+      response.url !== P137E_SCENE67_PRODUCTION_GLB_URL ||
+      response.status !== 200 ||
+      response.byteLength !== P137E_SCENE67_EXPECTED_GLB_BYTES ||
+      response.sha256 !== P137E_SCENE67_EXPECTED_GLB_SHA256) {
+    fail('production GLB URL, HTTP status, full length or SHA256 mismatch');
+  }
+  return Object.freeze({
+    reviewId,
+    candidateId,
+    productionAssetUrl: P137E_SCENE67_PRODUCTION_GLB_URL,
+    bytes: P137E_SCENE67_EXPECTED_GLB_BYTES,
+    sha256: P137E_SCENE67_EXPECTED_GLB_SHA256,
+    productionAssetExactBytesVerified: true,
+    browserCanvasUsesTheseBytesVerified: false,
+    individualDevicePixelsVerified: false,
+    humanReview: 'NOT_RUN',
+    publishToCURRENT: false,
+  });
+}
