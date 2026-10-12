@@ -90,7 +90,9 @@ export function deriveP137ETwoFaceSourceCameras(
     if (child === wallMatches[0]) continue;
     const metadata = child?.userData;
     const expected = p137eTwoFaceTargets.find(x => x.id === metadata?.logicalDeviceId);
-    fail(!!expected && !devices.has(expected.id), 'logical device uniqueness');
+    if (!expected || devices.has(expected.id)) {
+      throw new Error('P137E two-face WORK_TEST source mismatch: logical device uniqueness');
+    }
     fail(child.visible !== false &&
       metadata?.representationKind === 'photoReferencedThermostatWallMountWorkTest' &&
       metadata?.sourceFaceSide === expected.side &&
