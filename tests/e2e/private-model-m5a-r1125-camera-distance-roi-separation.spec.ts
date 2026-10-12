@@ -116,3 +116,20 @@ test('R1125 does not accept screenshot ROI margins that cross the canvas border'
   expect(() => choose(scene, [cameraTrial(75, 18)], { edgePaddingPx: 64 }))
     .toThrow('no source-verified 13/13');
 });
+
+test('R1125 validates every camera before returning an earlier safe projection', () => {
+  const scene = makeScene();
+  const firstSafe = cameraTrial(75);
+  // Earlier implementation returned the first passing source ROI and silently
+  // missed an unsorted, duplicate or unusable later candidate.
+  expect(() => choose(scene, [firstSafe, cameraTrial(25)])).toThrow('strictly increasing');
+  expect(() => choose(scene, [
+    firstSafe, { ...cameraTrial(150), id: firstSafe.id },
+  ])).toThrow('unique IDs');
+  expect(() => choose(scene, [
+    firstSafe, { ...cameraTrial(150), distanceLocalUnits: Number.NaN },
+  ])).toThrow('finite perspective distances');
+  expect(() => choose(scene, [
+    firstSafe, { ...cameraTrial(150), camera: { isPerspectiveCamera: false } },
+  ])).toThrow('finite perspective distances');
+});
