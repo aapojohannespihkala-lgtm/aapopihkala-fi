@@ -26,6 +26,10 @@ const makeScene67Glb = () => {
   floats.forEach((value, index) => binary.writeFloatLE(value, index * 4));
 
   const nodes: Record<string, unknown>[] = Array.from({ length: 1108 }, () => ({}));
+  // The real viewer first resolves the independent D1F interior carrier
+  // before opening the exact scene67 P123C wall. Keep this minimal semantic
+  // context in the fixture, never as a substitute for the original wall.
+  nodes[1] = { name: 'D_1F_SYNTHETIC_INTERIOR_CONTEXT_NOT_THEMO_SOURCE', mesh: 1 };
   nodes[798] = { name: 'ORIGINAL_P123C_WALL_SOURCE', mesh: 406 };
   nodes[1106] = {
     name: wallName,
@@ -96,6 +100,10 @@ const makeScene67Glb = () => {
     name: 'UNRELATED_SCENE_' + index,
     nodes: [] as number[],
   }));
+  // The actual source GLB contains this separately named interior scene.
+  // Without it, activateDPlan cannot select D1F and the P137E viewer must
+  // reject the test fixture before any NORTH/SOUTH/RASTI/MITTAA assertions.
+  scenes[0] = { name: 'D CURRENT INTERIOR - BABYLON Y-UP', nodes: [1] };
   scenes[67] = {
     name: sceneName,
     nodes: [1107],
