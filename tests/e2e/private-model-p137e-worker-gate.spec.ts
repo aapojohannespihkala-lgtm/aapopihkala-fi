@@ -147,3 +147,53 @@ test('Worker routes the dormant G2 review BEFORE generic private model and never
   expect(route).toContain("request.headers.get('Origin') !== url.origin");
   expect(route).not.toContain('P137E_G2_REVIEW_RELEASE_ENABLED: \'true\'');
 });
+
+
+test('P137E bounded request cancels a stalled body at its read deadline', async () => {
+  let cancelled = false;
+  const source = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('{"payload":{}}'));
+    },
+    cancel() { cancelled = true; },
+  });
+  const stalled = new Request(origin + base + '/observations', {
+    method: 'POST', body: source, duplex: 'half',
+  } as RequestInit & { duplex: 'half' });
+  expect(await readBoundedPlacementRequest(stalled, 16000, 25)).toBeNull();
+  expect(cancelled).toBe(true);
+});
+
+test('P137E oversized request returns even when cancellation never resolves', async () => {
+  let cancelled = false;
+  const source = new ReadableStream<Uint8Array>({
+    start(controller) { controller.enqueue(new Uint8Array(16001)); },
+    cancel() {
+      cancelled = true;
+      return new Promise<void>(() => {});
+    },
+  });
+  const oversized = new Request(origin + base + '/observations', {
+    method: 'POST', body: source, duplex: 'half',
+  } as RequestInit & { duplex: 'half' });
+  expect(await readBoundedPlacementRequest(oversized, 16000, 25)).toBeNull();
+  expect(cancelled).toBe(true);
+});
+
+test('P137E empty chunk flood cannot starve its deadline timer', async () => {
+  let cancelled = false;
+  let pulls = 0;
+  const source = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulls += 1;
+      controller.enqueue(new Uint8Array(0));
+    },
+    cancel() { cancelled = true; },
+  });
+  const flooded = new Request(origin + base + '/observations', {
+    method: 'POST', body: source, duplex: 'half',
+  } as RequestInit & { duplex: 'half' });
+  expect(await readBoundedPlacementRequest(flooded, 16000, 25)).toBeNull();
+  expect(pulls).toBeGreaterThan(0);
+  expect(cancelled).toBe(true);
+});
