@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial } from 'three';
 import {
   deriveP137ETwoFaceSourceCameras,
+  deriveP137ETwoFaceSourcePixelRegions,
   p137eTwoFaceTargets,
 } from '../../src/scripts/privateModelP137ETwoSidedSourceCamera';
 
@@ -157,4 +158,73 @@ test('original GLB omits current on devices: absence is not approval', () => {
   expect(result.north.sourceIds).toHaveLength(1);
   expect(result.south.sourceIds).toHaveLength(2);
   expect(result.humanReview).toBe('NOT_RUN');
+});
+
+
+test('actual THREE orthographic projections yield three distinct source-housing pixel ROIs', () => {
+  const proof = deriveP137ETwoFaceSourcePixelRegions(
+    focusedScene67Fixture(), 1536, 900,
+  );
+  expect(proof.sourceSceneIndex).toBe(67);
+  expect(proof.originalWallMesh).toBe(406);
+  expect(proof.expectedHousingCount).toBe(3);
+  expect(proof.north.side).toBe('NORTH');
+  expect(proof.south.side).toBe('SOUTH');
+  expect(proof.north.cameraKey).not.toBe(proof.south.cameraKey);
+  expect(proof.north.projectedTargets.map(x => x.logicalDeviceId))
+    .toEqual(['D_THEMO_CURRENT_LOBBY_01']);
+  expect(proof.south.projectedTargets.map(x => x.logicalDeviceId))
+    .toEqual(['D_THEMO_CURRENT_BEDROOM_01', 'D_THEMO_CURRENT_BATHROOM_01']);
+  expect(proof.north.projectedTargets).toHaveLength(1);
+  expect(proof.south.projectedTargets).toHaveLength(2);
+  const south = proof.south.projectedTargets;
+  const a = south[0]!, b = south[1]!;
+  expect((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
+    .toBeGreaterThan((a.radius + b.radius) ** 2);
+  for (const side of [proof.north, proof.south]) {
+    for (const roi of side.projectedTargets) {
+      expect(Number.isSafeInteger(roi.x)).toBe(true);
+      expect(Number.isSafeInteger(roi.y)).toBe(true);
+      expect(Number.isSafeInteger(roi.radius)).toBe(true);
+      expect(roi.radius).toBeGreaterThanOrEqual(4);
+      expect(roi.radius).toBeLessThanOrEqual(96);
+      expect(roi.x - roi.radius).toBeGreaterThanOrEqual(0);
+      expect(roi.y - roi.radius).toBeGreaterThanOrEqual(0);
+      expect(roi.x + roi.radius).toBeLessThan(side.width);
+      expect(roi.y + roi.radius).toBeLessThan(side.height);
+    }
+    expect(side.sourceOnly).toBe(true);
+    expect(side.individualRenderedPixelsVerified).toBe(false);
+  }
+  expect(proof.actualProductionScreenshotVerified).toBe(false);
+  expect(proof.humanReview).toBe('NOT_RUN');
+});
+
+test('same-side original housing projection collision fails before screenshot acceptance', () => {
+  const root = focusedScene67Fixture();
+  root.children[3].position.copy(root.children[2].position);
+  expect(() => deriveP137ETwoFaceSourcePixelRegions(root, 1536, 900))
+    .toThrow(/same-side source housing ROIs overlap/);
+});
+
+test('pixel projection cannot forge clipped, zero-size or absurd screenshot viewport', () => {
+  for (const [width, height] of [
+    [0, 900], [1536, 0], [255, 900], [1536, 255],
+    [4097, 900], [1536, 4097], [NaN, 900], [1536.5, 900],
+  ]) {
+    expect(() => deriveP137ETwoFaceSourcePixelRegions(
+      focusedScene67Fixture(), width, height,
+    )).toThrow(/bounded screenshot viewport/);
+  }
+});
+
+test('ROI generation inherits original wall and no-promotion source identity', () => {
+  const wrong = focusedScene67Fixture();
+  wrong.children[1].userData.current = true;
+  expect(() => deriveP137ETwoFaceSourcePixelRegions(wrong, 1536, 900))
+    .toThrow(/surface and no-promotion/);
+  const wrongWall = focusedScene67Fixture();
+  wrongWall.children[0].userData.sourceMeshIndex = 405;
+  expect(() => deriveP137ETwoFaceSourcePixelRegions(wrongWall, 1536, 900))
+    .toThrow(/single original P123C source wall/);
 });
