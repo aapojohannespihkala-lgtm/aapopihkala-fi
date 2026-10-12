@@ -307,7 +307,12 @@ const makeTargetNode = (key: string, index: number) => {
     name: `M5A_R1125_REVIEW_TARGET_${String(index + 1).padStart(2, '0')}`,
     mesh: boundary ? 3 : well ? 0 : 2,
     translation: targetLocations[index],
-    scale: boundary ? [3, 1, 3] : [1.8, 1, 1.8],
+    // This is a synthetic browser fixture, not a measured pipe diameter.
+    // Keep the first cyan PVK-SOK1 source independently readable above the
+    // unchanged hard ROI threshold even in the actual sidebar viewport.
+    scale: boundary ? [3, 1, 3]
+      : key === 'G2_DRAIN_LINK_PVK_SOK1_001' ? [2.8, 1, 2.8]
+      : [1.8, 1, 1.8],
     extras,
   };
 };
