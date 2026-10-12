@@ -390,6 +390,7 @@ jobs:
           import { detectM5BR1109CyanLocatorComponents } from './src/scripts/privateModelR1109CyanLocatorProof.mjs';
           import { detectP186FX4CyanTargetComponents, detectP186FX4OriginalGreenWallPixels } from './src/scripts/privateModelP186FX4CyanPixelProof.mjs';
           import { buildM5AR1125BrowserScreenshotProofExpression } from './src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs';
+          import { inspectP137EScene67ProductionSmoke } from './src/scripts/privateModelP137EScene67ProductionSmokeGuard.mjs';
 
           const reviewBaseUrl = process.env.REVIEW_BASE_URL;
           const reviewId = process.env.REVIEW_ID;
@@ -515,6 +516,20 @@ jobs:
             const canvas = page.locator('#private-model-canvas');
             await page.waitForTimeout(1000);
 
+            // Exact source metadata guard is mandatory, not optional caller
+            // expected_dataset_json. Source digest and 3/3 pixels remain separate.
+            const p137eScene67SourceEvidence = inspectP137EScene67ProductionSmoke(
+              reviewId,
+              candidateId,
+              await canvas.evaluate((element) => ({ ...element.dataset })),
+            );
+            if (p137eScene67SourceEvidence) {
+              fs.writeFileSync(
+                'playwright-artifacts/p137e-scene67-source-metadata.json',
+                JSON.stringify(p137eScene67SourceEvidence, null, 2),
+              );
+            }
+
             // The X4 wall + three Themo scene continuously repaints WebGL.
             // A locator screenshot waits for element stability and can time out
             // despite a correct, visible scene. Capture the SAME fixed canvas
@@ -527,7 +542,7 @@ jobs:
               candidateId === 'm5a-r1125-pvk-diameter-source-split';
             const box = await canvas.boundingBox();
             if (!box) throw new Error('Production canvas has no bounding box');
-            const before = (isX4Themo || isR1125SourceReview)
+            const before = (isX4Themo || isR1125SourceReview || p137eScene67SourceEvidence)
               ? await page.screenshot({
                   clip: box, animations: 'disabled',
                   path: 'playwright-artifacts/production-review-before.png',
@@ -767,7 +782,7 @@ jobs:
             await page.mouse.up({ button: pointerButton });
             await page.waitForTimeout(500);
 
-            const after = (isX4Themo || isR1125SourceReview)
+            const after = (isX4Themo || isR1125SourceReview || p137eScene67SourceEvidence)
               ? await page.screenshot({
                   clip: box, animations: 'disabled',
                   path: 'playwright-artifacts/production-review-after-orbit.png',
@@ -896,6 +911,7 @@ jobs:
                   cyanTargetEvidence,
                   m5bPixelEvidence,
                   m5aR1125PixelEvidence,
+                  p137eScene67SourceEvidence,
                   thresholds: {
                     minNonBackgroundPixels,
                     minChangedPixels,
@@ -920,6 +936,7 @@ jobs:
                 cyanTargetEvidence,
                 m5bPixelEvidence,
                 m5aR1125PixelEvidence,
+                p137eScene67SourceEvidence,
                 thresholds: {
                   minNonBackgroundPixels,
                   minChangedPixels,
