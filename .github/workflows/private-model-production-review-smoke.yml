@@ -390,6 +390,7 @@ jobs:
           import { detectM5BR1109CyanLocatorComponents } from './src/scripts/privateModelR1109CyanLocatorProof.mjs';
           import { detectP186FX4CyanTargetComponents, detectP186FX4OriginalGreenWallPixels } from './src/scripts/privateModelP186FX4CyanPixelProof.mjs';
           import { buildM5AR1125BrowserScreenshotProofExpression } from './src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs';
+          import { inspectM5AR1125ProductionGlbAsset, M5A_R1125_PRODUCTION_URL } from './src/scripts/privateModelM5AR1125ProductionGlbIdentity.mjs';
 
           const reviewBaseUrl = process.env.REVIEW_BASE_URL;
           const reviewId = process.env.REVIEW_ID;
@@ -654,9 +655,11 @@ jobs:
             // scene63 source projections in the SAME authenticated PNG. The
             // viewer must supply these projections from its actual runtime
             // scene and camera; absent/mismatched evidence fails closed.
-            // This workflow alone does NOT enable R1125 review or assert raw
-            // GLB byte authenticity. No guessed centers or generic 13-count.
+            // The separate production asset check below verifies raw bytes,
+            // not the viewer's loaded buffer or 13 distinct source pixels.
+            // No guessed centers or generic 13-count.
             let m5aR1125PixelEvidence = null;
+            let m5aR1125ProductionGlbEvidence = null;
             if (isR1125SourceReview) {
               const d = await canvas.evaluate((el) => ({ ...el.dataset }));
               if (d.m5aR1125SourceDriveId !== '13qxYc9PF7Z6eo_OXs1RrYCyo5CbTIAKs' ||
@@ -669,6 +672,35 @@ jobs:
                   d.m5aPublishToCurrent !== 'false') {
                 throw new Error('R1125 original scene63 source identity or no-promotion dataset missing');
               }
+
+              // Exact original 3,112,432 byte GLB via the SAME authenticated
+              // Chromium context. Cloudflare redirects, missing body,
+              // substituted candidate and modified bytes fail closed.
+              const productionAsset = await page.evaluate(async (url) => {
+                const response = await fetch(url, {
+                  credentials: 'same-origin', cache: 'no-store',
+                });
+                const buffer = await response.arrayBuffer();
+                const sha = new Uint8Array(
+                  await crypto.subtle.digest('SHA-256', buffer),
+                );
+                return {
+                  url: response.url,
+                  status: response.status,
+                  redirected: response.redirected,
+                  byteLength: buffer.byteLength,
+                  sha256: Array.from(sha, (byte) =>
+                    byte.toString(16).padStart(2, '0')).join(''),
+                };
+              }, M5A_R1125_PRODUCTION_URL);
+              m5aR1125ProductionGlbEvidence = inspectM5AR1125ProductionGlbAsset(
+                reviewId, candidateId, productionAsset,
+              );
+              fs.writeFileSync(
+                'playwright-artifacts/m5a-r1125-original-production-glb-sha256.json',
+                JSON.stringify(m5aR1125ProductionGlbEvidence, null, 2),
+              );
+
               let projection;
               try {
                 projection = JSON.parse(d.m5aR1125SourceCameraCenters ?? '');
@@ -711,7 +743,8 @@ jobs:
                   requiredSourceTargets: 13,
                   sourceCameraProjection: projection,
                   screenshotPixelEvidence: m5aR1125PixelEvidence,
-                  exactRawGlbByteReadbackVerified: false,
+                  originalProductionGlbEvidence: m5aR1125ProductionGlbEvidence,
+                  viewerLoadedSameBytesVerified: false,
                   humanReview: 'NOT_RUN',
                 }, null, 2));
             }
@@ -896,6 +929,7 @@ jobs:
                   cyanTargetEvidence,
                   m5bPixelEvidence,
                   m5aR1125PixelEvidence,
+                  m5aR1125ProductionGlbEvidence,
                   thresholds: {
                     minNonBackgroundPixels,
                     minChangedPixels,
@@ -920,6 +954,7 @@ jobs:
                 cyanTargetEvidence,
                 m5bPixelEvidence,
                 m5aR1125PixelEvidence,
+                m5aR1125ProductionGlbEvidence,
                 thresholds: {
                   minNonBackgroundPixels,
                   minChangedPixels,
