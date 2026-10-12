@@ -116,6 +116,9 @@ jobs:
               "X4 requires exactly 3 separately rendered cyan targets",
               "X4 original source wall 798 review context missing",
               "detectP186FX4OriginalGreenWallPixels",
+              "p137eScene67TwoFaceEvidence",
+              "p137e-scene67-south.png",
+              "P137E original green wall not rendered",
               "X4 original green wall not rendered",
               "detectM5BR1109CyanLocatorComponents",
               "M5B R1109 requires 5 rendered cyan locators",
@@ -583,6 +586,106 @@ jobs:
                   path: 'playwright-artifacts/production-review-before.png',
                 });
 
+            // Scene67: two actual authenticated WebGL camera frames and original
+            // green P123C pixels, never a substitute for individual 3/3 housings.
+            let p137eScene67TwoFaceEvidence = null;
+            if (p137eScene67SourceEvidence) {
+              const readFace = () => canvas.evaluate((el) => ({
+                face: el.dataset.p137eScene67CameraFace,
+                ids: el.dataset.p137eScene67CameraSourceIds,
+                wall: el.dataset.p137eScene67WallPresentation,
+                sourceOnly: el.dataset.p137eScene67CameraSourceOnly,
+                render: el.dataset.p137eScene67ProductionRenderVerified,
+                humanReview: el.dataset.p137eHumanReview,
+              }));
+              const north = await readFace();
+              const northButton = page.locator('#p137e-north-face-button');
+              const southButton = page.locator('#p137e-south-face-button');
+              if (north.face !== 'NORTH' ||
+                  north.ids !== 'D_THEMO_CURRENT_LOBBY_01' ||
+                  north.wall !== 'NORTH_SOURCE_WALL_OPAQUE' ||
+                  north.sourceOnly !== 'true' || north.render !== 'false' ||
+                  north.humanReview !== 'NOT_RUN' ||
+                  !await northButton.isVisible() || !await southButton.isVisible()) {
+                throw new Error('P137E original NORTH source camera or buttons missing');
+              }
+              const firstUrl = 'data:image/png;base64,' + before.toString('base64');
+              const decode = '(async (url) => {' +
+                'const i=new Image();i.src=url;await i.decode();' +
+                'const c=document.createElement("canvas");c.width=i.width;c.height=i.height;' +
+                'const ctx=c.getContext("2d");if(!ctx)throw Error("P137E PNG decode");' +
+                'ctx.drawImage(i,0,0);return ctx.getImageData(0,0,c.width,c.height).data;})';
+              const greenFunction = detectP186FX4OriginalGreenWallPixels.toString();
+              const greenExpression = '(async (url) => {' +
+                'const i=new Image();i.src=url;await i.decode();' +
+                'const c=document.createElement("canvas");c.width=i.width;c.height=i.height;' +
+                'const ctx=c.getContext("2d");if(!ctx)throw Error("P137E green PNG");' +
+                'ctx.drawImage(i,0,0);return (' + greenFunction + ')' +
+                '(ctx.getImageData(0,0,c.width,c.height).data,c.width,c.height);})';
+              const green = await page.evaluate(
+                greenExpression + '(' + JSON.stringify(firstUrl) + ')');
+              if (!green?.passed) {
+                throw new Error('P137E original green wall not rendered: ' +
+                  JSON.stringify(green));
+              }
+              fs.writeFileSync('playwright-artifacts/p137e-scene67-north.png', before);
+              await southButton.click();
+              await page.waitForTimeout(350);
+              const south = await readFace();
+              if (south.face !== 'SOUTH' ||
+                  south.ids !== 'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01' ||
+                  south.wall !== 'SOUTH_SOURCE_WALL_ALPHA_0_38' ||
+                  south.sourceOnly !== 'true' || south.render !== 'false' ||
+                  south.humanReview !== 'NOT_RUN') {
+                throw new Error('P137E original SOUTH source camera or room identities missing');
+              }
+              const southBox = await canvas.boundingBox();
+              if (!southBox || ['x','y','width','height'].some(
+                  k => Math.abs(southBox[k] - box[k]) > 1)) {
+                throw new Error('P137E opposite faces have mismatched viewport geometry');
+              }
+              const southPng = await page.screenshot({
+                clip: box, animations: 'disabled',
+                path: 'playwright-artifacts/p137e-scene67-south.png',
+              });
+              const secondUrl = 'data:image/png;base64,' + southPng.toString('base64');
+              const comparison = await page.evaluate(async ([a,b]) => {
+                const load = async (url) => {
+                  const i = new Image(); i.src=url; await i.decode();
+                  const c=document.createElement('canvas');
+                  c.width=i.width;c.height=i.height;
+                  const ctx=c.getContext('2d'); if(!ctx)throw Error('P137E two-face PNG');
+                  ctx.drawImage(i,0,0);
+                  return { w:c.width,h:c.height,p:ctx.getImageData(0,0,c.width,c.height).data };
+                };
+                const one=await load(a),two=await load(b);
+                if(one.w!==two.w||one.h!==two.h)throw Error('P137E image size mismatch');
+                let changed=0;
+                for(let j=0;j<one.p.length;j+=4)
+                  if(Math.abs(one.p[j]-two.p[j])+
+                     Math.abs(one.p[j+1]-two.p[j+1])+
+                     Math.abs(one.p[j+2]-two.p[j+2])>36)changed++;
+                return {width:one.w,height:one.h,changedPixels:changed};
+              }, [firstUrl,secondUrl]);
+              if (comparison.changedPixels < minChangedPixels) {
+                throw new Error('P137E two source-wall faces have no independent pixels: ' +
+                  JSON.stringify(comparison));
+              }
+              await northButton.click();
+              if ((await readFace()).face !== 'NORTH') {
+                throw new Error('P137E NORTH was not restored after two-face capture');
+              }
+              p137eScene67TwoFaceEvidence = {
+                sceneIndex:67, originalWallNode:798, originalWallMesh:406,
+                north,south,comparison,greenWallPixels:green,
+                actualProductionTwoFaceScreenshotsCaptured:true,
+                threeIndividualThemoHousingPixelsVerified:false,
+                humanReview:'NOT_RUN',publishToCURRENT:false,
+              };
+              fs.writeFileSync('playwright-artifacts/p137e-scene67-two-face-pixels.json',
+                JSON.stringify(p137eScene67TwoFaceEvidence,null,2));
+            }
+
             // Scene66 uses a no-rotation orthographic plan camera. The existing
             // source-color-bound detector must prove all three individual Themo
             // halos in the actual authenticated BEFORE screenshot, not metadata.
@@ -945,6 +1048,7 @@ jobs:
                   m5aR1125PixelEvidence,
                   p137eScene67SourceEvidence,
                   p137eScene67AssetEvidence,
+                  p137eScene67TwoFaceEvidence,
                   thresholds: {
                     minNonBackgroundPixels,
                     minChangedPixels,
@@ -971,6 +1075,7 @@ jobs:
                 m5aR1125PixelEvidence,
                 p137eScene67SourceEvidence,
                 p137eScene67AssetEvidence,
+                p137eScene67TwoFaceEvidence,
                 thresholds: {
                   minNonBackgroundPixels,
                   minChangedPixels,
