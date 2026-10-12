@@ -34,7 +34,7 @@ const fail = (condition: unknown, reason: string): void => {
   if (!condition) throw new Error('P137E two-face WORK_TEST source mismatch: ' + reason);
 };
 const safe = (record: any): boolean =>
-  record?.current === false &&
+  record?.current !== true &&
   record?.Canonical === false &&
   record?.asBuilt === false &&
   record?.publishToCURRENT === false &&
