@@ -147,3 +147,14 @@ test('the two camera descriptors are source-only, not production review proof', 
   expect(state.north.orthoHalfHeight).toBeGreaterThan(0);
   expect(state.south.orthoHalfHeight).toBeGreaterThan(0);
 });
+
+test('original GLB omits current on devices: absence is not approval', () => {
+  const root = focusedScene67Fixture();
+  for (const device of root.children.slice(1)) {
+    delete device.userData.current;
+  }
+  const result = deriveP137ETwoFaceSourceCameras(root, 16 / 9);
+  expect(result.north.sourceIds).toHaveLength(1);
+  expect(result.south.sourceIds).toHaveLength(2);
+  expect(result.humanReview).toBe('NOT_RUN');
+});
