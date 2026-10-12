@@ -157,11 +157,15 @@ export const deriveM5BScene60SourceRegions = ({
         'two actual source proxy ROIs overlap in this camera');
     }
   }
-  const cameraKey = 'M5B_SCENE60_SOURCE_CAMERA_' + [
+  // The sibling five-delta pixel verifier accepts camera keys <=200 chars.
+  // Keep all 16 view-matrix elements and projection framing, not a user label.
+  const projection = camera.projectionMatrix.elements;
+  const cameraKey = 'M5B60_' + [
     ...camera.matrixWorld.elements,
-    ...camera.projectionMatrix.elements,
+    projection[0], projection[5], projection[10], projection[14],
     imageWidth, imageHeight,
-  ].map(v => Number(v).toFixed(5)).join('_');
+  ].map(v => Number(v).toFixed(4)).join('|');
+  required(cameraKey.length <= 200, 'source camera identity too long');
   return Object.freeze({
     sceneIndex: 60 as const,
     reviewId: m5bCurrentReviewId,
