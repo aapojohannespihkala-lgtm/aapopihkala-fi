@@ -2875,7 +2875,7 @@ const title = 'Private 3D viewer';
       const canStartP137EPlaceDraft = () =>
         activePlanFloor === '1F' && activeCamera === planCamera &&
         canvas.dataset.modelSource === 'work-test' &&
-        workTestSelect.value === 'p137e-d1f-three-wall-mounted-themos';
+        canvas.dataset.p137eLoadedCandidateId === 'p137e-d1f-three-wall-mounted-themos';
       const updateP137EPlaceDraftList = () => {
         p137ePlaceList.replaceChildren();
         for (const [id, label] of Object.entries(p137eTargetLabels)) {
@@ -5953,6 +5953,7 @@ const title = 'Private 3D viewer';
         modelSourceBadge.dataset.kind = sourceKind;
         currentModelButton.hidden = sourceKind === 'current';
         canvas.dataset.modelSource = sourceKind;
+        if (sourceKind !== 'work-test') delete canvas.dataset.p137eLoadedCandidateId;
 
         setModelScene(fullModelScene);
         applyViewerLayerState(modelLoadLayerState, 'preset:whole-building');
@@ -5969,6 +5970,9 @@ const title = 'Private 3D viewer';
       };
 
       const loadCurrentModel = async () => {
+        delete canvas.dataset.p137eLoadedCandidateId;
+        p137ePlaceToolButton.disabled = true;
+        clearP137EPlaceDraft();
         const loader = new GLTFLoader();
         status.textContent = 'Ladataan suojattua mallia...';
 
@@ -8926,6 +8930,9 @@ const title = 'Private 3D viewer';
       };
 
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
+        delete canvas.dataset.p137eLoadedCandidateId;
+        p137ePlaceToolButton.disabled = true;
+        clearP137EPlaceDraft();
         let loadFailurePhase: WorkTestLoadFailurePhase = 'gltf-load-failed';
         delete canvas.dataset.workTestLoadState;
         delete canvas.dataset.workTestLoadFailurePhase;
@@ -9141,6 +9148,7 @@ const title = 'Private 3D viewer';
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
+          canvas.dataset.p137eLoadedCandidateId = candidate.id;
           clearM5BReviewState();
           delete canvas.dataset.g3SourcePhase;
           delete canvas.dataset.g3OverlayPrimitive;
