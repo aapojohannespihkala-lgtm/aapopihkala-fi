@@ -943,6 +943,156 @@ jobs:
               };
               fs.writeFileSync('playwright-artifacts/p137e-scene67-two-face-pixels.json',
                 JSON.stringify(p137eScene67TwoFaceEvidence,null,2));
+              // The real single-link P137E user review also requires the
+              // top-floor original wall, three individual placement crosses
+              // and an X/Y millimetre ruler. No temporary click writes to G2.
+              const planButton = page.locator('#p137e-plan-face-button');
+              await viewMenu.locator(':scope > summary').click();
+              if (!await viewMenu.evaluate((menu) => menu.open) ||
+                  !await planButton.isVisible()) {
+                throw new Error('P137E original source top-plan menu unavailable');
+              }
+              await planButton.click();
+              await page.waitForFunction(() => {
+                const canvas = document.querySelector('#private-model-canvas');
+                return canvas?.dataset.p137eScene67TopPlanToolsReady === 'true';
+              }, null, { timeout: 5000 });
+              const planDataset = await canvas.evaluate((el) => ({
+                mode: el.dataset.p137eReviewCameraMode,
+                face: el.dataset.p137eScene67CameraFace,
+                ready: el.dataset.p137eScene67TopPlanToolsReady,
+                current: el.dataset.p137eCurrentClaim,
+                humanReview: el.dataset.p137eHumanReview,
+              }));
+              if (planDataset.mode !== 'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP' ||
+                  planDataset.ready !== 'true' ||
+                  planDataset.current !== 'false' ||
+                  planDataset.humanReview !== 'NOT_RUN') {
+                throw new Error('P137E original D1F top-plan source review not ready: ' +
+                  JSON.stringify(planDataset));
+              }
+              const planPng = await page.screenshot({
+                clip: box, animations: 'disabled',
+                path: 'playwright-artifacts/p137e-scene67-original-top-plan.png',
+              });
+              const planUrl = 'data:image/png;base64,' + planPng.toString('base64');
+              const planGreen = await page.evaluate(
+                greenExpression + '(' + JSON.stringify(planUrl) + ')');
+              if (!planGreen?.passed) {
+                throw new Error('P137E original green P123C wall not visible from TOP: ' +
+                  JSON.stringify(planGreen));
+              }
+              const placeButton = page.locator('#p137e-place-tool-button');
+              const measureButton = page.locator('#axis-measure-tool-button');
+              if (!await placeButton.isEnabled() || !await measureButton.isEnabled()) {
+                throw new Error('P137E source-plan RASTI or MITTAA tool not enabled');
+              }
+              const clickPlanFraction = async (u, v) => {
+                const targetBox = await canvas.boundingBox();
+                if (!targetBox || Math.abs(targetBox.width - box.width) > 1 ||
+                    Math.abs(targetBox.height - box.height) > 1) {
+                  throw new Error('P137E source top-plan viewport changed');
+                }
+                await page.mouse.click(
+                  targetBox.x + targetBox.width * u,
+                  targetBox.y + targetBox.height * v,
+                );
+              };
+              await placeButton.click();
+              if ((await canvas.getAttribute('data-interaction-mode')) !== 'place') {
+                throw new Error('P137E RASTI mode not selectable');
+              }
+              const targetSelector = page.locator('#p137e-place-target');
+              const targetIds = [
+                'D_THEMO_CURRENT_LOBBY_01',
+                'D_THEMO_CURRENT_BEDROOM_01',
+                'D_THEMO_CURRENT_BATHROOM_01',
+              ];
+              for (const [index, id] of targetIds.entries()) {
+                await targetSelector.selectOption(id);
+                await clickPlanFraction(0.55 + index * 0.05, 0.49);
+                if ((await canvas.getAttribute('data-p137e-place-draft-count')) !==
+                    String(index + 1)) {
+                  throw new Error('P137E actual source-plan crosshair draft missing: ' + id);
+                }
+              }
+              const placementText = await page.locator('#p137e-place-list').innerText();
+              const placementState = await page.locator('#p137e-place-status').innerText();
+              if (!['Aula: X ', 'Makuuhuone: X ', 'Kylpyhuone: X ']
+                    .every((name) => placementText.includes(name)) ||
+                  !placementState.includes('ei tallennettu G2:een')) {
+                throw new Error('P137E original source three crosses cannot be identified');
+              }
+              const placementPng = await page.screenshot({
+                clip: box, animations: 'disabled',
+                path: 'playwright-artifacts/p137e-scene67-three-crosshair-drafts.png',
+              });
+              await measureButton.click();
+              if ((await canvas.getAttribute('data-interaction-mode')) !== 'measure') {
+                throw new Error('P137E source-plan MITTAA mode not selectable');
+              }
+              await clickPlanFraction(0.56, 0.49);
+              if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'FIRST') {
+                throw new Error('P137E MITTAA first source-plan click failed');
+              }
+              await clickPlanFraction(0.64, 0.49);
+              if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'DYNAMIC') {
+                throw new Error('P137E MITTAA second source-plan click failed');
+              }
+              const mm = Number(await canvas.getAttribute('data-axis-measure-mm'));
+              const rulerText = await page.locator('#axis-measure-output').innerText();
+              if (!Number.isFinite(mm) || mm <= 0 ||
+                  !rulerText.includes('mm (mallista)')) {
+                throw new Error('P137E MITTAA X/Y millimetre model measurement unavailable');
+              }
+              await clickPlanFraction(0.66, 0.49);
+              if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'LOCKED') {
+                throw new Error('P137E MITTAA third source-plan lock failed');
+              }
+              const rulerPng = await page.screenshot({
+                clip: box, animations: 'disabled',
+                path: 'playwright-artifacts/p137e-scene67-source-plan-ruler-mm.png',
+              });
+              await clickPlanFraction(0.60, 0.49);
+              if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'EMPTY' ||
+                  (await canvas.getAttribute('data-p137e-place-draft-count')) !== '3') {
+                throw new Error('P137E MITTAA fourth click reset disturbed three crosses');
+              }
+              const finalPlanDataset = await canvas.evaluate((el) => ({
+                mode: el.dataset.interactionMode,
+                drafts: el.dataset.p137ePlaceDraftCount,
+                current: el.dataset.p137eCurrentClaim,
+                humanReview: el.dataset.p137eHumanReview,
+              }));
+              if (finalPlanDataset.current !== 'false' ||
+                  finalPlanDataset.humanReview !== 'NOT_RUN') {
+                throw new Error('P137E source-plan accidentally promoted from WORK_TEST');
+              }
+              const p137eSourcePlanToolsEvidence = {
+                originalGreenWallTopPlanPixels: planGreen,
+                originalWallNode: 798, originalWallMesh: 406,
+                sourceScene: 67,
+                threeIndividualSourceCrosshairDrafts: targetIds,
+                crosshairDraftCount: 3,
+                placementText,
+                placementState,
+                rulerMillimetres: mm,
+                rulerText,
+                clickSequence: ['FIRST', 'DYNAMIC', 'LOCKED', 'EMPTY'],
+                finalPlanDataset,
+                originalTopPlanScreenshotSha256:
+                  createHash('sha256').update(planPng).digest('hex'),
+                crosshairScreenshotSha256:
+                  createHash('sha256').update(placementPng).digest('hex'),
+                rulerScreenshotSha256:
+                  createHash('sha256').update(rulerPng).digest('hex'),
+                persistedG2ByThisGate: false,
+                actualNativeG2Readback: 'NOT_RUN',
+                humanReview: 'NOT_RUN',
+                publishToCURRENT: false,
+              };
+              fs.writeFileSync('playwright-artifacts/p137e-scene67-plan-tools.json',
+                JSON.stringify(p137eSourcePlanToolsEvidence, null, 2));
             }
 
             // Scene66 uses a no-rotation orthographic plan camera. The existing
