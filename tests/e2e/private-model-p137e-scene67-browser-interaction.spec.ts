@@ -1,5 +1,7 @@
 import { expect, test, type Route } from '@playwright/test';
 import type { PlacementReviewHandoff } from '../../src/scripts/privateModelReviewPlacementDraft';
+// @ts-ignore - same ESM gate as the authenticated production workflow.
+import { inspectP137EScene67ProductionSmoke } from '../../src/scripts/privateModelP137EScene67ProductionSmokeGuard.mjs';
 
 // Synthetic glTF fixture, never an original 3D survey or production pixel proof.
 // Its node identities and no-promotion metadata match the scene67 source contract.
@@ -183,6 +185,12 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
     const error = await canvas.getAttribute('data-work-test-load-error');
     return phase ? 'LOAD_FAILURE[' + phase + '] ' + error : actual || '';
   }, { timeout: 20_000 }).toBe(reviewId);
+
+  // Feed the actual loaded viewer dataset to the production caller's gate.
+  const sourceDataset = await canvas.evaluate(element => ({ ...element.dataset }));
+  expect(inspectP137EScene67ProductionSmoke(reviewId, candidateId, sourceDataset))
+    .toMatchObject({ sourceMetadataMatched: true, individualDevicePixelsVerified: false,
+      humanReview: 'NOT_RUN', publishToCURRENT: false });
 
   await expect(canvas).toHaveAttribute('data-p137e-scene67-camera-face', 'NORTH');
   await expect(canvas).toHaveAttribute('data-p137e-scene67-visible-device-ids',

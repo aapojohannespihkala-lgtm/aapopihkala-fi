@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 // @ts-ignore - exact production workflow consumes the same untyped ESM helper.
 import {
   inspectP137EScene67ProductionSmoke,
@@ -393,4 +394,105 @@ test('P137E motion proof compares the SAME real NORTH source before and after pe
   expect(workflow).toContain('pixelEvidence.changedPixels < minChangedPixels');
   expect(workflow).toContain('pixelEvidence.nonBackgroundPixels < minNonBackgroundPixels');
   expect(workflow).not.toContain('HUMAN_REVIEW: PASS');
+});
+
+
+// Read the actual dispatch defaults and execute the exact Python validator
+// that the main-only production job runs, without Access secrets or a browser.
+const productionDispatchSource = () =>
+  readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+const dispatchDefault = (name: string) => {
+  const workflow = productionDispatchSource();
+  const inputs = workflow.split('  workflow_dispatch:\n')[1]?.split('\npermissions:')[0];
+  if (!inputs) throw new Error('Production dispatch inputs missing');
+  const lines = inputs.split('\n');
+  const start = lines.indexOf('      ' + name + ':');
+  if (start < 0) throw new Error('Production input missing: ' + name);
+  const next = lines.findIndex((line, i) => i > start && /^      [a-z_]+:$/.test(line));
+  const raw = lines.slice(start + 1, next < 0 ? undefined : next)
+    .find(line => line.startsWith('        default: '))?.slice('        default: '.length);
+  if (!raw) throw new Error('Production input has no default: ' + name);
+  return raw.startsWith("'") ? raw.slice(1, -1).replaceAll("''", "'") : JSON.parse(raw);
+};
+const productionInputEnvironment = () => {
+  const workflow = productionDispatchSource().split('  verify-production:\n')[1];
+  const floor = (key: string) => {
+    const match = workflow.match(new RegExp("^      " + key + ": '([0-9]+)'$", 'm'));
+    if (!match) throw new Error('Production hard floor missing: ' + key);
+    return match[1];
+  };
+  return {
+    REVIEW_BASE_URL: 'https://aapopihkala.fi/private-model/',
+    REVIEW_ID: dispatchDefault('review_id'),
+    CANDIDATE_ID: dispatchDefault('candidate_id'),
+    EXPECTED_DATASET_JSON: dispatchDefault('expected_dataset_json'),
+    REQUESTED_MIN_NON_BACKGROUND_PIXELS: dispatchDefault('min_non_background_pixels'),
+    REQUESTED_MIN_CHANGED_PIXELS: dispatchDefault('min_changed_pixels'),
+    MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR: floor('MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR'),
+    MIN_CHANGED_PIXELS_HARD_FLOOR: floor('MIN_CHANGED_PIXELS_HARD_FLOOR'),
+  };
+};
+const runActualProductionInputValidator = (override: Record<string, string> = {}) => {
+  const workflow = productionDispatchSource();
+  const start = workflow.indexOf('      - name: Validate generic production review inputs and hard floors');
+  const end = workflow.indexOf('      - name:', start + 20);
+  if (start < 0 || end < 0) throw new Error('Actual production input step missing');
+  const block = workflow.slice(start, end);
+  const program = block.match(/python3 - <<'PY'\n([\s\S]*?)\n {10}PY/)?.[1];
+  if (!program) throw new Error('Actual production input Python missing');
+  const result = spawnSync('python3', ['-c', program.replace(/^ {10}/gm, '')], {
+    encoding: 'utf8', timeout: 10_000,
+    env: { PATH: process.env.PATH, ...productionInputEnvironment(), ...override },
+  });
+  if (result.error) throw result.error;
+  return result;
+};
+
+test('prefilled Themo dispatch passes the actual production input step and exact source identity gate', () => {
+  const defaults = productionInputEnvironment();
+  const result = runActualProductionInputValidator();
+  expect(result.status).toBe(0);
+  const accepted = JSON.parse(result.stdout);
+  expect(accepted).toMatchObject({
+    reviewId: P137E_SCENE67_PRODUCTION_SMOKE_REVIEW_ID,
+    candidateId: P137E_SCENE67_PRODUCTION_SMOKE_ID,
+    pixelThresholds: { nonBackgroundPixels: 1500, changedPixels: 750 },
+    hardFloors: { nonBackgroundPixels: 1500, changedPixels: 750 },
+  });
+  const specific = JSON.parse(defaults.EXPECTED_DATASET_JSON);
+  const reserved = new Set(['workTestReviewAutoload', 'modelSource',
+    'workTestReviewMode', 'workTestReviewCandidate']);
+  expect(specific).toEqual(Object.fromEntries(Object.entries(
+    P137E_SCENE67_PRODUCTION_DATASET).filter(([key]) => !reserved.has(key))));
+  expect(inspectP137EScene67ProductionSmoke(defaults.REVIEW_ID, defaults.CANDIDATE_ID, {
+    workTestReviewAutoload: 'true', modelSource: 'work-test',
+    workTestReviewMode: defaults.REVIEW_ID, workTestReviewCandidate: defaults.CANDIDATE_ID,
+    ...specific,
+  })).toMatchObject({ sourceMetadataMatched: true,
+    individualDevicePixelsVerified: false, humanReview: 'NOT_RUN', publishToCURRENT: false });
+});
+
+test('actual prefilled production input step still rejects wrong host and invalid or reserved datasets', () => {
+  const cases: Array<Record<string, string>> = [
+    { REVIEW_BASE_URL: 'https://evil.example/private-model/' },
+    { EXPECTED_DATASET_JSON: '{broken' },
+    { EXPECTED_DATASET_JSON: '{}' },
+    { EXPECTED_DATASET_JSON: '{"modelSource":"current"}' },
+  ];
+  for (const override of cases) {
+    expect(runActualProductionInputValidator(override).status).not.toBe(0);
+  }
+});
+
+test('prefilled dispatch cannot reduce either production pixel hard floor', () => {
+  const defaults = productionInputEnvironment();
+  const cases: Array<Record<string, string>> = [
+    { REQUESTED_MIN_NON_BACKGROUND_PIXELS: String(Number(defaults.MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR) - 1) },
+    { REQUESTED_MIN_CHANGED_PIXELS: String(Number(defaults.MIN_CHANGED_PIXELS_HARD_FLOOR) - 1) },
+  ];
+  for (const override of cases) {
+    const result = runActualProductionInputValidator(override);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('cannot be lower than hard floor');
+  }
 });
