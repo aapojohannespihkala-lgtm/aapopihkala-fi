@@ -170,7 +170,7 @@ test('production workflow captures the original GLB during viewer autoload befor
   const capture = workflow.indexOf("page.on('response', (response) => {");
   const navigation = workflow.indexOf("await page.goto(reviewUrl, {");
   const snap = workflow.indexOf('const duringViewerAutoload = [...p137eViewerAutoloadResponses]');
-  const refetch = workflow.indexOf('const assetResponse = await page.evaluate(async (assetUrl) => {');
+  const refetch = workflow.indexOf('const assetResponse = await withGlbDeadline(page.evaluate(async (assetUrl) => {');
   expect(capture).toBeGreaterThan(-1);
   expect(navigation).toBeGreaterThan(capture);
   expect(snap).toBeGreaterThan(navigation);
