@@ -1,5 +1,6 @@
 import { expect, test, type Route } from '@playwright/test';
 import type { PlacementReviewHandoff } from '../../src/scripts/privateModelReviewPlacementDraft';
+import { installScene67SyntheticDigest, padScene67SyntheticGlb, routeScene67SyntheticHttpsAssets, SYNTHETIC_SCENE67_ORIGIN } from './p137eScene67SyntheticBrowserHarness';
 // @ts-ignore - same ESM gate as the authenticated production workflow.
 import { inspectP137EScene67ProductionSmoke } from '../../src/scripts/privateModelP137EScene67ProductionSmokeGuard.mjs';
 
@@ -164,7 +165,9 @@ const sourcePlanCrossFractions = [0.55, 0.575, 0.60] as const;
 test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTAA tools', async ({ page }) => {
   test.setTimeout(45_000);
   await page.setViewportSize({ width: 1536, height: 768 });
-  const glb = makeScene67Glb();
+  const glb = padScene67SyntheticGlb(makeScene67Glb());
+  await installScene67SyntheticDigest(page);
+  await routeScene67SyntheticHttpsAssets(page);
   await page.route('**/private-model/model.glb', async (route) => {
     await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb });
   });
@@ -179,7 +182,7 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await page.route('**' + candidatePath, async (route) => {
     await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb });
   });
-  await page.goto('/private-model/?review=' + reviewId);
+  await page.goto(SYNTHETIC_SCENE67_ORIGIN + '/private-model/?review=' + reviewId);
 
   const canvas = page.locator('#private-model-canvas');
   await expect.poll(async () => {
@@ -376,7 +379,8 @@ test('simulated HTTPS viewer resaves edited Themo notes with exact snapshots and
 
   const origin = 'https://p137e-review.test';
   const source = 'http://127.0.0.1:4321';
-  const glb = makeScene67Glb();
+  const glb = padScene67SyntheticGlb(makeScene67Glb());
+  await installScene67SyntheticDigest(page);
   const calls: string[] = [];
   const records = new Map<string, PlacementReviewHandoff>();
   const delayedReadback: { route?: Route; recordId?: string } = {};
@@ -577,7 +581,8 @@ test('simulated HTTPS viewer recovers a stalled independent G2 readback without 
   await page.setViewportSize({ width: 1536, height: 768 });
   const origin = 'https://p137e-timeout.test';
   const source = 'http://127.0.0.1:4321';
-  const glb = makeScene67Glb();
+  const glb = padScene67SyntheticGlb(makeScene67Glb());
+  await installScene67SyntheticDigest(page);
   const recordId = 'P137E_G2_browser_timeout_20261012';
   const targetId = 'D_THEMO_CURRENT_LOBBY_01';
   const noteText = 'Aulan testihuomio säilyy, kun takaisinluku katkeaa.';
@@ -682,8 +687,10 @@ for (const [phoneWidth, phoneHeight] of [[390, 844], [320, 740]]) {
   test(`real Chromium scene67 narrow phone ${phoneWidth}x${phoneHeight} keeps three source-only Themo ROIs`, async ({ page }) => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width: phoneWidth, height: phoneHeight });
-    const glb = makeScene67Glb();
-    await page.route('**/private-model/model.glb', route =>
+    const glb = padScene67SyntheticGlb(makeScene67Glb());
+  await installScene67SyntheticDigest(page);
+    await routeScene67SyntheticHttpsAssets(page);
+  await page.route('**/private-model/model.glb', route =>
       route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
     await page.route('**/private-model/work-test/catalog.json', route =>
       route.fulfill({ status: 200, contentType: 'application/json',
@@ -691,7 +698,7 @@ for (const [phoneWidth, phoneHeight] of [[390, 844], [320, 740]]) {
           path: candidatePath }] }) }));
     await page.route('**' + candidatePath, route =>
       route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
-    await page.goto('/private-model/?review=' + reviewId);
+    await page.goto(SYNTHETIC_SCENE67_ORIGIN + '/private-model/?review=' + reviewId);
     const canvas = page.locator('#private-model-canvas');
     await expect(canvas).toHaveAttribute('data-work-test-review-mode', reviewId, { timeout: 20_000 });
 
