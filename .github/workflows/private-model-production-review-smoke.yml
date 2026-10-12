@@ -8,6 +8,14 @@ on:
       - .github/workflows/private-model-production-review-smoke.yml
   workflow_dispatch:
     inputs:
+      probe_mode:
+        description: Full scene67 render or read-only native G2 readiness (no observation write)
+        required: true
+        type: choice
+        default: full-render
+        options:
+          - full-render
+          - g2-readiness
       review_id:
         description: Exact private-model review ID
         required: true
@@ -157,7 +165,7 @@ jobs:
           PY
 
   verify-production:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode != 'g2-readiness'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -1634,5 +1642,109 @@ jobs:
         with:
           name: private-model-production-review-smoke
           path: playwright-artifacts
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # Separate manual read gate: it reuses the existing targets client and
+  # viewer-probe identity, does not repeat the already proven scene67 render,
+  # and never enables the Worker or appends an observation to native G2.
+  verify-g2-readiness:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'g2-readiness'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+      - name: Read native G2 readiness without writing
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { mkdirSync, writeFileSync } from 'node:fs';
+          import { createP137EG2WorkerClient } from './src/scripts/privateModelP137EG2WorkerClient.mjs';
+          
+          // A readiness GET cannot author a placement or prove persistence.
+          const origin = 'https://aapopihkala.fi';
+          const targetUrl = origin + '/private-model/review-placement/g2/targets';
+          const expectedIds = [
+            'D1F_USER_CURRENT_DOOR_A', 'D1F_USER_CURRENT_DOOR_B',
+            'D_THEMO_CURRENT_BATHROOM_01', 'D_THEMO_CURRENT_BEDROOM_01',
+            'D_THEMO_CURRENT_LOBBY_01',
+          ].sort();
+          const evidence = {
+            probe: 'P137E_NATIVE_G2_READINESS_GET_V1',
+            readyForSaveVerification: false,
+            authenticatedTargetsReadVerified: false,
+            targetCount: 0,
+            httpStatus: null,
+            nativeG2WriteVerified: false,
+            independentObservationGetVerified: false,
+            humanReview: 'NOT_RUN',
+            publishToCURRENT: false,
+          };
+          try {
+            const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
+            const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
+            if (!clientId || !clientSecret) throw new Error('PROBE_CREDENTIALS_MISSING');
+            const client = createP137EG2WorkerClient({
+              origin,
+              canReview: () => true,
+              requestTimeoutMs: 15000,
+              fetcher: async (url, options) => {
+                if (url !== targetUrl || options.method !== 'GET' || options.body !== undefined) {
+                  throw new Error('READINESS_GET_ONLY');
+                }
+                const response = await fetch(url, {
+                  ...options,
+                  headers: {
+                    'CF-Access-Client-Id': clientId,
+                    'CF-Access-Client-Secret': clientSecret,
+                    Accept: 'application/json',
+                  },
+                });
+                evidence.httpStatus = response.status;
+                return response;
+              },
+            });
+            const result = await client.targets();
+            const ids = result.targets.map(target => target.targetId).sort();
+            if (JSON.stringify(ids) !== JSON.stringify(expectedIds) ||
+                !result.targets.every(target => target.apartment === 'D' &&
+                  target.floor === '1F' && target.coordinateFrame === 'YLIS-G1-LOCAL')) {
+              throw new Error('NATIVE_TARGET_SET_MISMATCH');
+            }
+            evidence.targetCount = ids.length;
+            evidence.authenticatedTargetsReadVerified = true;
+            evidence.readyForSaveVerification = true;
+          } catch (error) {
+            // Never persist response text, cookies, credentials, native G2 prose or
+            // arbitrary upstream errors. A hidden 404 does not identify its root cause.
+            const allowedCodes = new Set([
+              'PROBE_CREDENTIALS_MISSING', 'READINESS_GET_ONLY',
+              'NATIVE_TARGET_SET_MISMATCH', 'P137E_G2_UNAVAILABLE',
+              'P137E_G2_REDIRECT_REJECTED', 'P137E_G2_RESPONSE_TYPE_INVALID',
+              'P137E_G2_RESPONSE_TOO_LARGE', 'P137E_G2_RESPONSE_EMPTY',
+              'P137E_G2_RESPONSE_INVALID', 'P137E_G2_REQUEST_TIMEOUT',
+              'P137E_G2_TARGET_EVIDENCE_INVALID',
+            ]);
+            evidence.failure = allowedCodes.has(error?.message)
+              ? error.message : 'P137E_G2_READINESS_FAILED';
+          }
+          mkdirSync('playwright-artifacts', { recursive: true });
+          writeFileSync('playwright-artifacts/p137e-native-g2-readiness.json',
+            JSON.stringify(evidence, null, 2));
+          console.log(JSON.stringify(evidence));
+          if (!evidence.readyForSaveVerification) process.exitCode = 1;
+          NODE
+      - name: Upload sanitized G2 readiness
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-model-g2-readiness
+          path: playwright-artifacts/p137e-native-g2-readiness.json
           if-no-files-found: ignore
           retention-days: 7
