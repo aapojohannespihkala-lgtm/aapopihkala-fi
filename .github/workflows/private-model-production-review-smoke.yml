@@ -12,14 +12,17 @@ on:
         description: Exact private-model review ID
         required: true
         type: string
+        default: "p137e-d1f-three-wall-mounted-themos-review"
       candidate_id:
         description: Exact WORK_TEST candidate ID expected to autoload
         required: true
         type: string
+        default: "p137e-d1f-three-wall-mounted-themos"
       expected_dataset_json:
         description: JSON object of additional canvas dataset keys and exact expected string values for the review state
         required: true
         type: string
+        default: '{"p137eSceneIndex":"67","p137eFocusedRootCount":"1","p137eOriginalSourceWallNode":"798","p137eOriginalSourceWallMesh":"406","p137eWallMountedThemoCount":"3","p137eRoomFootprintCount":"0","p137ePresentationOnly":"true","p137eWorkTestOnly":"true","p137eExactXYClaim":"false","p137eExactZClaim":"false","p137eCurrentClaim":"false","p137eCanonical":"false","p137eAsBuiltClaim":"false","p137eHumanReview":"NOT_RUN","p137eReviewCameraMode":"ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP","contentFloor":"1F","contentScene":"full-model"}'
       min_non_background_pixels:
         description: Minimum rendered-scene pixel count
         required: true
