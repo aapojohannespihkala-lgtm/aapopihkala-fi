@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 // @ts-ignore - exact production workflow consumes the same untyped ESM helper.
 import {
   inspectP137EScene67ProductionSmoke,
@@ -160,4 +161,38 @@ test('published GLB verification is exact-candidate only, no alias or review pro
   )).toThrow(/identity mismatch/);
   expect(() => verifyAsset(null as unknown as ReturnType<typeof assetEvidence>))
     .toThrow(/production GLB/);
+});
+
+
+test('production workflow captures the original GLB during viewer autoload before independent refetch', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const capture = workflow.indexOf("page.on('response', (response) => {");
+  const navigation = workflow.indexOf("await page.goto(reviewUrl, {");
+  const snap = workflow.indexOf('const duringViewerAutoload = [...p137eViewerAutoloadResponses]');
+  const refetch = workflow.indexOf('const assetResponse = await page.evaluate(async (assetUrl) => {');
+  expect(capture).toBeGreaterThan(-1);
+  expect(navigation).toBeGreaterThan(capture);
+  expect(snap).toBeGreaterThan(navigation);
+  expect(refetch).toBeGreaterThan(snap);
+  expect(workflow).toContain('duringViewerAutoload.length !== 1');
+  expect(workflow).toContain("response.url() === P137E_SCENE67_PRODUCTION_GLB_URL");
+  expect(workflow).toContain('viewerResponse.finished()');
+  expect(workflow).toContain('viewerResponse.body()');
+});
+
+test('viewer autoload evidence requires exact sha and never asserts device pixels or canvas byte equality', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const start = workflow.indexOf('const duringViewerAutoload = [...p137eViewerAutoloadResponses]');
+  const end = workflow.indexOf('// In the SAME authenticated browser context', start);
+  expect(start).toBeGreaterThan(-1);
+  expect(end).toBeGreaterThan(start);
+  const guard = workflow.slice(start, end);
+  expect(guard).toContain('inspectP137EScene67PublishedGlb(');
+  expect(guard).toContain("createHash('sha256').update(viewerGlbBytes).digest('hex')");
+  expect(guard).toContain('byteLength: viewerGlbBytes.byteLength');
+  expect(guard).toContain('status: viewerResponse.status()');
+  expect(guard).toContain('viewerAutoloadNetworkResponseVerified: true');
+  expect(guard).toContain('canvasUsedThoseBytesProvenByThisGate: false');
+  expect(guard).toContain('individualDevicePixelsVerified: false');
+  expect(guard).toContain("humanReview: 'NOT_RUN'");
 });
