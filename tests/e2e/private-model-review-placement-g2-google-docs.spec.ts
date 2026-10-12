@@ -341,3 +341,70 @@ test('G2 transport never accepts a disabled or enlarged timeout budget', async (
     })).toThrow('G2_NATIVE_TIMEOUT_INVALID');
   }
 });
+
+test('thrown OAuth and Google Docs fetch exceptions are stage-only and never disclose upstream errors', async () => {
+  const account = await makeAccount();
+  for (const scenario of ['oauth', 'docs'] as const) {
+    const urls: string[] = [];
+    const ports = createNativeG2GoogleDocsPorts({
+      credentials: account,
+      fetcher: async (input) => {
+        urls.push(String(input));
+        if (String(input).endsWith('/token') && scenario === 'docs') {
+          return Response.json({ access_token: 'secret-fixture-bearer', token_type: 'Bearer' });
+        }
+        throw new Error('secret-fixture-upstream-exception-must-not-leak');
+      },
+    });
+    const expected = scenario === 'oauth' ? 'G2_OAUTH_TOKEN_TRANSPORT_FAILED'
+      : 'G2_NATIVE_READ_TRANSPORT_FAILED';
+    let failure = '';
+    try {
+      await ports.getDocument();
+      throw new Error('unexpected G2 success');
+    } catch (error) {
+      failure = error instanceof Error ? error.message : '';
+    }
+    expect(failure).toBe(expected);
+    expect(failure).not.toContain('secret-fixture');
+    expect(urls).toHaveLength(scenario === 'oauth' ? 1 : 2);
+    expect(urls[0]).toBe('https://oauth2.googleapis.com/token');
+    if (scenario === 'docs') {
+      expect(urls[1]).toContain('?includeTabsContent=true');
+    }
+  }
+});
+
+test('thrown guarded Google Docs write never retries or claims persistence', async () => {
+  const account = await makeAccount();
+  const urls: string[] = [];
+  const ports = createNativeG2GoogleDocsPorts({
+    credentials: account,
+    fetcher: async (input) => {
+      urls.push(String(input));
+      if (String(input).endsWith('/token')) {
+        return Response.json({ access_token: 'secret-fixture-bearer', token_type: 'Bearer' });
+      }
+      throw new Error('secret-fixture-write-outcome-unknown');
+    },
+  });
+  const write: Parameters<TrustedNativeG2WritePorts['batchUpdateDocument']>[0] = {
+    documentId: placementG2DocumentId,
+    requests: [{ insertText: {
+      endOfSegmentLocation: { tabId: 't.0' },
+      text: '\nP137E_G2_REVIEW_OBSERVATION_V1 | P137E_G2_TESTRECORD_0001 | {"schema":"test"}\n',
+    } }],
+    writeControl: { requiredRevisionId: 'REV_G2_1' },
+  };
+  let failure = '';
+  try {
+    await ports.batchUpdateDocument(write);
+    throw new Error('unexpected write success');
+  } catch (error) {
+    failure = error instanceof Error ? error.message : '';
+  }
+  expect(failure).toBe('G2_NATIVE_WRITE_TRANSPORT_FAILED');
+  expect(failure).not.toContain('secret-fixture');
+  expect(urls).toHaveLength(2);
+  expect(urls[1]).toContain(':batchUpdate');
+});

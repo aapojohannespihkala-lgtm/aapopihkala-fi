@@ -87,7 +87,18 @@ export const createNativeG2GoogleDocsPorts = (
     let response: Response | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const operation = (async () => {
-      response = await fetcher(input, { ...init, signal: controller.signal });
+      try {
+        response = await fetcher(input, { ...init, signal: controller.signal });
+      } catch {
+        // A thrown fetch error may contain upstream URLs, tokens or runtime details.
+        // Disclose only the fixed request stage. Never retry a G2 write: an
+        // upstream POST might have committed even when the response was lost.
+        if (controller.signal.aborted) throw new Error('G2_NATIVE_REQUEST_TIMEOUT');
+        const code = input === oauthUrl ? 'G2_OAUTH_TOKEN_TRANSPORT_FAILED'
+          : init.method === 'GET' ? 'G2_NATIVE_READ_TRANSPORT_FAILED'
+          : 'G2_NATIVE_WRITE_TRANSPORT_FAILED';
+        throw new Error(code);
+      }
       if (controller.signal.aborted) throw new Error('G2_NATIVE_REQUEST_TIMEOUT');
       if (!response.ok) throw new Error(failed);
       if (invalid === undefined) return undefined;
