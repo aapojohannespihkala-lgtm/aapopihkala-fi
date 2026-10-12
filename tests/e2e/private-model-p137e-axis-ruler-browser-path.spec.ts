@@ -231,3 +231,73 @@ test('actual D1F browser ruler measures along Y and never invents a diagonal', a
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
   await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\d/);
 });
+
+
+test('D1F P137E target-specific crosshairs coexist with ruler and never claim G2 persistence', async ({ page }) => {
+  const candidateId = 'p137e-d1f-three-wall-mounted-themos';
+  const glb = buildSyntheticD1FCurrentGlb();
+  await page.setViewportSize({ width: 1536, height: 900 });
+  await page.route('**/private-model/model.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
+  await page.route('**/private-model/work-test/catalog.json', (route) =>
+    route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{
+        id: candidateId,
+        label: 'P137E synthetic test fixture',
+        path: '/private-model/work-test/' + candidateId + '.glb',
+      }] }),
+    }));
+  await page.route('**/private-model/work-test/*.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
+  await page.goto('/private-model/');
+  const canvas = page.locator('#private-model-canvas');
+  const place = page.locator('#p137e-place-tool-button');
+  const ruler = page.locator('#axis-measure-tool-button');
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(place).toBeDisabled();
+  await expect(page.locator('#work-test-select')).toBeEnabled();
+  await page.locator('#work-test-select').selectOption(candidateId);
+  await page.locator('#work-test-button').click();
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await page.locator('#preset-menu summary').click();
+  await page.locator('#d1-plan-button').click();
+  await expect(canvas).toHaveAttribute('data-content-floor', '1F');
+  await expect(place).toBeEnabled();
+  await place.click();
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'place');
+  await expect(page.locator('#p137e-place-panel')).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '0');
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  const click = async (u: number, v: number) =>
+    page.mouse.click(box!.x + box!.width * u, box!.y + box!.height * v);
+  await page.locator('#p137e-place-target').selectOption('D_THEMO_CURRENT_BATHROOM_01');
+  await click(0.47, 0.45);
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '1');
+  await expect(page.locator('#p137e-place-list')).toContainText('Kylpyhuone: X ');
+  await expect(page.locator('#p137e-place-status')).toContainText('ei tallennettu G2:een');
+  await page.locator('#p137e-place-target').selectOption('D_THEMO_CURRENT_BEDROOM_01');
+  await click(0.51, 0.47);
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '2');
+  await expect(page.locator('#p137e-place-list')).toContainText('Makuuhuone: X ');
+  await ruler.click();
+  await expect(canvas).toHaveAttribute('data-interaction-mode', 'measure');
+  await expect(page.locator('#p137e-place-panel')).toBeHidden();
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '2');
+  await click(0.48, 0.45);
+  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'FIRST');
+  await click(0.54, 0.45);
+  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'DYNAMIC');
+  await place.click();
+  await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '2');
+  await page.locator('#p137e-place-clear').click();
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '0');
+  await expect(page.locator('#p137e-place-list')).toContainText('Kylpyhuone: ei rastia');
+  await page.locator('#preset-menu summary').click();
+  await page.locator('#d2-plan-button').click();
+  await expect(place).toBeDisabled();
+  await expect(page.locator('#p137e-place-panel')).toBeHidden();
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '0');
+});
