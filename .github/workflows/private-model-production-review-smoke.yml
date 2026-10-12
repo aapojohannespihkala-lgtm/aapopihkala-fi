@@ -386,6 +386,7 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
+          import { createHash } from 'node:crypto';
           import { chromium } from '@playwright/test';
           import { detectM5BR1109CyanLocatorComponents } from './src/scripts/privateModelR1109CyanLocatorProof.mjs';
           import { detectP186FX4CyanTargetComponents, detectP186FX4OriginalGreenWallPixels } from './src/scripts/privateModelP186FX4CyanPixelProof.mjs';
@@ -458,6 +459,15 @@ jobs:
 
           const page = await context.newPage();
 
+          // Capture only requests made by the viewer's INITIAL review autoload.
+          // The later independent no-cache asset probe must not satisfy this gate.
+          const p137eViewerAutoloadResponses = [];
+          page.on('response', (response) => {
+            if (response.url() === P137E_SCENE67_PRODUCTION_GLB_URL) {
+              p137eViewerAutoloadResponses.push(response);
+            }
+          });
+
           try {
             const response = await page.goto(reviewUrl, {
               waitUntil: 'domcontentloaded',
@@ -527,6 +537,41 @@ jobs:
               fs.writeFileSync(
                 'playwright-artifacts/p137e-scene67-source-metadata.json',
                 JSON.stringify(p137eScene67SourceEvidence, null, 2),
+              );
+            }
+
+            // Distinguish what the viewer requested while autoloading from the
+            // independent source fetch below. This is real network response
+            // evidence, not yet proof of three visibly rendered device pixels.
+            if (p137eScene67SourceEvidence) {
+              const duringViewerAutoload = [...p137eViewerAutoloadResponses];
+              if (duringViewerAutoload.length !== 1) {
+                throw new Error(
+                  'P137E scene67 needs exactly one original GLB response during viewer autoload: ' +
+                  duringViewerAutoload.length,
+                );
+              }
+              const viewerResponse = duringViewerAutoload[0];
+              const networkError = await viewerResponse.finished();
+              if (networkError) throw new Error('P137E viewer autoload GLB network failed');
+              const viewerGlbBytes = await viewerResponse.body();
+              const viewerNetworkAsset = inspectP137EScene67PublishedGlb(
+                reviewId, candidateId, {
+                  url: viewerResponse.url(),
+                  status: viewerResponse.status(),
+                  byteLength: viewerGlbBytes.byteLength,
+                  sha256: createHash('sha256').update(viewerGlbBytes).digest('hex'),
+                },
+              );
+              fs.writeFileSync(
+                'playwright-artifacts/p137e-scene67-viewer-autoload-glb.json',
+                JSON.stringify({
+                  ...viewerNetworkAsset,
+                  viewerAutoloadNetworkResponseVerified: true,
+                  canvasUsedThoseBytesProvenByThisGate: false,
+                  individualDevicePixelsVerified: false,
+                  humanReview: 'NOT_RUN',
+                }, null, 2),
               );
             }
 
