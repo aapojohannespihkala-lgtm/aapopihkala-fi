@@ -184,6 +184,14 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   }, { timeout: 20_000 }).toBe(reviewId);
 
   await expect(canvas).toHaveAttribute('data-p137e-scene67-camera-face', 'NORTH');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-visible-device-ids',
+    'D_THEMO_CURRENT_LOBBY_01');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-hidden-device-ids',
+    'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-device-face-mask',
+    'NORTH_SOURCE_ONLY_RESTOREABLE');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-wall-presentation',
+    'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED');
   await expect(canvas).toHaveAttribute('data-p137e-wall-mounted-themo-count', '3');
   await expect(canvas).toHaveAttribute('data-p137e-scene67-source-housing-roi-status',
     'SOURCE_ONLY_PROJECTED');
@@ -201,7 +209,13 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await page.locator('#p137e-south-face-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-scene67-camera-face', 'SOUTH');
   await expect(canvas).toHaveAttribute('data-p137e-scene67-wall-presentation',
-    'SOUTH_SOURCE_WALL_ALPHA_0_38');
+    'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-visible-device-ids',
+    'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-hidden-device-ids',
+    'D_THEMO_CURRENT_LOBBY_01');
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-device-face-mask',
+    'SOUTH_SOURCE_ONLY_RESTOREABLE');
   await expect(canvas).toHaveAttribute('data-p137e-scene67-source-housing-roi-status',
     'SOURCE_ONLY_PROJECTED');
   const southRegions = JSON.parse(
@@ -226,6 +240,9 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await page.locator('#p137e-plan-face-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-scene67-top-plan-tools-ready', 'true');
   await expect(canvas).not.toHaveAttribute('data-p137e-scene67-source-housing-rois', /./);
+  await expect(canvas).not.toHaveAttribute('data-p137e-scene67-visible-device-ids', /./);
+  await expect(canvas).not.toHaveAttribute('data-p137e-scene67-hidden-device-ids', /./);
+  await expect(canvas).not.toHaveAttribute('data-p137e-scene67-device-face-mask', /./);
   await expect(canvas).toHaveAttribute('data-p137e-review-camera-mode',
     'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP');
   await expect(page.locator('#axis-measure-tool-button')).toBeEnabled();
