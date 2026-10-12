@@ -86,7 +86,11 @@ test('R1090 review exposes the active matched review id and ready state on the c
   expect(source).toContain('private-model-canvas');
   expect(source).toContain('dataset.workTestReviewMode');
 
-  const reviewModeIndex = source.indexOf('dataset.workTestReviewMode');
+  // Check R1090's actual ready-state assignment, not an unrelated earlier
+  // viewer resize branch that also reads the shared dataset property.
+  const reviewModeIndex = source.indexOf(
+    'canvas.dataset.workTestReviewMode = activeM5aZ2SystemReviewId;',
+  );
   expect(reviewModeIndex).toBeGreaterThanOrEqual(0);
 
   const reviewModeWindow = source.slice(
