@@ -530,3 +530,51 @@ test('production scene67 original GLB proof fails closed on stalled network/body
   expect(workflow).toContain("MIN_CHANGED_PIXELS_HARD_FLOOR: '750'");
   expect(workflow).not.toContain('HUMAN_REVIEW: PASS');
 });
+
+
+test('run64 original GLB stall preserves precise response-stage evidence without exposure or approval', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const s = workflow.split('      - name: Verify exact autoload and rendered production canvas')[1];
+  expect(s).toBeDefined();
+  const stage = s!.indexOf('p137e-scene67-autoload-stage.json');
+  const wait = s!.indexOf("viewerResponse.finished(), 'autoload response completion'");
+  const diagnostic = s!.indexOf('p137e-scene67-autoload-failure-diagnostic.json');
+  const exactViewer = s!.indexOf("p137e-scene67-viewer-autoload-glb.json");
+  const exactIndependent = s!.indexOf('p137e-scene67-exact-production-glb.json');
+  const render = s!.indexOf('threeDistinctSourceHousingsVerifiedInThisProductionExecution');
+  expect(stage).toBeGreaterThan(0);
+  expect(wait).toBeGreaterThan(stage);
+  expect(diagnostic).toBeGreaterThan(wait);
+  expect(exactViewer).toBeGreaterThan(wait);
+  expect(exactIndependent).toBeGreaterThan(exactViewer);
+  expect(render).toBeGreaterThan(exactIndependent);
+  expect(s).toContain("stage: 'ORIGINAL_AUTOLOAD_FAILED'");
+  expect(s).toContain('throw autoloadError;');
+  expect(s).toContain("individualHousingPixelsVerified: false");
+  expect(s).toContain("humanReview: 'NOT_RUN'");
+  expect(s).toContain("publishToCURRENT: false");
+  expect(s).toContain("requestedExactSourceUrl: viewerResponse.url() === P137E_SCENE67_PRODUCTION_GLB_URL");
+  expect(s).toContain("contentType: autoloadHeaders['content-type']");
+  expect(s).toContain("contentLength: autoloadHeaders['content-length']");
+  expect(s).not.toContain('autoloadDiagnostic = { headers: viewerResponse.headers()');
+  expect(s).toContain('Never export Access credentials, cookies, or raw request headers.');
+});
+
+test('independent authenticated GLB fetch after original response failure is diagnostic only', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const s = workflow.split('      - name: Verify exact autoload and rendered production canvas')[1];
+  expect(s).toContain('p137e-scene67-before-glb-proof.png');
+  expect(s).toContain("timeout: 7000");
+  expect(s).toContain("cache: 'no-store', credentials: 'same-origin'");
+  expect(s).toContain('controller.abort(), 20_000');
+  expect(s).toContain("'diagnostic no-cache fetch'");
+  expect(s).toContain('inspectP137EScene67PublishedGlb(reviewId, candidateId, diagnosticAsset);');
+  expect(s).toContain('exactOriginalAssetMatched: false');
+  expect(s).toContain('failure.independent.exactOriginalAssetMatched = true');
+  expect(s).toContain('throw autoloadError;');
+  expect(s).toContain("cache: 'no-store',");
+  expect(s).toContain('threeDistinctSourceHousingsVerifiedInThisProductionExecution');
+  // A separate fetch cannot retroactively prove the original autoload bytes.
+  expect(s).toContain('canvasUsedThoseBytesProvenByThisGate: false');
+  expect(s).toContain('actualProductionTwoFaceScreenshotsCaptured:true');
+});
