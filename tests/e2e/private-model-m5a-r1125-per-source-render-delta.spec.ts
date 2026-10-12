@@ -40,7 +40,12 @@ const fixture = () => {
     mutedFrames[p.key] = baseline.slice();
     patch(mutedFrames[p.key], p.x, p.y, background);
   }
-  return { baseline, mutedFrames, projections, width, height };
+  // Each negative case mutates projected centers: never reuse the module-level array.
+  return {
+    baseline, mutedFrames,
+    projections: projections.map(p => ({ ...p })),
+    width, height,
+  };
 };
 
 test('each of 13 separately muted original targets removes its OWN color pixels', () => {
