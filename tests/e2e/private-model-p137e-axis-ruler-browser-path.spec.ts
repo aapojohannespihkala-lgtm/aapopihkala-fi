@@ -301,3 +301,47 @@ test('D1F P137E target-specific crosshairs coexist with ruler and never claim G2
   await expect(page.locator('#p137e-place-panel')).toBeHidden();
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '0');
 });
+
+
+test('P137E placement never trusts the selected option instead of the loaded candidate', async ({ page }) => {
+  const selectedId = 'p137e-d1f-three-wall-mounted-themos';
+  const otherId = 'p136b-d-current-wall-corrected';
+  const glb = buildSyntheticD1FCurrentGlb();
+  await page.setViewportSize({ width: 1536, height: 900 });
+  await page.route('**/private-model/model.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
+  await page.route('**/private-model/work-test/catalog.json', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ candidates: [selectedId, otherId].map((id) => ({
+        id, label: id, path: '/private-model/work-test/' + id + '.glb',
+      })) }),
+    }));
+  await page.route('**/private-model/work-test/*.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: glb }));
+  await page.goto('/private-model/');
+  const canvas = page.locator('#private-model-canvas');
+  const place = page.locator('#p137e-place-tool-button');
+  const option = page.locator('#work-test-select');
+  await expect(option).toBeEnabled();
+  await option.selectOption(otherId);
+  await page.locator('#work-test-button').click();
+  await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id', otherId);
+  await expect(canvas).toHaveAttribute('data-model-source', 'work-test');
+  await page.locator('#preset-menu summary').click();
+  await page.locator('#d1-plan-button').click();
+  await expect(place).toBeDisabled();
+  await option.selectOption(selectedId);
+  await expect(place).toBeDisabled();
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '0');
+  await page.locator('#work-test-button').click();
+  await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id', selectedId);
+  await page.locator('#preset-menu summary').click();
+  await page.locator('#d1-plan-button').click();
+  await expect(place).toBeEnabled();
+  await option.selectOption(otherId);
+  await expect(place).toBeEnabled();
+  await page.locator('#current-model-button').click();
+  await expect(canvas).toHaveAttribute('data-model-source', 'current');
+  await expect(canvas).not.toHaveAttribute('data-p137e-loaded-candidate-id');
+  await expect(place).toBeDisabled();
+});
