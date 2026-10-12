@@ -524,11 +524,26 @@ test('simulated HTTPS viewer resaves edited Themo notes with exact snapshots and
       await expect(page.locator('[data-review-placement-status="persisting"]')).toBeVisible();
       await expect(note).toBeDisabled();
       await expect(save).toBeDisabled();
+      // G2 selected target remains locked during independent GET. A disabled
+      // native select alone is insufficient: reject a dispatched change too.
+      const liveTarget = page.locator('#p137e-place-target');
+      const clearDrafts = page.locator('#p137e-place-clear');
+      await expect(liveTarget).toBeDisabled();
+      await expect(clearDrafts).toBeDisabled();
+      await expect(liveTarget).toHaveValue(targetId);
+      await liveTarget.evaluate((node, attemptedId) => {
+        (node as HTMLSelectElement).value = attemptedId;
+        node.dispatchEvent(new Event('change', { bubbles: true }));
+      }, themoIds[1]);
+      await expect(liveTarget).toHaveValue(targetId);
+      await expect(page.locator('[data-review-placement-status="persisting"]')).toBeVisible();
       await delayedReadback.route!.fulfill({ status: 200, contentType: 'application/json',
         body: JSON.stringify({ recordId: delayedReadback.recordId,
           payload: records.get(delayedReadback.recordId!) }) });
     }
     await expect(page.locator('[data-review-placement-status="persisted"]')).toBeVisible();
+    await expect(page.locator('#p137e-place-target')).toBeEnabled();
+    await expect(page.locator('#p137e-place-clear')).toBeEnabled();
     await expect(note).toBeEnabled();
     await expect(save).toBeDisabled();
 
@@ -669,6 +684,21 @@ test('simulated HTTPS viewer recovers a stalled independent G2 readback without 
   await expect(save).toBeDisabled();
   await expect(note).toBeDisabled();
   await expect.poll(() => calls).toEqual(['TARGETS', 'POST', 'GET']);
+  // A timed-out native-G2 independent GET is still a pending durable write:
+  // the Themo identity and Clear action must remain locked even if a change
+  // event is dispatched programmatically while the DOM select is disabled.
+  const targetSelector = page.locator('#p137e-place-target');
+  const clearDrafts = page.locator('#p137e-place-clear');
+  await expect(targetSelector).toBeDisabled();
+  await expect(clearDrafts).toBeDisabled();
+  await expect(targetSelector).toHaveValue(targetId);
+  await targetSelector.evaluate(node => {
+    (node as HTMLSelectElement).value = 'D_THEMO_CURRENT_BATHROOM_01';
+    node.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect(targetSelector).toHaveValue(targetId);
+  await expect(page.locator('[data-review-placement-status="persisting"]')).toBeVisible();
+  expect(calls).toEqual(['TARGETS', 'POST', 'GET']);
 
   await expect(page.locator('[data-review-placement-status="draft"]')).toContainText(
     'Tallennus ei varmistunut. Tarkista tila ennen uutta yritystä.', { timeout: 35_000 },
@@ -676,6 +706,9 @@ test('simulated HTTPS viewer recovers a stalled independent G2 readback without 
   await expect.poll(() => readbackAborted).toBe(true);
   await expect(save).toBeEnabled();
   await expect(note).toBeEnabled();
+  await expect(targetSelector).toBeEnabled();
+  await expect(clearDrafts).toBeEnabled();
+  await expect(targetSelector).toHaveValue(targetId);
   await expect(note).toHaveValue(noteText);
   await expect(page.locator('[data-review-placement-status="draft"]')).toContainText('Kohde: ' + targetId);
   await expect(page.locator('[data-review-placement-status="persisted"]')).toHaveCount(0);
