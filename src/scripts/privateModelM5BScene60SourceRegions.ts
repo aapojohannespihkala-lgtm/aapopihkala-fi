@@ -58,15 +58,19 @@ export const deriveM5BScene60SourceRegions = ({
     (camera instanceof THREE.PerspectiveCamera ||
      camera instanceof THREE.OrthographicCamera),
   'real THREE projection camera required');
+  // Restrict the general THREE.Camera to a concrete projection camera.
+  // Runtime was already guarded above; this narrows static TypeScript access.
+  const projectionCamera = camera as THREE.PerspectiveCamera | THREE.OrthographicCamera;
   const aspect = imageWidth / imageHeight;
-  const cameraAspect = camera instanceof THREE.PerspectiveCamera
-    ? camera.aspect
-    : (camera.right - camera.left) / (camera.top - camera.bottom);
+  const cameraAspect = projectionCamera instanceof THREE.PerspectiveCamera
+    ? projectionCamera.aspect
+    : (projectionCamera.right - projectionCamera.left) /
+      (projectionCamera.top - projectionCamera.bottom);
   required(Number.isFinite(cameraAspect) && Math.abs(cameraAspect - aspect) < 0.015,
     'camera/screenshot aspect mismatch');
 
   sceneRoot.updateMatrixWorld(true);
-  camera.updateProjectionMatrix();
+  projectionCamera.updateProjectionMatrix();
   camera.updateMatrixWorld(true);
   const cameraPosition = new THREE.Vector3().setFromMatrixPosition(camera.matrixWorld);
   const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
