@@ -73,6 +73,38 @@ export function inspectM5AR1125Scene63Source(gltf) {
           details.currentGeometryClaim !== false ||
           details.asBuiltClaim !== false ||
           details.publishToCURRENT !== false) fail('unsafe source: ' + key);
+      // Validate the seven *individual* route source contracts, not merely the
+      // aggregate 5+2 scene label. A rendered Ø100 cylinder is not a measured
+      // diameter; the two PVK side branches have unknown source diameters.
+      if (kind === 'routeCyan') {
+        const pvkUnknown = key === 'G2_DRAIN_LINK_PVK_DISCHARGE_001' ||
+          key === 'G2_DRAIN_LINK_PVK_PARKING_001';
+        const sourceClass = pvkUnknown ? null : 100;
+        if (details.sourceDiameterCorrectionContract !== 'G2_R1125' ||
+            details.pipeDiameterMmSource !== sourceClass ||
+            details.pipeDiameterMmNominalSource !== sourceClass ||
+            details.presentationDiameterMm !== 100 ||
+            details.presentationDiameterRole !== 'WORK_TEST_VISUAL_PROXY' ||
+            details.physicalDiameterPerRouteSourceVerified !== false ||
+            details.physicalDiameterAsBuiltClaim !== false ||
+            details.diameterIsPhysicalAsBuiltClaim !== false ||
+            details.physicalNominalDiameterStatus !== (pvkUnknown
+              ? 'UNKNOWN'
+              : 'GENERAL_SALAOJA_SYSTEM_NOMINAL_CLASS_NOT_PER_BRANCH_MEASUREMENT') ||
+            details.pipeDiameterSourceRole !== (pvkUnknown
+              ? 'PVK_SOURCE_DIAMETER_UNKNOWN_PRESENTATION_D100'
+              : 'SALAOJA_SYSTEM_NOMINAL_D100_NOT_INDIVIDUALLY_MEASURED') ||
+            details.pipeDiameterEvidence !== (pvkUnknown
+              ? 'UNRESOLVED_PVK_BRANCH_DIAMETER_NOT_INDIVIDUALLY_SUPPORTED'
+              : '2026_REPORT_SALAOJA_SYSTEM_NOMINAL_D100_NOT_PER_ROUTE_AS_BUILT') ||
+            (pvkUnknown
+              ? details.pipeMaterialSource !== null ||
+                details.pipeDiameterMmSourceScope != null
+              : details.pipeDiameterMmSourceScope !==
+                'AGGREGATE_SALAOJA_SYSTEM_NOT_INDIVIDUAL_ROUTE')) {
+          fail('source diameter class/proxy mismatch: ' + key);
+        }
+      }
       if (kind === 'boundaryYellow' &&
           (details.boundaryStatus !== 'UNRESOLVED_BOUNDARY' ||
            details.G2IdCandidate != null)) fail('boundary status/identity mismatch: ' + key);
