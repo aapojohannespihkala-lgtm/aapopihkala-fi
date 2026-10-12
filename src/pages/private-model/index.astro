@@ -1469,6 +1469,8 @@ const title = 'Private 3D viewer';
             <button id="iso-button" type="button">Isometrinen</button>
             <button id="top-button" type="button">Ylhäältä</button>
             <button id="bottom-button" type="button">Alhaalta</button>
+            <button id="p137e-north-face-button" type="button" hidden>Themo: aula (pohjoinen)</button>
+            <button id="p137e-south-face-button" type="button" hidden>Themot: makuuhuone + kylpyhuone (eteläinen)</button>
             <div class="toolbar-menu-separator"></div>
             <div class="toolbar-menu-label">Julkisivut</div>
             <button id="elev-pos-y-button" type="button" title="Ortografinen julkisivu YLIS-G1-LOCAL +Y suunnasta">Julk +Y</button>
@@ -1871,6 +1873,7 @@ const title = 'Private 3D viewer';
         p137eFocusedReviewSceneName,
         p137eFocusedReviewSceneIndex,
       } from '../../scripts/privateModelP137EScene67Selection';
+      import { deriveP137ETwoFaceSourceCameras } from '../../scripts/privateModelP137ETwoSidedSourceCamera';
       import {
         p186dExpectedD1fTargetCount,
         p186dExpectedD1fPosCounts,
@@ -2093,6 +2096,8 @@ const title = 'Private 3D viewer';
       const topButton = document.querySelector<HTMLButtonElement>('#top-button');
       const bottomButton = document.querySelector<HTMLButtonElement>('#bottom-button');
       const isoButton = document.querySelector<HTMLButtonElement>('#iso-button');
+      const p137eNorthFaceButton = document.querySelector<HTMLButtonElement>('#p137e-north-face-button');
+      const p137eSouthFaceButton = document.querySelector<HTMLButtonElement>('#p137e-south-face-button');
       const elevPosYButton = document.querySelector<HTMLButtonElement>('#elev-pos-y-button');
       const elevNegYButton = document.querySelector<HTMLButtonElement>('#elev-neg-y-button');
       const elevPosXButton = document.querySelector<HTMLButtonElement>('#elev-pos-x-button');
@@ -2378,6 +2383,20 @@ const title = 'Private 3D viewer';
       };
       setIsoRotationMode('disabled');
       isoControls.enabled = false;
+
+      // WORK_TEST presentation only. Never mutate/dispose the original GLB
+      // wall's geometry or source material. SOUTH translucency is reversible.
+      const p137eWallPresentationOriginals: Array<{
+        mesh: any; material: any; temporary: any[];
+      }> = [];
+      const restoreP137EWallPresentation = () => {
+        for (const item of p137eWallPresentationOriginals) {
+          item.mesh.material = item.material;
+          for (const cloned of item.temporary) cloned.dispose?.();
+        }
+        p137eWallPresentationOriginals.length = 0;
+        delete canvas.dataset.p137eScene67WallPresentation;
+      };
 
       const ambient = new THREE.HemisphereLight(0xffffff, 0x777777, 2.2);
       scene.add(ambient);
@@ -3953,6 +3972,9 @@ const title = 'Private 3D viewer';
 
       const syncViewState = (preset: 'orbit' | 'top' | 'bottom' | 'isometric' | 'd-plan' | 'elevation') => {
         canvas.dataset.viewPreset = preset;
+        // Any generic preset ends the exact source-bound face review camera.
+        restoreP137EWallPresentation();
+        delete canvas.dataset.p137eScene67CameraFace;
         canvas.dataset.cameraProjection = (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective';
         const activeControls =
           activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls;
@@ -4329,7 +4351,11 @@ const title = 'Private 3D viewer';
           camera.updateProjectionMatrix();
           if (activePlanFloor) fitPlanCamera();
           else if (activeCamera === isoCamera) {
-            if (activeElevationDirection) fitElevationCamera(activeElevationDirection);
+            if (canvas.dataset.workTestReviewMode === p137eScene67ReviewId &&
+              (canvas.dataset.p137eScene67CameraFace === 'NORTH' ||
+                canvas.dataset.p137eScene67CameraFace === 'SOUTH')) {
+              applyP137EScene67SourceFace(canvas.dataset.p137eScene67CameraFace);
+            } else if (activeElevationDirection) fitElevationCamera(activeElevationDirection);
             else if (canvas.dataset.viewPreset === 'top' || canvas.dataset.viewPreset === 'bottom') {
               fitAxisCamera(canvas.dataset.viewPreset);
             } else fitIsometricCamera();
@@ -5598,6 +5624,11 @@ const title = 'Private 3D viewer';
         sourceLabel: string,
       ) => {
         // Never leak source-camera coordinates across different WORK_TEST candidates.
+        restoreP137EWallPresentation();
+        if (p137eNorthFaceButton) p137eNorthFaceButton.hidden = true;
+        if (p137eSouthFaceButton) p137eSouthFaceButton.hidden = true;
+        delete canvas.dataset.p137eScene67CameraFace;
+        delete canvas.dataset.p137eScene67CameraSourceIds;
         delete canvas.dataset.m5aR1125SourceCameraCenters;
         setM5aSourceContextVisible(false);
         setP186cX2rSourceContextVisible(false);
@@ -8000,6 +8031,105 @@ const title = 'Private 3D viewer';
           : 'P186E-X1 D 1F electrical source labels - WORK_TEST / 18 label anchors 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
       };
 
+      // The production viewer must invoke the merged scene67 source-camera
+      // verifier on the exact selected GLB root, not on a synthetic fixture.
+      const applyP137EScene67SouthWallPresentation = () => {
+        // The source material is opaque double-sided. G2 local visual check
+        // showed Bathroom hidden behind the original wall from SOUTH, while
+        // source wall alpha 0.38 revealed it. Do NOT ghost Lobby on NORTH.
+        const original = fullModelScene?.children?.filter((child: any) =>
+          child?.name === 'P137E_ORIGINAL_P123C_D1F_NODE798_MESH406_PRESENTATION_INSTANCE' &&
+          child?.userData?.sourceNodeIndex === 798 &&
+          child?.userData?.sourceMeshIndex === 406 &&
+          child?.userData?.originalSourceGeometryUnmodified === true &&
+          child?.userData?.presentationOnly === true);
+        if (original?.length !== 1) {
+          throw new Error('P137E scene67 source wall not unique for SOUTH transparency');
+        }
+        const meshes: any[] = [];
+        original[0].traverse((obj: any) => {
+          if (obj?.isMesh && obj.material) meshes.push(obj);
+        });
+        if (!meshes.length) throw new Error('P137E scene67 original wall mesh unavailable');
+        for (const mesh of meshes) {
+          const sourceMaterial = mesh.material;
+          const sourceMaterials = Array.isArray(sourceMaterial) ? sourceMaterial : [sourceMaterial];
+          const temporary = sourceMaterials.map((material: any) => {
+            const clone = material.clone();
+            clone.opacity = 0.38;
+            clone.transparent = true;
+            clone.depthWrite = false;
+            clone.needsUpdate = true;
+            return clone;
+          });
+          mesh.material = Array.isArray(sourceMaterial) ? temporary : temporary[0];
+          p137eWallPresentationOriginals.push({ mesh, material: sourceMaterial, temporary });
+        }
+        canvas.dataset.p137eScene67WallPresentation = 'SOUTH_SOURCE_WALL_ALPHA_0_38';
+      };
+
+      const applyP137EScene67SourceFace = (face: 'NORTH' | 'SOUTH') => {
+        if (
+          activeModelSourceKind !== 'work-test' ||
+          !isP137EScene67ReviewRequested() ||
+          canvas.dataset.workTestReviewMode !== p137eScene67ReviewId ||
+          fullModelScene?.name !== 'P137E_D_THEMOS_REAL_WALL_FACE_WORK_TEST_ROOT_BABYLON_Y_UP' ||
+          modelRoot.children[0] !== fullModelScene ||
+          (face !== 'NORTH' && face !== 'SOUTH')
+        ) {
+          throw new Error('P137E scene67 source camera cannot open outside the exact focused review');
+        }
+        const aspect = canvas.clientWidth / Math.max(canvas.clientHeight, 1);
+        const source = deriveP137ETwoFaceSourceCameras(fullModelScene, aspect);
+        const selection = face === 'NORTH' ? source.north : source.south;
+        if (!selection.sourceOnly || selection.productionRenderVerified !== false ||
+            source.humanReview !== 'NOT_RUN' || source.sourceSceneIndex !== 67 ||
+            source.sourceWallMesh !== 406 ||
+            selection.sourceIds.length !== (face === 'NORTH' ? 1 : 2)) {
+          throw new Error('P137E scene67 source camera no-promotion/identity mismatch');
+        }
+
+        // Mutate the live orthographic camera ONLY after source and face QA.
+        deactivateElevationView();
+        clearSelection();
+        activePlanFloor = null;
+        activePlanFocusBounds = null;
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        controls.enabled = false;
+        planControls.enabled = false;
+        setIsoRotationMode('disabled');
+        isoControls.enabled = true;
+        activeCamera = isoCamera;
+        const target = new THREE.Vector3(...selection.target);
+        isoCamera.position.set(...selection.eye);
+        isoCamera.up.set(...selection.up);
+        isoCamera.lookAt(target);
+        isoCamera.left = -selection.orthoHalfHeight * aspect;
+        isoCamera.right = selection.orthoHalfHeight * aspect;
+        isoCamera.top = selection.orthoHalfHeight;
+        isoCamera.bottom = -selection.orthoHalfHeight;
+        isoCamera.near = 0.001;
+        isoCamera.far = 1000;
+        isoCamera.zoom = 1;
+        isoCamera.updateProjectionMatrix();
+        isoControls.target.copy(target);
+        isoControls.update();
+        syncViewState('isometric');
+        if (face === 'SOUTH') applyP137EScene67SouthWallPresentation();
+        else canvas.dataset.p137eScene67WallPresentation = 'NORTH_SOURCE_WALL_OPAQUE';
+        Object.assign(canvas.dataset, {
+          p137eScene67CameraFace: face,
+          p137eScene67CameraSourceIds: selection.sourceIds.join(','),
+          p137eScene67CameraSourceOnly: 'true',
+          p137eScene67ProductionRenderVerified: 'false',
+          p137eHumanReview: 'NOT_RUN',
+        });
+        status.textContent = face === 'NORTH'
+          ? 'P137E WORK_TEST - aula (pohjoinen seinäpuoli), 1 Themo, katselu varmentamatta'
+          : 'P137E WORK_TEST - makuuhuone ja kylpyhuone, 2 Themoa; alkuperäinen seinä läpinäkyvänä vain katselua varten; renderöinti varmentamatta';
+      };
+
       const applyP137EScene67ReviewState = () => {
         // Fail closed if a future loader or preset accidentally replaces the
         // focused original P123C wall + the three wall-mounted WORK_TEST devices.
@@ -8046,6 +8176,9 @@ const title = 'Private 3D viewer';
         });
         status.textContent =
           'P137E D 1F WORK_TEST – alkuperäinen P123C-seinä + kolme Themoa; as-built ja tarkat sijainnit vahvistamatta';
+        if (p137eNorthFaceButton) p137eNorthFaceButton.hidden = false;
+        if (p137eSouthFaceButton) p137eSouthFaceButton.hidden = false;
+        applyP137EScene67SourceFace('NORTH');
       };
 
       const applyP186fReviewState = (variant: 'X1' | 'X2' | 'X4' = 'X1') => {
@@ -10279,6 +10412,14 @@ const title = 'Private 3D viewer';
       topButton.addEventListener('click', () => applyStandardViewPreset('top'));
       bottomButton.addEventListener('click', () => axisView('bottom'));
       isoButton.addEventListener('click', activateIsometric);
+      p137eNorthFaceButton?.addEventListener('click', () => {
+        try { applyP137EScene67SourceFace('NORTH'); }
+        catch { status.textContent = 'P137E WORK_TEST - pohjoisen lähdekamera ei käytettävissä'; }
+      });
+      p137eSouthFaceButton?.addEventListener('click', () => {
+        try { applyP137EScene67SourceFace('SOUTH'); }
+        catch { status.textContent = 'P137E WORK_TEST - eteläisen lähdekamera ei käytettävissä'; }
+      });
       elevPosYButton.addEventListener('click', () => applyStandardViewPreset('elev-pos-y'));
       elevNegYButton.addEventListener('click', () => applyStandardViewPreset('elev-neg-y'));
       elevPosXButton.addEventListener('click', () => applyStandardViewPreset('elev-pos-x'));
