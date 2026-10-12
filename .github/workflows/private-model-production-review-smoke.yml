@@ -651,6 +651,13 @@ jobs:
               const north = await readFace();
               const northButton = page.locator('#p137e-north-face-button');
               const southButton = page.locator('#p137e-south-face-button');
+              // The face buttons live inside a closed <details> menu in production.
+              // Open only after NORTH canvas capture; button activation closes it again.
+              const viewMenu = page.locator('#view-menu');
+              await viewMenu.locator(':scope > summary').click();
+              if (!await viewMenu.evaluate((menu) => menu.open)) {
+                throw new Error('P137E View menu cannot open for NORTH/SOUTH controls');
+              }
               if (north.face !== 'NORTH' ||
                   north.ids !== 'D_THEMO_CURRENT_LOBBY_01' ||
                   north.wall !== 'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED' ||
@@ -762,6 +769,8 @@ jobs:
                 throw new Error('P137E two source-wall faces have no independent pixels: ' +
                   JSON.stringify(comparison));
               }
+              // SOUTH click closed <details>; reopen for the final NORTH restoration.
+              await viewMenu.locator(':scope > summary').click();
               await northButton.click();
               if ((await readFace()).face !== 'NORTH') {
                 throw new Error('P137E NORTH was not restored after two-face capture');
