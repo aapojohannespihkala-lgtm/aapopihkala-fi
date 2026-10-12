@@ -40,8 +40,8 @@ test('R1125 requires the actual viewer scene63 projections and rejects substitut
 });
 
 test('R1125 uses a captured PNG clip and keeps other review hard floors', () => {
-  expect(workflow).toContain('const before = (isX4Themo || isR1125SourceReview)');
-  expect(workflow).toContain('const after = (isX4Themo || isR1125SourceReview)');
+  expect(workflow).toContain('const before = (isX4Themo || isR1125SourceReview || p137eScene67SourceEvidence)');
+  expect(workflow).toContain('const after = (isX4Themo || isR1125SourceReview || p137eScene67SourceEvidence)');
   expect(workflow).toContain("clip: box, animations: 'disabled'");
   expect(workflow).toContain("'data:image/png;base64,' + before.toString('base64')");
   expect(workflow).toContain("MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR: '1500'");
