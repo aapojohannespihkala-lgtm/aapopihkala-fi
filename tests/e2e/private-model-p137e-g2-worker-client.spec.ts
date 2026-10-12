@@ -70,6 +70,33 @@ test('targets fail closed when native G2 repeats a source target identity', asyn
   ] });
 });
 
+test('G2 targets fail closed on hidden promotion and noncanonical source identities', async () => {
+  const safe = {
+    targetId: 'D_THEMO_CURRENT_LOBBY_01', approvedWallHosts: [],
+    exactXY: false, currentGeometry: false, canonical: false, asBuilt: false,
+    metadata: { humanReview: 'NOT_RUN', sourceOnly: true },
+  };
+  const response = (target: Record<string, unknown>) => json({
+    status: 'WORK_TEST_TARGETS_ONLY', documentRevision: 'G2_REV_TEST',
+    targets: [target],
+  });
+  const mutated = [
+    { ...safe, metadata: { host: { asBuiltClaim: true } } },
+    { ...safe, metadata: { humanReview: 'PASS' } },
+    { ...safe, metadata: { stage: 'CURRENT' } },
+    { ...safe, metadata: { reviewStatus: 'APPROVED' } },
+    { ...safe, targetId: '  ' },
+    { ...safe, targetId: ' D_THEMO_CURRENT_LOBBY_01' },
+  ];
+  for (const target of mutated) {
+    await expect(client(response(target)).targets())
+      .rejects.toThrow('TARGET_EVIDENCE_INVALID');
+  }
+  await expect(client(response(safe)).targets()).resolves.toMatchObject({
+    targets: [{ targetId: 'D_THEMO_CURRENT_LOBBY_01' }],
+  });
+});
+
 test('POST receipt requires a separate unchanged durable GET from G2', async () => {
   const calls: Array<{url: string; options: any}> = [];
   const reply = { receipt: { status: 'PERSISTED_TO_EXISTING_G2', recordId },
