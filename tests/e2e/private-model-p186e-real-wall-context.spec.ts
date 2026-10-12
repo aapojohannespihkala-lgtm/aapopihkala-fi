@@ -528,12 +528,12 @@ test('P186E refuses duplicate source identities even when D1F/D2F target counts 
     t.children.every((child) => child.userData.p186eViewOnlyCue !== true),
   )).toBe(true);
 
-  const duplicateSpecial = makeP186ESourceCueFixture('D2F');
+  const duplicateSpecial = makeP186ESourceCueFixture('D1F');
   const firstSpecialIndex = duplicateSpecial.counts.group;
   duplicateSpecial.targets[firstSpecialIndex + 1].userData.sourceLabelId =
     duplicateSpecial.targets[firstSpecialIndex].userData.sourceLabelId;
-  const specialResult = prepareP186EReviewPresentation(duplicateSpecial.root, 'D2F');
-  expect(specialResult.targetRenderableCount).toBe(16);
+  const specialResult = prepareP186EReviewPresentation(duplicateSpecial.root, 'D1F');
+  expect(specialResult.targetRenderableCount).toBe(18);
   expect(specialResult.semanticViolationCount).toBe(1);
   expect(specialResult.viewerCueCount).toBe(0);
   expect(duplicateSpecial.targets.every((t) =>
