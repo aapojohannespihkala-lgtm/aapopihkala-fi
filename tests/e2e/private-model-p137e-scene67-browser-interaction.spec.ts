@@ -306,6 +306,24 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(page.locator('#p137e-place-list')).toContainText('Kylpyhuone: X ');
   await expect(page.locator('#p137e-place-status')).toContainText('ei tallennettu G2:een');
 
+  // This browser fixture is HTTP, not the authenticated HTTPS G2 release.
+  // Even with all three source-bound draft markers, preview must fail closed.
+  const g2Requests: string[] = [];
+  const onG2Request = (request: { url: () => string }) => {
+    if (request.url().includes('/private-model/review-placement/g2/')) {
+      g2Requests.push(request.url());
+    }
+  };
+  page.on('request', onG2Request);
+  await page.locator('#p137e-g2-check').click();
+  await expect(page.locator('#p137e-g2-status')).toContainText(
+    /G2 ei ole käytettävissä|G2-tallennuspalvelua tai lähdevastausta ei varmennettu/,
+  );
+  expect(g2Requests).toEqual([]);
+  page.off('request', onG2Request);
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
+  await expect(page.locator('#p137e-place-status')).toContainText('ei tallennettu G2:een');
+
   await page.locator('#axis-measure-tool-button').click();
   await expect(canvas).toHaveAttribute('data-interaction-mode', 'measure');
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
