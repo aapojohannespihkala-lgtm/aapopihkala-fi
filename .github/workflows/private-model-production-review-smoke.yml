@@ -390,6 +390,7 @@ jobs:
           import { detectM5BR1109CyanLocatorComponents } from './src/scripts/privateModelR1109CyanLocatorProof.mjs';
           import { detectP186FX4CyanTargetComponents, detectP186FX4OriginalGreenWallPixels } from './src/scripts/privateModelP186FX4CyanPixelProof.mjs';
           import { buildM5AR1125BrowserScreenshotProofExpression } from './src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs';
+          import { inspectP137EScene67ProductionSmoke, inspectP137EScene67PublishedGlb, P137E_SCENE67_PRODUCTION_GLB_URL } from './src/scripts/privateModelP137EScene67ProductionSmokeGuard.mjs';
 
           const reviewBaseUrl = process.env.REVIEW_BASE_URL;
           const reviewId = process.env.REVIEW_ID;
@@ -515,6 +516,52 @@ jobs:
             const canvas = page.locator('#private-model-canvas');
             await page.waitForTimeout(1000);
 
+            // Exact source metadata guard is mandatory, not optional caller
+            // expected_dataset_json. Source digest and 3/3 pixels remain separate.
+            const p137eScene67SourceEvidence = inspectP137EScene67ProductionSmoke(
+              reviewId,
+              candidateId,
+              await canvas.evaluate((element) => ({ ...element.dataset })),
+            );
+            if (p137eScene67SourceEvidence) {
+              fs.writeFileSync(
+                'playwright-artifacts/p137e-scene67-source-metadata.json',
+                JSON.stringify(p137eScene67SourceEvidence, null, 2),
+              );
+            }
+
+            // In the SAME authenticated browser context as the canvas, request
+            // the fixed original scene67 WORK_TEST asset again without cache.
+            // Only exact HTTP 200 + full bytes + cryptographic digest can pass.
+            // This still does not prove three individually rendered housings.
+            let p137eScene67AssetEvidence = null;
+            if (p137eScene67SourceEvidence) {
+              const assetResponse = await page.evaluate(async (assetUrl) => {
+                const response = await fetch(assetUrl, {
+                  cache: 'no-store',
+                  credentials: 'same-origin',
+                });
+                const buffer = await response.arrayBuffer();
+                const shaBytes = new Uint8Array(
+                  await crypto.subtle.digest('SHA-256', buffer),
+                );
+                return {
+                  url: response.url,
+                  status: response.status,
+                  byteLength: buffer.byteLength,
+                  sha256: Array.from(shaBytes, (b) =>
+                    b.toString(16).padStart(2, '0')).join(''),
+                };
+              }, P137E_SCENE67_PRODUCTION_GLB_URL);
+              p137eScene67AssetEvidence = inspectP137EScene67PublishedGlb(
+                reviewId, candidateId, assetResponse,
+              );
+              fs.writeFileSync(
+                'playwright-artifacts/p137e-scene67-exact-production-glb.json',
+                JSON.stringify(p137eScene67AssetEvidence, null, 2),
+              );
+            }
+
             // The X4 wall + three Themo scene continuously repaints WebGL.
             // A locator screenshot waits for element stability and can time out
             // despite a correct, visible scene. Capture the SAME fixed canvas
@@ -527,7 +574,7 @@ jobs:
               candidateId === 'm5a-r1125-pvk-diameter-source-split';
             const box = await canvas.boundingBox();
             if (!box) throw new Error('Production canvas has no bounding box');
-            const before = (isX4Themo || isR1125SourceReview)
+            const before = (isX4Themo || isR1125SourceReview || p137eScene67SourceEvidence)
               ? await page.screenshot({
                   clip: box, animations: 'disabled',
                   path: 'playwright-artifacts/production-review-before.png',
@@ -767,7 +814,7 @@ jobs:
             await page.mouse.up({ button: pointerButton });
             await page.waitForTimeout(500);
 
-            const after = (isX4Themo || isR1125SourceReview)
+            const after = (isX4Themo || isR1125SourceReview || p137eScene67SourceEvidence)
               ? await page.screenshot({
                   clip: box, animations: 'disabled',
                   path: 'playwright-artifacts/production-review-after-orbit.png',
@@ -896,6 +943,8 @@ jobs:
                   cyanTargetEvidence,
                   m5bPixelEvidence,
                   m5aR1125PixelEvidence,
+                  p137eScene67SourceEvidence,
+                  p137eScene67AssetEvidence,
                   thresholds: {
                     minNonBackgroundPixels,
                     minChangedPixels,
@@ -920,6 +969,8 @@ jobs:
                 cyanTargetEvidence,
                 m5bPixelEvidence,
                 m5aR1125PixelEvidence,
+                p137eScene67SourceEvidence,
+                p137eScene67AssetEvidence,
                 thresholds: {
                   minNonBackgroundPixels,
                   minChangedPixels,
