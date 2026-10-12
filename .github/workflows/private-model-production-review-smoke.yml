@@ -578,11 +578,103 @@ jobs:
                 );
               }
               const viewerResponse = duringViewerAutoload[0];
-              const networkError = await withGlbDeadline(
-                viewerResponse.finished(), 'autoload response completion');
-              if (networkError) throw new Error('P137E viewer autoload GLB network failed');
-              const viewerGlbBytes = await withGlbDeadline(
-                viewerResponse.body(), 'autoload response bytes');
+              const autoloadHeaders = viewerResponse.headers();
+              // Never export Access credentials, cookies, or raw request headers.
+              const autoloadDiagnostic = {
+                stage: 'ORIGINAL_AUTOLOAD_RESPONSE_NOT_YET_VERIFIED',
+                requestedExactSourceUrl: viewerResponse.url() === P137E_SCENE67_PRODUCTION_GLB_URL,
+                httpStatus: viewerResponse.status(),
+                requestMethod: viewerResponse.request().method(),
+                resourceType: viewerResponse.request().resourceType(),
+                contentType: autoloadHeaders['content-type'] ?? null,
+                contentLength: autoloadHeaders['content-length'] ?? null,
+                cacheStatus: autoloadHeaders['cf-cache-status'] ?? null,
+                completed: false,
+                independentExactSourceBytesVerified: false,
+                individualHousingPixelsVerified: false,
+                humanReview: 'NOT_RUN',
+                publishToCURRENT: false,
+              };
+              fs.writeFileSync(
+                'playwright-artifacts/p137e-scene67-autoload-stage.json',
+                JSON.stringify(autoloadDiagnostic, null, 2),
+              );
+              // A pre-gate screenshot is diagnostic only. It is never a
+              // substitute for the original response digest or 3/3 pixel proof.
+              try {
+                const diagnosticBox = await canvas.boundingBox();
+                if (diagnosticBox) {
+                  await page.screenshot({
+                    clip: diagnosticBox, animations: 'disabled', timeout: 7000,
+                    path: 'playwright-artifacts/p137e-scene67-before-glb-proof.png',
+                  });
+                }
+              } catch {
+                // Do not turn a diagnostic screenshot into an approval gate.
+              }
+              let viewerGlbBytes;
+              try {
+                const networkError = await withGlbDeadline(
+                  viewerResponse.finished(), 'autoload response completion');
+                if (networkError) throw new Error('P137E viewer autoload GLB network failed');
+                viewerGlbBytes = await withGlbDeadline(
+                  viewerResponse.body(), 'autoload response bytes');
+              } catch (autoloadError) {
+                // Run64 reached the exact scene67 dataset but timed out here.
+                // Probe a separate authenticated no-cache fetch ONLY to tell
+                // whether the asset server or the original response stalls.
+                // Even an exact independent digest must NOT pass autoload.
+                const failure = {
+                  ...autoloadDiagnostic,
+                  stage: 'ORIGINAL_AUTOLOAD_FAILED',
+                  originalResponseFailure: autoloadError instanceof Error
+                    ? autoloadError.message : 'unknown autoload failure',
+                  independent: { status: 'NOT_COMPLETED' },
+                };
+                try {
+                  const diagnosticAsset = await withGlbDeadline(
+                    page.evaluate(async (assetUrl) => {
+                      const controller = new AbortController();
+                      const timer = setTimeout(() => controller.abort(), 20_000);
+                      try {
+                        const response = await fetch(assetUrl, {
+                          cache: 'no-store', credentials: 'same-origin',
+                          signal: controller.signal,
+                        });
+                        const buffer = await response.arrayBuffer();
+                        const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', buffer));
+                        return {
+                          url: response.url, status: response.status,
+                          byteLength: buffer.byteLength,
+                          sha256: Array.from(hash, b => b.toString(16).padStart(2, '0')).join(''),
+                        };
+                      } finally {
+                        clearTimeout(timer);
+                      }
+                    }, P137E_SCENE67_PRODUCTION_GLB_URL),
+                    'diagnostic no-cache fetch');
+                  failure.independent = {
+                    status: 'RECEIVED',
+                    httpStatus: diagnosticAsset.status,
+                    byteLength: diagnosticAsset.byteLength,
+                    exactOriginalAssetMatched: false,
+                  };
+                  inspectP137EScene67PublishedGlb(reviewId, candidateId, diagnosticAsset);
+                  failure.independent.exactOriginalAssetMatched = true;
+                } catch (probeError) {
+                  failure.independent = {
+                    ...failure.independent,
+                    status: 'FAILED_OR_MISMATCHED',
+                    failureName: probeError instanceof Error ? probeError.name : 'unknown',
+                  };
+                } finally {
+                  fs.writeFileSync(
+                    'playwright-artifacts/p137e-scene67-autoload-failure-diagnostic.json',
+                    JSON.stringify(failure, null, 2),
+                  );
+                }
+                throw autoloadError;
+              }
               const viewerNetworkAsset = inspectP137EScene67PublishedGlb(
                 reviewId, candidateId, {
                   url: viewerResponse.url(),
