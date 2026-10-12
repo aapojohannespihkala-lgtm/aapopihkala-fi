@@ -357,12 +357,13 @@ test('G2 in-flight save cannot be falsely cancelled or switched to another Themo
   });
   try {
     let finishPersist!: (ack: { status: 'PERSISTED_TO_EXISTING_G2'; recordId: string }) => void;
+    let failPersist!: (reason?: unknown) => void;
     let sent: PlacementReviewHandoff | null = null;
     const panel = createPlacementReviewPanel({
       mount: new FakeNode('main') as unknown as HTMLElement,
       persist: async (payload) => {
         sent = payload;
-        return new Promise((resolve) => { finishPersist = resolve; });
+        return new Promise((resolve, reject) => { finishPersist = resolve; failPersist = reject; });
       },
       readback: async (recordId) => ({
         recordId,
@@ -391,6 +392,24 @@ test('G2 in-flight save cannot be falsely cancelled or switched to another Themo
     expect(panel.cancel()).toBe(true);
     expect(panel.element.dataset.reviewPlacementStatus).toBe('inactive');
     expect(panel.element.hidden).toBe(true);
+    // A rejected POST must not leave the panel frozen or claim a persisted G2 receipt.
+    // Preserve the user's draft so an explicit retry is possible after checking G2.
+    panel.open({ ...d1f, approvedWallHosts: [] });
+    expect(panel.setClickedCoordinate({ xM: 3.235, yM: 5.063 }, '1F')).toBe(true);
+    note.value = 'Themo: säilytä havainto epäonnistuneen tallennuksen jälkeen.';
+    const rejected = form.emit('submit', { preventDefault() {} }) as Promise<void>;
+    expect(cancel.disabled).toBe(true);
+    expect(panel.cancel()).toBe(false);
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('persisting');
+    failPersist(new Error('simulated G2 POST rejection'));
+    await rejected;
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('draft');
+    expect(cancel.disabled).toBe(false);
+    expect(note.disabled).toBe(false);
+    expect(note.value).toBe('Themo: säilytä havainto epäonnistuneen tallennuksen jälkeen.');
+    expect(panel.element.hidden).toBe(false);
+    expect(panel.cancel()).toBe(true);
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('inactive');
   } finally {
     if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
     else delete (globalThis as { document?: unknown }).document;
