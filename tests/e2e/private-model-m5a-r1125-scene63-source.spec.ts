@@ -387,6 +387,24 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
   await expect(canvas).toHaveAttribute('data-m5a-r1125-pvk-unknown-physical-diameter-count', '2');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-physical-diameter-measurement-claim', 'false');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-human-review', 'NOT_RUN');
+  // Assert the REAL focused perspective projection survived sidebar canvas
+  // resize; this is not an invented pixel/production or geometry PASS.
+  const projectedSource = JSON.parse(
+    (await canvas.getAttribute('data-m5a-r1125-source-camera-centers')) ?? '{}',
+  );
+  expect(projectedSource.sourceSceneIndex).toBe(63);
+  expect(projectedSource.sourceTargetCount).toBe(13);
+  expect(projectedSource.centers).toHaveLength(13);
+  expect(new Set(projectedSource.centers.map((row: {key: string}) => row.key)))
+    .toEqual(new Set(m5aZ2ExpectedTargetKeys));
+  for (const row of projectedSource.centers as {u: number; v: number}[]) {
+    expect(row.u).toBeGreaterThan(0);
+    expect(row.u).toBeLessThan(1);
+    expect(row.v).toBeGreaterThan(0);
+    expect(row.v).toBeLessThan(1);
+  }
+  expect(projectedSource.productionScreenshotVerified).toBe(false);
+  expect(projectedSource.humanReview).toBe('NOT_RUN');
   await expect(canvas).toHaveAttribute('data-m5a-review-expected-target-renderable-count', '13');
   await expect(canvas).toHaveAttribute('data-m5a-review-well-marker-count', '4');
   await expect(canvas).toHaveAttribute('data-m5a-review-route-count', '7');
