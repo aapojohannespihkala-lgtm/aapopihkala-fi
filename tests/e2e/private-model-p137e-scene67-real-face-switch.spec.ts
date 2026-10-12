@@ -58,3 +58,18 @@ test('responsive resize retains selected source face rather than resetting gener
   expect(resize).toContain("canvas.dataset.workTestReviewMode === p137eScene67ReviewId");
   expect(resize).toContain('applyP137EScene67SourceFace(canvas.dataset.p137eScene67CameraFace)');
 });
+
+test('original wall is selectively translucent on SOUTH and fully restored on NORTH/other models', () => {
+  expect(viewer).toContain("originalSourceGeometryUnmodified === true");
+  expect(viewer).toContain("child?.userData?.sourceMeshIndex === 406");
+  expect(viewer).toContain("const clone = material.clone()");
+  expect(viewer).toContain("clone.opacity = 0.38");
+  expect(viewer).toContain("clone.transparent = true");
+  expect(viewer).toContain("clone.depthWrite = false");
+  expect(viewer).toContain("if (face === 'SOUTH') applyP137EScene67SouthWallPresentation()");
+  expect(viewer).toContain("p137eScene67WallPresentation = 'NORTH_SOURCE_WALL_OPAQUE'");
+  expect(viewer).toContain("p137eScene67WallPresentation = 'SOUTH_SOURCE_WALL_ALPHA_0_38'");
+  expect(viewer).toContain('item.mesh.material = item.material');
+  expect(viewer).toContain('for (const cloned of item.temporary) cloned.dispose?.()');
+  expect(viewer).not.toContain('original[0].geometry.dispose()');
+});
