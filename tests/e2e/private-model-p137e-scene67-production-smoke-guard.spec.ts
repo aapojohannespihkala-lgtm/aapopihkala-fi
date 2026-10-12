@@ -496,3 +496,37 @@ test('prefilled dispatch cannot reduce either production pixel hard floor', () =
     expect(result.stderr).toContain('cannot be lower than hard floor');
   }
 });
+
+
+test('manual production dispatch cannot be preempted by secretless pull-request checks', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const scheduling = workflow.split('\nconcurrency:\n')[1]?.split('\njobs:\n')[0];
+  expect(scheduling).toBeDefined();
+  expect(scheduling).toContain(
+    "group: private-model-production-review-smoke-${{ github.event_name }}-${{ github.ref }}");
+  expect(scheduling).toContain(
+    "cancel-in-progress: ${{ github.event_name == 'pull_request' }}");
+  expect(scheduling).not.toMatch(/^  group: private-model-production-review-smoke$/m);
+  expect(workflow).toContain("if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'");
+  expect(workflow).toContain("if: github.event_name == 'pull_request'");
+});
+
+test('production scene67 original GLB proof fails closed on stalled network/body instead of job timeout', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const source = workflow.split('      - name: Verify exact autoload and rendered production canvas')[1];
+  expect(source).toBeDefined();
+  expect(source).toContain('const withGlbDeadline = async (promise, stage) =>');
+  expect(source).toContain("viewerResponse.finished(), 'autoload response completion'");
+  expect(source).toContain("viewerResponse.body(), 'autoload response bytes'");
+  expect(source).toContain("45_000");
+  expect(source).toContain('signal: controller.signal,');
+  expect(source).toContain("controller.abort()");
+  expect(source).toContain("'independent no-cache fetch'");
+  expect(source).toContain("inspectP137EScene67PublishedGlb(");
+  expect(source).toContain("p137e-scene67-exact-production-glb.json");
+  expect(source).toContain("p137e-scene67-viewer-autoload-glb.json");
+  expect(source).toContain("individualDevicePixelsVerified: false");
+  expect(workflow).toContain("MIN_NON_BACKGROUND_PIXELS_HARD_FLOOR: '1500'");
+  expect(workflow).toContain("MIN_CHANGED_PIXELS_HARD_FLOOR: '750'");
+  expect(workflow).not.toContain('HUMAN_REVIEW: PASS');
+});
