@@ -118,10 +118,14 @@ export function createP137EG2WorkerClient({
       if (reply?.status !== 'WORK_TEST_TARGETS_ONLY' ||
           typeof reply.documentRevision !== 'string' || !reply.documentRevision ||
           !Array.isArray(reply.targets) || !reply.targets.every(t =>
-            object(t) && typeof t.targetId === 'string' && t.targetId.length > 0 &&
+            object(t) && typeof t.targetId === 'string' &&
+            t.targetId.length > 0 && t.targetId === t.targetId.trim() &&
             Array.isArray(t.approvedWallHosts) && t.approvedWallHosts.length === 0 &&
             t.currentGeometry === false && t.canonical === false &&
-            t.asBuilt === false && t.exactXY === false) ||
+            t.asBuilt === false && t.exactXY === false &&
+            // Server target rows, not only observation POST/GET payloads,
+            // must reject nested promotion and premature approval claims.
+            noNestedPromotion(t)) ||
           // One row per native-G2 source identity: duplicate review targets
           // must never become ambiguous selectable options in the viewer.
           new Set(reply.targets.map(t => t.targetId)).size !== reply.targets.length) {
