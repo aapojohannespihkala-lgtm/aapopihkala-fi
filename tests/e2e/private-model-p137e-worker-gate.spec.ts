@@ -39,9 +39,10 @@ for (const [scenario, status, failureCode] of [
   ['oauth', 503, 'G2_OAUTH_TOKEN_FAILED'],
   ['docs', 503, 'G2_NATIVE_READ_FAILED'],
   ['docs-json', 503, 'G2_NATIVE_READ_INVALID'],
+  ['docs-network-error', 503, 'G2_NATIVE_READ_TRANSPORT_FAILED'],
   ['document-shape', 409, 'G2_NATIVE_DOCUMENT_INVALID'],
   ['current-source', 409, 'G2_CURRENT_SOURCE_NOT_READY'],
-  ['untrusted-error', 503, 'G2_NATIVE_UNAVAILABLE'],
+  ['untrusted-error', 503, 'G2_OAUTH_TOKEN_TRANSPORT_FAILED'],
 ] as const) {
   test('authenticated G2 readiness distinguishes ' + scenario + ' without exposing private data', async () => {
     const auth = await readinessAuth;
@@ -63,6 +64,7 @@ for (const [scenario, status, failureCode] of [
       if (url.startsWith('https://docs.googleapis.com/v1/documents/')) {
         docsCalls++;
         expect(init?.method).toBe('GET');
+        if (scenario === 'docs-network-error') throw new Error('private-fixture-secret-must-not-leak');
         if (scenario === 'docs') return Response.json({ error: 'private-fixture-secret-must-not-leak' }, { status: 403 });
         if (scenario === 'docs-json') return new Response('private-fixture-secret-must-not-leak', { status: 200 });
         if (scenario === 'current-source') return Response.json({
@@ -91,7 +93,7 @@ for (const [scenario, status, failureCode] of [
       expect(result).not.toContain('PRIVATE KEY');
       expect(result).not.toContain(auth.token);
       expect(oauthCalls).toBe(scenario === 'credentials' || scenario === 'signing' ? 0 : 1);
-      expect(docsCalls).toBe(['docs', 'docs-json', 'document-shape', 'current-source'].includes(scenario) ? 1 : 0);
+      expect(docsCalls).toBe(['docs', 'docs-json', 'docs-network-error', 'document-shape', 'current-source'].includes(scenario) ? 1 : 0);
     } finally { globalThis.fetch = originalFetch; }
   });
 }
