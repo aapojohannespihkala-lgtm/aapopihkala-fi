@@ -7,7 +7,7 @@ import { m5aR1125SourcePixelKinds } from '../../src/scripts/privateModelM5AR1125
 // Synthetic regression only: no real GLB identity, renderer, authentication
 // or HUMAN_REVIEW result may be inferred from these fixture pixels.
 const width = 1000, height = 600;
-const keys: string[] = Object.keys(m5aR1125SourcePixelKinds);
+const keys = Object.keys(m5aR1125SourcePixelKinds) as Array<keyof typeof m5aR1125SourcePixelKinds>;
 const color = {
   wellGray: [150, 154, 159, 255],
   routeCyan: [18, 140, 180, 255],
@@ -63,12 +63,12 @@ test('same-colored unrelated geometry cannot substitute for a muted source', () 
   args.mutedFrames[keys[0]] = args.baseline.slice();
   let result = prove(args);
   expect(result.allSourceTargetsIsolated).toBe(false);
-  expect(result.sourceIsolation.find((p: any) => p.key === keys[0]).passed).toBe(false);
+  expect(result.sourceIsolation.find((p: any) => p.key === keys[0])?.passed).toBe(false);
   const switched = fixture();
   switched.mutedFrames[keys[0]] = switched.mutedFrames[keys[1]];
   result = prove(switched);
   expect(result.allSourceTargetsIsolated).toBe(false);
-  expect(result.sourceIsolation.find((p: any) => p.key === keys[0]).passed).toBe(false);
+  expect(result.sourceIsolation.find((p: any) => p.key === keys[0])?.passed).toBe(false);
 });
 
 test('a moving camera or background difference outside the object ROI fails closed', () => {
