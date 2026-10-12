@@ -17,6 +17,10 @@ const fixture = () => {
     sourceDiameterCorrectionContract: 'G2_R1125',
     sourceDiameterClassBreakdown:
       '5_SALAOJA_AGGREGATE_NOMINAL_100MM__2_PVK_UNKNOWN',
+    Canonical: false,
+    presentationOnly: true,
+    workAssumption: true,
+    humanReview: 'NOT_RUN',
     currentGeometryClaim: false,
     asBuiltClaim: false,
     publishToCURRENT: false,
@@ -122,6 +126,24 @@ test('R1125 wrong source scene, source role or promotion flags fail closed', () 
   const promoted = fixture();
   promoted.targets.get(keys[2]!)!.userData.publishToCURRENT = true;
   expect(() => derive(promoted)).toThrow(/unsafe source primitive/);
+});
+
+test('R1125 scene63 root provenance is fail-closed even when all 13 children are valid', () => {
+  const cases: Array<[string, unknown]> = [
+    ['Canonical', true],
+    ['presentationOnly', false],
+    ['workAssumption', false],
+    ['humanReview', 'PASS'],
+    ['humanReview', undefined],
+  ];
+  for (const [key, value] of cases) {
+    const input = fixture();
+    input.sceneRoot.userData[key] = value;
+    expect(() => derive(input), 'unsafe scene63 root field: ' + key)
+      .toThrow(/source scene63 provenance or no-promotion contract mismatch/);
+  }
+  const unchanged = fixture();
+  expect(derive(unchanged).sourceTargetCount).toBe(13);
 });
 
 test('R1125 hidden and transparent target pixels cannot be treated as visible', () => {
