@@ -329,18 +329,18 @@ const hasNoPromotionAndSourceSemantics = (object: any) => {
       String(data.sourceAnchorListSha256 ?? '') === p186eGroupAnchorListSha256 &&
       String(data.sourceBindingClass ?? '') ===
         'SOURCE_DIRECT_GROUP_LABEL_PLUS_EXACT_GROUP_KEY_SCHEDULE_JOIN' &&
-      String(data.annotationStableKey ?? '').length > 0 &&
-      String(data.sourceGroupKey ?? '').length > 0 &&
-      String(data.sourceScheduleName ?? '').length > 0
+      String(data.annotationStableKey ?? '').trim().length > 0 &&
+      String(data.sourceGroupKey ?? '').trim().length > 0 &&
+      String(data.sourceScheduleName ?? '').trim().length > 0
     );
   }
 
   if (kind === 'special') {
     return (
       String(data.sourceBindingListSha256 ?? '') === p186eSpecialAnchorListSha256 &&
-      String(data.sourceLabelId ?? '').length > 0 &&
-      String(data.sourceText ?? '').length > 0 &&
-      String(data.sourceSemantic ?? '').length > 0
+      String(data.sourceLabelId ?? '').trim().length > 0 &&
+      String(data.sourceText ?? '').trim().length > 0 &&
+      String(data.sourceSemantic ?? '').trim().length > 0
     );
   }
 
