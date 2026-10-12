@@ -1503,6 +1503,7 @@ const title = 'Private 3D viewer';
             <button id="iso-button" type="button">Isometrinen</button>
             <button id="top-button" type="button">Ylhäältä</button>
             <button id="bottom-button" type="button">Alhaalta</button>
+            <button id="p137e-plan-face-button" type="button" hidden>Themot: pohja + rastit + Mittaa</button>
             <button id="p137e-north-face-button" type="button" hidden>Themo: aula (pohjoinen)</button>
             <button id="p137e-south-face-button" type="button" hidden>Themot: makuuhuone + kylpyhuone (eteläinen)</button>
             <div class="toolbar-menu-separator"></div>
@@ -2161,6 +2162,7 @@ const title = 'Private 3D viewer';
       const topButton = document.querySelector<HTMLButtonElement>('#top-button');
       const bottomButton = document.querySelector<HTMLButtonElement>('#bottom-button');
       const isoButton = document.querySelector<HTMLButtonElement>('#iso-button');
+      const p137ePlanFaceButton = document.querySelector<HTMLButtonElement>('#p137e-plan-face-button');
       const p137eNorthFaceButton = document.querySelector<HTMLButtonElement>('#p137e-north-face-button');
       const p137eSouthFaceButton = document.querySelector<HTMLButtonElement>('#p137e-south-face-button');
       const elevPosYButton = document.querySelector<HTMLButtonElement>('#elev-pos-y-button');
@@ -5934,6 +5936,7 @@ const title = 'Private 3D viewer';
       ) => {
         // Never leak source-camera coordinates across different WORK_TEST candidates.
         restoreP137EWallPresentation();
+        if (p137ePlanFaceButton) p137ePlanFaceButton.hidden = true;
         if (p137eNorthFaceButton) p137eNorthFaceButton.hidden = true;
         if (p137eSouthFaceButton) p137eSouthFaceButton.hidden = true;
         delete canvas.dataset.p137eScene67CameraFace;
@@ -8444,6 +8447,50 @@ const title = 'Private 3D viewer';
           : 'P137E WORK_TEST - makuuhuone ja kylpyhuone, 2 Themoa; alkuperäinen seinä läpinäkyvänä vain katselua varten; renderöinti varmentamatta';
       };
 
+      // Return to the EXACT source-bound scene67 four-child root after a
+      // NORTH/SOUTH wall-face inspection. Generic D1F presets switch to the
+      // broader interior carrier and must not replace the original wall.
+      const applyP137EScene67TopPlan = () => {
+        if (
+          activeModelSourceKind !== 'work-test' ||
+          !isP137EScene67ReviewRequested() ||
+          canvas.dataset.workTestReviewMode !== p137eScene67ReviewId ||
+          canvas.dataset.p137eLoadedCandidateId !== p137eScene67CandidateId ||
+          fullModelScene?.name !== 'P137E_D_THEMOS_REAL_WALL_FACE_WORK_TEST_ROOT_BABYLON_Y_UP' ||
+          fullModelScene.children.length !== 4 ||
+          modelRoot.children[0] !== fullModelScene
+        ) {
+          throw new Error('P137E scene67 original wall top plan cannot open outside exact focused source');
+        }
+        const bounds = new THREE.Box3().setFromObject(fullModelScene);
+        if (bounds.isEmpty()) throw new Error('P137E scene67 original wall top plan bounds empty');
+
+        deactivateElevationView();
+        clearSelection();
+        restoreP137EWallPresentation();
+        controls.enabled = false;
+        isoControls.enabled = false;
+        planControls.enabled = true;
+        activeCamera = planCamera;
+        activePlanFloor = '1F';
+        activePlanFocusBounds = bounds;
+        setModelScene(fullModelScene);
+        canvas.dataset.contentScene = 'full-model';
+        canvas.dataset.contentFloor = '1F';
+        fitPlanCamera();
+        activateDCoordinateReview('1F');
+        setD1KnownDoorReviewLabelsVisible(false);
+        syncViewState('d-plan');
+        delete canvas.dataset.p137eScene67CameraSourceIds;
+        delete canvas.dataset.p137eScene67CameraSourceOnly;
+        canvas.dataset.p137eScene67TopPlanToolsReady = String(
+          !axisMeasureToolButton.disabled && !p137ePlaceToolButton.disabled
+        );
+        canvas.dataset.p137eReviewCameraMode = 'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP';
+        status.textContent =
+          'P137E WORK_TEST - alkuperäinen vihreä seinä + kolme Themoa; rastit tallentamattomia, MITTAA mallista';
+      };
+
       const applyP137EScene67ReviewState = () => {
         // Fail closed if a future loader or preset accidentally replaces the
         // focused original P123C wall + the three wall-mounted WORK_TEST devices.
@@ -8490,6 +8537,7 @@ const title = 'Private 3D viewer';
         });
         status.textContent =
           'P137E D 1F WORK_TEST – alkuperäinen P123C-seinä + kolme Themoa; as-built ja tarkat sijainnit vahvistamatta';
+        if (p137ePlanFaceButton) p137ePlanFaceButton.hidden = false;
         if (p137eNorthFaceButton) p137eNorthFaceButton.hidden = false;
         if (p137eSouthFaceButton) p137eSouthFaceButton.hidden = false;
         applyP137EScene67SourceFace('NORTH');
@@ -10731,6 +10779,10 @@ const title = 'Private 3D viewer';
       topButton.addEventListener('click', () => applyStandardViewPreset('top'));
       bottomButton.addEventListener('click', () => axisView('bottom'));
       isoButton.addEventListener('click', activateIsometric);
+      p137ePlanFaceButton?.addEventListener('click', () => {
+        try { applyP137EScene67TopPlan(); }
+        catch { status.textContent = 'P137E WORK_TEST - alkuperäisen seinän pohja ei käytettävissä'; }
+      });
       p137eNorthFaceButton?.addEventListener('click', () => {
         try { applyP137EScene67SourceFace('NORTH'); }
         catch { status.textContent = 'P137E WORK_TEST - pohjoisen lähdekamera ei käytettävissä'; }
@@ -10743,7 +10795,14 @@ const title = 'Private 3D viewer';
       elevNegYButton.addEventListener('click', () => applyStandardViewPreset('elev-neg-y'));
       elevPosXButton.addEventListener('click', () => applyStandardViewPreset('elev-pos-x'));
       elevNegXButton.addEventListener('click', () => applyStandardViewPreset('elev-neg-x'));
-      d1PlanButton.addEventListener('click', () => applyStandardViewPreset('d-1f'));
+      d1PlanButton.addEventListener('click', () => {
+        if (canvas.dataset.workTestReviewMode === p137eScene67ReviewId) {
+          try { applyP137EScene67TopPlan(); }
+          catch { status.textContent = 'P137E WORK_TEST - alkuperäisen seinän pohja ei käytettävissä'; }
+        } else {
+          applyStandardViewPreset('d-1f');
+        }
+      });
       d2PlanButton.addEventListener('click', () => applyStandardViewPreset('d-2f'));
       workTestSelect.addEventListener('change', () => {
         workTestButton.disabled = !workTestCandidates.has(workTestSelect.value);
