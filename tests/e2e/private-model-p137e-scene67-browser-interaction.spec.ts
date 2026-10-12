@@ -192,6 +192,11 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(canvas).toHaveAttribute('data-p137e-scene67-wall-presentation',
     'SOUTH_SOURCE_WALL_ALPHA_0_38');
 
+  // The real toolbar closes its <details> after each button click.
+  // Reopen the visible menu as a person would before selecting the plan.
+  await expect(page.locator('#view-menu')).not.toHaveAttribute('open', '');
+  await page.locator('#view-menu > summary').click();
+  await expect(page.locator('#p137e-plan-face-button')).toBeVisible();
   await page.locator('#p137e-plan-face-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-scene67-top-plan-tools-ready', 'true');
   await expect(canvas).toHaveAttribute('data-p137e-review-camera-mode',
@@ -203,6 +208,9 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await page.locator('#axis-measure-tool-button').click();
   await expect(canvas).toHaveAttribute('data-interaction-mode', 'measure');
 
+  // The ruler is outside the view menu: use the actual visible menu again.
+  await page.locator('#view-menu > summary').click();
+  await expect(page.locator('#p137e-north-face-button')).toBeVisible();
   await page.locator('#p137e-north-face-button').click();
   await expect(canvas).toHaveAttribute('data-p137e-scene67-camera-face', 'NORTH');
   await expect(page.locator('#axis-measure-tool-button')).toBeDisabled();
