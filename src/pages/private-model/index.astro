@@ -446,6 +446,24 @@ const title = 'Private 3D viewer';
 
       .coordinate-panel[hidden],
       .coordinate-line[hidden] { display: none; }
+      .p137e-place-panel {
+        position: absolute;
+        z-index: 6;
+        bottom: 140px;
+        left: 12px;
+        max-width: min(340px, calc(100% - 24px));
+        padding: 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.96);
+        color: #18232d;
+        font-size: 12px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.23);
+      }
+      .p137e-place-panel[hidden] { display: none; }
+      .p137e-place-panel label { display: block; margin: 8px 0; }
+      .p137e-place-panel select { max-width: 100%; }
+      .p137e-place-panel ul { margin: 8px 0; padding-left: 17px; }
+      .p137e-place-panel p { margin: 5px 0; }
 
       .coordinate-title-row {
         display: flex;
@@ -1500,6 +1518,7 @@ const title = 'Private 3D viewer';
           <button id="navigate-tool-button" type="button" aria-pressed="true">Navigoi</button>
           <button id="selection-tool-button" type="button" aria-pressed="false">Valitse</button>
           <button id="axis-measure-tool-button" type="button" aria-pressed="false" disabled title="Mittaa käytettävissä vain D 1F/2F -pohjanäkymässä: 1 rasti, 2 liikkuva mitta, 3 lukitus, 4 nollaus">Mittaa</button>
+          <button id="p137e-place-tool-button" type="button" aria-pressed="false" disabled title="Rastiluonnos: vain D1F P137E WORK_TEST; tallennus G2:een ei vielä kytketty">Sijoita kohde</button>
         </div>
 
         <details id="model-menu" class="toolbar-menu source-menu">
@@ -1654,6 +1673,21 @@ const title = 'Private 3D viewer';
             <span id="axis-measure-output">Klikkaa ensimmäinen piste</span>
           </div>
           <div class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.</div>
+        </aside>
+        <aside id="p137e-place-panel" class="p137e-place-panel" aria-label="Themojen rastiluonnokset" hidden>
+          <strong>Kolmen Themon sijaintiluonnos (WORK_TEST)</strong>
+          <p>Rasti tarkoittaa likimääräistä, tallentamatonta osoitusta.</p>
+          <label for="p137e-place-target">Osoitettava laite
+            <select id="p137e-place-target">
+              <option value="D_THEMO_CURRENT_BATHROOM_01">Kylpyhuone</option>
+              <option value="D_THEMO_CURRENT_BEDROOM_01">Makuuhuone</option>
+              <option value="D_THEMO_CURRENT_LOBBY_01">Aula</option>
+            </select>
+          </label>
+          <p id="p137e-place-status" role="status">Valitse laite ja osoita sijainti pohjasta.</p>
+          <ul id="p137e-place-list" aria-label="Tallentamattomat sijainnit"></ul>
+          <button id="p137e-place-clear" type="button">Tyhjennä rastiluonnokset</button>
+          <p>Ei tallennettu G2:een. Ei fyysinen tarkemittaus.</p>
         </aside>
         <aside id="height-scale" class="height-scale" aria-label="YLIS-G1-LOCAL korkeusasteikko" hidden>
           <div class="height-scale-title">YLIS-G1-LOCAL Z</div>
@@ -1977,6 +2011,8 @@ const title = 'Private 3D viewer';
         deactivateReviewCoordinatePanel,
         setReviewAnchorState,
         setReviewPointerState,
+        createTargetBoundReviewAnchor,
+        type TargetBoundReviewAnchor,
       } from '../../scripts/privateModelReviewCoordinates';
       import {
         advanceAxisMeasure,
@@ -2212,6 +2248,12 @@ const title = 'Private 3D viewer';
       const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
       const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
       const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
+      const p137ePlaceToolButton = document.querySelector<HTMLButtonElement>('#p137e-place-tool-button');
+      const p137ePlacePanel = document.querySelector<HTMLElement>('#p137e-place-panel');
+      const p137ePlaceTarget = document.querySelector<HTMLSelectElement>('#p137e-place-target');
+      const p137ePlaceStatus = document.querySelector<HTMLElement>('#p137e-place-status');
+      const p137ePlaceList = document.querySelector<HTMLUListElement>('#p137e-place-list');
+      const p137ePlaceClear = document.querySelector<HTMLButtonElement>('#p137e-place-clear');
       const orientationGizmo = document.querySelector<HTMLElement>('#orientation-gizmo');
       const orientationAxisX = document.querySelector<SVGLineElement>('#orientation-axis-x');
       const orientationAxisXTip = document.querySelector<SVGCircleElement>('#orientation-axis-x-tip');
@@ -2272,6 +2314,12 @@ const title = 'Private 3D viewer';
         !layersButton ||
         !navigateToolButton ||
         !selectionToolButton ||
+        !p137ePlaceToolButton ||
+        !p137ePlacePanel ||
+        !p137ePlaceTarget ||
+        !p137ePlaceStatus ||
+        !p137ePlaceList ||
+        !p137ePlaceClear ||
         !profileButton ||
         !workTestSelect ||
         !workTestButton ||
@@ -2815,6 +2863,82 @@ const title = 'Private 3D viewer';
       };
 
 
+      // Each R989 current-only logical ID gets a separate temporary crosshair.
+      // A canvas click is NOT a G2 write, physical wall host or HUMAN_REVIEW PASS.
+      const p137eTargetLabels: Readonly<Record<string, string>> = {
+        D_THEMO_CURRENT_BATHROOM_01: 'Kylpyhuone',
+        D_THEMO_CURRENT_BEDROOM_01: 'Makuuhuone',
+        D_THEMO_CURRENT_LOBBY_01: 'Aula',
+      };
+      const p137ePlaceAnchors = new Map<string, TargetBoundReviewAnchor>();
+      const p137ePlaceMarkers = new Map<string, any>();
+      const canStartP137EPlaceDraft = () =>
+        activePlanFloor === '1F' && activeCamera === planCamera &&
+        canvas.dataset.modelSource === 'work-test' &&
+        workTestSelect.value === 'p137e-d1f-three-wall-mounted-themos';
+      const updateP137EPlaceDraftList = () => {
+        p137ePlaceList.replaceChildren();
+        for (const [id, label] of Object.entries(p137eTargetLabels)) {
+          const item = document.createElement('li');
+          const point = p137ePlaceAnchors.get(id);
+          item.textContent = point
+            ? `${label}: X ${point.xM.toFixed(3)} / Y ${point.yM.toFixed(3)} m (luonnos)`
+            : `${label}: ei rastia`;
+          p137ePlaceList.append(item);
+        }
+        canvas.dataset.p137ePlaceDraftCount = String(p137ePlaceAnchors.size);
+      };
+      const clearP137EPlaceDraft = () => {
+        for (const marker of p137ePlaceMarkers.values()) {
+          scene.remove(marker);
+          disposeCoordinateObject(marker);
+        }
+        p137ePlaceMarkers.clear();
+        p137ePlaceAnchors.clear();
+        p137ePlaceStatus.textContent = 'Valitse laite ja osoita sijainti pohjasta.';
+        updateP137EPlaceDraftList();
+      };
+      const placeP137EDraftAt = (clientX: number, clientY: number) => {
+        if (canvas.dataset.interactionMode !== 'place' || !canStartP137EPlaceDraft()) return;
+        const id = p137ePlaceTarget.value;
+        if (!Object.prototype.hasOwnProperty.call(p137eTargetLabels, id)) return;
+        const point = dReviewCoordinateAtClientPoint(clientX, clientY);
+        if (!point || !Number.isFinite(point.xM) || !Number.isFinite(point.yM) ||
+          point.xM < dCoordinateEnvelope.xMin || point.xM > dCoordinateEnvelope.xMax ||
+          point.yM < dCoordinateEnvelope.yMin || point.yM > dCoordinateEnvelope.yMax) return;
+        const anchor = createTargetBoundReviewAnchor({
+          targetId: id, floor: '1F', coordinate: { xM: point.xM, yM: point.yM },
+        });
+        if (!anchor || anchor.currentGeometry || anchor.asBuilt || anchor.canonical || anchor.exactXY) return;
+        const previous = p137ePlaceMarkers.get(id);
+        if (previous) { scene.remove(previous); disposeCoordinateObject(previous); }
+        const y = dReviewPlaneY['1F'] + 0.04;
+        const radius = 0.14;
+        const points = [
+          new THREE.Vector3(anchor.xM-radius,y,-anchor.yM),
+          new THREE.Vector3(anchor.xM+radius,y,-anchor.yM),
+          new THREE.Vector3(anchor.xM,y,-anchor.yM-radius),
+          new THREE.Vector3(anchor.xM,y,-anchor.yM+radius),
+        ];
+        const marker = new THREE.LineSegments(
+          new THREE.BufferGeometry().setFromPoints(points),
+          new THREE.LineBasicMaterial({ color: 0x1698d3, depthTest: false, depthWrite: false }),
+        );
+        marker.renderOrder = 112;
+        marker.name = `P137E_UNSAVED_REVIEW_DRAFT_${id}`;
+        marker.userData = {
+          PresentationOnly: true, Canonical: false, currentGeometry: false, asBuilt: false,
+          Pass: '137E', representationKind: 'humanReviewAnchorMarker',
+          coordinateFrame: 'YLIS-G1-LOCAL', reviewTargetId: id, saved: false,
+        };
+        scene.add(marker);
+        p137ePlaceMarkers.set(id, marker);
+        p137ePlaceAnchors.set(id, anchor);
+        p137ePlaceStatus.textContent = `${p137eTargetLabels[id]}: rasti asetettu, ei tallennettu G2:een.`;
+        updateP137EPlaceDraftList();
+      };
+      updateP137EPlaceDraftList();
+
       // Measurement has its own temporary THREE overlay and never mutates the
       // source geometry, Themo placement anchor or the G2 persistence path.
       const clearDAxisMeasurement = () => {
@@ -2953,6 +3077,7 @@ const title = 'Private 3D viewer';
           clearDAxisMeasurement();
         }
         axisMeasureToolButton.disabled = !isAxisMeasureAvailable(floor, activeCamera === planCamera);
+        p137ePlaceToolButton.disabled = !canStartP137EPlaceDraft();
       };
 
       const deactivateDCoordinateReview = () => {
@@ -2961,7 +3086,10 @@ const title = 'Private 3D viewer';
         clearDCoordinateAnchor();
         clearDAxisMeasurement();
         axisMeasureToolButton.disabled = true;
-        if (canvas.dataset.interactionMode === 'measure') setViewerToolMode('navigate');
+        p137ePlaceToolButton.disabled = true;
+        clearP137EPlaceDraft();
+        if (canvas.dataset.interactionMode === 'measure' ||
+            canvas.dataset.interactionMode === 'place') setViewerToolMode('navigate');
       };
 
       const isP136BReviewEmphasis = (object: any) => {
@@ -4008,16 +4136,19 @@ const title = 'Private 3D viewer';
         selectionPanelController.clear();
       };
 
-      type ViewerToolMode = 'navigate' | 'select' | 'measure';
+      type ViewerToolMode = 'navigate' | 'select' | 'measure' | 'place';
       const setViewerToolMode = (mode: ViewerToolMode) => {
         if (mode === 'measure' && !isAxisMeasureAvailable(activePlanFloor, activeCamera === planCamera)) return;
+        if (mode === 'place' && !canStartP137EPlaceDraft()) return;
         canvas.dataset.interactionMode = mode;
         navigateToolButton.setAttribute('aria-pressed', String(mode === 'navigate'));
         selectionToolButton.setAttribute('aria-pressed', String(mode === 'select'));
         axisMeasureToolButton.setAttribute('aria-pressed', String(mode === 'measure'));
+        p137ePlaceToolButton.setAttribute('aria-pressed', String(mode === 'place'));
+        p137ePlacePanel.hidden = mode !== 'place';
         axisMeasureRow.hidden = mode !== 'measure';
         if (mode !== 'measure') clearDAxisMeasurement();
-        canvas.style.cursor = mode === 'select' || mode === 'measure' ? 'crosshair' : '';
+        canvas.style.cursor = mode === 'select' || mode === 'measure' || mode === 'place' ? 'crosshair' : '';
         if (mode !== 'select') clearSelection();
       };
 
@@ -10590,6 +10721,8 @@ const title = 'Private 3D viewer';
         setViewerToolMode('measure');
         clearDAxisMeasurement();
       });
+      p137ePlaceToolButton.addEventListener('click', () => setViewerToolMode('place'));
+      p137ePlaceClear.addEventListener('click', clearP137EPlaceDraft);
       clearSelectionButton.addEventListener('click', clearSelection);
       isolateSelectionButton.addEventListener('click', isolateSelectedObject);
       hideSelectionButton.addEventListener('click', hideSelectedObject);
@@ -10614,6 +10747,8 @@ const title = 'Private 3D viewer';
         if (distance <= pickDragThresholdPx) {
           if (canvas.dataset.interactionMode === 'measure') {
             clickDAxisMeasurement(event.clientX, event.clientY);
+          } else if (canvas.dataset.interactionMode === 'place') {
+            placeP137EDraftAt(event.clientX, event.clientY);
           } else {
             if (activePlanFloor) setDCoordinateAnchor(event.clientX, event.clientY);
             selectAtClientPoint(event.clientX, event.clientY);
