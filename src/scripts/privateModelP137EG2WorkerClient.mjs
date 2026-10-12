@@ -8,6 +8,17 @@ const RECORD_ID = /^P137E_G2_[A-Za-z0-9_-]{12,64}$/;
 const REQUEST_LIMIT = 16000;
 const RESPONSE_LIMIT = 32768;
 const REQUEST_TIMEOUT_MS = 30000;
+// Only fixed transport/source codes may cross the authenticated readiness GET.
+// Never pass through a Google error body, document prose or credential value.
+export const p137EG2ReadinessFailureCodes = Object.freeze([
+  'G2_OAUTH_CREDENTIALS_MISSING', 'G2_OAUTH_CREDENTIALS_INVALID',
+  'G2_OAUTH_CLOCK_INVALID', 'G2_OAUTH_SIGNING_FAILED',
+  'G2_OAUTH_TOKEN_FAILED', 'G2_OAUTH_TOKEN_INVALID',
+  'G2_NATIVE_READ_FAILED', 'G2_NATIVE_READ_INVALID',
+  'G2_NATIVE_REQUEST_TIMEOUT', 'G2_NATIVE_DOCUMENT_INVALID',
+  'G2_CURRENT_SOURCE_NOT_READY', 'G2_NATIVE_UNAVAILABLE',
+]);
+const readinessFailureCodes = new Set(p137EG2ReadinessFailureCodes);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 // Reject promotion tokens at any depth, not just in the top-level envelope.
 // Target identity/current-installation provenance is not a geometry promotion.
@@ -80,8 +91,11 @@ async function beforeDeadline(operation, deadline) {
   }
 }
 
-async function boundedJson(response, deadline) {
-  if (!response?.ok) throw new Error('P137E_G2_UNAVAILABLE');
+async function boundedJson(response, deadline, readiness = false) {
+  const failed = !response?.ok;
+  const failureMime = response?.headers?.get('content-type')?.split(';')[0].trim().toLowerCase();
+  if (failed && !(readiness && (response?.status === 409 || response?.status === 503) &&
+      failureMime === 'application/json')) throw new Error('P137E_G2_UNAVAILABLE');
   if (response.redirected) throw new Error('P137E_G2_REDIRECT_REJECTED');
   const mime = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
   if (mime !== 'application/json') throw new Error('P137E_G2_RESPONSE_TYPE_INVALID');
@@ -112,8 +126,15 @@ async function boundedJson(response, deadline) {
     if (!completed) void reader.cancel().catch(() => {});
     reader.releaseLock();
   }
-  try { return JSON.parse(chunks.join('')); }
+  let reply;
+  try { reply = JSON.parse(chunks.join('')); }
   catch { throw new Error('P137E_G2_RESPONSE_INVALID'); }
+  if (failed) {
+    const error = new Error('P137E_G2_UNAVAILABLE');
+    if (readinessFailureCodes.has(reply?.failureCode)) error.g2FailureCode = reply.failureCode;
+    throw error;
+  }
+  return reply;
 }
 
 /**
@@ -160,7 +181,7 @@ export function createP137EG2WorkerClient({
         cache: 'no-store', redirect: 'error', signal: controller.signal,
         ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body }),
       }), deadline);
-      return await boundedJson(response, deadline);
+      return await boundedJson(response, deadline, method === 'GET' && suffix === '/targets');
     } catch (error) {
       controller.abort(error);
       throw error;

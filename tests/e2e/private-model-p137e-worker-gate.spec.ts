@@ -11,6 +11,91 @@ const base = '/private-model/review-placement/g2';
 const request = (path: string, method = 'GET', headers?: HeadersInit) =>
   new Request(origin + path, { method, headers });
 
+// Generated only in memory. No real Access or Google credentials in fixtures.
+const readinessAuth = (async () => {
+  const keys = await crypto.subtle.generateKey({
+    name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048,
+    publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256',
+  }, true, ['sign', 'verify']);
+  const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const team = 'https://p137e-readiness-fixture.cloudflareaccess.com';
+  const aud = 'fixture-readiness-audience';
+  const kid = 'fixture-readiness-key';
+  const unsigned = encode({ alg: 'RS256', kid }) + '.' +
+    encode({ iss: team, aud, exp: Math.floor(Date.now() / 1000) + 900 });
+  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', keys.privateKey,
+    new TextEncoder().encode(unsigned));
+  const token = unsigned + '.' + Buffer.from(signature).toString('base64url');
+  const jwk = { ...await crypto.subtle.exportKey('jwk', keys.publicKey), kid, alg: 'RS256' };
+  const pem = '-----BEGIN PRIVATE KEY-----\n' +
+    Buffer.from(await crypto.subtle.exportKey('pkcs8', keys.privateKey)).toString('base64') +
+    '\n-----END PRIVATE KEY-----';
+  return { team, aud, token, jwk, pem };
+})();
+
+for (const [scenario, status, failureCode] of [
+  ['credentials', 503, 'G2_OAUTH_CREDENTIALS_MISSING'],
+  ['signing', 503, 'G2_OAUTH_SIGNING_FAILED'],
+  ['oauth', 503, 'G2_OAUTH_TOKEN_FAILED'],
+  ['docs', 503, 'G2_NATIVE_READ_FAILED'],
+  ['docs-json', 503, 'G2_NATIVE_READ_INVALID'],
+  ['document-shape', 409, 'G2_NATIVE_DOCUMENT_INVALID'],
+  ['current-source', 409, 'G2_CURRENT_SOURCE_NOT_READY'],
+  ['untrusted-error', 503, 'G2_NATIVE_UNAVAILABLE'],
+] as const) {
+  test('authenticated G2 readiness distinguishes ' + scenario + ' without exposing private data', async () => {
+    const auth = await readinessAuth;
+    const originalFetch = globalThis.fetch;
+    let oauthCalls = 0, docsCalls = 0;
+    globalThis.fetch = async (input, init) => {
+      const url = String(input);
+      if (url === auth.team + '/cdn-cgi/access/certs') {
+        return Response.json({ keys: [auth.jwk] });
+      }
+      if (url === 'https://oauth2.googleapis.com/token') {
+        oauthCalls++;
+        expect(init?.method).toBe('POST');
+        if (scenario === 'untrusted-error') throw new Error('private-fixture-secret-must-not-leak');
+        return scenario === 'oauth'
+          ? Response.json({ error: 'private-fixture-secret-must-not-leak' }, { status: 400 })
+          : Response.json({ access_token: 'private-fixture-token', token_type: 'Bearer' });
+      }
+      if (url.startsWith('https://docs.googleapis.com/v1/documents/')) {
+        docsCalls++;
+        expect(init?.method).toBe('GET');
+        if (scenario === 'docs') return Response.json({ error: 'private-fixture-secret-must-not-leak' }, { status: 403 });
+        if (scenario === 'docs-json') return new Response('private-fixture-secret-must-not-leak', { status: 200 });
+        if (scenario === 'current-source') return Response.json({
+          documentId: '1B59UmyKNKVfXJwIZ9dCTcQXyT6O0l7rESG2YOX6AdHE',
+          revisionId: 'private-fixture-revision',
+          tabs: [{ tabProperties: { tabId: 'fixture-tab' }, documentTab: { body: { content: [] } } }],
+        });
+        return Response.json({});
+      }
+      throw new Error('Unexpected fixture network request');
+    };
+    try {
+      const response = await handlePrivatePlacementReviewRequest(
+        request(base + '/targets', 'GET', { 'Cf-Access-Jwt-Assertion': auth.token }),
+        { CF_ACCESS_TEAM_DOMAIN: auth.team, CF_ACCESS_AUD: auth.aud,
+          P137E_G2_REVIEW_RELEASE_ENABLED: 'true',
+          P137E_G2_SERVICE_ACCOUNT_EMAIL: scenario === 'credentials' ? 'invalid' : 'fixture@sample.iam.gserviceaccount.com',
+          P137E_G2_SERVICE_ACCOUNT_PRIVATE_KEY_PEM: scenario === 'signing' ? 'invalid-key' : auth.pem },
+      );
+      expect(response.status).toBe(status);
+      const result = await response.text();
+      expect(JSON.parse(result)).toEqual({
+        error: status === 409 ? 'source-not-ready' : 'g2-unavailable', failureCode,
+      });
+      expect(result).not.toContain('private-fixture');
+      expect(result).not.toContain('PRIVATE KEY');
+      expect(result).not.toContain(auth.token);
+      expect(oauthCalls).toBe(scenario === 'credentials' || scenario === 'signing' ? 0 : 1);
+      expect(docsCalls).toBe(['docs', 'docs-json', 'document-shape', 'current-source'].includes(scenario) ? 1 : 0);
+    } finally { globalThis.fetch = originalFetch; }
+  });
+}
+
 test('P137E transport classifies only its own private G2 paths', () => {
   expect(isPrivatePlacementReviewPath(base + '/targets')).toBe(true);
   expect(isPrivatePlacementReviewPath(base + '/observations')).toBe(true);
@@ -140,7 +225,8 @@ test('Worker routes the dormant G2 review BEFORE generic private model and never
   expect(route).toContain('verifyPrivateModelAccess(request, env)');
   expect(route.indexOf('verifyPrivateModelAccess(request, env)'))
     .toBeLessThan(route.indexOf('createNativeG2GoogleDocsPorts({'));
-  expect(route).toContain('readNativeG2CurrentPlacementTargets(ports.getDocument)');
+  expect(route).toContain('const document = await ports.getDocument()');
+  expect(route).toContain('readNativeG2CurrentPlacementTargets(async () => document)');
   expect(native).toContain('projectNativeG2CurrentThemoReadback(document)');
   expect(native).toContain('projectNativeG2CurrentDoorReadback(document)');
   expect(route).toContain('const readback = await adapter.readback(receipt.recordId)');

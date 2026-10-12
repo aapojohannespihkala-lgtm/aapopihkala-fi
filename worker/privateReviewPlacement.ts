@@ -11,6 +11,7 @@ import {
 import {
   readNativeG2CurrentPlacementTargets,
 } from '../src/scripts/privateModelReviewPlacementG2CurrentCombined';
+import { p137EG2ReadinessFailureCodes } from '../src/scripts/privateModelP137EG2WorkerClient.mjs';
 import type {
   PlacementReviewHandoff,
 } from '../src/scripts/privateModelReviewPlacementDraft';
@@ -39,6 +40,7 @@ const PREFIX = '/private-model/review-placement/g2';
 const TARGETS = PREFIX + '/targets';
 const OBSERVATIONS = PREFIX + '/observations';
 const RECORD_ID = /^P137E_G2_[A-Za-z0-9_-]{12,64}$/;
+const readinessFailureCodes = new Set<string>(p137EG2ReadinessFailureCodes);
 
 export const isPrivatePlacementReviewPath = (pathname: string) =>
   pathname === TARGETS ||
@@ -165,8 +167,12 @@ export const handlePrivatePlacementReviewRequest = async (
 
   try {
     if (isTargets) {
-      const source = await readNativeG2CurrentPlacementTargets(ports.getDocument);
-      if (!source) return reply({ error: 'source-not-ready' }, 409);
+      // Read outside the projector's intentional null-on-read-error boundary.
+      // This keeps OAuth/Docs failures distinct from an invalid current source.
+      const document = await ports.getDocument();
+      if (!document) return reply({ error: 'source-not-ready', failureCode: 'G2_NATIVE_DOCUMENT_INVALID' }, 409);
+      const source = await readNativeG2CurrentPlacementTargets(async () => document);
+      if (!source) return reply({ error: 'source-not-ready', failureCode: 'G2_CURRENT_SOURCE_NOT_READY' }, 409);
       return reply({
         status: 'WORK_TEST_TARGETS_ONLY',
         documentRevision: source.revisionId,
@@ -205,8 +211,13 @@ export const handlePrivatePlacementReviewRequest = async (
     const readback = await adapter.readback(receipt.recordId);
     if (!readback) return reply({ error: 'readback-failed' }, 503);
     return reply({ receipt, readback });
-  } catch {
+  } catch (error) {
     // Do not disclose Google tokens, private G2 text or upstream errors.
+    if (isTargets) {
+      const code = error instanceof Error && readinessFailureCodes.has(error.message)
+        ? error.message : 'G2_NATIVE_UNAVAILABLE';
+      return reply({ error: 'g2-unavailable', failureCode: code }, 503);
+    }
     return reply({ error: 'g2-unavailable' }, 503);
   }
 };
