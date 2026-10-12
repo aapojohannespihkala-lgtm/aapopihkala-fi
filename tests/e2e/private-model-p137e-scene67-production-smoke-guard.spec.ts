@@ -370,12 +370,19 @@ test('production original P123C top plan executes three real source Themo crosse
   expect(body).toContain("planDataset.current !== 'false'");
   expect(body).toContain("planDataset.humanReview !== 'NOT_RUN'");
   expect(body).toContain("await targetSelector.selectOption(id);");
+  expect(body).toContain("const sourcePlanCrossFractions = [0.55, 0.575, 0.60];");
+  expect(body).toContain("await clickPlanFraction(sourcePlanCrossFractions[index], 0.49);");
+  const chromiumFixture = readFileSync(
+    "tests/e2e/private-model-p137e-scene67-browser-interaction.spec.ts", "utf8");
+  expect(chromiumFixture).toContain("const sourcePlanCrossFractions = [0.55, 0.575, 0.60] as const;");
+  expect(chromiumFixture).toContain("await clickPlan(sourcePlanCrossFractions[i], 0.49);");
+  expect(chromiumFixture).toContain("box!.width * sourcePlanCrossFractions[i]");
   expect(body).toContain("String(index + 1)");
   expect(body).toContain("!placementState.includes('ei tallennettu G2:een')");
-  expect(body).toContain("await clickPlanFraction(0.56, 0.49)");
-  expect(body).toContain("await clickPlanFraction(0.64, 0.49)");
-  expect(body).toContain("await clickPlanFraction(0.66, 0.49)");
+  expect(body).toContain("await clickPlanFraction(0.55, 0.49)");
+  expect(body).toContain("await clickPlanFraction(0.575, 0.49)");
   expect(body).toContain("await clickPlanFraction(0.60, 0.49)");
+  expect(body).toContain("await clickPlanFraction(0.56, 0.49)");
   expect(body).toContain("!rulerText.includes('mm (mallista)')");
   expect(body).toContain("persistedG2ByThisGate: false");
   expect(body).toContain("actualNativeG2Readback: 'NOT_RUN'");
