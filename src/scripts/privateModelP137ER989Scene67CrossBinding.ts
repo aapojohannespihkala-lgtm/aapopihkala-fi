@@ -131,7 +131,7 @@ export function crossBindP137ER989CurrentThemosToScene67({
       !Array.isArray(selection.logicalDeviceIds) ||
       selection.logicalDeviceIds.length !== 3 ||
       !p137eScene67CurrentReviewIds.every((id, index) =>
-        selection.logicalDeviceIds[index] === id)) {
+        (selection.logicalDeviceIds as unknown[])[index] === id)) {
     fail('P123C original wall or source-bound 3D Themo identity');
   }
   const selected = selection as unknown as FocusedSelection;
