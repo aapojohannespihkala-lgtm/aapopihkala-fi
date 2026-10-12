@@ -128,9 +128,17 @@ export function inspectP137ETwoFacePixelIsolation(evidence) {
       !bySide.has(view.side), 'duplicate or unknown view side');
     bySide.set(view.side, view);
   }
+  // Distinct side labels alone do not prove distinct wall-face camera frames.
+  // A copied NORTH frame cannot stand in for a SOUTH source-wall capture.
+  const north = bySide.get('NORTH');
+  const south = bySide.get('SOUTH');
+  requireThat(north && south, 'NORTH and SOUTH source-wall faces required');
+  requireThat(typeof north.cameraKey === 'string' &&
+    typeof south.cameraKey === 'string' &&
+    north.cameraKey !== south.cameraKey,
+  'two source-wall faces require distinct cameras');
   const results = [];
   for (const side of ['NORTH', 'SOUTH']) {
-    requireThat(bySide.has(side), 'missing camera face ' + side);
     results.push(...viewGate(bySide.get(side), side));
   }
   requireThat(results.length === 3, 'three devices required');
