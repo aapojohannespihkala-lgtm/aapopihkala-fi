@@ -634,6 +634,7 @@ jobs:
             // Scene67: two actual authenticated WebGL camera frames and original
             // green P123C pixels, never a substitute for individual 3/3 housings.
             let p137eScene67TwoFaceEvidence = null;
+            let p137eScene67SameCameraPanBefore = null;
             if (p137eScene67SourceEvidence) {
               const readFace = () => canvas.evaluate((el) => ({
                 face: el.dataset.p137eScene67CameraFace,
@@ -1093,6 +1094,29 @@ jobs:
               };
               fs.writeFileSync('playwright-artifacts/p137e-scene67-plan-tools.json',
                 JSON.stringify(p137eSourcePlanToolsEvidence, null, 2));
+
+              // Restore the SAME exact NORTH source before the generic motion
+              // gate. Comparing the original NORTH PNG with TOP-plan pixels
+              // would falsely pass merely because the camera changed.
+              await viewMenu.locator(':scope > summary').click();
+              if (!await viewMenu.evaluate((menu) => menu.open) ||
+                  !await northButton.isVisible()) {
+                throw new Error('P137E NORTH source restoration menu unavailable');
+              }
+              await northButton.click();
+              await page.waitForTimeout(350);
+              const restoredFace = await readFace();
+              if (restoredFace.face !== 'NORTH' ||
+                  restoredFace.ids !== 'D_THEMO_CURRENT_LOBBY_01' ||
+                  restoredFace.sourceOnly !== 'true' ||
+                  restoredFace.render !== 'false' ||
+                  restoredFace.humanReview !== 'NOT_RUN') {
+                throw new Error('P137E source camera not restored after RASTI/MITTAA');
+              }
+              p137eScene67SameCameraPanBefore = await page.screenshot({
+                clip: box, animations: 'disabled',
+                path: 'playwright-artifacts/p137e-scene67-north-before-pan.png',
+              });
             }
 
             // Scene66 uses a no-rotation orthographic plan camera. The existing
@@ -1317,13 +1341,16 @@ jobs:
             const startY = box.y + box.height * 0.48;
             await page.mouse.move(startX, startY);
             const pointerButton = isX4Themo ? 'right' : 'left';
-            await page.mouse.down({ button: pointerButton });
+            // Scene67 NORTH is deliberately rotation-disabled. Its available
+            // navigation gesture is a RIGHT-button pan, not a left orbit.
+            const motionButton = p137eScene67SourceEvidence ? 'right' : pointerButton;
+            await page.mouse.down({ button: motionButton });
             await page.mouse.move(
               startX + Math.min(120, box.width * 0.12),
               startY + 40,
               { steps: 12 },
             );
-            await page.mouse.up({ button: pointerButton });
+            await page.mouse.up({ button: motionButton });
             await page.waitForTimeout(500);
 
             const after = (isX4Themo || isR1125SourceReview || p137eScene67SourceEvidence)
@@ -1414,7 +1441,8 @@ jobs:
                 };
               },
               {
-                beforeUrl: 'data:image/png;base64,' + before.toString('base64'),
+                beforeUrl: 'data:image/png;base64,' +
+                  (p137eScene67SameCameraPanBefore ?? before).toString('base64'),
                 afterUrl: 'data:image/png;base64,' + after.toString('base64'),
               },
             );
