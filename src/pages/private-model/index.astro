@@ -2962,6 +2962,11 @@ const title = 'Private 3D viewer';
       };
       const p137eG2Panel = createPlacementReviewPanel({
         mount: p137ePlacePanel,
+        onPersistingChange: (persisting, targetId) => {
+          if (persisting && targetId) p137ePlaceTarget.value = targetId;
+          p137ePlaceTarget.disabled = persisting;
+          p137ePlaceClear.disabled = persisting;
+        },
         persist: (payload) => {
           if (!p137eG2VerifiedTargets || !p137eG2Allowed() ||
               !p137eG2ThemoIds.includes(payload?.anchor?.targetId)) {
@@ -2972,6 +2977,12 @@ const title = 'Private 3D viewer';
         readback: (recordId) => getP137EG2Client().readback(recordId),
       });
       const syncP137EG2Draft = () => {
+        const lockedTargetId = p137eG2Panel.persistingTargetId();
+        if (lockedTargetId) {
+          // The outer selector must agree with the irreversible in-flight G2 target.
+          p137ePlaceTarget.value = lockedTargetId;
+          return;
+        }
         p137eG2Panel.cancel();
         if (!p137eG2VerifiedTargets || !p137eG2Allowed()) return;
         const id = p137ePlaceTarget.value;

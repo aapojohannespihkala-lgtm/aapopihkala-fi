@@ -359,8 +359,16 @@ test('G2 in-flight save cannot be falsely cancelled or switched to another Themo
     let finishPersist!: (ack: { status: 'PERSISTED_TO_EXISTING_G2'; recordId: string }) => void;
     let failPersist!: (reason?: unknown) => void;
     let sent: PlacementReviewHandoff | null = null;
+    const selector = new FakeNode('select');
+    selector.value = d1f.targetId;
+    const persistingStates: boolean[] = [];
     const panel = createPlacementReviewPanel({
       mount: new FakeNode('main') as unknown as HTMLElement,
+      onPersistingChange: (persisting, targetId) => {
+        persistingStates.push(persisting);
+        selector.disabled = persisting;
+        if (persisting && targetId) selector.value = targetId;
+      },
       persist: async (payload) => {
         sent = payload;
         return new Promise((resolve, reject) => { finishPersist = resolve; failPersist = reject; });
@@ -379,7 +387,14 @@ test('G2 in-flight save cannot be falsely cancelled or switched to another Themo
     const pending = form.emit('submit', { preventDefault() {} }) as Promise<void>;
     expect(panel.element.dataset.reviewPlacementStatus).toBe('persisting');
     expect(cancel.disabled).toBe(true);
+    expect(selector.disabled).toBe(true);
+    expect(selector.value).toBe(d1f.targetId);
+    expect(panel.persistingTargetId()).toBe(d1f.targetId);
     expect(panel.cancel()).toBe(false);
+    // Simulate an outer select change despite disabled state; viewer must restore the persisted target.
+    selector.value = 'D_THEMO_CURRENT_BATHROOM_01';
+    if (panel.persistingTargetId()) selector.value = panel.persistingTargetId()!;
+    expect(selector.value).toBe(d1f.targetId);
     panel.open({ ...d1f, targetId: 'D_THEMO_CURRENT_BATHROOM_01', approvedWallHosts: [] });
     cancel.emit('click');
     expect(panel.element.dataset.reviewPlacementStatus).toBe('persisting');
@@ -389,6 +404,9 @@ test('G2 in-flight save cannot be falsely cancelled or switched to another Themo
     await pending;
     expect(panel.element.dataset.reviewPlacementStatus).toBe('persisted');
     expect(cancel.disabled).toBe(false);
+    expect(selector.disabled).toBe(false);
+    expect(panel.persistingTargetId()).toBe(null);
+    expect(persistingStates).toEqual([true, false]);
     expect(panel.cancel()).toBe(true);
     expect(panel.element.dataset.reviewPlacementStatus).toBe('inactive');
     expect(panel.element.hidden).toBe(true);
@@ -401,10 +419,15 @@ test('G2 in-flight save cannot be falsely cancelled or switched to another Themo
     expect(cancel.disabled).toBe(true);
     expect(panel.cancel()).toBe(false);
     expect(panel.element.dataset.reviewPlacementStatus).toBe('persisting');
+    expect(selector.disabled).toBe(true);
+    expect(panel.persistingTargetId()).toBe(d1f.targetId);
     failPersist(new Error('simulated G2 POST rejection'));
     await rejected;
     expect(panel.element.dataset.reviewPlacementStatus).toBe('draft');
     expect(cancel.disabled).toBe(false);
+    expect(selector.disabled).toBe(false);
+    expect(panel.persistingTargetId()).toBe(null);
+    expect(persistingStates).toEqual([true, false, true, false]);
     expect(note.disabled).toBe(false);
     expect(note.value).toBe('Themo: säilytä havainto epäonnistuneen tallennuksen jälkeen.');
     expect(panel.element.hidden).toBe(false);
