@@ -245,13 +245,17 @@ const targetLocations: [number, number, number][] = [
   [8.3, 0.06, -1.0],
   [8.3, 0.06, -5.0],
   [1.0, 0.06, -5.0],
-  [2.0, 0.06, -4.8],
-  [6.8, 0.06, -4.8],
-  [4.3, 0.06, -1.0],
-  [8.7, 0.06, -3.7],
-  [8.7, 0.06, -2.3],
-  [0.6, 0.06, -3.8],
-  [0.6, 0.06, -2.2],
+  // Synthetic ROUTE fixtures are spaced apart in the real focused
+  // perspective projection, so seven distinct same-palette ROIs remain
+  // independently verifiable at the 1536x768/sidebar viewport.
+  // This does not change a source GLB route or loosen overlap rejection.
+  [5.566, 0.06, -0.253],
+  [9.0, 0.06, -5.669],
+  [6.330, 0.06, -4.917],
+  [8.945, 0.06, -0.246],
+  [0.300, 0.06, -3.819],
+  [0.300, 0.06, -0.244],
+  [2.522, 0.06, -5.666],
   [0.25, 0.06, -4.8],
   [9.15, 0.06, -4.8],
 ];
