@@ -2384,6 +2384,20 @@ const title = 'Private 3D viewer';
       setIsoRotationMode('disabled');
       isoControls.enabled = false;
 
+      // WORK_TEST presentation only. Never mutate/dispose the original GLB
+      // wall's geometry or source material. SOUTH translucency is reversible.
+      const p137eWallPresentationOriginals: Array<{
+        mesh: any; material: any; temporary: any[];
+      }> = [];
+      const restoreP137EWallPresentation = () => {
+        for (const item of p137eWallPresentationOriginals) {
+          item.mesh.material = item.material;
+          for (const cloned of item.temporary) cloned.dispose?.();
+        }
+        p137eWallPresentationOriginals.length = 0;
+        delete canvas.dataset.p137eScene67WallPresentation;
+      };
+
       const ambient = new THREE.HemisphereLight(0xffffff, 0x777777, 2.2);
       scene.add(ambient);
 
@@ -3959,6 +3973,7 @@ const title = 'Private 3D viewer';
       const syncViewState = (preset: 'orbit' | 'top' | 'bottom' | 'isometric' | 'd-plan' | 'elevation') => {
         canvas.dataset.viewPreset = preset;
         // Any generic preset ends the exact source-bound face review camera.
+        restoreP137EWallPresentation();
         delete canvas.dataset.p137eScene67CameraFace;
         canvas.dataset.cameraProjection = (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective';
         const activeControls =
@@ -5609,6 +5624,7 @@ const title = 'Private 3D viewer';
         sourceLabel: string,
       ) => {
         // Never leak source-camera coordinates across different WORK_TEST candidates.
+        restoreP137EWallPresentation();
         if (p137eNorthFaceButton) p137eNorthFaceButton.hidden = true;
         if (p137eSouthFaceButton) p137eSouthFaceButton.hidden = true;
         delete canvas.dataset.p137eScene67CameraFace;
@@ -8017,6 +8033,41 @@ const title = 'Private 3D viewer';
 
       // The production viewer must invoke the merged scene67 source-camera
       // verifier on the exact selected GLB root, not on a synthetic fixture.
+      const applyP137EScene67SouthWallPresentation = () => {
+        // The source material is opaque double-sided. G2 local visual check
+        // showed Bathroom hidden behind the original wall from SOUTH, while
+        // source wall alpha 0.38 revealed it. Do NOT ghost Lobby on NORTH.
+        const original = fullModelScene?.children?.filter((child: any) =>
+          child?.name === 'P137E_ORIGINAL_P123C_D1F_NODE798_MESH406_PRESENTATION_INSTANCE' &&
+          child?.userData?.sourceNodeIndex === 798 &&
+          child?.userData?.sourceMeshIndex === 406 &&
+          child?.userData?.originalSourceGeometryUnmodified === true &&
+          child?.userData?.presentationOnly === true);
+        if (original?.length !== 1) {
+          throw new Error('P137E scene67 source wall not unique for SOUTH transparency');
+        }
+        const meshes: any[] = [];
+        original[0].traverse((obj: any) => {
+          if (obj?.isMesh && obj.material) meshes.push(obj);
+        });
+        if (!meshes.length) throw new Error('P137E scene67 original wall mesh unavailable');
+        for (const mesh of meshes) {
+          const sourceMaterial = mesh.material;
+          const sourceMaterials = Array.isArray(sourceMaterial) ? sourceMaterial : [sourceMaterial];
+          const temporary = sourceMaterials.map((material: any) => {
+            const clone = material.clone();
+            clone.opacity = 0.38;
+            clone.transparent = true;
+            clone.depthWrite = false;
+            clone.needsUpdate = true;
+            return clone;
+          });
+          mesh.material = Array.isArray(sourceMaterial) ? temporary : temporary[0];
+          p137eWallPresentationOriginals.push({ mesh, material: sourceMaterial, temporary });
+        }
+        canvas.dataset.p137eScene67WallPresentation = 'SOUTH_SOURCE_WALL_ALPHA_0_38';
+      };
+
       const applyP137EScene67SourceFace = (face: 'NORTH' | 'SOUTH') => {
         if (
           activeModelSourceKind !== 'work-test' ||
@@ -8065,6 +8116,8 @@ const title = 'Private 3D viewer';
         isoControls.target.copy(target);
         isoControls.update();
         syncViewState('isometric');
+        if (face === 'SOUTH') applyP137EScene67SouthWallPresentation();
+        else canvas.dataset.p137eScene67WallPresentation = 'NORTH_SOURCE_WALL_OPAQUE';
         Object.assign(canvas.dataset, {
           p137eScene67CameraFace: face,
           p137eScene67CameraSourceIds: selection.sourceIds.join(','),
@@ -8074,7 +8127,7 @@ const title = 'Private 3D viewer';
         });
         status.textContent = face === 'NORTH'
           ? 'P137E WORK_TEST - aula (pohjoinen seinäpuoli), 1 Themo, katselu varmentamatta'
-          : 'P137E WORK_TEST - makuuhuone ja kylpyhuone (eteläinen seinäpuoli), 2 Themoa, katselu varmentamatta';
+          : 'P137E WORK_TEST - makuuhuone ja kylpyhuone, 2 Themoa; alkuperäinen seinä läpinäkyvänä vain katselua varten; renderöinti varmentamatta';
       };
 
       const applyP137EScene67ReviewState = () => {
