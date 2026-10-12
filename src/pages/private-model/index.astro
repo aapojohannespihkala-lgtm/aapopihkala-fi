@@ -11160,7 +11160,7 @@ const title = 'Private 3D viewer';
         try {
           // No guessed wall host or historical 2015 group position is accepted.
           const result = await getP137EG2Client().targets();
-          const ids = result.targets.map((target) => target.targetId).sort();
+          const ids: string[] = result.targets.map((target: { targetId: string }) => target.targetId).sort();
           if (session !== p137eG2Session || !p137eG2Allowed() ||
               ids.length !== p137eG2ExpectedSourceIds.length ||
               ids.some((id, i) => id !== p137eG2ExpectedSourceIds[i])) {
