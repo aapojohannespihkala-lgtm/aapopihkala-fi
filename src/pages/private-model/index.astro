@@ -1930,7 +1930,10 @@ const title = 'Private 3D viewer';
         p137eFocusedReviewSceneName,
         p137eFocusedReviewSceneIndex,
       } from '../../scripts/privateModelP137EScene67Selection';
-      import { deriveP137ETwoFaceSourceCameras } from '../../scripts/privateModelP137ETwoSidedSourceCamera';
+      import {
+        deriveP137ETwoFaceSourceCameras,
+        deriveP137ETwoFaceSourcePixelRegions,
+      } from '../../scripts/privateModelP137ETwoSidedSourceCamera';
       import {
         p186dExpectedD1fTargetCount,
         p186dExpectedD1fPosCounts,
@@ -4286,6 +4289,8 @@ const title = 'Private 3D viewer';
         // Any generic preset ends the exact source-bound face review camera.
         restoreP137EWallPresentation();
         delete canvas.dataset.p137eScene67CameraFace;
+        delete canvas.dataset.p137eScene67SourceHousingRois;
+        delete canvas.dataset.p137eScene67SourceHousingRoiStatus;
         canvas.dataset.cameraProjection = (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective';
         const activeControls =
           activeCamera === planCamera ? planControls : activeCamera === isoCamera ? isoControls : controls;
@@ -8406,6 +8411,33 @@ const title = 'Private 3D viewer';
           throw new Error('P137E scene67 source camera no-promotion/identity mismatch');
         }
 
+        // An independently source-projected pixel region is evidence INPUT,
+        // never proof of an actual screenshot. Any out-of-frame ROI must not
+        // break the otherwise valid 3D camera: publish explicit unavailable.
+        let sourceHousingRois: ReturnType<
+          typeof deriveP137ETwoFaceSourcePixelRegions
+        >['north'] | null = null;
+        try {
+          const rect = canvas.getBoundingClientRect();
+          const regions = deriveP137ETwoFaceSourcePixelRegions(
+            fullModelScene, Math.round(rect.width), Math.round(rect.height),
+          );
+          const side = face === 'NORTH' ? regions.north : regions.south;
+          if (side.side !== face ||
+              side.projectedTargets.length !== selection.sourceIds.length ||
+              side.projectedTargets.some((target, i) =>
+                target.logicalDeviceId !== selection.sourceIds[i]) ||
+              side.individualRenderedPixelsVerified !== false ||
+              regions.actualProductionScreenshotVerified !== false) {
+            throw new Error('source-only housing ROI identity mismatch');
+          }
+          sourceHousingRois = side;
+        } catch {
+          // Missing/invalid source ROI must fail a future screenshot gate,
+          // not make NORTH/SOUTH cameras unusable in the WORK_TEST viewer.
+          sourceHousingRois = null;
+        }
+
         // Mutate the live orthographic camera ONLY after source and face QA.
         deactivateElevationView();
         clearSelection();
@@ -8439,9 +8471,16 @@ const title = 'Private 3D viewer';
           p137eScene67CameraFace: face,
           p137eScene67CameraSourceIds: selection.sourceIds.join(','),
           p137eScene67CameraSourceOnly: 'true',
+          p137eScene67SourceHousingRoiStatus: sourceHousingRois
+            ? 'SOURCE_ONLY_PROJECTED' : 'SOURCE_PROJECTION_UNAVAILABLE',
           p137eScene67ProductionRenderVerified: 'false',
           p137eHumanReview: 'NOT_RUN',
         });
+        if (sourceHousingRois) {
+          canvas.dataset.p137eScene67SourceHousingRois = JSON.stringify(sourceHousingRois);
+        } else {
+          delete canvas.dataset.p137eScene67SourceHousingRois;
+        }
         status.textContent = face === 'NORTH'
           ? 'P137E WORK_TEST - aula (pohjoinen seinäpuoli), 1 Themo, katselu varmentamatta'
           : 'P137E WORK_TEST - makuuhuone ja kylpyhuone, 2 Themoa; alkuperäinen seinä läpinäkyvänä vain katselua varten; renderöinti varmentamatta';
