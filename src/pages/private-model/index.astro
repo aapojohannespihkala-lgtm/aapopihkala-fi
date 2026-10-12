@@ -2074,6 +2074,9 @@ const title = 'Private 3D viewer';
         selectM5AR1125SourceBoundReviewScene,
       } from '../../scripts/privateModelM5AZ2SystemReviewRuntime';
 
+      // @ts-ignore - Existing source-camera verifier is a standalone JavaScript module.
+      import { deriveM5AR1125SourceCameraCenters } from '../../scripts/privateModelM5AR1125SourceCameraCenters.mjs';
+
       import {
         createWorkTestLoadFailureDataset,
         workTestLoadFailureStatusText,
@@ -5594,6 +5597,8 @@ const title = 'Private 3D viewer';
         sourceKind: ModelSourceKind,
         sourceLabel: string,
       ) => {
+        // Never leak source-camera coordinates across different WORK_TEST candidates.
+        delete canvas.dataset.m5aR1125SourceCameraCenters;
         setM5aSourceContextVisible(false);
         setP186cX2rSourceContextVisible(false);
         setP186bSourceContextVisible(false);
@@ -9508,6 +9513,31 @@ const title = 'Private 3D viewer';
             loadFailurePhase = 'm5a-z2-presentation-guard-failed';
             applyM5aDrainageReviewState(m5aDrainageReviewMode, isM5AR1125SourceReview);
             if (isM5AR1125SourceReview) {
+              // Release proof input must come from the selected original scene63
+              // and the camera AFTER the actual viewer focus, never a fixture.
+              if (activeCamera !== camera ||
+                  canvas.dataset.m5aReviewCameraFocusApplied !== 'true') {
+                throw new Error('R1125 source-camera projection requires focused perspective review');
+              }
+              const frame = canvas.getBoundingClientRect();
+              const screenshotScale = window.devicePixelRatio || 1;
+              const sourceCameraProjection = deriveM5AR1125SourceCameraCenters({
+                sceneRoot: fullModelScene,
+                camera: activeCamera,
+                THREE,
+                sceneIndex: 63,
+                imageWidth: Math.round(frame.width * screenshotScale),
+                imageHeight: Math.round(frame.height * screenshotScale),
+              });
+              if (sourceCameraProjection.sourceTargetCount !== 13 ||
+                  sourceCameraProjection.centers.length !== 13 ||
+                  sourceCameraProjection.originalGlbDigestAuthenticated !== false ||
+                  sourceCameraProjection.productionScreenshotVerified !== false ||
+                  sourceCameraProjection.humanReview !== 'NOT_RUN') {
+                throw new Error('R1125 exact source-camera projection gate incomplete');
+              }
+              canvas.dataset.m5aR1125SourceCameraCenters =
+                JSON.stringify(sourceCameraProjection);
               Object.assign(canvas.dataset, {
                 m5aR1125SourceDriveId: '13qxYc9PF7Z6eo_OXs1RrYCyo5CbTIAKs',
                 m5aR1125SourceContract: 'G2_R1125',
