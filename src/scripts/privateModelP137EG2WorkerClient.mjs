@@ -85,7 +85,15 @@ async function boundedJson(response) {
   catch { throw new Error('P137E_G2_RESPONSE_INVALID'); }
 }
 
-/** User-interface releases must never substitute for the server's own gates. */
+/**
+ * User-interface releases must never substitute for the server's own gates.
+ * A missing canReview is intentionally dormant, not approval to call the Worker.
+ * @param {{
+ *   origin?: string,
+ *   canReview?: () => boolean,
+ *   fetcher?: (url: string, options: RequestInit) => Promise<Response>
+ * }} [config]
+ */
 export function createP137EG2WorkerClient({
   origin, canReview = () => false, fetcher = globalThis.fetch,
 } = {}) {
