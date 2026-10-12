@@ -8194,7 +8194,11 @@ const title = 'Private 3D viewer';
         canvas.dataset.contentFloor = '1F';
         activePlanFocusBounds = bounds;
         fitPlanCamera();
-        deactivateDCoordinateReview();
+        // The focused source wall remains unchanged. Re-enable only the
+        // existing D1F plan coordinate panel and temporary millimetre ruler.
+        // This does not confirm any physical Themo placement or persist G2.
+        activateDCoordinateReview('1F');
+        dCoordinateGridGroup.visible = false;
         setD1KnownDoorReviewLabelsVisible(false);
         refreshEdgeRendering(fullModelScene);
         Object.assign(canvas.dataset, {
