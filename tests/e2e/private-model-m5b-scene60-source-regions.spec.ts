@@ -137,7 +137,7 @@ test('behind-camera, clipped camera and two overlapped proxy regions fail closed
   behind.camera.lookAt(0, 2, -80);
   expect(() => derive(behind)).toThrow(/camera|clipped|behind/);
   const clipped = fixture();
-  findProxy(clipped, 0).position.x += 200;
+  findProxy(clipped, 0).position.x -= 200;
   expect(() => derive(clipped)).toThrow(/clipped/);
   const overlap = fixture();
   findProxy(overlap, 4).position.copy(findProxy(overlap, 0).position);
