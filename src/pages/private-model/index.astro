@@ -2935,10 +2935,19 @@ const title = 'Private 3D viewer';
         fullModelScene?.name === 'P137E_D_THEMOS_REAL_WALL_FACE_WORK_TEST_ROOT_BABYLON_Y_UP' &&
         fullModelScene.children.length === 4 &&
         modelRoot.children[0] === fullModelScene;
-      const p137eG2Client = createP137EG2WorkerClient({
-        origin: window.location.origin,
-        canReview: () => p137eG2Allowed(),
-      });
+      // Lazy: local HTTP preview must still load the viewer, but native G2
+      // writes are permitted ONLY by the client on an HTTPS same-origin host.
+      let p137eG2Client: ReturnType<typeof createP137EG2WorkerClient> | null = null;
+      const getP137EG2Client = () => {
+        if (!p137eG2Allowed()) throw new Error('P137E_G2_REVIEW_NOT_RELEASED');
+        if (!p137eG2Client) {
+          p137eG2Client = createP137EG2WorkerClient({
+            origin: window.location.origin,
+            canReview: () => p137eG2Allowed(),
+          });
+        }
+        return p137eG2Client;
+      };
       const p137eG2Panel = createPlacementReviewPanel({
         mount: p137ePlacePanel,
         persist: (payload) => {
@@ -2946,9 +2955,9 @@ const title = 'Private 3D viewer';
               !p137eG2ExactTargets.includes(payload?.anchor?.targetId)) {
             throw new Error('P137E_G2_REVIEW_NOT_RELEASED');
           }
-          return p137eG2Client.persist(payload);
+          return getP137EG2Client().persist(payload);
         },
-        readback: (recordId) => p137eG2Client.readback(recordId),
+        readback: (recordId) => getP137EG2Client().readback(recordId),
       });
       const syncP137EG2Draft = () => {
         p137eG2Panel.cancel();
@@ -3025,7 +3034,7 @@ const title = 'Private 3D viewer';
         scene.add(marker);
         p137ePlaceMarkers.set(id, marker);
         p137ePlaceAnchors.set(id, anchor);
-        p137ePlaceStatus.textContent = `${p137eTargetLabels[id]}: rasti asetettu; G2-tallennus vaatii erillisen vahvistuksen.`;
+        p137ePlaceStatus.textContent = `${p137eTargetLabels[id]}: rasti asetettu, ei tallennettu G2:een. Erillinen varmennus vaaditaan.`;
         updateP137EPlaceDraftList();
         syncP137EG2Draft();
       };
@@ -11143,7 +11152,7 @@ const title = 'Private 3D viewer';
         p137eG2Status.textContent = 'Tarkistetaan G2:n alkuperäiset kolme Themo-tunnistetta...';
         try {
           // No guessed wall host or historical 2015 group position is accepted.
-          const result = await p137eG2Client.targets();
+          const result = await getP137EG2Client().targets();
           const ids = result.targets.map((target) => target.targetId).sort();
           if (session !== p137eG2Session || !p137eG2Allowed() ||
               ids.length !== p137eG2ExactTargets.length ||
