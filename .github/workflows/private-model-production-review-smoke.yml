@@ -642,18 +642,58 @@ jobs:
                 sourceOnly: el.dataset.p137eScene67CameraSourceOnly,
                 render: el.dataset.p137eScene67ProductionRenderVerified,
                 humanReview: el.dataset.p137eHumanReview,
+                visibleIds: el.dataset.p137eScene67VisibleDeviceIds,
+                hiddenIds: el.dataset.p137eScene67HiddenDeviceIds,
+                mask: el.dataset.p137eScene67DeviceFaceMask,
+                roiStatus: el.dataset.p137eScene67SourceHousingRoiStatus,
+                roiJson: el.dataset.p137eScene67SourceHousingRois,
               }));
               const north = await readFace();
               const northButton = page.locator('#p137e-north-face-button');
               const southButton = page.locator('#p137e-south-face-button');
               if (north.face !== 'NORTH' ||
                   north.ids !== 'D_THEMO_CURRENT_LOBBY_01' ||
-                  north.wall !== 'NORTH_SOURCE_WALL_OPAQUE' ||
+                  north.wall !== 'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED' ||
+                  north.visibleIds !== 'D_THEMO_CURRENT_LOBBY_01' ||
+                  north.hiddenIds !== 'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01' ||
+                  north.mask !== 'NORTH_SOURCE_ONLY_RESTOREABLE' ||
                   north.sourceOnly !== 'true' || north.render !== 'false' ||
                   north.humanReview !== 'NOT_RUN' ||
                   !await northButton.isVisible() || !await southButton.isVisible()) {
                 throw new Error('P137E original NORTH source camera or buttons missing');
               }
+              // These rectangles are source-geometry projections, not yet
+              // evidence of any individual device's rendered pixels.
+              const validateProjectedSourceRois = (state, side, expectedIds) => {
+                if (state.roiStatus !== 'SOURCE_ONLY_PROJECTED' ||
+                    typeof state.roiJson !== 'string') {
+                  throw new Error('P137E ' + side + ' projected source ROIs unavailable');
+                }
+                const rois = JSON.parse(state.roiJson);
+                if (rois.side !== side ||
+                    rois.cameraKey !== 'P137E_SCENE67_P123C_' + side ||
+                    rois.width !== Math.round(box.width) ||
+                    rois.height !== Math.round(box.height) ||
+                    rois.sourceOnly !== true ||
+                    rois.individualRenderedPixelsVerified !== false ||
+                    !Array.isArray(rois.projectedTargets) ||
+                    rois.projectedTargets.length !== expectedIds.length ||
+                    rois.projectedTargets.some((roi, i) =>
+                      roi.logicalDeviceId !== expectedIds[i] ||
+                      !Number.isSafeInteger(roi.x) ||
+                      !Number.isSafeInteger(roi.y) ||
+                      !Number.isSafeInteger(roi.radius) ||
+                      roi.radius < 4 || roi.radius > 96 ||
+                      roi.x - roi.radius < 0 ||
+                      roi.y - roi.radius < 0 ||
+                      roi.x + roi.radius >= rois.width ||
+                      roi.y + roi.radius >= rois.height)) {
+                  throw new Error('P137E ' + side + ' projected source ROI identity or bounds mismatch');
+                }
+                return rois;
+              };
+              const northSourceRois = validateProjectedSourceRois(
+                north, 'NORTH', ['D_THEMO_CURRENT_LOBBY_01']);
               const firstUrl = 'data:image/png;base64,' + before.toString('base64');
               const decode = '(async (url) => {' +
                 'const i=new Image();i.src=url;await i.decode();' +
@@ -679,7 +719,10 @@ jobs:
               const south = await readFace();
               if (south.face !== 'SOUTH' ||
                   south.ids !== 'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01' ||
-                  south.wall !== 'SOUTH_SOURCE_WALL_ALPHA_0_38' ||
+                  south.wall !== 'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED' ||
+                  south.visibleIds !== 'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01' ||
+                  south.hiddenIds !== 'D_THEMO_CURRENT_LOBBY_01' ||
+                  south.mask !== 'SOUTH_SOURCE_ONLY_RESTOREABLE' ||
                   south.sourceOnly !== 'true' || south.render !== 'false' ||
                   south.humanReview !== 'NOT_RUN') {
                 throw new Error('P137E original SOUTH source camera or room identities missing');
@@ -689,6 +732,9 @@ jobs:
                   k => Math.abs(southBox[k] - box[k]) > 1)) {
                 throw new Error('P137E opposite faces have mismatched viewport geometry');
               }
+              const southSourceRois = validateProjectedSourceRois(south, 'SOUTH', [
+                'D_THEMO_CURRENT_BEDROOM_01', 'D_THEMO_CURRENT_BATHROOM_01',
+              ]);
               const southPng = await page.screenshot({
                 clip: box, animations: 'disabled',
                 path: 'playwright-artifacts/p137e-scene67-south.png',
@@ -723,6 +769,8 @@ jobs:
               p137eScene67TwoFaceEvidence = {
                 sceneIndex:67, originalWallNode:798, originalWallMesh:406,
                 north,south,comparison,greenWallPixels:green,
+                projectedSourceHousingRois: { north:northSourceRois, south:southSourceRois },
+                projectedRoisAreNotIndividualPixelProof:true,
                 actualProductionTwoFaceScreenshotsCaptured:true,
                 threeIndividualThemoHousingPixelsVerified:false,
                 humanReview:'NOT_RUN',publishToCURRENT:false,

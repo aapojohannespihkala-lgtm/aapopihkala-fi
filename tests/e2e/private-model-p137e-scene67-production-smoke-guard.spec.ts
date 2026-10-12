@@ -196,3 +196,37 @@ test('viewer autoload evidence requires exact sha and never asserts device pixel
   expect(guard).toContain('individualDevicePixelsVerified: false');
   expect(guard).toContain("humanReview: 'NOT_RUN'");
 });
+
+test('production workflow checks merged original face mask source IDs, not old opaque aliases', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  expect(workflow).toContain("north.wall !== 'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED'");
+  expect(workflow).toContain("south.wall !== 'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED'");
+  expect(workflow).toContain("north.visibleIds !== 'D_THEMO_CURRENT_LOBBY_01'");
+  expect(workflow).toContain("north.hiddenIds !== 'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01'");
+  expect(workflow).toContain("south.visibleIds !== 'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01'");
+  expect(workflow).toContain("south.hiddenIds !== 'D_THEMO_CURRENT_LOBBY_01'");
+  expect(workflow).toContain("north.mask !== 'NORTH_SOURCE_ONLY_RESTOREABLE'");
+  expect(workflow).toContain("south.mask !== 'SOUTH_SOURCE_ONLY_RESTOREABLE'");
+  expect(workflow).not.toContain("north.wall !== 'NORTH_SOURCE_WALL_OPAQUE'");
+  expect(workflow).not.toContain("south.wall !== 'SOUTH_SOURCE_WALL_ALPHA_0_38'");
+  expect(workflow).toContain("await southButton.click()");
+  expect(workflow).toContain("await northButton.click()");
+});
+
+test('authenticated two-face screenshot artifacts require source-bound 1N + 2S rectangles only', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  expect(workflow).toContain("const validateProjectedSourceRois = (state, side, expectedIds) => {");
+  expect(workflow).toContain("state.roiStatus !== 'SOURCE_ONLY_PROJECTED'");
+  expect(workflow).toContain("rois.cameraKey !== 'P137E_SCENE67_P123C_' + side");
+  expect(workflow).toContain("rois.width !== Math.round(box.width)");
+  expect(workflow).toContain("rois.individualRenderedPixelsVerified !== false");
+  expect(workflow).toContain("roi.logicalDeviceId !== expectedIds[i]");
+  expect(workflow).toContain("const northSourceRois = validateProjectedSourceRois(");
+  expect(workflow).toContain("north, 'NORTH', ['D_THEMO_CURRENT_LOBBY_01']");
+  expect(workflow).toContain("const southSourceRois = validateProjectedSourceRois(south, 'SOUTH', [");
+  expect(workflow).toContain("projectedSourceHousingRois: { north:northSourceRois, south:southSourceRois }");
+  expect(workflow).toContain("projectedRoisAreNotIndividualPixelProof:true");
+  expect(workflow).toContain("threeIndividualThemoHousingPixelsVerified:false");
+  expect(workflow).toContain("actualProductionTwoFaceScreenshotsCaptured:true");
+  expect(workflow).toContain("humanReview:'NOT_RUN',publishToCURRENT:false");
+});
