@@ -25,8 +25,8 @@ test('exact scene67 WORK_TEST source fetch verifies complete bytes before parse'
   const seen: { url: string; options: RequestInit }[] = [];
   const result = await fetchP137EScene67VerifiedGlb(P137E_SCENE67_EXACT_ASSET_PATH, {
     origin,
-    fetcher: async (url: string, options: RequestInit) => {
-      seen.push({ url, options });
+    fetcher: async (url, options) => {
+      seen.push({ url: String(url), options: options ?? {} });
       return ok() as unknown as Response;
     },
     // The synthetic fixture has zero bytes; only its digest is mocked.
@@ -81,8 +81,8 @@ test('one total deadline covers a stalled browser request even when fetch ignore
   let signal: AbortSignal | undefined;
   await expect(fetchP137EScene67VerifiedGlb(P137E_SCENE67_EXACT_ASSET_PATH, {
     origin, timeoutMs: 20,
-    fetcher: async (_url: string, init: RequestInit) => {
-      signal = init.signal ?? undefined;
+    fetcher: async (_url, init) => {
+      signal = init?.signal ?? undefined;
       return new Promise<Response>(() => {});
     },
   })).rejects.toThrow('SOURCE_FETCH_TIMEOUT');
