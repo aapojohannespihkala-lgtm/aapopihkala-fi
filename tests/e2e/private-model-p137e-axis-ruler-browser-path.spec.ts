@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 // Real viewer-page event-path regression using a tiny synthetic GLB.
 // This does not authenticate the original Ylisrinne GLB, measured geometry,
@@ -230,4 +231,26 @@ test('actual D1F browser ruler measures along Y and never invents a diagonal', a
   await page.mouse.click(outside.x, outside.y);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
   await expect(canvas).not.toHaveAttribute('data-axis-measure-mm', /\d/);
+});
+
+
+test('focused scene67 keeps temporary D1F ruler without physical placement promotion', () => {
+  // Source contract only. The existing synthetic viewer test covers the
+  // four-click ruler event path; real scene67 production pixels remain gated.
+  const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
+  const begin = source.indexOf('const applyP137EScene67ReviewState = () => {');
+  const end = source.indexOf('const applyP186fReviewState =', begin);
+  expect(begin).toBeGreaterThanOrEqual(0);
+  expect(end).toBeGreaterThan(begin);
+  const focused = source.slice(begin, end);
+  expect(focused).toContain('fullModelScene.children.length !== 4');
+  expect(focused).toContain("activateDCoordinateReview('1F')");
+  expect(focused).toContain('dCoordinateGridGroup.visible = false');
+  expect(focused).not.toContain('deactivateDCoordinateReview()');
+  expect(focused).toContain("p137eOriginalSourceWallNode: '798'");
+  expect(focused).toContain("p137eOriginalSourceWallMesh: '406'");
+  expect(focused).toContain("p137eWallMountedThemoCount: '3'");
+  expect(focused).toContain("p137eExactXYClaim: 'false'");
+  expect(focused).toContain("p137eCurrentClaim: 'false'");
+  expect(focused).toContain("p137eHumanReview: 'NOT_RUN'");
 });
