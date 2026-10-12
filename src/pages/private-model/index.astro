@@ -272,6 +272,10 @@ const title = 'Private 3D viewer';
         left: 12px;
         z-index: 2;
         width: min(290px, calc(100% - 24px));
+        max-height: calc(100% - 24px);
+        box-sizing: border-box;
+        overflow-y: auto;
+        overscroll-behavior: contain;
         padding: 12px;
         border: 1px solid #d7d7d2;
         border-radius: 10px;
@@ -1861,6 +1865,12 @@ const title = 'Private 3D viewer';
         p186fX4ReviewSourceLimit,
         prepareP186fReviewPresentation,
       } from '../../scripts/privateModelP186FReviewPresentation';
+      import { prepareP186FX4FloorPlanGuide } from '../../scripts/privateModelP186FX4PlanContext';
+      import {
+        selectP137EScene67FocusedReview,
+        p137eFocusedReviewSceneName,
+        p137eFocusedReviewSceneIndex,
+      } from '../../scripts/privateModelP137EScene67Selection';
       import {
         p186dExpectedD1fTargetCount,
         p186dExpectedD1fPosCounts,
@@ -4245,7 +4255,11 @@ const title = 'Private 3D viewer';
         dInteriorScene.traverse((object: any) => {
           if (!isDPlanRenderable(object)) return;
           const baseline = dVisibilityBaseline.get(object) ?? object.visible;
-          const show = baseline && hasFloorToken(object, floor);
+          const d = object.userData ?? {};
+          const isUnwantedAreaHelper =
+            d.representationKind === 'referenceFootprint' &&
+            String(object.name ?? '').startsWith('P117D_REVIEW_');
+          const show = baseline && hasFloorToken(object, floor) && !isUnwantedAreaHelper;
           object.visible = show;
           if (show) matchedRenderables += 1;
           else if (baseline) hiddenOtherFloorRenderables += 1;
@@ -6511,6 +6525,10 @@ const title = 'Private 3D viewer';
       const p186fX2ReviewId = `${p186fX2CandidateId}-review`;
       const isP186fX2ThemoRoomReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p186fX2ReviewId);
+      const p137eScene67CandidateId = 'p137e-d1f-three-wall-mounted-themos';
+      const p137eScene67ReviewId = `${p137eScene67CandidateId}-review`;
+      const isP137EScene67ReviewRequested = () =>
+        isPrivateModelReviewRequested(window.location.search, p137eScene67ReviewId);
       const p186fX4CandidateId = 'p186f-x4-d-themo-door-plan-clear-work-assumption';
       const p186fX4ReviewId = `${p186fX4CandidateId}-review`;
       const isP186fX4ThemoRoomReviewRequested = () =>
@@ -7364,7 +7382,10 @@ const title = 'Private 3D viewer';
         | 'R3_Z1C_SOK1_SOK2_RELATIVE_Z'
         | 'Z2_ABSOLUTE_Z_SYSTEM';
 
-      const applyM5aDrainageReviewState = (mode: M5aDrainageReviewMode) => {
+      const applyM5aDrainageReviewState = (
+        mode: M5aDrainageReviewMode,
+        r1125SourceReview = false,
+      ) => {
         if (mode === 'Z2_ABSOLUTE_Z_SYSTEM') {
           applyStandardViewPreset('whole-building');
           setModelScene(fullModelScene);
@@ -7373,7 +7394,9 @@ const title = 'Private 3D viewer';
           deactivateDCoordinateReview();
           setD1KnownDoorReviewLabelsVisible(false);
 
-          const presentation = prepareM5AZ2SystemReviewPresentation(fullModelScene);
+          const presentation = prepareM5AZ2SystemReviewPresentation(fullModelScene, {
+            r1125TerrainResistantOverlay: r1125SourceReview,
+          });
           const undrawableTargetKeys = getUndrawableM5AZ2TargetKeys(fullModelScene);
           if (
             undrawableTargetKeys.length !== 0 ||
@@ -7400,6 +7423,10 @@ const title = 'Private 3D viewer';
           const activeM5aZ2SystemReviewId =
             getActiveM5AZ2SystemReviewId(window.location.search);
           const m5aZ2ReviewState = 'ready';
+          if (r1125SourceReview) {
+            canvas.dataset.m5aR1125TerrainResistantOverlay =
+              String(presentation.r1125TerrainResistantOverlayApplied);
+          }
           const m5aDrainageReviewMode = mode;
           canvas.dataset.workTestReviewMode = activeM5aZ2SystemReviewId;
           canvas.dataset.m5aZ2ReviewState = m5aZ2ReviewState;
@@ -7968,6 +7995,54 @@ const title = 'Private 3D viewer';
           : 'P186E-X1 D 1F electrical source labels - WORK_TEST / 18 label anchors 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
       };
 
+      const applyP137EScene67ReviewState = () => {
+        // Fail closed if a future loader or preset accidentally replaces the
+        // focused original P123C wall + the three wall-mounted WORK_TEST devices.
+        if (
+          !fullModelScene ||
+          fullModelScene.name !== 'P137E_D_THEMOS_REAL_WALL_FACE_WORK_TEST_ROOT_BABYLON_Y_UP' ||
+          fullModelScene.children.length !== 4 ||
+          !dInteriorScene
+        ) {
+          throw new Error('P137E scene67 focused review source unavailable');
+        }
+        const bounds = new THREE.Box3().setFromObject(fullModelScene);
+        if (bounds.isEmpty()) throw new Error('P137E scene67 original wall bounds empty');
+        applyStandardViewPreset('d-1f');
+        // activateDPlan temporarily selects the larger source scene. Restore
+        // ONLY the source-bound focused scene after the ortho camera is selected.
+        setModelScene(fullModelScene);
+        canvas.dataset.contentScene = 'full-model';
+        canvas.dataset.contentFloor = '1F';
+        activePlanFocusBounds = bounds;
+        fitPlanCamera();
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        refreshEdgeRendering(fullModelScene);
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: p137eScene67ReviewId,
+          p137eSceneIndex: String(p137eFocusedReviewSceneIndex),
+          p137eSceneName: p137eFocusedReviewSceneName,
+          p137eFocusedRootCount: '1',
+          p137eOriginalSourceWallNode: '798',
+          p137eOriginalSourceWallMesh: '406',
+          p137eWallMountedThemoCount: '3',
+          p137eRoomFootprintCount: '0',
+          p137ePresentationOnly: 'true',
+          p137eWorkTestOnly: 'true',
+          p137eExactXYClaim: 'false',
+          p137eExactZClaim: 'false',
+          p137eCurrentClaim: 'false',
+          p137eCanonical: 'false',
+          p137eAsBuiltClaim: 'false',
+          p137eHumanReview: 'NOT_RUN',
+          p137eReviewCameraMode: 'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP',
+          standardViewPreset: 'd-1f',
+        });
+        status.textContent =
+          'P137E D 1F WORK_TEST – alkuperäinen P123C-seinä + kolme Themoa; as-built ja tarkat sijainnit vahvistamatta';
+      };
+
       const applyP186fReviewState = (variant: 'X1' | 'X2' | 'X4' = 'X1') => {
         const isX2 = variant === 'X2';
         const isX4 = variant === 'X4';
@@ -8008,7 +8083,12 @@ const title = 'Private 3D viewer';
           );
         }
 
-        activePlanFocusBounds = presentation.targetBounds.clone();
+        // Full D1F source-derived green plan context, never just the three tight
+        // Themo target bounds; preserve unapproved wall-host semantics.
+        const x4FloorPlan = isX4
+          ? prepareP186FX4FloorPlanGuide(fullModelScene, dInteriorScene, presentation.targetBounds)
+          : null;
+        activePlanFocusBounds = x4FloorPlan?.floorPlanBounds ?? presentation.targetBounds.clone();
         fitPlanCamera();
         refreshEdgeRendering(fullModelScene);
         setP186fSourceContextVisible(
@@ -8032,7 +8112,7 @@ const title = 'Private 3D viewer';
           p186fTargetOpacity: p186fReviewTargetOpacity.toFixed(2),
           p186fContextOpacity: p186fReviewContextOpacity.toFixed(2),
           p186fReviewTargetRenderableCount: String(presentation.targetRenderableCount),
-          p186fReviewContextRenderableCount: String(presentation.contextRenderableCount),
+          p186fReviewContextRenderableCount: String(isX4 ? x4FloorPlan?.visualContextCount ?? 0 : presentation.contextRenderableCount),
           p186fReviewRoomContextBridgeCount: String(bridgedRoomContextCount),
           p186fReviewHiddenNonQuestionRenderableCount: String(
             presentation.hiddenNonQuestionRenderableCount,
@@ -8052,13 +8132,25 @@ const title = 'Private 3D viewer';
           p186fCanonical: 'false',
           p186fPublishToCurrent: 'false',
           p186fHumanReview: 'NOT_RUN',
-          p186fReviewCameraMode: 'ORTHOGRAPHIC_D_1F_TARGET_BOUNDS_FOCUS',
+          p186fReviewCameraMode: isX4
+            ? 'ORTHOGRAPHIC_D_1F_FULL_GREEN_SOURCE_PLAN_FOCUS'
+            : 'ORTHOGRAPHIC_D_1F_TARGET_BOUNDS_FOCUS',
+          ...(isX4 ? {
+            p186fX4GreenPlanContextVisible: String((x4FloorPlan?.visualContextCount ?? 0) > 0),
+            p186fX4PlanContextRenderableCount: String(x4FloorPlan?.visualContextCount ?? 0),
+            p186fX4PlanRoomFootprintCount: String(x4FloorPlan?.roomFootprintCount ?? 0),
+            p186fX4PlanSourceWallGuideCount: String(x4FloorPlan?.sourceWallGuideCount ?? 0),
+            p186fX4OriginalGreenWallSourceNode: '798',
+            p186fX4SuppressedRoomFootprintCount: String(x4FloorPlan?.suppressedRoomFootprintCount ?? 0),
+            p186fX4PlacementWallHostApproved: 'false',
+            p186fX4PhysicalPlacementConfirmed: 'false',
+          } : {}),
           standardViewPreset: 'd-1f',
         });
         if (isX4) canvas.dataset.workTestReviewMode = p186fX4ReviewId;
 
         status.textContent = isX4
-          ? `P186F-X4 scene66 D Themo WORK_TEST - Bathroom/Bedroom/Lobby anchors 80 % / ${presentation.realArchitectureContextReady ? 'D 1F real-wall' : 'fallback room'} context 20 % / physical XY and wall host unverified / HUMAN_REVIEW NOT_RUN`
+          ? 'P186F-X4 D 1F - alkuperäinen P123C vihreä seinämesh 798 / kolme Themo-työmerkkiä / tarkat seinäsijainnit vahvistamatta / HUMAN_REVIEW NOT_RUN'
           : isX2
             ? `P186F-X2 D Themo WORK_TEST - Bathroom/Bedroom/Lobby anchors 80 % / ${presentation.realArchitectureContextReady ? 'D 1F real-wall' : 'fallback room'} context 20 % / HUMAN_REVIEW NOT_RUN`
             : 'P186F-X1 D Themo room-level WORK_TEST - Bathroom/Bedroom/Lobby anchors 80 % / D 1F room context 20 % / HUMAN_REVIEW NOT_RUN';
@@ -8604,6 +8696,8 @@ const title = 'Private 3D viewer';
             candidate.id === p186fCandidateId && isP186fThemoRoomReviewRequested();
           const isP186fX2ThemoRoomReview =
             candidate.id === p186fX2CandidateId && isP186fX2ThemoRoomReviewRequested();
+          const isP137EScene67Review =
+            candidate.id === p137eScene67CandidateId && isP137EScene67ReviewRequested();
           const isP186fX4ThemoRoomReview =
             candidate.id === p186fX4CandidateId && isP186fX4ThemoRoomReviewRequested();
           const isP186dLightingReview =
@@ -8687,6 +8781,10 @@ const title = 'Private 3D viewer';
             const selectedReview = selectM5AR1115ReviewScene(gltf);
             gltf.scene = selectedReview.scene;
             m5aR1115RuntimeState = selectedReview.runtimeState;
+          } else if (isP137EScene67Review) {
+            // The model's default scene is 64, not the three-Themo scene 67.
+            // Use the existing source-bound selector; exclude all 23 inherited carrier roots.
+            gltf.scene = selectP137EScene67FocusedReview(gltf).scene;
           } else if (isP186fX4ThemoRoomReview) {
             const reviewScene = gltf.scenes?.[p186fX4ReviewSceneIndex];
             const sourceScene = gltf?.parser?.json?.scenes?.[p186fX4ReviewSceneIndex];
@@ -9408,7 +9506,7 @@ const title = 'Private 3D viewer';
             status.textContent = m5bRuntimeState.statusText;
           } else if (m5aDrainageReviewMode) {
             loadFailurePhase = 'm5a-z2-presentation-guard-failed';
-            applyM5aDrainageReviewState(m5aDrainageReviewMode);
+            applyM5aDrainageReviewState(m5aDrainageReviewMode, isM5AR1125SourceReview);
             if (isM5AR1125SourceReview) {
               Object.assign(canvas.dataset, {
                 m5aR1125SourceDriveId: '13qxYc9PF7Z6eo_OXs1RrYCyo5CbTIAKs',
@@ -9454,6 +9552,8 @@ const title = 'Private 3D viewer';
             applyP186bReviewState();
           } else if (isP186eElectricalLabelReview) {
             applyP186eReviewState();
+          } else if (isP137EScene67Review) {
+            applyP137EScene67ReviewState();
           } else if (isP186fX4ThemoRoomReview) {
             applyP186fReviewState('X4');
           } else if (isP186fThemoRoomReview || isP186fX2ThemoRoomReview) {

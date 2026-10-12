@@ -80,3 +80,33 @@ export function detectM5BR1109CyanLocatorComponents(rgba, width, height) {
 // No external script or network request is needed by the production viewer.
 globalThis.detectM5BR1109CyanLocatorComponents =
   detectM5BR1109CyanLocatorComponents;
+
+/**
+ * Build an immediately invoked Chromium expression for screenshot PNG pixels.
+ * A bare async function passed to page.evaluate(string) is not invoked.
+ * Only a PNG data URL is accepted; this never interpolates arbitrary JS.
+ * Pixel-only evidence is not authenticated production or HUMAN_REVIEW.
+ */
+export function buildM5BR1109BrowserScreenshotProofExpression(pngDataUrl) {
+  if (
+    typeof pngDataUrl !== 'string' ||
+    pngDataUrl.length > 12_000_000 ||
+    !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(pngDataUrl)
+  ) {
+    throw new Error('M5B R1109 browser proof requires PNG data URL');
+  }
+  const detectorSource = detectM5BR1109CyanLocatorComponents.toString();
+  return (
+    '(async (sourceUrl) => {' +
+    ' const image = new Image(); image.src = sourceUrl; await image.decode();' +
+    ' const canvas = document.createElement("canvas");' +
+    ' canvas.width = image.width; canvas.height = image.height;' +
+    ' const context = canvas.getContext("2d");' +
+    ' if (!context) throw new Error("R1109 PNG proof canvas unavailable");' +
+    ' context.drawImage(image, 0, 0);' +
+    ' const rgba = context.getImageData(0, 0, image.width, image.height).data;' +
+    ' const detect = ' + detectorSource + ';' +
+    ' return detect(rgba, image.width, image.height);' +
+    '})(' + JSON.stringify(pngDataUrl) + ')'
+  );
+}
