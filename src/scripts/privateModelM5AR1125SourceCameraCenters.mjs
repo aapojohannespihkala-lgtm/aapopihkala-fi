@@ -115,6 +115,12 @@ export function deriveM5AR1125SourceCameraCenters({
   if (!sceneRoot?.traverse || !sceneRoot?.updateMatrixWorld ||
       d.sourceDiameterCorrectionContract !== 'G2_R1125' ||
       d.sourceDiameterClassBreakdown !== expectedBreakdown ||
+      // Bind the projected camera targets to the original scene63 root.
+      // Child-level WORK_TEST flags cannot override a promoted source root.
+      d.Canonical !== false ||
+      d.presentationOnly !== true ||
+      d.workAssumption !== true ||
+      d.humanReview !== 'NOT_RUN' ||
       d.currentGeometryClaim !== false ||
       d.asBuiltClaim !== false ||
       d.publishToCURRENT !== false) {
