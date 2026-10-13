@@ -31,11 +31,35 @@ const initialDocument = (): NativePlacementG2Document => ({
   }],
 });
 
+// The three Themo examples are sourced from the user's 12.10.2026 R989
+// approximate G2 WORK_TEST pins, NOT the unrelated D1F door-A fixture.
+// Neither a review coordinate nor a parsed floor height is an as-built claim.
+const sourceThemoWorkTestFixtures = {
+  D_THEMO_CURRENT_LOBBY_01: {
+    xM: 3.73, yM: 5.12,
+    noteRaw: 'n. 148 cm lattiasta. G2 R989 12.10.2026 WORK_TEST: Lobby / aula NORTH. Ei fyysinen as-built-mittaus.',
+  },
+  D_THEMO_CURRENT_BEDROOM_01: {
+    xM: 3.69, yM: 5.03,
+    noteRaw: 'n. 148 cm lattiasta. G2 R989 12.10.2026 WORK_TEST: Bedroom / makuuhuone SOUTH. Ei fyysinen as-built-mittaus.',
+  },
+  D_THEMO_CURRENT_BATHROOM_01: {
+    xM: 4.88, yM: 5.03,
+    noteRaw: 'n. 140 cm lattiasta. G2 R989 12.10.2026 WORK_TEST: Bathroom / kylpyhuone SOUTH. Ei fyysinen as-built-mittaus.',
+  },
+} as const;
+
 const draft = (id = 'D1F_USER_CURRENT_DOOR_A') => {
+  const theModelledThemo = sourceThemoWorkTestFixtures[
+    id as keyof typeof sourceThemoWorkTestFixtures
+  ];
   const result = buildPlacementReviewDraft({
     context: { targetId: id, floor: '1F', approvedWallHosts: [] },
-    coordinate: { xM: 3.235, yM: 5.063 },
-    noteRaw: '120 cm lattiasta. Oven sijainti WORK_TEST, ei lopullinen mittaus.',
+    coordinate: theModelledThemo
+      ? { xM: theModelledThemo.xM, yM: theModelledThemo.yM }
+      : { xM: 3.235, yM: 5.063 },
+    noteRaw: theModelledThemo?.noteRaw ??
+      '120 cm lattiasta. Oven sijainti WORK_TEST, ei lopullinen mittaus.',
   });
   if (result.status !== 'READY_FOR_G2_HANDOFF') throw new Error('Expected valid draft');
   return result.payload;
@@ -216,14 +240,25 @@ test('P137E rejects inconsistent and missing G2 tab identities without writing',
   expect(state.writes).toHaveLength(0);
 });
 
-test('P137E native adapter persists all three source-backed CURRENT Themo observations with exact independent readback', async () => {
+test('P137E native adapter persists three individually source-anchored WORK_TEST Themo fixtures with exact independent readback', async () => {
+  const distinctSourcePoints = new Set<string>();
   for (const targetId of [
     'D_THEMO_CURRENT_BATHROOM_01',
     'D_THEMO_CURRENT_BEDROOM_01',
     'D_THEMO_CURRENT_LOBBY_01',
-  ]) {
+  ] as const) {
+    const fixture = sourceThemoWorkTestFixtures[targetId];
     const state = makeAdapter();
     const payload = draft(targetId);
+    expect(payload.anchor).toMatchObject({
+      targetId, xM: fixture.xM, yM: fixture.yM,
+      approximate: true, exactXY: false, currentGeometry: false,
+      canonical: false, asBuilt: false, humanReview: 'NOT_RUN',
+    });
+    expect(payload.observation.anchor).toEqual(payload.anchor);
+    expect(payload.observation.noteRaw).toBe(fixture.noteRaw);
+    expect(payload.observation.noteRaw).toContain('WORK_TEST');
+    distinctSourcePoints.add(`${payload.anchor.xM}/${payload.anchor.yM}`);
     expect(await state.adapter.persist(payload)).toEqual({
       status: 'PERSISTED_TO_EXISTING_G2', recordId,
     });
@@ -234,6 +269,10 @@ test('P137E native adapter persists all three source-backed CURRENT Themo observ
     expect(payload.canonical).toBe(false);
     expect(payload.asBuilt).toBe(false);
   }
+  // A copied D1F door coordinate for every Themo would falsely pass the
+  // persistence roundtrip because the adapter validates provenance, not survey.
+  expect(distinctSourcePoints.size).toBe(3);
+  expect(distinctSourcePoints.has('3.235/5.063')).toBe(false);
 });
 
 test('P137E rejects superseded Themo marker IDs and historical circuit IDs without G2 write', async () => {
