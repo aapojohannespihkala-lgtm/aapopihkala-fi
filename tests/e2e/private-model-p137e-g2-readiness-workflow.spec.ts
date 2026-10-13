@@ -27,7 +27,20 @@ function runReadiness(scenario: string) {
   };
   if (scenario === 'missing-target') response.targets.pop();
   if (scenario === 'promotion') response.targets[0].currentGeometry = true;
-  const fixture = JSON.stringify(response);
+  const errors: Record<string, { status: number; code: string }> = {
+    'oauth-failed': { status: 503, code: 'G2_OAUTH_TOKEN_FAILED' },
+    'signing-failed': { status: 503, code: 'G2_OAUTH_SIGNING_FAILED' },
+    'docs-failed': { status: 503, code: 'G2_NATIVE_READ_FAILED' },
+    'document-invalid': { status: 409, code: 'G2_NATIVE_DOCUMENT_INVALID' },
+    'source-not-ready': { status: 409, code: 'G2_CURRENT_SOURCE_NOT_READY' },
+    'unknown-private-code': { status: 503, code: 'private-fixture-secret-must-not-leak' },
+    'hidden-private-code': { status: 404, code: 'G2_OAUTH_TOKEN_FAILED' },
+  };
+  const error = errors[scenario];
+  const fixture = JSON.stringify(error ? {
+    error: 'g2-unavailable', failureCode: error.code,
+    privateDetail: 'private-fixture-secret-must-not-leak',
+  } : response);
   let body = code.replace(
     "import { mkdirSync, writeFileSync } from 'node:fs';",
     "let saved; const mkdirSync = () => {}; const writeFileSync = (path, value) => { saved = JSON.parse(value); };",
@@ -48,7 +61,7 @@ function runReadiness(scenario: string) {
         options.headers['CF-Access-Client-Id'] === 'fixture-id' &&
         options.headers['CF-Access-Client-Secret'] === 'fixture-private-secret';
       return new Response(${JSON.stringify(fixture)}, {
-        status: ${scenario === 'hidden-404' ? 404 : 200},
+        status: ${error?.status ?? (scenario === 'hidden-404' ? 404 : 200)},
         headers: {'content-type': 'application/json'},
       });
     };
@@ -71,6 +84,36 @@ function runReadiness(scenario: string) {
     execution: JSON.parse(lines[1]),
     output: result.stdout,
   };
+}
+
+for (const [scenario, failureCode] of [
+  ['oauth-failed', 'G2_OAUTH_TOKEN_FAILED'],
+  ['signing-failed', 'G2_OAUTH_SIGNING_FAILED'],
+  ['docs-failed', 'G2_NATIVE_READ_FAILED'],
+  ['document-invalid', 'G2_NATIVE_DOCUMENT_INVALID'],
+  ['source-not-ready', 'G2_CURRENT_SOURCE_NOT_READY'],
+]) {
+  test('readiness artifact preserves only the fixed failure code for ' + scenario, () => {
+    const result = runReadiness(scenario);
+    expect(result.exitCode).toBe(1);
+    expect(result.evidence.failure).toBe('P137E_G2_UNAVAILABLE');
+    expect(result.evidence.failureCode).toBe(failureCode);
+    expect(result.execution.fetchCalls).toBe(1);
+    expect(result.evidence.nativeG2WriteVerified).toBe(false);
+    expect(result.output).not.toContain('private-fixture-secret-must-not-leak');
+    expect(result.output).not.toContain('fixture-private-secret');
+  });
+}
+
+for (const scenario of ['unknown-private-code', 'hidden-private-code']) {
+  test('readiness never publishes untrusted or hidden failure diagnostics: ' + scenario, () => {
+    const result = runReadiness(scenario);
+    expect(result.exitCode).toBe(1);
+    expect(result.evidence.failure).toBe('P137E_G2_UNAVAILABLE');
+    expect(result.evidence.failureCode).toBeUndefined();
+    expect(result.output).not.toContain('private-fixture-secret-must-not-leak');
+    expect(result.output).not.toContain('G2_OAUTH_TOKEN_FAILED');
+  });
 }
 
 test('main-only G2 GET job is separate from original full-render and PR secrets', () => {

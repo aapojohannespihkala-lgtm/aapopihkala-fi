@@ -30,6 +30,45 @@ const rawDocument = (revisionId = 'REV_G2_1') => ({
   } } }],
 });
 
+test('OAuth, native read and revision-guarded write omit browser-only Request.credentials', async () => {
+  const account = await makeAccount();
+  const calls: string[] = [];
+  const ports = createNativeG2GoogleDocsPorts({
+    credentials: account,
+    fetcher: async (input, init) => {
+      // Older workerd runtimes reject this browser-only field before I/O.
+      // Model that boundary rather than relying on Node's tolerant fetch.
+      if (init && Object.prototype.hasOwnProperty.call(init, 'credentials')) {
+        throw new Error("The 'credentials' field on 'RequestInitializerDict' is not implemented.");
+      }
+      calls.push(String(input));
+      expect(init?.redirect).toBe('manual');
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
+      expect(new Headers(init?.headers).get('Cookie')).toBeNull();
+      if (String(input) === 'https://oauth2.googleapis.com/token') {
+        return Response.json({ access_token: 'fixture-only-bearer', token_type: 'Bearer' });
+      }
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer fixture-only-bearer');
+      return String(input).endsWith(':batchUpdate')
+        ? Response.json({ documentId: placementG2DocumentId, replies: [{}] })
+        : Response.json(rawDocument());
+    },
+  });
+  expect(await ports.getDocument()).toEqual(rawDocument());
+  await ports.batchUpdateDocument({
+    documentId: placementG2DocumentId,
+    writeControl: { requiredRevisionId: 'REV_G2_1' },
+    requests: [{ insertText: { endOfSegmentLocation: { tabId: 't.0' },
+      text: '\nP137E_G2_REVIEW_OBSERVATION_V1 | P137E_G2_TESTRECORD_0001 | {"schema":"test"}\n' } }],
+  });
+  expect(calls).toEqual([
+    'https://oauth2.googleapis.com/token',
+    'https://docs.googleapis.com/v1/documents/' + placementG2DocumentId + '?includeTabsContent=true',
+    'https://oauth2.googleapis.com/token',
+    'https://docs.googleapis.com/v1/documents/' + placementG2DocumentId + ':batchUpdate',
+  ]);
+});
+
 test('server-only OAuth RS256 requests exact Docs scope, pinned identity and native one-tab G2', async () => {
   const account = await makeAccount();
   let calls = 0;
@@ -301,4 +340,134 @@ test('G2 transport never accepts a disabled or enlarged timeout budget', async (
       credentials: account, requestTimeoutMs,
     })).toThrow('G2_NATIVE_TIMEOUT_INVALID');
   }
+});
+
+test('thrown OAuth and Google Docs fetch exceptions are stage-only and never disclose upstream errors', async () => {
+  const account = await makeAccount();
+  for (const scenario of ['oauth', 'docs'] as const) {
+    const urls: string[] = [];
+    const ports = createNativeG2GoogleDocsPorts({
+      credentials: account,
+      fetcher: async (input) => {
+        urls.push(String(input));
+        if (String(input).endsWith('/token') && scenario === 'docs') {
+          return Response.json({ access_token: 'secret-fixture-bearer', token_type: 'Bearer' });
+        }
+        throw new Error('secret-fixture-upstream-exception-must-not-leak');
+      },
+    });
+    const expected = scenario === 'oauth' ? 'G2_OAUTH_TOKEN_TRANSPORT_FAILED'
+      : 'G2_NATIVE_READ_TRANSPORT_FAILED';
+    let failure = '';
+    try {
+      await ports.getDocument();
+      throw new Error('unexpected G2 success');
+    } catch (error) {
+      failure = error instanceof Error ? error.message : '';
+    }
+    expect(failure).toBe(expected);
+    expect(failure).not.toContain('secret-fixture');
+    expect(urls).toHaveLength(scenario === 'oauth' ? 1 : 2);
+    expect(urls[0]).toBe('https://oauth2.googleapis.com/token');
+    if (scenario === 'docs') {
+      expect(urls[1]).toContain('?includeTabsContent=true');
+    }
+  }
+});
+
+test('thrown guarded Google Docs write never retries or claims persistence', async () => {
+  const account = await makeAccount();
+  const urls: string[] = [];
+  const ports = createNativeG2GoogleDocsPorts({
+    credentials: account,
+    fetcher: async (input) => {
+      urls.push(String(input));
+      if (String(input).endsWith('/token')) {
+        return Response.json({ access_token: 'secret-fixture-bearer', token_type: 'Bearer' });
+      }
+      throw new Error('secret-fixture-write-outcome-unknown');
+    },
+  });
+  const write: Parameters<TrustedNativeG2WritePorts['batchUpdateDocument']>[0] = {
+    documentId: placementG2DocumentId,
+    requests: [{ insertText: {
+      endOfSegmentLocation: { tabId: 't.0' },
+      text: '\nP137E_G2_REVIEW_OBSERVATION_V1 | P137E_G2_TESTRECORD_0001 | {"schema":"test"}\n',
+    } }],
+    writeControl: { requiredRevisionId: 'REV_G2_1' },
+  };
+  let failure = '';
+  try {
+    await ports.batchUpdateDocument(write);
+    throw new Error('unexpected write success');
+  } catch (error) {
+    failure = error instanceof Error ? error.message : '';
+  }
+  expect(failure).toBe('G2_NATIVE_WRITE_TRANSPORT_FAILED');
+  expect(failure).not.toContain('secret-fixture');
+  expect(urls).toHaveLength(2);
+  expect(urls[1]).toContain(':batchUpdate');
+});
+
+
+test('G2 manual redirect transport rejects OAuth, Docs GET and guarded POST without following redirects', async () => {
+  const account = await makeAccount();
+  const redirectDestination = 'https://other.example.invalid/private-fixture-secret-must-not-leak';
+  for (const stage of ['oauth', 'read', 'write'] as const) {
+    const requests: string[] = [];
+    const ports = createNativeG2GoogleDocsPorts({
+      credentials: account,
+      fetcher: async (input, init) => {
+        requests.push(String(input));
+        // The runtime must be explicitly told not to follow a redirect.
+        expect(init?.redirect).toBe('manual');
+        expect(Object.prototype.hasOwnProperty.call(init, 'credentials')).toBe(false);
+        if (stage !== 'oauth' && String(input).endsWith('/token')) {
+          return Response.json({ access_token: 'fixture-only-bearer', token_type: 'Bearer' });
+        }
+        return Response.redirect(redirectDestination, stage === 'write' ? 308 : 302);
+      },
+    });
+    const expected = stage === 'oauth' ? 'G2_OAUTH_TOKEN_FAILED'
+      : stage === 'read' ? 'G2_NATIVE_READ_FAILED' : 'G2_NATIVE_WRITE_FAILED';
+    let errorText = '';
+    try {
+      if (stage === 'write') {
+        await ports.batchUpdateDocument({
+          documentId: placementG2DocumentId,
+          requests: [{ insertText: {
+            endOfSegmentLocation: { tabId: 't.0' },
+            text: '\nP137E_G2_REVIEW_OBSERVATION_V1 | P137E_G2_TESTRECORD_0001 | {"schema":"test"}\n',
+          } }],
+          writeControl: { requiredRevisionId: 'REV_G2_1' },
+        });
+      } else {
+        await ports.getDocument();
+      }
+      throw new Error('unexpected success');
+    } catch (error) {
+      errorText = error instanceof Error ? error.message : '';
+    }
+    expect(errorText).toBe(expected);
+    expect(errorText).not.toContain('private-fixture-secret');
+    expect(requests).toHaveLength(stage === 'oauth' ? 1 : 2);
+    expect(requests).not.toContain(redirectDestination);
+  }
+});
+
+test('opaque manual redirect response is rejected even when its status is 200', async () => {
+  const account = await makeAccount();
+  let attempts = 0;
+  const ports = createNativeG2GoogleDocsPorts({
+    credentials: account,
+    fetcher: async (_input, init) => {
+      attempts += 1;
+      expect(init?.redirect).toBe('manual');
+      const response = Response.json({ access_token: 'fixture-only', token_type: 'Bearer' });
+      Object.defineProperty(response, 'type', { value: 'opaqueredirect' });
+      return response;
+    },
+  });
+  await expect(ports.getDocument()).rejects.toThrow('G2_OAUTH_TOKEN_FAILED');
+  expect(attempts).toBe(1);
 });

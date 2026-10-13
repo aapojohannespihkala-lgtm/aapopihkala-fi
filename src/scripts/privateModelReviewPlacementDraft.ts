@@ -143,10 +143,12 @@ export const createPlacementReviewPanel = ({
   mount,
   persist,
   readback,
+  onPersistingChange = () => {},
 }: {
   mount: HTMLElement;
   persist: PersistPlacementReview;
   readback: ReadbackPlacementReview;
+  onPersistingChange?: (persisting: boolean, targetId: string | null) => void;
 }) => {
   if (typeof readback !== 'function') {
     throw new Error('A real G2 readback adapter is required before placement can be saved');
@@ -279,6 +281,7 @@ export const createPlacementReviewPanel = ({
     }
 
     busy = true;
+    onPersistingChange(true, currentContext.targetId);
     verifiedNote = null;
     note.disabled = true;
     cancel.disabled = true;
@@ -311,6 +314,7 @@ export const createPlacementReviewPanel = ({
     } finally {
       if (submittingSession === session) {
         busy = false;
+        onPersistingChange(false, currentContext?.targetId ?? null);
         note.disabled = false;
         cancel.disabled = false;
         if (panel.dataset.reviewPlacementStatus !== 'persisted') save.disabled = false;
@@ -323,6 +327,7 @@ export const createPlacementReviewPanel = ({
     open,
     setClickedCoordinate,
     cancel: cancelIfIdle,
+    persistingTargetId: () => (busy ? currentContext?.targetId ?? null : null),
     destroy: () => { reset(); panel.remove(); },
   };
 };

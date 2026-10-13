@@ -334,7 +334,7 @@ const heightWithLabel = new RegExp(
 const anyQuantity = new RegExp(noteHeightAmount, 'gi');
 
 const toFloorHeight = (amount: string, unit: string): number | null => {
-  const value = Number(amount.replace(',', '.')) * (unit.toLowerCase() === 'cm' ? 0.01 : 1);
+  const value = Number(amount.replace(',', '.')) / (unit.toLowerCase() === 'cm' ? 100 : 1);
   // Limit to a conservative indoor review range. This is not a floor/ceiling fact.
   return Number.isFinite(value) && value >= 0 && value <= 10 ? value : null;
 };

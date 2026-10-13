@@ -261,15 +261,15 @@ const title = 'Private 3D viewer';
       .axis-measure-label {
         position: absolute;
         z-index: 5;
-        padding: 4px 7px;
-        border-radius: 5px;
-        background: rgba(18, 69, 102, 0.93);
         color: #fff;
         font-size: 12px;
         font-weight: 700;
         white-space: nowrap;
         pointer-events: none;
-        transform: translate(-50%, -135%);
+        transform: translate(-50%, -50%) translateY(-12px);
+      }
+      .axis-measure-label[data-axis='Y'] {
+        transform: translate(-50%, -50%) translateX(-12px) rotate(-90deg);
       }
       .axis-measure-label[hidden] { display: none; }
 
@@ -1673,7 +1673,7 @@ const title = 'Private 3D viewer';
           </div>
           <div class="coordinate-line" id="axis-measure-row" hidden>
             <span>Mittaus</span>
-            <span id="axis-measure-output">Klikkaa ensimmäinen piste</span>
+            <span id="axis-measure-output"></span>
           </div>
           <div class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.</div>
         </aside>
@@ -1828,6 +1828,13 @@ const title = 'Private 3D viewer';
         fetchP137EScene67VerifiedGlb,
         P137E_SCENE67_EXACT_ASSET_PATH,
       } from '../../scripts/privateModelP137EScene67VerifiedGlbFetch.mjs';
+      // @ts-ignore - runtime-only, SHA-verified source GLB reconstruction (no CURRENT mutation).
+      import {
+        makeP137EFieldMeasuredWallWorkTest,
+        P137E_MEASURED_WALL_VARIANT,
+        P137E_MEASURED_WALL_REVIEW_ROOT,
+        P137E_MEASURED_WALL_SCENE_INDEX,
+      } from '../../scripts/privateModelP137EFieldMeasuredWallRuntime.mjs';
       import { setupPrivateModelToolbarMenus } from '../../scripts/privateModelToolbarMenus';
       import {
         selectionMetadataEntries as collectSelectionMetadataEntries,
@@ -2962,6 +2969,11 @@ const title = 'Private 3D viewer';
       };
       const p137eG2Panel = createPlacementReviewPanel({
         mount: p137ePlacePanel,
+        onPersistingChange: (persisting, targetId) => {
+          if (persisting && targetId) p137ePlaceTarget.value = targetId;
+          p137ePlaceTarget.disabled = persisting;
+          p137ePlaceClear.disabled = persisting;
+        },
         persist: (payload) => {
           if (!p137eG2VerifiedTargets || !p137eG2Allowed() ||
               !p137eG2ThemoIds.includes(payload?.anchor?.targetId)) {
@@ -2972,6 +2984,12 @@ const title = 'Private 3D viewer';
         readback: (recordId) => getP137EG2Client().readback(recordId),
       });
       const syncP137EG2Draft = () => {
+        const lockedTargetId = p137eG2Panel.persistingTargetId();
+        if (lockedTargetId) {
+          // The outer selector must agree with the irreversible in-flight G2 target.
+          p137ePlaceTarget.value = lockedTargetId;
+          return;
+        }
         p137eG2Panel.cancel();
         if (!p137eG2VerifiedTargets || !p137eG2Allowed()) return;
         const id = p137ePlaceTarget.value;
@@ -3062,6 +3080,7 @@ const title = 'Private 3D viewer';
         }
         dAxisMeasureState = emptyAxisMeasureState();
         axisMeasureLabel.hidden = true;
+        delete axisMeasureLabel.dataset.axis;
         axisMeasureOutput.textContent = axisMeasureDisplay(dAxisMeasureState);
         canvas.dataset.axisMeasurePhase = 'EMPTY';
         delete canvas.dataset.axisMeasureMm;
@@ -3075,6 +3094,7 @@ const title = 'Private 3D viewer';
           dAxisMeasureMarker = null;
         }
         axisMeasureLabel.hidden = true;
+        delete axisMeasureLabel.dataset.axis;
         axisMeasureOutput.textContent = axisMeasureDisplay(dAxisMeasureState);
         canvas.dataset.axisMeasurePhase = dAxisMeasureState.phase;
         delete canvas.dataset.axisMeasureMm;
@@ -3082,7 +3102,9 @@ const title = 'Private 3D viewer';
         if (dAxisMeasureState.phase === 'EMPTY' || !activePlanFloor) return;
 
         const elevation = dReviewPlaneY[activePlanFloor] + 0.035;
-        const crossRadius = 0.095;
+        // Model-space metres: projected crosses grow/shrink with orthographic zoom.
+        // 26 mm radius keeps the normal-view mark close to a mouse cursor.
+        const crossRadius = 0.026;
         const segmentPoints: any[] = [];
         const addCross = (point: { xM: number; yM: number }) => {
           const px = point.xM;
@@ -3104,11 +3126,12 @@ const title = 'Private 3D viewer';
           canvas.dataset.axisMeasureMm = String(dAxisMeasureState.millimetres);
           canvas.dataset.axisMeasureAxis = dAxisMeasureState.axis;
           axisMeasureLabel.textContent = axisMeasureDisplay(dAxisMeasureState);
+          axisMeasureLabel.dataset.axis = dAxisMeasureState.axis;
           axisMeasureLabel.hidden = false;
         }
         const geometry = new THREE.BufferGeometry().setFromPoints(segmentPoints);
         const material = new THREE.LineBasicMaterial({
-          color: 0x146892, depthTest: false, depthWrite: false,
+          color: 0xffffff, depthTest: false, depthWrite: false,
         });
         const marker = new THREE.LineSegments(geometry, material);
         marker.name = 'P137E_AXIS_MM_TEMPORARY_RULER';
@@ -6978,6 +7001,10 @@ const title = 'Private 3D viewer';
       const p137eScene67ReviewId = `${p137eScene67CandidateId}-review`;
       const isP137EScene67ReviewRequested = () =>
         isPrivateModelReviewRequested(window.location.search, p137eScene67ReviewId);
+      const isP137EMeasuredWallReviewRequested = () =>
+        isP137EScene67ReviewRequested() &&
+        new URLSearchParams(window.location.search).get('wallMetric') ===
+          P137E_MEASURED_WALL_VARIANT;
       const p186fX4CandidateId = 'p186f-x4-d-themo-door-plan-clear-work-assumption';
       const p186fX4ReviewId = `${p186fX4CandidateId}-review`;
       const isP186fX4ThemoRoomReviewRequested = () =>
@@ -8687,7 +8714,61 @@ const title = 'Private 3D viewer';
           'P137E WORK_TEST - alkuperäinen vihreä seinä + kolme Themoa; rastit tallentamattomia, MITTAA mallista';
       };
 
+      const applyP137EMeasuredWallReviewState = () => {
+        // GLTFLoader returns a Group for the scene, with the source-bound
+        // four-child wall/Themo root nested inside it.
+        const measuredRoots = fullModelScene?.children?.filter(
+          (child: THREE.Object3D) => child.name === P137E_MEASURED_WALL_REVIEW_ROOT,
+        ) ?? [];
+        if (activeModelSourceKind !== 'work-test' ||
+            !isP137EMeasuredWallReviewRequested() ||
+            !fullModelScene ||
+            measuredRoots.length !== 1 ||
+            measuredRoots[0].children.length !== 4 ||
+            !dInteriorScene) {
+          throw new Error('P137E measured I03 wall focused review source unavailable');
+        }
+        const bounds = new THREE.Box3().setFromObject(measuredRoots[0]);
+        if (bounds.isEmpty()) throw new Error('P137E measured I03 wall bounds empty');
+        applyStandardViewPreset('d-1f');
+        setModelScene(fullModelScene);
+        canvas.dataset.contentScene = 'full-model';
+        canvas.dataset.contentFloor = '1F';
+        activePlanFocusBounds = bounds;
+        fitPlanCamera();
+        deactivateDCoordinateReview();
+        setD1KnownDoorReviewLabelsVisible(false);
+        refreshEdgeRendering(fullModelScene);
+        Object.assign(canvas.dataset, {
+          workTestReviewMode: p137eScene67ReviewId + '-field-measured',
+          p137eSceneIndex: String(P137E_MEASURED_WALL_SCENE_INDEX),
+          p137eMeasuredWallMetricId: P137E_MEASURED_WALL_VARIANT,
+          p137eMeasuredWallKphLengthMm: '960',
+          p137eMeasuredWallWcVisibleMm: '710',
+          p137eMeasuredWallThicknessMm: '205',
+          p137eMeasuredWallLobbyGapMm: '1020',
+          p137eMeasuredWallUserFieldMeasurementsAccurate: 'true',
+          p137eMeasuredWallGlobalXYBinding: 'CONDITIONAL_UNVERIFIED',
+          p137eMeasuredWallPhysicalHeightVerified: 'false',
+          p137eWorkTestOnly: 'true',
+          p137eCurrentClaim: 'false',
+          p137eCanonical: 'false',
+          p137eAsBuiltClaim: 'false',
+          p137eHumanReview: 'NOT_RUN',
+          p137eReviewCameraMode: 'ORTHOGRAPHIC_MEASURED_WALL_WORK_TEST',
+        });
+        if (p137ePlanFaceButton) p137ePlanFaceButton.hidden = true;
+        if (p137eNorthFaceButton) p137eNorthFaceButton.hidden = true;
+        if (p137eSouthFaceButton) p137eSouthFaceButton.hidden = true;
+        status.textContent =
+          'WC/KPH-seinän mitattu 960 / 710 / 205 / 1020 mm WORK_TEST - tarkka mallikoordinaattisidonta vielä tarkistamatta';
+      };
+
       const applyP137EScene67ReviewState = () => {
+        if (isP137EMeasuredWallReviewRequested()) {
+          applyP137EMeasuredWallReviewState();
+          return;
+        }
         // Fail closed if a future loader or preset accidentally replaces the
         // focused original P123C wall + the three wall-mounted WORK_TEST devices.
         if (
@@ -9334,9 +9415,17 @@ const title = 'Private 3D viewer';
           const isExactP137EScene67Load =
             candidate.id === p137eScene67CandidateId &&
             isP137EScene67ReviewRequested();
-          const gltf = isExactP137EScene67Load
+          // The field-measured wall is an opt-in, noncanonical successor.
+          // Both versions fetch and verify EXACTLY the same immutable source GLB.
+          // The new scene68 geometry exists only in memory, never in scene67.
+          const verifiedP137EOriginal = isExactP137EScene67Load
+            ? await fetchP137EScene67VerifiedGlb(candidate.path)
+            : null;
+          const gltf = verifiedP137EOriginal
             ? await loader.parseAsync(
-                await fetchP137EScene67VerifiedGlb(candidate.path),
+                isP137EMeasuredWallReviewRequested()
+                  ? makeP137EFieldMeasuredWallWorkTest(verifiedP137EOriginal)
+                  : verifiedP137EOriginal,
                 P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
               )
             : await loader.loadAsync(candidate.path);
@@ -9495,9 +9584,21 @@ const title = 'Private 3D viewer';
             gltf.scene = selectedReview.scene;
             m5aR1115RuntimeState = selectedReview.runtimeState;
           } else if (isP137EScene67Review) {
-            // The model's default scene is 64, not the three-Themo scene 67.
-            // Use the existing source-bound selector; exclude all 23 inherited carrier roots.
-            gltf.scene = selectP137EScene67FocusedReview(gltf).scene;
+            // Always validate the exact inherited scene67/three-Themo identity first.
+            const exactSource = selectP137EScene67FocusedReview(gltf);
+            if (isP137EMeasuredWallReviewRequested()) {
+              const measuredScene = gltf.scenes?.[P137E_MEASURED_WALL_SCENE_INDEX];
+              const candidates = (measuredScene?.children ?? []).filter(
+                (child: any) => child?.name === P137E_MEASURED_WALL_REVIEW_ROOT,
+              );
+              if (candidates.length !== 1 || candidates[0]?.children?.length !== 4) {
+                throw new Error('P137E measured I03 wall successor scene68 identity mismatch');
+              }
+              gltf.scene = measuredScene;
+            } else {
+              // Unchanged source-bound P137E review and production pixel contract.
+              gltf.scene = exactSource.scene;
+            }
           } else if (isP186fX4ThemoRoomReview) {
             const reviewScene = gltf.scenes?.[p186fX4ReviewSceneIndex];
             const sourceScene = gltf?.parser?.json?.scenes?.[p186fX4ReviewSceneIndex];

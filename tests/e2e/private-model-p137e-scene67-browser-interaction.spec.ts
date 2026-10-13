@@ -356,11 +356,25 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'DYNAMIC');
   const measuredMm = Number(await canvas.getAttribute('data-axis-measure-mm'));
   expect(measuredMm).toBeGreaterThan(0);
-  await expect(page.locator('#axis-measure-output')).toContainText('mm (mallista)');
+  const measureLabel = page.locator('#axis-measure-label');
+  await expect(page.locator('#axis-measure-output')).toHaveText(`${measuredMm} mm`);
+  await expect(measureLabel).toHaveText(`${measuredMm} mm`);
+  await expect(measureLabel).toHaveAttribute('data-axis', 'X');
+  await expect(measureLabel).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(measureLabel).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await clickPlan(0.60, 0.49);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'LOCKED');
   await clickPlan(0.56, 0.49);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
+  await expect(page.locator('#axis-measure-output')).toBeEmpty();
+  await clickPlan(0.575, 0.49);
+  await clickPlan(0.575, 0.52);
+  await expect(canvas).toHaveAttribute('data-axis-measure-axis', 'Y');
+  await expect(measureLabel).toHaveAttribute('data-axis', 'Y');
+  const rotationB = await measureLabel.evaluate((element) =>
+    new DOMMatrixReadOnly(getComputedStyle(element).transform).b);
+  expect(rotationB).toBeCloseTo(-1, 4);
+  await expect(measureLabel).toHaveText(/^\d+ mm$/);
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
 
   // The ruler is outside the view menu: use the actual visible menu again.
@@ -524,11 +538,26 @@ test('simulated HTTPS viewer resaves edited Themo notes with exact snapshots and
       await expect(page.locator('[data-review-placement-status="persisting"]')).toBeVisible();
       await expect(note).toBeDisabled();
       await expect(save).toBeDisabled();
+      // G2 selected target remains locked during independent GET. A disabled
+      // native select alone is insufficient: reject a dispatched change too.
+      const liveTarget = page.locator('#p137e-place-target');
+      const clearDrafts = page.locator('#p137e-place-clear');
+      await expect(liveTarget).toBeDisabled();
+      await expect(clearDrafts).toBeDisabled();
+      await expect(liveTarget).toHaveValue(targetId);
+      await liveTarget.evaluate((node, attemptedId) => {
+        (node as HTMLSelectElement).value = attemptedId;
+        node.dispatchEvent(new Event('change', { bubbles: true }));
+      }, themoIds[1]);
+      await expect(liveTarget).toHaveValue(targetId);
+      await expect(page.locator('[data-review-placement-status="persisting"]')).toBeVisible();
       await delayedReadback.route!.fulfill({ status: 200, contentType: 'application/json',
         body: JSON.stringify({ recordId: delayedReadback.recordId,
           payload: records.get(delayedReadback.recordId!) }) });
     }
     await expect(page.locator('[data-review-placement-status="persisted"]')).toBeVisible();
+    await expect(page.locator('#p137e-place-target')).toBeEnabled();
+    await expect(page.locator('#p137e-place-clear')).toBeEnabled();
     await expect(note).toBeEnabled();
     await expect(save).toBeDisabled();
 
@@ -669,6 +698,21 @@ test('simulated HTTPS viewer recovers a stalled independent G2 readback without 
   await expect(save).toBeDisabled();
   await expect(note).toBeDisabled();
   await expect.poll(() => calls).toEqual(['TARGETS', 'POST', 'GET']);
+  // A timed-out native-G2 independent GET is still a pending durable write:
+  // the Themo identity and Clear action must remain locked even if a change
+  // event is dispatched programmatically while the DOM select is disabled.
+  const targetSelector = page.locator('#p137e-place-target');
+  const clearDrafts = page.locator('#p137e-place-clear');
+  await expect(targetSelector).toBeDisabled();
+  await expect(clearDrafts).toBeDisabled();
+  await expect(targetSelector).toHaveValue(targetId);
+  await targetSelector.evaluate(node => {
+    (node as HTMLSelectElement).value = 'D_THEMO_CURRENT_BATHROOM_01';
+    node.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect(targetSelector).toHaveValue(targetId);
+  await expect(page.locator('[data-review-placement-status="persisting"]')).toBeVisible();
+  expect(calls).toEqual(['TARGETS', 'POST', 'GET']);
 
   await expect(page.locator('[data-review-placement-status="draft"]')).toContainText(
     'Tallennus ei varmistunut. Tarkista tila ennen uutta yritystä.', { timeout: 35_000 },
@@ -676,6 +720,9 @@ test('simulated HTTPS viewer recovers a stalled independent G2 readback without 
   await expect.poll(() => readbackAborted).toBe(true);
   await expect(save).toBeEnabled();
   await expect(note).toBeEnabled();
+  await expect(targetSelector).toBeEnabled();
+  await expect(clearDrafts).toBeEnabled();
+  await expect(targetSelector).toHaveValue(targetId);
   await expect(note).toHaveValue(noteText);
   await expect(page.locator('[data-review-placement-status="draft"]')).toContainText('Kohde: ' + targetId);
   await expect(page.locator('[data-review-placement-status="persisted"]')).toHaveCount(0);
