@@ -9,26 +9,27 @@ on:
   workflow_dispatch:
     inputs:
       probe_mode:
-        description: Full render, G2 target readiness, or exact three-record readback (read-only)
+        description: Full render, automatic R1125 drainage preset, or read-only G2 checks
         required: true
         type: choice
         default: full-render
         options:
           - full-render
+          - r1125-render
           - g2-readiness
           - g2-records-readback
       review_id:
-        description: Exact private-model review ID
+        description: Full-render review ID; r1125-render fills this automatically
         required: true
         type: string
         default: "p137e-d1f-three-wall-mounted-themos-review"
       candidate_id:
-        description: Exact WORK_TEST candidate ID expected to autoload
+        description: Full-render candidate ID; r1125-render fills this automatically
         required: true
         type: string
         default: "p137e-d1f-three-wall-mounted-themos"
       expected_dataset_json:
-        description: JSON object of additional canvas dataset keys and exact expected string values for the review state
+        description: Full-render expected canvas JSON; r1125-render derives this from source constants
         required: true
         type: string
         default: '{"p137eSceneIndex":"67","p137eFocusedRootCount":"1","p137eOriginalSourceWallNode":"798","p137eOriginalSourceWallMesh":"406","p137eWallMountedThemoCount":"3","p137eRoomFootprintCount":"0","p137ePresentationOnly":"true","p137eWorkTestOnly":"true","p137eExactXYClaim":"false","p137eExactZClaim":"false","p137eCurrentClaim":"false","p137eCanonical":"false","p137eAsBuiltClaim":"false","p137eHumanReview":"NOT_RUN","p137eReviewCameraMode":"ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP","contentFloor":"1F","contentScene":"full-model"}'
@@ -166,7 +167,7 @@ jobs:
           PY
 
   verify-production:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'full-render'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && (inputs.probe_mode == 'full-render' || inputs.probe_mode == 'r1125-render')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -183,6 +184,56 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Resolve canonical R1125 render preset
+        if: inputs.probe_mode == 'r1125-render'
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          import { R1125_ORIGINAL_GLB } from './src/scripts/privateModelM5AR1125OriginalGlbGuard.mjs';
+          import { m5aR1125SourcePixelKinds } from './src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs';
+
+          const routing = readFileSync('src/scripts/privateModelWorkTest.ts', 'utf8');
+          const ids = [...routing.matchAll(/^export const m5aZ2R1125CandidateId = '([a-z0-9-]+)';$/gm)];
+          if (ids.length !== 1 || !routing.includes('export const m5aZ2R1125ReviewId = `${m5aZ2R1125CandidateId}-review`;')) {
+            throw new Error('R1125 canonical identity declarations changed; do not guess a review alias');
+          }
+          const kinds = Object.values(m5aR1125SourcePixelKinds);
+          if (kinds.length !== R1125_ORIGINAL_GLB.sourceTargetCount ||
+              kinds.some(kind => !['wellGray', 'routeCyan', 'boundaryYellow'].includes(kind))) {
+            throw new Error('R1125 source role contract mismatch');
+          }
+          const count = kind => String(kinds.filter(value => value === kind).length);
+          const targets = String(kinds.length);
+          const expected = {
+            m5aZ2ReviewState: 'ready',
+            m5aReviewTargetRenderableCount: targets,
+            m5aReviewExpectedTargetRenderableCount: targets,
+            m5aReviewWellMarkerCount: count('wellGray'),
+            m5aReviewRouteCount: count('routeCyan'),
+            m5aReviewUnresolvedBoundaryCount: count('boundaryYellow'),
+            m5aReviewSemanticViolationCount: '0',
+            m5aR1125SourceSceneIndex: String(R1125_ORIGINAL_GLB.sceneIndex),
+            m5aR1125SourceContract: 'G2_R1125',
+            m5aHumanReview: 'NOT_RUN',
+            m5aR1125HumanReview: 'NOT_RUN',
+          };
+          const candidate = ids[0][1];
+          const values = {
+            REVIEW_ID: candidate + '-review', CANDIDATE_ID: candidate,
+            EXPECTED_DATASET_JSON: JSON.stringify(expected),
+          };
+          if (!process.env.GITHUB_ENV) throw new Error('GitHub step environment file missing');
+          appendFileSync(process.env.GITHUB_ENV,
+            Object.entries(values).map(([key, value]) => key + '=' + value).join('\n') + '\n');
+          console.log('R1125 preset resolved from canonical registry and source roles');
+          NODE
 
       - name: Validate generic production review inputs and hard floors
         shell: bash
@@ -390,11 +441,6 @@ jobs:
           if classification != "VIEWER_HTML":
               raise SystemExit(1)
           PY
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
 
       - run: npm ci
 
