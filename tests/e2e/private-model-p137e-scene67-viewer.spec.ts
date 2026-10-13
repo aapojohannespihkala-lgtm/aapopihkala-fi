@@ -26,7 +26,7 @@ test('P137E review route resolves to exact candidate through existing one-link a
 
 test('P137E scene67 loader selects source-bound focused root BEFORE model load', () => {
   const predicate = "candidate.id === p137eScene67CandidateId && isP137EScene67ReviewRequested()";
-  const selected = 'gltf.scene = selectP137EScene67FocusedReview(gltf).scene;';
+  const selected = 'const exactSource = selectP137EScene67FocusedReview(gltf);';
   const loading = "applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);";
 
   expect(runtime).toContain("const p137eScene67CandidateId = 'p137e-d1f-three-wall-mounted-themos';");
@@ -34,6 +34,7 @@ test('P137E scene67 loader selects source-bound focused root BEFORE model load',
   expect(runtime).toContain(predicate);
   expect(runtime).toContain("from '../../scripts/privateModelP137EScene67Selection'");
   expect(runtime).toContain(selected);
+  expect(runtime).toContain('gltf.scene = exactSource.scene;');
   const branchStart = runtime.indexOf('} else if (isP137EScene67Review) {');
   expect(branchStart).toBeGreaterThan(0);
   expect(runtime.indexOf(selected, branchStart)).toBeGreaterThan(branchStart);
@@ -105,6 +106,65 @@ test('source-bound scene67 top plan shares the same viewer as wall-side review w
   expect(runtime).toContain("p137eLoadedCandidateId !== p137eScene67CandidateId");
 });
 
+
+test('P137E optional scene69 constructs verified source corners and measured I03 without replacing scene67/68', () => {
+  const reviewStart = runtime.indexOf('const loadWorkTestCandidate = async');
+  const reviewEnd = runtime.indexOf("applyLoadedModel(gltf, 'work-test'", reviewStart);
+  const loaderBranch = runtime.slice(reviewStart, reviewEnd);
+  expect(loaderBranch).toContain('fetchP137EScene67VerifiedGlb(candidate.path)');
+  expect(loaderBranch).toContain('isP137EThreeCornerMeasuredReviewRequested()');
+  expect(loaderBranch).toContain('makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)');
+  expect(loaderBranch).toContain('makeP137EFieldMeasuredWallWorkTest(verifiedP137EOriginal)');
+  expect(loaderBranch).toContain('selectP137EScene67FocusedReview(gltf)');
+  expect(loaderBranch).toContain('gltf.scenes?.[P137E_THREE_CORNER_MEASURED_SCENE_INDEX]');
+  expect(loaderBranch).toContain('P137E_THREE_CORNER_MEASURED_REVIEW_ROOT');
+  expect(loaderBranch).toContain("userData?.sourceCornerGapsClosed !== 3");
+  expect(loaderBranch).toContain("P137E_THREE_CORNER_SOURCE_PATCHES");
+  expect(loaderBranch).toContain('gltf.scene = combinedScene;');
+  expect(loaderBranch).toContain('gltf.scene = measuredScene;');
+  expect(loaderBranch).toContain('gltf.scene = exactSource.scene;');
+  const stateStart = runtime.indexOf('const applyP137EMeasuredWallReviewState = () => {');
+  const stateEnd = runtime.indexOf('const applyP137EScene67ReviewState = () => {', stateStart);
+  const state = runtime.slice(stateStart, stateEnd);
+  expect(state).toContain('isP137EThreeCornerMeasuredReviewRequested()');
+  expect(state).toContain('p137eSourceCornerGapsClosed');
+  expect(state).toContain('p137eSourceCornerPatchWidthMm');
+  expect(state).toContain("p137eMeasuredWallLobbyGapMm: '1020'");
+  expect(state).toContain("p137eCurrentClaim: 'false'");
+  expect(state).toContain("p137eCanonical: 'false'");
+  expect(state).toContain("p137eAsBuiltClaim: 'false'");
+  expect(state).toContain("p137eHumanReview: 'NOT_RUN'");
+  expect(runtime).toContain(
+    "const p137eThreeCornerMeasuredVariant = 'd1f-three-source-corners-and-i03-20261013';",
+  );
+});
+
+test('scene69 opt-in retains exact scene67 WORK_TEST one-link request without loading CURRENT', async ({ page }) => {
+  test.setTimeout(45_000);
+  const currentRequests: string[] = [];
+  const reviewGlbRequests: string[] = [];
+  const candidatePath = '/private-model/work-test/' + candidateId + '.glb';
+  await routeScene67SyntheticHttpsAssets(page);
+  await page.route('**/private-model/model.glb', route => {
+    currentRequests.push(route.request().url());
+    return route.abort();
+  });
+  await page.route('**/private-model/work-test/catalog.json', route =>
+    route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ id: candidateId, label: 'P137E scene69 synthetic fixture', path: candidatePath }] }),
+    }));
+  await page.route('**' + candidatePath, route => {
+    reviewGlbRequests.push(route.request().url());
+    // Request-ordering test only: invalid bytes cannot establish any rendered geometry.
+    return route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: 'not-a-glb' });
+  });
+  await page.goto(SYNTHETIC_SCENE67_ORIGIN + '/private-model/?review=' + reviewId
+    + '&wallMetric=d1f-three-source-corners-and-i03-20261013');
+  await expect.poll(() => reviewGlbRequests.length, { timeout: 15_000 }).toBe(1);
+  expect(currentRequests).toEqual([]);
+  await expect(page.locator('#private-model-canvas')).not.toHaveAttribute('data-p137e-human-review', 'PASS');
+});
 
 test('exact Themo one-link review loads WORK_TEST directly without a redundant CURRENT GLB request', async ({ page }) => {
   test.setTimeout(45_000);
