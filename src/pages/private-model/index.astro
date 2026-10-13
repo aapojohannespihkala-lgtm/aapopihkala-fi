@@ -9589,7 +9589,7 @@ const title = 'Private 3D viewer';
               if (candidates.length !== 1 || candidates[0]?.children?.length !== 4) {
                 throw new Error('P137E measured I03 wall successor scene68 identity mismatch');
               }
-              gltf.scene = candidates[0];
+              gltf.scene = measuredScene;
             } else {
               // Unchanged source-bound P137E review and production pixel contract.
               gltf.scene = exactSource.scene;
