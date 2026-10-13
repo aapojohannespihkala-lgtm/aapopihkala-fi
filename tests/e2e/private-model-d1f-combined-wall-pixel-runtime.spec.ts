@@ -169,3 +169,23 @@ test('actual automerge selector requests the fixed main D1F probe only for relev
   expect(source).toContain('"probe_mode":"d1f-combined-pixels"');
   expect(source).toContain('private-model-production-review-smoke.yml/dispatches');
 });
+
+
+test('render frame lock preserves the exact paired camera after orbit and projection updates', () => {
+  const f=fixture(), original=f.camera.matrixWorld.toArray();
+  const runtime=createD1FCombinedWallPixelRuntime(f.options);
+  const prepared=runtime.prepare('CORNER_NORTH_X2337');
+  f.camera.position.x+=1e-12;
+  f.camera.quaternion.x+=1e-14;
+  f.camera.aspect+=1e-12;
+  f.camera.updateProjectionMatrix();f.camera.updateMatrixWorld(true);
+  runtime.pinFrame();
+  runtime.suppress('CORNER_NORTH_X2337');
+  f.controls.update();f.camera.position.z+=1e-12;
+  runtime.pinFrame();
+  expect(runtime.restore()).toMatchObject({suppressionRestored:true,
+    cameraFingerprint:prepared.cameraFingerprint});
+  runtime.dispose();runtime.pinFrame();
+  expect(f.camera.matrixWorld.toArray()).toEqual(original);
+  expect(f.controls.enabled).toBe(true);
+});
