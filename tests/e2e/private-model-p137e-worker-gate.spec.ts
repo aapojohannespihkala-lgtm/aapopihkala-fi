@@ -164,7 +164,7 @@ test('P137E fixture Worker POST stores one observation and separately reads its 
       lastNetworkStage = 'docs-get';
       docsGets++;
       return Response.json({
-        documentId: docId, revision,
+        documentId: docId, revisionId: revision,
         tabs: [{ tabProperties: { tabId: 't.0' }, documentTab: { body: {
           content: paragraphs.map(s => ({ paragraph: { elements: [{ textRun: { content: s + '\n' } }] } })),
         } } }],
