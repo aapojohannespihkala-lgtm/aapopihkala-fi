@@ -1838,6 +1838,11 @@ const title = 'Private 3D viewer';
         P137E_THREE_CORNER_MEASURED_SCENE_INDEX,
         P137E_THREE_CORNER_MEASURED_REVIEW_ROOT,
       } from '../../scripts/privateModelP137EFieldMeasuredWallRuntime.mjs';
+      // @ts-ignore - opt-in V4 atomic I03 integration QA; never changes default CURRENT.
+      import {
+        stageP137EI03NormalWallReplacement,
+        P137E_I03_NORMAL_INTEGRATION_QA_ID,
+      } from '../../scripts/privateModelP137EI03AtomicWallSwap.mjs';
       import { setupPrivateModelToolbarMenus } from '../../scripts/privateModelToolbarMenus';
       import {
         selectionMetadataEntries as collectSelectionMetadataEntries,
@@ -6139,8 +6144,48 @@ const title = 'Private 3D viewer';
         status.textContent = 'Ladataan suojattua mallia...';
 
         try {
+          // The actual normal wall is produced here, from model.glb,
+          // NOT by the separately selected scene69 source review.
           const gltf = await loader.loadAsync('/private-model/model.glb');
-          applyLoadedModel(gltf, 'current', 'CURRENT');
+          const i03IntegrationQa =
+            new URLSearchParams(window.location.search).get('i03IntegrationQA') ===
+              P137E_I03_NORMAL_INTEGRATION_QA_ID;
+          delete canvas.dataset.i03IntegrationQa;
+          if (i03IntegrationQa) {
+            // A separate authenticated, exact SHA-verified scene67 source is
+            // used only to produce the scene69 wall replacement. Never append
+            // the whole review scene to the normal building, and never trust an
+            // old wall unless its full original carrier signature matches.
+            const verified = await fetchP137EScene67VerifiedGlb(
+              P137E_SCENE67_EXACT_ASSET_PATH,
+            );
+            const successor = await loader.parseAsync(
+              makeP137EThreeCornerMeasuredWorkTest(verified),
+              P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
+            );
+            const result = stageP137EI03NormalWallReplacement(
+              gltf.scene, successor.scenes?.[P137E_THREE_CORNER_MEASURED_SCENE_INDEX],
+            );
+            if (!result.originalDetached || result.insertedCount !== 1 ||
+                result.untouchedVertices !== 168 || result.sourceCorners !== 3) {
+              throw new Error('P137E I03 normal integration postcondition failed');
+            }
+            applyLoadedModel(gltf, 'work-test', 'WORK_TEST: I03 normaalimallin integraatiokoestus');
+            Object.assign(canvas.dataset, {
+              i03IntegrationQa: P137E_I03_NORMAL_INTEGRATION_QA_ID,
+              p137eWorkTestOnly: 'true',
+              p137eCurrentClaim: 'false',
+              p137eCanonical: 'false',
+              p137eAsBuiltClaim: 'false',
+              p137eHumanReview: 'NOT_RUN',
+              p137eSourceCornerGapsClosed: '3',
+              p137eMeasuredWallGlobalXYBinding: 'CONDITIONAL_UNVERIFIED',
+            });
+            status.textContent =
+              'WORK_TEST: I03 lähdeankkuroitu normaalin geometrian vaihtokoe, ei CURRENT eikä hyväksytty katselmus';
+          } else {
+            applyLoadedModel(gltf, 'current', 'CURRENT');
+          }
           locusLayerLabel.textContent = 'Locus kunnallistekniikka (WORK_TEST)';
         } catch (error) {
           console.error(error);
@@ -11204,6 +11249,13 @@ const title = 'Private 3D viewer';
       });
       currentModelButton.addEventListener('click', () => {
         clearModelComparisonState();
+        // Returning from the opt-in integration candidate must actually load
+        // CURRENT, rather than silently reapplying the query-only wall surgery.
+        if (new URLSearchParams(window.location.search).has('i03IntegrationQA')) {
+          const returnUrl = new URL(window.location.href);
+          returnUrl.searchParams.delete('i03IntegrationQA');
+          window.history.replaceState(window.history.state, '', returnUrl);
+        }
         void loadCurrentModel();
       });
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
