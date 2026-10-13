@@ -356,11 +356,25 @@ test('real Chromium toggles scene67 wall faces and restores top-plan RASTI/MITTA
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'DYNAMIC');
   const measuredMm = Number(await canvas.getAttribute('data-axis-measure-mm'));
   expect(measuredMm).toBeGreaterThan(0);
-  await expect(page.locator('#axis-measure-output')).toContainText('mm (mallista)');
+  const measureLabel = page.locator('#axis-measure-label');
+  await expect(page.locator('#axis-measure-output')).toHaveText(`${measuredMm} mm`);
+  await expect(measureLabel).toHaveText(`${measuredMm} mm`);
+  await expect(measureLabel).toHaveAttribute('data-axis', 'X');
+  await expect(measureLabel).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(measureLabel).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await clickPlan(0.60, 0.49);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'LOCKED');
   await clickPlan(0.56, 0.49);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'EMPTY');
+  await expect(page.locator('#axis-measure-output')).toBeEmpty();
+  await clickPlan(0.575, 0.49);
+  await clickPlan(0.575, 0.52);
+  await expect(canvas).toHaveAttribute('data-axis-measure-axis', 'Y');
+  await expect(measureLabel).toHaveAttribute('data-axis', 'Y');
+  const rotationB = await measureLabel.evaluate((element) =>
+    new DOMMatrixReadOnly(getComputedStyle(element).transform).b);
+  expect(rotationB).toBeCloseTo(-1, 4);
+  await expect(measureLabel).toHaveText(/^\d+ mm$/);
   await expect(canvas).toHaveAttribute('data-p137e-place-draft-count', '3');
 
   // The ruler is outside the view menu: use the actual visible menu again.
