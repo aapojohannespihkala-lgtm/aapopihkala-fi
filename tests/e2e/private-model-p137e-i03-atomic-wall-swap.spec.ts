@@ -160,8 +160,9 @@ test('normal viewer path stays original GLB and measurement code remains wired; 
   expect(source).toContain("stageP137EI03NormalWallReplacement(\n                i03Interior");
   expect(source).toContain("canvas.dataset.i03IntegrationQa = 'BLOCKED'");
   expect(source).toContain("stagedI03.restoreOriginal()");
-  expect(source).toContain("p137eFieldChainGeometryApproval: stagedI03.fieldChain.geometryApproval");
-  expect(source).toContain("p137eFieldChainResidualMm: String(stagedI03.fieldChain.residualMm)");
+  // 307 mm HOLD is currently kept by the atomic runtime; no approved
+  // scene5 physical XY or CURRENT promotion is exposed by the viewer.
+  expect(source).toContain("p137eMeasuredWallGlobalXYBinding: 'CONDITIONAL_UNVERIFIED'");
   expect(source).toContain("applyLoadedModel(gltf, 'current', 'CURRENT')");
   expect(source).toContain("applyStandardViewPreset('d-1f')");
   expect(source).toContain('stageP137EI03NormalWallReplacement(');
