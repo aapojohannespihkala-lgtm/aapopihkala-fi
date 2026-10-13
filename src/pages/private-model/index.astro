@@ -11463,6 +11463,8 @@ const title = 'Private 3D viewer';
         controls.update();
         planControls.update();
         isoControls.update();
+        // Screenshot input pins the exact prepared pose after orbit updates.
+        d1fCombinedPixelRuntime?.pinFrame();
         selectionHighlightController.update();
         updateD1KnownDoorReviewLabelPositions();
         updateHeightScale();
@@ -11471,6 +11473,7 @@ const title = 'Private 3D viewer';
           quaternion: activeCamera.quaternion,
           projection: (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective',
         });
+        d1fCombinedPixelRuntime?.pinFrame();
         renderer.render(scene, activeCamera);
       });
 

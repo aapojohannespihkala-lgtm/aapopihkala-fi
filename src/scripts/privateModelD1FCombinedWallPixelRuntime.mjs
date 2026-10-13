@@ -52,12 +52,23 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     autoRotate: controls.autoRotate,
   };
   let prepared = null;
+  let lockedPose = null;
   let hidden = null;
   let maskedGeometry = null;
   let disposed = false;
   const fingerprint = () => {
     camera.updateMatrixWorld(true);
     return JSON.stringify({ projection: camera.projectionMatrix.toArray(), pose: camera.matrixWorld.toArray() });
+  };
+  const pinFrame = () => {
+    if (disposed || !lockedPose) return;
+    camera.position.copy(lockedPose.position);
+    camera.quaternion.copy(lockedPose.quaternion);
+    camera.up.copy(lockedPose.up);
+    camera.projectionMatrix.copy(lockedPose.projection);
+    camera.projectionMatrixInverse.copy(lockedPose.projectionInverse);
+    camera.aspect = lockedPose.aspect;
+    camera.updateMatrixWorld(true);
   };
   const restoreTarget = () => {
     if (hidden === 'I03') {
@@ -112,6 +123,11 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     const x = Math.floor(Math.min(...xs)) - 3, y = Math.floor(Math.min(...ys)) - 3;
     const right = Math.ceil(Math.max(...xs)) + 3, bottom = Math.ceil(Math.max(...ys)) + 3;
     if (x < 0 || y < 0 || right > width || bottom > height || right - x < 8 || bottom - y < 8) reject();
+    lockedPose = {
+      position: camera.position.clone(), quaternion: camera.quaternion.clone(), up: camera.up.clone(),
+      aspect: camera.aspect, projection: camera.projectionMatrix.clone(),
+      projectionInverse: camera.projectionMatrixInverse.clone(),
+    };
     prepared = {
       targetId, viewIndex, width, height, roi: { x, y, width: right - x, height: bottom - y },
       cameraFingerprint: fingerprint(), glbSha256: sourceSha, variant: selected.variant,
@@ -149,6 +165,7 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
   };
   const dispose = () => {
     if (disposed) return;
+    lockedPose = null;
     restoreTarget();
     camera.position.copy(original.position); camera.quaternion.copy(original.quaternion); camera.up.copy(original.up);
     Object.assign(camera, { aspect: original.aspect, fov: original.fov, near: original.near, far: original.far });
@@ -157,5 +174,5 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
     disposed = true; render();
   };
-  return Object.freeze({ prepare, suppress, restore, dispose });
+  return Object.freeze({ prepare, suppress, restore, dispose, pinFrame });
 }
