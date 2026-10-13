@@ -12,6 +12,9 @@
  */
 export const P137E_I03_NORMAL_INTEGRATION_QA_ID = 'scene69-source-bound-atomic';
 const ROOT = 'P137E_SCENE69_THREE_SOURCE_CORNERS_AND_I03_FIELD_WORK_TEST_ROOT';
+const NORMAL_SCENE = 'D CURRENT INTERIOR - BABYLON Y-UP';
+const NORMAL_HOST = 'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP';
+const NORMAL_I03 = 'P123C_D1F_WINDOW_TRANSPARENT_WALL_HELPER';
 const CANDIDATE_WALL = 'P137E_FIELD_I03_WALL_WITH_THREE_SOURCE_CORNER_PATCHES';
 const CORNER_PATCHES = 'P137E_THREE_CORNER_SOURCE_PATCHES';
 const EPS = .0002;
@@ -58,7 +61,8 @@ function sourceCornerSignature(object) {
 }
 
 export function stageP137EI03NormalWallReplacement(currentScene, scene69) {
-  if (!currentScene?.traverse || !scene69?.children ||
+  if (!currentScene?.traverse || currentScene.name !== NORMAL_SCENE ||
+      !scene69?.children ||
       scene69.name !== 'P137E D1F THREE SOURCE L CORNERS + MEASURED I03 WORK_TEST')
     fail('SCENE_IDENTITY');
   const roots = scene69.children.filter(n => n.name === ROOT);
@@ -81,7 +85,10 @@ export function stageP137EI03NormalWallReplacement(currentScene, scene69) {
   // from source67 for the current in-scene wall to be removed.
   const matches = [];
   currentScene.traverse(object => {
-    if (!object?.isMesh || !object.parent) return;
+    // The actual D1F normal architectural wall is node798 under scene5
+    // root817. The default glTF scene (often scene0) is NOT this carrier.
+    if (!object?.isMesh || !object.parent ||
+        object.name !== NORMAL_I03 || object.parent.name !== NORMAL_HOST) return;
     const attr = object.geometry?.getAttribute?.('position');
     if (attr?.itemSize === 3 && attr.count === 176 && sourceWallSignature(attr)) matches.push(object);
   });
@@ -134,7 +141,20 @@ export function stageP137EI03NormalWallReplacement(currentScene, scene69) {
     currentScene.updateMatrixWorld(true);
     throw error;
   }
+  // A later viewer activation failure must be able to restore the exact
+  // original in-memory scene5 object. This does not write to R2/GLB.
+  const restoreOriginal = () => {
+    if (next.parent !== parent || old.parent) fail('ROLLBACK_IDENTITY');
+    const currentIndex = parent.children.indexOf(next);
+    if (currentIndex < 0) fail('ROLLBACK_MISSING_REPLACEMENT');
+    parent.remove(next);
+    parent.add(old);
+    parent.children.splice(parent.children.indexOf(old), 1);
+    parent.children.splice(currentIndex, 0, old);
+    currentScene.updateMatrixWorld(true);
+    return old.parent === parent && !next.parent;
+  };
   return { originalDetached:true, insertedCount:1, untouchedVertices:168,
     sourceCorners:3, scene:currentScene, original:old, replacement:next,
-    externalApproval:'NOT_RUN', current:false };
+    restoreOriginal, externalApproval:'NOT_RUN', current:false };
 }
