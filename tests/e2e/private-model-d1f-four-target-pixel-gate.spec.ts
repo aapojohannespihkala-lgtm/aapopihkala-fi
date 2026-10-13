@@ -154,7 +154,7 @@ test('D1F production matrix requires all four named variants with isolated evide
   const job = workflow.split('  verify-d1f-combined-pixels:\n')[1];
   expect(job).toBeTruthy();
   expect(job).toContain('fail-fast: false');
-  const entries = [...job.matchAll(/^          - ((?:WEST|EAST)_ANCHOR_\\d+_\\d+_\\d+)$/gm)]
+  const entries = [...job.matchAll(/^          - ((?:WEST|EAST)_ANCHOR_\d+_\d+_\d+)$/gm)]
     .map(x => x[1]);
   expect(entries).toEqual([...D1F_COMBINED_WALL_VARIANTS]);
   expect(job).toContain('D1F_COMBINED_VARIANT: ${{ matrix.variant }}');
