@@ -130,3 +130,24 @@ test('actual production probe rejects untrusted calls and redacts upstream error
     expect(writes.join('')+logs.join('')).not.toContain(canary);
   }
 });
+
+
+test('publisher completion gate accepts only its exact trusted successful main source', async () => {
+  const {readFileSync} = await import('node:fs');
+  const {runInNewContext} = await import('node:vm');
+  const workflow=readFileSync('.github/workflows/private-model-production-review-smoke.yml','utf8');
+  expect(workflow).toContain("workflows: ['Publish WORK_TEST', 'Publish WORK_TEST - d1f-combined-wall-115-100-20261013']");
+  const expression=workflow.split('  verify-d1f-combined-pixels:')[1].split('    runs-on:')[0]
+    .split('if: >-')[1].trim();
+  const valid={event_name:'workflow_run',ref:'refs/heads/main',sha:'a'.repeat(40),
+    event:{workflow_run:{workflow_id:372000543,head_branch:'main',conclusion:'success',
+      display_title:'Publish WORK_TEST - d1f-combined-wall-115-100-20261013',head_sha:'a'.repeat(40)}}};
+  expect(runInNewContext('('+expression+')',{github:valid})).toBe(true);
+  for(const update of [{workflow_id:0},{head_branch:'topic'},{conclusion:'failure'},
+    {display_title:'Publish WORK_TEST - different-candidate'},{head_sha:'b'.repeat(40)}]) {
+    const github={...valid,event:{workflow_run:{...valid.event.workflow_run,...update}}};
+    expect(runInNewContext('('+expression+')',{github})).toBe(false);
+  }
+  expect(runInNewContext('('+expression+')',{github:{...valid,event_name:'pull_request'}})).toBe(false);
+  expect(runInNewContext('('+expression+')',{github:{...valid,ref:'refs/heads/topic'}})).toBe(false);
+});
