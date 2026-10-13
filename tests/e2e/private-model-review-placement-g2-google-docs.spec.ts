@@ -437,7 +437,7 @@ test('G2 manual redirect transport rejects OAuth, Docs GET and guarded POST with
           documentId: placementG2DocumentId,
           requests: [{ insertText: {
             endOfSegmentLocation: { tabId: 't.0' },
-            text: '\\nP137E_G2_REVIEW_OBSERVATION_V1 | P137E_G2_TESTRECORD_0001 | {"schema":"test"}\\n',
+            text: '\nP137E_G2_REVIEW_OBSERVATION_V1 | P137E_G2_TESTRECORD_0001 | {"schema":"test"}\n',
           } }],
           writeControl: { requiredRevisionId: 'REV_G2_1' },
         });
