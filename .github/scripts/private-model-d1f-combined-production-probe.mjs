@@ -22,6 +22,14 @@ const bounded = async (fn, ms = 45000) => {
 };
 const check = (ok) => { if (!ok) throw new Error('D1F_PRODUCTION_PROBE_REJECTED'); };
 let browser;
+const driverDeadline=setTimeout(()=>{
+  Object.assign(evidence,{result:'FAIL',failureCode:'D1F_DRIVER_DEADLINE_EXCEEDED',
+    authenticatedAutoloadVerified:false,actualBrowserWebGlVerified:false,fourTargetsRenderedVerified:false});
+  fs.mkdirSync(OUT,{recursive:true});
+  fs.writeFileSync(OUT+'/evidence.json',JSON.stringify(evidence,null,2)+'\n');
+  console.log(JSON.stringify(evidence));
+  process.exit(1);
+},300000);
 try {
   check(process.env.GITHUB_REF === 'refs/heads/main' &&
     process.env.GITHUB_REPOSITORY === 'aapojohannespihkala-lgtm/aapopihkala-fi');
@@ -37,14 +45,14 @@ try {
   check(Boolean(clientId && clientSecret));
   evidence.phase = 'BROWSER_START';
   browser = await bounded(()=>chromium.launch({headless:true}));
-  const context = await browser.newContext({ viewport:{width:1440,height:1000}, deviceScaleFactor:1 });
+  const context = await bounded(()=>browser.newContext({ viewport:{width:1440,height:1000}, deviceScaleFactor:1 }),15000);
   // Service credentials are attached only to the fixed same-origin project.
   await context.route('**/*', async route => {
     if (new URL(route.request().url()).origin !== ORIGIN) return route.abort();
     return route.continue({headers:{...route.request().headers(),
       'CF-Access-Client-Id':clientId,'CF-Access-Client-Secret':clientSecret}});
   });
-  const page = await context.newPage();
+  const page = await bounded(()=>context.newPage(),15000);
   let responses = [];
   page.on('response', response => { if(response.url() === ORIGIN + PATH) responses.push(response); });
   const canvas = page.locator('#private-model-canvas');
@@ -117,7 +125,7 @@ try {
     check(await canvas.evaluate(c=>Boolean(c.getContext('webgl2')||c.getContext('webgl'))));
     const prefix=variant.toLowerCase();
     evidence.phase='GENERAL_RENDER_PIXELS';
-    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    await bounded(()=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))),5000);
     const initial=await capture(prefix+'-overview');
     let nonBackground=0;
     for(let i=0;i<initial.rgba.length;i+=4)
@@ -182,6 +190,7 @@ try {
   evidence.result='FAIL';
   process.exitCode=1;
 } finally {
+  clearTimeout(driverDeadline);
   if(browser)await bounded(()=>browser.close(),10000).catch(()=>{});
   fs.mkdirSync(OUT,{recursive:true});
   fs.writeFileSync(OUT+'/evidence.json',JSON.stringify(evidence,null,2)+'\n');
