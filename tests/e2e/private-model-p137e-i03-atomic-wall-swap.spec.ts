@@ -5,6 +5,8 @@ import { BufferGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial,
 import {
   stageP137EI03NormalWallReplacement,
   P137E_I03_NORMAL_INTEGRATION_QA_ID,
+  P137E_I03_FIELD_CHAIN_20261013_MM,
+  auditP137EI03FieldChain,
 } from '../../src/scripts/privateModelP137EI03AtomicWallSwap.mjs';
 
 const ROOT = 'P137E_SCENE69_THREE_SOURCE_CORNERS_AND_I03_FIELD_WORK_TEST_ROOT';
@@ -19,7 +21,8 @@ const positions = () => {
   box(p,128,5.098,6.306,4.206,4.286);
   box(p,64,6.266,6.346,-1.124,10.544);
   box(p,136,.231,6.306,5.032,5.112);
-  for(let i=0;i<176;i++) if (![64,65,66,67,68,69,70,71,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143].includes(i))
+  box(p,120,3.848,6.306,2.309,2.389);
+  for(let i=0;i<176;i++) if (![64,65,66,67,68,69,70,71,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143].includes(i))
     p.set([i*.00001,i*.00002,i*.00003], i*3);
   return p;
 };
@@ -80,6 +83,13 @@ test('unique normal-scene I03 replacement is atomic, not an overlay or 22-wall d
   expect(result.insertedCount).toBe(1);
   expect(result.untouchedVertices).toBe(168);
   expect(result.sourceCorners).toBe(3);
+  expect(result.fieldChain.nominalMeasuredChainMm).toBe(2990);
+  expect(result.fieldChain.sourceReferenceChainMm).toBe(2683);
+  expect(result.fieldChain.residualMm).toBe(307);
+  expect(result.fieldChain.displayedSaunaToI03Mm).toBe(1458);
+  expect(result.fieldChain.displayedI03ToLobbyMm).toBe(1020);
+  expect(result.fieldChain.geometryApproval).toBe('HOLD_SOURCE_FACE_ALIGNMENT');
+  expect(result.fieldChain.physicalXYVerified).toBe(false);
   expect(f.before.parent).toBeNull();
   expect(f.current.children).toHaveLength(beforeSiblings.length);
   expect(f.current.children[0]).toBe(result.replacement);
@@ -99,6 +109,9 @@ test('unique normal-scene I03 replacement is atomic, not an overlay or 22-wall d
   expect(result.replacement.userData.i03IntegrationQa).toBe(P137E_I03_NORMAL_INTEGRATION_QA_ID);
   expect(result.replacement.userData.current).toBe(false);
   expect(result.replacement.userData.publishToCURRENT).toBe(false);
+  expect(result.replacement.userData.fieldChainResidualMm).toBe(307);
+  expect(result.replacement.userData.fieldChainGeometryApproval)
+    .toBe('HOLD_SOURCE_FACE_ALIGNMENT');
   expect(result.replacement.userData.HUMAN_REVIEW).toBe('NOT_RUN');
   expect(()=>stageP137EI03NormalWallReplacement(f.scene,f.source)).toThrow(/NORMAL_WALL_UNIQUE_MATCH_0/);
   expect(result.restoreOriginal()).toBe(true);
@@ -119,6 +132,7 @@ test('wrong source, missing 40mm patch or shared duplicate wall refuses all muta
     (f:ReturnType<typeof fixture>)=>{box(
       (f.candidate.geometry.getAttribute('position').array as Float32Array),64,6.1,6.4,-1.124,10.544);},
     (f:ReturnType<typeof fixture>)=>{f.current.position.x=.5;},
+    (f:ReturnType<typeof fixture>)=>{const a=f.before.geometry.getAttribute('position');a.setY(120,2.419);},
   ]) {
     const f=fixture();mutate(f);
     const oldChildren=[...f.current.children];
@@ -146,6 +160,8 @@ test('normal viewer path stays original GLB and measurement code remains wired; 
   expect(source).toContain("stageP137EI03NormalWallReplacement(\n                i03Interior");
   expect(source).toContain("canvas.dataset.i03IntegrationQa = 'BLOCKED'");
   expect(source).toContain("stagedI03.restoreOriginal()");
+  expect(source).toContain("p137eFieldChainGeometryApproval: stagedI03.fieldChain.geometryApproval");
+  expect(source).toContain("p137eFieldChainResidualMm: String(stagedI03.fieldChain.residualMm)");
   expect(source).toContain("applyLoadedModel(gltf, 'current', 'CURRENT')");
   expect(source).toContain("applyStandardViewPreset('d-1f')");
   expect(source).toContain('stageP137EI03NormalWallReplacement(');
@@ -169,4 +185,27 @@ test('scene5 host identity isolates exact I03 from a geometry-identical room els
   expect(duplicate.parent).toBe(unrelated);
   expect(f.before.parent).toBeNull();
   expect(result.restoreOriginal()).toBe(true);
+});
+
+test('new measured sauna/KPH-to-I03 chain remains HOLD against the old source display reference', () => {
+  const measurements = P137E_I03_FIELD_CHAIN_20261013_MM;
+  expect(measurements.saunaKphPartitionWidth).toBe(2360);
+  expect(measurements.saunaDoorSegments).toEqual([725,895,740]);
+  expect(measurements.saunaDoorHeight).toBe(2000);
+  expect(measurements.saunaToI03BathroomFacing).toBe(1765);
+  expect(measurements.i03Thickness).toBe(205);
+  expect(measurements.i03ToLobby).toBe(1020);
+  const f=fixture();
+  const audit = auditP137EI03FieldChain(
+    f.before.geometry.getAttribute('position'),
+    f.candidate.geometry.getAttribute('position'),
+  );
+  expect(audit.nominalMeasuredChainMm).toBe(2990);
+  expect(audit.sourceReferenceChainMm).toBe(2683);
+  expect(audit.residualMm).toBe(307);
+  expect(audit.geometryApproval).toBe('HOLD_SOURCE_FACE_ALIGNMENT');
+  expect(audit.sourceReferenceKind).toBe('CENTERLINE_PLUS_SOURCE_DISPLAY_FACE_NOT_SURVEYED');
+  expect(audit.humanReview).toBe('NOT_RUN');
+  // Even a zero arithmetic residual must NEVER auto-promote to a physical XY.
+  expect(audit.physicalXYVerified).toBe(false);
 });
