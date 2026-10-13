@@ -562,3 +562,65 @@ test('production scene67 original GLB proof fails closed on stalled network/body
   expect(workflow).toContain("MIN_CHANGED_PIXELS_HARD_FLOOR: '750'");
   expect(workflow).not.toContain('HUMAN_REVIEW: PASS');
 });
+
+
+test('G2 exact three-observation readback is explicit main-only and distinct from render', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  expect(workflow).toContain('          - g2-records-readback');
+  expect(workflow).toContain("inputs.probe_mode == 'full-render'");
+  expect(workflow).toContain("inputs.probe_mode == 'g2-readiness'");
+  const job = workflow.split('  verify-g2-observations-readback:')[1];
+  expect(job).toBeDefined();
+  expect(job).toContain("github.event_name == 'workflow_dispatch'");
+  expect(job).toContain("github.ref == 'refs/heads/main'");
+  expect(job).toContain("inputs.probe_mode == 'g2-records-readback'");
+  expect(job).not.toContain('pull_request');
+  expect(job).toContain('CF_ACCESS_VIEWER_PROBE_CLIENT_ID:');
+  expect(job).toContain('CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET:');
+});
+
+test('G2 per-record probe calls only immutable exact GET routes without another Docs write', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const job = workflow.split('  verify-g2-observations-readback:')[1] ?? '';
+  const ids = [
+    'P137E_G2_2ea51c8886014d7abe51f4f7915da068',
+    'P137E_G2_ad31cfc5497548a98e4dd400f1acdc48',
+    'P137E_G2_11262097b6124ba68ea4fdbdbc0bed32',
+  ];
+  for (const id of ids) expect(job.split(id)).toHaveLength(2);
+  expect(job).toContain('const allowedUrls = new Set(records.map(record => route + record.id))');
+  expect(job).toContain("options.method !== 'GET'");
+  expect(job).toContain('options.body !== undefined');
+  expect(job).toContain('await client.readback(record.id)');
+  expect(job).not.toContain('client.persist(');
+  expect(job).not.toContain("method: 'POST'");
+  expect(job).not.toContain('batchUpdateDocument(');
+  expect(job).toContain("newObservationCreated: false");
+  expect(job).toContain("nativeG2WriteAttempted: false");
+});
+
+test('G2 observation readback does not promote approximate pins or leak private evidence', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const job = workflow.split('  verify-g2-observations-readback:')[1] ?? '';
+  for (const requirement of [
+    "a?.approximate !== true",
+    "a?.exactXY !== false",
+    "observed?.height?.zM !== null",
+    "p.resolution?.status !== 'UNMAPPED'",
+    "p.resolution?.reason !== 'NO_APPROVED_HOST'",
+    "p.resolution?.proposal !== null",
+    "p.persisted !== false",
+    "p.humanReview !== 'NOT_RUN'",
+    "p.currentGeometry !== false",
+    "p.canonical !== false",
+    "p.asBuilt !== false",
+    "evidence.failure = 'WORKER_READBACK_NOT_VERIFIED'",
+    "humanReview: 'NOT_RUN'",
+    "publishToCURRENT: false",
+  ]) expect(job).toContain(requirement);
+  expect(job).not.toContain('console.log(actual)');
+  expect(job).not.toContain('console.log(error)');
+  expect(job).not.toContain('response.headers.entries()');
+  expect(job).toContain('JSON.stringify(evidence)');
+  expect(job).toContain('if (!evidence.authenticatedWorkerGetVerified) process.exitCode = 1');
+});

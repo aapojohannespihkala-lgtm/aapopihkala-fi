@@ -9,13 +9,14 @@ on:
   workflow_dispatch:
     inputs:
       probe_mode:
-        description: Full scene67 render or read-only native G2 readiness (no observation write)
+        description: Full render, G2 target readiness, or exact three-record readback (read-only)
         required: true
         type: choice
         default: full-render
         options:
           - full-render
           - g2-readiness
+          - g2-records-readback
       review_id:
         description: Exact private-model review ID
         required: true
@@ -165,7 +166,7 @@ jobs:
           PY
 
   verify-production:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode != 'g2-readiness'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'full-render'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -1750,5 +1751,127 @@ jobs:
         with:
           name: private-model-g2-readiness
           path: playwright-artifacts/p137e-native-g2-readiness.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # Authentic production verification of exactly the three existing G2
+  # WORK_TEST observations. No POST, no duplicate records, no model approval.
+  # This is a distinct, explicit main-only workflow_dispatch gate.
+  verify-g2-observations-readback:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'g2-records-readback'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+      - name: Independently authenticate and read three existing G2 records
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { mkdirSync, writeFileSync } from 'node:fs';
+          import { createP137EG2WorkerClient } from './src/scripts/privateModelP137EG2WorkerClient.mjs';
+
+          const origin = 'https://aapopihkala.fi';
+          const route = origin + '/private-model/review-placement/g2/observations/';
+          const records = [
+            { id: 'P137E_G2_2ea51c8886014d7abe51f4f7915da068',
+              targetId: 'D_THEMO_CURRENT_LOBBY_01', xM: 3.73, yM: 5.12, heightM: 1.48 },
+            { id: 'P137E_G2_ad31cfc5497548a98e4dd400f1acdc48',
+              targetId: 'D_THEMO_CURRENT_BEDROOM_01', xM: 3.69, yM: 5.03, heightM: 1.48 },
+            { id: 'P137E_G2_11262097b6124ba68ea4fdbdbc0bed32',
+              targetId: 'D_THEMO_CURRENT_BATHROOM_01', xM: 4.88, yM: 5.03, heightM: 1.40 },
+          ];
+          const allowedUrls = new Set(records.map(record => route + record.id));
+          const evidence = {
+            probe: 'P137E_EXISTING_G2_OBSERVATIONS_READBACK_V1',
+            requiredRecordCount: 3,
+            verifiedRecordCount: 0,
+            authenticatedWorkerGetVerified: false,
+            nativeG2WriteAttempted: false,
+            newObservationCreated: false,
+            originalWorkTestOnly: true,
+            humanReview: 'NOT_RUN',
+            publishToCURRENT: false,
+          };
+          try {
+            const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
+            const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
+            if (!clientId || !clientSecret) throw new Error('PROBE_CREDENTIALS_MISSING');
+
+            const client = createP137EG2WorkerClient({
+              origin,
+              canReview: () => true,
+              requestTimeoutMs: 15000,
+              fetcher: async (url, options) => {
+                if (!allowedUrls.has(url) ||
+                    options.method !== 'GET' ||
+                    options.body !== undefined) {
+                  throw new Error('READBACK_GET_ONLY');
+                }
+                // A read-only probe identity MUST NOT gain write permissions.
+                // Never export tokens, response headers or native G2 payloads.
+                return fetch(url, {
+                  ...options,
+                  headers: {
+                    'CF-Access-Client-Id': clientId,
+                    'CF-Access-Client-Secret': clientSecret,
+                    Accept: 'application/json',
+                  },
+                });
+              },
+            });
+
+            for (const record of records) {
+              // This is a NEW authenticated Worker GET for an EXISTING exact
+              // record, not a replay of the original direct Docs write.
+              const actual = await client.readback(record.id);
+              const p = actual.payload;
+              const a = p.anchor, observed = p.observation;
+              if (actual.recordId !== record.id ||
+                  a?.targetId !== record.targetId ||
+                  a?.apartment !== 'D' || a?.floor !== '1F' ||
+                  a?.coordinateFrame !== 'YLIS-G1-LOCAL' ||
+                  a?.xM !== record.xM || a?.yM !== record.yM ||
+                  a?.approximate !== true || a?.exactXY !== false ||
+                  observed?.anchor?.targetId !== record.targetId ||
+                  observed?.anchor?.xM !== record.xM ||
+                  observed?.anchor?.yM !== record.yM ||
+                  observed?.height?.aboveFinishedFloorM !== record.heightM ||
+                  observed?.height?.zM !== null ||
+                  observed?.verifiedWallSide !== false ||
+                  p.resolution?.status !== 'UNMAPPED' ||
+                  p.resolution?.reason !== 'NO_APPROVED_HOST' ||
+                  p.resolution?.proposal !== null ||
+                  p.persisted !== false || p.humanReview !== 'NOT_RUN' ||
+                  p.currentGeometry !== false || p.canonical !== false ||
+                  p.asBuilt !== false) {
+                throw new Error('RECORD_SOURCE_MISMATCH');
+              }
+              evidence.verifiedRecordCount += 1;
+            }
+            evidence.authenticatedWorkerGetVerified =
+              evidence.verifiedRecordCount === evidence.requiredRecordCount;
+          } catch {
+            // Sanitized, deliberately non-specific: never log Docs content,
+            // Access headers, response bodies or upstream exception strings.
+            evidence.failure = 'WORKER_READBACK_NOT_VERIFIED';
+          }
+          mkdirSync('playwright-artifacts', { recursive: true });
+          writeFileSync('playwright-artifacts/p137e-g2-records-readback.json',
+            JSON.stringify(evidence, null, 2));
+          console.log(JSON.stringify(evidence));
+          if (!evidence.authenticatedWorkerGetVerified) process.exitCode = 1;
+          NODE
+      - name: Upload sanitized existing-record readback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-model-g2-existing-records-readback
+          path: playwright-artifacts/p137e-g2-records-readback.json
           if-no-files-found: ignore
           retention-days: 7
