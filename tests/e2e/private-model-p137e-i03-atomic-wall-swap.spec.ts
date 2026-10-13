@@ -44,10 +44,10 @@ const patch = () => {
 };
 const fixture = () => {
   const scene=new Group();
-  scene.name='normal-current-root';
+  scene.name='D CURRENT INTERIOR - BABYLON Y-UP';
   const context=new Group();context.name='rest-of-building';
-  const current=new Group(); current.name='D-normal-interior';
-  const before=mesh(positions());before.name='normal combined wall source mesh406';
+  const current=new Group(); current.name='P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP';
+  const before=mesh(positions());before.name='P123C_D1F_WINDOW_TRANSPARENT_WALL_HELPER';
   const preservedChild=new Group();preservedChild.name='existing-wall-child';
   before.add(preservedChild);
   current.add(before);
@@ -101,6 +101,10 @@ test('unique normal-scene I03 replacement is atomic, not an overlay or 22-wall d
   expect(result.replacement.userData.publishToCURRENT).toBe(false);
   expect(result.replacement.userData.HUMAN_REVIEW).toBe('NOT_RUN');
   expect(()=>stageP137EI03NormalWallReplacement(f.scene,f.source)).toThrow(/NORMAL_WALL_UNIQUE_MATCH_0/);
+  expect(result.restoreOriginal()).toBe(true);
+  expect(f.before.parent).toBe(f.current);
+  expect(f.current.children).toEqual(beforeSiblings);
+  expect(result.replacement.parent).toBeNull();
 });
 
 test('wrong source, missing 40mm patch or shared duplicate wall refuses all mutations', () => {
@@ -108,7 +112,10 @@ test('wrong source, missing 40mm patch or shared duplicate wall refuses all muta
     (f:ReturnType<typeof fixture>)=>{f.source.name='unverified-source';},
     (f:ReturnType<typeof fixture>)=>{f.root.userData.sourceCornerGapsClosed=2;},
     (f:ReturnType<typeof fixture>)=>{f.candidate.remove(f.candidate.children[0]);},
-    (f:ReturnType<typeof fixture>)=>{f.current.add(mesh(positions()));},
+    (f:ReturnType<typeof fixture>)=>{const duplicate=mesh(positions());duplicate.name='P123C_D1F_WINDOW_TRANSPARENT_WALL_HELPER';f.current.add(duplicate);},
+    (f:ReturnType<typeof fixture>)=>{f.scene.name='unknown scene carrier';},
+    (f:ReturnType<typeof fixture>)=>{f.before.name='lookalike wrong wall';},
+    (f:ReturnType<typeof fixture>)=>{f.current.name='wrong D source host';},
     (f:ReturnType<typeof fixture>)=>{box(
       (f.candidate.geometry.getAttribute('position').array as Float32Array),64,6.1,6.4,-1.124,10.544);},
     (f:ReturnType<typeof fixture>)=>{f.current.position.x=.5;},
@@ -135,10 +142,28 @@ test('normal viewer path stays original GLB and measurement code remains wired; 
   const source=readFileSync('src/pages/private-model/index.astro','utf8');
   expect(source).toContain("loader.loadAsync('/private-model/model.glb')");
   expect(source).toContain("get('i03IntegrationQA') ===");
+  expect(source).toContain("findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP')");
+  expect(source).toContain("stageP137EI03NormalWallReplacement(\n              i03Interior");
+  expect(source).toContain("applyStandardViewPreset('d-1f')");
   expect(source).toContain('stageP137EI03NormalWallReplacement(');
   expect(source).toContain("applyLoadedModel(gltf, 'current', 'CURRENT')");
   expect(source).toContain("axisMeasureToolButton.addEventListener('click'");
   expect(source).toContain("clickDAxisMeasurement(event.clientX, event.clientY)");
   expect(source).toContain("setModelScene(fullModelScene)");
   expect(source).toContain("i03IntegrationQa");
+});
+
+test('scene5 host identity isolates exact I03 from a geometry-identical room elsewhere', () => {
+  const f=fixture();
+  const unrelated=new Group();
+  unrelated.name='unrelated-room-with-same-wall-mesh';
+  const duplicate=mesh(positions());
+  duplicate.name='P123C_D1F_WINDOW_TRANSPARENT_WALL_HELPER';
+  unrelated.add(duplicate);
+  f.scene.add(unrelated);
+  const result=stageP137EI03NormalWallReplacement(f.scene,f.source);
+  expect(result.insertedCount).toBe(1);
+  expect(duplicate.parent).toBe(unrelated);
+  expect(f.before.parent).toBeNull();
+  expect(result.restoreOriginal()).toBe(true);
 });
