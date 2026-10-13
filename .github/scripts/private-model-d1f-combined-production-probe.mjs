@@ -23,12 +23,21 @@ const bounded = async (fn, ms = 45000) => {
 const check = (ok) => { if (!ok) throw new Error('D1F_PRODUCTION_PROBE_REJECTED'); };
 let browser;
 try {
-  check(process.env.GITHUB_EVENT_NAME === 'workflow_run' && process.env.GITHUB_REF === 'refs/heads/main' &&
+  check(process.env.GITHUB_REF === 'refs/heads/main' &&
     process.env.GITHUB_REPOSITORY === 'aapojohannespihkala-lgtm/aapopihkala-fi');
-  check(process.env.PUBLISH_SOURCE_WORKFLOW_ID === '372000543' &&
-    process.env.PUBLISH_SOURCE_CONCLUSION === 'success' && process.env.PUBLISH_SOURCE_REF === 'main' &&
-    process.env.PUBLISH_SOURCE_TITLE === 'Publish WORK_TEST - ' + ID &&
-    process.env.PUBLISH_SOURCE_HEAD === process.env.GITHUB_SHA);
+  if (process.env.GITHUB_EVENT_NAME === 'workflow_run') {
+    check(process.env.PUBLISH_SOURCE_WORKFLOW_ID === '372000543' &&
+      process.env.PUBLISH_SOURCE_CONCLUSION === 'success' && process.env.PUBLISH_SOURCE_REF === 'main' &&
+      process.env.PUBLISH_SOURCE_TITLE === 'Publish WORK_TEST - ' + ID &&
+      process.env.PUBLISH_SOURCE_HEAD === process.env.GITHUB_SHA);
+    evidence.trigger = 'EXACT_CANONICAL_PUBLISHER_COMPLETION';
+  } else {
+    check(process.env.GITHUB_EVENT_NAME === 'push');
+    evidence.trigger = 'TRUSTED_MAIN_CODE_PUSH';
+  }
+  // Publication is independently proven by the canonical publisher. This
+  // read-only browser gate verifies the fixed published bytes again.
+  evidence.productionPublicationVerifiedByThisFunction = false;
   evidence.phase = 'AUTH_CONFIGURATION';
   const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
   const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
@@ -57,6 +66,9 @@ try {
       catch{return false;}
     },currentId,{timeout:5000});
     const value = await canvas.evaluate(c=>JSON.parse(c.dataset.d1fCombinedWallProbe));
+    evidence.lastProbeAction=action;
+    evidence.lastProbeState=['PREPARED','SUPPRESSED','RESTORED','FINISHED','REJECTED'].includes(value.state)
+      ? value.state : 'INVALID';
     check(value.state !== 'REJECTED');
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     return value;
@@ -87,6 +99,7 @@ try {
     return count;
   };
   for(const variant of D1F_COMBINED_WALL_VARIANTS) {
+    evidence.currentVariant=variant;
     responses=[];
     const url=ORIGIN+'/private-model/?review='+ID+'-review&wallVariant='+variant;
     evidence.phase='VIEWER_HTTP';
@@ -126,8 +139,10 @@ try {
     evidence.phase='FOUR_SOURCE_TARGET_PIXELS';
     const samples=[], captures=[];
     for(const targetId of D1F_FOUR_PIXEL_TARGETS) {
+      evidence.currentTarget=targetId;
       let accepted=false;
       for(let viewIndex=0;viewIndex<4&&!accepted;viewIndex++) {
+        evidence.currentViewIndex=viewIndex;
         let sample, prepared, baseline, suppressed, restored;
         try { prepared=await send('prepare',targetId,viewIndex); }
         catch { continue; }
