@@ -1834,6 +1834,9 @@ const title = 'Private 3D viewer';
         P137E_MEASURED_WALL_VARIANT,
         P137E_MEASURED_WALL_REVIEW_ROOT,
         P137E_MEASURED_WALL_SCENE_INDEX,
+        makeP137EThreeCornerMeasuredWorkTest,
+        P137E_THREE_CORNER_MEASURED_SCENE_INDEX,
+        P137E_THREE_CORNER_MEASURED_REVIEW_ROOT,
       } from '../../scripts/privateModelP137EFieldMeasuredWallRuntime.mjs';
       import { setupPrivateModelToolbarMenus } from '../../scripts/privateModelToolbarMenus';
       import {
@@ -7005,6 +7008,14 @@ const title = 'Private 3D viewer';
         isP137EScene67ReviewRequested() &&
         new URLSearchParams(window.location.search).get('wallMetric') ===
           P137E_MEASURED_WALL_VARIANT;
+      // This explicitly requested WORK_TEST variant includes the three source
+      // 40 mm L-junction presentation patches as well as measured I03 scene68.
+      // No query alias can promote it to CURRENT, canonical or as-built.
+      const p137eThreeCornerMeasuredVariant = 'd1f-three-source-corners-and-i03-20261013';
+      const isP137EThreeCornerMeasuredReviewRequested = () =>
+        isP137EScene67ReviewRequested() &&
+        new URLSearchParams(window.location.search).get('wallMetric') ===
+          p137eThreeCornerMeasuredVariant;
       const p186fX4CandidateId = 'p186f-x4-d-themo-door-plan-clear-work-assumption';
       const p186fX4ReviewId = `${p186fX4CandidateId}-review`;
       const isP186fX4ThemoRoomReviewRequested = () =>
@@ -8715,16 +8726,28 @@ const title = 'Private 3D viewer';
       };
 
       const applyP137EMeasuredWallReviewState = () => {
-        // GLTFLoader returns a Group for the scene, with the source-bound
-        // four-child wall/Themo root nested inside it.
+        // Scene68 and scene69 are separate opt-in WORK_TEST variants. Both
+        // carry one four-child source-bound wall/three-Themo root in a glTF Group.
+        const withSourceCorners = isP137EThreeCornerMeasuredReviewRequested();
+        const reviewRootName = withSourceCorners
+          ? P137E_THREE_CORNER_MEASURED_REVIEW_ROOT
+          : P137E_MEASURED_WALL_REVIEW_ROOT;
+        const reviewSceneIndex = withSourceCorners
+          ? P137E_THREE_CORNER_MEASURED_SCENE_INDEX
+          : P137E_MEASURED_WALL_SCENE_INDEX;
         const measuredRoots = fullModelScene?.children?.filter(
-          (child: THREE.Object3D) => child.name === P137E_MEASURED_WALL_REVIEW_ROOT,
+          (child: THREE.Object3D) => child.name === reviewRootName,
         ) ?? [];
         if (activeModelSourceKind !== 'work-test' ||
-            !isP137EMeasuredWallReviewRequested() ||
+            !(isP137EMeasuredWallReviewRequested() || withSourceCorners) ||
             !fullModelScene ||
             measuredRoots.length !== 1 ||
             measuredRoots[0].children.length !== 4 ||
+            (withSourceCorners &&
+              (measuredRoots[0].userData?.sourceCornerGapsClosed !== 3 ||
+               measuredRoots[0].children[0]?.children?.length !== 1 ||
+               measuredRoots[0].children[0].children[0]?.name !==
+                 'P137E_THREE_CORNER_SOURCE_PATCHES')) ||
             !dInteriorScene) {
           throw new Error('P137E measured I03 wall focused review source unavailable');
         }
@@ -8740,9 +8763,14 @@ const title = 'Private 3D viewer';
         setD1KnownDoorReviewLabelsVisible(false);
         refreshEdgeRendering(fullModelScene);
         Object.assign(canvas.dataset, {
-          workTestReviewMode: p137eScene67ReviewId + '-field-measured',
-          p137eSceneIndex: String(P137E_MEASURED_WALL_SCENE_INDEX),
-          p137eMeasuredWallMetricId: P137E_MEASURED_WALL_VARIANT,
+          workTestReviewMode: p137eScene67ReviewId +
+            (withSourceCorners ? '-field-measured-three-source-corners' : '-field-measured'),
+          p137eSceneIndex: String(reviewSceneIndex),
+          p137eMeasuredWallMetricId: withSourceCorners
+            ? p137eThreeCornerMeasuredVariant : P137E_MEASURED_WALL_VARIANT,
+          p137eSourceCornerGapsClosed: withSourceCorners ? '3' : '0',
+          p137eSourceCornerPatchWidthMm: withSourceCorners ? '40' : '0',
+          p137eSourceCornersPhysicalThicknessVerified: 'false',
           p137eMeasuredWallKphLengthMm: '960',
           p137eMeasuredWallWcVisibleMm: '710',
           p137eMeasuredWallThicknessMm: '205',
@@ -8760,12 +8788,14 @@ const title = 'Private 3D viewer';
         if (p137ePlanFaceButton) p137ePlanFaceButton.hidden = true;
         if (p137eNorthFaceButton) p137eNorthFaceButton.hidden = true;
         if (p137eSouthFaceButton) p137eSouthFaceButton.hidden = true;
-        status.textContent =
-          'WC/KPH-seinän mitattu 960 / 710 / 205 / 1020 mm WORK_TEST - tarkka mallikoordinaattisidonta vielä tarkistamatta';
+        status.textContent = withSourceCorners
+          ? 'Kolme lähdesidonnaista 40 mm seinäkulmaa + WC/KPH 960 / 710 / 205 / 1020 mm WORK_TEST - ei CURRENT eikä as-built'
+          : 'WC/KPH-seinän mitattu 960 / 710 / 205 / 1020 mm WORK_TEST - tarkka mallikoordinaattisidonta vielä tarkistamatta';
       };
 
       const applyP137EScene67ReviewState = () => {
-        if (isP137EMeasuredWallReviewRequested()) {
+        if (isP137EMeasuredWallReviewRequested() ||
+            isP137EThreeCornerMeasuredReviewRequested()) {
           applyP137EMeasuredWallReviewState();
           return;
         }
@@ -9415,17 +9445,19 @@ const title = 'Private 3D viewer';
           const isExactP137EScene67Load =
             candidate.id === p137eScene67CandidateId &&
             isP137EScene67ReviewRequested();
-          // The field-measured wall is an opt-in, noncanonical successor.
-          // Both versions fetch and verify EXACTLY the same immutable source GLB.
-          // The new scene68 geometry exists only in memory, never in scene67.
+          // Source-derived scene68/69 variants are opt-in, noncanonical.
+          // All versions first fetch and SHA-verify the same immutable scene67
+          // GLB. The added geometry exists in memory only, never in source.
           const verifiedP137EOriginal = isExactP137EScene67Load
             ? await fetchP137EScene67VerifiedGlb(candidate.path)
             : null;
           const gltf = verifiedP137EOriginal
             ? await loader.parseAsync(
-                isP137EMeasuredWallReviewRequested()
-                  ? makeP137EFieldMeasuredWallWorkTest(verifiedP137EOriginal)
-                  : verifiedP137EOriginal,
+                isP137EThreeCornerMeasuredReviewRequested()
+                  ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
+                  : isP137EMeasuredWallReviewRequested()
+                    ? makeP137EFieldMeasuredWallWorkTest(verifiedP137EOriginal)
+                    : verifiedP137EOriginal,
                 P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
               )
             : await loader.loadAsync(candidate.path);
@@ -9586,7 +9618,21 @@ const title = 'Private 3D viewer';
           } else if (isP137EScene67Review) {
             // Always validate the exact inherited scene67/three-Themo identity first.
             const exactSource = selectP137EScene67FocusedReview(gltf);
-            if (isP137EMeasuredWallReviewRequested()) {
+            if (isP137EThreeCornerMeasuredReviewRequested()) {
+              const combinedScene = gltf.scenes?.[P137E_THREE_CORNER_MEASURED_SCENE_INDEX];
+              const corners = (combinedScene?.children ?? []).filter(
+                (child: THREE.Object3D) =>
+                  child.name === P137E_THREE_CORNER_MEASURED_REVIEW_ROOT,
+              );
+              if (corners.length !== 1 || corners[0].children.length !== 4 ||
+                  corners[0].userData?.sourceCornerGapsClosed !== 3 ||
+                  corners[0].children[0]?.children?.length !== 1 ||
+                  corners[0].children[0].children[0]?.name !==
+                    'P137E_THREE_CORNER_SOURCE_PATCHES') {
+                throw new Error('P137E scene69 three source corners identity mismatch');
+              }
+              gltf.scene = combinedScene;
+            } else if (isP137EMeasuredWallReviewRequested()) {
               const measuredScene = gltf.scenes?.[P137E_MEASURED_WALL_SCENE_INDEX];
               const candidates = (measuredScene?.children ?? []).filter(
                 (child: any) => child?.name === P137E_MEASURED_WALL_REVIEW_ROOT,
