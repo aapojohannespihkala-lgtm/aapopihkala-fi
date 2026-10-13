@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 // @ts-ignore - pure ESM contract for source-derived, unapproved WORK_TEST scenes.
 import {
   D1F_COMBINED_WALL_VARIANTS,
+  D1F_COMBINED_WALL_ASSETS,
+  isD1FCombinedWallReviewRequested,
+  loadD1FCombinedWallReview,
   selectD1FCombinedWallWorkTestScene,
 } from '../../src/scripts/privateModelD1FCombinedWallSceneContract.mjs';
 
@@ -133,3 +139,157 @@ test('rejects cycle/shared-target graphs rather than counting same corner twice'
   expect(() => selectD1FCombinedWallWorkTestScene(gltf, name))
     .toThrow('scene graph cycle or shared node');
 });
+
+// A public, in-memory GLB with the same structural contract, not private model
+// bytes. The real npm loader supplies runtime names and Object3D ownership.
+function loaderFixture(bytes?: number) {
+  const { gltf, components } = fixture();
+  const json: any = structuredClone(gltf.parser.json);
+  json.asset = { version: '2.0' };
+  json.scene = 68;
+  json.buffers = [{ byteLength: 36 }];
+  json.bufferViews = [{ buffer: 0, byteOffset: 0, byteLength: 36 }];
+  json.accessors = [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3',
+    min: [0, 0, 0], max: [1, 1, 0] }];
+  json.meshes = Array.from({ length: 407 }, () => ({ primitives: [{ attributes: { POSITION: 0 } }] }));
+  const add = (o: any): number => {
+    const index = json.nodes.length;
+    json.nodes.push({ name: o.name, extras: o.userData,
+      ...(o.userData.sourceNodeIndex === 798 || o.userData.independentlyAddressableCorner ? { mesh: 0 } : {}) });
+    if (o.children?.length) json.nodes[index].children = o.children.map(add);
+    return index;
+  };
+  components.forEach((component: any, i: number) => {
+    json.scenes[68 + i].nodes = [add(component.root)];
+  });
+  const encoded = Buffer.from(JSON.stringify(json));
+  const jsonLength = Math.ceil(encoded.length / 4) * 4;
+  const total = bytes ?? (12 + 8 + jsonLength + 8 + 36);
+  const out = Buffer.alloc(total);
+  out.write('glTF', 0); out.writeUInt32LE(2, 4); out.writeUInt32LE(total, 8);
+  out.writeUInt32LE(jsonLength, 12); out.writeUInt32LE(0x4e4f534a, 16);
+  out.fill(0x20, 20, 20 + jsonLength); encoded.copy(out, 20);
+  out.writeUInt32LE(total - 28 - jsonLength, 20 + jsonLength);
+  out.writeUInt32LE(0x004e4942, 24 + jsonLength);
+  new Uint8Array(out.buffer, out.byteOffset + 28 + jsonLength, 36)
+    .set(new Uint8Array(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]).buffer));
+  return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength);
+}
+
+test('real GLTFLoader names select all four scenes without accepting arbitrary aliases', async () => {
+  const gltf = await new GLTFLoader().parseAsync(loaderFixture(), '');
+  for (const variant of D1F_COMBINED_WALL_VARIANTS) {
+    const result = selectD1FCombinedWallWorkTestScene(gltf, variant);
+    expect(result.scene.isObject3D).toBe(true);
+    expect(result.scene.name).toBe(gltf.parser.json.scenes[D1F_COMBINED_WALL_VARIANTS.indexOf(variant) + 68].name.replace(/\s/g, '_'));
+    expect(result.wall.isMesh).toBe(true);
+    expect(result.corners).toHaveLength(3);
+  }
+  gltf.scenes[68].name += '_unapproved';
+  expect(() => selectD1FCombinedWallWorkTestScene(gltf, D1F_COMBINED_WALL_VARIANTS[0]))
+    .toThrow('scene name, root, or source provenance');
+});
+
+test('viewer entry checks review, size, SHA and complete body before real parsing', async () => {
+  const id = 'd1f-combined-wall-115-100-20261013';
+  const asset = D1F_COMBINED_WALL_ASSETS[id];
+  const candidate = { id, path: '/private-model/work-test/' + id + '.glb' };
+  const search = '?review=' + id + '-review&wallVariant=EAST_ANCHOR_740_895_725';
+  const buffer = loaderFixture(asset.bytes);
+  let parses = 0;
+  const engine = new GLTFLoader();
+  const loader = { parseAsync: (body: ArrayBuffer, path: string) => {
+    parses++; return engine.parseAsync(body, path);
+  } };
+  const fetcher: any = async (path: string, init: RequestInit) => {
+    expect(init.redirect).toBe('error'); expect(init.credentials).toBe('same-origin');
+    return { status: 200, redirected: false, url: 'https://aapopihkala.fi' + path,
+      arrayBuffer: async () => buffer };
+  };
+  // Only the fixture digest is injected. Exact private raw assets were tested
+  // separately with real crypto and this very entry/GLTFLoader implementation.
+  const digest = async () => Uint8Array.from(Buffer.from(asset.sha256, 'hex')).buffer;
+  const result = await loadD1FCombinedWallReview({ candidate, search, loader, fetcher, digest });
+  expect(parses).toBe(1);
+  expect(result.selected.variant).toBe('EAST_ANCHOR_740_895_725');
+  expect(result.gltf.scene).toBe(result.selected.scene);
+  expect(result.rawGlbByteIdentityVerified).toBe(true);
+  await expect(loadD1FCombinedWallReview({ candidate, search, loader, fetcher,
+    digest: async () => new ArrayBuffer(32) })).rejects.toThrow('raw GLB SHA256');
+  await expect(loadD1FCombinedWallReview({ candidate, search, loader, digest,
+    fetcher: async () => ({ status: 200, redirected: false,
+      url: 'https://aapopihkala.fi' + candidate.path,
+      arrayBuffer: async () => new ArrayBuffer(1) }) as any })).rejects.toThrow('raw GLB byte length');
+  await expect(loadD1FCombinedWallReview({ candidate, search: search + 'WRONG',
+    loader, fetcher, digest })).rejects.toThrow('exact review, variant, or fetch configuration');
+  expect(parses).toBe(1);
+  expect(isD1FCombinedWallReviewRequested('?review=' + id + '-review')).toBe(true);
+  expect(isD1FCombinedWallReviewRequested('?review=p137e-d1f-three-wall-mounted-themos-review')).toBe(false);
+});
+
+test('stalled source body is bounded and never reaches GLTFLoader', async () => {
+  const id = 'd1f-combined-wall-115-100-20261013'; let parses = 0;
+  await expect(loadD1FCombinedWallReview({
+    candidate: { id, path: '/private-model/work-test/' + id + '.glb' },
+    search: '?review=' + id + '-review', timeoutMs: 5,
+    loader: { parseAsync: async () => { parses++; return {}; } },
+    fetcher: async (path: any) => ({ status: 200, redirected: false,
+      url: 'https://aapopihkala.fi' + path,
+      arrayBuffer: () => new Promise(() => {}) }) as any,
+  })).rejects.toThrow('D1F_COMBINED_WALL_FETCH_TIMEOUT');
+  expect(parses).toBe(0);
+});
+
+test('actual viewer load callsite uses verified combined scene instead of the generic loader', async () => {
+  const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
+  const start = source.indexOf('const loadWorkTestCandidate = async');
+  const stop = source.indexOf("loadFailurePhase = 'review-runtime-failed';", start);
+  expect(start).toBeGreaterThan(0); expect(stop).toBeGreaterThan(start);
+  const prefix = source.slice(start, stop)
+    .replace(': WorkTestCandidate', '').replace(': WorkTestLoadFailurePhase', '');
+  const id = 'd1f-combined-wall-115-100-20261013';
+  const candidate = { id, path: '/private-model/work-test/' + id + '.glb' };
+  const asset = D1F_COMBINED_WALL_ASSETS[id];
+  let genericLoads = 0;
+  class CheckedLoader extends GLTFLoader {
+    async loadAsync(): Promise<any> { genericLoads++; throw new Error('unverified loader used'); }
+  }
+  const selected = await vm.runInNewContext(
+    prefix + 'return { gltf, combinedWallReview }; } catch (error) { throw error; } }; loadWorkTestCandidate(candidate);',
+    {
+      candidate, canvas: { dataset: {} }, status: {}, p137ePlaceToolButton: {},
+      clearP137EPlaceDraft() {}, setViewerToolMode() {}, GLTFLoader: CheckedLoader,
+      p137eScene67CandidateId: 'p137e-d1f-three-wall-mounted-themos',
+      isP137EScene67ReviewRequested: () => false,
+      window: { location: { search: '?review=' + id + '-review' } },
+      isD1FCombinedWallReviewRequested,
+      loadD1FCombinedWallReview: (options: any) => loadD1FCombinedWallReview({
+        ...options,
+        fetcher: async (path: string) => ({ status: 200, redirected: false,
+          url: 'https://aapopihkala.fi' + path,
+          arrayBuffer: async () => loaderFixture(asset.bytes) }) as any,
+        digest: async () => Uint8Array.from(Buffer.from(asset.sha256, 'hex')).buffer,
+      }),
+    },
+  );
+  expect(genericLoads).toBe(0);
+  expect(selected.gltf.scene).toBe(selected.combinedWallReview.selected.scene);
+  expect(selected.combinedWallReview.selected.corners).toHaveLength(3);
+});
+
+test('actual startup marks autoload only after a successful loader return', async () => {
+  const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
+  const start = source.indexOf('const loaded = await loadWorkTestCandidate(reviewCandidate);');
+  const last = 'else delete canvas.dataset.workTestReviewAutoload;';
+  const end = source.indexOf(last, start);
+  expect(start).toBeGreaterThan(0); expect(end).toBeGreaterThan(start);
+  const actual = source.slice(start, end + last.length);
+  for (const result of [true, false]) {
+    const canvas: any = { dataset: { workTestReviewAutoload: 'true' } };
+    await vm.runInNewContext('(async () => {' + actual + '})()', {
+      canvas, reviewCandidate: {}, loadWorkTestCandidate: async () => result,
+    });
+    expect(canvas.dataset.workTestReviewAutoload).toBe(result ? 'true' : undefined);
+  }
+});
+
