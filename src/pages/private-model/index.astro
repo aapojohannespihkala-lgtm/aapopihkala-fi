@@ -1826,6 +1826,9 @@ const title = 'Private 3D viewer';
       // @ts-ignore - exact-byte WORK_TEST entry covered by loader regressions.
       import { isD1FCombinedWallReviewRequested, loadD1FCombinedWallReview }
         from '../../scripts/privateModelD1FCombinedWallSceneContract.mjs';
+      // @ts-ignore - source-only reversible screenshot input, never pixel proof.
+      import { createD1FCombinedWallPixelRuntime }
+        from '../../scripts/privateModelD1FCombinedWallPixelRuntime.mjs';
       // @ts-ignore - focused source-only ESM helper covered by browser tests.
       import {
         fetchP137EScene67VerifiedGlb,
@@ -2545,6 +2548,33 @@ const title = 'Private 3D viewer';
       const modelCenter = new THREE.Vector3();
       let fitDistance = 10;
       let activeCamera: typeof camera | typeof planCamera | typeof isoCamera = camera;
+      let d1fCombinedPixelRuntime: ReturnType<typeof createD1FCombinedWallPixelRuntime> | null = null;
+      window.addEventListener('d1f-combined-wall-source-probe', (event: Event) => {
+        if (!(event instanceof CustomEvent)) return;
+        const detail = event.detail;
+        if (!detail || typeof detail !== 'object' ||
+            !Number.isSafeInteger(detail.requestId)) return;
+        try {
+          if (!d1fCombinedPixelRuntime || canvas.dataset.modelSource !== 'work-test' ||
+              canvas.dataset.workTestReviewMode !== 'd1f-combined-wall-115-100-20261013-review' ||
+              canvas.dataset.d1fCombinedWallHumanReview !== 'NOT_RUN') throw new Error('probe rejected');
+          let result;
+          if (detail.action === 'prepare') {
+            activeCamera = camera;
+            result = d1fCombinedPixelRuntime.prepare(detail.targetId, detail.viewIndex);
+          } else if (detail.action === 'suppress') {
+            result = d1fCombinedPixelRuntime.suppress(detail.targetId);
+          } else if (detail.action === 'restore') {
+            result = d1fCombinedPixelRuntime.restore();
+          } else if (detail.action === 'finish') {
+            d1fCombinedPixelRuntime.dispose();
+            result = { state: 'FINISHED', pixelsVerifiedByThisRuntime: false, humanReview: 'NOT_RUN' };
+          } else throw new Error('probe action rejected');
+          canvas.dataset.d1fCombinedWallProbe = JSON.stringify({ ...result, requestId: detail.requestId });
+        } catch {
+          canvas.dataset.d1fCombinedWallProbe = JSON.stringify({ state: 'REJECTED', requestId: detail.requestId });
+        }
+      });
       const orientationGizmoController = createOrientationGizmoController({
         root: orientationGizmo,
         axisX: {
@@ -6060,6 +6090,8 @@ const title = 'Private 3D viewer';
         dInteriorOverride: THREE.Object3D | null = null,
       ) => {
         // Never leak source-camera coordinates across different WORK_TEST candidates.
+        d1fCombinedPixelRuntime?.dispose();
+        d1fCombinedPixelRuntime = null;
         for (const key of Object.keys(canvas.dataset)) {
           if (key.startsWith('d1fCombinedWall')) delete canvas.dataset[key];
         }
@@ -10480,6 +10512,12 @@ const title = 'Private 3D viewer';
               d1fCombinedWallHumanReview: 'NOT_RUN',
             });
             applyStandardViewPreset('d-apartment');
+            if (candidate.id === 'd1f-combined-wall-115-100-20261013') {
+              d1fCombinedPixelRuntime = createD1FCombinedWallPixelRuntime({
+                THREE, selected: combinedWallReview.selected, sourceSha: combinedWallReview.asset.sha256,
+                camera, controls, canvas, render: () => renderer.render(scene, camera),
+              });
+            }
             status.textContent = 'Seinien yhteinen työversio - mittojen sijoitus vielä tarkistamatta';
           } else if (isP137EScene67Review) {
             applyP137EScene67ReviewState();

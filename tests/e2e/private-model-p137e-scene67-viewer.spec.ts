@@ -29,7 +29,7 @@ test('P137E review route resolves to exact candidate through existing one-link a
 test('P137E scene67 loader selects source-bound focused root BEFORE model load', () => {
   const predicate = "candidate.id === p137eScene67CandidateId && isP137EScene67ReviewRequested()";
   const selected = 'const exactSource = selectP137EScene67FocusedReview(gltf);';
-  const loading = "applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);";
+  const loading = "applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`";
 
   expect(runtime).toContain("const p137eScene67CandidateId = 'p137e-d1f-three-wall-mounted-themos';");
   expect(runtime).toContain('const p137eScene67ReviewId = `${p137eScene67CandidateId}-review`;');
