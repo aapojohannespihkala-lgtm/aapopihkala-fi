@@ -288,6 +288,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p playwright-artifacts
+          # Raw cookies and redirect state must never enter the upload directory.
+          response_tmp="$(mktemp -d .production-response.XXXXXX)"
+          trap 'python3 -c "import shutil,sys; shutil.rmtree(sys.argv[1])" "$response_tmp"' EXIT
 
           curl \
             --silent \
@@ -298,16 +301,17 @@ jobs:
             --data-urlencode "review=$REVIEW_ID" \
             --header "CF-Access-Client-Id: $CF_ACCESS_VIEWER_PROBE_CLIENT_ID" \
             --header "CF-Access-Client-Secret: $CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET" \
-            --dump-header playwright-artifacts/review-response-headers.txt \
+            --dump-header "$response_tmp/headers.txt" \
             --output playwright-artifacts/review-page.html \
             --write-out '%{http_code}\n%{content_type}\n%{redirect_url}\n' \
-            "$REVIEW_BASE_URL" > playwright-artifacts/review-response-meta.txt
+            "$REVIEW_BASE_URL" > "$response_tmp/meta.txt"
 
-          python3 - <<'PY'
+          python3 - "$response_tmp" <<'PY'
+          import sys
           from pathlib import Path
           from urllib.parse import urlparse
 
-          meta = Path("playwright-artifacts/review-response-meta.txt").read_text(
+          meta = Path(sys.argv[1], "meta.txt").read_text(
               encoding="utf-8",
               errors="replace",
           ).splitlines()
@@ -315,7 +319,7 @@ jobs:
           content_type = meta[1] if len(meta) > 1 else ""
           redirect_url = meta[2] if len(meta) > 2 else ""
 
-          headers = Path("playwright-artifacts/review-response-headers.txt").read_text(
+          headers = Path(sys.argv[1], "headers.txt").read_text(
               encoding="utf-8",
               errors="replace",
           )
