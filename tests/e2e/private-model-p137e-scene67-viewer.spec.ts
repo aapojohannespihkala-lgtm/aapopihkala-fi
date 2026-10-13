@@ -204,3 +204,29 @@ test('other viewer routes retain the original CURRENT-first model loader', async
   await page.goto('/private-model/');
   await expect.poll(() => currentRequests.length, { timeout: 15_000 }).toBe(1);
 });
+
+
+test('p137e-walls-render mode is explicit main-only original GLB and real pixel guard', () => {
+  const workflow = readFileSync(resolve(process.cwd(),
+    '.github/workflows/private-model-production-review-smoke.yml'), 'utf8');
+  const modeStart = workflow.indexOf('  verify-p137e-walls-render:\n');
+  expect(modeStart).toBeGreaterThan(0);
+  const onlyWalls = workflow.slice(modeStart);
+  expect(workflow).toContain('          - p137e-walls-render\n');
+  expect(onlyWalls).toContain("github.ref == 'refs/heads/main'");
+  expect(onlyWalls).toContain("inputs.probe_mode == 'p137e-walls-render'");
+  expect(onlyWalls).toContain("P137E_SCENE67_EXPECTED_GLB_SHA256 as expectedHash");
+  expect(onlyWalls).toContain("P137E_SCENE67_EXPECTED_GLB_BYTES as expectedBytes");
+  expect(onlyWalls).toContain("P137E_THREE_CORNER_MEASURED_SCENE_INDEX as sceneIndex");
+  expect(onlyWalls).toContain('originalSourceAutoloadResponseVerified:true');
+  expect(onlyWalls).toContain('sourceResponses.length !== 1');
+  expect(onlyWalls).toContain('p137eSourceCornerGapsClosed');
+  expect(onlyWalls).toContain("p137eSourceCornerPatchWidthMm: '40'");
+  expect(onlyWalls).toContain("p137eHumanReview: 'NOT_RUN'");
+  expect(onlyWalls).toContain('pixels.nonBackgroundPixels < 1500');
+  expect(onlyWalls).toContain('pixels.changedPixels < 750');
+  expect(onlyWalls).toContain('threeIndividualCornerRenderedRoisVerified:false');
+  expect(onlyWalls).not.toContain('pull_request:');
+  expect(onlyWalls).not.toContain('publishToCURRENT:true');
+  expect(onlyWalls).not.toContain('HUMAN_REVIEW: PASS');
+});
