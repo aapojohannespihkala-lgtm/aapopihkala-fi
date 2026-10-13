@@ -129,6 +129,7 @@ export function makeP137EFieldMeasuredWallWorkTest(original) {
  *
  * This is a model constructor, NOT publication, rendering or HUMAN_REVIEW.
  */
+export const P137E_THREE_CORNER_MEASURED_VARIANT = 'd1f-kph-wc-field-three-corners-20261013';
 export const P137E_THREE_CORNER_MEASURED_SCENE_INDEX = 69;
 export const P137E_THREE_CORNER_MEASURED_REVIEW_ROOT =
   'P137E_SCENE69_THREE_SOURCE_CORNERS_AND_I03_FIELD_WORK_TEST_ROOT';
