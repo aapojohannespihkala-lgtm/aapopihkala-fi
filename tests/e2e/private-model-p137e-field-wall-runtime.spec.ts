@@ -29,10 +29,10 @@ const encodeOriginalSyntheticScene67 = () => {
   box(136, .231, 6.306, 5.032, 5.112);
   // Three independent source-proven centerline-terminated orthogonal L joins.
   box(104, .231, 2.337, 10.504, 10.584); // upper horizontal
-  box(160, 2.297, 2.377, 7.285, 10.544); // long vertical, two ends
-  box(168, 2.337, 5.0, 7.245, 7.325); // lower horizontal
-  box(144, 2.549, 2.629, 3.224, 5.0); // southern vertical
-  box(152, 2.589, 5.0, 3.184, 3.264); // southern horizontal
+  box(160, 2.297, 2.377, 7.285149, 10.544); // source actual y terminus
+  box(168, .231, 2.337, 7.245149, 7.325149); // centerline-terminated lower H
+  box(144, 2.549, 2.629, 3.224, 5.072); // southern vertical
+  box(152, .231, 2.589, 3.184, 3.264); // centerline-terminated southern H
   const scenes: any[] = Array.from({ length: 68 }, () => ({ nodes: [] }));
   scenes[67] = { nodes: [1107], name: 'P137E source 67' };
   const nodes: any[] = Array.from({ length: 1108 }, () => ({}));
@@ -209,6 +209,16 @@ test('three source-bound L gaps and the visible-face-corrected I03 wall form one
   const patchMesh=combined.json.meshes[556];
   expect(patchMesh.extras.sourceJunctionPairs).toEqual([[104,160],[168,160],[152,144]]);
   expect(patchMesh.extras.gapSizeMM).toBe(40);
+  // Anchors were independently read from immutable Drive scene67 mesh406;
+  // never switch endpoint sides in the synthetic test fixture.
+  const expectedPatches=[
+    [2.337,2.377,10.544,10.584],
+    [2.337,2.377,7.245149,7.285149],
+    [2.589,2.629,3.184,3.224],
+  ];
+  patchMesh.extras.patchesXY.forEach((actual:number[],i:number)=>{
+    actual.forEach((v:number,j:number)=>expect(v).toBeCloseTo(expectedPatches[i][j],4));
+  });
   const vertices=meshPositions(combined,556);
   expect(vertices).toHaveLength(72);
   for(let join=0;join<3;join++){
