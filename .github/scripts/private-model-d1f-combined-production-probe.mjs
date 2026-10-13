@@ -25,16 +25,9 @@ let browser;
 try {
   check(process.env.GITHUB_REF === 'refs/heads/main' &&
     process.env.GITHUB_REPOSITORY === 'aapojohannespihkala-lgtm/aapopihkala-fi');
-  if (process.env.GITHUB_EVENT_NAME === 'workflow_run') {
-    check(process.env.PUBLISH_SOURCE_WORKFLOW_ID === '372000543' &&
-      process.env.PUBLISH_SOURCE_CONCLUSION === 'success' && process.env.PUBLISH_SOURCE_REF === 'main' &&
-      process.env.PUBLISH_SOURCE_TITLE === 'Publish WORK_TEST - ' + ID &&
-      process.env.PUBLISH_SOURCE_HEAD === process.env.GITHUB_SHA);
-    evidence.trigger = 'EXACT_CANONICAL_PUBLISHER_COMPLETION';
-  } else {
-    check(process.env.GITHUB_EVENT_NAME === 'push');
-    evidence.trigger = 'TRUSTED_MAIN_CODE_PUSH';
-  }
+  check(process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' &&
+    process.env.PROBE_MODE === 'd1f-combined-pixels');
+  evidence.trigger = 'TRUSTED_MAIN_EXPLICIT_DISPATCH';
   // Publication is independently proven by the canonical publisher. This
   // read-only browser gate verifies the fixed published bytes again.
   evidence.productionPublicationVerifiedByThisFunction = false;
