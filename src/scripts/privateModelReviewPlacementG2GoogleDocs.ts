@@ -100,6 +100,13 @@ export const createNativeG2GoogleDocsPorts = (
         throw new Error(code);
       }
       if (controller.signal.aborted) throw new Error('G2_NATIVE_REQUEST_TIMEOUT');
+      // Some Worker runtimes throw before I/O for redirect: 'error'. A
+      // manual policy is portable but must never follow an OAuth or Docs
+      // redirect, especially one carrying a signed JWT or Bearer token.
+      if (response.type === 'opaqueredirect' ||
+          (response.status >= 300 && response.status < 400)) {
+        throw new Error(failed);
+      }
       if (!response.ok) throw new Error(failed);
       if (invalid === undefined) return undefined;
       try { return await response.json(); }
@@ -159,7 +166,7 @@ export const createNativeG2GoogleDocsPorts = (
     const assertion = unsigned + '.' + toBase64Url(new Uint8Array(signature));
     const tokenResponse = await requestResponse(oauthUrl, {
       method: 'POST',
-      redirect: 'error',
+      redirect: 'manual',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
       body: new URLSearchParams({
         grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -179,7 +186,7 @@ export const createNativeG2GoogleDocsPorts = (
     const bearer = await accessToken();
     const document = await requestResponse(documentUrl + '?includeTabsContent=true', {
       method: 'GET',
-      redirect: 'error',
+      redirect: 'manual',
       headers: { Authorization: 'Bearer ' + bearer, Accept: 'application/json', 'Cache-Control': 'no-store' },
     }, 'G2_NATIVE_READ_FAILED', 'G2_NATIVE_READ_INVALID');
     const source = document as NativePlacementG2Document | null;
@@ -214,7 +221,7 @@ export const createNativeG2GoogleDocsPorts = (
     const bearer = await accessToken();
     await requestResponse(documentUrl + ':batchUpdate', {
       method: 'POST',
-      redirect: 'error',
+      redirect: 'manual',
       headers: {
         Authorization: 'Bearer ' + bearer,
         Accept: 'application/json',
