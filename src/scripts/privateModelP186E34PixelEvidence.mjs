@@ -130,7 +130,7 @@ export function verifyP186E34SourcePixelEvidence({
       const hidden = session.hiddenFrames[target.sourceKey];
       rgbaFrame(hidden, context);
       if (hidden.width !== width || hidden.height !== height) reject('frame dimensions mismatch');
-      let lost = 0, outsideChanged = 0, baselineAmber = 0;
+      let lost = 0, gained = 0, outsideChanged = 0, baselineAmber = 0;
       for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
         const inside = x >= target.roi.x && x < target.roi.x + target.roi.width &&
@@ -142,17 +142,21 @@ export function verifyP186E34SourcePixelEvidence({
               lost++;
             }
           }
+          // A moved source marker can lose its old pixels while gaining new
+          // amber pixels elsewhere inside the same ROI. Loss alone is not proof.
+          if (!amber(session.baseline.pixels, idx) && amber(hidden.pixels, idx) &&
+              pixelChanged(session.baseline.pixels, hidden.pixels, idx)) gained++;
         } else if (pixelChanged(session.baseline.pixels, hidden.pixels, idx)) {
           outsideChanged++;
         }
       }
       if (baselineAmber < minLostPixels || lost < minLostPixels ||
-          outsideChanged > maxOutsidePixelChanges) {
-        reject('target not individually visible or outside-ROI frame changed: ' + target.sourceKey);
+          outsideChanged > maxOutsidePixelChanges || gained !== 0) {
+        reject('target not individually visible, gained amber pixels or outside-ROI frame changed: ' + target.sourceKey);
       }
       identities.push(Object.freeze({
         sourceKey: target.sourceKey, kind: target.kind, lostAmberPixels: lost,
-        outsidePixelChanges: outsideChanged,
+        gainedAmberPixels: gained, outsidePixelChanges: outsideChanged,
       }));
     }
     result[floor] = Object.freeze({
