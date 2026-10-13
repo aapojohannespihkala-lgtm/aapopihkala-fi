@@ -26,7 +26,7 @@ test('P137E review route resolves to exact candidate through existing one-link a
 
 test('P137E scene67 loader selects source-bound focused root BEFORE model load', () => {
   const predicate = "candidate.id === p137eScene67CandidateId && isP137EScene67ReviewRequested()";
-  const selected = 'gltf.scene = selectP137EScene67FocusedReview(gltf).scene;';
+  const selected = 'const exactSource = selectP137EScene67FocusedReview(gltf);';
   const loading = "applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);";
 
   expect(runtime).toContain("const p137eScene67CandidateId = 'p137e-d1f-three-wall-mounted-themos';");
@@ -34,6 +34,7 @@ test('P137E scene67 loader selects source-bound focused root BEFORE model load',
   expect(runtime).toContain(predicate);
   expect(runtime).toContain("from '../../scripts/privateModelP137EScene67Selection'");
   expect(runtime).toContain(selected);
+  expect(runtime).toContain('gltf.scene = exactSource.scene;');
   const branchStart = runtime.indexOf('} else if (isP137EScene67Review) {');
   expect(branchStart).toBeGreaterThan(0);
   expect(runtime.indexOf(selected, branchStart)).toBeGreaterThan(branchStart);
