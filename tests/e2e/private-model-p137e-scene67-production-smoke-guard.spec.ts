@@ -777,10 +777,11 @@ test('R1125 preset fails without environment output when canonical declarations 
 
 test('R1125 preset preserves production pixel floors and legacy Themo defaults', ({}, info) => {
   const { values } = runActualR1125Preset(info.outputPath('preset'));
-  for (const limits of [
+  const lowerLimits: Array<Record<string, string>> = [
     { REQUESTED_MIN_NON_BACKGROUND_PIXELS: '1499' },
     { REQUESTED_MIN_CHANGED_PIXELS: '749' },
-  ]) {
+  ];
+  for (const limits of lowerLimits) {
     const result = runActualProductionInputValidator({ ...values, ...limits });
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('cannot be lower than hard floor');
