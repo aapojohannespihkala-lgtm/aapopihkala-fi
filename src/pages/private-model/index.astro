@@ -11363,10 +11363,13 @@ const title = 'Private 3D viewer';
       });
 
       void (async () => {
-        // The exact P137E scene67 one-link review already targets a separate
-        // WORK_TEST GLB; loading CURRENT first delays that model unnecessarily.
-        // Keep the CURRENT-first path intact for all other routes and reviews.
-        if (!isP137EScene67ReviewRequested()) {
+        // Exact P137E scene67 and R1125 one-link reviews load separate WORK_TEST
+        // GLBs; do not make their autoload depend on the unrelated CURRENT GLB.
+        // Keep CURRENT-first for ordinary routes and all other reviews.
+        if (
+          !isP137EScene67ReviewRequested() &&
+          !isPrivateModelReviewRequested(window.location.search, m5aZ2R1125ReviewId)
+        ) {
           await loadCurrentModel();
         }
         const imported = await importWorkTestCandidateFromFragment();
