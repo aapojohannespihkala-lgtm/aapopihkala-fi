@@ -261,15 +261,15 @@ const title = 'Private 3D viewer';
       .axis-measure-label {
         position: absolute;
         z-index: 5;
-        padding: 4px 7px;
-        border-radius: 5px;
-        background: rgba(18, 69, 102, 0.93);
         color: #fff;
         font-size: 12px;
         font-weight: 700;
         white-space: nowrap;
         pointer-events: none;
-        transform: translate(-50%, -135%);
+        transform: translate(-50%, -50%) translateY(-12px);
+      }
+      .axis-measure-label[data-axis='Y'] {
+        transform: translate(-50%, -50%) translateX(-12px) rotate(-90deg);
       }
       .axis-measure-label[hidden] { display: none; }
 
@@ -1673,7 +1673,7 @@ const title = 'Private 3D viewer';
           </div>
           <div class="coordinate-line" id="axis-measure-row" hidden>
             <span>Mittaus</span>
-            <span id="axis-measure-output">Klikkaa ensimmäinen piste</span>
+            <span id="axis-measure-output"></span>
           </div>
           <div class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.</div>
         </aside>
@@ -3073,6 +3073,7 @@ const title = 'Private 3D viewer';
         }
         dAxisMeasureState = emptyAxisMeasureState();
         axisMeasureLabel.hidden = true;
+        delete axisMeasureLabel.dataset.axis;
         axisMeasureOutput.textContent = axisMeasureDisplay(dAxisMeasureState);
         canvas.dataset.axisMeasurePhase = 'EMPTY';
         delete canvas.dataset.axisMeasureMm;
@@ -3086,6 +3087,7 @@ const title = 'Private 3D viewer';
           dAxisMeasureMarker = null;
         }
         axisMeasureLabel.hidden = true;
+        delete axisMeasureLabel.dataset.axis;
         axisMeasureOutput.textContent = axisMeasureDisplay(dAxisMeasureState);
         canvas.dataset.axisMeasurePhase = dAxisMeasureState.phase;
         delete canvas.dataset.axisMeasureMm;
@@ -3093,7 +3095,9 @@ const title = 'Private 3D viewer';
         if (dAxisMeasureState.phase === 'EMPTY' || !activePlanFloor) return;
 
         const elevation = dReviewPlaneY[activePlanFloor] + 0.035;
-        const crossRadius = 0.095;
+        // Model-space metres: projected crosses grow/shrink with orthographic zoom.
+        // 26 mm radius keeps the normal-view mark close to a mouse cursor.
+        const crossRadius = 0.026;
         const segmentPoints: any[] = [];
         const addCross = (point: { xM: number; yM: number }) => {
           const px = point.xM;
@@ -3115,6 +3119,7 @@ const title = 'Private 3D viewer';
           canvas.dataset.axisMeasureMm = String(dAxisMeasureState.millimetres);
           canvas.dataset.axisMeasureAxis = dAxisMeasureState.axis;
           axisMeasureLabel.textContent = axisMeasureDisplay(dAxisMeasureState);
+          axisMeasureLabel.dataset.axis = dAxisMeasureState.axis;
           axisMeasureLabel.hidden = false;
         }
         const geometry = new THREE.BufferGeometry().setFromPoints(segmentPoints);
