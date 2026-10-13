@@ -8715,15 +8715,20 @@ const title = 'Private 3D viewer';
       };
 
       const applyP137EMeasuredWallReviewState = () => {
+        // GLTFLoader returns a Group for the scene, with the source-bound
+        // four-child wall/Themo root nested inside it.
+        const measuredRoots = fullModelScene?.children?.filter(
+          (child) => child.name === P137E_MEASURED_WALL_REVIEW_ROOT,
+        ) ?? [];
         if (activeModelSourceKind !== 'work-test' ||
             !isP137EMeasuredWallReviewRequested() ||
             !fullModelScene ||
-            fullModelScene.name !== P137E_MEASURED_WALL_REVIEW_ROOT ||
-            fullModelScene.children.length !== 4 ||
+            measuredRoots.length !== 1 ||
+            measuredRoots[0].children.length !== 4 ||
             !dInteriorScene) {
           throw new Error('P137E measured I03 wall focused review source unavailable');
         }
-        const bounds = new THREE.Box3().setFromObject(fullModelScene);
+        const bounds = new THREE.Box3().setFromObject(measuredRoots[0]);
         if (bounds.isEmpty()) throw new Error('P137E measured I03 wall bounds empty');
         applyStandardViewPreset('d-1f');
         setModelScene(fullModelScene);
