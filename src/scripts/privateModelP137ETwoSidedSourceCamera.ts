@@ -53,7 +53,7 @@ export function deriveP137ETwoFaceSourceCameras(
   humanReview: 'NOT_RUN';
   productionRenderVerified: false;
 }> {
-  fail(Number.isFinite(aspect) && aspect >= 0.5 && aspect <= 4,
+  fail(Number.isFinite(aspect) && aspect >= 0.4 && aspect <= 4,
     'camera viewport aspect');
   fail(focusedRoot?.name === p137eFocusedRootName &&
     focusedRoot?.userData?.Pass === 'P137E' &&
@@ -130,7 +130,12 @@ export function deriveP137ETwoFaceSourceCameras(
       normalNorth, face === 'NORTH' ? 0.65 : -0.65,
     );
     // Include the full two-device horizontal span, not the entire building.
-    const halfHeight = Math.max(0.36, size.y * 0.85,
+    // A narrow portrait viewport otherwise makes the original 94-mm Lobby
+    // housing exceed the max 96-pixel proof ROI, despite unchanged geometry.
+    // Expand the source-only orthographic frustum inversely with aspect;
+    // desktop framing and every source wall/device identity stay untouched.
+    const portraitHousingFloor = 0.36 / Math.min(aspect, 1);
+    const halfHeight = Math.max(0.36, portraitHousingFloor, size.y * 0.85,
       (size.x * 0.7) / aspect);
     fail(halfHeight <= 5 && [eye.x, eye.y, eye.z].every(Number.isFinite),
       'bounded source face camera');

@@ -14,6 +14,10 @@ const makeScene = () => {
   root.userData = {
     sourceDiameterCorrectionContract: 'G2_R1125',
     sourceDiameterClassBreakdown: '5_SALAOJA_AGGREGATE_NOMINAL_100MM__2_PVK_UNKNOWN',
+    // The source-camera guard now checks root provenance as strictly as children.
+    // This is synthetic WORK_TEST data, not an original GLB approval.
+    Canonical: false, presentationOnly: true, workAssumption: true,
+    humanReview: 'NOT_RUN',
     currentGeometryClaim: false, asBuiltClaim: false, publishToCURRENT: false,
   };
   for (let i = 0; i < keys.length; i++) {

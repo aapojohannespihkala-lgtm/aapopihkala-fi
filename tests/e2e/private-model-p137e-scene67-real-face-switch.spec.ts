@@ -59,17 +59,85 @@ test('responsive resize retains selected source face rather than resetting gener
   expect(resize).toContain('applyP137EScene67SourceFace(canvas.dataset.p137eScene67CameraFace)');
 });
 
-test('original wall is selectively translucent on SOUTH and fully restored on NORTH/other models', () => {
-  expect(viewer).toContain("originalSourceGeometryUnmodified === true");
-  expect(viewer).toContain("child?.userData?.sourceMeshIndex === 406");
-  expect(viewer).toContain("const clone = material.clone()");
-  expect(viewer).toContain("clone.opacity = 0.38");
-  expect(viewer).toContain("clone.transparent = true");
-  expect(viewer).toContain("clone.depthWrite = false");
-  expect(viewer).toContain("if (face === 'SOUTH') applyP137EScene67SouthWallPresentation()");
-  expect(viewer).toContain("p137eScene67WallPresentation = 'NORTH_SOURCE_WALL_OPAQUE'");
-  expect(viewer).toContain("p137eScene67WallPresentation = 'SOUTH_SOURCE_WALL_ALPHA_0_38'");
+test('original P123C wall source alpha stays unmodified on BOTH faces and device masks restore', () => {
+  // Preserve original scene67 source mesh/material: glTF already contains
+  // BLEND / alpha 0.38. Neither NORTH nor SOUTH may clone or tint it.
+  expect(viewer).toContain('Original P123C source wall is already');
+  expect(viewer).toContain('glTF alphaMode BLEND and opacity 0.38');
+  const begin = viewer.indexOf('const applyP137EScene67SourceFace =');
+  const finish = viewer.indexOf('const applyP137EScene67TopPlan =', begin);
+  expect(begin).toBeGreaterThan(0);
+  expect(finish).toBeGreaterThan(begin);
+  const face = viewer.slice(begin, finish);
+  expect(face).toContain("activeModelSourceKind !== 'work-test'");
+  expect(face).toContain("canvas.dataset.workTestReviewMode !== p137eScene67ReviewId");
+  expect(face).toContain('source.sourceWallMesh !== 406');
+  expect(face).toContain('applyP137EScene67DeviceFaceMask(');
+  expect(face).toContain("'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED'");
+  expect(face).not.toContain('material.clone()');
+  expect(face).not.toContain('applyP137EScene67SouthWallPresentation(');
+
+  // Only temporary source-device visibility may vary; all three logical
+  // identities are verified, and the exact original visibility is restored.
+  const maskBegin = viewer.indexOf('const applyP137EScene67DeviceFaceMask =');
+  const maskEnd = viewer.indexOf('const applyP137EScene67SourceFace =', maskBegin);
+  expect(maskBegin).toBeGreaterThan(0);
+  expect(maskEnd).toBeGreaterThan(maskBegin);
+  const mask = viewer.slice(maskBegin, maskEnd);
+  expect(mask).toContain('fullModelScene?.children?.length !== 4');
+  expect(mask).toContain('new Set(allSourceIds).size !== 3');
+  expect(mask).toContain('child.userData?.presentationOnly !== true');
+  expect(mask).toContain("child.userData?.HUMAN_REVIEW !== 'NOT_RUN'");
+  expect(mask).toContain('child.visible = visibleSourceIds.includes(child.userData.logicalDeviceId)');
+  expect(viewer).toContain('const restoreP137EDevicePresentation = () => {');
+  expect(viewer).toContain('entry.object.visible = entry.visible');
+  expect(viewer).toContain('p137eDevicePresentationOriginals.length = 0');
+  expect(viewer).toContain('const restoreP137EWallPresentation = () => {');
   expect(viewer).toContain('item.mesh.material = item.material');
   expect(viewer).toContain('for (const cloned of item.temporary) cloned.dispose?.()');
   expect(viewer).not.toContain('original[0].geometry.dispose()');
+});
+
+test('real scene67 provides source-bound return to original top plan for temporary placement and ruler', () => {
+  expect(viewer).toContain('id="p137e-plan-face-button" type="button" hidden');
+  expect(viewer).toContain('p137ePlanFaceButton.hidden = false');
+  expect(viewer).toContain('p137ePlanFaceButton.hidden = true');
+  const a = viewer.indexOf('const applyP137EScene67TopPlan = () => {');
+  const b = viewer.indexOf('const applyP137EScene67ReviewState = () => {', a);
+  expect(a).toBeGreaterThan(0);
+  expect(b).toBeGreaterThan(a);
+  const plan = viewer.slice(a, b);
+  expect(plan).toContain("activeModelSourceKind !== 'work-test'");
+  expect(plan).toContain('!isP137EScene67ReviewRequested()');
+  expect(plan).toContain('canvas.dataset.p137eLoadedCandidateId !== p137eScene67CandidateId');
+  expect(plan).toContain("fullModelScene.children.length !== 4");
+  expect(plan).toContain('modelRoot.children[0] !== fullModelScene');
+  expect(plan).toContain('restoreP137EWallPresentation()');
+  expect(plan).toContain("activePlanFloor = '1F'");
+  expect(plan).toContain('activeCamera = planCamera');
+  expect(plan).toContain('setModelScene(fullModelScene)');
+  expect(plan).toContain("canvas.dataset.contentScene = 'full-model'");
+  expect(plan).toContain("activateDCoordinateReview('1F')");
+  expect(plan).toContain("syncViewState('d-plan')");
+  expect(plan).toContain('p137eScene67TopPlanToolsReady');
+  expect(plan).not.toContain('setModelScene(dInteriorScene)');
+  expect(plan).not.toContain('prepareP186dD1fRoomContextBridge');
+  expect(plan).not.toContain('prepareP186FX4FloorPlanGuide');
+  expect(viewer).toContain("try { applyP137EScene67TopPlan(); }");
+});
+
+test('ordinary D1F control returns to source-only scene67 plan but not in any other candidate', () => {
+  const start = viewer.indexOf("d1PlanButton.addEventListener('click', () => {");
+  expect(start).toBeGreaterThan(0);
+  const guard = viewer.slice(start, start + 450);
+  expect(guard).toContain('canvas.dataset.workTestReviewMode === p137eScene67ReviewId');
+  expect(guard).toContain('applyP137EScene67TopPlan()');
+  expect(guard).toContain("applyStandardViewPreset('d-1f')");
+  const side = viewer.slice(viewer.indexOf('const applyP137EScene67SourceFace ='), viewer.indexOf('const applyP137EScene67TopPlan ='));
+  expect(side).toContain('deactivateDCoordinateReview()');
+  expect(side).toContain('activeCamera = isoCamera');
+  // Side cameras still disable placement; returning to top plan enables it
+  // only after exact original source and selected-candidate checks.
+  expect(viewer).toContain("p137eNorthFaceButton?.addEventListener('click'");
+  expect(viewer).toContain("p137eSouthFaceButton?.addEventListener('click'");
 });

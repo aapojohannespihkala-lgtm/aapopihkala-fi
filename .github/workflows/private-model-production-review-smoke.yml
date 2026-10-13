@@ -8,18 +8,30 @@ on:
       - .github/workflows/private-model-production-review-smoke.yml
   workflow_dispatch:
     inputs:
+      probe_mode:
+        description: Full render, G2 target readiness, or exact three-record readback (read-only)
+        required: true
+        type: choice
+        default: full-render
+        options:
+          - full-render
+          - g2-readiness
+          - g2-records-readback
       review_id:
         description: Exact private-model review ID
         required: true
         type: string
+        default: "p137e-d1f-three-wall-mounted-themos-review"
       candidate_id:
         description: Exact WORK_TEST candidate ID expected to autoload
         required: true
         type: string
+        default: "p137e-d1f-three-wall-mounted-themos"
       expected_dataset_json:
         description: JSON object of additional canvas dataset keys and exact expected string values for the review state
         required: true
         type: string
+        default: '{"p137eSceneIndex":"67","p137eFocusedRootCount":"1","p137eOriginalSourceWallNode":"798","p137eOriginalSourceWallMesh":"406","p137eWallMountedThemoCount":"3","p137eRoomFootprintCount":"0","p137ePresentationOnly":"true","p137eWorkTestOnly":"true","p137eExactXYClaim":"false","p137eExactZClaim":"false","p137eCurrentClaim":"false","p137eCanonical":"false","p137eAsBuiltClaim":"false","p137eHumanReview":"NOT_RUN","p137eReviewCameraMode":"ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP","contentFloor":"1F","contentScene":"full-model"}'
       min_non_background_pixels:
         description: Minimum rendered-scene pixel count
         required: true
@@ -34,9 +46,11 @@ on:
 permissions:
   contents: read
 
+# PR contract checks must never cancel an authenticated main-only production run.
+# A second manual run queues rather than cancelling the first incomplete proof.
 concurrency:
-  group: private-model-production-review-smoke
-  cancel-in-progress: true
+  group: private-model-production-review-smoke-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   contract-regression:
@@ -116,6 +130,9 @@ jobs:
               "X4 requires exactly 3 separately rendered cyan targets",
               "X4 original source wall 798 review context missing",
               "detectP186FX4OriginalGreenWallPixels",
+              "p137eScene67TwoFaceEvidence",
+              "p137e-scene67-south.png",
+              "P137E original green wall not rendered",
               "X4 original green wall not rendered",
               "detectM5BR1109CyanLocatorComponents",
               "M5B R1109 requires 5 rendered cyan locators",
@@ -149,7 +166,7 @@ jobs:
           PY
 
   verify-production:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'full-render'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -386,6 +403,7 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
+          import { createHash } from 'node:crypto';
           import { chromium } from '@playwright/test';
           import { detectM5BR1109CyanLocatorComponents } from './src/scripts/privateModelR1109CyanLocatorProof.mjs';
           import { detectP186FX4CyanTargetComponents, detectP186FX4OriginalGreenWallPixels } from './src/scripts/privateModelP186FX4CyanPixelProof.mjs';
@@ -457,6 +475,15 @@ jobs:
           });
 
           const page = await context.newPage();
+
+          // Capture only requests made by the viewer's INITIAL review autoload.
+          // The later independent no-cache asset probe must not satisfy this gate.
+          const p137eViewerAutoloadResponses = [];
+          page.on('response', (response) => {
+            if (response.url() === P137E_SCENE67_PRODUCTION_GLB_URL) {
+              p137eViewerAutoloadResponses.push(response);
+            }
+          });
 
           try {
             const response = await page.goto(reviewUrl, {
@@ -530,29 +557,158 @@ jobs:
               );
             }
 
+            // A server stall after initial metadata must become a diagnosed
+            // FAIL, not a 12-minute job cancellation without GLB evidence.
+            const withGlbDeadline = async (promise, stage) => {
+              let timer;
+              try {
+                return await Promise.race([
+                  promise,
+                  new Promise((_, reject) => {
+                    timer = setTimeout(() => reject(new Error(
+                      'P137E production GLB ' + stage + ' deadline exceeded (45s)'
+                    )), 45_000);
+                  }),
+                ]);
+              } finally {
+                clearTimeout(timer);
+              }
+            };
+
+            // Distinguish what the viewer requested while autoloading from the
+            // independent source fetch below. This is real network response
+            // evidence, not yet proof of three visibly rendered device pixels.
+            if (p137eScene67SourceEvidence) {
+              const duringViewerAutoload = [...p137eViewerAutoloadResponses];
+              if (duringViewerAutoload.length !== 1) {
+                throw new Error(
+                  'P137E scene67 needs exactly one original GLB response during viewer autoload: ' +
+                  duringViewerAutoload.length,
+                );
+              }
+              const viewerResponse = duringViewerAutoload[0];
+              // Retain safe headers-only evidence even when the full response
+              // never finishes. Do not log any Access/cookie headers.
+              const glbHeaders = viewerResponse.headers();
+              const recordGlbResponseStage = (stage, diagnostic = null) => {
+                fs.writeFileSync('playwright-artifacts/p137e-scene67-glb-response-stage.json',
+                  JSON.stringify({
+                    stage,
+                    exactAssetUrlMatched: viewerResponse.url() === P137E_SCENE67_PRODUCTION_GLB_URL,
+                    responseStatus: viewerResponse.status(),
+                    contentType: glbHeaders['content-type'] ?? null,
+                    contentLength: glbHeaders['content-length'] ?? null,
+                    diagnostic,
+                    viewerAutoloadNetworkResponseVerified: false,
+                    individualDevicePixelsVerified: false,
+                    humanReview: 'NOT_RUN',
+                    publishToCURRENT: false,
+                  }, null, 2));
+              };
+              recordGlbResponseStage('HEADERS_RECEIVED');
+              let networkError;
+              try {
+                networkError = await withGlbDeadline(
+                  viewerResponse.finished(), 'autoload response completion');
+              } catch (error) {
+                // Probe the SAME fixed asset once, independently, solely to
+                // distinguish a stalled viewer request from asset delivery.
+                // Never use this optional diagnostic as the autoload proof.
+                let diagnostic = { outcome: 'PROBE_UNAVAILABLE' };
+                try {
+                  diagnostic = await withGlbDeadline(page.evaluate(async (assetUrl) => {
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), 10_000);
+                    try {
+                      const response = await fetch(assetUrl, {
+                        credentials: 'same-origin', cache: 'no-store',
+                        signal: controller.signal,
+                      });
+                      const bytes = await response.arrayBuffer();
+                      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+                      return {
+                        outcome: 'FETCH_COMPLETED',
+                        status: response.status,
+                        contentType: response.headers.get('content-type'),
+                        byteLength: bytes.byteLength,
+                        sha256: Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join(''),
+                      };
+                    } catch (error) {
+                      return {
+                        outcome: 'FETCH_FAILED',
+                        aborted: controller.signal.aborted,
+                        errorName: error instanceof Error ? error.name : 'NON_ERROR',
+                      };
+                    } finally {
+                      clearTimeout(timer);
+                    }
+                  }, P137E_SCENE67_PRODUCTION_GLB_URL), 'diagnostic independent fetch');
+                } catch {
+                  diagnostic = { outcome: 'PROBE_UNAVAILABLE' };
+                }
+                recordGlbResponseStage('AUTOLOAD_INCOMPLETE', diagnostic);
+                throw error;
+              }
+              if (networkError) throw new Error('P137E viewer autoload GLB network failed');
+              const viewerGlbBytes = await withGlbDeadline(
+                viewerResponse.body(), 'autoload response bytes');
+              const viewerNetworkAsset = inspectP137EScene67PublishedGlb(
+                reviewId, candidateId, {
+                  url: viewerResponse.url(),
+                  status: viewerResponse.status(),
+                  byteLength: viewerGlbBytes.byteLength,
+                  sha256: createHash('sha256').update(viewerGlbBytes).digest('hex'),
+                },
+              );
+              fs.writeFileSync(
+                'playwright-artifacts/p137e-scene67-viewer-autoload-glb.json',
+                JSON.stringify({
+                  ...viewerNetworkAsset,
+                  viewerAutoloadNetworkResponseVerified: true,
+                  canvasUsedThoseBytesProvenByThisGate: false,
+                  individualDevicePixelsVerified: false,
+                  humanReview: 'NOT_RUN',
+                }, null, 2),
+              );
+            }
+
             // In the SAME authenticated browser context as the canvas, request
             // the fixed original scene67 WORK_TEST asset again without cache.
             // Only exact HTTP 200 + full bytes + cryptographic digest can pass.
             // This still does not prove three individually rendered housings.
             let p137eScene67AssetEvidence = null;
             if (p137eScene67SourceEvidence) {
-              const assetResponse = await page.evaluate(async (assetUrl) => {
-                const response = await fetch(assetUrl, {
-                  cache: 'no-store',
-                  credentials: 'same-origin',
-                });
-                const buffer = await response.arrayBuffer();
-                const shaBytes = new Uint8Array(
-                  await crypto.subtle.digest('SHA-256', buffer),
-                );
-                return {
-                  url: response.url,
-                  status: response.status,
-                  byteLength: buffer.byteLength,
-                  sha256: Array.from(shaBytes, (b) =>
-                    b.toString(16).padStart(2, '0')).join(''),
-                };
-              }, P137E_SCENE67_PRODUCTION_GLB_URL);
+              const assetResponse = await withGlbDeadline(page.evaluate(async (assetUrl) => {
+                // Apply the bound inside the real authenticated browser request
+                // as well, so stalled fetch/body streams are actually aborted.
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 45_000);
+                try {
+                  const response = await fetch(assetUrl, {
+                    cache: 'no-store',
+                    credentials: 'same-origin',
+                    signal: controller.signal,
+                  });
+                  const buffer = await response.arrayBuffer();
+                  const shaBytes = new Uint8Array(
+                    await crypto.subtle.digest('SHA-256', buffer),
+                  );
+                  return {
+                    url: response.url,
+                    status: response.status,
+                    byteLength: buffer.byteLength,
+                    sha256: Array.from(shaBytes, (b) =>
+                      b.toString(16).padStart(2, '0')).join(''),
+                  };
+                } catch (error) {
+                  if (controller.signal.aborted) {
+                    throw new Error('P137E production GLB independent fetch/body deadline exceeded (45s)');
+                  }
+                  throw error;
+                } finally {
+                  clearTimeout(timer);
+                }
+              }, P137E_SCENE67_PRODUCTION_GLB_URL), 'independent no-cache fetch');
               p137eScene67AssetEvidence = inspectP137EScene67PublishedGlb(
                 reviewId, candidateId, assetResponse,
               );
@@ -582,6 +738,497 @@ jobs:
               : await canvas.screenshot({
                   path: 'playwright-artifacts/production-review-before.png',
                 });
+
+            // Scene67: two actual authenticated WebGL camera frames and original
+            // green P123C pixels, never a substitute for individual 3/3 housings.
+            let p137eScene67TwoFaceEvidence = null;
+            let p137eScene67SameCameraPanBefore = null;
+            if (p137eScene67SourceEvidence) {
+              const readFace = () => canvas.evaluate((el) => ({
+                face: el.dataset.p137eScene67CameraFace,
+                ids: el.dataset.p137eScene67CameraSourceIds,
+                wall: el.dataset.p137eScene67WallPresentation,
+                sourceOnly: el.dataset.p137eScene67CameraSourceOnly,
+                render: el.dataset.p137eScene67ProductionRenderVerified,
+                humanReview: el.dataset.p137eHumanReview,
+                visibleIds: el.dataset.p137eScene67VisibleDeviceIds,
+                hiddenIds: el.dataset.p137eScene67HiddenDeviceIds,
+                mask: el.dataset.p137eScene67DeviceFaceMask,
+                roiStatus: el.dataset.p137eScene67SourceHousingRoiStatus,
+                roiJson: el.dataset.p137eScene67SourceHousingRois,
+              }));
+              const north = await readFace();
+              const northButton = page.locator('#p137e-north-face-button');
+              const southButton = page.locator('#p137e-south-face-button');
+              // The face buttons live inside a closed <details> menu in production.
+              // Open only after NORTH canvas capture; button activation closes it again.
+              const viewMenu = page.locator('#view-menu');
+              await viewMenu.locator(':scope > summary').click();
+              if (!await viewMenu.evaluate((menu) => menu.open)) {
+                throw new Error('P137E View menu cannot open for NORTH/SOUTH controls');
+              }
+              if (north.face !== 'NORTH' ||
+                  north.ids !== 'D_THEMO_CURRENT_LOBBY_01' ||
+                  north.wall !== 'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED' ||
+                  north.visibleIds !== 'D_THEMO_CURRENT_LOBBY_01' ||
+                  north.hiddenIds !== 'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01' ||
+                  north.mask !== 'NORTH_SOURCE_ONLY_RESTOREABLE' ||
+                  north.sourceOnly !== 'true' || north.render !== 'false' ||
+                  north.humanReview !== 'NOT_RUN' ||
+                  !await northButton.isVisible() || !await southButton.isVisible()) {
+                throw new Error('P137E original NORTH source camera or buttons missing');
+              }
+              // These rectangles are source-geometry projections, not yet
+              // evidence of any individual device's rendered pixels.
+              const validateProjectedSourceRois = (state, side, expectedIds) => {
+                if (state.roiStatus !== 'SOURCE_ONLY_PROJECTED' ||
+                    typeof state.roiJson !== 'string') {
+                  throw new Error('P137E ' + side + ' projected source ROIs unavailable');
+                }
+                const rois = JSON.parse(state.roiJson);
+                if (rois.side !== side ||
+                    rois.cameraKey !== 'P137E_SCENE67_P123C_' + side ||
+                    rois.width !== Math.round(box.width) ||
+                    rois.height !== Math.round(box.height) ||
+                    rois.sourceOnly !== true ||
+                    rois.individualRenderedPixelsVerified !== false ||
+                    !Array.isArray(rois.projectedTargets) ||
+                    rois.projectedTargets.length !== expectedIds.length ||
+                    rois.projectedTargets.some((roi, i) =>
+                      roi.logicalDeviceId !== expectedIds[i] ||
+                      !Number.isSafeInteger(roi.x) ||
+                      !Number.isSafeInteger(roi.y) ||
+                      !Number.isSafeInteger(roi.radius) ||
+                      roi.radius < 4 || roi.radius > 96 ||
+                      roi.x - roi.radius < 0 ||
+                      roi.y - roi.radius < 0 ||
+                      roi.x + roi.radius >= rois.width ||
+                      roi.y + roi.radius >= rois.height)) {
+                  throw new Error('P137E ' + side + ' projected source ROI identity or bounds mismatch');
+                }
+                return rois;
+              };
+              const northSourceRois = validateProjectedSourceRois(
+                north, 'NORTH', ['D_THEMO_CURRENT_LOBBY_01']);
+
+              // Compare actual authenticated WebGL PNG bytes. Source-projected
+              // regions alone are NOT evidence; independently hide each source
+              // housing, then measure exact canvas RGBA deltas per wall side.
+              const allHousingIds = [
+                'D_THEMO_CURRENT_LOBBY_01',
+                'D_THEMO_CURRENT_BEDROOM_01',
+                'D_THEMO_CURRENT_BATHROOM_01',
+              ];
+              const compareHousingPngRgba = async (baselinePng, variantPng, region) => {
+                const urls = [baselinePng, variantPng].map(
+                  (png) => 'data:image/png;base64,' + png.toString('base64'));
+                return page.evaluate(async ({ urls, region }) => {
+                  const decode = async (url) => {
+                    const img = new Image(); img.src = url; await img.decode();
+                    const surface = document.createElement('canvas');
+                    surface.width = img.width; surface.height = img.height;
+                    const ctx = surface.getContext('2d');
+                    if (!ctx) throw Error('P137E housing PNG decode unavailable');
+                    ctx.drawImage(img, 0, 0);
+                    return {
+                      width: surface.width, height: surface.height,
+                      rgba: ctx.getImageData(0, 0, surface.width, surface.height).data,
+                    };
+                  };
+                  const a = await decode(urls[0]), b = await decode(urls[1]);
+                  if (a.width !== b.width || a.height !== b.height ||
+                      a.width < 256 || a.height < 256 ||
+                      a.width > 4096 || a.height > 4096) {
+                    throw Error('P137E source housing PNG dimensions mismatch');
+                  }
+                  let inside = 0, outside = 0;
+                  for (let y = 0; y < a.height; y++) {
+                    for (let x = 0; x < a.width; x++) {
+                      const k = (y * a.width + x) * 4;
+                      let changed = false;
+                      for (let c = 0; c < 4; c++) {
+                        if (Math.abs(a.rgba[k + c] - b.rgba[k + c]) >= 20) {
+                          changed = true; break;
+                        }
+                      }
+                      if (!changed) continue;
+                      if (region && (x - region.x) ** 2 + (y - region.y) ** 2 <=
+                          region.radius ** 2) inside++;
+                      else outside++;
+                    }
+                  }
+                  return { inside, outside, total: inside + outside,
+                    width: a.width, height: a.height };
+                }, { urls, region });
+              };
+              const captureSourceHousingPixels = async (side, baselinePng, sourceRois) => {
+                const selectedIds = side === 'NORTH'
+                  ? allHousingIds.slice(0, 1) : allHousingIds.slice(1);
+                if (sourceRois.side !== side ||
+                    sourceRois.projectedTargets.length !== selectedIds.length ||
+                    sourceRois.projectedTargets.some((roi, i) =>
+                      roi.logicalDeviceId !== selectedIds[i])) {
+                  throw new Error('P137E three-housing source ROI/face mismatch ' + side);
+                }
+                if (sourceRois.projectedTargets.length === 2) {
+                  const [a, b] = sourceRois.projectedTargets;
+                  if ((a.x-b.x)**2 + (a.y-b.y)**2 <= (a.radius+b.radius)**2) {
+                    throw new Error('P137E overlapping real source housing ROIs');
+                  }
+                }
+                const variants = [];
+                for (const id of allHousingIds) {
+                  const state = await page.evaluate((hiddenLogicalDeviceId) => {
+                    window.dispatchEvent(new CustomEvent('p137e-scene67-housing-probe', {
+                      detail: { hiddenLogicalDeviceId },
+                    }));
+                    const data = document.querySelector('#private-model-canvas')?.dataset;
+                    return {
+                      state: data?.p137eScene67HousingProbeState,
+                      hiddenId: data?.p137eScene67HousingProbeHiddenId,
+                    };
+                  }, id);
+                  if (state.state !== 'SOURCE_ONLY_UNVERIFIED_PIXELS' ||
+                      state.hiddenId !== id) {
+                    throw new Error('P137E actual three-housing source probe rejected: '+side+'/'+id);
+                  }
+                  await page.waitForTimeout(180);
+                  const shot = await page.screenshot({
+                    clip: box, animations: 'disabled',
+                    path: 'playwright-artifacts/p137e-scene67-' +
+                      side.toLowerCase() + '-' + id.toLowerCase() + '-hidden.png',
+                  });
+                  const roi = sourceRois.projectedTargets.find(
+                    (candidate) => candidate.logicalDeviceId === id) ?? null;
+                  const pixels = await compareHousingPngRgba(baselinePng, shot, roi);
+                  if (roi ? (pixels.inside < 48 || pixels.outside !== 0) :
+                    pixels.total !== 0) {
+                    throw new Error('P137E three-housing RGBA isolation FAIL: ' +
+                      side + '/' + id + '/' + JSON.stringify(pixels));
+                  }
+                  variants.push({
+                    hiddenLogicalDeviceId: id, visibleOnFace: !!roi,
+                    changedPixels: pixels, screenshotSha256:
+                      createHash('sha256').update(shot).digest('hex'),
+                  });
+                }
+                const restored = await page.evaluate(() => {
+                  window.dispatchEvent(new CustomEvent('p137e-scene67-housing-probe', {
+                    detail: { hiddenLogicalDeviceId: null },
+                  }));
+                  const d = document.querySelector('#private-model-canvas')?.dataset;
+                  return {state:d?.p137eScene67HousingProbeState,
+                    hiddenId:d?.p137eScene67HousingProbeHiddenId};
+                });
+                if (restored.state !== 'SOURCE_ONLY_UNVERIFIED_PIXELS' ||
+                    restored.hiddenId !== 'NONE') {
+                  throw new Error('P137E three-housing original face restoration rejected');
+                }
+                await page.waitForTimeout(180);
+                const restoredPng = await page.screenshot({
+                  clip: box, animations: 'disabled',
+                });
+                const restoredDiff = await compareHousingPngRgba(
+                  baselinePng, restoredPng, null);
+                if (restoredDiff.total !== 0) {
+                  throw new Error('P137E three-housing face did not restore original RGBA');
+                }
+                return {side, sourceCameraKey: 'P137E_SCENE67_P123C_' + side,
+                  variants, restoredPixels: restoredDiff,
+                  individualHousingRgbaVerifiedInThisExecution: true};
+              };
+              // The menu opened for NORTH/SOUTH controls must not cover the
+              // canvas during per-housing screenshots; reopen before SOUTH.
+              await viewMenu.locator(':scope > summary').click();
+              if (await viewMenu.evaluate((menu) => menu.open)) {
+                throw new Error('P137E housing NORTH capture left View menu open');
+              }
+              const northHousingPixels = await captureSourceHousingPixels(
+                'NORTH', before, northSourceRois);
+              await viewMenu.locator(':scope > summary').click();
+              if (!await viewMenu.evaluate((menu) => menu.open)) {
+                throw new Error('P137E SOUTH switch View menu unavailable');
+              }
+              const firstUrl = 'data:image/png;base64,' + before.toString('base64');
+              const decode = '(async (url) => {' +
+                'const i=new Image();i.src=url;await i.decode();' +
+                'const c=document.createElement("canvas");c.width=i.width;c.height=i.height;' +
+                'const ctx=c.getContext("2d");if(!ctx)throw Error("P137E PNG decode");' +
+                'ctx.drawImage(i,0,0);return ctx.getImageData(0,0,c.width,c.height).data;})';
+              const greenFunction = detectP186FX4OriginalGreenWallPixels.toString();
+              const greenExpression = '(async (url) => {' +
+                'const i=new Image();i.src=url;await i.decode();' +
+                'const c=document.createElement("canvas");c.width=i.width;c.height=i.height;' +
+                'const ctx=c.getContext("2d");if(!ctx)throw Error("P137E green PNG");' +
+                'ctx.drawImage(i,0,0);return (' + greenFunction + ')' +
+                '(ctx.getImageData(0,0,c.width,c.height).data,c.width,c.height);})';
+              const green = await page.evaluate(
+                greenExpression + '(' + JSON.stringify(firstUrl) + ')');
+              if (!green?.passed) {
+                throw new Error('P137E original green wall not rendered: ' +
+                  JSON.stringify(green));
+              }
+              fs.writeFileSync('playwright-artifacts/p137e-scene67-north.png', before);
+              await southButton.click();
+              await page.waitForTimeout(350);
+              const south = await readFace();
+              if (south.face !== 'SOUTH' ||
+                  south.ids !== 'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01' ||
+                  south.wall !== 'ORIGINAL_P123C_SOURCE_ALPHA_0_38_UNMODIFIED' ||
+                  south.visibleIds !== 'D_THEMO_CURRENT_BEDROOM_01,D_THEMO_CURRENT_BATHROOM_01' ||
+                  south.hiddenIds !== 'D_THEMO_CURRENT_LOBBY_01' ||
+                  south.mask !== 'SOUTH_SOURCE_ONLY_RESTOREABLE' ||
+                  south.sourceOnly !== 'true' || south.render !== 'false' ||
+                  south.humanReview !== 'NOT_RUN') {
+                throw new Error('P137E original SOUTH source camera or room identities missing');
+              }
+              const southBox = await canvas.boundingBox();
+              if (!southBox || ['x','y','width','height'].some(
+                  k => Math.abs(southBox[k] - box[k]) > 1)) {
+                throw new Error('P137E opposite faces have mismatched viewport geometry');
+              }
+              const southSourceRois = validateProjectedSourceRois(south, 'SOUTH', [
+                'D_THEMO_CURRENT_BEDROOM_01', 'D_THEMO_CURRENT_BATHROOM_01',
+              ]);
+              const southPng = await page.screenshot({
+                clip: box, animations: 'disabled',
+                path: 'playwright-artifacts/p137e-scene67-south.png',
+              });
+              const secondUrl = 'data:image/png;base64,' + southPng.toString('base64');
+              const comparison = await page.evaluate(async ([a,b]) => {
+                const load = async (url) => {
+                  const i = new Image(); i.src=url; await i.decode();
+                  const c=document.createElement('canvas');
+                  c.width=i.width;c.height=i.height;
+                  const ctx=c.getContext('2d'); if(!ctx)throw Error('P137E two-face PNG');
+                  ctx.drawImage(i,0,0);
+                  return { w:c.width,h:c.height,p:ctx.getImageData(0,0,c.width,c.height).data };
+                };
+                const one=await load(a),two=await load(b);
+                if(one.w!==two.w||one.h!==two.h)throw Error('P137E image size mismatch');
+                let changed=0;
+                for(let j=0;j<one.p.length;j+=4)
+                  if(Math.abs(one.p[j]-two.p[j])+
+                     Math.abs(one.p[j+1]-two.p[j+1])+
+                     Math.abs(one.p[j+2]-two.p[j+2])>36)changed++;
+                return {width:one.w,height:one.h,changedPixels:changed};
+              }, [firstUrl,secondUrl]);
+              if (comparison.changedPixels < minChangedPixels) {
+                throw new Error('P137E two source-wall faces have no independent pixels: ' +
+                  JSON.stringify(comparison));
+              }
+              const southHousingPixels = await captureSourceHousingPixels(
+                'SOUTH', southPng, southSourceRois);
+              const p137eThreeHousingPixelEvidence = {
+                sourceSceneIndex: 67,
+                sourceWallNode: 798,
+                sourceWallMesh: 406,
+                sourceGlbSha256: p137eScene67AssetEvidence?.sha256 ?? null,
+                north: northHousingPixels, south: southHousingPixels,
+                threeDistinctSourceHousingsVerifiedInThisProductionExecution: true,
+                syntheticFixture: false, humanReview: 'NOT_RUN',
+                publishToCURRENT: false,
+              };
+              fs.writeFileSync(
+                'playwright-artifacts/p137e-scene67-three-housing-rgba.json',
+                JSON.stringify(p137eThreeHousingPixelEvidence, null, 2),
+              );
+              // SOUTH click closed <details>; reopen for the final NORTH restoration.
+              await viewMenu.locator(':scope > summary').click();
+              await northButton.click();
+              if ((await readFace()).face !== 'NORTH') {
+                throw new Error('P137E NORTH was not restored after two-face capture');
+              }
+              p137eScene67TwoFaceEvidence = {
+                sceneIndex:67, originalWallNode:798, originalWallMesh:406,
+                north,south,comparison,greenWallPixels:green,
+                projectedSourceHousingRois: { north:northSourceRois, south:southSourceRois },
+                projectedRoisAreNotIndividualPixelProof:true,
+                actualProductionTwoFaceScreenshotsCaptured:true,
+                threeIndividualThemoHousingPixelsVerified:
+                  p137eThreeHousingPixelEvidence.threeDistinctSourceHousingsVerifiedInThisProductionExecution,
+                p137eThreeHousingPixelEvidence,
+                humanReview:'NOT_RUN',publishToCURRENT:false,
+              };
+              fs.writeFileSync('playwright-artifacts/p137e-scene67-two-face-pixels.json',
+                JSON.stringify(p137eScene67TwoFaceEvidence,null,2));
+              // The real single-link P137E user review also requires the
+              // top-floor original wall, three individual placement crosses
+              // and an X/Y millimetre ruler. No temporary click writes to G2.
+              const planButton = page.locator('#p137e-plan-face-button');
+              await viewMenu.locator(':scope > summary').click();
+              if (!await viewMenu.evaluate((menu) => menu.open) ||
+                  !await planButton.isVisible()) {
+                throw new Error('P137E original source top-plan menu unavailable');
+              }
+              await planButton.click();
+              await page.waitForFunction(() => {
+                const canvas = document.querySelector('#private-model-canvas');
+                return canvas?.dataset.p137eScene67TopPlanToolsReady === 'true';
+              }, null, { timeout: 5000 });
+              const planDataset = await canvas.evaluate((el) => ({
+                mode: el.dataset.p137eReviewCameraMode,
+                face: el.dataset.p137eScene67CameraFace,
+                ready: el.dataset.p137eScene67TopPlanToolsReady,
+                current: el.dataset.p137eCurrentClaim,
+                humanReview: el.dataset.p137eHumanReview,
+              }));
+              if (planDataset.mode !== 'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP' ||
+                  planDataset.ready !== 'true' ||
+                  planDataset.current !== 'false' ||
+                  planDataset.humanReview !== 'NOT_RUN') {
+                throw new Error('P137E original D1F top-plan source review not ready: ' +
+                  JSON.stringify(planDataset));
+              }
+              const planPng = await page.screenshot({
+                clip: box, animations: 'disabled',
+                path: 'playwright-artifacts/p137e-scene67-original-top-plan.png',
+              });
+              const planUrl = 'data:image/png;base64,' + planPng.toString('base64');
+              const planGreen = await page.evaluate(
+                greenExpression + '(' + JSON.stringify(planUrl) + ')');
+              if (!planGreen?.passed) {
+                throw new Error('P137E original green P123C wall not visible from TOP: ' +
+                  JSON.stringify(planGreen));
+              }
+              const placeButton = page.locator('#p137e-place-tool-button');
+              const measureButton = page.locator('#axis-measure-tool-button');
+              if (!await placeButton.isEnabled() || !await measureButton.isEnabled()) {
+                throw new Error('P137E source-plan RASTI or MITTAA tool not enabled');
+              }
+              const clickPlanFraction = async (u, v) => {
+                const targetBox = await canvas.boundingBox();
+                if (!targetBox || Math.abs(targetBox.width - box.width) > 1 ||
+                    Math.abs(targetBox.height - box.height) > 1) {
+                  throw new Error('P137E source top-plan viewport changed');
+                }
+                await page.mouse.click(
+                  targetBox.x + targetBox.width * u,
+                  targetBox.y + targetBox.height * v,
+                );
+              };
+              await placeButton.click();
+              if ((await canvas.getAttribute('data-interaction-mode')) !== 'place') {
+                throw new Error('P137E RASTI mode not selectable');
+              }
+              const targetSelector = page.locator('#p137e-place-target');
+              const targetIds = [
+                'D_THEMO_CURRENT_LOBBY_01',
+                'D_THEMO_CURRENT_BEDROOM_01',
+                'D_THEMO_CURRENT_BATHROOM_01',
+              ];
+              // Run #67: 0.65 missed the original scene67 D1F plan footprint.
+              // Use three distinct unsaved crosses in the already-hit 0.55..0.60 strip.
+              const sourcePlanCrossFractions = [0.55, 0.575, 0.60];
+              for (const [index, id] of targetIds.entries()) {
+                await targetSelector.selectOption(id);
+                await clickPlanFraction(sourcePlanCrossFractions[index], 0.49);
+                if ((await canvas.getAttribute('data-p137e-place-draft-count')) !==
+                    String(index + 1)) {
+                  throw new Error('P137E actual source-plan crosshair draft missing: ' + id);
+                }
+              }
+              const placementText = await page.locator('#p137e-place-list').innerText();
+              const placementState = await page.locator('#p137e-place-status').innerText();
+              if (!['Aula: X ', 'Makuuhuone: X ', 'Kylpyhuone: X ']
+                    .every((name) => placementText.includes(name)) ||
+                  !placementState.includes('ei tallennettu G2:een')) {
+                throw new Error('P137E original source three crosses cannot be identified');
+              }
+              const placementPng = await page.screenshot({
+                clip: box, animations: 'disabled',
+                path: 'playwright-artifacts/p137e-scene67-three-crosshair-drafts.png',
+              });
+              await measureButton.click();
+              if ((await canvas.getAttribute('data-interaction-mode')) !== 'measure') {
+                throw new Error('P137E source-plan MITTAA mode not selectable');
+              }
+              await clickPlanFraction(0.55, 0.49);
+              if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'FIRST') {
+                throw new Error('P137E MITTAA first source-plan click failed');
+              }
+              await clickPlanFraction(0.575, 0.49);
+              if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'DYNAMIC') {
+                throw new Error('P137E MITTAA second source-plan click failed');
+              }
+              const mm = Number(await canvas.getAttribute('data-axis-measure-mm'));
+              const rulerText = await page.locator('#axis-measure-output').innerText();
+              if (!Number.isFinite(mm) || mm <= 0 ||
+                  !rulerText.includes('mm (mallista)')) {
+                throw new Error('P137E MITTAA X/Y millimetre model measurement unavailable');
+              }
+              await clickPlanFraction(0.60, 0.49);
+              if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'LOCKED') {
+                throw new Error('P137E MITTAA third source-plan lock failed');
+              }
+              const rulerPng = await page.screenshot({
+                clip: box, animations: 'disabled',
+                path: 'playwright-artifacts/p137e-scene67-source-plan-ruler-mm.png',
+              });
+              await clickPlanFraction(0.56, 0.49);
+              if ((await canvas.getAttribute('data-axis-measure-phase')) !== 'EMPTY' ||
+                  (await canvas.getAttribute('data-p137e-place-draft-count')) !== '3') {
+                throw new Error('P137E MITTAA fourth click reset disturbed three crosses');
+              }
+              const finalPlanDataset = await canvas.evaluate((el) => ({
+                mode: el.dataset.interactionMode,
+                drafts: el.dataset.p137ePlaceDraftCount,
+                current: el.dataset.p137eCurrentClaim,
+                humanReview: el.dataset.p137eHumanReview,
+              }));
+              if (finalPlanDataset.current !== 'false' ||
+                  finalPlanDataset.humanReview !== 'NOT_RUN') {
+                throw new Error('P137E source-plan accidentally promoted from WORK_TEST');
+              }
+              const p137eSourcePlanToolsEvidence = {
+                originalGreenWallTopPlanPixels: planGreen,
+                originalWallNode: 798, originalWallMesh: 406,
+                sourceScene: 67,
+                threeIndividualSourceCrosshairDrafts: targetIds,
+                crosshairDraftCount: 3,
+                placementText,
+                placementState,
+                rulerMillimetres: mm,
+                rulerText,
+                clickSequence: ['FIRST', 'DYNAMIC', 'LOCKED', 'EMPTY'],
+                finalPlanDataset,
+                originalTopPlanScreenshotSha256:
+                  createHash('sha256').update(planPng).digest('hex'),
+                crosshairScreenshotSha256:
+                  createHash('sha256').update(placementPng).digest('hex'),
+                rulerScreenshotSha256:
+                  createHash('sha256').update(rulerPng).digest('hex'),
+                persistedG2ByThisGate: false,
+                actualNativeG2Readback: 'NOT_RUN',
+                humanReview: 'NOT_RUN',
+                publishToCURRENT: false,
+              };
+              fs.writeFileSync('playwright-artifacts/p137e-scene67-plan-tools.json',
+                JSON.stringify(p137eSourcePlanToolsEvidence, null, 2));
+
+              // Restore the SAME exact NORTH source before the generic motion
+              // gate. Comparing the original NORTH PNG with TOP-plan pixels
+              // would falsely pass merely because the camera changed.
+              await viewMenu.locator(':scope > summary').click();
+              if (!await viewMenu.evaluate((menu) => menu.open) ||
+                  !await northButton.isVisible()) {
+                throw new Error('P137E NORTH source restoration menu unavailable');
+              }
+              await northButton.click();
+              await page.waitForTimeout(350);
+              const restoredFace = await readFace();
+              if (restoredFace.face !== 'NORTH' ||
+                  restoredFace.ids !== 'D_THEMO_CURRENT_LOBBY_01' ||
+                  restoredFace.sourceOnly !== 'true' ||
+                  restoredFace.render !== 'false' ||
+                  restoredFace.humanReview !== 'NOT_RUN') {
+                throw new Error('P137E source camera not restored after RASTI/MITTAA');
+              }
+              p137eScene67SameCameraPanBefore = await page.screenshot({
+                clip: box, animations: 'disabled',
+                path: 'playwright-artifacts/p137e-scene67-north-before-pan.png',
+              });
+            }
 
             // Scene66 uses a no-rotation orthographic plan camera. The existing
             // source-color-bound detector must prove all three individual Themo
@@ -805,13 +1452,16 @@ jobs:
             const startY = box.y + box.height * 0.48;
             await page.mouse.move(startX, startY);
             const pointerButton = isX4Themo ? 'right' : 'left';
-            await page.mouse.down({ button: pointerButton });
+            // Scene67 NORTH is deliberately rotation-disabled. Its available
+            // navigation gesture is a RIGHT-button pan, not a left orbit.
+            const motionButton = p137eScene67SourceEvidence ? 'right' : pointerButton;
+            await page.mouse.down({ button: motionButton });
             await page.mouse.move(
               startX + Math.min(120, box.width * 0.12),
               startY + 40,
               { steps: 12 },
             );
-            await page.mouse.up({ button: pointerButton });
+            await page.mouse.up({ button: motionButton });
             await page.waitForTimeout(500);
 
             const after = (isX4Themo || isR1125SourceReview || p137eScene67SourceEvidence)
@@ -902,7 +1552,8 @@ jobs:
                 };
               },
               {
-                beforeUrl: 'data:image/png;base64,' + before.toString('base64'),
+                beforeUrl: 'data:image/png;base64,' +
+                  (p137eScene67SameCameraPanBefore ?? before).toString('base64'),
                 afterUrl: 'data:image/png;base64,' + after.toString('base64'),
               },
             );
@@ -945,6 +1596,7 @@ jobs:
                   m5aR1125PixelEvidence,
                   p137eScene67SourceEvidence,
                   p137eScene67AssetEvidence,
+                  p137eScene67TwoFaceEvidence,
                   thresholds: {
                     minNonBackgroundPixels,
                     minChangedPixels,
@@ -971,6 +1623,7 @@ jobs:
                 m5aR1125PixelEvidence,
                 p137eScene67SourceEvidence,
                 p137eScene67AssetEvidence,
+                p137eScene67TwoFaceEvidence,
                 thresholds: {
                   minNonBackgroundPixels,
                   minChangedPixels,
@@ -990,5 +1643,235 @@ jobs:
         with:
           name: private-model-production-review-smoke
           path: playwright-artifacts
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # Separate manual read gate: it reuses the existing targets client and
+  # viewer-probe identity, does not repeat the already proven scene67 render,
+  # and never enables the Worker or appends an observation to native G2.
+  verify-g2-readiness:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'g2-readiness'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+      - name: Read native G2 readiness without writing
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { mkdirSync, writeFileSync } from 'node:fs';
+          import { createP137EG2WorkerClient } from './src/scripts/privateModelP137EG2WorkerClient.mjs';
+          import { p137EG2ReadinessFailureCodes } from './src/scripts/privateModelP137EG2WorkerClient.mjs';
+          
+          // A readiness GET cannot author a placement or prove persistence.
+          const origin = 'https://aapopihkala.fi';
+          const targetUrl = origin + '/private-model/review-placement/g2/targets';
+          const expectedIds = [
+            'D1F_USER_CURRENT_DOOR_A', 'D1F_USER_CURRENT_DOOR_B',
+            'D_THEMO_CURRENT_BATHROOM_01', 'D_THEMO_CURRENT_BEDROOM_01',
+            'D_THEMO_CURRENT_LOBBY_01',
+          ].sort();
+          const evidence = {
+            probe: 'P137E_NATIVE_G2_READINESS_GET_V1',
+            readyForSaveVerification: false,
+            authenticatedTargetsReadVerified: false,
+            targetCount: 0,
+            httpStatus: null,
+            nativeG2WriteVerified: false,
+            independentObservationGetVerified: false,
+            humanReview: 'NOT_RUN',
+            publishToCURRENT: false,
+          };
+          try {
+            const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
+            const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
+            if (!clientId || !clientSecret) throw new Error('PROBE_CREDENTIALS_MISSING');
+            const client = createP137EG2WorkerClient({
+              origin,
+              canReview: () => true,
+              requestTimeoutMs: 15000,
+              fetcher: async (url, options) => {
+                if (url !== targetUrl || options.method !== 'GET' || options.body !== undefined) {
+                  throw new Error('READINESS_GET_ONLY');
+                }
+                const response = await fetch(url, {
+                  ...options,
+                  headers: {
+                    'CF-Access-Client-Id': clientId,
+                    'CF-Access-Client-Secret': clientSecret,
+                    Accept: 'application/json',
+                  },
+                });
+                evidence.httpStatus = response.status;
+                return response;
+              },
+            });
+            const result = await client.targets();
+            const ids = result.targets.map(target => target.targetId).sort();
+            if (JSON.stringify(ids) !== JSON.stringify(expectedIds) ||
+                !result.targets.every(target => target.apartment === 'D' &&
+                  target.floor === '1F' && target.coordinateFrame === 'YLIS-G1-LOCAL')) {
+              throw new Error('NATIVE_TARGET_SET_MISMATCH');
+            }
+            evidence.targetCount = ids.length;
+            evidence.authenticatedTargetsReadVerified = true;
+            evidence.readyForSaveVerification = true;
+          } catch (error) {
+            // Never persist response text, cookies, credentials, native G2 prose or
+            // arbitrary upstream errors. A hidden 404 does not identify its root cause.
+            const allowedCodes = new Set([
+              'PROBE_CREDENTIALS_MISSING', 'READINESS_GET_ONLY',
+              'NATIVE_TARGET_SET_MISMATCH', 'P137E_G2_UNAVAILABLE',
+              'P137E_G2_REDIRECT_REJECTED', 'P137E_G2_RESPONSE_TYPE_INVALID',
+              'P137E_G2_RESPONSE_TOO_LARGE', 'P137E_G2_RESPONSE_EMPTY',
+              'P137E_G2_RESPONSE_INVALID', 'P137E_G2_REQUEST_TIMEOUT',
+              'P137E_G2_TARGET_EVIDENCE_INVALID',
+            ]);
+            evidence.failure = allowedCodes.has(error?.message)
+              ? error.message : 'P137E_G2_READINESS_FAILED';
+            if (p137EG2ReadinessFailureCodes.includes(error?.g2FailureCode)) {
+              evidence.failureCode = error.g2FailureCode;
+            }
+          }
+          mkdirSync('playwright-artifacts', { recursive: true });
+          writeFileSync('playwright-artifacts/p137e-native-g2-readiness.json',
+            JSON.stringify(evidence, null, 2));
+          console.log(JSON.stringify(evidence));
+          if (!evidence.readyForSaveVerification) process.exitCode = 1;
+          NODE
+      - name: Upload sanitized G2 readiness
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-model-g2-readiness
+          path: playwright-artifacts/p137e-native-g2-readiness.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # Authentic production verification of exactly the three existing G2
+  # WORK_TEST observations. No POST, no duplicate records, no model approval.
+  # This is a distinct, explicit main-only workflow_dispatch gate.
+  verify-g2-observations-readback:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'g2-records-readback'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+      - name: Independently authenticate and read three existing G2 records
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { mkdirSync, writeFileSync } from 'node:fs';
+          import { createP137EG2WorkerClient } from './src/scripts/privateModelP137EG2WorkerClient.mjs';
+
+          const origin = 'https://aapopihkala.fi';
+          const route = origin + '/private-model/review-placement/g2/observations/';
+          const records = [
+            { id: 'P137E_G2_2ea51c8886014d7abe51f4f7915da068',
+              targetId: 'D_THEMO_CURRENT_LOBBY_01', xM: 3.73, yM: 5.12, heightM: 1.48 },
+            { id: 'P137E_G2_ad31cfc5497548a98e4dd400f1acdc48',
+              targetId: 'D_THEMO_CURRENT_BEDROOM_01', xM: 3.69, yM: 5.03, heightM: 1.48 },
+            { id: 'P137E_G2_11262097b6124ba68ea4fdbdbc0bed32',
+              targetId: 'D_THEMO_CURRENT_BATHROOM_01', xM: 4.88, yM: 5.03, heightM: 1.40 },
+          ];
+          const allowedUrls = new Set(records.map(record => route + record.id));
+          const evidence = {
+            probe: 'P137E_EXISTING_G2_OBSERVATIONS_READBACK_V1',
+            requiredRecordCount: 3,
+            verifiedRecordCount: 0,
+            authenticatedWorkerGetVerified: false,
+            nativeG2WriteAttempted: false,
+            newObservationCreated: false,
+            originalWorkTestOnly: true,
+            humanReview: 'NOT_RUN',
+            publishToCURRENT: false,
+          };
+          try {
+            const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
+            const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
+            if (!clientId || !clientSecret) throw new Error('PROBE_CREDENTIALS_MISSING');
+
+            const client = createP137EG2WorkerClient({
+              origin,
+              canReview: () => true,
+              requestTimeoutMs: 15000,
+              fetcher: async (url, options) => {
+                if (!allowedUrls.has(url) ||
+                    options.method !== 'GET' ||
+                    options.body !== undefined) {
+                  throw new Error('READBACK_GET_ONLY');
+                }
+                // A read-only probe identity MUST NOT gain write permissions.
+                // Never export tokens, response headers or native G2 payloads.
+                return fetch(url, {
+                  ...options,
+                  headers: {
+                    'CF-Access-Client-Id': clientId,
+                    'CF-Access-Client-Secret': clientSecret,
+                    Accept: 'application/json',
+                  },
+                });
+              },
+            });
+
+            for (const record of records) {
+              // This is a NEW authenticated Worker GET for an EXISTING exact
+              // record, not a replay of the original direct Docs write.
+              const actual = await client.readback(record.id);
+              const p = actual.payload;
+              const a = p.anchor, observed = p.observation;
+              if (actual.recordId !== record.id ||
+                  a?.targetId !== record.targetId ||
+                  a?.apartment !== 'D' || a?.floor !== '1F' ||
+                  a?.coordinateFrame !== 'YLIS-G1-LOCAL' ||
+                  a?.xM !== record.xM || a?.yM !== record.yM ||
+                  a?.approximate !== true || a?.exactXY !== false ||
+                  observed?.anchor?.targetId !== record.targetId ||
+                  observed?.anchor?.xM !== record.xM ||
+                  observed?.anchor?.yM !== record.yM ||
+                  observed?.height?.aboveFinishedFloorM !== record.heightM ||
+                  observed?.height?.zM !== null ||
+                  observed?.verifiedWallSide !== false ||
+                  p.resolution?.status !== 'UNMAPPED' ||
+                  p.resolution?.reason !== 'NO_APPROVED_HOST' ||
+                  p.resolution?.proposal !== null ||
+                  p.persisted !== false || p.humanReview !== 'NOT_RUN' ||
+                  p.currentGeometry !== false || p.canonical !== false ||
+                  p.asBuilt !== false) {
+                throw new Error('RECORD_SOURCE_MISMATCH');
+              }
+              evidence.verifiedRecordCount += 1;
+            }
+            evidence.authenticatedWorkerGetVerified =
+              evidence.verifiedRecordCount === evidence.requiredRecordCount;
+          } catch {
+            // Sanitized, deliberately non-specific: never log Docs content,
+            // Access headers, response bodies or upstream exception strings.
+            evidence.failure = 'WORKER_READBACK_NOT_VERIFIED';
+          }
+          mkdirSync('playwright-artifacts', { recursive: true });
+          writeFileSync('playwright-artifacts/p137e-g2-records-readback.json',
+            JSON.stringify(evidence, null, 2));
+          console.log(JSON.stringify(evidence));
+          if (!evidence.authenticatedWorkerGetVerified) process.exitCode = 1;
+          NODE
+      - name: Upload sanitized existing-record readback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-model-g2-existing-records-readback
+          path: playwright-artifacts/p137e-g2-records-readback.json
           if-no-files-found: ignore
           retention-days: 7

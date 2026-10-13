@@ -132,7 +132,7 @@ test('the source camera cannot invent a missing housing mesh', () => {
 });
 
 test('camera rejects nonfinite or implausible screenshot aspect', () => {
-  for (const aspect of [0, NaN, Infinity, 0.49, 4.01]) {
+  for (const aspect of [0, NaN, Infinity, 0.39, 4.01]) {
     expect(() => deriveP137ETwoFaceSourceCameras(focusedScene67Fixture(), aspect))
       .toThrow(/viewport aspect/);
   }
@@ -227,4 +227,81 @@ test('ROI generation inherits original wall and no-promotion source identity', (
   wrongWall.children[0].userData.sourceMeshIndex = 405;
   expect(() => deriveP137ETwoFaceSourcePixelRegions(wrongWall, 1536, 900))
     .toThrow(/single original P123C source wall/);
+});
+
+test('portrait original P123C source face keeps all three 94-mm housings in individual bounded ROIs', () => {
+  const portraitAspect = 900 / 1600;
+  const original = focusedScene67Fixture();
+  const desktop = deriveP137ETwoFaceSourceCameras(original, 1536 / 900);
+  const portrait = deriveP137ETwoFaceSourceCameras(original, portraitAspect);
+  // Desktop must retain its exact source-bound camera framing; the portrait
+  // camera grows its frustum instead of enlarging the original housing mesh.
+  expect(desktop.north.orthoHalfHeight).toBeCloseTo(0.36, 6);
+  expect(portrait.north.orthoHalfHeight).toBeGreaterThanOrEqual(0.64);
+  expect(portrait.north.orthoHalfHeight).toBeGreaterThan(
+    desktop.north.orthoHalfHeight);
+  expect(portrait.north.sourceIds).toEqual(['D_THEMO_CURRENT_LOBBY_01']);
+  expect(portrait.south.sourceIds).toEqual([
+    'D_THEMO_CURRENT_BEDROOM_01', 'D_THEMO_CURRENT_BATHROOM_01',
+  ]);
+  const rois = deriveP137ETwoFaceSourcePixelRegions(original, 900, 1600);
+  expect(rois.expectedHousingCount).toBe(3);
+  expect(rois.north.projectedTargets).toHaveLength(1);
+  expect(rois.south.projectedTargets).toHaveLength(2);
+  for (const face of [rois.north, rois.south]) {
+    expect(face.width).toBe(900);
+    expect(face.height).toBe(1600);
+    expect(face.sourceOnly).toBe(true);
+    expect(face.individualRenderedPixelsVerified).toBe(false);
+    for (const roi of face.projectedTargets) {
+      expect(roi.radius).toBeGreaterThanOrEqual(4);
+      expect(roi.radius).toBeLessThanOrEqual(96);
+      expect(roi.x - roi.radius).toBeGreaterThanOrEqual(0);
+      expect(roi.x + roi.radius).toBeLessThan(900);
+      expect(roi.y - roi.radius).toBeGreaterThanOrEqual(0);
+      expect(roi.y + roi.radius).toBeLessThan(1600);
+    }
+  }
+  const a = rois.south.projectedTargets[0]!;
+  const b = rois.south.projectedTargets[1]!;
+  expect((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
+    .toBeGreaterThan((a.radius + b.radius) ** 2);
+  expect(rois.actualProductionScreenshotVerified).toBe(false);
+  expect(rois.humanReview).toBe('NOT_RUN');
+});
+
+
+test('narrow phone source cameras preserve three distinct Themo view targets without promotion', () => {
+  for (const [width, height] of [[390, 844], [360, 800], [320, 740]]) {
+    const root = focusedScene67Fixture();
+    const view = deriveP137ETwoFaceSourceCameras(root, width / height);
+    expect(view.north.sourceIds).toEqual(['D_THEMO_CURRENT_LOBBY_01']);
+    expect(view.south.sourceIds).toEqual([
+      'D_THEMO_CURRENT_BEDROOM_01', 'D_THEMO_CURRENT_BATHROOM_01',
+    ]);
+    expect(view.humanReview).toBe('NOT_RUN');
+    expect(view.productionRenderVerified).toBe(false);
+    const rois = deriveP137ETwoFaceSourcePixelRegions(root, width, height);
+    expect(rois.north.projectedTargets).toHaveLength(1);
+    expect(rois.south.projectedTargets).toHaveLength(2);
+    for (const face of [rois.north, rois.south]) {
+      expect(face.width).toBe(width);
+      expect(face.height).toBe(height);
+      expect(face.sourceOnly).toBe(true);
+      expect(face.individualRenderedPixelsVerified).toBe(false);
+      for (const roi of face.projectedTargets) {
+        expect(roi.radius).toBeGreaterThanOrEqual(4);
+        expect(roi.radius).toBeLessThanOrEqual(96);
+        expect(roi.x - roi.radius).toBeGreaterThanOrEqual(0);
+        expect(roi.x + roi.radius).toBeLessThan(width);
+        expect(roi.y - roi.radius).toBeGreaterThanOrEqual(0);
+        expect(roi.y + roi.radius).toBeLessThan(height);
+      }
+    }
+    const [a, b] = rois.south.projectedTargets;
+    expect((a!.x - b!.x) ** 2 + (a!.y - b!.y) ** 2)
+      .toBeGreaterThan((a!.radius + b!.radius) ** 2);
+    expect(rois.actualProductionScreenshotVerified).toBe(false);
+    expect(rois.humanReview).toBe('NOT_RUN');
+  }
 });

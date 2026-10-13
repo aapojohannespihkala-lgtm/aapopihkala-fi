@@ -61,8 +61,6 @@ export const advanceAxisMeasure = (
 };
 
 export const axisMeasureDisplay = (state: AxisMeasureState): string =>
-  state.phase === 'EMPTY' ? 'Klikkaa ensimmäinen piste'
-    : state.phase === 'FIRST' ? 'Ensimmäinen rasti - klikkaa käynnistääksesi mittauksen'
-    : state.phase === 'DYNAMIC'
-      ? `${state.axis} ${state.millimetres.toLocaleString('fi-FI')} mm (mallista) - klikkaa lukitaksesi`
-      : `${state.axis} ${state.millimetres.toLocaleString('fi-FI')} mm (mallista) - lukittu`;
+  state.phase === 'DYNAMIC' || state.phase === 'LOCKED'
+    ? `${state.millimetres} mm`
+    : '';

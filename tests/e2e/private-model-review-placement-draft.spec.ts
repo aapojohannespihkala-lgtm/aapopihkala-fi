@@ -1,0 +1,440 @@
+import { expect, test } from '@playwright/test';
+import {
+  buildPlacementReviewDraft,
+  createPlacementReviewPanel,
+  verifyPlacementReviewPersistenceReadback,
+  type PlacementReviewContext,
+  type PlacementReviewHandoff,
+} from '../../src/scripts/privateModelReviewPlacementDraft';
+
+const d1f: PlacementReviewContext = {
+  targetId: 'D_THEMO_BEDROOM',
+  floor: '1F',
+  approvedWallHosts: [{
+    g2Id: 'D_WALL_I04',
+    floor: '1F',
+    coordinateFrame: 'YLIS-G1-LOCAL',
+    approvalEvidenceId: 'APPROVED_D1F_WALL_I04',
+    approved: true,
+    axis: 'Y_FIXED',
+    fixedM: 5.072,
+    startM: 0.231,
+    endM: 6.306,
+    openingsComplete: true,
+    openings: [],
+  }],
+};
+
+test('P137E drafts are bound to D-floor target, original click, exact note and centre height', () => {
+  const result = buildPlacementReviewDraft({
+    context: d1f,
+    coordinate: { xM: 3.235, yM: 5.063 },
+    noteRaw: '120 cm lattiasta. Themo on Bedroomin puolella.',
+  });
+  expect(result.status).toBe('READY_FOR_G2_HANDOFF');
+  expect(result.payload).toMatchObject({
+    kind: 'P137E_G2_REVIEW_OBSERVATION',
+    stage: 'WORK_TEST_ONLY',
+    persisted: false,
+    humanReview: 'NOT_RUN',
+    currentGeometry: false,
+    canonical: false,
+    asBuilt: false,
+    anchor: {
+      targetId: 'D_THEMO_BEDROOM',
+      floor: '1F',
+      coordinateFrame: 'YLIS-G1-LOCAL',
+      targetPoint: 'OBJECT_CENTER',
+      xM: 3.235,
+      yM: 5.063,
+      exactXY: false,
+    },
+    observation: {
+      noteRaw: '120 cm lattiasta. Themo on Bedroomin puolella.',
+      targetPoint: 'OBJECT_CENTER',
+      verifiedWallSide: false,
+      exactZ: false,
+      height: { status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM: 1.2, zM: null },
+    },
+    resolution: {
+      status: 'HOST_PROPOSED_WORK_TEST',
+      proposal: {
+        hostG2Id: 'D_WALL_I04',
+        xM: 3.235,
+        yM: 5.072,
+        wallSideHint: 'Y_NEGATIVE',
+        currentGeometry: false,
+      },
+    },
+  });
+});
+
+test('P137E refuses missing XY or an invalid target and never invents them', () => {
+  expect(buildPlacementReviewDraft({
+    context: d1f,
+    coordinate: null,
+    noteRaw: '120 cm',
+  })).toEqual({ status: 'MISSING_ANCHOR', payload: null });
+  expect(buildPlacementReviewDraft({
+    context: { ...d1f, targetId: '' },
+    coordinate: { xM: 3, yM: 5 },
+    noteRaw: '120 cm',
+  })).toEqual({ status: 'INVALID_INPUT', payload: null });
+  expect(buildPlacementReviewDraft({
+    context: d1f,
+    coordinate: { xM: NaN, yM: 5 },
+    noteRaw: '120 cm',
+  })).toEqual({ status: 'INVALID_INPUT', payload: null });
+});
+
+test('P137E allows a mapped click observation without fabricating an approved wall', () => {
+  const result = buildPlacementReviewDraft({
+    context: { ...d1f, floor: '2F' },
+    coordinate: { xM: 3.235, yM: 5.063 },
+    noteRaw: 'Kohde näkyy yläkerrassa.',
+  });
+  expect(result).toMatchObject({
+    status: 'READY_FOR_G2_HANDOFF',
+    payload: {
+      anchor: { floor: '2F', xM: 3.235, yM: 5.063 },
+      resolution: { status: 'UNMAPPED', reason: 'NO_APPROVED_HOST', proposal: null },
+      observation: {
+        noteRaw: 'Kohde näkyy yläkerrassa.',
+        height: { status: 'NOT_SPECIFIED', zM: null },
+      },
+    },
+  });
+});
+
+test('P137E keeps an opening-overlap as review evidence but never snaps it into a solid wall', () => {
+  const result = buildPlacementReviewDraft({
+    context: {
+      ...d1f,
+      approvedWallHosts: [{ ...d1f.approvedWallHosts[0], openings: [{ startM: 3, endM: 3.5 }] }],
+    },
+    coordinate: { xM: 3.235, yM: 5.063 },
+    noteRaw: 'Oviverhon kohdalla, korkeus 1,4 m',
+  });
+  expect(result).toMatchObject({
+    status: 'READY_FOR_G2_HANDOFF',
+    payload: {
+      resolution: { status: 'UNMAPPED', reason: 'OPENING_OVERLAP' },
+      observation: {
+        height: { status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM: 1.4, zM: null },
+      },
+    },
+  });
+});
+
+test('P137E refuses oversized free notes rather than truncating review evidence silently', () => {
+  const result = buildPlacementReviewDraft({
+    context: d1f,
+    coordinate: { xM: 3, yM: 5 },
+    noteRaw: 'a'.repeat(2001),
+  });
+  expect(result).toEqual({ status: 'INVALID_INPUT', payload: null });
+});
+
+
+const expectedReviewHandoff = () => {
+  const result = buildPlacementReviewDraft({
+    context: d1f,
+    coordinate: { xM: 3.235, yM: 5.063 },
+    noteRaw: '120 cm lattiasta. Bedroomin puolella seinää.',
+  });
+  if (!result.payload) throw new Error('Expected valid placement draft');
+  return result.payload;
+};
+
+test('P137E G2 save requires matching durable readback, not just an optimistic receipt', () => {
+  const expected = expectedReviewHandoff();
+  const receipt = { status: 'PERSISTED_TO_EXISTING_G2' as const, recordId: 'G2_REVIEW_001' };
+  expect(verifyPlacementReviewPersistenceReadback({
+    expected,
+    receipt,
+    readback: { recordId: 'G2_REVIEW_001', payload: expected },
+  })).toBe(true);
+  expect(verifyPlacementReviewPersistenceReadback({ expected, receipt, readback: null }))
+    .toBe(false);
+  expect(verifyPlacementReviewPersistenceReadback({
+    expected, receipt,
+    readback: { recordId: 'G2_OTHER', payload: expected },
+  })).toBe(false);
+  expect(verifyPlacementReviewPersistenceReadback({
+    expected,
+    receipt: { ...receipt, recordId: ' ' },
+    readback: { recordId: ' ', payload: expected },
+  })).toBe(false);
+});
+
+test('P137E rejects readback changes to clicked XY and target/floor identity', () => {
+  const expected = expectedReviewHandoff();
+  const receipt = { status: 'PERSISTED_TO_EXISTING_G2' as const, recordId: 'G2_REVIEW_001' };
+  const verify = (payload: typeof expected) => verifyPlacementReviewPersistenceReadback({
+    expected, receipt, readback: { recordId: receipt.recordId, payload },
+  });
+  expect(verify({ ...expected, anchor: { ...expected.anchor, xM: 3.236 } })).toBe(false);
+  expect(verify({ ...expected, anchor: { ...expected.anchor, targetId: 'OTHER' } })).toBe(false);
+  expect(verify({ ...expected, anchor: { ...expected.anchor, floor: '2F' } })).toBe(false);
+  expect(verify({ ...expected, observation: {
+    ...expected.observation, anchor: { ...expected.observation.anchor, yM: 5.072 },
+  } })).toBe(false);
+});
+
+test('P137E rejects readback mutation to original notes, height and no-promotion flags', () => {
+  const expected = expectedReviewHandoff();
+  const receipt = { status: 'PERSISTED_TO_EXISTING_G2' as const, recordId: 'G2_REVIEW_002' };
+  const verify = (payload: typeof expected) => verifyPlacementReviewPersistenceReadback({
+    expected, receipt, readback: { recordId: receipt.recordId, payload },
+  });
+  expect(verify({ ...expected, observation: { ...expected.observation, noteRaw: '90 cm' } }))
+    .toBe(false);
+  expect(verify({ ...expected, observation: { ...expected.observation, height: {
+    status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM: 0.9, zM: null,
+  } } })).toBe(false);
+  expect(verify({ ...expected, currentGeometry: true as false })).toBe(false);
+  expect(verify({ ...expected, humanReview: 'PASS' as 'NOT_RUN' })).toBe(false);
+  if (expected.resolution.status !== 'HOST_PROPOSED_WORK_TEST') {
+    throw new Error('Expected a usable wall-host proposal');
+  }
+  expect(verify({ ...expected, resolution: {
+    ...expected.resolution,
+    proposal: { ...expected.resolution.proposal, xM: 42 },
+  } })).toBe(false);
+});
+
+test('P137E readback normalizes object key order without relaxing exact values', () => {
+  const expected = expectedReviewHandoff();
+  const receipt = { status: 'PERSISTED_TO_EXISTING_G2' as const, recordId: 'G2_REVIEW_003' };
+  const saved = JSON.parse(JSON.stringify(expected)) as typeof expected;
+  const reversed = Object.fromEntries(
+    Object.entries(saved).reverse(),
+  ) as unknown as typeof expected;
+  expect(verifyPlacementReviewPersistenceReadback({
+    expected, receipt, readback: { recordId: receipt.recordId, payload: reversed },
+  })).toBe(true);
+});
+
+test('P137E direct wall review rejects a complete-opening claim with overlapping source intervals', () => {
+  const wall = d1f.approvedWallHosts[0]!;
+  const result = buildPlacementReviewDraft({
+    context: {
+      ...d1f,
+      approvedWallHosts: [{
+        ...wall,
+        openings: [{ startM: 1.1, endM: 2.2 }, { startM: 1.9, endM: 3 }],
+      }],
+    },
+    // Deliberately outside the conflicting openings: the entire source wall
+    // becomes untrusted, not merely the overlap pixels.
+    coordinate: { xM: 4.5, yM: 5.063 },
+    noteRaw: 'Keskipiste 120 cm valmiista lattiasta.',
+  });
+  expect(result).toMatchObject({
+    status: 'READY_FOR_G2_HANDOFF',
+    payload: {
+      stage: 'WORK_TEST_ONLY', humanReview: 'NOT_RUN',
+      resolution: { status: 'UNMAPPED', reason: 'NO_APPROVED_HOST', proposal: null },
+    },
+  });
+});
+
+test('P137E direct wall review does not select the first of two contradictory G2 wall IDs', () => {
+  const wall = d1f.approvedWallHosts[0]!;
+  for (const second of [
+    { ...wall, fixedM: 9.25 },
+    { ...wall, approved: false as true },
+  ]) {
+    const result = buildPlacementReviewDraft({
+      context: { ...d1f, approvedWallHosts: [wall, second] },
+      coordinate: { xM: 3.235, yM: 5.063 },
+      noteRaw: 'Themo Bedroom 120 cm lattiasta',
+    });
+    expect(result).toMatchObject({
+      status: 'READY_FOR_G2_HANDOFF',
+      payload: {
+        humanReview: 'NOT_RUN',
+        resolution: { status: 'UNMAPPED', reason: 'NO_APPROVED_HOST', proposal: null },
+      },
+    });
+  }
+});
+
+
+test('P137E refuses two distinct approved wall hosts inside tolerance even with a 7mm distance gap', () => {
+  const wall = d1f.approvedWallHosts[0]!;
+  const other = {
+    ...wall,
+    g2Id: 'D_WALL_I05',
+    approvalEvidenceId: 'APPROVED_D1F_WALL_I05',
+    fixedM: 5.085,
+  };
+  const click = { xM: 3.235, yM: 5.075 };
+  const ambiguous = buildPlacementReviewDraft({
+    context: { ...d1f, approvedWallHosts: [wall, other] },
+    coordinate: click,
+    noteRaw: 'Themo on nakyvan seinarajan kohdalla',
+  });
+  expect(ambiguous).toMatchObject({
+    status: 'READY_FOR_G2_HANDOFF',
+    payload: {
+      stage: 'WORK_TEST_ONLY',
+      humanReview: 'NOT_RUN',
+      currentGeometry: false,
+      canonical: false,
+      asBuilt: false,
+      anchor: { ...click, exactXY: false },
+      resolution: { status: 'UNMAPPED', reason: 'AMBIGUOUS_HOST', proposal: null },
+    },
+  });
+
+  // One eligible distinct G2 ID still yields only a WORK_TEST proposal.
+  const outside = buildPlacementReviewDraft({
+    context: { ...d1f, approvedWallHosts: [wall, { ...other, fixedM: 5.2 }] },
+    coordinate: click,
+    noteRaw: '',
+  });
+  expect(outside).toMatchObject({
+    status: 'READY_FOR_G2_HANDOFF',
+    payload: {
+      resolution: {
+        status: 'HOST_PROPOSED_WORK_TEST',
+        proposal: { hostG2Id: wall.g2Id, currentGeometry: false, canonical: false },
+      },
+    },
+  });
+
+  // An opening across either near wall continues to block the proposal first.
+  const opening = buildPlacementReviewDraft({
+    context: {
+      ...d1f,
+      approvedWallHosts: [wall, {
+        ...other, openings: [{ startM: 3.2, endM: 3.3 }],
+      }],
+    },
+    coordinate: click,
+    noteRaw: '',
+  });
+  expect(opening).toMatchObject({
+    status: 'READY_FOR_G2_HANDOFF',
+    payload: { resolution: { status: 'UNMAPPED', reason: 'OPENING_OVERLAP', proposal: null } },
+  });
+});
+
+
+test('G2 in-flight save cannot be falsely cancelled or switched to another Themo', async () => {
+  class FakeNode {
+    tag: string;
+    children: FakeNode[] = [];
+    dataset: Record<string, string> = {};
+    handlers: Record<string, (event?: any) => unknown> = {};
+    textContent = '';
+    hidden = false;
+    disabled = false;
+    value = '';
+    constructor(tag: string) { this.tag = tag; }
+    append(...children: FakeNode[]) { this.children.push(...children); }
+    setAttribute(_name: string, _value: string) {}
+    addEventListener(event: string, cb: (event?: any) => unknown) {
+      this.handlers[event] = cb;
+    }
+    emit(event: string, argument?: any) {
+      return this.handlers[event]?.(argument);
+    }
+    remove() {}
+  }
+  const elements: FakeNode[] = [];
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: {
+      createElement: (tag: string) => {
+        const node = new FakeNode(tag);
+        elements.push(node);
+        return node;
+      },
+    },
+  });
+  try {
+    let finishPersist!: (ack: { status: 'PERSISTED_TO_EXISTING_G2'; recordId: string }) => void;
+    let failPersist!: (reason?: unknown) => void;
+    let sent: PlacementReviewHandoff | null = null;
+    const selector = new FakeNode('select');
+    selector.value = d1f.targetId;
+    const persistingStates: boolean[] = [];
+    const panel = createPlacementReviewPanel({
+      mount: new FakeNode('main') as unknown as HTMLElement,
+      onPersistingChange: (persisting, targetId) => {
+        persistingStates.push(persisting);
+        selector.disabled = persisting;
+        if (persisting && targetId) selector.value = targetId;
+      },
+      persist: async (payload) => {
+        sent = payload;
+        return new Promise((resolve, reject) => { finishPersist = resolve; failPersist = reject; });
+      },
+      readback: async (recordId) => ({
+        recordId,
+        payload: sent!,
+      }),
+    });
+    panel.open({ ...d1f, approvedWallHosts: [] });
+    expect(panel.setClickedCoordinate({ xM: 3.235, yM: 5.063 }, '1F')).toBe(true);
+    const note = elements.find((node) => node.tag === 'textarea')!;
+    const form = elements.find((node) => node.tag === 'form')!;
+    const cancel = elements.find((node) => node.textContent === 'Peruuta')!;
+    note.value = 'Themo käytävässä, 120 cm lattiasta.';
+    const pending = form.emit('submit', { preventDefault() {} }) as Promise<void>;
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('persisting');
+    expect(cancel.disabled).toBe(true);
+    expect(selector.disabled).toBe(true);
+    expect(selector.value).toBe(d1f.targetId);
+    expect(panel.persistingTargetId()).toBe(d1f.targetId);
+    expect(panel.cancel()).toBe(false);
+    // Simulate an outer select change despite disabled state; viewer must restore the persisted target.
+    selector.value = 'D_THEMO_CURRENT_BATHROOM_01';
+    if (panel.persistingTargetId()) selector.value = panel.persistingTargetId()!;
+    expect(selector.value).toBe(d1f.targetId);
+    panel.open({ ...d1f, targetId: 'D_THEMO_CURRENT_BATHROOM_01', approvedWallHosts: [] });
+    cancel.emit('click');
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('persisting');
+    expect(panel.element.hidden).toBe(false);
+    expect(note.value).toBe('Themo käytävässä, 120 cm lattiasta.');
+    finishPersist({ status: 'PERSISTED_TO_EXISTING_G2', recordId: 'P137E_G2_123456789abc' });
+    await pending;
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('persisted');
+    expect(cancel.disabled).toBe(false);
+    expect(selector.disabled).toBe(false);
+    expect(panel.persistingTargetId()).toBe(null);
+    expect(persistingStates).toEqual([true, false]);
+    expect(panel.cancel()).toBe(true);
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('inactive');
+    expect(panel.element.hidden).toBe(true);
+    // A rejected POST must not leave the panel frozen or claim a persisted G2 receipt.
+    // Preserve the user's draft so an explicit retry is possible after checking G2.
+    panel.open({ ...d1f, approvedWallHosts: [] });
+    expect(panel.setClickedCoordinate({ xM: 3.235, yM: 5.063 }, '1F')).toBe(true);
+    note.value = 'Themo: säilytä havainto epäonnistuneen tallennuksen jälkeen.';
+    const rejected = form.emit('submit', { preventDefault() {} }) as Promise<void>;
+    expect(cancel.disabled).toBe(true);
+    expect(panel.cancel()).toBe(false);
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('persisting');
+    expect(selector.disabled).toBe(true);
+    expect(panel.persistingTargetId()).toBe(d1f.targetId);
+    failPersist(new Error('simulated G2 POST rejection'));
+    await rejected;
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('draft');
+    expect(cancel.disabled).toBe(false);
+    expect(selector.disabled).toBe(false);
+    expect(panel.persistingTargetId()).toBe(null);
+    expect(persistingStates).toEqual([true, false, true, false]);
+    expect(note.disabled).toBe(false);
+    expect(note.value).toBe('Themo: säilytä havainto epäonnistuneen tallennuksen jälkeen.');
+    expect(panel.element.hidden).toBe(false);
+    expect(panel.cancel()).toBe(true);
+    expect(panel.element.dataset.reviewPlacementStatus).toBe('inactive');
+  } finally {
+    if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
+    else delete (globalThis as { document?: unknown }).document;
+  }
+});
