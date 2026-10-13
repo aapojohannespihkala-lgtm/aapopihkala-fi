@@ -107,7 +107,7 @@ test('actual viewer D1F ruler: first anchor, live X mm, lock, clear', async ({ p
   const initialMm = Number(await canvas.getAttribute('data-axis-measure-mm'));
   expect(initialMm).toBeGreaterThan(0);
   const output = page.locator('#axis-measure-output');
-  await expect(output).toContainText('mm (mallista)');
+  await expect(output).toHaveText(`${initialMm} mm`);
 
   const moved = p(0.58, 0.45);
   await page.mouse.move(moved.x, moved.y, { steps: 5 });
@@ -118,7 +118,8 @@ test('actual viewer D1F ruler: first anchor, live X mm, lock, clear', async ({ p
   await click(0.57, 0.45);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'LOCKED');
   const lockedMm = await canvas.getAttribute('data-axis-measure-mm');
-  await expect(output).toContainText('lukittu');
+  expect(lockedMm).toMatch(/^\d+$/);
+  await expect(output).toHaveText(`${lockedMm} mm`);
   const hover = p(0.41, 0.6);
   await page.mouse.move(hover.x, hover.y, { steps: 5 });
   await expect(canvas).toHaveAttribute('data-axis-measure-mm', lockedMm!);
@@ -218,7 +219,9 @@ test('actual D1F browser ruler measures along Y and never invents a diagonal', a
   await expect(canvas).toHaveAttribute('data-axis-measure-axis', 'Y');
   const movedMm = Number(await canvas.getAttribute('data-axis-measure-mm'));
   expect(movedMm).toBeGreaterThan(initialMm);
-  await expect(page.locator('#axis-measure-output')).toContainText('Y');
+  await expect(page.locator('#axis-measure-output')).toHaveText(`${movedMm} mm`);
+  await expect(page.locator('#axis-measure-label')).toHaveAttribute('data-axis', 'Y');
+  await expect(page.locator('#axis-measure-label')).toBeVisible();
 
   await page.mouse.click(pointer.x, pointer.y);
   await expect(canvas).toHaveAttribute('data-axis-measure-phase', 'LOCKED');

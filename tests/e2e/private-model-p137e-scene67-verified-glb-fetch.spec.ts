@@ -93,12 +93,17 @@ test('one total deadline covers a stalled browser request even when fetch ignore
 test('viewer source uses verified bytes only for exact scene67 and keeps other loader paths', () => {
   const code = readFileSync('src/pages/private-model/index.astro', 'utf8');
   const start = code.indexOf('const loadWorkTestCandidate = async (candidate: WorkTestCandidate)');
-  const branch = code.slice(start, start + 1600);
+  const branchEnd = code.indexOf("loadFailurePhase = 'review-runtime-failed';", start);
+  expect(branchEnd).toBeGreaterThan(start);
+  const branch = code.slice(start, branchEnd);
   expect(start).toBeGreaterThan(0);
   expect(code).toContain('fetchP137EScene67VerifiedGlb');
   expect(branch).toContain('candidate.id === p137eScene67CandidateId');
   expect(branch).toContain('isP137EScene67ReviewRequested()');
   expect(branch).toContain('loader.parseAsync');
+  expect(branch.indexOf('fetchP137EScene67VerifiedGlb(candidate.path)'))
+    .toBeLessThan(branch.indexOf('loader.parseAsync'));
+  expect(branch).toContain('verifiedP137EOriginal');
   expect(branch).toContain('loader.loadAsync(candidate.path)');
   expect(branch).not.toContain('publishToCURRENT: true');
   expect(branch).not.toContain('humanReview: \'PASS\'');
