@@ -51,22 +51,24 @@ try {
   let requestId = 0;
   const send = async (action, targetId, viewIndex = 0) => {
     const currentId = ++requestId;
-    await page.evaluate(detail => window.dispatchEvent(
+    console.log(JSON.stringify({phase:evidence.phase,variant:evidence.currentVariant,target:targetId,viewIndex,action}));
+    await bounded(()=>page.evaluate(detail => window.dispatchEvent(
       new CustomEvent('d1f-combined-wall-source-probe',{detail})),
-      {action,targetId,viewIndex,requestId:currentId});
+      {action,targetId,viewIndex,requestId:currentId}),5000);
     await page.waitForFunction(id => {
       try {return JSON.parse(document.querySelector('#private-model-canvas').dataset.d1fCombinedWallProbe).requestId===id;}
       catch{return false;}
     },currentId,{timeout:5000});
-    const value = await canvas.evaluate(c=>JSON.parse(c.dataset.d1fCombinedWallProbe));
+    const value = await bounded(()=>canvas.evaluate(c=>JSON.parse(c.dataset.d1fCombinedWallProbe)),5000);
     evidence.lastProbeAction=action;
     evidence.lastProbeState=['PREPARED','SUPPRESSED','RESTORED','FINISHED','REJECTED'].includes(value.state)
       ? value.state : 'INVALID';
     check(value.state !== 'REJECTED');
-    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    await bounded(()=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))),5000);
     return value;
   };
   const capture = async name => {
+    console.log(JSON.stringify({phase:evidence.phase,capture:name}));
     const png = await bounded(()=>canvas.screenshot({timeout:15000}));
     check(png.length > 100 && png.subarray(1,4).toString() === 'PNG');
     const decoded = await bounded(()=>page.evaluate(async data => {
@@ -122,9 +124,11 @@ try {
       if(Math.max(Math.abs(initial.rgba[i]-32),Math.abs(initial.rgba[i+1]-42),
         Math.abs(initial.rgba[i+2]-52))>=24)nonBackground++;
     const rect=await canvas.boundingBox();check(Boolean(rect));
-    await page.mouse.move(rect.x+rect.width*.5,rect.y+rect.height*.5);
-    await page.mouse.down(); await page.mouse.move(rect.x+rect.width*.62,rect.y+rect.height*.55,{steps:12});
-    await page.mouse.up(); await page.mouse.move(0,0);
+    await bounded(async()=>{
+      await page.mouse.move(rect.x+rect.width*.5,rect.y+rect.height*.5);
+      await page.mouse.down(); await page.mouse.move(rect.x+rect.width*.62,rect.y+rect.height*.55,{steps:12});
+      await page.mouse.up(); await page.mouse.move(0,0);
+    },10000);
     await page.waitForTimeout(500);
     const orbited=await capture(prefix+'-orbit');
     const orbitChanged=deltaCount(initial,orbited);
