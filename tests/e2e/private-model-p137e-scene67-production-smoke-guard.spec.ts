@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { chmodSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { delimiter, join } from 'node:path';
+import { m5aZ2R1125CandidateId, m5aZ2R1125ReviewId } from '../../src/scripts/privateModelWorkTest';
 // @ts-ignore - exact production workflow consumes the same untyped ESM helper.
 import {
   inspectP137EScene67ProductionSmoke,
@@ -445,7 +446,8 @@ const dispatchDefault = (name: string) => {
   const raw = lines.slice(start + 1, next < 0 ? undefined : next)
     .find(line => line.startsWith('        default: '))?.slice('        default: '.length);
   if (!raw) throw new Error('Production input has no default: ' + name);
-  return raw.startsWith("'") ? raw.slice(1, -1).replaceAll("''", "'") : JSON.parse(raw);
+  if (raw.startsWith("'")) return raw.slice(1, -1).replaceAll("''", "'");
+  return raw.startsWith('"') ? JSON.parse(raw) : raw;
 };
 const productionInputEnvironment = () => {
   const workflow = productionDispatchSource().split('  verify-production:\n')[1];
@@ -711,4 +713,91 @@ test('response preflight cleans private data when curl fails before classificati
   expectSafeResponseArtifacts(probe);
   expect(probe.result.status).toBe(7);
   expect(probe.names).toEqual(['review-page.html']);
+});
+
+const runActualR1125Preset = (root: string, routingOverride?: string) => {
+  const workflow = productionDispatchSource();
+  const start = workflow.indexOf('      - name: Resolve canonical R1125 render preset');
+  const end = workflow.indexOf('\n      - ', start + 20);
+  const block = workflow.slice(start, end);
+  let program = block.match(/node --input-type=module <<'NODE'\n([\s\S]*?)\n {10}NODE/)?.[1];
+  if (start < 0 || !program) throw new Error('Actual R1125 preset missing');
+  program = program.replace(/^ {10}/gm, '');
+  if (routingOverride !== undefined) {
+    program = program.replace("readFileSync('src/scripts/privateModelWorkTest.ts', 'utf8')", JSON.stringify(routingOverride));
+  }
+  mkdirSync(root, { recursive: true });
+  const envFile = join(root, 'step.env');
+  writeFileSync(envFile, '');
+  const result = spawnSync(process.execPath, ['--input-type=module'], {
+    input: program, encoding: 'utf8', timeout: 10_000,
+    env: { PATH: process.env.PATH, GITHUB_ENV: envFile },
+  });
+  if (result.error) throw result.error;
+  const values = Object.fromEntries(readFileSync(envFile, 'utf8').split('\n').filter(Boolean).map(line => {
+    const split = line.indexOf('=');
+    return [line.slice(0, split), line.slice(split + 1)];
+  }));
+  return { result, values };
+};
+
+test('R1125 preset derives exact canonical routing and 13 source roles before the real input validator', ({}, info) => {
+  const { result, values } = runActualR1125Preset(info.outputPath('preset'));
+  expect(result.status).toBe(0);
+  expect(values.REVIEW_ID).toBe(m5aZ2R1125ReviewId);
+  expect(values.CANDIDATE_ID).toBe(m5aZ2R1125CandidateId);
+  expect(JSON.parse(values.EXPECTED_DATASET_JSON)).toMatchObject({
+    m5aReviewTargetRenderableCount: '13', m5aReviewExpectedTargetRenderableCount: '13',
+    m5aReviewWellMarkerCount: '4', m5aReviewRouteCount: '7',
+    m5aReviewUnresolvedBoundaryCount: '2', m5aR1125SourceSceneIndex: '63',
+    m5aR1125SourceContract: 'G2_R1125', m5aHumanReview: 'NOT_RUN', m5aR1125HumanReview: 'NOT_RUN',
+  });
+  const validated = runActualProductionInputValidator(values);
+  expect(validated.status).toBe(0);
+  expect(JSON.parse(validated.stdout)).toMatchObject({
+    reviewId: m5aZ2R1125ReviewId, candidateId: m5aZ2R1125CandidateId,
+    pixelThresholds: { nonBackgroundPixels: 1500, changedPixels: 750 },
+  });
+});
+
+test('R1125 preset fails without environment output when canonical declarations change or duplicate', ({}, info) => {
+  const source = readFileSync('src/scripts/privateModelWorkTest.ts', 'utf8');
+  const declaration = source.match(/^export const m5aZ2R1125CandidateId = .*;$/m)?.[0];
+  if (!declaration) throw new Error('Canonical candidate declaration missing');
+  for (const [index, changed] of [
+    source.replace('`${m5aZ2R1125CandidateId}-review`', '`${m5aZ2R1125CandidateId}-unknown`'),
+    source + '\n' + declaration,
+  ].entries()) {
+    const { result, values } = runActualR1125Preset(info.outputPath('invalid-' + index), changed);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('canonical identity declarations changed');
+    expect(values).toEqual({});
+  }
+});
+
+test('R1125 preset preserves production pixel floors and legacy Themo defaults', ({}, info) => {
+  const { values } = runActualR1125Preset(info.outputPath('preset'));
+  for (const limits of [
+    { REQUESTED_MIN_NON_BACKGROUND_PIXELS: '1499' },
+    { REQUESTED_MIN_CHANGED_PIXELS: '749' },
+  ]) {
+    const result = runActualProductionInputValidator({ ...values, ...limits });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('cannot be lower than hard floor');
+  }
+  expect(dispatchDefault('probe_mode')).toBe('full-render');
+  expect(dispatchDefault('review_id')).toBe(P137E_SCENE67_PRODUCTION_SMOKE_REVIEW_ID);
+  expect(dispatchDefault('candidate_id')).toBe(P137E_SCENE67_PRODUCTION_SMOKE_ID);
+});
+
+test('R1125 preset remains main-only and resolves before validation and authentication', () => {
+  const workflow = productionDispatchSource();
+  expect(workflow).toContain('          - r1125-render');
+  const job = workflow.split('  verify-production:\n')[1].split('  verify-g2-readiness:')[0];
+  expect(job).toContain("github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'");
+  expect(job).toContain("inputs.probe_mode == 'r1125-render'");
+  expect(job).toContain("if: inputs.probe_mode == 'r1125-render'");
+  expect(job.indexOf('Resolve canonical R1125 render preset')).toBeLessThan(job.indexOf('Validate generic production review inputs'));
+  expect(job.indexOf('Validate generic production review inputs')).toBeLessThan(job.indexOf('Classify authenticated production viewer response'));
+  expect(job).toContain('response_tmp="$(mktemp -d .production-response.XXXXXX)"');
 });
