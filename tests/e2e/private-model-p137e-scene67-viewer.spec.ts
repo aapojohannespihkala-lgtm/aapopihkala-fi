@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { runInNewContext } from 'node:vm';
 import { expect, test } from '@playwright/test';
 import { routeScene67SyntheticHttpsAssets, SYNTHETIC_SCENE67_ORIGIN } from './p137eScene67SyntheticBrowserHarness';
 import {
@@ -218,7 +220,7 @@ test('p137e-walls-render mode is explicit main-only original GLB and real pixel 
   expect(onlyWalls).toContain("P137E_SCENE67_EXPECTED_GLB_SHA256 as expectedHash");
   expect(onlyWalls).toContain("P137E_SCENE67_EXPECTED_GLB_BYTES as expectedBytes");
   expect(onlyWalls).toContain("P137E_THREE_CORNER_MEASURED_SCENE_INDEX as sceneIndex");
-  expect(onlyWalls).toContain('originalSourceAutoloadResponseVerified:true');
+  expect(onlyWalls).toContain('evidence.originalSourceAutoloadResponseVerified = true;');
   expect(onlyWalls).toContain('sourceResponses.length !== 1');
   expect(onlyWalls).toContain('p137eSourceCornerGapsClosed');
   expect(onlyWalls).toContain("p137eSourceCornerPatchWidthMm: '40'");
@@ -229,4 +231,146 @@ test('p137e-walls-render mode is explicit main-only original GLB and real pixel 
   expect(onlyWalls).not.toContain('pull_request:');
   expect(onlyWalls).not.toContain('publishToCURRENT:true');
   expect(onlyWalls).not.toContain('HUMAN_REVIEW: PASS');
+});
+
+
+
+const wallJobSource = () => readFileSync(resolve(process.cwd(),
+  '.github/workflows/private-model-production-review-smoke.yml'), 'utf8')
+  .split('  verify-p137e-walls-render:\n')[1];
+const wallStageFunction = (name: string, endMarker: string) => {
+  const source = wallJobSource().split('\n')
+    .map(line => line.startsWith('          ') ? line.slice(10) : line).join('\n');
+  const start = source.indexOf('function ' + name + '(');
+  const end = source.indexOf(endMarker, start);
+  expect(start).toBeGreaterThan(0);
+  expect(end).toBeGreaterThan(start);
+  // Execute the exact production driver's helper, rather than a test clone.
+  return new Function('return (' + source.slice(start, end).trim() + ')')();
+};
+
+test('wall production deadline resolves its actual operation and propagates rejection', async () => {
+  const deadline = wallStageFunction('withWallStageDeadline', '// END wall stage deadline helper.');
+  await expect(deadline('SOURCE_GLB_BODY', () => Promise.resolve('actual-body'), 30))
+    .resolves.toBe('actual-body');
+  const originalFailure = new Error('synthetic operation rejected');
+  await expect(deadline('SOURCE_GLB_BODY', () => Promise.reject(originalFailure), 30))
+    .rejects.toBe(originalFailure);
+});
+
+test('wall production deadline rejects a hanging response body with a fixed safe code', async () => {
+  const deadline = wallStageFunction('withWallStageDeadline', '// END wall stage deadline helper.');
+  await expect(deadline('SOURCE_GLB_BODY', () => new Promise(() => {}), 15))
+    .rejects.toMatchObject({ code: 'WALL_STAGE_TIMEOUT' });
+  for (const invalid of [0, -1, NaN, Infinity, 45001]) {
+    expect(() => deadline('SOURCE_GLB_BODY', () => Promise.resolve(), invalid)).toThrow();
+  }
+});
+
+test('wall failure evidence redacts upstream text and cannot promote render or human review', () => {
+  const sanitize = wallStageFunction('sanitizedWallStageFailure', '// END wall safe failure helper.');
+  const secret = 'TEST_ONLY_SECRET_CANARY_DO_NOT_EXPORT';
+  const failure = sanitize({ message: secret, stack: secret, headers: { cookie: secret },
+    code: 'WALL_STAGE_TIMEOUT' }, 'SOURCE_GLB_BODY');
+  expect(failure).toMatchObject({result:'FAIL',phase:'SOURCE_GLB_BODY',
+    failureCode:'WALL_STAGE_DEADLINE_EXCEEDED',
+    threeIndividualCornerRenderedRoisVerified:false,measuredWallIndividualRoiVerified:false,
+    actualHumanVisualReview:false,humanReview:'NOT_RUN',current:false,asBuilt:false});
+  expect(JSON.stringify(failure)).not.toContain(secret);
+  expect(sanitize(new Error(secret), secret)).toMatchObject({
+    phase:'PREFLIGHT',failureCode:'WALL_PROBE_REJECTED'});
+});
+
+test('wall actual driver writes safe success and failure evidence after bounded byte and pixel operations', () => {
+  const actual = wallJobSource();
+  expect(actual).toContain('node-version: 24.20.0');
+  expect(actual).toContain("withWallStageDeadline('SOURCE_GLB_BODY',");
+  expect(actual).toContain('() => assetResponse.body(), 25000');
+  expect(actual).toContain("withWallStageDeadline('RGBA_EVALUATION',");
+  expect(actual).toContain('sanitizedWallStageFailure(error, evidence.phase)');
+  expect(actual).toContain('Object.assign(evidence, failure);\n            writeEvidence();');
+  expect(actual).toContain('process.exitCode = 1;');
+  expect(actual).not.toContain('console.error(error)');
+  expect(actual).not.toContain('JSON.stringify(error)');
+  expect(actual).toContain('pixels.nonBackgroundPixels < 1500');
+  expect(actual).toContain('pixels.changedPixels < 750');
+});
+
+test('exact executable wall driver rejects HTTP, byte, pixel and identity failures without leaking upstream text', async () => {
+  const job = wallJobSource();
+  const actual = job.split("node --input-type=module <<'NODE'\n")[1]
+    .split('          NODE')[0].split('\n').map(line => line.slice(10)).join('\n')
+    .replace(/^import[\s\S]*?from '[^']+';\s*/gm, '');
+  const bytes = Buffer.from('SYNTHETIC_TEST_ONLY_GLB_RESPONSE');
+  const canary = 'SYNTHETIC_UPSTREAM_SECRET_TEXT';
+  for (const kind of ['success', 'http', 'body', 'digest', 'pixels', 'identity'] as const) {
+    let dataset: Record<string,string> = {};
+    let responseCallback: ((value: any) => void) | undefined;
+    let requestedUrl = '';
+    let closed = false;
+    const writes: string[] = [];
+    const logs: string[] = [];
+    const syntheticProcess: { env: Record<string,string>, exitCode?: number } = {
+      env: {CF_ACCESS_VIEWER_PROBE_CLIENT_ID:'TEST_ONLY_ID',
+        CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET:canary},
+    };
+    const page = {
+      on: (_event: string, callback: (value: any) => void) => { responseCallback = callback; },
+      goto: async (url: string) => {
+        requestedUrl = url;
+        responseCallback?.({
+          url: () => 'https://aapopihkala.fi/private-model/work-test/' + candidateId + '.glb',
+          status: () => 200,
+          body: async () => {
+            if (kind === 'body') throw new Error(canary);
+            return kind === 'digest' ? Buffer.from('wrong-source') : bytes;
+          },
+        });
+        return {status: () => kind === 'http' ? 403 : 200};
+      },
+      url: () => requestedUrl,
+      waitForFunction: async (_fn: unknown, required: Record<string,string>) => {
+        dataset = {...required};
+      },
+      locator: () => ({
+        evaluate: async (fn: (element: any) => unknown) => fn({dataset:
+          kind === 'identity' ? {...dataset,p137eCurrentClaim:'true'} : dataset}),
+        boundingBox: async () => ({x:0,y:0,width:1536,height:900}),
+      }),
+      waitForTimeout: async () => {},
+      screenshot: async () => Buffer.from('SYNTHETIC_TEST_ONLY_PNG_INPUT'),
+      mouse: {move:async () => {},wheel:async () => {}},
+      evaluate: async () => ({width:1536,height:900,
+        nonBackgroundPixels:kind === 'pixels' ? 0 : 2000,changedPixels:1000}),
+    };
+    const context = {
+      fs: {mkdirSync: () => {},readFileSync: () =>
+        "const p137eThreeCornerMeasuredVariant = 'd1f-three-source-corners-and-i03-20261013';",
+        writeFileSync: (_path: string, value: string) => writes.push(value)},
+      createHash,Buffer,URL,setTimeout,clearTimeout,process:syntheticProcess,
+      console:{log:(value: string) => logs.push(value),error:(value: string) => logs.push(value)},
+      candidateId,reviewId,sceneIndex:69,expectedBytes:bytes.length,
+      expectedHash:createHash('sha256').update(bytes).digest('hex'),
+      originalAsset:'https://aapopihkala.fi/private-model/work-test/' + candidateId + '.glb',
+      measured:{kphSideLength:960,wcSideVisible:710,thickness:205,lobbyClearGap:1020},
+      chromium:{launch:async () => ({newContext:async () => ({route:async () => {},
+        newPage:async () => page}),close:async () => {closed = true;}})},
+    };
+    // This is a synthetic driver invocation, never production render evidence.
+    await runInNewContext('(async () => {' + actual + '\n})()', context);
+    expect(closed).toBe(true);
+    expect(writes).toHaveLength(1);
+    const evidence = JSON.parse(writes[0]);
+    expect(evidence.result).toBe(kind === 'success' ? 'PASS' : 'FAIL');
+    expect(evidence.threeIndividualCornerRenderedRoisVerified).toBe(false);
+    expect(evidence.measuredWallIndividualRoiVerified).toBe(false);
+    expect(evidence.humanReview).toBe('NOT_RUN');
+    expect(writes.join('\n') + logs.join('\n')).not.toContain(canary);
+    if (kind === 'success') expect(syntheticProcess.exitCode).toBeUndefined();
+    else expect(syntheticProcess.exitCode).toBe(1);
+    if (kind === 'body' || kind === 'digest') expect(evidence.phase).toBe('SOURCE_GLB_BODY');
+    if (kind === 'http') expect(evidence.phase).toBe('VIEWER_HTTP');
+    if (kind === 'pixels') expect(evidence.phase).toBe('RGBA_EVALUATION');
+    if (kind === 'identity') expect(evidence.phase).toBe('IDENTITY_READBACK');
+  }
 });
