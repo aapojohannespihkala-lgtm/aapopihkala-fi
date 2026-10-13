@@ -1942,7 +1942,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24.20.0
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
@@ -1966,43 +1966,95 @@ jobs:
             P137E_THREE_CORNER_MEASURED_SCENE_INDEX as sceneIndex,
           } from './src/scripts/privateModelP137EFieldMeasuredWallRuntime.mjs';
 
-          const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
-          const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
-          if (!clientId || !clientSecret) throw Error('Missing dedicated viewer probe secrets');
-          const viewerSource = fs.readFileSync('src/pages/private-model/index.astro', 'utf8');
-          const variants = [...viewerSource.matchAll(/const p137eThreeCornerMeasuredVariant = '([a-z0-9-]+)'/g)];
-          if (variants.length !== 1 || sceneIndex !== 69 ||
-              measured.kphSideLength !== 960 || measured.wcSideVisible !== 710 ||
-              measured.thickness !== 205 || measured.lobbyClearGap !== 1020) {
-            throw Error('P137E scene69 source identity or measured contract changed');
+          // BEGIN wall stage helpers: exercised as executable functions by CI.
+          function withWallStageDeadline(phase, run, timeoutMs) {
+            if (!/^[A-Z_]+$/.test(phase) || typeof run !== 'function' ||
+                !Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 45000) {
+              throw Error('Invalid fixed wall stage deadline');
+            }
+            let timer;
+            const expired = new Promise((_, reject) => {
+              timer = setTimeout(() => {
+                const failure = new Error('Wall stage deadline exceeded');
+                failure.code = 'WALL_STAGE_TIMEOUT';
+                reject(failure);
+              }, timeoutMs);
+            });
+            return Promise.race([Promise.resolve().then(run), expired])
+              .finally(() => clearTimeout(timer));
           }
-          const reviewUrl = new URL('https://aapopihkala.fi/private-model/');
-          reviewUrl.searchParams.set('review', reviewId);
-          reviewUrl.searchParams.set('wallMetric', variants[0][1]);
-          const expected = {
-            workTestReviewAutoload: 'true',
-            modelSource: 'work-test',
-            workTestReviewCandidate: candidateId,
-            workTestReviewMode: reviewId + '-field-measured-three-source-corners',
-            p137eSceneIndex: String(sceneIndex),
-            p137eMeasuredWallMetricId: variants[0][1],
-            p137eSourceCornerGapsClosed: '3',
-            p137eSourceCornerPatchWidthMm: '40',
-            p137eSourceCornersPhysicalThicknessVerified: 'false',
-            p137eMeasuredWallKphLengthMm: String(measured.kphSideLength),
-            p137eMeasuredWallWcVisibleMm: String(measured.wcSideVisible),
-            p137eMeasuredWallThicknessMm: String(measured.thickness),
-            p137eMeasuredWallLobbyGapMm: String(measured.lobbyClearGap),
-            p137eMeasuredWallGlobalXYBinding: 'CONDITIONAL_UNVERIFIED',
-            p137eWorkTestOnly: 'true',
-            p137eCurrentClaim: 'false',
-            p137eCanonical: 'false',
-            p137eAsBuiltClaim: 'false',
-            p137eHumanReview: 'NOT_RUN',
-          };
+          // END wall stage deadline helper.
+          function sanitizedWallStageFailure(error, phase) {
+            const phases = ['PREFLIGHT', 'BROWSER_START', 'VIEWER_HTTP',
+              'AUTOLOAD_DATASET', 'SOURCE_GLB_BODY', 'CANVAS_BEFORE',
+              'CANVAS_AFTER', 'RGBA_EVALUATION', 'IDENTITY_READBACK'];
+            return {
+              result: 'FAIL',
+              phase: phases.includes(phase) ? phase : 'PREFLIGHT',
+              failureCode: error && error.code === 'WALL_STAGE_TIMEOUT'
+                ? 'WALL_STAGE_DEADLINE_EXCEEDED' : 'WALL_PROBE_REJECTED',
+              // Never serialize error text, stack, headers, URLs or credentials.
+              threeIndividualCornerRenderedRoisVerified: false,
+              measuredWallIndividualRoiVerified: false,
+              actualHumanVisualReview: false,
+              humanReview: 'NOT_RUN', current: false, asBuilt: false,
+            };
+          }
+          // END wall safe failure helper.
           fs.mkdirSync('playwright-artifacts', {recursive:true});
-          const browser = await chromium.launch({headless:true});
+          const evidence = {
+            probe:'P137E_SCENE69_AUTHENTICATED_RENDER_V2', result:'RUNNING', phase:'PREFLIGHT',
+            sourceGlbBytes:expectedBytes,sourceGlbSha256:expectedHash,reviewId,candidateId,
+            originalSourceAutoloadResponseVerified:false,
+            sceneIndex,workTestOnly:true,current:false,asBuilt:false,humanReview:'NOT_RUN',
+            measured,sourceCornerCount:3,cornerWidthMm:40,
+            screenshotBeforeAfterOrbitPixels:null,
+            threeIndividualCornerRenderedRoisVerified:false,
+            measuredWallIndividualRoiVerified:false,
+            actualHumanVisualReview:false,
+          };
+          const writeEvidence = () => fs.writeFileSync(
+            'playwright-artifacts/p137e-walls-scene69-production.json',
+            JSON.stringify(evidence,null,2));
+          let browser;
           try {
+            const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
+            const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
+            if (!clientId || !clientSecret) throw Error('Missing dedicated viewer probe secrets');
+            const viewerSource = fs.readFileSync('src/pages/private-model/index.astro', 'utf8');
+            const variants = [...viewerSource.matchAll(/const p137eThreeCornerMeasuredVariant = '([a-z0-9-]+)'/g)];
+            if (variants.length !== 1 || sceneIndex !== 69 ||
+                measured.kphSideLength !== 960 || measured.wcSideVisible !== 710 ||
+                measured.thickness !== 205 || measured.lobbyClearGap !== 1020) {
+              throw Error('P137E scene69 source identity or measured contract changed');
+            }
+            const reviewUrl = new URL('https://aapopihkala.fi/private-model/');
+            reviewUrl.searchParams.set('review', reviewId);
+            reviewUrl.searchParams.set('wallMetric', variants[0][1]);
+            const expected = {
+              workTestReviewAutoload: 'true',
+              modelSource: 'work-test',
+              workTestReviewCandidate: candidateId,
+              workTestReviewMode: reviewId + '-field-measured-three-source-corners',
+              p137eSceneIndex: String(sceneIndex),
+              p137eMeasuredWallMetricId: variants[0][1],
+              p137eSourceCornerGapsClosed: '3',
+              p137eSourceCornerPatchWidthMm: '40',
+              p137eSourceCornersPhysicalThicknessVerified: 'false',
+              p137eMeasuredWallKphLengthMm: String(measured.kphSideLength),
+              p137eMeasuredWallWcVisibleMm: String(measured.wcSideVisible),
+              p137eMeasuredWallThicknessMm: String(measured.thickness),
+              p137eMeasuredWallLobbyGapMm: String(measured.lobbyClearGap),
+              p137eMeasuredWallGlobalXYBinding: 'CONDITIONAL_UNVERIFIED',
+              p137eWorkTestOnly: 'true',
+              p137eCurrentClaim: 'false',
+              p137eCanonical: 'false',
+              p137eAsBuiltClaim: 'false',
+              p137eHumanReview: 'NOT_RUN',
+            };
+            evidence.phase = 'BROWSER_START';
+            browser = await withWallStageDeadline('BROWSER_START',
+              () => chromium.launch({headless:true}), 15000);
             const context = await browser.newContext({viewport:{width:1536,height:900}});
             await context.route('https://aapopihkala.fi/**', route =>
               route.continue({headers:{...route.request().headers(),
@@ -2013,9 +2065,11 @@ jobs:
             page.on('response', response => {
               if (response.url() === originalAsset) sourceResponses.push(response);
             });
-            const result = await page.goto(reviewUrl.toString(), {
-              waitUntil:'domcontentloaded',timeout:45000,
-            });
+            evidence.phase = 'VIEWER_HTTP';
+            const result = await withWallStageDeadline('VIEWER_HTTP',
+              () => page.goto(reviewUrl.toString(), {
+                waitUntil:'domcontentloaded',timeout:40000,
+              }), 45000);
             if (result?.status() !== 200) throw Error('P137E production viewer HTTP != 200');
             const finalUrl = new URL(page.url());
             if (finalUrl.origin !== reviewUrl.origin ||
@@ -2025,6 +2079,7 @@ jobs:
                 [...finalUrl.searchParams.keys()].length !== 2) {
               throw Error('P137E scene69 review URL lost exact target');
             }
+            evidence.phase = 'AUTOLOAD_DATASET';
             await page.waitForFunction(required => {
               const el = document.querySelector('#private-model-canvas');
               return el instanceof HTMLCanvasElement &&
@@ -2036,22 +2091,31 @@ jobs:
               throw Error('Expected one immutable scene67 GLB autoload response');
             }
             const assetResponse = sourceResponses[0];
-            const glb = await assetResponse.body();
+            evidence.phase = 'SOURCE_GLB_BODY';
+            const glb = await withWallStageDeadline('SOURCE_GLB_BODY',
+              () => assetResponse.body(), 25000);
             const originalVerified = assetResponse.status() === 200 &&
               glb.length === expectedBytes &&
               createHash('sha256').update(glb).digest('hex') === expectedHash;
             if (!originalVerified) throw Error('Original scene67 GLB bytes do not match raw Drive identity');
+            evidence.originalSourceAutoloadResponseVerified = true;
             const box = await canvas.boundingBox();
             if (!box || box.width < 256 || box.height < 256) throw Error('Canvas rectangle is not usable');
             await page.waitForTimeout(400);
-            const before = await page.screenshot({clip:box,animations:'disabled',
-              path:'playwright-artifacts/p137e-walls-scene69-before.png'});
+            evidence.phase = 'CANVAS_BEFORE';
+            const before = await withWallStageDeadline('CANVAS_BEFORE',
+              () => page.screenshot({clip:box,animations:'disabled',timeout:10000,
+                path:'playwright-artifacts/p137e-walls-scene69-before.png'}), 12000);
             await page.mouse.move(box.x+box.width*.48,box.y+box.height*.5);
             await page.mouse.wheel(0,-460);
             await page.waitForTimeout(600);
-            const after = await page.screenshot({clip:box,animations:'disabled',
-              path:'playwright-artifacts/p137e-walls-scene69-after.png'});
-            const pixels = await page.evaluate(async imgs => {
+            evidence.phase = 'CANVAS_AFTER';
+            const after = await withWallStageDeadline('CANVAS_AFTER',
+              () => page.screenshot({clip:box,animations:'disabled',timeout:10000,
+                path:'playwright-artifacts/p137e-walls-scene69-after.png'}), 12000);
+            evidence.phase = 'RGBA_EVALUATION';
+            const pixels = await withWallStageDeadline('RGBA_EVALUATION',
+              () => page.evaluate(async imgs => {
               const decode = async b64 => {
                 const img = new Image();img.src='data:image/png;base64,'+b64;
                 await img.decode();
@@ -2073,28 +2137,36 @@ jobs:
                    Math.abs(a.rgba[i+2]-b.rgba[i+2])>42)changed++;
               }
               return {width:a.w,height:a.h,nonBackgroundPixels:filled,changedPixels:changed};
-            },[before.toString('base64'),after.toString('base64')]);
+            },[before.toString('base64'),after.toString('base64')]), 10000);
             if (pixels.nonBackgroundPixels < 1500 || pixels.changedPixels < 750) {
               throw Error('Scene69 real canvas did not meet hard pixel floor');
             }
-            const afterDataset = await canvas.evaluate(el=>({...el.dataset}));
+            evidence.screenshotBeforeAfterOrbitPixels = pixels;
+            evidence.phase = 'IDENTITY_READBACK';
+            const afterDataset = await withWallStageDeadline('IDENTITY_READBACK',
+              () => canvas.evaluate(el=>({...el.dataset})), 10000);
             if (Object.entries(expected).some(([key,value])=>afterDataset[key]!==value))
               throw Error('Scene69 identity/promotion state drifted during orbit');
-            const evidence = {
-              probe:'P137E_SCENE69_AUTHENTICATED_RENDER_V1',
-              sourceGlbBytes:expectedBytes,sourceGlbSha256:expectedHash,
-              originalSourceAutoloadResponseVerified:true,reviewId,candidateId,
-              sceneIndex,workTestOnly:true,current:false,asBuilt:false,humanReview:'NOT_RUN',
-              measured,sourceCornerCount:3,cornerWidthMm:40,
-              screenshotBeforeAfterOrbitPixels:pixels,
-              threeIndividualCornerRenderedRoisVerified:false,
-              actualHumanVisualReview:false,
-            };
-            fs.writeFileSync('playwright-artifacts/p137e-walls-scene69-production.json',
-              JSON.stringify(evidence,null,2));
+            evidence.result = 'PASS';
+            evidence.phase = 'COMPLETE';
+            writeEvidence();
             console.log(JSON.stringify({probe:evidence.probe,sourceGlbVerified:true,
               sceneIndex,renderPixels:pixels,threeCornerRoiGate:'NOT_RUN'}));
-          } finally {await browser.close();}
+          } catch (error) {
+            const failure = sanitizedWallStageFailure(error, evidence.phase);
+            Object.assign(evidence, failure);
+            writeEvidence();
+            console.error(JSON.stringify({probe:evidence.probe,...failure}));
+            process.exitCode = 1;
+          } finally {
+            if (browser) {
+              await withWallStageDeadline('BROWSER_CLOSE', () => browser.close(), 5000)
+                .catch(() => {
+                  console.error('P137E_WALL_BROWSER_CLOSE_REJECTED');
+                  process.exitCode = 1;
+                });
+            }
+          }
           NODE
       - name: Upload bounded sanitized wall evidence
         if: always()
@@ -2107,3 +2179,4 @@ jobs:
             playwright-artifacts/p137e-walls-scene69-after.png
           if-no-files-found: ignore
           retention-days: 7
+
