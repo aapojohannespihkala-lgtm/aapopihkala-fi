@@ -8718,7 +8718,7 @@ const title = 'Private 3D viewer';
         // GLTFLoader returns a Group for the scene, with the source-bound
         // four-child wall/Themo root nested inside it.
         const measuredRoots = fullModelScene?.children?.filter(
-          (child) => child.name === P137E_MEASURED_WALL_REVIEW_ROOT,
+          (child: THREE.Object3D) => child.name === P137E_MEASURED_WALL_REVIEW_ROOT,
         ) ?? [];
         if (activeModelSourceKind !== 'work-test' ||
             !isP137EMeasuredWallReviewRequested() ||
