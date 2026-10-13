@@ -148,8 +148,14 @@ test('partially occupied source-label ROI accepts genuine loss without new amber
   const { x, y } = first.roi;
   // Preserve a 5x5 unoccupied patch inside the label ROI.
   for (let row = y; row < y + 5; row++)
-    for (let col = x + 5; col < x + 10; col++)
+    for (let col = x + 5; col < x + 10; col++) {
       paint(item.floors[0].baseline.pixels, col, row, [32, 38, 43, 255]);
+      // Every hidden frame uses the same edited baseline except its own
+      // selectively hidden target. Other labels must not reappear here.
+      for (const [key, frame] of Object.entries(item.floors[0].hiddenFrames))
+        if (key !== first.sourceKey)
+          paint(frame.pixels, col, row, [32, 38, 43, 255]);
+    }
   const result = check(item);
   expect(result.D1F.identities[0]).toMatchObject({
     lostAmberPixels: 75, gainedAmberPixels: 0, outsidePixelChanges: 0,
@@ -167,6 +173,10 @@ test('moved source-label amber within the same ROI fails even when old pixels di
     for (let col = x + 5; col < x + 10; col++) {
       paint(item.floors[0].baseline.pixels, col, row, [32, 38, 43, 255]);
       paint(hidden.pixels, col, row, [255, 190, 20, 255]);
+      // Isolate the deliberate gain to the first hidden target frame.
+      for (const [key, frame] of Object.entries(item.floors[0].hiddenFrames))
+        if (key !== first.sourceKey)
+          paint(frame.pixels, col, row, [32, 38, 43, 255]);
     }
   expect(() => check(item)).toThrow('gained amber pixels');
 });
