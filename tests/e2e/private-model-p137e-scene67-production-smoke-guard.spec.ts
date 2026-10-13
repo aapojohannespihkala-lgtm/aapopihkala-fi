@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { delimiter, join } from 'node:path';
 // @ts-ignore - exact production workflow consumes the same untyped ESM helper.
 import {
   inspectP137EScene67ProductionSmoke,
@@ -623,4 +624,91 @@ test('G2 observation readback does not promote approximate pins or leak private 
   expect(job).not.toContain('response.headers.entries()');
   expect(job).toContain('JSON.stringify(evidence)');
   expect(job).toContain('if (!evidence.authenticatedWorkerGetVerified) process.exitCode = 1');
+});
+
+const cookieCanary = 'SYNTHETIC_COOKIE_NOT_A_CREDENTIAL_7d07';
+const queryCanary = 'SYNTHETIC_REDIRECT_STATE_f566';
+const accessUrl = 'https://fixture.cloudflareaccess.com/login?state=' + queryCanary;
+const runActualResponsePreflight = (root: string, options: {
+  status: number; body: string; redirect?: string; curlExit?: number;
+}) => {
+  const workflow = productionDispatchSource();
+  const start = workflow.indexOf('      - name: Classify authenticated production viewer response');
+  const end = workflow.indexOf('\n      - ', start + 20);
+  const program = workflow.slice(start, end).split('        run: |\n')[1];
+  if (start < 0 || end < 0 || !program) throw new Error('Actual response preflight missing');
+  const bin = join(root, 'stub-bin');
+  mkdirSync(bin, { recursive: true });
+  const curl = join(bin, 'curl');
+  writeFileSync(curl, `#!/usr/bin/env python3
+import os, sys
+from pathlib import Path
+args = sys.argv[1:]
+Path(args[args.index('--dump-header') + 1]).write_text(os.environ['FIXTURE_HEADERS'])
+Path(args[args.index('--output') + 1]).write_text(os.environ['FIXTURE_BODY'])
+print(os.environ['FIXTURE_STATUS'])
+print('text/html')
+print(os.environ['FIXTURE_REDIRECT'])
+sys.exit(int(os.environ['FIXTURE_CURL_EXIT']))
+`);
+  chmodSync(curl, 0o755);
+  const redirect = options.redirect ?? '';
+  const result = spawnSync('bash', ['-s'], {
+    cwd: root, input: program.replace(/^ {10}/gm, ''), encoding: 'utf8', timeout: 10_000,
+    env: {
+      PATH: bin + delimiter + (process.env.PATH ?? ''),
+      REVIEW_ID: 'synthetic-review', REVIEW_BASE_URL: 'https://aapopihkala.fi/private-model/',
+      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: 'synthetic-client-id',
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: 'synthetic-client-secret',
+      FIXTURE_HEADERS: `HTTP/2 ${options.status}\r\nContent-Type: text/html\r\nSet-Cookie: CF_Authorization=${cookieCanary}; HttpOnly\r\nLocation: ${redirect}\r\n\r\n`,
+      FIXTURE_BODY: options.body, FIXTURE_STATUS: String(options.status),
+      FIXTURE_REDIRECT: redirect, FIXTURE_CURL_EXIT: String(options.curlExit ?? 0),
+    },
+  });
+  if (result.error) throw result.error;
+  const artifactDir = join(root, 'playwright-artifacts');
+  const names = readdirSync(artifactDir);
+  const evidence = [result.stdout, result.stderr,
+    ...names.map(name => readFileSync(join(artifactDir, name), 'utf8'))].join('\n');
+  return { result, names, evidence, privateDirs: readdirSync(root).filter(n => n.startsWith('.production-response.')) };
+};
+const expectSafeResponseArtifacts = (probe: ReturnType<typeof runActualResponsePreflight>) => {
+  expect(probe.names).not.toContain('review-response-headers.txt');
+  expect(probe.names).not.toContain('review-response-meta.txt');
+  expect(probe.evidence).not.toContain(cookieCanary);
+  expect(probe.evidence).not.toContain(queryCanary);
+  expect(probe.privateDirs).toEqual([]);
+};
+
+test('response preflight keeps valid viewer classification without raw cookie artifacts', ({}, info) => {
+  const probe = runActualResponsePreflight(info.outputPath('response'), {
+    status: 200, body: '<canvas id="private-model-canvas"></canvas>',
+  });
+  expectSafeResponseArtifacts(probe);
+  expect(probe.result.status).toBe(0);
+  expect(probe.names.sort()).toEqual(['review-page.html', 'review-response-classification.txt']);
+  expect(probe.evidence).toContain('classification=VIEWER_HTML');
+});
+
+for (const fixture of [
+  { name: 'redirect', status: 302, body: 'Cloudflare Access', redirect: accessUrl, classification: 'ACCESS_REDIRECT' },
+  { name: 'denial', status: 403, body: 'Forbidden', classification: 'ACCESS_DENIED' },
+  { name: 'login HTML', status: 200, body: 'Cloudflare Access', classification: 'ACCESS_BODY' },
+  { name: 'unrelated HTML', status: 200, body: '<html>unrelated</html>', classification: 'NON_VIEWER_200_BODY' },
+]) {
+  test(`response preflight rejects ${fixture.name} without leaking cookies or redirect state`, ({}, info) => {
+    const probe = runActualResponsePreflight(info.outputPath('response'), fixture);
+    expectSafeResponseArtifacts(probe);
+    expect(probe.result.status).not.toBe(0);
+    expect(probe.evidence).toContain('classification=' + fixture.classification);
+  });
+}
+
+test('response preflight cleans private data when curl fails before classification', ({}, info) => {
+  const probe = runActualResponsePreflight(info.outputPath('response'), {
+    status: 0, body: '', redirect: accessUrl, curlExit: 7,
+  });
+  expectSafeResponseArtifacts(probe);
+  expect(probe.result.status).toBe(7);
+  expect(probe.names).toEqual(['review-page.html']);
 });
