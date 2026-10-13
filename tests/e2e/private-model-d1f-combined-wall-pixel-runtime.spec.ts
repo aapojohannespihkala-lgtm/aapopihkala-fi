@@ -101,7 +101,7 @@ test('actual production probe rejects untrusted calls and redacts upstream error
   const {runInNewContext} = await import('node:vm');
   const source=readFileSync('.github/scripts/private-model-d1f-combined-production-probe.mjs','utf8')
     .replace(/^import .* from '[^']+';\n/gm,'');
-  for(const scenario of ['non-main','wrong-workflow','missing-auth','upstream-error']) {
+  for(const scenario of ['non-main','wrong-workflow','missing-auth','upstream-error','main-push']) {
     const canary='TEST_ONLY_PROBE_SECRET_DO_NOT_EXPORT';
     const env:Record<string,string>={GITHUB_EVENT_NAME:'workflow_run',GITHUB_REF:'refs/heads/main',
       GITHUB_REPOSITORY:'aapojohannespihkala-lgtm/aapopihkala-fi',GITHUB_SHA:'a'.repeat(40),
@@ -112,6 +112,7 @@ test('actual production probe rejects untrusted calls and redacts upstream error
     if(scenario==='non-main')env.GITHUB_REF='refs/heads/untrusted';
     if(scenario==='wrong-workflow')env.PUBLISH_SOURCE_WORKFLOW_ID='0';
     if(scenario==='missing-auth')env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID='';
+    if(scenario==='main-push')env.GITHUB_EVENT_NAME='push';
     let launch=0;const writes:string[]=[],logs:string[]=[];
     const fakeProcess:{env:Record<string,string>,exitCode?:number}={env};
     await runInNewContext('(async()=>{'+source+'\n})()',{
@@ -122,7 +123,7 @@ test('actual production probe rejects untrusted calls and redacts upstream error
       D1F_FOUR_PIXEL_TARGETS:[],evaluateD1FOneTargetPixelSample:()=>{},
       evaluateD1FFourTargetPixelGate:()=>{},console:{log:(v:string)=>logs.push(v)},
     });
-    expect(launch).toBe(scenario==='upstream-error'?1:0);
+    expect(launch).toBe(['upstream-error','main-push'].includes(scenario)?1:0);
     expect(fakeProcess.exitCode).toBe(1);expect(writes).toHaveLength(1);
     expect(JSON.parse(writes[0])).toMatchObject({result:'FAIL',authenticatedAutoloadVerified:false,
       actualBrowserWebGlVerified:false,fourTargetsRenderedVerified:false,humanReview:'NOT_RUN',
@@ -143,6 +144,7 @@ test('publisher completion gate accepts only its exact trusted successful main s
     event:{workflow_run:{workflow_id:372000543,head_branch:'main',conclusion:'success',
       display_title:'Publish WORK_TEST - d1f-combined-wall-115-100-20261013',head_sha:'a'.repeat(40)}}};
   expect(runInNewContext('('+expression+')',{github:valid})).toBe(true);
+  expect(runInNewContext('('+expression+')',{github:{...valid,event_name:'push'}})).toBe(true);
   for(const update of [{workflow_id:0},{head_branch:'topic'},{conclusion:'failure'},
     {display_title:'Publish WORK_TEST - different-candidate'},{head_sha:'b'.repeat(40)}]) {
     const github={...valid,event:{workflow_run:{...valid.event.workflow_run,...update}}};
