@@ -43,13 +43,21 @@ export function makeP137EFieldMeasuredWallWorkTest(original) {
   const pos=new Float32Array(176*3);
   const sourceData=new DataView(original,originalPositionsOffset,176*12);
   for (let i=0;i<pos.length;i++) pos[i]=sourceData.getFloat32(i*4,true);
-  const seg=[...Array(8)].map((_,i)=>[pos[(128+i)*3],pos[(128+i)*3+1],pos[(128+i)*3+2]]);
-  const min=(axis)=>Math.min(...seg.map(p=>p[axis]));
-  const max=(axis)=>Math.max(...seg.map(p=>p[axis]));
-  if (![min(0),min(1),min(2),max(0),max(1),max(2)]
-       .every((v,i)=>same(v,[5.098,4.206,0,6.306,4.286,2.76][i]))) fail('I03 original geometry bounds');
-  const eastX=6.306, westX=eastX-0.960;
-  const northY=5.072-1.020, southY=northY-0.205;
+  const segmentBounds=(first,expected,label)=>{
+    const vertices=[...Array(8)].map((_,i)=>[pos[(first+i)*3],pos[(first+i)*3+1],pos[(first+i)*3+2]]);
+    const bounds=[...Array(3)].map((_,axis)=>Math.min(...vertices.map(p=>p[axis])))
+      .concat([...Array(3)].map((_,axis)=>Math.max(...vertices.map(p=>p[axis]))));
+    if (!bounds.every((v,i)=>same(v,expected[i]))) fail(label+' bounds');
+    return bounds;
+  };
+  segmentBounds(128,[5.098,4.206,0,6.306,4.286,2.76],'I03 original geometry');
+  const eastWall=segmentBounds(64,[6.266,-1.124,0,6.346,10.544,2.76],'east source display wall');
+  const lobbyWall=segmentBounds(136,[0.231,5.032,0,6.306,5.112,2.76],'Lobby source display wall');
+  // Bind only this WORK_TEST rendering to the source's visible inner faces.
+  // Legacy 6.306/5.072 centerlines are not those faces or surveyed physical XY.
+  const eastX=eastWall[0], westX=eastX-P137E_MEASURED_WALL_METRICS_MM.kphSideLength/1000;
+  const northY=lobbyWall[1]-P137E_MEASURED_WALL_METRICS_MM.lobbyClearGap/1000;
+  const southY=northY-P137E_MEASURED_WALL_METRICS_MM.thickness/1000;
   const xy=[[westX,northY],[eastX,northY],[eastX,southY],[westX,southY]];
   for(let i=0;i<8;i++) {
     pos[(128+i)*3]=xy[i%4][0]; pos[(128+i)*3+1]=xy[i%4][1];
@@ -69,6 +77,8 @@ export function makeP137EFieldMeasuredWallWorkTest(original) {
   nextMesh.primitives[0].attributes.POSITION=doc.accessors.length-1;
   nextMesh.extras={sourceOriginalMesh:406,scope:'ONLY_I03_8_OF_176_VERTICES',
     measuredFieldMM:P137E_MEASURED_WALL_METRICS_MM,
+    sourceDisplayFaceBinding:{sourceMesh:406,eastWallVertexRange:[64,71],eastInnerFaceX:eastX,
+      lobbyWallVertexRange:[136,143],lobbyBathroomFaceY:lobbyWall[1],purpose:'WORK_TEST_DISPLAY_ONLY'},
     sourceXYBinding:'CONDITIONAL_UNVERIFIED',fieldMeasurementsCurrent:true,
     enclosureModeled:false,physicalHeightVerified:false,workTest:true,current:false,asBuilt:false,
     Canonical:false,publishToCURRENT:false,HUMAN_REVIEW:'NOT_RUN'};

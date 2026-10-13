@@ -16,6 +16,14 @@ const encodeOriginalSyntheticScene67 = () => {
     [6.306, 4.206, 2.76], [5.098, 4.206, 2.76],
   ];
   segment.forEach((row, index) => positions.set(row, (128 + index) * 3));
+  // Independent neighboring display walls from the immutable source mesh.
+  // Their 80 mm rendering thickness is not a physical field measurement.
+  const box = (first: number, minX: number, maxX: number, minY: number, maxY: number) => {
+    const xy = [[minX, maxY], [maxX, maxY], [maxX, minY], [minX, minY]];
+    for (let i = 0; i < 8; i++) positions.set([...xy[i % 4], i < 4 ? 0 : 2.76], (first + i) * 3);
+  };
+  box(64, 6.266, 6.346, -1.124, 10.544);
+  box(136, .231, 6.306, 5.032, 5.112);
   const scenes: any[] = Array.from({ length: 68 }, () => ({ nodes: [] }));
   scenes[67] = { nodes: [1107], name: 'P137E source 67' };
   const nodes: any[] = Array.from({ length: 1108 }, () => ({}));
@@ -57,41 +65,87 @@ const parse = (source: ArrayBuffer) => {
   return { json, bin };
 };
 
+const meshPositions = (source: ReturnType<typeof parse>, meshIndex: number) => {
+  const a = source.json.accessors[source.json.meshes[meshIndex].primitives[0].attributes.POSITION];
+  const offset = source.json.bufferViews[a.bufferView].byteOffset + (a.byteOffset || 0);
+  const view = new DataView(source.bin.buffer, source.bin.byteOffset + offset, a.count * 12);
+  return Array.from({ length: a.count }, (_, i) => [
+    view.getFloat32(i * 12, true), view.getFloat32(i * 12 + 4, true), view.getFloat32(i * 12 + 8, true),
+  ]);
+};
+
 test('D1F I03 field-wall successor preserves all original source while adding only measured scene68', () => {
   const source = encodeOriginalSyntheticScene67();
+  const originalBytes = new Uint8Array(source.slice(0));
   const parent = parse(source);
   const output = makeP137EFieldMeasuredWallWorkTest(source);
   const next = parse(output);
   expect(P137E_MEASURED_WALL_METRICS_MM).toEqual({
     kphSideLength: 960, wcSideVisible: 710, thickness: 205, lobbyClearGap: 1020,
   });
-  for (const key of ['nodes','meshes','scenes'] as const) {
+  for (const key of ['nodes','meshes','scenes','accessors','bufferViews'] as const) {
     expect(next.json[key].slice(0, parent.json[key].length)).toEqual(parent.json[key]);
   }
   expect(Array.from(next.bin.slice(0, parent.bin.length))).toEqual(Array.from(parent.bin));
+  expect(new Uint8Array(source)).toEqual(originalBytes);
   expect(next.json.scene).toBe(P137E_MEASURED_WALL_SCENE_INDEX);
   expect(next.json.scenes[68].nodes).toEqual([1109]);
   expect(next.json.nodes[1109].name).toBe(P137E_MEASURED_WALL_REVIEW_ROOT);
   expect(next.json.nodes[1109].children).toEqual([1108, 1091, 1096, 1101]);
   expect(next.json.nodes[1106].mesh).toBe(406);
   expect(next.json.nodes[1108].mesh).toBe(555);
-  const a = next.json.accessors[next.json.meshes[555].primitives[0].attributes.POSITION];
-  const offset = next.json.bufferViews[a.bufferView].byteOffset;
-  const positions = new DataView(next.bin.buffer, next.bin.byteOffset + offset);
-  const vec = (index: number) => [
-    positions.getFloat32(index * 12, true),
-    positions.getFloat32(index * 12 + 4, true),
-    positions.getFloat32(index * 12 + 8, true),
-  ];
-  const updated = Array.from({ length: 8 }, (_, i) => vec(128 + i));
+  const originalPositions = meshPositions(parent, 406);
+  const positions = meshPositions(next, 555);
+  positions.forEach((v, i) => {
+    if (i < 128 || i >= 136) expect(v).toEqual(originalPositions[i]);
+    else expect(v[2]).toBe(originalPositions[i][2]);
+  });
+  const updated = positions.slice(128, 136);
   expect(Math.max(...updated.map(v => v[0])) - Math.min(...updated.map(v => v[0]))).toBeCloseTo(.960, 5);
   expect(Math.max(...updated.map(v => v[1])) - Math.min(...updated.map(v => v[1]))).toBeCloseTo(.205, 5);
-  expect(5.072 - Math.max(...updated.map(v => v[1]))).toBeCloseTo(1.020, 5);
   expect(next.json.meshes[555].extras.measuredFieldMM.wcSideVisible).toBe(710);
   expect(next.json.meshes[555].extras.sourceXYBinding).toBe('CONDITIONAL_UNVERIFIED');
   expect(next.json.scenes[68].extras.publishToCURRENT).toBe(false);
   expect(next.json.scenes[68].extras.HUMAN_REVIEW).toBe('NOT_RUN');
 });
+
+test('D1F I03 has 1020 mm between visible faces and meets the east wall without penetration', () => {
+  const source = encodeOriginalSyntheticScene67();
+  const originalPositions = meshPositions(parse(source), 406);
+  const updated = meshPositions(parse(makeP137EFieldMeasuredWallWorkTest(source)), 555).slice(128, 136);
+  const east = originalPositions.slice(64, 72);
+  const lobby = originalPositions.slice(136, 144);
+  const eastInnerFace = Math.min(...east.map(v => v[0]));
+  const lobbyBathroomFace = Math.min(...lobby.map(v => v[1]));
+  const wallEastEnd = Math.max(...updated.map(v => v[0]));
+  const wallNorthFace = Math.max(...updated.map(v => v[1]));
+  expect(lobbyBathroomFace - wallNorthFace).toBeCloseTo(1.020, 6);
+  expect(wallEastEnd).toBeCloseTo(eastInnerFace, 6);
+  const overlapX = Math.min(wallEastEnd, Math.max(...east.map(v => v[0])))
+    - Math.max(Math.min(...updated.map(v => v[0])), eastInnerFace);
+  const overlapY = Math.min(wallNorthFace, Math.max(...east.map(v => v[1])))
+    - Math.max(Math.min(...updated.map(v => v[1])), Math.min(...east.map(v => v[1])));
+  expect(overlapX).toBeCloseTo(0, 6);
+  expect(overlapY).toBeGreaterThan(.2);
+});
+
+for (const face of [
+  { label: 'east', first: 64, axis: 0, inner: 6.266, centerline: 6.306 },
+  { label: 'Lobby', first: 136, axis: 1, inner: 5.032, centerline: 5.072 },
+]) {
+  test(`D1F I03 rejects a changed ${face.label} source display face`, () => {
+    const source = encodeOriginalSyntheticScene67();
+    const parsed = parse(source);
+    const view = new DataView(parsed.bin.buffer, parsed.bin.byteOffset);
+    for (let i = face.first; i < face.first + 8; i++) {
+      const offset = i * 12 + face.axis * 4;
+      if (Math.abs(view.getFloat32(offset, true) - face.inner) < .00001) {
+        view.setFloat32(offset, face.centerline, true);
+      }
+    }
+    expect(() => makeP137EFieldMeasuredWallWorkTest(source)).toThrow(/source display.*bounds/);
+  });
+}
 
 test('D1F I03 reconstruction fails closed on unknown source or changed original I03 bounds', () => {
   const source = encodeOriginalSyntheticScene67();
@@ -108,4 +162,9 @@ test('D1F I03 reconstruction fails closed on unknown source or changed original 
   new Uint8Array(altered).fill(32, 20, 20 + sourceLen);
   new Uint8Array(altered).set(bytes, 20);
   expect(() => makeP137EFieldMeasuredWallWorkTest(altered)).toThrow(/scene67 model identity/);
+
+  const changedBounds = encodeOriginalSyntheticScene67();
+  const sourceBin = parse(changedBounds).bin;
+  new DataView(sourceBin.buffer, sourceBin.byteOffset).setFloat32(128 * 12, 5.000, true);
+  expect(() => makeP137EFieldMeasuredWallWorkTest(changedBounds)).toThrow(/I03 original geometry bounds/);
 });
