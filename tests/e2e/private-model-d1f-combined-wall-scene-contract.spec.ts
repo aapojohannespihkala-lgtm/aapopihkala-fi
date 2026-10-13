@@ -20,10 +20,14 @@ const object = (name: string, additional: Record<string, unknown> = {}, children
   name, children, visible: true, userData: { ...flags(), ...additional },
 });
 
-function fixture() {
-  const rawScenes: any[] = Array.from({ length: 72 }, () => ({ nodes: [] }));
-  const renderedScenes: any[] = Array.from({ length: 72 }, () => ({ children: [] }));
-  const nodes: any[] = Array.from({ length: 817 + 1 }, () => ({}));
+const measuredId = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
+const counterRecord = 'G2_D1F_KPH_BASIN_SOURCE_FACE_X3P888_WORK_TEST_20261014';
+
+function fixture(measuredCounter = false) {
+  const sceneStart = measuredCounter ? 76 : 68;
+  const rawScenes: any[] = Array.from({ length: measuredCounter ? 80 : 72 }, () => ({ nodes: [] }));
+  const renderedScenes: any[] = Array.from({ length: rawScenes.length }, () => ({ children: [] }));
+  const nodes: any[] = Array.from({ length: measuredCounter ? 1356 : 818 }, () => ({}));
   nodes[798] = { mesh: 406 };
   nodes[817] = { children: [798] };
   rawScenes[5] = { nodes: [817] };
@@ -36,27 +40,50 @@ function fixture() {
     const devices = [1091, 1096, 1101]
       .map(id => object('THEMO_' + id + '_' + name, { sourceNodeIndex: id }));
     const root = object(
-      'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP_COMBINED_' + name,
+      measuredCounter ? 'D1F_MEASURED_WALL_ROOT_BABYLON_Y_UP_' + name + '_WITH_MEASURED_COUNTER'
+        : 'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP_COMBINED_' + name,
       {
         sourceNodeIndex: 817,
         alignmentHypothesis: 'WORK_MODEL_LOBBY_FACE_ANCHOR_FIXED',
         physicalFinishedFloorSurfacesNotMaterialized: true,
         sourceRootQuaternionPreserved: true,
       }, [wall, ...devices]);
-    const sceneName = 'D1F COMBINED 2990MM ' + name + ' WORK_TEST NOT CURRENT';
-    rawScenes[68 + i] = {
+    const sceneName = measuredCounter
+      ? 'D1F MEASURED 140 100 2350 B710 ' + name + ' WORK_TEST NOT CURRENT WITH MEASURED COUNTER'
+      : 'D1F COMBINED 2990MM ' + name + ' WORK_TEST NOT CURRENT';
+    rawScenes[sceneStart + i] = {
       name: sceneName, nodes: [1108 + i * 58],
       extras: {
         ...flags(), variant: name, sourceSceneIndex: 5,
         physicalWidthAnchorResolved: false, saunaDoorHandResolved: false,
       },
     };
-    renderedScenes[68 + i] = { name: sceneName, children: [root] };
-    components.push({ wall, corners, devices, root });
+    let counter: any = null;
+    if (measuredCounter) {
+      const counterId = 1348 + i * 2;
+      const rootId = counterId + 1;
+      counter = object('D1F_KPH_COUNTER_WORK_TEST_' + name, {
+        logicalFixtureId: 'D1F_KPH_BASIN_TOP_WORK_PROXY_01', sourceRecord: counterRecord,
+        sourceHostFaceXM: 3.888, finishedFloorWorkZM: 0.08, absoluteFaceSurveyVerified: false,
+      });
+      root.children.push(counter);
+      Object.assign(root.userData, { counterNode: counterId, parentMeasuredRoot: 1341 + i * 2 });
+      rawScenes[72 + i] = { nodes: [1341 + i * 2] };
+      rawScenes[sceneStart + i].nodes = [rootId];
+      Object.assign(rawScenes[sceneStart + i].extras, {
+        counterNode: counterId, parentCombinedScene: 68 + i, parentMeasuredScene: 72 + i,
+        counterSourceRecord: counterRecord, sourceFieldWidthResidualMm: 18,
+        residualResolution: 'OPEN_NOT_GUESSED',
+      });
+      nodes[counterId] = { name: counter.name, mesh: 611, extras: counter.userData };
+      nodes[rootId] = { children: [counterId], extras: root.userData };
+    }
+    renderedScenes[sceneStart + i] = { name: sceneName, children: [root] };
+    components.push({ wall, corners, devices, root, counter });
   });
   return {
     gltf: {
-      parser: { json: { scenes: rawScenes, nodes,
+      parser: { json: { scene: sceneStart, scenes: rawScenes, nodes,
         extras: { combined2990WallWorkTest: flags() } } },
       scenes: renderedScenes,
     },
@@ -140,27 +167,83 @@ test('rejects cycle/shared-target graphs rather than counting same corner twice'
     .toThrow('scene graph cycle or shared node');
 });
 
+test('new source selects only scenes76..79 with exactly one source-bound counter each', () => {
+  const { gltf, components } = fixture(true);
+  for (const [i, variant] of D1F_COMBINED_WALL_VARIANTS.entries()) {
+    const selected = selectD1FCombinedWallWorkTestScene(gltf, variant, measuredId);
+    expect(selected.sceneIndex).toBe(76 + i);
+    expect(selected.scene).toBe(gltf.scenes[76 + i]);
+    expect(selected.counter).toBe(components[i].counter);
+    expect(selected.wall).toBe(components[i].wall);
+    expect(selected.corners).toHaveLength(3);
+    expect(selected.productionRenderedRoisVerified).toBe(false);
+    expect(selected.absolutePhysicalXYVerified).toBe(false);
+    expect(selected.humanReview).toBe('NOT_RUN');
+  }
+  expect(() => selectD1FCombinedWallWorkTestScene(gltf, D1F_COMBINED_WALL_VARIANTS[0]))
+    .toThrow('original D1F scene5/source carrier');
+  expect(() => selectD1FCombinedWallWorkTestScene(fixture().gltf, D1F_COMBINED_WALL_VARIANTS[0], measuredId))
+    .toThrow('original D1F scene5/source carrier');
+  expect(() => selectD1FCombinedWallWorkTestScene(gltf, D1F_COMBINED_WALL_VARIANTS[0], measuredId + '-wrong'))
+    .toThrow('unknown source candidate');
+});
+
+test('counter profile rejects changed default, reused source node and false resolution', () => {
+  for (const alter of [
+    (g: any) => { g.parser.json.scene = 72; },
+    (g: any) => { g.parser.json.scenes[77].extras.counterNode = 1348; },
+    (g: any) => { g.parser.json.scenes[76].extras.residualResolution = 'RESOLVED'; },
+    (g: any) => { g.parser.json.nodes[1348].mesh = 610; },
+  ]) {
+    const { gltf } = fixture(true); alter(gltf);
+    expect(() => selectD1FCombinedWallWorkTestScene(gltf, D1F_COMBINED_WALL_VARIANTS[0], measuredId))
+      .toThrow('D1F_COMBINED_WALL_CONTRACT_REJECTED');
+  }
+});
+
+test('counter must remain visible, unique and attached to selected architecture root', () => {
+  for (const alter of [
+    (c: any) => { c.counter.visible = false; },
+    (c: any) => { c.root.children.pop(); c.wall.children.push(c.counter); },
+    (c: any) => { c.root.children.push(structuredClone(c.counter)); },
+    (c: any) => { c.counter.userData.absoluteFaceSurveyVerified = true; },
+    (c: any) => { c.counter.userData.sourceHostFaceXM = 3.848; },
+  ]) {
+    const { gltf, components } = fixture(true); alter(components[0]);
+    expect(() => selectD1FCombinedWallWorkTestScene(gltf, D1F_COMBINED_WALL_VARIANTS[0], measuredId))
+      .toThrow('D1F_COMBINED_WALL_CONTRACT_REJECTED');
+  }
+});
+
 // A public, in-memory GLB with the same structural contract, not private model
 // bytes. The real npm loader supplies runtime names and Object3D ownership.
-function loaderFixture(bytes?: number) {
-  const { gltf, components } = fixture();
+function loaderFixture(bytes?: number, measuredCounter = false) {
+  const { gltf, components } = fixture(measuredCounter);
   const json: any = structuredClone(gltf.parser.json);
   json.asset = { version: '2.0' };
-  json.scene = 68;
+  json.scene = measuredCounter ? 76 : 68;
   json.buffers = [{ byteLength: 36 }];
   json.bufferViews = [{ buffer: 0, byteOffset: 0, byteLength: 36 }];
   json.accessors = [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3',
     min: [0, 0, 0], max: [1, 1, 0] }];
-  json.meshes = Array.from({ length: 407 }, () => ({ primitives: [{ attributes: { POSITION: 0 } }] }));
+  json.meshes = Array.from({ length: measuredCounter ? 612 : 407 }, () => ({ primitives: [{ attributes: { POSITION: 0 } }] }));
   const add = (o: any): number => {
     const index = json.nodes.length;
     json.nodes.push({ name: o.name, extras: o.userData,
-      ...(o.userData.sourceNodeIndex === 798 || o.userData.independentlyAddressableCorner ? { mesh: 0 } : {}) });
+      ...(o.userData.logicalFixtureId ? { mesh: 611 } :
+        o.userData.sourceNodeIndex === 798 || o.userData.independentlyAddressableCorner ? { mesh: 0 } : {}) });
     if (o.children?.length) json.nodes[index].children = o.children.map(add);
     return index;
   };
   components.forEach((component: any, i: number) => {
-    json.scenes[68 + i].nodes = [add(component.root)];
+    const rootId = add(component.root);
+    const scene = json.scenes[(measuredCounter ? 76 : 68) + i];
+    scene.nodes = [rootId];
+    if (measuredCounter) {
+      const counterId = json.nodes[rootId].children.find((n: number) => json.nodes[n].extras.logicalFixtureId);
+      scene.extras.counterNode = counterId;
+      json.nodes[rootId].extras.counterNode = counterId;
+    }
   });
   const encoded = Buffer.from(JSON.stringify(json));
   const jsonLength = Math.ceil(encoded.length / 4) * 4;
@@ -188,6 +271,28 @@ test('real GLTFLoader names select all four scenes without accepting arbitrary a
   gltf.scenes[68].name += '_unapproved';
   expect(() => selectD1FCombinedWallWorkTestScene(gltf, D1F_COMBINED_WALL_VARIANTS[0]))
     .toThrow('scene name, root, or source provenance');
+});
+
+test('real loader entry authenticates new source and selects measured counter alternatives', async () => {
+  const asset = D1F_COMBINED_WALL_ASSETS[measuredId];
+  const buffer = loaderFixture(asset.bytes, true);
+  for (const [i, variant] of D1F_COMBINED_WALL_VARIANTS.entries()) {
+    const result = await loadD1FCombinedWallReview({
+      candidate: { id: measuredId, path: '/private-model/work-test/' + measuredId + '.glb' },
+      search: '?review=' + measuredId + '-review&wallVariant=' + variant,
+      loader: new GLTFLoader(),
+      fetcher: async (path: any) => ({ status: 200, redirected: false,
+        url: 'https://aapopihkala.fi' + path, arrayBuffer: async () => buffer }) as any,
+      digest: async () => Uint8Array.from(Buffer.from(asset.sha256, 'hex')).buffer,
+    });
+    expect(result.selected.sceneIndex).toBe(76 + i);
+    expect(result.gltf.scene).toBe(result.selected.scene);
+    expect(result.selected.counter.isMesh).toBe(true);
+    expect(result.selected.corners).toHaveLength(3);
+    expect(result.rawGlbByteIdentityVerified).toBe(true);
+    expect(result.selected.productionRenderedRoisVerified).toBe(false);
+  }
+  expect(isD1FCombinedWallReviewRequested('?review=' + measuredId + '-review')).toBe(true);
 });
 
 test('viewer entry checks review, size, SHA and complete body before real parsing', async () => {
@@ -240,14 +345,14 @@ test('stalled source body is bounded and never reaches GLTFLoader', async () => 
   expect(parses).toBe(0);
 });
 
-test('actual viewer load callsite uses verified combined scene instead of the generic loader', async () => {
+for (const id of ['d1f-combined-wall-115-100-20261013', measuredId] as const) {
+test('actual viewer load callsite uses verified scene for ' + id, async () => {
   const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
   const start = source.indexOf('const loadWorkTestCandidate = async');
   const stop = source.indexOf("loadFailurePhase = 'review-runtime-failed';", start);
   expect(start).toBeGreaterThan(0); expect(stop).toBeGreaterThan(start);
   const prefix = source.slice(start, stop)
     .replace(': WorkTestCandidate', '').replace(': WorkTestLoadFailurePhase', '');
-  const id = 'd1f-combined-wall-115-100-20261013';
   const candidate = { id, path: '/private-model/work-test/' + id + '.glb' };
   const asset = D1F_COMBINED_WALL_ASSETS[id];
   let genericLoads = 0;
@@ -267,7 +372,7 @@ test('actual viewer load callsite uses verified combined scene instead of the ge
         ...options,
         fetcher: async (path: string) => ({ status: 200, redirected: false,
           url: 'https://aapopihkala.fi' + path,
-          arrayBuffer: async () => loaderFixture(asset.bytes) }) as any,
+          arrayBuffer: async () => loaderFixture(asset.bytes, id === measuredId) }) as any,
         digest: async () => Uint8Array.from(Buffer.from(asset.sha256, 'hex')).buffer,
       }),
     },
@@ -275,7 +380,9 @@ test('actual viewer load callsite uses verified combined scene instead of the ge
   expect(genericLoads).toBe(0);
   expect(selected.gltf.scene).toBe(selected.combinedWallReview.selected.scene);
   expect(selected.combinedWallReview.selected.corners).toHaveLength(3);
+  if (id === measuredId) expect(selected.combinedWallReview.selected.counter.isMesh).toBe(true);
 });
+}
 
 test('actual startup marks autoload only after a successful loader return', async () => {
   const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
@@ -292,4 +399,5 @@ test('actual startup marks autoload only after a successful loader return', asyn
     expect(canvas.dataset.workTestReviewAutoload).toBe(result ? 'true' : undefined);
   }
 });
+
 
