@@ -122,6 +122,7 @@ test('P137E fixture Worker POST stores one observation and separately reads its 
   ];
   let revision = 'FIXTURE_SOURCE_REV_1';
   let docsWrites = 0, docsGets = 0;
+  let lastNetworkStage = 'not-started';
   const result = buildPlacementReviewDraft({
     context: { targetId: 'D_THEMO_CURRENT_BATHROOM_01', floor: '1F', approvedWallHosts: [] },
     coordinate: { xM: 3.235, yM: 5.063 },
@@ -139,8 +140,9 @@ test('P137E fixture Worker POST stores one observation and separately reads its 
   };
   globalThis.fetch = async (input, init) => {
     const url = String(input);
-    if (url === auth.team + '/cdn-cgi/access/certs') return Response.json({ keys: [auth.jwk] });
+    if (url === auth.team + '/cdn-cgi/access/certs') { lastNetworkStage = 'access-jwks'; return Response.json({ keys: [auth.jwk] }); }
     if (url === 'https://oauth2.googleapis.com/token') {
+      lastNetworkStage = 'oauth';
       expect(init?.redirect).toBe('manual');
       return Response.json({ access_token: 'fixture-token', token_type: 'Bearer' });
     }
@@ -149,6 +151,7 @@ test('P137E fixture Worker POST stores one observation and separately reads its 
       expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer fixture-token');
       expect(url.startsWith('https://docs.googleapis.com/v1/documents/' + docId)).toBe(true);
       if (url.endsWith(':batchUpdate')) {
+        lastNetworkStage = 'docs-post';
         docsWrites++;
         const body = JSON.parse(String(init?.body));
         expect(body.writeControl.requiredRevisionId).toBe('FIXTURE_SOURCE_REV_1');
@@ -158,6 +161,7 @@ test('P137E fixture Worker POST stores one observation and separately reads its 
         revision = 'FIXTURE_SOURCE_REV_2';
         return Response.json({ documentId: docId, replies: [{}] });
       }
+      lastNetworkStage = 'docs-get';
       docsGets++;
       return Response.json({
         documentId: docId, revision,
@@ -186,7 +190,7 @@ test('P137E fixture Worker POST stores one observation and separately reads its 
         method: 'POST', headers, body: JSON.stringify({ payload }),
       }), env,
     );
-    expect(response.status).toBe(200);
+    expect(response.status, JSON.stringify({ lastNetworkStage, docsWrites, docsGets, revision })).toBe(200);
     const ack = await response.json();
     expect(ack.receipt.status).toBe('PERSISTED_TO_EXISTING_G2');
     expect(ack.receipt.recordId).toMatch(/^P137E_G2_[A-Za-z0-9_-]{12,64}$/);
