@@ -340,7 +340,10 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
     },
   ]);
 
+  // An exact R1125 review must not fetch CURRENT before its own WORK_TEST.
+  let currentModelRequests = 0;
   await page.route('**/private-model/model.glb', async (route) => {
+    currentModelRequests += 1;
     await route.fulfill({
       status: 200,
       contentType: 'model/gltf-binary',
@@ -388,6 +391,7 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
       ? `WORK_TEST_LOAD_FAILURE[${failurePhase}]: ${failureError ?? 'unknown'}`
       : activeReview ?? '';
   }, { timeout: 15_000 }).toBe(reviewId);
+  expect(currentModelRequests).toBe(0);
   await expect(canvas).toHaveAttribute('data-m5a-review-target-renderable-count', '13');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-source-contract', 'G2_R1125');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-terrain-resistant-overlay', 'true');
