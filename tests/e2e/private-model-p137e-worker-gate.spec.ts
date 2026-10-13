@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { createP137EG2WorkerClient } from '../../src/scripts/privateModelP137EG2WorkerClient.mjs';
 import { buildPlacementReviewDraft } from '../../src/scripts/privateModelReviewPlacementDraft';
 import {
   handlePrivatePlacementReviewRequest,
@@ -100,12 +101,7 @@ for (const [scenario, status, failureCode] of [
 }
 
 
-test('P137E fixture Worker POST stores one observation and separately reads its native G2 bytes', async () => {
-  // Entire chain is simulated; no production Google credentials, G2 writes or user claims.
-  const auth = await readinessAuth;
-  const originalFetch = globalThis.fetch;
-  const docId = '1B59UmyKNKVfXJwIZ9dCTcQXyT6O0l7rESG2YOX6AdHE';
-  const paragraphs = [
+const nativeG2SourceFixtureParagraphs = () => [
     '3D-D/G2 p137J - D 1F kaksi käyttäjävahvistettua nykytilan ovea WORK_TEST-geometriaksi 2026-09-29',
     'Tila: PASS_USER_CURRENT_DOOR_WORK_GEOMETRY_2_OF_2 / HUMAN_REVIEW_IN_PROGRESS.',
     'Pysyvät review-ankkurit: \u0060D1F_USER_CURRENT_DOOR_A\u0060 = p137E \u0060HUMAN_REVIEW_ANCHOR_A\u0060, klikattu YLIS-G1-LOCAL X=3,235 m / Y=5,063 m. \u0060D1F_USER_CURRENT_DOOR_B\u0060 = \u0060HUMAN_REVIEW_ANCHOR_B\u0060, klikattu X=3,852 / Y=4,314 m.',
@@ -120,7 +116,14 @@ test('P137E fixture Worker POST stores one observation and separately reads its 
     'No-promotion / materialisointiraja: \u0060exactCurrentXYClaim=false\u0060, \u0060exactZClaim=false\u0060, \u0060deviceGeometryClaim=false\u0060, \u0060physicalCableRouteClaim=false\u0060, \u0060continuousCableTopologyClaim=false\u0060, \u0060currentGeometryClaim=false\u0060, \u0060asBuilt=false\u0060, \u0060canonical=false\u0060, \u0060publishToCURRENT=false\u0060 ja \u0060HUMAN_REVIEW=NOT_RUN\u0060.',
     'R999 - fixture terminator',
   ];
-  let revision = 'FIXTURE_SOURCE_REV_1';
+
+
+test('P137E fixture Worker POST stores one observation and separately reads its native G2 bytes', async () => {
+  // Entire chain is simulated; no production Google credentials, G2 writes or user claims.
+  const auth = await readinessAuth;
+  const originalFetch = globalThis.fetch;
+  const docId = '1B59UmyKNKVfXJwIZ9dCTcQXyT6O0l7rESG2YOX6AdHE';
+  const paragraphs = nativeG2SourceFixtureParagraphs();  let revision = 'FIXTURE_SOURCE_REV_1';
   let docsWrites = 0, docsGets = 0;
   let lastNetworkStage = 'not-started';
   const result = buildPlacementReviewDraft({
@@ -209,6 +212,98 @@ test('P137E fixture Worker POST stores one observation and separately reads its 
     expect(payload.currentGeometry).toBe(false);
     expect(payload.canonical).toBe(false);
     expect(payload.asBuilt).toBe(false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+
+test('P137E existing-record Worker GET reads three exact decimal heights without a G2 write', async () => {
+  const auth = await readinessAuth;
+  const originalFetch = globalThis.fetch;
+  const docId = '1B59UmyKNKVfXJwIZ9dCTcQXyT6O0l7rESG2YOX6AdHE';
+  const fixtures = [
+    { recordId: 'P137E_G2_FIXTURE_LOBBY_HEIGHT_0001', targetId: 'D_THEMO_CURRENT_LOBBY_01', cm: 148, metres: 1.48 },
+    { recordId: 'P137E_G2_FIXTURE_BEDROOM_HEIGHT_0001', targetId: 'D_THEMO_CURRENT_BEDROOM_01', cm: 148, metres: 1.48 },
+    { recordId: 'P137E_G2_FIXTURE_BATHROOM_HEIGHT_0001', targetId: 'D_THEMO_CURRENT_BATHROOM_01', cm: 140, metres: 1.4 },
+  ];
+  const stored = fixtures.map((fixture, i) => {
+    const draft = buildPlacementReviewDraft({
+      context: { targetId: fixture.targetId, floor: '1F', approvedWallHosts: [] },
+      coordinate: { xM: 1 + i, yM: 2 },
+      noteRaw: fixture.cm + ' cm lattiasta. Synthetic WORK_TEST fixture only.',
+    });
+    if (draft.status !== 'READY_FOR_G2_HANDOFF') throw new Error('Fixture invalid');
+    // Model independently stored decimal JSON. Do not derive expected metres
+    // through the parser under test or POST a freshly rebuilt observation.
+    draft.payload.observation.height = {
+      status: 'FLOOR_RELATIVE_PARSED', aboveFinishedFloorM: fixture.metres, zM: null,
+    };
+    return { schema: 'P137E_G2_REVIEW_OBSERVATION_V1', recordId: fixture.recordId,
+      sourceDocumentId: docId, sourceRevision: 'FIXTURE_PERSISTED_REV',
+      payload: draft.payload };
+  });
+  const env = {
+    CF_ACCESS_TEAM_DOMAIN: auth.team, CF_ACCESS_AUD: auth.aud,
+    P137E_G2_REVIEW_RELEASE_ENABLED: 'true',
+    P137E_G2_SERVICE_ACCOUNT_EMAIL: 'fixture@example.iam.gserviceaccount.com',
+    P137E_G2_SERVICE_ACCOUNT_PRIVATE_KEY_PEM: auth.pem,
+  };
+  let docsGets = 0, docsWrites = 0;
+  const workerStatuses: number[] = [];
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    if (url === auth.team + '/cdn-cgi/access/certs') return Response.json({ keys: [auth.jwk] });
+    if (url === 'https://oauth2.googleapis.com/token') {
+      expect(init?.method).toBe('POST');
+      return Response.json({ access_token: 'fixture-token', token_type: 'Bearer' });
+    }
+    if (url.startsWith('https://docs.googleapis.com/v1/documents/' + docId)) {
+      if (init?.method !== 'GET') {
+        docsWrites++;
+        throw new Error('Existing-record fixture must not write G2');
+      }
+      docsGets++;
+      const paragraphs = [...nativeG2SourceFixtureParagraphs(), ...stored.map(record =>
+        'P137E_G2_REVIEW_OBSERVATION_V1 | ' + record.recordId + ' | ' + JSON.stringify(record))];
+      return Response.json({ documentId: docId, revisionId: 'FIXTURE_CURRENT_REV',
+        tabs: [{ tabProperties: { tabId: 't.0' }, documentTab: { body: {
+          content: paragraphs.map(content => ({ paragraph: { elements: [
+            { textRun: { content: content + '\n' } },
+          ] } })),
+        } } }],
+      });
+    }
+    throw new Error('Unexpected fixture network request');
+  };
+  const client = createP137EG2WorkerClient({
+    origin, canReview: () => true,
+    fetcher: async (url, options) => {
+      expect(options.method).toBe('GET');
+      expect(options.body).toBeUndefined();
+      expect(fixtures.some(fixture => url === origin + base + '/observations/' + fixture.recordId)).toBe(true);
+      const response = await handlePrivatePlacementReviewRequest(new Request(url, {
+        ...options, headers: { 'Cf-Access-Jwt-Assertion': auth.token },
+      }), env);
+      workerStatuses.push(response.status);
+      return response;
+    },
+  });
+  try {
+    for (const record of stored) {
+      expect(await client.readback(record.recordId)).toEqual({
+        recordId: record.recordId, payload: record.payload,
+      });
+    }
+    expect(workerStatuses).toEqual([200, 200, 200]);
+    expect(docsGets).toBe(3);
+    expect(docsWrites).toBe(0);
+    expect(stored[2].payload.observation.height.aboveFinishedFloorM).toBe(1.4);
+    // A materially different stored height still fails exact reconstruction.
+    stored[2].payload.observation.height.aboveFinishedFloorM = 1.41;
+    await expect(client.readback(stored[2].recordId)).rejects.toThrow('P137E_G2_UNAVAILABLE');
+    expect(workerStatuses[3]).toBe(404);
+    expect(docsWrites).toBe(0);
   } finally {
     globalThis.fetch = originalFetch;
   }
