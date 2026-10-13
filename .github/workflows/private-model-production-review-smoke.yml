@@ -2017,6 +2017,9 @@ jobs:
             'playwright-artifacts/p137e-walls-scene69-production.json',
             JSON.stringify(evidence,null,2));
           let browser;
+          let page;
+          let expected;
+          let sourceResponses = [];
           try {
             const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
             const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
@@ -2031,7 +2034,7 @@ jobs:
             const reviewUrl = new URL('https://aapopihkala.fi/private-model/');
             reviewUrl.searchParams.set('review', reviewId);
             reviewUrl.searchParams.set('wallMetric', variants[0][1]);
-            const expected = {
+            expected = {
               workTestReviewAutoload: 'true',
               modelSource: 'work-test',
               workTestReviewCandidate: candidateId,
@@ -2060,8 +2063,8 @@ jobs:
               route.continue({headers:{...route.request().headers(),
                 'cf-access-client-id':clientId,
                 'cf-access-client-secret':clientSecret}}));
-            const page = await context.newPage();
-            const sourceResponses = [];
+            page = await context.newPage();
+            sourceResponses = [];
             page.on('response', response => {
               if (response.url() === originalAsset) sourceResponses.push(response);
             });
@@ -2153,6 +2156,38 @@ jobs:
             console.log(JSON.stringify({probe:evidence.probe,sourceGlbVerified:true,
               sceneIndex,renderPixels:pixels,threeCornerRoiGate:'NOT_RUN'}));
           } catch (error) {
+            // AUTOLOAD_DATASET timeout: retain only trusted field names and
+            // allowlisted state labels. Never export dataset values, page URL,
+            // error messages, request metadata, credentials or response headers.
+            if (evidence.phase === 'AUTOLOAD_DATASET' && page && expected) {
+              try {
+                const state = await withWallStageDeadline('AUTOLOAD_DATASET',
+                  () => page.evaluate(required => {
+                    const el = document.querySelector('#private-model-canvas');
+                    const hasCanvas = el instanceof HTMLCanvasElement;
+                    const data = hasCanvas ? el.dataset : {};
+                    const catalog = data.workTestCatalog;
+                    return {
+                      canvasPresent: hasCanvas,
+                      missingExpectedFieldNames: Object.keys(required)
+                        .filter(key => data[key] !== required[key]),
+                      workTestCatalog: ['ready','empty','unavailable'].includes(catalog)
+                        ? catalog : 'unknown',
+                    };
+                  }, expected), 3000);
+                evidence.autoloadDiagnostic = {
+                  ...state,
+                  originalAssetResponseCount: Math.min(sourceResponses.length, 2),
+                  originalAssetHttpStatus: sourceResponses.length === 1
+                    ? sourceResponses[0].status() : null,
+                };
+              } catch {
+                evidence.autoloadDiagnostic = {
+                  diagnosticState: 'UNAVAILABLE',
+                  originalAssetResponseCount: Math.min(sourceResponses.length, 2),
+                };
+              }
+            }
             const failure = sanitizedWallStageFailure(error, evidence.phase);
             Object.assign(evidence, failure);
             writeEvidence();
