@@ -169,6 +169,12 @@ jobs:
             android_changed=true
           fi
 
+          d1f_probe_changed=false
+          if gh api --paginate "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" \
+            --jq '.[].filename' | grep -Eq '^(src/pages/private-model/|src/scripts/privateModelD1F|\.github/scripts/private-model-d1f|\.github/workflows/(build-check|private-model-production-review-smoke)\.yml$)'; then
+            d1f_probe_changed=true
+          fi
+
           state="$(gh api "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.mergeable_state')"
 
           if [[ "$state" == "behind" ]]; then
@@ -241,6 +247,16 @@ jobs:
                 gh api --method POST \
                   "/repos/${GITHUB_REPOSITORY}/actions/workflows/current-weather-hsl-smoke.yml/dispatches" \
                   --raw-field ref=main
+
+                if [[ "$d1f_probe_changed" == "true" ]]; then
+                  d1f_request="$RUNNER_TEMP/d1f-production-review-dispatch.json"
+                  python3 -c 'import json,sys; json.dump({"ref":"main","inputs":{"probe_mode":"d1f-combined-pixels","review_id":"d1f-combined-wall-115-100-20261013-review","candidate_id":"d1f-combined-wall-115-100-20261013"}},open(sys.argv[1],"w"))' "$d1f_request"
+                  gh api --method POST \
+                    "/repos/${GITHUB_REPOSITORY}/actions/workflows/private-model-production-review-smoke.yml/dispatches" \
+                    --input "$d1f_request"
+                  rm -f "$d1f_request"
+                  echo "D1F published-source pixel verification dispatched on trusted main."
+                fi
 
                 if [[ "$android_changed" == "true" ]]; then
                   gh api --method POST \
