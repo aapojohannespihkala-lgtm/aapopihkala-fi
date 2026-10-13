@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { buildPlacementReviewDraft } from '../../src/scripts/privateModelReviewPlacementDraft';
 import {
   handlePrivatePlacementReviewRequest,
   isPrivatePlacementReviewPath,
@@ -97,6 +98,117 @@ for (const [scenario, status, failureCode] of [
     } finally { globalThis.fetch = originalFetch; }
   });
 }
+
+
+test('P137E fixture Worker POST stores one observation and separately reads its native G2 bytes', async () => {
+  // Entire chain is simulated; no production Google credentials, G2 writes or user claims.
+  const auth = await readinessAuth;
+  const originalFetch = globalThis.fetch;
+  const docId = '1B59UmyKNKVfXJwIZ9dCTcQXyT6O0l7rESG2YOX6AdHE';
+  const paragraphs = [
+    '3D-D/G2 p137J - D 1F kaksi käyttäjävahvistettua nykytilan ovea WORK_TEST-geometriaksi 2026-09-29',
+    'Tila: PASS_USER_CURRENT_DOOR_WORK_GEOMETRY_2_OF_2 / HUMAN_REVIEW_IN_PROGRESS.',
+    'Pysyvät review-ankkurit: \u0060D1F_USER_CURRENT_DOOR_A\u0060 = p137E \u0060HUMAN_REVIEW_ANCHOR_A\u0060, klikattu YLIS-G1-LOCAL X=3,235 m / Y=5,063 m. \u0060D1F_USER_CURRENT_DOOR_B\u0060 = \u0060HUMAN_REVIEW_ANCHOR_B\u0060, klikattu X=3,852 / Y=4,314 m.',
+    '3D-D/G2 p137N - D 1F A/B historical/source-ID reconciliation 2026-09-29',
+    'Tila: PASS_NEGATIVE_SOURCE_ID_RECONCILIATION / KEEP_USER_CURRENT_IDENTITIES / HUMAN_REVIEW_IN_PROGRESS.',
+    'Johtopäätös p137I-C0:n mukaan: Historiallista G2_DOOR-ID:tä ei luoda eikä 7/7 source-ID-joukkoa muuteta. P137J:n pysyvät \u0060D1F_USER_CURRENT_DOOR_A/B\u0060 reviewDoorId:t säilyvät current-only identiteetteinä.',
+    'R989 - D current Themo room/group provenance - 8.10.2026',
+    'Tila: PASS_CURRENT_INSTALLATION_ROOM_BINDING / HISTORICAL_GROUP_CONTEXT_BOUND / NO_GEOMETRY_MUTATION / NO_PROMOTION.',
+    'Current installation evidence: \u0060Ylisrinne - huollon ja ylläpidon seuranta\u0060 vahvistaa käyttäjän ilmoituksella, että kaikki 3 x Themo-lattialämmitystermostaatti asennettiin 7.10.2026. Käyttäjä vahvisti 8.10.2026 myös laitteiden huonenimien olevan oikein: Bathroom, Bedroom ja Lobby.',
+    'Loogiset nykylaite-identiteetit tulevaa tietomallikulutusta varten: \u0060D_THEMO_CURRENT_BATHROOM_01\u0060 = Themo / Bathroom; \u0060D_THEMO_CURRENT_BEDROOM_01\u0060 = Themo / Bedroom; \u0060D_THEMO_CURRENT_LOBBY_01\u0060 = Themo / Lobby. Näillä identiteeteillä on \u0060currentInstallationEvidence=true\u0060 ja \u0060roomAssignmentEvidence=USER_CONFIRMED\u0060, mutta ei fyysistä pistekoordinaattia eikä 3D-laitegeometriaa.',
+    'Historiallinen ryhmäkonteksti peritään muuttamatta G2 r791/r886 -evidenssistä: Bathroom -> source component C -> \u0060sourceGroupKey=10.2\u0060 / \u0060sourceScheduleName=pesuhuone/sauna\u0060; Bedroom -> A -> \u0060sourceGroupKey=10.3\u0060 / \u0060sourceScheduleName=makuuhuone\u0060; Lobby -> B -> \u0060sourceGroupKey=10.1\u0060 / \u0060sourceScheduleName=eteinen\u0060. Ryhmäsidonnan luokka on \u0060HIGH_CONFIDENCE_DERIVED / CROSS_SOURCE_PLAN_PARITY\u0060. Se on vuoden 2015 sähköaineistosta johdettu historiallinen group-context, ei vuoden 2026 current/as-built-kytkentävahvistus.',
+    'No-promotion / materialisointiraja: \u0060exactCurrentXYClaim=false\u0060, \u0060exactZClaim=false\u0060, \u0060deviceGeometryClaim=false\u0060, \u0060physicalCableRouteClaim=false\u0060, \u0060continuousCableTopologyClaim=false\u0060, \u0060currentGeometryClaim=false\u0060, \u0060asBuilt=false\u0060, \u0060canonical=false\u0060, \u0060publishToCURRENT=false\u0060 ja \u0060HUMAN_REVIEW=NOT_RUN\u0060.',
+    'R999 - fixture terminator',
+  ];
+  let revision = 'FIXTURE_SOURCE_REV_1';
+  let docsWrites = 0, docsGets = 0;
+  const result = buildPlacementReviewDraft({
+    context: { targetId: 'D_THEMO_CURRENT_BATHROOM_01', floor: '1F', approvedWallHosts: [] },
+    coordinate: { xM: 3.235, yM: 5.063 },
+    noteRaw: 'Fixture only: not a surveyed or approved Themo location.',
+  });
+  expect(result.status).toBe('READY_FOR_G2_HANDOFF');
+  if (result.status !== 'READY_FOR_G2_HANDOFF') throw new Error('Fixture invalid');
+  const payload = result.payload;
+  const env = {
+    CF_ACCESS_TEAM_DOMAIN: auth.team,
+    CF_ACCESS_AUD: auth.aud,
+    P137E_G2_REVIEW_RELEASE_ENABLED: 'true',
+    P137E_G2_SERVICE_ACCOUNT_EMAIL: 'fixture@example.iam.gserviceaccount.com',
+    P137E_G2_SERVICE_ACCOUNT_PRIVATE_KEY_PEM: auth.pem,
+  };
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    if (url === auth.team + '/cdn-cgi/access/certs') return Response.json({ keys: [auth.jwk] });
+    if (url === 'https://oauth2.googleapis.com/token') {
+      expect(init?.redirect).toBe('manual');
+      return Response.json({ access_token: 'fixture-token', token_type: 'Bearer' });
+    }
+    if (url.startsWith('https://docs.googleapis.com/v1/documents/')) {
+      expect(init?.redirect).toBe('manual');
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer fixture-token');
+      expect(url.startsWith('https://docs.googleapis.com/v1/documents/' + docId)).toBe(true);
+      if (url.endsWith(':batchUpdate')) {
+        docsWrites++;
+        const body = JSON.parse(String(init?.body));
+        expect(body.writeControl.requiredRevisionId).toBe('FIXTURE_SOURCE_REV_1');
+        expect(body.requests).toHaveLength(1);
+        expect(body.requests[0].insertText.endOfSegmentLocation.tabId).toBe('t.0');
+        paragraphs.push(body.requests[0].insertText.text.trim());
+        revision = 'FIXTURE_SOURCE_REV_2';
+        return Response.json({ documentId: docId, replies: [{}] });
+      }
+      docsGets++;
+      return Response.json({
+        documentId: docId, revision,
+        tabs: [{ tabProperties: { tabId: 't.0' }, documentTab: { body: {
+          content: paragraphs.map(s => ({ paragraph: { elements: [{ textRun: { content: s + '\n' } }] } })),
+        } } }],
+      });
+    }
+    throw new Error('Unexpected network call in fixture');
+  };
+  try {
+    const headers = {
+      'Cf-Access-Jwt-Assertion': auth.token,
+      Origin: origin, 'Content-Type': 'application/json',
+    };
+    const wrong = await handlePrivatePlacementReviewRequest(
+      new Request(origin + base + '/observations', {
+        method: 'POST', headers: { ...headers, Origin: 'https://other.invalid' },
+        body: JSON.stringify({ payload }),
+      }), env,
+    );
+    expect(wrong.status).toBe(404);
+    expect(docsWrites).toBe(0);
+    const response = await handlePrivatePlacementReviewRequest(
+      new Request(origin + base + '/observations', {
+        method: 'POST', headers, body: JSON.stringify({ payload }),
+      }), env,
+    );
+    expect(response.status).toBe(200);
+    const ack = await response.json();
+    expect(ack.receipt.status).toBe('PERSISTED_TO_EXISTING_G2');
+    expect(ack.receipt.recordId).toMatch(/^P137E_G2_[A-Za-z0-9_-]{12,64}$/);
+    expect(ack.readback).toEqual({ recordId: ack.receipt.recordId, payload });
+    expect(docsWrites).toBe(1);
+    expect(docsGets).toBeGreaterThanOrEqual(3);
+    expect(revision).toBe('FIXTURE_SOURCE_REV_2');
+    const independentlyRead = await handlePrivatePlacementReviewRequest(
+      request(base + '/observations/' + ack.receipt.recordId, 'GET',
+        { 'Cf-Access-Jwt-Assertion': auth.token }), env,
+    );
+    expect(independentlyRead.status).toBe(200);
+    expect(await independentlyRead.json()).toEqual({ recordId: ack.receipt.recordId, payload });
+    expect(docsWrites).toBe(1);
+    expect(payload.humanReview).toBe('NOT_RUN');
+    expect(payload.currentGeometry).toBe(false);
+    expect(payload.canonical).toBe(false);
+    expect(payload.asBuilt).toBe(false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test('P137E transport classifies only its own private G2 paths', () => {
   expect(isPrivatePlacementReviewPath(base + '/targets')).toBe(true);
