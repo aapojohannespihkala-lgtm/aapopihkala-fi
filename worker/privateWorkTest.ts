@@ -565,6 +565,17 @@ const P137E_D1F_THREE_WALL_MOUNTED_THEMOS_CANDIDATE = {
   expectedSha256: '07331f15ca223a5db8e0e8ea8955d7707f880cef23ca80b09dc6611730ae0b7d',
 } as const satisfies PrivateWorkTestCandidate;
 
+// P166F: exact stored historical review proxy carrier with eight lightwell
+// presentation anchors, not verified physical openings or CURRENT geometry.
+const P166F_LIGHTWELL_PROXIES_WORK_TEST_CANDIDATE = {
+  id: 'p166f-lightwell-proxies',
+  label: 'P166F eight lightwell review proxies - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/p166f-lightwell-proxies.glb`,
+  objectKey: 'work-test/p166f-lightwell-proxies.glb',
+  expectedSize: 2_030_604,
+  expectedSha256: '3b1e2158408937be1f11a27b16eae605204d5aa2184c7d513f6883d92a430f0a',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -573,6 +584,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE,
   M5A_R1115_SOK23_PLANNED_RAISE_PRESENCE_CANDIDATE,
   P137E_D1F_THREE_WALL_MOUNTED_THEMOS_CANDIDATE,
+  P166F_LIGHTWELL_PROXIES_WORK_TEST_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
