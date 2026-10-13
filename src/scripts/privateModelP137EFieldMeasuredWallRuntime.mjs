@@ -118,3 +118,186 @@ export function makeP137EFieldMeasuredWallWorkTest(original) {
   for(let i=0;i<pos.length;i++)posWrite.setFloat32(i*4,pos[i],true);
   return out;
 }
+
+
+/**
+ * Source-bound combined WORK_TEST presentation. Scene68 (the already-verified
+ * 960/710/205/1020 mm I03 wall) remains byte-for-byte unchanged. Scene69
+ * adds only the three source-identified 40 x 40 mm L-junction gap fillers.
+ * Each gap is derived from the verified neighboring source wall display
+ * rectangles. Neither thickness nor XY is asserted to be a physical survey.
+ *
+ * This is a model constructor, NOT publication, rendering or HUMAN_REVIEW.
+ */
+export const P137E_THREE_CORNER_MEASURED_SCENE_INDEX = 69;
+export const P137E_THREE_CORNER_MEASURED_REVIEW_ROOT =
+  'P137E_SCENE69_THREE_SOURCE_CORNERS_AND_I03_FIELD_WORK_TEST_ROOT';
+
+const p137eCornerJoins = Object.freeze([
+  { horizontal:104, vertical:160, x:2.337, y:10.544 },
+  { horizontal:168, vertical:160, x:2.337, y:7.285 },
+  { horizontal:152, vertical:144, x:2.589, y:3.224 },
+]);
+
+function p137eSourceCornerPatches(positions) {
+  const bounds = (first) => {
+    const p = Array.from({ length:8 }, (_, k) => [
+      positions[3*(first+k)], positions[3*(first+k)+1], positions[3*(first+k)+2]
+    ]);
+    const low = [0,1,2].map(axis=>Math.min(...p.map(q=>q[axis])));
+    const high = [0,1,2].map(axis=>Math.max(...p.map(q=>q[axis])));
+    if (!same(low[2],0) || !same(high[2],2.76)) fail('corner source height '+first);
+    return { low, high };
+  };
+  const extent=(b,a)=>b.high[a]-b.low[a];
+  const patches=[];
+  for (const entry of p137eCornerJoins) {
+    const h=bounds(entry.horizontal), v=bounds(entry.vertical);
+    if (!same(extent(h,1),.08) || !same(extent(v,0),.08) ||
+        extent(h,0)<.1 || extent(v,1)<.1) fail('corner source rectangle axes');
+    const cx=(v.low[0]+v.high[0])/2, cy=(h.low[1]+h.high[1])/2;
+    if(Math.abs(cx-entry.x)>.012 || Math.abs(cy-entry.y)>.012 ||
+       !same((h.low[1]+h.high[1])/2,cy) ||
+       !same((v.low[0]+v.high[0])/2,cx)) fail('corner source centerline anchor');
+    const xPositive=same(h.high[0],cx), xNegative=same(h.low[0],cx);
+    const yPositive=same(v.high[1],cy), yNegative=same(v.low[1],cy);
+    if(xPositive===xNegative || yPositive===yNegative)
+      fail('corner source not a terminating orthogonal L');
+    const dx=(xPositive ? +.04 : -.04), dy=(yPositive ? +.04 : -.04);
+    const b={ minX:Math.min(cx,cx+dx),maxX:Math.max(cx,cx+dx),
+      minY:Math.min(cy,cy+dy),maxY:Math.max(cy,cy+dy),
+      minZ:0,maxZ:2.76, sourcePair:[entry.horizontal,entry.vertical] };
+    // The missing outside quadrant must not already occupy either source wall.
+    const positiveIntersection=(a0,a1,b0,b1)=>Math.max(0,Math.min(a1,b1)-Math.max(a0,b0));
+    for(const neighbor of [h,v]) {
+      const shared=positiveIntersection(b.minX,b.maxX,neighbor.low[0],neighbor.high[0])*
+        positiveIntersection(b.minY,b.maxY,neighbor.low[1],neighbor.high[1]);
+      if(shared>.000001) fail('corner patch overlaps source wall');
+    }
+    if(!same(b.maxX-b.minX,.04) || !same(b.maxY-b.minY,.04))
+      fail('corner patch dimensions');
+    patches.push(b);
+  }
+  return patches;
+}
+
+function p137eGlbJsonAndBinary(glb) {
+  const view=new DataView(glb);
+  const bytes=new Uint8Array(glb);
+  const jl=view.getUint32(12,true);
+  if(view.getUint32(0,true)!==0x46546c67 || view.getUint32(4,true)!==2 ||
+     view.getUint32(8,true)!==glb.byteLength ||
+     view.getUint32(16,true)!==0x4e4f534a) fail('combined GLB header');
+  const start=20+jl, bl=view.getUint32(start,true);
+  if(view.getUint32(start+4,true)!==0x004e4942 || start+8+bl!==glb.byteLength)
+    fail('combined GLB BIN');
+  return { doc:JSON.parse(new TextDecoder().decode(cut(bytes,20,jl))),
+    bin:cut(bytes,start+8,bl) };
+}
+
+function p137eGapBoxTriangles(patches) {
+  const xyz=[],norm=[],indices=[];
+  const face=(corners,normal)=>{
+    const base=xyz.length/3;
+    for(const point of corners){xyz.push(...point);norm.push(...normal);}
+    indices.push(base,base+1,base+2,base,base+2,base+3);
+  };
+  for(const p of patches) {
+    const [a,b,c,d,z0,z1]=[p.minX,p.maxX,p.minY,p.maxY,p.minZ,p.maxZ];
+    face([[a,c,z0],[a,c,z1],[a,d,z1],[a,d,z0]],[-1,0,0]);
+    face([[b,c,z0],[b,d,z0],[b,d,z1],[b,c,z1]],[+1,0,0]);
+    face([[a,c,z0],[b,c,z0],[b,c,z1],[a,c,z1]],[0,-1,0]);
+    face([[a,d,z0],[a,d,z1],[b,d,z1],[b,d,z0]],[0,+1,0]);
+    face([[a,c,z0],[a,d,z0],[b,d,z0],[b,c,z0]],[0,0,-1]);
+    face([[a,c,z1],[b,c,z1],[b,d,z1],[a,d,z1]],[0,0,+1]);
+  }
+  if(xyz.length!==216 || norm.length!==216 || indices.length!==108)
+    fail('corner mesh topology');
+  return {xyz,norm,indices};
+}
+
+export function makeP137EThreeCornerMeasuredWorkTest(original) {
+  // Preserve the currently integrated scene68 and its verified display-face
+  // binding; never return the older scene70 local candidate's 40mm-overlap XY.
+  const measured=makeP137EFieldMeasuredWallWorkTest(original);
+  const {doc,bin}=p137eGlbJsonAndBinary(measured);
+  if(doc.scene!==68 || doc.scenes.length!==69 || doc.meshes.length!==556 ||
+     doc.scenes[68]?.nodes?.[0]!==1109 ||
+     doc.nodes[1109]?.name!==P137E_MEASURED_WALL_REVIEW_ROOT)
+    fail('measured source scene identity');
+  const originalPositionAccessor=doc.accessors[doc.meshes[406].primitives[0].attributes.POSITION];
+  const originalView=doc.bufferViews[originalPositionAccessor.bufferView];
+  const byteOffset=originalView.byteOffset+(originalPositionAccessor.byteOffset||0);
+  if(originalPositionAccessor.count!==176 || byteOffset+176*12>bin.length)
+    fail('source positions read');
+  const view=new DataView(bin.buffer,bin.byteOffset+byteOffset,176*12);
+  const positions=Array.from({length:176*3},(_,i)=>view.getFloat32(i*4,true));
+  const patches=p137eSourceCornerPatches(positions);
+  const tri=p137eGapBoxTriangles(patches);
+  const floats=tri.xyz.length;
+  const posBytes=floats*4, normalBytes=floats*4, indexBytes=tri.indices.length*2;
+  const appended=new Uint8Array(posBytes+normalBytes+indexBytes);
+  const writer=new DataView(appended.buffer);
+  tri.xyz.forEach((v,i)=>writer.setFloat32(i*4,v,true));
+  tri.norm.forEach((v,i)=>writer.setFloat32(posBytes+i*4,v,true));
+  tri.indices.forEach((v,i)=>writer.setUint16(posBytes+normalBytes+i*2,v,true));
+  const viewStart=doc.bufferViews.length;
+  doc.bufferViews.push(
+    {buffer:0,byteOffset:bin.length,byteLength:posBytes,target:34962},
+    {buffer:0,byteOffset:bin.length+posBytes,byteLength:normalBytes,target:34962},
+    {buffer:0,byteOffset:bin.length+posBytes+normalBytes,byteLength:indexBytes,target:34963}
+  );
+  const a=doc.accessors.length;
+  doc.accessors.push(
+    {bufferView:viewStart,componentType:5126,count:tri.xyz.length/3,type:'VEC3',
+      min:[Math.min(...tri.xyz.filter((_,i)=>i%3===0)),Math.min(...tri.xyz.filter((_,i)=>i%3===1)),0],
+      max:[Math.max(...tri.xyz.filter((_,i)=>i%3===0)),Math.max(...tri.xyz.filter((_,i)=>i%3===1)),2.76]},
+    {bufferView:viewStart+1,componentType:5126,count:tri.norm.length/3,type:'VEC3'},
+    {bufferView:viewStart+2,componentType:5123,count:tri.indices.length,type:'SCALAR'}
+  );
+  const originalPrimitive=doc.meshes[406].primitives[0];
+  const primitive={attributes:{POSITION:a,NORMAL:a+1},indices:a+2,mode:4};
+  if(n(originalPrimitive.material)) primitive.material=originalPrimitive.material;
+  doc.meshes.push({name:'P137E_SOURCE_BOUNDED_THREE_L_GAP_FILLERS_WORK_TEST',
+    primitives:[primitive],extras:{sourceOriginalMesh:406,
+      gapSizeMM:40, sourceJunctionPairs:patches.map(p=>p.sourcePair),
+      patchesXY:patches.map(p=>[p.minX,p.maxX,p.minY,p.maxY]),
+      presentationOnly:true,sourceXYBinding:'CONDITIONAL_UNVERIFIED',
+      workTest:true,current:false,canonical:false,asBuilt:false}});
+  const patchNode=doc.nodes.length;
+  doc.nodes.push({mesh:doc.meshes.length-1,name:'P137E_THREE_CORNER_SOURCE_PATCHES'});
+  const wallNode=doc.nodes.length;
+  doc.nodes.push({...clone(doc.nodes[1108]),children:[patchNode],
+    name:'P137E_FIELD_I03_WALL_WITH_THREE_SOURCE_CORNER_PATCHES'});
+  const rootIndex=doc.nodes.length;
+  const root=clone(doc.nodes[1109]);
+  root.name=P137E_THREE_CORNER_MEASURED_REVIEW_ROOT;
+  root.children=[wallNode,1091,1096,1101];
+  root.extras={...root.extras,sourceCornerGapsClosed:3,
+    cornerGapMM:40,physicalCornerThicknessVerified:false,
+    sourceXYBinding:'CONDITIONAL_UNVERIFIED'};
+  doc.nodes.push(root);
+  const scene=clone(doc.scenes[68]);
+  scene.name='P137E D1F THREE SOURCE L CORNERS + MEASURED I03 WORK_TEST';
+  scene.nodes=[rootIndex];
+  scene.extras={...scene.extras,sourceScene:67,
+    scene68FieldMeasurementsPreserved:true,sourceCornerGapsClosed:3,
+    physicalWallThicknessVerified:false,sourceXYBinding:'CONDITIONAL_UNVERIFIED',
+    current:false,canonical:false,asBuilt:false,HUMAN_REVIEW:'NOT_RUN'};
+  doc.scenes.push(scene);
+  doc.scene=P137E_THREE_CORNER_MEASURED_SCENE_INDEX;
+  doc.buffers[0].byteLength=bin.length+appended.length;
+  const encoded=new TextEncoder().encode(JSON.stringify(doc));
+  const padded=align4(encoded.byteLength);
+  const out=new ArrayBuffer(12+8+padded+8+doc.buffers[0].byteLength);
+  const dv=new DataView(out), target=new Uint8Array(out);
+  dv.setUint32(0,0x46546c67,true);dv.setUint32(4,2,true);dv.setUint32(8,out.byteLength,true);
+  dv.setUint32(12,padded,true);dv.setUint32(16,0x4e4f534a,true);
+  target.fill(32,20,20+padded);target.set(encoded,20);
+  const binStart=20+padded;
+  dv.setUint32(binStart,doc.buffers[0].byteLength,true);
+  dv.setUint32(binStart+4,0x004e4942,true);
+  target.set(bin,binStart+8);
+  target.set(appended,binStart+8+bin.length);
+  return out;
+}
