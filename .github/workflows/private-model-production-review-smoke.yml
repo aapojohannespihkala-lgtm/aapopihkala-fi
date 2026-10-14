@@ -22,13 +22,14 @@ on:
           - g2-readiness
           - g2-records-readback
       measured_candidate:
-        description: Exact source for the measured D1F five-target probe
+        description: Exact D1F source and its complete target set
         required: true
         type: choice
         default: d1f-measured-wall-140-100-2350-b710-basin-20261014
         options:
           - d1f-measured-wall-140-100-2350-b710-basin-20261014
           - d1f-finished-face-2360-wall-basin-20261014
+          - d1f-four-review-corrections-20261014
       review_id:
         description: Full-render review ID; r1125-render fills this automatically
         required: true
@@ -2241,7 +2242,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'd1f-measured-pixels'
     runs-on: ubuntu-latest
     timeout-minutes: 14
-    # Every row validates the same measured immutable source and five independent ROI targets.
+    # Every row validates the exact immutable source and all five or seven source ROI targets.
     # A successful workflow therefore requires all four measured source variants to pass.
     strategy:
       fail-fast: false
@@ -2268,7 +2269,7 @@ jobs:
         run: npm ci
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Verify authenticated measured source autoload and five source targets
+      - name: Verify authenticated source autoload and its complete source target set
         env:
           PROBE_MODE: ${{ inputs.probe_mode }}
           D1F_COMBINED_VARIANT: ${{ matrix.variant }}

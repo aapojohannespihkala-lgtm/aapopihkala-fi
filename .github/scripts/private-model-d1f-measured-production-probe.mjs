@@ -2,20 +2,23 @@ import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
 import { D1F_COMBINED_WALL_ASSETS, D1F_COMBINED_WALL_VARIANTS } from '../../src/scripts/privateModelD1FCombinedWallSceneContract.mjs';
-import { D1F_FIVE_PIXEL_TARGETS, evaluateD1FOneMeasuredTargetPixelSample, evaluateD1FFiveTargetPixelGate } from '../../src/scripts/privateModelD1FFourTargetPixelGate.mjs';
+import { D1F_FIVE_PIXEL_TARGETS, D1F_SEVEN_PIXEL_TARGETS, evaluateD1FOneMeasuredTargetPixelSample, evaluateD1FFiveTargetPixelGate, evaluateD1FSevenTargetPixelGate } from '../../src/scripts/privateModelD1FFourTargetPixelGate.mjs';
 
 const ORIGIN = 'https://aapopihkala.fi';
 const DEFAULT_ID = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
 const ID = process.env.D1F_MEASURED_CANDIDATE_ID ?? DEFAULT_ID;
-if (![DEFAULT_ID, 'd1f-finished-face-2360-wall-basin-20261014'].includes(ID)) throw new Error('D1F_MEASURED_SOURCE_REJECTED');
+if (![DEFAULT_ID, 'd1f-finished-face-2360-wall-basin-20261014', 'd1f-four-review-corrections-20261014'].includes(ID)) throw new Error('D1F_MEASURED_SOURCE_REJECTED');
 const ASSET = D1F_COMBINED_WALL_ASSETS[ID];
+const CORRECTIONS = ASSET.fourUserCorrections === true;
+const TARGETS = CORRECTIONS ? D1F_SEVEN_PIXEL_TARGETS : D1F_FIVE_PIXEL_TARGETS;
 const PATH = '/private-model/work-test/' + ID + '.glb';
 const OUT = 'test-results/d1f-measured-production';
 const hash = b => createHash('sha256').update(b).digest('hex');
 const evidence = { result: 'FAIL', phase: 'TRUSTED_PUBLISHER', candidateId: ID,
   sourceBytes: ASSET.bytes, sourceSha256: ASSET.sha256, variants: [],
   authenticatedAutoloadVerified: false, actualBrowserWebGlVerified: false,
-  fiveTargetsRenderedVerified: false, humanReview: 'NOT_RUN', current: false, asBuilt: false };
+  fiveTargetsRenderedVerified: false, sevenTargetsRenderedVerified: false,
+  reportedCorrectionsGeometryVerified: false, humanReview: 'NOT_RUN', current: false, asBuilt: false };
 const bounded = async (fn, ms = 45000) => {
   let timer;
   try { return await Promise.race([Promise.resolve().then(fn),
@@ -31,7 +34,7 @@ const driverDeadline=setTimeout(()=>{
   fs.writeFileSync(OUT+'/evidence.json',JSON.stringify(evidence,null,2)+'\n');
   console.log(JSON.stringify(evidence));
   process.exit(1);
-},540000);
+},CORRECTIONS ? 720000 : 540000);
 try {
   check(process.env.GITHUB_REF === 'refs/heads/main' &&
     process.env.GITHUB_REPOSITORY === 'aapojohannespihkala-lgtm/aapopihkala-fi');
@@ -76,7 +79,7 @@ try {
     },currentId,{timeout:5000});
     const value = await bounded(()=>canvas.evaluate(c=>JSON.parse(c.dataset.d1fCombinedWallProbe)),5000);
     evidence.lastProbeAction=action;
-    evidence.lastProbeState=['PREPARED','SUPPRESSED','RESTORED','FINISHED','REJECTED'].includes(value.state)
+    evidence.lastProbeState=['PREPARED','SUPPRESSED','RESTORED','FINISHED','GEOMETRY_VERIFIED','REJECTED'].includes(value.state)
       ? value.state : 'INVALID';
     check(value.state !== 'REJECTED');
     await bounded(()=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))),5000);
@@ -120,7 +123,7 @@ try {
       navigation.headers()['content-type']?.includes('text/html'));
     evidence.phase='EXACT_AUTOLOAD';
     const required={modelSource:'work-test',workTestReviewAutoload:'true',workTestReviewMode:ID+'-review',
-      d1fCombinedWallVariant:variant,d1fCombinedWallCornerCount:'3',d1fCombinedWallPixelTargets:'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589,BASIN',d1fCombinedWallRawBytes:String(ASSET.bytes),
+      d1fCombinedWallVariant:variant,d1fCombinedWallCornerCount:'3',d1fCombinedWallPixelTargets:TARGETS.join(','),d1fCombinedWallRawBytes:String(ASSET.bytes),
       d1fCombinedWallRawSha256:ASSET.sha256,d1fCombinedWallPhysicalXYVerified:'false',
       d1fCombinedWallHumanReview:'NOT_RUN'};
     await page.waitForFunction(required=>{
@@ -150,9 +153,12 @@ try {
     const orbited=await capture(prefix+'-orbit');
     const orbitChanged=deltaCount(initial,orbited);
     check(nonBackground>=1500 && orbitChanged>=750);
-    evidence.phase='FIVE_SOURCE_TARGET_PIXELS';
+    const correctionsGeometry = CORRECTIONS ? await send('inspect-corrections',null) : null;
+    if(CORRECTIONS) check(correctionsGeometry.gate==='PASS_FOUR_REPORTED_CORRECTIONS_IN_LOADED_GEOMETRY' &&
+      correctionsGeometry.glbSha256===ASSET.sha256 && correctionsGeometry.variant===variant);
+    evidence.phase=CORRECTIONS?'SEVEN_SOURCE_TARGET_PIXELS':'FIVE_SOURCE_TARGET_PIXELS';
     const samples=[], captures=[];
-    for(const targetId of D1F_FIVE_PIXEL_TARGETS) {
+    for(const targetId of TARGETS) {
       evidence.currentTarget=targetId;
       let accepted=false;
       for(let viewIndex=0;viewIndex<4&&!accepted;viewIndex++) {
@@ -183,20 +189,25 @@ try {
         catch {continue;}
         samples.push(sample);
         captures.push({targetId,viewIndex,cameraFingerprint:prepared.cameraFingerprint,roi:prepared.roi,
-          sourceI03Indices:prepared.sourceI03Indices,beforePngSha256:baseline.pngSha256,
+          sourceI03Indices:prepared.sourceI03Indices,sourceTargetIndices:prepared.sourceTargetIndices,beforePngSha256:baseline.pngSha256,
           hiddenPngSha256:suppressed.pngSha256,restoredPngSha256:afterRestore.pngSha256});
         accepted=true;
       }
       check(accepted);
     }
-    const pixels=evaluateD1FFiveTargetPixelGate(samples,{candidateId:ID});
+    const pixels=CORRECTIONS ? evaluateD1FSevenTargetPixelGate(samples,{candidateId:ID})
+      : evaluateD1FFiveTargetPixelGate(samples,{candidateId:ID});
+    if(CORRECTIONS) check(JSON.stringify(await send('inspect-corrections',null)).replace(/,?\"requestId\":\d+/g,'')===
+      JSON.stringify(correctionsGeometry).replace(/,?\"requestId\":\d+/g,''));
     await send('finish',null);
     evidence.variants.push({variant,exactAutoloadResponseVerified:true,actualWebGlContextVerified:true,
-      nonBackgroundPixels:nonBackground,orbitChangedPixels:orbitChanged,pixels,captures});
+      nonBackgroundPixels:nonBackground,orbitChangedPixels:orbitChanged,pixels,captures,correctionsGeometry});
   }
   evidence.phase='COMPLETE';evidence.result='PASS';
   evidence.authenticatedAutoloadVerified=true;evidence.actualBrowserWebGlVerified=true;
-  evidence.fiveTargetsRenderedVerified=true;
+  evidence.fiveTargetsRenderedVerified=!CORRECTIONS;
+  evidence.sevenTargetsRenderedVerified=CORRECTIONS;
+  evidence.reportedCorrectionsGeometryVerified=CORRECTIONS;
 } catch {
   evidence.result='FAIL';
   process.exitCode=1;

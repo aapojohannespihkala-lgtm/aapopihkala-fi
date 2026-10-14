@@ -265,7 +265,7 @@ jobs:
           echo "Production byte-for-byte readback verified."
 
       - name: Dispatch finished-face source render after exact production proof
-        if: success() && inputs.candidate == 'd1f-finished-face-2360-wall-basin-20261014'
+        if: success() && (inputs.candidate == 'd1f-finished-face-2360-wall-basin-20261014' || inputs.candidate == 'd1f-four-review-corrections-20261014')
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -281,7 +281,7 @@ jobs:
           import sys
 
           candidate = os.environ["CANDIDATE_ID"]
-          if candidate != "d1f-finished-face-2360-wall-basin-20261014":
+          if candidate not in ("d1f-finished-face-2360-wall-basin-20261014", "d1f-four-review-corrections-20261014"):
               raise SystemExit("finished-face source mismatch")
           payload = {"ref": "main", "inputs": {
               "probe_mode": "d1f-measured-pixels",

@@ -7,9 +7,9 @@ import { D1F_COMBINED_WALL_ASSETS } from '../../src/scripts/privateModelD1FCombi
 // Does NOT assert original source bytes, browser pixels, or production publication.
 const sha = D1F_COMBINED_WALL_ASSETS['d1f-measured-wall-140-100-2350-b710-basin-20261014'].sha256;
 const triangles = [0,1,2,0,2,3,4,6,5,4,7,6,0,4,5,0,5,1,1,5,6,1,6,2,2,6,7,2,7,3,3,7,4,3,4,0];
-function fixture(finished = false, west = true) {
-  const count = finished && west ? 256 : 240;
-  const indexCount = finished && west ? 480 : 396;
+function fixture(finished = false, west = true, corrections = false) {
+  const count = (finished && west ? 256 : 240)+(corrections ? 16 : 0);
+  const indexCount = (finished && west ? 480 : 396)+(corrections ? 60 : 0);
   const scene = new THREE.Scene(), root = new THREE.Group(), wall = new THREE.Group();
   root.rotation.x = -Math.PI / 2; scene.add(root); root.add(wall);
   wall.userData.sourceNodeIndex = 798;
@@ -27,6 +27,21 @@ function fixture(finished = false, west = true) {
   geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
   geometry.setIndex([...triangles.map(i=>i+144),...triangles.map(i=>i+128),
     ...Array.from({length:indexCount-72},(_,i)=>176+triangles[i%36])]);
+  if(corrections) {
+    // A synthetic source slab, B-wall block and door reveal ring. No private GLB is committed.
+    const base=west?256:240, shift=west?0:.018;
+    for(const [j,px] of [4.078+shift,4.788+shift].entries())
+      for(const [k,py] of [5.032,5.147].entries())
+        for(const [m,pz] of [.08,2.015].entries()) positions.set([px,py,pz],(base+[4,5,6,7,12,13,14,15][j*4+k*2+m])*3);
+    for(let i=200;i<216;i++)positions.set([3.788+shift+(i%2)*.1, .249+((i>>1)%2)*1.793, i%4<2?.08:2.43],i*3);
+    const idx=Array.from(geometry.index!.array);
+    const stepOffsets=Array.from({length:12},(_,i)=>180+i*3);
+    stepOffsets.forEach((o,i)=>idx.splice(o,3,...triangles.slice(i*3,i*3+3).map(v=>v+200)));
+    const reveals=Array.from({length:8},(_,i)=>indexCount-24+i*3), rv=[4,5,6,7,12,13,14,15];
+    reveals.forEach((o,i)=>idx.splice(o,3,base+rv[i],base+rv[(i+1)%8],base+rv[(i+2)%8]));
+    geometry.setIndex(idx);
+    wall.userData.userReviewCorrections={lobbyDoor:{revealFocusIndexOffsets:reveals},wallContinuity:{focusIndexOffsets:stepOffsets}};
+  }
   const mesh = new THREE.Mesh(geometry,new THREE.MeshBasicMaterial());
   wall.add(mesh);
   // The separate source primitive contains no I03 triangles.
@@ -40,13 +55,13 @@ function fixture(finished = false, west = true) {
       object.userData.independentlyAddressableCorner=name;
       object.position.set(i+1,3,0); wall.add(object); return {name,object};
     });
-  const basinGeometry = new THREE.BoxGeometry(.495,1.025,.02);
-  basinGeometry.translate(4.1355,3.2495,.935);
+  const basinGeometry = new THREE.BoxGeometry(.495,1.025,corrections ? .06 : .02);
+  basinGeometry.translate(4.1355,3.2495,corrections ? .915 : .935);
   const counter = new THREE.Mesh(basinGeometry,new THREE.MeshBasicMaterial());
   Object.assign(counter.userData,{
     WORK_TEST_ONLY:true,current:false,Canonical:false,asBuilt:false,HUMAN_REVIEW:'NOT_RUN',
     logicalFixtureId:'D1F_KPH_BASIN_TOP_WORK_PROXY_01',
-    sourceRecord:finished ? 'G2_D1F_KPH_FINISHED_FACE_2360_FOUR_HYPOTHESES_20261014_1600' : 'G2_D1F_KPH_BASIN_SOURCE_FACE_X3P888_WORK_TEST_20261014',
+    sourceRecord:corrections ? 'G2_D1F_FOUR_USER_REVIEW_CORRECTIONS_20261014_2330' : finished ? 'G2_D1F_KPH_FINISHED_FACE_2360_FOUR_HYPOTHESES_20261014_1600' : 'G2_D1F_KPH_BASIN_SOURCE_FACE_X3P888_WORK_TEST_20261014',
     sourceHostFaceXM:3.888,finishedFloorWorkZM:.08,absoluteFaceSurveyVerified:false,
   });
   if (finished) {
@@ -59,7 +74,7 @@ function fixture(finished = false, west = true) {
   const controls:any={target:new THREE.Vector3(),enabled:true,enableDamping:true,autoRotate:false,
     update(){camera.lookAt(this.target);camera.updateMatrixWorld(true);}};
   const selected = {scene,wall,corners,counter,workTestOnly:true,variant:west ? 'WEST_ANCHOR_725_895_740' : 'EAST_ANCHOR_725_895_740'};
-  const options = {THREE,selected,sourceSha:finished ? D1F_COMBINED_WALL_ASSETS['d1f-finished-face-2360-wall-basin-20261014'].sha256 : sha,camera,controls,
+  const options = {THREE,selected,sourceSha:corrections ? D1F_COMBINED_WALL_ASSETS['d1f-four-review-corrections-20261014'].sha256 : finished ? D1F_COMBINED_WALL_ASSETS['d1f-finished-face-2360-wall-basin-20261014'].sha256 : sha,camera,controls,
     canvas:{getBoundingClientRect:()=>({width:1280,height:900})},render:()=>{}};
   return {options,mesh,counter,corners,camera,controls};
 }
@@ -135,4 +150,29 @@ test('finished source rejects wrong variant layout and shifted or physically app
   expect(()=>createD1FCombinedWallPixelRuntime(shifted.options)).toThrow();
   const physical=fixture(true,true); physical.counter.userData.physicalFinishedFaceVerified=true;
   expect(()=>createD1FCombinedWallPixelRuntime(physical.options)).toThrow();
+});
+
+for(const west of [true,false]) test('four corrections '+(west?'WEST':'EAST')+' validate geometry and isolate each added indexed target', () => {
+  const f=fixture(true,west,true),source=f.mesh.geometry;
+  const runtime=createD1FCombinedWallPixelRuntime(f.options);
+  expect(runtime.inspectCorrections()).toMatchObject({clearDoorWidthMm:710,clearDoorHeightMm:1935,
+    bWallJointStepMm:0,counterThicknessMm:60,reachableRoomFootprintCount:0,humanReview:'NOT_RUN'});
+  for(const [id,count] of [['LOBBY_DOOR_REVEALS',24],['B_WALL_CONTINUITY',36]] as const){
+    const p=runtime.prepare(id,1);expect(p.sourceTargetIndices?.count).toBe(count);
+    runtime.suppress(id);expect(f.mesh.geometry.index!.count).toBe((west?540:456)-count);
+    expect(f.counter.visible).toBe(true);expect(f.corners.every(c=>c.object.visible)).toBe(true);
+    expect(()=>runtime.inspectCorrections()).toThrow();runtime.restore();expect(f.mesh.geometry).toBe(source);
+  }
+  expect(runtime.inspectCorrections().gate).toBe('PASS_FOUR_REPORTED_CORRECTIONS_IN_LOADED_GEOMETRY');runtime.dispose();
+});
+
+test('four-correction geometry gate rejects reintroduced step, 20 mm slab, footprint and wrong reveal roster',()=>{
+  for(const kind of ['step','slab','footprint','roster']){
+    const f=fixture(true,true,true);
+    if(kind==='step')f.mesh.geometry.attributes.position.setZ(202,2.76);
+    if(kind==='slab')f.counter.geometry.scale(1,1,1/3);
+    if(kind==='footprint'){const floor=new THREE.Group();floor.userData.representationKind='referenceFootprint';f.options.selected.scene.add(floor);}
+    if(kind==='roster')f.options.selected.wall.userData.userReviewCorrections.lobbyDoor.revealFocusIndexOffsets[0]-=3;
+    expect(()=>createD1FCombinedWallPixelRuntime(f.options),kind).toThrow('D1F_SOURCE_PIXEL_RUNTIME_REJECTED');
+  }
 });

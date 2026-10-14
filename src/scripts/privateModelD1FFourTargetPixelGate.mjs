@@ -20,12 +20,15 @@ export const D1F_FOUR_PIXEL_TARGETS = Object.freeze([
   'CORNER_MIDDLE_X2589',
 ]);
 export const D1F_FIVE_PIXEL_TARGETS = Object.freeze([...D1F_FOUR_PIXEL_TARGETS, 'BASIN']);
+export const D1F_SEVEN_PIXEL_TARGETS = Object.freeze([...D1F_FIVE_PIXEL_TARGETS, 'LOBBY_DOOR_REVEALS', 'B_WALL_CONTINUITY']);
 const MEASURED_SOURCE_SHA = D1F_COMBINED_WALL_ASSETS['d1f-measured-wall-140-100-2350-b710-basin-20261014'].sha256;
 export const D1F_PIXEL_SUPPRESSION = Object.freeze({
   I03: 'I03_SOURCE_VERTEX_128_135_TRIANGLES_ONLY',
   CORNER_NORTH_X2337: 'CORNER_NODE_VISIBILITY_ONLY',
   CORNER_SOUTH_X2337: 'CORNER_NODE_VISIBILITY_ONLY',
   CORNER_MIDDLE_X2589: 'CORNER_NODE_VISIBILITY_ONLY',
+  LOBBY_DOOR_REVEALS: 'LOBBY_DOOR_SOURCE_REVEAL_TRIANGLES_ONLY',
+  B_WALL_CONTINUITY: 'B_CONTINUITY_SOURCE_VERTEX_200_207_TRIANGLES_ONLY',
 });
 const D1F_MEASURED_PIXEL_SUPPRESSION = Object.freeze({
   ...D1F_PIXEL_SUPPRESSION,
@@ -118,7 +121,8 @@ function measuredSourceSha(candidateId) {
 
 export function evaluateD1FOneMeasuredTargetPixelSample(sample, { candidateId = 'd1f-measured-wall-140-100-2350-b710-basin-20261014' } = {}) {
   return verifySample(sample, 40, 8,
-    D1F_FIVE_PIXEL_TARGETS, D1F_MEASURED_PIXEL_SUPPRESSION, measuredSourceSha(candidateId));
+    D1F_COMBINED_WALL_ASSETS[candidateId]?.fourUserCorrections ? D1F_SEVEN_PIXEL_TARGETS : D1F_FIVE_PIXEL_TARGETS,
+    D1F_MEASURED_PIXEL_SUPPRESSION, measuredSourceSha(candidateId));
 }
 
 export function evaluateD1FFourTargetPixelGate(
@@ -154,6 +158,7 @@ export function evaluateD1FFourTargetPixelGate(
 export function evaluateD1FFiveTargetPixelGate(
   samples, { minRoiChangedPixels = 40, outsideChangeAllowance = 8, candidateId = 'd1f-measured-wall-140-100-2350-b710-basin-20261014' } = {},
 ) {
+  if (D1F_COMBINED_WALL_ASSETS[candidateId]?.fourUserCorrections) fail('corrected source requires all seven targets');
   if (!Array.isArray(samples) || samples.length !== 5 ||
       !integer(minRoiChangedPixels) || minRoiChangedPixels < 40 ||
       !integer(outsideChangeAllowance) || outsideChangeAllowance > 8) {
@@ -182,4 +187,19 @@ export function evaluateD1FFiveTargetPixelGate(
     productionPublicationVerifiedByThisFunction: false,
     humanReview: 'NOT_RUN',
   });
+}
+
+/** New source keeps every original pixel floor and adds the two reported wall targets. */
+export function evaluateD1FSevenTargetPixelGate(samples, { candidateId } = {}) {
+  if (!D1F_COMBINED_WALL_ASSETS[candidateId]?.fourUserCorrections ||
+      !Array.isArray(samples) || samples.length !== 7 ||
+      new Set(samples.map(s => s?.targetId)).size !== 7 ||
+      !D1F_SEVEN_PIXEL_TARGETS.every(id => samples.some(s => s?.targetId === id)) ||
+      new Set(samples.map(s => s?.baseline?.variant)).size !== 1) fail('seven distinct source-bound correction targets required');
+  const proofs = samples.map(s => verifySample(s, 40, 8, D1F_SEVEN_PIXEL_TARGETS,
+    D1F_MEASURED_PIXEL_SUPPRESSION, measuredSourceSha(candidateId)));
+  return Object.freeze({ gate: 'PASS_SEVEN_INDEPENDENT_DIFFERENTIAL_PIXEL_CONTRACTS_ONLY',
+    targets: proofs, checkedTargetCount: 7, originalGlbBytesAuthenticatedByThisFunction: false,
+    actualBrowserWebGlVerifiedByThisFunction: false, productionPublicationVerifiedByThisFunction: false,
+    humanReview: 'NOT_RUN' });
 }

@@ -2,10 +2,10 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { D1F_COMBINED_WALL_ASSETS } from '../../src/scripts/privateModelD1FCombinedWallSceneContract.mjs';
 import {
-  D1F_FOUR_PIXEL_TARGETS, D1F_FIVE_PIXEL_TARGETS,
+  D1F_FOUR_PIXEL_TARGETS, D1F_FIVE_PIXEL_TARGETS, D1F_SEVEN_PIXEL_TARGETS,
   D1F_PIXEL_SUPPRESSION,
   evaluateD1FOneTargetPixelSample, evaluateD1FOneMeasuredTargetPixelSample, evaluateD1FFourTargetPixelGate,
-  evaluateD1FFiveTargetPixelGate,
+  evaluateD1FFiveTargetPixelGate, evaluateD1FSevenTargetPixelGate,
 } from '../../src/scripts/privateModelD1FFourTargetPixelGate.mjs';
 
 const candidate = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
@@ -87,10 +87,11 @@ test('distinct main-only measured production matrix has all variants and is neve
   expect(script).toContain('const ID = process.env.D1F_MEASURED_CANDIDATE_ID ?? DEFAULT_ID');
   expect(measured).toContain('D1F_MEASURED_CANDIDATE_ID: ${{ inputs.measured_candidate }}');
   expect(script).toContain("PROBE_MODE === 'd1f-measured-pixels'");
-  expect(script).toContain('for(const targetId of D1F_FIVE_PIXEL_TARGETS)');
+  expect(script).toContain('for(const targetId of TARGETS)');
+  expect(script).toContain('CORRECTIONS ? D1F_SEVEN_PIXEL_TARGETS : D1F_FIVE_PIXEL_TARGETS');
   expect(script).toContain('evaluateD1FOneMeasuredTargetPixelSample(sample,{candidateId:ID})');
   expect(script).toContain('evaluateD1FFiveTargetPixelGate(samples,{candidateId:ID})');
-  expect(script).toContain("d1fCombinedWallPixelTargets:'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589,BASIN'");
+  expect(script).toContain("d1fCombinedWallPixelTargets:TARGETS.join(',')");
   expect(script).not.toContain('D1F_FOUR_PIXEL_TARGETS');
 });
 
@@ -104,4 +105,19 @@ test('finished-face five-target proof accepts only its new digest and never inhe
   expect(()=>evaluateD1FFiveTargetPixelGate(D1F_FIVE_PIXEL_TARGETS.map(id=>sample(id)),{candidateId})).toThrow();
   expect(()=>evaluateD1FFiveTargetPixelGate([...newSamples.slice(0,4),sample('BASIN')],{candidateId})).toThrow();
   expect(()=>evaluateD1FFiveTargetPixelGate(newSamples,{candidateId:'unknown'})).toThrow();
+});
+
+
+test('four reported corrections require seven distinct targets from the exact new source', () => {
+  const candidateId = 'd1f-four-review-corrections-20261014';
+  const digest = D1F_COMBINED_WALL_ASSETS[candidateId].sha256;
+  const seven = D1F_SEVEN_PIXEL_TARGETS.map(id => sample(id, digest));
+  expect(evaluateD1FSevenTargetPixelGate(seven,{candidateId}).checkedTargetCount).toBe(7);
+  expect(()=>evaluateD1FFiveTargetPixelGate(seven.slice(0,5),{candidateId})).toThrow();
+  for(const count of [4,5,6]) expect(()=>evaluateD1FSevenTargetPixelGate(seven.slice(0,count),{candidateId})).toThrow();
+  expect(()=>evaluateD1FSevenTargetPixelGate([...seven.slice(0,6),seven[0]],{candidateId})).toThrow();
+  expect(()=>evaluateD1FSevenTargetPixelGate([...seven.slice(0,6),sample('B_WALL_CONTINUITY',sha)],{candidateId})).toThrow();
+  expect(()=>evaluateD1FSevenTargetPixelGate([...seven.slice(0,6),sample('B_WALL_CONTINUITY',digest,'EAST_ANCHOR_725_895_740')],{candidateId})).toThrow();
+  const weak=seven.map(s=>({...s,suppressed:{...s.suppressed,rgba:s.baseline.rgba.slice()}}));
+  expect(()=>evaluateD1FSevenTargetPixelGate(weak,{candidateId})).toThrow();
 });
