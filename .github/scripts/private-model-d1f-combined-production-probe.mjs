@@ -35,6 +35,11 @@ try {
     process.env.GITHUB_REPOSITORY === 'aapojohannespihkala-lgtm/aapopihkala-fi');
   check(process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' &&
     process.env.PROBE_MODE === 'd1f-combined-pixels');
+  const requestedVariant = process.env.D1F_COMBINED_VARIANT;
+  check(D1F_COMBINED_WALL_VARIANTS.includes(requestedVariant));
+  // Matrix row proves only this source variant; overall success requires all four jobs.
+  evidence.probeVariant = requestedVariant;
+  evidence.allFourVariantsVerifiedByThisJob = false;
   evidence.trigger = 'TRUSTED_MAIN_EXPLICIT_DISPATCH';
   // Publication is independently proven by the canonical publisher. This
   // read-only browser gate verifies the fixed published bytes again.
@@ -76,6 +81,8 @@ try {
     return value;
   };
   const capture = async name => {
+    // Allowlisted target/view names only. Preserve the exact screenshot stage on timeout.
+    evidence.currentCapture = name;
     console.log(JSON.stringify({phase:evidence.phase,capture:name}));
     const png = await bounded(()=>canvas.screenshot({timeout:15000}));
     check(png.length > 100 && png.subarray(1,4).toString() === 'PNG');
@@ -101,7 +108,7 @@ try {
         Math.abs(a.rgba[i+2]-b.rgba[i+2]))>=28)count++;
     return count;
   };
-  for(const variant of D1F_COMBINED_WALL_VARIANTS) {
+  for(const variant of [requestedVariant]) {
     evidence.currentVariant=variant;
     responses=[];
     const url=ORIGIN+'/private-model/?review='+ID+'-review&wallVariant='+variant;

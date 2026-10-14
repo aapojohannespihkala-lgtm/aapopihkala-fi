@@ -2186,6 +2186,16 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'd1f-combined-pixels'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Every row validates the same immutable asset and four independent ROI targets.
+    # A successful workflow therefore requires all four source variants to pass.
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - WEST_ANCHOR_725_895_740
+          - WEST_ANCHOR_740_895_725
+          - EAST_ANCHOR_725_895_740
+          - EAST_ANCHOR_740_895_725
     permissions:
       contents: read
     steps:
@@ -2206,6 +2216,7 @@ jobs:
       - name: Verify authenticated exact combined autoload and four source targets
         env:
           PROBE_MODE: ${{ inputs.probe_mode }}
+          D1F_COMBINED_VARIANT: ${{ matrix.variant }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
         run: node .github/scripts/private-model-d1f-combined-production-probe.mjs
@@ -2213,6 +2224,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: d1f-combined-production-pixels
+          name: d1f-combined-production-pixels-${{ matrix.variant }}
           path: test-results/d1f-combined-production/
           if-no-files-found: ignore
