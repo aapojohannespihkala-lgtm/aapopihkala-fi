@@ -206,3 +206,61 @@ test('rejects a forged or historically aliased WORK_TEST candidate even with 34 
   expect(valid.sourceAuthenticated).toBe(false);
   expect(valid.productionScreenshotVerified).toBe(false);
 });
+
+function sparseFixture(lostPixels: number) {
+  const input = fixture();
+  for (const floor of input.floors) {
+    for (const target of floor.targets) {
+      for (let y = target.roi.y; y < target.roi.y + target.roi.height; y++)
+        for (let x = target.roi.x; x < target.roi.x + target.roi.width; x++)
+          paint(floor.baseline.pixels, x, y, [32, 38, 43, 255]);
+      for (let n = 0; n < lostPixels; n++)
+        paint(floor.baseline.pixels, target.roi.x + n % target.roi.width,
+          target.roi.y + Math.floor(n / target.roi.width), [255, 190, 20, 255]);
+    }
+    for (const target of floor.targets) {
+      const pixels = Uint8Array.from(floor.baseline.pixels);
+      for (let y = target.roi.y; y < target.roi.y + target.roi.height; y++)
+        for (let x = target.roi.x; x < target.roi.x + target.roi.width; x++)
+          paint(pixels, x, y, [32, 38, 43, 255]);
+      floor.hiddenFrames[target.sourceKey] = { ...floor.baseline, pixels };
+    }
+  }
+  return input;
+}
+
+test('callers cannot reduce four-pixel visibility floor for any of the 34 targets', () => {
+  for (const minLostPixels of [0, 1, 2, 3, NaN, Infinity, 4.5]) {
+    expect(() => check({ ...sparseFixture(3), minLostPixels }))
+      .toThrow('source or proof configuration');
+  }
+  expect(() => check(sparseFixture(3))).toThrow('not individually visible');
+  const boundary = check(sparseFixture(4));
+  expect([...boundary.D1F.identities, ...boundary.D2F.identities]
+    .every((target: any) => target.lostAmberPixels === 4)).toBe(true);
+  expect(boundary.productionScreenshotVerified).toBe(false);
+});
+
+test('stronger caller floors remain effective and retain no-promotion flags', () => {
+  const stronger = check({ ...sparseFixture(5), minLostPixels: 5 });
+  expect(stronger.targetCount).toBe(34);
+  expect(stronger).toMatchObject({ sourceAuthenticated: false,
+    productionScreenshotVerified: false, humanReview: 'NOT_RUN',
+    currentGeometry: false, canonical: false, asBuilt: false });
+  expect(() => check({ ...sparseFixture(5), minLostPixels: 6 }))
+    .toThrow('not individually visible');
+});
+
+test('callers cannot allow unrelated outside-ROI changes despite valid target loss', () => {
+  const input = fixture();
+  const floor = input.floors[0];
+  paint(floor.hiddenFrames[floor.targets[0].sourceKey].pixels,
+    W - 2, H - 2, [255, 0, 255, 255]);
+  for (const maxOutsidePixelChanges of [1, 2, 100, NaN, Infinity, -1]) {
+    expect(() => check({ ...input, maxOutsidePixelChanges }))
+      .toThrow('source or proof configuration');
+  }
+  expect(() => check({ ...input, maxOutsidePixelChanges: 0 }))
+    .toThrow('outside-ROI');
+  expect(check({ ...fixture(), maxOutsidePixelChanges: 0 }).targetCount).toBe(34);
+});
