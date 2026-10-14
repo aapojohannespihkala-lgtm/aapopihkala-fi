@@ -13,7 +13,7 @@ const oldCandidate = 'd1f-combined-wall-115-100-20261013';
 const sha = D1F_COMBINED_WALL_ASSETS[candidate].sha256;
 const variant = 'WEST_ANCHOR_725_895_740';
 
-function sample(targetId: string, digest = sha, selectedVariant = variant) {
+function sample(targetId: string, digest: string = sha, selectedVariant: string = variant) {
   const width = 64, height = 64, roi = { x: 20, y: 20, width: 12, height: 12 };
   const baseline = new Uint8Array(width * height * 4).fill(60);
   const suppressed = baseline.slice();
@@ -42,9 +42,9 @@ test('five independent source-locked ROI deltas include BASIN without changing l
     actualBrowserWebGlVerifiedByThisFunction: false,
     productionPublicationVerifiedByThisFunction: false, humanReview: 'NOT_RUN',
   });
-  expect(result.targets.map(t => t.targetId)).toEqual(D1F_MEASURED_PIXEL_TARGETS);
-  expect(result.targets.every(t => t.changedInside === 144 && t.changedOutside === 0)).toBe(true);
-  expect(evaluateD1FOneTargetPixelSample(sample('BASIN')).changedInside).toBe(144);
+  expect(result.targets.map((t: { targetId: string }) => t.targetId)).toEqual(D1F_MEASURED_PIXEL_TARGETS);
+  expect(result.targets.every((t: { changedInside: number; changedOutside: number }) => t.changedInside === 144 && t.changedOutside === 0)).toBe(true);
+  expect(() => evaluateD1FOneTargetPixelSample(sample('BASIN'))).toThrow('unknown target ID');
   expect(() => evaluateD1FFourTargetPixelGate(five)).toThrow();
   const old = D1F_FOUR_PIXEL_TARGETS.map(id =>
     sample(id, D1F_COMBINED_WALL_ASSETS[oldCandidate].sha256));
@@ -84,6 +84,7 @@ test('distinct main-only measured production matrix has all variants and is neve
   expect(script).toContain("const ID = 'd1f-measured-wall-140-100-2350-b710-basin-20261014'");
   expect(script).toContain("PROBE_MODE === 'd1f-measured-pixels'");
   expect(script).toContain('for(const targetId of D1F_MEASURED_PIXEL_TARGETS)');
+  expect(script).toContain('evaluateD1FMeasuredFiveTargetPixelGate([...samples, sample])');
   expect(script).toContain('evaluateD1FMeasuredFiveTargetPixelGate(samples)');
   expect(script).toContain("d1fCombinedWallPixelTargets:'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589,BASIN'");
   expect(script).not.toContain('D1F_FOUR_PIXEL_TARGETS');
