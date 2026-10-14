@@ -1824,7 +1824,7 @@ const title = 'Private 3D viewer';
     <script>
       import { THREE, OrbitControls, GLTFLoader } from '../../scripts/threeRuntime';
       // @ts-ignore - exact-byte WORK_TEST entry covered by loader regressions.
-      import { isD1FCombinedWallReviewRequested, loadD1FCombinedWallReview }
+      import { D1F_COMBINED_WALL_ASSETS, isD1FCombinedWallReviewRequested, loadD1FCombinedWallReview }
         from '../../scripts/privateModelD1FCombinedWallSceneContract.mjs';
       // @ts-ignore - source-only reversible screenshot input, never pixel proof.
       import { createD1FCombinedWallPixelRuntime }
@@ -2555,8 +2555,14 @@ const title = 'Private 3D viewer';
         if (!detail || typeof detail !== 'object' ||
             !Number.isSafeInteger(detail.requestId)) return;
         try {
-          if (!d1fCombinedPixelRuntime || canvas.dataset.modelSource !== 'work-test' ||
-              canvas.dataset.workTestReviewMode !== 'd1f-combined-wall-115-100-20261013-review' ||
+          const reviewId = canvas.dataset.workTestReviewMode;
+          const expectedId = reviewId === 'd1f-combined-wall-115-100-20261013-review'
+            ? 'd1f-combined-wall-115-100-20261013'
+            : reviewId === 'd1f-measured-wall-140-100-2350-b710-basin-20261014-review'
+              ? 'd1f-measured-wall-140-100-2350-b710-basin-20261014' : null;
+          if (!d1fCombinedPixelRuntime || !expectedId ||
+              canvas.dataset.modelSource !== 'work-test' ||
+              canvas.dataset.d1fCombinedWallRawSha256 !== D1F_COMBINED_WALL_ASSETS[expectedId].sha256 ||
               canvas.dataset.d1fCombinedWallHumanReview !== 'NOT_RUN') throw new Error('probe rejected');
           let result;
           if (detail.action === 'prepare') {
@@ -10510,9 +10516,13 @@ const title = 'Private 3D viewer';
               d1fCombinedWallRawSha256: combinedWallReview.asset.sha256,
               d1fCombinedWallPhysicalXYVerified: 'false',
               d1fCombinedWallHumanReview: 'NOT_RUN',
+              d1fCombinedWallPixelTargets: candidate.id === 'd1f-measured-wall-140-100-2350-b710-basin-20261014'
+                ? 'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589,BASIN'
+                : 'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589',
             });
             applyStandardViewPreset('d-apartment');
-            if (candidate.id === 'd1f-combined-wall-115-100-20261013') {
+            if (candidate.id === 'd1f-combined-wall-115-100-20261013' ||
+                candidate.id === 'd1f-measured-wall-140-100-2350-b710-basin-20261014') {
               d1fCombinedPixelRuntime = createD1FCombinedWallPixelRuntime({
                 THREE, selected: combinedWallReview.selected, sourceSha: combinedWallReview.asset.sha256,
                 camera, controls, canvas, render: () => renderer.render(scene, camera),
