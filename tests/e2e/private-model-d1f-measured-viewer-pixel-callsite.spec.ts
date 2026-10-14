@@ -46,7 +46,7 @@ function makeProbe(reviewId:string, sha:string) {
 }
 
 test('old and measured-basin review IDs are both source-SHA bound before pixel actions',()=>{
-  for(const id of [oldId,measuredId]){
+  for(const id of [oldId,measuredId] as const){
     const sha=D1F_COMBINED_WALL_ASSETS[id].sha256;
     const probe=makeProbe(id,sha);
     const target=id===oldId?'I03':'BASIN';
@@ -66,7 +66,7 @@ test('old and measured-basin review IDs are both source-SHA bound before pixel a
 });
 
 test('wrong SHA, wrong review ID, CURRENT, and fake human approval all block runtime invocation',()=>{
-  for(const id of [oldId,measuredId]){
+  for(const id of [oldId,measuredId] as const){
     const alternate=id===oldId?measuredId:oldId;
     const f=makeProbe(id,D1F_COMBINED_WALL_ASSETS[alternate].sha256);
     expect(f.dispatch({requestId:1,action:'prepare',targetId:'I03'})).toEqual({
