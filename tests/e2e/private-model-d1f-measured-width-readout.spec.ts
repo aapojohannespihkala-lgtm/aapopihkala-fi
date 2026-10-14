@@ -9,12 +9,14 @@ import { D1F_COMBINED_WALL_ASSETS } from '../../src/scripts/privateModelD1FCombi
 const id = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
 const sourceSha = D1F_COMBINED_WALL_ASSETS[id].sha256;
 
-function fixture() {
-  const positions = new Float32Array(240 * 3);
+const finishedId = 'd1f-finished-face-2360-wall-basin-20261014';
+function fixture(finished = false, west = true) {
+  const count = finished && west ? 256 : 240;
+  const positions = new Float32Array(count * 3);
   for (let i = 64; i < 72; i++) positions[i * 3] = i % 2 ? 6.346 : 6.266;
   for (let i = 200; i < 240; i++) positions[i * 3] = i % 2 ? 3.888 : 3.788;
   const position = {
-    count: 240, itemSize: 3,
+    count, itemSize: 3,
     getX: (i: number) => positions[i * 3],
     getY: (i: number) => positions[i * 3 + 1],
     getZ: (i: number) => positions[i * 3 + 2],
@@ -29,17 +31,19 @@ function fixture() {
       },
     };
   };
-  const context = primitive(612, 64, 8);
-  const changed = primitive(396, 200, 40);
+  if (finished && !west) for (let i=200;i<240;i++) positions[i*3] += .018;
+  if (finished && west) for (let i=240;i<256;i++) positions[i*3] = i%2 ? 6.348 : 6.248;
+  const context = primitive(finished && west ? 576 : 612,64,8);
+  const changed = primitive(finished && west ? 480 : 396,200,finished && west ? 56 : 40);
   const wall = {
     visible: true, userData: { sourceNodeIndex: 798 },
     matrixWorld: { elements: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
     children: [context, changed],
   };
   const selected = { workTestOnly: true, absolutePhysicalXYVerified: false,
-    humanReview: 'NOT_RUN', wall };
+    humanReview: 'NOT_RUN', variant:west ? 'WEST_ANCHOR_725_895_740' : 'EAST_ANCHOR_725_895_740', wall };
   return { positions, context, changed, selected, options: {
-    candidateId: id, sourceSha, rawGlbByteIdentityVerified: true, selected,
+    candidateId: finished ? finishedId : id, sourceSha: finished ? D1F_COMBINED_WALL_ASSETS[finishedId].sha256 : sourceSha, rawGlbByteIdentityVerified: true, selected,
   } };
 }
 
@@ -127,4 +131,22 @@ test('the actual viewer callsite retains the original status for other models an
     expect(status.textContent).toBe('Seinien yhteinen työversio - mittojen sijoitus vielä tarkistamatta');
     expect(canvas.dataset).toEqual({});
   }
+});
+
+for (const west of [true,false]) test('finished-face '+(west?'WEST':'EAST')+' displays zero residual from its actual indexed faces', () => {
+  const f=fixture(true,west);
+  const result=getD1FMeasuredWidthComparison(f.options);
+  expect(result).toMatchObject({sourceWidthMm:2360,fieldWidthMm:2360,residualMm:0,
+    bindingStatus:'WORK_GEOMETRY_MATCH_FIELD_PHYSICAL_ANCHOR_OPEN',absolutePhysicalXYVerified:false});
+  const status={textContent:''},canvas={dataset:{}};
+  runInContext(viewer.slice(start,end),createContext({getD1FMeasuredWidthComparison,
+    candidate:{id:finishedId},combinedWallReview:{selected:f.selected,
+      asset:{sha256:f.options.sourceSha},rawGlbByteIdentityVerified:true},status,canvas}));
+  expect(status.textContent).toContain('mallissa 2360 mm, mitattu 2360 mm, ero 0 mm');
+});
+test('WEST finished readout ignores retained old D/C vertices but rejects a missing new indexed face', () => {
+  const f=fixture(true,true); f.positions[64*3]=999;
+  expect(getD1FMeasuredWidthComparison(f.options)?.sourceWidthMm).toBe(2360);
+  f.changed.indices.splice(0,f.changed.indices.length,...f.changed.indices.map(i=>i===255?200:i));
+  expect(getD1FMeasuredWidthComparison(f.options)).toBeNull();
 });

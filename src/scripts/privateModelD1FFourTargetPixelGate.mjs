@@ -109,9 +109,16 @@ function verifySample(sample, minRoiChangedPixels, outsideChangeAllowance,
 // A bounded camera search may inspect one sample; release still requires all four.
 export function evaluateD1FOneTargetPixelSample(sample) { return verifySample(sample, 40, 8); }
 
-export function evaluateD1FOneMeasuredTargetPixelSample(sample) {
+function measuredSourceSha(candidateId) {
+  const asset = Object.prototype.hasOwnProperty.call(D1F_COMBINED_WALL_ASSETS, candidateId)
+    ? D1F_COMBINED_WALL_ASSETS[candidateId] : null;
+  if (asset?.measuredCounter !== true) fail('unknown measured source candidate');
+  return asset.sha256;
+}
+
+export function evaluateD1FOneMeasuredTargetPixelSample(sample, { candidateId = 'd1f-measured-wall-140-100-2350-b710-basin-20261014' } = {}) {
   return verifySample(sample, 40, 8,
-    D1F_FIVE_PIXEL_TARGETS, D1F_MEASURED_PIXEL_SUPPRESSION, MEASURED_SOURCE_SHA);
+    D1F_FIVE_PIXEL_TARGETS, D1F_MEASURED_PIXEL_SUPPRESSION, measuredSourceSha(candidateId));
 }
 
 export function evaluateD1FFourTargetPixelGate(
@@ -145,7 +152,7 @@ export function evaluateD1FFourTargetPixelGate(
  * must still be proved independently by the trusted main browser runner.
  */
 export function evaluateD1FFiveTargetPixelGate(
-  samples, { minRoiChangedPixels = 40, outsideChangeAllowance = 8 } = {},
+  samples, { minRoiChangedPixels = 40, outsideChangeAllowance = 8, candidateId = 'd1f-measured-wall-140-100-2350-b710-basin-20261014' } = {},
 ) {
   if (!Array.isArray(samples) || samples.length !== 5 ||
       !integer(minRoiChangedPixels) || minRoiChangedPixels < 40 ||
@@ -165,7 +172,7 @@ export function evaluateD1FFiveTargetPixelGate(
   }
   const proofs = samples.map(s => verifySample(s, minRoiChangedPixels,
     outsideChangeAllowance, D1F_FIVE_PIXEL_TARGETS,
-    D1F_MEASURED_PIXEL_SUPPRESSION, MEASURED_SOURCE_SHA));
+    D1F_MEASURED_PIXEL_SUPPRESSION, measuredSourceSha(candidateId)));
   return Object.freeze({
     gate: 'PASS_FIVE_INDEPENDENT_DIFFERENTIAL_PIXEL_CONTRACTS_ONLY',
     targets: proofs,

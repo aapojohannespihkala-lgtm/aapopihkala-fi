@@ -13,6 +13,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  actions: write
 
 concurrency:
   group: publish-work-test
@@ -262,6 +263,48 @@ jobs:
           [[ "$readback_size" == "$EXPECTED_SIZE" ]] || { echo "Production GLB size mismatch" >&2; exit 1; }
           [[ "$readback_sha" == "$EXPECTED_SHA256" ]] || { echo "Production GLB SHA-256 mismatch" >&2; exit 1; }
           echo "Production byte-for-byte readback verified."
+
+      - name: Dispatch finished-face source render after exact production proof
+        if: success() && inputs.candidate == 'd1f-finished-face-2360-wall-basin-20261014'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$GITHUB_REPOSITORY" == "aapojohannespihkala-lgtm/aapopihkala-fi" ]]
+          payload="$RUNNER_TEMP/finished-face-render-dispatch.json"
+          python3 - "$payload" <<'PY'
+          import json
+          import os
+          import sys
+
+          candidate = os.environ["CANDIDATE_ID"]
+          if candidate != "d1f-finished-face-2360-wall-basin-20261014":
+              raise SystemExit("finished-face source mismatch")
+          payload = {"ref": "main", "inputs": {
+              "probe_mode": "d1f-measured-pixels",
+              "measured_candidate": candidate,
+              "candidate_id": candidate,
+              "review_id": candidate + "-review",
+              "expected_dataset_json": '{"d1fCombinedWallHumanReview":"NOT_RUN"}',
+              "min_non_background_pixels": "1500",
+              "min_changed_pixels": "750",
+          }}
+          with open(sys.argv[1], "w", encoding="utf-8") as handle:
+              json.dump(payload, handle)
+          PY
+          curl --silent --show-error --fail \
+            --connect-timeout 10 --max-time 30 \
+            --request POST \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$payload" \
+            "https://api.github.com/repos/aapojohannespihkala-lgtm/aapopihkala-fi/actions/workflows/private-model-production-review-smoke.yml/dispatches"
+          rm -f "$payload"
+          echo "Finished-face source render queued. Render and human review are not yet verified."
 
       - name: Remove private temporary files
         if: always()
