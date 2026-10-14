@@ -44,7 +44,7 @@ test('exact measured 5 targets include one basin, preserve original four target 
   const gate=evaluateD1FFiveTargetPixelGate(p);
   expect(gate.gate).toBe('PASS_FIVE_INDEPENDENT_DIFFERENTIAL_PIXEL_CONTRACTS_ONLY');
   expect(gate.checkedTargetCount).toBe(5);
-  expect(gate.targets.map(x=>x.targetId)).toEqual([...D1F_FIVE_PIXEL_TARGETS]);
+  expect(gate.targets.map((x: { targetId: string })=>x.targetId)).toEqual([...D1F_FIVE_PIXEL_TARGETS]);
   expect(gate).toMatchObject({
     originalGlbBytesAuthenticatedByThisFunction:false,
     actualBrowserWebGlVerifiedByThisFunction:false,
