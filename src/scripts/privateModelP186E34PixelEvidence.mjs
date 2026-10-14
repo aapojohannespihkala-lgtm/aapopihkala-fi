@@ -59,8 +59,8 @@ export function verifyP186E34SourcePixelEvidence({
 } = {}) {
   if (sourceCandidateId !== p186ePixelCandidateId ||
       !Array.isArray(floors) || floors.length !== 2 ||
-      !integer(minLostPixels) || minLostPixels < 1 ||
-      !integer(maxOutsidePixelChanges) || maxOutsidePixelChanges < 0) {
+      !integer(minLostPixels) || minLostPixels < 4 ||
+      !integer(maxOutsidePixelChanges) || maxOutsidePixelChanges !== 0) {
     reject('source or proof configuration');
   }
   const processed = new Set();
