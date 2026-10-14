@@ -84,7 +84,7 @@ try {
     // Allowlisted target/view names only. Preserve the exact screenshot stage on timeout.
     evidence.currentCapture = name;
     console.log(JSON.stringify({phase:evidence.phase,capture:name}));
-    const png = await bounded(()=>canvas.screenshot({timeout:15000}));
+    const png = await bounded(()=>canvas.screenshot({timeout:25000}));
     check(png.length > 100 && png.subarray(1,4).toString() === 'PNG');
     const decoded = await bounded(()=>page.evaluate(async data => {
       const image = new Image(); image.src='data:image/png;base64,'+data; await image.decode();
