@@ -10,7 +10,7 @@ const measured = D1F_COMBINED_WALL_ASSETS['d1f-measured-wall-140-100-2350-b710-b
 const oldSha = D1F_COMBINED_WALL_ASSETS['d1f-combined-wall-115-100-20261013'].sha256;
 const methods = {...D1F_PIXEL_SUPPRESSION, BASIN:'BASIN_NODE_VISIBILITY_ONLY'};
 
-const makeProof = (id: string, sha = measured) => {
+const makeProof = (id: string, sha: string = measured) => {
   const width=40,height=40;
   const baseline = new Uint8Array(width*height*4);
   const suppressed = baseline.slice();
@@ -32,7 +32,7 @@ const makeProof = (id: string, sha = measured) => {
     suppressionRestored:true,
   };
 };
-const proofs = (sha = measured) => D1F_FIVE_PIXEL_TARGETS.map(id=>makeProof(id,sha));
+const proofs = (sha: string = measured) => D1F_FIVE_PIXEL_TARGETS.map(id=>makeProof(id,sha));
 
 test('exact measured 5 targets include one basin, preserve original four target order',()=>{
   expect(D1F_FIVE_PIXEL_TARGETS).toEqual([...D1F_FOUR_PIXEL_TARGETS,'BASIN']);
