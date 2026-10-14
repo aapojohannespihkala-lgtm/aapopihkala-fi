@@ -1826,6 +1826,9 @@ const title = 'Private 3D viewer';
       // @ts-ignore - exact-byte WORK_TEST entry covered by loader regressions.
       import { D1F_COMBINED_WALL_ASSETS, isD1FCombinedWallReviewRequested, loadD1FCombinedWallReview }
         from '../../scripts/privateModelD1FCombinedWallSceneContract.mjs';
+      // @ts-ignore - indexed WORK_TEST source dimensions, never physical approval.
+      import { getD1FMeasuredWidthComparison }
+        from '../../scripts/privateModelD1FMeasuredWidthReadout.mjs';
       // @ts-ignore - source-only reversible screenshot input, never pixel proof.
       import { createD1FCombinedWallPixelRuntime }
         from '../../scripts/privateModelD1FCombinedWallPixelRuntime.mjs';
@@ -10528,7 +10531,21 @@ const title = 'Private 3D viewer';
                 camera, controls, canvas, render: () => renderer.render(scene, camera),
               });
             }
-            status.textContent = 'Seinien yhteinen työversio - mittojen sijoitus vielä tarkistamatta';
+            const measuredWidth = getD1FMeasuredWidthComparison({
+              candidateId: candidate.id, sourceSha: combinedWallReview.asset.sha256,
+              rawGlbByteIdentityVerified: combinedWallReview.rawGlbByteIdentityVerified,
+              selected: combinedWallReview.selected,
+            });
+            if (measuredWidth) {
+              Object.assign(canvas.dataset, {
+                d1fCombinedWallSourceWidthMm: String(measuredWidth.sourceWidthMm),
+                d1fCombinedWallFieldWidthMm: String(measuredWidth.fieldWidthMm),
+                d1fCombinedWallWidthResidualMm: String(measuredWidth.residualMm),
+                d1fCombinedWallWidthBinding: measuredWidth.bindingStatus,
+              });
+            }
+            status.textContent = measuredWidth?.label
+              ?? 'Seinien yhteinen työversio - mittojen sijoitus vielä tarkistamatta';
           } else if (isP137EScene67Review) {
             applyP137EScene67ReviewState();
           } else if (isP186fX4ThemoRoomReview) {
