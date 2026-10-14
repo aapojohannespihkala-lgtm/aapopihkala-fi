@@ -26,4 +26,6 @@ test('Snapshot smoke still checks the browser after an API failure and reports t
   expect(steps[final]).toMatch(/^        if: always\(\)$/m);
   expect(steps[final]).toContain('steps.widget_api.outcome');
   expect(steps[final]).toMatch(/\bexit 1\b/);
+  // Each re-run must bypass the previous attempt's 24-hour edge cache key.
+  expect(workflow.match(/live_smoke=\$\{process\.env\.GITHUB_RUN_ID\}-\$\{process\.env\.GITHUB_RUN_ATTEMPT\}/g)).toHaveLength(3);
 });

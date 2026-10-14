@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
 
           node --input-type=module <<'NODE'
-          const url = `https://aapopihkala.fi/api/current/widget-v2?channel=prod&live_smoke=${process.env.GITHUB_RUN_ID}`;
+          const url = `https://aapopihkala.fi/api/current/widget-v2?channel=prod&live_smoke=${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}`;
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 20_000);
           const started = Date.now();
@@ -100,7 +100,7 @@ jobs:
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
 
-          const url = `https://aapopihkala.fi/current/widget/?live_smoke=${process.env.GITHUB_RUN_ID}`;
+          const url = `https://aapopihkala.fi/current/widget/?live_smoke=${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}`;
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
 
@@ -167,7 +167,7 @@ jobs:
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
 
-          const url = `https://aapopihkala.fi/current/snapshot/?live_smoke=${process.env.GITHUB_RUN_ID}`;
+          const url = `https://aapopihkala.fi/current/snapshot/?live_smoke=${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}`;
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
           const failures = [];

@@ -565,6 +565,26 @@ const P137E_D1F_THREE_WALL_MOUNTED_THEMOS_CANDIDATE = {
   expectedSha256: '07331f15ca223a5db8e0e8ea8955d7707f880cef23ca80b09dc6611730ae0b7d',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Source-preserving D1F four-variant wall hypothesis, retained as WORK_TEST.
+// Exact identity is independently derived from complete raw Drive bytes.
+const D1F_COMBINED_WALL_115_100_CANDIDATE = {
+  id: 'd1f-combined-wall-115-100-20261013',
+  label: 'D1F combined 115/100 wall hypothesis - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-combined-wall-115-100-20261013.glb`,
+  objectKey: 'work-test/d1f-combined-wall-115-100-20261013.glb',
+  expectedSize: 3_544_904,
+  expectedSha256: '1cb9a785e51a00b8abe9bbd81801c25326f5219740bdc18176649ee39b35b0a2',
+} as const satisfies PrivateWorkTestCandidate;
+
+const D1F_MEASURED_WALL_BASIN_CANDIDATE = {
+  id: 'd1f-measured-wall-140-100-2350-b710-basin-20261014',
+  label: 'D1F - seinät ja allastaso - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-measured-wall-140-100-2350-b710-basin-20261014.glb`,
+  objectKey: 'work-test/d1f-measured-wall-140-100-2350-b710-basin-20261014.glb',
+  expectedSize: 3602032,
+  expectedSha256: '7da6b1e6ada391556ca3600346f1586ed2507ac86b4e489cb689e6e6cd11de71',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -573,6 +593,8 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE,
   M5A_R1115_SOK23_PLANNED_RAISE_PRESENCE_CANDIDATE,
   P137E_D1F_THREE_WALL_MOUNTED_THEMOS_CANDIDATE,
+  D1F_COMBINED_WALL_115_100_CANDIDATE,
+  D1F_MEASURED_WALL_BASIN_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {

@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { delimiter, join } from 'node:path';
+import { m5aZ2R1125CandidateId, m5aZ2R1125ReviewId } from '../../src/scripts/privateModelWorkTest';
 // @ts-ignore - exact production workflow consumes the same untyped ESM helper.
 import {
   inspectP137EScene67ProductionSmoke,
@@ -444,7 +446,8 @@ const dispatchDefault = (name: string) => {
   const raw = lines.slice(start + 1, next < 0 ? undefined : next)
     .find(line => line.startsWith('        default: '))?.slice('        default: '.length);
   if (!raw) throw new Error('Production input has no default: ' + name);
-  return raw.startsWith("'") ? raw.slice(1, -1).replaceAll("''", "'") : JSON.parse(raw);
+  if (raw.startsWith("'")) return raw.slice(1, -1).replaceAll("''", "'");
+  return raw.startsWith('"') ? JSON.parse(raw) : raw;
 };
 const productionInputEnvironment = () => {
   const workflow = productionDispatchSource().split('  verify-production:\n')[1];
@@ -623,4 +626,179 @@ test('G2 observation readback does not promote approximate pins or leak private 
   expect(job).not.toContain('response.headers.entries()');
   expect(job).toContain('JSON.stringify(evidence)');
   expect(job).toContain('if (!evidence.authenticatedWorkerGetVerified) process.exitCode = 1');
+});
+
+const cookieCanary = 'SYNTHETIC_COOKIE_NOT_A_CREDENTIAL_7d07';
+const queryCanary = 'SYNTHETIC_REDIRECT_STATE_f566';
+const accessUrl = 'https://fixture.cloudflareaccess.com/login?state=' + queryCanary;
+const runActualResponsePreflight = (root: string, options: {
+  status: number; body: string; redirect?: string; curlExit?: number;
+}) => {
+  const workflow = productionDispatchSource();
+  const start = workflow.indexOf('      - name: Classify authenticated production viewer response');
+  const end = workflow.indexOf('\n      - ', start + 20);
+  const program = workflow.slice(start, end).split('        run: |\n')[1];
+  if (start < 0 || end < 0 || !program) throw new Error('Actual response preflight missing');
+  const bin = join(root, 'stub-bin');
+  mkdirSync(bin, { recursive: true });
+  const curl = join(bin, 'curl');
+  writeFileSync(curl, `#!/usr/bin/env python3
+import os, sys
+from pathlib import Path
+args = sys.argv[1:]
+Path(args[args.index('--dump-header') + 1]).write_text(os.environ['FIXTURE_HEADERS'])
+Path(args[args.index('--output') + 1]).write_text(os.environ['FIXTURE_BODY'])
+print(os.environ['FIXTURE_STATUS'])
+print('text/html')
+print(os.environ['FIXTURE_REDIRECT'])
+sys.exit(int(os.environ['FIXTURE_CURL_EXIT']))
+`);
+  chmodSync(curl, 0o755);
+  const redirect = options.redirect ?? '';
+  const result = spawnSync('bash', ['-s'], {
+    cwd: root, input: program.replace(/^ {10}/gm, ''), encoding: 'utf8', timeout: 10_000,
+    env: {
+      PATH: bin + delimiter + (process.env.PATH ?? ''),
+      REVIEW_ID: 'synthetic-review', REVIEW_BASE_URL: 'https://aapopihkala.fi/private-model/',
+      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: 'synthetic-client-id',
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: 'synthetic-client-secret',
+      FIXTURE_HEADERS: `HTTP/2 ${options.status}\r\nContent-Type: text/html\r\nSet-Cookie: CF_Authorization=${cookieCanary}; HttpOnly\r\nLocation: ${redirect}\r\n\r\n`,
+      FIXTURE_BODY: options.body, FIXTURE_STATUS: String(options.status),
+      FIXTURE_REDIRECT: redirect, FIXTURE_CURL_EXIT: String(options.curlExit ?? 0),
+    },
+  });
+  if (result.error) throw result.error;
+  const artifactDir = join(root, 'playwright-artifacts');
+  const names = readdirSync(artifactDir);
+  const evidence = [result.stdout, result.stderr,
+    ...names.map(name => readFileSync(join(artifactDir, name), 'utf8'))].join('\n');
+  return { result, names, evidence, privateDirs: readdirSync(root).filter(n => n.startsWith('.production-response.')) };
+};
+const expectSafeResponseArtifacts = (probe: ReturnType<typeof runActualResponsePreflight>) => {
+  expect(probe.names).not.toContain('review-response-headers.txt');
+  expect(probe.names).not.toContain('review-response-meta.txt');
+  expect(probe.evidence).not.toContain(cookieCanary);
+  expect(probe.evidence).not.toContain(queryCanary);
+  expect(probe.privateDirs).toEqual([]);
+};
+
+test('response preflight keeps valid viewer classification without raw cookie artifacts', ({}, info) => {
+  const probe = runActualResponsePreflight(info.outputPath('response'), {
+    status: 200, body: '<canvas id="private-model-canvas"></canvas>',
+  });
+  expectSafeResponseArtifacts(probe);
+  expect(probe.result.status).toBe(0);
+  expect(probe.names.sort()).toEqual(['review-page.html', 'review-response-classification.txt']);
+  expect(probe.evidence).toContain('classification=VIEWER_HTML');
+});
+
+for (const fixture of [
+  { name: 'redirect', status: 302, body: 'Cloudflare Access', redirect: accessUrl, classification: 'ACCESS_REDIRECT' },
+  { name: 'denial', status: 403, body: 'Forbidden', classification: 'ACCESS_DENIED' },
+  { name: 'login HTML', status: 200, body: 'Cloudflare Access', classification: 'ACCESS_BODY' },
+  { name: 'unrelated HTML', status: 200, body: '<html>unrelated</html>', classification: 'NON_VIEWER_200_BODY' },
+]) {
+  test(`response preflight rejects ${fixture.name} without leaking cookies or redirect state`, ({}, info) => {
+    const probe = runActualResponsePreflight(info.outputPath('response'), fixture);
+    expectSafeResponseArtifacts(probe);
+    expect(probe.result.status).not.toBe(0);
+    expect(probe.evidence).toContain('classification=' + fixture.classification);
+  });
+}
+
+test('response preflight cleans private data when curl fails before classification', ({}, info) => {
+  const probe = runActualResponsePreflight(info.outputPath('response'), {
+    status: 0, body: '', redirect: accessUrl, curlExit: 7,
+  });
+  expectSafeResponseArtifacts(probe);
+  expect(probe.result.status).toBe(7);
+  expect(probe.names).toEqual(['review-page.html']);
+});
+
+const runActualR1125Preset = (root: string, routingOverride?: string) => {
+  const workflow = productionDispatchSource();
+  const start = workflow.indexOf('      - name: Resolve canonical R1125 render preset');
+  const end = workflow.indexOf('\n      - ', start + 20);
+  const block = workflow.slice(start, end);
+  let program = block.match(/node --input-type=module <<'NODE'\n([\s\S]*?)\n {10}NODE/)?.[1];
+  if (start < 0 || !program) throw new Error('Actual R1125 preset missing');
+  program = program.replace(/^ {10}/gm, '');
+  if (routingOverride !== undefined) {
+    program = program.replace("readFileSync('src/scripts/privateModelWorkTest.ts', 'utf8')", JSON.stringify(routingOverride));
+  }
+  mkdirSync(root, { recursive: true });
+  const envFile = join(root, 'step.env');
+  writeFileSync(envFile, '');
+  const result = spawnSync(process.execPath, ['--input-type=module'], {
+    input: program, encoding: 'utf8', timeout: 10_000,
+    env: { PATH: process.env.PATH, GITHUB_ENV: envFile },
+  });
+  if (result.error) throw result.error;
+  const values = Object.fromEntries(readFileSync(envFile, 'utf8').split('\n').filter(Boolean).map(line => {
+    const split = line.indexOf('=');
+    return [line.slice(0, split), line.slice(split + 1)];
+  }));
+  return { result, values };
+};
+
+test('R1125 preset derives exact canonical routing and 13 source roles before the real input validator', ({}, info) => {
+  const { result, values } = runActualR1125Preset(info.outputPath('preset'));
+  expect(result.status).toBe(0);
+  expect(values.REVIEW_ID).toBe(m5aZ2R1125ReviewId);
+  expect(values.CANDIDATE_ID).toBe(m5aZ2R1125CandidateId);
+  expect(JSON.parse(values.EXPECTED_DATASET_JSON)).toMatchObject({
+    m5aReviewTargetRenderableCount: '13', m5aReviewExpectedTargetRenderableCount: '13',
+    m5aReviewWellMarkerCount: '4', m5aReviewRouteCount: '7',
+    m5aReviewUnresolvedBoundaryCount: '2', m5aR1125SourceSceneIndex: '63',
+    m5aR1125SourceContract: 'G2_R1125', m5aHumanReview: 'NOT_RUN', m5aR1125HumanReview: 'NOT_RUN',
+  });
+  const validated = runActualProductionInputValidator(values);
+  expect(validated.status).toBe(0);
+  expect(JSON.parse(validated.stdout)).toMatchObject({
+    reviewId: m5aZ2R1125ReviewId, candidateId: m5aZ2R1125CandidateId,
+    pixelThresholds: { nonBackgroundPixels: 1500, changedPixels: 750 },
+  });
+});
+
+test('R1125 preset fails without environment output when canonical declarations change or duplicate', ({}, info) => {
+  const source = readFileSync('src/scripts/privateModelWorkTest.ts', 'utf8');
+  const declaration = source.match(/^export const m5aZ2R1125CandidateId = .*;$/m)?.[0];
+  if (!declaration) throw new Error('Canonical candidate declaration missing');
+  for (const [index, changed] of [
+    source.replace('`${m5aZ2R1125CandidateId}-review`', '`${m5aZ2R1125CandidateId}-unknown`'),
+    source + '\n' + declaration,
+  ].entries()) {
+    const { result, values } = runActualR1125Preset(info.outputPath('invalid-' + index), changed);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('canonical identity declarations changed');
+    expect(values).toEqual({});
+  }
+});
+
+test('R1125 preset preserves production pixel floors and legacy Themo defaults', ({}, info) => {
+  const { values } = runActualR1125Preset(info.outputPath('preset'));
+  const lowerLimits: Array<Record<string, string>> = [
+    { REQUESTED_MIN_NON_BACKGROUND_PIXELS: '1499' },
+    { REQUESTED_MIN_CHANGED_PIXELS: '749' },
+  ];
+  for (const limits of lowerLimits) {
+    const result = runActualProductionInputValidator({ ...values, ...limits });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('cannot be lower than hard floor');
+  }
+  expect(dispatchDefault('probe_mode')).toBe('full-render');
+  expect(dispatchDefault('review_id')).toBe(P137E_SCENE67_PRODUCTION_SMOKE_REVIEW_ID);
+  expect(dispatchDefault('candidate_id')).toBe(P137E_SCENE67_PRODUCTION_SMOKE_ID);
+});
+
+test('R1125 preset remains main-only and resolves before validation and authentication', () => {
+  const workflow = productionDispatchSource();
+  expect(workflow).toContain('          - r1125-render');
+  const job = workflow.split('  verify-production:\n')[1].split('  verify-g2-readiness:')[0];
+  expect(job).toContain("github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'");
+  expect(job).toContain("inputs.probe_mode == 'r1125-render'");
+  expect(job).toContain("if: inputs.probe_mode == 'r1125-render'");
+  expect(job.indexOf('Resolve canonical R1125 render preset')).toBeLessThan(job.indexOf('Validate generic production review inputs'));
+  expect(job.indexOf('Validate generic production review inputs')).toBeLessThan(job.indexOf('Classify authenticated production viewer response'));
+  expect(job).toContain('response_tmp="$(mktemp -d .production-response.XXXXXX)"');
 });

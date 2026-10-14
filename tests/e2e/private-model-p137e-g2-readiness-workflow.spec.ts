@@ -120,7 +120,8 @@ test('main-only G2 GET job is separate from original full-render and PR secrets'
   expect(workflow).toContain('default: full-render');
   expect(job).toContain("github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'g2-readiness'");
   const productionIf = workflow.split('  verify-production:\n')[1].split('\n')[0];
-  expect(productionIf).toContain("inputs.probe_mode != 'g2-readiness'");
+  expect(productionIf).toContain("(inputs.probe_mode == 'full-render' || inputs.probe_mode == 'r1125-render')");
+  expect(productionIf).not.toContain("inputs.probe_mode == 'g2-readiness'");
   const prSection = workflow.split('  contract-regression:\n')[1].split('  verify-production:\n')[0];
   expect(prSection).not.toMatch(/CF_ACCESS_VIEWER_PROBE_CLIENT_(?:ID|SECRET):/);
   expect(job).not.toContain('batchUpdate');

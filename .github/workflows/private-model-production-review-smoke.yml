@@ -9,26 +9,30 @@ on:
   workflow_dispatch:
     inputs:
       probe_mode:
-        description: Full render, G2 target readiness, or exact three-record readback (read-only)
+        description: Full render, automatic R1125 drainage preset, or read-only G2 checks
         required: true
         type: choice
         default: full-render
         options:
           - full-render
+          - r1125-render
+          - p137e-walls-render
+          - d1f-combined-pixels
+          - d1f-measured-pixels
           - g2-readiness
           - g2-records-readback
       review_id:
-        description: Exact private-model review ID
+        description: Full-render review ID; r1125-render fills this automatically
         required: true
         type: string
         default: "p137e-d1f-three-wall-mounted-themos-review"
       candidate_id:
-        description: Exact WORK_TEST candidate ID expected to autoload
+        description: Full-render candidate ID; r1125-render fills this automatically
         required: true
         type: string
         default: "p137e-d1f-three-wall-mounted-themos"
       expected_dataset_json:
-        description: JSON object of additional canvas dataset keys and exact expected string values for the review state
+        description: Full-render expected canvas JSON; r1125-render derives this from source constants
         required: true
         type: string
         default: '{"p137eSceneIndex":"67","p137eFocusedRootCount":"1","p137eOriginalSourceWallNode":"798","p137eOriginalSourceWallMesh":"406","p137eWallMountedThemoCount":"3","p137eRoomFootprintCount":"0","p137ePresentationOnly":"true","p137eWorkTestOnly":"true","p137eExactXYClaim":"false","p137eExactZClaim":"false","p137eCurrentClaim":"false","p137eCanonical":"false","p137eAsBuiltClaim":"false","p137eHumanReview":"NOT_RUN","p137eReviewCameraMode":"ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP","contentFloor":"1F","contentScene":"full-model"}'
@@ -166,7 +170,7 @@ jobs:
           PY
 
   verify-production:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'full-render'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && (inputs.probe_mode == 'full-render' || inputs.probe_mode == 'r1125-render')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -183,6 +187,56 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Resolve canonical R1125 render preset
+        if: inputs.probe_mode == 'r1125-render'
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          import { R1125_ORIGINAL_GLB } from './src/scripts/privateModelM5AR1125OriginalGlbGuard.mjs';
+          import { m5aR1125SourcePixelKinds } from './src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs';
+
+          const routing = readFileSync('src/scripts/privateModelWorkTest.ts', 'utf8');
+          const ids = [...routing.matchAll(/^export const m5aZ2R1125CandidateId = '([a-z0-9-]+)';$/gm)];
+          if (ids.length !== 1 || !routing.includes('export const m5aZ2R1125ReviewId = `${m5aZ2R1125CandidateId}-review`;')) {
+            throw new Error('R1125 canonical identity declarations changed; do not guess a review alias');
+          }
+          const kinds = Object.values(m5aR1125SourcePixelKinds);
+          if (kinds.length !== R1125_ORIGINAL_GLB.sourceTargetCount ||
+              kinds.some(kind => !['wellGray', 'routeCyan', 'boundaryYellow'].includes(kind))) {
+            throw new Error('R1125 source role contract mismatch');
+          }
+          const count = kind => String(kinds.filter(value => value === kind).length);
+          const targets = String(kinds.length);
+          const expected = {
+            m5aZ2ReviewState: 'ready',
+            m5aReviewTargetRenderableCount: targets,
+            m5aReviewExpectedTargetRenderableCount: targets,
+            m5aReviewWellMarkerCount: count('wellGray'),
+            m5aReviewRouteCount: count('routeCyan'),
+            m5aReviewUnresolvedBoundaryCount: count('boundaryYellow'),
+            m5aReviewSemanticViolationCount: '0',
+            m5aR1125SourceSceneIndex: String(R1125_ORIGINAL_GLB.sceneIndex),
+            m5aR1125SourceContract: 'G2_R1125',
+            m5aHumanReview: 'NOT_RUN',
+            m5aR1125HumanReview: 'NOT_RUN',
+          };
+          const candidate = ids[0][1];
+          const values = {
+            REVIEW_ID: candidate + '-review', CANDIDATE_ID: candidate,
+            EXPECTED_DATASET_JSON: JSON.stringify(expected),
+          };
+          if (!process.env.GITHUB_ENV) throw new Error('GitHub step environment file missing');
+          appendFileSync(process.env.GITHUB_ENV,
+            Object.entries(values).map(([key, value]) => key + '=' + value).join('\n') + '\n');
+          console.log('R1125 preset resolved from canonical registry and source roles');
+          NODE
 
       - name: Validate generic production review inputs and hard floors
         shell: bash
@@ -288,6 +342,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p playwright-artifacts
+          # Raw cookies and redirect state must never enter the upload directory.
+          response_tmp="$(mktemp -d .production-response.XXXXXX)"
+          trap 'python3 -c "import shutil,sys; shutil.rmtree(sys.argv[1])" "$response_tmp"' EXIT
 
           curl \
             --silent \
@@ -298,16 +355,17 @@ jobs:
             --data-urlencode "review=$REVIEW_ID" \
             --header "CF-Access-Client-Id: $CF_ACCESS_VIEWER_PROBE_CLIENT_ID" \
             --header "CF-Access-Client-Secret: $CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET" \
-            --dump-header playwright-artifacts/review-response-headers.txt \
+            --dump-header "$response_tmp/headers.txt" \
             --output playwright-artifacts/review-page.html \
             --write-out '%{http_code}\n%{content_type}\n%{redirect_url}\n' \
-            "$REVIEW_BASE_URL" > playwright-artifacts/review-response-meta.txt
+            "$REVIEW_BASE_URL" > "$response_tmp/meta.txt"
 
-          python3 - <<'PY'
+          python3 - "$response_tmp" <<'PY'
+          import sys
           from pathlib import Path
           from urllib.parse import urlparse
 
-          meta = Path("playwright-artifacts/review-response-meta.txt").read_text(
+          meta = Path(sys.argv[1], "meta.txt").read_text(
               encoding="utf-8",
               errors="replace",
           ).splitlines()
@@ -315,7 +373,7 @@ jobs:
           content_type = meta[1] if len(meta) > 1 else ""
           redirect_url = meta[2] if len(meta) > 2 else ""
 
-          headers = Path("playwright-artifacts/review-response-headers.txt").read_text(
+          headers = Path(sys.argv[1], "headers.txt").read_text(
               encoding="utf-8",
               errors="replace",
           )
@@ -386,11 +444,6 @@ jobs:
           if classification != "VIEWER_HTML":
               raise SystemExit(1)
           PY
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
 
       - run: npm ci
 
@@ -1875,3 +1928,349 @@ jobs:
           path: playwright-artifacts/p137e-g2-records-readback.json
           if-no-files-found: ignore
           retention-days: 7
+
+
+  # Main-only, deliberately separate from the previously approved P137E
+  # scene67 housing proof and R1125 smoke. This work-test variant is not
+  # CURRENT or HUMAN_REVIEW. Never run with PR-provided Access secrets.
+  verify-p137e-walls-render:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'p137e-walls-render'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Authenticate exact scene69 and verify real canvas changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { createHash } from 'node:crypto';
+          import { chromium } from '@playwright/test';
+          import {
+            P137E_SCENE67_PRODUCTION_SMOKE_ID as candidateId,
+            P137E_SCENE67_PRODUCTION_SMOKE_REVIEW_ID as reviewId,
+            P137E_SCENE67_PRODUCTION_GLB_URL as originalAsset,
+            P137E_SCENE67_EXPECTED_GLB_BYTES as expectedBytes,
+            P137E_SCENE67_EXPECTED_GLB_SHA256 as expectedHash,
+          } from './src/scripts/privateModelP137EScene67ProductionSmokeGuard.mjs';
+          import {
+            P137E_MEASURED_WALL_METRICS_MM as measured,
+            P137E_THREE_CORNER_MEASURED_SCENE_INDEX as sceneIndex,
+          } from './src/scripts/privateModelP137EFieldMeasuredWallRuntime.mjs';
+
+          // BEGIN wall stage helpers: exercised as executable functions by CI.
+          function withWallStageDeadline(phase, run, timeoutMs) {
+            if (!/^[A-Z_]+$/.test(phase) || typeof run !== 'function' ||
+                !Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 45000) {
+              throw Error('Invalid fixed wall stage deadline');
+            }
+            let timer;
+            const expired = new Promise((_, reject) => {
+              timer = setTimeout(() => {
+                const failure = new Error('Wall stage deadline exceeded');
+                failure.code = 'WALL_STAGE_TIMEOUT';
+                reject(failure);
+              }, timeoutMs);
+            });
+            return Promise.race([Promise.resolve().then(run), expired])
+              .finally(() => clearTimeout(timer));
+          }
+          // END wall stage deadline helper.
+          function sanitizedWallStageFailure(error, phase) {
+            const phases = ['PREFLIGHT', 'BROWSER_START', 'VIEWER_HTTP',
+              'AUTOLOAD_DATASET', 'SOURCE_GLB_BODY', 'CANVAS_BEFORE',
+              'CANVAS_AFTER', 'RGBA_EVALUATION', 'IDENTITY_READBACK'];
+            return {
+              result: 'FAIL',
+              phase: phases.includes(phase) ? phase : 'PREFLIGHT',
+              failureCode: error && error.code === 'WALL_STAGE_TIMEOUT'
+                ? 'WALL_STAGE_DEADLINE_EXCEEDED' : 'WALL_PROBE_REJECTED',
+              // Never serialize error text, stack, headers, URLs or credentials.
+              threeIndividualCornerRenderedRoisVerified: false,
+              measuredWallIndividualRoiVerified: false,
+              actualHumanVisualReview: false,
+              humanReview: 'NOT_RUN', current: false, asBuilt: false,
+            };
+          }
+          // END wall safe failure helper.
+          fs.mkdirSync('playwright-artifacts', {recursive:true});
+          const evidence = {
+            probe:'P137E_SCENE69_AUTHENTICATED_RENDER_V2', result:'RUNNING', phase:'PREFLIGHT',
+            sourceGlbBytes:expectedBytes,sourceGlbSha256:expectedHash,reviewId,candidateId,
+            originalSourceAutoloadResponseVerified:false,
+            sceneIndex,workTestOnly:true,current:false,asBuilt:false,humanReview:'NOT_RUN',
+            measured,sourceCornerCount:3,cornerWidthMm:40,
+            screenshotBeforeAfterOrbitPixels:null,
+            threeIndividualCornerRenderedRoisVerified:false,
+            measuredWallIndividualRoiVerified:false,
+            actualHumanVisualReview:false,
+          };
+          const writeEvidence = () => fs.writeFileSync(
+            'playwright-artifacts/p137e-walls-scene69-production.json',
+            JSON.stringify(evidence,null,2));
+          let browser;
+          try {
+            const clientId = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
+            const clientSecret = process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
+            if (!clientId || !clientSecret) throw Error('Missing dedicated viewer probe secrets');
+            const viewerSource = fs.readFileSync('src/pages/private-model/index.astro', 'utf8');
+            const variants = [...viewerSource.matchAll(/const p137eThreeCornerMeasuredVariant = '([a-z0-9-]+)'/g)];
+            if (variants.length !== 1 || sceneIndex !== 69 ||
+                measured.kphSideLength !== 960 || measured.wcSideVisible !== 710 ||
+                measured.thickness !== 205 || measured.lobbyClearGap !== 1020) {
+              throw Error('P137E scene69 source identity or measured contract changed');
+            }
+            const reviewUrl = new URL('https://aapopihkala.fi/private-model/');
+            reviewUrl.searchParams.set('review', reviewId);
+            reviewUrl.searchParams.set('wallMetric', variants[0][1]);
+            const expected = {
+              workTestReviewAutoload: 'true',
+              modelSource: 'work-test',
+              workTestReviewCandidate: candidateId,
+              workTestReviewMode: reviewId + '-field-measured-three-source-corners',
+              p137eSceneIndex: String(sceneIndex),
+              p137eMeasuredWallMetricId: variants[0][1],
+              p137eSourceCornerGapsClosed: '3',
+              p137eSourceCornerPatchWidthMm: '40',
+              p137eSourceCornersPhysicalThicknessVerified: 'false',
+              p137eMeasuredWallKphLengthMm: String(measured.kphSideLength),
+              p137eMeasuredWallWcVisibleMm: String(measured.wcSideVisible),
+              p137eMeasuredWallThicknessMm: String(measured.thickness),
+              p137eMeasuredWallLobbyGapMm: String(measured.lobbyClearGap),
+              p137eMeasuredWallGlobalXYBinding: 'CONDITIONAL_UNVERIFIED',
+              p137eWorkTestOnly: 'true',
+              p137eCurrentClaim: 'false',
+              p137eCanonical: 'false',
+              p137eAsBuiltClaim: 'false',
+              p137eHumanReview: 'NOT_RUN',
+            };
+            evidence.phase = 'BROWSER_START';
+            browser = await withWallStageDeadline('BROWSER_START',
+              () => chromium.launch({headless:true}), 15000);
+            const context = await browser.newContext({viewport:{width:1536,height:900}});
+            await context.route('https://aapopihkala.fi/**', route =>
+              route.continue({headers:{...route.request().headers(),
+                'cf-access-client-id':clientId,
+                'cf-access-client-secret':clientSecret}}));
+            const page = await context.newPage();
+            const sourceResponses = [];
+            page.on('response', response => {
+              if (response.url() === originalAsset) sourceResponses.push(response);
+            });
+            evidence.phase = 'VIEWER_HTTP';
+            const result = await withWallStageDeadline('VIEWER_HTTP',
+              () => page.goto(reviewUrl.toString(), {
+                waitUntil:'domcontentloaded',timeout:40000,
+              }), 45000);
+            if (result?.status() !== 200) throw Error('P137E production viewer HTTP != 200');
+            const finalUrl = new URL(page.url());
+            if (finalUrl.origin !== reviewUrl.origin ||
+                finalUrl.pathname !== reviewUrl.pathname ||
+                finalUrl.searchParams.get('review') !== reviewId ||
+                finalUrl.searchParams.get('wallMetric') !== variants[0][1] ||
+                [...finalUrl.searchParams.keys()].length !== 2) {
+              throw Error('P137E scene69 review URL lost exact target');
+            }
+            evidence.phase = 'AUTOLOAD_DATASET';
+            await page.waitForFunction(required => {
+              const el = document.querySelector('#private-model-canvas');
+              return el instanceof HTMLCanvasElement &&
+                Object.entries(required).every(([key,value])=>el.dataset[key]===value);
+            }, expected, {timeout:35000});
+            const canvas = page.locator('#private-model-canvas');
+            const dataset = await canvas.evaluate(el=>({...el.dataset}));
+            if (sourceResponses.length !== 1) {
+              throw Error('Expected one immutable scene67 GLB autoload response');
+            }
+            const assetResponse = sourceResponses[0];
+            evidence.phase = 'SOURCE_GLB_BODY';
+            const glb = await withWallStageDeadline('SOURCE_GLB_BODY',
+              () => assetResponse.body(), 25000);
+            const originalVerified = assetResponse.status() === 200 &&
+              glb.length === expectedBytes &&
+              createHash('sha256').update(glb).digest('hex') === expectedHash;
+            if (!originalVerified) throw Error('Original scene67 GLB bytes do not match raw Drive identity');
+            evidence.originalSourceAutoloadResponseVerified = true;
+            const box = await canvas.boundingBox();
+            if (!box || box.width < 256 || box.height < 256) throw Error('Canvas rectangle is not usable');
+            await page.waitForTimeout(400);
+            evidence.phase = 'CANVAS_BEFORE';
+            const before = await withWallStageDeadline('CANVAS_BEFORE',
+              () => page.screenshot({clip:box,animations:'disabled',timeout:10000,
+                path:'playwright-artifacts/p137e-walls-scene69-before.png'}), 12000);
+            await page.mouse.move(box.x+box.width*.48,box.y+box.height*.5);
+            await page.mouse.wheel(0,-460);
+            await page.waitForTimeout(600);
+            evidence.phase = 'CANVAS_AFTER';
+            const after = await withWallStageDeadline('CANVAS_AFTER',
+              () => page.screenshot({clip:box,animations:'disabled',timeout:10000,
+                path:'playwright-artifacts/p137e-walls-scene69-after.png'}), 12000);
+            evidence.phase = 'RGBA_EVALUATION';
+            const pixels = await withWallStageDeadline('RGBA_EVALUATION',
+              () => page.evaluate(async imgs => {
+              const decode = async b64 => {
+                const img = new Image();img.src='data:image/png;base64,'+b64;
+                await img.decode();
+                const c=document.createElement('canvas');
+                c.width=img.width;c.height=img.height;
+                const ctx=c.getContext('2d');
+                if (!ctx) throw Error('Cannot decode screenshot for RGBA');
+                ctx.drawImage(img,0,0);
+                return {w:c.width,h:c.height,rgba:ctx.getImageData(0,0,c.width,c.height).data};
+              };
+              const a=await decode(imgs[0]),b=await decode(imgs[1]);
+              if(a.w!==b.w || a.h!==b.h || a.w<256 || a.h<256)throw Error('PNG pixel dimensions');
+              const bg=[a.rgba[0],a.rgba[1],a.rgba[2]];
+              let filled=0,changed=0;
+              for(let i=0;i<a.rgba.length;i+=4){
+                if(Math.abs(a.rgba[i]-bg[0])+Math.abs(a.rgba[i+1]-bg[1])+
+                   Math.abs(a.rgba[i+2]-bg[2])>42)filled++;
+                if(Math.abs(a.rgba[i]-b.rgba[i])+Math.abs(a.rgba[i+1]-b.rgba[i+1])+
+                   Math.abs(a.rgba[i+2]-b.rgba[i+2])>42)changed++;
+              }
+              return {width:a.w,height:a.h,nonBackgroundPixels:filled,changedPixels:changed};
+            },[before.toString('base64'),after.toString('base64')]), 10000);
+            if (pixels.nonBackgroundPixels < 1500 || pixels.changedPixels < 750) {
+              throw Error('Scene69 real canvas did not meet hard pixel floor');
+            }
+            evidence.screenshotBeforeAfterOrbitPixels = pixels;
+            evidence.phase = 'IDENTITY_READBACK';
+            const afterDataset = await withWallStageDeadline('IDENTITY_READBACK',
+              () => canvas.evaluate(el=>({...el.dataset})), 10000);
+            if (Object.entries(expected).some(([key,value])=>afterDataset[key]!==value))
+              throw Error('Scene69 identity/promotion state drifted during orbit');
+            evidence.result = 'PASS';
+            evidence.phase = 'COMPLETE';
+            writeEvidence();
+            console.log(JSON.stringify({probe:evidence.probe,sourceGlbVerified:true,
+              sceneIndex,renderPixels:pixels,threeCornerRoiGate:'NOT_RUN'}));
+          } catch (error) {
+            const failure = sanitizedWallStageFailure(error, evidence.phase);
+            Object.assign(evidence, failure);
+            writeEvidence();
+            console.error(JSON.stringify({probe:evidence.probe,...failure}));
+            process.exitCode = 1;
+          } finally {
+            if (browser) {
+              await withWallStageDeadline('BROWSER_CLOSE', () => browser.close(), 5000)
+                .catch(() => {
+                  console.error('P137E_WALL_BROWSER_CLOSE_REJECTED');
+                  process.exitCode = 1;
+                });
+            }
+          }
+          NODE
+      - name: Upload bounded sanitized wall evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-model-scene69-production-review
+          path: |
+            playwright-artifacts/p137e-walls-scene69-production.json
+            playwright-artifacts/p137e-walls-scene69-before.png
+            playwright-artifacts/p137e-walls-scene69-after.png
+          if-no-files-found: ignore
+          retention-days: 7
+
+
+  verify-d1f-combined-pixels:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'd1f-combined-pixels'
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    # Every row validates the same immutable asset and four independent ROI targets.
+    # A successful workflow therefore requires all four source variants to pass.
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - WEST_ANCHOR_725_895_740
+          - WEST_ANCHOR_740_895_725
+          - EAST_ANCHOR_725_895_740
+          - EAST_ANCHOR_740_895_725
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact trusted main
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install existing browser runtime
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify authenticated exact combined autoload and four source targets
+        env:
+          PROBE_MODE: ${{ inputs.probe_mode }}
+          D1F_COMBINED_VARIANT: ${{ matrix.variant }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+        run: node .github/scripts/private-model-d1f-combined-production-probe.mjs
+      - name: Preserve exact source pixel evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: d1f-combined-production-pixels-${{ matrix.variant }}
+          path: test-results/d1f-combined-production/
+          if-no-files-found: ignore
+
+  verify-d1f-measured-pixels:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'd1f-measured-pixels'
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    # Every row validates the same measured immutable source and five independent ROI targets.
+    # A successful workflow therefore requires all four measured source variants to pass.
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - WEST_ANCHOR_725_895_740
+          - WEST_ANCHOR_740_895_725
+          - EAST_ANCHOR_725_895_740
+          - EAST_ANCHOR_740_895_725
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact trusted main
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install existing browser runtime
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify authenticated measured 80-scene autoload and five source targets
+        env:
+          PROBE_MODE: ${{ inputs.probe_mode }}
+          D1F_COMBINED_VARIANT: ${{ matrix.variant }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+        run: node .github/scripts/private-model-d1f-measured-production-probe.mjs
+      - name: Preserve exact source pixel evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: d1f-measured-production-pixels-${{ matrix.variant }}
+          path: test-results/d1f-measured-production/
+          if-no-files-found: ignore

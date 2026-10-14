@@ -1823,6 +1823,12 @@ const title = 'Private 3D viewer';
 
     <script>
       import { THREE, OrbitControls, GLTFLoader } from '../../scripts/threeRuntime';
+      // @ts-ignore - exact-byte WORK_TEST entry covered by loader regressions.
+      import { D1F_COMBINED_WALL_ASSETS, isD1FCombinedWallReviewRequested, loadD1FCombinedWallReview }
+        from '../../scripts/privateModelD1FCombinedWallSceneContract.mjs';
+      // @ts-ignore - source-only reversible screenshot input, never pixel proof.
+      import { createD1FCombinedWallPixelRuntime }
+        from '../../scripts/privateModelD1FCombinedWallPixelRuntime.mjs';
       // @ts-ignore - focused source-only ESM helper covered by browser tests.
       import {
         fetchP137EScene67VerifiedGlb,
@@ -1834,6 +1840,9 @@ const title = 'Private 3D viewer';
         P137E_MEASURED_WALL_VARIANT,
         P137E_MEASURED_WALL_REVIEW_ROOT,
         P137E_MEASURED_WALL_SCENE_INDEX,
+        makeP137EThreeCornerMeasuredWorkTest,
+        P137E_THREE_CORNER_MEASURED_SCENE_INDEX,
+        P137E_THREE_CORNER_MEASURED_REVIEW_ROOT,
       } from '../../scripts/privateModelP137EFieldMeasuredWallRuntime.mjs';
       import { setupPrivateModelToolbarMenus } from '../../scripts/privateModelToolbarMenus';
       import {
@@ -2539,6 +2548,39 @@ const title = 'Private 3D viewer';
       const modelCenter = new THREE.Vector3();
       let fitDistance = 10;
       let activeCamera: typeof camera | typeof planCamera | typeof isoCamera = camera;
+      let d1fCombinedPixelRuntime: ReturnType<typeof createD1FCombinedWallPixelRuntime> | null = null;
+      window.addEventListener('d1f-combined-wall-source-probe', (event: Event) => {
+        if (!(event instanceof CustomEvent)) return;
+        const detail = event.detail;
+        if (!detail || typeof detail !== 'object' ||
+            !Number.isSafeInteger(detail.requestId)) return;
+        try {
+          const reviewId = canvas.dataset.workTestReviewMode;
+          const expectedId = reviewId === 'd1f-combined-wall-115-100-20261013-review'
+            ? 'd1f-combined-wall-115-100-20261013'
+            : reviewId === 'd1f-measured-wall-140-100-2350-b710-basin-20261014-review'
+              ? 'd1f-measured-wall-140-100-2350-b710-basin-20261014' : null;
+          if (!d1fCombinedPixelRuntime || !expectedId ||
+              canvas.dataset.modelSource !== 'work-test' ||
+              canvas.dataset.d1fCombinedWallRawSha256 !== D1F_COMBINED_WALL_ASSETS[expectedId].sha256 ||
+              canvas.dataset.d1fCombinedWallHumanReview !== 'NOT_RUN') throw new Error('probe rejected');
+          let result;
+          if (detail.action === 'prepare') {
+            activeCamera = camera;
+            result = d1fCombinedPixelRuntime.prepare(detail.targetId, detail.viewIndex);
+          } else if (detail.action === 'suppress') {
+            result = d1fCombinedPixelRuntime.suppress(detail.targetId);
+          } else if (detail.action === 'restore') {
+            result = d1fCombinedPixelRuntime.restore();
+          } else if (detail.action === 'finish') {
+            d1fCombinedPixelRuntime.dispose();
+            result = { state: 'FINISHED', pixelsVerifiedByThisRuntime: false, humanReview: 'NOT_RUN' };
+          } else throw new Error('probe action rejected');
+          canvas.dataset.d1fCombinedWallProbe = JSON.stringify({ ...result, requestId: detail.requestId });
+        } catch {
+          canvas.dataset.d1fCombinedWallProbe = JSON.stringify({ state: 'REJECTED', requestId: detail.requestId });
+        }
+      });
       const orientationGizmoController = createOrientationGizmoController({
         root: orientationGizmo,
         axisX: {
@@ -6051,8 +6093,14 @@ const title = 'Private 3D viewer';
         gltf: any,
         sourceKind: ModelSourceKind,
         sourceLabel: string,
+        dInteriorOverride: THREE.Object3D | null = null,
       ) => {
         // Never leak source-camera coordinates across different WORK_TEST candidates.
+        d1fCombinedPixelRuntime?.dispose();
+        d1fCombinedPixelRuntime = null;
+        for (const key of Object.keys(canvas.dataset)) {
+          if (key.startsWith('d1fCombinedWall')) delete canvas.dataset[key];
+        }
         restoreP137EWallPresentation();
         restoreP137EDevicePresentation();
         if (p137ePlanFaceButton) p137ePlanFaceButton.hidden = true;
@@ -6081,7 +6129,8 @@ const title = 'Private 3D viewer';
 
         clearD2FBoundaryReviewContext();
         fullModelScene = gltf.scene;
-        dInteriorScene = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
+        dInteriorScene = dInteriorOverride ??
+          findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
         const modelLoadLayerState = createViewerLayerStateForModelLoad({
           locusVisible: isP161SystemsLayerReviewRequested(),
         });
@@ -7005,6 +7054,14 @@ const title = 'Private 3D viewer';
         isP137EScene67ReviewRequested() &&
         new URLSearchParams(window.location.search).get('wallMetric') ===
           P137E_MEASURED_WALL_VARIANT;
+      // This explicitly requested WORK_TEST variant includes the three source
+      // 40 mm L-junction presentation patches as well as measured I03 scene68.
+      // No query alias can promote it to CURRENT, canonical or as-built.
+      const p137eThreeCornerMeasuredVariant = 'd1f-three-source-corners-and-i03-20261013';
+      const isP137EThreeCornerMeasuredReviewRequested = () =>
+        isP137EScene67ReviewRequested() &&
+        new URLSearchParams(window.location.search).get('wallMetric') ===
+          p137eThreeCornerMeasuredVariant;
       const p186fX4CandidateId = 'p186f-x4-d-themo-door-plan-clear-work-assumption';
       const p186fX4ReviewId = `${p186fX4CandidateId}-review`;
       const isP186fX4ThemoRoomReviewRequested = () =>
@@ -8715,16 +8772,28 @@ const title = 'Private 3D viewer';
       };
 
       const applyP137EMeasuredWallReviewState = () => {
-        // GLTFLoader returns a Group for the scene, with the source-bound
-        // four-child wall/Themo root nested inside it.
+        // Scene68 and scene69 are separate opt-in WORK_TEST variants. Both
+        // carry one four-child source-bound wall/three-Themo root in a glTF Group.
+        const withSourceCorners = isP137EThreeCornerMeasuredReviewRequested();
+        const reviewRootName = withSourceCorners
+          ? P137E_THREE_CORNER_MEASURED_REVIEW_ROOT
+          : P137E_MEASURED_WALL_REVIEW_ROOT;
+        const reviewSceneIndex = withSourceCorners
+          ? P137E_THREE_CORNER_MEASURED_SCENE_INDEX
+          : P137E_MEASURED_WALL_SCENE_INDEX;
         const measuredRoots = fullModelScene?.children?.filter(
-          (child: THREE.Object3D) => child.name === P137E_MEASURED_WALL_REVIEW_ROOT,
+          (child: THREE.Object3D) => child.name === reviewRootName,
         ) ?? [];
         if (activeModelSourceKind !== 'work-test' ||
-            !isP137EMeasuredWallReviewRequested() ||
+            !(isP137EMeasuredWallReviewRequested() || withSourceCorners) ||
             !fullModelScene ||
             measuredRoots.length !== 1 ||
             measuredRoots[0].children.length !== 4 ||
+            (withSourceCorners &&
+              (measuredRoots[0].userData?.sourceCornerGapsClosed !== 3 ||
+               measuredRoots[0].children[0]?.children?.length !== 1 ||
+               measuredRoots[0].children[0].children[0]?.name !==
+                 'P137E_THREE_CORNER_SOURCE_PATCHES')) ||
             !dInteriorScene) {
           throw new Error('P137E measured I03 wall focused review source unavailable');
         }
@@ -8740,9 +8809,14 @@ const title = 'Private 3D viewer';
         setD1KnownDoorReviewLabelsVisible(false);
         refreshEdgeRendering(fullModelScene);
         Object.assign(canvas.dataset, {
-          workTestReviewMode: p137eScene67ReviewId + '-field-measured',
-          p137eSceneIndex: String(P137E_MEASURED_WALL_SCENE_INDEX),
-          p137eMeasuredWallMetricId: P137E_MEASURED_WALL_VARIANT,
+          workTestReviewMode: p137eScene67ReviewId +
+            (withSourceCorners ? '-field-measured-three-source-corners' : '-field-measured'),
+          p137eSceneIndex: String(reviewSceneIndex),
+          p137eMeasuredWallMetricId: withSourceCorners
+            ? p137eThreeCornerMeasuredVariant : P137E_MEASURED_WALL_VARIANT,
+          p137eSourceCornerGapsClosed: withSourceCorners ? '3' : '0',
+          p137eSourceCornerPatchWidthMm: withSourceCorners ? '40' : '0',
+          p137eSourceCornersPhysicalThicknessVerified: 'false',
           p137eMeasuredWallKphLengthMm: '960',
           p137eMeasuredWallWcVisibleMm: '710',
           p137eMeasuredWallThicknessMm: '205',
@@ -8760,12 +8834,14 @@ const title = 'Private 3D viewer';
         if (p137ePlanFaceButton) p137ePlanFaceButton.hidden = true;
         if (p137eNorthFaceButton) p137eNorthFaceButton.hidden = true;
         if (p137eSouthFaceButton) p137eSouthFaceButton.hidden = true;
-        status.textContent =
-          'WC/KPH-seinän mitattu 960 / 710 / 205 / 1020 mm WORK_TEST - tarkka mallikoordinaattisidonta vielä tarkistamatta';
+        status.textContent = withSourceCorners
+          ? 'Kolme lähdesidonnaista 40 mm seinäkulmaa + WC/KPH 960 / 710 / 205 / 1020 mm WORK_TEST - ei CURRENT eikä as-built'
+          : 'WC/KPH-seinän mitattu 960 / 710 / 205 / 1020 mm WORK_TEST - tarkka mallikoordinaattisidonta vielä tarkistamatta';
       };
 
       const applyP137EScene67ReviewState = () => {
-        if (isP137EMeasuredWallReviewRequested()) {
+        if (isP137EMeasuredWallReviewRequested() ||
+            isP137EThreeCornerMeasuredReviewRequested()) {
           applyP137EMeasuredWallReviewState();
           return;
         }
@@ -9415,20 +9491,27 @@ const title = 'Private 3D viewer';
           const isExactP137EScene67Load =
             candidate.id === p137eScene67CandidateId &&
             isP137EScene67ReviewRequested();
-          // The field-measured wall is an opt-in, noncanonical successor.
-          // Both versions fetch and verify EXACTLY the same immutable source GLB.
-          // The new scene68 geometry exists only in memory, never in scene67.
+          // Source-derived scene68/69 variants are opt-in, noncanonical.
+          // All versions first fetch and SHA-verify the same immutable scene67
+          // GLB. The added geometry exists in memory only, never in source.
           const verifiedP137EOriginal = isExactP137EScene67Load
             ? await fetchP137EScene67VerifiedGlb(candidate.path)
             : null;
-          const gltf = verifiedP137EOriginal
+          const combinedWallReview = isD1FCombinedWallReviewRequested(window.location.search)
+            ? await loadD1FCombinedWallReview({
+                candidate, search: window.location.search, loader,
+              })
+            : null;
+          const gltf = combinedWallReview?.gltf ?? (verifiedP137EOriginal
             ? await loader.parseAsync(
-                isP137EMeasuredWallReviewRequested()
-                  ? makeP137EFieldMeasuredWallWorkTest(verifiedP137EOriginal)
-                  : verifiedP137EOriginal,
+                isP137EThreeCornerMeasuredReviewRequested()
+                  ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
+                  : isP137EMeasuredWallReviewRequested()
+                    ? makeP137EFieldMeasuredWallWorkTest(verifiedP137EOriginal)
+                    : verifiedP137EOriginal,
                 P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
               )
-            : await loader.loadAsync(candidate.path);
+            : await loader.loadAsync(candidate.path));
           loadFailurePhase = 'review-runtime-failed';
           const isP143aScalgoTerrainReview =
             candidate.id === p143aCandidateId && isP143aScalgoTerrainReviewRequested();
@@ -9586,7 +9669,21 @@ const title = 'Private 3D viewer';
           } else if (isP137EScene67Review) {
             // Always validate the exact inherited scene67/three-Themo identity first.
             const exactSource = selectP137EScene67FocusedReview(gltf);
-            if (isP137EMeasuredWallReviewRequested()) {
+            if (isP137EThreeCornerMeasuredReviewRequested()) {
+              const combinedScene = gltf.scenes?.[P137E_THREE_CORNER_MEASURED_SCENE_INDEX];
+              const corners = (combinedScene?.children ?? []).filter(
+                (child: THREE.Object3D) =>
+                  child.name === P137E_THREE_CORNER_MEASURED_REVIEW_ROOT,
+              );
+              if (corners.length !== 1 || corners[0].children.length !== 4 ||
+                  corners[0].userData?.sourceCornerGapsClosed !== 3 ||
+                  corners[0].children[0]?.children?.length !== 1 ||
+                  corners[0].children[0].children[0]?.name !==
+                    'P137E_THREE_CORNER_SOURCE_PATCHES') {
+                throw new Error('P137E scene69 three source corners identity mismatch');
+              }
+              gltf.scene = combinedScene;
+            } else if (isP137EMeasuredWallReviewRequested()) {
               const measuredScene = gltf.scenes?.[P137E_MEASURED_WALL_SCENE_INDEX];
               const candidates = (measuredScene?.children ?? []).filter(
                 (child: any) => child?.name === P137E_MEASURED_WALL_REVIEW_ROOT,
@@ -9645,7 +9742,8 @@ const title = 'Private 3D viewer';
                 : await buildP139abVisibleReviewScene(gltf, zScene);
           }
 
-          applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`);
+          applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`,
+            combinedWallReview?.selected.scene ?? null);
           canvas.dataset.p137eLoadedCandidateId = candidate.id;
           clearM5BReviewState();
           delete canvas.dataset.g3SourcePhase;
@@ -10409,6 +10507,28 @@ const title = 'Private 3D viewer';
             applyP186bReviewState();
           } else if (isP186eElectricalLabelReview) {
             applyP186eReviewState();
+          } else if (combinedWallReview) {
+            Object.assign(canvas.dataset, {
+              workTestReviewMode: `${candidate.id}-review`,
+              d1fCombinedWallVariant: combinedWallReview.selected.variant,
+              d1fCombinedWallCornerCount: String(combinedWallReview.selected.corners.length),
+              d1fCombinedWallRawBytes: String(combinedWallReview.asset.bytes),
+              d1fCombinedWallRawSha256: combinedWallReview.asset.sha256,
+              d1fCombinedWallPhysicalXYVerified: 'false',
+              d1fCombinedWallHumanReview: 'NOT_RUN',
+              d1fCombinedWallPixelTargets: candidate.id === 'd1f-measured-wall-140-100-2350-b710-basin-20261014'
+                ? 'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589,BASIN'
+                : 'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589',
+            });
+            applyStandardViewPreset('d-apartment');
+            if (candidate.id === 'd1f-combined-wall-115-100-20261013' ||
+                candidate.id === 'd1f-measured-wall-140-100-2350-b710-basin-20261014') {
+              d1fCombinedPixelRuntime = createD1FCombinedWallPixelRuntime({
+                THREE, selected: combinedWallReview.selected, sourceSha: combinedWallReview.asset.sha256,
+                camera, controls, canvas, render: () => renderer.render(scene, camera),
+              });
+            }
+            status.textContent = 'Seinien yhteinen työversio - mittojen sijoitus vielä tarkistamatta';
           } else if (isP137EScene67Review) {
             applyP137EScene67ReviewState();
           } else if (isP186fX4ThemoRoomReview) {
@@ -10747,6 +10867,7 @@ const title = 'Private 3D viewer';
             delete canvas.dataset.scalgoTerrainBaseRenderableCount;
             delete canvas.dataset.terrainVerticalBridgeStatus;
           }
+          return true;
         } catch (error) {
           console.error(error);
           delete canvas.dataset.workTestReviewMode;
@@ -10759,6 +10880,7 @@ const title = 'Private 3D viewer';
           } else {
             status.textContent = 'WORK_TEST-kandidaattia ei voitu avata';
           }
+          return false;
         }
       };
 
@@ -11351,6 +11473,8 @@ const title = 'Private 3D viewer';
         controls.update();
         planControls.update();
         isoControls.update();
+        // Screenshot input pins the exact prepared pose after orbit updates.
+        d1fCombinedPixelRuntime?.pinFrame();
         selectionHighlightController.update();
         updateD1KnownDoorReviewLabelPositions();
         updateHeightScale();
@@ -11359,14 +11483,19 @@ const title = 'Private 3D viewer';
           quaternion: activeCamera.quaternion,
           projection: (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective',
         });
+        d1fCombinedPixelRuntime?.pinFrame();
         renderer.render(scene, activeCamera);
       });
 
       void (async () => {
-        // The exact P137E scene67 one-link review already targets a separate
-        // WORK_TEST GLB; loading CURRENT first delays that model unnecessarily.
-        // Keep the CURRENT-first path intact for all other routes and reviews.
-        if (!isP137EScene67ReviewRequested()) {
+        // Exact P137E scene67 and R1125 one-link reviews load separate WORK_TEST
+        // GLBs; do not make their autoload depend on the unrelated CURRENT GLB.
+        // Keep CURRENT-first for ordinary routes and all other reviews.
+        if (
+          !isP137EScene67ReviewRequested() &&
+          !isD1FCombinedWallReviewRequested(window.location.search) &&
+          !isPrivateModelReviewRequested(window.location.search, m5aZ2R1125ReviewId)
+        ) {
           await loadCurrentModel();
         }
         const imported = await importWorkTestCandidateFromFragment();
@@ -11378,8 +11507,9 @@ const title = 'Private 3D viewer';
           ? workTestCandidates.get(reviewCandidateId)
           : null;
         if (reviewCandidate) {
-          await loadWorkTestCandidate(reviewCandidate);
-          canvas.dataset.workTestReviewAutoload = 'true';
+          const loaded = await loadWorkTestCandidate(reviewCandidate);
+          if (loaded) canvas.dataset.workTestReviewAutoload = 'true';
+          else delete canvas.dataset.workTestReviewAutoload;
         } else {
           delete canvas.dataset.workTestReviewAutoload;
           if (reviewCandidateId) {
@@ -11394,3 +11524,4 @@ const title = 'Private 3D viewer';
     </script>
   </body>
 </html>
+
