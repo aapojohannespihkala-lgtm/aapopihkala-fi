@@ -1,17 +1,22 @@
 /**
- * Temporary screenshot input on the exact 115/100 WORK_TEST scene.
+ * Temporary screenshot input for exact old 115/100 or measured 140/100 with basin WORK_TEST scene.
  * It authenticates no pixels. The browser owner must independently check bytes
- * and run the four-target pixel gate on real before/after PNG captures.
+ * and run independent source-target pixel gates on real before/after PNG captures.
  */
 import { D1F_COMBINED_WALL_ASSETS } from './privateModelD1FCombinedWallSceneContract.mjs';
 import { D1F_FOUR_PIXEL_TARGETS, D1F_PIXEL_SUPPRESSION } from './privateModelD1FFourTargetPixelGate.mjs';
 
-const SOURCE_SHA = D1F_COMBINED_WALL_ASSETS['d1f-combined-wall-115-100-20261013'].sha256;
+const OLD_SOURCE_SHA = D1F_COMBINED_WALL_ASSETS['d1f-combined-wall-115-100-20261013'].sha256;
+const MEASURED_SOURCE_SHA = D1F_COMBINED_WALL_ASSETS['d1f-measured-wall-140-100-2350-b710-basin-20261014'].sha256;
+const BASIN_TARGET = 'BASIN';
+const BASIN_RECORD = 'G2_D1F_KPH_BASIN_SOURCE_FACE_X3P888_WORK_TEST_20261014';
+const close = (a, b) => Number.isFinite(a) && Math.abs(a - b) <= 0.00002;
 const reject = () => { throw new Error('D1F_SOURCE_PIXEL_RUNTIME_REJECTED'); };
 
 /** @param {any} options */
 export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, camera, controls, canvas, render }) {
-  if (sourceSha !== SOURCE_SHA || !camera?.isPerspectiveCamera ||
+  const measured = sourceSha === MEASURED_SOURCE_SHA;
+  if ((!measured && sourceSha !== OLD_SOURCE_SHA) || !camera?.isPerspectiveCamera ||
       selected?.wall?.userData?.sourceNodeIndex !== 798 ||
       selected.corners?.length !== 3 || !selected.scene) reject();
   selected.scene.updateMatrixWorld(true);
@@ -30,8 +35,8 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     if (offsets.length) matches.push({ mesh: object, offsets });
   });
   if (matches.length !== 1 || matches[0].offsets.length !== 12 ||
-      matches[0].mesh.geometry.index.count !== 216 ||
-      matches[0].mesh.geometry.attributes.position.count !== 200) reject();
+      matches[0].mesh.geometry.index.count !== (measured ? 396 : 216) ||
+      matches[0].mesh.geometry.attributes.position.count !== (measured ? 240 : 200)) reject();
   const i03 = matches[0];
   const sourceGeometry = i03.mesh.geometry;
   const sourceIndex = sourceGeometry.index.array;
@@ -39,6 +44,24 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     [sourceIndex[i], sourceIndex[i + 1], sourceIndex[i + 2]]))];
   if (exactVertices.length !== 8 || exactVertices.some(v => v < 128 || v > 135)) reject();
   const corners = new Map(selected.corners.map(c => [c.name, c.object]));
+  const basin = measured ? selected.counter : null;
+  if (measured) {
+    if (!basin?.isMesh || basin.parent !== selected.scene.children[0] || basin.visible !== true ||
+        basin.userData?.logicalFixtureId !== 'D1F_KPH_BASIN_TOP_WORK_PROXY_01' ||
+        basin.userData?.sourceRecord !== BASIN_RECORD ||
+        basin.userData?.WORK_TEST_ONLY !== true ||
+        basin.userData?.current !== false || basin.userData?.Canonical !== false ||
+        basin.userData?.asBuilt !== false || basin.userData?.HUMAN_REVIEW !== 'NOT_RUN' ||
+        basin.userData?.absoluteFaceSurveyVerified !== false ||
+        basin.userData?.physicalAbsoluteXYZVerified !== false ||
+        basin.geometry.index?.count !== 36 ||
+        basin.geometry.attributes.position?.count !== 24) reject();
+    basin.geometry.computeBoundingBox();
+    const bound = basin.geometry.boundingBox;
+    if (!bound || ![3.888, 2.737, 0.925].every((n, i) => close(bound.min.getComponent(i), n)) ||
+        ![4.383, 3.762, 0.945].every((n, i) => close(bound.max.getComponent(i), n))) reject();
+  } else if (selected.counter) reject();
+  const pixelTargets = measured ? [...D1F_FOUR_PIXEL_TARGETS, BASIN_TARGET] : D1F_FOUR_PIXEL_TARGETS;
   for (const id of D1F_FOUR_PIXEL_TARGETS.slice(1)) {
     const object = corners.get(id);
     if (!object?.isMesh || object.parent !== selected.wall ||
@@ -75,16 +98,19 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
       i03.mesh.geometry = sourceGeometry;
       maskedGeometry?.dispose();
       maskedGeometry = null;
+    } else if (hidden === BASIN_TARGET) {
+      basin.visible = true;
     } else if (hidden) {
       corners.get(hidden).visible = true;
     }
     hidden = null;
     render();
     return i03.mesh.geometry === sourceGeometry &&
-      [...corners.values()].every(o => o.visible === true);
+      [...corners.values()].every(o => o.visible === true) &&
+      (!measured || basin.visible === true);
   };
   const exactPoints = id => {
-    const object = id === 'I03' ? i03.mesh : corners.get(id);
+    const object = id === 'I03' ? i03.mesh : id === BASIN_TARGET ? basin : corners.get(id);
     if (!object?.visible || !object.geometry?.attributes.position) reject();
     object.updateWorldMatrix(true, false);
     const vertices = id === 'I03' ? exactVertices
@@ -93,14 +119,17 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
       object.geometry.attributes.position, i).applyMatrix4(object.matrixWorld));
   };
   const prepare = (targetId, viewIndex = 0) => {
-    if (disposed || !D1F_FOUR_PIXEL_TARGETS.includes(targetId) ||
+    if (disposed || !pixelTargets.includes(targetId) ||
         !Number.isInteger(viewIndex) || viewIndex < 0 || viewIndex > 3) reject();
     if (!restoreTarget()) reject();
     const points = exactPoints(targetId);
     const bounds = new THREE.Box3().setFromPoints(points);
     const size = bounds.getSize(new THREE.Vector3());
     const center = bounds.getCenter(new THREE.Vector3());
-    if (![...size.toArray(), ...center.toArray()].every(Number.isFinite) || size.y < 2) reject();
+    if (![...size.toArray(), ...center.toArray()].every(Number.isFinite) ||
+        (targetId === BASIN_TARGET
+          ? !(size.x > 0.49 && size.y > 0.015 && size.z > 0.49)
+          : size.y < 2)) reject();
     const rect = canvas.getBoundingClientRect();
     const width = Math.round(rect.width), height = Math.round(rect.height);
     if (width < 320 || height < 320) reject();
@@ -131,7 +160,7 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     prepared = {
       targetId, viewIndex, width, height, roi: { x, y, width: right - x, height: bottom - y },
       cameraFingerprint: fingerprint(), glbSha256: sourceSha, variant: selected.variant,
-      suppressionMethod: D1F_PIXEL_SUPPRESSION[targetId],
+      suppressionMethod: targetId === BASIN_TARGET ? 'SOURCE_COUNTER_NODE_VISIBILITY_ONLY' : D1F_PIXEL_SUPPRESSION[targetId],
       roiProvenance: 'PROJECTED_EXACT_TARGET_GEOMETRY', targetIdentityVerified: true,
       sourceI03Indices: { count: 36, sourceVertices: [128, 135], offsets: [...i03.offsets] },
       pixelsVerifiedByThisRuntime: false, humanReview: 'NOT_RUN',
@@ -147,9 +176,11 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
       const keep = [];
       for (let i = 0; i < sourceIndex.length; i += 3)
         if (!removed.has(i)) keep.push(sourceIndex[i], sourceIndex[i + 1], sourceIndex[i + 2]);
-      if (keep.length !== 180 || i03.mesh.visible !== true) reject();
+      if (keep.length !== (measured ? 360 : 180) || i03.mesh.visible !== true) reject();
       maskedGeometry = sourceGeometry.clone(); maskedGeometry.setIndex(keep);
       i03.mesh.geometry = maskedGeometry;
+    } else if (targetId === BASIN_TARGET) {
+      basin.visible = false;
     } else {
       corners.get(targetId).visible = false;
     }
