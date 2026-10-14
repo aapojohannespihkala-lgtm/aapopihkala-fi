@@ -5,7 +5,9 @@ import { D1F_COMBINED_WALL_ASSETS, D1F_COMBINED_WALL_VARIANTS } from '../../src/
 import { D1F_FIVE_PIXEL_TARGETS, evaluateD1FOneMeasuredTargetPixelSample, evaluateD1FFiveTargetPixelGate } from '../../src/scripts/privateModelD1FFourTargetPixelGate.mjs';
 
 const ORIGIN = 'https://aapopihkala.fi';
-const ID = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
+const DEFAULT_ID = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
+const ID = process.env.D1F_MEASURED_CANDIDATE_ID ?? DEFAULT_ID;
+if (![DEFAULT_ID, 'd1f-finished-face-2360-wall-basin-20261014'].includes(ID)) throw new Error('D1F_MEASURED_SOURCE_REJECTED');
 const ASSET = D1F_COMBINED_WALL_ASSETS[ID];
 const PATH = '/private-model/work-test/' + ID + '.glb';
 const OUT = 'test-results/d1f-measured-production';
@@ -177,7 +179,7 @@ try {
           roiProvenance:prepared.roiProvenance,suppressionRestored:true};
         // Strict source-SHA-locked ROI validation for each measured target,
         // including the independent BASIN before it enters the aggregate.
-        try {evaluateD1FOneMeasuredTargetPixelSample(sample);}
+        try {evaluateD1FOneMeasuredTargetPixelSample(sample,{candidateId:ID});}
         catch {continue;}
         samples.push(sample);
         captures.push({targetId,viewIndex,cameraFingerprint:prepared.cameraFingerprint,roi:prepared.roi,
@@ -187,7 +189,7 @@ try {
       }
       check(accepted);
     }
-    const pixels=evaluateD1FFiveTargetPixelGate(samples);
+    const pixels=evaluateD1FFiveTargetPixelGate(samples,{candidateId:ID});
     await send('finish',null);
     evidence.variants.push({variant,exactAutoloadResponseVerified:true,actualWebGlContextVerified:true,
       nonBackgroundPixels:nonBackground,orbitChangedPixels:orbitChanged,pixels,captures});

@@ -70,3 +70,18 @@ test('measured successor cannot alias old walls or an unregistered model', () =>
   expect(getPrivateWorkTestVerifyCandidate(`/private-model/work-test/verify/${measuredId}-forged.glb`)).toBeNull();
 });
 
+
+test('finished-face raw Drive bytes resolve through the same exact Worker publish and review path', () => {
+  const id='d1f-finished-face-2360-wall-basin-20261014';
+  const manifest=JSON.parse(readFileSync('.github/work-test-candidates.json','utf8'));
+  expect(manifest.candidates[id]).toEqual({driveFileId:'1LinO0DkyqpbwO3kNmPfwLwcDmmKjbyg1'});
+  const candidate=getPrivateWorkTestCandidateById(id);
+  expect(candidate).toMatchObject({id,path:`/private-model/work-test/${id}.glb`,
+    objectKey:`work-test/${id}.glb`,expectedSize:3654796,
+    expectedSha256:'826633aba10b590935dc029358b1233957ab37ee7e167a5adfdab713617d8523'});
+  expect(D1F_COMBINED_WALL_ASSETS[id].sha256).toBe(candidate?.expectedSha256);
+  expect(getRequestedReviewCandidateId(`?review=${id}-review`)).toBe(id);
+  expect(getPrivateWorkTestPublishCandidate(`/private-model/work-test/publish/${id}.glb`)).toBe(candidate);
+  expect(getPrivateWorkTestVerifyCandidate(`/private-model/work-test/verify/${id}.glb`)).toBe(candidate);
+  expect(getPrivateWorkTestPublishCandidate(`/private-model/work-test/publish/${id}-forged.glb`)).toBeNull();
+});

@@ -83,11 +83,25 @@ test('distinct main-only measured production matrix has all variants and is neve
   expect(measured).toContain('CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}');
   expect(measured).toContain('CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}');
   expect(measured).toContain('d1f-measured-production-pixels-${{ matrix.variant }}');
-  expect(script).toContain("const ID = 'd1f-measured-wall-140-100-2350-b710-basin-20261014'");
+  expect(script).toContain("const DEFAULT_ID = 'd1f-measured-wall-140-100-2350-b710-basin-20261014'");
+  expect(script).toContain('const ID = process.env.D1F_MEASURED_CANDIDATE_ID ?? DEFAULT_ID');
+  expect(measured).toContain('D1F_MEASURED_CANDIDATE_ID: ${{ inputs.measured_candidate }}');
   expect(script).toContain("PROBE_MODE === 'd1f-measured-pixels'");
   expect(script).toContain('for(const targetId of D1F_FIVE_PIXEL_TARGETS)');
-  expect(script).toContain('evaluateD1FOneMeasuredTargetPixelSample(sample)');
-  expect(script).toContain('evaluateD1FFiveTargetPixelGate(samples)');
+  expect(script).toContain('evaluateD1FOneMeasuredTargetPixelSample(sample,{candidateId:ID})');
+  expect(script).toContain('evaluateD1FFiveTargetPixelGate(samples,{candidateId:ID})');
   expect(script).toContain("d1fCombinedWallPixelTargets:'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589,BASIN'");
   expect(script).not.toContain('D1F_FOUR_PIXEL_TARGETS');
+});
+
+test('finished-face five-target proof accepts only its new digest and never inherits the old pixel PASS', () => {
+  const candidateId='d1f-finished-face-2360-wall-basin-20261014';
+  const digest=D1F_COMBINED_WALL_ASSETS[candidateId].sha256;
+  const newSamples=D1F_FIVE_PIXEL_TARGETS.map(id=>sample(id,digest));
+  expect(evaluateD1FFiveTargetPixelGate(newSamples,{candidateId}).checkedTargetCount).toBe(5);
+  expect(evaluateD1FOneMeasuredTargetPixelSample(newSamples[4],{candidateId}).changedInside).toBe(144);
+  expect(()=>evaluateD1FFiveTargetPixelGate(newSamples)).toThrow();
+  expect(()=>evaluateD1FFiveTargetPixelGate(D1F_FIVE_PIXEL_TARGETS.map(id=>sample(id)),{candidateId})).toThrow();
+  expect(()=>evaluateD1FFiveTargetPixelGate([...newSamples.slice(0,4),sample('BASIN')],{candidateId})).toThrow();
+  expect(()=>evaluateD1FFiveTargetPixelGate(newSamples,{candidateId:'unknown'})).toThrow();
 });
