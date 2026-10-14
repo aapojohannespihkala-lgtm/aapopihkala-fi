@@ -40,26 +40,36 @@ const walk = (root) => {
   return result;
 };
 
-export function selectD1FCombinedWallWorkTestScene(gltf, requestedVariant) {
+export function selectD1FCombinedWallWorkTestScene(gltf, requestedVariant, candidateId = 'd1f-combined-wall-2990-lobby-fixed-20261013') {
   const selectedIndex = D1F_COMBINED_WALL_VARIANTS.indexOf(requestedVariant);
   if (selectedIndex < 0) fail('variant must be one of four exact named alternatives');
+  const asset = candidateId === undefined ? null :
+    (Object.prototype.hasOwnProperty.call(D1F_COMBINED_WALL_ASSETS, candidateId)
+      ? D1F_COMBINED_WALL_ASSETS[candidateId] : fail('unknown source candidate'));
+  const measuredCounter = asset?.measuredCounter === true;
+  const sceneStart = measuredCounter ? 76 : D1F_COMBINED_SCENE_START;
+  const sceneCount = measuredCounter ? 80 : 72;
   const json = gltf?.parser?.json;
-  if (!Array.isArray(gltf?.scenes) || gltf.scenes.length !== 72 ||
-      !Array.isArray(json?.scenes) || json.scenes.length !== 72 ||
+  if (!Array.isArray(gltf?.scenes) || gltf.scenes.length !== sceneCount ||
+      !Array.isArray(json?.scenes) || json.scenes.length !== sceneCount ||
       !Array.isArray(json.nodes) || json.nodes[798]?.mesh !== 406 ||
       !json.scenes[5]?.nodes?.includes(817) ||
       !json.nodes[817]?.children?.includes(798)) {
     fail('original D1F scene5/source carrier is absent or different');
   }
   if (!isWorkOnly(json.extras?.combined2990WallWorkTest)) fail('GLB family metadata not WORK_TEST only');
+  if (measuredCounter && json.scene !== sceneStart) fail('measured counter default scene');
 
   const identified = new Set();
+  const identifiedCounters = new Set();
   for (let i = 0; i < D1F_COMBINED_WALL_VARIANTS.length; i++) {
     const variant = D1F_COMBINED_WALL_VARIANTS[i];
-    const index = D1F_COMBINED_SCENE_START + i;
+    const index = sceneStart + i;
     const rawScene = json.scenes[index];
     const actualScene = gltf.scenes[index];
-    const expectedName = 'D1F COMBINED 2990MM ' + variant + ' WORK_TEST NOT CURRENT';
+    const expectedName = measuredCounter
+      ? 'D1F MEASURED 140 100 2350 B710 ' + variant + ' WORK_TEST NOT CURRENT WITH MEASURED COUNTER'
+      : 'D1F COMBINED 2990MM ' + variant + ' WORK_TEST NOT CURRENT';
     if (rawScene?.name !== expectedName ||
         // GLTFLoader sanitizes spaces in runtime names; the raw source name
         // remains authoritative, and unrelated runtime names still fail closed.
@@ -74,12 +84,31 @@ export function selectD1FCombinedWallWorkTestScene(gltf, requestedVariant) {
         actualScene.children?.length !== 1) fail('scene name, root, or source provenance');
     if (identified.has(rawScene.nodes[0])) fail('variant scenes share one source root');
     identified.add(rawScene.nodes[0]);
+    if (measuredCounter) {
+      const counterId = rawScene.extras.counterNode;
+      const rawRoot = json.nodes[rawScene.nodes[0]];
+      const rawCounter = json.nodes[counterId];
+      if (rawScene.extras.parentCombinedScene !== 68 + i ||
+          rawScene.extras.parentMeasuredScene !== 72 + i ||
+          rawScene.extras.sourceFieldWidthResidualMm !== 18 ||
+          rawScene.extras.residualResolution !== 'OPEN_NOT_GUESSED' ||
+          rawScene.extras.counterSourceRecord !== 'G2_D1F_KPH_BASIN_SOURCE_FACE_X3P888_WORK_TEST_20261014' ||
+          !Number.isInteger(counterId) || identifiedCounters.has(counterId) ||
+          !rawRoot?.children?.includes(counterId) || rawRoot.extras?.counterNode !== counterId ||
+          rawRoot.extras?.parentMeasuredRoot !== json.scenes[72 + i]?.nodes?.[0] ||
+          rawCounter?.mesh !== 611 ||
+          !isWorkOnly(rawCounter.extras) ||
+          rawCounter.extras.logicalFixtureId !== 'D1F_KPH_BASIN_TOP_WORK_PROXY_01' ||
+          rawCounter.extras.absoluteFaceSurveyVerified !== false) fail('measured counter source binding');
+      identifiedCounters.add(counterId);
+    }
   }
 
-  const scene = gltf.scenes[D1F_COMBINED_SCENE_START + selectedIndex];
+  const scene = gltf.scenes[sceneStart + selectedIndex];
   const root = scene.children[0];
-  const expectedRootName =
-    'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP_COMBINED_' + requestedVariant;
+  const expectedRootName = measuredCounter
+    ? 'D1F_MEASURED_WALL_ROOT_BABYLON_Y_UP_' + requestedVariant + '_WITH_MEASURED_COUNTER'
+    : 'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP_COMBINED_' + requestedVariant;
   if (root.name !== expectedRootName ||
       root.userData?.sourceNodeIndex !== 817 ||
       !isWorkOnly(root.userData) ||
@@ -107,9 +136,21 @@ export function selectD1FCombinedWallWorkTestScene(gltf, requestedVariant) {
     if (matches.length !== 1 || !isWorkOnly(matches[0].userData) ||
         !root.children?.includes(matches[0])) fail('three original Themo hosts not preserved');
   }
+  let counter = null;
+  if (measuredCounter) {
+    const counters = children.filter(o => o.userData?.logicalFixtureId === 'D1F_KPH_BASIN_TOP_WORK_PROXY_01');
+    if (counters.length !== 1 || !isWorkOnly(counters[0].userData) ||
+        !root.children.includes(counters[0]) || counters[0].visible === false ||
+        counters[0].name !== 'D1F_KPH_COUNTER_WORK_TEST_' + requestedVariant ||
+        counters[0].userData.sourceRecord !== 'G2_D1F_KPH_BASIN_SOURCE_FACE_X3P888_WORK_TEST_20261014' ||
+        counters[0].userData.sourceHostFaceXM !== 3.888 ||
+        counters[0].userData.finishedFloorWorkZM !== 0.08 ||
+        counters[0].userData.absoluteFaceSurveyVerified !== false) fail('one visible source-bound measured counter required');
+    counter = counters[0];
+  }
   // Never make visual, publishing or physical-survey claims from metadata alone.
   return Object.freeze({
-    scene, variant: requestedVariant, wall, corners,
+    scene, sceneIndex: sceneStart + selectedIndex, variant: requestedVariant, wall, corners, counter,
     workTestOnly: true,
     absolutePhysicalXYVerified: false,
     rawGlbByteIdentityVerified: false,
@@ -126,6 +167,11 @@ export const D1F_COMBINED_WALL_ASSETS = Object.freeze({
   'd1f-combined-wall-115-100-20261013': Object.freeze({
     bytes: 3544904,
     sha256: '1cb9a785e51a00b8abe9bbd81801c25326f5219740bdc18176649ee39b35b0a2',
+  }),
+  'd1f-measured-wall-140-100-2350-b710-basin-20261014': Object.freeze({
+    bytes: 3602032,
+    sha256: '7da6b1e6ada391556ca3600346f1586ed2507ac86b4e489cb689e6e6cd11de71',
+    measuredCounter: true,
   }),
 });
 
@@ -191,8 +237,9 @@ export async function loadD1FCombinedWallReview({
     controller.abort();
   }
   const gltf = await loader.parseAsync(bytes, '/private-model/work-test/');
-  const selected = selectD1FCombinedWallWorkTestScene(gltf, variant);
+  const selected = selectD1FCombinedWallWorkTestScene(gltf, variant, candidate.id);
   gltf.scene = selected.scene;
   return { gltf, selected, asset, rawGlbByteIdentityVerified: true };
 }
+
 
