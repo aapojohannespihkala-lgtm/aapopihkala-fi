@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { D1F_COMBINED_WALL_VARIANTS } from '../../src/scripts/privateModelD1FCombinedWallSceneContract.mjs';
 // @ts-ignore - pure Node/browser-safe pixel proof contract; no real browser render.
 import {
   D1F_FOUR_PIXEL_TARGETS,
@@ -145,4 +147,22 @@ test('legacy first-36 mask cannot be asserted as source-identified I03', () => {
   const p = allProofs();
   p[0].suppressionMethod = 'I03_FIRST_36_INDEXED_TRIANGLES_ONLY';
   expect(() => evaluateD1FFourTargetPixelGate(p)).toThrow('suppression/ROI provenance not verified');
+});
+
+test('D1F production matrix requires all four named variants with isolated evidence', () => {
+  const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
+  const job = workflow.split('  verify-d1f-combined-pixels:\n')[1];
+  expect(job).toBeTruthy();
+  expect(job).toContain('fail-fast: false');
+  const entries = [...job.matchAll(/^          - ((?:WEST|EAST)_ANCHOR_\d+_\d+_\d+)$/gm)]
+    .map(x => x[1]);
+  expect(entries).toEqual([...D1F_COMBINED_WALL_VARIANTS]);
+  expect(job).toContain('D1F_COMBINED_VARIANT: ${{ matrix.variant }}');
+  expect(job).toContain('name: d1f-combined-production-pixels-${{ matrix.variant }}');
+  expect(job).toContain("github.ref == 'refs/heads/main'");
+  const driver = readFileSync('.github/scripts/private-model-d1f-combined-production-probe.mjs','utf8');
+  expect(driver).toContain('check(D1F_COMBINED_WALL_VARIANTS.includes(requestedVariant));');
+  expect(driver).toContain('for(const variant of [requestedVariant])');
+  expect(driver).not.toContain('for(const variant of D1F_COMBINED_WALL_VARIANTS)');
+  expect(driver).toContain('evidence.allFourVariantsVerifiedByThisJob = false');
 });
