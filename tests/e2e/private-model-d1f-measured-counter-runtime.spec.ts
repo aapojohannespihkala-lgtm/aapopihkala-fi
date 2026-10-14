@@ -14,8 +14,14 @@ function fixture(finished = false, west = true) {
   root.rotation.x = -Math.PI / 2; scene.add(root); root.add(wall);
   wall.userData.sourceNodeIndex = 798;
   const positions = new Float32Array(count * 3);
-  [[5.306,3.807,0],[6.266,3.807,0],[6.266,4.012,0],[5.306,4.012,0],
-    [5.306,3.807,2.76],[6.266,3.807,2.76],[6.266,4.012,2.76],[5.306,4.012,2.76]]
+  // Finished-face raw scenes 80..83: I03 is 2350 mm high from source Z=.08.
+  // WEST keeps the fixed basin host and shifts I03 -18 mm in source X.
+  // The earlier measured source retains its original 0..2.76 m fixture.
+  const x = finished && west ? 5.288 : 5.306;
+  const bottom = finished ? .08 : 0;
+  const top = finished ? 2.43 : 2.76;
+  [[x,3.807,bottom],[x+.96,3.807,bottom],[x+.96,4.012,bottom],[x,4.012,bottom],
+    [x,3.807,top],[x+.96,3.807,top],[x+.96,4.012,top],[x,4.012,top]]
     .forEach((p,i) => positions.set(p,(128+i)*3));
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
