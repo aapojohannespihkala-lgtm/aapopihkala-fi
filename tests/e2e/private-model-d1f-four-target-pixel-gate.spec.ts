@@ -151,8 +151,10 @@ test('legacy first-36 mask cannot be asserted as source-identified I03', () => {
 
 test('D1F production matrix requires all four named variants with isolated evidence', () => {
   const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
-  const job = workflow.split('  verify-d1f-combined-pixels:\n')[1];
-  expect(job).toBeTruthy();
+  const section = workflow.split('  verify-d1f-combined-pixels:\n')[1];
+  expect(section).toBeTruthy();
+  const job = section.split(/^  [a-z][\w-]*:\s*$/m)[0];
+  expect(job).not.toContain('d1f-measured-production-pixels-');
   expect(job).toContain('fail-fast: false');
   const entries = [...job.matchAll(/^          - ((?:WEST|EAST)_ANCHOR_\d+_\d+_\d+)$/gm)]
     .map(x => x[1]);
