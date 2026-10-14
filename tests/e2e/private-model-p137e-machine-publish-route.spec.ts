@@ -7,6 +7,9 @@ import {
   getPrivateWorkTestVerifyCandidate,
   isPrivateWorkTestPath,
 } from '../../worker/privateWorkTest';
+import { getRequestedReviewCandidateId } from '../../src/scripts/privateModelWorkTest';
+// @ts-ignore - bounded ESM loader contract, shared with the actual viewer.
+import { D1F_COMBINED_WALL_ASSETS } from '../../src/scripts/privateModelD1FCombinedWallSceneContract.mjs';
 
 const id = 'p137e-d1f-three-wall-mounted-themos';
 const expectedPath = `/private-model/work-test/${id}.glb`;
@@ -37,3 +40,33 @@ test('P137E publish allowlist stays bounded and cannot alias unknown candidates'
   expect(getPrivateWorkTestPublishCandidate(`/private-model/work-test/upload/${id}.glb`)).toBeNull();
   expect(getPrivateWorkTestVerifyCandidate(`/private-model/work-test/verify/${id}-forged.glb`)).toBeNull();
 });
+
+const measuredId = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
+
+test('measured walls and counter share one exact Drive, Worker and real-loader identity', () => {
+  const manifest = JSON.parse(readFileSync('.github/work-test-candidates.json', 'utf8'));
+  expect(manifest.candidates[measuredId]).toEqual({ driveFileId: '1i8w4k4VaDx3qDfGPcW1FpfKSP-afMTM6' });
+  const candidate = getPrivateWorkTestCandidateById(measuredId);
+  expect(candidate).toMatchObject({
+    id: measuredId, path: `/private-model/work-test/${measuredId}.glb`,
+    objectKey: `work-test/${measuredId}.glb`, expectedSize: 3_602_032,
+    expectedSha256: '7da6b1e6ada391556ca3600346f1586ed2507ac86b4e489cb689e6e6cd11de71',
+  });
+  expect(D1F_COMBINED_WALL_ASSETS[measuredId].bytes).toBe(candidate?.expectedSize);
+  expect(D1F_COMBINED_WALL_ASSETS[measuredId].sha256).toBe(candidate?.expectedSha256);
+  expect(getRequestedReviewCandidateId(`?review=${measuredId}-review`)).toBe(measuredId);
+  expect(getPrivateWorkTestPublishCandidate(`/private-model/work-test/publish/${measuredId}.glb`)).toBe(candidate);
+  expect(getPrivateWorkTestVerifyCandidate(`/private-model/work-test/verify/${measuredId}.glb`)).toBe(candidate);
+});
+
+test('measured successor cannot alias old walls or an unregistered model', () => {
+  expect(getPrivateWorkTestCandidateById('d1f-combined-wall-115-100-20261013')).toMatchObject({
+    expectedSize: 3_544_904,
+    expectedSha256: '1cb9a785e51a00b8abe9bbd81801c25326f5219740bdc18176649ee39b35b0a2',
+  });
+  expect(getPrivateWorkTestPublishCandidate(`/private-model/work-test/publish/${measuredId}-forged.glb`)).toBeNull();
+  expect(getPrivateWorkTestPublishCandidate(`/private-model/work-test/publish/${measuredId}.json`)).toBeNull();
+  expect(getPrivateWorkTestPublishCandidate(`/private-model/work-test/upload/${measuredId}.glb`)).toBeNull();
+  expect(getPrivateWorkTestVerifyCandidate(`/private-model/work-test/verify/${measuredId}-forged.glb`)).toBeNull();
+});
+
