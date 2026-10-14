@@ -196,7 +196,7 @@ function finishedFaceFixture(variant: string) {
   const f=fixture();
   const east=variant.startsWith('EAST_');
   const source=f.mesh.geometry;
-  const positions=new Float32Array(256*3);
+  const positions=new Float32Array((east?240:256)*3);
   positions.set((source.getAttribute('position') as THREE.BufferAttribute).array as Float32Array);
   const x=east?5.306:5.288;
   const box=[
@@ -207,7 +207,7 @@ function finishedFaceFixture(variant: string) {
   const geometry=new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
   geometry.setIndex([...Array.from(source.index!.array),
-    ...Array.from({length:264},(_,i)=>176+i%3)]);
+    ...Array.from({length:east?180:264},(_,i)=>176+i%3)]);
   f.mesh.geometry=geometry;
   const counterPositions=new Float32Array(24*3);
   for(let i=0;i<24;i++)counterPositions.set(
@@ -250,8 +250,10 @@ test('finished-face I03 interior camera is source-bound across all four hypothes
     expect(prepared.roi.x).toBeGreaterThanOrEqual(0);
     expect(prepared.roi.y).toBeGreaterThanOrEqual(0);
     const original=f.mesh.geometry;
+    expect(original.index!.count).toBe(variant.startsWith('EAST_')?396:480);
+    expect(original.attributes.position.count).toBe(variant.startsWith('EAST_')?240:256);
     runtime.suppress('I03');
-    expect(f.mesh.geometry.index!.count).toBe(480-36);
+    expect(f.mesh.geometry.index!.count).toBe((variant.startsWith('EAST_')?396:480)-36);
     expect(runtime.restore()).toMatchObject({
       state:'RESTORED',suppressionRestored:true,cameraFingerprint:prepared.cameraFingerprint,
     });
