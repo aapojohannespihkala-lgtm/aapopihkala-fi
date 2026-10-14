@@ -11,6 +11,8 @@
  * the separate left wall. Never suppress the whole combined primitive. For corners, hide only the
  * corresponding independent source-derived corner node.
  */
+import { D1F_COMBINED_WALL_ASSETS } from './privateModelD1FCombinedWallSceneContract.mjs';
+
 export const D1F_FOUR_PIXEL_TARGETS = Object.freeze([
   'I03',
   'CORNER_NORTH_X2337',
@@ -22,6 +24,11 @@ export const D1F_PIXEL_SUPPRESSION = Object.freeze({
   CORNER_NORTH_X2337: 'CORNER_NODE_VISIBILITY_ONLY',
   CORNER_SOUTH_X2337: 'CORNER_NODE_VISIBILITY_ONLY',
   CORNER_MIDDLE_X2589: 'CORNER_NODE_VISIBILITY_ONLY',
+});
+export const D1F_MEASURED_PIXEL_TARGETS = Object.freeze([...D1F_FOUR_PIXEL_TARGETS, 'BASIN']);
+export const D1F_MEASURED_PIXEL_SUPPRESSION = Object.freeze({
+  ...D1F_PIXEL_SUPPRESSION,
+  BASIN: 'BASIN_NODE_VISIBILITY_ONLY',
 });
 const fail = (reason) => { throw new Error('D1F_FOUR_TARGET_PIXEL_GATE_REJECTED: ' + reason); };
 const validDigest = (d) => typeof d === 'string' && /^[a-f0-9]{64}$/.test(d);
@@ -43,8 +50,8 @@ const pixelDelta = (a, b, offset, threshold) =>
 
 function verifySample(sample, minRoiChangedPixels, outsideChangeAllowance) {
   const { targetId, baseline, suppressed, roi } = sample;
-  if (!D1F_FOUR_PIXEL_TARGETS.includes(targetId)) fail('unknown target ID');
-  if (sample.suppressionMethod !== D1F_PIXEL_SUPPRESSION[targetId] ||
+  if (!D1F_MEASURED_PIXEL_TARGETS.includes(targetId)) fail('unknown target ID');
+  if (sample.suppressionMethod !== D1F_MEASURED_PIXEL_SUPPRESSION[targetId] ||
       sample.targetIdentityVerified !== true ||
       sample.suppressionRestored === false ||
       sample.suppressionRestored !== true ||
@@ -118,6 +125,43 @@ export function evaluateD1FFourTargetPixelGate(
     gate: 'PASS_FOUR_INDEPENDENT_DIFFERENTIAL_PIXEL_CONTRACTS_ONLY',
     targets: proofs,
     checkedTargetCount: 4,
+    originalGlbBytesAuthenticatedByThisFunction: false,
+    actualBrowserWebGlVerifiedByThisFunction: false,
+    productionPublicationVerifiedByThisFunction: false,
+    humanReview: 'NOT_RUN',
+  });
+}
+
+/**
+ * Pure five-target measured wall/basin differential contract.
+ * Production publication, rendered WebGL and source-object suppression are
+ * independently authenticated by the main-only browser job, never by this helper.
+ */
+export function evaluateD1FMeasuredFiveTargetPixelGate(
+  samples, { minRoiChangedPixels = 40, outsideChangeAllowance = 8 } = {},
+) {
+  if (!Array.isArray(samples) || samples.length !== 5 ||
+      !integer(minRoiChangedPixels) || minRoiChangedPixels < 40 ||
+      !integer(outsideChangeAllowance) || outsideChangeAllowance > 8) {
+    fail('five separate strict measured-source samples required');
+  }
+  const ids = samples.map(sample => sample?.targetId);
+  if (new Set(ids).size !== 5 ||
+      !D1F_MEASURED_PIXEL_TARGETS.every(id => ids.includes(id))) {
+    fail('five distinct I03, corners, and basin samples required');
+  }
+  const source = D1F_COMBINED_WALL_ASSETS['d1f-measured-wall-140-100-2350-b710-basin-20261014'];
+  const variants = new Set(samples.map(sample => sample?.baseline?.variant));
+  if (variants.size !== 1 ||
+      samples.some(sample => sample?.baseline?.glbSha256 !== source.sha256 ||
+        sample?.suppressed?.glbSha256 !== source.sha256)) {
+    fail('measured source GLB identity or wall variant mismatch');
+  }
+  const proofs = samples.map(sample =>
+    verifySample(sample, minRoiChangedPixels, outsideChangeAllowance));
+  return Object.freeze({
+    gate: 'PASS_FIVE_INDEPENDENT_MEASURED_SOURCE_DIFFERENTIAL_PIXELS_ONLY',
+    targets: proofs, checkedTargetCount: 5,
     originalGlbBytesAuthenticatedByThisFunction: false,
     actualBrowserWebGlVerifiedByThisFunction: false,
     productionPublicationVerifiedByThisFunction: false,
