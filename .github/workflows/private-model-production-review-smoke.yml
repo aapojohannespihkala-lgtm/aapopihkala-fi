@@ -2186,7 +2186,7 @@ jobs:
   verify-d1f-combined-pixels:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'd1f-combined-pixels'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 14
     # Every row validates the same immutable asset and four independent ROI targets.
     # A successful workflow therefore requires all four source variants to pass.
     strategy:

@@ -22,6 +22,8 @@ const bounded = async (fn, ms = 45000) => {
 };
 const check = (ok) => { if (!ok) throw new Error('D1F_PRODUCTION_PROBE_REJECTED'); };
 let browser;
+// Source-locked alternate views exceeded 300s in production. Keep a hard
+// nine-minute budget, matching the measured driver that completed all variants.
 const driverDeadline=setTimeout(()=>{
   Object.assign(evidence,{result:'FAIL',failureCode:'D1F_DRIVER_DEADLINE_EXCEEDED',
     authenticatedAutoloadVerified:false,actualBrowserWebGlVerified:false,fourTargetsRenderedVerified:false});
@@ -29,7 +31,7 @@ const driverDeadline=setTimeout(()=>{
   fs.writeFileSync(OUT+'/evidence.json',JSON.stringify(evidence,null,2)+'\n');
   console.log(JSON.stringify(evidence));
   process.exit(1);
-},300000);
+},540000);
 try {
   check(process.env.GITHUB_REF === 'refs/heads/main' &&
     process.env.GITHUB_REPOSITORY === 'aapojohannespihkala-lgtm/aapopihkala-fi');
