@@ -175,8 +175,13 @@ try {
         sample={targetId,baseline:frame(baseline),suppressed:frame(suppressed),roi:prepared.roi,
           suppressionMethod:prepared.suppressionMethod,targetIdentityVerified:prepared.targetIdentityVerified,
           roiProvenance:prepared.roiProvenance,suppressionRestored:true};
-        try {evaluateD1FOneTargetPixelSample(sample);}
-        catch {continue;}
+        // The original four-target gate explicitly rejects BASIN. In this fixed
+        // order, the full measured source gate can evaluate the fifth target
+        // against all four independently verified wall/corner samples.
+        try {
+          if (targetId === 'BASIN') evaluateD1FMeasuredFiveTargetPixelGate([...samples, sample]);
+          else evaluateD1FOneTargetPixelSample(sample);
+        } catch {continue;}
         samples.push(sample);
         captures.push({targetId,viewIndex,cameraFingerprint:prepared.cameraFingerprint,roi:prepared.roi,
           sourceI03Indices:prepared.sourceI03Indices,beforePngSha256:baseline.pngSha256,
