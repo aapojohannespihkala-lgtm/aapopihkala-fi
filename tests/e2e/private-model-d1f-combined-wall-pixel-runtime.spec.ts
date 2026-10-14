@@ -102,8 +102,10 @@ test('actual production probe rejects untrusted calls and redacts upstream error
   const source=readFileSync('.github/scripts/private-model-d1f-combined-production-probe.mjs','utf8')
     .replace(/^import .* from '[^']+';\n/gm,'');
   for(const scenario of ['non-main','wrong-mode','missing-auth','upstream-error','wrong-event']) {
+    const trustedVariant='WEST_ANCHOR_725_895_740';
     const canary='TEST_ONLY_PROBE_SECRET_DO_NOT_EXPORT';
-    const env:Record<string,string>={GITHUB_EVENT_NAME:'workflow_dispatch',PROBE_MODE:'d1f-combined-pixels',GITHUB_REF:'refs/heads/main',
+    const env:Record<string,string>={GITHUB_EVENT_NAME:'workflow_dispatch',PROBE_MODE:'d1f-combined-pixels',
+      D1F_COMBINED_VARIANT:trustedVariant,GITHUB_REF:'refs/heads/main',
       GITHUB_REPOSITORY:'aapojohannespihkala-lgtm/aapopihkala-fi',GITHUB_SHA:'a'.repeat(40),
       PUBLISH_SOURCE_WORKFLOW_ID:'372000543',PUBLISH_SOURCE_CONCLUSION:'success',
       PUBLISH_SOURCE_REF:'main',PUBLISH_SOURCE_TITLE:'Publish WORK_TEST - d1f-combined-wall-115-100-20261013',
@@ -119,7 +121,7 @@ test('actual production probe rejects untrusted calls and redacts upstream error
       fs:{mkdirSync:()=>{},writeFileSync:(_p:string,v:string)=>writes.push(v)},
       createHash,Buffer,setTimeout,clearTimeout,process:fakeProcess,
       chromium:{launch:async()=>{launch++;throw new Error(canary);}},
-      D1F_COMBINED_WALL_ASSETS,D1F_COMBINED_WALL_VARIANTS:[],
+      D1F_COMBINED_WALL_ASSETS,D1F_COMBINED_WALL_VARIANTS:[trustedVariant],
       D1F_FOUR_PIXEL_TARGETS:[],evaluateD1FOneTargetPixelSample:()=>{},
       evaluateD1FFourTargetPixelGate:()=>{},console:{log:(v:string)=>logs.push(v)},
     });
