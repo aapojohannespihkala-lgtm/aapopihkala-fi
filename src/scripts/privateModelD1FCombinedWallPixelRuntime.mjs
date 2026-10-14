@@ -63,6 +63,12 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
         counter.userData?.WORK_TEST_ONLY !== true || counter.userData?.current !== false ||
         counter.userData?.Canonical !== false || counter.userData?.asBuilt !== false ||
         counter.userData?.HUMAN_REVIEW !== 'NOT_RUN') reject();
+    const bounds = new THREE.Box3().setFromBufferAttribute(counter.geometry.attributes.position);
+    const observed = [...bounds.min.toArray(), ...bounds.max.toArray()];
+    const expected = [3.888, 2.737, 0.925, 4.383, 3.762, 0.945];
+    if (observed.some((value, i) => !Number.isFinite(value) ||
+        Math.abs(value - expected[i]) > 0.00001) ||
+        [...counter.geometry.index.array].some(i => i < 0 || i >= 24)) reject();
   }
   const targets = measured ? [...D1F_FOUR_PIXEL_TARGETS, BASIN] : D1F_FOUR_PIXEL_TARGETS;
   const original = {
