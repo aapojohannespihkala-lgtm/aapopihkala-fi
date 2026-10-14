@@ -158,7 +158,7 @@ for(const west of [true,false]) test('four corrections '+(west?'WEST':'EAST')+' 
   expect(runtime.inspectCorrections()).toMatchObject({clearDoorWidthMm:710,clearDoorHeightMm:1935,
     bWallJointStepMm:0,counterThicknessMm:60,reachableRoomFootprintCount:0,humanReview:'NOT_RUN'});
   for(const [id,count] of [['LOBBY_DOOR_REVEALS',24],['B_WALL_CONTINUITY',36]] as const){
-    const p=runtime.prepare(id,1);expect(p.sourceTargetIndices.count).toBe(count);
+    const p=runtime.prepare(id,1);expect(p.sourceTargetIndices?.count).toBe(count);
     runtime.suppress(id);expect(f.mesh.geometry.index!.count).toBe((west?540:456)-count);
     expect(f.counter.visible).toBe(true);expect(f.corners.every(c=>c.object.visible)).toBe(true);
     expect(()=>runtime.inspectCorrections()).toThrow();runtime.restore();expect(f.mesh.geometry).toBe(source);

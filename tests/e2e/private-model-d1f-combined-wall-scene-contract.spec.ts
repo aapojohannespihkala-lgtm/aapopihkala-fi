@@ -102,7 +102,7 @@ function fixture(measuredCounter = false, finished = false, corrections = false)
       root.name+='__FOUR_USER_CORRECTIONS';counter.name+='__FOUR_USER_CORRECTIONS';
       counter.userData.sourceRecord=correctedRecord;
       Object.assign(counter.userData,{presentationSlabThicknessMm:60,thicknessMeasured:false});
-      wall.userData.sourceRecord=correctedRecord;
+      Object.assign(wall.userData,{sourceRecord:correctedRecord});
       const rawScene=rawScenes[sceneStart+i];rawScene.name+=' FOUR USER CORRECTIONS';
       Object.assign(rawScene.extras,{sourceRecord:correctedRecord,counterSourceRecord:correctedRecord,
         parentFinishedFaceScene:80+i,visualRoomFootprints:false});
