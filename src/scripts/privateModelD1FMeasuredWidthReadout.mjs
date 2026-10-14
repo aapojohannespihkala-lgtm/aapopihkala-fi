@@ -2,6 +2,7 @@ import { D1F_COMBINED_WALL_ASSETS } from './privateModelD1FCombinedWallSceneCont
 
 const MEASURED_ID = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
 const FINISHED_ID = 'd1f-finished-face-2360-wall-basin-20261014';
+const CORRECTED_ID = 'd1f-four-review-corrections-20261014';
 // G2_D1F_KPH_M1_M7_20261013_FIELD_AND_SOURCE_DELTA, M4:
 // B wall bathroom finished face -> D/C wall bathroom finished face.
 const FIELD_WIDTH_MM = 2360;
@@ -40,8 +41,9 @@ function indexedFaceX(geometry, start, count, side, vertexCount = 240) {
 export function getD1FMeasuredWidthComparison({
   candidateId, sourceSha, rawGlbByteIdentityVerified, selected,
 }) {
-  const finished = candidateId === FINISHED_ID;
-  const asset = finished ? D1F_COMBINED_WALL_ASSETS[FINISHED_ID] : D1F_COMBINED_WALL_ASSETS[MEASURED_ID];
+  const corrections = candidateId === CORRECTED_ID;
+  const finished = candidateId === FINISHED_ID || corrections;
+  const asset = corrections ? D1F_COMBINED_WALL_ASSETS[CORRECTED_ID] : finished ? D1F_COMBINED_WALL_ASSETS[FINISHED_ID] : D1F_COMBINED_WALL_ASSETS[MEASURED_ID];
   if ((!finished && candidateId !== MEASURED_ID) || rawGlbByteIdentityVerified !== true ||
       sourceSha !== asset.sha256 ||
       selected?.workTestOnly !== true || selected.absolutePhysicalXYVerified !== false ||
@@ -50,13 +52,13 @@ export function getD1FMeasuredWidthComparison({
   const wall = selected.wall;
   const west = finished && selected.variant?.startsWith('WEST_');
   if (finished && !/^(WEST|EAST)_ANCHOR_(725_895_740|740_895_725)$/.test(selected.variant ?? '')) return null;
-  const vertexCount = west ? 256 : 240;
+  const vertexCount = (west ? 256 : 240) + (corrections ? 16 : 0);
   // Both source primitives are direct children of the same replacement carrier.
   // Independently addressable corner geometries have different vertex counts.
   const meshes = (wall.children ?? []).filter(object => object.isMesh === true &&
     object.visible !== false && object.geometry?.getAttribute?.('position')?.count === vertexCount);
   const context = meshes.filter(object => object.geometry.getIndex?.()?.count === (west ? 576 : 612));
-  const changed = meshes.filter(object => object.geometry.getIndex?.()?.count === (west ? 480 : 396));
+  const changed = meshes.filter(object => object.geometry.getIndex?.()?.count === (west ? 480 : 396) + (corrections ? 60 : 0));
   if (meshes.length !== 2 || context.length !== 1 || changed.length !== 1) return null;
   // The shared carrier can rotate/translate for presentation, but cannot change
   // the metre scale used by this source-space width comparison.

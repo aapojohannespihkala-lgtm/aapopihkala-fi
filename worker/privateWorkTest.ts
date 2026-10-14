@@ -594,6 +594,15 @@ const D1F_FINISHED_FACE_2360_CANDIDATE = {
   expectedSha256: '826633aba10b590935dc029358b1233957ab37ee7e167a5adfdab713617d8523',
 } as const satisfies PrivateWorkTestCandidate;
 
+const D1F_FOUR_REVIEW_CORRECTIONS_CANDIDATE = {
+  id: 'd1f-four-review-corrections-20261014',
+  label: 'D1F - katselmuksen neljä korjausta - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-four-review-corrections-20261014.glb`,
+  objectKey: 'work-test/d1f-four-review-corrections-20261014.glb',
+  expectedSize: 3725836,
+  expectedSha256: '9184920f910dca957f70aaba70774e47880c794a14c6156c451f7fa45a917824',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -605,6 +614,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_COMBINED_WALL_115_100_CANDIDATE,
   D1F_MEASURED_WALL_BASIN_CANDIDATE,
   D1F_FINISHED_FACE_2360_CANDIDATE,
+  D1F_FOUR_REVIEW_CORRECTIONS_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {

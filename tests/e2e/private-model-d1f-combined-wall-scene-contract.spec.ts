@@ -21,13 +21,15 @@ const object = (name: string, additional: Record<string, unknown> = {}, children
 });
 
 const measuredId = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
+const correctedId = 'd1f-four-review-corrections-20261014';
+const correctedRecord = 'G2_D1F_FOUR_USER_REVIEW_CORRECTIONS_20261014_2330';
 const finishedId = 'd1f-finished-face-2360-wall-basin-20261014';
 const finishedRecord = 'G2_D1F_KPH_FINISHED_FACE_2360_FOUR_HYPOTHESES_20261014_1600';
 const counterRecord = 'G2_D1F_KPH_BASIN_SOURCE_FACE_X3P888_WORK_TEST_20261014';
 
-function fixture(measuredCounter = false, finished = false) {
-  const sceneStart = finished ? 80 : measuredCounter ? 76 : 68;
-  const rawScenes: any[] = Array.from({ length: finished ? 84 : measuredCounter ? 80 : 72 }, () => ({ nodes: [] }));
+function fixture(measuredCounter = false, finished = false, corrections = false) {
+  const sceneStart = corrections ? 84 : finished ? 80 : measuredCounter ? 76 : 68;
+  const rawScenes: any[] = Array.from({ length: corrections ? 88 : finished ? 84 : measuredCounter ? 80 : 72 }, () => ({ nodes: [] }));
   const renderedScenes: any[] = Array.from({ length: rawScenes.length }, () => ({ children: [] }));
   const nodes: any[] = Array.from({ length: finished ? 1368 : measuredCounter ? 1356 : 818 }, () => ({}));
   nodes[798] = { mesh: 406 };
@@ -95,7 +97,20 @@ function fixture(measuredCounter = false, finished = false) {
         ...(finished ? { translation: [counter.position.x, 0, 0] } : {}) };
       nodes[rootId] = { children: [counterId], extras: root.userData };
     }
-    renderedScenes[sceneStart + i] = { name: sceneName, children: [root] };
+    if(corrections) {
+      rawScenes[80+i] = {nodes:[900+i]};
+      root.name+='__FOUR_USER_CORRECTIONS';counter.name+='__FOUR_USER_CORRECTIONS';
+      counter.userData.sourceRecord=correctedRecord;
+      Object.assign(counter.userData,{presentationSlabThicknessMm:60,thicknessMeasured:false});
+      wall.userData.sourceRecord=correctedRecord;
+      const rawScene=rawScenes[sceneStart+i];rawScene.name+=' FOUR USER CORRECTIONS';
+      Object.assign(rawScene.extras,{sourceRecord:correctedRecord,counterSourceRecord:correctedRecord,
+        parentFinishedFaceScene:80+i,visualRoomFootprints:false});
+      Object.assign(root.userData,{parentFinishedFaceRoot:900+i,visualRoomFootprints:false,
+        backgroundRoomFootprintSourceNodes:Array.from({length:10},(_,j)=>700+j)});
+      nodes[rawScene.extras.counterNode].mesh=616;
+    }
+    renderedScenes[sceneStart + i] = { name: rawScenes[sceneStart+i].name, children: [root] };
     components.push({ wall, corners, devices, root, counter });
   });
   return {
@@ -234,28 +249,28 @@ test('counter must remain visible, unique and attached to selected architecture 
 
 // A public, in-memory GLB with the same structural contract, not private model
 // bytes. The real npm loader supplies runtime names and Object3D ownership.
-function loaderFixture(bytes?: number, measuredCounter = false, finished = false) {
-  const { gltf, components } = fixture(measuredCounter, finished);
+function loaderFixture(bytes?: number, measuredCounter = false, finished = false, corrections = false) {
+  const { gltf, components } = fixture(measuredCounter, finished, corrections);
   const json: any = structuredClone(gltf.parser.json);
   json.asset = { version: '2.0' };
-  json.scene = finished ? 80 : measuredCounter ? 76 : 68;
+  json.scene = corrections ? 84 : finished ? 80 : measuredCounter ? 76 : 68;
   json.buffers = [{ byteLength: 36 }];
   json.bufferViews = [{ buffer: 0, byteOffset: 0, byteLength: 36 }];
   json.accessors = [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3',
     min: [0, 0, 0], max: [1, 1, 0] }];
-  json.meshes = Array.from({ length: measuredCounter ? 612 : 407 }, () => ({ primitives: [{ attributes: { POSITION: 0 } }] }));
+  json.meshes = Array.from({ length: corrections ? 617 : measuredCounter ? 612 : 407 }, () => ({ primitives: [{ attributes: { POSITION: 0 } }] }));
   const add = (o: any): number => {
     const index = json.nodes.length;
     json.nodes.push({ name: o.name, extras: o.userData,
       ...(o.position ? { translation: [o.position.x, o.position.y, o.position.z] } : {}),
-      ...(o.userData.logicalFixtureId ? { mesh: 611 } :
+      ...(o.userData.logicalFixtureId ? { mesh: corrections ? 616 : 611 } :
         o.userData.sourceNodeIndex === 798 || o.userData.independentlyAddressableCorner ? { mesh: 0 } : {}) });
     if (o.children?.length) json.nodes[index].children = o.children.map(add);
     return index;
   };
   components.forEach((component: any, i: number) => {
     const rootId = add(component.root);
-    const scene = json.scenes[(finished ? 80 : measuredCounter ? 76 : 68) + i];
+    const scene = json.scenes[(corrections ? 84 : finished ? 80 : measuredCounter ? 76 : 68) + i];
     scene.nodes = [rootId];
     if (measuredCounter) {
       const counterId = json.nodes[rootId].children.find((n: number) => json.nodes[n].extras.logicalFixtureId);
@@ -363,7 +378,7 @@ test('stalled source body is bounded and never reaches GLTFLoader', async () => 
   expect(parses).toBe(0);
 });
 
-for (const id of ['d1f-combined-wall-115-100-20261013', measuredId, finishedId] as const) {
+for (const id of ['d1f-combined-wall-115-100-20261013', measuredId, finishedId, correctedId] as const) {
 test('actual viewer load callsite uses verified scene for ' + id, async () => {
   const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
   const start = source.indexOf('const loadWorkTestCandidate = async');
@@ -390,7 +405,7 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
         ...options,
         fetcher: async (path: string) => ({ status: 200, redirected: false,
           url: 'https://aapopihkala.fi' + path,
-          arrayBuffer: async () => loaderFixture(asset.bytes, id !== 'd1f-combined-wall-115-100-20261013', id === finishedId) }) as any,
+          arrayBuffer: async () => loaderFixture(asset.bytes, id !== 'd1f-combined-wall-115-100-20261013', id === finishedId || id === correctedId, id === correctedId) }) as any,
         digest: async () => Uint8Array.from(Buffer.from(asset.sha256, 'hex')).buffer,
       }),
     },
@@ -398,8 +413,8 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
   expect(genericLoads).toBe(0);
   expect(selected.gltf.scene).toBe(selected.combinedWallReview.selected.scene);
   expect(selected.combinedWallReview.selected.corners).toHaveLength(3);
-  if (id === measuredId || id === finishedId) expect(selected.combinedWallReview.selected.counter.isMesh).toBe(true);
-  if (id === finishedId) expect(selected.combinedWallReview.selected.counter.material.opacity).toBe(.8);
+  if (id === measuredId || id === finishedId || id === correctedId) expect(selected.combinedWallReview.selected.counter.isMesh).toBe(true);
+  if (id === finishedId || id === correctedId) expect(selected.combinedWallReview.selected.counter.material.opacity).toBe(.8);
 });
 }
 
@@ -451,9 +466,9 @@ test('finished-face profile rejects inherited old roots, false width or physical
 });
 
 test('actual verified loader gives the finished counter 80 percent review opacity without changing source or other scenes', async () => {
-  for (const id of [measuredId, finishedId] as const) {
+  for (const id of [measuredId, finishedId, correctedId] as const) {
     const asset = D1F_COMBINED_WALL_ASSETS[id];
-    const buffer = loaderFixture(asset.bytes, true, id === finishedId);
+    const buffer = loaderFixture(asset.bytes, true, id === finishedId || id === correctedId, id === correctedId);
     for (const [i, variant] of D1F_COMBINED_WALL_VARIANTS.entries()) {
       let parsed: any, sourceMaterial: any, sourceGeometry: any, sourcePosition: number[];
       let otherCounter: any, otherMaterial: any;
@@ -476,8 +491,8 @@ test('actual verified loader gives the finished counter 80 percent review opacit
         digest: async () => Uint8Array.from(Buffer.from(asset.sha256, 'hex')).buffer,
       });
       const counter = result.selected.counter;
-      expect(counter.material.opacity).toBe(id === finishedId ? .8 : 1);
-      if (id === finishedId) {
+      expect(counter.material.opacity).toBe(id === finishedId || id === correctedId ? .8 : 1);
+      if (id === finishedId || id === correctedId) {
         expect(counter.material).not.toBe(sourceMaterial);
         expect(counter.material.transparent).toBe(true);
         expect(counter.material.depthWrite).toBe(false);
@@ -495,4 +510,13 @@ test('actual verified loader gives the finished counter 80 percent review opacit
         humanReview: 'NOT_RUN' });
     }
   }
+});
+
+
+test('four-correction profile selects scenes84..87 and rejects restored visual room footprints',()=>{
+  const f=fixture(true,true,true);
+  for(const [i,variant] of D1F_COMBINED_WALL_VARIANTS.entries())
+    expect(selectD1FCombinedWallWorkTestScene(f.gltf,variant,correctedId).sceneIndex).toBe(84+i);
+  f.components[0].root.children.push(object('ROOM_FLOOR',{representationKind:'referenceFootprint'}));
+  expect(()=>selectD1FCombinedWallWorkTestScene(f.gltf,D1F_COMBINED_WALL_VARIANTS[0],correctedId)).toThrow('room footprints');
 });

@@ -189,3 +189,28 @@ print(
 )
 print("trigger-work-test-publish workflow contract: PASS")
 print("private model conventional review routing contract: PASS")
+
+
+# Execute the real bounded post-publish payload builder for both supported sources.
+import os
+import subprocess
+import sys
+import tempfile
+section = text.split("      - name: Dispatch finished-face source render after exact production proof")[1]
+python_block = section.split("          python3 - \"$payload\" <<'PY'\n")[1].split("          PY\n")[0]
+python_block = "\n".join(line[10:] for line in python_block.splitlines())
+with tempfile.TemporaryDirectory() as directory:
+    destination = str(Path(directory) / "payload.json")
+    for candidate_id in ("d1f-finished-face-2360-wall-basin-20261014", "d1f-four-review-corrections-20261014", "untrusted"):
+        result = subprocess.run([sys.executable, "-c", python_block, destination],
+            env={**os.environ, "CANDIDATE_ID": candidate_id}, capture_output=True, text=True)
+        if candidate_id == "untrusted":
+            assert result.returncode != 0
+        else:
+            assert result.returncode == 0, result.stderr
+            payload = json.loads(Path(destination).read_text())
+            assert payload["ref"] == "main"
+            assert payload["inputs"]["probe_mode"] == "d1f-measured-pixels"
+            assert payload["inputs"]["measured_candidate"] == candidate_id
+            assert payload["inputs"]["review_id"] == candidate_id + "-review"
+print("exact post-publish source render dispatch: PASS")
