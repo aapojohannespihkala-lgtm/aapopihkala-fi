@@ -1,3 +1,5 @@
+import { D1F_COMBINED_WALL_ASSETS } from './privateModelD1FCombinedWallSceneContract.mjs';
+
 /**
  * D1F I03 + 3 corners differential screenshot contract (NOT production proof).
  *
@@ -11,22 +13,21 @@
  * the separate left wall. Never suppress the whole combined primitive. For corners, hide only the
  * corresponding independent source-derived corner node.
  */
-import { D1F_COMBINED_WALL_ASSETS } from './privateModelD1FCombinedWallSceneContract.mjs';
-
 export const D1F_FOUR_PIXEL_TARGETS = Object.freeze([
   'I03',
   'CORNER_NORTH_X2337',
   'CORNER_SOUTH_X2337',
   'CORNER_MIDDLE_X2589',
 ]);
+export const D1F_FIVE_PIXEL_TARGETS = Object.freeze([...D1F_FOUR_PIXEL_TARGETS, 'BASIN']);
+const MEASURED_SOURCE_SHA = D1F_COMBINED_WALL_ASSETS['d1f-measured-wall-140-100-2350-b710-basin-20261014'].sha256;
 export const D1F_PIXEL_SUPPRESSION = Object.freeze({
   I03: 'I03_SOURCE_VERTEX_128_135_TRIANGLES_ONLY',
   CORNER_NORTH_X2337: 'CORNER_NODE_VISIBILITY_ONLY',
   CORNER_SOUTH_X2337: 'CORNER_NODE_VISIBILITY_ONLY',
   CORNER_MIDDLE_X2589: 'CORNER_NODE_VISIBILITY_ONLY',
 });
-export const D1F_MEASURED_PIXEL_TARGETS = Object.freeze([...D1F_FOUR_PIXEL_TARGETS, 'BASIN']);
-export const D1F_MEASURED_PIXEL_SUPPRESSION = Object.freeze({
+const D1F_MEASURED_PIXEL_SUPPRESSION = Object.freeze({
   ...D1F_PIXEL_SUPPRESSION,
   BASIN: 'BASIN_NODE_VISIBILITY_ONLY',
 });
@@ -48,10 +49,11 @@ const pixelDelta = (a, b, offset, threshold) =>
     Math.abs(a[offset + 1] - b[offset + 1]),
     Math.abs(a[offset + 2] - b[offset + 2])) >= threshold;
 
-function verifySample(sample, minRoiChangedPixels, outsideChangeAllowance) {
+function verifySample(sample, minRoiChangedPixels, outsideChangeAllowance,
+  targetIds = D1F_FOUR_PIXEL_TARGETS, suppression = D1F_PIXEL_SUPPRESSION, requiredSha = null) {
   const { targetId, baseline, suppressed, roi } = sample;
-  if (!D1F_MEASURED_PIXEL_TARGETS.includes(targetId)) fail('unknown target ID');
-  if (sample.suppressionMethod !== D1F_MEASURED_PIXEL_SUPPRESSION[targetId] ||
+  if (!targetIds.includes(targetId)) fail('unknown target ID');
+  if (sample.suppressionMethod !== suppression[targetId] ||
       sample.targetIdentityVerified !== true ||
       sample.suppressionRestored === false ||
       sample.suppressionRestored !== true ||
@@ -63,7 +65,8 @@ function verifySample(sample, minRoiChangedPixels, outsideChangeAllowance) {
       baseline.height !== suppressed.height ||
       baseline.cameraFingerprint !== suppressed.cameraFingerprint ||
       baseline.glbSha256 !== suppressed.glbSha256 ||
-      baseline.variant !== suppressed.variant) {
+      baseline.variant !== suppressed.variant ||
+      (requiredSha && (baseline.glbSha256 !== requiredSha || suppressed.glbSha256 !== requiredSha))) {
     fail(targetId + ': image size, camera, GLB or variant changed');
   }
   if (!roi || !integer(roi.x) || !integer(roi.y) ||
@@ -106,6 +109,11 @@ function verifySample(sample, minRoiChangedPixels, outsideChangeAllowance) {
 // A bounded camera search may inspect one sample; release still requires all four.
 export function evaluateD1FOneTargetPixelSample(sample) { return verifySample(sample, 40, 8); }
 
+export function evaluateD1FOneMeasuredTargetPixelSample(sample) {
+  return verifySample(sample, 40, 8,
+    D1F_FIVE_PIXEL_TARGETS, D1F_MEASURED_PIXEL_SUPPRESSION, MEASURED_SOURCE_SHA);
+}
+
 export function evaluateD1FFourTargetPixelGate(
   samples, { minRoiChangedPixels = 40, outsideChangeAllowance = 8 } = {},
 ) {
@@ -132,36 +140,30 @@ export function evaluateD1FFourTargetPixelGate(
   });
 }
 
-/**
- * Pure five-target measured wall/basin differential contract.
- * Production publication, rendered WebGL and source-object suppression are
- * independently authenticated by the main-only browser job, never by this helper.
+/** Source identity and screenshot ROI contract for the newer 80-scene measured work candidate.
+ * Authentic publication, actual rendered pixels, camera provenance and target isolation
+ * must still be proved independently by the trusted main browser runner.
  */
-export function evaluateD1FMeasuredFiveTargetPixelGate(
+export function evaluateD1FFiveTargetPixelGate(
   samples, { minRoiChangedPixels = 40, outsideChangeAllowance = 8 } = {},
 ) {
   if (!Array.isArray(samples) || samples.length !== 5 ||
       !integer(minRoiChangedPixels) || minRoiChangedPixels < 40 ||
       !integer(outsideChangeAllowance) || outsideChangeAllowance > 8) {
-    fail('five separate strict measured-source samples required');
+    fail('five separate measured samples with fixed strict thresholds required');
   }
-  const ids = samples.map(sample => sample?.targetId);
+  const ids = samples.map(s => s?.targetId);
   if (new Set(ids).size !== 5 ||
-      !D1F_MEASURED_PIXEL_TARGETS.every(id => ids.includes(id))) {
-    fail('five distinct I03, corners, and basin samples required');
+      !D1F_FIVE_PIXEL_TARGETS.every(id => ids.includes(id))) {
+    fail('five distinct measured I03, original corners and basin targets required');
   }
-  const source = D1F_COMBINED_WALL_ASSETS['d1f-measured-wall-140-100-2350-b710-basin-20261014'];
-  const variants = new Set(samples.map(sample => sample?.baseline?.variant));
-  if (variants.size !== 1 ||
-      samples.some(sample => sample?.baseline?.glbSha256 !== source.sha256 ||
-        sample?.suppressed?.glbSha256 !== source.sha256)) {
-    fail('measured source GLB identity or wall variant mismatch');
-  }
-  const proofs = samples.map(sample =>
-    verifySample(sample, minRoiChangedPixels, outsideChangeAllowance));
+  const proofs = samples.map(s => verifySample(s, minRoiChangedPixels,
+    outsideChangeAllowance, D1F_FIVE_PIXEL_TARGETS,
+    D1F_MEASURED_PIXEL_SUPPRESSION, MEASURED_SOURCE_SHA));
   return Object.freeze({
-    gate: 'PASS_FIVE_INDEPENDENT_MEASURED_SOURCE_DIFFERENTIAL_PIXELS_ONLY',
-    targets: proofs, checkedTargetCount: 5,
+    gate: 'PASS_FIVE_INDEPENDENT_DIFFERENTIAL_PIXEL_CONTRACTS_ONLY',
+    targets: proofs,
+    checkedTargetCount: 5,
     originalGlbBytesAuthenticatedByThisFunction: false,
     actualBrowserWebGlVerifiedByThisFunction: false,
     productionPublicationVerifiedByThisFunction: false,

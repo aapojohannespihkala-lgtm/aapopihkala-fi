@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
 import { D1F_COMBINED_WALL_ASSETS, D1F_COMBINED_WALL_VARIANTS } from '../../src/scripts/privateModelD1FCombinedWallSceneContract.mjs';
-import { D1F_MEASURED_PIXEL_TARGETS, evaluateD1FOneTargetPixelSample, evaluateD1FMeasuredFiveTargetPixelGate } from '../../src/scripts/privateModelD1FFourTargetPixelGate.mjs';
+import { D1F_FIVE_PIXEL_TARGETS, evaluateD1FOneMeasuredTargetPixelSample, evaluateD1FFiveTargetPixelGate } from '../../src/scripts/privateModelD1FFourTargetPixelGate.mjs';
 
 const ORIGIN = 'https://aapopihkala.fi';
 const ID = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
@@ -150,7 +150,7 @@ try {
     check(nonBackground>=1500 && orbitChanged>=750);
     evidence.phase='FIVE_SOURCE_TARGET_PIXELS';
     const samples=[], captures=[];
-    for(const targetId of D1F_MEASURED_PIXEL_TARGETS) {
+    for(const targetId of D1F_FIVE_PIXEL_TARGETS) {
       evidence.currentTarget=targetId;
       let accepted=false;
       for(let viewIndex=0;viewIndex<4&&!accepted;viewIndex++) {
@@ -175,13 +175,10 @@ try {
         sample={targetId,baseline:frame(baseline),suppressed:frame(suppressed),roi:prepared.roi,
           suppressionMethod:prepared.suppressionMethod,targetIdentityVerified:prepared.targetIdentityVerified,
           roiProvenance:prepared.roiProvenance,suppressionRestored:true};
-        // The original four-target gate explicitly rejects BASIN. In this fixed
-        // order, the full measured source gate can evaluate the fifth target
-        // against all four independently verified wall/corner samples.
-        try {
-          if (targetId === 'BASIN') evaluateD1FMeasuredFiveTargetPixelGate([...samples, sample]);
-          else evaluateD1FOneTargetPixelSample(sample);
-        } catch {continue;}
+        // Strict source-SHA-locked ROI validation for each measured target,
+        // including the independent BASIN before it enters the aggregate.
+        try {evaluateD1FOneMeasuredTargetPixelSample(sample);}
+        catch {continue;}
         samples.push(sample);
         captures.push({targetId,viewIndex,cameraFingerprint:prepared.cameraFingerprint,roi:prepared.roi,
           sourceI03Indices:prepared.sourceI03Indices,beforePngSha256:baseline.pngSha256,
@@ -190,7 +187,7 @@ try {
       }
       check(accepted);
     }
-    const pixels=evaluateD1FMeasuredFiveTargetPixelGate(samples);
+    const pixels=evaluateD1FFiveTargetPixelGate(samples);
     await send('finish',null);
     evidence.variants.push({variant,exactAutoloadResponseVerified:true,actualWebGlContextVerified:true,
       nonBackgroundPixels:nonBackground,orbitChangedPixels:orbitChanged,pixels,captures});
