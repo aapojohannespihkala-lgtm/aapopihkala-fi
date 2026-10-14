@@ -33,5 +33,5 @@ test('SOUTH failure must never become completion or HUMAN_REVIEW success', () =>
   expect(driver).toContain("evidence.result='FAIL'");
   expect(driver).toContain("humanReview: 'NOT_RUN'");
   expect(driver).toContain('productionPublicationVerifiedByThisFunction = false');
-  expect(driver).toContain('cache:');
+  expect(driver).toContain('raw.length===ASSET.bytes && hash(raw)===ASSET.sha256');
 });
