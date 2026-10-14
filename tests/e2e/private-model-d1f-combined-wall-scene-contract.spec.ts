@@ -21,13 +21,15 @@ const object = (name: string, additional: Record<string, unknown> = {}, children
 });
 
 const measuredId = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
+const finishedId = 'd1f-finished-face-2360-wall-basin-20261014';
+const finishedRecord = 'G2_D1F_KPH_FINISHED_FACE_2360_FOUR_HYPOTHESES_20261014_1600';
 const counterRecord = 'G2_D1F_KPH_BASIN_SOURCE_FACE_X3P888_WORK_TEST_20261014';
 
-function fixture(measuredCounter = false) {
-  const sceneStart = measuredCounter ? 76 : 68;
-  const rawScenes: any[] = Array.from({ length: measuredCounter ? 80 : 72 }, () => ({ nodes: [] }));
+function fixture(measuredCounter = false, finished = false) {
+  const sceneStart = finished ? 80 : measuredCounter ? 76 : 68;
+  const rawScenes: any[] = Array.from({ length: finished ? 84 : measuredCounter ? 80 : 72 }, () => ({ nodes: [] }));
   const renderedScenes: any[] = Array.from({ length: rawScenes.length }, () => ({ children: [] }));
-  const nodes: any[] = Array.from({ length: measuredCounter ? 1356 : 818 }, () => ({}));
+  const nodes: any[] = Array.from({ length: finished ? 1368 : measuredCounter ? 1356 : 818 }, () => ({}));
   nodes[798] = { mesh: 406 };
   nodes[817] = { children: [798] };
   rawScenes[5] = { nodes: [817] };
@@ -40,7 +42,7 @@ function fixture(measuredCounter = false) {
     const devices = [1091, 1096, 1101]
       .map(id => object('THEMO_' + id + '_' + name, { sourceNodeIndex: id }));
     const root = object(
-      measuredCounter ? 'D1F_MEASURED_WALL_ROOT_BABYLON_Y_UP_' + name + '_WITH_MEASURED_COUNTER'
+      measuredCounter ? 'D1F_MEASURED_WALL_ROOT_BABYLON_Y_UP_' + name + '_WITH_MEASURED_COUNTER' + (finished ? '_FINISHED_FACE_2360_WORK_HYPOTHESIS' : '')
         : 'P136B_VIEW_ROOT_D_CURRENT_INTERIOR_CORRECTED_BABYLON_Y_UP_COMBINED_' + name,
       {
         sourceNodeIndex: 817,
@@ -49,7 +51,7 @@ function fixture(measuredCounter = false) {
         sourceRootQuaternionPreserved: true,
       }, [wall, ...devices]);
     const sceneName = measuredCounter
-      ? 'D1F MEASURED 140 100 2350 B710 ' + name + ' WORK_TEST NOT CURRENT WITH MEASURED COUNTER'
+      ? 'D1F MEASURED 140 100 2350 B710 ' + name + ' WORK_TEST NOT CURRENT WITH MEASURED COUNTER' + (finished ? ' FINISHED FACE 2360 WORK HYPOTHESIS' : '')
       : 'D1F COMBINED 2990MM ' + name + ' WORK_TEST NOT CURRENT';
     rawScenes[sceneStart + i] = {
       name: sceneName, nodes: [1108 + i * 58],
@@ -60,10 +62,10 @@ function fixture(measuredCounter = false) {
     };
     let counter: any = null;
     if (measuredCounter) {
-      const counterId = 1348 + i * 2;
+      const counterId = finished ? 1357 + i * 3 : 1348 + i * 2;
       const rootId = counterId + 1;
-      counter = object('D1F_KPH_COUNTER_WORK_TEST_' + name, {
-        logicalFixtureId: 'D1F_KPH_BASIN_TOP_WORK_PROXY_01', sourceRecord: counterRecord,
+      counter = object('D1F_KPH_COUNTER_WORK_TEST_' + name + (finished ? '_FINISHED_FACE_2360' : ''), {
+        logicalFixtureId: 'D1F_KPH_BASIN_TOP_WORK_PROXY_01', sourceRecord: finished ? finishedRecord : counterRecord,
         sourceHostFaceXM: 3.888, finishedFloorWorkZM: 0.08, absoluteFaceSurveyVerified: false,
       });
       root.children.push(counter);
@@ -72,10 +74,25 @@ function fixture(measuredCounter = false) {
       rawScenes[sceneStart + i].nodes = [rootId];
       Object.assign(rawScenes[sceneStart + i].extras, {
         counterNode: counterId, parentCombinedScene: 68 + i, parentMeasuredScene: 72 + i,
-        counterSourceRecord: counterRecord, sourceFieldWidthResidualMm: 18,
-        residualResolution: 'OPEN_NOT_GUESSED',
+        counterSourceRecord: finished ? finishedRecord : counterRecord, sourceFieldWidthResidualMm: 18,
+        residualResolution: finished ? 'WORK_GEOMETRY_ONLY_PHYSICAL_ANCHOR_OPEN' : 'OPEN_NOT_GUESSED',
       });
-      nodes[counterId] = { name: counter.name, mesh: 611, extras: counter.userData };
+      if (finished) {
+        const west = name.startsWith('WEST_');
+        counter.position = { x: west ? 0 : .018, y: 0, z: 0 };
+        Object.assign(counter.userData, { workingHostFaceXM: west ? 3.888 : 3.906,
+          physicalFinishedFaceVerified: false });
+        Object.assign(wall.userData, { sourceRecord: finishedRecord, measuredWidthMm: 2360,
+          physicalWidthAnchorResolved: false, saunaDoorHandResolved: false });
+        rawScenes[76 + i] = { nodes: [1349 + i * 2] };
+        Object.assign(root.userData, { parentMeasuredCounterRoot: 1349 + i * 2 });
+        Object.assign(rawScenes[sceneStart + i].extras, { parentMeasuredCounterScene: 76 + i,
+          sourceRecord: finishedRecord, workGeometryWidthResidualMm: 0,
+          modelClearWidthMm: 2360, fieldClearWidthMm: 2360,
+          workingFinishedFacesXM: west ? [3.888, 6.248] : [3.906, 6.266] });
+      }
+      nodes[counterId] = { name: counter.name, mesh: 611, extras: counter.userData,
+        ...(finished ? { translation: [counter.position.x, 0, 0] } : {}) };
       nodes[rootId] = { children: [counterId], extras: root.userData };
     }
     renderedScenes[sceneStart + i] = { name: sceneName, children: [root] };
@@ -217,11 +234,11 @@ test('counter must remain visible, unique and attached to selected architecture 
 
 // A public, in-memory GLB with the same structural contract, not private model
 // bytes. The real npm loader supplies runtime names and Object3D ownership.
-function loaderFixture(bytes?: number, measuredCounter = false) {
-  const { gltf, components } = fixture(measuredCounter);
+function loaderFixture(bytes?: number, measuredCounter = false, finished = false) {
+  const { gltf, components } = fixture(measuredCounter, finished);
   const json: any = structuredClone(gltf.parser.json);
   json.asset = { version: '2.0' };
-  json.scene = measuredCounter ? 76 : 68;
+  json.scene = finished ? 80 : measuredCounter ? 76 : 68;
   json.buffers = [{ byteLength: 36 }];
   json.bufferViews = [{ buffer: 0, byteOffset: 0, byteLength: 36 }];
   json.accessors = [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3',
@@ -230,6 +247,7 @@ function loaderFixture(bytes?: number, measuredCounter = false) {
   const add = (o: any): number => {
     const index = json.nodes.length;
     json.nodes.push({ name: o.name, extras: o.userData,
+      ...(o.position ? { translation: [o.position.x, o.position.y, o.position.z] } : {}),
       ...(o.userData.logicalFixtureId ? { mesh: 611 } :
         o.userData.sourceNodeIndex === 798 || o.userData.independentlyAddressableCorner ? { mesh: 0 } : {}) });
     if (o.children?.length) json.nodes[index].children = o.children.map(add);
@@ -237,7 +255,7 @@ function loaderFixture(bytes?: number, measuredCounter = false) {
   };
   components.forEach((component: any, i: number) => {
     const rootId = add(component.root);
-    const scene = json.scenes[(measuredCounter ? 76 : 68) + i];
+    const scene = json.scenes[(finished ? 80 : measuredCounter ? 76 : 68) + i];
     scene.nodes = [rootId];
     if (measuredCounter) {
       const counterId = json.nodes[rootId].children.find((n: number) => json.nodes[n].extras.logicalFixtureId);
@@ -345,7 +363,7 @@ test('stalled source body is bounded and never reaches GLTFLoader', async () => 
   expect(parses).toBe(0);
 });
 
-for (const id of ['d1f-combined-wall-115-100-20261013', measuredId] as const) {
+for (const id of ['d1f-combined-wall-115-100-20261013', measuredId, finishedId] as const) {
 test('actual viewer load callsite uses verified scene for ' + id, async () => {
   const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
   const start = source.indexOf('const loadWorkTestCandidate = async');
@@ -372,7 +390,7 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
         ...options,
         fetcher: async (path: string) => ({ status: 200, redirected: false,
           url: 'https://aapopihkala.fi' + path,
-          arrayBuffer: async () => loaderFixture(asset.bytes, id === measuredId) }) as any,
+          arrayBuffer: async () => loaderFixture(asset.bytes, id !== 'd1f-combined-wall-115-100-20261013', id === finishedId) }) as any,
         digest: async () => Uint8Array.from(Buffer.from(asset.sha256, 'hex')).buffer,
       }),
     },
@@ -380,7 +398,7 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
   expect(genericLoads).toBe(0);
   expect(selected.gltf.scene).toBe(selected.combinedWallReview.selected.scene);
   expect(selected.combinedWallReview.selected.corners).toHaveLength(3);
-  if (id === measuredId) expect(selected.combinedWallReview.selected.counter.isMesh).toBe(true);
+  if (id === measuredId || id === finishedId) expect(selected.combinedWallReview.selected.counter.isMesh).toBe(true);
 });
 }
 
@@ -401,3 +419,32 @@ test('actual startup marks autoload only after a successful loader return', asyn
 });
 
 
+
+// The public fixture exercises the actual npm loader without committing private GLB bytes.
+test('finished-face profile loads all four source-bound scenes80..83, including EAST counter translation', async () => {
+  const asset = D1F_COMBINED_WALL_ASSETS[finishedId];
+  const gltf = await new GLTFLoader().parseAsync(loaderFixture(undefined, true, true), '');
+  for (const [i, variant] of D1F_COMBINED_WALL_VARIANTS.entries()) {
+    const result = selectD1FCombinedWallWorkTestScene(gltf, variant, finishedId);
+    expect(result.sceneIndex).toBe(80 + i);
+    expect(result.counter.position.x).toBe(variant.startsWith('WEST_') ? 0 : .018);
+    expect(result).toMatchObject({ absolutePhysicalXYVerified: false,
+      productionRenderedRoisVerified: false, humanReview: 'NOT_RUN' });
+  }
+  expect(asset).toMatchObject({ bytes: 3654796, finishedFaces2360: true });
+  expect(() => selectD1FCombinedWallWorkTestScene(gltf, D1F_COMBINED_WALL_VARIANTS[0], measuredId)).toThrow();
+});
+
+test('finished-face profile rejects inherited old roots, false width or physical approval, and misplaced counter', () => {
+  for (const alter of [
+    (g: any) => { g.parser.json.scenes[80].extras.parentMeasuredCounterScene = 75; },
+    (g: any) => { g.parser.json.scenes[80].extras.workingFinishedFacesXM = [3.888, 6.266]; },
+    (g: any) => { g.parser.json.nodes[1357].extras.physicalFinishedFaceVerified = true; },
+    (g: any) => { g.parser.json.nodes[1363].translation = [0,0,0]; },
+    (g: any, c: any[]) => { c[0].counter.position.x = .018; },
+    (g: any, c: any[]) => { c[0].wall.userData.physicalWidthAnchorResolved = true; },
+  ]) {
+    const { gltf, components } = fixture(true, true); alter(gltf, components);
+    expect(() => selectD1FCombinedWallWorkTestScene(gltf, D1F_COMBINED_WALL_VARIANTS[0], finishedId)).toThrow();
+  }
+});

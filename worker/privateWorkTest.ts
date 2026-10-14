@@ -585,6 +585,15 @@ const D1F_MEASURED_WALL_BASIN_CANDIDATE = {
   expectedSha256: '7da6b1e6ada391556ca3600346f1586ed2507ac86b4e489cb689e6e6cd11de71',
 } as const satisfies PrivateWorkTestCandidate;
 
+const D1F_FINISHED_FACE_2360_CANDIDATE = {
+  id: 'd1f-finished-face-2360-wall-basin-20261014',
+  label: 'D1F - 2360 mm valmispinnat ja allastaso - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-finished-face-2360-wall-basin-20261014.glb`,
+  objectKey: 'work-test/d1f-finished-face-2360-wall-basin-20261014.glb',
+  expectedSize: 3654796,
+  expectedSha256: '826633aba10b590935dc029358b1233957ab37ee7e167a5adfdab713617d8523',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -595,6 +604,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   P137E_D1F_THREE_WALL_MOUNTED_THEMOS_CANDIDATE,
   D1F_COMBINED_WALL_115_100_CANDIDATE,
   D1F_MEASURED_WALL_BASIN_CANDIDATE,
+  D1F_FINISHED_FACE_2360_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {

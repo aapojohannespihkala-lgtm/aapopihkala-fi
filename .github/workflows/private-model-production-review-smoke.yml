@@ -21,6 +21,14 @@ on:
           - d1f-measured-pixels
           - g2-readiness
           - g2-records-readback
+      measured_candidate:
+        description: Exact source for the measured D1F five-target probe
+        required: true
+        type: choice
+        default: d1f-measured-wall-140-100-2350-b710-basin-20261014
+        options:
+          - d1f-measured-wall-140-100-2350-b710-basin-20261014
+          - d1f-finished-face-2360-wall-basin-20261014
       review_id:
         description: Full-render review ID; r1125-render fills this automatically
         required: true
@@ -2260,10 +2268,11 @@ jobs:
         run: npm ci
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Verify authenticated measured 80-scene autoload and five source targets
+      - name: Verify authenticated measured source autoload and five source targets
         env:
           PROBE_MODE: ${{ inputs.probe_mode }}
           D1F_COMBINED_VARIANT: ${{ matrix.variant }}
+          D1F_MEASURED_CANDIDATE_ID: ${{ inputs.measured_candidate }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
         run: node .github/scripts/private-model-d1f-measured-production-probe.mjs

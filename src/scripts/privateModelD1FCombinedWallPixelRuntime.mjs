@@ -8,13 +8,20 @@ import { D1F_FOUR_PIXEL_TARGETS, D1F_PIXEL_SUPPRESSION } from './privateModelD1F
 
 const SOURCE_SHA = D1F_COMBINED_WALL_ASSETS['d1f-combined-wall-115-100-20261013'].sha256;
 const MEASURED_SHA = D1F_COMBINED_WALL_ASSETS['d1f-measured-wall-140-100-2350-b710-basin-20261014'].sha256;
+const FINISHED_SHA = D1F_COMBINED_WALL_ASSETS['d1f-finished-face-2360-wall-basin-20261014'].sha256;
+const FINISHED_SOURCE = 'G2_D1F_KPH_FINISHED_FACE_2360_FOUR_HYPOTHESES_20261014_1600';
 const BASIN = 'BASIN';
 const BASIN_SOURCE = 'G2_D1F_KPH_BASIN_SOURCE_FACE_X3P888_WORK_TEST_20261014';
 const reject = () => { throw new Error('D1F_SOURCE_PIXEL_RUNTIME_REJECTED'); };
 
 /** @param {any} options */
 export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, camera, controls, canvas, render }) {
-  const measured = sourceSha === MEASURED_SHA;
+  const finished = sourceSha === FINISHED_SHA;
+  const measured = sourceSha === MEASURED_SHA || finished;
+  const west = finished && selected?.variant?.startsWith('WEST_');
+  if (finished && !/^(WEST|EAST)_ANCHOR_(725_895_740|740_895_725)$/.test(selected?.variant ?? '')) reject();
+  const indexCount = west ? 480 : measured ? 396 : 216;
+  const vertexCount = west ? 256 : measured ? 240 : 200;
   if ((!measured && sourceSha !== SOURCE_SHA) || !camera?.isPerspectiveCamera ||
       selected?.wall?.userData?.sourceNodeIndex !== 798 ||
       selected.corners?.length !== 3 || !selected.scene) reject();
@@ -34,8 +41,8 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     if (offsets.length) matches.push({ mesh: object, offsets });
   });
   if (matches.length !== 1 || matches[0].offsets.length !== 12 ||
-      matches[0].mesh.geometry.index.count !== (measured ? 396 : 216) ||
-      matches[0].mesh.geometry.attributes.position.count !== (measured ? 240 : 200)) reject();
+      matches[0].mesh.geometry.index.count !== indexCount ||
+      matches[0].mesh.geometry.attributes.position.count !== vertexCount) reject();
   const i03 = matches[0];
   const sourceGeometry = i03.mesh.geometry;
   const sourceIndex = sourceGeometry.index.array;
@@ -56,13 +63,17 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
         counter.geometry.index.count !== 36 ||
         counter.geometry.attributes.position?.count !== 24 || counter.visible !== true ||
         counter.userData?.logicalFixtureId !== 'D1F_KPH_BASIN_TOP_WORK_PROXY_01' ||
-        counter.userData?.sourceRecord !== BASIN_SOURCE ||
+        counter.userData?.sourceRecord !== (finished ? FINISHED_SOURCE : BASIN_SOURCE) ||
         counter.userData?.sourceHostFaceXM !== 3.888 ||
         counter.userData?.finishedFloorWorkZM !== 0.08 ||
         counter.userData?.absoluteFaceSurveyVerified !== false ||
         counter.userData?.WORK_TEST_ONLY !== true || counter.userData?.current !== false ||
         counter.userData?.Canonical !== false || counter.userData?.asBuilt !== false ||
         counter.userData?.HUMAN_REVIEW !== 'NOT_RUN') reject();
+    if (finished && (counter.userData?.workingHostFaceXM !== (west ? 3.888 : 3.906) ||
+        counter.userData?.physicalFinishedFaceVerified !== false ||
+        Math.abs(counter.position.x - (west ? 0 : 0.018)) > 1e-8 ||
+        counter.position.y !== 0 || counter.position.z !== 0)) reject();
     const bounds = new THREE.Box3().setFromBufferAttribute(counter.geometry.attributes.position);
     const observed = [...bounds.min.toArray(), ...bounds.max.toArray()];
     const expected = [3.888, 2.737, 0.925, 4.383, 3.762, 0.945];
@@ -177,7 +188,7 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
       const keep = [];
       for (let i = 0; i < sourceIndex.length; i += 3)
         if (!removed.has(i)) keep.push(sourceIndex[i], sourceIndex[i + 1], sourceIndex[i + 2]);
-      if (keep.length !== (measured ? 360 : 180) || i03.mesh.visible !== true) reject();
+      if (keep.length !== indexCount - 36 || i03.mesh.visible !== true) reject();
       maskedGeometry = sourceGeometry.clone(); maskedGeometry.setIndex(keep);
       i03.mesh.geometry = maskedGeometry;
     } else if (targetId === BASIN) {

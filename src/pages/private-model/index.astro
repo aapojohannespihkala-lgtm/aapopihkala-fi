@@ -2562,7 +2562,8 @@ const title = 'Private 3D viewer';
           const expectedId = reviewId === 'd1f-combined-wall-115-100-20261013-review'
             ? 'd1f-combined-wall-115-100-20261013'
             : reviewId === 'd1f-measured-wall-140-100-2350-b710-basin-20261014-review'
-              ? 'd1f-measured-wall-140-100-2350-b710-basin-20261014' : null;
+              ? 'd1f-measured-wall-140-100-2350-b710-basin-20261014'
+              : reviewId === 'd1f-finished-face-2360-wall-basin-20261014-review' ? 'd1f-finished-face-2360-wall-basin-20261014' : null;
           if (!d1fCombinedPixelRuntime || !expectedId ||
               canvas.dataset.modelSource !== 'work-test' ||
               canvas.dataset.d1fCombinedWallRawSha256 !== D1F_COMBINED_WALL_ASSETS[expectedId].sha256 ||
@@ -10519,13 +10520,13 @@ const title = 'Private 3D viewer';
               d1fCombinedWallRawSha256: combinedWallReview.asset.sha256,
               d1fCombinedWallPhysicalXYVerified: 'false',
               d1fCombinedWallHumanReview: 'NOT_RUN',
-              d1fCombinedWallPixelTargets: candidate.id === 'd1f-measured-wall-140-100-2350-b710-basin-20261014'
+              d1fCombinedWallPixelTargets: (candidate.id === 'd1f-measured-wall-140-100-2350-b710-basin-20261014' || candidate.id === 'd1f-finished-face-2360-wall-basin-20261014')
                 ? 'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589,BASIN'
                 : 'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589',
             });
             applyStandardViewPreset('d-apartment');
             if (candidate.id === 'd1f-combined-wall-115-100-20261013' ||
-                candidate.id === 'd1f-measured-wall-140-100-2350-b710-basin-20261014') {
+                candidate.id === 'd1f-measured-wall-140-100-2350-b710-basin-20261014' || candidate.id === 'd1f-finished-face-2360-wall-basin-20261014') {
               d1fCombinedPixelRuntime = createD1FCombinedWallPixelRuntime({
                 THREE, selected: combinedWallReview.selected, sourceSha: combinedWallReview.asset.sha256,
                 camera, controls, canvas, render: () => renderer.render(scene, camera),
