@@ -157,6 +157,12 @@ export function evaluateD1FFiveTargetPixelGate(
       !D1F_FIVE_PIXEL_TARGETS.every(id => ids.includes(id))) {
     fail('five distinct measured I03, original corners and basin targets required');
   }
+  // Per-frame source hashes do not prove the five samples share one scene.
+  // Never combine different wall variants into a false five-target PASS.
+  const variants = new Set(samples.map(s => s?.baseline?.variant));
+  if (variants.size !== 1 || [...variants].some(v => typeof v !== 'string' || !v)) {
+    fail('mixed or unknown measured wall variant');
+  }
   const proofs = samples.map(s => verifySample(s, minRoiChangedPixels,
     outsideChangeAllowance, D1F_FIVE_PIXEL_TARGETS,
     D1F_MEASURED_PIXEL_SUPPRESSION, MEASURED_SOURCE_SHA));
