@@ -256,6 +256,15 @@ jobs:
                     --input "$d1f_request"
                   rm -f "$d1f_request"
                   echo "D1F published-source pixel verification dispatched on trusted main."
+
+                  # Queue the measured five-target source proof separately from the legacy four-target proof.
+                  # Both calls use the existing main-only workflow and its non-cancelling production queue.
+                  python3 -c 'import json,sys; json.dump({"ref":"main","inputs":{"probe_mode":"d1f-measured-pixels","review_id":"d1f-measured-wall-140-100-2350-b710-basin-20261014-review","candidate_id":"d1f-measured-wall-140-100-2350-b710-basin-20261014"}},open(sys.argv[1],"w"))' "$d1f_request"
+                  gh api --method POST \
+                    "/repos/${GITHUB_REPOSITORY}/actions/workflows/private-model-production-review-smoke.yml/dispatches" \
+                    --input "$d1f_request"
+                  rm -f "$d1f_request"
+                  echo "Measured D1F five-target source pixel verification dispatched on trusted main."
                 fi
 
                 if [[ "$android_changed" == "true" ]]; then
