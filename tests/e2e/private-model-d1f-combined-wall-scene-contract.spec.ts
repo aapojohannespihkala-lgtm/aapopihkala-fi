@@ -399,6 +399,7 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
   expect(selected.gltf.scene).toBe(selected.combinedWallReview.selected.scene);
   expect(selected.combinedWallReview.selected.corners).toHaveLength(3);
   if (id === measuredId || id === finishedId) expect(selected.combinedWallReview.selected.counter.isMesh).toBe(true);
+  if (id === finishedId) expect(selected.combinedWallReview.selected.counter.material.opacity).toBe(.8);
 });
 }
 
@@ -446,5 +447,52 @@ test('finished-face profile rejects inherited old roots, false width or physical
   ]) {
     const { gltf, components } = fixture(true, true); alter(gltf, components);
     expect(() => selectD1FCombinedWallWorkTestScene(gltf, D1F_COMBINED_WALL_VARIANTS[0], finishedId)).toThrow();
+  }
+});
+
+test('actual verified loader gives the finished counter 80 percent review opacity without changing source or other scenes', async () => {
+  for (const id of [measuredId, finishedId]) {
+    const asset = D1F_COMBINED_WALL_ASSETS[id];
+    const buffer = loaderFixture(asset.bytes, true, id === finishedId);
+    for (const [i, variant] of D1F_COMBINED_WALL_VARIANTS.entries()) {
+      let parsed: any, sourceMaterial: any, sourceGeometry: any, sourcePosition: number[];
+      let otherCounter: any, otherMaterial: any;
+      const result = await loadD1FCombinedWallReview({
+        candidate: { id, path: '/private-model/work-test/' + id + '.glb' },
+        search: '?review=' + id + '-review&wallVariant=' + variant,
+        loader: { parseAsync: async (body: ArrayBuffer, path: string) => {
+          parsed = await new GLTFLoader().parseAsync(body, path);
+          const selected = selectD1FCombinedWallWorkTestScene(parsed, variant, id);
+          sourceMaterial = selected.counter.material;
+          sourceGeometry = selected.counter.geometry;
+          sourcePosition = selected.counter.position.toArray();
+          otherCounter = selectD1FCombinedWallWorkTestScene(parsed,
+            D1F_COMBINED_WALL_VARIANTS[(i + 1) % 4], id).counter;
+          otherMaterial = otherCounter.material;
+          return parsed;
+        } },
+        fetcher: async (path: any) => ({ status: 200, redirected: false,
+          url: 'https://aapopihkala.fi' + path, arrayBuffer: async () => buffer }) as any,
+        digest: async () => Uint8Array.from(Buffer.from(asset.sha256, 'hex')).buffer,
+      });
+      const counter = result.selected.counter;
+      expect(counter.material.opacity).toBe(id === finishedId ? .8 : 1);
+      if (id === finishedId) {
+        expect(counter.material).not.toBe(sourceMaterial);
+        expect(counter.material.transparent).toBe(true);
+        expect(counter.material.depthWrite).toBe(false);
+      } else {
+        expect(counter.material).toBe(sourceMaterial);
+      }
+      expect(sourceMaterial.opacity).toBe(1);
+      expect(otherCounter.material).toBe(otherMaterial);
+      expect(otherMaterial.opacity).toBe(1);
+      expect(counter.geometry).toBe(sourceGeometry);
+      expect(counter.position.toArray()).toEqual(sourcePosition!);
+      expect(result.gltf.scene).toBe(result.selected.scene);
+      expect(result.selected).toMatchObject({ workTestOnly: true,
+        absolutePhysicalXYVerified: false, productionRenderedRoisVerified: false,
+        humanReview: 'NOT_RUN' });
+    }
   }
 });

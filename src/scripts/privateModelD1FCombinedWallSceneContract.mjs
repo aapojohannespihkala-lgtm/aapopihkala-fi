@@ -272,6 +272,25 @@ export async function loadD1FCombinedWallReview({
   }
   const gltf = await loader.parseAsync(bytes, '/private-model/work-test/');
   const selected = selectD1FCombinedWallWorkTestScene(gltf, variant, candidate.id);
+  if (asset.finishedFaces2360) {
+    // Presentation of the verified review only. Keep the immutable source
+    // material and other scene hypotheses unchanged.
+    const cloneReviewCounterMaterial = material => {
+      if (material?.isMaterial !== true || typeof material.clone !== 'function') {
+        fail('finished counter review material');
+      }
+      const clone = material.clone();
+      clone.opacity = 0.8;
+      clone.transparent = true;
+      clone.depthWrite = false;
+      clone.needsUpdate = true;
+      return clone;
+    };
+    const counter = selected.counter;
+    counter.material = Array.isArray(counter.material)
+      ? counter.material.map(cloneReviewCounterMaterial)
+      : cloneReviewCounterMaterial(counter.material);
+  }
   gltf.scene = selected.scene;
   return { gltf, selected, asset, rawGlbByteIdentityVerified: true };
 }
