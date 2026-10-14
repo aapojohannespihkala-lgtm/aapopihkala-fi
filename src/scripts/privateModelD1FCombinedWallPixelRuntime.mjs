@@ -147,8 +147,6 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     const width = Math.round(rect.width), height = Math.round(rect.height);
     if (width < 320 || height < 320) reject();
     const dirs = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
-    const distance = Math.max(size.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.3,
-      Math.max(size.x, size.z) * 2.8);
     const [dx, dz] = dirs[viewIndex];
     // Source-locked interior I03 view for the finished-face WORK_TEST only.
     // The earlier exterior diagonal views can be occluded by the source wall
@@ -158,6 +156,11 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     const interiorI03 = finished && targetId === 'I03' && viewIndex === 0;
     camera.aspect = width / height;
     camera.fov = interiorI03 ? 80 : original.fov;
+    // Use the FOV of this view, not the previous prepared view. Otherwise
+    // switching from the 80-degree interior view to 38-degree exterior views
+    // places the camera too close and clips the exact source-derived ROI.
+    const distance = Math.max(size.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.3,
+      Math.max(size.x, size.z) * 2.8);
     if (interiorI03) {
       camera.position.copy(center).add(new THREE.Vector3(0, 0, 1.71));
     } else {
