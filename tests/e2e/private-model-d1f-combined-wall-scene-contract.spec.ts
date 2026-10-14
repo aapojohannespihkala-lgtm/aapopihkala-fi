@@ -451,7 +451,7 @@ test('finished-face profile rejects inherited old roots, false width or physical
 });
 
 test('actual verified loader gives the finished counter 80 percent review opacity without changing source or other scenes', async () => {
-  for (const id of [measuredId, finishedId]) {
+  for (const id of [measuredId, finishedId] as const) {
     const asset = D1F_COMBINED_WALL_ASSETS[id];
     const buffer = loaderFixture(asset.bytes, true, id === finishedId);
     for (const [i, variant] of D1F_COMBINED_WALL_VARIANTS.entries()) {
