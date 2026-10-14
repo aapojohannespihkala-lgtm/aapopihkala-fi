@@ -105,6 +105,7 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     camera.projectionMatrix.copy(lockedPose.projection);
     camera.projectionMatrixInverse.copy(lockedPose.projectionInverse);
     camera.aspect = lockedPose.aspect;
+    camera.fov = lockedPose.fov;
     camera.updateMatrixWorld(true);
   };
   const restoreTarget = () => {
@@ -149,8 +150,19 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     const distance = Math.max(size.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.3,
       Math.max(size.x, size.z) * 2.8);
     const [dx, dz] = dirs[viewIndex];
+    // Source-locked interior I03 view for the finished-face WORK_TEST only.
+    // The earlier exterior diagonal views can be occluded by the source wall
+    // itself; the independent offline ray and VTK checks used the room side
+    // at world +Z, 1.71 m from the exact indexed I03 bounds center.
+    // Keep views 1..3 and all other targets on the existing camera path.
+    const interiorI03 = finished && targetId === 'I03' && viewIndex === 0;
     camera.aspect = width / height;
-    camera.position.copy(center).add(new THREE.Vector3(dx, targetId === BASIN ? 1.5 : 0.22, dz).normalize().multiplyScalar(distance));
+    camera.fov = interiorI03 ? 80 : original.fov;
+    if (interiorI03) {
+      camera.position.copy(center).add(new THREE.Vector3(0, 0, 1.71));
+    } else {
+      camera.position.copy(center).add(new THREE.Vector3(dx, targetId === BASIN ? 1.5 : 0.22, dz).normalize().multiplyScalar(distance));
+    }
     camera.up.set(0, 1, 0);
     controls.enableDamping = false; controls.autoRotate = false; controls.enabled = false;
     controls.target.copy(center);
@@ -166,7 +178,7 @@ export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, 
     if (x < 0 || y < 0 || right > width || bottom > height || right - x < 8 || bottom - y < 8) reject();
     lockedPose = {
       position: camera.position.clone(), quaternion: camera.quaternion.clone(), up: camera.up.clone(),
-      aspect: camera.aspect, projection: camera.projectionMatrix.clone(),
+      aspect: camera.aspect, fov: camera.fov, projection: camera.projectionMatrix.clone(),
       projectionInverse: camera.projectionMatrixInverse.clone(),
     };
     prepared = {
