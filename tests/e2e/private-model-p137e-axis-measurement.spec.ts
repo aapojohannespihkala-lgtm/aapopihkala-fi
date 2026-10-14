@@ -14,7 +14,7 @@ test('P137E ruler: four clicks anchor, activate live, lock and clear', () => {
     phase: 'DYNAMIC', axis: 'X', millimetres: 2450,
     second: { xM: 3.65, yM: 2.5 },
   });
-  expect(axisMeasureDisplay(state)).toContain('klikkaa lukitaksesi');
+  expect(axisMeasureDisplay(state)).toBe('2450 mm');
   state = updateAxisMeasurePointer(state, { xM: 4.5, yM: 2.4 });
   expect(state).toMatchObject({ phase: 'DYNAMIC', axis: 'X', millimetres: 3300 });
   state = advanceAxisMeasure(state, { xM: 4.85, yM: 2.2 });
@@ -23,7 +23,7 @@ test('P137E ruler: four clicks anchor, activate live, lock and clear', () => {
     second: { xM: 4.85, yM: 2.5 },
   });
   expect(updateAxisMeasurePointer(state, { xM: 99, yM: 99 })).toEqual(state);
-  expect(axisMeasureDisplay(state)).toContain('lukittu');
+  expect(axisMeasureDisplay(state)).toBe('3650 mm');
   state = advanceAxisMeasure(state, { xM: 9, yM: 9 });
   expect(state).toEqual(emptyAxisMeasureState());
   state = advanceAxisMeasure(state, { xM: 7, yM: 1 });
