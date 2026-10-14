@@ -191,3 +191,84 @@ test('render frame lock preserves the exact paired camera after orbit and projec
   expect(f.camera.matrixWorld.toArray()).toEqual(original);
   expect(f.controls.enabled).toBe(true);
 });
+
+function finishedFaceFixture(variant: string) {
+  const f=fixture();
+  const east=variant.startsWith('EAST_');
+  const source=f.mesh.geometry;
+  const positions=new Float32Array(256*3);
+  positions.set((source.getAttribute('position') as THREE.BufferAttribute).array as Float32Array);
+  const x=east?5.306:5.288;
+  const box=[
+    [x,.08,-4.012],[x+.96,.08,-4.012],[x+.96,2.43,-4.012],[x,2.43,-4.012],
+    [x,.08,-3.807],[x+.96,.08,-3.807],[x+.96,2.43,-3.807],[x,2.43,-3.807],
+  ];
+  box.forEach((p,i)=>positions.set(p,3*(128+i)));
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  geometry.setIndex([...Array.from(source.index!.array),
+    ...Array.from({length:264},(_,i)=>176+i%3)]);
+  f.mesh.geometry=geometry;
+  const counterPositions=new Float32Array(24*3);
+  for(let i=0;i<24;i++)counterPositions.set(
+    i%2===0?[3.888,2.737,.925]:[4.383,3.762,.945],i*3);
+  const counterGeometry=new THREE.BufferGeometry();
+  counterGeometry.setAttribute('position',new THREE.BufferAttribute(counterPositions,3));
+  counterGeometry.setIndex(Array.from({length:36},(_,i)=>i%24));
+  const counter=new THREE.Mesh(counterGeometry,new THREE.MeshBasicMaterial());
+  counter.position.x=east?.018:0;
+  counter.userData={
+    logicalFixtureId:'D1F_KPH_BASIN_TOP_WORK_PROXY_01',
+    sourceRecord:'G2_D1F_KPH_FINISHED_FACE_2360_FOUR_HYPOTHESES_20261014_1600',
+    sourceHostFaceXM:3.888,finishedFloorWorkZM:.08,
+    absoluteFaceSurveyVerified:false,WORK_TEST_ONLY:true,
+    current:false,Canonical:false,asBuilt:false,HUMAN_REVIEW:'NOT_RUN',
+    workingHostFaceXM:east?3.906:3.888,physicalFinishedFaceVerified:false,
+  };
+  f.wall.add(counter);
+  const selected={...f.options.selected,variant,workTestOnly:true,counter};
+  const options={...f.options,selected,
+    sourceSha:D1F_COMBINED_WALL_ASSETS['d1f-finished-face-2360-wall-basin-20261014'].sha256};
+  return {...f,options};
+}
+
+test('finished-face I03 interior camera is source-bound across all four hypotheses', () => {
+  for(const variant of [
+    'WEST_ANCHOR_725_895_740','WEST_ANCHOR_740_895_725',
+    'EAST_ANCHOR_725_895_740','EAST_ANCHOR_740_895_725',
+  ]) {
+    const f=finishedFaceFixture(variant);
+    const before=f.camera.matrixWorld.toArray();
+    const runtime=createD1FCombinedWallPixelRuntime(f.options);
+    const prepared=runtime.prepare('I03',0);
+    expect(f.camera.fov).toBe(80);
+    expect(f.camera.position.x).toBeCloseTo(variant.startsWith('EAST_')?5.786:5.768,3);
+    expect(f.camera.position.y).toBeCloseTo(1.255,3);
+    expect(f.camera.position.z).toBeCloseTo(-2.1995,3);
+    expect(prepared.roi.width).toBeGreaterThan(50);
+    expect(prepared.roi.height).toBeGreaterThan(50);
+    expect(prepared.roi.x).toBeGreaterThanOrEqual(0);
+    expect(prepared.roi.y).toBeGreaterThanOrEqual(0);
+    const original=f.mesh.geometry;
+    runtime.suppress('I03');
+    expect(f.mesh.geometry.index!.count).toBe(480-36);
+    expect(runtime.restore()).toMatchObject({
+      state:'RESTORED',suppressionRestored:true,cameraFingerprint:prepared.cameraFingerprint,
+    });
+    expect(f.mesh.geometry).toBe(original);
+    runtime.prepare('I03',1);
+    expect(f.camera.fov).toBe(38);
+    runtime.dispose();
+    expect(f.camera.fov).toBe(38);
+    expect(f.camera.matrixWorld.toArray()).toEqual(before);
+  }
+});
+
+test('interior view is not enabled for the legacy wall candidate', () => {
+  const f=fixture();
+  const runtime=createD1FCombinedWallPixelRuntime(f.options);
+  runtime.prepare('I03',0);
+  expect(f.camera.fov).toBe(38);
+  expect(f.camera.position.z).not.toBeCloseTo(1.71,2);
+  runtime.dispose();
+});
