@@ -189,3 +189,95 @@ test('render frame lock preserves the exact paired camera after orbit and projec
   expect(f.camera.matrixWorld.toArray()).toEqual(original);
   expect(f.controls.enabled).toBe(true);
 });
+
+
+const measuredSha = D1F_COMBINED_WALL_ASSETS['d1f-measured-wall-140-100-2350-b710-basin-20261014'].sha256;
+function measuredFixture() {
+  const f = fixture();
+  const originalIndices = Array.from(f.mesh.geometry.index!.array);
+  const pos = f.mesh.geometry.attributes.position.array as Float32Array;
+  const expanded = new Float32Array(240 * 3);
+  expanded.set(pos);
+  f.mesh.geometry.setAttribute('position', new THREE.BufferAttribute(expanded, 3));
+  // Preserve the exact twelve source I03 triangles at 36..71, add unrelated triangles.
+  f.mesh.geometry.setIndex([...originalIndices, ...Array.from({length:180},(_,i)=>176+(i%8))]);
+  const scene = f.options.selected.scene;
+  const root = new THREE.Group();
+  scene.remove(f.wall); scene.add(root); root.add(f.wall);
+  const geometry = new THREE.BoxGeometry(0.495,1.025,0.020);
+  geometry.translate(4.1355,3.2495,0.935);
+  const basin = new THREE.Mesh(geometry,new THREE.MeshBasicMaterial());
+  basin.rotation.x = -Math.PI/2;
+  basin.userData = {
+    logicalFixtureId:'D1F_KPH_BASIN_TOP_WORK_PROXY_01',
+    sourceRecord:'G2_D1F_KPH_BASIN_SOURCE_FACE_X3P888_WORK_TEST_20261014',
+    WORK_TEST_ONLY:true,current:false,Canonical:false,asBuilt:false,
+    HUMAN_REVIEW:'NOT_RUN',physicalAbsoluteXYZVerified:false,
+    absoluteFaceSurveyVerified:false,
+  };
+  root.add(basin);
+  (f.options.selected as any).counter=basin;
+  f.options.sourceSha=measuredSha;
+  return {...f,root,basin};
+}
+
+test('measured scene preserves new I03 triangles and separately suppresses the fifth basin target',()=>{
+  const f=measuredFixture();
+  const original=f.mesh.geometry;
+  const runtime=createD1FCombinedWallPixelRuntime(f.options);
+  const i03=runtime.prepare('I03');
+  expect(i03.glbSha256).toBe(measuredSha);
+  expect(i03.sourceI03Indices).toEqual({count:36,sourceVertices:[128,135],
+    offsets:Array.from({length:12},(_,i)=>36+i*3)});
+  expect(f.mesh.geometry.index!.count).toBe(396);
+  runtime.suppress('I03');
+  expect(f.mesh.geometry.index!.count).toBe(360);
+  expect(f.basin.visible).toBe(true);
+  expect(f.corners.every(c=>c.object.visible)).toBe(true);
+  runtime.restore();
+  expect(f.mesh.geometry).toBe(original);
+  const before=runtime.prepare('BASIN');
+  expect(before.suppressionMethod).toBe('SOURCE_COUNTER_NODE_VISIBILITY_ONLY');
+  expect(before.pixelsVerifiedByThisRuntime).toBe(false);
+  runtime.suppress('BASIN');
+  expect(f.basin.visible).toBe(false);
+  expect(f.mesh.geometry).toBe(original);
+  runtime.restore();
+  expect(f.basin.visible).toBe(true);
+  for(const corner of f.corners){
+    runtime.prepare(corner.name);
+    runtime.suppress(corner.name);
+    expect(f.corners.filter(c=>!c.object.visible).map(c=>c.name)).toEqual([corner.name]);
+    runtime.restore();
+  }
+  runtime.dispose();
+  expect(f.basin.visible).toBe(true);
+});
+
+test('measured basin rejects wrong identity, missing target and altered exact slab geometry',()=>{
+  const f=measuredFixture();
+  const options=f.options;
+  expect(()=>createD1FCombinedWallPixelRuntime({...options,sourceSha:'0'.repeat(64)})).toThrow();
+  (options.selected as any).counter=null;
+  expect(()=>createD1FCombinedWallPixelRuntime(options)).toThrow();
+  (options.selected as any).counter=f.basin;
+  f.basin.geometry.translate(0.1,0,0);
+  expect(()=>createD1FCombinedWallPixelRuntime(options)).toThrow();
+  f.basin.geometry.translate(-0.1,0,0);
+  f.basin.userData.asBuilt=true;
+  expect(()=>createD1FCombinedWallPixelRuntime(options)).toThrow();
+  f.basin.userData.asBuilt=false;
+  const runtime=createD1FCombinedWallPixelRuntime(options);
+  expect(()=>runtime.prepare('UNAPPROVED_WALL')).toThrow();
+  runtime.dispose();
+});
+
+test('viewer binds old and measured wall probes only to their exact candidate/source identities',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const source=readFileSync('src/pages/private-model/index.astro','utf8');
+  expect(source).toContain("reviewId === 'd1f-combined-wall-115-100-20261013-review'");
+  expect(source).toContain("reviewId === 'd1f-measured-wall-140-100-2350-b710-basin-20261014-review'");
+  expect(source).toContain('canvas.dataset.d1fCombinedWallRawSha256 !== D1F_COMBINED_WALL_ASSETS[expectedId].sha256');
+  expect(source).toContain("candidate.id === 'd1f-measured-wall-140-100-2350-b710-basin-20261014'");
+  expect(source).toContain("I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589,BASIN");
+});
