@@ -47,7 +47,7 @@ try{
   await page.locator('#d1f-service-button').click();await page.locator('[data-service-target="'+id+'"]').click();
   check(await canvas.getAttribute('data-d1f-service-selected-target')===id,'WRONG_DEVICE');check(await canvas.getAttribute('data-d1f-service-heating-view')===d.route,'WRONG_AREA');
   const text=await page.locator('#d1f-service-selected-info').innerText();check(text.includes(d.outputW+' W')&&text.includes(d.group)&&text.includes('Nykyistä kytkentää ei ole varmennettu'),'DEVICE_PROVENANCE');
-  check(await page.locator('#d1f-service-selected-info a').count()===2,'DEVICE_LINKS');await capture(id.toLowerCase()+'-selected');evidence.devices.push({id,route:d.route,outputW:d.outputW,group:d.group,interaction:'PASS'});
+  check(await page.locator('#d1f-service-selected-info a').count()===2,'DEVICE_LINKS');const lastLink=page.locator('#d1f-service-selected-info a').last();await lastLink.scrollIntoViewIfNeeded();const linkBox=await lastLink.boundingBox(),panelBox=await page.locator('#selection-panel').boundingBox();check(linkBox.y>=panelBox.y&&linkBox.y+linkBox.height<=panelBox.y+panelBox.height+1,'SERVICE_LINK_CLIPPED');await capture(id.toLowerCase()+'-selected');evidence.devices.push({id,route:d.route,outputW:d.outputW,group:d.group,interaction:'PASS',linksWithinPanel:true});
  }
  await page.locator('#clear-selection-button').click();
  evidence.phase='EACH_SOURCE_TARGET_PIXELS';let requestId=0;
@@ -67,6 +67,15 @@ try{
   check(passed,'TARGET_NOT_RENDERED_'+targetId);console.log(JSON.stringify({targetId,result:'PASS'}));
  }
  await page.locator('#d1f-heating-preset').click();check(await canvas.getAttribute('data-d1f-service-heating-view')==='ALL','HEATING_PRESET');await capture('heating-preset');
- evidence.phase='COMPLETE';check(evidence.targets.length===12&&evidence.devices.length===3,'TARGET_COVERAGE');evidence.result='PASS';evidence.productionAuthenticatedVerified=!LOCAL;
+ evidence.phase='NATIVE_HEATING_PRESET_PIXELS';evidence.nativePresetTargets=[];
+ for(const targetId of Object.keys(row.routes)){
+  const prepared=await send('prepare-native',targetId);check(prepared.nativePreset===true&&prepared.projection==='orthographic'&&prepared.sourceSha256===ASSET.sha256,'NATIVE_PLAN_SOURCE');
+  try{
+   const before=await capture('native-'+targetId.toLowerCase()+'-before');await send('suppress',targetId);const hidden=await capture('native-'+targetId.toLowerCase()+'-hidden');await send('restore',targetId);const restored=await capture('native-'+targetId.toLowerCase()+'-restored');
+   const diff=delta(before,hidden,prepared.roi),restore=delta(before,restored);check(diff.inside>=80&&diff.outside<=8&&restore.inside+restore.outside<=8,'NATIVE_PRESET_AREA_NOT_RENDERED_'+targetId);
+   evidence.nativePresetTargets.push({targetId,sourceNode:prepared.sourceNode,roi:prepared.roi,changedInside:diff.inside,changedOutside:diff.outside,restoredChangedPixels:restore.inside+restore.outside,beforeSha256:before.sha256,hiddenSha256:hidden.sha256,restoredSha256:restored.sha256});
+  }finally{await send('finish',targetId);}
+ }
+ evidence.phase='COMPLETE';check(evidence.targets.length===12&&evidence.devices.length===3&&evidence.nativePresetTargets.length===3,'TARGET_COVERAGE');evidence.result='PASS';evidence.productionAuthenticatedVerified=!LOCAL;
 }catch(e){evidence.failure=String(e.message).slice(0,600);process.exitCode=1;}
 finally{clearTimeout(deadline);write();if(browser)await browser.close();console.log(JSON.stringify(evidence));}

@@ -10532,6 +10532,7 @@ const title = 'Private 3D viewer';
               render: () => renderer.render(scene, activeCamera),
               setPerspective: () => { if (activeCamera !== camera) applyStandardViewPreset('d-apartment'); },
               planPreset: () => applyStandardViewPreset('d-1f'),
+              getCamera: () => activeCamera,
             });
             canvas.dataset.workTestReviewMode = candidate.id + '-review';
             status.textContent = 'Kylpyhuoneen kalusteet ja lattialämmitys - työmalli. Huolto- ja laitetiedot avautuvat kohteesta.';
