@@ -1,193 +1,298 @@
 import { expect, test } from '@playwright/test';
-// @ts-ignore -- standalone source-bound JS pixel detector
-import { detectM5AR1125PerSourceRenderDelta as prove } from '../../src/scripts/privateModelM5AR1125PerSourceRenderDelta.mjs';
-// @ts-ignore -- already tested R1125 source class constants
+import { THREE } from '../../src/scripts/threeRuntime';
+// @ts-ignore -- source-bound standalone ESM detector
+import { detectM5AR1125PerSourceRenderDelta as prove,
+  snapshotM5AR1125RenderCamera as snapshot } from '../../src/scripts/privateModelM5AR1125PerSourceRenderDelta.mjs';
+// @ts-ignore -- existing source scene/camera validation
+import { deriveM5AR1125SourceCameraCenters as derive } from '../../src/scripts/privateModelM5AR1125SourceCameraCenters.mjs';
+// @ts-ignore -- existing source palette contract
 import { m5aR1125SourcePixelKinds } from '../../src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs';
 
-// Synthetic regression only: no real GLB identity, renderer, authentication
-// or HUMAN_REVIEW result may be inferred from these fixture pixels.
+// Synthetic regression using actual Three indexed geometry. These fixtures
+// cannot authenticate the original GLB, production WebGL or HUMAN_REVIEW.
 const width = 1000, height = 600;
-const keys = Object.keys(m5aR1125SourcePixelKinds) as Array<keyof typeof m5aR1125SourcePixelKinds>;
-const color = {
-  wellGray: [150, 154, 159, 255],
-  routeCyan: [18, 140, 180, 255],
+const keys = Object.keys(m5aR1125SourcePixelKinds);
+const kindOf = (key: string): string => m5aR1125SourcePixelKinds[key];
+const color: Record<string, number[]> = {
+  wellGray: [150, 154, 159, 255], routeCyan: [18, 140, 180, 255],
   boundaryYellow: [200, 145, 65, 255],
 };
-const background = [5, 5, 5, 255];
+const background = [0, 0, 0, 255];
 const positions = keys.map((key, index) => ({
   key, x: 100 + index % 5 * 200, y: 100 + Math.floor(index / 5) * 200,
 }));
-const projections = positions.map(p => ({
-  key: p.key, u: p.x / (width - 1), v: p.y / (height - 1),
-}));
-const patch = (frame: Uint8Array, x: number, y: number, pixel: number[]) => {
-  for (let dy = -5; dy <= 5; dy++) {
-    for (let dx = -5; dx <= 5; dx++) {
+const rect = (frame: Uint8Array, x: number, y: number, pixel: number[], halfX = 5, halfY = 5) => {
+  for (let dy = -halfY; dy <= halfY; dy++) {
+    for (let dx = -halfX; dx <= halfX; dx++) {
       const off = ((y + dy) * width + x + dx) * 4;
-      for (let k = 0; k < 4; k++) frame[off + k] = pixel[k];
+      for (let k = 0; k < 4; k++) frame[off + k] = pixel[k]!;
     }
   }
 };
-const fixture = () => {
+const patch = (frame: Uint8Array, x: number, y: number, pixel: number[]) => rect(frame, x, y, pixel);
+const flags = {
+  Canonical: false, presentationOnly: true, workAssumption: true,
+  exactXYClaim: false, exactZClaim: false, currentGeometryClaim: false,
+  asBuiltClaim: false, publishToCURRENT: false,
+};
+const fixture = (longRoutes = false) => {
+  const sceneRoot = new THREE.Group();
+  sceneRoot.userData = {
+    ...flags, sourceDiameterCorrectionContract: 'G2_R1125',
+    sourceDiameterClassBreakdown: '5_SALAOJA_AGGREGATE_NOMINAL_100MM__2_PVK_UNKNOWN',
+    humanReview: 'NOT_RUN',
+  };
+  const camera = new THREE.OrthographicCamera(0, width, height, 0, 0.1, 100);
+  camera.position.z = 10;
+  camera.lookAt(0, 0, 0);
+  const objects = new Map<string, THREE.Object3D>();
+  const sharedRouteMaterial = new THREE.MeshBasicMaterial({ color: 0x128cb4 });
+  const sharedBoundaryGeometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-5.5, 0, 0), new THREE.Vector3(5.5, 0, 0),
+  ]);
   const baseline = new Uint8Array(width * height * 4);
   for (let i = 3; i < baseline.length; i += 4) baseline[i] = 255;
+  const paint = (frame: Uint8Array, p: typeof positions[number], pixel: number[]) => {
+    const halfX = longRoutes && [6, 7, 8].includes(keys.indexOf(p.key)) ? 60 : 5;
+    rect(frame, p.x, p.y, pixel, halfX, kindOf(p.key) === 'boundaryYellow' ? 0 : 5);
+  };
   for (const p of positions) {
-    const kind = m5aR1125SourcePixelKinds[p.key] as keyof typeof color;
-    patch(baseline, p.x, p.y, color[kind]);
+    const kind = kindOf(p.key);
+    const halfX = longRoutes && [6, 7, 8].includes(keys.indexOf(p.key)) ? 60 : 5;
+    const object = kind === 'boundaryYellow'
+      ? new THREE.LineSegments(sharedBoundaryGeometry, new THREE.LineBasicMaterial({ color: 0xc89141 }))
+      : new THREE.Mesh(new THREE.PlaneGeometry(2 * halfX + 1, 11),
+          kind === 'routeCyan' ? sharedRouteMaterial : new THREE.MeshBasicMaterial({ color: 0x969a9f }));
+    object.position.set(p.x + 0.5, height - p.y - 0.5, 0);
+    object.userData = {
+      ...flags, Pass: 'M5A-Z2D-R1036',
+      representationKind: kind === 'wellGray' ? 'wellDiameterPresentationWork' :
+        kind === 'routeCyan' ? 'pipeDiameterPresentationWork' : 'unresolvedBoundaryMarker',
+      ...(kind === 'boundaryYellow'
+        ? { boundaryRole: p.key.replace('boundary:', ''), boundaryStatus: 'UNRESOLVED_BOUNDARY' }
+        : { G2IdCandidate: p.key }),
+    };
+    objects.set(p.key, object);
+    sceneRoot.add(object);
+    paint(baseline, p, color[kind]!);
   }
+  const sourceScene = { sceneRoot, camera, THREE, sceneIndex: 63 };
+  const projections = derive({ ...sourceScene, imageWidth: width, imageHeight: height }).centers;
+  const cameraState = snapshot({ camera, width, height });
   const mutedFrames: Record<string, Uint8Array> = {};
+  const restoredFrames: Record<string, Uint8Array> = {};
+  const muted: Record<string, number[]> = {}, restored: Record<string, number[]> = {};
   for (const p of positions) {
     mutedFrames[p.key] = baseline.slice();
-    patch(mutedFrames[p.key], p.x, p.y, background);
+    paint(mutedFrames[p.key]!, p, background);
+    restoredFrames[p.key] = baseline.slice();
+    muted[p.key] = [...cameraState]; restored[p.key] = [...cameraState];
   }
-  // Each negative case mutates projected centers: never reuse the module-level array.
   return {
-    baseline, mutedFrames,
-    projections: projections.map(p => ({ ...p })),
-    width, height,
+    baseline, mutedFrames, restoredFrames, projections, width, height,
+    sourceScene, cameraStates: { baseline: [...cameraState], muted, restored }, objects,
   };
 };
 
-test('each of 13 separately muted original targets removes its OWN color pixels', () => {
+test('13 complete source hides pass with independent indexed geometry and exact restoration', () => {
   const result = prove(fixture());
   expect(result.requiredSourceCount).toBe(13);
-  expect(result.sourceIsolation).toHaveLength(13);
   expect(result.allSourceTargetsIsolated).toBe(true);
   for (const p of result.sourceIsolation) {
-    expect(p.originalClassPixels).toBe(121);
-    expect(p.isolatedClassPixels).toBe(121);
+    expect(p.originalClassPixels).toBe(p.kind === 'boundaryYellow' ? 11 : 121);
+    expect(p.isolatedClassPixels).toBe(p.originalClassPixels);
     expect(p.remainingClassPixels).toBe(0);
+    expect(p.exclusiveRemainingPixels).toBe(0);
+    expect(p.restoreChangedPixels).toBe(0);
     expect(p.peersPreserved).toBe(true);
     expect(Object.values(p.peerClassLossPixels)).toEqual(Array(12).fill(0));
     expect(p.outsideChangedPixels).toBe(0);
     expect(p.passed).toBe(true);
   }
+  expect(result.originalGlbDigestAuthenticated).toBe(false);
   expect(result.productionProvenanceVerified).toBe(false);
   expect(result.humanReview).toBe('NOT_RUN');
 });
 
-test('same-colored unrelated geometry cannot substitute for a muted source', () => {
+test('unrelated same-color geometry cannot substitute for a muted source', () => {
   const args = fixture();
-  args.mutedFrames[keys[0]] = args.baseline.slice();
-  let result = prove(args);
-  expect(result.allSourceTargetsIsolated).toBe(false);
-  expect(result.sourceIsolation.find((p: any) => p.key === keys[0])?.passed).toBe(false);
-  const switched = fixture();
-  switched.mutedFrames[keys[0]] = switched.mutedFrames[keys[1]];
-  result = prove(switched);
-  expect(result.allSourceTargetsIsolated).toBe(false);
-  expect(result.sourceIsolation.find((p: any) => p.key === keys[0])?.passed).toBe(false);
+  args.mutedFrames[keys[0]!] = args.baseline.slice();
+  expect(prove(args).sourceIsolation[0].passed).toBe(false);
+  args.mutedFrames[keys[0]!] = args.mutedFrames[keys[1]!]!;
+  expect(prove(args).allSourceTargetsIsolated).toBe(false);
 });
 
-test('a moving camera or background difference outside the object ROI fails closed', () => {
+test('one unrelated off-geometry changed pixel fails, without a global noise allowance', () => {
   const args = fixture();
-  const frame = args.mutedFrames[keys[0]];
-  for (let x = 0; x < 800; x++) {
-    const off = x * 4;
-    frame[off] = 225;
-  }
+  args.mutedFrames[keys[0]!]![0] = 1;
   const result = prove(args);
-  expect(result.allSourceTargetsIsolated).toBe(false);
-  expect(result.sourceIsolation[0].outsideChangedPixels).toBeGreaterThan(600);
+  expect(result.sourceIsolation[0].outsideChangedPixels).toBe(1);
   expect(result.sourceIsolation[0].passed).toBe(false);
 });
 
-test('target partly hidden with enough lost pixels still fails closed', () => {
-  const args = fixture();
-  const first = positions[0];
+test('partial center hide with sufficient lost pixels fails', () => {
+  const args = fixture(), first = positions[0]!;
   const isolated = args.baseline.slice();
-  // Nine missing pixels meet the former 8-pixel loss gate, while 112 remain.
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
-      const off = ((first.y + dy) * width + first.x + dx) * 4;
-      for (let k = 0; k < 4; k++) isolated[off + k] = background[k];
-    }
-  }
-  args.mutedFrames[keys[0]] = isolated;
-  const result = prove(args);
-  const firstResult = result.sourceIsolation.find((p: any) => p.key === keys[0]);
-  expect(firstResult).toMatchObject({
+  rect(isolated, first.x, first.y, background, 1, 1);
+  args.mutedFrames[first.key] = isolated;
+  expect(prove(args).sourceIsolation[0]).toMatchObject({
     isolatedClassPixels: 9, remainingClassPixels: 112, passed: false,
   });
-  expect(result.allSourceTargetsIsolated).toBe(false);
 });
 
-test('cross-palette peer disappearing inside the target ROI cannot pass', () => {
-  const args = fixture();
-  const well = positions[0], farRoute = positions[4];
-  // Bring one cyan peer into the gray well circular ROI without overlap of
-  // its 11x11 patch with the gray pixels themselves.
-  const nearRoute = { x: well.x + 15, y: well.y + 15 };
-  const frames = [args.baseline, ...Object.values(args.mutedFrames)];
-  for (const frame of frames) {
-    patch(frame, farRoute.x, farRoute.y, background);
-    patch(frame, nearRoute.x, nearRoute.y, color.routeCyan);
+for (const index of [6, 7, 8]) {
+  test('long source route ' + keys[index] + ' cannot pass when only its midpoint is hidden', () => {
+    const args = fixture(true), p = positions[index]!;
+    const partial = args.baseline.slice(), complete = args.mutedFrames[p.key]!;
+    const radius = Math.max(12, Math.round(Math.min(width, height) * 0.035));
+    for (let y = p.y - radius; y <= p.y + radius; y++) {
+      for (let x = p.x - radius; x <= p.x + radius; x++) {
+        if ((x - p.x) ** 2 + (y - p.y) ** 2 > radius ** 2) continue;
+        const off = (y * width + x) * 4;
+        partial.set(complete.subarray(off, off + 4), off);
+      }
+    }
+    args.mutedFrames[p.key] = partial;
+    const target = prove(args).sourceIsolation[index];
+    expect(target.remainingClassPixels).toBe(0); // old midpoint check alone passed
+    expect(target.isolatedClassPixels).toBeGreaterThan(8);
+    expect(target.exclusiveRemainingPixels).toBeGreaterThan(500);
+    expect(target.outsideChangedPixels).toBe(0);
+    expect(target.peersPreserved).toBe(true);
+    expect(target.passed).toBe(false);
+  });
+}
+
+test('correctly hidden long source routes pass without loosening outside-geometry changes', () => {
+  const result = prove(fixture(true));
+  expect(result.allSourceTargetsIsolated).toBe(true);
+  for (const index of [6, 7, 8]) {
+    expect(result.sourceIsolation[index].exclusiveLostPixels).toBe(1331);
+    expect(result.sourceIsolation[index].outsideChangedPixels).toBe(0);
   }
-  // Only the cyan peer's own frame is allowed to hide it.
-  patch(args.mutedFrames[keys[4]], nearRoute.x, nearRoute.y, background);
-  // Malicious: hiding the well also removes the cyan peer in overlapping ROIs.
-  patch(args.mutedFrames[keys[0]], nearRoute.x, nearRoute.y, background);
-  args.projections[4] = {
-    ...args.projections[4],
-    u: nearRoute.x / (width - 1),
-    v: nearRoute.y / (height - 1),
-  };
-  const result = prove(args);
-  const first = result.sourceIsolation.find((p: any) => p.key === keys[0])!;
-  expect((first.peerClassLossPixels as Record<string, number>)[keys[4]]).toBe(121);
-  expect(first.peersPreserved).toBe(false);
-  expect(first.passed).toBe(false);
 });
 
-test('peer color-class loss below RGB noise threshold still fails', () => {
-  const args = fixture();
-  const frame = args.mutedFrames[keys[0]];
-  const route = positions[4];
-  // b: 180 -> 145 is <=36/channel but no longer matches cyan b>1.04*g.
-  patch(frame, route.x, route.y, [18, 140, 145, 255]);
-  const result = prove(args);
-  const well = result.sourceIsolation.find((p: any) => p.key === keys[0])!;
-  expect(well.outsideChangedPixels).toBe(0);
-  expect((well.peerClassLossPixels as Record<string, number>)[keys[4]]).toBe(121);
-  expect(well.peersPreserved).toBe(false);
-  expect(well.passed).toBe(false);
+test('peer loss is detected beyond its midpoint and with shared route material', () => {
+  const args = fixture(true);
+  const peer = positions[6]!;
+  // Hiding a well must not erase the far end of a route outside either center ROI.
+  rect(args.mutedFrames[keys[0]!]!, peer.x + 50, peer.y, background, 1, 1);
+  const result = prove(args).sourceIsolation[0];
+  expect((result.peerClassLossPixels as Record<string, number>)[peer.key]).toBe(9);
+  expect(result.peersPreserved).toBe(false);
+  expect(result.passed).toBe(false);
 });
 
-test('one borderline RGB sample is not both yellow and gray source evidence', () => {
+test('shared boundary geometry does not permit both instances to disappear', () => {
   const args = fixture();
-  const well = positions[0];
-  // Qualifies as gray AND yellow in the old independent predicates.
-  // Exact source ROI precedence is yellow > gray.
+  const a = positions[11]!, b = positions[12]!;
+  rect(args.mutedFrames[a.key]!, b.x, b.y, background, 5, 0);
+  const target = prove(args).sourceIsolation[11];
+  expect((target.peerClassLossPixels as Record<string, number>)[b.key]).toBe(11);
+  expect(target.peersPreserved).toBe(false);
+  expect(target.passed).toBe(false);
+});
+
+test('cross-palette peer lost inside target center ROI cannot pass', () => {
+  const args = fixture(), well = positions[0]!, far = positions[4]!;
+  const near = { x: well.x + 15, y: well.y + 15 };
+  for (const frame of [args.baseline, ...Object.values(args.mutedFrames), ...Object.values(args.restoredFrames)]) {
+    patch(frame, far.x, far.y, background);
+    patch(frame, near.x, near.y, color.routeCyan!);
+  }
+  patch(args.mutedFrames[far.key]!, near.x, near.y, background);
+  patch(args.mutedFrames[well.key]!, near.x, near.y, background);
+  args.objects.get(far.key)!.position.set(near.x + 0.5, height - near.y - 0.5, 0);
+  args.projections = derive({ ...args.sourceScene, imageWidth: width, imageHeight: height }).centers;
+  const target = prove(args).sourceIsolation[0];
+  expect((target.peerClassLossPixels as Record<string, number>)[far.key]).toBe(121);
+  expect(target.peersPreserved).toBe(false);
+  expect(target.passed).toBe(false);
+});
+
+test('subthreshold peer class loss is rejected', () => {
+  const args = fixture(), route = positions[4]!;
+  patch(args.mutedFrames[keys[0]!]!, route.x, route.y, [18, 140, 145, 255]);
+  const target = prove(args).sourceIsolation[0];
+  expect((target.peerClassLossPixels as Record<string, number>)[route.key]).toBe(121);
+  expect(target.passed).toBe(false);
+});
+
+test('yellow/gray borderline pixels cannot prove two palettes', () => {
+  const args = fixture(), well = positions[0]!;
   patch(args.baseline, well.x, well.y, [180, 145, 105, 255]);
-  const result = prove(args);
-  expect(result.sourceIsolation[0].originalClassPixels).toBe(0);
-  expect(result.sourceIsolation[0].passed).toBe(false);
+  expect(prove(args).sourceIsolation[0].originalClassPixels).toBe(0);
+  expect(prove(args).sourceIsolation[0].passed).toBe(false);
 });
 
-test('missing or malformed isolated source frames cannot pass', () => {
-  const args = fixture();
-  delete args.mutedFrames[keys[0]];
-  expect(() => prove(args)).toThrow('source');
-  const wrongSize = fixture();
-  wrongSize.mutedFrames[keys[0]] = new Uint8Array(9);
-  expect(() => prove(wrongSize)).toThrow('source');
+test('missing, malformed or foreign isolation/restoration frame fails closed', () => {
+  for (const category of ['mutedFrames', 'restoredFrames'] as const) {
+    const missing = fixture();
+    delete missing[category][keys[0]!];
+    expect(() => prove(missing)).toThrow(/source/);
+    const malformed = fixture();
+    malformed[category][keys[0]!] = new Uint8Array(9);
+    expect(() => prove(malformed)).toThrow(/source/);
+  }
   const foreign = fixture();
-  foreign.mutedFrames.untrusted = foreign.mutedFrames[keys[0]];
-  expect(() => prove(foreign)).toThrow('source');
+  foreign.mutedFrames.untrusted = foreign.baseline.slice();
+  expect(() => prove(foreign)).toThrow(/source/);
 });
 
-test('duplicate, out-of-frame and same-color ambiguous projected centers fail', () => {
+test('duplicate, out-of-frame or source-inconsistent centers fail closed', () => {
   const dup = fixture();
-  dup.projections[1] = { ...dup.projections[1], key: keys[0] };
-  expect(() => prove(dup)).toThrow('duplicate');
+  dup.projections[1] = { ...dup.projections[1], key: keys[0]! };
+  expect(() => prove(dup)).toThrow(/duplicate/);
   const out = fixture();
   out.projections[1] = { ...out.projections[1], u: 1.5 };
-  expect(() => prove(out)).toThrow('duplicate');
-  const ambiguous = fixture();
-  ambiguous.projections[1] = {
-    ...ambiguous.projections[1],
-    u: ambiguous.projections[0].u + 0.005,
-    v: ambiguous.projections[0].v,
-  };
-  expect(() => prove(ambiguous)).toThrow('ambiguous');
+  expect(() => prove(out)).toThrow(/duplicate/);
+  const wrong = fixture();
+  wrong.projections[1] = { ...wrong.projections[1], u: wrong.projections[1].u + 0.01 };
+  expect(() => prove(wrong)).toThrow(/mismatch/);
 });
+
+test('a supplied mask cannot replace original source geometry', () => {
+  const args = fixture();
+  expect(() => prove({ ...args, sourceScene: undefined,
+    sourceMasks: Object.fromEntries(keys.map(key => [key, new Uint8Array(width * height).fill(1)])),
+  })).toThrow(/source geometry/);
+});
+
+test('wrong, duplicate or promoted source identity cannot produce footprint proof', () => {
+  const wrong = fixture();
+  wrong.objects.get(keys[0]!)!.userData.G2IdCandidate = 'FOREIGN';
+  expect(() => prove(wrong)).toThrow(/missing exact/);
+  const duplicate = fixture();
+  duplicate.sourceScene.sceneRoot.add(duplicate.objects.get(keys[0]!)!.clone());
+  expect(() => prove(duplicate)).toThrow(/duplicate/);
+  const promoted = fixture();
+  promoted.objects.get(keys[0]!)!.userData.asBuiltClaim = true;
+  expect(() => prove(promoted)).toThrow(/unsafe source/);
+});
+
+test('changed capture camera or viewport cannot reuse a source footprint', () => {
+  const args = fixture();
+  args.cameraStates.muted[keys[0]!]![2] += 0.001;
+  expect(() => prove(args)).toThrow(/camera\/viewport mismatch/);
+  const changed = fixture();
+  changed.sourceScene.camera.position.x += 0.1;
+  expect(() => prove(changed)).toThrow(/mismatch/);
+});
+
+test('a single changed restoration byte cannot pass', () => {
+  const args = fixture();
+  args.restoredFrames[keys[0]!]![0] = 1;
+  expect(prove(args).sourceIsolation[0]).toMatchObject({ restoreChangedPixels: 1, passed: false });
+});
+
+test('fully occluded source footprint remains NOT_PROVEN', () => {
+  const args = fixture(), source = positions[0]!;
+  // A neutral occluder leaves no source-colored positive evidence.
+  for (const frame of [args.baseline, ...Object.values(args.mutedFrames), ...Object.values(args.restoredFrames)]) {
+    patch(frame, source.x, source.y, background);
+  }
+  const target = prove(args).sourceIsolation[0];
+  expect(target.footprintStatus).toBe('NOT_PROVEN');
+  expect(target.passed).toBe(false);
+});
+
