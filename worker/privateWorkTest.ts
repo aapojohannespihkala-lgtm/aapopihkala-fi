@@ -1,3 +1,5 @@
+// @ts-ignore - immutable source identity shared with the viewer.
+import { D1F_SERVICE_ASSET } from '../src/scripts/privateModelD1FServiceContract.mjs';
 import {
   PRIVATE_MODEL_PREFIX,
   verifyPrivateModelAccess,
@@ -621,6 +623,15 @@ const D1F_WC_THEMO_CANDIDATE = {
   expectedSha256: '58996e56efbcfa6900e668ebb31d76d05fa7c7e4b95a285f629b49189d3bc4e3',
 } as const satisfies PrivateWorkTestCandidate;
 
+const D1F_SERVICE_CANDIDATE = {
+  id: 'd1f-bathroom-service-heating-20261015',
+  label: 'D1F - kylpyhuone, huolto ja lattialämmitys - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-bathroom-service-heating-20261015.glb`,
+  objectKey: 'work-test/d1f-bathroom-service-heating-20261015.glb',
+  expectedSize: D1F_SERVICE_ASSET.bytes,
+  expectedSha256: D1F_SERVICE_ASSET.sha256,
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -635,6 +646,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_FOUR_REVIEW_CORRECTIONS_CANDIDATE,
   D1F_BATHROOM_SURFACES_CANDIDATE,
   D1F_WC_THEMO_CANDIDATE,
+  D1F_SERVICE_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {

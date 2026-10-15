@@ -1,0 +1,47 @@
+name: Private model bathroom service review
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: private-model-d1f-service-review
+  cancel-in-progress: false
+
+jobs:
+  render:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - WEST_ANCHOR_725_895_740
+          - WEST_ANCHOR_740_895_725
+          - EAST_ANCHOR_725_895_740
+          - EAST_ANCHOR_740_895_725
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify exact source, device interaction and each rendered target
+        env:
+          D1F_SERVICE_VARIANT: ${{ matrix.variant }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+        run: node .github/scripts/private-model-d1f-service-probe.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: d1f-service-${{ matrix.variant }}
+          path: test-results/d1f-service/
+          if-no-files-found: error

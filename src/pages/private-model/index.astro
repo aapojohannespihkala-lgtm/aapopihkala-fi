@@ -1823,6 +1823,8 @@ const title = 'Private 3D viewer';
 
     <script>
       import { THREE, OrbitControls, GLTFLoader } from '../../scripts/threeRuntime';
+      // @ts-ignore - source-bound service model has focused browser coverage.
+      import { loadD1FServiceModel, mountD1FServiceModel } from '../../scripts/privateModelD1FServiceRuntime.mjs';
       // @ts-ignore - exact-byte WORK_TEST entry covered by loader regressions.
       import { D1F_COMBINED_WALL_ASSETS, isD1FCombinedWallReviewRequested, loadD1FCombinedWallReview }
         from '../../scripts/privateModelD1FCombinedWallSceneContract.mjs';
@@ -2552,6 +2554,7 @@ const title = 'Private 3D viewer';
       let fitDistance = 10;
       let activeCamera: typeof camera | typeof planCamera | typeof isoCamera = camera;
       let d1fCombinedPixelRuntime: ReturnType<typeof createD1FCombinedWallPixelRuntime> | null = null;
+      let d1fService: ReturnType<typeof mountD1FServiceModel> | null = null;
       window.addEventListener('d1f-combined-wall-source-probe', (event: Event) => {
         if (!(event instanceof CustomEvent)) return;
         const detail = event.detail;
@@ -4322,6 +4325,7 @@ const title = 'Private 3D viewer';
       };
 
       const clearSelection = () => {
+        d1fService?.clearSelection();
         selectionHighlightController.clear();
         selectedObject = null;
         selectionPanelController.clear();
@@ -4344,6 +4348,8 @@ const title = 'Private 3D viewer';
       };
 
       const selectObject = (object: any) => {
+        const serviceTarget = d1fService?.resolveTarget(object);
+        if (serviceTarget) object = serviceTarget.object;
         clearSelection();
 
         const groupName = nearestNamedAncestor(object, modelRoot) || '-';
@@ -4364,7 +4370,7 @@ const title = 'Private 3D viewer';
 
         selectedObject = object;
         selectionPanelController.render({
-          mesh: semantics.labelFi,
+          mesh: serviceTarget?.label ?? semantics.labelFi,
           group: semantics.classLabelFi,
           scene: semantics.representationLabelFi,
           floor: semantics.storey,
@@ -4377,6 +4383,7 @@ const title = 'Private 3D viewer';
         });
 
         selectionHighlightController.select(object);
+        d1fService?.select(object);
       };
 
       const isolateSelectedObject = () => {
@@ -6103,6 +6110,8 @@ const title = 'Private 3D viewer';
         sourceLabel: string,
         dInteriorOverride: THREE.Object3D | null = null,
       ) => {
+        d1fService?.dispose();
+        d1fService = null;
         // Never leak source-camera coordinates across different WORK_TEST candidates.
         d1fCombinedPixelRuntime?.dispose();
         d1fCombinedPixelRuntime = null;
@@ -9505,12 +9514,13 @@ const title = 'Private 3D viewer';
           const verifiedP137EOriginal = isExactP137EScene67Load
             ? await fetchP137EScene67VerifiedGlb(candidate.path)
             : null;
+          const serviceModel = await loadD1FServiceModel({ candidate, search: window.location.search, loader });
           const combinedWallReview = isD1FCombinedWallReviewRequested(window.location.search)
             ? await loadD1FCombinedWallReview({
                 candidate, search: window.location.search, loader,
               })
             : null;
-          const gltf = combinedWallReview?.gltf ?? (verifiedP137EOriginal
+          const gltf = serviceModel?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
             ? await loader.parseAsync(
                 isP137EThreeCornerMeasuredReviewRequested()
                   ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
@@ -9751,7 +9761,7 @@ const title = 'Private 3D viewer';
           }
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`,
-            combinedWallReview?.selected.scene ?? null);
+            serviceModel?.scene ?? combinedWallReview?.selected.scene ?? null);
           canvas.dataset.p137eLoadedCandidateId = candidate.id;
           clearM5BReviewState();
           delete canvas.dataset.g3SourcePhase;
@@ -10515,6 +10525,16 @@ const title = 'Private 3D viewer';
             applyP186bReviewState();
           } else if (isP186eElectricalLabelReview) {
             applyP186eReviewState();
+          } else if (serviceModel) {
+            applyStandardViewPreset('d-apartment');
+            d1fService = mountD1FServiceModel({
+              THREE, loaded: serviceModel, canvas, camera, controls, selectObject,
+              render: () => renderer.render(scene, activeCamera),
+              setPerspective: () => { if (activeCamera !== camera) applyStandardViewPreset('d-apartment'); },
+              planPreset: () => applyStandardViewPreset('d-1f'),
+            });
+            canvas.dataset.workTestReviewMode = candidate.id + '-review';
+            status.textContent = 'Kylpyhuoneen kalusteet ja lattialämmitys - työmalli. Huolto- ja laitetiedot avautuvat kohteesta.';
           } else if (combinedWallReview) {
             Object.assign(canvas.dataset, {
               workTestReviewMode: `${candidate.id}-review`,
@@ -11510,6 +11530,7 @@ const title = 'Private 3D viewer';
           projection: (activeCamera as any).isOrthographicCamera === true ? 'orthographic' : 'perspective',
         });
         d1fCombinedPixelRuntime?.pinFrame();
+        d1fService?.pinFrame();
         renderer.render(scene, activeCamera);
       });
 
@@ -11520,6 +11541,7 @@ const title = 'Private 3D viewer';
         if (
           !isP137EScene67ReviewRequested() &&
           !isD1FCombinedWallReviewRequested(window.location.search) &&
+          getRequestedReviewCandidateId() !== 'd1f-bathroom-service-heating-20261015' &&
           !isPrivateModelReviewRequested(window.location.search, m5aZ2R1125ReviewId)
         ) {
           await loadCurrentModel();
