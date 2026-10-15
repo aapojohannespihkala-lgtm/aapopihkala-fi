@@ -73,3 +73,26 @@ test('P137E ruler: original click coordinates stay unchanged', () => {
   expect(dynamic).toMatchObject({ first: click1, phase: 'DYNAMIC', axis: 'Y',
     second: { xM: 1.234, yM: 4.016 }, millimetres: 1662 });
 });
+
+test('P137E ruler: finite coordinates cannot overflow into Infinity delta', () => {
+  const first = advanceAxisMeasure(emptyAxisMeasureState(), { xM: -1e308, yM: 0 });
+  expect(first.phase).toBe('FIRST');
+  expect(advanceAxisMeasure(first, { xM: 1e308, yM: 0 })).toEqual(first);
+});
+
+test('P137E ruler: unsafe millimetre integers cannot consume the second click', () => {
+  const first = advanceAxisMeasure(emptyAxisMeasureState(), { xM: 0, yM: 0 });
+  expect(advanceAxisMeasure(first, { xM: 1e13, yM: 0 })).toEqual(first);
+  expect(advanceAxisMeasure(first, { xM: 0, yM: -1e13 })).toEqual(first);
+  expect(advanceAxisMeasure(first, { xM: 2, yM: 0 }))
+    .toMatchObject({ phase: 'DYNAMIC', millimetres: 2000 });
+});
+
+test('P137E ruler: invalid projected pointer or lock keeps last valid dynamic state', () => {
+  const first = advanceAxisMeasure(emptyAxisMeasureState(), { xM: 0, yM: 0 });
+  const dynamic = advanceAxisMeasure(first, { xM: 1, yM: 0 });
+  expect(updateAxisMeasurePointer(dynamic, { xM: 1e308, yM: 0 })).toEqual(dynamic);
+  expect(advanceAxisMeasure(dynamic, { xM: 1e308, yM: 0 })).toEqual(dynamic);
+  expect(advanceAxisMeasure(dynamic, { xM: 2, yM: 0 }))
+    .toMatchObject({ phase: 'LOCKED', millimetres: 2000 });
+});
