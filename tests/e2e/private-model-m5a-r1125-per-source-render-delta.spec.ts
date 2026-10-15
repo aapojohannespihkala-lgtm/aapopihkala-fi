@@ -133,8 +133,8 @@ test('cross-palette peer disappearing inside the target ROI cannot pass', () => 
     v: nearRoute.y / (height - 1),
   };
   const result = prove(args);
-  const first = result.sourceIsolation.find((p: any) => p.key === keys[0]);
-  expect(first.peerClassLossPixels[keys[4]]).toBe(121);
+  const first = result.sourceIsolation.find((p: any) => p.key === keys[0])!;
+  expect((first.peerClassLossPixels as Record<string, number>)[keys[4]]).toBe(121);
   expect(first.peersPreserved).toBe(false);
   expect(first.passed).toBe(false);
 });
@@ -146,9 +146,9 @@ test('peer color-class loss below RGB noise threshold still fails', () => {
   // b: 180 -> 145 is <=36/channel but no longer matches cyan b>1.04*g.
   patch(frame, route.x, route.y, [18, 140, 145, 255]);
   const result = prove(args);
-  const well = result.sourceIsolation.find((p: any) => p.key === keys[0]);
+  const well = result.sourceIsolation.find((p: any) => p.key === keys[0])!;
   expect(well.outsideChangedPixels).toBe(0);
-  expect(well.peerClassLossPixels[keys[4]]).toBe(121);
+  expect((well.peerClassLossPixels as Record<string, number>)[keys[4]]).toBe(121);
   expect(well.peersPreserved).toBe(false);
   expect(well.passed).toBe(false);
 });
