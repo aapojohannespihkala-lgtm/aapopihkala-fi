@@ -8,22 +8,21 @@ import { m5aR1125SourcePixelKinds } from './privateModelM5AR1125SourceRoiPixelPr
 const kinds = m5aR1125SourcePixelKinds;
 const names = Object.keys(kinds);
 
-const colored = (kind, pixels, off) => {
-  if (pixels[off + 3] < 220) return false;
+// Match the exact single-class precedence in the existing R1125 source ROI
+// detector. One RGB sample must never prove two overlapping color identities.
+const sourcePixelKind = (pixels, off) => {
+  if (pixels[off + 3] < 220) return null;
   const r = pixels[off], g = pixels[off + 1], b = pixels[off + 2];
-  if (kind === 'wellGray') {
-    return r > 75 && r < 215 && g > 80 && g < 225 &&
-      b > 85 && b < 235 && Math.abs(r - g) < 42 && Math.abs(g - b) < 44;
-  }
-  if (kind === 'routeCyan') {
-    return g > 92 && b > 110 && r < g * 0.62 && b > g * 1.04 && b < g * 1.9;
-  }
-  if (kind === 'boundaryYellow') {
-    return r > 120 && g > 78 && r > g * 1.07 &&
-      b < g * 0.73 && r < g * 1.9;
-  }
-  return false;
+  const gray = r > 75 && r < 215 && g > 80 && g < 225 &&
+    b > 85 && b < 235 && Math.abs(r - g) < 42 && Math.abs(g - b) < 44;
+  const cyan = g > 92 && b > 110 && r < g * 0.62 &&
+    b > g * 1.04 && b < g * 1.9;
+  const yellow = r > 120 && g > 78 && r > g * 1.07 &&
+    b < g * 0.73 && r < g * 1.9;
+  return cyan ? 'routeCyan' : yellow ? 'boundaryYellow' :
+    gray ? 'wellGray' : null;
 };
+const colored = (kind, pixels, off) => sourcePixelKind(pixels, off) === kind;
 
 const frameValid = (pixels, length) =>
   (pixels instanceof Uint8Array || pixels instanceof Uint8ClampedArray) &&
@@ -84,7 +83,7 @@ export function detectM5AR1125PerSourceRenderDelta({
     const muted = mutedFrames[target.key];
     const minimum = target.kind === 'boundaryYellow' ? 2 : 8;
     let originalClassPixels = 0, isolatedClassPixels = 0;
-    let localChangedPixels = 0, outsideChangedPixels = 0;
+    let remainingClassPixels = 0, localChangedPixels = 0, outsideChangedPixels = 0;
     for (let i = 0; i < width * height; i++) {
       const off = i * 4, x = i % width, y = (i / width) | 0;
       const dx = x - target.x, dy = y - target.y;
@@ -98,19 +97,56 @@ export function detectM5AR1125PerSourceRenderDelta({
       if (inside) {
         if (colored(target.kind, baseline, off)) {
           originalClassPixels++;
+          // Even a sub-threshold RGB delta can remove the SOURCE color class.
           if (!colored(target.kind, muted, off)) isolatedClassPixels++;
         }
+        // A partly hidden or relocated target must not pass on its lost count.
+        if (colored(target.kind, muted, off)) remainingClassPixels++;
         if (changed) localChangedPixels++;
       } else if (changed) {
         outsideChangedPixels++;
       }
     }
+    // The target itself may be fully hidden, but all OTHER 12 source objects
+    // must retain their own color class. Check peer ROIs even where they overlap
+    // this target ROI or have a different palette. Count color loss directly:
+    // RGB changes below the >36 global noise threshold can still erase a peer.
+    const peerClassLossPixels = {};
+    let peersPreserved = true;
+    for (const peer of entries) {
+      if (peer.key === target.key) continue;
+      let baselinePeerPixels = 0, remainingPeerPixels = 0, peerLossPixels = 0;
+      const minY = Math.max(0, peer.y - radius), maxY = Math.min(height - 1, peer.y + radius);
+      for (let py = minY; py <= maxY; py++) {
+        const dy = py - peer.y;
+        const reach = Math.floor(Math.sqrt(radius2 - dy * dy));
+        const minX = Math.max(0, peer.x - reach), maxX = Math.min(width - 1, peer.x + reach);
+        for (let px = minX; px <= maxX; px++) {
+          const off = (py * width + px) * 4;
+          const before = colored(peer.kind, baseline, off);
+          const after = colored(peer.kind, muted, off);
+          if (before) {
+            baselinePeerPixels++;
+            if (!after) peerLossPixels++;
+          }
+          if (after) remainingPeerPixels++;
+        }
+      }
+      peerClassLossPixels[peer.key] = peerLossPixels;
+      const peerMinimum = peer.kind === 'boundaryYellow' ? 2 : 8;
+      if (baselinePeerPixels < peerMinimum ||
+          remainingPeerPixels < peerMinimum || peerLossPixels !== 0) {
+        peersPreserved = false;
+      }
+    }
     return {
       key: target.key, kind: target.kind,
-      originalClassPixels, isolatedClassPixels,
+      originalClassPixels, isolatedClassPixels, remainingClassPixels,
       localChangedPixels, outsideChangedPixels,
+      peerClassLossPixels, peersPreserved,
       minimum, passed: originalClassPixels >= minimum &&
-        isolatedClassPixels >= minimum && localChangedPixels >= minimum &&
+        isolatedClassPixels >= minimum && remainingClassPixels === 0 &&
+        localChangedPixels >= minimum && peersPreserved &&
         outsideChangedPixels <= stableOutsideLimit,
     };
   });
