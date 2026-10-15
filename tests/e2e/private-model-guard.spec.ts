@@ -2701,7 +2701,7 @@ test('private viewer roof test layer toggles explicit roof metadata and exposes 
   const opacity = page.locator('#roof-layer-opacity');
 
   await expect(layerPanel).toBeVisible();
-  await expect(page.getByText('Katto', { exact: true })).toBeVisible();
+  await expect(page.getByText('Vesikatto', { exact: true })).toBeVisible();
   await expect(page.locator('#roof-layer-count')).toHaveText('1 kohdetta');
   await expect(roofToggle).toBeChecked();
   await expect(opacity).toHaveValue('100');
@@ -6647,7 +6647,7 @@ test('private viewer keeps the primary toolbar compact and exposes legacy action
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth);
   };
   await assertLayerPanelFits(1536, 768);
-  await expect(page.getByText('Katto', { exact: true })).toBeVisible();
+  await expect(page.getByText('Vesikatto', { exact: true })).toBeVisible();
   await page.locator('#roof-layer-visible').focus();
   await expect(page.locator('#roof-layer-visible')).toBeFocused();
 
