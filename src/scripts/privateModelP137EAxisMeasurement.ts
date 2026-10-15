@@ -22,14 +22,17 @@ export const emptyAxisMeasureState = (): AxisMeasureState => ({
 const projectAxis = (first: AxisMeasurePoint, target: AxisMeasurePoint) => {
   const dx = target.xM - first.xM;
   const dy = target.yM - first.yM;
+  if (!Number.isFinite(dx) || !Number.isFinite(dy)) return null;
   const axis: 'X' | 'Y' = Math.abs(dx) >= Math.abs(dy) ? 'X' : 'Y';
+  const millimetres = Math.round(Math.abs(axis === 'X' ? dx : dy) * 1000);
+  if (!Number.isSafeInteger(millimetres)) return null;
   return {
     second: {
       xM: axis === 'X' ? target.xM : first.xM,
       yM: axis === 'Y' ? target.yM : first.yM,
     },
     axis,
-    millimetres: Math.round(Math.abs(axis === 'X' ? dx : dy) * 1000),
+    millimetres,
   };
 };
 
@@ -39,10 +42,11 @@ const valid = (p: AxisMeasurePoint): boolean =>
 export const updateAxisMeasurePointer = (
   state: AxisMeasureState,
   pointer: AxisMeasurePoint,
-): AxisMeasureState =>
-  state.phase === 'DYNAMIC' && valid(pointer)
-    ? { phase: 'DYNAMIC', first: state.first, ...projectAxis(state.first, pointer) }
-    : state;
+): AxisMeasureState => {
+  if (state.phase !== 'DYNAMIC' || !valid(pointer)) return state;
+  const projected = projectAxis(state.first, pointer);
+  return projected ? { phase: 'DYNAMIC', first: state.first, ...projected } : state;
+};
 
 export const advanceAxisMeasure = (
   state: AxisMeasureState,
@@ -54,10 +58,12 @@ export const advanceAxisMeasure = (
     return { phase: 'FIRST', first: { xM: clicked.xM, yM: clicked.yM },
       second: null, axis: null, millimetres: null };
   }
+  const projected = projectAxis(state.first, clicked);
+  if (!projected) return state;
   if (state.phase === 'FIRST') {
-    return { phase: 'DYNAMIC', first: state.first, ...projectAxis(state.first, clicked) };
+    return { phase: 'DYNAMIC', first: state.first, ...projected };
   }
-  return { phase: 'LOCKED', first: state.first, ...projectAxis(state.first, clicked) };
+  return { phase: 'LOCKED', first: state.first, ...projected };
 };
 
 export const axisMeasureDisplay = (state: AxisMeasureState): string =>
