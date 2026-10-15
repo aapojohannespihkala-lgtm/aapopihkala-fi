@@ -229,6 +229,30 @@ function sparseFixture(lostPixels: number) {
   return input;
 }
 
+
+test('partly hidden amber source label cannot pass with 4 or 99 pixels lost', () => {
+  for (const lostCount of [4, 99]) {
+    const input = fixture();
+    const session = input.floors[0];
+    const target = session.targets[0];
+    const hidden = session.hiddenFrames[target.sourceKey];
+    let index = 0;
+    for (let y = target.roi.y; y < target.roi.y + target.roi.height; y++) {
+      for (let x = target.roi.x; x < target.roi.x + target.roi.width; x++) {
+        if (index++ >= lostCount) {
+          // Keep some original source-label amber despite enough actual loss.
+          paint(hidden.pixels, x, y, [255, 190, 20, 255]);
+        }
+      }
+    }
+    expect(() => check(input)).toThrow('source label still amber');
+  }
+  // Fully removing the same 100-pixel original label remains valid.
+  const valid = check(fixture());
+  expect(valid.targetCount).toBe(34);
+  expect(valid.productionScreenshotVerified).toBe(false);
+});
+
 test('callers cannot reduce four-pixel visibility floor for any of the 34 targets', () => {
   for (const minLostPixels of [0, 1, 2, 3, NaN, Infinity, 4.5]) {
     expect(() => check({ ...sparseFixture(3), minLostPixels }))

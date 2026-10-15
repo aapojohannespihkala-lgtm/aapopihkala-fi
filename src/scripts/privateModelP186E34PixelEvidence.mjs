@@ -130,12 +130,15 @@ export function verifyP186E34SourcePixelEvidence({
       const hidden = session.hiddenFrames[target.sourceKey];
       rgbaFrame(hidden, context);
       if (hidden.width !== width || hidden.height !== height) reject('frame dimensions mismatch');
-      let lost = 0, gained = 0, outsideChanged = 0, baselineAmber = 0;
+      let lost = 0, gained = 0, outsideChanged = 0, baselineAmber = 0, remainingAmber = 0;
       for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
         const inside = x >= target.roi.x && x < target.roi.x + target.roi.width &&
           y >= target.roi.y && y < target.roi.y + target.roi.height;
         if (inside) {
+          // A hidden source marker must lose ALL its amber pixels, not just
+          // the four-pixel proof floor. A partial hide is not isolation.
+          if (amber(hidden.pixels, idx)) remainingAmber++;
           if (amber(session.baseline.pixels, idx)) {
             baselineAmber++;
             if (!amber(hidden.pixels, idx) && pixelChanged(session.baseline.pixels, hidden.pixels, idx)) {
@@ -151,8 +154,8 @@ export function verifyP186E34SourcePixelEvidence({
         }
       }
       if (baselineAmber < minLostPixels || lost < minLostPixels ||
-          outsideChanged > maxOutsidePixelChanges || gained !== 0) {
-        reject('target not individually visible, gained amber pixels or outside-ROI frame changed: ' + target.sourceKey);
+          remainingAmber !== 0 || outsideChanged > maxOutsidePixelChanges || gained !== 0) {
+        reject('target not individually visible, source label still amber, gained amber pixels or outside-ROI frame changed: ' + target.sourceKey);
       }
       identities.push(Object.freeze({
         sourceKey: target.sourceKey, kind: target.kind, lostAmberPixels: lost,
