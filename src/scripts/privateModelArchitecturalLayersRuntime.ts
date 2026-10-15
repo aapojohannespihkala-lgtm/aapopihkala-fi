@@ -12,7 +12,7 @@ import {
 
 type ArchitecturalDescriptor = {
   semanticWallFamily: 'EXTERIOR' | 'PARTY' | 'INTERIOR' | 'UNCLASSIFIED' | 'UNRESOLVED_SEMANTIC_CONFLICT';
-  buildingPartFamily: 'WALL' | 'DOOR' | 'WINDOW' | 'REVIEW_HELPER' | 'OTHER';
+  buildingPartFamily: 'WALL' | 'DOOR' | 'WINDOW' | 'FLOOR' | 'CEILING' | 'FIXTURE' | 'REVIEW_HELPER' | 'OTHER';
   representationRole: 'PHYSICAL' | 'WORK_TEST_ASSUMPTION' | 'REFERENCE' | 'REVIEW_HELPER' | 'UNRESOLVED';
 };
 
@@ -29,6 +29,9 @@ type LayerControls = {
   interior: HTMLInputElement;
   doors: HTMLInputElement;
   windows: HTMLInputElement;
+  floors: HTMLInputElement;
+  ceilings: HTMLInputElement;
+  fixtures: HTMLInputElement;
   helpers: HTMLInputElement;
   other: HTMLInputElement;
   drainage: HTMLInputElement;
@@ -39,6 +42,9 @@ type LayerControls = {
   interiorCount: HTMLElement;
   doorsCount: HTMLElement;
   windowsCount: HTMLElement;
+  floorsCount: HTMLElement;
+  ceilingsCount: HTMLElement;
+  fixturesCount: HTMLElement;
   helpersCount: HTMLElement;
   otherCount: HTMLElement;
   drainageCount: HTMLElement;
@@ -53,6 +59,9 @@ const emptyCounts = (): Record<ViewerArchitecturalLayerNodeId, number> => ({
   'architecture-doors': 0,
   'architecture-windows': 0,
   'architecture-review-helpers': 0,
+  'architecture-floors': 0,
+  'architecture-ceilings': 0,
+  'architecture-fixtures': 0,
   'architecture-other': 0,
 });
 
@@ -195,6 +204,9 @@ const createControls = (): LayerControls | null => {
 
   const doors = makeCheckboxRow('architecture-doors-visible', 'Ovet 0');
   const windows = makeCheckboxRow('architecture-windows-visible', 'Ikkunat 0');
+  const floors = makeCheckboxRow('architecture-floors-visible', 'Lattiat 0');
+  const ceilings = makeCheckboxRow('architecture-ceilings-visible', 'Sisäkatot 0');
+  const fixtures = makeCheckboxRow('architecture-fixtures-visible', 'Kalusteet 0');
   const helpers = makeCheckboxRow(
     'architecture-review-helpers-visible',
     'Review-apugeometria 0',
@@ -206,6 +218,9 @@ const createControls = (): LayerControls | null => {
     wallChildren,
     doors.label,
     windows.label,
+    floors.label,
+    ceilings.label,
+    fixtures.label,
     helpers.label,
     other.label,
   );
@@ -245,6 +260,9 @@ const createControls = (): LayerControls | null => {
     interior: interior.input,
     doors: doors.input,
     windows: windows.input,
+    floors: floors.input,
+    ceilings: ceilings.input,
+    fixtures: fixtures.input,
     helpers: helpers.input,
     other: other.input,
     drainage: drainageRow.input,
@@ -255,6 +273,9 @@ const createControls = (): LayerControls | null => {
     interiorCount: interior.text,
     doorsCount: doors.text,
     windowsCount: windows.text,
+    floorsCount: floors.text,
+    ceilingsCount: ceilings.text,
+    fixturesCount: fixtures.text,
     helpersCount: helpers.text,
     otherCount: other.text,
     drainageCount,
@@ -317,8 +338,11 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
       if (descriptor.semanticWallFamily === 'INTERIOR') {
         return 'architecture-walls-interior';
       }
-      return 'architecture-other';
+      return object.userData?.representationKind === 'continuousWallSurface' ? 'architecture-walls' : 'architecture-other';
     }
+    if (descriptor.buildingPartFamily === 'FLOOR') return 'architecture-floors';
+    if (descriptor.buildingPartFamily === 'CEILING') return 'architecture-ceilings';
+    if (descriptor.buildingPartFamily === 'FIXTURE') return 'architecture-fixtures';
     if (descriptor.buildingPartFamily === 'DOOR') return 'architecture-doors';
     if (descriptor.buildingPartFamily === 'WINDOW') return 'architecture-windows';
     return 'architecture-other';
@@ -328,12 +352,12 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
     const rootState = viewerArchitecturalParentVisibilityState(
       state,
       'architecture',
-      viewerArchitecturalRootChildNodeIds,
+      viewerArchitecturalRootChildNodeIds.filter(id => counts[id] > 0),
     );
     const wallState = viewerArchitecturalParentVisibilityState(
       state,
       'architecture-walls',
-      viewerArchitecturalWallChildNodeIds,
+      viewerArchitecturalWallChildNodeIds.filter(id => counts[id] > 0),
     );
 
     controls.root.checked = state.architectureVisible;
@@ -345,6 +369,9 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
     controls.interior.checked = state.architectureInteriorWallsVisible;
     controls.doors.checked = state.architectureDoorsVisible;
     controls.windows.checked = state.architectureWindowsVisible;
+    controls.floors.checked = state.architectureFloorsVisible;
+    controls.ceilings.checked = state.architectureCeilingsVisible;
+    controls.fixtures.checked = state.architectureFixturesVisible;
     controls.helpers.checked = state.architectureReviewHelpersVisible;
     controls.other.checked = state.architectureOtherVisible;
     controls.drainage.checked = drainageVisible;
@@ -358,6 +385,9 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
       counts['architecture-walls-interior'] === 0 || filterActive;
     controls.doors.disabled = counts['architecture-doors'] === 0 || filterActive;
     controls.windows.disabled = counts['architecture-windows'] === 0 || filterActive;
+    controls.floors.disabled = counts['architecture-floors'] === 0 || filterActive;
+    controls.ceilings.disabled = counts['architecture-ceilings'] === 0 || filterActive;
+    controls.fixtures.disabled = counts['architecture-fixtures'] === 0 || filterActive;
     controls.helpers.disabled =
       counts['architecture-review-helpers'] === 0 || filterActive;
     controls.other.disabled = counts['architecture-other'] === 0 || filterActive;
@@ -373,6 +403,9 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
       'Sisäseinät ' + counts['architecture-walls-interior'];
     controls.doorsCount.textContent = 'Ovet ' + counts['architecture-doors'];
     controls.windowsCount.textContent = 'Ikkunat ' + counts['architecture-windows'];
+    controls.floorsCount.textContent = 'Lattiat ' + counts['architecture-floors'];
+    controls.ceilingsCount.textContent = 'Sisäkatot ' + counts['architecture-ceilings'];
+    controls.fixturesCount.textContent = 'Kalusteet ' + counts['architecture-fixtures'];
     controls.helpersCount.textContent =
       'Review-apugeometria ' + counts['architecture-review-helpers'];
     controls.otherCount.textContent = 'Muu konteksti ' + counts['architecture-other'];
@@ -391,6 +424,9 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
       state.architectureDoorsVisible ? 'true' : 'false';
     canvas.dataset.architectureWindowsVisible =
       state.architectureWindowsVisible ? 'true' : 'false';
+    canvas.dataset.architectureFloorsVisible = state.architectureFloorsVisible ? 'true' : 'false';
+    canvas.dataset.architectureCeilingsVisible = state.architectureCeilingsVisible ? 'true' : 'false';
+    canvas.dataset.architectureFixturesVisible = state.architectureFixturesVisible ? 'true' : 'false';
     canvas.dataset.architectureReviewHelpersVisible =
       state.architectureReviewHelpersVisible ? 'true' : 'false';
     canvas.dataset.architectureOtherVisible =
@@ -483,6 +519,9 @@ export const installArchitecturalLayerRuntime = (resolve: ArchitecturalResolver)
   controls.windows.addEventListener('change', () =>
     setNode('architecture-windows', controls.windows),
   );
+  controls.floors.addEventListener('change', () => setNode('architecture-floors', controls.floors));
+  controls.ceilings.addEventListener('change', () => setNode('architecture-ceilings', controls.ceilings));
+  controls.fixtures.addEventListener('change', () => setNode('architecture-fixtures', controls.fixtures));
   controls.helpers.addEventListener('change', () =>
     setNode('architecture-review-helpers', controls.helpers),
   );

@@ -22,6 +22,9 @@ export type ArchitecturalLayerMembership = {
     | 'architecture-doors'
     | 'architecture-windows'
     | 'architecture-review-helpers'
+    | 'architecture-floors'
+    | 'architecture-ceilings'
+    | 'architecture-fixtures'
     | 'architecture-other';
   wallChildNodeId:
     | 'architecture-walls-exterior'
@@ -90,6 +93,12 @@ export const architecturalLayerMembership = (
     };
   }
 
+  if (descriptor.buildingPartFamily === 'FLOOR') return { parentNodeId: 'architecture-floors', wallChildNodeId: null };
+
+  if (descriptor.buildingPartFamily === 'CEILING') return { parentNodeId: 'architecture-ceilings', wallChildNodeId: null };
+
+  if (descriptor.buildingPartFamily === 'FIXTURE') return { parentNodeId: 'architecture-fixtures', wallChildNodeId: null };
+
   return {
     parentNodeId: 'architecture-other',
     wallChildNodeId: null,
@@ -105,6 +114,9 @@ const emptyArchitecturalCounts = (): Record<ViewerArchitecturalLayerNodeId, numb
   'architecture-doors': 0,
   'architecture-windows': 0,
   'architecture-review-helpers': 0,
+  'architecture-floors': 0,
+  'architecture-ceilings': 0,
+  'architecture-fixtures': 0,
   'architecture-other': 0,
 });
 

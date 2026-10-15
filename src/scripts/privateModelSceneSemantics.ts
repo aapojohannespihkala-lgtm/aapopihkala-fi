@@ -67,6 +67,9 @@ export type ArchitecturalBuildingPartFamily =
   | 'DOOR'
   | 'WINDOW'
   | 'REVIEW_HELPER'
+  | 'FLOOR'
+  | 'CEILING'
+  | 'FIXTURE'
   | 'OTHER';
 
 export type ArchitecturalRepresentationRole =
@@ -177,6 +180,9 @@ const buildingPartFromIdentity = (value: unknown): ArchitecturalBuildingPartFami
   if (identity.startsWith('G2_WALL_')) return 'WALL';
   if (identity.startsWith('G2_DOOR_')) return 'DOOR';
   if (identity.startsWith('G2_WINDOW_')) return 'WINDOW';
+  if (identity.startsWith('G2_FLOOR_')) return 'FLOOR';
+  if (identity.startsWith('G2_CEILING_')) return 'CEILING';
+  if (identity.startsWith('G2_FIXTURE_')) return 'FIXTURE';
   return null;
 };
 
@@ -357,6 +363,9 @@ export const resolveArchitecturalSemanticDescriptor = (
           ? 'Sisäovi'
           : 'Ovi / luokittelematon';
   } else if (buildingPartFamily === 'WINDOW') classLabelFi = 'Ikkuna / ikkuna-aukko';
+  else if (buildingPartFamily === 'FLOOR') classLabelFi = 'Valmis lattiapinta';
+  else if (buildingPartFamily === 'CEILING') classLabelFi = 'Sisäkatto';
+  else if (buildingPartFamily === 'FIXTURE') classLabelFi = 'Kaluste';
 
   let labelFi = 'Muu konteksti / Luokittelematon esitys';
   if (drainagePart === 'WELL') {
@@ -411,6 +420,8 @@ export const resolveArchitecturalSemanticDescriptor = (
         ? 'Ikkuna (WORK_TEST-oletus)'
         : 'Ikkuna / ikkuna-aukko';
   }
+
+  if (['FLOOR', 'CEILING', 'FIXTURE'].includes(buildingPartFamily)) labelFi = classLabelFi;
 
   return {
     semanticWallFamily,

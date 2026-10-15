@@ -118,7 +118,7 @@ export const installPrivateModelLayerPanelUi = () => {
   layersPanel.style.overflowY = 'auto';
   layersPanel.style.overscrollBehavior = 'contain';
   const roofLabel = roofInput.closest('label')?.querySelector('span');
-  if (roofLabel?.textContent?.trim() === 'Katto (testi)') roofLabel.textContent = 'Katto';
+  if (roofLabel?.textContent?.trim() === 'Katto (testi)') roofLabel.textContent = 'Vesikatto';
 
   installPresentationControl();
 

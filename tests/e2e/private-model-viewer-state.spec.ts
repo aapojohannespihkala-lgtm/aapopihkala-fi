@@ -42,6 +42,9 @@ const expectedDefaultChildren = {
   architectureDoorsVisible: true,
   architectureWindowsVisible: true,
   architectureReviewHelpersVisible: true,
+  architectureFloorsVisible: true,
+  architectureCeilingsVisible: false,
+  architectureFixturesVisible: true,
   architectureOtherVisible: true,
 };
 
@@ -263,6 +266,9 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
     'architecture-doors',
     'architecture-windows',
     'architecture-review-helpers',
+    'architecture-floors',
+    'architecture-ceilings',
+    'architecture-fixtures',
     'architecture-other',
   ]);
   expect(viewerLayerNodeCapabilities.roof).toEqual({
@@ -293,6 +299,9 @@ test('VUX-E3B exposes only contract-derived layer capabilities', () => {
     'architecture-doors',
     'architecture-windows',
     'architecture-review-helpers',
+    'architecture-floors',
+    'architecture-ceilings',
+    'architecture-fixtures',
     'architecture-other',
   ] as const) {
     expect(viewerLayerNodeCapabilities[nodeId].opacity).toBe(false);

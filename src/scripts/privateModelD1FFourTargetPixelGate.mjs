@@ -1,3 +1,5 @@
+import { D1F_BATHROOM_TARGETS } from './privateModelD1FBathroomScene.mjs';
+import { D1F_BATHROOM_SUPPRESSION } from './privateModelD1FBathroomPixelRuntime.mjs';
 import { D1F_COMBINED_WALL_ASSETS } from './privateModelD1FCombinedWallSceneContract.mjs';
 
 /**
@@ -120,9 +122,10 @@ function measuredSourceSha(candidateId) {
 }
 
 export function evaluateD1FOneMeasuredTargetPixelSample(sample, { candidateId = 'd1f-measured-wall-140-100-2350-b710-basin-20261014' } = {}) {
+  const bath = D1F_COMBINED_WALL_ASSETS[candidateId]?.bathroomReview === true;
   return verifySample(sample, 40, 8,
-    D1F_COMBINED_WALL_ASSETS[candidateId]?.fourUserCorrections ? D1F_SEVEN_PIXEL_TARGETS : D1F_FIVE_PIXEL_TARGETS,
-    D1F_MEASURED_PIXEL_SUPPRESSION, measuredSourceSha(candidateId));
+    bath ? D1F_BATHROOM_TARGETS : D1F_COMBINED_WALL_ASSETS[candidateId]?.fourUserCorrections ? D1F_SEVEN_PIXEL_TARGETS : D1F_FIVE_PIXEL_TARGETS,
+    bath ? D1F_BATHROOM_SUPPRESSION : D1F_MEASURED_PIXEL_SUPPRESSION, measuredSourceSha(candidateId));
 }
 
 export function evaluateD1FFourTargetPixelGate(
@@ -158,7 +161,7 @@ export function evaluateD1FFourTargetPixelGate(
 export function evaluateD1FFiveTargetPixelGate(
   samples, { minRoiChangedPixels = 40, outsideChangeAllowance = 8, candidateId = 'd1f-measured-wall-140-100-2350-b710-basin-20261014' } = {},
 ) {
-  if (D1F_COMBINED_WALL_ASSETS[candidateId]?.fourUserCorrections) fail('corrected source requires all seven targets');
+  if (D1F_COMBINED_WALL_ASSETS[candidateId]?.bathroomReview || D1F_COMBINED_WALL_ASSETS[candidateId]?.fourUserCorrections) fail('successor source requires all declared targets');
   if (!Array.isArray(samples) || samples.length !== 5 ||
       !integer(minRoiChangedPixels) || minRoiChangedPixels < 40 ||
       !integer(outsideChangeAllowance) || outsideChangeAllowance > 8) {
@@ -202,4 +205,17 @@ export function evaluateD1FSevenTargetPixelGate(samples, { candidateId } = {}) {
     targets: proofs, checkedTargetCount: 7, originalGlbBytesAuthenticatedByThisFunction: false,
     actualBrowserWebGlVerifiedByThisFunction: false, productionPublicationVerifiedByThisFunction: false,
     humanReview: 'NOT_RUN' });
+}
+
+export function evaluateD1FBathroomTargetPixelGate(samples, { candidateId } = {}) {
+  if(!D1F_COMBINED_WALL_ASSETS[candidateId]?.bathroomReview ||
+    !Array.isArray(samples) || samples.length !== 13 ||
+    new Set(samples.map(s=>s?.targetId)).size !== 13 ||
+    !D1F_BATHROOM_TARGETS.every(id=>samples.some(s=>s?.targetId===id)) ||
+    new Set(samples.map(s=>s?.baseline?.variant)).size !== 1)
+    fail('thirteen separate source-bound bathroom targets required');
+  const proofs=samples.map(s=>verifySample(s,40,8,D1F_BATHROOM_TARGETS,D1F_BATHROOM_SUPPRESSION,measuredSourceSha(candidateId)));
+  return Object.freeze({gate:'PASS_THIRTEEN_INDEPENDENT_DIFFERENTIAL_PIXEL_CONTRACTS_ONLY',
+    targets:proofs,checkedTargetCount:13,originalGlbBytesAuthenticatedByThisFunction:false,
+    actualBrowserWebGlVerifiedByThisFunction:false,productionPublicationVerifiedByThisFunction:false,humanReview:'NOT_RUN'});
 }
