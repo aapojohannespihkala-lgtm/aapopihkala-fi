@@ -56,6 +56,9 @@ test('each of 13 separately muted original targets removes its OWN color pixels'
   for (const p of result.sourceIsolation) {
     expect(p.originalClassPixels).toBe(121);
     expect(p.isolatedClassPixels).toBe(121);
+    expect(p.remainingClassPixels).toBe(0);
+    expect(p.peersPreserved).toBe(true);
+    expect(Object.values(p.peerClassLossPixels)).toEqual(Array(12).fill(0));
     expect(p.outsideChangedPixels).toBe(0);
     expect(p.passed).toBe(true);
   }
@@ -86,6 +89,78 @@ test('a moving camera or background difference outside the object ROI fails clos
   const result = prove(args);
   expect(result.allSourceTargetsIsolated).toBe(false);
   expect(result.sourceIsolation[0].outsideChangedPixels).toBeGreaterThan(600);
+  expect(result.sourceIsolation[0].passed).toBe(false);
+});
+
+test('target partly hidden with enough lost pixels still fails closed', () => {
+  const args = fixture();
+  const first = positions[0];
+  const isolated = args.baseline.slice();
+  // Nine missing pixels meet the former 8-pixel loss gate, while 112 remain.
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const off = ((first.y + dy) * width + first.x + dx) * 4;
+      for (let k = 0; k < 4; k++) isolated[off + k] = background[k];
+    }
+  }
+  args.mutedFrames[keys[0]] = isolated;
+  const result = prove(args);
+  const firstResult = result.sourceIsolation.find((p: any) => p.key === keys[0]);
+  expect(firstResult).toMatchObject({
+    isolatedClassPixels: 9, remainingClassPixels: 112, passed: false,
+  });
+  expect(result.allSourceTargetsIsolated).toBe(false);
+});
+
+test('cross-palette peer disappearing inside the target ROI cannot pass', () => {
+  const args = fixture();
+  const well = positions[0], farRoute = positions[4];
+  // Bring one cyan peer into the gray well circular ROI without overlap of
+  // its 11x11 patch with the gray pixels themselves.
+  const nearRoute = { x: well.x + 15, y: well.y + 15 };
+  const frames = [args.baseline, ...Object.values(args.mutedFrames)];
+  for (const frame of frames) {
+    patch(frame, farRoute.x, farRoute.y, background);
+    patch(frame, nearRoute.x, nearRoute.y, color.routeCyan);
+  }
+  // Only the cyan peer's own frame is allowed to hide it.
+  patch(args.mutedFrames[keys[4]], nearRoute.x, nearRoute.y, background);
+  // Malicious: hiding the well also removes the cyan peer in overlapping ROIs.
+  patch(args.mutedFrames[keys[0]], nearRoute.x, nearRoute.y, background);
+  args.projections[4] = {
+    ...args.projections[4],
+    u: nearRoute.x / (width - 1),
+    v: nearRoute.y / (height - 1),
+  };
+  const result = prove(args);
+  const first = result.sourceIsolation.find((p: any) => p.key === keys[0]);
+  expect(first.peerClassLossPixels[keys[4]]).toBe(121);
+  expect(first.peersPreserved).toBe(false);
+  expect(first.passed).toBe(false);
+});
+
+test('peer color-class loss below RGB noise threshold still fails', () => {
+  const args = fixture();
+  const frame = args.mutedFrames[keys[0]];
+  const route = positions[4];
+  // b: 180 -> 145 is <=36/channel but no longer matches cyan b>1.04*g.
+  patch(frame, route.x, route.y, [18, 140, 145, 255]);
+  const result = prove(args);
+  const well = result.sourceIsolation.find((p: any) => p.key === keys[0]);
+  expect(well.outsideChangedPixels).toBe(0);
+  expect(well.peerClassLossPixels[keys[4]]).toBe(121);
+  expect(well.peersPreserved).toBe(false);
+  expect(well.passed).toBe(false);
+});
+
+test('one borderline RGB sample is not both yellow and gray source evidence', () => {
+  const args = fixture();
+  const well = positions[0];
+  // Qualifies as gray AND yellow in the old independent predicates.
+  // Exact source ROI precedence is yellow > gray.
+  patch(args.baseline, well.x, well.y, [180, 145, 105, 255]);
+  const result = prove(args);
+  expect(result.sourceIsolation[0].originalClassPixels).toBe(0);
   expect(result.sourceIsolation[0].passed).toBe(false);
 });
 
