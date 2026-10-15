@@ -12,17 +12,17 @@ const noPromo=['Canonical','physicalRouteClaim','exactXYClaim','exactZClaim','ph
 const forbidden=()=>Object.fromEntries(noPromo.map(k=>[k,false]));
 
 function fixture(){
-  const nodes=Array.from({length:1097},(_,i)=>({name:'original-node-'+i}));
+  const nodes:any[]=Array.from({length:1097},(_,i)=>({name:'original-node-'+i}));
   nodes[0]={name:'M5A-Z2_ABSOLUTE_Z_HOST_FLOOR_DATUM_DRAIN_TOPOLOGY_WORK_ROOT_BABYLON_Y_UP',children:Array.from({length:13},(_,i)=>i+1)};
   for(let i=0;i<four.length;i++)nodes[i+1]={extras:{sourceNodeId:four[i]}};
   for(let i=0;i<seven.length;i++)nodes[i+5]={extras:{sourceConnection:seven[i]}};
-  const scenes=Array.from({length:60},(_,i)=>({name:'source-'+i}));
+  const scenes:any[]=Array.from({length:60},(_,i)=>({name:'source-'+i}));
   scenes[59]={name:'M5A-Z2 ABSOLUTE-Z HOST-FLOOR DATUM WORK_TEST - BABYLON Y-UP'};
-  const base={scenes,nodes,meshes:[{name:'source-mesh'}],accessors:[{}],bufferViews:[{}],materials:[{}]};
-  const newer=structuredClone(base);
+  const base:any={scenes,nodes,meshes:[{name:'source-mesh'}],accessors:[{}],bufferViews:[{}],materials:[{}]};
+  const newer:any=structuredClone(base);
   while(newer.scenes.length<63)newer.scenes.push({name:'intermediate'});
   const rootIndex=newer.nodes.length;
-  const children=[];
+  const children:number[]=[];
   for(const w of four){
     children.push(newer.nodes.length);
     newer.nodes.push({extras:{...forbidden(),representationKind:'wellDiameterPresentationWork',sourceNodeId:w,
