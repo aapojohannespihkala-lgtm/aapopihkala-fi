@@ -1,15 +1,11 @@
 import { m5aR1125SourcePixelKinds } from './privateModelM5AR1125SourceRoiPixelProof.mjs';
+import { deriveM5AR1125SourceCameraCenters } from './privateModelM5AR1125SourceCameraCenters.mjs';
 
-// Optional second R1125 technical gate. The caller supplies ONE original
-// scene63 screenshot with all 13 source objects visible and one same-camera,
-// same-size screenshot for EACH source object hidden in isolation. This cannot
-// authenticate the GLB, a screenshot, renderer state, or a production viewer.
-// Never claim production visibility or HUMAN_REVIEW from caller-supplied frames.
+// Technical comparison only. The caller must separately authenticate the raw
+// GLB and actual browser captures. No caller-provided raster mask is trusted.
+// Geometry/camera are validated here, but cannot authenticate screenshot bytes.
 const kinds = m5aR1125SourcePixelKinds;
 const names = Object.keys(kinds);
-
-// Match the exact single-class precedence in the existing R1125 source ROI
-// detector. One RGB sample must never prove two overlapping color identities.
 const sourcePixelKind = (pixels, off) => {
   if (pixels[off + 3] < 220) return null;
   const r = pixels[off], g = pixels[off + 1], b = pixels[off + 2];
@@ -23,31 +19,135 @@ const sourcePixelKind = (pixels, off) => {
     gray ? 'wellGray' : null;
 };
 const colored = (kind, pixels, off) => sourcePixelKind(pixels, off) === kind;
-
 const frameValid = (pixels, length) =>
   (pixels instanceof Uint8Array || pixels instanceof Uint8ClampedArray) &&
   pixels.length === length;
 
+export function snapshotM5AR1125RenderCamera({ camera, width, height }) {
+  if (!camera?.updateMatrixWorld ||
+      (!camera.isPerspectiveCamera && !camera.isOrthographicCamera) ||
+      !Number.isInteger(width) || !Number.isInteger(height)) {
+    throw new Error('R1125 source camera snapshot unavailable');
+  }
+  camera.updateMatrixWorld(true);
+  camera.updateProjectionMatrix();
+  const snapshot = [width, height, ...camera.matrixWorld.elements,
+    ...camera.projectionMatrix.elements];
+  if (snapshot.length !== 34 || !snapshot.every(Number.isFinite)) {
+    throw new Error('R1125 invalid source camera snapshot');
+  }
+  return Object.freeze(snapshot);
+}
+
+const distanceToSegment2 = (x, y, a, b) => {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const length2 = dx * dx + dy * dy;
+  const t = length2 === 0 ? 0 :
+    Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / length2));
+  return (x - a.x - t * dx) ** 2 + (y - a.y - t * dy) ** 2;
+};
+const edge = (a, b, x, y) => (b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x);
+
+// Independent projection of indexed triangles/line segments, never a mask
+// inferred from screenshot differences. One pixel of triangle edge padding and
+// 1.5 pixels for native one-pixel lines include raster antialiasing conservatively.
+// Outside this geometry-derived support, even a single changed byte fails.
+const sourceFootprints = (sourceScene, width, height) => {
+  if (!sourceScene) throw new Error('R1125 requires original source geometry, not a supplied mask');
+  const derived = deriveM5AR1125SourceCameraCenters({
+    ...sourceScene, imageWidth: width, imageHeight: height,
+  });
+  const { sceneRoot, camera, THREE } = sourceScene;
+  const coverage = new Uint16Array(width * height);
+  const objects = new Map();
+  sceneRoot.traverse(object => {
+    const d = object.userData ?? {};
+    const key = d.G2IdCandidate ||
+      (d.representationKind === 'unresolvedBoundaryMarker' ? 'boundary:' + d.boundaryRole : '');
+    if (Object.hasOwn(kinds, key)) objects.set(key, object);
+  });
+  let rasterTests = 0;
+  names.forEach((key, objectIndex) => {
+    const object = objects.get(key);
+    if (object.isInstancedMesh || object.isSkinnedMesh ||
+        object.isLineLoop || object.morphTargetInfluences?.some(x => x !== 0)) {
+      throw new Error('R1125 unsupported deformed source primitive');
+    }
+    const geometry = object.geometry, position = geometry.getAttribute('position');
+    const index = geometry.getIndex();
+    const length = index ? index.count : position.count;
+    const start = geometry.drawRange?.start ?? 0;
+    const count = Math.min(geometry.drawRange?.count ?? Infinity, length - start);
+    const step = object.isMesh ? 3 : object.isLineSegments ? 2 : 1;
+    if (position.itemSize !== 3 || !Number.isInteger(start) || start < 0 ||
+        !Number.isInteger(count) || count < (object.isMesh ? 3 : 2) ||
+        start + count > length || length > 300000 ||
+        (object.isMesh && (count % 3 || start % 3)) ||
+        (object.isLineSegments && (count % 2 || start % 2))) {
+      throw new Error('R1125 malformed source triangle/line geometry');
+    }
+    const point = i => {
+      const vertex = index ? index.getX(i) : i;
+      if (!Number.isInteger(vertex) || vertex < 0 || vertex >= position.count) {
+        throw new Error('R1125 source index out of range');
+      }
+      const p = new THREE.Vector3(position.getX(vertex), position.getY(vertex),
+        position.getZ(vertex)).applyMatrix4(object.matrixWorld).project(camera);
+      if (![p.x, p.y, p.z].every(Number.isFinite) ||
+          Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || p.z < -1 || p.z > 1) {
+        throw new Error('R1125 full source footprint clipped or invalid');
+      }
+      return { x: (p.x + 1) * width / 2, y: (1 - p.y) * height / 2 };
+    };
+    for (let i = start; i + (object.isMesh ? 2 : 1) < start + count; i += step) {
+      const a = point(i), b = point(i + 1), c = object.isMesh ? point(i + 2) : null;
+      const vertices = c ? [a, b, c] : [a, b];
+      const pad = c ? 1 : 1.5;
+      const minX = Math.max(0, Math.floor(Math.min(...vertices.map(p => p.x)) - pad));
+      const maxX = Math.min(width - 1, Math.ceil(Math.max(...vertices.map(p => p.x)) + pad));
+      const minY = Math.max(0, Math.floor(Math.min(...vertices.map(p => p.y)) - pad));
+      const maxY = Math.min(height - 1, Math.ceil(Math.max(...vertices.map(p => p.y)) + pad));
+      rasterTests += (maxX - minX + 1) * (maxY - minY + 1);
+      if (rasterTests > 50000000) throw new Error('R1125 source projection raster budget exceeded');
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          const px = x + 0.5, py = y + 0.5;
+          const e1 = edge(a, b, px, py), e2 = c ? edge(b, c, px, py) : 0;
+          const e3 = c ? edge(c, a, px, py) : 0;
+          const inTriangle = c && Math.abs(edge(a, b, c.x, c.y)) > 1e-12 &&
+            ((e1 >= 0 && e2 >= 0 && e3 >= 0) || (e1 <= 0 && e2 <= 0 && e3 <= 0));
+          if (inTriangle || distanceToSegment2(px, py, a, b) <= pad * pad ||
+              (c && (distanceToSegment2(px, py, b, c) <= pad * pad ||
+                distanceToSegment2(px, py, c, a) <= pad * pad))) {
+            coverage[y * width + x] |= 1 << objectIndex;
+          }
+        }
+      }
+    }
+  });
+  return { coverage, centers: derived.centers };
+};
+
 /**
- * Compare thirteen real per-object toggle screenshots against the unchanged
- * original frame. A shared cyan patch cannot prove a separate route: its
- * pixels must visibly disappear specifically when THAT route is hidden.
- *
- * Each source must have a distinct source-derived projected center from the
- * authenticated viewer. Synthetic frames only test this helper's behavior.
+ * Prove disappearance throughout each source's exclusive projected footprint,
+ * retain the original midpoint floor and all twelve peers, and restore exactly.
+ * Fully occluded sources are NOT_PROVEN. Camera snapshots are consistency
+ * checks, not authentication of caller-supplied frames or original GLB bytes.
  */
 export function detectM5AR1125PerSourceRenderDelta({
-  baseline, mutedFrames, projections, width, height,
+  baseline, mutedFrames, restoredFrames, projections, width, height,
+  sourceScene, cameraStates,
 }) {
+  const recordValid = frames => frames && typeof frames === 'object' &&
+    !Array.isArray(frames) && Object.keys(frames).length === 13 &&
+    names.every(key => Object.hasOwn(frames, key) && frameValid(frames[key], baseline.length));
   if (!Number.isInteger(width) || width < 128 ||
       !Number.isInteger(height) || height < 128 ||
-      width * height > 16_000_000 ||
+      width * height > 16000000 ||
       !frameValid(baseline, width * height * 4) ||
-      !mutedFrames || typeof mutedFrames !== 'object' ||
-      Array.isArray(mutedFrames) ||
-      Object.keys(mutedFrames).length !== 13 ||
+      !recordValid(mutedFrames) || !recordValid(restoredFrames) ||
       !Array.isArray(projections) || projections.length !== 13) {
-    throw new Error('R1125 requires exact original RGBA and 13 source-isolation frames');
+    throw new Error('R1125 requires exact original RGBA and 13 source-isolation/restoration frames');
   }
   const positions = new Map();
   for (const p of projections) {
@@ -57,106 +157,105 @@ export function detectM5AR1125PerSourceRenderDelta({
       throw new Error('R1125 invalid/duplicate projected source identity');
     }
     positions.set(p.key, {
-      x: Math.round(p.u * (width - 1)), y: Math.round(p.v * (height - 1)),
+      x: Math.round(p.u * (width - 1)), y: Math.round(p.v * (height - 1)), u: p.u, v: p.v,
     });
   }
-  if (positions.size !== names.length ||
-      names.some(key => !positions.has(key) ||
-        !Object.hasOwn(mutedFrames, key) ||
-        !frameValid(mutedFrames[key], baseline.length))) {
-    throw new Error('R1125 missing source identity or an exact muted frame');
+  if (positions.size !== names.length || names.some(key => !positions.has(key))) {
+    throw new Error('R1125 missing source identity');
+  }
+  const { coverage, centers } = sourceFootprints(sourceScene, width, height);
+  if (centers.some(p => Math.abs(p.u - positions.get(p.key).u) > 1e-8 ||
+      Math.abs(p.v - positions.get(p.key).v) > 1e-8)) {
+    throw new Error('R1125 source geometry and projected center mismatch');
+  }
+  const snapshot = snapshotM5AR1125RenderCamera({ camera: sourceScene.camera, width, height });
+  const sameCamera = state => Array.isArray(state) && state.length === snapshot.length &&
+    state.every((n, i) => Number.isFinite(n) && n === snapshot[i]);
+  if (!sameCamera(cameraStates?.baseline) ||
+      !cameraStates?.muted || !cameraStates?.restored ||
+      Object.keys(cameraStates.muted).length !== 13 ||
+      Object.keys(cameraStates.restored).length !== 13 ||
+      names.some(key => !sameCamera(cameraStates.muted[key]) ||
+        !sameCamera(cameraStates.restored[key]))) {
+    throw new Error('R1125 capture camera/viewport mismatch');
   }
   const radius = Math.max(12, Math.round(Math.min(width, height) * 0.035));
   const radius2 = radius * radius;
-  const entries = names.map(key => ({ key, kind: kinds[key], ...positions.get(key) }));
-  for (let a = 0; a < entries.length; a++) {
-    for (let b = a + 1; b < entries.length; b++) {
-      const x = entries[a], y = entries[b];
-      if (x.kind === y.kind &&
-          (x.x - y.x) ** 2 + (x.y - y.y) ** 2 <= (2 * radius) ** 2) {
-        throw new Error('R1125 ambiguous same-color source projections');
-      }
-    }
+  const entries = names.map((key, i) => ({ key, bit: 1 << i, kind: kinds[key], ...positions.get(key) }));
+  const baselineClass = new Uint8Array(width * height);
+  const classCode = { wellGray: 1, routeCyan: 2, boundaryYellow: 3 };
+  for (let i = 0; i < baselineClass.length; i++) {
+    baselineClass[i] = classCode[sourcePixelKind(baseline, i * 4)] ?? 0;
   }
-  const stableOutsideLimit = Math.max(8, Math.floor(width * height * 0.001));
   const observations = entries.map(target => {
-    const muted = mutedFrames[target.key];
+    const muted = mutedFrames[target.key], restored = restoredFrames[target.key];
     const minimum = target.kind === 'boundaryYellow' ? 2 : 8;
-    let originalClassPixels = 0, isolatedClassPixels = 0;
-    let remainingClassPixels = 0, localChangedPixels = 0, outsideChangedPixels = 0;
+    let originalClassPixels = 0, isolatedClassPixels = 0, remainingClassPixels = 0;
+    let localChangedPixels = 0, outsideChangedPixels = 0, restoreChangedPixels = 0;
+    let exclusiveOriginalPixels = 0, exclusiveLostPixels = 0, exclusiveRemainingPixels = 0;
+    const peerClassLossPixels = {}, peerBaseline = {}, peerRemaining = {};
+    entries.forEach(peer => {
+      if (peer.key !== target.key) {
+        peerClassLossPixels[peer.key] = 0; peerBaseline[peer.key] = 0; peerRemaining[peer.key] = 0;
+      }
+    });
     for (let i = 0; i < width * height; i++) {
       const off = i * 4, x = i % width, y = (i / width) | 0;
-      const dx = x - target.x, dy = y - target.y;
-      const inside = dx * dx + dy * dy <= radius2;
-      const changed = Math.max(
-        Math.abs(baseline[off] - muted[off]),
-        Math.abs(baseline[off + 1] - muted[off + 1]),
-        Math.abs(baseline[off + 2] - muted[off + 2]),
-        Math.abs(baseline[off + 3] - muted[off + 3]),
-      ) > 36;
+      const inside = (x - target.x) ** 2 + (y - target.y) ** 2 <= radius2;
+      const beforeKind = baselineClass[i], afterKind = classCode[sourcePixelKind(muted, off)] ?? 0;
+      const before = beforeKind === classCode[target.kind], after = afterKind === classCode[target.kind];
+      let delta = 0, restoreDelta = 0;
+      for (let k = 0; k < 4; k++) {
+        delta = Math.max(delta, Math.abs(baseline[off + k] - muted[off + k]));
+        restoreDelta = Math.max(restoreDelta, Math.abs(baseline[off + k] - restored[off + k]));
+      }
+      if (restoreDelta !== 0) restoreChangedPixels++;
       if (inside) {
-        if (colored(target.kind, baseline, off)) {
-          originalClassPixels++;
-          // Even a sub-threshold RGB delta can remove the SOURCE color class.
-          if (!colored(target.kind, muted, off)) isolatedClassPixels++;
+        if (before) { originalClassPixels++; if (!after) isolatedClassPixels++; }
+        if (after) remainingClassPixels++;
+        if (delta > 36) localChangedPixels++;
+      }
+      if (delta !== 0 && !(coverage[i] & target.bit)) outsideChangedPixels++;
+      // Overlap cannot establish object identity. Only exclusively owned
+      // geometry can supply the full-footprint target positive/negative proof.
+      if (coverage[i] === target.bit) {
+        if (before) { exclusiveOriginalPixels++; if (!after) exclusiveLostPixels++; }
+        if (after) exclusiveRemainingPixels++;
+      }
+      if (coverage[i]) for (const peer of entries) {
+        if (peer.key === target.key || !(coverage[i] & peer.bit)) continue;
+        const peerBefore = beforeKind === classCode[peer.kind], peerAfter = afterKind === classCode[peer.kind];
+        if (peerBefore) {
+          if (coverage[i] === peer.bit) peerBaseline[peer.key]++;
+          if (!peerAfter) peerClassLossPixels[peer.key]++;
         }
-        // A partly hidden or relocated target must not pass on its lost count.
-        if (colored(target.kind, muted, off)) remainingClassPixels++;
-        if (changed) localChangedPixels++;
-      } else if (changed) {
-        outsideChangedPixels++;
+        if (peerAfter && coverage[i] === peer.bit) peerRemaining[peer.key]++;
       }
     }
-    // The target itself may be fully hidden, but all OTHER 12 source objects
-    // must retain their own color class. Check peer ROIs even where they overlap
-    // this target ROI or have a different palette. Count color loss directly:
-    // RGB changes below the >36 global noise threshold can still erase a peer.
-    const peerClassLossPixels = {};
-    let peersPreserved = true;
-    for (const peer of entries) {
-      if (peer.key === target.key) continue;
-      let baselinePeerPixels = 0, remainingPeerPixels = 0, peerLossPixels = 0;
-      const minY = Math.max(0, peer.y - radius), maxY = Math.min(height - 1, peer.y + radius);
-      for (let py = minY; py <= maxY; py++) {
-        const dy = py - peer.y;
-        const reach = Math.floor(Math.sqrt(radius2 - dy * dy));
-        const minX = Math.max(0, peer.x - reach), maxX = Math.min(width - 1, peer.x + reach);
-        for (let px = minX; px <= maxX; px++) {
-          const off = (py * width + px) * 4;
-          const before = colored(peer.kind, baseline, off);
-          const after = colored(peer.kind, muted, off);
-          if (before) {
-            baselinePeerPixels++;
-            if (!after) peerLossPixels++;
-          }
-          if (after) remainingPeerPixels++;
-        }
-      }
-      peerClassLossPixels[peer.key] = peerLossPixels;
-      const peerMinimum = peer.kind === 'boundaryYellow' ? 2 : 8;
-      if (baselinePeerPixels < peerMinimum ||
-          remainingPeerPixels < peerMinimum || peerLossPixels !== 0) {
-        peersPreserved = false;
-      }
-    }
+    const peersPreserved = entries.every(peer => peer.key === target.key ||
+      (peerBaseline[peer.key] >= (peer.kind === 'boundaryYellow' ? 2 : 8) &&
+       peerRemaining[peer.key] >= (peer.kind === 'boundaryYellow' ? 2 : 8) &&
+       peerClassLossPixels[peer.key] === 0));
+    const passed = originalClassPixels >= minimum && isolatedClassPixels >= minimum &&
+      remainingClassPixels === 0 && localChangedPixels >= minimum &&
+      exclusiveOriginalPixels >= minimum && exclusiveLostPixels >= minimum &&
+      exclusiveRemainingPixels === 0 && peersPreserved &&
+      outsideChangedPixels === 0 && restoreChangedPixels === 0;
     return {
-      key: target.key, kind: target.kind,
-      originalClassPixels, isolatedClassPixels, remainingClassPixels,
-      localChangedPixels, outsideChangedPixels,
-      peerClassLossPixels, peersPreserved,
-      minimum, passed: originalClassPixels >= minimum &&
-        isolatedClassPixels >= minimum && remainingClassPixels === 0 &&
-        localChangedPixels >= minimum && peersPreserved &&
-        outsideChangedPixels <= stableOutsideLimit,
+      key: target.key, kind: target.kind, originalClassPixels, isolatedClassPixels,
+      remainingClassPixels, localChangedPixels, outsideChangedPixels, restoreChangedPixels,
+      exclusiveOriginalPixels, exclusiveLostPixels, exclusiveRemainingPixels,
+      peerClassLossPixels, peersPreserved, minimum, passed,
+      footprintStatus: exclusiveOriginalPixels >= minimum ? 'VISIBLE_EXCLUSIVE_SOURCE_PIXELS' : 'NOT_PROVEN',
     };
   });
   return {
-    requiredSourceCount: 13,
-    sourceIsolation: observations,
+    requiredSourceCount: 13, sourceIsolation: observations,
     allSourceTargetsIsolated: observations.every(x => x.passed),
-    // A positive result remains technical evidence awaiting exact source,
-    // browser authentication, same-camera capture and production provenance.
+    footprintEvidenceScope: 'EXCLUSIVE_SOURCE_GEOMETRY_SCREEN_PIXELS',
+    originalGlbDigestAuthenticated: false,
     productionProvenanceVerified: false,
     humanReview: 'NOT_RUN',
   };
 }
+
