@@ -61,7 +61,6 @@ function fixture(){
   // Reorder root ahead of its children while preserving the original 1097 nodes.
   const root=newer.nodes.pop();
   newer.nodes.splice(rootIndex,0,root);
-  for(const idx of root.children){} // Child index accounting fixed below.
   root.children=Array.from({length:13},(_,i)=>rootIndex+1+i);
   newer.scenes.push({name:'M5A-R1125 FIVE SALAOJA D100 + TWO UNKNOWN PVK DIAMETERS WORK_TEST - BABYLON Y-UP',
     nodes:[rootIndex],extras:{sourceDiameterCorrectionContract:'G2_R1125',
