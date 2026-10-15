@@ -3,6 +3,7 @@ import { D1F_BATHROOM_ASSET, D1F_BATHROOM_TARGETS, bathroomGeometryBounds } from
 export const D1F_BATHROOM_SUPPRESSION=Object.freeze(Object.fromEntries(D1F_BATHROOM_TARGETS.map(id=>[id,
  ['I03','CORNER_NORTH_X2337','CORNER_SOUTH_X2337','CORNER_MIDDLE_X2589','LOBBY_DOOR_REVEALS','B_WALL_CONTINUITY'].includes(id)
  ? 'CONTINUOUS_WALL_DECLARED_SOURCE_TRIANGLES_ONLY' : id+'_NODE_VISIBILITY_ONLY'])));
+/** @type {Readonly<Record<string,string>>} */
 export const D1F_WC_THEMO_SUPPRESSION=Object.freeze({...D1F_BATHROOM_SUPPRESSION,WC_ENCLOSURE:'CONTINUOUS_WALL_DECLARED_SOURCE_TRIANGLES_ONLY',...Object.fromEntries(['THEMO_LOBBY','THEMO_BEDROOM','THEMO_BATHROOM'].map(id=>[id,id+'_NODE_VISIBILITY_ONLY']))});
 const reject=()=>{throw new Error('D1F_BATHROOM_PIXEL_RUNTIME_REJECTED');};
 const near=(a,b)=>Number.isFinite(a)&&Math.abs(a-b)<.00001;
