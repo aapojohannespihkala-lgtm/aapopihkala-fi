@@ -472,6 +472,7 @@ jobs:
           import { detectM5BR1109CyanLocatorComponents } from './src/scripts/privateModelR1109CyanLocatorProof.mjs';
           import { detectP186FX4CyanTargetComponents, detectP186FX4OriginalGreenWallPixels } from './src/scripts/privateModelP186FX4CyanPixelProof.mjs';
           import { buildM5AR1125BrowserScreenshotProofExpression } from './src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs';
+          import { authenticateM5AR1125OriginalGlb, R1125_ORIGINAL_GLB } from './src/scripts/privateModelM5AR1125OriginalGlbGuard.mjs';
           import { inspectP137EScene67ProductionSmoke, inspectP137EScene67PublishedGlb, P137E_SCENE67_PRODUCTION_GLB_URL } from './src/scripts/privateModelP137EScene67ProductionSmokeGuard.mjs';
 
           const reviewBaseUrl = process.env.REVIEW_BASE_URL;
@@ -543,9 +544,19 @@ jobs:
           // Capture only requests made by the viewer's INITIAL review autoload.
           // The later independent no-cache asset probe must not satisfy this gate.
           const p137eViewerAutoloadResponses = [];
+          // Only an actual viewer-initiated R1125 asset response can satisfy this
+          // exact raw-byte gate; an independent probe must never substitute it.
+          const r1125OriginalAutoloadUrl = new URL(
+            '/private-model/work-test/m5a-r1125-pvk-diameter-source-split.glb',
+            reviewBaseUrl,
+          ).href;
+          const r1125ViewerAutoloadResponses = [];
           page.on('response', (response) => {
             if (response.url() === P137E_SCENE67_PRODUCTION_GLB_URL) {
               p137eViewerAutoloadResponses.push(response);
+            }
+            if (response.url() === r1125OriginalAutoloadUrl) {
+              r1125ViewerAutoloadResponses.push(response);
             }
           });
 
@@ -623,14 +634,14 @@ jobs:
 
             // A server stall after initial metadata must become a diagnosed
             // FAIL, not a 12-minute job cancellation without GLB evidence.
-            const withGlbDeadline = async (promise, stage) => {
+            const withGlbDeadline = async (promise, stage, identity = 'P137E') => {
               let timer;
               try {
                 return await Promise.race([
                   promise,
                   new Promise((_, reject) => {
                     timer = setTimeout(() => reject(new Error(
-                      'P137E production GLB ' + stage + ' deadline exceeded (45s)'
+                      identity + ' production GLB ' + stage + ' deadline exceeded (45s)'
                     )), 45_000);
                   }),
                 ]);
@@ -1416,6 +1427,49 @@ jobs:
             // GLB byte authenticity. No guessed centers or generic 13-count.
             let m5aR1125PixelEvidence = null;
             if (isR1125SourceReview) {
+              // Authenticate the exact original R1125 GLB bytes returned to the
+              // viewer during its initial autoload, before asserting 13 pixels.
+              // Dataset identity and screenshot colors cannot replace this gate.
+              if (r1125ViewerAutoloadResponses.length !== 1) {
+                throw new Error('R1125 requires exactly one viewer autoload original GLB response: ' +
+                  r1125ViewerAutoloadResponses.length);
+              }
+              const originalResponse = r1125ViewerAutoloadResponses[0];
+              if (originalResponse.url() !== r1125OriginalAutoloadUrl ||
+                  originalResponse.status() !== 200) {
+                throw new Error('R1125 actual viewer autoload asset URL/status mismatch');
+              }
+              const loadError = await withGlbDeadline(
+                originalResponse.finished(), 'viewer autoload response completion', 'R1125');
+              if (loadError) throw new Error('R1125 viewer autoload original GLB failed');
+              const autoloadBytes = await withGlbDeadline(
+                originalResponse.body(), 'viewer autoload original bytes', 'R1125');
+              const originalIdentity = authenticateM5AR1125OriginalGlb(
+                new Uint8Array(autoloadBytes));
+              if (originalIdentity.sha256 !== R1125_ORIGINAL_GLB.sha256 ||
+                  originalIdentity.sourceTargetCount !== 13 ||
+                  originalIdentity.sourceSceneIndex !== 63 ||
+                  originalIdentity.originalGlbDigestAuthenticated !== true ||
+                  originalIdentity.productionScreenshotVerified !== false ||
+                  originalIdentity.humanReview !== 'NOT_RUN') {
+                throw new Error('R1125 original source identity contract mismatch');
+              }
+              // Persist a safe digest/size/scene record only, never raw GLB,
+              // authentication headers, cookies or access credentials.
+              fs.writeFileSync('playwright-artifacts/m5a-r1125-viewer-autoload-original-glb.json',
+                JSON.stringify({
+                  sourceDriveFileId: originalIdentity.driveFileId,
+                  sha256: originalIdentity.sha256,
+                  byteLength: autoloadBytes.length,
+                  sourceSceneIndex: originalIdentity.sourceSceneIndex,
+                  sourceTargetCount: originalIdentity.sourceTargetCount,
+                  originalGlbDigestAuthenticated: true,
+                  viewerAutoloadNetworkResponseVerified: true,
+                  canvasUsedThoseBytesProvenByThisGate: false,
+                  thirteenIndividualPixelIsolationsVerified: false,
+                  humanReview: 'NOT_RUN',
+                  publishToCURRENT: false,
+                }, null, 2));
               const d = await canvas.evaluate((el) => ({ ...el.dataset }));
               if (d.m5aR1125SourceDriveId !== '13qxYc9PF7Z6eo_OXs1RrYCyo5CbTIAKs' ||
                   d.m5aR1125SourceContract !== 'G2_R1125' ||
