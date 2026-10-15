@@ -91,6 +91,7 @@ export function createD1FBathroomPixelRuntime({THREE,selected,sourceSha,camera,c
   prepared={targetId,viewIndex,width,height,roi:{x,y,width:right-x,height:bottom-y},cameraFingerprint:fingerprint(),
    glbSha256:sourceSha,variant:selected.variant,suppressionMethod:D1F_BATHROOM_SUPPRESSION[targetId],
    roiProvenance:'PROJECTED_EXACT_TARGET_GEOMETRY',targetIdentityVerified:true,
+   sourceI03Indices:{count:patches.get('I03').offsets.length*3,sourceVertices:[...patches.get('I03').vertices],offsets:[...patches.get('I03').offsets]},
    ...(patches.has(targetId)?{sourceTargetIndices:{count:patches.get(targetId).offsets.length*3,
     sourceVertices:[...vertices],offsets:[...patches.get(targetId).offsets]}}:{}),
    pixelsVerifiedByThisRuntime:false,humanReview:'NOT_RUN'};

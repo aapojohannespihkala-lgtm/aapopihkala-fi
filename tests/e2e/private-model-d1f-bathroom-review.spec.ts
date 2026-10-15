@@ -88,7 +88,7 @@ test('continuous wall suppression removes only declared patch triangles and rest
   f.runtime.suppress(targetId);
   const expected=original.filter((_,i)=>!removed.has(i-i%3));
   expect(Array.from(f.wall.geometry.index!.array)).toEqual(expected);
-  expect(prep.sourceTargetIndices.count).toBe(removed.size*3);
+  expect(prep.sourceTargetIndices?.count).toBe(removed.size*3);
   expect(f.counter.visible&&f.cabinet.visible).toBe(true);
   f.runtime.pinFrame();expect(f.runtime.restore().suppressionRestored).toBe(true);
   expect(f.wall.geometry).toBe(geometry);expect(Array.from(geometry.index!.array)).toEqual(original);
