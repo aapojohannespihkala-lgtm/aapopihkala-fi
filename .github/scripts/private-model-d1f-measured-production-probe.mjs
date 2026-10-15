@@ -1,19 +1,21 @@
 import { decodeD1FScreenshotPng } from './private-model-d1f-screenshot-png.mjs';
+import { D1F_WC_THEMO_TARGETS } from '../../src/scripts/privateModelD1FWcThemoContract.mjs';
 import { D1F_BATHROOM_TARGETS } from '../../src/scripts/privateModelD1FBathroomScene.mjs';
 import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
 import { D1F_COMBINED_WALL_ASSETS, D1F_COMBINED_WALL_VARIANTS } from '../../src/scripts/privateModelD1FCombinedWallSceneContract.mjs';
-import { D1F_FIVE_PIXEL_TARGETS, D1F_SEVEN_PIXEL_TARGETS, evaluateD1FOneMeasuredTargetPixelSample, evaluateD1FFiveTargetPixelGate, evaluateD1FSevenTargetPixelGate, evaluateD1FBathroomTargetPixelGate } from '../../src/scripts/privateModelD1FFourTargetPixelGate.mjs';
+import { D1F_FIVE_PIXEL_TARGETS, D1F_SEVEN_PIXEL_TARGETS, evaluateD1FOneMeasuredTargetPixelSample, evaluateD1FFiveTargetPixelGate, evaluateD1FSevenTargetPixelGate, evaluateD1FBathroomTargetPixelGate, evaluateD1FWcThemoTargetPixelGate } from '../../src/scripts/privateModelD1FFourTargetPixelGate.mjs';
 
 const ORIGIN = 'https://aapopihkala.fi';
 const DEFAULT_ID = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
 const ID = process.env.D1F_MEASURED_CANDIDATE_ID ?? DEFAULT_ID;
-if (![DEFAULT_ID, 'd1f-finished-face-2360-wall-basin-20261014', 'd1f-four-review-corrections-20261014', 'd1f-bathroom-surfaces-cabinet-20261015'].includes(ID)) throw new Error('D1F_MEASURED_SOURCE_REJECTED');
+if (![DEFAULT_ID, 'd1f-finished-face-2360-wall-basin-20261014', 'd1f-four-review-corrections-20261014', 'd1f-bathroom-surfaces-cabinet-20261015', 'd1f-wc-enclosure-themos-20261015'].includes(ID)) throw new Error('D1F_MEASURED_SOURCE_REJECTED');
 const ASSET = D1F_COMBINED_WALL_ASSETS[ID];
 const CORRECTIONS = ASSET.fourUserCorrections === true;
 const BATHROOM = ASSET.bathroomReview === true;
-const TARGETS = BATHROOM ? D1F_BATHROOM_TARGETS : CORRECTIONS ? D1F_SEVEN_PIXEL_TARGETS : D1F_FIVE_PIXEL_TARGETS;
+const WC_THEMO=ASSET.wcThemoReview===true;
+const TARGETS = WC_THEMO ? D1F_WC_THEMO_TARGETS : BATHROOM ? D1F_BATHROOM_TARGETS : CORRECTIONS ? D1F_SEVEN_PIXEL_TARGETS : D1F_FIVE_PIXEL_TARGETS;
 const PATH = '/private-model/work-test/' + ID + '.glb';
 const OUT = 'test-results/d1f-measured-production';
 const hash = b => createHash('sha256').update(b).digest('hex');
@@ -187,11 +189,12 @@ try {
     if(CORRECTIONS || BATHROOM) check(correctionsGeometry.gate===(BATHROOM ? 'PASS_BATHROOM_SURFACES_CABINET_CONTINUOUS_WALLS_LOADED_GEOMETRY' : 'PASS_FOUR_REPORTED_CORRECTIONS_IN_LOADED_GEOMETRY') &&
       correctionsGeometry.glbSha256===ASSET.sha256 && correctionsGeometry.variant===variant);
     evidence.phase=BATHROOM?'THIRTEEN_SOURCE_TARGET_PIXELS':CORRECTIONS?'SEVEN_SOURCE_TARGET_PIXELS':'FIVE_SOURCE_TARGET_PIXELS';
-    const samples=[], captures=[];
+    const samples=[], captures=[],themoAngleProofs=[];
     for(const targetId of TARGETS) {
       evidence.currentTarget=targetId;
-      let accepted=false;
-      for(let viewIndex=0;viewIndex<4&&!accepted;viewIndex++) {
+      const requiredViews=WC_THEMO&&targetId.startsWith('THEMO_')?3:1;
+      let accepted=0;
+      for(let viewIndex=0;viewIndex<4&&accepted<requiredViews;viewIndex++) {
         evidence.currentViewIndex=viewIndex;
         let sample, prepared, baseline, suppressed, restored;
         try { prepared=await send('prepare',targetId,viewIndex); }
@@ -217,27 +220,30 @@ try {
         // including the independent BASIN before it enters the aggregate.
         try {evaluateD1FOneMeasuredTargetPixelSample(sample,{candidateId:ID});}
         catch {continue;}
-        samples.push(sample);
+        if(accepted===0)samples.push(sample);
+        if(requiredViews===3)themoAngleProofs.push({targetId,viewIndex,...evaluateD1FOneMeasuredTargetPixelSample(sample,{candidateId:ID})});
         captures.push({targetId,viewIndex,cameraFingerprint:prepared.cameraFingerprint,roi:prepared.roi,
           sourceI03Indices:prepared.sourceI03Indices,sourceTargetIndices:prepared.sourceTargetIndices,beforePngSha256:baseline.pngSha256,
           hiddenPngSha256:suppressed.pngSha256,restoredPngSha256:afterRestore.pngSha256});
-        accepted=true;
+        accepted++;
       }
-      check(accepted);
+      check(accepted===requiredViews);
     }
-    const pixels=BATHROOM ? evaluateD1FBathroomTargetPixelGate(samples,{candidateId:ID}) : CORRECTIONS ? evaluateD1FSevenTargetPixelGate(samples,{candidateId:ID})
+    const pixels=WC_THEMO ? evaluateD1FWcThemoTargetPixelGate(samples,{candidateId:ID}) : BATHROOM ? evaluateD1FBathroomTargetPixelGate(samples,{candidateId:ID}) : CORRECTIONS ? evaluateD1FSevenTargetPixelGate(samples,{candidateId:ID})
       : evaluateD1FFiveTargetPixelGate(samples,{candidateId:ID});
     if(CORRECTIONS || BATHROOM) check(JSON.stringify(await send('inspect-corrections',null)).replace(/,?\"requestId\":\d+/g,'')===
       JSON.stringify(correctionsGeometry).replace(/,?\"requestId\":\d+/g,''));
     await send('finish',null);
     evidence.variants.push({variant,exactAutoloadResponseVerified:true,actualWebGlContextVerified:true,
-      nonBackgroundPixels:nonBackground,orbitChangedPixels:orbitChanged,pixels,captures,correctionsGeometry,nativeSurfaceLayers});
+      nonBackgroundPixels:nonBackground,orbitChangedPixels:orbitChanged,pixels,captures,themoAngleProofs,correctionsGeometry,nativeSurfaceLayers});
   }
   evidence.phase='COMPLETE';evidence.result='PASS';
   evidence.authenticatedAutoloadVerified=true;evidence.actualBrowserWebGlVerified=true;
   evidence.fiveTargetsRenderedVerified=!CORRECTIONS&&!BATHROOM;
   evidence.sevenTargetsRenderedVerified=CORRECTIONS;
-  evidence.thirteenTargetsRenderedVerified=BATHROOM;
+  evidence.thirteenTargetsRenderedVerified=BATHROOM&&!WC_THEMO;
+  evidence.seventeenTargetsRenderedVerified=WC_THEMO;
+  evidence.themosThreeAnglesVerified=WC_THEMO&&evidence.variants.every(v=>v.themoAngleProofs.length===9);
   evidence.reportedCorrectionsGeometryVerified=CORRECTIONS||BATHROOM;
 } catch {
   evidence.result='FAIL';

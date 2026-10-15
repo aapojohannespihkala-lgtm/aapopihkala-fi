@@ -1,3 +1,4 @@
+import { D1F_WC_THEMO_ID, D1F_WC_THEMO_ASSET } from './privateModelD1FWcThemoContract.mjs';
 import { D1F_BATHROOM_ID, D1F_BATHROOM_ASSET, bathroomGeometryBounds } from './privateModelD1FBathroomScene.mjs';
 import { D1F_COMBINED_WALL_ASSETS } from './privateModelD1FCombinedWallSceneContract.mjs';
 
@@ -42,7 +43,7 @@ function indexedFaceX(geometry, start, count, side, vertexCount = 240) {
 export function getD1FMeasuredWidthComparison({
   candidateId, sourceSha, rawGlbByteIdentityVerified, selected,
 }) {
-  if(candidateId === D1F_BATHROOM_ID) return bathroomWidth({sourceSha,rawGlbByteIdentityVerified,selected});
+  if(candidateId === D1F_BATHROOM_ID || candidateId === D1F_WC_THEMO_ID) return bathroomWidth({sourceSha,rawGlbByteIdentityVerified,selected});
   const corrections = candidateId === CORRECTED_ID;
   const finished = candidateId === FINISHED_ID || corrections;
   const asset = corrections ? D1F_COMBINED_WALL_ASSETS[CORRECTED_ID] : finished ? D1F_COMBINED_WALL_ASSETS[FINISHED_ID] : D1F_COMBINED_WALL_ASSETS[MEASURED_ID];
@@ -87,7 +88,7 @@ export function getD1FMeasuredWidthComparison({
 // Find the nearest actual indexed wall planes on either side of an interior
 // source-space probe. Source coordinates are read from live geometry, not extras.
 function bathroomWidth({sourceSha,rawGlbByteIdentityVerified,selected}){
- if(sourceSha!==D1F_BATHROOM_ASSET.sha256||rawGlbByteIdentityVerified!==true||
+ if((sourceSha!==D1F_BATHROOM_ASSET.sha256&&sourceSha!==D1F_WC_THEMO_ASSET.sha256)||(sourceSha===D1F_WC_THEMO_ASSET.sha256&&selected?.wcThemoReview!==true)||rawGlbByteIdentityVerified!==true||
   selected?.bathroomReview!==true||!selected.wall?.visible||selected.absolutePhysicalXYVerified!==false||
   selected.humanReview!=='NOT_RUN')return null;
  try{

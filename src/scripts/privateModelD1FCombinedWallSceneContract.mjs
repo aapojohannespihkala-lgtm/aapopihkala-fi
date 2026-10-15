@@ -1,3 +1,4 @@
+import { D1F_WC_THEMO_CONTRACT, D1F_WC_THEMO_ID, D1F_WC_THEMO_ASSET } from './privateModelD1FWcThemoContract.mjs';
 import { D1F_BATHROOM_ID, D1F_BATHROOM_ASSET, selectD1FBathroomScene } from './privateModelD1FBathroomScene.mjs';
 /**
  * Fail-closed scene selector for the four D1F combined wall WORK_TEST alternatives.
@@ -42,6 +43,7 @@ const walk = (root) => {
 };
 
 export function selectD1FCombinedWallWorkTestScene(gltf, requestedVariant, candidateId = 'd1f-combined-wall-2990-lobby-fixed-20261013') {
+  if(candidateId === D1F_WC_THEMO_ID) return selectD1FBathroomScene(gltf, requestedVariant, D1F_WC_THEMO_CONTRACT);
   if(candidateId === D1F_BATHROOM_ID) return selectD1FBathroomScene(gltf, requestedVariant);
   const selectedIndex = D1F_COMBINED_WALL_VARIANTS.indexOf(requestedVariant);
   if (selectedIndex < 0) fail('variant must be one of four exact named alternatives');
@@ -202,6 +204,7 @@ export function selectD1FCombinedWallWorkTestScene(gltf, requestedVariant, candi
 
 export const D1F_COMBINED_WALL_ASSETS = Object.freeze({
   [D1F_BATHROOM_ID]: D1F_BATHROOM_ASSET,
+  [D1F_WC_THEMO_ID]: D1F_WC_THEMO_ASSET,
   'd1f-combined-wall-2990-lobby-fixed-20261013': Object.freeze({
     bytes: 3542276,
     sha256: '87bc69051fbd01deb99b283e5ae124c8abb0bdca1e39593d2b5617b61a4efdda',

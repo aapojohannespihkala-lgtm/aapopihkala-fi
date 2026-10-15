@@ -1,3 +1,4 @@
+import { D1F_WC_THEMO_CONTRACT } from './privateModelD1FWcThemoContract.mjs';
 /** Exact source contract for the bathroom review successor. Raw-byte and pixel proof remain separate. */
 export const D1F_BATHROOM_ID = 'd1f-bathroom-surfaces-cabinet-20261015';
 export const D1F_BATHROOM_RECORD = 'G2_D1F_BATHROOM_SURFACES_CABINET_CONTINUOUS_WALLS_20261015_1008';
@@ -21,23 +22,31 @@ export const bathroomGeometryBounds=(object,offsets=null)=>{
  for(const i of ids){const xyz=[p.getX(i),p.getY(i),p.getZ(i)];if(!xyz.every(Number.isFinite))reject();for(let a=0;a<3;a++){lo[a]=Math.min(lo[a],xyz[a]);hi[a]=Math.max(hi[a],xyz[a]);}}
  return {lo,hi,vertices:[...ids].sort((a,b)=>a-b)};
 };
-export function selectD1FBathroomScene(gltf,variant){
- const row=EXPECTED.find(v=>v.variant===variant),j=gltf?.parser?.json;
- if(!row||j?.scene!==88||j.scenes?.length!==92||gltf.scenes?.length!==92||j.nodes?.[798]?.mesh!==406||
-  !j.scenes[5]?.nodes?.includes(817)||!j.nodes[817]?.children?.includes(798)||!work(j.extras?.d1fBathroomSurfacesReview)||
-  j.extras.d1fBathroomSurfacesReview.parentRawSha256!=='9184920f910dca957f70aaba70774e47880c794a14c6156c451f7fa45a917824'||
-  j.extras.d1fBathroomSurfacesReview.lobbyDoorUserAccepted!==true||j.extras.d1fBathroomSurfacesReview.saunaCeilingHeightMeasured!==false)reject();
- for(const v of EXPECTED){
+export function selectD1FBathroomScene(gltf,variant,definition=null){
+ const wc=definition===D1F_WC_THEMO_CONTRACT;
+ if(definition!==null&&!wc)reject();
+ const expected=wc?definition.expected:EXPECTED,record=wc?definition.record:D1F_BATHROOM_RECORD;
+ const start=wc?92:88,count=start+4,metaKey=wc?'d1fWcThemoReview':'d1fBathroomSurfacesReview';
+ const parentSha=wc?'330dd1fdd0476f2fc323b69fe8a09a15359d0f50381a91f32aa0b1a04d10b256':'9184920f910dca957f70aaba70774e47880c794a14c6156c451f7fa45a917824';
+ const parentScene=wc?'parentBathroomScene':'parentFourCorrectionScene',parentRoot=wc?'parentBathroomRoot':'parentFourCorrectionRoot';
+ const sceneStem=wc?'D1F WC ENCLOSURE THEMOS ':'D1F BATHROOM SURFACES CABINET CONTINUOUS WALLS ';
+ const rootStem=wc?'D1F_WC_THEMO_ROOT_':'D1F_BATHROOM_SURFACES_ROOT_';
+ const row=expected.find(v=>v.variant===variant),j=gltf?.parser?.json;
+ if(!row||j?.scene!==start||j.scenes?.length!==count||gltf.scenes?.length!==count||j.nodes?.[798]?.mesh!==406||
+  !j.scenes[5]?.nodes?.includes(817)||!j.nodes[817]?.children?.includes(798)||!work(j.extras?.[metaKey])||
+  j.extras[metaKey].parentRawSha256!==parentSha||
+  j.extras[metaKey].lobbyDoorUserAccepted!==true||j.extras[metaKey].saunaCeilingHeightMeasured!==false)reject();
+ for(const v of expected){
   const s=j.scenes[v.sceneIndex],root=j.nodes[v.rootNode];
-  if(s?.name!=='D1F BATHROOM SURFACES CABINET CONTINUOUS WALLS '+v.variant+' WORK_TEST'||!work(s.extras)||
-   s.nodes?.length!==1||s.nodes[0]!==v.rootNode||s.extras.parentFourCorrectionScene!==v.sceneIndex-4||
-   s.extras.sourceRecord!==D1F_BATHROOM_RECORD||s.extras.variant!==v.variant||
-   root?.extras?.parentFourCorrectionRoot!==j.scenes[v.sceneIndex-4]?.nodes?.[0]||
+  if(s?.name!==sceneStem+v.variant+' WORK_TEST'||!work(s.extras)||
+   s.nodes?.length!==1||s.nodes[0]!==v.rootNode||s.extras[parentScene]!==v.sceneIndex-4||
+   s.extras.sourceRecord!==record||s.extras.variant!==v.variant||
+   root?.extras?.[parentRoot]!==j.scenes[v.sceneIndex-4]?.nodes?.[0]||
    root.extras.finishedFloorWorkSurfacesMaterialized!==true||root.extras.visualRoomFootprints!==false||
    root.extras.saunaCeilingHeightMeasured!==false||root.extras.aboveCeilingWallContinuationMeasured!==false||
    root.extras.defaultInteriorCeilingsVisible!==false||!work(root.extras))reject();
   for(const id of [v.wallNode,v.contextWallNode,v.counterNode,v.cabinetNode,...Object.values(v.surfaceNodes)]){
-   if(!root.children?.includes(id)||!work(j.nodes[id]?.extras)||j.nodes[id].extras.sourceRecord!==D1F_BATHROOM_RECORD)reject();
+   if(!root.children?.includes(id)||!work(j.nodes[id]?.extras)||j.nodes[id].extras.sourceRecord!==record)reject();
   }
   const wall=j.nodes[v.wallNode],pr=j.meshes[wall.mesh]?.primitives;
   if(pr?.length!==1||wall.children?.length||wall.extras.representationKind!=='continuousWallSurface'||
@@ -47,13 +56,13 @@ export function selectD1FBathroomScene(gltf,variant){
    !Number.isInteger(pr[0].attributes.NORMAL)||!Number.isInteger(pr[0].attributes.COLOR_0))reject();
  }
  const scene=gltf.scenes[row.sceneIndex],root=scene?.children?.[0];
- if(scene.children?.length!==1||root?.name!=='D1F_BATHROOM_SURFACES_ROOT_'+variant||!work(root.userData))reject();
+ if(scene.children?.length!==1||root?.name!==rootStem+variant||!work(root.userData))reject();
  const objects=[];
  scene.traverse(o=>objects.push(o));
  if(objects.some(o=>o.userData?.representationKind==='referenceFootprint'||o.name?.includes('_OUTLINE_G2_D15_SPACE_')))reject();
- const find=id=>{
+ const find=(id,meshRequired=true)=>{
   const name=j.nodes[id].name,matches=objects.filter(o=>o.name===name||o.name===name.replace(/\s/g,'_'));
-  if(matches.length!==1||!matches[0].isMesh||!work(matches[0].userData))reject();
+  if(matches.length!==1||(meshRequired&&!matches[0].isMesh)||!work(matches[0].userData))reject();
   return matches[0];
  };
  const wall=find(row.wallNode),counter=find(row.counterNode),cabinet=find(row.cabinetNode),contextWall=find(row.contextWallNode);
@@ -78,7 +87,20 @@ export function selectD1FBathroomScene(gltf,variant){
   !near(cb.lo[0],sb.lo[0]+shift)||!near(cb.lo[2]-.080,.220)||!near(cb.hi[2],sb.lo[2])||
   !near(sb.hi[0]+shift-cb.hi[0],.015)||!near(cb.lo[1]-sb.lo[1],.015)||!near(sb.hi[1]-cb.hi[1],.015))reject();
  for(const source of [1091,1096,1101])if(objects.filter(o=>o.userData?.sourceNodeIndex===source).length!==1)reject();
- return Object.freeze({scene,sceneIndex:row.sceneIndex,variant,wall,contextWall,counter,cabinet,surfaces,
+ const themos=wc?Object.fromEntries(Object.entries(row.themoNodes).map(([id,n])=>[id,find(n,false)])):{};
+ if(wc){
+  if(j.extras[metaKey].previousBathroomUserAccepted!==true||j.extras[metaKey].interiorCeilingsUserAccepted!==true||root.userData.enclosureOffsetMm!==250||root.userData.enclosureStructuralThicknessKnown!==false||root.userData.enclosureFullHeightUserConfirmed!==true)reject();
+  const b=bathroomGeometryBounds(wall,row.targets.WC_ENCLOSURE),dc=variant.startsWith('WEST_')?6.248:6.266;
+  if(!near(b.lo[0],dc-.250)||!near(b.hi[0],dc)||!near(b.lo[1],4.012)||!near(b.hi[1],5.032)||!near(b.lo[2],.080)||!near(b.hi[2],2.760))reject();
+  for(const [id,o]of Object.entries(themos)){
+   let meshes=0;
+   if(o.userData.logicalDeviceId!=='D_THEMO_CURRENT_'+id.slice(6)+'_01'||o.userData.opaqueDepthCorrect!==true)reject();
+   o.traverse(p=>{if(!p.isMesh)return;meshes++;if(p.material?.transparent!==false||p.material?.opacity!==1||p.material?.depthWrite!==true||p.material?.depthTest!==true||p.userData.opaqueDepthCorrect!==true)reject();});
+   if(meshes!==4)reject();
+  }
+ }
+ return Object.freeze({scene,sceneIndex:row.sceneIndex,variant,wall,contextWall,counter,cabinet,surfaces,themos,wcThemoReview:wc,
+  pixelTargets:wc?definition.targets:D1F_BATHROOM_TARGETS,
   corners:['CORNER_NORTH_X2337','CORNER_SOUTH_X2337','CORNER_MIDDLE_X2589'].map(name=>({name,object:wall})),
   surfaceTargets:row.targets,bathroomReview:true,workTestOnly:true,absolutePhysicalXYVerified:false,
   rawGlbByteIdentityVerified:false,productionRenderedRoisVerified:false,humanReview:'NOT_RUN'});

@@ -612,6 +612,15 @@ const D1F_BATHROOM_SURFACES_CANDIDATE = {
   expectedSha256: '330dd1fdd0476f2fc323b69fe8a09a15359d0f50381a91f32aa0b1a04d10b256',
 } as const satisfies PrivateWorkTestCandidate;
 
+const D1F_WC_THEMO_CANDIDATE = {
+  id: 'd1f-wc-enclosure-themos-20261015',
+  label: 'D1F - wc:n koteloseinä ja Themot - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-wc-enclosure-themos-20261015.glb`,
+  objectKey: 'work-test/d1f-wc-enclosure-themos-20261015.glb',
+  expectedSize: 6823992,
+  expectedSha256: '58996e56efbcfa6900e668ebb31d76d05fa7c7e4b95a285f629b49189d3bc4e3',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -625,6 +634,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_FINISHED_FACE_2360_CANDIDATE,
   D1F_FOUR_REVIEW_CORRECTIONS_CANDIDATE,
   D1F_BATHROOM_SURFACES_CANDIDATE,
+  D1F_WC_THEMO_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
