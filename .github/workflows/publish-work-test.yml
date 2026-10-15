@@ -306,6 +306,17 @@ jobs:
           rm -f "$payload"
           echo "Finished-face source render queued. Render and human review are not yet verified."
 
+      - name: Dispatch bathroom service render after exact production proof
+        if: success() && inputs.candidate == 'd1f-bathroom-service-heating-20261015'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/workflows/private-model-d1f-service-review.yml/dispatches" -f ref=main
+
       - name: Remove private temporary files
         if: always()
         shell: bash

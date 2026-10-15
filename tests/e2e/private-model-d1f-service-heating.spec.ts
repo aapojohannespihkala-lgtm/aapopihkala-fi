@@ -1,0 +1,57 @@
+import {test,expect} from '@playwright/test';
+import {readFileSync} from 'node:fs';
+import {D1F_SERVICE_ID,D1F_SERVICE_ASSET,D1F_SERVICE_ROWS,D1F_SERVICE_DEVICES,D1F_SERVICE_OPEN_POINTS} from '../../src/scripts/privateModelD1FServiceContract.mjs';
+import {getPrivateWorkTestCandidateById} from '../../worker/privateWorkTest';
+
+const constants={D1F_SERVICE_ID,D1F_SERVICE_ASSET,D1F_SERVICE_ROWS,D1F_SERVICE_DEVICES,D1F_SERVICE_OPEN_POINTS};
+const moduleCode=readFileSync('src/scripts/privateModelD1FServiceRuntime.mjs','utf8').replace(/^import[^\n]+\n/,`const {${Object.keys(constants).join(',')}}=${JSON.stringify(constants)};\n`);
+
+test('new service source is independently bounded without replacing the accepted WC source',()=>{
+ expect(getPrivateWorkTestCandidateById(D1F_SERVICE_ID)).toMatchObject({expectedSize:D1F_SERVICE_ASSET.bytes,expectedSha256:D1F_SERVICE_ASSET.sha256});
+ expect(getPrivateWorkTestCandidateById('d1f-wc-enclosure-themos-20261015')?.expectedSha256).toBe(D1F_SERVICE_ASSET.parentSha256);
+ expect(new Set(D1F_SERVICE_ROWS.map((r:any)=>r.rootNode)).size).toBe(4);
+});
+
+test('selecting any housing part resolves to one device, its own historical route and dated observations',async({page})=>{
+ await page.goto('/about/');
+ await page.setContent('<div><button id="layers-button">Layerit</button></div><div class="viewport"><canvas id="private-model-canvas"></canvas><aside id="selection-panel"></aside></div>');
+ const result=await page.evaluate(async({code})=>{
+  const {mountD1FServiceModel}=await import('data:text/javascript;base64,'+code);
+  const target=(id:string)=>({name:id,userData:{serviceLabelFi:id},visible:true,parent:null as any,traverse(fn:any){fn(this);}});
+  const ids=['THEMO_BATHROOM','THEMO_BEDROOM','THEMO_LOBBY','HEATING_A','HEATING_B','HEATING_C'];
+  const targets=new Map(ids.map(id=>[id,target(id)]));
+  const canvas=document.querySelector('#private-model-canvas') as HTMLCanvasElement;
+  const api=mountD1FServiceModel({THREE:{},loaded:{targets,surfaces:{},scene:{},row:{variant:'WEST_ANCHOR_725_895_740'}},canvas,camera:{},controls:{},render(){},selectObject(){},setPerspective(){},planPreset(){}});
+  const devices=[];
+  for(const id of ids.slice(0,3)){
+   const part={parent:targets.get(id)};
+   const resolved=api.resolveTarget(part);api.select(part);
+   devices.push({id:resolved.id,route:canvas.dataset.d1fServiceHeatingView,text:document.querySelector('#d1f-service-selected-info')?.textContent,links:[...document.querySelectorAll('#d1f-service-selected-info a')].map(a=>(a as HTMLAnchorElement).href)});
+  }
+  const unknown=[...document.querySelectorAll('[data-location-status="UNKNOWN"]')].map(e=>e.textContent);
+  api.dispose();return {devices,unknown,removed:!document.querySelector('#d1f-service-button')};
+ },{code:Buffer.from(moduleCode).toString('base64')});
+ expect(result.devices.map(x=>[x.id,x.route])).toEqual([['THEMO_BATHROOM','HEATING_C'],['THEMO_BEDROOM','HEATING_A'],['THEMO_LOBBY','HEATING_B']]);
+ for(const d of result.devices){expect(d.text).toContain('Nykyistä kytkentää ei ole varmennettu');expect(d.text).toContain('7.-8.10.2026');expect(d.links).toHaveLength(2);}
+ expect(result.devices[0].text).toContain('1046 W');expect(result.devices[0].text).toContain('Combined valittu 8.10.2026');expect(result.devices[1].text).toContain('Ei dokumentoitua asetusvalintaa');expect(result.devices[2].text).toContain('1257 W');
+ expect(result.unknown).toHaveLength(6);expect(result.removed).toBe(true);
+});
+
+test('wrong raw bytes cannot reach the scene parser or ready service UI',async({page})=>{
+ await page.goto('/about/');
+ const result=await page.evaluate(async({code,id})=>{
+  const {loadD1FServiceModel}=await import('data:text/javascript;base64,'+code);let parsed=false;
+  const prior=window.fetch;window.fetch=async()=>new Response(new Uint8Array(32),{status:200});
+  try{await loadD1FServiceModel({candidate:{id,path:'/invalid-test.glb'},search:'',loader:{parseAsync(){parsed=true;}}});return {rejected:false,parsed};}
+  catch{return {rejected:true,parsed};}finally{window.fetch=prior;}
+ },{code:Buffer.from(moduleCode).toString('base64'),id:D1F_SERVICE_ID});
+ expect(result).toEqual({rejected:true,parsed:false});
+});
+
+test('authenticated production proof is main-only and covers all four source variants',()=>{
+ const workflow=readFileSync('.github/workflows/private-model-d1f-service-review.yml','utf8');
+ expect(workflow).toContain("github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'");expect(workflow).not.toContain('pull_request');
+ for(const row of D1F_SERVICE_ROWS)expect(workflow).toContain(row.variant);
+ const probe=readFileSync('.github/scripts/private-model-d1f-service-probe.mjs','utf8');
+ expect(probe).toContain("url.origin!==ORIGIN");expect(probe).toContain("hash(raw)===ASSET.sha256");expect(probe).toContain("evidence.targets.length===12&&evidence.devices.length===3");
+});
