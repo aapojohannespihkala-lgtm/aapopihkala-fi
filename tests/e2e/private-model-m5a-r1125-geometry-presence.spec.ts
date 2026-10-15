@@ -54,7 +54,7 @@ test('duplicate or omitted targets are rejected',()=>{
  assert.throws(()=>inspectR1125Presentation(r),/13 unique source targets/);
 });
 test('invalid primitive geometry must be rejected',()=>{
- const s=fixture();s.doc.meshes[0].primitives[0].indices=100;
+ const s=fixture();Object.assign(s.doc.meshes[0].primitives[0],{indices:100});
  assert.throws(()=>inspectR1125Presentation(s),/index component/);
  const r=fixture();r.doc.meshes[0].primitives[0].mode=1;
  assert.throws(()=>inspectR1125Presentation(r),/triangles\/lines class/);
