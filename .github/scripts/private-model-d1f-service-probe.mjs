@@ -37,6 +37,7 @@ try{
  await page.waitForFunction(({ID,variant,sha})=>{const d=document.querySelector('#private-model-canvas')?.dataset;return d?.modelSource==='work-test'&&d.workTestReviewAutoload==='true'&&d.workTestReviewCandidate===ID&&d.workTestReviewMode===ID+'-review'&&d.d1fServiceReady==='true'&&d.d1fServiceVariant===variant&&d.d1fServiceSourceSha256===sha;},{ID,variant,sha:ASSET.sha256},{timeout:60000});
  check(responses.length===1&&responses[0].status()===200,'SOURCE_RESPONSE');const raw=await responses[0].body();check(raw.length===ASSET.bytes&&hash(raw)===ASSET.sha256,'EXACT_SOURCE_IDENTITY');
  check(await canvas.evaluate(c=>Boolean(c.getContext('webgl2')||c.getContext('webgl'))),'ACTUAL_WEBGL');
+ const wc=await canvas.evaluate(c=>JSON.parse(c.dataset.d1fServiceWcProduct??'null'));check(wc?.model==='Nordic3 3530'&&wc.nominalWidthMm===355&&wc.nominalProjectionMm===535&&Math.abs(wc.centerYM-(wc.sideFacesYM[0]+wc.sideFacesYM[1])/2)<1e-9&&wc.equalSideClearanceMm===332.5&&wc.installedHeightVerified===false,'WC_PRODUCT_AND_CENTER');evidence.wcProduct=wc;
  const settle=()=>page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
  const capture=async name=>{await settle();const png=await canvas.screenshot({timeout:20000});fs.writeFileSync(OUT+'/'+name+'.png',png);return {...decodeD1FScreenshotPng(png),sha256:hash(png)};};
  const delta=(a,b,roi=null)=>{check(a.width===b.width&&a.height===b.height,'FRAME_SIZE');let inside=0,outside=0;for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++){const i=4*(y*a.width+x);if(Math.max(...[0,1,2].map(k=>Math.abs(a.rgba[i+k]-b.rgba[i+k])))>=28){if(!roi||(x>=roi.x&&y>=roi.y&&x<roi.x+roi.width&&y<roi.y+roi.height))inside++;else outside++;}}return {inside,outside};};
@@ -79,3 +80,4 @@ try{
  evidence.phase='COMPLETE';check(evidence.targets.length===12&&evidence.devices.length===3&&evidence.nativePresetTargets.length===3,'TARGET_COVERAGE');evidence.result='PASS';evidence.productionAuthenticatedVerified=!LOCAL;
 }catch(e){evidence.failure=String(e.message).slice(0,600);process.exitCode=1;}
 finally{clearTimeout(deadline);write();if(browser)await browser.close();console.log(JSON.stringify(evidence));}
+
