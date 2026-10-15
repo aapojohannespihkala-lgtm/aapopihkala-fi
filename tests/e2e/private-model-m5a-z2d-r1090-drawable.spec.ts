@@ -149,6 +149,32 @@ test('R1090 rejects hidden or unpainted candidates instead of trusting their sou
   ]);
 });
 
+test('R1090 checks effective visibility through hidden parent, hidden root and restoration', () => {
+  const scene = makeScene();
+  const route = scene.children[4];
+  const parent = new THREE.Group();
+  scene.add(parent);
+  parent.add(route);
+
+  // Mesh stays visible, but a hidden containing group prevents its pixels.
+  parent.visible = false;
+  expect(route.visible).toBe(true);
+  expect(getUndrawableM5AZ2TargetKeys(scene)).toEqual([
+    'G2_DRAIN_LINK_PVK_SOK1_001',
+  ]);
+
+  parent.visible = true;
+  expect(getUndrawableM5AZ2TargetKeys(scene)).toEqual([]);
+
+  // The same gate must reject a hidden review scene, not just hidden meshes.
+  scene.visible = false;
+  expect(new Set(getUndrawableM5AZ2TargetKeys(scene))).toEqual(
+    new Set(m5aZ2ExpectedTargetKeys),
+  );
+  scene.visible = true;
+  expect(getUndrawableM5AZ2TargetKeys(scene)).toEqual([]);
+});
+
 test('R1090 viewer ready state checks drawable target keys before ready is set', () => {
   const runtime = readFileSync(
     resolve(process.cwd(), 'src/pages/private-model/index.astro'),

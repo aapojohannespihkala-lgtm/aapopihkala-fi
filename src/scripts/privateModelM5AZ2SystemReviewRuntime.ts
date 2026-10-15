@@ -73,6 +73,19 @@ const isSupersededR1090ReferenceRoute = (data: any) =>
 
 // This complements, but does not replace, the source/no-promotion checks in the
 // presentation helper. A keyed material-bearing object is not proof of pixels.
+// Three.js traverses children even when a parent group is hidden. Visibility
+// readiness must include the scene/root and every ancestor, not only the mesh.
+// Fail closed if a target is detached or its ancestry is unexpectedly deep.
+const isActuallyVisibleInReviewTree = (object: any, root: any): boolean => {
+  let current = object;
+  for (let hops = 0; current && hops < 64; hops += 1) {
+    if (current.visible === false) return false;
+    if (current === root) return true;
+    current = current.parent;
+  }
+  return false;
+};
+
 export const getUndrawableM5AZ2TargetKeys = (sceneRoot: any): string[] => {
   const undrawable: string[] = [];
   sceneRoot?.updateMatrixWorld?.(true);
@@ -100,7 +113,8 @@ export const getUndrawableM5AZ2TargetKeys = (sceneRoot: any): string[] => {
       Number.isFinite(count) && count >= minimum &&
       Number.isFinite(indices) && indices >= minimum &&
       Number.isFinite(start) && start >= 0 &&
-      drawn >= minimum && hasVisibleMaterial && object.visible !== false;
+      drawn >= minimum && hasVisibleMaterial &&
+      isActuallyVisibleInReviewTree(object, sceneRoot);
     if (valid) {
       for (let i = 0; i < count; i += 1) {
         if (![position.getX(i), position.getY(i), position.getZ(i)].every(Number.isFinite)) {
