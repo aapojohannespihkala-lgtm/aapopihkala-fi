@@ -2565,7 +2565,7 @@ const title = 'Private 3D viewer';
               ? 'd1f-measured-wall-140-100-2350-b710-basin-20261014'
               : reviewId === 'd1f-finished-face-2360-wall-basin-20261014-review' ? 'd1f-finished-face-2360-wall-basin-20261014'
                 : reviewId === 'd1f-four-review-corrections-20261014-review' ? 'd1f-four-review-corrections-20261014'
-                  : reviewId === 'd1f-bathroom-surfaces-cabinet-20261015-review' ? 'd1f-bathroom-surfaces-cabinet-20261015' : null;
+                  : reviewId === 'd1f-wc-enclosure-themos-20261015-review' ? 'd1f-wc-enclosure-themos-20261015' : reviewId === 'd1f-bathroom-surfaces-cabinet-20261015-review' ? 'd1f-bathroom-surfaces-cabinet-20261015' : null;
           if (!d1fCombinedPixelRuntime || !expectedId ||
               canvas.dataset.modelSource !== 'work-test' ||
               canvas.dataset.d1fCombinedWallRawSha256 !== D1F_COMBINED_WALL_ASSETS[expectedId].sha256 ||
@@ -10524,7 +10524,7 @@ const title = 'Private 3D viewer';
               d1fCombinedWallRawSha256: combinedWallReview.asset.sha256,
               d1fCombinedWallPhysicalXYVerified: 'false',
               d1fCombinedWallHumanReview: 'NOT_RUN',
-              d1fCombinedWallPixelTargets: candidate.id === 'd1f-bathroom-surfaces-cabinet-20261015'
+              d1fCombinedWallPixelTargets: candidate.id === 'd1f-wc-enclosure-themos-20261015' ? 'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589,BASIN,LOBBY_DOOR_REVEALS,B_WALL_CONTINUITY,CABINET,KPH_FLOOR,SAUNA_FLOOR,ORDINARY_FLOOR,KPH_CEILING,SAUNA_CEILING,WC_ENCLOSURE,THEMO_LOBBY,THEMO_BEDROOM,THEMO_BATHROOM' : candidate.id === 'd1f-bathroom-surfaces-cabinet-20261015'
                 ? 'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589,BASIN,LOBBY_DOOR_REVEALS,B_WALL_CONTINUITY,CABINET,KPH_FLOOR,SAUNA_FLOOR,ORDINARY_FLOOR,KPH_CEILING,SAUNA_CEILING'
                 : candidate.id === 'd1f-four-review-corrections-20261014'
                 ? 'I03,CORNER_NORTH_X2337,CORNER_SOUTH_X2337,CORNER_MIDDLE_X2589,BASIN,LOBBY_DOOR_REVEALS,B_WALL_CONTINUITY'
@@ -10534,7 +10534,7 @@ const title = 'Private 3D viewer';
             });
             applyStandardViewPreset('d-apartment');
             if (candidate.id === 'd1f-combined-wall-115-100-20261013' ||
-                candidate.id === 'd1f-measured-wall-140-100-2350-b710-basin-20261014' || candidate.id === 'd1f-finished-face-2360-wall-basin-20261014' || candidate.id === 'd1f-four-review-corrections-20261014' || candidate.id === 'd1f-bathroom-surfaces-cabinet-20261015') {
+                candidate.id === 'd1f-measured-wall-140-100-2350-b710-basin-20261014' || candidate.id === 'd1f-finished-face-2360-wall-basin-20261014' || candidate.id === 'd1f-four-review-corrections-20261014' || candidate.id === 'd1f-bathroom-surfaces-cabinet-20261015' || candidate.id === 'd1f-wc-enclosure-themos-20261015') {
               d1fCombinedPixelRuntime = createD1FCombinedWallPixelRuntime({
                 THREE, selected: combinedWallReview.selected, sourceSha: combinedWallReview.asset.sha256,
                 camera, controls, canvas, render: () => renderer.render(scene, camera),

@@ -1,5 +1,6 @@
+import { D1F_WC_THEMO_TARGETS } from './privateModelD1FWcThemoContract.mjs';
 import { D1F_BATHROOM_TARGETS } from './privateModelD1FBathroomScene.mjs';
-import { D1F_BATHROOM_SUPPRESSION } from './privateModelD1FBathroomPixelRuntime.mjs';
+import { D1F_BATHROOM_SUPPRESSION, D1F_WC_THEMO_SUPPRESSION } from './privateModelD1FBathroomPixelRuntime.mjs';
 import { D1F_COMBINED_WALL_ASSETS } from './privateModelD1FCombinedWallSceneContract.mjs';
 
 /**
@@ -124,8 +125,8 @@ function measuredSourceSha(candidateId) {
 export function evaluateD1FOneMeasuredTargetPixelSample(sample, { candidateId = 'd1f-measured-wall-140-100-2350-b710-basin-20261014' } = {}) {
   const bath = D1F_COMBINED_WALL_ASSETS[candidateId]?.bathroomReview === true;
   return verifySample(sample, 40, 8,
-    bath ? D1F_BATHROOM_TARGETS : D1F_COMBINED_WALL_ASSETS[candidateId]?.fourUserCorrections ? D1F_SEVEN_PIXEL_TARGETS : D1F_FIVE_PIXEL_TARGETS,
-    bath ? D1F_BATHROOM_SUPPRESSION : D1F_MEASURED_PIXEL_SUPPRESSION, measuredSourceSha(candidateId));
+    D1F_COMBINED_WALL_ASSETS[candidateId]?.wcThemoReview ? D1F_WC_THEMO_TARGETS : bath ? D1F_BATHROOM_TARGETS : D1F_COMBINED_WALL_ASSETS[candidateId]?.fourUserCorrections ? D1F_SEVEN_PIXEL_TARGETS : D1F_FIVE_PIXEL_TARGETS,
+    D1F_COMBINED_WALL_ASSETS[candidateId]?.wcThemoReview ? D1F_WC_THEMO_SUPPRESSION : bath ? D1F_BATHROOM_SUPPRESSION : D1F_MEASURED_PIXEL_SUPPRESSION, measuredSourceSha(candidateId));
 }
 
 export function evaluateD1FFourTargetPixelGate(
@@ -208,7 +209,7 @@ export function evaluateD1FSevenTargetPixelGate(samples, { candidateId } = {}) {
 }
 
 export function evaluateD1FBathroomTargetPixelGate(samples, { candidateId } = {}) {
-  if(!D1F_COMBINED_WALL_ASSETS[candidateId]?.bathroomReview ||
+  if(D1F_COMBINED_WALL_ASSETS[candidateId]?.wcThemoReview || !D1F_COMBINED_WALL_ASSETS[candidateId]?.bathroomReview ||
     !Array.isArray(samples) || samples.length !== 13 ||
     new Set(samples.map(s=>s?.targetId)).size !== 13 ||
     !D1F_BATHROOM_TARGETS.every(id=>samples.some(s=>s?.targetId===id)) ||
@@ -218,4 +219,11 @@ export function evaluateD1FBathroomTargetPixelGate(samples, { candidateId } = {}
   return Object.freeze({gate:'PASS_THIRTEEN_INDEPENDENT_DIFFERENTIAL_PIXEL_CONTRACTS_ONLY',
     targets:proofs,checkedTargetCount:13,originalGlbBytesAuthenticatedByThisFunction:false,
     actualBrowserWebGlVerifiedByThisFunction:false,productionPublicationVerifiedByThisFunction:false,humanReview:'NOT_RUN'});
+}
+
+/** Every WC/Themo successor requires all seventeen targets from one variant. */
+export function evaluateD1FWcThemoTargetPixelGate(samples,{candidateId}={}){
+ if(!D1F_COMBINED_WALL_ASSETS[candidateId]?.wcThemoReview||!Array.isArray(samples)||samples.length!==17||new Set(samples.map(s=>s?.targetId)).size!==17||!D1F_WC_THEMO_TARGETS.every(id=>samples.some(s=>s?.targetId===id))||new Set(samples.map(s=>s?.baseline?.variant)).size!==1)fail('seventeen distinct WC/Themo source-bound targets required');
+ const proofs=samples.map(s=>verifySample(s,40,8,D1F_WC_THEMO_TARGETS,D1F_WC_THEMO_SUPPRESSION,measuredSourceSha(candidateId)));
+ return Object.freeze({gate:'PASS_SEVENTEEN_INDEPENDENT_DIFFERENTIAL_PIXEL_CONTRACTS_ONLY',targets:proofs,checkedTargetCount:17,originalGlbBytesAuthenticatedByThisFunction:false,actualBrowserWebGlVerifiedByThisFunction:false,productionPublicationVerifiedByThisFunction:false,humanReview:'NOT_RUN'});
 }

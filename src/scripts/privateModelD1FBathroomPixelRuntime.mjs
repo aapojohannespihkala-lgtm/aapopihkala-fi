@@ -1,14 +1,18 @@
+import { D1F_WC_THEMO_ASSET, D1F_WC_THEMO_TARGETS } from './privateModelD1FWcThemoContract.mjs';
 import { D1F_BATHROOM_ASSET, D1F_BATHROOM_TARGETS, bathroomGeometryBounds } from './privateModelD1FBathroomScene.mjs';
 export const D1F_BATHROOM_SUPPRESSION=Object.freeze(Object.fromEntries(D1F_BATHROOM_TARGETS.map(id=>[id,
  ['I03','CORNER_NORTH_X2337','CORNER_SOUTH_X2337','CORNER_MIDDLE_X2589','LOBBY_DOOR_REVEALS','B_WALL_CONTINUITY'].includes(id)
  ? 'CONTINUOUS_WALL_DECLARED_SOURCE_TRIANGLES_ONLY' : id+'_NODE_VISIBILITY_ONLY'])));
+export const D1F_WC_THEMO_SUPPRESSION=Object.freeze({...D1F_BATHROOM_SUPPRESSION,WC_ENCLOSURE:'CONTINUOUS_WALL_DECLARED_SOURCE_TRIANGLES_ONLY',...Object.fromEntries(['THEMO_LOBBY','THEMO_BEDROOM','THEMO_BATHROOM'].map(id=>[id,id+'_NODE_VISIBILITY_ONLY']))});
 const reject=()=>{throw new Error('D1F_BATHROOM_PIXEL_RUNTIME_REJECTED');};
 const near=(a,b)=>Number.isFinite(a)&&Math.abs(a-b)<.00001;
 export function createD1FBathroomPixelRuntime({THREE,selected,sourceSha,camera,controls,canvas,render}){
- if(sourceSha!==D1F_BATHROOM_ASSET.sha256||selected?.bathroomReview!==true||!camera?.isPerspectiveCamera||!selected.wall?.isMesh)reject();
+ const wc=sourceSha===D1F_WC_THEMO_ASSET.sha256;
+ const targets=wc?D1F_WC_THEMO_TARGETS:D1F_BATHROOM_TARGETS,suppression=wc?D1F_WC_THEMO_SUPPRESSION:D1F_BATHROOM_SUPPRESSION;
+ if((sourceSha!==D1F_BATHROOM_ASSET.sha256&&!wc)||(wc&&selected?.wcThemoReview!==true)||selected?.bathroomReview!==true||!camera?.isPerspectiveCamera||!selected.wall?.isMesh)reject();
  selected.scene.updateMatrixWorld(true);
  const wall=selected.wall,sourceGeometry=wall.geometry,sourceIndex=sourceGeometry.index.array;
- const objects=new Map([['BASIN',selected.counter],['CABINET',selected.cabinet],...Object.entries(selected.surfaces)]);
+ const objects=new Map([['BASIN',selected.counter],['CABINET',selected.cabinet],...Object.entries(selected.surfaces),...Object.entries(selected.themos??{})]);
  const patches=new Map(Object.entries(selected.surfaceTargets).map(([id,offsets])=>[id,{offsets:[...offsets],vertices:bathroomGeometryBounds(wall,offsets).vertices}]));
  const initialVisibility=new Map([...new Set([wall,...objects.values()])].map(o=>[o,o.visible]));
  const original={position:camera.position.clone(),quaternion:camera.quaternion.clone(),up:camera.up.clone(),
@@ -40,7 +44,12 @@ export function createD1FBathroomPixelRuntime({THREE,selected,sourceSha,camera,c
   }
   let footprints=0;selected.scene.traverse(o=>{if(o.userData?.representationKind==='referenceFootprint')footprints++;});
   if(footprints!==0)reject();
-  return {state:'GEOMETRY_VERIFIED',gate:'PASS_BATHROOM_SURFACES_CABINET_CONTINUOUS_WALLS_LOADED_GEOMETRY',
+  if(wc){
+   const eb=bathroomGeometryBounds(wall,patches.get('WC_ENCLOSURE').offsets),dc=selected.variant.startsWith('WEST_')?6.248:6.266;
+   if(!near(eb.lo[0],dc-.250)||!near(eb.hi[0],dc)||!near(eb.lo[1],4.012)||!near(eb.hi[1],5.032)||!near(eb.lo[2],.080)||!near(eb.hi[2],2.760))reject();
+   for(const o of Object.values(selected.themos)){let count=0;o.traverse(p=>{if(p.isMesh){count++;if(p.material.opacity!==1||p.material.transparent!==false||!p.material.depthWrite||!p.material.depthTest)reject();}});if(count!==4)reject();}
+  }
+  return {state:'GEOMETRY_VERIFIED',...(wc?{wcEnclosureOffsetMm:250,wcExposedShortWallMm:710,wcEnclosureFullHeight:true,wcEnclosureStructuralThicknessKnown:false,themoOpaquePartCount:12,themoPlacementChanged:false}:{}),gate:'PASS_BATHROOM_SURFACES_CABINET_CONTINUOUS_WALLS_LOADED_GEOMETRY',
    glbSha256:sourceSha,variant:selected.variant,clearDoorWidthMm:710,clearDoorHeightMm:1935,
    counterThicknessMm:60,counterThicknessMeasured:true,cabinetDimensionsMm:[995,480,585],
    cabinetFloorClearanceMm:220,cabinetFreeEdgeInsetsMm:[15,15,15],wetFloorRelativeMm:80,
@@ -51,24 +60,31 @@ export function createD1FBathroomPixelRuntime({THREE,selected,sourceSha,camera,c
  };
  inspectCorrections();
  const prepare=(targetId,viewIndex=0)=>{
-  if(disposed||!D1F_BATHROOM_TARGETS.includes(targetId)||!Number.isInteger(viewIndex)||viewIndex<0||viewIndex>3)reject();
+  if(disposed||!targets.includes(targetId)||!Number.isInteger(viewIndex)||viewIndex<0||viewIndex>3)reject();
   if(!restoreTarget())reject();
   for(const [o,v] of initialVisibility)o.visible=v;
   for(const [id,o] of objects)if(id.includes('CEILING'))o.visible=id===targetId;
   const object=patches.has(targetId)?wall:objects.get(targetId);
   if(!object?.visible)reject();
-  const vertices=patches.has(targetId)?patches.get(targetId).vertices:bathroomGeometryBounds(object).vertices;
-  object.updateWorldMatrix(true,false);
+  const isThemo=targetId.startsWith('THEMO_');
+  const vertices=patches.has(targetId)?patches.get(targetId).vertices:isThemo?[]:bathroomGeometryBounds(object).vertices;
+  object.updateWorldMatrix(true,true);
   const points=vertices.map(i=>new THREE.Vector3().fromBufferAttribute(object.geometry.attributes.position,i).applyMatrix4(object.matrixWorld));
+  if(isThemo)object.traverse(p=>{if(p.isMesh)for(const i of bathroomGeometryBounds(p).vertices)points.push(new THREE.Vector3().fromBufferAttribute(p.geometry.attributes.position,i).applyMatrix4(p.matrixWorld));});
   const bounds=new THREE.Box3().setFromPoints(points),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
   const rect=canvas.getBoundingClientRect(),width=Math.round(rect.width),height=Math.round(rect.height);
   if(width<320||height<320||![...size.toArray(),...center.toArray()].every(Number.isFinite))reject();
   const flat=targetId.includes('FLOOR')||targetId.includes('CEILING');
   const interior=targetId==='I03'&&viewIndex===0,door=targetId==='LOBBY_DOOR_REVEALS'&&viewIndex===0;
-  camera.aspect=width/height;camera.fov=flat?65:interior||door?80:targetId==='CABINET'?50:original.fov;
+  camera.aspect=width/height;camera.fov=flat?65:interior||door||targetId==='WC_ENCLOSURE'?80:targetId==='CABINET'?50:original.fov;
   const distance=Math.max(size.y/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)))*1.35,Math.max(size.x,size.z)*2.8);
   camera.up.set(0,1,0);
-  if(flat){
+  if(isThemo){
+   const angle=[0,-.65,.65,1.0][viewIndex],sign=object.userData.frontFacesTowardYSign;
+   if(sign!==1&&sign!==-1)reject();
+   camera.position.copy(center).add(new THREE.Vector3(Math.sin(angle)*.55,.08,-sign*Math.cos(angle)*.55));
+  }else if(targetId==='WC_ENCLOSURE')camera.position.copy(center).add(new THREE.Vector3(-2,0,[0,.25,-.25,.45][viewIndex]));
+  else if(flat){
    const fit=Math.max(size.z,size.x/camera.aspect)/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)))*1.4;
    const dirs=[[.01,.01],[.10,.01],[-.10,.01],[.01,-.10]],d=dirs[viewIndex];
    camera.position.copy(center).add(new THREE.Vector3(d[0],1,d[1]).normalize().multiplyScalar(fit));
@@ -89,7 +105,7 @@ export function createD1FBathroomPixelRuntime({THREE,selected,sourceSha,camera,c
   locked={position:camera.position.clone(),quaternion:camera.quaternion.clone(),up:camera.up.clone(),aspect:camera.aspect,
    fov:camera.fov,projection:camera.projectionMatrix.clone(),inverse:camera.projectionMatrixInverse.clone()};
   prepared={targetId,viewIndex,width,height,roi:{x,y,width:right-x,height:bottom-y},cameraFingerprint:fingerprint(),
-   glbSha256:sourceSha,variant:selected.variant,suppressionMethod:D1F_BATHROOM_SUPPRESSION[targetId],
+   glbSha256:sourceSha,variant:selected.variant,suppressionMethod:suppression[targetId],
    roiProvenance:'PROJECTED_EXACT_TARGET_GEOMETRY',targetIdentityVerified:true,
    sourceI03Indices:{count:patches.get('I03').offsets.length*3,sourceVertices:[...patches.get('I03').vertices],offsets:[...patches.get('I03').offsets]},
    ...(patches.has(targetId)?{sourceTargetIndices:{count:patches.get(targetId).offsets.length*3,
