@@ -1,5 +1,5 @@
 // @ts-ignore - immutable source identity shared with the viewer.
-import { D1F_SERVICE_ASSET } from '../src/scripts/privateModelD1FServiceContract.mjs';
+import { D1F_SERVICE_ASSET, D1F_SERVICE_PREVIOUS } from '../src/scripts/privateModelD1FServiceContract.mjs';
 import {
   PRIVATE_MODEL_PREFIX,
   verifyPrivateModelAccess,
@@ -628,6 +628,15 @@ const D1F_SERVICE_CANDIDATE = {
   label: 'D1F - kylpyhuone, huolto ja lattialämmitys - WORK_TEST',
   path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-bathroom-service-heating-20261015.glb`,
   objectKey: 'work-test/d1f-bathroom-service-heating-20261015.glb',
+  expectedSize: D1F_SERVICE_PREVIOUS.asset.bytes,
+  expectedSha256: D1F_SERVICE_PREVIOUS.asset.sha256,
+} as const satisfies PrivateWorkTestCandidate;
+
+const D1F_WC3530_CENTERED_CANDIDATE = {
+  id: 'd1f-wc-nordic3530-centered-20261016',
+  label: 'D1F - WC Nordic³ 3530 keskitetty - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-wc-nordic3530-centered-20261016.glb`,
+  objectKey: 'work-test/d1f-wc-nordic3530-centered-20261016.glb',
   expectedSize: D1F_SERVICE_ASSET.bytes,
   expectedSha256: D1F_SERVICE_ASSET.sha256,
 } as const satisfies PrivateWorkTestCandidate;
@@ -647,6 +656,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_BATHROOM_SURFACES_CANDIDATE,
   D1F_WC_THEMO_CANDIDATE,
   D1F_SERVICE_CANDIDATE,
+  D1F_WC3530_CENTERED_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
@@ -1301,3 +1311,4 @@ export const handlePrivateWorkTestRequest = async (
 
   return privateWorkTestCandidateResponse(request, bucket, candidate);
 };
+

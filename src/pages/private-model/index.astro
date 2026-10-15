@@ -11542,7 +11542,7 @@ const title = 'Private 3D viewer';
         if (
           !isP137EScene67ReviewRequested() &&
           !isD1FCombinedWallReviewRequested(window.location.search) &&
-          getRequestedReviewCandidateId() !== 'd1f-bathroom-service-heating-20261015' &&
+          !['d1f-bathroom-service-heating-20261015', 'd1f-wc-nordic3530-centered-20261016'].includes(getRequestedReviewCandidateId() ?? '') &&
           !isPrivateModelReviewRequested(window.location.search, m5aZ2R1125ReviewId)
         ) {
           await loadCurrentModel();
@@ -11573,4 +11573,5 @@ const title = 'Private 3D viewer';
     </script>
   </body>
 </html>
+
 

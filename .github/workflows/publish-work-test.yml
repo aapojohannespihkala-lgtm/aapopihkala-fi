@@ -307,7 +307,7 @@ jobs:
           echo "Finished-face source render queued. Render and human review are not yet verified."
 
       - name: Dispatch bathroom service render after exact production proof
-        if: success() && inputs.candidate == 'd1f-bathroom-service-heating-20261015'
+        if: success() && inputs.candidate == 'd1f-wc-nordic3530-centered-20261016'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -326,3 +326,4 @@ jobs:
             "$RUNNER_TEMP/work-test-production-readback.glb" \
             "$RUNNER_TEMP/publish-response.json" \
             "$RUNNER_TEMP/catalog.json"
+
