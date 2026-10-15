@@ -12,7 +12,8 @@ import { m5aR1125SourcePixelKinds } from '../../src/scripts/privateModelM5AR1125
 // cannot authenticate the original GLB, production WebGL or HUMAN_REVIEW.
 const width = 1000, height = 600;
 const keys = Object.keys(m5aR1125SourcePixelKinds);
-const kindOf = (key: string): string => m5aR1125SourcePixelKinds[key];
+const kindOf = (key: string): string =>
+  (m5aR1125SourcePixelKinds as Readonly<Record<string, string>>)[key]!;
 const color: Record<string, number[]> = {
   wellGray: [150, 154, 159, 255], routeCyan: [18, 140, 180, 255],
   boundaryYellow: [200, 145, 65, 255],
@@ -253,9 +254,10 @@ test('duplicate, out-of-frame or source-inconsistent centers fail closed', () =>
 
 test('a supplied mask cannot replace original source geometry', () => {
   const args = fixture();
-  expect(() => prove({ ...args, sourceScene: undefined,
+  const supplied = { ...args, sourceScene: undefined,
     sourceMasks: Object.fromEntries(keys.map(key => [key, new Uint8Array(width * height).fill(1)])),
-  })).toThrow(/source geometry/);
+  };
+  expect(() => prove(supplied)).toThrow(/source geometry/);
 });
 
 test('wrong, duplicate or promoted source identity cannot produce footprint proof', () => {
