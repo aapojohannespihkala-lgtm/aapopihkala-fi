@@ -1,3 +1,4 @@
+import { loadD1FServiceModel } from '../../src/scripts/privateModelD1FServiceRuntime.mjs';
 import { test, expect } from '@playwright/test';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { readFileSync } from 'node:fs';
@@ -401,6 +402,7 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
       isP137EScene67ReviewRequested: () => false,
       window: { location: { search: '?review=' + id + '-review' } },
       isD1FCombinedWallReviewRequested,
+      loadD1FServiceModel,
       loadD1FCombinedWallReview: (options: any) => loadD1FCombinedWallReview({
         ...options,
         fetcher: async (path: string) => ({ status: 200, redirected: false,
