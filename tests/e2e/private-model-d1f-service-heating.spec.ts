@@ -21,7 +21,8 @@ test('selecting any housing part resolves to one device, its own historical rout
   const ids=['THEMO_BATHROOM','THEMO_BEDROOM','THEMO_LOBBY','HEATING_A','HEATING_B','HEATING_C'];
   const targets=new Map(ids.map(id=>[id,target(id)]));
   const canvas=document.querySelector('#private-model-canvas') as HTMLCanvasElement;
-  const api=mountD1FServiceModel({THREE:{},loaded:{targets,surfaces:{},scene:{},row:{variant:'WEST_ANCHOR_725_895_740'}},canvas,camera:{},controls:{},render(){},selectObject(){},setPerspective(){},planPreset(){}});
+  const ceiling={visible:false};
+  const api=mountD1FServiceModel({THREE:{},loaded:{targets,surfaces:{KPH_CEILING:ceiling},scene:{},row:{variant:'WEST_ANCHOR_725_895_740'}},canvas,camera:{},controls:{},render(){},selectObject(){},setPerspective(){},planPreset(){ceiling.visible=true;}});
   const devices=[];
   for(const id of ids.slice(0,3)){
    const part={parent:targets.get(id)};
@@ -29,12 +30,14 @@ test('selecting any housing part resolves to one device, its own historical rout
    devices.push({id:resolved.id,route:canvas.dataset.d1fServiceHeatingView,text:document.querySelector('#d1f-service-selected-info')?.textContent,links:[...document.querySelectorAll('#d1f-service-selected-info a')].map(a=>(a as HTMLAnchorElement).href)});
   }
   const unknown=[...document.querySelectorAll('[data-location-status="UNKNOWN"]')].map(e=>e.textContent);
-  api.dispose();return {devices,unknown,removed:!document.querySelector('#d1f-service-button')};
+  document.querySelector<HTMLButtonElement>('#d1f-heating-preset')?.click();
+  const nativePreset={ceilingVisible:ceiling.visible,allRoutesShown:['HEATING_A','HEATING_B','HEATING_C'].every(id=>targets.get(id)?.visible)};
+  api.dispose();return {devices,unknown,nativePreset,removed:!document.querySelector('#d1f-service-button')};
  },{code:Buffer.from(moduleCode).toString('base64')});
  expect(result.devices.map(x=>[x.id,x.route])).toEqual([['THEMO_BATHROOM','HEATING_C'],['THEMO_BEDROOM','HEATING_A'],['THEMO_LOBBY','HEATING_B']]);
  for(const d of result.devices){expect(d.text).toContain('Nykyistä kytkentää ei ole varmennettu');expect(d.text).toContain('7.-8.10.2026');expect(d.links).toHaveLength(2);}
  expect(result.devices[0].text).toContain('1046 W');expect(result.devices[0].text).toContain('Combined valittu 8.10.2026');expect(result.devices[1].text).toContain('Ei dokumentoitua asetusvalintaa');expect(result.devices[2].text).toContain('1257 W');
- expect(result.unknown).toHaveLength(6);expect(result.removed).toBe(true);
+ expect(result.unknown).toHaveLength(6);expect(result.nativePreset).toEqual({ceilingVisible:false,allRoutesShown:true});expect(result.removed).toBe(true);
 });
 
 test('wrong raw bytes cannot reach the scene parser or ready service UI',async({page})=>{

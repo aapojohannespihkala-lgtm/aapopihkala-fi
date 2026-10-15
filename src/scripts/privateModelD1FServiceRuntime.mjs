@@ -25,7 +25,7 @@ export async function loadD1FServiceModel({candidate,search,loader}){
 
 const element=(tag,text)=>{const e=document.createElement(tag);for(const a of document.querySelector('#selection-panel')?.attributes??[])if(a.name.startsWith('data-astro-'))e.setAttribute(a.name,a.value);if(text!==undefined)e.textContent=text;return e;};
 const sourceLink=(label,url)=>{const a=element('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';return a;};
-export function mountD1FServiceModel({THREE,loaded,canvas,camera,controls,render,selectObject,setPerspective,planPreset}){
+export function mountD1FServiceModel({THREE,loaded,canvas,camera,controls,render,selectObject,setPerspective,planPreset,getCamera=()=>camera}){
  const {targets,surfaces}=loaded,byObject=new Map([...targets].map(([id,o])=>[o,id]));
  const routes=[...targets].filter(([id])=>id.startsWith('HEATING_'));
  const originalMaterials=new Map();let view='room',active=null,probe=null;
@@ -43,7 +43,9 @@ export function mountD1FServiceModel({THREE,loaded,canvas,camera,controls,render
  panel.append(sourceLink('Laite- ja materiaalitiedot','https://docs.google.com/document/d/1-OxwgtepDX6wiJZCSPzPbnr0Up6PFDHrVE4TWjRplxY/edit'));
  canvas.closest('.viewport')?.append(panel);
  const info=element('section');info.id='d1f-service-selected-info';info.hidden=true;info.style.cssText='border-top:1px solid #e2e3de;margin-top:10px;padding-top:10px;font-size:13px';
- document.querySelector('#selection-panel')?.append(info);
+ const selectionPanel=document.querySelector('#selection-panel'),priorMaxHeight=selectionPanel?.style.maxHeight;
+ if(selectionPanel){selectionPanel.append(info);selectionPanel.style.maxHeight='calc(100% - 260px)';}
+ panel.style.maxHeight='calc(100% - 260px)';
  const toggle=open=>{panel.hidden=!open;button.setAttribute('aria-expanded',String(open));if(open)document.querySelector('#selection-panel')?.setAttribute('hidden','');};
  button.addEventListener('click',()=>toggle(panel.hidden));close.addEventListener('click',()=>toggle(false));
  const routeView=key=>{for(const[id,o]of routes)o.visible=key==='ALL'||id===key;canvas.dataset.d1fServiceHeatingView=key??'HIDDEN';};
@@ -65,28 +67,28 @@ export function mountD1FServiceModel({THREE,loaded,canvas,camera,controls,render
   direction.normalize();camera.up.set(0,1,0);camera.position.copy(center).addScaledVector(direction,distance);controls.target.copy(center);camera.near=.01;camera.updateProjectionMatrix();controls.update();render();
   return {box,center};
  };
- heatButton.addEventListener('click',()=>{toggle(false);view='heating';planPreset();routeView('ALL');canvas.dataset.d1fServicePreset='FLOOR_HEATING_2015';});
+ heatButton.addEventListener('click',()=>{toggle(false);view='heating';const checkbox=document.querySelector('#architecture-ceilings-visible');if(checkbox?.checked){checkbox.checked=false;checkbox.dispatchEvent(new Event('change',{bubbles:true}));}planPreset();for(const[k,o]of Object.entries(surfaces))if(k.includes('CEILING'))o.visible=false;routeView('ALL');canvas.dataset.d1fServicePreset='FLOOR_HEATING_2015';});
  const onProbe=event=>{
   const d=event.detail;if(!d||!Number.isSafeInteger(d.requestId))return;
   let value={requestId:d.requestId,state:'REJECTED'};
   try{
    if(!targets.has(d.targetId)&&d.action!=='finish')reject();const o=targets.get(d.targetId);
-   if(d.action==='prepare'){
-    if(probe)reject();setPerspective();const savedVisible=o.visible;
+   if(d.action==='prepare'||d.action==='prepare-native'){
+    if(probe)reject();const native=d.action==='prepare-native';if(native&&(!d.targetId.startsWith('HEATING_')||canvas.dataset.d1fServiceHeatingView!=='ALL'))reject();if(!native)setPerspective();const savedVisible=o.visible,cam=native?getCamera():camera;
     const saved={position:camera.position.clone(),up:camera.up.clone(),target:controls.target.clone(),near:camera.near,fov:camera.fov,ceilings:Object.entries(surfaces).filter(([k])=>k.includes('CEILING')).map(([,o])=>[o,o.visible])};
-    const {box}=focus(d.targetId,d.viewIndex??0);const xs=[],ys=[];for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z]){const p=new THREE.Vector3(x,y,z).project(camera);xs.push((p.x+1)*canvas.width/2);ys.push((1-p.y)*canvas.height/2);}
+    const box=native?new THREE.Box3().setFromObject(o):focus(d.targetId,d.viewIndex??0).box;const xs=[],ys=[];for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z]){const p=new THREE.Vector3(x,y,z).project(cam);xs.push((p.x+1)*canvas.width/2);ys.push((1-p.y)*canvas.height/2);}
     const x=Math.max(0,Math.floor(Math.min(...xs))-8),y=Math.max(0,Math.floor(Math.min(...ys))-8),right=Math.min(canvas.width,Math.ceil(Math.max(...xs))+8),bottom=Math.min(canvas.height,Math.ceil(Math.max(...ys))+8);
-    probe={targetId:d.targetId,o,savedVisible,saved,pose:{position:camera.position.clone(),target:controls.target.clone(),up:camera.up.clone()},roi:{x,y,width:right-x,height:bottom-y},cameraFingerprint:JSON.stringify([camera.position.toArray(),controls.target.toArray(),camera.fov])};
-    value={...value,state:'PREPARED',roi:probe.roi,targetId:d.targetId,sourceNode:loaded.row.serviceNodes[d.targetId]??loaded.row.routes[d.targetId]??loaded.row.themos[d.targetId],sourceSha256:D1F_SERVICE_ASSET.sha256,cameraFingerprint:probe.cameraFingerprint};
+    probe={targetId:d.targetId,o,savedVisible,saved,native,cam,pose:{position:cam.position.clone(),quaternion:cam.quaternion.clone(),target:controls.target.clone(),up:cam.up.clone()},roi:{x,y,width:right-x,height:bottom-y},cameraFingerprint:JSON.stringify([cam.position.toArray(),cam.quaternion.toArray(),cam.projectionMatrix.elements])};
+    value={...value,state:'PREPARED',roi:probe.roi,targetId:d.targetId,sourceNode:loaded.row.serviceNodes[d.targetId]??loaded.row.routes[d.targetId]??loaded.row.themos[d.targetId],sourceSha256:D1F_SERVICE_ASSET.sha256,cameraFingerprint:probe.cameraFingerprint,nativePreset:native,projection:cam.isOrthographicCamera?'orthographic':'perspective'};
    }else if(d.action==='suppress'||d.action==='restore'){
     if(!probe||probe.targetId!==d.targetId)reject();o.visible=d.action==='restore';render();value={...value,state:d.action==='restore'?'RESTORED':'SUPPRESSED',cameraFingerprint:probe.cameraFingerprint};
    }else if(d.action==='finish'){
-    if(!probe)reject();const p=probe;p.o.visible=p.savedVisible;camera.position.copy(p.saved.position);camera.up.copy(p.saved.up);camera.near=p.saved.near;camera.fov=p.saved.fov;controls.target.copy(p.saved.target);camera.updateProjectionMatrix();for(const[o,visible]of p.saved.ceilings)o.visible=visible;controls.update();probe=null;render();value={...value,state:'FINISHED'};
+    if(!probe)reject();const p=probe;p.o.visible=p.savedVisible;if(!p.native){camera.position.copy(p.saved.position);camera.up.copy(p.saved.up);camera.near=p.saved.near;camera.fov=p.saved.fov;controls.target.copy(p.saved.target);camera.updateProjectionMatrix();for(const[o,visible]of p.saved.ceilings)o.visible=visible;controls.update();}probe=null;render();value={...value,state:'FINISHED'};
    }else reject();
   }catch{if(probe){probe.o.visible=probe.savedVisible;probe=null;}}
   canvas.dataset.d1fServiceProbe=JSON.stringify(value);
  };
  window.addEventListener('d1f-service-source-probe',onProbe);
  Object.assign(canvas.dataset,{d1fServiceReady:'true',d1fServiceVariant:loaded.row.variant,d1fServiceFixtureCount:'6',d1fServiceThemoCount:'3',d1fServiceRouteCount:'3',d1fServiceSourceSha256:D1F_SERVICE_ASSET.sha256,d1fServiceHumanReview:'NOT_RUN'});
- return {resolveTarget,select,clearSelection,pinFrame(){if(probe){camera.position.copy(probe.pose.position);camera.up.copy(probe.pose.up);controls.target.copy(probe.pose.target);camera.lookAt(controls.target);camera.updateMatrixWorld();}},dispose(){window.removeEventListener('d1f-service-source-probe',onProbe);button.remove();heatButton.remove();panel.remove();info.remove();for(const[o,m]of originalMaterials){o.material.dispose();o.material=m;}for(const k of Object.keys(canvas.dataset))if(k.startsWith('d1fService'))delete canvas.dataset[k];}};
+ return {resolveTarget,select,clearSelection,pinFrame(){if(probe){probe.cam.position.copy(probe.pose.position);probe.cam.up.copy(probe.pose.up);if(probe.native)probe.cam.quaternion.copy(probe.pose.quaternion);else{controls.target.copy(probe.pose.target);camera.lookAt(controls.target);}probe.cam.updateMatrixWorld();}},dispose(){window.removeEventListener('d1f-service-source-probe',onProbe);button.remove();heatButton.remove();panel.remove();info.remove();if(selectionPanel)selectionPanel.style.maxHeight=priorMaxHeight;for(const[o,m]of originalMaterials){o.material.dispose();o.material=m;}for(const k of Object.keys(canvas.dataset))if(k.startsWith('d1fService'))delete canvas.dataset[k];}};
 }
