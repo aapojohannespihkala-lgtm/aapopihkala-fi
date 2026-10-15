@@ -16,6 +16,9 @@ export type ViewerArchitecturalLayerNodeId =
   | 'architecture-doors'
   | 'architecture-windows'
   | 'architecture-review-helpers'
+  | 'architecture-floors'
+  | 'architecture-ceilings'
+  | 'architecture-fixtures'
   | 'architecture-other';
 
 export type ViewerArchitecturalLayerChildNodeId = Exclude<
@@ -52,6 +55,9 @@ export type ViewerLayerControlsState = {
   architectureDoorsVisible: boolean;
   architectureWindowsVisible: boolean;
   architectureReviewHelpersVisible: boolean;
+  architectureFloorsVisible: boolean;
+  architectureCeilingsVisible: boolean;
+  architectureFixturesVisible: boolean;
   architectureOtherVisible: boolean;
 };
 
@@ -106,6 +112,9 @@ export const viewerLayerNodeCapabilities: Record<
     visibility: true,
     opacity: false,
   },
+  'architecture-floors': { parent: 'architecture', visibility: true, opacity: false },
+  'architecture-ceilings': { parent: 'architecture', visibility: true, opacity: false },
+  'architecture-fixtures': { parent: 'architecture', visibility: true, opacity: false },
   'architecture-other': {
     parent: 'architecture',
     visibility: true,
@@ -129,6 +138,9 @@ export const viewerArchitecturalRootChildNodeIds = [
   'architecture-doors',
   'architecture-windows',
   'architecture-review-helpers',
+  'architecture-floors',
+  'architecture-ceilings',
+  'architecture-fixtures',
   'architecture-other',
 ] as const satisfies readonly ViewerArchitecturalLayerChildNodeId[];
 
@@ -155,6 +167,9 @@ export const viewerLayerControlsDefaults: ViewerLayerControlsState = {
   architectureDoorsVisible: true,
   architectureWindowsVisible: true,
   architectureReviewHelpersVisible: true,
+  architectureFloorsVisible: true,
+  architectureCeilingsVisible: false,
+  architectureFixturesVisible: true,
   architectureOtherVisible: true,
 };
 
@@ -222,6 +237,9 @@ export const mergeViewerLayerControlsState = (
     typeof next.architectureReviewHelpersVisible === 'boolean'
       ? next.architectureReviewHelpersVisible
       : current.architectureReviewHelpersVisible,
+  architectureFloorsVisible: typeof next.architectureFloorsVisible === 'boolean' ? next.architectureFloorsVisible : current.architectureFloorsVisible,
+  architectureCeilingsVisible: typeof next.architectureCeilingsVisible === 'boolean' ? next.architectureCeilingsVisible : current.architectureCeilingsVisible,
+  architectureFixturesVisible: typeof next.architectureFixturesVisible === 'boolean' ? next.architectureFixturesVisible : current.architectureFixturesVisible,
   architectureOtherVisible:
     typeof next.architectureOtherVisible === 'boolean'
       ? next.architectureOtherVisible
@@ -259,6 +277,9 @@ const viewerArchitecturalVisibilityKeys = {
   'architecture-doors': 'architectureDoorsVisible',
   'architecture-windows': 'architectureWindowsVisible',
   'architecture-review-helpers': 'architectureReviewHelpersVisible',
+  'architecture-floors': 'architectureFloorsVisible',
+  'architecture-ceilings': 'architectureCeilingsVisible',
+  'architecture-fixtures': 'architectureFixturesVisible',
   'architecture-other': 'architectureOtherVisible',
 } as const satisfies Record<
   ViewerArchitecturalLayerNodeId,

@@ -1,3 +1,5 @@
+import { D1F_BATHROOM_ASSET } from './privateModelD1FBathroomScene.mjs';
+import { createD1FBathroomPixelRuntime } from './privateModelD1FBathroomPixelRuntime.mjs';
 /**
  * Temporary screenshot input on the exact 115/100 WORK_TEST scene.
  * It authenticates no pixels. The browser owner must independently check bytes
@@ -18,6 +20,7 @@ const reject = () => { throw new Error('D1F_SOURCE_PIXEL_RUNTIME_REJECTED'); };
 
 /** @param {any} options */
 export function createD1FCombinedWallPixelRuntime({ THREE, selected, sourceSha, camera, controls, canvas, render }) {
+  if(sourceSha === D1F_BATHROOM_ASSET.sha256) return createD1FBathroomPixelRuntime({THREE,selected,sourceSha,camera,controls,canvas,render});
   const corrections = sourceSha === CORRECTED_SHA;
   const finished = sourceSha === FINISHED_SHA || corrections;
   const measured = sourceSha === MEASURED_SHA || finished;

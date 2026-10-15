@@ -1,3 +1,4 @@
+import { D1F_BATHROOM_ID, D1F_BATHROOM_ASSET, bathroomGeometryBounds } from './privateModelD1FBathroomScene.mjs';
 import { D1F_COMBINED_WALL_ASSETS } from './privateModelD1FCombinedWallSceneContract.mjs';
 
 const MEASURED_ID = 'd1f-measured-wall-140-100-2350-b710-basin-20261014';
@@ -41,6 +42,7 @@ function indexedFaceX(geometry, start, count, side, vertexCount = 240) {
 export function getD1FMeasuredWidthComparison({
   candidateId, sourceSha, rawGlbByteIdentityVerified, selected,
 }) {
+  if(candidateId === D1F_BATHROOM_ID) return bathroomWidth({sourceSha,rawGlbByteIdentityVerified,selected});
   const corrections = candidateId === CORRECTED_ID;
   const finished = candidateId === FINISHED_ID || corrections;
   const asset = corrections ? D1F_COMBINED_WALL_ASSETS[CORRECTED_ID] : finished ? D1F_COMBINED_WALL_ASSETS[FINISHED_ID] : D1F_COMBINED_WALL_ASSETS[MEASURED_ID];
@@ -80,4 +82,39 @@ export function getD1FMeasuredWidthComparison({
     absolutePhysicalXYVerified: false, humanReview: 'NOT_RUN',
     label: `KPH:n vapaa leveys: mallissa ${sourceWidthMm} mm, mitattu ${FIELD_WIDTH_MM} mm, ero ${signed} mm. Seinien sijainti vielä tarkistamatta.`,
   });
+}
+
+// Find the nearest actual indexed wall planes on either side of an interior
+// source-space probe. Source coordinates are read from live geometry, not extras.
+function bathroomWidth({sourceSha,rawGlbByteIdentityVerified,selected}){
+ if(sourceSha!==D1F_BATHROOM_ASSET.sha256||rawGlbByteIdentityVerified!==true||
+  selected?.bathroomReview!==true||!selected.wall?.visible||selected.absolutePhysicalXYVerified!==false||
+  selected.humanReview!=='NOT_RUN')return null;
+ try{
+  const p=selected.wall.geometry.getAttribute('position'),ix=selected.wall.geometry.getIndex();
+  const b=bathroomGeometryBounds(selected.surfaces.KPH_FLOOR),x=(b.lo[0]+b.hi[0])/2,y=b.lo[1]+(b.hi[1]-b.lo[1])*.25,z=b.lo[2]+.5;
+  const planes=[];
+  for(let i=0;i<ix.count;i+=3){
+   const a=ix.getX(i),c=ix.getX(i+1),d=ix.getX(i+2),xx=p.getX(a);
+   if(Math.abs(p.getX(c)-xx)>1e-6||Math.abs(p.getX(d)-xx)>1e-6)continue;
+   const y0=p.getY(a),z0=p.getZ(a),y1=p.getY(c),z1=p.getZ(c),y2=p.getY(d),z2=p.getZ(d);
+   const denominator=(z1-z2)*(y0-y2)+(y2-y1)*(z0-z2);
+   if(Math.abs(denominator)<1e-10)continue;
+   const u=((z1-z2)*(y-y2)+(y2-y1)*(z-z2))/denominator;
+   const v=((z2-z0)*(y-y2)+(y0-y2)*(z-z2))/denominator;
+   if(u>=-1e-6&&v>=-1e-6&&u+v<=1.000001)planes.push(xx);
+  }
+  const left=planes.filter(q=>q<x),right=planes.filter(q=>q>x);
+  if(!left.length||!right.length)return null;
+  const bFaceXM=Math.max(...left),dcFaceXM=Math.min(...right);
+  const matrix=selected.wall.matrixWorld?.elements;
+  if(!matrix||Math.abs(Math.hypot(matrix[0],matrix[1],matrix[2])-1)>1e-6)return null;
+  const sourceWidthMm=Math.round((dcFaceXM-bFaceXM)*1000),residualMm=sourceWidthMm-FIELD_WIDTH_MM;
+  if(!Number.isSafeInteger(sourceWidthMm)||sourceWidthMm<=0)return null;
+  return Object.freeze({sourceWidthMm,fieldWidthMm:FIELD_WIDTH_MM,residualMm,
+   sourceFaceXM:Object.freeze({b:bFaceXM,dc:dcFaceXM}),
+   fieldSourceRecord:'G2_D1F_KPH_M1_M7_20261013_FIELD_AND_SOURCE_DELTA',
+   bindingStatus:'WORK_GEOMETRY_MATCH_FIELD_PHYSICAL_ANCHOR_OPEN',absolutePhysicalXYVerified:false,humanReview:'NOT_RUN',
+   label:`KPH:n vapaa leveys: mallissa ${sourceWidthMm} mm, mitattu ${FIELD_WIDTH_MM} mm, ero ${residualMm>0?'+':''}${residualMm} mm. Pesutilojen lattia +80 mm. Sisäkatot saat näkyviin Layerit-valikosta. Saunan kattokorkeus on työoletus.`});
+ }catch{return null;}
 }

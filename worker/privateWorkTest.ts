@@ -603,6 +603,15 @@ const D1F_FOUR_REVIEW_CORRECTIONS_CANDIDATE = {
   expectedSha256: '9184920f910dca957f70aaba70774e47880c794a14c6156c451f7fa45a917824',
 } as const satisfies PrivateWorkTestCandidate;
 
+const D1F_BATHROOM_SURFACES_CANDIDATE = {
+  id: 'd1f-bathroom-surfaces-cabinet-20261015',
+  label: 'D1F - kylpyhuoneen pinnat ja laatikosto - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-bathroom-surfaces-cabinet-20261015.glb`,
+  objectKey: 'work-test/d1f-bathroom-surfaces-cabinet-20261015.glb',
+  expectedSize: 5568028,
+  expectedSha256: '330dd1fdd0476f2fc323b69fe8a09a15359d0f50381a91f32aa0b1a04d10b256',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -615,6 +624,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_MEASURED_WALL_BASIN_CANDIDATE,
   D1F_FINISHED_FACE_2360_CANDIDATE,
   D1F_FOUR_REVIEW_CORRECTIONS_CANDIDATE,
+  D1F_BATHROOM_SURFACES_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {

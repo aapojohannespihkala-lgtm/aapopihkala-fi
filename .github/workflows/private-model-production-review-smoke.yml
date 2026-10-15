@@ -30,6 +30,7 @@ on:
           - d1f-measured-wall-140-100-2350-b710-basin-20261014
           - d1f-finished-face-2360-wall-basin-20261014
           - d1f-four-review-corrections-20261014
+          - d1f-bathroom-surfaces-cabinet-20261015
       review_id:
         description: Full-render review ID; r1125-render fills this automatically
         required: true
@@ -2241,8 +2242,8 @@ jobs:
   verify-d1f-measured-pixels:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'd1f-measured-pixels'
     runs-on: ubuntu-latest
-    timeout-minutes: 14
-    # Every row validates the exact immutable source and all five or seven source ROI targets.
+    timeout-minutes: 24
+    # Every row validates the exact immutable source and its complete five, seven or thirteen source ROI targets.
     # A successful workflow therefore requires all four measured source variants to pass.
     strategy:
       fail-fast: false
