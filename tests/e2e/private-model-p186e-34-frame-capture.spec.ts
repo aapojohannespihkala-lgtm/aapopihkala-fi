@@ -49,7 +49,7 @@ function input() {
 const verify=(x:ReturnType<typeof input>)=>capture({
   sourceCandidateId:candidate,floors:x.floors,
   captureRGBA:x.captureRGBA,readCameraFingerprint:x.readCameraFingerprint,
-});
+} as any);
 
 test('all 34 historical D labels are individually captured and exactly restored',async()=>{
   const x=input(), result=await verify(x);
