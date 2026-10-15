@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {lstat, readFile, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {inspectRawBridge} from './privateModelM5AZ2R1125Bridge.mjs';
 
 export const SOURCES=Object.freeze({
   z2:Object.freeze({driveId:'1uG7z27QroMuttZmWDKNvCXAsypBBuQnq',bytes:2958672,sha256:'e15e265ee4267bb26214eaaab338b786388afb2d3a5b9dc37ecdb92e0815d4cb'}),
@@ -62,12 +63,10 @@ export async function runGate({z2Path,r1125Path,reportPath}){
   const [z2,r1125]=await Promise.all([
     readRegular(z2Path,SOURCES.z2),readRegular(r1125Path,SOURCES.r1125),
   ]);
+  const lineage=inspectRawBridge(z2,r1125);
   const result={
-    result:'PASS',gate:'EXACT_TWO_RAW_GLB_IDENTITIES_ONLY',
-    sourceZ2:inspectRawIdentity(z2,SOURCES.z2),
-    sourceR1125:inspectRawIdentity(r1125,SOURCES.r1125),
-    originalSourceBytesAuthenticated:true,
-    semanticRouteChecksPerformed:false,
+    ...lineage,result:'PASS',gate:'EXACT_RAW_Z2_R1125_SOURCE_MODEL_LINEAGE',
+    semanticRouteChecksPerformed:true,
     physicalConnectionsVerified:false,physicalDiameterPerRouteVerified:false,
     elevationsMeasured:false,productionVerified:false,humanReviewNotAssessed:true,
     current:false,canonical:false,asBuilt:false,
