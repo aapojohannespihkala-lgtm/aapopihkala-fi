@@ -808,3 +808,54 @@ for (const [phoneWidth, phoneHeight] of [[390, 844], [320, 740]]) {
     // Synthetic GLB + local browser ROI is not authenticated production proof.
   });
 }
+
+
+test('one exact scene67 review link opens real-source D1F TOP with RASTI and MITTAA', async ({ page }) => {
+  test.setTimeout(45_000);
+  await page.setViewportSize({width:1536,height:768});
+  const glb=padScene67SyntheticGlb(makeScene67Glb());
+  await installScene67SyntheticDigest(page);
+  await routeScene67SyntheticHttpsAssets(page);
+  let currentGlbRequests=0;
+  const g2Writes:string[]=[];
+  page.on('request',request=>{
+    if(request.url().endsWith('/private-model/model.glb'))currentGlbRequests++;
+    if(request.url().includes('/private-model/review-placement/g2/') &&
+       request.method()!=='GET')g2Writes.push(request.url());
+  });
+  await page.route('**/private-model/model.glb', async route=>{
+    await route.fulfill({status:200,contentType:'model/gltf-binary',body:glb});
+  });
+  await page.route('**/private-model/work-test/catalog.json', async route=>{
+    await route.fulfill({status:200,contentType:'application/json',
+      body:JSON.stringify({candidates:[{id:candidateId,label:'Source-bound D1F WORK_TEST',
+        path:candidatePath}]})});
+  });
+  await page.route('**'+candidatePath, async route=>{
+    await route.fulfill({status:200,contentType:'model/gltf-binary',body:glb});
+  });
+  await page.goto(SYNTHETIC_SCENE67_ORIGIN+'/private-model/?review='+reviewId+'&view=d1f-plan');
+  const canvas=page.locator('#private-model-canvas');
+  await expect.poll(async()=>{
+    const v=await canvas.getAttribute('data-work-test-review-mode');
+    if(v===reviewId)return v;
+    const failed=await canvas.getAttribute('data-work-test-load-failure-phase');
+    return failed?'LOAD_FAILURE '+failed:(v??'');
+  },{timeout:20000}).toBe(reviewId);
+  await expect(canvas).toHaveAttribute('data-p137e-loaded-candidate-id',candidateId);
+  await expect(canvas).toHaveAttribute('data-p137e-scene67-top-plan-tools-ready','true');
+  await expect(canvas).toHaveAttribute('data-p137e-review-camera-mode',
+    'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP');
+  await expect(canvas).toHaveAttribute('data-p137e-wall-mounted-themo-count','3');
+  await expect(canvas).toHaveAttribute('data-p137e-original-source-wall-mesh','406');
+  await expect(canvas).not.toHaveAttribute('data-p137e-scene67-camera-face',/./);
+  await expect(canvas).not.toHaveAttribute('data-p137e-scene67-visible-device-ids',/./);
+  await expect(page.locator('#axis-measure-tool-button')).toBeEnabled();
+  await expect(page.locator('#p137e-place-tool-button')).toBeEnabled();
+  await expect(canvas).toHaveAttribute('data-p137e-human-review','NOT_RUN');
+  await expect(canvas).toHaveAttribute('data-p137e-current-claim','false');
+  await expect(canvas).toHaveAttribute('data-p137e-as-built-claim','false');
+  await expect(canvas).toHaveAttribute('data-p137e-place-draft-count','0');
+  expect(currentGlbRequests).toBe(0);
+  expect(g2Writes).toEqual([]);
+});
