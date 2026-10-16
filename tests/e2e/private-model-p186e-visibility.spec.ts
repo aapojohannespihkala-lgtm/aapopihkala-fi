@@ -406,6 +406,23 @@ const expectReadableCaptions = async (page: any, floor: 'D1F' | 'D2F') => {
     captionCount: p186eExpectedCounts[floor].total, completeSourceTextVerified: true,
     readableSizeGlyphPixelsVerified: true, glyphShapeOcrVerified: false, humanReview: 'NOT_RUN',
   });
+  // Exercise the real viewer event path: hidden-caption work suppression must
+  // preserve the exact visible caption frame after the source proof finishes.
+  const command = async (action: string) => page.evaluate((action: string) => {
+    window.dispatchEvent(new CustomEvent('p186e-source-pixel-probe', {
+      detail: {action, requestId: 'caption-visibility-' + action},
+    }));
+    return JSON.parse((document.querySelector('#private-model-canvas') as HTMLCanvasElement).dataset.p186ePixelProbe!);
+  }, action);
+  const prepared = await command('prepare');
+  expect(prepared.state).toBe('PREPARED');
+  expect(JSON.parse(await canvas.getAttribute('data-p186e-caption-layout')).state).toBe('CAPTIONS_TEMPORARILY_HIDDEN');
+  const finished = await command('finish');
+  expect(finished).toMatchObject({state: 'FINISHED', sourceVisibilityRestored: true,
+    captionVisibilityRestored: true, cameraRestored: true});
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  const restored = decodeD1FScreenshotPng(await canvas.screenshot());
+  expect(Buffer.from(restored.rgba).equals(Buffer.from(image.rgba))).toBe(true);
 };
 
 test('P186E-X1 D1F review renders 14 group + 4 special source-label anchors against real D1F wall context', async ({
