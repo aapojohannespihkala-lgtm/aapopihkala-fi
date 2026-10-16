@@ -106,13 +106,24 @@ test('actual installed GLTFLoader parses associations as {nodes,meshes} and {mes
   const positions=new Float32Array([-0.5,-0.5,0,0.5,-0.5,0,0,0.5,0]);
   const bytes=Buffer.from(positions.buffer);
   const doc={
-    asset:{version:'2.0'},buffers:[{uri:'data:application/octet-stream;base64,'+bytes.toString('base64'),byteLength:bytes.length}],
+    asset:{version:'2.0'},buffers:[{byteLength:bytes.length}],
     bufferViews:[{buffer:0,byteOffset:0,byteLength:bytes.length}],
     accessors:[{bufferView:0,componentType:5126,count:3,type:'VEC3',min:[-0.5,-0.5,0],max:[0.5,0.5,0]}],
     meshes:[{primitives:[{attributes:{POSITION:0}},{attributes:{POSITION:0}},{attributes:{POSITION:0}}]}],
     nodes:[{mesh:0}],scenes:[{nodes:[0]}],scene:0
   };
-  const parsed=await new GLTFLoader().parseAsync(JSON.stringify(doc),'');
+  // A self-contained GLB avoids the Node-only FileLoader ProgressEvent path.
+  // This uses the same original binary decoder as the production GLB.
+  const encoded=Buffer.from(JSON.stringify(doc));
+  const json=Buffer.concat([encoded,Buffer.alloc((4-encoded.length%4)%4,0x20)]);
+  const glb=Buffer.alloc(12+8+json.length+8+bytes.length);
+  glb.write('glTF',0,'ascii');glb.writeUInt32LE(2,4);glb.writeUInt32LE(glb.length,8);
+  glb.writeUInt32LE(json.length,12);glb.write('JSON',16,'ascii');json.copy(glb,20);
+  const offset=20+json.length;
+  glb.writeUInt32LE(bytes.length,offset);glb.write('BIN\\0',offset+4,'binary');
+  bytes.copy(glb,offset+8);
+  const parsed=await new GLTFLoader().parseAsync(glb.buffer.slice(
+    glb.byteOffset,glb.byteOffset+glb.byteLength),'');
   const group=parsed.scene.children[0];
   const mapping=parsed.parser.associations.get(group);
   expect(mapping).toMatchObject({nodes:0,meshes:0});
