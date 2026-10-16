@@ -10621,8 +10621,62 @@ const title = 'Private 3D viewer';
               d1fShowerPhotoCurrent: 'false',
               d1fShowerPhotoAsBuilt: 'false',
             });
-            applyStandardViewPreset('d-apartment');
-            status.textContent = 'D1F kaareva suihkulasi 900 × 900 - 124 scenen WORK_TEST / lähde varmennettu / katselmus ei vielä hyväksytty';
+            // The generic D overview builds a separate P167F subset. It must NOT
+            // replace the raw SHA-verified scene120..123 containing this glass.
+            // Keep the selected GLTF scene as the actual displayed model root.
+            const showerSourceScene = showerPhotoReview.gltf.scene;
+            const showerRoot = showerSourceScene?.children?.[0];
+            const showerGlassName = 'D1F_ALAJARVI_DOUBLE_CURVED_GLASS_900_WORK_TEST_' +
+              (showerPhotoReview.selected.sceneIndex - 120);
+            const sourceGlassChildren = showerRoot?.children?.filter((part: any) =>
+              part.name === showerGlassName) ?? [];
+            if (showerSourceScene !== fullModelScene ||
+                showerSourceScene.children.length !== 1 ||
+                showerRoot?.children?.length !== 44 ||
+                !showerRoot.name?.includes(showerPhotoReview.selected.variant) ||
+                sourceGlassChildren.length !== 1 ||
+                sourceGlassChildren[0].visible === false) {
+              throw new Error('D1F_SHOWER_PHOTO_VISIBLE_SOURCE_SCENE_REJECTED');
+            }
+            // Presentation-only camera focus. Source meshes/materials remain
+            // unchanged, and OrbitControls stays free after opening the link.
+            const glassBounds = new THREE.Box3().setFromObject(sourceGlassChildren[0]);
+            const glassSphere = glassBounds.getBoundingSphere(new THREE.Sphere());
+            if (glassBounds.isEmpty() || !Number.isFinite(glassSphere.radius) ||
+                glassSphere.radius <= 0.05 || glassSphere.radius > 5) {
+              throw new Error('D1F_SHOWER_PHOTO_VISIBLE_BOUNDS_REJECTED');
+            }
+            deactivateElevationView();
+            planControls.enabled = false;
+            isoControls.enabled = false;
+            controls.enableRotate = true;
+            controls.enabled = true;
+            activeCamera = camera;
+            setModelScene(showerSourceScene);
+            canvas.dataset.contentScene = 'full-model';
+            canvas.dataset.standardViewPreset = 'd-apartment';
+            const showerCenter = glassBounds.getCenter(new THREE.Vector3());
+            const showerDistance = Math.max(
+              glassSphere.radius / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * 1.9,
+              2.8,
+            );
+            controls.target.copy(showerCenter);
+            camera.up.set(0, 1, 0);
+            camera.position.copy(showerCenter).add(new THREE.Vector3(
+              showerDistance * 0.78, showerDistance * 0.48, showerDistance * 0.92,
+            ));
+            camera.near = Math.max(showerDistance / 10000, 0.001);
+            camera.far = Math.max(showerDistance * 50, 1000);
+            camera.lookAt(showerCenter);
+            camera.updateProjectionMatrix();
+            controls.update();
+            syncViewState('orbit');
+            canvas.dataset.d1fShowerPhotoVisibleSourceScene = 'true';
+            canvas.dataset.d1fShowerPhotoSourceRootCount = '1';
+            canvas.dataset.d1fShowerPhotoGlassFocus = 'SOURCE_OBJECT_PRESENTATION_ONLY';
+            // This is camera framing, NOT a production glass-pixel proof.
+            canvas.dataset.d1fShowerPhotoProductionPixelsVerified = 'false';
+            status.textContent = 'D1F kaareva suihkulasi 900 × 900 - exact 124-scene WORK_TEST / vapaa 3D / katselmus ei vielä hyväksytty';
           } else if (combinedWallReview) {
             Object.assign(canvas.dataset, {
               workTestReviewMode: `${candidate.id}-review`,
