@@ -17,6 +17,34 @@ const sha256 = value => createHash('sha256').update(value).digest('hex');
 const reject = code => { throw new Error('P186E_PROD_' + code); };
 const need = (condition, code) => { if (!condition) reject(code); };
 export const P186E_PRODUCTION_FLOORS = Object.freeze(['D1F', 'D2F']);
+// Consumer of the immutable raw Drive artifact, independently hashed 2026-10-16.
+// Never infer source authentication from the canvas dataset or a screenshot.
+export const P186E_PRODUCTION_SOURCE = Object.freeze({
+  driveFileId:'1xBP1B3AYnNaQ9Xw9H5hI66SpDR_XyZgs',
+  byteLength:3217892,
+  sha256:'a92cecbdb419048ca985bbc91663f7c511929924bf889cabc8cc3847602dacb5',
+  url:ORIGIN+'/private-model/work-test/'+p186ePixelCandidateId+'.glb',
+});
+
+export async function verifyP186EProductionSourceResponse(response) {
+  need(response && response.url()===P186E_PRODUCTION_SOURCE.url &&
+    response.status()===200,'ORIGINAL_GLB_RESPONSE');
+  const contentType=response.headers()['content-type']?.split(';')[0].trim();
+  need(contentType==='model/gltf-binary' || contentType==='application/octet-stream',
+    'ORIGINAL_GLB_CONTENT_TYPE');
+  const bytes=await response.body();
+  need(Buffer.isBuffer(bytes) && bytes.length===P186E_PRODUCTION_SOURCE.byteLength,
+    'ORIGINAL_GLB_SIZE');
+  need(bytes.readUInt32LE(0)===0x46546c67 && bytes.readUInt32LE(4)===2 &&
+    bytes.readUInt32LE(8)===bytes.length,'ORIGINAL_GLB_HEADER');
+  need(sha256(bytes)===P186E_PRODUCTION_SOURCE.sha256,'ORIGINAL_GLB_DIGEST');
+  return {...P186E_PRODUCTION_SOURCE,originalSourceGlbDigestVerified:true};
+}
+
+function verifyP186EAutoloadRequests(requests,responses) {
+  need(requests.length===1 && requests[0]===P186E_PRODUCTION_SOURCE.url &&
+    responses.length===1,'ORIGINAL_GLB_AUTOLOAD');
+}
 
 export function expectedP186EProductionDataset(floor) {
   const expected = p186ePixelExpected[floor];
@@ -75,8 +103,13 @@ export function countP186EFramePixels(rgba, width, height) {
     aggregateAmberPixels:amber,individuallyIsolatedTargetsVerified:0};
 }
 
-async function run(){
+// Dependency injection exercises this exact production call path without Access
+// secrets in PR tests. The CLI below always uses the real browser and environment.
+export async function runP186EProductionProbe({
+  env=process.env,browserType=chromium,outputDirectory=OUT,logger=console.log,
+}={}){
   const report={result:'FAIL',stage:'TRUSTED_MAIN',
+    failureCode:null,
     reviewCandidate:p186ePixelCandidateId,sourcePdfId:p186ePixelSourcePdfDriveId,
     schedulePdfId:p186ePixelSchedulePdfDriveId,views:[],
     authenticatedBrowserProbe:false,originalSourceGlbDigestVerified:false,
@@ -91,15 +124,15 @@ async function run(){
     finally {clearTimeout(timer);}
   };
   try{
-    need(process.env.GITHUB_REPOSITORY==='aapojohannespihkala-lgtm/aapopihkala-fi'
-      && process.env.GITHUB_REF==='refs/heads/main'
-      && process.env.GITHUB_EVENT_NAME==='workflow_dispatch'
-      && process.env.PROBE_MODE==='p186e-labels-render','MAIN_ONLY');
-    const clientId=process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
-    const clientSecret=process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
+    need(env.GITHUB_REPOSITORY==='aapojohannespihkala-lgtm/aapopihkala-fi'
+      && env.GITHUB_REF==='refs/heads/main'
+      && env.GITHUB_EVENT_NAME==='workflow_dispatch'
+      && env.PROBE_MODE==='p186e-labels-render','MAIN_ONLY');
+    const clientId=env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
+    const clientSecret=env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
     need(Boolean(clientId && clientSecret),'AUTH_CONFIGURATION');
     report.stage='BROWSER_INIT';
-    browser=await bounded(()=>chromium.launch({headless:true}),30000);
+    browser=await bounded(()=>browserType.launch({headless:true}),30000);
     const context=await bounded(()=>browser.newContext({
       viewport:{width:1440,height:960},deviceScaleFactor:1,
     }),15000);
@@ -112,7 +145,15 @@ async function run(){
     });
     const page=await bounded(()=>context.newPage(),15000);
     const canvas=page.locator('#private-model-canvas');
+    const glbRequests=[],sourceResponses=[];
+    page.on('request',request=>{
+      if(/\.glb$/i.test(new URL(request.url()).pathname))glbRequests.push(request.url());
+    });
+    page.on('response',response=>{
+      if(response.url()===P186E_PRODUCTION_SOURCE.url)sourceResponses.push(response);
+    });
     for(const floor of P186E_PRODUCTION_FLOORS){
+      glbRequests.length=0;sourceResponses.length=0;
       const url=ORIGIN+'/private-model/?review='+
         encodeURIComponent(p186ePixelCandidateId+'-review')+
         '&floor='+floor.toLowerCase();
@@ -130,6 +171,10 @@ async function run(){
       },expected,{timeout:60000});
       const data=await bounded(()=>canvas.evaluate(element=>({...element.dataset})),10000);
       const identity=validateP186EProductionDataset(floor,data);
+      report.stage='ORIGINAL_SOURCE_GLB_'+floor;
+      verifyP186EAutoloadRequests(glbRequests,sourceResponses);
+      const sourceGlb=await bounded(()=>
+        verifyP186EProductionSourceResponse(sourceResponses[0]),25000);
       const webgl=await bounded(()=>canvas.evaluate(element=>
         Boolean(element.getContext('webgl2')||element.getContext('webgl'))),10000);
       need(webgl,'NO_WEBGL_CONTEXT');
@@ -162,15 +207,20 @@ async function run(){
         && sample.aggregateAmberPixels>=20,'REAL_RENDER_PIXEL_FLOOR');
       const after=await bounded(()=>canvas.evaluate(el=>({...el.dataset})),10000);
       validateP186EProductionDataset(floor,after);
-      fs.mkdirSync(OUT,{recursive:true});
-      fs.writeFileSync(OUT+'/'+floor.toLowerCase()+'-production.png',png);
+      verifyP186EAutoloadRequests(glbRequests,sourceResponses);
+      fs.mkdirSync(outputDirectory,{recursive:true});
+      fs.writeFileSync(outputDirectory+'/'+floor.toLowerCase()+'-production.png',png);
       report.views.push({...identity,pixels:sample,pngSha256:sha256(png),
+        sourceGlb,
         actualWebGlContextVerified:true,sourceSceneMetadataVerified:true,
         authenticatedPageHttp200:true});
     }
     need(report.views.length===2
       && report.views[0].pngSha256!==report.views[1].pngSha256,
       'TWO_DISTINCT_FLOOR_FRAMES');
+    need(report.views.every(view=>view.sourceGlb.originalSourceGlbDigestVerified===true),
+      'BOTH_FLOOR_SOURCE_DIGESTS');
+    report.originalSourceGlbDigestVerified=true;
     report.result='PASS';
     report.stage='COMPLETE';
     report.authenticatedBrowserProbe=true;
@@ -179,17 +229,19 @@ async function run(){
     const message=String(err?.message||'');
     report.failureCode=message.startsWith('P186E_PROD_')?
       message.slice(0,90):'UNEXPECTED_BROWSER_OR_SOURCE_FAILURE';
-    process.exitCode=1;
   }finally{
     if(browser)await bounded(()=>browser.close(),10000).catch(()=>{
-      report.result='FAIL';report.failureCode='BROWSER_CLOSE_FAILED';process.exitCode=1;
+      report.result='FAIL';report.failureCode='BROWSER_CLOSE_FAILED';
     });
-    fs.mkdirSync(OUT,{recursive:true});
-    fs.writeFileSync(OUT+'/evidence.json',JSON.stringify(report,null,2)+'\n');
+    fs.mkdirSync(outputDirectory,{recursive:true});
+    fs.writeFileSync(outputDirectory+'/evidence.json',JSON.stringify(report,null,2)+'\n');
     // No credentials, response headers, or private raw GLB emitted.
-    console.log(JSON.stringify(report));
+    logger(JSON.stringify(report));
   }
+  return report;
 }
 if(process.argv[1] && import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
-  await run();
+  const report=await runP186EProductionProbe();
+  if(report.result!=='PASS')process.exitCode=1;
 }
+
