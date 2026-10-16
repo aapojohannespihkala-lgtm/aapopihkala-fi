@@ -43,7 +43,9 @@ export function mountD1FShowerViewerPresentationLights(gltf) {
     }
     for (const v of D1F_SHOWER_PHOTO_VARIANTS) {
       const scene = gltf.scenes[v.sceneIndex];
-      if (!scene?.isScene || scene.children?.length !== 1 ||
+      // GLTFLoader r185 loadScene() deliberately returns THREE.Group, not THREE.Scene.
+      // A synthetically constructed Scene must not stand in for the parsed source.
+      if (!scene?.isGroup || scene.isScene === true || scene.children?.length !== 1 ||
           scene.children[0].parent !== scene) {
         fail('cannot add temporary lights to nonoriginal source root');
       }
