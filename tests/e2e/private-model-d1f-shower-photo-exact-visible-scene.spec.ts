@@ -5,7 +5,7 @@ import * as THREE from 'three';
 const source=readFileSync('src/pages/private-model/index.astro','utf8');
 const branchStart='          } else if (showerPhotoReview) {';
 const branchEnd='          } else if (combinedWallReview) {';
-const block=source.split(branchStart)[1]?.split(branchEnd)[0] ?? '';
+const block=(source.split(branchStart)[1]?.split(branchEnd)[0] ?? '').replaceAll('(part: any)', '(part)');
 const selected='WEST_ANCHOR_725_895_740';
 const partName='D1F_ALAJARVI_DOUBLE_CURVED_GLASS_900_WORK_TEST_0';
 
@@ -33,14 +33,14 @@ function runVisibleSourceFocus({missingGlass=false,wrongRoot=false,notSource=fal
   const focus=new Function(
     'THREE','showerPhotoReview','fullModelScene','deactivateElevationView',
     'planControls','isoControls','controls','camera','setModelScene',
-    'canvas','syncViewState','status',
+    'canvas','syncViewState','status','D1F_SHOWER_PHOTO_CANDIDATE_ID', 
     'let activeCamera=camera;\n'+block+'\nreturn {activeCamera};'
   );
   const before=originalRoot.children.slice();
   const response=()=>focus(
     THREE,showerPhotoReview,fullModelScene,()=>{},planControls,isoControls,
     controls,camera,(root:any)=>{effect.mounted=root;},
-    canvas,()=>{effect.orbit=true;},status);
+    canvas,()=>{effect.orbit=true;},status,'d1f-shower-glass-photo-20261016');
   return {response,scene:fullModelScene,glass,originalRoot,before,camera,controls,canvas,effect,planControls,isoControls};
 }
 
