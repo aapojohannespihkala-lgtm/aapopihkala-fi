@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { Group, Scene, HemisphereLight, DirectionalLight } from 'three';
 // @ts-ignore - browser-neutral native ESM runner uses the same source gate as the viewer.
-import { runD1FShowerGlassSourceVerifiedWebGL } from '../../src/scripts/privateModelD1FShowerGlassWebGLProofRunner.mjs';
+import { runD1FShowerGlassSourceVerifiedWebGL, mountD1FShowerViewerPresentationLights } from '../../src/scripts/privateModelD1FShowerGlassWebGLProofRunner.mjs';
 // @ts-ignore - immutable test reference, not a substitute for actual raw bytes.
 import { D1F_SHOWER_PHOTO_SOURCE } from '../../src/scripts/privateModelD1FShowerPhotoSourceContract.mjs';
 
@@ -71,4 +72,74 @@ test('missing a real renderer or source camera rejects rather than minting produ
       ...api, rawGlb: new Uint8Array(D1F_SHOWER_PHOTO_SOURCE.bytes), ...variant,
     })).rejects.toThrow('D1F_SHOWER_WEBGL_RUNNER_REJECTED');
   }
+});
+
+const sourceFixture = () => {
+  const scenes = Array.from({ length: 124 }, () => null as any);
+  const roots: Group[] = [];
+  for (let i = 120; i <= 123; i++) {
+    const scene = new Scene();
+    const root = new Group();
+    root.name = 'EXACT_ORIGINAL_SOURCE_ROOT_' + i;
+    scene.add(root);
+    roots.push(root);
+    scenes[i] = scene;
+  }
+  return { gltf: { scenes }, roots };
+};
+
+test('temporary lighting matches the real private viewer, leaves all four source roots unchanged', () => {
+  const { gltf, roots } = sourceFixture();
+  const originalChildren = gltf.scenes.slice(120, 124).map((scene: Scene) => scene.children.slice());
+  const undo = mountD1FShowerViewerPresentationLights(gltf);
+  for (let i = 120; i <= 123; i++) {
+    const scene: Scene = gltf.scenes[i];
+    expect(scene.children[0]).toBe(roots[i - 120]);
+    expect(scene.children).toHaveLength(3);
+    const ambient = scene.children[1], key = scene.children[2];
+    expect(ambient).toBeInstanceOf(HemisphereLight);
+    expect(key).toBeInstanceOf(DirectionalLight);
+    expect((ambient as HemisphereLight).intensity).toBe(2.2);
+    expect((key as DirectionalLight).intensity).toBe(2.0);
+    expect(key.position.toArray()).toEqual([8, 14, 10]);
+    expect((ambient as HemisphereLight).color.getHex()).toBe(0xffffff);
+    expect((ambient as HemisphereLight).groundColor.getHex()).toBe(0x777777);
+    expect((key as DirectionalLight).color.getHex()).toBe(0xffffff);
+  }
+  undo();
+  undo(); // Safe even if an exception path already removed the lights.
+  for (let i = 120; i <= 123; i++) {
+    const scene: Scene = gltf.scenes[i];
+    expect(scene.children).toEqual(originalChildren[i - 120]);
+    expect(scene.children[0].parent).toBe(scene);
+    expect(scene.children).toHaveLength(1);
+  }
+});
+
+test('lighting staging fails closed on tampered source root and rolls back earlier scenes', () => {
+  const { gltf, roots } = sourceFixture();
+  const scene122: Scene = gltf.scenes[122];
+  scene122.remove(roots[2]);
+  await expect(async () => mountD1FShowerViewerPresentationLights(gltf))
+    .rejects.toThrow('D1F_SHOWER_WEBGL_RUNNER_REJECTED');
+  for (const idx of [120, 121, 123]) {
+    expect(gltf.scenes[idx].children).toHaveLength(1);
+    expect(gltf.scenes[idx].children[0].name).toBe('EXACT_ORIGINAL_SOURCE_ROOT_' + idx);
+  }
+  expect(scene122.children).toHaveLength(0);
+  const short = sourceFixture().gltf;
+  short.scenes.pop();
+  expect(() => mountD1FShowerViewerPresentationLights(short))
+    .toThrow('D1F_SHOWER_WEBGL_RUNNER_REJECTED');
+});
+
+test('presentation lighting never claims authenticated pixels or modifies materials', () => {
+  const { gltf, roots } = sourceFixture();
+  const before = roots.map(r => ({ name: r.name, children: r.children.length }));
+  const undo = mountD1FShowerViewerPresentationLights(gltf);
+  expect(roots.map(r => ({ name: r.name, children: r.children.length }))).toEqual(before);
+  undo();
+  expect(roots.map(r => ({ name: r.name, children: r.children.length }))).toEqual(before);
+  expect(gltf).not.toHaveProperty('authenticatedPrivateViewerVerifiedByRunner');
+  expect(gltf).not.toHaveProperty('humanReview');
 });
