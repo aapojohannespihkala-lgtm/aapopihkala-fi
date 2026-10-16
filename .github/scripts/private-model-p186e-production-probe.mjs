@@ -1,5 +1,5 @@
 /** Main-only opt-in P186E historical label two-floor real production renderer smoke.
- * Scene readiness and aggregate real pixels ONLY. Not 34 individual pixel proof.
+ * Original GLB authentication, source readiness and 34 selective hide/restore frames.
  */
 import fs from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -9,7 +9,10 @@ import { chromium } from 'playwright';
 import {
   p186ePixelCandidateId, p186ePixelExpected,
   p186ePixelSourcePdfDriveId, p186ePixelSchedulePdfDriveId,
+  verifyP186E34SourcePixelEvidence,
 } from '../../src/scripts/privateModelP186E34PixelEvidence.mjs';
+import {deriveP186EOriginalRoster,captureP186EIndividualFloor,
+  P186EIndividualCaptureFailure} from './private-model-p186e-individual-capture.mjs';
 
 const ORIGIN = 'https://aapopihkala.fi';
 const OUT = 'test-results/p186e-production-twofloor';
@@ -20,7 +23,7 @@ const need = (condition, code) => { if (!condition) reject(code); };
 // Emit only fixed technical classes. Browser error text can contain request
 // details and credentials, so never copy it into logs or the evidence artifact.
 export function classifyP186EProductionFailure(error) {
-  if (error instanceof P186EProductionFailure) return error.message;
+  if (error instanceof P186EProductionFailure || error instanceof P186EIndividualCaptureFailure) return error.message;
   const message=String(error?.message||'');
   for(const [pattern,code] of [
     [/evicted from inspector cache/i,'BROWSER_RESOURCE_EVICTED'],
@@ -142,7 +145,7 @@ export async function runP186EProductionProbe({
   const report={result:'FAIL',stage:'TRUSTED_MAIN',
     failureCode:null,
     reviewCandidate:p186ePixelCandidateId,sourcePdfId:p186ePixelSourcePdfDriveId,
-    schedulePdfId:p186ePixelSchedulePdfDriveId,views:[],sourceGlbChecks:[],
+    schedulePdfId:p186ePixelSchedulePdfDriveId,views:[],sourceGlbChecks:[],individualCaptures:[],
     authenticatedBrowserProbe:false,originalSourceGlbDigestVerified:false,
     all34IndividuallyVerified:false,productionPublishedByThisProbe:false,
     current:false,canonical:false,asBuilt:false,humanReview:'NOT_RUN'};
@@ -165,7 +168,7 @@ export async function runP186EProductionProbe({
     report.stage='BROWSER_INIT';
     browser=await bounded(()=>browserType.launch({headless:true}),30000);
     const context=await bounded(()=>browser.newContext({
-      viewport:{width:1440,height:960},deviceScaleFactor:1,
+      viewport:{width:1920,height:1200},deviceScaleFactor:1,
     }),15000);
     const sourceCaptures=[];
     let sourceCaptureError,resolveSourceFailure;
@@ -185,7 +188,8 @@ export async function runP186EProductionProbe({
           url:()=>response.url(),status:()=>response.status(),
           headers:()=>response.headers(),body:async()=>capture.bytes,
         });
-        sourceCaptures.push({request:capture.request,sourceGlb});
+        sourceCaptures.push({request:capture.request,sourceGlb,
+          roster:deriveP186EOriginalRoster(capture.bytes)});
         await route.fulfill({response,body:capture.bytes});
       }catch(error){
         sourceCaptureError=error;
@@ -204,6 +208,7 @@ export async function runP186EProductionProbe({
     page.on('response',response=>{
       if(response.url()===P186E_PRODUCTION_SOURCE.url)sourceResponses.push(response);
     });
+    const individualSessions=[];
     for(const floor of P186E_PRODUCTION_FLOORS){
       glbRequests.length=0;sourceResponses.length=0;
       sourceCaptures.length=0;sourceCaptureError=null;
@@ -275,6 +280,14 @@ export async function runP186EProductionProbe({
       verifyP186EAutoloadRequests(glbRequests,sourceResponses);
       fs.mkdirSync(outputDirectory,{recursive:true});
       fs.writeFileSync(outputDirectory+'/'+floor.toLowerCase()+'-production.png',png);
+      report.stage='INDIVIDUAL_SOURCE_FRAMES_'+floor;
+      const individual=await bounded(()=>captureP186EIndividualFloor({
+        page,canvas,floor,originalRoster:sourceCaptures[0].roster[floor],outputDirectory,
+      }),240000);
+      individualSessions.push(individual.session);
+      report.individualCaptures.push(individual.summary);
+      validateP186EProductionDataset(floor,await canvas.evaluate(el=>({...el.dataset})));
+      verifyP186EAutoloadRequests(glbRequests,sourceResponses);
       report.views.push({...identity,pixels:sample,pngSha256:sha256(png),
         sourceGlb,
         actualWebGlContextVerified:true,sourceSceneMetadataVerified:true,
@@ -286,6 +299,14 @@ export async function runP186EProductionProbe({
     need(report.views.every(view=>view.sourceGlb.originalSourceGlbDigestVerified===true),
       'BOTH_FLOOR_SOURCE_DIGESTS');
     report.originalSourceGlbDigestVerified=true;
+    report.stage='VERIFY_ALL_34_INDIVIDUAL_SOURCE_FRAMES';
+    report.individualEvidence=verifyP186E34SourcePixelEvidence({
+      sourceCandidateId:p186ePixelCandidateId,floors:individualSessions,
+    });
+    need(report.individualEvidence.targetCount===34&&
+      report.individualEvidence.D1F.visuallyIsolated===18&&
+      report.individualEvidence.D2F.visuallyIsolated===16,'ALL_34_INDIVIDUAL_FRAMES');
+    report.all34IndividuallyVerified=true;
     report.result='PASS';
     report.stage='COMPLETE';
     report.authenticatedBrowserProbe=true;
