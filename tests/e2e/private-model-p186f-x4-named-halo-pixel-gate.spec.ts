@@ -93,6 +93,20 @@ test('source identity, placement uncertainty and original pass associations fail
     expect(()=>evaluate(f)).toThrow('P186F_X4_NAMED_HALO_PIXEL_REJECTED');
   }
 });
+test('rejects cyan lookalikes when the original scene or a source ancestor is hidden',()=>{
+  const hiddenScene=fixture();
+  hiddenScene.gltfScene.visible=false;
+  expect(()=>evaluate(hiddenScene)).toThrow('P186F_X4_NAMED_HALO_PIXEL_REJECTED');
+
+  const hiddenParent=fixture();
+  const source=hiddenParent.gltfScene.children[0];
+  const invisibleGroup=new Group();
+  invisibleGroup.visible=false;
+  hiddenParent.gltfScene.add(invisibleGroup);
+  invisibleGroup.add(source);
+  // The synthetic screenshot stays cyan, but no source descendant could render.
+  expect(()=>evaluate(hiddenParent)).toThrow('P186F_X4_NAMED_HALO_PIXEL_REJECTED');
+});
 test('missing, extra, falsely positioned and merged screen pixels never impersonate 3 named targets',()=>{
   const changes=[
     (f:any)=>f.rgba=frame(),
