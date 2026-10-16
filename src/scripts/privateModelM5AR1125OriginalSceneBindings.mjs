@@ -27,7 +27,8 @@ export function bindR1125Scene63SourceObjects({ sourceDoc, gltf } = {}) {
     new Set(root.children).size === 13, '13 original direct source children');
   const sourceNodeSet = new Set(root.children);
   const byNode = new Map();
-  // GLTFLoader visits these objects dynamically; the guarded result is a Group.
+  // A glTF node with children but no mesh is a THREE.Object3D in the real
+  // GLTFLoader, not a THREE.Group. The loaded scene itself is a Group.
   /** @type {any} */
   let actualRoot = null;
   actual.traverse(object => {
@@ -41,7 +42,10 @@ export function bindR1125Scene63SourceObjects({ sourceDoc, gltf } = {}) {
     expect(!byNode.has(assoc.nodes), 'duplicate mapped source node');
     byNode.set(assoc.nodes, object);
   });
-  expect(actualRoot && actualRoot.isGroup &&
+  expect(actualRoot && actualRoot.isObject3D &&
+    !actualRoot.isScene && !actualRoot.isMesh && !actualRoot.isLineSegments &&
+    !actualRoot.isLine && !actualRoot.isCamera && !actualRoot.isLight &&
+    actualRoot.geometry === undefined &&
     Array.isArray(actualRoot.children) &&
     actualRoot.children.length === 13, 'source root and 13 child objects');
   expect(byNode.size === 13, 'all original child nodes mapped');
