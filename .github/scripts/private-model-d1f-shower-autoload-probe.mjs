@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
+import { decodeD1FScreenshotPng } from './private-model-d1f-screenshot-png.mjs';
 import {
   D1F_SHOWER_PHOTO_CANDIDATE_ID as candidateId,
   D1F_SHOWER_PHOTO_REVIEW_ID as reviewId,
@@ -14,6 +15,19 @@ const OUT = 'test-results/d1f-shower-autoload-production';
 const GLB_PATH = '/private-model/work-test/' + candidateId + '.glb';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const ensure = (ok, reason) => { if (!ok) throw new Error('D1F_SHOWER_AUTOLOAD_REJECTED:' + reason); };
+
+/** Decode Chromium's original lossless screenshot locally, without a second
+ * browser canvas and megabytes of RGBA/base64 cross-process messages.
+ * These are generic pixels, NOT source-object pixel authentication. */
+export function decodeD1FShowerScreenshotPng(png) {
+  const decoded = decodeD1FScreenshotPng(png);
+  ensure(decoded.width > 100 && decoded.height > 100 &&
+    decoded.width * decoded.height <= 4_000_000 &&
+    decoded.rgba instanceof Uint8Array &&
+    decoded.rgba.length === decoded.width * decoded.height * 4,
+    'unexpected-screenshot-dimensions');
+  return decoded;
+}
 
 export function exactD1FShowerAutoloadUrl(variant) {
   ensure(variants.some(v => v.name === variant), 'unknown-source-variant');
@@ -126,22 +140,10 @@ async function main() {
     const capture = async name=>{
       const png = await bounded(()=>canvas.screenshot({timeout:25000,animations:'disabled'}),30000);
       ensure(png.length>100 && png.subarray(1,4).toString()==='PNG','invalid-screen-capture');
-      const decoded = await bounded(()=>page.evaluate(async encoded=>{
-        const image = new Image();
-        image.src='data:image/png;base64,'+encoded;
-        await image.decode();
-        const drawing=document.createElement('canvas');
-        drawing.width=image.naturalWidth;drawing.height=image.naturalHeight;
-        const ctx=drawing.getContext('2d',{willReadFrequently:true});
-        ctx.drawImage(image,0,0);
-        const bytes=ctx.getImageData(0,0,drawing.width,drawing.height).data;
-        let chars='';for(let i=0;i<bytes.length;i+=32768)
-          chars+=String.fromCharCode(...bytes.subarray(i,i+32768));
-        return {width:drawing.width,height:drawing.height,rgba64:btoa(chars)};
-      },png.toString('base64')),25000);
-      const rgba=new Uint8Array(Buffer.from(decoded.rgba64,'base64'));
-      ensure(decoded.width*decoded.height<=4_000_000 &&
-        rgba.length===decoded.width*decoded.height*4,'incorrect-canvas-frame');
+      // The existing bounded, CRC-verified Node PNG decoder returns the
+      // screenshot in top-left row order with no browser RGBA copy.
+      const decoded = decodeD1FShowerScreenshotPng(png);
+      const rgba = decoded.rgba;
       fs.mkdirSync(OUT,{recursive:true});
       fs.writeFileSync(OUT+'/'+variant.toLowerCase()+'-'+name+'.png',png);
       return {width:decoded.width,height:decoded.height,rgba,pngSha256:digest(png)};
