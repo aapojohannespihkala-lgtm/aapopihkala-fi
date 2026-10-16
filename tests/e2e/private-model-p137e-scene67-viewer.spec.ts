@@ -374,3 +374,36 @@ test('exact executable wall driver rejects HTTP, byte, pixel and identity failur
     if (kind === 'identity') expect(evidence.phase).toBe('IDENTITY_READBACK');
   }
 });
+
+
+test('production probe checks exact P137E user one-link TOP before the original 3 housing proof', () => {
+  const yaml=readFileSync(resolve(process.cwd(),
+    '.github/workflows/private-model-production-review-smoke.yml'),'utf8');
+  const prod=yaml.split('  verify-production:\n')[1]?.split('\n  verify-p137e-walls-render:')[0] || '';
+  expect(prod).toContain("reviewId === 'p137e-d1f-three-wall-mounted-themos-review'");
+  expect(prod).toContain("candidateId === 'p137e-d1f-three-wall-mounted-themos'");
+  expect(prod).toContain("(exactD1fOneLink ? '&view=d1f-plan' : '')");
+  expect(prod).toContain("finalUrl.searchParams.get('view') !== 'd1f-plan'");
+  const auth=prod.indexOf('p137eScene67AssetEvidence = inspectP137EScene67PublishedGlb(');
+  const initial=prod.indexOf('const initial = await canvas.evaluate');
+  const pixels=prod.indexOf('const greenTop=await page.evaluate');
+  const north=prod.indexOf("page.locator('#p137e-north-face-button').click()");
+  const existing=prod.indexOf('const readFace = () => canvas.evaluate');
+  expect(auth).toBeGreaterThan(0);
+  expect(auth).toBeLessThan(initial);
+  expect(initial).toBeLessThan(pixels);
+  expect(pixels).toBeLessThan(north);
+  expect(north).toBeLessThan(existing);
+  expect(prod).toContain("initial.camera !== 'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP'");
+  expect(prod).toContain("initial.tools !== 'true'");
+  expect(prod).toContain("initial.wall !== '406'");
+  expect(prod).toContain("initial.devices !== '3'");
+  expect(prod).toContain("if (!greenTop?.passed)");
+  expect(prod).toContain('p137eUnexpectedCurrentRequests.length !== 0');
+  expect(prod).toContain('p137eUnauthorizedG2Writes.length !== 0');
+  expect(prod).toContain('individualThemoPixelsByThisInitialGate:false');
+  expect(prod).toContain("nativeG2Readback:'NOT_RUN',humanReview:'NOT_RUN',publishToCURRENT:false");
+  expect(prod).toContain('p137eScene67TwoFaceEvidence');
+  expect(prod).toContain('p137e-scene67-three-housing-rgba.json');
+  expect(prod).toContain('P137E MITTAA fourth click reset disturbed three crosses');
+});
