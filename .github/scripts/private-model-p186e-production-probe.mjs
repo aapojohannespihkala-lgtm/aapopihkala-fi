@@ -13,6 +13,9 @@ import {
 } from '../../src/scripts/privateModelP186E34PixelEvidence.mjs';
 import {deriveP186EOriginalRoster,captureP186EIndividualFloor,
   P186EIndividualCaptureFailure} from './private-model-p186e-individual-capture.mjs';
+import {decodeD1FScreenshotPng} from './private-model-d1f-screenshot-png.mjs';
+import {deriveP186EOriginalCaptionRoster,verifyP186ECaptionFrame,verifyP186ECuesWithCaptions,P186ECaptionFailure}
+  from '../../src/scripts/privateModelP186ECaptionPixelEvidence.mjs';
 
 const ORIGIN = 'https://aapopihkala.fi';
 const OUT = 'test-results/p186e-production-twofloor';
@@ -23,7 +26,8 @@ const need = (condition, code) => { if (!condition) reject(code); };
 // Emit only fixed technical classes. Browser error text can contain request
 // details and credentials, so never copy it into logs or the evidence artifact.
 export function classifyP186EProductionFailure(error) {
-  if (error instanceof P186EProductionFailure || error instanceof P186EIndividualCaptureFailure) return error.message;
+  if (error instanceof P186EProductionFailure || error instanceof P186EIndividualCaptureFailure ||
+      error instanceof P186ECaptionFailure) return error.message;
   const message=String(error?.message||'');
   for(const [pattern,code] of [
     [/evicted from inspector cache/i,'BROWSER_RESOURCE_EVICTED'],
@@ -147,7 +151,7 @@ export async function runP186EProductionProbe({
     reviewCandidate:p186ePixelCandidateId,sourcePdfId:p186ePixelSourcePdfDriveId,
     schedulePdfId:p186ePixelSchedulePdfDriveId,views:[],sourceGlbChecks:[],individualCaptures:[],
     authenticatedBrowserProbe:false,originalSourceGlbDigestVerified:false,
-    all34IndividuallyVerified:false,productionPublishedByThisProbe:false,
+    all34IndividuallyVerified:false,all34CaptionGlyphsVerified:false,captionChecks:[],productionPublishedByThisProbe:false,
     current:false,canonical:false,asBuilt:false,humanReview:'NOT_RUN'};
   let browser;
   const bounded = async (action,timeout=45000)=>{
@@ -189,7 +193,8 @@ export async function runP186EProductionProbe({
           headers:()=>response.headers(),body:async()=>capture.bytes,
         });
         sourceCaptures.push({request:capture.request,sourceGlb,
-          roster:deriveP186EOriginalRoster(capture.bytes)});
+          roster:deriveP186EOriginalRoster(capture.bytes),
+          captionRoster:deriveP186EOriginalCaptionRoster(capture.bytes)});
         await route.fulfill({response,body:capture.bytes});
       }catch(error){
         sourceCaptureError=error;
@@ -251,25 +256,14 @@ export async function runP186EProductionProbe({
       await bounded(()=>page.evaluate(()=>new Promise(resolve=>
         requestAnimationFrame(()=>requestAnimationFrame(resolve)))),10000);
       report.stage='ACTUAL_VIEWER_PIXELS_'+floor;
+      const beforeSnapshot=await bounded(()=>canvas.evaluate(el=>({...el.dataset})),10000);
       const png=await bounded(()=>canvas.screenshot({timeout:30000}),35000);
       need(png.length>100 && png.subarray(1,4).toString()==='PNG','PNG');
-      const captured=await bounded(()=>page.evaluate(async base64=>{
-        const image=new Image();
-        image.src='data:image/png;base64,'+base64;await image.decode();
-        const c=document.createElement('canvas');c.width=image.naturalWidth;
-        c.height=image.naturalHeight;
-        const ctx=c.getContext('2d',{willReadFrequently:true});
-        if(!ctx)throw Error('P186E_CANVAS_READBACK');
-        ctx.drawImage(image,0,0);
-        const rgba=ctx.getImageData(0,0,c.width,c.height).data;
-        let raw='';
-        for(let i=0;i<rgba.length;i+=32768)
-          raw+=String.fromCharCode(...rgba.subarray(i,i+32768));
-        return {width:c.width,height:c.height,rgbaBase64:btoa(raw)};
-      },png.toString('base64')),30000);
-      const sample=countP186EFramePixels(
-        new Uint8Array(Buffer.from(captured.rgbaBase64,'base64')),
-        captured.width,captured.height);
+      let captured;
+      try{captured=decodeD1FScreenshotPng(png);}catch{reject('PNG_DECODE');}
+      fs.mkdirSync(outputDirectory,{recursive:true});
+      fs.writeFileSync(outputDirectory+'/'+floor.toLowerCase()+'-production.png',png);
+      const sample=countP186EFramePixels(captured.rgba,captured.width,captured.height);
       // Aggregate proof only; no individual 18/16 target isolation is claimed.
       need(sample.width>=32 && sample.height>=32
         && sample.width*sample.height<=4000000
@@ -278,12 +272,19 @@ export async function runP186EProductionProbe({
       const after=await bounded(()=>canvas.evaluate(el=>({...el.dataset})),10000);
       validateP186EProductionDataset(floor,after);
       verifyP186EAutoloadRequests(glbRequests,sourceResponses);
-      fs.mkdirSync(outputDirectory,{recursive:true});
-      fs.writeFileSync(outputDirectory+'/'+floor.toLowerCase()+'-production.png',png);
+      report.stage='READABLE_SOURCE_CAPTION_PIXELS_'+floor;
+      need(typeof beforeSnapshot.p186eCaptionLayout==='string' &&
+        beforeSnapshot.p186eCaptionLayout===after.p186eCaptionLayout,'CAPTION_LAYOUT_DRIFT');
+      let layout;
+      try{layout=JSON.parse(after.p186eCaptionLayout);}catch{reject('CAPTION_LAYOUT_JSON');}
+      const captionCheck=verifyP186ECaptionFrame({floor,layout,
+        originalCaptions:sourceCaptures[0].captionRoster[floor],...captured});
+      report.captionChecks.push(captionCheck);
       report.stage='INDIVIDUAL_SOURCE_FRAMES_'+floor;
       const individual=await bounded(()=>captureP186EIndividualFloor({
         page,canvas,floor,originalRoster:sourceCaptures[0].roster[floor],outputDirectory,
       }),240000);
+      captionCheck.sourceCueVisibility=verifyP186ECuesWithCaptions({layout,...captured,session:individual.session});
       individualSessions.push(individual.session);
       report.individualCaptures.push(individual.summary);
       validateP186EProductionDataset(floor,await canvas.evaluate(el=>({...el.dataset})));
@@ -307,6 +308,9 @@ export async function runP186EProductionProbe({
       report.individualEvidence.D1F.visuallyIsolated===18&&
       report.individualEvidence.D2F.visuallyIsolated===16,'ALL_34_INDIVIDUAL_FRAMES');
     report.all34IndividuallyVerified=true;
+    need(report.captionChecks.length===2 && report.captionChecks.reduce((n,c)=>n+c.captionCount,0)===34,
+      'ALL_34_CAPTION_GLYPHS');
+    report.all34CaptionGlyphsVerified=true;
     report.result='PASS';
     report.stage='COMPLETE';
     report.authenticatedBrowserProbe=true;
