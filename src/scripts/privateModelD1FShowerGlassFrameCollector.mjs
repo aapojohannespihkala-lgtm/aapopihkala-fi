@@ -110,15 +110,21 @@ export async function collectD1FShowerGlassPrimitiveFrames({
     let group=null,duplicates=0;
     scene.traverse(object=>{
       const match=gltf.parser.associations.get(object);
-      if(match?.type==='nodes' && match.index===v.glassNode){group=object;duplicates++;}
+      // Three.js 0.185 GLTFLoader associations are { nodes: N, meshes: M },
+      // not invented { type: 'nodes', index: N } descriptors.
+      if(match?.nodes===v.glassNode && match?.meshes===777 &&
+         Object.keys(match).length===2){group=object;duplicates++;}
     });
     need(duplicates===1 && group?.children?.length===3 &&
       group.children.every(child=>child?.isMesh===true),'source glass node and 3 exact primitive children');
     const meshes=group.children;
     for(let i=0;i<3;i++){
       const pair=gltf.parser.associations.get(meshes[i]);
-      need(pair?.type==='meshes' && pair.index===777,
-        'primitive is not from original glTF mesh 777');
+      // Actual parser association is { meshes: 777, primitives: i }.
+      // Strict primitive-index identity prevents left/right/frame interchange.
+      need(pair?.meshes===777 && pair?.primitives===i &&
+        Object.keys(pair).length===2,
+        'primitive is not the indexed source primitive from glTF mesh 777');
     }
     const vis=meshes.map(m=>m.visible);
     need(vis.every(Boolean),'source glass primitive initially invisible');
