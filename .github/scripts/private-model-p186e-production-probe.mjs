@@ -45,12 +45,24 @@ export const P186E_PRODUCTION_SOURCE = Object.freeze({
   url:ORIGIN+'/private-model/work-test/'+p186ePixelCandidateId+'.glb',
 });
 
-export async function verifyP186EProductionSourceResponse(response) {
+function verifyP186ESourceResponseMetadata(response) {
   need(response && response.url()===P186E_PRODUCTION_SOURCE.url &&
     response.status()===200,'ORIGINAL_GLB_RESPONSE');
   const contentType=response.headers()['content-type']?.split(';')[0].trim();
   need(contentType==='model/gltf-binary' || contentType==='application/octet-stream',
     'ORIGINAL_GLB_CONTENT_TYPE');
+}
+
+// Read the response of the same intercepted browser request before delivering
+// its identical bytes to the viewer. No independent URL fetch or redirect.
+export async function captureP186EProductionSourceRequest(route,headers) {
+  const response=await route.fetch({headers,maxRedirects:0,maxRetries:0,timeout:25000});
+  try {return {request:route.request(),response,bytes:await response.body()};}
+  catch(error){await response.dispose().catch(()=>{});throw error;}
+}
+
+export async function verifyP186EProductionSourceResponse(response) {
+  verifyP186ESourceResponseMetadata(response);
   const bytes=await response.body();
   need(Buffer.isBuffer(bytes) && bytes.length===P186E_PRODUCTION_SOURCE.byteLength,
     'ORIGINAL_GLB_SIZE');
@@ -155,12 +167,33 @@ export async function runP186EProductionProbe({
     const context=await bounded(()=>browser.newContext({
       viewport:{width:1440,height:960},deviceScaleFactor:1,
     }),15000);
+    const sourceCaptures=[];
+    let sourceCaptureError,resolveSourceFailure;
     // Never send Cloudflare service credentials to a third-party origin.
     await context.route('**/*',async route=>{
       if(new URL(route.request().url()).origin!==ORIGIN)return route.abort();
-      return route.continue({headers:{...route.request().headers(),
+      const headers={...route.request().headers(),
         'CF-Access-Client-Id':clientId,
-        'CF-Access-Client-Secret':clientSecret}});
+        'CF-Access-Client-Secret':clientSecret};
+      if(route.request().url()!==P186E_PRODUCTION_SOURCE.url)
+        return route.continue({headers});
+      let capture;
+      try{
+        capture=await captureP186EProductionSourceRequest(route,headers);
+        const response=capture.response;
+        const sourceGlb=await verifyP186EProductionSourceResponse({
+          url:()=>response.url(),status:()=>response.status(),
+          headers:()=>response.headers(),body:async()=>capture.bytes,
+        });
+        sourceCaptures.push({request:capture.request,sourceGlb});
+        await route.fulfill({response,body:capture.bytes});
+      }catch(error){
+        sourceCaptureError=error;
+        resolveSourceFailure?.();
+        await route.abort().catch(()=>{});
+      }finally{
+        if(capture)await capture.response.dispose().catch(()=>{});
+      }
     });
     const page=await bounded(()=>context.newPage(),15000);
     const canvas=page.locator('#private-model-canvas');
@@ -173,6 +206,8 @@ export async function runP186EProductionProbe({
     });
     for(const floor of P186E_PRODUCTION_FLOORS){
       glbRequests.length=0;sourceResponses.length=0;
+      sourceCaptures.length=0;sourceCaptureError=null;
+      const sourceFailure=new Promise(resolve=>{resolveSourceFailure=resolve;});
       const url=ORIGIN+'/private-model/?review='+
         encodeURIComponent(p186ePixelCandidateId+'-review')+
         '&floor='+floor.toLowerCase();
@@ -184,17 +219,25 @@ export async function runP186EProductionProbe({
         'EXACT_VIEWER_RESPONSE');
       report.stage='ORIGINAL_SOURCE_SCENE_'+floor;
       const expected=expectedP186EProductionDataset(floor);
-      await page.waitForFunction(required=>{
+      await Promise.race([page.waitForFunction(required=>{
         const data=document.querySelector('#private-model-canvas')?.dataset;
         return data&&Object.entries(required).every(([k,v])=>data[k]===v);
-      },expected,{timeout:60000});
+      },expected,{timeout:60000}),sourceFailure]);
+      if(sourceCaptureError){
+        report.stage='ORIGINAL_SOURCE_GLB_'+floor;
+        throw sourceCaptureError;
+      }
       const data=await bounded(()=>canvas.evaluate(element=>({...element.dataset})),10000);
       const identity=validateP186EProductionDataset(floor,data);
       report.stage='ORIGINAL_SOURCE_GLB_'+floor;
       verifyP186EAutoloadRequests(glbRequests,sourceResponses);
-      const sourceGlb=await bounded(()=>
-        verifyP186EProductionSourceResponse(sourceResponses[0]),25000);
-      report.sourceGlbChecks.push({floor,...sourceGlb});
+      need(sourceCaptures.length===1 &&
+        sourceCaptures[0].request===sourceResponses[0].request(),
+        'ORIGINAL_GLB_REQUEST_CAPTURE_BINDING');
+      verifyP186ESourceResponseMetadata(sourceResponses[0]);
+      const sourceGlb=sourceCaptures[0].sourceGlb;
+      report.sourceGlbChecks.push({floor,...sourceGlb,
+        captureMethod:'same-browser-request-verified-byte-forwarding'});
       report.stage='WEBGL_CONTEXT_'+floor;
       const webgl=await bounded(()=>canvas.evaluate(element=>
         Boolean(element.getContext('webgl2')||element.getContext('webgl'))),10000);
