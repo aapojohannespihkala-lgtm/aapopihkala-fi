@@ -7,6 +7,8 @@ import {
   p186eSchedulePdfDriveId,
   p186eSpecialAnchorListSha256,
 } from '../../src/scripts/privateModelP186EReviewPresentation';
+import {decodeD1FScreenshotPng} from '../../.github/scripts/private-model-d1f-screenshot-png.mjs';
+import {verifyP186ECaptionFrame} from '../../src/scripts/privateModelP186ECaptionPixelEvidence.mjs';
 
 const candidateId = 'p186e-x1-d2015-electrical-source-label-anchors-p28-corrected';
 const reviewId = `${candidateId}-review`;
@@ -14,9 +16,10 @@ const candidatePath =
   '/private-model/work-test/p186e-x1-d2015-electrical-source-label-anchors-p28-corrected.glb';
 
 const targetPositions = [
-  0, 0, 0,
-  0.22, 0, 0,
-  0, 0, -0.22,
+  -0.08, 0, 0,
+  0.08, 0, 0,
+  0, 0, -0.08,
+  0, 0, 0.08,
 ];
 
 const contextPositions = [
@@ -51,7 +54,7 @@ const makeVisibilityGlb = (
     ],
     nodes,
     meshes: [
-      { primitives: [{ attributes: { POSITION: 0 }, material: 0 }] },
+      { primitives: [{ attributes: { POSITION: 0 }, material: 0, mode: 1 }] },
       { primitives: [{ attributes: { POSITION: 1 }, material: 1 }] },
     ],
     materials: [
@@ -78,10 +81,10 @@ const makeVisibilityGlb = (
       {
         bufferView: 0,
         componentType: 5126,
-        count: 3,
+        count: 4,
         type: 'VEC3',
-        min: [0, 0, -0.22],
-        max: [0.22, 0, 0],
+        min: [-0.08, 0, -0.08],
+        max: [0.08, 0, 0.08],
       },
       {
         bufferView: 1,
@@ -198,7 +201,7 @@ const makeSpecialTarget = (
     representationKind: 'electricalSpecialSourceLabelAnchor',
     sourceBindingListSha256: p186eSpecialAnchorListSha256,
     sourceLabelId: `${floor}_SPECIAL_${ordinal}`,
-    sourceText: `Special source label ${ordinal}`,
+    sourceText: `Complete special source label ${ordinal} with historical provenance`,
     sourceSemantic: specialSemantic[(ordinal - 1) % specialSemantic.length],
   },
 });
@@ -383,6 +386,28 @@ const expectVisiblePixels = async (page: any) => {
   expect(pixels.lightContextPixels).toBeGreaterThan(300);
 };
 
+const expectReadableCaptions = async (page: any, floor: 'D1F' | 'D2F') => {
+  const canvas = page.locator('#private-model-canvas');
+  await expect.poll(async () => {
+    const raw = await canvas.getAttribute('data-p186e-caption-layout');
+    return raw ? JSON.parse(raw).allSourceCaptionsInView : false;
+  }).toBe(true);
+  const layout = JSON.parse(await canvas.getAttribute('data-p186e-caption-layout'));
+  const sourceNodes = buildFloorTargets(floor === 'D1F' ? 'D_1F' : 'D_2F',
+    p186eExpectedCounts[floor].group, p186eExpectedCounts[floor].special, 0);
+  const originalCaptions = sourceNodes.map((node: any) => ({
+    sourceKey: node.extras.representationKind === 'electricalGroupSourceLabelAnchor'
+      ? node.extras.annotationStableKey : node.extras.sourceLabelId,
+    text: node.extras.representationKind === 'electricalGroupSourceLabelAnchor'
+      ? 'Ryhmä ' + node.extras.sourceGroupKey : node.extras.sourceText,
+  }));
+  const image = decodeD1FScreenshotPng(await canvas.screenshot());
+  expect(verifyP186ECaptionFrame({floor, layout, originalCaptions, ...image})).toMatchObject({
+    captionCount: p186eExpectedCounts[floor].total, completeSourceTextVerified: true,
+    readableSizeGlyphPixelsVerified: true, glyphShapeOcrVerified: false, humanReview: 'NOT_RUN',
+  });
+};
+
 test('P186E-X1 D1F review renders 14 group + 4 special source-label anchors against real D1F wall context', async ({
   page,
 }) => {
@@ -405,6 +430,7 @@ test('P186E-X1 D1F review renders 14 group + 4 special source-label anchors agai
   await expect(canvas).toHaveAttribute('data-p186e-source-context-ready', 'true');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-1f');
   await expectVisiblePixels(page);
+  await expectReadableCaptions(page, 'D1F');
 });
 
 test('P186E-X1 D2F review renders 15 group + 1 special source-label anchors against real D2F wall context', async ({
@@ -429,4 +455,5 @@ test('P186E-X1 D2F review renders 15 group + 1 special source-label anchors agai
   await expect(canvas).toHaveAttribute('data-p186e-source-context-ready', 'true');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-2f');
   await expectVisiblePixels(page);
+  await expectReadableCaptions(page, 'D2F');
 });

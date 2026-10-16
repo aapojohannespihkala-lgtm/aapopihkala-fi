@@ -1945,6 +1945,7 @@ const title = 'Private 3D viewer';
         type P186EReviewVariant,
       } from '../../scripts/privateModelP186EReviewPresentation';
       import { createP186ELabelPixelRuntime, P186ELabelRuntimeFailure } from '../../scripts/privateModelP186ELabelPixelRuntime.mjs';
+      import { createP186ECaptionLayout } from '../../scripts/privateModelP186ECaptionLayout.mjs';
       import {
         p186fExpectedRoomContextCount,
         p186fExpectedTargetCount,
@@ -2569,6 +2570,7 @@ const title = 'Private 3D viewer';
       let d1fCombinedPixelRuntime: ReturnType<typeof createD1FCombinedWallPixelRuntime> | null = null;
       let d1fService: ReturnType<typeof mountD1FServiceModel> | null = null;
       let p186ePixelRuntime: ReturnType<typeof createP186ELabelPixelRuntime> | null = null;
+      let p186eCaptionLayout: ReturnType<typeof createP186ECaptionLayout> | null = null;
       window.addEventListener('p186e-source-pixel-probe', (event: Event) => {
         if (!(event instanceof CustomEvent) || !event.detail ||
             !Number.isSafeInteger(event.detail.requestId)) return;
@@ -6160,6 +6162,8 @@ const title = 'Private 3D viewer';
         p186ePixelRuntime?.dispose();
         p186ePixelRuntime = null;
         delete canvas.dataset.p186ePixelProbe;
+        p186eCaptionLayout = null;
+        delete canvas.dataset.p186eCaptionLayout;
         // Never leak source-camera coordinates across different WORK_TEST candidates.
         d1fCombinedPixelRuntime?.dispose();
         d1fCombinedPixelRuntime = null;
@@ -8589,13 +8593,15 @@ const title = 'Private 3D viewer';
           standardViewPreset: viewPreset,
         });
         p186ePixelRuntime?.dispose();
+        p186eCaptionLayout = createP186ECaptionLayout({THREE, root: fullModelScene, canvas, floor: p186eReviewVariant});
         p186ePixelRuntime = createP186ELabelPixelRuntime({
           THREE, root: fullModelScene, floor: p186eReviewVariant, canvas,
           camera: planCamera, controls: planControls,
-          render: () => renderer.render(scene, activeCamera),
+          render: () => { p186eCaptionLayout?.update(activeCamera); renderer.render(scene, activeCamera); },
         });
         activePlanFocusBounds = p186ePixelRuntime.sourceBounds();
         fitPlanCamera();
+        p186eCaptionLayout.update(activeCamera);
         status.textContent = isD2f
           ? 'P186E-X1 D 2F electrical source labels - WORK_TEST / 16 label anchors 80 % / D 2F context 20 % / HUMAN_REVIEW NOT_RUN'
           : 'P186E-X1 D 1F electrical source labels - WORK_TEST / 18 label anchors 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
@@ -11674,6 +11680,7 @@ const title = 'Private 3D viewer';
         d1fCombinedPixelRuntime?.pinFrame();
         d1fService?.pinFrame();
         p186ePixelRuntime?.pinFrame();
+        if (isP186eElectricalLabelReviewRequested()) p186eCaptionLayout?.update(activeCamera);
         renderer.render(scene, activeCamera);
       });
 
