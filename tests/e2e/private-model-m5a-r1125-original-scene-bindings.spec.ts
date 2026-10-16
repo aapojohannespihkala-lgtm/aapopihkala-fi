@@ -1,0 +1,128 @@
+import { test, expect } from '@playwright/test';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { Group, Object3D } from 'three';
+// @ts-ignore - pure internal ESM source binder
+import { bindR1125Scene63SourceObjects as bind,
+  bindAuthenticatedR1125Scene63 as authenticate } from
+  '../../src/scripts/privateModelM5AR1125OriginalSceneBindings.mjs';
+// @ts-ignore - source-key registry is the existing R1125 pixel proof, not a new map
+import { m5aR1125SourcePixelKinds as sourceKinds } from
+  '../../src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs';
+
+const keys=Object.keys(sourceKinds);
+const limits=['Canonical','physicalRouteClaim','exactXYClaim',
+  'exactZClaim','physicalElevationClaim','currentGeometryClaim',
+  'asBuiltClaim','publishToCURRENT'];
+function makeSyntheticOriginalGltf() {
+  const src={
+    asset:{version:'2.0'},scene:63,
+    buffers:[{byteLength:60}],
+    bufferViews:[{buffer:0,byteOffset:0,byteLength:36},
+                 {buffer:0,byteOffset:36,byteLength:24}],
+    accessors:[
+      {bufferView:0,componentType:5126,count:3,type:'VEC3',min:[0,0,0],max:[1,1,0]},
+      {bufferView:1,componentType:5126,count:2,type:'VEC3',min:[0,0,0],max:[1,0,0]},
+    ],
+    meshes:[
+      {primitives:[{attributes:{POSITION:0},mode:4}]},
+      {primitives:[{attributes:{POSITION:1},mode:1}]},
+    ],
+    nodes:[{name:'M5A_R1125_DIAMETER_SOURCE_SPLIT_WORK_TEST_ROOT_BABYLON_Y_UP',
+      children:Array.from({length:13},(_,i)=>i+1),
+      rotation:[-Math.SQRT1_2,0,0,Math.SQRT1_2],
+      extras:Object.fromEntries([...limits.map(k=>[k,false]),
+        ['presentationOnly',true],['workAssumption',true],['humanReview','NOT_RUN']])}],
+    scenes:Array.from({length:64},(_,i)=>({
+      nodes:i===63?[0]:[],name:'SYNTHETIC_TEST_SCENE_'+i,
+    })),
+  } as any;
+  for(let i=0;i<keys.length;i++){
+    const key=keys[i],boundary=key.startsWith('boundary:');
+    const data={
+      G2IdCandidate:boundary?undefined:key,
+      representationKind:boundary?'unresolvedBoundaryMarker':key.includes('_WELL_')
+        ?'wellDiameterPresentationWork':'pipeDiameterPresentationWork',
+      Pass:'M5A-Z2D-R1090',...(boundary?{boundaryRole:key.slice(9)}:{}),
+      presentationOnly:true,workAssumption:true,
+      ...Object.fromEntries(limits.map(k=>[k,false])),
+    };
+    const extras=Object.fromEntries(Object.entries(data).filter(([,v])=>v!==undefined));
+    src.nodes.push({name:'SOURCE_'+i,mesh:boundary?1:0,extras} as any);
+  }
+  const floats=new Float32Array([0,0,0,1,0,0,0,1,0,0,0,0,1,0,0]);
+  const bin=Buffer.from(floats.buffer);
+  const raw=Buffer.from(JSON.stringify(src));
+  const padded=Buffer.concat([raw,Buffer.alloc((4-raw.length%4)%4,0x20)]);
+  const glb=Buffer.alloc(12+8+padded.length+8+bin.length);
+  glb.write('glTF',0,'ascii');glb.writeUInt32LE(2,4);glb.writeUInt32LE(glb.length,8);
+  glb.writeUInt32LE(padded.length,12);glb.writeUInt32LE(0x4e4f534a,16);
+  padded.copy(glb,20);
+  const next=20+padded.length;
+  glb.writeUInt32LE(bin.length,next);glb.writeUInt32LE(0x004e4942,next+4);
+  bin.copy(glb,next+8);
+  return {src,glb};
+}
+async function fixture(){
+  const {src,glb}=makeSyntheticOriginalGltf();
+  const gltf=await new GLTFLoader().parseAsync(
+    glb.buffer.slice(glb.byteOffset,glb.byteOffset+glb.byteLength),'');
+  return {sourceDoc:src,gltf};
+}
+
+test('real GLTFLoader scene63 binds 13 exact source-node and mesh associations with no source mutation',async()=>{
+  const input=await fixture();
+  const originalNodes=[...input.gltf.scenes[63].children];
+  const result=bind(input);
+  expect(result.sourceSceneIndex).toBe(63);
+  expect(result.sourceTargetCount).toBe(13);
+  expect(Object.keys(result.targets)).toEqual(keys);
+  expect(new Set(Object.values(result.targets)).size).toBe(13);
+  // The GLTFLoader scene is Group, but its no-mesh glTF source root is
+  // a plain Object3D. Do not substitute a synthetic Group as proof.
+  expect(input.gltf.scenes[63]).toBeInstanceOf(Group);
+  expect(result.sourceRoot).toBeInstanceOf(Object3D);
+  expect(result.sourceRoot.isMesh).not.toBe(true);
+  expect(result.sourceRoot.isScene).not.toBe(true);
+  expect(result.sourceRoot.children).toHaveLength(13);
+  expect(input.gltf.scenes[63].children).toEqual(originalNodes);
+  expect(result).toMatchObject({
+    originalGlbDigestAuthenticated:false,productionPixelsVerified:false,
+    current:false,canonical:false,asBuilt:false,humanReview:'NOT_RUN',
+  });
+});
+
+test('reject association for the wrong source mesh or swapped nodes',async()=>{
+  const a=await fixture(),keys=Object.keys(a.gltf.parser.associations);
+  expect(keys.length).toBeGreaterThanOrEqual(0);
+  const root=a.gltf.scenes[63].children[0],target=root.children[0];
+  a.gltf.parser.associations.set(target,{nodes:1,meshes:98765});
+  expect(()=>bind(a)).toThrow('R1125_ORIGINAL_SCENE_BINDINGS_REJECTED');
+  const b=await fixture(),first=b.gltf.scenes[63].children[0].children[0];
+  b.gltf.parser.associations.set(first,{nodes:2,meshes:0});
+  expect(()=>bind(b)).toThrow('R1125_ORIGINAL_SCENE_BINDINGS_REJECTED');
+});
+
+test('missing, duplicate and promoted source objects are rejected',async()=>{
+  const cases=[
+    (f:any)=>f.gltf.scenes[63].children[0].children[1].visible=false,
+    (f:any)=>f.gltf.scenes[63].children[0].children[2].userData.Canonical=true,
+    (f:any)=>f.gltf.scenes[63].children[0].children[3].userData.Pass='CURRENT',
+    (f:any)=>f.gltf.scenes[63].children[0].children[5].geometry.deleteAttribute('position'),
+    (f:any)=>f.gltf.scenes[63].children[0].add(new Group()),
+    (f:any)=>f.sourceDoc.nodes[1].extras.G2IdCandidate='G2_FORGED',
+    (f:any)=>f.sourceDoc.nodes[0].rotation=[0,0,0,1],
+    (f:any)=>f.gltf.scenes[63].children[0].quaternion.set(0,0,0,1),
+  ];
+  for(const mutate of cases){const f=await fixture();mutate(f);
+    expect(()=>bind(f)).toThrow('R1125_ORIGINAL_SCENE_BINDINGS_REJECTED');
+  }
+});
+
+test('a synthetic scene, regardless of perfect associations, never authenticates original R1125 bytes',async()=>{
+  const input=await fixture();
+  expect(bind(input).originalGlbDigestAuthenticated).toBe(false);
+  expect(()=>authenticate({originalRaw:Buffer.alloc(3_112_432),gltf:input.gltf}))
+    .toThrow(/original raw SHA-256/);
+  expect(()=>authenticate({originalRaw:Buffer.alloc(8),gltf:input.gltf}))
+    .toThrow(/original raw bytes/);
+});
