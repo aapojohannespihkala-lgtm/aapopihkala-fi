@@ -8780,6 +8780,7 @@ const title = 'Private 3D viewer';
         syncViewState('d-plan');
         delete canvas.dataset.p137eScene67CameraSourceIds;
         delete canvas.dataset.p137eScene67CameraSourceOnly;
+        delete canvas.dataset.p137eScene67CameraFace;
         canvas.dataset.p137eScene67TopPlanToolsReady = String(
           !axisMeasureToolButton.disabled && !p137ePlaceToolButton.disabled
         );
@@ -8910,7 +8911,15 @@ const title = 'Private 3D viewer';
         if (p137ePlanFaceButton) p137ePlanFaceButton.hidden = false;
         if (p137eNorthFaceButton) p137eNorthFaceButton.hidden = false;
         if (p137eSouthFaceButton) p137eSouthFaceButton.hidden = false;
-        applyP137EScene67SourceFace('NORTH');
+        // The exact one-link D1F source review may opt into the original
+        // four-child P123C wall TOP plan with unsaved RASTI and MITTAA ready.
+        // Default NORTH face is preserved for the existing wall pixel probes.
+        // Only the exact scene67 WORK_TEST branch can reach this choice.
+        if (new URLSearchParams(window.location.search).get('view') === 'd1f-plan') {
+          applyP137EScene67TopPlan();
+        } else {
+          applyP137EScene67SourceFace('NORTH');
+        }
       };
 
       const applyP186fReviewState = (variant: 'X1' | 'X2' | 'X4' = 'X1') => {
