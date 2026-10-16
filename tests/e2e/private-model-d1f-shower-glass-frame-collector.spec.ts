@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 // @ts-ignore - source-bound worker-facing proof is provided as a native ES module.
 import { collectD1FShowerGlassPrimitiveFrames, projectD1FShowerPrimitiveRoi } from '../../src/scripts/privateModelD1FShowerGlassFrameCollector.mjs';
 // @ts-ignore - fixed source roster is checked against immutable GLB SHA in its own gate.
@@ -27,8 +28,8 @@ function fixture(mode=''){
   for(const v of D1F_SHOWER_PHOTO_VARIANTS){
     const children=[mesh(0),mesh(1),mesh(2)];
     const group={children,visible:true};
-    associations.set(group,{type:'nodes',index:v.glassNode});
-    children.forEach(child=>associations.set(child,{type:'meshes',index:777}));
+    associations.set(group,{nodes:v.glassNode,meshes:777});
+    children.forEach((child,i)=>associations.set(child,{meshes:777,primitives:i}));
     const scene={variant:v.name,group,traverse(fn:(o:any)=>void){
       fn(this);fn(group);children.forEach(fn);
     }};
@@ -82,7 +83,7 @@ test('requires original 124-scene source identity and exact trusted glTF associa
     (f:any)=>f.gltf.scenes.pop(),
     (f:any)=>f.gltf.parser.associations.delete(f.gltf.scenes[120].group),
     (f:any)=>f.gltf.scenes[120].group.children.pop(),
-    (f:any)=>f.gltf.parser.associations.set(f.gltf.scenes[120].group.children[0],{type:'meshes',index:776}),
+    (f:any)=>f.gltf.parser.associations.set(f.gltf.scenes[120].group.children[0],{meshes:776,primitives:0}),
   ]){const f=fixture();mut(f);await expect(collectD1FShowerGlassPrimitiveFrames(f)).rejects.toThrow('D1F_SHOWER_FRAME_COLLECTOR_REJECTED');}
 });
 test('detects wrong camera, material mutation, out-of-target pixels and failed pixel restore',async()=>{
@@ -99,4 +100,38 @@ test('projected region cannot be guessed from empty geometry, offscreen mesh or 
   });
   v.geometry.getAttribute=()=>null;
   expect(()=>projectD1FShowerPrimitiveRoi(v,f.camera,width,height)).toThrow('D1F_SHOWER_FRAME_COLLECTOR_REJECTED');
+});
+
+test('actual installed GLTFLoader parses associations as {nodes,meshes} and {meshes,primitives}',async()=>{
+  const positions=new Float32Array([-0.5,-0.5,0,0.5,-0.5,0,0,0.5,0]);
+  const bytes=Buffer.from(positions.buffer);
+  const doc={
+    asset:{version:'2.0'},buffers:[{uri:'data:application/octet-stream;base64,'+bytes.toString('base64'),byteLength:bytes.length}],
+    bufferViews:[{buffer:0,byteOffset:0,byteLength:bytes.length}],
+    accessors:[{bufferView:0,componentType:5126,count:3,type:'VEC3',min:[-0.5,-0.5,0],max:[0.5,0.5,0]}],
+    meshes:[{primitives:[{attributes:{POSITION:0}},{attributes:{POSITION:0}},{attributes:{POSITION:0}}]}],
+    nodes:[{mesh:0}],scenes:[{nodes:[0]}],scene:0
+  };
+  const parsed=await new GLTFLoader().parseAsync(JSON.stringify(doc),'');
+  const group=parsed.scene.children[0];
+  const mapping=parsed.parser.associations.get(group);
+  expect(mapping).toMatchObject({nodes:0,meshes:0});
+  expect(Object.keys(mapping!).sort()).toEqual(['meshes','nodes']);
+  expect(group.children).toHaveLength(3);
+  for(let i=0;i<3;i++){
+    const primitive=parsed.parser.associations.get(group.children[i]);
+    expect(primitive).toEqual({meshes:0,primitives:i});
+  }
+});
+
+test('legacy invented {type,index} association and swapped primitives fail closed',async()=>{
+  for(const mutate of [
+    (f:any)=>f.gltf.parser.associations.set(f.gltf.scenes[120].group,{type:'nodes',index:2456}),
+    (f:any)=>f.gltf.parser.associations.set(f.gltf.scenes[120].group.children[1],{type:'meshes',index:777}),
+    (f:any)=>f.gltf.parser.associations.set(f.gltf.scenes[120].group.children[2],{meshes:777,primitives:0}),
+    (f:any)=>f.gltf.parser.associations.set(f.gltf.scenes[120].group,{nodes:2456,meshes:777,type:'nodes'})
+  ]){
+    const f=fixture();mutate(f);
+    await expect(collectD1FShowerGlassPrimitiveFrames(f)).rejects.toThrow('D1F_SHOWER_FRAME_COLLECTOR_REJECTED');
+  }
 });
