@@ -78,7 +78,7 @@ test('real GLTFLoader scene63 binds 13 exact source-node and mesh associations w
   expect(Object.keys(result.targets)).toEqual(keys);
   expect(new Set(Object.values(result.targets)).size).toBe(13);
   expect(result.sourceRoot).toBeInstanceOf(Group);
-  expect(result.sourceRoot?.children).toHaveLength(13);
+  expect((result.sourceRoot as Group).children).toHaveLength(13);
   expect(input.gltf.scenes[63].children).toEqual(originalNodes);
   expect(result).toMatchObject({
     originalGlbDigestAuthenticated:false,productionPixelsVerified:false,
