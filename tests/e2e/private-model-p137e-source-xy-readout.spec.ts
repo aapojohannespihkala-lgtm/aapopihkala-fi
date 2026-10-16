@@ -24,6 +24,7 @@ const inputs=()=>({
 test('real YLIS-G1 XY is recovered through exact -90deg source-to-Three world transform',()=>{
   const result=locateP137ESourceXYAtPointer(inputs());
   expect(result?.sourceCoordinateSystem).toBe('YLIS-G1-LOCAL');
+  if (!result) throw new Error('Expected an intersecting authenticated YLIS-G1 source floor');
   expect(result.sourceXMetres).toBeCloseTo(5,6);
   expect(result.sourceYMetres).toBeCloseTo(2,6);
   expect(result.sourceFloorZMetres).toBe(0.08);
