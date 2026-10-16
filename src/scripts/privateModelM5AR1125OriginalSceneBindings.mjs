@@ -1,5 +1,6 @@
 import { parseOriginalR1125, inspectR1125Presentation } from './privateModelM5AR1125GeometryPresence.mjs';
 import { m5aR1125SourcePixelKinds } from './privateModelM5AR1125SourceRoiPixelProof.mjs';
+import { deriveM5AR1125SourceCameraCenters } from './privateModelM5AR1125SourceCameraCenters.mjs';
 
 const fail = reason => { throw Error('R1125_ORIGINAL_SCENE_BINDINGS_REJECTED: ' + reason); };
 const expect = (yes, why) => { if(!yes) fail(why); };
@@ -113,5 +114,88 @@ export function bindAuthenticatedR1125Scene63({originalRaw,gltf} = {}) {
     originalGlbBytes:originalRaw.length,
     originalSourceDigest:'c465417fc101e7de495d0a04bb4feb2bee61b80cd5efccf876f6eb76326f9a48',
     productionPixelsVerified:false,
+  });
+}
+
+
+// Join two existing source-only gates. The imported camera gate verifies its
+// own 13 source IDs and visible real GLTFLoader positions, while this adapter
+// additionally requires each camera target to be the SAME Object3D previously
+// bound to the original glTF node+mesh identity, not a name/color substitute.
+export function projectR1125BoundSourceObjects({
+  sourceDoc, gltf, camera, THREE, imageWidth, imageHeight,
+} = {}) {
+  const bound = bindR1125Scene63SourceObjects({ sourceDoc, gltf });
+  const sceneRoot = gltf.scenes[63];
+  const source = sourceDoc.scenes[63].extras ?? {};
+  const actual = sceneRoot.userData ?? {};
+  const provenanceFields = [
+    'sourceDiameterCorrectionContract','sourceDiameterClassBreakdown',
+    'Canonical','presentationOnly','workAssumption','humanReview',
+    'currentGeometryClaim','asBuiltClaim','publishToCURRENT',
+  ];
+  for (const key of provenanceFields) {
+    expect(Object.hasOwn(source, key) && actual[key] === source[key],
+      'scene63 original versus loaded source provenance mismatch: ' + key);
+  }
+  const derived = deriveM5AR1125SourceCameraCenters({
+    sceneRoot, camera, THREE, sceneIndex: 63, imageWidth, imageHeight,
+  });
+  expect(derived.sourceTargetCount === 13 && derived.centers?.length === 13,
+    'exact original source projection count');
+
+  // Do not trust projected names on caller-supplied synthetic geometry.
+  // The projected source object must be identical to the original loaded
+  // GLTFLoader object returned by the strict parser.associations gate.
+  const actualByKey = new Map();
+  sceneRoot.traverse(object => {
+    const d = object.userData ?? {};
+    const key = d.representationKind === 'unresolvedBoundaryMarker'
+      ? 'boundary:' + d.boundaryRole : d.G2IdCandidate;
+    if (!Object.hasOwn(m5aR1125SourcePixelKinds, key)) return;
+    expect(!actualByKey.has(key), 'duplicate displayed source object: ' + key);
+    actualByKey.set(key, object);
+  });
+  expect(actualByKey.size === 13, 'all displayed exact source objects required');
+  for (const { key } of derived.centers) {
+    expect(actualByKey.get(key) === bound.targets[key],
+      'projected object differs from original glTF source node/mesh: ' + key);
+  }
+  return Object.freeze({
+    sceneIndex: 63, sourceTargetCount: 13,
+    sourceTargets: bound.targets,
+    projectedCenters: Object.freeze(derived.centers.map(p =>
+      Object.freeze({ key: p.key, u: p.u, v: p.v }))),
+    radiusPx: derived.radiusPx,
+    originalGlbDigestAuthenticated: false,
+    originalSourceObjectIdentityVerified: true,
+    productionScreenshotVerified: false,
+    individualSourcePixelsVerified: false,
+    current: false, canonical: false, asBuilt: false, humanReview: 'NOT_RUN',
+  });
+}
+
+/**
+ * Authentic raw bytes are required to make a source-identity claim.
+ * Even with an authentic GLB and verified source projections, this is only a
+ * preflight for future original screenshot hide/restore proofs.
+ */
+export function projectAuthenticatedR1125BoundSourceObjects({
+  originalRaw, gltf, camera, THREE, imageWidth, imageHeight,
+} = {}) {
+  const source = parseOriginalR1125(originalRaw);
+  const check = inspectR1125Presentation(source);
+  expect(check.result === 'PASS', 'exact original R1125 geometry');
+  const projected = projectR1125BoundSourceObjects({
+    sourceDoc: source.doc, gltf, camera, THREE, imageWidth, imageHeight,
+  });
+  return Object.freeze({
+    ...projected,
+    originalGlbDigestAuthenticated: true,
+    originalSourceDigest: 'c465417fc101e7de495d0a04bb4feb2bee61b80cd5efccf876f6eb76326f9a48',
+    originalGlbBytes: originalRaw.byteLength,
+    productionScreenshotVerified: false,
+    individualSourcePixelsVerified: false,
+    humanReview: 'NOT_RUN',
   });
 }
