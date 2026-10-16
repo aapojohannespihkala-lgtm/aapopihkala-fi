@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {readFileSync} from 'node:fs';
-import {D1F_SERVICE_ID,D1F_SERVICE_ASSET,D1F_SERVICE_ROWS,D1F_SERVICE_DEVICES,D1F_SERVICE_OPEN_POINTS,D1F_SERVICE_MODELS,D1F_SERVICE_PREVIOUS} from '../../src/scripts/privateModelD1FServiceContract.mjs';
+import {D1F_SERVICE_ID,D1F_SERVICE_ASSET,D1F_SERVICE_ROWS,D1F_SERVICE_DEVICES,D1F_SERVICE_OPEN_POINTS,D1F_SERVICE_MODELS,D1F_SERVICE_PREVIOUS,D1F_SERVICE_CENTERED} from '../../src/scripts/privateModelD1FServiceContract.mjs';
 import {getPrivateWorkTestCandidateById} from '../../worker/privateWorkTest';
 
 const constants={D1F_SERVICE_ID,D1F_SERVICE_ASSET,D1F_SERVICE_ROWS,D1F_SERVICE_DEVICES,D1F_SERVICE_OPEN_POINTS,D1F_SERVICE_MODELS};
@@ -8,9 +8,10 @@ const moduleCode=readFileSync('src/scripts/privateModelD1FServiceRuntime.mjs','u
 
 test('new service source is independently bounded without replacing the accepted WC source',()=>{
  expect(getPrivateWorkTestCandidateById(D1F_SERVICE_ID)).toMatchObject({expectedSize:D1F_SERVICE_ASSET.bytes,expectedSha256:D1F_SERVICE_ASSET.sha256});
- expect(getPrivateWorkTestCandidateById(D1F_SERVICE_PREVIOUS.id)?.expectedSha256).toBe(D1F_SERVICE_ASSET.parentSha256);
+ expect(getPrivateWorkTestCandidateById(D1F_SERVICE_CENTERED.id)?.expectedSha256).toBe(D1F_SERVICE_ASSET.parentSha256);
+ expect(getPrivateWorkTestCandidateById(D1F_SERVICE_PREVIOUS.id)?.expectedSha256).toBe(D1F_SERVICE_CENTERED.asset.parentSha256);
  expect(getPrivateWorkTestCandidateById('d1f-wc-enclosure-themos-20261015')?.expectedSha256).toBe(D1F_SERVICE_PREVIOUS.asset.parentSha256);
- expect(D1F_SERVICE_MODELS.map(m=>[m.defaultScene,m.sceneCount])).toEqual([[100,104],[96,100]]);
+ expect(D1F_SERVICE_MODELS.map(m=>[m.defaultScene,m.sceneCount])).toEqual([[104,108],[100,104],[96,100]]);
  expect(new Set(D1F_SERVICE_ROWS.map((r:any)=>r.rootNode)).size).toBe(4);
 });
 
@@ -62,15 +63,16 @@ test('authenticated production proof is main-only and covers all four source var
 });
 
 
-test('WC selection distinguishes manufacturer nominal size and user centering from unmeasured installed height',async({page})=>{
+test('WC selection distinguishes measured closed-lid top from approximate porcelain and connection geometry',async({page})=>{
  await page.goto('/about/');await page.setContent('<div><button id="layers-button">Layerit</button></div><div class="viewport"><canvas id="private-model-canvas"></canvas><aside id="selection-panel"></aside></div>');
  const result=await page.evaluate(async({code})=>{
   const {mountD1FServiceModel}=await import('data:text/javascript;base64,'+code);
-  const product={nominalWidthMm:355,nominalProjectionMm:535,model:'Nordic3 3530',installedHeightVerified:false,dimensionSource:'https://www.gustavsberg.com/drawing',userUrl:'https://byggerom.se/toilet'};
-  const toilet={userData:{product,serviceLabelFi:'WC-istuin',equalSideClearanceMm:332.5,sourceCenterYM:4.522,sideWallFacesYM:[4.012,5.032]},visible:true};
+  const product={nominalWidthMm:355,nominalProjectionMm:535,model:'Nordic3 3530',installedHeightVerified:true,closedLidState:'CLOSED',closedLidTopAboveFinishedFloorMm:450,dimensionSource:'https://www.gustavsberg.com/drawing',userUrl:'https://byggerom.se/toilet'};
+  const toilet={userData:{product,serviceLabelFi:'WC-istuin',equalSideClearanceMm:332.5,sourceCenterYM:4.522,sideWallFacesYM:[4.012,5.032],sourceFloorZM:.08,sourceClosedLidTopZM:.53},visible:true};
   const canvas=document.querySelector('#private-model-canvas') as HTMLCanvasElement;
   const api=mountD1FServiceModel({THREE:{},loaded:{targets:new Map([['TOILET',toilet]]),surfaces:{},scene:{},row:{variant:'WEST_ANCHOR_725_895_740'}},canvas,camera:{},controls:{},render(){},selectObject(){},setPerspective(){},planPreset(){}});
   api.select(toilet);const text=document.querySelector('#d1f-service-selected-info')?.textContent;const links=[...document.querySelectorAll('#d1f-service-selected-info a')].map(a=>(a as HTMLAnchorElement).hostname);const dataset=JSON.parse(canvas.dataset.d1fServiceWcProduct!);api.dispose();return {text,links,dataset};
  },{code:Buffer.from(moduleCode).toString('base64')});
- expect(result.text).toContain('Nordic³ 3530');expect(result.text).toContain('355 mm leveä, 535 mm seinästä');expect(result.text).toContain('332.5 mm kummallakin puolella');expect(result.text).toContain('Asennuskorkeutta, kiinnityksiä ja piiloliitäntöjä ei ole mitattu');expect(result.links).toEqual(['www.gustavsberg.com','byggerom.se']);expect(result.dataset.installedHeightVerified).toBe(false);
+ expect(result.text).toContain('Nordic³ 3530');expect(result.text).toContain('355 mm leveä, 535 mm seinästä');expect(result.text).toContain('332.5 mm kummallakin puolella');expect(result.text).toContain('450 mm kylpyhuoneen lattiasta, käyttäjän mittaus 16.10.2026');expect(result.text).toContain('Kulhon ja kannen muoto, kerrospaksuudet ja piiloliitännät ovat likimääräisiä');expect(result.links).toEqual(['www.gustavsberg.com','byggerom.se']);expect(result.dataset.installedHeightVerified).toBe(true);expect(result.dataset.closedLidState).toBe('CLOSED');expect(result.dataset.closedLidTopAboveFinishedFloorMm).toBe(450);expect(result.dataset.sourceClosedLidTopZM-result.dataset.sourceFloorZM).toBeCloseTo(.450,6);
 });
+
