@@ -8,6 +8,8 @@ const sourceBounds = {minX:4,maxX:6,minY:1,maxY:3};
 const camera = () => {
   const cam=new PerspectiveCamera(38,1,0.01,100);
   cam.position.set(5,3,-2);
+  // Source +Y maps to world -Z; looking straight down needs a non-collinear up vector.
+  cam.up.set(0,0,-1);
   cam.lookAt(new Vector3(5,0.08,-2));
   cam.updateMatrixWorld(true);
   return cam;
@@ -38,6 +40,8 @@ test('real YLIS-G1 XY is recovered through exact -90deg source-to-Three world tr
 test('an actual orthographic camera works without assuming an axis convention',()=>{
   const cam=new OrthographicCamera(-2,2,2,-2,.01,100);
   cam.position.set(5,3,-2);
+  // Avoid a singular lookAt with default world-Y up aligned with the view ray.
+  cam.up.set(0,0,-1);
   cam.lookAt(new Vector3(5,.08,-2));
   const result=locateP137ESourceXYAtPointer({...inputs(),camera:cam});
   expect(result?.sourceXMetres).toBeCloseTo(5,6);
