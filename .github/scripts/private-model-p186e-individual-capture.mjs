@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
+import {decodeD1FScreenshotPng} from './private-model-d1f-screenshot-png.mjs';
 import {
   p186ePixelCandidateId,p186ePixelExpected,p186ePixelRepresentationKinds,
   p186ePixelSourcePdfDriveId,p186ePixelSchedulePdfDriveId,
@@ -88,19 +89,17 @@ export async function captureP186EIndividualFloor({page,canvas,floor,originalRos
     need(before.cameraFingerprint===manifest.cameraFingerprint&&before.width===manifest.width&&
       before.height===manifest.height&&before.hiddenSourceKey===manifest.hiddenSourceKey,'FRAME_DRIFT');
     const png=await canvas.screenshot({timeout:30000});
-    const rgba=await page.evaluate(async base64=>{
-      const image=new Image();image.src='data:image/png;base64,'+base64;await image.decode();
-      const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
-      const context=canvas.getContext('2d',{willReadFrequently:true});
-      if(!context)throw Error('P186E_PIXEL_DECODE');context.drawImage(image,0,0);
-      const data=context.getImageData(0,0,canvas.width,canvas.height).data;let raw='';
-      for(let i=0;i<data.length;i+=32768)raw+=String.fromCharCode(...data.subarray(i,i+32768));
-      return {width:canvas.width,height:canvas.height,rgbaBase64:btoa(raw)};
-    },png.toString('base64'));
+    // Decode the captured lossless PNG in Node. Sending its full RGBA table
+    // through browser RPC exhausted the real 240s floor budget after 9 pairs.
+    need(Buffer.isBuffer(png)&&png.length>=24&&
+      png.readUInt32BE(16)===manifest.width&&png.readUInt32BE(20)===manifest.height&&
+      manifest.width*manifest.height<=2304000,'FRAME_SHAPE');
+    let rgba;
+    try{rgba=decodeD1FScreenshotPng(png);}catch{need(false,'PNG_DECODE');}
     const after=await command('inspect');
     need(after.cameraFingerprint===before.cameraFingerprint&&after.hiddenSourceKey===before.hiddenSourceKey&&
       rgba.width===manifest.width&&rgba.height===manifest.height,'FRAME_DRIFT');
-    const pixels=new Uint8Array(Buffer.from(rgba.rgbaBase64,'base64'));
+    const pixels=rgba.rgba;
     need(pixels.length===rgba.width*rgba.height*4&&pixels.length<=2304000*4,'FRAME_SHAPE');
     fs.mkdirSync(outputDirectory,{recursive:true});fs.writeFileSync(outputDirectory+'/'+name+'.png',png);
     frames.push({file:name+'.png',pngSha256:sha256(png),hiddenSourceKey:manifest.hiddenSourceKey});
@@ -133,7 +132,8 @@ export async function captureP186EIndividualFloor({page,canvas,floor,originalRos
       targets:manifest.targets,baseline,hiddenFrames},summary:{floor,frames,
       cameraFingerprint:manifest.cameraFingerprint,cameraKey:manifest.cameraKey,sceneKey:manifest.sceneKey,
       width:manifest.width,height:manifest.height,targets:manifest.targets,sourceRosterBoundToOriginalGlb:true,
-      exactRestoresVerified:true,captionsTemporarilyHidden:true,captionPixelsVerified:false}};
+      exactRestoresVerified:true,captionsTemporarilyHidden:true,captionPixelsVerified:false,
+      rgbaDecodeMethod:'node-lossless-png'}};
   }finally{
     if(prepared){
       const finish=await command('finish');
