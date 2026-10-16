@@ -73,6 +73,40 @@ test('source substitution and promotion fail before any visibility mutation',()=
   }
 });
 
+test('temporary 13 to 9 px source cues clear only a marginal ROI overlap and fully restore',()=>{
+  const f=fixture();
+  // Deliberately crowd two original-source GL_LINES in presentation space,
+  // not the original model/physical wiring; projection is 1000 CSS pixels high.
+  f.camera.left=-12;f.camera.right=12;f.camera.top=9;f.camera.bottom=-9;
+  f.camera.updateProjectionMatrix();
+  f.targets[1].position.set(0,0,.26);
+  const original=f.targets.map(t=>(t.children.find(c=>(c as THREE.Points).isPoints===true) as THREE.Points).material as THREE.PointsMaterial);
+  expect(original.every(m=>m.size===13)).toBe(true);
+  const runtime=f.runtime(),prepared=runtime.prepare();
+  expect(prepared.temporaryCuePointSizePx).toBe(9);
+  expect(original.every(m=>m.size===9)).toBe(true);
+  expect(prepared.targets).toHaveLength(p186ePixelExpected.D1F.total);
+  const hidden=runtime.hide(prepared.targets[0].sourceKey);
+  expect(hidden.temporaryCuePointSizePx).toBe(9);
+  expect(runtime.restore().hiddenSourceKey).toBeNull();
+  expect(runtime.dispose()).toMatchObject({
+    state:'FINISHED',cueSizeRestored:true,sourceVisibilityRestored:true,
+    captionVisibilityRestored:true,cameraRestored:true,
+  });
+  expect(original.every(m=>m.size===13)).toBe(true);
+  expect(f.controls.enabled).toBe(true);
+});
+
+test('cue size cannot be modified during the source-only pixel session',()=>{
+  const f=fixture(),runtime=f.runtime(),prepared=runtime.prepare();
+  const cue=f.targets[0].children.find(c=>(c as THREE.Points).isPoints===true) as THREE.Points;
+  (cue.material as THREE.PointsMaterial).size=5;
+  expect(()=>runtime.inspect()).toThrow('SOURCE_DRIFT');
+  expect(runtime.dispose()).toMatchObject({cueSizeRestored:true});
+  expect((cue.material as THREE.PointsMaterial).size).toBe(13);
+  expect(prepared.humanReview).toBe('NOT_RUN');
+});
+
 test('overlapping projected source regions abort preparation and restore captions and controls',()=>{
   const f=fixture();f.targets[1].position.copy(f.targets[0].position);
   const runtime=f.runtime();expect(()=>runtime.prepare()).toThrow('ROI_OVERLAP');
@@ -80,19 +114,100 @@ test('overlapping projected source regions abort preparation and restore caption
   expect(f.controls.enabled&&f.controls.enableDamping).toBe(true);
 });
 
-for(const drift of ['camera','viewport','geometry','material','source','peer'])test('rejects '+drift+' drift and cleanup restores owned visibility',()=>{
+test('renderer invalidation counters do not replace material appearance checks',()=>{
+  const f=fixture(),runtime=f.runtime();
+  (f.targets[0].material as THREE.Material).needsUpdate=true;
+  const prepared=runtime.prepare();
+  (f.targets[0].material as THREE.Material).needsUpdate=true;
+  expect(runtime.hide(prepared.targets[0].sourceKey).hiddenSourceKey).toBe(prepared.targets[0].sourceKey);
+  expect(runtime.restore().hiddenSourceKey).toBeNull();
+  expect(runtime.dispose().sourceVisibilityRestored).toBe(true);
+});
+
+for(const drift of ['camera','viewport','geometry','material','material-pass','shader','source','peer'])test('rejects '+drift+' drift and cleanup restores owned visibility',()=>{
   const f=fixture(),runtime=f.runtime();const prepared=runtime.prepare();
   runtime.hide(prepared.targets[0].sourceKey);
   if(drift==='camera'){f.camera.position.x++;f.camera.updateMatrixWorld(true);}
   if(drift==='viewport')f.resize();
   if(drift==='geometry')f.targets[1].geometry.attributes.position.setX(0,20);
   if(drift==='material')(f.targets[1].material as THREE.LineBasicMaterial).color.setHex(0xffffff);
+  if(drift==='material-pass')(f.targets[1].material as THREE.Material).forceSinglePass=true;
+  if(drift==='shader')(f.targets[1].material as any).defines={P186E_CHANGED:1};
   if(drift==='source')f.targets[1].userData.current=true;
   if(drift==='peer')f.targets[1].visible=false;
   expect(()=>runtime.inspect()).toThrow(/DRIFT/);
   runtime.dispose();
   expect(f.targets.every(t=>t.visible&&t.children.every(c=>c.visible))).toBe(true);
   expect(f.controls.enabled).toBe(true);
+});
+
+for(const floor of ['D1F','D2F'] as const)test('real WebGL DoubleSide renders preserve source capture '+floor,async({page})=>{
+  const files:Record<string,string>={
+    '/three.module.js':readFileSync('node_modules/three/build/three.module.js','utf8'),
+    '/three.core.js':readFileSync('node_modules/three/build/three.core.js','utf8'),
+    '/runtime.mjs':readFileSync('src/scripts/privateModelP186ELabelPixelRuntime.mjs','utf8'),
+    '/privateModelP186E34PixelEvidence.mjs':readFileSync('src/scripts/privateModelP186E34PixelEvidence.mjs','utf8'),
+  };
+  await page.route('https://p186e.test/**',route=>{
+    const path=new URL(route.request().url()).pathname;
+    return route.fulfill(path==='/'?{contentType:'text/html',body:'<!doctype html><body></body>'}:
+      files[path]?{contentType:'text/javascript',body:files[path]}:{status:404,body:''});
+  });
+  await page.goto('https://p186e.test/');
+  const f=fixture(floor);
+  const result=await page.evaluate(async({floor,targets,positions})=>{
+    const origin='https://p186e.test';
+    const THREE=await import(origin+'/three.module.js');
+    const {createP186ELabelPixelRuntime:create}=await import(origin+'/runtime.mjs');
+    const scene=new THREE.Scene(),root=new THREE.Group();scene.add(root);
+    scene.background=new THREE.Color(0x17212b);
+    const sources=targets.map(({data,position})=>{
+      const geometry=new THREE.BufferGeometry();
+      geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+      // The original source GLB material is BLEND + doubleSided. The viewer
+      // clones it with opacity .8, retaining DoubleSide and two render passes.
+      const source=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({
+        color:0xffd34d,side:THREE.DoubleSide,transparent:true,opacity:.8,depthTest:false,depthWrite:false,
+      }));
+      source.position.fromArray(position);source.userData=data;root.add(source);
+      const cue=new THREE.Points(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3()]),
+        new THREE.PointsMaterial({color:0xffd34d,size:13,sizeAttenuation:false,depthTest:false,depthWrite:false}));
+      cue.userData={p186eViewOnlyCue:true};source.add(cue);
+      const caption=new THREE.Sprite(new THREE.SpriteMaterial());
+      caption.userData={p186eViewerSourceCaption:true};source.add(caption);
+      return source;
+    });
+    const canvas=document.createElement('canvas');document.body.append(canvas);
+    const renderer=new THREE.WebGLRenderer({canvas,preserveDrawingBuffer:true,antialias:false});
+    renderer.setPixelRatio(1);renderer.setSize(1100,1000);
+    const camera=new THREE.OrthographicCamera(-8,8,6,-6,.01,100);
+    camera.position.set(5,20,2);camera.up.set(0,0,-1);camera.lookAt(5,0,2);camera.updateMatrixWorld(true);
+    const controls={enabled:true,enableDamping:true,autoRotate:false,target:new THREE.Vector3(5,0,2),update:()=>{}};
+    const render=()=>renderer.render(scene,camera);
+    const runtime=create({THREE,root,floor,canvas,camera,controls,render});
+    try{
+      const initialVersion=sources[0].material.version;
+      render();render();
+      const renderedVersion=sources[0].material.version;
+      const prepared=runtime.prepare();
+      const pixels=()=>{
+        const gl=renderer.getContext(),data=new Uint8Array(1100*1000*4);
+        gl.readPixels(0,0,1100,1000,gl.RGBA,gl.UNSIGNED_BYTE,data);return data;
+      };
+      const baseline=pixels();runtime.hide(prepared.targets[0].sourceKey);const hidden=pixels();
+      runtime.restore();const restored=pixels();
+      const changed=baseline.reduce((n,v,i)=>n+Number(v!==hidden[i]),0);
+      const exactRestore=baseline.every((v,i)=>v===restored[i]);
+      const finish=runtime.dispose();
+      return {initialVersion,renderedVersion,changed,exactRestore,finish,targets:prepared.targets.length};
+    }finally{runtime.dispose();renderer.dispose();}
+  },{floor,targets:f.targets.map(t=>({data:t.userData,position:t.position.toArray()})),
+    positions:Array.from(f.targets[0].geometry.attributes.position.array)});
+  expect(result.renderedVersion).toBeGreaterThan(result.initialVersion);
+  expect(result.changed).toBeGreaterThan(0);
+  expect(result.exactRestore).toBe(true);
+  expect(result.targets).toBe(p186ePixelExpected[floor].total);
+  expect(result.finish).toMatchObject({sourceVisibilityRestored:true,captionVisibilityRestored:true,cameraRestored:true});
 });
 
 test('viewer source mounts the runtime and HUD occupies the source column',async({page})=>{
