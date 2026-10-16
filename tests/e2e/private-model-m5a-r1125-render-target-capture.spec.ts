@@ -55,7 +55,7 @@ const fixture = () => {
   const gltf = {scenes:Array.from({length:64},(_,i)=>i===63?scene:null),
     parser:{ associations }};
   let current: WebGLRenderTarget | null = null;
-  let reads = 0, disposals = 0;
+  let reads = 0;
   let failAt = 0;
   const renderer = {
     isWebGLRenderer:true,
@@ -101,8 +101,8 @@ test('original 13 glTF identities produce 27 actual renderer callbacks with top-
   });
   expect(Object.keys(output.mutedFrames)).toEqual(keys);
   for(const key of keys){
-    const muted=output.mutedFrames[key] as Uint8Array;
-    const restored=output.restoredFrames[key] as Uint8Array;
+    const muted=(output.mutedFrames as Record<string,Uint8Array>)[key]!;
+    const restored=(output.restoredFrames as Record<string,Uint8Array>)[key]!;
     expect(muted).not.toEqual(output.baseline);
     expect(restored).toEqual(output.baseline);
   }
