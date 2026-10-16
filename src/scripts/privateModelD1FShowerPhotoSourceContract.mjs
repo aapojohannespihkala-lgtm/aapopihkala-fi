@@ -100,3 +100,95 @@ export async function verifyD1FShowerPhotoRawGlb(sourceBytes, variant) {
   catch { fail(); }
   return selectD1FShowerPhotoScene(gltf,variant);
 }
+
+/** The existing WORK_TEST registry candidate id, not a new data registry. */
+export const D1F_SHOWER_PHOTO_CANDIDATE_ID = 'd1f-shower-glass-photo-20261016';
+export const D1F_SHOWER_PHOTO_REVIEW_ID = D1F_SHOWER_PHOTO_CANDIDATE_ID + '-review';
+export function isD1FShowerPhotoReviewRequested(search) {
+  return new URLSearchParams(search).get('review') === D1F_SHOWER_PHOTO_REVIEW_ID;
+}
+
+/**
+ * Real one-fetch browser entry point. Authenticate exact GLB raw bytes before
+ * parsing and selecting a visible WORK_TEST scene; return no scene on failure.
+ * Does not add a catalog entry, publish, or prove production-render pixels.
+ */
+export async function loadD1FShowerPhotoReview({
+  candidate, search, loader, fetcher = globalThis.fetch,
+  origin = globalThis.location?.origin ?? 'https://aapopihkala.fi',
+  timeoutMs = 25_000,
+}) {
+  const query = new URLSearchParams(search);
+  const variant = query.get('wallVariant') ?? D1F_SHOWER_PHOTO_VARIANTS[0].name;
+  const expectedPath = '/private-model/work-test/' + D1F_SHOWER_PHOTO_CANDIDATE_ID + '.glb';
+  if (!candidate || candidate.id !== D1F_SHOWER_PHOTO_CANDIDATE_ID ||
+      candidate.path !== expectedPath || query.get('review') !== D1F_SHOWER_PHOTO_REVIEW_ID ||
+      !D1F_SHOWER_PHOTO_VARIANTS.some(row => row.name === variant) ||
+      typeof fetcher !== 'function' || typeof loader?.parseAsync !== 'function' ||
+      !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 25_000) fail();
+
+  let exact;
+  try { exact = new URL(expectedPath, origin); }
+  catch { fail(); }
+  if (exact.protocol !== 'https:' || exact.origin !== origin) fail();
+
+  const controller = new AbortController();
+  let handle;
+  let raw;
+  try {
+    raw = await Promise.race([
+      (async () => {
+        const response = await fetcher(expectedPath, {
+          credentials: 'same-origin', mode: 'same-origin', redirect: 'error',
+          cache: 'no-store', signal: controller.signal,
+          headers: { Accept: 'model/gltf-binary,application/octet-stream;q=0.9' },
+        });
+        let returned;
+        try { returned = new URL(response?.url ?? '', origin); }
+        catch { fail(); }
+        if (response?.status !== 200 || response.redirected ||
+            returned.href !== exact.href ||
+            typeof response.arrayBuffer !== 'function') fail();
+        const bytes = await response.arrayBuffer();
+        if (!(bytes instanceof ArrayBuffer) || bytes.byteLength !== D1F_SHOWER_PHOTO_SOURCE.bytes) fail();
+        return bytes;
+      })(),
+      new Promise((_, reject) => {
+        handle = setTimeout(() => reject(new Error('D1F_SHOWER_PHOTO_FETCH_TIMEOUT')), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(handle);
+    controller.abort();
+  }
+
+  // Digest + raw JSON scene and GLB BIN chunk are verified before GLTFLoader.
+  const selected = await verifyD1FShowerPhotoRawGlb(raw, variant);
+  const parsed = await loader.parseAsync(raw, '/private-model/work-test/');
+  const scene = parsed?.scenes?.[selected.sceneIndex];
+  const sceneRoot = scene?.children?.[0];
+  const glassName = 'D1F_ALAJARVI_DOUBLE_CURVED_GLASS_900_WORK_TEST_' + (selected.sceneIndex - 120);
+  const glassNodes = (sceneRoot?.children ?? []).filter(o => o.name === glassName);
+  if (parsed.scenes.length !== D1F_SHOWER_PHOTO_SOURCE.sceneCount ||
+      scene.children?.length !== 1 || glassNodes.length !== 1 ||
+      sceneRoot.visible === false || glassNodes[0].visible === false ||
+      glassNodes[0].userData?.noCurrentPromotion !== true ||
+      glassNodes[0].userData?.status !== 'WORK_TEST') fail();
+  let paneCount = 0, metalCount = 0;
+  glassNodes[0].traverse(o => {
+    if (!o.isMesh) return;
+    const materials = Array.isArray(o.material) ? o.material : [o.material];
+    for (const m of materials) {
+      if (m?.transparent === true && m.opacity > 0 && m.opacity < 1) paneCount++;
+      else if (m?.transparent === false && m.opacity === 1) metalCount++;
+    }
+  });
+  if (paneCount !== 2 || metalCount < 1) fail();
+  parsed.scene = scene;
+  return Object.freeze({
+    gltf: parsed, selected, asset: D1F_SHOWER_PHOTO_SOURCE,
+    rawGlbByteIdentityVerified: true,
+    authenticatedProductionPixelsVerified: false,
+    humanReview: 'NOT_RUN',
+  });
+}
