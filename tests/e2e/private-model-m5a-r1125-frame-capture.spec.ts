@@ -6,12 +6,12 @@ import {m5aR1125SourcePixelKinds as kinds} from '../../src/scripts/privateModelM
 const keys=Object.keys(kinds), W=192, H=160;
 function setup() {
   const root={visible:true,parent:null};
-  const targets=Object.fromEntries(keys.map(key=>[key,{
+  const targets: Record<string,{visible:boolean;parent:typeof root;material:{visible:boolean;opacity:number};isMesh:boolean}>=Object.fromEntries(keys.map(key=>[key,{
     visible:true,parent:root,material:{visible:true,opacity:1},isMesh:true,
   }]));
   const camera={isPerspectiveCamera:true,
-    matrixWorld:{elements:Array.from({length:16},(_,i)=>i%5===0?1:0)},
-    projectionMatrix:{elements:Array.from({length:16},(_,i)=>i%5===0?1:0)},
+    matrixWorld:{elements:Array.from({length:16},(_,i):number=>i%5===0?1:0)},
+    projectionMatrix:{elements:Array.from({length:16},(_,i):number=>i%5===0?1:0)},
     updateMatrixWorld(){}, updateProjectionMatrix(){},
   };
   const pixels=new Uint8Array(W*H*4);
@@ -44,8 +44,8 @@ test('exact 13 source targets produce baseline, 13 hides, 13 exact restores',asy
   assert.equal(result.originalGlbDigestAuthenticated,false);
   assert.equal(result.productionProvenanceVerified,false);
   assert.equal(result.humanReview,'NOT_RUN');
-  assert(keys.every(k=>!result.mutedFrames[k].every((v,i)=>v===result.baseline[i])));
-  assert(keys.every(k=>result.restoredFrames[k].every((v,i)=>v===result.baseline[i])));
+  assert(keys.every(k=>!result.mutedFrames[k].every((v:number,i:number)=>v===result.baseline[i])));
+  assert(keys.every(k=>result.restoredFrames[k].every((v:number,i:number)=>v===result.baseline[i])));
   assert(keys.every(k=>s.targets[k].visible));
   assert.equal(result.cameraStates.baseline.length,34);
   assert(keys.every(k=>result.cameraStates.muted[k].length===34));
