@@ -11545,11 +11545,12 @@ const title = 'Private 3D viewer';
       });
 
       void (async () => {
-        // Exact P137E scene67 and R1125 one-link reviews load separate WORK_TEST
+        // Exact P137E, P186E and R1125 one-link reviews load separate WORK_TEST
         // GLBs; do not make their autoload depend on the unrelated CURRENT GLB.
         // Keep CURRENT-first for ordinary routes and all other reviews.
         if (
           !isP137EScene67ReviewRequested() &&
+          !isP186eElectricalLabelReviewRequested() &&
           !isD1FCombinedWallReviewRequested(window.location.search) &&
           !['d1f-bathroom-service-heating-20261015', 'd1f-wc-nordic3530-centered-20261016', 'd1f-wc-closed-lid-450-20261016'].includes(getRequestedReviewCandidateId() ?? '') &&
           !isPrivateModelReviewRequested(window.location.search, m5aZ2R1125ReviewId)
