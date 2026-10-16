@@ -14,8 +14,27 @@ import {
 const ORIGIN = 'https://aapopihkala.fi';
 const OUT = 'test-results/p186e-production-twofloor';
 const sha256 = value => createHash('sha256').update(value).digest('hex');
-const reject = code => { throw new Error('P186E_PROD_' + code); };
+class P186EProductionFailure extends Error {}
+const reject = code => { throw new P186EProductionFailure('P186E_PROD_' + code); };
 const need = (condition, code) => { if (!condition) reject(code); };
+// Emit only fixed technical classes. Browser error text can contain request
+// details and credentials, so never copy it into logs or the evidence artifact.
+export function classifyP186EProductionFailure(error) {
+  if (error instanceof P186EProductionFailure) return error.message;
+  const message=String(error?.message||'');
+  for(const [pattern,code] of [
+    [/evicted from inspector cache/i,'BROWSER_RESOURCE_EVICTED'],
+    [/No (?:data|resource) (?:found )?for resource with given identifier|No resource with given identifier/i,'BROWSER_RESOURCE_UNAVAILABLE'],
+    [/transferred.*offscreen|offscreen.*transferred/i,'BROWSER_OFFSCREEN_CONTEXT'],
+    [/Function statements require a function name|Passed function is not well-serializable/i,'BROWSER_CALLBACK_SERIALIZATION'],
+    [/Execution context was destroyed/i,'BROWSER_EXECUTION_CONTEXT_DESTROYED'],
+    [/Target page, context or browser has been closed|Target closed/i,'BROWSER_TARGET_CLOSED'],
+    [/Timeout.*exceeded|timed out/i,'BROWSER_TIMEOUT'],
+    [/SecurityError|Tainted canvases/i,'BROWSER_SECURITY'],
+    [/TypeError:/i,'BROWSER_TYPE_ERROR'],
+  ]) if(pattern.test(message)) return 'P186E_PROD_'+code;
+  return 'UNEXPECTED_BROWSER_OR_SOURCE_FAILURE';
+}
 export const P186E_PRODUCTION_FLOORS = Object.freeze(['D1F', 'D2F']);
 // Consumer of the immutable raw Drive artifact, independently hashed 2026-10-16.
 // Never infer source authentication from the canvas dataset or a screenshot.
@@ -111,7 +130,7 @@ export async function runP186EProductionProbe({
   const report={result:'FAIL',stage:'TRUSTED_MAIN',
     failureCode:null,
     reviewCandidate:p186ePixelCandidateId,sourcePdfId:p186ePixelSourcePdfDriveId,
-    schedulePdfId:p186ePixelSchedulePdfDriveId,views:[],
+    schedulePdfId:p186ePixelSchedulePdfDriveId,views:[],sourceGlbChecks:[],
     authenticatedBrowserProbe:false,originalSourceGlbDigestVerified:false,
     all34IndividuallyVerified:false,productionPublishedByThisProbe:false,
     current:false,canonical:false,asBuilt:false,humanReview:'NOT_RUN'};
@@ -120,7 +139,7 @@ export async function runP186EProductionProbe({
     let timer;
     try {return await Promise.race([Promise.resolve().then(action),
       new Promise((_,rejectTimeout)=>{timer=setTimeout(
-        ()=>rejectTimeout(new Error('P186E_PROD_STAGE_DEADLINE')),timeout);})]);}
+        ()=>rejectTimeout(new P186EProductionFailure('P186E_PROD_STAGE_DEADLINE')),timeout);})]);}
     finally {clearTimeout(timer);}
   };
   try{
@@ -175,9 +194,12 @@ export async function runP186EProductionProbe({
       verifyP186EAutoloadRequests(glbRequests,sourceResponses);
       const sourceGlb=await bounded(()=>
         verifyP186EProductionSourceResponse(sourceResponses[0]),25000);
+      report.sourceGlbChecks.push({floor,...sourceGlb});
+      report.stage='WEBGL_CONTEXT_'+floor;
       const webgl=await bounded(()=>canvas.evaluate(element=>
         Boolean(element.getContext('webgl2')||element.getContext('webgl'))),10000);
       need(webgl,'NO_WEBGL_CONTEXT');
+      report.stage='VIEWER_RENDER_SETTLE_'+floor;
       await bounded(()=>page.evaluate(()=>new Promise(resolve=>
         requestAnimationFrame(()=>requestAnimationFrame(resolve)))),10000);
       report.stage='ACTUAL_VIEWER_PIXELS_'+floor;
@@ -226,9 +248,7 @@ export async function runP186EProductionProbe({
     report.authenticatedBrowserProbe=true;
   }catch(err){
     report.result='FAIL';
-    const message=String(err?.message||'');
-    report.failureCode=message.startsWith('P186E_PROD_')?
-      message.slice(0,90):'UNEXPECTED_BROWSER_OR_SOURCE_FAILURE';
+    report.failureCode=classifyP186EProductionFailure(err);
   }finally{
     if(browser)await bounded(()=>browser.close(),10000).catch(()=>{
       report.result='FAIL';report.failureCode='BROWSER_CLOSE_FAILED';
