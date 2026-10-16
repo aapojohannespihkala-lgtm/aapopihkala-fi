@@ -4,6 +4,26 @@ const active = new WeakSet();
 const fail = reason => { throw new Error('R1125_FOCUS_8020_REJECTED: ' + reason); };
 const targetKeys = Object.keys(m5aR1125SourcePixelKinds);
 
+/* Verified directly from immutable R1125 original GLB scene 63, SHA-256
+ * c465417fc101e7de495d0a04bb4feb2bee61b80cd5efccf876f6eb76326f9a48.
+ * GLTFLoader parser associations are necessary alongside the existing source
+ * binding: matching userData strings on replacement meshes never suffice. */
+const exactSourceAssociations = Object.freeze({
+  G2_DRAIN_WELL_SOK1_001: [1104, 555],
+  G2_DRAIN_WELL_SOK2_001: [1105, 556],
+  G2_DRAIN_WELL_SOK3_001: [1106, 557],
+  G2_DRAIN_WELL_PVK_001: [1107, 558],
+  G2_DRAIN_LINK_PVK_SOK1_001: [1118, 559],
+  G2_DRAIN_LINK_PVK_SOK3_001: [1119, 560],
+  G2_DRAIN_LINK_SOK1_SOK2_001: [1120, 561],
+  G2_DRAIN_LINK_SOK3_BUILDING_END_001: [1121, 562],
+  G2_DRAIN_LINK_SOK2_BUILDING_END_001: [1122, 563],
+  G2_DRAIN_LINK_PVK_DISCHARGE_001: [1123, 564],
+  G2_DRAIN_LINK_PVK_PARKING_001: [1124, 565],
+  'boundary:PVK_DISCHARGE': [1115, 534],
+  'boundary:PVK_PARKING': [1116, 534],
+});
+
 /**
  * Reversible 80/20 WORK_TEST presentation for the ORIGINAL 13 source targets.
  * Caller must first use bindAuthenticatedR1125Scene63 on immutable raw GLB.
@@ -34,12 +54,26 @@ export function prepareM5AR1125Focus8020({ gltf, binding } = {}) {
     if (node === scene) break;
   }
   if (!ancestors.has(scene)) fail('source root detached from original scene');
+  const associations = gltf?.parser?.associations;
+  if (!(associations instanceof Map) ||
+      associations.get(root)?.nodes !== 1125 ||
+      Object.keys(exactSourceAssociations).length !== targetKeys.length) {
+    fail('original GLTFLoader root node association required');
+  }
   const targets = new Set();
   for (const key of targetKeys) {
     const object = binding.targets[key];
     const data = object?.userData;
     const sourceKey = data?.representationKind === 'unresolvedBoundaryMarker'
       ? 'boundary:' + data.boundaryRole : data?.G2IdCandidate;
+    const identity = exactSourceAssociations[key];
+    const association = associations.get(object);
+    if (!identity || !association || association.nodes !== identity[0] ||
+        association.meshes !== identity[1] ||
+        (association.primitives !== undefined && association.primitives !== 0) ||
+        (key.startsWith('boundary:') ? !object?.isLineSegments : !object?.isMesh)) {
+      fail('original glTF node/mesh association mismatch: ' + key);
+    }
     if (!object || object.parent !== root || !object.isObject3D ||
         !object.visible || targets.has(object) || sourceKey !== key ||
         data?.presentationOnly !== true || data?.Canonical !== false ||
