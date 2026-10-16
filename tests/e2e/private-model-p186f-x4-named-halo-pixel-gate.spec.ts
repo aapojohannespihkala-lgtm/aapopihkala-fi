@@ -81,7 +81,7 @@ test('source identity, placement uncertainty and original pass associations fail
     (f:any)=>f.gltfScene.children[0].userData.roomAssignment='Bathroom',
     (f:any)=>f.gltfScene.children[1].userData.Canonical=true,
     (f:any)=>f.gltfScene.children[2].userData.physicalThermostatXYClaim=true,
-    (f:any)=>f.gltfScene.children[0].geometry.setFromPoints([new Vector3(0,0,0),new Vector3(1,0,0)]),
+    (f:any)=>f.gltfScene.children[0].geometry.deleteAttribute('position'),
     (f:any)=>f.gltfScene.children[2].children[0].userData.HUMAN_REVIEW='PASS',
     (f:any)=>f.gltfScene.children[0].children[0].name='FAKE_HALO',
     (f:any)=>f.gltfScene.children[1].children[0].material.opacity=1,
