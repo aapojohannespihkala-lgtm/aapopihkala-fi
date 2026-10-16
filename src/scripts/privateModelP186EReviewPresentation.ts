@@ -453,10 +453,80 @@ const addP186ESourceCue = (source: any): boolean => {
   return true;
 };
 
+
+type P186EPreReviewState = {
+  visible: boolean;
+  material: any;
+  renderOrder: number;
+  userData: any;
+  sourceDataBefore: Record<string, unknown> | null;
+};
+const p186ePreReviewStates = new WeakMap<object, Map<any, P186EPreReviewState>>();
+const p186eViewerMetadataKeys = new Set([
+  'viewerDerived', 'p186eReviewPresentation', 'p186eReviewVariant',
+  'p186eReviewRole', 'p186eReviewContextSource',
+]);
+const p186eRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const rollbackP186EPreviousPresentation = (sceneRoot: any) => {
+  if (!sceneRoot || typeof sceneRoot !== 'object') return;
+  const prior = p186ePreReviewStates.get(sceneRoot);
+  if (!prior) return;
+  for (const [object, before] of prior) {
+    object.visible = before.visible;
+    object.material = before.material;
+    object.renderOrder = before.renderOrder;
+    const currentData = object.userData;
+    if (currentData === before.userData) {
+      object.userData = before.userData;
+    } else if (p186eRecord(currentData) && p186eRecord(before.userData)) {
+      // Restore viewer-owned keys, but never erase source metadata changes
+      // made while the previous presentation was active.
+      const baseline = before.sourceDataBefore ?? {};
+      const restored: Record<string, unknown> = { ...before.userData };
+      for (const key of new Set([...Object.keys(baseline), ...Object.keys(currentData)])) {
+        if (p186eViewerMetadataKeys.has(key)) continue;
+        const had = Object.prototype.hasOwnProperty.call(baseline, key);
+        const has = Object.prototype.hasOwnProperty.call(currentData, key);
+        if (had === has && (!has || Object.is(baseline[key], currentData[key]))) continue;
+        if (has) restored[key] = currentData[key];
+        else delete restored[key];
+      }
+      object.userData = restored;
+    } else {
+      // An invalid external metadata replacement must remain invalid for preflight.
+      object.userData = currentData;
+    }
+    for (const child of object.children ?? []) {
+      if (child?.userData?.p186eViewOnlyCue === true ||
+          child?.userData?.p186eViewerSourceCaption === true) child.visible = false;
+    }
+  }
+  p186ePreReviewStates.delete(sceneRoot);
+};
+
+const snapshotP186EPreReviewPresentation = (sceneRoot: any, renderables: any[]) => {
+  if (!sceneRoot || typeof sceneRoot !== 'object') return;
+  const prior = new Map<any, P186EPreReviewState>();
+  for (const object of renderables) {
+    prior.set(object, {
+      visible: object.visible,
+      material: object.material,
+      renderOrder: object.renderOrder,
+      userData: object.userData,
+      sourceDataBefore: p186eRecord(object.userData) ? { ...object.userData } : null,
+    });
+  }
+  p186ePreReviewStates.set(sceneRoot, prior);
+};
+
 export const prepareP186EReviewPresentation = (
   sceneRoot: any,
   variant: P186EReviewVariant = 'D1F',
 ) => {
+  // A second call must never retain the previous call's amber labels or hidden walls.
+  rollbackP186EPreviousPresentation(sceneRoot);
   const renderables: any[] = [];
   const targets: any[] = [];
   let semanticViolationCount = 0;
@@ -537,6 +607,9 @@ export const prepareP186EReviewPresentation = (
       semanticViolationCount,
     };
   }
+
+  // Snapshot every renderable before any source or context presentation mutation.
+  snapshotP186EPreReviewPresentation(sceneRoot, renderables);
 
   // Partial-roster fixtures may still inspect real wall context, without
   // granting any source-label highlight or source-ready viewer cues.
