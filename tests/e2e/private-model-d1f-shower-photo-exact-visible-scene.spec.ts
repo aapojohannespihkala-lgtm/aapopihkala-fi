@@ -28,7 +28,13 @@ function runVisibleSourceFocus({missingGlass=false,wrongRoot=false,notSource=fal
   const canvas={dataset:{} as Record<string,string>},status={textContent:''};
   const planControls={enabled:true},isoControls={enabled:true};
   const selectedScene=notSource?new THREE.Scene():fullModelScene;
-  const showerPhotoReview={gltf:{scene:selectedScene},selected:{variant:selected,sceneIndex:120}};
+  const showerPhotoReview={
+    gltf:{scene:selectedScene},
+    selected:{variant:selected,sceneIndex:120,glassNode:2456},
+    asset:{bytes:8914072,sha256:'992819363a6e368546e870f9ff2a17ddf0904e760269fc20aec509aa310ba35e'},
+    rawGlbByteIdentityVerified:true,
+    humanReview:'NOT_RUN',
+  };
   const effect:{mounted:any,orbit:boolean}={mounted:null,orbit:false};
   const focus=new Function(
     'THREE','showerPhotoReview','fullModelScene','deactivateElevationView',
