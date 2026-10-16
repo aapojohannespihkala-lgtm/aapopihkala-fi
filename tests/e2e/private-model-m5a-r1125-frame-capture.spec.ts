@@ -120,3 +120,15 @@ test('pixel restoration mismatch aborts rather than claiming success',async()=>{
   await assert.rejects(()=>capture(s.params),/restore differs at pixel level/);
   assert(keys.every(k=>s.targets[k].visible));
 });
+
+test('27-frame capture memory guard rejects oversized canvas before rendering',async()=>{
+  const s=setup();
+  s.params.width=2000;
+  s.params.height=1201; // 2,402,000 pixels would retain excessive RGBA memory
+  await assert.rejects(()=>capture(s.params),/exact scene63\/canvas\/renderer contract/);
+  assert.equal(s.reads(),0);
+  s.params.width=1920;
+  s.params.height=1200; // 2,304,000 pixels remains an allowed bound
+  await assert.rejects(()=>capture(s.params),/RGBA exact byte length/);
+  assert.equal(s.reads(),1); // bound passed, then mock frame size rejected
+});
