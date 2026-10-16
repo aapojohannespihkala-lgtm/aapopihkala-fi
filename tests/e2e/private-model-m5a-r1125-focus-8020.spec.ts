@@ -7,6 +7,8 @@ import { prepareM5AR1125Focus8020 as prepare } from '../../src/scripts/privateMo
 import { m5aR1125SourcePixelKinds as kinds } from '../../src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs';
 
 const keys = Object.keys(kinds);
+const originalNodeIndices = [1104,1105,1106,1107,1118,1119,1120,1121,1122,1123,1124,1115,1116];
+const originalMeshIndices = [555,556,557,558,559,560,561,562,563,564,565,534,534];
 const provenance = {
   Canonical:false, presentationOnly:true, currentGeometryClaim:false,
   asBuiltClaim:false, publishToCURRENT:false,
@@ -44,8 +46,13 @@ function fixture() {
     originalSourceDigest:'c465417fc101e7de495d0a04bb4feb2bee61b80cd5efccf876f6eb76326f9a48',
     current:false,canonical:false,asBuilt:false,humanReview:'NOT_RUN',
   };
-  const gltf={scenes:Array.from({length:64},(_,i)=>i===63?scene:null)};
-  return {scene,root,targets,context,binding,gltf};
+  const associations=new Map<object,{nodes:number;meshes?:number;primitives?:number}>();
+  associations.set(root,{nodes:1125});
+  keys.forEach((key,i)=>associations.set(targets[key],{
+    nodes:originalNodeIndices[i]!,meshes:originalMeshIndices[i]!,primitives:0,
+  }));
+  const gltf={scenes:Array.from({length:64},(_,i)=>i===63?scene:null),parser:{associations}};
+  return {scene,root,targets,context,binding,gltf,associations};
 }
 test('80/20 focus changes presentation only and restores all original refs and order',()=>{
   const f=fixture();
@@ -86,6 +93,32 @@ test('80/20 focus changes presentation only and restores all original refs and o
   const again=prepare({gltf:f.gltf,binding:f.binding});
   expect(again.restore().state).toBe('RESTORED');
 });
+
+test('original glTF source associations reject renamed/synthetic replacements',()=>{
+  const changes=[
+    (f:ReturnType<typeof fixture>)=>f.associations.delete(f.root),
+    (f:ReturnType<typeof fixture>)=>f.associations.set(f.root,{nodes:1124}),
+    (f:ReturnType<typeof fixture>)=>f.associations.delete(f.targets[keys[0]]!),
+    (f:ReturnType<typeof fixture>)=>f.associations.set(f.targets[keys[0]]!,{nodes:1105,meshes:555}),
+    (f:ReturnType<typeof fixture>)=>f.associations.set(f.targets[keys[0]]!,{nodes:1104,meshes:556}),
+    (f:ReturnType<typeof fixture>)=>f.associations.set(f.targets[keys[0]]!,{nodes:1104,meshes:555,primitives:1}),
+    (f:ReturnType<typeof fixture>)=>f.associations.set(f.targets[keys[12]]!,{nodes:1115,meshes:534}),
+  ];
+  for(const mutate of changes){
+    const f=fixture(), original=f.targets[keys[0]]!.material;
+    mutate(f);
+    expect(()=>prepare({gltf:f.gltf,binding:f.binding}))
+      .toThrow('R1125_FOCUS_8020_REJECTED');
+    expect(f.targets[keys[0]]!.material).toBe(original);
+  }
+  const f=fixture();
+  // A forged userData label alone cannot replace the glTF node+mesh provenance.
+  f.associations.set(f.targets[keys[0]]!,{nodes:1120,meshes:561});
+  expect(f.targets[keys[0]]!.userData.G2IdCandidate).toBe(keys[0]);
+  expect(()=>prepare({gltf:f.gltf,binding:f.binding}))
+    .toThrow('original glTF node/mesh association mismatch');
+});
+
 test('source identity, detached root, promoted source and invisible render target fail closed',()=>{
   const changes=[
     (f:any)=>{f.binding.originalGlbDigestAuthenticated=false;},
