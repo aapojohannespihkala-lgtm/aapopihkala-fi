@@ -120,7 +120,7 @@ test('actual installed GLTFLoader parses associations as {nodes,meshes} and {mes
   glb.write('glTF',0,'ascii');glb.writeUInt32LE(2,4);glb.writeUInt32LE(glb.length,8);
   glb.writeUInt32LE(json.length,12);glb.write('JSON',16,'ascii');json.copy(glb,20);
   const offset=20+json.length;
-  glb.writeUInt32LE(bytes.length,offset);glb.write('BIN\\0',offset+4,'binary');
+  glb.writeUInt32LE(bytes.length,offset);glb.writeUInt32LE(0x004e4942,offset+4);
   bytes.copy(glb,offset+8);
   const parsed=await new GLTFLoader().parseAsync(glb.buffer.slice(
     glb.byteOffset,glb.byteOffset+glb.byteLength),'');
