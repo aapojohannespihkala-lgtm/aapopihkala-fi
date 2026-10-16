@@ -120,8 +120,8 @@ test('lighting staging fails closed on tampered source root and rolls back earli
   const { gltf, roots } = sourceFixture();
   const scene122: Scene = gltf.scenes[122];
   scene122.remove(roots[2]);
-  await expect(async () => mountD1FShowerViewerPresentationLights(gltf))
-    .rejects.toThrow('D1F_SHOWER_WEBGL_RUNNER_REJECTED');
+  expect(() => mountD1FShowerViewerPresentationLights(gltf))
+    .toThrow('D1F_SHOWER_WEBGL_RUNNER_REJECTED');
   for (const idx of [120, 121, 123]) {
     expect(gltf.scenes[idx].children).toHaveLength(1);
     expect(gltf.scenes[idx].children[0].name).toBe('EXACT_ORIGINAL_SOURCE_ROOT_' + idx);
