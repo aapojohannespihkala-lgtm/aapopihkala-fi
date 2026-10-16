@@ -20,11 +20,16 @@ const live = (node) => {
   }
   return true;
 };
+// Capturing 34 muted frames and two baseline frames retains 36 RGBA copies.
+// A 4096x4096 source would occupy more than 2 GiB before verifier overhead.
+// Keep one renderer's captured frame at or below a 1920x1200 presentation.
+export const p186eMaxCapturePixels = 2_304_000;
 const samePixels = (a,b) =>
   a.length===b.length && a.every((value,i)=>value===b[i]);
 const cleanFrame = (value) => {
   check(value && Number.isSafeInteger(value.width) && Number.isSafeInteger(value.height)
     && value.width>=16 && value.height>=16 && value.width<=4096 && value.height<=4096
+    && value.width * value.height <= p186eMaxCapturePixels
     && value.pixels instanceof Uint8Array
     && value.pixels.length===value.width*value.height*4, 'real RGBA frame shape');
   // WebGL capture callbacks may reuse the same backing buffer.

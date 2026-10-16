@@ -108,3 +108,31 @@ test('restoration must also be pixel-identical, not merely visible:true',async()
   await expect(verify(x)).rejects.toThrow('restored frame differs');
   expect(x.floors[0].objects.every(o=>o.visible)).toBe(true);
 });
+
+test('P186E rejects oversized full RGBA capture before cloning a 34-image stack',async()=>{
+  const x=input(),original=x.captureRGBA;
+  x.captureRGBA=async session=>{
+    const frame=await original(session);
+    // Exact valid RGBA shape, but 1921x1200 exceeds the bounded memory budget.
+    return {...frame,width:1921,height:1200,
+      pixels:new Uint8Array(1921*1200*4)};
+  };
+  await expect(verify(x)).rejects.toThrow('P186E_CAPTURE_BRIDGE: real RGBA frame shape');
+  expect(x.floors[0].captures).toBe(1);
+  expect(x.floors.every(f=>f.objects.every(o=>o.visible))).toBe(true);
+});
+
+test('P186E admits exactly 1920x1200 until deliberately interrupted capture',async()=>{
+  const x=input(),original=x.captureRGBA;
+  let calls=0;
+  x.captureRGBA=async session=>{
+    if(++calls===2) throw new Error('bounded renderer stopped after baseline');
+    const frame=await original(session);
+    return {...frame,width:1920,height:1200,
+      pixels:new Uint8Array(1920*1200*4)};
+  };
+  await expect(verify(x)).rejects.toThrow('bounded renderer stopped after baseline');
+  // The exact budget was accepted; next capture was entered and its target restored.
+  expect(calls).toBe(2);
+  expect(x.floors[0].objects.every(o=>o.visible)).toBe(true);
+});
