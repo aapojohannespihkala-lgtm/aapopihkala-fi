@@ -138,7 +138,7 @@ async function run(){
       report.stage='ACTUAL_VIEWER_PIXELS_'+floor;
       const png=await bounded(()=>canvas.screenshot({timeout:30000}),35000);
       need(png.length>100 && png.subarray(1,4).toString()==='PNG','PNG');
-      const sample=await bounded(()=>page.evaluate(async base64=>{
+      const captured=await bounded(()=>page.evaluate(async base64=>{
         const image=new Image();
         image.src='data:image/png;base64,'+base64;await image.decode();
         const c=document.createElement('canvas');c.width=image.naturalWidth;
@@ -146,17 +146,15 @@ async function run(){
         const ctx=c.getContext('2d',{willReadFrequently:true});
         if(!ctx)throw Error('P186E_CANVAS_READBACK');
         ctx.drawImage(image,0,0);
-        const bytes=ctx.getImageData(0,0,c.width,c.height).data;
-        let nonBackground=0,amber=0;
-        for(let i=0;i<bytes.length;i+=4){
-          const [r,g,b,a]=[bytes[i],bytes[i+1],bytes[i+2],bytes[i+3]];
-          if(a>=200&&Math.max(Math.abs(r-32),Math.abs(g-42),Math.abs(b-52))>=24)
-            nonBackground++;
-          if(a>=200&&r>=145&&g>=85&&b<=165&&r-g>=18&&g-b>=18)amber++;
-        }
-        return {width:c.width,height:c.height,
-          nonBackgroundPixels:nonBackground,aggregateAmberPixels:amber};
+        const rgba=ctx.getImageData(0,0,c.width,c.height).data;
+        let raw='';
+        for(let i=0;i<rgba.length;i+=32768)
+          raw+=String.fromCharCode(...rgba.subarray(i,i+32768));
+        return {width:c.width,height:c.height,rgbaBase64:btoa(raw)};
       },png.toString('base64')),30000);
+      const sample=countP186EFramePixels(
+        new Uint8Array(Buffer.from(captured.rgbaBase64,'base64')),
+        captured.width,captured.height);
       // Aggregate proof only; no individual 18/16 target isolation is claimed.
       need(sample.width>=32 && sample.height>=32
         && sample.width*sample.height<=4000000
