@@ -48,7 +48,7 @@ export async function captureM5AR1125FrameSequence({
 } = {}) {
   need(sceneIndex === 63 && sceneRoot && camera &&
     Number.isInteger(width) && width >= 128 && Number.isInteger(height) && height >= 128 &&
-    width * height <= 16000000 && typeof captureRGBA === 'function',
+    width * height <= 2304000 && typeof captureRGBA === 'function',
     'exact scene63/canvas/renderer contract');
   need(targets && typeof targets === 'object' && !Array.isArray(targets) &&
     Object.keys(targets).length === 13 && keys.every(key => Object.hasOwn(targets,key)),
