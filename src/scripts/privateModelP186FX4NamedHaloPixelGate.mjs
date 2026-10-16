@@ -13,6 +13,16 @@ const exactScene = 'P186F-X4 R1117 D THEMO DOOR-PLAN-CLEAR WORK_TEST BABYLON Y-U
 const reject = why => { throw new Error('P186F_X4_NAMED_HALO_PIXEL_REJECTED: ' + why); };
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 
+// Three.js renderer suppresses every descendant of an invisible ancestor.
+// A forged cyan screenshot must not turn that hidden source into pixel PASS.
+const visibleInScene = (object, scene) => {
+  for (let node=object; node; node=node.parent) {
+    if (node.visible!==true) return false;
+    if (node===scene) return true;
+  }
+  return false;
+};
+
 /**
  * Bind each detected cyan screenshot component to the corresponding real
  * source-attached halo's projected world center, not an anonymous count of 3.
@@ -43,7 +53,8 @@ export function evaluateP186FX4NamedHaloPixels({
   for (const target of originals) {
     const data=target.userData;
     const spec=rooms[data.roomAssignment];
-    if (!target.isLineSegments || target.geometry?.getAttribute('position')?.count!==4 ||
+    if (!visibleInScene(target,gltfScene) ||
+        !target.isLineSegments || target.geometry?.getAttribute('position')?.count!==4 ||
         !spec || found.has(data.roomAssignment) ||
         data.logicalDeviceId!==spec[0] || data.Pass!==spec[1] ||
         data.presentationOnly!==true || data.workAssumption!==true ||
@@ -57,7 +68,8 @@ export function evaluateP186FX4NamedHaloPixels({
       child.userData?.p186fX4VisibilityProxy===true);
     if (attached.length!==1) reject('missing or duplicated source-attached halo');
     const halo=attached[0],mat=halo.material;
-    if (!halo.isMesh || !halo.visible ||
+    if (!visibleInScene(halo,gltfScene) ||
+        !halo.isMesh || !halo.visible ||
         halo.name!==`P186F_X4_${data.roomAssignment.toUpperCase()}_VIEWER_ONLY_HALO` ||
         halo.userData.presentationOnly!==true ||
         halo.userData.current!==false ||
