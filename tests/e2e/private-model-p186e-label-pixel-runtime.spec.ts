@@ -73,6 +73,40 @@ test('source substitution and promotion fail before any visibility mutation',()=
   }
 });
 
+test('temporary 13 to 9 px source cues clear only a marginal ROI overlap and fully restore',()=>{
+  const f=fixture();
+  // Deliberately crowd two original-source GL_LINES in presentation space,
+  // not the original model/physical wiring; projection is 1000 CSS pixels high.
+  f.camera.left=-12;f.camera.right=12;f.camera.top=9;f.camera.bottom=-9;
+  f.camera.updateProjectionMatrix();
+  f.targets[1].position.set(0,0,.26);
+  const original=f.targets.map(t=>(t.children.find(c=>c.isPoints) as THREE.Points).material as THREE.PointsMaterial);
+  expect(original.every(m=>m.size===13)).toBe(true);
+  const runtime=f.runtime(),prepared=runtime.prepare();
+  expect(prepared.temporaryCuePointSizePx).toBe(9);
+  expect(original.every(m=>m.size===9)).toBe(true);
+  expect(prepared.targets).toHaveLength(p186ePixelExpected.D1F.total);
+  const hidden=runtime.hide(prepared.targets[0].sourceKey);
+  expect(hidden.temporaryCuePointSizePx).toBe(9);
+  expect(runtime.restore().hiddenSourceKey).toBeNull();
+  expect(runtime.dispose()).toMatchObject({
+    state:'FINISHED',cueSizeRestored:true,sourceVisibilityRestored:true,
+    captionVisibilityRestored:true,cameraRestored:true,
+  });
+  expect(original.every(m=>m.size===13)).toBe(true);
+  expect(f.controls.enabled).toBe(true);
+});
+
+test('cue size cannot be modified during the source-only pixel session',()=>{
+  const f=fixture(),runtime=f.runtime(),prepared=runtime.prepare();
+  const cue=f.targets[0].children.find(c=>c.isPoints) as THREE.Points;
+  (cue.material as THREE.PointsMaterial).size=5;
+  expect(()=>runtime.inspect()).toThrow('SOURCE_DRIFT');
+  expect(runtime.dispose()).toMatchObject({cueSizeRestored:true});
+  expect((cue.material as THREE.PointsMaterial).size).toBe(13);
+  expect(prepared.humanReview).toBe('NOT_RUN');
+});
+
 test('overlapping projected source regions abort preparation and restore captions and controls',()=>{
   const f=fixture();f.targets[1].position.copy(f.targets[0].position);
   const runtime=f.runtime();expect(()=>runtime.prepare()).toThrow('ROI_OVERLAP');
