@@ -48,7 +48,7 @@ function fixture() {
   };
   const associations=new Map<object,{nodes:number;meshes?:number;primitives?:number}>();
   associations.set(root,{nodes:1125});
-  keys.forEach((key,i)=>associations.set(targets[key],{
+  keys.forEach((key,i)=>associations.set(targets[key]!,{
     nodes:originalNodeIndices[i]!,meshes:originalMeshIndices[i]!,primitives:0,
   }));
   const gltf={scenes:Array.from({length:64},(_,i)=>i===63?scene:null),parser:{associations}};
