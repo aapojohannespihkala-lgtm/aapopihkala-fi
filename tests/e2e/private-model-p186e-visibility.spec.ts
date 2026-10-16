@@ -411,7 +411,7 @@ const expectReadableCaptions = async (page: any, floor: 'D1F' | 'D2F') => {
   let requestId = 0;
   const command = async (action: string) => {
     const id = ++requestId;
-    const result = await page.evaluate(({action, requestId}) => {
+    const result = await page.evaluate(({action, requestId}: {action: string, requestId: number}) => {
       window.dispatchEvent(new CustomEvent('p186e-source-pixel-probe', {detail: {action, requestId}}));
       return JSON.parse((document.querySelector('#private-model-canvas') as HTMLCanvasElement).dataset.p186ePixelProbe ?? 'null');
     }, {action, requestId: id});
