@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { Group } from 'three';
+import { Group, Object3D } from 'three';
 // @ts-ignore - pure internal ESM source binder
 import { bindR1125Scene63SourceObjects as bind,
   bindAuthenticatedR1125Scene63 as authenticate } from
@@ -77,7 +77,12 @@ test('real GLTFLoader scene63 binds 13 exact source-node and mesh associations w
   expect(result.sourceTargetCount).toBe(13);
   expect(Object.keys(result.targets)).toEqual(keys);
   expect(new Set(Object.values(result.targets)).size).toBe(13);
-  expect(result.sourceRoot).toBeInstanceOf(Group);
+  // The GLTFLoader scene is Group, but its no-mesh glTF source root is
+  // a plain Object3D. Do not substitute a synthetic Group as proof.
+  expect(input.gltf.scenes[63]).toBeInstanceOf(Group);
+  expect(result.sourceRoot).toBeInstanceOf(Object3D);
+  expect(result.sourceRoot.isMesh).not.toBe(true);
+  expect(result.sourceRoot.isScene).not.toBe(true);
   expect(result.sourceRoot.children).toHaveLength(13);
   expect(input.gltf.scenes[63].children).toEqual(originalNodes);
   expect(result).toMatchObject({
