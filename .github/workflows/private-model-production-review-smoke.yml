@@ -545,6 +545,21 @@ jobs:
           });
 
           const page = await context.newPage();
+          // Only the exact one-link P137E review may use this fail-closed
+          // request counter; never log a URL, credential or response body.
+          const p137eUnexpectedCurrentRequests = [];
+          const p137eUnauthorizedG2Writes = [];
+          page.on('request', (request) => {
+            if (!exactD1fOneLink) return;
+            const url = request.url();
+            if (url === 'https://aapopihkala.fi/private-model/model.glb') {
+              p137eUnexpectedCurrentRequests.push(request.method());
+            }
+            if (url.startsWith('https://aapopihkala.fi/private-model/review-placement/g2/') &&
+                request.method() !== 'GET') {
+              p137eUnauthorizedG2Writes.push(request.method());
+            }
+          });
 
           // Capture only requests made by the viewer's INITIAL review autoload.
           // The later independent no-cache asset probe must not satisfy this gate.
@@ -826,6 +841,10 @@ jobs:
                 face:el.dataset.p137eScene67CameraFace,
                 humanReview:el.dataset.p137eHumanReview,
               }));
+              if (p137eUnexpectedCurrentRequests.length !== 0 ||
+                  p137eUnauthorizedG2Writes.length !== 0) {
+                throw new Error('P137E one-link loaded CURRENT or wrote to G2');
+              }
               if (!p137eScene67AssetEvidence || !p137eScene67SourceEvidence ||
                   initial.camera !== 'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP' ||
                   initial.tools !== 'true' || initial.wall !== '406' ||
@@ -1317,6 +1336,9 @@ jobs:
               if (finalPlanDataset.current !== 'false' ||
                   finalPlanDataset.humanReview !== 'NOT_RUN') {
                 throw new Error('P137E source-plan accidentally promoted from WORK_TEST');
+              }
+              if (p137eUnauthorizedG2Writes.length !== 0) {
+                throw new Error('P137E temporary source crosses wrote to G2');
               }
               const p137eSourcePlanToolsEvidence = {
                 originalGreenWallTopPlanPixels: planGreen,

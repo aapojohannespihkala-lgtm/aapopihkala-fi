@@ -399,6 +399,8 @@ test('production probe checks exact P137E user one-link TOP before the original 
   expect(prod).toContain("initial.wall !== '406'");
   expect(prod).toContain("initial.devices !== '3'");
   expect(prod).toContain("if (!greenTop?.passed)");
+  expect(prod).toContain('p137eUnexpectedCurrentRequests.length !== 0');
+  expect(prod).toContain('p137eUnauthorizedG2Writes.length !== 0');
   expect(prod).toContain('individualThemoPixelsByThisInitialGate:false');
   expect(prod).toContain("nativeG2Readback:'NOT_RUN',humanReview:'NOT_RUN',publishToCURRENT:false");
   expect(prod).toContain('p137eScene67TwoFaceEvidence');
