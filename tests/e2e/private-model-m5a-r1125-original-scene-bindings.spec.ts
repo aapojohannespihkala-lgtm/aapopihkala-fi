@@ -1,9 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Group, Object3D } from 'three';
+import * as THREE from 'three';
 // @ts-ignore - pure internal ESM source binder
 import { bindR1125Scene63SourceObjects as bind,
-  bindAuthenticatedR1125Scene63 as authenticate } from
+  bindAuthenticatedR1125Scene63 as authenticate,
+  projectR1125BoundSourceObjects as project,
+  projectAuthenticatedR1125BoundSourceObjects as authenticateProjection } from
   '../../src/scripts/privateModelM5AR1125OriginalSceneBindings.mjs';
 // @ts-ignore - source-key registry is the existing R1125 pixel proof, not a new map
 import { m5aR1125SourcePixelKinds as sourceKinds } from
@@ -125,4 +128,83 @@ test('a synthetic scene, regardless of perfect associations, never authenticates
     .toThrow(/original raw SHA-256/);
   expect(()=>authenticate({originalRaw:Buffer.alloc(8),gltf:input.gltf}))
     .toThrow(/original raw bytes/);
+});
+
+
+async function cameraFixture() {
+  const f = await fixture();
+  const exactScene = {
+    sourceDiameterCorrectionContract: 'G2_R1125',
+    sourceDiameterClassBreakdown: '5_SALAOJA_AGGREGATE_NOMINAL_100MM__2_PVK_UNKNOWN',
+    Canonical: false, presentationOnly: true, workAssumption: true,
+    humanReview: 'NOT_RUN',
+    currentGeometryClaim: false, asBuiltClaim: false, publishToCURRENT: false,
+  };
+  f.sourceDoc.scenes[63].extras = { ...exactScene };
+  f.gltf.scenes[63].userData = { ...exactScene };
+  const root = f.gltf.scenes[63].children[0];
+  root.children.forEach((target: THREE.Object3D, i: number) => {
+    // Present all 13 source nodes separately, including the two yellow
+    // unresolved boundaries, within a genuine THREE camera frustum.
+    target.position.set(-6 + 3 * (i % 5), 0, -4 + 4 * Math.floor(i / 5));
+    if (i >= 11) {
+      target.userData.boundaryStatus = 'UNRESOLVED_BOUNDARY';
+      f.sourceDoc.nodes[i+1].extras.boundaryStatus = 'UNRESOLVED_BOUNDARY';
+    }
+  });
+  const camera = new THREE.PerspectiveCamera(50, 1200/800, .1, 100);
+  camera.position.set(0,0,30);
+  camera.lookAt(0,0,0);
+  camera.updateProjectionMatrix();
+  return { ...f, camera, THREE, imageWidth:1200, imageHeight:800 };
+}
+
+test('real GLTFLoader 13 source-bound objects map to same-camera projected IDs without promotion',async()=>{
+  const f=await cameraFixture();
+  const originalNodes=f.gltf.scenes[63].children[0].children.slice();
+  const result=project(f);
+  expect(result.sourceTargetCount).toBe(13);
+  expect(result.originalSourceObjectIdentityVerified).toBe(true);
+  expect(result.projectedCenters.map((x:{key:string})=>x.key)).toEqual(keys);
+  expect(result.projectedCenters.every((x:{u:number;v:number})=>
+    x.u>0 && x.u<1 && x.v>0 && x.v<1)).toBe(true);
+  expect(new Set(Object.values(result.sourceTargets))).toEqual(new Set(originalNodes));
+  expect(result).toMatchObject({
+    originalGlbDigestAuthenticated:false,productionScreenshotVerified:false,
+    individualSourcePixelsVerified:false,humanReview:'NOT_RUN',
+    current:false,canonical:false,asBuilt:false,
+  });
+  expect(f.gltf.scenes[63].children[0].children).toEqual(originalNodes);
+});
+
+test('source-camera integration rejects forged screenshot aspect, source objects and clipped markers',async()=>{
+  const alters=[
+    (f:any)=>{ f.camera.aspect=1; f.camera.updateProjectionMatrix(); },
+    (f:any)=>{ f.gltf.scenes[63].userData.publishToCURRENT=true; },
+    (f:any)=>{ f.sourceDoc.scenes[63].extras.humanReview='PASS'; },
+    (f:any)=>{ f.gltf.scenes[63].children[0].children[0].position.x=100; },
+    (f:any)=>{ f.gltf.scenes[63].children[0].children[1].position.copy(
+      f.gltf.scenes[63].children[0].children[0].position); },
+    (f:any)=>{
+      const original=f.gltf.scenes[63].children[0].children[0];
+      const foreign=original.clone();
+      f.gltf.scenes[63].add(foreign);
+    },
+    (f:any)=>{ f.gltf.scenes[63].children[0].children[2].visible=false; },
+  ];
+  for(const alter of alters){
+    const f=await cameraFixture();
+    alter(f);
+    expect(()=>project(f)).toThrow();
+  }
+});
+
+test('projected synthetic scene never becomes original source authenticated or production proof',async()=>{
+  const f=await cameraFixture();
+  const projected=project(f);
+  expect(projected.originalGlbDigestAuthenticated).toBe(false);
+  expect(projected.productionScreenshotVerified).toBe(false);
+  expect(()=>authenticateProjection({
+    ...f,originalRaw:Buffer.alloc(3_112_432),
+  })).toThrow();
 });
