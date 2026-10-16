@@ -663,6 +663,15 @@ const title = 'Private 3D viewer';
         bottom: auto;
       }
 
+      /* Historical electrical labels need the complete canvas unobscured. */
+      .viewport:has(#p186e-source-context:not([hidden])) .orientation-gizmo {
+        left: 12px;
+        right: auto;
+        top: auto;
+        bottom: 12px;
+        width: min(212px, calc(var(--m5a-source-panel-width) - 24px));
+      }
+
       .orientation-gizmo-title {
         margin-bottom: 1px;
         color: var(--viewer-ink);
@@ -1932,6 +1941,7 @@ const title = 'Private 3D viewer';
         prepareP186EReviewPresentation,
         type P186EReviewVariant,
       } from '../../scripts/privateModelP186EReviewPresentation';
+      import { createP186ELabelPixelRuntime, P186ELabelRuntimeFailure } from '../../scripts/privateModelP186ELabelPixelRuntime.mjs';
       import {
         p186fExpectedRoomContextCount,
         p186fExpectedTargetCount,
@@ -2555,6 +2565,38 @@ const title = 'Private 3D viewer';
       let activeCamera: typeof camera | typeof planCamera | typeof isoCamera = camera;
       let d1fCombinedPixelRuntime: ReturnType<typeof createD1FCombinedWallPixelRuntime> | null = null;
       let d1fService: ReturnType<typeof mountD1FServiceModel> | null = null;
+      let p186ePixelRuntime: ReturnType<typeof createP186ELabelPixelRuntime> | null = null;
+      window.addEventListener('p186e-source-pixel-probe', (event: Event) => {
+        if (!(event instanceof CustomEvent) || !event.detail ||
+            !Number.isSafeInteger(event.detail.requestId)) return;
+        const detail = event.detail;
+        try {
+          if (!p186ePixelRuntime || !isP186eElectricalLabelReviewRequested() ||
+              activeModelSourceKind !== 'work-test' || activeCamera !== planCamera ||
+              modelRoot.children[0] !== fullModelScene ||
+              canvas.dataset.workTestReviewCandidate !== p186eCandidateId ||
+              canvas.dataset.workTestReviewMode !== p186eReviewId ||
+              canvas.dataset.p186eSourceContextReady !== 'true' ||
+              canvas.dataset.p186eHumanReview !== 'NOT_RUN') throw new Error('probe rejected');
+          let result;
+          if (detail.action === 'prepare') result = p186ePixelRuntime.prepare();
+          else if (detail.action === 'hide') result = p186ePixelRuntime.hide(detail.sourceKey);
+          else if (detail.action === 'restore') result = p186ePixelRuntime.restore();
+          else if (detail.action === 'inspect') result = p186ePixelRuntime.inspect();
+          else if (detail.action === 'finish') {
+            result = p186ePixelRuntime.dispose();
+            p186ePixelRuntime = null;
+          } else throw new Error('probe action rejected');
+          canvas.dataset.p186ePixelProbe = JSON.stringify({ ...result, requestId: detail.requestId });
+        } catch (error) {
+          let cleanup = null;
+          try { cleanup = p186ePixelRuntime?.dispose() ?? null; } catch { /* rejected cleanup is never a pixel PASS */ }
+          p186ePixelRuntime = null;
+          canvas.dataset.p186ePixelProbe = JSON.stringify({ state: 'REJECTED',
+            failureCode: error instanceof P186ELabelRuntimeFailure ? error.code : 'UNEXPECTED',
+            cleanup, requestId: detail.requestId });
+        }
+      });
       window.addEventListener('d1f-combined-wall-source-probe', (event: Event) => {
         if (!(event instanceof CustomEvent)) return;
         const detail = event.detail;
@@ -6112,6 +6154,9 @@ const title = 'Private 3D viewer';
       ) => {
         d1fService?.dispose();
         d1fService = null;
+        p186ePixelRuntime?.dispose();
+        p186ePixelRuntime = null;
+        delete canvas.dataset.p186ePixelProbe;
         // Never leak source-camera coordinates across different WORK_TEST candidates.
         d1fCombinedPixelRuntime?.dispose();
         d1fCombinedPixelRuntime = null;
@@ -8540,6 +8585,14 @@ const title = 'Private 3D viewer';
             : 'ORTHOGRAPHIC_D_1F_SUPPORT',
           standardViewPreset: viewPreset,
         });
+        p186ePixelRuntime?.dispose();
+        p186ePixelRuntime = createP186ELabelPixelRuntime({
+          THREE, root: fullModelScene, floor: p186eReviewVariant, canvas,
+          camera: planCamera, controls: planControls,
+          render: () => renderer.render(scene, activeCamera),
+        });
+        activePlanFocusBounds = p186ePixelRuntime.sourceBounds();
+        fitPlanCamera();
         status.textContent = isD2f
           ? 'P186E-X1 D 2F electrical source labels - WORK_TEST / 16 label anchors 80 % / D 2F context 20 % / HUMAN_REVIEW NOT_RUN'
           : 'P186E-X1 D 1F electrical source labels - WORK_TEST / 18 label anchors 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
@@ -11541,6 +11594,7 @@ const title = 'Private 3D viewer';
         });
         d1fCombinedPixelRuntime?.pinFrame();
         d1fService?.pinFrame();
+        p186ePixelRuntime?.pinFrame();
         renderer.render(scene, activeCamera);
       });
 
@@ -11583,6 +11637,7 @@ const title = 'Private 3D viewer';
     </script>
   </body>
 </html>
+
 
 
 
