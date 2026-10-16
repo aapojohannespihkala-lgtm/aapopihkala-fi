@@ -19,7 +19,8 @@ const reject = reason => { throw new Error('D1F_SHOWER_GLASS_PIXEL_GATE_REJECTED
 const integer = n => Number.isSafeInteger(n) && n >= 0;
 const digest = n => typeof n === 'string' && /^[a-f0-9]{64}$/.test(n);
 const validRoi = (r,w,h) => r && [r.x,r.y,r.width,r.height].every(integer) &&
-  r.width >= 8 && r.height >= 8 && r.x+r.width <= w && r.y+r.height <= h;
+  r.width >= 8 && r.height >= 8 && r.width < w && r.height < h &&
+  r.x+r.width <= w && r.y+r.height <= h;
 const maxColorDifference = (a,b,offset) =>
   Math.max(Math.abs(a[offset]-b[offset]),Math.abs(a[offset+1]-b[offset+1]),
     Math.abs(a[offset+2]-b[offset+2]),Math.abs(a[offset+3]-b[offset+3]));
