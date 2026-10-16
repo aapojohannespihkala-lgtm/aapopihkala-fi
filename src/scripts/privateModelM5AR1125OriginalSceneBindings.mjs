@@ -27,6 +27,8 @@ export function bindR1125Scene63SourceObjects({ sourceDoc, gltf } = {}) {
     new Set(root.children).size === 13, '13 original direct source children');
   const sourceNodeSet = new Set(root.children);
   const byNode = new Map();
+  // GLTFLoader visits these objects dynamically; the guarded result is a Group.
+  /** @type {any} */
   let actualRoot = null;
   actual.traverse(object => {
     const assoc = associations.get(object);
