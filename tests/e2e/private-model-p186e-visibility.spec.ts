@@ -314,7 +314,9 @@ const makeCandidateModel = () =>
       ...makeD2fRealWallContextNodes(),
       ...makeD2fHelperContextNodes(),
     ],
-    makeD1fRoomContextNodes(),
+    // Real interior walls are needed to activate the genuine D1F plan camera.
+    // Reference-footprint room helpers are intentionally excluded by the viewer.
+    [...makeD1fRoomContextNodes(), ...makeD1fRealWallContextNodes()],
   );
 
 const installRoutes = async (page: any) => {
@@ -386,7 +388,7 @@ const expectVisiblePixels = async (page: any) => {
   expect(pixels.lightContextPixels).toBeGreaterThan(300);
 };
 
-const expectReadableCaptions = async (page: any, floor: 'D1F' | 'D2F', sourcePlan = true) => {
+const expectReadableCaptions = async (page: any, floor: 'D1F' | 'D2F') => {
   const canvas = page.locator('#private-model-canvas');
   await expect.poll(async () => {
     const raw = await canvas.getAttribute('data-p186e-caption-layout');
@@ -406,7 +408,6 @@ const expectReadableCaptions = async (page: any, floor: 'D1F' | 'D2F', sourcePla
     captionCount: p186eExpectedCounts[floor].total, completeSourceTextVerified: true,
     readableSizeGlyphPixelsVerified: true, glyphShapeOcrVerified: false, humanReview: 'NOT_RUN',
   });
-  if (!sourcePlan) return;
   // Exercise the real viewer event path: hidden-caption work suppression must
   // preserve the exact visible caption frame after the source proof finishes.
   let requestId = 0;
@@ -453,7 +454,7 @@ test(`P186E-X1 D1F ${explicitSourcePlan ? 'explicit source plan' : 'review'} ren
   await expect(canvas).toHaveAttribute('data-p186e-source-context-ready', 'true');
   await expect(canvas).toHaveAttribute('data-standard-view-preset', 'd-1f');
   await expectVisiblePixels(page);
-  await expectReadableCaptions(page, 'D1F', explicitSourcePlan);
+  await expectReadableCaptions(page, 'D1F');
 });
 }
 
