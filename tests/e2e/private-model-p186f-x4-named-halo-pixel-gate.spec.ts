@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { Group, Mesh, SphereGeometry, MeshBasicMaterial, OrthographicCamera } from 'three';
+import { Group, Mesh, SphereGeometry, MeshBasicMaterial, OrthographicCamera, LineSegments, BufferGeometry, Vector3, LineBasicMaterial } from 'three';
 // @ts-ignore - source-bound .mjs implementation
 import { evaluateP186FX4NamedHaloPixels as evaluate } from '../../src/scripts/privateModelP186FX4NamedHaloPixelGate.mjs';
 
@@ -24,7 +24,13 @@ function fixture() {
   camera.lookAt(0,0,0);
   camera.updateMatrixWorld(true);
   for(const c of rooms){
-    const target=new Mesh(new SphereGeometry(0.07),new MeshBasicMaterial());
+    const target=new LineSegments(
+      new BufferGeometry().setFromPoints([
+        new Vector3(-.09,0,0),new Vector3(.09,0,0),
+        new Vector3(0,-.09,0),new Vector3(0,.09,0),
+      ]),
+      new LineBasicMaterial({color:0xffffff}),
+    );
     target.name='SOURCE_'+c.room;
     target.position.set(c.x,0,0);
     target.userData={
@@ -75,6 +81,7 @@ test('source identity, placement uncertainty and original pass associations fail
     (f:any)=>f.gltfScene.children[0].userData.roomAssignment='Bathroom',
     (f:any)=>f.gltfScene.children[1].userData.Canonical=true,
     (f:any)=>f.gltfScene.children[2].userData.physicalThermostatXYClaim=true,
+    (f:any)=>f.gltfScene.children[0].geometry.setFromPoints([new Vector3(0,0,0),new Vector3(1,0,0)]),
     (f:any)=>f.gltfScene.children[2].children[0].userData.HUMAN_REVIEW='PASS',
     (f:any)=>f.gltfScene.children[0].children[0].name='FAKE_HALO',
     (f:any)=>f.gltfScene.children[1].children[0].material.opacity=1,
