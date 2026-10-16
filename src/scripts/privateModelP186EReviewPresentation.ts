@@ -510,7 +510,7 @@ export const prepareP186EReviewPresentation = (
     specialTargetCount === required.special &&
     semanticViolationCount === 0 &&
     renderables.some((object) => isDArchitectureContext(object, variant));
-  if (!sourcePreflightReady) {
+  if (!sourcePreflightReady && targets.length === required.total) {
     // A previously prepared view can carry viewer-derived cues. Hide only
     // those, never change original source geometry or materials on failure.
     for (const target of targets) {
@@ -538,18 +538,24 @@ export const prepareP186EReviewPresentation = (
     };
   }
 
-  for (const object of targets) {
-    object.visible = true;
-    cloneObjectMaterials(object, p186eReviewTargetOpacity, 'QUESTION_TARGET_80');
-    object.renderOrder = 30;
-    object.userData = {
-      ...(object.userData ?? {}),
-      viewerDerived: true,
-      p186eReviewPresentation: true,
-      p186eReviewVariant: variant,
-      p186eReviewRole: 'QUESTION_TARGET_80',
-    };
-    targetRenderableCount += 1;
+  // Partial-roster fixtures may still inspect real wall context, without
+  // granting any source-label highlight or source-ready viewer cues.
+  if (sourcePreflightReady) {
+    for (const object of targets) {
+      object.visible = true;
+      cloneObjectMaterials(object, p186eReviewTargetOpacity, 'QUESTION_TARGET_80');
+      object.renderOrder = 30;
+      object.userData = {
+        ...(object.userData ?? {}),
+        viewerDerived: true,
+        p186eReviewPresentation: true,
+        p186eReviewVariant: variant,
+        p186eReviewRole: 'QUESTION_TARGET_80',
+      };
+      targetRenderableCount += 1;
+    }
+  } else {
+    targetRenderableCount = targets.length;
   }
 
   for (const object of renderables) {
