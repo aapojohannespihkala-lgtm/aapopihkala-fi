@@ -500,6 +500,44 @@ export const prepareP186EReviewPresentation = (
   let suppressedHelperContextCount = 0;
   const contextRole = storeyContract[variant].contextRole;
 
+  // Fail before changing target materials, scene visibility or review roles.
+  // A mismatched historical roster/unsafe semantic/no real architecture must
+  // not leave an apparently highlighted 2015 electrical source in the viewer.
+  const required = p186eExpectedCounts[variant];
+  const sourcePreflightReady =
+    targets.length === required.total &&
+    groupTargetCount === required.group &&
+    specialTargetCount === required.special &&
+    semanticViolationCount === 0 &&
+    renderables.some((object) => isDArchitectureContext(object, variant));
+  if (!sourcePreflightReady) {
+    // A previously prepared view can carry viewer-derived cues. Hide only
+    // those, never change original source geometry or materials on failure.
+    for (const target of targets) {
+      for (const child of target.children ?? []) {
+        if (
+          (child.name === p186eSourceCueName && child.userData?.p186eViewOnlyCue === true) ||
+          (child.name === p186eSourceCaptionName && child.userData?.p186eViewerSourceCaption === true)
+        ) {
+          child.visible = false;
+        }
+      }
+    }
+    return {
+      viewerCueCount: 0,
+      viewerCaptionCount: 0,
+      variant,
+      targetRenderableCount: targets.length,
+      groupTargetCount,
+      specialTargetCount,
+      contextRenderableCount: 0,
+      realWallContextRenderableCount: 0,
+      suppressedHelperContextCount: 0,
+      hiddenNonQuestionRenderableCount: 0,
+      semanticViolationCount,
+    };
+  }
+
   for (const object of targets) {
     object.visible = true;
     cloneObjectMaterials(object, p186eReviewTargetOpacity, 'QUESTION_TARGET_80');
