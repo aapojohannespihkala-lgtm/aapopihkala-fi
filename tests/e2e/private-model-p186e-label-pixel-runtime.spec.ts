@@ -80,7 +80,7 @@ test('temporary 13 to 9 px source cues clear only a marginal ROI overlap and ful
   f.camera.left=-12;f.camera.right=12;f.camera.top=9;f.camera.bottom=-9;
   f.camera.updateProjectionMatrix();
   f.targets[1].position.set(0,0,.26);
-  const original=f.targets.map(t=>(t.children.find(c=>c.isPoints) as THREE.Points).material as THREE.PointsMaterial);
+  const original=f.targets.map(t=>(t.children.find(c=>(c as THREE.Points).isPoints===true) as THREE.Points).material as THREE.PointsMaterial);
   expect(original.every(m=>m.size===13)).toBe(true);
   const runtime=f.runtime(),prepared=runtime.prepare();
   expect(prepared.temporaryCuePointSizePx).toBe(9);
@@ -99,7 +99,7 @@ test('temporary 13 to 9 px source cues clear only a marginal ROI overlap and ful
 
 test('cue size cannot be modified during the source-only pixel session',()=>{
   const f=fixture(),runtime=f.runtime(),prepared=runtime.prepare();
-  const cue=f.targets[0].children.find(c=>c.isPoints) as THREE.Points;
+  const cue=f.targets[0].children.find(c=>(c as THREE.Points).isPoints===true) as THREE.Points;
   (cue.material as THREE.PointsMaterial).size=5;
   expect(()=>runtime.inspect()).toThrow('SOURCE_DRIFT');
   expect(runtime.dispose()).toMatchObject({cueSizeRestored:true});
