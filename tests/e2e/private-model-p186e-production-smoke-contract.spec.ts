@@ -1,8 +1,13 @@
 import {test,expect} from '@playwright/test';
-import {readFileSync} from 'node:fs';
+import type {BrowserType} from 'playwright';
+import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {
   P186E_PRODUCTION_FLOORS,expectedP186EProductionDataset,
   validateP186EProductionDataset,countP186EFramePixels,
+  P186E_PRODUCTION_SOURCE,verifyP186EProductionSourceResponse,
+  runP186EProductionProbe,
 } from '../../.github/scripts/private-model-p186e-production-probe.mjs';
 
 const good = (floor: 'D1F'|'D2F') => ({
@@ -60,8 +65,107 @@ test('production workflow only dispatches this probe on protected main with serv
   expect(yaml).toContain('CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}');
   expect(yaml).toContain('CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}');
   expect(script).toContain('all34IndividuallyVerified:false');
-  expect(script).toContain("process.env.GITHUB_REF==='refs/heads/main'");
-  expect(script).toContain("process.env.GITHUB_EVENT_NAME==='workflow_dispatch'");
-  expect(script).toContain("process.env.PROBE_MODE==='p186e-labels-render'");
+  expect(script).toContain("env.GITHUB_REF==='refs/heads/main'");
+  expect(script).toContain("env.GITHUB_EVENT_NAME==='workflow_dispatch'");
+  expect(script).toContain("env.PROBE_MODE==='p186e-labels-render'");
+  expect(script).toContain('const report=await runP186EProductionProbe()');
+  expect(script).toContain("if(report.result!=='PASS')process.exitCode=1");
   expect(script).not.toContain("publishToCURRENT:true");
 });
+
+const foreignGlb=()=>{
+  const bytes=Buffer.alloc(P186E_PRODUCTION_SOURCE.byteLength);
+  bytes.writeUInt32LE(0x46546c67,0);bytes.writeUInt32LE(2,4);
+  bytes.writeUInt32LE(bytes.length,8);
+  return bytes;
+};
+const sourceResponse=(bytes:Buffer,overrides:Record<string,unknown>={})=>({
+  url:()=>P186E_PRODUCTION_SOURCE.url,status:()=>200,
+  headers:()=>({'content-type':'model/gltf-binary'}),body:async()=>bytes,
+  ...overrides,
+});
+
+test('a plausible same-size GLB cannot authenticate by header, dataset or pixel count',async()=>{
+  await expect(verifyP186EProductionSourceResponse(sourceResponse(foreignGlb())))
+    .rejects.toThrow(/ORIGINAL_GLB_DIGEST/);
+  await expect(verifyP186EProductionSourceResponse(sourceResponse(Buffer.alloc(16))))
+    .rejects.toThrow(/ORIGINAL_GLB_SIZE/);
+  const badHeader=foreignGlb();badHeader.writeUInt32LE(1,4);
+  await expect(verifyP186EProductionSourceResponse(sourceResponse(badHeader)))
+    .rejects.toThrow(/ORIGINAL_GLB_HEADER/);
+});
+
+test('wrong URL, HTTP and HTML responses are rejected before reading their body',async()=>{
+  let reads=0;
+  for(const overrides of [
+    {url:()=>P186E_PRODUCTION_SOURCE.url+'?different-source=1'},
+    {url:()=> 'https://aapopihkala.fi/private-model/model.glb'},
+    {status:()=>302},{status:()=>404},
+    {headers:()=>({'content-type':'text/html'})},
+  ]){
+    await expect(verifyP186EProductionSourceResponse(sourceResponse(Buffer.alloc(0),{
+      ...overrides,body:async()=>{reads++;return foreignGlb();},
+    }))).rejects.toThrow(/ORIGINAL_GLB_(RESPONSE|CONTENT_TYPE)/);
+  }
+  expect(reads).toBe(0);
+});
+
+// Exercise the exported driver used by the CLI, rather than a copied guard.
+// These are deliberately synthetic browser events, never production evidence.
+for(const scenario of ['missing','duplicate','current','corrupt','html']){
+  test('actual production driver rejects '+scenario+' autoload before screenshots',async()=>{
+    const outputDirectory=mkdtempSync(join(tmpdir(),'p186e-source-gate-'));
+    let screenshots=0,closed=false,currentUrl='';
+    const listeners=new Map<string,Function>();
+    const canvas={
+      evaluate:async()=>good('D1F'),
+      screenshot:async()=>{screenshots++;throw Error('MUST_NOT_CAPTURE_UNVERIFIED_SOURCE');},
+    };
+    const page={
+      locator:()=>canvas,on:(name:string,fn:Function)=>listeners.set(name,fn),
+      url:()=>currentUrl,waitForFunction:async()=>{},
+      goto:async(url:string)=>{
+        currentUrl=url;
+        if(scenario!=='missing'){
+          listeners.get('request')!({url:()=>P186E_PRODUCTION_SOURCE.url});
+          listeners.get('response')!(sourceResponse(foreignGlb(),scenario==='html'?
+            {headers:()=>({'content-type':'text/html'})}:{}));
+        }
+        if(scenario==='duplicate'){
+          listeners.get('request')!({url:()=>P186E_PRODUCTION_SOURCE.url});
+          listeners.get('response')!(sourceResponse(foreignGlb()));
+        }
+        if(scenario==='current')listeners.get('request')!({
+          url:()=> 'https://aapopihkala.fi/private-model/model.glb',
+        });
+        return {status:()=>200,headers:()=>({'content-type':'text/html'})};
+      },
+    };
+    const env={
+      GITHUB_REPOSITORY:'aapojohannespihkala-lgtm/aapopihkala-fi',
+      GITHUB_REF:'refs/heads/main',GITHUB_EVENT_NAME:'workflow_dispatch',
+      PROBE_MODE:'p186e-labels-render',CF_ACCESS_VIEWER_PROBE_CLIENT_ID:'test-only-id',
+      CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET:'test-only-secret',
+    };
+    try{
+      const report=await runP186EProductionProbe({env,outputDirectory,logger:()=>{},
+        browserType:{launch:async()=>({
+          newContext:async()=>({route:async()=>{},newPage:async()=>page}),
+          close:async()=>{closed=true;},
+        })} as unknown as BrowserType,
+      });
+      expect(report).toMatchObject({result:'FAIL',stage:'ORIGINAL_SOURCE_GLB_D1F',
+        originalSourceGlbDigestVerified:false,authenticatedBrowserProbe:false,
+        all34IndividuallyVerified:false,current:false,canonical:false,asBuilt:false,
+        humanReview:'NOT_RUN',views:[],
+      });
+      expect(report.failureCode).toBe('P186E_PROD_'+(scenario==='corrupt'?
+        'ORIGINAL_GLB_DIGEST':scenario==='html'?'ORIGINAL_GLB_CONTENT_TYPE':'ORIGINAL_GLB_AUTOLOAD'));
+      expect(screenshots).toBe(0);expect(closed).toBe(true);
+      const saved=readFileSync(join(outputDirectory,'evidence.json'),'utf8');
+      expect(JSON.parse(saved)).toEqual(report);
+      expect(saved).not.toContain('test-only-secret');
+    }finally{rmSync(outputDirectory,{recursive:true,force:true});}
+  });
+}
+
