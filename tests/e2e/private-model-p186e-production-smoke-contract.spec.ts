@@ -7,7 +7,7 @@ import {
   P186E_PRODUCTION_FLOORS,expectedP186EProductionDataset,
   validateP186EProductionDataset,countP186EFramePixels,
   P186E_PRODUCTION_SOURCE,verifyP186EProductionSourceResponse,
-  runP186EProductionProbe,
+  runP186EProductionProbe,classifyP186EProductionFailure,
 } from '../../.github/scripts/private-model-p186e-production-probe.mjs';
 
 const good = (floor: 'D1F'|'D2F') => ({
@@ -112,7 +112,7 @@ test('wrong URL, HTTP and HTML responses are rejected before reading their body'
 
 // Exercise the exported driver used by the CLI, rather than a copied guard.
 // These are deliberately synthetic browser events, never production evidence.
-for(const scenario of ['missing','duplicate','current','corrupt','html']){
+for(const scenario of ['missing','duplicate','current','corrupt','html','body-unavailable']){
   test('actual production driver rejects '+scenario+' autoload before screenshots',async()=>{
     const outputDirectory=mkdtempSync(join(tmpdir(),'p186e-source-gate-'));
     let screenshots=0,closed=false,currentUrl='';
@@ -129,7 +129,8 @@ for(const scenario of ['missing','duplicate','current','corrupt','html']){
         if(scenario!=='missing'){
           listeners.get('request')!({url:()=>P186E_PRODUCTION_SOURCE.url});
           listeners.get('response')!(sourceResponse(foreignGlb(),scenario==='html'?
-            {headers:()=>({'content-type':'text/html'})}:{}));
+            {headers:()=>({'content-type':'text/html'})}:scenario==='body-unavailable'?
+            {body:async()=>{throw Error('response.body: No resource with given identifier found test-only-secret');}}:{}));
         }
         if(scenario==='duplicate'){
           listeners.get('request')!({url:()=>P186E_PRODUCTION_SOURCE.url});
@@ -160,7 +161,9 @@ for(const scenario of ['missing','duplicate','current','corrupt','html']){
         humanReview:'NOT_RUN',views:[],
       });
       expect(report.failureCode).toBe('P186E_PROD_'+(scenario==='corrupt'?
-        'ORIGINAL_GLB_DIGEST':scenario==='html'?'ORIGINAL_GLB_CONTENT_TYPE':'ORIGINAL_GLB_AUTOLOAD'));
+        'ORIGINAL_GLB_DIGEST':scenario==='html'?'ORIGINAL_GLB_CONTENT_TYPE':
+          scenario==='body-unavailable'?'BROWSER_RESOURCE_UNAVAILABLE':'ORIGINAL_GLB_AUTOLOAD'));
+      expect(report.sourceGlbChecks).toEqual([]);
       expect(screenshots).toBe(0);expect(closed).toBe(true);
       const saved=readFileSync(join(outputDirectory,'evidence.json'),'utf8');
       expect(JSON.parse(saved)).toEqual(report);
@@ -168,4 +171,22 @@ for(const scenario of ['missing','duplicate','current','corrupt','html']){
     }finally{rmSync(outputDirectory,{recursive:true,force:true});}
   });
 }
+
+test('browser failures emit fixed technical classes and never copy untrusted messages',()=>{
+  for(const [message,code] of [
+    ['Request content was evicted from inspector cache','BROWSER_RESOURCE_EVICTED'],
+    ['No data found for resource with given identifier','BROWSER_RESOURCE_UNAVAILABLE'],
+    ['Cannot get context from a canvas transferred to offscreen','BROWSER_OFFSCREEN_CONTEXT'],
+    ['Function statements require a function name','BROWSER_CALLBACK_SERIALIZATION'],
+    ['Execution context was destroyed','BROWSER_EXECUTION_CONTEXT_DESTROYED'],
+    ['Target page, context or browser has been closed','BROWSER_TARGET_CLOSED'],
+    ['Timeout 30000ms exceeded','BROWSER_TIMEOUT'],
+    ['SecurityError: Tainted canvases may not be exported','BROWSER_SECURITY'],
+    ['page.evaluate: TypeError: cannot call method','BROWSER_TYPE_ERROR'],
+  ]) expect(classifyP186EProductionFailure(Error(message+' test-only-secret')))
+    .toBe('P186E_PROD_'+code);
+  for(const message of ['test-only-secret','P186E_PROD_test-only-secret'])
+    expect(classifyP186EProductionFailure(Error(message)))
+      .toBe('UNEXPECTED_BROWSER_OR_SOURCE_FAILURE');
+});
 
