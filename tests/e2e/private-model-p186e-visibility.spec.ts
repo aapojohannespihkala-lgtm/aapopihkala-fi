@@ -408,12 +408,16 @@ const expectReadableCaptions = async (page: any, floor: 'D1F' | 'D2F') => {
   });
   // Exercise the real viewer event path: hidden-caption work suppression must
   // preserve the exact visible caption frame after the source proof finishes.
-  const command = async (action: string) => page.evaluate((action: string) => {
-    window.dispatchEvent(new CustomEvent('p186e-source-pixel-probe', {
-      detail: {action, requestId: 'caption-visibility-' + action},
-    }));
-    return JSON.parse((document.querySelector('#private-model-canvas') as HTMLCanvasElement).dataset.p186ePixelProbe!);
-  }, action);
+  let requestId = 0;
+  const command = async (action: string) => {
+    const id = ++requestId;
+    const result = await page.evaluate(({action, requestId}) => {
+      window.dispatchEvent(new CustomEvent('p186e-source-pixel-probe', {detail: {action, requestId}}));
+      return JSON.parse((document.querySelector('#private-model-canvas') as HTMLCanvasElement).dataset.p186ePixelProbe ?? 'null');
+    }, {action, requestId: id});
+    expect(result?.requestId).toBe(id);
+    return result;
+  };
   const prepared = await command('prepare');
   expect(prepared.state).toBe('PREPARED');
   expect(JSON.parse(await canvas.getAttribute('data-p186e-caption-layout')).state).toBe('CAPTIONS_TEMPORARILY_HIDDEN');
