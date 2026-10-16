@@ -27,10 +27,13 @@ const ancestorsVisible=object=>{
   return true;
 };
 const materialState=material=>JSON.stringify((Array.isArray(material)?material:[material]).map(m=>({
-  uuid:m?.uuid,version:m?.version,color:m?.color?.toArray(),emissive:m?.emissive?.toArray(),
+  // WebGLRenderer increments Material.version twice per transparent DoubleSide
+  // render. Compare the appearance, not that renderer-owned invalidation count.
+  uuid:m?.uuid,color:m?.color?.toArray(),emissive:m?.emissive?.toArray(),
   opacity:m?.opacity,transparent:m?.transparent,depthTest:m?.depthTest,depthWrite:m?.depthWrite,
   alphaTest:m?.alphaTest,side:m?.side,blending:m?.blending,map:m?.map?.uuid,
-  mapVersion:m?.map?.version,
+  mapVersion:m?.map?.version,forceSinglePass:m?.forceSinglePass,vertexColors:m?.vertexColors,
+  linewidth:m?.linewidth,toneMapped:m?.toneMapped,defines:m?.defines,
 })));
 const geometryState=geometry=>JSON.stringify({
   positions:Array.from(geometry.attributes.position.array),
