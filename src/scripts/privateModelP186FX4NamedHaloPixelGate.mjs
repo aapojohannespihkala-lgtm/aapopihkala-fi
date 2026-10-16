@@ -43,7 +43,8 @@ export function evaluateP186FX4NamedHaloPixels({
   for (const target of originals) {
     const data=target.userData;
     const spec=rooms[data.roomAssignment];
-    if (!spec || found.has(data.roomAssignment) ||
+    if (!target.isLineSegments || target.geometry?.getAttribute('position')?.count!==4 ||
+        !spec || found.has(data.roomAssignment) ||
         data.logicalDeviceId!==spec[0] || data.Pass!==spec[1] ||
         data.presentationOnly!==true || data.workAssumption!==true ||
         data.current!==false || data.Canonical!==false ||
