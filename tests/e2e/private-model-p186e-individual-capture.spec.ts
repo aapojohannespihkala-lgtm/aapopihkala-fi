@@ -94,7 +94,7 @@ test('the production collector captures 70 before/hidden/restored frames and ver
       expect(f.state()).toMatchObject({finished:true,hidden:null});
     }
     expect(shots).toEqual([37,33]);
-    expect(verify({sourceCandidateId:candidate,floors:sessions})).toMatchObject({targetCount:34,
+    expect(verify({sourceCandidateId:candidate,floors:sessions} as any)).toMatchObject({targetCount:34,
       D1F:{visuallyIsolated:18},D2F:{visuallyIsolated:16},sourceAuthenticated:false,productionScreenshotVerified:false});
   }finally{rmSync(dir,{recursive:true,force:true});}
 });
@@ -111,6 +111,6 @@ test('pixel verifier rejects external changes in a completed synthetic capture s
   try{
     const one=await capture({...browserFixture('D1F','outside'),outputDirectory:dir});
     const two=await capture({...browserFixture('D2F'),outputDirectory:dir});
-    expect(()=>verify({sourceCandidateId:candidate,floors:[one.session,two.session]})).toThrow('outside-ROI');
+    expect(()=>verify({sourceCandidateId:candidate,floors:[one.session,two.session]} as any)).toThrow('outside-ROI');
   }finally{rmSync(dir,{recursive:true,force:true});}
 });
