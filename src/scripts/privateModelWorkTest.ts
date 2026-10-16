@@ -4,6 +4,10 @@ export type WorkTestCandidate = {
   path: string;
 };
 
+// Fixed noncanonical one-link route for source-verified 124-scene D1F shower WORK_TEST.
+export const d1fShowerGlassPhotoCandidateId = 'd1f-shower-glass-photo-20261016';
+export const d1fShowerGlassPhotoReviewId = `${d1fShowerGlassPhotoCandidateId}-review`;
+
 export const p139nCandidateId = 'p139n-federated-kvv-review';
 export const p139abCandidateId = 'p139ab-z-credible-wastewater-review';
 
@@ -174,6 +178,7 @@ export const p139adReviewId = 'p139ad-locus-work-z-review';
 const reviewQueryKey = 'review';
 
 const reviewCandidateById: Readonly<Record<string, string>> = Object.freeze({
+  [d1fShowerGlassPhotoReviewId]: d1fShowerGlassPhotoCandidateId,
   [p153cReviewId]: p153cCandidateId,
   [p154cReviewId]: p154cCandidateId,
   [p161ReviewId]: p161CandidateId,

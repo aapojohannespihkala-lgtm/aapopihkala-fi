@@ -410,6 +410,50 @@ test('P186E source-only D-floor cue coverage is exact 18/18 and 16/16, viewer-on
   }
 });
 
+test('invalid P186E source or absent real wall leaves original scene unhighlighted', () => {
+  for (const variant of ['D1F', 'D2F'] as const) {
+    const malformed = makeP186ESourceCueFixture(variant);
+    const wall = malformed.root.children[0] as any;
+    const wallMaterial = wall.material;
+    const wallVisible = wall.visible;
+    const wallRenderOrder = wall.renderOrder;
+    const materials = malformed.targets.map((source) => source.material);
+    const orders = malformed.targets.map((source) => source.renderOrder);
+    malformed.targets[0].visible = false;
+    malformed.targets[0].userData.exactCurrentXYClaim = true;
+
+    const result = prepareP186EReviewPresentation(malformed.root, variant);
+    expect(result).toMatchObject({
+      viewerCueCount: 0, viewerCaptionCount: 0,
+      targetRenderableCount: malformed.counts.total, semanticViolationCount: 1,
+      contextRenderableCount: 0, hiddenNonQuestionRenderableCount: 0,
+    });
+    expect(malformed.targets[0].visible).toBe(false);
+    expect(malformed.targets.every((target, index) =>
+      target.material === materials[index] &&
+      target.renderOrder === orders[index] &&
+      target.userData.p186eReviewPresentation === undefined,
+    )).toBe(true);
+    expect(wall.visible).toBe(wallVisible);
+    expect(wall.material).toBe(wallMaterial);
+    expect(wall.renderOrder).toBe(wallRenderOrder);
+    expect(malformed.targets.every((target) => target.children.length === 0)).toBe(true);
+
+    const noWall = makeP186ESourceCueFixture(variant);
+    const oldMaterials = noWall.targets.map((source) => source.material);
+    noWall.root.remove(noWall.root.children[0]);
+    const missingContext = prepareP186EReviewPresentation(noWall.root, variant);
+    expect(missingContext).toMatchObject({
+      viewerCueCount: 0, realWallContextRenderableCount: 0,
+      targetRenderableCount: noWall.counts.total, semanticViolationCount: 0,
+    });
+    expect(noWall.targets.every((source, index) =>
+      source.material === oldMaterials[index] &&
+      source.userData.p186eReviewRole === undefined,
+    )).toBe(true);
+  }
+});
+
 test('P186E cue generation fails closed if source target missing or historical semantics changed', () => {
   const missing = makeP186ESourceCueFixture('D1F');
   missing.root.remove(missing.targets[0]);
@@ -539,4 +583,57 @@ test('P186E refuses duplicate source identities even when D1F/D2F target counts 
   expect(duplicateSpecial.targets.every((t) =>
     t.children.every((child) => child.userData.p186eViewOnlyCue !== true),
   )).toBe(true);
+});
+
+
+test('P186E re-entry rolls back previous viewer styling without hiding new source violations', () => {
+  for (const variant of ['D1F', 'D2F'] as const) {
+    const semantic = makeP186ESourceCueFixture(variant);
+    const originalMaterials = semantic.targets.map((target) => target.material);
+    const originalOrders = semantic.targets.map((target) => target.renderOrder);
+    const wall = semantic.root.children[0] as any;
+    const wallMaterial = wall.material;
+    const good = prepareP186EReviewPresentation(semantic.root, variant);
+    expect(good.viewerCueCount).toBe(semantic.counts.total);
+    expect(semantic.targets[0].material).not.toBe(originalMaterials[0]);
+    semantic.targets[0].userData.exactCurrentXYClaim = true;
+    const invalid = prepareP186EReviewPresentation(semantic.root, variant);
+    expect(invalid.viewerCueCount).toBe(0);
+    expect(invalid.semanticViolationCount).toBeGreaterThan(0);
+    expect(semantic.targets[0].userData.exactCurrentXYClaim).toBe(true);
+    expect(semantic.targets.every((target, i) =>
+      target.material === originalMaterials[i] &&
+      target.renderOrder === originalOrders[i] &&
+      target.userData.p186eReviewRole === undefined &&
+      target.children.filter((child) => child.userData.p186eViewOnlyCue === true)
+        .every((child) => child.visible === false),
+    )).toBe(true);
+    expect(wall.material).toBe(wallMaterial);
+    expect(wall.userData.p186eReviewRole).toBeUndefined();
+
+    const noWall = makeP186ESourceCueFixture(variant);
+    const beforeNoWall = noWall.targets.map((target) => target.material);
+    expect(prepareP186EReviewPresentation(noWall.root, variant).viewerCueCount)
+      .toBe(noWall.counts.total);
+    noWall.root.remove(noWall.root.children[0]);
+    expect(prepareP186EReviewPresentation(noWall.root, variant).viewerCueCount).toBe(0);
+    expect(noWall.targets.every((target, i) =>
+      target.material === beforeNoWall[i] && target.userData.p186eReviewRole === undefined,
+    )).toBe(true);
+
+    const short = makeP186ESourceCueFixture(variant);
+    const beforeShort = short.targets.map((target) => target.material);
+    expect(prepareP186EReviewPresentation(short.root, variant).viewerCueCount)
+      .toBe(short.counts.total);
+    short.root.remove(short.targets[0]);
+    const partial = prepareP186EReviewPresentation(short.root, variant);
+    expect(partial.targetRenderableCount).toBe(short.counts.total - 1);
+    expect(partial.viewerCueCount).toBe(0);
+    expect(short.targets.slice(1).every((target, i) =>
+      target.material === beforeShort[i + 1] &&
+      target.userData.p186eReviewRole === undefined &&
+      target.children.filter((child) => child.userData.p186eViewOnlyCue === true)
+        .every((child) => child.visible === false),
+    )).toBe(true);
+  }
 });

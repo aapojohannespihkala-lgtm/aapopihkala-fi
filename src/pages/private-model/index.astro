@@ -663,6 +663,15 @@ const title = 'Private 3D viewer';
         bottom: auto;
       }
 
+      /* Historical electrical labels need the complete canvas unobscured. */
+      .viewport:has(#p186e-source-context:not([hidden])) .orientation-gizmo {
+        left: 12px;
+        right: auto;
+        top: auto;
+        bottom: 12px;
+        width: min(212px, calc(var(--m5a-source-panel-width) - 24px));
+      }
+
       .orientation-gizmo-title {
         margin-bottom: 1px;
         color: var(--viewer-ink);
@@ -1828,6 +1837,9 @@ const title = 'Private 3D viewer';
       // @ts-ignore - exact-byte WORK_TEST entry covered by loader regressions.
       import { D1F_COMBINED_WALL_ASSETS, isD1FCombinedWallReviewRequested, loadD1FCombinedWallReview }
         from '../../scripts/privateModelD1FCombinedWallSceneContract.mjs';
+      // @ts-ignore - exact 124-scene D1F raw-GLB source and browser loader are separately guarded.
+      import { D1F_SHOWER_PHOTO_CANDIDATE_ID, isD1FShowerPhotoReviewRequested, loadD1FShowerPhotoReview }
+        from '../../scripts/privateModelD1FShowerPhotoSourceContract.mjs';
       // @ts-ignore - indexed WORK_TEST source dimensions, never physical approval.
       import { getD1FMeasuredWidthComparison }
         from '../../scripts/privateModelD1FMeasuredWidthReadout.mjs';
@@ -1932,6 +1944,8 @@ const title = 'Private 3D viewer';
         prepareP186EReviewPresentation,
         type P186EReviewVariant,
       } from '../../scripts/privateModelP186EReviewPresentation';
+      import { createP186ELabelPixelRuntime, P186ELabelRuntimeFailure } from '../../scripts/privateModelP186ELabelPixelRuntime.mjs';
+      import { createP186ECaptionLayout } from '../../scripts/privateModelP186ECaptionLayout.mjs';
       import {
         p186fExpectedRoomContextCount,
         p186fExpectedTargetCount,
@@ -2555,6 +2569,39 @@ const title = 'Private 3D viewer';
       let activeCamera: typeof camera | typeof planCamera | typeof isoCamera = camera;
       let d1fCombinedPixelRuntime: ReturnType<typeof createD1FCombinedWallPixelRuntime> | null = null;
       let d1fService: ReturnType<typeof mountD1FServiceModel> | null = null;
+      let p186ePixelRuntime: ReturnType<typeof createP186ELabelPixelRuntime> | null = null;
+      let p186eCaptionLayout: ReturnType<typeof createP186ECaptionLayout> | null = null;
+      window.addEventListener('p186e-source-pixel-probe', (event: Event) => {
+        if (!(event instanceof CustomEvent) || !event.detail ||
+            !Number.isSafeInteger(event.detail.requestId)) return;
+        const detail = event.detail;
+        try {
+          if (!p186ePixelRuntime || !isP186eElectricalLabelReviewRequested() ||
+              activeModelSourceKind !== 'work-test' || activeCamera !== planCamera ||
+              modelRoot.children[0] !== fullModelScene ||
+              canvas.dataset.workTestReviewCandidate !== p186eCandidateId ||
+              canvas.dataset.workTestReviewMode !== p186eReviewId ||
+              canvas.dataset.p186eSourceContextReady !== 'true' ||
+              canvas.dataset.p186eHumanReview !== 'NOT_RUN') throw new Error('probe rejected');
+          let result;
+          if (detail.action === 'prepare') result = p186ePixelRuntime.prepare();
+          else if (detail.action === 'hide') result = p186ePixelRuntime.hide(detail.sourceKey);
+          else if (detail.action === 'restore') result = p186ePixelRuntime.restore();
+          else if (detail.action === 'inspect') result = p186ePixelRuntime.inspect();
+          else if (detail.action === 'finish') {
+            result = p186ePixelRuntime.dispose();
+            p186ePixelRuntime = null;
+          } else throw new Error('probe action rejected');
+          canvas.dataset.p186ePixelProbe = JSON.stringify({ ...result, requestId: detail.requestId });
+        } catch (error) {
+          let cleanup = null;
+          try { cleanup = p186ePixelRuntime?.dispose() ?? null; } catch { /* rejected cleanup is never a pixel PASS */ }
+          p186ePixelRuntime = null;
+          canvas.dataset.p186ePixelProbe = JSON.stringify({ state: 'REJECTED',
+            failureCode: error instanceof P186ELabelRuntimeFailure ? error.code : 'UNEXPECTED',
+            cleanup, requestId: detail.requestId });
+        }
+      });
       window.addEventListener('d1f-combined-wall-source-probe', (event: Event) => {
         if (!(event instanceof CustomEvent)) return;
         const detail = event.detail;
@@ -6112,6 +6159,11 @@ const title = 'Private 3D viewer';
       ) => {
         d1fService?.dispose();
         d1fService = null;
+        p186ePixelRuntime?.dispose();
+        p186ePixelRuntime = null;
+        delete canvas.dataset.p186ePixelProbe;
+        p186eCaptionLayout = null;
+        delete canvas.dataset.p186eCaptionLayout;
         // Never leak source-camera coordinates across different WORK_TEST candidates.
         d1fCombinedPixelRuntime?.dispose();
         d1fCombinedPixelRuntime = null;
@@ -8540,6 +8592,16 @@ const title = 'Private 3D viewer';
             : 'ORTHOGRAPHIC_D_1F_SUPPORT',
           standardViewPreset: viewPreset,
         });
+        p186ePixelRuntime?.dispose();
+        p186eCaptionLayout = createP186ECaptionLayout({THREE, root: fullModelScene, canvas, floor: p186eReviewVariant});
+        p186ePixelRuntime = createP186ELabelPixelRuntime({
+          THREE, root: fullModelScene, floor: p186eReviewVariant, canvas,
+          camera: planCamera, controls: planControls,
+          render: () => { p186eCaptionLayout?.update(activeCamera); renderer.render(scene, activeCamera); },
+        });
+        activePlanFocusBounds = p186ePixelRuntime.sourceBounds();
+        fitPlanCamera();
+        p186eCaptionLayout.update(activeCamera);
         status.textContent = isD2f
           ? 'P186E-X1 D 2F electrical source labels - WORK_TEST / 16 label anchors 80 % / D 2F context 20 % / HUMAN_REVIEW NOT_RUN'
           : 'P186E-X1 D 1F electrical source labels - WORK_TEST / 18 label anchors 80 % / D 1F context 20 % / HUMAN_REVIEW NOT_RUN';
@@ -9529,7 +9591,10 @@ const title = 'Private 3D viewer';
                 candidate, search: window.location.search, loader,
               })
             : null;
-          const gltf = serviceModel?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
+          const showerPhotoReview = isD1FShowerPhotoReviewRequested(window.location.search)
+            ? await loadD1FShowerPhotoReview({ candidate, search: window.location.search, loader })
+            : null;
+          const gltf = serviceModel?.gltf ?? showerPhotoReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
             ? await loader.parseAsync(
                 isP137EThreeCornerMeasuredReviewRequested()
                   ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
@@ -10545,6 +10610,79 @@ const title = 'Private 3D viewer';
             });
             canvas.dataset.workTestReviewMode = candidate.id + '-review';
             status.textContent = 'Kylpyhuoneen kalusteet ja lattialämmitys - työmalli. Huolto- ja laitetiedot avautuvat kohteesta.';
+          } else if (showerPhotoReview) {
+            Object.assign(canvas.dataset, {
+              workTestReviewMode: D1F_SHOWER_PHOTO_CANDIDATE_ID + '-review',
+              d1fShowerPhotoVariant: showerPhotoReview.selected.variant,
+              d1fShowerPhotoSceneIndex: String(showerPhotoReview.selected.sceneIndex),
+              d1fShowerPhotoRawBytes: String(showerPhotoReview.asset.bytes),
+              d1fShowerPhotoRawSha256: showerPhotoReview.asset.sha256,
+              d1fShowerPhotoSourceAuthenticated: 'true',
+              d1fShowerPhotoGlassNode: String(showerPhotoReview.selected.glassNode),
+              d1fShowerPhotoActualGlassHeightMeasured: 'false',
+              d1fShowerPhotoWorkTest: 'true',
+              d1fShowerPhotoPhysicalXYVerified: 'false',
+              d1fShowerPhotoProductionPixelsVerified: 'false',
+              d1fShowerPhotoHumanReview: 'NOT_RUN',
+              d1fShowerPhotoCurrent: 'false',
+              d1fShowerPhotoAsBuilt: 'false',
+            });
+            // The generic D overview builds a separate P167F subset. It must NOT
+            // replace the raw SHA-verified scene120..123 containing this glass.
+            // Keep the selected GLTF scene as the actual displayed model root.
+            const showerSourceScene = showerPhotoReview.gltf.scene;
+            const showerRoot = showerSourceScene?.children?.[0];
+            const showerGlassName = 'D1F_ALAJARVI_DOUBLE_CURVED_GLASS_900_WORK_TEST_' +
+              (showerPhotoReview.selected.sceneIndex - 120);
+            const sourceGlassChildren = showerRoot?.children?.filter((part: any) =>
+              part.name === showerGlassName) ?? [];
+            if (showerSourceScene !== fullModelScene ||
+                showerSourceScene.children.length !== 1 ||
+                showerRoot?.children?.length !== 44 ||
+                !showerRoot.name?.includes(showerPhotoReview.selected.variant) ||
+                sourceGlassChildren.length !== 1 ||
+                sourceGlassChildren[0].visible === false) {
+              throw new Error('D1F_SHOWER_PHOTO_VISIBLE_SOURCE_SCENE_REJECTED');
+            }
+            // Presentation-only camera focus. Source meshes/materials remain
+            // unchanged, and OrbitControls stays free after opening the link.
+            const glassBounds = new THREE.Box3().setFromObject(sourceGlassChildren[0]);
+            const glassSphere = glassBounds.getBoundingSphere(new THREE.Sphere());
+            if (glassBounds.isEmpty() || !Number.isFinite(glassSphere.radius) ||
+                glassSphere.radius <= 0.05 || glassSphere.radius > 5) {
+              throw new Error('D1F_SHOWER_PHOTO_VISIBLE_BOUNDS_REJECTED');
+            }
+            deactivateElevationView();
+            planControls.enabled = false;
+            isoControls.enabled = false;
+            controls.enableRotate = true;
+            controls.enabled = true;
+            activeCamera = camera;
+            setModelScene(showerSourceScene);
+            canvas.dataset.contentScene = 'full-model';
+            canvas.dataset.standardViewPreset = 'd-apartment';
+            const showerCenter = glassBounds.getCenter(new THREE.Vector3());
+            const showerDistance = Math.max(
+              glassSphere.radius / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * 1.9,
+              2.8,
+            );
+            controls.target.copy(showerCenter);
+            camera.up.set(0, 1, 0);
+            camera.position.copy(showerCenter).add(new THREE.Vector3(
+              showerDistance * 0.78, showerDistance * 0.48, showerDistance * 0.92,
+            ));
+            camera.near = Math.max(showerDistance / 10000, 0.001);
+            camera.far = Math.max(showerDistance * 50, 1000);
+            camera.lookAt(showerCenter);
+            camera.updateProjectionMatrix();
+            controls.update();
+            syncViewState('orbit');
+            canvas.dataset.d1fShowerPhotoVisibleSourceScene = 'true';
+            canvas.dataset.d1fShowerPhotoSourceRootCount = '1';
+            canvas.dataset.d1fShowerPhotoGlassFocus = 'SOURCE_OBJECT_PRESENTATION_ONLY';
+            // This is camera framing, NOT a production glass-pixel proof.
+            canvas.dataset.d1fShowerPhotoProductionPixelsVerified = 'false';
+            status.textContent = 'D1F kaareva suihkulasi 900 × 900 - exact 124-scene WORK_TEST / vapaa 3D / katselmus ei vielä hyväksytty';
           } else if (combinedWallReview) {
             Object.assign(canvas.dataset, {
               workTestReviewMode: `${candidate.id}-review`,
@@ -11541,16 +11679,20 @@ const title = 'Private 3D viewer';
         });
         d1fCombinedPixelRuntime?.pinFrame();
         d1fService?.pinFrame();
+        p186ePixelRuntime?.pinFrame();
+        if (isP186eElectricalLabelReviewRequested()) p186eCaptionLayout?.update(activeCamera);
         renderer.render(scene, activeCamera);
       });
 
       void (async () => {
-        // Exact P137E scene67 and R1125 one-link reviews load separate WORK_TEST
+        // Exact P137E, P186E and R1125 one-link reviews load separate WORK_TEST
         // GLBs; do not make their autoload depend on the unrelated CURRENT GLB.
         // Keep CURRENT-first for ordinary routes and all other reviews.
         if (
           !isP137EScene67ReviewRequested() &&
+          !isP186eElectricalLabelReviewRequested() &&
           !isD1FCombinedWallReviewRequested(window.location.search) &&
+          !isD1FShowerPhotoReviewRequested(window.location.search) &&
           !['d1f-bathroom-service-heating-20261015', 'd1f-wc-nordic3530-centered-20261016', 'd1f-wc-closed-lid-450-20261016'].includes(getRequestedReviewCandidateId() ?? '') &&
           !isPrivateModelReviewRequested(window.location.search, m5aZ2R1125ReviewId)
         ) {
@@ -11582,6 +11724,7 @@ const title = 'Private 3D viewer';
     </script>
   </body>
 </html>
+
 
 
 
