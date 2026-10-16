@@ -91,7 +91,7 @@ test('peer-parent visibility and material mutations fail closed and are restored
     }
     return frame;
   };
-  await assert.rejects(()=>capture(s.params),/invisible or cyclic ancestor|source\/peer\/parent visibility changed/);
+  await assert.rejects(()=>capture(s.params),/invisible or cyclic ancestor|source\/peer\/parent visibility changed|source material color\/depth\/texture state drift/);
   assert.equal(s.root.visible,true);
   assert.equal(s.targets[keys[5]].material.opacity,1);
   assert(keys.every(k=>s.targets[k].visible));
