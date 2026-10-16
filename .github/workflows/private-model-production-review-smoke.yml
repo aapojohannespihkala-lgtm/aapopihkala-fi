@@ -520,8 +520,13 @@ jobs:
             throw new Error('Pixel thresholds cannot weaken hard floors');
           }
 
-          const reviewUrl =
-            reviewBaseUrl + '?review=' + encodeURIComponent(reviewId);
+          // Only exact scene67 runs start from the user's direct D1F TOP link.
+          // All other reviews, including R1125 and X4, retain their routes.
+          const exactD1fOneLink =
+            reviewId === 'p137e-d1f-three-wall-mounted-themos-review' &&
+            candidateId === 'p137e-d1f-three-wall-mounted-themos';
+          const reviewUrl = reviewBaseUrl + '?review=' + encodeURIComponent(reviewId) +
+            (exactD1fOneLink ? '&view=d1f-plan' : '');
 
           fs.mkdirSync('playwright-artifacts', { recursive: true });
 
@@ -577,7 +582,11 @@ jobs:
             if (
               finalUrl.origin !== 'https://aapopihkala.fi' ||
               finalUrl.pathname !== '/private-model/' ||
-              finalUrl.searchParams.get('review') !== reviewId
+              finalUrl.searchParams.get('review') !== reviewId ||
+              (exactD1fOneLink
+                ? finalUrl.searchParams.get('view') !== 'd1f-plan' ||
+                  [...finalUrl.searchParams.keys()].length !== 2
+                : [...finalUrl.searchParams.keys()].length !== 1)
             ) {
               throw new Error(
                 'Production review left fixed viewer route or changed review identity: ' +
@@ -805,6 +814,60 @@ jobs:
               candidateId === 'm5a-r1125-pvk-diameter-source-split';
             const box = await canvas.boundingBox();
             if (!box) throw new Error('Production canvas has no bounding box');
+            // Exact source GLB was authenticated above. Prove the same viewer
+            // reached the source TOP with both controls before switching cameras.
+            if (exactD1fOneLink) {
+              const initial = await canvas.evaluate(el => ({
+                camera:el.dataset.p137eReviewCameraMode,
+                tools:el.dataset.p137eScene67TopPlanToolsReady,
+                wall:el.dataset.p137eOriginalSourceWallMesh,
+                devices:el.dataset.p137eWallMountedThemoCount,
+                footprint:el.dataset.p137eRoomFootprintCount,
+                face:el.dataset.p137eScene67CameraFace,
+                humanReview:el.dataset.p137eHumanReview,
+              }));
+              if (!p137eScene67AssetEvidence || !p137eScene67SourceEvidence ||
+                  initial.camera !== 'ORTHOGRAPHIC_SOURCE_WALL_D1F_TOP' ||
+                  initial.tools !== 'true' || initial.wall !== '406' ||
+                  initial.devices !== '3' || initial.footprint !== '0' ||
+                  initial.face !== undefined || initial.humanReview !== 'NOT_RUN' ||
+                  !await page.locator('#p137e-place-tool-button').isEnabled() ||
+                  !await page.locator('#axis-measure-tool-button').isEnabled()) {
+                throw new Error('P137E exact one-link original source TOP is not ready');
+              }
+              await page.waitForTimeout(350);
+              const topPng = await page.screenshot({clip:box, animations:'disabled',
+                path:'playwright-artifacts/p137e-scene67-one-link-top.png'});
+              const greenSource=detectP186FX4OriginalGreenWallPixels.toString();
+              const greenExpression='(async (b64)=>{' +
+                'const i=new Image();i.src="data:image/png;base64,"+b64;await i.decode();' +
+                'const c=document.createElement("canvas");c.width=i.width;c.height=i.height;' +
+                'const x=c.getContext("2d");if(!x)throw Error("P137E TOP decode");' +
+                'x.drawImage(i,0,0);return (' + greenSource + ')' +
+                '(x.getImageData(0,0,c.width,c.height).data,c.width,c.height);})';
+              const greenTop=await page.evaluate(greenExpression + '(' +
+                JSON.stringify(topPng.toString('base64')) + ')');
+              if (!greenTop?.passed) throw Error('P137E one-link top wall has no real green pixels');
+              fs.writeFileSync('playwright-artifacts/p137e-scene67-one-link-top.json',
+                JSON.stringify({
+                  actualViewerOneLinkTopVerified:true,initial,
+                  originalGlbSha256:p137eScene67AssetEvidence.sha256,
+                  originalWallRenderedPixels:greenTop,
+                  screenshotSha256:createHash('sha256').update(topPng).digest('hex'),
+                  individualThemoPixelsByThisInitialGate:false,
+                  nativeG2Readback:'NOT_RUN',humanReview:'NOT_RUN',publishToCURRENT:false,
+                },null,2));
+              // Re-enter NORTH only AFTER the actual initial source TOP proof;
+              // retain existing NORTH/SOUTH 3/3 WebGL housing isolation logic.
+              await page.locator('#view-menu > summary').click();
+              await page.locator('#p137e-north-face-button').click();
+              await page.waitForFunction(() => {
+                const c=document.querySelector('#private-model-canvas');
+                return c?.dataset.p137eScene67CameraFace === 'NORTH' &&
+                  c?.dataset.p137eScene67VisibleDeviceIds === 'D_THEMO_CURRENT_LOBBY_01';
+              },null,{timeout:5000});
+              await page.waitForTimeout(350);
+            }
             const before = (isX4Themo || isR1125SourceReview || p137eScene67SourceEvidence)
               ? await page.screenshot({
                   clip: box, animations: 'disabled',
