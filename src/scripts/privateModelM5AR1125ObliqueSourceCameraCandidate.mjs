@@ -28,19 +28,39 @@ export function projectR1125SourceOnly(targets,{width=960,height=600,azimuthDegr
   }
   requireTrue(seen.size===expected.length&&expected.every(x=>seen.has(x))&&all.length<=200000,'source roster or budget');
   const tilt=Math.PI/12,right=[0,1,0],up=[-Math.sin(tilt),0,Math.cos(tilt)],forward=[Math.cos(tilt),0,Math.sin(tilt)];
-  const proj=all.map(p=>[dot(p,right),dot(p,up),dot(p,forward)]);
-  const lo=[0,1,2].map(i=>Math.min(...proj.map(p=>p[i]))),hi=[0,1,2].map(i=>Math.max(...proj.map(p=>p[i])));
-  const cx=(lo[0]+hi[0])/2,cy=(lo[1]+hi[1])/2;
-  const span=Math.max((hi[0]-lo[0])/(1-2*padding),(hi[1]-lo[1])/(1-2*padding)*width/height,1e-6);
+  const proj=all.map(p=>{const v=[dot(p,right),dot(p,up),dot(p,forward)];
+    requireTrue(v.every(finite),'nonfinite projected vertex');return v;});
+  // Bounded loops avoid V8's spread-argument limit for the allowed 200000 vertices.
+  const lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];
+  for(const p of proj)for(let i=0;i<3;i++){
+    if(p[i]<lo[i])lo[i]=p[i];
+    if(p[i]>hi[i])hi[i]=p[i];
+  }
+  // Finite vertices alone do not guarantee a finite projected envelope.
+  // A nonfinite span silently collapses every normalized rectangle to 0.5.
+  requireTrue(lo.every(finite)&&hi.every(finite),'nonfinite projected envelope');
+  const dx=hi[0]-lo[0],dy=hi[1]-lo[1];
+  requireTrue(finite(dx)&&finite(dy),'nonfinite projected span');
+  const cx=lo[0]+dx/2,cy=lo[1]+dy/2;
+  const span=Math.max(dx/(1-2*padding),dy/(1-2*padding)*width/height,1e-6);
+  requireTrue(finite(cx)&&finite(cy)&&finite(span),'nonfinite camera fit');
   const rects=targets.map(t=>{
     const ps=t.points.map(p=>{
       const u=.5+(dot(p,right)-cx)/span,v=.5-(dot(p,up)-cy)*width/(span*height);
       requireTrue(finite(u)&&finite(v)&&u>0&&u<1&&v>0&&v<1,'source point outside candidate');
       return [u,v];
     });
-    return {key:t.key,pointCount:ps.length,
-      rect:{uMin:Math.min(...ps.map(p=>p[0])),uMax:Math.max(...ps.map(p=>p[0])),
-        vMin:Math.min(...ps.map(p=>p[1])),vMax:Math.max(...ps.map(p=>p[1]))}};
+    const rect={uMin:Infinity,uMax:-Infinity,vMin:Infinity,vMax:-Infinity};
+    for(const [u,v] of ps){
+      if(u<rect.uMin)rect.uMin=u;
+      if(u>rect.uMax)rect.uMax=u;
+      if(v<rect.vMin)rect.vMin=v;
+      if(v>rect.vMax)rect.vMax=v;
+    }
+    // A point-like projected source cannot provide meaningful visibility evidence.
+    // Keep this stricter than merely checking that every vertex lies in-frame.
+    requireTrue(rect.uMax-rect.uMin+rect.vMax-rect.vMin>1e-12,'collapsed source projection: '+t.key);
+    return {key:t.key,pointCount:ps.length,rect};
   });
   return {status:'SOURCE_SPACE_CAMERA_CANDIDATE_ONLY',sceneIndex:63,azimuthDegrees,elevationDegrees,width,height,padding,
     sourceSpaceOnly:true,babylonSceneRootRotationNotApplied:true,
