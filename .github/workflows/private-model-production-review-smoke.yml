@@ -16,6 +16,7 @@ on:
         options:
           - full-render
           - r1125-render
+          - p186e-labels-render
           - p137e-walls-render
           - d1f-combined-pixels
           - d1f-measured-pixels
@@ -2425,3 +2426,39 @@ jobs:
           name: d1f-measured-production-pixels-${{ matrix.variant }}
           path: test-results/d1f-measured-production/
           if-no-files-found: ignore
+
+  verify-p186e-twofloor-production:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'p186e-labels-render'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact trusted main
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install existing browser runtime
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify both original 2015 P186E source label floors in production
+        env:
+          PROBE_MODE: ${{ inputs.probe_mode }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+        run: node .github/scripts/private-model-p186e-production-probe.mjs
+      - name: Preserve non-promoted D1F and D2F browser evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: p186e-source-label-twofloor-production
+          path: test-results/p186e-production-twofloor/
+          if-no-files-found: ignore
+          retention-days: 7
