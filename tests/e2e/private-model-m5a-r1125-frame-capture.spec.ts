@@ -44,11 +44,11 @@ test('exact 13 source targets produce baseline, 13 hides, 13 exact restores',asy
   assert.equal(result.originalGlbDigestAuthenticated,false);
   assert.equal(result.productionProvenanceVerified,false);
   assert.equal(result.humanReview,'NOT_RUN');
-  assert(keys.every(k=>!result.mutedFrames[k].every((v:number,i:number)=>v===result.baseline[i])));
-  assert(keys.every(k=>result.restoredFrames[k].every((v:number,i:number)=>v===result.baseline[i])));
+  assert(keys.every(k=>!(result.mutedFrames as Record<string,Uint8Array>)[k].every((v:number,i:number)=>v===result.baseline[i])));
+  assert(keys.every(k=>(result.restoredFrames as Record<string,Uint8Array>)[k].every((v:number,i:number)=>v===result.baseline[i])));
   assert(keys.every(k=>s.targets[k].visible));
   assert.equal(result.cameraStates.baseline.length,34);
-  assert(keys.every(k=>result.cameraStates.muted[k].length===34));
+  assert(keys.every(k=>(result.cameraStates.muted as Record<string,number[]>)[k].length===34));
 });
 
 test('missing target, duplicate object and foreign root reject without captures',async()=>{
