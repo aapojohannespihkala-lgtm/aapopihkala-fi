@@ -1,5 +1,9 @@
 import {test,expect} from '@playwright/test';
-import type {BrowserType} from 'playwright';
+import type {BrowserType,Request} from 'playwright';
+import {createServer} from 'node:http';
+import type {AddressInfo} from 'node:net';
+import {gzipSync} from 'node:zlib';
+import {createHash} from 'node:crypto';
 import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -8,6 +12,7 @@ import {
   validateP186EProductionDataset,countP186EFramePixels,
   P186E_PRODUCTION_SOURCE,verifyP186EProductionSourceResponse,
   runP186EProductionProbe,classifyP186EProductionFailure,
+  captureP186EProductionSourceRequest,
 } from '../../.github/scripts/private-model-p186e-production-probe.mjs';
 
 const good = (floor: 'D1F'|'D2F') => ({
@@ -116,6 +121,7 @@ for(const scenario of ['missing','duplicate','current','corrupt','html','body-un
   test('actual production driver rejects '+scenario+' autoload before screenshots',async()=>{
     const outputDirectory=mkdtempSync(join(tmpdir(),'p186e-source-gate-'));
     let screenshots=0,closed=false,currentUrl='';
+    let routeHandler:Function;
     const listeners=new Map<string,Function>();
     const canvas={
       evaluate:async()=>good('D1F'),
@@ -127,10 +133,15 @@ for(const scenario of ['missing','duplicate','current','corrupt','html','body-un
       goto:async(url:string)=>{
         currentUrl=url;
         if(scenario!=='missing'){
-          listeners.get('request')!({url:()=>P186E_PRODUCTION_SOURCE.url});
-          listeners.get('response')!(sourceResponse(foreignGlb(),scenario==='html'?
+          const request={url:()=>P186E_PRODUCTION_SOURCE.url,headers:()=>({})};
+          const response=sourceResponse(foreignGlb(),scenario==='html'?
             {headers:()=>({'content-type':'text/html'})}:scenario==='body-unavailable'?
-            {body:async()=>{throw Error('response.body: No resource with given identifier found test-only-secret');}}:{}));
+            {body:async()=>{throw Error('response.body: No resource with given identifier found test-only-secret');}}:{});
+          listeners.get('request')!(request);
+          if(['corrupt','html','body-unavailable'].includes(scenario))
+            await routeHandler({request:()=>request,fetch:async()=>({...response,dispose:async()=>{}}),
+              fulfill:async()=>{},abort:async()=>{}});
+          listeners.get('response')!({...response,request:()=>request});
         }
         if(scenario==='duplicate'){
           listeners.get('request')!({url:()=>P186E_PRODUCTION_SOURCE.url});
@@ -151,7 +162,7 @@ for(const scenario of ['missing','duplicate','current','corrupt','html','body-un
     try{
       const report=await runP186EProductionProbe({env,outputDirectory,logger:()=>{},
         browserType:{launch:async()=>({
-          newContext:async()=>({route:async()=>{},newPage:async()=>page}),
+          newContext:async()=>({route:async(_pattern:string,handler:Function)=>{routeHandler=handler;},newPage:async()=>page}),
           close:async()=>{closed=true;},
         })} as unknown as BrowserType,
       });
@@ -188,5 +199,64 @@ test('browser failures emit fixed technical classes and never copy untrusted mes
   for(const message of ['test-only-secret','P186E_PROD_test-only-secret'])
     expect(classifyP186EProductionFailure(Error(message)))
       .toBe('UNEXPECTED_BROWSER_OR_SOURCE_FAILURE');
+});
+
+test('same browser request forwards the complete decompressed 3MB body once',async({browser})=>{
+  const bytes=foreignGlb();
+  const expectedHash=createHash('sha256').update(bytes).digest('hex');
+  let upstreamRequests=0,requestId='';
+  const server=createServer((request,response)=>{
+    if(request.url==='/source.glb'){
+      upstreamRequests++;requestId=String(request.headers['x-local-test-id']);
+      response.writeHead(200,{'content-type':'model/gltf-binary','content-encoding':'gzip'});
+      response.end(gzipSync(bytes));
+    }else{response.writeHead(200,{'content-type':'text/html'});response.end('<!doctype html><title>Local forwarding fixture</title>');}
+  });
+  await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',()=>resolve()));
+  const origin='http://127.0.0.1:'+(server.address() as AddressInfo).port;
+  const context=await browser.newContext();
+  const page=await context.newPage();
+  let captureHash='',browserRequests=0,bound=false;
+  let capturedRequest:Request;
+  page.on('request',request=>{if(request.url()===origin+'/source.glb')browserRequests++;});
+  page.on('response',response=>{
+    if(response.url()===origin+'/source.glb')bound=response.request()===capturedRequest;
+  });
+  await context.route(origin+'/source.glb',async route=>{
+    const capture=await captureP186EProductionSourceRequest(route,{
+      ...route.request().headers(),'x-local-test-id':'forwarded-once',
+    });
+    try{
+      capturedRequest=capture.request;
+      captureHash=createHash('sha256').update(capture.bytes).digest('hex');
+      await route.fulfill({response:capture.response,body:capture.bytes});
+    }finally{await capture.response.dispose();}
+  });
+  try{
+    await page.goto(origin);
+    const actual=await page.evaluate(async()=>{
+      const response=await fetch('/source.glb');
+      const bytes=await response.arrayBuffer();
+      const digest=await crypto.subtle.digest('SHA-256',bytes);
+      return {status:response.status,type:response.headers.get('content-type'),
+        length:bytes.byteLength,sha256:Array.from(new Uint8Array(digest)).map(x=>x.toString(16).padStart(2,'0')).join('')};
+    });
+    expect(actual).toEqual({status:200,type:'model/gltf-binary',length:bytes.length,sha256:expectedHash});
+    expect(captureHash).toBe(expectedHash);expect(bound).toBe(true);
+    expect(browserRequests).toBe(1);expect(upstreamRequests).toBe(1);
+    expect(requestId).toBe('forwarded-once');
+  }finally{await context.close();await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});
+
+test('source capture never follows redirects or retries and disposes failed body reads',async()=>{
+  let options:Record<string,unknown>={},disposed=false;
+  const headers={'CF-Access-Client-Id':'test-only-id','CF-Access-Client-Secret':'test-only-secret'};
+  await expect(captureP186EProductionSourceRequest({
+    request:()=>({}),fetch:async(value:Record<string,unknown>)=>{
+      options=value;return {body:async()=>{throw Error('unavailable');},dispose:async()=>{disposed=true;}};
+    },
+  },headers)).rejects.toThrow('unavailable');
+  expect(options).toEqual({headers,maxRedirects:0,maxRetries:0,timeout:25000});
+  expect(disposed).toBe(true);
 });
 
