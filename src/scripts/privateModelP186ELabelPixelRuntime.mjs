@@ -81,6 +81,7 @@ export function createP186ELabelPixelRuntime({THREE,root,floor,canvas,camera,con
         geometryState:geometryState(object.geometry),materialState:materialState(object.material),
         matrix:JSON.stringify(object.matrixWorld.toArray()),cueGeometry:cue.geometry,cueMaterial:cue.material,
         cueGeometryState:geometryState(cue.geometry),cueMaterialState:materialState(cue.material),
+        cuePointSize:cue.material?.size,
         captionVisible:caption.visible,visible:object.visible},
     });
   });
@@ -109,6 +110,7 @@ export function createP186ELabelPixelRuntime({THREE,root,floor,canvas,camera,con
         geometryState(o.geometry)===b.geometryState&&materialState(o.material)===b.materialState&&
         JSON.stringify(o.matrixWorld.toArray())===b.matrix&&t.cue.parent===o&&t.cue.visible===true&&
         t.cue.geometry===b.cueGeometry&&t.cue.material===b.cueMaterial&&
+        b.cuePointSize===13&&t.cue.material.size===(prepared?.cueSize??13)&&
         geometryState(t.cue.geometry)===b.cueGeometryState&&materialState(t.cue.material)===b.cueMaterialState&&
         t.caption.parent===o&&t.caption.visible===(prepared?false:b.captionVisible),'SOURCE_DRIFT');
     }
@@ -131,7 +133,7 @@ export function createP186ELabelPixelRuntime({THREE,root,floor,canvas,camera,con
       const xs=points.map(p=>(p.x+1)*width/2),ys=points.map(p=>(1-p.y)*height/2);
       const cx=(center.x+1)*width/2,cy=(1-center.y)*height/2;
       const radius=t.cue.material.size/2;
-      need(t.cue.material.sizeAttenuation===false&&radius===6.5,'CUE_SIZE');
+      need(t.cue.material.sizeAttenuation===false&&radius===(prepared?.cueSize??13)/2,'CUE_SIZE');
       const x=Math.floor(Math.min(...xs,cx-radius))-2,y=Math.floor(Math.min(...ys,cy-radius))-2;
       const right=Math.ceil(Math.max(...xs,cx+radius))+2,bottom=Math.ceil(Math.max(...ys,cy+radius))+2;
       need(x>=0&&y>=0&&right<=width&&bottom<=height,'ROI_OUTSIDE');
@@ -145,6 +147,7 @@ export function createP186ELabelPixelRuntime({THREE,root,floor,canvas,camera,con
     return {state:'PREPARED',floor,width,height,sourceCandidateId:p186ePixelCandidateId,
       cameraKey:floor+'_p186e_source_plan',sceneKey:floor+'_p186e_original_source',
       cameraFingerprint:fingerprint(),targets:projectedTargets,hiddenSourceKey:hidden,
+      temporaryCuePointSizePx:prepared?.cueSize??13,
       captionsTemporarilyHidden:Boolean(prepared),captionPixelsVerified:false,
       pixelsVerifiedByThisRuntime:false,humanReview:'NOT_RUN'};
   };
@@ -153,13 +156,17 @@ export function createP186ELabelPixelRuntime({THREE,root,floor,canvas,camera,con
   };
   const dispose=()=>{
     if(disposed)return finished;
-    restore();for(const t of targets){t.object.visible=t.original.visible;t.caption.visible=t.original.captionVisible;}
+    restore();for(const t of targets){
+      t.object.visible=t.original.visible;t.caption.visible=t.original.captionVisible;
+      t.cue.material.size=t.original.cuePointSize;
+    }
     const before=prepared?.before;
     if(prepared){applyPose(camera,prepared.before);
       Object.assign(controls,prepared.controls);controls.target.copy(prepared.target);}
     prepared=null;disposed=true;render();
     finished={state:'FINISHED',sourceVisibilityRestored:targets.every(t=>t.object.visible===t.original.visible),
       captionVisibilityRestored:targets.every(t=>t.caption.visible===t.original.captionVisible),
+      cueSizeRestored:targets.every(t=>t.cue.material.size===t.original.cuePointSize),
       cameraRestored:!before||JSON.stringify(camera.matrixWorld.toArray())===JSON.stringify((()=>{
         const copy=camera.clone();applyPose(copy,before);return copy.matrixWorld.toArray();})()),
       pixelsVerifiedByThisRuntime:false,humanReview:'NOT_RUN'};
@@ -175,9 +182,23 @@ export function createP186ELabelPixelRuntime({THREE,root,floor,canvas,camera,con
       const settings={enabled:controls.enabled,enableDamping:controls.enableDamping,autoRotate:controls.autoRotate};
       controls.enabled=false;controls.enableDamping=false;controls.autoRotate=false;controls.update();
       const lock=pose(camera);
-      prepared={before,lock,target,controls:settings,size:dimensions,fingerprint:fingerprint()};
+      prepared={before,lock,target,controls:settings,size:dimensions,fingerprint:fingerprint(),cueSize:13};
       for(const t of targets)t.caption.visible=false;
-      try{render();return result();}catch(error){dispose();throw error;}
+      // Original source labels and 13px human-view cues remain unchanged outside
+      // this proof session. Smaller temporary cues are tried ONLY when the full
+      // source ROI check rejects an overlap; never bypass source/peer guards.
+      let overlapError;
+      for(const cueSize of [13,11,9]){
+        prepared.cueSize=cueSize;
+        for(const t of targets)t.cue.material.size=cueSize;
+        try{render();return result();}catch(error){
+          if(!(error instanceof P186ELabelRuntimeFailure) || error.code!=='ROI_OVERLAP'){
+            dispose();throw error;
+          }
+          overlapError=error;
+        }
+      }
+      dispose();throw overlapError;
     },
     hide(sourceKey){
       need(prepared&&!hidden&&targets.some(t=>t.sourceKey===sourceKey),'HIDE_KEY');validate();
