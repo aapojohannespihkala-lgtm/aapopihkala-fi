@@ -15,7 +15,9 @@ export function deriveP186EOriginalCaptionRoster(bytes) {
   const length = view.getUint32(12, true);
   need(length > 0 && 20 + length <= bytes.length, 'GLB');
   const gltf = JSON.parse(new TextDecoder().decode(bytes.subarray(20, 20 + length)));
-  const result = {D1F: [], D2F: []}, seen = new Set();
+  /** @type {Record<'D1F' | 'D2F', Array<{sourceKey: string, text: string}>>} */
+  const result = {D1F: [], D2F: []};
+  const seen = new Set();
   const visit = index => {
     need(Number.isInteger(index) && gltf.nodes?.[index] && !seen.has(index), 'SOURCE_TREE');
     seen.add(index);
