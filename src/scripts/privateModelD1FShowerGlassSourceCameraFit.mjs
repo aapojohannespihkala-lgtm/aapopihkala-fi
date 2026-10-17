@@ -51,19 +51,20 @@ export function planD1FSourceGlassCamera({source, sceneIndex, rootNode, glassNod
   const vfov=verticalFovDeg*Math.PI/180;
   const hfov=2*Math.atan(Math.tan(vfov/2)*aspect);
   const half=Math.min(vfov,hfov)/2;
-  // Frame the source-height and plan span from inside the wet room, not a distant sphere.
-  // Exact original bathroom geometry is Z-up, not Three.js default Y-up.
+  // The original GLB mesh is locally Z-up, but every selected scene root
+  // rotates it -90 degrees around X. GLTFLoader's world Box3 is Y-up.
+  // Use world-Y as height and world-XZ as the horizontal wet-room footprint.
   const spans=max.map((x,i)=>x-min[i]);
-  const distance=Math.max(2.5,1.2*Math.max(spans[2]/(2*Math.tan(vfov/2)),
-    Math.hypot(spans[0],spans[1])/(2*Math.tan(hfov/2))));
-  const forward=unit([0,-1,-.22]); // camera -> glass, original scene's world +Z is up
+  const distance=Math.max(2.5,1.2*Math.max(spans[1]/(2*Math.tan(vfov/2)),
+    Math.hypot(spans[0],spans[2])/(2*Math.tan(hfov/2))));
+  const forward=unit([-.1,-.12,-.99]); // source world XZ view, slight downward Y component
   const position=minus(target,mul(forward,distance));
-  const right=unit(cross(forward,[0,0,1]));
+  const right=unit(cross(forward,[0,1,0]));
   const up=unit(cross(right,forward));
   const near=Math.max(0.001,(distance-radius)/100),far=Math.max(1000,distance+radius+30);
   return Object.freeze({sceneIndex,rootNode,glassNode,glassMeshIndex,viewportWidth,viewportHeight,
     verticalFovDeg,horizontalFovDeg:hfov*180/Math.PI,position:Object.freeze(position),
-    target:Object.freeze(target),up:Object.freeze([0,0,1]),cameraForward:Object.freeze(forward),
+    target:Object.freeze(target),up:Object.freeze([0,1,0]),cameraForward:Object.freeze(forward),
     cameraRight:Object.freeze(right),cameraTrueUp:Object.freeze(up),near,far,distance,
     sourceSha256:SHOWER_SOURCE.sha256,sourceSizeBytes:SHOWER_SOURCE.bytes,
     presentationOnly:true,sourceWorldBoundsProvenance:'CALLER_BOUND_ORIGINAL_GLTF_MESH_777',
