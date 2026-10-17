@@ -62,6 +62,53 @@ for(const floor of ['D1F','D2F'] as const)test('actual Three source nodes select
   });
 });
 
+test('34 source-line and 13px cue preflight refuses materials that cannot paint',()=>{
+  const cases:Array<[string,(f:ReturnType<typeof fixture>)=>void,string]>=[
+    ['source color-write disabled',f=>{(f.targets[0].material as THREE.Material).colorWrite=false;},'SOURCE'],
+    ['source material hidden',f=>{(f.targets[0].material as THREE.Material).visible=false;},'SOURCE'],
+    ['source opacity alpha-cut',f=>{(f.targets[0].material as THREE.Material).alphaTest=1;},'SOURCE'],
+    ['source zero opacity',f=>{(f.targets[0].material as THREE.Material).opacity=0;},'SOURCE'],
+    ['cue color-write disabled',f=>{
+      ((f.targets[0].children[0] as THREE.Points).material as THREE.Material).colorWrite=false;
+    },'SOURCE_CHILDREN'],
+    ['cue material hidden',f=>{
+      ((f.targets[0].children[0] as THREE.Points).material as THREE.Material).visible=false;
+    },'SOURCE_CHILDREN'],
+    ['cue invalid alpha threshold',f=>{
+      ((f.targets[0].children[0] as THREE.Points).material as THREE.Material).alphaTest=1;
+    },'SOURCE_CHILDREN'],
+  ];
+  for(const [label,mutate,code] of cases){
+    const f=fixture();mutate(f);
+    expect(()=>f.runtime(),label).toThrow('P186E_LABEL_RUNTIME_'+code);
+    expect(f.targets.every(t=>t.visible)).toBe(true);
+    expect(f.controls.enabled).toBe(true);
+  }
+});
+
+test('source paint-state drift is detected even without a material version change',()=>{
+  const cases:Array<(f:ReturnType<typeof fixture>)=>void>=[
+    f=>{(f.targets[1].material as THREE.Material).colorWrite=false;},
+    f=>{(f.targets[1].material as THREE.Material).visible=false;},
+    f=>{((f.targets[1].children[0] as THREE.Points).material as THREE.Material).colorWrite=false;},
+  ];
+  for(const mutate of cases){
+    const f=fixture(),runtime=f.runtime();
+    const ready=runtime.prepare();
+    expect(ready.pixelsVerifiedByThisRuntime).toBe(false);
+    mutate(f);
+    expect(()=>runtime.inspect()).toThrow('P186E_LABEL_RUNTIME_SOURCE_DRIFT');
+    expect(runtime.dispose()).toMatchObject({sourceVisibilityRestored:true,
+      captionVisibilityRestored:true,humanReview:'NOT_RUN'});
+  }
+  const legitimate=fixture();
+  (legitimate.targets[0].material as THREE.Material).opacity=0.8;
+  (legitimate.targets[0].material as THREE.Material).alphaTest=0.1;
+  const runtime=legitimate.runtime();
+  expect(runtime.prepare().targets).toHaveLength(p186ePixelExpected.D1F.total);
+  expect(runtime.dispose().state).toBe('FINISHED');
+});
+
 test('source substitution and promotion fail before any visibility mutation',()=>{
   for(const change of ['key','promotion','missing']){
     const f=fixture();
