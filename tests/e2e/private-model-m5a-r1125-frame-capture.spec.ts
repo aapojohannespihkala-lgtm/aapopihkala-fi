@@ -132,3 +132,39 @@ test('27-frame capture memory guard rejects oversized canvas before rendering',a
   await assert.rejects(()=>capture(s.params),/RGBA exact byte length/);
   assert.equal(s.reads(),1); // bound passed, then mock frame size rejected
 });
+
+test('a source with colorWrite disabled is rejected before any capture',async()=>{
+  const s=setup();
+  const material=s.targets[keys[0]].material as {visible:boolean;opacity:number;colorWrite?:boolean};
+  material.colorWrite=false;
+  await assert.rejects(()=>capture(s.params),/hidden\/invalid source material/);
+  assert.equal(s.reads(),0);
+  assert.equal(material.colorWrite,false);
+  assert(keys.every(k=>s.targets[k].visible));
+});
+
+test('a source colorWrite mutation while hidden fails closed and restores ownership',async()=>{
+  const s=setup(),orig=s.params.captureRGBA;
+  const material=s.targets[keys[5]].material as {visible:boolean;opacity:number;colorWrite?:boolean};
+  assert.equal(Object.hasOwn(material,'colorWrite'),false);
+  s.params.captureRGBA=async()=>{
+    const frame=await orig();
+    if(keys.some(k=>!s.targets[k].visible))material.colorWrite=false;
+    return frame;
+  };
+  await assert.rejects(()=>capture(s.params),/source material color\/depth\/texture state drift/);
+  assert.equal(Object.hasOwn(material,'colorWrite'),false);
+  assert(keys.every(k=>s.targets[k].visible));
+});
+
+test('explicit writable source colors remain valid across all 27 captures',async()=>{
+  const s=setup();
+  for(const key of keys){
+    const material=s.targets[key].material as {visible:boolean;opacity:number;colorWrite?:boolean};
+    material.colorWrite=true;
+  }
+  const output=await capture(s.params);
+  assert.equal(s.reads(),27);
+  assert.equal(Object.keys(output.restoredFrames).length,13);
+  assert(keys.every(k=>(s.targets[k].material as {colorWrite?:boolean}).colorWrite===true));
+});
