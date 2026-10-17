@@ -625,6 +625,7 @@ jobs:
               timeout: 20_000,
             });
 
+            try {
             await page.waitForFunction(
               ({ expectedReviewId, expectedCandidateId, expectedDataset }) => {
                 const canvas = document.querySelector('#private-model-canvas');
@@ -650,6 +651,66 @@ jobs:
               },
               { timeout: 35_000 },
             );
+
+            } catch (error) {
+              // Fail closed, but record only the pre-approved canvas status fields.
+              // Never serialize arbitrary dataset, page text, URLs, request headers,
+              // credentials, cookies, browser storage, or exception stacks.
+              const diagnostic = await page.evaluate(
+                ({ reviewId, candidateId, expectedDataset }) => {
+                  const el = document.querySelector('#private-model-canvas');
+                  const d = el instanceof HTMLCanvasElement ? el.dataset : null;
+                  const safeStatus = (key, accepted) => {
+                    const value = d?.[key];
+                    return value === undefined ? 'MISSING'
+                      : accepted.includes(value) ? value : 'OTHER';
+                  };
+                  const checks = Object.entries({
+                    workTestReviewAutoload: 'true',
+                    modelSource: 'work-test',
+                    workTestReviewMode: reviewId,
+                    workTestReviewCandidate: candidateId,
+                    ...expectedDataset,
+                  }).map(([key, expected]) => ({
+                    key,
+                    present: d?.[key] !== undefined,
+                    matchesExpected: d?.[key] === String(expected),
+                  }));
+                  return {
+                    stage: 'INITIAL_AUTOLOAD_DATASET_NOT_READY',
+                    canvasPresent: Boolean(d),
+                    checks,
+                    workTestLoadState: safeStatus('workTestLoadState',
+                      ['loading', 'loaded', 'ready', 'failed', 'error']),
+                    workTestLoadFailurePhase: safeStatus('workTestLoadFailurePhase',
+                      ['gltf-load-failed', 'gltf-parse-failed',
+                       'm5a-z2-presentation-guard-failed',
+                       'm5a-r1125-original-source-association-failed',
+                       'gltf-source-integrity-failed']),
+                    workTestImport: safeStatus('workTestImport',
+                      ['failed', 'ready', 'loading', 'success']),
+                    m5aZ2ReviewState: safeStatus('m5aZ2ReviewState',
+                      ['ready', 'failed', 'loading']),
+                    r1125SceneIndex: safeStatus('m5aR1125SceneIndex',
+                      ['63']),
+                    productionSourcePixelsVerified: false,
+                    humanReview: 'NOT_RUN',
+                    publishToCURRENT: false,
+                  };
+                },
+                { reviewId, candidateId, expectedDataset },
+              ).catch(() => ({
+                stage: 'DATASET_PROBE_UNAVAILABLE',
+                productionSourcePixelsVerified: false,
+                humanReview: 'NOT_RUN',
+                publishToCURRENT: false,
+              }));
+              fs.writeFileSync(
+                'playwright-artifacts/autoload-dataset-timeout.json',
+                JSON.stringify(diagnostic, null, 2),
+              );
+              throw error;
+            }
 
             const canvas = page.locator('#private-model-canvas');
             await page.waitForTimeout(1000);
