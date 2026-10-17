@@ -95,12 +95,27 @@ export function createP186ECaptionLayout({THREE, root, canvas, floor}) {
   });
   for (const sprite of captions) prepareReadableCaption(THREE, sprite);
   let previous = '';
+  let suppressed = false;
   const visible = object => {
     for (let p = object; p; p = p.parent) if (!p.visible) return false;
     return true;
   };
   return {
     update(camera) {
+      // The source isolation proof intentionally hides every caption. Avoid
+      // traversing the whole GLB and projecting invisible sprites on each RAF.
+      // The first visible frame must still recompute and restore its audit.
+      if (captions.length > 0 && captions.every(sprite => sprite.visible === false)) {
+        if (!suppressed) {
+          suppressed = true;
+          previous = '';
+          canvas.dataset.p186eCaptionLayout = JSON.stringify({state: 'CAPTIONS_TEMPORARILY_HIDDEN',
+            floor, expectedCount: captions.length, laidOutCount: 0, allSourceCaptionsInView: false,
+            captions: [], pixelsVerified: false, humanReview: 'NOT_RUN'});
+        }
+        return;
+      }
+      suppressed = false;
       const rect = canvas.getBoundingClientRect();
       const width = Math.round(rect.width), height = Math.round(rect.height);
       if (width < 1 || height < 1) return;
