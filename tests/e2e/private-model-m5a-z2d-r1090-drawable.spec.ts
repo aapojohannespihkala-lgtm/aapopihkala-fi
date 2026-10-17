@@ -149,6 +149,30 @@ test('R1090 rejects hidden or unpainted candidates instead of trusting their sou
   ]);
 });
 
+test('R1090 rejects source targets whose materials cannot write visible color pixels', () => {
+  const scene = makeScene();
+  const transparent = (scene.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial;
+  const colorDisabled = (scene.children[2] as THREE.Mesh).material as THREE.MeshBasicMaterial;
+  const alphaCutout = (scene.children[4] as THREE.Mesh).material as THREE.MeshBasicMaterial;
+
+  transparent.transparent = true;
+  transparent.opacity = 0;
+  colorDisabled.colorWrite = false;
+  alphaCutout.opacity = 0;
+  alphaCutout.alphaTest = 0.5;
+
+  expect(getUndrawableM5AZ2TargetKeys(scene)).toEqual([
+    m5aZ2ExpectedTargetKeys[0],
+    m5aZ2ExpectedTargetKeys[2],
+    m5aZ2ExpectedTargetKeys[4],
+  ]);
+
+  transparent.opacity = 0.2;
+  colorDisabled.colorWrite = true;
+  alphaCutout.opacity = 0.8;
+  expect(getUndrawableM5AZ2TargetKeys(scene)).toEqual([]);
+});
+
 test('R1090 checks effective visibility through hidden parent, hidden root and restoration', () => {
   const scene = makeScene();
   const route = scene.children[4];

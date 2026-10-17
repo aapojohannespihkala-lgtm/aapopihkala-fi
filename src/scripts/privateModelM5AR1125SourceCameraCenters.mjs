@@ -35,10 +35,20 @@ const validSource = (object) => {
     d.publishToCURRENT === false;
 };
 
+// A projectable point is not proof that its source primitive can draw pixels.
+// Reject definitively invisible materials before producing review projections.
+// A mixed-material mesh remains eligible when at least one material can draw;
+// exact per-target pixel evidence is still checked by the downstream renderer.
 const materialIsVisible = (material) => {
   const list = Array.isArray(material) ? material : [material];
-  return list.length > 0 && list.some((m) =>
-    m && m.visible !== false && Number(m.opacity ?? 1) > 0);
+  return list.length > 0 && list.some((m) => {
+    if (!m || m.visible === false || m.colorWrite === false) return false;
+    const opacity = Number(m.opacity ?? 1);
+    const alphaTest = Number(m.alphaTest ?? 0);
+    return Number.isFinite(opacity) && opacity > 0 && opacity <= 1 &&
+      Number.isFinite(alphaTest) && alphaTest >= 0 && alphaTest < 1 &&
+      opacity > alphaTest;
+  });
 };
 
 const inVisibleHierarchy = (o, root) => {
