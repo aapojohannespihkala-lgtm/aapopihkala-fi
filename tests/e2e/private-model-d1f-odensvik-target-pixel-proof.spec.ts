@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 // @ts-ignore - source-proof native ESM imported for CI contract tests.
 import {
   D1F_ODENSVIK_PIXEL_TARGETS,
@@ -43,8 +44,7 @@ test('untrusted and obsolete source is rejected before GLTFLoader or GPU capture
 });
 
 test('real-WebGL proof runner explicitly cannot certify one-link production or human approval',()=>{
-  const fs=require('node:fs');
-  const source=fs.readFileSync('src/scripts/privateModelD1FOdensvikTargetPixelProof.mjs','utf8');
+  const source=readFileSync('src/scripts/privateModelD1FOdensvikTargetPixelProof.mjs','utf8');
   expect(source).toContain('authenticatedProductionOriginVerified:false');
   expect(source).toContain('oneLinkAutoloadVerified:false');
   expect(source).toContain('individualProductionPixelsVerified:false');
