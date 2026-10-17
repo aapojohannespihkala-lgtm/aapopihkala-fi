@@ -59,6 +59,7 @@ test('two distinct pose reports require 54 source-isolation frames, never 54 vie
 });
 test('same world-camera pose is not a second orbit, even with changed projection',()=>{
   const f=fixture();
+  changeSecondWorldAxis(f,0);
   f.views[1].capture.cameraStates.baseline[14]=0;
   for(const key of keys){
     f.views[1].capture.cameraStates.muted[key][14]=0;
