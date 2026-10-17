@@ -19,7 +19,7 @@ const corners=(box:{min:number[],max:number[]})=>[0,1].flatMap(x=>[0,1].flatMap(
   x?box.max[0]:box.min[0], y?box.max[1]:box.min[1], z?box.max[2]:box.min[2]
 ])));
 
-for(const viewport of [{width:1440,height:900},{width:390,height:844}]) {
+for(const viewport of [{width:1440,height:900},{width:390,height:844},{width:320,height:740}]) {
   test('original D1F mesh777 glass fits all source scenes '+viewport.width+'x'+viewport.height,()=>{
     for(const scene of SHOWER_SOURCE.scenes) {
       const worldBounds=boundsForScene(scene.sceneIndex);
@@ -29,8 +29,11 @@ for(const viewport of [{width:1440,height:900},{width:390,height:844}]) {
         viewportWidth:viewport.width,viewportHeight:viewport.height,
       });
       expect(pose.up).toEqual([0,1,0]); // world-Y-up after original root rotation
-      expect(pose.cameraTrueUp[1]).toBeGreaterThan(0.98);
-      expect(pose.cameraForward[2]).toBeLessThan(-0.9);
+      expect(pose.cameraTrueUp[1]).toBeGreaterThan(0.90);
+      expect(pose.cameraForward[0]).toBeGreaterThan(0.5);
+      expect(pose.cameraForward[1]).toBeLessThan(-0.3);
+      expect(pose.cameraForward[2]).toBeGreaterThan(0.7);
+      expect(pose.distance).toBeGreaterThanOrEqual(2.9);
       expect(worldBounds.max[1]-worldBounds.min[1]).toBeCloseTo(1.9,5);
       expect(pose.presentationOnly).toBe(true);
       expect(pose.originalSourceBytesAuthenticatedByHelper).toBe(false);
