@@ -23,9 +23,17 @@ const mul=(a,n)=>a.map(x=>x*n);
  * Returns a nonmutating, FOV-aware THREE.PerspectiveCamera pose for source glass.
  * Input bounds MUST come from actual source mesh777 in selected scene after
  * modelRoot/world transforms. No caller boolean can authenticate those bytes.
+ * @param {{
+ *   source: {bytes: number, sha256: string},
+ *   sceneIndex: number, rootNode: number, glassNode: number,
+ *   glassMeshIndex: number,
+ *   glassWorldBounds: {min: number[], max: number[]},
+ *   viewportWidth: number, viewportHeight: number,
+ *   verticalFovDeg?: number,
+ * }} [options] Exact caller-verified source inputs (also checked at runtime).
  */
 export function planD1FSourceGlassCamera({source, sceneIndex, rootNode, glassNode,
-    glassMeshIndex, glassWorldBounds, viewportWidth, viewportHeight, verticalFovDeg=55}={}) {
+    glassMeshIndex, glassWorldBounds, viewportWidth, viewportHeight, verticalFovDeg=55}=/** @type {any} */ ({})) {
   const row=SHOWER_SOURCE.scenes.find(v=>v.sceneIndex===sceneIndex);
   if(!row||rootNode!==row.rootNode||glassNode!==row.glassNode||glassMeshIndex!==777||
      source?.bytes!==SHOWER_SOURCE.bytes||source?.sha256!==SHOWER_SOURCE.sha256||
@@ -35,7 +43,7 @@ export function planD1FSourceGlassCamera({source, sceneIndex, rootNode, glassNod
   const min=glassWorldBounds?.min,max=glassWorldBounds?.max;
   if(!Array.isArray(min)||!Array.isArray(max)||min.length!==3||max.length!==3||
      !min.concat(max).every(f)||!min.every((x,i)=>max[i]>x)||
-     max.some((x,i)=>max[i]-min[i]>4)) fail('source bounds');
+     max.some((x,i)=>x-min[i]>4)) fail('source bounds');
   const target=min.map((x,i)=>(x+max[i])/2);
   const radius=norm(max.map((x,i)=>(x-min[i])/2));
   if(radius<.2||radius>3||Math.abs(target[0])>50||Math.abs(target[1])>50||Math.abs(target[2])>50) fail('untrusted bounds scale');
