@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { deflateSync } from 'node:zlib';
+import { readFileSync } from 'node:fs';
 // @ts-ignore - production smoke helper is a Node ESM script with pure exports.
 import {
   exactD1FShowerAutoloadUrl,
@@ -9,6 +10,30 @@ import {
 } from '../../.github/scripts/private-model-d1f-shower-autoload-probe.mjs';
 // @ts-ignore - original source contract is an ESM module.
 import { D1F_SHOWER_PHOTO_VARIANTS, D1F_SHOWER_PHOTO_SOURCE } from '../../src/scripts/privateModelD1FShowerPhotoSourceContract.mjs';
+
+test('main-only D1F dispatch keeps service default and routes four glass variants to exact production probe', () => {
+  const workflow = readFileSync(
+    new URL('../../.github/workflows/private-model-d1f-service-review.yml', import.meta.url),'utf8');
+  expect(workflow).toContain('default: service');
+  expect(workflow).toContain('- shower-autoload');
+  expect(workflow).toContain("github.ref == 'refs/heads/main'");
+  expect(workflow).toContain("github.event_name == 'workflow_dispatch'");
+  expect(workflow).toContain("if: inputs.review_mode == 'service'");
+  expect(workflow).toContain('run: node .github/scripts/private-model-d1f-service-probe.mjs');
+  expect(workflow).toContain("if: inputs.review_mode == 'shower-autoload'");
+  expect(workflow).toContain('PROBE_MODE: d1f-shower-autoload');
+  expect(workflow).toContain('D1F_SHOWER_VARIANT: ' + '$' + '{{ matrix.variant }}');
+  expect(workflow).toContain('run: node .github/scripts/private-model-d1f-shower-autoload-probe.mjs');
+  expect(workflow).toContain('path: test-results/d1f-shower-autoload-production/');
+  expect(workflow).toContain('name: d1f-shower-autoload-' + '$' + '{{ matrix.variant }}');
+  const clientId = 'CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ' + '$' + '{{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}';
+  const clientSecret = 'CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ' + '$' + '{{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}';
+  expect(workflow.split(clientId)).toHaveLength(3);
+  expect(workflow.split(clientSecret)).toHaveLength(3);
+  for (const variant of D1F_SHOWER_PHOTO_VARIANTS) {
+    expect(workflow).toContain('          - ' + variant.name);
+  }
+});
 
 test('all four variants have one immutable candidate review URL and exact source-scene identity', () => {
   expect(D1F_SHOWER_PHOTO_VARIANTS).toHaveLength(4);
