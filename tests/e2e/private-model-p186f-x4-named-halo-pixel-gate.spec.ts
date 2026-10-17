@@ -88,6 +88,10 @@ test('source identity, placement uncertainty and original pass associations fail
     // Synthetic cyan pixels cannot override the actual Three.js render gates.
     (f:any)=>f.gltfScene.children[0].children[0].material.visible=false,
     (f:any)=>f.gltfScene.children[1].children[0].material.transparent=false,
+    (f:any)=>f.gltfScene.children[0].children[0].material.colorWrite=false,
+    (f:any)=>f.gltfScene.children[1].children[0].material.alphaTest=0.8,
+    (f:any)=>f.gltfScene.children[2].children[0].material.alphaTest=Number.NaN,
+    (f:any)=>f.gltfScene.children[0].children[0].material.alphaTest=-0.01,
     (f:any)=>f.gltfScene.children[2].children[0].layers.set(1),
     (f:any)=>f.sceneIndex=65,
     (f:any)=>f.gltfScene.name='SCENE_66_UNVERIFIED',
@@ -110,6 +114,17 @@ test('rejects cyan lookalikes when the original scene or a source ancestor is hi
   invisibleGroup.add(source);
   // The synthetic screenshot stays cyan, but no source descendant could render.
   expect(()=>evaluate(hiddenParent)).toThrow('P186F_X4_NAMED_HALO_PIXEL_REJECTED');
+});
+test('a source-attached cyan halo retains pixel eligibility with a drawable alpha threshold',()=>{
+  const f=fixture();
+  (f.gltfScene.children[0].children[0] as Mesh).material = new MeshBasicMaterial({
+    color:0x22d3ee,transparent:true,opacity:0.8,depthTest:false,depthWrite:false,
+    alphaTest:0.1,
+  });
+  const result=evaluate(f);
+  expect(result.individualRoomPixelAssociationVerified).toBe(true);
+  expect(result.originalGlbBytesVerifiedByThisFunction).toBe(false);
+  expect(result.humanReview).toBe('NOT_RUN');
 });
 test('missing, extra, falsely positioned and merged screen pixels never impersonate 3 named targets',()=>{
   const changes=[
