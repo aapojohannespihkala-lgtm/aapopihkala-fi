@@ -80,7 +80,9 @@ export function evaluateP186FX4NamedHaloPixels({
         mat.visible!==true || mat.transparent!==true ||
         !camera.layers.test(halo.layers) ||
         mat.depthTest!==false || mat.depthWrite!==false ||
-        mat.opacity!==0.8) reject('halo must be exact non-current cyan presentation proxy');
+        mat.opacity!==0.8 || mat.colorWrite!==true ||
+        !Number.isFinite(mat.alphaTest) || mat.alphaTest<0 ||
+        mat.alphaTest>=mat.opacity) reject('halo must be exact non-current cyan presentation proxy');
     found.set(data.roomAssignment,halo);
   }
   if (found.size!==3) reject('not all source rooms present');
