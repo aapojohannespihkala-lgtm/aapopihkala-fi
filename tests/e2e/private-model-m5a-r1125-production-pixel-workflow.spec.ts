@@ -60,3 +60,125 @@ test('R1125 pixel-only evidence does not promote physical measurements or review
   expect(workflow).toContain('m5aR1125PixelEvidence,');
   expect(workflow).not.toMatch(/m5aR1125HumanReview:\s*'PASS'/);
 });
+
+
+// Exercise the actual viewer fragment that performs source binding; do not
+// duplicate its algorithm in a separate test-only implementation. This is a
+// SYNTHETIC glTF association fixture, NOT original-byte or production proof.
+test('R1125 viewer source binding isolates exactly one original node and restores it', async () => {
+  const { transpileModule, ScriptTarget, ModuleKind } = await import('typescript');
+  const { m5aR1125SourcePixelKinds } = await import(
+    '../../src/scripts/privateModelM5AR1125SourceRoiPixelProof.mjs'
+  );
+  const viewer = readFileSync(resolve(
+    process.cwd(), 'src/pages/private-model/index.astro',
+  ), 'utf8');
+  const fromMarker = 'const sourceJson = gltf?.parser?.json;';
+  const untilMarker = '// A production screenshot taken AFTER a user orbit';
+  const start = viewer.indexOf(fromMarker);
+  const end = viewer.indexOf(untilMarker, start);
+  expect(start).toBeGreaterThan(0);
+  expect(end).toBeGreaterThan(start);
+  const fragment = transpileModule(
+    viewer.slice(start, end), {
+      compilerOptions: { target: ScriptTarget.ES2022, module: ModuleKind.None },
+    },
+  ).outputText;
+  const bind = new Function(
+    'gltf', 'fullModelScene', 'canvas', 'sourceCameraProjection',
+    'm5aZ2R1125ReviewId',
+    fragment + '\nreturn canvas.m5aR1125SetOriginalSourceVisibility;',
+  );
+  const keys = Object.keys(m5aR1125SourcePixelKinds);
+  expect(keys).toHaveLength(13);
+  const sourceRootId = 90;
+  const root: any = { children: [] as any[], visible: true };
+  const nodes: any[] = [];
+  const meshes: any[] = [];
+  const associations = new Map<any, any>([[root, { nodes: sourceRootId }]]);
+  const objects: any[] = [];
+  keys.forEach((key, i) => {
+    const boundary = key.startsWith('boundary:');
+    const extras = {
+      ...(boundary
+        ? { representationKind: 'unresolvedBoundaryMarker',
+            boundaryRole: key.substring('boundary:'.length) }
+        : { representationKind: 'pipeDiameterPresentationWork',
+            G2IdCandidate: key }),
+      Canonical: false, presentationOnly: true,
+      currentGeometryClaim: false, asBuiltClaim: false,
+      publishToCURRENT: false,
+    };
+    const mesh = i;
+    const object = {
+      parent: root, visible: true,
+      isMesh: !boundary, isLineSegments: boundary,
+      userData: {...extras},
+    };
+    nodes[i] = { mesh, extras };
+    meshes[mesh] = { primitives: [{mode:boundary ? 1 : 4}] };
+    associations.set(object, {nodes:i, meshes:mesh, primitives:0});
+    root.children.push(object);
+    objects.push(object);
+  });
+  nodes[sourceRootId] = {
+    name:'M5A_R1125_DIAMETER_SOURCE_SPLIT_WORK_TEST_ROOT_BABYLON_Y_UP',
+    children:keys.map((_, i) => i),
+  };
+  const sourceJson = {
+    scenes:Array.from({length:64}, (_, i) => i === 63 ?
+      { nodes:[sourceRootId] } : {nodes:[]}),
+    nodes, meshes,
+  };
+  const scene = {
+    traverse(callback: (object:any)=>void) {
+      callback(root);
+      objects.forEach(callback);
+    },
+  };
+  const gltf = {scene, parser:{json:sourceJson, associations}};
+  const canvas: any = {
+    dataset:{modelSource:'work-test',workTestReviewMode:'test-r1125'},
+  };
+  const centers = keys.map(key => ({key}));
+  const hide = bind(gltf,scene,canvas,{centers},'test-r1125') as
+    (key:string, state:'HIDE'|'RESTORE')=>any;
+  expect(typeof hide).toBe('function');
+  const first = keys[0]!;
+  expect(hide(first,'HIDE')).toMatchObject({
+    sourceKey:first,state:'HIDE',originalSourceCount:13,
+    activeHiddenCount:1,humanReview:'NOT_RUN',publishToCURRENT:false,
+  });
+  expect(objects[0].visible).toBe(false);
+  expect(objects.slice(1).every(o=>o.visible)).toBe(true);
+  expect(() => hide(keys[1]!,'HIDE')).toThrow(/all 13 originals visible/);
+  expect(() => hide(keys[1]!,'RESTORE')).toThrow(/non-owned/);
+  expect(hide(first,'RESTORE')).toMatchObject({
+    sourceKey:first,state:'RESTORE',activeHiddenCount:0,
+  });
+  expect(objects.every(o=>o.visible)).toBe(true);
+  expect(() => hide('invented-source','HIDE')).toThrow(/not bound/);
+  expect(() => hide(first,'RESTORE')).toThrow(/non-owned/);
+
+  // Wrong original association cannot pass merely because a name matches.
+  const second = objects[1];
+  associations.set(second,{nodes:1,meshes:999,primitives:0});
+  const badCanvas = {dataset:{...canvas.dataset}};
+  expect(() => bind(gltf,scene,badCanvas,{centers},'test-r1125'))
+    .toThrow(/original source node\/mesh identity mismatch/);
+  expect(objects.every(o=>o.visible)).toBe(true);
+});
+
+test('R1125 source visibility capability is removed and restored at model change', () => {
+  const viewer = readFileSync(resolve(
+    process.cwd(), 'src/pages/private-model/index.astro',
+  ), 'utf8');
+  const beforeCleanup = viewer.indexOf('const applyLoadedModel =');
+  const cleanup = viewer.slice(beforeCleanup, beforeCleanup + 2600);
+  const restore = cleanup.indexOf('m5aR1125RestoreOriginalSourceVisibility?.()');
+  const drop = cleanup.indexOf('delete (canvas as any).m5aR1125SetOriginalSourceVisibility');
+  expect(restore).toBeGreaterThan(0);
+  expect(drop).toBeGreaterThan(restore);
+  expect(cleanup).toContain('delete (canvas as any).m5aR1125RestoreOriginalSourceVisibility');
+  expect(cleanup).toContain('delete (canvas as any).m5aR1125RefreshSourceProjection');
+});
