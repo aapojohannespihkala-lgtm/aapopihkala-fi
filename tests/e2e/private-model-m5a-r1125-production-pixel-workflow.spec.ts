@@ -235,3 +235,61 @@ test('R1125 live node muting fails closed and restores before next original', ()
   expect(method).toContain('publishToCURRENT:false');
   expect(method).not.toContain('humanReview:PASS');
 });
+
+
+test('R1125 production source isolation executes 26 reversible camera-target captures', async () => {
+  // Invoke the real production orchestration function. Screenshots/pixel
+  // readings are synthetic here; authenticated GPU proof remains separate.
+  const start=workflow.indexOf('const verifyR1125OriginalNodePixels = async');
+  const end=workflow.indexOf('let r1125FirstOriginalNodePixels=null;',start);
+  expect(start).toBeGreaterThan(0);
+  expect(end).toBeGreaterThan(start);
+  let hidden:string|null=null,restores=0,screenshots=0,reads=0;
+  let blank=false,invalid=false;
+  const el={m5aR1125SetOriginalSourceVisibility(key:string,state:string){
+    if(state==='HIDE'){
+      if(hidden!==null) throw new Error('overlapping hide');
+      hidden=key;
+      return {sourceKey:key,activeHiddenCount:1,originalSourceCount:13,
+        originalGlbDigestVerifiedByThisProbe:false,humanReview:invalid?'PASS':'NOT_RUN'};
+    }
+    if(hidden!==key) throw new Error('restored wrong source');
+    hidden=null;restores++;
+    return {sourceKey:key,activeHiddenCount:0};
+  }};
+  const canvas={evaluate:async(fn:(el:typeof el,key:string)=>unknown,key:string)=>fn(el,key)};
+  const page={
+    waitForTimeout:async(_n:number)=>{},
+    screenshot:async()=>{screenshots++;return {toString:()=>String(screenshots)};},
+    evaluate:async()=>{reads++;return {sourceChangedPixels:blank?0:20,
+      otherSourceChangedPixels:0,restoreChangedPixels:0};},
+  };
+  const reports:string[]=[];
+  const fs={writeFileSync:(name:string)=>{reports.push(name);}};
+  const make=new Function('canvas','page','fs','box',
+    workflow.slice(start,end)+'\nreturn verifyR1125OriginalNodePixels;');
+  const verify=make(canvas,page,fs,{x:0,y:0,width:800,height:600}) as
+    (baseline:unknown,view:unknown,label:string)=>Promise<any>;
+  const view={sourceSceneIndex:63,radiusPx:14,
+    centers:Array.from({length:13},(_,i)=>({
+      key:i===12?'boundary:PVK_PARKING':'source-'+i,
+      u:(i+1)/14,v:0.5,
+    }))};
+  const baseline={toString:()=>String(0)};
+  const first=await verify(baseline,view,'opening');
+  const second=await verify(baseline,view,'orbit');
+  expect(first.perSource).toHaveLength(13);
+  expect(second.perSource).toHaveLength(13);
+  expect(first).toMatchObject({humanReview:'NOT_RUN',publishToCURRENT:false});
+  expect([restores,screenshots,reads,hidden]).toEqual([26,52,26,null]);
+  expect(reports).toEqual([
+    'playwright-artifacts/m5a-r1125-original-node-opening-pixels.json',
+    'playwright-artifacts/m5a-r1125-original-node-orbit-pixels.json',
+  ]);
+  blank=true;
+  await expect(verify(baseline,view,'missing')).rejects.toThrow(/node pixel proof failed/);
+  expect(hidden).toBeNull();
+  blank=false;invalid=true;
+  await expect(verify(baseline,view,'unsafe')).rejects.toThrow(/hide contract mismatch/);
+  expect(hidden).toBeNull();
+});
