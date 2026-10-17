@@ -77,6 +77,8 @@ export function evaluateP186FX4NamedHaloPixels({
         halo.userData.asBuilt!==false ||
         halo.userData.HUMAN_REVIEW!=='NOT_RUN' ||
         !mat?.isMeshBasicMaterial || mat.color?.getHex()!==0x22d3ee ||
+        mat.visible!==true || mat.transparent!==true ||
+        !camera.layers.test(halo.layers) ||
         mat.depthTest!==false || mat.depthWrite!==false ||
         mat.opacity!==0.8) reject('halo must be exact non-current cyan presentation proxy');
     found.set(data.roomAssignment,halo);
