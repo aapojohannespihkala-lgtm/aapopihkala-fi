@@ -166,6 +166,15 @@ jobs:
 
           echo "Exact Drive source identity derived from raw bytes."
 
+      # Source-specific release gate. Other candidates retain the existing
+      # publisher path; ODENSVIK must never publish stale predecessor scene refs.
+      - name: Verify ODENSVIK 40 current-scene semantic links before machine publish
+        if: inputs.candidate == 'd1f-odensvik-00193937-basin-correction-20261017'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/private-model-d1f-odensvik-40-pointer-guard.py "$RUNNER_TEMP/work-test-source.glb"
+
       - name: Publish exact bytes through machine-only endpoint
         shell: bash
         env:
