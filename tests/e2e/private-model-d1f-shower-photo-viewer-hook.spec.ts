@@ -29,7 +29,7 @@ test('only exact shower review query activates dedicated source route', () => {
 test('viewer uses source-bound fetch-and-parse, selected scene, and no-current bootstrap', () => {
   const index = readFileSync('src/pages/private-model/index.astro', 'utf8');
   expect(index).toContain('loadD1FShowerPhotoReview({ candidate, search: window.location.search, loader })');
-  expect(index).toContain('serviceModel?.gltf ?? showerPhotoReview?.gltf ?? combinedWallReview?.gltf');
+  expect(index).toContain('serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf');
   expect(index).toContain('!isD1FShowerPhotoReviewRequested(window.location.search)');
   expect(index).toContain('d1fShowerPhotoSourceAuthenticated');
   expect(index).toContain("d1fShowerPhotoProductionPixelsVerified: 'false'");
