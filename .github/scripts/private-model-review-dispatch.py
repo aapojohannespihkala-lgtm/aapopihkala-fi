@@ -58,12 +58,13 @@ def prepare_dispatch(env):
     require(all(SHA.fullmatch(value) and value != "0" * 40
                 for value in (before, after)), "REQUEST_COMMIT")
     trusted_main = git("rev-parse", "HEAD").decode().strip()
-    # The checked-out code is main. Both the push delta and the entire request
-    # tree may differ from it only in the one inert JSON request.
-    for base in (before, trusted_main):
-        changed = git("diff", "--name-only", "--no-renames", base, after).decode().splitlines()
-        require(changed == [REQUEST_PATH], "REQUEST_ONLY_TREE")
+    # Only the final pushed tree is executed. It must be identical to trusted
+    # main except for the inert request, even when the previous request branch
+    # predates newer main commits. Preserve both histories without force.
+    git("merge-base", "--is-ancestor", before, after)
     git("merge-base", "--is-ancestor", trusted_main, after)
+    changed = git("diff", "--name-only", "--no-renames", trusted_main, after).decode().splitlines()
+    require(changed == [REQUEST_PATH], "REQUEST_ONLY_TREE")
     raw = git("show", after + ":" + REQUEST_PATH)
     require(0 < len(raw) <= 4096, "REQUEST_SIZE")
     payload = json.loads(raw, object_pairs_hook=unique_object)
