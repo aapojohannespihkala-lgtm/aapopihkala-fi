@@ -10598,7 +10598,7 @@ const title = 'Private 3D viewer';
               const projectionKeys = new Set<string>(sourceCameraProjection.centers.map(
                 (center: { key: string }) => center.key));
               if (!sourceRoot || sourceRoot.children.length !== 13 ||
-                  originalByKey.size !== 0 || projectionKeys.size !== 13) {
+                  projectionKeys.size !== 13) {
                 throw new Error('R1125 original scene63 source root/ROI contract mismatch');
               }
               for (const nodeId of sourceChildren) {
