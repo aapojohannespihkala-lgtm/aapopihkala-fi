@@ -1530,6 +1530,114 @@ jobs:
             // GLB byte authenticity. No guessed centers or generic 13-count.
             let m5aR1125PixelEvidence = null;
             let m5aR1125SecondViewPixelEvidence = null;
+            // Exactly one original GLTFLoader node/mesh is hidden at a time.
+            // All three screenshots use the same authenticated live camera.
+            const verifyR1125OriginalNodePixels = async (baselinePng, view, label) => {
+              if (!Array.isArray(view?.centers) || view.centers.length !== 13 ||
+                  new Set(view.centers.map(x => x.key)).size !== 13 ||
+                  view.sourceSceneIndex !== 63 || !Number.isInteger(view.radiusPx) ||
+                  view.radiusPx < 2) {
+                throw new Error('R1125 original node proof requires exact 13 scene63 source ROIs');
+              }
+              const evidence = [];
+              for (const center of view.centers) {
+                const hidden = await canvas.evaluate((el, key) => {
+                  if (typeof el.m5aR1125SetOriginalSourceVisibility !== 'function') {
+                    throw new Error('R1125 original source GLTFLoader isolation unavailable');
+                  }
+                  return el.m5aR1125SetOriginalSourceVisibility(key, 'HIDE');
+                }, center.key);
+                if (hidden?.sourceKey !== center.key || hidden.activeHiddenCount !== 1 ||
+                    hidden.originalSourceCount !== 13 ||
+                    hidden.originalGlbDigestVerifiedByThisProbe !== false ||
+                    hidden.humanReview !== 'NOT_RUN') {
+                  throw new Error('R1125 source node hide contract mismatch: ' + center.key);
+                }
+                let mutedPng;
+                try {
+                  await page.waitForTimeout(100);
+                  mutedPng = await page.screenshot({clip:box,animations:'disabled'});
+                } finally {
+                  const restored = await canvas.evaluate((el, key) =>
+                    el.m5aR1125SetOriginalSourceVisibility(key, 'RESTORE'), center.key);
+                  if (restored?.sourceKey !== center.key || restored.activeHiddenCount !== 0) {
+                    throw new Error('R1125 original source node restore mismatch: ' + center.key);
+                  }
+                }
+                await page.waitForTimeout(100);
+                const restoredPng = await page.screenshot({clip:box,animations:'disabled'});
+                const delta = await page.evaluate(async ({baseB64,mutedB64,restoredB64,
+                  point,others,radius}) => {
+                  const pixels = async encoded => {
+                    const img = new Image();
+                    img.src = 'data:image/png;base64,' + encoded;
+                    await img.decode();
+                    const c = document.createElement('canvas');
+                    c.width=img.width; c.height=img.height;
+                    const ctx = c.getContext('2d');
+                    if (!ctx) throw new Error('R1125 PNG RGBA decoder unavailable');
+                    ctx.drawImage(img,0,0);
+                    return {width:c.width,height:c.height,
+                      rgba:ctx.getImageData(0,0,c.width,c.height).data};
+                  };
+                  const [a,b,c] = await Promise.all([
+                    pixels(baseB64),pixels(mutedB64),pixels(restoredB64)]);
+                  if (a.width !== b.width || a.height !== b.height ||
+                      a.width !== c.width || a.height !== c.height) {
+                    throw new Error('R1125 same-camera screenshot dimensions drifted');
+                  }
+                  const cx=Math.round(point.u*(a.width-1));
+                  const cy=Math.round(point.v*(a.height-1)), radiusSquared=radius*radius;
+                  let sourceChangedPixels=0,otherSourceChangedPixels=0,restoreChangedPixels=0;
+                  const otherCenters=others.map(p=>({
+                    x:Math.round(p.u*(a.width-1)),
+                    y:Math.round(p.v*(a.height-1)),
+                  }));
+                  for(let i=0;i<a.rgba.length;i+=4) {
+                    const x=(i/4)%a.width,y=Math.floor((i/4)/a.width);
+                    const changed=a.rgba[i]!==b.rgba[i] ||
+                      a.rgba[i+1]!==b.rgba[i+1] ||
+                      a.rgba[i+2]!==b.rgba[i+2] ||
+                      a.rgba[i+3]!==b.rgba[i+3];
+                    if(changed) {
+                      if ((x-cx)**2+(y-cy)**2<=radiusSquared) sourceChangedPixels++;
+                      else if (otherCenters.some(p=>
+                        (x-p.x)**2+(y-p.y)**2<=radiusSquared)) otherSourceChangedPixels++;
+                    }
+                    if (a.rgba[i]!==c.rgba[i] || a.rgba[i+1]!==c.rgba[i+1] ||
+                        a.rgba[i+2]!==c.rgba[i+2] || a.rgba[i+3]!==c.rgba[i+3]) {
+                      restoreChangedPixels++;
+                    }
+                  }
+                  return {sourceChangedPixels,otherSourceChangedPixels,
+                    restoreChangedPixels,readbackWidth:a.width,readbackHeight:a.height};
+                },{
+                  baseB64:baselinePng.toString('base64'),
+                  mutedB64:mutedPng.toString('base64'),
+                  restoredB64:restoredPng.toString('base64'),
+                  point:center,others:view.centers.filter(x=>x.key!==center.key),
+                  radius:view.radiusPx,
+                });
+                const minPixels=center.key.startsWith('boundary:')?2:8;
+                if (delta.sourceChangedPixels < minPixels ||
+                    delta.otherSourceChangedPixels !== 0 ||
+                    delta.restoreChangedPixels !== 0) {
+                  throw new Error('R1125 original node pixel proof failed: ' +
+                    center.key + ' ' + JSON.stringify(delta));
+                }
+                evidence.push({key:center.key,...delta,minimumPixels:minPixels});
+              }
+              const report={camera:label,sceneIndex:63,originalNodePixelCount:13,
+                originalNodeMeshAssociationViewerChecked:true,
+                individualOriginalSourcePixelsVerified:true,
+                perSource:evidence,humanReview:'NOT_RUN',
+                current:false,canonical:false,asBuilt:false,publishToCURRENT:false};
+              fs.writeFileSync('playwright-artifacts/m5a-r1125-original-node-' +
+                label + '-pixels.json',JSON.stringify(report,null,2));
+              return report;
+            };
+            let r1125FirstOriginalNodePixels=null;
+            let r1125OrbitOriginalNodePixels=null;
             if (isR1125SourceReview) {
               // Authenticate the exact original R1125 GLB bytes returned to the
               // viewer during its initial autoload, before asserting 13 pixels.
@@ -1619,6 +1727,8 @@ jobs:
                 throw new Error('R1125 requires 13 distinct rendered source target ROIs: ' +
                   JSON.stringify(m5aR1125PixelEvidence));
               }
+              r1125FirstOriginalNodePixels =
+                await verifyR1125OriginalNodePixels(before,projection,'opening');
               fs.writeFileSync('playwright-artifacts/m5a-r1125-source-13-pixels.json',
                 JSON.stringify({
                   exactSourceScene: 63,
@@ -1746,6 +1856,8 @@ jobs:
                 throw new Error('R1125 live second orbit frame lacks 13 source ROIs: ' +
                   JSON.stringify(m5aR1125SecondViewPixelEvidence));
               }
+              r1125OrbitOriginalNodePixels =
+                await verifyR1125OriginalNodePixels(after,secondProjection,'orbit');
               // Two actual source-class screenshots are stronger than one but
               // are NOT proof of individual 13-target muting or restored frames.
               fs.writeFileSync('playwright-artifacts/m5a-r1125-two-orbit-source-roi-pixels.json',
@@ -1758,7 +1870,9 @@ jobs:
                   secondPngSha256: createHash('sha256').update(after).digest('hex'),
                   originalSourceNetworkHashVerified: true,
                   canvasOriginalSourceMeshAssociationsVerified: false,
-                  individuallyMutedSourceTargetsVerified: false,
+                  individuallyMutedSourceTargetsVerified:
+                    r1125FirstOriginalNodePixels?.perSource?.length === 13 &&
+                    r1125OrbitOriginalNodePixels?.perSource?.length === 13,
                   humanReview: 'NOT_RUN', current: false, canonical: false,
                   asBuilt: false, publishToCURRENT: false,
                 }, null, 2));
