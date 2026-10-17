@@ -43,6 +43,8 @@ const m5aR1125SceneExtras = {
 const candidateId = 'm5a-r1125-pvk-diameter-source-split';
 const reviewId = `${candidateId}-review`;
 const candidatePath = '/private-model/work-test/m5a-r1125-pvk-diameter-source-split.glb';
+const originalR1125RootName =
+  'M5A_R1125_DIAMETER_SOURCE_SPLIT_WORK_TEST_ROOT_BABYLON_Y_UP';
 
 const targetPositions = [
   0, 0, 0,
@@ -87,7 +89,12 @@ const makeVisibilityGlb = (nodes: Record<string, unknown>[]) => {
       ...Array.from({ length: 63 }, (_, i) => ({ name: `INHERITED_SCENE_${i}`, nodes: [] })),
       {
         name: m5aR1125SourceSceneName,
-        nodes: nodes.map((_, index) => index),
+        // In scene63 the 13 original sources belong to one glTF source
+        // parent. Never attach them as scene siblings: GLTFLoader ownership
+        // and parser associations depend on the original parent hierarchy.
+        nodes: nodes.flatMap((node, index) =>
+          typeof node.name === 'string' &&
+          node.name.startsWith('M5A_R1125_REVIEW_TARGET_') ? [] : [index]),
         extras: m5aR1125SceneExtras,
       },
     ],
@@ -317,6 +324,39 @@ const makeTargetNode = (key: string, index: number) => {
   };
 };
 
+const makeOriginalSourceRootFixture = () => ({
+  name: originalR1125RootName,
+  children: m5aZ2ExpectedTargetKeys.map((_, index) => index),
+  extras: m5aR1125WorkRootExtras,
+});
+
+const makeR1125CandidateFixtureNodes = () => [
+  ...m5aZ2ExpectedTargetKeys.map(makeTargetNode),
+  makeOriginalSourceRootFixture(),
+  {
+    name: 'M5A_R1125_BUILDING_DRAINAGE_CONTEXT',
+    mesh: 1,
+    extras: {
+      presentationLayer: 'CURRENT_BUILDING',
+      representationKind: 'buildingContext',
+    },
+  },
+];
+
+test('R1125 scene63 fixture retains exact original source hierarchy before loading', () => {
+  const raw = makeVisibilityGlb(makeR1125CandidateFixtureNodes());
+  const jsonChunkLength = raw.readUInt32LE(12);
+  const source = JSON.parse(raw.subarray(20, 20 + jsonChunkLength).toString('utf8'));
+  const rootIndex = m5aZ2ExpectedTargetKeys.length;
+  expect(source.scenes[63].nodes).toEqual([rootIndex, rootIndex + 1]);
+  expect(source.nodes[rootIndex].name).toBe(originalR1125RootName);
+  expect(source.nodes[rootIndex].children).toEqual(
+    m5aZ2ExpectedTargetKeys.map((_, index) => index),
+  );
+  expect(source.nodes.slice(0, rootIndex).every((node: { mesh?: number }) =>
+    Number.isInteger(node.mesh))).toBe(true);
+});
+
 test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independently visible target markers', async ({
   page,
 }) => {
@@ -324,21 +364,7 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
   await page.setViewportSize({ width: 1536, height: 768 });
 
   const currentModel = makeVisibilityGlb([]);
-  const candidateModel = makeVisibilityGlb([
-    ...m5aZ2ExpectedTargetKeys.map(makeTargetNode),
-    {
-      name: 'M5A_R1125_WORK_ROOT_NON_RENDERED_SOURCE_GROUP',
-      extras: m5aR1125WorkRootExtras,
-    },
-    {
-      name: 'M5A_R1125_BUILDING_DRAINAGE_CONTEXT',
-      mesh: 1,
-      extras: {
-        presentationLayer: 'CURRENT_BUILDING',
-        representationKind: 'buildingContext',
-      },
-    },
-  ]);
+  const candidateModel = makeVisibilityGlb(makeR1125CandidateFixtureNodes());
 
   // An exact R1125 review must not fetch CURRENT before its own WORK_TEST.
   let currentModelRequests = 0;
