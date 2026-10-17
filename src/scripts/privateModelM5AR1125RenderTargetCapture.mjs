@@ -24,6 +24,7 @@ export async function captureM5AR1125FocusOffscreenFrames({
       !renderer?.isWebGLRenderer || typeof renderer.getRenderTarget !== 'function' ||
       typeof renderer.setRenderTarget !== 'function' ||
       typeof renderer.render !== 'function' ||
+      typeof renderer.clear !== 'function' ||
       typeof renderer.readRenderTargetPixels !== 'function' ||
       typeof THREE?.WebGLRenderTarget !== 'function' ||
       !exactDimensions(width, height)) {
@@ -52,6 +53,10 @@ export async function captureM5AR1125FocusOffscreenFrames({
       const bottomFirst = new Uint8Array(width * height * 4);
       renderer.setRenderTarget(target);
       try {
+        // These 27 captures deliberately reuse one framebuffer. Never depend
+        // on renderer.autoClear: a hidden source must not leave old color/depth
+        // pixels in the next muted or restored evidence frame.
+        renderer.clear(true, true, true);
         renderer.render(scene, camera);
         renderer.readRenderTargetPixels(target, 0, 0, width, height, bottomFirst);
       } finally {
