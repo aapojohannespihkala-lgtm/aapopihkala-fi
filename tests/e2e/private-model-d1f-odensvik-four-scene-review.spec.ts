@@ -86,7 +86,7 @@ test('source review fails closed for scene identity, WC approval provenance and 
     const s=buildSceneSource();change(s);
     expect(()=>selectD1FOdensvikScene(s)).toThrow('D1F_ODENSVIK_SOURCE_SCENE_REJECTED');
   }
-  expect(()=>selectD1FOdensvikScene(buildSceneSource(),'UNSUPPORTED_VARIANT'))
+  expect(()=>selectD1FOdensvikScene(buildSceneSource(),'UNSUPPORTED_VARIANT' as any))
     .toThrow('D1F_ODENSVIK_SOURCE_SCENE_REJECTED');
 });
 
