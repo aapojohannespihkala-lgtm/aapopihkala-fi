@@ -19,6 +19,7 @@ async function sourceBootstrap(exactP186e:boolean){
     isP137EScene67ReviewRequested:()=>false,
     isP186eElectricalLabelReviewRequested:()=>exactP186e,
     isD1FCombinedWallReviewRequested:()=>false,
+    isD1FShowerPhotoReviewRequested:()=>false,
     isPrivateModelReviewRequested:()=>false,m5aZ2R1125ReviewId:'r1125-review',
     getRequestedReviewCandidateId:()=>candidate?.id??null,
     loadCurrentModel:async()=>{calls.push('CURRENT');},
