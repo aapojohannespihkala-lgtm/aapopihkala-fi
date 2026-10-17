@@ -14,6 +14,8 @@ import {
   p186fReviewTargetOpacity,
   p186fSchedulePdfDriveId,
   p186fX2PlacementBasis,
+  p186fX3PreservedPass,
+  p186fX4ReviewPass,
   prepareP186fReviewPresentation,
 } from '../../src/scripts/privateModelP186FReviewPresentation';
 
@@ -282,5 +284,49 @@ test('P186F-X2 refuses upper-floor, empty, non-drawn, and non-finite D-wall mesh
     expect(result.realArchitectureContextReady).toBe(false);
     expect(result.contextRenderableCount).toBe(p186fExpectedRoomContextCount);
     expect(wall.visible).toBe(false);
+  }
+});
+
+const makeX4ThreeThemoSources = () => {
+  const scene = new THREE.Group();
+  const targets = targetRooms.map((entry) => makeP186fX2Target(entry));
+  targets.forEach((mesh, index) => {
+    mesh.userData.Pass = index === 1 ? p186fX4ReviewPass : p186fX3PreservedPass;
+    scene.add(mesh);
+  });
+  return { scene, targets };
+};
+
+test('X4 source-attached halos require all three original sources to be paintable', () => {
+  for (const bad of ['hidden', 'colorWrite', 'opacity', 'alphaTest', 'drawRange', 'missingPosition'] as const) {
+    const { scene, targets } = makeX4ThreeThemoSources();
+    const originalMaterial = targets[0].material;
+    if (bad === 'hidden') targets[0].visible = false;
+    if (bad === 'colorWrite') originalMaterial.colorWrite = false;
+    if (bad === 'opacity') originalMaterial.opacity = 0;
+    if (bad === 'alphaTest') { originalMaterial.opacity = 0.5; originalMaterial.alphaTest = 0.6; }
+    if (bad === 'drawRange') targets[0].geometry.setDrawRange(0, 0);
+    if (bad === 'missingPosition') targets[0].geometry.deleteAttribute('position');
+    expect(() => prepareP186fReviewPresentation(scene)).toThrow('P186F_X4_ORIGINAL_SOURCE_NOT_DRAWABLE');
+    expect(targets[0].material).toBe(originalMaterial);
+    expect(targets.every(t => t.children.every(c => c.userData.p186fX4VisibilityProxy !== true))).toBe(true);
+    expect(targets.every(t => t.userData.p186fReviewRole === undefined)).toBe(true);
+  }
+});
+
+test('X4 paints exactly three source-attached nonphysical halos only after drawable preflight', () => {
+  const { scene, targets } = makeX4ThreeThemoSources();
+  const result = prepareP186fReviewPresentation(scene);
+  expect(result).toMatchObject({
+    targetRenderableCount: 3, x4VisibilityProxyCount: 3, semanticViolationCount: 0,
+  });
+  for (const target of targets) {
+    expect((target.material as THREE.MeshBasicMaterial).opacity).toBe(p186fReviewTargetOpacity);
+    const halos = target.children.filter(child => child.userData.p186fX4VisibilityProxy === true);
+    expect(halos).toHaveLength(1);
+    expect(halos[0].userData).toMatchObject({
+      presentationOnly: true, physicalThermostatGeometryClaim: false,
+      current: false, Canonical: false, asBuilt: false, HUMAN_REVIEW: 'NOT_RUN',
+    });
   }
 });
