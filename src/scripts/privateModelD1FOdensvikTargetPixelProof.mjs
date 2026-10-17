@@ -1,4 +1,4 @@
-import { DirectionalLight, HemisphereLight } from 'three';
+import { Box3, DirectionalLight, HemisphereLight, Vector3 } from 'three';
 import { createD1FShowerGlassWebGLCapture } from './privateModelD1FShowerGlassWebGLCapture.mjs';
 
 // ODENSVIK original-GLB diagnostic; never authenticates the production origin.
@@ -62,13 +62,64 @@ export async function verifyD1FOdensvikPixelSource(raw){
   }
   return Object.freeze({sha256:actual,bytes:bytes.byteLength,semanticPointersVerified:40,workTestOnly:true});
 }
-export function countD1FOdensvikPixelDiff(before,hidden,restored,{threshold=12,minimum=32}={}){
+// Conservative object-space footprint in the *bottom-left-origin* RGBA
+// coordinates used by WebGLRenderer.readRenderTargetPixels. A changed pixel
+// elsewhere in the frame cannot prove that this original source mesh rendered.
+export function projectD1FOdensvikObjectPixelRoi(object,camera,width,height,{padding=6}={}){
+  check(object?.isObject3D&&camera?.isCamera&&
+    Number.isInteger(width)&&width>=32&&width<=4096&&
+    Number.isInteger(height)&&height>=32&&height<=4096&&
+    Number.isInteger(padding)&&padding>=0&&padding<=64,
+    'real source object/camera/framebuffer required for projected ROI');
+  object.updateWorldMatrix(true,true);
+  camera.updateMatrixWorld(true);
+  const bounds=new Box3().setFromObject(object);
+  check(!bounds.isEmpty()&&
+    [...bounds.min.toArray(),...bounds.max.toArray()].every(Number.isFinite),
+    'original target has no finite world bounds');
+  let left=Infinity,right=-Infinity,bottom=Infinity,top=-Infinity;
+  for(const x of [bounds.min.x,bounds.max.x])
+    for(const y of [bounds.min.y,bounds.max.y])
+      for(const z of [bounds.min.z,bounds.max.z]){
+        const p=new Vector3(x,y,z).project(camera);
+        // Do not extrapolate an AABB across the near/far clipping planes.
+        check([p.x,p.y,p.z].every(Number.isFinite)&&p.z>-1&&p.z<1,
+          'original target crosses camera clipping planes');
+        const px=(p.x+1)*width/2,py=(p.y+1)*height/2;
+        left=Math.min(left,px);right=Math.max(right,px);
+        bottom=Math.min(bottom,py);top=Math.max(top,py);
+      }
+  const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
+  const roi=Object.freeze({
+    left:clamp(Math.floor(left-padding),0,width),
+    right:clamp(Math.ceil(right+padding),0,width),
+    bottom:clamp(Math.floor(bottom-padding),0,height),
+    top:clamp(Math.ceil(top+padding),0,height),
+  });
+  check(roi.right>roi.left&&roi.top>roi.bottom,
+    'original target projected completely outside framebuffer');
+  return roi;
+}
+export function countD1FOdensvikPixelDiff(before,hidden,restored,{
+  threshold=12,minimum=32,roi=null,width=null,height=null,
+}={}){
   check(before instanceof Uint8Array&&hidden instanceof Uint8Array&&restored instanceof Uint8Array&&
     before.length===hidden.length&&hidden.length===restored.length&&before.length%4===0,
     'invalid framebuffer lengths');
+  if(roi!==null)check(Number.isInteger(width)&&Number.isInteger(height)&&
+    width>=1&&height>=1&&before.length===width*height*4&&
+    [roi.left,roi.right,roi.bottom,roi.top].every(Number.isInteger)&&
+    roi.left>=0&&roi.right<=width&&roi.right>roi.left&&
+    roi.bottom>=0&&roi.top<=height&&roi.top>roi.bottom,
+    'invalid source-object pixel ROI');
   let changed=0,drift=0;
   for(let i=0;i<before.length;i+=4){
-    if(Math.max(...[0,1,2].map(n=>Math.abs(before[i+n]-hidden[i+n])))>threshold)changed++;
+    const pixel=i/4;
+    const inside=!roi||(
+      pixel%width>=roi.left&&pixel%width<roi.right&&
+      Math.floor(pixel/width)>=roi.bottom&&Math.floor(pixel/width)<roi.top);
+    if(inside&&Math.max(...[0,1,2].map(n=>Math.abs(before[i+n]-hidden[i+n])))>threshold)changed++;
+    // Restoration must be exact everywhere, not only inside the source ROI.
     if(Math.max(...[0,1,2,3].map(n=>Math.abs(before[i+n]-restored[i+n])))>2)drift++;
   }
   return Object.freeze({changedPixels:changed,restoredDriftPixels:drift,visible:changed>=minimum&&drift===0});
@@ -131,8 +182,10 @@ export async function runD1FOdensvikSourcePixelProof({
         finally{obj.visible=true;}
         const restored=await capture(take,scene,camera,width,height);
         check(stable()&&original.every(x=>x.visible),'target not restored');
+        const pixelRoi=projectD1FOdensvikObjectPixelRoi(obj,camera,width,height);
         results.push({variant:v.variant,sceneIndex:v.scene,target:name,node,mesh,
-          ...countD1FOdensvikPixelDiff(before,hidden,restored)});
+          pixelRoi,
+          ...countD1FOdensvikPixelDiff(before,hidden,restored,{roi:pixelRoi,width,height})});
       }
     }finally{scene.remove(ambient,key);original.forEach(x=>x.visible=true);}
   }
