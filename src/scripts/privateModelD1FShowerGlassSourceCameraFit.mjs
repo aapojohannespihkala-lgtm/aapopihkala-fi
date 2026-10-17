@@ -55,9 +55,12 @@ export function planD1FSourceGlassCamera({source, sceneIndex, rootNode, glassNod
   // rotates it -90 degrees around X. GLTFLoader's world Box3 is Y-up.
   // Use world-Y as height and world-XZ as the horizontal wet-room footprint.
   const spans=max.map((x,i)=>x-min[i]);
-  const distance=Math.max(2.5,1.2*Math.max(spans[1]/(2*Math.tan(vfov/2)),
+  const distance=Math.max(2.9,1.2*Math.max(spans[1]/(2*Math.tan(vfov/2)),
     Math.hypot(spans[0],spans[2])/(2*Math.tan(hfov/2))));
-  const forward=unit([-.1,-.12,-.99]); // source world XZ view, slight downward Y component
+  // Source-derived room-side oblique: original shower glass stays in the frame
+  // with surrounding wet-room context rather than occupying the whole view.
+  // GLTFLoader world coordinates are Y-up; this changes presentation only.
+  const forward=unit([1.63,-1.13,2.15]);
   const position=minus(target,mul(forward,distance));
   const right=unit(cross(forward,[0,1,0]));
   const up=unit(cross(right,forward));
