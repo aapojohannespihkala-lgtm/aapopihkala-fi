@@ -101,7 +101,9 @@ export function projectD1FOdensvikObjectPixelRoi(object,camera,width,height,{pad
   return roi;
 }
 export function countD1FOdensvikPixelDiff(before,hidden,restored,{
-  threshold=12,minimum=32,roi=null,width=null,height=null,
+  threshold=12,minimum=32,
+  roi=/** @type {{left:number,right:number,bottom:number,top:number}|null} */ (null),
+  width=0,height=0,
 }={}){
   check(before instanceof Uint8Array&&hidden instanceof Uint8Array&&restored instanceof Uint8Array&&
     before.length===hidden.length&&hidden.length===restored.length&&before.length%4===0,
