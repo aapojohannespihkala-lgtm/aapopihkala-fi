@@ -6178,6 +6178,8 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p137eScene67CameraFace;
         delete canvas.dataset.p137eScene67CameraSourceIds;
         delete canvas.dataset.m5aR1125SourceCameraCenters;
+        delete canvas.dataset.m5aR1125SourceCameraWorldPose;
+        delete (canvas as any).m5aR1125RefreshSourceProjection;
         setM5aSourceContextVisible(false);
         setP186cX2rSourceContextVisible(false);
         setP186bSourceContextVisible(false);
@@ -10555,6 +10557,48 @@ const title = 'Private 3D viewer';
               }
               canvas.dataset.m5aR1125SourceCameraCenters =
                 JSON.stringify(sourceCameraProjection);
+
+              // A production screenshot taken AFTER a user orbit must never reuse
+              // the opening camera's projected source centers. The existing
+              // authenticated review scene and live camera are the ONLY inputs.
+              // This synchronous probe does not capture pixels or approve source.
+              (canvas as any).m5aR1125RefreshSourceProjection = () => {
+                if (canvas.dataset.modelSource !== 'work-test' ||
+                    canvas.dataset.workTestReviewMode !== m5aZ2R1125ReviewId ||
+                    canvas.dataset.m5aZ2ReviewState !== 'ready' ||
+                    canvas.dataset.m5aReviewCameraFocusApplied !== 'true' ||
+                    activeCamera !== camera || !fullModelScene) {
+                  throw new Error('R1125 live orbit projection requires original WORK_TEST scene63');
+                }
+                const view = canvas.getBoundingClientRect();
+                const scale = window.devicePixelRatio || 1;
+                const width = Math.round(view.width * scale);
+                const height = Math.round(view.height * scale);
+                if (!Number.isFinite(scale) || scale <= 0 ||
+                    width < 128 || height < 128 || width * height > 16000000 ||
+                    Math.abs(camera.aspect - width / height) > 0.02) {
+                  throw new Error('R1125 live orbit projection viewport/camera mismatch');
+                }
+                const refreshed = deriveM5AR1125SourceCameraCenters({
+                  sceneRoot: fullModelScene, camera: activeCamera, THREE,
+                  sceneIndex: 63, imageWidth: width, imageHeight: height,
+                });
+                activeCamera.updateMatrixWorld(true);
+                const pose = [...activeCamera.matrixWorld.elements];
+                if (refreshed.sourceTargetCount !== 13 ||
+                    refreshed.centers.length !== 13 ||
+                    refreshed.humanReview !== 'NOT_RUN' ||
+                    refreshed.productionScreenshotVerified !== false ||
+                    refreshed.originalGlbDigestAuthenticated !== false ||
+                    pose.length !== 16 || !pose.every(Number.isFinite)) {
+                  throw new Error('R1125 live orbit projection provenance/camera mismatch');
+                }
+                const cameraWorldPose = { matrixWorld: pose, imageWidth: width,
+                  imageHeight: height, sceneIndex: 63 };
+                canvas.dataset.m5aR1125SourceCameraCenters = JSON.stringify(refreshed);
+                canvas.dataset.m5aR1125SourceCameraWorldPose = JSON.stringify(cameraWorldPose);
+                return { projection: refreshed, cameraWorldPose };
+              };
               Object.assign(canvas.dataset, {
                 m5aR1125SourceDriveId: '13qxYc9PF7Z6eo_OXs1RrYCyo5CbTIAKs',
                 m5aR1125SourceContract: 'G2_R1125',
