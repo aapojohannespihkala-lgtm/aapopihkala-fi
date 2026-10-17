@@ -670,7 +670,7 @@ const D1F_ODENSVIK_BASIN_CORRECTION_CANDIDATE = {
   path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-odensvik-00193937-basin-correction-20261017.glb`,
   objectKey: 'work-test/d1f-odensvik-00193937-basin-correction-20261017.glb',
   expectedSize: 8876156,
-  expectedSha256: 'cf1ab6925f5aa200929739c0a0b71455f79d5d4e500e4d0b601a0e9eda3e8a9e',
+  expectedSha256: '362f5dce1041e8f529ed8f69a10d06dad58b59d8bfad0fe9db31c62d870f2e25',
 } as const satisfies PrivateWorkTestCandidate;
 
 const D1F_SHOWER_PHOTO_CANDIDATE = {
