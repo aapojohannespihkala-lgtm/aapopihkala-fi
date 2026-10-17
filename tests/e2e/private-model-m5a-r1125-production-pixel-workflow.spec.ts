@@ -188,3 +188,43 @@ test('R1125 source visibility capability is removed and restored at model change
   expect(cleanup).toContain('delete (canvas as any).m5aR1125RestoreOriginalSourceVisibility');
   expect(cleanup).toContain('delete (canvas as any).m5aR1125RefreshSourceProjection');
 });
+
+
+test('R1125 original node pixel evidence uses exactly two live authenticated view frames', () => {
+  const viewer = readFileSync(resolve(
+    process.cwd(),'src/pages/private-model/index.astro'), 'utf8');
+  const helper = 'const verifyR1125OriginalNodePixels = async (baselinePng, view, label) => {';
+  const first = "verifyR1125OriginalNodePixels(before,projection,'opening')";
+  const second = "verifyR1125OriginalNodePixels(after,secondProjection,'orbit')";
+  const original = workflow.indexOf('authenticateM5AR1125OriginalGlb(');
+  const proof = workflow.indexOf(helper);
+  expect(original).toBeGreaterThanOrEqual(0);
+  expect(proof).toBeGreaterThan(0);
+  expect(workflow.indexOf(first)).toBeGreaterThan(proof);
+  expect(workflow.indexOf(second)).toBeGreaterThan(workflow.indexOf(first));
+  expect(workflow).toContain('r1125FirstOriginalNodePixels?.perSource?.length === 13');
+  expect(workflow).toContain('r1125OrbitOriginalNodePixels?.perSource?.length === 13');
+  expect(workflow).toContain('m5a-r1125-original-node-');
+  expect(workflow).toContain('nodeAndMeshAssociations');
+  expect(viewer).toContain('m5aR1125SetOriginalSourceVisibility');
+  expect(viewer).toContain('m5aR1125RestoreOriginalSourceVisibility');
+});
+
+test('R1125 live node muting fails closed and restores before next original', () => {
+  const from = workflow.indexOf('const verifyR1125OriginalNodePixels = async');
+  const until = workflow.indexOf('let r1125FirstOriginalNodePixels=null;',from);
+  expect(until).toBeGreaterThan(from);
+  const method = workflow.slice(from,until);
+  expect(method).toContain('new Set(view.centers.map(x => x.key)).size !== 13');
+  expect(method).toContain("view.sourceSceneIndex !== 63");
+  expect(method).toContain("el.m5aR1125SetOriginalSourceVisibility(key, 'HIDE')");
+  expect(method).toContain("el.m5aR1125SetOriginalSourceVisibility(key, 'RESTORE')");
+  expect(method.indexOf('let mutedPng;')).toBeLessThan(method.indexOf('finally {'));
+  expect(method.indexOf('finally {')).toBeLessThan(method.indexOf('const restoredPng ='));
+  expect(method).toContain('delta.sourceChangedPixels < minPixels');
+  expect(method).toContain('delta.otherSourceChangedPixels !== 0');
+  expect(method).toContain('delta.restoreChangedPixels !== 0');
+  expect(method).toContain("humanReview:'NOT_RUN'");
+  expect(method).toContain('publishToCURRENT:false');
+  expect(method).not.toContain('humanReview:PASS');
+});
