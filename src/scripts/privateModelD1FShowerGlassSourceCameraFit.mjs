@@ -25,7 +25,7 @@ const mul=(a,n)=>a.map(x=>x*n);
  * modelRoot/world transforms. No caller boolean can authenticate those bytes.
  */
 export function planD1FSourceGlassCamera({source, sceneIndex, rootNode, glassNode,
-    glassMeshIndex, glassWorldBounds, viewportWidth, viewportHeight, verticalFovDeg=38}={}) {
+    glassMeshIndex, glassWorldBounds, viewportWidth, viewportHeight, verticalFovDeg=55}={}) {
   const row=SHOWER_SOURCE.scenes.find(v=>v.sceneIndex===sceneIndex);
   if(!row||rootNode!==row.rootNode||glassNode!==row.glassNode||glassMeshIndex!==777||
      source?.bytes!==SHOWER_SOURCE.bytes||source?.sha256!==SHOWER_SOURCE.sha256||
@@ -43,16 +43,19 @@ export function planD1FSourceGlassCamera({source, sceneIndex, rootNode, glassNod
   const vfov=verticalFovDeg*Math.PI/180;
   const hfov=2*Math.atan(Math.tan(vfov/2)*aspect);
   const half=Math.min(vfov,hfov)/2;
-  // 1.5x enclosing-sphere margin, guaranteed room for the whole original object.
-  const distance=Math.max(2.8,1.5*radius/Math.sin(half));
-  const forward=unit([-.78,-.48,-.92]); // camera -> source, view up world +Y
+  // Frame the source-height and plan span from inside the wet room, not a distant sphere.
+  // Exact original bathroom geometry is Z-up, not Three.js default Y-up.
+  const spans=max.map((x,i)=>x-min[i]);
+  const distance=Math.max(2.5,1.2*Math.max(spans[2]/(2*Math.tan(vfov/2)),
+    Math.hypot(spans[0],spans[1])/(2*Math.tan(hfov/2))));
+  const forward=unit([0,-1,-.22]); // camera -> glass, original scene's world +Z is up
   const position=minus(target,mul(forward,distance));
-  const right=unit(cross(forward,[0,1,0]));
+  const right=unit(cross(forward,[0,0,1]));
   const up=unit(cross(right,forward));
   const near=Math.max(0.001,(distance-radius)/100),far=Math.max(1000,distance+radius+30);
   return Object.freeze({sceneIndex,rootNode,glassNode,glassMeshIndex,viewportWidth,viewportHeight,
     verticalFovDeg,horizontalFovDeg:hfov*180/Math.PI,position:Object.freeze(position),
-    target:Object.freeze(target),up:Object.freeze([0,1,0]),cameraForward:Object.freeze(forward),
+    target:Object.freeze(target),up:Object.freeze([0,0,1]),cameraForward:Object.freeze(forward),
     cameraRight:Object.freeze(right),cameraTrueUp:Object.freeze(up),near,far,distance,
     sourceSha256:SHOWER_SOURCE.sha256,sourceSizeBytes:SHOWER_SOURCE.bytes,
     presentationOnly:true,sourceWorldBoundsProvenance:'CALLER_BOUND_ORIGINAL_GLTF_MESH_777',
