@@ -81,3 +81,62 @@ test('workflow executes main validator and never binds viewer credentials or PR 
   expect(yaml).not.toContain('secrets.');expect(yaml).not.toContain('CF_ACCESS');
   expect(yaml).not.toContain('pull_request:');
 });
+
+function refreshedMainFixture({tamper=false,omitOldParent=false}={}) {
+  const dir=mkdtempSync(join(tmpdir(),'p186e-refresh-'));
+  const git=(...args:string[])=>execFileSync('git',args,{cwd:dir,encoding:'utf8'}).trim();
+  git('init','-b','main');git('config','user.email','fixture@example.invalid');
+  git('config','user.name','Fixture');
+  writeFileSync(join(dir,'trusted.txt'),'original trusted main\\n');
+  git('add','.');git('commit','-qm','original main');
+  const originalMain=git('rev-parse','HEAD');
+  git('checkout','-qb','ops/private-model-review');
+  mkdirSync(join(dir,'.github'));
+  writeFileSync(join(dir,'.github/private-model-review-request.json'),
+    JSON.stringify({...request,expectedMainSha:originalMain}));
+  git('add','.');git('commit','-qm','original request');
+  const before=git('rev-parse','HEAD');
+  git('checkout','-q','main');
+  writeFileSync(join(dir,'trusted.txt'),'new approved main source\\n');
+  git('add','.');git('commit','-qm','approved main code advanced');
+  const currentMain=git('rev-parse','HEAD');
+  git('checkout','-qb','candidate-refreshed-request');
+  mkdirSync(join(dir,'.github'));
+  writeFileSync(join(dir,'.github/private-model-review-request.json'),
+    JSON.stringify({...request,expectedMainSha:currentMain,requestId:'p186e-new-main-safe-refresh'}));
+  if(tamper)writeFileSync(join(dir,'trusted.txt'),'untrusted executable drift\\n');
+  git('add','.');git('commit','-qm','updated request tree');
+  if(!omitOldParent)git('merge','--no-ff','-s','ours','-m','preserve old request ancestry',
+    'ops/private-model-review');
+  const after=git('rev-parse','HEAD');
+  git('checkout','-q','main');
+  const env={...process.env,EVENT_NAME:'push',
+    REPOSITORY:'aapojohannespihkala-lgtm/aapopihkala-fi',
+    REF_FULL:'refs/heads/ops/private-model-review',
+    ACTOR:'aapojohannespihkala-lgtm',ACTOR_ID:'322566438',
+    BEFORE_SHA:before,AFTER_SHA:after};
+  return {dir,env,output:join(dir,'dispatch.json')};
+}
+
+test('source-preserving newer-main merge can safely trigger only the inert P186E request',()=>{
+  const f=refreshedMainFixture();try{
+    const result=spawnSync('python3',[validator,f.output],
+      {cwd:f.dir,env:f.env,encoding:'utf8'});
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+    expect(JSON.parse(readFileSync(f.output,'utf8')))
+      .toEqual({ref:'main',inputs:{probe_mode:'p186e-labels-render'}});
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('new-main request refuses executable drift or a missing old-branch ancestry',()=>{
+  for(const config of [{tamper:true},{omitOldParent:true}]){
+    const f=refreshedMainFixture(config);try{
+      const result=spawnSync('python3',[validator,f.output],
+        {cwd:f.dir,env:f.env,encoding:'utf8'});
+      expect(result.status).not.toBe(0);
+      expect(existsSync(f.output)).toBe(false);
+      expect(result.stderr.trim()).toBe('P186E_DISPATCH_REQUEST_REJECTED');
+    }finally{rmSync(f.dir,{recursive:true,force:true});}
+  }
+});
