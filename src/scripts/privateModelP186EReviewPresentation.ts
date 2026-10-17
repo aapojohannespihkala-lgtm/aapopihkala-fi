@@ -362,6 +362,11 @@ export const getP186ESourceViewerCaption = (source: any): string | null => {
   return kind === 'group' ? 'Ryhmä ' + excerpt : excerpt;
 };
 
+// Only the texture glyph raster changes. World placement, sprite dimensions,
+// historical source text and the 34 exact source anchors remain unchanged.
+// Archived 2026-10-16 production PNGs showed 4-6 px-high glyphs at 34px.
+// This is a candidate presentation improvement, NOT production QA approval.
+export const p186eSourceCaptionFontPx = 68;
 const p186eSourceCaptionName = 'P186E_VIEW_ONLY_SOURCE_CAPTION';
 
 const addP186ESourceCaption = (source: any): boolean => {
@@ -391,7 +396,7 @@ const addP186ESourceCaption = (source: any): boolean => {
   context.fillStyle = '#ffe4a3';
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  context.font = 'bold 34px system-ui, sans-serif';
+  context.font = `bold ${p186eSourceCaptionFontPx}px system-ui, sans-serif`;
   context.fillText(caption, canvas.width / 2, canvas.height / 2, canvas.width - 28);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
