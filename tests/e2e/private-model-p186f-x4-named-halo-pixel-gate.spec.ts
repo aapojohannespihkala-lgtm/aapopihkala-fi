@@ -85,6 +85,10 @@ test('source identity, placement uncertainty and original pass associations fail
     (f:any)=>f.gltfScene.children[2].children[0].userData.HUMAN_REVIEW='PASS',
     (f:any)=>f.gltfScene.children[0].children[0].name='FAKE_HALO',
     (f:any)=>f.gltfScene.children[1].children[0].material.opacity=1,
+    // Synthetic cyan pixels cannot override the actual Three.js render gates.
+    (f:any)=>f.gltfScene.children[0].children[0].material.visible=false,
+    (f:any)=>f.gltfScene.children[1].children[0].material.transparent=false,
+    (f:any)=>f.gltfScene.children[2].children[0].layers.set(1),
     (f:any)=>f.sceneIndex=65,
     (f:any)=>f.gltfScene.name='SCENE_66_UNVERIFIED',
   ];

@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {readFileSync} from 'node:fs';
-import {D1F_SERVICE_ID,D1F_SERVICE_ASSET,D1F_SERVICE_ROWS,D1F_SERVICE_DEVICES,D1F_SERVICE_OPEN_POINTS,D1F_SERVICE_MODELS,D1F_SERVICE_PREVIOUS,D1F_SERVICE_CENTERED} from '../../src/scripts/privateModelD1FServiceContract.mjs';
+import {D1F_SERVICE_ID,D1F_SERVICE_ASSET,D1F_SERVICE_ROWS,D1F_SERVICE_DEVICES,D1F_SERVICE_OPEN_POINTS,D1F_SERVICE_MODELS,D1F_SERVICE_PREVIOUS,D1F_SERVICE_CENTERED,D1F_SERVICE_CLOSED_LID_450} from '../../src/scripts/privateModelD1FServiceContract.mjs';
 import {getPrivateWorkTestCandidateById} from '../../worker/privateWorkTest';
 
 const constants={D1F_SERVICE_ID,D1F_SERVICE_ASSET,D1F_SERVICE_ROWS,D1F_SERVICE_DEVICES,D1F_SERVICE_OPEN_POINTS,D1F_SERVICE_MODELS};
@@ -8,10 +8,11 @@ const moduleCode=readFileSync('src/scripts/privateModelD1FServiceRuntime.mjs','u
 
 test('new service source is independently bounded without replacing the accepted WC source',()=>{
  expect(getPrivateWorkTestCandidateById(D1F_SERVICE_ID)).toMatchObject({expectedSize:D1F_SERVICE_ASSET.bytes,expectedSha256:D1F_SERVICE_ASSET.sha256});
- expect(getPrivateWorkTestCandidateById(D1F_SERVICE_CENTERED.id)?.expectedSha256).toBe(D1F_SERVICE_ASSET.parentSha256);
+ expect(getPrivateWorkTestCandidateById(D1F_SERVICE_CLOSED_LID_450.id)?.expectedSha256).toBe(D1F_SERVICE_ASSET.parentSha256);
+ expect(getPrivateWorkTestCandidateById(D1F_SERVICE_CENTERED.id)?.expectedSha256).toBe(D1F_SERVICE_CLOSED_LID_450.asset.parentSha256);
  expect(getPrivateWorkTestCandidateById(D1F_SERVICE_PREVIOUS.id)?.expectedSha256).toBe(D1F_SERVICE_CENTERED.asset.parentSha256);
  expect(getPrivateWorkTestCandidateById('d1f-wc-enclosure-themos-20261015')?.expectedSha256).toBe(D1F_SERVICE_PREVIOUS.asset.parentSha256);
- expect(D1F_SERVICE_MODELS.map(m=>[m.defaultScene,m.sceneCount])).toEqual([[104,108],[100,104],[96,100]]);
+ expect(D1F_SERVICE_MODELS.map(m=>[m.defaultScene,m.sceneCount])).toEqual([[104,108],[104,108],[100,104],[96,100]]);
  expect(new Set(D1F_SERVICE_ROWS.map((r:any)=>r.rootNode)).size).toBe(4);
 });
 
