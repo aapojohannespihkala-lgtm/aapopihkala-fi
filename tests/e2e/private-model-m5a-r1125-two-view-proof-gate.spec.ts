@@ -5,9 +5,14 @@ import {m5aR1125SourcePixelKinds as kinds} from '../../src/scripts/privateModelM
 
 const keys=Object.keys(kinds), width=128, height=128, n=width*height*4;
 function fixture(){
-  const makeView=(orbit:number)=>{
+  const makeView=(orbit:number,yawDegrees=0)=>{
     const camera=[width,height,...Array.from({length:16},(_,i)=>i%5===0?1:0),
       ...Array.from({length:16},(_,i)=>i%5===0?1:0)];
+    const yaw=yawDegrees*Math.PI/180;
+    camera[2]=Math.cos(yaw);  // world matrix first column X
+    camera[4]=-Math.sin(yaw);
+    camera[10]=Math.sin(yaw); // world matrix third column / optical axis
+    camera[12]=Math.cos(yaw);
     camera[14]=orbit; // world matrix X translation, not projection or viewport
     const baseline=new Uint8Array(n);baseline.fill(5);
     const mutedFrames:Record<string,Uint8Array>={};
@@ -37,7 +42,7 @@ function fixture(){
       })),
     }};
   };
-  return {views:[makeView(0),makeView(3)]};
+  return {views:[makeView(0),makeView(3,12)]};
 }
 test('two distinct pose reports require 54 source-isolation frames, never 54 viewpoints',()=>{
   const result=assess(fixture());
@@ -84,4 +89,53 @@ test('13 source IDs and same-camera 27-frame cycles are mandatory in both views'
   assert.throws(()=>assess(c),/requires scene63/);
   const d=fixture();d.views.pop();
   assert.throws(()=>assess(d),/exactly two independent/);
+});
+
+const changeSecondWorldAxis=(state:ReturnType<typeof fixture>,yawDegrees:number)=>{
+  const yaw=yawDegrees*Math.PI/180;
+  const view=state.views[1];
+  const apply=(camera:number[])=>{
+    camera[2]=Math.cos(yaw); camera[4]=-Math.sin(yaw);
+    camera[10]=Math.sin(yaw); camera[12]=Math.cos(yaw);
+  };
+  apply(view.capture.cameraStates.baseline);
+  for(const key of keys){
+    apply(view.capture.cameraStates.muted[key]);
+    apply(view.capture.cameraStates.restored[key]);
+  }
+};
+test('translation alone is not a distinct viewing angle',()=>{
+  const state=fixture();
+  changeSecondWorldAxis(state,0);
+  assert.throws(()=>assess(state),/two distinct camera viewing directions/);
+});
+test('camera roll without changed optical axis is not a distinct view',()=>{
+  const state=fixture();
+  changeSecondWorldAxis(state,0);
+  const rotateRoll=(camera:number[])=>{
+    const angle=Math.PI/6;
+    camera[2]=Math.cos(angle); camera[3]=Math.sin(angle);
+    camera[6]=-Math.sin(angle); camera[7]=Math.cos(angle);
+  };
+  rotateRoll(state.views[1].capture.cameraStates.baseline);
+  for(const key of keys){
+    rotateRoll(state.views[1].capture.cameraStates.muted[key]);
+    rotateRoll(state.views[1].capture.cameraStates.restored[key]);
+  }
+  assert.throws(()=>assess(state),/two distinct camera viewing directions/);
+});
+test('tiny one-degree bearing change is insufficient for reliable two-angle evidence',()=>{
+  const state=fixture();
+  changeSecondWorldAxis(state,1);
+  assert.throws(()=>assess(state),/separated by at least 2 degrees/);
+});
+test('real 12-degree world viewing direction passes and stays source-only',()=>{
+  const result=assess(fixture());
+  assert.equal(result.minimumViewBearingSeparationDegrees,2);
+  assert.ok(result.observedViewBearingSeparationDegrees>=11.99);
+  assert.ok(result.observedViewBearingSeparationDegrees<=12.01);
+  assert.equal(result.frameCount,54);
+  assert.equal(result.productionProvenanceVerified,false);
+  assert.equal(result.originalGlbDigestAuthenticated,false);
+  assert.equal(result.humanReview,'NOT_RUN');
 });
