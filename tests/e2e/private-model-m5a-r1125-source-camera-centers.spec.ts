@@ -157,6 +157,50 @@ test('R1125 hidden and transparent target pixels cannot be treated as visible', 
   expect(() => derive(transparent)).toThrow(/invisible or unsafe/);
 });
 
+test('R1125 projectable source refuses material states that paint no pixels', () => {
+  const cases: Array<[string, (material: THREE.Material) => void]> = [
+    ['color writes disabled', (mat) => { mat.colorWrite = false; }],
+    ['material hidden', (mat) => { mat.visible = false; }],
+    ['fully transparent', (mat) => { mat.opacity = 0; }],
+    ['alpha threshold discards the material', (mat) => { mat.alphaTest = 1; }],
+    ['opacity below alpha threshold', (mat) => {
+      mat.opacity = 0.3; mat.alphaTest = 0.4;
+    }],
+    ['nonfinite opacity', (mat) => { mat.opacity = Number.NaN; }],
+    ['opacity beyond one', (mat) => { mat.opacity = 1.01; }],
+    ['nonfinite alpha threshold', (mat) => { mat.alphaTest = Infinity; }],
+    ['negative alpha threshold', (mat) => { mat.alphaTest = -0.01; }],
+  ];
+  for (const [name, mutate] of cases) {
+    const input = fixture();
+    const object = input.targets.get(keys[4]!) as THREE.LineSegments;
+    const material = object.material as THREE.Material;
+    const originalPosition = object.position.clone();
+    mutate(material);
+    expect(() => derive(input), name).toThrow(/invisible or unsafe source primitive/);
+    expect(object.material).toBe(material);
+    expect(object.position.equals(originalPosition)).toBe(true);
+  }
+});
+
+test('R1125 allows a drawable material in a mixed material array but rejects all-undrawable arrays', () => {
+  const input = fixture();
+  const target = input.targets.get(keys[0]!) as THREE.Mesh;
+  const hidden = new THREE.MeshBasicMaterial({color:0xaab0b7});
+  hidden.colorWrite = false;
+  const visible = new THREE.MeshBasicMaterial({color:0xaab0b7});
+  visible.transparent = true;
+  visible.opacity = 0.7;
+  visible.alphaTest = 0.2;
+  target.material = [hidden, visible];
+  const result = derive(input);
+  expect(result.sourceTargetCount).toBe(13);
+  expect(result.productionScreenshotVerified).toBe(false);
+  expect(result.humanReview).toBe('NOT_RUN');
+  visible.colorWrite = false;
+  expect(() => derive(input)).toThrow(/invisible or unsafe source primitive/);
+});
+
 test('R1125 behind-camera, out-of-frame and wrong screenshot aspect fail', () => {
   const behind = fixture();
   behind.targets.get(keys[0]!)!.position.z = 100;
