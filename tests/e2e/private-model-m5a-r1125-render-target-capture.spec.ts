@@ -189,8 +189,10 @@ test('autoClear=false reuses the GPU buffer safely only because every source fra
     const x=8+(i%7)*25, bottomY=12+Math.floor(i/7)*36;
     const offset=((height-1-bottomY)*width+x)*4;
     expect([...output.baseline.slice(offset,offset+4)]).toEqual([200,99,44,255]);
-    expect([...output.mutedFrames[key].slice(offset,offset+4)]).toEqual([0,0,0,255]);
-    expect(output.restoredFrames[key]).toEqual(output.baseline);
+    const muted=output.mutedFrames as Record<string,Uint8Array>;
+    const restored=output.restoredFrames as Record<string,Uint8Array>;
+    expect([...muted[key]!.slice(offset,offset+4)]).toEqual([0,0,0,255]);
+    expect(restored[key]).toEqual(output.baseline);
   }
 });
 
