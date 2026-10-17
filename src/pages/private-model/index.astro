@@ -6179,6 +6179,11 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p137eScene67CameraSourceIds;
         delete canvas.dataset.m5aR1125SourceCameraCenters;
         delete canvas.dataset.m5aR1125SourceCameraWorldPose;
+        // A cancelled source-isolation probe must never hide a real source
+        // node in the next candidate or carry a stale test capability forward.
+        (canvas as any).m5aR1125RestoreOriginalSourceVisibility?.();
+        delete (canvas as any).m5aR1125SetOriginalSourceVisibility;
+        delete (canvas as any).m5aR1125RestoreOriginalSourceVisibility;
         delete (canvas as any).m5aR1125RefreshSourceProjection;
         setM5aSourceContextVisible(false);
         setP186cX2rSourceContextVisible(false);
@@ -10557,6 +10562,114 @@ const title = 'Private 3D viewer';
               }
               canvas.dataset.m5aR1125SourceCameraCenters =
                 JSON.stringify(sourceCameraProjection);
+
+              // Source-only pixel isolation. These are the ORIGINAL GLTFLoader
+              // objects, not replacement meshes or name-matched presentation
+              // proxies. The production probe separately authenticates raw GLB
+              // network bytes and compares actual on-screen PNG pixels.
+              const sourceJson = gltf?.parser?.json;
+              const sourceAssociations = gltf?.parser?.associations;
+              const originalScene = sourceJson?.scenes?.[63];
+              const originalRootIds = originalScene?.nodes?.filter((id: number) =>
+                sourceJson?.nodes?.[id]?.name ===
+                  'M5A_R1125_DIAMETER_SOURCE_SPLIT_WORK_TEST_ROOT_BABYLON_Y_UP');
+              if (!Array.isArray(originalRootIds) || originalRootIds.length !== 1 ||
+                  !(sourceAssociations instanceof Map)) {
+                throw new Error('R1125 original GLTFLoader source-root associations unavailable');
+              }
+              const sourceRootId = originalRootIds[0];
+              const sourceChildren = sourceJson.nodes[sourceRootId]?.children;
+              if (!Array.isArray(sourceChildren) || sourceChildren.length !== 13 ||
+                  new Set(sourceChildren).size !== 13) {
+                throw new Error('R1125 original source root does not have 13 unique children');
+              }
+              const originalObjectsByNode = new Map<number, THREE.Object3D>();
+              fullModelScene.traverse((object: THREE.Object3D) => {
+                const nodeId = sourceAssociations.get(object)?.nodes;
+                if (nodeId === sourceRootId || sourceChildren.includes(nodeId)) {
+                  if (originalObjectsByNode.has(nodeId)) {
+                    throw new Error('R1125 duplicate original GLTFLoader node association');
+                  }
+                  originalObjectsByNode.set(nodeId, object);
+                }
+              });
+              const sourceRoot = originalObjectsByNode.get(sourceRootId);
+              const originalByKey = new Map<string, THREE.Object3D>();
+              const projectionKeys = new Set<string>(sourceCameraProjection.centers.map(
+                (center: { key: string }) => center.key));
+              if (!sourceRoot || sourceRoot.children.length !== 13 ||
+                  originalByKey.size !== 0 || projectionKeys.size !== 13) {
+                throw new Error('R1125 original scene63 source root/ROI contract mismatch');
+              }
+              for (const nodeId of sourceChildren) {
+                const entry = sourceJson.nodes[nodeId];
+                const assocObject = originalObjectsByNode.get(nodeId);
+                const assoc = sourceAssociations.get(assocObject);
+                const sourceMeta = entry?.extras;
+                const originalKey = sourceMeta?.representationKind === 'unresolvedBoundaryMarker'
+                  ? 'boundary:' + sourceMeta.boundaryRole : sourceMeta?.G2IdCandidate;
+                const primitive = sourceJson.meshes?.[entry?.mesh]?.primitives;
+                const sourceLine = originalKey?.startsWith('boundary:');
+                if (typeof originalKey !== 'string' || !projectionKeys.has(originalKey) ||
+                    originalByKey.has(originalKey) || !assocObject ||
+                    assocObject.parent !== sourceRoot || !assocObject.visible ||
+                    !(sourceLine ? (assocObject as any).isLineSegments : (assocObject as any).isMesh) ||
+                    assoc?.nodes !== nodeId || assoc?.meshes !== entry.mesh ||
+                    (assoc.primitives !== undefined && assoc.primitives !== 0) ||
+                    !Array.isArray(primitive) || primitive.length !== 1 ||
+                    (primitive[0].mode ?? 4) !== (sourceLine ? 1 : 4) ||
+                    sourceMeta?.Canonical !== false || sourceMeta?.presentationOnly !== true ||
+                    sourceMeta?.currentGeometryClaim !== false ||
+                    sourceMeta?.asBuiltClaim !== false ||
+                    sourceMeta?.publishToCURRENT !== false ||
+                    (assocObject.userData?.G2IdCandidate !== sourceMeta?.G2IdCandidate) ||
+                    (assocObject.userData?.boundaryRole !== sourceMeta?.boundaryRole)) {
+                  throw new Error('R1125 original source node/mesh identity mismatch: ' + originalKey);
+                }
+                originalByKey.set(originalKey, assocObject);
+              }
+              if (originalByKey.size !== 13) {
+                throw new Error('R1125 original GLTFLoader 13-target binding incomplete');
+              }
+              let hiddenOriginalKey: string | null = null;
+              const restoreOriginalSource = () => {
+                if (hiddenOriginalKey !== null) {
+                  originalByKey.get(hiddenOriginalKey)!.visible = true;
+                  hiddenOriginalKey = null;
+                }
+              };
+              (canvas as any).m5aR1125RestoreOriginalSourceVisibility = restoreOriginalSource;
+              (canvas as any).m5aR1125SetOriginalSourceVisibility =
+                (key: string, state: 'HIDE' | 'RESTORE') => {
+                  if (canvas.dataset.modelSource !== 'work-test' ||
+                      canvas.dataset.workTestReviewMode !== m5aZ2R1125ReviewId ||
+                      fullModelScene !== gltf.scene ||
+                      sourceAssociations !== gltf.parser.associations ||
+                      !originalByKey.has(key) ||
+                      !['HIDE', 'RESTORE'].includes(state)) {
+                    throw new Error('R1125 source isolation not bound to original review');
+                  }
+                  const sourceObject = originalByKey.get(key)!;
+                  if (state === 'HIDE') {
+                    if (hiddenOriginalKey !== null || sourceObject.visible !== true ||
+                        [...originalByKey.values()].some(o => !o.visible)) {
+                      throw new Error('R1125 source isolation requires all 13 originals visible');
+                    }
+                    sourceObject.visible = false;
+                    hiddenOriginalKey = key;
+                  } else {
+                    if (hiddenOriginalKey !== key || sourceObject.visible !== false) {
+                      throw new Error('R1125 cannot restore non-owned source target');
+                    }
+                    sourceObject.visible = true;
+                    hiddenOriginalKey = null;
+                  }
+                  return { sourceKey: key, state, originalSourceCount: 13,
+                    activeHiddenCount: hiddenOriginalKey === null ? 0 : 1,
+                    originalGlbDigestVerifiedByThisProbe: false,
+                    individualSourcePixelsVerified: false,
+                    humanReview: 'NOT_RUN', publishToCURRENT: false };
+                };
 
               // A production screenshot taken AFTER a user orbit must never reuse
               // the opening camera's projected source centers. The existing
