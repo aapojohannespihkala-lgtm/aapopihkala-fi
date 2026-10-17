@@ -14,6 +14,8 @@ const wall=(id='W1',startXMetres=0,startYMetres=0,endXMetres=4,endYMetres=0)=>({
   id,hostStorey:'D_1F',sourceCoordinateSystem:'YLIS-G1-LOCAL',
   reviewStatus:'HUMAN_REVIEW_PASS_SCOPED',
   verifiedForPlacementContext:true,
+  openingsComplete:true,
+  openings:[] as Array<{startM:number,endM:number}>,
   floorZMetres:0,startXMetres,startYMetres,endXMetres,endYMetres,
 });
 const propose=(extra:any={})=>proposeP137EApprovedWallHost({
@@ -64,6 +66,54 @@ test('oriented source side is only suggested and zero deadband is unresolved',()
   expect(other.candidates[0].sideSuggestion).toBe('RIGHT_OF_ORIENTED_SOURCE_SEGMENT');
   const line=propose({pointerReadout:point(2,0)});
   expect(line.candidates[0].sideSuggestion).toBe('UNDETERMINED_ON_SOURCE_LINE');
+});
+
+test('verified source opening blocks host even when its wall would otherwise be nearest',()=>{
+  const r=propose({pointerReadout:point(2,0.25),
+    reviewedWallSegments:[{...wall(),openings:[{startM:1,endM:3}]}]});
+  expect(r.status).toBe('UNRESOLVED_SOURCE_WALL_OPENING');
+  expect(r.openingOverlapDetected).toBe(true);
+  expect(r.candidates).toHaveLength(0);
+  expect(r.wallHostSuggestedNotConfirmed).toBe(false);
+  expect(r.humanReview).toBe('NOT_RUN');
+});
+
+test('opening boundary and a nearby different approved host never silently override the opening',()=>{
+  const opened={...wall(),openings:[{startM:1,endM:3}]};
+  for (const x of [1,3]) {
+    const r=propose({pointerReadout:point(x,0.1),
+      reviewedWallSegments:[opened]});
+    expect(r.status).toBe('UNRESOLVED_SOURCE_WALL_OPENING');
+  }
+  const r=propose({pointerReadout:point(2,0.1),
+    reviewedWallSegments:[opened,wall('W2',2,-1,2,2)]});
+  expect(r.status).toBe('UNRESOLVED_SOURCE_WALL_OPENING');
+  expect(r.wallHostSuggestedNotConfirmed).toBe(false);
+  expect(r.candidates).toHaveLength(0);
+});
+
+test('known complete opening away from pointer still permits source-only wall suggestion',()=>{
+  const r=propose({pointerReadout:point(0.5,0.1),
+    reviewedWallSegments:[{...wall(),openings:[{startM:2,endM:3}]}]});
+  expect(r.status).toBe('SINGLE_APPROVED_WALL_HOST_PROPOSAL_ONLY');
+  expect(r.openingOverlapDetected).toBe(false);
+  expect(r.candidates[0].wallId).toBe('W1');
+});
+
+test('unknown, malformed and overlapping opening evidence fails closed',()=>{
+  const baseline=wall();
+  const invalid=[
+    {...baseline,openingsComplete:false},
+    {...baseline,openings:undefined},
+    {...baseline,openings:[{startM:1,endM:5}]},
+    {...baseline,openings:[{startM:-1,endM:1}]},
+    {...baseline,openings:[{startM:2,endM:1}]},
+    {...baseline,openings:[{startM:1,endM:2},{startM:1.5,endM:2.5}]},
+  ];
+  for(const suspect of invalid) {
+    expect(()=>propose({reviewedWallSegments:[suspect]}))
+      .toThrow('P137E_APPROVED_WALL_HOST_REJECTED');
+  }
 });
 test('explicit source proof and tolerances are mandatory',()=>{
   expect(()=>propose({pointerReadout:{...point(),transformProvenance:'GUESSED'}}))
