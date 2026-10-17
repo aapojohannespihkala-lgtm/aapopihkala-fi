@@ -121,6 +121,78 @@ test('missing, duplicate and promoted source objects are rejected',async()=>{
   }
 });
 
+
+test('original 13 GLTFLoader node identities require painting material, hierarchy and draw range', async () => {
+  const invalid: Array<{ label: string; mutate: (f: any) => void }> = [
+    { label: 'hidden source glTF scene', mutate: f => { f.gltf.scenes[63].visible = false; } },
+    { label: 'hidden original root', mutate: f => { f.gltf.scenes[63].children[0].visible = false; } },
+    { label: 'hidden original material', mutate: f => {
+      f.gltf.scenes[63].children[0].children[0].material.visible = false;
+    } },
+    { label: 'colorWrite=false source', mutate: f => {
+      f.gltf.scenes[63].children[0].children[0].material.colorWrite = false;
+    } },
+    { label: 'zero source opacity', mutate: f => {
+      f.gltf.scenes[63].children[0].children[0].material.opacity = 0;
+    } },
+    { label: 'nonfinite source opacity', mutate: f => {
+      f.gltf.scenes[63].children[0].children[0].material.opacity = NaN;
+    } },
+    { label: 'alphaTest consumes all source alpha', mutate: f => {
+      const m = f.gltf.scenes[63].children[0].children[0].material;
+      m.opacity = 0.8; m.alphaTest = 0.8;
+    } },
+    { label: 'empty draw range', mutate: f => {
+      f.gltf.scenes[63].children[0].children[0].geometry.setDrawRange(0, 0);
+    } },
+    { label: 'draw range past all original primitives', mutate: f => {
+      f.gltf.scenes[63].children[0].children[0].geometry.setDrawRange(1000, 3);
+    } },
+    { label: 'material array without real primitive groups', mutate: f => {
+      const target = f.gltf.scenes[63].children[0].children[0];
+      target.material = [target.material, target.material.clone()];
+    } },
+    { label: 'second material has drawable group but cannot paint', mutate: f => {
+      const target = f.gltf.scenes[63].children[0].children[0];
+      const second = target.material.clone(); second.colorWrite = false;
+      target.material = [target.material, second];
+      target.geometry.addGroup(0, 3, 0);
+      target.geometry.addGroup(0, 3, 1);
+    } },
+  ];
+  for (const { label, mutate } of invalid) {
+    const input = await fixture();
+    const target = input.gltf.scenes[63].children[0].children[0];
+    const originalAssociation = input.gltf.parser.associations.get(target);
+    mutate(input);
+    expect(() => bind(input), label).toThrow(/original source node\/mesh cannot paint into the viewer/);
+    expect(input.gltf.parser.associations.get(target), label).toEqual(originalAssociation);
+  }
+});
+
+test('positive original GLTFLoader source paintability accepts ordinary and multi-material drawings without review promotion', async () => {
+  for (const multi of [false, true]) {
+    const input = await fixture();
+    const target = input.gltf.scenes[63].children[0].children[0] as THREE.Mesh;
+    expect(target.isMesh).toBe(true);
+    if (multi) {
+      const originalMaterial = target.material as THREE.Material;
+      target.material = [originalMaterial, originalMaterial.clone()];
+      target.geometry.addGroup(0, 3, 0);
+      target.geometry.addGroup(0, 3, 1);
+    }
+    const before = target.material;
+    const bound = bind(input);
+    expect(bound.sourceTargetCount).toBe(13);
+    expect(bound.targets[keys[0]!]).toBe(target);
+    expect(target.material).toBe(before);
+    expect(bound).toMatchObject({
+      originalGlbDigestAuthenticated: false, productionPixelsVerified: false,
+      current: false, canonical: false, asBuilt: false, humanReview: 'NOT_RUN',
+    });
+  }
+});
+
 test('a synthetic scene, regardless of perfect associations, never authenticates original R1125 bytes',async()=>{
   const input=await fixture();
   expect(bind(input).originalGlbDigestAuthenticated).toBe(false);
