@@ -148,10 +148,16 @@ test('original 13 GLTFLoader node identities require painting material, hierarch
     { label: 'draw range past all original primitives', mutate: f => {
       f.gltf.scenes[63].children[0].children[0].geometry.setDrawRange(1000, 3);
     } },
-    { label: 'unpaintable second material', mutate: f => {
+    { label: 'material array without real primitive groups', mutate: f => {
+      const target = f.gltf.scenes[63].children[0].children[0];
+      target.material = [target.material, target.material.clone()];
+    } },
+    { label: 'second material has drawable group but cannot paint', mutate: f => {
       const target = f.gltf.scenes[63].children[0].children[0];
       const second = target.material.clone(); second.colorWrite = false;
       target.material = [target.material, second];
+      target.geometry.addGroup(0, 3, 0);
+      target.geometry.addGroup(0, 3, 1);
     } },
   ];
   for (const { label, mutate } of invalid) {
@@ -167,8 +173,13 @@ test('original 13 GLTFLoader node identities require painting material, hierarch
 test('positive original GLTFLoader source paintability accepts ordinary and multi-material drawings without review promotion', async () => {
   for (const multi of [false, true]) {
     const input = await fixture();
-    const target = input.gltf.scenes[63].children[0].children[0];
-    if (multi) target.material = [target.material, target.material.clone()];
+    const target = input.gltf.scenes[63].children[0].children[0] as THREE.Mesh;
+    expect(target.isMesh).toBe(true);
+    if (multi) {
+      target.material = [target.material, (target.material as THREE.Material).clone()];
+      target.geometry.addGroup(0, 3, 0);
+      target.geometry.addGroup(0, 3, 1);
+    }
     const before = target.material;
     const bound = bind(input);
     expect(bound.sourceTargetCount).toBe(13);
