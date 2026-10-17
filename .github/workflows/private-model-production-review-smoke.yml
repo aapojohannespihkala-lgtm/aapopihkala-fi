@@ -167,6 +167,15 @@ jobs:
                   "Production safety contract missing: " + ", ".join(missing)
               )
 
+          # Prevent a smoke-preset key typo from becoming a 35-second timeout.
+          runtime = Path("src/pages/private-model/index.astro").read_text(encoding="utf-8")
+          if (
+              "m5aR1125SceneIndex: String(R1125_ORIGINAL_GLB.sceneIndex)" not in production_section
+              or "m5aR1125SceneIndex: '63'" not in runtime
+              or "m5aR1125SourceSceneIndex" in production_section
+          ):
+              raise SystemExit("R1125 smoke scene-index dataset key differs from viewer runtime")
+
           print(
               json.dumps(
                   {
@@ -236,7 +245,7 @@ jobs:
             m5aReviewRouteCount: count('routeCyan'),
             m5aReviewUnresolvedBoundaryCount: count('boundaryYellow'),
             m5aReviewSemanticViolationCount: '0',
-            m5aR1125SourceSceneIndex: String(R1125_ORIGINAL_GLB.sceneIndex),
+            m5aR1125SceneIndex: String(R1125_ORIGINAL_GLB.sceneIndex),
             m5aR1125SourceContract: 'G2_R1125',
             m5aHumanReview: 'NOT_RUN',
             m5aR1125HumanReview: 'NOT_RUN',
