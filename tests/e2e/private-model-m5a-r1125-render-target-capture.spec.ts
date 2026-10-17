@@ -56,11 +56,16 @@ const fixture = () => {
     parser:{ associations }};
   let current: WebGLRenderTarget | null = null;
   let reads = 0;
+  let clears = 0;
   let failAt = 0;
   const renderer = {
     isWebGLRenderer:true,
     getRenderTarget:()=>current,
     setRenderTarget:(rt:WebGLRenderTarget|null)=>{current=rt;},
+    clear:(color:boolean,depth:boolean,stencil:boolean)=>{
+      if(!current || !color || !depth || !stencil) throw Error('source target not fully cleared');
+      clears++;
+    },
     render:(activeScene: Group, activeCamera: OrthographicCamera)=>{
       if(activeScene!==scene || activeCamera!==camera) throw Error('wrong model render');
     },
@@ -82,7 +87,7 @@ const fixture = () => {
   };
   const firstMaterials=Object.values(targets).map(x=>x.material);
   return {scene,targets,context,camera,binding,gltf,renderer,associations,
-    initialMaterials:firstMaterials,reads:()=>reads,
+    initialMaterials:firstMaterials,reads:()=>reads,clears:()=>clears,
     current:()=>current, setFailure:(at:number)=>{failAt=at;},
     params:{gltf,binding,renderer,camera,THREE:{WebGLRenderTarget},width,height}};
 };
@@ -91,6 +96,7 @@ test('original 13 glTF identities produce 27 actual renderer callbacks with top-
   const f=fixture();
   const output=await capture(f.params);
   expect(f.reads()).toBe(27);
+  expect(f.clears()).toBe(27);
   expect(output).toMatchObject({
     captureMode:'SOURCE_BOUND_OFFSCREEN_THREE_RENDER_TARGET',
     capturedFrameCount:27,sourceObjectCount:13,presentationState:'WORK_TEST_PRESENTATION_ONLY',
@@ -141,4 +147,59 @@ test('source viewport memory limit rejects before allocating render target',asyn
   await expect(capture({...f.params,width:1920,height:1201}))
     .rejects.toThrow('bounded dimensions required');
   expect(f.reads()).toBe(0);
+});
+
+test('autoClear=false reuses the GPU buffer safely only because every source frame clears it',async()=>{
+  const f=fixture();
+  const stickyGpu = new Uint8Array(width*height*4);
+  let explicitClears=0, readyToDraw=false, captures=0;
+  (f.renderer as any).autoClear=false;
+  f.renderer.clear=(color:boolean,depth:boolean,stencil:boolean)=>{
+    expect([color,depth,stencil]).toEqual([true,true,true]);
+    expect(f.current()).not.toBeNull();
+    stickyGpu.fill(0);
+    for(let i=3;i<stickyGpu.length;i+=4) stickyGpu[i]=255;
+    explicitClears++;
+    readyToDraw=true;
+  };
+  f.renderer.render=(activeScene:Group,activeCamera:OrthographicCamera)=>{
+    expect(activeScene).toBe(f.scene);
+    expect(activeCamera).toBe(f.camera);
+    expect(readyToDraw).toBe(true);
+    readyToDraw=false;
+    for (const [i,key] of keys.entries()) {
+      if(!f.targets[key]!.visible)continue;
+      const px=8+(i%7)*25,py=12+Math.floor(i/7)*36;
+      for(let dy=0;dy<8;dy++)for(let dx=0;dx<8;dx++)
+        stickyGpu.set([200,99,44,255],((py+dy)*width+px+dx)*4);
+    }
+  };
+  f.renderer.readRenderTargetPixels=(rt:WebGLRenderTarget,x:number,y:number,w:number,h:number,out:Uint8Array)=>{
+    expect(rt).toBe(f.current());
+    expect([x,y,w,h]).toEqual([0,0,width,height]);
+    out.set(stickyGpu);
+    captures++;
+  };
+  const output=await capture(f.params);
+  expect(captures).toBe(27);
+  expect(explicitClears).toBe(27);
+  expect(output.sourceObjectCount).toBe(13);
+  expect(f.current()).toBeNull();
+  for(const [i,key] of keys.entries()){
+    const x=8+(i%7)*25, bottomY=12+Math.floor(i/7)*36;
+    const offset=((height-1-bottomY)*width+x)*4;
+    expect([...output.baseline.slice(offset,offset+4)]).toEqual([200,99,44,255]);
+    const muted=output.mutedFrames as Record<string,Uint8Array>;
+    const restored=output.restoredFrames as Record<string,Uint8Array>;
+    expect([...muted[key]!.slice(offset,offset+4)]).toEqual([0,0,0,255]);
+    expect(restored[key]).toEqual(output.baseline);
+  }
+});
+
+test('capture refuses a renderer without an explicit offscreen clear contract',async()=>{
+  const f=fixture();
+  (f.renderer as any).clear=undefined;
+  await expect(capture(f.params)).rejects.toThrow('real Three source scene');
+  expect(f.reads()).toBe(0);
+  expect(f.current()).toBeNull();
 });
