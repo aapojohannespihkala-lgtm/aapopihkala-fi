@@ -662,6 +662,17 @@ const D1F_WC450_SURFACE_FIX_CANDIDATE = {
 } as const satisfies PrivateWorkTestCandidate;
 
 // Source-bound, noncanonical 124-scene photo + curved shower glass; no human review or CURRENT promotion.
+// Exact read-only ODENSVIK 001.939.37 bowl + integrated countertop successor.
+// Product-shape WORK_TEST only; the measured counter outline and accepted WC remain unchanged.
+const D1F_ODENSVIK_BASIN_CORRECTION_CANDIDATE = {
+  id: 'd1f-odensvik-00193937-basin-correction-20261017',
+  label: 'D1F - IKEA ODENSVIK 001.939.37 allas ja taso - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-odensvik-00193937-basin-correction-20261017.glb`,
+  objectKey: 'work-test/d1f-odensvik-00193937-basin-correction-20261017.glb',
+  expectedSize: 8876156,
+  expectedSha256: '362f5dce1041e8f529ed8f69a10d06dad58b59d8bfad0fe9db31c62d870f2e25',
+} as const satisfies PrivateWorkTestCandidate;
+
 const D1F_SHOWER_PHOTO_CANDIDATE = {
   id: 'd1f-shower-glass-photo-20261016',
   label: 'D1F - kaareva suihkulasi 900x900 ja laattapinnat - WORK_TEST',
@@ -689,6 +700,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_WC3530_CENTERED_CANDIDATE,
   D1F_WC450_CLOSED_CANDIDATE,
   D1F_WC450_SURFACE_FIX_CANDIDATE,
+  D1F_ODENSVIK_BASIN_CORRECTION_CANDIDATE,
   D1F_SHOWER_PHOTO_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
