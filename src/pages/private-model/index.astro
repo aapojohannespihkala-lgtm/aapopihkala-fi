@@ -10610,7 +10610,12 @@ const title = 'Private 3D viewer';
                   ? 'boundary:' + sourceMeta.boundaryRole : sourceMeta?.G2IdCandidate;
                 const primitive = sourceJson.meshes?.[entry?.mesh]?.primitives;
                 const sourceLine = originalKey?.startsWith('boundary:');
-                if (typeof originalKey !== 'string' || !projectionKeys.has(originalKey) ||
+                const sourceWell = originalKey?.startsWith('G2_DRAIN_WELL_');
+                const sourceRole = sourceLine ? 'unresolvedBoundaryMarker' :
+                  sourceWell ? 'wellDiameterPresentationWork' :
+                  'pipeDiameterPresentationWork';
+                if (sourceMeta?.representationKind !== sourceRole ||
+                    typeof originalKey !== 'string' || !projectionKeys.has(originalKey) ||
                     originalByKey.has(originalKey) || !assocObject ||
                     assocObject.parent !== sourceRoot || !assocObject.visible ||
                     !(sourceLine ? (assocObject as any).isLineSegments : (assocObject as any).isMesh) ||
