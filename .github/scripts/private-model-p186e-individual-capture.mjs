@@ -76,7 +76,7 @@ export async function captureP186EIndividualFloor({page,canvas,floor,originalRos
     need(result?.requestId===id,'RUNTIME_RESPONSE');
     if(result.state==='REJECTED'){
       if(result.cleanup?.sourceVisibilityRestored===true&&result.cleanup?.captionVisibilityRestored===true&&
-        result.cleanup?.cameraRestored===true)prepared=false;
+        result.cleanup?.cameraRestored===true&&result.cleanup?.cueSizeRestored===true)prepared=false;
       const code=p186eLabelRuntimeFailureCodes.includes(result.failureCode)?result.failureCode:'UNEXPECTED';
       need(false,'RUNTIME_'+action.toUpperCase()+'_'+code);
     }
@@ -87,7 +87,8 @@ export async function captureP186EIndividualFloor({page,canvas,floor,originalRos
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const before=await command('inspect');
     need(before.cameraFingerprint===manifest.cameraFingerprint&&before.width===manifest.width&&
-      before.height===manifest.height&&before.hiddenSourceKey===manifest.hiddenSourceKey,'FRAME_DRIFT');
+      before.height===manifest.height&&before.hiddenSourceKey===manifest.hiddenSourceKey&&
+      before.temporaryCuePointSizePx===manifest.temporaryCuePointSizePx,'FRAME_DRIFT');
     const png=await canvas.screenshot({timeout:30000});
     // Decode the captured lossless PNG in Node. Sending its full RGBA table
     // through browser RPC exhausted the real 240s floor budget after 9 pairs.
@@ -98,7 +99,9 @@ export async function captureP186EIndividualFloor({page,canvas,floor,originalRos
     try{rgba=decodeD1FScreenshotPng(png);}catch{need(false,'PNG_DECODE');}
     const after=await command('inspect');
     need(after.cameraFingerprint===before.cameraFingerprint&&after.hiddenSourceKey===before.hiddenSourceKey&&
-      rgba.width===manifest.width&&rgba.height===manifest.height,'FRAME_DRIFT');
+      rgba.width===manifest.width&&rgba.height===manifest.height&&
+      after.temporaryCuePointSizePx===manifest.temporaryCuePointSizePx&&
+      after.temporaryCuePointSizePx===before.temporaryCuePointSizePx,'FRAME_DRIFT');
     const pixels=rgba.rgba;
     need(pixels.length===rgba.width*rgba.height*4&&pixels.length<=2304000*4,'FRAME_SHAPE');
     fs.mkdirSync(outputDirectory,{recursive:true});fs.writeFileSync(outputDirectory+'/'+name+'.png',png);
@@ -112,6 +115,7 @@ export async function captureP186EIndividualFloor({page,canvas,floor,originalRos
       manifest.captionsTemporarilyHidden===true&&manifest.captionPixelsVerified===false&&
       manifest.pixelsVerifiedByThisRuntime===false&&manifest.humanReview==='NOT_RUN'&&
       manifest.hiddenSourceKey===null&&typeof manifest.cameraFingerprint==='string'&&
+      [13,11,9].includes(manifest.temporaryCuePointSizePx)&&
       JSON.stringify(canonical(manifest.targets))===JSON.stringify(canonical(originalRoster)),
       'ORIGINAL_ROSTER_BINDING');
     fs.mkdirSync(outputDirectory,{recursive:true});
@@ -121,10 +125,12 @@ export async function captureP186EIndividualFloor({page,canvas,floor,originalRos
     for(let i=0;i<manifest.targets.length;i++){
       const target=manifest.targets[i],name=floor.toLowerCase()+'-'+String(i+1).padStart(2,'0');
       const hidden=await command('hide',target.sourceKey);
-      need(hidden.cameraFingerprint===manifest.cameraFingerprint&&hidden.hiddenSourceKey===target.sourceKey,'SELECTIVE_HIDE');
+      need(hidden.cameraFingerprint===manifest.cameraFingerprint&&hidden.hiddenSourceKey===target.sourceKey&&
+        hidden.temporaryCuePointSizePx===manifest.temporaryCuePointSizePx,'SELECTIVE_HIDE');
       hiddenFrames[target.sourceKey]=await capture(name+'-hidden',hidden);
       const restoredManifest=await command('restore');
-      need(restoredManifest.hiddenSourceKey===null&&restoredManifest.cameraFingerprint===manifest.cameraFingerprint,'RESTORE');
+      need(restoredManifest.hiddenSourceKey===null&&restoredManifest.cameraFingerprint===manifest.cameraFingerprint&&
+        restoredManifest.temporaryCuePointSizePx===manifest.temporaryCuePointSizePx,'RESTORE');
       const restored=await capture(name+'-restored',restoredManifest);
       need(Buffer.from(restored.pixels).equals(Buffer.from(baseline.pixels)),'EXACT_PIXEL_RESTORE');
     }
@@ -133,12 +139,14 @@ export async function captureP186EIndividualFloor({page,canvas,floor,originalRos
       cameraFingerprint:manifest.cameraFingerprint,cameraKey:manifest.cameraKey,sceneKey:manifest.sceneKey,
       width:manifest.width,height:manifest.height,targets:manifest.targets,sourceRosterBoundToOriginalGlb:true,
       exactRestoresVerified:true,captionsTemporarilyHidden:true,captionPixelsVerified:false,
+      temporaryCuePointSizePx:manifest.temporaryCuePointSizePx,
       rgbaDecodeMethod:'node-lossless-png'}};
   }finally{
     if(prepared){
       const finish=await command('finish');
       need(finish.state==='FINISHED'&&finish.sourceVisibilityRestored===true&&
-        finish.captionVisibilityRestored===true&&finish.cameraRestored===true,'FINISH_RESTORE');
+        finish.captionVisibilityRestored===true&&finish.cameraRestored===true&&
+        finish.cueSizeRestored===true,'FINISH_RESTORE');
     }
   }
 }
