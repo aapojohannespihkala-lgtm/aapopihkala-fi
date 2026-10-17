@@ -74,14 +74,18 @@ function browserFixture(floor:'D1F'|'D2F',scenario='normal'){
     sourceCandidateId:candidate,cameraKey:floor+'_camera',sceneKey:floor+'_scene',
     cameraFingerprint:scenario==='drift'&&shots>=2?'changed-synthetic-camera':'fixed-synthetic-camera',
     hiddenSourceKey:hidden,captionsTemporarilyHidden:true,captionPixelsVerified:false,
-    pixelsVerifiedByThisRuntime:false,humanReview:'NOT_RUN'});
+    pixelsVerifiedByThisRuntime:false,humanReview:'NOT_RUN',
+    temporaryCuePointSizePx:scenario==='cue-invalid-initial'?15:
+      scenario==='cue-drift-hide'&&hidden!==null?11:
+      scenario==='cue-drift-frame'&&shots>=1?11:13});
   const page={evaluate:async(_fn:Function,arg:any)=>{
     if(arg?.action){
       if(arg.action==='hide')hidden=arg.sourceKey;
       if(arg.action==='restore')hidden=null;
       if(arg.action==='finish'){
         hidden=null;finished=true;return {state:'FINISHED',requestId:arg.requestId,
-          sourceVisibilityRestored:true,captionVisibilityRestored:true,cameraRestored:true};
+          sourceVisibilityRestored:true,captionVisibilityRestored:true,cameraRestored:true,
+          cueSizeRestored:scenario!=='cue-not-restored'};
       }
       return {...manifest(),requestId:arg.requestId};
     }
@@ -127,6 +131,21 @@ for(const scenario of ['substitution','restore-mismatch','drift'])test('collecto
     if(scenario==='substitution')expect(f.state().shots).toBe(0);
   }finally{rmSync(dir,{recursive:true,force:true});}
 });
+for(const scenario of ['cue-invalid-initial','cue-drift-hide','cue-drift-frame','cue-not-restored'])
+  test('individual source capture rejects temporary viewer cue fault '+scenario,async()=>{
+    const dir=mkdtempSync(join(tmpdir(),'p186e-cue-size-'));
+    const f=browserFixture('D1F',scenario);
+    try{
+      const expected=scenario==='cue-invalid-initial'?'ORIGINAL_ROSTER_BINDING':
+        scenario==='cue-drift-hide'?'SELECTIVE_HIDE':
+        scenario==='cue-drift-frame'?'FRAME_DRIFT':'FINISH_RESTORE';
+      await expect(capture({...f,outputDirectory:dir})).rejects.toThrow(expected);
+      expect(f.state()).toMatchObject({finished:true,hidden:null});
+      if(scenario==='cue-invalid-initial')expect(f.state().shots).toBe(0);
+      if(scenario==='cue-not-restored')expect(f.state().shots).toBe(37);
+    }finally{rmSync(dir,{recursive:true,force:true});}
+  });
+
 test('pixel verifier rejects external changes in a completed synthetic capture stack',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'p186e-outside-'));
   try{
