@@ -14,6 +14,7 @@ import {
   runP186EProductionProbe,classifyP186EProductionFailure,
   captureP186EProductionSourceRequest,
 } from '../../.github/scripts/private-model-p186e-production-probe.mjs';
+import {P186ECaptionFailure} from '../../src/scripts/privateModelP186ECaptionPixelEvidence.mjs';
 
 const good = (floor: 'D1F'|'D2F') => ({
   ...expectedP186EProductionDataset(floor),
@@ -184,6 +185,8 @@ for(const scenario of ['missing','duplicate','current','corrupt','html','body-un
 }
 
 test('browser failures emit fixed technical classes and never copy untrusted messages',()=>{
+  expect(classifyP186EProductionFailure(new P186ECaptionFailure('GLYPH_PIXELS')))
+    .toBe('P186E_CAPTION_GLYPH_PIXELS');
   for(const [message,code] of [
     ['Request content was evicted from inspector cache','BROWSER_RESOURCE_EVICTED'],
     ['No data found for resource with given identifier','BROWSER_RESOURCE_UNAVAILABLE'],

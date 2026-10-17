@@ -1,5 +1,5 @@
 // @ts-ignore - immutable source identity shared with the viewer.
-import { D1F_SERVICE_ASSET, D1F_SERVICE_PREVIOUS, D1F_SERVICE_CENTERED } from '../src/scripts/privateModelD1FServiceContract.mjs';
+import { D1F_SERVICE_ASSET, D1F_SERVICE_PREVIOUS, D1F_SERVICE_CENTERED, D1F_SERVICE_CLOSED_LID_450 } from '../src/scripts/privateModelD1FServiceContract.mjs';
 // @ts-ignore - immutable 124-scene D1F shower WORK_TEST identity.
 import { D1F_SHOWER_PHOTO_SOURCE } from '../src/scripts/privateModelD1FShowerPhotoSourceContract.mjs';
 import {
@@ -648,6 +648,15 @@ const D1F_WC450_CLOSED_CANDIDATE = {
   label: 'D1F - WC Nordic³ 3530, kansi 450 mm - WORK_TEST',
   path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-wc-closed-lid-450-20261016.glb`,
   objectKey: 'work-test/d1f-wc-closed-lid-450-20261016.glb',
+  expectedSize: D1F_SERVICE_CLOSED_LID_450.asset.bytes,
+  expectedSha256: D1F_SERVICE_CLOSED_LID_450.asset.sha256,
+} as const satisfies PrivateWorkTestCandidate;
+
+const D1F_WC450_SURFACE_FIX_CANDIDATE = {
+  id: 'd1f-wc-closed-lid-450-surface-fix-20261017',
+  label: 'D1F - WC Nordic³ 3530, korjattu kansi 450 mm - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-wc-closed-lid-450-surface-fix-20261017.glb`,
+  objectKey: 'work-test/d1f-wc-closed-lid-450-surface-fix-20261017.glb',
   expectedSize: D1F_SERVICE_ASSET.bytes,
   expectedSha256: D1F_SERVICE_ASSET.sha256,
 } as const satisfies PrivateWorkTestCandidate;
@@ -679,6 +688,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_SERVICE_CANDIDATE,
   D1F_WC3530_CENTERED_CANDIDATE,
   D1F_WC450_CLOSED_CANDIDATE,
+  D1F_WC450_SURFACE_FIX_CANDIDATE,
   D1F_SHOWER_PHOTO_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
