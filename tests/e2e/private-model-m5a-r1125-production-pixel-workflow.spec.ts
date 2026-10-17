@@ -257,7 +257,7 @@ test('R1125 production source isolation executes 26 reversible camera-target cap
     hidden=null;restores++;
     return {sourceKey:key,activeHiddenCount:0};
   }};
-  const canvas={evaluate:async(fn:(el:typeof el,key:string)=>unknown,key:string)=>fn(el,key)};
+  const canvas={evaluate:async(fn:(source:typeof el,key:string)=>unknown,key:string)=>fn(el,key)};
   const page={
     waitForTimeout:async(_n:number)=>{},
     screenshot:async()=>{screenshots++;return {toString:()=>String(screenshots)};},
