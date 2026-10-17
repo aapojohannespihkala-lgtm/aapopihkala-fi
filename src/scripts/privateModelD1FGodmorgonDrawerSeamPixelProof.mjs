@@ -1,3 +1,4 @@
+import { HemisphereLight, DirectionalLight } from 'three';
 import { D1F_ODENSVIK_PIXEL_TARGETS, countD1FOdensvikPixelDiff } from './privateModelD1FOdensvikTargetPixelProof.mjs';
 import { createD1FShowerGlassWebGLCapture } from './privateModelD1FShowerGlassWebGLCapture.mjs';
 
@@ -107,16 +108,28 @@ export async function runGodmorgonDrawerSeamSourcePixelProof({
       check(rgba instanceof Uint8Array&&rgba.length===width*height*4,'invalid framebuffer');
       return rgba.slice();
     };
-    const before=await capture();
-    let hidden;
-    try{mesh.visible=false;hidden=await capture();}
-    finally{mesh.visible=true;}
-    const restored=await capture();
-    check(mesh.visible===true&&JSON.stringify([camera.position.toArray(),
-      camera.quaternion.toArray(),camera.projectionMatrix.elements,camera.matrixWorldInverse.elements])===cameraState,
-      'camera/mesh not restored');
-    pixels.push(Object.freeze({...v,
-      ...countD1FOdensvikPixelDiff(before,hidden,restored,{threshold:8,minimum:12})}));
+    // GLTF scene carries no source light objects. PBR seam material is
+    // non-emissive, so use stable temporary lighting for baseline/hide/restore.
+    // These diagnostic lights do not alter the persisted source scene.
+    const ambient=new HemisphereLight(0xffffff,0x777777,2.2);
+    const key=new DirectionalLight(0xffffff,2);
+    key.position.set(8,14,10);
+    scene.add(ambient,key);
+    try{
+      const before=await capture();
+      let hidden;
+      try{mesh.visible=false;hidden=await capture();}
+      finally{mesh.visible=true;}
+      const restored=await capture();
+      check(mesh.visible===true&&JSON.stringify([camera.position.toArray(),
+        camera.quaternion.toArray(),camera.projectionMatrix.elements,camera.matrixWorldInverse.elements])===cameraState,
+        'camera/mesh not restored');
+      pixels.push(Object.freeze({...v,
+        ...countD1FOdensvikPixelDiff(before,hidden,restored,{threshold:8,minimum:12})}));
+    }finally{
+      mesh.visible=true;
+      scene.remove(ambient,key);
+    }
   }
   return Object.freeze({...verified,individualSourcePixels:pixels,
     sourcePixelProof:pixels.length===4&&pixels.every(x=>x.visible)?'PASS_SOURCE_ONLY':'FAIL',
