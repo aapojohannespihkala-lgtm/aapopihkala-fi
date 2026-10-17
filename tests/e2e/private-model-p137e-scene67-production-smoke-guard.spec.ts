@@ -550,7 +550,7 @@ test('production scene67 original GLB proof fails closed on stalled network/body
   const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
   const source = workflow.split('      - name: Verify exact autoload and rendered production canvas')[1];
   expect(source).toBeDefined();
-  expect(source).toContain('const withGlbDeadline = async (promise, stage) =>');
+  expect(source).toContain("const withGlbDeadline = async (promise, stage, identity = 'P137E') =>");
   expect(source).toContain("viewerResponse.finished(), 'autoload response completion'");
   expect(source).toContain("viewerResponse.body(), 'autoload response bytes'");
   expect(source).toContain("45_000");

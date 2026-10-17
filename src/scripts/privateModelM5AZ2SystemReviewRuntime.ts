@@ -108,7 +108,18 @@ export const getUndrawableM5AZ2TargetKeys = (sceneRoot: any): string[] => {
     const minimum = object.isMesh ? 3 : (object.isLine || object.isLineSegments ? 2 : object.isPoints ? 1 : Infinity);
     const material = object.material;
     const materials = Array.isArray(material) ? material : [material];
-    const hasVisibleMaterial = materials.some((part: any) => part && part.visible !== false);
+    const hasVisibleMaterial = materials.some((part: any) => {
+      if (!part || part.visible === false || part.colorWrite === false) return false;
+      const opacity = part.opacity ?? 1;
+      if (typeof opacity !== 'number' || !Number.isFinite(opacity)) return false;
+      // An alpha-blended zero-opacity source or alpha-tested empty fragment
+      // cannot supply visible target pixels. This is a conservative DRAWABILITY
+      // guard, not a substitute for actual WebGL pixel proof.
+      if (opacity <= 0 && (part.transparent === true || Number(part.alphaTest ?? 0) > 0)) {
+        return false;
+      }
+      return true;
+    });
     let valid =
       Number.isFinite(count) && count >= minimum &&
       Number.isFinite(indices) && indices >= minimum &&

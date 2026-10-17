@@ -30,11 +30,20 @@ const materialState=material=>JSON.stringify((Array.isArray(material)?material:[
   // WebGLRenderer increments Material.version twice per transparent DoubleSide
   // render. Compare the appearance, not that renderer-owned invalidation count.
   uuid:m?.uuid,color:m?.color?.toArray(),emissive:m?.emissive?.toArray(),
+  visible:m?.visible,colorWrite:m?.colorWrite,
   opacity:m?.opacity,transparent:m?.transparent,depthTest:m?.depthTest,depthWrite:m?.depthWrite,
   alphaTest:m?.alphaTest,side:m?.side,blending:m?.blending,map:m?.map?.uuid,
   mapVersion:m?.map?.version,forceSinglePass:m?.forceSinglePass,vertexColors:m?.vertexColors,
   linewidth:m?.linewidth,toneMapped:m?.toneMapped,defines:m?.defines,
 })));
+// Pixel-isolation evidence cannot claim a source line or cue that WebGL would
+// never paint, even when the caller supplies plausible screenshot bytes.
+const materialCanPaint=material=>{
+  const materials=Array.isArray(material)?material:[material];
+  return materials.length>0&&materials.some(m=>m?.visible===true&&m.colorWrite===true&&
+    Number.isFinite(m.opacity)&&m.opacity>0&&m.opacity<=1&&
+    Number.isFinite(m.alphaTest)&&m.alphaTest>=0&&m.alphaTest<m.opacity);
+};
 const geometryState=geometry=>JSON.stringify({
   positions:Array.from(geometry.attributes.position.array),
   index:geometry.index?Array.from(geometry.index.array):null,
@@ -66,13 +75,15 @@ export function createP186ELabelPixelRuntime({THREE,root,floor,canvas,camera,con
     if(!kind)return;
     const sourceKey=kind==='group'?d.annotationStableKey:d.sourceLabelId;
     need((object.isLine===true||object.isLineSegments===true)&&object.geometry?.attributes?.position&&
-      object.visible===true&&ancestorsVisible(object)&&identifier.test(sourceKey??'')&&noPromotion(d)&&
+      object.visible===true&&ancestorsVisible(object)&&materialCanPaint(object.material)&&
+      identifier.test(sourceKey??'')&&noPromotion(d)&&
       d.sourcePdfDriveId===p186ePixelSourcePdfDriveId&&
       (kind!=='group'||d.schedulePdfDriveId===p186ePixelSchedulePdfDriveId)&&
       d.p186eReviewRole==='QUESTION_TARGET_80'&&d.p186eReviewVariant===floor,'SOURCE');
     const cue=object.children.find(child=>child.userData?.p186eViewOnlyCue===true);
     const caption=object.children.find(child=>child.userData?.p186eViewerSourceCaption===true);
-    need(cue?.isPoints&&cue.visible===true&&caption?.isSprite&&caption.visible===true,'SOURCE_CHILDREN');
+    need(cue?.isPoints&&cue.visible===true&&materialCanPaint(cue.material)&&
+      caption?.isSprite&&caption.visible===true,'SOURCE_CHILDREN');
     targets.push({object,cue,caption,sourceKey,kind,representationKind:d.representationKind,
       sourcePdfDriveId:d.sourcePdfDriveId,schedulePdfDriveId:kind==='group'?d.schedulePdfDriveId:null,
       presentationOnly:true,sourceDerived:true,currentGeometryClaim:false,asBuilt:false,
