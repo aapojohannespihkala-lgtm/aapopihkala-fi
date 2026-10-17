@@ -64,17 +64,34 @@ function verifyView(view,index) {
     isolatedKeys:keys.length,width,height};
 }
 
-/** Fail closed if both captures show the same camera pose. */
+// Snapshot layout is [viewport width,height, worldMatrix(16), projectionMatrix(16)].
+// Third column of the column-major world matrix is the camera's world-space
+// optical axis. Translation, roll or lens changes alone are NOT a new angle.
+const directionOfView = camera => {
+  const axis = camera.slice(10,13);
+  const length = Math.hypot(...axis);
+  must(Number.isFinite(length)&&length>1e-9,
+    'finite nondegenerate world-camera viewing direction required');
+  return axis.map(n=>n/length);
+};
+
+/** Require two actual camera viewing directions, not merely two poses. */
 export function assessM5AR1125TwoViewProof({views}={}) {
   must(Array.isArray(views)&&views.length===2,'exactly two independent 27-frame views required');
   const a=verifyView(views[0],0),b=verifyView(views[1],1);
-  // A different viewport or projection alone is not an independent orbit view.
   must(a.camera.slice(2,18).some((value,i)=>Math.abs(value-b.camera[i+2])>1e-6),
     'two distinct world-camera poses required');
+  const aAxis=directionOfView(a.camera), bAxis=directionOfView(b.camera);
+  const dot=aAxis.reduce((sum,value,i)=>sum+value*bAxis[i],0);
+  const bearingDegrees=Math.acos(Math.max(-1,Math.min(1,dot)))*180/Math.PI;
+  must(Number.isFinite(bearingDegrees)&&bearingDegrees>=2,
+    'two distinct camera viewing directions separated by at least 2 degrees required');
   return Object.freeze({
     sourceTargetCount:13,viewCount:2,frameCount:54,
     eachViewFramePattern:'1_BASELINE_13_MUTED_13_RESTORED',
     eachViewGeometryExclusivePixels:true,
+    minimumViewBearingSeparationDegrees:2,
+    observedViewBearingSeparationDegrees:bearingDegrees,
     viewSummaries:[{label:a.label,isolatedKeys:13,width:a.width,height:a.height},
                    {label:b.label,isolatedKeys:13,width:b.width,height:b.height}],
     scope:'CALLER_CAPTURE_AGGREGATION_ONLY',
