@@ -33,7 +33,7 @@ export function detectM5AR1125SourceProjectedPixels(rgba, width, height, project
   if (
     !Number.isInteger(width) || width <= 0 ||
     !Number.isInteger(height) || height <= 0 ||
-    width * height > 16_000_000 ||
+    width * height > 2_304_000 ||
     rgba?.length !== width * height * 4
   ) throw new Error('R1125 pixel proof requires exact RGBA image dimensions');
 
@@ -163,6 +163,10 @@ export function buildM5AR1125BrowserScreenshotProofExpression(pngDataUrl, projec
   return (
     '(async (url, centers) => {' +
     ' const image = new Image(); image.src = url; await image.decode();' +
+    ' if (!Number.isInteger(image.width) || !Number.isInteger(image.height) ||' +
+    '     image.width < 1 || image.height < 1 ||' +
+    '     image.width * image.height > 2304000)' +
+    '   throw new Error("R1125 PNG canvas pixel budget exceeded");' +
     ' const canvas = document.createElement("canvas");' +
     ' canvas.width = image.width; canvas.height = image.height;' +
     ' const context = canvas.getContext("2d");' +
