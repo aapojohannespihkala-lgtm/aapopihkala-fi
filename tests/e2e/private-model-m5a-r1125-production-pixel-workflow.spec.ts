@@ -205,7 +205,7 @@ test('R1125 original node pixel evidence uses exactly two live authenticated vie
   expect(workflow).toContain('r1125FirstOriginalNodePixels?.perSource?.length === 13');
   expect(workflow).toContain('r1125OrbitOriginalNodePixels?.perSource?.length === 13');
   expect(workflow).toContain('m5a-r1125-original-node-');
-  expect(workflow).toContain('nodeAndMeshAssociations');
+  expect(workflow).toContain('originalNodeMeshAssociationViewerChecked');
   expect(viewer).toContain('m5aR1125SetOriginalSourceVisibility');
   expect(viewer).toContain('m5aR1125RestoreOriginalSourceVisibility');
 });
