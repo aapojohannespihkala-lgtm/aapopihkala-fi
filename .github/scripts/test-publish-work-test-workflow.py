@@ -35,6 +35,12 @@ required = {
     "raw size derivation": 'actual_size="$(stat -c \'%s\' "$model")"',
     "raw sha derivation": 'actual_sha="$(sha256sum "$model" | awk \'{print $1}\')"',
     "GLB magic guard": '[[ "$(head -c 4 "$model")" == "glTF" ]]',
+    "Worker pre-PUT identity guard": "Check checked-out Worker identity against downloaded Drive GLB before PUT",
+    "checked-out Worker source input": '"worker/privateWorkTest.ts" "$CANDIDATE_ID" "$EXPECTED_SIZE" "$EXPECTED_SHA256"',
+    "Worker identity strict candidate lookup": "if len(matches) != 1:",
+    "Worker identity numeric and digest match": "expected_size != int(actual_size) or expected_sha != actual_sha",
+    "Worker missing or ambiguous candidate must stop": 'raise SystemExit("Worker runtime candidate missing, duplicated, or unparseable: refuse PUT")',
+    "Worker source mismatch must stop": 'raise SystemExit("Worker source identity differs from raw Drive GLB: refuse PUT")',
     "derived expected size": 'echo "EXPECTED_SIZE=$actual_size"',
     "derived expected sha": 'echo "EXPECTED_SHA256=$actual_sha"',
     "binary PUT": '--data-binary "@$model"',
@@ -53,6 +59,17 @@ required = {
 missing = [label for label, needle in required.items() if needle not in text]
 if missing:
     raise SystemExit("publish-work-test contract missing: " + ", ".join(missing))
+
+worker_guard_step = "      - name: Check checked-out Worker identity against downloaded Drive GLB before PUT"
+publish_step = "      - name: Publish exact bytes through machine-only endpoint"
+if text.count(worker_guard_step) != 1:
+    raise SystemExit("pre-PUT Worker identity guard must appear exactly once")
+if not (
+    text.index('actual_sha="$(sha256sum "$model"')
+    < text.index(worker_guard_step)
+    < text.index(publish_step)
+):
+    raise SystemExit("Worker identity guard must follow raw SHA derivation and precede publisher PUT")
 
 for forbidden in (
     "pull_request:",
