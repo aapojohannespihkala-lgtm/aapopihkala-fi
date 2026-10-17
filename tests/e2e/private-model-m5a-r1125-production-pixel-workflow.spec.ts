@@ -28,8 +28,11 @@ test('R1125 requires the actual viewer scene63 projections and rejects substitut
   expect(workflow).toContain("d.m5aR1125SourceContract !== 'G2_R1125'");
   expect(workflow).toContain("d.m5aR1125SceneIndex !== '63'");
   expect(workflow).toContain("d.m5aR1125HumanReview !== 'NOT_RUN'");
-  expect(workflow).toContain("JSON.parse(d.m5aR1125SourceCameraCenters ?? '')");
-  expect(workflow).toContain('R1125 original source-camera projections missing from actual viewer');
+  expect(workflow).toContain('r1125OriginalView = await canvas.evaluate((el) => {');
+  expect(workflow).toContain("typeof el.m5aR1125RefreshSourceProjection !== 'function'");
+  expect(workflow).toContain('const projection = r1125OriginalView?.projection;');
+  expect(workflow).toContain('d.m5aR1125SourceCameraCenters !== JSON.stringify(projection)');
+  expect(workflow).toContain('R1125 first PNG projections not refreshed from actual viewer camera');
   expect(workflow).toContain('projection.sourceSceneIndex !== 63');
   expect(workflow).toContain('projection.sourceTargetCount !== 13');
   expect(workflow).toContain('projection.radiusPx !== radius');
@@ -54,7 +57,11 @@ test('R1125 uses a captured PNG clip and keeps other review hard floors', () => 
 });
 
 test('R1125 pixel-only evidence does not promote physical measurements or review', () => {
-  expect(workflow).toContain('exactRawGlbByteReadbackVerified: false');
+  // The original GLB response is now SHA-verified separately; the workflow
+  // must STILL admit that this does not bind its bytes to the viewer canvas.
+  expect(workflow).toContain('exactRawGlbByteReadbackVerified: true');
+  expect(workflow).toContain('sourceToCanvasGlbAssociationVerifiedByThisGate: false');
+  expect(workflow).toContain('thirteenIndividualSourceIsolationsVerified: false');
   expect(workflow).toContain("d.m5aPublishToCurrent !== 'false'");
   expect(workflow).toContain("m5aR1125PixelEvidence.humanReview !== 'NOT_RUN'");
   expect(workflow).toContain('m5aR1125PixelEvidence,');
