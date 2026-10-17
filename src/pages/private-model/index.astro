@@ -1840,6 +1840,10 @@ const title = 'Private 3D viewer';
       // @ts-ignore - exact 124-scene D1F raw-GLB source and browser loader are separately guarded.
       import { D1F_SHOWER_PHOTO_CANDIDATE_ID, isD1FShowerPhotoReviewRequested, loadD1FShowerPhotoReview }
         from '../../scripts/privateModelD1FShowerPhotoSourceContract.mjs';
+      // @ts-ignore - exact 112-scene ODENSVIK source and its 40 live pointers are guarded.
+      import { D1F_ODENSVIK_CANDIDATE_ID, D1F_ODENSVIK_REVIEW_ID,
+        isD1FOdensvikReviewRequested, loadD1FOdensvikReview }
+        from '../../scripts/privateModelD1FOdensvikSourceReview.mjs';
       // @ts-ignore - indexed WORK_TEST source dimensions, never physical approval.
       import { getD1FMeasuredWidthComparison }
         from '../../scripts/privateModelD1FMeasuredWidthReadout.mjs';
@@ -9601,7 +9605,12 @@ const title = 'Private 3D viewer';
           const showerPhotoReview = isD1FShowerPhotoReviewRequested(window.location.search)
             ? await loadD1FShowerPhotoReview({ candidate, search: window.location.search, loader })
             : null;
-          const gltf = serviceModel?.gltf ?? showerPhotoReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
+          const odensvikReview = isD1FOdensvikReviewRequested(window.location.search)
+            ? await loadD1FOdensvikReview({
+                candidate, search: window.location.search, loader,
+              })
+            : null;
+          const gltf = serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
             ? await loader.parseAsync(
                 isP137EThreeCornerMeasuredReviewRequested()
                   ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
@@ -10772,6 +10781,37 @@ const title = 'Private 3D viewer';
             });
             canvas.dataset.workTestReviewMode = candidate.id + '-review';
             status.textContent = 'Kylpyhuoneen kalusteet ja lattialämmitys - työmalli. Huolto- ja laitetiedot avautuvat kohteesta.';
+          } else if (odensvikReview) {
+            // GLTFLoader scene0 is NOT the new ODENSVIK basin. Render the
+            // authenticated scene108..111 selected by the exact one-link gate.
+            const sourceScene = odensvikReview.gltf.scene;
+            if (sourceScene !== odensvikReview.gltf.scenes?.[odensvikReview.selected.sceneIndex] ||
+                sourceScene?.children?.length !== 1 ||
+                !sourceScene.children[0]?.name?.includes('ODENSVIK00193937_WORK_TEST')) {
+              throw new Error('D1F_ODENSVIK_SELECTED_SCENE_NOT_RENDERABLE');
+            }
+            Object.assign(canvas.dataset, {
+              workTestReviewMode: D1F_ODENSVIK_REVIEW_ID,
+              d1fOdensvikVariant: odensvikReview.selected.variant,
+              d1fOdensvikSceneIndex: String(odensvikReview.selected.sceneIndex),
+              d1fOdensvikRawBytes: String(odensvikReview.asset.bytes),
+              d1fOdensvikRawSha256: odensvikReview.asset.sha256,
+              d1fOdensvikSourceAuthenticated: 'true',
+              d1fOdensvikSemanticTargetCount: String(odensvikReview.selected.sourceSemanticTargetsVerified),
+              d1fOdensvikWorkTest: 'true',
+              d1fOdensvikProductionPixelsVerified: 'false',
+              d1fOdensvikHumanReview: 'NOT_RUN',
+              d1fOdensvikCurrent: 'false',
+              d1fOdensvikCanonical: 'false',
+              d1fOdensvikAsBuilt: 'false',
+            });
+            // The normal D overview can replace the scene with its own subset.
+            // Rebind the exact scene after applying the contextual camera preset.
+            applyStandardViewPreset('d-apartment');
+            setModelScene(sourceScene);
+            canvas.dataset.contentScene = 'full-model';
+            status.textContent =
+              'D1F ODENSVIK 001.939.37 - exact WORK_TEST kylpyhuonenäkymä / tuotantopikselit ja ihmiskatselmus vielä varmentamatta';
           } else if (showerPhotoReview) {
             Object.assign(canvas.dataset, {
               workTestReviewMode: D1F_SHOWER_PHOTO_CANDIDATE_ID + '-review',
