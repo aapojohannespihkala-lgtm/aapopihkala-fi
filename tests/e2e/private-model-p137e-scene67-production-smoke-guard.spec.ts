@@ -749,7 +749,7 @@ test('R1125 preset derives exact canonical routing and 13 source roles before th
   expect(JSON.parse(values.EXPECTED_DATASET_JSON)).toMatchObject({
     m5aReviewTargetRenderableCount: '13', m5aReviewExpectedTargetRenderableCount: '13',
     m5aReviewWellMarkerCount: '4', m5aReviewRouteCount: '7',
-    m5aReviewUnresolvedBoundaryCount: '2', m5aR1125SourceSceneIndex: '63',
+    m5aReviewUnresolvedBoundaryCount: '2', m5aR1125SceneIndex: '63',
     m5aR1125SourceContract: 'G2_R1125', m5aHumanReview: 'NOT_RUN', m5aR1125HumanReview: 'NOT_RUN',
   });
   const validated = runActualProductionInputValidator(values);
