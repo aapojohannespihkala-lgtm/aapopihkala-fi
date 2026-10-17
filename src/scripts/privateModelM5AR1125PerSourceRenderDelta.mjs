@@ -143,7 +143,8 @@ export function detectM5AR1125PerSourceRenderDelta({
     names.every(key => Object.hasOwn(frames, key) && frameValid(frames[key], baseline.length));
   if (!Number.isInteger(width) || width < 128 ||
       !Number.isInteger(height) || height < 128 ||
-      width * height > 16000000 ||
+      // Match the 27-frame WebGL capture contract before any source-footprint or frame scan.
+      width * height > 2304000 ||
       !frameValid(baseline, width * height * 4) ||
       !recordValid(mutedFrames) || !recordValid(restoredFrames) ||
       !Array.isArray(projections) || projections.length !== 13) {
