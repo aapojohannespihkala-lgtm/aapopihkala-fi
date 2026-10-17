@@ -1861,6 +1861,11 @@ const title = 'Private 3D viewer';
         P137E_THREE_CORNER_MEASURED_SCENE_INDEX,
         P137E_THREE_CORNER_MEASURED_REVIEW_ROOT,
       } from '../../scripts/privateModelP137EFieldMeasuredWallRuntime.mjs';
+      // @ts-ignore - opt-in V4 atomic I03 integration QA; never changes default CURRENT.
+      import {
+        stageP137EI03NormalWallReplacement,
+        P137E_I03_NORMAL_INTEGRATION_QA_ID,
+      } from '../../scripts/privateModelP137EI03AtomicWallSwap.mjs';
       import { setupPrivateModelToolbarMenus } from '../../scripts/privateModelToolbarMenus';
       import {
         selectionMetadataEntries as collectSelectionMetadataEntries,
@@ -6254,8 +6259,68 @@ const title = 'Private 3D viewer';
         status.textContent = 'Ladataan suojattua mallia...';
 
         try {
+          // The actual normal wall is produced here, from model.glb,
+          // NOT by the separately selected scene69 source review.
           const gltf = await loader.loadAsync('/private-model/model.glb');
-          applyLoadedModel(gltf, 'current', 'CURRENT');
+          const i03IntegrationQa =
+            new URLSearchParams(window.location.search).get('i03IntegrationQA') ===
+              P137E_I03_NORMAL_INTEGRATION_QA_ID;
+          delete canvas.dataset.i03IntegrationQa;
+          if (i03IntegrationQa) {
+            // The normal D1F architectural wall is node798 inside the named
+            // scene5 carrier, NOT necessarily part of gltf.scene (often
+            // scene0). The source67/scene69 wall is only a verified candidate.
+            const i03Interior = findSourceNamedScene(gltf, 'D CURRENT INTERIOR - BABYLON Y-UP');
+            let stagedI03: ReturnType<typeof stageP137EI03NormalWallReplacement> | null = null;
+            try {
+              if (!i03Interior) throw new Error('P137E I03 normal scene5 missing');
+              const verified = await fetchP137EScene67VerifiedGlb(
+                P137E_SCENE67_EXACT_ASSET_PATH,
+              );
+              const successor = await loader.parseAsync(
+                makeP137EThreeCornerMeasuredWorkTest(verified),
+                P137E_SCENE67_EXACT_ASSET_PATH.replace(/[^/]+$/, ''),
+              );
+              stagedI03 = stageP137EI03NormalWallReplacement(
+                i03Interior, successor.scenes?.[P137E_THREE_CORNER_MEASURED_SCENE_INDEX],
+              );
+              if (!stagedI03.originalDetached || stagedI03.insertedCount !== 1 ||
+                  stagedI03.untouchedVertices !== 168 || stagedI03.sourceCorners !== 3) {
+                throw new Error('P137E I03 normal integration postcondition failed');
+              }
+              applyLoadedModel(gltf, 'work-test', 'WORK_TEST: I03 normaalimallin integraatiokoestus');
+              // Open the actual modified scene5 D1F carrier in the normal
+              // viewer. The orthographic measurement tool remains available.
+              applyStandardViewPreset('d-1f');
+              Object.assign(canvas.dataset, {
+                i03IntegrationQa: P137E_I03_NORMAL_INTEGRATION_QA_ID,
+                i03IntegrationSourceScene: 'D_CURRENT_INTERIOR_SCENE5',
+                p137eWorkTestOnly: 'true',
+                p137eCurrentClaim: 'false',
+                p137eCanonical: 'false',
+                p137eAsBuiltClaim: 'false',
+                p137eHumanReview: 'NOT_RUN',
+                p137eSourceCornerGapsClosed: '3',
+                p137eMeasuredWallGlobalXYBinding: 'CONDITIONAL_UNVERIFIED',
+              });
+              status.textContent =
+                'WORK_TEST: I03 vaihdettu D1F-arkkitehtuurinäkymään, ei CURRENT eikä hyväksytty katselmus';
+            } catch (integrationError) {
+              // A failed QA experiment must not blank the normal viewer or
+              // silently expose a partially modified CURRENT model.
+              if (stagedI03 && !stagedI03.restoreOriginal()) {
+                throw new Error('P137E I03 integration rollback failed');
+              }
+              console.warn('P137E I03 normal integration opt-in rejected', integrationError);
+              applyLoadedModel(gltf, 'current', 'CURRENT');
+              canvas.dataset.i03IntegrationQa = 'BLOCKED';
+              canvas.dataset.i03IntegrationSourceScene = 'NOT_VERIFIED';
+              status.textContent =
+                'I03 WORK_TEST estetty: tavallinen CURRENT-malli säilytettiin muuttumattomana';
+            }
+          } else {
+            applyLoadedModel(gltf, 'current', 'CURRENT');
+          }
           locusLayerLabel.textContent = 'Locus kunnallistekniikka (WORK_TEST)';
         } catch (error) {
           console.error(error);
@@ -11474,6 +11539,13 @@ const title = 'Private 3D viewer';
       });
       currentModelButton.addEventListener('click', () => {
         clearModelComparisonState();
+        // Returning from the opt-in integration candidate must actually load
+        // CURRENT, rather than silently reapplying the query-only wall surgery.
+        if (new URLSearchParams(window.location.search).has('i03IntegrationQA')) {
+          const returnUrl = new URL(window.location.href);
+          returnUrl.searchParams.delete('i03IntegrationQA');
+          window.history.replaceState(window.history.state, '', returnUrl);
+        }
         void loadCurrentModel();
       });
       layersButton.addEventListener('click', () => setLayersPanelOpen(layersPanel.hidden));
