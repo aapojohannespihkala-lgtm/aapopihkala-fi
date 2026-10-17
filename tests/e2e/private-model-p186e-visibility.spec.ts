@@ -314,7 +314,9 @@ const makeCandidateModel = () =>
       ...makeD2fRealWallContextNodes(),
       ...makeD2fHelperContextNodes(),
     ],
-    makeD1fRoomContextNodes(),
+    // Real interior walls are needed to activate the genuine D1F plan camera.
+    // Reference-footprint room helpers are intentionally excluded by the viewer.
+    [...makeD1fRoomContextNodes(), ...makeD1fRealWallContextNodes()],
   );
 
 const installRoutes = async (page: any) => {
@@ -406,15 +408,37 @@ const expectReadableCaptions = async (page: any, floor: 'D1F' | 'D2F') => {
     captionCount: p186eExpectedCounts[floor].total, completeSourceTextVerified: true,
     readableSizeGlyphPixelsVerified: true, glyphShapeOcrVerified: false, humanReview: 'NOT_RUN',
   });
+  // Exercise the real viewer event path: hidden-caption work suppression must
+  // preserve the exact visible caption frame after the source proof finishes.
+  let requestId = 0;
+  const command = async (action: string) => {
+    const id = ++requestId;
+    const result = await page.evaluate(({action, requestId}: {action: string, requestId: number}) => {
+      window.dispatchEvent(new CustomEvent('p186e-source-pixel-probe', {detail: {action, requestId}}));
+      return JSON.parse((document.querySelector('#private-model-canvas') as HTMLCanvasElement).dataset.p186ePixelProbe ?? 'null');
+    }, {action, requestId: id});
+    expect(result?.requestId).toBe(id);
+    return result;
+  };
+  const prepared = await command('prepare');
+  expect(prepared.state).toBe('PREPARED');
+  expect(JSON.parse(await canvas.getAttribute('data-p186e-caption-layout')).state).toBe('CAPTIONS_TEMPORARILY_HIDDEN');
+  const finished = await command('finish');
+  expect(finished).toMatchObject({state: 'FINISHED', sourceVisibilityRestored: true,
+    captionVisibilityRestored: true, cameraRestored: true});
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  const restored = decodeD1FScreenshotPng(await canvas.screenshot());
+  expect(Buffer.from(restored.rgba).equals(Buffer.from(image.rgba))).toBe(true);
 };
 
-test('P186E-X1 D1F review renders 14 group + 4 special source-label anchors against real D1F wall context', async ({
+for (const explicitSourcePlan of [false, true]) {
+test(`P186E-X1 D1F ${explicitSourcePlan ? 'explicit source plan' : 'review'} renders 14 group + 4 special source-label anchors against real D1F wall context`, async ({
   page,
 }) => {
   test.setTimeout(20_000);
   await page.setViewportSize({ width: 1536, height: 768 });
   await installRoutes(page);
-  await page.goto(`/private-model/?review=${reviewId}`);
+  await page.goto(`/private-model/?review=${reviewId}${explicitSourcePlan ? '&floor=d1f' : ''}`);
 
   const canvas = page.locator('#private-model-canvas');
   await expect(canvas).toHaveAttribute('data-work-test-review-autoload', 'true');
@@ -432,6 +456,7 @@ test('P186E-X1 D1F review renders 14 group + 4 special source-label anchors agai
   await expectVisiblePixels(page);
   await expectReadableCaptions(page, 'D1F');
 });
+}
 
 test('P186E-X1 D2F review renders 15 group + 1 special source-label anchors against real D2F wall context', async ({
   page,
