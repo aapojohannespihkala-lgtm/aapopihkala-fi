@@ -138,3 +138,36 @@ test('source identity, detached root, promoted source and invisible render targe
     Object.values(f.targets).forEach((v:any,i)=>expect(v.material).toBe(initial[i]));
   }
 });
+
+test('80/20 preflight rejects invisible alpha and color-write source materials before swapping',()=>{
+  const changes=[
+    (f:ReturnType<typeof fixture>)=>{(f.targets[keys[0]]!.material as any).colorWrite=false;},
+    (f:ReturnType<typeof fixture>)=>{(f.targets[keys[1]]!.material as any).alphaTest=0.8;},
+    (f:ReturnType<typeof fixture>)=>{(f.targets[keys[2]]!.material as any).alphaTest=Infinity;},
+    (f:ReturnType<typeof fixture>)=>{(f.context.material as any[])[0].colorWrite=false;},
+    (f:ReturnType<typeof fixture>)=>{(f.context.material as any[])[1].alphaTest=0.2;},
+    (f:ReturnType<typeof fixture>)=>{(f.context.material as any[])[1].alphaTest=-0.01;},
+  ];
+  for(const change of changes){
+    const f=fixture(), objects=[...Object.values(f.targets),f.context];
+    change(f);
+    const materialRefs=objects.map(o=>o.material);
+    expect(()=>prepare({gltf:f.gltf,binding:f.binding}))
+      .toThrow('source render material unavailable');
+    objects.forEach((o,i)=>expect(o.material).toBe(materialRefs[i]));
+  }
+});
+
+test('legitimately drawable alpha thresholds remain reversible WORK_TEST previews',()=>{
+  const f=fixture();
+  (f.targets[keys[0]]!.material as any).alphaTest=0.1;
+  (f.context.material as any[])[0].alphaTest=0.1;
+  const original=[f.targets[keys[0]]!.material,f.context.material];
+  const prepared=prepare({gltf:f.gltf,binding:f.binding});
+  expect(prepared.presentedTargetCount).toBe(13);
+  expect(prepared.contextPrimitiveCount).toBe(1);
+  expect(prepared.webglPixelProof).toBe(false);
+  expect(prepared.restore().state).toBe('RESTORED');
+  expect(f.targets[keys[0]]!.material).toBe(original[0]);
+  expect(f.context.material).toBe(original[1]);
+});
