@@ -24,7 +24,20 @@ const originalSourcePaintable = (object, root, scene) => {
       !Number.isInteger(start) || start < 0 ||
       !(drawCount === Infinity || (Number.isInteger(drawCount) && drawCount >= 0)) ||
       Math.min(drawCount, available - start) < minCount) return false;
-  const materials = Array.isArray(object.material) ? object.material : [object.material];
+  const multiple = Array.isArray(object.material);
+  const materials = multiple ? object.material : [object.material];
+  // THREE.MultiMaterial renders ONLY declared geometry.groups. A paintable
+  // material array without any draw groups produces zero source pixels.
+  if (multiple) {
+    const groups = object.geometry.groups;
+    if (!Array.isArray(groups) || !materials.every((_, materialIndex) =>
+      groups.some(group =>
+        group.materialIndex === materialIndex &&
+        Number.isInteger(group.start) && group.start >= 0 &&
+        Number.isInteger(group.count) && group.count >= minCount &&
+        Math.min(group.start + group.count, start + drawCount, available) -
+          Math.max(group.start, start) >= minCount))) return false;
+  }
   return materials.length > 0 && materials.every(material => {
     if (!material || material.visible === false || material.colorWrite === false) return false;
     const opacity = material.opacity ?? 1;
