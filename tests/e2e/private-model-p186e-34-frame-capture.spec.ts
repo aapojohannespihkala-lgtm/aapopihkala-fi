@@ -12,10 +12,13 @@ import {
 const W=160,H=112, bg=[32,38,43,255], amber=[255,190,20,255];
 function input() {
   const floors=(['D1F','D2F'] as const).map(floor=>{
-    const objects: {visible:boolean,parent:null}[]=[];
+    const objects: {visible:boolean,parent:null,material:{
+      visible:boolean,colorWrite:boolean,opacity:number,alphaTest:number
+    }}[]=[];
     const targets=Array.from({length:counts[floor].total},(_,i)=>{
       const kind:'group'|'special'=i<counts[floor].group?'group':'special';
-      const object={visible:true,parent:null};
+      const object={visible:true,parent:null,
+        material:{visible:true,colorWrite:true,opacity:1,alphaTest:0}};
       objects.push(object);
       return {
         object, sourceKey:floor+'_LABEL_'+String(i+1).padStart(2,'0'),kind,
@@ -60,6 +63,43 @@ test('all 34 historical D labels are individually captured and exactly restored'
   expect(result.D2F.visuallyIsolated).toBe(16);
   expect(x.floors.map(f=>f.captures)).toEqual([37,33]); // 1 baseline + 2 per target
   expect(x.floors.every(f=>f.objects.every(o=>o.visible))).toBe(true);
+});
+
+test('nonpainting source labels fail before any renderer frame or visibility mutation',async()=>{
+  for(const cause of ['hidden','colorWrite','zeroOpacity','alphaCutout'] as const) {
+    const x=input(), material=x.floors[0].objects[0].material;
+    if(cause==='hidden')material.visible=false;
+    if(cause==='colorWrite')material.colorWrite=false;
+    if(cause==='zeroOpacity')material.opacity=0;
+    if(cause==='alphaCutout')material.alphaTest=1.01;
+    await expect(verify(x)).rejects.toThrow('source paint material unavailable');
+    expect(x.floors.every(f=>f.captures===0)).toBe(true);
+    expect(x.floors.every(f=>f.objects.every(o=>o.visible))).toBe(true);
+  }
+});
+
+test('source material becoming invisible during hidden capture fails and restores target',async()=>{
+  const x=input(),original=x.captureRGBA;
+  x.captureRGBA=async session=>{
+    const frame=await original(session);
+    if(session.floor==='D1F'&&session.targets.some(t=>!t.object.visible))
+      session.objects[1].material.colorWrite=false;
+    return frame;
+  };
+  await expect(verify(x)).rejects.toThrow('source paint material drift');
+  expect(x.floors[0].objects.every(o=>o.visible)).toBe(true);
+});
+
+test('material replacement is detected even when appearance is initially identical',async()=>{
+  const x=input(),original=x.captureRGBA;
+  x.captureRGBA=async session=>{
+    const frame=await original(session);
+    if(session.floor==='D1F'&&session.targets.some(t=>!t.object.visible))
+      session.objects[1].material={...session.objects[1].material};
+    return frame;
+  };
+  await expect(verify(x)).rejects.toThrow('source paint material drift');
+  expect(x.floors[0].objects.every(o=>o.visible)).toBe(true);
 });
 
 test('camera drift during hidden frame aborts and restores the source target',async()=>{

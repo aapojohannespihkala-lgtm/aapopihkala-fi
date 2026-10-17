@@ -26,6 +26,19 @@ const live = (node) => {
 export const p186eMaxCapturePixels = 2_304_000;
 const samePixels = (a,b) =>
   a.length===b.length && a.every((value,i)=>value===b[i]);
+// Paintability is a necessary, not sufficient, condition for WebGL pixels.
+// The per-object source pixel verifier remains the only evidence of actual draw.
+const paintParts = material => Array.isArray(material) ? material : [material];
+const paintable = material => paintParts(material).length > 0 &&
+  paintParts(material).every(part => part && part.visible !== false &&
+    part.colorWrite !== false && Number.isFinite(part.opacity) && part.opacity > 0 &&
+    Number.isFinite(part.alphaTest ?? 0) && (part.alphaTest ?? 0) >= 0 &&
+    (part.alphaTest ?? 0) <= part.opacity);
+const paintState = material => JSON.stringify(paintParts(material).map(part => ({
+  uuid:part?.uuid,visible:part?.visible,colorWrite:part?.colorWrite,
+  opacity:part?.opacity,transparent:part?.transparent,alphaTest:part?.alphaTest,
+})));
+
 const cleanFrame = (value) => {
   check(value && Number.isSafeInteger(value.width) && Number.isSafeInteger(value.height)
     && value.width>=16 && value.height>=16 && value.width<=4096 && value.height<=4096
@@ -58,9 +71,18 @@ export async function captureP186E34SourceFrames({
     const objects=session.targets.map(t=>t.object);
     check(objects.every(o=>o && typeof o==='object' && o.visible===true && live(o))
       && new Set(objects).size===objects.length, 'visible distinct source objects');
+    check(objects.every(object=>paintable(object.material)), 'source paint material unavailable');
+    const originalPaint=objects.map(object=>({
+      material:object.material, signature:paintState(object.material),
+    }));
     const camera=readCameraFingerprint(session);
     check(typeof camera==='string' && camera.length>=8, 'camera fingerprint');
-    const stable=()=>check(readCameraFingerprint(session)===camera, 'camera drift');
+    const stable=()=>{
+      check(readCameraFingerprint(session)===camera, 'camera drift');
+      check(objects.every((object,i)=>object.material===originalPaint[i].material &&
+        paintable(object.material) &&
+        paintState(object.material)===originalPaint[i].signature), 'source paint material drift');
+    };
     const capture=async()=>{
       stable();
       const frame=cleanFrame(await captureRGBA(session));
