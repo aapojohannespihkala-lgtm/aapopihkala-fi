@@ -1748,7 +1748,9 @@ jobs:
                   screenshotPixelEvidence: m5aR1125PixelEvidence,
                   exactRawGlbByteReadbackVerified: true,
                   sourceToCanvasGlbAssociationVerifiedByThisGate: false,
-                  thirteenIndividualSourceIsolationsVerified: false,
+                  thirteenIndividualSourceIsolationsVerified:
+                    r1125FirstOriginalNodePixels?.individualOriginalSourcePixelsVerified === true &&
+                    r1125FirstOriginalNodePixels?.perSource?.length === 13,
                   humanReview: 'NOT_RUN',
                 }, null, 2));
             }
