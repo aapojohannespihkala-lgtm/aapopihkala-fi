@@ -1,4 +1,5 @@
-import { DirectionalLight, HemisphereLight } from 'three';
+import { Box3, Vector3, DirectionalLight, HemisphereLight } from 'three';
+import { planD1FSourceGlassCamera } from './privateModelD1FShowerGlassSourceCameraFit.mjs';
 import {
   D1F_SHOWER_PHOTO_SOURCE,
   D1F_SHOWER_PHOTO_VARIANTS,
@@ -110,11 +111,56 @@ export async function runD1FShowerGlassSourceVerifiedWebGL({
     }
     scene.updateMatrixWorld(true);
   }
+  const cameraSnapshot = camera.isPerspectiveCamera ? {
+    position:camera.position.clone(), up:camera.up.clone(),
+    quaternion:camera.quaternion.clone(), fov:camera.fov, near:camera.near, far:camera.far,
+  } : null;
+  let sourceCameraFit = null;
   const captureRGBA = createD1FShowerGlassWebGLCapture({ renderer, target, width, height });
   // All four scene captures use the same lighting as the private viewer.
   // The source objects/materials stay exact and every temporary light is removed.
   const removePresentationLights = mountD1FShowerViewerPresentationLights(gltf);
   try {
+    // Genuine GLTFLoader-parsed mesh-777 camera bound to all four exact scenes.
+    // This corrects the prior whole-building/distant viewer framing.
+    if (cameraSnapshot && width >= 320 && height >= 320) {
+      const union = new Box3();
+      for (const v of D1F_SHOWER_PHOTO_VARIANTS) {
+        const scene = gltf.scenes[v.sceneIndex];
+        let glassGroup = null, matches = 0;
+        scene.traverse(object => {
+          const association = gltf.parser.associations.get(object);
+          if (association?.nodes === v.glassNode &&
+              association?.meshes === 777 &&
+              Object.keys(association).length === 2) {
+            glassGroup = object;
+            matches++;
+          }
+        });
+        if (matches !== 1 || glassGroup?.children?.length !== 3 ||
+            !glassGroup.children.every(child => child?.isMesh)) {
+          fail('cannot frame exact glass source mesh and three primitives');
+        }
+        scene.updateMatrixWorld(true);
+        const bounds = new Box3().setFromObject(glassGroup, true);
+        if (bounds.isEmpty()) fail('empty original glass source bounds');
+        union.union(bounds);
+      }
+      sourceCameraFit = planD1FSourceGlassCamera({
+        source:{bytes:bytes.byteLength, sha256:D1F_SHOWER_PHOTO_SOURCE.sha256},
+        sceneIndex:120,rootNode:2457,glassNode:2456,glassMeshIndex:777,
+        glassWorldBounds:{min:union.min.toArray(),max:union.max.toArray()},
+        viewportWidth:width,viewportHeight:height,
+      });
+      camera.position.set(...sourceCameraFit.position);
+      camera.up.set(...sourceCameraFit.up);
+      camera.fov = sourceCameraFit.verticalFovDeg;
+      camera.near = sourceCameraFit.near;
+      camera.far = sourceCameraFit.far;
+      camera.lookAt(new Vector3(...sourceCameraFit.target));
+      camera.updateProjectionMatrix();
+      camera.updateMatrixWorld(true);
+    }
     const result = await collectD1FShowerGlassPrimitiveFrames({
       gltf, camera, width, height, captureRGBA,
       sourceBytes: bytes.byteLength,
@@ -126,6 +172,9 @@ export async function runD1FShowerGlassSourceVerifiedWebGL({
       sourceParsedFromVerifiedBytes: true,
       realWebGLCaptureProvidedByRunner: true,
       presentationLightProfile: 'PRIVATE_VIEWER_HEMISPHERE_2_2_DIRECTIONAL_2_0',
+      sourceGlassCameraFitApplied: sourceCameraFit !== null,
+      sourceGlassCameraFramingProvenance: sourceCameraFit?.sourceWorldBoundsProvenance ?? 'CALLER_CAMERA_UNCHANGED',
+      sourceCameraFitIsProductionAutoloadProof: false,
       temporarySourcePresentationLightsRestored: true,
       productionOriginVerifiedByRunner: false,
       authenticatedPrivateViewerVerifiedByRunner: false,
@@ -134,6 +183,19 @@ export async function runD1FShowerGlassSourceVerifiedWebGL({
       current: false, canonical: false, asBuilt: false,
     });
   } finally {
-    removePresentationLights();
+    try { removePresentationLights(); }
+    finally {
+      // Caller-owned camera must remain unchanged after capture or failure.
+      if (cameraSnapshot) {
+        camera.position.copy(cameraSnapshot.position);
+        camera.up.copy(cameraSnapshot.up);
+        camera.quaternion.copy(cameraSnapshot.quaternion);
+        camera.fov = cameraSnapshot.fov;
+        camera.near = cameraSnapshot.near;
+        camera.far = cameraSnapshot.far;
+        camera.updateProjectionMatrix();
+        camera.updateMatrixWorld(true);
+      }
+    }
   }
 }
