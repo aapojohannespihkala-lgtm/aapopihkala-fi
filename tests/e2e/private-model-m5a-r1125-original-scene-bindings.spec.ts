@@ -176,7 +176,8 @@ test('positive original GLTFLoader source paintability accepts ordinary and mult
     const target = input.gltf.scenes[63].children[0].children[0] as THREE.Mesh;
     expect(target.isMesh).toBe(true);
     if (multi) {
-      target.material = [target.material, (target.material as THREE.Material).clone()];
+      const originalMaterial = target.material as THREE.Material;
+      target.material = [originalMaterial, originalMaterial.clone()];
       target.geometry.addGroup(0, 3, 0);
       target.geometry.addGroup(0, 3, 1);
     }
