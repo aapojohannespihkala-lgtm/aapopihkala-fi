@@ -1547,14 +1547,16 @@ jobs:
                   }
                   return el.m5aR1125SetOriginalSourceVisibility(key, 'HIDE');
                 }, center.key);
-                if (hidden?.sourceKey !== center.key || hidden.activeHiddenCount !== 1 ||
-                    hidden.originalSourceCount !== 13 ||
-                    hidden.originalGlbDigestVerifiedByThisProbe !== false ||
-                    hidden.humanReview !== 'NOT_RUN') {
-                  throw new Error('R1125 source node hide contract mismatch: ' + center.key);
-                }
                 let mutedPng;
                 try {
+                  // Validate inside finally ownership: even a malformed reply
+                  // cannot leave an original GLTF node hidden on the canvas.
+                  if (hidden?.sourceKey !== center.key || hidden.activeHiddenCount !== 1 ||
+                      hidden.originalSourceCount !== 13 ||
+                      hidden.originalGlbDigestVerifiedByThisProbe !== false ||
+                      hidden.humanReview !== 'NOT_RUN') {
+                    throw new Error('R1125 source node hide contract mismatch: ' + center.key);
+                  }
                   await page.waitForTimeout(100);
                   mutedPng = await page.screenshot({clip:box,animations:'disabled'});
                 } finally {
