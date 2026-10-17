@@ -103,7 +103,8 @@ test('R1125 viewer source binding isolates exactly one original node and restore
       ...(boundary
         ? { representationKind: 'unresolvedBoundaryMarker',
             boundaryRole: key.substring('boundary:'.length) }
-        : { representationKind: 'pipeDiameterPresentationWork',
+        : { representationKind: key.startsWith('G2_DRAIN_WELL_')
+            ? 'wellDiameterPresentationWork' : 'pipeDiameterPresentationWork',
             G2IdCandidate: key }),
       Canonical: false, presentationOnly: true,
       currentGeometryClaim: false, asBuiltClaim: false,
@@ -167,6 +168,11 @@ test('R1125 viewer source binding isolates exactly one original node and restore
   expect(() => bind(gltf,scene,badCanvas,{centers},'test-r1125'))
     .toThrow(/original source node\/mesh identity mismatch/);
   expect(objects.every(o=>o.visible)).toBe(true);
+  // Wrong original representation class also rejects the source identity.
+  associations.set(second,{nodes:1,meshes:1,primitives:0});
+  nodes[1].extras.representationKind = 'unresolvedBoundaryMarker';
+  expect(() => bind(gltf,scene,badCanvas,{centers},'test-r1125'))
+    .toThrow(/original source node\/mesh identity mismatch/);
 });
 
 test('R1125 source visibility capability is removed and restored at model change', () => {
