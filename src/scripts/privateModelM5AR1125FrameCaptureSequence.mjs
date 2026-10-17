@@ -25,7 +25,8 @@ function ancestry(node, root) {
 function materialSafe(object) {
   const materials = Array.isArray(object.material) ? object.material : [object.material];
   need(materials.length > 0 && materials.every(m => m && m.visible !== false &&
-    Number.isFinite(Number(m.opacity ?? 1)) && Number(m.opacity ?? 1) > 0),
+    Number.isFinite(Number(m.opacity ?? 1)) && Number(m.opacity ?? 1) > 0 &&
+    m.colorWrite !== false),
     'hidden/invalid source material');
 }
 function rgbacopy(raw, width, height) {
@@ -38,7 +39,7 @@ function identical(a,b) {
 }
 // Public render-material state must not drift during an awaited readPixels.
 // Internal shader/GPU state remains outside this explicit snapshot contract.
-const FIELDS=['visible','opacity','depthTest','depthWrite','alphaTest','side',
+const FIELDS=['visible','opacity','colorWrite','depthTest','depthWrite','alphaTest','side',
   'transparent','blending','map','color','emissive'];
 const rgb=c=>c&&typeof c==='object'?['r','g','b'].map(k=>c[k]):null;
 // Track both UV vector identity and its coordinates. Merely comparing x/y
