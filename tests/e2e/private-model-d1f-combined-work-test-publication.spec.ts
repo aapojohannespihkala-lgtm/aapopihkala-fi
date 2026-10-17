@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { getRequestedReviewCandidateId } from '../../src/scripts/privateModelWorkTest';
 import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -70,4 +71,35 @@ test('different raw bytes and CURRENT aliases cannot enter the combined publicat
   expect(getPrivateWorkTestPublishCandidate('/private-model/model.glb')).toBeNull();
   expect(getPrivateWorkTestPublishCandidate('/private-model/work-test/publish/current.glb')).toBeNull();
   expect(isD1FCombinedWallReviewRequested(`?review=${id}-review-current`)).toBe(false);
+});
+
+test('ODENSVIK product-corrected basin successor is published only through exact source-bound WORK_TEST path', async () => {
+  const odensvikId = 'd1f-odensvik-00193937-basin-correction-20261017';
+  const driveId = '16R3SnEVRA9kM-_Y9Y147nYiN6DFrMSoT';
+  const sha = 'cf1ab6925f5aa200929739c0a0b71455f79d5d4e500e4d0b601a0e9eda3e8a9e';
+  const bytes = 8876156;
+  const path = `/private-model/work-test/${odensvikId}.glb`;
+  const candidate = getPrivateWorkTestCandidateById(odensvikId);
+  expect(candidate).toMatchObject({
+    id:odensvikId,
+    label:expect.stringContaining('ODENSVIK'),
+    path,
+    objectKey:`work-test/${odensvikId}.glb`,
+    expectedSize:bytes,
+    expectedSha256:sha,
+  });
+  expect(registry.candidates[odensvikId]).toEqual({driveFileId:driveId});
+  expect(Object.values(registry.candidates).filter((entry:any)=>entry.driveFileId===driveId)).toHaveLength(1);
+  expect(getPrivateWorkTestCandidate(path)).toEqual(candidate);
+  expect(getPrivateWorkTestPublishCandidate(`/private-model/work-test/publish/${odensvikId}.glb`)).toEqual(candidate);
+  expect(getPrivateWorkTestVerifyCandidate(`/private-model/work-test/verify/${odensvikId}.glb`)).toEqual(candidate);
+  expect(getRequestedReviewCandidateId(`?review=${odensvikId}-review`)).toBe(odensvikId);
+  expect(getPrivateWorkTestCandidateById('current-model')).toBeNull();
+  expect(getPrivateWorkTestCandidateById('d1f-wc-closed-lid-450-surface-fix-20261017')?.expectedSha256)
+    .toBe('43d2a17e3f551afb552adbc87d05618e1d22aacd5cbbdd0ffa15625e588264ab');
+  if(!candidate) throw new Error('missing exact ODENSVIK WORK_TEST candidate');
+  expect(await validatePrivateWorkTestUploadBytes(new Uint8Array(32).buffer,candidate))
+    .toBe('upload-size-mismatch');
+  expect(await validatePrivateWorkTestUploadBytes(new Uint8Array(bytes).buffer,candidate))
+    .toBe('upload-sha256-mismatch');
 });
