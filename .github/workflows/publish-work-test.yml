@@ -186,6 +186,16 @@ jobs:
           set -euo pipefail
           python3 .github/scripts/private-model-d1f-odensvik-40-pointer-guard.py "$RUNNER_TEMP/work-test-source.glb"
 
+      # Separate source successor: 116 scenes, corrected 112..115, 40 reachable targets.
+      # This supplements the original 112-scene source gate, never relaxes it.
+      - name: Verify ODENSVIK corrected winding exact source links
+        if: inputs.candidate == 'd1f-odensvik-00193937-counter-winding-fixed-20261018'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/test-private-model-d1f-odensvik-winding-40-guard.py -q
+          python3 .github/scripts/private-model-d1f-odensvik-winding-40-pointer-guard.py "$RUNNER_TEMP/work-test-source.glb"
+
       - name: Publish exact bytes through machine-only endpoint
         shell: bash
         env:
