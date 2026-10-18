@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
+// @ts-ignore - source-only exact GLB camera planner, not a production screenshot proof.
+import { planD1FSourceGlassCamera } from '../../src/scripts/privateModelD1FShowerGlassSourceCameraFit.mjs';
 
 const source=readFileSync('src/pages/private-model/index.astro','utf8');
 const branchStart='          } else if (showerPhotoReview) {';
@@ -25,12 +27,13 @@ function runVisibleSourceFocus({missingGlass=false,wrongRoot=false,notSource=fal
   const camera=new THREE.PerspectiveCamera(38,1.5,0.01,5000);
   camera.position.set(12,8,14);
   const controls={enableRotate:false,enabled:false,target:new THREE.Vector3(0,0,0),update(){}};
-  const canvas={dataset:{} as Record<string,string>},status={textContent:''};
+  const canvas={dataset:{} as Record<string,string>,
+    getBoundingClientRect(){return {width:1280,height:800};}},status={textContent:''};
   const planControls={enabled:true},isoControls={enabled:true};
   const selectedScene=notSource?new THREE.Scene():fullModelScene;
   const showerPhotoReview={
     gltf:{scene:selectedScene},
-    selected:{variant:selected,sceneIndex:120,glassNode:2456},
+    selected:{variant:selected,sceneIndex:120,rootNode:2457,glassNode:2456},
     asset:{bytes:8914072,sha256:'992819363a6e368546e870f9ff2a17ddf0904e760269fc20aec509aa310ba35e'},
     rawGlbByteIdentityVerified:true,
     humanReview:'NOT_RUN',
@@ -39,14 +42,16 @@ function runVisibleSourceFocus({missingGlass=false,wrongRoot=false,notSource=fal
   const focus=new Function(
     'THREE','showerPhotoReview','fullModelScene','deactivateElevationView',
     'planControls','isoControls','controls','camera','setModelScene',
-    'canvas','syncViewState','status','D1F_SHOWER_PHOTO_CANDIDATE_ID', 
+    'canvas','syncViewState','status','D1F_SHOWER_PHOTO_CANDIDATE_ID',
+    'planD1FSourceGlassCamera', 
     'let activeCamera=camera;\n'+block+'\nreturn {activeCamera};'
   );
   const before=originalRoot.children.slice();
   const response=()=>focus(
     THREE,showerPhotoReview,fullModelScene,()=>{},planControls,isoControls,
     controls,camera,(root:any)=>{effect.mounted=root;},
-    canvas,()=>{effect.orbit=true;},status,'d1f-shower-glass-photo-20261016');
+    canvas,()=>{effect.orbit=true;},status,'d1f-shower-glass-photo-20261016',
+    planD1FSourceGlassCamera);
   return {response,scene:fullModelScene,glass,originalRoot,before,camera,controls,canvas,effect,planControls,isoControls};
 }
 
