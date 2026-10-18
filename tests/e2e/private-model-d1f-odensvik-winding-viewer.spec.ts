@@ -6,6 +6,7 @@ import {
   D1F_ODENSVIK_WINDING_VARIANTS,
   isD1FOdensvikWindingReviewRequested,
   selectD1FOdensvikWindingScene,
+  loadD1FOdensvikWindingReview,
 } from '../../src/scripts/privateModelD1FOdensvikWindingReview.mjs';
 
 // Synthetic geometry index, not an alternate source or a physical model.
@@ -88,4 +89,45 @@ test('fail closed on changed corrected face, wrong source default and old source
   d.nodes[2653].extras.surfaceNodes.surface1=d.nodes[2653].extras.surfaceNodes.surface0;
   expect(()=>selectD1FOdensvikWindingScene(d)).toThrow(/SOURCE_REJECTED/);
   expect(()=>selectD1FOdensvikWindingScene(fixture(),'unknown' as any)).toThrow(/SOURCE_REJECTED/);
+});
+
+// A genuine catalog candidate has exactly three fields; its bytes and hash
+// are verified against this module's pinned source, NEVER catalog metadata.
+test('production catalog three-field candidate reaches exact raw GLB verifier',async()=>{
+  const path='/private-model/work-test/'+D1F_ODENSVIK_WINDING_CANDIDATE_ID+'.glb';
+  const catalogCandidate={id:D1F_ODENSVIK_WINDING_CANDIDATE_ID,
+    label:'Corrected counter WORK_TEST',path};
+  let fetched=0;
+  const fetcher=async (url:string,options:any)=>{
+    fetched++;
+    expect(url).toBe(path);
+    expect(options.credentials).toBe('same-origin');
+    expect(options.redirect).toBe('error');
+    expect(options.cache).toBe('no-store');
+    // Not the source: deliberately reject invalid bytes after fetch.
+    return {status:200,redirected:false,url:'https://aapopihkala.fi'+path,
+      arrayBuffer:async()=>new Uint8Array([103,108,84,70]).buffer};
+  };
+  await expect(loadD1FOdensvikWindingReview({
+    candidate:catalogCandidate,
+    search:'?review='+D1F_ODENSVIK_WINDING_REVIEW_ID,
+    loader:{parseAsync:async()=>{throw Error('must-not-parse-invalid-raw');}},
+    fetcher,origin:'https://aapopihkala.fi',
+  })).rejects.toThrow('ODENSVIK_WINDING_SOURCE_REJECTED:source-size-or-crypto');
+  expect(fetched).toBe(1);
+});
+test('wrong catalog candidate or path never fetches any GLB',async()=>{
+  const path='/private-model/work-test/'+D1F_ODENSVIK_WINDING_CANDIDATE_ID+'.glb';
+  let fetched=0;
+  const fetcher=async()=>{fetched++;throw Error('wrong asset fetched');};
+  for(const candidate of [
+    {id:'d1f-odensvik-00193937-basin-correction-20261017',label:'Old',path},
+    {id:D1F_ODENSVIK_WINDING_CANDIDATE_ID,label:'Wrong path',path:'/private-model/work-test/other.glb'},
+  ]){
+    await expect(loadD1FOdensvikWindingReview({
+      candidate,search:'?review='+D1F_ODENSVIK_WINDING_REVIEW_ID,
+      loader:{parseAsync:async()=>{}},fetcher,origin:'https://aapopihkala.fi',
+    })).rejects.toThrow('ODENSVIK_WINDING_SOURCE_REJECTED:candidate-review-identity');
+  }
+  expect(fetched).toBe(0);
 });
