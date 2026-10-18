@@ -54,5 +54,8 @@ test('R1125 production smoke consumes the exact viewer output, not synthetic dat
   expect(workflow).toContain('projection.sourceTargetCount !== 13');
   expect(workflow).toContain('projection.radiusPx !== radius');
   expect(workflow).toContain('m5aR1125PixelEvidence.allSourceTargetsVisible !== true');
-  expect(workflow).toContain('exactRawGlbByteReadbackVerified: false');
+  // Original network GLB has now been independently SHA/readback-verified,
+  // but this gate does not prove those bytes were bound to WebGL canvas.
+  expect(workflow).toContain('exactRawGlbByteReadbackVerified: true');
+  expect(workflow).toContain('sourceToCanvasGlbAssociationVerifiedByThisGate: false');
 });
