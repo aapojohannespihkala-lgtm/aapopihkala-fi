@@ -100,7 +100,8 @@ export function verifyScene64FrameTriplet({before,hidden,restored,center,
     let delta=false,reverted=false;
     for(let channel=0;channel<4;channel++){
       delta ||= Math.abs(before.rgba[offset+channel]-hidden.rgba[offset+channel])>=24;
-      // Restoration is exact, unlike the deliberately tolerant HIDE delta.\n      reverted ||= before.rgba[offset+channel]!==restored.rgba[offset+channel];
+      // Restoration is exact, unlike the deliberately tolerant HIDE delta.
+      reverted ||= before.rgba[offset+channel]!==restored.rgba[offset+channel];
     }
     if(reverted) restorationChanged++;
     if(delta){
