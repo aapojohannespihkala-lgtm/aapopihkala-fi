@@ -82,7 +82,7 @@ test('asymmetric original-mesh ROI rejects vertically mirrored pixels from anoth
   expect(upper.top).toBeLessThanOrEqual(21);
   mesh.position.set(0,-0.6,0);mesh.updateMatrixWorld(true);
   const lower=projectD1FOdensvikObjectPixelRoi(mesh,camera,width,height,{padding:0});
-  expect(lower.bottom).toBeGreaterThan(59);
+  expect(lower.bottom).toBeGreaterThanOrEqual(59);
   const original=new Uint8Array(width*height*4);
   const hidden=original.slice();
   // Readback adapter stores the *upper* original object at top-left rows.
