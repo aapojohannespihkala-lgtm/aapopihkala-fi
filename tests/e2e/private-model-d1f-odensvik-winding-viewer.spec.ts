@@ -112,7 +112,7 @@ test('production catalog three-field candidate reaches exact raw GLB verifier',a
     candidate:catalogCandidate,
     search:'?review='+D1F_ODENSVIK_WINDING_REVIEW_ID,
     loader:{parseAsync:async()=>{throw Error('must-not-parse-invalid-raw');}},
-    fetcher,origin:'https://aapopihkala.fi',
+    fetcher:fetcher as any,origin:'https://aapopihkala.fi',
   })).rejects.toThrow('ODENSVIK_WINDING_SOURCE_REJECTED:source-size-or-crypto');
   expect(fetched).toBe(1);
 });
@@ -126,7 +126,7 @@ test('wrong catalog candidate or path never fetches any GLB',async()=>{
   ]){
     await expect(loadD1FOdensvikWindingReview({
       candidate,search:'?review='+D1F_ODENSVIK_WINDING_REVIEW_ID,
-      loader:{parseAsync:async()=>{}},fetcher,origin:'https://aapopihkala.fi',
+      loader:{parseAsync:async()=>{}},fetcher:fetcher as any,origin:'https://aapopihkala.fi',
     })).rejects.toThrow('ODENSVIK_WINDING_SOURCE_REJECTED:candidate-review-identity');
   }
   expect(fetched).toBe(0);
