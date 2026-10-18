@@ -710,16 +710,18 @@ const D1F_SHOWER_PHOTO_CANDIDATE = {
   expectedSha256: D1F_SHOWER_PHOTO_SOURCE.sha256,
 } as const satisfies PrivateWorkTestCandidate;
 
-// Noncanonical exact source-room scene143, including the measured mirror, Bosch
-// left-of-basin correction, historical sauna cutaway and unmeasured bench hypotheses.
-// Registration only: NOT installed/current/asBuilt or HUMAN_REVIEW proof.
-const D1F_SCENE143_SOURCE_ROOM_WORK_TEST_CANDIDATE = {
-  id: 'd1f-source-room-bosch-mirror-sauna-benches-scene143-20261018',
-  label: 'D1F - kylpyhuone + sauna, Bosch/peilikaappi ja lauteet - WORK_TEST',
-  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-source-room-bosch-mirror-sauna-benches-scene143-20261018.glb`,
-  objectKey: 'work-test/d1f-source-room-bosch-mirror-sauna-benches-scene143-20261018.glb',
-  expectedSize: 9384880,
-  expectedSha256: '3e8547a3833c0d12a8698e1ea67ae5a7be5f925e563e10e518aaff9bf9b13dfa',
+// Noncanonical source150 D1F room with user-correct Bosch-left and measured mirror,
+// photo-relative K2 (+35 mm WORK_ASSUMPTION), U-sauna, oak drawers and exactly
+// two photo-derived shower pulls. Optional unmeasured tile view151 is included.
+// Exact source-bounded WORK_TEST registration only; physical installed XY/tiles/
+// pulls and sauna stove clearance remain UNKNOWN. No CURRENT/HUMAN_REVIEW pass.
+const D1F_SCENE150_SOURCE_ROOM_WORK_TEST_CANDIDATE = {
+  id: 'd1f-source150-k2-oak-u-glass-two-handles-20261018',
+  label: 'D1F - kylpyhuone + U-sauna, K2, tammilaatikot ja 2 vedintä - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-source150-k2-oak-u-glass-two-handles-20261018.glb`,
+  objectKey: 'work-test/d1f-source150-k2-oak-u-glass-two-handles-20261018.glb',
+  expectedSize: 9628072,
+  expectedSha256: '6f0cbbe77d3ab0cbe199477fc78b9e90e98acecf1806b79db67dd6cce22b88cc',
 } as const satisfies PrivateWorkTestCandidate;
 
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
@@ -744,7 +746,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_ODENSVIK_WINDING_CORRECTED_ZIP_CANDIDATE,
   D1F_KPH_010204_ZIP_CANDIDATE,
   D1F_SHOWER_PHOTO_CANDIDATE,
-  D1F_SCENE143_SOURCE_ROOM_WORK_TEST_CANDIDATE,
+  D1F_SCENE150_SOURCE_ROOM_WORK_TEST_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
