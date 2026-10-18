@@ -6,6 +6,47 @@ const fail = reason => { throw Error('R1125_ORIGINAL_SCENE_BINDINGS_REJECTED: ' 
 const expect = (yes, why) => { if(!yes) fail(why); };
 const keys = Object.keys(m5aR1125SourcePixelKinds);
 
+// A glTF node/mesh association proves identity, not that WebGL can paint the
+// source. Reject unpaintable originals before ever returning a source binding.
+// This is a necessary preflight, NOT proof of non-occlusion or real pixels.
+const originalSourcePaintable = (object, root, scene) => {
+  if (!scene.visible || !root.visible || !object.visible ||
+      !object.geometry || !object.material) return false;
+  const position = object.geometry.getAttribute?.('position');
+  const index = object.geometry.getIndex?.();
+  const minCount = object.isLineSegments ? 2 : 3;
+  const available = index ? index.count : position?.count;
+  const range = object.geometry.drawRange ?? {};
+  const start = range.start ?? 0;
+  const drawCount = range.count ?? Infinity;
+  if (!Number.isInteger(position?.count) || position.count < minCount ||
+      !Number.isInteger(available) || available < minCount ||
+      !Number.isInteger(start) || start < 0 ||
+      !(drawCount === Infinity || (Number.isInteger(drawCount) && drawCount >= 0)) ||
+      Math.min(drawCount, available - start) < minCount) return false;
+  const multiple = Array.isArray(object.material);
+  const materials = multiple ? object.material : [object.material];
+  // THREE.MultiMaterial renders ONLY declared geometry.groups. A paintable
+  // material array without any draw groups produces zero source pixels.
+  if (multiple) {
+    const groups = object.geometry.groups;
+    if (!Array.isArray(groups) || !materials.every((_, materialIndex) =>
+      groups.some(group =>
+        group.materialIndex === materialIndex &&
+        Number.isInteger(group.start) && group.start >= 0 &&
+        Number.isInteger(group.count) && group.count >= minCount &&
+        Math.min(group.start + group.count, start + drawCount, available) -
+          Math.max(group.start, start) >= minCount))) return false;
+  }
+  return materials.length > 0 && materials.every(material => {
+    if (!material || material.visible === false || material.colorWrite === false) return false;
+    const opacity = material.opacity ?? 1;
+    const alphaTest = material.alphaTest ?? 0;
+    return Number.isFinite(opacity) && opacity > 0 && opacity <= 1 &&
+      Number.isFinite(alphaTest) && alphaTest >= 0 && alphaTest < opacity;
+  });
+};
+
 /**
  * Source-document to actual GLTFLoader scene63 objects. The sourceDoc-only
  * entry point is for structural tests, NOT source byte authentication.
@@ -73,10 +114,9 @@ export function bindR1125Scene63SourceObjects({ sourceDoc, gltf } = {}) {
     const mode = prim[0].mode ?? 4;
     expect(mode === 1 ? object.isLineSegments : mode === 4 && object.isMesh,
       'source primitive draw-mode mismatch');
-    expect(object.parent === actualRoot && object.visible &&
-      object.geometry?.getAttribute?.('position')?.count >= (mode === 1 ? 2 : 3) &&
-      object.material && object.material.visible !== false,
-      'original visible source renderable direct child');
+    expect(object.parent === actualRoot &&
+      originalSourcePaintable(object, actualRoot, actual),
+      'original source node/mesh cannot paint into the viewer');
     for (const field of ['representationKind','Pass','G2IdCandidate','boundaryRole']) {
       if(Object.hasOwn(data,field)) {
         expect(object.userData?.[field] === data[field], 'loaded original source metadata drift: '+field);

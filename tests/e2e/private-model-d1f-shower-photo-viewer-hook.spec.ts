@@ -29,7 +29,7 @@ test('only exact shower review query activates dedicated source route', () => {
 test('viewer uses source-bound fetch-and-parse, selected scene, and no-current bootstrap', () => {
   const index = readFileSync('src/pages/private-model/index.astro', 'utf8');
   expect(index).toContain('loadD1FShowerPhotoReview({ candidate, search: window.location.search, loader })');
-  expect(index).toContain('serviceModel?.gltf ?? showerPhotoReview?.gltf ?? combinedWallReview?.gltf');
+  expect(index).toContain('serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf');
   expect(index).toContain('!isD1FShowerPhotoReviewRequested(window.location.search)');
   expect(index).toContain('d1fShowerPhotoSourceAuthenticated');
   expect(index).toContain("d1fShowerPhotoProductionPixelsVerified: 'false'");
@@ -117,4 +117,27 @@ test('pending or failed fetch does not fall back to other scene or CURRENT', asy
     candidate,search,loader,timeoutMs:1,fetcher:asFetch(()=>new Promise(()=>{})),
   })).rejects.toThrow('D1F_SHOWER_PHOTO_FETCH_TIMEOUT');
   expect(loader.calls).toBe(0);
+});
+
+test('actual one-link shower viewer calls merged PR1353 original-glass oblique camera', () => {
+  const index = readFileSync('src/pages/private-model/index.astro', 'utf8');
+  expect(index).toContain("from '../../scripts/privateModelD1FShowerGlassSourceCameraFit.mjs'");
+  const actualViewer = index.split('} else if (showerPhotoReview) {')[1]
+    ?.split('} else if (combinedWallReview) {')[0] ?? '';
+  expect(actualViewer).toContain('const showerCameraFit = planD1FSourceGlassCamera({');
+  expect(actualViewer).toContain('sceneIndex: showerPhotoReview.selected.sceneIndex');
+  expect(actualViewer).toContain('rootNode: showerPhotoReview.selected.rootNode');
+  expect(actualViewer).toContain('glassNode: showerPhotoReview.selected.glassNode');
+  expect(actualViewer).toContain('glassMeshIndex: 777');
+  expect(actualViewer).toContain('min: glassBounds.min.toArray()');
+  expect(actualViewer).toContain('max: glassBounds.max.toArray()');
+  expect(actualViewer).toContain('sha256: showerPhotoReview.asset.sha256');
+  expect(actualViewer).toContain('camera.position.set(');
+  expect(actualViewer).toContain('showerCameraFit.position[0]');
+  expect(actualViewer).toContain('controls.target.set(');
+  expect(actualViewer).toContain("canvas.dataset.d1fShowerPhotoCameraFraming = 'SOURCE_WORLD_BOUNDS_OBLIQUE'");
+  expect(actualViewer).toContain('controls.enabled = true');
+  expect(actualViewer).toContain("canvas.dataset.d1fShowerPhotoProductionPixelsVerified = 'false'");
+  expect(actualViewer).toContain("d1fShowerPhotoHumanReview: 'NOT_RUN'");
+  expect(actualViewer).not.toContain('showerDistance * 0.78');
 });

@@ -154,6 +154,8 @@ jobs:
               "M5B R1109 requires 5 rendered cyan locators",
               "M5B R1109 screenshot detector returned no pixel result",
               "pointerButton = isX4Themo ? 'right' : 'left'",
+              "m5aR1125RefreshSourceProjection",
+              "m5aR1125SecondViewPixelEvidence",
           ]
           missing = [
               snippet
@@ -164,6 +166,15 @@ jobs:
               raise SystemExit(
                   "Production safety contract missing: " + ", ".join(missing)
               )
+
+          # Prevent a smoke-preset key typo from becoming a 35-second timeout.
+          runtime = Path("src/pages/private-model/index.astro").read_text(encoding="utf-8")
+          if (
+              "m5aR1125SceneIndex: String(R1125_ORIGINAL_GLB.sceneIndex)" not in production_section
+              or "m5aR1125SceneIndex: '63'" not in runtime
+              or "m5aR1125SourceSceneIndex" in production_section
+          ):
+              raise SystemExit("R1125 smoke scene-index dataset key differs from viewer runtime")
 
           print(
               json.dumps(
@@ -234,7 +245,7 @@ jobs:
             m5aReviewRouteCount: count('routeCyan'),
             m5aReviewUnresolvedBoundaryCount: count('boundaryYellow'),
             m5aReviewSemanticViolationCount: '0',
-            m5aR1125SourceSceneIndex: String(R1125_ORIGINAL_GLB.sceneIndex),
+            m5aR1125SceneIndex: String(R1125_ORIGINAL_GLB.sceneIndex),
             m5aR1125SourceContract: 'G2_R1125',
             m5aHumanReview: 'NOT_RUN',
             m5aR1125HumanReview: 'NOT_RUN',
@@ -614,6 +625,7 @@ jobs:
               timeout: 20_000,
             });
 
+            try {
             await page.waitForFunction(
               ({ expectedReviewId, expectedCandidateId, expectedDataset }) => {
                 const canvas = document.querySelector('#private-model-canvas');
@@ -639,6 +651,66 @@ jobs:
               },
               { timeout: 35_000 },
             );
+
+            } catch (error) {
+              // Fail closed, but record only the pre-approved canvas status fields.
+              // Never serialize arbitrary dataset, page text, URLs, request headers,
+              // credentials, cookies, browser storage, or exception stacks.
+              const diagnostic = await page.evaluate(
+                ({ reviewId, candidateId, expectedDataset }) => {
+                  const el = document.querySelector('#private-model-canvas');
+                  const d = el instanceof HTMLCanvasElement ? el.dataset : null;
+                  const safeStatus = (key, accepted) => {
+                    const value = d?.[key];
+                    return value === undefined ? 'MISSING'
+                      : accepted.includes(value) ? value : 'OTHER';
+                  };
+                  const checks = Object.entries({
+                    workTestReviewAutoload: 'true',
+                    modelSource: 'work-test',
+                    workTestReviewMode: reviewId,
+                    workTestReviewCandidate: candidateId,
+                    ...expectedDataset,
+                  }).map(([key, expected]) => ({
+                    key,
+                    present: d?.[key] !== undefined,
+                    matchesExpected: d?.[key] === String(expected),
+                  }));
+                  return {
+                    stage: 'INITIAL_AUTOLOAD_DATASET_NOT_READY',
+                    canvasPresent: Boolean(d),
+                    checks,
+                    workTestLoadState: safeStatus('workTestLoadState',
+                      ['loading', 'loaded', 'ready', 'failed', 'error']),
+                    workTestLoadFailurePhase: safeStatus('workTestLoadFailurePhase',
+                      ['gltf-load-failed', 'gltf-parse-failed',
+                       'm5a-z2-presentation-guard-failed',
+                       'm5a-r1125-original-source-association-failed',
+                       'gltf-source-integrity-failed']),
+                    workTestImport: safeStatus('workTestImport',
+                      ['failed', 'ready', 'loading', 'success']),
+                    m5aZ2ReviewState: safeStatus('m5aZ2ReviewState',
+                      ['ready', 'failed', 'loading']),
+                    r1125SceneIndex: safeStatus('m5aR1125SceneIndex',
+                      ['63']),
+                    productionSourcePixelsVerified: false,
+                    humanReview: 'NOT_RUN',
+                    publishToCURRENT: false,
+                  };
+                },
+                { reviewId, candidateId, expectedDataset },
+              ).catch(() => ({
+                stage: 'DATASET_PROBE_UNAVAILABLE',
+                productionSourcePixelsVerified: false,
+                humanReview: 'NOT_RUN',
+                publishToCURRENT: false,
+              }));
+              fs.writeFileSync(
+                'playwright-artifacts/autoload-dataset-timeout.json',
+                JSON.stringify(diagnostic, null, 2),
+              );
+              throw error;
+            }
 
             const canvas = page.locator('#private-model-canvas');
             await page.waitForTimeout(1000);
@@ -830,6 +902,21 @@ jobs:
               candidateId === 'm5a-r1125-pvk-diameter-source-split';
             const box = await canvas.boundingBox();
             if (!box) throw new Error('Production canvas has no bounding box');
+            // Query the REAL viewer scene/camera immediately before the first
+            // PNG. Do not reuse the initial-load source ROI after OrbitControls.
+            let r1125OriginalView = null;
+            if (isR1125SourceReview) {
+              r1125OriginalView = await canvas.evaluate((el) => {
+                if (typeof el.m5aR1125RefreshSourceProjection !== 'function') {
+                  throw new Error('R1125 live viewer source-camera refresh unavailable');
+                }
+                return el.m5aR1125RefreshSourceProjection();
+              });
+              if (r1125OriginalView?.projection?.centers?.length !== 13 ||
+                  r1125OriginalView.cameraWorldPose?.matrixWorld?.length !== 16) {
+                throw new Error('R1125 opening camera/source projection is incomplete');
+              }
+            }
             // Exact source GLB was authenticated above. Prove the same viewer
             // reached the source TOP with both controls before switching cameras.
             if (exactD1fOneLink) {
@@ -1512,6 +1599,117 @@ jobs:
             // This workflow alone does NOT enable R1125 review or assert raw
             // GLB byte authenticity. No guessed centers or generic 13-count.
             let m5aR1125PixelEvidence = null;
+            let m5aR1125SecondViewPixelEvidence = null;
+            // Exactly one original GLTFLoader node/mesh is hidden at a time.
+            // All three screenshots use the same authenticated live camera.
+            const verifyR1125OriginalNodePixels = async (baselinePng, view, label) => {
+              if (!Array.isArray(view?.centers) || view.centers.length !== 13 ||
+                  new Set(view.centers.map(x => x.key)).size !== 13 ||
+                  view.sourceSceneIndex !== 63 || !Number.isInteger(view.radiusPx) ||
+                  view.radiusPx < 2) {
+                throw new Error('R1125 original node proof requires exact 13 scene63 source ROIs');
+              }
+              const evidence = [];
+              for (const center of view.centers) {
+                const hidden = await canvas.evaluate((el, key) => {
+                  if (typeof el.m5aR1125SetOriginalSourceVisibility !== 'function') {
+                    throw new Error('R1125 original source GLTFLoader isolation unavailable');
+                  }
+                  return el.m5aR1125SetOriginalSourceVisibility(key, 'HIDE');
+                }, center.key);
+                let mutedPng;
+                try {
+                  // Validate inside finally ownership: even a malformed reply
+                  // cannot leave an original GLTF node hidden on the canvas.
+                  if (hidden?.sourceKey !== center.key || hidden.activeHiddenCount !== 1 ||
+                      hidden.originalSourceCount !== 13 ||
+                      hidden.originalGlbDigestVerifiedByThisProbe !== false ||
+                      hidden.humanReview !== 'NOT_RUN') {
+                    throw new Error('R1125 source node hide contract mismatch: ' + center.key);
+                  }
+                  await page.waitForTimeout(100);
+                  mutedPng = await page.screenshot({clip:box,animations:'disabled'});
+                } finally {
+                  const restored = await canvas.evaluate((el, key) =>
+                    el.m5aR1125SetOriginalSourceVisibility(key, 'RESTORE'), center.key);
+                  if (restored?.sourceKey !== center.key || restored.activeHiddenCount !== 0) {
+                    throw new Error('R1125 original source node restore mismatch: ' + center.key);
+                  }
+                }
+                await page.waitForTimeout(100);
+                const restoredPng = await page.screenshot({clip:box,animations:'disabled'});
+                const delta = await page.evaluate(async ({baseB64,mutedB64,restoredB64,
+                  point,others,radius}) => {
+                  const pixels = async encoded => {
+                    const img = new Image();
+                    img.src = 'data:image/png;base64,' + encoded;
+                    await img.decode();
+                    const c = document.createElement('canvas');
+                    c.width=img.width; c.height=img.height;
+                    const ctx = c.getContext('2d');
+                    if (!ctx) throw new Error('R1125 PNG RGBA decoder unavailable');
+                    ctx.drawImage(img,0,0);
+                    return {width:c.width,height:c.height,
+                      rgba:ctx.getImageData(0,0,c.width,c.height).data};
+                  };
+                  const [a,b,c] = await Promise.all([
+                    pixels(baseB64),pixels(mutedB64),pixels(restoredB64)]);
+                  if (a.width !== b.width || a.height !== b.height ||
+                      a.width !== c.width || a.height !== c.height) {
+                    throw new Error('R1125 same-camera screenshot dimensions drifted');
+                  }
+                  const cx=Math.round(point.u*(a.width-1));
+                  const cy=Math.round(point.v*(a.height-1)), radiusSquared=radius*radius;
+                  let sourceChangedPixels=0,otherSourceChangedPixels=0,restoreChangedPixels=0;
+                  const otherCenters=others.map(p=>({
+                    x:Math.round(p.u*(a.width-1)),
+                    y:Math.round(p.v*(a.height-1)),
+                  }));
+                  for(let i=0;i<a.rgba.length;i+=4) {
+                    const x=(i/4)%a.width,y=Math.floor((i/4)/a.width);
+                    const changed=a.rgba[i]!==b.rgba[i] ||
+                      a.rgba[i+1]!==b.rgba[i+1] ||
+                      a.rgba[i+2]!==b.rgba[i+2] ||
+                      a.rgba[i+3]!==b.rgba[i+3];
+                    if(changed) {
+                      if ((x-cx)**2+(y-cy)**2<=radiusSquared) sourceChangedPixels++;
+                      else if (otherCenters.some(p=>
+                        (x-p.x)**2+(y-p.y)**2<=radiusSquared)) otherSourceChangedPixels++;
+                    }
+                    if (a.rgba[i]!==c.rgba[i] || a.rgba[i+1]!==c.rgba[i+1] ||
+                        a.rgba[i+2]!==c.rgba[i+2] || a.rgba[i+3]!==c.rgba[i+3]) {
+                      restoreChangedPixels++;
+                    }
+                  }
+                  return {sourceChangedPixels,otherSourceChangedPixels,
+                    restoreChangedPixels,readbackWidth:a.width,readbackHeight:a.height};
+                },{
+                  baseB64:baselinePng.toString('base64'),
+                  mutedB64:mutedPng.toString('base64'),
+                  restoredB64:restoredPng.toString('base64'),
+                  point:center,others:view.centers.filter(x=>x.key!==center.key),
+                  radius:view.radiusPx,
+                });
+                const minPixels=center.key.startsWith('boundary:')?2:8;
+                if (delta.sourceChangedPixels < minPixels ||
+                    delta.otherSourceChangedPixels !== 0 ||
+                    delta.restoreChangedPixels !== 0) {
+                  throw new Error('R1125 original node pixel proof failed: ' +
+                    center.key + ' ' + JSON.stringify(delta));
+                }
+                evidence.push({key:center.key,...delta,minimumPixels:minPixels});
+              }
+              const report={camera:label,sceneIndex:63,originalNodePixelCount:13,
+                originalNodeMeshAssociationViewerChecked:true,
+                individualOriginalSourcePixelsVerified:true,
+                perSource:evidence,humanReview:'NOT_RUN',
+                current:false,canonical:false,asBuilt:false,publishToCURRENT:false};
+              fs.writeFileSync('playwright-artifacts/m5a-r1125-original-node-' +
+                label + '-pixels.json',JSON.stringify(report,null,2));
+              return report;
+            };
+            let r1125FirstOriginalNodePixels=null;
+            let r1125OrbitOriginalNodePixels=null;
             if (isR1125SourceReview) {
               // Authenticate the exact original R1125 GLB bytes returned to the
               // viewer during its initial autoload, before asserting 13 pixels.
@@ -1567,11 +1765,9 @@ jobs:
                   d.m5aPublishToCurrent !== 'false') {
                 throw new Error('R1125 original scene63 source identity or no-promotion dataset missing');
               }
-              let projection;
-              try {
-                projection = JSON.parse(d.m5aR1125SourceCameraCenters ?? '');
-              } catch {
-                throw new Error('R1125 original source-camera projections missing from actual viewer');
+              const projection = r1125OriginalView?.projection;
+              if (!projection || d.m5aR1125SourceCameraCenters !== JSON.stringify(projection)) {
+                throw new Error('R1125 first PNG projections not refreshed from actual viewer camera');
               }
               if (projection.sourceSceneIndex !== 63 ||
                   projection.sourceTargetCount !== 13 ||
@@ -1603,13 +1799,19 @@ jobs:
                 throw new Error('R1125 requires 13 distinct rendered source target ROIs: ' +
                   JSON.stringify(m5aR1125PixelEvidence));
               }
+              r1125FirstOriginalNodePixels =
+                await verifyR1125OriginalNodePixels(before,projection,'opening');
               fs.writeFileSync('playwright-artifacts/m5a-r1125-source-13-pixels.json',
                 JSON.stringify({
                   exactSourceScene: 63,
                   requiredSourceTargets: 13,
                   sourceCameraProjection: projection,
                   screenshotPixelEvidence: m5aR1125PixelEvidence,
-                  exactRawGlbByteReadbackVerified: false,
+                  exactRawGlbByteReadbackVerified: true,
+                  sourceToCanvasGlbAssociationVerifiedByThisGate: false,
+                  thirteenIndividualSourceIsolationsVerified:
+                    r1125FirstOriginalNodePixels?.individualOriginalSourcePixelsVerified === true &&
+                    r1125FirstOriginalNodePixels?.perSource?.length === 13,
                   humanReview: 'NOT_RUN',
                 }, null, 2));
             }
@@ -1668,6 +1870,28 @@ jobs:
             await page.mouse.up({ button: motionButton });
             await page.waitForTimeout(500);
 
+            // A second original-scene source projection must be taken from the
+            // camera AFTER the live mouse orbit and BEFORE its actual PNG.
+            let r1125OrbitView = null;
+            if (isR1125SourceReview) {
+              r1125OrbitView = await canvas.evaluate((el) => {
+                if (typeof el.m5aR1125RefreshSourceProjection !== 'function') {
+                  throw new Error('R1125 orbit source-camera refresh unavailable');
+                }
+                return el.m5aR1125RefreshSourceProjection();
+              });
+              const first = r1125OriginalView?.cameraWorldPose;
+              const second = r1125OrbitView?.cameraWorldPose;
+              const positions = r1125OrbitView?.projection?.centers;
+              if (first?.matrixWorld?.length !== 16 || second?.matrixWorld?.length !== 16 ||
+                  first.imageWidth !== second.imageWidth ||
+                  first.imageHeight !== second.imageHeight ||
+                  second.sceneIndex !== 63 || positions?.length !== 13 ||
+                  !first.matrixWorld.some((value, i) =>
+                    Math.abs(value - second.matrixWorld[i]) > 0.001)) {
+                throw new Error('R1125 requires two distinct actual viewer camera poses');
+              }
+            }
             const after = (isX4Themo || isR1125SourceReview || p137eScene67SourceEvidence)
               ? await page.screenshot({
                   clip: box, animations: 'disabled',
@@ -1676,6 +1900,57 @@ jobs:
               : await canvas.screenshot({
                   path: 'playwright-artifacts/production-review-after-orbit.png',
                 });
+
+            if (isR1125SourceReview) {
+              const secondProjection = r1125OrbitView?.projection;
+              const pngWidth = after.readUInt32BE(16);
+              const pngHeight = after.readUInt32BE(20);
+              const radius = Math.max(12, Math.round(Math.min(pngWidth, pngHeight) * 0.035));
+              if (secondProjection?.sourceSceneIndex !== 63 ||
+                  secondProjection.sourceTargetCount !== 13 ||
+                  secondProjection.humanReview !== 'NOT_RUN' ||
+                  secondProjection.originalGlbDigestAuthenticated !== false ||
+                  secondProjection.productionScreenshotVerified !== false ||
+                  secondProjection.radiusPx !== radius ||
+                  !Array.isArray(secondProjection.centers) ||
+                  secondProjection.centers.length !== 13) {
+                throw new Error('R1125 orbit source projections invalid for second PNG');
+              }
+              const screenshotDataUrl = 'data:image/png;base64,' + after.toString('base64');
+              m5aR1125SecondViewPixelEvidence = await page.evaluate(
+                buildM5AR1125BrowserScreenshotProofExpression(
+                  screenshotDataUrl, secondProjection.centers),
+              );
+              if (m5aR1125SecondViewPixelEvidence?.allSourceTargetsVisible !== true ||
+                  m5aR1125SecondViewPixelEvidence.sourceRoiPixels?.length !== 13 ||
+                  m5aR1125SecondViewPixelEvidence.missingKeys?.length !== 0 ||
+                  m5aR1125SecondViewPixelEvidence.ambiguousSourceKeys?.length !== 0 ||
+                  m5aR1125SecondViewPixelEvidence.productionProvenanceVerified !== false ||
+                  m5aR1125SecondViewPixelEvidence.humanReview !== 'NOT_RUN') {
+                throw new Error('R1125 live second orbit frame lacks 13 source ROIs: ' +
+                  JSON.stringify(m5aR1125SecondViewPixelEvidence));
+              }
+              r1125OrbitOriginalNodePixels =
+                await verifyR1125OriginalNodePixels(after,secondProjection,'orbit');
+              // Two actual source-class screenshots are stronger than one but
+              // are NOT proof of individual 13-target muting or restored frames.
+              fs.writeFileSync('playwright-artifacts/m5a-r1125-two-orbit-source-roi-pixels.json',
+                JSON.stringify({
+                  originalSceneIndex: 63,
+                  firstCameraWorldPose: r1125OriginalView.cameraWorldPose,
+                  secondCameraWorldPose: r1125OrbitView.cameraWorldPose,
+                  firstSourceRoiPixels: m5aR1125PixelEvidence,
+                  secondSourceRoiPixels: m5aR1125SecondViewPixelEvidence,
+                  secondPngSha256: createHash('sha256').update(after).digest('hex'),
+                  originalSourceNetworkHashVerified: true,
+                  canvasOriginalSourceMeshAssociationsVerified: false,
+                  individuallyMutedSourceTargetsVerified:
+                    r1125FirstOriginalNodePixels?.perSource?.length === 13 &&
+                    r1125OrbitOriginalNodePixels?.perSource?.length === 13,
+                  humanReview: 'NOT_RUN', current: false, canonical: false,
+                  asBuilt: false, publishToCURRENT: false,
+                }, null, 2));
+            }
 
             const pixelEvidence = await page.evaluate(
               async ({ beforeUrl, afterUrl }) => {
@@ -1798,6 +2073,7 @@ jobs:
                   cyanTargetEvidence,
                   m5bPixelEvidence,
                   m5aR1125PixelEvidence,
+                  m5aR1125SecondViewPixelEvidence,
                   p137eScene67SourceEvidence,
                   p137eScene67AssetEvidence,
                   p137eScene67TwoFaceEvidence,
@@ -1825,6 +2101,7 @@ jobs:
                 cyanTargetEvidence,
                 m5bPixelEvidence,
                 m5aR1125PixelEvidence,
+                m5aR1125SecondViewPixelEvidence,
                 p137eScene67SourceEvidence,
                 p137eScene67AssetEvidence,
                 p137eScene67TwoFaceEvidence,

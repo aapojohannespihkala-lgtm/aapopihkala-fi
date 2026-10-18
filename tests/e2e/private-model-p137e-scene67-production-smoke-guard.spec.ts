@@ -550,7 +550,7 @@ test('production scene67 original GLB proof fails closed on stalled network/body
   const workflow = readFileSync('.github/workflows/private-model-production-review-smoke.yml', 'utf8');
   const source = workflow.split('      - name: Verify exact autoload and rendered production canvas')[1];
   expect(source).toBeDefined();
-  expect(source).toContain('const withGlbDeadline = async (promise, stage) =>');
+  expect(source).toContain("const withGlbDeadline = async (promise, stage, identity = 'P137E') =>");
   expect(source).toContain("viewerResponse.finished(), 'autoload response completion'");
   expect(source).toContain("viewerResponse.body(), 'autoload response bytes'");
   expect(source).toContain("45_000");
@@ -749,7 +749,7 @@ test('R1125 preset derives exact canonical routing and 13 source roles before th
   expect(JSON.parse(values.EXPECTED_DATASET_JSON)).toMatchObject({
     m5aReviewTargetRenderableCount: '13', m5aReviewExpectedTargetRenderableCount: '13',
     m5aReviewWellMarkerCount: '4', m5aReviewRouteCount: '7',
-    m5aReviewUnresolvedBoundaryCount: '2', m5aR1125SourceSceneIndex: '63',
+    m5aReviewUnresolvedBoundaryCount: '2', m5aR1125SceneIndex: '63',
     m5aR1125SourceContract: 'G2_R1125', m5aHumanReview: 'NOT_RUN', m5aR1125HumanReview: 'NOT_RUN',
   });
   const validated = runActualProductionInputValidator(values);

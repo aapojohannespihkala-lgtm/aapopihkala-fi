@@ -2,6 +2,16 @@ name: Private model bathroom service review
 
 on:
   workflow_dispatch:
+    inputs:
+      review_mode:
+        description: 'Which D1F bathroom service review to run'
+        required: true
+        type: choice
+        default: service
+        options:
+          - service
+          - shower-autoload
+          - odensvik-autoload
 
 permissions:
   contents: read
@@ -34,14 +44,43 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Verify exact source, device interaction and each rendered target
+        if: inputs.review_mode == 'service'
         env:
           D1F_SERVICE_VARIANT: ${{ matrix.variant }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
         run: node .github/scripts/private-model-d1f-service-probe.mjs
+      - name: Verify shower exact original GLB, one-link autoload and general WebGL
+        if: inputs.review_mode == 'shower-autoload'
+        env:
+          PROBE_MODE: d1f-shower-autoload
+          D1F_SHOWER_VARIANT: ${{ matrix.variant }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+        run: node .github/scripts/private-model-d1f-shower-autoload-probe.mjs
+      - name: Verify ODENSVIK exact original GLB, one-link autoload and general WebGL only
+        if: inputs.review_mode == 'odensvik-autoload'
+        env:
+          PROBE_MODE: d1f-odensvik-autoload
+          D1F_ODENSVIK_VARIANT: ${{ matrix.variant }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+        run: node .github/scripts/private-model-d1f-odensvik-autoload-probe.mjs
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && inputs.review_mode == 'service'
         with:
           name: d1f-service-${{ matrix.variant }}
           path: test-results/d1f-service/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always() && inputs.review_mode == 'shower-autoload'
+        with:
+          name: d1f-shower-autoload-${{ matrix.variant }}
+          path: test-results/d1f-shower-autoload-production/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always() && inputs.review_mode == 'odensvik-autoload'
+        with:
+          name: d1f-odensvik-autoload-${{ matrix.variant }}
+          path: test-results/d1f-odensvik-autoload-production/
           if-no-files-found: error

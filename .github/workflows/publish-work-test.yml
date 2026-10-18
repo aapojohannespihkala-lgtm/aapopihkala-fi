@@ -114,6 +114,10 @@ jobs:
                   handle.write(f"{key}={value}\n")
           PY
 
+      - name: Verify GLB transport regression tests
+        shell: bash
+        run: python3 tests/test-work-test-extract-one-glb.py -q
+
       - name: Require machine-auth configuration
         shell: bash
         env:
@@ -149,15 +153,22 @@ jobs:
           GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
         run: |
           set -euo pipefail
+          download="$RUNNER_TEMP/work-test-source-download.bin"
           model="$RUNNER_TEMP/work-test-source.glb"
           curl --silent --show-error --fail --location \
             --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN" \
-            --output "$model" \
+            --output "$download" \
             "https://www.googleapis.com/drive/v3/files/$DRIVE_FILE_ID?alt=media&supportsAllDrives=true"
 
+          # Drive may contain raw GLB or an immutable ZIP work-package with
+          # exactly one GLB. Verify transport before deriving GLB identity.
+          python3 .github/scripts/work-test-extract-one-glb.py "$download" "$model"
+          # Defense in depth: keep the legacy publisher contract's explicit
+          # GLB magic guard after ZIP extraction and before hashing/publishing.
+          [[ "$(head -c 4 "$model")" == "glTF" ]] || { echo "GLB magic guard rejected extracted source" >&2; exit 1; }
+          rm -f "$download"
           actual_size="$(stat -c '%s' "$model")"
           actual_sha="$(sha256sum "$model" | awk '{print $1}')"
-          [[ "$(head -c 4 "$model")" == "glTF" ]] || { echo "Drive source is not a GLB" >&2; exit 1; }
 
           {
             echo "EXPECTED_SIZE=$actual_size"
@@ -165,6 +176,15 @@ jobs:
           } >> "$GITHUB_ENV"
 
           echo "Exact Drive source identity derived from raw bytes."
+
+      # Source-specific release gate. Other candidates retain the existing
+      # publisher path; ODENSVIK must never publish stale predecessor scene refs.
+      - name: Verify ODENSVIK 40 current-scene semantic links before machine publish
+        if: inputs.candidate == 'd1f-odensvik-00193937-basin-correction-20261017'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/private-model-d1f-odensvik-40-pointer-guard.py "$RUNNER_TEMP/work-test-source.glb"
 
       - name: Publish exact bytes through machine-only endpoint
         shell: bash
@@ -322,6 +342,7 @@ jobs:
         shell: bash
         run: |
           rm -f \
+            "$RUNNER_TEMP/work-test-source-download.bin" \
             "$RUNNER_TEMP/work-test-source.glb" \
             "$RUNNER_TEMP/work-test-production-readback.glb" \
             "$RUNNER_TEMP/publish-response.json" \

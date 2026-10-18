@@ -662,6 +662,45 @@ const D1F_WC450_SURFACE_FIX_CANDIDATE = {
 } as const satisfies PrivateWorkTestCandidate;
 
 // Source-bound, noncanonical 124-scene photo + curved shower glass; no human review or CURRENT promotion.
+// Exact read-only ODENSVIK 001.939.37 bowl + integrated countertop successor.
+// Product-shape WORK_TEST only; the measured counter outline and accepted WC remain unchanged.
+const D1F_ODENSVIK_BASIN_CORRECTION_CANDIDATE = {
+  id: 'd1f-odensvik-00193937-basin-correction-20261017',
+  label: 'D1F - IKEA ODENSVIK 001.939.37 allas ja taso - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-odensvik-00193937-basin-correction-20261017.glb`,
+  objectKey: 'work-test/d1f-odensvik-00193937-basin-correction-20261017.glb',
+  expectedSize: 8876156,
+  expectedSha256: '362f5dce1041e8f529ed8f69a10d06dad58b59d8bfad0fe9db31c62d870f2e25',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Exact G2b source-corrected ODENSVIK successor: 104 counter side-face
+// winding repairs. The ZIP has exactly one glTF2 GLB; enforce the inner GLB
+// bytes/hash, never the ZIP hash. It preserves the original 40 source semantic
+// pointers in scenes 108..111 and previews NEW corrected scene112 by default.
+// This is a distinct noncanonical WORK_TEST candidate, NOT a replacement for
+// the formal old-source 40-pointer viewer review or any human approval.
+const D1F_ODENSVIK_WINDING_CORRECTED_ZIP_CANDIDATE = {
+  id: 'd1f-odensvik-00193937-counter-winding-fixed-20261018',
+  label: 'D1F - IKEA ODENSVIK 001.939.37 tasopinnat korjattu - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-odensvik-00193937-counter-winding-fixed-20261018.glb`,
+  objectKey: 'work-test/d1f-odensvik-00193937-counter-winding-fixed-20261018.glb',
+  expectedSize: 8899324,
+  expectedSha256: 'e9cbdd7dbebeab78d57939f8758c5cb467f481d79f6bb1550f5e35f09344a1bb',
+} as const satisfies PrivateWorkTestCandidate;
+
+// Source-verified merged D1F KPH 01+02+04 WORK_TEST only: square drains,
+// shower chrome details, 65 mm riser continuity and basin faucet. The source
+// is a Drive ZIP with ONE raw GLB; expected bytes/hash refer to that GLB,
+// never to the ZIP. This candidate is NOT current/as-built or human approved.
+const D1F_KPH_010204_ZIP_CANDIDATE = {
+  id: 'd1f-kph-010204-square-drains-shower-faucet-20261018',
+  label: 'D1F KPH - neliökaivot, suihkut ja hanat - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-kph-010204-square-drains-shower-faucet-20261018.glb`,
+  objectKey: 'work-test/d1f-kph-010204-square-drains-shower-faucet-20261018.glb',
+  expectedSize: 9042688,
+  expectedSha256: '01ff6b883e3aeeb291261f7dfb6e17a89e61e3b913e6b30766a157cb07bb2f7c',
+} as const satisfies PrivateWorkTestCandidate;
+
 const D1F_SHOWER_PHOTO_CANDIDATE = {
   id: 'd1f-shower-glass-photo-20261016',
   label: 'D1F - kaareva suihkulasi 900x900 ja laattapinnat - WORK_TEST',
@@ -689,6 +728,9 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_WC3530_CENTERED_CANDIDATE,
   D1F_WC450_CLOSED_CANDIDATE,
   D1F_WC450_SURFACE_FIX_CANDIDATE,
+  D1F_ODENSVIK_BASIN_CORRECTION_CANDIDATE,
+  D1F_ODENSVIK_WINDING_CORRECTED_ZIP_CANDIDATE,
+  D1F_KPH_010204_ZIP_CANDIDATE,
   D1F_SHOWER_PHOTO_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 

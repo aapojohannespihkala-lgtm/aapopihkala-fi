@@ -113,6 +113,39 @@ const isRenderable = (object: any) =>
       (object?.isMesh || object?.isLine || object?.isLineSegments || object?.isPoints),
   );
 
+// The X4 diagnostic cyan halo must NOT manufacture evidence for an original
+// source anchor that would not produce pixels. Check the original Three material
+// and primitive BEFORE cloning any presentation materials or adding a halo.
+const isPaintableP186fX4Source = (object: any, sceneRoot: any) => {
+  if (!isRenderable(object) || !object.geometry) return false;
+  let ancestor = object;
+  let foundRoot = false;
+  for (let i = 0; ancestor && i < 64; i += 1) {
+    if (ancestor.visible === false) return false;
+    if (ancestor === sceneRoot) { foundRoot = true; break; }
+    ancestor = ancestor.parent;
+  }
+  if (!foundRoot) return false;
+
+  const position = object.geometry.getAttribute?.('position');
+  const required = object.isPoints ? 1 : (object.isLine || object.isLineSegments) ? 2 : 3;
+  const count = object.geometry.getIndex?.()?.count ?? position?.count;
+  const drawCount = object.geometry.drawRange?.count ?? Infinity;
+  if (!Number.isInteger(position?.count) || position.count < required ||
+      !Number.isInteger(count) || count < required ||
+      !Number.isFinite(drawCount) && drawCount !== Infinity ||
+      drawCount < required) return false;
+
+  const materials = Array.isArray(object.material) ? object.material : [object.material];
+  return materials.length > 0 && materials.every((m: any) => {
+    if (!m || m.visible === false || m.colorWrite === false) return false;
+    const opacity = Number(m.opacity ?? 1);
+    const alphaTest = Number(m.alphaTest ?? 0);
+    return Number.isFinite(opacity) && opacity > 0 && opacity <= 1 &&
+      Number.isFinite(alphaTest) && alphaTest >= 0 && alphaTest < opacity;
+  });
+};
+
 const hasDrawableMeshTriangles = (object: any) => {
   const geometry = object?.geometry;
   const positionCount = Number(geometry?.attributes?.position?.count ?? 0);
@@ -351,6 +384,10 @@ export const prepareP186fReviewPresentation = (
     [...expectedRoomNames].every((room) => roomCounts.get(room) === 1) &&
     targets.filter((object) => object.userData?.Pass === p186fX4ReviewPass).length === 1 &&
     targets.filter((object) => object.userData?.Pass === p186fX3PreservedPass).length === 2;
+  if (isX4RoomSourceScene &&
+      targets.some((object) => !isPaintableP186fX4Source(object, sceneRoot))) {
+    throw new Error('P186F_X4_ORIGINAL_SOURCE_NOT_DRAWABLE');
+  }
   const realArchitectureContextRequired = targets.some((object) =>
     p186fRealArchitecturePreferredPasses.has(String(object.userData?.Pass ?? '')),
   );

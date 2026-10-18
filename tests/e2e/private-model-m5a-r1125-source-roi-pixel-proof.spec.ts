@@ -152,3 +152,34 @@ test('R1125 one real gray patch never proves two nearly coincident source IDs', 
   expect(proof.ambiguousSourceKeys).toEqual([keys[0], keys[1]]);
   expect(proof.allSourceTargetsVisible).toBe(false);
 });
+
+test('R1125 source detector accepts exact 2304000-pixel cap and rejects just above it', () => {
+  const bounded = detect(new Uint8ClampedArray(1600 * 1440 * 4), 1600, 1440, centers);
+  expect(bounded.sourceRoiPixels).toHaveLength(13);
+  expect(bounded.allSourceTargetsVisible).toBe(false);
+  expect(bounded.missingKeys).toEqual(keys);
+  expect(() => detect(new Uint8ClampedArray(1600 * 1441 * 4), 1600, 1441, centers))
+    .toThrow(/exact RGBA image dimensions/);
+});
+
+test('R1125 real Chromium rejects oversized decoded PNG before canvas RGBA allocation', async ({ page }) => {
+  for (const pngHeight of [1440, 1441]) {
+    const png = await page.evaluate(height => {
+      const surface = document.createElement('canvas');
+      surface.width = 1600;
+      surface.height = height;
+      return surface.toDataURL('image/png');
+    }, pngHeight);
+    const promise = page.evaluate(buildExpression(png, centers));
+    if (pngHeight === 1441) {
+      await expect(promise).rejects.toThrow(/R1125 PNG canvas pixel budget exceeded/);
+    } else {
+      const proof = await promise as {
+        allSourceTargetsVisible: boolean;
+        sourceRoiPixels: Array<{ key: string }>;
+      };
+      expect(proof.sourceRoiPixels).toHaveLength(13);
+      expect(proof.allSourceTargetsVisible).toBe(false);
+    }
+  }
+});

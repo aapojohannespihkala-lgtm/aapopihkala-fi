@@ -91,9 +91,15 @@ export function prepareM5AR1125Focus8020({ gltf, binding } = {}) {
     if (!(object.isMesh || object.isLine || object.isLineSegments)) return;
     if (!object.visible) return;
     const originals = Array.isArray(object.material) ? object.material : [object.material];
+    // A prepared 80/20 proxy is not drawable if color writes are disabled or
+    // its inherited alpha threshold discards its complete preview opacity.
+    // Reject before cloning/swapping any original scene materials.
+    const previewOpacity = targets.has(object) ? 0.8 : 0.2;
     if (!originals.length || originals.some(m =>
       !m || typeof m.clone !== 'function' || m.visible === false ||
-      !Number.isFinite(m.opacity) || m.opacity <= 0)) {
+      !Number.isFinite(m.opacity) || m.opacity <= 0 ||
+      m.colorWrite !== true || !Number.isFinite(m.alphaTest) ||
+      m.alphaTest < 0 || m.alphaTest >= previewOpacity)) {
       fail('source render material unavailable');
     }
     entries.push({ object, material: object.material,

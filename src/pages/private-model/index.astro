@@ -1840,6 +1840,13 @@ const title = 'Private 3D viewer';
       // @ts-ignore - exact 124-scene D1F raw-GLB source and browser loader are separately guarded.
       import { D1F_SHOWER_PHOTO_CANDIDATE_ID, isD1FShowerPhotoReviewRequested, loadD1FShowerPhotoReview }
         from '../../scripts/privateModelD1FShowerPhotoSourceContract.mjs';
+      // @ts-ignore - exact 112-scene ODENSVIK source and its 40 live pointers are guarded.
+      import { D1F_ODENSVIK_CANDIDATE_ID, D1F_ODENSVIK_REVIEW_ID,
+        isD1FOdensvikReviewRequested, loadD1FOdensvikReview }
+        from '../../scripts/privateModelD1FOdensvikSourceReview.mjs';
+      // @ts-ignore - source-derived Y-up presentation fit, not geometry approval.
+      import { planD1FSourceGlassCamera }
+        from '../../scripts/privateModelD1FShowerGlassSourceCameraFit.mjs';
       // @ts-ignore - indexed WORK_TEST source dimensions, never physical approval.
       import { getD1FMeasuredWidthComparison }
         from '../../scripts/privateModelD1FMeasuredWidthReadout.mjs';
@@ -6178,6 +6185,13 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p137eScene67CameraFace;
         delete canvas.dataset.p137eScene67CameraSourceIds;
         delete canvas.dataset.m5aR1125SourceCameraCenters;
+        delete canvas.dataset.m5aR1125SourceCameraWorldPose;
+        // A cancelled source-isolation probe must never hide a real source
+        // node in the next candidate or carry a stale test capability forward.
+        (canvas as any).m5aR1125RestoreOriginalSourceVisibility?.();
+        delete (canvas as any).m5aR1125SetOriginalSourceVisibility;
+        delete (canvas as any).m5aR1125RestoreOriginalSourceVisibility;
+        delete (canvas as any).m5aR1125RefreshSourceProjection;
         setM5aSourceContextVisible(false);
         setP186cX2rSourceContextVisible(false);
         setP186bSourceContextVisible(false);
@@ -9594,7 +9608,12 @@ const title = 'Private 3D viewer';
           const showerPhotoReview = isD1FShowerPhotoReviewRequested(window.location.search)
             ? await loadD1FShowerPhotoReview({ candidate, search: window.location.search, loader })
             : null;
-          const gltf = serviceModel?.gltf ?? showerPhotoReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
+          const odensvikReview = isD1FOdensvikReviewRequested(window.location.search)
+            ? await loadD1FOdensvikReview({
+                candidate, search: window.location.search, loader,
+              })
+            : null;
+          const gltf = serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
             ? await loader.parseAsync(
                 isP137EThreeCornerMeasuredReviewRequested()
                   ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
@@ -10555,6 +10574,161 @@ const title = 'Private 3D viewer';
               }
               canvas.dataset.m5aR1125SourceCameraCenters =
                 JSON.stringify(sourceCameraProjection);
+
+              // Source-only pixel isolation. These are the ORIGINAL GLTFLoader
+              // objects, not replacement meshes or name-matched presentation
+              // proxies. The production probe separately authenticates raw GLB
+              // network bytes and compares actual on-screen PNG pixels.
+              const sourceJson = gltf?.parser?.json;
+              const sourceAssociations = gltf?.parser?.associations;
+              const originalScene = sourceJson?.scenes?.[63];
+              const originalRootIds = originalScene?.nodes?.filter((id: number) =>
+                sourceJson?.nodes?.[id]?.name ===
+                  'M5A_R1125_DIAMETER_SOURCE_SPLIT_WORK_TEST_ROOT_BABYLON_Y_UP');
+              if (!Array.isArray(originalRootIds) || originalRootIds.length !== 1 ||
+                  !(sourceAssociations instanceof Map)) {
+                throw new Error('R1125 original GLTFLoader source-root associations unavailable');
+              }
+              const sourceRootId = originalRootIds[0];
+              const sourceChildren = sourceJson.nodes[sourceRootId]?.children;
+              if (!Array.isArray(sourceChildren) || sourceChildren.length !== 13 ||
+                  new Set(sourceChildren).size !== 13) {
+                throw new Error('R1125 original source root does not have 13 unique children');
+              }
+              const originalObjectsByNode = new Map<number, THREE.Object3D>();
+              fullModelScene.traverse((object: THREE.Object3D) => {
+                const nodeId = sourceAssociations.get(object)?.nodes;
+                if (nodeId === sourceRootId || sourceChildren.includes(nodeId)) {
+                  if (originalObjectsByNode.has(nodeId)) {
+                    throw new Error('R1125 duplicate original GLTFLoader node association');
+                  }
+                  originalObjectsByNode.set(nodeId, object);
+                }
+              });
+              const sourceRoot = originalObjectsByNode.get(sourceRootId);
+              const originalByKey = new Map<string, THREE.Object3D>();
+              const projectionKeys = new Set<string>(sourceCameraProjection.centers.map(
+                (center: { key: string }) => center.key));
+              if (!sourceRoot || sourceRoot.children.length !== 13 ||
+                  projectionKeys.size !== 13) {
+                throw new Error('R1125 original scene63 source root/ROI contract mismatch');
+              }
+              for (const nodeId of sourceChildren) {
+                const entry = sourceJson.nodes[nodeId];
+                const assocObject = originalObjectsByNode.get(nodeId);
+                const assoc = sourceAssociations.get(assocObject);
+                const sourceMeta = entry?.extras;
+                const originalKey = sourceMeta?.representationKind === 'unresolvedBoundaryMarker'
+                  ? 'boundary:' + sourceMeta.boundaryRole : sourceMeta?.G2IdCandidate;
+                const primitive = sourceJson.meshes?.[entry?.mesh]?.primitives;
+                const sourceLine = originalKey?.startsWith('boundary:');
+                const sourceWell = originalKey?.startsWith('G2_DRAIN_WELL_');
+                const sourceRole = sourceLine ? 'unresolvedBoundaryMarker' :
+                  sourceWell ? 'wellDiameterPresentationWork' :
+                  'pipeDiameterPresentationWork';
+                if (sourceMeta?.representationKind !== sourceRole ||
+                    typeof originalKey !== 'string' || !projectionKeys.has(originalKey) ||
+                    originalByKey.has(originalKey) || !assocObject ||
+                    assocObject.parent !== sourceRoot || !assocObject.visible ||
+                    !(sourceLine ? (assocObject as any).isLineSegments : (assocObject as any).isMesh) ||
+                    assoc?.nodes !== nodeId || assoc?.meshes !== entry.mesh ||
+                    (assoc.primitives !== undefined && assoc.primitives !== 0) ||
+                    !Array.isArray(primitive) || primitive.length !== 1 ||
+                    (primitive[0].mode ?? 4) !== (sourceLine ? 1 : 4) ||
+                    sourceMeta?.Canonical !== false || sourceMeta?.presentationOnly !== true ||
+                    sourceMeta?.currentGeometryClaim !== false ||
+                    sourceMeta?.asBuiltClaim !== false ||
+                    sourceMeta?.publishToCURRENT !== false ||
+                    (assocObject.userData?.G2IdCandidate !== sourceMeta?.G2IdCandidate) ||
+                    (assocObject.userData?.boundaryRole !== sourceMeta?.boundaryRole)) {
+                  throw new Error('R1125 original source node/mesh identity mismatch: ' + originalKey);
+                }
+                originalByKey.set(originalKey, assocObject);
+              }
+              if (originalByKey.size !== 13) {
+                throw new Error('R1125 original GLTFLoader 13-target binding incomplete');
+              }
+              let hiddenOriginalKey: string | null = null;
+              const restoreOriginalSource = () => {
+                if (hiddenOriginalKey !== null) {
+                  originalByKey.get(hiddenOriginalKey)!.visible = true;
+                  hiddenOriginalKey = null;
+                }
+              };
+              (canvas as any).m5aR1125RestoreOriginalSourceVisibility = restoreOriginalSource;
+              (canvas as any).m5aR1125SetOriginalSourceVisibility =
+                (key: string, state: 'HIDE' | 'RESTORE') => {
+                  if (canvas.dataset.modelSource !== 'work-test' ||
+                      canvas.dataset.workTestReviewMode !== m5aZ2R1125ReviewId ||
+                      fullModelScene !== gltf.scene ||
+                      sourceAssociations !== gltf.parser.associations ||
+                      !originalByKey.has(key) ||
+                      !['HIDE', 'RESTORE'].includes(state)) {
+                    throw new Error('R1125 source isolation not bound to original review');
+                  }
+                  const sourceObject = originalByKey.get(key)!;
+                  if (state === 'HIDE') {
+                    if (hiddenOriginalKey !== null || sourceObject.visible !== true ||
+                        [...originalByKey.values()].some(o => !o.visible)) {
+                      throw new Error('R1125 source isolation requires all 13 originals visible');
+                    }
+                    sourceObject.visible = false;
+                    hiddenOriginalKey = key;
+                  } else {
+                    if (hiddenOriginalKey !== key || sourceObject.visible !== false) {
+                      throw new Error('R1125 cannot restore non-owned source target');
+                    }
+                    sourceObject.visible = true;
+                    hiddenOriginalKey = null;
+                  }
+                  return { sourceKey: key, state, originalSourceCount: 13,
+                    activeHiddenCount: hiddenOriginalKey === null ? 0 : 1,
+                    originalGlbDigestVerifiedByThisProbe: false,
+                    individualSourcePixelsVerified: false,
+                    humanReview: 'NOT_RUN', publishToCURRENT: false };
+                };
+
+              // A production screenshot taken AFTER a user orbit must never reuse
+              // the opening camera's projected source centers. The existing
+              // authenticated review scene and live camera are the ONLY inputs.
+              // This synchronous probe does not capture pixels or approve source.
+              (canvas as any).m5aR1125RefreshSourceProjection = () => {
+                if (canvas.dataset.modelSource !== 'work-test' ||
+                    canvas.dataset.workTestReviewMode !== m5aZ2R1125ReviewId ||
+                    canvas.dataset.m5aZ2ReviewState !== 'ready' ||
+                    canvas.dataset.m5aReviewCameraFocusApplied !== 'true' ||
+                    activeCamera !== camera || !fullModelScene) {
+                  throw new Error('R1125 live orbit projection requires original WORK_TEST scene63');
+                }
+                const view = canvas.getBoundingClientRect();
+                const scale = window.devicePixelRatio || 1;
+                const width = Math.round(view.width * scale);
+                const height = Math.round(view.height * scale);
+                if (!Number.isFinite(scale) || scale <= 0 ||
+                    width < 128 || height < 128 || width * height > 16000000 ||
+                    Math.abs(camera.aspect - width / height) > 0.02) {
+                  throw new Error('R1125 live orbit projection viewport/camera mismatch');
+                }
+                const refreshed = deriveM5AR1125SourceCameraCenters({
+                  sceneRoot: fullModelScene, camera: activeCamera, THREE,
+                  sceneIndex: 63, imageWidth: width, imageHeight: height,
+                });
+                activeCamera.updateMatrixWorld(true);
+                const pose = [...activeCamera.matrixWorld.elements];
+                if (refreshed.sourceTargetCount !== 13 ||
+                    refreshed.centers.length !== 13 ||
+                    refreshed.humanReview !== 'NOT_RUN' ||
+                    refreshed.productionScreenshotVerified !== false ||
+                    refreshed.originalGlbDigestAuthenticated !== false ||
+                    pose.length !== 16 || !pose.every(Number.isFinite)) {
+                  throw new Error('R1125 live orbit projection provenance/camera mismatch');
+                }
+                const cameraWorldPose = { matrixWorld: pose, imageWidth: width,
+                  imageHeight: height, sceneIndex: 63 };
+                canvas.dataset.m5aR1125SourceCameraCenters = JSON.stringify(refreshed);
+                canvas.dataset.m5aR1125SourceCameraWorldPose = JSON.stringify(cameraWorldPose);
+                return { projection: refreshed, cameraWorldPose };
+              };
               Object.assign(canvas.dataset, {
                 m5aR1125SourceDriveId: '13qxYc9PF7Z6eo_OXs1RrYCyo5CbTIAKs',
                 m5aR1125SourceContract: 'G2_R1125',
@@ -10610,6 +10784,37 @@ const title = 'Private 3D viewer';
             });
             canvas.dataset.workTestReviewMode = candidate.id + '-review';
             status.textContent = 'Kylpyhuoneen kalusteet ja lattialämmitys - työmalli. Huolto- ja laitetiedot avautuvat kohteesta.';
+          } else if (odensvikReview) {
+            // GLTFLoader scene0 is NOT the new ODENSVIK basin. Render the
+            // authenticated scene108..111 selected by the exact one-link gate.
+            const sourceScene = odensvikReview.gltf.scene;
+            if (sourceScene !== odensvikReview.gltf.scenes?.[odensvikReview.selected.sceneIndex] ||
+                sourceScene?.children?.length !== 1 ||
+                !sourceScene.children[0]?.name?.includes('ODENSVIK00193937_WORK_TEST')) {
+              throw new Error('D1F_ODENSVIK_SELECTED_SCENE_NOT_RENDERABLE');
+            }
+            Object.assign(canvas.dataset, {
+              workTestReviewMode: D1F_ODENSVIK_REVIEW_ID,
+              d1fOdensvikVariant: odensvikReview.selected.variant,
+              d1fOdensvikSceneIndex: String(odensvikReview.selected.sceneIndex),
+              d1fOdensvikRawBytes: String(odensvikReview.asset.bytes),
+              d1fOdensvikRawSha256: odensvikReview.asset.sha256,
+              d1fOdensvikSourceAuthenticated: 'true',
+              d1fOdensvikSemanticTargetCount: String(odensvikReview.selected.sourceSemanticTargetsVerified),
+              d1fOdensvikWorkTest: 'true',
+              d1fOdensvikProductionPixelsVerified: 'false',
+              d1fOdensvikHumanReview: 'NOT_RUN',
+              d1fOdensvikCurrent: 'false',
+              d1fOdensvikCanonical: 'false',
+              d1fOdensvikAsBuilt: 'false',
+            });
+            // The normal D overview can replace the scene with its own subset.
+            // Rebind the exact scene after applying the contextual camera preset.
+            applyStandardViewPreset('d-apartment');
+            setModelScene(sourceScene);
+            canvas.dataset.contentScene = 'full-model';
+            status.textContent =
+              'D1F ODENSVIK 001.939.37 - exact WORK_TEST kylpyhuonenäkymä / tuotantopikselit ja ihmiskatselmus vielä varmentamatta';
           } else if (showerPhotoReview) {
             Object.assign(canvas.dataset, {
               workTestReviewMode: D1F_SHOWER_PHOTO_CANDIDATE_ID + '-review',
@@ -10661,21 +10866,43 @@ const title = 'Private 3D viewer';
             setModelScene(showerSourceScene);
             canvas.dataset.contentScene = 'full-model';
             canvas.dataset.standardViewPreset = 'd-apartment';
-            const showerCenter = glassBounds.getCenter(new THREE.Vector3());
-            const showerDistance = Math.max(
-              glassSphere.radius / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * 1.9,
-              2.8,
+            // PR1353's original-mesh-derived room-side oblique camera MUST be
+            // applied by the real one-link viewer, not just its offline WebGL tests.
+            // This is presentation only; verified WORK_TEST source stays unmodified.
+            const showerViewport = canvas.getBoundingClientRect();
+            const showerCameraFit = planD1FSourceGlassCamera({
+              source: {
+                bytes: showerPhotoReview.asset.bytes,
+                sha256: showerPhotoReview.asset.sha256,
+              },
+              sceneIndex: showerPhotoReview.selected.sceneIndex,
+              rootNode: showerPhotoReview.selected.rootNode,
+              glassNode: showerPhotoReview.selected.glassNode,
+              glassMeshIndex: 777,
+              glassWorldBounds: {
+                min: glassBounds.min.toArray(),
+                max: glassBounds.max.toArray(),
+              },
+              viewportWidth: Math.max(320, Math.min(4096, Math.round(showerViewport.width))),
+              viewportHeight: Math.max(320, Math.min(4096, Math.round(showerViewport.height))),
+              verticalFovDeg: camera.fov,
+            });
+            controls.target.set(
+              showerCameraFit.target[0], showerCameraFit.target[1], showerCameraFit.target[2],
             );
-            controls.target.copy(showerCenter);
-            camera.up.set(0, 1, 0);
-            camera.position.copy(showerCenter).add(new THREE.Vector3(
-              showerDistance * 0.78, showerDistance * 0.48, showerDistance * 0.92,
-            ));
-            camera.near = Math.max(showerDistance / 10000, 0.001);
-            camera.far = Math.max(showerDistance * 50, 1000);
-            camera.lookAt(showerCenter);
+            camera.up.set(
+              showerCameraFit.up[0], showerCameraFit.up[1], showerCameraFit.up[2],
+            );
+            camera.position.set(
+              showerCameraFit.position[0], showerCameraFit.position[1], showerCameraFit.position[2],
+            );
+            camera.fov = showerCameraFit.verticalFovDeg;
+            camera.near = showerCameraFit.near;
+            camera.far = showerCameraFit.far;
+            camera.lookAt(controls.target);
             camera.updateProjectionMatrix();
             controls.update();
+            canvas.dataset.d1fShowerPhotoCameraFraming = 'SOURCE_WORLD_BOUNDS_OBLIQUE';
             syncViewState('orbit');
             canvas.dataset.d1fShowerPhotoVisibleSourceScene = 'true';
             canvas.dataset.d1fShowerPhotoSourceRootCount = '1';

@@ -298,3 +298,21 @@ test('fully occluded source footprint remains NOT_PROVEN', () => {
   expect(target.passed).toBe(false);
 });
 
+
+test('source pixel detector rejects oversized 27-frame viewport before scanning any frames',()=>{
+  const poisonedFrames = new Proxy({}, {
+    ownKeys(){throw new Error('oversized frame enumeration reached');},
+  });
+  const oversized = {
+    baseline:new Uint8Array(1921*1200*4), mutedFrames:poisonedFrames,
+    restoredFrames:poisonedFrames, projections:[], width:1921, height:1200,
+    sourceScene:undefined, cameraStates:undefined,
+  };
+  // 2,305,200 pixels is above the actual 2,304,000 capture maximum;
+  // no 13 source frame keys or geometry may be scanned.
+  expect(()=>prove(oversized)).toThrow(/R1125 requires exact original RGBA/);
+  const boundary={...oversized,width:1920,height:1200,
+    baseline:new Uint8Array(1920*1200*4)};
+  // The exact allowed boundary gets past the size gate to frame validation.
+  expect(()=>prove(boundary)).toThrow(/oversized frame enumeration reached/);
+});
