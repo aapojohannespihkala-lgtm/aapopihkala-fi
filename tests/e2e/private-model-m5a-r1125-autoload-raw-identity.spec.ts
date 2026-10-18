@@ -80,6 +80,7 @@ test('R1125 added gate preserves P137E autoload and original pixel hard floors',
   expect(workflow).toContain("m5aR1125PixelEvidence.sourceRoiPixels?.length !== 13");
   expect(workflow).toContain("m5aR1125PixelEvidence.ambiguousSourceKeys?.length !== 0");
   expect(workflow).toContain("m5aR1125PixelEvidence.missingKeys?.length !== 0");
-  expect(workflow).toContain("exactRawGlbByteReadbackVerified: false");
+  expect(workflow).toContain("exactRawGlbByteReadbackVerified: true");
+  expect(workflow).toContain("sourceToCanvasGlbAssociationVerifiedByThisGate: false");
   expect(workflow).not.toMatch(/m5aR1125HumanReview:\s*'PASS'/);
 });
