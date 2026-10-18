@@ -1852,6 +1852,9 @@ const title = 'Private 3D viewer';
       // @ts-ignore - exact immutable source-bound numbered R1125 scene64 review.
       import { isM5AR1125NumberedScene64Requested, loadM5AR1125NumberedScene64Review }
         from '../../scripts/privateModelM5AR1125NumberedScene64Review.mjs';
+      // @ts-ignore - source150 exact two-pull glass source, noncanonical review only.
+      import { isD1FScene150ReviewRequested, loadD1FScene150Review }
+        from '../../scripts/privateModelD1FScene150Review.mjs';
       // @ts-ignore - source-derived Y-up presentation fit, not geometry approval.
       import { planD1FSourceGlassCamera }
         from '../../scripts/privateModelD1FShowerGlassSourceCameraFit.mjs';
@@ -9636,7 +9639,12 @@ const title = 'Private 3D viewer';
                 candidate, search: window.location.search, loader,
               })
             : null;
-          const gltf = r1125NumberedReview?.gltf ?? serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikWindingReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
+          const d1fScene150Review = isD1FScene150ReviewRequested(window.location.search)
+            ? await loadD1FScene150Review({
+                candidate, search: window.location.search, loader,
+              })
+            : null;
+          const gltf = d1fScene150Review?.gltf ?? r1125NumberedReview?.gltf ?? serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikWindingReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
             ? await loader.parseAsync(
                 isP137EThreeCornerMeasuredReviewRequested()
                   ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
@@ -12089,7 +12097,8 @@ const title = 'Private 3D viewer';
           !isD1FShowerPhotoReviewRequested(window.location.search) &&
           !['d1f-bathroom-service-heating-20261015', 'd1f-wc-nordic3530-centered-20261016', 'd1f-wc-closed-lid-450-20261016'].includes(getRequestedReviewCandidateId() ?? '') &&
           !isPrivateModelReviewRequested(window.location.search, m5aZ2R1125ReviewId) &&
-          !isM5AR1125NumberedScene64Requested(window.location.search)
+          !isM5AR1125NumberedScene64Requested(window.location.search) &&
+          !isD1FScene150ReviewRequested(window.location.search)
         ) {
           await loadCurrentModel();
         }
