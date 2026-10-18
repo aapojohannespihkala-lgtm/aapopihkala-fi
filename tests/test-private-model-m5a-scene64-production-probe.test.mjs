@@ -1,0 +1,91 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  Scene64ProofFailure,verifyScene64PixelProjection,
+  verifyScene64FrameTriplet,verifyScene64OriginalGlb,
+} from '../.github/scripts/private-model-m5a-scene64-production-probe.mjs';
+import {M5A_R1125_NUMBERED_SOURCE_IDS as ids} from
+  '../src/scripts/privateModelM5AR1125NumberedScene64Review.mjs';
+
+const projection=()=>({
+  sourceSceneIndex:64,sourceTargetCount:20,
+  originalCount:13,numberCount:7,
+  originalGlbDigestVerifiedByLoader:true,
+  productionPixelsVerified:false,humanReview:'NOT_RUN',
+  centers:[
+    ...Array.from({length:13},(_,i)=>({
+      key:'original:SOURCE_'+i,kind:'original',
+      u:0.08+i*0.04,v:0.2,onScreen:true,
+    })),
+    ...ids.map((id,i)=>({
+      key:'number:'+id,kind:'number',
+      u:0.1+i*0.1,v:0.7,onScreen:true,
+    })),
+  ],
+});
+const frames=()=>{
+  const width=256,height=256;
+  const make=()=>({width,height,rgba:new Uint8Array(width*height*4)});
+  const before=make(),hidden=make(),restored=make();
+  for(let y=124;y<132;y++)for(let x=124;x<132;x++){
+    const off=(y*width+x)*4;
+    hidden.rgba[off]=190;
+  }
+  return {before,hidden,restored,center:{
+    key:'original:SOURCE_0',kind:'original',
+    u:0.5,v:0.5,onScreen:true}};
+};
+
+test('all 13 authentic object keys plus seven exact numbered G2 identities',()=>{
+  const out=verifyScene64PixelProjection(projection());
+  assert.equal(out.length,20);
+  assert.deepEqual(out.filter(c=>c.kind==='number')
+    .map(c=>c.key.slice(7)),ids);
+});
+test('projection source identity, duplicates, off-frame and promotion fail closed',()=>{
+  for(const mutate of [
+    p=>{p.sourceSceneIndex=63;},
+    p=>{p.originalGlbDigestVerifiedByLoader=false;},
+    p=>{p.productionPixelsVerified=true;},
+    p=>{p.humanReview='PASS';},
+    p=>{p.centers[1].key=p.centers[0].key;},
+    p=>{p.centers[0].u=1.1;},
+    p=>{p.centers[0].onScreen=false;},
+    p=>{p.centers[19].key='number:INVENTED';},
+    p=>{p.centers.pop();},
+  ]){
+    const p=projection();mutate(p);
+    assert.throws(()=>verifyScene64PixelProjection(p),Scene64ProofFailure);
+  }
+});
+test('real-frame comparator requires visible original delta and exact restoration',()=>{
+  const f=frames(),out=verifyScene64FrameTriplet(f);
+  assert.equal(out.changedPixels,64);
+  assert.equal(out.projectedRoiChangedPixels,64);
+  assert.equal(out.restorationChangedPixels,0);
+  assert.equal(out.productionProvenanceVerified,false);
+  assert.equal(out.humanReview,'NOT_RUN');
+});
+test('unchanged, corrupt, oversized, off-target or un-restored frames cannot pass',()=>{
+  const variants=[
+    f=>{f.hidden.rgba.fill(0);},
+    f=>{f.restored.rgba.set(f.hidden.rgba);},
+    f=>{f.center.u=0.05;},
+    f=>{f.center.onScreen=false;},
+    f=>{f.hidden.rgba=new Uint8Array(10);},
+    f=>{f.before.width=9000;},
+    f=>{f.minChangedPixels=2;},
+  ];
+  for(const mutate of variants){
+    const f=frames();mutate(f);
+    assert.throws(()=>verifyScene64FrameTriplet(f),Scene64ProofFailure);
+  }
+});
+test('a fake original GLB magic/length never authenticates source',()=>{
+  assert.throws(()=>verifyScene64OriginalGlb(Buffer.alloc(64)),Scene64ProofFailure);
+  const input=Buffer.alloc(3179132);
+  input.writeUInt32LE(0x46546c67,0);
+  input.writeUInt32LE(2,4);
+  input.writeUInt32LE(input.length,8);
+  assert.throws(()=>verifyScene64OriginalGlb(input),Scene64ProofFailure);
+});
