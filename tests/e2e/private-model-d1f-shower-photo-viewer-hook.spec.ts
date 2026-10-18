@@ -37,7 +37,7 @@ test('viewer uses source-bound fetch-and-parse, selected scene, and no-current b
   expect(loadStart).toBeGreaterThan(0);
   expect(loadEnd).toBeGreaterThan(loadStart);
   const prefix = index.slice(loadStart, loadEnd);
-  const gltfChain = prefix.match(/const gltf = ([\\s\\S]*?);/);
+  const gltfChain = prefix.match(/const gltf = ([^]*?);/);
   expect(gltfChain).not.toBeNull();
   const chain = gltfChain![1];
   const serviceAt = chain.indexOf('serviceModel?.gltf');
