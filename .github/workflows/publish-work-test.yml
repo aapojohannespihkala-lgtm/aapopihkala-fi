@@ -163,6 +163,9 @@ jobs:
           # Drive may contain raw GLB or an immutable ZIP work-package with
           # exactly one GLB. Verify transport before deriving GLB identity.
           python3 .github/scripts/work-test-extract-one-glb.py "$download" "$model"
+          # Defense in depth: keep the legacy publisher contract's explicit
+          # GLB magic guard after ZIP extraction and before hashing/publishing.
+          [[ "$(head -c 4 "$model")" == "glTF" ]] || { echo "GLB magic guard rejected extracted source" >&2; exit 1; }
           rm -f "$download"
           actual_size="$(stat -c '%s' "$model")"
           actual_sha="$(sha256sum "$model" | awk '{print $1}')"
