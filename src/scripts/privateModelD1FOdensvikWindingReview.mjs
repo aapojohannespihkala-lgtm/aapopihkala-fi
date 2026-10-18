@@ -132,8 +132,9 @@ export async function loadD1FOdensvikWindingReview({
   if (!candidate || candidate.id !== D1F_ODENSVIK_WINDING_CANDIDATE_ID ||
       candidate.path !== path ||
       query.get('review') !== D1F_ODENSVIK_WINDING_REVIEW_ID ||
-      candidate.expectedSize !== D1F_ODENSVIK_WINDING_SOURCE.bytes ||
-      candidate.expectedSha256 !== D1F_ODENSVIK_WINDING_SOURCE.sha256 ||
+      // Catalog WorkTestCandidate deliberately carries only id/label/path.
+      // Authenticate every returned GLB byte against the pinned SHA below;
+      // never trust candidate metadata as a second source of truth.
       !D1F_ODENSVIK_WINDING_VARIANTS.some(v=>v.variant===variant) ||
       typeof loader?.parseAsync !== 'function' || typeof fetcher !== 'function')
     reject('candidate-review-identity');
