@@ -78,10 +78,13 @@ test('actual visible scene remains the selected 124-source root, with orbit and 
     d1fShowerPhotoVisibleSourceScene:'true',
     d1fShowerPhotoSourceRootCount:'1',
     d1fShowerPhotoGlassFocus:'SOURCE_OBJECT_PRESENTATION_ONLY',
+    d1fShowerPhotoCameraFraming:'SOURCE_WORLD_BOUNDS_OBLIQUE',
     d1fShowerPhotoProductionPixelsVerified:'false'});
   const actualFocus=new THREE.Box3().setFromObject(f.glass).getCenter(new THREE.Vector3());
   expect(f.controls.target.distanceTo(actualFocus)).toBeLessThan(0.00001);
   expect(f.camera.position.distanceTo(actualFocus)).toBeGreaterThan(2.8);
+  expect(f.camera.near).toBeGreaterThan(0);
+  expect(f.camera.far).toBeGreaterThan(f.camera.near);
   expect(f.originalRoot.children).toEqual(f.before);
   expect(f.originalRoot.children).toHaveLength(44);
 });
