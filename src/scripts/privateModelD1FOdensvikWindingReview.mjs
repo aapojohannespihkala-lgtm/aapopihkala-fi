@@ -78,7 +78,7 @@ export function selectD1FOdensvikWindingScene(source, variant = D1F_ODENSVIK_WIN
         !root.children.includes(row.counterNode) ||
         bowlMatches.length !== 1 ||
         ![766,767].includes(nodes[bowlNode]?.mesh) ||
-        nodes[meta.cabinetNode]?.mesh !== 624) reject('original-bowl-counter-cabinet');
+        nodes[meta.cabinetNode]?.mesh !== 624 + 9*i) reject('original-bowl-counter-cabinet');
     if (row.sceneIndex === selected.sceneIndex) selectedBowl = bowlNode;
     // The preserved old scene remains distinct, not silently reassigned.
     const old = scenes[108 + i];
