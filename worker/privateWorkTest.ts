@@ -528,6 +528,21 @@ const M5A_R1125_PVK_DIAMETER_SOURCE_SPLIT_CANDIDATE = {
   expectedSha256: 'c465417fc101e7de495d0a04bb4feb2bee61b80cd5efccf876f6eb76326f9a48',
 } as const satisfies PrivateWorkTestCandidate;
 
+// R1125's original source scene63 remains immutable and independently available.
+// The exact, G2b-persisted ZIP holds ONE inner scene64 GLB with seven visual
+// source-route numbers. Five carry only system-general nominal D100 metadata;
+// the two PVK physical diameters, installed coordinates and as-built status
+// remain UNKNOWN. One local 4-camera QA had a 1-pixel parity warning.
+// Publisher allowlisting is NOT viewer autoload, WebGL pixel QA or human review.
+const M5A_R1125_SCENE64_NUMBERED_ROUTES_CANDIDATE = {
+  id: 'm5a-r1125-scene64-seven-numbered-route-labels-20261018',
+  label: 'M5A R1125 seven source-ID route numbers - noncanonical WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-r1125-scene64-seven-numbered-route-labels-20261018.glb`,
+  objectKey: 'work-test/m5a-r1125-scene64-seven-numbered-route-labels-20261018.glb',
+  expectedSize: 3_179_132,
+  expectedSha256: 'f5e504df44a3b8d58d61bcc3c7af45639a4d53fd17e8c07ef39346e969d0536d',
+} as const satisfies PrivateWorkTestCandidate;
+
 const M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE = {
   id: 'm5a-z2d-r1090-well-top-ground-surface',
   label: 'M5A-Z2D R1090 well-top ground-surface correction - WORK_TEST',
@@ -715,6 +730,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
   M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE,
   M5A_R1125_PVK_DIAMETER_SOURCE_SPLIT_CANDIDATE,
+  M5A_R1125_SCENE64_NUMBERED_ROUTES_CANDIDATE,
   M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE,
   M5A_R1115_SOK23_PLANNED_RAISE_PRESENCE_CANDIDATE,
   P137E_D1F_THREE_WALL_MOUNTED_THEMOS_CANDIDATE,
