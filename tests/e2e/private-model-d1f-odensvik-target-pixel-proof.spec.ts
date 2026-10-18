@@ -51,7 +51,7 @@ test('12 original source targets only earn pixels inside their own conservative 
   })).toThrow('D1F_ODENSVIK_TARGET_PIXELS_REJECTED');
 });
 
-test('projected original object ROI uses WebGL bottom-left pixels and rejects missing visibility',()=>{
+test('projected original object ROI matches capture-adapter top-left rows and rejects missing visibility',()=>{
   const camera=new OrthographicCamera(-1,1,1,-1,0.1,100);
   camera.position.set(0,0,4);camera.lookAt(0,0,0);
   camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
@@ -68,6 +68,30 @@ test('projected original object ROI uses WebGL bottom-left pixels and rejects mi
   mesh.position.set(0,0,4);mesh.updateMatrixWorld(true);
   expect(()=>projectD1FOdensvikObjectPixelRoi(mesh,camera,80,80))
     .toThrow('D1F_ODENSVIK_TARGET_PIXELS_REJECTED');
+});
+
+test('asymmetric original-mesh ROI rejects vertically mirrored pixels from another object',()=>{
+  const width=80,height=80;
+  const camera=new OrthographicCamera(-1,1,1,-1,0.1,100);
+  camera.position.set(0,0,4);camera.lookAt(0,0,0);
+  camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
+  const mesh=new Mesh(new BoxGeometry(0.2,0.2,0.2),new MeshBasicMaterial());
+  mesh.position.set(0,0.6,0);mesh.updateMatrixWorld(true);
+  const upper=projectD1FOdensvikObjectPixelRoi(mesh,camera,width,height,{padding:0});
+  expect(upper.bottom).toBeLessThan(20);
+  expect(upper.top).toBeLessThanOrEqual(21);
+  mesh.position.set(0,-0.6,0);mesh.updateMatrixWorld(true);
+  const lower=projectD1FOdensvikObjectPixelRoi(mesh,camera,width,height,{padding:0});
+  expect(lower.bottom).toBeGreaterThan(59);
+  const original=new Uint8Array(width*height*4);
+  const hidden=original.slice();
+  // Readback adapter stores the *upper* original object at top-left rows.
+  for(let y=12;y<20;y++)for(let x=36;x<44;x++)hidden[(y*width+x)*4]=180;
+  const options={width,height,minimum:16};
+  expect(countD1FOdensvikPixelDiff(original,hidden,original,{...options,roi:upper}))
+    .toEqual({changedPixels:64,restoredDriftPixels:0,visible:true});
+  expect(countD1FOdensvikPixelDiff(original,hidden,original,{...options,roi:lower}))
+    .toEqual({changedPixels:0,restoredDriftPixels:0,visible:false});
 });
 
 test('untrusted and obsolete source is rejected before GLTFLoader or GPU capture',async()=>{
