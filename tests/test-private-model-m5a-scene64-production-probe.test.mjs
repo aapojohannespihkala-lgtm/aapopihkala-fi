@@ -1,12 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  Scene64ProofFailure,verifyScene64PixelProjection,
+  Scene64ProofFailure,verifyScene64OriginalNodeKeys,
+  verifyScene64PixelProjection,
   verifyScene64FrameTriplet,verifyScene64OriginalGlb,
 } from '../.github/scripts/private-model-m5a-scene64-production-probe.mjs';
 import {M5A_R1125_NUMBERED_SOURCE_IDS as ids} from
   '../src/scripts/privateModelM5AR1125NumberedScene64Review.mjs';
 
+const sourceKeys=Array.from({length:13},(_,i)=>'original:SOURCE_'+i);
+const originalFixture=()=>{
+  const nodes=Array.from({length:1222},()=>({}));
+  nodes[1125]={name:'M5A_R1125_DIAMETER_SOURCE_SPLIT_WORK_TEST_ROOT_BABYLON_Y_UP',
+    children:Array.from({length:13},(_,i)=>i)};
+  for(let i=0;i<13;i++)nodes[i]={name:'SOURCE_'+i};
+  const scenes=Array.from({length:65},()=>({nodes:[]}));
+  scenes[64]={nodes:Array.from({length:20},(_,i)=>i===17?1125:i)};
+  return {asset:{version:'2.0'},scene:64,nodes,scenes,
+    meshes:Array.from({length:661},()=>({}))};
+};
 const projection=()=>({
   sourceSceneIndex:64,sourceTargetCount:20,
   originalCount:13,numberCount:7,
@@ -37,7 +49,7 @@ const frames=()=>{
 };
 
 test('all 13 authentic object keys plus seven exact numbered G2 identities',()=>{
-  const out=verifyScene64PixelProjection(projection());
+  const out=verifyScene64PixelProjection(projection(),sourceKeys);
   assert.equal(out.length,20);
   assert.deepEqual(out.filter(c=>c.kind==='number')
     .map(c=>c.key.slice(7)),ids);
@@ -55,7 +67,27 @@ test('projection source identity, duplicates, off-frame and promotion fail close
     p=>{p.centers.pop();},
   ]){
     const p=projection();mutate(p);
-    assert.throws(()=>verifyScene64PixelProjection(p),Scene64ProofFailure);
+    assert.throws(()=>verifyScene64PixelProjection(p,sourceKeys),Scene64ProofFailure);
+  }
+});
+test('13 original identities come from authentic GLB node hierarchy, never count alone',()=>{
+  assert.deepEqual(verifyScene64OriginalNodeKeys(originalFixture()),sourceKeys);
+  const fake=projection();
+  fake.centers[0].key='original:FORGED_SOURCE_WITH_VALID_PREFIX';
+  assert.equal(fake.centers.length,20);
+  assert.throws(()=>verifyScene64PixelProjection(fake,sourceKeys),
+    Scene64ProofFailure);
+  assert.throws(()=>verifyScene64PixelProjection(projection()),
+    Scene64ProofFailure);
+  for(const mutate of [
+    g=>{g.scenes[64].nodes[17]=1124;},
+    g=>{g.nodes[1125].children[0]=g.nodes[1125].children[1];},
+    g=>{g.nodes[0].name=g.nodes[1].name;},
+    g=>{g.nodes[1125].children=[0,1];},
+  ]){
+    const g=originalFixture();mutate(g);
+    assert.throws(()=>verifyScene64OriginalNodeKeys(g),
+      Scene64ProofFailure);
   }
 });
 test('real-frame comparator requires visible original delta and exact restoration',()=>{
