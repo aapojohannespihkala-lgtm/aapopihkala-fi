@@ -673,6 +673,19 @@ const D1F_ODENSVIK_BASIN_CORRECTION_CANDIDATE = {
   expectedSha256: '362f5dce1041e8f529ed8f69a10d06dad58b59d8bfad0fe9db31c62d870f2e25',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Source-verified merged D1F KPH 01+02+04 WORK_TEST only: square drains,
+// shower chrome details, 65 mm riser continuity and basin faucet. The source
+// is a Drive ZIP with ONE raw GLB; expected bytes/hash refer to that GLB,
+// never to the ZIP. This candidate is NOT current/as-built or human approved.
+const D1F_KPH_010204_ZIP_CANDIDATE = {
+  id: 'd1f-kph-010204-square-drains-shower-faucet-20261018',
+  label: 'D1F KPH - neliökaivot, suihkut ja hanat - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-kph-010204-square-drains-shower-faucet-20261018.glb`,
+  objectKey: 'work-test/d1f-kph-010204-square-drains-shower-faucet-20261018.glb',
+  expectedSize: 9042688,
+  expectedSha256: '01ff6b883e3aeeb291261f7dfb6e17a89e61e3b913e6b30766a157cb07bb2f7c',
+} as const satisfies PrivateWorkTestCandidate;
+
 const D1F_SHOWER_PHOTO_CANDIDATE = {
   id: 'd1f-shower-glass-photo-20261016',
   label: 'D1F - kaareva suihkulasi 900x900 ja laattapinnat - WORK_TEST',
@@ -701,6 +714,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_WC450_CLOSED_CANDIDATE,
   D1F_WC450_SURFACE_FIX_CANDIDATE,
   D1F_ODENSVIK_BASIN_CORRECTION_CANDIDATE,
+  D1F_KPH_010204_ZIP_CANDIDATE,
   D1F_SHOWER_PHOTO_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
