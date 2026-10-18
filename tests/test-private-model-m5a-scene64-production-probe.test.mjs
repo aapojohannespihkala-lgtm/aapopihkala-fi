@@ -113,6 +113,16 @@ test('unchanged, corrupt, oversized, off-target or un-restored frames cannot pas
     assert.throws(()=>verifyScene64FrameTriplet(f),Scene64ProofFailure);
   }
 });
+test('restoration rejects subtle residual screenshot drift below hide threshold',()=>{
+  const f=frames();
+  for(let y=124;y<132;y++)for(let x=124;x<132;x++){
+    f.restored.rgba[(y*256+x)*4]=10;
+  }
+  assert.throws(()=>verifyScene64FrameTriplet(f),
+    error=>error instanceof Scene64ProofFailure &&
+      error.code==='ORIGINAL_OBJECT_PIXEL_DELTA');
+});
+
 test('a fake original GLB magic/length never authenticates source',()=>{
   assert.throws(()=>verifyScene64OriginalGlb(Buffer.alloc(64)),Scene64ProofFailure);
   const input=Buffer.alloc(3179132);
