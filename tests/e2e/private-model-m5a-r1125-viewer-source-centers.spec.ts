@@ -11,7 +11,9 @@ const workflow = readFileSync(
 
 test('R1125 viewer imports the existing source-bound camera projector', () => {
   expect(viewer).toContain("import { deriveM5AR1125SourceCameraCenters } from '../../scripts/privateModelM5AR1125SourceCameraCenters.mjs'");
-  expect(viewer.match(/deriveM5AR1125SourceCameraCenters\(/g)).toHaveLength(1);
+  // Two source-bound projections: one after initial focus and one after a live orbit.
+  expect(viewer.match(/deriveM5AR1125SourceCameraCenters\(/g)).toHaveLength(2);
+  expect(viewer).toContain('m5aR1125RefreshSourceProjection');
   expect(viewer).not.toContain('R1125_SYNTHETIC_CAMERA_CENTERS');
 });
 
@@ -45,10 +47,15 @@ test('R1125 exact 13, no-promotion and missing-camera values fail closed', () =>
 });
 
 test('R1125 production smoke consumes the exact viewer output, not synthetic data', () => {
-  expect(workflow).toContain("JSON.parse(d.m5aR1125SourceCameraCenters ?? '')");
+  expect(workflow).toContain('const projection = r1125OriginalView?.projection;');
+  expect(workflow).toContain('d.m5aR1125SourceCameraCenters !== JSON.stringify(projection)');
+  expect(workflow).toContain('const secondProjection = r1125OrbitView?.projection;');
   expect(workflow).toContain('projection.sourceSceneIndex !== 63');
   expect(workflow).toContain('projection.sourceTargetCount !== 13');
   expect(workflow).toContain('projection.radiusPx !== radius');
   expect(workflow).toContain('m5aR1125PixelEvidence.allSourceTargetsVisible !== true');
-  expect(workflow).toContain('exactRawGlbByteReadbackVerified: false');
+  // Original network GLB has now been independently SHA/readback-verified,
+  // but this gate does not prove those bytes were bound to WebGL canvas.
+  expect(workflow).toContain('exactRawGlbByteReadbackVerified: true');
+  expect(workflow).toContain('sourceToCanvasGlbAssociationVerifiedByThisGate: false');
 });

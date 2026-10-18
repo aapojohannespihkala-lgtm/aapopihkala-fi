@@ -61,7 +61,9 @@ test('R1125 pixel-only evidence does not promote physical measurements or review
   // must STILL admit that this does not bind its bytes to the viewer canvas.
   expect(workflow).toContain('exactRawGlbByteReadbackVerified: true');
   expect(workflow).toContain('sourceToCanvasGlbAssociationVerifiedByThisGate: false');
-  expect(workflow).toContain('thirteenIndividualSourceIsolationsVerified: false');
+  expect(workflow).toContain('thirteenIndividualSourceIsolationsVerified:');
+  expect(workflow).toContain('r1125FirstOriginalNodePixels?.individualOriginalSourcePixelsVerified === true');
+  expect(workflow).toContain('r1125FirstOriginalNodePixels?.perSource?.length === 13');
   expect(workflow).toContain("d.m5aPublishToCurrent !== 'false'");
   expect(workflow).toContain("m5aR1125PixelEvidence.humanReview !== 'NOT_RUN'");
   expect(workflow).toContain('m5aR1125PixelEvidence,');

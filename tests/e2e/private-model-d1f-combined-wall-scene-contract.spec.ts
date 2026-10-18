@@ -401,6 +401,8 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
       p137eScene67CandidateId: 'p137e-d1f-three-wall-mounted-themos',
       isP137EScene67ReviewRequested: () => false,
       isD1FShowerPhotoReviewRequested: () => false,
+      // The production loader also evaluates ODENSVIK before the combined-wall fallback.
+      isD1FOdensvikReviewRequested: () => false,
       window: { location: { search: '?review=' + id + '-review' } },
       isD1FCombinedWallReviewRequested,
       loadD1FServiceModel,
