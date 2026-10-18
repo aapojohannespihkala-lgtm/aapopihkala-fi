@@ -32,7 +32,7 @@ class Source143CandidateTests(unittest.TestCase):
 
     def test_exact_worker_glb_binding(self):
         matches = re.findall(
-            r"const " + SYMBOL + r" = \\{(.*?)\\} as const satisfies PrivateWorkTestCandidate;",
+            r"const " + SYMBOL + r" = \{(.*?)\} as const satisfies PrivateWorkTestCandidate;",
             self.worker,
             flags=re.S,
         )
