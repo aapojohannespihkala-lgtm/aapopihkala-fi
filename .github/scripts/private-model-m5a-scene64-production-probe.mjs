@@ -19,7 +19,33 @@ export class Scene64ProofFailure extends Error {
 }
 const requireProof=(ok,code)=>{if(!ok)throw new Scene64ProofFailure(code);};
 
-export function verifyScene64PixelProjection(projection){
+/** Independently derive all thirteen original keys from the exact GLB's
+ * JSON node table, not from viewer-returned DOM/canvas claims.
+ * The caller must first authenticate the *raw full GLB SHA-256*.
+ */
+export function verifyScene64OriginalNodeKeys(g){
+  requireProof(g?.asset?.version==='2.0' && g.scene===64 &&
+    g.scenes?.length===65 && g.nodes?.length===1222 &&
+    g.meshes?.length===661 && g.scenes[64]?.nodes?.[17]===1125 &&
+    g.nodes[1125]?.name==='M5A_R1125_DIAMETER_SOURCE_SPLIT_WORK_TEST_ROOT_BABYLON_Y_UP',
+    'ORIGINAL_13_NODE_ROOT');
+  const ids=g.nodes[1125].children;
+  requireProof(Array.isArray(ids) && ids.length===13 &&
+    new Set(ids).size===13, 'ORIGINAL_13_NODE_IDS');
+  const names=ids.map(i=>Number.isInteger(i) && i>=0 &&
+    i<g.nodes.length ? g.nodes[i]?.name : null);
+  requireProof(names.every(n=>typeof n==='string' && n.length>0) &&
+    new Set(names).size===13, 'ORIGINAL_13_NODE_NAMES');
+  return Object.freeze(names.map(name=>'original:'+name));
+}
+
+export function verifyScene64PixelProjection(projection,expectedOriginalKeys){
+  requireProof(Array.isArray(expectedOriginalKeys) &&
+    expectedOriginalKeys.length===13 &&
+    expectedOriginalKeys.every(k=>typeof k==='string' &&
+      k.startsWith('original:')) &&
+    new Set(expectedOriginalKeys).size===13,
+    'AUTHENTICATED_ORIGINAL_KEYS_REQUIRED');
   requireProof(projection?.sourceSceneIndex===64 &&
     projection.sourceTargetCount===20 &&
     projection.originalCount===13 && projection.numberCount===7 &&
@@ -42,7 +68,8 @@ export function verifyScene64PixelProjection(projection){
     else throw new Scene64ProofFailure('SOURCE_TARGET_TYPE');
   }
   requireProof(originals.length===13 && numbers.length===7 &&
-    NUMBERED.every(id=>numbers.includes(id)),'EXACT_13_PLUS_7_IDENTITIES');
+    originals.every((key,i)=>key===expectedOriginalKeys[i]) &&
+    NUMBERED.every((id,i)=>numbers[i]===id),'EXACT_13_PLUS_7_IDENTITIES');
   return projection.centers;
 }
 
@@ -102,8 +129,21 @@ export function verifyScene64OriginalGlb(bytes){
     bytes.readUInt32LE(0)===0x46546c67 &&
     bytes.readUInt32LE(4)===2 && bytes.readUInt32LE(8)===bytes.length &&
     digest(bytes)===SOURCE.sha256,'ORIGINAL_SOURCE_BINARY');
+  const len=bytes.readUInt32LE(12);
+  requireProof(bytes.readUInt32LE(16)===0x4e4f534a &&
+    len>=100 && len%4===0 && len+20<bytes.length,
+    'ORIGINAL_SOURCE_JSON_CHUNK');
+  let originalSourceKeys;
+  try{
+    originalSourceKeys=verifyScene64OriginalNodeKeys(
+      JSON.parse(bytes.subarray(20,20+len).toString('utf8')));
+  }catch(e){
+    if(e instanceof Scene64ProofFailure)throw e;
+    throw new Scene64ProofFailure('ORIGINAL_SOURCE_JSON_PARSE');
+  }
   return Object.freeze({byteLength:bytes.length,sha256:SOURCE.sha256,
-    originalSourceDigestVerified:true,canonical:false,asBuilt:false});
+    originalSourceKeys,originalSourceDigestVerified:true,
+    canonical:false,asBuilt:false});
 }
 
 export async function runScene64ProductionProof({
@@ -128,6 +168,7 @@ export async function runScene64ProductionProof({
     context=await browser.newContext({viewport:{width:1536,height:900},
       deviceScaleFactor:1});
     let sourceRequests=0,sourceVerified=false,unexpectedCurrent=0;
+    let originalSourceKeys=null;
     await context.route('**/*',async route=>{
       const request=route.request(),url=request.url();
       if(!url.startsWith(ORIGIN+'/')){
@@ -144,7 +185,8 @@ export async function runScene64ProductionProof({
             maxRetries:0,timeout:30000});
           const bytes=await response.body();
           requireProof(response.status()===200,'SOURCE_HTTP');
-          verifyScene64OriginalGlb(bytes);
+          const verified=verifyScene64OriginalGlb(bytes);
+          originalSourceKeys=verified.originalSourceKeys;
           sourceVerified=true;
           await route.fulfill({response,body:bytes});
         }catch(error){
@@ -190,7 +232,7 @@ export async function runScene64ProductionProof({
         throw Error('missing-source-isolation-capability');
       return el.m5aR1125Scene64RefreshSourceProjection();
     });
-    const targets=verifyScene64PixelProjection(projection);
+    const targets=verifyScene64PixelProjection(projection,originalSourceKeys);
     const box=await canvas.boundingBox();
     requireProof(Boolean(box)&&box.width>=256&&box.height>=256,
       'REAL_CANVAS_BOUNDS');
