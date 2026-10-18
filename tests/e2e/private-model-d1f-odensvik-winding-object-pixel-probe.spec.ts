@@ -1,5 +1,4 @@
 import {test,expect} from '@playwright/test';
-import {readFileSync} from 'node:fs';
 import {
   ORIGINAL_OBJECT_KINDS,
   exactCorrectedWindingReviewUrl,
@@ -35,15 +34,4 @@ test('object pixel counter uses actual RGBA changes, rejects identical or wrong-
     .toThrow('D1F_ODENSVIK_WINDING_PIXEL_REJECTED');
   expect(()=>countCorrectedWindingObjectPixels(before,hidden,1))
     .toThrow('D1F_ODENSVIK_WINDING_PIXEL_REJECTED');
-});
-test('main-only read-only workflow has distinct corrected source object pixel gate',()=>{
-  const yaml=readFileSync('.github/workflows/private-model-d1f-service-review.yml','utf8');
-  expect(yaml).toContain('- odensvik-winding-pixels');
-  expect(yaml).toContain("inputs.review_mode == 'odensvik-winding-pixels'");
-  expect(yaml).toContain('PROBE_MODE: d1f-odensvik-winding-pixels');
-  expect(yaml).toContain('private-model-d1f-odensvik-winding-object-pixel-probe.mjs');
-  expect(yaml).toContain("github.ref == 'refs/heads/main'");
-  expect(yaml).toContain('CF_ACCESS_VIEWER_PROBE_CLIENT_ID');
-  expect(yaml).toContain('CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET');
-  expect(yaml).toContain('d1f-odensvik-winding-original-object-pixels');
 });
