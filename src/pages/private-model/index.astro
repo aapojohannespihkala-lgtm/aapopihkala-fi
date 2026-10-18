@@ -1852,6 +1852,9 @@ const title = 'Private 3D viewer';
       // @ts-ignore - exact immutable source-bound numbered R1125 scene64 review.
       import { isM5AR1125NumberedScene64Requested, loadM5AR1125NumberedScene64Review }
         from '../../scripts/privateModelM5AR1125NumberedScene64Review.mjs';
+      // @ts-ignore - isolate the genuine original 13 + numbered 7 source groups.
+      import { createM5AR1125Scene64PixelIsolation }
+        from '../../scripts/privateModelM5AR1125Scene64PixelIsolation.mjs';
       // @ts-ignore - source150 exact two-pull glass source, noncanonical review only.
       import { isD1FScene150ReviewRequested, loadD1FScene150Review }
         from '../../scripts/privateModelD1FScene150Review.mjs';
@@ -6202,6 +6205,15 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p137eScene67CameraSourceIds;
         delete canvas.dataset.m5aR1125SourceCameraCenters;
         delete canvas.dataset.m5aR1125SourceCameraWorldPose;
+        // Restore any scene64 source target after cancellation or candidate switch.
+        (canvas as any).m5aR1125Scene64Restore?.();
+        delete (canvas as any).m5aR1125Scene64Restore;
+        delete (canvas as any).m5aR1125Scene64SetSourceVisibility;
+        delete (canvas as any).m5aR1125Scene64RefreshSourceProjection;
+        delete canvas.dataset.m5aR1125Scene64PixelIsolationReady;
+        delete canvas.dataset.m5aR1125Scene64OriginalTargetCount;
+        delete canvas.dataset.m5aR1125Scene64NumberedTargetCount;
+        delete canvas.dataset.m5aR1125Scene64SourcePixelEvidence;
         // A cancelled source-isolation probe must never hide a real source
         // node in the next candidate or carry a stale test capability forward.
         (canvas as any).m5aR1125RestoreOriginalSourceVisibility?.();
@@ -9894,6 +9906,46 @@ const title = 'Private 3D viewer';
             canvas.dataset.m5aR1125Scene64SceneIndex = '64';
             canvas.dataset.m5aR1125Scene64LabelCount = '7';
             canvas.dataset.m5aR1125Scene64HumanReview = 'NOT_RUN';
+            // This model was authenticated by exact raw SHA before GLTFLoader.
+            // Expose only original GLTFLoader nodes for reversible WebGL screenshot
+            // hide/restore. A canvas dataset or ROI is NOT a pixel PASS.
+            const numberedPixels = createM5AR1125Scene64PixelIsolation(gltf);
+            if (numberedPixels.targets.length !== 20 ||
+                numberedPixels.originalCount !== 13 || numberedPixels.numberCount !== 7) {
+              throw new Error('R1125 scene64 13+7 exact original target isolation failed');
+            }
+            (canvas as any).m5aR1125Scene64Restore = numberedPixels.restore;
+            (canvas as any).m5aR1125Scene64SetSourceVisibility =
+              (key: string, operation: 'HIDE' | 'RESTORE') => {
+                if (canvas.dataset.modelSource !== 'work-test' ||
+                    canvas.dataset.p137eLoadedCandidateId !== candidate.id ||
+                    fullModelScene !== gltf.scene ||
+                    !isM5AR1125NumberedScene64Requested(window.location.search)) {
+                  throw new Error('R1125 scene64 pixel isolation is not bound to loaded source');
+                }
+                return numberedPixels.setSourceVisibility(key, operation);
+              };
+            (canvas as any).m5aR1125Scene64RefreshSourceProjection = () => {
+              if (canvas.dataset.modelSource !== 'work-test' ||
+                  canvas.dataset.p137eLoadedCandidateId !== candidate.id ||
+                  fullModelScene !== gltf.scene ||
+                  !isM5AR1125NumberedScene64Requested(window.location.search) ||
+                  activeCamera !== camera) {
+                throw new Error('R1125 scene64 authentic screenshot requires loaded perspective source');
+              }
+              updateSize();
+              const rect = canvas.getBoundingClientRect();
+              const scale = window.devicePixelRatio || 1;
+              return numberedPixels.projectSourceTargets({
+                THREE, camera: activeCamera,
+                imageWidth: Math.round(rect.width * scale),
+                imageHeight: Math.round(rect.height * scale),
+              });
+            };
+            canvas.dataset.m5aR1125Scene64PixelIsolationReady = 'true';
+            canvas.dataset.m5aR1125Scene64OriginalTargetCount = '13';
+            canvas.dataset.m5aR1125Scene64NumberedTargetCount = '7';
+            canvas.dataset.m5aR1125Scene64SourcePixelEvidence = 'NOT_RUN';
           } else {
             delete canvas.dataset.m5aR1125Scene64SourceVerified;
             delete canvas.dataset.m5aR1125Scene64SceneIndex;
