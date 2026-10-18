@@ -1592,6 +1592,7 @@ const title = 'Private 3D viewer';
           <p id="m5a-source-context-orientation"></p>
           <p id="m5a-source-context-question"></p>
           <p id="m5a-source-context-limit" class="m5a-source-limit"></p>
+          <section id="m5a-r1125-diameter-legend" class="m5a-source-facts" aria-label="R1125 salaojien lähtötiedon halkaisijamerkinnät" hidden></section>
         </aside>
         <aside id="p186c-x2r-source-context" class="m5a-source-context" aria-label="D 1F lattialämmityskatselmuksen lähdekonteksti" hidden>
           <h2>D 1F lattialämmityksen lähdekonteksti</h2>
@@ -5815,6 +5816,11 @@ const title = 'Private 3D viewer';
             m5aSourcePreview.removeAttribute('src');
           }
           m5aSourceFacts?.replaceChildren();
+          const diameterLegend = document.querySelector<HTMLElement>('#m5a-r1125-diameter-legend');
+          if (diameterLegend) {
+            diameterLegend.hidden = true;
+            diameterLegend.replaceChildren();
+          }
           delete canvas.dataset.m5aSourceContextReady;
           delete canvas.dataset.m5aSourcePreviewLoadState;
           delete canvas.dataset.m5aReviewQuestionText;
@@ -9782,6 +9788,40 @@ const title = 'Private 3D viewer';
           if (isM5AR1125SourceReview) {
             const selected = selectM5AR1125SourceBoundReviewScene(gltf);
             gltf.scene = selected.scene;
+            // Show ONLY original scene63 source-bound, seven-route diameter
+            // classifications. The 100mm cylinders are not measured pipes.
+            const diameterLegend = document.querySelector<HTMLElement>('#m5a-r1125-diameter-legend');
+            const rows = selected.diameterReviewLabels;
+            if (!diameterLegend || rows.length !== 7 ||
+                new Set(rows.map((row) => row.sourceId)).size !== 7 ||
+                rows.filter((row) => row.sourceClass ===
+                  'GENERAL_SALAOJA_NOMINAL_NOT_PER_ROUTE_MEASURED').length !== 5 ||
+                rows.filter((row) => row.sourceClass ===
+                  'PVK_SOURCE_DIAMETER_UNKNOWN').length !== 2 ||
+                rows.some((row) => row.physicalDiameterMm !== null ||
+                  row.presentationRole !== 'WORK_TEST_VISUAL_PROXY' ||
+                  row.physicalMeasurementVerified !== false ||
+                  row.asBuiltClaim !== false)) {
+              throw new Error('R1125 source diameter legend cannot be shown without seven verified labels');
+            }
+            const heading = document.createElement('h3');
+            heading.textContent = 'Seitsemän putkireitin lähdeperustainen halkaisijatieto';
+            const warning = document.createElement('p');
+            warning.className = 'm5a-source-facts-note';
+            warning.textContent = 'Viidellä salaojareitillä Ø100 mm on järjestelmän yleinen nimelliskokoluokka, ei reittikohtainen mittaus. Kahden PVK-haaran todellinen halkaisija on tuntematon. Kaikki sylinterit ovat WORK_TEST-esityksiä.';
+            const list = document.createElement('ul');
+            for (const row of rows) {
+              const item = document.createElement('li');
+              item.dataset.m5aR1125SourceId = row.sourceId;
+              item.dataset.sourceClass = row.sourceClass;
+              item.dataset.physicalDiameterMeasured = 'false';
+              item.textContent = row.label + ' · ' + row.sourceId;
+              list.append(item);
+            }
+            diameterLegend.replaceChildren(heading, warning, list);
+            diameterLegend.dataset.humanReview = 'NOT_RUN';
+            diameterLegend.dataset.currentClaim = 'false';
+            diameterLegend.hidden = false;
           } else if (isM5AR1115Review) {
             const selectedReview = selectM5AR1115ReviewScene(gltf);
             gltf.scene = selectedReview.scene;
