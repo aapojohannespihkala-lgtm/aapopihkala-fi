@@ -1844,6 +1844,10 @@ const title = 'Private 3D viewer';
       import { D1F_ODENSVIK_CANDIDATE_ID, D1F_ODENSVIK_REVIEW_ID,
         isD1FOdensvikReviewRequested, loadD1FOdensvikReview }
         from '../../scripts/privateModelD1FOdensvikSourceReview.mjs';
+      // @ts-ignore - immutable corrected 116-scene source and review binding.
+      import { D1F_ODENSVIK_WINDING_REVIEW_ID, isD1FOdensvikWindingReviewRequested,
+        loadD1FOdensvikWindingReview }
+        from '../../scripts/privateModelD1FOdensvikWindingReview.mjs';
       // @ts-ignore - source-derived Y-up presentation fit, not geometry approval.
       import { planD1FSourceGlassCamera }
         from '../../scripts/privateModelD1FShowerGlassSourceCameraFit.mjs';
@@ -9613,7 +9617,12 @@ const title = 'Private 3D viewer';
                 candidate, search: window.location.search, loader,
               })
             : null;
-          const gltf = serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
+          const odensvikWindingReview = isD1FOdensvikWindingReviewRequested(window.location.search)
+            ? await loadD1FOdensvikWindingReview({
+                candidate, search: window.location.search, loader,
+              })
+            : null;
+          const gltf = serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikWindingReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
             ? await loader.parseAsync(
                 isP137EThreeCornerMeasuredReviewRequested()
                   ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
@@ -10784,6 +10793,103 @@ const title = 'Private 3D viewer';
             });
             canvas.dataset.workTestReviewMode = candidate.id + '-review';
             status.textContent = 'Kylpyhuoneen kalusteet ja lattialämmitys - työmalli. Huolto- ja laitetiedot avautuvat kohteesta.';
+          } else if (odensvikWindingReview) {
+            // Separate from the prior 112-scene ODENSVIK candidate: do not
+            // reuse its source SHA, root IDs, approval or pixel evidence.
+            const selected = odensvikWindingReview.selected;
+            const sourceScene = odensvikWindingReview.gltf.scene;
+            const sourceRoot = sourceScene?.children?.[0];
+            const associations = odensvikWindingReview.gltf.parser?.associations;
+            if (sourceScene !== odensvikWindingReview.gltf.scenes?.[selected.sceneIndex] ||
+                sourceScene?.children?.length !== 1 || sourceRoot?.children?.length !== 43 ||
+                !sourceRoot.name?.endsWith('ODENSVIK00193937_WORK_TEST_WINDING_CORRECTED') ||
+                !(associations instanceof Map)) {
+              throw new Error('D1F_ODENSVIK_WINDING_RENDER_SOURCE_MISMATCH');
+            }
+            const sourceNodeIds = {
+              BOWL: selected.bowlNode,
+              COUNTER: selected.counterNode,
+              CABINET: selected.cabinetNode,
+            };
+            const sourceObjects = new Map<string, THREE.Object3D>();
+            for (const [kind, nodeId] of Object.entries(sourceNodeIds)) {
+              const matches = sourceRoot.children.filter(
+                (o: THREE.Object3D) => associations.get(o)?.nodes === nodeId);
+              if (matches.length !== 1 || !matches[0].visible ||
+                  associations.get(matches[0])?.nodes !== nodeId) {
+                throw new Error('D1F_ODENSVIK_WINDING_ORIGINAL_OBJECT_NOT_BOUND:' + kind);
+              }
+              sourceObjects.set(kind, matches[0]);
+            }
+            applyStandardViewPreset('d-apartment');
+            setModelScene(sourceScene);
+            canvas.dataset.contentScene = 'full-model';
+            // The original counter and bowl, not an invented proxy, define
+            // the opening camera's presentation target. User orbit stays free.
+            const bounds = new THREE.Box3().setFromObject(sourceObjects.get('COUNTER')!);
+            bounds.union(new THREE.Box3().setFromObject(sourceObjects.get('BOWL')!));
+            if (bounds.isEmpty()) throw new Error('D1F_ODENSVIK_WINDING_EMPTY_TARGET_BOUNDS');
+            const center = bounds.getCenter(new THREE.Vector3());
+            const radius = Math.max(1.2, bounds.getSize(new THREE.Vector3()).length() * 1.5);
+            deactivateElevationView();
+            planControls.enabled = false;
+            isoControls.enabled = false;
+            controls.enabled = true;
+            controls.enableRotate = true;
+            activeCamera = camera;
+            controls.target.copy(center);
+            camera.position.set(center.x + radius, center.y + radius * 0.75, center.z + radius);
+            camera.up.set(0, 1, 0);
+            camera.near = 0.01;
+            camera.far = Math.max(200, radius * 100);
+            camera.lookAt(center);
+            camera.updateProjectionMatrix();
+            controls.update();
+            let hidden: string | null = null;
+            // The browser probe may toggle only identified original objects.
+            // This changes visibility in memory, NEVER source bytes or QA status.
+            (canvas as any).d1fOdensvikWindingSourceVisibility =
+              (kind: string, operation: 'HIDE' | 'RESTORE') => {
+                if (canvas.dataset.modelSource !== 'work-test' ||
+                    canvas.dataset.workTestReviewMode !== D1F_ODENSVIK_WINDING_REVIEW_ID ||
+                    fullModelScene !== sourceScene || !sourceObjects.has(kind) ||
+                    !['HIDE','RESTORE'].includes(operation)) {
+                  throw new Error('D1F_ODENSVIK_WINDING_VISIBILITY_UNTRUSTED');
+                }
+                const object = sourceObjects.get(kind)!;
+                if (operation === 'HIDE') {
+                  if (hidden !== null || !object.visible ||
+                      [...sourceObjects.values()].some(o => !o.visible))
+                    throw new Error('D1F_ODENSVIK_WINDING_NOT_ALL_VISIBLE');
+                  object.visible = false;
+                  hidden = kind;
+                } else {
+                  if (hidden !== kind || object.visible)
+                    throw new Error('D1F_ODENSVIK_WINDING_INVALID_RESTORE');
+                  object.visible = true;
+                  hidden = null;
+                }
+                return {kind,operation,hiddenCount:hidden ? 1 : 0,
+                  productionObjectPixelsVerified:false,humanReview:'NOT_RUN'};
+              };
+            Object.assign(canvas.dataset, {
+              workTestReviewMode: D1F_ODENSVIK_WINDING_REVIEW_ID,
+              d1fOdensvikWindingVariant: selected.variant,
+              d1fOdensvikWindingSceneIndex: String(selected.sceneIndex),
+              d1fOdensvikWindingRawBytes: String(odensvikWindingReview.asset.bytes),
+              d1fOdensvikWindingRawSha256: odensvikWindingReview.asset.sha256,
+              d1fOdensvikWindingSourceAuthenticated: 'true',
+              d1fOdensvikWindingSourceTargetCount: '40',
+              d1fOdensvikWindingObjectBinding: 'BOWL,COUNTER,CABINET',
+              d1fOdensvikWindingCameraFraming: 'SOURCE_OBJECT_BOUNDS_ONLY',
+              d1fOdensvikWindingProductionPixelsVerified: 'false',
+              d1fOdensvikWindingHumanReview: 'NOT_RUN',
+              d1fOdensvikWindingWorkTest: 'true',
+              d1fOdensvikWindingCurrent: 'false',
+              d1fOdensvikWindingCanonical: 'false',
+              d1fOdensvikWindingAsBuilt: 'false',
+            });
+            status.textContent = 'ODENSVIK korjattu tasopinta - lähdetarkka WORK_TEST, odottaa WebGL-kohdepikselitodistusta ja käyttäjän katselmusta';
           } else if (odensvikReview) {
             // GLTFLoader scene0 is NOT the new ODENSVIK basin. Render the
             // authenticated scene108..111 selected by the exact one-link gate.
