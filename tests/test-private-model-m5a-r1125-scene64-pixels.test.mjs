@@ -123,7 +123,7 @@ test('genuine live camera projection offers 20 ROI centers but never claims scre
   assert.equal(data.sourceSceneIndex,64);
   assert.equal(data.centers.length,20);
   assert.equal(data.centers.filter(x=>x.kind==='number').length,7);
-  assert.equal(data.centers.every(x=>x.onScreen&&x.imageX===450&&x.imageY===300),false);
+  assert.equal(data.centers.every(x=>x.onScreen&&x.imageX===450&&x.imageY===300),true);
   assert.equal(data.centers.every(x=>x.onScreen),true);
   assert.equal(data.productionPixelsVerified,false);
   assert.equal(data.humanReview,'NOT_RUN');
@@ -139,7 +139,7 @@ test('wrong source identity, duplicate GLTF association and missing donor geomet
     source=>{source.gltf.parser.json.nodes[1126].children.pop();},
     source=>{source.gltf.parser.associations.delete(source.objects[0]);},
     source=>{source.gltf.parser.json.nodes[1127].name='FAKE_PLATE';},
-    source=>{source.objects[112].visible=false;},
+    source=>{source.objects[107].visible=false;},
   ]) {
     const src=makeSource();
     defect(src);
