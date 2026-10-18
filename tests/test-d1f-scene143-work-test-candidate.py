@@ -1,4 +1,4 @@
-"""Fail-closed static source binding for D1F scene143 WORK_TEST staging.
+"""Fail-closed static source binding for D1F scene156 WORK_TEST staging (legacy scene143 test slot).
 
 This is a staging-contract test, NOT CI/publish, browser-pixel or HUMAN_REVIEW proof.
 """
@@ -8,14 +8,14 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ID = "d1f-source-room-bosch-mirror-sauna-benches-scene143-20261018"
-DRIVE = "1q7aZCyeCg4ZeHRZtD2P5kNUXU83P2X0i"
-SOURCE_SIZE = 9384880
-SOURCE_SHA = "3e8547a3833c0d12a8698e1ea67ae5a7be5f925e563e10e518aaff9bf9b13dfa"
-SYMBOL = "D1F_SCENE143_SOURCE_ROOM_WORK_TEST_CANDIDATE"
+ID = "d1f-source156-mirror305-k2-oak-u-two-pulls-20261018"
+DRIVE = "1DUykiYrpFfHih41SrK5ZbwY-kBG8D-oR"
+SOURCE_SIZE = 9792656
+SOURCE_SHA = "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51"
+SYMBOL = "D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE"
 
 
-class Source143CandidateTests(unittest.TestCase):
+class Source156CandidateTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.registry = json.loads(
@@ -49,6 +49,14 @@ class Source143CandidateTests(unittest.TestCase):
             "const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [", 1
         )[1].split("] as const satisfies readonly PrivateWorkTestCandidate[]", 1)[0]
         self.assertEqual(runtime.count(SYMBOL), 1)
+
+    def test_obsolete_scene143_and_scene150_not_staged(self):
+        for old_id in (
+            "d1f-source-room-bosch-mirror-sauna-benches-scene143-20261018",
+            "d1f-source150-k2-oak-u-glass-two-handles-20261018",
+        ):
+            self.assertNotIn(old_id, self.registry["candidates"])
+            self.assertNotIn("id: '" + old_id + "'", self.worker)
 
     def test_no_other_worker_candidate_uses_same_id(self):
         self.assertEqual(self.worker.count("id: '" + ID + "'"), 1)
