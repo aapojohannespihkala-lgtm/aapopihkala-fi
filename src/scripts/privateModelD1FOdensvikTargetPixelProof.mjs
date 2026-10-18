@@ -62,9 +62,11 @@ export async function verifyD1FOdensvikPixelSource(raw){
   }
   return Object.freeze({sha256:actual,bytes:bytes.byteLength,semanticPointersVerified:40,workTestOnly:true});
 }
-// Conservative object-space footprint in the *bottom-left-origin* RGBA
-// coordinates used by WebGLRenderer.readRenderTargetPixels. A changed pixel
-// elsewhere in the frame cannot prove that this original source mesh rendered.
+// Conservative object-space footprint in the *top-left-origin* RGBA returned
+// by createD1FShowerGlassWebGLCapture. That adapter flips the WebGL GPU's
+// bottom-left row order. ROI bottom/top are exclusive min/max row indices,
+// not physical screen directions. A changed pixel elsewhere cannot prove a
+// particular original source mesh actually rendered.
 export function projectD1FOdensvikObjectPixelRoi(object,camera,width,height,{padding=6}={}){
   check(object?.isObject3D&&camera?.isCamera&&
     Number.isInteger(width)&&width>=32&&width<=4096&&
@@ -85,7 +87,7 @@ export function projectD1FOdensvikObjectPixelRoi(object,camera,width,height,{pad
         // Do not extrapolate an AABB across the near/far clipping planes.
         check([p.x,p.y,p.z].every(Number.isFinite)&&p.z>-1&&p.z<1,
           'original target crosses camera clipping planes');
-        const px=(p.x+1)*width/2,py=(p.y+1)*height/2;
+        const px=(p.x+1)*width/2,py=(1-p.y)*height/2;
         left=Math.min(left,px);right=Math.max(right,px);
         bottom=Math.min(bottom,py);top=Math.max(top,py);
       }
