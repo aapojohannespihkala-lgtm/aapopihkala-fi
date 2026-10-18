@@ -82,10 +82,18 @@ export function verifyScene64FrameTriplet({before,hidden,restored,center,
       if((x-cx)**2+(y-cy)**2<=r2)roiChanged++;
     }
   }
+  // Center ROI alone cannot prove an individual object if an unrelated
+  // WebGL repaint changes most of the frame. This intentionally conservative
+  // bound fails closed for long objects extending beyond the center ROI too;
+  // those require a camera/geometry-specific ROI before production approval.
+  const offRoiChangedPixels=changed-roiChanged;
+  const offRoiHardCeiling=Math.max(512,roiChanged*12);
   requireProof(changed>=minChangedPixels && roiChanged>=minRoiPixels &&
-    restorationChanged===0,'ORIGINAL_OBJECT_PIXEL_DELTA');
+    restorationChanged===0 && offRoiChangedPixels<=offRoiHardCeiling,
+    'ORIGINAL_OBJECT_PIXEL_DELTA');
   return Object.freeze({key:center.key,changedPixels:changed,
     projectedRoiChangedPixels:roiChanged,restorationChangedPixels:0,
+    offRoiChangedPixels,offRoiHardCeiling,
     roiRadiusPixels:radius,technicalRgbaEvidence:true,
     productionProvenanceVerified:false,humanReview:'NOT_RUN'});
 }
