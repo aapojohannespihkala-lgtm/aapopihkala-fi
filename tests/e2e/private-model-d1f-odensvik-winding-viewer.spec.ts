@@ -11,9 +11,9 @@ import {
 // Synthetic geometry index, not an alternate source or a physical model.
 // The runtime must still authenticate and SHA-check the exact real 8.9 MB GLB.
 function fixture() {
-  const nodes = Array.from({length:2660},()=>({name:'',children:[]}));
+  const nodes: Array<{ name?: string; children?: number[]; mesh?: number; extras?: any }> = Array.from({length:2660},()=>({name:'',children:[]}));
   const meshes = Array.from({length:769},()=>({}));
-  const scenes = Array.from({length:116},()=>({}));
+  const scenes: Array<{ name?: string; nodes?: number[]; extras?: any }> = Array.from({length:116},()=>({}));
   D1F_ODENSVIK_WINDING_VARIANTS.forEach((row,i)=>{
     const oldRoot = 2428 + 56*i;
     scenes[108+i] = {nodes:[oldRoot],extras:{WORK_TEST_ONLY:true}};
@@ -87,5 +87,5 @@ test('fail closed on changed corrected face, wrong source default and old source
   const d=fixture();
   d.nodes[2653].extras.surfaceNodes.surface1=d.nodes[2653].extras.surfaceNodes.surface0;
   expect(()=>selectD1FOdensvikWindingScene(d)).toThrow(/SOURCE_REJECTED/);
-  expect(()=>selectD1FOdensvikWindingScene(fixture(),'unknown')).toThrow(/SOURCE_REJECTED/);
+  expect(()=>selectD1FOdensvikWindingScene(fixture(),'unknown' as any)).toThrow(/SOURCE_REJECTED/);
 });
