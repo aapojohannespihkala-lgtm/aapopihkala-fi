@@ -28,8 +28,8 @@ test('main-only D1F dispatch keeps service default and routes four glass variant
   expect(workflow).toContain('name: d1f-shower-autoload-' + '$' + '{{ matrix.variant }}');
   const clientId = 'CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ' + '$' + '{{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}';
   const clientSecret = 'CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ' + '$' + '{{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}';
-  expect(workflow.split(clientId)).toHaveLength(3);
-  expect(workflow.split(clientSecret)).toHaveLength(3);
+  expect(workflow.split(clientId)).toHaveLength(4);
+  expect(workflow.split(clientSecret)).toHaveLength(4);
   for (const variant of D1F_SHOWER_PHOTO_VARIANTS) {
     expect(workflow).toContain('          - ' + variant.name);
   }
