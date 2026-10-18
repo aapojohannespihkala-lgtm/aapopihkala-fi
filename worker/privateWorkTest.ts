@@ -710,18 +710,20 @@ const D1F_SHOWER_PHOTO_CANDIDATE = {
   expectedSha256: D1F_SHOWER_PHOTO_SOURCE.sha256,
 } as const satisfies PrivateWorkTestCandidate;
 
-// Noncanonical source150 D1F room with user-correct Bosch-left and measured mirror,
-// photo-relative K2 (+35 mm WORK_ASSUMPTION), U-sauna, oak drawers and exactly
-// two photo-derived shower pulls. Optional unmeasured tile view151 is included.
-// Exact source-bounded WORK_TEST registration only; physical installed XY/tiles/
-// pulls and sauna stove clearance remain UNKNOWN. No CURRENT/HUMAN_REVIEW pass.
-const D1F_SCENE150_SOURCE_ROOM_WORK_TEST_CANDIDATE = {
-  id: 'd1f-source150-k2-oak-u-glass-two-handles-20261018',
-  label: 'D1F - kylpyhuone + U-sauna, K2, tammilaatikot ja 2 vedintä - WORK_TEST',
-  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-source150-k2-oak-u-glass-two-handles-20261018.glb`,
-  objectKey: 'work-test/d1f-source150-k2-oak-u-glass-two-handles-20261018.glb',
-  expectedSize: 9628072,
-  expectedSha256: '6f0cbbe77d3ab0cbe199477fc78b9e90e98acecf1806b79db67dd6cce22b88cc',
+// Noncanonical source156 D1F room with user-correct Bosch-left, U-sauna,
+// two photo-derived shower pulls, white shelf and user-measured 305 mm mirror
+// separation CONDITIONALLY modeled from an unverified sauna-wall reference.
+// Optional scene157 retains historical HELMI six lights and photo tile marks,
+// never asserts installed count/geometry. Exact source-bound WORK_TEST only;
+// current physical XY, tiles, shelf fit and heater clearance remain UNKNOWN.
+// No CURRENT/canonical/asBuilt/HUMAN_REVIEW promotion.
+const D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE = {
+  id: 'd1f-source156-mirror305-k2-oak-u-two-pulls-20261018',
+  label: 'D1F source156 - K2, U-sauna, 2 vedintä, hylly, ehdollinen peili305 - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-source156-mirror305-k2-oak-u-two-pulls-20261018.glb`,
+  objectKey: 'work-test/d1f-source156-mirror305-k2-oak-u-two-pulls-20261018.glb',
+  expectedSize: 9792656,
+  expectedSha256: '14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51',
 } as const satisfies PrivateWorkTestCandidate;
 
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
@@ -746,7 +748,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_ODENSVIK_WINDING_CORRECTED_ZIP_CANDIDATE,
   D1F_KPH_010204_ZIP_CANDIDATE,
   D1F_SHOWER_PHOTO_CANDIDATE,
-  D1F_SCENE150_SOURCE_ROOM_WORK_TEST_CANDIDATE,
+  D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
