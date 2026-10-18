@@ -710,6 +710,18 @@ const D1F_SHOWER_PHOTO_CANDIDATE = {
   expectedSha256: D1F_SHOWER_PHOTO_SOURCE.sha256,
 } as const satisfies PrivateWorkTestCandidate;
 
+// Noncanonical exact source-room scene143, including the measured mirror, Bosch
+// left-of-basin correction, historical sauna cutaway and unmeasured bench hypotheses.
+// Registration only: NOT installed/current/asBuilt or HUMAN_REVIEW proof.
+const D1F_SCENE143_SOURCE_ROOM_WORK_TEST_CANDIDATE = {
+  id: 'd1f-source-room-bosch-mirror-sauna-benches-scene143-20261018',
+  label: 'D1F - kylpyhuone + sauna, Bosch/peilikaappi ja lauteet - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-source-room-bosch-mirror-sauna-benches-scene143-20261018.glb`,
+  objectKey: 'work-test/d1f-source-room-bosch-mirror-sauna-benches-scene143-20261018.glb',
+  expectedSize: 9384880,
+  expectedSha256: '3e8547a3833c0d12a8698e1ea67ae5a7be5f925e563e10e518aaff9bf9b13dfa',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -732,6 +744,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_ODENSVIK_WINDING_CORRECTED_ZIP_CANDIDATE,
   D1F_KPH_010204_ZIP_CANDIDATE,
   D1F_SHOWER_PHOTO_CANDIDATE,
+  D1F_SCENE143_SOURCE_ROOM_WORK_TEST_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
