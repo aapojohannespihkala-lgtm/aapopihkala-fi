@@ -1,4 +1,4 @@
-"""Fail-closed static source binding for D1F scene150 WORK_TEST staging.
+"""Fail-closed static source binding for D1F scene156 WORK_TEST staging (legacy scene150 test slot).
 
 This is a staging-contract test, NOT CI/publish, browser-pixel or HUMAN_REVIEW proof.
 """
@@ -8,14 +8,14 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ID = "d1f-source150-k2-oak-u-glass-two-handles-20261018"
-DRIVE = "1Y_m0H7wTfNilS1d2RLEi9-mci_FyQzZc"
-SOURCE_SIZE = 9628072
-SOURCE_SHA = "6f0cbbe77d3ab0cbe199477fc78b9e90e98acecf1806b79db67dd6cce22b88cc"
-SYMBOL = "D1F_SCENE150_SOURCE_ROOM_WORK_TEST_CANDIDATE"
+ID = "d1f-source156-mirror305-k2-oak-u-two-pulls-20261018"
+DRIVE = "1DUykiYrpFfHih41SrK5ZbwY-kBG8D-oR"
+SOURCE_SIZE = 9792656
+SOURCE_SHA = "14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51"
+SYMBOL = "D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE"
 
 
-class Source150CandidateTests(unittest.TestCase):
+class Source156ReplacementTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.registry = json.loads(
@@ -50,10 +50,13 @@ class Source150CandidateTests(unittest.TestCase):
         )[1].split("] as const satisfies readonly PrivateWorkTestCandidate[]", 1)[0]
         self.assertEqual(runtime.count(SYMBOL), 1)
 
-    def test_no_stale_scene143_registration(self):
-        old_id = "d1f-source-room-bosch-mirror-sauna-benches-scene143-20261018"
-        self.assertNotIn(old_id, self.registry["candidates"])
-        self.assertNotIn("id: '" + old_id + "'", self.worker)
+    def test_no_stale_scene143_or_scene150_registration(self):
+        for old_id in (
+            "d1f-source-room-bosch-mirror-sauna-benches-scene143-20261018",
+            "d1f-source150-k2-oak-u-glass-two-handles-20261018",
+        ):
+            self.assertNotIn(old_id, self.registry["candidates"])
+            self.assertNotIn("id: '" + old_id + "'", self.worker)
 
     def test_no_other_worker_candidate_uses_same_id(self):
         self.assertEqual(self.worker.count("id: '" + ID + "'"), 1)
