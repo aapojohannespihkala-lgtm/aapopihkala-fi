@@ -6,6 +6,8 @@ import {D1F_SERVICE_ID as ID,D1F_SERVICE_ASSET as ASSET,D1F_SERVICE_ROWS as ROWS
 
 if (process.env.D1F_SERVICE_SOURCE156_AUTOLOAD === '1') {
   // Independent generic render proof. NOT seven-object pixel proof.
+  const hash=b=>createHash('sha256').update(b).digest('hex');
+  const check=(ok,code)=>{if(!ok)throw new Error(code);};
   const id='d1f-source156-mirror305-k2-oak-u-two-pulls-20261018';
   const expectedSha='14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51';
   const expectedBytes=9792656,origin='https://aapopihkala.fi';
