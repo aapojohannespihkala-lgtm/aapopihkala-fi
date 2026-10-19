@@ -1833,6 +1833,9 @@ const title = 'Private 3D viewer';
 
     <script>
       import { THREE, OrbitControls, GLTFLoader } from '../../scripts/threeRuntime';
+      // @ts-ignore - source-exact original wall presentation is checked by the existing helper tests.
+      import {createSource156WallCutaway, SOURCE156_WALL_CUTAWAY}
+        from '../../scripts/privateModelD1FSource156WallCutaway.mjs';
       // @ts-ignore - source-bound service model has focused browser coverage.
       import { loadD1FServiceModel, mountD1FServiceModel } from '../../scripts/privateModelD1FServiceRuntime.mjs';
       // @ts-ignore - exact-byte WORK_TEST entry covered by loader regressions.
@@ -6195,6 +6198,9 @@ const title = 'Private 3D viewer';
         sourceLabel: string,
         dInteriorOverride: THREE.Object3D | null = null,
       ) => {
+        // A preview cutaway is never a permanent model edit. Restore first on every model switch.
+        (canvas as any).d1fSource156RestoreWallPresentation?.();
+        delete (canvas as any).d1fSource156RestoreWallPresentation;
         (canvas as any).d1fSource156RestoreOriginalVisibility?.();
         delete (canvas as any).d1fSource156SetOriginalVisibility;
         delete (canvas as any).d1fSource156RestoreOriginalVisibility;
@@ -10322,6 +10328,30 @@ const title = 'Private 3D viewer';
               // The model remains viewable, but no per-object proof is available.
               console.error(error);
               canvas.dataset.d1fSource156PixelIsolationReady = 'false';
+            }
+            // One-link opt-in for the original SOURCE156 wall: exact raw SHA, original
+            // GLTFLoader node/primitive identity, and an explicit reversible hide.
+            // A browser pixel proof and any human review remain separate gates.
+            if (new URLSearchParams(window.location.search).get('source156Wall') === 'original2448') {
+              if (!d1fSource156ReviewRequested() ||
+                  candidate.id !== d1fSource156CandidateId ||
+                  fullModelScene !== d1fSource156Review.gltf.scene ||
+                  d1fSource156Review.sha !== SOURCE156_WALL_CUTAWAY.sourceSha256)
+                throw new Error('D1F_SOURCE156_WALL_CUTAWAY_SOURCE_MISMATCH');
+              const cutaway = createSource156WallCutaway({
+                gltf: d1fSource156Review.gltf,
+                authenticatedSourceSha256: d1fSource156Review.sha,
+                candidateId: d1fSource156CandidateId,
+              });
+              cutaway.setPresentation('HIDE_FOR_PRESENTATION');
+              (canvas as any).d1fSource156RestoreWallPresentation = cutaway.restore;
+              Object.assign(canvas.dataset, {
+                d1fSource156OriginalWallCutaway: 'true',
+                d1fSource156OriginalWallNode: '2448',
+                d1fSource156OriginalWallPresentationOnly: 'true',
+                d1fSource156OriginalWallProductionPixelsVerified: 'false',
+                d1fSource156OriginalWallHumanReview: 'NOT_RUN',
+              });
             }
             Object.assign(canvas.dataset, {
               d1fSource156OriginalSha256: d1fSource156Review.sha,
