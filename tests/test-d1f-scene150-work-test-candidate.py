@@ -92,13 +92,13 @@ class Source156ReplacementTests(unittest.TestCase):
 
 
     def test_shared_m5a_m5b_d1f_293_scene_candidate_exact_source_only(self):
-        # Original 293-scene glTF2 source persisted in G2b. Presentation
-        # scene292 is not evidence of measured hydraulic connections.
-        candidate_id = "m5a-m5b-d1f-shared-systems-293-20261019"
-        drive_id = "1tlid_IP42jGwLJy4Dib7jcScGPOAdKsH"
-        size = 10769980
-        sha = "6c2af29f6ba847be3a43640c98c697f3021ebe2c512edfeb8a9a539259aa114c"
-        symbol = "M5A_M5B_D1F_SHARED_293_WORK_TEST_CANDIDATE"
+        # Original 295-scene glTF2 successor persisted in G2b. Presentation
+        # scene294 is not evidence of measured hydraulic connections.
+        candidate_id = "m5a-m5b-d1f-shared-systems-295-20261019"
+        drive_id = "1ezvPNkZN0SjOb3WNY9qDbhwaJHaktItH"
+        size = 10805340
+        sha = "4fbc402b6d80244c2596f1c88a792cfd5ab3a5e9967a124c9cf36d237a4827af"
+        symbol = "M5A_M5B_D1F_SHARED_295_WORK_TEST_CANDIDATE"
         self.assertEqual(self.registry["candidates"][candidate_id], {"driveFileId": drive_id})
         self.assertEqual(sum(x == candidate_id for x in self.registry["candidates"]), 1)
         self.assertIn("d1f-source156-floor-v02-b-seven-cameras-20261019", self.registry["candidates"])
@@ -112,8 +112,8 @@ class Source156ReplacementTests(unittest.TestCase):
         self.assertIn("objectKey: 'work-test/" + candidate_id + ".glb'", definition)
         self.assertIn("expectedSize: " + str(size), definition)
         self.assertIn("expectedSha256: '" + sha + "'", definition)
-        self.assertIn("source-preserving 293-scene WORK_TEST", self.worker)
-        self.assertIn("scene292 is presentation-only", self.worker)
+        self.assertIn("source-preserving 295-scene WORK_TEST", self.worker)
+        self.assertIn("scene294 is presentation-only", self.worker)
         self.assertRegex(sha, r"^[0-9a-f]{64}$")
         self.assertEqual(self.worker.count("id: '" + candidate_id + "'"), 1)
         runtime = self.worker.split("const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [", 1)[1]
