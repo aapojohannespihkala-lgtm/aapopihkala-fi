@@ -41,6 +41,7 @@ test('targets must remain source-bound, unapproved and same-origin', async () =>
     status: 'WORK_TEST_TARGETS_ONLY', documentRevision: 'G2_REV_TEST',
     targets: [{
       targetId: 'D1F_USER_CURRENT_DOOR_A', approvedWallHosts: [], exactXY: false,
+      apartment: 'D', floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL',
       currentGeometry: false, canonical: false, asBuilt: false,
     }],
   };
@@ -56,6 +57,7 @@ test('targets fail closed when native G2 repeats a source target identity', asyn
   const calls: Array<{url: string; options: any}> = [];
   const target = {
     targetId: 'D_THEMO_CURRENT_LOBBY_01', approvedWallHosts: [],
+    apartment: 'D', floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL',
     exactXY: false, currentGeometry: false, canonical: false, asBuilt: false,
   };
   const base = { status: 'WORK_TEST_TARGETS_ONLY', documentRevision: 'G2_REV_TEST' };
@@ -73,6 +75,7 @@ test('targets fail closed when native G2 repeats a source target identity', asyn
 test('G2 targets fail closed on hidden promotion and noncanonical source identities', async () => {
   const safe = {
     targetId: 'D_THEMO_CURRENT_LOBBY_01', approvedWallHosts: [],
+    apartment: 'D', floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL',
     exactXY: false, currentGeometry: false, canonical: false, asBuilt: false,
     metadata: { humanReview: 'NOT_RUN', sourceOnly: true },
   };
@@ -95,6 +98,32 @@ test('G2 targets fail closed on hidden promotion and noncanonical source identit
   await expect(client(response(safe)).targets()).resolves.toMatchObject({
     targets: [{ targetId: 'D_THEMO_CURRENT_LOBBY_01' }],
   });
+});
+
+test('G2 review targets require real D floor and original coordinate frame', async () => {
+  const safe = {
+    targetId: 'D_THEMO_CURRENT_LOBBY_01',
+    apartment: 'D', floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL',
+    approvedWallHosts: [], exactXY: false,
+    currentGeometry: false, canonical: false, asBuilt: false,
+  };
+  const response = (target: Record<string, unknown>) => json({
+    status: 'WORK_TEST_TARGETS_ONLY', documentRevision: 'G2_REV_TEST',
+    targets: [target],
+  });
+  for (const mutation of [
+    { apartment: 'C' }, { apartment: undefined },
+    { floor: '3F' }, { floor: undefined }, { floor: '' },
+    { coordinateFrame: 'WORLD' }, { coordinateFrame: undefined },
+  ]) {
+    await expect(client(response({ ...safe, ...mutation })).targets())
+      .rejects.toThrow('TARGET_EVIDENCE_INVALID');
+  }
+  await expect(client(response(safe)).targets()).resolves.toMatchObject({
+    targets: [{ floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL' }],
+  });
+  await expect(client(response({ ...safe, floor: '2F' })).targets())
+    .resolves.toMatchObject({ targets: [{ floor: '2F' }] });
 });
 
 test('POST receipt requires a separate unchanged durable GET from G2', async () => {

@@ -120,6 +120,11 @@ export function createP137EG2WorkerClient({
           !Array.isArray(reply.targets) || !reply.targets.every(t =>
             object(t) && typeof t.targetId === 'string' &&
             t.targetId.length > 0 && t.targetId === t.targetId.trim() &&
+            // Native G2 D-floor identity and coordinate frame are hard gates.
+            // A missing floor must never be treated as a usable review target.
+            t.apartment === 'D' &&
+            (t.floor === '1F' || t.floor === '2F') &&
+            t.coordinateFrame === 'YLIS-G1-LOCAL' &&
             Array.isArray(t.approvedWallHosts) && t.approvedWallHosts.length === 0 &&
             t.currentGeometry === false && t.canonical === false &&
             t.asBuilt === false && t.exactXY === false &&
