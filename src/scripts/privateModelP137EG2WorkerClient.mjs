@@ -6,6 +6,13 @@
 const BASE = '/private-model/review-placement/g2';
 const RECORD_ID = /^P137E_G2_[A-Za-z0-9_-]{12,64}$/;
 const REQUEST_LIMIT = 16000;
+const NATIVE_G2_TARGET_IDS = Object.freeze([
+  'D1F_USER_CURRENT_DOOR_A',
+  'D1F_USER_CURRENT_DOOR_B',
+  'D_THEMO_CURRENT_BATHROOM_01',
+  'D_THEMO_CURRENT_BEDROOM_01',
+  'D_THEMO_CURRENT_LOBBY_01',
+]);
 const RESPONSE_LIMIT = 32768;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 // Reject promotion tokens at any depth, not just in the top-level envelope.
@@ -117,13 +124,15 @@ export function createP137EG2WorkerClient({
       const reply = await request('/targets');
       if (reply?.status !== 'WORK_TEST_TARGETS_ONLY' ||
           typeof reply.documentRevision !== 'string' || !reply.documentRevision ||
-          !Array.isArray(reply.targets) || !reply.targets.every(t =>
+          !Array.isArray(reply.targets) ||
+          reply.targets.length !== NATIVE_G2_TARGET_IDS.length ||
+          !reply.targets.every(t =>
             object(t) && typeof t.targetId === 'string' &&
             t.targetId.length > 0 && t.targetId === t.targetId.trim() &&
             // Native G2 D-floor identity and coordinate frame are hard gates.
             // A missing floor must never be treated as a usable review target.
             t.apartment === 'D' &&
-            (t.floor === '1F' || t.floor === '2F') &&
+            t.floor === '1F' &&
             t.coordinateFrame === 'YLIS-G1-LOCAL' &&
             Array.isArray(t.approvedWallHosts) && t.approvedWallHosts.length === 0 &&
             t.currentGeometry === false && t.canonical === false &&
@@ -133,7 +142,10 @@ export function createP137EG2WorkerClient({
             noNestedPromotion(t)) ||
           // One row per native-G2 source identity: duplicate review targets
           // must never become ambiguous selectable options in the viewer.
-          new Set(reply.targets.map(t => t.targetId)).size !== reply.targets.length) {
+          new Set(reply.targets.map(t => t.targetId)).size !== reply.targets.length ||
+          // Current native G2 source projects exactly five 1F identities.
+          // Unknown, missing or cross-source target rows are never selectable.
+          NATIVE_G2_TARGET_IDS.some(id => !reply.targets.some(t => t.targetId === id))) {
         throw new Error('P137E_G2_TARGET_EVIDENCE_INVALID');
       }
       return reply;

@@ -12,6 +12,19 @@ const payload = {
   persisted: false, humanReview: 'NOT_RUN',
   currentGeometry: false, canonical: false, asBuilt: false,
 };
+const nativeTargetIds = [
+  'D1F_USER_CURRENT_DOOR_A',
+  'D1F_USER_CURRENT_DOOR_B',
+  'D_THEMO_CURRENT_BATHROOM_01',
+  'D_THEMO_CURRENT_BEDROOM_01',
+  'D_THEMO_CURRENT_LOBBY_01',
+];
+const nativeTargets = () => nativeTargetIds.map(targetId => ({
+  targetId, apartment: 'D', floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL',
+  approvedWallHosts: [], exactXY: false,
+  currentGeometry: false, canonical: false, asBuilt: false,
+}));
+
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'content-type': 'application/json' },
 });
@@ -39,13 +52,9 @@ test('targets must remain source-bound, unapproved and same-origin', async () =>
   const calls: Array<{url: string; options: any}> = [];
   const result = {
     status: 'WORK_TEST_TARGETS_ONLY', documentRevision: 'G2_REV_TEST',
-    targets: [{
-      targetId: 'D1F_USER_CURRENT_DOOR_A', approvedWallHosts: [], exactXY: false,
-      apartment: 'D', floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL',
-      currentGeometry: false, canonical: false, asBuilt: false,
-    }],
+    targets: nativeTargets(),
   };
-  expect((await client(json(result), calls).targets()).targets).toHaveLength(1);
+  expect((await client(json(result), calls).targets()).targets).toHaveLength(5);
   expect(calls[0].url).toBe(origin + '/private-model/review-placement/g2/targets');
   expect(calls[0].options.credentials).toBe('same-origin');
   expect(calls[0].options.mode).toBe('same-origin');
@@ -55,21 +64,15 @@ test('targets must remain source-bound, unapproved and same-origin', async () =>
 
 test('targets fail closed when native G2 repeats a source target identity', async () => {
   const calls: Array<{url: string; options: any}> = [];
-  const target = {
-    targetId: 'D_THEMO_CURRENT_LOBBY_01', approvedWallHosts: [],
-    apartment: 'D', floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL',
-    exactXY: false, currentGeometry: false, canonical: false, asBuilt: false,
-  };
   const base = { status: 'WORK_TEST_TARGETS_ONLY', documentRevision: 'G2_REV_TEST' };
-  await expect(client(json({ ...base, targets: [target, { ...target }] }), calls)
-    .targets()).rejects.toThrow('TARGET_EVIDENCE_INVALID');
-  expect(calls).toHaveLength(1);
+  const rows = nativeTargets();
   await expect(client(json({
-    ...base, targets: [target, { ...target, targetId: 'D_THEMO_CURRENT_BATHROOM_01' }],
-  })).targets()).resolves.toMatchObject({ targets: [
-    { targetId: 'D_THEMO_CURRENT_LOBBY_01' },
-    { targetId: 'D_THEMO_CURRENT_BATHROOM_01' },
-  ] });
+    ...base, targets: rows.map((row,i) => i === 1
+      ? { ...row, targetId: rows[0].targetId } : row),
+  }), calls).targets()).rejects.toThrow('TARGET_EVIDENCE_INVALID');
+  expect(calls).toHaveLength(1);
+  await expect(client(json({ ...base, targets: rows })).targets())
+    .resolves.toMatchObject({ targets: nativeTargets() });
 });
 
 test('G2 targets fail closed on hidden promotion and noncanonical source identities', async () => {
@@ -81,7 +84,7 @@ test('G2 targets fail closed on hidden promotion and noncanonical source identit
   };
   const response = (target: Record<string, unknown>) => json({
     status: 'WORK_TEST_TARGETS_ONLY', documentRevision: 'G2_REV_TEST',
-    targets: [target],
+    targets: [...nativeTargets().filter(t => t.targetId !== safe.targetId), target],
   });
   const mutated = [
     { ...safe, metadata: { host: { asBuiltClaim: true } } },
@@ -109,7 +112,7 @@ test('G2 review targets require real D floor and original coordinate frame', asy
   };
   const response = (target: Record<string, unknown>) => json({
     status: 'WORK_TEST_TARGETS_ONLY', documentRevision: 'G2_REV_TEST',
-    targets: [target],
+    targets: [...nativeTargets().filter(t => t.targetId !== safe.targetId), target],
   });
   for (const mutation of [
     { apartment: 'C' }, { apartment: undefined },
@@ -122,8 +125,9 @@ test('G2 review targets require real D floor and original coordinate frame', asy
   await expect(client(response(safe)).targets()).resolves.toMatchObject({
     targets: [{ floor: '1F', coordinateFrame: 'YLIS-G1-LOCAL' }],
   });
+  // No 2F target is projected by the current trusted G2 source.
   await expect(client(response({ ...safe, floor: '2F' })).targets())
-    .resolves.toMatchObject({ targets: [{ floor: '2F' }] });
+    .rejects.toThrow('TARGET_EVIDENCE_INVALID');
 });
 
 test('POST receipt requires a separate unchanged durable GET from G2', async () => {
@@ -298,4 +302,21 @@ test('streamed 32-kB reply cap cancels large response', async () => {
   });
   await expect(client(response).targets()).rejects.toThrow('RESPONSE_TOO_LARGE');
   expect(canceled).toBe(true);
+});
+
+test('native G2 target set rejects missing, fabricated and substituted identities', async () => {
+  const base = { status: 'WORK_TEST_TARGETS_ONLY', documentRevision: 'G2_REV_TEST' };
+  const originals = nativeTargets();
+  const response = (targets: Array<Record<string, unknown>>) =>
+    json({ ...base, targets });
+  await expect(client(response(originals)).targets())
+    .resolves.toMatchObject({ targets: originals });
+  await expect(client(response(originals.slice(0,4))).targets())
+    .rejects.toThrow('TARGET_EVIDENCE_INVALID');
+  await expect(client(response([...originals, {
+    ...originals[4], targetId: 'D_THEMO_CURRENT_ATTIC_01',
+  }])).targets()).rejects.toThrow('TARGET_EVIDENCE_INVALID');
+  await expect(client(response(originals.map((row,i) => i === 2 ? {
+    ...row, targetId: 'D_THEMO_CURRENT_UNKNOWN_01',
+  } : row))).targets()).rejects.toThrow('TARGET_EVIDENCE_INVALID');
 });
