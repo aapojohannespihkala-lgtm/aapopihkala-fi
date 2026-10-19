@@ -190,7 +190,12 @@ test('R1125 source visibility capability is removed and restored at model change
     process.cwd(), 'src/pages/private-model/index.astro',
   ), 'utf8');
   const beforeCleanup = viewer.indexOf('const applyLoadedModel =');
-  const cleanup = viewer.slice(beforeCleanup, beforeCleanup + 2600);
+  // Scope the assertion to the model-switch cleanup, not a fixed character
+  // window: preceding SOURCE156 safeguards may grow without removing R1125.
+  const cleanupEnd = viewer.indexOf('setM5aSourceContextVisible(false);', beforeCleanup);
+  expect(beforeCleanup).toBeGreaterThan(-1);
+  expect(cleanupEnd).toBeGreaterThan(beforeCleanup);
+  const cleanup = viewer.slice(beforeCleanup, cleanupEnd);
   const restore = cleanup.indexOf('m5aR1125RestoreOriginalSourceVisibility?.()');
   const drop = cleanup.indexOf('delete (canvas as any).m5aR1125SetOriginalSourceVisibility');
   expect(restore).toBeGreaterThan(0);
