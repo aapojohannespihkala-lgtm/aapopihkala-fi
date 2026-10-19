@@ -84,6 +84,16 @@ export function requireCorrectedWindingLocalizedPixels(before,hidden,threshold=4
     occupiedFraction,sourceProjectedRoiVerified:false});
 }
 
+/** A restored original object must visually match the baseline.
+ * At most eight thresholded RGB pixels may remain changed; a small
+ * original object cannot use its entire hidden delta as restoration slack.
+ */
+export function requireCorrectedWindingRestoredPixels(before,restored) {
+  const residual=countCorrectedWindingObjectPixels(before,restored);
+  requireProof(residual<=8,'original-source-object-not-visually-restored');
+  return residual;
+}
+
 export async function runCorrectedWindingObjectPixelProbe() {
   const variant=process.env.D1F_ODENSVIK_VARIANT;
   const evidence={
@@ -195,7 +205,7 @@ export async function runCorrectedWindingObjectPixelProbe() {
         restored.hiddenCount===0&&restored.humanReview==='NOT_RUN',
         'not-restored-original-object-'+kind);
       const restoredImage=await frame(kind.toLowerCase()+'-original-restored');
-      const remainingPixels=countCorrectedWindingObjectPixels(sourceVisible,restoredImage);
+      const remainingPixels=requireCorrectedWindingRestoredPixels(sourceVisible,restoredImage);
       evidence.sourceObjectPixelProof[kind]={
         hiddenPixels,spatialLocality:localProof,restoreResidualPixels:remainingPixels,
         baselineSha256:sourceVisible.pngSha256,
@@ -204,7 +214,7 @@ export async function runCorrectedWindingObjectPixelProbe() {
         sourceSpecificOriginal:true,
         threshold:48,
         passed:hiddenPixels>=96 &&
-          remainingPixels<=Math.max(96,Math.floor(hiddenPixels*0.12)),
+          remainingPixels<=8,
       };
       requireProof(evidence.sourceObjectPixelProof[kind].passed,
         'insufficient-source-original-object-pixels-'+kind);
