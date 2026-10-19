@@ -7,7 +7,7 @@ import {
 
 const originalTargetSourceNodes=[2251,2583,2580,2499,2733,2773,2654];
 
-function fixture() {
+function fixture(): any {
   const roots=[2855,2615,2640,2653,2707,2771,2772];
   const wall={
     name:S.wallName,visible:true,
@@ -22,15 +22,15 @@ function fixture() {
   const associations=new Map(objects.map((o,i)=>[
     o,{nodes:i===0?S.wallNodeId:originalTargetSourceNodes[i-1]},
   ]));
-  const scene={traverse(cb){for(const object of objects)cb(object);}};
+  const scene={traverse(cb: any){for(const object of objects)cb(object);}};
   const scenes=Array.from({length:158},()=>({nodes:[]}));
   scenes[156]={nodes:roots};
-  const nodes=Array.from({length:2857},()=>({}));
+  const nodes:any[]=Array.from({length:2857},()=>({}));
   nodes[S.wallNodeId]={
     name:S.wallName,mesh:S.wallMeshId,
     extras:{WORK_TEST_ONLY:true,asBuilt:false,HUMAN_REVIEW:'NOT_RUN'},
   };
-  const meshes=Array.from({length:1064},()=>({primitives:[]}));
+  const meshes:any[]=Array.from({length:1064},()=>({primitives:[]}));
   meshes[S.wallMeshId]={
     primitives:[106,128,129,130].map(material=>({material})),
   };
