@@ -794,6 +794,17 @@ const AUTO_LINJASTOTESTI_SHARED300_SAUNA_1ONONK83_CANDIDATE = {
   expectedSha256: '9da91ef4a972e0c16c919d092e2768f338ae4861a161afc05d991adc3286c60a',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-19 from Drive queue file 1qLW0IOGP50y-WMHco9dIjsJoQDKtH4Sl
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_KOKO_RAKENNUS_T12_TONTTIRAJA_KATTOLUUKKU1985_WORK_TEST_20261019_1QLW0IOG_CANDIDATE = {
+  id: 'auto-ylisrinne-koko-rakennus-t12-tonttiraja-kattoluukku1985-work-test-20261019-1qlw0iog',
+  label: 'Auto: Ylisrinne KOKO RAKENNUS T12 tonttiraja kattoluukku1985 WORK TEST 20261019 (scene63) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-koko-rakennus-t12-tonttiraja-kattoluukku1985-work-test-20261019-1qlw0iog.glb`,
+  objectKey: 'work-test/auto-ylisrinne-koko-rakennus-t12-tonttiraja-kattoluukku1985-work-test-20261019-1qlw0iog.glb',
+  expectedSize: 1449896,
+  expectedSha256: '9ac546d1eb7842f9afc66486d4aff406317e0c4675b8cae1f00c12507355c8f6',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -822,6 +833,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_SOURCE156_FLOOR_V02_B_SEVEN_CAMERA_CANDIDATE,
   SHARED300_SCENE299_DEFAULT_CANDIDATE,
   AUTO_LINJASTOTESTI_SHARED300_SAUNA_1ONONK83_CANDIDATE,
+  AUTO_YLISRINNE_KOKO_RAKENNUS_T12_TONTTIRAJA_KATTOLUUKKU1985_WORK_TEST_20261019_1QLW0IOG_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
