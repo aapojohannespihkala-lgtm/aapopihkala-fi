@@ -28,7 +28,7 @@ export function createSharedCombinedSceneSelector(source) {
     Number.isInteger(expectedSceneCount) && expectedSceneCount > sceneIndex,
     'INVALID_SCENE_INDEX');
   must(typeof sceneName === 'string' &&
-    /^SHARED\d+_/.test(sceneName) && sceneName.endsWith('_WORK_TEST_20261019'),
+    /^SHARED\d+_.*_WORK_TEST_\d{8}$/.test(sceneName),
     'INVALID_SCENE_NAME');
   must(Array.isArray(rootNodeIds) && rootNodeIds.length >= 8 &&
     rootNodeIds.every(id => Number.isInteger(id) && id >= 0) &&
