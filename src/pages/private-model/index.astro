@@ -3335,7 +3335,7 @@ const title = 'Private 3D viewer';
           clearReviewAnchorState(canvas, coordinateAnchor);
           delete canvas.dataset.workTestClickedPoint;
         }
-        coordinateNote.textContent = '1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.';
+        if (coordinateNote) coordinateNote.textContent = '1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.';
         prepareDCoordinateGrid(floor);
         dCoordinateGridGroup.visible = true;
         activateReviewCoordinatePanel({
@@ -4535,7 +4535,7 @@ const title = 'Private 3D viewer';
         }
         coordinatePanel.hidden = false;
         coordinateFloor.textContent = '3D WORK_TEST';
-        coordinateNote.textContent =
+        if (coordinateNote) coordinateNote.textContent =
           'Klikattu näkyvä lähdemallin pinta: X/Y ovat mallikoordinaatteja, eivät mitattua sijaintia.';
         canvas.dataset.reviewCoordinateFrame = point.coordinateFrame;
         canvas.dataset.reviewGridVisible = 'false';
