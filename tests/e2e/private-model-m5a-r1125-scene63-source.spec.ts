@@ -426,6 +426,21 @@ test('M5A R1125 exact scene63 source-bound WORK_TEST review renders 13 independe
   await expect(canvas).toHaveAttribute('data-m5a-r1125-pvk-unknown-physical-diameter-count', '2');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-physical-diameter-measurement-claim', 'false');
   await expect(canvas).toHaveAttribute('data-m5a-r1125-human-review', 'NOT_RUN');
+  // Real DOM legend is derived from original validated scene63 source
+  // classifications, not a fabricated physical pipe diameter.
+  const legend = page.locator('#m5a-r1125-diameter-legend');
+  await expect(legend).toBeVisible();
+  await expect(legend).toContainText('nimelliskokoluokka');
+  await expect(legend).toContainText('todellinen halkaisija tuntematon');
+  await expect(legend).toHaveAttribute('data-human-review', 'NOT_RUN');
+  await expect(legend).toHaveAttribute('data-current-claim', 'false');
+  const sourceRows = legend.locator('li[data-m5a-r1125-source-id]');
+  await expect(sourceRows).toHaveCount(7);
+  await expect(legend.locator('li[data-source-class="GENERAL_SALAOJA_NOMINAL_NOT_PER_ROUTE_MEASURED"]')).toHaveCount(5);
+  await expect(legend.locator('li[data-source-class="PVK_SOURCE_DIAMETER_UNKNOWN"]')).toHaveCount(2);
+  expect(await sourceRows.evaluateAll((els) =>
+    els.every((el) => el.getAttribute('data-physical-diameter-measured') === 'false' &&
+      Boolean(el.getAttribute('data-m5a-r1125-source-id'))))).toBe(true);
   // Assert the REAL focused perspective projection survived sidebar canvas
   // resize; this is not an invented pixel/production or geometry PASS.
   const projectedSource = JSON.parse(

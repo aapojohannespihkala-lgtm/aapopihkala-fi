@@ -1592,6 +1592,7 @@ const title = 'Private 3D viewer';
           <p id="m5a-source-context-orientation"></p>
           <p id="m5a-source-context-question"></p>
           <p id="m5a-source-context-limit" class="m5a-source-limit"></p>
+          <section id="m5a-r1125-diameter-legend" class="m5a-source-facts" aria-label="R1125 salaojien lähtötiedon halkaisijamerkinnät" hidden></section>
         </aside>
         <aside id="p186c-x2r-source-context" class="m5a-source-context" aria-label="D 1F lattialämmityskatselmuksen lähdekonteksti" hidden>
           <h2>D 1F lattialämmityksen lähdekonteksti</h2>
@@ -1844,6 +1845,19 @@ const title = 'Private 3D viewer';
       import { D1F_ODENSVIK_CANDIDATE_ID, D1F_ODENSVIK_REVIEW_ID,
         isD1FOdensvikReviewRequested, loadD1FOdensvikReview }
         from '../../scripts/privateModelD1FOdensvikSourceReview.mjs';
+      // @ts-ignore - immutable corrected 116-scene source and review binding.
+      import { D1F_ODENSVIK_WINDING_REVIEW_ID, isD1FOdensvikWindingReviewRequested,
+        loadD1FOdensvikWindingReview }
+        from '../../scripts/privateModelD1FOdensvikWindingReview.mjs';
+      // @ts-ignore - exact immutable source-bound numbered R1125 scene64 review.
+      import { isM5AR1125NumberedScene64Requested, loadM5AR1125NumberedScene64Review }
+        from '../../scripts/privateModelM5AR1125NumberedScene64Review.mjs';
+      // @ts-ignore - isolate the genuine original 13 + numbered 7 source groups.
+      import { createM5AR1125Scene64PixelIsolation }
+        from '../../scripts/privateModelM5AR1125Scene64PixelIsolation.mjs';
+      // @ts-ignore - source150 exact two-pull glass source, noncanonical review only.
+      import { isD1FScene150ReviewRequested, loadD1FScene150Review }
+        from '../../scripts/privateModelD1FScene150Review.mjs';
       // @ts-ignore - source-derived Y-up presentation fit, not geometry approval.
       import { planD1FSourceGlassCamera }
         from '../../scripts/privateModelD1FShowerGlassSourceCameraFit.mjs';
@@ -5811,6 +5825,11 @@ const title = 'Private 3D viewer';
             m5aSourcePreview.removeAttribute('src');
           }
           m5aSourceFacts?.replaceChildren();
+          const diameterLegend = document.querySelector<HTMLElement>('#m5a-r1125-diameter-legend');
+          if (diameterLegend) {
+            diameterLegend.hidden = true;
+            diameterLegend.replaceChildren();
+          }
           delete canvas.dataset.m5aSourceContextReady;
           delete canvas.dataset.m5aSourcePreviewLoadState;
           delete canvas.dataset.m5aReviewQuestionText;
@@ -6158,12 +6177,23 @@ const title = 'Private 3D viewer';
         canvas.dataset.p186dSchedulePdfDriveId = p186dSchedulePdfDriveId;
       };
 
+      // Source156 authentication belongs to the displayed model, never to the tab.
+      // Switching to CURRENT or another WORK_TEST must invalidate all old source flags.
+      const clearD1FSource156Identity = () => {
+        for (const key of Object.keys(canvas.dataset)) {
+          if (key.startsWith('d1fSource156')) delete canvas.dataset[key];
+        }
+      };
+
       const applyLoadedModel = (
         gltf: any,
         sourceKind: ModelSourceKind,
         sourceLabel: string,
         dInteriorOverride: THREE.Object3D | null = null,
       ) => {
+        clearD1FSource156Identity();
+        // A successful initial one-link autoload is not evidence for a later model.
+        delete canvas.dataset.workTestReviewAutoload;
         d1fService?.dispose();
         d1fService = null;
         p186ePixelRuntime?.dispose();
@@ -6186,6 +6216,15 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.p137eScene67CameraSourceIds;
         delete canvas.dataset.m5aR1125SourceCameraCenters;
         delete canvas.dataset.m5aR1125SourceCameraWorldPose;
+        // Restore any scene64 source target after cancellation or candidate switch.
+        (canvas as any).m5aR1125Scene64Restore?.();
+        delete (canvas as any).m5aR1125Scene64Restore;
+        delete (canvas as any).m5aR1125Scene64SetSourceVisibility;
+        delete (canvas as any).m5aR1125Scene64RefreshSourceProjection;
+        delete canvas.dataset.m5aR1125Scene64PixelIsolationReady;
+        delete canvas.dataset.m5aR1125Scene64OriginalTargetCount;
+        delete canvas.dataset.m5aR1125Scene64NumberedTargetCount;
+        delete canvas.dataset.m5aR1125Scene64SourcePixelEvidence;
         // A cancelled source-isolation probe must never hide a real source
         // node in the next candidate or carry a stale test capability forward.
         (canvas as any).m5aR1125RestoreOriginalSourceVisibility?.();
@@ -9571,6 +9610,55 @@ const title = 'Private 3D viewer';
         for (const key of m5bReviewDatasetKeys) delete canvas.dataset[key];
       };
 
+      // SOURCE156 is immutable noncanonical WORK_TEST. A review link must
+      // authenticate the published ORIGINAL GLB before GLTFLoader parses it.
+      const d1fSource156CandidateId = 'd1f-source156-mirror305-k2-oak-u-two-pulls-20261018';
+      const d1fSource156ReviewRequested = () =>
+        new URLSearchParams(window.location.search).get('review') ===
+          d1fSource156CandidateId + '-review';
+      const loadD1FSource156ExactReview = async (candidate: WorkTestCandidate, loader: GLTFLoader) => {
+        const expectedPath = '/private-model/work-test/' + d1fSource156CandidateId + '.glb';
+        if (candidate.id !== d1fSource156CandidateId ||
+            candidate.path !== expectedPath || !d1fSource156ReviewRequested())
+          throw new Error('D1F_SOURCE156_REVIEW_ID_MISMATCH');
+        const response = await fetch(expectedPath, {
+          credentials: 'same-origin', mode: 'same-origin', redirect: 'error',
+          cache: 'no-store', headers: {Accept: 'model/gltf-binary'},
+        });
+        if (response.status !== 200 || response.redirected ||
+            response.url !== new URL(expectedPath, window.location.origin).href)
+          throw new Error('D1F_SOURCE156_UNTRUSTED_RESPONSE');
+        const raw = await response.arrayBuffer();
+        if (raw.byteLength !== 9792656 || !crypto.subtle)
+          throw new Error('D1F_SOURCE156_SIZE_OR_CRYPTO');
+        const sha = Array.from(new Uint8Array(
+          await crypto.subtle.digest('SHA-256', raw)), b => b.toString(16).padStart(2, '0')).join('');
+        if (sha !== '14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51')
+          throw new Error('D1F_SOURCE156_ORIGINAL_SHA_MISMATCH');
+        const view = new DataView(raw);
+        if (view.getUint32(0, true) !== 0x46546c67 ||
+            view.getUint32(4, true) !== 2 ||
+            view.getUint32(8, true) !== raw.byteLength ||
+            view.getUint32(16, true) !== 0x4e4f534a)
+          throw new Error('D1F_SOURCE156_INVALID_GLB');
+        const jsonLength = view.getUint32(12, true);
+        if (jsonLength < 100 || jsonLength % 4 !== 0 ||
+            jsonLength + 20 > raw.byteLength)
+          throw new Error('D1F_SOURCE156_JSON_BOUNDS');
+        const gltfJson = JSON.parse(new TextDecoder().decode(
+          new Uint8Array(raw, 20, jsonLength)));
+        if (gltfJson.asset?.version !== '2.0' || gltfJson.scene !== 156 ||
+            gltfJson.scenes?.length !== 158 ||
+            !Array.isArray(gltfJson.scenes?.[156]?.nodes))
+          throw new Error('D1F_SOURCE156_SCENE_IDENTITY');
+        const gltf = await loader.parseAsync(raw, expectedPath.replace(/[^/]+$/, ''));
+        if (gltf.scenes?.length !== 158 || !gltf.scenes[156] ||
+            gltf.scenes[156].children.length === 0)
+          throw new Error('D1F_SOURCE156_NOT_RENDERABLE');
+        gltf.scene = gltf.scenes[156];
+        return {gltf, sha};
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         delete canvas.dataset.p137eLoadedCandidateId;
         p137ePlaceToolButton.disabled = true;
@@ -9613,7 +9701,25 @@ const title = 'Private 3D viewer';
                 candidate, search: window.location.search, loader,
               })
             : null;
-          const gltf = serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
+          const odensvikWindingReview = isD1FOdensvikWindingReviewRequested(window.location.search)
+            ? await loadD1FOdensvikWindingReview({
+                candidate, search: window.location.search, loader,
+              })
+            : null;
+          const r1125NumberedReview = isM5AR1125NumberedScene64Requested(window.location.search)
+            ? await loadM5AR1125NumberedScene64Review({
+                candidate, search: window.location.search, loader,
+              })
+            : null;
+          const d1fScene150Review = isD1FScene150ReviewRequested(window.location.search)
+            ? await loadD1FScene150Review({
+                candidate, search: window.location.search, loader,
+              })
+            : null;
+          const d1fSource156Review = d1fSource156ReviewRequested()
+            ? await loadD1FSource156ExactReview(candidate, loader)
+            : null;
+          const gltf = d1fSource156Review?.gltf ?? d1fScene150Review?.gltf ?? r1125NumberedReview?.gltf ?? serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikWindingReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
             ? await loader.parseAsync(
                 isP137EThreeCornerMeasuredReviewRequested()
                   ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
@@ -9763,6 +9869,7 @@ const title = 'Private 3D viewer';
           const isP139adLocusWorkZReview =
             isP139abZReview && isP139adLocusWorkZReviewRequested();
 
+          let m5aR1125SourceRows: ReturnType<typeof selectM5AR1125SourceBoundReviewScene>['diameterReviewLabels'] | null = null;
           let m5aR1115RuntimeState:
             | ReturnType<typeof selectM5AR1115ReviewScene>['runtimeState']
             | null = null;
@@ -9773,6 +9880,7 @@ const title = 'Private 3D viewer';
           if (isM5AR1125SourceReview) {
             const selected = selectM5AR1125SourceBoundReviewScene(gltf);
             gltf.scene = selected.scene;
+            m5aR1125SourceRows = selected.diameterReviewLabels;
           } else if (isM5AR1115Review) {
             const selectedReview = selectM5AR1115ReviewScene(gltf);
             gltf.scene = selectedReview.scene;
@@ -9855,7 +9963,71 @@ const title = 'Private 3D viewer';
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`,
             serviceModel?.scene ?? combinedWallReview?.selected.scene ?? null);
+          if (d1fSource156Review) {
+            Object.assign(canvas.dataset, {
+              d1fSource156OriginalSha256: d1fSource156Review.sha,
+              d1fSource156SceneIndex: '156',
+              d1fSource156OriginalAuthenticated: 'true',
+              d1fSource156WorkTest: 'true',
+              d1fSource156ProductionPixelsVerified: 'false',
+              d1fSource156HumanReview: 'NOT_RUN',
+              d1fSource156Current: 'false',
+              d1fSource156Canonical: 'false',
+              d1fSource156AsBuilt: 'false',
+            });
+          }
           canvas.dataset.p137eLoadedCandidateId = candidate.id;
+          if (r1125NumberedReview) {
+            canvas.dataset.m5aR1125Scene64SourceVerified = 'true';
+            canvas.dataset.m5aR1125Scene64SceneIndex = '64';
+            canvas.dataset.m5aR1125Scene64LabelCount = '7';
+            canvas.dataset.m5aR1125Scene64HumanReview = 'NOT_RUN';
+            // This model was authenticated by exact raw SHA before GLTFLoader.
+            // Expose only original GLTFLoader nodes for reversible WebGL screenshot
+            // hide/restore. A canvas dataset or ROI is NOT a pixel PASS.
+            const numberedPixels = createM5AR1125Scene64PixelIsolation(gltf);
+            if (numberedPixels.targets.length !== 20 ||
+                numberedPixels.originalCount !== 13 || numberedPixels.numberCount !== 7) {
+              throw new Error('R1125 scene64 13+7 exact original target isolation failed');
+            }
+            (canvas as any).m5aR1125Scene64Restore = numberedPixels.restore;
+            (canvas as any).m5aR1125Scene64SetSourceVisibility =
+              (key: string, operation: 'HIDE' | 'RESTORE') => {
+                if (canvas.dataset.modelSource !== 'work-test' ||
+                    canvas.dataset.p137eLoadedCandidateId !== candidate.id ||
+                    fullModelScene !== gltf.scene ||
+                    !isM5AR1125NumberedScene64Requested(window.location.search)) {
+                  throw new Error('R1125 scene64 pixel isolation is not bound to loaded source');
+                }
+                return numberedPixels.setSourceVisibility(key, operation);
+              };
+            (canvas as any).m5aR1125Scene64RefreshSourceProjection = () => {
+              if (canvas.dataset.modelSource !== 'work-test' ||
+                  canvas.dataset.p137eLoadedCandidateId !== candidate.id ||
+                  fullModelScene !== gltf.scene ||
+                  !isM5AR1125NumberedScene64Requested(window.location.search) ||
+                  activeCamera !== camera) {
+                throw new Error('R1125 scene64 authentic screenshot requires loaded perspective source');
+              }
+              updateSize();
+              const rect = canvas.getBoundingClientRect();
+              const scale = window.devicePixelRatio || 1;
+              return numberedPixels.projectSourceTargets({
+                THREE, camera: activeCamera,
+                imageWidth: Math.round(rect.width * scale),
+                imageHeight: Math.round(rect.height * scale),
+              });
+            };
+            canvas.dataset.m5aR1125Scene64PixelIsolationReady = 'true';
+            canvas.dataset.m5aR1125Scene64OriginalTargetCount = '13';
+            canvas.dataset.m5aR1125Scene64NumberedTargetCount = '7';
+            canvas.dataset.m5aR1125Scene64SourcePixelEvidence = 'NOT_RUN';
+          } else {
+            delete canvas.dataset.m5aR1125Scene64SourceVerified;
+            delete canvas.dataset.m5aR1125Scene64SceneIndex;
+            delete canvas.dataset.m5aR1125Scene64LabelCount;
+            delete canvas.dataset.m5aR1125Scene64HumanReview;
+          }
           clearM5BReviewState();
           delete canvas.dataset.g3SourcePhase;
           delete canvas.dataset.g3OverlayPrimitive;
@@ -10739,6 +10911,40 @@ const title = 'Private 3D viewer';
                 m5aR1125HumanReview: 'NOT_RUN',
               });
               status.textContent = 'R1125 salaojat - WORK_TEST / 5 yleistä nimelliskokoluokkaa Ø100 + 2 tuntematonta PVK-halkaisijaa / 13 lähdekohdetta / HUMAN_REVIEW NOT_RUN';
+              // Show ONLY original scene63 source-bound, seven-route diameter
+              // classifications. The 100mm cylinders are not measured pipes.
+              const diameterLegend = document.querySelector<HTMLElement>('#m5a-r1125-diameter-legend');
+              const rows = m5aR1125SourceRows;
+              if (!diameterLegend || !rows || rows.length !== 7 ||
+                  new Set(rows.map((row) => row.sourceId)).size !== 7 ||
+                  rows.filter((row) => row.sourceClass ===
+                    'GENERAL_SALAOJA_NOMINAL_NOT_PER_ROUTE_MEASURED').length !== 5 ||
+                  rows.filter((row) => row.sourceClass ===
+                    'PVK_SOURCE_DIAMETER_UNKNOWN').length !== 2 ||
+                  rows.some((row) => row.physicalDiameterMm !== null ||
+                    row.presentationRole !== 'WORK_TEST_VISUAL_PROXY' ||
+                    row.physicalMeasurementVerified !== false ||
+                    row.asBuiltClaim !== false)) {
+                throw new Error('R1125 source diameter legend cannot be shown without seven verified labels');
+              }
+              const heading = document.createElement('h3');
+              heading.textContent = 'Seitsemän putkireitin lähdeperustainen halkaisijatieto';
+              const warning = document.createElement('p');
+              warning.className = 'm5a-source-facts-note';
+              warning.textContent = 'Viidellä salaojareitillä Ø100 mm on järjestelmän yleinen nimelliskokoluokka, ei reittikohtainen mittaus. Kahden PVK-haaran todellinen halkaisija on tuntematon. Kaikki sylinterit ovat WORK_TEST-esityksiä.';
+              const list = document.createElement('ul');
+              for (const row of rows) {
+                const item = document.createElement('li');
+                item.dataset.m5aR1125SourceId = row.sourceId;
+                item.dataset.sourceClass = row.sourceClass;
+                item.dataset.physicalDiameterMeasured = 'false';
+                item.textContent = row.label + ' · ' + row.sourceId;
+                list.append(item);
+              }
+              diameterLegend.replaceChildren(heading, warning, list);
+              diameterLegend.dataset.humanReview = 'NOT_RUN';
+              diameterLegend.dataset.currentClaim = 'false';
+              diameterLegend.hidden = false;
             }
             loadFailurePhase = 'review-runtime-failed';
           } else if (isP169fStorageDoorReview) {
@@ -10784,6 +10990,103 @@ const title = 'Private 3D viewer';
             });
             canvas.dataset.workTestReviewMode = candidate.id + '-review';
             status.textContent = 'Kylpyhuoneen kalusteet ja lattialämmitys - työmalli. Huolto- ja laitetiedot avautuvat kohteesta.';
+          } else if (odensvikWindingReview) {
+            // Separate from the prior 112-scene ODENSVIK candidate: do not
+            // reuse its source SHA, root IDs, approval or pixel evidence.
+            const selected = odensvikWindingReview.selected;
+            const sourceScene = odensvikWindingReview.gltf.scene;
+            const sourceRoot = sourceScene?.children?.[0];
+            const associations = odensvikWindingReview.gltf.parser?.associations;
+            if (sourceScene !== odensvikWindingReview.gltf.scenes?.[selected.sceneIndex] ||
+                sourceScene?.children?.length !== 1 || sourceRoot?.children?.length !== 43 ||
+                !sourceRoot.name?.endsWith('ODENSVIK00193937_WORK_TEST_WINDING_CORRECTED') ||
+                !(associations instanceof Map)) {
+              throw new Error('D1F_ODENSVIK_WINDING_RENDER_SOURCE_MISMATCH');
+            }
+            const sourceNodeIds = {
+              BOWL: selected.bowlNode,
+              COUNTER: selected.counterNode,
+              CABINET: selected.cabinetNode,
+            };
+            const sourceObjects = new Map<string, THREE.Object3D>();
+            for (const [kind, nodeId] of Object.entries(sourceNodeIds)) {
+              const matches = sourceRoot.children.filter(
+                (o: THREE.Object3D) => associations.get(o)?.nodes === nodeId);
+              if (matches.length !== 1 || !matches[0].visible ||
+                  associations.get(matches[0])?.nodes !== nodeId) {
+                throw new Error('D1F_ODENSVIK_WINDING_ORIGINAL_OBJECT_NOT_BOUND:' + kind);
+              }
+              sourceObjects.set(kind, matches[0]);
+            }
+            applyStandardViewPreset('d-apartment');
+            setModelScene(sourceScene);
+            canvas.dataset.contentScene = 'full-model';
+            // The original counter and bowl, not an invented proxy, define
+            // the opening camera's presentation target. User orbit stays free.
+            const bounds = new THREE.Box3().setFromObject(sourceObjects.get('COUNTER')!);
+            bounds.union(new THREE.Box3().setFromObject(sourceObjects.get('BOWL')!));
+            if (bounds.isEmpty()) throw new Error('D1F_ODENSVIK_WINDING_EMPTY_TARGET_BOUNDS');
+            const center = bounds.getCenter(new THREE.Vector3());
+            const radius = Math.max(1.2, bounds.getSize(new THREE.Vector3()).length() * 1.5);
+            deactivateElevationView();
+            planControls.enabled = false;
+            isoControls.enabled = false;
+            controls.enabled = true;
+            controls.enableRotate = true;
+            activeCamera = camera;
+            controls.target.copy(center);
+            camera.position.set(center.x + radius, center.y + radius * 0.75, center.z + radius);
+            camera.up.set(0, 1, 0);
+            camera.near = 0.01;
+            camera.far = Math.max(200, radius * 100);
+            camera.lookAt(center);
+            camera.updateProjectionMatrix();
+            controls.update();
+            let hidden: string | null = null;
+            // The browser probe may toggle only identified original objects.
+            // This changes visibility in memory, NEVER source bytes or QA status.
+            (canvas as any).d1fOdensvikWindingSourceVisibility =
+              (kind: string, operation: 'HIDE' | 'RESTORE') => {
+                if (canvas.dataset.modelSource !== 'work-test' ||
+                    canvas.dataset.workTestReviewMode !== D1F_ODENSVIK_WINDING_REVIEW_ID ||
+                    fullModelScene !== sourceScene || !sourceObjects.has(kind) ||
+                    !['HIDE','RESTORE'].includes(operation)) {
+                  throw new Error('D1F_ODENSVIK_WINDING_VISIBILITY_UNTRUSTED');
+                }
+                const object = sourceObjects.get(kind)!;
+                if (operation === 'HIDE') {
+                  if (hidden !== null || !object.visible ||
+                      [...sourceObjects.values()].some(o => !o.visible))
+                    throw new Error('D1F_ODENSVIK_WINDING_NOT_ALL_VISIBLE');
+                  object.visible = false;
+                  hidden = kind;
+                } else {
+                  if (hidden !== kind || object.visible)
+                    throw new Error('D1F_ODENSVIK_WINDING_INVALID_RESTORE');
+                  object.visible = true;
+                  hidden = null;
+                }
+                return {kind,operation,hiddenCount:hidden ? 1 : 0,
+                  productionObjectPixelsVerified:false,humanReview:'NOT_RUN'};
+              };
+            Object.assign(canvas.dataset, {
+              workTestReviewMode: D1F_ODENSVIK_WINDING_REVIEW_ID,
+              d1fOdensvikWindingVariant: selected.variant,
+              d1fOdensvikWindingSceneIndex: String(selected.sceneIndex),
+              d1fOdensvikWindingRawBytes: String(odensvikWindingReview.asset.bytes),
+              d1fOdensvikWindingRawSha256: odensvikWindingReview.asset.sha256,
+              d1fOdensvikWindingSourceAuthenticated: 'true',
+              d1fOdensvikWindingSourceTargetCount: '40',
+              d1fOdensvikWindingObjectBinding: 'BOWL,COUNTER,CABINET',
+              d1fOdensvikWindingCameraFraming: 'SOURCE_OBJECT_BOUNDS_ONLY',
+              d1fOdensvikWindingProductionPixelsVerified: 'false',
+              d1fOdensvikWindingHumanReview: 'NOT_RUN',
+              d1fOdensvikWindingWorkTest: 'true',
+              d1fOdensvikWindingCurrent: 'false',
+              d1fOdensvikWindingCanonical: 'false',
+              d1fOdensvikWindingAsBuilt: 'false',
+            });
+            status.textContent = 'ODENSVIK korjattu tasopinta - lähdetarkka WORK_TEST, odottaa WebGL-kohdepikselitodistusta ja käyttäjän katselmusta';
           } else if (odensvikReview) {
             // GLTFLoader scene0 is NOT the new ODENSVIK basin. Render the
             // authenticated scene108..111 selected by the exact one-link gate.
@@ -11921,7 +12224,10 @@ const title = 'Private 3D viewer';
           !isD1FCombinedWallReviewRequested(window.location.search) &&
           !isD1FShowerPhotoReviewRequested(window.location.search) &&
           !['d1f-bathroom-service-heating-20261015', 'd1f-wc-nordic3530-centered-20261016', 'd1f-wc-closed-lid-450-20261016'].includes(getRequestedReviewCandidateId() ?? '') &&
-          !isPrivateModelReviewRequested(window.location.search, m5aZ2R1125ReviewId)
+          !isPrivateModelReviewRequested(window.location.search, m5aZ2R1125ReviewId) &&
+          !isM5AR1125NumberedScene64Requested(window.location.search) &&
+          !isD1FScene150ReviewRequested(window.location.search) &&
+          !d1fSource156ReviewRequested()
         ) {
           await loadCurrentModel();
         }

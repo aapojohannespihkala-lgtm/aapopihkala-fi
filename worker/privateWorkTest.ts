@@ -528,6 +528,21 @@ const M5A_R1125_PVK_DIAMETER_SOURCE_SPLIT_CANDIDATE = {
   expectedSha256: 'c465417fc101e7de495d0a04bb4feb2bee61b80cd5efccf876f6eb76326f9a48',
 } as const satisfies PrivateWorkTestCandidate;
 
+// R1125's original source scene63 remains immutable and independently available.
+// The exact, G2b-persisted ZIP holds ONE inner scene64 GLB with seven visual
+// source-route numbers. Five carry only system-general nominal D100 metadata;
+// the two PVK physical diameters, installed coordinates and as-built status
+// remain UNKNOWN. One local 4-camera QA had a 1-pixel parity warning.
+// Publisher allowlisting is NOT viewer autoload, WebGL pixel QA or human review.
+const M5A_R1125_SCENE64_NUMBERED_ROUTES_CANDIDATE = {
+  id: 'm5a-r1125-scene64-seven-numbered-route-labels-20261018',
+  label: 'M5A R1125 seven source-ID route numbers - noncanonical WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-r1125-scene64-seven-numbered-route-labels-20261018.glb`,
+  objectKey: 'work-test/m5a-r1125-scene64-seven-numbered-route-labels-20261018.glb',
+  expectedSize: 3_179_132,
+  expectedSha256: 'f5e504df44a3b8d58d61bcc3c7af45639a4d53fd17e8c07ef39346e969d0536d',
+} as const satisfies PrivateWorkTestCandidate;
+
 const M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE = {
   id: 'm5a-z2d-r1090-well-top-ground-surface',
   label: 'M5A-Z2D R1090 well-top ground-surface correction - WORK_TEST',
@@ -710,11 +725,28 @@ const D1F_SHOWER_PHOTO_CANDIDATE = {
   expectedSha256: D1F_SHOWER_PHOTO_SOURCE.sha256,
 } as const satisfies PrivateWorkTestCandidate;
 
+// Noncanonical source156 D1F room with user-correct Bosch-left, U-sauna,
+// two photo-derived shower pulls, white shelf and user-measured 305 mm mirror
+// separation CONDITIONALLY modeled from an unverified sauna-wall reference.
+// Optional scene157 retains historical HELMI six lights and photo tile marks,
+// never asserts installed count/geometry. Exact source-bound WORK_TEST only;
+// current physical XY, tiles, shelf fit and heater clearance remain UNKNOWN.
+// No CURRENT/canonical/asBuilt/HUMAN_REVIEW promotion.
+const D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE = {
+  id: 'd1f-source156-mirror305-k2-oak-u-two-pulls-20261018',
+  label: 'D1F source156 - K2, U-sauna, 2 vedintä, hylly, ehdollinen peili305 - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-source156-mirror305-k2-oak-u-two-pulls-20261018.glb`,
+  objectKey: 'work-test/d1f-source156-mirror305-k2-oak-u-two-pulls-20261018.glb',
+  expectedSize: 9792656,
+  expectedSha256: '14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
   M5A_Z2D_R1090_WELL_TOP_GROUND_SURFACE_CANDIDATE,
   M5A_R1125_PVK_DIAMETER_SOURCE_SPLIT_CANDIDATE,
+  M5A_R1125_SCENE64_NUMBERED_ROUTES_CANDIDATE,
   M5B_R1109_FIVE_DOWNSPOUT_PRESENCE_ZONES_CANDIDATE,
   M5A_R1115_SOK23_PLANNED_RAISE_PRESENCE_CANDIDATE,
   P137E_D1F_THREE_WALL_MOUNTED_THEMOS_CANDIDATE,
@@ -732,6 +764,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_ODENSVIK_WINDING_CORRECTED_ZIP_CANDIDATE,
   D1F_KPH_010204_ZIP_CANDIDATE,
   D1F_SHOWER_PHOTO_CANDIDATE,
+  D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {

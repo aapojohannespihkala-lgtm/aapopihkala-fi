@@ -16,6 +16,7 @@ on:
         options:
           - full-render
           - r1125-render
+          - r1125-scene64-pixels
           - p186e-labels-render
           - p137e-walls-render
           - d1f-combined-pixels
@@ -2737,5 +2738,43 @@ jobs:
         with:
           name: p186e-source-label-twofloor-production
           path: test-results/p186e-production-twofloor/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  verify-r1125-scene64-twenty-real-pixels:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.probe_mode == 'r1125-scene64-pixels'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact trusted main
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install browser runtime
+        run: npm ci
+      - name: Verify exact source and twenty screenshot proof contracts
+        run: node --test tests/test-private-model-m5a-scene64-production-probe.test.mjs
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Inspect authenticated original R1125 scene64 WebGL targets
+        env:
+          PROBE_MODE: ${{ inputs.probe_mode }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+        run: node .github/scripts/private-model-m5a-scene64-production-probe.mjs
+      - name: Store bounded source-specific proof result
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: m5a-r1125-scene64-twenty-original-pixel-evidence
+          path: test-results/m5a-r1125-scene64-production/source64-original-target-pixels.json
           if-no-files-found: ignore
           retention-days: 7
