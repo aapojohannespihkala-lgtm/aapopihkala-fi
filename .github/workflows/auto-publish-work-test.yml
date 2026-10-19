@@ -1,0 +1,213 @@
+name: Auto-publish WORK_TEST from Drive queue
+
+# Drive folder "G2b-JULKAISUJONO" -> registry + Worker allowlist PR -> build ->
+# squash merge -> (after Cloudflare deploy) publish-work-test.
+# One step per run: either register one new file or publish the latest auto
+# candidate. Optional "__sceneN" in the file name selects extractScene.
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+  checks: read
+  id-token: write
+
+concurrency:
+  group: auto-publish-work-test
+  cancel-in-progress: false
+
+env:
+  QUEUE_FOLDER_ID: 1UHnIidvGoXWurYWleyQRgD9_bJ0Ery8_
+  CATALOG_URL: https://aapopihkala.fi/private-model/work-test/verify/catalog.json
+  HELPER: .github/scripts/work-test-auto-queue.py
+
+jobs:
+  auto:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Require trusted main run
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_EVENT_NAME" == "schedule" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$GITHUB_REPOSITORY" == "aapojohannespihkala-lgtm/aapopihkala-fi" ]]
+
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 50
+
+      - name: Helper regression tests
+        run: python3 tests/test-work-test-auto-queue.py -q
+
+      - name: Authenticate to Google Drive
+        id: google-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GDRIVE_WIF_PROVIDER }}
+          service_account: ${{ vars.GDRIVE_PUBLISHER_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/drive.readonly
+          create_credentials_file: false
+          export_environment_variables: false
+
+      - name: Read queue, catalog and open auto PRs
+        shell: bash
+        env:
+          GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+          GH_TOKEN: ${{ github.token }}
+          CF_ACCESS_READBACK_CLIENT_ID: ${{ secrets.CF_ACCESS_READBACK_CLIENT_ID }}
+          CF_ACCESS_READBACK_CLIENT_SECRET: ${{ secrets.CF_ACCESS_READBACK_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          python3 -I "$HELPER" list-queue --folder "$QUEUE_FOLDER_ID" --out "$RUNNER_TEMP/queue.json"
+          curl --silent --show-error --fail --connect-timeout 10 --max-time 30 \
+            --header "CF-Access-Client-Id: $CF_ACCESS_READBACK_CLIENT_ID" \
+            --header "CF-Access-Client-Secret: $CF_ACCESS_READBACK_CLIENT_SECRET" \
+            --output "$RUNNER_TEMP/catalog.json" "$CATALOG_URL"
+          open_prs="$(gh api "/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" \
+            --jq '[.[] | select(.head.ref | startswith("auto/work-test-"))] | length')"
+          echo "OPEN_AUTO_PR=$([[ "$open_prs" -gt 0 ]] && echo 1 || echo 0)" >> "$GITHUB_ENV"
+          registry_ts="$(git log -1 --format=%ct -- .github/work-test-candidates.json || true)"
+          [[ -n "$registry_ts" ]] || registry_ts="$(git log -1 --format=%ct)"
+          echo "REGISTRY_AGE=$(( $(date +%s) - registry_ts ))" >> "$GITHUB_ENV"
+
+      - name: Plan
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I "$HELPER" plan \
+            --registry .github/work-test-candidates.json \
+            --catalog "$RUNNER_TEMP/catalog.json" \
+            --queue "$RUNNER_TEMP/queue.json" \
+            --registry-age "$REGISTRY_AGE" \
+            --open-auto-pr "$OPEN_AUTO_PR" \
+            --name-out "$RUNNER_TEMP/queue-name.txt" \
+            --out "$GITHUB_OUTPUT"
+
+      - name: Dispatch publish of merged auto candidate
+        if: steps.plan.outputs.action == 'publish'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE: ${{ steps.plan.outputs.candidate }}
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/publish-work-test.yml/dispatches" \
+            -f ref=main -f "inputs[candidate]=$CANDIDATE"
+          echo "Dispatched Publish WORK_TEST for $CANDIDATE."
+
+      - name: Download and derive exact GLB identity
+        if: steps.plan.outputs.action == 'register'
+        shell: bash
+        env:
+          GDRIVE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+          FILE_ID: ${{ steps.plan.outputs.file_id }}
+          EXTRACT_SCENE: ${{ steps.plan.outputs.extract_scene }}
+        run: |
+          set -euo pipefail
+          download="$RUNNER_TEMP/queue-download.bin"
+          model="$RUNNER_TEMP/queue-model.glb"
+          curl --silent --show-error --fail --location \
+            --header "Authorization: Bearer $GDRIVE_ACCESS_TOKEN" \
+            --output "$download" \
+            "https://www.googleapis.com/drive/v3/files/$FILE_ID?alt=media&supportsAllDrives=true"
+          python3 -I .github/scripts/work-test-extract-one-glb.py "$download" "$model"
+          [[ "$(head -c 4 "$model")" == "glTF" ]] || { echo "GLB magic guard rejected source" >&2; exit 1; }
+          if [[ -n "$EXTRACT_SCENE" ]]; then
+            python3 -I .github/scripts/work-test-extract-scene.py "$model" "$EXTRACT_SCENE" "$model.scene"
+            python3 -I .github/scripts/work-test-verify-scene-equal.py "$model" "$EXTRACT_SCENE" "$model.scene"
+            mv "$model.scene" "$model"
+          fi
+          echo "MODEL_SIZE=$(stat -c '%s' "$model")" >> "$GITHUB_ENV"
+          echo "MODEL_SHA=$(sha256sum "$model" | awk '{print $1}')" >> "$GITHUB_ENV"
+
+      - name: Register candidate, open PR, build and merge
+        if: steps.plan.outputs.action == 'register'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FILE_ID: ${{ steps.plan.outputs.file_id }}
+        run: |
+          set -euo pipefail
+          python3 -I "$HELPER" apply \
+            --registry .github/work-test-candidates.json \
+            --worker worker/privateWorkTest.ts \
+            --file-id "$FILE_ID" \
+            --name-file "$RUNNER_TEMP/queue-name.txt" \
+            --size "$MODEL_SIZE" --sha256 "$MODEL_SHA" \
+            --date "$(date -u +%Y-%m-%d)" \
+            --out "$RUNNER_TEMP/apply.env"
+          source "$RUNNER_TEMP/apply.env"
+          branch="auto/work-test-${candidate}"
+          branch="${branch:0:200}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add .github/work-test-candidates.json worker/privateWorkTest.ts
+          git commit -m "WORK_TEST auto: rekisteröi ${candidate} Drive-jonosta"
+          git push origin "$branch"
+          head_sha="$(git rev-parse HEAD)"
+
+          body="$RUNNER_TEMP/pr.json"
+          python3 - "$branch" "$candidate" "$FILE_ID" "$MODEL_SIZE" "$MODEL_SHA" "$body" <<'PY'
+          import json, sys
+          branch, cid, fid, size, sha, path = sys.argv[1:]
+          json.dump({
+              "title": f"WORK_TEST auto: {cid}",
+              "head": branch,
+              "base": "main",
+              "body": (
+                  "Automaattinen rekisteröinti Drive-jonokansiosta (auto-publish-work-test).\n\n"
+                  f"- Drive-tiedosto: `{fid}`\n- Koko: {size} B\n- SHA-256: `{sha}`\n\n"
+                  "Julkaisu katselimeen tehdään seuraavassa ajastetussa ajossa Cloudflare-deployn jälkeen. "
+                  "WORK_TEST, ei as-built-tietoa."
+              ),
+          }, open(path, "w", encoding="utf-8"))
+          PY
+          pr_number="$(gh api --method POST "/repos/${GITHUB_REPOSITORY}/pulls" --input "$body" --jq '.number')"
+          echo "Opened PR #$pr_number"
+
+          # PRs and pushes made with GITHUB_TOKEN do not trigger workflows, so the
+          # required "build" check is run explicitly on the PR branch.
+          gh api --method POST \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/build-check.yml/dispatches" \
+            -f "ref=$branch"
+
+          conclusion=""
+          for _ in $(seq 1 80); do
+            sleep 20
+            conclusion="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/${head_sha}/check-runs?check_name=build" \
+              --jq '[.check_runs[] | select(.status == "completed")] | .[0].conclusion // ""')"
+            [[ -n "$conclusion" ]] && break
+          done
+          if [[ "$conclusion" != "success" ]]; then
+            echo "Build check did not succeed (${conclusion:-timeout}); PR #$pr_number left open." >&2
+            exit 1
+          fi
+
+          merged=false
+          for _ in $(seq 1 6); do
+            if gh api --method PUT "/repos/${GITHUB_REPOSITORY}/pulls/${pr_number}/merge" \
+              -f merge_method=squash -f "sha=$head_sha" --jq '.merged' | grep -q true; then
+              merged=true
+              break
+            fi
+            sleep 15
+          done
+          if [[ "$merged" != "true" ]]; then
+            echo "Merge of PR #$pr_number was rejected; PR left open for the owner." >&2
+            exit 1
+          fi
+          gh api --method DELETE "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}" || true
+          echo "Merged PR #$pr_number. Publish follows in a later scheduled run."
