@@ -783,6 +783,17 @@ const SHARED300_SCENE299_DEFAULT_CANDIDATE = {
   expectedSha256: '9da91ef4a972e0c16c919d092e2768f338ae4861a161afc05d991adc3286c60a',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-19 from Drive queue file 1ONonk83k_sVz5G42Ggq10ZJdgn_lnf5d
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_LINJASTOTESTI_SHARED300_SAUNA_1ONONK83_CANDIDATE = {
+  id: 'auto-linjastotesti-shared300-sauna-1ononk83',
+  label: 'Auto: LINJASTOTESTI SHARED300 sauna (scene299) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-linjastotesti-shared300-sauna-1ononk83.glb`,
+  objectKey: 'work-test/auto-linjastotesti-shared300-sauna-1ononk83.glb',
+  expectedSize: 1754724,
+  expectedSha256: '9da91ef4a972e0c16c919d092e2768f338ae4861a161afc05d991adc3286c60a',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -810,6 +821,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_SOURCE156_SEVEN_CAMERA_CUTAWAY_CANDIDATE,
   D1F_SOURCE156_FLOOR_V02_B_SEVEN_CAMERA_CANDIDATE,
   SHARED300_SCENE299_DEFAULT_CANDIDATE,
+  AUTO_LINJASTOTESTI_SHARED300_SAUNA_1ONONK83_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
