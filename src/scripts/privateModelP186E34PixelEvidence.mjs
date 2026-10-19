@@ -50,8 +50,9 @@ const amber = (bytes, index) => {
   return a >= 200 && r >= 145 && g >= 85 && b <= 165 &&
     r - g >= 18 && g - b >= 18;
 };
-const pixelChanged = (a, b, offset) =>
-  Math.max(...[0, 1, 2, 3].map(c => Math.abs(a[offset + c] - b[offset + c]))) >= 20;
+const pixelChanged = (a, b, offset, includeAlpha = true) =>
+  Math.max(...(includeAlpha ? [0, 1, 2, 3] : [0, 1, 2]).map(c =>
+    Math.abs(a[offset + c] - b[offset + c]))) >= 20;
 
 /** Floor-specific 18+16 source label screenshots; all frames share one camera per floor. */
 export function verifyP186E34SourcePixelEvidence({
@@ -141,14 +142,14 @@ export function verifyP186E34SourcePixelEvidence({
           if (amber(hidden.pixels, idx)) remainingAmber++;
           if (amber(session.baseline.pixels, idx)) {
             baselineAmber++;
-            if (!amber(hidden.pixels, idx) && pixelChanged(session.baseline.pixels, hidden.pixels, idx)) {
+            if (!amber(hidden.pixels, idx) && pixelChanged(session.baseline.pixels, hidden.pixels, idx, false)) {
               lost++;
             }
           }
           // A moved source marker can lose its old pixels while gaining new
           // amber pixels elsewhere inside the same ROI. Loss alone is not proof.
           if (!amber(session.baseline.pixels, idx) && amber(hidden.pixels, idx) &&
-              pixelChanged(session.baseline.pixels, hidden.pixels, idx)) gained++;
+              pixelChanged(session.baseline.pixels, hidden.pixels, idx, false)) gained++;
         } else if (pixelChanged(session.baseline.pixels, hidden.pixels, idx)) {
           outsideChanged++;
         }
