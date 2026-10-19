@@ -131,3 +131,26 @@ test('a fake original GLB magic/length never authenticates source',()=>{
   input.writeUInt32LE(input.length,8);
   assert.throws(()=>verifyScene64OriginalGlb(input),Scene64ProofFailure);
 });
+
+test('mass unrelated screen changes outside projected source cannot fake a target',()=>{
+  const f=frames();
+  // The genuine 64-pixel source target stays hidden in its projected ROI,
+  // but 18000 other pixels are changed well outside that center ROI.
+  for(let pixel=0;pixel<18000;pixel++)f.hidden.rgba[pixel*4]=190;
+  assert.throws(()=>verifyScene64FrameTriplet(f),
+    error=>error instanceof Scene64ProofFailure &&
+      error.code==='ORIGINAL_OBJECT_PIXEL_DELTA');
+});
+test('off-ROI hard ceiling rejects the first pixel beyond its exact bound',()=>{
+  const good=frames();
+  for(let pixel=0;pixel<768;pixel++)good.hidden.rgba[pixel*4]=190;
+  const technical=verifyScene64FrameTriplet(good);
+  assert.equal(technical.projectedRoiChangedPixels,64);
+  assert.equal(technical.offRoiChangedPixels,768);
+  assert.equal(technical.offRoiHardCeiling,768);
+  const bad=frames();
+  for(let pixel=0;pixel<769;pixel++)bad.hidden.rgba[pixel*4]=190;
+  assert.throws(()=>verifyScene64FrameTriplet(bad),
+    error=>error instanceof Scene64ProofFailure &&
+      error.code==='ORIGINAL_OBJECT_PIXEL_DELTA');
+});
