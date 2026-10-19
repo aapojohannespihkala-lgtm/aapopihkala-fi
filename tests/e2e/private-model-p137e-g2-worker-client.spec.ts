@@ -130,6 +130,50 @@ test('G2 review targets require real D floor and original coordinate frame', asy
     .rejects.toThrow('TARGET_EVIDENCE_INVALID');
 });
 
+test('WORK_TEST POST accepts only the five original D1F native G2 target identities', async () => {
+  for (const targetId of nativeTargetIds) {
+    const next = { ...payload, anchor: { ...payload.anchor, targetId } };
+    const calls: string[] = [];
+    const c = createP137EG2WorkerClient({
+      origin, canReview: () => true,
+      fetcher: async (_url: string, options: any) => {
+        calls.push(options.method);
+        return options.method === 'POST'
+          ? json({ receipt: { status: 'PERSISTED_TO_EXISTING_G2', recordId },
+              readback: { recordId, payload: next } })
+          : json({ recordId, payload: next });
+      },
+    });
+    await expect(c.persist(next)).resolves.toMatchObject({ recordId });
+    expect(calls).toEqual(['POST', 'GET']);
+  }
+});
+
+test('WORK_TEST POST and durable GET reject invented, cross-floor or wrong-frame anchors', async () => {
+  const mutations = [
+    { targetId: 'D_THEMO_CURRENT_FAKE_01' },
+    { targetId: 'D1F_USER_CURRENT_DOOR_A ' },
+    { targetId: undefined },
+    { floor: '2F' }, { floor: undefined },
+    { coordinateFrame: 'WORLD' },
+  ];
+  for (const mutation of mutations) {
+    const unsafe = { ...payload, anchor: { ...payload.anchor, ...mutation } };
+    const calls: string[] = [];
+    const c = createP137EG2WorkerClient({
+      origin, canReview: () => true,
+      fetcher: async (_url: string, options: any) => {
+        calls.push(options.method);
+        return json({ recordId, payload: unsafe });
+      },
+    });
+    await expect(c.persist(unsafe)).rejects.toThrow('PROMOTION_REJECTED');
+    expect(calls).toEqual([]);
+    await expect(c.readback(recordId)).rejects.toThrow('DURABLE_READBACK_INVALID');
+    expect(calls).toEqual(['GET']);
+  }
+});
+
 test('POST receipt requires a separate unchanged durable GET from G2', async () => {
   const calls: Array<{url: string; options: any}> = [];
   const reply = { receipt: { status: 'PERSISTED_TO_EXISTING_G2', recordId },
