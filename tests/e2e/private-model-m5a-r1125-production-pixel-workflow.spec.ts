@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 
 // This is a workflow-contract regression, NOT authenticated production proof.
@@ -294,4 +295,17 @@ test('R1125 production source isolation executes 26 reversible camera-target cap
   blank=false;invalid=true;
   await expect(verify(baseline,view,'unsafe')).rejects.toThrow(/hide contract mismatch/);
   expect(hidden).toBeNull();
+});
+
+// Exercise the actual scene64 source/pixel fail-closed suite inside the
+// PR-selected browser check. This verifies a CI execution gate, not real
+// authenticated production WebGL pixels or HUMAN_REVIEW.
+test('R1125 scene64 Node regression suite executes on the PR checkout', () => {
+  const output = execFileSync(process.execPath, [
+    '--test', '--test-reporter=tap',
+    'tests/test-private-model-m5a-scene64-production-probe.test.mjs',
+  ], {cwd:process.cwd(),encoding:'utf8',timeout:30000,maxBuffer:1024*1024});
+  expect(output).toMatch(/# tests 9(?:\r?\n|$)/);
+  expect(output).toMatch(/# pass 9(?:\r?\n|$)/);
+  expect(output).toMatch(/# fail 0(?:\r?\n|$)/);
 });
