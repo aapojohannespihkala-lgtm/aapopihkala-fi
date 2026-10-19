@@ -24,6 +24,7 @@ async function sourceBootstrap(exactP186e:boolean){
     // must be false; the test executes the real bootstrap with VM fixtures.
     isM5AR1125NumberedScene64Requested:()=>false,
     isD1FScene150ReviewRequested:()=>false,
+    d1fSource156ReviewRequested:()=>false,
     isPrivateModelReviewRequested:()=>false,m5aZ2R1125ReviewId:'r1125-review',
     getRequestedReviewCandidateId:()=>candidate?.id??null,
     loadCurrentModel:async()=>{calls.push('CURRENT');},
