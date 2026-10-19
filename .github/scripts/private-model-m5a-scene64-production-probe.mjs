@@ -99,8 +99,11 @@ export function verifyScene64FrameTriplet({before,hidden,restored,center,
     const offset=pixel*4;
     let delta=false,reverted=false;
     for(let channel=0;channel<4;channel++){
-      delta ||= Math.abs(before.rgba[offset+channel]-hidden.rgba[offset+channel])>=24;
-      // Restoration is exact, unlike the deliberately tolerant HIDE delta.
+      // Only RGB changes demonstrate a visually painted source target.
+      // Alpha-only screenshot changes are not visible object pixels.
+      if(channel<3)
+        delta ||= Math.abs(before.rgba[offset+channel]-hidden.rgba[offset+channel])>=24;
+      // Restoration remains exact across all RGBA channels.
       reverted ||= before.rgba[offset+channel]!==restored.rgba[offset+channel];
     }
     if(reverted) restorationChanged++;
