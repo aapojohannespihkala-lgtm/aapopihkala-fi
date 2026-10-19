@@ -98,6 +98,18 @@ test('real-frame comparator requires visible original delta and exact restoratio
   assert.equal(out.productionProvenanceVerified,false);
   assert.equal(out.humanReview,'NOT_RUN');
 });
+test('alpha-only screenshot changes are not visible source-object pixels',()=>{
+  const f=frames();
+  for(let y=124;y<132;y++)for(let x=124;x<132;x++){
+    const off=(y*256+x)*4;
+    f.hidden.rgba[off]=0; // Preserve every RGB value from baseline.
+    f.hidden.rgba[off+3]=190; // Change only the non-visible alpha channel.
+  }
+  assert.throws(()=>verifyScene64FrameTriplet(f),
+    error=>error instanceof Scene64ProofFailure &&
+      error.code==='ORIGINAL_OBJECT_PIXEL_DELTA');
+});
+
 test('unchanged, corrupt, oversized, off-target or un-restored frames cannot pass',()=>{
   const variants=[
     f=>{f.hidden.rgba.fill(0);},
