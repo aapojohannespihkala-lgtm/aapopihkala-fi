@@ -156,3 +156,78 @@ test('fails closed on altered bytes, missing GLB2 header, and a truncated body',
     await assert.rejects(fetchVerifiedSharedSystemsGlb(f.args),/SHARED_WORK_TEST_SCENE_GATE/);
   }
 });
+
+
+import { loadVerifiedSharedSystemsScene } from '../../src/scripts/privateModelSharedSystemsSceneGate.mjs';
+function combinedLoaderFixture() {
+  const source = {
+    asset: { version: '2.0' }, scene: 0,
+    scenes: [{ name: 'SOURCE_DEFAULT', nodes: [0] }, { name: 'D1F_M5A_M5B_COMBINED_WORK_TEST', nodes: [0,1] }],
+    nodes: [{ name: 'ORIGINAL_BATHROOM' }, { name: 'ORIGINAL_M5_SOURCE' }],
+    buffers: [{ byteLength: 0 }],
+  };
+  const raw = Buffer.from(JSON.stringify(source));
+  const padded = Buffer.concat([raw, Buffer.alloc((4 - (raw.length % 4)) % 4, 0x20)]);
+  const bytes = Buffer.alloc(20 + padded.length);
+  bytes.write('glTF', 0, 'ascii'); bytes.writeUInt32LE(2,4);
+  bytes.writeUInt32LE(bytes.length,8); bytes.writeUInt32LE(padded.length,12);
+  bytes.write('JSON',16,'ascii'); padded.copy(bytes,20);
+  const sha = createHash('sha256').update(bytes).digest('hex');
+  const candidate = { id:'m5a-m5b-d1f-shared-systems-test-only',
+    path:'/private-model/work-test/shared-test.glb', expectedSize:bytes.length, expectedSha256:sha };
+  const contract = { candidateId:candidate.id, expectedSizeBytes:bytes.length, expectedSha256:sha,
+    sourceDefaultSceneIndex:0, combinedSceneIndex:1,
+    combinedSceneName:source.scenes[1].name, requiredRootNodeIndices:[0,1] };
+  const scenes = source.scenes.map(s=>({ name:s.name }));
+  const loader = { parseAsync:async (data, basePath)=>{
+    assert.equal(Buffer.from(data).equals(bytes),true);
+    assert.equal(basePath,'https://viewer.example.test/private-model/work-test/');
+    return { scenes, scene:scenes[0], parser:{json:source} };
+  }};
+  const fetchImpl = async url => ({ok:true,url,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)});
+  const args={candidate,contract,loader,fetchImpl,origin:'https://viewer.example.test',cryptoSubtle:webcrypto.subtle};
+  return { source, scenes, bytes, args };
+}
+test('load adapter fetches full GLB, parses it and selects combined scene rather than source default', async()=>{
+  const f=combinedLoaderFixture();
+  const got=await loadVerifiedSharedSystemsScene(f.args);
+  assert.equal(got.gltf.scene,f.scenes[1]);
+  assert.equal(got.combinedScene,f.scenes[1]);
+  assert.equal(got.combinedSceneIndex,1);
+  assert.equal(got.verification.actualSha256,f.args.contract.expectedSha256);
+  assert.equal(f.scenes[0].name,'SOURCE_DEFAULT');
+});
+test('load adapter fails closed on missing parser, parser failure, or loader default drift',async()=>{
+  for(const mutation of [
+    f=>{f.args.loader=null;},
+    f=>{f.args.loader.parseAsync=async()=>{throw Error('parse failed');};},
+    f=>{f.args.loader.parseAsync=async()=>({scenes:f.scenes,scene:f.scenes[1],parser:{json:f.source}});},
+    f=>{f.args.contract.combinedSceneIndex=0;},
+  ]) {
+    const f=combinedLoaderFixture();mutation(f);
+    await assert.rejects(loadVerifiedSharedSystemsScene(f.args),/SHARED_WORK_TEST_SCENE_GATE/);
+  }
+});
+test('load adapter rejects external references and corrupt GLB JSON before parser',async()=>{
+  const cases=[
+    s=>{s.buffers[0].uri='https://cdn.example.test/source.bin';},
+    s=>{s.images=[{uri:'/external.png'}];},
+    s=>{s.buffers=[];},
+  ];
+  for(const mutate of cases){
+    const f=combinedLoaderFixture();
+    const source=JSON.parse(JSON.stringify(f.source));mutate(source);
+    const raw=Buffer.from(JSON.stringify(source));
+    const padded=Buffer.concat([raw,Buffer.alloc((4-(raw.length%4))%4,0x20)]);
+    const bytes=Buffer.alloc(20+padded.length);
+    bytes.write('glTF',0,'ascii');bytes.writeUInt32LE(2,4);
+    bytes.writeUInt32LE(bytes.length,8);bytes.writeUInt32LE(padded.length,12);
+    bytes.write('JSON',16,'ascii');padded.copy(bytes,20);
+    const hash=createHash('sha256').update(bytes).digest('hex');
+    f.args.candidate.expectedSize=bytes.length;f.args.contract.expectedSizeBytes=bytes.length;
+    f.args.candidate.expectedSha256=hash;f.args.contract.expectedSha256=hash;
+    f.args.fetchImpl=async url=>({ok:true,url,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)});
+    f.args.loader.parseAsync=async()=>{throw Error('must not parse external-dependent GLB');};
+    await assert.rejects(loadVerifiedSharedSystemsScene(f.args),/SHARED_WORK_TEST_SCENE_GATE: unverified-external-resource/);
+  }
+});
