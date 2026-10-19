@@ -9642,6 +9642,14 @@ const title = 'Private 3D viewer';
         'white-shelf': { eye: [1.088171, 1.194566, -4.89061], look: [4.06, 0.885, -3.9] },
         'sauna-u': { eye: [1.336282, 1.628899, 2.139078], look: [5.0675, 0.647, -1.003] },
       } as const;
+      // Opt-in per-original-target one-link focus. The review candidate itself
+      // must still load its exact verified GLB before the camera may move.
+      const d1fSource156OriginalFocusFromLink = () => {
+        if (!d1fSource156ReviewRequested()) return null;
+        const key = new URLSearchParams(window.location.search).get('focus');
+        return key && Object.prototype.hasOwnProperty.call(d1fSource156CameraPoses, key)
+          ? key : null;
+      };
       let d1fSource156PreFocusCamera: {fov: number; zoom: number} | null = null;
 
       // Source156 original-node screenshot isolation. A verified GLB is a
@@ -12460,8 +12468,26 @@ const title = 'Private 3D viewer';
           : null;
         if (reviewCandidate) {
           const loaded = await loadWorkTestCandidate(reviewCandidate);
-          if (loaded) canvas.dataset.workTestReviewAutoload = 'true';
-          else delete canvas.dataset.workTestReviewAutoload;
+          if (loaded) {
+            canvas.dataset.workTestReviewAutoload = 'true';
+            const originalTargetFocus = d1fSource156OriginalFocusFromLink();
+            if (originalTargetFocus && reviewCandidateId === d1fSource156CandidateId) {
+              try {
+                // This hook checks exact source SHA, scene156, pristine original
+                // actors and one-link autoload. A URL alone never grants access.
+                const selected = (canvas as any).d1fSource156FocusOriginalTarget?.(originalTargetFocus);
+                if (selected?.key !== originalTargetFocus ||
+                    selected?.sourceSceneIndex !== 156 ||
+                    selected?.humanReview !== 'NOT_RUN' ||
+                    selected?.productionPixelsVerified !== false)
+                  throw new Error('SOURCE156_FOCUS_NOT_READY');
+                canvas.dataset.d1fSource156OriginalFocusAutoload = 'true';
+              } catch {
+                delete canvas.dataset.d1fSource156OriginalFocusAutoload;
+                console.warn('SOURCE156_ORIGINAL_FOCUS_NOT_READY');
+              }
+            }
+          } else delete canvas.dataset.workTestReviewAutoload;
         } else {
           delete canvas.dataset.workTestReviewAutoload;
           if (reviewCandidateId) {
