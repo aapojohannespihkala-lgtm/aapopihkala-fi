@@ -6195,6 +6195,14 @@ const title = 'Private 3D viewer';
         delete (canvas as any).d1fSource156SetOriginalVisibility;
         delete (canvas as any).d1fSource156RestoreOriginalVisibility;
         delete (canvas as any).d1fSource156RefreshOriginalProjection;
+        delete (canvas as any).d1fSource156FocusOriginalTarget;
+        delete canvas.dataset.d1fSource156OriginalCameraKey;
+        if (d1fSource156PreFocusCamera !== null) {
+          camera.fov = d1fSource156PreFocusCamera.fov;
+          camera.zoom = d1fSource156PreFocusCamera.zoom;
+          camera.updateProjectionMatrix();
+          d1fSource156PreFocusCamera = null;
+        }
         clearD1FSource156Identity();
         // A successful initial one-link autoload is not evidence for a later model.
         delete canvas.dataset.workTestReviewAutoload;
@@ -9621,6 +9629,29 @@ const title = 'Private 3D viewer';
         new URLSearchParams(window.location.search).get('review') ===
           d1fSource156CandidateId + '-review';
 
+      // Original SOURCE156 seven target-specific perspective candidates.
+      // Each position/lookAt is source-derived from the immutable scene156 glTF
+      // in Y-up meters, independently rendered with VTK at vertical FOV 50.
+      // A browser screenshot is still required before any review/pixel PASS.
+      const d1fSource156CameraPoses = {
+        mirror305: { eye: [0.906673, 1.967847, -4.066609], look: [3.958, 1.65, -3.0495] },
+        wc: { eye: [6.147108, 1.560248, -5.04276], look: [5.7305, 0.3625, -4.522] },
+        odensvik: { eye: [2.483054, 1.441854, -1.857967], look: [4.1355, 1.007, -3.2495] },
+        bosch: { eye: [2.495913, 0.958233, -0.959454], look: [4.222, 0.504, -2.413] },
+        'shower-glass-two-pulls': { eye: [2.524716, 1.891391, -0.60055], look: [5.798, 1.03, -3.357] },
+        'white-shelf': { eye: [1.088171, 1.194566, -4.89061], look: [4.06, 0.885, -3.9] },
+        'sauna-u': { eye: [1.336282, 1.628899, 2.139078], look: [5.0675, 0.647, -1.003] },
+      } as const;
+      // Opt-in per-original-target one-link focus. The review candidate itself
+      // must still load its exact verified GLB before the camera may move.
+      const d1fSource156OriginalFocusFromLink = () => {
+        if (!d1fSource156ReviewRequested()) return null;
+        const key = new URLSearchParams(window.location.search).get('focus');
+        return key && Object.prototype.hasOwnProperty.call(d1fSource156CameraPoses, key)
+          ? key : null;
+      };
+      let d1fSource156PreFocusCamera: {fov: number; zoom: number} | null = null;
+
       // Source156 original-node screenshot isolation. A verified GLB is a
       // prerequisite; this bridge is NOT a WebGL pixel PASS or human approval.
       const createD1FSource156OriginalPixelIsolation = (gltf: any) => {
@@ -10108,6 +10139,51 @@ const title = 'Private 3D viewer';
               (canvas as any).d1fSource156RestoreOriginalVisibility = isolation.restore;
               (canvas as any).d1fSource156RefreshOriginalProjection = () =>
                 isolation.projectSourceTargets(THREE, activeCamera, canvas.width, canvas.height);
+              (canvas as any).d1fSource156FocusOriginalTarget = (key: string) => {
+                const pose = d1fSource156CameraPoses[key as keyof typeof d1fSource156CameraPoses];
+                if (!pose || canvas.dataset.modelSource !== 'work-test' ||
+                    canvas.dataset.workTestReviewAutoload !== 'true' ||
+                    canvas.dataset.p137eLoadedCandidateId !== d1fSource156CandidateId ||
+                    canvas.dataset.d1fSource156OriginalAuthenticated !== 'true' ||
+                    canvas.dataset.d1fSource156OriginalSha256 !==
+                      '14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51' ||
+                    canvas.dataset.d1fSource156SceneIndex !== '156' ||
+                    canvas.dataset.d1fSource156PixelIsolationReady !== 'true' ||
+                    canvas.dataset.d1fSource156HumanReview !== 'NOT_RUN' ||
+                    fullModelScene !== d1fSource156Review.gltf.scene)
+                  throw new Error('SOURCE156_CAMERA_NOT_AUTHENTICATED');
+                // Refuse to change the camera while a source object remains
+                // hidden; projection helper checks all 152 original nodes.
+                isolation.projectSourceTargets(THREE, activeCamera, canvas.width, canvas.height);
+                if (d1fSource156PreFocusCamera === null)
+                  d1fSource156PreFocusCamera = { fov: camera.fov, zoom: camera.zoom };
+                deactivateElevationView();
+                clearSelection();
+                activePlanFloor = null;
+                deactivateDCoordinateReview();
+                planControls.enabled = false;
+                isoControls.enabled = false;
+                controls.enableRotate = true;
+                controls.enabled = true;
+                activeCamera = camera;
+                setModelScene(fullModelScene);
+                syncViewState('orbit');
+                camera.up.set(0, 1, 0);
+                camera.fov = 50;
+                camera.zoom = 1;
+                camera.position.set(pose.eye[0], pose.eye[1], pose.eye[2]);
+                controls.target.set(pose.look[0], pose.look[1], pose.look[2]);
+                camera.lookAt(pose.look[0], pose.look[1], pose.look[2]);
+                camera.updateProjectionMatrix();
+                controls.update();
+                canvas.dataset.d1fSource156OriginalCameraKey = key;
+                return {
+                  key, sourceSceneIndex: 156, verticalFovDegrees: 50,
+                  positionYupMeters: [...pose.eye], lookAtYupMeters: [...pose.look],
+                  productionPixelsVerified: false, humanReview: 'NOT_RUN',
+                  current: false, canonical: false, asBuilt: false,
+                };
+              };
               canvas.dataset.d1fSource156OriginalTargetCount = '7';
               canvas.dataset.d1fSource156PixelIsolationReady = 'true';
             } catch (error) {
@@ -12392,8 +12468,26 @@ const title = 'Private 3D viewer';
           : null;
         if (reviewCandidate) {
           const loaded = await loadWorkTestCandidate(reviewCandidate);
-          if (loaded) canvas.dataset.workTestReviewAutoload = 'true';
-          else delete canvas.dataset.workTestReviewAutoload;
+          if (loaded) {
+            canvas.dataset.workTestReviewAutoload = 'true';
+            const originalTargetFocus = d1fSource156OriginalFocusFromLink();
+            if (originalTargetFocus && reviewCandidateId === d1fSource156CandidateId) {
+              try {
+                // This hook checks exact source SHA, scene156, pristine original
+                // actors and one-link autoload. A URL alone never grants access.
+                const selected = (canvas as any).d1fSource156FocusOriginalTarget?.(originalTargetFocus);
+                if (selected?.key !== originalTargetFocus ||
+                    selected?.sourceSceneIndex !== 156 ||
+                    selected?.humanReview !== 'NOT_RUN' ||
+                    selected?.productionPixelsVerified !== false)
+                  throw new Error('SOURCE156_FOCUS_NOT_READY');
+                canvas.dataset.d1fSource156OriginalFocusAutoload = 'true';
+              } catch {
+                delete canvas.dataset.d1fSource156OriginalFocusAutoload;
+                console.warn('SOURCE156_ORIGINAL_FOCUS_NOT_READY');
+              }
+            }
+          } else delete canvas.dataset.workTestReviewAutoload;
         } else {
           delete canvas.dataset.workTestReviewAutoload;
           if (reviewCandidateId) {
