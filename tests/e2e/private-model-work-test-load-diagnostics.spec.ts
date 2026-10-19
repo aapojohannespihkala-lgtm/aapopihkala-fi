@@ -392,3 +392,72 @@ test('SOURCE156 source camera link fires only after exact successful WORK_TEST a
   // Never relabel a camera pose or UI success as a source-object WebGL pixel PASS.
   expect(source).toContain("d1fSource156ProductionPixelsVerified: 'false'");
 });
+
+
+test('D1F seven cutaway scene links are source-bound, exact and fail closed', async () => {
+  const {
+    d1fSource156SevenCutawayCandidateId: id,
+    d1fSource156SevenCutawaySha256: sha,
+    d1fSource156SevenCutawaySceneKeys: keys,
+    getD1FSource156SevenCutawaySceneRequest: resolve,
+  } = await import('../../src/scripts/privateModelWorkTest');
+  expect(id).toBe('d1f-source156-seven-camera-cutaway-20261019');
+  expect(sha).toBe('68318b8d41b7919f0afde842ca9d311d8612e2173ded5374c6cb76f118491782');
+  expect(keys).toEqual({
+    158: 'mirror305', 159: 'wc', 160: 'odensvik', 161: 'bosch',
+    162: 'shower-glass-two-pulls', 163: 'white-shelf', 164: 'sauna-u',
+  });
+  const review = '?review=' + id + '-review';
+  expect(resolve(review)).toEqual({ index: 156, key: null });
+  expect(resolve(review + '&scene=156')).toEqual({ index: 156, key: null });
+  for (const [number, key] of Object.entries(keys)) {
+    expect(resolve(review + '&scene=' + number)).toEqual({ index: Number(number), key });
+  }
+  for (const value of ['157', '165', '999', '0158', '-1', '158junk', '', '158.0']) {
+    expect(() => resolve(review + '&scene=' + value)).toThrow(
+      'D1F_SOURCE156_CUTAWAY_SCENE_NOT_ALLOWLISTED',
+    );
+  }
+  expect(resolve('?scene=158')).toBeNull();
+  expect(resolve('?review=' + id + '-other&scene=158')).toBeNull();
+  expect(resolve('?review=d1f-source156-mirror305-k2-oak-u-two-pulls-20261018-review&scene=158')).toBeNull();
+});
+
+test('seven cutaway scene autoload verifies exact GLB, camera and scene without user or pixel promotion', () => {
+  const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
+  const start = source.indexOf('      const loadD1FSource156SevenCutawayExactReview = async (');
+  const end = source.indexOf('      const loadWorkTestCandidate = async (', start);
+  expect(start).toBeGreaterThan(-1);
+  expect(end).toBeGreaterThan(start);
+  const exact = source.slice(start, end);
+  expect(exact).toContain('getD1FSource156SevenCutawaySceneRequest(window.location.search)');
+  expect(exact).toContain("candidate.id !== id || candidate.path !== expectedPath");
+  expect(exact).toContain("credentials: 'same-origin'");
+  expect(exact).toContain('raw.byteLength !== 9919356');
+  expect(exact).toContain("crypto.subtle.digest('SHA-256', raw)");
+  expect(exact).toContain('sha !== d1fSource156SevenCutawaySha256');
+  expect(exact).toContain('json.scene !== 156');
+  expect(exact).toContain('json.scenes?.length !== 165');
+  expect(exact).toContain('json.cameras?.length !== 7');
+  expect(exact).toContain('d1fSource156SevenCutawaySceneKeys');
+  expect(exact).toContain('target.nodes?.includes(cameraNodeIndex)');
+  expect(exact).toContain('node?.camera !== index - 158');
+  expect(exact).toContain('candidates.length !== 1');
+  expect(exact).toContain("gltf.scene = gltf.scenes[requested.index];");
+
+  const loaded = source.indexOf('          if (d1fSevenCutawayReview) {', end);
+  const model = source.indexOf("          applyLoadedModel(gltf, 'work-test'", end);
+  expect(model).toBeGreaterThan(end);
+  expect(loaded).toBeGreaterThan(model);
+  const setup = source.slice(loaded, loaded + 2900);
+  expect(setup).toContain('sourceCamera.getWorldPosition(worldEye)');
+  expect(setup).toContain('sourceCamera.getWorldQuaternion(worldQuaternion)');
+  expect(setup).toContain('controls.target.copy(worldLook)');
+  expect(setup).toContain("d1fSource156CutawayAuthenticated: 'true'");
+  expect(setup).toContain("d1fSource156CutawayProductionPixelsVerified: 'false'");
+  expect(setup).toContain("d1fSource156CutawayHumanReview: 'NOT_RUN'");
+  expect(setup).toContain("d1fSource156CutawayCanonical: 'false'");
+  const clear = source.indexOf('      const clearD1FSource156Identity = () => {');
+  expect(clear).toBeGreaterThan(-1);
+  expect(source.slice(clear, clear + 230)).toContain("key.startsWith('d1fSource156')");
+});
