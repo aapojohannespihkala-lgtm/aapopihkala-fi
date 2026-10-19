@@ -22,7 +22,11 @@ const colored = (kind, pixels, off) => sourcePixelKind(pixels, off) === kind;
 // A hidden source is visibly gone only when painted RGB changes. Alpha-only
 // differences remain disallowed in the strict restore/off-footprint checks.
 export const sourceVisibleRgbDelta = (before, hidden, off) =>
-  Math.max(...[0, 1, 2].map(k => Math.abs(before[off + k] - hidden[off + k])));
+  Math.max(
+    Math.abs(before[off] - hidden[off]),
+    Math.abs(before[off + 1] - hidden[off + 1]),
+    Math.abs(before[off + 2] - hidden[off + 2]),
+  );
 const frameValid = (pixels, length) =>
   (pixels instanceof Uint8Array || pixels instanceof Uint8ClampedArray) &&
   pixels.length === length;
