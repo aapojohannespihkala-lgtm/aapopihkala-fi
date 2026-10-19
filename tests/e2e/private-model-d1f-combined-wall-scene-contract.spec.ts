@@ -403,6 +403,12 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
       isD1FShowerPhotoReviewRequested: () => false,
       // The production loader also evaluates ODENSVIK before the combined-wall fallback.
       isD1FOdensvikReviewRequested: () => false,
+      // Newer exact-review routes stay inactive in these four legacy
+      // combined-wall VM cases; production predicates remain untouched.
+      isD1FOdensvikWindingReviewRequested: () => false,
+      isM5AR1125NumberedScene64Requested: () => false,
+      isD1FScene150ReviewRequested: () => false,
+      d1fSource156ReviewRequested: () => false,
       window: { location: { search: '?review=' + id + '-review' } },
       isD1FCombinedWallReviewRequested,
       loadD1FServiceModel,

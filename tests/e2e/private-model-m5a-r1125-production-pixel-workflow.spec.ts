@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 
 // This is a workflow-contract regression, NOT authenticated production proof.
@@ -189,7 +190,12 @@ test('R1125 source visibility capability is removed and restored at model change
     process.cwd(), 'src/pages/private-model/index.astro',
   ), 'utf8');
   const beforeCleanup = viewer.indexOf('const applyLoadedModel =');
-  const cleanup = viewer.slice(beforeCleanup, beforeCleanup + 2600);
+  // Scope the assertion to the model-switch cleanup, not a fixed character
+  // window: preceding SOURCE156 safeguards may grow without removing R1125.
+  const cleanupEnd = viewer.indexOf('setM5aSourceContextVisible(false);', beforeCleanup);
+  expect(beforeCleanup).toBeGreaterThan(-1);
+  expect(cleanupEnd).toBeGreaterThan(beforeCleanup);
+  const cleanup = viewer.slice(beforeCleanup, cleanupEnd);
   const restore = cleanup.indexOf('m5aR1125RestoreOriginalSourceVisibility?.()');
   const drop = cleanup.indexOf('delete (canvas as any).m5aR1125SetOriginalSourceVisibility');
   expect(restore).toBeGreaterThan(0);
@@ -294,4 +300,24 @@ test('R1125 production source isolation executes 26 reversible camera-target cap
   blank=false;invalid=true;
   await expect(verify(baseline,view,'unsafe')).rejects.toThrow(/hide contract mismatch/);
   expect(hidden).toBeNull();
+});
+
+// Exercise the actual scene64 source/pixel fail-closed suite inside the
+// PR-selected browser check. This verifies a CI execution gate, not real
+// authenticated production WebGL pixels or HUMAN_REVIEW.
+test('R1125 scene64 Node regression suite executes on the PR checkout', () => {
+  const output = execFileSync(process.execPath, [
+    '--test', '--test-reporter=tap',
+    'tests/test-private-model-m5a-scene64-production-probe.test.mjs',
+  ], {cwd:process.cwd(),encoding:'utf8',timeout:30000,maxBuffer:1024*1024});
+  const totals = output.match(/# tests (\d+)(?:\r?\n|$)/);
+  const passed = output.match(/# pass (\d+)(?:\r?\n|$)/);
+  const failed = output.match(/# fail (\d+)(?:\r?\n|$)/);
+  expect(totals).not.toBeNull();
+  const testCount = Number(totals?.[1]);
+  // Includes the newly merged alpha-only false-positive regression.
+  expect(testCount).toBeGreaterThanOrEqual(10);
+  expect(Number(passed?.[1])).toBe(testCount);
+  expect(Number(failed?.[1])).toBe(0);
+  expect(output).toContain('alpha-only screenshot changes are not visible source-object pixels');
 });

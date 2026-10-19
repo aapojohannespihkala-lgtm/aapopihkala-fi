@@ -29,7 +29,25 @@ test('only exact shower review query activates dedicated source route', () => {
 test('viewer uses source-bound fetch-and-parse, selected scene, and no-current bootstrap', () => {
   const index = readFileSync('src/pages/private-model/index.astro', 'utf8');
   expect(index).toContain('loadD1FShowerPhotoReview({ candidate, search: window.location.search, loader })');
-  expect(index).toContain('serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf');
+  // Check that the actual candidate's fallback chain keeps the source-
+  // authenticated shower loader before generic GLTFLoader. Other separately
+  // authenticated exact reviews may be inserted without breaking this proof.
+  const loadStart = index.indexOf('const loadWorkTestCandidate = async');
+  const loadEnd = index.indexOf("loadFailurePhase = 'review-runtime-failed';", loadStart);
+  expect(loadStart).toBeGreaterThan(0);
+  expect(loadEnd).toBeGreaterThan(loadStart);
+  const prefix = index.slice(loadStart, loadEnd);
+  const gltfChain = prefix.match(/const gltf = ([^]*?);/);
+  expect(gltfChain).not.toBeNull();
+  const chain = gltfChain![1];
+  const serviceAt = chain.indexOf('serviceModel?.gltf');
+  const showerAt = chain.indexOf('showerPhotoReview?.gltf');
+  const odensvikAt = chain.indexOf('odensvikReview?.gltf');
+  const combinedAt = chain.indexOf('combinedWallReview?.gltf');
+  expect(serviceAt).toBeGreaterThanOrEqual(0);
+  expect(showerAt).toBeGreaterThan(serviceAt);
+  expect(odensvikAt).toBeGreaterThan(showerAt);
+  expect(combinedAt).toBeGreaterThan(odensvikAt);
   expect(index).toContain('!isD1FShowerPhotoReviewRequested(window.location.search)');
   expect(index).toContain('d1fShowerPhotoSourceAuthenticated');
   expect(index).toContain("d1fShowerPhotoProductionPixelsVerified: 'false'");

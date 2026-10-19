@@ -565,6 +565,52 @@ test('Widget serves last-known-good payload when a live refresh exceeds its wait
   });
 });
 
+test('Widget caches a late successful refresh after serving last-known-good', async () => {
+  const entries = new Map<string, Response>();
+  const cache = {
+    match: async (request: Request) => entries.get(request.url)?.clone(),
+    put: async (request: Request, response: Response) => {
+      entries.set(request.url, response.clone());
+    },
+  };
+  const request = new Request('https://aapopihkala.fi/api/current/widget-v2?channel=prod');
+  const payload = (generatedAt: string) => ({
+    schemaVersion: 2,
+    generatedAt,
+    sections: [{ id: 'weather', observedAt: generatedAt }],
+  });
+  await serveWidgetWithLastKnownGood(
+    request,
+    async () => Response.json(payload('2026-10-17T01:00:00.000Z')),
+    cache,
+  );
+
+  let resolveLive: (response: Response) => void = () => undefined;
+  const slowLive = new Promise<Response>((resolve) => { resolveLive = resolve; });
+  const background: Promise<void>[] = [];
+  const fallback = await serveWidgetWithLastKnownGood(
+    request,
+    () => slowLive,
+    cache,
+    10,
+    (task) => { background.push(task); },
+  );
+  expect(fallback.headers.get('x-widget-fallback')).toBe('last-known-good');
+  expect(background).toHaveLength(1);
+
+  resolveLive(Response.json(payload('2026-10-17T02:00:00.000Z')));
+  await Promise.all(background);
+  const recovered = await serveWidgetWithLastKnownGood(
+    request,
+    async () => Response.json({ error: 'widget_data_unavailable' }, { status: 503 }),
+    cache,
+  );
+  expect(recovered.headers.get('x-widget-fallback')).toBe('last-known-good');
+  expect(await recovered.json()).toMatchObject({
+    generatedAt: '2026-10-17T02:00:00.000Z',
+  });
+});
+
 test('Widget v2 aliases share one last-known-good payload', async () => {
   const entries = new Map<string, Response>();
   const cache = {
