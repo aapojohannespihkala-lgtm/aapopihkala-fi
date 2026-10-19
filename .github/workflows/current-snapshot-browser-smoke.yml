@@ -87,6 +87,9 @@ jobs:
           }
           NODE
 
+      - name: Verify Snapshot HTTP diagnostics
+        run: node --test .github/scripts/test-snapshot-http-diagnostics.mjs
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
@@ -164,21 +167,30 @@ jobs:
 
           node --input-type=module <<'NODE'
           import { chromium } from '@playwright/test';
+          import { snapshotResponseDiagnostic, snapshotRequestFailureDiagnostic } from './.github/scripts/snapshot-http-diagnostics.mjs';
 
           const url = `https://aapopihkala.fi/current/snapshot/?live_smoke=${process.env.GITHUB_RUN_ID}`;
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
           const failures = [];
+          const httpResponses = [];
 
           page.on('pageerror', (error) => failures.push(`pageerror: ${error.message}`));
+          page.on('response', (response) => {
+            const diagnostic = snapshotResponseDiagnostic(
+              response.url(),
+              response.status(),
+              response.request().method(),
+            );
+            if (diagnostic && httpResponses.length < 50) httpResponses.push(diagnostic);
+          });
           page.on('requestfailed', (request) => {
-            const requestUrl = request.url();
-            if (
-              requestUrl.includes('/api/current/') ||
-              requestUrl.includes('api.open-meteo.com/v1/forecast')
-            ) {
-              failures.push(`requestfailed: ${requestUrl} (${request.failure()?.errorText ?? 'unknown'})`);
-            }
+            const diagnostic = snapshotRequestFailureDiagnostic(
+              request.url(),
+              request.failure()?.errorText,
+              request.method(),
+            );
+            if (diagnostic) failures.push(`requestfailed: ${JSON.stringify(diagnostic)}`);
           });
 
           const text = async (selector) =>
@@ -204,6 +216,7 @@ jobs:
             for (let attempt = 1; attempt <= 6; attempt += 1) {
               console.log(`Snapshot browser attempt ${attempt}/6`);
               failures.length = 0;
+              httpResponses.length = 0;
 
               await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
@@ -218,6 +231,7 @@ jobs:
 
               lastDiagnostics = await snapshotDiagnostics();
               console.log(JSON.stringify(lastDiagnostics, null, 2));
+              console.log(`Snapshot source HTTP statuses: ${JSON.stringify(httpResponses)}`);
 
               if (lastDiagnostics.status === 'LIVE DATA / OK') {
                 console.log('Production Snapshot verified: all 5 sources reached fulfilled state.');
