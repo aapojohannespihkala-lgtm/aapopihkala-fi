@@ -4,6 +4,7 @@ import {
   exactCorrectedWindingReviewUrl,
   countCorrectedWindingObjectPixels,
   requireCorrectedWindingLocalizedPixels,
+  requireCorrectedWindingRestoredPixels,
 } from '../../.github/scripts/private-model-d1f-odensvik-winding-object-pixel-probe.mjs';
 
 const variants=[
@@ -87,4 +88,25 @@ test('alpha-only changes or fewer than 96 RGB pixels do not prove original visib
   }
   expect(()=>requireCorrectedWindingLocalizedPixels(original,tiny))
     .toThrow('no-localized-object-difference');
+});
+
+test('restore must reject a still-hidden 96-pixel original and any residual above eight RGB pixels',()=>{
+  const mk=()=>({width:120,height:120,rgba:new Uint8Array(120*120*4).fill(45)});
+  const baseline=mk();
+  const difference=(count)=>{
+    const frame=mk();
+    for(let n=0;n<count;n++){
+      const x=20+n%12,y=35+Math.floor(n/12),i=4*(y*120+x);
+      frame.rgba[i]=0;frame.rgba[i+1]=0;frame.rgba[i+2]=0;
+    }
+    return frame;
+  };
+  expect(requireCorrectedWindingRestoredPixels(baseline,mk())).toBe(0);
+  expect(requireCorrectedWindingRestoredPixels(baseline,difference(8))).toBe(8);
+  expect(()=>requireCorrectedWindingRestoredPixels(baseline,difference(9)))
+    .toThrow('original-source-object-not-visually-restored');
+  // The old max(96,hidden*0.12) accepted this entire missing object.
+  expect(countCorrectedWindingObjectPixels(baseline,difference(96))).toBe(96);
+  expect(()=>requireCorrectedWindingRestoredPixels(baseline,difference(96)))
+    .toThrow('original-source-object-not-visually-restored');
 });
