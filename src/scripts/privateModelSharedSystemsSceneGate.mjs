@@ -137,3 +137,50 @@ export async function fetchVerifiedSharedSystemsGlb({
     },
   };
 }
+
+
+/**
+ * Opt-in loader adapter for a future trusted, source-bound combined WORK_TEST
+ * candidate.  The viewer should use the resulting gltf only after this resolves;
+ * there is deliberately no fallback to the GLB's original default scene.
+ * No candidate ID, GLB SHA, scene index or physical placement is hard-coded.
+ */
+export async function loadVerifiedSharedSystemsScene({
+  candidate, contract, loader,
+  origin = globalThis.location?.origin,
+  fetchImpl = globalThis.fetch,
+  cryptoSubtle = globalThis.crypto?.subtle,
+}) {
+  if (typeof loader?.parseAsync !== 'function') fail('loader-parse-async-unavailable');
+  const { verifiedBytes, verification } = await fetchVerifiedSharedSystemsGlb({
+    candidate, contract, origin, fetchImpl, cryptoSubtle,
+  });
+  // Fail closed on unverified network dependencies of a cryptographically
+  // verified GLB. Current bundled source298 has one embedded BIN and no images.
+  let source;
+  try {
+    const view = new DataView(verifiedBytes);
+    const size = view.getUint32(12, true);
+    source = JSON.parse(new TextDecoder('utf-8', { fatal: true })
+      .decode(new Uint8Array(verifiedBytes, 20, size)));
+  } catch {
+    fail('glb-json-invalid');
+  }
+  if (!Array.isArray(source?.buffers) || source.buffers.length !== 1 ||
+      source.buffers.some(b => typeof b?.uri === 'string') ||
+      (Array.isArray(source.images) && source.images.some(i => typeof i?.uri === 'string'))) {
+    fail('unverified-external-resource');
+  }
+  const basePath = new URL(candidate.path.replace(/[^/]*$/, ''), origin).href;
+  let gltf;
+  try {
+    gltf = await loader.parseAsync(verifiedBytes, basePath);
+  } catch {
+    fail('verified-glb-parse-failed');
+  }
+  const combinedScene = selectVerifiedSharedSystemsScene({ candidate, verification, contract, gltf });
+  // Mutate only a successfully verified in-memory glTF scene; no source bytes,
+  // registry state, current model, or caller's viewer state is changed here.
+  gltf.scene = combinedScene;
+  return { gltf, verification, combinedScene, combinedSceneIndex: contract.combinedSceneIndex };
+}
