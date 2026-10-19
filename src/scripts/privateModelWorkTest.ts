@@ -269,6 +269,59 @@ export const isWorkTestCandidate = (value: unknown): value is WorkTestCandidate 
  * a new geometry source or permission to claim WebGL/HUMAN_REVIEW approval.
  * The published 165-scene GLB has default scene156 and cameras in 158..164.
  */
+// Optional ORIGINAL-source combined room view; not a physical measurement.
+// The single 175-scene asset contains seven floor v02 target views and
+// three B-face presentation alternatives with an eighth 45-degree camera.
+export const d1fSource156FloorBCandidateId = 'd1f-source156-floor-v02-b-seven-cameras-20261019';
+export const d1fSource156FloorBSha256 = 'a3ab1928ec415678b026513e95e88278b8983ff56b547a071186a63dbf1f6757';
+export const d1fSource156FloorBSceneKeys = {
+  165: 'mirror305',
+  166: 'wc',
+  167: 'odensvik',
+  168: 'bosch',
+  169: 'shower-glass-two-pulls',
+  170: 'white-shelf',
+  171: 'sauna-u',
+  172: 'b-face-A',
+  173: 'b-face-B',
+  174: 'b-face-C',
+} as const;
+export const d1fSource156FloorBSceneNames = {
+  165: 'WORK_TEST_INTEGRATED_FLOOR_V02_7_CAMERAS_01_NOT_ASBUILT',
+  166: 'WORK_TEST_INTEGRATED_FLOOR_V02_7_CAMERAS_02_NOT_ASBUILT',
+  167: 'WORK_TEST_INTEGRATED_FLOOR_V02_7_CAMERAS_03_NOT_ASBUILT',
+  168: 'WORK_TEST_INTEGRATED_FLOOR_V02_7_CAMERAS_04_NOT_ASBUILT',
+  169: 'WORK_TEST_INTEGRATED_FLOOR_V02_7_CAMERAS_05_NOT_ASBUILT',
+  170: 'WORK_TEST_INTEGRATED_FLOOR_V02_7_CAMERAS_06_NOT_ASBUILT',
+  171: 'WORK_TEST_INTEGRATED_FLOOR_V02_7_CAMERAS_07_NOT_ASBUILT',
+  172: 'WORK_TEST_INTEGRATED_FLOOR_V02_B_FACE_A_UNMEASURED_OPTIONAL_ONLY',
+  173: 'WORK_TEST_INTEGRATED_FLOOR_V02_B_FACE_B_UNMEASURED_OPTIONAL_ONLY',
+  174: 'WORK_TEST_INTEGRATED_FLOOR_V02_B_FACE_C_UNMEASURED_OPTIONAL_ONLY',
+} as const;
+
+export const getD1FSource156FloorBSceneRequest = (search: string) => {
+  const params = new URLSearchParams(search);
+  const expectedReview = d1fSource156FloorBCandidateId + '-review';
+  if (params.get('review') !== expectedReview) return null;
+  if (params.getAll('review').length !== 1)
+    throw new Error('D1F_SOURCE156_FLOOR_B_REVIEW_AMBIGUOUS');
+  const raw = params.get('scene');
+  if (raw === null || raw === '156') {
+    if (params.getAll('scene').length > 1)
+      throw new Error('D1F_SOURCE156_FLOOR_B_SCENE_NOT_ALLOWLISTED');
+    return {index: 156, key: null, cameraNodeIndex: null} as const;
+  }
+  if (params.getAll('scene').length !== 1 ||
+      !/^(?:16[5-9]|17[0-4])$/.test(raw))
+    throw new Error('D1F_SOURCE156_FLOOR_B_SCENE_NOT_ALLOWLISTED');
+  const index = Number(raw) as keyof typeof d1fSource156FloorBSceneKeys;
+  return {
+    index,
+    key: d1fSource156FloorBSceneKeys[index],
+    cameraNodeIndex: index <= 171 ? 2994 + index - 165 : 3036,
+  } as const;
+};
+
 export const d1fSource156SevenCutawayCandidateId =
   'd1f-source156-seven-camera-cutaway-20261019';
 export const d1fSource156SevenCutawaySha256 =
