@@ -320,4 +320,5 @@ test('R1125 scene64 Node regression suite executes on the PR checkout', () => {
   expect(Number(passed?.[1])).toBe(testCount);
   expect(Number(failed?.[1])).toBe(0);
   expect(output).toContain('alpha-only screenshot changes are not visible source-object pixels');
+  expect(output).toContain('R1125 thirteen original source pixels require visible RGB, not only alpha');
 });
