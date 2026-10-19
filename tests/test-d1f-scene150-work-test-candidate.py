@@ -61,6 +61,36 @@ class Source156ReplacementTests(unittest.TestCase):
     def test_no_other_worker_candidate_uses_same_id(self):
         self.assertEqual(self.worker.count("id: '" + ID + "'"), 1)
 
+    def test_combined_floor_b_seven_camera_candidate_staged_without_replacing_original(self):
+        candidate_id = "d1f-source156-floor-v02-b-seven-cameras-20261019"
+        drive_id = "1HBBkXjY_PDmFM7BUbmwr-cgTUELy0aaA"
+        size = 10112304
+        sha = "a3ab1928ec415678b026513e95e88278b8983ff56b547a071186a63dbf1f6757"
+        symbol = "D1F_SOURCE156_FLOOR_V02_B_SEVEN_CAMERA_CANDIDATE"
+        self.assertEqual(self.registry["candidates"][candidate_id], {"driveFileId": drive_id})
+        self.assertEqual(sum(x == candidate_id for x in self.registry["candidates"]), 1)
+        self.assertIn("d1f-source156-seven-camera-cutaway-20261019", self.registry["candidates"])
+        self.assertIn(ID, self.registry["candidates"])
+        matches = re.findall(
+            r"const " + symbol + r" = \{(.*?)\} as const satisfies PrivateWorkTestCandidate;",
+            self.worker, flags=re.S,
+        )
+        self.assertEqual(len(matches), 1)
+        definition = matches[0]
+        self.assertIn("id: '" + candidate_id + "'", definition)
+        self.assertIn("objectKey: 'work-test/" + candidate_id + ".glb'", definition)
+        self.assertIn("expectedSize: " + str(size), definition)
+        self.assertIn("expectedSha256: '" + sha + "'", definition)
+        self.assertRegex(sha, r"^[0-9a-f]{64}$")
+        self.assertEqual(self.worker.count("id: '" + candidate_id + "'"), 1)
+        runtime = self.worker.split("const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [", 1)[1]
+        runtime = runtime.split("] as const satisfies readonly PrivateWorkTestCandidate[]", 1)[0]
+        self.assertEqual(runtime.count(symbol), 1)
+        self.assertEqual(runtime.count("D1F_SOURCE156_SEVEN_CAMERA_CUTAWAY_CANDIDATE"), 1)
+        self.assertIn("default source156 intact", self.worker)
+        self.assertIn("unmeasured KPH07 B", self.worker)
+
+
 
 if __name__ == "__main__":
     unittest.main()
