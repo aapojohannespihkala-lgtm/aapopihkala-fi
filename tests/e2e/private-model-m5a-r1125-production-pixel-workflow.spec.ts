@@ -305,7 +305,14 @@ test('R1125 scene64 Node regression suite executes on the PR checkout', () => {
     '--test', '--test-reporter=tap',
     'tests/test-private-model-m5a-scene64-production-probe.test.mjs',
   ], {cwd:process.cwd(),encoding:'utf8',timeout:30000,maxBuffer:1024*1024});
-  expect(output).toMatch(/# tests 9(?:\r?\n|$)/);
-  expect(output).toMatch(/# pass 9(?:\r?\n|$)/);
-  expect(output).toMatch(/# fail 0(?:\r?\n|$)/);
+  const totals = output.match(/# tests (\d+)(?:\r?\n|$)/);
+  const passed = output.match(/# pass (\d+)(?:\r?\n|$)/);
+  const failed = output.match(/# fail (\d+)(?:\r?\n|$)/);
+  expect(totals).not.toBeNull();
+  const testCount = Number(totals?.[1]);
+  // Includes the newly merged alpha-only false-positive regression.
+  expect(testCount).toBeGreaterThanOrEqual(10);
+  expect(Number(passed?.[1])).toBe(testCount);
+  expect(Number(failed?.[1])).toBe(0);
+  expect(output).toContain('alpha-only screenshot changes are not visible source-object pixels');
 });
