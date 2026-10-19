@@ -768,6 +768,20 @@ const D1F_SOURCE156_FLOOR_V02_B_SEVEN_CAMERA_CANDIDATE = {
   expectedSha256: 'a3ab1928ec415678b026513e95e88278b8983ff56b547a071186a63dbf1f6757',
 } as const satisfies PrivateWorkTestCandidate;
 
+// PoC 19.10.2026: SHARED300 scene299 (sauna U + PC90, two sauna windows, 2 IV,
+// 2 drains, M5A/M5B) extracted verbatim as the GLB's ONLY/default scene, so the
+// generic viewer path (gltf.scene) shows it with no scene selector. Geometry
+// bytes identical to source scene299 (737 primitives, verified digest).
+// Source: Drive 1M7UGzi5hE1Ng5RZRMftXUdmcmsgr-AvK. WORK_TEST, never as-built.
+const SHARED300_SCENE299_DEFAULT_CANDIDATE = {
+  id: 'shared300-sauna-windows-scene299-default-20261019',
+  label: 'Yhteismalli 300 - sauna, 2 ikkunaa, IV, kaivot (scene299 oletuksena) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/shared300-sauna-windows-scene299-default-20261019.glb`,
+  objectKey: 'work-test/shared300-sauna-windows-scene299-default-20261019.glb',
+  expectedSize: 1754716,
+  expectedSha256: '276801b47267898ff9e7507ace7a2790d84288dce8dc4e018a19bd52efc16712',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -794,6 +808,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE,
   D1F_SOURCE156_SEVEN_CAMERA_CUTAWAY_CANDIDATE,
   D1F_SOURCE156_FLOOR_V02_B_SEVEN_CAMERA_CANDIDATE,
+  SHARED300_SCENE299_DEFAULT_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
