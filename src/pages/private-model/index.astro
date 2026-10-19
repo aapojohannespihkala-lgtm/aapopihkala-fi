@@ -6192,6 +6192,8 @@ const title = 'Private 3D viewer';
         dInteriorOverride: THREE.Object3D | null = null,
       ) => {
         clearD1FSource156Identity();
+        // A successful initial one-link autoload is not evidence for a later model.
+        delete canvas.dataset.workTestReviewAutoload;
         d1fService?.dispose();
         d1fService = null;
         p186ePixelRuntime?.dispose();
