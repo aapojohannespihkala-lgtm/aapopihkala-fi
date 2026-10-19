@@ -72,7 +72,7 @@ class Source156ReplacementTests(unittest.TestCase):
         self.assertIn("d1f-source156-seven-camera-cutaway-20261019", self.registry["candidates"])
         self.assertIn(ID, self.registry["candidates"])
         matches = re.findall(
-            r"const " + symbol + r" = \\{(.*?)\\} as const satisfies PrivateWorkTestCandidate;",
+            r"const " + symbol + r" = \{(.*?)\} as const satisfies PrivateWorkTestCandidate;",
             self.worker, flags=re.S,
         )
         self.assertEqual(len(matches), 1)
