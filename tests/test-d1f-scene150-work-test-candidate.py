@@ -103,7 +103,7 @@ class Source156ReplacementTests(unittest.TestCase):
         self.assertEqual(sum(x == candidate_id for x in self.registry["candidates"]), 1)
         self.assertIn("d1f-source156-floor-v02-b-seven-cameras-20261019", self.registry["candidates"])
         matches = re.findall(
-            r"const " + symbol + r" = \\{(.*?)\\} as const satisfies PrivateWorkTestCandidate;",
+            r"const " + symbol + r" = \{(.*?)\} as const satisfies PrivateWorkTestCandidate;",
             self.worker, flags=re.S,
         )
         self.assertEqual(len(matches), 1)
