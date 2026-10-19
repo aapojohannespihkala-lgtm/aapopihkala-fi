@@ -80,8 +80,10 @@ test('source156 exact identity is cleared on model switch without altering unrel
   expect(autoloadClearAt).toBeGreaterThan(resetAt);
   expect(replaceAt).toBeGreaterThan(autoloadClearAt);
   // Only the initial successful one-link loader may set this evidence again.
-  const autoloadSetAt = source.indexOf("if (loaded) canvas.dataset.workTestReviewAutoload = 'true';", replaceAt);
-  expect(autoloadSetAt).toBeGreaterThan(replaceAt);
+  const successfulLoad = source.indexOf('          if (loaded) {', replaceAt);
+  const autoloadSetAt = source.indexOf("canvas.dataset.workTestReviewAutoload = 'true';", successfulLoad);
+  expect(successfulLoad).toBeGreaterThan(replaceAt);
+  expect(autoloadSetAt).toBeGreaterThan(successfulLoad);
   // Correct source156 flags are subsequently set only after its authenticated load.
   const authSetterAt = source.indexOf('d1fSource156OriginalAuthenticated: \'true\'', replaceAt);
   expect(authSetterAt).toBeGreaterThan(replaceAt);
