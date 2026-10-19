@@ -2104,6 +2104,10 @@ const title = 'Private 3D viewer';
       } from '../../scripts/privateModelSceneSemantics';
       import {
         getRequestedReviewCandidateId as getRequestedReviewCandidateIdFromSearch,
+        d1fSource156SevenCutawayCandidateId,
+        d1fSource156SevenCutawaySha256,
+        d1fSource156SevenCutawaySceneKeys,
+        getD1FSource156SevenCutawaySceneRequest,
         isPrivateModelReviewRequested,
         isWorkTestCandidate,
         p139nCandidateId,
@@ -9828,6 +9832,87 @@ const title = 'Private 3D viewer';
         return {gltf, sha};
       };
 
+
+      // The existing single-source 165-scene seven-camera WORK_TEST carrier
+      // is immutable. Only an exact authenticated same-origin GLB and
+      // explicit allowlisted scene query can activate an optional scene.
+      // A valid camera is presentation-only, never WebGL pixel/HUMAN_REVIEW PASS.
+      const loadD1FSource156SevenCutawayExactReview = async (
+        candidate: WorkTestCandidate, loader: GLTFLoader,
+      ) => {
+        const requested = getD1FSource156SevenCutawaySceneRequest(window.location.search);
+        if (!requested) return null;
+        const id = d1fSource156SevenCutawayCandidateId;
+        const expectedPath = '/private-model/work-test/' + id + '.glb';
+        if (candidate.id !== id || candidate.path !== expectedPath)
+          throw new Error('D1F_SOURCE156_CUTAWAY_CANDIDATE_MISMATCH');
+        const response = await fetch(expectedPath, {
+          credentials: 'same-origin', mode: 'same-origin', redirect: 'error',
+          cache: 'no-store', headers: { Accept: 'model/gltf-binary' },
+        });
+        if (response.status !== 200 || response.redirected ||
+            response.url !== new URL(expectedPath, window.location.origin).href)
+          throw new Error('D1F_SOURCE156_CUTAWAY_UNTRUSTED_RESPONSE');
+        const raw = await response.arrayBuffer();
+        if (!crypto.subtle || raw.byteLength !== 9919356)
+          throw new Error('D1F_SOURCE156_CUTAWAY_SIZE_OR_CRYPTO');
+        const sha = Array.from(new Uint8Array(
+          await crypto.subtle.digest('SHA-256', raw)),
+          b => b.toString(16).padStart(2, '0')).join('');
+        if (sha !== d1fSource156SevenCutawaySha256)
+          throw new Error('D1F_SOURCE156_CUTAWAY_SHA_MISMATCH');
+        const view = new DataView(raw);
+        if (view.getUint32(0, true) !== 0x46546c67 ||
+            view.getUint32(4, true) !== 2 ||
+            view.getUint32(8, true) !== raw.byteLength ||
+            view.getUint32(16, true) !== 0x4e4f534a)
+          throw new Error('D1F_SOURCE156_CUTAWAY_INVALID_GLB');
+        const jsonLength = view.getUint32(12, true);
+        if (jsonLength < 100 || jsonLength % 4 !== 0 ||
+            jsonLength + 20 > raw.byteLength)
+          throw new Error('D1F_SOURCE156_CUTAWAY_JSON_BOUNDS');
+        const json = JSON.parse(new TextDecoder().decode(
+          new Uint8Array(raw, 20, jsonLength)));
+        if (json.asset?.version !== '2.0' || json.scene !== 156 ||
+            json.scenes?.length !== 165 || json.cameras?.length !== 7 ||
+            !Array.isArray(json.scenes?.[156]?.nodes))
+          throw new Error('D1F_SOURCE156_CUTAWAY_SOURCE_IDENTITY');
+        // Validate all seven target/scene/camera bindings, not just the chosen
+        // view, so a wrong source can't silently return a plausible room.
+        for (const [indexText, key] of Object.entries(d1fSource156SevenCutawaySceneKeys)) {
+          const index = Number(indexText);
+          const cameraNodeIndex = 2994 + index - 158;
+          const target = json.scenes?.[index];
+          const node = json.nodes?.[cameraNodeIndex];
+          const gltfCamera = json.cameras?.[index - 158];
+          if (target?.name !== 'PRESENTATION_7_SOURCE_TARGET_' + key + '_CUTAWAY_ONLY' ||
+              !target.nodes?.includes(cameraNodeIndex) ||
+              node?.name !== 'PRESENTATION_CAMERA_' + key ||
+              node?.camera !== index - 158 ||
+              gltfCamera?.type !== 'perspective' ||
+              Math.abs(gltfCamera.perspective?.yfov - 50 * Math.PI / 180) > 1e-8)
+            throw new Error('D1F_SOURCE156_CUTAWAY_CAMERA_SOURCE_MISMATCH');
+        }
+        const gltf = await loader.parseAsync(raw, expectedPath.replace(/[^/]+$/, ''));
+        if (gltf.scenes?.length !== 165 || !gltf.scenes[requested.index] ||
+            gltf.scenes[requested.index].children.length === 0)
+          throw new Error('D1F_SOURCE156_CUTAWAY_SCENE_NOT_RENDERABLE');
+        gltf.scene = gltf.scenes[requested.index];
+        let sourceCamera: THREE.PerspectiveCamera | null = null;
+        if (requested.key) {
+          const candidates: THREE.PerspectiveCamera[] = [];
+          gltf.scene.traverse((obj: THREE.Object3D) => {
+            if (obj instanceof THREE.PerspectiveCamera) candidates.push(obj);
+          });
+          if (candidates.length !== 1 ||
+              candidates[0].name !== 'PRESENTATION_CAMERA_' + requested.key ||
+              Math.abs(candidates[0].fov - 50) > 0.001)
+            throw new Error('D1F_SOURCE156_CUTAWAY_PARSED_CAMERA_MISMATCH');
+          sourceCamera = candidates[0];
+        }
+        return { gltf, sha, requested, sourceCamera };
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         delete canvas.dataset.p137eLoadedCandidateId;
         p137ePlaceToolButton.disabled = true;
@@ -9888,7 +9973,9 @@ const title = 'Private 3D viewer';
           const d1fSource156Review = d1fSource156ReviewRequested()
             ? await loadD1FSource156ExactReview(candidate, loader)
             : null;
-          const gltf = d1fSource156Review?.gltf ?? d1fScene150Review?.gltf ?? r1125NumberedReview?.gltf ?? serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikWindingReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
+          const d1fSevenCutawayReview =
+            await loadD1FSource156SevenCutawayExactReview(candidate, loader);
+          const gltf = d1fSevenCutawayReview?.gltf ?? d1fSource156Review?.gltf ?? d1fScene150Review?.gltf ?? r1125NumberedReview?.gltf ?? serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikWindingReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
             ? await loader.parseAsync(
                 isP137EThreeCornerMeasuredReviewRequested()
                   ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
@@ -10132,6 +10219,51 @@ const title = 'Private 3D viewer';
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`,
             serviceModel?.scene ?? combinedWallReview?.selected.scene ?? null);
+          if (d1fSevenCutawayReview) {
+            const selected = d1fSevenCutawayReview;
+            // Never mark WebGL or user acceptance from loader/scene metadata.
+            if (selected.sourceCamera) {
+              selected.gltf.scene.updateWorldMatrix(true, true);
+              const worldEye = new THREE.Vector3();
+              const worldQuaternion = new THREE.Quaternion();
+              selected.sourceCamera.getWorldPosition(worldEye);
+              selected.sourceCamera.getWorldQuaternion(worldQuaternion);
+              const worldLook = new THREE.Vector3(0, 0, -1)
+                .applyQuaternion(worldQuaternion).add(worldEye);
+              if (d1fSource156PreFocusCamera === null)
+                d1fSource156PreFocusCamera = { fov: camera.fov, zoom: camera.zoom };
+              deactivateElevationView();
+              clearSelection();
+              activePlanFloor = null;
+              deactivateDCoordinateReview();
+              planControls.enabled = false;
+              isoControls.enabled = false;
+              controls.enableRotate = true;
+              controls.enabled = true;
+              activeCamera = camera;
+              setModelScene(fullModelScene);
+              syncViewState('orbit');
+              camera.up.set(0, 1, 0);
+              camera.fov = selected.sourceCamera.fov;
+              camera.zoom = 1;
+              camera.position.copy(worldEye);
+              controls.target.copy(worldLook);
+              camera.lookAt(worldLook);
+              camera.updateProjectionMatrix();
+              controls.update();
+            }
+            Object.assign(canvas.dataset, {
+              d1fSource156CutawaySha256: selected.sha,
+              d1fSource156CutawaySceneIndex: String(selected.requested.index),
+              d1fSource156CutawayTargetKey: selected.requested.key ?? 'default',
+              d1fSource156CutawayAuthenticated: 'true',
+              d1fSource156CutawayProductionPixelsVerified: 'false',
+              d1fSource156CutawayHumanReview: 'NOT_RUN',
+              d1fSource156CutawayCurrent: 'false',
+              d1fSource156CutawayCanonical: 'false',
+              d1fSource156CutawayAsBuilt: 'false',
+            });
+          }
           if (d1fSource156Review) {
             try {
               const isolation = createD1FSource156OriginalPixelIsolation(d1fSource156Review.gltf);
