@@ -64,11 +64,11 @@ test('full-frame or scattered camera drift cannot impersonate one ODENSVIK sourc
     .toThrow('global-or-scattered-frame-drift');
 
   const scattered=mk();
-  for(let n=0;n<128;n++){
+  for(let n=0;n<118;n++){
     const x=(n*17)%118,y=(n*41)%118,i=4*(y*120+x);
     scattered.rgba[i]=0;scattered.rgba[i+1]=0;scattered.rgba[i+2]=0;
   }
-  expect(countCorrectedWindingObjectPixels(original,scattered)).toBe(128);
+  expect(countCorrectedWindingObjectPixels(original,scattered)).toBe(118);
   expect(()=>requireCorrectedWindingLocalizedPixels(original,scattered))
     .toThrow('global-or-scattered-frame-drift');
 });
@@ -81,7 +81,10 @@ test('alpha-only changes or fewer than 96 RGB pixels do not prove original visib
     .toThrow('no-localized-object-difference');
 
   const tiny=mk();
-  for(let n=0;n<95;n++)tiny.rgba[4*(40*120+20+n)]=0;
+  for(let n=0;n<95;n++){
+    const i=4*(40*120+20+n);
+    tiny.rgba[i]=0;tiny.rgba[i+1]=0;tiny.rgba[i+2]=0;
+  }
   expect(()=>requireCorrectedWindingLocalizedPixels(original,tiny))
     .toThrow('no-localized-object-difference');
 });
