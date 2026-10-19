@@ -80,8 +80,10 @@ test('source156 exact identity is cleared on model switch without altering unrel
   expect(autoloadClearAt).toBeGreaterThan(resetAt);
   expect(replaceAt).toBeGreaterThan(autoloadClearAt);
   // Only the initial successful one-link loader may set this evidence again.
-  const autoloadSetAt = source.indexOf("if (loaded) canvas.dataset.workTestReviewAutoload = 'true';", replaceAt);
-  expect(autoloadSetAt).toBeGreaterThan(replaceAt);
+  const successfulLoad = source.indexOf('          if (loaded) {', replaceAt);
+  const autoloadSetAt = source.indexOf("canvas.dataset.workTestReviewAutoload = 'true';", successfulLoad);
+  expect(successfulLoad).toBeGreaterThan(replaceAt);
+  expect(autoloadSetAt).toBeGreaterThan(successfulLoad);
   // Correct source156 flags are subsequently set only after its authenticated load.
   const authSetterAt = source.indexOf('d1fSource156OriginalAuthenticated: \'true\'', replaceAt);
   expect(authSetterAt).toBeGreaterThan(replaceAt);
@@ -325,4 +327,68 @@ test('SOURCE156 perspective focus rejects unauthenticated or hidden source befor
   expect(revoke).toBeGreaterThan(reset);
   expect(resetFov).toBeGreaterThan(revoke);
   expect(clearIdentity).toBeGreaterThan(resetFov);
+});
+
+
+test('SOURCE156 one-link target focus accepts exactly seven source keys for exact review', () => {
+  const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
+  const begin = source.indexOf('      const d1fSource156OriginalFocusFromLink = () => {');
+  const end = source.indexOf('      let d1fSource156PreFocusCamera:', begin);
+  expect(begin).toBeGreaterThan(-1);
+  expect(end).toBeGreaterThan(begin);
+  const focusHelper = ts.transpileModule(source.slice(begin, end), {
+    compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None},
+  }).outputText;
+  const keys = [
+    'mirror305','wc','odensvik','bosch',
+    'shower-glass-two-pulls','white-shelf','sauna-u',
+  ];
+  const review = 'd1f-source156-mirror305-k2-oak-u-two-pulls-20261018-review';
+  const invoke = (query: string) => runInNewContext(
+    focusHelper + '\nd1fSource156OriginalFocusFromLink();', {
+      URLSearchParams,
+      window: {location: {search: query}},
+      d1fSource156ReviewRequested: () =>
+        new URLSearchParams(query).get('review') === review,
+      d1fSource156CameraPoses: Object.fromEntries(keys.map(key => [key, {}])),
+    },
+  );
+  for (const key of keys)
+    expect(invoke('?review=' + review + '&focus=' + encodeURIComponent(key))).toBe(key);
+  expect(invoke('?review=' + review)).toBeNull();
+  expect(invoke('?review=' + review + '&focus=wrong')).toBeNull();
+  expect(invoke('?review=' + review + '&focus=__proto__')).toBeNull();
+  expect(invoke('?review=other-candidate-review&focus=wc')).toBeNull();
+  expect(invoke('?focus=wc')).toBeNull();
+});
+
+test('SOURCE156 source camera link fires only after exact successful WORK_TEST autoload', () => {
+  const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
+  const loader = source.lastIndexOf('        const reviewCandidate = reviewCandidateId');
+  const loadStart = source.indexOf('          const loaded = await loadWorkTestCandidate(reviewCandidate);', loader);
+  const success = source.indexOf('          if (loaded) {', loadStart);
+  const authorized = source.indexOf("canvas.dataset.workTestReviewAutoload = 'true';", success);
+  const focus = source.indexOf('const originalTargetFocus = d1fSource156OriginalFocusFromLink();', authorized);
+  const candidateGuard = source.indexOf(
+    'reviewCandidateId === d1fSource156CandidateId', focus,
+  );
+  const invoke = source.indexOf('d1fSource156FocusOriginalTarget?.(originalTargetFocus)', candidateGuard);
+  const evidence = source.indexOf("canvas.dataset.d1fSource156OriginalFocusAutoload = 'true';", invoke);
+  const failure = source.indexOf('delete canvas.dataset.d1fSource156OriginalFocusAutoload;', evidence);
+  const cleanup = source.indexOf('clearD1FSource156Identity();');
+  expect(loader).toBeGreaterThan(-1);
+  expect(loadStart).toBeGreaterThan(loader);
+  expect(success).toBeGreaterThan(loadStart);
+  expect(authorized).toBeGreaterThan(success);
+  expect(focus).toBeGreaterThan(authorized);
+  expect(candidateGuard).toBeGreaterThan(focus);
+  expect(invoke).toBeGreaterThan(candidateGuard);
+  expect(evidence).toBeGreaterThan(invoke);
+  expect(failure).toBeGreaterThan(evidence);
+  expect(cleanup).toBeGreaterThan(-1);
+  expect(source).toContain("selected?.productionPixelsVerified !== false");
+  expect(source).toContain("selected?.humanReview !== 'NOT_RUN'");
+  expect(source).toContain('SOURCE156_ORIGINAL_FOCUS_NOT_READY');
+  // Never relabel a camera pose or UI success as a source-object WebGL pixel PASS.
+  expect(source).toContain("d1fSource156ProductionPixelsVerified: 'false'");
 });

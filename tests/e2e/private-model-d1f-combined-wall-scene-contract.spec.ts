@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import ts from 'typescript';
 // @ts-ignore - pure ESM contract for source-derived, unapproved WORK_TEST scenes.
 import {
   D1F_COMBINED_WALL_VARIANTS,
@@ -436,10 +437,15 @@ test('actual startup marks autoload only after a successful loader return', asyn
   const end = source.indexOf(last, start);
   expect(start).toBeGreaterThan(0); expect(end).toBeGreaterThan(start);
   const actual = source.slice(start, end + last.length);
+  // Execute the real Astro TypeScript body after compiler-only syntax erasure.
+  const actualJs = ts.transpileModule('(async () => {' + actual + '})()', {
+    compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None},
+  }).outputText;
   for (const result of [true, false]) {
     const canvas: any = { dataset: { workTestReviewAutoload: 'true' } };
-    await vm.runInNewContext('(async () => {' + actual + '})()', {
+    await vm.runInNewContext(actualJs, {
       canvas, reviewCandidate: {}, loadWorkTestCandidate: async () => result,
+      d1fSource156OriginalFocusFromLink: () => null,
     });
     expect(canvas.dataset.workTestReviewAutoload).toBe(result ? 'true' : undefined);
   }

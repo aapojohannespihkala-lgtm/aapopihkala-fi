@@ -13,6 +13,7 @@ on:
           - shower-autoload
           - odensvik-autoload
           - source156-autoload
+          - source156-pixels
 
 permissions:
   contents: read
@@ -74,6 +75,19 @@ jobs:
           CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
         run: node .github/scripts/private-model-d1f-service-probe.mjs
+      - name: Verify SOURCE156 seven original object WebGL RGB pixels in distinct cameras
+        if: inputs.review_mode == 'source156-pixels' && matrix.variant == 'WEST_ANCHOR_725_895_740'
+        env:
+          PROBE_MODE: d1f-source156-original7-pixels
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+        run: node .github/scripts/private-model-d1f-source156-seven-production-probe.mjs
+      - uses: actions/upload-artifact@v4
+        if: always() && inputs.review_mode == 'source156-pixels' && matrix.variant == 'WEST_ANCHOR_725_895_740'
+        with:
+          name: d1f-source156-seven-original-webgl-pixels
+          path: test-results/d1f-source156-seven-original-production/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always() && inputs.review_mode == 'source156-autoload' && matrix.variant == 'WEST_ANCHOR_725_895_740'
         with:
