@@ -410,6 +410,9 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
       isM5AR1125NumberedScene64Requested: () => false,
       isD1FScene150ReviewRequested: () => false,
       d1fSource156ReviewRequested: () => false,
+      // These four legacy combined-wall calls are not seven-cutaway reviews.
+      // Test the unchanged real loader; only this inactive route returns null.
+      loadD1FSource156SevenCutawayExactReview: async () => null,
       window: { location: { search: '?review=' + id + '-review' } },
       isD1FCombinedWallReviewRequested,
       loadD1FServiceModel,

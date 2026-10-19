@@ -8,6 +8,21 @@ import {
 import {M5A_R1125_NUMBERED_SOURCE_IDS as ids} from
   '../src/scripts/privateModelM5AR1125NumberedScene64Review.mjs';
 
+import {sourceVisibleRgbDelta} from
+  '../src/scripts/privateModelM5AR1125PerSourceRenderDelta.mjs';
+
+test('R1125 thirteen original source pixels require visible RGB, not only alpha',()=>{
+  const baseline=Uint8Array.from([160,180,195,255, 130,150,175,255]);
+  const alphaOnly=Uint8Array.from([160,180,195,0, 130,150,175,1]);
+  const hiddenRgb=Uint8Array.from([20,180,195,255, 130,20,175,255]);
+  assert.equal(sourceVisibleRgbDelta(baseline,alphaOnly,0),0);
+  assert.equal(sourceVisibleRgbDelta(baseline,alphaOnly,4),0);
+  assert.equal(sourceVisibleRgbDelta(baseline,hiddenRgb,0),140);
+  assert.equal(sourceVisibleRgbDelta(baseline,hiddenRgb,4),130);
+  assert.equal(sourceVisibleRgbDelta(baseline,hiddenRgb,0)>36,true);
+  assert.equal(sourceVisibleRgbDelta(baseline,alphaOnly,0)>36,false);
+});
+
 const sourceKeys=Array.from({length:13},(_,i)=>'original:SOURCE_'+i);
 const originalFixture=()=>{
   const nodes=Array.from({length:1222},()=>({}));
