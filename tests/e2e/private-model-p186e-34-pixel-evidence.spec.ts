@@ -190,6 +190,29 @@ test('outside-ROI pixel alterations are rejected even if target is isolated', ()
 });
 
 
+test('alpha-only fade below amber threshold cannot spoof visible source-label loss', () => {
+  const input = fixture();
+  const floor = input.floors[0];
+  const target = floor.targets[0];
+  const hidden = floor.hiddenFrames[target.sourceKey];
+  for (let y = target.roi.y; y < target.roi.y + target.roi.height; y++)
+    for (let x = target.roi.x; x < target.roi.x + target.roi.width; x++)
+      paint(hidden.pixels, x, y, [255, 190, 20, 199]);
+  // All 100 source pixels retain identical visible RGB. The 255->199
+  // alpha change makes amber() false but must never prove a visual hide.
+  expect(() => check(input)).toThrow('not individually visible');
+});
+
+test('outside-ROI alpha-only changes remain forbidden with RGB-only target proof', () => {
+  const input = fixture();
+  const floor = input.floors[1];
+  const hidden = floor.hiddenFrames[floor.targets[0].sourceKey];
+  const i = ((H - 1) * W + (W - 1)) * 4;
+  hidden.pixels[i + 3] = 199;
+  // The restore/background invariant remains strict RGBA outside the target.
+  expect(() => check(input)).toThrow('outside-ROI');
+});
+
 test('rejects a forged or historically aliased WORK_TEST candidate even with 34 valid RGBA deltas', () => {
   const forged = fixture();
   forged.sourceCandidateId = 'p186e-x1-historical-source-work-test';
