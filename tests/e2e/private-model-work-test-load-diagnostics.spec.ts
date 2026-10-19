@@ -72,10 +72,15 @@ test('source156 exact identity is cleared on model switch without altering unrel
 
   const loadStart = source.indexOf('      const applyLoadedModel = (');
   const resetAt = source.indexOf('        clearD1FSource156Identity();', loadStart);
+  const autoloadClearAt = source.indexOf('        delete canvas.dataset.workTestReviewAutoload;', loadStart);
   const replaceAt = source.indexOf('        fullModelScene = gltf.scene;', loadStart);
   expect(loadStart).toBeGreaterThan(-1);
   expect(resetAt).toBeGreaterThan(loadStart);
-  expect(replaceAt).toBeGreaterThan(resetAt);
+  expect(autoloadClearAt).toBeGreaterThan(resetAt);
+  expect(replaceAt).toBeGreaterThan(autoloadClearAt);
+  // Only the initial successful one-link loader may set this evidence again.
+  const autoloadSetAt = source.indexOf("if (loaded) canvas.dataset.workTestReviewAutoload = 'true';", replaceAt);
+  expect(autoloadSetAt).toBeGreaterThan(replaceAt);
   // Correct source156 flags are subsequently set only after its authenticated load.
   const authSetterAt = source.indexOf('d1fSource156OriginalAuthenticated: \'true\'', replaceAt);
   expect(authSetterAt).toBeGreaterThan(replaceAt);
