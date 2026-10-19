@@ -89,6 +89,20 @@ jobs:
       - name: Verify CURRENT publisher contract
         run: python3 .github/scripts/test-publish-current-model-workflow.py
 
+      - name: Verify source156 WORK_TEST staging bindings
+        if: steps.changes.outputs.docs_only != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -Fq '"d1f-source156-mirror305-k2-oak-u-two-pulls-20261018"' .github/work-test-candidates.json; then
+            test -f tests/test-d1f-scene143-work-test-candidate.py
+            test -f tests/test-d1f-scene150-work-test-candidate.py
+            python3 tests/test-d1f-scene143-work-test-candidate.py -v
+            python3 tests/test-d1f-scene150-work-test-candidate.py -v
+          else
+            echo 'source156 candidate not staged; no source156 tests required'
+          fi
+
       - name: Documentation-only fast path
         if: steps.changes.outputs.docs_only == 'true'
         run: echo "Documentation-only change; executable project validation skipped."

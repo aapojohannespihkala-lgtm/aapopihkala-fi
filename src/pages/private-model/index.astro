@@ -9599,6 +9599,55 @@ const title = 'Private 3D viewer';
         for (const key of m5bReviewDatasetKeys) delete canvas.dataset[key];
       };
 
+      // SOURCE156 is immutable noncanonical WORK_TEST. A review link must
+      // authenticate the published ORIGINAL GLB before GLTFLoader parses it.
+      const d1fSource156CandidateId = 'd1f-source156-mirror305-k2-oak-u-two-pulls-20261018';
+      const d1fSource156ReviewRequested = () =>
+        new URLSearchParams(window.location.search).get('review') ===
+          d1fSource156CandidateId + '-review';
+      const loadD1FSource156ExactReview = async (candidate: WorkTestCandidate, loader: GLTFLoader) => {
+        const expectedPath = '/private-model/work-test/' + d1fSource156CandidateId + '.glb';
+        if (candidate.id !== d1fSource156CandidateId ||
+            candidate.path !== expectedPath || !d1fSource156ReviewRequested())
+          throw new Error('D1F_SOURCE156_REVIEW_ID_MISMATCH');
+        const response = await fetch(expectedPath, {
+          credentials: 'same-origin', mode: 'same-origin', redirect: 'error',
+          cache: 'no-store', headers: {Accept: 'model/gltf-binary'},
+        });
+        if (response.status !== 200 || response.redirected ||
+            response.url !== new URL(expectedPath, window.location.origin).href)
+          throw new Error('D1F_SOURCE156_UNTRUSTED_RESPONSE');
+        const raw = await response.arrayBuffer();
+        if (raw.byteLength !== 9792656 || !crypto.subtle)
+          throw new Error('D1F_SOURCE156_SIZE_OR_CRYPTO');
+        const sha = Array.from(new Uint8Array(
+          await crypto.subtle.digest('SHA-256', raw)), b => b.toString(16).padStart(2, '0')).join('');
+        if (sha !== '14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51')
+          throw new Error('D1F_SOURCE156_ORIGINAL_SHA_MISMATCH');
+        const view = new DataView(raw);
+        if (view.getUint32(0, true) !== 0x46546c67 ||
+            view.getUint32(4, true) !== 2 ||
+            view.getUint32(8, true) !== raw.byteLength ||
+            view.getUint32(16, true) !== 0x4e4f534a)
+          throw new Error('D1F_SOURCE156_INVALID_GLB');
+        const jsonLength = view.getUint32(12, true);
+        if (jsonLength < 100 || jsonLength % 4 !== 0 ||
+            jsonLength + 20 > raw.byteLength)
+          throw new Error('D1F_SOURCE156_JSON_BOUNDS');
+        const gltfJson = JSON.parse(new TextDecoder().decode(
+          new Uint8Array(raw, 20, jsonLength)));
+        if (gltfJson.asset?.version !== '2.0' || gltfJson.scene !== 156 ||
+            gltfJson.scenes?.length !== 158 ||
+            !Array.isArray(gltfJson.scenes?.[156]?.nodes))
+          throw new Error('D1F_SOURCE156_SCENE_IDENTITY');
+        const gltf = await loader.parseAsync(raw, expectedPath.replace(/[^/]+$/, ''));
+        if (gltf.scenes?.length !== 158 || !gltf.scenes[156] ||
+            gltf.scenes[156].children.length === 0)
+          throw new Error('D1F_SOURCE156_NOT_RENDERABLE');
+        gltf.scene = gltf.scenes[156];
+        return {gltf, sha};
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         delete canvas.dataset.p137eLoadedCandidateId;
         p137ePlaceToolButton.disabled = true;
@@ -9656,7 +9705,10 @@ const title = 'Private 3D viewer';
                 candidate, search: window.location.search, loader,
               })
             : null;
-          const gltf = d1fScene150Review?.gltf ?? r1125NumberedReview?.gltf ?? serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikWindingReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
+          const d1fSource156Review = d1fSource156ReviewRequested()
+            ? await loadD1FSource156ExactReview(candidate, loader)
+            : null;
+          const gltf = d1fSource156Review?.gltf ?? d1fScene150Review?.gltf ?? r1125NumberedReview?.gltf ?? serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikWindingReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
             ? await loader.parseAsync(
                 isP137EThreeCornerMeasuredReviewRequested()
                   ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
@@ -9900,6 +9952,19 @@ const title = 'Private 3D viewer';
 
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`,
             serviceModel?.scene ?? combinedWallReview?.selected.scene ?? null);
+          if (d1fSource156Review) {
+            Object.assign(canvas.dataset, {
+              d1fSource156OriginalSha256: d1fSource156Review.sha,
+              d1fSource156SceneIndex: '156',
+              d1fSource156OriginalAuthenticated: 'true',
+              d1fSource156WorkTest: 'true',
+              d1fSource156ProductionPixelsVerified: 'false',
+              d1fSource156HumanReview: 'NOT_RUN',
+              d1fSource156Current: 'false',
+              d1fSource156Canonical: 'false',
+              d1fSource156AsBuilt: 'false',
+            });
+          }
           canvas.dataset.p137eLoadedCandidateId = candidate.id;
           if (r1125NumberedReview) {
             canvas.dataset.m5aR1125Scene64SourceVerified = 'true';
@@ -12150,7 +12215,8 @@ const title = 'Private 3D viewer';
           !['d1f-bathroom-service-heating-20261015', 'd1f-wc-nordic3530-centered-20261016', 'd1f-wc-closed-lid-450-20261016'].includes(getRequestedReviewCandidateId() ?? '') &&
           !isPrivateModelReviewRequested(window.location.search, m5aZ2R1125ReviewId) &&
           !isM5AR1125NumberedScene64Requested(window.location.search) &&
-          !isD1FScene150ReviewRequested(window.location.search)
+          !isD1FScene150ReviewRequested(window.location.search) &&
+          !d1fSource156ReviewRequested()
         ) {
           await loadCurrentModel();
         }

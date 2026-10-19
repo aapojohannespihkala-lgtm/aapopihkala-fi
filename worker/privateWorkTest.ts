@@ -725,6 +725,22 @@ const D1F_SHOWER_PHOTO_CANDIDATE = {
   expectedSha256: D1F_SHOWER_PHOTO_SOURCE.sha256,
 } as const satisfies PrivateWorkTestCandidate;
 
+// Noncanonical source156 D1F room with user-correct Bosch-left, U-sauna,
+// two photo-derived shower pulls, white shelf and user-measured 305 mm mirror
+// separation CONDITIONALLY modeled from an unverified sauna-wall reference.
+// Optional scene157 retains historical HELMI six lights and photo tile marks,
+// never asserts installed count/geometry. Exact source-bound WORK_TEST only;
+// current physical XY, tiles, shelf fit and heater clearance remain UNKNOWN.
+// No CURRENT/canonical/asBuilt/HUMAN_REVIEW promotion.
+const D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE = {
+  id: 'd1f-source156-mirror305-k2-oak-u-two-pulls-20261018',
+  label: 'D1F source156 - K2, U-sauna, 2 vedintä, hylly, ehdollinen peili305 - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-source156-mirror305-k2-oak-u-two-pulls-20261018.glb`,
+  objectKey: 'work-test/d1f-source156-mirror305-k2-oak-u-two-pulls-20261018.glb',
+  expectedSize: 9792656,
+  expectedSha256: '14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -748,6 +764,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_ODENSVIK_WINDING_CORRECTED_ZIP_CANDIDATE,
   D1F_KPH_010204_ZIP_CANDIDATE,
   D1F_SHOWER_PHOTO_CANDIDATE,
+  D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
