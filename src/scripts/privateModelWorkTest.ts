@@ -262,3 +262,36 @@ export const isWorkTestCandidate = (value: unknown): value is WorkTestCandidate 
     /^\/private-model\/work-test\/[a-z0-9-]+\.glb$/.test(candidate.path)
   );
 };
+
+
+/**
+ * Presentation-only seven exact original-source cutaway cameras. This is NOT
+ * a new geometry source or permission to claim WebGL/HUMAN_REVIEW approval.
+ * The published 165-scene GLB has default scene156 and cameras in 158..164.
+ */
+export const d1fSource156SevenCutawayCandidateId =
+  'd1f-source156-seven-camera-cutaway-20261019';
+export const d1fSource156SevenCutawaySha256 =
+  '68318b8d41b7919f0afde842ca9d311d8612e2173ded5374c6cb76f118491782';
+export const d1fSource156SevenCutawaySceneKeys = {
+  158: 'mirror305',
+  159: 'wc',
+  160: 'odensvik',
+  161: 'bosch',
+  162: 'shower-glass-two-pulls',
+  163: 'white-shelf',
+  164: 'sauna-u',
+} as const;
+
+export const getD1FSource156SevenCutawaySceneRequest = (search: string) => {
+  const params = new URLSearchParams(search);
+  if (params.get('review') !== d1fSource156SevenCutawayCandidateId + '-review')
+    return null;
+  const raw = params.get('scene');
+  if (raw === null || raw === '156')
+    return { index: 156, key: null } as const;
+  if (!/^(?:15[89]|16[0-4])$/.test(raw))
+    throw new Error('D1F_SOURCE156_CUTAWAY_SCENE_NOT_ALLOWLISTED');
+  const index = Number(raw) as keyof typeof d1fSource156SevenCutawaySceneKeys;
+  return { index, key: d1fSource156SevenCutawaySceneKeys[index] } as const;
+};

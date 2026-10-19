@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
+import ts from 'typescript';
 
 const candidateId='p186e-x1-d2015-electrical-source-label-anchors-p28-corrected';
 const reviewId=candidateId+'-review';
@@ -12,9 +13,13 @@ async function sourceBootstrap(exactP186e:boolean){
   const tail=source.slice(source.lastIndexOf('      void (async () => {'));
   const end='      })();';
   const program=tail.slice(0,tail.indexOf(end)+end.length).trim().replace(/^void /,'');
+  // Preserve actual bootstrap semantics while erasing Astro TypeScript annotations.
+  const jsProgram=ts.transpileModule(program,{
+    compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None},
+  }).outputText;
   const calls:string[]=[],canvas={dataset:{} as Record<string,string>};
   const candidate=exactP186e?{id:candidateId}:null;
-  await runInNewContext(program,{
+  await runInNewContext(jsProgram,{
     window:{location:{search:exactP186e?'?review='+reviewId:''}},
     isP137EScene67ReviewRequested:()=>false,
     isP186eElectricalLabelReviewRequested:()=>exactP186e,
@@ -25,6 +30,7 @@ async function sourceBootstrap(exactP186e:boolean){
     isM5AR1125NumberedScene64Requested:()=>false,
     isD1FScene150ReviewRequested:()=>false,
     d1fSource156ReviewRequested:()=>false,
+    d1fSource156OriginalFocusFromLink:()=>null,
     isPrivateModelReviewRequested:()=>false,m5aZ2R1125ReviewId:'r1125-review',
     getRequestedReviewCandidateId:()=>candidate?.id??null,
     loadCurrentModel:async()=>{calls.push('CURRENT');},

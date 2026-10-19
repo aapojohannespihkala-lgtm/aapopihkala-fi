@@ -28,9 +28,15 @@ test('main-only D1F dispatch keeps service default and routes four glass variant
   expect(workflow).toContain('name: d1f-shower-autoload-' + '$' + '{{ matrix.variant }}');
   const clientId = 'CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ' + '$' + '{{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}';
   const clientSecret = 'CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ' + '$' + '{{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}';
-  expect(workflow.split(clientId)).toHaveLength(4);
-  expect(workflow.split(clientSecret)).toHaveLength(4);
-  for (const variant of D1F_SHOWER_PHOTO_VARIANTS) {
+  // Service, shower, ODENSVIK and SOURCE156 probes all require the same bounded Access credentials.
+  expect(workflow).toContain("if: inputs.review_mode == 'source156-autoload' && matrix.variant == 'WEST_ANCHOR_725_895_740'");
+  expect(workflow.split(clientId)).toHaveLength(6);
+  expect(workflow.split(clientSecret)).toHaveLength(6);
+  expect(workflow).toContain("- source156-pixels");
+  expect(workflow).toContain("if: inputs.review_mode == 'source156-pixels' && matrix.variant == 'WEST_ANCHOR_725_895_740'");
+  expect(workflow).toContain("run: node .github/scripts/private-model-d1f-source156-seven-production-probe.mjs");
+  expect(workflow).toContain("d1f-source156-seven-original-webgl-pixels");
+    for (const variant of D1F_SHOWER_PHOTO_VARIANTS) {
     expect(workflow).toContain('          - ' + variant.name);
   }
 });
