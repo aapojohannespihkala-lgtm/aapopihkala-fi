@@ -805,6 +805,17 @@ const AUTO_YLISRINNE_KOKO_RAKENNUS_T12_TONTTIRAJA_KATTOLUUKKU1985_WORK_TEST_2026
   expectedSha256: '9ac546d1eb7842f9afc66486d4aff406317e0c4675b8cae1f00c12507355c8f6',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-19 from Drive queue file 1wVoUCZRUZFtv34yL0XdP0GOV3oCwRyAu
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_SALAOJAT_KOKO_JARJESTELMA_LOPPUKATSELMUS_WORK_TEST_20261020_1WVOUCZR_CANDIDATE = {
+  id: 'auto-ylisrinne-salaojat-koko-jarjestelma-loppukatselmus-work-test-20261020-1wvouczr',
+  label: 'Auto: Ylisrinne SALAOJAT KOKO JARJESTELMA LOPPUKATSELMUS WORK TEST 20261020 - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-salaojat-koko-jarjestelma-loppukatselmus-work-test-20261020-1wvouczr.glb`,
+  objectKey: 'work-test/auto-ylisrinne-salaojat-koko-jarjestelma-loppukatselmus-work-test-20261020-1wvouczr.glb',
+  expectedSize: 911532,
+  expectedSha256: '4023df3c712245484635acac64dd020691ebd27756f928c5a88936f269b45c99',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -834,6 +845,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   SHARED300_SCENE299_DEFAULT_CANDIDATE,
   AUTO_LINJASTOTESTI_SHARED300_SAUNA_1ONONK83_CANDIDATE,
   AUTO_YLISRINNE_KOKO_RAKENNUS_T12_TONTTIRAJA_KATTOLUUKKU1985_WORK_TEST_20261019_1QLW0IOG_CANDIDATE,
+  AUTO_YLISRINNE_SALAOJAT_KOKO_JARJESTELMA_LOPPUKATSELMUS_WORK_TEST_20261020_1WVOUCZR_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
