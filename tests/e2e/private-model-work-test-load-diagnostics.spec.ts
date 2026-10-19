@@ -423,6 +423,86 @@ test('D1F seven cutaway scene links are source-bound, exact and fail closed', as
   expect(resolve('?review=d1f-source156-mirror305-k2-oak-u-two-pulls-20261018-review&scene=158')).toBeNull();
 });
 
+
+test('combined source156 floor/B ten real scenes have exact review binding and fail-closed scene selection', async () => {
+  const {
+    d1fSource156FloorBCandidateId: id,
+    d1fSource156FloorBSha256: sha,
+    d1fSource156FloorBSceneKeys: keys,
+    d1fSource156FloorBSceneNames: names,
+    getD1FSource156FloorBSceneRequest: resolve,
+  } = await import('../../src/scripts/privateModelWorkTest');
+  expect(id).toBe('d1f-source156-floor-v02-b-seven-cameras-20261019');
+  expect(sha).toBe('a3ab1928ec415678b026513e95e88278b8983ff56b547a071186a63dbf1f6757');
+  expect(Object.keys(keys)).toEqual(
+    ['165','166','167','168','169','170','171','172','173','174']);
+  expect(Object.keys(names)).toEqual(Object.keys(keys));
+  expect(Object.values(names).slice(0, 7).every(
+    (name) => name.endsWith('_NOT_ASBUILT'))).toBe(true);
+  expect(Object.values(names).slice(7).every(
+    (name) => name.endsWith('_UNMEASURED_OPTIONAL_ONLY'))).toBe(true);
+  const review = '?review=' + id + '-review';
+  expect(resolve(review)).toEqual({index: 156, key: null, cameraNodeIndex: null});
+  expect(resolve(review + '&scene=156')).toEqual(
+    {index: 156, key: null, cameraNodeIndex: null});
+  for (const [sceneText, key] of Object.entries(keys)) {
+    const scene = Number(sceneText);
+    expect(resolve(review + '&scene=' + scene)).toEqual({
+      index: scene,
+      key,
+      cameraNodeIndex: scene <= 171 ? 2994 + scene - 165 : 3036,
+    });
+  }
+  for (const raw of ['157', '158', '164', '175', '999', '0165', '-1',
+    '165junk', '165.0', '', 'scene165']) {
+    expect(() => resolve(review + '&scene=' + raw)).toThrow(
+      'D1F_SOURCE156_FLOOR_B_SCENE_NOT_ALLOWLISTED');
+  }
+  expect(() => resolve(review + '&scene=165&scene=166')).toThrow(
+    'D1F_SOURCE156_FLOOR_B_SCENE_NOT_ALLOWLISTED');
+  expect(() => resolve(review + '&review=' + id + '-review')).toThrow(
+    'D1F_SOURCE156_FLOOR_B_REVIEW_AMBIGUOUS');
+  expect(resolve('?scene=165')).toBeNull();
+  expect(resolve('?review=d1f-source156-seven-camera-cutaway-20261019-review&scene=165'))
+    .toBeNull();
+});
+
+test('combined floor/B one-link binds exact GLB source, eight native cameras, scene and no approval', () => {
+  const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
+  const start = source.indexOf('      const loadD1FSource156FloorBExactReview = async (');
+  const end = source.indexOf('      const loadWorkTestCandidate = async (', start);
+  expect(start).toBeGreaterThan(-1);
+  expect(end).toBeGreaterThan(start);
+  const exact = source.slice(start, end);
+  expect(exact).toContain('getD1FSource156FloorBSceneRequest(window.location.search)');
+  expect(exact).toContain("candidate.id !== id || candidate.path !== expectedPath");
+  expect(exact).toContain("credentials: 'same-origin'");
+  expect(exact).toContain('raw.byteLength !== 10112304');
+  expect(exact).toContain("crypto.subtle.digest('SHA-256', raw)");
+  expect(exact).toContain('sha !== d1fSource156FloorBSha256');
+  expect(exact).toContain('json.scenes?.length !== 175');
+  expect(exact).toContain('json.cameras?.length !== 8');
+  expect(exact).toContain('json.nodes?.length !== 3040');
+  expect(exact).toContain('scene?.name !== name');
+  expect(exact).toContain('scene.nodes?.includes(cameraNodeIndex)');
+  expect(exact).toContain('node?.camera !== expectedCamera');
+  expect(exact).toContain('Math.abs(gltfCamera.perspective?.yfov - expectedFov)');
+  expect(exact).toContain('cameras.length !== 1');
+  expect(exact).toContain("gltf.scene = gltf.scenes[requested.index]");
+  const loaded = source.indexOf('          if (d1fFloorBReview) {', end);
+  expect(loaded).toBeGreaterThan(end);
+  const focus = source.slice(loaded, loaded + 2900);
+  expect(focus).toContain('sourceCamera.getWorldPosition(worldEye)');
+  expect(focus).toContain('sourceCamera.getWorldQuaternion(worldQuaternion)');
+  expect(focus).toContain('controls.target.copy(worldLook)');
+  expect(focus).toContain("d1fSource156FloorBAuthenticated: 'true'");
+  expect(focus).toContain("d1fSource156FloorBProductionPixelsVerified: 'false'");
+  expect(focus).toContain("d1fSource156FloorBHumanReview: 'NOT_RUN'");
+  expect(focus).toContain("d1fSource156FloorBMeasured: 'false'");
+  const reset = source.indexOf('      const clearD1FSource156Identity = () => {');
+  expect(source.slice(reset, reset + 230)).toContain("key.startsWith('d1fSource156')");
+});
+
 test('seven cutaway scene autoload verifies exact GLB, camera and scene without user or pixel promotion', () => {
   const source = readFileSync('src/pages/private-model/index.astro', 'utf8');
   const start = source.indexOf('      const loadD1FSource156SevenCutawayExactReview = async (');

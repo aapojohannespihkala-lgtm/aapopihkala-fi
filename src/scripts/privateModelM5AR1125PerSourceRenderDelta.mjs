@@ -19,6 +19,14 @@ const sourcePixelKind = (pixels, off) => {
     gray ? 'wellGray' : null;
 };
 const colored = (kind, pixels, off) => sourcePixelKind(pixels, off) === kind;
+// A hidden source is visibly gone only when painted RGB changes. Alpha-only
+// differences remain disallowed in the strict restore/off-footprint checks.
+export const sourceVisibleRgbDelta = (before, hidden, off) =>
+  Math.max(
+    Math.abs(before[off] - hidden[off]),
+    Math.abs(before[off + 1] - hidden[off + 1]),
+    Math.abs(before[off + 2] - hidden[off + 2]),
+  );
 const frameValid = (pixels, length) =>
   (pixels instanceof Uint8Array || pixels instanceof Uint8ClampedArray) &&
   pixels.length === length;
@@ -194,6 +202,7 @@ export function detectM5AR1125PerSourceRenderDelta({
     let originalClassPixels = 0, isolatedClassPixels = 0, remainingClassPixels = 0;
     let localChangedPixels = 0, outsideChangedPixels = 0, restoreChangedPixels = 0;
     let exclusiveOriginalPixels = 0, exclusiveLostPixels = 0, exclusiveRemainingPixels = 0;
+    let exclusiveRgbLostPixels = 0;
     const peerClassLossPixels = {}, peerBaseline = {}, peerRemaining = {};
     entries.forEach(peer => {
       if (peer.key !== target.key) {
@@ -210,17 +219,24 @@ export function detectM5AR1125PerSourceRenderDelta({
         delta = Math.max(delta, Math.abs(baseline[off + k] - muted[off + k]));
         restoreDelta = Math.max(restoreDelta, Math.abs(baseline[off + k] - restored[off + k]));
       }
+      const rgbDelta = sourceVisibleRgbDelta(baseline, muted, off);
       if (restoreDelta !== 0) restoreChangedPixels++;
       if (inside) {
         if (before) { originalClassPixels++; if (!after) isolatedClassPixels++; }
         if (after) remainingClassPixels++;
-        if (delta > 36) localChangedPixels++;
+        if (rgbDelta > 36) localChangedPixels++;
       }
       if (delta !== 0 && !(coverage[i] & target.bit)) outsideChangedPixels++;
       // Overlap cannot establish object identity. Only exclusively owned
       // geometry can supply the full-footprint target positive/negative proof.
       if (coverage[i] === target.bit) {
-        if (before) { exclusiveOriginalPixels++; if (!after) exclusiveLostPixels++; }
+        if (before) {
+          exclusiveOriginalPixels++;
+          if (!after) {
+            exclusiveLostPixels++;
+            if (rgbDelta > 36) exclusiveRgbLostPixels++;
+          }
+        }
         if (after) exclusiveRemainingPixels++;
       }
       if (coverage[i]) for (const peer of entries) {
@@ -240,12 +256,14 @@ export function detectM5AR1125PerSourceRenderDelta({
     const passed = originalClassPixels >= minimum && isolatedClassPixels >= minimum &&
       remainingClassPixels === 0 && localChangedPixels >= minimum &&
       exclusiveOriginalPixels >= minimum && exclusiveLostPixels >= minimum &&
+      exclusiveRgbLostPixels >= minimum &&
       exclusiveRemainingPixels === 0 && peersPreserved &&
       outsideChangedPixels === 0 && restoreChangedPixels === 0;
     return {
       key: target.key, kind: target.kind, originalClassPixels, isolatedClassPixels,
       remainingClassPixels, localChangedPixels, outsideChangedPixels, restoreChangedPixels,
-      exclusiveOriginalPixels, exclusiveLostPixels, exclusiveRemainingPixels,
+      exclusiveOriginalPixels, exclusiveLostPixels, exclusiveRgbLostPixels,
+      exclusiveRemainingPixels,
       peerClassLossPixels, peersPreserved, minimum, passed,
       footprintStatus: exclusiveOriginalPixels >= minimum ? 'VISIBLE_EXCLUSIVE_SOURCE_PIXELS' : 'NOT_PROVEN',
     };
