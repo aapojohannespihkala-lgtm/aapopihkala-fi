@@ -23,7 +23,7 @@ function fixture() {
     o,{nodes:i===0?S.wallNodeId:originalTargetSourceNodes[i-1]},
   ]));
   const scene={traverse(cb: any){for(const object of objects)cb(object);}};
-  const scenes=Array.from({length:158},()=>({nodes:[]}));
+  const scenes: Array<{nodes:number[]}>=Array.from({length:158},()=>({nodes:[]}));
   scenes[156]={nodes:roots};
   const nodes:any[]=Array.from({length:2857},()=>({}));
   nodes[S.wallNodeId]={
@@ -37,11 +37,11 @@ function fixture() {
   const gltf={scene,scenes:Array.from({length:158},(_,i)=>
     i===156?scene:{}),parser:{
     json:{scene:156,scenes,nodes,meshes},
-    associations,
+    associations: associations as typeof associations | null,
   }};
   return {gltf,wall,targets,objects,associations,scene};
 }
-const instantiate=f=>createSource156WallCutaway({
+const instantiate=(f:ReturnType<typeof fixture>)=>createSource156WallCutaway({
   gltf:f.gltf,authenticatedSourceSha256:S.sourceSha256,
   candidateId:S.candidateId,
 });
