@@ -89,7 +89,8 @@ export function verifySource156OriginalGlb(bytes) {
 /** Validate camera projections independently of the viewer status claim.
  * The actual viewer may return an offscreen/occluded object: fail closed.
  */
-export function verifySource156Projection(p) {
+export function verifySource156Projection(p, focusedKey) {
+  insist(SOURCE156.keys.includes(focusedKey),'FOCUS_KEY');
   insist(p?.sourceSceneIndex===156 && p.originalTargetCount===7 &&
     p.productionPixelsVerified===false && p.humanReview==='NOT_RUN' &&
     Array.isArray(p.centers) && p.centers.length===7,
@@ -99,12 +100,15 @@ export function verifySource156Projection(p) {
     const c=p.centers[i],key=SOURCE156.keys[i];
     insist(c?.key===key && !found.has(key) &&
       Number.isFinite(c.u) && Number.isFinite(c.v) &&
-      c.u>0 && c.u<1 && c.v>0 && c.v<1 &&
-      c.onScreen===true,
-      'PROJECTED_ORIGINAL_OFFSCREEN_OR_WRONG_ORDER');
+      typeof c.onScreen==='boolean',
+      'PROJECTED_ORIGINAL_IDENTITY_OR_WRONG_ORDER');
     found.add(key);
   }
-  return p.centers;
+  const focused=p.centers.find(c=>c.key===focusedKey);
+  insist(focused?.onScreen===true &&
+    focused.u>0 && focused.u<1 && focused.v>0 && focused.v<1,
+    'FOCUSED_ORIGINAL_OFFSCREEN');
+  return focused;
 }
 
 /** Pure visible RGB pixel proof; exact RGBA restore. Synthetic fixtures
@@ -231,44 +235,62 @@ export async function runSource156ProductionProof({env=process.env,browserType}=
       state.current==='false' && state.canonical==='false' &&
       state.asBuilt==='false' && state.humanReview==='NOT_RUN' &&
       state.prematurePixels==='false','VIEWER_NO_PROMOTION');
-    report.stage='SEVEN_SOURCE_PROJECTIONS';
-    const projection=await canvas.evaluate(el=>{
-      if(typeof el.d1fSource156RefreshOriginalProjection!=='function' ||
-        typeof el.d1fSource156SetOriginalVisibility!=='function' ||
-        typeof el.d1fSource156RestoreOriginalVisibility!=='function')
-        throw Error('source156-bridge-not-loaded');
-      return el.d1fSource156RefreshOriginalProjection();
-    });
-    const centers=verifySource156Projection(projection);
+    report.stage='SEVEN_SOURCE_CAMERAS';
+    const methods=await canvas.evaluate(el=>({
+      focus:typeof el.d1fSource156FocusOriginalTarget==='function',
+      project:typeof el.d1fSource156RefreshOriginalProjection==='function',
+      visibility:typeof el.d1fSource156SetOriginalVisibility==='function',
+      restore:typeof el.d1fSource156RestoreOriginalVisibility==='function',
+    }));
+    insist(Object.values(methods).every(Boolean),'SEVEN_ORIGINAL_CAMERA_BRIDGE');
     const bounds=await canvas.boundingBox();
     insist(Boolean(bounds) && bounds.width>=256 && bounds.height>=256,
       'VISIBLE_RENDER_CANVAS');
     const capture=async()=>decodeD1FScreenshotPng(
       await canvas.screenshot({animations:'disabled',timeout:20000}));
-    const before=await capture();
     report.stage='SEVEN_ACTUAL_ORIGINAL_TARGET_PIXELS';
-    for(const center of centers){
+    for(const key of SOURCE156.keys){
       try{
+        const camera=await canvas.evaluate(key=>
+          document.querySelector('#private-model-canvas')
+            .d1fSource156FocusOriginalTarget(key),key);
+        insist(camera?.key===key && camera.sourceSceneIndex===156 &&
+          camera.verticalFovDegrees===50 &&
+          camera.productionPixelsVerified===false &&
+          camera.humanReview==='NOT_RUN' &&
+          camera.current===false && camera.canonical===false &&
+          camera.asBuilt===false,
+          'ORIGINAL_TARGET_CAMERA_IDENTITY');
+        await page.waitForTimeout(120);
+        const projected=await canvas.evaluate(el=>({
+          cameraKey:el.dataset.d1fSource156OriginalCameraKey,
+          projection:el.d1fSource156RefreshOriginalProjection(),
+        }));
+        insist(projected.cameraKey===key,'ORIGINAL_CAMERA_NOT_SELECTED');
+        const center=verifySource156Projection(projected.projection,key);
+        // Every original group uses its OWN verified perspective and baseline.
+        // The six unrelated original groups may legitimately be off-screen.
+        const before=await capture();
         const hiddenState=await canvas.evaluate(key=>
           document.querySelector('#private-model-canvas')
-            .d1fSource156SetOriginalVisibility(key,'HIDE'),center.key);
-        insist(hiddenState?.activeHiddenCount===1 &&
-          hiddenState?.sourceSceneIndex===156 &&
-          hiddenState?.humanReview==='NOT_RUN' &&
-          hiddenState?.productionPixelsVerified===false,
+            .d1fSource156SetOriginalVisibility(key,'HIDE'),key);
+        insist(hiddenState?.key===key && hiddenState.activeHiddenCount===1 &&
+          hiddenState.sourceSceneIndex===156 &&
+          hiddenState.humanReview==='NOT_RUN' &&
+          hiddenState.productionPixelsVerified===false,
           'HIDE_TARGET');
         await page.waitForTimeout(120);
         const hidden=await capture();
         const restoredState=await canvas.evaluate(key=>
           document.querySelector('#private-model-canvas')
-            .d1fSource156SetOriginalVisibility(key,'RESTORE'),center.key);
-        insist(restoredState?.activeHiddenCount===0,
+            .d1fSource156SetOriginalVisibility(key,'RESTORE'),key);
+        insist(restoredState?.key===key && restoredState.activeHiddenCount===0 &&
+          restoredState.sourceSceneIndex===156,
           'RESTORE_TARGET');
         await page.waitForTimeout(120);
         const restored=await capture();
-        const result=verifySource156FrameTriplet({
-          before,hidden,restored,center});
-        report.sourceEvidence.push(result);
+        report.sourceEvidence.push(verifySource156FrameTriplet({
+          before,hidden,restored,center}));
       }finally{
         await canvas.evaluate(el=>el.d1fSource156RestoreOriginalVisibility?.())
           .catch(()=>{});
