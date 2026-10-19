@@ -182,18 +182,23 @@ jobs:
           fi
           echo "Opened PR #$pr_number"
 
-          # PRs and pushes made with GITHUB_TOKEN do not trigger workflows, so the
-          # required "build" check is run explicitly on the PR branch.
-          gh api --method POST \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/build-check.yml/dispatches" \
-            -f "ref=$branch"
-
+          # A bot-opened PR triggers Build check (pull_request) in "action_required"
+          # state; approve that run so the required "build" check comes from it.
           conclusion=""
-          for _ in $(seq 1 80); do
+          for _ in $(seq 1 90); do
             sleep 20
-            conclusion="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/${head_sha}/check-runs?check_name=build" \
-              --jq '[.check_runs[] | select(.status == "completed")] | .[0].conclusion // ""')"
-            [[ -n "$conclusion" ]] && break
+            run="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/build-check.yml/runs?event=pull_request&head_sha=${head_sha}&per_page=1" \
+              --jq '.workflow_runs[0] // {} | "\(.id // "") \(.status // "") \(.conclusion // "")"')"
+            read -r run_id run_status run_conclusion <<<"$run"
+            [[ -n "$run_id" ]] || continue
+            if [[ "$run_conclusion" == "action_required" || "$run_status" == "waiting" ]]; then
+              gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/approve" >/dev/null || true
+              continue
+            fi
+            if [[ "$run_status" == "completed" ]]; then
+              conclusion="$run_conclusion"
+              break
+            fi
           done
           if [[ "$conclusion" != "success" ]]; then
             echo "Build check did not succeed (${conclusion:-timeout}); PR #$pr_number left open." >&2
