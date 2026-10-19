@@ -24,6 +24,7 @@ type ResponseCache = {
   match(request: Request): Promise<Response | undefined>;
   put(request: Request, response: Response): Promise<void>;
 };
+type WorkerExecutionContext = { waitUntil(promise: Promise<unknown>): void };
 
 const ELECTRICITY_PATH = '/api/current/electricity';
 const ELECTRICITY_MONTH_PATH = '/api/current/electricity-month';
@@ -136,6 +137,7 @@ export const serveWidgetWithLastKnownGood = async (
   load: () => Promise<Response>,
   cache: ResponseCache | undefined = defaultResponseCache(),
   liveWaitMs = WIDGET_LIVE_WAIT_MS,
+  waitUntil?: (promise: Promise<void>) => void,
 ) => {
   const loadPromise = load();
   if (!cache) return loadPromise;
@@ -153,18 +155,13 @@ export const serveWidgetWithLastKnownGood = async (
   ]);
   if (timeout !== undefined) clearTimeout(timeout);
 
-  if (response === null) {
-    const fallback = await widgetFallbackResponse(keys, cache);
-    if (fallback) return fallback;
-    return loadPromise;
-  }
-
-  if (response.ok) {
-    const headers = new Headers(response.headers);
+  const cacheHealthyResponse = async (liveResponse: Response) => {
+    if (!liveResponse.ok) return;
+    const headers = new Headers(liveResponse.headers);
     headers.set('Cache-Control', `public, max-age=${WIDGET_LAST_KNOWN_GOOD_TTL_SECONDS}`);
-    const cached = new Response(response.clone().body, {
-      status: response.status,
-      statusText: response.statusText,
+    const cached = new Response(liveResponse.clone().body, {
+      status: liveResponse.status,
+      statusText: liveResponse.statusText,
       headers,
     });
     for (const key of keys) {
@@ -174,6 +171,22 @@ export const serveWidgetWithLastKnownGood = async (
         // Cache is a resilience layer only; one alias failing must not fail a healthy feed.
       }
     }
+  };
+
+  if (response === null) {
+    const fallback = await widgetFallbackResponse(keys, cache);
+    if (fallback) {
+      // A late successful live response must refresh the cache even after fallback.
+      waitUntil?.(loadPromise.then(cacheHealthyResponse).catch(() => undefined));
+      return fallback;
+    }
+    const lateResponse = await loadPromise;
+    await cacheHealthyResponse(lateResponse);
+    return lateResponse;
+  }
+
+  if (response.ok) {
+    await cacheHealthyResponse(response);
     return response;
   }
 
@@ -376,7 +389,7 @@ const publicLiigaResponse = async (response: Response, error: string) => {
 };
 
 const worker = {
-  async fetch(request: Request, env: WorkerEnv): Promise<Response> {
+  async fetch(request: Request, env: WorkerEnv, ctx?: WorkerExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const snapshotRequest = isSnapshotRequest(request);
     if (isPrivateAiStatusPath(url.pathname)) {
@@ -411,9 +424,9 @@ const worker = {
     }
     if (url.pathname === WIDGET_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
-      return serveWidgetWithLastKnownGood(request, () => url.searchParams.get('v') === '2' ? getWidgetV2Response({ request, env }) : getWidgetResponse({ request }));
+      return serveWidgetWithLastKnownGood(request, () => url.searchParams.get('v') === '2' ? getWidgetV2Response({ request, env }) : getWidgetResponse({ request }), undefined, WIDGET_LIVE_WAIT_MS, ctx?.waitUntil.bind(ctx));
     }
-    if (url.pathname === WIDGET_V2_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return serveWidgetWithLastKnownGood(request, () => getWidgetV2Response({ request, env })); }
+    if (url.pathname === WIDGET_V2_PATH) { if (request.method !== 'GET') return methodNotAllowed(); return serveWidgetWithLastKnownGood(request, () => getWidgetV2Response({ request, env }), undefined, WIDGET_LIVE_WAIT_MS, ctx?.waitUntil.bind(ctx)); }
     if (url.pathname === LIIGA_PATH) {
       if (request.method !== 'GET') return methodNotAllowed();
       const response = snapshotRequest ? await fetchLiigaResponse(SNAPSHOT_LIIGA_UPSTREAM_TIMEOUT_MS) : await getLiigaResponse();
