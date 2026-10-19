@@ -408,6 +408,7 @@ test('actual viewer load callsite uses verified scene for ' + id, async () => {
       isD1FOdensvikWindingReviewRequested: () => false,
       isM5AR1125NumberedScene64Requested: () => false,
       isD1FScene150ReviewRequested: () => false,
+      d1fSource156ReviewRequested: () => false,
       window: { location: { search: '?review=' + id + '-review' } },
       isD1FCombinedWallReviewRequested,
       loadD1FServiceModel,
