@@ -58,3 +58,82 @@ export function selectVerifiedSharedSystemsScene({ candidate, verification, cont
   // Never silently fall back to original default scene, first scene, or another candidate.
   return renderedScene;
 }
+
+
+/**
+ * Fetch exact authenticated same-origin GLB bytes before passing an identity
+ * assertion to selectVerifiedSharedSystemsScene. Do not accept a HEAD response,
+ * published metadata, or a catalogue SHA as proof of the fetched full body.
+ * No scene is changed; the verified raw bytes must be parsed by GLTFLoader after
+ * this returns, and the resulting glTF passed into the scene selector.
+ */
+export async function fetchVerifiedSharedSystemsGlb({
+  candidate,
+  contract,
+  origin = globalThis.location?.origin,
+  fetchImpl = globalThis.fetch,
+  cryptoSubtle = globalThis.crypto?.subtle,
+}) {
+  if (!candidate || !contract ||
+      candidate.id !== contract.candidateId ||
+      !Number.isSafeInteger(contract.expectedSizeBytes) ||
+      contract.expectedSizeBytes < 20 ||
+      !shaPattern.test(contract.expectedSha256) ||
+      candidate.expectedSize !== contract.expectedSizeBytes ||
+      candidate.expectedSha256 !== contract.expectedSha256) {
+    fail('unverified-candidate-contract');
+  }
+  if (typeof origin !== 'string' || !/^https:\/\/[^/]+$/.test(origin) ||
+      typeof candidate.path !== 'string' ||
+      !/^\/(?!\/)[^?#\\\s]*$/.test(candidate.path) ||
+      typeof fetchImpl !== 'function' ||
+      typeof cryptoSubtle?.digest !== 'function') {
+    fail('invalid-same-origin-fetch-settings');
+  }
+  let fetchUrl;
+  try {
+    fetchUrl = new URL(candidate.path, origin);
+    if (fetchUrl.origin !== origin || fetchUrl.pathname !== candidate.path) {
+      fail('path-canonicalization-or-origin-mismatch');
+    }
+  } catch {
+    fail('invalid-candidate-url');
+  }
+  // No fallback to anonymous requests, redirects, CDN or stale cached bytes.
+  const response = await fetchImpl(fetchUrl.href, {
+    credentials: 'same-origin', mode: 'same-origin', redirect: 'error', cache: 'no-store',
+  });
+  if (!response?.ok || response.redirected || response.type === 'opaque' ||
+      typeof response.arrayBuffer !== 'function') {
+    fail('authenticated-source-fetch-failed');
+  }
+  if (typeof response.url === 'string' && response.url &&
+      response.url !== fetchUrl.href) {
+    fail('response-url-mismatch');
+  }
+  const bytes = await response.arrayBuffer();
+  if (!(bytes instanceof ArrayBuffer) || bytes.byteLength !== contract.expectedSizeBytes ||
+      bytes.byteLength < 20) {
+    fail('full-body-size-mismatch');
+  }
+  const view = new DataView(bytes);
+  if (view.getUint32(0, true) !== 0x46546c67 ||
+      view.getUint32(4, true) !== 2 ||
+      view.getUint32(8, true) !== bytes.byteLength ||
+      view.getUint32(16, true) !== 0x4e4f534a ||
+      view.getUint32(12, true) > bytes.byteLength - 20) {
+    fail('glb2-header-mismatch');
+  }
+  const digest = await cryptoSubtle.digest('SHA-256', bytes);
+  const actualSha256 = Array.from(new Uint8Array(digest), b =>
+    b.toString(16).padStart(2, '0')).join('');
+  if (actualSha256 !== contract.expectedSha256) fail('full-body-sha256-mismatch');
+  return {
+    verifiedBytes: bytes,
+    verification: {
+      candidateId: candidate.id,
+      actualSizeBytes: bytes.byteLength,
+      actualSha256,
+    },
+  };
+}
