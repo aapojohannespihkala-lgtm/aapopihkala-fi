@@ -42,17 +42,13 @@ test('source identity, wrong key, forged order and offscreen focused target fail
     (p: ReturnType<typeof projection>) => { p.centers[0].key = 'FAKE'; },
     (p: ReturnType<typeof projection>) => { p.centers[1].key = p.centers[0].key; },
     (p: ReturnType<typeof projection>) => { p.centers[1].u = Number.NaN; },
-    (p: ReturnType<typeof projection>) => { p.centers[1].onScreen = true; },
   ]) {
     const p = projection('wc'); mutate(p);
-    if (p.centers[1]?.onScreen && p.centers[1].key === 'wc') {
-      // Wrong screen-state assertion alone is not an identity failure:
-      // selected source still must be isolated by its own RGB frame triplet.
-      continue;
-    }
-    if (p.centers[1]?.onScreen && p.centers[1].key !== 'wc') continue;
     expect(() => verifySource156Projection(p, 'wc')).toThrow(Source156PixelFailure);
   }
+  const alsoVisible = projection('wc');
+  alsoVisible.centers[3].onScreen = true;
+  expect(verifySource156Projection(alsoVisible, 'wc').key).toBe('wc');
   expect(() => verifySource156Projection(projection('wc'), 'MISSING'))
     .toThrow(Source156PixelFailure);
   expect(() => verifySource156Projection(projection('wc'), 'sauna-u'))
