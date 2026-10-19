@@ -1685,7 +1685,7 @@ const title = 'Private 3D viewer';
             <span>Mittaus</span>
             <span id="axis-measure-output"></span>
           </div>
-          <div class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.</div>
+          <div id="coordinate-note" class="coordinate-note">1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.</div>
         </aside>
         <aside id="p137e-place-panel" class="p137e-place-panel" aria-label="Themojen rastiluonnokset" hidden>
           <strong>Kolmen Themon sijaintiluonnos (WORK_TEST)</strong>
@@ -1903,6 +1903,7 @@ const title = 'Private 3D viewer';
         resetArchitecturalLayerRuntimeState,
       } from '../../scripts/privateModelArchitecturalLayersRuntime';
       import { pickSelectableObjectAtClientPoint } from '../../scripts/privateModelSelectionPicking';
+      import { pickVisibleWorkTest3DPoint } from '../../scripts/privateModelWorkTest3DPoint';
       import {
         isEdgeMeshCandidate,
         isSemanticViewerLine,
@@ -2333,6 +2334,7 @@ const title = 'Private 3D viewer';
       const coordinateFloor = document.querySelector<HTMLElement>('#coordinate-floor');
       const coordinatePointer = document.querySelector<HTMLElement>('#coordinate-pointer');
       const coordinateAnchor = document.querySelector<HTMLElement>('#coordinate-anchor');
+      const coordinateNote = document.querySelector<HTMLElement>('#coordinate-note');
       const p137ePlaceToolButton = document.querySelector<HTMLButtonElement>('#p137e-place-tool-button');
       const p137ePlacePanel = document.querySelector<HTMLElement>('#p137e-place-panel');
       const p137ePlaceTarget = document.querySelector<HTMLSelectElement>('#p137e-place-target');
@@ -3329,6 +3331,11 @@ const title = 'Private 3D viewer';
 
       const activateDCoordinateReview = (floor: '1F' | '2F') => {
         const floorChanged = dCoordinateGridFloor !== floor;
+        if (canvas.dataset.workTestClickedPoint === 'true') {
+          clearReviewAnchorState(canvas, coordinateAnchor);
+          delete canvas.dataset.workTestClickedPoint;
+        }
+        coordinateNote.textContent = '1 m ruudukko, 0,5 m apuviivat - metreinä. Mittaus on mallista, ei tarkemittaus.';
         prepareDCoordinateGrid(floor);
         dCoordinateGridGroup.visible = true;
         activateReviewCoordinatePanel({
@@ -3352,6 +3359,7 @@ const title = 'Private 3D viewer';
       };
 
       const deactivateDCoordinateReview = () => {
+        delete canvas.dataset.workTestClickedPoint;
         dCoordinateGridGroup.visible = false;
         deactivateReviewCoordinatePanel({ canvas, coordinatePanel, coordinatePointer });
         clearDCoordinateAnchor();
@@ -4507,6 +4515,33 @@ const title = 'Private 3D viewer';
       const configureHorizontalClippingRange = () => {
         if (!fullModelScene) return;
         horizontalClipping.configureRange(fullModelScene);
+      };
+
+      // An early design-direction point from an ACTUAL visible WORK_TEST mesh.
+      // No virtual floor-plane intersection, geometry edit or physical survey claim.
+      const showWorkTestClicked3DCoordinate = (clientX: number, clientY: number) => {
+        if (activePlanFloor || canvas.dataset.modelSource !== 'work-test' ||
+            activeModelSourceKind !== 'work-test' || !fullModelScene ||
+            modelRoot.children[0] !== fullModelScene) return;
+        const point = pickVisibleWorkTest3DPoint({
+          clientX, clientY, rect: canvas.getBoundingClientRect(),
+          camera: activeCamera, modelRoot, raycaster,
+        });
+        if (!point) {
+          deactivateReviewCoordinatePanel({canvas, coordinatePanel, coordinatePointer});
+          clearReviewAnchorState(canvas, coordinateAnchor);
+          delete canvas.dataset.workTestClickedPoint;
+          return;
+        }
+        coordinatePanel.hidden = false;
+        coordinateFloor.textContent = '3D WORK_TEST';
+        coordinateNote.textContent =
+          'Klikattu näkyvä lähdemallin pinta: X/Y ovat mallikoordinaatteja, eivät mitattua sijaintia.';
+        canvas.dataset.reviewCoordinateFrame = point.coordinateFrame;
+        canvas.dataset.reviewGridVisible = 'false';
+        canvas.dataset.workTestClickedPoint = 'true';
+        setReviewPointerState(canvas, coordinatePointer, point);
+        setReviewAnchorState(canvas, coordinateAnchor, point);
       };
 
       const selectAtClientPoint = (clientX: number, clientY: number) => {
@@ -12678,6 +12713,7 @@ const title = 'Private 3D viewer';
             placeP137EDraftAt(event.clientX, event.clientY);
           } else {
             if (activePlanFloor) setDCoordinateAnchor(event.clientX, event.clientY);
+            else showWorkTestClicked3DCoordinate(event.clientX, event.clientY);
             selectAtClientPoint(event.clientX, event.clientY);
           }
         }
