@@ -12,6 +12,7 @@ on:
           - service
           - shower-autoload
           - odensvik-autoload
+          - source156-autoload
 
 permissions:
   contents: read
@@ -66,6 +67,19 @@ jobs:
           CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
           CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
         run: node .github/scripts/private-model-d1f-odensvik-autoload-probe.mjs
+      - name: Verify SOURCE156 original exact autoload and general WebGL (not seven object proof)
+        if: inputs.review_mode == 'source156-autoload' && matrix.variant == 'WEST_ANCHOR_725_895_740'
+        env:
+          D1F_SERVICE_SOURCE156_AUTOLOAD: '1'
+          CF_ACCESS_VIEWER_PROBE_CLIENT_ID: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_ID }}
+          CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET }}
+        run: node .github/scripts/private-model-d1f-service-probe.mjs
+      - uses: actions/upload-artifact@v4
+        if: always() && inputs.review_mode == 'source156-autoload' && matrix.variant == 'WEST_ANCHOR_725_895_740'
+        with:
+          name: d1f-source156-original-autoload-general-webgl
+          path: test-results/d1f-source156-original-autoload/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always() && inputs.review_mode == 'service'
         with:
