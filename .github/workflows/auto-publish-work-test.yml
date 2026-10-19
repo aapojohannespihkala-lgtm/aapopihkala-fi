@@ -156,7 +156,7 @@ jobs:
           git switch -c "$branch"
           git add .github/work-test-candidates.json worker/privateWorkTest.ts
           git commit -m "WORK_TEST auto: rekisteröi ${candidate} Drive-jonosta"
-          git push origin "$branch"
+          git push --force origin "$branch"
           head_sha="$(git rev-parse HEAD)"
 
           body="$RUNNER_TEMP/pr.json"
@@ -175,7 +175,11 @@ jobs:
               ),
           }, open(path, "w", encoding="utf-8"))
           PY
-          pr_number="$(gh api --method POST "/repos/${GITHUB_REPOSITORY}/pulls" --input "$body" --jq '.number')"
+          if ! pr_number="$(gh api --method POST "/repos/${GITHUB_REPOSITORY}/pulls" --input "$body" --jq '.number')"; then
+            gh api --method DELETE "/repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}" || true
+            echo "::error::PR creation refused. Enable Settings > Actions > General > Workflow permissions > 'Allow GitHub Actions to create and approve pull requests'." >&2
+            exit 1
+          fi
           echo "Opened PR #$pr_number"
 
           # PRs and pushes made with GITHUB_TOKEN do not trigger workflows, so the
