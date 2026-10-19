@@ -51,6 +51,39 @@ export function countCorrectedWindingObjectPixels(before,hidden,threshold=48) {
   return changed;
 }
 
+/**
+ * Negative guard against global camera/background drift being misread as
+ * a single-object HIDE. This is a spatial-locality check, NOT a geometry-
+ * projected source ROI; it cannot establish production source-bound pixels.
+ */
+export function requireCorrectedWindingLocalizedPixels(before,hidden,threshold=48) {
+  const changed=countCorrectedWindingObjectPixels(before,hidden,threshold);
+  let left=before.width,top=before.height,right=-1,bottom=-1,observed=0;
+  for(let y=0;y<before.height;y++)for(let x=0;x<before.width;x++){
+    const p=(y*before.width+x)*4;
+    const rgb=Math.abs(before.rgba[p]-hidden.rgba[p])+
+      Math.abs(before.rgba[p+1]-hidden.rgba[p+1])+
+      Math.abs(before.rgba[p+2]-hidden.rgba[p+2]);
+    if(rgb>threshold) {
+      observed++;
+      left=Math.min(left,x);right=Math.max(right,x);
+      top=Math.min(top,y);bottom=Math.max(bottom,y);
+    }
+  }
+  requireProof(changed===observed&&changed>=96,'no-localized-object-difference');
+  const frameArea=before.width*before.height;
+  const boxArea=(right-left+1)*(bottom-top+1);
+  const changedFraction=changed/frameArea,footprintFraction=boxArea/frameArea;
+  const occupiedFraction=changed/boxArea;
+  // Suppressing one original source node must not repaint a large portion of
+  // the viewport or scatter changes across a sparse whole-frame footprint.
+  requireProof(changedFraction<=0.35&&footprintFraction<=0.55&&
+    occupiedFraction>=0.12,'global-or-scattered-frame-drift');
+  return Object.freeze({changed,roi:{x:left,y:top,width:right-left+1,
+    height:bottom-top+1},changedFraction,footprintFraction,
+    occupiedFraction,sourceProjectedRoiVerified:false});
+}
+
 export async function runCorrectedWindingObjectPixelProbe() {
   const variant=process.env.D1F_ODENSVIK_VARIANT;
   const evidence={
@@ -154,7 +187,8 @@ export async function runCorrectedWindingObjectPixelProbe() {
         toggled.hiddenCount===1 && toggled.humanReview==='NOT_RUN',
         'not-identified-original-object-suppressed-'+kind);
       const hidden=await frame(kind.toLowerCase()+'-original-hidden');
-      const hiddenPixels=countCorrectedWindingObjectPixels(sourceVisible,hidden);
+      const localProof=requireCorrectedWindingLocalizedPixels(sourceVisible,hidden);
+      const hiddenPixels=localProof.changed;
       const restored=await canvas.evaluate((el,target)=>
         el.d1fOdensvikWindingSourceVisibility(target,'RESTORE'),kind);
       requireProof(restored?.kind===kind&&restored.operation==='RESTORE'&&
@@ -163,7 +197,7 @@ export async function runCorrectedWindingObjectPixelProbe() {
       const restoredImage=await frame(kind.toLowerCase()+'-original-restored');
       const remainingPixels=countCorrectedWindingObjectPixels(sourceVisible,restoredImage);
       evidence.sourceObjectPixelProof[kind]={
-        hiddenPixels,restoreResidualPixels:remainingPixels,
+        hiddenPixels,spatialLocality:localProof,restoreResidualPixels:remainingPixels,
         baselineSha256:sourceVisible.pngSha256,
         hiddenSha256:hidden.pngSha256,
         restoredSha256:restoredImage.pngSha256,
