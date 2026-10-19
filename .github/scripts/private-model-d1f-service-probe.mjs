@@ -3,6 +3,119 @@ import {createHash} from 'node:crypto';
 import {chromium} from 'playwright';
 import {decodeD1FScreenshotPng} from './private-model-d1f-screenshot-png.mjs';
 import {D1F_SERVICE_ID as ID,D1F_SERVICE_ASSET as ASSET,D1F_SERVICE_ROWS as ROWS,D1F_SERVICE_DEVICES as DEVICES} from '../../src/scripts/privateModelD1FServiceContract.mjs';
+
+if (process.env.D1F_SERVICE_SOURCE156_AUTOLOAD === '1') {
+  // Independent generic render proof. NOT seven-object pixel proof.
+  const hash=b=>createHash('sha256').update(b).digest('hex');
+  const check=(ok,code)=>{if(!ok)throw new Error(code);};
+  const id='d1f-source156-mirror305-k2-oak-u-two-pulls-20261018';
+  const expectedSha='14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51';
+  const expectedBytes=9792656,origin='https://aapopihkala.fi';
+  const sourcePath='/private-model/work-test/'+id+'.glb';
+  const targetUrl=origin+'/private-model/?review='+id+'-review';
+  const dir='test-results/d1f-source156-original-autoload';
+  fs.mkdirSync(dir,{recursive:true});
+  const report={result:'FAIL',phase:'TRUSTED_MAIN',candidateId:id,sourceSha256:expectedSha,
+    sourceBytes:expectedBytes,sourceSceneIndex:156,originalTargetCount:7,
+    authenticatedOriginal:false,webGlRendered:false,sevenOriginalObjectPixelsVerified:false,
+    productionObjectPixelProof:false,current:false,canonical:false,asBuilt:false,
+    humanReview:'NOT_RUN',sourceRequests:0,unexpectedCurrentRequests:0};
+  const write=()=>fs.writeFileSync(dir+'/evidence.json',JSON.stringify(report,null,2)+'\n');
+  let browser156=null;
+  try {
+    check(process.env.GITHUB_REPOSITORY==='aapojohannespihkala-lgtm/aapopihkala-fi' &&
+      process.env.GITHUB_REF==='refs/heads/main' &&
+      process.env.GITHUB_EVENT_NAME==='workflow_dispatch','MAIN_ONLY');
+    const clientId=process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_ID;
+    const clientSecret=process.env.CF_ACCESS_VIEWER_PROBE_CLIENT_SECRET;
+    check(Boolean(clientId&&clientSecret),'CLOUDFLARE_ACCESS_REQUIRED');
+    browser156=await chromium.launch({headless:true});
+    const context=await browser156.newContext({viewport:{width:1400,height:920},deviceScaleFactor:1});
+    await context.route('**/*',async route=>{
+      const req=route.request(),requestUrl=req.url();
+      if(!requestUrl.startsWith(origin+'/'))return route.continue();
+      const headers={...req.headers(),'CF-Access-Client-Id':clientId,
+        'CF-Access-Client-Secret':clientSecret};
+      if(requestUrl===origin+'/private-model/model.glb')report.unexpectedCurrentRequests++;
+      if(requestUrl===origin+sourcePath){
+        report.sourceRequests++;
+        const response=await route.fetch({headers,maxRedirects:0,timeout:30000});
+        const body=await response.body();
+        check(response.status()===200&&!response.headers()['location'],'ORIGINAL_SOURCE_HTTP');
+        check(body.length===expectedBytes&&hash(body)===expectedSha,'ORIGINAL_SOURCE_SHA_OR_LENGTH');
+        report.authenticatedOriginal=true;
+        await route.fulfill({response,body});
+        return;
+      }
+      await route.continue({headers});
+    });
+    const page=await context.newPage();
+    page.on('pageerror',e=>{report.pageError=String(e.message).slice(0,400);});
+    report.phase='ONE_LINK_AUTOLOAD';
+    const nav=await page.goto(targetUrl,{waitUntil:'domcontentloaded',timeout:45000});
+    check(nav?.status()===200&&page.url()===targetUrl,'REVIEW_URL_OR_HTTP');
+    await page.waitForFunction(({id,sha})=>{
+      const d=document.querySelector('#private-model-canvas')?.dataset;
+      return d?.modelSource==='work-test' &&
+        d?.workTestReviewAutoload==='true' &&
+        d?.workTestReviewCandidate===id &&
+        d?.workTestReviewMode===id+'-review' &&
+        d?.d1fSource156OriginalAuthenticated==='true' &&
+        d?.d1fSource156OriginalSha256===sha &&
+        d?.d1fSource156SceneIndex==='156' &&
+        d?.d1fSource156PixelIsolationReady==='true' &&
+        d?.d1fSource156OriginalTargetCount==='7' &&
+        d?.d1fSource156ProductionPixelsVerified==='false' &&
+        d?.d1fSource156HumanReview==='NOT_RUN' &&
+        d?.d1fSource156Current==='false' &&
+        d?.d1fSource156Canonical==='false' &&
+        d?.d1fSource156AsBuilt==='false';
+    },{id,sha:expectedSha},{timeout:60000});
+    check(report.authenticatedOriginal&&report.sourceRequests===1 &&
+      report.unexpectedCurrentRequests===0,'SOURCE_FETCH_IDENTITY_OR_CROSSLOAD');
+    const canvas=page.locator('#private-model-canvas');
+    check(await canvas.evaluate(el=>Boolean(el.getContext('webgl2')||
+      el.getContext('webgl'))),'REAL_WEBGL_CONTEXT');
+    const capture=async(label)=>{
+      await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+      const png=await canvas.screenshot({timeout:20000});
+      fs.writeFileSync(dir+'/'+label+'.png',png);
+      return decodeD1FScreenshotPng(png);
+    };
+    report.phase='GENERAL_WEBGL_PIXELS';
+    const baseline=await capture('original-scene156-overview');
+    const reference=[32,42,52];let colored=0;
+    for(let i=0;i<baseline.rgba.length;i+=4){
+      if(Math.max(...reference.map((c,k)=>Math.abs(baseline.rgba[i+k]-c)))>=24)colored++;
+    }
+    check(colored>=1000,'NON_BACKGROUND_PIXELS');
+    report.generalNonBackgroundPixels=colored;
+    const b=await canvas.boundingBox();check(b&&b.width>=256&&b.height>=256,'CANVAS_BOUNDS');
+    await page.mouse.move(b.x+b.width*.45,b.y+b.height*.45);
+    await page.mouse.down();
+    await page.mouse.move(b.x+b.width*.58,b.y+b.height*.51,{steps:10});
+    await page.mouse.up();
+    const orbit=await capture('original-scene156-orbit');let changed=0;
+    check(orbit.width===baseline.width&&orbit.height===baseline.height,'SCREENSHOT_DIMENSIONS');
+    for(let i=0;i<baseline.rgba.length;i+=4){
+      if(Math.max(Math.abs(orbit.rgba[i]-baseline.rgba[i]),
+        Math.abs(orbit.rgba[i+1]-baseline.rgba[i+1]),
+        Math.abs(orbit.rgba[i+2]-baseline.rgba[i+2]))>=28)changed++;
+    }
+    check(changed>=500,'WEBGL_ORBIT_CHANGED_PIXELS');
+    report.orbitChangedPixels=changed;
+    report.webGlRendered=true;
+    report.result='PASS_GENERIC_ORIGINAL_WEBGL_ONLY';
+    report.phase='COMPLETE';
+  } catch(error) {
+    report.failure=String(error?.message||error).slice(0,600);
+    process.exitCode=1;
+  } finally {
+    write();
+    if(browser156)await browser156.close();
+    console.log(JSON.stringify(report));
+  }
+} else {
 const LOCAL=process.env.D1F_SERVICE_LOCAL_TEST==='1';
 const ORIGIN=LOCAL?'http://127.0.0.1:4321':'https://aapopihkala.fi';
 const variant=process.env.D1F_SERVICE_VARIANT??ROWS[0].variant,OUT='test-results/d1f-service';
@@ -82,3 +195,5 @@ try{
 finally{clearTimeout(deadline);write();if(browser)await browser.close();console.log(JSON.stringify(evidence));}
 
 
+
+}

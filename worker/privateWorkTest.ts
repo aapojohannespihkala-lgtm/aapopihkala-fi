@@ -741,6 +741,20 @@ const D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE = {
   expectedSha256: '14eed1eff91785682ac7d5c7cd0e9dec6b2ba053f41f539242e2ab120a29af51',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Presentation-only SOURCE156 source-preserving seven per-target perspective camera
+// scenes158..164, each with reversible wall2448 cutaway. Default scene156
+// and all original nodes/meshes/BIN remain unchanged. Existing ZIP on G2b
+// is immutable source; expectedSize/hash bind to its ONLY contained real GLB.
+// No source geometry, CURRENT, canonical, as-built or HUMAN_REVIEW promotion.
+const D1F_SOURCE156_SEVEN_CAMERA_CUTAWAY_CANDIDATE = {
+  id: 'd1f-source156-seven-camera-cutaway-20261019',
+  label: 'D1F source156 - seitsemän kohdenäkymää ja esityksellinen seinän piilotus - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/d1f-source156-seven-camera-cutaway-20261019.glb`,
+  objectKey: 'work-test/d1f-source156-seven-camera-cutaway-20261019.glb',
+  expectedSize: 9919356,
+  expectedSha256: '68318b8d41b7919f0afde842ca9d311d8612e2173ded5374c6cb76f118491782',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -765,6 +779,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_KPH_010204_ZIP_CANDIDATE,
   D1F_SHOWER_PHOTO_CANDIDATE,
   D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE,
+  D1F_SOURCE156_SEVEN_CAMERA_CUTAWAY_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
