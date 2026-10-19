@@ -6177,12 +6177,23 @@ const title = 'Private 3D viewer';
         canvas.dataset.p186dSchedulePdfDriveId = p186dSchedulePdfDriveId;
       };
 
+      // Source156 authentication belongs to the displayed model, never to the tab.
+      // Switching to CURRENT or another WORK_TEST must invalidate all old source flags.
+      const clearD1FSource156Identity = () => {
+        for (const key of Object.keys(canvas.dataset)) {
+          if (key.startsWith('d1fSource156')) delete canvas.dataset[key];
+        }
+      };
+
       const applyLoadedModel = (
         gltf: any,
         sourceKind: ModelSourceKind,
         sourceLabel: string,
         dInteriorOverride: THREE.Object3D | null = null,
       ) => {
+        clearD1FSource156Identity();
+        // A successful initial one-link autoload is not evidence for a later model.
+        delete canvas.dataset.workTestReviewAutoload;
         d1fService?.dispose();
         d1fService = null;
         p186ePixelRuntime?.dispose();
