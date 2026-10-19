@@ -93,7 +93,7 @@ test('alpha-only changes or fewer than 96 RGB pixels do not prove original visib
 test('restore must reject a still-hidden 96-pixel original and any residual above eight RGB pixels',()=>{
   const mk=()=>({width:120,height:120,rgba:new Uint8Array(120*120*4).fill(45)});
   const baseline=mk();
-  const difference=(count)=>{
+  const difference=(count: number)=>{
     const frame=mk();
     for(let n=0;n<count;n++){
       const x=20+n%12,y=35+Math.floor(n/12),i=4*(y*120+x);
