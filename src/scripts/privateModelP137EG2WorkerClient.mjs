@@ -45,9 +45,17 @@ const noNestedPromotion = (value, seen = new WeakSet(), depth = 0) => {
   seen.delete(value);
   return true;
 };
+// The current native G2 projector exposes five D1F identities only.
+// Also constrain observation writes/readbacks, not just the /targets response.
+// A future 2F source must expand this contract explicitly, not silently.
+const sourceBoundAnchor = anchor => object(anchor) &&
+  NATIVE_G2_TARGET_IDS.includes(anchor.targetId) &&
+  anchor.floor === '1F' &&
+  (anchor.coordinateFrame === undefined ||
+   anchor.coordinateFrame === 'YLIS-G1-LOCAL');
 const isWorkTest = p => object(p) &&
   p.kind === 'P137E_G2_REVIEW_OBSERVATION' &&
-  p.stage === 'WORK_TEST_ONLY' && object(p.anchor) &&
+  p.stage === 'WORK_TEST_ONLY' && sourceBoundAnchor(p.anchor) &&
   object(p.observation) && object(p.resolution) &&
   p.persisted === false && p.humanReview === 'NOT_RUN' &&
   p.currentGeometry === false && p.canonical === false && p.asBuilt === false &&
