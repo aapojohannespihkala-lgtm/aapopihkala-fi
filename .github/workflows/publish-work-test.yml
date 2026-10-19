@@ -67,8 +67,12 @@ jobs:
               raise SystemExit("invalid WORK_TEST candidate id")
 
           entry = candidates.get(candidate_id)
-          if not isinstance(entry, dict) or set(entry) != {"driveFileId"}:
+          if not isinstance(entry, dict) or not ({"driveFileId"} <= set(entry) <= {"driveFileId", "extractScene"}):
               raise SystemExit("Unsupported WORK_TEST candidate")
+          # Optional: publish one scene of the Drive GLB as the only/default scene.
+          extract_scene = entry.get("extractScene", "")
+          if extract_scene != "" and (not isinstance(extract_scene, int) or isinstance(extract_scene, bool) or extract_scene < 0):
+              raise SystemExit("invalid WORK_TEST extractScene")
 
           drive_file_id = entry.get("driveFileId")
           if not isinstance(drive_file_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{10,128}", drive_file_id):
@@ -104,6 +108,7 @@ jobs:
 
           values = {
               "DRIVE_FILE_ID": drive_file_id,
+              "EXTRACT_SCENE": str(extract_scene),
               "CANDIDATE_ID": candidate_id,
               "EXPECTED_PATH": f"/private-model/work-test/{candidate_id}.glb",
               "PUBLISH_URL": f"https://aapopihkala.fi/private-model/work-test/publish/{candidate_id}.glb",
@@ -116,7 +121,9 @@ jobs:
 
       - name: Verify GLB transport regression tests
         shell: bash
-        run: python3 tests/test-work-test-extract-one-glb.py -q
+        run: |
+          python3 tests/test-work-test-extract-one-glb.py -q
+          python3 tests/test-work-test-extract-scene.py -q
 
       - name: Require machine-auth configuration
         shell: bash
@@ -167,6 +174,13 @@ jobs:
           # GLB magic guard after ZIP extraction and before hashing/publishing.
           [[ "$(head -c 4 "$model")" == "glTF" ]] || { echo "GLB magic guard rejected extracted source" >&2; exit 1; }
           rm -f "$download"
+          if [[ -n "$EXTRACT_SCENE" ]]; then
+            # Deterministic single-scene extraction; geometry equality is proven
+            # before publishing, and the Worker still pins the exact output SHA.
+            python3 -I .github/scripts/work-test-extract-scene.py "$model" "$EXTRACT_SCENE" "$model.scene"
+            python3 -I .github/scripts/work-test-verify-scene-equal.py "$model" "$EXTRACT_SCENE" "$model.scene"
+            mv "$model.scene" "$model"
+          fi
           actual_size="$(stat -c '%s' "$model")"
           actual_sha="$(sha256sum "$model" | awk '{print $1}')"
 

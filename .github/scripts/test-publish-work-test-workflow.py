@@ -23,7 +23,10 @@ required = {
     "trusted main guard": '[[ "$GITHUB_REF" == "refs/heads/main" ]]',
     "trusted repository guard": '[[ "$GITHUB_REPOSITORY" == "aapojohannespihkala-lgtm/aapopihkala-fi" ]]',
     "registry envelope guard": 'set(payload) != {"version", "candidates"}',
-    "registry entry guard": 'set(entry) != {"driveFileId"}',
+    "registry entry guard": 'not ({"driveFileId"} <= set(entry) <= {"driveFileId", "extractScene"})',
+    "extract scene validation": 'raise SystemExit("invalid WORK_TEST extractScene")',
+    "extract scene step": 'python3 -I .github/scripts/work-test-extract-scene.py "$model" "$EXTRACT_SCENE" "$model.scene"',
+    "extract scene equality proof": 'python3 -I .github/scripts/work-test-verify-scene-equal.py "$model" "$EXTRACT_SCENE" "$model.scene"',
     "unsupported candidate deny": 'raise SystemExit("Unsupported WORK_TEST candidate")',
     "derived candidate id": '"CANDIDATE_ID": candidate_id',
     "derived expected path": '"EXPECTED_PATH": f"/private-model/work-test/{candidate_id}.glb"',
@@ -104,8 +107,12 @@ drive_ids = []
 for candidate_id, entry in candidates.items():
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,127}", candidate_id):
         raise SystemExit(f"invalid candidate id in registry: {candidate_id!r}")
-    if not isinstance(entry, dict) or set(entry) != {"driveFileId"}:
-        raise SystemExit(f"candidate registry entry must contain only driveFileId: {candidate_id}")
+    if not isinstance(entry, dict) or not ({"driveFileId"} <= set(entry) <= {"driveFileId", "extractScene"}):
+        raise SystemExit(f"candidate registry entry must contain driveFileId and optional extractScene only: {candidate_id}")
+    if "extractScene" in entry and (
+        not isinstance(entry["extractScene"], int) or isinstance(entry["extractScene"], bool) or entry["extractScene"] < 0
+    ):
+        raise SystemExit(f"invalid extractScene in registry: {candidate_id}")
     drive_file_id = entry.get("driveFileId")
     if not isinstance(drive_file_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{10,128}", drive_file_id):
         raise SystemExit(f"invalid Drive file id in registry: {candidate_id}")
