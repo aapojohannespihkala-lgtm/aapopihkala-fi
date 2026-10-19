@@ -2105,6 +2105,11 @@ const title = 'Private 3D viewer';
       import {
         getRequestedReviewCandidateId as getRequestedReviewCandidateIdFromSearch,
         d1fSource156SevenCutawayCandidateId,
+        d1fSource156FloorBCandidateId,
+        d1fSource156FloorBSha256,
+        d1fSource156FloorBSceneKeys,
+        d1fSource156FloorBSceneNames,
+        getD1FSource156FloorBSceneRequest,
         d1fSource156SevenCutawaySha256,
         d1fSource156SevenCutawaySceneKeys,
         getD1FSource156SevenCutawaySceneRequest,
@@ -9913,6 +9918,97 @@ const title = 'Private 3D viewer';
         return { gltf, sha, requested, sourceCamera };
       };
 
+      // Exact source-bound combined floor/B WORK_TEST scenes165..174.
+      // Do not treat the 100-vs-104 mm floor pitch or +/-25 mm B faces as
+      // field measurements, CURRENT/asBuilt, WebGL-pixel proof, or user review.
+      const loadD1FSource156FloorBExactReview = async (
+        candidate: WorkTestCandidate, loader: GLTFLoader,
+      ) => {
+        const requested = getD1FSource156FloorBSceneRequest(window.location.search);
+        if (!requested) return null;
+        const id = d1fSource156FloorBCandidateId;
+        const expectedPath = '/private-model/work-test/' + id + '.glb';
+        if (candidate.id !== id || candidate.path !== expectedPath)
+          throw new Error('D1F_SOURCE156_FLOOR_B_CANDIDATE_MISMATCH');
+        const response = await fetch(expectedPath, {
+          credentials: 'same-origin', mode: 'same-origin', redirect: 'error',
+          cache: 'no-store', headers: { Accept: 'model/gltf-binary' },
+        });
+        if (response.status !== 200 || response.redirected ||
+            response.url !== new URL(expectedPath, window.location.origin).href)
+          throw new Error('D1F_SOURCE156_FLOOR_B_UNTRUSTED_RESPONSE');
+        const raw = await response.arrayBuffer();
+        if (!crypto.subtle || raw.byteLength !== 10112304)
+          throw new Error('D1F_SOURCE156_FLOOR_B_SIZE_OR_CRYPTO');
+        const sha = Array.from(new Uint8Array(
+          await crypto.subtle.digest('SHA-256', raw)),
+          b => b.toString(16).padStart(2, '0')).join('');
+        if (sha !== d1fSource156FloorBSha256)
+          throw new Error('D1F_SOURCE156_FLOOR_B_SHA_MISMATCH');
+        const view = new DataView(raw);
+        if (view.getUint32(0, true) !== 0x46546c67 ||
+            view.getUint32(4, true) !== 2 ||
+            view.getUint32(8, true) !== raw.byteLength ||
+            view.getUint32(16, true) !== 0x4e4f534a)
+          throw new Error('D1F_SOURCE156_FLOOR_B_INVALID_GLB');
+        const jsonLength = view.getUint32(12, true);
+        if (jsonLength < 100 || jsonLength % 4 !== 0 ||
+            jsonLength + 20 > raw.byteLength)
+          throw new Error('D1F_SOURCE156_FLOOR_B_JSON_BOUNDS');
+        const json = JSON.parse(new TextDecoder().decode(
+          new Uint8Array(raw, 20, jsonLength)));
+        if (json.asset?.version !== '2.0' || json.scene !== 156 ||
+            json.scenes?.length !== 175 || json.cameras?.length !== 8 ||
+            json.nodes?.length !== 3040 ||
+            !Array.isArray(json.scenes?.[156]?.nodes))
+          throw new Error('D1F_SOURCE156_FLOOR_B_SOURCE_IDENTITY');
+        // Authenticate ALL ten original scene and camera bindings, even
+        // for a request that selects only one; no generated camera shortcuts.
+        for (const [indexText, key] of Object.entries(d1fSource156FloorBSceneKeys)) {
+          const index = Number(indexText);
+          const name = d1fSource156FloorBSceneNames[
+            index as keyof typeof d1fSource156FloorBSceneNames];
+          const cameraNodeIndex = index <= 171 ? 2994 + index - 165 : 3036;
+          const expectedCamera = index <= 171 ? index - 165 : 7;
+          const expectedCameraName = index <= 171
+            ? 'PRESENTATION_CAMERA_' + key
+            : 'WORK_TEST_KPH07_B_CAMERA_EXACT_REFERENCE_VIEW';
+          const expectedFov = (index <= 171 ? 50 : 45) * Math.PI / 180;
+          const scene = json.scenes?.[index];
+          const node = json.nodes?.[cameraNodeIndex];
+          const gltfCamera = json.cameras?.[expectedCamera];
+          if (scene?.name !== name ||
+              !scene.nodes?.includes(cameraNodeIndex) ||
+              node?.name !== expectedCameraName ||
+              node?.camera !== expectedCamera ||
+              gltfCamera?.type !== 'perspective' ||
+              Math.abs(gltfCamera.perspective?.yfov - expectedFov) > 1e-8)
+            throw new Error('D1F_SOURCE156_FLOOR_B_CAMERA_SOURCE_MISMATCH');
+        }
+        const gltf = await loader.parseAsync(raw, expectedPath.replace(/[^/]+$/, ''));
+        if (gltf.scenes?.length !== 175 || !gltf.scenes[requested.index] ||
+            gltf.scenes[requested.index].children.length === 0)
+          throw new Error('D1F_SOURCE156_FLOOR_B_SCENE_NOT_RENDERABLE');
+        gltf.scene = gltf.scenes[requested.index];
+        let sourceCamera: THREE.PerspectiveCamera | null = null;
+        if (requested.key) {
+          const cameras: THREE.PerspectiveCamera[] = [];
+          gltf.scene.traverse((obj: THREE.Object3D) => {
+            if (obj instanceof THREE.PerspectiveCamera) cameras.push(obj);
+          });
+          const expectedName = requested.index <= 171
+            ? 'PRESENTATION_CAMERA_' + requested.key
+            : 'WORK_TEST_KPH07_B_CAMERA_EXACT_REFERENCE_VIEW';
+          const expectedFov = requested.index <= 171 ? 50 : 45;
+          if (cameras.length !== 1 ||
+              cameras[0].name !== expectedName ||
+              Math.abs(cameras[0].fov - expectedFov) > 0.001)
+            throw new Error('D1F_SOURCE156_FLOOR_B_PARSED_CAMERA_MISMATCH');
+          sourceCamera = cameras[0];
+        }
+        return { gltf, sha, requested, sourceCamera };
+      };
+
       const loadWorkTestCandidate = async (candidate: WorkTestCandidate) => {
         delete canvas.dataset.p137eLoadedCandidateId;
         p137ePlaceToolButton.disabled = true;
@@ -9975,7 +10071,9 @@ const title = 'Private 3D viewer';
             : null;
           const d1fSevenCutawayReview =
             await loadD1FSource156SevenCutawayExactReview(candidate, loader);
-          const gltf = d1fSevenCutawayReview?.gltf ?? d1fSource156Review?.gltf ?? d1fScene150Review?.gltf ?? r1125NumberedReview?.gltf ?? serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikWindingReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
+          const d1fFloorBReview =
+            await loadD1FSource156FloorBExactReview(candidate, loader);
+          const gltf = d1fFloorBReview?.gltf ?? d1fSevenCutawayReview?.gltf ?? d1fSource156Review?.gltf ?? d1fScene150Review?.gltf ?? r1125NumberedReview?.gltf ?? serviceModel?.gltf ?? showerPhotoReview?.gltf ?? odensvikWindingReview?.gltf ?? odensvikReview?.gltf ?? combinedWallReview?.gltf ?? (verifiedP137EOriginal
             ? await loader.parseAsync(
                 isP137EThreeCornerMeasuredReviewRequested()
                   ? makeP137EThreeCornerMeasuredWorkTest(verifiedP137EOriginal)
@@ -10262,6 +10360,53 @@ const title = 'Private 3D viewer';
               d1fSource156CutawayCurrent: 'false',
               d1fSource156CutawayCanonical: 'false',
               d1fSource156CutawayAsBuilt: 'false',
+            });
+          }
+
+          if (d1fFloorBReview) {
+            const selected = d1fFloorBReview;
+            // Camera identity proves source and view only. It does not prove
+            // target WebGL RGB visibility or authorize HUMAN_REVIEW.
+            if (selected.sourceCamera) {
+              selected.gltf.scene.updateWorldMatrix(true, true);
+              const worldEye = new THREE.Vector3();
+              const worldQuaternion = new THREE.Quaternion();
+              selected.sourceCamera.getWorldPosition(worldEye);
+              selected.sourceCamera.getWorldQuaternion(worldQuaternion);
+              const worldLook = new THREE.Vector3(0, 0, -1)
+                .applyQuaternion(worldQuaternion).add(worldEye);
+              if (d1fSource156PreFocusCamera === null)
+                d1fSource156PreFocusCamera = { fov: camera.fov, zoom: camera.zoom };
+              deactivateElevationView();
+              clearSelection();
+              activePlanFloor = null;
+              deactivateDCoordinateReview();
+              planControls.enabled = false;
+              isoControls.enabled = false;
+              controls.enableRotate = true;
+              activeCamera = camera;
+              setModelScene(fullModelScene);
+              syncViewState('orbit');
+              camera.up.set(0, 1, 0);
+              camera.fov = selected.sourceCamera.fov;
+              camera.zoom = 1;
+              camera.position.copy(worldEye);
+              controls.target.copy(worldLook);
+              camera.lookAt(worldLook);
+              camera.updateProjectionMatrix();
+              controls.update();
+            }
+            Object.assign(canvas.dataset, {
+              d1fSource156FloorBSha256: selected.sha,
+              d1fSource156FloorBSceneIndex: String(selected.requested.index),
+              d1fSource156FloorBTargetKey: selected.requested.key ?? 'default',
+              d1fSource156FloorBAuthenticated: 'true',
+              d1fSource156FloorBProductionPixelsVerified: 'false',
+              d1fSource156FloorBHumanReview: 'NOT_RUN',
+              d1fSource156FloorBCurrent: 'false',
+              d1fSource156FloorBCanonical: 'false',
+              d1fSource156FloorBAsBuilt: 'false',
+              d1fSource156FloorBMeasured: 'false',
             });
           }
           if (d1fSource156Review) {
