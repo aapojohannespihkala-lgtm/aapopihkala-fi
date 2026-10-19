@@ -7,7 +7,7 @@ import {
 
 const originalTargetSourceNodes=[2251,2583,2580,2499,2733,2773,2654];
 
-function fixture(): any {
+function fixture() {
   const roots=[2855,2615,2640,2653,2707,2771,2772];
   const wall={
     name:S.wallName,visible:true,
