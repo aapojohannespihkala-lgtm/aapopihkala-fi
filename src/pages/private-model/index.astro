@@ -6191,6 +6191,10 @@ const title = 'Private 3D viewer';
         sourceLabel: string,
         dInteriorOverride: THREE.Object3D | null = null,
       ) => {
+        (canvas as any).d1fSource156RestoreOriginalVisibility?.();
+        delete (canvas as any).d1fSource156SetOriginalVisibility;
+        delete (canvas as any).d1fSource156RestoreOriginalVisibility;
+        delete (canvas as any).d1fSource156RefreshOriginalProjection;
         clearD1FSource156Identity();
         // A successful initial one-link autoload is not evidence for a later model.
         delete canvas.dataset.workTestReviewAutoload;
@@ -9616,6 +9620,140 @@ const title = 'Private 3D viewer';
       const d1fSource156ReviewRequested = () =>
         new URLSearchParams(window.location.search).get('review') ===
           d1fSource156CandidateId + '-review';
+
+      // Source156 original-node screenshot isolation. A verified GLB is a
+      // prerequisite; this bridge is NOT a WebGL pixel PASS or human approval.
+      const createD1FSource156OriginalPixelIsolation = (gltf: any) => {
+        const json = gltf?.parser?.json;
+        const scene = gltf?.scene;
+        const associations = gltf?.parser?.associations;
+        const fail = (why: string): never => {
+          throw new Error('SOURCE156_ORIGINAL_TARGET_NOT_READY:' + why);
+        };
+        const roots = [2855, 2615, 2640, 2653, 2707, 2771, 2772];
+        if (json?.scene !== 156 || json.scenes?.length !== 158 ||
+            gltf.scenes?.[156] !== scene || typeof scene?.traverse !== 'function' ||
+            typeof associations?.get !== 'function' ||
+            JSON.stringify(json.scenes[156]?.nodes) !== JSON.stringify(roots) ||
+            json.nodes?.[2855]?.name !==
+              'SOURCE156_ROOM_MIRROR_CONDITIONAL_305MM_SOURCE_CLONE_2770_WORK_TEST' ||
+            json.nodes?.[2771]?.name !==
+              'TWO_HANDLE_SOURCE_EXACT_GLASS_REPLACEMENT_WORK_TEST_ONLY' ||
+            json.nodes?.[2772]?.name !==
+              'D1F_SHELF_PHOTO_RIGHT_SOURCE146_HOST_WORLD_Y_UP_UNSURVEYED')
+          fail('scene-identity');
+        const ids = (start: number, count: number) =>
+          Array.from({ length: count }, (_, i) => start + i);
+        const definitions = [
+          { key: 'mirror305', root: 2855, ids: ids(2583, 14) },
+          { key: 'wc', root: 2855, ids: [2251] },
+          { key: 'odensvik', root: 2855, ids: [2580, 2581, 2486] },
+          { key: 'bosch', root: 2855, ids: ids(2499, 27) },
+          { key: 'shower-glass-two-pulls', root: 2771, ids: ids(2733, 37) },
+          { key: 'white-shelf', root: 2772, ids: ids(2773, 17) },
+          { key: 'sauna-u', root: 2653, ids: ids(2654, 53) },
+        ];
+        const descendants = (root: number) => {
+          const seen = new Set<number>();
+          const remaining = [root];
+          while (remaining.length) {
+            const id = remaining.pop()!;
+            if (seen.has(id) || !json.nodes?.[id]) fail('missing-or-cyclic-node');
+            seen.add(id);
+            const children = json.nodes[id].children ?? [];
+            if (!Array.isArray(children)) fail('invalid-children');
+            remaining.push(...children);
+          }
+          return seen;
+        };
+        const validByRoot = new Map(roots.map(root => [root, descendants(root)]));
+        const all = definitions.flatMap(d => d.ids);
+        if (all.length !== 152 || new Set(all).size !== 152 ||
+            definitions.some(d => d.ids.some(id =>
+              !validByRoot.get(d.root)?.has(id) ||
+              typeof json.nodes[id]?.name !== 'string' ||
+              !Number.isInteger(json.nodes[id]?.mesh))))
+          fail('real-source-coverage');
+        const required = new Set(all);
+        const mapped = new Map<number, any>();
+        scene.traverse((object: any) => {
+          const id = associations.get(object)?.nodes;
+          if (!required.has(id)) return;
+          if (mapped.has(id)) fail('duplicate-source-node');
+          mapped.set(id, object);
+        });
+        if (mapped.size !== 152) fail('missing-source-actors');
+        const targets = new Map<string, any[]>();
+        for (const definition of definitions) {
+          const objects = definition.ids.map(id => mapped.get(id));
+          if (objects.some((object, i) => !object ||
+              object.name !== json.nodes[definition.ids[i]].name ||
+              object.visible !== true))
+            fail('object-name-or-visibility-' + definition.key);
+          targets.set(definition.key, objects);
+        }
+        let hidden: string | null = null;
+        const restore = () => {
+          if (hidden !== null) {
+            for (const object of targets.get(hidden)!) object.visible = true;
+            hidden = null;
+          }
+          return { activeHiddenCount: 0, productionPixelsVerified: false,
+            humanReview: 'NOT_RUN' };
+        };
+        const setSourceVisibility = (key: string, action: string) => {
+          if (!targets.has(key) || (action !== 'HIDE' && action !== 'RESTORE'))
+            fail('unknown-target-action');
+          const objects = targets.get(key)!;
+          if (action === 'HIDE') {
+            if (hidden !== null ||
+                [...targets.values()].some(group => group.some(o => o.visible !== true)))
+              fail('not-pristine');
+            for (const object of objects) object.visible = false;
+            hidden = key;
+          } else {
+            if (hidden !== key || objects.some(o => o.visible !== false))
+              fail('invalid-restore');
+            for (const object of objects) object.visible = true;
+            hidden = null;
+          }
+          return { key, action, sourceSceneIndex: 156,
+            activeHiddenCount: hidden === null ? 0 : 1,
+            productionPixelsVerified: false, humanReview: 'NOT_RUN' };
+        };
+        const projectSourceTargets = (THREE: typeof import('three'),
+          camera: THREE.Camera, imageWidth: number, imageHeight: number) => {
+          if (hidden !== null || !camera?.updateMatrixWorld ||
+              !Number.isInteger(imageWidth) || !Number.isInteger(imageHeight) ||
+              imageWidth < 128 || imageHeight < 128 ||
+              imageWidth * imageHeight > 16000000 ||
+              [...targets.values()].some(group => group.some(o => o.visible !== true)))
+            fail('not-ready-to-project');
+          scene.updateMatrixWorld(true);
+          camera.updateMatrixWorld(true);
+          (camera as THREE.PerspectiveCamera).updateProjectionMatrix?.();
+          const centers = [];
+          for (const [key, objects] of targets) {
+            const box = new THREE.Box3().makeEmpty();
+            for (const object of objects) box.expandByObject(object, true);
+            if (box.isEmpty()) fail('empty-source-bounds-' + key);
+            const p = box.getCenter(new THREE.Vector3()).project(camera);
+            if (![p.x, p.y, p.z].every(Number.isFinite))
+              fail('nonfinite-projection');
+            const u = (p.x + 1) / 2, v = (1 - p.y) / 2;
+            centers.push({ key, u, v,
+              x: Math.round(u * (imageWidth - 1)),
+              y: Math.round(v * (imageHeight - 1)),
+              onScreen: u >= 0 && u <= 1 && v >= 0 && v <= 1 &&
+                p.z >= -1 && p.z <= 1 });
+          }
+          return { sourceSceneIndex: 156, originalTargetCount: 7, centers,
+            productionPixelsVerified: false, humanReview: 'NOT_RUN' };
+        };
+        return { targets: definitions.map(d => ({ key: d.key, nodeIds: d.ids.slice() })),
+          restore, setSourceVisibility, projectSourceTargets };
+      };
+
       const loadD1FSource156ExactReview = async (candidate: WorkTestCandidate, loader: GLTFLoader) => {
         const expectedPath = '/private-model/work-test/' + d1fSource156CandidateId + '.glb';
         if (candidate.id !== d1fSource156CandidateId ||
@@ -9964,6 +10102,19 @@ const title = 'Private 3D viewer';
           applyLoadedModel(gltf, 'work-test', `WORK_TEST: ${candidate.label}`,
             serviceModel?.scene ?? combinedWallReview?.selected.scene ?? null);
           if (d1fSource156Review) {
+            try {
+              const isolation = createD1FSource156OriginalPixelIsolation(d1fSource156Review.gltf);
+              (canvas as any).d1fSource156SetOriginalVisibility = isolation.setSourceVisibility;
+              (canvas as any).d1fSource156RestoreOriginalVisibility = isolation.restore;
+              (canvas as any).d1fSource156RefreshOriginalProjection = () =>
+                isolation.projectSourceTargets(THREE, activeCamera, canvas.width, canvas.height);
+              canvas.dataset.d1fSource156OriginalTargetCount = '7';
+              canvas.dataset.d1fSource156PixelIsolationReady = 'true';
+            } catch (error) {
+              // The model remains viewable, but no per-object proof is available.
+              console.error(error);
+              canvas.dataset.d1fSource156PixelIsolationReady = 'false';
+            }
             Object.assign(canvas.dataset, {
               d1fSource156OriginalSha256: d1fSource156Review.sha,
               d1fSource156SceneIndex: '156',
