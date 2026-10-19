@@ -768,6 +768,19 @@ const D1F_SOURCE156_FLOOR_V02_B_SEVEN_CAMERA_CANDIDATE = {
   expectedSha256: 'a3ab1928ec415678b026513e95e88278b8983ff56b547a071186a63dbf1f6757',
 } as const satisfies PrivateWorkTestCandidate;
 
+// ONE already-persisted G2b noncanonical M5A+M5B+D1F shared systems
+// source-preserving 299-scene WORK_TEST; source scene65 remains default,
+// combined scene298 is presentation-only, NOT surveyed physical geometry.
+// No CURRENT/canonical/asBuilt/HUMAN_REVIEW promotion.
+const M5A_M5B_D1F_SHARED_299_BROAD_U_WORK_TEST_CANDIDATE = {
+  id: 'm5a-m5b-d1f-shared-systems-299-broad-u-20261019',
+  label: 'M5A salaojat + M5B kattovedet + D1F kylpyhuone - yhteinen 299 scene WORK_TEST - laaja U-laude, 2 IV ja 2 kaivoa (reunamitta)',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/m5a-m5b-d1f-shared-systems-299-broad-u-20261019.glb`,
+  objectKey: 'work-test/m5a-m5b-d1f-shared-systems-299-broad-u-20261019.glb',
+  expectedSize: 17692272,
+  expectedSha256: '3cdd511d9e559db534c9e9a0a8f8c378fa4c58eebbcc9f92b7a0d7181b99779b',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -794,6 +807,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   D1F_SCENE156_SOURCE_ROOM_WORK_TEST_CANDIDATE,
   D1F_SOURCE156_SEVEN_CAMERA_CUTAWAY_CANDIDATE,
   D1F_SOURCE156_FLOOR_V02_B_SEVEN_CAMERA_CANDIDATE,
+  M5A_M5B_D1F_SHARED_299_BROAD_U_WORK_TEST_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
