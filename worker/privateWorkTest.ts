@@ -827,6 +827,17 @@ const AUTO_YLISRINNE_D1F_KPH09_THEMO_KYTKINLINJA_WORK_TEST_SOURCE68_20261019_1I7
   expectedSha256: 'ae65fab043f4662926dc3b72fdb85d9e315a824b2074e5a3e339dd06c768ab40',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-20 from Drive queue file 1ECb-CHk91Hrqlm_y9vQLbyvQscxaJXqk
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_D1F_KPH09_KEINU_JA_KIERTO_WORK_TEST_20261020_1ECBCHK9_CANDIDATE = {
+  id: 'auto-ylisrinne-d1f-kph09-keinu-ja-kierto-work-test-20261020-1ecbchk9',
+  label: 'Auto: Ylisrinne D1F KPH09 KEINU JA KIERTO WORK TEST 20261020 (scene69) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-d1f-kph09-keinu-ja-kierto-work-test-20261020-1ecbchk9.glb`,
+  objectKey: 'work-test/auto-ylisrinne-d1f-kph09-keinu-ja-kierto-work-test-20261020-1ecbchk9.glb',
+  expectedSize: 122452,
+  expectedSha256: '0f8388e98717baeef3bad9f2e2f9a8c32b8e312bf3488250e4c17382cacf3b02',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -858,6 +869,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_KOKO_RAKENNUS_T12_TONTTIRAJA_KATTOLUUKKU1985_WORK_TEST_20261019_1QLW0IOG_CANDIDATE,
   AUTO_YLISRINNE_SALAOJAT_KOKO_JARJESTELMA_LOPPUKATSELMUS_WORK_TEST_20261020_1WVOUCZR_CANDIDATE,
   AUTO_YLISRINNE_D1F_KPH09_THEMO_KYTKINLINJA_WORK_TEST_SOURCE68_20261019_1I7YH3UN_CANDIDATE,
+  AUTO_YLISRINNE_D1F_KPH09_KEINU_JA_KIERTO_WORK_TEST_20261020_1ECBCHK9_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
