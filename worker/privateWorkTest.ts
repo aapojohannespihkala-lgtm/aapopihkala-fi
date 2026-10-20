@@ -1,3 +1,9 @@
+import {
+  applyPrivateGlbRevalidation,
+  privateGlbEtag,
+  privateGlbIfNoneMatchHits,
+  privateGlbNotModified,
+} from './privateGlbRevalidation';
 // @ts-ignore - immutable source identity shared with the viewer.
 import { D1F_SERVICE_ASSET, D1F_SERVICE_PREVIOUS, D1F_SERVICE_CENTERED, D1F_SERVICE_CLOSED_LID_450 } from '../src/scripts/privateModelD1FServiceContract.mjs';
 // @ts-ignore - immutable 124-scene D1F shower WORK_TEST identity.
@@ -1391,6 +1397,7 @@ const privateWorkTestCandidateResponse = async (
   request: Request,
   bucket: PrivateWorkTestBucket,
   candidate: PrivateWorkTestCandidate,
+  revalidate = false,
 ): Promise<Response> => {
   const object = await bucket.get(candidate.objectKey);
 
@@ -1401,10 +1408,19 @@ const privateWorkTestCandidateResponse = async (
 
   const headers = privateHeaders();
   object.writeHttpMetadata?.(headers);
+  // Viewer route only: the SHA-pinned candidate is a strong validator, so the
+  // signed-in browser may keep a private copy and revalidate it (304).
+  const etag = revalidate ? privateGlbEtag(candidate.expectedSha256) : null;
+  if (etag) {
+    applyPrivateGlbRevalidation(headers, etag);
+    if (privateGlbIfNoneMatchHits(request, etag)) return privateGlbNotModified(headers, etag, object.body);
+  } else {
+    headers.set('Cache-Control', 'private, no-store');
+  }
   headers.set('Content-Type', 'model/gltf-binary');
   headers.set('Content-Disposition', 'inline');
   headers.set('Content-Length', String(candidate.expectedSize));
-  if (object.etag) headers.set('ETag', object.etag);
+  if (!etag && object.etag) headers.set('ETag', object.etag);
 
   return new Response(request.method === 'HEAD' ? null : object.body, {
     status: 200,
@@ -1534,7 +1550,7 @@ export const handlePrivateWorkTestRequest = async (
   const candidate = getPrivateWorkTestCandidate(pathname);
   if (!candidate) return notFound();
 
-  return privateWorkTestCandidateResponse(request, bucket, candidate);
+  return privateWorkTestCandidateResponse(request, bucket, candidate, true);
 };
 
 

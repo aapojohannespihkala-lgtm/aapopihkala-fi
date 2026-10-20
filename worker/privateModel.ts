@@ -1,3 +1,10 @@
+import {
+  applyPrivateGlbRevalidation,
+  privateGlbEtag,
+  privateGlbIfNoneMatchHits,
+  privateGlbNotModified,
+} from './privateGlbRevalidation';
+
 type AssetsBinding = { fetch(request: Request): Promise<Response> };
 
 type PrivateModelObject = {
@@ -511,10 +518,19 @@ export const handlePrivateModelRequest = async (
 
     const headers = privateHeaders();
     object.writeHttpMetadata?.(headers);
+    // The published CURRENT GLB carries its SHA-256: a strong validator, so the
+    // signed-in browser may keep a private copy and revalidate it (304).
+    const etag = privateGlbEtag(object.customMetadata?.sha256);
+    if (etag) {
+      applyPrivateGlbRevalidation(headers, etag);
+      if (privateGlbIfNoneMatchHits(request, etag)) return privateGlbNotModified(headers, etag, object.body);
+    } else {
+      headers.set('Cache-Control', 'private, no-store');
+    }
     headers.set('Content-Type', 'model/gltf-binary');
     headers.set('Content-Disposition', 'inline');
     if (typeof object.size === 'number') headers.set('Content-Length', String(object.size));
-    if (object.etag) headers.set('ETag', object.etag);
+    if (!etag && object.etag) headers.set('ETag', object.etag);
 
     return new Response(request.method === 'HEAD' ? null : object.body, {
       status: 200,
