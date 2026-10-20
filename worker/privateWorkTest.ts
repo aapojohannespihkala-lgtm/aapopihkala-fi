@@ -855,6 +855,17 @@ const AUTO_YLISRINNE_SHARED301_KPH09_ROCKER_ROTARY_USER_TOP1020_WORK_TEST_202610
   expectedSha256: 'f6fe60721af16b478b40452ac89207c71ac980023990aace8d5bda2d204d25d7',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-20 from Drive queue file 1hiDRKmiwITXCUQHVnyRODgjC6mjHRXdh
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_SHARED302_KPH09_PHOTO_PROPORTIONS_WORK_TEST_20261020_1HIDRKMI_CANDIDATE = {
+  id: 'auto-ylisrinne-shared302-kph09-photo-proportions-work-test-20261020-1hidrkmi',
+  label: 'Auto: Ylisrinne SHARED302 KPH09 photo proportions WORK TEST 20261020 (scene301) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-shared302-kph09-photo-proportions-work-test-20261020-1hidrkmi.glb`,
+  objectKey: 'work-test/auto-ylisrinne-shared302-kph09-photo-proportions-work-test-20261020-1hidrkmi.glb',
+  expectedSize: 1792816,
+  expectedSha256: '94ce14fe308a1591db31a72a0db01f5fdcb125865c95d117377fd9f7d1f4d6dd',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -888,6 +899,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D1F_KPH09_THEMO_KYTKINLINJA_WORK_TEST_SOURCE68_20261019_1I7YH3UN_CANDIDATE,
   AUTO_YLISRINNE_D1F_KPH09_KEINU_JA_KIERTO_WORK_TEST_20261020_1ECBCHK9_CANDIDATE,
   AUTO_YLISRINNE_SHARED301_KPH09_ROCKER_ROTARY_USER_TOP1020_WORK_TEST_20261020_1DYF7YBK_CANDIDATE,
+  AUTO_YLISRINNE_SHARED302_KPH09_PHOTO_PROPORTIONS_WORK_TEST_20261020_1HIDRKMI_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
