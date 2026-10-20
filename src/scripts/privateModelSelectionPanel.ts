@@ -2,6 +2,22 @@ import {
   formatSelectionMetadataKey,
   type SelectionMetadataEntry,
 } from './privateModelSelectionMetadata';
+import { viewerBoundsToYlis, type CartesianLike } from './privateModelAiNavigator';
+
+const formatMetersFi = (value: number) => (Math.abs(value) < 0.005 ? 0 : value).toFixed(2).replace('.', ',');
+
+/**
+ * Axis-aligned YLIS-G1-LOCAL extent of a selection from viewer world bounds
+ * (viewer x = X, -z = Y, y = Z, metres). Model geometry, not a site measurement.
+ */
+export const formatSelectionDimensionsFi = (min: CartesianLike, max: CartesianLike) => {
+  const bounds = viewerBoundsToYlis(min, max);
+  const dx = bounds.max.x - bounds.min.x;
+  const dy = bounds.max.y - bounds.min.y;
+  const dz = bounds.max.z - bounds.min.z;
+  if (![dx, dy, dz].every(Number.isFinite)) return null;
+  return `X ${formatMetersFi(dx)} × Y ${formatMetersFi(dy)} × Z ${formatMetersFi(dz)} m · Z ${formatMetersFi(bounds.min.z)}…${formatMetersFi(bounds.max.z)}`;
+};
 
 type SelectionPanelElements = {
   canvas: HTMLElement;
@@ -12,6 +28,7 @@ type SelectionPanelElements = {
   floor: HTMLElement;
   kind: HTMLElement;
   physicalClaim: HTMLElement;
+  dimensions?: HTMLElement;
   metadataList: HTMLElement;
   metadataEmpty: HTMLElement;
 };
@@ -23,6 +40,7 @@ export type SelectionPanelContent = {
   floor: string;
   kind: string;
   physicalClaim: string;
+  dimensions?: string;
   metadataEntries: SelectionMetadataEntry[];
 };
 
@@ -94,6 +112,7 @@ export const createSelectionPanelController = ({
   floor,
   kind,
   physicalClaim,
+  dimensions,
   metadataList,
   metadataEmpty,
 }: SelectionPanelElements) => {
@@ -114,6 +133,8 @@ export const createSelectionPanelController = ({
     floor.textContent = '-';
     kind.textContent = '-';
     physicalClaim.textContent = '-';
+    if (dimensions) dimensions.textContent = '-';
+    delete canvas.dataset.selectionDimensions;
     clearMetadata();
   };
 
@@ -124,6 +145,7 @@ export const createSelectionPanelController = ({
     floor: floorText,
     kind: kindText,
     physicalClaim: physicalClaimText,
+    dimensions: dimensionsText,
     metadataEntries,
   }: SelectionPanelContent) => {
     mesh.textContent = meshText;
@@ -132,6 +154,9 @@ export const createSelectionPanelController = ({
     floor.textContent = floorText;
     kind.textContent = kindText;
     physicalClaim.textContent = physicalClaimText;
+    if (dimensions) dimensions.textContent = dimensionsText ?? '-';
+    if (dimensionsText) canvas.dataset.selectionDimensions = dimensionsText;
+    else delete canvas.dataset.selectionDimensions;
 
     metadataList.replaceChildren();
     metadataEmpty.hidden = metadataEntries.length > 0;
