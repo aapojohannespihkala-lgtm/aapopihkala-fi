@@ -51,6 +51,21 @@ const isPreview = mode === 'preview';
       const WIDGET_CACHE_KEY = 'current-widget-v2-prod:last-good';
       const RETRY_DELAY_MS = 60_000;
       const REQUEST_TIMEOUT_MS = 12_000;
+      const MAX_READY_AGE_MS = 10 * 60_000;
+      const FUTURE_CLOCK_SKEW_MS = 60_000;
+
+      const generatedAtMs = (value) => {
+        if (typeof value?.generatedAt !== 'string') return null;
+        const timestamp = Date.parse(value.generatedAt);
+        return Number.isFinite(timestamp) ? timestamp : null;
+      };
+
+      const isFreshPayload = (value) => {
+        const timestamp = generatedAtMs(value);
+        if (timestamp === null) return false;
+        const age = Date.now() - timestamp;
+        return age >= -FUTURE_CLOCK_SKEW_MS && age <= MAX_READY_AGE_MS;
+      };
 
       const isUsablePayload = (value) =>
         value &&
@@ -556,11 +571,21 @@ const isPreview = mode === 'preview';
           const serverFallback = response.headers.get('x-widget-fallback') === 'last-known-good';
           const nextPayload = await response.json();
           if (!isUsablePayload(nextPayload)) throw new Error('invalid widget payload');
-          payload = nextPayload;
-          storeCachedPayload(payload);
+          // A successful HTTP response can still contain hours-old edge data.
+          // Never replace a newer last-good payload with an older response.
+          const cachedPayload = readCachedPayload();
+          const cachedAt = generatedAtMs(cachedPayload);
+          const receivedAt = generatedAtMs(nextPayload);
+          const preferCached = cachedAt !== null &&
+            cachedAt <= Date.now() + FUTURE_CLOCK_SKEW_MS &&
+            (receivedAt === null || cachedAt > receivedAt);
+          payload = preferCached ? cachedPayload : nextPayload;
+          if (!serverFallback && !preferCached && isFreshPayload(payload)) {
+            storeCachedPayload(payload);
+          }
           render();
 
-          if (serverFallback) {
+          if (serverFallback || preferCached || !isFreshPayload(payload)) {
             if (root) root.dataset.loadState = 'stale';
             if (status) status.textContent = 'Using server-cached widget data';
             const footerStatus = widget?.querySelector('[data-footer-status]');
