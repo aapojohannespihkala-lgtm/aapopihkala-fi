@@ -214,6 +214,26 @@ const title = 'Private 3D viewer';
         min-width: 280px;
       }
 
+      .work-test-filter {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 30px;
+        padding: 4px 8px;
+        border: 1px solid #d7d7d2;
+        border-radius: 6px;
+        font: inherit;
+        font-size: 13px;
+      }
+
+      .work-test-count {
+        color: #555853;
+        font-size: 11px;
+      }
+
+      .work-test-count:empty {
+        display: none;
+      }
+
       .more-menu > summary {
         min-width: 36px;
         justify-content: center;
@@ -1291,7 +1311,9 @@ const title = 'Private 3D viewer';
       .toolbar-menu > summary,
       button,
       .layer-select select,
-      .profile-controls select {
+      .profile-controls select,
+      .source-menu .toolbar-menu-panel select,
+      .work-test-filter {
         border-color: var(--viewer-line);
         background: var(--viewer-bar);
         color: var(--viewer-ink);
@@ -1333,6 +1355,7 @@ const title = 'Private 3D viewer';
       }
 
       .toolbar-menu-label,
+      .work-test-count,
       .layer-opacity,
       .layer-count,
       .layer-select,
@@ -1538,6 +1561,16 @@ const title = 'Private 3D viewer';
             <span id="model-source-badge" class="model-source-badge" data-kind="current">CURRENT</span>
           </summary>
           <div class="toolbar-menu-panel" aria-label="Malliversion valinta">
+            <input
+              id="work-test-filter"
+              class="work-test-filter"
+              type="search"
+              placeholder="Suodata versioita (esim. scene68, D1F)"
+              aria-label="Suodata WORK_TEST-versioita"
+              autocomplete="off"
+              disabled
+            />
+            <div id="work-test-count" class="work-test-count" aria-live="polite"></div>
             <select id="work-test-select" aria-label="WORK_TEST-kandidaatti" disabled>
               <option value="">WORK_TEST ei saatavilla</option>
             </select>
@@ -1817,6 +1850,8 @@ const title = 'Private 3D viewer';
             <dd id="selection-kind">-</dd>
             <dt>Fyysinen väite</dt>
             <dd id="selection-physical-claim">-</dd>
+            <dt title="Akselinsuuntainen ulottuvuus YLIS-G1-LOCAL-koordinaatistossa. Mallista laskettu, ei tarkemittaus.">Mitat (malli)</dt>
+            <dd id="selection-dimensions">-</dd>
           </dl>
           <details class="selection-metadata">
             <summary>Metadata</summary>
@@ -1886,7 +1921,10 @@ const title = 'Private 3D viewer';
       import {
         selectionMetadataEntries as collectSelectionMetadataEntries,
       } from '../../scripts/privateModelSelectionMetadata';
-      import { createSelectionPanelController } from '../../scripts/privateModelSelectionPanel';
+      import {
+        createSelectionPanelController,
+        formatSelectionDimensionsFi,
+      } from '../../scripts/privateModelSelectionPanel';
       import { createSelectionHighlightController } from '../../scripts/privateModelSelectionHighlight';
       import {
         nearestNamedAncestor,
@@ -2214,6 +2252,11 @@ const title = 'Private 3D viewer';
         type WorkTestCandidate,
       } from '../../scripts/privateModelWorkTest';
       import {
+        groupWorkTestCandidatesForPicker,
+        workTestCandidateMatchesFilter,
+        workTestCandidateOptionText,
+      } from '../../scripts/privateModelWorkTestPicker';
+      import {
         getActiveM5AZ2SystemReviewId,
         getUndrawableM5AZ2TargetKeys,
         getRequestedM5AZ2SystemCandidateId,
@@ -2266,6 +2309,8 @@ const title = 'Private 3D viewer';
       const axisMeasureOutput = document.querySelector<HTMLElement>('#axis-measure-output');
       const profileButton = document.querySelector<HTMLButtonElement>('#profile-button');
       const workTestSelect = document.querySelector<HTMLSelectElement>('#work-test-select');
+      const workTestFilter = document.querySelector<HTMLInputElement>('#work-test-filter');
+      const workTestCount = document.querySelector<HTMLElement>('#work-test-count');
       const workTestButton = document.querySelector<HTMLButtonElement>('#work-test-button');
       const compareModelButton = document.querySelector<HTMLButtonElement>('#compare-model-button');
       const workTestUploadButton = document.querySelector<HTMLButtonElement>('#work-test-upload-button');
@@ -2368,6 +2413,7 @@ const title = 'Private 3D viewer';
       const selectionFloor = document.querySelector<HTMLElement>('#selection-floor');
       const selectionKind = document.querySelector<HTMLElement>('#selection-kind');
       const selectionPhysicalClaim = document.querySelector<HTMLElement>('#selection-physical-claim');
+      const selectionDimensions = document.querySelector<HTMLElement>('#selection-dimensions');
       const selectionMetadataList = document.querySelector<HTMLElement>('#selection-metadata-list');
       const selectionMetadataEmpty = document.querySelector<HTMLElement>('#selection-metadata-empty');
       const clearSelectionButton = document.querySelector<HTMLButtonElement>('#clear-selection-button');
@@ -2413,6 +2459,8 @@ const title = 'Private 3D viewer';
         !p137eG2Status ||
         !profileButton ||
         !workTestSelect ||
+        !workTestFilter ||
+        !workTestCount ||
         !workTestButton ||
         !compareModelButton ||
         !workTestUploadButton ||
@@ -2507,6 +2555,7 @@ const title = 'Private 3D viewer';
         floor: selectionFloor,
         kind: selectionKind,
         physicalClaim: selectionPhysicalClaim,
+        dimensions: selectionDimensions ?? undefined,
         metadataList: selectionMetadataList,
         metadataEmpty: selectionMetadataEmpty,
       });
@@ -4461,6 +4510,10 @@ const title = 'Private 3D viewer';
           floor: semantics.storey,
           kind: semantics.statusLabelFi,
           physicalClaim: semantics.physicalClaimLabelFi,
+          dimensions: (() => {
+            const bounds = computeVisibleBounds(object, true);
+            return bounds ? formatSelectionDimensionsFi(bounds.min, bounds.max) ?? undefined : undefined;
+          })(),
           metadataEntries: [
             ...technicalMetadata,
             ...collectSelectionMetadataEntries(object, modelRoot),
@@ -6891,8 +6944,59 @@ const title = 'Private 3D viewer';
         delete canvas.dataset.workTestUploadCandidate;
       };
 
+      let workTestCatalogList: WorkTestCandidate[] = [];
+
+      // Newest-first grouped options. The currently selected version always
+      // stays in the list so a filter can never silently change the selection.
+      const renderWorkTestOptions = (preferredId: string | null) => {
+        const filter = workTestFilter.value;
+        const groups = groupWorkTestCandidatesForPicker(workTestCatalogList);
+        const ordered = groups.flatMap((group) => group.candidates);
+        const keepId = preferredId && workTestCandidates.has(preferredId) ? preferredId : null;
+        workTestSelect.replaceChildren();
+        let shown = 0;
+        let firstShownId: string | null = null;
+
+        for (const group of groups) {
+          const visible = group.candidates.filter(
+            (candidate) => candidate.id === keepId || workTestCandidateMatchesFilter(candidate, filter),
+          );
+          if (visible.length === 0) continue;
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = group.label;
+          for (const candidate of visible) {
+            const option = document.createElement('option');
+            option.value = candidate.id;
+            option.textContent = workTestCandidateOptionText(candidate);
+            option.title = candidate.label;
+            optgroup.append(option);
+            if (!firstShownId) firstShownId = candidate.id;
+            if (candidate.id !== keepId || workTestCandidateMatchesFilter(candidate, filter)) shown += 1;
+          }
+          workTestSelect.append(optgroup);
+        }
+
+        const total = ordered.length;
+        workTestCount.textContent = filter.trim()
+          ? `${shown} / ${total} versiota vastaa suodatusta`
+          : `${total} versiota, uusin ensin`;
+        canvas.dataset.workTestVisibleCount = String(shown);
+
+        const nextId = keepId ?? firstShownId ?? ordered[0]?.id ?? '';
+        workTestSelect.value = nextId;
+        return workTestSelect.value;
+      };
+
+      const selectWorkTestOption = (candidateId: string) => {
+        if (!workTestCandidates.has(candidateId)) return;
+        renderWorkTestOptions(candidateId);
+        workTestSelect.value = candidateId;
+      };
+
       const setWorkTestCatalog = (candidates: WorkTestCandidate[]) => {
+        const previousId = workTestSelect.value || null;
         workTestCandidates = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+        workTestCatalogList = candidates;
         workTestSelect.replaceChildren();
         const reviewCandidateId = getRequestedReviewCandidateId();
 
@@ -6902,6 +7006,8 @@ const title = 'Private 3D viewer';
           option.textContent = 'Ei WORK_TEST-kandidaatteja';
           workTestSelect.append(option);
           workTestSelect.disabled = true;
+          workTestFilter.disabled = true;
+          workTestCount.textContent = '';
           workTestButton.disabled = true;
           compareModelButton.disabled = true;
           setWorkTestUploadFallback(reviewCandidateId);
@@ -6909,18 +7015,13 @@ const title = 'Private 3D viewer';
           return;
         }
 
-        for (const candidate of candidates) {
-          const option = document.createElement('option');
-          option.value = candidate.id;
-          option.textContent = candidate.label;
-          workTestSelect.append(option);
-        }
-
         workTestSelect.disabled = false;
+        workTestFilter.disabled = false;
         const reviewCandidate = reviewCandidateId
           ? workTestCandidates.get(reviewCandidateId)
           : null;
-        workTestSelect.value = reviewCandidate?.id ?? candidates[0].id;
+        // Review link wins; a catalog refresh keeps the user's choice; otherwise newest.
+        renderWorkTestOptions(reviewCandidate?.id ?? previousId);
         workTestButton.disabled = false;
         updateModelComparisonControls();
         canvas.dataset.workTestCatalog = 'ready';
@@ -12268,7 +12369,7 @@ const title = 'Private 3D viewer';
             throw new Error('WORK_TEST candidate missing after browser relay');
           }
 
-          workTestSelect.value = candidate.id;
+          selectWorkTestOption(candidate.id);
           workTestButton.disabled = false;
           setWorkTestUploadFallback(null);
           canvas.dataset.workTestRelay = 'ready';
@@ -12331,7 +12432,7 @@ const title = 'Private 3D viewer';
           const candidate = workTestCandidates.get(candidateId);
           if (!candidate) throw new Error('WORK_TEST candidate missing after upload');
 
-          workTestSelect.value = candidate.id;
+          selectWorkTestOption(candidate.id);
           workTestButton.disabled = false;
           setWorkTestUploadFallback(null);
           canvas.dataset.workTestUpload = 'ready';
@@ -12413,7 +12514,7 @@ const title = 'Private 3D viewer';
 
           if (!candidate) throw new Error('WORK_TEST candidate missing after import');
 
-          workTestSelect.value = candidate.id;
+          selectWorkTestOption(candidate.id);
           workTestButton.disabled = false;
           canvas.dataset.workTestImport = 'ready';
           await loadWorkTestCandidate(candidate);
@@ -12519,6 +12620,15 @@ const title = 'Private 3D viewer';
       workTestSelect.addEventListener('change', () => {
         workTestButton.disabled = !workTestCandidates.has(workTestSelect.value);
         clearModelComparisonState();
+      });
+      workTestFilter.addEventListener('input', () => {
+        const before = workTestSelect.value;
+        // Filtering narrows the list; keep the current choice only if it still matches.
+        const current = workTestCandidates.get(before);
+        const keep = current && workTestCandidateMatchesFilter(current, workTestFilter.value) ? before : null;
+        const after = renderWorkTestOptions(keep);
+        workTestButton.disabled = !workTestCandidates.has(after);
+        if (after !== before) clearModelComparisonState();
       });
       workTestButton.addEventListener('click', () => {
         const candidate = workTestCandidates.get(workTestSelect.value);
