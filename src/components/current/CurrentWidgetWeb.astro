@@ -580,7 +580,10 @@ const isPreview = mode === 'preview';
             cachedAt <= Date.now() + FUTURE_CLOCK_SKEW_MS &&
             (receivedAt === null || cachedAt > receivedAt);
           payload = preferCached ? cachedPayload : nextPayload;
-          if (!serverFallback && !preferCached && isFreshPayload(payload)) {
+          // Keep the newest usable response for a later network failure, even
+          // when the response itself is stale or marked as server fallback.
+          // Reject implausible future timestamps from the last-good cache.
+          if (!preferCached && (receivedAt === null || receivedAt <= Date.now() + FUTURE_CLOCK_SKEW_MS)) {
             storeCachedPayload(payload);
           }
           render();
