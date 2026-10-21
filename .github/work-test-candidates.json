@@ -260,6 +260,58 @@
     "auto-ylisrinne-t12-valoaukot-sourcelinks8-work-test-20261021-1aad4l4s": {
       "driveFileId": "1AaD4L-4SGxAe4Dss2cHKwRurtED-6rVV",
       "extractScene": 0
+    },
+    "auto-ylisrinne-t12-ac-tilatopologia36-work-test-20261021-1kdubcht": {
+      "driveFileId": "1KDUbcHtiMH82SQf118bGWldo_wQccRAW",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-shared302-kph09-m5b-sok-kulmat-sourcelinks-work-test-20261021-1l9nlrvn": {
+      "driveFileId": "1L9NlrvNzOYYbVehItgq5VFifB5hx00aB",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-salaojat-ring-r2-boundary-markers-sourcelinks-work-test-20261021-1nexuohv": {
+      "driveFileId": "1nEXuOHVREQcWULGST8SsXgOOkoVMT_m2",
+      "extractScene": 1
+    },
+    "auto-ylisrinne-shared302-peilikaappi-sourcelinks15-work-test-20261021-1whvauwz": {
+      "driveFileId": "1whVaUwZduxVDg42EMy2XnUDSswgR82s3",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-shared302-peilikaappi-seinalahde-work-test-20261021-1z6j7hrv": {
+      "driveFileId": "1z6J7hrV-xt4dburgqWume2f2i8rhunp3",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-d2015-iv-p145a-sourcelinks-work-test-20261021-184mv2hz": {
+      "driveFileId": "184mV2hzawCkaZOYYxrvNJAChjKUM02G5",
+      "extractScene": 35
+    },
+    "auto-ylisrinne-shared302-peilikaappi-sisainen-seinaviite-work-test-20261021-1bv68sdq": {
+      "driveFileId": "1BV68sDQUI-0KAVkfxvOvjWICi6Phk7yX",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-shared302-kph09-nordic3-3530-wc-komponentti-work-test-20261022-11o4zcxx": {
+      "driveFileId": "11O4zcXXoRx4S-oceCQuuwDupUwUYyBLj",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-shared302-kph09-nordic3-3530-wc-v2-work-test-20261022-1bovc16k": {
+      "driveFileId": "1bOvc16koTpbPwHImNiTgAbnPZ2h8tS-d",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-shared302-kph09-iv-kattoliitos-work-test-20261022-1mowkpit": {
+      "driveFileId": "1MOWkPIT_bGw7K9Lm_2p4kzsF2zGEmb4K",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-shared302-kph09-lasikaari-suunta-work-test-20261021-1x3wvdjs": {
+      "driveFileId": "1X3wVdJSzLa9lU4i_65K9JtjiegDj7lts",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-g3-2017-kvv-xy-source-lines-work-test-20261022-1eo3afqz": {
+      "driveFileId": "1Eo3afqzaJlccnJnUDpearNPApO3IE-1C",
+      "extractScene": 0
+    },
+    "auto-ylisrinne-shared302-sourcelinks6-metadata-only-old-kph-geometry-work-test-20261022-19ozajrd": {
+      "driveFileId": "19OzaJrdgQOr8sKI1CL_4uFM9qH3FT63T",
+      "extractScene": 0
     }
   }
 }
