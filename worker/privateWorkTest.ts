@@ -921,6 +921,17 @@ const AUTO_YLISRINNE_D2015_P186E_X1_ERILLISVIENTI_WORK_TEST_20261021_1LTFR1LY_CA
   expectedSha256: 'd09cb8dbd253a23adada353490379e8fdd83be4babb53f6f72741b3da7165346',
 } as const satisfies PrivateWorkTestCandidate;
 
+// Auto-registered 2026-10-21 from Drive queue file 1sNJ66tNEmKtV2pIJQVdYywD_ZWtq32bm
+// by auto-publish-work-test. WORK_TEST, never as-built.
+const AUTO_YLISRINNE_SHARED302_GLTF_RAKENNEKORJAUS_WORK_TEST_20261021_1SNJ66TN_CANDIDATE = {
+  id: 'auto-ylisrinne-shared302-gltf-rakennekorjaus-work-test-20261021-1snj66tn',
+  label: 'Auto: Ylisrinne SHARED302 GLTF RAKENNEKORJAUS WORK TEST 20261021 (scene0) - WORK_TEST',
+  path: `${PRIVATE_WORK_TEST_PREFIX}/auto-ylisrinne-shared302-gltf-rakennekorjaus-work-test-20261021-1snj66tn.glb`,
+  objectKey: 'work-test/auto-ylisrinne-shared302-gltf-rakennekorjaus-work-test-20261021-1snj66tn.glb',
+  expectedSize: 1802568,
+  expectedSha256: '04da121a089dba6df8ea9229edb92ed3e10d72bc9b53a427f29b06a232b0c6b1',
+} as const satisfies PrivateWorkTestCandidate;
+
 const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   ...PRIVATE_WORK_TEST_CANDIDATES,
   M5A_Z2D_D100_D300_DIAMETER_CANDIDATE,
@@ -960,6 +971,7 @@ const PRIVATE_WORK_TEST_RUNTIME_CANDIDATES = [
   AUTO_YLISRINNE_D2015_LATTIALAMMITYS_KAAPELIT_ABC_P186C_X2R_WORK_TEST_20261020_1TVD8O38_CANDIDATE,
   AUTO_YLISRINNE_D_TERASSI_WORK_TEST_20261020_1YOVLX2V_CANDIDATE,
   AUTO_YLISRINNE_D2015_P186E_X1_ERILLISVIENTI_WORK_TEST_20261021_1LTFR1LY_CANDIDATE,
+  AUTO_YLISRINNE_SHARED302_GLTF_RAKENNEKORJAUS_WORK_TEST_20261021_1SNJ66TN_CANDIDATE,
 ] as const satisfies readonly PrivateWorkTestCandidate[];
 
 type PrivateWorkTestObjectMetadata = {
