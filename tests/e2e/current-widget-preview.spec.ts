@@ -261,6 +261,7 @@ test('standalone web widget shows an explicit unavailable state when production 
 
 
 test('standalone web widget keeps the last good payload when production temporarily returns 503', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-09-14T09:31:00.000Z'));
   let fail = false;
 
   await page.route(/\/api\/current\/widget-v2\?channel=prod$/, async (route) => {

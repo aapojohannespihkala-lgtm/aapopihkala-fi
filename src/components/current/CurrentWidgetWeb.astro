@@ -585,9 +585,11 @@ const isPreview = mode === 'preview';
           }
           render();
 
-          if (serverFallback || preferCached || !isFreshPayload(payload)) {
+          if (serverFallback || preferCached || (!isPreview && !isFreshPayload(payload))) {
             if (root) root.dataset.loadState = 'stale';
-            if (status) status.textContent = 'Using server-cached widget data';
+            if (status) status.textContent = serverFallback
+              ? 'Using server-cached widget data'
+              : preferCached ? 'Using newer cached widget data' : 'Using stale widget data';
             const footerStatus = widget?.querySelector('[data-footer-status]');
             if (footerStatus) footerStatus.textContent = `STALE ${localTime(payload.generatedAt)}`;
             scheduleRetry();
