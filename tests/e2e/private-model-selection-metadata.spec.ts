@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import {
   formatSelectionMetadataKey,
   selectionMetadataEntries,
+  selectionSourceLinks,
 } from '../../src/scripts/privateModelSelectionMetadata';
 
 test('selection metadata keeps source-backed drainage inspection facts inside the 12-row panel limit', () => {
@@ -142,3 +143,36 @@ test('selection metadata gives P186D luminaire source and no-promotion fields co
   expect(formatSelectionMetadataKey('publishToCURRENT')).toBe('Julkaistaan CURRENTiin');
 });
 
+
+test('selection source links collect GLB sourceLinks from node and ancestors as Drive/Docs links only', () => {
+  const root = { userData: {} };
+  const group = {
+    parent: root,
+    userData: {
+      sourceLinks: [
+        { docId: 'D2F', link: 'https://drive.google.com/file/d/group/view', role: 'support', supports: ['G1', 'G2'] },
+        { docId: 'DUP', link: 'https://docs.google.com/document/d/node/edit', role: 'duplicate' },
+      ],
+    },
+  };
+  const node = {
+    parent: group,
+    userData: {
+      sourceLinks: [
+        { docId: 'QA', link: 'https://docs.google.com/document/d/node/edit', role: 'primary', supports: 'geometry' },
+        { docId: 'EXT', link: 'https://example.com/not-allowed', role: 'primary' },
+        { docId: 'HTTP', link: 'http://drive.google.com/file/d/insecure', role: 'primary' },
+        'not-an-object',
+      ],
+      Pass: 'D2F',
+    },
+  };
+
+  const links = selectionSourceLinks(node, root);
+  expect(links).toEqual([
+    { link: 'https://docs.google.com/document/d/node/edit', label: 'primary · geometry' },
+    { link: 'https://drive.google.com/file/d/group/view', label: 'support · G1, G2' },
+  ]);
+  expect(selectionMetadataEntries(node, root).map(([key]) => key)).not.toContain('sourceLinks');
+  expect(selectionSourceLinks({ userData: { sourceLinks: 'x' } }, null)).toEqual([]);
+});

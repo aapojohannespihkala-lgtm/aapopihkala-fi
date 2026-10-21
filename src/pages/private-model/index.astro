@@ -1261,6 +1261,20 @@ const title = 'Private 3D viewer';
 
       .selection-metadata-empty[hidden] { display: none; }
 
+      .selection-source-links[hidden] { display: none; }
+
+      .selection-source-links-list {
+        display: grid;
+        gap: 4px;
+        margin: 0;
+        padding-left: 16px;
+        font-size: 12px;
+      }
+
+      .selection-source-links-list a {
+        overflow-wrap: anywhere;
+      }
+
       .selection-actions {
         display: flex;
         flex-wrap: wrap;
@@ -1912,6 +1926,10 @@ const title = 'Private 3D viewer';
             <dl id="selection-metadata-list" class="selection-metadata-list"></dl>
             <div id="selection-metadata-empty" class="selection-metadata-empty">Ei lisämetadataa</div>
           </details>
+          <details id="selection-source-links" class="selection-metadata selection-source-links" hidden>
+            <summary title="GLB-solmun sourceLinks-lähdeviitteet. Lähdeviite, ei nykytila- eikä toteumaväite.">Lähteet</summary>
+            <ul id="selection-source-links-list" class="selection-source-links-list"></ul>
+          </details>
           <div class="selection-actions" aria-label="Valitun kohteen näkyvyys">
             <button id="isolate-selection-button" type="button">Isoloi</button>
             <button id="hide-selection-button" type="button">Piilota</button>
@@ -1974,6 +1992,7 @@ const title = 'Private 3D viewer';
       import { setupPrivateModelToolbarMenus } from '../../scripts/privateModelToolbarMenus';
       import {
         selectionMetadataEntries as collectSelectionMetadataEntries,
+        selectionSourceLinks as collectSelectionSourceLinks,
       } from '../../scripts/privateModelSelectionMetadata';
       import {
         createSelectionPanelController,
@@ -2628,6 +2647,8 @@ const title = 'Private 3D viewer';
         dimensions: selectionDimensions ?? undefined,
         metadataList: selectionMetadataList,
         metadataEmpty: selectionMetadataEmpty,
+        sourceLinksSection: document.querySelector<HTMLElement>('#selection-source-links'),
+        sourceLinksList: document.querySelector<HTMLElement>('#selection-source-links-list'),
       });
 
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -4637,6 +4658,7 @@ const title = 'Private 3D viewer';
             ...technicalMetadata,
             ...collectSelectionMetadataEntries(object, modelRoot),
           ],
+          sourceLinks: collectSelectionSourceLinks(object, modelRoot),
         });
 
         selectionHighlightController.select(object);
