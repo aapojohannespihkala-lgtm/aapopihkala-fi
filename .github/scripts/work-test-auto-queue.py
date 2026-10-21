@@ -2,9 +2,11 @@
 """Drive queue -> WORK_TEST candidate automation helper (stdlib only).
 
 Subcommands:
-  list-queue  List GLB/ZIP files in the Drive queue folder (needs GDRIVE_ACCESS_TOKEN).
-  plan        Decide the next action: publish | register | wait | none.
-  apply       Add one auto candidate to the registry JSON and the Worker allowlist.
+  list-queue            List GLB/ZIP files in the Drive queue folder (needs GDRIVE_ACCESS_TOKEN).
+  recent-registrations  Auto candidates added to the registry within the publish window (from git).
+  plan                  Decide this run's batch: which candidates to publish, which files to register.
+  apply                 Add one auto candidate to the registry JSON and the Worker allowlist.
+  apply-batch           Add several derived candidates in one change (one PR, one deploy).
 
 Auto candidates always have ids starting with "auto-". The Worker still pins the
 exact size and SHA-256 of the published GLB; this helper only writes those
@@ -15,7 +17,9 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
+import time
 import urllib.parse
 import urllib.request
 
@@ -28,6 +32,8 @@ DRIVE_ID_RE = re.compile(r"[A-Za-z0-9_-]{10,128}")
 QUEUE_EXTENSIONS = (".glb", ".zip")
 PUBLISH_MIN_AGE = 15 * 60  # let the Cloudflare deploy of the merged allowlist finish
 PUBLISH_MAX_AGE = 6 * 60 * 60  # stop retrying a failed publish so the queue keeps moving
+MAX_BATCH = 15  # files registered per run: bounds run time and PR size
+MAX_PUBLISH_FAILURES = 3  # a candidate that failed this often is skipped, not retried forever
 
 
 def split_name(name):
@@ -99,22 +105,68 @@ def cmd_list_queue(args):
     print(f"Queue files: {len(files)}")
 
 
-def plan(registry, catalog_ids, queue, registry_age, open_auto_pr):
-    candidates = registry["candidates"]
-    auto_ids = [cid for cid in candidates if cid.startswith(AUTO_PREFIX)]
-    if auto_ids:
-        latest = auto_ids[-1]
-        if latest not in catalog_ids and registry_age < PUBLISH_MAX_AGE:
-            if registry_age < PUBLISH_MIN_AGE:
-                return {"action": "wait", "candidate": latest}
-            return {"action": "publish", "candidate": latest}
-    if open_auto_pr:
-        return {"action": "none", "reason": "auto PR already open"}
-    known = {entry.get("driveFileId") for entry in candidates.values()}
-    for item in sorted(queue, key=lambda f: f.get("createdTime", "")):
-        if item["id"] not in known:
-            return {"action": "register", "file_id": item["id"], "name": item["name"]}
-    return {"action": "none", "reason": "queue empty"}
+def plan(registry, catalog_ids, queue, recent, failures, open_auto_pr, max_batch=MAX_BATCH):
+    """Return this run's batch.
+
+    recent maps auto candidate id -> seconds since the registry commit that added it,
+    limited to the publish window. Publishing and registering are independent: a failed
+    publish no longer holds back registration of new queue files.
+    """
+    publish, waiting, skipped = [], [], []
+    for cid, age in sorted(recent.items(), key=lambda item: -item[1]):
+        if cid not in registry["candidates"] or cid in catalog_ids or age >= PUBLISH_MAX_AGE:
+            continue
+        if failures.get(cid, 0) >= MAX_PUBLISH_FAILURES:
+            skipped.append(cid)
+        elif age < PUBLISH_MIN_AGE:
+            waiting.append(cid)
+        else:
+            publish.append(cid)
+    register = []
+    if not open_auto_pr:
+        known = {entry.get("driveFileId") for entry in registry["candidates"].values()}
+        for item in sorted(queue, key=lambda f: f.get("createdTime", "")):
+            if item["id"] not in known and len(register) < max_batch:
+                known.add(item["id"])
+                register.append({"file_id": item["id"], "name": item["name"]})
+    return {"publish": publish, "waiting": waiting, "skipped": skipped, "register": register}
+
+
+def recent_registrations(registry_path, window, now=None, git=None):
+    """Map auto ids -> age (s) for registry commits inside the window.
+
+    A commit whose parent is not available (shallow history boundary) is ignored, so a
+    missing parent can never make every historical candidate look newly registered.
+    """
+    git = git or (lambda *a: subprocess.run(["git", *a], capture_output=True, text=True))
+    now = int(time.time()) if now is None else now
+    log = git("log", f"--since=@{now - window}", "--format=%H %ct", "--", registry_path)
+    if log.returncode != 0:
+        raise SystemExit("git log failed")
+    result = {}
+    for line in log.stdout.split("\n"):
+        if not line.strip():
+            continue
+        sha, ts = line.split()
+        if git("rev-parse", "--verify", "--quiet", f"{sha}^").returncode != 0:
+            print(f"::warning::registry commit {sha} has no parent in history; ignored")
+            continue
+        current = git("show", f"{sha}:{registry_path}")
+        previous = git("show", f"{sha}^:{registry_path}")
+        if current.returncode != 0:
+            continue
+        before = set(json.loads(previous.stdout)["candidates"]) if previous.returncode == 0 else set()
+        for cid in json.loads(current.stdout)["candidates"]:
+            if cid.startswith(AUTO_PREFIX) and cid not in before:
+                result[cid] = max(0, now - int(ts))
+    return result
+
+
+def cmd_recent(args):
+    result = recent_registrations(args.registry, PUBLISH_MAX_AGE)
+    with open(args.out, "w", encoding="utf-8") as handle:
+        json.dump(result, handle)
+    print(f"Recently registered auto candidates: {len(result)}")
 
 
 def cmd_plan(args):
@@ -122,19 +174,20 @@ def cmd_plan(args):
     catalog = load_json(args.catalog)
     catalog_ids = {c.get("id") for c in catalog.get("candidates", [])}
     queue = load_json(args.queue)
-    result = plan(registry, catalog_ids, queue, args.registry_age, args.open_auto_pr == "1")
+    recent = load_json(args.recent)
+    failures = load_json(args.failures)
+    result = plan(registry, catalog_ids, queue, recent, failures, args.open_auto_pr == "1")
     print(json.dumps(result, ensure_ascii=False))
+    for cid in result["skipped"]:
+        print(f"::warning::{cid} failed to publish {MAX_PUBLISH_FAILURES} times; skipped")
+    # Lists go through files, never through shell interpolation of Drive names.
+    with open(args.publish_out, "w", encoding="utf-8") as handle:
+        handle.write("".join(f"{cid}\n" for cid in result["publish"]))
+    with open(args.register_out, "w", encoding="utf-8") as handle:
+        json.dump(result["register"], handle, ensure_ascii=False)
     with open(args.out, "a", encoding="utf-8") as handle:
-        handle.write(f"action={result['action']}\n")
-        if result.get("candidate"):
-            handle.write(f"candidate={result['candidate']}\n")
-        if result["action"] == "register":
-            _, scene = split_name(result["name"])
-            handle.write(f"file_id={result['file_id']}\n")
-            handle.write(f"extract_scene={'' if scene is None else scene}\n")
-            # Name goes through a file, never through shell interpolation.
-            with open(args.name_out, "w", encoding="utf-8") as name_handle:
-                name_handle.write(result["name"])
+        handle.write(f"publish_count={len(result['publish'])}\n")
+        handle.write(f"register_count={len(result['register'])}\n")
 
 
 def apply(registry, worker, file_id, name, size, sha256, date):
@@ -196,6 +249,35 @@ def cmd_apply(args):
     print(cid)
 
 
+def apply_batch(registry, worker, items, date):
+    """Apply derived items in order; returns (ids, registry, worker)."""
+    ids = []
+    for item in items:
+        cid, registry, worker = apply(
+            registry, worker, item["file_id"], item["name"], int(item["size"]), item["sha256"], date
+        )
+        ids.append(cid)
+    return ids, registry, worker
+
+
+def cmd_apply_batch(args):
+    registry = load_json(args.registry)
+    items = load_json(args.items)
+    if not items:
+        raise SystemExit("no derived items to register")
+    with open(args.worker, "r", encoding="utf-8") as handle:
+        worker = handle.read()
+    ids, registry, worker = apply_batch(registry, worker, items, args.date)
+    with open(args.registry, "w", encoding="utf-8") as handle:
+        json.dump(registry, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+    with open(args.worker, "w", encoding="utf-8") as handle:
+        handle.write(worker)
+    with open(args.ids_out, "w", encoding="utf-8") as handle:
+        handle.write("".join(f"{cid}\n" for cid in ids))
+    print("\n".join(ids))
+
+
 def main(argv):
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -205,13 +287,20 @@ def main(argv):
     p.add_argument("--out", required=True)
     p.set_defaults(func=cmd_list_queue)
 
+    p = sub.add_parser("recent-registrations")
+    p.add_argument("--registry", required=True)
+    p.add_argument("--out", required=True)
+    p.set_defaults(func=cmd_recent)
+
     p = sub.add_parser("plan")
     p.add_argument("--registry", required=True)
     p.add_argument("--catalog", required=True)
     p.add_argument("--queue", required=True)
-    p.add_argument("--registry-age", type=int, required=True)
+    p.add_argument("--recent", required=True)
+    p.add_argument("--failures", required=True)
     p.add_argument("--open-auto-pr", choices=["0", "1"], required=True)
-    p.add_argument("--name-out", required=True)
+    p.add_argument("--publish-out", required=True)
+    p.add_argument("--register-out", required=True)
     p.add_argument("--out", required=True)
     p.set_defaults(func=cmd_plan)
 
@@ -225,6 +314,14 @@ def main(argv):
     p.add_argument("--date", required=True)
     p.add_argument("--out", required=True)
     p.set_defaults(func=cmd_apply)
+
+    p = sub.add_parser("apply-batch")
+    p.add_argument("--registry", required=True)
+    p.add_argument("--worker", required=True)
+    p.add_argument("--items", required=True)
+    p.add_argument("--date", required=True)
+    p.add_argument("--ids-out", required=True)
+    p.set_defaults(func=cmd_apply_batch)
 
     args = parser.parse_args(argv)
     args.func(args)
