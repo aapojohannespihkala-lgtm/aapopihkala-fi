@@ -1,0 +1,966 @@
+{
+  "drive-source": {
+    "sha256": "826a74615f47f15d516d2956b9649ec23a89976b0fb8b0ab48bd5b230ef2bf5c",
+    "sceneIndex": 0,
+    "roots": [
+      414,
+      421
+    ],
+    "nodes": {
+      "398": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_11_2_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "11.2",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Ulko PR parveke",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::11.2::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "399": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_12_2_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "12.2",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "MH yläkerta isompi",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::12.2::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "400": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_12_3_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "12.3",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "MH yläkerta pienempi",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::12.3::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "401": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_1_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "13.1",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "PR keittiö",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.1::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "402": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_1_002",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "13.1",
+          "sourceOccurrenceOrdinal": 2,
+          "sourceScheduleName": "PR keittiö",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.1::002",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "403": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_2_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "13.2",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "APK",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.2::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "404": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_3_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "13.3",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Uuni",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.3::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "405": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_14_1_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "14.1",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Olohuone",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::14.1::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "406": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_14_2_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "14.2",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Viinikaappi",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::14.2::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "407": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_14_3_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "14.3",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Lieistuuletin",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::14.3::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "408": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_15_1_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "15.1",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "PR aula/wc",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::15.1::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "409": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_4_3_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "4.3",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Valaistus keittiö",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::4.3::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "410": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_5_1_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "5.1",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Jääkaappi",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::5.1::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "411": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_5_2_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "5.2",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Pakastin",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::5.2::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "412": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_5_3_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "5.3",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Palovaroittimet",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::5.3::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "414": {
+        "name": "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+        "children": [
+          398,
+          399,
+          400,
+          401,
+          402,
+          403,
+          404,
+          405,
+          406,
+          407,
+          408,
+          409,
+          410,
+          411,
+          412
+        ],
+        "extras": {}
+      },
+      "419": {
+        "name": "P186E_X1_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalSpecialSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceText": "Kattoikkuna LED-nauha 9,6W/m",
+          "sourceLabelId": "D2015_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen kattoikkunan LED-nauha 9,6 W/m -erityismerkintä. Ei ryhmäsidontaa tai nykytehon mittausta."
+            }
+          ]
+        }
+      },
+      "421": {
+        "name": "P186E_X1_D2015_SPECIAL_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+        "children": [
+          419
+        ],
+        "extras": {}
+      }
+    }
+  },
+  "published-scene": {
+    "sha256": "d16d6c3e14eafaa8da09d0cef17dcabe3c36aab5a5cae05c97eea5e2e50f6403",
+    "sceneIndex": 0,
+    "roots": [
+      384,
+      415
+    ],
+    "nodes": {
+      "384": {
+        "name": "P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+        "children": [
+          398,
+          399,
+          400,
+          401,
+          402,
+          403,
+          404,
+          405,
+          406,
+          407,
+          408,
+          409,
+          410,
+          411,
+          412,
+          413
+        ],
+        "extras": {}
+      },
+      "398": {
+        "name": "P186E_X1_GROUP_LABEL_D_1F_9_3_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_1F",
+          "sourceGroupKey": "9.3",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_1F::9.3::001"
+        }
+      },
+      "399": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_11_2_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "11.2",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Ulko PR parveke",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::11.2::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "400": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_12_2_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "12.2",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "MH yläkerta isompi",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::12.2::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "401": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_12_3_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "12.3",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "MH yläkerta pienempi",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::12.3::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "402": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_1_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "13.1",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "PR keittiö",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.1::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "403": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_1_002",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "13.1",
+          "sourceOccurrenceOrdinal": 2,
+          "sourceScheduleName": "PR keittiö",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.1::002",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "404": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_2_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "13.2",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "APK",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.2::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "405": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_13_3_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "13.3",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Uuni",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::13.3::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "406": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_14_1_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "14.1",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Olohuone",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::14.1::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "407": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_14_2_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "14.2",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Viinikaappi",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::14.2::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "408": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_14_3_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "14.3",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Lieistuuletin",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::14.3::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "409": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_15_1_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "15.1",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "PR aula/wc",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::15.1::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "410": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_4_3_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "4.3",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Valaistus keittiö",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::4.3::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "411": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_5_1_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "5.1",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Jääkaappi",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::5.1::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "412": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_5_2_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "5.2",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Pakastin",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::5.2::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "413": {
+        "name": "P186E_X1_GROUP_LABEL_D_2F_5_3_001",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalGroupSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceGroupKey": "5.3",
+          "sourceOccurrenceOrdinal": 1,
+          "sourceScheduleName": "Palovaroittimet",
+          "annotationStableKey": "D2015_GROUP_LABEL::D_2F::5.3::001",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen ryhmänumerotekstin lähdemerkintä. Ei fyysistä laitegeometriaa tai nykyasennuksen sijaintia."
+            },
+            {
+              "docId": "DOC:1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP",
+              "link": "https://drive.google.com/file/d/1-dioYKOAol67GyH0rl5cQ-omRcoeWAkP/view",
+              "role": "support",
+              "supports": "Ryhmän nimi 30.12.2014 päivätystä keskuskaaviosta (2015-aineisto). Historiallinen lähde, ei nykyasennuksen sijaintia.",
+              "documentDate": "2014-12-30"
+            }
+          ]
+        }
+      },
+      "415": {
+        "name": "P186E_X1_D2015_SPECIAL_LABEL_ANCHORS_ROOT_BABYLON_Y_UP",
+        "children": [
+          420
+        ],
+        "extras": {}
+      },
+      "420": {
+        "name": "P186E_X1_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01",
+        "mesh": 198,
+        "extras": {
+          "hostStorey": "D_2F",
+          "representationKind": "electricalSpecialSourceLabelAnchor",
+          "sourcePdfDriveId": "1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+          "sourceText": "Kattoikkuna LED-nauha 9,6W/m",
+          "sourceLabelId": "D2015_SPECIAL_LABEL_D2F_SKYLIGHT_LED_STRIP_01",
+          "sourceLinks": [
+            {
+              "docId": "DOC:1dzzZsa9FCiyqmv8WholhLxba6Kxobspg",
+              "link": "https://drive.google.com/file/d/1dzzZsa9FCiyqmv8WholhLxba6Kxobspg/view",
+              "role": "primary",
+              "supports": "Vuoden 2015 johdotuspiirustuksen kattoikkunan LED-nauha 9,6 W/m -erityismerkintä. Ei ryhmäsidontaa tai nykytehon mittausta."
+            }
+          ]
+        }
+      }
+    }
+  }
+}

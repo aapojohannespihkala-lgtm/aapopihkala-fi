@@ -5,6 +5,7 @@ export type SourceCardBundle = {
   manifest: RecordData;
   lookup: { cards: RecordData[]; bindings: RecordData[] };
   modules: Record<string, RecordData>;
+  versionBindings?: RecordData;
 };
 
 export type SourceEvidenceKind = 'measurement' | 'plan' | 'observation' | 'derived' | 'assumption' | 'unverified';
@@ -96,7 +97,69 @@ export const adaptSourceCard = (id: string, raw: RecordData): SelectionSourceCar
   };
 };
 
-type IndexedCard = { id: string; moduleId: string; module: RecordData; raw: RecordData; binding: RecordData };
+type IndexedCard = { id: string; moduleId: string; module: RecordData; raw: RecordData; binding: RecordData; notes?: string[] };
+
+const validIndex = (value: unknown): value is number => Number.isInteger(value) && Number(value) >= 0;
+const validSha = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+const sameValues = (first: unknown, second: unknown) => JSON.stringify(first) === JSON.stringify(second);
+
+/** Explicitly audited D2F versions reuse card content, never another version's
+ * numeric selectors. The original handoff and payload bytes remain unchanged. */
+const appendD2FVersionBindings = (bundle: SourceCardBundle, entries: IndexedCard[], keys: Set<string>) => {
+  const additional = bundle.versionBindings;
+  if (!additional) return;
+  const invalid = () => { throw Error('D2F-lähdekortin versiosidontaa ei ole varmennettu.'); };
+  if (additional.schema !== 'ylisrinne-source-card-version-bindings-v1' || !Array.isArray(additional.versions)) invalid();
+  const originalCards = new Map(entries.filter(entry => entry.moduleId === 'D2015').map(entry => [entry.id, entry]));
+  const scopes = new Set(entries.map(entry => entry.module.model.sha256));
+  let count = 0;
+  for (const version of additional.versions) {
+    const model = version.model;
+    const originalModule = bundle.modules.D2015;
+    if (version.moduleId !== 'D2015' || version.sourceModelSha256 !== originalModule.model.sha256 ||
+        !validSha(model?.sha256) || scopes.has(model.sha256) || model.sceneIndex !== 0 ||
+        !validIndex(model.byteLength) || model.byteLength === 0 || !['drive-source', 'published-scene'].includes(model.kind) ||
+        !Array.isArray(version.bindings) || version.bindings.length !== originalModule.cards.length ||
+        version.audit?.geometryAndTransformsUnchanged !== true || version.audit?.semanticFieldsUnchanged !== true ||
+        !validSha(version.audit?.geometryProofSha256)) invalid();
+    scopes.add(model.sha256);
+    const cardIds = new Set<string>();
+    let links = 0;
+    for (const item of version.bindings) {
+      const source = originalCards.get(item.integrationCardId);
+      const selector = item.selector;
+      if (!source || cardIds.has(source.id) || !selector) invalid();
+      const original = source!.raw.selector;
+      const isGroup = source!.raw.sourceGroupKey !== null;
+      const expectedRoot = isGroup ? 'P186E_X1_D2015_GROUP_LABEL_ANCHORS_ROOT_BABYLON_Y_UP' : 'P186E_X1_D2015_SPECIAL_LABEL_ANCHORS_ROOT_BABYLON_Y_UP';
+      if (selector.nodeName !== original.nodeName || selector.extrasKey !== original.extrasKey || selector.extrasValue !== original.extrasValue ||
+          !validIndex(selector.nodeIndex) || !validIndex(selector.meshIndex) ||
+          !Array.isArray(selector.nodePath) || selector.nodePath.length !== 2 || !selector.nodePath.every(validIndex) ||
+          selector.nodePath[0] === selector.nodeIndex || selector.nodePath[1] !== selector.nodeIndex ||
+          !sameValues(selector.nodePathNames, [expectedRoot, original.nodeName]) ||
+          selector.extraGuards?.hostStorey !== 'D_2F' ||
+          selector.extraGuards?.sourcePdfDriveId !== source!.raw.sources[0].driveId ||
+          (isGroup && (selector.extraGuards.sourceGroupKey !== source!.raw.sourceGroupKey ||
+            selector.extraGuards.sourceOccurrenceOrdinal !== source!.raw.sourceOccurrenceOrdinal ||
+            selector.extraGuards.sourceScheduleName !== source!.raw.sourceTextVerbatim)) ||
+          (!isGroup && (selector.extraGuards.sourceText !== source!.raw.sourceTextVerbatim || selector.extraGuards.sourceGroupKey !== undefined)) ||
+          !Array.isArray(selector.sourceLinkGuards) || selector.sourceLinkGuards.length !== source!.raw.sources.length ||
+          !Array.isArray(item.notes) || item.notes.some((note: unknown) => typeof note !== 'string') || (!isGroup && item.notes.length > 0)) invalid();
+      for (const reference of source!.raw.sources) {
+        const matches = selector.sourceLinkGuards.filter((link: RecordData) => link.link === reference.url);
+        const role = reference.role === 'group_name' ? 'support' : 'primary';
+        if (matches.length !== 1 || !allowedSourceCardUrl(matches[0].link) || matches[0].docId !== `DOC:${reference.driveId}` ||
+            matches[0].role !== role || (role === 'support' && matches[0].documentDate !== '2014-12-30')) invalid();
+      }
+      const key = `${model.sha256}:${model.sceneIndex}:${selector.nodeIndex}`;
+      if (keys.has(key)) invalid();
+      keys.add(key); cardIds.add(source!.id); links += selector.sourceLinkGuards.length; count++;
+      entries.push({ ...source!, module: { ...source!.module, model }, binding: selector, notes: item.notes });
+    }
+    if (cardIds.size !== originalCards.size || version.audit.cardCount !== cardIds.size || version.audit.sourceRoleRecords !== links) invalid();
+  }
+  if (additional.totals?.modelVersions !== additional.versions.length || additional.totals?.targetBindings !== count) invalid();
+};
 
 /** Reject incomplete/ambiguous handoffs rather than widening a card's scope. */
 export const indexSourceCardBundle = (bundle: SourceCardBundle): IndexedCard[] => {
@@ -123,6 +186,7 @@ export const indexSourceCardBundle = (bundle: SourceCardBundle): IndexedCard[] =
   }
   if (new Set(entries.map(entry => entry.id)).size !== bundle.manifest.totals.cards ||
       entries.length !== bundle.manifest.totals.targetBindings || entries.length !== bundle.lookup.bindings.length) throw Error('Lähdekorttien kattavuus ei täsmää.');
+  appendD2FVersionBindings(bundle, entries, keys);
   return entries;
 };
 
@@ -202,11 +266,23 @@ export const createSourceCardResolver = (
     const { binding, moduleId, module, raw, id } = entry;
     const paths = sourcePaths(json, sceneIndex, binding.nodeIndex);
     if (paths.length !== 1 || runtimePath.join(',') !== [...paths[0]].reverse().join(',')) return result('mismatch', 'Objektin parent/root-polku ei täsmää alkuperäiseen sceneen.', [], sceneIndex);
+    if (binding.nodePath && (!sameValues(paths[0], binding.nodePath) ||
+        !sameValues(paths[0].map(index => json.nodes[index].name), binding.nodePathNames))) return result('mismatch', 'Versiosidonnan root-polku ei täsmää.', [], sceneIndex);
     if (node.name !== binding.nodeName || selected?.name !== binding.nodeName ||
         (binding.meshIndex !== undefined && (node.mesh ?? null) !== binding.meshIndex)) return result('mismatch', 'Objektin lähdenimi tai mesh ei täsmää.', [], sceneIndex);
     const field = binding.extrasKey ?? binding.sourceField ?? binding.sourceKey;
     const expected = binding.extrasValue ?? binding.sourceFieldValue ?? binding.sourceValue;
     if (field && (node.extras?.[field] !== expected || selected?.userData?.[field] !== expected)) return result('mismatch', 'Objektin lähdekenttä ei täsmää.', [], sceneIndex);
+    for (const [key, value] of Object.entries(binding.extraGuards ?? {})) {
+      if (node.extras?.[key] !== value || selected?.userData?.[key] !== value) return result('mismatch', 'Versiosidonnan lähdetieto ei täsmää.', [], sceneIndex);
+    }
+    if (binding.sourceLinkGuards) {
+      for (const rawLinks of [node.extras?.sourceLinks, selected?.userData?.sourceLinks]) {
+        if (!Array.isArray(rawLinks) || rawLinks.length !== binding.sourceLinkGuards.length ||
+            binding.sourceLinkGuards.some((expected: RecordData) => rawLinks.filter((link: RecordData) =>
+              link && Object.entries(expected).every(([key, value]) => link[key] === value)).length !== 1)) return result('mismatch', 'Versiosidonnan lähdelinkit tai roolit eivät täsmää.', [], sceneIndex);
+      }
+    }
     if (moduleId === 'KPH09_SWITCH' &&
         (paths[0][0] !== 119 || (binding.nodeIndex !== 263 && paths[0].at(-2) !== 263))) return result('mismatch', 'Kytkinryhmän hierarkia ei täsmää.', [], sceneIndex);
     if (moduleId === 'KPH_MIRROR') {
@@ -217,7 +293,9 @@ export const createSourceCardResolver = (
           (binding.sourceDonorNode !== undefined &&
            (node.extras?.sourceDonorNode !== binding.sourceDonorNode || selected?.userData?.sourceDonorNode !== binding.sourceDonorNode))) return result('mismatch', 'Peilikaapin root/donor-kohdistus ei täsmää.', [], sceneIndex);
     }
-    return result('matched', undefined, [adaptSourceCard(id, raw)], sceneIndex);
+    const card = adaptSourceCard(id, raw);
+    card.notes.push(...(entry.notes ?? []));
+    return result('matched', undefined, [card], sceneIndex);
   };
 };
 
